@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Application.Abstractions.Email;
 using MicroLIMS.Application.Abstractions.Persistence;
+using MicroLIMS.Application.Services.SystemSettings;
 
 namespace MicroLIMS.Application.Services;
 
@@ -11,6 +12,11 @@ namespace MicroLIMS.Application.Services;
 // switched on, so no environment mails anyone by accident - a developer
 // running locally with a real Smtp:Host configured would otherwise start
 // paging whoever is on the recipient list.
+//
+// Recipient is the legacy single-address configuration value. When the settings
+// registry is available the recipients come from Alerts.CriticalRecipients
+// (database, then this same legacy key, then empty); Recipient is used only
+// when there is no registry, e.g. in unit tests and tools.
 public record CriticalAlertOptions(bool Enabled, string? Recipient, string EnvironmentName);
 
 // Sends one email when an Incident reaches Critical severity.
@@ -33,14 +39,17 @@ public class CriticalAlertService : ICriticalAlertService
     private readonly CriticalAlertOptions _options;
     private readonly ILogger<CriticalAlertService> _logger;
     private readonly TimeProvider _time;
+    private readonly ISystemSettingsReader? _settings;
 
     public CriticalAlertService(
         IMicroLimsDbContext db,
         IEmailSender emailSender,
         CriticalAlertOptions options,
         ILogger<CriticalAlertService> logger,
-        TimeProvider? timeProvider = null)
+        TimeProvider? timeProvider = null,
+        ISystemSettingsReader? settings = null)
     {
+        _settings = settings;
         _time = timeProvider ?? TimeProvider.System;
         _db = db;
         _emailSender = emailSender;
@@ -53,7 +62,20 @@ public class CriticalAlertService : ICriticalAlertService
     // laboratory work produced the original error.
     public async Task<int> DispatchPendingAsync(CancellationToken cancellationToken = default)
     {
-        if (!_options.Enabled || string.IsNullOrWhiteSpace(_options.Recipient))
+        if (!_options.Enabled)
+            return 0;
+
+        IReadOnlyList<string> recipients;
+        try
+        {
+            recipients = await ResolveRecipientsAsync(cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Could not read the Critical alert recipients.");
+            return 0;
+        }
+        if (recipients.Count == 0)
             return 0;
 
         List<Domain.Entities.Incident> pending;
@@ -80,13 +102,17 @@ public class CriticalAlertService : ICriticalAlertService
         foreach (var incident in pending)
         {
             if (cancellationToken.IsCancellationRequested) break;
-            if (await TrySendAsync(incident, cancellationToken)) sent++;
+            if (await TrySendAsync(incident, recipients, cancellationToken)) sent++;
         }
 
         return sent;
     }
 
-    private async Task<bool> TrySendAsync(Domain.Entities.Incident incident, CancellationToken cancellationToken)
+    // Shared with the test alert so both go to the same people.
+    public Task<IReadOnlyList<string>> ResolveRecipientsAsync(CancellationToken cancellationToken = default) =>
+        CriticalAlertRecipients.ResolveAsync(_settings, _options, cancellationToken);
+
+    private async Task<bool> TrySendAsync(Domain.Entities.Incident incident, IReadOnlyList<string> recipients, CancellationToken cancellationToken)
     {
         try
         {
@@ -99,15 +125,33 @@ public class CriticalAlertService : ICriticalAlertService
                 .Distinct()
                 .ToListAsync(cancellationToken);
 
-            await _emailSender.SendAsync(
-                _options.Recipient!,
-                $"[MicroLIMS] Critical incident - {_options.EnvironmentName}",
-                BuildBody(incident, occurrences, sources));
+            var subject = $"[MicroLIMS] Critical incident - {_options.EnvironmentName}";
+            var body = BuildBody(incident, occurrences, sources);
 
-            // Stamped only after the send returns. A failure leaves it null
-            // so the next pass retries; the worst case is a duplicate alert
-            // for a send that succeeded but whose stamp did not commit,
-            // which is preferable to a Critical incident nobody hears about.
+            // Each recipient is tried on its own so one bad mailbox does not
+            // keep the others from hearing about the incident.
+            var delivered = 0;
+            foreach (var recipient in recipients)
+            {
+                try
+                {
+                    await _emailSender.SendAsync(recipient, subject, body);
+                    delivered++;
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Failed to send the Critical alert for incident {IncidentId} to one recipient.", incident.Id);
+                }
+            }
+            if (delivered == 0)
+                throw new InvalidOperationException("The alert could not be delivered to any recipient.");
+
+            // Stamped only after at least one send returns. A total failure
+            // leaves it null so the next pass retries; the worst case is a
+            // duplicate alert for a send that succeeded but whose stamp did
+            // not commit, which is preferable to a Critical incident nobody
+            // hears about. A partial failure is not retried, to avoid
+            // mailing the recipients that already have it again.
             incident.AlertedAtUtc = _time.GetUtcNow().UtcDateTime;
             await _db.SaveChangesAsync(cancellationToken);
 
@@ -156,5 +200,18 @@ public class CriticalAlertService : ICriticalAlertService
             "",
             "This is an automated operational notification. It is not a GxP record."
         });
+    }
+}
+
+public static class CriticalAlertRecipients
+{
+    public static async Task<IReadOnlyList<string>> ResolveAsync(
+        ISystemSettingsReader? settings, CriticalAlertOptions options, CancellationToken cancellationToken = default)
+    {
+        var raw = settings is null
+            ? options.Recipient
+            : await settings.GetStringAsync(SystemSettingKeys.AlertsCriticalRecipients, cancellationToken);
+        // Only valid addresses are ever mailed: a value edited outside the application is filtered, not trusted.
+        return EmailAddressList.Parse(raw).Where(EmailAddressList.IsValidAddress).ToList();
     }
 }

@@ -7,13 +7,15 @@ public static class PasswordPolicy
 {
     public const int MinimumLength = 8;
 
-    public static List<string> Validate(string? password)
+    // minimumLength comes from the settings registry (security.password.minimumLength);
+    // the default is the built-in value for callers with no registry.
+    public static List<string> Validate(string? password, int minimumLength = MinimumLength)
     {
         var failures = new List<string>();
         password ??= string.Empty;
 
-        if (password.Length < MinimumLength)
-            failures.Add($"Password must be at least {MinimumLength} characters long.");
+        if (password.Length < minimumLength)
+            failures.Add($"Password must be at least {minimumLength} characters long.");
         if (!password.Any(char.IsUpper))
             failures.Add("Password must contain at least one uppercase letter.");
         if (!password.Any(char.IsLower))

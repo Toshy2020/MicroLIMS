@@ -4,6 +4,7 @@ using MicroLIMS.Application.Services.EquipmentPlan;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Persistence.DbContext;
+using MicroLIMS.Persistence.Helpers;
 using MicroLIMS.Shared.Constants;
 using MicroLIMS.Shared.Exceptions;
 using MicroLIMS.Tests.Fixtures;
@@ -157,7 +158,7 @@ public class EquipmentWorkServiceTests
         await db.SaveChangesAsync();
 
         var signatures = new ElectronicSignatureService(db);
-        var service = new EquipmentWorkService(db, clock, signatures);
+        var service = new EquipmentWorkService(db, clock, signatures, new DatabaseSequenceHelper(db));
 
         return new World
         {
@@ -547,11 +548,48 @@ public class EquipmentWorkServiceTests
         Assert.Equal(EquipmentOperationalStatus.InService, history.PreviousStatus);
         Assert.Equal(EquipmentOperationalStatus.OutOfService, history.NewStatus);
         Assert.Equal("Calibration overdue since 2026-03-10 (automatic)", history.Comment);
-        Assert.True(history.ChangedByUserId > 0);
+        Assert.Null(history.ChangedByUserId); // the system did it, not a user
+        Assert.Null(eq.LastModifiedByUserId);
 
         // Second call is idempotent and changes nothing
         var changedSecond = await w.Service.ApplyOverdueAsync(today);
         Assert.Equal(0, changedSecond);
+    }
+
+    // The automatic job used to attribute its change to the lowest-id
+    // administrator (or "admin"/"system", or the first user). It must never
+    // pick a user: the history and the equipment record carry no user id, and
+    // the audit trail names the System actor and the worker instead.
+    [Fact]
+    public async Task Overdue_calibration_is_attributed_to_the_system_not_to_any_user()
+    {
+        var w = await BuildAsync();
+        var adminRole = new Role { Name = "System Administrator", Type = RoleType.SystemAdministrator, IsSystemRole = true, IsActive = true };
+        w.Db.Roles.Add(adminRole);
+        await w.Db.SaveChangesAsync();
+        w.Db.Users.Add(new User { Username = "admin", FullName = "Admin User", RoleId = adminRole.Id, PasswordHash = "x", IsActive = true });
+        await w.Db.SaveChangesAsync();
+        w.Db.CurrentSystemProcessName = "EquipmentOverdueWorker";
+        var auditBefore = await w.Db.AuditLogs.CountAsync();
+
+        var changed = await w.Service.ApplyOverdueAsync(w.Clock.LabToday);
+        Assert.Equal(1, changed);
+
+        var eq = await w.Db.EquipmentInventories.FindAsync(w.Equipment.Id);
+        Assert.NotNull(eq);
+        Assert.Null(eq.LastModifiedByUserId);
+        var history = await w.Db.EquipmentStatusHistories.SingleAsync(h => h.EquipmentInventoryId == w.Equipment.Id);
+        Assert.Null(history.ChangedByUserId);
+
+        var rows = (await w.Db.AuditLogs.ToListAsync()).Skip(auditBefore).ToList();
+        Assert.Contains(rows, r => r.EntityName == nameof(EquipmentInventory) && r.Action == "Update");
+        Assert.Contains(rows, r => r.EntityName == nameof(EquipmentStatusHistory) && r.Action == "Create");
+        Assert.All(rows, r =>
+        {
+            Assert.Null(r.UserId);
+            Assert.Equal(ActorType.System, r.ActorType);
+            Assert.Equal("EquipmentOverdueWorker", r.SystemProcessName);
+        });
     }
 
     [Fact]

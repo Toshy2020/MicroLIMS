@@ -1,8 +1,9 @@
 namespace MicroLIMS.Domain.Entities;
 
 // A medium permitted on a workflow step, configured in Test Master.
-// MaterialId points at the medium itself (a Material with MaterialType.
-// DehydratedMedia); the physical lot chosen at run time is a Media row.
+// MediaProductId points at the Culture Media entry (the product); any released
+// Media lot of that product fits, and the physical lot chosen at run time is a
+// Media row.
 public class TestWorkflowStepMedia
 {
     public int Id { get; set; }
@@ -10,7 +11,15 @@ public class TestWorkflowStepMedia
     public int TestWorkflowStepId { get; set; }
     public TestWorkflowStep? TestWorkflowStep { get; set; }
 
-    public int MaterialId { get; set; }
+    // Source of truth. Required on every row written by Test Master; nullable at
+    // the database level only because the Master Testing Materials backfill could
+    // not resolve some historic rows (see the StepMediaDiluentMediaProduct migration).
+    public int? MediaProductId { get; set; }
+    public MediaProduct? MediaProduct { get; set; }
+
+    // Legacy: the dehydrated-media stock lot that stood in for "the medium" before
+    // step media pointed at the product. Kept for history; no longer written or read.
+    public int? MaterialId { get; set; }
     public Material? Material { get; set; }
 
     // The configured condition (time + temperature) from which TempMin/Max and

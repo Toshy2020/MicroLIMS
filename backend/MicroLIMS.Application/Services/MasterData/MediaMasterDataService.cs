@@ -67,6 +67,8 @@ public class MediaMasterDataService
     {
         var product = await _db.MediaProducts.FirstOrDefaultAsync(p => p.Id == request.MediaProductId)
             ?? throw new InvalidOperationException($"Media product with ID {request.MediaProductId} not found.");
+        if (!product.IsActive)
+            throw new InvalidOperationException($"Media product \"{product.Name}\" is inactive and can't get a new configuration.");
 
         var condition = await _db.MediaIncubationConditions.FirstOrDefaultAsync(c => c.Id == request.MediaIncubationConditionId)
             ?? throw new InvalidOperationException($"Incubation condition {request.MediaIncubationConditionId} not found.");

@@ -55,6 +55,10 @@ public class InstrumentAgentServiceTests
         db.Users.AddRange(admin, head);
         db.SaveChanges();
         TestServiceFactory.AssignUserToMicroSection(db, head.Id);
+        // Writes follow membership for everyone: the administrator registers agents only in the sections it has been given.
+        TestServiceFactory.AssignUserToMicroSection(db, admin.Id);
+        db.UserOrgMemberships.Add(new UserOrgMembership { UserId = admin.Id, DepartmentId = other.DepartmentId, SectionId = other.Id });
+        db.SaveChanges();
 
         var hplc = new Equipment { Name = "HPLC 1", Code = "HPLC-01", Type = EquipmentType.Hplc, SectionId = micro.Id };
         var inc = new Equipment { Name = "Incubator", Code = "INC-01", Type = EquipmentType.Incubator, SectionId = micro.Id };
@@ -119,6 +123,17 @@ public class InstrumentAgentServiceTests
         await Assert.ThrowsAsync<UnauthorizedAccessException>(() => w.Service.RegisterAsync(w.OtherSectionHplc.Id, "x", "Africa/Cairo", w.SectionHead.Id, default));
         var (agent, _) = await w.Service.RegisterAsync(w.Hplc.Id, "x", "Africa/Cairo", w.SectionHead.Id, default);
         Assert.Equal(w.Hplc.SectionId, agent.SectionId);
+    }
+
+    [Fact]
+    public async Task An_administrator_without_membership_of_the_equipments_section_cannot_register_an_agent()
+    {
+        var w = NewWorld();
+        w.Db.UserOrgMemberships.RemoveRange(w.Db.UserOrgMemberships.Where(m => m.UserId == w.Admin.Id));
+        await w.Db.SaveChangesAsync();
+
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => w.Service.RegisterAsync(w.Hplc.Id, "x", "Africa/Cairo", w.Admin.Id, default));
+        Assert.False(await w.Db.InstrumentAgents.AnyAsync());
     }
 
     [Fact]

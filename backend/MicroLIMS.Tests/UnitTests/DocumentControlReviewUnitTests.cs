@@ -63,6 +63,7 @@ public class DocumentControlReviewUnitTests
 
         // Seeds the real production permission grants - see DocumentControlUnitTests.
         DbSeeder.SeedPermissionsAndGrants(_db);
+        MicroLIMS.Tests.Fixtures.DocumentControlTestGrants.GrantToAllNonAdministratorRoles(_db);
 
         // Seed Users
         var adminUser = new User { Username = "admin", FullName = "System Admin", Email = "admin@lims.local", PasswordHash = "x", RoleId = adminRole.Id, IsActive = true };
@@ -185,20 +186,32 @@ public class DocumentControlReviewUnitTests
     }
 
     [Fact]
-    public async Task SoD_AuthorCannotBeAssignedAsReviewer_EvenByAdmin()
+    public async Task SoD_AuthorCannotBeAssignedAsReviewer_EvenByDocumentController()
     {
         var (_, revId) = await SeedDraftDocumentAsync(attachPdf: true);
 
         var req = new SubmitForReviewRequest
         {
-            ReviewerUserId = _authorUserId, // Admin attempts to assign the author as reviewer
-            SubmissionNotes = "Admin override attempt"
+            ReviewerUserId = _authorUserId, // The Document Controller attempts to assign the author as reviewer
+            SubmissionNotes = "Controller override attempt"
         };
 
         var ex = await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
-            _reviewService.SubmitForReviewAsync(revId, req, _adminUserId));
+            _reviewService.SubmitForReviewAsync(revId, req, _controllerUserId));
 
         Assert.Contains("Segregation of Duties", ex.Message);
+    }
+
+    // A System Administrator controls the system, not the document: it cannot submit a revision for review.
+    [Fact]
+    public async Task SubmitForReview_BySystemAdministrator_IsRefused()
+    {
+        var (_, revId) = await SeedDraftDocumentAsync(attachPdf: true);
+
+        var ex = await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
+            _reviewService.SubmitForReviewAsync(revId, new SubmitForReviewRequest { ReviewerUserId = _reviewerUserId }, _adminUserId));
+
+        Assert.Contains("not authorized to submit", ex.Message);
     }
 
     [Fact]
@@ -437,5 +450,32 @@ public class DocumentControlReviewUnitTests
         Assert.Contains("ReviewFindingCreated", auditLogs);
         Assert.Contains("ReviewFindingResolved", auditLogs);
         Assert.Contains("TechnicalReviewCompleted", auditLogs);
+    }
+
+    // Administrators control the system, never review GxP data (21 CFR Part 11 11.10(d)(g), EU GMP Annex 11 12):
+    // they get no stand-in role on a review task, while the Document Controller (Section Head) keeps it.
+    [Fact]
+    public async Task Administrator_CannotAddVerifyResolveOrDecide_ButTheDocumentControllerStillCan()
+    {
+        var (_, revId) = await SeedDraftDocumentAsync(attachPdf: true);
+        var task = await _reviewService.SubmitForReviewAsync(revId, new SubmitForReviewRequest { ReviewerUserId = _reviewerUserId }, _authorUserId);
+
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
+            _reviewService.AddReviewFindingAsync(task.Id, new AddReviewFindingRequest { CommentText = "Admin comment", IsMandatory = false }, _adminUserId));
+        Assert.Empty(_db.DocumentReviewFindings);
+
+        // Section Head behaviour is unchanged
+        var finding = await _reviewService.AddReviewFindingAsync(
+            task.Id, new AddReviewFindingRequest { CommentText = "Controller comment", IsMandatory = false }, _controllerUserId);
+
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
+            _reviewService.VerifyFindingAsync(finding.Id, new VerifyFindingRequest { VerificationNotes = "Admin verifying" }, _adminUserId));
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
+            _reviewService.ResolveFindingAsync(finding.Id, _adminUserId));
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
+            _reviewService.DecideReviewAsync(task.Id, new ReviewDecisionRequest { Decision = ReviewDecision.CompleteReview }, _adminUserId));
+
+        var verified = await _reviewService.VerifyFindingAsync(finding.Id, new VerifyFindingRequest { VerificationNotes = "Controller verified" }, _controllerUserId);
+        Assert.Equal(ReviewFindingStatus.ReviewerVerified, verified.Status);
     }
 }

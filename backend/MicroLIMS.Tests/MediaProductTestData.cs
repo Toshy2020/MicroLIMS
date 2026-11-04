@@ -49,6 +49,22 @@ public static class MediaProductTestData
         return product;
     }
 
+    // The Culture Media product behind a test material, created (and linked) on demand. Step media
+    // match on product only, so a fixture that used to name a stock lot names that lot's product.
+    public static int ProductIdFor(MicroLimsDbContext db, Material material)
+    {
+        if (material.MediaProductId is int existing) return existing;
+        var product = new MediaProduct { Name = $"{material.MaterialName} (test product {material.Id})", Code = $"TP{material.Id}" };
+        db.MediaProducts.Add(product);
+        db.SaveChanges();
+        material.MediaProductId = product.Id;
+        db.SaveChanges();
+        return product.Id;
+    }
+
+    public static int ProductIdFor(MicroLimsDbContext db, int materialId) =>
+        ProductIdFor(db, db.Materials.First(m => m.Id == materialId));
+
     public static void Link(Material material, MediaProduct product)
     {
         material.MediaProductId = product.Id;

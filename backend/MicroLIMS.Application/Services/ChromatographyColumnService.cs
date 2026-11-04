@@ -49,7 +49,7 @@ public class ChromatographyColumnService
 
     public async Task<List<ChromatographyColumnResponse>> GetAllAsync(int currentUserId, bool? activeOnly = null, CancellationToken ct = default)
     {
-        var scope = await _scope.GetAccessibleSectionIdsAsync(currentUserId, ct);
+        var scope = await _scope.GetReadableSectionIdsAsync(currentUserId, ct);
         var query = _db.ChromatographyColumns
             .AsNoTracking()
             .Include(c => c.Section)
@@ -71,7 +71,7 @@ public class ChromatographyColumnService
 
     public async Task<ChromatographyColumnResponse> GetByIdAsync(int id, int currentUserId, CancellationToken ct = default)
     {
-        await _scope.EnsureColumnAccessAsync(currentUserId, id, ct);
+        await _scope.EnsureColumnAccessAsync(currentUserId, id, ct, access: SectionAccess.Read);
 
         var column = await _db.ChromatographyColumns
             .AsNoTracking()

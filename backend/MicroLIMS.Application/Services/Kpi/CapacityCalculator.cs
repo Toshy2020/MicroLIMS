@@ -56,15 +56,15 @@ public static class CapacityCalculator
     }
 }
 
-// A viewer may see an analyst only when their section scopes intersect. A null scope means unrestricted
-// (system administrator); an administrator target has a null scope and is visible to everyone who may see anyone.
+// A viewer may see an analyst only when their section scopes intersect. A null viewer scope means unrestricted
+// (a role holding Sections.ViewAll); the target is judged by the sections they belong to.
 internal static class KpiUserScope
 {
     public static async Task<bool> InScopeAsync(IUserSectionScopeService scope, int userId,
         IReadOnlyList<int>? viewerSectionIds, CancellationToken ct)
     {
         if (viewerSectionIds is null) return true;
-        var theirs = await scope.GetAccessibleSectionIdsAsync(userId, ct);
-        return theirs is null || theirs.Any(viewerSectionIds.Contains);
+        var theirs = await scope.GetMemberSectionIdsAsync(userId, ct);
+        return theirs.Any(viewerSectionIds.Contains);
     }
 }

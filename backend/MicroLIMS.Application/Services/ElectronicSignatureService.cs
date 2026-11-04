@@ -1,3 +1,4 @@
+using MicroLIMS.Application.Services.SystemSettings;
 using MicroLIMS.Application.DTOs;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Interfaces;
@@ -28,20 +29,24 @@ public class ElectronicSignatureService : IElectronicSignatureService
 
     private readonly IMicroLimsDbContext _db;
     private readonly TimeProvider _time;
+    private readonly ISystemSettingsReader? _settings;
 
-    public ElectronicSignatureService(IMicroLimsDbContext db, TimeProvider? timeProvider = null)
+    public ElectronicSignatureService(IMicroLimsDbContext db, TimeProvider? timeProvider = null, ISystemSettingsReader? settings = null)
     {
+        _settings = settings;
         _time = timeProvider ?? TimeProvider.System;
         _db = db;
     }
 
     public async Task<ElectronicSignature> SignAsync(int userId, string password, SignatureMeaning meaning, string entityType, int entityId, string? comment, string? ipAddress)
     {
-        var windowStart = _time.GetUtcNow().UtcDateTime - FailedAttemptWindow;
+        var maxFailedAttempts = await _settings.GetIntOrDefaultAsync(SystemSettingKeys.SignatureMaxFailedAttempts);
+        var failedAttemptWindow = TimeSpan.FromMinutes(await _settings.GetIntOrDefaultAsync(SystemSettingKeys.SignatureWindowMinutes));
+        var windowStart = _time.GetUtcNow().UtcDateTime - failedAttemptWindow;
         var recentFailures = await _db.AuditLogs.CountAsync(a =>
             a.EntityName == AuditEntityName && a.Action == FailedAction
             && a.UserId == userId && a.Timestamp >= windowStart);
-        if (recentFailures >= MaxFailedAttempts)
+        if (recentFailures >= maxFailedAttempts)
         {
             _db.AuditLogs.Add(new AuditLog
             {
@@ -49,12 +54,12 @@ public class ElectronicSignatureService : IElectronicSignatureService
                 EntityId = $"{entityType}:{entityId}",
                 Action = ThrottledAction,
                 UserId = userId,
-                NewValue = $"Signature attempt ({meaning}) for {entityType} #{entityId} refused: {recentFailures} failed attempts in the last {FailedAttemptWindow.TotalMinutes:0} minutes.",
+                NewValue = $"Signature attempt ({meaning}) for {entityType} #{entityId} refused: {recentFailures} failed attempts in the last {failedAttemptWindow.TotalMinutes:0} minutes.",
                 TestOrderId = entityType == "TestOrder" ? entityId : null
             });
             await _db.SaveChangesAsync();
             throw new SignatureVerificationException(
-                $"Too many failed signature attempts. Wait {FailedAttemptWindow.TotalMinutes:0} minutes, then try again. The signature was not applied.");
+                $"Too many failed signature attempts. Wait {failedAttemptWindow.TotalMinutes:0} minutes, then try again. The signature was not applied.");
         }
 
         var user = await _db.Users.Include(u => u.Role).FirstOrDefaultAsync(u => u.Id == userId);
@@ -87,6 +92,7 @@ public class ElectronicSignatureService : IElectronicSignatureService
             UserFullNameSnapshot = user.FullName,
             UsernameSnapshot = user.Username,
             RoleSnapshot = user.Role?.Type.ToString() ?? "Unknown",
+            RoleNameSnapshot = user.Role?.Name,
             MeaningOfSignature = meaning,
             EntityType = entityType,
             EntityId = entityId,
@@ -102,6 +108,6 @@ public class ElectronicSignatureService : IElectronicSignatureService
         _db.ElectronicSignatures
             .Where(s => s.EntityType == entityType && s.EntityId == entityId)
             .OrderBy(s => s.SignedAt)
-            .Select(s => new SignatureDto(s.UserFullNameSnapshot, s.UsernameSnapshot, s.RoleSnapshot, s.MeaningOfSignature.ToString(), s.SignedAt, s.Comment))
+            .Select(s => new SignatureDto(s.UserFullNameSnapshot, s.UsernameSnapshot, s.RoleNameSnapshot ?? s.RoleSnapshot, s.MeaningOfSignature.ToString(), s.SignedAt, s.Comment))
             .ToListAsync();
 }

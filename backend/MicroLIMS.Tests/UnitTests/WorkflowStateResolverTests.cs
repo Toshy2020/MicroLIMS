@@ -151,8 +151,7 @@ public class WorkflowStateResolverTests
         // medium1 belongs to product 5 and requires 48h
         var medium1 = new TestWorkflowStepMedia
         {
-            MaterialId = 10,
-            Material = new Material { Id = 10, MediaProductId = 5 },
+            MediaProductId = 5,
             IncubationMinHours = 48,
             IncubationMaxHours = 72,
             TempMin = 30,
@@ -162,8 +161,7 @@ public class WorkflowStateResolverTests
         // medium2 has MaterialId = 50, unrelated product, and requires 24h
         var medium2 = new TestWorkflowStepMedia
         {
-            MaterialId = 50,
-            Material = new Material { Id = 50, MediaProductId = 99 },
+            MediaProductId = 99,
             IncubationMinHours = 24,
             IncubationMaxHours = 48,
             TempMin = 30,
@@ -215,8 +213,7 @@ public class WorkflowStateResolverTests
         // Step is configured with batch A (MaterialId 10) of MediaProduct 5
         var stepMedium = new TestWorkflowStepMedia
         {
-            MaterialId = 10,
-            Material = new Material { Id = 10, MediaProductId = 5 },
+            MediaProductId = 5,
             IncubationMinHours = 48,
             IncubationMaxHours = 72,
             TempMin = 30,
@@ -277,8 +274,7 @@ public class WorkflowStateResolverTests
 
         var stepMedium = new TestWorkflowStepMedia
         {
-            MaterialId = 10,
-            Material = new Material { Id = 10, MediaProductId = 5 },
+            MediaProductId = 5,
             IncubationMinHours = 48,
             IncubationMaxHours = 72,
             TempMin = 30,

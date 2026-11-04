@@ -72,7 +72,7 @@ export const AssignApproverDialog: React.FC<AssignApproverDialogProps> = ({
     try {
       setLoading(true);
       // /users is SystemAdministrator-only; the directory is open to any authenticated user.
-      const res = await apiClient.get("/users/directory");
+      const res = await apiClient.get("/users/directory", { params: { permission: "Documents.Approve" } });
       const allUsers: UserOption[] = res.data.data || res.data || [];
       // Filter out Author and Reviewer per SoD rules (DC-URS-078)
       const eligible = allUsers.filter(

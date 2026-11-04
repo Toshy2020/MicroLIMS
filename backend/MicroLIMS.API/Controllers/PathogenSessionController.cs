@@ -29,7 +29,7 @@ public class PathogenSessionController : ControllerBase
     [HttpGet("{sampleId:int}")]
     public async Task<IActionResult> GetSession(int sampleId)
     {
-        await _scopeService.EnsurePathogenSampleAccessAsync(CurrentUserId, sampleId);
+        await _scopeService.EnsurePathogenSampleAccessAsync(CurrentUserId, sampleId, access: SectionAccess.Read);
         var session = await _sessionService.GetSessionAsync(sampleId);
         if (session == null)
             return NotFound(ApiResponse<string>.Fail("Testing session / sample not found."));
@@ -97,7 +97,7 @@ public class PathogenSessionController : ControllerBase
     [HttpGet("{sampleId:int}/eligible-confirmations")]
     public async Task<IActionResult> GetEligibleConfirmations(int sampleId, [FromQuery] int? testOrderId = null)
     {
-        await _scopeService.EnsurePathogenSampleAccessAsync(CurrentUserId, sampleId);
+        await _scopeService.EnsurePathogenSampleAccessAsync(CurrentUserId, sampleId, access: SectionAccess.Read);
         try
         {
             var eligible = await _sessionService.GetEligibleLocationsForConfirmationAsync(sampleId, testOrderId);

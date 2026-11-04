@@ -23,7 +23,7 @@ export function AdminDashboardPage() {
 
   const menuItems = useMenuGroups().flatMap((g) => g.items);
   const configPath = lab.isPhyschem ? "/sections/physicochemical-configuration" : "/sections/microbiology-configuration";
-  const tools = ["/users", "/roles", "/audit-search", "/reports", configPath]
+  const tools = ["/admin/users", "/admin/roles", "/admin/audit", "/reports", configPath]
     .map((path) => menuItems.find((item) => item.path === path))
     .filter((item): item is MenuItem => !!item);
 

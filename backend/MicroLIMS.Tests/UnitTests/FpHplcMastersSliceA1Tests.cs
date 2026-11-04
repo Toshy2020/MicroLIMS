@@ -1,10 +1,13 @@
 using MicroLIMS.Application.DTOs;
+using MicroLIMS.Persistence.Helpers;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.API.Controllers;
+using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Application.Services;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Persistence.DbContext;
+using MicroLIMS.Tests.Fixtures;
 using Xunit;
 
 namespace MicroLIMS.Tests.UnitTests;
@@ -101,6 +104,9 @@ public class FpHplcMastersSliceA1Tests
         db.UserOrgMemberships.Add(new UserOrgMembership { UserId = multiUser.Id, DepartmentId = fpSec.DepartmentId, SectionId = fpSec.Id });
         db.SaveChanges();
 
+        // The built-in administrator reads every section (Sections.ViewAll) but belongs to none.
+        AdministratorScope.GrantViewAll(db, adminRole.Id);
+
         return (microSec, fpSec, microUser, fpUser, multiUser, adminUser);
     }
 
@@ -191,7 +197,7 @@ public class FpHplcMastersSliceA1Tests
         await db.SaveChangesAsync();
 
         // Scope check for microUser: only microSec
-        var microScope = await scope.GetAccessibleSectionIdsAsync(microUser.Id);
+        var microScope = await scope.GetReadableSectionIdsAsync(microUser.Id);
         Assert.NotNull(microScope);
         Assert.Single(microScope);
         Assert.Contains(microSec.Id, microScope);
@@ -203,8 +209,11 @@ public class FpHplcMastersSliceA1Tests
         // microUser accessing microEq succeeds
         await scope.EnsureEquipmentAccessAsync(microUser.Id, microEq.Id);
 
-        // adminUser accessing microEq succeeds
-        await scope.EnsureEquipmentAccessAsync(adminUser.Id, microEq.Id);
+        // adminUser (Sections.ViewAll) reads microEq but, belonging to no section, may not act on it
+        AdministratorScope.GrantViewAll(db, adminUser.RoleId);
+        await scope.EnsureEquipmentAccessAsync(adminUser.Id, microEq.Id, access: SectionAccess.Read);
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
+            scope.EnsureEquipmentAccessAsync(adminUser.Id, microEq.Id));
     }
 
     #endregion
@@ -442,7 +451,7 @@ public class FpHplcMastersSliceA1Tests
         await using var db = NewDb();
         var (_, fpSec, _, fpUser, _, _) = SeedSectionsAndUsers(db);
         var scope = new UserSectionScopeService(db);
-        var service = new MaterialService(db, scope);
+        var service = new MaterialService(db, scope, new DatabaseSequenceHelper(db));
 
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
             service.CreateAsync(new SaveMaterialRequest(
@@ -476,7 +485,7 @@ public class FpHplcMastersSliceA1Tests
         await using var db = NewDb();
         var (_, fpSec, _, fpUser, _, _) = SeedSectionsAndUsers(db);
         var scope = new UserSectionScopeService(db);
-        var service = new MaterialService(db, scope);
+        var service = new MaterialService(db, scope, new DatabaseSequenceHelper(db));
 
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
             service.CreateAsync(new SaveMaterialRequest(
@@ -506,7 +515,7 @@ public class FpHplcMastersSliceA1Tests
         await using var db = NewDb();
         var (_, fpSec, _, fpUser, _, _) = SeedSectionsAndUsers(db);
         var scope = new UserSectionScopeService(db);
-        var service = new MaterialService(db, scope);
+        var service = new MaterialService(db, scope, new DatabaseSequenceHelper(db));
 
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
             service.CreateAsync(new SaveMaterialRequest(
@@ -536,7 +545,7 @@ public class FpHplcMastersSliceA1Tests
         await using var db = NewDb();
         var (_, fpSec, _, fpUser, _, _) = SeedSectionsAndUsers(db);
         var scope = new UserSectionScopeService(db);
-        var service = new MaterialService(db, scope);
+        var service = new MaterialService(db, scope, new DatabaseSequenceHelper(db));
 
         // ReferenceStandard lots must reference a material master entry (HPLC chain S1).
         var masterEntry = new MicroLIMS.Domain.Entities.MaterialMasterEntry
@@ -578,7 +587,7 @@ public class FpHplcMastersSliceA1Tests
         await using var db = NewDb();
         var (microSec, fpSec, microUser, fpUser, _, adminUser) = SeedSectionsAndUsers(db);
         var scope = new UserSectionScopeService(db);
-        var service = new MaterialService(db, scope);
+        var service = new MaterialService(db, scope, new DatabaseSequenceHelper(db));
 
         // Usable FP standard
         var usableFp = new Material

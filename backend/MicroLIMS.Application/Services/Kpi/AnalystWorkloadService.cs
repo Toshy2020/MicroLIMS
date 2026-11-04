@@ -50,7 +50,7 @@ public class AnalystWorkloadService
         static string? Blank(string? s) => string.IsNullOrWhiteSpace(s) ? null : s.Trim();
         category = Blank(category); location = Blank(location); testCode = Blank(testCode);
         if (category is not null) KpiScope.ParseCategory(category);
-        var sectionIds = await _scope.GetAccessibleSectionIdsAsync(userId, ct);
+        var sectionIds = await _scope.GetReadableSectionIdsAsync(userId, ct);
         return new KpiQuery(
             from.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc), to.AddDays(1).ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc),
             sectionIds, category, location, testCode, analystId, _time.GetUtcNow().UtcDateTime, userId, canViewTeam);
@@ -91,7 +91,7 @@ public class AnalystWorkloadService
             var a = acc.TryGetValue(id, out var found) ? found : new Acc();
             accs.Add(a);
 
-            var sections = await _scope.GetAccessibleSectionIdsAsync(id, ct);
+            var sections = await _scope.GetMemberSectionIdsAsync(id, ct);
             var setting = settings.Where(s => sections is null || sections.Contains(s.SectionId)).OrderBy(s => s.SectionId).FirstOrDefault();
             usesDefaults |= setting is null;
             var hours = setting?.HoursPerAnalystDay ?? KpiSettingDefaults.HoursPerAnalystDay;

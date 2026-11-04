@@ -47,7 +47,7 @@ public class MultiSaveCommandsPostgresIntegrationTests
             var service = new DocumentConfigurationService(db, new AuditEventService(db, new DatabaseSequenceHelper(db)), new DocumentAuthorizationService(db));
 
             await Assert.ThrowsAsync<InvalidOperationException>(() =>
-                service.CreateDepartmentAsync(new CreateDocumentDepartmentRequest(code, "Transaction test"), _fixture.SeededUserId));
+                service.CreateDepartmentAsync(new CreateDocumentDepartmentRequest(code, "Transaction test", "test"), _fixture.SeededUserId));
         }
 
         await using var check = _fixture.CreateDbContext();

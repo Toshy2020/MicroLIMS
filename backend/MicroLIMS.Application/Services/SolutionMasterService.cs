@@ -54,7 +54,7 @@ public class SolutionMasterService
 
     public async Task<List<SolutionMasterResponse>> GetAllAsync(int currentUserId, SolutionType? type = null, bool activeOnly = false, CancellationToken ct = default)
     {
-        var scope = await _scope.GetAccessibleSectionIdsAsync(currentUserId, ct);
+        var scope = await _scope.GetReadableSectionIdsAsync(currentUserId, ct);
         var query = QueryWithIncludes().AsNoTracking().AsQueryable();
 
         if (scope != null)
@@ -80,7 +80,7 @@ public class SolutionMasterService
         var solution = await QueryWithIncludes().AsNoTracking().FirstOrDefaultAsync(s => s.Id == id, ct)
             ?? throw new NotFoundException($"Solution master {id} not found.");
 
-        var scope = await _scope.GetAccessibleSectionIdsAsync(currentUserId, ct);
+        var scope = await _scope.GetReadableSectionIdsAsync(currentUserId, ct);
         if (scope != null && !scope.Contains(solution.SectionId))
             throw new NotFoundException($"Solution master {id} not found.");
 
@@ -89,7 +89,7 @@ public class SolutionMasterService
 
     public async Task<SolutionMasterResponse> CreateAsync(SaveSolutionMasterRequest r, int currentUserId, CancellationToken ct = default)
     {
-        var sectionId = await _scope.ResolveSectionForCreateAsync(currentUserId, r.SectionId, ct);
+        var sectionId = await _scope.ResolveSectionForCreateAsync(currentUserId, r.SectionId, ct, SectionAccess.Configure);
 
         await ValidateCommonAsync(r, sectionId, new HashSet<int>(), ct);
         await ValidateTitrantAsync(r, sectionId, null, ct);
@@ -134,7 +134,7 @@ public class SolutionMasterService
         var solution = await _db.SolutionMasters.Include(s => s.Components).FirstOrDefaultAsync(s => s.Id == id, ct)
             ?? throw new NotFoundException($"Solution master {id} not found.");
 
-        var scope = await _scope.GetAccessibleSectionIdsAsync(currentUserId, ct);
+        var scope = await _scope.GetConfigurableSectionIdsAsync(currentUserId, ct);
         if (scope != null && !scope.Contains(solution.SectionId))
             throw new NotFoundException($"Solution master {id} not found.");
 
@@ -189,7 +189,7 @@ public class SolutionMasterService
         var solution = await _db.SolutionMasters.FirstOrDefaultAsync(s => s.Id == id, ct)
             ?? throw new NotFoundException($"Solution master {id} not found.");
 
-        var scope = await _scope.GetAccessibleSectionIdsAsync(currentUserId, ct);
+        var scope = await _scope.GetConfigurableSectionIdsAsync(currentUserId, ct);
         if (scope != null && !scope.Contains(solution.SectionId))
             throw new NotFoundException($"Solution master {id} not found.");
 
@@ -281,8 +281,6 @@ public class SolutionMasterService
         {
             if (!entries.TryGetValue(entryId, out var entry))
                 throw new InvalidOperationException($"Material master entry {entryId} not found.");
-            if (entry.SectionId != sectionId)
-                throw new InvalidOperationException($"Component entry \"{entry.Code}\" belongs to another laboratory.");
             if (!entry.IsActive && !alreadyUsedEntryIds.Contains(entryId))
                 throw new InvalidOperationException($"Component entry \"{entry.Code}\" is inactive.");
         }
@@ -343,9 +341,6 @@ public class SolutionMasterService
 
             var standard = await _db.MaterialMasterEntries.FirstOrDefaultAsync(e => e.Id == r.StandardEntryId.Value, ct)
                 ?? throw new InvalidOperationException("Standard entry not found.");
-
-            if (standard.SectionId != sectionId)
-                throw new InvalidOperationException("The standard entry belongs to another laboratory.");
 
             if (standard.Category != MaterialMasterCategory.PrimaryStandard)
                 throw new InvalidOperationException("The primary standard must be a Primary Standard entry in Reagents & Standards.");

@@ -36,7 +36,7 @@ public class ControlChartController : ControllerBase
 
     private int CurrentUserId => int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
     private string? ClientIp => HttpContext.Connection.RemoteIpAddress?.ToString();
-    private Task<IReadOnlyList<int>?> Scope() => _scopeService.GetAccessibleSectionIdsAsync(CurrentUserId);
+    private Task<IReadOnlyList<int>?> Scope() => _scopeService.GetReadableSectionIdsAsync(CurrentUserId);
 
     [HttpGet]
     public async Task<IActionResult> GetChart(

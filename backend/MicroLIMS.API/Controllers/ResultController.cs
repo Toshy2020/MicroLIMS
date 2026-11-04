@@ -23,7 +23,7 @@ public class ResultController : ControllerBase
     public async Task<IActionResult> GetForTestOrder([FromQuery] int testOrderId)
     {
         var userId = int.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)!.Value);
-        await _scopeService.EnsureTestOrderAccessAsync(userId, testOrderId);
+        await _scopeService.EnsureTestOrderAccessAsync(userId, testOrderId, access: SectionAccess.Read);
         return Ok(ApiResponse<object>.Ok(await _resultService.GetResultsForTestOrderAsync(testOrderId)));
     }
 }

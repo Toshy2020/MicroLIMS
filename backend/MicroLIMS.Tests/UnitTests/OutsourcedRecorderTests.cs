@@ -149,7 +149,7 @@ public class OutsourcedRecorderTests
         var roles = AuthorizationMatrixTests.AllowedRoles<TestWorkflowController>(nameof(TestWorkflowController.Outsource))!;
         Assert.DoesNotContain(RoleType.Analyst, roles);
         Assert.Contains(RoleType.SectionHead, roles);
-        Assert.Contains(RoleType.SystemAdministrator, roles);
+        Assert.DoesNotContain(RoleType.SystemAdministrator, roles); // administrators never execute GxP work
     }
 
     [Fact]

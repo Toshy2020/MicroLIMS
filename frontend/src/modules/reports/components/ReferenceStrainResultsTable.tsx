@@ -126,6 +126,11 @@ export function ReferenceStrainResultsTable({
             ATCC {r.atccNumber}
           </Typography>
         )}
+        {r.strainCode && (
+          <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>
+            {r.strainCode} · {r.cultureCollection}{r.strainNumber ? ` ${r.strainNumber}` : ""}
+          </Typography>
+        )}
       </Box>
     ) },
     { key: "cryovialCode", label: "Cryovial Code", render: (r) => <Box sx={{ fontWeight: 700 }}>{r.cryovialCode}</Box> },

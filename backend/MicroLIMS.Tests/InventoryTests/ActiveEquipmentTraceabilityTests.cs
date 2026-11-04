@@ -3,6 +3,7 @@ using MicroLIMS.Application.Services;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Persistence.DbContext;
+using MicroLIMS.Tests.Fixtures;
 using Xunit;
 
 namespace MicroLIMS.Tests.InventoryTests;
@@ -18,10 +19,10 @@ public class ActiveEquipmentTraceabilityTests
 
         if (!db.Users.Any())
         {
-            // System Administrator (unrestricted scope) - these tests
-            // exercise incubation/media/cryovial traceability across
-            // equipment, not lab scoping, and the equipment rows here are
-            // seeded directly without a SectionId.
+            // System Administrator holding Sections.ViewAll (reads every
+            // section) - these tests exercise incubation/media/cryovial
+            // traceability across equipment, not lab scoping, and the
+            // equipment rows here are seeded directly without a SectionId.
             db.Roles.Add(new Role { Id = 1, Name = "System Administrator", Type = RoleType.SystemAdministrator, IsActive = true });
             db.Users.Add(new User
             {
@@ -33,6 +34,7 @@ public class ActiveEquipmentTraceabilityTests
                 IsActive = true
             });
             db.SaveChanges();
+            AdministratorScope.GrantViewAll(db, 1);
         }
 
         return db;

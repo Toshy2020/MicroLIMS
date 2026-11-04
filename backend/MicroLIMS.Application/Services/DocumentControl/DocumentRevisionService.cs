@@ -56,9 +56,9 @@ public class DocumentRevisionService : IDocumentRevisionService
     private async Task<DocumentRevisionDto> CreateRevisionFromEffectiveCoreAsync(int documentMasterId, CreateRevisionRequest request, int userId)
     {
         // 1. Authorization: Document Owner, assigned Author, or Document Controller
-        var canEdit = await _authService.CanEditDraftMetadataAsync(documentMasterId, userId);
+        var canEdit = await _authService.CanCreateRevisionAsync(documentMasterId, userId);
         if (!canEdit)
-            throw new UnauthorizedAccessException("You are not authorized to create revisions for this document.");
+            throw new UnauthorizedAccessException("You are not authorized to create revisions for this document (requires the Documents.RevisionCreate permission and document ownership, authorship or Document Controller role).");
 
         var master = await _db.DocumentMasters
             .Include(d => d.Revisions)

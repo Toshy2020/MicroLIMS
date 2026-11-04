@@ -129,6 +129,7 @@ public class WorkingStandardSignOffTests
         Assert.Equal(WorkingStandardQualificationStatus.Approved, dto.Status);
         var lot = await c.Db.Materials.SingleAsync(m => m.MaterialType == MaterialType.WorkingStandard);
         Assert.Equal("WS-01/09/2026", lot.Code);
+        Assert.Matches(@"^STK-2026-\d{5}$", lot.StockId); // the lab-local year of approval
         Assert.Equal(99.497m, lot.Purity);
         Assert.Equal(0.5m, lot.MoisturePercent);
         Assert.Equal(new DateTime(2027, 9, 1), lot.ExpiryDate!.Value.Date);
@@ -144,7 +145,7 @@ public class WorkingStandardSignOffTests
         var lot = new Material
         {
             SectionId = c.Section.Id, MaterialType = MaterialType.WorkingStandard, MaterialMasterEntryId = c.Entry.Id,
-            MaterialName = "Paracetamol RS", ManufacturerName = "In-house", BatchNumber = "RM-77", Code = "WS-01/01/2026",
+            MaterialName = "Paracetamol RS", ManufacturerName = "In-house", BatchNumber = "RM-77", Code = "WS-01/01/2026", StockId = "STK-2025-00007",
             ReceivingDate = DateTime.UtcNow.AddDays(-200), ExpiryDate = new DateTime(2026, 8, 1), Location = "Fridge",
             QuantityReceived = 10m, QuantityRemaining = 8m, Unit = MaterialUnit.Gram, Purity = 98.9m, MoisturePercent = 0.4m,
             CreatedByUserId = 1, LastModifiedByUserId = 1,
@@ -157,6 +158,7 @@ public class WorkingStandardSignOffTests
 
         var fresh = await c.Db.Materials.AsNoTracking().SingleAsync(m => m.MaterialType == MaterialType.WorkingStandard);
         Assert.Equal(lot.Id, fresh.Id);
+        Assert.Equal("STK-2025-00007", fresh.StockId); // requalification extends the lot, it is not a new receipt
         Assert.Equal(99.497m, fresh.Purity);
         Assert.Equal(new DateTime(2027, 9, 1), fresh.ExpiryDate!.Value.Date);
         Assert.Equal(1, await c.Db.Materials.CountAsync(m => m.MaterialType == MaterialType.WorkingStandard));

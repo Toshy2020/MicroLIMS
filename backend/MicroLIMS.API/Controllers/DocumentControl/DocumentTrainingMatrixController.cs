@@ -26,17 +26,20 @@ public class DocumentTrainingMatrixController : ControllerBase
     private int CurrentUserId =>
         int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
 
-    // Training administrators see everyone's records; others only their own.
-    private bool IsAdminOrSectionHead =>
+    // Whoever may view the training matrix (Documents.TrainingViewMatrix: the
+    // QA reviewer and the administrator, read-only) or assign training sees
+    // everyone's records; others only their own.
+    private bool CanViewEveryonesTraining =>
+        User.HasClaim("permission", PermissionConstants.DocumentsTrainingViewMatrix) ||
         User.HasClaim("permission", PermissionConstants.DocumentsTrainingAssign);
 
     /// <summary>
-    /// Retrieves multi-axis Training Matrix grid (Privileged access: SystemAdministrator, SectionHead).
+    /// Retrieves the multi-axis Training Matrix grid: everyone's rows for holders of Documents.TrainingViewMatrix or Documents.TrainingAssign, otherwise the caller's own row.
     /// </summary>
     [HttpGet("grid")]
     public async Task<IActionResult> GetTrainingMatrixGrid([FromQuery] TrainingMatrixFilterDto filter)
     {
-        if (!IsAdminOrSectionHead)
+        if (!CanViewEveryonesTraining)
         {
             // Non-administrative users can only see their own row in the matrix
             filter = filter with { UserId = CurrentUserId };
@@ -62,7 +65,7 @@ public class DocumentTrainingMatrixController : ControllerBase
     [HttpGet("users/{userId:int}")]
     public async Task<IActionResult> GetUserCompliance(int userId)
     {
-        if (!IsAdminOrSectionHead && userId != CurrentUserId)
+        if (!CanViewEveryonesTraining && userId != CurrentUserId)
         {
             return StatusCode(403, ApiResponse<object>.Fail("You are not authorized to view compliance details for other users."));
         }

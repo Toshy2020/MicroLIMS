@@ -194,7 +194,7 @@ public class SampleSummaryService
         var testDefinitions = await _db.TestDefinitions
             .Include(t => t.Steps)
                 .ThenInclude(s => s.StepMedia)
-                    .ThenInclude(m => m.Material)
+                    .ThenInclude(m => m.MediaProduct)
             .Include(t => t.Steps)
                 .ThenInclude(s => s.StepMedia)
                     .ThenInclude(m => m.IncubationCondition)
@@ -238,7 +238,7 @@ public class SampleSummaryService
         var signatures = await _db.ElectronicSignatures
             .Where(s => s.EntityType == "Sample" && s.EntityId == sampleId)
             .OrderBy(s => s.SignedAt)
-            .Select(s => new SignatureDto(s.UserFullNameSnapshot, s.UsernameSnapshot, s.RoleSnapshot, s.MeaningOfSignature.ToString(), s.SignedAt, s.Comment))
+            .Select(s => new SignatureDto(s.UserFullNameSnapshot, s.UsernameSnapshot, s.RoleNameSnapshot ?? s.RoleSnapshot, s.MeaningOfSignature.ToString(), s.SignedAt, s.Comment))
             .ToListAsync();
 
         var data = new SampleSummaryData

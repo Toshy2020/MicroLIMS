@@ -14,7 +14,7 @@ public static class LabScope
             return scope;
         }
 
-        // scope == null means an admin (unrestricted); narrowing just picks the one lab.
+        // scope == null means a role holding Sections.ViewAll (unrestricted, read); narrowing just picks the one lab.
         if (scope != null && !scope.Contains(labSectionId.Value))
         {
             throw new UnauthorizedAccessException("The requested laboratory is outside your accessible sections.");

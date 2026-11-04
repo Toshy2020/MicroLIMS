@@ -6,7 +6,8 @@ using MicroLIMS.Shared.Responses;
 
 namespace MicroLIMS.API.Controllers;
 
-public record ReplaceUserMembershipsRequest(List<UserOrgMembershipDto> Memberships);
+// A membership change decides what laboratory data a user can see and act on, so it carries a reason.
+public record ReplaceUserMembershipsRequest(List<UserOrgMembershipDto> Memberships, string? Reason = null);
 
 // Laboratory departments/sections (for pickers) and user memberships (which
 // decide the data each user can see and act on).
@@ -40,5 +41,5 @@ public class LaboratoryOrganizationController : ControllerBase
     [Authorize(Policy = PermissionConstants.UsersManage)]
     [HttpPut("users/{userId}/memberships")]
     public async Task<IActionResult> ReplaceMemberships(int userId, ReplaceUserMembershipsRequest request) =>
-        Ok(ApiResponse<object>.Ok(await _service.ReplaceMembershipsAsync(userId, request.Memberships ?? new(), CurrentUserId)));
+        Ok(ApiResponse<object>.Ok(await _service.ReplaceMembershipsAsync(userId, request.Memberships ?? new(), request.Reason, CurrentUserId)));
 }

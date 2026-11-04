@@ -168,6 +168,9 @@ public class PostgresTestFixture : IAsyncLifetime
             await db.SaveChangesAsync();
 
             DbSeeder.SeedPermissionsAndGrants(db);
+            // The Document Control workflow tests use these roles for authors and reviewers; the five codes are a
+            // role gate (Q13), so they hold them here. Tests of the gate build their own roles.
+            DocumentControlTestGrants.GrantToAllNonAdministratorRoles(db);
 
             var docType = new DocumentType
             {
@@ -183,6 +186,12 @@ public class PostgresTestFixture : IAsyncLifetime
             // Microbiology Laboratory (MICRO) section - reuse them.
             var dept = await db.DocumentDepartments.SingleAsync(d => d.Code == "QC");
             var section = await db.DocumentSections.SingleAsync(s => s.Code == "MICRO");
+
+            // Writes follow section membership for everyone, administrators included. Many tests use the
+            // seeded QA user as a generic acting user in the Microbiology laboratory, so it belongs to the
+            // whole QC department; reading across sections is Sections.ViewAll, granted by the seeded matrix.
+            db.UserOrgMemberships.Add(new UserOrgMembership { UserId = SeededUserId, DepartmentId = dept.Id, SectionId = null });
+            await db.SaveChangesAsync();
 
             SeededDocTypeId = docType.Id;
             SeededDepartmentId = dept.Id;

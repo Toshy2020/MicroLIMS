@@ -18,7 +18,7 @@ import { AddMediaProductDialog } from "./dialogs/AddMediaProductDialog";
 import { RenameMediaProductDialog } from "./dialogs/RenameMediaProductDialog";
 import { ChangeMediaProductCodeDialog } from "./dialogs/ChangeMediaProductCodeDialog";
 
-export function MediaConfigurationPage() {
+export function MediaConfigurationPage({ embedded }: { embedded?: boolean } = {}) {
   const { role, permissions } = useAuth();
   const isManager = permissions.includes(PERMISSIONS.MASTER_DATA_MANAGE);
   const isSectionHead = role === "SectionHead";
@@ -120,6 +120,20 @@ export function MediaConfigurationPage() {
     }
   };
 
+  const handleSetProductActive = async (product: MediaProductOption, value: boolean) => {
+    setMessage(null);
+    try {
+      await masterDataOptions.setMediaProductActive(product.id, value);
+      setMessage({ text: `Media product "${product.name}" ${value ? "activated" : "deactivated"}.`, ok: true });
+      loadData();
+    } catch (err: unknown) {
+      const text =
+        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ??
+        "Could not change the status of this media product.";
+      setMessage({ text, ok: false });
+    }
+  };
+
   const handleProductRenamed = () => {
     setMessage({ text: "Media product renamed successfully.", ok: true });
     loadData();
@@ -133,11 +147,13 @@ export function MediaConfigurationPage() {
   return (
     <Box sx={{ pb: 4 }}>
       {/* Top Header with Add Media Product button */}
-      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 2 }}>
-        <PageHeader
-          title="Media Configurations"
-          subtitle="Configure each dehydrated medium and how it is used."
-        />
+      <Box sx={{ display: "flex", justifyContent: embedded ? "flex-end" : "space-between", alignItems: "flex-start", mb: 2 }}>
+        {!embedded && (
+          <PageHeader
+            title="Media Configurations"
+            subtitle="Configure each dehydrated medium and how it is used."
+          />
+        )}
         {isManager && (
           <Button
             variant="contained"
@@ -193,6 +209,7 @@ export function MediaConfigurationPage() {
               onSelectProduct={(p) => setSelectedProductId(p.id)}
               onRename={(p) => setRenameProduct(p)}
               onDelete={handleDeleteProduct}
+              onSetActive={handleSetProductActive}
               isManager={isManager}
               emptyMessage={emptyListMessage}
             />
@@ -233,6 +250,7 @@ export function MediaConfigurationPage() {
             onSelectProduct={(p) => setSelectedProductId(p.id)}
             onRename={(p) => setRenameProduct(p)}
             onDelete={handleDeleteProduct}
+            onSetActive={handleSetProductActive}
             isManager={isManager}
             emptyMessage={emptyListMessage}
           />

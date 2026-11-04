@@ -3,6 +3,7 @@ using MicroLIMS.Application.Services.Kpi;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Persistence.DbContext;
+using MicroLIMS.Tests.Fixtures;
 using Xunit;
 
 namespace MicroLIMS.Tests.UnitTests.Kpi;
@@ -21,9 +22,11 @@ public class KpiDashboardFilterTests
     {
         var db = NewDb();
 
-        // An administrator is unrestricted, so section scope does not narrow the figures under test.
+        // The administrator holds Sections.ViewAll, so read scope does not narrow the figures under test.
         db.Roles.Add(new Role { Id = 1, Type = RoleType.SystemAdministrator, Name = "System Administrator" });
         db.Users.Add(new User { Id = 1, FullName = "Admin", Username = "admin", RoleId = 1, PasswordHash = "x" });
+        db.SaveChanges();
+        AdministratorScope.GrantViewAll(db, 1);
 
         var itemA = new Item { Id = 101, Name = "Product A", Code = "PA-01" };
         var itemB = new Item { Id = 102, Name = "Product B", Code = "PB-01" };

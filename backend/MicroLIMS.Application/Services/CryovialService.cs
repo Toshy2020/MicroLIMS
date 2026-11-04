@@ -44,7 +44,7 @@ public class CryovialService
 
     // sectionIds: the caller's laboratory sections (null = unrestricted).
     public async Task<List<CryovialResponse>> GetAllAsync(IReadOnlyCollection<int>? sectionIds = null) =>
-        (await _db.Cryovials.Include(c => c.Material).Include(c => c.Organism).Include(c => c.IdentityConfirmations)
+        (await _db.Cryovials.Include(c => c.Material).Include(c => c.Organism).Include(c => c.ReferenceOrganism).Include(c => c.IdentityConfirmations)
             .Where(c => sectionIds == null || sectionIds.Contains(c.Material!.SectionId))
             .OrderByDescending(c => c.Id).ToListAsync()).Select(CryovialResponse.From).ToList();
 
@@ -56,7 +56,7 @@ public class CryovialService
         if (!request.PhysicalCheckConfirmed)
             throw new InvalidOperationException("Physical check confirmation against the organism reference description is required.");
 
-        var material = await _db.Materials.Include(m => m.Organism).FirstOrDefaultAsync(m => m.Id == request.MaterialId)
+        var material = await _db.Materials.Include(m => m.Organism).Include(m => m.ReferenceOrganism).FirstOrDefaultAsync(m => m.Id == request.MaterialId)
             ?? throw new InvalidOperationException($"Material {request.MaterialId} not found.");
 
         if (material.MaterialType != MaterialType.LyophilizedMicroorganism)
@@ -93,6 +93,8 @@ public class CryovialService
             MaterialId = material.Id,
             OrganismId = material.OrganismId.Value,
             OrganismNameSnapshot = material.Organism.ScientificName,
+            ReferenceOrganismId = material.ReferenceOrganismId,
+            ReferenceOrganism = material.ReferenceOrganism,
             ManufacturerName = material.ManufacturerName,
             ExpiryDate = request.ExpiryDate,
             NumberOfVialsPrepared = request.NumberOfVialsPrepared,
@@ -142,7 +144,7 @@ public class CryovialService
 
     private async Task<Cryovial> ApproveCoreAsync(int cryovialId, bool approved, int userId, string password, string? comment, string? ipAddress)
     {
-        var cryovial = await _db.Cryovials.FirstOrDefaultAsync(c => c.Id == cryovialId)
+        var cryovial = await _db.Cryovials.Include(c => c.ReferenceOrganism).FirstOrDefaultAsync(c => c.Id == cryovialId)
             ?? throw new NotFoundException($"Cryovial {cryovialId} not found.");
 
         if (cryovial.ApprovalStatus != ApprovalGateStatus.PendingReview)
@@ -224,6 +226,7 @@ public class CryovialService
         var cryovial = await _db.Cryovials
             .Include(c => c.Material)
             .Include(c => c.Organism)
+            .Include(c => c.ReferenceOrganism)
             .Include(c => c.IdentityConfirmations)
             .Include(c => c.ThawHistory)
             .FirstOrDefaultAsync(c => c.Id == cryovialId)

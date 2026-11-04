@@ -38,7 +38,7 @@ public class DocumentMasterSectionsPostgresIntegrationTests
         DocumentTypeId: _fixture.SeededDocTypeId,
         DepartmentId: _fixture.SeededDepartmentId,
         SectionId: _fixture.SeededSectionId,
-        DocumentOwnerUserId: _fixture.SeededUserId,
+        DocumentOwnerUserId: _fixture.SeededControllerUserId,
         SectionIds: sectionIds);
 
     [PostgresFact]
@@ -49,7 +49,7 @@ public class DocumentMasterSectionsPostgresIntegrationTests
         var extra = await AddSectionAsync(db, _fixture.SeededDepartmentId);
 
         var dto = await svc.RegisterDocumentMasterAsync(
-            Register($"MS-{Guid.NewGuid():N}"[..15], new List<int> { extra.Id, _fixture.SeededSectionId }), _fixture.SeededUserId);
+            Register($"MS-{Guid.NewGuid():N}"[..15], new List<int> { extra.Id, _fixture.SeededSectionId }), _fixture.SeededControllerUserId);
 
         var rows = await db.DocumentMasterSections.Where(s => s.DocumentMasterId == dto.Id).Select(s => s.SectionId).ToListAsync();
         Assert.Equal(new[] { _fixture.SeededSectionId, extra.Id }.OrderBy(i => i), rows.OrderBy(i => i));
@@ -74,7 +74,7 @@ public class DocumentMasterSectionsPostgresIntegrationTests
         var foreign = await AddSectionAsync(db, otherDept.Id);
 
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            svc.RegisterDocumentMasterAsync(Register($"MS-{Guid.NewGuid():N}"[..15], new List<int> { foreign.Id }), _fixture.SeededUserId));
+            svc.RegisterDocumentMasterAsync(Register($"MS-{Guid.NewGuid():N}"[..15], new List<int> { foreign.Id }), _fixture.SeededControllerUserId));
         Assert.Contains("does not belong to department", ex.Message);
     }
 
@@ -86,13 +86,13 @@ public class DocumentMasterSectionsPostgresIntegrationTests
         var a = await AddSectionAsync(db, _fixture.SeededDepartmentId);
         var b = await AddSectionAsync(db, _fixture.SeededDepartmentId);
         var dto = await svc.RegisterDocumentMasterAsync(
-            Register($"MS-{Guid.NewGuid():N}"[..15], new List<int> { a.Id }), _fixture.SeededUserId);
+            Register($"MS-{Guid.NewGuid():N}"[..15], new List<int> { a.Id }), _fixture.SeededControllerUserId);
 
         UpdateDocumentMasterDraftRequest Update(List<int>? ids) => new(
             dto.CompanyDocumentCode, dto.Title, dto.DocumentTypeId, dto.DepartmentId, dto.SectionId,
             dto.DocumentOwnerUserId, dto.Confidentiality, SectionIds: ids);
 
-        var updated = await svc.UpdateDraftMetadataAsync(dto.Id, Update(new List<int> { b.Id }), _fixture.SeededUserId);
+        var updated = await svc.UpdateDraftMetadataAsync(dto.Id, Update(new List<int> { b.Id }), _fixture.SeededControllerUserId);
 
         Assert.Equal(new[] { _fixture.SeededSectionId, b.Id }.OrderBy(i => i), updated.SectionIds.OrderBy(i => i));
         var rows = await db.DocumentMasterSections.AsNoTracking().Where(s => s.DocumentMasterId == dto.Id).Select(s => s.SectionId).ToListAsync();
@@ -106,7 +106,7 @@ public class DocumentMasterSectionsPostgresIntegrationTests
             && c.NewValue == string.Join(",", new[] { _fixture.SeededSectionId, b.Id }.OrderBy(i => i)));
 
         // Same set again -> no new audit event.
-        await svc.UpdateDraftMetadataAsync(dto.Id, Update(new List<int> { b.Id }), _fixture.SeededUserId);
+        await svc.UpdateDraftMetadataAsync(dto.Id, Update(new List<int> { b.Id }), _fixture.SeededControllerUserId);
         var after = await db.AuditLogs.CountAsync(x => x.ActionCode == "DocumentMasterMetadataUpdated" && x.DocumentMasterId == dto.Id);
         Assert.Equal(1, after);
     }
@@ -118,9 +118,9 @@ public class DocumentMasterSectionsPostgresIntegrationTests
         var svc = CreateService(db);
         var extra = await AddSectionAsync(db, _fixture.SeededDepartmentId);
         var dto = await svc.RegisterDocumentMasterAsync(
-            Register($"MS-{Guid.NewGuid():N}"[..15], new List<int> { extra.Id }), _fixture.SeededUserId);
+            Register($"MS-{Guid.NewGuid():N}"[..15], new List<int> { extra.Id }), _fixture.SeededControllerUserId);
 
-        var res = await svc.GetLibraryAsync(new DocumentLibraryFilterRequest { SectionId = extra.Id }, _fixture.SeededUserId);
+        var res = await svc.GetLibraryAsync(new DocumentLibraryFilterRequest { SectionId = extra.Id }, _fixture.SeededControllerUserId);
 
         var item = Assert.Single(res.Items);
         Assert.Equal(dto.Id, item.Id);

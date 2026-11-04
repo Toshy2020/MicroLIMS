@@ -1,3 +1,4 @@
+using MicroLIMS.Domain.Attributes;
 using MicroLIMS.Domain.Enums;
 
 namespace MicroLIMS.Domain.Entities;
@@ -14,6 +15,7 @@ public class AdminPasswordRecovery
     public int CreatedByUserId { get; set; }
     public User? CreatedByUser { get; set; }
 
+    [AuditRedacted]
     public string CodeHash { get; set; } = string.Empty;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime ExpiresAt { get; set; }

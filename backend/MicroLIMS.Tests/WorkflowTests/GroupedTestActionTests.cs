@@ -77,7 +77,7 @@ public class GroupedTestActionTests
         var stepMedia = new TestWorkflowStepMedia
         {
             TestWorkflowStepId = tamcStep.Id,
-            MaterialId = tsaMaterial.Id,
+            MediaProductId = MediaProductTestData.ProductIdFor(db, tsaMaterial.Id),
             TempMin = 30.0m,
             TempMax = 35.0m,
             IncubationMinHours = 48,
@@ -153,7 +153,7 @@ public class GroupedTestActionTests
         db.TestWorkflowStepMedias.Add(new TestWorkflowStepMedia
         {
             TestWorkflowStepId = waterStep.Id,
-            MaterialId = r2aMaterial.Id,
+            MediaProductId = MediaProductTestData.ProductIdFor(db, r2aMaterial.Id),
             TempMin = 30.0m,
             TempMax = 35.0m,
             IncubationMinHours = 48,
@@ -383,7 +383,7 @@ public class GroupedTestActionTests
         db.TestWorkflowStepMedias.Add(new TestWorkflowStepMedia
         {
             TestWorkflowStepId = step1.Id,
-            MaterialId = media.BrothMaterialId,
+            MediaProductId = MediaProductTestData.ProductIdFor(db, media.BrothMaterialId),
             TempMin = 35,
             TempMax = 37,
             IncubationMinHours = 18,
@@ -428,7 +428,7 @@ public class GroupedTestActionTests
         db.TestWorkflowStepMedias.Add(new TestWorkflowStepMedia
         {
             TestWorkflowStepId = step1.Id,
-            MaterialId = media.BrothMaterialId,
+            MediaProductId = MediaProductTestData.ProductIdFor(db, media.BrothMaterialId),
             TempMin = 35,
             TempMax = 37,
             IncubationMinHours = 18,
@@ -496,7 +496,7 @@ public class GroupedTestActionTests
         db.TestWorkflowStepMedias.Add(new TestWorkflowStepMedia
         {
             TestWorkflowStepId = step1.Id,
-            MaterialId = media.BrothMaterialId,
+            MediaProductId = MediaProductTestData.ProductIdFor(db, media.BrothMaterialId),
             TempMin = 35,
             TempMax = 37,
             IncubationMinHours = 18,
@@ -621,11 +621,11 @@ public class GroupedTestActionTests
         var (tsiMaterial, tsiLot) = await AddMaterialAndMediaAsync(db, "TSI Agar", "TSI/1/26");
 
         db.TestWorkflowStepMedias.AddRange(
-            new TestWorkflowStepMedia { TestWorkflowStepId = steps[0].Id, MaterialId = brothMaterial.Id, TempMin = 35, TempMax = 37, IncubationMinHours = 18, IncubationMaxHours = 24, IsRequired = true, DisplayOrder = 1 },
-            new TestWorkflowStepMedia { TestWorkflowStepId = steps[1].Id, MaterialId = selBrothMaterial.Id, TempMin = 41, TempMax = 43, IncubationMinHours = 18, IncubationMaxHours = 24, IsRequired = true, DisplayOrder = 1 },
-            new TestWorkflowStepMedia { TestWorkflowStepId = steps[2].Id, MaterialId = platingMaterial.Id, TempMin = 35, TempMax = 37, IncubationMinHours = 18, IncubationMaxHours = 24, IsRequired = true, DisplayOrder = 1 });
-        var xldStepMedia = new TestWorkflowStepMedia { TestWorkflowStepId = steps[3].Id, MaterialId = platingMaterial.Id, TempMin = 35, TempMax = 37, IncubationMinHours = 18, IncubationMaxHours = 24, IsRequired = false, DisplayOrder = 1 };
-        var tsiStepMedia = new TestWorkflowStepMedia { TestWorkflowStepId = steps[3].Id, MaterialId = tsiMaterial.Id, TempMin = 35, TempMax = 37, IncubationMinHours = 18, IncubationMaxHours = 24, IsRequired = false, DisplayOrder = 2 };
+            new TestWorkflowStepMedia { TestWorkflowStepId = steps[0].Id, MediaProductId = MediaProductTestData.ProductIdFor(db, brothMaterial.Id), TempMin = 35, TempMax = 37, IncubationMinHours = 18, IncubationMaxHours = 24, IsRequired = true, DisplayOrder = 1 },
+            new TestWorkflowStepMedia { TestWorkflowStepId = steps[1].Id, MediaProductId = MediaProductTestData.ProductIdFor(db, selBrothMaterial.Id), TempMin = 41, TempMax = 43, IncubationMinHours = 18, IncubationMaxHours = 24, IsRequired = true, DisplayOrder = 1 },
+            new TestWorkflowStepMedia { TestWorkflowStepId = steps[2].Id, MediaProductId = MediaProductTestData.ProductIdFor(db, platingMaterial.Id), TempMin = 35, TempMax = 37, IncubationMinHours = 18, IncubationMaxHours = 24, IsRequired = true, DisplayOrder = 1 });
+        var xldStepMedia = new TestWorkflowStepMedia { TestWorkflowStepId = steps[3].Id, MediaProductId = MediaProductTestData.ProductIdFor(db, platingMaterial.Id), TempMin = 35, TempMax = 37, IncubationMinHours = 18, IncubationMaxHours = 24, IsRequired = false, DisplayOrder = 1 };
+        var tsiStepMedia = new TestWorkflowStepMedia { TestWorkflowStepId = steps[3].Id, MediaProductId = MediaProductTestData.ProductIdFor(db, tsiMaterial.Id), TempMin = 35, TempMax = 37, IncubationMinHours = 18, IncubationMaxHours = 24, IsRequired = false, DisplayOrder = 2 };
         db.TestWorkflowStepMedias.AddRange(xldStepMedia, tsiStepMedia);
         await db.SaveChangesAsync();
 
@@ -807,7 +807,7 @@ public class GroupedTestActionTests
         db.TestWorkflowSteps.Add(tymcStep);
         await db.SaveChangesAsync();
 
-        db.TestWorkflowStepMedias.Add(new TestWorkflowStepMedia { TestWorkflowStepId = tymcStep.Id, MaterialId = sdaMaterial.Id, TempMin = 20.0m, TempMax = 25.0m, IncubationMinHours = 120, IncubationMaxHours = 168, IsRequired = true, DisplayOrder = 1 });
+        db.TestWorkflowStepMedias.Add(new TestWorkflowStepMedia { TestWorkflowStepId = tymcStep.Id, MediaProductId = MediaProductTestData.ProductIdFor(db, sdaMaterial.Id), TempMin = 20.0m, TempMax = 25.0m, IncubationMinHours = 120, IncubationMaxHours = 168, IsRequired = true, DisplayOrder = 1 });
         await db.SaveChangesAsync();
 
         var s1 = new Sample { ReferenceNumber = "OSTEO-01", Category = SampleCategory.FinishedProduct };
@@ -947,7 +947,7 @@ public class GroupedTestActionTests
         db.TestWorkflowStepMedias.Add(new TestWorkflowStepMedia
         {
             TestWorkflowStepId = step.Id,
-            MaterialId = mat.Id,
+            MediaProductId = MediaProductTestData.ProductIdFor(db, mat.Id),
             TempMin = 20.0m,
             TempMax = 25.0m,
             IncubationMinHours = 48,
@@ -1021,8 +1021,8 @@ public class GroupedTestActionTests
 
         var (macMaterial, macLot) = await AddMaterialAndMediaAsync(db, "MacConkey Broth Purple", "MAC/1/26");
         db.TestWorkflowStepMedias.AddRange(
-            new TestWorkflowStepMedia { TestWorkflowStepId = ecoliStep1.Id, MaterialId = salmMedia.BrothMaterialId, TempMin = 35, TempMax = 37, IncubationMinHours = 18, IncubationMaxHours = 24, IsRequired = true, DisplayOrder = 1 },
-            new TestWorkflowStepMedia { TestWorkflowStepId = ecoliStep2.Id, MaterialId = macMaterial.Id, TempMin = 41, TempMax = 43, IncubationMinHours = 24, IncubationMaxHours = 48, IsRequired = true, DisplayOrder = 1 }
+            new TestWorkflowStepMedia { TestWorkflowStepId = ecoliStep1.Id, MediaProductId = MediaProductTestData.ProductIdFor(db, salmMedia.BrothMaterialId), TempMin = 35, TempMax = 37, IncubationMinHours = 18, IncubationMaxHours = 24, IsRequired = true, DisplayOrder = 1 },
+            new TestWorkflowStepMedia { TestWorkflowStepId = ecoliStep2.Id, MediaProductId = MediaProductTestData.ProductIdFor(db, macMaterial.Id), TempMin = 41, TempMax = 43, IncubationMinHours = 24, IncubationMaxHours = 48, IsRequired = true, DisplayOrder = 1 }
         );
         await db.SaveChangesAsync();
 

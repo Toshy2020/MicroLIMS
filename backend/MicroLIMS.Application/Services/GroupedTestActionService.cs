@@ -231,7 +231,7 @@ public class GroupedTestActionService
                 if (nextStep != null && nextStep.StepType is StepType.SelectiveBroth or StepType.SelectivePlating)
                 {
                     var nextStepMedias = await _db.TestWorkflowStepMedias
-                        .Include(m => m.Material)
+                        .Include(m => m.MediaProduct)
                         .Include(m => m.IncubationCondition)
                         .Where(m => m.TestWorkflowStepId == nextStep.Id)
                         .ToListAsync(ct);
@@ -375,7 +375,7 @@ public class GroupedTestActionService
             }
 
             var stepMediaList = await _db.TestWorkflowStepMedias
-                .Include(m => m.Material)
+                .Include(m => m.MediaProduct)
                 .Include(m => m.IncubationCondition)
                 .Where(m => m.TestWorkflowStepId == step.Id)
                 .ToListAsync(ct);
@@ -716,7 +716,7 @@ public class GroupedTestActionService
         var order = await _db.TestOrders.FirstOrDefaultAsync(t => t.Id == testOrderId, ct)
             ?? throw new NotFoundException($"Test order {testOrderId} not found.");
         var definition = await _db.TestDefinitions
-            .Include(t => t.Steps).ThenInclude(s => s.StepMedia).ThenInclude(m => m.Material)
+            .Include(t => t.Steps).ThenInclude(s => s.StepMedia).ThenInclude(m => m.MediaProduct)
             .Include(t => t.Steps).ThenInclude(s => s.StepMedia).ThenInclude(m => m.IncubationCondition)
             .Include(t => t.Steps).ThenInclude(s => s.IncubationStages)
             .FirstOrDefaultAsync(t => t.Code == order.TestCode, ct)

@@ -18,9 +18,9 @@ public class UserDirectoryController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetDirectory()
+    public async Task<IActionResult> GetDirectory([FromQuery] string? permission = null)
     {
-        var users = await _userService.GetDirectoryAsync();
+        var users = await _userService.GetDirectoryAsync(permission);
         return Ok(ApiResponse<List<UserDirectoryDto>>.Ok(users));
     }
 }

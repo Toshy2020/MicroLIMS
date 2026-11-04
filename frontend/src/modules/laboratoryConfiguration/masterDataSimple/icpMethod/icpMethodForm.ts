@@ -204,7 +204,6 @@ export function getAvailableReferenceStandards(
   return materials.filter(
     (m) =>
       m.category === "ReferenceStandard" &&
-      m.sectionId === sectionId &&
       (m.isActive || currentSet.has(m.id))
   );
 }

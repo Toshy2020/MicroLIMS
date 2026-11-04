@@ -8,6 +8,8 @@ using MicroLIMS.Infrastructure.Authentication;
 using MicroLIMS.Infrastructure.Email;
 using MicroLIMS.Application.Abstractions.Email;
 using MicroLIMS.Persistence.DbContext;
+using MicroLIMS.Tests.Fixtures;
+using MicroLIMS.Persistence.Seed;
 using MicroLIMS.Shared.Validation;
 using Xunit;
 
@@ -29,17 +31,25 @@ public class UserManagementSecurityTests
             new Role { Id = 4, Type = RoleType.Analyst, Name = "Analyst" }
         );
         db.SaveChanges();
+        DbSeeder.SeedPermissionsAndGrants(db);
         return db;
+    }
+
+    // Somebody must still be able to administer users and roles after the change under test.
+    private static void AddStandingAdmin(MicroLimsDbContext db)
+    {
+        db.Users.Add(new User { Id = 900, FullName = "Standing Admin", Username = "standingadmin", RoleId = 1, IsActive = true });
+        db.SaveChanges();
     }
 
     private static (UserService UserService, AuthenticationService AuthService, MicroLimsDbContext Db) CreateServices(MicroLimsDbContext db)
     {
         var emailSender = new EmailSender("", 587, "", "", "no-reply@microlims.local", false);
         var authLogger = NullLogger<AuthenticationService>.Instance;
-        Func<string, string, IEnumerable<string>, string> tokenIssuer = (id, role, permissionCodes) => "fake-jwt-token";
+        AccessTokenIssuer tokenIssuer = _ => "fake-jwt-token";
         var securityAudit = new SecurityAuditService(db, new SystemSecurityRequestContext());
         var authService = new AuthenticationService(db, tokenIssuer, new PermissionService(db), emailSender, authLogger, securityAudit);
-        var userService = new UserService(db, authService, securityAudit);
+        var userService = new UserService(db, authService, securityAudit, signatureService: new AcceptingSignatureService(db));
         return (userService, authService, db);
     }
 
@@ -65,7 +75,7 @@ public class UserManagementSecurityTests
         db.Users.Add(user);
         await db.SaveChangesAsync();
 
-        var updated = await userService.UpdateProfileAsync(user.Id, "New Name", "newuser", "new@test.com", actingUserId: 1);
+        var updated = await userService.UpdateProfileAsync(user.Id, "New Name", "newuser", "new@test.com", actingUserId: 1, reason: "Test reason");
 
         Assert.Equal("New Name", updated.FullName);
         Assert.Equal("newuser", updated.Username);
@@ -76,12 +86,13 @@ public class UserManagementSecurityTests
     public async Task Scenario03_SysAdminCanChangeUserRole()
     {
         var db = CreateDbContext();
+        AddStandingAdmin(db);
         var (userService, _, _) = CreateServices(db);
         var user = new User { Id = 2, FullName = "Target User", Username = "target1", RoleId = 4 };
         db.Users.Add(user);
         await db.SaveChangesAsync();
 
-        var updated = await userService.ChangeRoleAsync(user.Id, 3, "Promoted to Reviewer", actingUserId: 1);
+        var updated = await userService.ChangeRoleAsync(user.Id, 3, "Promoted to Reviewer", actingUserId: 1, password: "pw");
 
         Assert.Equal(3, updated.RoleId);
         Assert.Equal("Reviewer", updated.Role?.Name);
@@ -97,7 +108,7 @@ public class UserManagementSecurityTests
         await db.SaveChangesAsync();
 
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            userService.ChangeRoleAsync(admin.Id, 4, "Self demotion attempt", actingUserId: admin.Id));
+            userService.ChangeRoleAsync(admin.Id, 4, "Self demotion attempt", actingUserId: admin.Id, password: "pw"));
 
         Assert.Contains("cannot modify their own role", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -121,6 +132,7 @@ public class UserManagementSecurityTests
     public async Task Scenario06_SysAdminCanDisableUserWithReason()
     {
         var db = CreateDbContext();
+        AddStandingAdmin(db);
         var (userService, _, _) = CreateServices(db);
         var user = new User { Id = 2, FullName = "Analyst User", Username = "analyst2", RoleId = 4, IsActive = true };
         db.Users.Add(user);
@@ -129,6 +141,8 @@ public class UserManagementSecurityTests
         var updated = await userService.SetStatusAsync(user.Id, false, "Left the company", actingUserId: 1);
 
         Assert.False(updated.IsActive);
+        // The deactivation time starts the reassignment clock (DocumentControl.ReassignmentEscalationDays).
+        Assert.NotNull((await db.Users.FindAsync(user.Id))!.DeactivatedAt);
     }
 
     [Fact]
@@ -136,13 +150,14 @@ public class UserManagementSecurityTests
     {
         var db = CreateDbContext();
         var (userService, _, _) = CreateServices(db);
-        var user = new User { Id = 2, FullName = "Analyst User", Username = "analyst2", RoleId = 4, IsActive = false };
+        var user = new User { Id = 2, FullName = "Analyst User", Username = "analyst2", RoleId = 4, IsActive = false, DeactivatedAt = DateTime.UtcNow.AddDays(-3) };
         db.Users.Add(user);
         await db.SaveChangesAsync();
 
         var updated = await userService.SetStatusAsync(user.Id, true, "Returned to company", actingUserId: 1);
 
         Assert.True(updated.IsActive);
+        Assert.Null((await db.Users.FindAsync(user.Id))!.DeactivatedAt);
     }
 
     [Fact]
@@ -244,7 +259,7 @@ public class UserManagementSecurityTests
         db.Users.Add(user);
         await db.SaveChangesAsync();
 
-        var updated = await userService.ForcePasswordChangeAsync(user.Id, actingUserId: 1);
+        var updated = await userService.ForcePasswordChangeAsync(user.Id, "Test reason", actingUserId: 1);
 
         Assert.True(updated.MustChangePassword);
     }
@@ -261,16 +276,17 @@ public class UserManagementSecurityTests
     public async Task Scenario15_AuditRecordsGeneratedForSecurityActions()
     {
         var db = CreateDbContext();
+        AddStandingAdmin(db);
         var (userService, _, _) = CreateServices(db);
         var user = new User { Id = 2, FullName = "Audit Target", Username = "audittarget", RoleId = 4 };
         db.Users.Add(user);
         await db.SaveChangesAsync();
 
-        await userService.ChangeRoleAsync(user.Id, 3, "Promotion", actingUserId: 1);
+        await userService.ChangeRoleAsync(user.Id, 3, "Promotion", actingUserId: 1, password: "pw");
         await userService.SetStatusAsync(user.Id, false, "Disabled target", actingUserId: 1);
         await userService.UnlockUserAsync(user.Id, "Unlocked target", actingUserId: 1);
         await userService.InitiatePasswordResetAsync(user.Id, "Reset target", actingUserId: 1);
-        await userService.ForcePasswordChangeAsync(user.Id, actingUserId: 1);
+        await userService.ForcePasswordChangeAsync(user.Id, "Test reason", actingUserId: 1);
 
         var auditLogs = await db.AuditLogs.Where(a => a.EntityId == "2").ToListAsync();
         Assert.Contains(auditLogs, a => a.Action == "USER_ROLE_CHANGED");
@@ -289,7 +305,7 @@ public class UserManagementSecurityTests
         db.Users.Add(user);
         await db.SaveChangesAsync();
 
-        await userService.CreateAsync(new User { FullName = "New User", Username = "newsecuser", RoleId = 4 }, "SecuredP@ss123!");
+        await userService.CreateAsync(new User { FullName = "New User", Username = "newsecuser", RoleId = 4 }, "SecuredP@ss123!", "Test reason");
         await userService.InitiatePasswordResetAsync(user.Id, "Reset sec", actingUserId: 1);
 
         var auditLogs = await db.AuditLogs.ToListAsync();
@@ -326,5 +342,164 @@ public class UserManagementSecurityTests
 
         var asAdmin = await userService.GetEligibleAnalystsAsync(actingUserId: 16);
         Assert.Equal(new[] { "analyst1", "analyst2", "rev1" }, asAdmin.Select(u => u.Username).OrderBy(n => n));
+    }
+
+    [Fact]
+    public async Task Scenario18_RoleChangeAuditRecordsPreviousRoleIdAndNewRoleId()
+    {
+        var db = CreateDbContext();
+        AddStandingAdmin(db);
+        var (userService, _, _) = CreateServices(db);
+        var user = new User { Id = 2, FullName = "Role Target", Username = "roletarget", RoleId = 4 };
+        db.Users.Add(user);
+        await db.SaveChangesAsync();
+
+        await userService.ChangeRoleAsync(user.Id, 3, "Promoted to Reviewer", actingUserId: 1, password: "pw");
+
+        var log = await db.AuditLogs.SingleAsync(a => a.Action == "USER_ROLE_CHANGED" && a.EntityId == "2");
+        using var previous = System.Text.Json.JsonDocument.Parse(log.PreviousValue!);
+        using var next = System.Text.Json.JsonDocument.Parse(log.NewValue!);
+
+        Assert.Equal(4, previous.RootElement.GetProperty("RoleId").GetInt32());
+        Assert.Equal("Analyst", previous.RootElement.GetProperty("RoleName").GetString());
+        Assert.Equal(3, next.RootElement.GetProperty("RoleId").GetInt32());
+        Assert.Equal("Reviewer", next.RootElement.GetProperty("RoleName").GetString());
+    }
+
+    // ---- Administration continuity ----
+    // Roles 1 holds Users.Manage and Roles.Manage (seeded grants); nobody
+    // else does unless a test adds a custom role that does.
+
+    private static async Task<User> AddAdminAsync(MicroLimsDbContext db, int id, bool isActive = true, DateTime? lockedUntil = null)
+    {
+        var admin = new User { Id = id, FullName = $"Admin {id}", Username = $"admin{id}", RoleId = 1, IsActive = isActive, LockedUntil = lockedUntil };
+        db.Users.Add(admin);
+        await db.SaveChangesAsync();
+        return admin;
+    }
+
+    private static async Task<User> AddCustomRoleAdminAsync(MicroLimsDbContext db, int id)
+    {
+        var role = new Role { Id = 10, Type = RoleType.Analyst, Name = "Operations Admin", IsSystemRole = false, IsActive = true };
+        db.Roles.Add(role);
+        await db.SaveChangesAsync();
+        var permissionIds = await db.Permissions
+            .Where(p => p.Code == MicroLIMS.Shared.Constants.PermissionConstants.UsersManage || p.Code == MicroLIMS.Shared.Constants.PermissionConstants.RolesManage)
+            .Select(p => p.Id).ToListAsync();
+        foreach (var permissionId in permissionIds)
+            db.RolePermissions.Add(new RolePermission { RoleId = role.Id, PermissionId = permissionId });
+        var user = new User { Id = id, FullName = "Ops Admin", Username = "opsadmin", RoleId = role.Id, IsActive = true };
+        db.Users.Add(user);
+        await db.SaveChangesAsync();
+        return user;
+    }
+
+    [Fact]
+    public async Task ChangeRole_IsRejected_WhenDemotingTheLastActiveHolderOfUsersManage()
+    {
+        var db = CreateDbContext();
+        var (userService, _, _) = CreateServices(db);
+        var onlyAdmin = await AddAdminAsync(db, 1);
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            userService.ChangeRoleAsync(onlyAdmin.Id, 4, "Demotion", actingUserId: 2, password: "pw"));
+
+        Assert.Contains("Users.Manage", ex.Message);
+        Assert.Equal(1, (await db.Users.AsNoTracking().FirstAsync(u => u.Id == onlyAdmin.Id)).RoleId);
+        Assert.DoesNotContain(db.AuditLogs, a => a.Action == "USER_ROLE_CHANGED");
+    }
+
+    [Fact]
+    public async Task ChangeRole_Succeeds_WhenAnotherActiveUserStillHoldsTheAdministrationPermissions()
+    {
+        var db = CreateDbContext();
+        var (userService, _, _) = CreateServices(db);
+        var first = await AddAdminAsync(db, 1);
+        await AddAdminAsync(db, 2);
+
+        var updated = await userService.ChangeRoleAsync(first.Id, 4, "Demotion", actingUserId: 2, password: "pw");
+
+        Assert.Equal(4, updated.RoleId);
+    }
+
+    [Fact]
+    public async Task ChangeRole_IsRejected_WhenTheOtherAdministratorIsDisabled()
+    {
+        var db = CreateDbContext();
+        var (userService, _, _) = CreateServices(db);
+        var first = await AddAdminAsync(db, 1);
+        await AddAdminAsync(db, 2, isActive: false);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            userService.ChangeRoleAsync(first.Id, 4, "Demotion", actingUserId: 3, password: "pw"));
+
+        Assert.Equal(1, (await db.Users.AsNoTracking().FirstAsync(u => u.Id == first.Id)).RoleId);
+    }
+
+    [Fact]
+    public async Task SetStatus_IsRejected_WhenDisablingTheLastActiveHolder()
+    {
+        var db = CreateDbContext();
+        var (userService, _, _) = CreateServices(db);
+        var onlyAdmin = await AddAdminAsync(db, 1);
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            userService.SetStatusAsync(onlyAdmin.Id, false, "Leaving", actingUserId: 2));
+
+        Assert.Contains("Users.Manage", ex.Message);
+        Assert.True((await db.Users.AsNoTracking().FirstAsync(u => u.Id == onlyAdmin.Id)).IsActive);
+        Assert.DoesNotContain(db.AuditLogs, a => a.Action == "USER_DISABLED");
+    }
+
+    [Fact]
+    public async Task SetStatus_IsRejected_WhenTheOnlyOtherAdministratorIsAlreadyDisabled()
+    {
+        var db = CreateDbContext();
+        var (userService, _, _) = CreateServices(db);
+        var first = await AddAdminAsync(db, 1);
+        await AddAdminAsync(db, 2, isActive: false);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            userService.SetStatusAsync(first.Id, false, "Leaving", actingUserId: 3));
+    }
+
+    [Fact]
+    public async Task SetStatus_Succeeds_WhenACustomRoleHoldingBothPermissionsHasAnActiveUser()
+    {
+        var db = CreateDbContext();
+        var (userService, _, _) = CreateServices(db);
+        var systemAdmin = await AddAdminAsync(db, 1);
+        await AddCustomRoleAdminAsync(db, 2);
+
+        var updated = await userService.SetStatusAsync(systemAdmin.Id, false, "Leaving", actingUserId: 2);
+
+        Assert.False(updated.IsActive);
+    }
+
+    // A lockout expires by itself after 15 minutes, so a locked administrator
+    // still counts as one.
+    [Fact]
+    public async Task SetStatus_CountsTemporarilyLockedAdministrators()
+    {
+        var db = CreateDbContext();
+        var (userService, _, _) = CreateServices(db);
+        var first = await AddAdminAsync(db, 1);
+        await AddAdminAsync(db, 2, lockedUntil: DateTime.UtcNow.AddMinutes(10));
+
+        var updated = await userService.SetStatusAsync(first.Id, false, "Leaving", actingUserId: 3);
+
+        Assert.False(updated.IsActive);
+    }
+
+    [Fact]
+    public async Task SetStatus_EnablingIsNeverBlocked()
+    {
+        var db = CreateDbContext();
+        var (userService, _, _) = CreateServices(db);
+        var disabledAdmin = await AddAdminAsync(db, 1, isActive: false);
+
+        var updated = await userService.SetStatusAsync(disabledAdmin.Id, true, "Returned", actingUserId: 2);
+
+        Assert.True(updated.IsActive);
     }
 }

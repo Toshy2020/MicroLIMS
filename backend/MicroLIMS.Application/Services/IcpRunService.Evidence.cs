@@ -1,3 +1,4 @@
+using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Domain.Entities;
@@ -127,7 +128,7 @@ public partial class IcpRunService
         var evidence = await _db.IcpEvidences.Include(e => e.IcpRun).FirstOrDefaultAsync(e => e.Id == evidenceId, ct)
             ?? throw new NotFoundException($"Evidence {evidenceId} not found.");
 
-        await EnsureAccessAsync(evidence.IcpRun!, userId, ct);
+        await EnsureAccessAsync(evidence.IcpRun!, userId, ct, SectionAccess.Read);
 
         var bytes = await _storage.ReadAsync(evidence.FilePath);
         return (bytes, evidence.ContentType, evidence.FileName);
@@ -167,7 +168,7 @@ public partial class IcpRunService
     // reports of this order plus the calibration report of every run it was on.
     public async Task<List<IcpEvidenceDto>> GetTestOrderEvidenceAsync(int testOrderId, int userId, CancellationToken ct = default)
     {
-        await _scope.EnsureTestOrderAccessAsync(userId, testOrderId, ct);
+        await _scope.EnsureTestOrderAccessAsync(userId, testOrderId, ct, access: SectionAccess.Read);
 
         var runSamples = await _db.IcpRunSamples.AsNoTracking()
             .Where(s => s.TestOrderId == testOrderId).Select(s => new { s.Id, s.IcpRunId }).ToListAsync(ct);

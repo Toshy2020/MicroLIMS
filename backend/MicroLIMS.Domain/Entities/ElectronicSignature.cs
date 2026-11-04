@@ -20,7 +20,12 @@ public class ElectronicSignature
     // later renamed, reassigned a different role, or deactivated.
     public string UserFullNameSnapshot { get; set; } = string.Empty;
     public string UsernameSnapshot { get; set; } = string.Empty;
+    // The role's TYPE (Analyst, SectionHead, ...) - kept as it was written
+    // so existing rows and anything keyed on it are unchanged.
     public string RoleSnapshot { get; set; } = string.Empty;
+    // The role's NAME at the moment of signing. Null on rows signed before
+    // it was captured; display falls back to RoleSnapshot for those.
+    public string? RoleNameSnapshot { get; set; }
 
     public SignatureMeaning MeaningOfSignature { get; set; }
     public string EntityType { get; set; } = string.Empty;

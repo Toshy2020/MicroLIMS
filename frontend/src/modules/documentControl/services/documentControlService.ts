@@ -19,6 +19,7 @@ import type {
   CreateDocumentDepartmentRequest,
   UpdateDocumentDepartmentRequest,
   DocumentSectionDto,
+  OrganizationImpactDto,
   CreateDocumentSectionRequest,
   UpdateDocumentSectionRequest,
   DocumentNumberingConfigDto,
@@ -168,6 +169,16 @@ export const documentControlService = {
     version?: number
   ): Promise<DocumentDepartmentDto> => {
     const res = await apiClient.put(`/document-control/config/departments/${id}`, request, ifMatch(version));
+    return res.data.data;
+  },
+
+  getDepartmentImpact: async (id: number): Promise<OrganizationImpactDto> => {
+    const res = await apiClient.get(`/document-control/config/departments/${id}/impact`);
+    return res.data.data;
+  },
+
+  getSectionImpact: async (id: number): Promise<OrganizationImpactDto> => {
+    const res = await apiClient.get(`/document-control/config/sections/${id}/impact`);
     return res.data.data;
   },
 

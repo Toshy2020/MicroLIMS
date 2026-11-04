@@ -368,9 +368,10 @@ public class UniversalSpecificationsTests
     public async Task MasterDataController_OldStyleCountTieredPayload_WorksUnchanged()
     {
         using var db = NewDb();
+        var section = TestServiceFactory.EnsureMicroSection(db);
         var item = new Item { Name = "Old Item", Code = "OLD-1" };
         db.Items.Add(item);
-        db.TestDefinitions.Add(new TestDefinition { Code = "TAMC", DisplayName = "Total Aerobic Microbial Count", WorkflowType = WorkflowType.CountTest });
+        db.TestDefinitions.Add(new TestDefinition { Code = "TAMC", DisplayName = "Total Aerobic Microbial Count", WorkflowType = WorkflowType.CountTest, SectionId = section.Id });
         db.SampleTests.Add(new SampleTest { Item = item, TestCode = "TAMC", DisplayName = "Total Aerobic Microbial Count" });
         await db.SaveChangesAsync();
 
@@ -383,14 +384,15 @@ public class UniversalSpecificationsTests
             new ChromatographyColumnService(db, new UserSectionScopeService(db)),
             new SpecificationService(db));
 
-        // Task 9 - CreateSpecification/GetSpecifications now resolve the
-        // current user's lab scope; a System Administrator's scope is null
-        // (unrestricted), so this pre-existing test needn't seed a section
-        // for the un-sectioned TestDefinition above.
+        // Task 9 - CreateSpecification/GetSpecifications resolve the current
+        // user's lab scope, and writes follow section membership for everyone,
+        // so the acting user belongs to the section that owns the TestDefinition above.
         var adminRole = new Role { Name = "System Administrator", Type = RoleType.SystemAdministrator, IsActive = true };
         db.Roles.Add(adminRole);
         var adminUser = new User { Username = "admin_" + Guid.NewGuid().ToString("N")[..6], FullName = "Sys Admin", RoleId = adminRole.Id, Role = adminRole, IsActive = true };
         db.Users.Add(adminUser);
+        await db.SaveChangesAsync();
+        db.UserOrgMemberships.Add(new UserOrgMembership { UserId = adminUser.Id, DepartmentId = section.DepartmentId, SectionId = section.Id });
         await db.SaveChangesAsync();
         controller.ControllerContext = new Microsoft.AspNetCore.Mvc.ControllerContext
         {

@@ -51,7 +51,7 @@ public static class AnalystAssignmentRules
             throw new InvalidOperationException(
                 $"'{user.FullName}' is a Section Head - a Section Head can only assign themselves.");
 
-        var memberOf = await scope.GetAccessibleSectionIdsAsync(assigneeId);
+        var memberOf = await scope.GetMemberSectionIdsAsync(assigneeId);
         var missing = sectionIds.Distinct().Where(s => memberOf is not null && !memberOf.Contains(s)).ToList();
         if (missing.Count > 0)
         {

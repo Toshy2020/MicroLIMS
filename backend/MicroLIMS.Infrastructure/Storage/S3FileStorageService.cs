@@ -13,7 +13,7 @@ namespace MicroLIMS.Infrastructure.Storage;
 // legacyBasePath lets rows written by LocalFileStorageService before the
 // move ("storage/documents/...") resolve to the same object key that a
 // re-upload of the original file would use.
-public class S3FileStorageService : IFileStorageService
+public class S3FileStorageService : IFileStorageService, IStorageDiagnostics
 {
     private readonly IAmazonS3 _s3;
     private readonly string _bucketName;
@@ -68,5 +68,21 @@ public class S3FileStorageService : IFileStorageService
         {
             throw new StoredFileNotFoundException(key, ex);
         }
+    }
+
+    public StorageDescription Describe()
+    {
+        // Bucket and endpoint host only: the access keys never leave the configuration.
+        var host = Uri.TryCreate(_s3.Config.ServiceURL, UriKind.Absolute, out var uri) ? uri.Host : "default endpoint";
+        return new StorageDescription("S3", $"{_bucketName} @ {host}", null, null);
+    }
+
+    public async Task DeleteAsync(string key)
+    {
+        await _s3.DeleteObjectAsync(new DeleteObjectRequest
+        {
+            BucketName = _bucketName,
+            Key = StorageKey.Normalize(key, legacyBasePath: null)
+        });
     }
 }

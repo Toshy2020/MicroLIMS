@@ -1,4 +1,5 @@
 using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 using MicroLIMS.Infrastructure.Authentication;
 using Xunit;
 
@@ -59,6 +60,27 @@ public class JwtTokenServiceTests
 
         Assert.Contains(token.Claims, c => c.Type == System.Security.Claims.ClaimTypes.Role && c.Value == "Analyst");
         Assert.Contains(token.Claims, c => c.Type == "permission" && c.Value == "TestWorkflow.Execute");
+    }
+
+    [Fact]
+    public void IssueToken_CarriesTheRoleIdAndPermissionVersion()
+    {
+        var jwt = new JwtSecurityTokenHandler().ReadJwtToken(
+            CreateService().IssueToken("1", "SectionHead", new[] { "Samples.Approve" }, roleId: 6, permissionVersion: 3));
+
+        Assert.Equal("6", jwt.Claims.Single(c => c.Type == "rid").Value);
+        Assert.Equal("3", jwt.Claims.Single(c => c.Type == "pv").Value);
+        // Existing claims are unchanged alongside them.
+        Assert.Equal("SectionHead", jwt.Claims.Single(c => c.Type == ClaimTypes.Role).Value);
+        Assert.Equal("Samples.Approve", jwt.Claims.Single(c => c.Type == "permission").Value);
+    }
+
+    [Fact]
+    public void IssueToken_WithoutRoleIdAndPermissionVersion_AddsNeitherClaim()
+    {
+        var jwt = new JwtSecurityTokenHandler().ReadJwtToken(CreateService().IssueToken("1", "Analyst"));
+
+        Assert.DoesNotContain(jwt.Claims, c => c.Type is "rid" or "pv");
     }
 
     [Fact]

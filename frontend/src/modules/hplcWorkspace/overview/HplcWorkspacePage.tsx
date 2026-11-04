@@ -21,10 +21,8 @@ import type { HplcInstrumentDto } from "../types";
 export function HplcWorkspacePage() {
   const navigate = useNavigate();
   const { technique, label, routes } = useTechnique();
-  const { permissions, role } = useAuth();
-  const canOperate =
-    permissions.includes(PERMISSIONS.HPLC_OPERATE) ||
-    role === "SystemAdministrator";
+  const { permissions } = useAuth();
+  const canOperate = permissions.includes(PERMISSIONS.HPLC_OPERATE);
 
   const [instruments, setInstruments] = useState<HplcInstrumentDto[]>([]);
   const [loading, setLoading] = useState(true);

@@ -43,12 +43,12 @@ public class MediaEvaluationController : ControllerBase
 
     [HttpGet]
     public async Task<IActionResult> GetAll([FromQuery] MediaEvaluationStatus? status) =>
-        Ok(ApiResponse<object>.Ok(await _service.GetAllAsync(status, (await _scopeService.GetAccessibleSectionIdsAsync(CurrentUserId)))));
+        Ok(ApiResponse<object>.Ok(await _service.GetAllAsync(status, (await _scopeService.GetReadableSectionIdsAsync(CurrentUserId)))));
 
     [HttpGet("{id}")]
     public async Task<IActionResult> GetById(int id)
     {
-        await _scopeService.EnsureMediaEvaluationAccessAsync(CurrentUserId, id);
+        await _scopeService.EnsureMediaEvaluationAccessAsync(CurrentUserId, id, access: SectionAccess.Read);
         return Ok(ApiResponse<object>.Ok(await _service.GetByIdAsync(id)));
     }
 
@@ -57,7 +57,7 @@ public class MediaEvaluationController : ControllerBase
     [HttpGet("challenges/{challengeId}/thawed-vials")]
     public async Task<IActionResult> GetThawedVials(int challengeId)
     {
-        await _scopeService.EnsureMediaEvaluationChallengeAccessAsync(CurrentUserId, challengeId);
+        await _scopeService.EnsureMediaEvaluationChallengeAccessAsync(CurrentUserId, challengeId, access: SectionAccess.Read);
         return Ok(ApiResponse<object>.Ok(await _service.GetThawedVialOptionsAsync(challengeId)));
     }
 

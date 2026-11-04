@@ -1,6 +1,7 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using Microsoft.EntityFrameworkCore;
+using MicroLIMS.Infrastructure.Authentication;
 using MicroLIMS.Persistence.DbContext;
 
 namespace MicroLIMS.API.Authorization;
@@ -10,7 +11,9 @@ namespace MicroLIMS.API.Authorization;
 // never looks at the database. Without this check a user who was disabled,
 // locked, moved to another role or whose password was changed kept their
 // old access until the token expired - revocation only ever touched
-// refresh tokens.
+// refresh tokens. The same goes for a role whose permissions were edited:
+// the token is tied to the role (rid) and to the revision of that role's
+// grants it was issued from (pv), and refused once either has moved on.
 //
 // Runs once per authenticated request (JwtBearerEvents.OnTokenValidated,
 // see JwtAuthenticationExtensions), before any [Authorize] role or policy
@@ -47,7 +50,10 @@ public sealed class AccessTokenRevalidator
             {
                 u.IsActive,
                 u.LockedUntil,
+                u.RoleId,
                 RoleType = u.Role == null ? null : (Domain.Enums.RoleType?)u.Role.Type,
+                // 0 when the role is missing, as AuthenticationService stamps it.
+                PermissionVersion = u.Role == null ? 0 : u.Role.PermissionVersion,
                 u.PasswordChangedAt
             })
             .FirstOrDefaultAsync(cancellationToken);
@@ -63,6 +69,18 @@ public sealed class AccessTokenRevalidator
         var currentRole = account.RoleType?.ToString() ?? "Analyst";
         if (!string.Equals(principal.FindFirst(ClaimTypes.Role)?.Value, currentRole, StringComparison.Ordinal))
             return "Role has changed since the token was issued.";
+
+        // The type string above cannot tell two roles of the same base type
+        // apart, nor see their permissions change. Tokens issued before
+        // these claims existed fail here and cost one silent refresh.
+        if (!int.TryParse(principal.FindFirst(JwtTokenService.RoleIdClaim)?.Value, out var tokenRoleId))
+            return "Token carries no role id.";
+        if (!int.TryParse(principal.FindFirst(JwtTokenService.PermissionVersionClaim)?.Value, out var tokenPermissionVersion))
+            return "Token carries no permission version.";
+        if (tokenRoleId != account.RoleId)
+            return "User has been moved to a different role since the token was issued.";
+        if (tokenPermissionVersion != account.PermissionVersion)
+            return "Role permissions have changed since the token was issued.";
 
         // Whole seconds, as iat is. A token issued in the same second as the
         // change is accepted, so signing in straight after a password change

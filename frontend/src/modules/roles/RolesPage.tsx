@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
   Paper, TextField, Button, Table, TableBody, TableCell, TableContainer,
-  TableHead, TableRow, Typography, InputAdornment, Alert, IconButton, Tooltip
+  TableHead, TableRow, Typography, InputAdornment, Alert, IconButton, Tooltip, Box
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 import AddIcon from "@mui/icons-material/Add";
@@ -12,7 +12,7 @@ import { useLoadFailures } from "../../hooks/useLoadFailures";
 import { UserService, UserRecord } from "../users/services/UserService";
 import { LoadFailuresAlert } from "../../components/LoadErrorAlert";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
-import { MetaBadge, StatusBadge } from "../../components/StatusBadge";
+import { MetaBadge, StatusBadge, ToneBadge } from "../../components/StatusBadge";
 
 export function RolesPage() {
   const navigate = useNavigate();
@@ -81,6 +81,14 @@ export function RolesPage() {
                 <TableCell>
                   <Typography sx={{ fontWeight: 700, fontSize: 14 }}>{r.name}</Typography>
                   {r.description && <Typography sx={{ fontSize: 12, color: "text.secondary" }}>{r.description}</Typography>}
+                  {r.sodConflicts && r.sodConflicts.length > 0 && (
+                    <Tooltip title={`Holds administration together with GxP execution or approval: ${r.sodConflicts.join("; ")}`}>
+                      {/* Span wrapper: Tooltip needs a child that holds a ref. */}
+                      <Box component="span" sx={{ display: "inline-block", mt: 0.5 }}>
+                        <ToneBadge tone="action" label="Segregation conflict" />
+                      </Box>
+                    </Tooltip>
+                  )}
                 </TableCell>
                 <TableCell>
                   <MetaBadge label={r.isSystemRole ? "System" : "Custom"} locked={r.isSystemRole} />

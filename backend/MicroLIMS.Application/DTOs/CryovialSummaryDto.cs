@@ -1,3 +1,5 @@
+using MicroLIMS.Domain.Enums;
+
 namespace MicroLIMS.Application.DTOs;
 
 // Everything that happened to one Cryovial batch: how it was prepared,
@@ -8,6 +10,10 @@ public class CryovialSummaryDto
     public int CryovialId { get; set; }
     public string Code { get; set; } = string.Empty;
     public string OrganismName { get; set; } = string.Empty;
+    // The reference strain the batch was prepared from; null on batches made before strains existed.
+    public string? ReferenceOrganismCode { get; set; }
+    public CultureCollection? CultureCollection { get; set; }
+    public string? StrainNumber { get; set; }
     public string ManufacturerName { get; set; } = string.Empty;
 
     // Source material (the lyophilized microorganism consumed).

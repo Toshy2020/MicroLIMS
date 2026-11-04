@@ -38,7 +38,8 @@ export interface EquipmentStatusHistoryItem {
   previousStatus: EquipmentOperationalStatus;
   newStatus: EquipmentOperationalStatus;
   comment: string;
-  changedByUserId: number;
+  // null = changed automatically by the system (changedByName is then "System (automatic)").
+  changedByUserId: number | null;
   changedByName: string;
   changedAt: string;
 }
@@ -237,7 +238,7 @@ export interface StatusLine {
   newStatus: EquipmentOperationalStatus;
   comment: string;
   changedAt: string;
-  changedByUserId: number;
+  changedByUserId: number | null;
   changedByName: string | null;
 }
 

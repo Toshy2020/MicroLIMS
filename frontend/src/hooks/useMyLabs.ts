@@ -1,15 +1,18 @@
 import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import { laboratorySectionService, LaboratorySection } from "../services/laboratorySectionService";
+import { PERMISSIONS } from "../routes/routes";
 
-// A System Administrator's /org/my-sections response already reflects an
-// unrestricted scope (every active section - see GetAccessibleSectionIdsAsync
-// returning null for that role), but the menu still forces both lab codes
-// here rather than trusting that response literally: an administrator must
-// always see both laboratory areas even if a section is momentarily
-// inactive or the endpoint returns nothing.
-const ADMIN_LAB_CODES = ["MICRO", "FP"];
-const ADMIN_PHYSCHEM_AREAS: ("fp" | "rmpm")[] = ["fp", "rmpm"];
+// A user holding Sections.ViewAll (the System Administrator by default) gets
+// every active section from /org/my-sections for reading (see
+// GetReadableSectionIdsAsync returning null for that permission), but the menu
+// still forces both lab codes here rather than trusting that response
+// literally: such a user must always see both laboratory areas even if a
+// section is momentarily inactive or the endpoint returns nothing. It is a
+// read-only view - the server still refuses every write to a section the user
+// is not a member of - and it follows the permission, not the role.
+const VIEW_ALL_LAB_CODES = ["MICRO", "FP"];
+const VIEW_ALL_PHYSCHEM_AREAS: ("fp" | "rmpm")[] = ["fp", "rmpm"];
 
 export function useMyLabs(): {
   labs: LaboratorySection[];
@@ -17,7 +20,8 @@ export function useMyLabs(): {
   physchemAreas: ("fp" | "rmpm")[];
   loading: boolean;
 } {
-  const { role } = useAuth();
+  const { permissions } = useAuth();
+  const viewsEverySection = permissions.includes(PERMISSIONS.SECTIONS_VIEW_ALL);
   const [labs, setLabs] = useState<LaboratorySection[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -45,21 +49,21 @@ export function useMyLabs(): {
   // Memoized so callers can use it as a hook dependency.
   const codes = useMemo(
     () =>
-      role === "SystemAdministrator"
-        ? ADMIN_LAB_CODES
+      viewsEverySection
+        ? VIEW_ALL_LAB_CODES
         : Array.from(new Set(labs.map((s) => s.sectionCode))),
-    [role, labs]
+    [viewsEverySection, labs]
   );
 
   const physchemAreas = useMemo<("fp" | "rmpm")[]>(
     () => {
-      if (role === "SystemAdministrator") {
-        return ADMIN_PHYSCHEM_AREAS;
+      if (viewsEverySection) {
+        return VIEW_ALL_PHYSCHEM_AREAS;
       }
       const fpSection = labs.find((s) => s.sectionCode === "FP");
       return fpSection?.physchemAreas ?? [];
     },
-    [role, labs]
+    [viewsEverySection, labs]
   );
 
   return { labs, codes, physchemAreas, loading };

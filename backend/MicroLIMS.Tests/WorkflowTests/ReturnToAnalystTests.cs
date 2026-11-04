@@ -70,7 +70,7 @@ public class ReturnToAnalystTests
         db.TestWorkflowStepMedias.Add(new TestWorkflowStepMedia
         {
             TestWorkflowStepId = countStep.Id,
-            MaterialId = material.Id,
+            MediaProductId = MediaProductTestData.ProductIdFor(db, material.Id),
             TempMin = 30,
             TempMax = 35,
             IncubationMinHours = 72,

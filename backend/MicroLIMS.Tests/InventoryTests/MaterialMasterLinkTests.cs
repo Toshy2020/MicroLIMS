@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using MicroLIMS.Persistence.Helpers;
 using MicroLIMS.Application.Services;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
@@ -29,13 +30,13 @@ public class MaterialMasterLinkTests
         db.SaveChanges();
         db.UserOrgMemberships.Add(new UserOrgMembership { UserId = fpUser.Id, DepartmentId = fp.DepartmentId, SectionId = fp.Id });
         db.SaveChanges();
-        return (new MaterialService(db, new UserSectionScopeService(db)), new MaterialMasterService(db, new UserSectionScopeService(db)), fpUser.Id, fp, other);
+        return (new MaterialService(db, new UserSectionScopeService(db), new DatabaseSequenceHelper(db)), TestServiceFactory.MaterialMaster(db), fpUser.Id, fp, other);
     }
 
     private static async Task<MicroLIMS.Application.DTOs.Responses.MaterialMasterEntryResponse> SeedEntryAsync(
-        MaterialMasterService masterSvc, int userId, MaterialMasterCategory category, string code = "NAOH-01", int? sectionId = null) =>
+        MaterialMasterService masterSvc, int userId, MaterialMasterCategory category, string? code = null, int? sectionId = null) =>
         await masterSvc.CreateAsync(new SaveMaterialMasterEntryRequest(
-            code, "Sodium Hydroxide", category, "AR", "Merck", MaterialUnit.Gram, sectionId), userId);
+            code ?? MaterialMasterService.PrefixFor(category) + "NAOH-01", "Sodium Hydroxide", category, "AR", "Merck", MaterialUnit.Gram, sectionId), userId);
 
     private static SaveMaterialRequest Req(
         MaterialType type, int? masterEntryId = null, decimal? moisture = null, string materialName = "Typed Name") =>
@@ -77,23 +78,27 @@ public class MaterialMasterLinkTests
     }
 
     [Fact]
-    public async Task Create_Chemical_WithOtherSectionEntry_Throws()
+    public async Task Create_Chemical_WithOtherLabEntry_Succeeds_AndLotStaysInReceivingLab()
     {
         await using var db = NewDb();
-        var (svc, _, fpUserId, _, other) = Seed(db);
+        var (svc, _, fpUserId, fp, other) = Seed(db);
 
         // Seeded directly (not through MaterialMasterService) - the FP user
         // isn't a member of "other", so this is a different lab's entry.
         var entry = new MaterialMasterEntry
         {
-            SectionId = other.Id, Code = "NAOH-01", Name = "Sodium Hydroxide", Category = MaterialMasterCategory.Reagent,
+            SectionId = other.Id, Code = "RG-NAOH-01", Name = "Sodium Hydroxide", Category = MaterialMasterCategory.Reagent,
             BaseUnit = MaterialUnit.Gram, IsActive = true
         };
         db.MaterialMasterEntries.Add(entry);
         await db.SaveChangesAsync();
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => svc.CreateAsync(Req(MaterialType.Chemical, entry.Id), fpUserId));
-        Assert.Contains("another laboratory", ex.Message);
+        // Entries are app-wide: any lab can receive stock against any active entry.
+        var lot = await svc.CreateAsync(Req(MaterialType.Chemical, entry.Id), fpUserId);
+
+        Assert.Equal(entry.Id, lot.MaterialMasterEntryId);
+        Assert.Equal("RG-NAOH-01", lot.Code);
+        Assert.Equal(fp.Id, (await db.Materials.SingleAsync(m => m.Id == lot.Id)).SectionId);
     }
 
     [Fact]

@@ -48,7 +48,7 @@ public class SampleTestSelectionService
         var eligible = await EligibleAsync(sample, ct);
         if (userId is not int uid || !IsHeadOrSupervisor(await RoleOfAsync(uid, ct)))
             return eligible;
-        var scope = await _scope.GetAccessibleSectionIdsAsync(uid, ct);
+        var scope = await _scope.GetMemberSectionIdsAsync(uid, ct);
         return eligible.Select(e => e with { CanSelect = scope is null || scope.Contains(e.SectionId) }).ToList();
     }
 
@@ -72,7 +72,7 @@ public class SampleTestSelectionService
             throw new InvalidOperationException("This sample is closed; tests can no longer be selected.");
 
         // The laboratories this call covers: still pending, and the signer's own.
-        var userScope = await _scope.GetAccessibleSectionIdsAsync(userId, ct);
+        var userScope = await _scope.GetMemberSectionIdsAsync(userId, ct);
         var pending = SampleSectionRollup.PendingSectionIds(sample).ToList();
         var mine = userScope is null ? pending : pending.Where(userScope.Contains).ToList();
         if (mine.Count == 0)

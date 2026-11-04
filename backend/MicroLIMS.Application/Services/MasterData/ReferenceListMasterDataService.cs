@@ -16,10 +16,12 @@ namespace MicroLIMS.Application.Services.MasterData;
 public class ReferenceListMasterDataService
 {
     private readonly IMicroLimsDbContext _db;
+    private readonly TimeProvider _time;
 
-    public ReferenceListMasterDataService(IMicroLimsDbContext db)
+    public ReferenceListMasterDataService(IMicroLimsDbContext db, TimeProvider? timeProvider = null)
     {
         _db = db;
+        _time = timeProvider ?? TimeProvider.System;
     }
 
     public async Task<List<CauseOfTestingResponse>> GetCausesOfTestingAsync() =>
@@ -151,15 +153,51 @@ public class ReferenceListMasterDataService
     }
 
     public async Task<List<DiluentTypeResponse>> GetDiluentTypesAsync() =>
-        (await _db.DiluentTypes.AsNoTracking().ToListAsync()).Select(DiluentTypeResponse.From).ToList();
+        (await _db.DiluentTypes.AsNoTracking().Include(d => d.MediaProduct).ToListAsync()).Select(DiluentTypeResponse.From).ToList();
 
+    // A batch-tracked diluent (e.g. TSB) is a Culture Media product: the analyst
+    // later picks any released lot of it. Other diluents carry no product.
     public async Task<DiluentTypeResponse> CreateDiluentTypeAsync(CreateDiluentTypeRequest request)
     {
-        var entity = new DiluentType { Name = request.Name, RequiresBatchTracking = request.RequiresBatchTracking, MaterialId = request.MaterialId };
+        MediaProduct? product = null;
+        if (request.RequiresBatchTracking)
+        {
+            if (request.MediaProductId is not int productId)
+                throw new InvalidOperationException("Choose the Culture Media product for a diluent that requires batch tracking.");
+            product = await _db.MediaProducts.FirstOrDefaultAsync(p => p.Id == productId)
+                ?? throw new InvalidOperationException($"Media product {productId} not found.");
+            if (!product.IsActive)
+                throw new InvalidOperationException($"Media product '{product.Name}' is inactive and can't be chosen for a diluent type.");
+        }
+        else if (request.MediaProductId is not null)
+            throw new InvalidOperationException("A media product can only be set on a diluent that requires batch tracking.");
+
+        var entity = new DiluentType { Name = request.Name, RequiresBatchTracking = request.RequiresBatchTracking, MediaProductId = product?.Id };
         _db.DiluentTypes.Add(entity);
         await _db.SaveChangesAsync();
+        entity.MediaProduct = product;
         return DiluentTypeResponse.From(entity);
     }
+
+    // The lots a batch-tracked diluent may be backed by: any GPT-released, active,
+    // non-expired Media lot of the diluent's product, whichever batch it came from.
+    public async Task<List<Media>> GetSelectableDiluentLotsAsync(int diluentTypeId)
+    {
+        var diluent = await _db.DiluentTypes.AsNoTracking().FirstOrDefaultAsync(d => d.Id == diluentTypeId)
+            ?? throw new NotFoundException($"Diluent type {diluentTypeId} not found.");
+        if (!diluent.RequiresBatchTracking || diluent.MediaProductId is not int productId)
+            return new List<Media>();
+
+        var now = _time.GetUtcNow().UtcDateTime;
+        return await _db.Media.AsNoTracking()
+            .Where(m => m.Material!.MediaProductId == productId && m.IsReleasedForUse && m.Status == MediaStatus.Active && m.ExpiryDate > now)
+            .OrderBy(m => m.ExpiryDate)
+            .ToListAsync();
+    }
+
+    public async Task<Media> RequireSelectableDiluentLotAsync(int diluentTypeId, int mediaLotId) =>
+        (await GetSelectableDiluentLotsAsync(diluentTypeId)).FirstOrDefault(m => m.Id == mediaLotId)
+            ?? throw new InvalidOperationException("The selected lot is not a released, active, non-expired lot of this diluent's media product.");
 
     public async Task<List<NeutralizerResponse>> GetNeutralizersAsync() =>
         (await _db.Neutralizers.AsNoTracking().Where(n => n.IsActive).ToListAsync()).Select(NeutralizerResponse.From).ToList();

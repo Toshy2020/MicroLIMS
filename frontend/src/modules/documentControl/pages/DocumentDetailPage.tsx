@@ -203,7 +203,6 @@ export function DocumentDetailPage() {
 
   // Authoritative permissions
   const isController = role === "SectionHead";
-  const isAdmin = role === "SystemAdministrator";
   const isOwner = document.documentOwnerUserId === userId;
   const isAssignedAuthor = document.assignments.some(
     (a) => a.userId === userId && a.assignmentRole === "Author" && a.isActive
@@ -220,14 +219,15 @@ export function DocumentDetailPage() {
 
   const hasEffectiveRev = !!effectiveRevision;
   const hasInFlightRev = !!inWorkflowRevision;
-  const canCreateRevision = hasEffectiveRev && !hasInFlightRev && document.recordStatus === "Active" && (isAdmin || isController || isOwner || isAssignedAuthor);
+  const canCreateRevision = hasEffectiveRev && !hasInFlightRev && document.recordStatus === "Active" && (isController || isOwner || isAssignedAuthor);
 
   // Authority over this document master, mirroring the server's
-  // CanEditDraftMetadataAsync: Administrator, Document Controller, the owner, or
-  // an assigned author. Deliberately carries NO revision-status condition,
+  // CanEditDraftMetadataAsync: the Document Controller, the owner, or an assigned
+  // author - a System Administrator controls the system, not the document.
+  // Deliberately carries NO revision-status condition,
   // because the server's does not either.
   const canManageDocument =
-    (isAdmin || isController || isOwner || isAssignedAuthor) && document.recordStatus === "Active";
+    (isController || isOwner || isAssignedAuthor) && document.recordStatus === "Active";
 
   // The subset of that authority which only applies while the revision is still a
   // draft - editing metadata, replacing files, cancelling. Do not use this to gate

@@ -32,7 +32,7 @@ public class SampleAssignmentService
 
     private static bool IsOpen(TestOrder t) => !t.IsSuperseded && !ClosedStatuses.Contains(t.Status);
 
-    // A null scope is a System Administrator, who reaches every section.
+    // Assignment is a write, so the scope is membership for everyone (never null).
     private static bool InScope(IReadOnlyList<int>? scope, int sectionId) => scope is null || scope.Contains(sectionId);
 
     // Whole sample: the analyst takes every open test in the sections they
@@ -41,7 +41,7 @@ public class SampleAssignmentService
     public async Task<SampleDto> AssignAnalystAsync(int sampleId, int? analystUserId, int actingUserId, string? reason = null)
     {
         var sample = await LoadSampleAsync(sampleId);
-        var actingScope = await _scope.GetAccessibleSectionIdsAsync(actingUserId);
+        var actingScope = await _scope.GetMemberSectionIdsAsync(actingUserId);
 
         var open = sample.TestOrders.Where(t => IsOpen(t) && InScope(actingScope, t.SectionId)).ToList();
         if (open.Count == 0)
@@ -50,7 +50,7 @@ public class SampleAssignmentService
         var targets = open;
         if (analystUserId is int assigneeId)
         {
-            var memberOf = await _scope.GetAccessibleSectionIdsAsync(assigneeId);
+            var memberOf = await _scope.GetMemberSectionIdsAsync(assigneeId);
             targets = open.Where(t => InScope(memberOf, t.SectionId)).ToList();
 
             // With no test in the assignee's sections, checking against all
@@ -71,7 +71,7 @@ public class SampleAssignmentService
             throw new InvalidOperationException("Each test can be listed only once.");
 
         var sample = await LoadSampleAsync(sampleId);
-        var actingScope = await _scope.GetAccessibleSectionIdsAsync(actingUserId);
+        var actingScope = await _scope.GetMemberSectionIdsAsync(actingUserId);
         var now = _time.GetUtcNow().UtcDateTime;
 
         var changes = new List<(TestOrder Order, int? AnalystId)>();
@@ -104,7 +104,7 @@ public class SampleAssignmentService
             .FirstOrDefaultAsync(s => s.Id == sampleId)
             ?? throw new NotFoundException($"Sample {sampleId} not found.");
 
-        var actingScope = await _scope.GetAccessibleSectionIdsAsync(actingUserId);
+        var actingScope = await _scope.GetMemberSectionIdsAsync(actingUserId);
         var now = _time.GetUtcNow().UtcDateTime;
 
         var candidates = await AnalystAssignmentRules.Candidates(_db, actingUserId, now)
@@ -113,7 +113,7 @@ public class SampleAssignmentService
             .ToListAsync();
         var sectionsByUser = new Dictionary<int, IReadOnlyList<int>?>();
         foreach (var candidate in candidates)
-            sectionsByUser[candidate.Id] = await _scope.GetAccessibleSectionIdsAsync(candidate.Id);
+            sectionsByUser[candidate.Id] = await _scope.GetMemberSectionIdsAsync(candidate.Id);
 
         var orders = sample.TestOrders.Where(t => !t.IsSuperseded).OrderBy(t => t.SectionId).ThenBy(t => t.TestCode).ToList();
         var assignedIds = orders.Where(t => t.AssignedAnalystId.HasValue).Select(t => t.AssignedAnalystId!.Value).Distinct().ToList();

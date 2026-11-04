@@ -1,8 +1,10 @@
 using Microsoft.EntityFrameworkCore;
+using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Application.Services;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Persistence.DbContext;
+using MicroLIMS.Shared.Constants;
 using Xunit;
 
 namespace MicroLIMS.Tests.UnitTests;
@@ -50,6 +52,13 @@ public class SectionAccessGuardTests
             db.Roles.Add(adminRole);
             db.SaveChanges();
         }
+
+        // The built-in administrator holds Sections.ViewAll (read-only cross-section visibility), nothing that writes.
+        var viewAll = new Permission { Code = PermissionConstants.SectionsViewAll, Description = "View every section read-only." };
+        db.Permissions.Add(viewAll);
+        db.SaveChanges();
+        db.RolePermissions.Add(new RolePermission { RoleId = adminRole.Id, PermissionId = viewAll.Id });
+        db.SaveChanges();
 
         var microUser = new User
         {
@@ -106,7 +115,7 @@ public class SectionAccessGuardTests
     }
 
     [Fact]
-    public async Task EnsureTestOrderAccessAsync_Admin_ReturnsSilently()
+    public async Task EnsureTestOrderAccessAsync_Admin_ReadsEverywhere_ButCannotWrite()
     {
         await using var db = NewDb();
         var (_, otherSec, _, adminUser) = SeedBase(db);
@@ -116,7 +125,9 @@ public class SectionAccessGuardTests
         await db.SaveChangesAsync();
 
         var guard = new UserSectionScopeService(db);
-        await guard.EnsureTestOrderAccessAsync(adminUser.Id, order.Id);
+        // Holding Sections.ViewAll lets the administrator read across sections, never change them.
+        await guard.EnsureTestOrderAccessAsync(adminUser.Id, order.Id, access: SectionAccess.Read);
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => guard.EnsureTestOrderAccessAsync(adminUser.Id, order.Id));
     }
 
     [Fact]
@@ -162,7 +173,7 @@ public class SectionAccessGuardTests
     }
 
     [Fact]
-    public async Task EnsureTestOrdersAccessAsync_Admin_ReturnsSilently()
+    public async Task EnsureTestOrdersAccessAsync_Admin_ReadsEverywhere_ButCannotWrite()
     {
         await using var db = NewDb();
         var (_, otherSec, _, adminUser) = SeedBase(db);
@@ -172,7 +183,9 @@ public class SectionAccessGuardTests
         await db.SaveChangesAsync();
 
         var guard = new UserSectionScopeService(db);
-        await guard.EnsureTestOrdersAccessAsync(adminUser.Id, new[] { o1.Id });
+        // Holding Sections.ViewAll lets the administrator read across sections, never change them.
+        await guard.EnsureTestOrdersAccessAsync(adminUser.Id, new[] { o1.Id }, access: SectionAccess.Read);
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => guard.EnsureTestOrdersAccessAsync(adminUser.Id, new[] { o1.Id }));
     }
 
     [Fact]
@@ -236,7 +249,7 @@ public class SectionAccessGuardTests
     }
 
     [Fact]
-    public async Task EnsureSampleAccessAsync_Admin_ReturnsSilently()
+    public async Task EnsureSampleAccessAsync_Admin_ReadsEverywhere_ButCannotWrite()
     {
         await using var db = NewDb();
         var (_, otherSec, _, adminUser) = SeedBase(db);
@@ -247,7 +260,9 @@ public class SectionAccessGuardTests
         await db.SaveChangesAsync();
 
         var guard = new UserSectionScopeService(db);
-        await guard.EnsureSampleAccessAsync(adminUser.Id, sample.Id);
+        // Holding Sections.ViewAll lets the administrator read across sections, never change them.
+        await guard.EnsureSampleAccessAsync(adminUser.Id, sample.Id, access: SectionAccess.Read);
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => guard.EnsureSampleAccessAsync(adminUser.Id, sample.Id));
     }
 
     [Fact]
@@ -313,7 +328,7 @@ public class SectionAccessGuardTests
     }
 
     [Fact]
-    public async Task EnsureIncubationAccessAsync_Admin_ReturnsSilently()
+    public async Task EnsureIncubationAccessAsync_Admin_ReadsEverywhere_ButCannotWrite()
     {
         await using var db = NewDb();
         var (_, otherSec, _, adminUser) = SeedBase(db);
@@ -327,7 +342,9 @@ public class SectionAccessGuardTests
         await db.SaveChangesAsync();
 
         var guard = new UserSectionScopeService(db);
-        await guard.EnsureIncubationAccessAsync(adminUser.Id, inc.Id);
+        // Holding Sections.ViewAll lets the administrator read across sections, never change them.
+        await guard.EnsureIncubationAccessAsync(adminUser.Id, inc.Id, access: SectionAccess.Read);
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => guard.EnsureIncubationAccessAsync(adminUser.Id, inc.Id));
     }
 
     [Fact]
@@ -405,7 +422,7 @@ public class SectionAccessGuardTests
     }
 
     [Fact]
-    public async Task EnsurePathogenSampleAccessAsync_Admin_ReturnsSilently()
+    public async Task EnsurePathogenSampleAccessAsync_Admin_ReadsEverywhere_ButCannotWrite()
     {
         await using var db = NewDb();
         var (_, otherSec, _, adminUser) = SeedBase(db);
@@ -419,7 +436,9 @@ public class SectionAccessGuardTests
         await db.SaveChangesAsync();
 
         var guard = new UserSectionScopeService(db);
-        await guard.EnsurePathogenSampleAccessAsync(adminUser.Id, sample.Id);
+        // Holding Sections.ViewAll lets the administrator read across sections, never change them.
+        await guard.EnsurePathogenSampleAccessAsync(adminUser.Id, sample.Id, access: SectionAccess.Read);
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => guard.EnsurePathogenSampleAccessAsync(adminUser.Id, sample.Id));
     }
 
     [Fact]

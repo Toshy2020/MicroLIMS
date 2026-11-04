@@ -44,7 +44,7 @@ public class SpecificationMasterDataService
 
     private async Task<List<SpecificationRowDto>> ToRowsAsync(int currentUserId, List<Specification> specs)
     {
-        var scope = await _scope.GetAccessibleSectionIdsAsync(currentUserId);
+        var scope = await _scope.GetConfigurableSectionIdsAsync(currentUserId);
 
         var testCodes = specs.Select(s => s.TestCode).Distinct().ToList();
         var testDefs = await _db.TestDefinitions

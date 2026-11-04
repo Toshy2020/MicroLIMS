@@ -47,7 +47,8 @@ public class EquipmentInventory : IVersionedEntity
 
     public int CreatedByUserId { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-    public int LastModifiedByUserId { get; set; }
+    // Null = last changed automatically by the system.
+    public int? LastModifiedByUserId { get; set; }
     public DateTime LastModifiedAt { get; set; } = DateTime.UtcNow;
 
     // Not mapped - purely a display convenience for the list/print view.

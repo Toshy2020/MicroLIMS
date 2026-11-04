@@ -7,6 +7,7 @@ using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Persistence.DbContext;
 using MicroLIMS.Persistence.Helpers;
+using MicroLIMS.Shared.Constants;
 using Xunit;
 
 namespace MicroLIMS.Tests.UnitTests;
@@ -699,6 +700,12 @@ public class NotApplicableTestServiceTests
     {
         var (item, _, _, _) = SeedItemWithTests(db, "MOIST", "ASSAY");
         var admin = CreateUser(db, RoleType.SystemAdministrator, "Admin", "admin");
+        // Test Master edits outside the user's own sections need Sections.ConfigureAll (the administrator's grant).
+        var configureAll = new Permission { Code = PermissionConstants.SectionsConfigureAll, Description = "", IsEnforced = true };
+        db.Permissions.Add(configureAll);
+        db.SaveChanges();
+        db.RolePermissions.Add(new RolePermission { RoleId = admin.RoleId, PermissionId = configureAll.Id });
+        db.SaveChanges();
         db.Specifications.Add(DriedAssaySpec(item, ResultBasis.PercentDriedBasis));
         var moist = db.TestDefinitions.First(t => t.Code == "MOIST");
         moist.WorkflowType = WorkflowType.Gravimetric;

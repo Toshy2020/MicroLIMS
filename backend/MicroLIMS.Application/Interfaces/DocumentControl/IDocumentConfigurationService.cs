@@ -18,6 +18,10 @@ public interface IDocumentConfigurationService
     Task<DocumentSectionDto> CreateSectionAsync(CreateDocumentSectionRequest request, int userId);
     Task<DocumentSectionDto> UpdateSectionAsync(int id, UpdateDocumentSectionRequest request, int userId);
 
+    // What deactivating the department / section would leave behind (counts only; changes nothing).
+    Task<OrganizationImpactDto> GetDepartmentImpactAsync(int id, int userId);
+    Task<OrganizationImpactDto> GetSectionImpactAsync(int id, int userId);
+
     // Numbering Configuration
     Task<DocumentNumberingConfigDto> GetNumberingConfigAsync();
     Task<DocumentNumberingConfigDto> UpdateNumberingConfigAsync(UpdateDocumentNumberingConfigRequest request, int userId);

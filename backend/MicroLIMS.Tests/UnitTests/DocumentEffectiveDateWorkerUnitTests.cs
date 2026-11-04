@@ -21,6 +21,8 @@ public class DocumentEffectiveDateWorkerUnitTests
     private class TestDbSequenceHelper : IDatabaseSequenceHelper
     {
         private long _current = 100;
+        public Task<int> ReserveIdAsync<TEntity>(CancellationToken cancellationToken = default) where TEntity : class => throw new NotSupportedException();
+
         public Task<long> GetNextSequenceValueAsync(string sequenceName, CancellationToken cancellationToken = default)
         {
             return Task.FromResult(Interlocked.Increment(ref _current));
@@ -422,6 +424,7 @@ public class DocumentEffectiveDateWorkerUnitTests
 
         var services = new ServiceCollection();
         services.AddSingleton(db);
+        services.AddSingleton<IMicroLimsDbContext>(db);
         services.AddSingleton<IDocumentEffectiveDateService>(service);
 
         var serviceProvider = services.BuildServiceProvider();
@@ -436,6 +439,9 @@ public class DocumentEffectiveDateWorkerUnitTests
         // Assert
         var refreshed = await db.DocumentRevisions.FindAsync(futureRev.Id);
         Assert.Equal(DocumentRevisionStatus.Effective, refreshed!.RevisionStatus);
+
+        // The worker writes with no user: its audit rows must name the worker.
+        Assert.Equal(DocumentEffectiveDateWorker.ProcessName, db.CurrentSystemProcessName);
     }
 
     [Fact]

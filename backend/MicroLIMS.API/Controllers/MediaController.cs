@@ -45,16 +45,16 @@ public class MediaController : ControllerBase
     private int CurrentUserId => int.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)!.Value);
 
     [HttpGet]
-    public async Task<IActionResult> GetAll() => Ok(ApiResponse<object>.Ok(await _mediaPrep.GetAllAsync((await _scopeService.GetAccessibleSectionIdsAsync(CurrentUserId)))));
+    public async Task<IActionResult> GetAll() => Ok(ApiResponse<object>.Ok(await _mediaPrep.GetAllAsync((await _scopeService.GetReadableSectionIdsAsync(CurrentUserId)))));
 
     // Powers the Dashboard's Media Expiry panel.
     [HttpGet("expiring")]
     public async Task<IActionResult> GetExpiring([FromQuery] int withinDays = 7) =>
-        Ok(ApiResponse<object>.Ok(await _expiry.GetExpiringAsync(withinDays, (await _scopeService.GetAccessibleSectionIdsAsync(CurrentUserId)))));
+        Ok(ApiResponse<object>.Ok(await _expiry.GetExpiringAsync(withinDays, (await _scopeService.GetReadableSectionIdsAsync(CurrentUserId)))));
 
     [HttpGet("released")]
     public async Task<IActionResult> GetReleased([FromQuery] int? materialId, [FromQuery] bool includeExpired = false, [FromQuery] int? excludeId = null) =>
-        Ok(ApiResponse<object>.Ok(await _mediaPrep.GetReleasedAsync(materialId, includeExpired, excludeId, (await _scopeService.GetAccessibleSectionIdsAsync(CurrentUserId)))));
+        Ok(ApiResponse<object>.Ok(await _mediaPrep.GetReleasedAsync(materialId, includeExpired, excludeId, (await _scopeService.GetReadableSectionIdsAsync(CurrentUserId)))));
 
     [HttpPost]
     public async Task<IActionResult> Prepare(PrepareMediaHttpRequest r) =>
@@ -66,7 +66,7 @@ public class MediaController : ControllerBase
     // Lots that passed evaluation and are waiting on a release signature.
     [HttpGet("awaiting-approval")]
     public async Task<IActionResult> GetAwaitingApproval() =>
-        Ok(ApiResponse<object>.Ok(await _mediaRelease.GetAwaitingApprovalAsync((await _scopeService.GetAccessibleSectionIdsAsync(CurrentUserId)))));
+        Ok(ApiResponse<object>.Ok(await _mediaRelease.GetAwaitingApprovalAsync((await _scopeService.GetReadableSectionIdsAsync(CurrentUserId)))));
 
     // The release gate itself - Section Head only, matching
     // CryovialController.Approve's restriction on the equivalent action.
@@ -92,7 +92,7 @@ public class MediaController : ControllerBase
     [HttpGet("{id}/storage")]
     public async Task<IActionResult> GetStorageEntries(int id)
     {
-        await _scopeService.EnsureMediaAccessAsync(CurrentUserId, id);
+        await _scopeService.EnsureMediaAccessAsync(CurrentUserId, id, access: SectionAccess.Read);
         return Ok(ApiResponse<object>.Ok(await _mediaStorage.GetStorageEntriesAsync(id)));
     }
 
@@ -113,7 +113,7 @@ public class MediaController : ControllerBase
     [HttpGet("{id}/summary")]
     public async Task<IActionResult> GetSummary(int id)
     {
-        await _scopeService.EnsureMediaAccessAsync(CurrentUserId, id);
+        await _scopeService.EnsureMediaAccessAsync(CurrentUserId, id, access: SectionAccess.Read);
         var summary = await _summary.GetSummaryAsync(id);
         if (summary is null) return NotFound(ApiResponse<object>.Fail($"Media lot {id} not found."));
         return Ok(ApiResponse<object>.Ok(summary));
@@ -122,7 +122,7 @@ public class MediaController : ControllerBase
     [HttpGet("{id}/summary/pdf")]
     public async Task<IActionResult> GetSummaryPdf(int id)
     {
-        await _scopeService.EnsureMediaAccessAsync(CurrentUserId, id);
+        await _scopeService.EnsureMediaAccessAsync(CurrentUserId, id, access: SectionAccess.Read);
         var result = await _summary.GenerateSummaryPdfAsync(id);
         if (result is null) return NotFound(ApiResponse<object>.Fail($"Media lot {id} not found."));
         return File(result.Value.bytes, "application/pdf", $"{result.Value.fileNameStem}.pdf");
@@ -131,7 +131,7 @@ public class MediaController : ControllerBase
     [HttpGet("{id}/summary/word")]
     public async Task<IActionResult> GetSummaryWord(int id)
     {
-        await _scopeService.EnsureMediaAccessAsync(CurrentUserId, id);
+        await _scopeService.EnsureMediaAccessAsync(CurrentUserId, id, access: SectionAccess.Read);
         var result = await _summary.GenerateSummaryWordAsync(id);
         if (result is null) return NotFound(ApiResponse<object>.Fail($"Media lot {id} not found."));
         return File(result.Value.bytes, "application/vnd.openxmlformats-officedocument.wordprocessingml.document", $"{result.Value.fileNameStem}.docx");

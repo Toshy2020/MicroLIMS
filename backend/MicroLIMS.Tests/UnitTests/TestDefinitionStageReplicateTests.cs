@@ -22,6 +22,8 @@ public class TestDefinitionStageReplicateTests
 
     private static (MasterDataControllers controller, User admin) SetupAdminController(MicroLimsDbContext db)
     {
+        // Writes follow section membership for everyone, administrators included: the acting user
+        // belongs to the Microbiology section that owns the test definitions under test.
         var adminRole = new Role { Name = "System Administrator", Type = RoleType.SystemAdministrator, IsActive = true };
         db.Roles.Add(adminRole);
         db.SaveChanges();
@@ -36,6 +38,7 @@ public class TestDefinitionStageReplicateTests
         };
         db.Users.Add(admin);
         db.SaveChanges();
+        TestServiceFactory.AssignUserToMicroSection(db, admin.Id);
 
         var scope = new UserSectionScopeService(db);
         var colService = new ChromatographyColumnService(db, scope);

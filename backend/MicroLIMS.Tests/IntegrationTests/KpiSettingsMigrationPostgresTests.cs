@@ -49,7 +49,7 @@ public class KpiSettingsMigrationPostgresTests
 
                 // AddOrgSectionSegregation already inserted QC and MICRO into a migrated database; clear them so the explicit ids
                 // and codes below cannot collide. Explicit ids on identity columns do not advance the sequence, which is fine here.
-                await db.Database.ExecuteSqlRawAsync("DELETE FROM \"DocumentSections\"; DELETE FROM \"DocumentDepartments\";");
+                await db.Database.ExecuteSqlRawAsync("DELETE FROM \"MaterialCategorySections\"; DELETE FROM \"DocumentSections\"; DELETE FROM \"DocumentDepartments\";");
 
                 db.DocumentDepartments.Add(new DocumentDepartment { Id = 1, Code = "QC", Name = "QC" });
                 for (var i = 1; i <= 5; i++)

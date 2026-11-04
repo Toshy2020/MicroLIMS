@@ -108,6 +108,52 @@ public class AgentAuditAttributionTests
         });
     }
 
+    // A hosted worker writes outside any request: no user, no agent. Its rows
+    // name the System actor and the worker, never "user 0".
+    [Fact]
+    public void SystemProcessName_WithoutUserOrAgent_AttributesEveryRowToTheProcess()
+    {
+        using var db = NewDb(Guid.NewGuid().ToString());
+        db.CurrentSystemProcessName = "EquipmentOverdueWorker";
+
+        CreateUpdateDelete(db);
+
+        var logs = db.AuditLogs.ToList();
+        Assert.Equal(4, logs.Count);
+        Assert.All(logs, l =>
+        {
+            Assert.Null(l.UserId);
+            Assert.Equal(ActorType.System, l.ActorType);
+            Assert.Equal("EquipmentOverdueWorker", l.SystemProcessName);
+        });
+    }
+
+    [Fact]
+    public void SystemProcessName_UserWins_AndAgentCodeWinsOverProcessName()
+    {
+        using var userDb = NewDb(Guid.NewGuid().ToString());
+        userDb.CurrentUserId = 7;
+        userDb.CurrentSystemProcessName = "EquipmentOverdueWorker";
+        CreateUpdateDelete(userDb);
+        Assert.All(userDb.AuditLogs.ToList(), l =>
+        {
+            Assert.Equal(7, l.UserId);
+            Assert.Null(l.ActorType);
+            Assert.Null(l.SystemProcessName);
+        });
+
+        using var agentDb = NewDb(Guid.NewGuid().ToString());
+        agentDb.CurrentAgentCode = "HPLC1";
+        agentDb.CurrentSystemProcessName = "EquipmentOverdueWorker";
+        CreateUpdateDelete(agentDb);
+        Assert.All(agentDb.AuditLogs.ToList(), l =>
+        {
+            Assert.Null(l.UserId);
+            Assert.Equal(ActorType.System, l.ActorType);
+            Assert.Equal("InstrumentAgent:HPLC1", l.SystemProcessName);
+        });
+    }
+
     // The agent's identity reaches the DbContext through the real middleware,
     // not just through a test setting the property.
     [Fact]

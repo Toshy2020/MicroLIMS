@@ -34,16 +34,16 @@ public class LaboratoryOrganizationService
             .Select(s => new LaboratorySectionDto(s.Id, s.Code, s.Name, s.DepartmentId, s.Department.Code, s.Department.Name, Array.Empty<string>()))
             .ToListAsync();
 
-    // The sections a user can work in - every active section for an
-    // unrestricted user (system administrator).
+    // The sections a user can see - every active section for a role holding
+    // Sections.ViewAll (read-only); writes still follow membership.
     public async Task<List<LaboratorySectionDto>> GetMySectionsAsync(int userId)
     {
-        var scope = await _scope.GetAccessibleSectionIdsAsync(userId);
+        var scope = await _scope.GetReadableSectionIdsAsync(userId);
         var sections = await GetActiveSectionsAsync();
         var mine = scope is null ? sections : sections.Where(s => scope.Contains(s.SectionId)).ToList();
         if (mine.All(s => s.SectionCode != PhyschemAreas.SectionCode)) return mine;
 
-        var areas = (await _scope.GetPhyschemAreasAsync(userId))
+        var areas = (await _scope.GetPhyschemAreasAsync(userId, access: SectionAccess.Read))
             .Select(a => a == WorkspaceArea.Fp ? "fp" : "rmpm").ToList();
         return mine.Select(s => s.SectionCode == PhyschemAreas.SectionCode ? s with { PhyschemAreas = areas } : s).ToList();
     }
@@ -58,10 +58,13 @@ public class LaboratoryOrganizationService
     // Replaces the user's memberships. Every change is captured by the
     // DbContext's audit trail under the acting user - membership decides
     // what laboratory data a user can see and act on.
-    public async Task<List<UserOrgMembershipDto>> ReplaceMembershipsAsync(int userId, IReadOnlyCollection<UserOrgMembershipDto> memberships, int actingUserId)
+    public async Task<List<UserOrgMembershipDto>> ReplaceMembershipsAsync(int userId, IReadOnlyCollection<UserOrgMembershipDto> memberships, string? reason, int actingUserId)
     {
-        if (!await _db.Users.AnyAsync(u => u.Id == userId))
-            throw new NotFoundException($"User {userId} not found.");
+        reason = AdminActionReason.Require(reason, "change a user's laboratory memberships");
+        var memberUser = await _db.Users.AsNoTracking().Where(u => u.Id == userId).Select(u => new { u.IsActive }).FirstOrDefaultAsync()
+            ?? throw new NotFoundException($"User {userId} not found.");
+        if (!memberUser.IsActive)
+            throw new InvalidOperationException("Inactive users cannot be assigned to laboratory sections. Reactivate the user first.");
 
         // Memberships are keyed by department + section; the last row for a key wins.
         var wanted = memberships.GroupBy(m => (m.DepartmentId, m.SectionId)).Select(g => g.Last()).ToList();
@@ -86,6 +89,7 @@ public class LaboratoryOrganizationService
             throw new InvalidOperationException("An area can only be set on a Physicochemical Laboratory membership.");
 
         _db.CurrentUserId = actingUserId;
+        _db.CurrentReason = reason;
         var existing = await _db.UserOrgMemberships.Where(m => m.UserId == userId).ToListAsync();
         _db.UserOrgMemberships.RemoveRange(existing.Where(e => !wanted.Any(w => w.DepartmentId == e.DepartmentId && w.SectionId == e.SectionId)));
         foreach (var w in wanted)

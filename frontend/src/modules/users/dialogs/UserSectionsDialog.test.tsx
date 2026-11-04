@@ -131,6 +131,19 @@ describe("UserSectionsDialog - Lane F5 S3 physchemArea", () => {
     expect(screen.queryByTestId("physchem-area-select")).toBeNull();
   });
 
+  it("needs a reason before the memberships can be saved", async () => {
+    vi.mocked(labService.getUserMemberships).mockResolvedValue([{ departmentId: 1, sectionId: 101, physchemArea: null }]);
+    renderDialog();
+    await waitFor(() => expect(screen.getByTestId("physchem-area-select")).toBeTruthy());
+
+    const save = screen.getByRole("button", { name: /save memberships/i }) as HTMLButtonElement;
+    expect(save.disabled).toBe(true);
+    fireEvent.change(screen.getByLabelText(/reason for change/i), { target: { value: "  " } });
+    expect(save.disabled).toBe(true);
+    fireEvent.change(screen.getByLabelText(/reason for change/i), { target: { value: "Transferred to Quality Control" } });
+    expect(save.disabled).toBe(false);
+  });
+
   it("maps Both to null when saving memberships", async () => {
     vi.mocked(labService.getUserMemberships).mockResolvedValue([
       { departmentId: 1, sectionId: 101, physchemArea: null }
@@ -146,6 +159,7 @@ describe("UserSectionsDialog - Lane F5 S3 physchemArea", () => {
     });
 
     const saveButton = screen.getByRole("button", { name: /save memberships/i });
+    fireEvent.change(screen.getByLabelText(/reason for change/i), { target: { value: "test reason" } });
     fireEvent.click(saveButton);
 
     await waitFor(() => {
@@ -155,7 +169,7 @@ describe("UserSectionsDialog - Lane F5 S3 physchemArea", () => {
           sectionId: 101,
           physchemArea: null
         }
-      ]);
+      ], "test reason");
       expect(onSuccess).toHaveBeenCalledWith('Laboratory sections updated for "janalyst".');
       expect(onClose).toHaveBeenCalled();
     });
@@ -180,6 +194,7 @@ describe("UserSectionsDialog - Lane F5 S3 physchemArea", () => {
 
     // Save and verify FinishedProduct
     const saveButton = screen.getByRole("button", { name: /save memberships/i });
+    fireEvent.change(screen.getByLabelText(/reason for change/i), { target: { value: "test reason" } });
     fireEvent.click(saveButton);
 
     await waitFor(() => {
@@ -189,13 +204,15 @@ describe("UserSectionsDialog - Lane F5 S3 physchemArea", () => {
           sectionId: 101,
           physchemArea: "FinishedProduct"
         }
-      ]);
+      ], "test reason");
     });
 
     // Now change to RM & PM ("RawPackaging")
     fireEvent.mouseDown(screen.getByRole("combobox", { name: /area/i }));
     const rmPmOption = await screen.findByRole("option", { name: /RM & PM/i });
     fireEvent.click(rmPmOption);
+
+    fireEvent.change(screen.getByLabelText(/reason for change/i), { target: { value: "test reason" } });
 
     fireEvent.click(saveButton);
     await waitFor(() => {
@@ -205,13 +222,15 @@ describe("UserSectionsDialog - Lane F5 S3 physchemArea", () => {
           sectionId: 101,
           physchemArea: "RawPackaging"
         }
-      ]);
+      ], "test reason");
     });
 
     // Now change back to Both (maps to null)
     fireEvent.mouseDown(screen.getByRole("combobox", { name: /area/i }));
     const bothOption = await screen.findByRole("option", { name: /^Both$/i });
     fireEvent.click(bothOption);
+
+    fireEvent.change(screen.getByLabelText(/reason for change/i), { target: { value: "test reason" } });
 
     fireEvent.click(saveButton);
     await waitFor(() => {
@@ -221,7 +240,7 @@ describe("UserSectionsDialog - Lane F5 S3 physchemArea", () => {
           sectionId: 101,
           physchemArea: null
         }
-      ]);
+      ], "test reason");
     });
   });
 
@@ -242,6 +261,8 @@ describe("UserSectionsDialog - Lane F5 S3 physchemArea", () => {
     await waitFor(() => {
       expect(screen.getByTestId("physchem-area-select")).toBeTruthy();
     });
+
+    fireEvent.change(screen.getByLabelText(/reason for change/i), { target: { value: "test reason" } });
 
     fireEvent.click(screen.getByRole("button", { name: /save memberships/i }));
 

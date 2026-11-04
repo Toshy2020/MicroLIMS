@@ -35,6 +35,8 @@ public class DocumentControlRestApiPostgresIntegrationTests
     private class PostgresSequenceHelper : IDatabaseSequenceHelper
     {
         private long _seq = 105000;
+        public Task<int> ReserveIdAsync<TEntity>(CancellationToken cancellationToken = default) where TEntity : class => throw new NotSupportedException();
+
         public Task<long> GetNextSequenceValueAsync(string sequenceName, CancellationToken cancellationToken = default)
         {
             return Task.FromResult(Interlocked.Increment(ref _seq));
@@ -211,9 +213,11 @@ public class DocumentControlRestApiPostgresIntegrationTests
         var audit = new AuditEventService(db, new PostgresSequenceHelper());
         var escService = new DocumentEscalationService(db, audit, NullLogger<DocumentEscalationService>.Instance);
 
+        // Escalation processing is gated on Documents.TrainingAssign, which the
+        // System Administrator no longer holds; act as a Section Head instead.
         var controller = new DocumentEscalationController(escService)
         {
-            ControllerContext = CreateContext(_fixture.SeededUserId, nameof(RoleType.SystemAdministrator))
+            ControllerContext = CreateContext(_fixture.SeededUserId, nameof(RoleType.SectionHead))
         };
 
         // 1. Trigger process-due
@@ -338,7 +342,7 @@ public class DocumentControlRestApiPostgresIntegrationTests
         var matrixService = new TrainingMatrixService(db, NullLogger<TrainingMatrixService>.Instance);
         var controller = new DocumentTrainingMatrixController(matrixService)
         {
-            ControllerContext = CreateContext(_fixture.SeededUserId, nameof(RoleType.SystemAdministrator))
+            ControllerContext = CreateContext(_fixture.SeededUserId, nameof(RoleType.SectionHead))
         };
 
         // 1. Query Matrix Grid

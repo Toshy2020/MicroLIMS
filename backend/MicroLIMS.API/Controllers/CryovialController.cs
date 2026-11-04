@@ -37,7 +37,7 @@ public class CryovialController : ControllerBase
     private int CurrentUserId => int.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)!.Value);
 
     [HttpGet]
-    public async Task<IActionResult> GetAll() => Ok(ApiResponse<object>.Ok(await _service.GetAllAsync((await _scopeService.GetAccessibleSectionIdsAsync(CurrentUserId)))));
+    public async Task<IActionResult> GetAll() => Ok(ApiResponse<object>.Ok(await _service.GetAllAsync((await _scopeService.GetReadableSectionIdsAsync(CurrentUserId)))));
 
     [HttpPost("prepare")]
     public async Task<IActionResult> PrepareCryovials(PrepareCryovialsHttpRequest r) =>
@@ -83,7 +83,7 @@ public class CryovialController : ControllerBase
     [HttpGet("{id}/summary")]
     public async Task<IActionResult> GetSummary(int id)
     {
-        await _scopeService.EnsureCryovialAccessAsync(CurrentUserId, id);
+        await _scopeService.EnsureCryovialAccessAsync(CurrentUserId, id, access: SectionAccess.Read);
         var summary = await _summary.GetSummaryAsync(id);
         if (summary is null) return NotFound(ApiResponse<object>.Fail($"Cryovial batch {id} not found."));
         return Ok(ApiResponse<object>.Ok(summary));
@@ -92,7 +92,7 @@ public class CryovialController : ControllerBase
     [HttpGet("{id}/summary/pdf")]
     public async Task<IActionResult> GetSummaryPdf(int id)
     {
-        await _scopeService.EnsureCryovialAccessAsync(CurrentUserId, id);
+        await _scopeService.EnsureCryovialAccessAsync(CurrentUserId, id, access: SectionAccess.Read);
         var result = await _summary.GenerateSummaryPdfAsync(id);
         if (result is null) return NotFound(ApiResponse<object>.Fail($"Cryovial batch {id} not found."));
         return File(result.Value.bytes, "application/pdf", $"{result.Value.fileNameStem}.pdf");
@@ -101,7 +101,7 @@ public class CryovialController : ControllerBase
     [HttpGet("{id}/summary/word")]
     public async Task<IActionResult> GetSummaryWord(int id)
     {
-        await _scopeService.EnsureCryovialAccessAsync(CurrentUserId, id);
+        await _scopeService.EnsureCryovialAccessAsync(CurrentUserId, id, access: SectionAccess.Read);
         var result = await _summary.GenerateSummaryWordAsync(id);
         if (result is null) return NotFound(ApiResponse<object>.Fail($"Cryovial batch {id} not found."));
         return File(result.Value.bytes, "application/vnd.openxmlformats-officedocument.wordprocessingml.document", $"{result.Value.fileNameStem}.docx");

@@ -26,6 +26,6 @@ public class OosTrackingController : ControllerBase
 
     [HttpGet]
     public async Task<IActionResult> Get() =>
-        Ok(ApiResponse<object>.Ok(await _service.GetOosGroupsAsync(await _scopeService.GetAccessibleSectionIdsAsync(
+        Ok(ApiResponse<object>.Ok(await _service.GetOosGroupsAsync(await _scopeService.GetReadableSectionIdsAsync(
             int.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)!.Value)))));
 }

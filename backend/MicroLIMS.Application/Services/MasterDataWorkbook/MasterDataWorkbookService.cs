@@ -32,6 +32,7 @@ public class MasterDataWorkbookService
     private readonly TimeProvider _time;
     private readonly ItemService _items;
     private readonly MaterialMasterService _materialMaster;
+    private readonly ReferenceOrganismService _referenceOrganisms;
     private readonly IReadOnlyList<SheetHandler> _sheets;
     private readonly MasterDataWorkbookRunner _runner;
 
@@ -46,6 +47,7 @@ public class MasterDataWorkbookService
         EnvironmentalMonitoringMasterDataService em,
         WaterMasterDataService water,
         MaterialMasterService materialMaster,
+        ReferenceOrganismService referenceOrganisms,
         MediaProductService mediaProducts,
         EquipmentMasterDataService equipment,
         ItemService items,
@@ -58,15 +60,16 @@ public class MasterDataWorkbookService
         _time = time;
         _items = items;
         _materialMaster = materialMaster;
-        _sheets = MasterDataSheets.Create(organisms, referenceLists, em, water, materialMaster, mediaProducts, equipment, items, specifications);
+        _referenceOrganisms = referenceOrganisms;
+        _sheets = MasterDataSheets.Create(organisms, referenceLists, em, water, materialMaster, referenceOrganisms, mediaProducts, equipment, items, specifications);
         _runner = new MasterDataWorkbookRunner(db, _sheets);
     }
 
-    // System administrators get every section's records; everyone else
-    // only the sections they belong to.
+    // A role holding Sections.ViewAll gets every section's records; everyone
+    // else only the sections they belong to.
     public async Task<(byte[] Content, string FileName)> DownloadAsync(int userId)
     {
-        var scope = await new UserSectionScopeService(_db).GetAccessibleSectionIdsAsync(userId);
+        var scope = await new UserSectionScopeService(_db).GetReadableSectionIdsAsync(userId);
         var sheets = new List<WorkbookSheet>();
         var choices = new List<WorkbookColumnChoices>();
         var help = new List<WorkbookInstructionRow>();
@@ -201,15 +204,19 @@ public class MasterDataWorkbookService
 
             // The verifier must be able to see what they verify: material
             // master entries belong to lab sections. Checked before signing.
-            var scope = await new UserSectionScopeService(_db).GetAccessibleSectionIdsAsync(userId);
+            var scope = await new UserSectionScopeService(_db).GetConfigurableSectionIdsAsync(userId);
             if (scope is not null)
             {
                 var entryIds = import.Records.Where(r => r.EntityType == "MaterialMasterEntry").Select(r => r.EntityId).ToList();
                 var outside = await _db.MaterialMasterEntries.Where(e => entryIds.Contains(e.Id) && !scope.Contains(e.SectionId))
                     .Select(e => e.Section!.Code).Distinct().OrderBy(c => c).ToListAsync();
+                var strainIds = import.Records.Where(r => r.EntityType == "ReferenceOrganism").Select(r => r.EntityId).ToList();
+                outside.AddRange(await _db.ReferenceOrganisms.Where(r => strainIds.Contains(r.Id) && !scope.Contains(r.OwnerSectionId))
+                    .Select(r => r.OwnerSection!.Code).Distinct().ToListAsync());
+                outside = outside.Distinct().OrderBy(c => c).ToList();
                 if (outside.Count > 0)
                     throw new InvalidOperationException(
-                        $"This load added material master entries to lab section(s) you are not a member of: {string.Join(", ", outside)}. Ask a Section Head of that section to verify it.");
+                        $"This load added material master entries or reference organisms to lab section(s) you are not a member of: {string.Join(", ", outside)}. Ask a Section Head of that section to verify it.");
             }
 
             _db.CurrentUserId = userId;
@@ -228,6 +235,9 @@ public class MasterDataWorkbookService
             foreach (var record in import.Records.Where(r => r.EntityType == "MaterialMasterEntry"))
                 if (await _db.MaterialMasterEntries.AnyAsync(e => e.Id == record.EntityId))
                     await _materialMaster.SetActiveAsync(record.EntityId, true, userId);
+            foreach (var record in import.Records.Where(r => r.EntityType == "ReferenceOrganism"))
+                if (await _db.ReferenceOrganisms.AnyAsync(e => e.Id == record.EntityId))
+                    await _referenceOrganisms.SetActiveAsync(record.EntityId, true, userId);
         });
 
         return (await LoadDtosAsync(i => i.Id == id)).Single();

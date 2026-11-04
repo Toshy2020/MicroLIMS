@@ -122,20 +122,20 @@ public class PhyschemAreaWorkspacePostgresTests
         var org = new LaboratoryOrganizationService(db, new UserSectionScopeService(db));
 
         var saved = await org.ReplaceMembershipsAsync(s.BothUserId,
-            new[] { new UserOrgMembershipDto(s.Fp.DepartmentId, s.Fp.Id, PhyschemArea.RawPackaging) }, _fixture.SeededUserId);
+            new[] { new UserOrgMembershipDto(s.Fp.DepartmentId, s.Fp.Id, PhyschemArea.RawPackaging) }, "test", _fixture.SeededUserId);
         Assert.Equal(PhyschemArea.RawPackaging, Assert.Single(saved).PhyschemArea);
         Assert.Equal(PhyschemArea.RawPackaging, (await org.GetMembershipsAsync(s.BothUserId)).Single().PhyschemArea);
 
         // Changing the area on the existing row updates it (no new row).
         saved = await org.ReplaceMembershipsAsync(s.BothUserId,
-            new[] { new UserOrgMembershipDto(s.Fp.DepartmentId, s.Fp.Id, PhyschemArea.Both) }, _fixture.SeededUserId);
+            new[] { new UserOrgMembershipDto(s.Fp.DepartmentId, s.Fp.Id, PhyschemArea.Both) }, "test", _fixture.SeededUserId);
         Assert.Equal(PhyschemArea.Both, Assert.Single(saved).PhyschemArea);
 
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => org.ReplaceMembershipsAsync(s.BothUserId,
-            new[] { new UserOrgMembershipDto(s.Micro.DepartmentId, s.Micro.Id, PhyschemArea.RawPackaging) }, _fixture.SeededUserId));
+            new[] { new UserOrgMembershipDto(s.Micro.DepartmentId, s.Micro.Id, PhyschemArea.RawPackaging) }, "test", _fixture.SeededUserId));
         Assert.Equal("An area can only be set on a Physicochemical Laboratory membership.", ex.Message);
         await Assert.ThrowsAsync<InvalidOperationException>(() => org.ReplaceMembershipsAsync(s.BothUserId,
-            new[] { new UserOrgMembershipDto(s.Fp.DepartmentId, null, PhyschemArea.RawPackaging) }, _fixture.SeededUserId));
+            new[] { new UserOrgMembershipDto(s.Fp.DepartmentId, null, PhyschemArea.RawPackaging) }, "test", _fixture.SeededUserId));
     }
 
     [PostgresFact]
@@ -148,12 +148,12 @@ public class PhyschemAreaWorkspacePostgresTests
         var both = (await org.GetMySectionsAsync(s.BothUserId)).Single(x => x.SectionCode == "FP");
         Assert.Equal(new[] { "fp", "rmpm" }, both.PhyschemAreas);
 
-        await org.ReplaceMembershipsAsync(s.FpOnlyUserId, new[] { new UserOrgMembershipDto(s.Fp.DepartmentId, s.Fp.Id, PhyschemArea.RawPackaging) }, _fixture.SeededUserId);
+        await org.ReplaceMembershipsAsync(s.FpOnlyUserId, new[] { new UserOrgMembershipDto(s.Fp.DepartmentId, s.Fp.Id, PhyschemArea.RawPackaging) }, "test", _fixture.SeededUserId);
         var rm = (await org.GetMySectionsAsync(s.FpOnlyUserId)).Single(x => x.SectionCode == "FP");
         Assert.Equal(new[] { "rmpm" }, rm.PhyschemAreas);
 
         // A department-wide membership covers both areas, and other sections carry no areas.
-        await org.ReplaceMembershipsAsync(s.FpOnlyUserId, new[] { new UserOrgMembershipDto(s.Fp.DepartmentId, null) }, _fixture.SeededUserId);
+        await org.ReplaceMembershipsAsync(s.FpOnlyUserId, new[] { new UserOrgMembershipDto(s.Fp.DepartmentId, null) }, "test", _fixture.SeededUserId);
         var mine = await org.GetMySectionsAsync(s.FpOnlyUserId);
         Assert.Equal(new[] { "fp", "rmpm" }, mine.Single(x => x.SectionCode == "FP").PhyschemAreas);
         Assert.All(mine.Where(x => x.SectionCode != "FP"), x => Assert.Empty(x.PhyschemAreas));

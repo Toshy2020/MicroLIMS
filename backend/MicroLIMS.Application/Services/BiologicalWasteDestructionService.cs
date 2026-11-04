@@ -21,6 +21,7 @@ public class BiologicalWasteDestructionService
     private readonly IMicroLimsDbContext _db;
     private readonly IElectronicSignatureService _signatures;
     private readonly IUserSectionScopeService _scope;
+    private readonly IDatabaseSequenceHelper _sequences;
     private readonly TimeProvider _time;
 
     // A cycle start may sit slightly in the future of the server clock
@@ -28,11 +29,12 @@ public class BiologicalWasteDestructionService
     private static readonly TimeSpan ClockTolerance = TimeSpan.FromMinutes(5);
 
     public BiologicalWasteDestructionService(IMicroLimsDbContext db, IElectronicSignatureService signatures,
-        IUserSectionScopeService scope, TimeProvider? timeProvider = null)
+        IUserSectionScopeService scope, IDatabaseSequenceHelper sequences, TimeProvider? timeProvider = null)
     {
         _db = db;
         _signatures = signatures;
         _scope = scope;
+        _sequences = sequences;
         _time = timeProvider ?? TimeProvider.System;
     }
 
@@ -114,7 +116,7 @@ public class BiologicalWasteDestructionService
         if (!program.IsActive)
             throw new InvalidOperationException($"Autoclave program {program.ProgramCode} is inactive.");
 
-        var sectionIds = await _scope.GetAccessibleSectionIdsAsync(userId);
+        var sectionIds = await _scope.GetMemberSectionIdsAsync(userId);
         var items = new List<BiologicalWasteDestructionItem>();
 
         var thaws = await _db.ThawEvents
@@ -187,10 +189,12 @@ public class BiologicalWasteDestructionService
 
         // Signs last of the checks and before anything is written - a
         // wrong password saves only its own failure audit row. The record
-        // id does not exist yet, so the signature is pointed at it after
-        // the first save (same transaction).
+        // is saved together with its signature, which must already carry
+        // the record's id (a saved signature can never be updated), so the
+        // id is taken from the sequence first.
+        var destructionId = await _sequences.ReserveIdAsync<BiologicalWasteDestruction>();
         var signature = await _signatures.SignAsync(userId, r.Password, SignatureMeaning.BiologicalWasteDestroyed,
-            nameof(BiologicalWasteDestruction), 0, string.IsNullOrWhiteSpace(r.Notes) ? null : r.Notes.Trim(), ipAddress);
+            nameof(BiologicalWasteDestruction), destructionId, string.IsNullOrWhiteSpace(r.Notes) ? null : r.Notes.Trim(), ipAddress);
 
         // The withdrawn batches' unthawed vials are gone now. Changed only
         // after signing: a refused signature saves its audit row, and must
@@ -199,6 +203,7 @@ public class BiologicalWasteDestructionService
 
         var destruction = new BiologicalWasteDestruction
         {
+            Id = destructionId,
             SectionId = autoclave.SectionId,
             AutoclaveEquipmentId = autoclave.Id,
             AutoclaveProgramId = program.Id,
@@ -216,9 +221,6 @@ public class BiologicalWasteDestructionService
             Items = items
         };
         _db.BiologicalWasteDestructions.Add(destruction);
-        await _db.SaveChangesAsync();
-
-        signature.EntityId = destruction.Id;
         await _db.SaveChangesAsync();
         return destruction;
     }
@@ -238,7 +240,7 @@ public class BiologicalWasteDestructionService
             d.ProgramCodeSnapshot, d.ProgramNameSnapshot, d.LoadTypeSnapshot, d.TemperatureSnapshot, d.CycleTimeMinutesSnapshot,
             d.CycleNumber, d.CycleStartedAt, d.Notes,
             names.TryGetValue(d.RecordedByUserId, out var n) ? n : "Unknown", d.RecordedAt,
-            d.Signature?.UserFullNameSnapshot ?? string.Empty, d.Signature?.RoleSnapshot ?? string.Empty, d.Signature?.SignedAt ?? d.RecordedAt,
+            d.Signature?.UserFullNameSnapshot ?? string.Empty, d.Signature?.RoleNameSnapshot ?? d.Signature?.RoleSnapshot ?? string.Empty, d.Signature?.SignedAt ?? d.RecordedAt,
             d.Items.Count(i => i.ItemType != BiologicalWasteItemType.Other),
             d.Items.Count(i => i.ItemType == BiologicalWasteItemType.Other),
             d.Items.OrderBy(i => i.ItemType).ThenBy(i => i.Id).Select(i => new BiologicalWasteItemDto(

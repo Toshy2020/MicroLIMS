@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.DTOs;
+using MicroLIMS.Application.Helpers;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Application.Abstractions.Persistence;
@@ -28,6 +29,7 @@ public class ReferenceStrainReportService
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .Include(c => c.Organism)
+            .Include(c => c.ReferenceOrganism)
             .Include(c => c.Material)
             .ToListAsync();
 
@@ -60,7 +62,7 @@ public class ReferenceStrainReportService
             return new ReferenceStrainListDto(
                 Id: c.Id,
                 StrainName: strainName,
-                AtccNumber: c.Organism?.AtccNumber,
+                AtccNumber: AtccOf(c),
                 CryovialCode: c.Code,
                 ManufacturerName: c.ManufacturerName,
                 SourceMaterialName: c.Material?.MaterialName ?? string.Empty,
@@ -76,7 +78,10 @@ public class ReferenceStrainReportService
                 PreparedByName: NameOf(c.PreparedByUserId),
                 ApprovedByName: c.ApprovedByUserId.HasValue ? NameOf(c.ApprovedByUserId.Value) : null,
                 ApprovedAt: c.ApprovedAt,
-                DirectUsageCount: usageCount
+                DirectUsageCount: usageCount,
+                StrainCode: c.ReferenceOrganism?.Code,
+                CultureCollection: CollectionOf(c),
+                StrainNumber: StrainNumberOf(c)
             );
         }).ToList();
 
@@ -88,6 +93,7 @@ public class ReferenceStrainReportService
         var cryovial = await _db.Cryovials
             .Include(c => c.Material)
             .Include(c => c.Organism)
+            .Include(c => c.ReferenceOrganism)
             .Include(c => c.IdentityConfirmations).ThenInclude(i => i.Media).ThenInclude(m => m!.Material)
             .Include(c => c.IdentityConfirmations).ThenInclude(i => i.IncubatorEquipment)
             .Include(c => c.ThawHistory)
@@ -176,7 +182,7 @@ public class ReferenceStrainReportService
             Id: cryovial.Id,
             CryovialCode: cryovial.Code,
             StrainName: cryovial.Organism?.ScientificName ?? cryovial.OrganismNameSnapshot,
-            AtccNumber: cryovial.Organism?.AtccNumber,
+            AtccNumber: AtccOf(cryovial),
             ManufacturerName: cryovial.ManufacturerName,
             SourceMaterialName: cryovial.Material?.MaterialName ?? string.Empty,
             SourceMaterialBatchNumber: cryovial.Material?.BatchNumber ?? string.Empty,
@@ -199,7 +205,10 @@ public class ReferenceStrainReportService
             DirectUsageLog: directUsageLog,
             DistinctQualifiedMediaLotsCount: qualifiedMediaIds.Count,
             IndirectTestOrdersCount: indirectTestOrdersCount,
-            IndirectUsageSummary: indirectUsageSummary
+            IndirectUsageSummary: indirectUsageSummary,
+            StrainCode: cryovial.ReferenceOrganism?.Code,
+            CultureCollection: CollectionOf(cryovial),
+            StrainNumber: StrainNumberOf(cryovial)
         );
     }
 
@@ -208,6 +217,7 @@ public class ReferenceStrainReportService
         var baseQuery = ApplySort(BuildFilteredQuery(request, sectionIds), request);
         var cryovials = await baseQuery
             .Include(c => c.Organism)
+            .Include(c => c.ReferenceOrganism)
             .Include(c => c.Material)
             .Include(c => c.IdentityConfirmations)
             .Include(c => c.ThawHistory)
@@ -269,7 +279,7 @@ public class ReferenceStrainReportService
 
             rows.Add(new ReferenceStrainExportRowDto(
                 StrainName: c.Organism?.ScientificName ?? c.OrganismNameSnapshot,
-                AtccNumber: c.Organism?.AtccNumber,
+                AtccNumber: AtccOf(c),
                 CryovialCode: c.Code,
                 ManufacturerName: c.ManufacturerName,
                 SourceMaterialName: c.Material?.MaterialName ?? string.Empty,
@@ -288,7 +298,10 @@ public class ReferenceStrainReportService
                 IdentityConfirmationsCount: c.IdentityConfirmations.Count,
                 ThawEventsCount: c.ThawHistory.Count,
                 DirectGptUsageCount: directUsageCount,
-                IndirectTestOrdersCount: indirectTestOrdersCount
+                IndirectTestOrdersCount: indirectTestOrdersCount,
+                StrainCode: c.ReferenceOrganism?.Code,
+                CultureCollection: CollectionOf(c),
+                StrainNumber: StrainNumberOf(c)
             ));
         }
 
@@ -322,6 +335,17 @@ public class ReferenceStrainReportService
     private IQueryable<Cryovial> CryovialsIn(IReadOnlyCollection<int>? sectionIds) =>
         sectionIds is null ? _db.Cryovials : _db.Cryovials.Where(c => sectionIds.Contains(c.Material!.SectionId));
 
+    // The cryovial's strain; a cryovial without one (prepared before strains existed) falls back to the
+    // species' ATCC number (the legacy display).
+    private static string? AtccOf(Cryovial c) =>
+        c.ReferenceOrganism != null ? ReferenceOrganismNaming.AtccNumberOf(c.ReferenceOrganism) : c.Organism?.AtccNumber;
+
+    private static string? CollectionOf(Cryovial c) =>
+        c.ReferenceOrganism?.CultureCollection.ToString() ?? (c.Organism?.AtccNumber != null ? nameof(CultureCollection.ATCC) : null);
+
+    private static string? StrainNumberOf(Cryovial c) =>
+        c.ReferenceOrganism != null ? c.ReferenceOrganism.StrainNumber : c.Organism?.AtccNumber;
+
     private IQueryable<Cryovial> BuildFilteredQuery(ReferenceStrainSearchRequest request, IReadOnlyCollection<int>? sectionIds)
     {
         var query = CryovialsIn(sectionIds);
@@ -333,6 +357,8 @@ public class ReferenceStrainReportService
                 c.Code.ToLower().Contains(term) ||
                 (c.Organism != null && c.Organism.ScientificName.ToLower().Contains(term)) ||
                 (c.Organism != null && c.Organism.AtccNumber != null && c.Organism.AtccNumber.ToLower().Contains(term)) ||
+                (c.ReferenceOrganism != null && (c.ReferenceOrganism.Code.ToLower().Contains(term) ||
+                    (c.ReferenceOrganism.StrainNumber != null && c.ReferenceOrganism.StrainNumber.ToLower().Contains(term)))) ||
                 c.ManufacturerName.ToLower().Contains(term) ||
                 (c.Material != null && c.Material.BatchNumber.ToLower().Contains(term)));
         }

@@ -158,15 +158,15 @@ public class SpecificationOwnershipTests
     }
 
     [Fact]
-    public async Task EnsureCanEditAsync_Admin_AnyRow_Succeeds()
+    public async Task EnsureCanEditAsync_Admin_NoSectionMembership_IsRefusedForAnyRow()
     {
         await using var db = NewDb();
         var f = Seed(db);
         var scope = new UserSectionScopeService(db);
 
-        await SpecificationOwnership.EnsureCanEditAsync(db, scope, f.Admin.Id, "TAMC");
-        await SpecificationOwnership.EnsureCanEditAsync(db, scope, f.Admin.Id, "ASSAY");
-        // no exception either way - passed
+        // Writes follow membership for everyone; the administrator belongs to no section.
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => SpecificationOwnership.EnsureCanEditAsync(db, scope, f.Admin.Id, "TAMC"));
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => SpecificationOwnership.EnsureCanEditAsync(db, scope, f.Admin.Id, "ASSAY"));
     }
 
     [Fact]
@@ -246,17 +246,16 @@ public class SpecificationOwnershipTests
     }
 
     [Fact]
-    public async Task Delete_Admin_AssayRow_Succeeds()
+    public async Task Delete_Admin_AssayRow_IsRefused()
     {
         await using var db = NewDb();
         var f = Seed(db);
         var spec = SeedSpec(db, f.Item.Id, "ASSAY", "Assay limit");
         var controller = BuildController(db, f.Admin);
 
-        var result = await controller.Specification.DeleteSpecification(spec.Id);
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => controller.Specification.DeleteSpecification(spec.Id));
 
-        Assert.IsType<OkObjectResult>(result);
-        Assert.Null(await db.Specifications.FindAsync(spec.Id));
+        Assert.NotNull(await db.Specifications.FindAsync(spec.Id));
     }
 
     [Fact]
@@ -272,17 +271,16 @@ public class SpecificationOwnershipTests
     }
 
     [Fact]
-    public async Task Create_Admin_AnyRow_Succeeds()
+    public async Task Create_Admin_AnyRow_IsRefused()
     {
         await using var db = NewDb();
         var f = Seed(db);
         var controller = BuildController(db, f.Admin);
 
         var request = new CreateSpecificationRequest(f.Item.Id, "ASSAY", ParameterName: "Assay limit", LimitType: LimitType.NotMoreThan, UpperLimit: 100, SpecLimit: "NMT 100", Unit: "%");
-        var result = await controller.Specification.CreateSpecification(request);
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => controller.Specification.CreateSpecification(request));
 
-        Assert.IsType<OkObjectResult>(result);
-        Assert.Single(db.Specifications.Where(s => s.TestCode == "ASSAY"));
+        Assert.Empty(db.Specifications.Where(s => s.TestCode == "ASSAY"));
     }
 
     [Fact]
@@ -309,7 +307,7 @@ public class SpecificationOwnershipTests
     }
 
     [Fact]
-    public async Task Get_Admin_SeesBothRows_CanEditBoth()
+    public async Task Get_Admin_SeesBothRows_CanEditNone()
     {
         await using var db = NewDb();
         var f = Seed(db);
@@ -322,6 +320,7 @@ public class SpecificationOwnershipTests
         var response = Assert.IsType<ApiResponse<object>>(ok.Value);
         var rows = Assert.IsType<List<SpecificationRowDto>>(response.Data);
 
-        Assert.All(rows, r => Assert.True(r.CanEdit));
+        Assert.Equal(2, rows.Count);
+        Assert.All(rows, r => Assert.False(r.CanEdit));
     }
 }

@@ -50,7 +50,7 @@ public class SolutionPreparationService
 
     public async Task<List<SolutionPreparationListItem>> GetAllAsync(int userId, SolutionPreparationStatus? status, SolutionType? type, CancellationToken ct = default)
     {
-        var scope = await _scope.GetAccessibleSectionIdsAsync(userId, ct);
+        var scope = await _scope.GetReadableSectionIdsAsync(userId, ct);
         var query = ListQuery();
 
         if (scope != null) query = query.Where(p => scope.Contains(p.SectionId));
@@ -65,7 +65,7 @@ public class SolutionPreparationService
     public async Task<SolutionPreparationResponse> GetByIdAsync(int id, int userId, CancellationToken ct = default)
     {
         var prep = await LoadPrepAsync(id, ct);
-        await EnsureAccessAsync(prep, userId, ct);
+        await EnsureAccessAsync(prep, userId, ct, SectionAccess.Read);
         return await BuildResponseAsync(prep, ct);
     }
 
@@ -74,7 +74,7 @@ public class SolutionPreparationService
         var solution = await LoadSolutionForSnapshotAsync(r.SolutionMasterId, ct)
             ?? throw new NotFoundException($"Solution master {r.SolutionMasterId} not found.");
 
-        var scope = await _scope.GetAccessibleSectionIdsAsync(userId, ct);
+        var scope = await _scope.GetMemberSectionIdsAsync(userId, ct);
         if (scope != null && !scope.Contains(solution.SectionId))
             throw new NotFoundException($"Solution master {r.SolutionMasterId} not found.");
 
@@ -206,7 +206,7 @@ public class SolutionPreparationService
     public async Task<List<LotOption>> GetLotOptionsAsync(int id, int componentId, int userId, CancellationToken ct = default)
     {
         var prep = await LoadPrepAsync(id, ct);
-        await EnsureAccessAsync(prep, userId, ct);
+        await EnsureAccessAsync(prep, userId, ct, SectionAccess.Read);
 
         var component = prep.Components.FirstOrDefault(c => c.Id == componentId)
             ?? throw new NotFoundException($"Component {componentId} not found on this preparation.");
@@ -373,7 +373,7 @@ public class SolutionPreparationService
     // this to offer preparations for a run's mobile phase channels.
     public async Task<List<SolutionPreparationListItem>> GetAvailableAsync(int userId, int solutionMasterId, int? hplcMethodId, CancellationToken ct = default)
     {
-        var scope = await _scope.GetAccessibleSectionIdsAsync(userId, ct);
+        var scope = await _scope.GetReadableSectionIdsAsync(userId, ct);
         var now = _clock.UtcNow.UtcDateTime;
 
         var query = ListQuery().Where(p =>
@@ -392,7 +392,7 @@ public class SolutionPreparationService
     // lot view "Consumed by preparations" list).
     public async Task<List<SolutionPreparationListItem>> GetByLotAsync(int materialId, int userId, CancellationToken ct = default)
     {
-        var scope = await _scope.GetAccessibleSectionIdsAsync(userId, ct);
+        var scope = await _scope.GetReadableSectionIdsAsync(userId, ct);
         var query = ListQuery().Where(p => p.Components.Any(c => c.MaterialId == materialId));
 
         if (scope != null) query = query.Where(p => scope.Contains(p.SectionId));
@@ -445,9 +445,9 @@ public class SolutionPreparationService
         return trimmed;
     }
 
-    private async Task EnsureAccessAsync(SolutionPreparation prep, int userId, CancellationToken ct)
+    private async Task EnsureAccessAsync(SolutionPreparation prep, int userId, CancellationToken ct, SectionAccess access = SectionAccess.Write)
     {
-        var scope = await _scope.GetAccessibleSectionIdsAsync(userId, ct);
+        var scope = await _scope.GetSectionIdsAsync(userId, access, ct);
         if (scope != null && !scope.Contains(prep.SectionId))
             throw new NotFoundException($"Solution preparation {prep.Id} not found.");
     }

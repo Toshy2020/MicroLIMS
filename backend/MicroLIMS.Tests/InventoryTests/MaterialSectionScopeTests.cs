@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using MicroLIMS.Persistence.Helpers;
 using Microsoft.Extensions.Logging.Abstractions;
 using MicroLIMS.Application.Services;
 using MicroLIMS.Domain.Entities;
@@ -6,6 +7,7 @@ using MicroLIMS.Domain.Enums;
 using MicroLIMS.Infrastructure.Storage;
 using MicroLIMS.Application.Abstractions.Storage;
 using MicroLIMS.Persistence.DbContext;
+using MicroLIMS.Tests.Fixtures;
 using Xunit;
 
 namespace MicroLIMS.Tests.InventoryTests;
@@ -72,6 +74,8 @@ public class MaterialSectionScopeTests
         };
         db.Users.AddRange(microUser, adminUser);
         db.SaveChanges();
+        // The built-in administrator reads every section (Sections.ViewAll) but belongs to none.
+        AdministratorScope.GrantViewAll(db, adminRole.Id);
 
         TestServiceFactory.AssignUserToMicroSection(db, microUser.Id);
 
@@ -121,7 +125,7 @@ public class MaterialSectionScopeTests
         var microMat = SeedMaterial(db, microSec.Id, "Micro Peptone");
         var otherMat = SeedMaterial(db, otherSec.Id, "Chem Acetone");
 
-        var service = new MaterialService(db, new UserSectionScopeService(db));
+        var service = new MaterialService(db, new UserSectionScopeService(db), new DatabaseSequenceHelper(db));
 
         var microList = await service.GetAllAsync(microUser.Id);
         Assert.Single(microList);
@@ -147,7 +151,7 @@ public class MaterialSectionScopeTests
         var (microSec, otherSec, microUser, _) = SeedBase(db);
 
         var otherMat = SeedMaterial(db, otherSec.Id, "Chem Acetone", qty: 100m);
-        var service = new MaterialService(db, new UserSectionScopeService(db));
+        var service = new MaterialService(db, new UserSectionScopeService(db), new DatabaseSequenceHelper(db));
 
         var ex = await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
             service.ConsumeAsync(otherMat.Id, MaterialType.Chemical, 10m, microUser.Id));
@@ -164,7 +168,7 @@ public class MaterialSectionScopeTests
         var (_, otherSec, microUser, _) = SeedBase(db);
 
         var otherMat = SeedMaterial(db, otherSec.Id, "Chem Acetone", qty: 100m);
-        var service = new MaterialService(db, new UserSectionScopeService(db));
+        var service = new MaterialService(db, new UserSectionScopeService(db), new DatabaseSequenceHelper(db));
 
         var updateReq = new SaveMaterialRequest(
             MaterialType: MaterialType.Chemical,
@@ -193,7 +197,7 @@ public class MaterialSectionScopeTests
         var (microSec, otherSec, microUser, _) = SeedBase(db);
 
         var microMat = SeedMaterial(db, microSec.Id, "Micro Buffer", qty: 50m);
-        var service = new MaterialService(db, new UserSectionScopeService(db));
+        var service = new MaterialService(db, new UserSectionScopeService(db), new DatabaseSequenceHelper(db));
 
         var updateReq = new SaveMaterialRequest(
             MaterialType: MaterialType.Chemical,

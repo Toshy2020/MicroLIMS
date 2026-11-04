@@ -41,6 +41,7 @@ public class DocumentControlElectronicSignatureUnitTests
         var analystRole = new Role { Type = RoleType.Analyst, Name = "Analyst", IsActive = true };
         db.Roles.AddRange(adminRole, controllerRole, reviewerRole, analystRole);
         await db.SaveChangesAsync();
+        MicroLIMS.Tests.Fixtures.DocumentControlTestGrants.GrantToAllNonAdministratorRoles(db);
 
         var passwordHash = TestPasswords.Hash(CorrectPassword);
 

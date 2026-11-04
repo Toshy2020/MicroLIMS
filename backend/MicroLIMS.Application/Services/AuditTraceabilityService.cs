@@ -426,7 +426,7 @@ public class AuditTraceabilityService
                 $"SIG-{sig.Id}",
                 $"{sig.MeaningOfSignature} by {sig.UserFullNameSnapshot}",
                 "Signed",
-                $"Reason: {sig.MeaningOfSignature}, Role: {sig.RoleSnapshot}",
+                $"Reason: {sig.MeaningOfSignature}, Role: {sig.RoleNameSnapshot ?? sig.RoleSnapshot}",
                 sig.Id,
                 null,
                 sig.SignedAt));

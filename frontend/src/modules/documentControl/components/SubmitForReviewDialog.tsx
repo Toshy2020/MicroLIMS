@@ -63,7 +63,7 @@ export const SubmitForReviewDialog: React.FC<SubmitForReviewDialogProps> = ({
     setLoading(true);
     try {
       // /users is SystemAdministrator-only; the directory is open to any authenticated user.
-      const res = await apiClient.get("/users/directory");
+      const res = await apiClient.get("/users/directory", { params: { permission: "Documents.Review" } });
       const allUsers = res.data?.data || res.data || [];
       // Segregation of Duties filter: author cannot be reviewer!
       const eligible = allUsers.filter(

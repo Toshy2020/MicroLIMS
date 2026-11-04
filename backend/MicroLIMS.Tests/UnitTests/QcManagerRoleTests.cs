@@ -49,14 +49,16 @@ public class QcManagerRoleTests
     public async Task SectionHead_HoldsNotApplicableManageAndOutsource()
     {
         var db = Seeded();
-        foreach (var role in new[] { RoleType.SectionHead, RoleType.SystemAdministrator })
-        {
-            var codes = await CodesOf(db, role);
-            Assert.Contains(PermissionConstants.NotApplicableTestsManage, codes);
-            Assert.Contains(PermissionConstants.TestsOutsource, codes);
-        }
-        // Final approval is the QC Manager's alone; the SystemAdministrator holds every code via All, so it is excluded from this check.
-        Assert.DoesNotContain(PermissionConstants.NotApplicableTestsFinalApprove, await CodesOf(db, RoleType.SectionHead));
+        var head = await CodesOf(db, RoleType.SectionHead);
+        Assert.Contains(PermissionConstants.NotApplicableTestsManage, head);
+        Assert.Contains(PermissionConstants.TestsOutsource, head);
+        // Final approval is the QC Manager's alone.
+        Assert.DoesNotContain(PermissionConstants.NotApplicableTestsFinalApprove, head);
+        // Administrators never execute or approve GxP work.
+        var admin = await CodesOf(db, RoleType.SystemAdministrator);
+        Assert.DoesNotContain(PermissionConstants.NotApplicableTestsManage, admin);
+        Assert.DoesNotContain(PermissionConstants.TestsOutsource, admin);
+        Assert.DoesNotContain(PermissionConstants.NotApplicableTestsFinalApprove, admin);
     }
 
     [Fact]
@@ -73,8 +75,9 @@ public class QcManagerRoleTests
     public async Task SamplesPrepare_IsHeldByEveryRoleButQcManager()
     {
         var db = Seeded();
-        foreach (var role in new[] { RoleType.SystemAdministrator, RoleType.SectionHead, RoleType.Reviewer, RoleType.Analyst })
+        foreach (var role in new[] { RoleType.SectionHead, RoleType.Reviewer, RoleType.Analyst })
             Assert.Contains(PermissionConstants.SamplesPrepare, await CodesOf(db, role));
         Assert.DoesNotContain(PermissionConstants.SamplesPrepare, await CodesOf(db, RoleType.QcManager));
+        Assert.DoesNotContain(PermissionConstants.SamplesPrepare, await CodesOf(db, RoleType.SystemAdministrator));
     }
 }

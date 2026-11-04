@@ -69,13 +69,6 @@ public record CoeEligibilityResult(bool IsEligible, bool CoaRequired, bool HasCu
 //  - Every file access is recorded in MaterialDocumentAccessLog.
 public class MaterialDocumentService
 {
-    private static readonly HashSet<MaterialType> CoaRequiredTypes = new()
-    {
-        MaterialType.DehydratedMedia,
-        MaterialType.LyophilizedMicroorganism,
-        MaterialType.Supplement
-    };
-
     private readonly IMicroLimsDbContext _db;
     private readonly IFileStorageService _storage;
     private readonly MaterialDocumentFileValidator _validator;
@@ -103,7 +96,7 @@ public class MaterialDocumentService
 
     public async Task<List<MaterialDocumentDto>> GetDocumentsAsync(int materialId, int requestingUserId)
     {
-        await _scope.EnsureMaterialAccessAsync(requestingUserId, materialId);
+        await _scope.EnsureMaterialAccessAsync(requestingUserId, materialId, access: SectionAccess.Read);
 
         // Verify material exists and record a View access event.
         var materialExists = await _db.Materials.AnyAsync(m => m.Id == materialId);
@@ -197,7 +190,7 @@ public class MaterialDocumentService
 
     public async Task<(MaterialDocumentDto Metadata, byte[] Content)> GetContentAsync(int documentId, int materialId, int requestingUserId)
     {
-        await _scope.EnsureMaterialAccessAsync(requestingUserId, materialId);
+        await _scope.EnsureMaterialAccessAsync(requestingUserId, materialId, access: SectionAccess.Read);
 
         var document = await _db.MaterialDocuments
             .FirstOrDefaultAsync(d => d.Id == documentId && d.MaterialId == materialId)
@@ -372,7 +365,7 @@ public class MaterialDocumentService
         var material = await _db.Materials.FindAsync(materialId)
             ?? throw new NotFoundException($"Material {materialId} not found.");
 
-        var required = CoaRequiredTypes.Contains(material.MaterialType);
+        var required = MaterialCategoryRules.IsCoaRequired(material.MaterialType, await MaterialCategoryRules.CategoryOfAsync(_db, material));
         if (!required)
             return new CoeEligibilityResult(IsEligible: true, CoaRequired: false, HasCurrentCoa: false);
 

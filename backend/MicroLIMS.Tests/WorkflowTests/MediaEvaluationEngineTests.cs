@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using MicroLIMS.Persistence.Helpers;
 using MicroLIMS.Application.Services;
 using MicroLIMS.Application.Workflows;
 using MicroLIMS.Domain.Entities;
@@ -172,7 +173,7 @@ public class MediaEvaluationEngineTests
         var challenge = evaluation.Challenges[0];
         var cryovial = await SeedApprovedCryovial(db, "E. coli");
 
-        var engine = new MediaEvaluationEngine(db, new MaterialService(db, new UserSectionScopeService(db)), new UserSectionScopeService(db));
+        var engine = new MediaEvaluationEngine(db, new MaterialService(db, new UserSectionScopeService(db), new DatabaseSequenceHelper(db)), new UserSectionScopeService(db));
         await engine.ThawAndSelectVialAsync(challenge.Id, cryovial.Id, userId: 1);
         var incubation = await engine.RecordIncubationAsync(challenge.Id, incubatorEquipmentId: 1, userId: 1);
         Assert.Equal("30-35", incubation.Temperature);
@@ -222,7 +223,7 @@ public class MediaEvaluationEngineTests
         var challenge = evaluation.Challenges[0];
         var cryovial = await SeedApprovedCryovial(db, "E. coli");
 
-        var engine = new MediaEvaluationEngine(db, new MaterialService(db, new UserSectionScopeService(db)), new UserSectionScopeService(db));
+        var engine = new MediaEvaluationEngine(db, new MaterialService(db, new UserSectionScopeService(db), new DatabaseSequenceHelper(db)), new UserSectionScopeService(db));
         await engine.ThawAndSelectVialAsync(challenge.Id, cryovial.Id, userId: 1);
         await RecordAndFastForwardIncubation(db, engine, challenge.Id);
 
@@ -253,7 +254,7 @@ public class MediaEvaluationEngineTests
         var challenge = evaluation.Challenges[0];
         var cryovial = await SeedApprovedCryovial(db, "E. coli");
 
-        var engine = new MediaEvaluationEngine(db, new MaterialService(db, new UserSectionScopeService(db)), new UserSectionScopeService(db));
+        var engine = new MediaEvaluationEngine(db, new MaterialService(db, new UserSectionScopeService(db), new DatabaseSequenceHelper(db)), new UserSectionScopeService(db));
         await engine.ThawAndSelectVialAsync(challenge.Id, cryovial.Id, userId: 1);
         await RecordAndFastForwardIncubation(db, engine, challenge.Id);
 
@@ -276,7 +277,7 @@ public class MediaEvaluationEngineTests
         var challenge = evaluation.Challenges[0];
         var cryovial = await SeedApprovedCryovial(db, "E. coli");
 
-        var engine = new MediaEvaluationEngine(db, new MaterialService(db, new UserSectionScopeService(db)), new UserSectionScopeService(db));
+        var engine = new MediaEvaluationEngine(db, new MaterialService(db, new UserSectionScopeService(db), new DatabaseSequenceHelper(db)), new UserSectionScopeService(db));
         await engine.ThawAndSelectVialAsync(challenge.Id, cryovial.Id, userId: 1);
         await RecordAndFastForwardIncubation(db, engine, challenge.Id);
 
@@ -299,7 +300,7 @@ public class MediaEvaluationEngineTests
         var challenge = evaluation.Challenges[0];
         var cryovial = await SeedApprovedCryovial(db, "E. coli");
 
-        var engine = new MediaEvaluationEngine(db, new MaterialService(db, new UserSectionScopeService(db)), new UserSectionScopeService(db));
+        var engine = new MediaEvaluationEngine(db, new MaterialService(db, new UserSectionScopeService(db), new DatabaseSequenceHelper(db)), new UserSectionScopeService(db));
         await engine.ThawAndSelectVialAsync(challenge.Id, cryovial.Id, userId: 1);
         await RecordAndFastForwardIncubation(db, engine, challenge.Id);
 
@@ -322,7 +323,7 @@ public class MediaEvaluationEngineTests
         var challenge = evaluation.Challenges[0];
         var cryovial = await SeedApprovedCryovial(db, "E. coli");
 
-        var engine = new MediaEvaluationEngine(db, new MaterialService(db, new UserSectionScopeService(db)), new UserSectionScopeService(db));
+        var engine = new MediaEvaluationEngine(db, new MaterialService(db, new UserSectionScopeService(db), new DatabaseSequenceHelper(db)), new UserSectionScopeService(db));
         await engine.ThawAndSelectVialAsync(challenge.Id, cryovial.Id, userId: 1);
         await RecordAndFastForwardIncubation(db, engine, challenge.Id);
 
@@ -342,7 +343,7 @@ public class MediaEvaluationEngineTests
         var (_, evaluation) = await PrepareMediaWithEvaluation(db, MediaClass.GeneralAgar, "TSA", specs);
         var challenge = evaluation.Challenges[0];
 
-        var engine = new MediaEvaluationEngine(db, new MaterialService(db, new UserSectionScopeService(db)), new UserSectionScopeService(db));
+        var engine = new MediaEvaluationEngine(db, new MaterialService(db, new UserSectionScopeService(db), new DatabaseSequenceHelper(db)), new UserSectionScopeService(db));
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => engine.RecordResultAsync(new RecordResultRequest(
             challenge.Id, UserId: 1, OldMediaCount: 100, NewMediaCount: 95,
             ReferenceMediaId: null, ReferenceMediaLabel: "Prior lot TSA/03/26",
@@ -359,7 +360,7 @@ public class MediaEvaluationEngineTests
         var (_, evaluation) = await PrepareMediaWithEvaluation(db, MediaClass.GeneralAgar, "TSA", specs);
         var challenge = evaluation.Challenges[0];
 
-        var engine = new MediaEvaluationEngine(db, new MaterialService(db, new UserSectionScopeService(db)), new UserSectionScopeService(db));
+        var engine = new MediaEvaluationEngine(db, new MaterialService(db, new UserSectionScopeService(db), new DatabaseSequenceHelper(db)), new UserSectionScopeService(db));
         // Incubation just started - incubation duration (24h) has not elapsed.
         await engine.RecordIncubationAsync(challenge.Id, incubatorEquipmentId: 1, userId: 1);
 
@@ -390,7 +391,7 @@ public class MediaEvaluationEngineTests
         Assert.Equal("Black centered colonies", indicChallenge.ExpectedDescription);
 
         var cryovial = await SeedApprovedCryovial(db, "Salmonella");
-        var engine = new MediaEvaluationEngine(db, new MaterialService(db, new UserSectionScopeService(db)), new UserSectionScopeService(db));
+        var engine = new MediaEvaluationEngine(db, new MaterialService(db, new UserSectionScopeService(db), new DatabaseSequenceHelper(db)), new UserSectionScopeService(db));
         var thaw = await engine.ThawAndSelectVialAsync(inhibChallenge.Id, cryovial.Id, userId: 1);
         await engine.SelectThawedVialAsync(indicChallenge.Id, thaw.Id, userId: 1); // same thawed vial serves both
         await RecordAndFastForwardIncubation(db, engine, inhibChallenge.Id);
@@ -435,7 +436,7 @@ public class MediaEvaluationEngineTests
         var challenge = evaluation.Challenges[0];
         var cryovial = await SeedApprovedCryovial(db, "Salmonella");
 
-        var engine = new MediaEvaluationEngine(db, new MaterialService(db, new UserSectionScopeService(db)), new UserSectionScopeService(db));
+        var engine = new MediaEvaluationEngine(db, new MaterialService(db, new UserSectionScopeService(db), new DatabaseSequenceHelper(db)), new UserSectionScopeService(db));
         await engine.ThawAndSelectVialAsync(challenge.Id, cryovial.Id, userId: 1);
         await RecordAndFastForwardIncubation(db, engine, challenge.Id);
 
@@ -459,7 +460,7 @@ public class MediaEvaluationEngineTests
         var challenge = evaluation.Challenges[0];
         var cryovial = await SeedApprovedCryovial(db, "E. coli");
 
-        var engine = new MediaEvaluationEngine(db, new MaterialService(db, new UserSectionScopeService(db)), new UserSectionScopeService(db));
+        var engine = new MediaEvaluationEngine(db, new MaterialService(db, new UserSectionScopeService(db), new DatabaseSequenceHelper(db)), new UserSectionScopeService(db));
         await engine.ThawAndSelectVialAsync(challenge.Id, cryovial.Id, userId: 1);
         await RecordAndFastForwardIncubation(db, engine, challenge.Id);
 
@@ -486,7 +487,7 @@ public class MediaEvaluationEngineTests
         var challenge = evaluation.Challenges[0];
         var cryovial = await SeedApprovedCryovial(db, "Staphylococcus aureus");
 
-        var engine = new MediaEvaluationEngine(db, new MaterialService(db, new UserSectionScopeService(db)), new UserSectionScopeService(db));
+        var engine = new MediaEvaluationEngine(db, new MaterialService(db, new UserSectionScopeService(db), new DatabaseSequenceHelper(db)), new UserSectionScopeService(db));
         await Assert.ThrowsAsync<InvalidOperationException>(() => engine.ThawAndSelectVialAsync(challenge.Id, cryovial.Id, userId: 1));
     }
 
@@ -502,7 +503,7 @@ public class MediaEvaluationEngineTests
         cryovial.ApprovalStatus = ApprovalGateStatus.PendingReview;
         await db.SaveChangesAsync();
 
-        var engine = new MediaEvaluationEngine(db, new MaterialService(db, new UserSectionScopeService(db)), new UserSectionScopeService(db));
+        var engine = new MediaEvaluationEngine(db, new MaterialService(db, new UserSectionScopeService(db), new DatabaseSequenceHelper(db)), new UserSectionScopeService(db));
         await Assert.ThrowsAsync<InvalidOperationException>(() => engine.ThawAndSelectVialAsync(challenge.Id, cryovial.Id, userId: 1));
     }
 
@@ -552,7 +553,7 @@ public class MediaEvaluationEngineTests
         var cryovial = await SeedApprovedCryovial(db, "E. coli");
         var disk = await SeedLyophilizedDiskMaterial(db, "E. coli");
 
-        var engine = new MediaEvaluationEngine(db, new MaterialService(db, new UserSectionScopeService(db)), new UserSectionScopeService(db));
+        var engine = new MediaEvaluationEngine(db, new MaterialService(db, new UserSectionScopeService(db), new DatabaseSequenceHelper(db)), new UserSectionScopeService(db));
         await engine.ThawAndSelectVialAsync(challenge.Id, cryovial.Id, userId: 1);
         await engine.SelectLyophilizedDiskAsync(challenge.Id, disk.Id, userId: 1);
 
@@ -571,7 +572,7 @@ public class MediaEvaluationEngineTests
         var challenge = evaluation.Challenges[0];
         var disk = await SeedLyophilizedDiskMaterial(db, "E. coli", quantityRemaining: 5);
 
-        var engine = new MediaEvaluationEngine(db, new MaterialService(db, new UserSectionScopeService(db)), new UserSectionScopeService(db));
+        var engine = new MediaEvaluationEngine(db, new MaterialService(db, new UserSectionScopeService(db), new DatabaseSequenceHelper(db)), new UserSectionScopeService(db));
         await engine.SelectLyophilizedDiskAsync(challenge.Id, disk.Id, userId: 1);
 
         var reloadedMaterial = await db.Materials.FindAsync(disk.Id);
@@ -588,7 +589,7 @@ public class MediaEvaluationEngineTests
         var challenge = evaluation.Challenges[0];
         var disk = await SeedLyophilizedDiskMaterial(db, "E. coli", quantityRemaining: 5);
 
-        var engine = new MediaEvaluationEngine(db, new MaterialService(db, new UserSectionScopeService(db)), new UserSectionScopeService(db));
+        var engine = new MediaEvaluationEngine(db, new MaterialService(db, new UserSectionScopeService(db), new DatabaseSequenceHelper(db)), new UserSectionScopeService(db));
         await engine.SelectLyophilizedDiskAsync(challenge.Id, disk.Id, userId: 1);
         await engine.SelectLyophilizedDiskAsync(challenge.Id, disk.Id, userId: 1); // redundant re-save of the same disk
 
@@ -597,7 +598,7 @@ public class MediaEvaluationEngineTests
     }
 
     private static MediaEvaluationEngine NewEngine(MicroLimsDbContext db) =>
-        new(db, new MaterialService(db, new UserSectionScopeService(db)), new UserSectionScopeService(db));
+        new(db, new MaterialService(db, new UserSectionScopeService(db), new DatabaseSequenceHelper(db)), new UserSectionScopeService(db));
 
     [Fact]
     public async Task ThawAndSelectVialAsync_RecordsThawEvent_DecrementsBatch_AndLinksChallenge()
@@ -722,7 +723,7 @@ public class MediaEvaluationEngineTests
             new List<MediaConfigurationChallenge> { new() { OrganismId = ecoliId }, new() { OrganismId = ecoliId, InitialInoculum = "10^3" } });
         var cryovial = await SeedApprovedCryovial(db, "E. coli");
         var clock = new MovableClock();
-        var engine = new MediaEvaluationEngine(db, new MaterialService(db, new UserSectionScopeService(db)), new UserSectionScopeService(db), clock);
+        var engine = new MediaEvaluationEngine(db, new MaterialService(db, new UserSectionScopeService(db), new DatabaseSequenceHelper(db)), new UserSectionScopeService(db), clock);
         var service = new MediaEvaluationService(db, engine, clock);
         var thaw = await engine.ThawAndSelectVialAsync(evaluation.Challenges[0].Id, cryovial.Id, userId: 1);
 
@@ -807,7 +808,7 @@ public class MediaEvaluationEngineTests
         var cryovial = await SeedApprovedCryovial(db, "E. coli");
         var disk = await SeedLyophilizedDiskMaterial(db, "E. coli");
 
-        var engine = new MediaEvaluationEngine(db, new MaterialService(db, new UserSectionScopeService(db)), new UserSectionScopeService(db));
+        var engine = new MediaEvaluationEngine(db, new MaterialService(db, new UserSectionScopeService(db), new DatabaseSequenceHelper(db)), new UserSectionScopeService(db));
         await engine.SelectLyophilizedDiskAsync(challenge.Id, disk.Id, userId: 1);
         await engine.ThawAndSelectVialAsync(challenge.Id, cryovial.Id, userId: 1);
 
@@ -826,7 +827,7 @@ public class MediaEvaluationEngineTests
         var challenge = evaluation.Challenges[0];
         var disk = await SeedLyophilizedDiskMaterial(db, "Staphylococcus aureus");
 
-        var engine = new MediaEvaluationEngine(db, new MaterialService(db, new UserSectionScopeService(db)), new UserSectionScopeService(db));
+        var engine = new MediaEvaluationEngine(db, new MaterialService(db, new UserSectionScopeService(db), new DatabaseSequenceHelper(db)), new UserSectionScopeService(db));
         await Assert.ThrowsAsync<InvalidOperationException>(() => engine.SelectLyophilizedDiskAsync(challenge.Id, disk.Id, userId: 1));
     }
 
@@ -840,7 +841,7 @@ public class MediaEvaluationEngineTests
         var challenge = evaluation.Challenges[0];
         var disk = await SeedLyophilizedDiskMaterial(db, "E. coli", expiryDate: DateTime.UtcNow.AddDays(-1));
 
-        var engine = new MediaEvaluationEngine(db, new MaterialService(db, new UserSectionScopeService(db)), new UserSectionScopeService(db));
+        var engine = new MediaEvaluationEngine(db, new MaterialService(db, new UserSectionScopeService(db), new DatabaseSequenceHelper(db)), new UserSectionScopeService(db));
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => engine.SelectLyophilizedDiskAsync(challenge.Id, disk.Id, userId: 1));
         Assert.Contains("expired", ex.Message);
     }
@@ -855,7 +856,7 @@ public class MediaEvaluationEngineTests
         var challenge = evaluation.Challenges[0];
         var disk = await SeedLyophilizedDiskMaterial(db, "E. coli", quantityRemaining: 0);
 
-        var engine = new MediaEvaluationEngine(db, new MaterialService(db, new UserSectionScopeService(db)), new UserSectionScopeService(db));
+        var engine = new MediaEvaluationEngine(db, new MaterialService(db, new UserSectionScopeService(db), new DatabaseSequenceHelper(db)), new UserSectionScopeService(db));
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => engine.SelectLyophilizedDiskAsync(challenge.Id, disk.Id, userId: 1));
         Assert.Contains("no quantity remaining", ex.Message);
     }
@@ -878,7 +879,7 @@ public class MediaEvaluationEngineTests
         db.Materials.Add(material);
         await db.SaveChangesAsync();
 
-        var engine = new MediaEvaluationEngine(db, new MaterialService(db, new UserSectionScopeService(db)), new UserSectionScopeService(db));
+        var engine = new MediaEvaluationEngine(db, new MaterialService(db, new UserSectionScopeService(db), new DatabaseSequenceHelper(db)), new UserSectionScopeService(db));
         await Assert.ThrowsAsync<InvalidOperationException>(() => engine.SelectLyophilizedDiskAsync(challenge.Id, material.Id, userId: 1));
     }
 }

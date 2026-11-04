@@ -30,6 +30,7 @@ public partial class WorkingStandardService
     private readonly IUserSectionScopeService _scope;
     private readonly IElectronicSignatureService _signatures;
     private readonly IFileStorageService _storage;
+    private readonly IDatabaseSequenceHelper _sequences;
     private readonly ILabClock _clock;
 
     public WorkingStandardService(
@@ -37,12 +38,14 @@ public partial class WorkingStandardService
         IUserSectionScopeService scope,
         IElectronicSignatureService signatures,
         IFileStorageService storage,
+        IDatabaseSequenceHelper sequences,
         ILabClock? clock = null)
     {
         _db = db;
         _scope = scope;
         _signatures = signatures;
         _storage = storage;
+        _sequences = sequences;
         _clock = clock ?? LabClock.Default;
     }
 
@@ -53,7 +56,7 @@ public partial class WorkingStandardService
 
     public async Task<List<WorkingStandardLotDto>> GetLotsAsync(int userId, CancellationToken ct = default)
     {
-        var scope = await _scope.GetAccessibleSectionIdsAsync(userId, ct);
+        var scope = await _scope.GetReadableSectionIdsAsync(userId, ct);
         var query = _db.Materials.AsNoTracking().Where(m => m.MaterialType == MaterialType.WorkingStandard);
         if (scope != null) query = query.Where(m => scope.Contains(m.SectionId));
         var lots = await query.OrderBy(m => m.Code).ToListAsync(ct);
@@ -86,7 +89,7 @@ public partial class WorkingStandardService
 
     public async Task<List<WorkingStandardQualificationDto>> GetQualificationsAsync(int userId, CancellationToken ct = default)
     {
-        var scope = await _scope.GetAccessibleSectionIdsAsync(userId, ct);
+        var scope = await _scope.GetReadableSectionIdsAsync(userId, ct);
         var query = _db.WorkingStandardQualifications.AsNoTracking().AsQueryable();
         if (scope != null) query = query.Where(q => scope.Contains(q.SectionId));
         var ids = await query.OrderByDescending(q => q.CreatedAt).ThenByDescending(q => q.Id).Select(q => q.Id).ToListAsync(ct);
@@ -98,11 +101,11 @@ public partial class WorkingStandardService
     }
 
     public async Task<WorkingStandardQualificationDto> GetAsync(int id, int userId, CancellationToken ct = default) =>
-        await BuildDtoAsync(await LoadAsync(id, userId, ct), ct);
+        await BuildDtoAsync(await LoadAsync(id, userId, ct, SectionAccess.Read), ct);
 
     public async Task<List<EligibleSourceSampleDto>> GetEligibleSourceSamplesAsync(string? search, int userId, CancellationToken ct = default)
     {
-        var scope = await _scope.GetAccessibleSectionIdsAsync(userId, ct);
+        var scope = await _scope.GetReadableSectionIdsAsync(userId, ct);
         var orders = _db.TestOrders.AsNoTracking()
             .Where(o => o.CurrentStep == WorkflowStep.Approved && !o.IsSuperseded
                 && o.Sample!.Category == SampleCategory.RawMaterial
@@ -178,7 +181,6 @@ public partial class WorkingStandardService
                 throw new InvalidOperationException("Choose the reference standard master entry.");
             var entry = await _db.MaterialMasterEntries.FirstOrDefaultAsync(e => e.Id == r.MaterialMasterEntryId.Value, ct)
                 ?? throw new NotFoundException("Master entry not found.");
-            await EnsureSectionAsync(entry.SectionId, userId, ct, "Material master entry not found.");
             if (entry.Category != MaterialMasterCategory.ReferenceStandard)
                 throw new InvalidOperationException($"Master entry \"{entry.Name}\" is not a reference standard.");
             if (!entry.IsActive)
@@ -210,7 +212,11 @@ public partial class WorkingStandardService
             if (string.IsNullOrWhiteSpace(r.Location))
                 throw new InvalidOperationException("Enter the storage location.");
 
-            q.SectionId = entry.SectionId;
+            // The master entry is app-wide; the qualification (a GxP record) belongs to the analyst's own lab.
+            var writeScope = await _scope.GetSectionIdsAsync(userId, SectionAccess.Write, ct);
+            q.SectionId = writeScope == null || writeScope.Contains(entry.SectionId)
+                ? entry.SectionId
+                : await _scope.ResolveSectionForCreateAsync(userId, null, ct);
             q.MaterialMasterEntryId = entry.Id;
             q.QuantityGrams = r.QuantityGrams;
             q.Location = r.Location.Trim();
@@ -308,7 +314,7 @@ public partial class WorkingStandardService
     {
         var doc = await _db.WorkingStandardDocuments.Include(d => d.WorkingStandardQualification).FirstOrDefaultAsync(d => d.Id == documentId, ct)
             ?? throw new NotFoundException($"Document {documentId} not found.");
-        await EnsureSectionAsync(doc.WorkingStandardQualification!.SectionId, userId, ct);
+        await EnsureSectionAsync(doc.WorkingStandardQualification!.SectionId, userId, ct, access: SectionAccess.Read);
         return (await _storage.ReadAsync(doc.FilePath), doc.ContentType, doc.FileName);
     }
 
@@ -349,14 +355,14 @@ public partial class WorkingStandardService
 
     private static string NormalizeContentType(string contentType) => contentType.Split(';')[0].Trim().ToLowerInvariant();
 
-    private async Task EnsureSectionAsync(int sectionId, int userId, CancellationToken ct, string notFound = "Working standard qualification not found.")
+    private async Task EnsureSectionAsync(int sectionId, int userId, CancellationToken ct, string notFound = "Working standard qualification not found.", SectionAccess access = SectionAccess.Write)
     {
-        var scope = await _scope.GetAccessibleSectionIdsAsync(userId, ct);
+        var scope = await _scope.GetSectionIdsAsync(userId, access, ct);
         if (scope != null && !scope.Contains(sectionId))
             throw new NotFoundException(notFound);
     }
 
-    private async Task<WorkingStandardQualification> LoadAsync(int id, int userId, CancellationToken ct)
+    private async Task<WorkingStandardQualification> LoadAsync(int id, int userId, CancellationToken ct, SectionAccess access = SectionAccess.Write)
     {
         var q = await _db.WorkingStandardQualifications
             .Include(x => x.Documents)
@@ -365,7 +371,7 @@ public partial class WorkingStandardService
             .Include(x => x.SourceSample)
             .FirstOrDefaultAsync(x => x.Id == id, ct)
             ?? throw new NotFoundException($"Working standard qualification {id} not found.");
-        await EnsureSectionAsync(q.SectionId, userId, ct);
+        await EnsureSectionAsync(q.SectionId, userId, ct, access: access);
         return q;
     }
 

@@ -6,6 +6,8 @@ import { PermissionRoute } from "./PermissionRoute";
 import { PERMISSIONS } from "./routes";
 import { MainLayout } from "../layouts/MainLayout";
 import { LoadingSpinner } from "../components/LoadingSpinner";
+import { AdminLayout, AdminIndexRedirect } from "../modules/admin/AdminLayout";
+import { LEGACY_ADMIN_REDIRECTS, LegacyPathRedirect } from "./legacyAdminRedirects";
 
 // Every page-level route component below is lazy-loaded so the initial
 // bundle only ships the shell (layout/auth guards + whichever page the
@@ -40,7 +42,7 @@ const OrganismsPage = lazy(() => import("../modules/laboratoryConfiguration/mast
 const MasterDataWorkbookPage = lazy(() => import("../modules/laboratoryConfiguration/masterDataWorkbook/MasterDataWorkbookPage").then((m) => ({ default: m.MasterDataWorkbookPage })));
 const SpecificationsPage = lazy(() => import("../modules/laboratoryConfiguration/specifications/SpecificationsPage").then((m) => ({ default: m.SpecificationsPage })));
 const MediaPage = lazy(() => import("../modules/laboratoryConfiguration/media/MediaPage").then((m) => ({ default: m.MediaPage })));
-const MediaConfigurationPage = lazy(() => import("../modules/laboratoryConfiguration/media/MediaConfigurationPage").then((m) => ({ default: m.MediaConfigurationPage })));
+const MasterTestingMaterialsPage = lazy(() => import("../modules/laboratoryConfiguration/masterDataSimple/MasterTestingMaterialsPage").then((m) => ({ default: m.MasterTestingMaterialsPage })));
 const MediaEvaluationPage = lazy(() => import("../modules/laboratoryConfiguration/mediaEvaluation/MediaEvaluationPage").then((m) => ({ default: m.MediaEvaluationPage })));
 const WaterConfigPage = lazy(() => import("../modules/laboratoryConfiguration/water/WaterConfigPage").then((m) => ({ default: m.WaterConfigPage })));
 const EMConfigPage = lazy(() => import("../modules/laboratoryConfiguration/environmentalMonitoring/EMConfigPage").then((m) => ({ default: m.EMConfigPage })));
@@ -51,7 +53,6 @@ const ReceivingConfigurationPage = lazy(() => import("../modules/laboratoryConfi
 const EquipmentPage = lazy(() => import("../modules/laboratoryConfiguration/masterDataSimple/EquipmentPage").then((m) => ({ default: m.EquipmentPage })));
 const FpInstrumentsPage = lazy(() => import("../modules/laboratoryConfiguration/masterDataSimple/FpInstrumentsPage").then((m) => ({ default: m.FpInstrumentsPage })));
 const ChromatographyColumnsPage = lazy(() => import("../modules/laboratoryConfiguration/masterDataSimple/ChromatographyColumnsPage").then((m) => ({ default: m.ChromatographyColumnsPage })));
-const MaterialMasterPage = lazy(() => import("../modules/laboratoryConfiguration/masterDataSimple/MaterialMasterPage").then((m) => ({ default: m.MaterialMasterPage })));
 const SolutionMasterPage = lazy(() => import("../modules/laboratoryConfiguration/masterDataSimple/SolutionMasterPage").then((m) => ({ default: m.SolutionMasterPage })));
 const HplcMethodsPage = lazy(() => import("../modules/laboratoryConfiguration/masterDataSimple/HplcMethodsPage").then((m) => ({ default: m.HplcMethodsPage })));
 const IcpMethodsPage = lazy(() => import("../modules/laboratoryConfiguration/masterDataSimple/IcpMethodsPage").then((m) => ({ default: m.IcpMethodsPage })));
@@ -73,6 +74,7 @@ const RoleDetailPage = lazy(() => import("../modules/roles/RoleDetailPage").then
 const CreateRolePage = lazy(() => import("../modules/roles/CreateRolePage").then((m) => ({ default: m.CreateRolePage })));
 const AuditSearchPage = lazy(() => import("../modules/auditSearch/AuditSearchPage").then((m) => ({ default: m.AuditSearchPage })));
 const MonitoringPlanPage = lazy(() => import("../modules/monitoringPlan/MonitoringPlanPage").then((m) => ({ default: m.MonitoringPlanPage })));
+const DatabaseOverviewPage = lazy(() => import("../modules/admin/DatabaseOverviewPage").then((m) => ({ default: m.DatabaseOverviewPage })));
 const ErrorMonitoringPage = lazy(() => import("../modules/errorMonitoring/ErrorMonitoringPage").then((m) => ({ default: m.ErrorMonitoringPage })));
 const OosTrackingPage = lazy(() => import("../modules/oosTracking/OosTrackingPage").then((m) => ({ default: m.OosTrackingPage })));
 const MaterialsPage = lazy(() => import("../modules/inventory/materials/MaterialsPage").then((m) => ({ default: m.MaterialsPage })));
@@ -84,6 +86,12 @@ const TrainingMatrixPage = lazy(() => import("../modules/documentControl/pages/T
 const ComplianceDashboardPage = lazy(() => import("../modules/documentControl/pages/ComplianceDashboardPage").then((m) => ({ default: m.ComplianceDashboardPage })));
 const DocumentDetailPage = lazy(() => import("../modules/documentControl/pages/DocumentDetailPage").then((m) => ({ default: m.DocumentDetailPage })));
 const DocumentConfigurationPage = lazy(() => import("../modules/documentControl/pages/DocumentConfigurationPage").then((m) => ({ default: m.DocumentConfigurationPage })));
+const AccessReviewPage = lazy(() => import("../modules/admin/AccessReviewPage").then((m) => ({ default: m.AccessReviewPage })));
+const SettingsPage = lazy(() => import("../modules/admin/SettingsPage").then((m) => ({ default: m.SettingsPage })));
+const IntegrationsPage = lazy(() => import("../modules/admin/IntegrationsPage").then((m) => ({ default: m.IntegrationsPage })));
+const OrganizationPage = lazy(() => import("../modules/admin/OrganizationPage").then((m) => ({ default: m.OrganizationPage })));
+const ReassignmentsPage = lazy(() => import("../modules/documentControl/pages/ReassignmentsPage").then((m) => ({ default: m.ReassignmentsPage })));
+const JobsPage = lazy(() => import("../modules/admin/JobsPage").then((m) => ({ default: m.JobsPage })));
 const DocumentAuditPage = lazy(() => import("../modules/documentControl/pages/DocumentAuditPage").then((m) => ({ default: m.DocumentAuditPage })));
 
 function LegacyRedirect({ to }: { to: string }) {
@@ -213,9 +221,6 @@ export function AppRoutes() {
 
             <Route path="/working-standards" element={<WorkingStandardsPage />} />
 
-            <Route element={<PermissionRoute code={PERMISSIONS.AUDIT_VIEW} />}>
-              <Route path="/audit-search" element={<AuditSearchPage />} />
-            </Route>
             <Route element={<PermissionRoute code={PERMISSIONS.OOS_MANAGE} />}>
               <Route path="/oos-tracking" element={<OosTrackingPage />} />
             </Route>
@@ -230,7 +235,9 @@ export function AppRoutes() {
               <Route path="/laboratory-configuration/organisms" element={<OrganismsPage />} />
               <Route path="/laboratory-configuration/master-data-workbook" element={<MasterDataWorkbookPage />} />
               <Route path="/laboratory-configuration/specifications" element={<SpecificationsPage />} />
-              <Route path="/laboratory-configuration/media-configurations" element={<MediaConfigurationPage />} />
+              <Route path="/laboratory-configuration/master-testing-materials" element={<MasterTestingMaterialsPage />} />
+              {/* Old pages: now tabs of Master Testing Materials. */}
+              <Route path="/laboratory-configuration/media-configurations" element={<Navigate to="/laboratory-configuration/master-testing-materials?tab=media" replace />} />
               <Route path="/laboratory-configuration/water" element={<WaterConfigPage />} />
               <Route path="/laboratory-configuration/environmental-monitoring" element={<EMConfigPage />} />
               <Route path="/laboratory-configuration/after-cleaning" element={<AfterCleaningConfigPage />} />
@@ -239,7 +246,7 @@ export function AppRoutes() {
               <Route path="/laboratory-configuration/equipment" element={<EquipmentPage />} />
               <Route path="/laboratory-configuration/fp-instruments" element={<FpInstrumentsPage />} />
               <Route path="/laboratory-configuration/columns" element={<ChromatographyColumnsPage />} />
-              <Route path="/laboratory-configuration/material-master" element={<MaterialMasterPage />} />
+              <Route path="/laboratory-configuration/material-master" element={<Navigate to="/laboratory-configuration/master-testing-materials?tab=reagents" replace />} />
               <Route path="/laboratory-configuration/solution-master" element={<SolutionMasterPage />} />
               <Route path="/laboratory-configuration/hplc-methods" element={<HplcMethodsPage />} />
               <Route path="/laboratory-configuration/icp-methods" element={<IcpMethodsPage />} />
@@ -268,21 +275,52 @@ export function AppRoutes() {
               <Route path="/monitoring-plan" element={<MonitoringPlanPage />} />
             </Route>
 
-            <Route element={<PermissionRoute code={PERMISSIONS.SYSTEM_VIEW_ERROR_LOG} />}>
-              <Route path="/error-monitoring" element={<ErrorMonitoringPage />} />
-            </Route>
-
             <Route element={<PermissionRoute code={PERMISSIONS.DOCUMENTS_CONFIG_MANAGE} />}>
               <Route path="/document-control/configuration" element={<DocumentConfigurationPage />} />
             </Route>
-            <Route element={<PermissionRoute code={PERMISSIONS.USERS_MANAGE} />}>
-              <Route path="/users" element={<UsersPage />} />
+            {/* Hand over a deactivated user's document responsibilities: ConfigManage anywhere, Reassign within one's departments (the server decides per item). */}
+            <Route element={<PermissionRoute code={[PERMISSIONS.DOCUMENTS_CONFIG_MANAGE, PERMISSIONS.DOCUMENTS_REASSIGN]} />}>
+              <Route path="/document-control/reassignments" element={<ReassignmentsPage />} />
             </Route>
-            <Route element={<PermissionRoute code={PERMISSIONS.ROLES_MANAGE} />}>
-              <Route path="/roles" element={<RolesPage />} />
-              <Route path="/roles/new" element={<CreateRolePage />} />
-              <Route path="/roles/:id" element={<RoleDetailPage />} />
+            {/* Administration: one shell, a tab per page, each tab behind
+                its own permission. The panel controls the system, never
+                GxP data. */}
+            <Route path="/admin" element={<AdminLayout />}>
+              <Route index element={<AdminIndexRedirect />} />
+              <Route element={<PermissionRoute code={PERMISSIONS.USERS_MANAGE} />}>
+                <Route path="users" element={<UsersPage />} />
+              </Route>
+              <Route element={<PermissionRoute code={PERMISSIONS.SYSTEM_CONFIGURE_SETTINGS} />}>
+                <Route path="settings" element={<SettingsPage />} />
+                <Route path="integrations" element={<IntegrationsPage />} />
+              </Route>
+              <Route element={<PermissionRoute code={PERMISSIONS.ACCESS_REVIEW} />}>
+                <Route path="access-review" element={<AccessReviewPage />} />
+              </Route>
+              <Route element={<PermissionRoute code={PERMISSIONS.DOCUMENTS_CONFIG_MANAGE} />}>
+                <Route path="organization" element={<OrganizationPage />} />
+              </Route>
+              <Route element={<PermissionRoute code={PERMISSIONS.SYSTEM_MANAGE_JOBS} />}>
+                <Route path="jobs" element={<JobsPage />} />
+              </Route>
+              <Route element={<PermissionRoute code={PERMISSIONS.ROLES_MANAGE} />}>
+                <Route path="roles" element={<RolesPage />} />
+                <Route path="roles/new" element={<CreateRolePage />} />
+                <Route path="roles/:id" element={<RoleDetailPage />} />
+              </Route>
+              <Route element={<PermissionRoute code={PERMISSIONS.AUDIT_VIEW} />}>
+                <Route path="audit" element={<AuditSearchPage />} />
+              </Route>
+              <Route element={<PermissionRoute code={PERMISSIONS.SYSTEM_VIEW_ERROR_LOG} />}>
+                <Route path="error-log" element={<ErrorMonitoringPage />} />
+                <Route path="overview" element={<DatabaseOverviewPage />} />
+              </Route>
             </Route>
+
+            {/* Old paths from before the pages moved under /admin. */}
+            {LEGACY_ADMIN_REDIRECTS.map((r) => (
+              <Route key={r.from} path={r.from} element={<LegacyPathRedirect to={r.to} />} />
+            ))}
 
             <Route path="*" element={<NotFoundPage />} />
           </Route>

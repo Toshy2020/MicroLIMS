@@ -45,8 +45,9 @@ public class HplcMethodAssayTestMasterTests
         return section;
     }
 
-    // Section-unrestricted user for seeding solutions/methods in whichever
-    // section a test needs, independent of the analyst under test.
+    // Seeding user with a department-wide membership, so it can write in whichever
+    // section a test needs (writes follow membership, administrators included),
+    // independent of the analyst under test.
     private static async Task<int> EnsureAdminUserAsync(MicroLimsDbContext db)
     {
         var existing = db.Users.FirstOrDefault(u => u.Username == "admin_test_setup");
@@ -63,6 +64,9 @@ public class HplcMethodAssayTestMasterTests
 
         var admin = new User { Username = "admin_test_setup", FullName = "Admin", RoleId = adminRole.Id, IsActive = true };
         db.Users.Add(admin);
+        await db.SaveChangesAsync();
+        var micro = TestServiceFactory.EnsureMicroSection(db);
+        db.UserOrgMemberships.Add(new UserOrgMembership { UserId = admin.Id, DepartmentId = micro.DepartmentId, SectionId = null });
         await db.SaveChangesAsync();
         return admin.Id;
     }

@@ -6,6 +6,7 @@ using MicroLIMS.Application.Abstractions.Email;
 using MicroLIMS.Application.Abstractions.Notifications;
 using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Application.Services.Monitoring;
+using MicroLIMS.Shared.Constants;
 
 namespace MicroLIMS.Application.Services;
 
@@ -133,7 +134,7 @@ public class DashboardNotificationService
         var results = new List<ComputedNotification>();
         var now = _time.GetUtcNow().UtcDateTime;
         // Everything a user is told about is limited to their laboratory sections.
-        var sectionIds = await _scope.GetAccessibleSectionIdsAsync(userId);
+        var sectionIds = await _scope.GetReadableSectionIdsAsync(userId);
 
         var expiringMedia = await _db.Media
             .Include(m => m.Material)
@@ -171,7 +172,14 @@ public class DashboardNotificationService
             results.Add(new ComputedNotification("IncubationReady", $"{testCode} ({step}) for {subject} is ready.", "info", i.TestOrder?.SampleId, i.TestOrderId));
         }
 
-        if (role is RoleType.SectionHead or RoleType.SystemAdministrator)
+        // These are read-only awareness counts, so a role that only oversees
+        // (System Administrator) sees them by holding the dashboard permission,
+        // not by being an administrator; the counts follow the user's read scope.
+        var dashboardGrants = role is RoleType.SectionHead or RoleType.Reviewer
+            ? new HashSet<string>()
+            : await HeldAsync(userId, PermissionConstants.DashboardsLabOverview, PermissionConstants.DashboardsReview);
+
+        if (role is RoleType.SectionHead || dashboardGrants.Contains(PermissionConstants.DashboardsLabOverview))
         {
             var approvalCount = await SectionReviewQueues.Candidates(_db.Samples, SectionSignoffStatus.UnderApproval, sectionIds).CountAsync();
             if (approvalCount > 0)
@@ -185,7 +193,7 @@ public class DashboardNotificationService
                 results.Add(new ComputedNotification("PendingPreparationConfigApproval", $"{pendingConfigCount} preparation configuration(s) awaiting approval.", "info"));
         }
 
-        if (role is RoleType.Reviewer or RoleType.SectionHead or RoleType.SystemAdministrator)
+        if (role is RoleType.Reviewer or RoleType.SectionHead || dashboardGrants.Contains(PermissionConstants.DashboardsReview))
         {
             var reviewCount = await SectionReviewQueues.Candidates(_db.Samples, SectionSignoffStatus.UnderReview, sectionIds).CountAsync();
             if (reviewCount > 0)
@@ -216,6 +224,14 @@ public class DashboardNotificationService
 
         return results;
     }
+
+    private async Task<HashSet<string>> HeldAsync(int userId, params string[] permissionCodes) =>
+        (await (
+            from u in _db.Users.AsNoTracking()
+            join rp in _db.RolePermissions.AsNoTracking() on u.RoleId equals rp.RoleId
+            where u.Id == userId && u.IsActive && permissionCodes.Contains(rp.Permission!.Code)
+            select rp.Permission!.Code
+        ).ToListAsync()).ToHashSet();
 
     private async Task PersistAndDeliverAsync(int userId, List<ComputedNotification> computed)
     {

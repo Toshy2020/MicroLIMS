@@ -44,7 +44,9 @@ const APP_ROUTES = {
   ORGANISMS: "/laboratory-configuration/organisms",
   MASTER_DATA_WORKBOOK: "/laboratory-configuration/master-data-workbook",
   ITEMS: "/laboratory-configuration/items",
-  MEDIA_CONFIGURATIONS: "/laboratory-configuration/media-configurations",
+  MASTER_TESTING_MATERIALS: "/laboratory-configuration/master-testing-materials",
+  // Old pages, now tabs of Master Testing Materials; the routes redirect.
+  MEDIA_CONFIGURATIONS: "/laboratory-configuration/master-testing-materials?tab=media",
   WATER: "/laboratory-configuration/water",
   ENVIRONMENTAL_MONITORING: "/laboratory-configuration/environmental-monitoring",
   AFTER_CLEANING: "/laboratory-configuration/after-cleaning",
@@ -52,7 +54,7 @@ const APP_ROUTES = {
   RECEIVING_CONFIGURATION: "/laboratory-configuration/receiving-configuration",
   LAB_EQUIPMENT: "/laboratory-configuration/equipment",
   CHROMATOGRAPHY_COLUMNS: "/laboratory-configuration/columns",
-  MATERIAL_MASTER: "/laboratory-configuration/material-master",
+  MATERIAL_MASTER: "/laboratory-configuration/master-testing-materials?tab=reagents",
   SOLUTION_MASTER: "/laboratory-configuration/solution-master",
   HPLC_METHODS: "/laboratory-configuration/hplc-methods",
   ICP_METHODS: "/laboratory-configuration/icp-methods",
@@ -71,17 +73,22 @@ const APP_ROUTES = {
   DOCUMENT_CONTROL_DETAIL: (id: number | string) => `/document-control/documents/${id}`,
   DOCUMENT_CONTROL_AUDIT: "/document-control/audit",
   DOCUMENT_CONTROL_CONFIGURATION: "/document-control/configuration",
+  DOCUMENT_CONTROL_REASSIGNMENTS: "/document-control/reassignments",
 
   // Audit
-  AUDIT_SEARCH: "/audit-search",
-  ERROR_MONITORING: "/error-monitoring",
+  AUDIT_SEARCH: "/admin/audit",
+  ERROR_MONITORING: "/admin/error-log",
   OOS_TRACKING: "/oos-tracking",
 
   // Administration
-  USERS: "/users",
-  ROLES: "/roles",
-  ROLE_NEW: "/roles/new",
-  ROLE_DETAIL: (id: number | string) => `/roles/${id}`,
+  ADMIN: "/admin",
+  USERS: "/admin/users",
+  ROLES: "/admin/roles",
+  ROLE_NEW: "/admin/roles/new",
+  ROLE_DETAIL: (id: number | string) => `/admin/roles/${id}`,
+  SETTINGS: "/admin/settings",
+  ADMIN_JOBS: "/admin/jobs",
+  ADMIN_ORGANIZATION: "/admin/organization",
 
   // Printable Report Pages (standalone rendering outside MainLayout)
   SAMPLE_REPORT: (id: number | string) => `/samples/${id}/report`,
@@ -146,6 +153,9 @@ export function resolveTraceabilityRoute(
   if (target === "organisms") {
     return APP_ROUTES.ORGANISMS;
   }
+  if (target === "reference-organisms" || target === "referenceorganisms") {
+    return "/laboratory-configuration/master-testing-materials?tab=organisms";
+  }
   if (target === "water") {
     return APP_ROUTES.WATER;
   }
@@ -183,6 +193,9 @@ export function resolveTraceabilityRoute(
   }
   if (type === "organism") {
     return APP_ROUTES.ORGANISMS;
+  }
+  if (type === "referenceorganism") {
+    return "/laboratory-configuration/master-testing-materials?tab=organisms";
   }
   if (type === "equipment" || type === "equipmentdocument" || type === "equipmentstatushistory") {
     return APP_ROUTES.INVENTORY_EQUIPMENT;
@@ -226,20 +239,27 @@ export const PERMISSIONS = {
   SAMPLES_TRACK_ALL: "Samples.TrackAll",
   SAMPLES_CORRECT: "Samples.Correct",
   SAMPLES_ASSIGN_ANALYST: "Samples.AssignAnalyst",
+  SECTIONS_VIEW_ALL: "Sections.ViewAll",
   TEST_WORKFLOW_EXECUTE: "TestWorkflow.Execute",
   TEST_WORKFLOW_SUPERVISE: "TestWorkflow.Supervise",
   CRYOVIALS_MANAGE: "Cryovials.Manage",
   CRYOVIALS_APPROVE: "Cryovials.Approve",
   MATERIALS_MANAGE: "Materials.Manage",
   MATERIALS_DOCUMENT_CONTROL: "Materials.DocumentControl",
+  MATERIALS_RELEASE: "Materials.Release",
+  MATERIAL_CATEGORIES_MANAGE: "MaterialCategories.Manage",
   EQUIPMENT_MANAGE: "Equipment.Manage",
   EQUIPMENT_DOCUMENT_CONTROL: "Equipment.DocumentControl",
   ITEMS_MANAGE: "Items.Manage",
   MASTER_DATA_MANAGE: "MasterData.Manage",
   DISCUSSIONS_EDIT_ANY: "Discussions.EditAny",
   SYSTEM_VIEW_ERROR_LOG: "System.ViewErrorLog",
+  SYSTEM_CONFIGURE_SETTINGS: "System.ConfigureSettings",
+  SYSTEM_MANAGE_JOBS: "System.ManageJobs",
+  ACCESS_REVIEW: "Access.Review",
   DOCUMENTS_REGISTER: "Documents.Register",
   DOCUMENTS_CONFIG_MANAGE: "Documents.ConfigManage",
+  DOCUMENTS_REASSIGN: "Documents.Reassign",
   KPI_VIEW: "Kpi.View",
   KPI_VIEW_TEAM: "Kpi.ViewTeam",
   KPI_CONFIGURE_PROFILES: "Kpi.ConfigureProfiles",

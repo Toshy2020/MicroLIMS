@@ -13,5 +13,13 @@ public class RefreshToken
     public DateTime? RevokedAt { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
+    // Session metadata shown to administrators (Admin > Users > Sessions).
+    // Informational only: never used to authorise a refresh.
+    public const int MaxIpLength = 64;
+    public const int MaxUserAgentLength = 256;
+    public string? CreatedIp { get; set; }
+    public string? UserAgent { get; set; }
+    public DateTime? LastUsedAt { get; set; }
+
     public bool IsActive => RevokedAt is null && ExpiresAt > DateTime.UtcNow;
 }

@@ -26,7 +26,7 @@ public class EquipmentMasterDataService
 
     public async Task<List<EquipmentResponse>> GetEquipmentAsync(int currentUserId, EquipmentType? type)
     {
-        var scope = await _scope.GetAccessibleSectionIdsAsync(currentUserId);
+        var scope = await _scope.GetReadableSectionIdsAsync(currentUserId);
         var query = _db.Equipment.AsNoTracking().Include(e => e.Section).AsQueryable();
         if (scope != null) query = query.Where(e => scope.Contains(e.SectionId));
         if (type.HasValue) query = query.Where(e => e.Type == type.Value);
@@ -35,7 +35,7 @@ public class EquipmentMasterDataService
 
     public async Task<EquipmentResponse> GetEquipmentByIdAsync(int currentUserId, int id)
     {
-        await _scope.EnsureEquipmentAccessAsync(currentUserId, id);
+        await _scope.EnsureEquipmentAccessAsync(currentUserId, id, access: SectionAccess.Read);
         var eq = await _db.Equipment.AsNoTracking()
             .Include(e => e.Section)
             .Include(e => e.CompatibleColumns)

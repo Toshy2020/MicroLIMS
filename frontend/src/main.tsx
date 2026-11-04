@@ -3,6 +3,7 @@ import ReactDOM from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 import App from "./App";
 import { ThemeModeProvider } from "./theme/ThemeModeContext";
+import { SystemStatusProvider } from "./contexts/SystemStatusContext";
 import { AuthProvider } from "./contexts/AuthContext";
 import { AppErrorBoundary } from "./components/AppErrorBoundary";
 import { installGlobalErrorHandlers } from "./services/errorReporter";
@@ -20,9 +21,11 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
     <AppErrorBoundary>
       <ThemeModeProvider>
         <BrowserRouter>
-          <AuthProvider>
-            <App />
-          </AuthProvider>
+          <SystemStatusProvider>
+            <AuthProvider>
+              <App />
+            </AuthProvider>
+          </SystemStatusProvider>
         </BrowserRouter>
       </ThemeModeProvider>
     </AppErrorBoundary>

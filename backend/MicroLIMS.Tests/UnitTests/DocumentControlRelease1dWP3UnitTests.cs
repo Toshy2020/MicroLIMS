@@ -22,6 +22,8 @@ public class DocumentControlRelease1dWP3UnitTests
     private class TestDbSequenceHelper : IDatabaseSequenceHelper
     {
         private long _seq = 8000;
+        public Task<int> ReserveIdAsync<TEntity>(CancellationToken cancellationToken = default) where TEntity : class => throw new NotSupportedException();
+
         public Task<long> GetNextSequenceValueAsync(string sequenceName, System.Threading.CancellationToken cancellationToken = default)
         {
             return Task.FromResult(System.Threading.Interlocked.Increment(ref _seq));
@@ -338,6 +340,11 @@ public class DocumentControlRelease1dWP3UnitTests
         var rev = new DocumentRevision { Id = 10, DocumentMasterId = 1, DocumentMaster = master, RevisionNumber = "01", RevisionStatus = DocumentRevisionStatus.Draft };
         db.DocumentMasters.Add(master);
         db.DocumentRevisions.Add(rev);
+        // This test is about file typing, not the role gate: the owner's role holds Documents.DraftEdit.
+        var draftEdit = new Permission { Code = MicroLIMS.Shared.Constants.PermissionConstants.DocumentsDraftEdit, Description = "d", IsEnforced = true };
+        db.Permissions.Add(draftEdit);
+        await db.SaveChangesAsync();
+        db.RolePermissions.Add(new RolePermission { RoleId = adminRole.Id, PermissionId = draftEdit.Id });
         await db.SaveChangesAsync();
 
         var docxContent = CreateValidDocx();

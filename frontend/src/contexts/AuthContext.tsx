@@ -10,6 +10,8 @@ export interface LoginData {
   refreshToken: string;
   username: string;
   role: Role;
+  // The role's display name; `role` is its base type.
+  roleName?: string | null;
   permissions: string[];
   fullName: string;
   jobTitle?: string | null;
@@ -20,6 +22,7 @@ export interface LoginData {
 interface AuthState {
   username: string | null;
   role: Role | null;
+  roleName: string | null;
   // Set at login and re-read from every silently refreshed token, so a
   // role or permission change made on the Roles/Users screens reaches an
   // open session within one access-token lifetime.
@@ -55,6 +58,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [refreshToken, setRefreshToken] = useState<string | null>(localStorage.getItem("microlims_refresh_token"));
   const [username, setUsername] = useState<string | null>(localStorage.getItem("microlims_username"));
   const [role, setRole] = useState<Role | null>(initialClaims.role ?? (localStorage.getItem("microlims_role") as Role | null));
+  const [roleName, setRoleName] = useState<string | null>(localStorage.getItem("microlims_role_name"));
   const [permissions, setPermissions] = useState<string[]>(
     initialClaims.role ? initialClaims.permissions : readStored<string[]>("microlims_permissions", [], JSON.parse)
   );
@@ -77,6 +81,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setToken(stored);
       setRefreshToken(localStorage.getItem("microlims_refresh_token"));
       setRole(claims.role);
+      setRoleName(localStorage.getItem("microlims_role_name"));
       setPermissions(claims.permissions);
     };
     const onStorage = (e: StorageEvent) => {
@@ -95,6 +100,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.setItem("microlims_refresh_token", data.refreshToken);
     localStorage.setItem("microlims_username", data.username);
     localStorage.setItem("microlims_role", data.role);
+    if (data.roleName) {
+      localStorage.setItem("microlims_role_name", data.roleName);
+    } else {
+      localStorage.removeItem("microlims_role_name");
+    }
     localStorage.setItem("microlims_permissions", JSON.stringify(data.permissions));
     localStorage.setItem("microlims_full_name", data.fullName);
     if (data.jobTitle) {
@@ -109,6 +119,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setRefreshToken(data.refreshToken);
     setUsername(data.username);
     setRole(data.role);
+    setRoleName(data.roleName ?? null);
     setPermissions(data.permissions);
     setFullName(data.fullName);
     setJobTitle(data.jobTitle ?? null);
@@ -121,6 +132,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem("microlims_refresh_token");
     localStorage.removeItem("microlims_username");
     localStorage.removeItem("microlims_role");
+    localStorage.removeItem("microlims_role_name");
     localStorage.removeItem("microlims_permissions");
     localStorage.removeItem("microlims_full_name");
     localStorage.removeItem("microlims_job_title");
@@ -130,6 +142,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setRefreshToken(null);
     setUsername(null);
     setRole(null);
+    setRoleName(null);
     setPermissions([]);
     setFullName(null);
     setJobTitle(null);
@@ -170,6 +183,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       localStorage.removeItem("microlims_job_title");
     }
     localStorage.setItem("microlims_must_change_password", String(info.mustChangePassword));
+    if (info.roleName) {
+      localStorage.setItem("microlims_role_name", info.roleName);
+      setRoleName(info.roleName);
+    }
     setFullName(info.fullName);
     setJobTitle(info.jobTitle ?? null);
     setMustChangePassword(info.mustChangePassword);
@@ -177,7 +194,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ token, refreshToken, username, role, permissions, fullName, jobTitle, userId, mustChangePassword, login, logout, refresh }}
+      value={{ token, refreshToken, username, role, roleName, permissions, fullName, jobTitle, userId, mustChangePassword, login, logout, refresh }}
     >
       {children}
     </AuthContext.Provider>

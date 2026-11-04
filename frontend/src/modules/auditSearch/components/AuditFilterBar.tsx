@@ -8,13 +8,15 @@ import {
   MenuItem,
   FormControl,
   InputLabel,
-  Collapse
+  Collapse,
+  FormControlLabel,
+  Checkbox
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 import RestartAltIcon from "@mui/icons-material/RestartAlt";
 import FilterListIcon from "@mui/icons-material/FilterList";
 import type { AuditSearchFilterState } from "../types/auditTypes";
-import { ENTITY_DISPLAY_NAMES } from "../types/auditTypes";
+import { ENTITY_DISPLAY_NAMES, ACTION_CATEGORIES } from "../types/auditTypes";
 import { DateField } from "../../../components/DateField";
 
 interface Props {
@@ -34,7 +36,7 @@ export function AuditFilterBar({
 }: Props) {
   const [showAdvanced, setShowAdvanced] = useState(false);
 
-  const handleChange = (key: keyof AuditSearchFilterState, val: string) => {
+  const handleChange = (key: keyof AuditSearchFilterState, val: string | boolean) => {
     onFilterChange({ ...filters, [key]: val });
   };
 
@@ -179,6 +181,62 @@ export function AuditFilterBar({
             placeholder="e.g. 5"
             value={filters.userId}
             onChange={(e) => handleChange("userId", e.target.value)}
+          />
+
+          <FormControl size="small" fullWidth>
+            <InputLabel id="audit-filter-category-label">Action Category</InputLabel>
+            <Select
+              labelId="audit-filter-category-label"
+              label="Action Category"
+              value={filters.actionCategory}
+              onChange={(e) => handleChange("actionCategory", e.target.value)}
+            >
+              <MenuItem value="">All Categories</MenuItem>
+              {ACTION_CATEGORIES.map((c) => (
+                <MenuItem key={c} value={c}>{c}</MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+
+          <FormControl size="small" fullWidth>
+            <InputLabel id="audit-filter-actor-label">Actor Type</InputLabel>
+            <Select
+              labelId="audit-filter-actor-label"
+              label="Actor Type"
+              value={filters.actorType}
+              onChange={(e) => handleChange("actorType", e.target.value)}
+            >
+              <MenuItem value="">Any Actor</MenuItem>
+              <MenuItem value="User">User</MenuItem>
+              <MenuItem value="System">System</MenuItem>
+            </Select>
+          </FormControl>
+
+          <TextField
+            size="small"
+            label="Correlation ID"
+            placeholder="GUID"
+            value={filters.correlationId}
+            onChange={(e) => handleChange("correlationId", e.target.value)}
+          />
+
+          <TextField
+            size="small"
+            label="Reason contains"
+            value={filters.reason}
+            onChange={(e) => handleChange("reason", e.target.value)}
+          />
+
+          <FormControlLabel
+            control={
+              <Checkbox
+                size="small"
+                checked={filters.negativeEntityId}
+                onChange={(e) => handleChange("negativeEntityId", e.target.checked)}
+              />
+            }
+            label="Negative record ID (needs correction)"
+            slotProps={{ typography: { sx: { fontSize: 13 } } }}
           />
         </Box>
       </Collapse>

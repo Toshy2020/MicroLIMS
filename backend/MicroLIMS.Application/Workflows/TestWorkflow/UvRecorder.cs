@@ -156,7 +156,7 @@ public sealed class UvRecorder : TestWorkflowSupport
                 var entryName = await _db.MaterialMasterEntries.Where(e => e.Id == t.UvStandardEntryId).Select(e => e.Name).FirstAsync();
                 throw new InvalidOperationException($"Standard lot {lot.LotLabel} is not a lot of {entryName}.");
             }
-            var accessible = await _sectionScope.GetAccessibleSectionIdsAsync(userId);
+            var accessible = await _sectionScope.GetMemberSectionIdsAsync(userId);
             if (accessible != null && !accessible.Contains(lot.SectionId))
                 throw new InvalidOperationException($"Standard lot {lot.LotLabel} belongs to another laboratory.");
             if (lot.MaterialType is not (MaterialType.ReferenceStandard or MaterialType.WorkingStandard))

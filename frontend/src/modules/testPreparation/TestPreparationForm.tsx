@@ -22,17 +22,14 @@ interface Props {
 // "Start Testing" since completing it also auto-assigns the preparer as
 // analyst on every Waiting test order for this sample.
 export function TestPreparationForm({ sample, onSaved }: Props) {
-  const { userId, role } = useAuth();
+  const { userId } = useAuth();
   const [form, setForm] = useState<Record<string, any>>({ technique: "PourPlate" });
   const [message, setMessage] = useState<{ text: string; ok: boolean } | null>(null);
   const [signing, setSigning] = useState(false);
 
   const assignedIds = sample.assignedAnalystIds ?? [];
   const isAssignedToOther =
-    assignedIds.length > 0 &&
-    !assignedIds.includes(userId as number) &&
-    role !== "SectionHead" &&
-    role !== "SystemAdministrator";
+    assignedIds.length > 0 && !assignedIds.includes(userId as number);
 
   const setField = (k: string, v: any) => setForm((f) => ({ ...f, [k]: v }));
 

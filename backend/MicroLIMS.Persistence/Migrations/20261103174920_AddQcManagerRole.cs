@@ -7,6 +7,8 @@ namespace MicroLIMS.Persistence.Migrations
     /// <inheritdoc />
     public partial class AddQcManagerRole : Migration
     {
+        private const string Process = "Migration 20261103174920_AddQcManagerRole";
+
         /// <inheritdoc />
         // Data only. Not marked enforced yet: no endpoint checks these codes until the later tasks add them.
         // DbSeeder covers a fresh database (its role insert runs only when Roles is empty, so
@@ -30,23 +32,21 @@ namespace MicroLIMS.Persistence.Migrations
                 ) AS v(code, descr)
                 WHERE NOT EXISTS (SELECT 1 FROM ""Permissions"" p WHERE p.""Code"" = v.code);");
 
-            // QC Manager's read-only set is what Reviewer holds under a .View/.Read code: Discussions.View, MonitoringPlan.View.
-            migrationBuilder.Sql(@"
-                INSERT INTO ""RolePermissions"" (""RoleId"", ""PermissionId"")
-                SELECT r.""Id"", p.""Id""
-                FROM ""Roles"" r CROSS JOIN ""Permissions"" p
-                WHERE ((p.""Code"" IN ('tests.not-applicable.manage', 'tests.outsource') AND r.""Type"" IN (0, 1))
-                    OR (p.""Code"" IN ('tests.not-applicable.final-approve', 'Discussions.View', 'MonitoringPlan.View') AND r.""Type"" = 4))
-                  AND r.""IsSystemRole""
-                  AND NOT EXISTS (SELECT 1 FROM ""RolePermissions"" rp
-                                  WHERE rp.""RoleId"" = r.""Id"" AND rp.""PermissionId"" = p.""Id"");");
+            // Section Head (built-in only) manages not-applicable tests and outsourcing; the System Administrator
+            // does not (segregation of duties: administrators never execute GxP work). The QC Manager gets final
+            // approval plus the reviewer's read-only codes, Discussions.View and MonitoringPlan.View.
+            migrationBuilder.Sql(RoleGrantSql.Grant(@"ro.""Type"" = 1 AND ro.""IsSystemRole""",
+                new[] { "tests.not-applicable.manage", "tests.outsource" }, Process, "Section Heads manage not-applicable and outsourced tests"));
+            migrationBuilder.Sql(RoleGrantSql.Grant(@"ro.""Type"" = 4 AND ro.""IsSystemRole""",
+                new[] { "tests.not-applicable.final-approve", "Discussions.View", "MonitoringPlan.View" }, Process, "QC Manager role created"));
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.Sql(@"DELETE FROM ""RolePermissions"" WHERE ""RoleId"" IN (SELECT ""Id"" FROM ""Roles"" WHERE ""Type"" = 4 AND ""IsSystemRole"")
-                OR ""PermissionId"" IN (SELECT ""Id"" FROM ""Permissions"" WHERE ""Code"" IN ('tests.not-applicable.manage', 'tests.not-applicable.final-approve', 'tests.outsource'));");
+            migrationBuilder.Sql(RoleGrantSql.Revoke(new[] { "tests.not-applicable.manage", "tests.not-applicable.final-approve", "tests.outsource" },
+                Process + " (Down)", "Not-applicable and outsourcing permissions rolled back (migration Down)"));
+            migrationBuilder.Sql(@"DELETE FROM ""RolePermissions"" WHERE ""RoleId"" IN (SELECT ""Id"" FROM ""Roles"" WHERE ""Type"" = 4 AND ""IsSystemRole"");");
             migrationBuilder.Sql(@"DELETE FROM ""Permissions"" WHERE ""Code"" IN ('tests.not-applicable.manage', 'tests.not-applicable.final-approve', 'tests.outsource');");
             // Kept if anyone already holds it: a user's role cannot be removed from under them.
             migrationBuilder.Sql(@"DELETE FROM ""Roles"" r WHERE r.""Type"" = 4 AND r.""IsSystemRole""

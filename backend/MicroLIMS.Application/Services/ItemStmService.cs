@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Application.DTOs.Responses;
 using MicroLIMS.Domain.Enums;
+using MicroLIMS.Shared.Constants;
 using MicroLIMS.Shared.Exceptions;
 
 namespace MicroLIMS.Application.Services;
@@ -65,7 +66,8 @@ public class ItemStmService(IMicroLimsDbContext db)
         new(status, sop, null, null, null, null, null, null, null, null, canDownload);
 
     // Same rule as DocumentFileService (controlled copy policy): download is
-    // allowed unless the setting is "false", except for admins and section heads.
+    // allowed unless the setting is "false", except for section heads and roles
+    // holding Audit.View (read-only oversight; System Administrator is not exempt by role).
     private async Task<bool> CanDownloadAsync(int userId)
     {
         var setting = await db.ConfigurationSettings.AsNoTracking()
@@ -73,10 +75,13 @@ public class ItemStmService(IMicroLimsDbContext db)
         if (setting == null || !string.Equals(setting.SettingValue, "false", StringComparison.OrdinalIgnoreCase))
             return true;
 
-        var role = await db.Users.AsNoTracking()
+        var user = await db.Users.AsNoTracking()
             .Where(u => u.Id == userId && u.IsActive)
-            .Select(u => u.Role != null ? (RoleType?)u.Role.Type : null)
+            .Select(u => new { u.RoleId, Type = u.Role != null ? (RoleType?)u.Role.Type : null })
             .FirstOrDefaultAsync();
-        return role == RoleType.SystemAdministrator || role == RoleType.SectionHead;
+        if (user is null) return false;
+        return user.Type == RoleType.SectionHead
+            || await db.RolePermissions.AsNoTracking()
+                .AnyAsync(rp => rp.RoleId == user.RoleId && rp.Permission!.Code == PermissionConstants.AuditView);
     }
 }

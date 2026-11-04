@@ -191,10 +191,15 @@ public class DocumentControlReviewPostgresIntegrationTests
             reviewService.SubmitForReviewAsync(revId, new SubmitForReviewRequest { ReviewerUserId = authorId }, authorId));
         Assert.Contains("Segregation of Duties", exSelfAssign.Message);
 
-        // Test 2: Admin cannot assign author as reviewer
+        // Test 2: The Document Controller cannot assign the author as reviewer
         var exAdminAssign = await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
-            reviewService.SubmitForReviewAsync(revId, new SubmitForReviewRequest { ReviewerUserId = authorId }, _fixture.SeededUserId));
+            reviewService.SubmitForReviewAsync(revId, new SubmitForReviewRequest { ReviewerUserId = authorId }, _fixture.SeededControllerUserId));
         Assert.Contains("Segregation of Duties", exAdminAssign.Message);
+
+        // Test 2b: A System Administrator has no authority over the document at all
+        var exAdminNoAuthority = await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
+            reviewService.SubmitForReviewAsync(revId, new SubmitForReviewRequest { ReviewerUserId = reviewerId }, _fixture.SeededUserId));
+        Assert.Contains("not authorized to submit", exAdminNoAuthority.Message);
 
         // Submit properly
         var task = await reviewService.SubmitForReviewAsync(revId, new SubmitForReviewRequest { ReviewerUserId = reviewerId }, authorId);

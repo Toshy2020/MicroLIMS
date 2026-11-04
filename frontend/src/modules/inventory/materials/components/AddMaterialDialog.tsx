@@ -7,22 +7,28 @@ import {
   MenuItem,
   ListSubheader,
   FormControl,
+  FormHelperText,
   InputLabel,
   Typography,
   Divider,
   Alert,
   Paper,
   useTheme,
-  Autocomplete,
-  createFilterOptions
+  Autocomplete
 } from "@mui/material";
-import { OrganismPicker } from "../../../../components/OrganismPicker";
 import { MediaProductPicker } from "../../../../components/MediaProductPicker";
 import type { MediaProductOption } from "../../../../hooks/useMediaProducts";
 import { MaterialService, SaveMaterialPayload } from "../services/MaterialService";
 import { EquipmentInventoryService } from "../../equipment/services/EquipmentInventoryService";
-import { MaterialFormState, MaterialItem, MaterialType, MaterialUnit, MATERIAL_UNITS } from "../types/materialTypes";
-import { MATERIAL_TYPE_OPTIONS } from "./MaterialFilterBar";
+import {
+  MaterialFormState,
+  MaterialItem,
+  MaterialType,
+  MaterialUnit,
+  MATERIAL_UNITS,
+  MATERIAL_TYPE_LABELS,
+  LEGACY_MATERIAL_TYPES
+} from "../types/materialTypes";
 import { brandColors } from "../../../../theme";
 import { FloatingDialog } from "../../../../components/FloatingDialog";
 import { LoadFailuresAlert } from "../../../../components/LoadErrorAlert";
@@ -33,19 +39,23 @@ import {
   MaterialMasterEntry,
   MaterialMasterCategory
 } from "../../../laboratoryConfiguration/masterDataSimple/services/MaterialMasterService";
+import {
+  MaterialCategoryService,
+  MaterialCategory
+} from "../../../laboratoryConfiguration/masterDataSimple/services/MaterialCategoryService";
+import { ReferenceOrganismService, ReferenceOrganism } from "../../../laboratoryConfiguration/masterDataSimple/services/ReferenceOrganismService";
 import { DateField } from "../../../../components/DateField";
 
-interface MaterialTypeOption {
-  label: string;
-  value?: MaterialType;
-  group: "Standard types" | "Types added by this lab";
-  inputValue?: string;
-}
+// Types a new lot can still be received under. Supplements, discs, kits and the like are now
+// categories of Other materials; WorkingStandard lots come from qualifications only.
+const NEW_LOT_TYPES = (Object.keys(MATERIAL_TYPE_LABELS) as MaterialType[]).filter(
+  (t) => t !== "WorkingStandard" && !LEGACY_MATERIAL_TYPES.includes(t)
+);
 
-const filterOptions = createFilterOptions<MaterialTypeOption>();
+const typeOptionLabel = (type: MaterialType): string => (type === "Other" ? "Other material" : MATERIAL_TYPE_LABELS[type] ?? type);
 
 const isMasterLinkedType = (type: MaterialType): boolean =>
-  type === "Chemical" || type === "Indicator" || type === "ReferenceStandard" || type === "PrimaryStandard";
+  type === "Chemical" || type === "Indicator" || type === "ReferenceStandard" || type === "PrimaryStandard" || type === "Other";
 
 const getMasterCategoryForType = (type: MaterialType): MaterialMasterCategory | null => {
   switch (type) {
@@ -57,6 +67,8 @@ const getMasterCategoryForType = (type: MaterialType): MaterialMasterCategory | 
       return "ReferenceStandard";
     case "PrimaryStandard":
       return "PrimaryStandard";
+    case "Other":
+      return "Other";
     default:
       return null;
   }
@@ -89,6 +101,7 @@ const INITIAL_FORM: MaterialFormState = {
   expiryDate: "",
   code: "",
   location: "",
+  storageCondition: "",
   quantityReceived: "",
   unit: "Gram",
   minimumStockLevel: "",
@@ -96,6 +109,7 @@ const INITIAL_FORM: MaterialFormState = {
   moisturePercent: "",
   atccNumber: "",
   organismId: null,
+  referenceOrganismId: null,
   mediaProductId: null,
   materialMasterEntryId: null
 };
@@ -122,6 +136,12 @@ export function AddMaterialDialog({ open, onClose, onSuccess, editingItem }: Add
     custom: string[];
   } | null>(null);
   const [mySections, setMySections] = useState<LaboratorySection[]>([]);
+  // Lyophilized lots are received against a reference strain.
+  const [strains, setStrains] = useState<ReferenceOrganism[]>([]);
+  // Other materials: the category chosen at receipt and the categories offered to the lot's lab.
+  const [categories, setCategories] = useState<MaterialCategory[]>([]);
+  const [categoriesLoading, setCategoriesLoading] = useState(false);
+  const [categoryId, setCategoryId] = useState<number | "">("");
   // Without this, a failed storage-equipment load showed "No in-service
   // refrigerator configured" - a statement about the lab, not the network.
   const { failed: failedLists, fail, reset: resetFailures } = useLoadFailures();
@@ -144,6 +164,7 @@ export function AddMaterialDialog({ open, onClose, onSuccess, editingItem }: Add
         expiryDate: editingItem.expiryDate?.slice(0, 10) ?? "",
         code: editingItem.code ?? "",
         location: editingItem.location,
+        storageCondition: editingItem.storageCondition ?? "",
         quantityReceived: editingItem.quantityReceived,
         unit: editingItem.unit,
         minimumStockLevel: editingItem.minimumStockLevel ?? "",
@@ -151,6 +172,7 @@ export function AddMaterialDialog({ open, onClose, onSuccess, editingItem }: Add
         moisturePercent: editingItem.moisturePercent != null ? editingItem.moisturePercent : "",
         atccNumber: editingItem.atccNumber ?? "",
         organismId: editingItem.organismId ?? null,
+        referenceOrganismId: editingItem.referenceOrganismId ?? null,
         mediaProductId: editingItem.mediaProductId ?? null,
         materialMasterEntryId: editingItem.materialMasterEntryId ?? null
       });
@@ -162,6 +184,7 @@ export function AddMaterialDialog({ open, onClose, onSuccess, editingItem }: Add
       });
       setSelectedSectionId("");
     }
+    setCategoryId("");
     setError(null);
     setHasSetInitialType(false);
 
@@ -243,7 +266,8 @@ export function AddMaterialDialog({ open, onClose, onSuccess, editingItem }: Add
   const hasOtherOptions = Boolean(roomStorageOption || isFallbackLocation);
 
   useEffect(() => {
-    if (!open || !isMasterLinkedType(form.materialType)) {
+    // An Other lot already received shows its category and entry read-only: nothing to pick.
+    if (!open || !isMasterLinkedType(form.materialType) || (form.materialType === "Other" && editingItem)) {
       setMasterEntries([]);
       return;
     }
@@ -274,10 +298,49 @@ export function AddMaterialDialog({ open, onClose, onSuccess, editingItem }: Add
     };
   }, [open, form.materialType, editingItem]);
 
-  const availableMasterEntries = useMemo(() => {
-    if (!activeSectionId) return masterEntries;
-    return masterEntries.filter((e) => e.sectionId === activeSectionId || !e.sectionId);
-  }, [masterEntries, activeSectionId]);
+  // Master entries are app-wide: any lab can receive stock against any active entry.
+  // An Other lot picks its category first, so only that category's entries are offered.
+  const availableMasterEntries =
+    form.materialType === "Other" ? masterEntries.filter((e) => e.materialCategoryId === categoryId) : masterEntries;
+
+  // Categories offered to the lot's lab (the server filters by lab and active state).
+  useEffect(() => {
+    if (!open || editingItem || form.materialType !== "Other" || activeSectionId == null) {
+      setCategories([]);
+      return;
+    }
+    let canceled = false;
+    setCategoriesLoading(true);
+    MaterialCategoryService.getAll(true, activeSectionId)
+      .then((data) => {
+        if (!canceled) setCategories(data);
+      })
+      .catch(() => {
+        if (!canceled) setCategories([]);
+      })
+      .finally(() => {
+        if (!canceled) setCategoriesLoading(false);
+      });
+    return () => {
+      canceled = true;
+    };
+  }, [open, editingItem, form.materialType, activeSectionId]);
+
+  const selectedCategory = categories.find((c) => c.id === categoryId) ?? null;
+
+  // The category's rules prefill the receipt (editable); the server enforces them either way.
+  const handleCategoryChange = (id: number | "") => {
+    setCategoryId(id);
+    const picked = categories.find((c) => c.id === id);
+    setForm((f) => ({
+      ...f,
+      materialMasterEntryId: null,
+      materialName: "",
+      code: "",
+      unit: picked?.defaultUnit ?? f.unit,
+      storageCondition: picked?.defaultStorageCondition ?? ""
+    }));
+  };
 
   const selectedMasterEntry = useMemo(() => {
     if (!form.materialMasterEntryId) return null;
@@ -288,7 +351,7 @@ export function AddMaterialDialog({ open, onClose, onSuccess, editingItem }: Add
         id: editingItem.materialMasterEntryId,
         code: editingItem.materialMasterEntryCode || form.code || `#${editingItem.materialMasterEntryId}`,
         name: form.materialName,
-        category: (getMasterCategoryForType(form.materialType) ?? "Reagent") as MaterialMasterCategory,
+        category: getMasterCategoryForType(form.materialType) ?? "Reagent",
         baseUnit: form.unit,
         isActive: true,
         sectionId: editingItem.sectionId
@@ -322,7 +385,8 @@ export function AddMaterialDialog({ open, onClose, onSuccess, editingItem }: Add
       materialMasterEntryId: entry.id,
       materialName: entry.name,
       code: entry.code,
-      unit: entry.baseUnit || f.unit
+      // An Other material takes its unit from the category chosen at receipt.
+      unit: entry.category === "Other" ? f.unit : entry.baseUnit || f.unit
     }));
   };
 
@@ -330,47 +394,35 @@ export function AddMaterialDialog({ open, onClose, onSuccess, editingItem }: Add
     async (type: MaterialType) => {
       const nextCategory = getMasterCategoryForType(type);
 
+      let defaultUnit: MaterialUnit | null = null;
       try {
-        const defaultUnit = await MaterialService.getDefaultUnit(type);
-        setForm((f) => {
-          const prevCategory = getMasterCategoryForType(f.materialType);
-          const keepMaster = Boolean(prevCategory && nextCategory && prevCategory === nextCategory);
-          return {
-            ...f,
-            materialType: type,
-            customType: "",
-            unit: defaultUnit as MaterialUnit,
-            mediaProductId: type === "DehydratedMedia" ? f.mediaProductId : null,
-            purity: (type === "ReferenceStandard" || type === "PrimaryStandard") ? f.purity : "",
-            moisturePercent: type === "ReferenceStandard" ? f.moisturePercent : "",
-            materialMasterEntryId: keepMaster ? f.materialMasterEntryId : null,
-            ...(keepMaster
-              ? {}
-              : isMasterLinkedType(type) && !editingItem
-              ? { materialName: "", code: "" }
-              : {})
-          };
-        });
+        defaultUnit = (await MaterialService.getDefaultUnit(type)) as MaterialUnit;
       } catch {
-        setForm((f) => {
-          const prevCategory = getMasterCategoryForType(f.materialType);
-          const keepMaster = Boolean(prevCategory && nextCategory && prevCategory === nextCategory);
-          return {
-            ...f,
-            materialType: type,
-            customType: "",
-            mediaProductId: type === "DehydratedMedia" ? f.mediaProductId : null,
-            purity: (type === "ReferenceStandard" || type === "PrimaryStandard") ? f.purity : "",
-            moisturePercent: type === "ReferenceStandard" ? f.moisturePercent : "",
-            materialMasterEntryId: keepMaster ? f.materialMasterEntryId : null,
-            ...(keepMaster
-              ? {}
-              : isMasterLinkedType(type) && !editingItem
-              ? { materialName: "", code: "" }
-              : {})
-          };
-        });
+        // Keep the unit already chosen.
       }
+
+      setForm((f) => {
+        const prevCategory = getMasterCategoryForType(f.materialType);
+        const keepMaster = Boolean(prevCategory && nextCategory && prevCategory === nextCategory);
+        return {
+          ...f,
+          materialType: type,
+          customType: "",
+          ...(defaultUnit ? { unit: defaultUnit } : {}),
+          storageCondition: "",
+          mediaProductId: type === "DehydratedMedia" ? f.mediaProductId : null,
+          referenceOrganismId: type === "LyophilizedMicroorganism" ? f.referenceOrganismId : null,
+          purity: (type === "ReferenceStandard" || type === "PrimaryStandard") ? f.purity : "",
+          moisturePercent: type === "ReferenceStandard" ? f.moisturePercent : "",
+          materialMasterEntryId: keepMaster ? f.materialMasterEntryId : null,
+          ...(keepMaster
+            ? {}
+            : isMasterLinkedType(type) && !editingItem
+            ? { materialName: "", code: "" }
+            : {})
+        };
+      });
+      setCategoryId("");
     },
     [editingItem]
   );
@@ -402,142 +454,69 @@ export function AddMaterialDialog({ open, onClose, onSuccess, editingItem }: Add
     }
   }, [open, activeSectionId, editingItem]);
 
-  // When creating, the initial type is the first builtIn type of the lab,
+  // Types offered for a new lot: what the server lists for the lab, plus the Other material path.
+  const newLotTypes: MaterialType[] = useMemo(() => {
+    if (!typeOptionsData) return NEW_LOT_TYPES;
+    const listed = typeOptionsData.builtIn.filter((t) => !LEGACY_MATERIAL_TYPES.includes(t) && t !== "WorkingStandard");
+    return listed.includes("Other") ? listed : [...listed, "Other"];
+  }, [typeOptionsData]);
+
+  // When creating, the initial type is the first type of the lab,
   // not "DehydratedMedia".
   useEffect(() => {
-    if (editingItem || !typeOptionsData || typeOptionsData.builtIn.length === 0) return;
+    if (editingItem || !typeOptionsData || newLotTypes.length === 0) return;
     if (!hasSetInitialType) {
       setHasSetInitialType(true);
-      void onMaterialTypeChange(typeOptionsData.builtIn[0]);
-    } else if (form.materialType !== "Other" && !typeOptionsData.builtIn.includes(form.materialType)) {
-      // "Other" is the user's custom type, never a lab-list mismatch.
-      void onMaterialTypeChange(typeOptionsData.builtIn[0]);
+      void onMaterialTypeChange(newLotTypes[0]);
+    } else if (!newLotTypes.includes(form.materialType)) {
+      void onMaterialTypeChange(newLotTypes[0]);
     }
-  }, [typeOptionsData, editingItem, hasSetInitialType, form.materialType, onMaterialTypeChange]);
+  }, [typeOptionsData, newLotTypes, editingItem, hasSetInitialType, form.materialType, onMaterialTypeChange]);
 
-  const typeOptionsList: MaterialTypeOption[] = useMemo(() => {
-    const list: MaterialTypeOption[] = [];
+  // Lots of an Other material (and legacy named types) keep their stored type: the category and
+  // master entry carry the rules, so the type is shown read-only. An old lot received before
+  // categories, with no master entry, keeps its stored type and free-text name as they are.
+  const editingOtherMaterial = Boolean(
+    editingItem && (editingItem.materialType === "Other" || LEGACY_MATERIAL_TYPES.includes(editingItem.materialType))
+  );
+  const editingLegacyLot = Boolean(
+    editingItem && (LEGACY_MATERIAL_TYPES.includes(editingItem.materialType) || (editingItem.materialType === "Other" && !editingItem.materialMasterEntryId))
+  );
+  const storedTypeLabel = editingItem
+    ? editingItem.categoryName?.trim() || editingItem.customType?.trim() || typeOptionLabel(editingItem.materialType)
+    : "";
 
-    // Built-in types: lab's builtIn if known, else all MATERIAL_TYPE_OPTIONS
-    const builtInTypes: MaterialType[] = typeOptionsData
-      ? [...typeOptionsData.builtIn]
-      : MATERIAL_TYPE_OPTIONS.map((o) => o.value);
+  // A new Other lot has no free-text name or code: both come from the master entry.
+  const nameFromEntryOnly = form.materialType === "Other" && !editingLegacyLot;
 
-    // An existing item whose type is not in its lab's list must still display its current type
-    if (
-      editingItem &&
-      editingItem.materialType !== "Other" &&
-      !builtInTypes.includes(editingItem.materialType)
-    ) {
-      builtInTypes.push(editingItem.materialType);
-    }
+  // A lyophilized lot's name and code come from its reference strain; only an old lot with no strain keeps them editable.
+  const isLyophilized = form.materialType === "LyophilizedMicroorganism";
+  const nameFromStrain = isLyophilized && (!editingItem || Boolean(form.referenceOrganismId));
+  const strainOptions = strains.filter((s) => s.isActive || s.id === form.referenceOrganismId);
 
-    for (const bt of builtInTypes) {
-      const label = MATERIAL_TYPE_OPTIONS.find((o) => o.value === bt)?.label ?? bt;
-      list.push({
-        label,
-        value: bt,
-        group: "Standard types"
-      });
-    }
+  useEffect(() => {
+    if (!open || !isLyophilized) return;
+    ReferenceOrganismService.getAll()
+      .then(setStrains)
+      .catch(fail("reference organisms", () => setStrains([])));
+  }, [open, isLyophilized, fail]);
 
-    // Lab custom types
-    const customTypes: string[] = typeOptionsData ? [...typeOptionsData.custom] : [];
-
-    // Existing item customType if not in list
-    if (
-      editingItem?.customType &&
-      !customTypes.some((c) => c.toLowerCase() === editingItem.customType!.toLowerCase())
-    ) {
-      customTypes.push(editingItem.customType);
-    }
-
-    // Form current customType if not in list
-    if (
-      form.customType.trim() &&
-      !customTypes.some((c) => c.toLowerCase() === form.customType.trim().toLowerCase()) &&
-      !list.some((o) => o.label.toLowerCase() === form.customType.trim().toLowerCase())
-    ) {
-      customTypes.push(form.customType.trim());
-    }
-
-    for (const ct of customTypes) {
-      list.push({
-        label: ct,
-        group: "Types added by this lab"
-      });
-    }
-
-    return list;
-  }, [typeOptionsData, editingItem, form.customType]);
-
-  const selectedTypeOption = useMemo<MaterialTypeOption | null>(() => {
-    if (form.materialType === "Other" && form.customType.trim()) {
-      const trimmed = form.customType.trim();
-      const existing = typeOptionsList.find(
-        (o) => o.label.toLowerCase() === trimmed.toLowerCase()
-      );
-      return (
-        existing ?? {
-          label: trimmed,
-          group: "Types added by this lab"
-        }
-      );
-    }
-
-    const matched = typeOptionsList.find((o) => o.value === form.materialType);
-    if (matched) return matched;
-
-    const label =
-      MATERIAL_TYPE_OPTIONS.find((o) => o.value === form.materialType)?.label ??
-      form.materialType;
-    return {
-      label,
-      value: form.materialType,
-      group: "Standard types"
-    };
-  }, [typeOptionsList, form.materialType, form.customType]);
-
-  const applyTypeSelection = (val: MaterialTypeOption | string) => {
-    let label = "";
-    let explicitBuiltIn: MaterialType | undefined;
-
-    if (typeof val === "string") {
-      label = val.trim();
-    } else if (val.inputValue) {
-      label = val.inputValue.trim();
-    } else {
-      label = val.label.trim();
-      explicitBuiltIn = val.value;
-    }
-
-    if (!label) return;
-
-    // Check if the typed text case-insensitively equals a built-in label or value
-    const matchedBuiltIn = MATERIAL_TYPE_OPTIONS.find(
-      (o) =>
-        o.label.toLowerCase() === label.toLowerCase() ||
-        o.value.toLowerCase() === label.toLowerCase()
-    );
-
-    if (explicitBuiltIn || matchedBuiltIn) {
-      const builtInType = explicitBuiltIn ?? matchedBuiltIn!.value;
+  const handleStrainChange = (strain: ReferenceOrganism | null) => {
+    if (!strain) {
       setForm((f) => ({
         ...f,
-        materialType: builtInType,
-        customType: ""
+        referenceOrganismId: null,
+        materialName: editingItem ? editingItem.materialName : "",
+        code: editingItem ? editingItem.code ?? "" : ""
       }));
-      void onMaterialTypeChange(builtInType);
-    } else {
-      setForm((f) => ({
-        ...f,
-        materialType: "Other",
-        customType: label,
-        mediaProductId: null,
-        purity: ""
-      }));
+      return;
     }
+    setForm((f) => ({ ...f, referenceOrganismId: strain.id, materialName: strain.name, code: strain.code }));
   };
+
+  // Types for the select: an existing lot whose type is not in its lab's list still shows its current type.
+  const typeSelectOptions: MaterialType[] =
+    editingItem && !newLotTypes.includes(editingItem.materialType) ? [...newLotTypes, editingItem.materialType] : newLotTypes;
 
   const handleMediaProductChange = (id: number | null, product: MediaProductOption | null) => {
     if (!product || id === null) {
@@ -583,8 +562,24 @@ export function AddMaterialDialog({ open, onClose, onSuccess, editingItem }: Add
       return;
     }
 
+    if (!editingItem && isLyophilized && !form.referenceOrganismId) {
+      setError("Choose the reference organism for this lyophilized microorganism.");
+      return;
+    }
+
+    if (!editingItem && form.materialType === "Other" && !categoryId) {
+      setError("Choose the material category for this lot.");
+      return;
+    }
+
     if (!editingItem && isMasterLinkedType(form.materialType) && !form.materialMasterEntryId) {
       setError("Choose the material master entry for this lot.");
+      return;
+    }
+
+    // Mirrors the category rule for the user's benefit; the server enforces it.
+    if (!editingItem && selectedCategory?.expiryRequired && !form.expiryDate) {
+      setError(`${selectedCategory.name} lots need an expiry date.`);
       return;
     }
 
@@ -635,10 +630,8 @@ export function AddMaterialDialog({ open, onClose, onSuccess, editingItem }: Add
 
     const payload: SaveMaterialPayload = {
       materialType: form.materialType,
-      customType:
-        form.materialType === "Other" && form.customType.trim()
-          ? form.customType.trim()
-          : null,
+      // Only the stored custom type of an old lot is ever sent back; new lots take no free-text type.
+      customType: editingItem && form.materialType === "Other" && form.customType.trim() ? form.customType.trim() : null,
       materialName: form.materialName.trim(),
       manufacturerName: form.manufacturerName.trim(),
       batchNumber: form.batchNumber.trim(),
@@ -646,11 +639,14 @@ export function AddMaterialDialog({ open, onClose, onSuccess, editingItem }: Add
       expiryDate: form.expiryDate || null,
       code: form.code.trim() || null,
       location: form.location.trim(),
+      storageCondition: form.storageCondition.trim() || null,
       quantityReceived: Number(form.quantityReceived),
       unit: form.unit,
       minimumStockLevel: form.minimumStockLevel === "" ? null : Number(form.minimumStockLevel),
-      atccNumber: form.materialType === "LyophilizedMicroorganism" ? form.atccNumber.trim() || null : null,
-      organismId: form.materialType === "LyophilizedMicroorganism" ? form.organismId || null : null,
+      // With a strain the server derives the organism and ATCC number; only an old lot without one sends its stored values back.
+      atccNumber: isLyophilized && !form.referenceOrganismId ? form.atccNumber.trim() || null : null,
+      organismId: isLyophilized && !form.referenceOrganismId ? form.organismId || null : null,
+      referenceOrganismId: isLyophilized ? form.referenceOrganismId : null,
       mediaProductId: form.materialType === "DehydratedMedia" ? form.mediaProductId : null,
       purity:
         (form.materialType === "ReferenceStandard" || form.materialType === "PrimaryStandard") && form.purity !== ""
@@ -660,7 +656,8 @@ export function AddMaterialDialog({ open, onClose, onSuccess, editingItem }: Add
         form.materialType === "ReferenceStandard" && form.moisturePercent !== "" && form.moisturePercent != null
           ? Number(form.moisturePercent)
           : null,
-      materialMasterEntryId: isMasterLinkedType(form.materialType) ? form.materialMasterEntryId : null,
+      materialMasterEntryId:
+        isMasterLinkedType(form.materialType) || LEGACY_MATERIAL_TYPES.includes(form.materialType) ? form.materialMasterEntryId : null,
       ...(!editingItem && mySections.length > 1 && selectedSectionId !== "" ? { sectionId: Number(selectedSectionId) } : {})
     };
 
@@ -670,8 +667,8 @@ export function AddMaterialDialog({ open, onClose, onSuccess, editingItem }: Add
         await MaterialService.update(editingItem.id, payload, editingItem.version);
         onSuccess("Material stock updated successfully.");
       } else {
-        await MaterialService.create(payload);
-        onSuccess("Material added to stock successfully.");
+        const created = await MaterialService.create(payload);
+        onSuccess(created?.stockId ? `Material added to stock as ${created.stockId}.` : "Material added to stock successfully.");
       }
       onClose();
     } catch (err: unknown) {
@@ -690,7 +687,7 @@ export function AddMaterialDialog({ open, onClose, onSuccess, editingItem }: Add
       titleSx={{ pb: 1.5 }}
       title={
         <Typography variant="h6" sx={{ fontWeight: 700, color: theme.palette.primary.main }}>
-          {editingItem ? "Edit Material" : "Add Material to Stock"}
+          {editingItem ? `Edit Material${editingItem.stockId ? ` - ${editingItem.stockId}` : ""}` : "Add Material to Stock"}
         </Typography>
       }
       actions={
@@ -725,102 +722,31 @@ export function AddMaterialDialog({ open, onClose, onSuccess, editingItem }: Add
         1. Material Information
       </Typography>
       <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(2, 1fr)" }, gap: 2, mb: 3 }}>
-        <Autocomplete<MaterialTypeOption, false, false, true>
-          freeSolo
-          selectOnFocus
-          handleHomeEndKeys
-          options={typeOptionsList}
-          groupBy={(option) => (typeof option === "string" ? "Types added by this lab" : option.group)}
-          value={selectedTypeOption}
-          onChange={(_event, newValue) => {
-            if (!newValue) return;
-            applyTypeSelection(newValue);
-          }}
-          filterOptions={(options, params) => {
-            const filtered = filterOptions(options, params);
-            const trimmed = params.inputValue.trim();
-            const isExisting = options.some(
-              (o) => o.label.toLowerCase() === trimmed.toLowerCase()
-            );
-            if (trimmed !== "" && !isExisting) {
-              filtered.push({
-                inputValue: trimmed,
-                label: `Add "${trimmed}"`,
-                group: "Types added by this lab"
-              });
-            }
-            return filtered;
-          }}
-          getOptionLabel={(option) => {
-            if (typeof option === "string") return option;
-            if (option.inputValue) return option.inputValue;
-            return option.label;
-          }}
-          isOptionEqualToValue={(option, val) => {
-            if (typeof val === "string") {
-              return option.label.toLowerCase() === val.toLowerCase();
-            }
-            if (val.value && option.value) {
-              return option.value === val.value;
-            }
-            return option.label.toLowerCase() === val.label.toLowerCase();
-          }}
-          renderOption={(props, option) => {
-            const { key, ...restProps } = props;
-            const isAddOption = typeof option !== "string" && Boolean(option.inputValue);
-            return (
-              <li
-                key={key}
-                {...restProps}
-                style={{
-                  ...restProps.style,
-                  ...(isAddOption ? { color: theme.palette.primary.main, fontWeight: 600 } : {})
-                }}
-              >
-                {typeof option === "string" ? option : option.label}
-              </li>
-            );
-          }}
-          renderGroup={(params) => (
-            <li key={params.key}>
-              <ListSubheader
-                component="div"
-                sx={{
-                  bgcolor: "background.paper",
-                  fontWeight: 700,
-                  fontSize: 12,
-                  textTransform: "uppercase",
-                  letterSpacing: 0.5,
-                  color: "text.secondary",
-                  lineHeight: "28px"
-                }}
-              >
-                {params.group}
-              </ListSubheader>
-              <Box component="ul" sx={{ p: 0, m: 0 }}>
-                {params.children}
-              </Box>
-            </li>
-          )}
-          sx={{ gridColumn: { xs: "1", sm: form.materialType === "DehydratedMedia" ? "span 2" : "1" } }}
-          renderInput={(params) => (
-            <TextField
-              {...params}
-              size="small"
-              required
+        {editingOtherMaterial ? (
+          <TextField
+            size="small"
+            label="Material Type"
+            value={storedTypeLabel}
+            disabled
+            helperText={editingLegacyLot ? "Received before material categories; the stored type is kept." : "A received lot keeps its category."}
+          />
+        ) : (
+          <FormControl size="small" fullWidth required sx={{ gridColumn: { xs: "1", sm: form.materialType === "DehydratedMedia" ? "span 2" : "1" } }}>
+            <InputLabel id="material-type-label">Material Type</InputLabel>
+            <Select<MaterialType>
+              labelId="material-type-label"
               label="Material Type"
-              helperText="Pick a type or type a new one"
-              onBlur={(e) => {
-                const text = e.target.value?.trim();
-                // Only a newly typed name - re-applying the current type would
-                // reset a unit the user has changed.
-                if (text && text.toLowerCase() !== selectedTypeOption?.label.toLowerCase()) {
-                  applyTypeSelection(text);
-                }
-              }}
-            />
-          )}
-        />
+              value={typeSelectOptions.includes(form.materialType) ? form.materialType : ""}
+              onChange={(e) => void onMaterialTypeChange(e.target.value as MaterialType)}
+            >
+              {typeSelectOptions.map((t) => (
+                <MenuItem key={t} value={t}>
+                  {typeOptionLabel(t)}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        )}
 
         {form.materialType === "DehydratedMedia" && (
           <Box sx={{ gridColumn: { xs: "1", sm: "span 2" } }}>
@@ -833,11 +759,50 @@ export function AddMaterialDialog({ open, onClose, onSuccess, editingItem }: Add
           </Box>
         )}
 
-        {isMasterLinkedType(form.materialType) && (
+        {form.materialType === "Other" && editingItem && editingItem.materialMasterEntryId && (
+          <>
+            <TextField size="small" label="Material category" value={editingItem.categoryName ?? "—"} disabled />
+            <TextField
+              size="small"
+              label="Master entry"
+              value={`${editingItem.materialMasterEntryCode ?? editingItem.code ?? ""}: ${editingItem.materialName}`}
+              disabled
+            />
+          </>
+        )}
+
+        {form.materialType === "Other" && !editingItem && (
+          <FormControl size="small" fullWidth required sx={{ gridColumn: { xs: "1", sm: "span 2" } }}>
+            <InputLabel id="material-category-label">Material category</InputLabel>
+            <Select<number | "">
+              labelId="material-category-label"
+              label="Material category"
+              value={selectedCategory ? selectedCategory.id : ""}
+              onChange={(e) => handleCategoryChange(e.target.value === "" ? "" : Number(e.target.value))}
+              disabled={activeSectionId == null || categoriesLoading}
+            >
+              {categories.map((c) => (
+                <MenuItem key={c.id} value={c.id}>
+                  {c.name}
+                </MenuItem>
+              ))}
+            </Select>
+            <FormHelperText>
+              {activeSectionId == null
+                ? "Choose the laboratory section first."
+                : categories.length === 0 && !categoriesLoading
+                ? "No category is available to this lab; a Section Head adds one under Master Testing Materials, Other Materials, Material categories."
+                : "Sets the unit, storage and expiry rules for this lot."}
+            </FormHelperText>
+          </FormControl>
+        )}
+
+        {isMasterLinkedType(form.materialType) && !(form.materialType === "Other" && editingItem) && (
           <Box sx={{ gridColumn: { xs: "1", sm: "span 2" } }}>
             <Autocomplete<MaterialMasterEntry>
               size="small"
               options={availableMasterEntries}
+              disabled={form.materialType === "Other" && !selectedCategory}
               getOptionLabel={(option) => `${option.code}: ${option.name}${option.grade ? ` (${option.grade})` : ""}`}
               isOptionEqualToValue={(option, val) => option.id === val.id}
               value={selectedMasterEntry}
@@ -855,6 +820,8 @@ export function AddMaterialDialog({ open, onClose, onSuccess, editingItem }: Add
                       ? "Indicator"
                       : form.materialType === "PrimaryStandard"
                       ? "Primary Standard"
+                      : form.materialType === "Other"
+                      ? "Material"
                       : "Reference Standard"
                   } Master Entry`}
                   placeholder="Select master entry..."
@@ -862,7 +829,11 @@ export function AddMaterialDialog({ open, onClose, onSuccess, editingItem }: Add
                     form.materialMasterEntryId
                       ? `Selected: ${selectedMasterEntry?.code ?? form.code} (Base Unit: ${selectedMasterEntry?.baseUnit ?? form.unit})`
                       : !editingItem
-                      ? "Required. Master entry sets the name, code, and base unit."
+                      ? form.materialType === "Other"
+                        ? selectedCategory
+                          ? "Required. The master entry sets the name and code; a missing material is added by its owner lab."
+                          : "Choose the material category first."
+                        : "Required. Master entry sets the name, code, and base unit."
                       : "Optional for legacy unlinked lots. Select an entry to link this lot."
                   }
                 />
@@ -881,17 +852,8 @@ export function AddMaterialDialog({ open, onClose, onSuccess, editingItem }: Add
               onChange={(e) => {
                 const newSecId = e.target.value === "" ? "" : Number(e.target.value);
                 setSelectedSectionId(newSecId);
-                if (newSecId !== "" && form.materialMasterEntryId) {
-                  const match = masterEntries.find((m) => m.id === form.materialMasterEntryId);
-                  if (match && match.sectionId !== newSecId) {
-                    setForm((f) => ({
-                      ...f,
-                      materialMasterEntryId: null,
-                      materialName: "",
-                      code: ""
-                    }));
-                  }
-                }
+                // Categories are offered per lab.
+                if (form.materialType === "Other") handleCategoryChange("");
               }}
               inputProps={{ "aria-label": "Laboratory Section" }}
             >
@@ -914,8 +876,8 @@ export function AddMaterialDialog({ open, onClose, onSuccess, editingItem }: Add
           placeholder="e.g. Tryptic Soy Agar Powder"
           value={form.materialName}
           onChange={(e) => setForm({ ...form, materialName: e.target.value })}
-          disabled={form.materialType === "DehydratedMedia" || Boolean(form.materialMasterEntryId)}
-          helperText={form.materialMasterEntryId ? "Populated from master entry" : undefined}
+          disabled={form.materialType === "DehydratedMedia" || Boolean(form.materialMasterEntryId) || nameFromEntryOnly || nameFromStrain}
+          helperText={form.materialMasterEntryId || nameFromEntryOnly ? "Populated from master entry" : nameFromStrain ? "Populated from reference organism" : undefined}
         />
 
         <TextField
@@ -932,25 +894,41 @@ export function AddMaterialDialog({ open, onClose, onSuccess, editingItem }: Add
           placeholder={form.materialType === "DehydratedMedia" ? "e.g. TSA" : "e.g. CM0131B"}
           value={form.code}
           onChange={(e) => setForm({ ...form, code: e.target.value })}
-          disabled={form.materialType === "DehydratedMedia" || Boolean(form.materialMasterEntryId)}
-          helperText={form.materialMasterEntryId ? "Populated from master entry" : undefined}
+          disabled={form.materialType === "DehydratedMedia" || Boolean(form.materialMasterEntryId) || nameFromEntryOnly || nameFromStrain}
+          helperText={form.materialMasterEntryId || nameFromEntryOnly ? "Populated from master entry" : nameFromStrain ? "Populated from reference organism" : undefined}
         />
 
         {form.materialType === "LyophilizedMicroorganism" && (
           <>
             <Box sx={{ gridColumn: { xs: "1", sm: "span 2" } }}>
-              <OrganismPicker
-                value={form.organismId}
-                onChange={(id) => setForm({ ...form, organismId: id })}
+              <Autocomplete
+                size="small"
+                options={strainOptions}
+                value={strains.find((s) => s.id === form.referenceOrganismId) ?? null}
+                getOptionLabel={(s) => `${s.code} · ${s.name}`}
+                isOptionEqualToValue={(o, v) => o.id === v.id}
+                onChange={(_e, v) => handleStrainChange(v)}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label="Reference organism"
+                    required={!editingItem}
+                    placeholder="Select strain"
+                    helperText={
+                      editingItem && !form.referenceOrganismId
+                        ? "Received before reference organisms; pick a strain to link this lot (optional)."
+                        : "Strains are managed under Organisms > Reference organisms."
+                    }
+                  />
+                )}
               />
             </Box>
-            <TextField
-              size="small"
-              label="ATCC No."
-              placeholder="e.g. ATCC 6538"
-              value={form.atccNumber}
-              onChange={(e) => setForm({ ...form, atccNumber: e.target.value })}
-            />
+            {editingItem && !form.referenceOrganismId && (
+              <>
+                <TextField size="small" label="Organism (stored)" value={editingItem.organism?.scientificName ?? "—"} disabled />
+                <TextField size="small" label="ATCC No. (stored)" value={form.atccNumber || "—"} disabled />
+              </>
+            )}
           </>
         )}
 
@@ -1127,6 +1105,16 @@ export function AddMaterialDialog({ open, onClose, onSuccess, editingItem }: Add
             htmlInput: { min: 0, step: "any" }
           }}
         />
+
+        <TextField
+          size="small"
+          label="Storage Condition"
+          placeholder="e.g. 2-8 °C, protect from light"
+          value={form.storageCondition}
+          onChange={(e) => setForm({ ...form, storageCondition: e.target.value })}
+          helperText={selectedCategory?.defaultStorageCondition ? "Prefilled from the category; change it if this lot differs." : undefined}
+          sx={{ gridColumn: { xs: "1", sm: "1 / -1" } }}
+        />
       </Box>
 
       {/* Selected Equipment Read-Only Details Card */}
@@ -1254,6 +1242,7 @@ export function AddMaterialDialog({ open, onClose, onSuccess, editingItem }: Add
         />
 
         <DateField
+          required={Boolean(selectedCategory?.expiryRequired)}
           label="Expiry Date"
           value={form.expiryDate}
           onChange={(v) => setForm({ ...form, expiryDate: v })}

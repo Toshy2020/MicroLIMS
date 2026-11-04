@@ -14,6 +14,10 @@ public record MediaProductDto(int Id, string Name, string Code, int Configuratio
 {
     // The record's row version, sent back as If-Match with an edit.
     public uint Version { get; init; }
+    // Inactive products can't be chosen for new lots or configurations.
+    public bool IsActive { get; init; } = true;
+    // Any received lot uses the product: deactivate it instead of deleting.
+    public bool HasStock { get; init; }
 }
 
 // Master catalog of dehydrated media products. One MediaProduct exists per
@@ -58,7 +62,12 @@ public class MediaProductService
                 p.Code,
                 p.Configurations.Count,
                 _db.Materials.Count(m => m.MediaProductId == p.Id),
-                p.IncubationConditions.Count) { Version = p.Version })
+                p.IncubationConditions.Count)
+            {
+                Version = p.Version,
+                IsActive = p.IsActive,
+                HasStock = _db.Materials.Any(m => m.MediaProductId == p.Id)
+            })
             .ToListAsync();
     }
 
@@ -104,6 +113,16 @@ public class MediaProductService
             config.Name = trimmedName;
         }
 
+        await _db.SaveChangesAsync();
+        return MediaProductResponse.From(product);
+    }
+
+    public async Task<MediaProductResponse> SetActiveAsync(int id, bool isActive)
+    {
+        var product = await _db.MediaProducts.FirstOrDefaultAsync(p => p.Id == id)
+            ?? throw new NotFoundException($"Media product with ID {id} not found.");
+
+        product.IsActive = isActive;
         await _db.SaveChangesAsync();
         return MediaProductResponse.From(product);
     }
@@ -175,12 +194,20 @@ public class MediaProductService
         }
 
         var stepMediaCount = await _db.TestWorkflowStepMedias
-            .CountAsync(sm => sm.IncubationCondition != null && sm.IncubationCondition.MediaProductId == id);
+            .CountAsync(sm => sm.MediaProductId == id
+                || (sm.IncubationCondition != null && sm.IncubationCondition.MediaProductId == id));
 
         if (stepMediaCount > 0)
         {
             throw new InvalidOperationException(
-                $"Cannot delete media product '{product.Name}' because its incubation conditions are used by {stepMediaCount} Test Master step medium/media.");
+                $"Cannot delete media product '{product.Name}' because it is used by {stepMediaCount} Test Master step medium/media.");
+        }
+
+        var diluentCount = await _db.DiluentTypes.CountAsync(d => d.MediaProductId == id);
+        if (diluentCount > 0)
+        {
+            throw new InvalidOperationException(
+                $"Cannot delete media product '{product.Name}' because it is used by {diluentCount} Test Master diluent type(s).");
         }
 
         var unusedConditions = await _db.MediaIncubationConditions

@@ -50,11 +50,16 @@ public class SamplesPreparePermissionMigrationPostgresTests
 
         var holders = await db.RolePermissions.Where(rp => rp.Permission!.Code == Code).Select(rp => rp.RoleId).ToListAsync();
         Assert.Equal(
-            await db.Roles.Where(r => r.Type != RoleType.QcManager).Select(r => r.Id).OrderBy(i => i).ToListAsync(),
+            await db.Roles.Where(r => r.Type != RoleType.QcManager
+                    && !(r.Type == RoleType.SystemAdministrator && r.IsSystemRole)
+                    && !db.RolePermissions.Any(rp => rp.RoleId == r.Id && (rp.Permission!.Code == "Users.Manage" || rp.Permission!.Code == "Roles.Manage")))
+                .Select(r => r.Id).OrderBy(i => i).ToListAsync(),
             holders.OrderBy(i => i).ToList());
         Assert.Contains(customAnalyst.Id, holders);
         Assert.Contains(customReviewer.Id, holders);
         Assert.DoesNotContain(customQcManager.Id, holders);
+        // Segregation of duties: the built-in System Administrator never prepares samples.
+        Assert.False(await db.RolePermissions.AnyAsync(rp => rp.Permission!.Code == Code && rp.Role!.Type == RoleType.SystemAdministrator && rp.Role.IsSystemRole));
 
         var grants = await db.RolePermissions.CountAsync();
         var permissions = await db.Permissions.CountAsync();

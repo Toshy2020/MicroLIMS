@@ -197,7 +197,7 @@ public class SampleDocumentPostgresTests
         }
     }
 
-    // Voiding a CoA is for Section Head / Supervisor / Administrator, as voiding the sample is; uploading stays open to Analysts.
+    // Voiding a CoA is for Section Head / Supervisor / Administrator, as voiding the sample is (not the Administrator, who never acts on GxP records); uploading stays open to Analysts.
     [Fact]
     public void VoidingADocument_IsClosedToAnalysts_UploadIsNot()
     {
@@ -206,7 +206,7 @@ public class SampleDocumentPostgresTests
         Assert.DoesNotContain(RoleType.Analyst, voidRoles);
         Assert.Contains(RoleType.Reviewer, voidRoles);
         Assert.Contains(RoleType.SectionHead, voidRoles);
-        Assert.Contains(RoleType.SystemAdministrator, voidRoles);
+        Assert.DoesNotContain(RoleType.SystemAdministrator, voidRoles); // administrators never act on GxP records
 
         var uploadRoles = MicroLIMS.Tests.ArchitectureTests.AuthorizationMatrixTests.AllowedRoles<MicroLIMS.API.Controllers.SampleDocumentController>(
             nameof(MicroLIMS.API.Controllers.SampleDocumentController.Upload))!;

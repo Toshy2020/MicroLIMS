@@ -53,7 +53,7 @@ public class MyTasksService
     // material. Without it every laboratory the analyst belongs to counts.
     public async Task<List<MyTaskDto>> GetMyTasksAsync(int userId, DashboardLabScope? lab = null)
     {
-        var scope = lab?.LabCode != null ? lab.SectionIds : await _scope.GetAccessibleSectionIdsAsync(userId);
+        var scope = lab?.LabCode != null ? lab.SectionIds : await _scope.GetReadableSectionIdsAsync(userId);
         var now = _time.GetUtcNow().UtcDateTime;
         var horizon = now.Add(LookaheadWindow);
         var tasks = new List<MyTaskDto>();

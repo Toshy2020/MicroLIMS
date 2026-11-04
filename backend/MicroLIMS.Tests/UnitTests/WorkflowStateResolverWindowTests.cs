@@ -32,7 +32,7 @@ public class WorkflowStateResolverWindowTests
                 new()
                 {
                     Id = 1,
-                    MaterialId = 10,
+                    MediaProductId = 10,
                     IncubationMinHours = 18,
                     IncubationMaxHours = 24,
                     TempMin = 30,
@@ -94,7 +94,7 @@ public class WorkflowStateResolverWindowTests
                 new()
                 {
                     Id = 1,
-                    MaterialId = 10,
+                    MediaProductId = 10,
                     IncubationMinHours = 0,
                     IncubationMaxHours = 24,
                     TempMin = 30,
@@ -115,7 +115,7 @@ public class WorkflowStateResolverWindowTests
 
         var mediaLookup = new Dictionary<int, (int MaterialId, int? MediaProductId)>
         {
-            [500] = (10, null)
+            [500] = (10, 10)
         };
 
         var result = WorkflowStateResolver.Resolve(
@@ -154,7 +154,7 @@ public class WorkflowStateResolverWindowTests
                 new()
                 {
                     Id = 1,
-                    MaterialId = 10,
+                    MediaProductId = 10,
                     IncubationMinHours = 18,
                     IncubationMaxHours = 24,
                     TempMin = 30,
@@ -190,7 +190,7 @@ public class WorkflowStateResolverWindowTests
                 new()
                 {
                     Id = 2,
-                    MaterialId = 20,
+                    MediaProductId = 20,
                     IncubationMinHours = 48,
                     IncubationMaxHours = 72,
                     TempMin = 30,
@@ -211,8 +211,8 @@ public class WorkflowStateResolverWindowTests
 
         var mediaLookup = new Dictionary<int, (int MaterialId, int? MediaProductId)>
         {
-            [500] = (10, null),
-            [600] = (20, null)
+            [500] = (10, 10),
+            [600] = (20, 20)
         };
 
         var resultA = WorkflowStateResolver.Resolve(
@@ -274,7 +274,7 @@ public class WorkflowStateResolverWindowTests
                 new()
                 {
                     Id = 1,
-                    MaterialId = 10,
+                    MediaProductId = 10,
                     IncubationMinHours = 1,
                     IncubationMaxHours = 2,
                     TempMin = 30,
@@ -295,7 +295,7 @@ public class WorkflowStateResolverWindowTests
 
         var mediaLookup = new Dictionary<int, (int MaterialId, int? MediaProductId)>
         {
-            [500] = (10, null)
+            [500] = (10, 10)
         };
 
         var result = WorkflowStateResolver.Resolve(

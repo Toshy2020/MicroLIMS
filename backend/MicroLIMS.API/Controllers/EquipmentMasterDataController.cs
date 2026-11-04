@@ -69,14 +69,14 @@ public class EquipmentMasterDataController : ControllerBase
     [HttpGet("equipment/{id:int}/set-point-history")]
     public async Task<IActionResult> GetSetPointHistory(int id)
     {
-        await _scope.EnsureEquipmentAccessAsync(CurrentUserId, id);
+        await _scope.EnsureEquipmentAccessAsync(CurrentUserId, id, access: SectionAccess.Read);
         return Ok(ApiResponse<object>.Ok(await _configService.GetIncubatorSetPointHistoryAsync(id)));
     }
 
     [HttpGet("equipment/{id:int}/autoclave-programs")]
     public async Task<IActionResult> GetAutoclavePrograms(int id, [FromQuery] bool? activeOnly)
     {
-        await _scope.EnsureEquipmentAccessAsync(CurrentUserId, id);
+        await _scope.EnsureEquipmentAccessAsync(CurrentUserId, id, access: SectionAccess.Read);
         return Ok(ApiResponse<object>.Ok(await _configService.GetAutoclaveProgramsAsync(id, activeOnly)));
     }
 

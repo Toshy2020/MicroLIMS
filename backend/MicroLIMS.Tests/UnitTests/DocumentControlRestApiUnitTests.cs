@@ -27,6 +27,8 @@ public class DocumentControlRestApiUnitTests
     private class TestDbSequenceHelper : IDatabaseSequenceHelper
     {
         private long _seq = 8000;
+        public Task<int> ReserveIdAsync<TEntity>(CancellationToken cancellationToken = default) where TEntity : class => throw new NotSupportedException();
+
         public Task<long> GetNextSequenceValueAsync(string sequenceName, System.Threading.CancellationToken cancellationToken = default)
         {
             return Task.FromResult(System.Threading.Interlocked.Increment(ref _seq));
@@ -136,7 +138,7 @@ public class DocumentControlRestApiUnitTests
 
         var assignmentController = new DocumentTrainingAssignmentController(trainingService)
         {
-            ControllerContext = CreateControllerContext(admin.Id, nameof(RoleType.SystemAdministrator))
+            ControllerContext = CreateControllerContext(admin.Id, nameof(RoleType.SectionHead)) // the Document Controller holds Documents.TrainingAssign; the administrator does not
         };
 
         var ackController = new DocumentAcknowledgementController(ackService)
@@ -146,7 +148,7 @@ public class DocumentControlRestApiUnitTests
 
         var escController = new DocumentEscalationController(escService)
         {
-            ControllerContext = CreateControllerContext(admin.Id, nameof(RoleType.SystemAdministrator))
+            ControllerContext = CreateControllerContext(admin.Id, nameof(RoleType.SectionHead)) // the Document Controller holds Documents.TrainingAssign; the administrator does not
         };
 
         return (db, admin, analyst1, analyst2, master, rev1, assignment1, assignmentController, ackController, escController);

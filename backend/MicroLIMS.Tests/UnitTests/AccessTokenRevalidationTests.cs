@@ -12,17 +12,24 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
 using MicroLIMS.API.Authorization;
 using MicroLIMS.API.Extensions;
+using Microsoft.Extensions.Logging.Abstractions;
+using MicroLIMS.Application.Interfaces;
+using MicroLIMS.Application.Services;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Infrastructure.Authentication;
+using MicroLIMS.Infrastructure.Email;
 using MicroLIMS.Persistence.DbContext;
+using MicroLIMS.Tests.Fixtures;
+using MicroLIMS.Persistence.Seed;
 using Xunit;
 
 namespace MicroLIMS.Tests.UnitTests;
 
 // An access token only proves who the user was when it was issued. These
-// tests pin that a disabled, locked, re-roled or re-passworded account
-// loses API access on its next request, not when the token expires.
+// tests pin that a disabled, locked, re-roled or re-passworded account, or
+// one whose role's permissions were edited, loses API access on its next
+// request, not when the token expires.
 public class AccessTokenRevalidationTests
 {
     private const int UserId = 7;
@@ -38,7 +45,9 @@ public class AccessTokenRevalidationTests
         using var db = NewDb(dbName);
         db.Roles.AddRange(
             new Role { Id = 1, Type = RoleType.SystemAdministrator, Name = "System Administrator" },
-            new Role { Id = 4, Type = RoleType.Analyst, Name = "Analyst" });
+            new Role { Id = 4, Type = RoleType.Analyst, Name = "Analyst" },
+            // Same base type as role 4: the role-type check cannot tell them apart.
+            new Role { Id = 5, Type = RoleType.Analyst, Name = "Analyst Lead" });
         db.Users.Add(new User
         {
             Id = UserId,
@@ -58,17 +67,23 @@ public class AccessTokenRevalidationTests
         db.SaveChanges();
     }
 
-    private static string IssueToken(string role = "SystemAdministrator") =>
+    // What login and refresh issue: the role id and permission version the
+    // user holds at that moment. Role 1 is the administrator, 4 the analyst.
+    private static string IssueToken(string role = "SystemAdministrator", int roleId = 1, int permissionVersion = 1) =>
         new JwtTokenService(Settings.Key, Settings.Issuer, Settings.Audience, Settings.AccessTokenLifetime)
-            .IssueToken(UserId.ToString(), role);
+            .IssueToken(UserId.ToString(), role, roleId: roleId, permissionVersion: permissionVersion);
 
-    private static ClaimsPrincipal Principal(string role = "SystemAdministrator", long? issuedAt = null)
+    private static ClaimsPrincipal Principal(
+        string role = "SystemAdministrator", long? issuedAt = null,
+        string? roleId = "1", string? permissionVersion = "1")
     {
         var claims = new List<Claim>
         {
             new(ClaimTypes.NameIdentifier, UserId.ToString()),
             new(ClaimTypes.Role, role)
         };
+        if (roleId is not null) claims.Add(new Claim(JwtTokenService.RoleIdClaim, roleId));
+        if (permissionVersion is not null) claims.Add(new Claim(JwtTokenService.PermissionVersionClaim, permissionVersion));
         claims.Add(new Claim(JwtRegisteredClaimNames.Iat,
             (issuedAt ?? DateTimeOffset.UtcNow.ToUnixTimeSeconds()).ToString()));
         return new ClaimsPrincipal(new ClaimsIdentity(claims, "test"));
@@ -137,7 +152,69 @@ public class AccessTokenRevalidationTests
 
         Assert.Equal("Role has changed since the token was issued.",
             await RejectionReason(dbName, Principal(role: "SystemAdministrator")));
-        Assert.Null(await RejectionReason(dbName, Principal(role: "Analyst")));
+        Assert.Null(await RejectionReason(dbName, Principal(role: "Analyst", roleId: "4")));
+    }
+
+    // Two roles can share a base type, so the type string alone cannot tell
+    // that the user was moved from one to the other.
+    [Fact]
+    public async Task MovedToAnotherRoleOfTheSameType_IsRejected()
+    {
+        var dbName = Guid.NewGuid().ToString();
+        SeedUser(dbName, RoleType.Analyst);
+        Assert.Null(await RejectionReason(dbName, Principal(role: "Analyst", roleId: "4")));
+
+        UpdateUser(dbName, u => u.RoleId = 5);
+
+        Assert.Equal("User has been moved to a different role since the token was issued.",
+            await RejectionReason(dbName, Principal(role: "Analyst", roleId: "4")));
+        Assert.Null(await RejectionReason(dbName, Principal(role: "Analyst", roleId: "5")));
+    }
+
+    [Fact]
+    public async Task EditedRolePermissions_RejectTheTokenIssuedBeforeTheEdit()
+    {
+        var dbName = Guid.NewGuid().ToString();
+        SeedUser(dbName);
+        Assert.Null(await RejectionReason(dbName, Principal()));
+
+        BumpPermissionVersion(dbName, roleId: 1);
+
+        Assert.Equal("Role permissions have changed since the token was issued.",
+            await RejectionReason(dbName, Principal(permissionVersion: "1")));
+        Assert.Null(await RejectionReason(dbName, Principal(permissionVersion: "2")));
+    }
+
+    [Fact]
+    public async Task EditingAnotherRolesPermissions_DoesNotAffectTheToken()
+    {
+        var dbName = Guid.NewGuid().ToString();
+        SeedUser(dbName);
+
+        BumpPermissionVersion(dbName, roleId: 4);
+
+        Assert.Null(await RejectionReason(dbName, Principal()));
+    }
+
+    [Theory]
+    [InlineData(null, "1", "Token carries no role id.")]
+    [InlineData("1", null, "Token carries no permission version.")]
+    [InlineData("not-a-number", "1", "Token carries no role id.")]
+    [InlineData("1", "", "Token carries no permission version.")]
+    [InlineData("1", "1.5", "Token carries no permission version.")]
+    public async Task TokenWithoutAUsableRoleIdOrPermissionVersion_IsRejected(string? roleId, string? permissionVersion, string expected)
+    {
+        var dbName = Guid.NewGuid().ToString();
+        SeedUser(dbName);
+
+        Assert.Equal(expected, await RejectionReason(dbName, Principal(roleId: roleId, permissionVersion: permissionVersion)));
+    }
+
+    private static void BumpPermissionVersion(string dbName, int roleId)
+    {
+        using var db = NewDb(dbName);
+        db.Roles.Single(r => r.Id == roleId).PermissionVersion++;
+        db.SaveChanges();
     }
 
     [Fact]
@@ -256,8 +333,113 @@ public class AccessTokenRevalidationTests
 
         Assert.Equal(HttpStatusCode.Unauthorized, await Get(client, "/admin-only", adminToken));
         // A token for the current role (what /auth/refresh issues) works.
-        Assert.Equal(HttpStatusCode.OK, await Get(client, "/any-user", IssueToken("Analyst")));
-        Assert.Equal(HttpStatusCode.Forbidden, await Get(client, "/admin-only", IssueToken("Analyst")));
+        Assert.Equal(HttpStatusCode.OK, await Get(client, "/any-user", IssueToken("Analyst", roleId: 4)));
+        Assert.Equal(HttpStatusCode.Forbidden, await Get(client, "/admin-only", IssueToken("Analyst", roleId: 4)));
+    }
+
+    [Fact]
+    public async Task EndToEnd_PermissionEdit_StopsTheOldToken_AndAFreshTokenWorks()
+    {
+        var dbName = Guid.NewGuid().ToString();
+        SeedUser(dbName);
+        var (app, client) = await StartApiAsync(dbName);
+        await using var _ = app;
+        var oldToken = IssueToken(permissionVersion: 1);
+
+        Assert.Equal(HttpStatusCode.OK, await Get(client, "/any-user", oldToken));
+
+        BumpPermissionVersion(dbName, roleId: 1);
+
+        Assert.Equal(HttpStatusCode.Unauthorized, await Get(client, "/any-user", oldToken));
+        // What /auth/refresh issues now.
+        Assert.Equal(HttpStatusCode.OK, await Get(client, "/any-user", IssueToken(permissionVersion: 2)));
+    }
+
+    [Fact]
+    public async Task EndToEnd_MoveToASameTypeRole_StopsTheOldToken()
+    {
+        var dbName = Guid.NewGuid().ToString();
+        SeedUser(dbName, RoleType.Analyst);
+        var (app, client) = await StartApiAsync(dbName);
+        await using var _ = app;
+        var oldToken = IssueToken("Analyst", roleId: 4);
+
+        Assert.Equal(HttpStatusCode.OK, await Get(client, "/any-user", oldToken));
+
+        UpdateUser(dbName, u => u.RoleId = 5);
+
+        Assert.Equal(HttpStatusCode.Unauthorized, await Get(client, "/any-user", oldToken));
+        Assert.Equal(HttpStatusCode.OK, await Get(client, "/any-user", IssueToken("Analyst", roleId: 5)));
+    }
+
+    [Fact]
+    public async Task EndToEnd_TokenWithoutRoleIdAndPermissionVersion_IsRefused()
+    {
+        var dbName = Guid.NewGuid().ToString();
+        SeedUser(dbName);
+        var (app, client) = await StartApiAsync(dbName);
+        await using var _ = app;
+
+        // Signed, current role type, iat present - exactly what login issued
+        // before the rid and pv claims existed.
+        var legacy = new JwtTokenService(Settings.Key, Settings.Issuer, Settings.Audience, Settings.AccessTokenLifetime)
+            .IssueToken(UserId.ToString(), "SystemAdministrator");
+
+        Assert.Equal(HttpStatusCode.Unauthorized, await Get(client, "/any-user", legacy));
+    }
+
+    // The real issuing path: AuthenticationService stamps rid and pv from the
+    // database, RoleService edits the permissions, and the revalidator holds
+    // the first token to what it was issued with.
+    [Fact]
+    public async Task LoginToken_IsRejectedAfterARolePermissionEdit_AndRefreshIssuesAnAcceptedOne()
+    {
+        var dbName = Guid.NewGuid().ToString();
+        await using var db = NewDb(dbName);
+        db.Roles.AddRange(
+            new Role { Id = 1, Type = RoleType.SystemAdministrator, Name = "System Administrator", IsSystemRole = true },
+            new Role { Id = 4, Type = RoleType.Analyst, Name = "Analyst", IsSystemRole = true });
+        db.SaveChanges();
+        DbSeeder.SeedPermissionsAndGrants(db);
+        db.Users.AddRange(
+            new User { Id = 1, FullName = "Standing Admin", Username = "admin", PasswordHash = "x", RoleId = 1, IsActive = true },
+            new User
+            {
+                Id = UserId, FullName = "Token Holder", Username = "holder", RoleId = 4, IsActive = true,
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword("Real-Password-1!", 4)
+            });
+        db.SaveChanges();
+
+        var jwt = new JwtTokenService(Settings.Key, Settings.Issuer, Settings.Audience, Settings.AccessTokenLifetime);
+        var auth = new AuthenticationService(
+            db, subject => jwt.IssueToken(subject.UserId, subject.Role, subject.PermissionCodes, subject.RoleId, subject.PermissionVersion),
+            new PermissionService(db), new EmailSender("", 587, "", "", "no-reply@microlims.local", false),
+            NullLogger<AuthenticationService>.Instance,
+            new SecurityAuditService(db, new SystemSecurityRequestContext()));
+        var roles = new RoleService(db, new PermissionService(db), signatureService: new AcceptingSignatureService(db));
+
+        var login = await auth.LoginAsync("holder", "Real-Password-1!");
+        Assert.True(login.Success);
+        Assert.Equal("Analyst", login.RoleName);
+        Assert.Null(await new AccessTokenRevalidator(db).GetRejectionReasonAsync(PrincipalOf(login.Token!)));
+
+        var analystCodes = await new PermissionService(db).GetPermissionCodesForRoleAsync(4);
+        await roles.UpdatePermissionsAsync(4, analystCodes.Where(c => !MicroLIMS.Shared.Constants.PermissionConstants.Hidden.Contains(c)).Skip(1).ToList(), actingUserId: 1, "Test reason", "pw");
+
+        Assert.Equal("Role permissions have changed since the token was issued.",
+            await new AccessTokenRevalidator(db).GetRejectionReasonAsync(PrincipalOf(login.Token!)));
+
+        var refreshed = await auth.RefreshAsync(login.RefreshToken!);
+        Assert.True(refreshed.Success);
+        Assert.Null(await new AccessTokenRevalidator(db).GetRejectionReasonAsync(PrincipalOf(refreshed.Token!)));
+    }
+
+    private static ClaimsPrincipal PrincipalOf(string token)
+    {
+        // Claim types as the bearer handler yields them (no inbound mapping:
+        // see AddMicroLimsJwtAuthentication), so the revalidator reads them as in production.
+        var jwt = new JwtSecurityTokenHandler().ReadJwtToken(token);
+        return new ClaimsPrincipal(new ClaimsIdentity(jwt.Claims, "test"));
     }
 
     [Fact]

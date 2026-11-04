@@ -16,6 +16,8 @@ import {
   Checkbox
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
+import CategoryOutlinedIcon from "@mui/icons-material/CategoryOutlined";
+import Inventory2OutlinedIcon from "@mui/icons-material/Inventory2Outlined";
 import ScienceOutlinedIcon from "@mui/icons-material/ScienceOutlined";
 import ColorLensOutlinedIcon from "@mui/icons-material/ColorLensOutlined";
 import VerifiedOutlinedIcon from "@mui/icons-material/VerifiedOutlined";
@@ -28,8 +30,12 @@ import {
   MaterialMasterService,
   MaterialMasterEntry,
   MaterialMasterCategory,
-  SaveMaterialMasterEntryRequest
+  SaveMaterialMasterEntryRequest,
+  MATERIAL_MASTER_CODE_PREFIX
 } from "./services/MaterialMasterService";
+import { MaterialCategoryService, MaterialCategory } from "./services/MaterialCategoryService";
+import { ChangeMaterialMasterCodeDialog } from "./ChangeMaterialMasterCodeDialog";
+import { MaterialCategoriesDialog } from "./MaterialCategoriesDialog";
 import type { MaterialUnit } from "../../inventory/materials/types/materialTypes";
 import { useLaboratorySections } from "../../../hooks/useLaboratorySections";
 import { getMySections, LaboratorySection } from "../../../services/laboratorySectionService";
@@ -51,14 +57,35 @@ const CATEGORY_OPTIONS: Array<{ value: MaterialMasterCategory; label: string }> 
   { value: "Reagent", label: "Reagent" },
   { value: "Indicator", label: "Indicator" },
   { value: "ReferenceStandard", label: "Reference Standard" },
-  { value: "PrimaryStandard", label: "Primary Standard" }
+  { value: "PrimaryStandard", label: "Primary Standard" },
+  { value: "Other", label: "Other material" }
 ];
 
-export function MaterialMasterPage() {
+// Other materials take the prefix of their material category; the rest have a fixed one.
+function codePrefixFor(category: MaterialMasterCategory, materialCategory: MaterialCategory | undefined): string | null {
+  if (category === "Other") return materialCategory ? `${materialCategory.codePrefix}-` : null;
+  return MATERIAL_MASTER_CODE_PREFIX[category];
+}
+
+interface MaterialMasterPageProps {
+  // Limits the page to these categories (a Master Testing Materials tab); all categories when omitted.
+  categories?: MaterialMasterCategory[];
+  // Hosted in the Master Testing Materials page, which has the title.
+  embedded?: boolean;
+}
+
+export function MaterialMasterPage({ categories, embedded }: MaterialMasterPageProps = {}) {
   const { sections, sectionName } = useLaboratorySections();
+  const categoryOptions = useMemo(
+    () => (categories ? CATEGORY_OPTIONS.filter((c) => categories.includes(c.value)) : CATEGORY_OPTIONS),
+    [categories]
+  );
+  const defaultCategory = categoryOptions[0]?.value ?? "Reagent";
 
   const [entries, setEntries] = useState<MaterialMasterEntry[]>([]);
   const [mySections, setMySections] = useState<LaboratorySection[]>([]);
+  const [materialCategories, setMaterialCategories] = useState<MaterialCategory[]>([]);
+  const [categoriesOpen, setCategoriesOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -74,6 +101,7 @@ export function MaterialMasterPage() {
   const [formCode, setFormCode] = useState("");
   const [formName, setFormName] = useState("");
   const [formCategory, setFormCategory] = useState<MaterialMasterCategory>("Reagent");
+  const [formMaterialCategoryId, setFormMaterialCategoryId] = useState<number | "">("");
   const [formGrade, setFormGrade] = useState("");
   const [formSource, setFormSource] = useState("");
   const [formBaseUnit, setFormBaseUnit] = useState<MaterialUnit>("Gram");
@@ -90,22 +118,27 @@ export function MaterialMasterPage() {
 
   const [dialogError, setDialogError] = useState<string | null>(null);
   // Client-side validation errors, shown on the field instead of the top alert.
-  const [fieldErrors, setFieldErrors] = useState<Partial<Record<"code" | "name" | "unit" | "section" | "range", string>>>({});
+  const [fieldErrors, setFieldErrors] = useState<Partial<Record<"code" | "name" | "unit" | "section" | "range" | "materialCategory", string>>>({});
   const [saving, setSaving] = useState(false);
 
   // Toggle Active (Activate / Deactivate) Confirmation Dialog
   const [entryToToggle, setEntryToToggle] = useState<MaterialMasterEntry | null>(null);
   const [togglingActive, setTogglingActive] = useState(false);
 
+  // Signed code change (entries with stock)
+  const [entryToRecode, setEntryToRecode] = useState<MaterialMasterEntry | null>(null);
+
   const loadData = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const [entriesData, mySecData] = await Promise.all([
+      const [entriesData, mySecData, categoriesData] = await Promise.all([
         MaterialMasterService.getAll(),
-        getMySections().catch(() => [])
+        getMySections().catch(() => []),
+        MaterialCategoryService.getAll().catch(() => [] as MaterialCategory[])
       ]);
       setEntries(Array.isArray(entriesData) ? entriesData : []);
+      setMaterialCategories(categoriesData);
       setMySections(Array.isArray(mySecData) ? mySecData : []);
     } catch (err: unknown) {
       console.error("Failed to load material master entries:", err);
@@ -120,12 +153,25 @@ export function MaterialMasterPage() {
     loadData();
   }, [loadData]);
 
+  const selectedMaterialCategory = materialCategories.find((c) => c.id === formMaterialCategoryId);
+  const formPrefix = codePrefixFor(formCategory, selectedMaterialCategory);
+
+  // Active categories offered to the entry's owner lab (a category with no sections is offered to every lab);
+  // an entry being edited keeps showing its current category even if it has since been deactivated.
+  const ownerSectionId = editingEntry ? editingEntry.sectionId : formSectionId ? Number(formSectionId) : null;
+  const pickableCategories = materialCategories.filter(
+    (c) =>
+      c.id === formMaterialCategoryId ||
+      (c.isActive && (ownerSectionId == null || c.sectionIds.length === 0 || c.sectionIds.includes(ownerSectionId)))
+  );
+
   // Open Add Dialog
   const handleOpenAdd = () => {
     setEditingEntry(null);
     setFormCode("");
     setFormName("");
-    setFormCategory("Reagent");
+    setFormCategory(defaultCategory);
+    setFormMaterialCategoryId("");
     setFormGrade("");
     setFormSource("");
     setFormBaseUnit("Gram");
@@ -149,6 +195,7 @@ export function MaterialMasterPage() {
     setFormCode(entry.code);
     setFormName(entry.name);
     setFormCategory(entry.category);
+    setFormMaterialCategoryId(entry.materialCategoryId ?? "");
     setFormGrade(entry.grade ?? "");
     setFormSource(entry.source ?? "");
     setFormBaseUnit(entry.baseUnit);
@@ -173,10 +220,16 @@ export function MaterialMasterPage() {
     const trimmedSource = formSource.trim();
 
     const errors: typeof fieldErrors = {};
+    if (formCategory === "Other" && !formMaterialCategoryId) errors.materialCategory = "Material category is required.";
+    const prefix = codePrefixFor(formCategory, selectedMaterialCategory);
     if (!trimmedCode) errors.code = "Code is required.";
+    // Prefix applies to new codes and changed codes; an unchanged older code is grandfathered.
+    else if (prefix && (!editingEntry || trimmedCode !== editingEntry.code) && !trimmedCode.startsWith(prefix)) {
+      errors.code = `${CATEGORY_OPTIONS.find((c) => c.value === formCategory)?.label} codes must start with "${prefix}".`;
+    }
     if (!trimmedName) errors.name = "Name is required.";
     if (!formBaseUnit) errors.unit = "Base Unit is required.";
-    if (!editingEntry && mySections.length > 1 && !formSectionId) errors.section = "Laboratory Section is required.";
+    if (!editingEntry && mySections.length > 1 && !formSectionId) errors.section = "Owner lab is required.";
 
     if (formCategory === "Indicator") {
       const fromVal = formTransitionRangeFrom !== "" ? Number(formTransitionRangeFrom) : null;
@@ -192,6 +245,7 @@ export function MaterialMasterPage() {
       code: trimmedCode,
       name: trimmedName,
       category: formCategory,
+      materialCategoryId: formCategory === "Other" ? Number(formMaterialCategoryId) : null,
       grade: trimmedGrade || null,
       source: trimmedSource || null,
       baseUnit: formBaseUnit,
@@ -249,6 +303,8 @@ export function MaterialMasterPage() {
   // Filtered list
   const filteredEntries = useMemo(() => {
     return entries.filter((entry) => {
+      if (categories && !categories.includes(entry.category)) return false;
+
       // Search
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase().trim();
@@ -275,7 +331,7 @@ export function MaterialMasterPage() {
 
       return true;
     });
-  }, [entries, searchQuery, categoryFilter, statusFilter, sectionFilter]);
+  }, [entries, categories, searchQuery, categoryFilter, statusFilter, sectionFilter]);
 
   const resolveSectionDisplay = (secId: number, secNameProp?: string) => {
     if (secNameProp) return secNameProp;
@@ -332,6 +388,17 @@ export function MaterialMasterPage() {
             sx={{ fontSize: 12, fontWeight: 600 }}
           />
         );
+      case "Other":
+        return (
+          <Chip
+            icon={<Inventory2OutlinedIcon fontSize="small" />}
+            label="Other material"
+            size="small"
+            color="warning"
+            variant="outlined"
+            sx={{ fontSize: 12, fontWeight: 600 }}
+          />
+        );
       default:
         return <Chip label={category} size="small" variant="outlined" sx={{ fontSize: 12 }} />;
     }
@@ -341,6 +408,17 @@ export function MaterialMasterPage() {
     <Button variant="contained" startIcon={<AddIcon />} onClick={handleOpenAdd} sx={{ fontWeight: 600, textTransform: "none" }}>
       Add Entry
     </Button>
+  );
+
+  const pageActions = (
+    <>
+      {(!categories || categories.includes("Other")) && (
+        <Button variant="outlined" startIcon={<CategoryOutlinedIcon />} onClick={() => setCategoriesOpen(true)} sx={{ fontWeight: 600, textTransform: "none" }}>
+          Material categories
+        </Button>
+      )}
+      {addButton}
+    </>
   );
 
   const tableColumns: RegisterColumn<MaterialMasterEntry>[] = [
@@ -375,6 +453,13 @@ export function MaterialMasterPage() {
     },
     { key: "category", label: "Category", sortable: true, render: (entry) => renderCategoryChip(entry.category) },
     {
+      key: "materialCategory",
+      label: "Material category",
+      sortable: true,
+      sortValue: (entry) => entry.materialCategoryName ?? "",
+      render: (entry) => entry.materialCategoryName || <Typography variant="body2" color="text.secondary">—</Typography>
+    },
+    {
       key: "grade",
       label: "Grade",
       sortable: true,
@@ -394,7 +479,7 @@ export function MaterialMasterPage() {
     },
     {
       key: "section",
-      label: "Section",
+      label: "Owner lab",
       sortable: true,
       sortValue: (entry) => resolveSectionDisplay(entry.sectionId, entry.sectionName),
       render: (entry) => (
@@ -416,8 +501,9 @@ export function MaterialMasterPage() {
   return (
     <LabPage
       title="Reagents & Reference Standards"
-      subtitle="Manage master definitions for chemical reagents, indicators, and reference standards across laboratory sections."
-      actions={addButton}
+      subtitle="Master definitions for reagents, indicators, and reference standards. Every lab can see and use every entry; only the owner lab can edit it."
+      actions={pageActions}
+      embedded={embedded}
       filters={
         <FilterBar
           search={searchQuery}
@@ -436,9 +522,9 @@ export function MaterialMasterPage() {
               onChange={(e) => setCategoryFilter(e.target.value as "ALL" | MaterialMasterCategory)}
             >
               <MenuItem value="ALL">All Categories</MenuItem>
-              <MenuItem value="Reagent">Reagent</MenuItem>
-              <MenuItem value="Indicator">Indicator</MenuItem>
-              <MenuItem value="ReferenceStandard">Reference Standard</MenuItem>
+              {categoryOptions.map((c) => (
+                <MenuItem key={c.value} value={c.value}>{c.label}</MenuItem>
+              ))}
             </Select>
           </FormControl>
 
@@ -457,14 +543,14 @@ export function MaterialMasterPage() {
           </FormControl>
 
           <FormControl size="small" sx={{ minWidth: 180 }}>
-            <InputLabel id="entry-section-filter-label">Section</InputLabel>
+            <InputLabel id="entry-section-filter-label">Owner lab</InputLabel>
             <Select
               labelId="entry-section-filter-label"
-              label="Section"
+              label="Owner lab"
               value={sectionFilter}
               onChange={(e) => setSectionFilter(e.target.value)}
             >
-              <MenuItem value="ALL">All Sections</MenuItem>
+              <MenuItem value="ALL">All Labs</MenuItem>
               {sections.map((sec) => (
                 <MenuItem key={sec.sectionId} value={String(sec.sectionId)}>
                   {sec.sectionName}
@@ -482,19 +568,20 @@ export function MaterialMasterPage() {
         rows={filteredEntries}
         getRowId={(entry) => entry.id}
         loading={loading}
-        onRowClick={handleOpenEdit}
+        onRowClick={(entry) => { if (entry.canEdit) handleOpenEdit(entry); }}
         rowActions={(entry) => [
-          { label: "Edit", onClick: () => handleOpenEdit(entry) },
+          { label: "Edit", onClick: () => handleOpenEdit(entry), disabled: !entry.canEdit },
+          ...(entry.hasStock ? [{ label: "Change code", onClick: () => setEntryToRecode(entry), disabled: !entry.canEdit }] : []),
           entry.isActive
-            ? { label: "Deactivate", onClick: () => setEntryToToggle(entry), danger: true }
-            : { label: "Activate", onClick: () => setEntryToToggle(entry) }
+            ? { label: "Deactivate", onClick: () => setEntryToToggle(entry), danger: true, disabled: !entry.canEdit }
+            : { label: "Activate", onClick: () => setEntryToToggle(entry), disabled: !entry.canEdit }
         ]}
         empty={
           filtersActive
             ? { title: "No material master entries found", description: "Try adjusting your search or filters." }
             : {
                 title: "No material master entries found",
-                description: "Register your first reagent, indicator, or reference standard.",
+                description: "Register your first reagent, indicator, reference standard, or other material.",
                 action: addButton
               }
         }
@@ -519,9 +606,17 @@ export function MaterialMasterPage() {
               required
               fullWidth
               size="small"
-              placeholder="e.g. NAOH-01, USP-RS-ASP"
+              placeholder={formPrefix ? `e.g. ${formPrefix}011` : "Choose the material category first"}
+              disabled={Boolean(editingEntry?.hasStock)}
               error={!!fieldErrors.code}
-              helperText={fieldErrors.code ?? "Unique code within laboratory section (e.g. NAOH-01)"}
+              helperText={
+                fieldErrors.code ??
+                (editingEntry?.hasStock
+                  ? "This entry has stock; use Change code to change it."
+                  : formPrefix
+                  ? `Unique across all labs; must start with "${formPrefix}"`
+                  : "Unique across all labs; the prefix comes from the material category")
+              }
             />
 
             <FormControl fullWidth size="small" required>
@@ -530,15 +625,50 @@ export function MaterialMasterPage() {
                 labelId="entry-category-select-label"
                 label="Category"
                 value={formCategory}
-                onChange={(e) => setFormCategory(e.target.value as MaterialMasterCategory)}
+                onChange={(e) => {
+                  setFormCategory(e.target.value as MaterialMasterCategory);
+                  setFormMaterialCategoryId("");
+                  setFieldErrors((fe) => ({ ...fe, materialCategory: undefined }));
+                }}
               >
-                {CATEGORY_OPTIONS.map((c) => (
+                {categoryOptions.map((c) => (
                   <MenuItem key={c.value} value={c.value}>
                     {c.label}
                   </MenuItem>
                 ))}
               </Select>
             </FormControl>
+
+            {formCategory === "Other" && (
+              <FormControl fullWidth size="small" required error={!!fieldErrors.materialCategory} sx={{ gridColumn: { xs: "1", sm: "span 2" } }}>
+                <InputLabel id="entry-material-category-label">Material category</InputLabel>
+                <Select<number | "">
+                  labelId="entry-material-category-label"
+                  label="Material category"
+                  value={formMaterialCategoryId}
+                  onChange={(e) => {
+                    const id = e.target.value === "" ? "" : Number(e.target.value);
+                    setFieldErrors((fe) => ({ ...fe, materialCategory: undefined }));
+                    setFormMaterialCategoryId(id);
+                    // A new entry starts on the category's default unit; the unit stays editable.
+                    const picked = materialCategories.find((c) => c.id === id);
+                    if (picked && !editingEntry) setFormBaseUnit(picked.defaultUnit);
+                  }}
+                >
+                  {pickableCategories.map((c) => (
+                    <MenuItem key={c.id} value={c.id}>
+                      {c.name} ({c.codePrefix}-){c.isActive ? "" : " - inactive"}
+                    </MenuItem>
+                  ))}
+                </Select>
+                <FormHelperText>
+                  {fieldErrors.materialCategory ??
+                    (pickableCategories.length === 0
+                      ? "No active category is available to this lab; a Section Head adds one under Material categories."
+                      : "Carries the entry's code prefix and rules (COA, expiry, approval before use).")}
+                </FormHelperText>
+              </FormControl>
+            )}
 
             <TextField
               label="Name"
@@ -593,11 +723,12 @@ export function MaterialMasterPage() {
             {/* Laboratory Section Select */}
             {(!editingEntry && mySections.length > 1) || (editingEntry && sections.length > 0) ? (
               <FormControl fullWidth size="small" required={!editingEntry && mySections.length > 1} error={!!fieldErrors.section}>
-                <InputLabel id="entry-form-section-label">Laboratory Section</InputLabel>
+                <InputLabel id="entry-form-section-label">Owner Lab</InputLabel>
                 <Select
                   labelId="entry-form-section-label"
-                  label="Laboratory Section"
+                  label="Owner Lab"
                   value={formSectionId}
+                  disabled={Boolean(editingEntry)}
                   onChange={(e) => { setFieldErrors((fe) => ({ ...fe, section: undefined })); setFormSectionId(e.target.value); }}
                 >
                   {(!editingEntry && mySections.length > 1 ? mySections : sections).map((sec) => (
@@ -698,6 +829,21 @@ export function MaterialMasterPage() {
             </FormControl>
           )}
       </FormDialog>
+
+      <ChangeMaterialMasterCodeDialog
+        open={Boolean(entryToRecode)}
+        entry={entryToRecode}
+        categoryPrefix={materialCategories.find((c) => c.id === entryToRecode?.materialCategoryId)?.codePrefix}
+        onClose={() => setEntryToRecode(null)}
+        onSuccess={() => { toast.success("Material master code changed."); loadData(); }}
+      />
+
+      <MaterialCategoriesDialog
+        open={categoriesOpen}
+        sections={sections}
+        onClose={() => setCategoriesOpen(false)}
+        onChanged={loadData}
+      />
 
       {/* Confirmation Dialog for Activate / Deactivate */}
       <ConfirmationDialog

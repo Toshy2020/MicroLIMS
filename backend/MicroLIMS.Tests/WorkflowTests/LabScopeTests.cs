@@ -93,7 +93,7 @@ public class LabScopeTests
 
         var scope = new UserSectionScopeService(db);
         // Confirm the user really is in both labs before narrowing.
-        var fullScope = await scope.GetAccessibleSectionIdsAsync(userId);
+        var fullScope = await scope.GetReadableSectionIdsAsync(userId);
         Assert.Equal(new[] { fp.Id, micro.Id }.OrderBy(x => x), fullScope!.OrderBy(x => x));
 
         var service = TestServiceFactory.TestingWorkspace(db, scope);

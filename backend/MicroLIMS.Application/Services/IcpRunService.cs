@@ -99,7 +99,7 @@ public partial class IcpRunService
 
     public async Task<List<IcpInstrumentDto>> GetInstrumentsAsync(int userId, CancellationToken ct = default)
     {
-        var scope = await _scope.GetAccessibleSectionIdsAsync(userId, ct);
+        var scope = await _scope.GetReadableSectionIdsAsync(userId, ct);
         var query = _db.Equipment.Where(e => e.Type == EquipmentType.IcpOes).AsNoTracking();
         if (scope != null) query = query.Where(e => scope.Contains(e.SectionId));
         var equipmentList = await query.OrderBy(e => e.Code).ToListAsync(ct);
@@ -141,7 +141,7 @@ public partial class IcpRunService
 
     public async Task<List<IcpMethodOptionDto>> GetMethodOptionsAsync(int userId, CancellationToken ct = default)
     {
-        var scope = await _scope.GetAccessibleSectionIdsAsync(userId, ct);
+        var scope = await _scope.GetReadableSectionIdsAsync(userId, ct);
         var query = _db.IcpMethods.Where(m => m.IsActive).AsNoTracking();
         if (scope != null) query = query.Where(m => scope.Contains(m.SectionId));
         var methods = await query.OrderBy(m => m.Name).ToListAsync(ct);
@@ -181,7 +181,7 @@ public partial class IcpRunService
         var equipment = await _db.Equipment.FirstOrDefaultAsync(e => e.Id == r.EquipmentId, ct)
             ?? throw new NotFoundException($"Equipment {r.EquipmentId} not found.");
 
-        var scope = await _scope.GetAccessibleSectionIdsAsync(userId, ct);
+        var scope = await _scope.GetMemberSectionIdsAsync(userId, ct);
         if (scope != null && !scope.Contains(equipment.SectionId))
             throw new NotFoundException($"Equipment {r.EquipmentId} not found.");
 
@@ -246,7 +246,7 @@ public partial class IcpRunService
     public async Task<IcpRunDto> GetRunAsync(int runId, int userId, CancellationToken ct = default)
     {
         var run = await LoadRunAsync(runId, ct);
-        await EnsureAccessAsync(run, userId, ct);
+        await EnsureAccessAsync(run, userId, ct, SectionAccess.Read);
         return await BuildDtoAsync(run, ct);
     }
 
@@ -275,7 +275,7 @@ public partial class IcpRunService
         var equipment = await _db.Equipment.FirstOrDefaultAsync(e => e.Id == equipmentId, ct)
             ?? throw new NotFoundException($"Equipment {equipmentId} not found.");
 
-        var scope = await _scope.GetAccessibleSectionIdsAsync(userId, ct);
+        var scope = await _scope.GetReadableSectionIdsAsync(userId, ct);
         if (scope != null && !scope.Contains(equipment.SectionId))
             throw new NotFoundException($"Equipment {equipmentId} not found.");
 
@@ -309,9 +309,9 @@ public partial class IcpRunService
 
     // ---- Shared loading / mapping ----
 
-    private async Task EnsureAccessAsync(IcpRun run, int userId, CancellationToken ct)
+    private async Task EnsureAccessAsync(IcpRun run, int userId, CancellationToken ct, SectionAccess access = SectionAccess.Write)
     {
-        var scope = await _scope.GetAccessibleSectionIdsAsync(userId, ct);
+        var scope = await _scope.GetSectionIdsAsync(userId, access, ct);
         if (scope != null && !scope.Contains(run.SectionId))
             throw new NotFoundException($"ICP run {run.Id} not found.");
     }

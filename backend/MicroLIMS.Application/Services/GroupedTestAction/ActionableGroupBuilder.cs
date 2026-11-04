@@ -19,8 +19,7 @@ public readonly record struct CandidateOutcome(CandidateActionItem? Candidate, E
 // Pure grouping of candidate actions into the groups the UI offers. No database access.
 public static class ActionableGroupBuilder
 {
-    // The batches a step's media accept: its own materials plus every sibling
-    // batch of the same media product.
+    // The batches a step's media accept: every batch of the media products configured on the step.
     public static (List<int> Ids, string Names) PermittedMedia(
         IReadOnlyCollection<TestWorkflowStepMedia> stepMedias, Dictionary<int, List<int>> materialIdsByProduct)
     {
@@ -32,9 +31,9 @@ public static class ActionableGroupBuilder
             .ToList();
 
         var siblingMaterialIds = productIds.SelectMany(p => materialIdsByProduct.TryGetValue(p, out var ids) ? ids : new List<int>());
-        var permittedMaterialIds = stepMedias.Select(m => m.MaterialId).Union(siblingMaterialIds).Distinct().ToList();
+        var permittedMaterialIds = siblingMaterialIds.Distinct().ToList();
 
-        var permittedNames = string.Join(" / ", stepMedias.Select(m => m.Material?.MaterialName).Where(n => !string.IsNullOrEmpty(n)).Distinct());
+        var permittedNames = string.Join(" / ", stepMedias.Select(m => m.MediaProduct?.Name).Where(n => !string.IsNullOrEmpty(n)).Distinct());
         return (permittedMaterialIds, permittedNames);
     }
 

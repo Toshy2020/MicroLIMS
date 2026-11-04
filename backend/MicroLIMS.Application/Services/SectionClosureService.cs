@@ -40,7 +40,7 @@ public class SectionClosureService
             .FirstOrDefaultAsync(s => s.Id == sampleId)
             ?? throw new NotFoundException($"Sample {sampleId} not found.");
 
-        var userScope = await _scope.GetAccessibleSectionIdsAsync(sectionHeadUserId);
+        var userScope = await _scope.GetMemberSectionIdsAsync(sectionHeadUserId);
         if (userScope is not null && !userScope.Contains(sectionId))
             throw new UnauthorizedAccessException("This test belongs to a laboratory section you are not assigned to.");
         if (!SampleSectionRollup.SectionIds(sample).Contains(sectionId))

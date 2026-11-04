@@ -50,7 +50,7 @@ public class EMBatchLocationTests
         };
         db.Materials.Add(material);
         await db.SaveChangesAsync();
-        db.TestWorkflowStepMedias.Add(new TestWorkflowStepMedia { TestWorkflowStepId = step.Id, MaterialId = material.Id, TempMin = 30, TempMax = 35, IncubationMinHours = minHours, IncubationMaxHours = minHours + 24 });
+        db.TestWorkflowStepMedias.Add(new TestWorkflowStepMedia { TestWorkflowStepId = step.Id, MediaProductId = MediaProductTestData.ProductIdFor(db, material.Id), TempMin = 30, TempMax = 35, IncubationMinHours = minHours, IncubationMaxHours = minHours + 24 });
 
         var media = new Media
         {
@@ -86,8 +86,8 @@ public class EMBatchLocationTests
         };
         db.Materials.Add(material);
         await db.SaveChangesAsync();
-        db.TestWorkflowStepMedias.Add(new TestWorkflowStepMedia { TestWorkflowStepId = step1.Id, MaterialId = material.Id, TempMin = 30, TempMax = 35, IncubationMinHours = 72, IncubationMaxHours = 96 });
-        db.TestWorkflowStepMedias.Add(new TestWorkflowStepMedia { TestWorkflowStepId = step2.Id, MaterialId = material.Id, TempMin = 20, TempMax = 25, IncubationMinHours = 48, IncubationMaxHours = 72 });
+        db.TestWorkflowStepMedias.Add(new TestWorkflowStepMedia { TestWorkflowStepId = step1.Id, MediaProductId = MediaProductTestData.ProductIdFor(db, material.Id), TempMin = 30, TempMax = 35, IncubationMinHours = 72, IncubationMaxHours = 96 });
+        db.TestWorkflowStepMedias.Add(new TestWorkflowStepMedia { TestWorkflowStepId = step2.Id, MediaProductId = MediaProductTestData.ProductIdFor(db, material.Id), TempMin = 20, TempMax = 25, IncubationMinHours = 48, IncubationMaxHours = 72 });
 
         var window1Media = new Media
         {
@@ -138,7 +138,7 @@ public class EMBatchLocationTests
         };
         db.Materials.Add(material);
         await db.SaveChangesAsync();
-        db.TestWorkflowStepMedias.Add(new TestWorkflowStepMedia { TestWorkflowStepId = step.Id, MaterialId = material.Id, TempMin = 35, TempMax = 37, IncubationMinHours = 18, IncubationMaxHours = 24 });
+        db.TestWorkflowStepMedias.Add(new TestWorkflowStepMedia { TestWorkflowStepId = step.Id, MediaProductId = MediaProductTestData.ProductIdFor(db, material.Id), TempMin = 35, TempMax = 37, IncubationMinHours = 18, IncubationMaxHours = 24 });
 
         var media = new Media
         {
@@ -696,14 +696,15 @@ public class EMBatchLocationTests
         Assert.Contains("48 hours", ex.Message); // window 2's own gate, not silently bypassed by window 1's override
     }
 
-    // Analyst/Reviewer must NOT be able to skip the wait - Section
-    // Head/System Administrator only. Same reflection-based pattern as
-    // RoleController_StaysSystemAdministratorOnlyAtTheClassLevel.
+    // Analyst/Reviewer must NOT be able to skip the wait, and neither may the
+    // System Administrator (TestWorkflow.Supervise is a lab/GxP code, no longer
+    // granted to the administrator) - Section Head only. Same reflection-based
+    // pattern as RoleController_StaysSystemAdministratorOnlyAtTheClassLevel.
     [Fact]
-    public void OverrideMinimumDuration_IsRestrictedToSectionHeadAndSystemAdministrator()
+    public void OverrideMinimumDuration_IsRestrictedToSectionHead()
     {
         var roles = MicroLIMS.Tests.ArchitectureTests.AuthorizationMatrixTests.AllowedRoles<MicroLIMS.API.Controllers.TestWorkflowController>(
             nameof(MicroLIMS.API.Controllers.TestWorkflowController.OverrideMinimumDuration))!;
-        Assert.Equal(new[] { MicroLIMS.Domain.Enums.RoleType.SystemAdministrator, MicroLIMS.Domain.Enums.RoleType.SectionHead }, roles.OrderBy(r => r));
+        Assert.Equal(new[] { MicroLIMS.Domain.Enums.RoleType.SectionHead }, roles.OrderBy(r => r));
     }
 }

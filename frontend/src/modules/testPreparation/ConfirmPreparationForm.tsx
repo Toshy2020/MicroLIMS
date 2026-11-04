@@ -21,15 +21,12 @@ interface Props {
 // for as-is - correcting them is a Section Head configuration change under
 // Laboratory Configuration, not an analyst-side override here.
 export function ConfirmPreparationForm({ sample, config, onSaved }: Props) {
-  const { userId, role } = useAuth();
+  const { userId } = useAuth();
   const [signing, setSigning] = useState(false);
 
   const assignedIds = sample.assignedAnalystIds ?? [];
   const isAssignedToOther =
-    assignedIds.length > 0 &&
-    !assignedIds.includes(userId as number) &&
-    role !== "SectionHead" &&
-    role !== "SystemAdministrator";
+    assignedIds.length > 0 && !assignedIds.includes(userId as number);
 
   // Errors propagate to SignatureDialog, which surfaces the server message
   // and keeps itself open with the password cleared.

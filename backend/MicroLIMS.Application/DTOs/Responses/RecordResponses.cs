@@ -1,5 +1,6 @@
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
+using MicroLIMS.Shared.Constants;
 
 namespace MicroLIMS.Application.DTOs.Responses;
 
@@ -15,8 +16,10 @@ public class RoleResponse
     public string? Description { get; init; }
     public bool IsSystemRole { get; init; }
     public bool IsActive { get; init; }
+    // Administration + GxP pairs the role holds today ("A + B"); empty when it is clean.
+    public List<string> SodConflicts { get; init; } = new();
 
-    public static RoleResponse From(Role e) => new()
+    public static RoleResponse From(Role e, IEnumerable<string>? permissionCodes = null) => new()
     {
         Id = e.Id,
         Version = e.Version,
@@ -25,6 +28,7 @@ public class RoleResponse
         Description = e.Description,
         IsSystemRole = e.IsSystemRole,
         IsActive = e.IsActive,
+        SodConflicts = SegregationOfDutiesRules.FindConflicts(permissionCodes ?? []).Select(SegregationOfDutiesRules.Describe).ToList(),
     };
 }
 

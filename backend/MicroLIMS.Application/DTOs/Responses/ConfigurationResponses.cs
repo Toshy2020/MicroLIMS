@@ -409,6 +409,7 @@ public class MediaProductResponse
     public uint Version { get; init; }
     public string Name { get; init; } = null!;
     public string Code { get; init; } = null!;
+    public bool IsActive { get; init; }
 
     public static MediaProductResponse From(MediaProduct e) => new()
     {
@@ -416,6 +417,7 @@ public class MediaProductResponse
         Version = e.Version,
         Name = e.Name,
         Code = e.Code,
+        IsActive = e.IsActive,
     };
 }
 

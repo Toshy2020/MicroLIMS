@@ -234,7 +234,7 @@ export const ApprovalWorkspaceDialog: React.FC<ApprovalWorkspaceDialogProps> = (
                   </Typography>
                   <Typography variant="caption" sx={{ display: "block" }}>
                     Signed by <strong>{dossier.activeSignature.userFullNameSnapshot}</strong> ({dossier.activeSignature.usernameSnapshot})
-                    {", "}Role: <strong>{dossier.activeSignature.roleSnapshot}</strong>
+                    {", "}Role: <strong>{dossier.activeSignature.roleNameSnapshot ?? dossier.activeSignature.roleSnapshot}</strong>
                     {", "}Meaning: <strong>{dossier.activeSignature.meaningOfSignature}</strong>
                     {", "}Timestamp: <strong>{new Date(dossier.activeSignature.signedAt).toUTCString()}</strong>
                   </Typography>
@@ -470,7 +470,7 @@ export const ApprovalWorkspaceDialog: React.FC<ApprovalWorkspaceDialogProps> = (
                         <Typography variant="caption" sx={{
                           color: "text.secondary"
                         }}>Signer Role:</Typography>
-                        <Typography variant="body2">{dossier.activeSignature.roleSnapshot}</Typography>
+                        <Typography variant="body2">{dossier.activeSignature.roleNameSnapshot ?? dossier.activeSignature.roleSnapshot}</Typography>
                       </Grid>
                       <Grid
                         size={{

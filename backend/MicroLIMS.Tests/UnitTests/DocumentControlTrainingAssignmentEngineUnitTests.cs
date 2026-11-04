@@ -20,6 +20,8 @@ public class DocumentControlTrainingAssignmentEngineUnitTests
     private class TestDbSequenceHelper : IDatabaseSequenceHelper
     {
         private long _current = 5000;
+        public Task<int> ReserveIdAsync<TEntity>(CancellationToken cancellationToken = default) where TEntity : class => throw new NotSupportedException();
+
         public Task<long> GetNextSequenceValueAsync(string sequenceName, CancellationToken cancellationToken = default)
         {
             return Task.FromResult(Interlocked.Increment(ref _current));

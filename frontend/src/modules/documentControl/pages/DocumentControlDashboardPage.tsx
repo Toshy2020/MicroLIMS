@@ -36,6 +36,7 @@ import { StatusBadge } from "../../../components/StatusBadge";
 import { documentMasterStatusLabel } from "../documentStatusDisplay";
 import { documentControlService } from "../services/documentControlService";
 import { RegisterDocumentDialog } from "../components/RegisterDocumentDialog";
+import { ReassignmentsButton } from "../components/ReassignmentsButton";
 import { useAuth } from "../../../contexts/AuthContext";
 import { PERMISSIONS } from "../../../routes/routes";
 import MenuBookOutlinedIcon from "@mui/icons-material/MenuBookOutlined";
@@ -118,6 +119,7 @@ export function DocumentControlDashboardPage() {
           subtitle="Document governance overview, lifecycle metrics, and quality records status"
         />
         <Box sx={{ display: "flex", gap: 1.5 }}>
+          <ReassignmentsButton />
           <Button
             variant="outlined"
             color="primary"

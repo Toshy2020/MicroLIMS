@@ -21,7 +21,7 @@ public class SharedTsbStateBuilderTests
                 {
                     new TestWorkflowStepMedia
                     {
-                        Id = 1, MaterialId = 10, DisplayOrder = 1,
+                        Id = 1, MediaProductId = 3, DisplayOrder = 1,
                         IncubationMinHours = minHours, IncubationMaxHours = maxHours, TempMin = 30m, TempMax = 35m
                     }
                 }
@@ -32,7 +32,7 @@ public class SharedTsbStateBuilderTests
     private static Incubation TsbIncubation(int testOrderId, DateTime start) => new()
     {
         TestOrderId = testOrderId, StepName = "TSB Enrichment", MediaId = 20, StartedAt = start, IncubationStartUtc = start,
-        Media = new Media { Id = 20, MaterialId = 10, LotNumber = "TSB-1", Material = new Material { Id = 10, MaterialName = "TSB" } }
+        Media = new Media { Id = 20, MaterialId = 10, LotNumber = "TSB-1", Material = new Material { Id = 10, MaterialName = "TSB", MediaProductId = 3 } }
     };
 
     private static Dictionary<int, (int MaterialId, int? MediaProductId)> MediaLookup(IEnumerable<Incubation> incubations) =>

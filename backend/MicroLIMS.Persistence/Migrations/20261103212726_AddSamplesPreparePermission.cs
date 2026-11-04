@@ -7,11 +7,10 @@ namespace MicroLIMS.Persistence.Migrations
     /// <inheritdoc />
     public partial class AddSamplesPreparePermission : Migration
     {
+        private const string Process = "Migration 20261103212726_AddSamplesPreparePermission";
+
         // Data only. Sample preparation writes used to need just a login; they now need samples.prepare.
-        // Every role whose base type is 0-3 (SystemAdministrator, SectionHead, Reviewer, Analyst), system or
-        // custom, receives it so nobody who prepares today loses the screen. A custom role keeps its own
-        // grant list, but its Type is the base the old [Authorize] passed it by, so Type is the test.
-        // QC Manager (4) is approval-only and is left out. DbSeeder covers a fresh database.
+        // DbSeeder covers a fresh database.
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
@@ -21,20 +20,17 @@ namespace MicroLIMS.Persistence.Migrations
                 WHERE NOT EXISTS (SELECT 1 FROM ""Permissions"" WHERE ""Code"" = 'samples.prepare');");
             migrationBuilder.Sql(@"UPDATE ""Permissions"" SET ""IsEnforced"" = TRUE WHERE ""Code"" = 'samples.prepare';");
 
-            migrationBuilder.Sql(@"
-                INSERT INTO ""RolePermissions"" (""RoleId"", ""PermissionId"")
-                SELECT r.""Id"", p.""Id""
-                FROM ""Roles"" r CROSS JOIN ""Permissions"" p
-                WHERE p.""Code"" = 'samples.prepare'
-                  AND r.""Type"" IN (0, 1, 2, 3)
-                  AND NOT EXISTS (SELECT 1 FROM ""RolePermissions"" rp
-                                  WHERE rp.""RoleId"" = r.""Id"" AND rp.""PermissionId"" = p.""Id"");");
+            // Preparation was open to every signed-in user, so every role keeps it except QC Manager roles
+            // (approval-only), the built-in System Administrator and any role that manages users or roles (segregation of duties), which excludes
+            // the built-in System Administrator.
+            migrationBuilder.Sql(RoleGrantSql.Grant(@"ro.""Type"" <> 4 AND NOT (ro.""Type"" = 0 AND ro.""IsSystemRole"")",
+                new[] { "samples.prepare" }, Process, "Sample preparation needs its own permission"));
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.Sql(@"DELETE FROM ""RolePermissions"" WHERE ""PermissionId"" IN (SELECT ""Id"" FROM ""Permissions"" WHERE ""Code"" = 'samples.prepare');");
+            migrationBuilder.Sql(RoleGrantSql.Revoke(new[] { "samples.prepare" }, Process + " (Down)", "Sample preparation permission rolled back (migration Down)"));
             migrationBuilder.Sql(@"DELETE FROM ""Permissions"" WHERE ""Code"" = 'samples.prepare';");
         }
     }

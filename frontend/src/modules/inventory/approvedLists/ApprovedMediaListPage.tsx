@@ -149,7 +149,8 @@ export function ApprovedMediaListPage({ embedded = false }: { embedded?: boolean
       setError(null);
       const [releasedMedia, users] = await Promise.all([
         masterDataOptions.getReleasedMedia(),
-        UserService.getAll().catch(() => [] as UserRecord[])
+        // "all": only resolves stored preparer ids to names (historical attribution), never a picker.
+        UserService.getAll("all").catch(() => [] as UserRecord[])
       ]);
 
       const map: Record<number, string> = {};

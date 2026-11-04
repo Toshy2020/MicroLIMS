@@ -243,15 +243,26 @@ public record DocumentDepartmentDto(
     public uint Version { get; init; }
 }
 
+// Administrative changes to the organisation carry the administrator's stated reason (stored in AuditLog.Reason).
 public record CreateDocumentDepartmentRequest(
     string Code,
-    string Name
+    string Name,
+    string? Reason = null
 );
 
+// ConfirmDeactivation must be true to deactivate a department that still has active documents, memberships or open work.
 public record UpdateDocumentDepartmentRequest(
     string Name,
-    bool IsActive
+    bool IsActive,
+    string? Reason = null,
+    bool ConfirmDeactivation = false
 );
+
+// What deactivating a department or section would leave behind.
+public record OrganizationImpactDto(int ActiveDocuments, int ActiveMemberships, int OpenWork)
+{
+    public bool HasReferences => ActiveDocuments > 0 || ActiveMemberships > 0 || OpenWork > 0;
+}
 
 public record DocumentSectionDto(
     int Id,
@@ -267,12 +278,15 @@ public record DocumentSectionDto(
 
 public record CreateDocumentSectionRequest(
     int DepartmentId,
-    string Name
+    string Name,
+    string? Reason = null
 );
 
 public record UpdateDocumentSectionRequest(
     string Name,
-    bool IsActive
+    bool IsActive,
+    string? Reason = null,
+    bool ConfirmDeactivation = false
 );
 
 public record DocumentNumberingConfigDto(

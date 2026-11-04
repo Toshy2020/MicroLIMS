@@ -58,6 +58,37 @@ public class RolePermissionSeedDataTests
         Assert.All(permissions, p => Assert.False(string.IsNullOrWhiteSpace(p.Description)));
     }
 
+    [Fact]
+    public async Task ExistingStalePermissionRows_AreResyncedFromCatalog()
+    {
+        var options = new DbContextOptionsBuilder<MicroLimsDbContext>()
+            .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+            .Options;
+        var db = new MicroLimsDbContext(options);
+        db.Roles.Add(new Role { Type = RoleType.SystemAdministrator, Name = "System Administrator", IsSystemRole = true, IsActive = true });
+        db.SaveChanges();
+
+        // A row seeded by an older release: wrong description and not yet
+        // flagged enforced, although the code is in the Enforced set.
+        db.Permissions.Add(new Permission
+        {
+            Code = PermissionConstants.SamplesReceive,
+            Description = "stale description from an older release",
+            IsEnforced = false
+        });
+        db.SaveChanges();
+
+        DbSeeder.SeedPermissionsAndGrants(db);
+
+        var row = await db.Permissions.SingleAsync(p => p.Code == PermissionConstants.SamplesReceive);
+        var expected = PermissionConstants.Enforced.Contains(PermissionConstants.SamplesReceive);
+        Assert.True(expected);
+        Assert.True(row.IsEnforced);
+        Assert.NotEqual("stale description from an older release", row.Description);
+        Assert.False(string.IsNullOrWhiteSpace(row.Description));
+        Assert.Equal(PermissionConstants.All.Count, await db.Permissions.CountAsync());
+    }
+
     private static async Task<List<string>> CodesForRole(MicroLimsDbContext db, RoleType type)
     {
         var permissionService = new PermissionService(db);
@@ -66,14 +97,23 @@ public class RolePermissionSeedDataTests
     }
 
     [Fact]
-    public async Task SystemAdministrator_HoldsEveryPermission()
+    public async Task SystemAdministrator_HoldsExactlyTheSystemAdministratorGrants()
     {
         var db = CreateSeededDbContext();
         var codes = await CodesForRole(db, RoleType.SystemAdministrator);
-        Assert.Equal(PermissionConstants.All.Count - 1, codes.Count);
-        // Final approval of a not-applicable test is the QC Manager's alone, administrator included.
+        Assert.Equal(PermissionConstants.SystemAdministratorGrants.Count, codes.Count);
+        Assert.Equal(PermissionConstants.SystemAdministratorGrants.OrderBy(c => c), codes.OrderBy(c => c));
+
+        // Segregation of duties: the administrator controls the system but does
+        // not execute, correct or supervise GxP work.
+        Assert.DoesNotContain(PermissionConstants.SamplesReceive, codes);
+        Assert.DoesNotContain(PermissionConstants.SamplesCorrect, codes);
+        Assert.DoesNotContain(PermissionConstants.TestWorkflowSupervise, codes);
+        Assert.DoesNotContain(PermissionConstants.TestWorkflowExecute, codes);
+        Assert.DoesNotContain(PermissionConstants.SamplesPrepare, codes);
+        Assert.DoesNotContain(PermissionConstants.TestsOutsource, codes);
+        Assert.DoesNotContain(PermissionConstants.NotApplicableTestsManage, codes);
         Assert.DoesNotContain(PermissionConstants.NotApplicableTestsFinalApprove, codes);
-        Assert.Equal(PermissionConstants.All.Where(c => c != PermissionConstants.NotApplicableTestsFinalApprove).OrderBy(c => c), codes.OrderBy(c => c));
 
         // Document Control capabilities the specification denies the
         // administrator are deliberately absent from the catalog entirely, so
@@ -105,9 +145,9 @@ public class RolePermissionSeedDataTests
             // Document Control, per the FRS-1A permission matrix.
             PermissionConstants.DocumentsRegister, PermissionConstants.DocumentsDraftEdit,
             PermissionConstants.DocumentsRevisionCreate, PermissionConstants.DocumentsPeriodicReview,
-            PermissionConstants.DocumentsApprove,
+            PermissionConstants.DocumentsApprove, PermissionConstants.DocumentsReview, PermissionConstants.DocumentsReassign,
             PermissionConstants.DocumentsTrainingAssign, PermissionConstants.DocumentsTrainingViewMatrix,
-            PermissionConstants.DashboardsLabOverview, PermissionConstants.DashboardsReview, PermissionConstants.KpiView, PermissionConstants.KpiViewTeam, PermissionConstants.KpiConfigureProfiles, PermissionConstants.MediaPrepare, PermissionConstants.MediaRelease, PermissionConstants.OosManage, PermissionConstants.TestWorkflowSupervise, PermissionConstants.SamplesReceiveOwnLab, PermissionConstants.SamplesCorrect, PermissionConstants.SamplesAssignAnalyst,
+            PermissionConstants.DashboardsLabOverview, PermissionConstants.DashboardsReview, PermissionConstants.KpiView, PermissionConstants.KpiViewTeam, PermissionConstants.KpiConfigureProfiles, PermissionConstants.MediaPrepare, PermissionConstants.MediaRelease, PermissionConstants.MaterialCategoriesManage, PermissionConstants.MaterialsRelease, PermissionConstants.OosManage, PermissionConstants.TestWorkflowSupervise, PermissionConstants.SamplesReceiveOwnLab, PermissionConstants.SamplesCorrect, PermissionConstants.SamplesAssignAnalyst,
             // HPLC chain S4 - Solution Preparation area.
             PermissionConstants.SolutionsPrepare,
             // HPLC chain S6 - HPLC Workspace.
@@ -121,7 +161,7 @@ public class RolePermissionSeedDataTests
             PermissionConstants.SamplesPrepare
         };
 
-        Assert.Equal(53, codes.Count);
+        Assert.Equal(57, codes.Count);
         Assert.Equal(expected.OrderBy(c => c), codes.OrderBy(c => c));
         // Not granted to SectionHead per the catalog:
         Assert.DoesNotContain(PermissionConstants.UsersManage, codes);
@@ -202,16 +242,14 @@ public class RolePermissionSeedDataTests
     [Fact]
     public async Task TotalGrantCount_MatchesTheCatalog()
     {
-        // System.ViewSecurityAudit is granted to SystemAdministrator only.
-        // Samples.Receive/Samples.TrackAll are granted to SystemAdministrator
-        // and SectionHead only. Solutions.Prepare (HPLC chain S4) is granted
-        // to SystemAdministrator, SectionHead and Analyst - +3 over the prior
-        // 110 (SystemAdministrator holds it via PermissionConstants.All).
-        // Hplc.Operate (HPLC chain S6) is granted to the same three roles -
-        // another +3, for 116. WorkingStandards.Qualify: +3, for 119. Kpi.ConfigureProfiles (KPI remodel S1) is granted to SystemAdministrator and SectionHead only: +2, for 121. Kpi.ViewTeam (S2): +2, for 123. MonitoringPlan.View (all four roles) +4, Manage and Approve (SystemAdministrator, SectionHead) +4, for 131. Not-applicable manage and outsource (SystemAdministrator, SectionHead) +4, QC Manager (final approve, Discussions.View, MonitoringPlan.View) +3: 142 before them, 149 before samples.prepare (+4: every role but QC Manager), 153 now.
+        // The System Administrator holds only PermissionConstants.SystemAdministratorGrants
+        // (26 system codes, no lab/GxP codes). The total is the sum of the five per-role
+        // sets that the tests above assert literally:
+        //   SystemAdministrator 26 + SectionHead 57 + Reviewer 19 + Analyst 18 + QcManager 3 = 123.
+        // Update this only when a per-role set above changes.
         var db = CreateSeededDbContext();
         var total = await db.RolePermissions.CountAsync();
-        Assert.Equal(153, total);
+        Assert.Equal(123, total);
     }
 
     [Fact]
@@ -221,20 +259,30 @@ public class RolePermissionSeedDataTests
         DbSeeder.SeedPermissionsAndGrants(db); // second call
 
         Assert.Equal(PermissionConstants.All.Count, await db.Permissions.CountAsync());
-        Assert.Equal(153, await db.RolePermissions.CountAsync());
+        Assert.Equal(123, await db.RolePermissions.CountAsync()); // see TotalGrantCount_MatchesTheCatalog
     }
 
     [Fact]
-    public async Task ReceiveAndTrackAll_AreSeededForAdminAndSectionHeadOnly()
+    public async Task SamplesReceive_IsSectionHeadOnly()
     {
         var db = CreateSeededDbContext();
+        var code = PermissionConstants.SamplesReceive;
 
-        foreach (var code in new[] { PermissionConstants.SamplesReceive, PermissionConstants.SamplesTrackAll })
-        {
-            Assert.Contains(code, await CodesForRole(db, RoleType.SystemAdministrator));
-            Assert.Contains(code, await CodesForRole(db, RoleType.SectionHead));
-            Assert.DoesNotContain(code, await CodesForRole(db, RoleType.Reviewer));
-            Assert.DoesNotContain(code, await CodesForRole(db, RoleType.Analyst));
-        }
+        Assert.Contains(code, await CodesForRole(db, RoleType.SectionHead));
+        Assert.DoesNotContain(code, await CodesForRole(db, RoleType.SystemAdministrator));
+        Assert.DoesNotContain(code, await CodesForRole(db, RoleType.Reviewer));
+        Assert.DoesNotContain(code, await CodesForRole(db, RoleType.Analyst));
+    }
+
+    [Fact]
+    public async Task SamplesTrackAll_IsSystemAdministratorAndSectionHeadOnly()
+    {
+        var db = CreateSeededDbContext();
+        var code = PermissionConstants.SamplesTrackAll;
+
+        Assert.Contains(code, await CodesForRole(db, RoleType.SystemAdministrator));
+        Assert.Contains(code, await CodesForRole(db, RoleType.SectionHead));
+        Assert.DoesNotContain(code, await CodesForRole(db, RoleType.Reviewer));
+        Assert.DoesNotContain(code, await CodesForRole(db, RoleType.Analyst));
     }
 }

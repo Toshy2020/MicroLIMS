@@ -1,3 +1,5 @@
+using MicroLIMS.Application.Services.BackgroundJobs;
+using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Application.Services;
 
 namespace MicroLIMS.API.BackgroundServices;
@@ -16,9 +18,12 @@ public class SolutionPreparationExpiryWorker : BackgroundService
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly ILogger<SolutionPreparationExpiryWorker> _logger;
     private readonly SemaphoreSlim _concurrencyLock = new(1, 1);
+    private readonly IBackgroundJobRunRecorder? _recorder;
 
-    public SolutionPreparationExpiryWorker(IServiceScopeFactory scopeFactory, ILogger<SolutionPreparationExpiryWorker> logger)
+    public SolutionPreparationExpiryWorker(
+        IServiceScopeFactory scopeFactory, ILogger<SolutionPreparationExpiryWorker> logger, IBackgroundJobRunRecorder? recorder = null)
     {
+        _recorder = recorder;
         _scopeFactory = scopeFactory;
         _logger = logger;
     }
@@ -31,7 +36,7 @@ public class SolutionPreparationExpiryWorker : BackgroundService
         // purely interval-driven job might never reach its first tick.
         try
         {
-            await RunCycleAsync(stoppingToken);
+            await ScheduledJobPass.RunAsync(_recorder, ProcessName, async ct => await RunCycleAsync(ct), stoppingToken);
         }
         catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
         {
@@ -49,7 +54,7 @@ public class SolutionPreparationExpiryWorker : BackgroundService
             try
             {
                 if (await timer.WaitForNextTickAsync(stoppingToken))
-                    await RunCycleAsync(stoppingToken);
+                    await ScheduledJobPass.RunAsync(_recorder, ProcessName, async ct => await RunCycleAsync(ct), stoppingToken);
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
             {
@@ -75,6 +80,7 @@ public class SolutionPreparationExpiryWorker : BackgroundService
         try
         {
             using var scope = _scopeFactory.CreateScope();
+            scope.ServiceProvider.GetRequiredService<IMicroLimsDbContext>().CurrentSystemProcessName = ProcessName;
             var service = scope.ServiceProvider.GetRequiredService<SolutionPreparationService>();
 
             var expired = await service.ExpireDueAsync(cancellationToken);

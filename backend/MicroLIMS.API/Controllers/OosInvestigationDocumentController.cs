@@ -29,7 +29,7 @@ public class OosInvestigationDocumentController : ControllerBase
     [HttpGet("api/oos-tracking/{oosGroupCode}/investigation-documents")]
     public async Task<IActionResult> GetDocuments(string oosGroupCode)
     {
-        await _scopeService.EnsureOosGroupAccessAsync(CurrentUserId, oosGroupCode);
+        await _scopeService.EnsureOosGroupAccessAsync(CurrentUserId, oosGroupCode, access: SectionAccess.Read);
         var result = await _service.GetDocumentsAsync(oosGroupCode);
         return Ok(ApiResponse<object>.Ok(result));
     }
@@ -61,7 +61,7 @@ public class OosInvestigationDocumentController : ControllerBase
     [HttpGet("api/oos-investigation-documents/{documentId:int}/content")]
     public async Task<IActionResult> GetContent(int documentId, [FromQuery] string oosGroupCode)
     {
-        await _scopeService.EnsureOosGroupAccessAsync(CurrentUserId, oosGroupCode);
+        await _scopeService.EnsureOosGroupAccessAsync(CurrentUserId, oosGroupCode, access: SectionAccess.Read);
         var (meta, bytes) = await _service.GetContentAsync(documentId, oosGroupCode, CurrentUserId);
         return File(bytes, meta.ContentType, meta.OriginalFileName);
     }

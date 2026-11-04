@@ -5,6 +5,7 @@ using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Application.Abstractions.Persistence;
+using MicroLIMS.Shared.Constants;
 using MicroLIMS.Shared.Responses;
 
 namespace MicroLIMS.Application.Services;
@@ -29,11 +30,12 @@ public class TestingWorkspaceService : ITestWorkspaceService
         int pageSize = filter.PageSize <= 0 ? 50 : Math.Min(filter.PageSize, 200);
 
         var scope = currentUserId.HasValue
-            ? await _scope.GetAccessibleSectionIdsAsync(currentUserId.Value)
+            ? await _scope.GetReadableSectionIdsAsync(currentUserId.Value)
             : null;
         // Narrow to the one laboratory the workspace page asked for.
         scope = LabScope.Narrow(scope, filter.LabSectionId);
         var categories = await ResolveAreaAsync(filter.LabSectionId, filter.Area, currentUserId);
+        var includesPreparingLab = await IncludesPreparingLabAsync(scope);
 
         var query = _db.Samples.AsNoTracking();
         if (categories != null)
@@ -42,14 +44,14 @@ public class TestingWorkspaceService : ITestWorkspaceService
         }
         if (scope != null)
         {
-            var inScope = SampleWorkflowQueues.HasTestInSections(scope);
+            var inScope = SampleWorkflowQueues.VisibleInSections(scope, includesPreparingLab);
             if (filter.LabSectionId == null)
             {
                 // The register (not a lab workspace) also lists periodic retests
                 // that have no tests yet, for the laboratories they were received for.
                 var awaiting = await AwaitingSampleIdsInAsync(scope);
-                var withTests = _db.Samples.AsNoTracking().Where(inScope).Select(x => x.Id);
-                query = query.Where(s => awaiting.Contains(s.Id) || withTests.Contains(s.Id));
+                var visible = _db.Samples.AsNoTracking().Where(inScope).Select(x => x.Id);
+                query = query.Where(s => awaiting.Contains(s.Id) || visible.Contains(s.Id));
             }
             else
             {
@@ -65,7 +67,7 @@ public class TestingWorkspaceService : ITestWorkspaceService
             var wf = filter.WorkloadFilter.Trim();
             if (string.Equals(wf, "needsPreparation", StringComparison.OrdinalIgnoreCase))
             {
-                query = query.Where(SampleWorkflowQueues.NeedsPreparationIn(scope));
+                query = query.Where(SampleWorkflowQueues.NeedsPreparationIn(scope, includesPreparingLab));
             }
             else if (string.Equals(wf, "readyToRead", StringComparison.OrdinalIgnoreCase))
             {
@@ -281,6 +283,13 @@ public class TestingWorkspaceService : ITestWorkspaceService
         return awaiting.Where(s => SampleSectionRollup.PendingSectionIds(s).Any(scope.Contains)).Select(s => s.Id).ToList();
     }
 
+    // Water, EM and After Cleaning samples get their tests when the Microbiology
+    // lab prepares them, so until then only a scope holding that lab lists them.
+    // No scope (Sections.ViewAll, no lab picked) is unfiltered anyway.
+    private async Task<bool> IncludesPreparingLabAsync(IReadOnlyCollection<int>? scope) =>
+        scope == null || await _db.DocumentSections.AsNoTracking()
+            .AnyAsync(d => scope.Contains(d.Id) && d.Code == LaboratoryCodes.Microbiology);
+
     // The Physicochemical workspace is split into FP and RM & PM areas by sample category.
     // Returns the categories to keep, or null for any other laboratory (unchanged behaviour).
     private async Task<IReadOnlyList<SampleCategory>?> ResolveAreaAsync(int? labSectionId, string? area, int? userId)
@@ -291,7 +300,7 @@ public class TestingWorkspaceService : ITestWorkspaceService
 
         var parsed = PhyschemAreas.Parse(area)
             ?? throw new InvalidOperationException("area is required for the Physicochemical Laboratory workspace.");
-        if (userId.HasValue && !(await _scope.GetPhyschemAreasAsync(userId.Value)).Contains(parsed))
+        if (userId.HasValue && !(await _scope.GetPhyschemAreasAsync(userId.Value, access: SectionAccess.Read)).Contains(parsed))
             throw new UnauthorizedAccessException("You do not have access to this Physicochemical Laboratory area.");
         return PhyschemAreas.CategoriesOf(parsed);
     }
@@ -299,11 +308,12 @@ public class TestingWorkspaceService : ITestWorkspaceService
     public async Task<WorkspaceTileCountsDto> GetWorkloadCountsAsync(int? currentUserId = null, int? labSectionId = null, string? area = null)
     {
         var scope = currentUserId.HasValue
-            ? await _scope.GetAccessibleSectionIdsAsync(currentUserId.Value)
+            ? await _scope.GetReadableSectionIdsAsync(currentUserId.Value)
             : null;
         // Narrow to the one laboratory the workspace page asked for.
         scope = LabScope.Narrow(scope, labSectionId);
         var categories = await ResolveAreaAsync(labSectionId, area, currentUserId);
+        var includesPreparingLab = await IncludesPreparingLabAsync(scope);
 
         var now = _time.GetUtcNow().UtcDateTime;
 
@@ -314,11 +324,11 @@ public class TestingWorkspaceService : ITestWorkspaceService
         }
         if (scope != null)
         {
-            baseQuery = baseQuery.Where(SampleWorkflowQueues.HasTestInSections(scope));
+            baseQuery = baseQuery.Where(SampleWorkflowQueues.VisibleInSections(scope, includesPreparingLab));
         }
 
         var needsPrep = await baseQuery
-            .CountAsync(SampleWorkflowQueues.NeedsPreparationIn(scope));
+            .CountAsync(SampleWorkflowQueues.NeedsPreparationIn(scope, includesPreparingLab));
 
         var readyToRead = await baseQuery
             .CountAsync(SampleWorkflowQueues.HasTestReadyToRead(now, scope));
@@ -386,7 +396,7 @@ public class TestingWorkspaceService : ITestWorkspaceService
             .AsNoTracking()
             .Include(t => t.Steps)
                 .ThenInclude(s => s.StepMedia)
-                    .ThenInclude(sm => sm.Material)
+                    .ThenInclude(sm => sm.MediaProduct)
             .Include(t => t.Steps)
                 .ThenInclude(s => s.StepMedia)
                     .ThenInclude(sm => sm.IncubationCondition)
@@ -451,7 +461,7 @@ public class TestingWorkspaceService : ITestWorkspaceService
     public async Task<SampleDto?> GetSampleAsync(int sampleId, int? currentUserId = null, int? labSectionId = null, string? area = null)
     {
         var scope = currentUserId.HasValue
-            ? await _scope.GetAccessibleSectionIdsAsync(currentUserId.Value)
+            ? await _scope.GetReadableSectionIdsAsync(currentUserId.Value)
             : null;
         // Narrow to the one laboratory the workspace page asked for - same
         // pattern as GetActiveSamplesAsync/GetWorkloadCountsAsync, so a card
@@ -480,7 +490,9 @@ public class TestingWorkspaceService : ITestWorkspaceService
         {
             var hasInScopeNonSuperseded = sample.TestOrders.Any(t => !t.IsSuperseded && scope.Contains(t.SectionId))
                 || (labSectionId == null && SampleSectionRollup.PendingSectionIds(sample).Any(scope.Contains));
-            if (!hasInScopeNonSuperseded) return null;
+            if (!hasInScopeNonSuperseded
+                && !(SampleWorkflowQueues.IsAwaitingPreparationWithoutTests(sample) && await IncludesPreparingLabAsync(scope)))
+                return null;
         }
 
         var dtos = await MapSamplesToDtosAsync(new List<Sample> { sample }, scope);

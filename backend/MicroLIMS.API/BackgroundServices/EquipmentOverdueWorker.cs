@@ -1,3 +1,5 @@
+using MicroLIMS.Application.Services.BackgroundJobs;
+using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Application.Services.EquipmentPlan;
 
@@ -13,10 +15,13 @@ public class EquipmentOverdueWorker : BackgroundService
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly IConfiguration _configuration;
     private readonly ILogger<EquipmentOverdueWorker> _logger;
+    private readonly IBackgroundJobRunRecorder? _recorder;
 
     public EquipmentOverdueWorker(
-        IServiceScopeFactory scopeFactory, IConfiguration configuration, ILogger<EquipmentOverdueWorker> logger)
+        IServiceScopeFactory scopeFactory, IConfiguration configuration, ILogger<EquipmentOverdueWorker> logger,
+        IBackgroundJobRunRecorder? recorder = null)
     {
+        _recorder = recorder;
         _scopeFactory = scopeFactory;
         _configuration = configuration;
         _logger = logger;
@@ -53,18 +58,12 @@ public class EquipmentOverdueWorker : BackgroundService
         }
     }
 
+    // Scheduled pass: recorded when a recorder is present; otherwise a failure is logged and retried next tick.
     private async Task RunCycleAsync(CancellationToken cancellationToken)
     {
         try
         {
-            using var scope = _scopeFactory.CreateScope();
-            var clock = scope.ServiceProvider.GetRequiredService<ILabClock>();
-            var service = scope.ServiceProvider.GetRequiredService<EquipmentWorkService>();
-            var changed = await service.ApplyOverdueAsync(clock.LabToday);
-            if (changed > 0)
-                _logger.LogInformation(
-                    "[{Worker}] Marked {Count} overdue instrument(s) as out of service.",
-                    ProcessName, changed);
+            await ScheduledJobPass.RunAsync(_recorder, ProcessName, ScanAsync, cancellationToken);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -74,5 +73,20 @@ public class EquipmentOverdueWorker : BackgroundService
         {
             _logger.LogError(ex, "[{Worker}] Scan failed; it will run again on the next tick.", ProcessName);
         }
+    }
+
+    // One scan. Failures propagate so the recorder can mark the pass Failed.
+    private async Task<int?> ScanAsync(CancellationToken cancellationToken)
+    {
+        using var scope = _scopeFactory.CreateScope();
+        scope.ServiceProvider.GetRequiredService<IMicroLimsDbContext>().CurrentSystemProcessName = ProcessName;
+        var clock = scope.ServiceProvider.GetRequiredService<ILabClock>();
+        var service = scope.ServiceProvider.GetRequiredService<EquipmentWorkService>();
+        var changed = await service.ApplyOverdueAsync(clock.LabToday);
+        if (changed > 0)
+            _logger.LogInformation(
+                "[{Worker}] Marked {Count} overdue instrument(s) as out of service.",
+                ProcessName, changed);
+        return changed;
     }
 }

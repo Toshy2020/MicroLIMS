@@ -1,0 +1,175 @@
+{
+  "itemCode": "STM-RM-053",
+  "itemName": "Soluble Sodium Chloride Tablets",
+  "stmFile": "Sodium Chloride Tablet__STM Sodium Chloride Tablet 1-3.txt",
+  "specFiles": ["Sodium Chloride Tablet__Specifications sheet Sodium Chloride Tablet.txt"],
+  "minQuantity": { "routine": 100, "retest": 50, "unit": "g", "source": "Sodium Chloride Tablet__STM Sodium Chloride Tablet 1-3.txt:32 (routine testing and retention = 100 g; periodic retesting = 50 g); spec sheet :15 states 100 g" },
+  "grades": [
+    {
+      "grade": "BP",
+      "rows": [
+        {
+          "testCode": "RM-ID",
+          "parameterName": "Identification",
+          "limitType": "Qualitative",
+          "lower": null, "upper": null, "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Comply with BP",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP 2024",
+          "source": "Sodium Chloride Tablet__Specifications sheet Sodium Chloride Tablet.txt:11"
+        },
+        {
+          "testCode": "RM-CLARITY",
+          "parameterName": "Clarity of solution",
+          "limitType": "Qualitative",
+          "lower": null, "upper": null, "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "The solution is clear",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP 2024",
+          "source": "Sodium Chloride Tablet__Specifications sheet Sodium Chloride Tablet.txt:12"
+        },
+        {
+          "testCode": "RM-DISINT",
+          "parameterName": "Disintegration",
+          "limitType": "NotMoreThan",
+          "lower": null, "upper": 15, "lowerInclusive": null,
+          "unit": "min",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP 2024",
+          "source": "Sodium Chloride Tablet__Specifications sheet Sodium Chloride Tablet.txt:13"
+        },
+        {
+          "testCode": "RM-ASSAY",
+          "parameterName": "Assay",
+          "limitType": "Range",
+          "lower": 95.0, "upper": 105.0, "lowerInclusive": true,
+          "unit": "% of the stated amount",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": "PercentAsIs",
+          "referenceStandard": "BP 2024",
+          "source": "Sodium Chloride Tablet__Specifications sheet Sodium Chloride Tablet.txt:14"
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "testCode": "RM-ID",
+      "procedure": "STM describes the tablets as circular or spherical in shape containing about 95% to 105% sodium chloride and says to proceed as the assay test (section 6.4). No separate identification procedure is stated.",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {
+        "stmText": "The tablets show as Circle or spherical shape contain about 95% to 105% Sodium chloride proceed as test of assay (6.4)",
+        "linkedTest": "RM-ASSAY",
+        "specification": "Comply with BP",
+        "reference": "BP 2024 Soluble Sodium Chloride Tablets"
+      },
+      "source": "Sodium Chloride Tablet__STM Sodium Chloride Tablet 1-3.txt:27"
+    },
+    {
+      "testCode": "RM-CLARITY",
+      "procedure": "Dissolve a quantity of the tablets containing 0.6 g of sodium chloride in 100 mL of water. The solution is clear.",
+      "kind": "general",
+      "workflow": "Observation",
+      "details": {
+        "sampleAmount": "quantity of tablets containing 0.6 g NaCl",
+        "solvent": "water",
+        "volumeMl": 100,
+        "specification": "The solution is clear",
+        "method": "BP Appendix VI Qualitative Reactions and Tests",
+        "reference": "BP 2024 Soluble Sodium Chloride Tablets"
+      },
+      "source": "Sodium Chloride Tablet__STM Sodium Chloride Tablet 1-3.txt:28"
+    },
+    {
+      "testCode": "RM-DISINT",
+      "procedure": "Using a calibrated disintegration tester. The tablets dissolve completely within 15 minutes when examined, using water at 19 to 21 C.",
+      "kind": "general",
+      "workflow": "Measurement",
+      "details": {
+        "equipment": "Disintegration Tester (calibrated)",
+        "medium": "water",
+        "temperatureC": { "min": 19, "max": 21 },
+        "specification": "NMT 15 Min (tablets dissolve completely)",
+        "method": "BP Appendix XII A. Disintegration, Disintegration of Tablets and Capsules",
+        "reference": "BP 2024 Soluble Sodium Chloride Tablets"
+      },
+      "source": "Sodium Chloride Tablet__STM Sodium Chloride Tablet 1-3.txt:29 (equipment :25)"
+    },
+    {
+      "testCode": "RM-ASSAY",
+      "procedure": "Argentometric back titration (main method). Weigh and powder 20 tablets. Dissolve a quantity of the powder containing 0.2 g of sodium chloride in 35 mL of water. Add 15 mL of 2 M nitric acid, 5 mL of dibutyl phthalate and 50 mL of 0.1 M silver nitrate VS. Shake vigorously for about 1 minute. Add 5 mL of ferric (ammonium iron) sulfate solution R2. Titrate with 0.1 M ammonium thiocyanate VS to a reddish-brown colour that does not fade within 5 minutes after shaking.",
+      "kind": "specific",
+      "workflow": "Titration",
+      "details": {
+        "titration": "back titration, visual end point",
+        "samplePrep": "weigh and powder 20 tablets; take powder containing 0.2 g NaCl",
+        "dissolveIn": "35 mL water",
+        "additions": ["15 mL 2 M nitric acid", "5 mL dibutyl phthalate", "50 mL 0.1 M silver nitrate VS", "5 mL ferric ammonium sulfate solution R2 (after shaking about 1 min)"],
+        "titrant": "0.1 M ammonium thiocyanate VS",
+        "titrantMolarity": 0.1,
+        "endPoint": "reddish-brown colour that, after shaking, does not fade within 5 minutes",
+        "equivalence": "Each mL of 0.1 M silver nitrate VS is equivalent to 5.844 mg of NaCl",
+        "equivalenceFactorMg": 5.844,
+        "calculation": "Result = (E.P x F x Eq.wt / Wt) x 100; EP = end point of titrant, F = correction factor of titrant, Eq.wt = 5.844 mg, Wt = weight of sample",
+        "specification": "95.0 to 105.0% of the stated amount",
+        "reference": "BP 2024 Soluble Sodium Chloride Tablets",
+        "equipment": ["Electronic Balance", "Titration System"],
+        "alternativeMethod": "present in the STM (lines 30), not transcribed"
+      },
+      "source": "Sodium Chloride Tablet__STM Sodium Chloride Tablet 1-3.txt:30 (main method; reagents and standardizations :25)"
+    },
+    {
+      "testCode": "RM-SOL-AGNO3-STD",
+      "procedure": "Factorization of 0.1 M silver nitrate VS: dissolve a quantity of the powder containing 0.1 g of sodium chloride in 5 mL of water, add 3 drops of potassium chromate solution, shake vigorously about 1 minute, titrate with 0.1 M silver nitrate VS to a reddish-brown colour that does not fade within 5 minutes. Each mL of 0.1 M silver nitrate VS is equivalent to 5.844 mg of NaCl.",
+      "kind": "general",
+      "workflow": "Titration",
+      "details": {
+        "role": "standardization of titrant (not a spec row)",
+        "titrant": "0.1 M silver nitrate VS (17.0 g silver nitrate in water, diluted to 1000.0 mL)",
+        "indicator": "3 drops potassium chromate solution (5 g in water, complete to 100 mL)",
+        "equivalenceFactorMg": 5.844
+      },
+      "source": "Sodium Chloride Tablet__STM Sodium Chloride Tablet 1-3.txt:25"
+    },
+    {
+      "testCode": "RM-SOL-NH4SCN-STD",
+      "procedure": "Factorization of 0.1 M ammonium thiocyanate VS: to 20.0 mL of 0.1 M silver nitrate add 25 mL of water, 2 mL of dilute nitric acid and 2 mL of ferric ammonium sulfate solution R2. Titrate with the ammonium thiocyanate solution until a reddish-yellow colour is obtained.",
+      "kind": "general",
+      "workflow": "Titration",
+      "details": {
+        "role": "standardization of titrant (not a spec row)",
+        "titrant": "0.1 M ammonium thiocyanate VS (7.612 g in water, diluted to 1000.0 mL)",
+        "aliquot": "20.0 mL 0.1 M silver nitrate + 25 mL water + 2 mL dilute nitric acid + 2 mL ferric ammonium sulfate solution R2",
+        "endPoint": "reddish-yellow colour"
+      },
+      "source": "Sodium Chloride Tablet__STM Sodium Chloride Tablet 1-3.txt:25"
+    }
+  ],
+  "notApplicable": [],
+  "supplierAttributes": [],
+  "reagents": [
+    { "name": "0.1 M Silver Nitrate VS (17.0 g silver nitrate in water, to 1000.0 mL)", "use": "titrant", "source": "Sodium Chloride Tablet__STM Sodium Chloride Tablet 1-3.txt:25" },
+    { "name": "0.1 M Ammonium Thiocyanate VS (7.612 g in water, to 1000.0 mL)", "use": "titrant", "source": "Sodium Chloride Tablet__STM Sodium Chloride Tablet 1-3.txt:25" },
+    { "name": "Ferric ammonium sulfate solution R2 (10 g in water, to 100 mL)", "use": "indicator", "source": "Sodium Chloride Tablet__STM Sodium Chloride Tablet 1-3.txt:25" },
+    { "name": "Potassium Chromate Solution (5 g in water, to 100 mL)", "use": "indicator", "source": "Sodium Chloride Tablet__STM Sodium Chloride Tablet 1-3.txt:25" },
+    { "name": "Nitric acid (2 M, and dilute nitric acid)", "use": "reagent", "source": "Sodium Chloride Tablet__STM Sodium Chloride Tablet 1-3.txt:25,30" },
+    { "name": "Dibutyl phthalate", "use": "reagent", "source": "Sodium Chloride Tablet__STM Sodium Chloride Tablet 1-3.txt:25,30" }
+  ],
+  "openQuestions": [
+    { "question": "Assay method choice: STM v1/3 (history line 45) and the issue request (:17-18) say the assay reference was changed 'according to analytical method validation' (reference 10.4), and that validation is cited only under the 'Alternative Method' (direct Mohr titration, 0.1 g NaCl, potassium chromate). The main method (back titration, BP 2024) was transcribed as instructed; confirm which method the lab actually runs.", "source": "Sodium Chloride Tablet__STM Sodium Chloride Tablet 1-3.txt:30,39,45; Sodium Chloride Tablet__Issue Request Sodium Chloride Tablet new.txt:17-18" },
+    { "question": "Assay calculation Result = E.P x F x Eq.wt / Wt x 100 does not include the 50 mL of 0.1 M silver nitrate added (back titration needs 50 x F(AgNO3) minus V(NH4SCN) x F(NH4SCN)), and the result is 'of the stated amount' (label claim) but no average tablet weight or label amount is given. Formula as written cannot give % of stated amount; no formula recorded beyond the quoted text.", "source": "Sodium Chloride Tablet__STM Sodium Chloride Tablet 1-3.txt:30" },
+    { "question": "Assay limit 95.0 to 105.0% 'of the stated amount' is a label-claim basis, which is not one of the resultBasis values; recorded as PercentAsIs with the unit text '% of the stated amount'. Confirm basis.", "source": "Sodium Chloride Tablet__Specifications sheet Sodium Chloride Tablet.txt:14" },
+    { "question": "Identification has no procedure of its own: STM says tablets are circular/spherical, contain about 95% to 105% NaCl, 'proceed as test of assay (6.4)'; spec is 'Comply with BP'. Recorded as a Qualitative row linked to the assay; confirm whether identification should be a separate test or be derived from the assay result.", "source": "Sodium Chloride Tablet__STM Sodium Chloride Tablet 1-3.txt:27; Sodium Chloride Tablet__Specifications sheet Sodium Chloride Tablet.txt:11" },
+    { "question": "Factorization of silver nitrate says to dissolve 'a quantity of the powder containing 0.1 g of Sodium Chloride' (same wording as the alternative assay), i.e. sample powder rather than a primary standard sodium chloride. Confirm the standardization uses a primary standard.", "source": "Sodium Chloride Tablet__STM Sodium Chloride Tablet 1-3.txt:25" },
+    { "question": "'Dilute nitric acid' (used in the ammonium thiocyanate factorization) is not defined in this STM; the assay uses '2M nitric acid'. Strength of 'dilute nitric acid' not stated.", "source": "Sodium Chloride Tablet__STM Sodium Chloride Tablet 1-3.txt:25,30" },
+    { "question": "Spec sheet is version 1/2 (14-08-2024) while the STM is version 1/3; the spec sheet assay reference is 'BP 2024' (no validation reference). Confirm the spec sheet does not need re-issue.", "source": "Sodium Chloride Tablet__Specifications sheet Sodium Chloride Tablet.txt:9,14" }
+  ]
+}

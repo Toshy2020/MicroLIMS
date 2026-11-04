@@ -1,0 +1,1013 @@
+{
+  "itemCode": "STM-RM-097",
+  "itemName": "Pyridoxine Hydrochloride",
+  "stmFile": "Pyridoxine Hydrochloride__STM-Pyridoxine (004) after edit.txt",
+  "specFiles": [
+    "Pyridoxine Hydrochloride__Specifications sheet Pyridoxine Hydrochloride BP.txt",
+    "Pyridoxine Hydrochloride__Specifications sheet Pyridoxine Hydrochloride USP.txt"
+  ],
+  "minQuantity": {
+    "routine": 100,
+    "retest": null,
+    "retention": 80,
+    "unit": "g",
+    "source": "Pyridoxine Hydrochloride__Specifications sheet Pyridoxine Hydrochloride BP.txt:27; Pyridoxine Hydrochloride__Specifications sheet Pyridoxine Hydrochloride USP.txt:22; Pyridoxine Hydrochloride__STM-Pyridoxine (004) after edit.txt:58"
+  },
+  "grades": [
+    {
+      "grade": "BP",
+      "rows": [
+        {
+          "testCode": "RM-DESC",
+          "parameterName": "Appearance",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "White or almost white, crystalline powder.",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Pyridoxine Hydrochloride__Specifications sheet Pyridoxine Hydrochloride BP.txt:11"
+        },
+        {
+          "testCode": "RM-SOLUB",
+          "parameterName": "Solubility",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Freely soluble in water, slightly soluble in ethanol (96 per cent).",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Pyridoxine Hydrochloride__Specifications sheet Pyridoxine Hydrochloride BP.txt:12"
+        },
+        {
+          "testCode": "RM-MP",
+          "parameterName": "Melting Point",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "About 205 °C, with decomposition",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Pyridoxine Hydrochloride__Specifications sheet Pyridoxine Hydrochloride BP.txt:13"
+        },
+        {
+          "testCode": "RM-ID-UV",
+          "parameterName": "Identification (UV spectrophotometry)",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Specific absorbances at the absorption maxima: 425-445 for solution B at 288-296 nm; 175-195 for solution C at 248-256 nm; 345-365 for solution C at 320-327 nm",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Pyridoxine Hydrochloride__Specifications sheet Pyridoxine Hydrochloride BP.txt:14"
+        },
+        {
+          "testCode": "RM-ID-IR",
+          "parameterName": "Identification (IR)",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "The spectrum obtained for sample corresponds to the spectrum obtained for the standard",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Pyridoxine Hydrochloride__Specifications sheet Pyridoxine Hydrochloride BP.txt:15"
+        },
+        {
+          "testCode": "RM-ID-TLC",
+          "parameterName": "Identification (Thin-layer chromatography)",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "The principal spot in the chromatogram obtained with the test solution is similar in position, colour and size to the principal spot in the chromatogram obtained with the reference solution.",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Pyridoxine Hydrochloride__Specifications sheet Pyridoxine Hydrochloride BP.txt:16"
+        },
+        {
+          "testCode": "RM-ID-CL-BP",
+          "parameterName": "Identification (Reaction of chlorides)",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "The precipitate dissolves easily except for a few large particles which dissolve slowly.",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Pyridoxine Hydrochloride__Specifications sheet Pyridoxine Hydrochloride BP.txt:17"
+        },
+        {
+          "testCode": "RM-SOL-APPEAR",
+          "parameterName": "Appearance of solution",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Solution S is clear and not more intensely coloured than reference solution Y7",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Pyridoxine Hydrochloride__Specifications sheet Pyridoxine Hydrochloride BP.txt:18"
+        },
+        {
+          "testCode": "RM-LOD",
+          "parameterName": "Loss on Drying",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 0.5,
+          "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Pyridoxine Hydrochloride__Specifications sheet Pyridoxine Hydrochloride BP.txt:19"
+        },
+        {
+          "testCode": "RM-ASH",
+          "parameterName": "Sulfated Ash",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 0.1,
+          "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Pyridoxine Hydrochloride__Specifications sheet Pyridoxine Hydrochloride BP.txt:20"
+        },
+        {
+          "testCode": "RM-PH",
+          "parameterName": "pH",
+          "limitType": "Range",
+          "lower": 2.4,
+          "upper": 3.0,
+          "lowerInclusive": true,
+          "unit": null,
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Pyridoxine Hydrochloride__Specifications sheet Pyridoxine Hydrochloride BP.txt:21"
+        },
+        {
+          "testCode": "RM-ASSAY-TITR",
+          "parameterName": "Assay",
+          "limitType": "Range",
+          "lower": 99.0,
+          "upper": 101.0,
+          "lowerInclusive": true,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": "PercentDriedBasis",
+          "referenceStandard": "BP",
+          "source": "Pyridoxine Hydrochloride__Specifications sheet Pyridoxine Hydrochloride BP.txt:22"
+        },
+        {
+          "testCode": "RM-RS",
+          "parameterName": "Related substances: Impurity B",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 0.15,
+          "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Pyridoxine Hydrochloride__Specifications sheet Pyridoxine Hydrochloride BP.txt:23"
+        },
+        {
+          "testCode": "RM-RS",
+          "parameterName": "Related substances: Unspecified impurities (each)",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 0.1,
+          "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Pyridoxine Hydrochloride__Specifications sheet Pyridoxine Hydrochloride BP.txt:23"
+        },
+        {
+          "testCode": "RM-RS",
+          "parameterName": "Related substances: Total",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 0.2,
+          "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Pyridoxine Hydrochloride__Specifications sheet Pyridoxine Hydrochloride BP.txt:23"
+        },
+        {
+          "testCode": "RM-TAMC",
+          "parameterName": "Total aerobic microbial count (TAMC)",
+          "limitType": "CountTiered",
+          "lower": null,
+          "upper": 1000,
+          "lowerInclusive": null,
+          "unit": "CFU/g",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Pyridoxine Hydrochloride__Specifications sheet Pyridoxine Hydrochloride BP.txt:24"
+        },
+        {
+          "testCode": "RM-TYMC",
+          "parameterName": "Total Yeast and mold count (TYMC)",
+          "limitType": "CountTiered",
+          "lower": null,
+          "upper": 100,
+          "lowerInclusive": null,
+          "unit": "CFU/g",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Pyridoxine Hydrochloride__Specifications sheet Pyridoxine Hydrochloride BP.txt:25"
+        },
+        {
+          "testCode": "RM-ECOLI",
+          "parameterName": "Test for E.coli",
+          "limitType": "PresenceAbsence",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": "per 10 g",
+          "expectedResultText": "Absent/ 10 gm",
+          "expectedState": "Absence",
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Pyridoxine Hydrochloride__Specifications sheet Pyridoxine Hydrochloride BP.txt:26"
+        }
+      ]
+    },
+    {
+      "grade": "USP",
+      "rows": [
+        {
+          "testCode": "RM-DESC",
+          "parameterName": "Description",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "White to practically white crystals or crystalline powder.",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Pyridoxine Hydrochloride__Specifications sheet Pyridoxine Hydrochloride USP.txt:11"
+        },
+        {
+          "testCode": "RM-SOLUB",
+          "parameterName": "Solubility",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Freely soluble in water; slightly soluble in alcohol; insoluble in ether",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Pyridoxine Hydrochloride__Specifications sheet Pyridoxine Hydrochloride USP.txt:12"
+        },
+        {
+          "testCode": "RM-ID-IR",
+          "parameterName": "Identification (IR)",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "The spectrum obtained for sample corresponds to the spectrum obtained for the standard",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Pyridoxine Hydrochloride__Specifications sheet Pyridoxine Hydrochloride USP.txt:13"
+        },
+        {
+          "testCode": "RM-ID-CL-USP",
+          "parameterName": "Identification (Reactions of Chloride)",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "solutions of chlorides yield a white, curdy precipitate that is insoluble in nitric acid but is soluble in a slight excess of 6 N ammonium hydroxide.",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Pyridoxine Hydrochloride__Specifications sheet Pyridoxine Hydrochloride USP.txt:14"
+        },
+        {
+          "testCode": "RM-LOD",
+          "parameterName": "Loss on Drying",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 0.5,
+          "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Pyridoxine Hydrochloride__Specifications sheet Pyridoxine Hydrochloride USP.txt:15"
+        },
+        {
+          "testCode": "RM-ASH",
+          "parameterName": "Residue on Ignition",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 0.1,
+          "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Pyridoxine Hydrochloride__Specifications sheet Pyridoxine Hydrochloride USP.txt:16"
+        },
+        {
+          "testCode": "RM-CL-CONTENT",
+          "parameterName": "Content of Chloride",
+          "limitType": "Range",
+          "lower": 16.9,
+          "upper": 17.6,
+          "lowerInclusive": true,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": "PercentDriedBasis",
+          "referenceStandard": "USP",
+          "source": "Pyridoxine Hydrochloride__Specifications sheet Pyridoxine Hydrochloride USP.txt:17"
+        },
+        {
+          "testCode": "RM-ASSAY-HPLC",
+          "parameterName": "Assay",
+          "limitType": "Range",
+          "lower": 98.0,
+          "upper": 102.0,
+          "lowerInclusive": true,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": "PercentDriedBasis",
+          "referenceStandard": "USP",
+          "source": "Pyridoxine Hydrochloride__Specifications sheet Pyridoxine Hydrochloride USP.txt:18"
+        },
+        {
+          "testCode": "RM-TAMC",
+          "parameterName": "Total aerobic microbial count (TAMC)",
+          "limitType": "CountTiered",
+          "lower": null,
+          "upper": 1000,
+          "lowerInclusive": null,
+          "unit": "CFU/g",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Pyridoxine Hydrochloride__Specifications sheet Pyridoxine Hydrochloride USP.txt:19"
+        },
+        {
+          "testCode": "RM-TYMC",
+          "parameterName": "Total Yeast and mold count (TYMC)",
+          "limitType": "CountTiered",
+          "lower": null,
+          "upper": 100,
+          "lowerInclusive": null,
+          "unit": "CFU/g",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Pyridoxine Hydrochloride__Specifications sheet Pyridoxine Hydrochloride USP.txt:20"
+        },
+        {
+          "testCode": "RM-ECOLI",
+          "parameterName": "Test for E.coli",
+          "limitType": "PresenceAbsence",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": "per 10 g",
+          "expectedResultText": "Absent/ 10 gm",
+          "expectedState": "Absence",
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Pyridoxine Hydrochloride__Specifications sheet Pyridoxine Hydrochloride USP.txt:21"
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "testCode": "RM-DESC",
+      "procedure": "Under strong white light check each received container separately in a clean transparent watch glass or glass dish for foreign particles, colour and conformity with the visual specification.",
+      "kind": "general",
+      "workflow": "Observation",
+      "details": {
+        "perContainer": true,
+        "grades": [
+          "BP",
+          "USP"
+        ],
+        "usp_stm_text": "White to practically white crystals or crystalline powder. Is stable in air, and is slowly affected by sunlight. Its solutions have a pH of about 3. (spec sheet gives only the first sentence)",
+        "bp_stm_text": "White or almost white, crystalline powder."
+      },
+      "source": "Pyridoxine Hydrochloride__STM-Pyridoxine (004) after edit.txt:45"
+    },
+    {
+      "testCode": "RM-SOLUB",
+      "procedure": "Weigh 100 mg powdered sample in a stoppered tube; add 0.1 mL solvent, shake vigorously 1 min, hold at 25.0 ± 0.5 °C for 15 min, repeat shake/hold once if not dissolved; stepwise add 0.9 mL, 2 mL, 7 mL solvent (same shake and hold) to classify very soluble / freely soluble / soluble / sparingly soluble; if still undissolved use 10 mg in 10 mL (slightly soluble) then 1 mg in 10 mL (very slightly soluble), else practically insoluble. Repeat with the other solvents.",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {
+        "grades": [
+          "BP",
+          "USP"
+        ],
+        "sample": "100 mg powdered",
+        "temperature": "25.0 ± 0.5 °C",
+        "holdMin": 15,
+        "shakeMin": 1,
+        "volumesMl": [
+          0.1,
+          0.9,
+          2,
+          7
+        ],
+        "smallSampleSteps": [
+          "10 mg in 10 mL",
+          "1 mg in 10 mL"
+        ],
+        "solventsBP": [
+          "water",
+          "ethanol (96 per cent)"
+        ],
+        "solventsUSP": [
+          "water",
+          "alcohol",
+          "ether"
+        ]
+      },
+      "source": "Pyridoxine Hydrochloride__STM-Pyridoxine (004) after edit.txt:46"
+    },
+    {
+      "testCode": "RM-MP",
+      "procedure": "Measure the melting point with a calibrated melting point apparatus.",
+      "kind": "general",
+      "workflow": "Measurement",
+      "details": {
+        "grades": [
+          "BP"
+        ],
+        "expected": "About 205 °C, with decomposition",
+        "note": "heating rate / capillary details not stated"
+      },
+      "source": "Pyridoxine Hydrochloride__STM-Pyridoxine (004) after edit.txt:47"
+    },
+    {
+      "testCode": "RM-ID-UV",
+      "procedure": "UV identification (BP): solution A = 1.0 mL solution S to 50.0 mL with 10.3 g/L HCl; solution B = 1.0 mL A to 100.0 mL with 10.3 g/L HCl; solution C = 1.0 mL A to 100.0 mL with KH2PO4 0.025 M + Na2HPO4 0.025 M solution. Scan B 250-350 nm, C 220-350 nm; read specific absorbances at the maxima.",
+      "kind": "specific",
+      "workflow": "UvSpectrophotometry",
+      "details": {
+        "grades": [
+          "BP"
+        ],
+        "solutionS": "2.50 g in CO2-free water to 50.0 mL",
+        "solutionA": "1.0 mL S to 50.0 mL with 10.3 g/L hydrochloric acid",
+        "solutionB": "1.0 mL A to 100.0 mL with 10.3 g/L hydrochloric acid",
+        "solutionC": "1.0 mL A to 100.0 mL with phosphate solution",
+        "phosphateSolution": "3.39 g KH2PO4 + 3.53 g Na2HPO4, both dried 2 h at 120 ± 2 °C, in CO2-free water to 1000.0 mL (STM line 42)",
+        "spectralRangeNm": {
+          "B": "250-350",
+          "C": "220-350"
+        },
+        "maximaNm": {
+          "B": "288-296",
+          "C": [
+            "248-256",
+            "320-327"
+          ]
+        },
+        "specificAbsorbance_A1pct_1cm": [
+          {
+            "solution": "B",
+            "wavelengthNm": "288-296",
+            "range": "425-445"
+          },
+          {
+            "solution": "C",
+            "wavelengthNm": "248-256",
+            "range": "175-195"
+          },
+          {
+            "solution": "C",
+            "wavelengthNm": "320-327",
+            "range": "345-365"
+          }
+        ],
+        "reference": "BP 2.2.25"
+      },
+      "source": "Pyridoxine Hydrochloride__STM-Pyridoxine (004) after edit.txt:48"
+    },
+    {
+      "testCode": "RM-ID-IR",
+      "procedure": "IR identification: mix sample intimately with potassium bromide, compress to a transparent pellet, compare the spectrum with that of Pyridoxine Hydrochloride RS or WS.",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "details": {
+        "grades": [
+          "BP",
+          "USP"
+        ],
+        "technique": "KBr pellet",
+        "standard": "Pyridoxine Hydrochloride RS or WS",
+        "reference": "USP <197M>; BP 2.2.24"
+      },
+      "source": "Pyridoxine Hydrochloride__STM-Pyridoxine (004) after edit.txt:48"
+    },
+    {
+      "testCode": "RM-ID-CL-USP",
+      "procedure": "USP chloride identification: to a solution containing about 2 mg chloride ion in 2 mL add 1 drop diluted nitric acid and 0.5 mL silver nitrate TS; white curdy precipitate; centrifuge at once, decant, wash precipitate with three 1-mL portions of nitric acid solution (1 in 100), discard washings; add ammonia TS dropwise; it dissolves readily.",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "details": {
+        "grades": [
+          "USP"
+        ],
+        "reference": "USP <191>",
+        "silverNitrateTS": "0.1 N silver nitrate: about 17.5 g in 1000 mL water",
+        "ammoniaTS": "350 mL ammonia water diluted to 1000 mL",
+        "nitricAcidDilute": "20 g nitric acid to 100 mL with water"
+      },
+      "source": "Pyridoxine Hydrochloride__STM-Pyridoxine (004) after edit.txt:48"
+    },
+    {
+      "testCode": "RM-ID-TLC",
+      "procedure": "TLC identification: test solution 1.0 g in water to 10 mL, then 1 mL to 10 mL; reference solution 0.10 g Pyridoxine Hydrochloride RS or WS in water to 10 mL; TLC silica gel G plate; mobile phase concentrated ammonia : methylene chloride : tetrahydrofuran : acetone 9:13:13:65; apply 2 µL; unsaturated tank, 15 cm path; dry in air; spray 50 g/L sodium carbonate in ethanol (96 per cent) 30 : water 70, dry in air current, spray 1 g/L dichloroquinonechlorimide in ethanol (96 per cent), examine immediately.",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "details": {
+        "grades": [
+          "BP"
+        ],
+        "plate": "TLC silica gel G",
+        "mobilePhase": "concentrated ammonia:methylene chloride:tetrahydrofuran:acetone 9:13:13:65 V/V/V/V",
+        "application": "2 µL",
+        "path": "15 cm, unsaturated tank",
+        "reference": "BP 2.2.27"
+      },
+      "source": "Pyridoxine Hydrochloride__STM-Pyridoxine (004) after edit.txt:48"
+    },
+    {
+      "testCode": "RM-ID-CL-BP",
+      "procedure": "BP reaction of chlorides: to 2 mL solution S acidify with dilute nitric acid and add 0.4 mL silver nitrate solution R1; shake, stand; curdled white precipitate; centrifuge, wash with three 1-mL portions of water (rapidly, subdued light); suspend precipitate in 2 mL water, add 1.5 mL ammonia.",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "details": {
+        "grades": [
+          "BP"
+        ],
+        "silverNitrateR1": "4.25 g silver nitrate to 100 mL water",
+        "solutionS": "2.50 g in CO2-free water to 50.0 mL",
+        "reference": "BP Appendix VI Chlorides"
+      },
+      "source": "Pyridoxine Hydrochloride__STM-Pyridoxine (004) after edit.txt:48"
+    },
+    {
+      "testCode": "RM-SOL-APPEAR",
+      "procedure": "Appearance of solution (BP, Method II): solution S (2.50 g in CO2-free water to 50.0 mL) is compared with reference solution Y7.",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "details": {
+        "grades": [
+          "BP"
+        ],
+        "solutionS": "2.50 g in CO2-free water to 50.0 mL",
+        "Y7": "2.5 mL standard solution Y (yellow) made up to 100 mL (97.5 mL) with hydrochloric acid (10 g/L)",
+        "standardSolutionY": "yellow solution 2.4 + red solution 0.6 + 7.0 mL hydrochloric acid (10 g/L)",
+        "yellowSolution": "46 g ferric chloride in about 900 mL of (25 mL HCl + 975 mL water), to 1000.0 mL with the same mixture",
+        "redSolution": "60 g cobalt chloride in about 900 mL of (25 mL HCl + 975 mL water), to 1000.0 mL with the same mixture",
+        "reference": "BP 2.2.2 Method II"
+      },
+      "source": "Pyridoxine Hydrochloride__STM-Pyridoxine (004) after edit.txt:49; reagents Pyridoxine Hydrochloride__STM-Pyridoxine (004) after edit.txt:42"
+    },
+    {
+      "testCode": "RM-PH",
+      "procedure": "Measure pH of solution S with a calibrated pH meter.",
+      "kind": "general",
+      "workflow": "Measurement",
+      "details": {
+        "grades": [
+          "BP"
+        ],
+        "solutionS": "2.50 g in CO2-free water to 50.0 mL",
+        "reference": "BP 2.2.3"
+      },
+      "source": "Pyridoxine Hydrochloride__STM-Pyridoxine (004) after edit.txt:50"
+    },
+    {
+      "testCode": "RM-LOD",
+      "procedure": "Weigh empty weighing bottle (previously dried at 105 °C, cooled in desiccator) W1; weigh accurately 1.000 g sample W2; dry (BP: calibrated oven at 105 °C; USP: in vacuum over silica gel for 4 h), cool in desiccator, weigh W3; repeat to constant weight. % LOD = ((W1 + W2) - W3) / W2 x 100.",
+      "kind": "general",
+      "workflow": "Gravimetric",
+      "details": {
+        "grades": [
+          "BP",
+          "USP"
+        ],
+        "sampleG": 1.0,
+        "bpDrying": "oven 105 °C (time not stated, to constant weight)",
+        "uspDrying": "vacuum over silica gel, 4 h",
+        "formula": "%LOD = ((W1+W2)-W3)/W2 x 100",
+        "W1": "empty weighing bottle",
+        "W2": "sample",
+        "W3": "bottle + dried substance",
+        "reference": "BP IX D; USP <731>"
+      },
+      "source": "Pyridoxine Hydrochloride__STM-Pyridoxine (004) after edit.txt:51"
+    },
+    {
+      "testCode": "RM-ASH",
+      "procedure": "Weigh empty crucible (ignited at 600 ± 50 °C ~30 min, cooled in desiccator) W1; weigh 1.0 g sample W2; moisten with ~1 mL sulfuric acid, char gently on hot plate, moisten residue again with sulfuric acid, heat until white fumes cease, ignite in muffle at 600 ± 50 °C until completely incinerated, cool in desiccator, weigh W3; repeat to constant weight (repeat moistening/ignition in 30 min periods until two weighings differ by no more than 0.5 mg or limit met). % = (W3 - W1) / W2 x 100.",
+      "kind": "general",
+      "workflow": "Gravimetric",
+      "details": {
+        "grades": [
+          "BP",
+          "USP"
+        ],
+        "sampleG": 1.0,
+        "ignitionTemp": "600 ± 50 °C",
+        "crucibleConditioning": "ignited at 600 ± 50 °C about 30 min",
+        "sulfuricAcid": "about 1 mL, twice",
+        "constantWeightCriterion": "2 consecutive weighings not differing by more than 0.5 mg",
+        "formula": "% = (W3-W1)/W2 x 100",
+        "reference": "USP <281>; BP 2.4.14",
+        "note": "BP name Sulfated Ash, USP name Residue on Ignition, same procedure and limit"
+      },
+      "source": "Pyridoxine Hydrochloride__STM-Pyridoxine (004) after edit.txt:52"
+    },
+    {
+      "testCode": "RM-CL-CONTENT",
+      "procedure": "Content of chloride (USP), titrimetric direct titration: dissolve 500 mg sample in 50 mL methanol, add 5 mL glacial acetic acid and 2-3 drops eosin Y TS; titrate with 0.1 N silver nitrate VS (visual endpoint); blank = 50 mL methanol. Result % = ((VS - VB) x N x F / W) x 100, F = 35.45 mg/mEq, W in mg.",
+      "kind": "specific",
+      "workflow": "Titration",
+      "details": {
+        "grades": [
+          "USP"
+        ],
+        "sampleMg": 500,
+        "solvent": "50 mL methanol",
+        "additions": "5 mL glacial acetic acid; 2-3 drops eosin Y TS",
+        "indicator": "Eosin Y TS (50 mg in 10 mL water)",
+        "titrant": "silver nitrate",
+        "titrantNormality": 0.1,
+        "titrantPreparation": "about 17.5 g silver nitrate in 1000 mL water",
+        "equivalenceFactor": "35.45 mg Cl per mEq (each mL of 1 N titrant = 35.45 mg Cl)",
+        "endpoint": "visual",
+        "mode": "direct",
+        "blank": "50 mL methanol",
+        "formula": "Result = [((VS-VB) x N x F)/W] x 100",
+        "reference": "USP <541>",
+        "specBasis": "dried basis"
+      },
+      "source": "Pyridoxine Hydrochloride__STM-Pyridoxine (004) after edit.txt:53"
+    },
+    {
+      "testCode": "RM-ASSAY-TITR",
+      "procedure": "Assay (BP, potentiometry): dissolve previously dried 0.150 g in 5 mL anhydrous formic acid, add 50 mL acetic anhydride, titrate with 0.1 M perchloric acid, endpoint potentiometric; blank titration. Each mL of 0.1 M perchloric acid is equivalent to 20.56 mg C8H12ClNO3. Assay % = (E.P x Eq.wt x F / Wt) x 100.",
+      "kind": "specific",
+      "workflow": "Titration",
+      "details": {
+        "grades": [
+          "BP"
+        ],
+        "sampleG": 0.15,
+        "samplePrep": "previously dried",
+        "solvent": "5 mL anhydrous formic acid + 50 mL acetic anhydride",
+        "titrant": "perchloric acid",
+        "titrantMolarity": 0.1,
+        "equivalenceFactor": "each mL of 0.1 M perchloric acid is equivalent to 20.56 mg of C8H12ClNO3",
+        "endpoint": "potentiometric",
+        "blank": "blank titration carried out",
+        "formula": "Assay % = (E.P x Eq.wt x F / Wt) x 100; E.P = end point volume, Eq.wt = 20.56 mg, F = titrant factor, Wt = sample weight",
+        "titrantPreparation": "0.1M Perchloric Acid VS: 8.5 mL perchloric acid in about 900 mL glacial acetic acid, add 30 mL acetic anhydride, to 1000.0 mL with glacial acetic acid, stand 24 h",
+        "titrantStandardization": "0.170 g potassium hydrogen phthalate in 50 mL anhydrous acetic acid (warm gently if needed), cool protected from air, titrate with the perchloric acid solution, endpoint potentiometric or 0.05 mL crystal violet solution; 1 mL 0.1 M perchloric acid = 20.42 mg C8H5KO4",
+        "crystalVioletSolution": "0.5 g crystal violet in anhydrous acetic acid to 100 mL",
+        "reference": "BP 2.2.20",
+        "specBasis": "dried substance"
+      },
+      "source": "Pyridoxine Hydrochloride__STM-Pyridoxine (004) after edit.txt:54; titrant Pyridoxine Hydrochloride__STM-Pyridoxine (004) after edit.txt:42"
+    },
+    {
+      "testCode": "RM-ASSAY-HPLC",
+      "procedure": "Assay (USP, HPLC with internal standard). Mobile phase: 10 mL glacial acetic acid + 0.6 g sodium 1-hexanesulfonate + 700 mL water in 1000-mL flask, adjust to pH 3.0 with glacial acetic acid or 1 N NaOH, add 235 mL methanol, dilute to volume with water. Internal standard solution 5 mg/mL p-hydroxybenzoic acid in mobile phase. Standard: 0.5 mg/mL Pyridoxine HCl RS or WS in mobile phase; 10.0 mL + 1.0 mL internal standard solution to 100 mL with mobile phase. Sample: same with sample. Result % = (RU/RS) x (CS/CU) x 100.",
+      "kind": "specific",
+      "workflow": "HplcMethodAssay",
+      "details": {
+        "grades": [
+          "USP"
+        ],
+        "mode": "LC",
+        "detector": "UV 280 nm",
+        "column": "4.6-mm x 25-cm; packing L1",
+        "flowRateMlMin": 1.5,
+        "injectionUl": 20,
+        "mobilePhase": "10 mL glacial acetic acid, 0.6 g sodium 1-hexanesulfonate, 700 mL water in 1000 mL flask; pH 3.0 (glacial acetic acid or 1 N NaOH); add 235 mL methanol; dilute with water to volume",
+        "internalStandard": "p-hydroxybenzoic acid, 5 mg/mL in mobile phase",
+        "standardSolution": "0.5 mg/mL Pyridoxine Hydrochloride RS or WS in mobile phase; 10.0 mL + 1.0 mL internal standard solution diluted to 100 mL with mobile phase",
+        "sampleSolution": "0.5 mg/mL Pyridoxine Hydrochloride in mobile phase; 10.0 mL + 1.0 mL internal standard solution diluted to 100 mL with mobile phase",
+        "systemSuitability": {
+          "sample": "Standard solution",
+          "resolution": "NLT 2.5 between pyridoxine and p-hydroxybenzoic acid",
+          "rsdRatio": "NMT 3.0% for ratios of pyridoxine peak area to internal standard peak area",
+          "relativeRetention": "pyridoxine about 0.7, p-hydroxybenzoic acid about 1.0"
+        },
+        "formula": "Result = (RU/RS) x (CS/CU) x 100; RU, RS = peak response ratio pyridoxine/internal standard in sample, standard; CS = conc of USP Pyridoxine Hydrochloride RS (mg/mL); CU = conc of sample (mg/mL)",
+        "reference": "USP <621>",
+        "specBasis": "dried basis"
+      },
+      "source": "Pyridoxine Hydrochloride__STM-Pyridoxine (004) after edit.txt:54"
+    },
+    {
+      "testCode": "RM-RS",
+      "procedure": "Related substances (BP, LC): test solution 25 mg in water to 10.0 mL; reference (a) 1.0 mL test solution to 100.0 mL with water then 1.0 mL to 10.0 mL; reference (b) 2.5 mg pyridoxine impurity A RS + 2.5 mg 4-deoxypyridoxine HCl (impurity B) in water to 10.0 mL, then 2.0 mL to 10.0 mL. Column 0.25 m x 4.6 mm base-deactivated end-capped octadecylsilyl silica 5 µm; mobile phase 2.72 g KH2PO4 in 900 mL water, pH 3.0 with dilute phosphoric acid, to 1000 mL; 1.0 mL/min; 210 nm; 5 µL; run time 2.5 x retention of pyridoxine.",
+      "kind": "specific",
+      "workflow": "HplcMethodAssay",
+      "details": {
+        "grades": [
+          "BP"
+        ],
+        "testSolution": "25 mg in water to 10.0 mL",
+        "referenceA": "1.0 mL test solution to 100.0 mL with water; 1.0 mL of this to 10.0 mL with water",
+        "referenceB": "2.5 mg pyridoxine impurity A RS + 2.5 mg 4-deoxypyridoxine hydrochloride (impurity B) in water to 10.0 mL; 2.0 mL to 10.0 mL with water",
+        "column": "l = 0.25 m, 4.6 mm id; base-deactivated end-capped octadecylsilyl silica gel for chromatography R (5 µm)",
+        "mobilePhase": "2.72 g KH2PO4 in 900 mL water, adjust to pH 3.0 with dilute phosphoric acid, dilute to 1000 mL with water",
+        "flowRateMlMin": 1.0,
+        "detectorNm": 210,
+        "injectionUl": 5,
+        "runTime": "2.5 times the retention time of pyridoxine",
+        "retention": "pyridoxine about 12 min; impurity A about 1.7 relative; impurity B about 1.9 relative",
+        "systemSuitability": "resolution minimum 1.5 between impurity A and impurity B peaks in reference solution (b)",
+        "quantitation": "for each impurity use the concentration of pyridoxine hydrochloride in reference solution (a)",
+        "limits": {
+          "impurityB": "max 0.15 per cent",
+          "unspecified": "each max 0.10 per cent",
+          "total": "max 0.2 per cent",
+          "disregardLimit": "max 0.05 per cent (STM only, not on spec sheet)"
+        },
+        "reference": "BP 2.2.29"
+      },
+      "source": "Pyridoxine Hydrochloride__STM-Pyridoxine (004) after edit.txt:55"
+    },
+    {
+      "testCode": "RM-TAMC",
+      "procedure": "Microbiological examination per SOP C2I-91-128 and the material-specific verification report.",
+      "kind": "general",
+      "workflow": "CountTest",
+      "details": {
+        "limit": "Not more than 10^3 CFU/gm",
+        "reference": "USP <2023>",
+        "sop": "C2I-91-128"
+      },
+      "source": "Pyridoxine Hydrochloride__STM-Pyridoxine (004) after edit.txt:56"
+    },
+    {
+      "testCode": "RM-TYMC",
+      "procedure": "Microbiological examination per SOP C2I-91-128 and the material-specific verification report.",
+      "kind": "general",
+      "workflow": "CountTest",
+      "details": {
+        "limit": "Not more than 10^2 CFU/gm",
+        "reference": "USP <2023>",
+        "sop": "C2I-91-128"
+      },
+      "source": "Pyridoxine Hydrochloride__STM-Pyridoxine (004) after edit.txt:56"
+    },
+    {
+      "testCode": "RM-ECOLI",
+      "procedure": "Microbiological examination per SOP C2I-91-128 and the material-specific verification report.",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {
+        "limit": "Absent/10 gm",
+        "reference": "USP <2023>",
+        "sop": "C2I-91-128"
+      },
+      "source": "Pyridoxine Hydrochloride__STM-Pyridoxine (004) after edit.txt:56"
+    }
+  ],
+  "notApplicable": [],
+  "supplierAttributes": [],
+  "reagents": [
+    {
+      "name": "0.1M Perchloric Acid VS",
+      "use": "titrant",
+      "source": "Pyridoxine Hydrochloride__STM-Pyridoxine (004) after edit.txt:42"
+    },
+    {
+      "name": "Potassium hydrogen phthalate",
+      "use": "standard",
+      "source": "Pyridoxine Hydrochloride__STM-Pyridoxine (004) after edit.txt:42"
+    },
+    {
+      "name": "Crystal Violet Solution",
+      "use": "indicator",
+      "source": "Pyridoxine Hydrochloride__STM-Pyridoxine (004) after edit.txt:42"
+    },
+    {
+      "name": "Anhydrous formic acid",
+      "use": "reagent",
+      "source": "Pyridoxine Hydrochloride__STM-Pyridoxine (004) after edit.txt:41"
+    },
+    {
+      "name": "Acetic anhydride",
+      "use": "reagent",
+      "source": "Pyridoxine Hydrochloride__STM-Pyridoxine (004) after edit.txt:41"
+    },
+    {
+      "name": "Silver Nitrate TS (0.1 N Silver Nitrate VS)",
+      "use": "titrant",
+      "source": "Pyridoxine Hydrochloride__STM-Pyridoxine (004) after edit.txt:42"
+    },
+    {
+      "name": "Eosin Y TS",
+      "use": "indicator",
+      "source": "Pyridoxine Hydrochloride__STM-Pyridoxine (004) after edit.txt:42"
+    },
+    {
+      "name": "Methanol",
+      "use": "reagent",
+      "source": "Pyridoxine Hydrochloride__STM-Pyridoxine (004) after edit.txt:41"
+    },
+    {
+      "name": "Glacial acetic acid",
+      "use": "reagent",
+      "source": "Pyridoxine Hydrochloride__STM-Pyridoxine (004) after edit.txt:41"
+    },
+    {
+      "name": "USP Pyridoxine Hydrochloride RS or WS",
+      "use": "standard",
+      "source": "Pyridoxine Hydrochloride__STM-Pyridoxine (004) after edit.txt:41"
+    },
+    {
+      "name": "p-hydroxybenzoic acid",
+      "use": "standard",
+      "source": "Pyridoxine Hydrochloride__STM-Pyridoxine (004) after edit.txt:41"
+    },
+    {
+      "name": "Sodium 1-hexanesulfonate",
+      "use": "reagent",
+      "source": "Pyridoxine Hydrochloride__STM-Pyridoxine (004) after edit.txt:41"
+    },
+    {
+      "name": "Pyridoxine impurity A CRS",
+      "use": "standard",
+      "source": "Pyridoxine Hydrochloride__STM-Pyridoxine (004) after edit.txt:41"
+    },
+    {
+      "name": "4-deoxypyridoxine hydrochloride (impurity B)",
+      "use": "standard",
+      "source": "Pyridoxine Hydrochloride__STM-Pyridoxine (004) after edit.txt:41"
+    },
+    {
+      "name": "Potassium dihydrogen phosphate",
+      "use": "reagent",
+      "source": "Pyridoxine Hydrochloride__STM-Pyridoxine (004) after edit.txt:41"
+    },
+    {
+      "name": "Disodium hydrogen phosphate",
+      "use": "reagent",
+      "source": "Pyridoxine Hydrochloride__STM-Pyridoxine (004) after edit.txt:41"
+    },
+    {
+      "name": "Phosphoric acid",
+      "use": "reagent",
+      "source": "Pyridoxine Hydrochloride__STM-Pyridoxine (004) after edit.txt:41"
+    },
+    {
+      "name": "Hydrochloric Acid",
+      "use": "reagent",
+      "source": "Pyridoxine Hydrochloride__STM-Pyridoxine (004) after edit.txt:41"
+    },
+    {
+      "name": "Nitric acid",
+      "use": "reagent",
+      "source": "Pyridoxine Hydrochloride__STM-Pyridoxine (004) after edit.txt:41"
+    },
+    {
+      "name": "Ammonium hydroxide (Concentrated ammonia)",
+      "use": "reagent",
+      "source": "Pyridoxine Hydrochloride__STM-Pyridoxine (004) after edit.txt:41"
+    },
+    {
+      "name": "Methylene chloride",
+      "use": "reagent",
+      "source": "Pyridoxine Hydrochloride__STM-Pyridoxine (004) after edit.txt:41"
+    },
+    {
+      "name": "Tetrahydrofuran",
+      "use": "reagent",
+      "source": "Pyridoxine Hydrochloride__STM-Pyridoxine (004) after edit.txt:41"
+    },
+    {
+      "name": "Acetone",
+      "use": "reagent",
+      "source": "Pyridoxine Hydrochloride__STM-Pyridoxine (004) after edit.txt:41"
+    },
+    {
+      "name": "Sodium carbonate",
+      "use": "reagent",
+      "source": "Pyridoxine Hydrochloride__STM-Pyridoxine (004) after edit.txt:41"
+    },
+    {
+      "name": "Ethanol (96 per cent)",
+      "use": "reagent",
+      "source": "Pyridoxine Hydrochloride__STM-Pyridoxine (004) after edit.txt:41"
+    },
+    {
+      "name": "Dichloroquinonechlorimide",
+      "use": "reagent",
+      "source": "Pyridoxine Hydrochloride__STM-Pyridoxine (004) after edit.txt:41"
+    },
+    {
+      "name": "Ferric chloride",
+      "use": "reagent",
+      "source": "Pyridoxine Hydrochloride__STM-Pyridoxine (004) after edit.txt:41"
+    },
+    {
+      "name": "Cobalt chloride",
+      "use": "reagent",
+      "source": "Pyridoxine Hydrochloride__STM-Pyridoxine (004) after edit.txt:41"
+    }
+  ],
+  "openQuestions": [
+    {
+      "question": "Issue request file 'Pyridoxine Hydrochloride__Issue Request Sodium Methyl Paraben.txt' is in fact the issue request for the Pyridoxine Hydrochloride STM (document name, old code C1I-91-242, v1/1), not Sodium Methyl Paraben; it holds no minimum sample quantity, so minQuantity comes from the spec sheets and STM.",
+      "source": "Pyridoxine Hydrochloride__Issue Request Sodium Methyl Paraben.txt:10-11"
+    },
+    {
+      "question": "Minimum quantity: testing = 100 g (spec sheets, STM) and retention = 80 g (STM); no periodic-retest quantity is stated anywhere, so minQuantity.retest is null.",
+      "source": "Pyridoxine Hydrochloride__STM-Pyridoxine (004) after edit.txt:58"
+    },
+    {
+      "question": "BP assay: a blank titration is required but the formula (E.P x Eq.wt x F / Wt) does not subtract it, and Eq.wt is in mg while the unit of Wt is not stated (g vs mg). Row loaded as is; confirm formula (blank-corrected volume, unit of Wt).",
+      "source": "Pyridoxine Hydrochloride__STM-Pyridoxine (004) after edit.txt:54"
+    },
+    {
+      "question": "USP Content of Chloride and USP HPLC Assay are specified 'on the dried basis' but the formulas give no loss-on-drying correction (the BP assay uses a previously dried sample). Confirm whether the sample is dried first or the result corrected for LOD.",
+      "source": "Pyridoxine Hydrochloride__STM-Pyridoxine (004) after edit.txt:53; Pyridoxine Hydrochloride__STM-Pyridoxine (004) after edit.txt:54"
+    },
+    {
+      "question": "0.1 N silver nitrate titrant: only its preparation (about 17.5 g in 1000 mL) is given, no standardization procedure, but the formula needs the actual normality N.",
+      "source": "Pyridoxine Hydrochloride__STM-Pyridoxine (004) after edit.txt:42"
+    },
+    {
+      "question": "USP HPLC assay: number of replicate injections for the RSD NMT 3.0% requirement and column temperature are not stated.",
+      "source": "Pyridoxine Hydrochloride__STM-Pyridoxine (004) after edit.txt:54"
+    },
+    {
+      "question": "BP related substances: STM adds a disregard limit of 0.05 per cent that is not on the BP spec sheet (kept in test details only, no row).",
+      "source": "Pyridoxine Hydrochloride__STM-Pyridoxine (004) after edit.txt:55"
+    },
+    {
+      "question": "Reference solution Y7 recipe: 'Standard solution Y (yellow): Mix 2.4 of yellow solution, 0.6 of red solution and 7.0 ml...' units for 2.4 and 0.6 are missing (mL assumed).",
+      "source": "Pyridoxine Hydrochloride__STM-Pyridoxine (004) after edit.txt:42"
+    }
+  ]
+}

@@ -1,0 +1,198 @@
+{
+  "itemCode": "STM-RM-025",
+  "itemName": "Sodium Selenate Anhydrous",
+  "stmFile": "Sodium Selenate Anhydrous__STM Sodium Selenate Anhydrous.txt",
+  "specFiles": ["Sodium Selenate Anhydrous__Specifications sheet Sodium Selenate Anhydrous.txt"],
+  "minQuantity": { "routine": 130, "retest": 50, "unit": "g", "source": "Sodium Selenate Anhydrous__STM Sodium Selenate Anhydrous.txt:40 (spec sheet :23 states 130 g)" },
+  "grades": [
+    {
+      "grade": "In-house",
+      "rows": [
+        { "testCode": "RM-DESC", "parameterName": "Description", "limitType": "Qualitative", "lower": null, "upper": null, "lowerInclusive": null, "unit": null,
+          "expectedResultText": "White to off-white Crystalline Powder", "expectedState": null, "resultBasis": null,
+          "referenceStandard": "In-house", "source": "Sodium Selenate Anhydrous__Specifications sheet Sodium Selenate Anhydrous.txt:11" },
+        { "testCode": "RM-SOL", "parameterName": "Solubility", "limitType": "Qualitative", "lower": null, "upper": null, "lowerInclusive": null, "unit": null,
+          "expectedResultText": "Freely soluble in water", "expectedState": null, "resultBasis": null,
+          "referenceStandard": "In-house", "source": "Sodium Selenate Anhydrous__Specifications sheet Sodium Selenate Anhydrous.txt:12" },
+        { "testCode": "RM-ID-NA", "parameterName": "Identification - Reaction of sodium", "limitType": "Qualitative", "lower": null, "upper": null, "lowerInclusive": null, "unit": null,
+          "expectedResultText": "A dense white precipitate is formed", "expectedState": null, "resultBasis": null,
+          "referenceStandard": "In-house", "source": "Sodium Selenate Anhydrous__Specifications sheet Sodium Selenate Anhydrous.txt:13" },
+        { "testCode": "RM-BULKD", "parameterName": "Bulk density", "limitType": "Range", "lower": 1.0, "upper": 2.0, "lowerInclusive": true, "unit": "g/mL",
+          "expectedResultText": null, "expectedState": null, "resultBasis": null,
+          "referenceStandard": "In-house", "source": "Sodium Selenate Anhydrous__Specifications sheet Sodium Selenate Anhydrous.txt:14" },
+        { "testCode": "RM-HM", "parameterName": "Heavy metals", "limitType": "NotMoreThan", "lower": null, "upper": 20, "lowerInclusive": null, "unit": "ppm",
+          "expectedResultText": null, "expectedState": null, "resultBasis": null,
+          "referenceStandard": "In-house", "source": "Sodium Selenate Anhydrous__Specifications sheet Sodium Selenate Anhydrous.txt:15" },
+        { "testCode": "RM-LOD", "parameterName": "Loss on drying", "limitType": "NotMoreThan", "lower": null, "upper": 0.5, "lowerInclusive": null, "unit": "% w/w",
+          "expectedResultText": null, "expectedState": null, "resultBasis": null,
+          "referenceStandard": "In-house", "source": "Sodium Selenate Anhydrous__Specifications sheet Sodium Selenate Anhydrous.txt:16" },
+        { "testCode": "RM-SE-TOTAL", "parameterName": "Total Selenium", "limitType": "Range", "lower": 40.9, "upper": 42.6, "lowerInclusive": true, "unit": "%",
+          "expectedResultText": null, "expectedState": null, "resultBasis": null,
+          "referenceStandard": "In-house", "source": "Sodium Selenate Anhydrous__Specifications sheet Sodium Selenate Anhydrous.txt:17" },
+        { "testCode": "RM-SE-SELENATE", "parameterName": "Se as Selenate", "limitType": "NotLessThan", "lower": 99.0, "upper": null, "lowerInclusive": null, "unit": "%",
+          "expectedResultText": null, "expectedState": null, "resultBasis": null,
+          "referenceStandard": "In-house", "source": "Sodium Selenate Anhydrous__Specifications sheet Sodium Selenate Anhydrous.txt:18" },
+        { "testCode": "RM-SE-SELENITE", "parameterName": "Se as Selenite", "limitType": "NotMoreThan", "lower": null, "upper": 1.0, "lowerInclusive": null, "unit": "%",
+          "expectedResultText": null, "expectedState": null, "resultBasis": null,
+          "referenceStandard": "In-house", "source": "Sodium Selenate Anhydrous__Specifications sheet Sodium Selenate Anhydrous.txt:19" },
+        { "testCode": "RM-TAMC", "parameterName": "Total Aerobic Microbial Count (TAMC)", "limitType": "CountTiered", "lower": null, "upper": 1000, "lowerInclusive": null, "unit": "CFU/g",
+          "expectedResultText": null, "expectedState": null, "resultBasis": null,
+          "referenceStandard": "USP 2024 <2023>", "source": "Sodium Selenate Anhydrous__Specifications sheet Sodium Selenate Anhydrous.txt:20; Sodium Selenate Anhydrous__STM Sodium Selenate Anhydrous.txt:38" },
+        { "testCode": "RM-TYMC", "parameterName": "Total combined Yeasts & Molds Count (TYMC)", "limitType": "CountTiered", "lower": null, "upper": 100, "lowerInclusive": null, "unit": "CFU/g",
+          "expectedResultText": null, "expectedState": null, "resultBasis": null,
+          "referenceStandard": "USP 2024 <2023>", "source": "Sodium Selenate Anhydrous__Specifications sheet Sodium Selenate Anhydrous.txt:21; Sodium Selenate Anhydrous__STM Sodium Selenate Anhydrous.txt:38" },
+        { "testCode": "RM-ECOLI", "parameterName": "Test for E. coli", "limitType": "PresenceAbsence", "lower": null, "upper": null, "lowerInclusive": null, "unit": "per 10 g",
+          "expectedResultText": "Absent / 10 gm", "expectedState": "Absence", "resultBasis": null,
+          "referenceStandard": "USP 2024 <2023>", "source": "Sodium Selenate Anhydrous__Specifications sheet Sodium Selenate Anhydrous.txt:22; Sodium Selenate Anhydrous__STM Sodium Selenate Anhydrous.txt:38" }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "testCode": "RM-DESC",
+      "procedure": "Under strong white light check each received sample container separately in a clean transparent watch glass or glass dish for foreign particles, colour and conformance with the visual specification.",
+      "kind": "general",
+      "workflow": "Observation",
+      "details": { "perContainer": true, "specification": "White to off-white Crystalline Powder (supplier certificate)" },
+      "source": "Sodium Selenate Anhydrous__STM Sodium Selenate Anhydrous.txt:30"
+    },
+    {
+      "testCode": "RM-SOL",
+      "procedure": "BP stepwise solubility: 100 mg powdered sample in a stoppered tube + 0.1 mL solvent, then +0.9 mL, +2 mL, +7 mL; then 10 mg / 1 mg in 10 mL; shake 1 min then 15 min at 25.0 ± 0.5 °C at each step. Specification freely soluble in water.",
+      "kind": "general",
+      "workflow": "Observation",
+      "details": {
+        "solvent": "water (from specification)",
+        "steps": "100 mg + 0.1 mL (very soluble); + 0.9 mL (freely soluble); + 2 mL (soluble); + 7 mL (sparingly soluble); 10 mg in 10 mL (slightly soluble); 1 mg in 10 mL (very slightly soluble); else practically insoluble",
+        "temperatureC": "25.0 ± 0.5", "shakeMin": 1, "standMin": 15,
+        "reference": "BP (SC IV K) Characters Section in Monographs"
+      },
+      "source": "Sodium Selenate Anhydrous__STM Sodium Selenate Anhydrous.txt:31"
+    },
+    {
+      "testCode": "RM-ID-NA",
+      "procedure": "Dissolve 0.1 g in 2 mL water; add 2 mL of 150 g/L potassium carbonate; heat to boiling (no precipitate); add 4 mL potassium pyroantimonate solution; heat to boiling; cool in iced water, rubbing the inside of the tube with a glass rod if necessary. Dense white precipitate expected. (Test B, referring to the assay, is not on the spec sheet, see openQuestions.)",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "details": {
+        "sampleG": 0.1, "waterMl": 2, "potassiumCarbonate150gPerLMl": 2, "potassiumPyroantimonateMl": 4,
+        "reference": "BP Appendix VI Qualitative Reactions and Tests, Sodium",
+        "reagent": "Potassium pyroantimonate solution: 2.0 g potassium pyroantimonate R in 100 mL hot water, boil about 5 min, cool quickly, add 10 mL of 150 g/L potassium hydroxide, stand 24 h, filter"
+      },
+      "source": "Sodium Selenate Anhydrous__STM Sodium Selenate Anhydrous.txt:32,28"
+    },
+    {
+      "testCode": "RM-BULKD",
+      "procedure": "Tare a 50 mL cylinder; fill the sample to 50 mL (Vol); weigh the sample (Wt). Bulk density = weight of powder / volume.",
+      "kind": "general",
+      "workflow": "Gravimetric",
+      "details": { "cylinderMl": 50, "calculation": "Bulk density = Wt / Vol", "unit": "g/mL", "limit": "1.0 g/mL - 2.0 g/mL" },
+      "source": "Sodium Selenate Anhydrous__STM Sodium Selenate Anhydrous.txt:33"
+    },
+    {
+      "testCode": "RM-HM",
+      "procedure": "Heavy metals limit test (visual, lead standard). Sample: 1 g in a crucible, wet with sulfuric acid, char at low temperature, add 2 mL nitric acid and 5 drops sulfuric acid, heat until white fumes stop, ignite (preferably muffle furnace) at 500 to 600 until carbon burned off, cool, add 4 mL 6 N hydrochloric acid, cover, digest on steam bath 15 min, uncover, evaporate to dryness, moisten residue with 1 drop HCl, add 10 mL hot water, digest 2 min, add 6 N ammonium hydroxide dropwise until just alkaline to litmus, dilute to 25 mL, adjust with 1 N acetic acid to pH 3.0-4.0 (short-range indicator paper), filter if necessary, rinse crucible and filter with 10 mL water, combine in a 50 mL colour-comparison tube, dilute to 40 mL, mix. Standard: dilute 1.0 mL Stock Lead Standard Solution 1000 ppm to 100.0 mL with water (1 mL = 10 µg lead). To each tube (standard and test) add 2 mL pH 3.5 acetate buffer and 1.2 mL thioacetamide-glycerin base TS (or 3 drops sodium sulfide solution), dilute to 50 mL, mix, stand 2 min, view downward over a white surface; test not darker than standard.",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "details": {
+        "sampleG": 1, "ignitionTempC": "500 to 600 (unit not printed)", "equipment": "Muffle furnace, steam bath, 50 mL colour-comparison tubes",
+        "standard": "1.0 mL Stock Lead Standard Solution 1000 ppm diluted to 100.0 mL with water; 1 mL = 10 µg lead",
+        "acetateBufferPh3_5Ml": 2, "thioacetamideGlycerinBaseTsMl": 1.2, "alternativeSulfide": "3 drops sodium sulfide solution",
+        "finalVolumeMl": 50, "standingMin": 2, "limit": "NMT 20 ppm",
+        "reagents": {
+          "1 N acetic acid": "12 g glacial acetic acid to 100 mL with water",
+          "6 N hydrochloric acid": "50.0 mL hydrochloric acid to 100.0 mL with water",
+          "6M ammonium hydroxide": "33 mL concentrated ammonia to 100 mL with water",
+          "7M hydrochloric acid": "58.3 mL hydrochloric acid to 100.0 mL with water",
+          "2M hydrochloric acid": "206.0 g hydrochloric acid to 1000.0 mL with water",
+          "acetate buffer pH 3.5": "25 g ammonium acetate in 25 mL water + 38 mL 7M HCl, adjust to pH 3.5 with 2M HCl or 6M ammonia, dilute to 100 mL",
+          "thioacetamide-glycerin base TS": "0.2 mL thioacetamide solution + 1 mL of a mixture of 5 mL water, 15 mL 1 M NaOH and 20 mL glycerol (85 per cent); heat in water bath 20 s",
+          "thioacetamide solution": "4.0 g in water to 100 mL",
+          "1 M sodium hydroxide": "4.2 g NaOH to 100.0 mL with water",
+          "sodium sulfide solution": "5 g sodium sulfide in 10 mL water + 30 mL glycerol; 5 g NaOH in 30 mL water + 90 mL glycerol; divide into 2 equal portions, saturate with cooling, mix the 2 portions (text as written)"
+        }
+      },
+      "source": "Sodium Selenate Anhydrous__STM Sodium Selenate Anhydrous.txt:34,28"
+    },
+    {
+      "testCode": "RM-LOD",
+      "procedure": "Dry a weighing bottle at 105 °C and cool in a desiccator (W0). Weigh accurately 1.000 g into it (W1 = bottle + material). Dry in a calibrated oven at 105 °C for 2 h, cool in a desiccator, weigh (W2). Repeat to constant weight. % LOD = (W1 - W2) / (W1 - W0) x 100.",
+      "kind": "general",
+      "workflow": "Gravimetric",
+      "details": { "sampleG": 1.000, "temperatureC": 105, "timeH": 2, "toConstantWeight": true, "equipment": "Calibrated oven, weighing bottle, desiccator", "calculation": "(W1 - W2) / (W1 - W0) x 100", "limit": "Not more than 0.5 % w/w", "reference": "BP Appendix IX D" },
+      "source": "Sodium Selenate Anhydrous__STM Sodium Selenate Anhydrous.txt:35"
+    },
+    {
+      "testCode": "RM-SE-ASSAY",
+      "procedure": "Flame AAS assay of selenium (one procedure stated for the three Se spec rows: total selenium, Se as selenate, Se as selenite). Standard: 5 mL of Selenium standard solution (1000 mg/L) to 50 mL with water (100 ppm). Sample: accurately weigh 23.95 mg of sample (equivalent to 10 mg selenium) into a 100 mL volumetric flask, complete to volume with water, sonicate 10 min. Measure by AAS (calibration graph from the standard as above).",
+      "kind": "specific",
+      "workflow": "IcpMethodAssay",
+      "details": {
+        "technique": "AAS (flame); treated as an ICP-type method per README rule 6",
+        "wavelengthNm": 196, "lamp": "Hollow cathode Se, lamp current 10 mA", "slitWidthNm": 1, "flowType": "Air/Acetylene", "airFlow": 3.5, "acetyleneFlow": 1.5,
+        "standardLevels": "single level: Selenium standard solution 1000 mg/L, 5 mL to 50 mL with water = 100 ppm Se",
+        "standardPreparation": "5 mL Selenium standard solution (1000 mg/L) into a 50 mL volumetric flask, complete to volume with water (100 ppm)",
+        "samplePreparation": "23.95 mg of sample (equivalent to 10 mg Se) into 100 mL volumetric flask, water to volume, sonicate 10 min (about 100 ppm Se)",
+        "calculation": "Assay as selenate % = (Abs test / Abs standard) x (Act.Wt.test / Theo.Wt.test) x (100 / (100 - MC)) x 100; Assay as selenium % = Assay as selenate % x (78.9 / 188.94)",
+        "calculationLegend": "Abs test: absorbance of test solution at the same concentration of standard; Abs standard: absorbance of specific concentration of standard; Act.Wt.test: weight taken actually; Theo.Wt.test: weight to be taken; MC: moisture content of sample; At.wt Se 78.9 g/mol; M.wt sodium selenate 188.94 g/mol",
+        "specifications": { "totalSelenium": "NLT 40.9 and NMT 42.6 %", "seAsSelenate": "NLT 99.0 %", "seAsSelenite": "NMT 1.0 %" },
+        "reference": "Analytical method validation for sodium selenate anhydrous"
+      },
+      "source": "Sodium Selenate Anhydrous__STM Sodium Selenate Anhydrous.txt:36"
+    },
+    {
+      "testCode": "RM-TAMC",
+      "procedure": "Microbial enumeration per SOP C2I-91-128 and the verification report for this material.",
+      "kind": "general",
+      "workflow": "CountTest",
+      "details": { "sop": "C2I-91-128", "limit": "Not more than 10^3 CFU/g", "reference": "USP 2024 <2023>; in-house per microbiological verification report" },
+      "source": "Sodium Selenate Anhydrous__STM Sodium Selenate Anhydrous.txt:38"
+    },
+    {
+      "testCode": "RM-TYMC",
+      "procedure": "Microbial enumeration per SOP C2I-91-128 and the verification report for this material.",
+      "kind": "general",
+      "workflow": "CountTest",
+      "details": { "sop": "C2I-91-128", "limit": "Not more than 10^2 CFU/g", "reference": "USP 2024 <2023>; in-house per microbiological verification report" },
+      "source": "Sodium Selenate Anhydrous__STM Sodium Selenate Anhydrous.txt:38"
+    },
+    {
+      "testCode": "RM-ECOLI",
+      "procedure": "E. coli test per SOP C2I-91-128 and the verification report for this material.",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": { "sop": "C2I-91-128", "limit": "Absent / 10 g", "reference": "USP 2024 <2023>" },
+      "source": "Sodium Selenate Anhydrous__STM Sodium Selenate Anhydrous.txt:38"
+    }
+  ],
+  "notApplicable": [],
+  "supplierAttributes": [
+    { "grade": null, "name": "Particle Size", "statedValue": "Stated by Supplier", "source": "Sodium Selenate Anhydrous__Specifications sheet Sodium Selenate Anhydrous.txt:23" }
+  ],
+  "reagents": [
+    { "name": "Selenium standard solution (1000 mg/L)", "use": "standard", "source": "Sodium Selenate Anhydrous__STM Sodium Selenate Anhydrous.txt:36" },
+    { "name": "Stock Lead Standard Solution 1000 ppm", "use": "standard", "source": "Sodium Selenate Anhydrous__STM Sodium Selenate Anhydrous.txt:34" },
+    { "name": "Hydrochloric acid (2M, 6 N, 7M)", "use": "reagent", "source": "Sodium Selenate Anhydrous__STM Sodium Selenate Anhydrous.txt:28" },
+    { "name": "Ammonium hydroxide (6M)", "use": "reagent", "source": "Sodium Selenate Anhydrous__STM Sodium Selenate Anhydrous.txt:28" },
+    { "name": "Thioacetamide / Thioacetamide-glycerin base TS", "use": "reagent", "source": "Sodium Selenate Anhydrous__STM Sodium Selenate Anhydrous.txt:28" },
+    { "name": "Sodium hydroxide (1 M)", "use": "reagent", "source": "Sodium Selenate Anhydrous__STM Sodium Selenate Anhydrous.txt:28" },
+    { "name": "Glycerol (85 per cent)", "use": "reagent", "source": "Sodium Selenate Anhydrous__STM Sodium Selenate Anhydrous.txt:28" },
+    { "name": "Sodium sulfide solution", "use": "reagent", "source": "Sodium Selenate Anhydrous__STM Sodium Selenate Anhydrous.txt:28" },
+    { "name": "Acetic acid (1 N)", "use": "reagent", "source": "Sodium Selenate Anhydrous__STM Sodium Selenate Anhydrous.txt:28" },
+    { "name": "Ammonium acetate (acetate buffer pH 3.5)", "use": "reagent", "source": "Sodium Selenate Anhydrous__STM Sodium Selenate Anhydrous.txt:28" },
+    { "name": "Potassium carbonate (150 g/L)", "use": "reagent", "source": "Sodium Selenate Anhydrous__STM Sodium Selenate Anhydrous.txt:28,32" },
+    { "name": "Potassium pyroantimonate solution", "use": "reagent", "source": "Sodium Selenate Anhydrous__STM Sodium Selenate Anhydrous.txt:28" },
+    { "name": "Sulfuric acid", "use": "reagent", "source": "Sodium Selenate Anhydrous__STM Sodium Selenate Anhydrous.txt:34" },
+    { "name": "Nitric acid", "use": "reagent", "source": "Sodium Selenate Anhydrous__STM Sodium Selenate Anhydrous.txt:34" }
+  ],
+  "openQuestions": [
+    { "question": "Only one AAS procedure is given (selenium as selenate, converted to selenium by 78.9/188.94). The STM has no procedure for Se as Selenite (NMT 1.0 %) or for how Se as Selenate (NLT 99.0 %) differs from the total; no speciation step is described. No rows' calculations beyond total selenium can be transcribed.", "source": "Sodium Selenate Anhydrous__STM Sodium Selenate Anhydrous.txt:36; Sodium Selenate Anhydrous__Specifications sheet Sodium Selenate Anhydrous.txt:17-19" },
+    { "question": "Basis of the Se result rows is not stated (spec says only '%'). The formula divides by (100-MC) with MC 'moisture content of sample' (dried basis), but no such basis is on the spec sheet. Also unclear what the denominator of 'Se as Selenate %' and 'Se as Selenite %' is (percent of total selenium?). resultBasis left null.", "source": "Sodium Selenate Anhydrous__STM Sodium Selenate Anhydrous.txt:36; Sodium Selenate Anhydrous__Specifications sheet Sodium Selenate Anhydrous.txt:17-19" },
+    { "question": "Assay formula: standard and sample are both prepared at about 100 ppm Se, yet the first result is called 'Assay as Selenate %' and is then multiplied by 78.9/188.94 to give 'Assay as Selenium %'. Which of the two is reported as Total Selenium (40.9-42.6 %)? Also only one standard level is given while the text says 'Calibration graph'.", "source": "Sodium Selenate Anhydrous__STM Sodium Selenate Anhydrous.txt:36" },
+    { "question": "Identification Test B is 'described below in test of Assay', specification 'Comply', but the spec sheet lists only Reaction of Sodium. No row created; is Test B (AAS Se response) a required identification test?", "source": "Sodium Selenate Anhydrous__STM Sodium Selenate Anhydrous.txt:32; Sodium Selenate Anhydrous__Specifications sheet Sodium Selenate Anhydrous.txt:13" },
+    { "question": "Heavy metals: volume of lead standard solution put in the standard tube is not stated (only the 10 µg/mL stock dilution), ignition temperature unit is missing ('500 to 600'), and the STM calls the limit 'BP Specification' while the spec sheet says In-house. Spec reference taken as In-house.", "source": "Sodium Selenate Anhydrous__STM Sodium Selenate Anhydrous.txt:34; Sodium Selenate Anhydrous__Specifications sheet Sodium Selenate Anhydrous.txt:15" },
+    { "question": "Spec sheet technique for LOD is 'Thermogravimetry' but the STM procedure is an oven method at 105 °C for 2 h; transcribed the STM procedure.", "source": "Sodium Selenate Anhydrous__Specifications sheet Sodium Selenate Anhydrous.txt:16; Sodium Selenate Anhydrous__STM Sodium Selenate Anhydrous.txt:35" },
+    { "question": "The STM equipment list does not include an AAS instrument (nor a bulk density cylinder / pH), and lists Polarimeter and TLC that are not used; flame AAS (Se hollow cathode lamp) required by the assay.", "source": "Sodium Selenate Anhydrous__STM Sodium Selenate Anhydrous.txt:28,36" },
+    { "question": "Solubility: the STM procedure names no solvent ('the solvent'); water taken from the specification 'Freely soluble in water'.", "source": "Sodium Selenate Anhydrous__STM Sodium Selenate Anhydrous.txt:31" }
+  ]
+}

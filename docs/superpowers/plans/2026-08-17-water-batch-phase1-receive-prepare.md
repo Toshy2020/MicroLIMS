@@ -6,7 +6,7 @@
 
 **Architecture:** `WaterWorkflowEngine.ReceiveAsync` becomes a shell-only create (no TestOrders), mirroring `EMWorkflowEngine.ReceiveAsync`. A new `PrepareAsync(sampleId, waterSamplingPointIds, userId)` mirrors `EMWorkflowEngine.PrepareAsync`, generating TestOrders/SampleLocations from each point's `AssignedTestCodes`, and linking `SamplingConfiguration` for count tests. The existing single-TestOrder `CalculateAndCompareAsync` continues to serve **legacy** (already-received, per-point) water samples unchanged, but is guarded to reject any TestOrder that went through the new batch `PrepareAsync` — per-location result entry for those ships in Phase 2. Frontend: the receiving grid moves Water into the EM/AC "configured in Preparation" pattern (Department picker instead of Sampling Point), and a new `WaterPreparationForm` (mirroring `EMPreparationForm`) is wired into the existing `PreparationDialog`.
 
-**Tech Stack:** .NET 8 / EF Core 8 (Npgsql, InMemory for tests, xUnit), ASP.NET Core controllers, React + TypeScript + MUI, axios (`apiClient`).
+**Tech Stack:** .NET 10 / EF Core 10 (Npgsql, InMemory for tests, xUnit), ASP.NET Core controllers, React + TypeScript + MUI, axios (`apiClient`).
 
 **Spec:** `docs/superpowers/specs/2026-08-17-water-batch-workflow-design.md` (this plan implements only "Phase 1 — Receive + Prepare" from that spec's phasing section)
 

@@ -44,7 +44,7 @@ export function RolesPage() {
 
   return (
     <>
-      <PageHeader title="Roles" subtitle="System Administrator, Section Head, Reviewer, Analyst, and any custom roles." />
+      <PageHeader title="Roles" subtitle="System Administrator, Section Head, Reviewer, Analyst, QC Manager, and any custom roles." />
       {message && <Alert severity="success" sx={{ mb: 2 }} onClose={() => setMessage(null)}>{message}</Alert>}
       <LoadFailuresAlert failed={failedLists} retryHint="Reload the page to try again." sx={{ mb: 2 }} />
 

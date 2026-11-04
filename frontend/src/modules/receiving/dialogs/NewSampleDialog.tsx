@@ -4,6 +4,7 @@ import {
   Box,
   Typography,
   Alert,
+  Snackbar,
   CircularProgress,
   useTheme
 } from "@mui/material";
@@ -80,6 +81,8 @@ export function NewSampleDialog({ open, onClose, onSuccess, allowedCategories, l
 
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [warnings, setWarnings] = useState<string[]>([]);
+  const [warningSnackbarOpen, setWarningSnackbarOpen] = useState(false);
 
   // Load shared master data when dialog opens
   useEffect(() => {
@@ -184,6 +187,11 @@ export function NewSampleDialog({ open, onClose, onSuccess, allowedCategories, l
           isValid = false;
         }
 
+        if (row.itemId && row.gradeOptions?.length && !row.grade) {
+          errors.grade = "Grade is required";
+          isValid = false;
+        }
+
         if (category === "product" && (!row.productionStage || row.productionStage.trim() === "")) {
           errors.productionStage = "Production Stage is required";
           isValid = false;
@@ -252,11 +260,12 @@ export function NewSampleDialog({ open, onClose, onSuccess, allowedCategories, l
     setLoading(true);
 
     try {
+      const allWarnings: string[] = [];
       // Process each row sequentially or in parallel
       for (const row of rows) {
         if (category === "product" || category === "rm" || category === "pm") {
           const targetSectionIds = labMode.kind === "fixed" ? [labMode.sectionId] : row.targetSectionIds || [];
-          await ReceiveService.receiveItemBased({
+          const res = await ReceiveService.receiveItemBased({
             itemId: Number(row.itemId),
             causeOfTestingId: Number(row.causeOfTestingId),
             sampleQuantity: row.sampleQuantity || "",
@@ -266,8 +275,23 @@ export function NewSampleDialog({ open, onClose, onSuccess, allowedCategories, l
             mfgDate: row.mfgDate || null,
             expDate: row.expDate || null,
             productionStage: category === "product" ? row.productionStage || null : null,
-            targetSectionIds
+            targetSectionIds,
+            grade: row.gradeOptions?.length ? row.grade || null : null
           });
+          if (res?.warnings?.length) {
+            allWarnings.push(...res.warnings);
+          }
+          // The sample is received either way; a failed CoA upload is reported, not retried here.
+          if (category === "rm" && row.coaFile && res?.sampleId) {
+            try {
+              await ReceiveService.uploadSampleDocument(res.sampleId, row.coaFile);
+            } catch (uploadErr: any) {
+              const why = uploadErr?.response?.data?.message || uploadErr?.message || "upload failed";
+              allWarnings.push(
+                `Sample ${res.referenceNumber} was received, but its supplier CoA could not be attached (${why}). Attach it from the sample's Documents.`
+              );
+            }
+          }
         } else if (category === "water") {
           await ReceiveService.receiveWater({
             waterDepartmentId: Number(row.departmentId),
@@ -298,6 +322,11 @@ export function NewSampleDialog({ open, onClose, onSuccess, allowedCategories, l
         }
       }
 
+      if (allWarnings.length > 0) {
+        setWarnings(allWarnings);
+        setWarningSnackbarOpen(true);
+      }
+
       onSuccess(rows.length);
       onClose();
     } catch (err: any) {
@@ -314,7 +343,8 @@ export function NewSampleDialog({ open, onClose, onSuccess, allowedCategories, l
   const currentCategoryDef = RECEIVING_CATEGORIES.find((c) => c.key === category);
 
   return (
-    <FloatingDialog
+    <>
+      <FloatingDialog
       open={open}
       onClose={() => { if (!loading) onClose(); }}
       maxWidth={step === 1 ? "md" : "xl"}
@@ -422,6 +452,21 @@ export function NewSampleDialog({ open, onClose, onSuccess, allowedCategories, l
             />
           )
         )}
-    </FloatingDialog>
+      </FloatingDialog>
+      <Snackbar
+        open={warningSnackbarOpen}
+        autoHideDuration={8000}
+        onClose={() => setWarningSnackbarOpen(false)}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+      >
+        <Alert
+          severity="warning"
+          onClose={() => setWarningSnackbarOpen(false)}
+          sx={{ borderRadius: 1.5, whiteSpace: "pre-line", maxWidth: 600 }}
+        >
+          {warnings.join("\n")}
+        </Alert>
+      </Snackbar>
+    </>
   );
 }

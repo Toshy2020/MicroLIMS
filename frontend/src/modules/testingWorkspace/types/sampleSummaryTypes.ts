@@ -117,6 +117,8 @@ export interface TestOrderSummaryDetail {
   isResultEntryAllowed?: boolean;
   resultLockReason?: string | null;
   isSuperseded: boolean;
+  // Set when an outside laboratory ran this test; the result comes from its report.
+  outsourcedToLab?: string | null;
   sectionId?: number;
   sectionName?: string;
   // Set only when this TestOrder's section closed testing after another
@@ -226,6 +228,9 @@ export interface SampleSummary {
   productionStage: string | null;
   causeOfTesting: string;
   batchNumber: string | null;
+  grade?: string | null;
+  retentionQuantity?: number | null;
+  retentionQuantityUnit?: string | null;
   controlNumber: string;
   status: string;
   // Status as the controlled record prints it ("In testing"), worded on
@@ -282,7 +287,8 @@ export type ReadingKind =
   | "Vessel"
   | "TimePoint"
   | "Weight"
-  | "Titration";
+  | "Titration"
+  | "Absorbance";
 
 export type ResultBasis =
   | "MgPerKg"

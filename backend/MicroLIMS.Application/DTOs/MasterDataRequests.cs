@@ -56,7 +56,10 @@ public record CreateSpecificationRequest(
     DosageForm? DosageForm = null,
     int? HplcMethodAnalyteId = null,
     ProductionStageRole? ProductionStageRole = null,
-    int? IcpMethodElementId = null);
+    int? IcpMethodElementId = null,
+    string? Grade = null,
+    RelatedSubstanceRow? RelatedSubstanceRow = null,
+    int? HplcMethodImpurityId = null);
 
 public record UpdateSpecificationRequest(
     string TestCode,
@@ -87,7 +90,10 @@ public record UpdateSpecificationRequest(
     DosageForm? DosageForm = null,
     int? HplcMethodAnalyteId = null,
     ProductionStageRole? ProductionStageRole = null,
-    int? IcpMethodElementId = null);
+    int? IcpMethodElementId = null,
+    string? Grade = null,
+    RelatedSubstanceRow? RelatedSubstanceRow = null,
+    int? HplcMethodImpurityId = null);
 
 // GET shape for specifications - every field the frontend already binds to,
 // unchanged, plus CanEdit/SectionName so the UI can show the other lab's
@@ -125,7 +131,10 @@ public record SpecificationRowDto(
     string SectionName,
     int? HplcMethodAnalyteId = null,
     ProductionStageRole? ProductionStageRole = null,
-    int? IcpMethodElementId = null)
+    int? IcpMethodElementId = null,
+    string? Grade = null,
+    RelatedSubstanceRow? RelatedSubstanceRow = null,
+    int? HplcMethodImpurityId = null)
 {
     // The record's row version, sent back as If-Match with an edit.
     public uint Version { get; init; }
@@ -224,7 +233,14 @@ public record CreateTestDefinitionRequest(
     decimal? TitrationExpansionCoefficient = null,
     int? TitrationStandardEntryId = null,
     int? IcpMethodId = null,
-    PhyschemArea? PhyschemArea = null)
+    PhyschemArea? PhyschemArea = null,
+    bool? PerContainer = null,
+    MoistureRole? MoistureRole = null,
+    UvCalculationMode? UvCalculationMode = null,
+    decimal? UvSpecificAbsorbance = null,
+    decimal? UvTotalVolumeMl = null,
+    decimal? UvStandardVolumeMl = null,
+    int? UvStandardEntryId = null)
 {
     // System.Text.Json cannot bind a constructor with more than 64 parameters
     // and this one has more, so the body is bound through this constructor and
@@ -288,7 +304,14 @@ public record UpdateTestDefinitionRequest(
     decimal? TitrationExpansionCoefficient = null,
     int? TitrationStandardEntryId = null,
     int? IcpMethodId = null,
-    PhyschemArea? PhyschemArea = null)
+    PhyschemArea? PhyschemArea = null,
+    bool? PerContainer = null,
+    MoistureRole? MoistureRole = null,
+    UvCalculationMode? UvCalculationMode = null,
+    decimal? UvSpecificAbsorbance = null,
+    decimal? UvTotalVolumeMl = null,
+    decimal? UvStandardVolumeMl = null,
+    int? UvStandardEntryId = null)
 {
     // System.Text.Json cannot bind a constructor with more than 64 parameters
     // and this one has more, so the body is bound through this constructor and

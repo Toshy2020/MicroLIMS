@@ -40,15 +40,22 @@ export interface HplcInstrumentDto {
   activeRun?: HplcActiveRunSummaryDto | null;
 }
 
-import type { HplcTechnique, HplcResultMode } from "../laboratoryConfiguration/masterDataSimple/services/HplcMethodService";
+import type {
+  HplcTechnique,
+  HplcMethodResponse,
+  HplcMethodImpurityResponse
+} from "../laboratoryConfiguration/masterDataSimple/services/HplcMethodService";
 
 export type {
   HplcTechnique,
-  HplcResultMode,
   CarrierGas,
-  HplcDetectorType,
-  HplcMethodResponse as HplcMethodSnapshot
+  HplcDetectorType
 } from "../laboratoryConfiguration/masterDataSimple/services/HplcMethodService";
+
+export type HplcResultMode = "Assay" | "ResidualSolvents" | "RelatedSubstances";
+
+export type HplcMethodImpuritySnapshot = HplcMethodImpurityResponse;
+export type HplcMethodSnapshot = HplcMethodResponse;
 
 export interface HplcMethodOptionDto {
   id: number;
@@ -79,6 +86,7 @@ export interface SaveSstAnalyteInput {
   standardMaterialId: number;
   standardWeightMg: number;
   responses: number[];
+  internalStandardResponses?: number[] | null;
   reportedRsdPercent?: number | null;
   resolution?: number | null;
   tailingFactor?: number | null;
@@ -127,6 +135,7 @@ export interface HplcRunMobilePhaseDto {
 export interface HplcSstInjectionDto {
   injectionNo: number;
   response: number;
+  internalStandardResponse?: number | null;
 }
 
 export interface HplcSstAnalyteDto {
@@ -223,6 +232,9 @@ export interface HplcRunDto {
   canConfirmSstReason?: string | null;
   canAssignSamples: boolean;
   canAssignSamplesReason?: string | null;
+  // From the run's method snapshot, not the live method.
+  resultMode: HplcResultMode;
+  internalStandardName?: string | null;
 }
 
 export interface HplcRunListItem {
@@ -253,9 +265,18 @@ export interface HplcReplicateResponseInput {
   response: number;
 }
 
+export interface HplcReplicatePeakInput {
+  clientKey?: string;
+  hplcMethodImpurityId: number | null;
+  relativeRetention: number | null;
+  area: number;
+}
+
 export interface HplcReplicateInput {
   actualWeightMg: number;
   responses: HplcReplicateResponseInput[];
+  internalStandardResponse?: number | null;
+  peaks?: HplcReplicatePeakInput[];
 }
 
 export interface AssignHplcSamplesRequest {
@@ -275,6 +296,8 @@ export interface HplcReplicateDto {
   replicateNo: number;
   actualWeightMg: number;
   responses: HplcReplicateResponseInput[];
+  internalStandardResponse?: number | null;
+  peaks?: HplcReplicatePeakInput[];
 }
 
 export interface HplcMethodWeightDto {
@@ -319,6 +342,14 @@ export interface HplcSampleEntryDto {
   stageName?: string | null;
   status: HplcRunSampleStatus;
   basis: string;
+  moistureRole?: "LossOnDrying" | "Water" | null;
+  // From the run's method snapshot, which is what the server validates against.
+  resultMode?: HplcResultMode;
+  internalStandardName?: string | null;
+  impurities?: HplcMethodImpuritySnapshot[] | null;
+  principalAnalyte?: { id: number; name: string } | null;
+  referenceSolutionPercent?: number | null;
+  disregardLimitPercent?: number | null;
   requiredReplicates?: number | null;
   methodWeights: HplcMethodWeightDto[];
   replicates: HplcReplicateDto[];
@@ -386,4 +417,5 @@ export interface HplcQualificationEntryDto {
   submitted: boolean;
   canSubmit: boolean;
   canSubmitReason?: string | null;
+  internalStandardName?: string | null;
 }

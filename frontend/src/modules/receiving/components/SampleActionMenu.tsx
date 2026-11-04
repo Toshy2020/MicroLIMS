@@ -18,10 +18,13 @@ import ScienceOutlinedIcon from "@mui/icons-material/ScienceOutlined";
 import AssignmentIndOutlinedIcon from "@mui/icons-material/AssignmentIndOutlined";
 import BlockOutlinedIcon from "@mui/icons-material/BlockOutlined";
 import LibraryAddOutlinedIcon from "@mui/icons-material/LibraryAddOutlined";
+import ChecklistOutlinedIcon from "@mui/icons-material/ChecklistOutlined";
+import AttachFileOutlinedIcon from "@mui/icons-material/AttachFileOutlined";
 import { Link } from "react-router-dom";
 import { SampleRecord } from "../types/receivingTypes";
 import { useAuth } from "../../../contexts/AuthContext";
 import { PERMISSIONS } from "../../../routes/routes";
+import { SampleDocumentsDialog } from "../dialogs/SampleDocumentsDialog";
 
 interface Props {
   sample: SampleRecord;
@@ -34,6 +37,8 @@ interface Props {
   onVoid?: (sample: SampleRecord) => void;
   // Receiving page only - adds a second laboratory's tests to the sample (requires Samples.Receive).
   onAddLaboratory?: (sample: SampleRecord) => void;
+  // Periodic retest awaiting its tests - Section Head / Supervisor only (Samples.Correct).
+  onSelectTests?: (sample: SampleRecord) => void;
 }
 
 export function SampleActionMenu({
@@ -45,13 +50,15 @@ export function SampleActionMenu({
   onPrepareSample,
   onAssignAnalyst,
   onVoid,
-  onAddLaboratory
+  onAddLaboratory,
+  onSelectTests
 }: Props) {
   const theme = useTheme();
-  const { permissions } = useAuth();
+  const { permissions, role } = useAuth();
   const isAuthorizedToAssign = permissions.includes(PERMISSIONS.SAMPLES_ASSIGN_ANALYST);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const isMenuOpen = Boolean(anchorEl);
+  const [documentsOpen, setDocumentsOpen] = useState(false);
 
   const handleOpenMenu = (event: React.MouseEvent<HTMLElement>) => {
     event.stopPropagation();
@@ -72,6 +79,7 @@ export function SampleActionMenu({
   const canEdit = canManageSample && Boolean(onEdit);
   const canVoid = canManageSample && Boolean(onVoid) && sample.status !== "Voided";
   const needsPreparation = sample.preparationStatus === "NeedsPreparation";
+  const canSelectTests = canManageSample && (role === "SectionHead" || role === "Reviewer") && Boolean(onSelectTests) && Boolean(sample.awaitingTestSelection);
   const canAddLab = canReceive && Boolean(onAddLaboratory) && !["Rejected", "Voided", "Cancelled"].includes(sample.status);
 
   return (
@@ -187,6 +195,22 @@ export function SampleActionMenu({
           </MenuItem>
         )}
 
+        {canSelectTests && (
+          <MenuItem
+            onClick={() => {
+              handleCloseMenu();
+              if (onSelectTests) onSelectTests(sample);
+            }}
+          >
+            <ListItemIcon>
+              <ChecklistOutlinedIcon sx={{ fontSize: 18, color: theme.palette.primary.main }} />
+            </ListItemIcon>
+            <ListItemText primary="Select Tests" slotProps={{
+              primary: { sx: { fontSize: 13, fontWeight: 600 } }
+            }} />
+          </MenuItem>
+        )}
+
         {canAddLab && (
           <MenuItem
             onClick={() => {
@@ -256,6 +280,20 @@ export function SampleActionMenu({
         <MenuItem
           onClick={() => {
             handleCloseMenu();
+            setDocumentsOpen(true);
+          }}
+        >
+          <ListItemIcon>
+            <AttachFileOutlinedIcon sx={{ fontSize: 18, color: "text.secondary" }} />
+          </ListItemIcon>
+          <ListItemText primary="Documents" slotProps={{
+            primary: { sx: { fontSize: 13 } }
+          }} />
+        </MenuItem>
+
+        <MenuItem
+          onClick={() => {
+            handleCloseMenu();
             onViewAuditHistory(sample);
           }}
         >
@@ -267,6 +305,8 @@ export function SampleActionMenu({
           }} />
         </MenuItem>
       </Menu>
+
+      {documentsOpen && <SampleDocumentsDialog sample={sample} onClose={() => setDocumentsOpen(false)} />}
     </Box>
   );
 }

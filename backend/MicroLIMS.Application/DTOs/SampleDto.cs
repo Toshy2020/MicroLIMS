@@ -30,6 +30,8 @@ public class TestOrderSummaryDto
     // name here so the frontend never needs its own user-list call.
     public int? AssignedAnalystId { get; set; }
     public string? AssignedAnalystName { get; set; }
+    // The external laboratory when this test was outsourced; its result is entered from that lab's report.
+    public string? OutsourcedToLab { get; set; }
 }
 
 // Object transferred between API and Frontend - never exposes internal
@@ -50,6 +52,9 @@ public class SampleDto
     public string CauseOfTesting { get; set; } = string.Empty;
     public int CauseOfTestingId { get; set; }
     public string? BatchNumber { get; set; }
+    public string? Grade { get; set; }
+    // Periodic retest still waiting for a Section Head / Supervisor to choose its tests.
+    public bool AwaitingTestSelection { get; set; }
     public string ControlNumber { get; set; } = string.Empty;
     public string Status { get; set; } = string.Empty;
     public string PreparationStatus { get; set; } = string.Empty;
@@ -90,4 +95,5 @@ public class SampleDto
     public string? OosGroupCode { get; set; }
 
     public List<TestOrderSummaryDto> AssignedTests { get; set; } = new();
+    public IReadOnlyList<string> Warnings { get; set; } = Array.Empty<string>();
 }

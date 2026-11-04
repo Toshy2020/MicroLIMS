@@ -46,6 +46,7 @@ public interface IMicroLimsDbContext
     DbSet<Item> Items { get; }
     DbSet<Specification> Specifications { get; }
     DbSet<SpecificationStage> SpecificationStages { get; }
+    DbSet<SupplierStatedAttribute> SupplierStatedAttributes { get; }
     DbSet<Media> Media { get; }
     DbSet<MediaEvaluation> MediaEvaluations { get; }
     DbSet<MediaEvaluationChallenge> MediaEvaluationChallenges { get; }
@@ -142,6 +143,7 @@ public interface IMicroLimsDbContext
     DbSet<HplcMethodMobilePhase> HplcMethodMobilePhases { get; }
     DbSet<HplcMethodGradientStep> HplcMethodGradientSteps { get; }
     DbSet<HplcMethodOvenStep> HplcMethodOvenSteps { get; }
+    DbSet<HplcMethodImpurity> HplcMethodImpurities { get; }
     DbSet<SolutionPreparation> SolutionPreparations { get; }
     DbSet<SolutionPreparationComponent> SolutionPreparationComponents { get; }
     DbSet<SolutionPreparationStatusHistory> SolutionPreparationStatusHistories { get; }
@@ -161,6 +163,7 @@ public interface IMicroLimsDbContext
     DbSet<InstrumentIngestPayload> InstrumentIngestPayloads { get; }
     DbSet<HplcSampleReplicate> HplcSampleReplicates { get; }
     DbSet<HplcReplicateResponse> HplcReplicateResponses { get; }
+    DbSet<HplcReplicatePeak> HplcReplicatePeaks { get; }
     DbSet<HplcEvidence> HplcEvidences { get; }
     DbSet<IcpRun> IcpRuns { get; }
     DbSet<IcpCalibration> IcpCalibrations { get; }
@@ -173,6 +176,7 @@ public interface IMicroLimsDbContext
     DbSet<EquipmentInventory> EquipmentInventories { get; }
     DbSet<EquipmentStatusHistory> EquipmentStatusHistories { get; }
     DbSet<MaterialDocument> MaterialDocuments { get; }
+    DbSet<SampleDocument> SampleDocuments { get; }
     DbSet<MaterialDocumentAccessLog> MaterialDocumentAccessLogs { get; }
     DbSet<EquipmentDocument> EquipmentDocuments { get; }
     DbSet<EquipmentDocumentAccessLog> EquipmentDocumentAccessLogs { get; }
@@ -226,6 +230,7 @@ public interface IMicroLimsDbContext
     DbSet<DocumentEscalationRecord> DocumentEscalationRecords { get; }
     DbSet<Incident> Incidents { get; }
     DbSet<ErrorLog> ErrorLogs { get; }
+    DbSet<NotApplicableTest> NotApplicableTests { get; }
     DbSet<BackgroundJobRun> BackgroundJobRuns { get; }
     DbSet<BackupRun> BackupRuns { get; }
 

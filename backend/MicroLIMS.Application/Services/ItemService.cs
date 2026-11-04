@@ -30,11 +30,23 @@ public class ItemService
     public async Task<List<ItemResponse>> GetAllAsync() =>
         (await _db.Items.Include(i => i.AssignedTests).Include(i => i.Specifications).ThenInclude(s => s.Stages).AsSplitQuery().ToListAsync()).Select(ItemResponse.From).ToList();
 
+    // The grades the item has specifications for (empty = ungraded item).
+    // Distinct case-insensitively (legacy rows may differ only in case).
+    public async Task<IReadOnlyList<string>> GetGradesAsync(int itemId)
+    {
+        var grades = await _db.Specifications.Where(s => s.ItemId == itemId && s.Grade != null)
+            .Select(s => s.Grade!).Distinct().ToListAsync();
+        return grades.GroupBy(g => g, StringComparer.OrdinalIgnoreCase)
+            .Select(g => g.OrderBy(x => x, StringComparer.Ordinal).First())
+            .OrderBy(g => g, StringComparer.OrdinalIgnoreCase).ToList();
+    }
+
     // Builds the Item from the fields a client may set. Id, IsActive and
     // Specifications are never taken from the request - see ItemSaveRequest.
     public async Task<ItemResponse> CreateAsync(ItemSaveRequest request)
     {
         EnsureAllowedCategory(request.Category);
+        EnsureMinimumQuantity(request);
 
         if (await _db.Items.AnyAsync(i => i.Code == request.Code))
             throw new InvalidOperationException($"An item with code '{request.Code}' already exists.");
@@ -45,7 +57,10 @@ public class ItemService
             Code = request.Code,
             Category = request.Category,
             SopNumber = request.SopNumber ?? string.Empty,
-            AssignedTests = ToSampleTests(request.AssignedTests)
+            AssignedTests = ToSampleTests(request.AssignedTests),
+            MinSampleQuantity = request.MinSampleQuantity,
+            MinRetestSampleQuantity = request.MinRetestSampleQuantity,
+            MinSampleQuantityUnit = request.MinSampleQuantityUnit
         };
 
         _db.Items.Add(item);
@@ -62,6 +77,7 @@ public class ItemService
     public async Task UpdateAsync(int id, ItemSaveRequest update)
     {
         EnsureAllowedCategory(update.Category);
+        EnsureMinimumQuantity(update);
 
         var item = await _db.Items.Include(i => i.AssignedTests).FirstOrDefaultAsync(i => i.Id == id)
             ?? throw new NotFoundException($"Item {id} not found.");
@@ -74,11 +90,22 @@ public class ItemService
         item.Code = update.Code;
         item.Category = update.Category;
         item.SopNumber = update.SopNumber ?? string.Empty;
+        item.MinSampleQuantity = update.MinSampleQuantity;
+        item.MinRetestSampleQuantity = update.MinRetestSampleQuantity;
+        item.MinSampleQuantityUnit = update.MinSampleQuantityUnit;
 
         _db.RemoveRange(item.AssignedTests);
         item.AssignedTests = ToSampleTests(update.AssignedTests);
 
         await _db.SaveChangesAsync();
+    }
+
+    private static void EnsureMinimumQuantity(ItemSaveRequest r)
+    {
+        if (r.MinSampleQuantity <= 0 || r.MinRetestSampleQuantity <= 0)
+            throw new InvalidOperationException("Minimum sample quantity must be greater than zero.");
+        if ((r.MinSampleQuantity != null || r.MinRetestSampleQuantity != null) && string.IsNullOrWhiteSpace(r.MinSampleQuantityUnit))
+            throw new InvalidOperationException("Enter the unit for the minimum sample quantity.");
     }
 
     private static void EnsureAllowedCategory(SampleCategory category)
@@ -123,6 +150,12 @@ public class ItemService
         if (sampleCount > 0)
             throw new InvalidOperationException(
                 $"Cannot delete '{item.Name}' - it has been used to receive {sampleCount} sample(s). Freeze it instead to stop new samples without losing history.");
+
+        // NotApplicableTest.ItemId is Restrict too; the signed records must survive, so refuse.
+        var naCount = await _db.NotApplicableTests.CountAsync(n => n.ItemId == id);
+        if (naCount > 0)
+            throw new InvalidOperationException(
+                $"Cannot delete '{item.Name}' - it has {naCount} not-applicable record(s). Freeze it instead to keep that history.");
 
         _db.Items.Remove(item);
         await _db.SaveChangesAsync();

@@ -132,6 +132,15 @@ public static class PermissionConstants
     public const string EquipmentWorkRecord = "EquipmentWork.Record";
     public const string CalendarEventManage = "CalendarEvent.Manage";
 
+    // Raw-material supporting records: a Section Head marks a test not applicable or outsources it;
+    // the QC Manager (and only the QC Manager) gives final approval to a not-applicable test.
+    public const string NotApplicableTestsManage = "tests.not-applicable.manage";
+    public const string NotApplicableTestsFinalApprove = "tests.not-applicable.final-approve";
+    public const string TestsOutsource = "tests.outsource";
+
+    // Sample Preparation writes (prepare, confirm, batch confirm). Every working role holds it; QC Manager (approval-only) does not.
+    public const string SamplesPrepare = "samples.prepare";
+
     // Read every laboratory section's records without being a member. Read-only: writes always follow section membership, for administrators too (UserSectionScopeService).
     public const string SectionsViewAll = "Sections.ViewAll";
 
@@ -165,6 +174,8 @@ public static class PermissionConstants
         SolutionsPrepare, HplcOperate, WorkingStandardsQualify,
         MonitoringPlanView, MonitoringPlanManage, MonitoringPlanApprove,
         EquipmentPlanManage, EquipmentPlanApprove, EquipmentWorkRecord, CalendarEventManage,
+        NotApplicableTestsManage, NotApplicableTestsFinalApprove, TestsOutsource,
+        SamplesPrepare,
         SectionsViewAll, SectionsConfigureAll, SystemManageJobs, AccessReview
     };
 
@@ -190,6 +201,7 @@ public static class PermissionConstants
     // The codes some endpoint or service actually checks. The rest are
     // declared for the Roles screen but not yet enforced anywhere; the
     // screen shows which is which (Permission.IsEnforced).
+    // tests.not-applicable.* and tests.outsource join this set with the endpoints that check them.
     public static readonly IReadOnlySet<string> Enforced = new HashSet<string>
     {
         AuditView, CryovialsApprove, CryovialsManage, DashboardsLabOverview, DashboardsReview,
@@ -202,6 +214,8 @@ public static class PermissionConstants
         SolutionsPrepare, HplcOperate, WorkingStandardsQualify,
         MonitoringPlanView, MonitoringPlanManage, MonitoringPlanApprove,
         EquipmentPlanManage, EquipmentPlanApprove, EquipmentWorkRecord, CalendarEventManage,
+        NotApplicableTestsManage, NotApplicableTestsFinalApprove, TestsOutsource,
+        SamplesPrepare,
         SectionsViewAll, SectionsConfigureAll, SystemManageJobs, AccessReview
     };
 

@@ -17,6 +17,10 @@ public class SampleSummaryDto
     public string? ProductionStage { get; set; }
     public string CauseOfTesting { get; set; } = string.Empty;
     public string? BatchNumber { get; set; }
+    // Grade stated on the supplier's CoA (raw materials); null when ungraded.
+    public string? Grade { get; set; }
+    public decimal? RetentionQuantity { get; set; }
+    public string? RetentionQuantityUnit { get; set; }
     public string ControlNumber { get; set; } = string.Empty;
     public string Status { get; set; } = string.Empty;
     // Status as a controlled record prints it ("In testing", not
@@ -144,6 +148,7 @@ public class TestOrderSummaryDetailDto
     public bool IsResultEntryAllowed { get; set; }
     public string? ResultLockReason { get; set; }
     public bool IsSuperseded { get; set; }
+    public string? OutsourcedToLab { get; set; }
 
     // Set only when this section closed testing after another lab
     // rejected the sample: the step (and incubation stage, if any) this

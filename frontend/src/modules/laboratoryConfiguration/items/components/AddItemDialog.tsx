@@ -27,6 +27,9 @@ interface AddItemDialogProps {
     category: string;
     sopNumber: string;
     testCodes: string[];
+    minSampleQuantity?: number | null;
+    minRetestSampleQuantity?: number | null;
+    minSampleQuantityUnit?: string | null;
   }) => Promise<void>;
 }
 
@@ -42,6 +45,9 @@ export function AddItemDialog({ open, itemToEdit, onClose, onSave }: AddItemDial
   const [sopNumber, setSopNumber] = useState("");
   const [category, setCategory] = useState("FinishedProduct");
   const [testCodes, setTestCodes] = useState<string[]>([]);
+  const [minSampleQuantity, setMinSampleQuantity] = useState<number | null>(null);
+  const [minRetestSampleQuantity, setMinRetestSampleQuantity] = useState<number | null>(null);
+  const [minSampleQuantityUnit, setMinSampleQuantityUnit] = useState<string>("");
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -56,12 +62,18 @@ export function AddItemDialog({ open, itemToEdit, onClose, onSave }: AddItemDial
       setSopNumber(itemToEdit.sopNumber || "");
       setCategory(itemToEdit.category);
       setTestCodes(itemToEdit.assignedTests?.map((t) => t.testCode) || []);
+      setMinSampleQuantity(itemToEdit.minSampleQuantity ?? null);
+      setMinRetestSampleQuantity(itemToEdit.minRetestSampleQuantity ?? null);
+      setMinSampleQuantityUnit(itemToEdit.minSampleQuantityUnit ?? "");
     } else {
       setName("");
       setCode("");
       setSopNumber("");
       setCategory("FinishedProduct");
       setTestCodes([]);
+      setMinSampleQuantity(null);
+      setMinRetestSampleQuantity(null);
+      setMinSampleQuantityUnit("");
     }
     setOptions([]);
     setSearchingDocs(false);
@@ -145,13 +157,28 @@ export function AddItemDialog({ open, itemToEdit, onClose, onSave }: AddItemDial
 
     setSaving(true);
     try {
-      await onSave({
+      const payload: {
+        name: string;
+        code: string;
+        category: string;
+        sopNumber: string;
+        testCodes: string[];
+        minSampleQuantity?: number | null;
+        minRetestSampleQuantity?: number | null;
+        minSampleQuantityUnit?: string | null;
+      } = {
         name: name.trim(),
         code: code.trim(),
         category,
         sopNumber: sopNumber.trim(),
         testCodes,
-      });
+      };
+      if (category === "RawMaterial") {
+        if (minSampleQuantity !== null) payload.minSampleQuantity = minSampleQuantity;
+        if (minRetestSampleQuantity !== null) payload.minRetestSampleQuantity = minRetestSampleQuantity;
+        if (minSampleQuantityUnit.trim()) payload.minSampleQuantityUnit = minSampleQuantityUnit.trim();
+      }
+      await onSave(payload);
       onClose();
     } catch (err: unknown) {
       const msg =
@@ -259,6 +286,34 @@ export function AddItemDialog({ open, itemToEdit, onClose, onSave }: AddItemDial
             ))}
           </Select>
         </Box>
+
+        {category === "RawMaterial" && (
+          <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr 1fr" }, gap: 1.5 }}>
+            <TextField
+              label="Min Sample Qty"
+              size="small"
+              type="number"
+              value={minSampleQuantity ?? ""}
+              onChange={(e) => setMinSampleQuantity(e.target.value === "" ? null : Number(e.target.value))}
+              slotProps={{ htmlInput: { step: "any" } }}
+            />
+            <TextField
+              label="Min Retest Qty"
+              size="small"
+              type="number"
+              value={minRetestSampleQuantity ?? ""}
+              onChange={(e) => setMinRetestSampleQuantity(e.target.value === "" ? null : Number(e.target.value))}
+              slotProps={{ htmlInput: { step: "any" } }}
+            />
+            <TextField
+              label="Quantity Unit"
+              size="small"
+              placeholder="e.g. g, mL"
+              value={minSampleQuantityUnit}
+              onChange={(e) => setMinSampleQuantityUnit(e.target.value)}
+            />
+          </Box>
+        )}
 
         <Box>
           <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 600, display: "block", mb: 0.5 }}>

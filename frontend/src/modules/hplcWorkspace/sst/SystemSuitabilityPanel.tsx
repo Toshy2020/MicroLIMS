@@ -31,7 +31,9 @@ export function SystemSuitabilityPanel({
   onRunUpdated
 }: SystemSuitabilityPanelProps) {
   const { label } = useTechnique();
-  const isResidualSolvents = method?.resultMode === "ResidualSolvents";
+  const isResidualSolvents = run.resultMode === "ResidualSolvents";
+  const standardIsWeighed = run.resultMode === "Assay";
+  const hasInternalStandard = Boolean(run.internalStandardName);
   const [currentRun, setCurrentRun] = useState<HplcRunDto>(run);
 
   useEffect(() => {
@@ -104,11 +106,17 @@ export function SystemSuitabilityPanel({
           return matched ? matched.response : 0;
         });
 
+        const internalStandardResponses: number[] = Array.from({ length: injectionCount }, (_, idx) => {
+          const matched = a.injections?.find((inj) => inj.injectionNo === idx + 1);
+          return matched?.internalStandardResponse ?? 0;
+        });
+
         next[a.id] = {
           hplcSstAnalyteId: a.id,
           standardMaterialId: a.standardMaterialId ?? 0,
           standardWeightMg: a.standardWeightMg ?? 0,
           responses,
+          internalStandardResponses: hasInternalStandard ? internalStandardResponses : undefined,
           reportedRsdPercent: a.reportedRsdPercent ?? null,
           resolution: a.resolution ?? null,
           tailingFactor: a.tailingFactor ?? null,
@@ -120,7 +128,7 @@ export function SystemSuitabilityPanel({
       });
       return next;
     });
-  }, [sst, method]);
+  }, [sst, method, hasInternalStandard]);
 
   const isConfirmed = sst?.status === "Passed" || sst?.status === "Failed" || currentRun.status !== "Open";
   const isPending = sst?.status === "Pending" && currentRun.status === "Open";
@@ -141,7 +149,7 @@ export function SystemSuitabilityPanel({
 
   // Blank entries per analyte, so the analyst is warned before saving.
   const findMissing = (): string[] =>
-    findMissingSstFields(sst?.analytes ?? [], analyteInputs, method, isResidualSolvents);
+    findMissingSstFields(sst?.analytes ?? [], analyteInputs, method, standardIsWeighed, hasInternalStandard);
 
   // Save SST inputs
   // refresh=false keeps the page mounted (the parent reload shows a spinner),
@@ -155,7 +163,7 @@ export function SystemSuitabilityPanel({
     setSaving(true);
     setError(null);
     try {
-      const savedRun = (await HplcWorkspaceService.saveSst(currentRun.id, { analytes: analytesPayload })) as unknown as HplcRunDto;
+      const savedRun = await HplcWorkspaceService.saveSst(currentRun.id, { analytes: analytesPayload });
       toast.success("System suitability data saved.");
       if (savedRun && savedRun.sst) {
         setCurrentRun(savedRun);
@@ -175,10 +183,10 @@ export function SystemSuitabilityPanel({
   const handleConfirmSignature = async (password: string) => {
     setError(null);
     try {
-      const confirmedRun = (await HplcWorkspaceService.confirmSst(currentRun.id, {
+      const confirmedRun = await HplcWorkspaceService.confirmSst(currentRun.id, {
         password,
         comment: signComment.trim() || null
-      })) as unknown as HplcRunDto;
+      });
       setSignOpen(false);
       toast.success("System suitability confirmed.");
       if (confirmedRun && confirmedRun.sst) {
@@ -277,6 +285,9 @@ export function SystemSuitabilityPanel({
                   disabled={isConfirmed || !canOperate}
                   showMissing={missing.length > 0}
                   isResidualSolvents={isResidualSolvents}
+                  standardIsWeighed={standardIsWeighed}
+                  hasInternalStandard={hasInternalStandard}
+                  internalStandardName={run.internalStandardName}
                 />
               );
             })}

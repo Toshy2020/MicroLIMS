@@ -203,6 +203,137 @@ public class MultiSectionReviewApprovalTests
         Assert.Equal(SectionSignoffStatus.UnderReview, (await SignoffAsync(db, w.Sample.Id, w.Micro))!.Status);
     }
 
+    // Retention quantity: recorded by the physicochemical (FP) reviewer of a raw material.
+    private static async Task<World> SeedRawMaterialForReviewAsync(MicroLimsDbContext db)
+    {
+        var w = await SeedAsync(db);
+        (await db.Samples.FirstAsync(s => s.Id == w.Sample.Id)).Category = SampleCategory.RawMaterial;
+        await db.SaveChangesAsync();
+        await TestServiceFactory.SampleReview(db).AutoSubmitForReviewIfReadyAsync(w.Sample.Id, 1);
+        await db.SaveChangesAsync();
+        return w;
+    }
+
+    [Fact]
+    public async Task Review_RawMaterialFp_WithoutRetention_IsRefused_NothingSigned()
+    {
+        await using var db = NewDb();
+        var w = await SeedRawMaterialForReviewAsync(db);
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            TestServiceFactory.SampleReview(db).CompleteReviewAsync(w.Sample.Id, w.ReviewerFp, Password, null, null));
+
+        Assert.Equal("Enter the retention quantity kept for this raw material.", ex.Message);
+        Assert.Equal(SectionSignoffStatus.UnderReview, (await SignoffAsync(db, w.Sample.Id, w.Fp))!.Status);
+        Assert.Empty(await db.ElectronicSignatures.ToListAsync());
+    }
+
+    [Theory]
+    [InlineData(0, "g", "Retention quantity must be greater than zero.")]
+    [InlineData(-5, "g", "Retention quantity must be greater than zero.")]
+    [InlineData(1000000, "g", "Retention quantity must be less than 1,000,000.")]
+    [InlineData(50, "lb", "Retention unit must be g, mg, kg, mL or L.")]
+    [InlineData(50, "", "Retention unit must be g, mg, kg, mL or L.")]
+    public async Task Review_RawMaterialFp_InvalidRetention_IsRefused(int quantity, string unit, string message)
+    {
+        await using var db = NewDb();
+        var w = await SeedRawMaterialForReviewAsync(db);
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            TestServiceFactory.SampleReview(db).CompleteReviewAsync(w.Sample.Id, w.ReviewerFp, Password, null, null,
+                retentionQuantity: quantity, retentionUnit: unit));
+
+        Assert.Equal(message, ex.Message);
+        Assert.Equal(SectionSignoffStatus.UnderReview, (await SignoffAsync(db, w.Sample.Id, w.Fp))!.Status);
+    }
+
+    [Fact]
+    public async Task Review_RawMaterialFp_ValidRetention_StoredSignedAndAudited_UnitCanonicalised()
+    {
+        await using var db = NewDb();
+        var w = await SeedRawMaterialForReviewAsync(db);
+
+        await TestServiceFactory.SampleReview(db).CompleteReviewAsync(w.Sample.Id, w.ReviewerFp, Password, null, null,
+            retentionQuantity: 50m, retentionUnit: "ML");
+
+        var sample = await db.Samples.AsNoTracking().FirstAsync(s => s.Id == w.Sample.Id);
+        Assert.Equal(50m, sample.RetentionQuantity);
+        Assert.Equal("mL", sample.RetentionQuantityUnit);
+        Assert.Equal(SectionSignoffStatus.UnderApproval, (await SignoffAsync(db, w.Sample.Id, w.Fp))!.Status);
+        var audit = Assert.Single(await db.AuditLogs.Include(a => a.Changes).Where(a => a.ActionCode == "RetentionQuantityRecorded").ToListAsync());
+        Assert.Equal(w.Sample.Id, audit.SampleId);
+        var change = Assert.Single(audit.Changes);
+        Assert.Null(change.PreviousValue);
+        Assert.Equal("50 mL", change.NewValue);
+    }
+
+    [Fact]
+    public async Task Review_RawMaterialFp_SectionCodeCompareIgnoresCase()
+    {
+        await using var db = NewDb();
+        var w = await SeedRawMaterialForReviewAsync(db);
+        (await db.DocumentSections.FirstAsync(s => s.Id == w.Fp)).Code = "fp";
+        await db.SaveChangesAsync();
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            TestServiceFactory.SampleReview(db).CompleteReviewAsync(w.Sample.Id, w.ReviewerFp, Password, null, null));
+        Assert.Equal("Enter the retention quantity kept for this raw material.", ex.Message);
+    }
+
+    [Fact]
+    public async Task Review_RawMaterialFp_UnchangedRetention_WritesNoAuditRow()
+    {
+        await using var db = NewDb();
+        var w = await SeedRawMaterialForReviewAsync(db);
+        var s = await db.Samples.FirstAsync(x => x.Id == w.Sample.Id);
+        s.RetentionQuantity = 50m;
+        s.RetentionQuantityUnit = "g";
+        await db.SaveChangesAsync();
+
+        await TestServiceFactory.SampleReview(db).CompleteReviewAsync(w.Sample.Id, w.ReviewerFp, Password, null, null,
+            retentionQuantity: 50m, retentionUnit: "G");
+
+        Assert.Equal(SectionSignoffStatus.UnderApproval, (await SignoffAsync(db, w.Sample.Id, w.Fp))!.Status);
+        Assert.Empty(await db.AuditLogs.Where(a => a.ActionCode == "RetentionQuantityRecorded").ToListAsync());
+    }
+
+    [Fact]
+    public async Task Review_RawMaterialMicroSection_WithRetention_IsRefused()
+    {
+        await using var db = NewDb();
+        var w = await SeedRawMaterialForReviewAsync(db);
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            TestServiceFactory.SampleReview(db).CompleteReviewAsync(w.Sample.Id, w.ReviewerMicro, Password, null, null,
+                retentionQuantity: 50m, retentionUnit: "g"));
+
+        Assert.Equal("Retention quantity is recorded only at the physicochemical review of a raw material.", ex.Message);
+        Assert.Equal(SectionSignoffStatus.UnderReview, (await SignoffAsync(db, w.Sample.Id, w.Micro))!.Status);
+
+        // Without it, the micro review of the same raw material is unchanged.
+        await TestServiceFactory.SampleReview(db).CompleteReviewAsync(w.Sample.Id, w.ReviewerMicro, Password, null, null);
+        Assert.Equal(SectionSignoffStatus.UnderApproval, (await SignoffAsync(db, w.Sample.Id, w.Micro))!.Status);
+    }
+
+    [Fact]
+    public async Task Review_FinishedProductFp_WithRetention_IsRefused_WithoutItUnchanged()
+    {
+        await using var db = NewDb();
+        var w = await SeedAsync(db);
+        var review = TestServiceFactory.SampleReview(db);
+        await review.AutoSubmitForReviewIfReadyAsync(w.Sample.Id, 1);
+        await db.SaveChangesAsync();
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            review.CompleteReviewAsync(w.Sample.Id, w.ReviewerFp, Password, null, null, retentionQuantity: 50m, retentionUnit: "g"));
+        Assert.Equal("Retention quantity is recorded only at the physicochemical review of a raw material.", ex.Message);
+
+        await review.CompleteReviewAsync(w.Sample.Id, w.ReviewerFp, Password, null, null);
+        var sample = await db.Samples.AsNoTracking().FirstAsync(s => s.Id == w.Sample.Id);
+        Assert.Null(sample.RetentionQuantity);
+        Assert.Empty(await db.AuditLogs.Where(a => a.ActionCode == "RetentionQuantityRecorded").ToListAsync());
+    }
+
     [Fact]
     public async Task Approve_SampleIsApprovedOnlyWhenTheLastSectionApproves()
     {

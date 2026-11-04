@@ -17,7 +17,8 @@ import {
   CircularProgress,
   Stack,
   FormControlLabel,
-  Checkbox
+  Checkbox,
+  Autocomplete
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import AddIcon from "@mui/icons-material/Add";
@@ -34,7 +35,9 @@ import {
   UpdateSpecificationPayload,
   DosageForm,
   ProductionStageRole,
-  PRODUCTION_STAGE_ROLE_OPTIONS
+  PRODUCTION_STAGE_ROLE_OPTIONS,
+  GRADE_SUGGESTIONS,
+  RelatedSubstanceRow
 } from "../../specifications/services/SpecificationService";
 import { masterDataOptions } from "../../../../services/masterDataOptions";
 import { TitrationSpecBasisFields, titrationBasisNeedsLabelClaim, validateTitrationSpecBasis } from "./TitrationSpecBasisFields";
@@ -42,7 +45,7 @@ import { ResidualSolventSpecFields } from "./ResidualSolventSpecFields";
 import { IcpSpecFields, icpParameterName } from "./IcpSpecFields";
 import { useMyLabs } from "../../../../hooks/useMyLabs";
 import { useLaboratorySections } from "../../../../hooks/useLaboratorySections";
-import { HplcMethodService, HplcMethodAnalyteResponse, HplcResultMode } from "../../masterDataSimple/services/HplcMethodService";
+import { HplcMethodService, HplcMethodAnalyteResponse, HplcMethodImpurityResponse, HplcResultMode } from "../../masterDataSimple/services/HplcMethodService";
 import { IcpMethodService, IcpMethodResponse } from "../../masterDataSimple/services/IcpMethodService";
 import { PhyschemArea, areaIncludes, areaOfItemCategory } from "../../masterDataSimple/testMasterArea";
 
@@ -56,6 +59,10 @@ export interface TestDefinitionSummary {
   hplcMethodId?: number | null;
   icpMethodId?: number | null;
   physchemArea?: PhyschemArea | null;
+  uvCalculationMode?: string | null;
+  uvSpecificAbsorbance?: number | null;
+  uvTotalVolumeMl?: number | null;
+  uvStandardVolumeMl?: number | null;
 }
 
 interface SpecificationParameterDialogProps {
@@ -143,6 +150,9 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
   // samples, so the field is offered only for Finished Product items.
   const [productionStageRole, setProductionStageRole] = useState<ProductionStageRole | "">("");
   const supportsProductionStage = item.category === "FinishedProduct";
+  // Raw-material specs can differ by grade (BP, USP, In-house ...); "" = ungraded.
+  const [grade, setGrade] = useState("");
+  const supportsGrade = item.category === "RawMaterial";
 
   const [testDefs, setTestDefs] = useState<Record<string, TestDefinitionSummary>>(testDefinitionByCode || {});
 
@@ -173,7 +183,10 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
   const [labelClaim, setLabelClaim] = useState("");
   const [labelClaimUnit, setLabelClaimUnit] = useState("");
   const [hplcMethodAnalyteId, setHplcMethodAnalyteId] = useState<number | "">("");
+  const [hplcMethodImpurityId, setHplcMethodImpurityId] = useState<number | "">("");
+  const [relatedSubstanceRow, setRelatedSubstanceRow] = useState<RelatedSubstanceRow | "">("");
   const [methodAnalytes, setMethodAnalytes] = useState<HplcMethodAnalyteResponse[]>([]);
+  const [methodImpurities, setMethodImpurities] = useState<HplcMethodImpurityResponse[]>([]);
   const [loadingMethodAnalytes, setLoadingMethodAnalytes] = useState(false);
   const [hplcMethodResultMode, setHplcMethodResultMode] = useState<HplcResultMode | undefined>(undefined);
   const [icpMethodElementId, setIcpMethodElementId] = useState<number | "">("");
@@ -244,6 +257,12 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
     currentTestDef?.workflowType === "WeightVariation" ||
     limitType === "WeightVariation";
 
+  const isUv =
+    workflowTypeByCode[testCode] === "UvSpectrophotometry" ||
+    currentTestDef?.workflowType === "UvSpectrophotometry";
+  const uvCalculationMode = currentTestDef?.uvCalculationMode;
+  const isUvLimit = isUv && uvCalculationMode === "AbsorbanceLimit";
+
   const isHplcMethodAssay =
     currentTestDef?.equationType === "HplcMethodAssay" ||
     currentTestDef?.workflowType === "HplcMethodAssay" ||
@@ -251,6 +270,9 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
 
   const isResidualSolvents =
     isHplcMethodAssay && (hplcMethodResultMode === "ResidualSolvents" || editingSpec?.resultBasis === "Ppm");
+
+  const isRelatedSubstances =
+    isHplcMethodAssay && (hplcMethodResultMode === "RelatedSubstances" || Boolean(editingSpec?.relatedSubstanceRow));
 
   useEffect(() => {
     if (!isHplcMethodAssay || !currentTestDef?.hplcMethodId) {
@@ -262,15 +284,24 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
     HplcMethodService.getById(currentTestDef.hplcMethodId)
       .then((res) => {
         setMethodAnalytes(res.analytes ?? []);
+        setMethodImpurities(res.impurities ?? []);
         setHplcMethodResultMode(res.resultMode);
         if (res.resultMode === "ResidualSolvents") {
           setResultBasis("Ppm");
           setLimitType("NotMoreThan");
           setUnit("ppm");
+        } else if (res.resultMode === "RelatedSubstances") {
+          setResultBasis("PercentAsIs");
+          setLimitType("NotMoreThan");
+          setUnit("%");
+          if (res.analytes && res.analytes.length > 0) {
+            setHplcMethodAnalyteId(res.analytes[0].id);
+          }
         }
       })
       .catch(() => {
         setMethodAnalytes([]);
+        setMethodImpurities([]);
         setHplcMethodResultMode(undefined);
       })
       .finally(() => {
@@ -338,11 +369,14 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
       );
       setDosageForm((editingSpec.dosageForm as DosageForm) || "");
       setProductionStageRole((editingSpec.productionStageRole as ProductionStageRole) || "");
+      setGrade(editingSpec.grade ?? "");
       if (editingSpec.limitType === "WeightVariation") {
         setUnit("mg");
       }
 
       setHplcMethodAnalyteId(editingSpec.hplcMethodAnalyteId ?? "");
+      setHplcMethodImpurityId(editingSpec.hplcMethodImpurityId ?? "");
+      setRelatedSubstanceRow((editingSpec.relatedSubstanceRow as RelatedSubstanceRow) || "");
       setIcpMethodElementId(editingSpec.icpMethodElementId ?? "");
       const editDef = testDefs[editingSpec.testCode];
       const isEditHplcAssay =
@@ -353,7 +387,18 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
         editDef?.equationType === "IcpMethodAssay" ||
         editDef?.workflowType === "IcpMethodAssay" ||
         workflowTypeByCode[editingSpec.testCode] === "IcpMethodAssay";
-      setResultBasis((editingSpec.resultBasis as ResultBasis) || (isEditHplcAssay || isEditIcpAssay ? "PercentLabelClaim" : "MgPerKg"));
+      const isEditUv =
+        editDef?.workflowType === "UvSpectrophotometry" ||
+        workflowTypeByCode[editingSpec.testCode] === "UvSpectrophotometry";
+      const editUvMode = editDef?.uvCalculationMode;
+      const editBasisFallback = isEditUv
+        ? (editUvMode === "AbsorbanceLimit" || editUvMode === "SpecificAbsorbanceValue" ? "" : "PercentAsIs")
+        : (isEditHplcAssay || isEditIcpAssay ? "PercentLabelClaim" : "MgPerKg");
+      setResultBasis(
+        editingSpec.resultBasis === null
+          ? ""
+          : (editingSpec.resultBasis as ResultBasis) || editBasisFallback
+      );
       setLabelClaim(formatTrimmedDecimal(editingSpec.labelClaim));
       setLabelClaimUnit(editingSpec.labelClaimUnit ?? "");
 
@@ -398,18 +443,43 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
       const def = testDefs[initialCode];
       const isInitHplc = def?.equationType === "HplcMethodAssay" || def?.workflowType === "HplcMethodAssay" || workflowTypeByCode[initialCode] === "HplcMethodAssay";
       const isInitIcp = def?.equationType === "IcpMethodAssay" || def?.workflowType === "IcpMethodAssay" || workflowTypeByCode[initialCode] === "IcpMethodAssay";
-      const defaultType = isInitHplc || isInitIcp ? "Range" : getDefaultLimitType(workflowTypeByCode[initialCode]);
+      const isInitUv = def?.workflowType === "UvSpectrophotometry" || workflowTypeByCode[initialCode] === "UvSpectrophotometry";
+      const defaultType = isInitHplc || isInitIcp
+        ? "Range"
+        : isInitUv
+        ? (def?.uvCalculationMode === "AbsorbanceLimit" ? "Qualitative" : "Range")
+        : getDefaultLimitType(workflowTypeByCode[initialCode]);
       setLimitType(defaultType);
 
       setReferenceStandard("");
-      setUnit(isInitHplc || isInitIcp ? "%" : defaultType === "WeightVariation" ? "mg" : defaultType === "DisintegrationTime" ? "min" : "");
+      setUnit(
+        isInitHplc || isInitIcp
+          ? "%"
+          : isInitUv
+          ? (def?.uvCalculationMode === "AbsorbanceLimit" ? "AU" : def?.uvCalculationMode === "SpecificAbsorbanceValue" ? "" : "%")
+          : defaultType === "WeightVariation"
+          ? "mg"
+          : defaultType === "DisintegrationTime"
+          ? "min"
+          : ""
+      );
       setDilutionFactor("");
       setDosageForm("");
       setProductionStageRole("");
+      setGrade("");
 
       setHplcMethodAnalyteId("");
+      setHplcMethodImpurityId("");
+      setRelatedSubstanceRow("");
       setIcpMethodElementId("");
-      setResultBasis(isInitHplc || isInitIcp ? "PercentLabelClaim" : "MgPerKg");
+      const initUvMode = def?.uvCalculationMode;
+      const defaultBasis: ResultBasis | "" =
+        isInitHplc || isInitIcp
+          ? "PercentLabelClaim"
+          : isInitUv
+          ? (initUvMode === "AbsorbanceLimit" || initUvMode === "SpecificAbsorbanceValue" ? "" : "PercentAsIs")
+          : "MgPerKg";
+      setResultBasis(defaultBasis);
       setLabelClaim("");
       setLabelClaimUnit("");
 
@@ -452,8 +522,26 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
     const isDisint = workflowTypeByCode[newCode] === "Disintegration" || def?.workflowType === "Disintegration";
     const isWv = workflowTypeByCode[newCode] === "WeightVariation" || def?.workflowType === "WeightVariation";
     const isTit = workflowTypeByCode[newCode] === "Titration" || def?.workflowType === "Titration";
+    const isUvAssay = workflowTypeByCode[newCode] === "UvSpectrophotometry" || def?.workflowType === "UvSpectrophotometry";
 
-    if (isTit) {
+    if (isUvAssay) {
+      const mode = def?.uvCalculationMode;
+      if (mode === "AbsorbanceLimit") {
+        setLimitType("Qualitative");
+        setResultBasis("");
+        setUnit("AU");
+      } else {
+        setLimitType("Range");
+        setResultBasis(mode === "SpecificAbsorbanceValue" ? "" : "PercentAsIs");
+        setUnit(mode === "SpecificAbsorbanceValue" ? "" : "%");
+      }
+      setDilutionFactor("");
+      setHplcMethodAnalyteId("");
+      setIcpMethodElementId("");
+      setRelatedSubstanceRow("");
+      setLabelClaim("");
+      setLabelClaimUnit("");
+    } else if (isTit) {
       setLimitType("Range");
       setDilutionFactor("");
       setResultBasis("PercentAsIs");
@@ -463,6 +551,8 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
     } else if (isHplcAssay) {
       setLimitType("Range");
       setHplcMethodAnalyteId("");
+      setHplcMethodImpurityId("");
+      setRelatedSubstanceRow("");
       setDilutionFactor("");
       setResultBasis("PercentLabelClaim");
       setUnit("%");
@@ -543,18 +633,39 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
     }
 
     if (isHplcMethodAssay) {
-      if (!hplcMethodAnalyteId) {
-        setError(isResidualSolvents ? "Please select a solvent from the GC method." : "Please select an analyte from the HPLC method.");
-        return;
-      }
-      if (isResidualSolvents) {
+      if (isRelatedSubstances) {
+        if (!relatedSubstanceRow) {
+          setError("Choose the related-substance row: named impurity, any unspecified impurity, total, or total of others.");
+          return;
+        }
+        if (relatedSubstanceRow === "Named" && !hplcMethodImpurityId) {
+          setError("Choose the impurity for this row.");
+          return;
+        }
+      } else if (isResidualSolvents) {
+        if (!hplcMethodAnalyteId) {
+          setError("Please select a solvent from the GC method.");
+          return;
+        }
         if (resultBasis !== "Ppm") {
           setError("Basis must be ppm for residual solvents.");
           return;
         }
       } else {
-        if (!resultBasis || (resultBasis !== "PercentLabelClaim" && resultBasis !== "MgPerUnit")) {
-          setError("Please select a basis (Assay % or Amount per unit).");
+        if (!hplcMethodAnalyteId) {
+          setError("Please select an analyte from the HPLC method.");
+          return;
+        }
+        const isRawMaterial = item.category === "RawMaterial";
+        const validBases: ResultBasis[] = isRawMaterial
+          ? ["PercentLabelClaim", "MgPerUnit", "PercentAsIs", "PercentDriedBasis", "PercentAnhydrousBasis"]
+          : ["PercentLabelClaim", "MgPerUnit"];
+        if (!resultBasis || !validBases.includes(resultBasis as ResultBasis)) {
+          setError(
+            isRawMaterial
+              ? "Please select a basis (Assay %, Amount per unit, % as is, % dried basis, or % anhydrous basis)."
+              : "Please select a basis (Assay % or Amount per unit)."
+          );
           return;
         }
         if (resultBasis === "MgPerUnit") {
@@ -666,10 +777,12 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
       testCode,
       parameterName: parameterName.trim() || undefined,
       displayOrder,
-      limitType,
+      limitType: isRelatedSubstances ? "NotMoreThan" : limitType,
       referenceStandard: referenceStandard.trim() || null,
       unit:
-        isResidualSolvents
+        isRelatedSubstances
+          ? "%"
+          : isResidualSolvents
           ? "ppm"
           : limitType === "WeightVariation"
           ? "mg"
@@ -733,10 +846,23 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
               acceptanceCriteriaText: s.acceptanceCriteriaText.trim()
             }))
           : undefined,
-      hplcMethodAnalyteId: isHplcMethodAssay && hplcMethodAnalyteId !== "" ? Number(hplcMethodAnalyteId) : null,
+      hplcMethodAnalyteId: isHplcMethodAssay
+        ? isRelatedSubstances
+          ? (methodAnalytes[0]?.id ?? (hplcMethodAnalyteId !== "" ? Number(hplcMethodAnalyteId) : null))
+          : (hplcMethodAnalyteId !== "" ? Number(hplcMethodAnalyteId) : null)
+        : null,
+      relatedSubstanceRow: isRelatedSubstances && relatedSubstanceRow ? (relatedSubstanceRow as RelatedSubstanceRow) : null,
+      hplcMethodImpurityId:
+        isRelatedSubstances && relatedSubstanceRow === "Named" && hplcMethodImpurityId !== ""
+          ? Number(hplcMethodImpurityId)
+          : null,
       icpMethodElementId: isIcpMethodAssay && icpMethodElementId !== "" ? Number(icpMethodElementId) : null,
-      resultBasis: isIcpMethodAssay
+      resultBasis: isRelatedSubstances
+        ? "PercentAsIs"
+        : isIcpMethodAssay
         ? (resultBasis as ResultBasis)
+        : isUv
+        ? (isUvLimit ? null : resultBasis ? (resultBasis as ResultBasis) : null)
         : (isHplcMethodAssay || isTitration) && resultBasis
         ? (resultBasis as ResultBasis)
         : null,
@@ -762,7 +888,8 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
               : isHplcMethodAssay && resultBasis === "MgPerUnit"
               ? labelClaimUnit.trim() || null
               : null)),
-      productionStageRole: supportsProductionStage && productionStageRole ? productionStageRole : null
+      productionStageRole: supportsProductionStage && productionStageRole ? productionStageRole : null,
+      grade: supportsGrade && grade.trim() ? grade.trim() : null
     };
 
     try {
@@ -882,9 +1009,143 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
             </FormControl>
           )}
 
+          {supportsGrade && (
+            <Autocomplete
+              freeSolo
+              size="small"
+              options={GRADE_SUGGESTIONS}
+              inputValue={grade}
+              onInputChange={(_, v) => setGrade(v)}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  label="Grade"
+                  helperText="BP, USP, In-house or your own (max 20 characters). Leave blank for an ungraded specification."
+                  slotProps={{ ...params.slotProps, htmlInput: { ...params.slotProps.htmlInput, maxLength: 20 } }}
+                />
+              )}
+            />
+          )}
+
           {/* HPLC Method Assay Parameters Block */}
           {isHplcMethodAssay &&
-            (isResidualSolvents ? (
+            (isRelatedSubstances ? (
+              <Box
+                sx={{
+                  border: "1px solid",
+                  borderColor: "primary.main",
+                  borderRadius: 1,
+                  p: 2,
+                  bgcolor: "action.hover"
+                }}
+              >
+                <Typography
+                  variant="caption"
+                  sx={{
+                    fontWeight: 700,
+                    letterSpacing: "0.5px",
+                    color: "primary.main",
+                    textTransform: "uppercase",
+                    display: "block",
+                    mb: 1.5
+                  }}
+                >
+                  Related Substances (HPLC) Specification
+                </Typography>
+
+                <Stack spacing={2}>
+                  <Box
+                    sx={{
+                      display: "grid",
+                      gridTemplateColumns: {
+                        xs: "1fr",
+                        sm: relatedSubstanceRow === "Named" ? "1fr 1fr 1fr" : "1fr 1fr"
+                      },
+                      gap: 2
+                    }}
+                  >
+                    <FormControl size="small" fullWidth required>
+                      <InputLabel id="rs-row-label">Row *</InputLabel>
+                      <Select
+                        labelId="rs-row-label"
+                        label="Row *"
+                        value={relatedSubstanceRow}
+                        onChange={(e) => {
+                          const val = e.target.value as RelatedSubstanceRow;
+                          setRelatedSubstanceRow(val);
+                          if (val === "UnspecifiedEach") {
+                            setHplcMethodImpurityId("");
+                            setParameterName("Any unspecified impurity");
+                          } else if (val === "Total") {
+                            setHplcMethodImpurityId("");
+                            setParameterName("Total impurities");
+                          } else if (val === "TotalOthers") {
+                            setHplcMethodImpurityId("");
+                            setParameterName("Total of others");
+                          } else if (val === "Named") {
+                            if (hplcMethodImpurityId) {
+                              const imp = methodImpurities.find((i) => i.id === hplcMethodImpurityId);
+                              if (imp) setParameterName(imp.name);
+                            }
+                          }
+                        }}
+                      >
+                        <MenuItem value="Named">Named impurity</MenuItem>
+                        <MenuItem value="UnspecifiedEach">Any unspecified impurity</MenuItem>
+                        <MenuItem value="Total">Total impurities</MenuItem>
+                        <MenuItem value="TotalOthers">Total of others</MenuItem>
+                      </Select>
+                    </FormControl>
+
+                    {relatedSubstanceRow === "Named" && (
+                      <FormControl size="small" fullWidth required>
+                        <InputLabel id="rs-impurity-picker-label">Impurity *</InputLabel>
+                        <Select
+                          labelId="rs-impurity-picker-label"
+                          label="Impurity *"
+                          value={hplcMethodImpurityId}
+                          onChange={(e) => {
+                            const id = Number(e.target.value);
+                            setHplcMethodImpurityId(id);
+                            const imp = methodImpurities.find((i) => i.id === id);
+                            if (imp) {
+                              setParameterName(imp.name);
+                            }
+                          }}
+                          disabled={loadingMethodAnalytes}
+                        >
+                          {loadingMethodAnalytes ? (
+                            <MenuItem disabled value="">
+                              <em>Loading impurities...</em>
+                            </MenuItem>
+                          ) : methodImpurities.length === 0 ? (
+                            <MenuItem disabled value="">
+                              <em>No impurities configured in HPLC method</em>
+                            </MenuItem>
+                          ) : (
+                            methodImpurities.map((imp) => (
+                              <MenuItem key={imp.id} value={imp.id}>
+                                {imp.name}
+                                {imp.relativeRetention != null ? ` (RRT ${imp.relativeRetention})` : ""}
+                              </MenuItem>
+                            ))
+                          )}
+                        </Select>
+                      </FormControl>
+                    )}
+
+                    <TextField
+                      size="small"
+                      label="Result Basis *"
+                      value="% as is"
+                      slotProps={{ input: { readOnly: true } }}
+                      helperText="Fixed basis for related substances"
+                      fullWidth
+                    />
+                  </Box>
+                </Stack>
+              </Box>
+            ) : isResidualSolvents ? (
               <ResidualSolventSpecFields
                 methodAnalytes={methodAnalytes}
                 loadingMethodAnalytes={loadingMethodAnalytes}
@@ -998,6 +1259,15 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
                       >
                         <MenuItem value="PercentLabelClaim">Assay %</MenuItem>
                         <MenuItem value="MgPerUnit">Amount per unit</MenuItem>
+                        {item.category === "RawMaterial" && (
+                          <MenuItem value="PercentAsIs">% as is</MenuItem>
+                        )}
+                        {item.category === "RawMaterial" && (
+                          <MenuItem value="PercentDriedBasis">% dried basis</MenuItem>
+                        )}
+                        {item.category === "RawMaterial" && (
+                          <MenuItem value="PercentAnhydrousBasis">% anhydrous basis</MenuItem>
+                        )}
                       </Select>
                     </FormControl>
                   </Box>
@@ -1051,6 +1321,28 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
             />
           )}
 
+          {isUv && !isUvLimit && (
+            <Box sx={{ border: "1px dashed", borderColor: "divider", borderRadius: 1, p: 2 }}>
+              <Typography variant="caption" sx={{ fontWeight: 700, color: "primary.main", textTransform: "uppercase", display: "block", mb: 1.5 }}>
+                UV Spectrophotometry Basis
+              </Typography>
+              <FormControl size="small" fullWidth>
+                <InputLabel id="uv-spec-basis-label">Basis</InputLabel>
+                <Select
+                  labelId="uv-spec-basis-label"
+                  label="Basis"
+                  value={resultBasis ?? ""}
+                  onChange={(e) => setResultBasis(e.target.value as ResultBasis)}
+                >
+                  <MenuItem value=""><em>None</em></MenuItem>
+                  <MenuItem value="PercentAsIs">% as is</MenuItem>
+                  <MenuItem value="PercentDriedBasis">% dried basis</MenuItem>
+                  <MenuItem value="PercentAnhydrousBasis">% anhydrous basis</MenuItem>
+                </Select>
+              </FormControl>
+            </Box>
+          )}
+
           {/* ICP Method Assay Parameters Block */}
           {isIcpMethodAssay && (
             <IcpSpecFields
@@ -1097,7 +1389,16 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
           )}
 
           {/* Row 2: Limit Type */}
-          {isResidualSolvents ? (
+          {isRelatedSubstances ? (
+            <TextField
+              size="small"
+              label="Limit Type *"
+              value="NMT (Not More Than)"
+              slotProps={{ input: { readOnly: true } }}
+              helperText="Fixed limit type for related substances"
+              fullWidth
+            />
+          ) : isResidualSolvents ? (
             <TextField
               size="small"
               label="Limit Type *"
@@ -1121,6 +1422,12 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
                   ? LIMIT_TYPE_OPTIONS.filter((opt) => opt.value === "DisintegrationTime")
                   : isDissolution
                   ? LIMIT_TYPE_OPTIONS.filter((opt) => opt.value === "DissolutionQ")
+                  : isUv
+                  ? (isUvLimit
+                    ? LIMIT_TYPE_OPTIONS.filter((opt) => opt.value === "Qualitative")
+                    : LIMIT_TYPE_OPTIONS.filter((opt) =>
+                        ["Range", "NotMoreThan", "NotLessThan"].includes(opt.value)
+                      ))
                   : (isHplcMethodAssay || isIcpMethodAssay || isTitration)
                   ? LIMIT_TYPE_OPTIONS.filter((opt) =>
                       ["Range", "NotMoreThan", "NotLessThan", "TargetWithTolerance"].includes(opt.value)
@@ -1217,7 +1524,7 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
               <Box sx={{ maxWidth: 300 }}>
                 <TextField
                   size="small"
-                  label={isResidualSolvents ? "NMT (ppm) *" : isIcpElementalImpurities ? "NMT (µg/g) *" : "Upper Limit (NMT) *"}
+                  label={isRelatedSubstances ? "NMT (%) *" : isResidualSolvents ? "NMT (ppm) *" : isIcpElementalImpurities ? "NMT (µg/g) *" : "Upper Limit (NMT) *"}
                   type="number"
                   value={upperLimit}
                   onChange={(e) => setUpperLimit(e.target.value)}
@@ -1571,7 +1878,9 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
               size="small"
               label="Unit"
               value={
-                isResidualSolvents
+                isRelatedSubstances
+                  ? "%"
+                  : isResidualSolvents
                   ? "ppm"
                   : isIcpElementalImpurities
                   ? "µg/g"
@@ -1582,7 +1891,7 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
                   : unit
               }
               onChange={(e) => setUnit(e.target.value)}
-              disabled={isResidualSolvents || isIcpElementalImpurities || limitType === "DisintegrationTime" || limitType === "WeightVariation"}
+              disabled={isRelatedSubstances || isResidualSolvents || isIcpElementalImpurities || limitType === "DisintegrationTime" || limitType === "WeightVariation"}
               helperText={
                 isResidualSolvents
                   ? "Fixed unit for residual solvents"
@@ -1608,7 +1917,7 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
           </Box>
 
           {/* Row 5: Dilution Factor */}
-          {!isHplcMethodAssay && !isIcpMethodAssay && !isTitration && limitType !== "WeightVariation" && (
+          {!isHplcMethodAssay && !isIcpMethodAssay && !isTitration && !isUv && limitType !== "WeightVariation" && (
             <TextField
               size="small"
               label="Dilution Factor"

@@ -17,8 +17,9 @@ public record RecordMeasurementResultRequest(DateTime AnalysedAt, int? Equipment
 public record GravimetricReplicateRequest(decimal? Container, decimal Initial, decimal Final);
 public record RecordGravimetricParameterRequest(int SpecificationId, List<GravimetricReplicateRequest> Replicates);
 public record RecordGravimetricResultRequest(DateTime AnalysedAt, int? EquipmentId, Dictionary<string, string> Conditions, List<RecordGravimetricParameterRequest> Parameters, string Password, string? Comment = null);
-public record RecordQualitativeParameterRequest(int SpecificationId, bool Conforms, string? Observation);
-public record RecordQualitativeResultRequest(DateTime AnalysedAt, int? EquipmentId, List<RecordQualitativeParameterRequest> Parameters, string Password, string? Comment = null);
+public record RecordQualitativeContainerRequest(int Index, bool Conforms, string? Observation);
+public record RecordQualitativeParameterRequest(int SpecificationId, bool Conforms, string? Observation, List<RecordQualitativeContainerRequest>? Containers = null);
+public record RecordQualitativeResultRequest(DateTime AnalysedAt, int? EquipmentId, List<RecordQualitativeParameterRequest> Parameters, string Password, string? Comment = null, int? ContainerCount = null);
 public record RecordDissolutionResultRequest(DateTime AnalysedAt, int? EquipmentId, Dictionary<string, string>? Conditions, decimal MediumVolumeMl, decimal? DilutionFactor, List<decimal> VesselAreas, string Password, string? Comment = null);
 public record RecordDissolutionStageRequest(List<decimal> VesselAreas, string Password, string? Comment = null);
 public record RecordDisintegrationResultRequest(DateTime AnalysedAt, int? EquipmentId, Dictionary<string, string>? Conditions, List<decimal?> UnitMinutes, string Password, string? Comment = null);
@@ -54,9 +55,19 @@ public record RecordTitrationResultRequest(
     List<TitrationStandardRequest>? Standards, List<int> SpecificationIds, List<TitrationReplicateRequest> Replicates,
     string Password, string? Comment = null, bool? DueTitrantAcknowledged = null, string? DueTitrantJustification = null);
 
+public record UvReplicateRequest(decimal? WeightG, decimal? Absorbance);
+public record RecordUvParameterRequest(int SpecificationId, decimal WavelengthNm, decimal? ReferenceAbsorbance, List<UvReplicateRequest> Replicates);
+public record RecordUvResultRequest(
+    DateTime AnalysedAt, int EquipmentId, int? StandardMaterialId, decimal? StandardWeightG, decimal? StandardAbsorbance,
+    List<RecordUvParameterRequest> Parameters, string Password, string? Comment = null);
+
 public record ConfirmatoryObservationRequest(int MaterialId, GrowthObservation Observation);
 public record SubmitConfirmatoryObservationsRequest(string StepName, List<ConfirmatoryObservationRequest> Observations);
 
 public record AnalystDecisionRequest(AnalystDecision Decision);
 public record SubmitBiochemicalRequest(string StepName, string BiochemicalResultText, int? AttachmentId, bool OrganismDetected);
 public record BiochemicalReviewRequest(bool Approve, string Comment);
+
+public record OutsourceTestRequest(string ExternalLab, string Reason, string Password);
+public record OutsourcedParameterRequest(int SpecificationId, decimal? Value, bool? Conforms, string? Observation);
+public record RecordOutsourcedResultRequest(DateTime ReportedAt, string ExternalReportNumber, int ReportDocumentId, List<OutsourcedParameterRequest> Parameters, string Password, string? Comment = null);

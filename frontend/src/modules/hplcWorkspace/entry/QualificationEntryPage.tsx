@@ -17,12 +17,13 @@ import { HplcStatusBadge } from "../components/HplcStatusBadge";
 import { NumericCell, ResultSection } from "../../../components/lab";
 import { StatusBadge } from "../../../components/StatusBadge";
 import { ReplicateEntryTable, replicatesComplete } from "./ReplicateEntryTable";
+import { buildReplicatePayload } from "./replicatePayload";
 import { WorkingStandardPreviewCard } from "./WorkingStandardPreviewCard";
 import { SendForReviewDialog } from "./SendForReviewDialog";
 import { ReportUploadPanel } from "../evidence/ReportUploadPanel";
 import { tableHeadSx } from "../../../theme";
 import { useTechnique } from "../useTechnique";
-import type { HplcQualificationEntryDto, HplcReplicateDto, HplcReplicateInput } from "../types";
+import type { HplcQualificationEntryDto, HplcReplicateDto } from "../types";
 
 export function QualificationEntryPage() {
   const theme = useTheme();
@@ -54,7 +55,7 @@ export function QualificationEntryPage() {
       setEntry(data);
       const reps = data.replicates?.length > 0 ? data.replicates : data.editable
         ? Array.from({ length: data.requiredReplicates || 6 }, (_, i) => ({
-            replicateNo: i + 1, actualWeightMg: 0,
+            replicateNo: i + 1, actualWeightMg: 0, internalStandardResponse: data.internalStandardName ? 0 : undefined,
             responses: (data.methodWeights || []).map((mw) => ({ hplcMethodAnalyteId: mw.hplcMethodAnalyteId, response: 0 }))
           }))
         : [];
@@ -73,10 +74,7 @@ export function QualificationEntryPage() {
     if (!entry || !sampleIdNum) return;
     setSaving(true);
     setError(null);
-    const payload: HplcReplicateInput[] = replicates.map((r) => ({
-      actualWeightMg: r.actualWeightMg,
-      responses: r.responses.map((resp) => ({ hplcMethodAnalyteId: resp.hplcMethodAnalyteId, response: resp.response }))
-    }));
+    const payload = buildReplicatePayload(replicates, false, Boolean(entry.internalStandardName));
     try {
       const updated = await HplcWorkspaceService.saveQualificationReplicates(sampleIdNum, { replicates: payload });
       setEntry(updated);
@@ -113,7 +111,8 @@ export function QualificationEntryPage() {
 
   const isEditable = entry.editable && canOperate;
   const methodWeights = entry.methodWeights || [];
-  const canSave = replicatesComplete(methodWeights, replicates);
+  const hasInternalStandard = Boolean(entry.internalStandardName);
+  const canSave = replicatesComplete(methodWeights, replicates, false, hasInternalStandard);
 
   return (
     <Box sx={{ p: { xs: 2, md: 3 }, maxWidth: 1400, mx: "auto" }}>
@@ -198,6 +197,8 @@ export function QualificationEntryPage() {
             replicates={replicates}
             onChange={setReplicates}
             requiredReplicates={entry.requiredReplicates || 6}
+            hasInternalStandard={hasInternalStandard}
+            internalStandardName={entry.internalStandardName}
             disabled={!isEditable || saving}
             footer={
               <Box sx={{ position: "sticky", bottom: 0, zIndex: 1, mt: 1.5, py: 1.25, display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 1.5, bgcolor: "background.paper", borderTop: `1px solid ${theme.palette.divider}` }}>

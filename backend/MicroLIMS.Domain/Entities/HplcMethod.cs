@@ -16,6 +16,7 @@ public class HplcMethod : IVersionedEntity
     public bool IsActive { get; set; } = true;
     public HplcTechnique Technique { get; set; } = HplcTechnique.Hplc;   // fixed at creation
     public HplcResultMode ResultMode { get; set; } = HplcResultMode.Assay; // fixed at creation
+    public string? InternalStandardName { get; set; }
 
     // Column (USP <621> Appendix A)
     public string ColumnDesignation { get; set; } = string.Empty; // e.g. "L1"
@@ -55,6 +56,11 @@ public class HplcMethod : IVersionedEntity
     public List<HplcMethodGradientStep> GradientSteps { get; set; } = new();
     public List<HplcMethodOvenStep> OvenSteps { get; set; } = new();
     public List<HplcMethodAnalyte> Analytes { get; set; } = new();
+
+    // Related substances only (null / empty otherwise).
+    public decimal? ReferenceSolutionPercent { get; set; }   // reference solution as % of the test solution
+    public decimal? DisregardLimitPercent { get; set; }
+    public List<HplcMethodImpurity> Impurities { get; set; } = new();
 
     public int CreatedByUserId { get; set; }
     public DateTime CreatedAt { get; set; }
@@ -108,6 +114,19 @@ public class HplcMethodAnalyte
     public decimal? SstMinPeakToValley { get; set; }
     public decimal? StandardDilution { get; set; } // mL; dissolution standard only (Cs = W x P x (100-MC) / dilution)
     public decimal? StandardConcentrationUgPerMl { get; set; } // residual solvents only
+}
+
+// Named impurity of a related-substances method. Kept on update when unchanged (matched by Id)
+// so specification rows stay linked.
+public class HplcMethodImpurity
+{
+    public int Id { get; set; }
+    public int HplcMethodId { get; set; }
+    public HplcMethod? HplcMethod { get; set; }
+    public int DisplayOrder { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public decimal? RelativeRetention { get; set; }
+    public decimal CorrectionFactor { get; set; } = 1m;
 }
 
 // GC oven program row; the first row has no ramp rate (initial temperature + hold).

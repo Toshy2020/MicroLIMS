@@ -33,7 +33,8 @@ public class TestWorkflowStepMasterDataService
         var dedicatedEquation = entity.EquationType is EquationType.HplcMethodAssay or EquationType.IcpMethodAssay
             or EquationType.Dissolution or EquationType.Disintegration or EquationType.WeightVariation
             or EquationType.Titration or EquationType.Measurement or EquationType.Qualitative
-            or EquationType.GravimetricLoss or EquationType.GravimetricResidue;
+            or EquationType.GravimetricLoss or EquationType.GravimetricResidue
+            or EquationType.UvSpectrophotometry;
         if (!StepDriven(entity.WorkflowType) || !StepDriven(request.WorkflowType) || dedicatedEquation)
             throw new InvalidOperationException("The workflow type of this test is set by its test type; change it in the test settings.");
         entity.WorkflowType = request.WorkflowType;

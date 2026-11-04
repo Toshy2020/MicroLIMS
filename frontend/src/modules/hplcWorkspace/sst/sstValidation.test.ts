@@ -61,7 +61,7 @@ describe("findMissingSstFields", () => {
     ovenSteps: []
   };
 
-  it("requires actual standard weight when isResidualSolvents is false", () => {
+  it("requires actual standard weight when the standard is weighed (assay)", () => {
     const input: Record<number, SaveSstAnalyteInput> = {
       1: {
         hplcSstAnalyteId: 1,
@@ -71,12 +71,12 @@ describe("findMissingSstFields", () => {
       }
     };
 
-    const missing = findMissingSstFields([dummyAnalyte], input, dummyMethod, false);
+    const missing = findMissingSstFields([dummyAnalyte], input, dummyMethod, true);
     expect(missing.length).toBe(1);
     expect(missing[0]).toContain("actual standard weight");
   });
 
-  it("does NOT require actual standard weight when isResidualSolvents is true", () => {
+  it("does NOT require actual standard weight when the standard is not weighed (related substances, residual solvents)", () => {
     const input: Record<number, SaveSstAnalyteInput> = {
       1: {
         hplcSstAnalyteId: 1,
@@ -86,7 +86,7 @@ describe("findMissingSstFields", () => {
       }
     };
 
-    const missing = findMissingSstFields([dummyAnalyte], input, dummyMethod, true);
+    const missing = findMissingSstFields([dummyAnalyte], input, dummyMethod, false);
     expect(missing).toEqual([]);
   });
 
@@ -100,9 +100,39 @@ describe("findMissingSstFields", () => {
       }
     };
 
-    const missing = findMissingSstFields([dummyAnalyte], input, dummyMethod, true);
+    const missing = findMissingSstFields([dummyAnalyte], input, dummyMethod, false);
     expect(missing.length).toBe(1);
     expect(missing[0]).toContain("reference standard lot");
     expect(missing[0]).toContain("injection #2");
+  });
+
+  it("requires internal standard responses, one per injection, when hasInternalStandard is true", () => {
+    const inputMissingIS: Record<number, SaveSstAnalyteInput> = {
+      1: {
+        hplcSstAnalyteId: 1,
+        standardMaterialId: 5,
+        standardWeightMg: 10,
+        responses: [1000, 1005, 1002],
+        internalStandardResponses: [5000, 0, 5002] // injection #2 IS missing
+      }
+    };
+
+    const missing = findMissingSstFields([dummyAnalyte], inputMissingIS, dummyMethod, true, true);
+    expect(missing.length).toBe(1);
+    expect(missing[0]).toContain("internal standard");
+    expect(missing[0]).toContain("#2");
+
+    const inputCompleteIS: Record<number, SaveSstAnalyteInput> = {
+      1: {
+        hplcSstAnalyteId: 1,
+        standardMaterialId: 5,
+        standardWeightMg: 10,
+        responses: [1000, 1005, 1002],
+        internalStandardResponses: [5000, 5001, 5002]
+      }
+    };
+
+    const missingComplete = findMissingSstFields([dummyAnalyte], inputCompleteIS, dummyMethod, true, true);
+    expect(missingComplete).toEqual([]);
   });
 });

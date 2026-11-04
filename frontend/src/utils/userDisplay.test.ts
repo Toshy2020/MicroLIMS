@@ -2,6 +2,10 @@ import { describe, expect, it } from "vitest";
 import { formatRoleFallback } from "./userDisplay";
 
 describe("formatRoleFallback", () => {
+  it("names the QC Manager role", () => {
+    expect(formatRoleFallback("QcManager", [])).toBe("QC Manager");
+  });
+
   it("shows a custom role name as it is written", () => {
     expect(formatRoleFallback("Analyst", ["MICRO"], "Senior Microbiologist")).toBe("Senior Microbiologist");
   });
@@ -10,7 +14,7 @@ describe("formatRoleFallback", () => {
     expect(formatRoleFallback("SectionHead", [], "Head of Microbiology")).toBe("Head of Microbiology");
   });
 
-  it("keeps the laboratory prefix for the four built-in names", () => {
+  it("keeps the laboratory prefix for the built-in names", () => {
     expect(formatRoleFallback("Analyst", ["MICRO"], "Analyst")).toBe("Microbiology Analyst");
     expect(formatRoleFallback("SectionHead", ["FP"], "Section Head")).toBe("Physicochemical Section Head");
     expect(formatRoleFallback("Reviewer", ["MICRO"], "Reviewer")).toBe("Quality Reviewer");

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { PinnedLightTheme } from "../../../theme/PinnedLightTheme";
 import { ReplicateEntryTable, replicatesComplete } from "./ReplicateEntryTable";
 import type { HplcMethodWeightDto, HplcReplicateDto } from "../types";
@@ -77,6 +77,77 @@ describe("ReplicateEntryTable", () => {
     expect(matches.length).toBeGreaterThan(0);
   });
 
+  it("shows IS column and labels 'Analyte area *' and 'IS area *' when hasInternalStandard is true", () => {
+    render(
+      <PinnedLightTheme>
+        <ReplicateEntryTable
+          methodWeights={mockWeights}
+          replicates={[
+            {
+              replicateNo: 1,
+              actualWeightMg: 100.5,
+              responses: [{ hplcMethodAnalyteId: 10, response: 2000 }],
+              internalStandardResponse: 0
+            }
+          ]}
+          onChange={vi.fn()}
+          hasInternalStandard={true}
+        />
+      </PinnedLightTheme>
+    );
+
+    expect(screen.getByText("Analyte area *")).toBeTruthy();
+    expect(screen.getByText("IS area *")).toBeTruthy();
+    expect(screen.getByLabelText(/replicate 1 is area/i)).toBeTruthy();
+  });
+
+  it("the IS column is hidden without internalStandardName", () => {
+    render(
+      <PinnedLightTheme>
+        <ReplicateEntryTable
+          methodWeights={mockWeights}
+          replicates={[mockReplicate]}
+          onChange={vi.fn()}
+          hasInternalStandard={false}
+          internalStandardName={null}
+        />
+      </PinnedLightTheme>
+    );
+
+    expect(screen.queryByText("IS area *")).toBeNull();
+    expect(screen.queryByLabelText(/is area/i)).toBeNull();
+  });
+
+  it("edits the IS area when hasInternalStandard is true", () => {
+    const handleChange = vi.fn();
+    render(
+      <PinnedLightTheme>
+        <ReplicateEntryTable
+          methodWeights={mockWeights}
+          replicates={[
+            {
+              replicateNo: 1,
+              actualWeightMg: 100.5,
+              responses: [{ hplcMethodAnalyteId: 10, response: 2000 }],
+              internalStandardResponse: 0
+            }
+          ]}
+          onChange={handleChange}
+          hasInternalStandard={true}
+          internalStandardName="n-Hexane (IS)"
+        />
+      </PinnedLightTheme>
+    );
+
+    expect(screen.getByText("n-Hexane (IS) Area *")).toBeTruthy();
+    const isInput = screen.getByLabelText(/replicate 1 is area/i);
+    fireEvent.change(isInput, { target: { value: "3500" } });
+
+    expect(handleChange).toHaveBeenCalled();
+    const callArg = handleChange.mock.calls[0][0];
+    expect(callArg[0].internalStandardResponse).toBe(3500);
+  });
+
   describe("replicatesComplete", () => {
     it("permits response 0 in ResidualSolvents mode", () => {
       const repZero: HplcReplicateDto = {
@@ -111,6 +182,24 @@ describe("ReplicateEntryTable", () => {
       };
       expect(replicatesComplete(mockWeights, [repNoWeight], true)).toBe(false);
       expect(replicatesComplete(mockWeights, [repNoWeight], false)).toBe(false);
+    });
+
+    it("in IS mode, requires internalStandardResponse > 0", () => {
+      const repZeroIS: HplcReplicateDto = {
+        replicateNo: 1,
+        actualWeightMg: 50.0,
+        responses: [{ hplcMethodAnalyteId: 10, response: 1500 }],
+        internalStandardResponse: 0
+      };
+      expect(replicatesComplete(mockWeights, [repZeroIS], false, true)).toBe(false);
+
+      const repValidIS: HplcReplicateDto = {
+        replicateNo: 1,
+        actualWeightMg: 50.0,
+        responses: [{ hplcMethodAnalyteId: 10, response: 1500 }],
+        internalStandardResponse: 3000
+      };
+      expect(replicatesComplete(mockWeights, [repValidIS], false, true)).toBe(true);
     });
   });
 });

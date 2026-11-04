@@ -8,4 +8,8 @@ public class CauseOfTesting : IVersionedEntity
     public uint Version { get; set; }
     public string Name { get; set; } = string.Empty;
     public bool IsActive { get; set; } = true;
+
+    // A sample received for this cause (e.g. "Periodic retest") gets no test
+    // orders at receipt: a Section Head or Supervisor chooses its tests later.
+    public bool RequiresTestSelection { get; set; }
 }

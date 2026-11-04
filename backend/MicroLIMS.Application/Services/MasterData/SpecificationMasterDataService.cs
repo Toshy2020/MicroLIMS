@@ -64,7 +64,7 @@ public class SpecificationMasterDataService
                 s.LowerInclusive, s.UpperInclusive, s.Target, s.Tolerance, s.ToleranceMode, s.ExpectedResultText,
                 s.ExpectedState, s.SampleQuantity, s.SampleQuantityUnit, s.ResultBasis,
                 s.LabelClaim, s.LabelClaimUnit, s.DosageForm, s.Stages.Select(SpecificationStageResponse.From).ToList(),
-                canEdit, def?.Section?.Name ?? string.Empty, s.HplcMethodAnalyteId, s.ProductionStageRole, s.IcpMethodElementId) { Version = s.Version };
+                canEdit, def?.Section?.Name ?? string.Empty, s.HplcMethodAnalyteId, s.ProductionStageRole, s.IcpMethodElementId, s.Grade, s.RelatedSubstanceRow, s.HplcMethodImpurityId) { Version = s.Version };
         }).ToList();
 
         return rows;
@@ -76,6 +76,13 @@ public class SpecificationMasterDataService
 
         var limitType = request.LimitType ?? LimitType.CountTiered;
         var paramName = request.ParameterName;
+        if (string.IsNullOrWhiteSpace(paramName) && request.RelatedSubstanceRow is RelatedSubstanceRow kind && Enum.IsDefined(kind))
+        {
+            var impurityName = request.HplcMethodImpurityId is int impurityId
+                ? await _db.HplcMethodImpurities.Where(i => i.Id == impurityId).Select(i => i.Name).FirstOrDefaultAsync()
+                : null;
+            paramName = SpecificationService.RelatedSubstanceParameterName(kind, impurityName);
+        }
         if (string.IsNullOrWhiteSpace(paramName))
         {
             var testDef = await _db.TestDefinitions.FirstOrDefaultAsync(t => t.Code == request.TestCode);
@@ -111,8 +118,11 @@ public class SpecificationMasterDataService
             LabelClaimUnit = request.LabelClaimUnit,
             DosageForm = request.DosageForm,
             HplcMethodAnalyteId = request.HplcMethodAnalyteId,
+            RelatedSubstanceRow = request.RelatedSubstanceRow,
+            HplcMethodImpurityId = request.HplcMethodImpurityId,
             IcpMethodElementId = request.IcpMethodElementId,
             ProductionStageRole = request.ProductionStageRole,
+            Grade = request.Grade,
             Stages = request.Stages?.Select(s => new SpecificationStage
             {
                 StageNumber = s.StageNumber,
@@ -175,8 +185,11 @@ public class SpecificationMasterDataService
         spec.LabelClaimUnit = request.LabelClaimUnit;
         spec.DosageForm = request.DosageForm;
         spec.HplcMethodAnalyteId = request.HplcMethodAnalyteId;
+        spec.RelatedSubstanceRow = request.RelatedSubstanceRow;
+        spec.HplcMethodImpurityId = request.HplcMethodImpurityId;
         spec.IcpMethodElementId = request.IcpMethodElementId;
         spec.ProductionStageRole = request.ProductionStageRole;
+        spec.Grade = request.Grade;
 
         // Replace-all on stages
         _db.SpecificationStages.RemoveRange(spec.Stages);

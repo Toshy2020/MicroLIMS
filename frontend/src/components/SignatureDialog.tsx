@@ -17,6 +17,8 @@ interface SignatureDialogProps {
   commentLabel?: string;
   comment?: string;
   onCommentChange?: (value: string) => void;
+  // Whether Sign stays disabled until the comment is filled (default: not required).
+  commentRequired?: boolean;
   // Changes that need a second, different person (for example skipping a monitoring
   // occurrence) ask for their username and password as well.
   requireSecondSigner?: boolean;
@@ -31,7 +33,7 @@ interface SignatureDialogProps {
 // optional comment. On failure the server's message is shown and the
 // password is cleared, but the dialog stays open.
 export function SignatureDialog({
-  open, meaningStatement, showComment = false, commentLabel = "Comment (optional)", comment, onCommentChange,
+  open, meaningStatement, showComment = false, commentLabel = "Comment (optional)", comment, onCommentChange, commentRequired = false,
   requireSecondSigner = false, secondSignerHint, onCancel, onConfirm
 }: SignatureDialogProps) {
   const { fullName, username, role } = useAuth();
@@ -41,7 +43,7 @@ export function SignatureDialog({
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  const complete = !!password && (!requireSecondSigner || (!!secondUsername.trim() && !!secondPassword));
+  const complete = !!password && (!commentRequired || !!comment?.trim()) && (!requireSecondSigner || (!!secondUsername.trim() && !!secondPassword));
 
   const handleConfirm = async () => {
     setSubmitting(true);
@@ -96,7 +98,7 @@ export function SignatureDialog({
             label="Password" type="password" value={password}
             onChange={(e) => setPassword(e.target.value)}
             autoFocus required
-            onKeyDown={(e) => { if (e.key === "Enter" && complete) handleConfirm(); }}
+            onKeyDown={(e) => { if (e.key === "Enter" && complete && !submitting) handleConfirm(); }}
           />
           {requireSecondSigner && (
             <>
@@ -114,7 +116,7 @@ export function SignatureDialog({
               <TextField
                 label="Second signer password" type="password" value={secondPassword} autoComplete="off" required
                 onChange={(e) => setSecondPassword(e.target.value)}
-                onKeyDown={(e) => { if (e.key === "Enter" && complete) handleConfirm(); }}
+                onKeyDown={(e) => { if (e.key === "Enter" && complete && !submitting) handleConfirm(); }}
               />
             </>
           )}

@@ -10,6 +10,8 @@ public class TestOrderConfiguration : IEntityTypeConfiguration<TestOrder>
     {
         builder.HasKey(t => t.Id);
 
+        builder.Property(t => t.OutsourcedToLab).HasMaxLength(200);
+
         // Never let deleting/reconfiguring a Room cascade into deleting
         // TestOrder history - same reasoning as the Media/Material FKs.
         builder.HasOne(t => t.Room).WithMany().HasForeignKey(t => t.RoomId).OnDelete(DeleteBehavior.Restrict);

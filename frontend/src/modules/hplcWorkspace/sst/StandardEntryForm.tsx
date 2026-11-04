@@ -46,6 +46,10 @@ export interface StandardEntryFormProps {
   // Outline blank required fields red after a save attempt found gaps.
   showMissing?: boolean;
   isResidualSolvents?: boolean;
+  // Only an assay weighs its standard; the server stores no weight for related-substances and residual-solvent methods.
+  standardIsWeighed?: boolean;
+  hasInternalStandard?: boolean;
+  internalStandardName?: string | null;
 }
 
 export function StandardEntryForm({
@@ -56,7 +60,10 @@ export function StandardEntryForm({
   onChange,
   disabled = false,
   showMissing = false,
-  isResidualSolvents = false
+  isResidualSolvents = false,
+  standardIsWeighed = true,
+  hasInternalStandard = false,
+  internalStandardName
 }: StandardEntryFormProps) {
   const theme = useTheme();
 
@@ -97,6 +104,12 @@ export function StandardEntryForm({
   // Responses array
   const responses = useMemo(() => formValue.responses ?? [], [formValue.responses]);
 
+  // Internal standard responses array
+  const isResponses = useMemo(
+    () => formValue.internalStandardResponses ?? [],
+    [formValue.internalStandardResponses]
+  );
+
   const handleResponseChange = (idx: number, rawVal: string) => {
     const val = rawVal === "" ? 0 : Number(rawVal);
     const next = [...responses];
@@ -104,6 +117,14 @@ export function StandardEntryForm({
     while (next.length < injectionCount) next.push(0);
     next[idx] = val;
     onChange({ responses: next });
+  };
+
+  const handleIsResponseChange = (idx: number, rawVal: string) => {
+    const val = rawVal === "" ? 0 : Number(rawVal);
+    const next = [...isResponses];
+    while (next.length < injectionCount) next.push(0);
+    next[idx] = val;
+    onChange({ internalStandardResponses: next });
   };
 
   const handleNumChange = (field: keyof SaveSstAnalyteInput, rawVal: string) => {
@@ -132,6 +153,15 @@ export function StandardEntryForm({
             <Chip
               size="small"
               label={`${methodAnalyte.wavelengthNm} nm`}
+              variant="outlined"
+              sx={{ fontWeight: 600 }}
+            />
+          )}
+          {hasInternalStandard && (
+            <Chip
+              size="small"
+              label={internalStandardName ? `IS: ${internalStandardName}` : "Internal Standard"}
+              color="primary"
               variant="outlined"
               sx={{ fontWeight: 600 }}
             />
@@ -225,12 +255,12 @@ export function StandardEntryForm({
               size="small"
               label="Actual Std Weight (mg)"
               type="number"
-              required={!isResidualSolvents}
+              required={standardIsWeighed}
               disabled={disabled}
-              error={showMissing && !isResidualSolvents && !(formValue.standardWeightMg > 0)}
+              error={showMissing && standardIsWeighed && !(formValue.standardWeightMg > 0)}
               value={formValue.standardWeightMg === 0 ? "" : formValue.standardWeightMg}
               onChange={(e) => onChange({ standardWeightMg: e.target.value === "" ? 0 : Number(e.target.value) })}
-              helperText={isResidualSolvents ? "Not required for residual solvents (optional)" : "Weighed on analytical balance"}
+              helperText={standardIsWeighed ? "Weighed on analytical balance" : "Not required for this method (optional)"}
             />
           </Grid>
         </Grid>
@@ -247,21 +277,76 @@ export function StandardEntryForm({
           </Box>
 
           <Grid container spacing={1.5}>
-            {Array.from({ length: injectionCount }).map((_, i) => (
-              <Grid size={{ xs: 6, sm: 4, md: 2.4 }} key={i}>
-                <TextField
-                  fullWidth
-                  size="small"
-                  label={`Injection #${i + 1}`}
-                  type="number"
-                  disabled={disabled}
-                  error={showMissing && !((responses[i] ?? 0) > 0)}
-                  value={responses[i] !== undefined && responses[i] !== 0 ? responses[i] : ""}
-                  onChange={(e) => handleResponseChange(i, e.target.value)}
-                  placeholder="Peak area"
-                />
-              </Grid>
-            ))}
+            {Array.from({ length: injectionCount }).map((_, i) =>
+              hasInternalStandard ? (
+                <Grid size={{ xs: 12, sm: 6, md: 4 }} key={i}>
+                  <Box sx={{ p: 1.5, border: `1px solid ${theme.palette.divider}`, borderRadius: 1 }}>
+                    <Typography variant="caption" sx={{ fontWeight: 700, mb: 1, display: "block" }}>
+                      Injection #{i + 1}
+                    </Typography>
+                    <Stack spacing={1}>
+                      <TextField
+                        fullWidth
+                        size="small"
+                        label="Analyte area"
+                        type="number"
+                        disabled={disabled}
+                        error={showMissing && !((responses[i] ?? 0) > 0)}
+                        value={responses[i] !== undefined && responses[i] !== 0 ? responses[i] : ""}
+                        onChange={(e) => handleResponseChange(i, e.target.value)}
+                        placeholder="Analyte area"
+                        slotProps={{
+                          htmlInput: {
+                            min: 0,
+                            step: "any",
+                            "aria-label": `Injection ${i + 1} Analyte area`
+                          }
+                        }}
+                      />
+                      <TextField
+                        fullWidth
+                        size="small"
+                        label="IS area"
+                        type="number"
+                        disabled={disabled}
+                        error={showMissing && !((isResponses[i] ?? 0) > 0)}
+                        value={isResponses[i] !== undefined && isResponses[i] !== 0 ? isResponses[i] : ""}
+                        onChange={(e) => handleIsResponseChange(i, e.target.value)}
+                        placeholder="IS area"
+                        slotProps={{
+                          htmlInput: {
+                            min: 0,
+                            step: "any",
+                            "aria-label": `Injection ${i + 1} IS area`
+                          }
+                        }}
+                      />
+                    </Stack>
+                  </Box>
+                </Grid>
+              ) : (
+                <Grid size={{ xs: 6, sm: 4, md: 2.4 }} key={i}>
+                  <TextField
+                    fullWidth
+                    size="small"
+                    label={`Injection #${i + 1}`}
+                    type="number"
+                    disabled={disabled}
+                    error={showMissing && !((responses[i] ?? 0) > 0)}
+                    value={responses[i] !== undefined && responses[i] !== 0 ? responses[i] : ""}
+                    onChange={(e) => handleResponseChange(i, e.target.value)}
+                    placeholder="Peak area"
+                    slotProps={{
+                      htmlInput: {
+                        min: 0,
+                        step: "any",
+                        "aria-label": `Injection #${i + 1}`
+                      }
+                    }}
+                  />
+                </Grid>
+              )
+            )}
           </Grid>
         </Box>
 

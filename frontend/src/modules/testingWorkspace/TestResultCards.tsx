@@ -3,10 +3,40 @@ import { CheckIcon, CrossIcon, DotIcon, dt, humanize, LOCATION_STATUS_COLOR } fr
 import { IncubationDetail, SampleLocationDetail, TestOrderSummaryDetail } from "./types/sampleSummaryTypes";
 import { pathogenObservationLabel } from "./utils/pathogenObservationLabel";
 import { parseTitrationSnapshot } from "./utils/titrationSnapshot";
-import { HplcReviewPanel } from "../hplcWorkspace/review/HplcReviewPanel";
+import { formatAnalysisConditions } from "./utils/moistureRetentionHelpers";
+import { HplcReviewPanel, hplcPanelResults } from "../hplcWorkspace/review/HplcReviewPanel";
 import { IcpReviewPanel } from "./icp/IcpReviewPanel";
 import { isIcpCalculation } from "./icp/icpReviewTypes";
+import { UvReviewPanel, isUvCalculation } from "./uv/UvReviewPanel";
 import { decimalsOf, withoutUnit } from "./utils/resultDisplay";
+import { ReceiveService } from "../receiving/services/ReceiveService";
+
+// An outsourced result cites its report in each parameter's calculation snapshot.
+export function externalReportId(a: NonNullable<TestOrderSummaryDetail["analysis"]>): number | null {
+  for (const p of a.parameterResults) {
+    try {
+      const id = p.calculationJson ? JSON.parse(p.calculationJson)?.reportDocumentId : null;
+      if (typeof id === "number") return id;
+    } catch { /* not JSON: no report to link */ }
+  }
+  return null;
+}
+
+export function ExternalLabSubtitle({ lab, reportId }: { lab: string; reportId: number | null }) {
+  const open = async (e: React.MouseEvent) => {
+    e.stopPropagation(); // the card header toggles on click
+    const url = URL.createObjectURL(await ReceiveService.getSampleDocumentContent(reportId!));
+    window.open(url, "_blank", "noopener,noreferrer");
+    setTimeout(() => URL.revokeObjectURL(url), 60_000);
+  };
+  return (
+    <>
+      <span className="location-status-chip" style={{ background: "#6b7280" }}>External lab: {lab}</span>
+      {reportId != null && <>{" "}<a href="#" onClick={(e) => { e.preventDefault(); void open(e); }}>External report</a></>}
+      {" · "}
+    </>
+  );
+}
 
 const CONFORMING_STATUSES = new Set(["WithinLimits", "Absent"]);
 const isConforming = (status: string | null) => !status || CONFORMING_STATUSES.has(status);
@@ -39,21 +69,6 @@ export function TestResultCard({ test }: { test: TestOrderSummaryDetail }) {
   return isQuantitative(test) ? <CountTestCard test={test} /> : <DetectionTestCard test={test} />;
 }
 
-function formatConditions(conditionsJson: string | null): string | null {
-  if (!conditionsJson) return null;
-  try {
-    const parsed = JSON.parse(conditionsJson);
-    if (typeof parsed === "object" && parsed !== null && !Array.isArray(parsed)) {
-      const entries = Object.entries(parsed);
-      if (entries.length === 0) return null;
-      return entries.map(([k, v]) => `${k}: ${String(v)}`).join(" · ");
-    }
-    return JSON.stringify(parsed);
-  } catch {
-    return conditionsJson;
-  }
-}
-
 // Generic TestAnalysis: headline parameter results, conditions, and per-parameter raw readings.
 export function AnalysisCard({ test }: { test: TestOrderSummaryDetail }) {
   const a = test.analysis!;
@@ -73,7 +88,7 @@ export function AnalysisCard({ test }: { test: TestOrderSummaryDetail }) {
           ? `Due titrant acknowledged: ${titration.dueTitrantAcknowledgement.justification}`
           : null
       ].filter(Boolean).join(" · ") || null
-    : formatConditions(a.conditionsJson);
+    : formatAnalysisConditions(a.conditionsJson);
 
   return (
     <CollapsibleTestCard
@@ -83,6 +98,7 @@ export function AnalysisCard({ test }: { test: TestOrderSummaryDetail }) {
       subtitle={
         <>
           {test.isSuperseded && <strong>Superseded by retest · </strong>}
+          {test.outsourcedToLab && <ExternalLabSubtitle lab={test.outsourcedToLab} reportId={externalReportId(a)} />}
           {a.equipmentCode ? `Instrument: ${a.equipmentCode} · ` : ""}
           Analysed: {dt(a.analysedAt)}
         </>
@@ -150,7 +166,7 @@ export function AnalysisCard({ test }: { test: TestOrderSummaryDetail }) {
           </div>
 
           {a.analysisType === "HplcMethodAssay" &&
-            a.parameterResults.map((p) => (
+            hplcPanelResults(a.parameterResults).map((p) => (
               <HplcReviewPanel
                 key={`hplc-review-${p.id}`}
                 parameter={p}
@@ -169,8 +185,19 @@ export function AnalysisCard({ test }: { test: TestOrderSummaryDetail }) {
                 />
               ))}
 
-          {a.analysisType !== "HplcMethodAssay" && a.analysisType !== "IcpMethodAssay" && a.parameterResults.map((p, idx) => {
-            if (!p.readings || p.readings.length === 0 || isIcpCalculation(p.calculationJson)) return null;
+          {(a.analysisType === "UvSpectrophotometry" || a.parameterResults.some((p) => isUvCalculation(p.calculationJson))) &&
+            a.parameterResults
+              .filter((p) => isUvCalculation(p.calculationJson) || a.analysisType === "UvSpectrophotometry")
+              .map((p) => (
+                <UvReviewPanel
+                  key={`uv-review-${p.id}`}
+                  parameter={p}
+                  testOrderId={a.testOrderId}
+                />
+              ))}
+
+          {a.analysisType !== "HplcMethodAssay" && a.analysisType !== "IcpMethodAssay" && a.analysisType !== "UvSpectrophotometry" && a.parameterResults.map((p, idx) => {
+            if (!p.readings || p.readings.length === 0 || isIcpCalculation(p.calculationJson) || isUvCalculation(p.calculationJson)) return null;
             const isVessel = p.readings.some((r) => r.kind === "Vessel");
             const isDisintegration = a.analysisType === "Disintegration";
             const isWeightVariation = a.analysisType === "WeightVariation";

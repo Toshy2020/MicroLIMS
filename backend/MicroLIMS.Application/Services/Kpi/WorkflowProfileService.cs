@@ -23,7 +23,7 @@ public class WorkflowProfileService
     {
         WorkflowType.CountTest, WorkflowType.Observation, WorkflowType.Measurement, WorkflowType.Gravimetric,
         WorkflowType.Qualitative, WorkflowType.Dissolution, WorkflowType.Disintegration, WorkflowType.WeightVariation,
-        WorkflowType.HplcMethodAssay, WorkflowType.Titration, WorkflowType.IcpMethodAssay
+        WorkflowType.HplcMethodAssay, WorkflowType.Titration, WorkflowType.IcpMethodAssay, WorkflowType.UvSpectrophotometry
     };
 
     private const decimal MaxWorkUnits = 999999.99m; // numeric(8,2)

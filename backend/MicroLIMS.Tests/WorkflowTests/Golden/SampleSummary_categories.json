@@ -7,6 +7,9 @@
     "ProductionStage": null,
     "CauseOfTesting": "Routine",
     "BatchNumber": "B-77",
+    "Grade": null,
+    "RetentionQuantity": null,
+    "RetentionQuantityUnit": null,
     "ControlNumber": "CTRL-11",
     "Status": "InTesting",
     "StatusDisplay": "In testing",
@@ -43,6 +46,7 @@
       "Sample": {
         "Matrix": null,
         "Simple": null,
+        "SupportingRows": [],
         "Complies": false,
         "ConclusionText": "Cannot certify because no results are recorded.",
         "ResultDate": null
@@ -58,6 +62,9 @@
     "ProductionStage": null,
     "CauseOfTesting": "Routine",
     "BatchNumber": null,
+    "Grade": null,
+    "RetentionQuantity": null,
+    "RetentionQuantityUnit": null,
     "ControlNumber": "CTRL-12",
     "Status": "Rejected",
     "StatusDisplay": "Rejected",
@@ -94,6 +101,7 @@
       "Sample": {
         "Matrix": null,
         "Simple": null,
+        "SupportingRows": [],
         "Complies": false,
         "ConclusionText": "Cannot certify because no results are recorded.",
         "ResultDate": null
@@ -109,6 +117,9 @@
     "ProductionStage": null,
     "CauseOfTesting": "Routine",
     "BatchNumber": null,
+    "Grade": null,
+    "RetentionQuantity": null,
+    "RetentionQuantityUnit": null,
     "ControlNumber": "CTRL-13",
     "Status": "UnderReview",
     "StatusDisplay": "Under review",
@@ -153,6 +164,7 @@
         "IsResultEntryAllowed": true,
         "ResultLockReason": null,
         "IsSuperseded": false,
+        "OutsourcedToLab": null,
         "CancelledAtStep": null,
         "CancelledAtStage": null,
         "Incubations": [],
@@ -250,6 +262,7 @@
           "Units": []
         },
         "Simple": null,
+        "SupportingRows": [],
         "Complies": true,
         "ConclusionText": "This sample complies with the specified requirements. All 1 test conform across all 1 sampling location.",
         "ResultDate": "2026-03-05T00:00:00Z"
@@ -302,6 +315,7 @@
               "Units": []
             },
             "Simple": null,
+            "SupportingRows": [],
             "Complies": true,
             "ConclusionText": "This sample complies with the specified requirements. All 1 test conform across all 1 sampling location.",
             "ResultDate": "2026-03-05T00:00:00Z"
@@ -318,6 +332,9 @@
     "ProductionStage": null,
     "CauseOfTesting": "Routine",
     "BatchNumber": null,
+    "Grade": null,
+    "RetentionQuantity": null,
+    "RetentionQuantityUnit": null,
     "ControlNumber": "CTRL-14",
     "Status": "Received",
     "StatusDisplay": "Received",
@@ -354,6 +371,7 @@
       "Sample": {
         "Matrix": null,
         "Simple": null,
+        "SupportingRows": [],
         "Complies": false,
         "ConclusionText": "Cannot certify because no results are recorded.",
         "ResultDate": null
@@ -369,6 +387,9 @@
     "ProductionStage": null,
     "CauseOfTesting": "Routine",
     "BatchNumber": null,
+    "Grade": null,
+    "RetentionQuantity": null,
+    "RetentionQuantityUnit": null,
     "ControlNumber": "CTRL-15",
     "Status": "InTesting",
     "StatusDisplay": "In testing",
@@ -413,6 +434,7 @@
         "IsResultEntryAllowed": false,
         "ResultLockReason": "Count incubation in progress. Available from: 23/03/2026 08:00",
         "IsSuperseded": false,
+        "OutsourcedToLab": null,
         "CancelledAtStep": null,
         "CancelledAtStage": null,
         "Incubations": [
@@ -461,6 +483,7 @@
         "IsResultEntryAllowed": true,
         "ResultLockReason": null,
         "IsSuperseded": false,
+        "OutsourcedToLab": null,
         "CancelledAtStep": null,
         "CancelledAtStage": null,
         "Incubations": [
@@ -509,6 +532,7 @@
         "IsResultEntryAllowed": false,
         "ResultLockReason": "TSB broth enrichment setup required",
         "IsSuperseded": false,
+        "OutsourcedToLab": null,
         "CancelledAtStep": null,
         "CancelledAtStage": null,
         "Incubations": [],
@@ -538,6 +562,7 @@
         "IsResultEntryAllowed": false,
         "ResultLockReason": "Locked until TSB incubation is complete",
         "IsSuperseded": false,
+        "OutsourcedToLab": null,
         "CancelledAtStep": null,
         "CancelledAtStage": null,
         "Incubations": [
@@ -586,6 +611,7 @@
         "IsResultEntryAllowed": true,
         "ResultLockReason": null,
         "IsSuperseded": false,
+        "OutsourcedToLab": null,
         "CancelledAtStep": null,
         "CancelledAtStage": null,
         "Incubations": [
@@ -634,6 +660,7 @@
         "IsResultEntryAllowed": false,
         "ResultLockReason": "The incubation window for step \"Yeast Count\" is not configured - set it on the medium in Test Master.",
         "IsSuperseded": false,
+        "OutsourcedToLab": null,
         "CancelledAtStep": null,
         "CancelledAtStage": null,
         "Incubations": [
@@ -695,6 +722,8 @@
         "Simple": {
           "Rows": [
             {
+              "Kind": "Tested",
+              "SectionId": null,
               "TestOrderId": 12,
               "TestCode": "TAMC",
               "TestDisplayName": "Total Aerobic Microbial Count",
@@ -707,6 +736,8 @@
               "NoResult": true
             },
             {
+              "Kind": "Tested",
+              "SectionId": null,
               "TestOrderId": 17,
               "TestCode": "TYMC",
               "TestDisplayName": "Total Yeast and Mold Count",
@@ -719,6 +750,8 @@
               "NoResult": true
             },
             {
+              "Kind": "Tested",
+              "SectionId": null,
               "TestOrderId": 14,
               "TestCode": "ECOLI",
               "TestDisplayName": "E. coli",
@@ -733,6 +766,7 @@
           ],
           "OverallComplies": false
         },
+        "SupportingRows": [],
         "Complies": false,
         "ConclusionText": "Cannot certify because one or more tests has no recorded result.",
         "ResultDate": null
@@ -746,6 +780,8 @@
             "Simple": {
               "Rows": [
                 {
+                  "Kind": "Tested",
+                  "SectionId": null,
                   "TestOrderId": 12,
                   "TestCode": "TAMC",
                   "TestDisplayName": "Total Aerobic Microbial Count",
@@ -758,6 +794,8 @@
                   "NoResult": true
                 },
                 {
+                  "Kind": "Tested",
+                  "SectionId": null,
                   "TestOrderId": 17,
                   "TestCode": "TYMC",
                   "TestDisplayName": "Total Yeast and Mold Count",
@@ -770,6 +808,8 @@
                   "NoResult": true
                 },
                 {
+                  "Kind": "Tested",
+                  "SectionId": null,
                   "TestOrderId": 14,
                   "TestCode": "ECOLI",
                   "TestDisplayName": "E. coli",
@@ -784,6 +824,7 @@
               ],
               "OverallComplies": false
             },
+            "SupportingRows": [],
             "Complies": false,
             "ConclusionText": "Cannot certify because one or more tests has no recorded result.",
             "ResultDate": null

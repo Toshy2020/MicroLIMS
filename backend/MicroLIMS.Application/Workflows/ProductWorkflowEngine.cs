@@ -1,7 +1,10 @@
+using System.Globalization;
+using System.Text.RegularExpressions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Application.Abstractions.Persistence;
+using MicroLIMS.Application.Services;
 using MicroLIMS.Shared.Constants;
 
 namespace MicroLIMS.Application.Workflows;
@@ -14,7 +17,10 @@ public record ItemBasedReceiveRequest(
     // behaviour (every assigned test, any section) for internal callers
     // that predate lab-targeted receipt; the HTTP endpoint always passes a
     // resolved, non-empty set (see ReceiptLabGuard).
-    IReadOnlyCollection<int>? TargetSectionIds = null);
+    IReadOnlyCollection<int>? TargetSectionIds = null,
+    // Raw materials: the grade stated on the supplier's CoA. Required when the
+    // item has graded specifications; decides which assigned tests apply.
+    string? Grade = null);
 
 public interface IProductWorkflowEngine : IStatefulWorkflowEngine
 {
@@ -72,8 +78,12 @@ public class ProductWorkflowEngine : IProductWorkflowEngine
                 ?? throw new InvalidOperationException($"Production stage '{stageName}' is not a known stage.");
         }
 
+        var itemSpecs = await _db.Specifications.AsNoTracking().Where(s => s.ItemId == item.Id).ToListAsync();
+        var grade = ResolveGrade(itemSpecs, request.Grade);
+
         var sample = new Sample
         {
+            Grade = grade,
             ReferenceNumber = await _refNumbers.GenerateAsync(item.Category),
             Category = item.Category,
             ItemId = item.Id,
@@ -100,7 +110,15 @@ public class ProductWorkflowEngine : IProductWorkflowEngine
         // from inside its own workspace must never silently create the
         // other lab's work. Null keeps every assigned test (internal
         // callers that predate this).
-        var assigned = item.AssignedTests.ToList();
+        var notApplicable = await NotApplicableTestService.LoadApprovedAsync(_db, item.Id);
+        var assigned = item.AssignedTests.Where(t => AppliesToGrade(itemSpecs, notApplicable, t.TestCode, grade)).ToList();
+        if (assigned.Count == 0)
+        {
+            if (grade is not null)
+                throw new InvalidOperationException($"Grade {grade} applies to none of the tests assigned to '{item.Name}'.");
+            if (item.AssignedTests.Count > 0)
+                throw new InvalidOperationException($"Every test assigned to '{item.Name}' is declared not applicable; there is nothing to test.");
+        }
         if (request.TargetSectionIds is { } targets)
         {
             foreach (var sectionId in targets)
@@ -115,23 +133,235 @@ public class ProductWorkflowEngine : IProductWorkflowEngine
             assigned = assigned.Where(t => targets.Contains(testSections[t.TestCode])).ToList();
         }
 
-        foreach (var test in assigned)
+        // Periodic retest: no orders yet - a Section Head or Supervisor
+        // chooses the tests later. The laboratories are remembered on the sample.
+        var requiresSelection = await _db.CausesOfTesting
+            .Where(c => c.Id == request.CauseOfTestingId)
+            .Select(c => c.RequiresTestSelection)
+            .FirstOrDefaultAsync();
+        if (requiresSelection)
         {
-            sample.TestOrders.Add(new TestOrder
+            sample.AwaitingTestSelection = true;
+            sample.PendingTargetSectionIds = SampleSectionRollup.FormatPendingSectionIds(assigned.Select(t => testSections[t.TestCode]));
+            sample.PreparationStatus = SamplePreparationStatus.Ready; // nothing to prepare until tests exist
+        }
+        else
+        {
+            foreach (var test in assigned)
             {
-                TestCode = test.TestCode,
-                SectionId = testSections[test.TestCode],
-                Status = ApprovalStatus.Pending,
-                CurrentStep = WorkflowStep.Waiting
-            });
+                sample.TestOrders.Add(new TestOrder
+                {
+                    TestCode = test.TestCode,
+                    SectionId = testSections[test.TestCode],
+                    Status = ApprovalStatus.Pending,
+                    CurrentStep = WorkflowStep.Waiting
+                });
+            }
+
+            sample.PreparationStatus = await PreparationRules.InitialStatusAsync(_db, sample.TestOrders.Select(o => o.SectionId));
         }
 
-        sample.PreparationStatus = await PreparationRules.InitialStatusAsync(_db, sample.TestOrders.Select(o => o.SectionId));
+        var warnings = new List<string>();
+        var minQty = requiresSelection ? item.MinRetestSampleQuantity : item.MinSampleQuantity;
+        if (minQty.HasValue)
+        {
+            var actualQty = LeadingQuantity(request.SampleQuantity);
+            if (actualQty.HasValue)
+            {
+                var actualUnit = ExtractUnit(request.SampleQuantity);
+                var expectedUnit = item.MinSampleQuantityUnit?.Trim();
+
+                if (string.IsNullOrEmpty(expectedUnit))
+                {
+                    // When the item unit is empty, warn only when the quantity is a bare number (no unit text)
+                    if (string.IsNullOrEmpty(actualUnit) && actualQty.Value < minQty.Value)
+                    {
+                        warnings.Add($"Sample quantity {request.SampleQuantity} is below the STM minimum of {minQty.Value.ToString("G29", CultureInfo.InvariantCulture)}.");
+                    }
+                }
+                else
+                {
+                    // When the item unit is specified: bare numbers are read in the item unit;
+                    // mass and volume are converted into the item's unit; other unit pairs give no warning.
+                    if (TryConvertToExpectedUnit(actualQty.Value, actualUnit, expectedUnit, out var convertedQty))
+                    {
+                        if (convertedQty < minQty.Value)
+                        {
+                            warnings.Add($"Sample quantity {request.SampleQuantity} is below the STM minimum of {minQty.Value.ToString("G29", CultureInfo.InvariantCulture)} {expectedUnit}.");
+                        }
+                    }
+                }
+            }
+        }
+        sample.Warnings = warnings;
 
         _db.Samples.Add(sample);
         await _db.SaveChangesAsync();
 
         return sample;
+    }
+
+    public static decimal? LeadingQuantity(string? sampleQuantity)
+    {
+        if (string.IsNullOrWhiteSpace(sampleQuantity)) return null;
+        var match = Regex.Match(sampleQuantity, @"^\s*([0-9]+(?:[.,][0-9]+)?)");
+        if (!match.Success) return null;
+        var text = match.Groups[1].Value.Replace(',', '.');
+        return decimal.TryParse(text, NumberStyles.Number, CultureInfo.InvariantCulture, out var val) ? val : null;
+    }
+
+    private static string ExtractUnit(string? sampleQuantity)
+    {
+        if (string.IsNullOrWhiteSpace(sampleQuantity)) return string.Empty;
+        var match = Regex.Match(sampleQuantity, @"^\s*[0-9]+(?:[.,][0-9]+)?\s*(.*)$");
+        return match.Success ? match.Groups[1].Value.Trim() : string.Empty;
+    }
+
+    private static bool TryConvertToExpectedUnit(decimal actualQty, string actualUnit, string expectedUnit, out decimal convertedQty)
+    {
+        if (string.IsNullOrEmpty(actualUnit))
+        {
+            // A bare number (e.g. "80") is read in the item's unit
+            convertedQty = actualQty;
+            return true;
+        }
+
+        if (string.Equals(actualUnit, expectedUnit, StringComparison.OrdinalIgnoreCase))
+        {
+            convertedQty = actualQty;
+            return true;
+        }
+
+        if (TryNormalizeMass(actualUnit, out var actualMassFactor) && TryNormalizeMass(expectedUnit, out var expectedMassFactor))
+        {
+            convertedQty = actualQty * actualMassFactor / expectedMassFactor;
+            return true;
+        }
+
+        if (TryNormalizeVolume(actualUnit, out var actualVolFactor) && TryNormalizeVolume(expectedUnit, out var expectedVolFactor))
+        {
+            convertedQty = actualQty * actualVolFactor / expectedVolFactor;
+            return true;
+        }
+
+        convertedQty = 0;
+        return false;
+    }
+
+    private static bool TryNormalizeMass(string unit, out decimal factorInGrams)
+    {
+        var u = unit.Trim().TrimEnd('.').ToLowerInvariant();
+        switch (u)
+        {
+            case "mg":
+            case "mg(s)":
+            case "milligram":
+            case "milligrams":
+            case "milligram(s)":
+                factorInGrams = 0.001m;
+                return true;
+            case "g":
+            case "gm":
+            case "gms":
+            case "gram":
+            case "grams":
+            case "gram(s)":
+                factorInGrams = 1m;
+                return true;
+            case "kg":
+            case "kgs":
+            case "kg(s)":
+            case "kilogram":
+            case "kilograms":
+            case "kilogram(s)":
+                factorInGrams = 1000m;
+                return true;
+            default:
+                factorInGrams = 0;
+                return false;
+        }
+    }
+
+    private static bool TryNormalizeVolume(string unit, out decimal factorInMl)
+    {
+        var u = unit.Trim().TrimEnd('.').ToLowerInvariant();
+        switch (u)
+        {
+            case "ml":
+            case "ml(s)":
+            case "milliliter":
+            case "milliliters":
+            case "milliliter(s)":
+            case "millilitre":
+            case "millilitres":
+            case "millilitre(s)":
+                factorInMl = 1m;
+                return true;
+            case "l":
+            case "l(s)":
+            case "liter":
+            case "liters":
+            case "liter(s)":
+            case "litre":
+            case "litres":
+            case "litre(s)":
+                factorInMl = 1000m;
+                return true;
+            default:
+                factorInMl = 0;
+                return false;
+        }
+    }
+
+    // A test applies to a graded sample when it has no specification rows at
+    // all, an ungraded row, or a row of that grade. (A test whose rows are all
+    // of other grades is skipped: e.g. a USP-only test on a BP receipt.)
+    public static bool TestAppliesToGrade(IEnumerable<Specification> rowsForTest, string? grade)
+    {
+        var rows = rowsForTest.ToList();
+        return rows.Count == 0
+            || rows.Any(r => r.Grade == null)
+            || (grade != null && rows.Any(r => string.Equals(r.Grade, grade, StringComparison.OrdinalIgnoreCase)));
+    }
+
+    public static bool AppliesToGrade(
+        IEnumerable<Specification> itemSpecs,
+        IReadOnlyCollection<NotApplicableTest> notApplicable,
+        string testCode,
+        string? grade)
+    {
+        if (notApplicable.Any(na => string.Equals(na.TestCode, testCode, StringComparison.OrdinalIgnoreCase)
+            && IsApprovedNotApplicableFor(na, grade)))
+        {
+            return false;
+        }
+
+        return TestAppliesToGrade(itemSpecs.Where(s => s.TestCode == testCode), grade);
+    }
+
+    // An approved not-applicable record covers a sample when it names no
+    // grade or the sample's grade (the test code is matched separately).
+    public static bool IsApprovedNotApplicableFor(NotApplicableTest na, string? grade) =>
+        na.Status == NotApplicableStatus.Approved
+        && (na.Grade == null || (grade != null && string.Equals(na.Grade, grade, StringComparison.OrdinalIgnoreCase)));
+
+    // The grade to store for a receipt / correction: required (and must match
+    // one of the item's grades, case-insensitively) when the item has graded
+    // specifications; null for an ungraded item. Returns the item's own
+    // spelling of the grade so later lookups match exactly.
+    public static string? ResolveGrade(IReadOnlyCollection<Specification> itemSpecs, string? requested)
+    {
+        var requestedGrade = SpecificationService.NormalizeGrade(requested);
+        var itemGrades = itemSpecs.Where(s => s.Grade != null).Select(s => s.Grade!).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+        if (itemGrades.Count == 0)
+        {
+            if (requestedGrade != null) throw new InvalidOperationException($"Grade {requestedGrade} has no specification for this item.");
+            return null;
+        }
+        if (requestedGrade == null)
+            throw new InvalidOperationException("Choose the grade stated on the supplier's CoA.");
+        return itemGrades.FirstOrDefault(g => string.Equals(g, requestedGrade, StringComparison.OrdinalIgnoreCase))
+            ?? throw new InvalidOperationException($"Grade {requestedGrade} has no specification for this item.");
     }
 
     public async Task<WorkflowStep> AdvanceAsync(int testOrderId, int performedByUserId, string? note = null)

@@ -28,7 +28,8 @@ public class RolePermissionSeedDataTests
             new Role { Type = RoleType.SystemAdministrator, Name = "System Administrator", IsSystemRole = true, IsActive = true },
             new Role { Type = RoleType.SectionHead, Name = "Section Head", IsSystemRole = true, IsActive = true },
             new Role { Type = RoleType.Reviewer, Name = "Reviewer", IsSystemRole = true, IsActive = true },
-            new Role { Type = RoleType.Analyst, Name = "Analyst", IsSystemRole = true, IsActive = true }
+            new Role { Type = RoleType.Analyst, Name = "Analyst", IsSystemRole = true, IsActive = true },
+            new Role { Type = RoleType.QcManager, Name = "QC Manager", IsSystemRole = true, IsActive = true }
         );
         db.SaveChanges();
 
@@ -109,6 +110,10 @@ public class RolePermissionSeedDataTests
         Assert.DoesNotContain(PermissionConstants.SamplesCorrect, codes);
         Assert.DoesNotContain(PermissionConstants.TestWorkflowSupervise, codes);
         Assert.DoesNotContain(PermissionConstants.TestWorkflowExecute, codes);
+        Assert.DoesNotContain(PermissionConstants.SamplesPrepare, codes);
+        Assert.DoesNotContain(PermissionConstants.TestsOutsource, codes);
+        Assert.DoesNotContain(PermissionConstants.NotApplicableTestsManage, codes);
+        Assert.DoesNotContain(PermissionConstants.NotApplicableTestsFinalApprove, codes);
 
         // Document Control capabilities the specification denies the
         // administrator are deliberately absent from the catalog entirely, so
@@ -151,10 +156,12 @@ public class RolePermissionSeedDataTests
             PermissionConstants.WorkingStandardsQualify,
             // Annual Monitoring Plan.
             PermissionConstants.MonitoringPlanView, PermissionConstants.MonitoringPlanManage, PermissionConstants.MonitoringPlanApprove,
-            PermissionConstants.EquipmentPlanManage, PermissionConstants.EquipmentPlanApprove, PermissionConstants.EquipmentWorkRecord, PermissionConstants.CalendarEventManage
+            PermissionConstants.EquipmentPlanManage, PermissionConstants.EquipmentPlanApprove, PermissionConstants.EquipmentWorkRecord, PermissionConstants.CalendarEventManage,
+            PermissionConstants.NotApplicableTestsManage, PermissionConstants.TestsOutsource,
+            PermissionConstants.SamplesPrepare
         };
 
-        Assert.Equal(54, codes.Count);
+        Assert.Equal(57, codes.Count);
         Assert.Equal(expected.OrderBy(c => c), codes.OrderBy(c => c));
         // Not granted to SectionHead per the catalog:
         Assert.DoesNotContain(PermissionConstants.UsersManage, codes);
@@ -181,10 +188,11 @@ public class RolePermissionSeedDataTests
             PermissionConstants.DashboardsReview, PermissionConstants.MediaPrepare, PermissionConstants.SamplesReceiveOwnLab, PermissionConstants.SamplesCorrect,
             PermissionConstants.MonitoringPlanView,
             // Equipment plan: record calibrations and logbook entries, add calendar events.
-            PermissionConstants.EquipmentWorkRecord, PermissionConstants.CalendarEventManage
+            PermissionConstants.EquipmentWorkRecord, PermissionConstants.CalendarEventManage,
+            PermissionConstants.SamplesPrepare
         };
 
-        Assert.Equal(18, codes.Count);
+        Assert.Equal(19, codes.Count);
         Assert.Equal(expected.OrderBy(c => c), codes.OrderBy(c => c));
         Assert.DoesNotContain(PermissionConstants.SamplesApprove, codes);
         // A reviewer does not register documents or edit drafts.
@@ -218,10 +226,11 @@ public class RolePermissionSeedDataTests
             PermissionConstants.WorkingStandardsQualify,
             PermissionConstants.MonitoringPlanView,
             // Equipment plan: record calibrations and logbook entries.
-            PermissionConstants.EquipmentWorkRecord
+            PermissionConstants.EquipmentWorkRecord,
+            PermissionConstants.SamplesPrepare
         };
 
-        Assert.Equal(17, codes.Count);
+        Assert.Equal(18, codes.Count);
         Assert.Equal(expected.OrderBy(c => c), codes.OrderBy(c => c));
         Assert.DoesNotContain(PermissionConstants.SamplesReview, codes);
         Assert.DoesNotContain(PermissionConstants.CryovialsApprove, codes);
@@ -233,14 +242,14 @@ public class RolePermissionSeedDataTests
     [Fact]
     public async Task TotalGrantCount_MatchesTheCatalog()
     {
-        // The System Administrator now holds only PermissionConstants.SystemAdministratorGrants
-        // (26 system codes, no lab/GxP codes). The total is the sum of the four per-role
+        // The System Administrator holds only PermissionConstants.SystemAdministratorGrants
+        // (26 system codes, no lab/GxP codes). The total is the sum of the five per-role
         // sets that the tests above assert literally:
-        //   SystemAdministrator 26 + SectionHead 54 + Reviewer 18 + Analyst 17 = 115.
+        //   SystemAdministrator 26 + SectionHead 57 + Reviewer 19 + Analyst 18 + QcManager 3 = 123.
         // Update this only when a per-role set above changes.
         var db = CreateSeededDbContext();
         var total = await db.RolePermissions.CountAsync();
-        Assert.Equal(115, total);
+        Assert.Equal(123, total);
     }
 
     [Fact]
@@ -250,7 +259,7 @@ public class RolePermissionSeedDataTests
         DbSeeder.SeedPermissionsAndGrants(db); // second call
 
         Assert.Equal(PermissionConstants.All.Count, await db.Permissions.CountAsync());
-        Assert.Equal(115, await db.RolePermissions.CountAsync()); // 26 + 54 + 18 + 17, see TotalGrantCount_MatchesTheCatalog
+        Assert.Equal(123, await db.RolePermissions.CountAsync()); // see TotalGrantCount_MatchesTheCatalog
     }
 
     [Fact]

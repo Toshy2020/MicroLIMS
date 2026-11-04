@@ -45,6 +45,7 @@ interface FormState {
   storageCondition: string;
   storageTimeHours: string;
   locationId: number | "";
+  grade: string;
 }
 
 const PRODUCT_LIKE = ["FinishedProduct", "RawMaterial", "PackagingMaterial"];
@@ -86,7 +87,8 @@ function initialForm(s: SampleRecord): FormState {
     previousProductBatchNumber: s.previousProductBatchNumber ?? "",
     storageCondition: s.storageCondition ?? "",
     storageTimeHours: s.storageTimeHours != null ? String(s.storageTimeHours) : "",
-    locationId: currentLocationId(s) ?? ""
+    locationId: currentLocationId(s) ?? "",
+    grade: s.grade ?? ""
   };
 }
 
@@ -104,6 +106,7 @@ export function EditSampleDetailsDialog({ open, sample, onClose, onSuccess }: Pr
   const [samplers, setSamplers] = useState<LookupOption[]>([]);
   const [productionStages, setProductionStages] = useState<LookupOption[]>([]);
   const [locations, setLocations] = useState<LookupOption[]>([]);
+  const [grades, setGrades] = useState<string[]>([]);
 
   const category = sample?.category ?? "";
 
@@ -141,6 +144,24 @@ export function EditSampleDetailsDialog({ open, sample, onClose, onSuccess }: Pr
     };
   }, [open, category]);
 
+  // The grades of the item the sample will have: the chosen one when the item is being changed.
+  const gradeItemId = PRODUCT_LIKE.includes(category)
+    ? (form?.locationId === "" ? null : form?.locationId) ?? sample?.itemId ?? null
+    : null;
+  useEffect(() => {
+    if (!open || gradeItemId == null) {
+      setGrades([]);
+      return;
+    }
+    let cancelled = false;
+    ReceiveService.itemGrades(gradeItemId)
+      .then((list) => !cancelled && setGrades(list))
+      .catch(() => !cancelled && setGrades([]));
+    return () => {
+      cancelled = true;
+    };
+  }, [open, gradeItemId]);
+
   if (!sample || !form) return null;
 
   const isProductLike = PRODUCT_LIKE.includes(category);
@@ -151,6 +172,10 @@ export function EditSampleDetailsDialog({ open, sample, onClose, onSuccess }: Pr
   const locationChanged = form.locationId !== "" && form.locationId !== originalLocationId;
   const canEdit = Boolean(sample.canEditDetails);
   const canChangeLocation = Boolean(sample.canChangeItemOrLocation);
+  // Grade shows only for an item that has grades; the backend re-checks that every test is still pending.
+  const showGrade = isProductLike && grades.length > 0;
+  // A new item needs its own grade; otherwise only while every test is still pending.
+  const canChangeGrade = canEdit && (locationChanged || sample.assignedTests.every((t) => t.status === "Pending"));
   // "Retest" is assigned by the system to retest samples - never chosen here.
   const isRetest = (name?: string) => (name ?? "").trim().toLowerCase() === "retest";
   const causeIsRetest = isRetest(sample.causeOfTesting);
@@ -171,6 +196,7 @@ export function EditSampleDetailsDialog({ open, sample, onClose, onSuccess }: Pr
     !form.sampledBy.trim() ||
     form.causeOfTestingId === "" ||
     (isProductLike && !form.batchNumber.trim()) ||
+    (showGrade && !form.grade) ||
     (category === "FinishedProduct" && !form.productionStage.trim()) ||
     (isAfterCleaning && (!form.previousProductName.trim() || !form.previousProductBatchNumber.trim())) ||
     (hasStorage && form.storageCondition === "Refrigerator" && form.storageTimeHours === "");
@@ -209,7 +235,8 @@ export function EditSampleDetailsDialog({ open, sample, onClose, onSuccess }: Pr
       itemId: isProductLike ? locationId : null,
       waterDepartmentId: isWater ? locationId : null,
       departmentId: category === "EnvironmentalMonitoring" ? locationId : null,
-      machineId: isAfterCleaning ? locationId : null
+      machineId: isAfterCleaning ? locationId : null,
+      grade: showGrade ? form.grade || null : null
     };
     await ReceiveService.correctSample(sample.sampleId, payload, sample.version);
     setSigning(false);
@@ -297,7 +324,10 @@ export function EditSampleDetailsDialog({ open, sample, onClose, onSuccess }: Pr
               size="small"
               fullWidth
               value={locationValue}
-              onChange={(e) => set("locationId", Number(e.target.value))}
+              onChange={(e) => {
+                const id = Number(e.target.value);
+                setForm((prev) => (prev ? { ...prev, locationId: id, grade: id === originalLocationId ? (sample.grade ?? "") : "" } : prev));
+              }}
               sx={{ gridColumn: "1 / -1" }}
             >
               {locationOptions.map((o) => (
@@ -325,6 +355,32 @@ export function EditSampleDetailsDialog({ open, sample, onClose, onSuccess }: Pr
               onChange={(e) => set("batchNumber", e.target.value)}
               disabled={!canEdit}
             />
+          )}
+
+          {showGrade && (
+            <TextField
+              select
+              label="Grade"
+              required
+              size="small"
+              fullWidth
+              value={grades.includes(form.grade) ? form.grade : ""}
+              onChange={(e) => set("grade", e.target.value)}
+              disabled={!canChangeGrade}
+              helperText={
+                canChangeGrade
+                  ? "Changing the grade re-derives the sample's tests"
+                  : canEdit
+                    ? "Locked: testing has started for this sample"
+                    : undefined
+              }
+            >
+              {grades.map((g) => (
+                <MenuItem key={g} value={g}>
+                  {g}
+                </MenuItem>
+              ))}
+            </TextField>
           )}
 
           <TextField

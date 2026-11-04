@@ -41,6 +41,8 @@ interface ItemTableProps {
   compact?: boolean;
   // Set when filters are hiding items, so the empty state can offer a reset.
   onResetFilters?: () => void;
+  // Hides edit, freeze and delete for a user who may view items but not manage them.
+  readOnly?: boolean;
 }
 
 export const ITEM_ROWS_PER_PAGE_OPTIONS = [10, 25, 50];
@@ -59,6 +61,7 @@ export function ItemTable({
   loading = false,
   compact = false,
   onResetFilters,
+  readOnly = false,
 }: ItemTableProps) {
   const [pendingDelete, setPendingDelete] = useState<Item | null>(null);
 
@@ -117,6 +120,7 @@ export function ItemTable({
               onEdit={onEdit}
               onToggleFreeze={onToggleFreeze}
               onDelete={(item) => setPendingDelete(item)}
+              readOnly={readOnly}
             />
           );
         })}
@@ -170,6 +174,7 @@ function ItemRowCard({
   onEdit,
   onToggleFreeze,
   onDelete,
+  readOnly,
 }: {
   item: Item;
   isSelected: boolean;
@@ -179,6 +184,7 @@ function ItemRowCard({
   onEdit: (item: Item) => void;
   onToggleFreeze: (item: Item) => void;
   onDelete: (item: Item) => void;
+  readOnly: boolean;
 }) {
   const theme = useTheme();
   const [docCount, setDocCount] = useState<number | null>(null);
@@ -322,6 +328,7 @@ function ItemRowCard({
           </Stack>
         </Box>
 
+        {!readOnly && (
         <Stack
           direction="row"
           spacing={0.5}
@@ -354,6 +361,7 @@ function ItemRowCard({
             </IconButton>
           </Tooltip>
         </Stack>
+        )}
       </Box>
     </Paper>
     </Box>

@@ -6,7 +6,7 @@
 
 **Architecture:** The existing generic `TestWorkflowEngine` stays as the single engine; its per-step behaviour switch is re-keyed from `StepResultType` (`PlateCount/Growth/DualGrowth`) to a new `StepType` enum carrying the five pathogen stages plus `PlateCount`. Multi-media steps are configured via a new `TestWorkflowStepMedia` child table on `TestWorkflowStep`, and per-run analyst choices/readings are recorded in new `WorkflowStepResult` → `ConfirmatoryMediaSelection` / `ConfirmatoryPlateObservation` tables. Review send-back reuses the existing `ReviewWorkflowEvent` + `ReviewGateService` infrastructure rather than introducing a new audit mechanism.
 
-**Tech Stack:** ASP.NET Core 8, EF Core 8 (PostgreSQL), xUnit + EF Core InMemory, Clean Architecture (Domain / Application / Persistence / Infrastructure / API / Shared).
+**Tech Stack:** ASP.NET Core 10, EF Core 10 (PostgreSQL), xUnit + EF Core InMemory, Clean Architecture (Domain / Application / Persistence / Infrastructure / API / Shared).
 
 ---
 

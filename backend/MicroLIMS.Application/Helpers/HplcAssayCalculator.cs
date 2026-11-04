@@ -51,6 +51,17 @@ public static class HplcAssayCalculator
 
     public static decimal AmountPerUnit(decimal assayPercent, decimal labelClaim) => assayPercent * labelClaim / 100m;
 
+    public static decimal ApplyBasis(decimal assayPercent, ResultBasis? basis, decimal? moisturePercent)
+    {
+        if (basis is ResultBasis.PercentDriedBasis or ResultBasis.PercentAnhydrousBasis)
+        {
+            if (!moisturePercent.HasValue || moisturePercent < 0m || moisturePercent >= 100m)
+                throw new InvalidOperationException("Loss on drying / water % (0 to below 100) is required for a dried or anhydrous basis.");
+            return Math.Round(assayPercent * 100m / (100m - moisturePercent.Value), 2, MidpointRounding.AwayFromZero);
+        }
+        return assayPercent;
+    }
+
     public static bool IsIndividualBasis(ProductionStageRole? role) => role == ProductionStageRole.Bulk;
 
     public static bool JudgesAmountPerUnit(ProductionStageRole? role) => role == ProductionStageRole.Finished;

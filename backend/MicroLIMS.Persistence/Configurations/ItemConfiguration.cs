@@ -12,6 +12,9 @@ public class ItemConfiguration : IEntityTypeConfiguration<Item>
         builder.HasIndex(i => i.Code).IsUnique();
         builder.Property(i => i.Name).IsRequired().HasMaxLength(200);
         builder.Property(i => i.Code).IsRequired().HasMaxLength(50);
+        builder.Property(i => i.MinSampleQuantity).HasPrecision(18, 6);
+        builder.Property(i => i.MinRetestSampleQuantity).HasPrecision(18, 6);
+        builder.Property(i => i.MinSampleQuantityUnit).HasMaxLength(20);
 
         builder.HasMany(i => i.Specifications)
                .WithOne(s => s.Item)

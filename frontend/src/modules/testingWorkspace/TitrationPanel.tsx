@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Alert,
   Box,
@@ -28,11 +28,16 @@ import type { ParameterResultDetail, ResultReadingDetail } from "./types/sampleS
 import type {
   RecordTitrationResultRequest,
   TitrantPreparationOption,
-  TitrationContext
+  TitrationContext,
+  SampleMoistureResult
 } from "./types/testWorkflowTypes";
+import { formatMoistureLabel, getMissingMoistureMessage } from "./utils/moistureRetentionHelpers";
+import { getErrorMessage } from "../../utils/errorMessage";
 import { EquipmentConfigurationService, ConfiguredEquipmentSummary } from "../laboratoryConfiguration/masterDataSimple/services/EquipmentConfigurationService";
 import { getSections, LaboratorySection } from "../../services/laboratorySectionService";
 import { meanAndRsd, previewResult, PreviewInput } from "./titrationPreview";
+
+const MOISTURE_LOAD_FALLBACK = "Could not load the sample's moisture result.";
 
 interface Props {
   testOrderId: number;
@@ -148,7 +153,9 @@ export function TitrationPanel({ testOrderId, displayName, sampleId, current, on
   const [dueJustification, setDueJustification] = useState("");
   const [blank, setBlank] = useState("");
   const [tempC, setTempC] = useState("");
-  const [lod, setLod] = useState("");
+  const [moisture, setMoisture] = useState<SampleMoistureResult | null>(null);
+  const [moistureStatus, setMoistureStatus] = useState<"idle" | "loading" | "loaded" | "error">("idle");
+  const [moistureError, setMoistureError] = useState("");
   const [avgWt, setAvgWt] = useState("");
   const [lotId, setLotId] = useState<number | "">("");
   const [stdRows, setStdRows] = useState<StdRow[]>([{ weightMg: "", titreMl: "" }]);
@@ -196,6 +203,28 @@ export function TitrationPanel({ testOrderId, displayName, sampleId, current, on
         if (!active) return;
         setCtx(c);
         setFpEquipment(instruments);
+        const hasLod = c.specifications.some(
+          (s) => s.resultBasis === "PercentDriedBasis" || s.resultBasis === "PercentAnhydrousBasis"
+        );
+        if (hasLod) {
+          setMoistureStatus("loading");
+          try {
+            const m = await TestWorkflowService.getMoisture(testOrderId);
+            if (active) {
+              setMoisture(m);
+              setMoistureStatus("loaded");
+            }
+          } catch (err: unknown) {
+            if (active) {
+              setMoisture(null);
+              setMoistureError(getErrorMessage(err, MOISTURE_LOAD_FALLBACK));
+              setMoistureStatus("error");
+            }
+          }
+        } else {
+          setMoisture(null);
+          setMoistureStatus("idle");
+        }
         setReps(Array.from({ length: c.replicateCount }, () => ({ weight: "", volume: "" })));
         const onlyLot = c.standardLots.length === 1 ? c.standardLots[0].materialId : "";
         setLotId(onlyLot);
@@ -211,6 +240,19 @@ export function TitrationPanel({ testOrderId, displayName, sampleId, current, on
     return () => {
       active = false;
     };
+  }, [testOrderId]);
+
+  const handleRetryMoisture = useCallback(async () => {
+    setMoistureStatus("loading");
+    try {
+      const m = await TestWorkflowService.getMoisture(testOrderId);
+      setMoisture(m);
+      setMoistureStatus("loaded");
+    } catch (err: unknown) {
+      setMoisture(null);
+      setMoistureError(getErrorMessage(err, MOISTURE_LOAD_FALLBACK));
+      setMoistureStatus("error");
+    }
   }, [testOrderId]);
 
   const isRelative = ctx?.calculation === "Relative";
@@ -247,7 +289,7 @@ export function TitrationPanel({ testOrderId, displayName, sampleId, current, on
         excess,
         blankMl: num(blank),
         titrationTempC: num(tempC),
-        lossPercent: num(lod),
+        lossPercent: needsLod && moistureStatus === "loaded" && moisture && moisture.percent >= 0 && moisture.percent < 100 ? moisture.percent : null,
         avgUnitWeightMg: num(avgWt),
         standards
       }
@@ -279,7 +321,7 @@ export function TitrationPanel({ testOrderId, displayName, sampleId, current, on
       return out;
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ctx, reps, titrantPrepId, excessPrepId, blank, tempC, lod, avgWt, standards]);
+  }, [ctx, reps, titrantPrepId, excessPrepId, blank, tempC, moisture, avgWt, standards]);
 
   const summaries = useMemo(() => {
     if (!ctx || !previewInput) return [];
@@ -294,7 +336,7 @@ export function TitrationPanel({ testOrderId, displayName, sampleId, current, on
       return { spec: s, complete: vals.length === reps.length, stats: vals.length ? meanAndRsd(vals) : null };
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ctx, reps, titrantPrepId, excessPrepId, blank, tempC, lod, avgWt, standards]);
+  }, [ctx, reps, titrantPrepId, excessPrepId, blank, tempC, moisture, avgWt, standards]);
 
   const isFormValid = useMemo(() => {
     if (!ctx) return false;
@@ -309,7 +351,7 @@ export function TitrationPanel({ testOrderId, displayName, sampleId, current, on
     }
     if (ctx.blankRequired && !validNum(blank, false)) return false;
     if (ctx.tempCorrection && num(tempC) === null) return false;
-    if (needsLod && !(num(lod) !== null && num(lod)! >= 0 && num(lod)! < 100)) return false;
+    if (needsLod && (moistureStatus !== "loaded" || moisture === null || moisture.percent < 0 || moisture.percent >= 100)) return false;
     if (needsAvgWt && !validNum(avgWt)) return false;
     if (isRelative && (lotId === "" || stdRows.length < 1 || stdRows.some((r) => !validNum(r.weightMg) || !validNum(r.titreMl)))) return false;
     if (reps.length !== ctx.replicateCount) return false;
@@ -317,7 +359,7 @@ export function TitrationPanel({ testOrderId, displayName, sampleId, current, on
   }, [
     ctx, analysedAt, titrantPrepId, titrant, isResidual, excessPrepId, excess,
     hasDueWarning, dueAcknowledged, dueJustification,
-    blank, tempC, needsLod, lod, needsAvgWt, avgWt, isRelative, lotId, stdRows, reps
+    blank, tempC, needsLod, moistureStatus, moisture, needsAvgWt, avgWt, isRelative, lotId, stdRows, reps
   ]);
 
   const submit = async (password: string) => {
@@ -331,7 +373,6 @@ export function TitrationPanel({ testOrderId, displayName, sampleId, current, on
         excessPreparationId: isResidual && excessPrepId !== "" ? Number(excessPrepId) : null,
         blankVolumeMl: ctx.blankRequired ? num(blank) : null,
         titrationTemperatureC: ctx.tempCorrection ? num(tempC) : null,
-        lossOnDryingPercent: needsLod ? num(lod) : null,
         averageUnitWeightMg: needsAvgWt ? num(avgWt) : null,
         standards: isRelative
           ? stdRows.map((r) => ({ materialId: Number(lotId), weightMg: Number(r.weightMg), titreMl: Number(r.titreMl) }))
@@ -540,16 +581,38 @@ export function TitrationPanel({ testOrderId, displayName, sampleId, current, on
               />
             )}
             {needsLod && (
-              <TextField
-                size="small"
-                type="number"
-                label="Loss on drying / water (%)"
-                value={lod}
-                onChange={(e) => setLod(e.target.value)}
-                slotProps={{ htmlInput: { step: "any", min: 0, max: 99.99 } }}
-                required
-                fullWidth
-              />
+              moistureStatus === "loading" ? (
+                <Typography sx={{ fontSize: 13, color: "text.secondary", py: 0.5 }}>
+                  Loading moisture result...
+                </Typography>
+              ) : moistureStatus === "error" ? (
+                <Alert
+                  severity="error"
+                  action={
+                    <Button color="inherit" size="small" onClick={handleRetryMoisture}>
+                      Retry
+                    </Button>
+                  }
+                  sx={{ width: "100%", fontSize: 13, py: 0.5 }}
+                >
+                  {moistureError || MOISTURE_LOAD_FALLBACK}
+                </Alert>
+              ) : moisture ? (
+                <Box sx={{ width: "100%" }}>
+                  <Typography sx={{ fontSize: 13, color: "text.primary", py: 0.5, fontWeight: 500 }}>
+                    {formatMoistureLabel(moisture)}
+                  </Typography>
+                  {(moisture.percent < 0 || moisture.percent >= 100) && (
+                    <Alert severity="error" sx={{ width: "100%", fontSize: 13, py: 0.5, mt: 0.5 }}>
+                      The moisture result is out of range (0 to below 100 %).
+                    </Alert>
+                  )}
+                </Box>
+              ) : (
+                <Alert severity="warning" sx={{ width: "100%", fontSize: 13, py: 0.5 }}>
+                  {getMissingMoistureMessage(ctx?.specifications ?? [])}
+                </Alert>
+              )
             )}
             {needsAvgWt && (
               <TextField

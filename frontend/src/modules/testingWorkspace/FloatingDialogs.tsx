@@ -71,6 +71,8 @@ export function TestWorkflowDialogRouter({ open, test, sample, onClose }: Props)
         displayName={sample.displayName}
         itemId={sample.itemId ?? undefined}
         sampleId={sample.sampleId}
+        status={test.status}
+        outsourcedToLab={test.outsourcedToLab}
         onClose={onClose}
       />
       </Suspense>

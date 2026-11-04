@@ -57,10 +57,16 @@ public static class StageReplicateResolver
     public static async Task<StageReplicateResolution> ResolveAsync(
         IMicroLimsDbContext db, int sampleId, int testDefinitionId, CancellationToken cancellationToken = default)
     {
-        var productionStageId = await db.Samples
+        var sample = await db.Samples
             .Where(s => s.Id == sampleId)
-            .Select(s => s.ProductionStageId)
+            .Select(s => new { s.ProductionStageId, s.Category })
             .FirstOrDefaultAsync(cancellationToken);
+        var productionStageId = sample?.ProductionStageId;
+
+        // Raw and packaging materials have no production stage. The analyst decides
+        // how many replicates to run (at least one), as with plates in a micro count test.
+        if (sample?.Category is SampleCategory.RawMaterial or SampleCategory.PackagingMaterial)
+            return new StageReplicateResolution(StageReplicateResolutionStatus.Resolved, null, null, null);
 
         if (productionStageId is null)
         {

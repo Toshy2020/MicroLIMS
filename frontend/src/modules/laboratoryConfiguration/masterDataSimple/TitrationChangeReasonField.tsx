@@ -1,6 +1,7 @@
 import React from "react";
 import { Box, TextField } from "@mui/material";
 import type { TestDefinitionOption } from "../../../hooks/useTestDefinitions";
+import type { MoistureRole } from "../../../services/masterDataOptions";
 import {
   TitrationFormState,
   titrationFormFromDefinition,
@@ -23,23 +24,27 @@ export function hasTitrationSettingsChanged(
   initialTest: TestDefinitionOption | null,
   currentForm: TitrationFormState,
   currentWorkflowType: string,
-  currentArea?: PhyschemArea | null
+  currentArea?: PhyschemArea | null,
+  currentMoistureRole?: MoistureRole | null
 ): boolean {
   if (!initialTest) return false;
   const wasTitration = initialTest.workflowType === "Titration";
   const isTitration = currentWorkflowType === "Titration";
 
-  if (!wasTitration && !isTitration) return false;
+  // Not a titration either way: only the moisture role (e.g. a loss on drying test) needs a reason.
+  if (!wasTitration && !isTitration) return (initialTest.moistureRole ?? "None") !== (currentMoistureRole ?? "None");
   if (wasTitration !== isTitration) return true;
 
   // Both were/are Titration: compare the normalized payload fields and replicate count
   const before = {
     ...titrationPayloadFields(titrationFormFromDefinition(initialTest), true),
-    replicateCount: initialTest.replicateCount != null ? Number(initialTest.replicateCount) : 3
+    replicateCount: initialTest.replicateCount != null ? Number(initialTest.replicateCount) : 3,
+    moistureRole: initialTest.moistureRole ?? "None"
   };
   const after = {
     ...titrationPayloadFields(currentForm, true),
-    replicateCount: Number(currentForm.replicateCount) || 3
+    replicateCount: Number(currentForm.replicateCount) || 3,
+    moistureRole: currentMoistureRole ?? "None"
   };
 
   // The area is part of the titration snapshot on the server (spec 2026-10-05 section 2).
@@ -61,7 +66,7 @@ export function hasTitrationSettingsChanged(
 export function validateTitrationChangeReason(reason: string | null | undefined): string | null {
   const trimmed = (reason ?? "").trim();
   if (!trimmed || trimmed.length < 5 || trimmed.length > 500) {
-    return "A reason for change is required when titration settings change (5 to 500 characters).";
+    return "A reason for change is required when titration or moisture settings change (5 to 500 characters).";
   }
   return null;
 }
@@ -76,9 +81,10 @@ export function titrationChangeReasonCheck(
   currentForm: TitrationFormState,
   currentWorkflowType: string,
   reason: string,
-  currentArea?: PhyschemArea | null
+  currentArea?: PhyschemArea | null,
+  currentMoistureRole?: MoistureRole | null
 ): { required: boolean; error: string | null; payload: string | null } {
-  const required = hasTitrationSettingsChanged(initialTest, currentForm, currentWorkflowType, currentArea);
+  const required = hasTitrationSettingsChanged(initialTest, currentForm, currentWorkflowType, currentArea, currentMoistureRole);
   return {
     required,
     error: required ? validateTitrationChangeReason(reason) : null,
@@ -109,7 +115,7 @@ export const TitrationChangeReasonField: React.FC<TitrationChangeReasonFieldProp
       <TextField
         size="small"
         label="Reason for Change"
-        placeholder="Enter reason for changing titration settings (5–500 characters)"
+        placeholder="Enter reason for changing titration or moisture settings (5–500 characters)"
         value={value}
         onChange={(e) => onChange(e.target.value)}
         required
@@ -117,7 +123,7 @@ export const TitrationChangeReasonField: React.FC<TitrationChangeReasonFieldProp
         multiline
         minRows={2}
         error={Boolean(error)}
-        helperText={error || "A reason for change is required when titration settings change (5–500 characters)."}
+        helperText={error || "A reason for change is required when titration or moisture settings change (5–500 characters)."}
         slotProps={{ htmlInput: { minLength: 5, maxLength: 500 } }}
         disabled={disabled}
       />

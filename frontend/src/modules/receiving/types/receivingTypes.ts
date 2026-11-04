@@ -68,6 +68,9 @@ export interface SampleRecord {
   causeOfTesting: string;
   causeOfTestingId?: number;
   batchNumber: string | null;
+  grade?: string | null;
+  // Periodic retest still waiting for a Section Head / Supervisor to choose its tests.
+  awaitingTestSelection?: boolean;
   controlNumber: string;
   status: string;
   preparationStatus: string;
@@ -96,6 +99,7 @@ export interface SampleRecord {
   originReferenceNumber?: string | null;
   oosGroupCode?: string | null;
   assignedTests: TestOrderSummary[];
+  warnings?: string[];
 }
 
 // Mirrors backend CorrectSampleRequest: the sample's full corrected details
@@ -119,6 +123,8 @@ export interface SampleCorrectionPayload {
   waterDepartmentId: number | null;
   departmentId: number | null;
   machineId: number | null;
+  // Omitted = unchanged. Only editable while every test is still pending.
+  grade?: string | null;
 }
 
 // Mirrors backend ItemBasedReceiveRequest (Product/RM/PM).
@@ -134,6 +140,8 @@ export interface ItemBasedReceiveRequest {
   productionStage?: string | null;
   // Which laboratories to receive the sample for - required, at least one.
   targetSectionIds: number[];
+  // Grade stated on the supplier's CoA - required when the item has graded specifications.
+  grade?: string | null;
 }
 
 // Mirrors backend ReceiptLabOptionDto (GET /samples/receipt-labs?itemId=).
@@ -218,5 +226,34 @@ export interface ReceiveRowItem {
   // Choose-mode only: labs picked for this row (Laboratories column).
   // undefined until the item's receipt-labs have loaded and defaulted.
   targetSectionIds?: number[];
+  // Raw materials: the item's grades (loaded when the item is picked) and the
+  // one stated on the supplier's CoA. Empty gradeOptions = ungraded item.
+  gradeOptions?: string[];
+  grade?: string;
+  // Raw materials: optional supplier CoA, uploaded once the sample is created.
+  coaFile?: File | null;
   errors?: Record<string, string>;
+}
+
+// A document attached to a sample (the supplier's CoA).
+export interface SampleDocument {
+  id: number;
+  sampleId: number;
+  documentType: "SupplierCoa" | "Other";
+  originalFileName: string;
+  fileSizeBytes: number;
+  uploadedByName: string;
+  uploadedAt: string;
+  status: "Current" | "Voided";
+  voidReason?: string | null;
+}
+
+// A test a Section Head / Supervisor may choose for a periodic retest.
+export interface RetestEligibleTest {
+  testCode: string;
+  displayName: string;
+  sectionId: number;
+  sectionName: string;
+  // The current user may choose this test; the rest are shown read-only.
+  canSelect: boolean;
 }

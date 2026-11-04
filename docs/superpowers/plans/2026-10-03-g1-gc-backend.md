@@ -6,7 +6,7 @@
 
 **Architecture:** GC extends the existing `Hplc*` tables (spec D9): a `Technique` and `ResultMode` on `HplcMethod`, nullable GC columns, an oven-program child table. Run code branches on the snapshot's technique (instrument type, no mobile phases) and result mode (ppm calculator instead of assay %). No new tables for runs/samples; no rename.
 
-**Tech Stack:** ASP.NET Core 8, EF Core + Npgsql, xUnit (EF InMemory unit tests + Postgres integration suite).
+**Tech Stack:** ASP.NET Core 10, EF Core + Npgsql, xUnit (EF InMemory unit tests + Postgres integration suite).
 
 **Spec:** `docs/superpowers/specs/2026-10-03-icp-gc-workspaces-design.md` (§3, §5, §7 G1, §8).
 

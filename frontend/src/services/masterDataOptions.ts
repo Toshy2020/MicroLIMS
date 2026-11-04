@@ -97,6 +97,14 @@ export interface UpdateTestDefinitionStageReplicateRequest {
   sampleReplicates?: number | null;
 }
 
+export type MoistureRole = "None" | "LossOnDrying" | "Water";
+
+export type UvCalculationMode =
+  | "StandardComparison"
+  | "SpecificAbsorbanceAssay"
+  | "SpecificAbsorbanceValue"
+  | "AbsorbanceLimit";
+
 export interface CreateTestDefinitionPayload extends TitrationDefinitionFields {
   code: string;
   displayName: string;
@@ -137,6 +145,13 @@ export interface CreateTestDefinitionPayload extends TitrationDefinitionFields {
   hplcMethodId?: number | null;
   icpMethodId?: number | null;
   physchemArea?: PhyschemArea | null;
+  perContainer?: boolean;
+  moistureRole?: MoistureRole;
+  uvCalculationMode?: UvCalculationMode | null;
+  uvSpecificAbsorbance?: number | null;
+  uvTotalVolumeMl?: number | null;
+  uvStandardVolumeMl?: number | null;
+  uvStandardEntryId?: number | null;
 }
 
 export interface UpdateTestDefinitionPayload extends TitrationDefinitionFields {
@@ -179,7 +194,14 @@ export interface UpdateTestDefinitionPayload extends TitrationDefinitionFields {
   hplcMethodId?: number | null;
   icpMethodId?: number | null;
   physchemArea?: PhyschemArea | null;
+  perContainer?: boolean;
+  moistureRole?: MoistureRole;
   changeReason?: string | null;
+  uvCalculationMode?: UvCalculationMode | null;
+  uvSpecificAbsorbance?: number | null;
+  uvTotalVolumeMl?: number | null;
+  uvStandardVolumeMl?: number | null;
+  uvStandardEntryId?: number | null;
 }
 
 // Shared lookup lists used across receiving, preparation, and master

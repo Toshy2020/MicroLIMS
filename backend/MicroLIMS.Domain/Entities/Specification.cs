@@ -18,6 +18,11 @@ public class Specification : IVersionedEntity
     // own for this TestCode, those rows are used and the every-stage rows
     // are not; otherwise the every-stage rows are (SpecificationStageResolver).
     public ProductionStageRole? ProductionStageRole { get; set; }
+
+    // The grade this row applies to (BP, USP, In-house ...), free text up to
+    // 20 characters, normalised by SpecificationService.NormalizeGrade.
+    // Null = ungraded (every existing row).
+    public string? Grade { get; set; }
     public string AlertLimit { get; set; } = string.Empty;
     public string ActionLimit { get; set; } = string.Empty;
     public string SpecLimit { get; set; } = string.Empty;
@@ -60,6 +65,13 @@ public class Specification : IVersionedEntity
     public int? HplcMethodAnalyteId { get; set; }
     [JsonIgnore]
     public HplcMethodAnalyte? HplcMethodAnalyte { get; set; }
+
+    // Related-substances rows (HPLC method in RelatedSubstances mode): which kind of row this is,
+    // and for a Named row the method impurity it limits.
+    public RelatedSubstanceRow? RelatedSubstanceRow { get; set; }
+    public int? HplcMethodImpurityId { get; set; }
+    [JsonIgnore]
+    public HplcMethodImpurity? HplcMethodImpurity { get; set; }
 
     // ICP workspace - IcpMethodAssay specification rows are keyed by method element + basis.
     public int? IcpMethodElementId { get; set; }

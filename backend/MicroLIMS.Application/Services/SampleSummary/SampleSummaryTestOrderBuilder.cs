@@ -55,6 +55,7 @@ public static class SampleSummaryTestOrderBuilder
             WorkflowStateDisplay = stateResult.WorkflowStateDisplay,
             WorkflowStatus = stateResult.WorkflowStatus,
             UsesSharedTsb = usesTsb,
+            OutsourcedToLab = order.OutsourcedToLab,
             IsWorkflowLocked = stateResult.IsWorkflowLocked,
             IsResultEntryAllowed = stateResult.IsResultEntryAllowed,
             ResultLockReason = stateResult.LockReason,

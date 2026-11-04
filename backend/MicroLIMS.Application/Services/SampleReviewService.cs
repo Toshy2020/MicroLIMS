@@ -21,10 +21,11 @@ public class SampleReviewService
     private readonly SegregationOfDutiesGuard _segregationOfDuties;
     private readonly ReviewGateService _reviewGate;
     private readonly IUserSectionScopeService _scope;
+    private readonly IAuditEventService _audit;
     private readonly TimeProvider _time;
 
     public SampleReviewService(IMicroLimsDbContext db, SegregationOfDutiesGuard segregationOfDuties, ReviewGateService reviewGate,
-        IUserSectionScopeService scope,
+        IUserSectionScopeService scope, IAuditEventService audit,
         TimeProvider? timeProvider = null)
     {
         _time = timeProvider ?? TimeProvider.System;
@@ -32,6 +33,7 @@ public class SampleReviewService
         _segregationOfDuties = segregationOfDuties;
         _reviewGate = reviewGate;
         _scope = scope;
+        _audit = audit;
     }
 
     private Task<Sample?> LoadAsync(int sampleId) =>
@@ -92,10 +94,10 @@ public class SampleReviewService
         SampleSectionRollup.Apply(sample);
     }
 
-    public Task CompleteReviewAsync(int sampleId, int reviewerUserId, string password, string? comment, string? ipAddress, int? sectionId = null) =>
-        UnitOfWork.RunAsync(_db, () => CompleteReviewCoreAsync(sampleId, reviewerUserId, password, comment, ipAddress, sectionId));
+    public Task CompleteReviewAsync(int sampleId, int reviewerUserId, string password, string? comment, string? ipAddress, int? sectionId = null, decimal? retentionQuantity = null, string? retentionUnit = null) =>
+        UnitOfWork.RunAsync(_db, () => CompleteReviewCoreAsync(sampleId, reviewerUserId, password, comment, ipAddress, sectionId, retentionQuantity, retentionUnit));
 
-    private async Task CompleteReviewCoreAsync(int sampleId, int reviewerUserId, string password, string? comment, string? ipAddress, int? sectionId = null)
+    private async Task CompleteReviewCoreAsync(int sampleId, int reviewerUserId, string password, string? comment, string? ipAddress, int? sectionId = null, decimal? retentionQuantity = null, string? retentionUnit = null)
     {
         var sample = await LoadAsync(sampleId)
             ?? throw new NotFoundException($"Sample {sampleId} not found.");
@@ -114,6 +116,11 @@ public class SampleReviewService
 
         if (currentOrders.Any(t => t.CurrentStep != WorkflowStep.Ready))
             throw new InvalidOperationException("Cannot complete review: one or more tests are not in Ready step.");
+
+        // Checked before anything is signed or written.
+        var retentionUnitCanonical = await ValidateRetentionAsync(sample, section, retentionQuantity, retentionUnit);
+
+        _db.CurrentUserId = reviewerUserId;
 
         // Signs first - if password verification fails, nothing below is
         // written (the signature, the event, and the state change below
@@ -150,8 +157,44 @@ public class SampleReviewService
             });
         }
 
+        if (retentionUnitCanonical is not null)
+        {
+            var inv = System.Globalization.CultureInfo.InvariantCulture;
+            var unchanged = sample.RetentionQuantity == retentionQuantity && sample.RetentionQuantityUnit == retentionUnitCanonical;
+            var previous = sample.RetentionQuantity is null ? null : string.Create(inv, $"{sample.RetentionQuantity:0.######} {sample.RetentionQuantityUnit}");
+            sample.RetentionQuantity = retentionQuantity;
+            sample.RetentionQuantityUnit = retentionUnitCanonical;
+            if (!unchanged)
+                await _audit.RecordUserEventAsync("RetentionQuantityRecorded", AuditActionCategory.Review, ReviewEntityTypes.Sample,
+                    reason: "Retention quantity recorded at physicochemical review",
+                    changes: new[] { new AuditFieldChange("RetentionQuantity", previous, string.Create(inv, $"{retentionQuantity:0.######} {retentionUnitCanonical}")) },
+                    entityId: sampleId.ToString(), sampleId: sampleId);
+        }
+
         SampleSectionRollup.Apply(sample);
         await _db.SaveChangesAsync();
+    }
+
+    private static readonly string[] RetentionUnits = { "g", "mg", "kg", "mL", "L" };
+
+    // Retention is kept and recorded only by the physicochemical (FP) reviewer of a
+    // raw material. Returns the unit in canonical spelling, or null when none applies.
+    private async Task<string?> ValidateRetentionAsync(Sample sample, int sectionId, decimal? quantity, string? unit)
+    {
+        var sectionCode = await _db.DocumentSections.Where(s => s.Id == sectionId).Select(s => s.Code).FirstOrDefaultAsync();
+        var required = sample.Category == SampleCategory.RawMaterial && string.Equals(sectionCode, PhyschemAreas.SectionCode, StringComparison.OrdinalIgnoreCase);
+        if (!required)
+        {
+            if (quantity is not null || !string.IsNullOrWhiteSpace(unit))
+                throw new InvalidOperationException("Retention quantity is recorded only at the physicochemical review of a raw material.");
+            return null;
+        }
+
+        if (quantity is null) throw new InvalidOperationException("Enter the retention quantity kept for this raw material.");
+        if (quantity <= 0) throw new InvalidOperationException("Retention quantity must be greater than zero.");
+        if (quantity >= 1_000_000m) throw new InvalidOperationException("Retention quantity must be less than 1,000,000.");
+        return RetentionUnits.FirstOrDefault(u => string.Equals(u, unit?.Trim(), StringComparison.OrdinalIgnoreCase))
+            ?? throw new InvalidOperationException("Retention unit must be g, mg, kg, mL or L.");
     }
 
     public Task<TestReturnEventResponse> ReturnToAnalystAsync(int testOrderId, int reviewerId, string? reason) =>
@@ -188,6 +231,78 @@ public class SampleReviewService
         if (definition.WorkflowType != WorkflowType.CountTest && !AnalysisWorkflows.UsesTestAnalysis(definition.WorkflowType))
             throw new InvalidOperationException($"Return to Analyst is only supported for Count Test and result-entry (analysis) workflows. \"{order.TestCode}\" is a {definition.WorkflowType} workflow.");
 
+        // A moisture (LOD / water) result is read by the dried / anhydrous assays of the same sample:
+        // returning it returns every assay that used it, in the same unit of work. Found first - the
+        // state transition below saves, and the moisture results are inactive from then on.
+        // The moisture order's row is locked first, so an assay being recorded against this result either
+        // commits before the scan below (and is returned) or waits and then finds the result returned.
+        var dependents = new List<TestOrder>();
+        if (definition.MoistureRole != MoistureRole.None)
+        {
+            await SampleMoistureResolver.LockMoistureOrderAsync(_db, order.Id);
+            dependents = await FindDependentAssaysAsync(order);
+            foreach (var dependent in dependents)
+            {
+                var dependentSection = sample is null ? SectionSignoffStatus.InTesting : SampleSectionRollup.StatusOf(sample, dependent.SectionId);
+                if (dependent.Status != ApprovalStatus.ResultEntered
+                    || dependentSection is not (SectionSignoffStatus.InTesting or SectionSignoffStatus.UnderReview))
+                    throw new InvalidOperationException($"Cannot return {order.TestCode}: assay {dependent.TestCode} has already been reviewed.");
+            }
+        }
+
+        var returnEvent = await ReturnOrderAsync(order, definition, sample, sectionStatus, reviewerId, reason);
+
+        var phrase = definition.MoistureRole == MoistureRole.LossOnDrying ? "loss on drying" : "water content";
+        foreach (var dependent in dependents)
+        {
+            var dependentDefinition = await _db.TestDefinitions.FirstAsync(d => d.Code == dependent.TestCode);
+            await ReturnOrderAsync(dependent, dependentDefinition, sample, null, reviewerId, $"Recalculate: the {phrase} result was returned.");
+        }
+
+        await _db.SaveChangesAsync();
+
+        return returnEvent;
+    }
+
+    // Live (not cancelled, voided or superseded) titration, HPLC and UV orders of the same sample, in any status, whose
+    // active analysis took its moisture value from one of this order's active results. The caller refuses
+    // the return when one is already past ResultEntered. Must run before those results are superseded.
+    private async Task<List<TestOrder>> FindDependentAssaysAsync(TestOrder moistureOrder)
+    {
+        var resultIds = await _db.ParameterResults.Where(r => r.TestOrderId == moistureOrder.Id && r.IsActive).Select(r => r.Id).ToListAsync();
+        var candidates = await _db.TestAnalyses
+            .Where(a => a.IsActive && (a.AnalysisType == WorkflowType.Titration || a.AnalysisType == WorkflowType.HplcMethodAssay
+                || a.AnalysisType == WorkflowType.UvSpectrophotometry) && a.TestOrderId != moistureOrder.Id
+                && a.TestOrder!.SampleId == moistureOrder.SampleId && !a.TestOrder.IsSuperseded
+                && a.TestOrder.CancelledAtStep == null && a.TestOrder.Status != ApprovalStatus.Cancelled && a.TestOrder.Status != ApprovalStatus.Voided)
+            .Select(a => new { a.TestOrder, a.ConditionsJson })
+            .ToListAsync();
+        return candidates
+            .Where(c => UsesMoistureResult(c.ConditionsJson, resultIds))
+            .Select(c => c.TestOrder!)
+            .Distinct()
+            .ToList();
+    }
+
+    private static bool UsesMoistureResult(string? conditionsJson, List<int> resultIds)
+    {
+        if (string.IsNullOrWhiteSpace(conditionsJson)) return false;
+        try
+        {
+            using var doc = System.Text.Json.JsonDocument.Parse(conditionsJson);
+            return doc.RootElement.ValueKind == System.Text.Json.JsonValueKind.Object
+                && doc.RootElement.TryGetProperty("moisture", out var m) && m.ValueKind == System.Text.Json.JsonValueKind.Object
+                && m.TryGetProperty("parameterResultId", out var id) && id.TryGetInt32(out var value) && resultIds.Contains(value);
+        }
+        catch (System.Text.Json.JsonException) { return false; }
+    }
+
+    // Steps 1-5 of a return for one order (queued on the context; the caller saves).
+    private async Task<TestReturnEvent> ReturnOrderAsync(
+        TestOrder order, TestDefinition definition, Sample? sample, SectionSignoffStatus? knownSectionStatus, int reviewerId, string? reason)
+    {
+        var testOrderId = order.Id;
+        var sectionStatus = knownSectionStatus ?? (sample is null ? SectionSignoffStatus.InTesting : SampleSectionRollup.StatusOf(sample, order.SectionId));
         if (definition.WorkflowType == WorkflowType.CountTest)
         {
             // 1. Soft-supersede all active CountTestReading rows for this test order
@@ -263,7 +378,6 @@ public class SampleReviewService
         };
 
         _db.TestReturnEvents.Add(returnEvent);
-        await _db.SaveChangesAsync();
 
         return returnEvent;
     }

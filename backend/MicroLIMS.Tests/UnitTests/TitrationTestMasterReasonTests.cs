@@ -53,6 +53,38 @@ public class TitrationTestMasterReasonTests
     }
 
     [Fact]
+    public async Task ChangingMoistureRole_OnAGravimetricLossTest_NeedsReasonAndIsAudited()
+    {
+        var (db, s, svc) = Setup();
+        using var _ = db;
+        var lod = new TestDefinition
+        {
+            Code = "LOD-X", DisplayName = "Loss on drying", SectionId = s.Test.SectionId, IsActive = true,
+            WorkflowType = WorkflowType.Gravimetric, EquationType = EquationType.GravimetricLoss, ReplicateCount = 1, PhyschemArea = s.Test.PhyschemArea,
+        };
+        db.TestDefinitions.Add(lod);
+        await db.SaveChangesAsync();
+
+        UpdateTestDefinitionRequest Req(string? reason) =>
+            new(lod.Code, lod.DisplayName, MoistureRole: MoistureRole.LossOnDrying) { ChangeReason = reason };
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => svc.UpdateTestDefinitionAsync(s.UserId, lod.Id, Req(null)));
+        db.ChangeTracker.Clear(); // the refused call left its edit on the tracked entity; each real request has a fresh context
+        Assert.Equal(MoistureRole.None, (await db.TestDefinitions.AsNoTracking().SingleAsync(t => t.Id == lod.Id)).MoistureRole);
+        Assert.Equal(MoistureRole.None, (await db.TestDefinitions.AsNoTracking().SingleAsync(t => t.Id == lod.Id)).MoistureRole);
+
+        await svc.UpdateTestDefinitionAsync(s.UserId, lod.Id, Req("Now the LOD for dried-basis assays"));
+        var log = await db.AuditLogs.Include(a => a.Changes).SingleAsync(a => a.ActionCode == "TestDefinition.MoistureRoleChanged");
+        Assert.Equal("Now the LOD for dried-basis assays", log.Reason);
+        var change = Assert.Single(log.Changes);
+        Assert.Equal("None", change.PreviousValue);
+        Assert.Equal("LossOnDrying", change.NewValue);
+
+        // An unrelated edit of the same test needs no reason.
+        await svc.UpdateTestDefinitionAsync(s.UserId, lod.Id, new UpdateTestDefinitionRequest(lod.Code, "Loss on drying (renamed)"));
+    }
+
+    [Fact]
     public async Task ChangingPhyschemArea_WithoutReason_Refused()
     {
         var (db, s, svc) = Setup();

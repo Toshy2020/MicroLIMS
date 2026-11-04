@@ -33,6 +33,11 @@ public class FreshDatabaseSeedPostgresTests
             var inventoryCount = await db.EquipmentInventories.CountAsync();
             DbSeeder.Seed(db);
 
+            // The migration adds "Periodic retest" before the seeder runs: the basic causes must still be seeded, once.
+            Assert.Equal(new[] { "Investigation", "Periodic retest", "Retest", "Routine" },
+                (await db.CausesOfTesting.Select(c => c.Name).ToListAsync()).OrderBy(n => n, StringComparer.Ordinal));
+            Assert.True((await db.CausesOfTesting.SingleAsync(c => c.Name == "Periodic retest")).RequiresTestSelection);
+
             var micro = await db.DocumentSections.SingleAsync(s => s.Code == "MICRO");
             var seeded = await db.Equipment.Where(e => e.Code == "INC-F-ML-F-01-002" || e.Code == "AUT-F-ML-F-03-045").ToListAsync();
             Assert.Equal(2, seeded.Count);

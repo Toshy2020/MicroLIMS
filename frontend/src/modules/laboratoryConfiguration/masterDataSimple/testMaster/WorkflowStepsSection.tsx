@@ -232,7 +232,7 @@ export function WorkflowStepsSection({ test, workflowTypes, onWorkflowTypeChange
           mb: 1.5
         }}>
         <Typography sx={{ fontWeight: 700, fontSize: 13 }}>
-          {["Measurement", "Gravimetric", "Qualitative", "HplcMethodAssay", "IcpMethodAssay", "Titration"].includes(test.workflowType) ? "Workflow Type" : "Workflow Steps"}
+          {["Measurement", "Gravimetric", "Qualitative", "HplcMethodAssay", "IcpMethodAssay", "Titration", "UvSpectrophotometry"].includes(test.workflowType) ? "Workflow Type" : "Workflow Steps"}
         </Typography>
         {/* Only step-driven tests can switch; every other workflow is set by the test type. */}
         {["CountTest", "Observation"].includes(test.workflowType) && (
@@ -356,6 +356,30 @@ export function WorkflowStepsSection({ test, workflowTypes, onWorkflowTypeChange
           </Stack>
           <Typography variant="body2" sx={{ color: "text.secondary" }}>
             Titration tests have no workflow steps: replicate weights and titrant volumes are entered directly.
+          </Typography>
+        </Box>
+      ) : test.workflowType === "UvSpectrophotometry" ? (
+        <Box sx={{ p: 2, bgcolor: "background.paper", borderRadius: 1, border: "1px solid", borderColor: "divider" }}>
+          <Typography sx={{ fontWeight: 700, fontSize: 12, mb: 1, color: "primary.main" }}>
+            UV Spectrophotometry Configuration
+          </Typography>
+          <Stack useFlexGap direction="row" spacing={3} sx={{ flexWrap: "wrap", alignItems: "center", mb: 1 }}>
+            {[
+              ["Calculation Mode", test.uvCalculationMode],
+              ["Specific Absorbance (A1%)", test.uvSpecificAbsorbance],
+              ["Total Volume (mL)", test.uvTotalVolumeMl],
+              ["Standard Volume (mL)", test.uvStandardVolumeMl],
+              ["Standard Material", test.uvStandardEntryName],
+              ["Replicates", test.replicateCount]
+            ].filter(([, value]) => value !== undefined && value !== null && value !== "").map(([label, value]) => (
+              <Box key={String(label)}>
+                <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>{label}</Typography>
+                <Typography variant="body2" sx={{ fontWeight: 600 }}>{String(value)}</Typography>
+              </Box>
+            ))}
+          </Stack>
+          <Typography variant="body2" sx={{ color: "text.secondary" }}>
+            UV spectrophotometry tests have no workflow steps: replicate absorbances and sample weights are entered directly.
           </Typography>
         </Box>
       ) : test.workflowType === "Qualitative" ? (

@@ -150,6 +150,15 @@ public static class ReportDocumentMapper
         if (s.TestOrders.Count == 0)
             doc.Blocks.Add(new ListBlock { Label = "test results", Rows = new(), EmptyText = "No tests recorded." });
 
+        // Not-applicable tests and supplier-stated attributes, as the
+        // Certificate of Analysis prints them: supporting records, never results.
+        var supporting = s.Certificate.Sample.SupportingRows;
+        if (supporting is { Count: > 0 })
+        {
+            doc.Blocks.Add(new HeadingBlock { Text = "supporting records" });
+            doc.Blocks.Add(new ListBlock { Label = "supporting records", Rows = supporting.Select(r => (r.TestDisplayName, r.Result)).ToList() });
+        }
+
         doc.Blocks.Add(new HeadingBlock { Text = "lifecycle timeline" });
         doc.Blocks.Add(ToSampleTimelineBlock(s));
 
@@ -507,6 +516,7 @@ public static class ReportDocumentMapper
             + (a.UnitAmount is null ? "" : $"    Unit amount: {Num(a.UnitAmount.Value)}"));
         var conditions = a.AnalysisType == WorkflowType.Titration ? TitrationConditions(a.ConditionsJson) : GenericConditions(a.ConditionsJson);
         if (conditions is not null) card.MetaLines.Add($"Conditions: {conditions}");
+        if (a.AnalysisType == WorkflowType.UvSpectrophotometry && UvJudgedOn(a) is { } judged) card.MetaLines.Add($"Judged on: {judged}");
         if (!string.IsNullOrWhiteSpace(a.Comment)) card.MetaLines.Add($"Comment: {a.Comment}");
         card.MetaLines.Add($"Entered by: {a.EnteredByName ?? "-"}    Entered at: {Dt(a.EnteredAt)}");
 
@@ -552,7 +562,8 @@ public static class ReportDocumentMapper
         {
             using var parsed = JsonDocument.Parse(json);
             if (parsed.RootElement.ValueKind != JsonValueKind.Object) return parsed.RootElement.GetRawText();
-            var parts = parsed.RootElement.EnumerateObject().Select(p => $"{p.Name}: {JsonText(p.Value)}").ToList();
+            var parts = parsed.RootElement.EnumerateObject()
+                .Select(p => p.Name == "moisture" && MoistureText(p.Value) is { } m ? m : $"{p.Name}: {JsonText(p.Value)}").ToList();
             return parts.Count == 0 ? null : string.Join(" · ", parts);
         }
         catch (JsonException)
@@ -560,6 +571,76 @@ public static class ReportDocumentMapper
             return json;
         }
     }
+
+    // The loss on drying / water result a dried or anhydrous assay used (UV), in words.
+    private static string? MoistureText(JsonElement m)
+    {
+        if (m.ValueKind != JsonValueKind.Object || Pick(m, "percent") is not { } pct
+            || !decimal.TryParse(JsonText(pct), NumberStyles.Float, CultureInfo.InvariantCulture, out var percent)) return null;
+        var role = Pick(m, "role") is { } r ? Humanize(JsonText(r)).ToLowerInvariant() : null;
+        var test = Pick(m, "testCode") is { } t ? $"test {JsonText(t)}" : null;
+        var detail = string.Join(", ", new[] { role, test }.Where(x => x is not null));
+        return $"Moisture: {Num(percent)} %" + (detail.Length > 0 ? $" ({detail})" : "");
+    }
+
+    // What a UV result was judged on, from the CalculationJson UvRecorder signs: the reference
+    // absorbance of a limit test, the constants of an assay or specific-absorbance value, or the
+    // standard lot of a comparison. One entry per parameter, named when there is more than one.
+    private static string? UvJudgedOn(AnalysisDetailDto a)
+    {
+        var parts = new List<string>();
+        foreach (var p in a.ParameterResults)
+        {
+            if (string.IsNullOrWhiteSpace(p.CalculationJson)) continue;
+            try
+            {
+                using var doc = JsonDocument.Parse(p.CalculationJson);
+                var root = doc.RootElement;
+                if (root.ValueKind != JsonValueKind.Object) continue;
+                var items = new List<string>();
+                if (Pick(root, "referenceAbsorbance") is { } reference && UvNumber(reference, "0.000###") is { } r)
+                    items.Add($"Reference absorbance {r}");
+                if (Pick(root, "totalVolumeMl") is { } volume && UvNumber(volume) is { } v) items.Add($"Total volume {v} mL");
+                if (Pick(root, "specificAbsorbance") is { } a1 && UvNumber(a1) is { } s) items.Add($"A1% {s}");
+                if (Pick(root, "standard") is { ValueKind: JsonValueKind.Object } std)
+                {
+                    if (Pick(std, "code") is { } code) items.Add($"Standard lot {JsonText(code)}");
+                    if (Pick(std, "purityPercent") is { } purity && UvNumber(purity) is { } pu) items.Add($"purity {pu} %");
+                    if (Pick(std, "weightG") is { } weight && UvNumber(weight) is { } w) items.Add($"weight {w} g");
+                    if (Pick(std, "absorbance") is { } abs && UvNumber(abs) is { } ab) items.Add($"absorbance {ab}");
+                    if (Pick(std, "moisturePercent") is { } smoist && UvNumber(smoist) is { } sm) items.Add($"moisture {sm} %");
+                    if (Pick(std, "volumeMl") is { } svol && UvNumber(svol) is { } sv) items.Add($"volume {sv} mL");
+                }
+                if (items.Count == 0) continue;
+                var text = string.Join(" · ", items);
+                parts.Add(a.ParameterResults.Count > 1 ? $"{p.ParameterName}: {text}" : text);
+            }
+            catch (JsonException)
+            {
+                // an unreadable snapshot just adds nothing
+            }
+        }
+        return parts.Count == 0 ? null : string.Join("; ", parts);
+    }
+
+    // One top-level value of a UV CalculationJson as text; null when absent, null-valued or unreadable.
+    private static string? UvCalcValue(string? json, string key)
+    {
+        if (string.IsNullOrWhiteSpace(json)) return null;
+        try
+        {
+            using var doc = JsonDocument.Parse(json);
+            return doc.RootElement.ValueKind == JsonValueKind.Object && Pick(doc.RootElement, key) is { } v ? JsonText(v) : null;
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
+    }
+
+    private static string? UvNumber(JsonElement e, string? format = null) =>
+        decimal.TryParse(JsonText(e), NumberStyles.Float, CultureInfo.InvariantCulture, out var d)
+            ? d.ToString(format ?? "0.############", CultureInfo.InvariantCulture) : null;
 
     // The TitrationSnapshot TitrationRecorder stores on ConditionsJson:
     // titrant details nested under "titrant", keys matched case-insensitively.
@@ -638,6 +719,7 @@ public static class ReportDocumentMapper
             var isDisintegration = a.AnalysisType == WorkflowType.Disintegration;
             var isWeightVariation = a.AnalysisType == WorkflowType.WeightVariation;
             var isTitration = a.AnalysisType == WorkflowType.Titration;
+            var isUv = a.AnalysisType == WorkflowType.UvSpectrophotometry;
             var isTablet = isWeightVariation && p.Readings.All(r => r.Value2 is null);
             var hasStage = p.Readings.Any(r => r.Stage is not null);
             var hasTimePoint = !isDisintegration && !isWeightVariation && p.Readings.Any(r => r.TimePointMinutes is not null);
@@ -649,6 +731,8 @@ public static class ReportDocumentMapper
             var hasPassed = p.Readings.Any(r => r.Passed is not null);
             var decimals = DecimalsOf(p.ReportedDisplay);
             var stagePrefix = isVessel || isDisintegration || isWeightVariation ? "S" : "";
+            var uvAsIs = isUv && UvCalcValue(p.CalculationJson, "moisturePercent") is not null;
+            var uvLimit = isUv && UvCalcValue(p.CalculationJson, "mode") == nameof(UvCalculationMode.AbsorbanceLimit);
 
             var columns = new List<(string Header, Func<ResultReadingDetailDto, string> Cell)>
             {
@@ -657,20 +741,21 @@ public static class ReportDocumentMapper
             if (hasStage) columns.Add(("Stage", r => r.Stage is null ? "—" : $"{stagePrefix}{r.Stage}"));
             if (hasTimePoint) columns.Add(("Time point (min)", r => r.TimePointMinutes is null ? "—" : Num(r.TimePointMinutes.Value)));
             if (hasValue1) columns.Add((
-                isVessel ? "Peak area" : isDisintegration ? "Time (min)" : isWeightVariation ? (isTablet ? "Weight (mg)" : "Gross (mg)") : isTitration ? "Sample weight (mg)" : "Value 1",
+                isVessel ? "Peak area" : isDisintegration ? "Time (min)" : isWeightVariation ? (isTablet ? "Weight (mg)" : "Gross (mg)") : isTitration ? "Sample weight (mg)" : isUv ? "Sample weight (g)" : "Value 1",
                 r => r.Value1 is not null ? Num(r.Value1.Value) : isDisintegration && !string.IsNullOrEmpty(r.Text) ? r.Text! : "—"));
             if (hasValue2) columns.Add((
-                isWeightVariation ? "Shell (mg)" : isTitration ? "Titrant volume (mL)" : "Value 2",
+                isWeightVariation ? "Shell (mg)" : isTitration ? "Titrant volume (mL)" : isUv ? "Absorbance" : "Value 2",
                 r => r.Value2 is null ? "—" : Num(r.Value2.Value)));
             if (hasValue3) columns.Add((
-                isWeightVariation ? "Deviation %" : isTitration ? "Corrected volume (mL)" : "Value 3",
+                isWeightVariation ? "Deviation %" : isTitration ? "Corrected volume (mL)" : isUv ? "Wavelength (nm)" : "Value 3",
                 r => r.Value3 is null ? "—" : isWeightVariation ? $"{r.Value3.Value.ToString("0.00", CultureInfo.InvariantCulture)} %" : Num(r.Value3.Value)));
             if (hasText) columns.Add(("Text", r => r.Text ?? "—"));
             if (hasComputed) columns.Add((
-                isVessel ? "% Dissolved" : isWeightVariation ? "Net (mg)" : isTitration ? "Result" : "Computed",
+                isVessel ? "% Dissolved" : isWeightVariation ? "Net (mg)" : isUv ? (uvAsIs ? "Result (as is)" : "Result") : isTitration ? "Result" : "Computed",
                 r => r.ComputedValue is null ? "—"
                     : isVessel ? $"{Num(r.ComputedValue.Value)} %"
                     : isTitration ? r.ComputedValue.Value.ToString("F" + decimals, CultureInfo.InvariantCulture)
+                    : isUv ? r.ComputedValue.Value.ToString(uvLimit ? "0.000" : "0.00", CultureInfo.InvariantCulture)
                     : Num(r.ComputedValue.Value)));
             if (hasPassed) columns.Add(("Passed", r => r.Passed is null ? "—" : r.Passed.Value ? "Pass" : "Fail"));
 

@@ -91,8 +91,8 @@ public class RoleManagementTests
         // carries as technical reviewer / QA auditor, and the 4 codes that
         // replaced role-only gates (review dashboard, media preparation,
         // receiving for their own lab, correcting a sample), and
-        // MonitoringPlan.View.
-        Assert.Equal(15, reviewer!.PermissionCodes.Count); // was 18 before the three hidden Discussions.View/Create + Messages.Use grants stopped being listed
+        // MonitoringPlan.View, and samples.prepare.
+        Assert.Equal(16, reviewer!.PermissionCodes.Count); // the three hidden Discussions.View/Create + Messages.Use grants are not listed
         Assert.Contains(PermissionConstants.SamplesReview, reviewer.PermissionCodes);
         Assert.Contains(PermissionConstants.DocumentsReview, reviewer.PermissionCodes);
     }

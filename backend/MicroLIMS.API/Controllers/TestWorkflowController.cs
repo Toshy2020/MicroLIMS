@@ -234,6 +234,14 @@ public class TestWorkflowController : ControllerBase
     public async Task<IActionResult> GetTitrationContext(int testOrderId, [FromServices] TitrationContextService context, CancellationToken ct) =>
         await RunAsync(() => context.GetContextAsync(testOrderId, CurrentUserId, ct));
 
+    // The sample's own LOD / water result a dried or anhydrous basis assay will use (null when none is needed or recorded yet).
+    [HttpGet("{testOrderId}/moisture")]
+    public async Task<IActionResult> GetMoisture(int testOrderId, [FromServices] SampleMoistureResolver resolver, CancellationToken ct)
+    {
+        await _scopeService.EnsureTestOrderAccessAsync(CurrentUserId, testOrderId, ct);
+        return await RunAsync(() => resolver.GetForAssayOrderAsync(testOrderId, CurrentUserId, ct));
+    }
+
     [HttpPost("{testOrderId}/record-titration-result")]
     [Authorize(Policy = PermissionConstants.TestWorkflowExecute)]
     public async Task<IActionResult> RecordTitrationResult(int testOrderId, RecordTitrationResultRequest request)
@@ -252,6 +260,53 @@ public class TestWorkflowController : ControllerBase
         });
     }
 
+    [HttpPost("{testOrderId}/record-uv-result")]
+    [Authorize(Policy = PermissionConstants.TestWorkflowExecute)]
+    public async Task<IActionResult> RecordUvResult(int testOrderId, RecordUvResultRequest request)
+    {
+        await _scopeService.EnsureTestOrderAccessAsync(CurrentUserId, testOrderId);
+        return await RunAsync(() =>
+        {
+            var payload = new UvPayload(
+                request.AnalysedAt, request.EquipmentId, request.StandardMaterialId, request.StandardWeightG, request.StandardAbsorbance,
+                request.Parameters?.Select(p => new UvParameterInput(
+                    p.SpecificationId, p.WavelengthNm, p.ReferenceAbsorbance,
+                    p.Replicates?.Select(r => new UvReplicateInput(r.WeightG, r.Absorbance)).ToList() ?? new List<UvReplicateInput>())).ToList()
+                    ?? new List<UvParameterInput>(),
+                request.Password, request.Comment);
+            return _engine.RecordUvResultAsync(testOrderId, payload, CurrentUserId, ClientIpAddress);
+        });
+    }
+
+    [HttpPost("{testOrderId}/outsource")]
+    [Authorize(Policy = PermissionConstants.TestsOutsource)]
+    public async Task<IActionResult> Outsource(int testOrderId, OutsourceTestRequest request)
+    {
+        return await RunAsync(async () =>
+        {
+            var payload = new OutsourceTestPayload(request.ExternalLab, request.Reason, request.Password);
+            await _engine.OutsourceTestAsync(testOrderId, payload, CurrentUserId, ClientIpAddress);
+            return true;
+        });
+    }
+
+    [HttpPost("{testOrderId}/record-outsourced-result")]
+    [Authorize(Policy = PermissionConstants.TestWorkflowExecute)]
+    public async Task<IActionResult> RecordOutsourcedResult(int testOrderId, RecordOutsourcedResultRequest request)
+    {
+        return await RunAsync(() =>
+        {
+            var payload = new RecordOutsourcedResultPayload(
+                request.ReportedAt,
+                request.ExternalReportNumber,
+                request.ReportDocumentId,
+                request.Parameters?.Select(p => new OutsourcedParameterInput(p.SpecificationId, p.Value, p.Conforms, p.Observation)).ToList() ?? new List<OutsourcedParameterInput>(),
+                request.Password,
+                request.Comment);
+            return _engine.RecordOutsourcedResultAsync(testOrderId, payload, CurrentUserId, ClientIpAddress);
+        });
+    }
+
     [HttpPost("{testOrderId}/record-qualitative-result")]
     [Authorize(Policy = PermissionConstants.TestWorkflowExecute)]
     public async Task<IActionResult> RecordQualitativeResult(int testOrderId, RecordQualitativeResultRequest request)
@@ -265,9 +320,11 @@ public class TestWorkflowController : ControllerBase
                 request.Parameters.Select(p => new QualitativeParameterInput(
                     p.SpecificationId,
                     p.Conforms,
-                    p.Observation)).ToList(),
+                    p.Observation,
+                    p.Containers?.Select(c => new QualitativeContainerInput(c.Index, c.Conforms, c.Observation)).ToList())).ToList(),
                 request.Password,
-                request.Comment);
+                request.Comment,
+                request.ContainerCount);
             return _engine.RecordQualitativeResultAsync(testOrderId, payload, CurrentUserId, ClientIpAddress);
         });
     }

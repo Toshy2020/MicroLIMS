@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   Paper,
   Box,
@@ -29,11 +29,15 @@ import { ItemDocumentActionButtons } from "../../../../components/ItemDocumentAc
 import { ItemStmPanel } from "../../../../components/ItemStmPanel";
 import { ItemSpecificationsSection } from "./ItemSpecificationsSection";
 import { ItemPreparationConfigurationSection } from "./ItemPreparationConfigurationSection";
+import { NotApplicableTestsSection } from "./NotApplicableTestsSection";
+import { SupplierAttributesSection } from "./SupplierAttributesSection";
 import {
   ItemPreparationConfigurationService,
   type ItemPreparationConfiguration
 } from "../../../testPreparation/services/ItemPreparationConfigurationService";
 import { clickable } from "../../../../utils/clickable";
+import { useHasPermission } from "../../../../contexts/AuthContext";
+import { PERMISSIONS } from "../../../../routes/routes";
 
 interface ItemWorkspaceProps {
   item: Item;
@@ -42,6 +46,8 @@ interface ItemWorkspaceProps {
 }
 
 export function ItemWorkspace({ item, onClose, onItemUpdated }: ItemWorkspaceProps) {
+  // The QC Manager opens this workspace to approve not-applicable tests; changing the item needs Items.Manage.
+  const canManage = useHasPermission(PERMISSIONS.ITEMS_MANAGE);
   const [activeTab, setActiveTab] = useState(0);
   const [documents, setDocuments] = useState<ItemDocumentDto[]>([]);
   const [_loadingDocs, setLoadingDocs] = useState(false);
@@ -115,6 +121,19 @@ export function ItemWorkspace({ item, onClose, onItemUpdated }: ItemWorkspacePro
   };
 
   const specsCount = item.specifications?.length ?? 0;
+
+  const grades = useMemo(() => {
+    if (Array.isArray((item as any).grades)) {
+      return (item as any).grades as string[];
+    }
+    const set = new Set<string>();
+    for (const s of item.specifications || []) {
+      if (s.grade && s.grade.trim()) {
+        set.add(s.grade.trim());
+      }
+    }
+    return Array.from(set).sort();
+  }, [item]);
 
   return (
     <Paper
@@ -192,6 +211,7 @@ export function ItemWorkspace({ item, onClose, onItemUpdated }: ItemWorkspacePro
             label={`Specifications (${specsCount})`}
             sx={{ textTransform: "none", fontWeight: 600, fontSize: 13 }}
           />
+          <Tab label="Supporting Records" sx={{ textTransform: "none", fontWeight: 600, fontSize: 13 }} />
           <Tab
             label={`Documents & Attachments (${documents.length})`}
             sx={{ textTransform: "none", fontWeight: 600, fontSize: 13 }}
@@ -242,6 +262,37 @@ export function ItemWorkspace({ item, onClose, onItemUpdated }: ItemWorkspacePro
                   {item.isActive ? "Active (Sample receipt enabled)" : "Frozen (Sample receipt disabled)"}
                 </Typography>
               </Paper>
+
+              {item.category === "RawMaterial" && (
+                <>
+                  <Paper sx={{ p: 2, bgcolor: "background.default", border: "1px solid", borderColor: "divider" }}>
+                    <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 600, textTransform: "uppercase" }}>
+                      Min Sample Quantity
+                    </Typography>
+                    <Typography variant="body1" sx={{ fontWeight: 700, mt: 0.5 }}>
+                      {item.minSampleQuantity != null ? `${item.minSampleQuantity} ${item.minSampleQuantityUnit || ""}`.trim() : "—"}
+                    </Typography>
+                  </Paper>
+
+                  <Paper sx={{ p: 2, bgcolor: "background.default", border: "1px solid", borderColor: "divider" }}>
+                    <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 600, textTransform: "uppercase" }}>
+                      Min Retest Sample Quantity
+                    </Typography>
+                    <Typography variant="body1" sx={{ fontWeight: 700, mt: 0.5 }}>
+                      {item.minRetestSampleQuantity != null ? `${item.minRetestSampleQuantity} ${item.minSampleQuantityUnit || ""}`.trim() : "—"}
+                    </Typography>
+                  </Paper>
+
+                  <Paper sx={{ p: 2, bgcolor: "background.default", border: "1px solid", borderColor: "divider" }}>
+                    <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 600, textTransform: "uppercase" }}>
+                      Min Sample Quantity Unit
+                    </Typography>
+                    <Typography variant="body1" sx={{ fontWeight: 700, mt: 0.5 }}>
+                      {item.minSampleQuantityUnit || "—"}
+                    </Typography>
+                  </Paper>
+                </>
+              )}
             </Box>
 
             <Paper sx={{ p: 2, border: "1px solid", borderColor: "divider" }}>
@@ -301,8 +352,8 @@ export function ItemWorkspace({ item, onClose, onItemUpdated }: ItemWorkspacePro
                     borderRadius: 1,
                     "&:hover": { bgcolor: "action.hover" },
                   }}
-                  onClick={() => setActiveTab(3)}
-                  {...clickable(() => setActiveTab(3))}
+                  onClick={() => setActiveTab(4)}
+                  {...clickable(() => setActiveTab(4))}
                 >
                   <Typography variant="body2" sx={{ color: "text.secondary" }}>
                     Controlled Documents:
@@ -322,8 +373,8 @@ export function ItemWorkspace({ item, onClose, onItemUpdated }: ItemWorkspacePro
                     borderRadius: 1,
                     "&:hover": { bgcolor: "action.hover" },
                   }}
-                  onClick={() => setActiveTab(4)}
-                  {...clickable(() => setActiveTab(4))}
+                  onClick={() => setActiveTab(5)}
+                  {...clickable(() => setActiveTab(5))}
                 >
                   <Typography variant="body2" sx={{ color: "text.secondary" }}>
                     Preparation Steps:
@@ -387,14 +438,31 @@ export function ItemWorkspace({ item, onClose, onItemUpdated }: ItemWorkspacePro
         {activeTab === 2 && (
           <ItemSpecificationsSection
             item={item}
+            readOnly={!canManage}
             onSpecsChanged={() => {
               onItemUpdated?.();
             }}
           />
         )}
 
-        {/* Tab 3: Documents & Attachments */}
+        {/* Tab 3: Supporting Records */}
         {activeTab === 3 && (
+          <Stack spacing={4}>
+            <NotApplicableTestsSection
+              itemId={item.id}
+              assignedTests={item.assignedTests || []}
+              grades={grades}
+            />
+            <Divider />
+            <SupplierAttributesSection
+              itemId={item.id}
+              grades={grades}
+            />
+          </Stack>
+        )}
+
+        {/* Tab 4: Documents & Attachments */}
+        {activeTab === 4 && (
           <Stack spacing={3}>
             {docError && <Alert severity="error">{docError}</Alert>}
 
@@ -416,6 +484,7 @@ export function ItemWorkspace({ item, onClose, onItemUpdated }: ItemWorkspacePro
                   <VerifiedIcon fontSize="small" sx={{ color: "success.main" }} />
                   Verification Report
                 </Typography>
+                {canManage && (
                 <Button
                   size="small"
                   variant="outlined"
@@ -424,6 +493,7 @@ export function ItemWorkspace({ item, onClose, onItemUpdated }: ItemWorkspacePro
                 >
                   + Upload Verification Report
                 </Button>
+                )}
               </Stack>
 
               {currentVr ? (
@@ -463,8 +533,8 @@ export function ItemWorkspace({ item, onClose, onItemUpdated }: ItemWorkspacePro
           </Stack>
         )}
 
-        {/* Tab 4: Preparation Configuration */}
-        {activeTab === 4 && (
+        {/* Tab 5: Preparation Configuration */}
+        {activeTab === 5 && (
           <ItemPreparationConfigurationSection
             itemId={item.id}
             itemName={item.name}
@@ -472,8 +542,8 @@ export function ItemWorkspace({ item, onClose, onItemUpdated }: ItemWorkspacePro
           />
         )}
 
-        {/* Tab 5: Audit History */}
-        {activeTab === 5 && (
+        {/* Tab 6: Audit History */}
+        {activeTab === 6 && (
           <Stack spacing={2} sx={{
             alignItems: "flex-start"
           }}>

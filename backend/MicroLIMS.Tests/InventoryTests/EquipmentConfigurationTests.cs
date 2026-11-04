@@ -90,6 +90,19 @@ public class EquipmentConfigurationTests
         Assert.Equal("AUT-F-ML-F-03-045", hirayama.Code);
     }
 
+    // The physicochemical result panels filter this list by section; without it they offer no instrument.
+    [Fact]
+    public async Task ConfiguredSummary_CarriesTheEquipmentSection()
+    {
+        using var db = NewDb();
+        db.Equipment.Add(new Equipment { Id = 1, Name = "Varian UV-Vis", Code = "UVS-1", Type = EquipmentType.UvVis, SectionId = 2 });
+        await db.SaveChangesAsync();
+
+        var summary = await new EquipmentConfigurationService(db).GetConfiguredEquipmentSummaryAsync();
+
+        Assert.Equal(2, Assert.Single(summary).SectionId);
+    }
+
     [Fact]
     public async Task RealInventoryIncubator_IsUsedByLaboratoryConfiguration()
     {

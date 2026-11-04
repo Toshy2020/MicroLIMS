@@ -1011,6 +1011,9 @@ namespace MicroLIMS.Persistence.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<bool>("RequiresTestSelection")
+                        .HasColumnType("boolean");
+
                     b.Property<uint>("Version")
                         .IsConcurrencyToken()
                         .ValueGeneratedOnAddOrUpdate()
@@ -3791,6 +3794,9 @@ namespace MicroLIMS.Persistence.Migrations
                     b.Property<int>("DiluentSolutionId")
                         .HasColumnType("integer");
 
+                    b.Property<decimal?>("DisregardLimitPercent")
+                        .HasColumnType("decimal(10,4)");
+
                     b.Property<DateTime>("EffectiveDate")
                         .HasColumnType("timestamp with time zone");
 
@@ -3824,6 +3830,10 @@ namespace MicroLIMS.Persistence.Migrations
                     b.Property<decimal?>("InletTemperatureC")
                         .HasColumnType("decimal(10,3)");
 
+                    b.Property<string>("InternalStandardName")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
                     b.Property<bool>("IsActive")
                         .HasColumnType("boolean");
 
@@ -3840,6 +3850,9 @@ namespace MicroLIMS.Persistence.Migrations
 
                     b.Property<decimal?>("ParticleSizeUm")
                         .HasColumnType("decimal(10,3)");
+
+                    b.Property<decimal?>("ReferenceSolutionPercent")
+                        .HasColumnType("decimal(10,4)");
 
                     b.Property<int>("ResultMode")
                         .HasColumnType("integer");
@@ -3991,6 +4004,45 @@ namespace MicroLIMS.Persistence.Migrations
                     b.ToTable("HplcMethodGradientSteps");
                 });
 
+            modelBuilder.Entity("MicroLIMS.Domain.Entities.HplcMethodImpurity", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<decimal>("CorrectionFactor")
+                        .HasColumnType("decimal(10,4)");
+
+                    b.Property<int>("DisplayOrder")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("HplcMethodId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<decimal?>("RelativeRetention")
+                        .HasColumnType("decimal(10,4)");
+
+                    b.Property<uint>("xmin")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("HplcMethodId", "Name")
+                        .IsUnique();
+
+                    b.ToTable("HplcMethodImpurities", (string)null);
+                });
+
             modelBuilder.Entity("MicroLIMS.Domain.Entities.HplcMethodMobilePhase", b =>
                 {
                     b.Property<int>("Id")
@@ -4064,6 +4116,43 @@ namespace MicroLIMS.Persistence.Migrations
                         .IsUnique();
 
                     b.ToTable("HplcMethodOvenSteps");
+                });
+
+            modelBuilder.Entity("MicroLIMS.Domain.Entities.HplcReplicatePeak", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<decimal>("Area")
+                        .HasPrecision(28, 10)
+                        .HasColumnType("numeric(28,10)");
+
+                    b.Property<int?>("HplcMethodImpurityId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("HplcSampleReplicateId")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal?>("RelativeRetention")
+                        .HasPrecision(10, 4)
+                        .HasColumnType("numeric(10,4)");
+
+                    b.Property<uint>("xmin")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("HplcMethodImpurityId");
+
+                    b.HasIndex("HplcSampleReplicateId");
+
+                    b.ToTable("HplcReplicatePeaks");
                 });
 
             modelBuilder.Entity("MicroLIMS.Domain.Entities.HplcReplicateResponse", b =>
@@ -4271,6 +4360,10 @@ namespace MicroLIMS.Persistence.Migrations
                     b.Property<int>("HplcRunSampleId")
                         .HasColumnType("integer");
 
+                    b.Property<decimal?>("InternalStandardResponse")
+                        .HasPrecision(28, 10)
+                        .HasColumnType("numeric(28,10)");
+
                     b.Property<int>("ReplicateNo")
                         .HasColumnType("integer");
 
@@ -4393,6 +4486,10 @@ namespace MicroLIMS.Persistence.Migrations
 
                     b.Property<int>("InjectionNo")
                         .HasColumnType("integer");
+
+                    b.Property<decimal?>("InternalStandardResponse")
+                        .HasPrecision(28, 10)
+                        .HasColumnType("numeric(28,10)");
 
                     b.Property<decimal>("Response")
                         .HasPrecision(28, 10)
@@ -5544,6 +5641,18 @@ namespace MicroLIMS.Persistence.Migrations
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("boolean");
+
+                    b.Property<decimal?>("MinRetestSampleQuantity")
+                        .HasPrecision(18, 6)
+                        .HasColumnType("numeric(18,6)");
+
+                    b.Property<decimal?>("MinSampleQuantity")
+                        .HasPrecision(18, 6)
+                        .HasColumnType("numeric(18,6)");
+
+                    b.Property<string>("MinSampleQuantityUnit")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -7582,6 +7691,83 @@ namespace MicroLIMS.Persistence.Migrations
                     b.ToTable("Neutralizers");
                 });
 
+            modelBuilder.Entity("MicroLIMS.Domain.Entities.NotApplicableTest", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("CreatedByUserId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Criticality")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<int?>("FinalSignatureId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Grade")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<int?>("HeadSignatureId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("ImmediateAction")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("ItemId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Justification")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("LongTermAction")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Reference")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("TestCode")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<uint>("xmin")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("FinalSignatureId");
+
+                    b.HasIndex("HeadSignatureId");
+
+                    b.HasIndex("ItemId", "Grade", "TestCode")
+                        .IsUnique()
+                        .HasFilter("\"Status\" != 3");
+
+                    NpgsqlIndexBuilderExtensions.AreNullsDistinct(b.HasIndex("ItemId", "Grade", "TestCode"), false);
+
+                    b.ToTable("NotApplicableTests");
+                });
+
             modelBuilder.Entity("MicroLIMS.Domain.Entities.NotificationLog", b =>
                 {
                     b.Property<int>("Id")
@@ -9107,6 +9293,9 @@ namespace MicroLIMS.Persistence.Migrations
                     b.Property<int?>("ApprovedByUserId")
                         .HasColumnType("integer");
 
+                    b.Property<bool>("AwaitingTestSelection")
+                        .HasColumnType("boolean");
+
                     b.Property<string>("BatchNumber")
                         .HasColumnType("text");
 
@@ -9130,6 +9319,10 @@ namespace MicroLIMS.Persistence.Migrations
                     b.Property<DateTime?>("ExpDate")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("Grade")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
                     b.Property<int?>("ItemId")
                         .HasColumnType("integer");
 
@@ -9145,6 +9338,10 @@ namespace MicroLIMS.Persistence.Migrations
 
                     b.Property<int?>("OriginSampleId")
                         .HasColumnType("integer");
+
+                    b.Property<string>("PendingTargetSectionIds")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
 
                     b.Property<int>("PreparationStatus")
                         .HasColumnType("integer");
@@ -9174,6 +9371,14 @@ namespace MicroLIMS.Persistence.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)");
 
+                    b.Property<decimal?>("RetentionQuantity")
+                        .HasPrecision(18, 6)
+                        .HasColumnType("numeric(18,6)");
+
+                    b.Property<string>("RetentionQuantityUnit")
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)");
+
                     b.Property<DateTime?>("ReviewedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -9198,6 +9403,9 @@ namespace MicroLIMS.Persistence.Migrations
                         .HasColumnType("text");
 
                     b.Property<int?>("StorageTimeHours")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("TestSelectionSignatureId")
                         .HasColumnType("integer");
 
                     b.Property<uint>("Version")
@@ -9242,11 +9450,94 @@ namespace MicroLIMS.Persistence.Migrations
 
                     b.HasIndex("ReviewedByUserId");
 
+                    b.HasIndex("TestSelectionSignatureId");
+
                     b.HasIndex("WaterDepartmentId");
 
                     b.HasIndex("WaterSamplingPointId");
 
                     b.ToTable("Samples");
+                });
+
+            modelBuilder.Entity("MicroLIMS.Domain.Entities.SampleDocument", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("ContentSha256")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("ContentType")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<int>("DocumentType")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("FileExtension")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)");
+
+                    b.Property<long>("FileSizeBytes")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("OriginalFileName")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<int>("SampleId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("StorageKey")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<int?>("TestOrderId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("UploadedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("UploadedByUserId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("VoidReason")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<DateTime?>("VoidedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("VoidedByUserId")
+                        .HasColumnType("integer");
+
+                    b.Property<uint>("xmin")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TestOrderId");
+
+                    b.HasIndex("UploadedByUserId");
+
+                    b.HasIndex("SampleId", "Status");
+
+                    b.ToTable("SampleDocuments");
                 });
 
             modelBuilder.Entity("MicroLIMS.Domain.Entities.SampleLocation", b =>
@@ -10046,7 +10337,14 @@ namespace MicroLIMS.Persistence.Migrations
                     b.Property<int?>("ExpectedState")
                         .HasColumnType("integer");
 
+                    b.Property<string>("Grade")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
                     b.Property<int?>("HplcMethodAnalyteId")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("HplcMethodImpurityId")
                         .HasColumnType("integer");
 
                     b.Property<int?>("IcpMethodElementId")
@@ -10086,6 +10384,9 @@ namespace MicroLIMS.Persistence.Migrations
                     b.Property<string>("ReferenceStandard")
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
+
+                    b.Property<int?>("RelatedSubstanceRow")
+                        .HasColumnType("integer");
 
                     b.Property<int?>("ResultBasis")
                         .HasColumnType("integer");
@@ -10140,12 +10441,14 @@ namespace MicroLIMS.Persistence.Migrations
 
                     b.HasIndex("HplcMethodAnalyteId");
 
+                    b.HasIndex("HplcMethodImpurityId");
+
                     b.HasIndex("IcpMethodElementId");
 
-                    b.HasIndex("ItemId", "TestCode", "ParameterName", "ProductionStageRole")
+                    b.HasIndex("ItemId", "TestCode", "ParameterName", "ProductionStageRole", "Grade", "RelatedSubstanceRow", "HplcMethodImpurityId")
                         .IsUnique();
 
-                    NpgsqlIndexBuilderExtensions.AreNullsDistinct(b.HasIndex("ItemId", "TestCode", "ParameterName", "ProductionStageRole"), false);
+                    NpgsqlIndexBuilderExtensions.AreNullsDistinct(b.HasIndex("ItemId", "TestCode", "ParameterName", "ProductionStageRole", "Grade", "RelatedSubstanceRow", "HplcMethodImpurityId"), false);
 
                     b.ToTable("Specifications");
                 });
@@ -10185,6 +10488,49 @@ namespace MicroLIMS.Persistence.Migrations
                     b.HasIndex("SpecificationId");
 
                     b.ToTable("SpecificationStages");
+                });
+
+            modelBuilder.Entity("MicroLIMS.Domain.Entities.SupplierStatedAttribute", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Grade")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<int>("ItemId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<int>("SortOrder")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
+
+                    b.Property<string>("StatedValue")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<uint>("xmin")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ItemId");
+
+                    b.ToTable("SupplierStatedAttributes");
                 });
 
             modelBuilder.Entity("MicroLIMS.Domain.Entities.SystemSetting", b =>
@@ -10433,6 +10779,12 @@ namespace MicroLIMS.Persistence.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)");
 
+                    b.Property<int>("MoistureRole")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("PerContainer")
+                        .HasColumnType("boolean");
+
                     b.Property<int?>("PhyschemArea")
                         .HasColumnType("integer");
 
@@ -10517,6 +10869,24 @@ namespace MicroLIMS.Persistence.Migrations
                     b.Property<bool?>("UsesTare")
                         .HasColumnType("boolean");
 
+                    b.Property<int?>("UvCalculationMode")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal?>("UvSpecificAbsorbance")
+                        .HasPrecision(10, 4)
+                        .HasColumnType("numeric(10,4)");
+
+                    b.Property<int?>("UvStandardEntryId")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal?>("UvStandardVolumeMl")
+                        .HasPrecision(14, 4)
+                        .HasColumnType("numeric(14,4)");
+
+                    b.Property<decimal?>("UvTotalVolumeMl")
+                        .HasPrecision(14, 4)
+                        .HasColumnType("numeric(14,4)");
+
                     b.Property<uint>("Version")
                         .IsConcurrencyToken()
                         .ValueGeneratedOnAddOrUpdate()
@@ -10591,6 +10961,8 @@ namespace MicroLIMS.Persistence.Migrations
 
                     b.HasIndex("TitrationStandardEntryId");
 
+                    b.HasIndex("UvStandardEntryId");
+
                     b.ToTable("TestDefinitions");
                 });
 
@@ -10647,6 +11019,16 @@ namespace MicroLIMS.Persistence.Migrations
 
                     b.Property<bool>("IsSuperseded")
                         .HasColumnType("boolean");
+
+                    b.Property<DateTime?>("OutsourcedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("OutsourcedByUserId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("OutsourcedToLab")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
 
                     b.Property<int?>("RoomId")
                         .HasColumnType("integer");
@@ -13050,6 +13432,17 @@ namespace MicroLIMS.Persistence.Migrations
                     b.Navigation("HplcMethod");
                 });
 
+            modelBuilder.Entity("MicroLIMS.Domain.Entities.HplcMethodImpurity", b =>
+                {
+                    b.HasOne("MicroLIMS.Domain.Entities.HplcMethod", "HplcMethod")
+                        .WithMany("Impurities")
+                        .HasForeignKey("HplcMethodId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("HplcMethod");
+                });
+
             modelBuilder.Entity("MicroLIMS.Domain.Entities.HplcMethodMobilePhase", b =>
                 {
                     b.HasOne("MicroLIMS.Domain.Entities.HplcMethod", "HplcMethod")
@@ -13078,6 +13471,24 @@ namespace MicroLIMS.Persistence.Migrations
                         .IsRequired();
 
                     b.Navigation("HplcMethod");
+                });
+
+            modelBuilder.Entity("MicroLIMS.Domain.Entities.HplcReplicatePeak", b =>
+                {
+                    b.HasOne("MicroLIMS.Domain.Entities.HplcMethodImpurity", "HplcMethodImpurity")
+                        .WithMany()
+                        .HasForeignKey("HplcMethodImpurityId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("MicroLIMS.Domain.Entities.HplcSampleReplicate", "HplcSampleReplicate")
+                        .WithMany("Peaks")
+                        .HasForeignKey("HplcSampleReplicateId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("HplcMethodImpurity");
+
+                    b.Navigation("HplcSampleReplicate");
                 });
 
             modelBuilder.Entity("MicroLIMS.Domain.Entities.HplcReplicateResponse", b =>
@@ -14086,6 +14497,31 @@ namespace MicroLIMS.Persistence.Migrations
                     b.Navigation("ApprovalSignature");
                 });
 
+            modelBuilder.Entity("MicroLIMS.Domain.Entities.NotApplicableTest", b =>
+                {
+                    b.HasOne("MicroLIMS.Domain.Entities.ElectronicSignature", "FinalSignature")
+                        .WithMany()
+                        .HasForeignKey("FinalSignatureId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("MicroLIMS.Domain.Entities.ElectronicSignature", "HeadSignature")
+                        .WithMany()
+                        .HasForeignKey("HeadSignatureId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("MicroLIMS.Domain.Entities.Item", "Item")
+                        .WithMany()
+                        .HasForeignKey("ItemId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("FinalSignature");
+
+                    b.Navigation("HeadSignature");
+
+                    b.Navigation("Item");
+                });
+
             modelBuilder.Entity("MicroLIMS.Domain.Entities.OosInvestigationDocument", b =>
                 {
                     b.HasOne("MicroLIMS.Domain.Entities.OosInvestigationDocument", "SupersededByDocument")
@@ -14513,6 +14949,11 @@ namespace MicroLIMS.Persistence.Migrations
                         .HasForeignKey("ReviewedByUserId")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.HasOne("MicroLIMS.Domain.Entities.ElectronicSignature", "TestSelectionSignature")
+                        .WithMany()
+                        .HasForeignKey("TestSelectionSignatureId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("MicroLIMS.Domain.Entities.WaterDepartment", "WaterDepartment")
                         .WithMany()
                         .HasForeignKey("WaterDepartmentId")
@@ -14535,9 +14976,36 @@ namespace MicroLIMS.Persistence.Migrations
 
                     b.Navigation("ProductionStageRef");
 
+                    b.Navigation("TestSelectionSignature");
+
                     b.Navigation("WaterDepartment");
 
                     b.Navigation("WaterSamplingPoint");
+                });
+
+            modelBuilder.Entity("MicroLIMS.Domain.Entities.SampleDocument", b =>
+                {
+                    b.HasOne("MicroLIMS.Domain.Entities.Sample", "Sample")
+                        .WithMany()
+                        .HasForeignKey("SampleId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("MicroLIMS.Domain.Entities.TestOrder", "TestOrder")
+                        .WithMany()
+                        .HasForeignKey("TestOrderId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("MicroLIMS.Domain.Entities.User", "UploadedByUser")
+                        .WithMany()
+                        .HasForeignKey("UploadedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Sample");
+
+                    b.Navigation("TestOrder");
+
+                    b.Navigation("UploadedByUser");
                 });
 
             modelBuilder.Entity("MicroLIMS.Domain.Entities.SampleLocation", b =>
@@ -14826,6 +15294,11 @@ namespace MicroLIMS.Persistence.Migrations
                         .HasForeignKey("HplcMethodAnalyteId")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.HasOne("MicroLIMS.Domain.Entities.HplcMethodImpurity", "HplcMethodImpurity")
+                        .WithMany()
+                        .HasForeignKey("HplcMethodImpurityId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("MicroLIMS.Domain.Entities.IcpMethodElement", "IcpMethodElement")
                         .WithMany()
                         .HasForeignKey("IcpMethodElementId")
@@ -14838,6 +15311,8 @@ namespace MicroLIMS.Persistence.Migrations
                         .IsRequired();
 
                     b.Navigation("HplcMethodAnalyte");
+
+                    b.Navigation("HplcMethodImpurity");
 
                     b.Navigation("IcpMethodElement");
 
@@ -14853,6 +15328,17 @@ namespace MicroLIMS.Persistence.Migrations
                         .IsRequired();
 
                     b.Navigation("Specification");
+                });
+
+            modelBuilder.Entity("MicroLIMS.Domain.Entities.SupplierStatedAttribute", b =>
+                {
+                    b.HasOne("MicroLIMS.Domain.Entities.Item", "Item")
+                        .WithMany()
+                        .HasForeignKey("ItemId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Item");
                 });
 
             modelBuilder.Entity("MicroLIMS.Domain.Entities.SystemSettingVersion", b =>
@@ -14951,6 +15437,11 @@ namespace MicroLIMS.Persistence.Migrations
                         .HasForeignKey("TitrationStandardEntryId")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.HasOne("MicroLIMS.Domain.Entities.MaterialMasterEntry", "UvStandardEntry")
+                        .WithMany()
+                        .HasForeignKey("UvStandardEntryId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.Navigation("HplcMethod");
 
                     b.Navigation("IcpMethod");
@@ -14964,6 +15455,8 @@ namespace MicroLIMS.Persistence.Migrations
                     b.Navigation("TitrationIndicatorEntry");
 
                     b.Navigation("TitrationStandardEntry");
+
+                    b.Navigation("UvStandardEntry");
                 });
 
             modelBuilder.Entity("MicroLIMS.Domain.Entities.TestDefinitionStageReplicate", b =>
@@ -15444,6 +15937,8 @@ namespace MicroLIMS.Persistence.Migrations
 
                     b.Navigation("GradientSteps");
 
+                    b.Navigation("Impurities");
+
                     b.Navigation("MobilePhases");
 
                     b.Navigation("OvenSteps");
@@ -15467,6 +15962,8 @@ namespace MicroLIMS.Persistence.Migrations
 
             modelBuilder.Entity("MicroLIMS.Domain.Entities.HplcSampleReplicate", b =>
                 {
+                    b.Navigation("Peaks");
+
                     b.Navigation("Responses");
                 });
 

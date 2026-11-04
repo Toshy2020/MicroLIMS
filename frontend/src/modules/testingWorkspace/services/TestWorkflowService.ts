@@ -4,7 +4,8 @@ import {
   PermittedConfirmatoryMediaResponse, EligibleIncubatorsResponse, AnalystDecision,
   GrowthObservation, SiblingPathogenOrder,
   ActionableGroupsResponse, BatchSelectMediaRequest, BatchSelectMediaResponse,
-  TestWorkflowResult, TitrationContext, RecordTitrationResultRequest
+  TestWorkflowResult, TitrationContext, RecordTitrationResultRequest, SampleMoistureResult,
+  RecordUvResultRequest, RecordOutsourcedResultRequest, ExternalReportDocument
 } from "../types/testWorkflowTypes";
 
 export const TestWorkflowService = {
@@ -77,8 +78,30 @@ export const TestWorkflowService = {
   getTitrationContext: (testOrderId: number): Promise<TitrationContext> =>
     apiClient.get(`/test-workflow/${testOrderId}/titration-context`).then((r) => r.data.data),
 
+  getMoisture: (testOrderId: number): Promise<SampleMoistureResult | null> =>
+    apiClient.get(`/test-workflow/${testOrderId}/moisture`).then((r) => r.data.data),
+
   recordTitrationResult: (testOrderId: number, payload: RecordTitrationResultRequest): Promise<TestWorkflowResult> =>
     apiClient.post(`/test-workflow/${testOrderId}/record-titration-result`, payload).then((r) => r.data.data),
+
+  // UV Spectrophotometry (Plan 4). Server is authoritative.
+  recordUvResult: (testOrderId: number, payload: RecordUvResultRequest): Promise<TestWorkflowResult> =>
+    apiClient.post(`/test-workflow/${testOrderId}/record-uv-result`, payload).then((r) => r.data.data),
+
+  // Outsourced test: the signed decision, the external lab's report, then the result read from it.
+  outsourceTest: (testOrderId: number, payload: { externalLab: string; reason: string; password: string }) =>
+    apiClient.post(`/test-workflow/${testOrderId}/outsource`, payload).then((r) => r.data.data),
+
+  uploadExternalReport: (testOrderId: number, file: File): Promise<ExternalReportDocument> => {
+    const fd = new FormData();
+    fd.append("file", file);
+    return apiClient
+      .post(`/test-workflow/${testOrderId}/external-report`, fd, { headers: { "Content-Type": "multipart/form-data" } })
+      .then((r) => r.data.data);
+  },
+
+  recordOutsourcedResult: (testOrderId: number, payload: RecordOutsourcedResultRequest): Promise<TestWorkflowResult> =>
+    apiClient.post(`/test-workflow/${testOrderId}/record-outsourced-result`, payload).then((r) => r.data.data),
 
   // Qualitative analysis (appearance, ID, odor, etc.). Signed.
   recordQualitativeResult: (
@@ -86,10 +109,12 @@ export const TestWorkflowService = {
     payload: {
       analysedAt: string;
       equipmentId?: number | null;
+      containerCount?: number;
       parameters: {
         specificationId: number;
         conforms: boolean;
         observation?: string | null;
+        containers?: { index: number; conforms: boolean; observation?: string | null }[];
       }[];
       password: string;
       comment?: string | null;

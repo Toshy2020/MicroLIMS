@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Box, FormControl, FormControlLabel, FormHelperText, InputLabel, MenuItem, Select, Stack, Switch, TextField, Typography } from "@mui/material";
 import { SolutionMasterService, SolutionMaster } from "./services/SolutionMasterService";
 import { MaterialMasterService, MaterialMasterEntry } from "./services/MaterialMasterService";
+import { MoistureRole } from "../../../services/masterDataOptions";
 import {
   TITRATION_CALCULATION_OPTIONS,
   TITRATION_ENDPOINT_OPTIONS,
@@ -16,11 +17,13 @@ interface Props {
   form: TitrationFormState;
   onChange: (next: TitrationFormState) => void;
   sectionId?: number | "" | null;
+  moistureRole?: MoistureRole;
+  onMoistureRoleChange?: (role: MoistureRole) => void;
 }
 
 // Titration configuration block of the physicochemical Test Master dialog.
 // Visibility rules live in titrationConfig.ts (unit tested).
-export function TitrationConfigSection({ form, onChange, sectionId }: Props) {
+export function TitrationConfigSection({ form, onChange, sectionId, moistureRole = "None", onMoistureRoleChange }: Props) {
   const [titrants, setTitrants] = useState<SolutionMaster[]>([]);
   const [standards, setStandards] = useState<MaterialMasterEntry[]>([]);
   const [indicators, setIndicators] = useState<MaterialMasterEntry[]>([]);
@@ -105,14 +108,33 @@ export function TitrationConfigSection({ form, onChange, sectionId }: Props) {
       {loadError && <Typography color="error" sx={{ fontSize: 12, mb: 1 }}>{loadError}</Typography>}
       <Stack spacing={2}>
         <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
-          {select("titration-type-label", "Titration type", form.type, TITRATION_TYPE_OPTIONS, (t) => set({ type: t, titrantSolutionMasterId: "", excessSolutionMasterId: "" }))}
+          {select("titration-type-label", "Titration type", form.type, TITRATION_TYPE_OPTIONS, (t) => {
+            set({ type: t, titrantSolutionMasterId: "", excessSolutionMasterId: "" });
+            if (t !== "KarlFischer" && moistureRole === "Water") {
+              onMoistureRoleChange?.("None");
+            }
+          })}
           {v.mode && select("titration-mode-label", "Mode", form.mode, TITRATION_MODE_OPTIONS, (m) => set({ mode: m }))}
           {v.calculation && select("titration-calc-label", "Calculation method", form.calculation, TITRATION_CALCULATION_OPTIONS.filter((o) => o.value !== "Relative" || form.mode !== "Residual"), (c) => set({ calculation: c }))}
         </Stack>
         {kf && (
-          <Typography variant="body2" sx={{ color: "text.secondary" }}>
+          <Stack direction={{ xs: "column", sm: "row" }} spacing={2} sx={{ alignItems: "center" }}>
+            <Typography variant="body2" sx={{ color: "text.secondary", flex: 1 }}>
             Karl Fischer is direct, USP-factor only; the titrant strength is the reagent water equivalent (mg H2O/mL).
-          </Typography>
+            </Typography>
+            <FormControl size="small" sx={{ minWidth: 200, maxWidth: 300 }}>
+              <InputLabel id="titration-moisture-role-label">Moisture role</InputLabel>
+              <Select<MoistureRole>
+                labelId="titration-moisture-role-label"
+                label="Moisture role"
+                value={moistureRole === "LossOnDrying" ? "None" : (moistureRole || "None")}
+                onChange={(e) => onMoistureRoleChange?.(e.target.value as MoistureRole)}
+              >
+                <MenuItem value="None">None</MenuItem>
+                <MenuItem value="Water">Water</MenuItem>
+              </Select>
+            </FormControl>
+          </Stack>
         )}
 
         <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>

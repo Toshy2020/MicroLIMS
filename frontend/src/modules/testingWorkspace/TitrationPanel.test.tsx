@@ -1,17 +1,20 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { AxiosError } from "axios";
 import { TitrationPanel } from "./TitrationPanel";
 import { PinnedLightTheme } from "../../theme/PinnedLightTheme";
 import type { TitrationContext } from "./types/testWorkflowTypes";
 
 const getTitrationContext = vi.fn();
 const recordTitrationResult = vi.fn();
+const getMoisture = vi.fn();
 
 vi.mock("./services/TestWorkflowService", () => ({
   TestWorkflowService: {
     getTitrationContext: (...a: unknown[]) => getTitrationContext(...a),
-    recordTitrationResult: (...a: unknown[]) => recordTitrationResult(...a)
+    recordTitrationResult: (...a: unknown[]) => recordTitrationResult(...a),
+    getMoisture: (...a: unknown[]) => getMoisture(...a)
   }
 }));
 vi.mock("./services/SampleSummaryService", () => ({ SampleSummaryService: { getSummary: vi.fn().mockResolvedValue({ testOrders: [] }) } }));
@@ -90,6 +93,7 @@ const renderPanel = async (ctx: TitrationContext) => {
 beforeEach(() => {
   getTitrationContext.mockReset();
   recordTitrationResult.mockReset();
+  getMoisture.mockReset();
 });
 afterEach(cleanup);
 
@@ -194,7 +198,6 @@ describe("TitrationPanel", () => {
       excessPreparationId: null,
       blankVolumeMl: 0.1,
       titrationTemperatureC: null,
-      lossOnDryingPercent: null,
       averageUnitWeightMg: 600,
       standards: [{ materialId: 40, weightMg: 100, titreMl: 10.5 }],
       specificationIds: [11],
@@ -209,6 +212,7 @@ describe("TitrationPanel", () => {
     });
     expect(payload).not.toHaveProperty("standardizationTemperatureC");
     expect(payload).not.toHaveProperty("standard");
+    expect(payload).not.toHaveProperty("lossOnDryingPercent");
     await waitFor(() => expect(onRecorded).toHaveBeenCalled());
   }, 15000);
 
@@ -334,4 +338,178 @@ describe("TitrationPanel", () => {
     expect(payload.dueTitrantAcknowledged).toBe(true);
     expect(payload.dueTitrantJustification).toBe("Excess standardized earlier today");
   }, 15000);
+
+  it("fetches moisture and displays read-only line for LossOnDrying when needsLod is true", async () => {
+    getMoisture.mockResolvedValue({ role: "LossOnDrying", percent: 2.5, testCode: "LOD-042" });
+    const ctx = baseCtx({
+      specifications: [
+        { specificationId: 11, parameterName: "Assay (dried basis)", resultBasis: "PercentDriedBasis", unit: "%", specLimit: "99-101", labelClaim: null, labelClaimUnit: null }
+      ]
+    });
+    await renderPanel(ctx);
+
+    expect(getMoisture).toHaveBeenCalledWith(7);
+    expect(await screen.findByText("Loss on drying 2.5 % (from LOD-042)")).toBeTruthy();
+    expect(screen.queryByLabelText(/Loss on drying \/ water/)).toBeNull();
+  });
+
+  it("fetches moisture and displays read-only line for Water when spec is PercentAnhydrousBasis", async () => {
+    getMoisture.mockResolvedValue({ role: "Water", percent: 0.45, testCode: "KF-109" });
+    const ctx = baseCtx({
+      specifications: [
+        { specificationId: 11, parameterName: "Assay (anhydrous basis)", resultBasis: "PercentAnhydrousBasis", unit: "%", specLimit: "99-101", labelClaim: null, labelClaimUnit: null }
+      ]
+    });
+    await renderPanel(ctx);
+
+    expect(getMoisture).toHaveBeenCalledWith(7);
+    expect(await screen.findByText("Water 0.45 % (from KF-109)")).toBeTruthy();
+  });
+
+  it("shows prompt and disables submit when needsLod is true but moisture is null for PercentDriedBasis", async () => {
+    getMoisture.mockResolvedValue(null);
+    const ctx = baseCtx({
+      specifications: [
+        { specificationId: 11, parameterName: "Assay (dried basis)", resultBasis: "PercentDriedBasis", unit: "%", specLimit: "99-101", labelClaim: null, labelClaimUnit: null }
+      ]
+    });
+    await renderPanel(ctx);
+
+    expect(getMoisture).toHaveBeenCalledWith(7);
+    expect(await screen.findByText("Record the sample's loss on drying result first.")).toBeTruthy();
+
+    await userEvent.click(screen.getByRole("combobox", { name: /Titrant preparation/ }));
+    await userEvent.click(screen.getByRole("option", { name: /TP-1/ }));
+
+    for (const r of [1, 2]) {
+      fireEvent.change(screen.getByLabelText(`Rep ${r} Sample weight (mg)`), { target: { value: "120" } });
+      fireEvent.change(screen.getByLabelText(`Rep ${r} Titrant volume (mL)`), { target: { value: "10" } });
+    }
+
+    const submitBtn = screen.getByRole("button", { name: /Sign and record result/i });
+    expect((submitBtn as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it("shows Karl Fischer prompt when moisture is null for PercentAnhydrousBasis", async () => {
+    getMoisture.mockResolvedValue(null);
+    const ctx = baseCtx({
+      specifications: [
+        { specificationId: 11, parameterName: "Assay (anhydrous basis)", resultBasis: "PercentAnhydrousBasis", unit: "%", specLimit: "99-101", labelClaim: null, labelClaimUnit: null }
+      ]
+    });
+    await renderPanel(ctx);
+
+    expect(await screen.findByText("Record the sample's water content (Karl Fischer) result first.")).toBeTruthy();
+    const submitBtn = screen.getByRole("button", { name: /Sign and record result/i });
+    expect((submitBtn as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it("does not fetch moisture when needsLod is false (PercentAsIs)", async () => {
+    await renderPanel(baseCtx({
+      specifications: [
+        { specificationId: 11, parameterName: "Assay", resultBasis: "PercentAsIs", unit: "%", specLimit: "99-101", labelClaim: null, labelClaimUnit: null }
+      ]
+    }));
+
+    expect(getMoisture).not.toHaveBeenCalled();
+    expect(screen.queryByText(/Record the sample/)).toBeNull();
+  });
+
+  it("shows the server's message when getMoisture is refused", async () => {
+    getMoisture.mockRejectedValue(
+      new AxiosError("Request failed", "ERR_BAD_REQUEST", undefined, undefined, {
+        data: { message: "No loss on drying result is available for this sample." }
+      } as never)
+    );
+    await renderPanel(baseCtx({
+      specifications: [
+        { specificationId: 11, parameterName: "Assay (dried basis)", resultBasis: "PercentDriedBasis", unit: "%", specLimit: "99-101", labelClaim: null, labelClaimUnit: null }
+      ]
+    }));
+
+    expect(await screen.findByText("No loss on drying result is available for this sample.")).toBeTruthy();
+    expect(screen.getByRole("button", { name: /Retry/i })).toBeTruthy();
+  });
+
+  it("shows error alert and Retry button when getMoisture fails, and disables submit", async () => {
+    getMoisture.mockRejectedValue(new Error("Network 500 error"));
+    const ctx = baseCtx({
+      specifications: [
+        { specificationId: 11, parameterName: "Assay (dried basis)", resultBasis: "PercentDriedBasis", unit: "%", specLimit: "99-101", labelClaim: null, labelClaimUnit: null }
+      ]
+    });
+    await renderPanel(ctx);
+
+    expect(await screen.findByText("Could not load the sample's moisture result.")).toBeTruthy();
+    expect(screen.queryByText("Record the sample's loss on drying result first.")).toBeNull();
+
+    await userEvent.click(screen.getByRole("combobox", { name: /Titrant preparation/ }));
+    await userEvent.click(screen.getByRole("option", { name: /TP-1/ }));
+
+    for (const r of [1, 2]) {
+      fireEvent.change(screen.getByLabelText(`Rep ${r} Sample weight (mg)`), { target: { value: "120" } });
+      fireEvent.change(screen.getByLabelText(`Rep ${r} Titrant volume (mL)`), { target: { value: "10" } });
+    }
+
+    const submitBtn = screen.getByRole("button", { name: /Sign and record result/i });
+    expect((submitBtn as HTMLButtonElement).disabled).toBe(true);
+
+    const retryBtn = screen.getByRole("button", { name: /Retry/i });
+    expect(retryBtn).toBeTruthy();
+
+    getMoisture.mockResolvedValueOnce({ role: "LossOnDrying", percent: 3.1, testCode: "LOD-09" });
+    await userEvent.click(retryBtn);
+
+    expect(await screen.findByText("Loss on drying 3.1 % (from LOD-09)")).toBeTruthy();
+    expect(screen.queryByText("Could not load the sample's moisture result.")).toBeNull();
+    expect((submitBtn as HTMLButtonElement).disabled).toBe(false);
+  });
+
+  it("shows out-of-range error alert and disables submit when percent < 0", async () => {
+    getMoisture.mockResolvedValue({ role: "LossOnDrying", percent: -1.5, testCode: "LOD-042" });
+    const ctx = baseCtx({
+      specifications: [
+        { specificationId: 11, parameterName: "Assay (dried basis)", resultBasis: "PercentDriedBasis", unit: "%", specLimit: "99-101", labelClaim: null, labelClaimUnit: null }
+      ]
+    });
+    await renderPanel(ctx);
+
+    expect(await screen.findByText("The moisture result is out of range (0 to below 100 %).")).toBeTruthy();
+    expect(screen.getByText("Loss on drying -1.5 % (from LOD-042)")).toBeTruthy();
+
+    await userEvent.click(screen.getByRole("combobox", { name: /Titrant preparation/ }));
+    await userEvent.click(screen.getByRole("option", { name: /TP-1/ }));
+
+    for (const r of [1, 2]) {
+      fireEvent.change(screen.getByLabelText(`Rep ${r} Sample weight (mg)`), { target: { value: "120" } });
+      fireEvent.change(screen.getByLabelText(`Rep ${r} Titrant volume (mL)`), { target: { value: "10" } });
+    }
+
+    const submitBtn = screen.getByRole("button", { name: /Sign and record result/i });
+    expect((submitBtn as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it("shows out-of-range error alert and disables submit when percent >= 100", async () => {
+    getMoisture.mockResolvedValue({ role: "Water", percent: 100, testCode: "KF-109" });
+    const ctx = baseCtx({
+      specifications: [
+        { specificationId: 11, parameterName: "Assay (anhydrous basis)", resultBasis: "PercentAnhydrousBasis", unit: "%", specLimit: "99-101", labelClaim: null, labelClaimUnit: null }
+      ]
+    });
+    await renderPanel(ctx);
+
+    expect(await screen.findByText("The moisture result is out of range (0 to below 100 %).")).toBeTruthy();
+    expect(screen.getByText("Water 100 % (from KF-109)")).toBeTruthy();
+
+    await userEvent.click(screen.getByRole("combobox", { name: /Titrant preparation/ }));
+    await userEvent.click(screen.getByRole("option", { name: /TP-1/ }));
+
+    for (const r of [1, 2]) {
+      fireEvent.change(screen.getByLabelText(`Rep ${r} Sample weight (mg)`), { target: { value: "120" } });
+      fireEvent.change(screen.getByLabelText(`Rep ${r} Titrant volume (mL)`), { target: { value: "10" } });
+    }
+
+    const submitBtn = screen.getByRole("button", { name: /Sign and record result/i });
+    expect((submitBtn as HTMLButtonElement).disabled).toBe(true);
+  });
 });

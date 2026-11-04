@@ -233,7 +233,7 @@ public class SampleSummaryService
                 .OrderBy(sp => sp.DisplayOrder).ThenBy(sp => sp.Id)
                 .ToListAsync())
                 .GroupBy(sp => sp.TestCode)
-                .ToDictionary(g => g.Key, g => SpecificationLookup.SelectForStage(g, sampleStageRole));
+                .ToDictionary(g => g.Key, g => SpecificationLookup.SelectForStage(g, sampleStageRole, sample.Grade));
 
         var signatures = await _db.ElectronicSignatures
             .Where(s => s.EntityType == "Sample" && s.EntityId == sampleId)
@@ -296,6 +296,9 @@ public class SampleSummaryService
             ProductionStage = sample.ProductionStage,
             CauseOfTesting = sample.CauseOfTesting?.Name ?? string.Empty,
             BatchNumber = sample.BatchNumber,
+            Grade = sample.Grade,
+            RetentionQuantity = sample.RetentionQuantity,
+            RetentionQuantityUnit = sample.RetentionQuantityUnit,
             ControlNumber = sample.ControlNumber,
             Status = sample.Status.ToString(),
             AssignedAnalystId = assignedAnalystId,
@@ -347,9 +350,38 @@ public class SampleSummaryService
         dto.AllSectionsVisible = dto.Sections.All(x => x.CanView);
         dto.OverallStatus = SampleSectionRollup.Overall(sample).ToString();
         dto.CombinedCoaAvailable = sample.Status is SampleStatus.Approved or SampleStatus.Rejected;
-        dto.Certificate = CertificateOfAnalysisBuilder.Build(dto);
+        dto.Certificate = CertificateOfAnalysisBuilder.Build(dto, await SupportingRowsAsync(sample.ItemId, sample.Grade), sectionIds);
 
         return dto;
+    }
+
+    // The sample item's approved not-applicable tests and supplier-stated
+    // attributes for its grade, as the Certificate of Analysis prints them.
+    private async Task<List<CoaSimpleRowDto>> SupportingRowsAsync(int? itemId, string? grade)
+    {
+        if (itemId is not { } id) return new();
+
+        var notApplicable = await NotApplicableTestService.LoadApprovedAsync(_db, id);
+        var supplier = await SupplierStatedAttributeService.ForSampleAsync(_db, id, grade);
+        if (notApplicable.Count == 0 && supplier.Count == 0) return new();
+
+        var codes = notApplicable.Select(n => n.TestCode).Distinct().ToList();
+        if (codes.Count == 0)
+            return CertificateOfAnalysisBuilder.BuildSupportingRows(grade, notApplicable, new Dictionary<string, (string, int?)>(), supplier);
+
+        var sectionByCode = await _db.TestDefinitions.AsNoTracking()
+            .Where(td => codes.Contains(td.Code))
+            .ToDictionaryAsync(td => td.Code, td => (td.DisplayName, SectionId: (int?)td.SectionId));
+        var itemNames = await _db.SampleTests.AsNoTracking()
+            .Where(st => st.ItemId == id && codes.Contains(st.TestCode))
+            .ToDictionaryAsync(st => st.TestCode, st => st.DisplayName);
+
+        var tests = codes.ToDictionary(
+            c => c,
+            c => (Name: itemNames.GetValueOrDefault(c) ?? sectionByCode.GetValueOrDefault(c).DisplayName ?? c,
+                  SectionId: sectionByCode.TryGetValue(c, out var d) ? d.SectionId : null));
+
+        return CertificateOfAnalysisBuilder.BuildSupportingRows(grade, notApplicable, tests, supplier);
     }
 
     // Uses the laid-out renderer (cards, stat boxes, signature blocks) -

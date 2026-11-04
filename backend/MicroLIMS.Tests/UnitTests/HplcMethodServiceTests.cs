@@ -9,7 +9,7 @@ namespace MicroLIMS.Tests.UnitTests;
 
 public partial class HplcMethodServiceTests
 {
-    private static MicroLimsDbContext NewDb()
+    internal static MicroLimsDbContext NewDb()
     {
         var options = new DbContextOptionsBuilder<MicroLimsDbContext>()
             .UseInMemoryDatabase(Guid.NewGuid().ToString())
@@ -19,7 +19,7 @@ public partial class HplcMethodServiceTests
         return db;
     }
 
-    private static async Task<(DocumentSection section, int userId)> SeedAsync(MicroLimsDbContext db)
+    internal static async Task<(DocumentSection section, int userId)> SeedAsync(MicroLimsDbContext db)
     {
         var section = TestServiceFactory.EnsureMicroSection(db);
         var role = new Role { Name = "Analyst", Type = RoleType.Analyst, IsActive = true };
@@ -34,7 +34,7 @@ public partial class HplcMethodServiceTests
         return (section, user.Id);
     }
 
-    private static async Task<MaterialMasterEntry> AddEntryAsync(
+    internal static async Task<MaterialMasterEntry> AddEntryAsync(
         MicroLimsDbContext db, int sectionId, string code, bool isActive = true,
         MaterialMasterCategory category = MaterialMasterCategory.ReferenceStandard)
     {
@@ -56,7 +56,7 @@ public partial class HplcMethodServiceTests
         return entry;
     }
 
-    private static async Task<SolutionMaster> AddSolutionAsync(
+    internal static async Task<SolutionMaster> AddSolutionAsync(
         MicroLimsDbContext db, int sectionId, string name, SolutionType type, bool isActive = true)
     {
         var componentEntry = await AddEntryAsync(db, sectionId, "COMP-" + Guid.NewGuid().ToString("N")[..6], category: MaterialMasterCategory.Reagent);
@@ -76,7 +76,7 @@ public partial class HplcMethodServiceTests
         return await db.SolutionMasters.FirstAsync(s => s.Id == created.Id);
     }
 
-    private static async Task<(SolutionMaster diluent, SolutionMaster mobilePhase, MaterialMasterEntry standard)> SeedBasicsAsync(MicroLimsDbContext db, int sectionId)
+    internal static async Task<(SolutionMaster diluent, SolutionMaster mobilePhase, MaterialMasterEntry standard)> SeedBasicsAsync(MicroLimsDbContext db, int sectionId)
     {
         var diluent = await AddSolutionAsync(db, sectionId, "Diluent Water", SolutionType.Diluent);
         var mobilePhase = await AddSolutionAsync(db, sectionId, "Mobile Phase A", SolutionType.MobilePhase);
@@ -84,10 +84,10 @@ public partial class HplcMethodServiceTests
         return (diluent, mobilePhase, standard);
     }
 
-    private static HplcAnalyteInput AnalyteInput(int standardEntryId, string name = "Analyte 1", int? id = null) =>
+    internal static HplcAnalyteInput AnalyteInput(int standardEntryId, string name = "Analyte 1", int? id = null) =>
         new(id, name, 254m, standardEntryId, 50m, 50m, 5);
 
-    private static SaveHplcMethodRequest Req(
+    internal static SaveHplcMethodRequest Req(
         int diluentSolutionId, List<HplcMobilePhaseInput> mobilePhases, List<HplcAnalyteInput> analytes,
         string name = "Assay Method", string abbreviation = "AM-01", ElutionMode elutionMode = ElutionMode.Isocratic,
         List<HplcGradientStepInput>? gradientSteps = null, int? sectionId = null, string? reason = null) =>

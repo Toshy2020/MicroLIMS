@@ -44,6 +44,7 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext, IMicr
     public DbSet<Item> Items => Set<Item>();
     public DbSet<Specification> Specifications => Set<Specification>();
     public DbSet<SpecificationStage> SpecificationStages => Set<SpecificationStage>();
+    public DbSet<SupplierStatedAttribute> SupplierStatedAttributes => Set<SupplierStatedAttribute>();
     public DbSet<Media> Media => Set<Media>();
     public DbSet<MediaEvaluation> MediaEvaluations => Set<MediaEvaluation>();
     public DbSet<MediaEvaluationChallenge> MediaEvaluationChallenges => Set<MediaEvaluationChallenge>();
@@ -152,6 +153,7 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext, IMicr
     public DbSet<HplcMethodMobilePhase> HplcMethodMobilePhases => Set<HplcMethodMobilePhase>();
     public DbSet<HplcMethodGradientStep> HplcMethodGradientSteps => Set<HplcMethodGradientStep>();
     public DbSet<HplcMethodOvenStep> HplcMethodOvenSteps => Set<HplcMethodOvenStep>();
+    public DbSet<HplcMethodImpurity> HplcMethodImpurities => Set<HplcMethodImpurity>();
     public DbSet<SolutionPreparation> SolutionPreparations => Set<SolutionPreparation>();
     public DbSet<SolutionPreparationComponent> SolutionPreparationComponents => Set<SolutionPreparationComponent>();
     public DbSet<SolutionPreparationStatusHistory> SolutionPreparationStatusHistories => Set<SolutionPreparationStatusHistory>();
@@ -171,6 +173,7 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext, IMicr
     public DbSet<InstrumentIngestPayload> InstrumentIngestPayloads => Set<InstrumentIngestPayload>();
     public DbSet<HplcSampleReplicate> HplcSampleReplicates => Set<HplcSampleReplicate>();
     public DbSet<HplcReplicateResponse> HplcReplicateResponses => Set<HplcReplicateResponse>();
+    public DbSet<HplcReplicatePeak> HplcReplicatePeaks => Set<HplcReplicatePeak>();
     public DbSet<HplcEvidence> HplcEvidences => Set<HplcEvidence>();
     public DbSet<IcpRun> IcpRuns => Set<IcpRun>();
     public DbSet<IcpCalibration> IcpCalibrations => Set<IcpCalibration>();
@@ -183,6 +186,7 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext, IMicr
     public DbSet<EquipmentInventory> EquipmentInventories => Set<EquipmentInventory>();
     public DbSet<EquipmentStatusHistory> EquipmentStatusHistories => Set<EquipmentStatusHistory>();
     public DbSet<MaterialDocument> MaterialDocuments => Set<MaterialDocument>();
+    public DbSet<SampleDocument> SampleDocuments => Set<SampleDocument>();
     public DbSet<MaterialDocumentAccessLog> MaterialDocumentAccessLogs => Set<MaterialDocumentAccessLog>();
     public DbSet<EquipmentDocument> EquipmentDocuments => Set<EquipmentDocument>();
     public DbSet<EquipmentDocumentAccessLog> EquipmentDocumentAccessLogs => Set<EquipmentDocumentAccessLog>();
@@ -251,6 +255,7 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext, IMicr
     // record. Excluded from CaptureAuditEntries below and prunable.
     public DbSet<Incident> Incidents => Set<Incident>();
     public DbSet<ErrorLog> ErrorLogs => Set<ErrorLog>();
+    public DbSet<NotApplicableTest> NotApplicableTests => Set<NotApplicableTest>();
     public DbSet<BackgroundJobRun> BackgroundJobRuns => Set<BackgroundJobRun>();
     public DbSet<BackupRun> BackupRuns => Set<BackupRun>();
 

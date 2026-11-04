@@ -12,7 +12,8 @@ export type LiveWorkflowType =
   | "WeightVariation"
   | "HplcMethodAssay"
   | "Titration"
-  | "IcpMethodAssay";
+  | "IcpMethodAssay"
+  | "UvSpectrophotometry";
 
 export type WorkflowProfileStatus = "Draft" | "Effective";
 export type ProfileCoverage = "Configured" | "Partial" | "NeedsConfiguration";

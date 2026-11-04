@@ -24,6 +24,8 @@ export interface HplcGeneralSectionProps {
   abbreviation: string;
   effectiveDate: string;
   sectionId: number | "";
+  internalStandardName?: string;
+  onInternalStandardNameChange?: (val: string) => void;
   errors: HplcMethodErrors;
   editingId: number | null;
   mySections: LaboratorySection[];
@@ -42,6 +44,8 @@ export function HplcGeneralSection({
   abbreviation,
   effectiveDate,
   sectionId,
+  internalStandardName = "",
+  onInternalStandardNameChange,
   errors,
   editingId,
   mySections,
@@ -84,7 +88,7 @@ export function HplcGeneralSection({
           </FormControl>
         )}
 
-        {isGc && (
+        {isGc ? (
           isEditing ? (
             <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
               <Typography variant="body2" sx={{ fontWeight: 600, color: "text.secondary" }}>
@@ -112,6 +116,48 @@ export function HplcGeneralSection({
               </Select>
             </FormControl>
           )
+        ) : (
+          isEditing ? (
+            <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
+              <Typography variant="body2" sx={{ fontWeight: 600, color: "text.secondary" }}>
+                Result Mode:
+              </Typography>
+              <Chip
+                label={resultMode === "RelatedSubstances" ? "Related Substances" : "Assay"}
+                size="small"
+                variant="outlined"
+                color={resultMode === "RelatedSubstances" ? "warning" : "default"}
+                sx={{ fontWeight: 600 }}
+              />
+            </Stack>
+          ) : (
+            <FormControl size="small" sx={{ minWidth: 200 }}>
+              <InputLabel id="method-result-mode-picker-label">Result Mode *</InputLabel>
+              <Select
+                labelId="method-result-mode-picker-label"
+                label="Result Mode *"
+                value={resultMode}
+                onChange={(e) => onResultModeChange?.(e.target.value as HplcResultMode)}
+              >
+                <MenuItem value="Assay">Assay</MenuItem>
+                <MenuItem value="RelatedSubstances">Related Substances</MenuItem>
+              </Select>
+            </FormControl>
+          )
+        )}
+
+        {!isGc && resultMode === "Assay" && (
+          <TextField
+            size="small"
+            label="Internal standard"
+            placeholder="e.g. p-hydroxybenzoic acid"
+            value={internalStandardName}
+            onChange={(e) => onInternalStandardNameChange?.(e.target.value)}
+            disabled={isEditing}
+            error={Boolean(errors.internalStandardName)}
+            helperText={errors.internalStandardName ?? (isEditing ? "Fixed after creation" : "Optional")}
+            sx={{ minWidth: 220 }}
+          />
         )}
       </Stack>
 

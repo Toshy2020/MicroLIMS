@@ -8,7 +8,9 @@ import {
   SampleRecord,
   ReceiptLabOption,
   SampleAssignmentOptions,
-  TestAnalystAssignment
+  TestAnalystAssignment,
+  RetestEligibleTest,
+  SampleDocument
 } from "../types/receivingTypes";
 
 export interface TestingWorkspaceFilter {
@@ -50,13 +52,38 @@ export interface WorkspaceTileCounts {
 
 // One receiving endpoint per category, matching the distinct backend receive shapes.
 export const ReceiveService = {
-  receiveItemBased: (r: ItemBasedReceiveRequest) =>
+  receiveItemBased: (r: ItemBasedReceiveRequest): Promise<SampleRecord> =>
     apiClient.post("/samples", r).then((res) => res.data.data),
+
+  // ---- Sample documents (supplier CoA) ----
+  getSampleDocuments: (sampleId: number): Promise<SampleDocument[]> =>
+    apiClient.get(`/samples/${sampleId}/documents`).then((res) => res.data.data),
+
+  uploadSampleDocument: (sampleId: number, file: File, documentType: SampleDocument["documentType"] = "SupplierCoa"): Promise<SampleDocument> => {
+    const fd = new FormData();
+    fd.append("documentType", documentType);
+    fd.append("file", file);
+    return apiClient
+      .post(`/samples/${sampleId}/documents`, fd, { headers: { "Content-Type": "multipart/form-data" } })
+      .then((res) => res.data.data);
+  },
+
+  getSampleDocumentContent: (documentId: number): Promise<Blob> =>
+    apiClient.get(`/sample-documents/${documentId}/content`, { responseType: "blob" }).then((res) => res.data),
+
+  voidSampleDocument: (documentId: number, reason: string): Promise<SampleDocument> =>
+    apiClient.post(`/sample-documents/${documentId}/void`, { reason }).then((res) => res.data.data),
 
   // Which laboratories the item's assigned tests belong to, with each
   // lab's test count - feeds the Laboratories column and Add Laboratory dialog.
   async receiptLabs(itemId: number): Promise<ReceiptLabOption[]> {
     const res = await apiClient.get("/samples/receipt-labs", { params: { itemId } });
+    return res.data.data;
+  },
+
+  // The grades the item has specifications for (empty = ungraded item).
+  async itemGrades(itemId: number): Promise<string[]> {
+    const res = await apiClient.get(`/items/${itemId}/grades`);
     return res.data.data;
   },
 
@@ -145,5 +172,15 @@ export const ReceiveService = {
   async voidSample(sampleId: number, reason: string, password: string): Promise<SampleRecord> {
     const res = await apiClient.post(`/samples/${sampleId}/void`, { reason, password });
     return res.data.data;
+  },
+
+  // Periodic retest: the tests that may be chosen, and the signed choice.
+  async getTestSelection(sampleId: number): Promise<RetestEligibleTest[]> {
+    const res = await apiClient.get(`/samples/${sampleId}/test-selection`);
+    return res.data.data;
+  },
+
+  async selectTests(sampleId: number, testCodes: string[], password: string, comment?: string): Promise<void> {
+    await apiClient.post(`/samples/${sampleId}/test-selection`, { testCodes, password, comment });
   }
 };

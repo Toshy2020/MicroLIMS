@@ -23,7 +23,8 @@ export type WorkflowType =
   | "WeightVariation"
   | "Titration"
   | "HplcMethodAssay"
-  | "IcpMethodAssay";
+  | "IcpMethodAssay"
+  | "UvSpectrophotometry";
 
 export interface TestWorkflowResult {
   outcomeSummary: string;
@@ -148,6 +149,7 @@ export interface CurrentStepResponse {
   totalSteps: number;
   testName: string;
   workflowType: WorkflowType;
+  perContainer?: boolean;
   sampleContext: SampleContext;
   incubationLock: IncubationLock | null;
   previousSteps: PreviousStepDetail[];
@@ -365,6 +367,12 @@ export interface TitrationContext {
   specifications: TitrationSpecInfo[];
 }
 
+export interface SampleMoistureResult {
+  role: "LossOnDrying" | "Water";
+  percent: number;
+  testCode: string;
+}
+
 export interface RecordTitrationResultRequest {
   analysedAt: string;
   equipmentId: number | null;
@@ -372,7 +380,7 @@ export interface RecordTitrationResultRequest {
   excessPreparationId: number | null;
   blankVolumeMl: number | null;
   titrationTemperatureC: number | null;
-  lossOnDryingPercent: number | null;
+  lossOnDryingPercent?: number | null;
   averageUnitWeightMg: number | null;
   standards: { materialId: number; weightMg: number; titreMl: number }[] | null;
   specificationIds: number[];
@@ -381,4 +389,53 @@ export interface RecordTitrationResultRequest {
   dueTitrantJustification?: string | null;
   password: string;
   comment: string | null;
+}
+
+// ---- UV Spectrophotometry (Plan 4) ----
+import type { UvCalculationMode } from "../../../services/masterDataOptions";
+export type { UvCalculationMode };
+
+export interface UvReplicateRequest {
+  weightG?: number | null;
+  absorbance: number;
+}
+
+export interface RecordUvParameterRequest {
+  specificationId: number;
+  wavelengthNm: number;
+  referenceAbsorbance?: number | null;
+  replicates: UvReplicateRequest[];
+}
+
+export interface RecordUvResultRequest {
+  analysedAt: string;
+  equipmentId: number;
+  standardMaterialId?: number | null;
+  standardWeightG?: number | null;
+  standardAbsorbance?: number | null;
+  parameters: RecordUvParameterRequest[];
+  password: string;
+  comment?: string | null;
+}
+
+export interface ExternalReportDocument {
+  id: number;
+  originalFileName: string;
+}
+
+// Numeric specs (Range, NMT, NLT) send value; Qualitative and PresenceAbsence send conforms (+ observation).
+export interface RecordOutsourcedParameterRequest {
+  specificationId: number;
+  value?: number | null;
+  conforms?: boolean | null;
+  observation?: string | null;
+}
+
+export interface RecordOutsourcedResultRequest {
+  reportedAt: string;
+  externalReportNumber: string;
+  reportDocumentId: number;
+  parameters: RecordOutsourcedParameterRequest[];
+  password: string;
+  comment?: string | null;
 }

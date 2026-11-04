@@ -14,6 +14,8 @@ import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import KeyboardArrowUpIcon from "@mui/icons-material/KeyboardArrowUp";
 import ScienceOutlinedIcon from "@mui/icons-material/ScienceOutlined";
 import { SignatureDialog } from "../../../components/SignatureDialog";
+import { useAuth } from "../../../contexts/AuthContext";
+import { PERMISSIONS } from "../../../routes/routes";
 import { PreparationStepsSummary } from "../PreparationStepsSummary";
 import {
   SamplePreparationService,
@@ -32,6 +34,8 @@ interface Props {
 // override, exactly as in the single-sample ConfirmPreparationForm.
 export function GroupedPreparationRow({ group, onComplete }: Props) {
   const theme = useTheme();
+  // The server decides; QC Manager (approval-only) simply is not offered the action.
+  const canPrepare = useAuth().permissions.includes(PERMISSIONS.SAMPLES_PREPARE);
   const [expanded, setExpanded] = useState(false);
   const [signing, setSigning] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -193,6 +197,7 @@ export function GroupedPreparationRow({ group, onComplete }: Props) {
             Later changes to the item's configuration will not alter those records.
           </Typography>
 
+          {canPrepare && (
           <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 1.5 }}>
             <Button
               variant="contained"
@@ -203,6 +208,7 @@ export function GroupedPreparationRow({ group, onComplete }: Props) {
               Confirm &amp; Start Testing ({group.sampleCount} {sampleWord})
             </Button>
           </Box>
+          )}
         </Box>
       </Collapse>
 

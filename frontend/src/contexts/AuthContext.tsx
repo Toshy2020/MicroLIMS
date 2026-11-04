@@ -3,7 +3,7 @@ import { apiClient } from "../services/apiClient";
 import { authenticationService } from "../modules/authentication/services/authenticationService";
 import { readTokenClaims, TOKEN_REFRESHED_EVENT } from "../modules/authentication/tokenClaims";
 
-export type Role = "SystemAdministrator" | "SectionHead" | "Reviewer" | "Analyst";
+export type Role = "SystemAdministrator" | "SectionHead" | "Reviewer" | "Analyst" | "QcManager";
 
 export interface LoginData {
   token: string;

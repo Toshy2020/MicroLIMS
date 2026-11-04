@@ -4,6 +4,7 @@ using MicroLIMS.Shared.Exceptions;
 using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Application.DTOs.Responses;
 using MicroLIMS.Application.Helpers;
+using MicroLIMS.Application.Workflows;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 
@@ -28,9 +29,13 @@ public sealed class HplcSampleEntryContext
     public required bool Submitted { get; init; }
     public required bool Returned { get; init; }
     public required bool HasCurrentSampleReport { get; init; }
+    public MoistureRole MoistureRole { get; init; } = MoistureRole.None;
+    public SampleMoisture? Moisture { get; init; }
+    public string? MoistureError { get; init; }
 
     public ProductionStageRole? StageRole => Replicates.StageRole;
     public bool IsResidualSolvents => Snapshot.ResultMode == HplcResultMode.ResidualSolvents;
+    public bool IsRelatedSubstances => Snapshot.ResultMode == HplcResultMode.RelatedSubstances;
     public string? StageName => Sample.ProductionStageRef?.Name ?? Sample.ProductionStage;
 
     // Editable while the run is open, or - after a submitted result was
@@ -59,10 +64,24 @@ public sealed class HplcSampleEntryContext
         if (Run.Sst?.Status != HplcSstStatus.Passed) return "System suitability has not passed.";
         if (!Replicates.IsConfigured) return Replicates.Message ?? "Stage replicate configuration could not be resolved.";
 
-        var required = Replicates.SampleReplicates!.Value;
         var entered = RunSample.Replicates.Count;
-        if (entered != required)
-            return $"Expected exactly {required} replicates for stage role {Replicates.StageRole}, but {entered} entered.";
+        if (Replicates.SampleReplicates is not int required)
+        {
+            if (entered == 0) return "Enter at least one replicate.";
+        }
+        else if (entered != required)
+        {
+            var forStage = Replicates.StageRole is { } role ? $" for stage role {role}" : "";
+            return $"Expected exactly {required} replicates{forStage}, but {entered} entered.";
+        }
+
+        if (IsRelatedSubstances) return RelatedSubstancesEntryProblem();
+
+        if (Snapshot.ResultMode == HplcResultMode.Assay && MoistureRole != MoistureRole.None)
+        {
+            if (MoistureError != null) return MoistureError;
+            if (Moisture == null) return SampleMoistureResolver.MissingMessage(MoistureRole);
+        }
 
         foreach (var analyte in Snapshot.Analytes)
         {
@@ -70,6 +89,8 @@ public sealed class HplcSampleEntryContext
             {
                 if (rep.ActualWeightMg <= 0)
                     return $"Replicate {rep.ReplicateNo}: the sample weight is required.";
+                if (!string.IsNullOrWhiteSpace(Snapshot.InternalStandardName) && rep.InternalStandardResponse is null or <= 0)
+                    return $"Replicate {rep.ReplicateNo}: the internal standard response is required.";
                 if (!rep.Responses.Any(x => x.HplcMethodAnalyteId == analyte.Id && (IsResidualSolvents ? x.Response >= 0 : x.Response > 0)))
                     return $"Replicate {rep.ReplicateNo}: a response for {analyte.Name} is required.";
             }
@@ -84,7 +105,7 @@ public sealed class HplcSampleEntryContext
                 continue;
             }
 
-            if (!Specs.Any(s => s.HplcMethodAnalyteId == analyte.Id && s.ResultBasis == ResultBasis.PercentLabelClaim))
+            if (!Specs.Any(s => s.HplcMethodAnalyteId == analyte.Id && (s.ResultBasis is ResultBasis.PercentLabelClaim or ResultBasis.PercentAsIs or ResultBasis.PercentDriedBasis or ResultBasis.PercentAnhydrousBasis)))
                 return $"No assay specification for {analyte.Name} on this item.";
 
             if (sstRow?.MeanResponse is null or <= 0 || sstRow.StandardWeightMg is null or <= 0
@@ -95,9 +116,50 @@ public sealed class HplcSampleEntryContext
         return null;
     }
 
-    public List<HplcAssayRow> EvaluateRows() => IsResidualSolvents
-        ? HplcResidualSolventEvaluator.Evaluate(BuildResidualSolventInputs())
-        : HplcSampleAssayEvaluator.Evaluate(BuildAnalyteInputs(), StageRole);
+    public List<HplcAssayRow> EvaluateRows(decimal? moisturePercentOverride = null) => Snapshot.ResultMode switch
+    {
+        HplcResultMode.Assay => HplcSampleAssayEvaluator.Evaluate(BuildAnalyteInputs(moisturePercentOverride), StageRole),
+        HplcResultMode.ResidualSolvents => HplcResidualSolventEvaluator.Evaluate(BuildResidualSolventInputs()),
+        HplcResultMode.RelatedSubstances => CalculateRelatedSubstances().Select(r => r.Row).ToList(),
+        _ => throw new InvalidOperationException($"Unsupported result mode {Snapshot.ResultMode}."),
+    };
+
+    // Related substances: the principal analyte's "response" is the reference solution's principal-peak area;
+    // the sample weight is not used. Build/Calculate are only called when EntryProblem is null.
+    private string? RelatedSubstancesEntryProblem()
+    {
+        var analyte = Snapshot.Analytes.First();
+        if (Snapshot.ReferenceSolutionPercent is not > 0m)
+            return "The method has no reference solution concentration.";
+        // A null disregard limit means "no disregard limit" (some monographs give none).
+        foreach (var rep in RunSample.Replicates.OrderBy(r => r.ReplicateNo))
+            if (!rep.Responses.Any(x => x.HplcMethodAnalyteId == analyte.Id && x.Response > 0))
+                return $"{analyte.Name}: the reference solution area is required.";
+
+        var rows = Specs.Where(s => s.RelatedSubstanceRow.HasValue && s.HplcMethodAnalyteId == analyte.Id).ToList();
+        if (rows.Count == 0)
+            return "No related-substances specification on this item.";
+        if (rows.Any(s => s.RelatedSubstanceRow == RelatedSubstanceRow.Named && !Snapshot.Impurities.Any(i => i.Id == s.HplcMethodImpurityId)))
+            return "A specification names an impurity that is not in this run's method.";
+        return null;
+    }
+
+    public RelatedSubstancesInput BuildRelatedSubstancesInput()
+    {
+        var analyte = Snapshot.Analytes.First();
+        var reps = RunSample.Replicates.OrderBy(r => r.ReplicateNo)
+            .Select(r => new RsReplicate(r.ReplicateNo, r.Responses.First(x => x.HplcMethodAnalyteId == analyte.Id).Response,
+                r.Peaks.OrderBy(p => p.Id).Select(p => new HplcReplicatePeakInput(p.HplcMethodImpurityId, p.RelativeRetention, p.Area)).ToList()))
+            .ToList();
+        return new RelatedSubstancesInput(Snapshot.ReferenceSolutionPercent!.Value, Snapshot.DisregardLimitPercent,
+            Snapshot.Impurities, reps, Specs.Where(s => s.HplcMethodAnalyteId == analyte.Id).ToList());
+    }
+
+    public List<RsRowResult> CalculateRelatedSubstances()
+    {
+        var analyte = Snapshot.Analytes.First();
+        return RelatedSubstancesEvaluator.Calculate(analyte.Id, analyte.Name, BuildRelatedSubstancesInput());
+    }
 
     public List<HplcResidualSolventInput> BuildResidualSolventInputs()
     {
@@ -116,22 +178,28 @@ public sealed class HplcSampleEntryContext
         return inputs;
     }
 
-    public List<HplcAssayAnalyteInput> BuildAnalyteInputs()
+    public List<HplcAssayAnalyteInput> BuildAnalyteInputs(decimal? moisturePercentOverride = null)
     {
+        var hasIs = !string.IsNullOrWhiteSpace(Snapshot.InternalStandardName);
         var inputs = new List<HplcAssayAnalyteInput>();
         foreach (var analyte in Snapshot.Analytes.OrderBy(a => a.DisplayOrder))
         {
             var sstRow = Run.Sst!.Analytes.First(a => a.HplcMethodAnalyteId == analyte.Id);
             var reps = RunSample.Replicates.OrderBy(r => r.ReplicateNo)
                 .Select(r => new AssayReplicateInput(r.ReplicateNo, r.ActualWeightMg,
-                    r.Responses.First(x => x.HplcMethodAnalyteId == analyte.Id).Response))
+                    HplcResponse.ForReplicate(r.ReplicateNo, r.Responses.First(x => x.HplcMethodAnalyteId == analyte.Id).Response, r.InternalStandardResponse, hasIs)))
                 .ToList();
             var std = new AssayStandard(sstRow.MeanResponse!.Value, sstRow.StandardWeightMg!.Value,
                 sstRow.StandardPurityPercent!.Value, sstRow.StandardMoisturePercent!.Value);
+            var assaySpec = Specs.First(s => s.HplcMethodAnalyteId == analyte.Id &&
+                (s.ResultBasis is ResultBasis.PercentLabelClaim or ResultBasis.PercentAsIs or ResultBasis.PercentDriedBasis or ResultBasis.PercentAnhydrousBasis));
+            var amountSpec = Specs.FirstOrDefault(s => s.HplcMethodAnalyteId == analyte.Id && s.ResultBasis == ResultBasis.MgPerUnit);
+            decimal? moisturePercent = (assaySpec.ResultBasis is ResultBasis.PercentDriedBasis or ResultBasis.PercentAnhydrousBasis)
+                ? (moisturePercentOverride ?? Moisture?.Percent)
+                : null;
             inputs.Add(new HplcAssayAnalyteInput(
                 analyte.Id, analyte.Name, analyte.TheoreticalWeightStdMg, analyte.TheoreticalWeightTestMg, std, reps,
-                Specs.First(s => s.HplcMethodAnalyteId == analyte.Id && s.ResultBasis == ResultBasis.PercentLabelClaim),
-                Specs.FirstOrDefault(s => s.HplcMethodAnalyteId == analyte.Id && s.ResultBasis == ResultBasis.MgPerUnit)));
+                assaySpec, amountSpec, moisturePercent));
         }
         return inputs;
     }
@@ -140,6 +208,7 @@ public sealed class HplcSampleEntryContext
     {
         var runSample = await db.HplcRunSamples
             .Include(s => s.Replicates).ThenInclude(r => r.Responses)
+            .Include(s => s.Replicates).ThenInclude(r => r.Peaks)
             .FirstOrDefaultAsync(s => s.Id == runSampleId, ct)
             ?? throw new NotFoundException($"Run sample {runSampleId} not found.");
 
@@ -170,11 +239,37 @@ public sealed class HplcSampleEntryContext
         var hasReport = run.Evidence.Any(e => e.HplcRunSampleId == runSample.Id
             && e.Kind == HplcEvidenceKind.SampleReport && e.SupersededByEvidenceId == null);
 
+        var moistureRole = MoistureRole.None;
+        SampleMoisture? moisture = null;
+        string? moistureError = null;
+        if (snapshot.ResultMode == HplcResultMode.Assay)
+        {
+            try { moistureRole = SampleMoistureResolver.NeededRole(specs.Select(s => s.ResultBasis), "HPLC test"); }
+            catch (InvalidOperationException ex)
+            {
+                // dried and anhydrous on one test: an entry problem, never a throw. The role is only a marker that EntryProblem reports MoistureError.
+                moistureRole = MoistureRole.LossOnDrying;
+                moistureError = ex.Message;
+            }
+        }
+        if (moistureRole != MoistureRole.None && moistureError == null)
+        {
+            try
+            {
+                moisture = await new SampleMoistureResolver(db).ResolveAsync(order.SampleId, moistureRole);
+            }
+            catch (InvalidOperationException ex)
+            {
+                moistureError = ex.Message;
+            }
+        }
+
         return new HplcSampleEntryContext
         {
             RunSample = runSample, Run = run, Order = order, Sample = order.Sample!, Definition = definition,
             Snapshot = snapshot, Replicates = replicates, Specs = specs,
             Submitted = submitted, Returned = returned, HasCurrentSampleReport = hasReport,
+            MoistureRole = moistureRole, Moisture = moisture, MoistureError = moistureError,
         };
     }
 }

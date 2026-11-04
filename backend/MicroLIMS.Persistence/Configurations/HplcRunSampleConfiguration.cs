@@ -35,10 +35,12 @@ public class HplcSampleReplicateConfiguration : IEntityTypeConfiguration<HplcSam
     {
         builder.HasKey(e => e.Id);
         builder.Property(e => e.ActualWeightMg).HasPrecision(28, 10);
+        builder.Property(e => e.InternalStandardResponse).HasPrecision(28, 10);
 
         builder.HasIndex(e => new { e.HplcRunSampleId, e.ReplicateNo }).IsUnique();
 
         builder.HasMany(e => e.Responses).WithOne(r => r.HplcSampleReplicate).HasForeignKey(r => r.HplcSampleReplicateId).OnDelete(DeleteBehavior.Cascade);
+        builder.HasMany(e => e.Peaks).WithOne(r => r.HplcSampleReplicate).HasForeignKey(r => r.HplcSampleReplicateId).OnDelete(DeleteBehavior.Cascade);
     }
 }
 
@@ -50,5 +52,20 @@ public class HplcReplicateResponseConfiguration : IEntityTypeConfiguration<HplcR
         builder.Property(e => e.Response).HasPrecision(28, 10);
 
         builder.HasIndex(e => new { e.HplcSampleReplicateId, e.HplcMethodAnalyteId }).IsUnique();
+    }
+}
+
+public class HplcReplicatePeakConfiguration : IEntityTypeConfiguration<HplcReplicatePeak>
+{
+    public void Configure(EntityTypeBuilder<HplcReplicatePeak> builder)
+    {
+        builder.HasKey(e => e.Id);
+        builder.Property(e => e.Area).HasPrecision(28, 10);
+        builder.Property(e => e.RelativeRetention).HasPrecision(10, 4);
+
+        builder.HasIndex(e => e.HplcSampleReplicateId);
+        builder.HasIndex(e => e.HplcMethodImpurityId);
+        // A recorded peak keeps its impurity: the method cannot delete it from under a stored result.
+        builder.HasOne(e => e.HplcMethodImpurity).WithMany().HasForeignKey(e => e.HplcMethodImpurityId).OnDelete(DeleteBehavior.Restrict);
     }
 }

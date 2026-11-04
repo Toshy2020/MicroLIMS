@@ -20,6 +20,7 @@ public sealed class SpecificationsSheet : SheetHandler
         new SheetColumn("TestCode", Required: true, Help: "Code from Test Master. The test must exist before this sheet is loaded."),
         new SheetColumn("ParameterName", Required: true, Help: "What is reported, e.g. TAMC or Assay of Paracetamol. Unique per item, test and stage."),
         new SheetColumn("ProductionStageRole", EnumType: typeof(ProductionStageRole), Help: "Blank = applies to every stage."),
+        new SheetColumn("Grade", Help: "BP, USP, In-house ... Blank = ungraded. Part of the row identity with item, test, parameter and stage."),
         new SheetColumn("DisplayOrder"),
         new SheetColumn("LimitType", Required: true, EnumType: typeof(LimitType)),
         new SheetColumn("LowerLimit"), new SheetColumn("UpperLimit"),
@@ -41,10 +42,10 @@ public sealed class SpecificationsSheet : SheetHandler
         new SheetColumn("IcpElement", Help: "Method abbreviation / element symbol, e.g. ICP1 / Zn. The method must exist."),
     };
 
-    public static string SpecKey(string? item, string? test, string? parameter, string? role) => Key(item, test, parameter, role);
+    public static string SpecKey(string? item, string? test, string? parameter, string? role, string? grade) => Key(item, test, parameter, role, grade);
 
     public override string KeyOf(IReadOnlyDictionary<string, string> c) =>
-        SpecKey(Cell(c, "ItemCode"), Cell(c, "TestCode"), Cell(c, "ParameterName"), Cell(c, "ProductionStageRole"));
+        SpecKey(Cell(c, "ItemCode"), Cell(c, "TestCode"), Cell(c, "ParameterName"), Cell(c, "ProductionStageRole"), Cell(c, "Grade"));
 
     public override async Task<List<Dictionary<string, string>>> ExportAsync(IMicroLimsDbContext db, IReadOnlyCollection<int>? sectionScope) =>
         (await db.Specifications.AsNoTracking()
@@ -56,7 +57,7 @@ public sealed class SpecificationsSheet : SheetHandler
         .Select(s => new Dictionary<string, string>
         {
             ["ItemCode"] = s.Item?.Code ?? string.Empty, ["TestCode"] = s.TestCode, ["ParameterName"] = s.ParameterName,
-            ["ProductionStageRole"] = Fmt(s.ProductionStageRole), ["DisplayOrder"] = Fmt(s.DisplayOrder),
+            ["ProductionStageRole"] = Fmt(s.ProductionStageRole), ["Grade"] = s.Grade ?? string.Empty, ["DisplayOrder"] = Fmt(s.DisplayOrder),
             ["LimitType"] = s.LimitType.ToString(), ["LowerLimit"] = Fmt(s.LowerLimit), ["UpperLimit"] = Fmt(s.UpperLimit),
             ["LowerInclusive"] = Fmt(s.LowerInclusive), ["UpperInclusive"] = Fmt(s.UpperInclusive),
             ["Target"] = Fmt(s.Target), ["Tolerance"] = Fmt(s.Tolerance), ["ToleranceMode"] = Fmt(s.ToleranceMode),
@@ -87,7 +88,8 @@ public sealed class SpecificationsSheet : SheetHandler
             ?? throw new RowError("TestCode", $"No test definition with code '{typedTest}'. Create it in Test Master first.");
         var parameter = r.Text("ParameterName");
         var role = r.OptionalEnum<ProductionStageRole>("ProductionStageRole");
-        var key = SpecKey(itemCode, testCode, parameter, role?.ToString());
+        var grade = SpecificationService.NormalizeGrade(r.OptionalText("Grade"));
+        var key = SpecKey(itemCode, testCode, parameter, role?.ToString(), grade);
 
         var created = await _service.CreateSpecificationAsync(ctx.UserId, new CreateSpecificationRequest(
             ItemId: itemId, TestCode: testCode,
@@ -104,6 +106,7 @@ public sealed class SpecificationsSheet : SheetHandler
             LabelClaimUnit: r.OptionalText("LabelClaimUnit"), DosageForm: r.OptionalEnum<DosageForm>("DosageForm"),
             HplcMethodAnalyteId: await AnalyteIdAsync(ctx.Db, r.OptionalText("HplcAnalyte")),
             ProductionStageRole: role,
+            Grade: grade,
             IcpMethodElementId: await ElementIdAsync(ctx.Db, r.OptionalText("IcpElement"))));
 
         ctx.CreatedSpecifications[key] = created.Id;
@@ -169,13 +172,14 @@ public sealed class SpecificationStagesSheet : SheetHandler
         new SheetColumn("ItemCode", Required: true), new SheetColumn("TestCode", Required: true),
         new SheetColumn("ParameterName", Required: true),
         new SheetColumn("ProductionStageRole", EnumType: typeof(ProductionStageRole)),
+        new SheetColumn("Grade"),
         new SheetColumn("StageNumber", Required: true, Help: "1, 2, 3 ..."),
         new SheetColumn("StageLabel", Required: true, Help: "e.g. S1."),
         new SheetColumn("AcceptanceCriteria", Required: true),
     };
 
     public static string ParentKey(IReadOnlyDictionary<string, string> c) =>
-        SpecificationsSheet.SpecKey(Cell(c, "ItemCode"), Cell(c, "TestCode"), Cell(c, "ParameterName"), Cell(c, "ProductionStageRole"));
+        SpecificationsSheet.SpecKey(Cell(c, "ItemCode"), Cell(c, "TestCode"), Cell(c, "ParameterName"), Cell(c, "ProductionStageRole"), Cell(c, "Grade"));
 
     public override string KeyOf(IReadOnlyDictionary<string, string> c) => ParentKey(c) + "|" + Key(Cell(c, "StageNumber"));
 
@@ -188,6 +192,7 @@ public sealed class SpecificationStagesSheet : SheetHandler
             ["ItemCode"] = s.Specification?.Item?.Code ?? string.Empty, ["TestCode"] = s.Specification?.TestCode ?? string.Empty,
             ["ParameterName"] = s.Specification?.ParameterName ?? string.Empty,
             ["ProductionStageRole"] = Fmt(s.Specification?.ProductionStageRole),
+            ["Grade"] = s.Specification?.Grade ?? string.Empty,
             ["StageNumber"] = Fmt(s.StageNumber), ["StageLabel"] = s.StageLabel, ["AcceptanceCriteria"] = s.AcceptanceCriteriaText,
         }).ToList();
 
@@ -197,6 +202,7 @@ public sealed class SpecificationStagesSheet : SheetHandler
         {
             ["ItemCode"] = r.Text("ItemCode"), ["TestCode"] = r.Text("TestCode"), ["ParameterName"] = r.Text("ParameterName"),
             ["ProductionStageRole"] = r.OptionalText("ProductionStageRole") ?? string.Empty,
+            ["Grade"] = r.OptionalText("Grade") ?? string.Empty,
         });
         if (!ctx.CreatedSpecifications.TryGetValue(parent, out var specId))
         {

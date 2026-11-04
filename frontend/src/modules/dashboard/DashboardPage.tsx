@@ -1,7 +1,8 @@
 import { useMemo } from "react";
-import { useSearchParams } from "react-router-dom";
+import { Navigate, useSearchParams } from "react-router-dom";
 import { Tab, Tabs } from "@mui/material";
-import { useAuth } from "../../contexts/AuthContext";
+import { useAuth, useHasPermission } from "../../contexts/AuthContext";
+import { PERMISSIONS } from "../../routes/routes";
 import { useMyLabs } from "../../hooks/useMyLabs";
 import { WorkspaceSkeleton } from "../../components/WorkspaceSkeleton";
 import { AnalystDashboardPage } from "./AnalystDashboardPage";
@@ -17,6 +18,8 @@ export function DashboardPage() {
   const { role } = useAuth();
   const { codes, physchemAreas, loading } = useMyLabs();
   const [params, setParams] = useSearchParams();
+  const readsNoDashboard = !useHasPermission([PERMISSIONS.DASHBOARDS_LAB_OVERVIEW, PERMISSIONS.DASHBOARDS_REVIEW]);
+  const canFinalApprove = useHasPermission(PERMISSIONS.NOT_APPLICABLE_TESTS_FINAL_APPROVE);
 
   // Each dashboard is for one laboratory: a Microbiology dashboard never
   // shows Physicochemical activity and vice versa. The laboratory lives in
@@ -25,6 +28,10 @@ export function DashboardPage() {
   const requested = params.get("lab")?.toUpperCase() as DashboardLabCode | undefined;
   const code: DashboardLabCode | null = requested && labs.includes(requested) ? requested : labs[0] ?? null;
   const lab = useMemo(() => makeDashboardLab(code, physchemAreas), [code, physchemAreas]);
+
+  // Whoever gives final approval to not-applicable tests but reads no dashboard works on the Items page. Decided by
+  // permission, not role name, so the redirect never targets a page the user cannot open.
+  if (canFinalApprove && readsNoDashboard) return <Navigate to="/laboratory-configuration/items" replace />;
 
   if (loading) return <WorkspaceSkeleton tiles={4} rows={5} />;
 

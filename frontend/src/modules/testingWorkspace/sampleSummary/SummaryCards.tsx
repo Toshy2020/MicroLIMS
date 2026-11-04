@@ -3,6 +3,7 @@ import { StatusBadge } from "../../../components/StatusBadge";
 import { brandColors, tableHeadSx } from "../../../theme";
 import { SampleSummary, SampleLocationDetail, IncubationDetail } from "../types/sampleSummaryTypes";
 import { formatDate } from "./summaryFormatting";
+import { formatRetentionDisplay } from "../utils/moistureRetentionHelpers";
 
 // Reusable display field component
 export function SummaryField({
@@ -69,10 +70,17 @@ export function SampleIdentityCard({ summary: s }: { summary: SampleSummary }) {
         <SummaryField label="Production Stage" value={s.productionStage} />
         <SummaryField label="Sampled By" value={s.sampledBy} />
         <SummaryField label="Batch Number" value={s.batchNumber} />
+        {s.grade && <SummaryField label="Grade" value={s.grade} />}
 
         <SummaryField label="Control Number" value={s.controlNumber} />
         <SummaryField label="Received By" value={s.receivedByName} />
         <SummaryField label="Sample Quantity" value={s.sampleQuantity} />
+        {s.retentionQuantity != null && (
+          <SummaryField
+            label="Retention"
+            value={formatRetentionDisplay(s.retentionQuantity, s.retentionQuantityUnit) ?? ""}
+          />
+        )}
         <SummaryField label="Mfg Date" value={formatDate(s.mfgDate)} />
 
         <SummaryField label="Cause of Testing" value={s.causeOfTesting} />

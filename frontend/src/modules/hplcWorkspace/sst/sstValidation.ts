@@ -1,11 +1,12 @@
-import type { HplcSstAnalyteDto, SaveSstAnalyteInput } from "../types";
+import type { HplcSstAnalyteDto, SaveSstAnalyteInput, HplcMethodSnapshot } from "../types";
 import type { HplcMethodResponse } from "../../laboratoryConfiguration/masterDataSimple/services/HplcMethodService";
 
 export function findMissingSstFields(
   analytes: HplcSstAnalyteDto[],
   inputs: Record<number, SaveSstAnalyteInput>,
-  method: HplcMethodResponse | null | undefined,
-  isResidualSolvents = false
+  method: HplcMethodResponse | HplcMethodSnapshot | null | undefined,
+  standardIsWeighed = true,
+  hasInternalStandard = false
 ): string[] {
   return analytes.flatMap((a) => {
     const v = inputs[a.id];
@@ -17,8 +18,8 @@ export function findMissingSstFields(
     if (!v?.standardMaterialId) {
       fields.push("reference standard lot");
     }
-    // Residual solvents runs do not require standard weight (backend stores null)
-    if (!isResidualSolvents && !(v?.standardWeightMg > 0)) {
+    // Only an assay weighs its standard (the backend stores no weight for the other modes)
+    if (standardIsWeighed && !(v?.standardWeightMg > 0)) {
       fields.push("actual standard weight");
     }
 
@@ -27,6 +28,14 @@ export function findMissingSstFields(
       .filter((n) => !((v?.responses?.[n - 1] ?? 0) > 0));
     if (blank.length > 0) {
       fields.push(`injection ${blank.map((n) => `#${n}`).join(", ")}`);
+    }
+
+    if (hasInternalStandard) {
+      const isBlank = Array.from({ length: injectionCount }, (_, i) => i + 1)
+        .filter((n) => !((v?.internalStandardResponses?.[n - 1] ?? 0) > 0));
+      if (isBlank.length > 0) {
+        fields.push(`internal standard injection ${isBlank.map((n) => `#${n}`).join(", ")}`);
+      }
     }
 
     if (ma?.sstMinResolution != null && v?.resolution == null) fields.push("resolution");

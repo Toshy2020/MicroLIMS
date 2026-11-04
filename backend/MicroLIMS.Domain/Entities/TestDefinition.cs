@@ -30,6 +30,12 @@ public class TestDefinition : IVersionedEntity
     public PhyschemArea? PhyschemArea { get; set; }
 
     public WorkflowType WorkflowType { get; set; } = WorkflowType.Observation;
+
+    // Qualitative tests only: one result per sample container instead of one per sample.
+    public bool PerContainer { get; set; }
+
+    // Which moisture measurement this test supplies (RM dried/anhydrous basis assays look it up).
+    public MoistureRole MoistureRole { get; set; } = MoistureRole.None;
     public List<TestWorkflowStep> Steps { get; set; } = new();
 
     // Frozen tests are hidden from TestCodePicker/TestCodePickerMulti's
@@ -114,6 +120,14 @@ public class TestDefinition : IVersionedEntity
     public decimal? TitrationExpansionCoefficient { get; set; }
     public int? TitrationStandardEntryId { get; set; }         // Relative: reference standard master entry
     public MaterialMasterEntry? TitrationStandardEntry { get; set; }
+
+    // Finished Product / Raw Material UV Spectrophotometry criteria
+    public UvCalculationMode? UvCalculationMode { get; set; }
+    public decimal? UvSpecificAbsorbance { get; set; }
+    public decimal? UvTotalVolumeMl { get; set; }
+    public decimal? UvStandardVolumeMl { get; set; }
+    public int? UvStandardEntryId { get; set; }                // StandardComparison: the standard material entry; only its lots are accepted
+    public MaterialMasterEntry? UvStandardEntry { get; set; }
 
     // Finished Product / Standard-Comparison Assay - per-stage-role
     // standard/sample replicate counts. See TestDefinitionStageReplicate.

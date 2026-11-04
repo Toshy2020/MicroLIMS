@@ -18,7 +18,9 @@ public record ReceiveItemBasedSampleRequest(
     string BatchNumber, string ControlNumber, DateTime? MfgDate, DateTime? ExpDate, string? ProductionStage,
     // Which laboratories to receive the sample for (ReceiptLabGuard resolves
     // and authorizes it before the engine sees it).
-    List<int>? TargetSectionIds);
+    List<int>? TargetSectionIds,
+    // Grade stated on the supplier's CoA (required when the item has graded specifications).
+    string? Grade = null);
 
 // The sample's full corrected details (see SampleCorrectionRequest), plus the
 // reason and the signer's password.
@@ -40,7 +42,8 @@ public record CorrectSampleRequest(
     int? ItemId = null,
     int? WaterDepartmentId = null,
     int? DepartmentId = null,
-    int? MachineId = null);
+    int? MachineId = null,
+    string? Grade = null);
 
 public record AssignAnalystRequest(int? AnalystUserId, string? Reason);
 
@@ -49,6 +52,8 @@ public record AssignTestAnalystsRequest(List<TestAnalystAssignment> Assignments,
 public record VoidSampleRequest(string Reason, string Password);
 
 public record AddLaboratoryRequest(int SectionId, string Password, string Reason);
+
+public record SelectSampleTestsRequest(List<string> TestCodes, string Password, string? Comment);
 
 [ApiController]
 [Route("api/samples")]
@@ -61,6 +66,7 @@ public class SampleController : ControllerBase
     private readonly IUserSectionScopeService _scopeService;
     private readonly AddLaboratoryService _addLaboratory;
     private readonly ReceiptLabService _receiptLabs;
+    private readonly SampleTestSelectionService _testSelection;
 
     public SampleController(
         IReceivingService receivingService,
@@ -68,8 +74,10 @@ public class SampleController : ControllerBase
         SampleAssignmentService assignmentService,
         IUserSectionScopeService scopeService,
         AddLaboratoryService addLaboratory,
-        ReceiptLabService receiptLabs)
+        ReceiptLabService receiptLabs,
+        SampleTestSelectionService testSelection)
     {
+        _testSelection = testSelection;
         _receivingService = receivingService;
         _correctionService = correctionService;
         _assignmentService = assignmentService;
@@ -92,7 +100,7 @@ public class SampleController : ControllerBase
         var sample = await _receivingService.ReceiveSampleAsync(new ItemBasedReceiveRequest(
             request.ItemId, request.CauseOfTestingId, request.SampleQuantity, request.SampledBy,
             request.BatchNumber, request.ControlNumber, request.MfgDate, request.ExpDate,
-            request.ProductionStage, CurrentUserId, targets));
+            request.ProductionStage, CurrentUserId, targets, request.Grade));
         return Ok(ApiResponse<object>.Ok(sample));
     }
 
@@ -117,7 +125,7 @@ public class SampleController : ControllerBase
                 request.BatchNumber, request.MfgDate, request.ExpDate, request.SampleQuantity,
                 request.ProductionStage, request.PreviousProductName, request.PreviousProductBatchNumber,
                 request.StorageCondition, request.StorageTimeHours,
-                request.ItemId, request.WaterDepartmentId, request.DepartmentId, request.MachineId),
+                request.ItemId, request.WaterDepartmentId, request.DepartmentId, request.MachineId, request.Grade),
             request.Reason,
             request.Password,
             CurrentUserId,
@@ -161,6 +169,24 @@ public class SampleController : ControllerBase
         var sample = await _correctionService.VoidAsync(
             id, request.Reason, request.Password, CurrentUserId, HttpContext.Connection.RemoteIpAddress?.ToString());
         return Ok(ApiResponse<object>.Ok(sample));
+    }
+
+    // Periodic retest: the tests of the laboratories still pending; canSelect marks those the caller may choose
+    // (read-only for everyone else with access to the sample).
+    [HttpGet("{id}/test-selection")]
+    public async Task<IActionResult> GetTestSelection(int id, CancellationToken ct)
+    {
+        await _scopeService.EnsureSampleAccessAsync(CurrentUserId, id, ct);
+        return Ok(ApiResponse<object>.Ok(await _testSelection.GetEligibleAsync(id, CurrentUserId, ct)));
+    }
+
+    [HttpPost("{id}/test-selection")]
+    [Authorize(Policy = PermissionConstants.SamplesCorrect)]
+    public async Task<IActionResult> SelectTests(int id, SelectSampleTestsRequest request, CancellationToken ct)
+    {
+        await _testSelection.SelectAsync(id, new SelectTestsRequest(request.TestCodes ?? new(), request.Password, request.Comment),
+            CurrentUserId, HttpContext.Connection.RemoteIpAddress?.ToString(), ct);
+        return Ok(ApiResponse<object>.Ok(new { }));
     }
 
     // A second laboratory's tests added to a sample already received -

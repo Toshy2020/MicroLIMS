@@ -74,6 +74,7 @@ interface HeaderProps {
 // role's own name (a session stored before role names were sent).
 const ROLE_LABELS: Record<string, string> = {
   SectionHead: "Section Head",
+  QcManager: "QC Manager",
   SystemAdministrator: "System Administrator"
 };
 

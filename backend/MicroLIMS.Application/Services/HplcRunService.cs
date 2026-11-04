@@ -34,7 +34,8 @@ public record StartHplcRunRequest(int EquipmentId, int HplcMethodId, int Chromat
 public record SaveSstAnalyteInput(
     int HplcSstAnalyteId, int StandardMaterialId, decimal StandardWeightMg, List<decimal> Responses,
     decimal? ReportedRsdPercent, decimal? Resolution, decimal? TailingFactor, decimal? TheoreticalPlates,
-    decimal? RetentionFactor, decimal? SignalToNoise, decimal? PeakToValley);
+    decimal? RetentionFactor, decimal? SignalToNoise, decimal? PeakToValley,
+    List<decimal>? InternalStandardResponses = null);
 public record SaveSstRequest(List<SaveSstAnalyteInput> Analytes);
 public record ConfirmSstRequest(string Password, string? Comment);
 
@@ -48,7 +49,7 @@ public record HplcEvidenceDto(
 // ---- Run detail ----
 
 public record HplcRunMobilePhaseDto(int Id, string Channel, int SolutionPreparationId, string? SolutionPreparationCode, string SolutionMasterName, DateTime? ExpiresAt);
-public record HplcSstInjectionDto(int InjectionNo, decimal Response);
+public record HplcSstInjectionDto(int InjectionNo, decimal Response, decimal? InternalStandardResponse = null);
 public record HplcSstAnalyteDto(
     int Id, int HplcMethodAnalyteId, string AnalyteName, int StandardEntryId,
     int? StandardMaterialId, string? StandardMaterialBatch, decimal? StandardPurityPercent, decimal? StandardMoisturePercent, decimal? StandardWeightMg,
@@ -72,7 +73,9 @@ public record HplcRunDto(
     int HplcMethodId, string HplcMethodAbbreviation,
     int AnalystUserId, string? AnalystUserName, DateTime StartedAt, HplcRunStatus Status, DateTime? ClosedAt, string? CloseReason,
     List<HplcRunMobilePhaseDto> MobilePhases, HplcSstRecordDto? Sst, List<HplcRunSampleSummaryDto> Samples, List<HplcEvidenceDto> Evidence,
-    bool CanConfirmSst, string? CanConfirmSstReason, bool CanAssignSamples, string? CanAssignSamplesReason);
+    bool CanConfirmSst, string? CanConfirmSstReason, bool CanAssignSamples, string? CanAssignSamplesReason,
+    // From the run's method snapshot, not the live method.
+    HplcResultMode ResultMode = HplcResultMode.Assay, string? InternalStandardName = null);
 
 public record HplcRunListItem(int Id, string Code, string MethodAbbreviation, string AnalystUserName, DateTime StartedAt, HplcRunStatus Status, HplcSstStatus SstStatus, DateTime? ClosedAt);
 
@@ -108,24 +111,40 @@ public partial class HplcRunService
 
     // A blank SST entry would be signed as a permanent failure, so confirmation
     // waits until every required value is in. Returns "Analyte: field, field" lines.
+    // Only an assay weighs its standard and corrects it for purity and moisture; residual-solvent and
+    // related-substances methods need just the lot (their calculations use no standard weight).
+    private static bool StandardIsWeighed(HplcResultMode mode) => mode switch
+    {
+        HplcResultMode.Assay => true,
+        HplcResultMode.ResidualSolvents or HplcResultMode.RelatedSubstances => false,
+        _ => throw new InvalidOperationException($"Unsupported result mode {mode}."),
+    };
+
     private static List<string> MissingSstEntries(HplcRun run)
     {
         var missing = new List<string>();
         if (run.Sst == null) return missing;
         var snapshot = JsonSerializer.Deserialize<HplcMethodResponse>(run.MethodSnapshotJson, JsonOptions);
         var methodById = snapshot?.Analytes.ToDictionary(a => a.Id) ?? new Dictionary<int, HplcMethodAnalyteResponse>();
-        var residualSolvents = snapshot?.ResultMode == HplcResultMode.ResidualSolvents;
+        var weighsStandard = StandardIsWeighed(snapshot?.ResultMode ?? HplcResultMode.Assay);
+        var hasIs = !string.IsNullOrWhiteSpace(snapshot?.InternalStandardName);
 
         foreach (var a in run.Sst.Analytes.OrderBy(x => x.Id))
         {
             var fields = new List<string>();
             if (a.StandardMaterialId == null) fields.Add("reference standard lot");
-            if (!residualSolvents && !(a.StandardWeightMg > 0)) fields.Add("actual standard weight");
+            if (weighsStandard && !(a.StandardWeightMg > 0)) fields.Add("actual standard weight");
             if (methodById.TryGetValue(a.HplcMethodAnalyteId, out var m))
             {
                 var blank = Enumerable.Range(1, m.StandardInjections)
                     .Where(n => !(a.Injections.FirstOrDefault(i => i.InjectionNo == n)?.Response > 0)).ToList();
                 if (blank.Count > 0) fields.Add($"injection {string.Join(", ", blank.Select(n => $"#{n}"))}");
+                if (hasIs)
+                {
+                    var blankIs = Enumerable.Range(1, m.StandardInjections)
+                        .Where(n => !(a.Injections.FirstOrDefault(i => i.InjectionNo == n)?.InternalStandardResponse > 0)).ToList();
+                    if (blankIs.Count > 0) fields.Add($"internal standard injection {string.Join(", ", blankIs.Select(n => $"#{n}"))}");
+                }
                 if (m.SstMinResolution.HasValue && a.Resolution == null) fields.Add("resolution");
                 if (m.SstMaxTailingFactor.HasValue && a.TailingFactor == null) fields.Add("tailing factor");
                 if (m.SstMinTheoreticalPlates.HasValue && a.TheoreticalPlates == null) fields.Add("theoretical plates");
@@ -285,6 +304,7 @@ public partial class HplcRunService
             .Include(m => m.GradientSteps)
             .Include(m => m.OvenSteps)
             .Include(m => m.Analytes).ThenInclude(a => a.StandardEntry)
+            .Include(m => m.Impurities)
             .FirstOrDefaultAsync(m => m.Id == r.HplcMethodId, ct)
             ?? throw new NotFoundException($"HPLC method {r.HplcMethodId} not found.");
 
@@ -399,7 +419,12 @@ public partial class HplcRunService
         var method = await _db.HplcMethods.Include(m => m.Analytes).FirstAsync(m => m.Id == run.HplcMethodId, ct);
         var methodAnalyteById = method.Analytes.ToDictionary(a => a.Id);
         var today = _clock.LabToday;
-        var residualSolvents = JsonSerializer.Deserialize<HplcMethodResponse>(run.MethodSnapshotJson, JsonOptions)?.ResultMode == HplcResultMode.ResidualSolvents;
+        var snapshot = JsonSerializer.Deserialize<HplcMethodResponse>(run.MethodSnapshotJson, JsonOptions);
+        var weighsStandard = StandardIsWeighed(snapshot?.ResultMode ?? HplcResultMode.Assay);
+        var hasIs = !string.IsNullOrWhiteSpace(snapshot?.InternalStandardName);
+
+        if (!hasIs && (r.Analytes ?? new()).Any(a => a.InternalStandardResponses != null && a.InternalStandardResponses.Count > 0))
+            throw new InvalidOperationException("This method has no internal standard.");
 
         foreach (var input in r.Analytes ?? new List<SaveSstAnalyteInput>())
         {
@@ -409,7 +434,7 @@ public partial class HplcRunService
             if (!methodAnalyteById.TryGetValue(analyteRow.HplcMethodAnalyteId, out var methodAnalyte))
                 throw new InvalidOperationException($"{analyteRow.AnalyteName}: method analyte not found.");
 
-            if (!residualSolvents && input.StandardWeightMg <= 0)
+            if (weighsStandard && input.StandardWeightMg <= 0)
                 throw new InvalidOperationException($"{analyteRow.AnalyteName}: standard weight must be greater than zero.");
 
             var lot = await _db.Materials.FirstOrDefaultAsync(m => m.Id == input.StandardMaterialId, ct)
@@ -422,7 +447,7 @@ public partial class HplcRunService
             if (!check.Usable)
                 throw new InvalidOperationException($"{analyteRow.AnalyteName}: lot {lot.LotLabel}: {check.Reason}");
 
-            if (!residualSolvents)
+            if (weighsStandard)
             {
                 if (!lot.Purity.HasValue)
                     throw new InvalidOperationException($"Lot {lot.LotLabel} has no purity recorded.");
@@ -431,7 +456,7 @@ public partial class HplcRunService
             }
 
             analyteRow.StandardMaterialId = lot.Id;
-            analyteRow.StandardWeightMg = input.StandardWeightMg > 0 ? input.StandardWeightMg : null;
+            analyteRow.StandardWeightMg = weighsStandard && input.StandardWeightMg > 0 ? input.StandardWeightMg : null;
             analyteRow.StandardPurityPercent = lot.Purity;
             analyteRow.StandardMoisturePercent = lot.MoisturePercent;
             analyteRow.ReportedRsdPercent = input.ReportedRsdPercent;
@@ -445,12 +470,29 @@ public partial class HplcRunService
             _db.HplcSstInjections.RemoveRange(analyteRow.Injections);
             analyteRow.Injections.Clear();
             var responses = input.Responses ?? new List<decimal>();
+            var isResponses = input.InternalStandardResponses;
+            if (hasIs && (responses.Count > 0 || (isResponses != null && isResponses.Count > 0)))
+            {
+                if (isResponses == null || isResponses.Count != responses.Count || isResponses.Any(x => x <= 0m))
+                    throw new InvalidOperationException($"{analyteRow.AnalyteName}: enter an internal standard response (above zero) for every injection.");
+            }
+
             for (var i = 0; i < responses.Count; i++)
-                analyteRow.Injections.Add(new HplcSstInjection { InjectionNo = i + 1, Response = responses[i] });
+            {
+                analyteRow.Injections.Add(new HplcSstInjection
+                {
+                    InjectionNo = i + 1,
+                    Response = responses[i],
+                    InternalStandardResponse = isResponses != null && i < isResponses.Count ? isResponses[i] : null
+                });
+            }
 
             // Shown while entering; Passed/FailureReasons stay untouched until confirmation.
-            analyteRow.MeanResponse = responses.Count > 0 ? responses.Average() : null;
-            analyteRow.ComputedRsdPercent = StandardComparisonCalculator.CalculatePreparationRsd(responses, null).RsdPercent;
+            var effectiveResponses = hasIs && isResponses != null
+                ? responses.Zip(isResponses, (resp, isResp) => HplcResponse.ForSst(analyteRow.AnalyteName, resp, isResp, hasIs)).ToList()
+                : responses;
+            analyteRow.MeanResponse = effectiveResponses.Count > 0 ? effectiveResponses.Average() : null;
+            analyteRow.ComputedRsdPercent = StandardComparisonCalculator.CalculatePreparationRsd(effectiveResponses, null).RsdPercent;
         }
 
         await _db.SaveChangesAsync(ct);
@@ -504,8 +546,13 @@ public partial class HplcRunService
                 snapAnalyte.SstMinTheoreticalPlates, snapAnalyte.SstMinRetentionFactor, snapAnalyte.SstMinSignalToNoise,
                 snapAnalyte.SstMinPeakToValley, snapAnalyte.StandardInjections);
 
+            var hasIs = !string.IsNullOrWhiteSpace(snapshot.InternalStandardName);
+            var effectiveResponses = analyteRow.Injections.OrderBy(i => i.InjectionNo)
+                .Select(i => HplcResponse.ForSst(analyteRow.AnalyteName, i.Response, i.InternalStandardResponse, hasIs))
+                .ToList();
+
             var entered = new SstEntered(
-                analyteRow.Injections.OrderBy(i => i.InjectionNo).Select(i => i.Response).ToList(),
+                effectiveResponses,
                 analyteRow.ReportedRsdPercent, analyteRow.Resolution, analyteRow.TailingFactor,
                 analyteRow.TheoreticalPlates, analyteRow.RetentionFactor, analyteRow.SignalToNoise, analyteRow.PeakToValley);
 
@@ -830,7 +877,7 @@ public partial class HplcRunService
             run.Sst.Analytes.OrderBy(a => a.Id).Select(a => new HplcSstAnalyteDto(
                 a.Id, a.HplcMethodAnalyteId, a.AnalyteName, standardEntryByAnalyte.GetValueOrDefault(a.HplcMethodAnalyteId), a.StandardMaterialId, a.StandardMaterial?.LotLabel,
                 a.StandardPurityPercent, a.StandardMoisturePercent, a.StandardWeightMg,
-                a.Injections.OrderBy(i => i.InjectionNo).Select(i => new HplcSstInjectionDto(i.InjectionNo, i.Response)).ToList(),
+                a.Injections.OrderBy(i => i.InjectionNo).Select(i => new HplcSstInjectionDto(i.InjectionNo, i.Response, i.InternalStandardResponse)).ToList(),
                 a.ReportedRsdPercent, a.Resolution, a.TailingFactor, a.TheoreticalPlates, a.RetentionFactor, a.SignalToNoise, a.PeakToValley,
                 a.MeanResponse, a.ComputedRsdPercent, a.Passed, a.FailureReasons)).ToList());
 
@@ -865,6 +912,8 @@ public partial class HplcRunService
                 ? "The run is closed."
                 : "Sample assignment is locked until system suitability passes.";
 
+        var runSnapshot = JsonSerializer.Deserialize<HplcMethodResponse>(run.MethodSnapshotJson, JsonOptions);
+
         return new HplcRunDto(
             run.Id, run.Version, run.Code, run.SectionId,
             run.EquipmentId, run.Equipment?.Code ?? string.Empty, run.Equipment?.Name ?? string.Empty,
@@ -872,6 +921,8 @@ public partial class HplcRunService
             run.HplcMethodId, run.HplcMethod?.Abbreviation ?? string.Empty,
             run.AnalystUserId, NameOf(run.AnalystUserId), run.StartedAt, run.Status, run.ClosedAt, run.CloseReason,
             mobilePhases, sstDto, samples, evidence,
-            canConfirmSst, canConfirmSstReason, canAssignSamples, canAssignSamplesReason);
+            canConfirmSst, canConfirmSstReason, canAssignSamples, canAssignSamplesReason,
+            runSnapshot?.ResultMode ?? HplcResultMode.Assay,
+            string.IsNullOrWhiteSpace(runSnapshot?.InternalStandardName) ? null : runSnapshot!.InternalStandardName);
     }
 }

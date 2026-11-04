@@ -53,7 +53,15 @@ export function hplcErrorTab(key: string, technique: HplcTechnique = "Hplc"): nu
   if (key.startsWith("solutions.") || key === "form.mobilePhases" || key === "form.ratioSum") {
     return HPLC_TAB_SOLUTIONS;
   }
-  if (key.startsWith("analytes.") || key === "form.analytes") return HPLC_TAB_ANALYTES;
+  if (
+    key.startsWith("analytes.") ||
+    key === "form.analytes" ||
+    key.startsWith("impurities.") ||
+    key === "referenceSolutionPercent" ||
+    key === "disregardLimitPercent"
+  ) {
+    return HPLC_TAB_ANALYTES;
+  }
   return null;
 }
 
@@ -68,6 +76,29 @@ export function validateHplcMethodForm(
 
   const isGc = form.technique === "Gc";
   const isResidual = isGc && form.resultMode === "ResidualSolvents";
+  const isRelatedSubstances = !isGc && form.resultMode === "RelatedSubstances";
+
+  if (isGc && form.resultMode === "RelatedSubstances") {
+    add("resultMode", "Related substances is available for HPLC methods only.");
+  }
+
+  if (form.resultMode !== "RelatedSubstances") {
+    const hasRsValues =
+      (form.impurities && form.impurities.length > 0) ||
+      (form.referenceSolutionPercent !== "" && form.referenceSolutionPercent != null) ||
+      (form.disregardLimitPercent !== "" && form.disregardLimitPercent != null);
+    if (hasRsValues) {
+      add("resultMode", "Impurities and reference-solution values belong to related-substances methods only.");
+    }
+  }
+
+  if (form.internalStandardName && form.internalStandardName.trim()) {
+    if (form.technique !== "Hplc" || form.resultMode !== "Assay") {
+      add("internalStandardName", "An internal standard applies to HPLC assay methods only.");
+    } else if (form.internalStandardName.trim().length > 100) {
+      add("internalStandardName", "Internal standard name cannot exceed 100 characters.");
+    }
+  }
 
   const name = form.name.trim();
   if (!name) add("name", "Method Name is required.");
@@ -297,6 +328,59 @@ export function validateHplcMethodForm(
     }
   }
 
+  // Related Substances fields
+  if (isRelatedSubstances) {
+    if (form.referenceSolutionPercent === "" || form.referenceSolutionPercent == null) {
+      add("referenceSolutionPercent", "Enter the reference solution concentration as % of the test solution (above 0, up to 100).");
+    } else {
+      const rsp = Number(form.referenceSolutionPercent);
+      if (isNaN(rsp) || rsp <= 0 || rsp > 100) {
+        add("referenceSolutionPercent", "Enter the reference solution concentration as % of the test solution (above 0, up to 100).");
+      }
+    }
+
+    if (form.disregardLimitPercent !== "" && form.disregardLimitPercent != null) {
+      const dlp = Number(form.disregardLimitPercent);
+      if (isNaN(dlp) || dlp < 0 || dlp > 100) {
+        add("disregardLimitPercent", "The disregard limit must be between 0 and 100 %.");
+      }
+    }
+
+    const impurityNames = new Set<string>();
+    for (let i = 0; i < (form.impurities || []).length; i++) {
+      const imp = form.impurities[i];
+      const impName = (imp.name || "").trim();
+      const key = (field: string) => `impurities.${i}.${field}`;
+      if (!impName) {
+        add(key("name"), "Each impurity needs a unique name.");
+      } else if (impName.length > 100) {
+        add(key("name"), "Impurity names are at most 100 characters.");
+      } else {
+        const lower = impName.toLowerCase();
+        if (impurityNames.has(lower)) {
+          add(key("name"), "Each impurity needs a unique name.");
+        }
+        impurityNames.add(lower);
+      }
+
+      if (imp.relativeRetention !== "" && imp.relativeRetention != null) {
+        const rrt = Number(imp.relativeRetention);
+        if (isNaN(rrt) || rrt <= 0 || rrt > 100) {
+          add(key("relativeRetention"), "The relative retention must be greater than zero and at most 100.");
+        }
+      }
+
+      if (imp.correctionFactor === "" || imp.correctionFactor == null) {
+        add(key("correctionFactor"), "The correction factor must be greater than zero and at most 100.");
+      } else {
+        const cf = Number(imp.correctionFactor);
+        if (isNaN(cf) || cf <= 0 || cf > 100) {
+          add(key("correctionFactor"), "The correction factor must be greater than zero and at most 100.");
+        }
+      }
+    }
+  }
+
   // Common Detection fields
   const injVol = Number(form.injectionVolumeUl);
   if (!form.injectionVolumeUl || isNaN(injVol) || injVol <= 0) {
@@ -308,7 +392,14 @@ export function validateHplcMethodForm(
   }
 
   // Analytes
-  if (form.analytes.length === 0) add("form.analytes", "At least one Analyte is required.");
+  if (isRelatedSubstances) {
+    if (form.analytes.length !== 1) {
+      add("form.analytes", "A related-substances method has exactly one analyte: the principal peak.");
+    }
+  } else {
+    if (form.analytes.length === 0) add("form.analytes", "At least one Analyte is required.");
+  }
+
   const analyteNames = new Set<string>();
   for (let i = 0; i < form.analytes.length; i++) {
     const a = form.analytes[i];
@@ -334,6 +425,16 @@ export function validateHplcMethodForm(
       const stdConc = Number(a.standardConcentrationUgPerMl);
       if (!a.standardConcentrationUgPerMl || isNaN(stdConc) || stdConc <= 0) {
         add(key("standardConcentrationUgPerMl"), `Analyte "${aName}" Standard Concentration (µg/mL) must be greater than zero.`);
+      }
+    } else if (isRelatedSubstances) {
+      const twStd = Number(a.theoreticalWeightStdMg);
+      const twTest = Number(a.theoreticalWeightTestMg);
+      if (
+        (a.theoreticalWeightStdMg !== "" && !isNaN(twStd) && twStd > 0) ||
+        (a.theoreticalWeightTestMg !== "" && !isNaN(twTest) && twTest > 0)
+      ) {
+        add(key("theoreticalWeightStdMg"), "Theoretical weights are not used in a related-substances method.");
+        add(key("theoreticalWeightTestMg"), "Theoretical weights are not used in a related-substances method.");
       }
     } else {
       const twStd = Number(a.theoreticalWeightStdMg);

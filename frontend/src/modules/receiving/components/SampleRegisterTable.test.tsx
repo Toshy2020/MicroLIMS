@@ -79,6 +79,12 @@ describe("SampleRegisterTable", () => {
     expect(screen.getByRole("button", { name: "Prepare" })).toBeTruthy();
   });
 
+  it("marks a periodic retest that has no tests yet as awaiting test selection", () => {
+    renderTable([sample({ status: "Received", preparationStatus: "Ready", awaitingTestSelection: true, assignedTests: [] })]);
+    expect(screen.getByRole("button", { name: "Awaiting test selection" })).toBeTruthy();
+    expect(screen.getByText("Received")).toBeTruthy();
+  });
+
   it("shows the server's due time and marks overdue samples", () => {
     const now = Date.now();
     renderTable([

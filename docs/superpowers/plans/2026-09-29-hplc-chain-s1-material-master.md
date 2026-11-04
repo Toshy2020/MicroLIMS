@@ -6,7 +6,7 @@
 
 **Architecture:** One new entity `MaterialMasterEntry` (Domain) with EF config (Persistence), one Application service modelled on `ChromatographyColumnService`, endpoints on a new `MaterialMasterController` under `api/masterdata`. `MaterialService.CreateAsync/UpdateAsync` gain the link rule. Frontend: one config page modelled on `ChromatographyColumnsPage`, plus a master picker and MC field in `AddMaterialDialog`.
 
-**Tech Stack:** ASP.NET Core 8, EF Core + Npgsql, xUnit (in-memory + Postgres), React + TS + MUI.
+**Tech Stack:** ASP.NET Core 10, EF Core + Npgsql, xUnit (in-memory + Postgres), React + TS + MUI.
 
 **Spec:** `docs/superpowers/specs/2026-09-29-hplc-chain-design.md` §2 (D9, D10), §3.1
 

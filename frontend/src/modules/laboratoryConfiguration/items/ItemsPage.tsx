@@ -4,11 +4,15 @@ import AddIcon from "@mui/icons-material/Add";
 import { PageHeader } from "../../../components/PageHeader";
 import { ItemTable, ITEM_ROWS_PER_PAGE_OPTIONS } from "./ItemTable";
 import { ItemService, Item } from "./services/ItemService";
+import { useHasPermission } from "../../../contexts/AuthContext";
+import { PERMISSIONS } from "../../../routes/routes";
 import { ItemFilterBar } from "./components/ItemFilterBar";
 import { AddItemDialog } from "./components/AddItemDialog";
 import { ItemWorkspace } from "./components/ItemWorkspace";
 
 export function ItemsPage() {
+  // The QC Manager reaches this page to approve not-applicable tests; creating and changing items needs Items.Manage.
+  const canManage = useHasPermission(PERMISSIONS.ITEMS_MANAGE);
   const [items, setItems] = useState<Item[]>([]);
   const [selectedItemId, setSelectedItemId] = useState<number | null>(null);
   const [editingItem, setEditingItem] = useState<Item | null>(null);
@@ -124,6 +128,9 @@ export function ItemsPage() {
     category: string;
     sopNumber: string;
     testCodes: string[];
+    minSampleQuantity?: number | null;
+    minRetestSampleQuantity?: number | null;
+    minSampleQuantityUnit?: string | null;
   }) => {
     setMessage(null);
     const payload = {
@@ -132,6 +139,9 @@ export function ItemsPage() {
       category: itemData.category,
       sopNumber: itemData.sopNumber,
       assignedTests: itemData.testCodes.map((tc) => ({ testCode: tc, displayName: tc })),
+      minSampleQuantity: itemData.minSampleQuantity,
+      minRetestSampleQuantity: itemData.minRetestSampleQuantity,
+      minSampleQuantityUnit: itemData.minSampleQuantityUnit,
     };
 
     if (editingItem) {
@@ -189,6 +199,7 @@ export function ItemsPage() {
         }}
       >
         <PageHeader title="Items" subtitle="Configure which tests are auto-assigned when a sample is received." />
+        {canManage && (
         <Button
           variant="contained"
           color="primary"
@@ -198,6 +209,7 @@ export function ItemsPage() {
         >
           Add Item
         </Button>
+        )}
       </Box>
 
       {message && (
@@ -269,6 +281,7 @@ export function ItemsPage() {
               }}
               loading={loading}
               onResetFilters={isFiltered ? handleResetFilters : undefined}
+              readOnly={!canManage}
               compact
             />
           </Grid>
@@ -310,6 +323,7 @@ export function ItemsPage() {
             }}
             loading={loading}
             onResetFilters={isFiltered ? handleResetFilters : undefined}
+              readOnly={!canManage}
           />
         </Box>
       )}

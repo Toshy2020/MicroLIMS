@@ -33,7 +33,7 @@ public class TestDefinitionMasterDataService
     // Machine Part Configurations). See TestDefinition.cs for why this
     // exists.
     public async Task<List<TestDefinitionResponse>> GetTestDefinitionsAsync() =>
-        (await _db.TestDefinitions.AsNoTracking().Include(t => t.Section).OrderBy(t => t.Code).ToListAsync()).Select(TestDefinitionResponse.From).ToList();
+        (await _db.TestDefinitions.AsNoTracking().Include(t => t.Section).Include(t => t.UvStandardEntry).OrderBy(t => t.Code).ToListAsync()).Select(TestDefinitionResponse.From).ToList();
 
     public async Task<TestDefinitionResponse> CreateTestDefinitionAsync(int currentUserId, CreateTestDefinitionRequest request)
     {
@@ -105,6 +105,55 @@ public class TestDefinitionMasterDataService
 
             if (!request.ReplicateCount.HasValue || request.ReplicateCount.Value < 1 || request.ReplicateCount.Value > 30)
                 throw new InvalidOperationException($"Replicate count must be between 1 and 30 when equation type is {request.EquationType}.");
+        }
+
+        if (request.EquationType == EquationType.UvSpectrophotometry)
+        {
+            if (request.WorkflowType != WorkflowType.UvSpectrophotometry)
+                throw new InvalidOperationException("Workflow type must be UvSpectrophotometry when equation type is UvSpectrophotometry.");
+
+            if (!request.ReplicateCount.HasValue || request.ReplicateCount.Value < 1 || request.ReplicateCount.Value > 30)
+                throw new InvalidOperationException($"Replicate count must be between 1 and 30 when equation type is {request.EquationType}.");
+        }
+        else if (request.WorkflowType == WorkflowType.UvSpectrophotometry)
+        {
+            if (request.EquationType != EquationType.UvSpectrophotometry)
+                throw new InvalidOperationException("Equation type must be UvSpectrophotometry when workflow type is UvSpectrophotometry.");
+
+            if (!request.ReplicateCount.HasValue || request.ReplicateCount.Value < 1 || request.ReplicateCount.Value > 30)
+                throw new InvalidOperationException($"Replicate count must be between 1 and 30 when equation type is {request.EquationType}.");
+        }
+
+        if (request.WorkflowType == WorkflowType.UvSpectrophotometry)
+        {
+            if (!request.UvCalculationMode.HasValue)
+                throw new InvalidOperationException("A UV test needs a calculation mode.");
+            if (!Enum.IsDefined(request.UvCalculationMode.Value))
+                throw new InvalidOperationException("Unknown UV calculation mode.");
+
+            if (request.UvCalculationMode.Value == UvCalculationMode.SpecificAbsorbanceAssay)
+            {
+                if (!request.UvSpecificAbsorbance.HasValue || request.UvSpecificAbsorbance.Value <= 0m)
+                    throw new InvalidOperationException("This UV mode needs a specific absorbance above 0.");
+                if (!request.UvTotalVolumeMl.HasValue || request.UvTotalVolumeMl.Value <= 0m)
+                    throw new InvalidOperationException("This UV mode needs a total volume above 0.");
+            }
+            else if (request.UvCalculationMode.Value == UvCalculationMode.SpecificAbsorbanceValue)
+            {
+                if (!request.UvTotalVolumeMl.HasValue || request.UvTotalVolumeMl.Value <= 0m)
+                    throw new InvalidOperationException("This UV mode needs a total volume above 0.");
+            }
+            else if (request.UvCalculationMode.Value == UvCalculationMode.StandardComparison)
+            {
+                if (!request.UvTotalVolumeMl.HasValue || request.UvTotalVolumeMl.Value <= 0m)
+                    throw new InvalidOperationException("This UV mode needs a total volume above 0.");
+                if (!request.UvStandardVolumeMl.HasValue || request.UvStandardVolumeMl.Value <= 0m)
+                    throw new InvalidOperationException("A UV test against a standard needs a standard volume above 0.");
+            }
+        }
+        else if (request.UvCalculationMode.HasValue || request.UvSpecificAbsorbance.HasValue || request.UvTotalVolumeMl.HasValue || request.UvStandardVolumeMl.HasValue || request.UvStandardEntryId.HasValue)
+        {
+            throw new InvalidOperationException("UV fields are only allowed for UV spectrophotometry tests.");
         }
 
         if (request.EquationType == EquationType.Qualitative)
@@ -300,11 +349,17 @@ public class TestDefinitionMasterDataService
                 throw new InvalidOperationException("The HPLC method is inactive.");
             if (hplcMethod.Technique != HplcTechnique.Hplc)
                 throw new InvalidOperationException("Dissolution needs an HPLC method.");
+            if (hplcMethod.ResultMode != HplcResultMode.Assay)
+                throw new InvalidOperationException("Dissolution needs an HPLC assay method.");
+            if (!string.IsNullOrWhiteSpace(hplcMethod.InternalStandardName))
+                throw new InvalidOperationException("Dissolution does not support internal-standard methods.");
         }
         else if (request.HplcMethodId.HasValue)
         {
             throw new InvalidOperationException("HPLC method is only allowed for HPLC method assay and dissolution tests.");
         }
+
+        ValidatePerContainerAndMoistureRole(request.WorkflowType, request.EquationType, request.TitrationType, request.PerContainer ?? false, request.MoistureRole ?? MoistureRole.None);
 
         var entity = new TestDefinition
         {
@@ -312,6 +367,8 @@ public class TestDefinitionMasterDataService
             DisplayName = request.DisplayName,
             SectionId = sectionId,
             WorkflowType = request.WorkflowType,
+            PerContainer = request.PerContainer ?? false,
+            MoistureRole = request.MoistureRole ?? MoistureRole.None,
             EquationType = request.EquationType,
             RequiresSystemSuitability = request.RequiresSystemSuitability,
             MethodAbbreviation = methodAbbr,
@@ -360,9 +417,15 @@ public class TestDefinitionMasterDataService
             TitrationIndicatorEntryId = request.TitrationIndicatorEntryId,
             TitrationTempCorrection = request.TitrationTempCorrection,
             TitrationExpansionCoefficient = request.TitrationExpansionCoefficient,
-            TitrationStandardEntryId = request.TitrationStandardEntryId
+            TitrationStandardEntryId = request.TitrationStandardEntryId,
+            UvCalculationMode = request.WorkflowType == WorkflowType.UvSpectrophotometry ? request.UvCalculationMode : null,
+            UvSpecificAbsorbance = request.WorkflowType == WorkflowType.UvSpectrophotometry ? request.UvSpecificAbsorbance : null,
+            UvTotalVolumeMl = request.WorkflowType == WorkflowType.UvSpectrophotometry ? request.UvTotalVolumeMl : null,
+            UvStandardVolumeMl = request.WorkflowType == WorkflowType.UvSpectrophotometry ? request.UvStandardVolumeMl : null,
+            UvStandardEntryId = request.WorkflowType == WorkflowType.UvSpectrophotometry ? request.UvStandardEntryId : null
         };
         await TitrationDefinitionRules.NormalizeAndValidateAsync(_db, entity);
+        await NormalizeUvStandardEntryAsync(entity);
         await ApplyPhyschemAreaAsync(entity, request.PhyschemArea);
         _db.TestDefinitions.Add(entity);
         await _db.SaveChangesAsync();
@@ -380,6 +443,7 @@ public class TestDefinitionMasterDataService
         RecordVersion.EnsureCurrent(_db, entity);
         var titrationBefore = entity.WorkflowType == WorkflowType.Titration
             ? JsonSerializer.Serialize(TitrationDefinitionRules.Snapshot(entity), SnapshotJson.Options) : null;
+        var moistureRoleBefore = entity.MoistureRole;
 
         if (request.EquationType == EquationType.CalibrationCurve || request.WorkflowType == WorkflowType.ElementalAssay)
             throw new InvalidOperationException("Elemental assay tests are retired; use an ICP method assay test.");
@@ -406,6 +470,10 @@ public class TestDefinitionMasterDataService
         var effectiveEvaluationBasis = request.EvaluationBasis ?? entity.EvaluationBasis;
         var effectiveConditionFields = request.ConditionFields ?? entity.ConditionFields;
         var effectiveUsesTare = request.UsesTare ?? entity.UsesTare;
+        var effectiveUvCalculationMode = request.UvCalculationMode ?? entity.UvCalculationMode;
+        var effectiveUvSpecificAbsorbance = request.UvSpecificAbsorbance ?? entity.UvSpecificAbsorbance;
+        var effectiveUvTotalVolumeMl = request.UvTotalVolumeMl ?? entity.UvTotalVolumeMl;
+        var effectiveUvStandardVolumeMl = request.UvStandardVolumeMl ?? entity.UvStandardVolumeMl;
 
         if (effectiveConditionFields != null && effectiveConditionFields.Length > 500)
             throw new InvalidOperationException("Condition fields cannot exceed 500 characters.");
@@ -462,6 +530,55 @@ public class TestDefinitionMasterDataService
 
             if (!effectiveReplicateCount.HasValue || effectiveReplicateCount.Value < 1 || effectiveReplicateCount.Value > 30)
                 throw new InvalidOperationException($"Replicate count must be between 1 and 30 when equation type is {effectiveEquationType}.");
+        }
+
+        if (effectiveEquationType == EquationType.UvSpectrophotometry)
+        {
+            if (effectiveWorkflowType != WorkflowType.UvSpectrophotometry)
+                throw new InvalidOperationException("Workflow type must be UvSpectrophotometry when equation type is UvSpectrophotometry.");
+
+            if (!effectiveReplicateCount.HasValue || effectiveReplicateCount.Value < 1 || effectiveReplicateCount.Value > 30)
+                throw new InvalidOperationException($"Replicate count must be between 1 and 30 when equation type is {effectiveEquationType}.");
+        }
+        else if (effectiveWorkflowType == WorkflowType.UvSpectrophotometry)
+        {
+            if (effectiveEquationType != EquationType.UvSpectrophotometry)
+                throw new InvalidOperationException("Equation type must be UvSpectrophotometry when workflow type is UvSpectrophotometry.");
+
+            if (!effectiveReplicateCount.HasValue || effectiveReplicateCount.Value < 1 || effectiveReplicateCount.Value > 30)
+                throw new InvalidOperationException($"Replicate count must be between 1 and 30 when equation type is {effectiveEquationType}.");
+        }
+
+        if (effectiveWorkflowType == WorkflowType.UvSpectrophotometry)
+        {
+            if (!effectiveUvCalculationMode.HasValue)
+                throw new InvalidOperationException("A UV test needs a calculation mode.");
+            if (!Enum.IsDefined(effectiveUvCalculationMode.Value))
+                throw new InvalidOperationException("Unknown UV calculation mode.");
+
+            if (effectiveUvCalculationMode.Value == UvCalculationMode.SpecificAbsorbanceAssay)
+            {
+                if (!effectiveUvSpecificAbsorbance.HasValue || effectiveUvSpecificAbsorbance.Value <= 0m)
+                    throw new InvalidOperationException("This UV mode needs a specific absorbance above 0.");
+                if (!effectiveUvTotalVolumeMl.HasValue || effectiveUvTotalVolumeMl.Value <= 0m)
+                    throw new InvalidOperationException("This UV mode needs a total volume above 0.");
+            }
+            else if (effectiveUvCalculationMode.Value == UvCalculationMode.SpecificAbsorbanceValue)
+            {
+                if (!effectiveUvTotalVolumeMl.HasValue || effectiveUvTotalVolumeMl.Value <= 0m)
+                    throw new InvalidOperationException("This UV mode needs a total volume above 0.");
+            }
+            else if (effectiveUvCalculationMode.Value == UvCalculationMode.StandardComparison)
+            {
+                if (!effectiveUvTotalVolumeMl.HasValue || effectiveUvTotalVolumeMl.Value <= 0m)
+                    throw new InvalidOperationException("This UV mode needs a total volume above 0.");
+                if (!effectiveUvStandardVolumeMl.HasValue || effectiveUvStandardVolumeMl.Value <= 0m)
+                    throw new InvalidOperationException("A UV test against a standard needs a standard volume above 0.");
+            }
+        }
+        else if (request.UvCalculationMode.HasValue || request.UvSpecificAbsorbance.HasValue || request.UvTotalVolumeMl.HasValue || request.UvStandardVolumeMl.HasValue || request.UvStandardEntryId.HasValue)
+        {
+            throw new InvalidOperationException("UV fields are only allowed for UV spectrophotometry tests.");
         }
 
         if (effectiveEquationType == EquationType.Qualitative)
@@ -664,6 +781,10 @@ public class TestDefinitionMasterDataService
                 ?? throw new InvalidOperationException("HPLC method not found.");
             if (hplcMethod.SectionId != entity.SectionId)
                 throw new InvalidOperationException("The HPLC method belongs to another laboratory.");
+            if (hplcMethod.ResultMode != HplcResultMode.Assay)
+                throw new InvalidOperationException("Dissolution needs an HPLC assay method.");
+            if (!string.IsNullOrWhiteSpace(hplcMethod.InternalStandardName))
+                throw new InvalidOperationException("Dissolution does not support internal-standard methods.");
             if (!hplcMethod.IsActive && effectiveHplcMethodId != entity.HplcMethodId)
                 throw new InvalidOperationException("The HPLC method is inactive.");
         }
@@ -730,6 +851,8 @@ public class TestDefinitionMasterDataService
         else if (effectiveWorkflowType == WorkflowType.WeightVariation && !entity.WvCapsuleS2ExtraUnits.HasValue) entity.WvCapsuleS2ExtraUnits = 40;
         if (request.WvCapsuleS2MaxOutside.HasValue) entity.WvCapsuleS2MaxOutside = request.WvCapsuleS2MaxOutside.Value;
         else if (effectiveWorkflowType == WorkflowType.WeightVariation && !entity.WvCapsuleS2MaxOutside.HasValue) entity.WvCapsuleS2MaxOutside = 6;
+        if (request.PerContainer.HasValue) entity.PerContainer = request.PerContainer.Value;
+        if (request.MoistureRole.HasValue) entity.MoistureRole = request.MoistureRole.Value;
         if (request.HplcMethodId.HasValue) entity.HplcMethodId = request.HplcMethodId;
         if (request.IcpMethodId.HasValue) entity.IcpMethodId = request.IcpMethodId;
         if (request.TitrationType.HasValue) entity.TitrationType = request.TitrationType;
@@ -747,7 +870,27 @@ public class TestDefinitionMasterDataService
         if (request.TitrationTempCorrection.HasValue) entity.TitrationTempCorrection = request.TitrationTempCorrection;
         if (request.TitrationExpansionCoefficient.HasValue) entity.TitrationExpansionCoefficient = request.TitrationExpansionCoefficient;
         if (request.TitrationStandardEntryId.HasValue) entity.TitrationStandardEntryId = request.TitrationStandardEntryId;
+        if (effectiveWorkflowType == WorkflowType.UvSpectrophotometry)
+        {
+            if (request.UvCalculationMode.HasValue) entity.UvCalculationMode = request.UvCalculationMode;
+            if (request.UvSpecificAbsorbance.HasValue) entity.UvSpecificAbsorbance = request.UvSpecificAbsorbance;
+            if (request.UvTotalVolumeMl.HasValue) entity.UvTotalVolumeMl = request.UvTotalVolumeMl;
+            if (request.UvStandardVolumeMl.HasValue) entity.UvStandardVolumeMl = request.UvStandardVolumeMl;
+            if (request.UvStandardEntryId.HasValue) entity.UvStandardEntryId = request.UvStandardEntryId;
+        }
+        else
+        {
+            entity.UvCalculationMode = null;
+            entity.UvSpecificAbsorbance = null;
+            entity.UvTotalVolumeMl = null;
+            entity.UvStandardVolumeMl = null;
+            entity.UvStandardEntryId = null;
+        }
+        ValidatePerContainerAndMoistureRole(entity.WorkflowType, entity.EquationType, entity.TitrationType, entity.PerContainer, entity.MoistureRole);
         await TitrationDefinitionRules.NormalizeAndValidateAsync(_db, entity);
+        await NormalizeUvStandardEntryAsync(entity);
+        if (entity.MoistureRole != moistureRoleBefore)
+            await NotApplicableTestService.EnsureRoleChangeKeepsMoistureAsync(_db, entity.Code, entity.DisplayName, entity.MoistureRole);
 
         (string? Before, string After, string Reason)? titrationAudit = null;
         if (entity.WorkflowType == WorkflowType.Titration || titrationBefore != null)
@@ -762,6 +905,17 @@ public class TestDefinitionMasterDataService
             }
         }
 
+        // A moisture role change on any other workflow (e.g. loss on drying) moves every dried-basis assay of the
+        // item, so it needs the same reason and an audit row.
+        (string Reason, MoistureRole Before)? roleAudit = null;
+        if (titrationAudit is null && entity.MoistureRole != moistureRoleBefore)
+        {
+            var reason = request.ChangeReason?.Trim();
+            if (string.IsNullOrEmpty(reason) || reason.Length < 5 || reason.Length > 500)
+                throw new InvalidOperationException("A reason for change is required when the moisture role changes.");
+            roleAudit = (reason, moistureRoleBefore);
+        }
+
         await _db.SaveChangesAsync();
 
         if (titrationAudit is { } a)
@@ -772,7 +926,44 @@ public class TestDefinitionMasterDataService
                 changes: new[] { new AuditFieldChange("Titration", a.Before, a.After) }, reason: a.Reason);
         }
 
+        if (roleAudit is { } r)
+        {
+            _db.CurrentUserId = currentUserId;
+            await _audit.RecordUserEventAsync("TestDefinition.MoistureRoleChanged", AuditActionCategory.Configuration,
+                "TestDefinition", entityId: entity.Id.ToString(),
+                changes: new[] { new AuditFieldChange("MoistureRole", r.Before.ToString(), entity.MoistureRole.ToString()) }, reason: r.Reason);
+        }
+
         return TestDefinitionResponse.From(entity);
+    }
+
+    // StandardComparison names its standard material (a master entry of the test's own section);
+    // every other mode / workflow carries none. Messages mirror TitrationDefinitionRules.
+    private async Task NormalizeUvStandardEntryAsync(TestDefinition t)
+    {
+        if (t.WorkflowType != WorkflowType.UvSpectrophotometry || t.UvCalculationMode != UvCalculationMode.StandardComparison)
+        {
+            t.UvStandardEntryId = null;
+            t.UvStandardEntry = null;
+            return;
+        }
+        if (!t.UvStandardEntryId.HasValue)
+            throw new InvalidOperationException("The standard material is required for an assay against standard.");
+        var entry = await _db.MaterialMasterEntries.FirstOrDefaultAsync(e => e.Id == t.UvStandardEntryId.Value)
+            ?? throw new InvalidOperationException("Standard material master entry not found.");
+        if (entry.SectionId != t.SectionId)
+            throw new InvalidOperationException("The standard material belongs to another laboratory.");
+        t.UvStandardEntry = entry;
+    }
+
+    private static void ValidatePerContainerAndMoistureRole(WorkflowType workflowType, EquationType equationType, TitrationType? titrationType, bool perContainer, MoistureRole role)
+    {
+        if (perContainer && workflowType != WorkflowType.Qualitative)
+            throw new InvalidOperationException("Per-container results are only available for qualitative tests.");
+        if (role == MoistureRole.LossOnDrying && !(workflowType == WorkflowType.Gravimetric && equationType == EquationType.GravimetricLoss))
+            throw new InvalidOperationException("Loss on drying role needs a gravimetric loss test.");
+        if (role == MoistureRole.Water && !(workflowType == WorkflowType.Titration && titrationType == TitrationType.KarlFischer))
+            throw new InvalidOperationException("Water role needs a Karl Fischer titration test.");
     }
 
     // Physicochemical-section tests must carry an area; other sections never do.
@@ -851,7 +1042,12 @@ public class TestDefinitionMasterDataService
                 Code: nameof(EquationType.Qualitative),
                 Name: "Qualitative / Identification",
                 FormulaText: "Conforms / Does Not Conform evaluated against expected text",
-                RequiredInputs: new[] { "Conforms" })
+                RequiredInputs: new[] { "Conforms" }),
+            new EquationTypeDto(
+                Code: nameof(EquationType.UvSpectrophotometry),
+                Name: "UV Spectrophotometry",
+                FormulaText: "Assay against standard, specific absorbance assay/value, or absorbance limit",
+                RequiredInputs: new[] { "Absorbance" })
         };
         return types;
     }

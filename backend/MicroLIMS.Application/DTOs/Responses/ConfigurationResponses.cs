@@ -174,6 +174,8 @@ public class TestDefinitionResponse
     public int SectionId { get; init; }
     public DocumentSectionResponse? Section { get; init; }
     public PhyschemArea? PhyschemArea { get; init; }
+    public bool PerContainer { get; init; }
+    public MoistureRole MoistureRole { get; init; }
     public WorkflowType WorkflowType { get; init; }
     public bool IsActive { get; init; }
     public EquationType EquationType { get; init; }
@@ -226,6 +228,12 @@ public class TestDefinitionResponse
     public bool? TitrationTempCorrection { get; init; }
     public decimal? TitrationExpansionCoefficient { get; init; }
     public int? TitrationStandardEntryId { get; init; }
+    public UvCalculationMode? UvCalculationMode { get; init; }
+    public decimal? UvSpecificAbsorbance { get; init; }
+    public decimal? UvTotalVolumeMl { get; init; }
+    public decimal? UvStandardVolumeMl { get; init; }
+    public int? UvStandardEntryId { get; init; }
+    public string? UvStandardEntryName { get; init; }
 
     public static TestDefinitionResponse From(TestDefinition e) => new()
     {
@@ -236,6 +244,8 @@ public class TestDefinitionResponse
         SectionId = e.SectionId,
         Section = e.Section is null ? null : DocumentSectionResponse.From(e.Section),
         PhyschemArea = e.PhyschemArea,
+        PerContainer = e.PerContainer,
+        MoistureRole = e.MoistureRole,
         WorkflowType = e.WorkflowType,
         IsActive = e.IsActive,
         EquationType = e.EquationType,
@@ -288,6 +298,12 @@ public class TestDefinitionResponse
         TitrationTempCorrection = e.TitrationTempCorrection,
         TitrationExpansionCoefficient = e.TitrationExpansionCoefficient,
         TitrationStandardEntryId = e.TitrationStandardEntryId,
+        UvCalculationMode = e.UvCalculationMode,
+        UvSpecificAbsorbance = e.UvSpecificAbsorbance,
+        UvTotalVolumeMl = e.UvTotalVolumeMl,
+        UvStandardVolumeMl = e.UvStandardVolumeMl,
+        UvStandardEntryId = e.UvStandardEntryId,
+        UvStandardEntryName = e.UvStandardEntry?.Name,
     };
 }
 
@@ -324,6 +340,9 @@ public class SpecificationResponse
     public int? HplcMethodAnalyteId { get; init; }
     public int? IcpMethodElementId { get; init; }
     public ProductionStageRole? ProductionStageRole { get; init; }
+    public string? Grade { get; init; }
+    public RelatedSubstanceRow? RelatedSubstanceRow { get; init; }
+    public int? HplcMethodImpurityId { get; init; }
     public List<SpecificationStageResponse> Stages { get; init; } = new();
 
     public static SpecificationResponse From(Specification e) => new()
@@ -333,6 +352,7 @@ public class SpecificationResponse
         ItemId = e.ItemId,
         TestCode = e.TestCode,
         ProductionStageRole = e.ProductionStageRole,
+        Grade = e.Grade,
         AlertLimit = e.AlertLimit,
         ActionLimit = e.ActionLimit,
         SpecLimit = e.SpecLimit,
@@ -359,6 +379,8 @@ public class SpecificationResponse
         DosageForm = e.DosageForm,
         HplcMethodAnalyteId = e.HplcMethodAnalyteId,
         IcpMethodElementId = e.IcpMethodElementId,
+        RelatedSubstanceRow = e.RelatedSubstanceRow,
+        HplcMethodImpurityId = e.HplcMethodImpurityId,
         Stages = e.Stages.Select(SpecificationStageResponse.From).ToList(),
     };
 }

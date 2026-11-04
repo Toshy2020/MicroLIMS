@@ -17,6 +17,8 @@ namespace MicroLIMS.Persistence.Seed;
 // Reference Strain can ever be received).
 public static class DbSeeder
 {
+    private const string PeriodicRetestCause = "Periodic retest";
+
     // initialAdminPassword must be supplied out of band (configuration /
     // hosting secret). When it is absent no administrator is created - see
     // SeedInitialAdministrator for why that is the safe default.
@@ -28,7 +30,8 @@ public static class DbSeeder
                 new Role { Type = RoleType.SystemAdministrator, Name = "System Administrator", IsSystemRole = true, IsActive = true },
                 new Role { Type = RoleType.SectionHead, Name = "Section Head", IsSystemRole = true, IsActive = true },
                 new Role { Type = RoleType.Reviewer, Name = "Reviewer", IsSystemRole = true, IsActive = true },
-                new Role { Type = RoleType.Analyst, Name = "Analyst", IsSystemRole = true, IsActive = true }
+                new Role { Type = RoleType.Analyst, Name = "Analyst", IsSystemRole = true, IsActive = true },
+                new Role { Type = RoleType.QcManager, Name = "QC Manager", IsSystemRole = true, IsActive = true }
             );
             db.SaveChanges();
         }
@@ -37,7 +40,10 @@ public static class DbSeeder
 
         SeedInitialAdministrator(db, initialAdminPassword);
 
-        if (!db.CausesOfTesting.Any())
+        // "Periodic retest" is also inserted by the AddPeriodicRetestSelection
+        // migration (which runs first), so the basic causes are seeded when
+        // that is the only one.
+        if (!db.CausesOfTesting.Any(c => c.Name != PeriodicRetestCause))
         {
             db.CausesOfTesting.AddRange(
                 new CauseOfTesting { Name = "Routine" },
@@ -45,6 +51,8 @@ public static class DbSeeder
                 new CauseOfTesting { Name = "Retest" }
             );
         }
+        if (!db.CausesOfTesting.Any(c => c.Name == PeriodicRetestCause))
+            db.CausesOfTesting.Add(new CauseOfTesting { Name = PeriodicRetestCause, RequiresTestSelection = true });
 
         if (!db.Neutralizers.Any())
         {
@@ -516,6 +524,10 @@ public static class DbSeeder
             (PermissionConstants.EquipmentPlanApprove, "Sign an equipment plan revision into force."),
             (PermissionConstants.EquipmentWorkRecord, "Record and sign calibrations and maintenance logbook entries."),
             (PermissionConstants.CalendarEventManage, "Create, edit, cancel and attach documents to calendar events."),
+            (PermissionConstants.NotApplicableTestsManage, "Mark a test not applicable to an item and manage that request until final approval."),
+            (PermissionConstants.NotApplicableTestsFinalApprove, "Give the final approval of a not-applicable test (QC Manager only)."),
+            (PermissionConstants.TestsOutsource, "Outsource a test to an outside laboratory."),
+            (PermissionConstants.SamplesPrepare, "Prepare a sample for testing: record, confirm or batch-confirm a sample preparation."),
             (PermissionConstants.SectionsViewAll, "View every laboratory section's records read-only."),
             (PermissionConstants.SectionsConfigureAll, "Configure master data and settings for every laboratory section."),
             (PermissionConstants.SystemManageJobs, "View background job status and run history; run housekeeping jobs manually."),
@@ -582,7 +594,9 @@ public static class DbSeeder
                     PermissionConstants.DashboardsLabOverview, PermissionConstants.DashboardsReview, PermissionConstants.KpiView, PermissionConstants.KpiViewTeam, PermissionConstants.KpiConfigureProfiles, PermissionConstants.MediaPrepare, PermissionConstants.MediaRelease, PermissionConstants.MaterialCategoriesManage, PermissionConstants.MaterialsRelease, PermissionConstants.OosManage, PermissionConstants.TestWorkflowSupervise, PermissionConstants.SamplesReceiveOwnLab, PermissionConstants.SamplesCorrect, PermissionConstants.SamplesAssignAnalyst,
                     PermissionConstants.SolutionsPrepare, PermissionConstants.HplcOperate, PermissionConstants.WorkingStandardsQualify,
                     PermissionConstants.MonitoringPlanView, PermissionConstants.MonitoringPlanManage, PermissionConstants.MonitoringPlanApprove,
-                    PermissionConstants.EquipmentPlanManage, PermissionConstants.EquipmentPlanApprove, PermissionConstants.EquipmentWorkRecord, PermissionConstants.CalendarEventManage
+                    PermissionConstants.EquipmentPlanManage, PermissionConstants.EquipmentPlanApprove, PermissionConstants.EquipmentWorkRecord, PermissionConstants.CalendarEventManage,
+                    PermissionConstants.NotApplicableTestsManage, PermissionConstants.TestsOutsource,
+                    PermissionConstants.SamplesPrepare
                 }),
                 (RoleType.Reviewer, new[]
                 {
@@ -596,7 +610,8 @@ public static class DbSeeder
                     PermissionConstants.DocumentsReview, PermissionConstants.DocumentsPeriodicReview,
                     PermissionConstants.DocumentsApprove, PermissionConstants.DocumentsTrainingViewMatrix,
                     PermissionConstants.DashboardsReview, PermissionConstants.MediaPrepare, PermissionConstants.SamplesReceiveOwnLab, PermissionConstants.SamplesCorrect,
-                    PermissionConstants.MonitoringPlanView, PermissionConstants.EquipmentWorkRecord, PermissionConstants.CalendarEventManage
+                    PermissionConstants.MonitoringPlanView, PermissionConstants.EquipmentWorkRecord, PermissionConstants.CalendarEventManage,
+                    PermissionConstants.SamplesPrepare
                 }),
                 (RoleType.Analyst, new[]
                 {
@@ -614,9 +629,15 @@ public static class DbSeeder
                     PermissionConstants.DocumentsRevisionCreate,
                     PermissionConstants.MediaPrepare, PermissionConstants.SamplesReceiveOwnLab,
                     PermissionConstants.SolutionsPrepare, PermissionConstants.HplcOperate, PermissionConstants.WorkingStandardsQualify,
-                    PermissionConstants.MonitoringPlanView, PermissionConstants.EquipmentWorkRecord
+                    PermissionConstants.MonitoringPlanView, PermissionConstants.EquipmentWorkRecord,
+                    PermissionConstants.SamplesPrepare
                 })
             };
+
+            // QC Manager: final approval of a not-applicable test, plus only what Reviewer may view or read.
+            var reviewerReadOnly = grants.First(g => g.Role == RoleType.Reviewer).Codes
+                .Where(c => c.EndsWith(".View", StringComparison.OrdinalIgnoreCase) || c.EndsWith(".Read", StringComparison.OrdinalIgnoreCase));
+            grants = grants.Append((RoleType.QcManager, reviewerReadOnly.Append(PermissionConstants.NotApplicableTestsFinalApprove).ToArray())).ToArray();
 
             foreach (var (roleType, codes) in grants)
             {

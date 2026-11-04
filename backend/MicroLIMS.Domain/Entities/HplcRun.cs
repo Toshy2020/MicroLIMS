@@ -93,6 +93,7 @@ public class HplcSstInjection
     public HplcSstAnalyte? HplcSstAnalyte { get; set; }
     public int InjectionNo { get; set; }
     public decimal Response { get; set; }
+    public decimal? InternalStandardResponse { get; set; }
 }
 
 // A sample assigned to a run after its SST passed: either a test order or a
@@ -124,7 +125,9 @@ public class HplcSampleReplicate
     public HplcRunSample? HplcRunSample { get; set; }
     public int ReplicateNo { get; set; }
     public decimal ActualWeightMg { get; set; }
+    public decimal? InternalStandardResponse { get; set; }
     public List<HplcReplicateResponse> Responses { get; set; } = new();
+    public List<HplcReplicatePeak> Peaks { get; set; } = new();
 }
 
 public class HplcReplicateResponse
@@ -134,6 +137,19 @@ public class HplcReplicateResponse
     public HplcSampleReplicate? HplcSampleReplicate { get; set; }
     public int HplcMethodAnalyteId { get; set; }
     public decimal Response { get; set; }
+}
+
+// A peak of one related-substances replicate: a method impurity, or no impurity for an
+// unspecified peak (identified by its relative retention, when the analyst gave one).
+public class HplcReplicatePeak
+{
+    public int Id { get; set; }
+    public int HplcSampleReplicateId { get; set; }
+    public HplcSampleReplicate? HplcSampleReplicate { get; set; }
+    public int? HplcMethodImpurityId { get; set; }
+    public HplcMethodImpurity? HplcMethodImpurity { get; set; }
+    public decimal? RelativeRetention { get; set; }
+    public decimal Area { get; set; }
 }
 
 // Instrument report evidence (standard or sample chromatogram/report).

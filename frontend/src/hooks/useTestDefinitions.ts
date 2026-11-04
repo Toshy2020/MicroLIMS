@@ -4,8 +4,12 @@ import type { PhyschemArea } from "../modules/laboratoryConfiguration/masterData
 import {
   masterDataOptions,
   CreateTestDefinitionPayload,
-  UpdateTestDefinitionPayload
+  UpdateTestDefinitionPayload,
+  MoistureRole,
+  UvCalculationMode
 } from "../services/masterDataOptions";
+
+export type { MoistureRole, UvCalculationMode };
 
 export interface TestDefinitionOption extends TitrationDefinitionFields {
   id: number;
@@ -56,6 +60,14 @@ export interface TestDefinitionOption extends TitrationDefinitionFields {
     code: string;
   };
   physchemArea?: PhyschemArea | null;
+  perContainer?: boolean;
+  moistureRole?: MoistureRole;
+  uvCalculationMode?: UvCalculationMode | null;
+  uvSpecificAbsorbance?: number | null;
+  uvTotalVolumeMl?: number | null;
+  uvStandardVolumeMl?: number | null;
+  uvStandardEntryId?: number | null;
+  uvStandardEntryName?: string | null;
 }
 
 // Backs every TestCode picker in the app (Items, Water Sampling Points,

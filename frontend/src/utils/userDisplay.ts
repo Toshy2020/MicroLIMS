@@ -3,7 +3,7 @@
 // exactly one.
 //
 // roleName is the role's own name (Role.Name), which an administrator can
-// rename or create. It is shown as it is, except for the four built-in names,
+// rename or create. It is shown as it is, except for the five built-in names,
 // which keep the laboratory-prefixed wording. `role` is the base type the
 // token carries; it only decides the label when no name is known yet (a
 // session stored before role names were sent).
@@ -11,7 +11,8 @@ const BUILT_IN_ROLE_NAME_TYPES = new Map<string, string>([
   ["Analyst", "Analyst"],
   ["Section Head", "SectionHead"],
   ["Reviewer", "Reviewer"],
-  ["System Administrator", "SystemAdministrator"]
+  ["System Administrator", "SystemAdministrator"],
+  ["QC Manager", "QcManager"]
 ]);
 
 export function formatRoleFallback(role: string | null, labCodes: string[], roleName?: string | null): string {
@@ -29,6 +30,7 @@ export function formatRoleFallback(role: string | null, labCodes: string[], role
     case "SectionHead": return prefix ? `${prefix} Section Head` : "Section Head";
     case "Reviewer": return "Quality Reviewer";
     case "SystemAdministrator": return "System Administrator";
+    case "QcManager": return "QC Manager";
     default: return baseType;
   }
 }

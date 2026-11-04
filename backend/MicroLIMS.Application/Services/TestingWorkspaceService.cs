@@ -44,7 +44,19 @@ public class TestingWorkspaceService : ITestWorkspaceService
         }
         if (scope != null)
         {
-            query = query.Where(SampleWorkflowQueues.VisibleInSections(scope, includesPreparingLab));
+            var inScope = SampleWorkflowQueues.VisibleInSections(scope, includesPreparingLab);
+            if (filter.LabSectionId == null)
+            {
+                // The register (not a lab workspace) also lists periodic retests
+                // that have no tests yet, for the laboratories they were received for.
+                var awaiting = await AwaitingSampleIdsInAsync(scope);
+                var visible = _db.Samples.AsNoTracking().Where(inScope).Select(x => x.Id);
+                query = query.Where(s => awaiting.Contains(s.Id) || visible.Contains(s.Id));
+            }
+            else
+            {
+                query = query.Where(inScope);
+            }
         }
 
         var now = _time.GetUtcNow().UtcDateTime;
@@ -263,6 +275,14 @@ public class TestingWorkspaceService : ITestWorkspaceService
         };
     }
 
+    // Periodic retests with no tests yet that were received for at least one of the laboratories in scope.
+    private async Task<List<int>> AwaitingSampleIdsInAsync(IReadOnlyCollection<int> scope)
+    {
+        // ponytail: loads every awaiting sample; they are few (cleared on selection).
+        var awaiting = await _db.Samples.AsNoTracking().Where(s => s.AwaitingTestSelection).ToListAsync();
+        return awaiting.Where(s => SampleSectionRollup.PendingSectionIds(s).Any(scope.Contains)).Select(s => s.Id).ToList();
+    }
+
     // Water, EM and After Cleaning samples get their tests when the Microbiology
     // lab prepares them, so until then only a scope holding that lab lists them.
     // No scope (Sections.ViewAll, no lab picked) is unfiltered anyway.
@@ -468,7 +488,8 @@ public class TestingWorkspaceService : ITestWorkspaceService
 
         if (scope != null)
         {
-            var hasInScopeNonSuperseded = sample.TestOrders.Any(t => !t.IsSuperseded && scope.Contains(t.SectionId));
+            var hasInScopeNonSuperseded = sample.TestOrders.Any(t => !t.IsSuperseded && scope.Contains(t.SectionId))
+                || (labSectionId == null && SampleSectionRollup.PendingSectionIds(sample).Any(scope.Contains));
             if (!hasInScopeNonSuperseded
                 && !(SampleWorkflowQueues.IsAwaitingPreparationWithoutTests(sample) && await IncludesPreparingLabAsync(scope)))
                 return null;
@@ -566,7 +587,8 @@ public class TestingWorkspaceService : ITestWorkspaceService
                 ResultLockReason = stateResult.LockReason,
                 LocationCount = locationCounts.GetValueOrDefault(t.Id),
                 AssignedAnalystId = t.AssignedAnalystId,
-                AssignedAnalystName = t.AssignedAnalystId is { } id ? analystNames.GetValueOrDefault(id) : null
+                AssignedAnalystName = t.AssignedAnalystId is { } id ? analystNames.GetValueOrDefault(id) : null,
+                OutsourcedToLab = t.OutsourcedToLab
             };
         }).ToList();
 
@@ -592,6 +614,8 @@ public class TestingWorkspaceService : ITestWorkspaceService
             CauseOfTesting = s.CauseOfTesting?.Name ?? string.Empty,
             CauseOfTestingId = s.CauseOfTestingId,
             BatchNumber = s.BatchNumber,
+            Grade = s.Grade,
+            AwaitingTestSelection = s.AwaitingTestSelection,
             ControlNumber = s.ControlNumber,
             Status = LabStatus(s).ToString(),
             // TestOrders are already narrowed to the labs in view: when none of
@@ -616,6 +640,7 @@ public class TestingWorkspaceService : ITestWorkspaceService
             IncubationStarted = sampleIncubations.Count > 0,
             CanEditDetails = SampleCorrectionService.IsCorrectable(s.Status),
             CanChangeItemOrLocation = s.Status == SampleStatus.Received
+                && !s.AwaitingTestSelection
                 && s.OriginSampleId == null
                 && sampleIncubations.Count == 0
                 && s.TestOrders.All(t => t.CurrentStep == WorkflowStep.Waiting),
@@ -626,7 +651,8 @@ public class TestingWorkspaceService : ITestWorkspaceService
             PreviousProductBatchNumber = s.Category == SampleCategory.AfterCleaning ? (s.PreviousProductBatchNumber ?? s.BatchNumber) : null,
             OriginSampleId = s.OriginSampleId,
             OriginReferenceNumber = s.OriginSample?.ReferenceNumber,
-            OosGroupCode = s.OosGroupCode
+            OosGroupCode = s.OosGroupCode,
+            Warnings = s.Warnings
         };
     }
 }

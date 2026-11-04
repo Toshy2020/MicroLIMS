@@ -57,6 +57,8 @@ interface Props {
   onAssignAnalyst?: (sample: SampleRecord) => void;
   onVoid?: (sample: SampleRecord) => void;
   onAddLaboratory?: (sample: SampleRecord) => void;
+  // Periodic retest awaiting its tests: opens the test-selection dialog.
+  onSelectTests?: (sample: SampleRecord) => void;
   // localStorage key for this register's column choice, so each page that
   // uses the table remembers its own set.
   columnsStorageKey?: string;
@@ -220,11 +222,14 @@ export function SampleRegisterTable({
   onAssignAnalyst,
   onVoid,
   onAddLaboratory,
+  onSelectTests,
   columnsStorageKey = "microlims.sampleRegister.columns"
 }: Props) {
   const theme = useTheme();
-  const { permissions } = useAuth();
+  const { permissions, role } = useAuth();
   const isAuthorizedToAssign = permissions.includes(PERMISSIONS.SAMPLES_ASSIGN_ANALYST);
+  // Mirrors the server: only a Section Head or Supervisor chooses a periodic retest's tests.
+  const canChooseTests = permissions.includes(PERMISSIONS.SAMPLES_CORRECT) && (role === "SectionHead" || role === "Reviewer");
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(25);
   const [activeDocSample, setActiveDocSample] = useState<SampleRecord | null>(null);
@@ -249,6 +254,12 @@ export function SampleRegisterTable({
   // reported; no laboratory rule is decided here.
   const getNextAction = (sample: SampleRecord): NextAction | null => {
     if (CLOSED_STATUSES.has(sample.status)) return null;
+    // A laboratory with tests of its own carries on; the rest is shown by the summary chip.
+    if (sample.awaitingTestSelection && sample.assignedTests.length === 0) {
+      return onSelectTests && canChooseTests
+        ? { label: "Select tests", kind: "primary", run: () => onSelectTests(sample) }
+        : { label: "Awaiting test selection", kind: "wait" };
+    }
     if (sample.preparationStatus === "NeedsPreparation") {
       return { label: "Prepare", kind: "primary", run: () => onPrepareSample(sample) };
     }
@@ -726,6 +737,7 @@ export function SampleRegisterTable({
                   onTestClick={onTestClick}
                   onViewAllTests={onViewSummary}
                   onPrepareSample={onPrepareSample}
+                  onSelectTests={onSelectTests}
                 />
               </Box>
             </TableCell>
@@ -774,6 +786,7 @@ export function SampleRegisterTable({
               onAssignAnalyst={onAssignAnalyst}
               onVoid={onVoid}
               onAddLaboratory={onAddLaboratory}
+              onSelectTests={onSelectTests}
             />
           </TableCell>
         </TableRow>

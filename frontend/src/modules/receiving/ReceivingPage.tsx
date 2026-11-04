@@ -14,6 +14,7 @@ import { NewSampleDialog } from "./dialogs/NewSampleDialog";
 import { EditSampleDetailsDialog } from "./dialogs/EditSampleDetailsDialog";
 import { VoidSampleConfirmationDialog } from "./dialogs/VoidSampleConfirmationDialog";
 import { AddLaboratoryDialog } from "./dialogs/AddLaboratoryDialog";
+import { SelectRetestTestsDialog } from "./dialogs/SelectRetestTestsDialog";
 import { SampleSummaryDialog } from "../testingWorkspace/SampleSummaryDialog";
 import { useAuth } from "../../contexts/AuthContext";
 import { PERMISSIONS } from "../../routes/routes";
@@ -27,7 +28,7 @@ const RECEIVING_CATEGORY_NAMES = ["FinishedProduct", "RawMaterial", "PackagingMa
 // "Receive" wizard with a required target-lab choice, and a signed
 // "Add Laboratory" action for samples already on the register (requires Samples.Receive).
 export function ReceivingPage() {
-  const { permissions } = useAuth();
+  const { permissions, role } = useAuth();
   const canReceive = permissions.includes(PERMISSIONS.SAMPLES_RECEIVE);
   const canReceiveOwnLab = permissions.includes(PERMISSIONS.SAMPLES_RECEIVE_OWN_LAB);
   const canReceiveAny = canReceive || canReceiveOwnLab;
@@ -39,6 +40,7 @@ export function ReceivingPage() {
   const [editSample, setEditSample] = useState<SampleRecord | null>(null);
   const [voidingSample, setVoidingSample] = useState<SampleRecord | null>(null);
   const [addingLabSample, setAddingLabSample] = useState<SampleRecord | null>(null);
+  const [selectingTestsSample, setSelectingTestsSample] = useState<SampleRecord | null>(null);
   const [summarySampleId, setSummarySampleId] = useState<number | null>(null);
   const [auditSampleId, setAuditSampleId] = useState<number | null>(null);
   const [notification, setNotification] = useState<{ text: string; severity: "success" | "error" } | null>(null);
@@ -117,6 +119,7 @@ export function ReceivingPage() {
         onPrepareSample={(sample) => setSummarySampleId(sample.sampleId)}
         onVoid={canCorrect ? ((sample) => setVoidingSample(sample)) : undefined}
         onAddLaboratory={canReceive ? ((sample) => setAddingLabSample(sample)) : undefined}
+        onSelectTests={(sample) => setSelectingTestsSample(sample)}
       />
 
       {canReceiveAny && (
@@ -167,6 +170,18 @@ export function ReceivingPage() {
           }}
         />
       )}
+
+      <SelectRetestTestsDialog
+        open={Boolean(selectingTestsSample)}
+        sample={selectingTestsSample}
+        canSelect={canCorrect && (role === "SectionHead" || role === "Reviewer")}
+        onClose={() => setSelectingTestsSample(null)}
+        onSuccess={() => {
+          setSelectingTestsSample(null);
+          setNotification({ text: "Tests chosen and signed.", severity: "success" });
+          loadRecords();
+        }}
+      />
 
       <SampleSummaryDialog
         open={Boolean(summarySampleId)}

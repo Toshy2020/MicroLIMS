@@ -14,6 +14,7 @@ public class HplcMethodConfiguration : IEntityTypeConfiguration<HplcMethod>
         builder.Property(e => e.ColumnDesignation).IsRequired().HasMaxLength(20);
         builder.Property(e => e.ColumnBrand).HasMaxLength(100);
         builder.Property(e => e.ColumnPartNumber).HasMaxLength(100);
+        builder.Property(e => e.InternalStandardName).HasMaxLength(100);
 
         builder.Property(e => e.ColumnLengthMm).HasColumnType("decimal(10,3)");
         builder.Property(e => e.ColumnInternalDiameterMm).HasColumnType("decimal(10,3)");
@@ -31,6 +32,8 @@ public class HplcMethodConfiguration : IEntityTypeConfiguration<HplcMethod>
         builder.Property(e => e.HeadspaceEquilibrationMin).HasColumnType("decimal(10,3)");
         builder.Property(e => e.HeadspaceTransferLineTemperatureC).HasColumnType("decimal(10,3)");
         builder.Property(e => e.SampleSolutionVolumeMl).HasColumnType("decimal(10,3)");
+        builder.Property(e => e.ReferenceSolutionPercent).HasColumnType("decimal(10,4)");
+        builder.Property(e => e.DisregardLimitPercent).HasColumnType("decimal(10,4)");
 
         builder.HasIndex(e => new { e.SectionId, e.Abbreviation }).IsUnique();
 
@@ -41,6 +44,20 @@ public class HplcMethodConfiguration : IEntityTypeConfiguration<HplcMethod>
         builder.HasMany(e => e.GradientSteps).WithOne(c => c.HplcMethod).HasForeignKey(c => c.HplcMethodId).OnDelete(DeleteBehavior.Cascade);
         builder.HasMany(e => e.OvenSteps).WithOne(c => c.HplcMethod).HasForeignKey(c => c.HplcMethodId).OnDelete(DeleteBehavior.Cascade);
         builder.HasMany(e => e.Analytes).WithOne(c => c.HplcMethod).HasForeignKey(c => c.HplcMethodId).OnDelete(DeleteBehavior.Cascade);
+        builder.HasMany(e => e.Impurities).WithOne(c => c.HplcMethod).HasForeignKey(c => c.HplcMethodId).OnDelete(DeleteBehavior.Cascade);
+    }
+}
+
+public class HplcMethodImpurityConfiguration : IEntityTypeConfiguration<HplcMethodImpurity>
+{
+    public void Configure(EntityTypeBuilder<HplcMethodImpurity> builder)
+    {
+        builder.ToTable("HplcMethodImpurities");
+        builder.HasKey(e => e.Id);
+        builder.Property(e => e.Name).IsRequired().HasMaxLength(100);
+        builder.Property(e => e.RelativeRetention).HasColumnType("decimal(10,4)");
+        builder.Property(e => e.CorrectionFactor).HasColumnType("decimal(10,4)");
+        builder.HasIndex(e => new { e.HplcMethodId, e.Name }).IsUnique();
     }
 }
 

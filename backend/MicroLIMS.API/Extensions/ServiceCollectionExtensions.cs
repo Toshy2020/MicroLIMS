@@ -79,9 +79,11 @@ public static class ServiceCollectionExtensions
         services.AddScoped<MediaStorageService>();
         services.AddScoped<CryovialSummaryService>();
         services.AddScoped<SampleReviewService>();
+        services.AddScoped<SampleMoistureResolver>();
         services.AddScoped<SampleApprovalService>();
         services.AddScoped<SectionClosureService>();
         services.AddScoped<AddLaboratoryService>();
+        services.AddScoped<SampleTestSelectionService>();
         services.AddScoped<SampleSummaryService>();
         services.AddScoped<SampleTrackingService>();
         services.AddScoped<OosTrackingService>();
@@ -195,6 +197,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<HplcRunService>();
         services.AddScoped<IcpRunService>();
         services.AddScoped<WorkingStandardService>();
+        services.AddScoped<NotApplicableTestService>();
         services.AddScoped<MediaProductService>();
         services.AddScoped<MediaIncubationConditionService>();
         services.AddScoped<EquipmentInventoryService>();
@@ -212,6 +215,7 @@ public static class ServiceCollectionExtensions
         var maxDocBytes = config.GetValue<long>("MaterialDocuments:MaxFileSizeBytes", 26_214_400L); // 25 MB default
         services.AddSingleton(_ => new MaterialDocumentFileValidator(maxDocBytes));
         services.AddScoped<MaterialDocumentService>();
+        services.AddScoped<SampleDocumentService>();
         services.AddScoped<EquipmentDocumentService>();
         services.AddScoped<ItemDocumentService>();
         services.AddScoped<OosInvestigationDocumentService>();
@@ -245,6 +249,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<MicroLIMS.Application.Services.EquipmentPlan.EquipmentCalendarService>();
         services.AddScoped<AfterCleaningMasterDataService>();
         services.AddScoped<SpecificationMasterDataService>();
+        services.AddScoped<SupplierStatedAttributeService>();
         services.AddScoped<ReferenceListMasterDataService>();
         services.AddScoped<EquipmentMasterDataService>();
         services.AddScoped<InstrumentAgentService>();

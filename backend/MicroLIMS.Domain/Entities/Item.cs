@@ -15,6 +15,10 @@ public class Item : IVersionedEntity
     public List<Specification> Specifications { get; set; } = new();
     public List<SampleTest> AssignedTests { get; set; } = new();
 
+    public decimal? MinSampleQuantity { get; set; }
+    public decimal? MinRetestSampleQuantity { get; set; }
+    public string? MinSampleQuantityUnit { get; set; }
+
     // Frozen items are kept for historical Sample traceability but can no
     // longer be used to receive new samples (see ProductWorkflowEngine.ReceiveAsync).
     public bool IsActive { get; set; } = true;

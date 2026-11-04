@@ -20,7 +20,8 @@ public record HplcQualificationEntryDto(
     string MaterialName, string BatchNumber, decimal? MoisturePercent,
     List<HplcMethodWeightDto> MethodWeights, int RequiredReplicates, List<HplcReplicateDto> Replicates,
     WorkingStandardPreviewDto? Preview, List<HplcEvidenceDto> Evidence,
-    bool Editable, string? EditableReason, bool Submitted, bool CanSubmit, string? CanSubmitReason);
+    bool Editable, string? EditableReason, bool Submitted, bool CanSubmit, string? CanSubmitReason,
+    string? InternalStandardName = null);
 
 // Working standard qualification samples on an HPLC run (spec 2026-10-03):
 // assigned like a sample after SST passes, six replicates entered against the
@@ -42,7 +43,7 @@ public partial class HplcRunService
     {
         if (SstUsedWorkingStandard(run)) return new();
         var snapshot = ReadSnapshot(run);
-        if (snapshot.ResultMode == HplcResultMode.ResidualSolvents) return new();
+        if (snapshot.ResultMode != HplcResultMode.Assay) return new(); // only an assay run qualifies working standards
         var entryIds = snapshot.Analytes.Select(a => a.StandardEntryId).ToList();
         var busy = _db.HplcRunSamples
             .Where(s => s.WorkingStandardQualificationId != null && s.Status == HplcRunSampleStatus.Assigned
@@ -128,10 +129,18 @@ public partial class HplcRunService
             throw new InvalidOperationException(problem);
 
         var inputs = r.Replicates ?? new List<HplcReplicateInput>();
+        var hasIs = !string.IsNullOrWhiteSpace(c.Snapshot.InternalStandardName);
+        if (!hasIs && inputs.Any(x => x.InternalStandardResponse.HasValue))
+            throw new InvalidOperationException("This method has no internal standard.");
+        if (inputs.Any(x => x.Peaks is { Count: > 0 }))
+            throw new InvalidOperationException("Peaks are not used for working-standard qualification.");
+
         for (var i = 0; i < inputs.Count; i++)
         {
             if (inputs[i].ActualWeightMg <= 0)
                 throw new InvalidOperationException($"Replicate {i + 1}: the sample weight must be greater than zero.");
+            if (hasIs && inputs[i].InternalStandardResponse is null or <= 0)
+                throw new InvalidOperationException($"Replicate {i + 1}: the internal standard response is required.");
             var responses = inputs[i].Responses ?? new List<HplcReplicateResponseInput>();
             var matches = responses.Where(x => x.HplcMethodAnalyteId == c.Analyte.Id).ToList();
             if (matches.Count != 1 || responses.Count != 1)
@@ -225,6 +234,12 @@ public partial class HplcRunService
         if (sstRow?.MeanResponse is null or <= 0 || sstRow.StandardWeightMg is null or <= 0
             || sstRow.StandardPurityPercent is null or <= 0 || sstRow.StandardMoisturePercent is null)
             return $"{c.Analyte.Name}: the system suitability standard values are incomplete.";
+        if (!string.IsNullOrWhiteSpace(c.Snapshot.InternalStandardName))
+        {
+            foreach (var rep in c.RunSample.Replicates.OrderBy(r => r.ReplicateNo))
+                if (rep.InternalStandardResponse is null or <= 0)
+                    return $"Replicate {rep.ReplicateNo}: the internal standard response is required.";
+        }
         if (c.Q.MoisturePercent == null) return "Enter the moisture content first.";
         return null;
     }
@@ -244,9 +259,10 @@ public partial class HplcRunService
         var sstRow = c.Run.Sst!.Analytes.First(a => a.HplcMethodAnalyteId == c.Analyte.Id);
         var std = new AssayStandard(sstRow.MeanResponse!.Value, sstRow.StandardWeightMg!.Value,
             sstRow.StandardPurityPercent!.Value, sstRow.StandardMoisturePercent!.Value);
+        var hasIs = !string.IsNullOrWhiteSpace(c.Snapshot.InternalStandardName);
         var reps = c.RunSample.Replicates.OrderBy(r => r.ReplicateNo)
             .Select(r => new AssayReplicateInput(r.ReplicateNo, r.ActualWeightMg,
-                r.Responses.First(x => x.HplcMethodAnalyteId == c.Analyte.Id).Response))
+                HplcResponse.ForReplicate(r.ReplicateNo, r.Responses.First(x => x.HplcMethodAnalyteId == c.Analyte.Id).Response, r.InternalStandardResponse, hasIs)))
             .ToList();
         var assay = HplcAssayCalculator.Calculate(c.Analyte.Id, c.Analyte.Name,
             c.Analyte.TheoreticalWeightStdMg, c.Analyte.TheoreticalWeightTestMg, std, reps);
@@ -275,7 +291,8 @@ public partial class HplcRunService
 
         var replicates = c.RunSample.Replicates.OrderBy(r => r.ReplicateNo)
             .Select(r => new HplcReplicateDto(r.ReplicateNo, r.ActualWeightMg,
-                r.Responses.OrderBy(x => x.HplcMethodAnalyteId).Select(x => new HplcReplicateResponseInput(x.HplcMethodAnalyteId, x.Response)).ToList()))
+                r.Responses.OrderBy(x => x.HplcMethodAnalyteId).Select(x => new HplcReplicateResponseInput(x.HplcMethodAnalyteId, x.Response)).ToList(),
+                new List<HplcReplicatePeakInput>(), r.InternalStandardResponse))
             .ToList();
         var weights = new List<HplcMethodWeightDto>
         {
@@ -288,6 +305,7 @@ public partial class HplcRunService
             c.Q.Id, c.Q.Code, c.Q.Status, c.Q.SourceMaterialName, c.Q.SourceBatchNumber, c.Q.MoisturePercent,
             weights, WorkingStandardRules.Replicates, replicates, preview, evidence,
             editableReason == null, editableReason, c.Q.Status != WorkingStandardQualificationStatus.Draft,
-            submitProblem == null, submitProblem);
+            submitProblem == null, submitProblem,
+            string.IsNullOrWhiteSpace(c.Snapshot.InternalStandardName) ? null : c.Snapshot.InternalStandardName);
     }
 }

@@ -1,4 +1,4 @@
-export type Role = "SystemAdministrator" | "SectionHead" | "Reviewer" | "Analyst";
+export type Role = "SystemAdministrator" | "SectionHead" | "Reviewer" | "Analyst" | "QcManager";
 
 export interface LoginResult {
   token: string;

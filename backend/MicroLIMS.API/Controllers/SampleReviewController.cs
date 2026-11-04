@@ -9,7 +9,8 @@ namespace MicroLIMS.API.Controllers;
 
 // SectionId: which laboratory section's tests are being reviewed. Optional -
 // needed only when more than one section of the sample is under review.
-public record CompleteSampleReviewRequest(string Password, string? Comment, int? SectionId = null);
+// RetentionQuantity/Unit: raw-material physicochemical review only (SampleReviewService validates).
+public record CompleteSampleReviewRequest(string Password, string? Comment, int? SectionId = null, decimal? RetentionQuantity = null, string? RetentionQuantityUnit = null);
 public record ReturnTestToAnalystRequest(int TestOrderId, string? Reason);
 
 // Sample-level review, reached by clicking a Sample's lifecycle badge in
@@ -34,7 +35,7 @@ public class SampleReviewController : ControllerBase
     public async Task<IActionResult> Complete(int id, CompleteSampleReviewRequest request)
     {
         var ip = HttpContext.Connection.RemoteIpAddress?.ToString();
-        await _reviewService.CompleteReviewAsync(id, CurrentUserId, request.Password, request.Comment, ip, request.SectionId);
+        await _reviewService.CompleteReviewAsync(id, CurrentUserId, request.Password, request.Comment, ip, request.SectionId, request.RetentionQuantity, request.RetentionQuantityUnit);
         return Ok(ApiResponse<object>.Ok(new { }));
     }
 

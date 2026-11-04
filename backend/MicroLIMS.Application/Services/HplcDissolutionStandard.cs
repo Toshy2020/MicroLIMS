@@ -38,8 +38,12 @@ public static class HplcDissolutionStandard
             return new(null, $"System suitability {run.Sst.Code} has not passed.");
 
         var snapshot = JsonSerializer.Deserialize<HplcMethodResponse>(run.MethodSnapshotJson, SnapshotJson.Options);
+        if (snapshot != null && snapshot.ResultMode != HplcResultMode.Assay)
+            return new(null, "Dissolution needs an HPLC assay method.");
         if (snapshot == null || snapshot.Analytes.Count != 1)
             return new(null, "Dissolution needs an HPLC method with exactly one analyte.");
+        if (!string.IsNullOrWhiteSpace(snapshot.InternalStandardName))
+            return new(null, "Dissolution does not support internal-standard methods.");
         var analyte = snapshot.Analytes[0];
         if (analyte.StandardDilution is not > 0m)
             return new(null, $"Method {snapshot.Abbreviation} has no standard dilution for {analyte.Name}.");

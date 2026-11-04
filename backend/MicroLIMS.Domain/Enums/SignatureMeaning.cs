@@ -37,5 +37,10 @@ public enum SignatureMeaning
     RolePermissionsChanged,
     RoleDeleted,
     SystemSettingChanged,
-    AccessReviewSigned
+    AccessReviewSigned,
+    TestsSelected,
+    NotApplicableHeadApproved,
+    NotApplicableFinalApproved,
+    NotApplicableWithdrawn,
+    TestOutsourced
 }

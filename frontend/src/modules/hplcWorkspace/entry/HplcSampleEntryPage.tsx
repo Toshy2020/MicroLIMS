@@ -25,21 +25,24 @@ import { toast } from "sonner";
 import { useAuth } from "../../../contexts/AuthContext";
 import { PERMISSIONS } from "../../../routes/routes";
 import { HplcWorkspaceService } from "../services/HplcWorkspaceService";
-import { HplcMethodService } from "../../laboratoryConfiguration/masterDataSimple/services/HplcMethodService";
 import { HplcStatusBadge } from "../components/HplcStatusBadge";
 import { NumericCell, ResultSection } from "../../../components/lab";
 import { StatusBadge } from "../../../components/StatusBadge";
 import { ReplicateEntryTable, replicatesComplete } from "./ReplicateEntryTable";
+import { buildReplicatePayload } from "./replicatePayload";
+import { RelatedSubstancesPeakTable, rsReplicatesComplete } from "./RelatedSubstancesPeakTable";
 import { CalculationSummaryCard, OfficialResultsCard } from "./CalculationSummaryCard";
 import { SendForReviewDialog } from "./SendForReviewDialog";
 import { ReportUploadPanel } from "../evidence/ReportUploadPanel";
 import { tableHeadSx } from "../../../theme";
 import { useTechnique } from "../useTechnique";
+import { TestWorkflowService } from "../../testingWorkspace/services/TestWorkflowService";
+import { formatMoistureLabel } from "../../testingWorkspace/utils/moistureRetentionHelpers";
+import { getErrorMessage } from "../../../utils/errorMessage";
+import type { SampleMoistureResult } from "../../testingWorkspace/types/testWorkflowTypes";
 import type {
   HplcSampleEntryDto,
   HplcReplicateDto,
-  HplcReplicateInput,
-  HplcMethodSnapshot
 } from "../types";
 
 export function HplcSampleEntryPage() {
@@ -59,9 +62,13 @@ export function HplcSampleEntryPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sampleEntry, setSampleEntry] = useState<HplcSampleEntryDto | null>(null);
-  const [method, setMethod] = useState<HplcMethodSnapshot | null>(null);
   const [replicates, setReplicates] = useState<HplcReplicateDto[]>([]);
   const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
+
+  // Moisture state for content basis
+  const [moisture, setMoisture] = useState<SampleMoistureResult | null>(null);
+  const [moistureStatus, setMoistureStatus] = useState<"idle" | "loading" | "loaded" | "error">("idle");
+  const [moistureError, setMoistureError] = useState("");
 
   const sampleIdNum = Number(runSampleId);
   const parsedRunId = Number(runId);
@@ -71,19 +78,34 @@ export function HplcSampleEntryPage() {
     try {
       const data = await HplcWorkspaceService.getSampleEntry(sampleIdNum);
       setSampleEntry(data);
-      setReplicates(data.replicates || []);
+      const normalizedReplicates = (data.replicates || []).map((r) => ({
+        ...r,
+        peaks: r.peaks?.map((p, idx) => ({
+          ...p,
+          clientKey: p.clientKey || (p.hplcMethodImpurityId == null ? `unsp-${r.replicateNo}-${idx}` : undefined)
+        }))
+      }));
+      setReplicates(normalizedReplicates);
 
-      const runIdToFetch = parsedRunId || data.hplcRunId;
-      if (runIdToFetch) {
+      // What the server validates against is the run's snapshot, carried on the entry - not the live method.
+      const isRS = data.resultMode === "RelatedSubstances";
+      const isResidual = data.resultMode === "ResidualSolvents";
+
+      setMoistureError("");
+      if (!isRS && !isResidual && Boolean(data.moistureRole) && data.testOrderId) {
         try {
-          const runData = await HplcWorkspaceService.getRun(runIdToFetch);
-          if (runData?.hplcMethodId) {
-            const m = await HplcMethodService.getById(runData.hplcMethodId);
-            setMethod(m);
-          }
-        } catch {
-          // Method snapshot is optional
+          setMoistureStatus("loading");
+          const m = await TestWorkflowService.getMoisture(data.testOrderId);
+          setMoisture(m);
+          setMoistureStatus("loaded");
+        } catch (err: unknown) {
+          setMoisture(null);
+          setMoistureError(getErrorMessage(err, "Could not load the sample's moisture result."));
+          setMoistureStatus("error");
         }
+      } else {
+        setMoisture(null);
+        setMoistureStatus("idle");
       }
     } catch (err: unknown) {
       const e = err as { response?: { data?: { message?: string } }; message?: string };
@@ -91,24 +113,25 @@ export function HplcSampleEntryPage() {
     } finally {
       setLoading(false);
     }
-  }, [sampleIdNum, parsedRunId]);
+  }, [sampleIdNum]);
 
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  const isResidualSolvents = sampleEntry?.resultMode === "ResidualSolvents";
+  const isRelatedSubstances = sampleEntry?.resultMode === "RelatedSubstances";
+
+  const hasInternalStandard = Boolean(sampleEntry?.internalStandardName);
+  const principalAnalyteId = sampleEntry?.principalAnalyte?.id ?? null;
+  const hasExactlyOneAnalyte = principalAnalyteId != null;
 
   const handleSaveReplicates = async () => {
     if (!sampleEntry || !sampleIdNum) return;
     setSaving(true);
     setError(null);
 
-    const payload: HplcReplicateInput[] = replicates.map((r) => ({
-      actualWeightMg: r.actualWeightMg,
-      responses: r.responses.map((resp) => ({
-        hplcMethodAnalyteId: resp.hplcMethodAnalyteId,
-        response: resp.response
-      }))
-    }));
+    const payload = buildReplicatePayload(replicates, Boolean(isRelatedSubstances), hasInternalStandard);
 
     try {
       const updated = await HplcWorkspaceService.saveReplicates(sampleIdNum, {
@@ -147,14 +170,10 @@ export function HplcSampleEntryPage() {
 
   const isEditable = sampleEntry.editable && canOperate;
   const methodWeights = sampleEntry.methodWeights || [];
-  const isResidualSolvents =
-    method?.resultMode === "ResidualSolvents" ||
-    sampleEntry.preview?.some((p) => p.quantity === "Residual solvent (ppm)") ||
-    sampleEntry.official?.some((o) => o.quantity === "ResidualSolventPpm") ||
-    (methodWeights.length > 0 &&
-      methodWeights.every((mw) => mw.theoreticalWeightStdMg === 0 && mw.theoreticalWeightTestMg === 0));
 
-  const canSave = replicatesComplete(methodWeights, replicates, isResidualSolvents);
+  const canSave = isRelatedSubstances
+    ? rsReplicatesComplete(replicates, principalAnalyteId)
+    : replicatesComplete(methodWeights, replicates, isResidualSolvents, hasInternalStandard);
 
   return (
     <Box sx={{ p: { xs: 2, md: 3 }, maxWidth: 1400, mx: "auto" }}>
@@ -222,7 +241,13 @@ export function HplcSampleEntryPage() {
               {saving ? "Saving..." : "Save Replicates"}
             </Button>
 
-            <Tooltip title={!sampleEntry.canSubmit ? (sampleEntry.canSubmitReason || "Prerequisites not met") : ""}>
+            <Tooltip
+              title={
+                !sampleEntry.canSubmit
+                  ? (sampleEntry.canSubmitReason || "Prerequisites not met")
+                  : ""
+              }
+            >
               <span>
                 <Button
                   variant="contained"
@@ -245,11 +270,34 @@ export function HplcSampleEntryPage() {
             <strong>Entry Locked:</strong> {sampleEntry.editableReason || "This test order is read-only."}
           </Alert>
         )}
+
+        {/* Content basis moisture line: only when moistureRole is set, and not RS / residual */}
+        {Boolean(sampleEntry.moistureRole && !isRelatedSubstances && !isResidualSolvents) && (
+          <Box sx={{ mt: 2, pt: 1.5, borderTop: `1px solid ${theme.palette.divider}` }}>
+            {moistureStatus === "loading" ? (
+              <Typography sx={{ fontSize: 13, color: "text.secondary", py: 0.5 }}>
+                Loading moisture result...
+              </Typography>
+            ) : moistureStatus === "error" ? (
+              <Alert severity="error" sx={{ width: "100%", fontSize: 13, py: 0.5 }}>
+                {moistureError || "Could not load the sample's moisture result."}
+              </Alert>
+            ) : moisture ? (
+              <Typography sx={{ fontSize: 13, color: "text.primary", py: 0.5, fontWeight: 600 }}>
+                {formatMoistureLabel(moisture)}
+              </Typography>
+            ) : sampleEntry.canSubmitReason ? (
+              <Alert severity="warning" sx={{ width: "100%", fontSize: 13, py: 0.5 }}>
+                {sampleEntry.canSubmitReason}
+              </Alert>
+            ) : null}
+          </Box>
+        )}
       </Paper>
 
       <Stack spacing={2.5}>
         {/* 1. Method theoretical weights snapshot (Assay mode only) */}
-        {!isResidualSolvents && (
+        {!isResidualSolvents && !isRelatedSubstances && (
           <ResultSection step={1} title="Method & theoretical weights">
             {methodWeights.length > 0 ? (
               <TableContainer sx={{ border: `1px solid ${theme.palette.divider}`, borderRadius: 1 }}>
@@ -285,63 +333,130 @@ export function HplcSampleEntryPage() {
         )}
 
         {/* 2. Replicate entry */}
-        <ResultSection step={isResidualSolvents ? 1 : 2} title="Replicates">
-          <ReplicateEntryTable
-            methodWeights={methodWeights}
-            replicates={replicates}
-            onChange={setReplicates}
-            requiredReplicates={sampleEntry.requiredReplicates}
-            disabled={!isEditable || saving}
-            isResidualSolvents={isResidualSolvents}
-            footer={
-              <Box
-                sx={{
-                  position: "sticky",
-                  bottom: 0,
-                  zIndex: 1,
-                  mt: 1.5,
-                  py: 1.25,
-                  display: "flex",
-                  justifyContent: "flex-end",
-                  alignItems: "center",
-                  gap: 1.5,
-                  bgcolor: "background.paper",
-                  borderTop: `1px solid ${theme.palette.divider}`
-                }}
-              >
-                {isEditable && !canSave && (
-                  <Typography variant="caption" sx={{ color: "text.secondary" }}>
-                    {isResidualSolvents
-                      ? "Enter a positive weight and area (≥ 0) in every cell to save."
-                      : "Enter a positive weight and response in every cell to save."}
-                  </Typography>
-                )}
-                <Button
-                  variant="contained"
-                  color="primary"
-                  startIcon={<SaveIcon />}
-                  onClick={handleSaveReplicates}
-                  disabled={!isEditable || saving || !canSave}
-                  sx={{ textTransform: "none", fontWeight: 600 }}
+        <ResultSection
+          step={isResidualSolvents || isRelatedSubstances ? 1 : 2}
+          title={isRelatedSubstances ? "Peak area entry" : "Replicates"}
+        >
+          {isRelatedSubstances ? (
+            <RelatedSubstancesPeakTable
+              method={{
+                analytes: sampleEntry.principalAnalyte ? [sampleEntry.principalAnalyte] : [],
+                impurities: sampleEntry.impurities ?? [],
+                referenceSolutionPercent: sampleEntry.referenceSolutionPercent,
+                disregardLimitPercent: sampleEntry.disregardLimitPercent
+              }}
+              methodWeights={methodWeights}
+              replicates={replicates}
+              onChange={setReplicates}
+              requiredReplicates={sampleEntry.requiredReplicates}
+              disabled={!isEditable || saving}
+              footer={
+                <Box
+                  sx={{
+                    position: "sticky",
+                    bottom: 0,
+                    zIndex: 1,
+                    mt: 1.5,
+                    py: 1.25,
+                    display: "flex",
+                    justifyContent: "flex-end",
+                    alignItems: "center",
+                    gap: 1.5,
+                    bgcolor: "background.paper",
+                    borderTop: `1px solid ${theme.palette.divider}`
+                  }}
                 >
-                  {saving ? "Saving..." : "Save Replicates"}
-                </Button>
-              </Box>
-            }
-          />
+                  {isEditable && !canSave && (
+                    <Typography
+                      variant="caption"
+                      sx={{ color: !hasExactlyOneAnalyte ? "error.main" : "text.secondary" }}
+                    >
+                      {!hasExactlyOneAnalyte
+                        ? "This related-substances method must have exactly one analyte."
+                        : "Enter a positive reference solution area, non-negative peak areas, and positive RRTs to save."}
+                    </Typography>
+                  )}
+                  <Button
+                    variant="contained"
+                    color="primary"
+                    startIcon={<SaveIcon />}
+                    onClick={handleSaveReplicates}
+                    disabled={!isEditable || saving || !canSave}
+                    sx={{ textTransform: "none", fontWeight: 600 }}
+                  >
+                    {saving ? "Saving..." : "Save Replicates"}
+                  </Button>
+                </Box>
+              }
+            />
+          ) : (
+            <ReplicateEntryTable
+              methodWeights={methodWeights}
+              replicates={replicates}
+              onChange={setReplicates}
+              requiredReplicates={sampleEntry.requiredReplicates}
+              disabled={!isEditable || saving}
+              isResidualSolvents={isResidualSolvents}
+              hasInternalStandard={hasInternalStandard}
+              internalStandardName={sampleEntry.internalStandardName}
+              footer={
+                <Box
+                  sx={{
+                    position: "sticky",
+                    bottom: 0,
+                    zIndex: 1,
+                    mt: 1.5,
+                    py: 1.25,
+                    display: "flex",
+                    justifyContent: "flex-end",
+                    alignItems: "center",
+                    gap: 1.5,
+                    bgcolor: "background.paper",
+                    borderTop: `1px solid ${theme.palette.divider}`
+                  }}
+                >
+                  {isEditable && !canSave && (
+                    <Typography variant="caption" sx={{ color: "text.secondary" }}>
+                      {hasInternalStandard
+                        ? "Enter a positive weight, analyte area, and IS area in every row to save."
+                        : isResidualSolvents
+                        ? "Enter a positive weight and area (≥ 0) in every cell to save."
+                        : "Enter a positive weight and response in every cell to save."}
+                    </Typography>
+                  )}
+                  <Button
+                    variant="contained"
+                    color="primary"
+                    startIcon={<SaveIcon />}
+                    onClick={handleSaveReplicates}
+                    disabled={!isEditable || saving || !canSave}
+                    sx={{ textTransform: "none", fontWeight: 600 }}
+                  >
+                    {saving ? "Saving..." : "Save Replicates"}
+                  </Button>
+                </Box>
+              }
+            />
+          )}
         </ResultSection>
 
         {/* 3. Results: Official when submitted, otherwise the server-calculated preview */}
-        <ResultSection step={isResidualSolvents ? 2 : 3} title={sampleEntry.submitted ? "Results (official)" : "Results (preview)"}>
+        <ResultSection
+          step={isResidualSolvents || isRelatedSubstances ? 2 : 3}
+          title={sampleEntry.submitted ? "Results (official)" : "Results (preview)"}
+        >
           {sampleEntry.submitted ? (
             <OfficialResultsCard official={sampleEntry.official || []} basis={sampleEntry.basis} />
           ) : (
-            <CalculationSummaryCard preview={sampleEntry.preview || []} basis={sampleEntry.basis} />
+            <CalculationSummaryCard preview={sampleEntry.preview || []} basis={sampleEntry.basis} relatedSubstances={isRelatedSubstances} />
           )}
         </ResultSection>
 
         {/* 4. Chromatogram / evidence upload */}
-        <ResultSection step={isResidualSolvents ? 3 : 4} title="Evidence: chromatograms & reports">
+        <ResultSection
+          step={isResidualSolvents || isRelatedSubstances ? 3 : 4}
+          title="Evidence: chromatograms & reports"
+        >
           <ReportUploadPanel
             runId={parsedRunId || sampleEntry.hplcRunId}
             runSampleId={sampleEntry.runSampleId}

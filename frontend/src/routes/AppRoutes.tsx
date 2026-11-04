@@ -224,7 +224,7 @@ export function AppRoutes() {
             <Route element={<PermissionRoute code={PERMISSIONS.OOS_MANAGE} />}>
               <Route path="/oos-tracking" element={<OosTrackingPage />} />
             </Route>
-            <Route element={<PermissionRoute code={PERMISSIONS.ITEMS_MANAGE} />}>
+            <Route element={<PermissionRoute code={[PERMISSIONS.ITEMS_MANAGE, PERMISSIONS.NOT_APPLICABLE_TESTS_FINAL_APPROVE]} />}>
               <Route path="/laboratory-configuration/items" element={<ItemsPage />} />
             </Route>
             <Route element={<PermissionRoute code={PERMISSIONS.MASTER_DATA_MANAGE} />}>

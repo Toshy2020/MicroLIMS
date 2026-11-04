@@ -22,6 +22,11 @@ import {
   type ResidualSolventCalculationData
 } from "../components/ResidualSolventCalculationView";
 import { HplcReportsSection } from "./HplcReportsSection";
+import {
+  RelatedSubstancesReview,
+  isRelatedSubstanceCalculation,
+  type RelatedSubstanceCalculationData
+} from "./RelatedSubstancesReview";
 
 export interface HplcMethodAssayReplicateData {
   replicateNo: number;
@@ -29,6 +34,8 @@ export interface HplcMethodAssayReplicateData {
   response: number;
   assayPercent: number;
   assayPercentDisplay?: string;
+  internalStandardResponse?: number | null;
+  ratio?: number | null;
 }
 
 export interface HplcMethodAssayCalculationData {
@@ -44,7 +51,11 @@ export interface HplcMethodAssayCalculationData {
   standardWeightMg: number;
   standardPurityPercent: number;
   standardMoisturePercent: number;
-  standardMeanResponse: number;
+  standardMeanResponse?: number;
+  standardMeanRatio?: number | null;
+  internalStandardName?: string | null;
+  asIsValue?: number | null;
+  moisturePercent?: number | null;
   labelClaim?: number | null;
   replicates: HplcMethodAssayReplicateData[];
   reportedValue: number;
@@ -53,12 +64,18 @@ export interface HplcMethodAssayCalculationData {
   hplcMethodId: number;
 }
 
+// Every related-substances row of a result stores the same peaks: one panel covers them all.
+export function hplcPanelResults(results: ParameterResultDetail[]): ParameterResultDetail[] {
+  const firstRs = results.find((p) => isRelatedSubstanceCalculation(p.calculationJson));
+  return results.filter((p) => p === firstRs || !isRelatedSubstanceCalculation(p.calculationJson));
+}
+
 export interface HplcReviewPanelProps {
   parameter: ParameterResultDetail;
   testOrderId: number;
 }
 
-function parseHplcCalc(json: string | null): HplcMethodAssayCalculationData | ResidualSolventCalculationData | null {
+function parseHplcCalc(json: string | null): HplcMethodAssayCalculationData | ResidualSolventCalculationData | RelatedSubstanceCalculationData | null {
   if (!json) return null;
   try {
     return JSON.parse(json);
@@ -110,7 +127,12 @@ export function HplcReviewPanel({ parameter, testOrderId }: HplcReviewPanelProps
     );
   }
 
+  if (calc.quantity === "RelatedSubstance") {
+    return <RelatedSubstancesReview calc={calc as RelatedSubstanceCalculationData} testOrderId={testOrderId} />;
+  }
+
   const assayCalc = calc as HplcMethodAssayCalculationData;
+  const hasInternalStandard = Boolean(assayCalc.internalStandardName);
 
   return (
     <Box
@@ -170,12 +192,32 @@ export function HplcReviewPanel({ parameter, testOrderId }: HplcReviewPanelProps
           </Box>
           <Box>
             <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>
-              Standard Mean Response
+              {hasInternalStandard ? "Standard Mean Ratio" : "Standard Mean Response"}
             </Typography>
             <Typography variant="body2" sx={{ fontWeight: 600, fontFamily: "monospace" }}>
-              {assayCalc.standardMeanResponse}
+              {hasInternalStandard ? assayCalc.standardMeanRatio : assayCalc.standardMeanResponse}
             </Typography>
           </Box>
+          {hasInternalStandard && (
+            <Box>
+              <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>
+                Internal Standard
+              </Typography>
+              <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                {assayCalc.internalStandardName}
+              </Typography>
+            </Box>
+          )}
+          {assayCalc.moisturePercent != null && (
+            <Box>
+              <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>
+                Content Basis
+              </Typography>
+              <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                As is: {Number(assayCalc.asIsValue).toFixed(2)} % · Moisture: {assayCalc.moisturePercent} %
+              </Typography>
+            </Box>
+          )}
           {assayCalc.labelClaim != null && (
             <Box>
               <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>
@@ -198,6 +240,8 @@ export function HplcReviewPanel({ parameter, testOrderId }: HplcReviewPanelProps
                 <TableCell sx={{ fontSize: 12 }}>Replicate</TableCell>
                 <TableCell align="right" sx={{ fontSize: 12 }}>Actual Weight (mg)</TableCell>
                 <TableCell align="right" sx={{ fontSize: 12 }}>Peak Response</TableCell>
+                {hasInternalStandard && <TableCell align="right" sx={{ fontSize: 12 }}>IS Response</TableCell>}
+                {hasInternalStandard && <TableCell align="right" sx={{ fontSize: 12 }}>Ratio</TableCell>}
                 <TableCell align="right" sx={{ fontSize: 12 }}>Calculated % Assay</TableCell>
               </TableRow>
             </TableHead>
@@ -207,6 +251,12 @@ export function HplcReviewPanel({ parameter, testOrderId }: HplcReviewPanelProps
                   <TableCell sx={{ fontWeight: 600, fontSize: 12 }}>#{r.replicateNo}</TableCell>
                   <TableCell align="right" sx={{ fontSize: 12, fontVariantNumeric: "tabular-nums" }}>{r.actualWeightMg}</TableCell>
                   <TableCell align="right" sx={{ fontSize: 12, fontVariantNumeric: "tabular-nums" }}>{r.response}</TableCell>
+                  {hasInternalStandard && (
+                    <TableCell align="right" sx={{ fontSize: 12, fontVariantNumeric: "tabular-nums" }}>{r.internalStandardResponse}</TableCell>
+                  )}
+                  {hasInternalStandard && (
+                    <TableCell align="right" sx={{ fontSize: 12, fontVariantNumeric: "tabular-nums" }}>{r.ratio}</TableCell>
+                  )}
                   <TableCell align="right" sx={{ fontWeight: 700, fontSize: 12, fontVariantNumeric: "tabular-nums" }}>
                     {formatReplicateAssay(r)}
                   </TableCell>

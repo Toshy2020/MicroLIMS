@@ -30,11 +30,20 @@ export const SampleSummaryService = {
   exportWord(sampleId: number, referenceNumber: string): Promise<void> {
     return downloadBlob(`/samples/${sampleId}/summary/word`, `SampleSummary_${referenceNumber}.docx`);
   },
-  async completeReview(sampleId: number, password: string, comment: string | undefined, sectionId?: number): Promise<void> {
+  async completeReview(
+    sampleId: number,
+    password: string,
+    comment: string | undefined,
+    sectionId?: number,
+    retentionQuantity?: number,
+    retentionQuantityUnit?: string
+  ): Promise<void> {
     await apiClient.post(`/samples/${sampleId}/review/complete`, {
       password,
       comment,
-      ...(sectionId !== undefined ? { sectionId } : {})
+      ...(sectionId !== undefined ? { sectionId } : {}),
+      ...(retentionQuantity !== undefined ? { retentionQuantity } : {}),
+      ...(retentionQuantityUnit !== undefined ? { retentionQuantityUnit } : {})
     });
   },
   async returnTestToAnalyst(sampleId: number, testOrderId: number, reason?: string): Promise<void> {

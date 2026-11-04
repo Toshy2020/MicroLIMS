@@ -28,7 +28,9 @@ public static class SegregationOfDutiesRules
         PermissionConstants.CryovialsManage, PermissionConstants.CryovialsApprove,
         PermissionConstants.MonitoringPlanApprove, PermissionConstants.EquipmentPlanApprove, PermissionConstants.EquipmentWorkRecord,
         PermissionConstants.OosManage,
-        PermissionConstants.DocumentsReview, PermissionConstants.DocumentsApprove
+        PermissionConstants.DocumentsReview, PermissionConstants.DocumentsApprove,
+        PermissionConstants.SamplesPrepare, PermissionConstants.TestsOutsource,
+        PermissionConstants.NotApplicableTestsManage, PermissionConstants.NotApplicableTestsFinalApprove
     };
 
     // Every (administration, GxP) pair the codes contain, in a stable order.

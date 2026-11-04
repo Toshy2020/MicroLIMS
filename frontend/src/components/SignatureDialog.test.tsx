@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { SignatureDialog } from "./SignatureDialog";
@@ -23,6 +24,21 @@ describe("SignatureDialog", () => {
     fireEvent.click(sign);
 
     await waitFor(() => expect(onConfirm).toHaveBeenCalledWith("pw-1", undefined));
+  });
+
+  it("ignores a second Enter while the first confirm is pending", async () => {
+    let finish: () => void = () => {};
+    const onConfirm = vi.fn().mockReturnValue(new Promise<void>((resolve) => { finish = resolve; }));
+    render(<SignatureDialog open meaningStatement="I am approving this." onCancel={() => {}} onConfirm={onConfirm} />);
+
+    const password = screen.getByLabelText(/^Password/);
+    fireEvent.change(password, { target: { value: "pw-1" } });
+    fireEvent.keyDown(password, { key: "Enter" });
+    fireEvent.keyDown(password, { key: "Enter" });
+
+    expect(onConfirm).toHaveBeenCalledTimes(1);
+    finish();
+    await waitFor(() => expect(screen.getByRole("button", { name: "Sign" })).toBeTruthy());
   });
 
   it("with a second signer, waits for both and passes both", async () => {
@@ -55,5 +71,21 @@ describe("SignatureDialog", () => {
     expect((screen.getByLabelText(/^Password/) as HTMLInputElement).value).toBe("");
     expect((screen.getByLabelText(/^Second signer password/) as HTMLInputElement).value).toBe("");
     expect((screen.getByLabelText(/^Second signer username/) as HTMLInputElement).value).toBe("approver");
+  });
+});
+
+describe("SignatureDialog required comment", () => {
+  it("labels the comment as required and keeps Sign disabled until it is filled", () => {
+    const Harness = () => {
+      const [c, setC] = useState("");
+      return <SignatureDialog open meaningStatement="I am withdrawing." showComment commentLabel="Reason (required)" commentRequired
+        comment={c} onCommentChange={setC} onCancel={() => {}} onConfirm={async () => {}} />;
+    };
+    render(<Harness />);
+    fireEvent.change(screen.getByLabelText(/^Password/), { target: { value: "pw" } });
+    const sign = screen.getByRole("button", { name: "Sign" }) as HTMLButtonElement;
+    expect(sign.disabled).toBe(true);
+    fireEvent.change(screen.getByLabelText(/Reason \(required\)/), { target: { value: "Wrong item" } });
+    expect(sign.disabled).toBe(false);
   });
 });

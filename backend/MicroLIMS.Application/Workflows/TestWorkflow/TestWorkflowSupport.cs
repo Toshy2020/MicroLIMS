@@ -556,7 +556,8 @@ public class TestWorkflowSupport
         IReadOnlyCollection<int>? suppliedSpecIds,
         string password,
         WorkflowType expectedWorkflowType,
-        int userId)
+        int userId,
+        bool outsourced = false)
     {
         if (string.IsNullOrWhiteSpace(password))
             throw new InvalidOperationException("Password is required to sign the result.");
@@ -581,6 +582,12 @@ public class TestWorkflowSupport
             ?? throw new NotFoundException($"Test order {testOrderId} not found.");
 
         RequireOrderNotFinalized(order);
+
+        // An outsourced test takes only its external lab result, and every other test only its own recorder.
+        if (outsourced && order.OutsourcedToLab == null)
+            throw new InvalidOperationException("This test has not been outsourced.");
+        if (!outsourced && order.OutsourcedToLab != null)
+            throw new InvalidOperationException($"This test was outsourced to {order.OutsourcedToLab}. Record its result from the external lab report.");
 
         if (order.IsSuperseded)
             throw new InvalidOperationException("Cannot record result for a superseded test order.");
@@ -621,9 +628,10 @@ public class TestWorkflowSupport
 
         var itemId = order.Sample.ItemId.Value;
 
+        var grade = await SpecificationLookup.ApplicableGradeAsync(_db, order.SampleId, itemId, order.TestCode);
         var stage = await SpecificationLookup.ApplicableStageAsync(_db, order.SampleId, itemId, order.TestCode);
         var specs = await _db.Specifications
-            .Where(s => s.ItemId == itemId && s.TestCode == order.TestCode && s.ProductionStageRole == stage)
+            .Where(s => s.ItemId == itemId && s.TestCode == order.TestCode && s.Grade == grade && s.ProductionStageRole == stage)
             .ToListAsync();
 
         if (specs.Count == 0)

@@ -18,7 +18,8 @@ public static class AnalysisWorkflows
         WorkflowType.WeightVariation,
         WorkflowType.HplcMethodAssay,
         WorkflowType.IcpMethodAssay,
-        WorkflowType.Titration
+        WorkflowType.Titration,
+        WorkflowType.UvSpectrophotometry
     };
 
     public static bool UsesTestAnalysis(WorkflowType workflowType) => Workflows.Contains(workflowType);
@@ -36,6 +37,7 @@ public static class AnalysisWorkflows
         WorkflowType.HplcMethodAssay => "HPLC method assay",
         WorkflowType.IcpMethodAssay => "ICP method assay",
         WorkflowType.Titration => "titration",
+        WorkflowType.UvSpectrophotometry => "UV spectrophotometry",
         _ => "test analysis"
     };
 }

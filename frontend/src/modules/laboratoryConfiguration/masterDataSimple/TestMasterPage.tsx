@@ -9,7 +9,7 @@ import { LoadErrorAlert, LoadFailuresAlert } from "../../../components/LoadError
 import { useLoadFailures } from "../../../hooks/useLoadFailures";
 import { FloatingDialog } from "../../../components/FloatingDialog";
 import { useTestDefinitions, TestDefinitionOption } from "../../../hooks/useTestDefinitions";
-import { CreateTestDefinitionPayload, UpdateTestDefinitionPayload } from "../../../services/masterDataOptions";
+import { CreateTestDefinitionPayload, UpdateTestDefinitionPayload, MoistureRole } from "../../../services/masterDataOptions";
 import { HplcMethodService, HplcMethodListItem } from "./services/HplcMethodService";
 import { IcpMethodService, IcpMethodListItem } from "./services/IcpMethodService";
 import { TitrationConfigSection } from "./TitrationConfigSection";
@@ -20,6 +20,8 @@ import { TitrationChangeReasonField, hasTitrationSettingsChanged, titrationChang
 import { EQUATION_TYPES, EQUATION_TYPE_LABELS, FP_SECTION_CODE, TestMasterLab, WORKFLOW_TYPES_BY_LAB, WORKFLOW_TYPE_LABELS } from "./testMaster/testMasterConstants";
 import { TestStageReplicatesSection } from "./testMaster/TestStageReplicatesSection";
 import { WorkflowStepsSection } from "./testMaster/WorkflowStepsSection";
+import { UvTestFields } from "./testMaster/UvTestFields";
+import type { UvCalculationMode } from "../../../services/masterDataOptions";
 
 // The Test Master - one canonical Code/DisplayName per test, referenced
 // everywhere a TestCode is assigned (Items, Water Sampling Points, Room
@@ -92,7 +94,14 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
   const [evaluationBasis, setEvaluationBasis] = useState<"Mean" | "EachValue" | "Min" | "Max">("Mean");
   const [conditionFields, setConditionFields] = useState<string>("");
   const [usesTare, setUsesTare] = useState<boolean>(false);
+  const [perContainer, setPerContainer] = useState<boolean>(false);
+  const [moistureRole, setMoistureRole] = useState<MoistureRole>("None");
   const [titration, setTitration] = useState<TitrationFormState>(createInitialTitrationForm);
+  const [uvCalculationMode, setUvCalculationMode] = useState<UvCalculationMode | "">("");
+  const [uvSpecificAbsorbance, setUvSpecificAbsorbance] = useState<string>("");
+  const [uvTotalVolumeMl, setUvTotalVolumeMl] = useState<string>("");
+  const [uvStandardVolumeMl, setUvStandardVolumeMl] = useState<string>("");
+  const [uvStandardEntryId, setUvStandardEntryId] = useState<number | "">("");
 
   const [dissolutionS1Offset, setDissolutionS1Offset] = useState<string>("5");
   const [dissolutionS2MinOffset, setDissolutionS2MinOffset] = useState<string>("15");
@@ -154,6 +163,8 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
     setEvaluationBasis("Mean");
     setConditionFields("");
     setUsesTare(false);
+    setPerContainer(false);
+    setMoistureRole("None");
     setTitration(createInitialTitrationForm());
     setDissolutionS1Offset("5");
     setDissolutionS2MinOffset("15");
@@ -176,6 +187,11 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
     setWvCapsuleS1MaxForRetest("6");
     setWvCapsuleS2ExtraUnits("40");
     setWvCapsuleS2MaxOutside("6");
+    setUvCalculationMode("");
+    setUvSpecificAbsorbance("");
+    setUvTotalVolumeMl("");
+    setUvStandardVolumeMl("");
+    setUvStandardEntryId("");
     setPhyschemArea(area ? defaultAreaFor(area) : null);
     setChangeReason("");
     setChangeReasonError(null);
@@ -191,8 +207,8 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
     setSectionId(t.sectionId ?? (mySections.length === 1 ? mySections[0].sectionId : ""));
     setEditingSectionId(t.sectionId ?? null);
     setWorkflowType(t.workflowType || defaultWorkflowType);
-    setEquationType(t.equationType || (t.workflowType === "HplcMethodAssay" ? "HplcMethodAssay" : t.workflowType === "IcpMethodAssay" ? "IcpMethodAssay" : t.workflowType === "Measurement" ? "Measurement" : t.workflowType === "Gravimetric" ? "GravimetricLoss" : t.workflowType === "Qualitative" ? "Qualitative" : t.workflowType === "Dissolution" ? "Dissolution" : t.workflowType === "Disintegration" ? "Disintegration" : t.workflowType === "WeightVariation" ? "WeightVariation" : t.workflowType === "Titration" ? "Titration" : "None"));
-    setRequiresSystemSuitability((t.workflowType === "Dissolution" || t.workflowType === "HplcMethodAssay") ? true : (t.workflowType === "Disintegration" || t.workflowType === "WeightVariation" || t.workflowType === "IcpMethodAssay") ? false : !!t.requiresSystemSuitability);
+    setEquationType(t.equationType || (t.workflowType === "HplcMethodAssay" ? "HplcMethodAssay" : t.workflowType === "IcpMethodAssay" ? "IcpMethodAssay" : t.workflowType === "Measurement" ? "Measurement" : t.workflowType === "Gravimetric" ? "GravimetricLoss" : t.workflowType === "Qualitative" ? "Qualitative" : t.workflowType === "Dissolution" ? "Dissolution" : t.workflowType === "Disintegration" ? "Disintegration" : t.workflowType === "WeightVariation" ? "WeightVariation" : t.workflowType === "Titration" ? "Titration" : t.workflowType === "UvSpectrophotometry" ? "UvSpectrophotometry" : "None"));
+    setRequiresSystemSuitability((t.workflowType === "Dissolution" || t.workflowType === "HplcMethodAssay") ? true : (t.workflowType === "Disintegration" || t.workflowType === "WeightVariation" || t.workflowType === "IcpMethodAssay" || t.workflowType === "UvSpectrophotometry") ? false : !!t.requiresSystemSuitability);
     setMethodAbbreviation(t.methodAbbreviation ?? "");
     setHplcMethodId(t.hplcMethodId ?? "");
     setIcpMethodId(t.icpMethodId ?? "");
@@ -200,7 +216,14 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
     setEvaluationBasis(t.evaluationBasis || "Mean");
     setConditionFields(t.conditionFields || "");
     setUsesTare(!!t.usesTare);
+    setPerContainer(!!t.perContainer);
+    setMoistureRole(t.moistureRole ?? "None");
     setTitration(titrationFormFromDefinition(t));
+    setUvCalculationMode(t.uvCalculationMode ?? "");
+    setUvSpecificAbsorbance(t.uvSpecificAbsorbance != null ? String(t.uvSpecificAbsorbance) : "");
+    setUvTotalVolumeMl(t.uvTotalVolumeMl != null ? String(t.uvTotalVolumeMl) : "");
+    setUvStandardVolumeMl(t.uvStandardVolumeMl != null ? String(t.uvStandardVolumeMl) : "");
+    setUvStandardEntryId(t.uvStandardEntryId ?? "");
     setDissolutionS1Offset(t.dissolutionS1Offset != null ? String(t.dissolutionS1Offset) : "5");
     setDissolutionS2MinOffset(t.dissolutionS2MinOffset != null ? String(t.dissolutionS2MinOffset) : "15");
     setDissolutionS3MinOffset(t.dissolutionS3MinOffset != null ? String(t.dissolutionS3MinOffset) : "25");
@@ -373,6 +396,52 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
     const isHplcMethodAssay = workflowType === "HplcMethodAssay";
     const isIcpMethodAssay = workflowType === "IcpMethodAssay";
     const isTitration = workflowType === "Titration";
+    const isUv = workflowType === "UvSpectrophotometry";
+
+    if (isUv) {
+      if (!uvCalculationMode) {
+        setDialogError("A UV test needs a calculation mode.");
+        return;
+      }
+      const rep = Number(replicateCount);
+      if (!rep || rep < 1 || rep > 30) {
+        setDialogError("Replicate count must be between 1 and 30.");
+        return;
+      }
+      if (uvCalculationMode === "SpecificAbsorbanceAssay") {
+        const a1 = Number(uvSpecificAbsorbance);
+        if (!uvSpecificAbsorbance || isNaN(a1) || a1 <= 0) {
+          setDialogError("This UV mode needs a specific absorbance above 0.");
+          return;
+        }
+        const vol = Number(uvTotalVolumeMl);
+        if (!uvTotalVolumeMl || isNaN(vol) || vol <= 0) {
+          setDialogError("This UV mode needs a total volume above 0.");
+          return;
+        }
+      } else if (uvCalculationMode === "SpecificAbsorbanceValue") {
+        const vol = Number(uvTotalVolumeMl);
+        if (!uvTotalVolumeMl || isNaN(vol) || vol <= 0) {
+          setDialogError("This UV mode needs a total volume above 0.");
+          return;
+        }
+      } else if (uvCalculationMode === "StandardComparison") {
+        const vol = Number(uvTotalVolumeMl);
+        if (!uvTotalVolumeMl || isNaN(vol) || vol <= 0) {
+          setDialogError("This UV mode needs a total volume above 0.");
+          return;
+        }
+        const stdVol = Number(uvStandardVolumeMl);
+        if (!uvStandardVolumeMl || isNaN(stdVol) || stdVol <= 0) {
+          setDialogError("A UV test against a standard needs a standard volume above 0.");
+          return;
+        }
+        if (uvStandardEntryId === "") {
+          setDialogError("The standard material is required for an assay against standard.");
+          return;
+        }
+      }
+    }
 
     if (isTitration) {
       const hint = validateTitrationForm(titration);
@@ -383,7 +452,7 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
     }
 
     const reasonCheck = editingId
-      ? titrationChangeReasonCheck(editingTest, titration, workflowType, changeReason, isFp ? physchemArea : null)
+      ? titrationChangeReasonCheck(editingTest, titration, workflowType, changeReason, isFp ? physchemArea : null, moistureRole)
       : { required: false, error: null, payload: null };
     setChangeReasonError(reasonCheck.error);
     if (reasonCheck.error) return;
@@ -450,6 +519,8 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
         ? "WeightVariation"
         : isTitration
         ? "Titration"
+        : isUv
+        ? "UvSpectrophotometry"
         : "None";
 
       if (editingId) {
@@ -461,7 +532,7 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
           equationType: resolvedEquationType,
           requiresSystemSuitability: (isDissolution || isHplcMethodAssay) ? true : false,
           methodAbbreviation: isDissolution || isHplcMethodAssay || isIcpMethodAssay ? methodAbbreviation.trim().toUpperCase() : null,
-          replicateCount: isTitration ? Number(titration.replicateCount) : (isMeasurement || isGravimetric) ? Number(replicateCount) : null,
+          replicateCount: isTitration ? Number(titration.replicateCount) : (isMeasurement || isGravimetric || isUv) ? Number(replicateCount) : null,
           evaluationBasis: isMeasurement ? evaluationBasis : null,
           conditionFields: (isGravimetric || isDissolution || isDisintegration || isWeightVariation) ? (conditionFields.trim() || null) : null,
           usesTare: isGravimetric ? usesTare : null,
@@ -489,13 +560,30 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
           ...titrationPayloadFields(titration, isTitration),
           physchemArea: isFp ? physchemArea ?? defaultAreaFor(area ?? "fp") : null,
           changeReason: reasonCheck.payload,
+          perContainer: isQualitative ? perContainer : false,
+          moistureRole: (isGravimetric && equationType === "GravimetricLoss")
+            ? (moistureRole === "LossOnDrying" ? "LossOnDrying" : "None")
+            : (isTitration && titration.type === "KarlFischer")
+            ? (moistureRole === "Water" ? "Water" : "None")
+            : "None",
           hplcMethodId: (isHplcMethodAssay || workflowType === "Dissolution") && hplcMethodId !== "" ? Number(hplcMethodId) : null,
-          icpMethodId: isIcpMethodAssay && icpMethodId !== "" ? Number(icpMethodId) : null
+          icpMethodId: isIcpMethodAssay && icpMethodId !== "" ? Number(icpMethodId) : null,
+          uvCalculationMode: isUv && uvCalculationMode ? uvCalculationMode : null,
+          uvSpecificAbsorbance: isUv && uvCalculationMode === "SpecificAbsorbanceAssay" && uvSpecificAbsorbance !== "" ? Number(uvSpecificAbsorbance) : null,
+          uvTotalVolumeMl: isUv && uvCalculationMode !== "AbsorbanceLimit" && uvTotalVolumeMl !== "" ? Number(uvTotalVolumeMl) : null,
+          uvStandardVolumeMl: isUv && uvCalculationMode === "StandardComparison" && uvStandardVolumeMl !== "" ? Number(uvStandardVolumeMl) : null,
+          uvStandardEntryId: isUv && uvCalculationMode === "StandardComparison" && uvStandardEntryId !== "" ? uvStandardEntryId : null
         };
         await update(editingId, payload);
         setMessage({ text: `Test "${trimmedCode}" updated.`, ok: true });
       } else {
         const payload: CreateTestDefinitionPayload = {
+          perContainer: isQualitative ? perContainer : false,
+          moistureRole: (isGravimetric && equationType === "GravimetricLoss")
+            ? (moistureRole === "LossOnDrying" ? "LossOnDrying" : "None")
+            : (isTitration && titration.type === "KarlFischer")
+            ? (moistureRole === "Water" ? "Water" : "None")
+            : "None",
           code: trimmedCode,
           displayName: trimmedDisplayName,
           sectionId: chosenSectionId,
@@ -503,7 +591,7 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
           equationType: resolvedEquationType,
           requiresSystemSuitability: (isDissolution || isHplcMethodAssay) ? true : false,
           methodAbbreviation: isDissolution || isHplcMethodAssay || isIcpMethodAssay ? methodAbbreviation.trim().toUpperCase() : null,
-          replicateCount: isTitration ? Number(titration.replicateCount) : (isMeasurement || isGravimetric) ? Number(replicateCount) : null,
+          replicateCount: isTitration ? Number(titration.replicateCount) : (isMeasurement || isGravimetric || isUv) ? Number(replicateCount) : null,
           evaluationBasis: isMeasurement ? evaluationBasis : null,
           conditionFields: (isGravimetric || isDissolution || isDisintegration || isWeightVariation) ? (conditionFields.trim() || null) : null,
           usesTare: isGravimetric ? usesTare : null,
@@ -531,7 +619,12 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
           ...titrationPayloadFields(titration, isTitration),
           physchemArea: isFp ? physchemArea ?? defaultAreaFor(area ?? "fp") : null,
           hplcMethodId: (isHplcMethodAssay || workflowType === "Dissolution") && hplcMethodId !== "" ? Number(hplcMethodId) : null,
-          icpMethodId: isIcpMethodAssay && icpMethodId !== "" ? Number(icpMethodId) : null
+          icpMethodId: isIcpMethodAssay && icpMethodId !== "" ? Number(icpMethodId) : null,
+          uvCalculationMode: isUv && uvCalculationMode ? uvCalculationMode : null,
+          uvSpecificAbsorbance: isUv && uvCalculationMode === "SpecificAbsorbanceAssay" && uvSpecificAbsorbance !== "" ? Number(uvSpecificAbsorbance) : null,
+          uvTotalVolumeMl: isUv && uvCalculationMode !== "AbsorbanceLimit" && uvTotalVolumeMl !== "" ? Number(uvTotalVolumeMl) : null,
+          uvStandardVolumeMl: isUv && uvCalculationMode === "StandardComparison" && uvStandardVolumeMl !== "" ? Number(uvStandardVolumeMl) : null,
+          uvStandardEntryId: isUv && uvCalculationMode === "StandardComparison" && uvStandardEntryId !== "" ? uvStandardEntryId : null
         };
         await addNew(payload);
         setMessage({ text: `Test "${trimmedCode}" added to the Test Master.`, ok: true });
@@ -607,6 +700,15 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
                           color="info"
                           variant="outlined"
                           label="Weight Variation"
+                          sx={{ height: 20, fontSize: "0.75rem", fontWeight: 700 }}
+                        />
+                      )}
+                      {t.workflowType === "UvSpectrophotometry" && (
+                        <Chip
+                          size="small"
+                          color="primary"
+                          variant="outlined"
+                          label={t.uvCalculationMode ? `UV · ${t.uvCalculationMode}` : "UV"}
                           sx={{ height: 20, fontSize: "0.75rem", fontWeight: 700 }}
                         />
                       )}
@@ -781,38 +883,66 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
                 onChange={(e) => {
                   const next = e.target.value;
                   setWorkflowType(next);
+                  if (next !== "Qualitative") {
+                    setPerContainer(false);
+                  }
                   if (next === "HplcMethodAssay") {
                     setEquationType("HplcMethodAssay");
                     setRequiresSystemSuitability(true);
+                    setMoistureRole("None");
                   } else if (next === "IcpMethodAssay") {
                     setEquationType("IcpMethodAssay");
                     setRequiresSystemSuitability(false);
+                    setMoistureRole("None");
                   } else if (next === "Measurement") {
                     setEquationType("Measurement");
                     setRequiresSystemSuitability(false);
+                    setMoistureRole("None");
                   } else if (next === "Gravimetric") {
+                    let nextEq = equationType;
                     if (equationType !== "GravimetricLoss" && equationType !== "GravimetricResidue") {
+                      nextEq = "GravimetricLoss";
                       setEquationType("GravimetricLoss");
+                    }
+                    if (nextEq !== "GravimetricLoss" && moistureRole === "LossOnDrying") {
+                      setMoistureRole("None");
+                    } else if (moistureRole === "Water") {
+                      setMoistureRole("None");
                     }
                     setRequiresSystemSuitability(false);
                   } else if (next === "Qualitative") {
                     setEquationType("Qualitative");
                     setRequiresSystemSuitability(false);
+                    setMoistureRole("None");
                   } else if (next === "Dissolution") {
                     setEquationType("Dissolution");
                     setRequiresSystemSuitability(true);
+                    setMoistureRole("None");
                   } else if (next === "Disintegration") {
                     setEquationType("Disintegration");
                     setRequiresSystemSuitability(false);
+                    setMoistureRole("None");
                   } else if (next === "WeightVariation") {
                     setEquationType("WeightVariation");
                     setRequiresSystemSuitability(false);
+                    setMoistureRole("None");
                   } else if (next === "Titration") {
                     setEquationType("Titration");
                     setRequiresSystemSuitability(false);
+                    if (titration.type !== "KarlFischer" && moistureRole === "Water") {
+                      setMoistureRole("None");
+                    } else if (moistureRole === "LossOnDrying") {
+                      setMoistureRole("None");
+                    }
+                  } else if (next === "UvSpectrophotometry") {
+                    setEquationType("UvSpectrophotometry");
+                    setRequiresSystemSuitability(false);
+                    setMoistureRole("None");
+                    setReplicateCount("1");
                   } else {
                     setEquationType("None");
                     setRequiresSystemSuitability(false);
+                    setMoistureRole("None");
                   }
                 }}
               >
@@ -835,21 +965,39 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
                 onChange={(e) => {
                   const next = e.target.value;
                   setEquationType(next);
+                  if (workflowType === "Gravimetric" && next !== "GravimetricLoss" && moistureRole === "LossOnDrying") {
+                    setMoistureRole("None");
+                  }
                   if (next === "HplcMethodAssay") {
                     setWorkflowType("HplcMethodAssay");
                     setRequiresSystemSuitability(true);
+                    setMoistureRole("None");
+                    setPerContainer(false);
                   } else if (next === "IcpMethodAssay") {
                     setWorkflowType("IcpMethodAssay");
                     setRequiresSystemSuitability(false);
+                    setMoistureRole("None");
+                    setPerContainer(false);
                   } else if (next === "Disintegration") {
                     setWorkflowType("Disintegration");
                     setRequiresSystemSuitability(false);
+                    setMoistureRole("None");
+                    setPerContainer(false);
                   } else if (next === "WeightVariation") {
                     setWorkflowType("WeightVariation");
                     setRequiresSystemSuitability(false);
+                    setMoistureRole("None");
+                    setPerContainer(false);
                   } else if (next === "Dissolution") {
                     setWorkflowType("Dissolution");
                     setRequiresSystemSuitability(true);
+                    setMoistureRole("None");
+                    setPerContainer(false);
+                  } else if (next === "UvSpectrophotometry") {
+                    setWorkflowType("UvSpectrophotometry");
+                    setRequiresSystemSuitability(false);
+                    setMoistureRole("None");
+                    setPerContainer(false);
                   }
                 }}
               >
@@ -869,6 +1017,9 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
                   if (workflowType === "Titration") {
                     return eq === "Titration";
                   }
+                  if (workflowType === "UvSpectrophotometry") {
+                    return eq === "UvSpectrophotometry";
+                  }
                   if (workflowType === "Dissolution") {
                     return eq === "Dissolution";
                   }
@@ -881,7 +1032,7 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
                   if (workflowType === "Qualitative") {
                     return eq === "Qualitative";
                   }
-                  return eq !== "Measurement" && eq !== "GravimetricLoss" && eq !== "GravimetricResidue" && eq !== "Qualitative" && eq !== "Dissolution" && eq !== "Disintegration" && eq !== "WeightVariation" && eq !== "Titration" && eq !== "HplcMethodAssay" && eq !== "IcpMethodAssay";
+                  return eq !== "Measurement" && eq !== "GravimetricLoss" && eq !== "GravimetricResidue" && eq !== "Qualitative" && eq !== "Dissolution" && eq !== "Disintegration" && eq !== "WeightVariation" && eq !== "Titration" && eq !== "HplcMethodAssay" && eq !== "IcpMethodAssay" && eq !== "UvSpectrophotometry";
                 }).map((eq) => (
                   <MenuItem key={eq} value={eq}>
                     {EQUATION_TYPE_LABELS[eq] ?? eq}
@@ -1065,25 +1216,77 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
                   slotProps={{ htmlInput: { maxLength: 500 } }}
                   fullWidth
                 />
+                {equationType === "GravimetricLoss" && (
+                  <FormControl size="small" sx={{ maxWidth: 300 }}>
+                    <InputLabel id="gravimetric-moisture-role-label">Moisture role</InputLabel>
+                    <Select<MoistureRole>
+                      labelId="gravimetric-moisture-role-label"
+                      label="Moisture role"
+                      value={moistureRole === "Water" ? "None" : moistureRole}
+                      onChange={(e) => setMoistureRole(e.target.value as MoistureRole)}
+                    >
+                      <MenuItem value="None">None</MenuItem>
+                      <MenuItem value="LossOnDrying">Loss on drying</MenuItem>
+                    </Select>
+                  </FormControl>
+                )}
               </Stack>
             </Box>
           )}
 
           {workflowType === "Titration" && (
-            <TitrationConfigSection form={titration} onChange={setTitration} sectionId={sectionId} />
+            <TitrationConfigSection
+              form={titration}
+              onChange={(nextTitration) => {
+                setTitration(nextTitration);
+                if (nextTitration.type !== "KarlFischer" && moistureRole === "Water") {
+                  setMoistureRole("None");
+                }
+              }}
+              sectionId={sectionId}
+              moistureRole={moistureRole}
+              onMoistureRoleChange={setMoistureRole}
+            />
+          )}
+
+          {workflowType === "UvSpectrophotometry" && (
+            <UvTestFields
+              mode={uvCalculationMode}
+              onModeChange={setUvCalculationMode}
+              specificAbsorbance={uvSpecificAbsorbance}
+              onSpecificAbsorbanceChange={setUvSpecificAbsorbance}
+              totalVolumeMl={uvTotalVolumeMl}
+              onTotalVolumeMlChange={setUvTotalVolumeMl}
+              standardVolumeMl={uvStandardVolumeMl}
+              onStandardVolumeMlChange={setUvStandardVolumeMl}
+              standardEntryId={uvStandardEntryId}
+              onStandardEntryIdChange={setUvStandardEntryId}
+              sectionId={sectionId}
+              replicateCount={replicateCount}
+              onReplicateCountChange={setReplicateCount}
+            />
           )}
 
           {isFp && area && <TestAreaField pageArea={area} value={physchemArea} onChange={setPhyschemArea} />}
 
-          {editingId && hasTitrationSettingsChanged(editingTest, titration, workflowType, isFp ? physchemArea : null) && (
+          {editingId && hasTitrationSettingsChanged(editingTest, titration, workflowType, isFp ? physchemArea : null, moistureRole) && (
             <TitrationChangeReasonField value={changeReason} onChange={setChangeReason} error={changeReasonError} />
           )}
 
           {workflowType === "Qualitative" && (
             <Box sx={{ p: 2, bgcolor: "action.hover", borderRadius: 1, border: "1px solid", borderColor: "divider" }}>
-              <Typography sx={{ fontWeight: 600, fontSize: 13, color: "text.secondary" }}>
+              <Typography sx={{ fontWeight: 600, fontSize: 13, color: "text.secondary", mb: 1.5 }}>
                 Qualitative test: records compliance observation against specifications directly (no replicates or steps).
               </Typography>
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={perContainer}
+                    onChange={(e) => setPerContainer(e.target.checked)}
+                  />
+                }
+                label="Recorded per container"
+              />
             </Box>
           )}
 
@@ -1423,8 +1626,8 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
             </Box>
           )}
 
-          {/* Titration uses its own replicate count, not replicates per stage. */}
-          {workflowType !== "Titration" && (isFp || (fpSectionId !== null && (sectionId === fpSectionId || editingTest?.sectionId === fpSectionId))) && (
+          {/* Titration and UV use their own replicate count, not replicates per stage. */}
+          {workflowType !== "Titration" && workflowType !== "UvSpectrophotometry" && (isFp || (fpSectionId !== null && (sectionId === fpSectionId || editingTest?.sectionId === fpSectionId))) && (
             editingId ? (
               <TestStageReplicatesSection testDefinitionId={editingId} />
             ) : (

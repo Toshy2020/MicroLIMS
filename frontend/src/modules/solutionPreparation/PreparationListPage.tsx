@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { Button, FormControl, InputLabel, Select, MenuItem, Alert, Typography } from "@mui/material";
+import { Button, Chip, FormControl, InputLabel, Select, MenuItem, Alert, Stack, Typography } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import { LabPage, FilterBar, RegisterTable } from "../../components/lab";
 import type { RegisterColumn } from "../../components/lab";
@@ -13,6 +13,7 @@ import type {
   SolutionPreparationStatus,
   SolutionPreparationListItem
 } from "./types";
+import { solutionTypeLabel } from "./types";
 
 export function PreparationListPage() {
   const navigate = useNavigate();
@@ -25,6 +26,7 @@ export function PreparationListPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<"ALL" | SolutionPreparationStatus>("ALL");
   const [typeFilter, setTypeFilter] = useState<"ALL" | SolutionType>("ALL");
+  const [releaseFilter, setReleaseFilter] = useState<"ALL" | "AWAITING">("ALL");
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -49,16 +51,17 @@ export function PreparationListPage() {
 
   // Client-side search filtering
   const filteredItems = useMemo(() => {
-    if (!searchQuery.trim()) return items;
+    const base = releaseFilter === "AWAITING" ? items.filter((i) => i.approvalStatus === "PendingReview") : items;
+    if (!searchQuery.trim()) return base;
     const q = searchQuery.toLowerCase().trim();
-    return items.filter((item) => {
+    return base.filter((item) => {
       const codeMatch = item.code?.toLowerCase().includes(q) ?? false;
       const nameMatch = item.solutionMasterName.toLowerCase().includes(q);
       const methodMatch = item.hplcMethodAbbreviation?.toLowerCase().includes(q) ?? false;
       const preparerMatch = item.preparedByUserName?.toLowerCase().includes(q) ?? false;
       return codeMatch || nameMatch || methodMatch || preparerMatch;
     });
-  }, [items, searchQuery]);
+  }, [items, searchQuery, releaseFilter]);
 
   const openRecord = (item: SolutionPreparationListItem) =>
     navigate(item.effectiveStatus === "InProgress" ? `/preparation/${item.id}/edit` : `/preparation/${item.id}`);
@@ -75,7 +78,7 @@ export function PreparationListPage() {
         <Typography variant="caption" sx={{ color: "text.secondary", fontStyle: "italic" }}>(In Progress)</Typography>
       )
     },
-    { key: "type", label: "Type", sortable: true },
+    { key: "type", label: "Type", sortable: true, render: (i) => solutionTypeLabel(i.type) },
     {
       key: "solutionMasterName",
       label: "Solution Recipe",
@@ -87,7 +90,17 @@ export function PreparationListPage() {
       key: "effectiveStatus",
       label: "Status",
       sortable: true,
-      render: (i) => <StatusBadge status={i.effectiveStatus} />
+      render: (i) => (
+        <Stack direction="row" spacing={0.75} sx={{ alignItems: "center", flexWrap: "wrap" }} useFlexGap>
+          <StatusBadge status={i.effectiveStatus} />
+          {i.approvalStatus === "PendingReview" && (
+            <Chip label="Awaiting release" size="small" color="warning" variant="outlined" sx={{ fontSize: 11, height: 22 }} />
+          )}
+          {i.approvalStatus === "Rejected" && (
+            <Chip label="Rejected" size="small" color="error" variant="outlined" sx={{ fontSize: 11, height: 22 }} />
+          )}
+        </Stack>
+      )
     },
     {
       key: "preparedAt",
@@ -115,7 +128,7 @@ export function PreparationListPage() {
   return (
     <LabPage
       title="Solution Preparation"
-      subtitle="Manage and execute preparations for mobile phases, diluents, and volumetric titrants"
+      subtitle="Manage and execute preparations for mobile phases, diluents, reagents, neutralizers, and volumetric titrants"
       actions={
         <Button variant="contained" startIcon={<AddIcon />} onClick={() => navigate("/preparation/new")} sx={{ textTransform: "none", fontWeight: 700 }}>
           Start Preparation
@@ -157,7 +170,21 @@ export function PreparationListPage() {
               <MenuItem value="ALL">All Types</MenuItem>
               <MenuItem value="MobilePhase">Mobile Phase</MenuItem>
               <MenuItem value="Diluent">Diluent</MenuItem>
+              <MenuItem value="Reagent">Reagent</MenuItem>
+              <MenuItem value="Neutralizer">Neutralizer</MenuItem>
               <MenuItem value="Titrant">Titrant</MenuItem>
+            </Select>
+          </FormControl>
+          <FormControl size="small" sx={{ minWidth: 170 }}>
+            <InputLabel id="release-filter-label">Release</InputLabel>
+            <Select
+              labelId="release-filter-label"
+              value={releaseFilter}
+              label="Release"
+              onChange={(e) => setReleaseFilter(e.target.value as "ALL" | "AWAITING")}
+            >
+              <MenuItem value="ALL">All</MenuItem>
+              <MenuItem value="AWAITING">Awaiting release</MenuItem>
             </Select>
           </FormControl>
         </FilterBar>

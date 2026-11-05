@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Dialog,
   DialogTitle,
@@ -24,6 +24,8 @@ import { masterDataOptions } from "../../../../services/masterDataOptions";
 import { LoadFailuresAlert } from "../../../../components/LoadErrorAlert";
 import { useLoadFailures } from "../../../../hooks/useLoadFailures";
 import { DateField } from "../../../../components/DateField";
+import { MediaAdditivesSection, UsableSolution } from "../components/MediaAdditivesSection";
+import { AdditiveRow, buildAdditivesPayload, validateAdditives } from "../components/mediaAdditives";
 
 interface Props {
   open: boolean;
@@ -37,6 +39,10 @@ export function MediaPreparationDialog({ open, onClose, onSuccess }: Props) {
   const [dehydratedMedia, setDehydratedMedia] = useState<MaterialItem[]>([]);
   const [autoclavePrograms, setAutoclavePrograms] = useState<AutoclaveProgram[]>([]);
   const [form, setForm] = useState<Record<string, any>>({});
+  const [additives, setAdditives] = useState<AdditiveRow[]>([]);
+  const [allStock, setAllStock] = useState<MaterialItem[]>([]);
+  const [solutions, setSolutions] = useState<UsableSolution[]>([]);
+  const additiveKey = useRef(0);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const { failed: failedLists, fail, reset: resetFailures } = useLoadFailures();
@@ -45,15 +51,35 @@ export function MediaPreparationDialog({ open, onClose, onSuccess }: Props) {
     if (open) {
       setError(null);
       setForm({});
+      setAdditives([]);
       setAutoclavePrograms([]);
       resetFailures();
       masterDataOptions.getEquipment("Autoclave").then(setAutoclaves).catch(fail("autoclaves", () => setAutoclaves([])));
       MaterialService.getAll("DehydratedMedia").then(setDehydratedMedia).catch(fail("dehydrated media stock", () => setDehydratedMedia([])));
+      MaterialService.getAll().then(setAllStock).catch(fail("additive stock lots", () => setAllStock([])));
     }
   }, [open, fail, resetFailures]);
 
   const usableStock = dehydratedMedia.filter((m) => m.status === "InStock");
   const selectedMaterial = usableStock.find((m) => m.id === form.materialId);
+
+  const sectionId: number | undefined = selectedMaterial?.sectionId;
+
+  useEffect(() => {
+    if (!open) return;
+    MediaPreparationService.getUsableSolutions(sectionId).then(setSolutions).catch(fail("prepared solutions", () => setSolutions([])));
+  }, [open, sectionId, fail]);
+
+  // Additive stock lots: usable lots of the same laboratory, never the media or microorganism lots themselves.
+  const additiveStock = allStock.filter(
+    (m) =>
+      m.status === "InStock" &&
+      m.materialType !== "DehydratedMedia" &&
+      m.materialType !== "LyophilizedMicroorganism" &&
+      m.approvalStatus !== "PendingReview" &&
+      m.approvalStatus !== "Rejected" &&
+      (sectionId == null || m.sectionId === sectionId)
+  );
 
   const setField = (k: string, v: any) => setForm((f) => ({ ...f, [k]: v }));
 
@@ -153,6 +179,12 @@ export function MediaPreparationDialog({ open, onClose, onSuccess }: Props) {
       return;
     }
 
+    const additiveError = validateAdditives(additives);
+    if (additiveError) {
+      setError(additiveError);
+      return;
+    }
+
     setSaving(true);
     try {
       const result = await MediaPreparationService.prepare({
@@ -166,7 +198,8 @@ export function MediaPreparationDialog({ open, onClose, onSuccess }: Props) {
         cycleTime: Number(form.cycleTime),
         cycleNumber: Number(form.cycleNumber),
         ph: Number(form.ph),
-        expiryDate: form.expiryDate
+        expiryDate: form.expiryDate,
+        additives: buildAdditivesPayload(additives)
       });
 
       onSuccess(result);
@@ -388,6 +421,16 @@ export function MediaPreparationDialog({ open, onClose, onSuccess }: Props) {
                 />
               </Box>
             </Box>
+
+            <Divider />
+
+            <MediaAdditivesSection
+              rows={additives}
+              onChange={setAdditives}
+              stockLots={additiveStock}
+              solutions={solutions}
+              nextKey={() => ++additiveKey.current}
+            />
           </Stack>
         </DialogContent>
 

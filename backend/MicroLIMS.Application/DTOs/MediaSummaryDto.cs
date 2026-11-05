@@ -35,9 +35,21 @@ public class MediaSummaryDto
     public string? ApprovedByName { get; set; }
     public DateTime? ApprovedAt { get; set; }
 
+    // Optional additives (e.g. a neutralizer) added while preparing the lot.
+    public List<MediaAdditiveSummaryDto> Additives { get; set; } = new();
+
     public MediaEvaluationSummaryDto? Evaluation { get; set; }
     public List<SampleWorkflowEventDto> Timeline { get; set; } = new();
     public List<SignatureDto> Signatures { get; set; } = new();
+}
+
+public class MediaAdditiveSummaryDto
+{
+    public string Kind { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public string Code { get; set; } = string.Empty;
+    public decimal Quantity { get; set; }
+    public string Unit { get; set; } = string.Empty;
 }
 
 public class MediaEvaluationSummaryDto

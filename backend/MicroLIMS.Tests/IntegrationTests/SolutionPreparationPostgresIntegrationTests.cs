@@ -77,6 +77,58 @@ public class SolutionPreparationPostgresIntegrationTests
         Assert.Equal(1, consumedCount);
     }
 
+    // The Microbiology chain end to end on the real schema: a stock reagent bottle feeds a
+    // sterilized working diluent (prepared-solution line, text line, autoclave record), so the
+    // new columns and their foreign keys are exercised by Postgres, not just the in-memory provider.
+    [PostgresFact]
+    public async Task PreparedSolutionChain_WithAutoclaveRecord_PersistsOnPostgres()
+    {
+        var suffix = Guid.NewGuid().ToString("N")[..6].ToUpperInvariant();
+        var seed = await SeedAsync(suffix);
+        await using var db = _fixture.CreateDbContext();
+
+        var autoclave = new Equipment { Name = $"Autoclave {suffix}", Code = $"AC-{suffix}", Type = EquipmentType.Autoclave, SectionId = seed.SectionId };
+        db.Equipment.Add(autoclave);
+        await db.SaveChangesAsync();
+
+        var masters = TestServiceFactory.SolutionMaster(db);
+        var stock = await masters.CreateAsync(new SaveSolutionMasterRequest(
+            $"Stock {suffix}", SolutionType.Reagent, 30, ShelfLifeUnit.Days, "2-8 C", 1000m, "Dissolve.",
+            new List<SolutionComponentInput> { new(seed.ComponentEntryId, 10m, SolutionComponentUnit.Milliliter) },
+            SectionId: seed.SectionId), seed.UserId);
+        var working = await masters.CreateAsync(new SaveSolutionMasterRequest(
+            $"Working {suffix}", SolutionType.Diluent, 30, ShelfLifeUnit.Days, "Room temperature", 1000m, "Dilute and autoclave.",
+            new List<SolutionComponentInput>
+            {
+                new(null, 1.25m, SolutionComponentUnit.Milliliter, SolutionComponentKind.PreparedSolution, SourceSolutionMasterId: stock.Id),
+                new(null, null, null, SolutionComponentKind.Text, Text: "Purified water to 1000 mL"),
+            },
+            SectionId: seed.SectionId, SterilizationRequired: true, ReleaseRequired: false), seed.UserId);
+
+        var service = TestServiceFactory.SolutionPreparation(db);
+        var stockPrep = await service.StartAsync(new StartPreparationRequest(stock.Id, null), seed.UserId);
+        await service.SaveAsync(stockPrep.Id,
+            new SavePreparationRequest(new List<PreparationComponentInput> { new(stockPrep.Components[0].Id, seed.LotAId, 10m) }, 1000m, null), seed.UserId);
+        var stockDone = await service.CompleteAsync(stockPrep.Id, new CompletePreparationRequest(Password, null), seed.UserId, null);
+
+        var prep = await service.StartAsync(new StartPreparationRequest(working.Id, null), seed.UserId);
+        await service.SaveAsync(prep.Id,
+            new SavePreparationRequest(
+                new List<PreparationComponentInput> { new(prep.Components[0].Id, null, null, stockDone.Id), new(prep.Components[1].Id, null, null) },
+                1000m, null, autoclave.Id, "P1", "Liquid", 121m, 15, 3), seed.UserId);
+        var done = await service.CompleteAsync(prep.Id, new CompletePreparationRequest(Password, null), seed.UserId, null);
+
+        await using var check = _fixture.CreateDbContext();
+        var stored = await check.SolutionPreparations.AsNoTracking().Include(p => p.Components).SingleAsync(p => p.Id == done.Id);
+        Assert.Equal(SolutionPreparationStatus.Prepared, stored.Status);
+        Assert.Equal(autoclave.Id, stored.AutoclaveEquipmentId);
+        Assert.Equal(121m, stored.AutoclaveTemperature);
+        Assert.Null(stored.ApprovalStatus);
+        Assert.Equal(stockDone.Id, stored.Components.Single(c => c.Kind == SolutionComponentKind.PreparedSolution).SourcePreparationId);
+        Assert.Equal("Purified water to 1000 mL", stored.Components.Single(c => c.Kind == SolutionComponentKind.Text).Text);
+        Assert.Equal(90m, (await check.Materials.AsNoTracking().SingleAsync(m => m.Id == seed.LotAId)).QuantityRemaining);
+    }
+
     private sealed record Seed(int SectionId, int UserId, int SolutionId, int MethodId, string MethodAbbreviation, int ComponentEntryId, int LotAId, int LotBId, decimal LotQuantity);
 
     private async Task<Seed> SeedAsync(string suffix)

@@ -226,3 +226,29 @@ describe("Master Testing Materials menu entry", () => {
     expect(labels(without)).not.toContain("Master Testing Materials");
   });
 });
+
+describe("Microbiology solutions menu entries", () => {
+  const micro = (permissions: string[]) =>
+    getGroupedMenu({ role: "Analyst", permissions, labCodes: ["MICRO"] }).find((g) => g.groupName === "LABORATORIES")?.items ?? [];
+
+  it("offers Solution Preparation in the Microbiology Laboratory area with the prepare permission", () => {
+    const entry = findItemByPath(micro([PERMISSIONS.SOLUTIONS_PREPARE]), "/preparation?lab=MICRO");
+    expect(entry?.label).toBe("Solution Preparation");
+    expect(entry?.permission).toBe(PERMISSIONS.SOLUTIONS_PREPARE);
+    expect(findItemByPath(micro([]), "/preparation?lab=MICRO")).toBeUndefined();
+  });
+
+  it("offers Solutions in the Microbiology Configuration area next to the physicochemical one", () => {
+    const items = micro([PERMISSIONS.MASTER_DATA_MANAGE]);
+    expect(findItemByPath(items, "/laboratory-configuration/solution-master?lab=MICRO")?.label).toBe("Solutions");
+    const both = getGroupedMenu({ role: "Analyst", permissions: [PERMISSIONS.MASTER_DATA_MANAGE], labCodes: ["MICRO", "FP"] })
+      .find((g) => g.groupName === "LABORATORIES")?.items ?? [];
+    expect(findItemByPath(both, "/laboratory-configuration/solution-master")?.label).toBe("Solutions");
+  });
+
+  it("highlights the Microbiology entries only when the lab is Microbiology", () => {
+    const groups = getGroupedMenu({ role: "Analyst", permissions: [PERMISSIONS.SOLUTIONS_PREPARE], labCodes: ["MICRO", "FP"] });
+    expect(findNavTrail(groups, "/preparation", "?lab=MICRO")?.parent?.label).toBe("Microbiology Laboratory");
+    expect(findNavTrail(groups, "/preparation", "")?.parent?.label).toBe("Physicochemical Laboratory");
+  });
+});

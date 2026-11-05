@@ -149,6 +149,7 @@ public class MediaResponse
     public int? ApprovedByUserId { get; init; }
     public DateTime? ApprovedAt { get; init; }
     public bool IsReleasedForUse { get; init; }
+    public List<MediaAdditiveResponse> Additives { get; init; } = new();
 
     public static MediaResponse From(Media e) => new()
     {
@@ -176,7 +177,20 @@ public class MediaResponse
         ApprovedByUserId = e.ApprovedByUserId,
         ApprovedAt = e.ApprovedAt,
         IsReleasedForUse = e.IsReleasedForUse,
+        Additives = e.Additives.OrderBy(a => a.Order).Select(a => new MediaAdditiveResponse
+        {
+            Kind = a.Kind, Name = a.Name, Code = a.Code, Quantity = a.Quantity, Unit = a.Unit
+        }).ToList(),
     };
+}
+
+public class MediaAdditiveResponse
+{
+    public MediaAdditiveKind Kind { get; init; }
+    public string Name { get; init; } = string.Empty;
+    public string Code { get; init; } = string.Empty;
+    public decimal Quantity { get; init; }
+    public string Unit { get; init; } = string.Empty;
 }
 
 public class MediaEvaluationResponse
@@ -392,10 +406,26 @@ public record SamplePreparationResponse(
     int PreparedByUserId,
     DateTime PreparedAt,
     int? SourceConfigurationId,
-    bool WasConfirmedFromConfig)
+    bool WasConfirmedFromConfig,
+    PreparationMaterialSource? DiluentSource,
+    int? DiluentMediaId,
+    int? DiluentSolutionPreparationId,
+    int? DiluentMaterialId,
+    string? DiluentLotCode,
+    PreparationMaterialSource? NeutralizerSource,
+    int? NeutralizerMediaId,
+    int? NeutralizerSolutionPreparationId,
+    int? NeutralizerMaterialId,
+    string? NeutralizerLotCode,
+    // True when the diluent or neutralizer was recorded without a master behind it (legacy
+    // configuration): no lot is on file for it.
+    bool NeedsMaterialMapping)
 {
     public static SamplePreparationResponse From(SamplePreparation p) => new(
         p.Id, p.SampleId, p.Amount, p.Technique, p.FiltrationVolume, p.WashingVolume,
         p.Diluent, p.Neutralizer, p.PreparedByUserId, p.PreparedAt,
-        p.SourceConfigurationId, p.WasConfirmedFromConfig);
+        p.SourceConfigurationId, p.WasConfirmedFromConfig,
+        p.DiluentSource, p.DiluentMediaId, p.DiluentSolutionPreparationId, p.DiluentMaterialId, p.DiluentLotCode,
+        p.NeutralizerSource, p.NeutralizerMediaId, p.NeutralizerSolutionPreparationId, p.NeutralizerMaterialId, p.NeutralizerLotCode,
+        p.DiluentSource is null || p.NeutralizerSource is null);
 }

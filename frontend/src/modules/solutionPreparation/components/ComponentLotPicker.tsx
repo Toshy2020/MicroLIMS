@@ -63,7 +63,7 @@ export function ComponentLotPicker({
           <Chip
             size="small"
             variant="outlined"
-            label={`Recipe: ${component.recipeQuantity} ${component.recipeUnit}`}
+            label={`Recipe: ${component.recipeQuantity ?? ""} ${component.recipeUnit ?? ""}`}
             sx={{ fontWeight: 600, fontSize: 12 }}
           />
         </Box>

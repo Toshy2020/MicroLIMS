@@ -8,10 +8,16 @@ using MicroLIMS.Application.DTOs.Responses;
 
 namespace MicroLIMS.Application.Services;
 
+// One optional additive (e.g. a neutralizer). StockLot: MaterialId + Quantity in the lot's own
+// unit, deducted from stock. PreparedSolution: SolutionPreparationId, recorded only.
+public record MediaAdditiveInput(
+    MediaAdditiveKind Kind, int? MaterialId, int? SolutionPreparationId, decimal Quantity, string? Unit);
+
 public record PrepareMediaRequest(
     int MaterialId, decimal TotalWeight, string TotalVolume,
     int AutoclaveEquipmentId, string AutoclaveProgram, string LoadType, decimal Temperature,
-    int CycleTime, int CycleNumber, decimal Ph, DateTime ExpiryDate, int UserId);
+    int CycleTime, int CycleNumber, decimal Ph, DateTime ExpiryDate, int UserId,
+    List<MediaAdditiveInput>? Additives = null);
 
 // The Media Preparation module - captures the full prepared-lot record.
 // Lot number format: {Product.Code}/{seq:D2}/{yy} - the prefix comes from the
@@ -62,6 +68,10 @@ public class MediaPreparationService
             throw new InvalidOperationException(
                 $"Batch {material.BatchNumber} of {material.MaterialName} isn't linked to a configured media product - edit it in Inventory > Materials Stock and choose the product before preparing.");
 
+        // Optional additives (D11: none never blocks). Validated and stock-deducted in memory
+        // here, saved together with the media row below.
+        var additives = await BuildAdditivesAsync(request.Additives, material.SectionId, request.UserId);
+
         var product = await _db.MediaProducts.FirstOrDefaultAsync(p => p.Id == material.MediaProductId.Value)
             ?? throw new InvalidOperationException($"Media product with ID {material.MediaProductId.Value} not found.");
 
@@ -96,6 +106,7 @@ public class MediaPreparationService
             PreparedByUserId = request.UserId
         };
 
+        foreach (var additive in additives) media.Additives.Add(additive);
         _db.Media.Add(media);
 
         // Auto-assign the Media Evaluation for this lot - EvaluationType
@@ -135,9 +146,106 @@ public class MediaPreparationService
         return media;
     }
 
+    private async Task<List<MediaAdditive>> BuildAdditivesAsync(List<MediaAdditiveInput>? inputs, int sectionId, int userId)
+    {
+        var result = new List<MediaAdditive>();
+        if (inputs is not { Count: > 0 }) return result;
+
+        var seen = new HashSet<(MediaAdditiveKind, int)>();
+        var now = _time.GetUtcNow().UtcDateTime;
+        var order = 0;
+
+        foreach (var input in inputs)
+        {
+            order++;
+            if (input.Quantity <= 0)
+                throw new InvalidOperationException($"Additive {order}: quantity must be greater than zero.");
+            var unit = input.Unit?.Trim();
+            if (string.IsNullOrEmpty(unit))
+                throw new InvalidOperationException($"Additive {order}: unit is required.");
+            if (unit.Length > 20)
+                throw new InvalidOperationException($"Additive {order}: unit cannot exceed 20 characters.");
+
+            if (input.Kind == MediaAdditiveKind.StockLot)
+            {
+                if (!input.MaterialId.HasValue)
+                    throw new InvalidOperationException($"Additive {order}: choose the stock lot.");
+                if (input.SolutionPreparationId.HasValue)
+                    throw new InvalidOperationException($"Additive {order}: a stock lot additive cannot also name a prepared solution.");
+                if (!seen.Add((input.Kind, input.MaterialId.Value)))
+                    throw new InvalidOperationException($"Additive {order}: the same stock lot is listed more than once.");
+
+                var lot = await _db.Materials.FirstOrDefaultAsync(m => m.Id == input.MaterialId.Value)
+                    ?? throw new NotFoundException($"Material {input.MaterialId.Value} not found.");
+                if (lot.MaterialType is MaterialType.DehydratedMedia or MaterialType.LyophilizedMicroorganism)
+                    throw new InvalidOperationException(
+                        $"{lot.MaterialName} (batch {lot.BatchNumber}) is a {lot.MaterialType} lot and cannot be added as an additive.");
+                if (lot.SectionId != sectionId)
+                    throw new InvalidOperationException(
+                        $"{lot.MaterialName} (batch {lot.BatchNumber}) belongs to another laboratory section than the media being prepared.");
+
+                // Same guards as the dehydrated media: expiry, release, COA, enough stock.
+                // The quantity is in the lot's own unit, so that unit is what gets recorded.
+                var consumed = await _materialService.ConsumeAsync(lot.Id, null, input.Quantity, userId);
+                result.Add(new MediaAdditive
+                {
+                    Order = order,
+                    Kind = input.Kind,
+                    MaterialId = consumed.Id,
+                    Quantity = input.Quantity,
+                    Unit = consumed.Unit.ToString(),
+                    Name = consumed.MaterialName,
+                    Code = Truncate(string.IsNullOrWhiteSpace(consumed.StockId) ? consumed.BatchNumber : consumed.StockId, 100)
+                });
+            }
+            else
+            {
+                if (!input.SolutionPreparationId.HasValue)
+                    throw new InvalidOperationException($"Additive {order}: choose the prepared solution.");
+                if (input.MaterialId.HasValue)
+                    throw new InvalidOperationException($"Additive {order}: a prepared solution additive cannot also name a stock lot.");
+                if (!seen.Add((input.Kind, input.SolutionPreparationId.Value)))
+                    throw new InvalidOperationException($"Additive {order}: the same prepared solution is listed more than once.");
+
+                var prep = await _db.SolutionPreparations.Include(p => p.SolutionMaster)
+                    .FirstOrDefaultAsync(p => p.Id == input.SolutionPreparationId.Value)
+                    ?? throw new NotFoundException($"Solution preparation {input.SolutionPreparationId.Value} not found.");
+                var label = prep.Code ?? $"#{prep.Id}";
+
+                if (prep.SectionId != sectionId)
+                    throw new InvalidOperationException($"Preparation {label} belongs to another laboratory section than the media being prepared.");
+                var status = SolutionPreparationResponse.EffectiveStatusOf(prep, now);
+                if (status == SolutionPreparationStatus.Expired)
+                    throw new InvalidOperationException($"Preparation {label} expired on {prep.ExpiresAt:yyyy-MM-dd}.");
+                if (status != SolutionPreparationStatus.Prepared)
+                    throw new InvalidOperationException($"Preparation {label} is {status} and cannot be used.");
+                if (prep.ApprovalStatus == ApprovalGateStatus.PendingReview)
+                    throw new InvalidOperationException($"Preparation {label} is awaiting release.");
+                if (prep.ApprovalStatus == ApprovalGateStatus.Rejected)
+                    throw new InvalidOperationException($"Preparation {label} was rejected.");
+
+                // Recorded only - picking the bottle is enough, nothing is deducted.
+                result.Add(new MediaAdditive
+                {
+                    Order = order,
+                    Kind = input.Kind,
+                    SolutionPreparationId = prep.Id,
+                    Quantity = input.Quantity,
+                    Unit = unit,
+                    Name = prep.SolutionMaster?.Name ?? string.Empty,
+                    Code = Truncate(label, 100)
+                });
+            }
+        }
+
+        return result;
+    }
+
+    private static string Truncate(string value, int max) => value.Length <= max ? value : value[..max];
+
     // sectionIds: the caller's laboratory sections (null = unrestricted).
     public async Task<List<MediaResponse>> GetAllAsync(IReadOnlyCollection<int>? sectionIds = null) =>
-        (await _db.Media.Include(m => m.Material)
+        (await _db.Media.Include(m => m.Material).Include(m => m.Additives)
             .Where(m => sectionIds == null || sectionIds.Contains(m.Material!.SectionId))
             .OrderByDescending(m => m.Id).ToListAsync()).Select(MediaResponse.From).ToList();
 
@@ -149,7 +257,7 @@ public class MediaPreparationService
     public async Task<List<MediaResponse>> GetReleasedAsync(int? materialId = null, bool includeExpired = false, int? excludeId = null,
         IReadOnlyCollection<int>? sectionIds = null)
     {
-        var query = _db.Media.Include(m => m.Material).Where(m => m.IsReleasedForUse);
+        var query = _db.Media.Include(m => m.Material).Include(m => m.Additives).Where(m => m.IsReleasedForUse);
         if (sectionIds != null) query = query.Where(m => sectionIds.Contains(m.Material!.SectionId));
         if (!includeExpired) query = query.Where(m => m.Status == MediaStatus.Active && m.ExpiryDate > _time.GetUtcNow().UtcDateTime);
         if (materialId.HasValue) query = query.Where(m => m.MaterialId == materialId.Value);

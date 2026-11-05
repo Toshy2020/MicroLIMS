@@ -12,10 +12,16 @@ import { ReasonDialog } from "../laboratoryConfiguration/masterDataSimple/soluti
 import { PreparationStatusBadge } from "./components/PreparationStatusBadge";
 import { PreparationComponentsTable } from "./record/PreparationComponentsTable";
 import { PreparationHistoryTable } from "./record/PreparationHistoryTable";
+import { PreparationWhereUsedPanel } from "../testPreparation/components/PreparationWhereUsedPanel";
 import { CurrentFactorCard } from "./record/CurrentFactorCard";
 import { StandardizationHistoryTable } from "./record/StandardizationHistoryTable";
 import { useTitrantStandardization } from "./record/useTitrantStandardization";
 import { TitrantStandardizationDialog } from "./components/TitrantStandardizationDialog";
+import { ReleasePreparationDialog } from "./components/ReleasePreparationDialog";
+import { releaseStateText } from "./releaseState";
+import { useAuth } from "../../contexts/AuthContext";
+import { PERMISSIONS } from "../../routes/routes";
+import { solutionTypeLabel } from "./types";
 import { SolutionPreparationService } from "./services/SolutionPreparationService";
 import { formatLabDate, formatLabDateTime } from "../../utils/formatDate";
 import type { SolutionPreparationResponse, RecipeSnapshot } from "./types";
@@ -24,6 +30,9 @@ import { toast } from "sonner";
 export function PreparationRecordPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { permissions } = useAuth();
+  const canRelease = permissions.includes(PERMISSIONS.SOLUTIONS_RELEASE);
+  const [releaseOpen, setReleaseOpen] = useState(false);
 
   const [preparation, setPreparation] = useState<SolutionPreparationResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -133,12 +142,16 @@ export function PreparationRecordPage() {
 
   const isInProgress = preparation.effectiveStatus === "InProgress";
   const isPrepared = preparation.effectiveStatus === "Prepared";
+  const releaseText = releaseStateText(preparation);
+  const awaitingRelease = preparation.approvalStatus === "PendingReview";
+  const showRelease = canRelease && awaitingRelease;
+  const hasAutoclave = Boolean(preparation.autoclaveEquipmentId) || recipe?.sterilizationRequired === true;
 
   return (
     <Box sx={{ p: 3, maxWidth: 1100, mx: "auto" }}>
       <PageHeader
         title={preparation.code || preparation.solutionMasterName}
-        subtitle={`${preparation.type} · Recipe: ${preparation.solutionMasterName}${preparation.hplcMethodAbbreviation ? ` · Method: ${preparation.hplcMethodAbbreviation}` : ""}`}
+        subtitle={`${solutionTypeLabel(preparation.type)} · Recipe: ${preparation.solutionMasterName}${preparation.hplcMethodAbbreviation ? ` · Method: ${preparation.hplcMethodAbbreviation}` : ""}`}
       >
         <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
           <PreparationStatusBadge status={preparation.effectiveStatus} size="medium" />
@@ -222,6 +235,15 @@ export function PreparationRecordPage() {
           )}
         </Box>
 
+        {releaseText && (
+          <Alert
+            severity={preparation.approvalStatus === "Approved" ? "success" : preparation.approvalStatus === "Rejected" ? "error" : "warning"}
+            sx={{ mt: 1 }}
+          >
+            {releaseText}
+          </Alert>
+        )}
+
         {recipe?.instructions && (
           <Box sx={{ p: 1.5, bgcolor: "action.hover", borderRadius: 1, mt: 1 }}>
             <Typography variant="caption" sx={{ fontWeight: 700, display: "block", mb: 0.5 }}>
@@ -241,6 +263,36 @@ export function PreparationRecordPage() {
           canStandardize={canStandardize}
           onStandardize={() => setDialogOpen(true)}
         />
+      )}
+
+      {/* Autoclave record (recipes that need sterilization) */}
+      {hasAutoclave && (
+        <Paper variant="outlined" sx={{ p: 3, mb: 3 }} data-testid="autoclave-record">
+          <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 2 }}>
+            Autoclave
+          </Typography>
+          {preparation.autoclaveEquipmentId ? (
+            <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr 1fr", sm: "repeat(3, 1fr)" }, gap: 2 }}>
+              {[
+                ["Autoclave", preparation.autoclaveEquipmentName ?? `#${preparation.autoclaveEquipmentId}`],
+                ["Program", preparation.autoclaveProgram ?? "—"],
+                ["Load type", preparation.loadType ?? "—"],
+                ["Temperature", preparation.autoclaveTemperature != null ? `${preparation.autoclaveTemperature} °C` : "—"],
+                ["Cycle time", preparation.autoclaveCycleTime != null ? `${preparation.autoclaveCycleTime} min` : "—"],
+                ["Cycle number", preparation.autoclaveCycleNumber != null ? String(preparation.autoclaveCycleNumber) : "—"]
+              ].map(([label, value]) => (
+                <Box key={label}>
+                  <Typography variant="caption" sx={{ color: "text.secondary" }}>{label}</Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 600 }}>{value}</Typography>
+                </Box>
+              ))}
+            </Box>
+          ) : (
+            <Typography variant="body2" sx={{ color: "text.secondary" }}>
+              Sterilization is required for this recipe; the autoclave record has not been entered yet.
+            </Typography>
+          )}
+        </Paper>
       )}
 
       {/* Components Table */}
@@ -264,6 +316,13 @@ export function PreparationRecordPage() {
         </Paper>
       )}
 
+      {/* Where used: test preparations that picked this lot as diluent / neutralizer */}
+      {["Diluent", "Reagent", "Neutralizer"].includes(preparation.type) && (
+        <Paper variant="outlined" sx={{ p: 3, mb: 3 }}>
+          <PreparationWhereUsedPanel lot={{ solutionPreparationId: preparation.id }} />
+        </Paper>
+      )}
+
       {/* Status History */}
       <Paper variant="outlined" sx={{ p: 3, mb: 3 }}>
         <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 2 }}>
@@ -273,8 +332,17 @@ export function PreparationRecordPage() {
       </Paper>
 
       {/* Action Footer */}
-      {(isInProgress || isPrepared) && (
+      {(isInProgress || isPrepared || showRelease) && (
         <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 2 }}>
+          {showRelease && (
+            <Button
+              variant="contained"
+              onClick={() => setReleaseOpen(true)}
+              sx={{ textTransform: "none", fontWeight: 700 }}
+            >
+              Release
+            </Button>
+          )}
           {isInProgress && (
             <>
               <Button
@@ -308,6 +376,18 @@ export function PreparationRecordPage() {
           )}
         </Box>
       )}
+
+      <ReleasePreparationDialog
+        open={releaseOpen}
+        preparationId={preparation.id}
+        code={preparation.code}
+        solutionName={preparation.solutionMasterName}
+        onClose={() => setReleaseOpen(false)}
+        onSuccess={(message) => {
+          toast.success(message);
+          void refreshPreparation(preparation.id);
+        }}
+      />
 
       {/* Cancel / Discard Reason Dialog */}
       <ReasonDialog

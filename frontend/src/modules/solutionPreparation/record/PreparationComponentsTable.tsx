@@ -27,39 +27,60 @@ export function PreparationComponentsTable({ components }: Props) {
             <TableCell sx={{ width: 40, fontWeight: 700 }}>#</TableCell>
             <TableCell sx={{ fontWeight: 700 }}>Reagent / Material</TableCell>
             <TableCell sx={{ fontWeight: 700 }}>Target Quantity</TableCell>
-            <TableCell sx={{ fontWeight: 700 }}>Consumed Stock Lot</TableCell>
+            <TableCell sx={{ fontWeight: 700 }}>Consumed Stock Lot / Prepared Solution</TableCell>
             <TableCell sx={{ fontWeight: 700, textAlign: "right" }}>Quantity Used</TableCell>
           </TableRow>
         </TableHead>
         <TableBody>
-          {components.map((c) => (
-            <TableRow key={c.id}>
-              <TableCell>{c.order}</TableCell>
-              <TableCell>
-                <Typography variant="body2" sx={{ fontWeight: 600 }}>{c.entryName}</Typography>
-                <Typography variant="caption" sx={{ color: "text.secondary" }}>{c.entryCode}</Typography>
-              </TableCell>
-              <TableCell>{c.recipeQuantity} {c.recipeUnit}</TableCell>
-              <TableCell>
-                {c.lotBatchNumber ? (
-                  <Typography variant="body2" sx={{ fontFamily: "monospace", fontWeight: 700 }}>
-                    {c.lotBatchNumber}
+          {components.map((c) =>
+            c.kind === "Text" ? (
+              <TableRow key={c.id}>
+                <TableCell>{c.order}</TableCell>
+                <TableCell colSpan={4}>
+                  <Typography variant="body2" sx={{ fontStyle: "italic" }}>{c.text}</Typography>
+                </TableCell>
+              </TableRow>
+            ) : (
+              <TableRow key={c.id}>
+                <TableCell>{c.order}</TableCell>
+                <TableCell>
+                  <Typography variant="body2" sx={{ fontWeight: 600 }}>{c.entryName}</Typography>
+                  <Typography variant="caption" sx={{ color: "text.secondary" }}>
+                    {c.kind === "PreparedSolution" ? "Prepared solution" : c.entryCode}
                   </Typography>
-                ) : (
-                  <Typography variant="caption" sx={{ color: "text.secondary", fontStyle: "italic" }}>
-                    (None)
-                  </Typography>
-                )}
-              </TableCell>
-              <TableCell sx={{ textAlign: "right" }}>
-                {c.quantityUsed != null ? (
-                  <Typography variant="body2" sx={{ fontWeight: 700 }}>
-                    {c.quantityUsed} {c.lotUnit ?? ""}
-                  </Typography>
-                ) : "—"}
-              </TableCell>
-            </TableRow>
-          ))}
+                </TableCell>
+                <TableCell>{c.recipeQuantity} {c.recipeUnit}</TableCell>
+                <TableCell>
+                  {c.kind === "PreparedSolution" ? (
+                    c.sourcePreparationCode ? (
+                      <Typography variant="body2" sx={{ fontFamily: "monospace", fontWeight: 700 }}>
+                        {c.sourcePreparationCode}
+                      </Typography>
+                    ) : (
+                      <Typography variant="caption" sx={{ color: "text.secondary", fontStyle: "italic" }}>
+                        (None)
+                      </Typography>
+                    )
+                  ) : c.lotBatchNumber ? (
+                    <Typography variant="body2" sx={{ fontFamily: "monospace", fontWeight: 700 }}>
+                      {c.lotBatchNumber}
+                    </Typography>
+                  ) : (
+                    <Typography variant="caption" sx={{ color: "text.secondary", fontStyle: "italic" }}>
+                      (None)
+                    </Typography>
+                  )}
+                </TableCell>
+                <TableCell sx={{ textAlign: "right" }}>
+                  {c.quantityUsed != null ? (
+                    <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                      {c.quantityUsed} {c.kind === "PreparedSolution" ? c.recipeUnit ?? "" : c.lotUnit ?? ""}
+                    </Typography>
+                  ) : "—"}
+                </TableCell>
+              </TableRow>
+            )
+          )}
         </TableBody>
       </Table>
     </TableContainer>

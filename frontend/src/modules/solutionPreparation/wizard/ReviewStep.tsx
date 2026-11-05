@@ -25,6 +25,7 @@ import type {
   SolutionPreparationResponse,
   RecipeSnapshot
 } from "../types";
+import { solutionTypeLabel } from "../types";
 
 interface Props {
   preparation: SolutionPreparationResponse;
@@ -55,6 +56,13 @@ export function ReviewStep({
 
     // All components must have lot and quantity
     for (const c of preparation.components) {
+      if (c.kind === "Text") continue;
+      if (c.kind === "PreparedSolution") {
+        if (!c.sourcePreparationId) {
+          errors.push(`Component "${c.entryName}" does not have a prepared solution selected.`);
+        }
+        continue;
+      }
       if (!c.materialId || !c.lotBatchNumber) {
         errors.push(`Component "${c.entryName}" does not have a stock lot selected.`);
       } else if (!c.quantityUsed || c.quantityUsed <= 0) {
@@ -130,7 +138,7 @@ export function ReviewStep({
               Type
             </Typography>
             <Typography variant="body2" sx={{ fontWeight: 600 }}>
-              {preparation.type}
+              {solutionTypeLabel(preparation.type)}
             </Typography>
           </Box>
           <Box>
@@ -169,6 +177,9 @@ export function ReviewStep({
               sx={{ fontWeight: 600 }}
             />
           )}
+          {recipe?.releaseRequired && (
+            <Chip label="Release required before use" variant="outlined" color="warning" sx={{ fontWeight: 600 }} />
+          )}
           {recipe?.shelfLifeValue != null && (
             <Chip
               label={`Shelf Life: ${recipe.shelfLifeValue} ${recipe.shelfLifeUnit}`}
@@ -178,9 +189,31 @@ export function ReviewStep({
           )}
         </Box>
 
+        {recipe?.sterilizationRequired && (
+          <Box sx={{ mb: 3 }} data-testid="review-autoclave">
+            <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>
+              Autoclave
+            </Typography>
+            {preparation.autoclaveEquipmentId ? (
+              <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
+                <Chip variant="outlined" label={`Autoclave: ${preparation.autoclaveEquipmentName ?? `#${preparation.autoclaveEquipmentId}`}`} />
+                <Chip variant="outlined" label={`Program: ${preparation.autoclaveProgram ?? "—"}`} />
+                <Chip variant="outlined" label={`Load: ${preparation.loadType ?? "—"}`} />
+                <Chip variant="outlined" label={`Temperature: ${preparation.autoclaveTemperature ?? "—"} °C`} />
+                <Chip variant="outlined" label={`Cycle time: ${preparation.autoclaveCycleTime ?? "—"} min`} />
+                <Chip variant="outlined" label={`Cycle no.: ${preparation.autoclaveCycleNumber ?? "—"}`} />
+              </Box>
+            ) : (
+              <Typography variant="caption" sx={{ color: "error.main", fontStyle: "italic" }}>
+                (Autoclave record not entered; the server will not accept completion without it)
+              </Typography>
+            )}
+          </Box>
+        )}
+
         {/* Components Table */}
         <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>
-          Reagent Components & Lots
+          Components, Lots & Prepared Solutions
         </Typography>
 
         <TableContainer component={Paper} variant="outlined" sx={{ mb: 3 }}>
@@ -190,49 +223,61 @@ export function ReviewStep({
                 <TableCell sx={{ width: 40, fontWeight: 700 }}>#</TableCell>
                 <TableCell sx={{ fontWeight: 700 }}>Reagent / Material</TableCell>
                 <TableCell sx={{ fontWeight: 700 }}>Recipe Target</TableCell>
-                <TableCell sx={{ fontWeight: 700 }}>Chosen Stock Lot</TableCell>
+                <TableCell sx={{ fontWeight: 700 }}>Chosen Stock Lot / Prepared Solution</TableCell>
                 <TableCell sx={{ fontWeight: 700, textAlign: "right" }}>Quantity Used</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
-              {preparation.components.map((c) => (
-                <TableRow key={c.id}>
-                  <TableCell>{c.order}</TableCell>
-                  <TableCell>
-                    <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                      {c.entryName}
-                    </Typography>
-                    <Typography variant="caption" sx={{ color: "text.secondary" }}>
-                      {c.entryCode}
-                    </Typography>
-                  </TableCell>
-                  <TableCell>
-                    {c.recipeQuantity} {c.recipeUnit}
-                  </TableCell>
-                  <TableCell>
-                    {c.lotBatchNumber ? (
-                      <Typography variant="body2" sx={{ fontFamily: "monospace", fontWeight: 700 }}>
-                        {c.lotBatchNumber}
+              {preparation.components.map((c) =>
+                c.kind === "Text" ? (
+                  <TableRow key={c.id}>
+                    <TableCell>{c.order}</TableCell>
+                    <TableCell colSpan={4}>
+                      <Typography variant="body2" sx={{ fontStyle: "italic" }}>{c.text}</Typography>
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  <TableRow key={c.id}>
+                    <TableCell>{c.order}</TableCell>
+                    <TableCell>
+                      <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                        {c.entryName}
                       </Typography>
-                    ) : (
-                      <Typography variant="caption" sx={{ color: "error.main", fontStyle: "italic" }}>
-                        (None selected)
+                      <Typography variant="caption" sx={{ color: "text.secondary" }}>
+                        {c.kind === "PreparedSolution" ? "Prepared solution" : c.entryCode}
                       </Typography>
-                    )}
-                  </TableCell>
-                  <TableCell sx={{ textAlign: "right" }}>
-                    {c.quantityUsed != null ? (
-                      <Typography variant="body2" sx={{ fontWeight: 700 }}>
-                        {c.quantityUsed} {c.lotUnit ?? ""}
-                      </Typography>
-                    ) : (
-                      <Typography variant="caption" sx={{ color: "error.main", fontStyle: "italic" }}>
-                        (None entered)
-                      </Typography>
-                    )}
-                  </TableCell>
-                </TableRow>
-              ))}
+                    </TableCell>
+                    <TableCell>
+                      {c.recipeQuantity} {c.recipeUnit}
+                    </TableCell>
+                    <TableCell>
+                      {(c.kind === "PreparedSolution" ? c.sourcePreparationCode : c.lotBatchNumber) ? (
+                        <Typography variant="body2" sx={{ fontFamily: "monospace", fontWeight: 700 }}>
+                          {c.kind === "PreparedSolution" ? c.sourcePreparationCode : c.lotBatchNumber}
+                        </Typography>
+                      ) : (
+                        <Typography variant="caption" sx={{ color: "error.main", fontStyle: "italic" }}>
+                          (None selected)
+                        </Typography>
+                      )}
+                    </TableCell>
+                    <TableCell sx={{ textAlign: "right" }}>
+                      {c.quantityUsed != null ? (
+                        <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                          {c.quantityUsed} {c.kind === "PreparedSolution" ? c.recipeUnit ?? "" : c.lotUnit ?? ""}
+                        </Typography>
+                      ) : (
+                        <Typography
+                          variant="caption"
+                          sx={{ color: c.kind === "PreparedSolution" ? "text.secondary" : "error.main", fontStyle: "italic" }}
+                        >
+                          {c.kind === "PreparedSolution" ? "(Not recorded)" : "(None entered)"}
+                        </Typography>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                )
+              )}
             </TableBody>
           </Table>
         </TableContainer>

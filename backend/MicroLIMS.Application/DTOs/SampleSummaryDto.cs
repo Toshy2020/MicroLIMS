@@ -116,6 +116,11 @@ public class SamplePreparationSummaryDto
     public decimal? WashingVolume { get; set; }
     public string Diluent { get; set; } = string.Empty;
     public string Neutralizer { get; set; } = string.Empty;
+    // Lot used (Media lot number, solution preparation code or stock ID); null when none was recorded.
+    public string? DiluentSource { get; set; }
+    public string? DiluentLotCode { get; set; }
+    public string? NeutralizerSource { get; set; }
+    public string? NeutralizerLotCode { get; set; }
     public string PreparedByName { get; set; } = string.Empty;
     public DateTime PreparedAt { get; set; }
 }

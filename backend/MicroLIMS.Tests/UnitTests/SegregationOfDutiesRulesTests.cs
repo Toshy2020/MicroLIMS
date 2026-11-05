@@ -47,6 +47,6 @@ public class SegregationOfDutiesRulesTests
         Assert.All(SegregationOfDutiesRules.AdministrationCodes.Concat(SegregationOfDutiesRules.GxpExecutionAndApprovalCodes),
             code => Assert.Contains(code, PermissionConstants.All));
         Assert.Equal(2, SegregationOfDutiesRules.AdministrationCodes.Count);
-        Assert.Equal(27, SegregationOfDutiesRules.GxpExecutionAndApprovalCodes.Count);
+        Assert.Equal(28, SegregationOfDutiesRules.GxpExecutionAndApprovalCodes.Count);
     }
 }

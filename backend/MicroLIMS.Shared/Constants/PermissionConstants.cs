@@ -113,6 +113,8 @@ public static class PermissionConstants
     // HPLC chain S4 - Solution Preparation area (spec 4). Gates every write
     // on a SolutionPreparation (start, save, complete, cancel, discard).
     public const string SolutionsPrepare = "Solutions.Prepare";
+    // Release a prepared solution whose recipe requires release before use.
+    public const string SolutionsRelease = "Solutions.Release";
 
     // HPLC chain S6 - HPLC Workspace (spec 5). Gates every write on an
     // HplcRun (start, save/confirm SST, assign/remove samples, replicate
@@ -171,7 +173,7 @@ public static class PermissionConstants
         DashboardsLabOverview, DashboardsReview, KpiView, KpiViewTeam, KpiConfigureProfiles,
         MediaPrepare, MediaRelease, MaterialCategoriesManage, MaterialsRelease, OosManage, TestWorkflowSupervise,
         SamplesReceiveOwnLab, SamplesCorrect, SamplesAssignAnalyst,
-        SolutionsPrepare, HplcOperate, WorkingStandardsQualify,
+        SolutionsPrepare, SolutionsRelease, HplcOperate, WorkingStandardsQualify,
         MonitoringPlanView, MonitoringPlanManage, MonitoringPlanApprove,
         EquipmentPlanManage, EquipmentPlanApprove, EquipmentWorkRecord, CalendarEventManage,
         NotApplicableTestsManage, NotApplicableTestsFinalApprove, TestsOutsource,
@@ -211,7 +213,7 @@ public static class PermissionConstants
         ReportingAdmin, RolesManage, SamplesApprove, SamplesAssignAnalyst, SamplesCorrect, SamplesReceive,
         SamplesReceiveOwnLab, SamplesReview, SamplesTrackAll, SignaturesManage, SystemViewErrorLog, SystemViewSecurityAudit, SystemConfigureSettings,
         TestWorkflowBiochemicalDecision, TestWorkflowExecute, TestWorkflowSupervise, UsersManage,
-        SolutionsPrepare, HplcOperate, WorkingStandardsQualify,
+        SolutionsPrepare, SolutionsRelease, HplcOperate, WorkingStandardsQualify,
         MonitoringPlanView, MonitoringPlanManage, MonitoringPlanApprove,
         EquipmentPlanManage, EquipmentPlanApprove, EquipmentWorkRecord, CalendarEventManage,
         NotApplicableTestsManage, NotApplicableTestsFinalApprove, TestsOutsource,

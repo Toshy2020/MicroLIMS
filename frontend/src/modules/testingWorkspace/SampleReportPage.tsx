@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { withLot } from "../testPreparation/preparationMaterial";
 import { useParams } from "react-router-dom";
 import { SampleSummaryService } from "./services/SampleSummaryService";
 import { ArchivedRecordsService, ArchivedRecordSummary } from "./services/ArchivedRecordsService";
@@ -202,11 +203,11 @@ export function SampleReportPage() {
               </div>
               <div className="prep-item">
                 <div className="prep-label">Diluent</div>
-                <div className="prep-value">{s.preparation.diluent || "—"}</div>
+                <div className="prep-value">{withLot(s.preparation.diluent || "—", s.preparation.diluentLotCode)}</div>
               </div>
               <div className="prep-item">
                 <div className="prep-label">Neutralizer</div>
-                <div className="prep-value">{s.preparation.neutralizer || "—"}</div>
+                <div className="prep-value">{withLot(s.preparation.neutralizer || "—", s.preparation.neutralizerLotCode)}</div>
               </div>
               <div className="prep-item">
                 <div className="prep-label">Prepared by</div>

@@ -131,8 +131,8 @@ public static class ReportDocumentMapper
                 {
                     ("Amount", $"{p.Amount}", null),
                     ("Technique", Humanize(p.Technique), p.Technique == "Filtration" ? $"Filt {p.FiltrationVolume} / Wash {p.WashingVolume}" : null),
-                    ("Diluent", string.IsNullOrEmpty(p.Diluent) ? "-" : p.Diluent, null),
-                    ("Neutralizer", string.IsNullOrEmpty(p.Neutralizer) ? "-" : p.Neutralizer, null),
+                    ("Diluent", string.IsNullOrEmpty(p.Diluent) ? "-" : p.Diluent, string.IsNullOrEmpty(p.DiluentLotCode) ? null : $"lot {p.DiluentLotCode}"),
+                    ("Neutralizer", string.IsNullOrEmpty(p.Neutralizer) ? "-" : p.Neutralizer, string.IsNullOrEmpty(p.NeutralizerLotCode) ? null : $"lot {p.NeutralizerLotCode}"),
                     ("Prepared by", p.PreparedByName, Dt(p.PreparedAt))
                 }
             });
@@ -841,6 +841,18 @@ public static class ReportDocumentMapper
                 ("pH", s.Ph.ToString(), Dt(s.PreparedAt))
             }
         });
+
+        if (s.Additives.Count > 0)
+        {
+            doc.Blocks.Add(new ListBlock
+            {
+                Label = "additives",
+                Rows = s.Additives.Select(a => (
+                    $"{a.Name} ({a.Code})",
+                    $"{a.Quantity} {a.Unit} · {(a.Kind == "StockLot" ? "Stock lot" : "Prepared solution")}")).ToList(),
+                EmptyText = ""
+            });
+        }
 
         doc.Blocks.Add(new HeadingBlock { Text = "media evaluation" });
         if (s.Evaluation is null)

@@ -9,6 +9,7 @@ import { PERMISSIONS } from "../../../routes/routes";
 import { ItemFilterBar } from "./components/ItemFilterBar";
 import { AddItemDialog } from "./components/AddItemDialog";
 import { ItemWorkspace } from "./components/ItemWorkspace";
+import { UnmappedPreparationConfigurations } from "./components/UnmappedPreparationConfigurations";
 
 export function ItemsPage() {
   // The QC Manager reaches this page to approve not-applicable tests; creating and changing items needs Items.Manage.
@@ -217,6 +218,8 @@ export function ItemsPage() {
           {message.text}
         </Alert>
       )}
+
+      {canManage && <UnmappedPreparationConfigurations onOpenItem={setSelectedItemId} />}
 
       {loadError && (
         <Alert

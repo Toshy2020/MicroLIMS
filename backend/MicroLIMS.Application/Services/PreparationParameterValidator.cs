@@ -3,22 +3,25 @@ namespace MicroLIMS.Application.Services;
 // The preparation parameters an analyst confirms and a Section Head
 // configures - identical field set on both sides, so the rules live here
 // once rather than being repeated in each service.
+// DiluentChoice / NeutralizerChoice carry the structured master (source + id)
+// where the caller is saving one; Diluent / Neutralizer are then the display
+// names the server resolved from it.
 public record PreparationParameters(
     decimal Amount,
     string Technique,
     decimal? FiltrationVolume,
     decimal? WashingVolume,
     string Diluent,
-    string Neutralizer);
+    string Neutralizer,
+    PreparationMaterialChoice? DiluentChoice = null,
+    PreparationMaterialChoice? NeutralizerChoice = null);
 
 public class PreparationParameterValidator
 {
-    // Diluent/Neutralizer are free text as of the 2026-09 simplification
-    // (previously FK-validated against DiluentType/Neutralizer master
-    // lists, with DiluentType additionally gating a GPT-released Media lot
-    // selection for batch-tracked diluents - dropped as unused). Still
-    // required, matching the "always a selection" behavior the dropdowns
-    // enforced before.
+    // Diluent/Neutralizer are display names: resolved from the referenced
+    // master when saved with a source, legacy free text on configurations that
+    // predate diluent/neutralizer traceability (see ItemPreparationConfiguration).
+    // Either way they must not be blank.
     public Task ValidateAsync(PreparationParameters p)
     {
         if (string.IsNullOrWhiteSpace(p.Diluent))

@@ -12,9 +12,11 @@ public class SolutionPreparationComponentConfiguration : IEntityTypeConfiguratio
 
         builder.Property(e => e.EntryCode).IsRequired().HasMaxLength(50);
         builder.Property(e => e.EntryName).IsRequired().HasMaxLength(200);
+        builder.Property(e => e.Text).HasMaxLength(200);
         builder.Property(e => e.RecipeQuantity).HasColumnType("decimal(12,4)");
         builder.Property(e => e.QuantityUsed).HasColumnType("decimal(12,4)");
 
         builder.HasOne(e => e.Material).WithMany().HasForeignKey(e => e.MaterialId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne(e => e.SourcePreparation).WithMany().HasForeignKey(e => e.SourcePreparationId).OnDelete(DeleteBehavior.Restrict);
     }
 }

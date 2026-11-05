@@ -72,8 +72,7 @@ public class SamplePreparationTests
         await db.SaveChangesAsync();
 
         var service = TestServiceFactory.SamplePreparation(db);
-        await service.PrepareAsync(new PrepareSampleRequest(
-            sample.Id, 10m, "PourPlate", null, null, "Buffer", "Tween", UserId: 5, Password));
+        await service.PrepareAsync(await PreparationTestData.ManualRequestAsync(db, sample.Id, 10m, 5, Password));
 
         var reloadedWaiting1 = await db.TestOrders.FirstAsync(t => t.Id == waitingOrder1.Id);
         var reloadedWaiting2 = await db.TestOrders.FirstAsync(t => t.Id == waitingOrder2.Id);
@@ -108,8 +107,7 @@ public class SamplePreparationTests
         await db.SaveChangesAsync();
 
         var service = TestServiceFactory.SamplePreparation(db);
-        var prep = await service.PrepareAsync(new PrepareSampleRequest(
-            sample.Id, 10m, "PourPlate", null, null, "Buffer", "Tween", UserId: 20, Password));
+        var prep = await service.PrepareAsync(await PreparationTestData.ManualRequestAsync(db, sample.Id, 10m, 20, Password));
 
         Assert.Equal(20, prep.PreparedByUserId);
         Assert.Equal(10, tamc.AssignedAnalystId);
@@ -132,8 +130,7 @@ public class SamplePreparationTests
         await db.SaveChangesAsync();
 
         var service = TestServiceFactory.SamplePreparation(db);
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.PrepareAsync(new PrepareSampleRequest(
-            sample.Id, 10m, "PourPlate", null, null, "Buffer", "Tween", UserId: 20, Password)));
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(async () => await service.PrepareAsync(await PreparationTestData.ManualRequestAsync(db, sample.Id, 10m, 20, Password)));
 
         Assert.Contains("Analyst X", ex.Message);
         Assert.Contains("Only the assigned analyst may perform sample preparation", ex.Message);
@@ -153,8 +150,7 @@ public class SamplePreparationTests
         await db.SaveChangesAsync();
 
         var service = TestServiceFactory.SamplePreparation(db);
-        var prep = await service.PrepareAsync(new PrepareSampleRequest(
-            sample.Id, 10m, "PourPlate", null, null, "Buffer", "Tween", UserId: 10, Password));
+        var prep = await service.PrepareAsync(await PreparationTestData.ManualRequestAsync(db, sample.Id, 10m, 10, Password));
 
         Assert.NotNull(prep);
         Assert.Equal(10, prep.PreparedByUserId);
@@ -175,14 +171,16 @@ public class SamplePreparationTests
         await db.SaveChangesAsync();
 
         var service = TestServiceFactory.SamplePreparation(db);
-        var prep = await service.PrepareAsync(new PrepareSampleRequest(
-            sample.Id, 25m, "PourPlate", null, null, "Buffer", "Tween", UserId: 7, Password));
+        var prep = await service.PrepareAsync(await PreparationTestData.ManualRequestAsync(db, sample.Id, 25m, 7, Password));
 
         var config = await db.ItemPreparationConfigurations.SingleAsync(c => c.ItemId == item.Id);
         Assert.Equal(ApprovalGateStatus.PendingReview, config.ApprovalStatus);
         Assert.Equal(7, config.CreatedByUserId);
         Assert.Equal(25m, config.Amount);
-        Assert.Equal("Buffer", config.Diluent);
+        Assert.Equal("TSB", config.Diluent);
+        Assert.Equal(PreparationMaterialSource.MediaProduct, config.DiluentSource);
+        Assert.Equal(PreparationMaterialSource.ContainedInMedium, config.NeutralizerSource);
+        Assert.Equal(PreparationMaterialService.ContainedInMediumName, config.Neutralizer);
 
         // The sample's own record points back at the config it seeded, but is
         // flagged as manual entry rather than a confirmation.
@@ -253,8 +251,7 @@ public class SamplePreparationTests
         Assert.Equal(10m, prep.Amount);
 
         var configService = TestServiceFactory.ItemPreparationConfiguration(db);
-        await configService.UpsertAsync(item.Id, new PreparationParameters(
-            999m, "PourPlate", null, null, "Buffer", "Tween"), userId: 9);
+        await configService.UpsertAsync(item.Id, await PreparationTestData.UpsertParametersAsync(db, 999m), userId: 9);
 
         var reloadedPrep = await db.SamplePreparations.AsNoTracking().FirstAsync(p => p.Id == prep.Id);
         Assert.Equal(10m, reloadedPrep.Amount);
@@ -281,8 +278,7 @@ public class SamplePreparationTests
         await db.SaveChangesAsync();
 
         var configService = TestServiceFactory.ItemPreparationConfiguration(db);
-        var dto = await configService.UpsertAsync(item.Id, new PreparationParameters(
-            20m, "PourPlate", null, null, "Buffer", "Tween"), userId: 3);
+        var dto = await configService.UpsertAsync(item.Id, await PreparationTestData.UpsertParametersAsync(db, 20m), userId: 3);
 
         Assert.Equal(ApprovalGateStatus.PendingReview, dto.ApprovalStatus);
         Assert.Null(dto.ApprovedByUserId);
@@ -301,8 +297,7 @@ public class SamplePreparationTests
         await db.SaveChangesAsync();
 
         var service = TestServiceFactory.SamplePreparation(db);
-        await Assert.ThrowsAnyAsync<InvalidOperationException>(() => service.PrepareAsync(new PrepareSampleRequest(
-            sample.Id, 10m, "PourPlate", null, null, "Buffer", "Tween", UserId: 11, "wrong-password")));
+        await Assert.ThrowsAnyAsync<InvalidOperationException>(async () => await service.PrepareAsync(await PreparationTestData.ManualRequestAsync(db, sample.Id, 10m, 11, "wrong-password")));
 
         Assert.Empty(await db.SamplePreparations.ToListAsync());
         Assert.Empty(await db.ItemPreparationConfigurations.ToListAsync());

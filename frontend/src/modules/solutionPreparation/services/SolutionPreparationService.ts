@@ -5,6 +5,8 @@ import type {
   SolutionPreparationListItem,
   SolutionPreparationResponse,
   LotOption,
+  SourcePreparationOption,
+  ReleasePreparationRequest,
   StartPreparationRequest,
   SavePreparationRequest,
   CompletePreparationRequest,
@@ -72,6 +74,28 @@ export const SolutionPreparationService = {
     );
     const data = res.data?.data;
     return Array.isArray(data) ? data : [];
+  },
+
+  getSourcePreparations: async (
+    id: number,
+    componentId: number
+  ): Promise<SourcePreparationOption[]> => {
+    const res = await apiClient.get<ApiResponse<SourcePreparationOption[]>>(
+      `/solution-preparations/${id}/components/${componentId}/source-preparations`
+    );
+    const data = res.data?.data;
+    return Array.isArray(data) ? data : [];
+  },
+
+  release: async (
+    id: number,
+    req: ReleasePreparationRequest
+  ): Promise<SolutionPreparationResponse> => {
+    const res = await apiClient.post<ApiResponse<SolutionPreparationResponse>>(
+      `/solution-preparations/${id}/release`,
+      req
+    );
+    return res.data?.data;
   },
 
   start: async (

@@ -14,12 +14,16 @@ import {
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import SaveOutlinedIcon from "@mui/icons-material/SaveOutlined";
 import { ComponentLotPicker } from "../components/ComponentLotPicker";
+import { SourcePreparationPicker } from "../components/SourcePreparationPicker";
+import { AutoclaveSection, type AutoclaveFormState } from "../components/AutoclaveSection";
 import { SolutionPreparationService } from "../services/SolutionPreparationService";
 import type {
   SolutionPreparationResponse,
   RecipeSnapshot,
   LotOption,
-  PreparationComponentInput
+  SourcePreparationOption,
+  PreparationComponentInput,
+  AutoclaveRecordInput
 } from "../types";
 
 interface Props {
@@ -27,7 +31,8 @@ interface Props {
   onSave: (
     components: PreparationComponentInput[],
     finalVolumeMl: number | null,
-    measuredPh: number | null
+    measuredPh: number | null,
+    autoclave: AutoclaveRecordInput | null
   ) => Promise<void>;
   onNext: () => void;
   saving?: boolean;
@@ -49,17 +54,28 @@ export function LotsStep({
 
   // Form State
   const [componentInputs, setComponentInputs] = useState<
-    Record<number, { materialId: number | null; quantityUsed: number | null }>
+    Record<number, { materialId: number | null; sourcePreparationId: number | null; quantityUsed: number | null }>
   >(() => {
-    const map: Record<number, { materialId: number | null; quantityUsed: number | null }> = {};
+    const map: Record<number, { materialId: number | null; sourcePreparationId: number | null; quantityUsed: number | null }> = {};
     for (const c of preparation.components) {
       map[c.id] = {
         materialId: c.materialId,
+        sourcePreparationId: c.sourcePreparationId ?? null,
         quantityUsed: c.quantityUsed
       };
     }
     return map;
   });
+
+  const needsAutoclave = recipe?.sterilizationRequired === true;
+  const [autoclave, setAutoclave] = useState<AutoclaveFormState>(() => ({
+    equipmentId: preparation.autoclaveEquipmentId ?? "",
+    program: preparation.autoclaveProgram ?? "",
+    loadType: preparation.loadType ?? "",
+    temperature: preparation.autoclaveTemperature ?? "",
+    cycleTime: preparation.autoclaveCycleTime ?? "",
+    cycleNumber: preparation.autoclaveCycleNumber ?? ""
+  }));
 
   const [finalVolume, setFinalVolume] = useState<number | "">(
     preparation.finalVolumeMl ?? recipe?.finalVolumeMl ?? ""
@@ -70,6 +86,7 @@ export function LotsStep({
 
   // Lots per component
   const [lotsMap, setLotsMap] = useState<Record<number, LotOption[]>>({});
+  const [sourcesMap, setSourcesMap] = useState<Record<number, SourcePreparationOption[]>>({});
   const [loadingLots, setLoadingLots] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -79,16 +96,25 @@ export function LotsStep({
     setError(null);
     try {
       const results = await Promise.all(
-        preparation.components.map(async (c) => {
-          const lots = await SolutionPreparationService.getLotOptions(preparation.id, c.id);
-          return { componentId: c.id, lots };
-        })
+        preparation.components
+          .filter((c) => (c.kind ?? "Material") !== "Text")
+          .map(async (c) => {
+            if (c.kind === "PreparedSolution") {
+              const sources = await SolutionPreparationService.getSourcePreparations(preparation.id, c.id);
+              return { componentId: c.id, lots: null, sources };
+            }
+            const lots = await SolutionPreparationService.getLotOptions(preparation.id, c.id);
+            return { componentId: c.id, lots, sources: null };
+          })
       );
       const newMap: Record<number, LotOption[]> = {};
+      const newSources: Record<number, SourcePreparationOption[]> = {};
       for (const res of results) {
-        newMap[res.componentId] = res.lots;
+        if (res.lots) newMap[res.componentId] = res.lots;
+        if (res.sources) newSources[res.componentId] = res.sources;
       }
       setLotsMap(newMap);
+      setSourcesMap(newSources);
     } catch (err: unknown) {
       const e = err as { response?: { data?: { message?: string } }; message?: string };
       setError(e.response?.data?.message ?? e.message ?? "Failed to load lot options.");
@@ -106,8 +132,20 @@ export function LotsStep({
       ...prev,
       [componentId]: {
         materialId,
+        sourcePreparationId: null,
         // Reset quantity if lot changed
         quantityUsed: materialId ? prev[componentId]?.quantityUsed ?? null : null
+      }
+    }));
+  };
+
+  const handleSelectSource = (componentId: number, sourcePreparationId: number | null) => {
+    setComponentInputs((prev) => ({
+      ...prev,
+      [componentId]: {
+        materialId: null,
+        sourcePreparationId,
+        quantityUsed: sourcePreparationId ? prev[componentId]?.quantityUsed ?? null : null
       }
     }));
   };
@@ -122,20 +160,44 @@ export function LotsStep({
     }));
   };
 
+  // Text lines send nothing; prepared-solution lines send the picked bottle.
   const getInputsList = (): PreparationComponentInput[] => {
-    return preparation.components.map((c) => ({
-      componentId: c.id,
-      materialId: componentInputs[c.id]?.materialId ?? null,
-      quantityUsed: componentInputs[c.id]?.quantityUsed ?? null
-    }));
+    return preparation.components.map((c) =>
+      c.kind === "Text"
+        ? { componentId: c.id }
+        : c.kind === "PreparedSolution"
+          ? {
+              componentId: c.id,
+              sourcePreparationId: componentInputs[c.id]?.sourcePreparationId ?? null,
+              quantityUsed: componentInputs[c.id]?.quantityUsed ?? null
+            }
+          : {
+              componentId: c.id,
+              materialId: componentInputs[c.id]?.materialId ?? null,
+              quantityUsed: componentInputs[c.id]?.quantityUsed ?? null
+            }
+    );
   };
+
+  // The backend checks the record; the form only sends what was entered.
+  const getAutoclaveRecord = (): AutoclaveRecordInput | null =>
+    needsAutoclave
+      ? {
+          autoclaveEquipmentId: autoclave.equipmentId === "" ? null : autoclave.equipmentId,
+          autoclaveProgram: autoclave.program || null,
+          loadType: autoclave.loadType || null,
+          autoclaveTemperature: autoclave.temperature === "" ? null : Number(autoclave.temperature),
+          autoclaveCycleTime: autoclave.cycleTime === "" ? null : Number(autoclave.cycleTime),
+          autoclaveCycleNumber: autoclave.cycleNumber === "" ? null : Number(autoclave.cycleNumber)
+        }
+      : null;
 
   const handleSaveDraft = async () => {
     setError(null);
     try {
       const vol = finalVolume === "" ? null : Number(finalVolume);
       const ph = measuredPh === "" ? null : Number(measuredPh);
-      await onSave(getInputsList(), vol, ph);
+      await onSave(getInputsList(), vol, ph, getAutoclaveRecord());
     } catch (err: unknown) {
       const e = err as { response?: { data?: { message?: string } }; message?: string };
       setError(e.response?.data?.message ?? e.message ?? "Failed to save draft.");
@@ -147,7 +209,7 @@ export function LotsStep({
     try {
       const vol = finalVolume === "" ? null : Number(finalVolume);
       const ph = measuredPh === "" ? null : Number(measuredPh);
-      await onSave(getInputsList(), vol, ph);
+      await onSave(getInputsList(), vol, ph, getAutoclaveRecord());
       onNext();
     } catch (err: unknown) {
       const e = err as { response?: { data?: { message?: string } }; message?: string };
@@ -199,19 +261,54 @@ export function LotsStep({
           Components ({preparation.components.length})
         </Typography>
 
-        {preparation.components.map((c) => (
-          <ComponentLotPicker
-            key={c.id}
-            component={c}
-            lotOptions={lotsMap[c.id] ?? []}
-            loadingLots={loadingLots}
-            selectedMaterialId={componentInputs[c.id]?.materialId ?? null}
-            quantityUsed={componentInputs[c.id]?.quantityUsed ?? null}
-            onSelectLot={(matId) => handleSelectLot(c.id, matId)}
-            onChangeQuantity={(qty) => handleChangeQuantity(c.id, qty)}
-            disabled={saving}
-          />
-        ))}
+        {preparation.components.map((c) => {
+          if (c.kind === "Text") {
+            return (
+              <Typography
+                key={c.id}
+                variant="body2"
+                sx={{ mb: 2, px: 2, py: 1, bgcolor: "action.hover", borderRadius: 1, fontStyle: "italic" }}
+              >
+                {c.order}. {c.text}
+              </Typography>
+            );
+          }
+          if (c.kind === "PreparedSolution") {
+            return (
+              <SourcePreparationPicker
+                key={c.id}
+                component={c}
+                options={sourcesMap[c.id] ?? []}
+                loading={loadingLots}
+                selectedPreparationId={componentInputs[c.id]?.sourcePreparationId ?? null}
+                quantityUsed={componentInputs[c.id]?.quantityUsed ?? null}
+                onSelect={(prepId) => handleSelectSource(c.id, prepId)}
+                onChangeQuantity={(qty) => handleChangeQuantity(c.id, qty)}
+                disabled={saving}
+              />
+            );
+          }
+          return (
+            <ComponentLotPicker
+              key={c.id}
+              component={c}
+              lotOptions={lotsMap[c.id] ?? []}
+              loadingLots={loadingLots}
+              selectedMaterialId={componentInputs[c.id]?.materialId ?? null}
+              quantityUsed={componentInputs[c.id]?.quantityUsed ?? null}
+              onSelectLot={(matId) => handleSelectLot(c.id, matId)}
+              onChangeQuantity={(qty) => handleChangeQuantity(c.id, qty)}
+              disabled={saving}
+            />
+          );
+        })}
+
+        {needsAutoclave && (
+          <>
+            <Divider sx={{ my: 2.5 }} />
+            <AutoclaveSection value={autoclave} onChange={setAutoclave} disabled={saving} />
+          </>
+        )}
 
         <Divider sx={{ my: 2.5 }} />
 

@@ -28,6 +28,13 @@ public class SolutionPreparationCodeTests
     }
 
     [Fact]
+    public void Head_Reagent_And_Neutralizer_HaveNoAbbreviation()
+    {
+        Assert.Equal("RE-", SolutionPreparationCode.Head(SolutionType.Reagent, null));
+        Assert.Equal("NT-", SolutionPreparationCode.Head(SolutionType.Neutralizer, null));
+    }
+
+    [Fact]
     public void Head_Titrant_HasNoAbbreviation()
     {
         Assert.Equal("VS-", SolutionPreparationCode.Head(SolutionType.Titrant, null));

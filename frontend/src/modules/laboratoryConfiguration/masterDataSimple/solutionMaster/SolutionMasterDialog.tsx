@@ -13,7 +13,8 @@ import {
   TitrantStrengthUnit,
   StandardizationMode,
   SaveSolutionMasterRequest,
-  SolutionMasterService
+  SolutionMasterService,
+  isGeneralSolutionType
 } from "../services/SolutionMasterService";
 import { MaterialMasterEntry } from "../services/MaterialMasterService";
 import { LaboratorySection } from "../../../../services/laboratorySectionService";
@@ -26,7 +27,9 @@ import {
   validateSolutionForm,
   formToSaveRequest,
   getAvailableMaterialEntries,
-  getAvailableReferenceTitrants
+  getAvailableReferenceTitrants,
+  getAvailableSourceSolutions,
+  createEmptyComponentRow
 } from "./solutionForm";
 import { SolutionGeneralSection } from "./SolutionGeneralSection";
 import { SolutionPhSection } from "./SolutionPhSection";
@@ -113,6 +116,10 @@ export function SolutionMasterDialog({
     return getAvailableReferenceTitrants(currentSectionId, solutions, editingEntry);
   }, [currentSectionId, solutions, editingEntry]);
 
+  const availableSourceSolutions = useMemo(() => {
+    return getAvailableSourceSolutions(currentSectionId, solutions, editingEntry);
+  }, [currentSectionId, solutions, editingEntry]);
+
   const updateFormField = <K extends keyof SolutionFormState>(field: K, value: SolutionFormState[K]) => {
     setForm((prev) => ({ ...prev, [field]: value }));
   };
@@ -124,7 +131,7 @@ export function SolutionMasterDialog({
   const handleAddComponentRow = () => {
     setForm((prev) => ({
       ...prev,
-      components: [...prev.components, { materialMasterEntryId: "", quantity: "", unit: "Milliliter" }]
+      components: [...prev.components, createEmptyComponentRow()]
     }));
   };
 
@@ -239,6 +246,10 @@ export function SolutionMasterDialog({
             finalVolumeMl={form.finalVolumeMl}
             instructions={form.instructions}
             sectionId={form.sectionId}
+            sterilizationRequired={form.sterilizationRequired}
+            releaseRequired={form.releaseRequired}
+            onSterilizationRequiredChange={(val) => updateFormField("sterilizationRequired", val)}
+            onReleaseRequiredChange={(val) => updateFormField("releaseRequired", val)}
             isEditing={Boolean(editingEntry)}
             sections={sections}
             mySections={mySections}
@@ -267,6 +278,8 @@ export function SolutionMasterDialog({
           <SolutionComponentsSection
             components={form.components}
             availableMaterialEntries={availableMaterialEntries}
+            availableSourceSolutions={availableSourceSolutions}
+            allowPreparedSolution={isGeneralSolutionType(form.type)}
             onAddComponent={handleAddComponentRow}
             onRemoveComponent={handleRemoveComponentRow}
             onMoveComponent={handleMoveComponentRow}

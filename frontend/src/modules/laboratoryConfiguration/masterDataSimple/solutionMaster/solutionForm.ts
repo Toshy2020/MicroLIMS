@@ -3,6 +3,9 @@ import {
   SolutionType,
   ShelfLifeUnit,
   SolutionComponentUnit,
+  SolutionComponentKind,
+  SolutionComponentInput,
+  isGeneralSolutionType,
   TitrantStrengthUnit,
   StandardizationMode,
   SaveSolutionMasterRequest
@@ -10,7 +13,10 @@ import {
 import { MaterialMasterEntry } from "../services/MaterialMasterService";
 
 export interface ComponentRowState {
+  kind: SolutionComponentKind;
   materialMasterEntryId: string | number;
+  sourceSolutionMasterId: string | number;
+  text: string;
   quantity: string | number;
   unit: SolutionComponentUnit;
 }
@@ -25,6 +31,9 @@ export interface SolutionFormState {
   finalVolumeMl: string | number;
   instructions: string;
   sectionId: string | number;
+  // Diluent / Reagent / Neutralizer only
+  sterilizationRequired: boolean;
+  releaseRequired: boolean;
 
   // pH
   phTarget: string | number;
@@ -52,8 +61,32 @@ export interface SolutionFormState {
 export const SOLUTION_TYPE_OPTIONS: Array<{ value: SolutionType; label: string }> = [
   { value: "MobilePhase", label: "Mobile Phase" },
   { value: "Diluent", label: "Diluent" },
+  { value: "Reagent", label: "Reagent" },
+  { value: "Neutralizer", label: "Neutralizer" },
   { value: "Titrant", label: "Titrant" }
 ];
+
+export const COMPONENT_KIND_OPTIONS: Array<{ value: SolutionComponentKind; label: string }> = [
+  { value: "Material", label: "Material" },
+  { value: "PreparedSolution", label: "Prepared solution" },
+  { value: "Text", label: "Text line" }
+];
+
+export const MAX_TEXT_LINE_LENGTH = 200;
+
+export const solutionTypeLabel = (type: SolutionType): string =>
+  SOLUTION_TYPE_OPTIONS.find((o) => o.value === type)?.label ?? type;
+
+export function createEmptyComponentRow(kind: SolutionComponentKind = "Material"): ComponentRowState {
+  return {
+    kind,
+    materialMasterEntryId: "",
+    sourceSolutionMasterId: "",
+    text: "",
+    quantity: "",
+    unit: "Milliliter"
+  };
+}
 
 export const SHELF_LIFE_UNIT_OPTIONS: Array<{ value: ShelfLifeUnit; label: string }> = [
   { value: "Hours", label: "Hours" },
@@ -87,10 +120,13 @@ export function createInitialSolutionFormState(
     finalVolumeMl: "1000",
     instructions: "",
     sectionId: defaultSectionId,
+    sterilizationRequired: false,
+    // Release is on by default for the Microbiology types (plan 3.1).
+    releaseRequired: true,
     phTarget: "",
     phTolerance: "",
     phAdjustingEntryId: "",
-    components: [{ materialMasterEntryId: "", quantity: "", unit: "Milliliter" }],
+    components: [createEmptyComponentRow()],
     nominalStrength: "",
     strengthUnit: "Normal",
     standardizationMode: "PrimaryStandard",
@@ -116,17 +152,22 @@ export function solutionEntityToFormState(entry: SolutionMaster): SolutionFormSt
     finalVolumeMl: entry.finalVolumeMl,
     instructions: entry.instructions,
     sectionId: entry.sectionId,
+    sterilizationRequired: Boolean(entry.sterilizationRequired),
+    releaseRequired: Boolean(entry.releaseRequired),
     phTarget: entry.phTarget ?? "",
     phTolerance: entry.phTolerance ?? "",
     phAdjustingEntryId: entry.phAdjustingEntryId ?? "",
     components:
       entry.components && entry.components.length > 0
         ? entry.components.map((c) => ({
-            materialMasterEntryId: c.materialMasterEntryId,
-            quantity: c.quantity,
-            unit: c.unit
+            kind: c.kind ?? "Material",
+            materialMasterEntryId: c.materialMasterEntryId ?? "",
+            sourceSolutionMasterId: c.sourceSolutionMasterId ?? "",
+            text: c.text ?? "",
+            quantity: c.quantity ?? "",
+            unit: c.unit ?? "Milliliter"
           }))
-        : [{ materialMasterEntryId: "", quantity: "", unit: "Milliliter" }],
+        : [createEmptyComponentRow()],
     nominalStrength: entry.nominalStrength ?? "",
     strengthUnit: entry.strengthUnit ?? "Normal",
     standardizationMode: entry.standardizationMode ?? "PrimaryStandard",
@@ -195,21 +236,43 @@ export function validateSolutionForm(
   if (form.components.length === 0) return fail(null, "At least one recipe component is required.");
 
   const usedEntryIds = new Set<number>();
+  const usedSourceIds = new Set<number>();
   for (let i = 0; i < form.components.length; i++) {
     const comp = form.components[i];
-    const entryId = Number(comp.materialMasterEntryId);
-    const qty = Number(comp.quantity);
+    const label = `Component #${i + 1}`;
 
-    if (!comp.materialMasterEntryId || isNaN(entryId) || entryId <= 0) {
-      return fail(null, `Component #${i + 1} must select a Material Master entry.`);
+    if (comp.kind === "Text") {
+      const text = comp.text.trim();
+      if (!text) return fail(null, `${label} needs text.`);
+      if (text.length > MAX_TEXT_LINE_LENGTH) {
+        return fail(null, `${label} text can be at most ${MAX_TEXT_LINE_LENGTH} characters.`);
+      }
+      continue;
     }
-    if (usedEntryIds.has(entryId)) {
-      return fail(null, "Material entry is listed more than once in the components recipe.");
+
+    const qty = Number(comp.quantity);
+    if (comp.kind === "PreparedSolution") {
+      const sourceId = Number(comp.sourceSolutionMasterId);
+      if (!comp.sourceSolutionMasterId || isNaN(sourceId) || sourceId <= 0) {
+        return fail(null, `${label} must select a prepared solution recipe.`);
+      }
+      if (usedSourceIds.has(sourceId)) {
+        return fail(null, "A prepared solution is listed more than once in the components recipe.");
+      }
+      usedSourceIds.add(sourceId);
+    } else {
+      const entryId = Number(comp.materialMasterEntryId);
+      if (!comp.materialMasterEntryId || isNaN(entryId) || entryId <= 0) {
+        return fail(null, `${label} must select a Material Master entry.`);
+      }
+      if (usedEntryIds.has(entryId)) {
+        return fail(null, "Material entry is listed more than once in the components recipe.");
+      }
+      usedEntryIds.add(entryId);
     }
-    usedEntryIds.add(entryId);
 
     if (!comp.quantity || isNaN(qty) || qty <= 0) {
-      return fail(null, `Component #${i + 1} quantity must be greater than zero.`);
+      return fail(null, `${label} quantity must be greater than zero.`);
     }
   }
 
@@ -281,6 +344,7 @@ export function formToSaveRequest(
 ): SaveSolutionMasterRequest {
   const hasPhTarget = form.phTarget !== "";
   const isTitrant = form.type === "Titrant";
+  const isGeneral = isGeneralSolutionType(form.type);
 
   return {
     name: form.name.trim(),
@@ -291,11 +355,27 @@ export function formToSaveRequest(
     finalVolumeMl: Number(form.finalVolumeMl),
     instructions: form.instructions.trim(),
     sectionId: resolvedSectionId,
-    components: form.components.map((c) => ({
-      materialMasterEntryId: Number(c.materialMasterEntryId),
-      quantity: Number(c.quantity),
-      unit: c.unit
-    })),
+    sterilizationRequired: isGeneral ? form.sterilizationRequired : false,
+    releaseRequired: isGeneral ? form.releaseRequired : false,
+    components: form.components.map((c): SolutionComponentInput => {
+      if (c.kind === "Text") {
+        return { kind: "Text", text: c.text.trim() };
+      }
+      if (c.kind === "PreparedSolution") {
+        return {
+          kind: "PreparedSolution",
+          sourceSolutionMasterId: Number(c.sourceSolutionMasterId),
+          quantity: Number(c.quantity),
+          unit: c.unit
+        };
+      }
+      return {
+        kind: "Material",
+        materialMasterEntryId: Number(c.materialMasterEntryId),
+        quantity: Number(c.quantity),
+        unit: c.unit
+      };
+    }),
     phTarget: hasPhTarget ? Number(form.phTarget) : null,
     phTolerance: form.phTolerance !== "" ? Number(form.phTolerance) : null,
     phAdjustingEntryId: form.phAdjustingEntryId ? Number(form.phAdjustingEntryId) : null,
@@ -336,7 +416,7 @@ export function getAvailableMaterialEntries(
 
   if (editingEntry) {
     for (const comp of editingEntry.components) {
-      if (!list.some((m) => m.id === comp.materialMasterEntryId)) {
+      if (comp.materialMasterEntryId && !list.some((m) => m.id === comp.materialMasterEntryId)) {
         list.push({
           id: comp.materialMasterEntryId,
           code: comp.entryCode,
@@ -379,6 +459,29 @@ export function getAvailableMaterialEntries(
   }
 
   return list;
+}
+
+// Active recipes of the same laboratory that can be used as a "prepared solution"
+// component (general types only), excluding the recipe being edited. A source already
+// kept on the edited recipe stays listed even if it has since been deactivated.
+export function getAvailableSourceSolutions(
+  currentSectionId: number | null,
+  solutions: SolutionMaster[],
+  editingEntry: SolutionMaster | null
+): SolutionMaster[] {
+  if (!currentSectionId) return [];
+  const keptIds = new Set(
+    (editingEntry?.components ?? [])
+      .map((c) => c.sourceSolutionMasterId)
+      .filter((id): id is number => typeof id === "number")
+  );
+  return solutions.filter(
+    (s) =>
+      s.sectionId === currentSectionId &&
+      isGeneralSolutionType(s.type) &&
+      (s.isActive || keptIds.has(s.id)) &&
+      (!editingEntry || s.id !== editingEntry.id)
+  );
 }
 
 export function getAvailableReferenceTitrants(

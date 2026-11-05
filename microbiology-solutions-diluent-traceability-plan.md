@@ -1,6 +1,6 @@
 # Microbiology Solutions and Diluent / Neutralizer Traceability — Plan
 
-Status: **Draft for decision** (2026-11-03). Nothing is built yet.
+Status: **Decided** (2026-11-05). All open questions are answered (D1–D11). Nothing is built yet.
 
 ## 1. Problem
 
@@ -32,6 +32,13 @@ The physicochemical lab already has this area (**Solution Master + Solution Prep
 | D2 | Who releases a prepared solution before use? | **A Reviewer or a Section Head** releases it, with an e-signature. The person who prepared it cannot release it. |
 | D3 | How is the neutralizer used? | Three ways: **prepared** as its own solution, **used directly after autoclaving**, or **added to a culture medium during media preparation**. |
 | D4 | Are ready-to-use purchased diluents used? | **Mostly prepared in house.** Purchased ready-to-use lots stay possible (as received stock) but are a minor path. |
+| D5 | Which solution types does Microbiology use? | **Diluent, Reagent, Neutralizer.** |
+| D6 | When does the expiry count from? Is there a shorter life after opening? | **From the preparation date.** There is **no** separate shelf life after opening. |
+| D7 | Which checks are needed before release? | **pH only when the recipe needs it.** No sterility test before release, because the negative control in routine work is enough. |
+| D8 | How is purified water recorded? | **As text**, not as a stock lot. |
+| D9 | Does each use deduct volume from the prepared bottle? | **No.** Picking the lot is enough. |
+| D10 | Does grouped preparation use one diluent lot for the whole group? | **Yes.** |
+| D11 | Can a missing media additive block media preparation? | **No.** Adding a neutralizer is an optional step during media preparation and never blocks anything. |
 
 ## 3. Design
 
@@ -46,14 +53,20 @@ Solution Master and Solution Preparation records already belong to one lab (`Sec
 
 Changes:
 
-1. **Recipe types for Microbiology.** Extend `SolutionType` with `Buffer`, `Neutralizer` and `RinseFluid`. These types
-   hide the HPLC-only fields (HPLC method, titrant standardization). The HPLC types are unchanged.
+1. **Recipe types for Microbiology (D5): Diluent, Reagent, Neutralizer.** `Diluent` already exists in `SolutionType`,
+   and only Mobile Phase links to an HPLC method, so Microbiology reuses it. `Reagent` and `Neutralizer` are added.
+   These types hide the HPLC-only fields (HPLC method, titrant standardization). The HPLC types are unchanged.
 2. **Per-recipe flags** (on `SolutionMaster`):
    - **Sterilization required.** When on, completing a preparation requires the autoclave record (D1): autoclave
      equipment, program, load type, temperature, cycle time and cycle number, the same fields as Media Preparation.
    - **Release required.** When on, a Reviewer or Section Head must release the preparation before it can be used (D2).
      It is on by default for Microbiology types.
-   - Storage condition and shelf life already exist (e.g. phosphate buffer stock: 2–8 °C).
+   - Storage condition and shelf life already exist (e.g. phosphate buffer stock: 2–8 °C). The expiry is the
+     preparation date plus shelf life (D6), as today. There is no separate shelf life after opening.
+   - **pH** stays optional: it is recorded only when the recipe has a pH target (D7). There is no sterility test step;
+     the negative control in routine work covers sterility.
+   - **Text lines (D8).** A recipe can carry free-text lines such as "Purified water to 1000 mL". These lines are
+     printed on the preparation record but don't pick a lot or deduct stock.
 3. **A recipe can use another prepared solution as a component (D1).** Today a `SolutionComponent` can only point at a
    material master entry. Add a second component kind, **prepared solution of recipe X**. At preparation, the
    analyst picks a valid preparation of X (prepared, released if required, unexpired) instead of a stock lot.
@@ -62,19 +75,20 @@ Changes:
 4. **Release step.** Preparation status becomes `InProgress → Prepared → Released` (or `Rejected`) for recipes that
    need release. Release uses a new permission, `Solutions.Release`, held by the Reviewer and Section Head roles. It is
    e-signed, and segregation of duties is enforced: whoever prepared it cannot release it. Rejection needs a comment.
-5. **Codes.** The existing MP/DL/VS code scheme gains prefixes for the new types, for example `BF`, `NT` and `RF`.
+5. **Codes.** The existing MP/DL/VS code scheme gains `RE` (Reagent) and `NT` (Neutralizer). Diluent keeps `DL`.
 
 ### 3.2 Neutralizer added to culture media during media preparation (D3)
 
-Media Preparation today consumes exactly one dehydrated media lot. Add optional **additives** to a media
-preparation, each recorded with its quantity:
+Media Preparation today consumes exactly one dehydrated media lot. Add an optional **Additives** step to media
+preparation. The analyst decides whether to add a neutralizer; leaving the step empty never blocks anything (D11).
+Each additive is recorded with its quantity and is one of:
 
 - a stock lot (e.g. polysorbate 80 or lecithin received as reagents), or
 - a released solution preparation (e.g. a prepared neutralizer).
 
-Additives are deducted from stock and listed on the media lot. A media product can declare its **expected
-additives** so the form proposes them. Such a medium (e.g. TSA with neutralizers) is then itself the traceable
-"neutralizer" for the test.
+An additive that is a stock lot is deducted from stock. An additive that is a prepared solution is only recorded
+(D9). Additives are listed on the media lot. A medium with a neutralizer added (e.g. TSA with neutralizers) is then
+itself the traceable "neutralizer" for the test.
 
 ### 3.3 Item master: pick the diluent and neutralizer from master data
 
@@ -99,8 +113,8 @@ names, from a lab the analyst can read:
 - **Material entry:** lots that are in stock, released if their category needs approval, and unexpired.
 
 The chosen lot ids are stored on `SamplePreparation`, beside the existing text snapshot, and are audited with the
-e-signature. The lot appears on the sample report, in the audit trail, and in a "where used" view for each lot, so a
-failed or recalled lot shows every sample it touched. Grouped (batch) preparation picks one lot for the whole group.
+e-signature. Picking a lot does not deduct volume from it (D9). The lot appears on the sample report, in the audit trail, and in a "where used" view for each lot, so a
+failed or recalled lot shows every sample it touched. Grouped (batch) preparation picks one diluent lot and one neutralizer lot for the whole group (D10).
 
 ### 3.5 Existing data
 
@@ -117,7 +131,7 @@ failed or recalled lot shows every sample it touched. Grouped (batch) preparatio
    solution", release step and permission, codes, tests.
 2. **Solutions for Microbiology (UI):** recipe screen for Microbiology types, autoclave section in the preparation
    wizard, release dialog, menu entry under Microbiology.
-3. **Media additives:** additives on media preparation, expected additives on the media product, UI.
+3. **Media additives:** an optional additives step on media preparation (never blocking), UI.
 4. **Item master and Test Preparation:** structured diluent / neutralizer, lot picking at confirmation, report and
    where-used view, existing data matching, removal of `DiluentType`.
 
@@ -126,16 +140,24 @@ plan.
 
 ## 5. Open questions
 
-1. **Names of the new types.** Is *Buffer / Neutralizer / Rinse fluid* the right set, or do you use other groups (e.g.
-   *Diluent*, *Stain*, *Disinfectant*)?
-2. **Expiry after autoclaving.** Does shelf life count from the preparation date or from the autoclave date? Is there
-   a different shelf life once a bottle is opened?
-3. **Checks before release.** Should the release record pH (target ± tolerance, which already exists on recipes)? Is
-   a sterility check needed for any solution, and if so, should release wait for it?
-4. **Water.** Is purified water a component picked as a stock lot, or recorded as text (e.g. "Purified water, loop
-   point")?
-5. **Partial use.** Should each use at Test Preparation deduct volume from the prepared bottle, or is picking the lot
-   enough?
-6. **Grouped preparation.** Is one diluent lot for the whole group correct, or can samples in a group use different
-   lots?
-7. **Media additives.** Should a media product with expected additives refuse preparation without them, or only warn?
+None. All questions were answered on 2026-11-05 (D5–D11 in section 2).
+
+## 6. Implementation record (2026-11-05)
+
+All four phases are built in PR #131.
+
+| Phase | Commit | What landed |
+|---|---|---|
+| 1 | `4005125` | `Reagent` (RE-) and `Neutralizer` (NT-) types; per-recipe *Sterilization required* and *Release required*; recipe lines of kind Material, Prepared solution or Text; autoclave record at completion; `Solutions.Release` (Section Head, Reviewer) with signed approve/reject and segregation of duties. Migration `MicrobiologySolutions`. |
+| 2 | `0136307` | Recipe dialog, preparation wizard (source-bottle picker, autoclave section), record page with Release dialog, list "Awaiting release" filter, Microbiology menu entries (`?lab=MICRO`). |
+| 3 | `3136ecd` | Optional media *Additives* step: stock lot (deducted) or released prepared solution (recorded only); shown on lot details and reports. Migration `MediaAdditives`. |
+| 4 | `7398ad0` + frontend commit | Item master picks the diluent/neutralizer from a media product, solution recipe or material entry (neutralizer can be *contained in the medium*); manual, confirm and grouped Test Preparation pick and record the lot (one pair per group, nothing deducted); lot code on report, summary and audit; where-used panel on media lots, solution preparations and stock lots; "not linked to master data" list on the Items page. Migration `PreparationMaterialTraceability` maps existing text where exactly one master matches and drops `DiluentTypes`. |
+
+Implementation choices beyond the plan:
+
+- Release is an `ApprovalStatus` on the preparation (PendingReview / Approved / Rejected) rather than new statuses, so expiry and discard work as before.
+- A Microbiology recipe's release default is **on** for new recipes; HPLC types never have it.
+- An inactive source recipe already used by a recipe may stay on it at update; a new inactive pick is refused.
+- In the backfill, the first master type with any match decides (media product, then recipe, then material entry); more than one match in that type is left unmapped as ambiguous.
+- Stock-lot additives record the lot's own unit, because the quantity is deducted in that unit.
+- Legacy text-only configurations keep working without a lot until a Section Head links them.

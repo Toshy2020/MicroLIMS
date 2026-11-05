@@ -42,6 +42,15 @@ public class ItemPreparationConfigurationConfiguration : IEntityTypeConfiguratio
         // Restrict - a config is master data referenced by historical
         // SamplePreparation snapshots.
         builder.HasOne(c => c.Item).WithMany().HasForeignKey(c => c.ItemId).OnDelete(DeleteBehavior.Restrict);
+
+        // The masters the diluent / neutralizer point at. Restrict for the
+        // same reason: a master in use by a protocol is deactivated, not deleted.
+        builder.HasOne(c => c.DiluentMediaProduct).WithMany().HasForeignKey(c => c.DiluentMediaProductId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne(c => c.DiluentSolutionMaster).WithMany().HasForeignKey(c => c.DiluentSolutionMasterId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne(c => c.DiluentMaterialMasterEntry).WithMany().HasForeignKey(c => c.DiluentMaterialMasterEntryId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne(c => c.NeutralizerMediaProduct).WithMany().HasForeignKey(c => c.NeutralizerMediaProductId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne(c => c.NeutralizerSolutionMaster).WithMany().HasForeignKey(c => c.NeutralizerSolutionMasterId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne(c => c.NeutralizerMaterialMasterEntry).WithMany().HasForeignKey(c => c.NeutralizerMaterialMasterEntryId).OnDelete(DeleteBehavior.Restrict);
     }
 }
 
@@ -61,5 +70,17 @@ public class SamplePreparationConfiguration : IEntityTypeConfiguration<SamplePre
                .WithMany()
                .HasForeignKey(p => p.SourceConfigurationId)
                .OnDelete(DeleteBehavior.Restrict);
+
+        // The lots picked at confirmation: Restrict, so a lot that was used
+        // can never be deleted out from under the sample record. The FK
+        // indexes serve the "where used" view.
+        builder.Property(p => p.DiluentLotCode).HasMaxLength(100);
+        builder.Property(p => p.NeutralizerLotCode).HasMaxLength(100);
+        builder.HasOne(p => p.DiluentMedia).WithMany().HasForeignKey(p => p.DiluentMediaId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne(p => p.DiluentSolutionPreparation).WithMany().HasForeignKey(p => p.DiluentSolutionPreparationId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne(p => p.DiluentMaterial).WithMany().HasForeignKey(p => p.DiluentMaterialId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne(p => p.NeutralizerMedia).WithMany().HasForeignKey(p => p.NeutralizerMediaId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne(p => p.NeutralizerSolutionPreparation).WithMany().HasForeignKey(p => p.NeutralizerSolutionPreparationId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne(p => p.NeutralizerMaterial).WithMany().HasForeignKey(p => p.NeutralizerMaterialId).OnDelete(DeleteBehavior.Restrict);
     }
 }

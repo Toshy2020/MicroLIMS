@@ -6,7 +6,8 @@ namespace MicroLIMS.Application.Helpers;
 
 // Sequential codes for Solution Preparation completions (HPLC chain S4,
 // spec 4): Mobile Phase "MP-{ABBR} {nn}/{MM}/{yyyy}" (series per method
-// abbreviation), Diluent "DL-{nn}/{MM}/{yyyy}", Titrant "VS-{nn}/{MM}/{yyyy}".
+// abbreviation), Diluent "DL-{nn}/{MM}/{yyyy}", Reagent "RE-...", Neutralizer "NT-...",
+// Titrant "VS-{nn}/{MM}/{yyyy}".
 // Continuous per (head, lab-local calendar year), resetting in January -
 // same "highest + 1 over issued codes" approach as SystemSuitabilityRunCode,
 // protected at the database by a unique index on SolutionPreparation.Code.
@@ -19,6 +20,8 @@ public static class SolutionPreparationCode
             : $"MP-{methodAbbreviation} ",
         SolutionType.Diluent => "DL-",
         SolutionType.Titrant => "VS-",
+        SolutionType.Reagent => "RE-",
+        SolutionType.Neutralizer => "NT-",
         _ => throw new InvalidOperationException($"Unknown solution type '{type}'.")
     };
 

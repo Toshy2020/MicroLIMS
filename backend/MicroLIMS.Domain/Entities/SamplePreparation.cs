@@ -1,3 +1,5 @@
+using MicroLIMS.Domain.Enums;
+
 namespace MicroLIMS.Domain.Entities;
 
 // Test Preparation step - Product/RM/PM/Water only, once per Sample
@@ -16,9 +18,31 @@ public class SamplePreparation
     public decimal? FiltrationVolume { get; set; }
     public decimal? WashingVolume { get; set; }
 
-    // Free text - see ItemPreparationConfiguration.
+    // Display name - see ItemPreparationConfiguration.
     public string Diluent { get; set; } = string.Empty;
     public string Neutralizer { get; set; } = string.Empty;
+
+    // The lots actually used, picked at confirmation. Which FK is set follows
+    // the source snapshot; all null for ContainedInMedium and for preparations
+    // confirmed on a legacy (unmapped) configuration or before this existed.
+    // Nothing is deducted from the lot: picking it is the record.
+    public PreparationMaterialSource? DiluentSource { get; set; }
+    public int? DiluentMediaId { get; set; }
+    public Media? DiluentMedia { get; set; }
+    public int? DiluentSolutionPreparationId { get; set; }
+    public SolutionPreparation? DiluentSolutionPreparation { get; set; }
+    public int? DiluentMaterialId { get; set; }
+    public Material? DiluentMaterial { get; set; }
+    public string? DiluentLotCode { get; set; }           // snapshot: Media.LotNumber, SolutionPreparation.Code or Material.StockId
+
+    public PreparationMaterialSource? NeutralizerSource { get; set; }
+    public int? NeutralizerMediaId { get; set; }
+    public Media? NeutralizerMedia { get; set; }
+    public int? NeutralizerSolutionPreparationId { get; set; }
+    public SolutionPreparation? NeutralizerSolutionPreparation { get; set; }
+    public int? NeutralizerMaterialId { get; set; }
+    public Material? NeutralizerMaterial { get; set; }
+    public string? NeutralizerLotCode { get; set; }
 
     public int PreparedByUserId { get; set; }
     public DateTime PreparedAt { get; set; } = DateTime.UtcNow;

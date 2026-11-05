@@ -51,6 +51,7 @@ public interface IMicroLimsDbContext
     DbSet<MediaEvaluation> MediaEvaluations { get; }
     DbSet<MediaEvaluationChallenge> MediaEvaluationChallenges { get; }
     DbSet<MediaStorageEntry> MediaStorageEntries { get; }
+    DbSet<MediaAdditive> MediaAdditives { get; }
     DbSet<Cryovial> Cryovials { get; }
     DbSet<IdentityConfirmationEntry> IdentityConfirmationEntries { get; }
     DbSet<ThawEvent> ThawEvents { get; }
@@ -103,7 +104,6 @@ public interface IMicroLimsDbContext
     DbSet<MasterDataImport> MasterDataImports { get; }
     DbSet<MasterDataImportRecord> MasterDataImportRecords { get; }
     DbSet<CauseOfTesting> CausesOfTesting { get; }
-    DbSet<DiluentType> DiluentTypes { get; }
     DbSet<Neutralizer> Neutralizers { get; }
     DbSet<Sampler> Samplers { get; }
     DbSet<ProductionStage> ProductionStages { get; }

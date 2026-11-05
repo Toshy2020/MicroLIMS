@@ -126,6 +126,21 @@ export function MediaReportPage() {
           </div>
         </div>
 
+        {s.additives?.length > 0 && (
+          <div className="section-card">
+            <div className="section-label">additives</div>
+            <div className="prep-grid">
+              {s.additives.map((a, i) => (
+                <div className="prep-item" key={i}>
+                  <div className="prep-label">{a.kind === "StockLot" ? "Stock lot" : "Prepared solution"}</div>
+                  <div className="prep-value">{a.name} ({a.code})</div>
+                  <div className="prep-sub">{a.quantity} {a.unit}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         <div style={{ marginBottom: 24 }}>
           <div className="section-divider">
             <div className="section-label">media evaluation</div>

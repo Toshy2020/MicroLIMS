@@ -1,5 +1,6 @@
 import { Box, Paper, Typography } from "@mui/material";
 import type { ItemPreparationConfiguration } from "./services/ItemPreparationConfigurationService";
+import { sourceLabel } from "./preparationMaterial";
 
 // Only the protocol fields, so the grouped confirm row can render a group's
 // shared steps without inventing the identity/approval fields a full
@@ -7,16 +8,16 @@ import type { ItemPreparationConfiguration } from "./services/ItemPreparationCon
 export type PreparationSteps = Pick<
   ItemPreparationConfiguration,
   "amount" | "technique" | "filtrationVolume" | "washingVolume" | "diluent" | "neutralizer"
->;
+> & Partial<Pick<ItemPreparationConfiguration, "diluentSource" | "neutralizerSource">>;
 
 // Read-only rendering of a preparation protocol. Shared by the analyst's
 // confirm dialogue, the grouped confirm row and the Item Configuration tab
 // so they can never describe the same protocol differently.
 export function PreparationStepsSummary({ config }: { config: PreparationSteps }) {
-  const fields: { label: string; value: string }[] = [
+  const fields: { label: string; value: string; note?: string | null }[] = [
     { label: "Sample Amount", value: `${config.amount}` },
     { label: "Technique", value: config.technique === "PourPlate" ? "Pour Plate" : config.technique },
-    { label: "Diluent", value: config.diluent || "—" }
+    { label: "Diluent", value: config.diluent || "—", note: sourceLabel(config.diluentSource) }
   ];
 
   if (config.technique === "Filtration") {
@@ -26,7 +27,7 @@ export function PreparationStepsSummary({ config }: { config: PreparationSteps }
     );
   }
 
-  fields.push({ label: "Neutralizer", value: config.neutralizer || "—" });
+  fields.push({ label: "Neutralizer", value: config.neutralizer || "—", note: sourceLabel(config.neutralizerSource) });
 
   return (
     <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 1.5 }}>
@@ -38,6 +39,11 @@ export function PreparationStepsSummary({ config }: { config: PreparationSteps }
           <Typography variant="body2" sx={{ fontWeight: 700, mt: 0.5 }}>
             {f.value}
           </Typography>
+          {f.note && (
+            <Typography variant="caption" sx={{ color: "text.secondary" }}>
+              {f.note}
+            </Typography>
+          )}
         </Paper>
       ))}
     </Box>

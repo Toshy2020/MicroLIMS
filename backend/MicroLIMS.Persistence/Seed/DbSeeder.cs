@@ -194,11 +194,6 @@ public static class DbSeeder
             db.SaveChanges();
         }
 
-        if (!db.DiluentTypes.Any())
-        {
-            db.DiluentTypes.Add(new DiluentType { Name = "Buffer PhB 7.2", RequiresBatchTracking = false });
-        }
-
         db.SaveChanges();
 
         // Bootstrap: mark one starter General Agar lot as already
@@ -515,6 +510,7 @@ public static class DbSeeder
             (PermissionConstants.SamplesCorrect, "Correct or void a sample record."),
             (PermissionConstants.SamplesAssignAnalyst, "Assign an analyst to a sample."),
             (PermissionConstants.SolutionsPrepare, "Start, edit, complete, cancel or discard a solution preparation (HPLC chain)."),
+            (PermissionConstants.SolutionsRelease, "Release a prepared solution for use."),
             (PermissionConstants.HplcOperate, "Operate the HPLC workspace: start runs, confirm system suitability, assign samples, enter replicates and submit for review."),
             (PermissionConstants.WorkingStandardsQualify, "Create and prepare working standard qualifications, attach documents, enter and submit qualification replicates."),
             (PermissionConstants.MonitoringPlanView, "View the Annual Monitoring Plan, its calendar and occurrences."),
@@ -592,7 +588,7 @@ public static class DbSeeder
                     PermissionConstants.DocumentsApprove, PermissionConstants.DocumentsReview, PermissionConstants.DocumentsReassign,
                     PermissionConstants.DocumentsTrainingAssign, PermissionConstants.DocumentsTrainingViewMatrix,
                     PermissionConstants.DashboardsLabOverview, PermissionConstants.DashboardsReview, PermissionConstants.KpiView, PermissionConstants.KpiViewTeam, PermissionConstants.KpiConfigureProfiles, PermissionConstants.MediaPrepare, PermissionConstants.MediaRelease, PermissionConstants.MaterialCategoriesManage, PermissionConstants.MaterialsRelease, PermissionConstants.OosManage, PermissionConstants.TestWorkflowSupervise, PermissionConstants.SamplesReceiveOwnLab, PermissionConstants.SamplesCorrect, PermissionConstants.SamplesAssignAnalyst,
-                    PermissionConstants.SolutionsPrepare, PermissionConstants.HplcOperate, PermissionConstants.WorkingStandardsQualify,
+                    PermissionConstants.SolutionsPrepare, PermissionConstants.SolutionsRelease, PermissionConstants.HplcOperate, PermissionConstants.WorkingStandardsQualify,
                     PermissionConstants.MonitoringPlanView, PermissionConstants.MonitoringPlanManage, PermissionConstants.MonitoringPlanApprove,
                     PermissionConstants.EquipmentPlanManage, PermissionConstants.EquipmentPlanApprove, PermissionConstants.EquipmentWorkRecord, PermissionConstants.CalendarEventManage,
                     PermissionConstants.NotApplicableTestsManage, PermissionConstants.TestsOutsource,
@@ -610,6 +606,7 @@ public static class DbSeeder
                     PermissionConstants.DocumentsReview, PermissionConstants.DocumentsPeriodicReview,
                     PermissionConstants.DocumentsApprove, PermissionConstants.DocumentsTrainingViewMatrix,
                     PermissionConstants.DashboardsReview, PermissionConstants.MediaPrepare, PermissionConstants.SamplesReceiveOwnLab, PermissionConstants.SamplesCorrect,
+                    PermissionConstants.SolutionsRelease,
                     PermissionConstants.MonitoringPlanView, PermissionConstants.EquipmentWorkRecord, PermissionConstants.CalendarEventManage,
                     PermissionConstants.SamplesPrepare
                 }),

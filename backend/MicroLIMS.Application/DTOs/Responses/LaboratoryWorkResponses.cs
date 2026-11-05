@@ -406,10 +406,26 @@ public record SamplePreparationResponse(
     int PreparedByUserId,
     DateTime PreparedAt,
     int? SourceConfigurationId,
-    bool WasConfirmedFromConfig)
+    bool WasConfirmedFromConfig,
+    PreparationMaterialSource? DiluentSource,
+    int? DiluentMediaId,
+    int? DiluentSolutionPreparationId,
+    int? DiluentMaterialId,
+    string? DiluentLotCode,
+    PreparationMaterialSource? NeutralizerSource,
+    int? NeutralizerMediaId,
+    int? NeutralizerSolutionPreparationId,
+    int? NeutralizerMaterialId,
+    string? NeutralizerLotCode,
+    // True when the diluent or neutralizer was recorded without a master behind it (legacy
+    // configuration): no lot is on file for it.
+    bool NeedsMaterialMapping)
 {
     public static SamplePreparationResponse From(SamplePreparation p) => new(
         p.Id, p.SampleId, p.Amount, p.Technique, p.FiltrationVolume, p.WashingVolume,
         p.Diluent, p.Neutralizer, p.PreparedByUserId, p.PreparedAt,
-        p.SourceConfigurationId, p.WasConfirmedFromConfig);
+        p.SourceConfigurationId, p.WasConfirmedFromConfig,
+        p.DiluentSource, p.DiluentMediaId, p.DiluentSolutionPreparationId, p.DiluentMaterialId, p.DiluentLotCode,
+        p.NeutralizerSource, p.NeutralizerMediaId, p.NeutralizerSolutionPreparationId, p.NeutralizerMaterialId, p.NeutralizerLotCode,
+        p.DiluentSource is null || p.NeutralizerSource is null);
 }

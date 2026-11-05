@@ -43,6 +43,10 @@
     "WashingVolume": 300,
     "Diluent": "Buffered peptone",
     "Neutralizer": "Polysorbate 80",
+    "DiluentSource": null,
+    "DiluentLotCode": null,
+    "NeutralizerSource": null,
+    "NeutralizerLotCode": null,
     "PreparedByName": "Bob Reviewer",
     "PreparedAt": "2026-03-02T10:00:00Z"
   },

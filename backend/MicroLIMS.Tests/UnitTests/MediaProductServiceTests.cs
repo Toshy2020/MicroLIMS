@@ -274,16 +274,20 @@ public class MediaProductServiceTests
     }
 
     [Fact]
-    public async Task DeleteAsync_ProductUsedByDiluentType_Throws()
+    public async Task DeleteAsync_ProductUsedAsItemDiluent_Throws()
     {
         await using var db = NewDb();
         var service = TestServiceFactory.MediaProduct(db);
         var product = await service.CreateAsync("TSB", "TSB");
-        db.DiluentTypes.Add(new DiluentType { Name = "TSB", RequiresBatchTracking = true, MediaProductId = product.Id });
+        db.ItemPreparationConfigurations.Add(new ItemPreparationConfiguration
+        {
+            ItemId = 1, Technique = "PourPlate", Diluent = "TSB", Neutralizer = "None",
+            DiluentSource = PreparationMaterialSource.MediaProduct, DiluentMediaProductId = product.Id
+        });
         await db.SaveChangesAsync();
 
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.DeleteAsync(product.Id));
-        Assert.Contains("used by 1 Test Master diluent type", ex.Message);
+        Assert.Contains("diluent or neutralizer of 1 Item preparation configuration", ex.Message);
         Assert.True(await db.MediaProducts.AnyAsync(p => p.Id == product.Id));
     }
 

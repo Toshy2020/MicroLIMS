@@ -247,7 +247,8 @@ public class AuditTraceabilityService
                 $"PREP-CFG-{config.Id}",
                 "Preparation Configuration",
                 config.ApprovalStatus.ToString(),
-                $"Amount: {config.Amount}, {config.Technique}, Diluent: {config.Diluent}, Neutralizer: {config.Neutralizer}",
+                $"Amount: {config.Amount}, {config.Technique}, Diluent: {config.Diluent}, Neutralizer: {config.Neutralizer}"
+                + (PreparationMaterialService.NeedsMapping(config) ? " (not linked to master records)" : string.Empty),
                 config.Id,
                 null,
                 config.CreatedAt));
@@ -360,7 +361,7 @@ public class AuditTraceabilityService
                 $"PREP-{prep.Id}",
                 "Sample Preparation",
                 prep.WasConfirmedFromConfig ? "Confirmed from Configuration" : "Manual Entry",
-                $"Amount: {prep.Amount}, {prep.Technique}, Diluent: {prep.Diluent}, Neutralizer: {prep.Neutralizer}. {provenance}",
+                $"Amount: {prep.Amount}, {prep.Technique}, Diluent: {PreparationMaterialService.WithLot(prep.Diluent, prep.DiluentLotCode)}, Neutralizer: {PreparationMaterialService.WithLot(prep.Neutralizer, prep.NeutralizerLotCode)}. {provenance}",
                 prep.Id,
                 null,
                 prep.PreparedAt));

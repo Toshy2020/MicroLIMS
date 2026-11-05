@@ -194,11 +194,6 @@ public static class DbSeeder
             db.SaveChanges();
         }
 
-        if (!db.DiluentTypes.Any())
-        {
-            db.DiluentTypes.Add(new DiluentType { Name = "Buffer PhB 7.2", RequiresBatchTracking = false });
-        }
-
         db.SaveChanges();
 
         // Bootstrap: mark one starter General Agar lot as already

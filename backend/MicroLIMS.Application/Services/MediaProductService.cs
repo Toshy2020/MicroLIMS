@@ -203,11 +203,12 @@ public class MediaProductService
                 $"Cannot delete media product '{product.Name}' because it is used by {stepMediaCount} Test Master step medium/media.");
         }
 
-        var diluentCount = await _db.DiluentTypes.CountAsync(d => d.MediaProductId == id);
-        if (diluentCount > 0)
+        var preparationCount = await _db.ItemPreparationConfigurations
+            .CountAsync(c => c.DiluentMediaProductId == id || c.NeutralizerMediaProductId == id);
+        if (preparationCount > 0)
         {
             throw new InvalidOperationException(
-                $"Cannot delete media product '{product.Name}' because it is used by {diluentCount} Test Master diluent type(s).");
+                $"Cannot delete media product '{product.Name}' because it is the diluent or neutralizer of {preparationCount} Item preparation configuration(s).");
         }
 
         var unusedConditions = await _db.MediaIncubationConditions

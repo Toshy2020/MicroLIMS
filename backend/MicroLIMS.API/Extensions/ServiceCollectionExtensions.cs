@@ -121,6 +121,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<BiologicalWasteDestructionService>();
         services.AddScoped<SamplePreparationService>();
         services.AddScoped<PreparationParameterValidator>();
+        services.AddScoped<PreparationMaterialService>();
         services.AddScoped<ItemPreparationConfigurationService>();
         services.AddScoped<SampleAssignmentService>();
         services.AddScoped<SampleCorrectionService>();

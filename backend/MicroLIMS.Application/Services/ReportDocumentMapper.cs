@@ -131,8 +131,8 @@ public static class ReportDocumentMapper
                 {
                     ("Amount", $"{p.Amount}", null),
                     ("Technique", Humanize(p.Technique), p.Technique == "Filtration" ? $"Filt {p.FiltrationVolume} / Wash {p.WashingVolume}" : null),
-                    ("Diluent", string.IsNullOrEmpty(p.Diluent) ? "-" : p.Diluent, null),
-                    ("Neutralizer", string.IsNullOrEmpty(p.Neutralizer) ? "-" : p.Neutralizer, null),
+                    ("Diluent", string.IsNullOrEmpty(p.Diluent) ? "-" : p.Diluent, string.IsNullOrEmpty(p.DiluentLotCode) ? null : $"lot {p.DiluentLotCode}"),
+                    ("Neutralizer", string.IsNullOrEmpty(p.Neutralizer) ? "-" : p.Neutralizer, string.IsNullOrEmpty(p.NeutralizerLotCode) ? null : $"lot {p.NeutralizerLotCode}"),
                     ("Prepared by", p.PreparedByName, Dt(p.PreparedAt))
                 }
             });

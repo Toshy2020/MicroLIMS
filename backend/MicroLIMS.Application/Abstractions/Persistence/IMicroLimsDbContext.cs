@@ -104,7 +104,6 @@ public interface IMicroLimsDbContext
     DbSet<MasterDataImport> MasterDataImports { get; }
     DbSet<MasterDataImportRecord> MasterDataImportRecords { get; }
     DbSet<CauseOfTesting> CausesOfTesting { get; }
-    DbSet<DiluentType> DiluentTypes { get; }
     DbSet<Neutralizer> Neutralizers { get; }
     DbSet<Sampler> Samplers { get; }
     DbSet<ProductionStage> ProductionStages { get; }

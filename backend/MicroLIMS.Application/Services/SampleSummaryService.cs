@@ -331,6 +331,10 @@ public class SampleSummaryService
                 WashingVolume = preparation.WashingVolume,
                 Diluent = preparation.Diluent,
                 Neutralizer = preparation.Neutralizer,
+                DiluentSource = preparation.DiluentSource?.ToString(),
+                DiluentLotCode = preparation.DiluentLotCode,
+                NeutralizerSource = preparation.NeutralizerSource?.ToString(),
+                NeutralizerLotCode = preparation.NeutralizerLotCode,
                 PreparedByName = NameOf(preparation.PreparedByUserId),
                 PreparedAt = preparation.PreparedAt
             },
@@ -456,8 +460,8 @@ public class SampleSummaryService
                 lines.Add($"Filtration Volume: {p.FiltrationVolume}");
                 lines.Add($"Washing Volume: {p.WashingVolume}");
             }
-            lines.Add($"Diluent: {p.Diluent}");
-            lines.Add($"Neutralizer: {p.Neutralizer}");
+            lines.Add($"Diluent: {PreparationMaterialService.WithLot(p.Diluent, p.DiluentLotCode)}");
+            lines.Add($"Neutralizer: {PreparationMaterialService.WithLot(p.Neutralizer, p.NeutralizerLotCode)}");
             lines.Add($"Prepared By: {p.PreparedByName}");
             lines.Add($"Prepared At: {p.PreparedAt:dd-MMM-yyyy HH:mm}");
             lines.Add("");

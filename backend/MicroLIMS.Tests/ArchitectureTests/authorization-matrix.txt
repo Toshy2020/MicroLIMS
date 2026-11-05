@@ -466,8 +466,8 @@ PeriodicReviewController.GetReviewWorkspace(Int32): SystemAdministrator,SectionH
 PeriodicReviewController.ResolveFinding(Int32, Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
 PeriodicReviewController.TriggerGenerationManually(Nullable`1): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
 PreparationConfigurationQueueController.Pending(): SystemAdministrator,SectionHead
+PreparationConfigurationQueueController.Unmapped(): SystemAdministrator,SectionHead
 ReferenceListMasterDataController.CreateCauseOfTesting(String): SystemAdministrator,SectionHead
-ReferenceListMasterDataController.CreateDiluentType(CreateDiluentTypeRequest): SystemAdministrator,SectionHead
 ReferenceListMasterDataController.CreateNeutralizer(String): SystemAdministrator,SectionHead
 ReferenceListMasterDataController.CreateProductionStage(CreateProductionStageRequest): SystemAdministrator,SectionHead
 ReferenceListMasterDataController.CreateSampler(String): SystemAdministrator,SectionHead
@@ -475,7 +475,6 @@ ReferenceListMasterDataController.DeleteCauseOfTesting(Int32): SystemAdministrat
 ReferenceListMasterDataController.DeleteProductionStage(Int32): SystemAdministrator,SectionHead
 ReferenceListMasterDataController.DeleteSampler(Int32): SystemAdministrator,SectionHead
 ReferenceListMasterDataController.GetCausesOfTesting(): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-ReferenceListMasterDataController.GetDiluentTypes(): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
 ReferenceListMasterDataController.GetNeutralizers(): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
 ReferenceListMasterDataController.GetProductionStages(): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
 ReferenceListMasterDataController.GetSamplers(): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
@@ -535,8 +534,11 @@ SampleDocumentController.Void(Int32, VoidDocumentHttpRequest, CancellationToken)
 SamplePreparationController.BatchConfirm(BatchConfirmPreparationHttpRequest, CancellationToken): SectionHead,Reviewer,Analyst
 SamplePreparationController.Confirm(ConfirmPreparationHttpRequest): SectionHead,Reviewer,Analyst
 SamplePreparationController.GetGroups(String, CancellationToken): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
+SamplePreparationController.GetLotOptions(Nullable`1, Nullable`1, CancellationToken): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
+SamplePreparationController.GetLotOptionsForMaster(PreparationMaterialSource, Int32, CancellationToken): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
 SamplePreparationController.IsPrepared(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
 SamplePreparationController.Prepare(PrepareSampleHttpRequest): SectionHead,Reviewer,Analyst
+SamplePreparationController.WhereUsed(Nullable`1, Nullable`1, Nullable`1, CancellationToken): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
 SampleReviewController.Complete(Int32, CompleteSampleReviewRequest): SectionHead,Reviewer
 SampleReviewController.ReturnTestToAnalyst(Int32, ReturnTestToAnalystRequest): SectionHead,Reviewer
 SampleSummaryController.GetSummary(Int32, Boolean): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager

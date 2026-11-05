@@ -15,13 +15,25 @@ public record ItemPreparationConfigurationDto(
     decimal? WashingVolume,
     string Diluent,
     string Neutralizer,
+    PreparationMaterialSource? DiluentSource,
+    int? DiluentMediaProductId,
+    int? DiluentSolutionMasterId,
+    int? DiluentMaterialMasterEntryId,
+    PreparationMaterialSource? NeutralizerSource,
+    int? NeutralizerMediaProductId,
+    int? NeutralizerSolutionMasterId,
+    int? NeutralizerMaterialMasterEntryId,
     ApprovalGateStatus ApprovalStatus,
     int CreatedByUserId,
     string? CreatedByName,
     DateTime CreatedAt,
     int? ApprovedByUserId,
     string? ApprovedByName,
-    DateTime? ApprovedAt);
+    DateTime? ApprovedAt,
+    // True while the diluent or neutralizer is still legacy free text with no master behind it:
+    // confirmation works but records no lot, so a Section Head should map it.
+    bool NeedsMaterialMapping,
+    string? ItemName);
 
 // Per-item preparation protocol. Configured once by a Section Head, or
 // seeded automatically from the first analyst's manual entry (in which
@@ -31,13 +43,16 @@ public class ItemPreparationConfigurationService
 {
     private readonly IMicroLimsDbContext _db;
     private readonly PreparationParameterValidator _validator;
+    private readonly PreparationMaterialService _materials;
     private readonly TimeProvider _time;
 
-    public ItemPreparationConfigurationService(IMicroLimsDbContext db, PreparationParameterValidator validator, TimeProvider? timeProvider = null)
+    public ItemPreparationConfigurationService(
+        IMicroLimsDbContext db, PreparationParameterValidator validator, PreparationMaterialService materials, TimeProvider? timeProvider = null)
     {
         _time = timeProvider ?? TimeProvider.System;
         _db = db;
         _validator = validator;
+        _materials = materials;
     }
 
     public async Task<ItemPreparationConfigurationDto?> GetByItemIdAsync(int itemId)
@@ -54,7 +69,11 @@ public class ItemPreparationConfigurationService
         if (!await _db.Items.AnyAsync(i => i.Id == itemId))
             throw new NotFoundException($"Item {itemId} not found.");
 
-        await _validator.ValidateAsync(p);
+        // The diluent and neutralizer must each name a master; the text is filled
+        // from it (client text is ignored), so validate the resolved parameters.
+        var diluent = await _materials.ResolveAsync(PreparationMaterialRole.Diluent, p.DiluentChoice);
+        var neutralizer = await _materials.ResolveAsync(PreparationMaterialRole.Neutralizer, p.NeutralizerChoice);
+        await _validator.ValidateAsync(p with { Diluent = diluent.Name, Neutralizer = neutralizer.Name });
 
         var config = await _db.ItemPreparationConfigurations.FirstOrDefaultAsync(c => c.ItemId == itemId);
         if (config is null)
@@ -74,8 +93,8 @@ public class ItemPreparationConfigurationService
         config.Technique = p.Technique;
         config.FiltrationVolume = p.FiltrationVolume;
         config.WashingVolume = p.WashingVolume;
-        config.Diluent = p.Diluent.Trim();
-        config.Neutralizer = p.Neutralizer.Trim();
+        PreparationMaterialService.Apply(config, PreparationMaterialRole.Diluent, diluent);
+        PreparationMaterialService.Apply(config, PreparationMaterialRole.Neutralizer, neutralizer);
         config.ApprovalStatus = ApprovalGateStatus.PendingReview;
 
         await _db.SaveChangesAsync();
@@ -115,6 +134,21 @@ public class ItemPreparationConfigurationService
         return dtos;
     }
 
+    // Configurations whose diluent or neutralizer is still legacy text, for a Section Head to map.
+    public async Task<List<ItemPreparationConfigurationDto>> GetUnmappedAsync()
+    {
+        var configs = await _db.ItemPreparationConfigurations
+            .AsNoTracking()
+            .Where(c => c.DiluentSource == null || c.NeutralizerSource == null)
+            .OrderBy(c => c.CreatedAt)
+            .ToListAsync();
+
+        var dtos = new List<ItemPreparationConfigurationDto>();
+        foreach (var c in configs)
+            dtos.Add(await ToDtoAsync(c));
+        return dtos;
+    }
+
     private async Task<ItemPreparationConfigurationDto> ToDtoAsync(ItemPreparationConfiguration c)
     {
         var userIds = new List<int> { c.CreatedByUserId };
@@ -125,6 +159,8 @@ public class ItemPreparationConfigurationService
             .Select(u => new { u.Id, u.FullName })
             .ToDictionaryAsync(u => u.Id, u => u.FullName);
 
+        var itemName = await _db.Items.AsNoTracking().Where(i => i.Id == c.ItemId).Select(i => i.Name).FirstOrDefaultAsync();
+
         return new ItemPreparationConfigurationDto(
             c.Id,
             c.ItemId,
@@ -134,12 +170,22 @@ public class ItemPreparationConfigurationService
             c.WashingVolume,
             c.Diluent,
             c.Neutralizer,
+            c.DiluentSource,
+            c.DiluentMediaProductId,
+            c.DiluentSolutionMasterId,
+            c.DiluentMaterialMasterEntryId,
+            c.NeutralizerSource,
+            c.NeutralizerMediaProductId,
+            c.NeutralizerSolutionMasterId,
+            c.NeutralizerMaterialMasterEntryId,
             c.ApprovalStatus,
             c.CreatedByUserId,
             names.TryGetValue(c.CreatedByUserId, out var createdBy) ? createdBy : null,
             c.CreatedAt,
             c.ApprovedByUserId,
             c.ApprovedByUserId.HasValue && names.TryGetValue(c.ApprovedByUserId.Value, out var approvedBy) ? approvedBy : null,
-            c.ApprovedAt);
+            c.ApprovedAt,
+            PreparationMaterialService.NeedsMapping(c),
+            itemName);
     }
 }

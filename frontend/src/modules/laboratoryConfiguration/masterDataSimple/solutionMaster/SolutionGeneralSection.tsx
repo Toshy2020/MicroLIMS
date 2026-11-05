@@ -8,9 +8,11 @@ import {
   FormControl,
   InputLabel,
   FormHelperText,
+  FormControlLabel,
+  Switch,
   Stack
 } from "@mui/material";
-import { SolutionType, ShelfLifeUnit } from "../services/SolutionMasterService";
+import { SolutionType, ShelfLifeUnit, isGeneralSolutionType } from "../services/SolutionMasterService";
 import { LaboratorySection } from "../../../../services/laboratorySectionService";
 import { SOLUTION_TYPE_OPTIONS, SHELF_LIFE_UNIT_OPTIONS, SolutionFieldKey } from "./solutionForm";
 
@@ -23,6 +25,10 @@ export interface SolutionGeneralSectionProps {
   finalVolumeMl: string | number;
   instructions: string;
   sectionId: string | number;
+  sterilizationRequired?: boolean;
+  releaseRequired?: boolean;
+  onSterilizationRequiredChange?: (value: boolean) => void;
+  onReleaseRequiredChange?: (value: boolean) => void;
   isEditing: boolean;
   sections: LaboratorySection[];
   mySections: LaboratorySection[];
@@ -47,6 +53,10 @@ export function SolutionGeneralSection({
   finalVolumeMl,
   instructions,
   sectionId,
+  sterilizationRequired = false,
+  releaseRequired = false,
+  onSterilizationRequiredChange,
+  onReleaseRequiredChange,
   isEditing,
   sections,
   mySections,
@@ -117,6 +127,29 @@ export function SolutionGeneralSection({
             {errors.section && <FormHelperText>{errors.section}</FormHelperText>}
           </FormControl>
         ) : null}
+
+        {isGeneralSolutionType(type) && (
+          <Stack sx={{ gridColumn: { xs: "1", sm: "span 2" } }}>
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={sterilizationRequired}
+                  onChange={(e) => onSterilizationRequiredChange?.(e.target.checked)}
+                />
+              }
+              label="Sterilization (autoclave) required"
+            />
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={releaseRequired}
+                  onChange={(e) => onReleaseRequiredChange?.(e.target.checked)}
+                />
+              }
+              label="Release required before use"
+            />
+          </Stack>
+        )}
 
         <Stack direction="row" spacing={1} sx={{ gridColumn: { xs: "1", sm: "span 2" } }}>
           <TextField

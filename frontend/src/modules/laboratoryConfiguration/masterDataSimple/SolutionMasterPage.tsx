@@ -1,4 +1,5 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
+import { useSearchParams } from "react-router-dom";
 import {
   Box,
   Typography,
@@ -47,6 +48,18 @@ export function SolutionMasterPage() {
   const [typeFilter, setTypeFilter] = useState<"ALL" | SolutionType>("ALL");
   const [statusFilter, setStatusFilter] = useState<"ALL" | "ACTIVE" | "INACTIVE">("ALL");
   const [sectionFilter, setSectionFilter] = useState<string>("ALL");
+
+  // Menu links from a laboratory area append ?lab=MICRO to preselect that lab's section;
+  // it is only a starting filter, the person can change it.
+  const [searchParams] = useSearchParams();
+  const labParam = searchParams.get("lab");
+  const labPreselected = useRef(false);
+  useEffect(() => {
+    if (!labParam || labPreselected.current || sections.length === 0) return;
+    const found = sections.find((s) => s.sectionCode === labParam);
+    if (found) setSectionFilter(String(found.sectionId));
+    labPreselected.current = true;
+  }, [labParam, sections]);
 
   // Create / Edit Dialog State
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -136,7 +149,13 @@ export function SolutionMasterPage() {
           sol.name.toLowerCase().includes(q) ||
           (sol.instructions && sol.instructions.toLowerCase().includes(q)) ||
           (sol.storageCondition && sol.storageCondition.toLowerCase().includes(q)) ||
-          sol.components.some((c) => c.entryCode.toLowerCase().includes(q) || c.entryName.toLowerCase().includes(q));
+          sol.components.some(
+            (c) =>
+              (c.entryCode ?? "").toLowerCase().includes(q) ||
+              (c.entryName ?? "").toLowerCase().includes(q) ||
+              (c.sourceSolutionName ?? "").toLowerCase().includes(q) ||
+              (c.text ?? "").toLowerCase().includes(q)
+          );
         if (!match) return false;
       }
       if (typeFilter !== "ALL" && sol.type !== typeFilter) return false;
@@ -163,6 +182,9 @@ export function SolutionMasterPage() {
         return <Chip icon={<OpacityOutlinedIcon fontSize="small" />} label="Diluent" size="small" color="secondary" variant="outlined" sx={{ fontSize: 12, fontWeight: 600 }} />;
       case "Titrant":
         return <Chip icon={<ScaleOutlinedIcon fontSize="small" />} label="Titrant" size="small" color="info" variant="outlined" sx={{ fontSize: 12, fontWeight: 600 }} />;
+      case "Reagent":
+      case "Neutralizer":
+        return <Chip icon={<OpacityOutlinedIcon fontSize="small" />} label={type} size="small" color="secondary" variant="outlined" sx={{ fontSize: 12, fontWeight: 600 }} />;
       default:
         return <Chip label={type} size="small" variant="outlined" sx={{ fontSize: 12 }} />;
     }
@@ -194,6 +216,16 @@ export function SolutionMasterPage() {
               </Typography>
             )}
           </Stack>
+          {(sol.sterilizationRequired || sol.releaseRequired) && (
+            <Stack useFlexGap direction="row" spacing={0.5} sx={{ mt: 0.5, flexWrap: "wrap" }}>
+              {sol.sterilizationRequired && (
+                <Chip label="Autoclave" size="small" variant="outlined" sx={{ fontSize: 11, height: 20 }} />
+              )}
+              {sol.releaseRequired && (
+                <Chip label="Release" size="small" variant="outlined" sx={{ fontSize: 11, height: 20 }} />
+              )}
+            </Stack>
+          )}
         </>
       )
     },
@@ -230,9 +262,13 @@ export function SolutionMasterPage() {
               <Typography variant="caption" sx={{ fontWeight: 700, display: "block", mb: 0.5 }}>
                 Recipe Breakdown:
               </Typography>
-              {sol.components.map((c) => (
-                <Typography key={c.materialMasterEntryId} variant="caption" sx={{ display: "block" }}>
-                  • {c.entryCode} - {c.entryName}: {c.quantity} {c.unit}
+              {sol.components.map((c, i) => (
+                <Typography key={c.id ?? i} variant="caption" sx={{ display: "block" }}>
+                  {c.kind === "Text"
+                    ? `• ${c.text}`
+                    : c.kind === "PreparedSolution"
+                      ? `• Prepared ${c.sourceSolutionName}: ${c.quantity} ${c.unit}`
+                      : `• ${c.entryCode} - ${c.entryName}: ${c.quantity} ${c.unit}`}
                 </Typography>
               ))}
             </Box>
@@ -293,6 +329,8 @@ export function SolutionMasterPage() {
               <MenuItem value="ALL">All Types</MenuItem>
               <MenuItem value="MobilePhase">Mobile Phase</MenuItem>
               <MenuItem value="Diluent">Diluent</MenuItem>
+              <MenuItem value="Reagent">Reagent</MenuItem>
+              <MenuItem value="Neutralizer">Neutralizer</MenuItem>
               <MenuItem value="Titrant">Titrant</MenuItem>
             </Select>
           </FormControl>

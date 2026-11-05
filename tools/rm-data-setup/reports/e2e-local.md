@@ -92,3 +92,14 @@ One sample per material and grade (batch `RM-E2E-<code>-<grade>`), received for 
 - certificate supporting rows: ['Composition (Riboflavin phosphate): Not applicable', 'Related substances (Riboflavin phosphate): Not applicable']
 - certificate: yes (approved sample)
 
+
+## Browser check (Brave, 2026-11-05): passed
+
+- Receive Sample, Raw Material, Pyridoxine Hydrochloride: the grade picker offers exactly BP and USP ("Choose the
+  grade stated on the supplier's CoA").
+  - USP sample RM1126024 (#137) ordered the USP set (10 tests: chloride content by titration; no BP assay, UV or TLC
+    identification), same as the scripted USP sample.
+  - BP sample RM1126025 (#138) ordered the BP set (15 tests), same as the scripted BP sample.
+- Riboflavin: item Supporting Records shows both not-applicable records Approved, signed by the Section Head then the
+  QC Manager; the approved certificate of RM1126023 prints "Composition" and "Related substances" as "Not applicable",
+  grade BP, conclusion Conform.

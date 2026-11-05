@@ -1,0 +1,660 @@
+{
+  "itemCode": "STM-RM-089",
+  "itemName": "Sodium Starch Glycolate Type A",
+  "stmFile": "Sodium Starch Glycolate Type A__STM Sodium Starch Glycolate Type A.txt",
+  "specFiles": [
+    "Sodium Starch Glycolate Type A__Specifications sheet Sodium Starch Glycolate Type A new.txt"
+  ],
+  "minQuantity": {
+    "routine": 120,
+    "retest": 50,
+    "unit": "g",
+    "source": "Sodium Starch Glycolate Type A__Specifications sheet Sodium Starch Glycolate Type A new.txt:26 (routine, spec sheet); Sodium Starch Glycolate Type A__STM Sodium Starch Glycolate Type A.txt:41 (periodic retesting 50 g; the STM says 110 g for routine and retention)",
+    "note": "Decision 2026-11-04 rule: routine from the spec sheet, retest from the STM."
+  },
+  "grades": [
+    {
+      "grade": "BP",
+      "rows": [
+        {
+          "testCode": "RM-DESC",
+          "parameterName": "Appearance",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "White or almost white, fine, free-flowing powder, very hygroscopic",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP 2024",
+          "source": "Sodium Starch Glycolate Type A__Specifications sheet Sodium Starch Glycolate Type A new.txt:11"
+        },
+        {
+          "testCode": "RM-SOL",
+          "parameterName": "Solubility",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Practically insoluble in methylene chloride, It gives a translucent suspension in water",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP 2024",
+          "source": "Sodium Starch Glycolate Type A__Specifications sheet Sodium Starch Glycolate Type A new.txt:12"
+        },
+        {
+          "testCode": "RM-ID-A",
+          "parameterName": "Identification (A): pH",
+          "limitType": "Range",
+          "lower": 5.5,
+          "upper": 7.5,
+          "lowerInclusive": true,
+          "unit": "pH",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP 2024",
+          "source": "Sodium Starch Glycolate Type A__Specifications sheet Sodium Starch Glycolate Type A new.txt:13"
+        },
+        {
+          "testCode": "RM-ID-B",
+          "parameterName": "Identification (B): Visual",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "A suspension forms that settles after standing",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP 2024",
+          "source": "Sodium Starch Glycolate Type A__Specifications sheet Sodium Starch Glycolate Type A new.txt:14"
+        },
+        {
+          "testCode": "RM-ID-C",
+          "parameterName": "Identification (C): Chemical Reaction",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "The solution becomes blue or violet",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP 2024",
+          "source": "Sodium Starch Glycolate Type A__Specifications sheet Sodium Starch Glycolate Type A new.txt:15"
+        },
+        {
+          "testCode": "RM-ID-D",
+          "parameterName": "Identification (D): Chemical Reaction",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "A dense white precipitate is formed",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP 2024",
+          "source": "Sodium Starch Glycolate Type A__Specifications sheet Sodium Starch Glycolate Type A new.txt:16"
+        },
+        {
+          "testCode": "RM-PH",
+          "parameterName": "pH",
+          "limitType": "Range",
+          "lower": 5.5,
+          "upper": 7.5,
+          "lowerInclusive": true,
+          "unit": "pH",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP 2024",
+          "source": "Sodium Starch Glycolate Type A__Specifications sheet Sodium Starch Glycolate Type A new.txt:17"
+        },
+        {
+          "testCode": "RM-LOD",
+          "parameterName": "Loss on drying",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 10,
+          "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP 2024",
+          "source": "Sodium Starch Glycolate Type A__Specifications sheet Sodium Starch Glycolate Type A new.txt:18"
+        },
+        {
+          "testCode": "RM-IRON",
+          "parameterName": "Iron",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Complies (NMT 20 ppm)",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP 2024",
+          "source": "Sodium Starch Glycolate Type A__Specifications sheet Sodium Starch Glycolate Type A new.txt:19"
+        },
+        {
+          "testCode": "RM-APPSOL",
+          "parameterName": "Appearance of solution",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Solution is Clear and Colorless",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP 2024",
+          "source": "Sodium Starch Glycolate Type A__Specifications sheet Sodium Starch Glycolate Type A new.txt:20"
+        },
+        {
+          "testCode": "RM-SETVOL",
+          "parameterName": "Settling volume",
+          "limitType": "Range",
+          "lower": 20,
+          "upper": 45,
+          "lowerInclusive": true,
+          "unit": "mL",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP 2024",
+          "source": "Sodium Starch Glycolate Type A__Specifications sheet Sodium Starch Glycolate Type A new.txt:21"
+        },
+        {
+          "testCode": "RM-TAMC",
+          "parameterName": "Total Aerobic Microbial Count (TAMC)",
+          "limitType": "CountTiered",
+          "lower": null,
+          "upper": 1000,
+          "lowerInclusive": null,
+          "unit": "CFU/g",
+          "expectedResultText": "NMT 10^3 CFU / gm",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP 2024",
+          "note": "source text reads 'NMT 103' (superscript lost in extraction); read as 10^3, see openQuestions",
+          "source": "Sodium Starch Glycolate Type A__Specifications sheet Sodium Starch Glycolate Type A new.txt:22"
+        },
+        {
+          "testCode": "RM-TYMC",
+          "parameterName": "Total Yeast and Molds Count (TYMC)",
+          "limitType": "CountTiered",
+          "lower": null,
+          "upper": 100,
+          "lowerInclusive": null,
+          "unit": "CFU/g",
+          "expectedResultText": "NMT 10^2 CFU / gm",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP 2024",
+          "note": "source text reads 'NMT 102' (superscript lost in extraction); read as 10^2, see openQuestions",
+          "source": "Sodium Starch Glycolate Type A__Specifications sheet Sodium Starch Glycolate Type A new.txt:23"
+        },
+        {
+          "testCode": "RM-ECOLI",
+          "parameterName": "Test for E. coli",
+          "limitType": "PresenceAbsence",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": "/g",
+          "expectedResultText": "Absence / gm",
+          "expectedState": "Absence",
+          "resultBasis": null,
+          "referenceStandard": "USP 2024",
+          "source": "Sodium Starch Glycolate Type A__Specifications sheet Sodium Starch Glycolate Type A new.txt:24"
+        },
+        {
+          "testCode": "RM-SALM",
+          "parameterName": "Test for Salmonella spp.",
+          "limitType": "PresenceAbsence",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": "/10 g",
+          "expectedResultText": "Absence / 10 gm",
+          "expectedState": "Absence",
+          "resultBasis": null,
+          "referenceStandard": "USP 2024",
+          "source": "Sodium Starch Glycolate Type A__Specifications sheet Sodium Starch Glycolate Type A new.txt:25"
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "testCode": "RM-DESC",
+      "kind": "general",
+      "workflow": "Observation",
+      "procedure": "Under strong white light check each received container separately in a clean transparent watch glass or glass dish for foreign particles, colour and compliance with the visual spec. Hygroscopicity: glass weighing vessel, weigh vessel+stopper (m1); add about 2 g and weigh (m2); stand un-stoppered in climatic cabinet at 25 +/- 1 C for 24 h; stopper and weigh (m3); calculate % increase in mass.",
+      "details": {
+        "perContainer": true,
+        "sampleAmountG": 2,
+        "temperatureC": "25 +/- 1",
+        "standingTimeH": 24,
+        "weighings": [
+          "m1 vessel+stopper",
+          "m2 vessel+stopper+sample",
+          "m3 after 24 h"
+        ],
+        "hygroscopicityInterpretation": {
+          "veryHygroscopic": "increase in mass >= 15 %",
+          "hygroscopic": "2 % to 15 %",
+          "slightlyHygroscopic": "< 2 %"
+        },
+        "equipment": [
+          "Electronic Balance",
+          "climatic cabinet"
+        ],
+        "calculationFormula": "not given in text (see openQuestions)",
+        "reference": "BP (SC IV K.) Characters Section in Monographs (Hygroscopicity and Solubility); BP Monograph for Sodium Starch Glycolate Type A"
+      },
+      "source": "Sodium Starch Glycolate Type A__STM Sodium Starch Glycolate Type A.txt:30"
+    },
+    {
+      "testCode": "RM-SOL",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "procedure": "Stepwise solubility: 100 mg powdered sample in stoppered tube, add 0.1 mL solvent, shake vigorously 1 min, hold at 25.0 +/- 0.5 C for 15 min (repeat shake+hold once if not dissolved); if not dissolved add 0.9 mL, then 2 mL, then 7 mL with the same shake/hold; then 10 mg + 10 mL, then 1 mg + 10 mL; classify very soluble ... practically insoluble. Repeat with methylene chloride.",
+      "details": {
+        "sampleMg": 100,
+        "temperatureC": "25.0 +/- 0.5",
+        "shakeMin": 1,
+        "holdMin": 15,
+        "steps": [
+          {
+            "sampleMg": 100,
+            "solventMl": 0.1,
+            "result": "very soluble"
+          },
+          {
+            "sampleMg": 100,
+            "solventMlAdded": 0.9,
+            "result": "freely soluble"
+          },
+          {
+            "sampleMg": 100,
+            "solventMlAdded": 2,
+            "result": "soluble"
+          },
+          {
+            "sampleMg": 100,
+            "solventMlAdded": 7,
+            "result": "sparingly soluble"
+          },
+          {
+            "sampleMg": 10,
+            "solventMl": 10,
+            "result": "slightly soluble"
+          },
+          {
+            "sampleMg": 1,
+            "solventMl": 10,
+            "result": "very slightly soluble"
+          },
+          {
+            "result": "practically insoluble"
+          }
+        ],
+        "solvents": [
+          "water (implied by spec; not named in STM)",
+          "methylene chloride"
+        ],
+        "reference": "BP (SC IV K.) Characters Section; BP Monograph for Sodium Starch Glycolate Type A"
+      },
+      "source": "Sodium Starch Glycolate Type A__STM Sodium Starch Glycolate Type A.txt:31"
+    },
+    {
+      "testCode": "RM-ID-A",
+      "kind": "specific",
+      "workflow": "Measurement",
+      "procedure": "pH, described under the pH test (6.5).",
+      "details": {
+        "refersTo": "RM-PH",
+        "specification": "5.5 to 7.5"
+      },
+      "source": "Sodium Starch Glycolate Type A__STM Sodium Starch Glycolate Type A.txt:32"
+    },
+    {
+      "testCode": "RM-ID-B",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "procedure": "Prepare, with shaking and without heating, a mixture of 4.0 g sample and 20 mL carbon dioxide-free water (appears as a gel). Add 100 mL carbon dioxide-free water. Shake. A suspension forms that settles after standing. The suspension is used for Solution S1.",
+      "details": {
+        "sampleG": 4,
+        "waterMl": 20,
+        "addedWaterMl": 100,
+        "waterType": "carbon dioxide-free",
+        "heating": "none",
+        "intermediateObservation": "mixture has the appearance of a gel"
+      },
+      "source": "Sodium Starch Glycolate Type A__STM Sodium Starch Glycolate Type A.txt:32"
+    },
+    {
+      "testCode": "RM-ID-C",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "procedure": "To an acidified solution add iodinated potassium iodide solution R1. The solution becomes blue or violet.",
+      "details": {
+        "reagent": "Potassium Iodide Solution, Iodinated R1 (500 mg iodine + 1.5 g potassium iodide in water to 25 mL)",
+        "solutionToTest": "not specified (see openQuestions)"
+      },
+      "source": "Sodium Starch Glycolate Type A__STM Sodium Starch Glycolate Type A.txt:32"
+    },
+    {
+      "testCode": "RM-ID-D",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "procedure": "To 2 mL of Solution S2 add 2 mL of a 150 g/L potassium carbonate solution; heat to boiling (no precipitate forms). Add 4 mL potassium pyroantimonate solution; heat to boiling; cool in iced water. A dense white precipitate is formed.",
+      "details": {
+        "solutionS2Ml": 2,
+        "potassiumCarbonate": "2 mL of 150 g/L",
+        "pyroantimonateMl": 4,
+        "intermediate": "no precipitate after carbonate and boiling",
+        "reference": "BP Appendix VI Qualitative Reactions and Tests, Sodium"
+      },
+      "source": "Sodium Starch Glycolate Type A__STM Sodium Starch Glycolate Type A.txt:32"
+    },
+    {
+      "testCode": "RM-APPSOL",
+      "kind": "specific",
+      "workflow": "Observation",
+      "procedure": "Compare 2 mL of Solution S1 with 2 mL of purified water for clarity and colour.",
+      "details": {
+        "solutionS1": "supernatant after centrifuging the suspension from identification test B at 2500 g for 10 min",
+        "volumeMl": 2,
+        "comparator": "purified water 2 mL",
+        "reference": "BP Appendix IV B Color of Solution, IV A Clarity of Solution"
+      },
+      "source": "Sodium Starch Glycolate Type A__STM Sodium Starch Glycolate Type A.txt:33,28"
+    },
+    {
+      "testCode": "RM-PH",
+      "kind": "general",
+      "workflow": "Measurement",
+      "procedure": "Disperse 1.0 g in 30 mL carbon dioxide-free water; measure with a calibrated pH meter.",
+      "details": {
+        "sampleG": 1,
+        "waterMl": 30,
+        "waterType": "carbon dioxide-free",
+        "equipment": [
+          "pH Meter (calibrated)"
+        ],
+        "reference": "BP Appendix V L. Determination of pH Values"
+      },
+      "source": "Sodium Starch Glycolate Type A__STM Sodium Starch Glycolate Type A.txt:34"
+    },
+    {
+      "testCode": "RM-IRON",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "procedure": "Limit test by colour comparison. Sample: 10 mL of Solution S2 + 2 mL of 200 g/L citric acid monohydrate + 0.1 mL thioglycolic acid; mix; make alkaline with ammonia; dilute to 20 mL with water. Standard: 10 mL iron standard solution (1 ppm Fe) treated identically. After 5 min any pink colour in the test solution is not more intense than in the standard.",
+      "details": {
+        "sampleSolutionMl": 10,
+        "citricAcidSolution": "2 mL of 200 g/L citric acid monohydrate",
+        "thioglycolicAcidMl": 0.1,
+        "finalVolumeMl": 20,
+        "standardSolution": "10 mL iron standard solution (1 ppm Fe)",
+        "waitMin": 5,
+        "limitPpm": 20,
+        "solutionS2": "2.5 g in silica or platinum crucible + 2 mL of 500 g/L sulfuric acid; heat on water-bath, then cautiously over naked flame raising temperature progressively; incinerate in muffle furnace at 600 +/- 25 C until black particles disappear; cool, add few drops dilute sulfuric acid, heat and incinerate again; cool, add few drops ammonium carbonate solution, evaporate to dryness, incinerate cautiously; cool and dissolve residue in 50 mL water",
+        "ironStd20ppm": "dilute to 10 times its volume with water a solution containing ferric ammonium sulfate equivalent to 0.863 g and 25 mL dilute sulfuric acid in 500.0 mL",
+        "ironStd1ppm": "dilute iron standard solution (20 ppm Fe) to 20 times its volume with water",
+        "ammoniumCarbonateSolution": "15.8 g ammonium carbonate in water to 100 mL",
+        "diluteSulfuricAcid": "5.5 mL sulfuric acid + 60 mL water, cool, dilute to 100 mL",
+        "equipment": [
+          "Muffle Furnace"
+        ],
+        "reference": "BP Appendix VII Limit Tests, Iron"
+      },
+      "source": "Sodium Starch Glycolate Type A__STM Sodium Starch Glycolate Type A.txt:35,28"
+    },
+    {
+      "testCode": "RM-LOD",
+      "kind": "general",
+      "workflow": "Gravimetric",
+      "procedure": "Weighing bottle previously dried at 130 C, cooled in desiccator (W0). Weigh accurately 1.000 g into it (W1 = empty bottle + material). Dry in calibrated oven at 130 C for 1.5 h; cool in desiccator; weigh (W2). Repeat drying until constant weight. % LOD = (W1 - W2) / (W1 - W0) x 100.",
+      "details": {
+        "sampleG": 1,
+        "temperatureC": 130,
+        "timeH": 1.5,
+        "untilConstantWeight": true,
+        "formula": "(W1 - W2)/(W1 - W0) x 100",
+        "equipment": [
+          "Oven",
+          "Electronic Balance",
+          "desiccator"
+        ],
+        "reference": "BP Appendix IX D. Determination of Loss on Drying"
+      },
+      "source": "Sodium Starch Glycolate Type A__STM Sodium Starch Glycolate Type A.txt:36"
+    },
+    {
+      "testCode": "RM-SETVOL",
+      "kind": "specific",
+      "workflow": "Measurement",
+      "procedure": "70 mL water in a flask; add 1.0 g sample (dried substance); stir with glass rod until no lumps; transfer to 100 mL graduated cylinder; rinse flask walls with water; dilute to 100 mL; stir until evenly distributed; stand 4 h; read sediment volume.",
+      "details": {
+        "waterMl": 70,
+        "sampleG": 1,
+        "sampleBasis": "dried substance",
+        "cylinderMl": 100,
+        "finalVolumeMl": 100,
+        "standingTimeH": 4,
+        "reference": "BP Functionality-Related Characteristics"
+      },
+      "source": "Sodium Starch Glycolate Type A__STM Sodium Starch Glycolate Type A.txt:37"
+    },
+    {
+      "testCode": "RM-TAMC",
+      "kind": "general",
+      "workflow": "CountTest",
+      "procedure": "Per SOP C2I-91-128 and the material-specific verification report. Limit NMT 10^3 CFU/g (in-house, per microbiological verification report and QMS recommendation).",
+      "details": {
+        "sop": "C2I-91-128",
+        "reference": "USP <1111>, USP <61>"
+      },
+      "source": "Sodium Starch Glycolate Type A__STM Sodium Starch Glycolate Type A.txt:39"
+    },
+    {
+      "testCode": "RM-TYMC",
+      "kind": "general",
+      "workflow": "CountTest",
+      "procedure": "Per SOP C2I-91-128 and the material-specific verification report. Limit NMT 10^2 CFU/g (in-house).",
+      "details": {
+        "sop": "C2I-91-128",
+        "reference": "USP <1111>, USP <61>"
+      },
+      "source": "Sodium Starch Glycolate Type A__STM Sodium Starch Glycolate Type A.txt:39"
+    },
+    {
+      "testCode": "RM-ECOLI",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "procedure": "Per SOP C2I-91-128 / verification report. Test for E. coli: absent per gram (kept as 'Absence / gm' per user answer).",
+      "details": {
+        "sop": "C2I-91-128",
+        "reference": "USP <62>; BP and USP Monograph for Sodium Starch Glycolate"
+      },
+      "source": "Sodium Starch Glycolate Type A__STM Sodium Starch Glycolate Type A.txt:39"
+    },
+    {
+      "testCode": "RM-SALM",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "procedure": "Per SOP C2I-91-128 / verification report. Test for Salmonella spp.: absent per 10 g.",
+      "details": {
+        "sop": "C2I-91-128",
+        "reference": "USP <62>; BP and USP Monograph for Sodium Starch Glycolate"
+      },
+      "source": "Sodium Starch Glycolate Type A__STM Sodium Starch Glycolate Type A.txt:39"
+    }
+  ],
+  "notApplicable": [],
+  "supplierAttributes": [
+    {
+      "grade": null,
+      "name": "Grade",
+      "statedValue": "Type (A)",
+      "source": "Sodium Starch Glycolate Type A__Specifications sheet Sodium Starch Glycolate Type A new.txt:26"
+    },
+    {
+      "grade": null,
+      "name": "Degree of substitution",
+      "statedValue": "0.23 to 0.32",
+      "source": "Sodium Starch Glycolate Type A__Specifications sheet Sodium Starch Glycolate Type A new.txt:26"
+    },
+    {
+      "grade": null,
+      "name": "Sodium glycolate",
+      "statedValue": "Maximum 2.0 per cent",
+      "source": "Sodium Starch Glycolate Type A__Specifications sheet Sodium Starch Glycolate Type A new.txt:26"
+    },
+    {
+      "grade": null,
+      "name": "Sodium chloride",
+      "statedValue": "Maximum 7.0 per cent",
+      "source": "Sodium Starch Glycolate Type A__Specifications sheet Sodium Starch Glycolate Type A new.txt:26"
+    },
+    {
+      "grade": null,
+      "name": "Assay",
+      "statedValue": "2.8 per cent to 4.2 per cent of Na",
+      "source": "Sodium Starch Glycolate Type A__Specifications sheet Sodium Starch Glycolate Type A new.txt:26"
+    },
+    {
+      "grade": null,
+      "name": "Particles Size",
+      "statedValue": "Stated by supplier",
+      "source": "Sodium Starch Glycolate Type A__Specifications sheet Sodium Starch Glycolate Type A new.txt:26"
+    }
+  ],
+  "reagents": [
+    {
+      "name": "Iodine",
+      "use": "reagent",
+      "source": "Sodium Starch Glycolate Type A__STM Sodium Starch Glycolate Type A.txt:28"
+    },
+    {
+      "name": "Potassium iodide",
+      "use": "reagent",
+      "source": "Sodium Starch Glycolate Type A__STM Sodium Starch Glycolate Type A.txt:28"
+    },
+    {
+      "name": "Potassium carbonate",
+      "use": "reagent",
+      "source": "Sodium Starch Glycolate Type A__STM Sodium Starch Glycolate Type A.txt:28"
+    },
+    {
+      "name": "Potassium pyroantimonate",
+      "use": "reagent",
+      "source": "Sodium Starch Glycolate Type A__STM Sodium Starch Glycolate Type A.txt:28"
+    },
+    {
+      "name": "Potassium hydroxide",
+      "use": "reagent",
+      "source": "Sodium Starch Glycolate Type A__STM Sodium Starch Glycolate Type A.txt:28"
+    },
+    {
+      "name": "Sulfuric acid",
+      "use": "reagent",
+      "source": "Sodium Starch Glycolate Type A__STM Sodium Starch Glycolate Type A.txt:28"
+    },
+    {
+      "name": "Ammonium carbonate",
+      "use": "reagent",
+      "source": "Sodium Starch Glycolate Type A__STM Sodium Starch Glycolate Type A.txt:28"
+    },
+    {
+      "name": "Thioglycolic acid",
+      "use": "reagent",
+      "source": "Sodium Starch Glycolate Type A__STM Sodium Starch Glycolate Type A.txt:28"
+    },
+    {
+      "name": "Citric acid monohydrate",
+      "use": "reagent",
+      "source": "Sodium Starch Glycolate Type A__STM Sodium Starch Glycolate Type A.txt:28"
+    },
+    {
+      "name": "Ammonia",
+      "use": "reagent",
+      "source": "Sodium Starch Glycolate Type A__STM Sodium Starch Glycolate Type A.txt:28"
+    },
+    {
+      "name": "Ferric ammonium sulfate",
+      "use": "standard",
+      "source": "Sodium Starch Glycolate Type A__STM Sodium Starch Glycolate Type A.txt:28"
+    },
+    {
+      "name": "Iron Standard Solution (20 ppm Fe)",
+      "use": "standard",
+      "source": "Sodium Starch Glycolate Type A__STM Sodium Starch Glycolate Type A.txt:28"
+    },
+    {
+      "name": "Iron Standard Solution (1 ppm Fe)",
+      "use": "standard",
+      "source": "Sodium Starch Glycolate Type A__STM Sodium Starch Glycolate Type A.txt:28"
+    },
+    {
+      "name": "Ammonium Carbonate Solution (15.8 g/100 mL)",
+      "use": "reagent",
+      "source": "Sodium Starch Glycolate Type A__STM Sodium Starch Glycolate Type A.txt:28"
+    },
+    {
+      "name": "Dilute sulfuric acid",
+      "use": "reagent",
+      "source": "Sodium Starch Glycolate Type A__STM Sodium Starch Glycolate Type A.txt:28"
+    },
+    {
+      "name": "Potassium Iodide Solution, Iodinated R1",
+      "use": "reagent",
+      "source": "Sodium Starch Glycolate Type A__STM Sodium Starch Glycolate Type A.txt:28"
+    },
+    {
+      "name": "Potassium Pyroantimonate Solution R1",
+      "use": "reagent",
+      "source": "Sodium Starch Glycolate Type A__STM Sodium Starch Glycolate Type A.txt:28"
+    },
+    {
+      "name": "Water, Carbon Dioxide-free",
+      "use": "reagent",
+      "source": "Sodium Starch Glycolate Type A__STM Sodium Starch Glycolate Type A.txt:28"
+    }
+  ],
+  "openQuestions": [
+    {
+      "question": "Minimum sample quantity conflicts: spec sheet says 120 g; STM says 110 g routine/retention and 50 g periodic retest. minQuantity currently holds the STM values.",
+      "source": "Sodium Starch Glycolate Type A__Specifications sheet Sodium Starch Glycolate Type A new.txt:26; Sodium Starch Glycolate Type A__STM Sodium Starch Glycolate Type A.txt:41"
+    },
+    {
+      "question": "Hygroscopicity: 'Calculate the percentage increase in mass using the expression:' but the expression is missing from the text (likely (m3-m2)/(m2-m1) x 100, not stated).",
+      "source": "Sodium Starch Glycolate Type A__STM Sodium Starch Glycolate Type A.txt:30"
+    },
+    {
+      "question": "Identification C: 'To an acidified solution' does not say which solution is acidified, with what, or how much iodinated potassium iodide solution is added.",
+      "source": "Sodium Starch Glycolate Type A__STM Sodium Starch Glycolate Type A.txt:32"
+    },
+    {
+      "question": "Solubility: the first solvent is not named ('the solvent'; spec implies water, then 'repeat with methylene chloride').",
+      "source": "Sodium Starch Glycolate Type A__STM Sodium Starch Glycolate Type A.txt:31"
+    },
+    {
+      "question": "TAMC/TYMC limits read 'NMT 103' and 'NMT 102' in both documents (superscripts flattened). Rows hold 1000 and 100 CFU/g; confirm 10^3 and 10^2.",
+      "source": "Sodium Starch Glycolate Type A__Specifications sheet Sodium Starch Glycolate Type A new.txt:22-23; Sodium Starch Glycolate Type A__STM Sodium Starch Glycolate Type A.txt:39"
+    },
+    {
+      "question": "Microbial tests: STM only refers to SOP C2I-91-128 and a verification report; no media, incubation or dilution details are in the STM.",
+      "source": "Sodium Starch Glycolate Type A__STM Sodium Starch Glycolate Type A.txt:39"
+    }
+  ]
+}

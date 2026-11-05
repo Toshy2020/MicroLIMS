@@ -1,0 +1,518 @@
+{
+  "itemCode": "STM-RM-56",
+  "itemName": "Riboflavin 5-phosphate",
+  "stmFile": "Riboflavin 5-phosphate__Riboflavin 5-phosphate -SM.txt",
+  "specFiles": [
+    "Riboflavin 5-phosphate__Specifications sheet Riboflavin 5-phosphate.txt"
+  ],
+  "minQuantity": {
+    "routine": 200,
+    "retest": 25,
+    "unit": "g",
+    "source": "Riboflavin 5-phosphate__Specifications sheet Riboflavin 5-phosphate.txt:22 (200 ml on sheet; 200 g per user answer); retest Riboflavin 5-phosphate__Riboflavin 5-phosphate -SM.txt:38"
+  },
+  "grades": [
+    {
+      "grade": "BP",
+      "rows": [
+        {
+          "testCode": "RM-DESC",
+          "parameterName": "Appearance",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Yellow or orange-yellow, crystalline, hygroscopic powder",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP 2024",
+          "source": "Riboflavin 5-phosphate__Specifications sheet Riboflavin 5-phosphate.txt:11"
+        },
+        {
+          "testCode": "RM-SOLUB",
+          "parameterName": "Solubility",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Soluble in water, very slightly soluble in ethanol (96 per cent)",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP 2024",
+          "source": "Riboflavin 5-phosphate__Specifications sheet Riboflavin 5-phosphate.txt:12"
+        },
+        {
+          "testCode": "RM-ID-IR",
+          "parameterName": "Identification (IR)",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "the spectrum obtained for the sample and compare to the spectrum obtained from riboflavin sodium phosphate CRS",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP 2024",
+          "source": "Riboflavin 5-phosphate__Specifications sheet Riboflavin 5-phosphate.txt:13"
+        },
+        {
+          "testCode": "RM-ID-NA",
+          "parameterName": "Identification (Reaction of Sodium)",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "A dense white precipitate is formed",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP 2024",
+          "source": "Riboflavin 5-phosphate__Specifications sheet Riboflavin 5-phosphate.txt:14"
+        },
+        {
+          "testCode": "RM-ID-PO4",
+          "parameterName": "Identification (Reaction of Phosphate)",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "A yellow colour develops",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP 2024",
+          "source": "Riboflavin 5-phosphate__Specifications sheet Riboflavin 5-phosphate.txt:15"
+        },
+        {
+          "testCode": "RM-PH",
+          "parameterName": "pH",
+          "limitType": "Range",
+          "lower": 5,
+          "upper": 6.5,
+          "lowerInclusive": true,
+          "unit": null,
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP 2024",
+          "source": "Riboflavin 5-phosphate__Specifications sheet Riboflavin 5-phosphate.txt:16"
+        },
+        {
+          "testCode": "RM-OPT-ROT",
+          "parameterName": "Specific optical rotation (dried substance)",
+          "limitType": "Range",
+          "lower": 38,
+          "upper": 43,
+          "lowerInclusive": true,
+          "unit": null,
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP 2024",
+          "source": "Riboflavin 5-phosphate__Specifications sheet Riboflavin 5-phosphate.txt:17"
+        },
+        {
+          "testCode": "RM-IMP-E",
+          "parameterName": "Impurity E",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "The Sample is not more intensely colored than reference solution",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP 2024",
+          "source": "Riboflavin 5-phosphate__Specifications sheet Riboflavin 5-phosphate.txt:18"
+        },
+        {
+          "testCode": "RM-INORG-PO4",
+          "parameterName": "Inorganic phosphate",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "The absorbance of the test solution is not greater than that of the reference solution",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP 2024",
+          "source": "Riboflavin 5-phosphate__Specifications sheet Riboflavin 5-phosphate.txt:19"
+        },
+        {
+          "testCode": "RM-LOD",
+          "parameterName": "Loss on drying",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 8,
+          "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP 2024",
+          "source": "Riboflavin 5-phosphate__Specifications sheet Riboflavin 5-phosphate.txt:20"
+        },
+        {
+          "testCode": "RM-ASSAY-UV",
+          "parameterName": "Assay (riboflavin)",
+          "limitType": "Range",
+          "lower": 73,
+          "upper": 79,
+          "lowerInclusive": true,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": "PercentDriedBasis",
+          "referenceStandard": "BP 2024",
+          "source": "Riboflavin 5-phosphate__Specifications sheet Riboflavin 5-phosphate.txt:21"
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "testCode": "RM-DESC",
+      "procedure": "Under strong white light check each received container separately in a clean transparent watch glass or glass dish for foreign particles, colour and conformity. Hygroscopicity: weigh glass weighing vessel with stopper (m1); add about 2 g substance and weigh (m2); place un-stoppered in a climatic cabinet at 25 ± 1 °C for 24 h; stopper and weigh (m3); percentage increase in mass calculated (expression not given in the text). Very hygroscopic: increase >= 15 %; hygroscopic: 2 % to 15 %; slightly hygroscopic: < 2 %.",
+      "kind": "general",
+      "workflow": "Observation",
+      "details": {
+        "perContainer": true,
+        "hygroscopicity": {
+          "sampleG": 2,
+          "temperature": "25 ± 1 °C",
+          "hours": 24,
+          "weighings": "m1 vessel+stopper, m2 vessel+sample, m3 after 24 h",
+          "classes": {
+            "veryHygroscopic": ">= 15 %",
+            "hygroscopic": "2 % to 15 %",
+            "slightlyHygroscopic": "< 2 %"
+          },
+          "formula": "not stated in the document (expression missing)"
+        },
+        "reference": "BP 2024 SC IV K Characters"
+      },
+      "source": "Riboflavin 5-phosphate__Riboflavin 5-phosphate -SM.txt:28"
+    },
+    {
+      "testCode": "RM-SOLUB",
+      "procedure": "Weigh 100 mg sample in a stoppered tube; add 0.1 mL solvent, shake vigorously 1 min, hold at 25.0 ± 0.5 °C for 15 min, repeat shake/hold once if not dissolved; stepwise add 0.9 mL, 2 mL, 7 mL solvent (same shake and hold) to classify very soluble / freely soluble / soluble / sparingly soluble; if still undissolved use 10 mg in 10 mL (slightly soluble) then 1 mg in 10 mL (very slightly soluble), else practically insoluble. Repeat with ethanol (96 per cent).",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {
+        "sample": "100 mg",
+        "temperature": "25.0 ± 0.5 °C",
+        "holdMin": 15,
+        "shakeMin": 1,
+        "volumesMl": [
+          0.1,
+          0.9,
+          2,
+          7
+        ],
+        "smallSampleSteps": [
+          "10 mg in 10 mL",
+          "1 mg in 10 mL"
+        ],
+        "solvents": [
+          "water",
+          "ethanol (96 per cent)"
+        ],
+        "reference": "BP 2024 SC IV K Characters"
+      },
+      "source": "Riboflavin 5-phosphate__Riboflavin 5-phosphate -SM.txt:29"
+    },
+    {
+      "testCode": "RM-ID-IR",
+      "procedure": "IR identification (Test 1): mix intimately with potassium bromide, compress into a transparent pellet, compare the spectrum with that of riboflavin sodium phosphate CRS.",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "details": {
+        "technique": "KBr pellet",
+        "standard": "riboflavin sodium phosphate CRS",
+        "reference": "BP 2024 Appendix II A"
+      },
+      "source": "Riboflavin 5-phosphate__Riboflavin 5-phosphate -SM.txt:30"
+    },
+    {
+      "testCode": "RM-ID-NA",
+      "procedure": "Reaction of sodium (Test 2): to 0.5 g add 10 mL nitric acid; evaporate to dryness; ignite residue until white; dissolve in 5 mL water; filter; take 2 mL of the filtrate, add 2 mL of 150 g/L potassium carbonate, heat to boiling (no precipitate is formed); add 4 mL potassium pyroantimonate solution, heat to boiling, cool in iced water, rub the tube wall with a glass rod if necessary; a dense white precipitate is formed.",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "details": {
+        "sampleG": 0.5,
+        "nitricAcidMl": 10,
+        "residueDissolvedIn": "5 mL water, filtered (filtrate reused for phosphate test)",
+        "aliquotMl": 2,
+        "potassiumCarbonate": "2 mL of 150 g/L",
+        "intermediateCheck": "no precipitate after potassium carbonate and boiling",
+        "potassiumAntimonateV": "4 mL; solution: 2 g potassium pyroantimonate in 95 mL hot water, cool quickly, add 2.5 g potassium hydroxide in 50 mL water + 1 mL dilute sodium hydroxide solution, stand 24 h, filter, dilute to 150 mL with water (STM line 26)",
+        "reference": "BP 2024 Appendix VI Sodium"
+      },
+      "source": "Riboflavin 5-phosphate__Riboflavin 5-phosphate -SM.txt:30"
+    },
+    {
+      "testCode": "RM-ID-PO4",
+      "procedure": "Reaction of phosphate (Test 3): mix 1 mL of the filtrate from identification test 2 with 2 mL molybdovanadic reagent; a yellow colour develops.",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "details": {
+        "filtrateMl": 1,
+        "molybdovanadicReagentMl": 2,
+        "molybdovanadicReagent": "4 g finely powdered ammonium molybdate + 0.1 g finely powdered ammonium vanadate, 70 mL water, grind, add 20 mL nitric acid, dilute to 100 mL with water (STM line 26)",
+        "reference": "BP 2024 Appendix VI Phosphate"
+      },
+      "source": "Riboflavin 5-phosphate__Riboflavin 5-phosphate -SM.txt:30"
+    },
+    {
+      "testCode": "RM-PH",
+      "procedure": "Dissolve 0.5 g in carbon dioxide-free water, dilute to 50 mL with the same solvent; measure with a calibrated pH meter.",
+      "kind": "general",
+      "workflow": "Measurement",
+      "details": {
+        "sampleG": 0.5,
+        "diluentMl": 50,
+        "diluent": "carbon dioxide-free water",
+        "reference": "BP 2024 Appendix V L"
+      },
+      "source": "Riboflavin 5-phosphate__Riboflavin 5-phosphate -SM.txt:31"
+    },
+    {
+      "testCode": "RM-OPT-ROT",
+      "procedure": "Dissolve 0.300 g in 18.2 mL hydrochloric acid R1 and dilute to 25.0 mL with water; measure specific optical rotation (polarimeter); result on dried substance.",
+      "kind": "specific",
+      "workflow": "Measurement",
+      "details": {
+        "sampleG": 0.3,
+        "solvent": "18.2 mL hydrochloric acid R1, dilute to 25.0 mL with water",
+        "hydrochloricAcidR1": "70 g hydrochloric acid diluted to 100 mL with water (STM line 26)",
+        "basis": "dried substance",
+        "equipment": "Polarimeter",
+        "wavelength/temperature/tube length/formula": "not stated",
+        "reference": "BP 2024 Appendix V F"
+      },
+      "source": "Riboflavin 5-phosphate__Riboflavin 5-phosphate -SM.txt:32"
+    },
+    {
+      "testCode": "RM-IMP-E",
+      "procedure": "Impurity E: to about 35 mg add 10 mL methylene chloride, shake 5 min, filter; the filtrate is not more intensely coloured than reference solution BY6.",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "details": {
+        "sampleMg": 35,
+        "solvent": "10 mL methylene chloride",
+        "shakeMin": 5,
+        "referenceSolution": "BY6: 5.0 mL standard solution BY + 95.0 mL hydrochloric acid (10 g/L)",
+        "standardSolutionBY": "2.4 mL yellow solution + 1.0 mL red solution + 0.4 mL blue solution + 6.2 mL hydrochloric acid (10 g/L)",
+        "yellowSolution": "46 g ferric chloride in about 900 mL of (25 mL HCl + 975 mL water), to 1000.0 mL with the same mixture",
+        "redSolution": "60 g cobalt chloride in about 900 mL of (25 mL HCl + 975 mL water), to 1000.0 mL with the same mixture",
+        "blueSolution": "'Blue primary solution': 63 g copper sulfate pentahydrate in about 900 mL of (25 mL HCl + 975 mL water), to 1000.0 mL with the same mixture",
+        "reference": "BP 2024 Appendix IV B"
+      },
+      "source": "Riboflavin 5-phosphate__Riboflavin 5-phosphate -SM.txt:33; reagents Riboflavin 5-phosphate__Riboflavin 5-phosphate -SM.txt:26"
+    },
+    {
+      "testCode": "RM-INORG-PO4",
+      "procedure": "Inorganic phosphate: test solution 0.150 g in water to 50 mL; to 10.0 mL add 10.0 mL acid molybdate solution and 5.0 mL ferrous sulfate solution, mix. Reference: solution containing KH2PO4 equivalent to 0.440 g in 1000 mL, diluted with water to 10 times its volume immediately before use; to 10.0 mL add 10.0 mL acid molybdate solution and 5.0 mL ferrous sulfate solution, mix. Measure absorbance of both at 700 nm using water as compensation liquid; test absorbance must not exceed the reference.",
+      "kind": "specific",
+      "workflow": "UvSpectrophotometry",
+      "details": {
+        "wavelengthNm": 700,
+        "testSolution": "0.150 g in water to 50 mL; 10.0 mL + 10.0 mL acid molybdate solution + 5.0 mL ferrous sulfate solution",
+        "referenceSolution": "KH2PO4 equivalent to 0.440 g/1000 mL diluted to 10 times its volume with water (immediately before use); 10.0 mL + 10.0 mL acid molybdate solution + 5.0 mL ferrous sulfate solution",
+        "compensationLiquid": "water",
+        "criterion": "absorbance of test solution not greater than that of reference solution",
+        "reference": "BP 2024 Appendix II B"
+      },
+      "source": "Riboflavin 5-phosphate__Riboflavin 5-phosphate -SM.txt:34"
+    },
+    {
+      "testCode": "RM-LOD",
+      "procedure": "Weigh empty weighing bottle (previously dried at 105 °C, cooled in desiccator) W0; weigh accurately 1.000 g into it, W1 = bottle + material; dry in calibrated oven at 105 °C for 5 h, cool in desiccator, weigh W2; repeat to constant weight. % LOD = (W1 - W2) / (W1 - W0) x 100.",
+      "kind": "general",
+      "workflow": "Gravimetric",
+      "details": {
+        "sampleG": 1,
+        "temperature": "105 °C",
+        "hours": 5,
+        "formula": "%LOD = (W1-W2)/(W1-W0) x 100",
+        "reference": "BP 2024 Appendix IX D"
+      },
+      "source": "Riboflavin 5-phosphate__Riboflavin 5-phosphate -SM.txt:35"
+    },
+    {
+      "testCode": "RM-ASSAY-UV",
+      "procedure": "Assay (UV): dissolve 0.100 g in 150 mL water, add 2 mL glacial acetic acid, dilute to 1000.0 mL with water; to 10.0 mL add 3.5 mL of 14 g/L sodium acetate solution and dilute to 50.0 mL with water; measure absorbance at the maximum at 444 nm; content of C17H20N4O6 with specific absorbance 328. % Assay = Abs x 1000 x 50 x 100 / (Wt x S.A x 10 x (100 - LOD)).",
+      "kind": "specific",
+      "workflow": "UvSpectrophotometry",
+      "details": {
+        "sampleG": 0.1,
+        "dissolution": "150 mL water + 2 mL glacial acetic acid, dilute to 1000.0 mL with water",
+        "aliquot": "10.0 mL + 3.5 mL of 14 g/L sodium acetate solution, dilute to 50.0 mL with water",
+        "wavelengthNm": 444,
+        "A1pct_1cm": 328,
+        "formula": "% Assay = (Abs x 1000 x 50 x 100) / (Wt x S.A x 10 x (100 - LOD)); Abs = absorbance, Wt = sample weight (g), S.A = 328, LOD = loss on drying (%)",
+        "expressedAs": "riboflavin C17H20N4O6",
+        "basis": "dried substance (LOD corrected)",
+        "storageNote": "preserve in an airtight container, protected from light (STM line 24)",
+        "reference": "BP 2024 Appendix II B"
+      },
+      "source": "Riboflavin 5-phosphate__Riboflavin 5-phosphate -SM.txt:36"
+    }
+  ],
+  "notApplicable": [
+    {
+      "testCode": "RM-RS",
+      "grade": null,
+      "justification": "Related Substances not available",
+      "criticality": "Major",
+      "immediateAction": "Remove Test from Specifications",
+      "longTermAction": "Issue PR For Related Substances",
+      "reference": null,
+      "source": "Riboflavin 5-phosphate__Not applicable For Riboflavin 5-phosphate.txt:2"
+    },
+    {
+      "testCode": "RM-COMPOSITION",
+      "grade": null,
+      "justification": "major and minor components not available",
+      "criticality": "Minor",
+      "immediateAction": "Remove Test from Specifications",
+      "longTermAction": "None stated on the not-applicable form",
+      "reference": null,
+      "source": "Riboflavin 5-phosphate__Not applicable For Riboflavin 5-phosphate.txt:3"
+    }
+  ],
+  "supplierAttributes": [],
+  "reagents": [
+    {
+      "name": "Riboflavin sodium phosphate CRS",
+      "use": "standard",
+      "source": "Riboflavin 5-phosphate__Riboflavin 5-phosphate -SM.txt:26"
+    },
+    {
+      "name": "Potassium bromide",
+      "use": "reagent",
+      "source": "Riboflavin 5-phosphate__Riboflavin 5-phosphate -SM.txt:30"
+    },
+    {
+      "name": "Nitric acid",
+      "use": "reagent",
+      "source": "Riboflavin 5-phosphate__Riboflavin 5-phosphate -SM.txt:26"
+    },
+    {
+      "name": "Potassium carbonate",
+      "use": "reagent",
+      "source": "Riboflavin 5-phosphate__Riboflavin 5-phosphate -SM.txt:26"
+    },
+    {
+      "name": "Potassium pyroantimonate",
+      "use": "reagent",
+      "source": "Riboflavin 5-phosphate__Riboflavin 5-phosphate -SM.txt:26"
+    },
+    {
+      "name": "Potassium hydroxide",
+      "use": "reagent",
+      "source": "Riboflavin 5-phosphate__Riboflavin 5-phosphate -SM.txt:26"
+    },
+    {
+      "name": "Sodium hydroxide",
+      "use": "reagent",
+      "source": "Riboflavin 5-phosphate__Riboflavin 5-phosphate -SM.txt:26"
+    },
+    {
+      "name": "Ammonium molybdate",
+      "use": "reagent",
+      "source": "Riboflavin 5-phosphate__Riboflavin 5-phosphate -SM.txt:26"
+    },
+    {
+      "name": "Ammonium vanadate",
+      "use": "reagent",
+      "source": "Riboflavin 5-phosphate__Riboflavin 5-phosphate -SM.txt:26"
+    },
+    {
+      "name": "Methylene chloride",
+      "use": "reagent",
+      "source": "Riboflavin 5-phosphate__Riboflavin 5-phosphate -SM.txt:26"
+    },
+    {
+      "name": "Hydrochloric acid",
+      "use": "reagent",
+      "source": "Riboflavin 5-phosphate__Riboflavin 5-phosphate -SM.txt:26"
+    },
+    {
+      "name": "Potassium dihydrogen phosphate",
+      "use": "standard",
+      "source": "Riboflavin 5-phosphate__Riboflavin 5-phosphate -SM.txt:26"
+    },
+    {
+      "name": "Glacial acetic acid",
+      "use": "reagent",
+      "source": "Riboflavin 5-phosphate__Riboflavin 5-phosphate -SM.txt:26"
+    },
+    {
+      "name": "Sodium acetate",
+      "use": "reagent",
+      "source": "Riboflavin 5-phosphate__Riboflavin 5-phosphate -SM.txt:26"
+    },
+    {
+      "name": "Ferric chloride",
+      "use": "reagent",
+      "source": "Riboflavin 5-phosphate__Riboflavin 5-phosphate -SM.txt:26"
+    },
+    {
+      "name": "Cobalt chloride",
+      "use": "reagent",
+      "source": "Riboflavin 5-phosphate__Riboflavin 5-phosphate -SM.txt:26"
+    },
+    {
+      "name": "Copper sulfate pentahydrate",
+      "use": "reagent",
+      "source": "Riboflavin 5-phosphate__Riboflavin 5-phosphate -SM.txt:26"
+    },
+    {
+      "name": "Sulfuric acid",
+      "use": "reagent",
+      "source": "Riboflavin 5-phosphate__Riboflavin 5-phosphate -SM.txt:26"
+    }
+  ],
+  "openQuestions": [
+    {
+      "question": "Minimum quantity: spec sheet says '200 ml' (unit ml, not g); STM says 50 g for routine testing and retention and 25 g for periodic retesting. User answer 200 g applied to routine; retest kept at the STM's 25 g. Confirm the retest quantity (and that retention is no longer 50 g).",
+      "source": "Riboflavin 5-phosphate__Specifications sheet Riboflavin 5-phosphate.txt:22; Riboflavin 5-phosphate__Riboflavin 5-phosphate -SM.txt:38"
+    },
+    {
+      "question": "Hygroscopicity (part of Appearance): the expression for the percentage increase in mass is missing from the text (m1, m2, m3 defined, no formula). No formula transcribed.",
+      "source": "Riboflavin 5-phosphate__Riboflavin 5-phosphate -SM.txt:28"
+    },
+    {
+      "question": "Specific optical rotation: no instrument conditions (wavelength, temperature, tube length), no calculation formula, and no unit are given; spec is on the dried substance. Row has no unit.",
+      "source": "Riboflavin 5-phosphate__Riboflavin 5-phosphate -SM.txt:32; Riboflavin 5-phosphate__Specifications sheet Riboflavin 5-phosphate.txt:17"
+    },
+    {
+      "question": "Inorganic phosphate: 'acid molybdate solution' and 'ferrous sulfate solution' are used but not defined in the STM reagent list (ferrous sulfate is not in the Materials list either).",
+      "source": "Riboflavin 5-phosphate__Riboflavin 5-phosphate -SM.txt:34; Riboflavin 5-phosphate__Riboflavin 5-phosphate -SM.txt:26"
+    },
+    {
+      "question": "Inorganic phosphate: the reference-solution wording 'potassium dihydrogen phosphate equivalent to 0.440 g of KH2PO4 in 1000 ml' is as written; confirm it means 0.440 g KH2PO4 per 1000 mL. Spec row is a comparison (no numeric limit).",
+      "source": "Riboflavin 5-phosphate__Riboflavin 5-phosphate -SM.txt:34"
+    },
+    {
+      "question": "Assay: compensation liquid (blank) and cell path length are not stated.",
+      "source": "Riboflavin 5-phosphate__Riboflavin 5-phosphate -SM.txt:36"
+    },
+    {
+      "question": "Identification IR spec text is incomplete as written ('the spectrum obtained for the sample and compare to the spectrum obtained from ... CRS', no 'corresponds/concordant'); row kept with the sheet's wording.",
+      "source": "Riboflavin 5-phosphate__Specifications sheet Riboflavin 5-phosphate.txt:13; Riboflavin 5-phosphate__Riboflavin 5-phosphate -SM.txt:30"
+    },
+    {
+      "question": "Document control mismatch: spec sheet is version 1/0, issued 15-05-2024, header code VB010121800065 with related codes VB010121800062, VB010100100021; STM is version 1/1 (issue date blank); STM history reads 'STM-SM-56' for the code; STM name is 'Riboflavin Sodium Phosphate', sheet item name 'Riboflavin 5-phosphate'. itemName follows the spec sheet.",
+      "source": "Riboflavin 5-phosphate__Riboflavin 5-phosphate -SM.txt:49; Riboflavin 5-phosphate__Specifications sheet Riboflavin 5-phosphate.txt:1"
+    },
+    {
+      "question": "Impurity E colour reference: STM lists 'Blue Solution' in standard solution BY, but only 'Blue primary solution' is defined; assumed the same.",
+      "source": "Riboflavin 5-phosphate__Riboflavin 5-phosphate -SM.txt:26"
+    }
+  ]
+}

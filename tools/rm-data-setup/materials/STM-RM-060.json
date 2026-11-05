@@ -1,0 +1,463 @@
+{
+  "itemCode": "STM-RM-060",
+  "itemName": "Sodium Metabisulfite",
+  "stmFile": "Sodium Meta bisulfit__Sodium Metabisulfit - SM without arsenic.txt",
+  "specFiles": [
+    "Sodium Meta bisulfit__Specifications sheet.txt"
+  ],
+  "minQuantity": {
+    "routine": 100,
+    "retest": 50,
+    "unit": "g",
+    "source": "Sodium Meta bisulfit__Sodium Metabisulfit - SM without arsenic.txt:37; Sodium Meta bisulfit__Specifications sheet.txt:20"
+  },
+  "grades": [
+    {
+      "grade": "BP",
+      "rows": [
+        {
+          "testCode": "RM-DESC",
+          "parameterName": "Appearance",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "White or almost white, crystalline powder or colorless crystals",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP 2025",
+          "source": "Sodium Meta bisulfit__Specifications sheet.txt:11; Sodium Meta bisulfit__Sodium Metabisulfit - SM without arsenic.txt:28"
+        },
+        {
+          "testCode": "RM-SOL",
+          "parameterName": "Solubility",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Freely soluble in water, slightly soluble in ethanol (96 per cent).",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP 2025",
+          "source": "Sodium Meta bisulfit__Specifications sheet.txt:12; Sodium Meta bisulfit__Sodium Metabisulfit - SM without arsenic.txt:29"
+        },
+        {
+          "testCode": "RM-ID-SULFATE",
+          "parameterName": "Identification - Reaction of Sulfate",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "A white precipitate is formed",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP 2025",
+          "source": "Sodium Meta bisulfit__Specifications sheet.txt:13; Sodium Meta bisulfit__Sodium Metabisulfit - SM without arsenic.txt:30"
+        },
+        {
+          "testCode": "RM-ID-SODIUM",
+          "parameterName": "Identification - Reaction of Sodium",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "A dense white precipitate is formed.",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP 2025",
+          "source": "Sodium Meta bisulfit__Specifications sheet.txt:14; Sodium Meta bisulfit__Sodium Metabisulfit - SM without arsenic.txt:30"
+        },
+        {
+          "testCode": "RM-SOLAPP",
+          "parameterName": "Appearance of solution",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Solution S is clear and colorless",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP 2025",
+          "source": "Sodium Meta bisulfit__Specifications sheet.txt:15; Sodium Meta bisulfit__Sodium Metabisulfit - SM without arsenic.txt:31"
+        },
+        {
+          "testCode": "RM-PH",
+          "parameterName": "pH",
+          "limitType": "Range",
+          "lower": 3.5,
+          "upper": 5,
+          "lowerInclusive": true,
+          "unit": "pH",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP 2025",
+          "source": "Sodium Meta bisulfit__Specifications sheet.txt:16; Sodium Meta bisulfit__Sodium Metabisulfit - SM without arsenic.txt:32"
+        },
+        {
+          "testCode": "RM-THIOSULFATE",
+          "parameterName": "Thiosulfates",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "The solution remains clear for at least 15 min",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP 2025",
+          "source": "Sodium Meta bisulfit__Specifications sheet.txt:17; Sodium Meta bisulfit__Sodium Metabisulfit - SM without arsenic.txt:33"
+        },
+        {
+          "testCode": "RM-IRON",
+          "parameterName": "Iron",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Complies (NMT 20 ppm)",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP 2025",
+          "source": "Sodium Meta bisulfit__Specifications sheet.txt:18; Sodium Meta bisulfit__Sodium Metabisulfit - SM without arsenic.txt:34"
+        },
+        {
+          "testCode": "RM-ASSAY",
+          "parameterName": "Assay",
+          "limitType": "Range",
+          "lower": 95,
+          "upper": 100.5,
+          "lowerInclusive": true,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP 2025",
+          "source": "Sodium Meta bisulfit__Specifications sheet.txt:19; Sodium Meta bisulfit__Sodium Metabisulfit - SM without arsenic.txt:35"
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "testCode": "RM-DESC",
+      "kind": "general",
+      "workflow": "Observation",
+      "source": "Sodium Meta bisulfit__Sodium Metabisulfit - SM without arsenic.txt:28",
+      "procedure": "Under strong white light, check each received sample container separately in a clean transparent watch glass or glass dish for foreign particles, conformance of colour and compliance with the visual specification.",
+      "details": {
+        "perContainer": true,
+        "specification": "White or almost white, crystalline powder or colorless crystals",
+        "reference": "BP 2025 Monograph for Sodium Metabisulfite"
+      }
+    },
+    {
+      "testCode": "RM-SOL",
+      "kind": "general",
+      "workflow": "Observation",
+      "source": "Sodium Meta bisulfit__Sodium Metabisulfit - SM without arsenic.txt:29",
+      "procedure": "Stepwise solubility (BP descriptive terms) at 25.0 +/- 0.5 C: 100 mg in a stoppered tube + 0.1 mL solvent, shake vigorously 1 min, hold 15 min at 25.0 +/- 0.5 C, repeat shake/hold once if not dissolved. Dissolved = very soluble. Not dissolved: add 0.9 mL (freely soluble if dissolved), then 2 mL (soluble), then 7 mL (sparingly soluble), each step shake 1 min + 15 min hold (repeat once). Then 10 mg powdered substance + 10 mL solvent (slightly soluble), then 1 mg + 10 mL (very slightly soluble), otherwise practically insoluble. Repeat with ethanol (96 per cent).",
+      "details": {
+        "sampleWeightsMg": [
+          100,
+          10,
+          1
+        ],
+        "solventVolumesMl": [
+          0.1,
+          0.9,
+          2,
+          7,
+          10
+        ],
+        "temperatureC": "25.0 +/- 0.5",
+        "shakeMin": 1,
+        "holdMin": 15,
+        "solvents": [
+          "water (implied for first pass, not named)",
+          "ethanol (96 per cent)"
+        ],
+        "specification": "Freely soluble in water, slightly soluble in ethanol (96 per cent)",
+        "reference": "BP 2025 Monograph for Sodium Metabisulfite"
+      }
+    },
+    {
+      "testCode": "RM-ID-SULFATE",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "source": "Sodium Meta bisulfit__Sodium Metabisulfit - SM without arsenic.txt:30",
+      "procedure": "Reaction of sulfate (BP Appendix VI, Sulfate (a)): To 0.4 mL of iodinated potassium iodide solution add 8 mL distilled water and 1 mL of solution S diluted 1 to 10 in distilled water; the solution is colorless. Use 5 mL of the solution, add 1 mL dilute hydrochloric acid and 1 mL barium chloride solution R1.",
+      "details": {
+        "label_in_STM": "Test B (Reaction of Sulfate)",
+        "iodinatedKIsolutionMl": 0.4,
+        "distilledWaterMl": 8,
+        "solutionSdilutedTenfoldMl": 1,
+        "intermediateObservation": "solution is colorless",
+        "aliquotMl": 5,
+        "diluteHclMl": 1,
+        "bariumChlorideR1Ml": 1,
+        "specification": "A white precipitate is formed",
+        "reference": "BP Appendix VI Qualitative Reactions and Tests, Sulfate(a)"
+      }
+    },
+    {
+      "testCode": "RM-ID-SODIUM",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "source": "Sodium Meta bisulfit__Sodium Metabisulfit - SM without arsenic.txt:30",
+      "procedure": "Reaction of sodium (BP Appendix VI, Sodium (a)): 2 mL solution S + 2 mL of a 150 g/L potassium carbonate solution, heat to boiling, no precipitate is formed; add 4 mL potassium pyroantimonate solution, heat to boiling, cool in iced water.",
+      "details": {
+        "label_in_STM": "Test B (Reaction of Sodium)",
+        "solutionSMl": 2,
+        "potassiumCarbonate150gPerLMl": 2,
+        "pyroantimonateMl": 4,
+        "intermediateObservation": "no precipitate after carbonate and boiling",
+        "specification": "A dense white precipitate is formed",
+        "reference": "BP Appendix VI Qualitative Reactions and Tests, Sodium(a)"
+      }
+    },
+    {
+      "testCode": "RM-SOLAPP",
+      "kind": "general",
+      "workflow": "Observation",
+      "source": "Sodium Meta bisulfit__Sodium Metabisulfit - SM without arsenic.txt:31",
+      "procedure": "Using two identical transparent Nessler tubes, compare 20 mL of solution S with 20 mL of water, viewed vertically against a black background.",
+      "details": {
+        "volumeEachMl": 20,
+        "comparison": "water",
+        "background": "black",
+        "solutionS": "5.0 g in carbon dioxide-free water, diluted to 100 mL",
+        "specification": "Solution S is clear and colorless",
+        "reference": "BP Appendix IV A Clarity of Solution, Appendix IV B Colour of Solution"
+      }
+    },
+    {
+      "testCode": "RM-PH",
+      "kind": "general",
+      "workflow": "Measurement",
+      "source": "Sodium Meta bisulfit__Sodium Metabisulfit - SM without arsenic.txt:32",
+      "procedure": "Measure the pH of a sufficient quantity of solution S with a calibrated pH meter.",
+      "details": {
+        "solutionS": "5.0 g in carbon dioxide-free water, diluted to 100 mL",
+        "equipment": "calibrated pH meter",
+        "specification": "3.5 to 5.0",
+        "reference": "BP Appendix V L Determination of pH Values"
+      }
+    },
+    {
+      "testCode": "RM-THIOSULFATE",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "source": "Sodium Meta bisulfit__Sodium Metabisulfit - SM without arsenic.txt:33",
+      "procedure": "To 5 mL of solution S add 5 mL of diluted hydrochloric acid. The solution remains clear for at least 15 min.",
+      "details": {
+        "solutionSMl": 5,
+        "diluteHclMl": 5,
+        "observationMin": 15,
+        "specification": "The solution remains clear for at least 15 min"
+      }
+    },
+    {
+      "testCode": "RM-IRON",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "source": "Sodium Meta bisulfit__Sodium Metabisulfit - SM without arsenic.txt:34",
+      "procedure": "Limit test, visual colour comparison. Test solution: 10 mL solution S + 2 mL of 200 g/L citric acid monohydrate solution + 0.1 mL thioglycollic acid, mix, make alkaline with ammonia, dilute to 20 mL with water. Standard solution: 10 mL iron standard solution (1 ppm Fe) treated identically. After 5 min any pink colour in the test solution is not more intense than in the standard.",
+      "details": {
+        "testSolutionMl": 10,
+        "citricAcid200gPerLMl": 2,
+        "thioglycollicAcidMl": 0.1,
+        "finalVolumeMl": 20,
+        "standard": "10 mL iron standard solution (1 ppm Fe)",
+        "standingMin": 5,
+        "specification": "Maximum 20 ppm",
+        "reference": "BP Appendix VII Limit Tests, Iron"
+      }
+    },
+    {
+      "testCode": "RM-ASSAY",
+      "kind": "specific",
+      "workflow": "Measurement",
+      "source": "Sodium Meta bisulfit__Sodium Metabisulfit - SM without arsenic.txt:35; Sodium Meta bisulfit__Sodium Metabisulfit - SM without arsenic.txt:26",
+      "procedure": "Residual (back) iodometric titration. Dissolve 0.200 g in 50.0 mL of 0.05 M iodine, add 5 mL dilute hydrochloric acid, titrate the excess iodine with 0.1 M sodium thiosulfate using 1 mL starch solution added towards the end as indicator. Calculation as printed: %Assay = (E.p x Eq.wt x F) / Wt x 100; E.p = end point (mL), Eq.wt = 4.753 mg, F = factor of titrant, Wt = sample weight (g).",
+      "details": {
+        "sampleWeightG": 0.2,
+        "iodineVS": {
+          "molarity": 0.05,
+          "volumeMl": 50
+        },
+        "acidAdded": "5 mL dilute hydrochloric acid",
+        "titrant": {
+          "name": "sodium thiosulfate VS",
+          "molarity": 0.1
+        },
+        "indicator": "starch solution 1 mL near end point",
+        "equivalence": "each mL of 0.05 M iodine is equivalent to 4.753 mg of Sodium Metabisulfite",
+        "equivalenceFactorMg": 4.753,
+        "titrantPreparation": "0.1 M sodium thiosulfate VS: dissolve 25 g sodium thiosulfate and 0.2 g sodium carbonate in carbon dioxide-free water, dilute to 1000.0 mL",
+        "titrantStandardization": "To 10.0 mL of 0.033 M potassium bromate add 40 mL water, 10 mL potassium iodide solution and 5 mL hydrochloric acid R1; titrate with thiosulfate, 1 mL starch solution added towards the end. 1 mL of 0.1 M sodium thiosulfate is equivalent to 2.783 mg of [text cut off] or 0.5 mL of 0.033 M potassium bromate",
+        "iodinePreparation": "0.05 M iodine VS: dissolve 12.7 g iodine and 20 g potassium iodide in water, dilute to 1000.0 mL",
+        "iodineStandardization": "To 10.0 mL of the iodine solution add 1 mL dilute acetic acid and 40 mL water; titrate with 0.1 M sodium thiosulfate, starch indicator",
+        "starchSolution": "1.0 g soluble starch triturated with 5 mL water, poured with stirring into 100 mL boiling water containing 10 mg mercuric iodide",
+        "potassiumBromate033M": "5.5670 g potassium bromate in water, dilute to 1000.0 mL",
+        "specification": "95.0 per cent to 100.5 per cent",
+        "reference": "BP 2025 Monograph for Sodium Metabisulfite",
+        "analystEntersFinalValue": "Decision 2026-11-04: was Titration in the transcription; now Measurement, the analyst enters the final value."
+      }
+    }
+  ],
+  "notApplicable": [],
+  "supplierAttributes": [],
+  "reagents": [
+    {
+      "name": "Iodine",
+      "use": "titrant",
+      "source": "Sodium Meta bisulfit__Sodium Metabisulfit - SM without arsenic.txt:26"
+    },
+    {
+      "name": "0.05 M Iodine VS",
+      "use": "titrant",
+      "source": "Sodium Meta bisulfit__Sodium Metabisulfit - SM without arsenic.txt:26"
+    },
+    {
+      "name": "0.1 M Sodium Thiosulfate VS",
+      "use": "titrant",
+      "source": "Sodium Meta bisulfit__Sodium Metabisulfit - SM without arsenic.txt:26"
+    },
+    {
+      "name": "Potassium iodide",
+      "use": "reagent",
+      "source": "Sodium Meta bisulfit__Sodium Metabisulfit - SM without arsenic.txt:26"
+    },
+    {
+      "name": "Potassium Iodide Solution, Iodinated",
+      "use": "reagent",
+      "source": "Sodium Meta bisulfit__Sodium Metabisulfit - SM without arsenic.txt:26"
+    },
+    {
+      "name": "Potassium carbonate",
+      "use": "reagent",
+      "source": "Sodium Meta bisulfit__Sodium Metabisulfit - SM without arsenic.txt:26"
+    },
+    {
+      "name": "Potassium Pyroantimonate Solution R1",
+      "use": "reagent",
+      "source": "Sodium Meta bisulfit__Sodium Metabisulfit - SM without arsenic.txt:26"
+    },
+    {
+      "name": "Potassium hydroxide",
+      "use": "reagent",
+      "source": "Sodium Meta bisulfit__Sodium Metabisulfit - SM without arsenic.txt:26"
+    },
+    {
+      "name": "Hydrochloric Acid, dilute",
+      "use": "reagent",
+      "source": "Sodium Meta bisulfit__Sodium Metabisulfit - SM without arsenic.txt:26"
+    },
+    {
+      "name": "Hydrochloric Acid R1",
+      "use": "reagent",
+      "source": "Sodium Meta bisulfit__Sodium Metabisulfit - SM without arsenic.txt:26"
+    },
+    {
+      "name": "Barium Chloride Solution R1",
+      "use": "reagent",
+      "source": "Sodium Meta bisulfit__Sodium Metabisulfit - SM without arsenic.txt:26"
+    },
+    {
+      "name": "Acetic Acid, dilute",
+      "use": "reagent",
+      "source": "Sodium Meta bisulfit__Sodium Metabisulfit - SM without arsenic.txt:26"
+    },
+    {
+      "name": "Starch Solution (soluble starch + mercuric iodide)",
+      "use": "indicator",
+      "source": "Sodium Meta bisulfit__Sodium Metabisulfit - SM without arsenic.txt:26"
+    },
+    {
+      "name": "0.033 M Potassium Bromate VS",
+      "use": "standard",
+      "source": "Sodium Meta bisulfit__Sodium Metabisulfit - SM without arsenic.txt:26"
+    },
+    {
+      "name": "Sodium carbonate",
+      "use": "reagent",
+      "source": "Sodium Meta bisulfit__Sodium Metabisulfit - SM without arsenic.txt:26"
+    },
+    {
+      "name": "Nitric acid",
+      "use": "reagent",
+      "source": "Sodium Meta bisulfit__Sodium Metabisulfit - SM without arsenic.txt:26"
+    },
+    {
+      "name": "2-propanol",
+      "use": "reagent",
+      "source": "Sodium Meta bisulfit__Sodium Metabisulfit - SM without arsenic.txt:26"
+    },
+    {
+      "name": "Pyridine",
+      "use": "reagent",
+      "source": "Sodium Meta bisulfit__Sodium Metabisulfit - SM without arsenic.txt:26"
+    },
+    {
+      "name": "Citric acid monohydrate 200 g/L",
+      "use": "reagent",
+      "source": "Sodium Meta bisulfit__Sodium Metabisulfit - SM without arsenic.txt:34"
+    },
+    {
+      "name": "Thioglycollic acid",
+      "use": "reagent",
+      "source": "Sodium Meta bisulfit__Sodium Metabisulfit - SM without arsenic.txt:34"
+    },
+    {
+      "name": "Ammonia",
+      "use": "reagent",
+      "source": "Sodium Meta bisulfit__Sodium Metabisulfit - SM without arsenic.txt:34"
+    },
+    {
+      "name": "Iron standard solution (1 ppm Fe)",
+      "use": "standard",
+      "source": "Sodium Meta bisulfit__Sodium Metabisulfit - SM without arsenic.txt:34"
+    }
+  ],
+  "openQuestions": [
+    {
+      "question": "Thiosulfate standardization equivalence is cut off: '1 mL of 0.1 M sodium thiosulfate is equivalent to 2.783 mg of [missing] or 0.5 mL of 0.033 M potassium bromate'. Which substance is 2.783 mg (presumably potassium bromate)?",
+      "source": "Sodium Meta bisulfit__Sodium Metabisulfit - SM without arsenic.txt:26"
+    },
+    {
+      "question": "Assay formula as printed (E.p x Eq.wt x F)/Wt x 100 does not show the blank / subtraction of a back titration, and 'x F' is garbled. Which volume is E.p (iodine consumed or thiosulfate used), is a blank required, and which titrant's factor is F?",
+      "source": "Sodium Meta bisulfit__Sodium Metabisulfit - SM without arsenic.txt:35"
+    },
+    {
+      "question": "Assay basis is not stated (no 'dried' or 'anhydrous' qualifier in STM or spec sheet); row stored as PercentAsIs. Confirm.",
+      "source": "Sodium Meta bisulfit__Specifications sheet.txt:19; Sodium Meta bisulfit__Sodium Metabisulfit - SM without arsenic.txt:35"
+    },
+    {
+      "question": "Concentration of the potassium iodide solution (10 mL) used in the thiosulfate standardization is not stated.",
+      "source": "Sodium Meta bisulfit__Sodium Metabisulfit - SM without arsenic.txt:26"
+    },
+    {
+      "question": "Solubility: the solvent of the first pass is not named (water implied; 'Repeat this Steps with ethanol (96 per cent)').",
+      "source": "Sodium Meta bisulfit__Sodium Metabisulfit - SM without arsenic.txt:29"
+    },
+    {
+      "question": "STM is the 'without arsenic' version: references (10.4) cite 'Arsenic Method A' and 'Arsenic Apparatus' is listed as equipment, but there is no arsenic test in the STM or spec sheet. No row created; confirm no arsenic test is wanted.",
+      "source": "Sodium Meta bisulfit__Sodium Metabisulfit - SM without arsenic.txt:26; Sodium Meta bisulfit__Sodium Metabisulfit - SM without arsenic.txt:44"
+    },
+    {
+      "question": "Identification sulfate test is titled 'Reaction of Sulfate' (STM) / 'Reaction of Sulphates' (spec); procedure first decolorizes iodine (sulfite) then precipitates with barium chloride. Both identification tests are labelled 'Test B' in the STM. Transcribed as two rows as on the spec sheet.",
+      "source": "Sodium Meta bisulfit__Sodium Metabisulfit - SM without arsenic.txt:30; Sodium Meta bisulfit__Specifications sheet.txt:13"
+    },
+    {
+      "question": "Spec sheet header gives STM code 'SM-RM-060' (STM is STM-RM-060); assumed typo.",
+      "source": "Sodium Meta bisulfit__Specifications sheet.txt:9"
+    }
+  ]
+}

@@ -1,6 +1,7 @@
-import { useState } from "react";
-import { Box, Button, Alert, Typography, Chip } from "@mui/material";
-import { SamplePreparationService } from "./services/SamplePreparationService";
+import { useEffect, useState } from "react";
+import { Box, Button, Alert, Typography, Chip, CircularProgress } from "@mui/material";
+import { SamplePreparationService, type PreparationLotOptions } from "./services/SamplePreparationService";
+import { PreparationLotPicker } from "./components/PreparationLotPicker";
 import { PreparationStepsSummary } from "./PreparationStepsSummary";
 import { SignatureDialog } from "../../components/SignatureDialog";
 import { useAuth } from "../../contexts/AuthContext";
@@ -23,6 +24,31 @@ interface Props {
 export function ConfirmPreparationForm({ sample, config, onSaved }: Props) {
   const { userId } = useAuth();
   const [signing, setSigning] = useState(false);
+  const [lots, setLots] = useState<PreparationLotOptions | null>(null);
+  const [lotsError, setLotsError] = useState<string | null>(null);
+  const [diluentLotId, setDiluentLotId] = useState<number | null>(null);
+  const [neutralizerLotId, setNeutralizerLotId] = useState<number | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLots(null);
+    setLotsError(null);
+    setDiluentLotId(null);
+    setNeutralizerLotId(null);
+    SamplePreparationService.getLotOptions({ sampleId: sample.sampleId })
+      .then((o) => { if (!cancelled) setLots(o); })
+      .catch((e: any) => {
+        if (!cancelled) setLotsError(e?.response?.data?.message ?? "Could not load the available lots.");
+      });
+    return () => { cancelled = true; };
+  }, [sample.sampleId]);
+
+  const needsDiluentLot = Boolean(lots?.diluent.lotRequired);
+  const needsNeutralizerLot = Boolean(lots?.neutralizer.lotRequired);
+  const lotsComplete =
+    lots != null &&
+    (!needsDiluentLot || diluentLotId != null) &&
+    (!needsNeutralizerLot || neutralizerLotId != null);
 
   const assignedIds = sample.assignedAnalystIds ?? [];
   const isAssignedToOther =
@@ -31,7 +57,12 @@ export function ConfirmPreparationForm({ sample, config, onSaved }: Props) {
   // Errors propagate to SignatureDialog, which surfaces the server message
   // and keeps itself open with the password cleared.
   const confirm = async (password: string) => {
-    await SamplePreparationService.confirm({ sampleId: sample.sampleId, password });
+    await SamplePreparationService.confirm({
+      sampleId: sample.sampleId,
+      password,
+      diluentLotId: needsDiluentLot ? diluentLotId : null,
+      neutralizerLotId: needsNeutralizerLot ? neutralizerLotId : null
+    });
     setSigning(false);
     onSaved();
   };
@@ -67,13 +98,34 @@ export function ConfirmPreparationForm({ sample, config, onSaved }: Props) {
 
       <PreparationStepsSummary config={config} />
 
+      {lotsError && <Alert severity="error" sx={{ mt: 2, fontSize: 13 }}>{lotsError}</Alert>}
+      {!lots && !lotsError && (
+        <Box sx={{ display: "flex", justifyContent: "center", mt: 2 }}><CircularProgress size={20} /></Box>
+      )}
+      {lots?.needsMaterialMapping && (
+        <Alert severity="warning" sx={{ mt: 2, fontSize: 13 }}>
+          This item's diluent/neutralizer is not linked to master data, so no lot can be recorded for this
+          sample. A Section Head can link them under Laboratory Configuration → Items.
+        </Alert>
+      )}
+      {lots && !lots.needsMaterialMapping && (needsDiluentLot || needsNeutralizerLot) && (
+        <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 2, mt: 2 }}>
+          <Box sx={{ display: "grid", gap: 1.5, alignContent: "start" }}>
+            <PreparationLotPicker label="Diluent" group={lots.diluent} value={diluentLotId} onChange={setDiluentLotId} disabled={isAssignedToOther} />
+          </Box>
+          <Box sx={{ display: "grid", gap: 1.5, alignContent: "start" }}>
+            <PreparationLotPicker label="Neutralizer" group={lots.neutralizer} value={neutralizerLotId} onChange={setNeutralizerLotId} disabled={isAssignedToOther} />
+          </Box>
+        </Box>
+      )}
+
       <Typography variant="caption" sx={{ display: "block", mt: 2, color: "text.secondary" }}>
         Confirming records these exact values against this sample. Later changes to the item's configuration
         will not alter this record.
       </Typography>
 
       <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 3 }}>
-        <Button variant="contained" onClick={() => setSigning(true)} disabled={isAssignedToOther}>
+        <Button variant="contained" onClick={() => setSigning(true)} disabled={isAssignedToOther || !lotsComplete}>
           Confirm & Start Testing
         </Button>
       </Box>

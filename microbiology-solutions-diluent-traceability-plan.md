@@ -141,3 +141,23 @@ plan.
 ## 5. Open questions
 
 None. All questions were answered on 2026-11-05 (D5–D11 in section 2).
+
+## 6. Implementation record (2026-11-05)
+
+All four phases are built in PR #131.
+
+| Phase | Commit | What landed |
+|---|---|---|
+| 1 | `4005125` | `Reagent` (RE-) and `Neutralizer` (NT-) types; per-recipe *Sterilization required* and *Release required*; recipe lines of kind Material, Prepared solution or Text; autoclave record at completion; `Solutions.Release` (Section Head, Reviewer) with signed approve/reject and segregation of duties. Migration `MicrobiologySolutions`. |
+| 2 | `0136307` | Recipe dialog, preparation wizard (source-bottle picker, autoclave section), record page with Release dialog, list "Awaiting release" filter, Microbiology menu entries (`?lab=MICRO`). |
+| 3 | `3136ecd` | Optional media *Additives* step: stock lot (deducted) or released prepared solution (recorded only); shown on lot details and reports. Migration `MediaAdditives`. |
+| 4 | `7398ad0` + frontend commit | Item master picks the diluent/neutralizer from a media product, solution recipe or material entry (neutralizer can be *contained in the medium*); manual, confirm and grouped Test Preparation pick and record the lot (one pair per group, nothing deducted); lot code on report, summary and audit; where-used panel on media lots, solution preparations and stock lots; "not linked to master data" list on the Items page. Migration `PreparationMaterialTraceability` maps existing text where exactly one master matches and drops `DiluentTypes`. |
+
+Implementation choices beyond the plan:
+
+- Release is an `ApprovalStatus` on the preparation (PendingReview / Approved / Rejected) rather than new statuses, so expiry and discard work as before.
+- A Microbiology recipe's release default is **on** for new recipes; HPLC types never have it.
+- An inactive source recipe already used by a recipe may stay on it at update; a new inactive pick is refused.
+- In the backfill, the first master type with any match decides (media product, then recipe, then material entry); more than one match in that type is left unmapped as ambiguous.
+- Stock-lot additives record the lot's own unit, because the quantity is deducted in that unit.
+- Legacy text-only configurations keep working without a lot until a Section Head links them.

@@ -7,8 +7,21 @@ import {
   type ItemPreparationConfiguration
 } from "../../../testPreparation/services/ItemPreparationConfigurationService";
 import { PreparationStepsSummary } from "../../../testPreparation/PreparationStepsSummary";
+import { PreparationMaterialPicker } from "../../../testPreparation/components/PreparationMaterialPicker";
+import {
+  EMPTY_SELECTION, isSelectionComplete, selectionFromConfig, selectionPayload,
+  type PreparationMaterialSelection
+} from "../../../testPreparation/preparationMaterial";
 import { useAuth } from "../../../../contexts/AuthContext";
 import { PERMISSIONS } from "../../../../routes/routes";
+
+function MappingWarning() {
+  return (
+    <Alert severity="warning" sx={{ fontSize: 12 }}>
+      Diluent/neutralizer not linked to master data — edit and pick them so the lot used can be recorded.
+    </Alert>
+  );
+}
 
 interface Props {
   itemId: number;
@@ -29,6 +42,8 @@ export function ItemPreparationConfigurationSection({ itemId, itemName, onChange
   const [message, setMessage] = useState<{ text: string; ok: boolean } | null>(null);
 
   const [form, setForm] = useState<Record<string, any>>({ technique: "PourPlate" });
+  const [diluentSel, setDiluentSel] = useState<PreparationMaterialSelection>(EMPTY_SELECTION);
+  const [neutralizerSel, setNeutralizerSel] = useState<PreparationMaterialSelection>(EMPTY_SELECTION);
 
   const load = () => {
     setLoading(true);
@@ -50,10 +65,11 @@ export function ItemPreparationConfigurationSection({ itemId, itemName, onChange
     setForm(config
       ? {
           amount: config.amount, technique: config.technique,
-          filtrationVolume: config.filtrationVolume ?? "", washingVolume: config.washingVolume ?? "",
-          diluent: config.diluent, neutralizer: config.neutralizer
+          filtrationVolume: config.filtrationVolume ?? "", washingVolume: config.washingVolume ?? ""
         }
       : { technique: "PourPlate" });
+    setDiluentSel(config ? selectionFromConfig(config, "diluent") : EMPTY_SELECTION);
+    setNeutralizerSel(config ? selectionFromConfig(config, "neutralizer") : EMPTY_SELECTION);
     setMessage(null);
     setEditing(true);
   };
@@ -66,8 +82,8 @@ export function ItemPreparationConfigurationSection({ itemId, itemName, onChange
         amount: Number(form.amount), technique: form.technique,
         filtrationVolume: form.filtrationVolume ? Number(form.filtrationVolume) : null,
         washingVolume: form.washingVolume ? Number(form.washingVolume) : null,
-        diluent: (form.diluent ?? "").trim(),
-        neutralizer: (form.neutralizer ?? "").trim()
+        ...(selectionPayload("diluent", diluentSel) as any),
+        ...(selectionPayload("neutralizer", neutralizerSel) as any)
       });
       setConfig(saved);
       setEditing(false);
@@ -124,6 +140,8 @@ export function ItemPreparationConfigurationSection({ itemId, itemName, onChange
             </Typography>
           </Box>
 
+          {config.needsMaterialMapping && <MappingWarning />}
+
           <PreparationStepsSummary config={config} />
 
           {config.approvalStatus === "PendingReview" && (
@@ -152,9 +170,17 @@ export function ItemPreparationConfigurationSection({ itemId, itemName, onChange
             </Box>
           )}
 
-          <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 2, mt: 2 }}>
-            <TextField label="Diluent" value={form.diluent ?? ""} onChange={(e) => setField("diluent", e.target.value)} required />
-            <TextField label="Neutralizer" value={form.neutralizer ?? ""} onChange={(e) => setField("neutralizer", e.target.value)} required />
+          {config?.needsMaterialMapping && <Box sx={{ mt: 2 }}><MappingWarning /></Box>}
+
+          <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 2, mt: 2 }}>
+            <PreparationMaterialPicker
+              label="Diluent" value={diluentSel} onChange={setDiluentSel}
+              currentName={config?.diluent}
+            />
+            <PreparationMaterialPicker
+              label="Neutralizer" value={neutralizerSel} onChange={setNeutralizerSel}
+              allowContainedInMedium currentName={config?.neutralizer}
+            />
           </Box>
         </Paper>
       )}
@@ -164,7 +190,7 @@ export function ItemPreparationConfigurationSection({ itemId, itemName, onChange
           {editing ? (
             <>
               <Button onClick={() => { setEditing(false); setMessage(null); }} disabled={saving}>Cancel</Button>
-              <Button variant="contained" onClick={save} disabled={saving || !form.diluent?.trim() || !form.neutralizer?.trim()}>
+              <Button variant="contained" onClick={save} disabled={saving || !isSelectionComplete(diluentSel) || !isSelectionComplete(neutralizerSel)}>
                 {saving ? "Saving..." : "Save Configuration"}
               </Button>
             </>

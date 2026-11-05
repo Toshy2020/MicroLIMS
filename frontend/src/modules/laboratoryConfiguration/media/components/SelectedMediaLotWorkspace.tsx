@@ -33,6 +33,7 @@ import { MediaSummary } from "../types/mediaSummaryTypes";
 import { apiClient } from "../../../../services/apiClient";
 import { lifecycleOf } from "./MediaLotKpiCards";
 import { MediaStoragePanel } from "./MediaStoragePanel";
+import { PreparationWhereUsedPanel } from "../../../testPreparation/components/PreparationWhereUsedPanel";
 import { tableHeadSx } from "../../../../theme";
 import { useAuth } from "../../../../contexts/AuthContext";
 import { PERMISSIONS } from "../../../../routes/routes";
@@ -453,6 +454,8 @@ export function SelectedMediaLotWorkspace({
               ))}
             </Box>
           )}
+
+          <PreparationWhereUsedPanel lot={{ mediaId: lot.id }} />
         </Stack>
       )}
 

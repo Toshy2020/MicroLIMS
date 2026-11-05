@@ -12,6 +12,7 @@ import { ReasonDialog } from "../laboratoryConfiguration/masterDataSimple/soluti
 import { PreparationStatusBadge } from "./components/PreparationStatusBadge";
 import { PreparationComponentsTable } from "./record/PreparationComponentsTable";
 import { PreparationHistoryTable } from "./record/PreparationHistoryTable";
+import { PreparationWhereUsedPanel } from "../testPreparation/components/PreparationWhereUsedPanel";
 import { CurrentFactorCard } from "./record/CurrentFactorCard";
 import { StandardizationHistoryTable } from "./record/StandardizationHistoryTable";
 import { useTitrantStandardization } from "./record/useTitrantStandardization";
@@ -312,6 +313,13 @@ export function PreparationRecordPage() {
             standardizations={standardizations}
             loading={loadingStandardizations}
           />
+        </Paper>
+      )}
+
+      {/* Where used: test preparations that picked this lot as diluent / neutralizer */}
+      {["Diluent", "Reagent", "Neutralizer"].includes(preparation.type) && (
+        <Paper variant="outlined" sx={{ p: 3, mb: 3 }}>
+          <PreparationWhereUsedPanel lot={{ solutionPreparationId: preparation.id }} />
         </Paper>
       )}
 

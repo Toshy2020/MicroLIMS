@@ -238,7 +238,6 @@ export const masterDataOptions = {
   ): Promise<ProductionStageOption> =>
     apiClient.put(`/masterdata/production-stages/${id}`, payload, ifMatch(version)).then((r) => r.data.data),
   deleteProductionStage: (id: number) => apiClient.delete(`/masterdata/production-stages/${id}`),
-  getDiluentTypes: () => apiClient.get("/masterdata/diluent-types").then((r) => r.data.data),
   getNeutralizers: () => apiClient.get("/masterdata/neutralizers").then((r) => r.data.data),
   getEquipment: (type?: string) =>
     apiClient.get("/masterdata/equipment", { params: type ? { type } : {} }).then((r) => r.data.data),

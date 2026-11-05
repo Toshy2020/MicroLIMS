@@ -19,6 +19,7 @@ import { COA_REQUIRED_TYPES } from "../types/materialTypes";
 import { MaterialDocumentList } from "./MaterialDocumentList";
 import { UploadMaterialDocumentDialog } from "./UploadMaterialDocumentDialog";
 import { LotPreparationsList } from "./LotPreparationsList";
+import { PreparationWhereUsedPanel } from "../../../testPreparation/components/PreparationWhereUsedPanel";
 
 interface Props {
   open: boolean;
@@ -193,6 +194,11 @@ export function MaterialLotDetailsDialog({ open, material, onClose }: Props) {
 
         {/* ---- Consumed by Preparations ---- */}
         <LotPreparationsList materialId={material.id} onNavigate={onClose} />
+
+        <Divider sx={{ my: 2 }} />
+
+        {/* ---- Used in test preparation (diluent / neutralizer) ---- */}
+        <PreparationWhereUsedPanel lot={{ materialId: material.id }} />
       </FloatingDialog>
 
       {/* Upload sub-dialog */}

@@ -2,24 +2,17 @@ import {
   Box,
   Typography,
   Paper,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
   Alert,
   Stack,
-  Chip,
   useTheme
 } from "@mui/material";
 import LinkIcon from "@mui/icons-material/Link";
 import { StatusBadge } from "../../../components/StatusBadge";
 import { HplcStatusBadge } from "../../hplcWorkspace/components/HplcStatusBadge";
-import { tableHeadSx } from "../../../theme";
 import type { ParameterResultDetail } from "../types/sampleSummaryTypes";
 import {
   formatIcpQuantity,
+  icpFormulaText,
   type IcpCalculationData
 } from "./icpReviewTypes";
 import { IcpReportsSection } from "./IcpReportsSection";
@@ -39,15 +32,6 @@ function parseIcpCalc(json: string | null | undefined): IcpCalculationData | nul
   } catch {
     return null;
   }
-}
-
-function formatNumber(val: number | null | undefined, dp: number): string {
-  if (val === null || val === undefined) return "—";
-  if (typeof val !== "number") return String(val);
-  return val.toLocaleString(undefined, {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: dp
-  });
 }
 
 export function IcpReviewPanel({ parameter, testOrderId }: IcpReviewPanelProps) {
@@ -96,8 +80,7 @@ export function IcpReviewPanel({ parameter, testOrderId }: IcpReviewPanelProps) 
     );
   }
 
-  const amountUnitSymbol = calc.amountUnit === "Milliliter" ? "mL" : "g";
-  const contentUnitSymbol = calc.amountUnit === "Milliliter" ? "µg/mL" : "µg/g";
+  const isAssay = calc.mode === "Assay";
 
   return (
     <Box
@@ -116,7 +99,6 @@ export function IcpReviewPanel({ parameter, testOrderId }: IcpReviewPanelProps) 
             ICP Review · {calc.element || parameter.parameterName}
           </Typography>
           <StatusBadge status="Draft" label={formatIcpQuantity(calc.quantity)} />
-          <StatusBadge status="Prepared" label={`Unit: ${amountUnitSymbol}`} />
         </Box>
 
         <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
@@ -124,7 +106,7 @@ export function IcpReviewPanel({ parameter, testOrderId }: IcpReviewPanelProps) 
         </Typography>
       </Box>
 
-      {/* Snapshot Reference & Calibration Summary */}
+      {/* Calibration & calculation */}
       <Paper
         elevation={0}
         sx={{
@@ -136,7 +118,7 @@ export function IcpReviewPanel({ parameter, testOrderId }: IcpReviewPanelProps) 
         }}
       >
         <Typography sx={{ fontSize: 12, fontWeight: 700, color: "text.secondary", mb: 0.5, textTransform: "uppercase" }}>
-          Method Snapshot & Standard Calibration
+          Calibration
         </Typography>
         <Stack useFlexGap direction="row" spacing={3} sx={{ fontSize: 12, flexWrap: "wrap", mb: 1 }}>
           <Box>
@@ -149,7 +131,7 @@ export function IcpReviewPanel({ parameter, testOrderId }: IcpReviewPanelProps) 
           </Box>
           <Box>
             <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>
-              Calibration Confirmed At
+              Declared ready (signed) at
             </Typography>
             <Typography variant="body2" sx={{ fontWeight: 600 }}>
               {calc.calibrationConfirmedAt ? new Date(calc.calibrationConfirmedAt).toLocaleString() : "—"}
@@ -163,152 +145,67 @@ export function IcpReviewPanel({ parameter, testOrderId }: IcpReviewPanelProps) 
               {typeof calc.correlationR === "number" ? calc.correlationR.toFixed(6) : (calc.correlationR ?? "—")}
             </Typography>
           </Box>
-          {calc.unitAmount != null && (
-            <Box>
-              <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>
-                Unit Amount
-              </Typography>
-              <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                {calc.unitAmount} {amountUnitSymbol}
-              </Typography>
-            </Box>
-          )}
-          {calc.labelClaim != null && (
-            <Box>
-              <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>
-                Label Claim
-              </Typography>
-              <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                {calc.labelClaim} {calc.labelClaimUnit ?? ""}
-              </Typography>
-            </Box>
-          )}
-          {calc.conversionFactor != null && calc.conversionFactor !== 1 && (
-            <Box>
-              <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>
-                Conversion Factor
-              </Typography>
-              <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                {calc.conversionFactor}
-              </Typography>
-            </Box>
-          )}
         </Stack>
 
-        {/* CCV Readings */}
-        {calc.ccv && calc.ccv.length > 0 && (
-          <Box sx={{ mt: 1, pt: 1, borderTop: `1px dashed ${theme.palette.divider}` }}>
-            <Typography sx={{ fontSize: 12, fontWeight: 700, color: "text.secondary", mb: 0.5 }}>
-              Continuing Calibration Verification (CCV)
-            </Typography>
-            <Stack direction="row" spacing={1.5} sx={{ flexWrap: "wrap", gap: 1 }}>
-              {calc.ccv.map((c, idx) => (
-                <Box
-                  key={idx}
-                  sx={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 1,
-                    px: 1,
-                    py: 0.5,
-                    borderRadius: 1,
-                    border: `1px solid ${theme.palette.divider}`,
-                    backgroundColor: theme.palette.background.paper,
-                    fontSize: 12
-                  }}
-                >
-                  <span>Measured: <strong>{c.measuredMgPerL} mg/L</strong></span>
-                  <span>
-                    Recovery: <strong>{typeof c.recoveryPercent === "number" ? `${c.recoveryPercent.toFixed(1)}%` : `${c.recoveryPercent}%`}</strong>
-                  </span>
-                  <Chip
-                    label={c.passed ? "Pass" : "Fail"}
-                    size="small"
-                    color={c.passed ? "success" : "error"}
-                    sx={{ height: 20, fontSize: 12, fontWeight: 700 }}
-                  />
-                  {c.enteredAt && (
-                    <span style={{ color: theme.palette.text.secondary }}>
-                      {new Date(c.enteredAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                    </span>
-                  )}
-                </Box>
-              ))}
-            </Stack>
-          </Box>
-        )}
-
-        {/* Formula display */}
-        <Box sx={{ mt: 1, pt: 0.5, borderTop: `1px dashed ${theme.palette.divider}` }}>
+        <Box sx={{ mt: 1, pt: 1, borderTop: `1px dashed ${theme.palette.divider}` }}>
+          <Typography sx={{ fontSize: 12, fontWeight: 700, color: "text.secondary", mb: 0.5, textTransform: "uppercase" }}>
+            Calculation
+          </Typography>
+          <Stack useFlexGap direction="row" spacing={3} sx={{ fontSize: 12, flexWrap: "wrap", mb: 1 }}>
+            <Box>
+              <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>
+                Instrument result
+              </Typography>
+              <Typography variant="body2" sx={{ fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>
+                {calc.resultPpm} ppm
+              </Typography>
+            </Box>
+            {isAssay && calc.targetPpm != null && (
+              <Box>
+                <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>
+                  Target
+                </Typography>
+                <Typography variant="body2" sx={{ fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>
+                  {calc.targetPpm} ppm
+                </Typography>
+              </Box>
+            )}
+            {isAssay && calc.theoreticalAmount != null && (
+              <Box>
+                <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>
+                  {calc.sampleForm === "Liquid" ? "Th.Vol" : "Th.Wt"}
+                </Typography>
+                <Typography variant="body2" sx={{ fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>
+                  {calc.theoreticalAmount} {calc.sampleForm === "Liquid" ? "mL" : "g"}
+                </Typography>
+              </Box>
+            )}
+            {isAssay && calc.sampleForm === "Liquid" && calc.specificGravity != null && (
+              <Box>
+                <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>
+                  Sp.gr
+                </Typography>
+                <Typography variant="body2" sx={{ fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>
+                  {calc.specificGravity}
+                </Typography>
+              </Box>
+            )}
+            {isAssay && calc.actualWeightG != null && (
+              <Box>
+                <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>
+                  Act.Wt
+                </Typography>
+                <Typography variant="body2" sx={{ fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>
+                  {calc.actualWeightG} g
+                </Typography>
+              </Box>
+            )}
+          </Stack>
           <Typography variant="caption" sx={{ color: "text.secondary", display: "block", fontStyle: "italic" }}>
-            Formula: content = C × V × DF / W ; mg/unit = content × unit amount / 1000 × factor ; % LC = mg/unit / claim × 100
+            Formula: {icpFormulaText(calc)}
           </Typography>
         </Box>
       </Paper>
-
-      {/* Replicates Table */}
-      {calc.replicates && calc.replicates.length > 0 && (
-        <TableContainer sx={{ border: `1px solid ${theme.palette.divider}`, borderRadius: 1, mb: 1 }}>
-          <Table size="small">
-            <TableHead sx={tableHeadSx(theme)}>
-              <TableRow>
-                <TableCell sx={{ fontSize: 12 }}>Replicate</TableCell>
-                <TableCell align="right" sx={{ fontSize: 12 }}>Sample Amount ({amountUnitSymbol})</TableCell>
-                <TableCell align="right" sx={{ fontSize: 12 }}>Volume (mL)</TableCell>
-                <TableCell align="right" sx={{ fontSize: 12 }}>DF</TableCell>
-                <TableCell align="right" sx={{ fontSize: 12 }}>Solution (mg/L)</TableCell>
-                <TableCell align="right" sx={{ fontSize: 12 }}>Content ({contentUnitSymbol})</TableCell>
-                <TableCell align="center" sx={{ fontSize: 12 }}>Flag</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {calc.replicates.map((r) => (
-                <TableRow key={r.replicateNo} hover>
-                  <TableCell sx={{ fontWeight: 600, fontSize: 12 }}>#{r.replicateNo}</TableCell>
-                  <TableCell align="right" sx={{ fontSize: 12, fontVariantNumeric: "tabular-nums" }}>
-                    {r.sampleAmount}
-                  </TableCell>
-                  <TableCell align="right" sx={{ fontSize: 12, fontVariantNumeric: "tabular-nums" }}>
-                    {r.volumeMl}
-                  </TableCell>
-                  <TableCell align="right" sx={{ fontSize: 12, fontVariantNumeric: "tabular-nums" }}>
-                    {r.dilutionFactor}
-                  </TableCell>
-                  <TableCell align="right" sx={{ fontSize: 12, fontVariantNumeric: "tabular-nums" }}>
-                    {r.solutionMgPerL}
-                  </TableCell>
-                  <TableCell align="right" sx={{ fontWeight: 700, fontSize: 12, fontVariantNumeric: "tabular-nums" }}>
-                    {formatNumber(r.contentPerAmount, 4)}
-                  </TableCell>
-                  <TableCell align="center" sx={{ fontSize: 12 }}>
-                    {r.belowLoq ? (
-                      <Chip
-                        label="<LOQ"
-                        size="small"
-                        color="warning"
-                        variant="outlined"
-                        sx={{ fontSize: 12, height: 20, fontWeight: 700 }}
-                      />
-                    ) : (
-                      "—"
-                    )}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
-      )}
-
-      {/* Mean Content Summary */}
-      <Box sx={{ display: "flex", justifyContent: "flex-end", alignItems: "center", mb: 1.5, px: 1 }}>
-        <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
-          Mean content:{" "}
-          <strong style={{ color: theme.palette.text.primary }}>
-            {formatNumber(calc.meanContentPerAmount, 4)} {contentUnitSymbol}
-          </strong>
-        </Typography>
-      </Box>
 
       {/* Evidence Reports Section */}
       <IcpReportsSection testOrderId={testOrderId} />

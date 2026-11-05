@@ -6,22 +6,14 @@ import {
   DialogActions,
   Button,
   Typography,
-  Box,
-  Radio,
-  RadioGroup,
-  FormControlLabel,
-  FormControl,
   Alert,
   CircularProgress,
-  Chip,
-  Paper,
-  Stack,
-  useTheme
+  Stack
 } from "@mui/material";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import BiotechIcon from "@mui/icons-material/Biotech";
 import { IcpWorkspaceService } from "../services/IcpWorkspaceService";
-import type { IcpMethodOptionDto, IcpRunDto } from "../types";
+import type { IcpRunDto } from "../types";
 
 export interface StartIcpRunDialogProps {
   open: boolean;
@@ -32,6 +24,8 @@ export interface StartIcpRunDialogProps {
   onRunStarted: (run: IcpRunDto) => void;
 }
 
+// A run needs no method: the analyst lists the calibrated elements on the calibration step, and each
+// test defines the elements and targets it reports.
 export function StartIcpRunDialog({
   open,
   equipmentId,
@@ -40,45 +34,18 @@ export function StartIcpRunDialog({
   onClose,
   onRunStarted
 }: StartIcpRunDialogProps) {
-  const theme = useTheme();
-  const [methods, setMethods] = useState<IcpMethodOptionDto[]>([]);
-  const [loading, setLoading] = useState(false);
   const [starting, setStarting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [selectedMethodId, setSelectedMethodId] = useState<number | null>(null);
 
   useEffect(() => {
-    if (!open) return;
-    setLoading(true);
-    setError(null);
-    setSelectedMethodId(null);
-
-    IcpWorkspaceService.getMethodOptions()
-      .then((data) => {
-        setMethods(data);
-        if (data.length === 1) {
-          setSelectedMethodId(data[0].id);
-        }
-      })
-      .catch((err: unknown) => {
-        const e = err as { response?: { data?: { message?: string } }; message?: string };
-        setError(e.response?.data?.message ?? e.message ?? "Could not load ICP methods.");
-      })
-      .finally(() => {
-        setLoading(false);
-      });
+    if (open) setError(null);
   }, [open]);
 
   const handleStart = async () => {
-    if (!selectedMethodId) return;
-
     setStarting(true);
     setError(null);
     try {
-      const newRun = await IcpWorkspaceService.startRun({
-        equipmentId,
-        icpMethodId: selectedMethodId
-      });
+      const newRun = await IcpWorkspaceService.startRun({ equipmentId });
       onRunStarted(newRun);
     } catch (err: unknown) {
       const e = err as { response?: { data?: { message?: string } }; message?: string };
@@ -108,81 +75,10 @@ export function StartIcpRunDialog({
             {error}
           </Alert>
         )}
-
-        <Typography variant="body2" sx={{ color: "text.secondary", mb: 2 }}>
-          Select the active ICP method for this analytical sequence. The run will initialize with a calibration record and method parameter snapshot.
+        <Typography variant="body2" sx={{ color: "text.secondary" }}>
+          The run starts with a pending calibration. Record the standard lot, the elements calibrated and their r,
+          attach the calibration curve report and sign to declare the instrument calibrated and ready for testing.
         </Typography>
-
-        {loading ? (
-          <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
-            <CircularProgress size={32} />
-          </Box>
-        ) : methods.length === 0 ? (
-          <Alert severity="warning">
-            No active ICP methods configured for this laboratory section.
-          </Alert>
-        ) : (
-          <FormControl component="fieldset" fullWidth>
-            <RadioGroup
-              value={selectedMethodId ?? ""}
-              onChange={(e) => setSelectedMethodId(Number(e.target.value))}
-            >
-              <Stack spacing={1.5}>
-                {methods.map((m) => {
-                  const isSelected = selectedMethodId === m.id;
-                  return (
-                    <Paper
-                      key={m.id}
-                      elevation={0}
-                      onClick={() => setSelectedMethodId(m.id)}
-                      sx={{
-                        p: 1.5,
-                        borderRadius: 1.5,
-                        border: `1px solid ${isSelected ? theme.palette.primary.main : theme.palette.divider}`,
-                        backgroundColor: isSelected
-                          ? theme.palette.mode === "dark"
-                            ? "rgba(144, 202, 249, 0.08)"
-                            : "rgba(25, 118, 210, 0.04)"
-                          : theme.palette.background.paper,
-                        cursor: "pointer",
-                        transition: "all 0.15s ease",
-                        "&:hover": {
-                          borderColor: theme.palette.primary.light
-                        }
-                      }}
-                    >
-                      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                        <FormControlLabel
-                          value={m.id}
-                          control={<Radio size="small" />}
-                          label={
-                            <Box sx={{ ml: 0.5 }}>
-                              <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-                                {m.name} ({m.abbreviation})
-                              </Typography>
-                              <Typography variant="caption" sx={{ color: "text.secondary" }}>
-                                Mode: {m.mode === "MineralAssay" ? "Mineral Assay" : "Elemental Impurities"}
-                              </Typography>
-                            </Box>
-                          }
-                          sx={{ m: 0, alignItems: "flex-start" }}
-                        />
-
-                        <Chip
-                          size="small"
-                          label={`${m.eligibleTestOrderCount} Eligible Tests`}
-                          color={m.eligibleTestOrderCount > 0 ? "primary" : "default"}
-                          variant="outlined"
-                          sx={{ fontWeight: 600, fontSize: 12 }}
-                        />
-                      </Box>
-                    </Paper>
-                  );
-                })}
-              </Stack>
-            </RadioGroup>
-          </FormControl>
-        )}
       </DialogContent>
 
       <DialogActions sx={{ px: 3, py: 2 }}>
@@ -193,7 +89,7 @@ export function StartIcpRunDialog({
           variant="contained"
           startIcon={starting ? <CircularProgress size={16} color="inherit" /> : <PlayArrowIcon />}
           onClick={handleStart}
-          disabled={!selectedMethodId || starting || loading}
+          disabled={starting}
           sx={{ textTransform: "none" }}
         >
           {starting ? "Starting Run..." : "Start Run"}

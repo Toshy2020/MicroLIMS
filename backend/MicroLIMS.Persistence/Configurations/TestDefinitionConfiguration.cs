@@ -67,9 +67,11 @@ public class TestDefinitionConfiguration : IEntityTypeConfiguration<TestDefiniti
             .HasForeignKey(t => t.HplcMethodId)
             .OnDelete(DeleteBehavior.Restrict);
 
-        builder.HasOne(t => t.IcpMethod)
-            .WithMany()
-            .HasForeignKey(t => t.IcpMethodId)
-            .OnDelete(DeleteBehavior.Restrict);
+        builder.Property(t => t.IcpTheoreticalAmount).HasPrecision(18, 6);
+        builder.Property(t => t.IcpSpecificGravity).HasPrecision(18, 6);
+        builder.HasMany(t => t.IcpElements)
+            .WithOne(e => e.TestDefinition)
+            .HasForeignKey(e => e.TestDefinitionId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }

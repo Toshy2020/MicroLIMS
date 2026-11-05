@@ -44,7 +44,7 @@ export function IcpSendForReviewDialog({
   const calConfirmed = entry.calibrationStatus === "Confirmed";
   const allElementsValid = entry.elements.length > 0 && entry.elements.every((e) => e.valid);
   const firstInvalidElement = entry.elements.find((e) => !e.valid);
-  const hasReplicates = entry.replicates.length > 0;
+  const hasResults = entry.elements.length > 0 && entry.elements.every((e) => e.resultPpm != null);
   const currentReportCount = (entry.evidence || []).filter(
     (e) => e.context === "Sample" && e.kind === "SampleReport" && e.isCurrent
   ).length;
@@ -78,7 +78,7 @@ export function IcpSendForReviewDialog({
     }
   };
 
-  const meaningStatement = `I confirm that ICP replicate data, element concentrations, and evidence for sample ${entry.sampleNumber} (${entry.testCode}) are complete, accurate, and ready for review.`;
+  const meaningStatement = `I confirm that the ICP element results and evidence for sample ${entry.sampleNumber} (${entry.testCode}) are complete, accurate, and ready for review.`;
 
   return (
     <>
@@ -160,18 +160,18 @@ export function IcpSendForReviewDialog({
                 />
               </ListItem>
 
-              {/* 3. Replicate Count */}
+              {/* 3. Instrument results */}
               <ListItem disableGutters>
                 <ListItemIcon sx={{ minWidth: 36 }}>
-                  {hasReplicates ? (
+                  {hasResults ? (
                     <CheckCircleIcon color="success" fontSize="small" />
                   ) : (
                     <CancelIcon color="error" fontSize="small" />
                   )}
                 </ListItemIcon>
                 <ListItemText
-                  primary="Replicate Measurements"
-                  secondary={`${entry.replicates.length} replicate measurement(s) recorded`}
+                  primary="Instrument results"
+                  secondary={`${entry.elements.filter((e) => e.resultPpm != null).length} of ${entry.elements.length} element result(s) recorded`}
                   slotProps={{
                     primary: { sx: { fontWeight: 600, fontSize: 13 } },
                     secondary: { sx: { fontSize: 12 } }
@@ -248,7 +248,7 @@ export function IcpSendForReviewDialog({
             </List>
 
             <Alert severity="info" sx={{ fontSize: 12 }}>
-              Signing will freeze replicate entries, record official ICP assay results, and move the test order to <strong>Under Review</strong> in the testing workspace.
+              Signing will freeze the entered results, record official ICP assay results, and move the test order to <strong>Under Review</strong> in the testing workspace.
             </Alert>
           </Stack>
         </DialogContent>

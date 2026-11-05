@@ -1,38 +1,19 @@
 namespace MicroLIMS.Application.Helpers;
 
-public record IcpReplicateInput(int ReplicateNo, decimal SampleAmount, decimal VolumeMl, decimal DilutionFactor, decimal SolutionMgPerL);
-public record IcpReplicateContent(int ReplicateNo, decimal ContentPerAmount, bool BelowLoq, bool OverRange);
-public record IcpElementContent(
-    IReadOnlyList<IcpReplicateContent> Replicates,
-    decimal? MeanContentPerAmount,      // µg per g (or per mL); null when every replicate is <LOQ
-    bool AllBelowLoq, bool SomeBelowLoq, bool AnyOverRange,
-    decimal? MgPerUnit, decimal? PercentLabelClaim);
-
-// ICP element content. Pure - no I/O, no rounding (display rounding is the recorder's job).
-// content = C × V × DF / W   (mg/L × mL = µg; / g -> µg/g)
-// mg/unit = mean content × unitAmount / 1000 × conversionFactor ; %LC = mg/unit / labelClaim × 100
-// C < lowest level -> BelowLoq ; C > highest level -> OverRange (C equal to a level is in range)
+// ICP assay. Pure - no I/O, no rounding (display rounding is the evaluator's job).
+//   solid : assay % = result x Th.Wt x 100 / (target x Act.Wt)
+//   liquid: assay % = result x Th.Vol x Sp.gr x 100 / (target x Act.Wt)
+// result and target are in ppm; weights in g, volume in mL.
 public static class IcpContentCalculator
 {
-    public static IcpElementContent Calculate(IReadOnlyList<IcpReplicateInput> reps, decimal lowestLevel, decimal highestLevel,
-        decimal conversionFactor, decimal? unitAmount, decimal? labelClaim)
+    public static decimal AssayPercent(decimal resultPpm, decimal targetPpm, decimal theoreticalAmount,
+        decimal? specificGravity, decimal actualWeightG)
     {
-        if (reps.Count == 0) throw new InvalidOperationException("At least one replicate is required.");
-        if (reps.Any(r => r.SampleAmount <= 0m || r.VolumeMl <= 0m || r.DilutionFactor < 1m))
-            throw new InvalidOperationException("Sample amount, volume and dilution must be positive (dilution at least 1).");
+        if (targetPpm <= 0m) throw new InvalidOperationException("The target concentration must be greater than zero.");
+        if (theoreticalAmount <= 0m) throw new InvalidOperationException("The theoretical weight or volume must be greater than zero.");
+        if (actualWeightG <= 0m) throw new InvalidOperationException("The actual weight must be greater than zero.");
+        if (specificGravity is <= 0m) throw new InvalidOperationException("The specific gravity must be greater than zero.");
 
-        var results = reps.Select(r => new IcpReplicateContent(
-            r.ReplicateNo,
-            r.SolutionMgPerL * r.VolumeMl * r.DilutionFactor / r.SampleAmount,
-            r.SolutionMgPerL < lowestLevel,
-            r.SolutionMgPerL > highestLevel)).ToList();
-
-        var measured = results.Where(r => !r.BelowLoq).ToList();
-        decimal? mean = measured.Count > 0 ? measured.Average(r => r.ContentPerAmount) : null;
-        decimal? mgPerUnit = mean is not null && unitAmount > 0m ? mean * unitAmount / 1000m * conversionFactor : null;
-        decimal? pct = mgPerUnit is not null && labelClaim > 0m ? mgPerUnit / labelClaim * 100m : null;
-
-        return new IcpElementContent(results, mean, measured.Count == 0, measured.Count is > 0 && measured.Count < results.Count,
-            results.Any(r => r.OverRange), mgPerUnit, pct);
+        return resultPpm * theoreticalAmount * (specificGravity ?? 1m) * 100m / (targetPpm * actualWeightG);
     }
 }

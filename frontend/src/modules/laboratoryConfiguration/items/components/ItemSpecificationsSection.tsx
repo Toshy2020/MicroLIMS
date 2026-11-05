@@ -35,7 +35,6 @@ import {
   formatTrimmedDecimal
 } from "./SpecificationParameterDialog";
 import { HplcMethodService } from "../../masterDataSimple/services/HplcMethodService";
-import { IcpMethodService } from "../../masterDataSimple/services/IcpMethodService";
 
 interface ItemSpecificationsSectionProps {
   item: Item;
@@ -156,7 +155,7 @@ export const formatLimitCell = (spec: SpecificationDto): string => {
 
 const formatResultBasis = (basis?: string | null, isIcp?: boolean) => {
   if (!basis) return null;
-  if (isIcp && basis === "MgPerKg") return "µg/g";
+  if (isIcp && basis === "MgPerKg") return "ppm";
   switch (basis) {
     case "MgPerKg":
       return "mg/kg per sample";
@@ -211,14 +210,10 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
       .then(async (defs: TestDefinitionSummary[]) => {
         const byCode: Record<string, TestDefinitionSummary> = {};
         const hplcMethodIds: number[] = [];
-        const icpMethodIds: number[] = [];
         for (const d of defs) {
           byCode[d.code] = d;
           if ((d.workflowType === "HplcMethodAssay" || d.equationType === "HplcMethodAssay") && d.hplcMethodId) {
             hplcMethodIds.push(d.hplcMethodId);
-          }
-          if ((d.workflowType === "IcpMethodAssay" || d.equationType === "IcpMethodAssay") && d.icpMethodId) {
-            icpMethodIds.push(d.icpMethodId);
           }
         }
         setTestDefinitionByCode(byCode);
@@ -241,22 +236,14 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
           setHplcAnalyteById(hMap);
         }
 
-        const uniqueIcpMethodIds = Array.from(new Set(icpMethodIds));
-        if (uniqueIcpMethodIds.length > 0) {
-          const iMap: Record<number, { symbol: string }> = {};
-          await Promise.all(
-            uniqueIcpMethodIds.map((mId) =>
-              IcpMethodService.getById(mId)
-                .then((method) => {
-                  for (const el of method.elements ?? []) {
-                    iMap[el.id] = { symbol: el.symbol };
-                  }
-                })
-                .catch(() => setLookupsIncomplete(true))
-            )
-          );
-          setIcpElementById(iMap);
+        // ICP elements belong to the test itself, so the labels come with the test definitions.
+        const iMap: Record<number, { symbol: string }> = {};
+        for (const d of defs) {
+          for (const el of d.icpElements ?? []) {
+            iMap[el.id] = { symbol: el.symbol };
+          }
         }
+        setIcpElementById(iMap);
       })
       .catch(() => {
         // Non-fatal: the specifications still load, only labels are missing.
@@ -546,10 +533,10 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
                                       }}
                                     />
                                   )}
-                                  {spec.icpMethodElementId && icpElementById[spec.icpMethodElementId] && (
+                                  {spec.icpTestElementId && icpElementById[spec.icpTestElementId] && (
                                     <Chip
                                       size="small"
-                                      label={`Element: ${icpElementById[spec.icpMethodElementId].symbol}`}
+                                      label={`Element: ${icpElementById[spec.icpTestElementId].symbol}`}
                                       sx={{
                                         height: 20,
                                         fontSize: 12,
@@ -787,10 +774,10 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
                                               }}
                                             />
                                           )}
-                                          {spec.icpMethodElementId && icpElementById[spec.icpMethodElementId] && (
+                                          {spec.icpTestElementId && icpElementById[spec.icpTestElementId] && (
                                             <Chip
                                               size="small"
-                                              label={`Element: ${icpElementById[spec.icpMethodElementId].symbol}`}
+                                              label={`Element: ${icpElementById[spec.icpTestElementId].symbol}`}
                                               sx={{
                                                 height: 20,
                                                 fontSize: 12,

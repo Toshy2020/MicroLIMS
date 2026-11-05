@@ -1,42 +1,23 @@
-export type IcpQuantity = "IcpMgPerKg" | "IcpMgPerUnit" | "IcpPercentLabelClaim" | string;
+export type IcpQuantity = "IcpAssayPercent" | "IcpImpurityPpm" | string;
 
-export interface IcpReplicateCalculationData {
-  replicateNo: number;
-  sampleAmount: number;
-  volumeMl: number;
-  dilutionFactor: number;
-  solutionMgPerL: number;
-  contentPerAmount: number;
-  belowLoq: boolean;
-}
-
-export interface IcpCcvReadingData {
-  measuredMgPerL: number;
-  recoveryPercent: number;
-  passed: boolean;
-  enteredAt: string;
-}
-
+// The calculation the ICP recorder stores with each result (camelCase JSON of IcpMethodAssayRecorder).
 export interface IcpCalculationData {
   element: string;
-  icpMethodElementId: number;
+  icpTestElementId: number;
   quantity: IcpQuantity;
-  amountUnit: "Gram" | "Milliliter" | string;
-  unitAmount?: number | null;
-  conversionFactor?: number;
-  labelClaim?: number | null;
-  labelClaimUnit?: string | null;
-  standardLevelsMgPerL?: number[];
-  replicates: IcpReplicateCalculationData[];
-  meanContentPerAmount: number | null;
-  reportedValue: number;
+  mode: "Assay" | "Impurity" | string;
+  sampleForm?: "Solid" | "Liquid" | null;
+  targetPpm?: number | null;
+  theoreticalAmount?: number | null;
+  specificGravity?: number | null;
+  actualWeightG?: number | null;
+  resultPpm: number;
+  reportedValue: number | null;
   display: string;
   runCode: string;
   calibrationCode: string;
   calibrationConfirmedAt: string;
   correlationR?: number | null;
-  ccv?: IcpCcvReadingData[];
-  icpMethodId?: number;
   icpRunId?: number;
   icpRunSampleId?: number;
 }
@@ -44,18 +25,23 @@ export interface IcpCalculationData {
 export function formatIcpQuantity(quantity: string | null | undefined): string {
   if (!quantity) return "—";
   switch (quantity) {
-    case "IcpMgPerKg":
-    case "MgPerKg":
-      return "Content (µg/g)";
-    case "IcpMgPerUnit":
-    case "MgPerUnit":
-      return "Amount per unit";
-    case "IcpPercentLabelClaim":
-    case "PercentLabelClaim":
-      return "% of label claim";
+    case "IcpAssayPercent":
+      return "Assay (%)";
+    case "IcpImpurityPpm":
+      return "Impurity (ppm)";
     default:
       return quantity;
   }
+}
+
+// The formula the result was calculated with, as shown to the reviewer.
+export function icpFormulaText(calc: Pick<IcpCalculationData, "mode" | "sampleForm">): string {
+  if (calc.mode !== "Assay") {
+    return "Result = instrument concentration (ppm); judged against the item's not-more-than limit (0 = not detected).";
+  }
+  return calc.sampleForm === "Liquid"
+    ? "Assay % = result × Th.Vol × Sp.gr × 100 / (target × Act.Wt)"
+    : "Assay % = result × Th.Wt × 100 / (target × Act.Wt)";
 }
 
 export function isIcpCalculation(json: string | null | undefined): boolean {

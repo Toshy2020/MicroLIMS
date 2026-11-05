@@ -73,10 +73,10 @@ public class Specification : IVersionedEntity
     [JsonIgnore]
     public HplcMethodImpurity? HplcMethodImpurity { get; set; }
 
-    // ICP workspace - IcpMethodAssay specification rows are keyed by method element + basis.
-    public int? IcpMethodElementId { get; set; }
+    // ICP workspace - IcpMethodAssay specification rows are keyed by the test's element.
+    public int? IcpTestElementId { get; set; }
     [JsonIgnore]
-    public IcpMethodElement? IcpMethodElement { get; set; }
+    public TestDefinitionIcpElement? IcpTestElement { get; set; }
 
     public List<SpecificationStage> Stages { get; set; } = new();
 }

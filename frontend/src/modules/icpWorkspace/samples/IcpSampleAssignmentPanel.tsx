@@ -126,7 +126,7 @@ export function IcpSampleAssignmentPanel({
               Assigned Run Samples ({samples.length})
             </Typography>
             <Typography variant="body2" sx={{ color: "text.secondary" }}>
-              Samples linked to this ICP run for analysis and replicate entry.
+              Samples linked to this ICP run for analysis and result entry.
             </Typography>
           </Box>
 
@@ -200,7 +200,7 @@ export function IcpSampleAssignmentPanel({
                             onClick={() => navigate(entryUrl)}
                             sx={{ textTransform: "none", py: 0.25 }}
                           >
-                            Enter Replicates
+                            Enter Results
                           </Button>
 
                           {canRemove && (

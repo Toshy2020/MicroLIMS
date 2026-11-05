@@ -95,9 +95,12 @@ public class TestDefinition : IVersionedEntity
     public int? HplcMethodId { get; set; }
     public HplcMethod? HplcMethod { get; set; }
 
-    // ICP workspace - IcpMethodAssay tests point at an ICP method master
-    public int? IcpMethodId { get; set; }
-    public IcpMethod? IcpMethod { get; set; }
+    // ICP workspace - IcpMethodAssay tests define their own elements (with target ppm) and sample basis.
+    public IcpTestMode? IcpMode { get; set; }
+    public IcpSampleForm? IcpSampleForm { get; set; }          // Assay mode only
+    public decimal? IcpTheoreticalAmount { get; set; }         // Th.Wt (g, solid) or Th.Vol (mL, liquid); Assay mode only
+    public decimal? IcpSpecificGravity { get; set; }           // Sp.gr; liquid only
+    public List<TestDefinitionIcpElement> IcpElements { get; set; } = new();
 
     // Titration assay criteria (null for every other workflow)
     public TitrationType? TitrationType { get; set; }

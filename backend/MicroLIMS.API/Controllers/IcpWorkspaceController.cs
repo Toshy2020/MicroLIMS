@@ -34,10 +34,6 @@ public class IcpWorkspaceController : ControllerBase
     public async Task<IActionResult> GetInstruments() =>
         Ok(ApiResponse<object>.Ok(await _service.GetInstrumentsAsync(CurrentUserId)));
 
-    [HttpGet("method-options")]
-    public async Task<IActionResult> GetMethodOptions() =>
-        Ok(ApiResponse<object>.Ok(await _service.GetMethodOptionsAsync(CurrentUserId)));
-
     [HttpGet("instruments/{equipmentId:int}/runs")]
     public async Task<IActionResult> GetRunHistory(int equipmentId) =>
         Ok(ApiResponse<object>.Ok(await _service.GetRunHistoryAsync(equipmentId, CurrentUserId)));
@@ -83,11 +79,6 @@ public class IcpWorkspaceController : ControllerBase
         Ok(ApiResponse<object>.Ok(await _service.ConfirmCalibrationAsync(id, r, CurrentUserId, ClientIpAddress)));
 
     [Authorize(Policy = PermissionConstants.HplcOperate)]
-    [HttpPost("runs/{id:int}/ccv")]
-    public async Task<IActionResult> AddCcv(int id, [FromBody] AddIcpCcvRequest r) =>
-        Ok(ApiResponse<object>.Ok(await _service.AddCcvReadingAsync(id, r, CurrentUserId)));
-
-    [Authorize(Policy = PermissionConstants.HplcOperate)]
     [HttpPost("runs/{id:int}/abandon")]
     public async Task<IActionResult> Abandon(int id, [FromBody] ReasonRequest body) =>
         Ok(ApiResponse<object>.Ok(await _service.AbandonRunAsync(id, body.Reason, CurrentUserId)));
@@ -110,9 +101,9 @@ public class IcpWorkspaceController : ControllerBase
         Ok(ApiResponse<object>.Ok(await _service.RemoveSampleAsync(id, runSampleId, body.Reason, CurrentUserId)));
 
     [Authorize(Policy = PermissionConstants.HplcOperate)]
-    [HttpPut("samples/{runSampleId:int}/replicates")]
-    public async Task<IActionResult> SaveReplicates(int runSampleId, [FromBody] SaveIcpReplicatesRequest r) =>
-        Ok(ApiResponse<object>.Ok(await _service.SaveReplicatesAsync(runSampleId, r, CurrentUserId)));
+    [HttpPut("samples/{runSampleId:int}/entry")]
+    public async Task<IActionResult> SaveEntry(int runSampleId, [FromBody] SaveIcpSampleEntryRequest r) =>
+        Ok(ApiResponse<object>.Ok(await _service.SaveEntryAsync(runSampleId, r, CurrentUserId)));
 
     [Authorize(Policy = PermissionConstants.HplcOperate)]
     [HttpPost("samples/{runSampleId:int}/submit")]

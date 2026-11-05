@@ -190,7 +190,7 @@ export function IcpEligibleSampleDialog({
                 {eligibleTests.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={7} sx={{ textAlign: "center", py: 4, color: "text.secondary" }}>
-                      No eligible test orders found matching this ICP method.
+                      No eligible ICP test orders found.
                     </TableCell>
                   </TableRow>
                 ) : (

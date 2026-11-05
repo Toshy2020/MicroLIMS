@@ -17,9 +17,7 @@ import { IcpWorkspaceService } from "../services/IcpWorkspaceService";
 import { ICP_ROUTES } from "../routes";
 import { IcpWorkspaceRunHeader } from "./IcpWorkspaceRunHeader";
 import { IcpWorkflowStepRail } from "../components/IcpWorkflowStepRail";
-import { IcpMethodReadOnlyPanel } from "./IcpMethodReadOnlyPanel";
 import { IcpCalibrationPanel } from "../calibration/IcpCalibrationPanel";
-import { IcpCcvPanel } from "../ccv/IcpCcvPanel";
 import { IcpSampleAssignmentPanel } from "../samples/IcpSampleAssignmentPanel";
 import { IcpEvidencePanel } from "../evidence/IcpEvidencePanel";
 import { IcpRunHistoryTable } from "../history/IcpRunHistoryTable";
@@ -27,12 +25,10 @@ import { ReasonDialog } from "../../laboratoryConfiguration/masterDataSimple/sol
 import type { IcpRunDto, IcpRunListItem } from "../types";
 
 function getInitialTab(pathname: string): string {
-  if (pathname.endsWith("/calibration")) return "calibration";
-  if (pathname.endsWith("/ccv")) return "ccv";
   if (pathname.endsWith("/samples")) return "samples";
   if (pathname.endsWith("/evidence")) return "evidence";
   if (pathname.endsWith("/history")) return "history";
-  return "overview";
+  return "calibration";
 }
 
 export function IcpRunWorkspace() {
@@ -114,7 +110,7 @@ export function IcpRunWorkspace() {
       }
       return;
     }
-    const suffix = newTab === "overview" ? "" : `/${newTab}`;
+    const suffix = newTab === "calibration" ? "" : `/${newTab}`;
     navigate(`${ICP_ROUTES.run(equipmentId, run.id)}${suffix}`);
   };
 
@@ -166,8 +162,6 @@ export function IcpRunWorkspace() {
     );
   }
 
-  const showCcvTab = run?.method?.requireCcv ?? false;
-
   return (
     <Box sx={{ p: { xs: 2, md: 3 } }}>
       <Button
@@ -211,31 +205,15 @@ export function IcpRunWorkspace() {
           "& .MuiTab-root": { textTransform: "none", fontWeight: 600, fontSize: 14 }
         }}
       >
-        <Tab label="Overview" value="overview" />
         <Tab label="Calibration" value="calibration" />
-        {showCcvTab && <Tab label="CCV" value="ccv" />}
         <Tab label={`Samples (${run?.samples?.length ?? 0})`} value="samples" />
         <Tab label={`Evidence (${run?.evidence?.length ?? 0})`} value="evidence" />
         <Tab label="Run History" value="history" />
       </Tabs>
 
-      {/* Tab: Overview */}
-      {activeTab === "overview" && run && (
-        <IcpMethodReadOnlyPanel method={run.method} />
-      )}
-
       {/* Tab: Calibration */}
       {activeTab === "calibration" && run && (
         <IcpCalibrationPanel
-          run={run}
-          canOperate={canOperate}
-          onRunUpdated={loadRunData}
-        />
-      )}
-
-      {/* Tab: CCV */}
-      {activeTab === "ccv" && run && showCcvTab && (
-        <IcpCcvPanel
           run={run}
           canOperate={canOperate}
           onRunUpdated={loadRunData}

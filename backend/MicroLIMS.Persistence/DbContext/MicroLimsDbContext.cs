@@ -148,8 +148,7 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext, IMicr
     public DbSet<SolutionComponent> SolutionComponents => Set<SolutionComponent>();
     public DbSet<HplcMethod> HplcMethods => Set<HplcMethod>();
     public DbSet<HplcMethodAnalyte> HplcMethodAnalytes => Set<HplcMethodAnalyte>();
-    public DbSet<IcpMethod> IcpMethods => Set<IcpMethod>();
-    public DbSet<IcpMethodElement> IcpMethodElements => Set<IcpMethodElement>();
+    public DbSet<TestDefinitionIcpElement> TestDefinitionIcpElements => Set<TestDefinitionIcpElement>();
     public DbSet<HplcMethodMobilePhase> HplcMethodMobilePhases => Set<HplcMethodMobilePhase>();
     public DbSet<HplcMethodGradientStep> HplcMethodGradientSteps => Set<HplcMethodGradientStep>();
     public DbSet<HplcMethodOvenStep> HplcMethodOvenSteps => Set<HplcMethodOvenStep>();
@@ -178,10 +177,8 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext, IMicr
     public DbSet<IcpRun> IcpRuns => Set<IcpRun>();
     public DbSet<IcpCalibration> IcpCalibrations => Set<IcpCalibration>();
     public DbSet<IcpCalibrationElement> IcpCalibrationElements => Set<IcpCalibrationElement>();
-    public DbSet<IcpCcvReading> IcpCcvReadings => Set<IcpCcvReading>();
     public DbSet<IcpRunSample> IcpRunSamples => Set<IcpRunSample>();
-    public DbSet<IcpSampleReplicate> IcpSampleReplicates => Set<IcpSampleReplicate>();
-    public DbSet<IcpReplicateConcentration> IcpReplicateConcentrations => Set<IcpReplicateConcentration>();
+    public DbSet<IcpSampleConcentration> IcpSampleConcentrations => Set<IcpSampleConcentration>();
     public DbSet<IcpEvidence> IcpEvidences => Set<IcpEvidence>();
     public DbSet<EquipmentInventory> EquipmentInventories => Set<EquipmentInventory>();
     public DbSet<EquipmentStatusHistory> EquipmentStatusHistories => Set<EquipmentStatusHistory>();

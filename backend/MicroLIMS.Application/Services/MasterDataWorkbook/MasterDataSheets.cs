@@ -42,7 +42,7 @@ public static class MasterDataSheets
         "   The workbook only ADDS records. To change an existing record, use its screen in MicroLIMS.",
         "3. Use the drop-down lists where a column has one. Lists are separated by ; (for example TAMC;TYMC).",
         "4. Numbers use a dot as the decimal separator (0.5). Dates are written yyyy-MM-dd (2027-03-31).",
-        "5. Load order: sheets 1-11 first. Then create test definitions and HPLC/GC/ICP methods in MicroLIMS.",
+        "5. Load order: sheets 1-11 first. Then create test definitions (including their ICP elements) and HPLC/GC methods in MicroLIMS.",
         "   Then fill Specifications and SpecificationStages and load the workbook again.",
         "6. In MicroLIMS: Master Data Workbook -> Check file. Fix every error listed, then Load and sign.",
         "7. Items, material master entries and reference organisms are loaded INACTIVE. A second person checks the load against",

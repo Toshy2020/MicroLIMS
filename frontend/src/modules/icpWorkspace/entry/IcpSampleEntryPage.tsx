@@ -9,11 +9,6 @@ import {
   Paper,
   Tooltip,
   TextField,
-  ToggleButtonGroup,
-  ToggleButton,
-  FormControl,
-  FormLabel,
-  FormHelperText,
   useTheme
 } from "@mui/material";
 import { WorkspaceSkeleton } from "../../../components/WorkspaceSkeleton";
@@ -27,15 +22,15 @@ import { PERMISSIONS } from "../../../routes/routes";
 import { IcpWorkspaceService } from "../services/IcpWorkspaceService";
 import { ICP_ROUTES } from "../routes";
 import { IcpStatusBadge } from "../components/IcpStatusBadge";
-import { IcpElementStatusStrip } from "../components/IcpElementStatusStrip";
 import { StatusBadge } from "../../../components/StatusBadge";
 import { ResultSection } from "../../../components/lab";
-import { IcpReplicateEntryTable } from "./IcpReplicateEntryTable";
+import { IcpResultEntryTable } from "./IcpResultEntryTable";
 import { IcpPreviewCard } from "./IcpPreviewCard";
 import { IcpSendForReviewDialog } from "./IcpSendForReviewDialog";
 import { IcpReportUploadPanel } from "../evidence/IcpReportUploadPanel";
-import { buildSaveReplicatesPayload, isReplicatesComplete } from "./replicateMapping";
-import type { IcpSampleEntryDto, IcpReplicateDto, IcpAmountUnit } from "../types";
+import { IcpReportAutofill } from "./IcpReportAutofill";
+import { applyReportValues, buildSaveEntryPayload, draftFromEntry, isEntryComplete, type EntryDraft } from "./entryMapping";
+import type { IcpSampleEntryDto } from "../types";
 
 export function IcpSampleEntryPage() {
   const theme = useTheme();
@@ -54,10 +49,7 @@ export function IcpSampleEntryPage() {
   const [error, setError] = useState<string | null>(null);
   const [sampleEntry, setSampleEntry] = useState<IcpSampleEntryDto | null>(null);
 
-  const [amountUnit, setAmountUnit] = useState<IcpAmountUnit>("Gram");
-  const [unitAmountDraft, setUnitAmountDraft] = useState<string>("");
-  const [replicates, setReplicates] = useState<IcpReplicateDto[]>([]);
-  const [drafts, setDrafts] = useState<Record<string, string>>({});
+  const [draft, setDraft] = useState<EntryDraft>({ weight: "", results: {} });
   const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
 
   const sampleIdNum = Number(runSampleId);
@@ -68,10 +60,7 @@ export function IcpSampleEntryPage() {
     try {
       const data = await IcpWorkspaceService.getSampleEntry(sampleIdNum);
       setSampleEntry(data);
-      setAmountUnit(data.amountUnit || "Gram");
-      setUnitAmountDraft(data.unitAmount != null ? String(data.unitAmount) : "");
-      setReplicates(data.replicates || []);
-      setDrafts({});
+      setDraft(draftFromEntry(data.elements, data.actualWeightG));
     } catch (err: unknown) {
       const e = err as { response?: { data?: { message?: string } }; message?: string };
       setError(e.response?.data?.message ?? e.message ?? "Failed to load sample entry data.");
@@ -84,37 +73,21 @@ export function IcpSampleEntryPage() {
     loadData();
   }, [loadData]);
 
-  const handleDraftChange = (key: string, value: string) => {
-    setDrafts((prev) => ({ ...prev, [key]: value }));
-  };
-
-  const handleSaveReplicates = async () => {
+  const handleSaveEntry = async () => {
     if (!sampleEntry || !sampleIdNum) return;
     setSaving(true);
     setError(null);
 
-    const neededElementIds = sampleEntry.elements.map((e) => e.icpMethodElementId);
-    const payload = buildSaveReplicatesPayload({
-      amountUnit,
-      mode: sampleEntry.mode,
-      unitAmountDraft,
-      unitAmountFallback: sampleEntry.unitAmount,
-      replicates,
-      drafts,
-      neededElementIds
-    });
+    const payload = buildSaveEntryPayload(sampleEntry.mode, sampleEntry.elements, draft);
 
     try {
-      const updated = await IcpWorkspaceService.saveReplicates(sampleIdNum, payload);
+      const updated = await IcpWorkspaceService.saveEntry(sampleIdNum, payload);
       setSampleEntry(updated);
-      setAmountUnit(updated.amountUnit);
-      setUnitAmountDraft(updated.unitAmount != null ? String(updated.unitAmount) : "");
-      setReplicates(updated.replicates);
-      setDrafts({});
-      toast.success("Replicate values saved and calculation preview updated.");
+      setDraft(draftFromEntry(updated.elements, updated.actualWeightG));
+      toast.success("Results saved and calculation preview updated.");
     } catch (err: unknown) {
       const e = err as { response?: { data?: { message?: string } }; message?: string };
-      setError(e.response?.data?.message ?? e.message ?? "Could not save replicates.");
+      setError(e.response?.data?.message ?? e.message ?? "Could not save the results.");
     } finally {
       setSaving(false);
     }
@@ -141,16 +114,12 @@ export function IcpSampleEntryPage() {
   }
 
   const isEditable = sampleEntry.editable && canOperate;
-  const neededElementIds = sampleEntry.elements.map((e) => e.icpMethodElementId);
-  const canSave = isReplicatesComplete(
-    replicates,
-    neededElementIds,
-    drafts,
-    sampleEntry.mode,
-    unitAmountDraft,
-    sampleEntry.unitAmount
-  );
-  const unitAmountLabel = amountUnit === "Milliliter" ? "Dose (mL)" : "Average unit weight (g)";
+  const canSave = isEntryComplete(sampleEntry.mode, sampleEntry.elements, draft);
+  const isAssay = sampleEntry.mode === "Assay";
+  const basisText =
+    sampleEntry.sampleForm === "Liquid"
+      ? `Liquid sample: theoretical volume ${sampleEntry.theoreticalAmount ?? "—"} mL × specific gravity ${sampleEntry.specificGravity ?? "—"}`
+      : `Solid sample: theoretical weight ${sampleEntry.theoreticalAmount ?? "—"} g`;
 
   return (
     <Box sx={{ p: { xs: 2, md: 3 }, maxWidth: 1400, mx: "auto" }}>
@@ -175,7 +144,7 @@ export function IcpSampleEntryPage() {
               <IcpStatusBadge status={sampleEntry.status} />
               <StatusBadge
                 status="Prepared"
-                label={`Mode: ${sampleEntry.mode === "MineralAssay" ? "Mineral Assay" : "Elemental Impurities"}`}
+                label={`Test: ${isAssay ? "Assay" : "Elemental impurity"}`}
               />
               <IcpStatusBadge
                 status={sampleEntry.calibrationStatus}
@@ -197,11 +166,11 @@ export function IcpSampleEntryPage() {
               variant="outlined"
               color="primary"
               startIcon={<SaveIcon />}
-              onClick={handleSaveReplicates}
+              onClick={handleSaveEntry}
               disabled={!isEditable || saving || !canSave}
               sx={{ textTransform: "none", fontWeight: 600 }}
             >
-              {saving ? "Saving..." : "Save Replicates"}
+              {saving ? "Saving..." : "Save results"}
             </Button>
 
             <Tooltip title={!sampleEntry.canSubmit ? sampleEntry.canSubmitReason || "Prerequisites not met" : ""}>
@@ -227,121 +196,11 @@ export function IcpSampleEntryPage() {
           </Alert>
         )}
 
-        <Box sx={{ mt: 2 }}>
-          <IcpElementStatusStrip elementStates={sampleEntry.elements} />
-        </Box>
-      </Paper>
-
-      {/* Amount Configuration */}
-      <Paper elevation={0} sx={{ p: 2.5, mb: 2.5, borderRadius: 2, border: `1px solid ${theme.palette.divider}` }}>
-        <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1.5 }}>
-          Sample Preparation & Dosage Settings
-        </Typography>
-        <Box sx={{ display: "flex", flexDirection: { xs: "column", sm: "row" }, gap: 3, alignItems: "flex-start" }}>
-          <FormControl>
-            <FormLabel sx={{ fontSize: 12, fontWeight: 600, mb: 0.5 }}>Amount Unit</FormLabel>
-            <ToggleButtonGroup
-              size="small"
-              exclusive
-              value={amountUnit}
-              onChange={(_, val) => val && setAmountUnit(val)}
-              disabled={!isEditable || saving}
-            >
-              <ToggleButton value="Gram" sx={{ px: 2.5, textTransform: "none", fontWeight: 600 }}>
-                Gram (g)
-              </ToggleButton>
-              <ToggleButton
-                value="Milliliter"
-                disabled={sampleEntry.mode === "ElementalImpurities" || !isEditable || saving}
-                sx={{ px: 2.5, textTransform: "none", fontWeight: 600 }}
-              >
-                Milliliter (mL)
-              </ToggleButton>
-            </ToggleButtonGroup>
-            {sampleEntry.mode === "ElementalImpurities" && (
-              <FormHelperText sx={{ fontSize: 12 }}>
-                Elemental impurities are reported per gram (mL disabled).
-              </FormHelperText>
-            )}
-          </FormControl>
-
-          {sampleEntry.mode === "MineralAssay" && (
-            <Box sx={{ minWidth: 260 }}>
-              <TextField
-                size="small"
-                fullWidth
-                label={unitAmountLabel}
-                placeholder={amountUnit === "Milliliter" ? "e.g. 5.0" : "e.g. 0.5000"}
-                value={unitAmountDraft}
-                onChange={(e) => setUnitAmountDraft(e.target.value)}
-                disabled={!isEditable || saving}
-                helperText="Required for Amount per unit and % label claim specifications."
-                slotProps={{
-                  htmlInput: {
-                    style: { fontVariantNumeric: "tabular-nums" },
-                    "aria-label": unitAmountLabel
-                  }
-                }}
-              />
-            </Box>
-          )}
-        </Box>
       </Paper>
 
       {/* Main sections */}
       <Stack spacing={2.5}>
-        <ResultSection step={1} title="Replicate Measurements">
-          <IcpReplicateEntryTable
-            elements={sampleEntry.elements}
-            replicates={replicates}
-            onChange={setReplicates}
-            amountUnit={amountUnit}
-            defaultVolumeMl={sampleEntry.sampleVolumeMl}
-            defaultDilutionFactor={sampleEntry.dilutionFactor}
-            drafts={drafts}
-            onDraftChange={handleDraftChange}
-            disabled={!isEditable || saving}
-            footer={
-              <Box
-                sx={{
-                  position: "sticky",
-                  bottom: 0,
-                  zIndex: 1,
-                  mt: 1.5,
-                  py: 1.25,
-                  display: "flex",
-                  justifyContent: "flex-end",
-                  alignItems: "center",
-                  gap: 1.5,
-                  bgcolor: "background.paper",
-                  borderTop: `1px solid ${theme.palette.divider}`
-                }}
-              >
-                {isEditable && !canSave && (
-                  <Typography variant="caption" sx={{ color: "text.secondary" }}>
-                    Enter positive sample amount, volume, dilution factor (≥ 1), and concentrations (≥ 0) to save.
-                  </Typography>
-                )}
-                <Button
-                  variant="contained"
-                  color="primary"
-                  startIcon={<SaveIcon />}
-                  onClick={handleSaveReplicates}
-                  disabled={!isEditable || saving || !canSave}
-                  sx={{ textTransform: "none", fontWeight: 600 }}
-                >
-                  {saving ? "Saving..." : "Save Replicates"}
-                </Button>
-              </Box>
-            }
-          />
-        </ResultSection>
-
-        <ResultSection step={2} title={sampleEntry.submitted ? "Results (Official)" : "Results (Server Preview)"}>
-          <IcpPreviewCard preview={sampleEntry.preview} official={sampleEntry.official} submitted={sampleEntry.submitted} />
-        </ResultSection>
-
-        <ResultSection step={3} title="Evidence: Sample Reports">
+        <ResultSection step={1} title="Evidence: Sample Reports">
           <IcpReportUploadPanel
             runId={parsedRunId || sampleEntry.icpRunId}
             runSampleId={sampleEntry.runSampleId}
@@ -354,6 +213,75 @@ export function IcpSampleEntryPage() {
             disabled={!isEditable}
           />
         </ResultSection>
+
+        <ResultSection step={2} title={isAssay ? "Sample weight & instrument results" : "Instrument results"}>
+          {isAssay && (
+            <Box sx={{ mb: 2, display: "flex", flexDirection: { xs: "column", sm: "row" }, gap: 3, alignItems: { sm: "center" } }}>
+              <TextField
+                size="small"
+                type="number"
+                label="Actual weight of sample (g)"
+                value={draft.weight}
+                onChange={(e) => setDraft((prev) => ({ ...prev, weight: e.target.value }))}
+                disabled={!isEditable || saving}
+                helperText="Act.Wt: the weight actually taken."
+                slotProps={{ htmlInput: { min: 0, step: "any", style: { fontVariantNumeric: "tabular-nums" }, "aria-label": "Actual weight (g)" } }}
+                sx={{ width: 260 }}
+              />
+              <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                {basisText}
+              </Typography>
+            </Box>
+          )}
+          <IcpReportAutofill
+            runSampleId={sampleEntry.runSampleId}
+            hasReport={sampleEntry.evidence.some((e) => e.kind === "SampleReport" && e.isCurrent)}
+            disabled={!isEditable || saving}
+            onUse={(values) => {
+              setDraft((prev) => applyReportValues(prev, values));
+              toast.info("Values filled from the report - review them, then save.");
+            }}
+          />
+          <IcpResultEntryTable
+            mode={sampleEntry.mode}
+            elements={sampleEntry.elements}
+            results={draft.results}
+            onResultChange={(id, value) => setDraft((prev) => ({ ...prev, results: { ...prev.results, [id]: value } }))}
+            disabled={!isEditable || saving}
+          />
+          <Box
+            sx={{
+              mt: 1.5,
+              py: 1.25,
+              display: "flex",
+              justifyContent: "flex-end",
+              alignItems: "center",
+              gap: 1.5,
+              borderTop: `1px solid ${theme.palette.divider}`
+            }}
+          >
+            {isEditable && !canSave && (
+              <Typography variant="caption" sx={{ color: "text.secondary" }}>
+                {isAssay ? "Enter the actual weight and a result (≥ 0) for every element to save." : "Enter a result (≥ 0) for every element to save."}
+              </Typography>
+            )}
+            <Button
+              variant="contained"
+              color="primary"
+              startIcon={<SaveIcon />}
+              onClick={handleSaveEntry}
+              disabled={!isEditable || saving || !canSave}
+              sx={{ textTransform: "none", fontWeight: 600 }}
+            >
+              {saving ? "Saving..." : "Save results"}
+            </Button>
+          </Box>
+        </ResultSection>
+
+        <ResultSection step={3} title={sampleEntry.submitted ? "Results (Official)" : "Results (Server Preview)"}>
+          <IcpPreviewCard preview={sampleEntry.preview} official={sampleEntry.official} submitted={sampleEntry.submitted} />
+        </ResultSection>
+
       </Stack>
 
       {/* Send for Review Dialog */}

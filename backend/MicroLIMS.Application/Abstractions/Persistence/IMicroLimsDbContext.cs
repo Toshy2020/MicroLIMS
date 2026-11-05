@@ -138,8 +138,7 @@ public interface IMicroLimsDbContext
     DbSet<SolutionComponent> SolutionComponents { get; }
     DbSet<HplcMethod> HplcMethods { get; }
     DbSet<HplcMethodAnalyte> HplcMethodAnalytes { get; }
-    DbSet<IcpMethod> IcpMethods { get; }
-    DbSet<IcpMethodElement> IcpMethodElements { get; }
+    DbSet<TestDefinitionIcpElement> TestDefinitionIcpElements { get; }
     DbSet<HplcMethodMobilePhase> HplcMethodMobilePhases { get; }
     DbSet<HplcMethodGradientStep> HplcMethodGradientSteps { get; }
     DbSet<HplcMethodOvenStep> HplcMethodOvenSteps { get; }
@@ -168,10 +167,8 @@ public interface IMicroLimsDbContext
     DbSet<IcpRun> IcpRuns { get; }
     DbSet<IcpCalibration> IcpCalibrations { get; }
     DbSet<IcpCalibrationElement> IcpCalibrationElements { get; }
-    DbSet<IcpCcvReading> IcpCcvReadings { get; }
     DbSet<IcpRunSample> IcpRunSamples { get; }
-    DbSet<IcpSampleReplicate> IcpSampleReplicates { get; }
-    DbSet<IcpReplicateConcentration> IcpReplicateConcentrations { get; }
+    DbSet<IcpSampleConcentration> IcpSampleConcentrations { get; }
     DbSet<IcpEvidence> IcpEvidences { get; }
     DbSet<EquipmentInventory> EquipmentInventories { get; }
     DbSet<EquipmentStatusHistory> EquipmentStatusHistories { get; }

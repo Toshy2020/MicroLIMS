@@ -16,6 +16,6 @@ public enum WorkflowType
     StandardComparison, // retired: replaced by HplcMethodAssay; value kept, stored as int
     HplcMethodAssay, // HPLC chain S3 - assay against an HplcMethod master (spec 3.3-3.4)
     Titration, // volumetric titration assay
-    IcpMethodAssay, // ICP workspace - assay against an IcpMethod master (spec 2026-10-03 §4.1)
+    IcpMethodAssay, // ICP workspace - assay against the test's own ICP elements
     UvSpectrophotometry
 }

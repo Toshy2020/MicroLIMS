@@ -52,7 +52,11 @@ export interface TestDefinitionOption extends TitrationDefinitionFields {
   wvCapsuleS2ExtraUnits?: number | null;
   wvCapsuleS2MaxOutside?: number | null;
   hplcMethodId?: number | null;
-  icpMethodId?: number | null;
+  icpMode?: "Assay" | "Impurity" | null;
+  icpSampleForm?: "Solid" | "Liquid" | null;
+  icpTheoreticalAmount?: number | null;
+  icpSpecificGravity?: number | null;
+  icpElements?: { id: number; displayOrder: number; symbol: string; targetPpm?: number | null }[] | null;
   sectionId?: number;
   section?: {
     id: number;

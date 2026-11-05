@@ -55,7 +55,6 @@ const FpInstrumentsPage = lazy(() => import("../modules/laboratoryConfiguration/
 const ChromatographyColumnsPage = lazy(() => import("../modules/laboratoryConfiguration/masterDataSimple/ChromatographyColumnsPage").then((m) => ({ default: m.ChromatographyColumnsPage })));
 const SolutionMasterPage = lazy(() => import("../modules/laboratoryConfiguration/masterDataSimple/SolutionMasterPage").then((m) => ({ default: m.SolutionMasterPage })));
 const HplcMethodsPage = lazy(() => import("../modules/laboratoryConfiguration/masterDataSimple/HplcMethodsPage").then((m) => ({ default: m.HplcMethodsPage })));
-const IcpMethodsPage = lazy(() => import("../modules/laboratoryConfiguration/masterDataSimple/IcpMethodsPage").then((m) => ({ default: m.IcpMethodsPage })));
 const PreparationListPage = lazy(() => import("../modules/solutionPreparation/PreparationListPage").then((m) => ({ default: m.PreparationListPage })));
 const PreparationWizardPage = lazy(() => import("../modules/solutionPreparation/PreparationWizardPage").then((m) => ({ default: m.PreparationWizardPage })));
 const PreparationRecordPage = lazy(() => import("../modules/solutionPreparation/PreparationRecordPage").then((m) => ({ default: m.PreparationRecordPage })));
@@ -207,12 +206,11 @@ export function AppRoutes() {
             <Route path="/gc-workspace/:instrumentId/run/:runId/qualification/:runSampleId" element={<QualificationEntryPage />} />
             <Route path="/gc-workspace/:instrumentId/history" element={<HplcInstrumentWorkspace />} />
 
-            {/* ICP Workspace (slice I3) */}
+            {/* ICP Workspace */}
             <Route path="/icp-workspace" element={<IcpWorkspacePage />} />
             <Route path="/icp-workspace/:instrumentId" element={<IcpRunWorkspace />} />
             <Route path="/icp-workspace/:instrumentId/run/:runId" element={<IcpRunWorkspace />} />
             <Route path="/icp-workspace/:instrumentId/run/:runId/calibration" element={<IcpRunWorkspace />} />
-            <Route path="/icp-workspace/:instrumentId/run/:runId/ccv" element={<IcpRunWorkspace />} />
             <Route path="/icp-workspace/:instrumentId/run/:runId/samples" element={<IcpRunWorkspace />} />
             <Route path="/icp-workspace/:instrumentId/run/:runId/evidence" element={<IcpRunWorkspace />} />
             <Route path="/icp-workspace/:instrumentId/run/:runId/history" element={<IcpRunWorkspace />} />
@@ -249,7 +247,6 @@ export function AppRoutes() {
               <Route path="/laboratory-configuration/material-master" element={<Navigate to="/laboratory-configuration/master-testing-materials?tab=reagents" replace />} />
               <Route path="/laboratory-configuration/solution-master" element={<SolutionMasterPage />} />
               <Route path="/laboratory-configuration/hplc-methods" element={<HplcMethodsPage />} />
-              <Route path="/laboratory-configuration/icp-methods" element={<IcpMethodsPage />} />
             </Route>
 
             {/* Document Control Module (Release 1a) */}

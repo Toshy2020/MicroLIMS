@@ -56,7 +56,7 @@ public record CreateSpecificationRequest(
     DosageForm? DosageForm = null,
     int? HplcMethodAnalyteId = null,
     ProductionStageRole? ProductionStageRole = null,
-    int? IcpMethodElementId = null,
+    int? IcpTestElementId = null,
     string? Grade = null,
     RelatedSubstanceRow? RelatedSubstanceRow = null,
     int? HplcMethodImpurityId = null);
@@ -90,7 +90,7 @@ public record UpdateSpecificationRequest(
     DosageForm? DosageForm = null,
     int? HplcMethodAnalyteId = null,
     ProductionStageRole? ProductionStageRole = null,
-    int? IcpMethodElementId = null,
+    int? IcpTestElementId = null,
     string? Grade = null,
     RelatedSubstanceRow? RelatedSubstanceRow = null,
     int? HplcMethodImpurityId = null);
@@ -131,7 +131,7 @@ public record SpecificationRowDto(
     string SectionName,
     int? HplcMethodAnalyteId = null,
     ProductionStageRole? ProductionStageRole = null,
-    int? IcpMethodElementId = null,
+    int? IcpTestElementId = null,
     string? Grade = null,
     RelatedSubstanceRow? RelatedSubstanceRow = null,
     int? HplcMethodImpurityId = null)
@@ -231,7 +231,6 @@ public record CreateTestDefinitionRequest(
     bool? TitrationTempCorrection = null,
     decimal? TitrationExpansionCoefficient = null,
     int? TitrationStandardEntryId = null,
-    int? IcpMethodId = null,
     PhyschemArea? PhyschemArea = null,
     bool? PerContainer = null,
     MoistureRole? MoistureRole = null,
@@ -246,6 +245,13 @@ public record CreateTestDefinitionRequest(
     // the init setters instead. Without it every POST/PUT fails model binding.
     [JsonConstructor]
     public CreateTestDefinitionRequest() : this(string.Empty, string.Empty) { }
+
+    // ICP method assay tests (set through init for the same reason as above).
+    public IcpTestMode? IcpMode { get; init; }
+    public IcpSampleForm? IcpSampleForm { get; init; }
+    public decimal? IcpTheoreticalAmount { get; init; }
+    public decimal? IcpSpecificGravity { get; init; }
+    public List<MicroLIMS.Application.Services.MasterData.IcpTestElementInput>? IcpElements { get; init; }
 }
 // SectionId: move the test to another laboratory section (null = keep). Test
 // orders already created keep the section they were created with.
@@ -302,7 +308,6 @@ public record UpdateTestDefinitionRequest(
     bool? TitrationTempCorrection = null,
     decimal? TitrationExpansionCoefficient = null,
     int? TitrationStandardEntryId = null,
-    int? IcpMethodId = null,
     PhyschemArea? PhyschemArea = null,
     bool? PerContainer = null,
     MoistureRole? MoistureRole = null,
@@ -317,6 +322,13 @@ public record UpdateTestDefinitionRequest(
     // the init setters instead. Without it every POST/PUT fails model binding.
     [JsonConstructor]
     public UpdateTestDefinitionRequest() : this(string.Empty, string.Empty) { }
+
+    // ICP method assay tests (set through init for the same reason as above).
+    public IcpTestMode? IcpMode { get; init; }
+    public IcpSampleForm? IcpSampleForm { get; init; }
+    public decimal? IcpTheoreticalAmount { get; init; }
+    public decimal? IcpSpecificGravity { get; init; }
+    public List<MicroLIMS.Application.Services.MasterData.IcpTestElementInput>? IcpElements { get; init; }
 
     // Required (5-500 chars) when a titration setting changes; see TitrationDefinitionRules.Snapshot.
     public string? ChangeReason { get; init; }

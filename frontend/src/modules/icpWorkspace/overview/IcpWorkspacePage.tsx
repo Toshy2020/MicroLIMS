@@ -85,8 +85,7 @@ export function IcpWorkspacePage() {
         !search.trim() ||
         inst.name.toLowerCase().includes(search.toLowerCase()) ||
         inst.code.toLowerCase().includes(search.toLowerCase()) ||
-        (inst.activeRun?.code.toLowerCase().includes(search.toLowerCase()) ?? false) ||
-        (inst.activeRun?.methodAbbreviation.toLowerCase().includes(search.toLowerCase()) ?? false);
+        (inst.activeRun?.code.toLowerCase().includes(search.toLowerCase()) ?? false);
 
       const s = inst.state.toLowerCase();
       const matchesFilter = stateFilter === "all" || s === stateFilter;
@@ -136,7 +135,7 @@ export function IcpWorkspacePage() {
         <FilterBar
           search={search}
           onSearch={setSearch}
-          placeholder="Search by code, name, run or method..."
+          placeholder="Search by code, name or run..."
           resultCount={filteredInstruments.length}
         >
           <Tabs

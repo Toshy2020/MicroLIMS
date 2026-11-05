@@ -28,64 +28,35 @@ const baseParameter: ParameterResultDetail = {
 };
 
 const mockIcpCalc = {
-  element: "Pb",
-  icpMethodElementId: 5,
-  quantity: "IcpMgPerKg",
-  amountUnit: "Gram",
-  unitAmount: 1.0,
-  conversionFactor: 1.0,
-  labelClaim: null,
-  labelClaimUnit: null,
-  standardLevelsMgPerL: [0.01, 0.05, 0.1, 0.5, 1.0],
-  replicates: [
-    {
-      replicateNo: 1,
-      sampleAmount: 0.5012,
-      volumeMl: 50.0,
-      dilutionFactor: 1.0,
-      solutionMgPerL: 0.0012,
-      contentPerAmount: 0.1197,
-      belowLoq: true
-    },
-    {
-      replicateNo: 2,
-      sampleAmount: 0.4998,
-      volumeMl: 50.0,
-      dilutionFactor: 1.0,
-      solutionMgPerL: 0.0013,
-      contentPerAmount: 0.1301,
-      belowLoq: false
-    }
-  ],
-  meanContentPerAmount: 0.1301,
-  reportedValue: 0.13,
-  display: "0.13 µg/g",
-  runCode: "ICP-2026-004",
-  calibrationCode: "CAL-Pb-002",
+  element: "Zn",
+  icpTestElementId: 5,
+  quantity: "IcpAssayPercent",
+  mode: "Assay",
+  sampleForm: "Solid",
+  targetPpm: 10,
+  theoreticalAmount: 0.5,
+  specificGravity: null,
+  actualWeightG: 0.55,
+  resultPpm: 9.5,
+  reportedValue: 86.4,
+  display: "86.4 %",
+  runCode: "ICP RUN 01/102026",
+  calibrationCode: "ICP CAL 01/102026",
   calibrationConfirmedAt: "2026-10-04T10:30:00Z",
   correlationR: 0.999876,
-  ccv: [
-    {
-      measuredMgPerL: 0.102,
-      recoveryPercent: 102.0,
-      passed: true,
-      enteredAt: "2026-10-04T11:00:00Z"
-    }
-  ],
-  icpMethodId: 3,
   icpRunId: 104,
   icpRunSampleId: 201
 };
 
 describe("IcpReviewPanel", () => {
-  it("renders replicate rows, <LOQ flag, and quantity label for IcpMgPerKg", async () => {
+  it("shows the assay calculation inputs, the solid formula and the stored result", async () => {
     vi.spyOn(IcpReviewApi, "getTestOrderEvidence").mockResolvedValueOnce([
       {
         id: 99,
         icpRunId: 104,
         context: "Sample",
         kind: "SampleReport",
-        fileName: "Pb-run-report.pdf",
+        fileName: "Zn-run-report.pdf",
         contentType: "application/pdf",
         uploadedByUserId: 1,
         uploadedByUserName: "Analyst Alice",
@@ -96,6 +67,12 @@ describe("IcpReviewPanel", () => {
 
     const param: ParameterResultDetail = {
       ...baseParameter,
+      parameterName: "Zn",
+      reportedDisplay: "86.4 %",
+      unit: "%",
+      specLimit: "90-110",
+      resultBasis: null,
+      comparisonStatus: "OutOfSpecification",
       calculationJson: JSON.stringify(mockIcpCalc)
     };
 
@@ -105,85 +82,78 @@ describe("IcpReviewPanel", () => {
       </PinnedLightTheme>
     );
 
-    // Title & Quantity Label
-    expect(screen.getByText(/ICP Review · Pb/i)).toBeTruthy();
-    expect(screen.getAllByText("Content (µg/g)").length).toBeGreaterThanOrEqual(1);
-    expect(screen.getByText("Unit: g")).toBeTruthy();
+    expect(screen.getByText(/ICP Review · Zn/i)).toBeTruthy();
+    expect(screen.getAllByText("Assay (%)").length).toBeGreaterThanOrEqual(1);
 
-    // Run & Calibration Metadata
-    expect(screen.getAllByText("ICP-2026-004").length).toBeGreaterThan(0);
-    expect(screen.getAllByText(/CAL-Pb-002/).length).toBeGreaterThan(0);
+    // Run & calibration metadata
+    expect(screen.getAllByText("ICP RUN 01/102026").length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/ICP CAL 01\/102026/).length).toBeGreaterThan(0);
     expect(screen.getByText("0.999876")).toBeTruthy();
 
-    // CCV Reading
-    expect(screen.getByText("102.0%")).toBeTruthy();
-    expect(screen.getByText("Pass")).toBeTruthy();
-
-    // Formula text
-    expect(
-      screen.getByText(/Formula: content = C × V × DF \/ W/i)
-    ).toBeTruthy();
-
-    // Replicate rows
-    expect(screen.getByText("#1")).toBeTruthy();
-    expect(screen.getByText("0.5012")).toBeTruthy();
-    expect(screen.getAllByText("50").length).toBeGreaterThan(0);
-    expect(screen.getByText("0.0012")).toBeTruthy();
-    expect(screen.getByText("0.1197")).toBeTruthy();
-    expect(screen.getByText("<LOQ")).toBeTruthy();
-
-    expect(screen.getByText("#2")).toBeTruthy();
-    expect(screen.getByText("0.4998")).toBeTruthy();
-    expect(screen.getByText("0.0013")).toBeTruthy();
-    expect(screen.getByText("0.1301")).toBeTruthy();
-
-    // Mean content
-    expect(screen.getByText(/Mean content:/i)).toBeTruthy();
+    // Calculation inputs
+    expect(screen.getByText("9.5 ppm")).toBeTruthy();
+    expect(screen.getByText("10 ppm")).toBeTruthy();
+    expect(screen.getByText("Th.Wt")).toBeTruthy();
+    expect(screen.getByText("0.5 g")).toBeTruthy();
+    expect(screen.getByText("Act.Wt")).toBeTruthy();
+    expect(screen.getByText("0.55 g")).toBeTruthy();
+    expect(screen.queryByText("Sp.gr")).toBeNull();
+    expect(screen.getByText("Formula: Assay % = result × Th.Wt × 100 / (target × Act.Wt)")).toBeTruthy();
 
     // Reported display and spec
-    expect(screen.getByText("0.125 µg/g")).toBeTruthy();
-    expect(screen.getByText(/\(Spec: NMT 0.5 µg\/g\)/i)).toBeTruthy();
+    expect(screen.getByText("86.4 %")).toBeTruthy();
+    expect(screen.getByText(/\(Spec: 90-110\)/i)).toBeTruthy();
 
     // Evidence file
-    expect(await screen.findByText("Pb-run-report.pdf")).toBeTruthy();
+    expect(await screen.findByText("Zn-run-report.pdf")).toBeTruthy();
   });
 
-  it("renders quantity labels for IcpMgPerUnit and IcpPercentLabelClaim", () => {
+  it("shows volume and specific gravity for a liquid assay", () => {
     vi.spyOn(IcpReviewApi, "getTestOrderEvidence").mockResolvedValue([]);
+    const liquid = { ...mockIcpCalc, sampleForm: "Liquid", theoreticalAmount: 10, specificGravity: 1.2, actualWeightG: 12 };
 
-    // Test IcpMgPerUnit
-    const mgPerUnitCalc = {
-      ...mockIcpCalc,
-      quantity: "IcpMgPerUnit",
-      amountUnit: "Gram"
-    };
-    const { unmount } = render(
+    render(
       <PinnedLightTheme>
-        <IcpReviewPanel
-          parameter={{ ...baseParameter, calculationJson: JSON.stringify(mgPerUnitCalc) }}
-          testOrderId={123}
-        />
+        <IcpReviewPanel parameter={{ ...baseParameter, calculationJson: JSON.stringify(liquid) }} testOrderId={123} />
       </PinnedLightTheme>
     );
-    expect(screen.getByText("Amount per unit")).toBeTruthy();
-    unmount();
 
-    // Test IcpPercentLabelClaim
-    const percentCalc = {
+    expect(screen.getByText("Th.Vol")).toBeTruthy();
+    expect(screen.getByText("10 mL")).toBeTruthy();
+    expect(screen.getByText("Sp.gr")).toBeTruthy();
+    expect(screen.getByText("1.2")).toBeTruthy();
+    expect(screen.getByText("Formula: Assay % = result × Th.Vol × Sp.gr × 100 / (target × Act.Wt)")).toBeTruthy();
+  });
+
+  it("shows only the ppm result and the impurity rule for an impurity test", () => {
+    vi.spyOn(IcpReviewApi, "getTestOrderEvidence").mockResolvedValue([]);
+    const impurity = {
       ...mockIcpCalc,
-      quantity: "IcpPercentLabelClaim",
-      amountUnit: "Milliliter"
+      element: "Pb",
+      quantity: "IcpImpurityPpm",
+      mode: "Impurity",
+      sampleForm: null,
+      targetPpm: null,
+      theoreticalAmount: null,
+      actualWeightG: null,
+      resultPpm: 0.125,
+      display: "0.125 ppm"
     };
+
     render(
       <PinnedLightTheme>
         <IcpReviewPanel
-          parameter={{ ...baseParameter, calculationJson: JSON.stringify(percentCalc) }}
+          parameter={{ ...baseParameter, calculationJson: JSON.stringify(impurity) }}
           testOrderId={123}
         />
       </PinnedLightTheme>
     );
-    expect(screen.getByText("% of label claim")).toBeTruthy();
-    expect(screen.getByText("Unit: mL")).toBeTruthy();
+
+    expect(screen.getByText("Impurity (ppm)")).toBeTruthy();
+    expect(screen.getByText("0.125 ppm")).toBeTruthy();
+    expect(screen.queryByText("Target")).toBeNull();
+    expect(screen.queryByText("Act.Wt")).toBeNull();
+    expect(screen.getByText(/judged against the item's not-more-than limit/i)).toBeTruthy();
   });
 
   it("handles bad JSON defensively and shows the stored display only", async () => {
@@ -192,8 +162,8 @@ describe("IcpReviewPanel", () => {
     const badJsonParam: ParameterResultDetail = {
       ...baseParameter,
       parameterName: "Arsenic (As)",
-      reportedDisplay: "0.045 µg/g",
-      specLimit: "NMT 0.2 µg/g",
+      reportedDisplay: "0.045 ppm",
+      specLimit: "NMT 0.2",
       comparisonStatus: "WithinLimits",
       calculationJson: "{invalid-json: broken payload"
     };
@@ -204,19 +174,12 @@ describe("IcpReviewPanel", () => {
       </PinnedLightTheme>
     );
 
-    // Shows fallback header with parameter name
     expect(screen.getByText(/ICP Review · Arsenic \(As\)/i)).toBeTruthy();
-
-    // Shows stored reported display
-    expect(screen.getAllByText("0.045 µg/g").length).toBeGreaterThan(0);
-    expect(screen.getByText(/\(Spec: NMT 0.2 µg\/g\)/i)).toBeTruthy();
-
-    // Shows warning/info alert about payload
+    expect(screen.getAllByText("0.045 ppm").length).toBeGreaterThan(0);
+    expect(screen.getByText(/\(Spec: NMT 0.2\)/i)).toBeTruthy();
     expect(
       screen.getByText(/Detailed calculation payload was not found or is in an invalid format/i)
     ).toBeTruthy();
-
-    // Does NOT render replicate table headers
-    expect(screen.queryByText(/Sample Amount/i)).toBeNull();
+    expect(screen.queryByText(/Instrument result/i)).toBeNull();
   });
 });

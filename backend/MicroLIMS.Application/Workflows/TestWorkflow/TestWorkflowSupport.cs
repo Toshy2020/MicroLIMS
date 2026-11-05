@@ -659,8 +659,8 @@ public class TestWorkflowSupport
         }
         else if (expectedWorkflowType == WorkflowType.IcpMethodAssay)
         {
-            if (specs.Any(s => !s.IcpMethodElementId.HasValue))
-                throw new InvalidOperationException("Every specification for an ICP method assay must be linked to a method element.");
+            if (specs.Any(s => !s.IcpTestElementId.HasValue))
+                throw new InvalidOperationException("Every specification for an ICP method assay must be linked to a test element.");
         }
         else
         {

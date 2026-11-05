@@ -211,7 +211,11 @@ public class TestDefinitionResponse
     public int? WvCapsuleS2ExtraUnits { get; init; }
     public int? WvCapsuleS2MaxOutside { get; init; }
     public int? HplcMethodId { get; init; }
-    public int? IcpMethodId { get; init; }
+    public IcpTestMode? IcpMode { get; init; }
+    public IcpSampleForm? IcpSampleForm { get; init; }
+    public decimal? IcpTheoreticalAmount { get; init; }
+    public decimal? IcpSpecificGravity { get; init; }
+    public List<IcpTestElementResponse> IcpElements { get; init; } = new();
     public TitrationType? TitrationType { get; init; }
     public bool? TitrationNonAqueous { get; init; }
     public TitrationMode? TitrationMode { get; init; }
@@ -281,7 +285,11 @@ public class TestDefinitionResponse
         WvCapsuleS2ExtraUnits = e.WvCapsuleS2ExtraUnits,
         WvCapsuleS2MaxOutside = e.WvCapsuleS2MaxOutside,
         HplcMethodId = e.HplcMethodId,
-        IcpMethodId = e.IcpMethodId,
+        IcpMode = e.IcpMode,
+        IcpSampleForm = e.IcpSampleForm,
+        IcpTheoreticalAmount = e.IcpTheoreticalAmount,
+        IcpSpecificGravity = e.IcpSpecificGravity,
+        IcpElements = e.IcpElements.OrderBy(x => x.DisplayOrder).Select(x => new IcpTestElementResponse(x.Id, x.DisplayOrder, x.Symbol, x.TargetPpm)).ToList(),
         TitrationType = e.TitrationType,
         TitrationNonAqueous = e.TitrationNonAqueous,
         TitrationMode = e.TitrationMode,
@@ -338,7 +346,7 @@ public class SpecificationResponse
     public string? LabelClaimUnit { get; init; }
     public DosageForm? DosageForm { get; init; }
     public int? HplcMethodAnalyteId { get; init; }
-    public int? IcpMethodElementId { get; init; }
+    public int? IcpTestElementId { get; init; }
     public ProductionStageRole? ProductionStageRole { get; init; }
     public string? Grade { get; init; }
     public RelatedSubstanceRow? RelatedSubstanceRow { get; init; }
@@ -378,7 +386,7 @@ public class SpecificationResponse
         LabelClaimUnit = e.LabelClaimUnit,
         DosageForm = e.DosageForm,
         HplcMethodAnalyteId = e.HplcMethodAnalyteId,
-        IcpMethodElementId = e.IcpMethodElementId,
+        IcpTestElementId = e.IcpTestElementId,
         RelatedSubstanceRow = e.RelatedSubstanceRow,
         HplcMethodImpurityId = e.HplcMethodImpurityId,
         Stages = e.Stages.Select(SpecificationStageResponse.From).ToList(),
@@ -444,3 +452,5 @@ public class MediaIncubationConditionResponse
         TemperatureMax = e.TemperatureMax,
     };
 }
+
+public record IcpTestElementResponse(int Id, int DisplayOrder, string Symbol, decimal? TargetPpm);

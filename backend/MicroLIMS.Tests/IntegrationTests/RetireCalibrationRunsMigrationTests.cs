@@ -96,7 +96,7 @@ public class RetireCalibrationRunsMigrationTests
         }
     }
 
-    private static async Task<(int order, int analysis, int result)> OrderChain(NpgsqlConnection c, string code)
+    internal static async Task<(int order, int analysis, int result)> OrderChain(NpgsqlConnection c, string code)
     {
         var order = await Insert(c, "TestOrders", ("TestCode", code));
         var analysis = await Insert(c, "TestAnalyses", ("TestOrderId", order));
@@ -107,9 +107,10 @@ public class RetireCalibrationRunsMigrationTests
     }
 
     // Inserts one row; every NOT NULL column without a default gets a type-based filler unless overridden.
-    private static async Task<int> Insert(NpgsqlConnection c, string table, params (string Col, object Val)[] over)
+    internal static async Task<int> Insert(NpgsqlConnection c, string table, params (string Col, object Val)[] over)
     {
         var values = over.ToDictionary(o => o.Col, o => o.Val);
+        var jsonbColumns = new HashSet<string>();
         await using (var q = new NpgsqlCommand(
             "SELECT column_name, data_type FROM information_schema.columns WHERE table_name = @t AND is_nullable = 'NO' " +
             "AND column_default IS NULL AND is_identity = 'NO'", c))
@@ -119,6 +120,7 @@ public class RetireCalibrationRunsMigrationTests
             while (await r.ReadAsync())
             {
                 var col = r.GetString(0);
+                if (r.GetString(1) is "jsonb") jsonbColumns.Add(col);
                 if (values.ContainsKey(col)) continue;
                 values[col] = r.GetString(1) switch
                 {
@@ -137,24 +139,28 @@ public class RetireCalibrationRunsMigrationTests
         var ps = string.Join(",", values.Keys.Select((_, i) => $"@p{i}"));
         await using var cmd = new NpgsqlCommand($"INSERT INTO \"{table}\" ({cols}) VALUES ({ps}) RETURNING \"Id\"", c);
         var n = 0;
-        foreach (var v in values.Values) cmd.Parameters.AddWithValue($"p{n++}", v);
+        foreach (var (col, v) in values)
+        {
+            if (jsonbColumns.Contains(col)) cmd.Parameters.Add(new NpgsqlParameter($"p{n++}", NpgsqlTypes.NpgsqlDbType.Jsonb) { Value = v });
+            else cmd.Parameters.AddWithValue($"p{n++}", v);
+        }
         return (int)(await cmd.ExecuteScalarAsync())!;
     }
 
-    private static async Task<long> Scalar(NpgsqlConnection c, string sql)
+    internal static async Task<long> Scalar(NpgsqlConnection c, string sql)
     {
         await using var cmd = new NpgsqlCommand(sql, c);
         return Convert.ToInt64(await cmd.ExecuteScalarAsync());
     }
 
-    private static async Task Exec(string cs, string sql)
+    internal static async Task Exec(string cs, string sql)
     {
         await using var c = new NpgsqlConnection(cs);
         await c.OpenAsync();
         await Exec(c, sql);
     }
 
-    private static async Task Exec(NpgsqlConnection c, string sql)
+    internal static async Task Exec(NpgsqlConnection c, string sql)
     {
         await using var cmd = new NpgsqlCommand(sql, c);
         await cmd.ExecuteNonQueryAsync();

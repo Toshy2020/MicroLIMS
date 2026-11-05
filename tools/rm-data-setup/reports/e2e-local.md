@@ -103,3 +103,16 @@ One sample per material and grade (batch `RM-E2E-<code>-<grade>`), received for 
 - Riboflavin: item Supporting Records shows both not-applicable records Approved, signed by the Section Head then the
   QC Manager; the approved certificate of RM1126023 prints "Composition" and "Related substances" as "Not applicable",
   grade BP, conclusion Conform.
+
+## Production (2026-11-06)
+
+- An API run of `load.py` as a Physicochemical Section Head had loaded most of the setup (test definitions, 127 of the
+  physchem/other spec rows, minimums, supplier attributes, Riboflavin's two not-applicable drafts).
+- The rest was copied straight into Neon with `copy_to_prod.py` (development phase, user's decision): 2 reagent
+  entries, 2 titrants (1 N sulfuric acid VS, 0.1 M ammonium thiocyanate VS) with their components, 2 titration
+  tests (RM-TIT-NACLT, RM-TIT-NAOH-USP) and 29 spec rows (the 27 micro rows + those two assays). One transaction;
+  Neon backup branch `backup-before-rm-data-2026-11-06` taken first.
+- Check: production now has the same 156 spec rows as local, value for value, and the same RM test definitions;
+  a second copy run finds nothing to add.
+- Open: Riboflavin's two not-applicable drafts need the Section Head's and then a QC Manager's signature in the app;
+  production has no user with the QC Manager role yet.

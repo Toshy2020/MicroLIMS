@@ -63,6 +63,9 @@ public class IcpRunSample
     public decimal? ActualWeightG { get; set; } // Act.Wt, assay mode
     public DateTime AssignedAt { get; set; }
     public int AssignedByUserId { get; set; }
+    // One e-signature covers every sample assigned in the same action.
+    public int? AssignmentSignatureId { get; set; }
+    public ElectronicSignature? AssignmentSignature { get; set; }
     public string? RemovedReason { get; set; }
     public DateTime? RemovedAt { get; set; }
     public int? RemovedByUserId { get; set; }

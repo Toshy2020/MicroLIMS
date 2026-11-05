@@ -6,6 +6,7 @@ import type {
   EligibleTestDto,
   IcpSampleEntryDto,
   IcpReportValuesDto,
+  AssignIcpSamplesRequest,
   IcpEvidenceDto,
   IcpEvidenceContext,
   IcpEvidenceKind,
@@ -127,10 +128,8 @@ export const IcpWorkspaceService = {
 
   // ---- Samples & Entry ----
 
-  assignSamples: async (id: number, testOrderIds: number[]): Promise<IcpRunDto> => {
-    const res = await apiClient.post<ApiResponse<IcpRunDto>>(`/icp-workspace/runs/${id}/samples`, {
-      testOrderIds
-    });
+  assignSamples: async (id: number, req: AssignIcpSamplesRequest): Promise<IcpRunDto> => {
+    const res = await apiClient.post<ApiResponse<IcpRunDto>>(`/icp-workspace/runs/${id}/samples`, req);
     return res.data?.data;
   },
 

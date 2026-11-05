@@ -98,7 +98,7 @@ public class IcpWorkspaceController : ControllerBase
     [Authorize(Policy = PermissionConstants.HplcOperate)]
     [HttpPost("runs/{id:int}/samples")]
     public async Task<IActionResult> AssignSamples(int id, [FromBody] AssignIcpSamplesRequest r) =>
-        Ok(ApiResponse<object>.Ok(await _service.AssignSamplesAsync(id, r.TestOrderIds, CurrentUserId)));
+        Ok(ApiResponse<object>.Ok(await _service.AssignSamplesAsync(id, r, CurrentUserId, ClientIpAddress)));
 
     [Authorize(Policy = PermissionConstants.HplcOperate)]
     [HttpPost("runs/{id:int}/samples/{runSampleId:int}/remove")]

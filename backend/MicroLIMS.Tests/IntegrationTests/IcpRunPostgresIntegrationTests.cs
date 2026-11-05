@@ -127,7 +127,7 @@ public class IcpRunPostgresIntegrationTests
         run = await svc.ConfirmCalibrationAsync(run.Id, new ConfirmIcpCalibrationRequest(Password, null), userId, null);
         Assert.Equal(IcpCalibrationStatus.Confirmed, run.Calibration.Status);
 
-        run = await svc.AssignSamplesAsync(run.Id, new List<int> { caOrder.Id, znOrder.Id }, userId);
+        run = await svc.AssignSamplesAsync(run.Id, new AssignIcpSamplesRequest(new List<int> { caOrder.Id, znOrder.Id }, Password, null), userId, null);
         var caRs = run.Samples.Single(x => x.TestOrderId == caOrder.Id).Id;
         var znRs = run.Samples.Single(x => x.TestOrderId == znOrder.Id).Id;
 

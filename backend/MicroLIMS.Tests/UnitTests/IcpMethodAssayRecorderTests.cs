@@ -138,7 +138,7 @@ public class IcpMethodAssayRecorderTests
         var f = await SeedFixtureAsync(s);
         var order = await AddOrderAsync(f);
         var run = await ConfirmedRunAsync(s, ("Zn", 0.9980m), ("Ca", 0.9995m)); // Zn fails calibration
-        run = await s.Service.AssignSamplesAsync(run.Id, new List<int> { order.Id }, s.UserId);
+        run = await s.Service.AssignSamplesAsync(run.Id, new AssignIcpSamplesRequest(new List<int> { order.Id }, Password, null), s.UserId, null);
         var rsId = run.Samples.Single().Id;
         await SaveAsync(f, rsId, 0.5m, (f.ZnId, 10m));
         await UploadReportAsync(f, run.Id, rsId);

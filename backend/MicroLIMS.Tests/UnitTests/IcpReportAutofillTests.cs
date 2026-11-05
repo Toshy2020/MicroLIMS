@@ -47,7 +47,7 @@ public class IcpReportAutofillTests
 
         var run = await ConfirmedRunAsync(s);
         var svc = TestServiceFactory.IcpRun(s.Db, clock: NewClock(), storage: new InMemoryFileStorageService(), reportReader: reader);
-        run = await svc.AssignSamplesAsync(run.Id, new List<int> { order.Id }, s.UserId);
+        run = await svc.AssignSamplesAsync(run.Id, new AssignIcpSamplesRequest(new List<int> { order.Id }, Password, null), s.UserId, null);
         var rsId = run.Samples.Single().Id;
         if (uploadReport)
             await svc.UploadEvidenceAsync(run.Id, rsId, IcpEvidenceContext.Sample, IcpEvidenceKind.SampleReport,

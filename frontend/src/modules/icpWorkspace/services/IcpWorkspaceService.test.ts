@@ -81,6 +81,16 @@ describe("IcpWorkspaceService endpoint URL building", () => {
     expect(apiClient.get).toHaveBeenLastCalledWith("/icp-workspace/samples/15/report-values", { params: { solutionIndex: 4 } });
   });
 
+  it("posts the assignment with the signature password and comment", async () => {
+    vi.mocked(apiClient.post).mockResolvedValueOnce({ data: { success: true, data: {} } });
+    await IcpWorkspaceService.assignSamples(8, { testOrderIds: [1, 2], password: "pw", comment: "two samples" });
+    expect(apiClient.post).toHaveBeenCalledWith("/icp-workspace/runs/8/samples", {
+      testOrderIds: [1, 2],
+      password: "pw",
+      comment: "two samples"
+    });
+  });
+
   it("calls POST /icp-workspace/runs/:id/abandon with reason", async () => {
     vi.mocked(apiClient.post).mockResolvedValueOnce({ data: { success: true, data: {} } });
     await IcpWorkspaceService.abandonRun(8, "Plasma unstable");

@@ -181,6 +181,8 @@ export interface SaveIcpSampleEntryRequest {
 
 export interface AssignIcpSamplesRequest {
   testOrderIds: number[];
+  password: string;
+  comment?: string | null;
 }
 
 // One element of the test: its target, whether the run's calibration allows it, and the entered result.

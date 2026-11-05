@@ -98,7 +98,7 @@ public class IcpRunSampleTests
         var f = await SeedFixtureAsync(s, mode, form, withCalcium);
         var order = await AddOrderAsync(f);
         var run = await ConfirmedRunAsync(s);
-        run = await s.Service.AssignSamplesAsync(run.Id, new List<int> { order.Id }, s.UserId);
+        run = await s.Service.AssignSamplesAsync(run.Id, new AssignIcpSamplesRequest(new List<int> { order.Id }, Password, null), s.UserId, null);
         return (f, run, run.Samples.Single().Id);
     }
 
@@ -113,8 +113,50 @@ public class IcpRunSampleTests
         var f = await SeedFixtureAsync(s);
         var order = await AddOrderAsync(f);
         var run = await StartAsync(s);
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => s.Service.AssignSamplesAsync(run.Id, new List<int> { order.Id }, s.UserId));
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => s.Service.AssignSamplesAsync(run.Id, new AssignIcpSamplesRequest(new List<int> { order.Id }, Password, null), s.UserId, null));
         Assert.Equal("Confirm the calibration before assigning samples.", ex.Message);
+    }
+
+    [Fact]
+    public async Task Assign_SignsOnce_ForEverySampleOfTheAction_AndTheSignatureNamesTheUser()
+    {
+        var s = await SeedAsync();
+        var f = await SeedFixtureAsync(s);
+        var o1 = await AddOrderAsync(f);
+        var o2 = await AddOrderAsync(f);
+        var run = await ConfirmedRunAsync(s);
+
+        run = await s.Service.AssignSamplesAsync(run.Id,
+            new AssignIcpSamplesRequest(new List<int> { o1.Id, o2.Id }, Password, "batch of two"), s.UserId, "10.0.0.5");
+
+        Assert.Equal(2, run.Samples.Count);
+        var rows = s.Db.IcpRunSamples.Where(x => x.IcpRunId == run.Id).ToList();
+        var sigId = Assert.Single(rows.Select(x => x.AssignmentSignatureId).Distinct());
+        Assert.NotNull(sigId);
+        var sig = s.Db.ElectronicSignatures.Single(x => x.Id == sigId);
+        Assert.Equal(s.UserId, sig.UserId);
+        Assert.Equal(SignatureMeaning.SampleAssignedToRun, sig.MeaningOfSignature);
+        Assert.False(string.IsNullOrWhiteSpace(sig.UserFullNameSnapshot));
+        Assert.Equal("10.0.0.5", sig.IpAddress);
+        Assert.Equal("batch of two", sig.Comment);
+        Assert.Equal(nameof(IcpRun), sig.EntityType);
+        Assert.Equal(run.Id, sig.EntityId);
+    }
+
+    [Fact]
+    public async Task Assign_WrongPassword_AssignsNothing_AndSignsNothing()
+    {
+        var s = await SeedAsync();
+        var f = await SeedFixtureAsync(s);
+        var order = await AddOrderAsync(f);
+        var run = await ConfirmedRunAsync(s);
+        var signaturesBefore = s.Db.ElectronicSignatures.Count();
+
+        await Assert.ThrowsAnyAsync<Exception>(() => s.Service.AssignSamplesAsync(run.Id,
+            new AssignIcpSamplesRequest(new List<int> { order.Id }, "wrong-password", null), s.UserId, null));
+
+        Assert.Empty(s.Db.IcpRunSamples.Where(x => x.IcpRunId == run.Id));
+        Assert.Equal(signaturesBefore, s.Db.ElectronicSignatures.Count());
     }
 
     [Fact]
@@ -127,7 +169,7 @@ public class IcpRunSampleTests
         await s.Db.SaveChangesAsync();
         var run = await ConfirmedRunAsync(s);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => s.Service.AssignSamplesAsync(run.Id, new List<int> { order.Id }, s.UserId));
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => s.Service.AssignSamplesAsync(run.Id, new AssignIcpSamplesRequest(new List<int> { order.Id }, Password, null), s.UserId, null));
         Assert.Equal($"Test order {order.Id} is not eligible for this run.", ex.Message);
     }
 
@@ -141,7 +183,7 @@ public class IcpRunSampleTests
         var run = await ConfirmedRunAsync(s);
 
         Assert.Equal(2, (await s.Service.GetEligibleTestsAsync(run.Id, null, s.UserId)).Count);
-        await s.Service.AssignSamplesAsync(run.Id, new List<int> { a.Id }, s.UserId);
+        await s.Service.AssignSamplesAsync(run.Id, new AssignIcpSamplesRequest(new List<int> { a.Id }, Password, null), s.UserId, null);
 
         var left = await s.Service.GetEligibleTestsAsync(run.Id, null, s.UserId);
         Assert.Equal(b.Id, left.Single().TestOrderId);
@@ -156,7 +198,7 @@ public class IcpRunSampleTests
         var after = await f.S.Service.RemoveSampleAsync(run.Id, rsId, "Wrong sample", f.S.UserId);
 
         Assert.Equal(IcpRunSampleStatus.Removed, after.Samples.Single().Status);
-        var again = await f.S.Service.AssignSamplesAsync(run.Id, new List<int> { after.Samples.Single().TestOrderId }, f.S.UserId);
+        var again = await f.S.Service.AssignSamplesAsync(run.Id, new AssignIcpSamplesRequest(new List<int> { after.Samples.Single().TestOrderId }, Password, null), f.S.UserId, null);
         Assert.Equal(2, again.Samples.Count);
     }
 
@@ -303,7 +345,7 @@ public class IcpRunSampleTests
         var f = await SeedFixtureAsync(s);
         var order = await AddOrderAsync(f);
         var run = await ConfirmedRunAsync(s, ("Ca", 0.9995m)); // the test needs Zn
-        run = await s.Service.AssignSamplesAsync(run.Id, new List<int> { order.Id }, s.UserId);
+        run = await s.Service.AssignSamplesAsync(run.Id, new AssignIcpSamplesRequest(new List<int> { order.Id }, Password, null), s.UserId, null);
         var rsId = run.Samples.Single().Id;
 
         var entry = await SaveAsync(f, rsId, 0.5m, (f.ZnId, 10m));
@@ -322,7 +364,7 @@ public class IcpRunSampleTests
         var f = await SeedFixtureAsync(s);
         var order = await AddOrderAsync(f);
         var run = await ConfirmedRunAsync(s, ("Zn", 0.9980m), ("Ca", 0.9995m));
-        run = await s.Service.AssignSamplesAsync(run.Id, new List<int> { order.Id }, s.UserId);
+        run = await s.Service.AssignSamplesAsync(run.Id, new AssignIcpSamplesRequest(new List<int> { order.Id }, Password, null), s.UserId, null);
 
         var entry = await SaveAsync(f, run.Samples.Single().Id, 0.5m, (f.ZnId, 10m));
 

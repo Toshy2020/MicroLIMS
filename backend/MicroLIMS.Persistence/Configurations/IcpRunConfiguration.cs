@@ -71,6 +71,7 @@ public class IcpRunSampleConfiguration : IEntityTypeConfiguration<IcpRunSample>
         builder.HasIndex(e => e.TestOrderId);
 
         builder.HasOne(e => e.TestOrder).WithMany().HasForeignKey(e => e.TestOrderId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne(e => e.AssignmentSignature).WithMany().HasForeignKey(e => e.AssignmentSignatureId).OnDelete(DeleteBehavior.Restrict);
 
         builder.HasMany(e => e.Concentrations).WithOne(c => c.IcpRunSample).HasForeignKey(c => c.IcpRunSampleId).OnDelete(DeleteBehavior.Cascade);
     }

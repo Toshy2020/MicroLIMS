@@ -10,7 +10,7 @@ namespace MicroLIMS.Application.Services;
 
 public record IcpConcentrationInput(int IcpTestElementId, decimal ResultPpm);
 public record SaveIcpSampleEntryRequest(decimal? ActualWeightG, List<IcpConcentrationInput> Concentrations);
-public record AssignIcpSamplesRequest(List<int> TestOrderIds);
+public record AssignIcpSamplesRequest(List<int> TestOrderIds, string Password, string? Comment);
 
 public record IcpPreviewResultDto(
     int IcpTestElementId, string ParameterName, string Quantity, decimal? Value, string Display, string Unit,
@@ -91,7 +91,7 @@ public partial class IcpRunService
         return null;
     }
 
-    public async Task<IcpRunDto> AssignSamplesAsync(int runId, List<int> testOrderIds, int userId, CancellationToken ct = default)
+    public async Task<IcpRunDto> AssignSamplesAsync(int runId, AssignIcpSamplesRequest r, int userId, string? ip, CancellationToken ct = default)
     {
         var run = await LoadRunAsync(runId, ct);
         await EnsureAccessAsync(run, userId, ct);
@@ -99,7 +99,7 @@ public partial class IcpRunService
         var blocked = AssignBlockReason(run);
         if (blocked != null) throw new InvalidOperationException(blocked);
 
-        var ids = (testOrderIds ?? new List<int>()).Distinct().ToList();
+        var ids = (r.TestOrderIds ?? new List<int>()).Distinct().ToList();
         if (ids.Count == 0)
             throw new InvalidOperationException("Select at least one test.");
 
@@ -114,9 +114,17 @@ public partial class IcpRunService
                 : $"Test order {id} is not eligible for this run.");
         }
 
+        // Signs first - a wrong password must leave nothing assigned. One signature covers the whole action.
+        var signature = await _signatures.SignAsync(
+            userId, r.Password, SignatureMeaning.SampleAssignedToRun, nameof(IcpRun), run.Id, r.Comment, ip);
+
         var nowUtc = _clock.UtcNow.UtcDateTime;
         foreach (var id in ids)
-            run.Samples.Add(new IcpRunSample { TestOrderId = id, Status = IcpRunSampleStatus.Assigned, AssignedAt = nowUtc, AssignedByUserId = userId });
+            run.Samples.Add(new IcpRunSample
+            {
+                TestOrderId = id, Status = IcpRunSampleStatus.Assigned, AssignedAt = nowUtc,
+                AssignedByUserId = userId, AssignmentSignature = signature
+            });
 
         await _db.SaveChangesAsync(ct);
         return await GetRunAsync(runId, userId, ct);

@@ -4757,6 +4757,9 @@ namespace MicroLIMS.Persistence.Migrations
                     b.Property<int>("AssignedByUserId")
                         .HasColumnType("integer");
 
+                    b.Property<int?>("AssignmentSignatureId")
+                        .HasColumnType("integer");
+
                     b.Property<int>("IcpRunId")
                         .HasColumnType("integer");
 
@@ -4783,6 +4786,8 @@ namespace MicroLIMS.Persistence.Migrations
                         .HasColumnName("xmin");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("AssignmentSignatureId");
 
                     b.HasIndex("IcpRunId");
 
@@ -13653,6 +13658,11 @@ namespace MicroLIMS.Persistence.Migrations
 
             modelBuilder.Entity("MicroLIMS.Domain.Entities.IcpRunSample", b =>
                 {
+                    b.HasOne("MicroLIMS.Domain.Entities.ElectronicSignature", "AssignmentSignature")
+                        .WithMany()
+                        .HasForeignKey("AssignmentSignatureId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("MicroLIMS.Domain.Entities.IcpRun", "IcpRun")
                         .WithMany("Samples")
                         .HasForeignKey("IcpRunId")
@@ -13664,6 +13674,8 @@ namespace MicroLIMS.Persistence.Migrations
                         .HasForeignKey("TestOrderId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.Navigation("AssignmentSignature");
 
                     b.Navigation("IcpRun");
 

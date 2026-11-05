@@ -6906,6 +6906,64 @@ namespace MicroLIMS.Persistence.Migrations
                     b.ToTable("Media");
                 });
 
+            modelBuilder.Entity("MicroLIMS.Domain.Entities.MediaAdditive", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<int>("Kind")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("MaterialId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("MediaId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<int>("Order")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("Quantity")
+                        .HasColumnType("decimal(12,4)");
+
+                    b.Property<int?>("SolutionPreparationId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Unit")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<uint>("xmin")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("MaterialId");
+
+                    b.HasIndex("MediaId");
+
+                    b.HasIndex("SolutionPreparationId");
+
+                    b.ToTable("MediaAdditives");
+                });
+
             modelBuilder.Entity("MicroLIMS.Domain.Entities.MediaConfiguration", b =>
                 {
                     b.Property<int>("Id")
@@ -14323,6 +14381,31 @@ namespace MicroLIMS.Persistence.Migrations
                     b.Navigation("Material");
                 });
 
+            modelBuilder.Entity("MicroLIMS.Domain.Entities.MediaAdditive", b =>
+                {
+                    b.HasOne("MicroLIMS.Domain.Entities.Material", "Material")
+                        .WithMany()
+                        .HasForeignKey("MaterialId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("MicroLIMS.Domain.Entities.Media", "Media")
+                        .WithMany("Additives")
+                        .HasForeignKey("MediaId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("MicroLIMS.Domain.Entities.SolutionPreparation", "SolutionPreparation")
+                        .WithMany()
+                        .HasForeignKey("SolutionPreparationId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Material");
+
+                    b.Navigation("Media");
+
+                    b.Navigation("SolutionPreparation");
+                });
+
             modelBuilder.Entity("MicroLIMS.Domain.Entities.MediaConfiguration", b =>
                 {
                     b.HasOne("MicroLIMS.Domain.Entities.MediaIncubationCondition", "IncubationCondition")
@@ -16157,6 +16240,8 @@ namespace MicroLIMS.Persistence.Migrations
 
             modelBuilder.Entity("MicroLIMS.Domain.Entities.Media", b =>
                 {
+                    b.Navigation("Additives");
+
                     b.Navigation("StorageEntries");
                 });
 

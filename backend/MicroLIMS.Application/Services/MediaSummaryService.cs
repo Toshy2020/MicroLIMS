@@ -29,6 +29,7 @@ public class MediaSummaryService
         var media = await _db.Media
             .Include(m => m.Material)
             .Include(m => m.AutoclaveEquipment)
+            .Include(m => m.Additives)
             .FirstOrDefaultAsync(m => m.Id == mediaId);
         if (media is null) return null;
 
@@ -89,6 +90,10 @@ public class MediaSummaryService
             IsReleasedForUse = media.IsReleasedForUse,
             ApprovedByName = media.ApprovedByUserId is not null ? NameOf(media.ApprovedByUserId.Value) : null,
             ApprovedAt = media.ApprovedAt,
+            Additives = media.Additives.OrderBy(a => a.Order).Select(a => new MediaAdditiveSummaryDto
+            {
+                Kind = a.Kind.ToString(), Name = a.Name, Code = a.Code, Quantity = a.Quantity, Unit = a.Unit
+            }).ToList(),
             Timeline = timeline.Select(e => new SampleWorkflowEventDto
             {
                 EventType = e.EventType.ToString(),
@@ -175,9 +180,19 @@ public class MediaSummaryService
             $"pH: {s.Ph}",
             $"Prepared By: {s.PreparedByName} - {s.PreparedAt:dd-MMM-yyyy HH:mm}",
             "",
+        };
+        if (s.Additives.Count > 0)
+        {
+            lines.Add("ADDITIVES");
+            foreach (var a in s.Additives)
+                lines.Add($"{a.Name} ({a.Code}): {a.Quantity} {a.Unit} - {(a.Kind == "StockLot" ? "stock lot" : "prepared solution")}");
+            lines.Add("");
+        }
+        lines.AddRange(new[]
+        {
             "RELEASE STATUS",
             $"Status: {s.Status}   Approval: {s.ApprovalStatus}   Released For Use: {(s.IsReleasedForUse ? "Yes" : "No")}",
-        };
+        });
         if (s.ApprovedByName is not null)
             lines.Add($"Decided By: {s.ApprovedByName} - {s.ApprovedAt:dd-MMM-yyyy HH:mm}");
         lines.Add("");

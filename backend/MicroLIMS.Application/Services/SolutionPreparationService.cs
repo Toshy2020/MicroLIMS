@@ -497,6 +497,27 @@ public class SolutionPreparationService
         return await ToListItemsAsync(rows, ct);
     }
 
+    // Prepared solutions that can be picked as a media additive (or any other free pick): general
+    // types (Diluent, Reagent, Neutralizer), Prepared and unexpired, released when the recipe needs
+    // release, in the caller's readable sections (optionally one section).
+    public async Task<List<SolutionPreparationListItem>> GetUsableAsync(int userId, int? sectionId, CancellationToken ct = default)
+    {
+        var scope = await _scope.GetReadableSectionIdsAsync(userId, ct);
+        var now = _clock.UtcNow.UtcDateTime;
+
+        var query = ListQuery().Where(p =>
+            (p.Type == SolutionType.Diluent || p.Type == SolutionType.Reagent || p.Type == SolutionType.Neutralizer)
+            && p.Status == SolutionPreparationStatus.Prepared
+            && (!p.ExpiresAt.HasValue || p.ExpiresAt.Value > now)
+            && (p.ApprovalStatus == null || p.ApprovalStatus == ApprovalGateStatus.Approved));
+
+        if (scope != null) query = query.Where(p => scope.Contains(p.SectionId));
+        if (sectionId.HasValue) query = query.Where(p => p.SectionId == sectionId.Value);
+
+        var rows = await query.OrderByDescending(p => p.PreparedAt).ToListAsync(ct);
+        return await ToListItemsAsync(rows, ct);
+    }
+
     // Traceability: which preparations consumed a given stock lot (Material
     // lot view "Consumed by preparations" list).
     public async Task<List<SolutionPreparationListItem>> GetByLotAsync(int materialId, int userId, CancellationToken ct = default)

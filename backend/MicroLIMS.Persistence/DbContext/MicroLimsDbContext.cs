@@ -49,6 +49,7 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext, IMicr
     public DbSet<MediaEvaluation> MediaEvaluations => Set<MediaEvaluation>();
     public DbSet<MediaEvaluationChallenge> MediaEvaluationChallenges => Set<MediaEvaluationChallenge>();
     public DbSet<MediaStorageEntry> MediaStorageEntries => Set<MediaStorageEntry>();
+    public DbSet<MediaAdditive> MediaAdditives => Set<MediaAdditive>();
     public DbSet<Cryovial> Cryovials => Set<Cryovial>();
     public DbSet<IdentityConfirmationEntry> IdentityConfirmationEntries => Set<IdentityConfirmationEntry>();
     public DbSet<ThawEvent> ThawEvents => Set<ThawEvent>();

@@ -149,6 +149,7 @@ public class MediaResponse
     public int? ApprovedByUserId { get; init; }
     public DateTime? ApprovedAt { get; init; }
     public bool IsReleasedForUse { get; init; }
+    public List<MediaAdditiveResponse> Additives { get; init; } = new();
 
     public static MediaResponse From(Media e) => new()
     {
@@ -176,7 +177,20 @@ public class MediaResponse
         ApprovedByUserId = e.ApprovedByUserId,
         ApprovedAt = e.ApprovedAt,
         IsReleasedForUse = e.IsReleasedForUse,
+        Additives = e.Additives.OrderBy(a => a.Order).Select(a => new MediaAdditiveResponse
+        {
+            Kind = a.Kind, Name = a.Name, Code = a.Code, Quantity = a.Quantity, Unit = a.Unit
+        }).ToList(),
     };
+}
+
+public class MediaAdditiveResponse
+{
+    public MediaAdditiveKind Kind { get; init; }
+    public string Name { get; init; } = string.Empty;
+    public string Code { get; init; } = string.Empty;
+    public decimal Quantity { get; init; }
+    public string Unit { get; init; } = string.Empty;
 }
 
 public class MediaEvaluationResponse

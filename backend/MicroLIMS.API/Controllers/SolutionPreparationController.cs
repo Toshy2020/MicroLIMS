@@ -40,6 +40,10 @@ public class SolutionPreparationController : ControllerBase
     public async Task<IActionResult> GetAvailable([FromQuery] int solutionMasterId, [FromQuery] int? hplcMethodId) =>
         Ok(ApiResponse<object>.Ok(await _service.GetAvailableAsync(CurrentUserId, solutionMasterId, hplcMethodId)));
 
+    [HttpGet("usable")]
+    public async Task<IActionResult> GetUsable([FromQuery] int? sectionId) =>
+        Ok(ApiResponse<object>.Ok(await _service.GetUsableAsync(CurrentUserId, sectionId)));
+
     [HttpGet("by-lot/{materialId:int}")]
     public async Task<IActionResult> GetByLot(int materialId) =>
         Ok(ApiResponse<object>.Ok(await _service.GetByLotAsync(materialId, CurrentUserId)));

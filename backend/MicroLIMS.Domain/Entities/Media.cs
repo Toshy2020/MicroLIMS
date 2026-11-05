@@ -52,4 +52,5 @@ public class Media
 
     public bool IsReleasedForUse { get; set; } // set true only by MediaReleaseService.DecideAsync on an approved release
     public List<MediaStorageEntry> StorageEntries { get; set; } = new();
+    public List<MediaAdditive> Additives { get; set; } = new();
 }

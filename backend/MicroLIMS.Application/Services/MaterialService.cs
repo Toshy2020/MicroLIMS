@@ -514,14 +514,14 @@ public class MaterialService
     // yet) if the material is expired, wrong type, awaiting release or rejected,
     // missing a required COA, or doesn't have enough remaining quantity.
     // A lot whose category does not track quantity is not decremented.
-    public async Task<Material> ConsumeAsync(int materialId, MaterialType expectedType, decimal quantityUsed, int currentUserId)
+    public async Task<Material> ConsumeAsync(int materialId, MaterialType? expectedType, decimal quantityUsed, int currentUserId)
     {
         await _scope.EnsureMaterialAccessAsync(currentUserId, materialId);
 
         var material = await _db.Materials.FindAsync(materialId)
             ?? throw new NotFoundException($"Material {materialId} not found.");
 
-        if (material.MaterialType != expectedType)
+        if (expectedType.HasValue && material.MaterialType != expectedType.Value)
             throw new InvalidOperationException($"Material {material.MaterialName} is not a {expectedType} item.");
 
         if (material.ExpiryDate.HasValue && material.ExpiryDate.Value.Date < _time.GetUtcNow().UtcDateTime.Date)

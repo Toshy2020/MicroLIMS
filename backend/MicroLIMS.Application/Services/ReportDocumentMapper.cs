@@ -842,6 +842,18 @@ public static class ReportDocumentMapper
             }
         });
 
+        if (s.Additives.Count > 0)
+        {
+            doc.Blocks.Add(new ListBlock
+            {
+                Label = "additives",
+                Rows = s.Additives.Select(a => (
+                    $"{a.Name} ({a.Code})",
+                    $"{a.Quantity} {a.Unit} · {(a.Kind == "StockLot" ? "Stock lot" : "Prepared solution")}")).ToList(),
+                EmptyText = ""
+            });
+        }
+
         doc.Blocks.Add(new HeadingBlock { Text = "media evaluation" });
         if (s.Evaluation is null)
         {

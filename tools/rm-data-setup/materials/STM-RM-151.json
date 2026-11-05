@@ -62,7 +62,7 @@
           "parameterName": "Sulphated ash",
           "limitType": "NotMoreThan",
           "lower": null,
-          "upper": 5.0,
+          "upper": 5,
           "lowerInclusive": null,
           "unit": "%",
           "expectedResultText": null,
@@ -76,7 +76,7 @@
           "parameterName": "Loss on drying",
           "limitType": "NotMoreThan",
           "lower": null,
-          "upper": 5.0,
+          "upper": 5,
           "lowerInclusive": null,
           "unit": "%",
           "expectedResultText": null,
@@ -97,7 +97,8 @@
           "expectedState": null,
           "resultBasis": "Ppm",
           "referenceStandard": "In-House",
-          "source": "Siberian Ginseng Powder Extract__Specifications sheet Siberian Ginseng Powder Extract.txt:16"
+          "source": "Siberian Ginseng Powder Extract__Specifications sheet Siberian Ginseng Powder Extract.txt:16",
+          "heldBack": "needs the held-back method \"Lead by AAS (Siberian ginseng extract)\""
         },
         {
           "testCode": "RM-TAMC",
@@ -265,7 +266,8 @@
         "blank": "distilled water",
         "reference": "USP 2024 Chapter for Atomic Absorption Spectroscopy (852)"
       },
-      "source": "Siberian Ginseng Powder Extract__STM Siberian Ginseng Powder Extract 1-1.txt:33 (standards also :28)"
+      "source": "Siberian Ginseng Powder Extract__STM Siberian Ginseng Powder Extract 1-1.txt:33 (standards also :28)",
+      "heldBack": "needs the held-back method \"Lead by AAS (Siberian ginseng extract)\""
     },
     {
       "testCode": "RM-LOD",
@@ -273,7 +275,7 @@
       "kind": "general",
       "workflow": "Gravimetric",
       "details": {
-        "sampleG": 1.0,
+        "sampleG": 1,
         "temperatureC": 105,
         "timeH": 2,
         "vessel": "weighing bottle pre-dried at 105 C",

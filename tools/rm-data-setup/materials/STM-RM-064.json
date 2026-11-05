@@ -132,14 +132,15 @@
           "parameterName": "Related substances - Impurity A",
           "limitType": "NotMoreThan",
           "lower": null,
-          "upper": 3.0,
+          "upper": 3,
           "lowerInclusive": null,
           "unit": "%",
           "expectedResultText": null,
           "expectedState": null,
           "resultBasis": null,
           "referenceStandard": "BP 2025",
-          "source": "Sodium Methyl Paraben__Sodium Methyl Paraben- SM.txt:35; Sodium Methyl Paraben__Specifications sheet Sodium Methyl Paraben.txt:19"
+          "source": "Sodium Methyl Paraben__Sodium Methyl Paraben- SM.txt:35; Sodium Methyl Paraben__Specifications sheet Sodium Methyl Paraben.txt:19",
+          "heldBack": "needs the held-back method \"Sodium methyl paraben related substances (BP, HPLC)\""
         },
         {
           "testCode": "RM-RS",
@@ -153,31 +154,33 @@
           "expectedState": null,
           "resultBasis": null,
           "referenceStandard": "BP 2025",
-          "source": "Sodium Methyl Paraben__Sodium Methyl Paraben- SM.txt:35; Sodium Methyl Paraben__Specifications sheet Sodium Methyl Paraben.txt:19"
+          "source": "Sodium Methyl Paraben__Sodium Methyl Paraben- SM.txt:35; Sodium Methyl Paraben__Specifications sheet Sodium Methyl Paraben.txt:19",
+          "heldBack": "needs the held-back method \"Sodium methyl paraben related substances (BP, HPLC)\""
         },
         {
           "testCode": "RM-RS",
           "parameterName": "Related substances - Sum of impurities other than A",
           "limitType": "NotMoreThan",
           "lower": null,
-          "upper": 1.0,
+          "upper": 1,
           "lowerInclusive": null,
           "unit": "%",
           "expectedResultText": null,
           "expectedState": null,
           "resultBasis": null,
           "referenceStandard": "BP 2025",
-          "source": "Sodium Methyl Paraben__Sodium Methyl Paraben- SM.txt:35; Sodium Methyl Paraben__Specifications sheet Sodium Methyl Paraben.txt:19"
+          "source": "Sodium Methyl Paraben__Sodium Methyl Paraben- SM.txt:35; Sodium Methyl Paraben__Specifications sheet Sodium Methyl Paraben.txt:19",
+          "heldBack": "needs the held-back method \"Sodium methyl paraben related substances (BP, HPLC)\""
         },
         {
           "testCode": "RM-CHLORIDE",
           "parameterName": "Chlorides",
-          "limitType": "NotMoreThan",
+          "limitType": "Qualitative",
           "lower": null,
-          "upper": 350,
+          "upper": null,
           "lowerInclusive": null,
-          "unit": "ppm",
-          "expectedResultText": null,
+          "unit": null,
+          "expectedResultText": "Complies (NMT 350 ppm)",
           "expectedState": null,
           "resultBasis": null,
           "referenceStandard": "BP 2025",
@@ -186,12 +189,12 @@
         {
           "testCode": "RM-SULFATE",
           "parameterName": "Sulfates",
-          "limitType": "NotMoreThan",
+          "limitType": "Qualitative",
           "lower": null,
-          "upper": 300,
+          "upper": null,
           "lowerInclusive": null,
-          "unit": "ppm",
-          "expectedResultText": null,
+          "unit": null,
+          "expectedResultText": "Complies (NMT 300 ppm)",
           "expectedState": null,
           "resultBasis": null,
           "referenceStandard": "BP 2025",
@@ -202,7 +205,7 @@
           "parameterName": "Water",
           "limitType": "NotMoreThan",
           "lower": null,
-          "upper": 5.0,
+          "upper": 5,
           "lowerInclusive": null,
           "unit": "%",
           "expectedResultText": null,
@@ -215,15 +218,16 @@
           "testCode": "RM-ASSAY",
           "parameterName": "Assay",
           "limitType": "Range",
-          "lower": 95.0,
-          "upper": 102.0,
+          "lower": 95,
+          "upper": 102,
           "lowerInclusive": true,
           "unit": "%",
           "expectedResultText": null,
           "expectedState": null,
           "resultBasis": "PercentAnhydrousBasis",
           "referenceStandard": "BP 2025",
-          "source": "Sodium Methyl Paraben__Specifications sheet Sodium Methyl Paraben.txt:23; Sodium Methyl Paraben__Sodium Methyl Paraben- SM.txt:39"
+          "source": "Sodium Methyl Paraben__Specifications sheet Sodium Methyl Paraben.txt:23; Sodium Methyl Paraben__Sodium Methyl Paraben- SM.txt:39",
+          "heldBack": "needs the held-back method \"Sodium methyl paraben assay (BP, HPLC)\""
         },
         {
           "testCode": "RM-TAMC",
@@ -458,7 +462,8 @@
         },
         "specSheetWording": "Complies with BP",
         "reference": "BP Appendix III D Liquid Chromatography"
-      }
+      },
+      "heldBack": "needs the held-back method \"Sodium methyl paraben related substances (BP, HPLC)\""
     },
     {
       "testCode": "RM-CHLORIDE",
@@ -551,7 +556,8 @@
         "formulaAsPrinted": "Assay % = PAt/PAst x Act.Wt.std/Theo.Wt.test x 100/(100-MC) x Potency (as printed, terms garbled); PAt = mean area in test, PAst = mean area in standard, MC = moisture content of working standard, Potency = assay of working standard",
         "specification": "95.0 per cent to 102.0 per cent (anhydrous substance)",
         "reference": "BP Appendix III D Liquid Chromatography"
-      }
+      },
+      "heldBack": "needs the held-back method \"Sodium methyl paraben assay (BP, HPLC)\""
     },
     {
       "testCode": "RM-TAMC",

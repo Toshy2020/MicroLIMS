@@ -2,88 +2,177 @@
   "itemCode": "STM-RM-051",
   "itemName": "Sildenafil Citrate",
   "stmFile": "Sildenafil Citrate__STM Sildenafil Citrate New.txt",
-  "specFiles": ["Sildenafil Citrate__Specifications sheet Sildenafil Citrate.txt"],
-  "minQuantity": { "routine": 90, "retest": 60, "unit": "g", "source": "Sildenafil Citrate__STM Sildenafil Citrate New.txt:49 (routine 90 g also spec sheet:19)" },
+  "specFiles": [
+    "Sildenafil Citrate__Specifications sheet Sildenafil Citrate.txt"
+  ],
+  "minQuantity": {
+    "routine": 90,
+    "retest": 60,
+    "unit": "g",
+    "source": "Sildenafil Citrate__STM Sildenafil Citrate New.txt:49 (routine 90 g also spec sheet:19)"
+  },
   "grades": [
     {
       "grade": "BP",
       "rows": [
         {
-          "testCode": "RM-DESC", "parameterName": "Description", "limitType": "Qualitative",
-          "lower": null, "upper": null, "lowerInclusive": null, "unit": null,
-          "expectedResultText": "White or almost white, slightly hygroscopic, crystalline powder", "expectedState": null, "resultBasis": null,
+          "testCode": "RM-DESC",
+          "parameterName": "Description",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "White or almost white, slightly hygroscopic, crystalline powder",
+          "expectedState": null,
+          "resultBasis": null,
           "referenceStandard": "BP 2024",
           "source": "Sildenafil Citrate__Specifications sheet Sildenafil Citrate.txt:11"
         },
         {
-          "testCode": "RM-SOL", "parameterName": "Solubility", "limitType": "Qualitative",
-          "lower": null, "upper": null, "lowerInclusive": null, "unit": null,
-          "expectedResultText": "Slightly soluble in water and in methanol, practically insoluble in hexane", "expectedState": null, "resultBasis": null,
+          "testCode": "RM-SOL",
+          "parameterName": "Solubility",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Slightly soluble in water and in methanol, practically insoluble in hexane",
+          "expectedState": null,
+          "resultBasis": null,
           "referenceStandard": "BP 2024",
           "source": "Sildenafil Citrate__Specifications sheet Sildenafil Citrate.txt:12"
         },
         {
-          "testCode": "RM-ID-IR", "parameterName": "Identification (IR)", "limitType": "Qualitative",
-          "lower": null, "upper": null, "lowerInclusive": null, "unit": null,
-          "expectedResultText": "The spectrum obtained for the sample is corresponding to the spectrum obtained from Sildenafil citrate WS.", "expectedState": null, "resultBasis": null,
+          "testCode": "RM-ID-IR",
+          "parameterName": "Identification (IR)",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "The spectrum obtained for the sample is corresponding to the spectrum obtained from Sildenafil citrate WS.",
+          "expectedState": null,
+          "resultBasis": null,
           "referenceStandard": "BP 2024",
           "source": "Sildenafil Citrate__Specifications sheet Sildenafil Citrate.txt:13"
         },
         {
-          "testCode": "RM-IMP-E", "parameterName": "Impurity E", "limitType": "NotMoreThan",
-          "lower": null, "upper": 0.1, "lowerInclusive": null, "unit": "%",
-          "expectedResultText": null, "expectedState": null, "resultBasis": null,
+          "testCode": "RM-IMP-E",
+          "parameterName": "Impurity E",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Complies (NMT 0.1 %)",
+          "expectedState": null,
+          "resultBasis": null,
           "referenceStandard": "BP 2024",
           "source": "Sildenafil Citrate__Specifications sheet Sildenafil Citrate.txt:14"
         },
         {
-          "testCode": "RM-RS", "parameterName": "Related substances - Impurity A", "limitType": "NotMoreThan",
-          "lower": null, "upper": 0.15, "lowerInclusive": null, "unit": "%",
-          "expectedResultText": null, "expectedState": null, "resultBasis": null,
+          "testCode": "RM-RS",
+          "parameterName": "Related substances - Impurity A",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 0.15,
+          "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
           "referenceStandard": "BP 2024",
-          "source": "Sildenafil Citrate__Specifications sheet Sildenafil Citrate.txt:15"
+          "source": "Sildenafil Citrate__Specifications sheet Sildenafil Citrate.txt:15",
+          "heldBack": "needs the held-back method \"Sildenafil citrate related substances (BP, gradient HPLC)\""
         },
         {
-          "testCode": "RM-RS", "parameterName": "Related substances - Impurity D", "limitType": "NotMoreThan",
-          "lower": null, "upper": 0.15, "lowerInclusive": null, "unit": "%",
-          "expectedResultText": null, "expectedState": null, "resultBasis": null,
+          "testCode": "RM-RS",
+          "parameterName": "Related substances - Impurity D",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 0.15,
+          "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
           "referenceStandard": "BP 2024",
-          "source": "Sildenafil Citrate__Specifications sheet Sildenafil Citrate.txt:15"
+          "source": "Sildenafil Citrate__Specifications sheet Sildenafil Citrate.txt:15",
+          "heldBack": "needs the held-back method \"Sildenafil citrate related substances (BP, gradient HPLC)\""
         },
         {
-          "testCode": "RM-RS", "parameterName": "Related substances - Unspecified impurities (each)", "limitType": "NotMoreThan",
-          "lower": null, "upper": 0.10, "lowerInclusive": null, "unit": "%",
-          "expectedResultText": null, "expectedState": null, "resultBasis": null,
+          "testCode": "RM-RS",
+          "parameterName": "Related substances - Unspecified impurities (each)",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 0.1,
+          "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
           "referenceStandard": "BP 2024",
-          "source": "Sildenafil Citrate__Specifications sheet Sildenafil Citrate.txt:15"
+          "source": "Sildenafil Citrate__Specifications sheet Sildenafil Citrate.txt:15",
+          "heldBack": "needs the held-back method \"Sildenafil citrate related substances (BP, gradient HPLC)\""
         },
         {
-          "testCode": "RM-RS", "parameterName": "Related substances - Total impurities", "limitType": "NotMoreThan",
-          "lower": null, "upper": 0.5, "lowerInclusive": null, "unit": "%",
-          "expectedResultText": null, "expectedState": null, "resultBasis": null,
+          "testCode": "RM-RS",
+          "parameterName": "Related substances - Total impurities",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 0.5,
+          "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
           "referenceStandard": "BP 2024",
-          "source": "Sildenafil Citrate__Specifications sheet Sildenafil Citrate.txt:15"
+          "source": "Sildenafil Citrate__Specifications sheet Sildenafil Citrate.txt:15",
+          "heldBack": "needs the held-back method \"Sildenafil citrate related substances (BP, gradient HPLC)\""
         },
         {
-          "testCode": "RM-SASH", "parameterName": "Sulphated ash", "limitType": "NotMoreThan",
-          "lower": null, "upper": 0.1, "lowerInclusive": null, "unit": "%",
-          "expectedResultText": null, "expectedState": null, "resultBasis": null,
+          "testCode": "RM-SASH",
+          "parameterName": "Sulphated ash",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 0.1,
+          "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
           "referenceStandard": "BP 2024",
           "source": "Sildenafil Citrate__Specifications sheet Sildenafil Citrate.txt:16"
         },
         {
-          "testCode": "RM-WATER", "parameterName": "Water content", "limitType": "NotMoreThan",
-          "lower": null, "upper": 2.5, "lowerInclusive": null, "unit": "%",
-          "expectedResultText": null, "expectedState": null, "resultBasis": null,
+          "testCode": "RM-WATER",
+          "parameterName": "Water content",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 2.5,
+          "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
           "referenceStandard": "BP 2024",
           "source": "Sildenafil Citrate__Specifications sheet Sildenafil Citrate.txt:17"
         },
         {
-          "testCode": "RM-ASSAY", "parameterName": "Assay", "limitType": "Range",
-          "lower": 98.0, "upper": 102.0, "lowerInclusive": true, "unit": "%",
-          "expectedResultText": null, "expectedState": null, "resultBasis": "PercentAnhydrousBasis",
+          "testCode": "RM-ASSAY",
+          "parameterName": "Assay",
+          "limitType": "Range",
+          "lower": 98,
+          "upper": 102,
+          "lowerInclusive": true,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": "PercentAnhydrousBasis",
           "referenceStandard": "BP 2024",
-          "source": "Sildenafil Citrate__Specifications sheet Sildenafil Citrate.txt:18"
+          "source": "Sildenafil Citrate__Specifications sheet Sildenafil Citrate.txt:18",
+          "heldBack": "needs the held-back method \"Sildenafil citrate assay (BP, gradient HPLC)\""
         }
       ]
     }
@@ -92,26 +181,60 @@
     {
       "testCode": "RM-DESC",
       "procedure": "Under strong white light, check each received sample container separately in a clean transparent watch glass or glass dish for foreign particles, colour conformance and compliance with the visual specification.",
-      "kind": "general", "workflow": "Observation",
-      "details": { "perContainer": true, "technique": "Visual", "lighting": "strong white light", "vessel": "clean transparent watch glass or glass dish" },
+      "kind": "general",
+      "workflow": "Observation",
+      "details": {
+        "perContainer": true,
+        "technique": "Visual",
+        "lighting": "strong white light",
+        "vessel": "clean transparent watch glass or glass dish"
+      },
       "source": "Sildenafil Citrate__STM Sildenafil Citrate New.txt:28"
     },
     {
       "testCode": "RM-SOL",
       "procedure": "Weigh 100 mg powdered sample in a stoppered tube, add solvent stepwise (0.1 mL, then +0.9 mL, +2 mL, +7 mL), shaking vigorously 1 min and holding at 25.0 +/- 0.5 C for 15 min after each addition (repeat shake/hold once if not dissolved); classify by the volume at which it dissolves. If still undissolved, 10 mg in 10 mL (slightly soluble), then 1 mg in 10 mL (very slightly soluble), else practically insoluble. Repeat with methanol and hexane.",
-      "kind": "general", "workflow": "Observation",
+      "kind": "general",
+      "workflow": "Observation",
       "details": {
-        "solvents": ["Water (implied, spec: slightly soluble in water)", "Methanol", "Hexane"],
+        "solvents": [
+          "Water (implied, spec: slightly soluble in water)",
+          "Methanol",
+          "Hexane"
+        ],
         "sampleStart": "100 mg powdered sample in stoppered tube",
-        "temperature": "25.0 +/- 0.5 C", "shakePerStep": "1 min vigorous, then 15 min hold; repeat once if not dissolved",
+        "temperature": "25.0 +/- 0.5 C",
+        "shakePerStep": "1 min vigorous, then 15 min hold; repeat once if not dissolved",
         "steps": [
-          {"solventMl": 0.1, "ifDissolved": "very soluble"},
-          {"solventMlAdded": 0.9, "ifDissolved": "freely soluble"},
-          {"solventMlAdded": 2, "ifDissolved": "soluble"},
-          {"solventMlAdded": 7, "ifDissolved": "sparingly soluble"},
-          {"sample": "10 mg", "solventMl": 10, "ifDissolved": "slightly soluble"},
-          {"sample": "1 mg", "solventMl": 10, "ifDissolved": "very slightly soluble"},
-          {"ifNotDissolved": "practically insoluble"}
+          {
+            "solventMl": 0.1,
+            "ifDissolved": "very soluble"
+          },
+          {
+            "solventMlAdded": 0.9,
+            "ifDissolved": "freely soluble"
+          },
+          {
+            "solventMlAdded": 2,
+            "ifDissolved": "soluble"
+          },
+          {
+            "solventMlAdded": 7,
+            "ifDissolved": "sparingly soluble"
+          },
+          {
+            "sample": "10 mg",
+            "solventMl": 10,
+            "ifDissolved": "slightly soluble"
+          },
+          {
+            "sample": "1 mg",
+            "solventMl": 10,
+            "ifDissolved": "very slightly soluble"
+          },
+          {
+            "ifNotDissolved": "practically insoluble"
+          }
         ],
         "reference": "BP 2024 (SC IV K.) Characters Section in Monographs (Hygroscopicity and Solubility)"
       },
@@ -120,14 +243,21 @@
     {
       "testCode": "RM-ID-IR",
       "procedure": "IR: mix the sample intimately with potassium bromide and compress into a transparent pellet; examine the spectrum and compare with that of Sildenafil citrate CRS.",
-      "kind": "specific", "workflow": "Qualitative",
-      "details": { "technique": "Infrared spectrophotometry, KBr pellet", "referenceStandard": "Sildenafil citrate CRS (STM:30 also allows Working Standard; spec sheet names WS)", "equipment": "IR spectrometer", "reference": "BP Appendix II A. Infrared Spectrophotometry" },
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "details": {
+        "technique": "Infrared spectrophotometry, KBr pellet",
+        "referenceStandard": "Sildenafil citrate CRS (STM:30 also allows Working Standard; spec sheet names WS)",
+        "equipment": "IR spectrometer",
+        "reference": "BP Appendix II A. Infrared Spectrophotometry"
+      },
       "source": "Sildenafil Citrate__STM Sildenafil Citrate New.txt:30"
     },
     {
       "testCode": "RM-IMP-E",
       "procedure": "TLC limit test for impurity E (imidazole). Solvent mixture: concentrated ammonia, water, methanol (5:25:75 V/V/V). Test solution: 35.0 mg in 2.0 mL solvent mixture. Reference (a): 7.0 mg imidazole CRS in solvent mixture to 20.0 mL, then 1.0 mL to 10.0 mL. Reference (b): 5.0 mL of (a) to 10.0 mL. Reference (c): 1 mL test solution + 1 mL reference (a). Apply 10 uL of test solution and references (b) and (c) as 6 mm bands. Mobile phase: concentrated ammonia, ethanol 96%, ethyl acetate, methylene chloride (1:20:30:50). Develop over 2/3 of plate, dry at 100 C ~15 min, expose to iodine vapour until light brown, examine at 254 nm. Rf: citrate ~0, impurity E ~0.25, sildenafil ~0.4. System suitability (ref c): 2 clearly separated zones. Impurity E zone in test solution not more intense than principal zone of reference (b).",
-      "kind": "specific", "workflow": "Qualitative",
+      "kind": "specific",
+      "workflow": "Qualitative",
       "details": {
         "technique": "TLC",
         "solventMixture": "concentrated ammonia : water : methanol 5:25:75 V/V/V",
@@ -136,10 +266,15 @@
         "referenceB": "dilute 5.0 mL of reference (a) to 10.0 mL with solvent mixture (the 0.1 % comparison)",
         "referenceC": "mix 1 mL test solution and 1 mL reference (a)",
         "mobilePhase": "concentrated ammonia : ethanol 96% : ethyl acetate : methylene chloride 1:20:30:50 V/V/V/V",
-        "development": "over 2/3 of the plate", "drying": "100 C for about 15 min",
+        "development": "over 2/3 of the plate",
+        "drying": "100 C for about 15 min",
         "application": "10 uL of test solution and references (b), (c) as bands of 6 mm",
         "detection": "iodine vapour until plate light brown; UV 254 nm",
-        "retardationFactors": { "citrate": "about 0", "impurityE": "about 0.25", "sildenafil": "about 0.4" },
+        "retardationFactors": {
+          "citrate": "about 0",
+          "impurityE": "about 0.25",
+          "sildenafil": "about 0.4"
+        },
         "systemSuitability": "reference (c): chromatogram shows 2 clearly separated zones",
         "acceptance": "any zone due to impurity E not more intense than the principal zone with reference (b)",
         "reference": "BP Appendix III A. Thin-layer Chromatography"
@@ -149,7 +284,8 @@
     {
       "testCode": "RM-RS",
       "procedure": "Gradient HPLC related substances, 230 nm, main method (BP, external standard). Test solution (a): 25.0 mg in solvent mixture to 50.0 mL. Reference (c): 1.0 mL test solution (a) to 100.0 mL, then 1.0 mL to 10.0 mL. Reference (a) for system suitability (impurity A), reference (b) for impurity D identification. Result % = (rU/rS) x (CS/CU) x 100 using sildenafil in reference (c); impurity D area x 0.7.",
-      "kind": "specific", "workflow": "HplcMethodAssay",
+      "kind": "specific",
+      "workflow": "HplcMethodAssay",
       "details": {
         "technique": "HPLC, gradient, UV",
         "bufferSolution": "2.72 g potassium dihydrogen phosphate in 900 mL water, adjust to pH 6.5 with 120 g/L potassium hydroxide solution, dilute to 1.0 L with water",
@@ -160,46 +296,90 @@
         "referenceB": "5 mg sildenafil for peak identification CRS (contains impurity D) in solvent mixture, dilute to 10.0 mL",
         "referenceC": "1.0 mL test solution (a) to 100.0 mL with solvent mixture; then 1.0 mL to 10.0 mL with solvent mixture",
         "referenceD": "25.0 mg sildenafil citrate CRS in solvent mixture to 50.0 mL; 2.0 mL to 50.0 mL (defined in STM; not used in the related substances calculation, used in the assay)",
-        "column": { "lengthM": 0.25, "internalDiameterMm": 4.6, "stationaryPhase": "end-capped octadecylsilyl silica gel for chromatography R", "particleSizeUm": 5 },
+        "column": {
+          "lengthM": 0.25,
+          "internalDiameterMm": 4.6,
+          "stationaryPhase": "end-capped octadecylsilyl silica gel for chromatography R",
+          "particleSizeUm": 5
+        },
         "mobilePhaseA": "acetonitrile : buffer solution (20:80 V/V)",
         "mobilePhaseB": "buffer solution : methanol : acetonitrile for chromatography (20:20:60 V/V/V)",
         "gradient": [
-          { "timeMin": "0-3", "A": "75", "B": "25" },
-          { "timeMin": "3-26", "A": "75 -> 30", "B": "25 -> 70" },
-          { "timeMin": "26-38", "A": "30", "B": "70" }
+          {
+            "timeMin": "0-3",
+            "A": "75",
+            "B": "25"
+          },
+          {
+            "timeMin": "3-26",
+            "A": "75 -> 30",
+            "B": "25 -> 70"
+          },
+          {
+            "timeMin": "26-38",
+            "A": "30",
+            "B": "70"
+          }
         ],
         "flowRateMlPerMin": 1.5,
         "detection": "UV spectrophotometer 230 nm",
         "injection": "10 uL of test solution (a) and reference solutions (a), (b) and (c)",
         "identification": "Reference (a) chromatogram identifies impurity A; chromatogram supplied with sildenafil for peak identification CRS and reference (b) identify impurity D",
-        "relativeRetention": { "sildenafil": "retention time about 16 min", "impurityD": "about 0.15", "impurityA": "about 1.25" },
+        "relativeRetention": {
+          "sildenafil": "retention time about 16 min",
+          "impurityD": "about 0.15",
+          "impurityA": "about 1.25"
+        },
         "systemSuitability": "Reference (a): resolution minimum 5.0 between sildenafil and impurity A peaks",
         "correctionFactor": "multiply the peak area of impurity D by 0.7",
         "calculation": "Result = (rU/rS) x (CS/CU) x 100; for each impurity use the concentration of sildenafil in reference solution (c); rU = peak response of sildenafil for each impurity of the sample solution, rS = peak response of sildenafil from the standard solution, CS = concentration of the standard solution (mg/mL), CU = concentration of the sample solution (mg/mL)",
         "reportingThreshold": "0.05 per cent; disregard the peak due to citrate",
-        "limits": { "impuritiesA_D_each": "max 0.15 %", "unspecifiedEach": "max 0.10 %", "total": "max 0.5 %" },
+        "limits": {
+          "impuritiesA_D_each": "max 0.15 %",
+          "unspecifiedEach": "max 0.10 %",
+          "total": "max 0.5 %"
+        },
         "reference": "BP Appendix III D. Liquid Chromatography; BP 2024 Monograph for Sildenafil citrate"
       },
-      "source": "Sildenafil Citrate__STM Sildenafil Citrate New.txt:32 (main method only; the 'Alternative method ... by Normalization' in the same cell is not transcribed)"
+      "source": "Sildenafil Citrate__STM Sildenafil Citrate New.txt:32 (main method only; the 'Alternative method ... by Normalization' in the same cell is not transcribed)",
+      "heldBack": "needs the held-back method \"Sildenafil citrate related substances (BP, gradient HPLC)\""
     },
     {
       "testCode": "RM-SASH",
       "procedure": "Crucible ignited at 600-650 C and cooled (W0). Weigh accurately 1.0 g sample (W1 = crucible + sample). Moisten with about 1 mL sulfuric acid, char gently on hot plate, cool, moisten residue with sulfuric acid again, heat gently until white fumes cease, ignite in calibrated muffle at 600-650 C, cool in desiccator, weigh (W2); repeat to constant weight. % Sulphated ash = (W2 - W0) / (W1 - W0) x 100.",
-      "kind": "general", "workflow": "Gravimetric",
-      "details": { "sampleG": 1.0, "temperatureC": "600-650", "acid": "sulfuric acid, usually 1 mL, twice", "cooling": "desiccator", "toConstantWeight": true, "equipment": "hot plate, calibrated muffle furnace", "formula": "(W2 - W0) / (W1 - W0) x 100", "reference": "BP Appendix IX A. Determination of Sulfated Ash" },
+      "kind": "general",
+      "workflow": "Gravimetric",
+      "details": {
+        "sampleG": 1,
+        "temperatureC": "600-650",
+        "acid": "sulfuric acid, usually 1 mL, twice",
+        "cooling": "desiccator",
+        "toConstantWeight": true,
+        "equipment": "hot plate, calibrated muffle furnace",
+        "formula": "(W2 - W0) / (W1 - W0) x 100",
+        "reference": "BP Appendix IX A. Determination of Sulfated Ash"
+      },
       "source": "Sildenafil Citrate__STM Sildenafil Citrate New.txt:41"
     },
     {
       "testCode": "RM-WATER",
       "procedure": "Karl Fischer water determination on 0.200 g of sample using a calibrated Karl Fischer titrator.",
-      "kind": "general", "workflow": "Titration",
-      "details": { "technique": "Karl Fischer", "sampleG": 0.200, "equipment": "calibrated Karl Fischer", "reference": "BP Appendix IX C. Determination of Water" },
+      "kind": "general",
+      "workflow": "Measurement",
+      "details": {
+        "technique": "Karl Fischer",
+        "sampleG": 0.2,
+        "equipment": "calibrated Karl Fischer",
+        "reference": "BP Appendix IX C. Determination of Water",
+        "analystEntersFinalValue": "Decision 2026-11-04: was Titration in the transcription; now Measurement, the analyst enters the final value."
+      },
       "source": "Sildenafil Citrate__STM Sildenafil Citrate New.txt:42"
     },
     {
       "testCode": "RM-ASSAY",
       "procedure": "Gradient HPLC assay, 230 nm, main method (BP, external standard sildenafil citrate CRS). Test solution (a): 25.0 mg in solvent mixture to 50.0 mL; test solution (b): 2.0 mL of (a) to 50.0 mL. Reference solution (d): 25.0 mg sildenafil citrate CRS in solvent mixture to 50.0 mL; 2.0 mL to 50.0 mL. Result % = (rU/rS) x (CS/CU) x 100, expressed on the anhydrous substance.",
-      "kind": "specific", "workflow": "HplcMethodAssay",
+      "kind": "specific",
+      "workflow": "HplcMethodAssay",
       "details": {
         "technique": "HPLC, gradient, UV",
         "bufferSolution": "2.72 g potassium dihydrogen phosphate in 900 mL water, adjust to pH 6.5 with 120 g/L potassium hydroxide solution, dilute to 1.0 L with water",
@@ -207,53 +387,161 @@
         "testSolutionA": "25.0 mg sample in solvent mixture, dilute to 50.0 mL",
         "testSolutionB": "dilute 2.0 mL of test solution (a) to 50.0 mL with solvent mixture",
         "referenceD": "25.0 mg sildenafil citrate CRS in solvent mixture to 50.0 mL; dilute 2.0 mL to 50.0 mL with solvent mixture",
-        "column": { "lengthM": 0.25, "internalDiameterMm": 4.6, "stationaryPhase": "end-capped octadecylsilyl silica gel for chromatography R", "particleSizeUm": 5 },
+        "column": {
+          "lengthM": 0.25,
+          "internalDiameterMm": 4.6,
+          "stationaryPhase": "end-capped octadecylsilyl silica gel for chromatography R",
+          "particleSizeUm": 5
+        },
         "mobilePhaseA": "acetonitrile : buffer solution (20:80 V/V)",
         "mobilePhaseB": "buffer solution : methanol : acetonitrile for chromatography (20:20:60 V/V/V)",
         "gradient": [
-          { "timeMin": "0-3", "A": "75", "B": "25" },
-          { "timeMin": "3-26", "A": "75 -> 30", "B": "25 -> 70" },
-          { "timeMin": "26-38", "A": "30", "B": "70" }
+          {
+            "timeMin": "0-3",
+            "A": "75",
+            "B": "25"
+          },
+          {
+            "timeMin": "3-26",
+            "A": "75 -> 30",
+            "B": "25 -> 70"
+          },
+          {
+            "timeMin": "26-38",
+            "A": "30",
+            "B": "70"
+          }
         ],
         "flowRateMlPerMin": 1.5,
         "detection": "UV spectrophotometer 230 nm",
         "injection": "STM text: 10 uL of test solution (a) and reference solutions (a), (b) and (c) (see openQuestions)",
-        "relativeRetention": { "sildenafil": "retention time about 16 min", "impurityD": "about 0.15", "impurityA": "about 1.25" },
+        "relativeRetention": {
+          "sildenafil": "retention time about 16 min",
+          "impurityD": "about 0.15",
+          "impurityA": "about 1.25"
+        },
         "systemSuitability": "STM text: reference solution (a): resolution minimum 5.0 between sildenafil and impurity A (reference (a) not defined in the Assay section; see openQuestions)",
         "calculation": "Result = (rU/rS) x (CS/CU) x 100; rU = peak response of sildenafil citrate from the sample solution, rS = peak response of sildenafil citrate from the standard solution, CS = concentration of sildenafil citrate CRS in the standard solution (mg/mL), CU = concentration of sildenafil citrate in the sample solution (mg/mL)",
         "basis": "anhydrous substance",
         "reference": "BP Appendix III D. Liquid Chromatography; BP 2024 Monograph for Sildenafil citrate"
       },
-      "source": "Sildenafil Citrate__STM Sildenafil Citrate New.txt:43 (main method only; the '*Alternative method For Assay' in the same cell is not transcribed)"
+      "source": "Sildenafil Citrate__STM Sildenafil Citrate New.txt:43 (main method only; the '*Alternative method For Assay' in the same cell is not transcribed)",
+      "heldBack": "needs the held-back method \"Sildenafil citrate assay (BP, gradient HPLC)\""
     }
   ],
   "notApplicable": [],
   "supplierAttributes": [],
   "reagents": [
-    { "name": "Acetonitrile", "use": "reagent", "source": "Sildenafil Citrate__STM Sildenafil Citrate New.txt:26" },
-    { "name": "Concentrated ammonia", "use": "reagent", "source": "Sildenafil Citrate__STM Sildenafil Citrate New.txt:26" },
-    { "name": "Ethanol (96 per cent)", "use": "reagent", "source": "Sildenafil Citrate__STM Sildenafil Citrate New.txt:26" },
-    { "name": "Ethyl acetate", "use": "reagent", "source": "Sildenafil Citrate__STM Sildenafil Citrate New.txt:26" },
-    { "name": "Hexane", "use": "reagent", "source": "Sildenafil Citrate__STM Sildenafil Citrate New.txt:26" },
-    { "name": "Imidazole CRS", "use": "standard", "source": "Sildenafil Citrate__STM Sildenafil Citrate New.txt:26" },
-    { "name": "Methanol", "use": "reagent", "source": "Sildenafil Citrate__STM Sildenafil Citrate New.txt:26" },
-    { "name": "Methylene chloride", "use": "reagent", "source": "Sildenafil Citrate__STM Sildenafil Citrate New.txt:26" },
-    { "name": "Potassium dihydrogen phosphate", "use": "reagent", "source": "Sildenafil Citrate__STM Sildenafil Citrate New.txt:26" },
-    { "name": "Potassium hydroxide", "use": "reagent", "source": "Sildenafil Citrate__STM Sildenafil Citrate New.txt:26" },
-    { "name": "Sildenafil citrate CRS", "use": "standard", "source": "Sildenafil Citrate__STM Sildenafil Citrate New.txt:26" },
-    { "name": "Sildenafil citrate Working Standard", "use": "standard", "source": "Sildenafil Citrate__STM Sildenafil Citrate New.txt:26" },
-    { "name": "Sildenafil for peak identification CRS", "use": "standard", "source": "Sildenafil Citrate__STM Sildenafil Citrate New.txt:26" },
-    { "name": "Sildenafil impurity A CRS", "use": "standard", "source": "Sildenafil Citrate__STM Sildenafil Citrate New.txt:26" },
-    { "name": "Triethylamine (listed in Materials; only the untranscribed alternative method uses it)", "use": "reagent", "source": "Sildenafil Citrate__STM Sildenafil Citrate New.txt:26" },
-    { "name": "Potassium bromide (used in IR, not in the Materials list)", "use": "reagent", "source": "Sildenafil Citrate__STM Sildenafil Citrate New.txt:30" },
-    { "name": "Sulfuric acid (used in sulphated ash, not in the Materials list)", "use": "reagent", "source": "Sildenafil Citrate__STM Sildenafil Citrate New.txt:41" }
+    {
+      "name": "Acetonitrile",
+      "use": "reagent",
+      "source": "Sildenafil Citrate__STM Sildenafil Citrate New.txt:26"
+    },
+    {
+      "name": "Concentrated ammonia",
+      "use": "reagent",
+      "source": "Sildenafil Citrate__STM Sildenafil Citrate New.txt:26"
+    },
+    {
+      "name": "Ethanol (96 per cent)",
+      "use": "reagent",
+      "source": "Sildenafil Citrate__STM Sildenafil Citrate New.txt:26"
+    },
+    {
+      "name": "Ethyl acetate",
+      "use": "reagent",
+      "source": "Sildenafil Citrate__STM Sildenafil Citrate New.txt:26"
+    },
+    {
+      "name": "Hexane",
+      "use": "reagent",
+      "source": "Sildenafil Citrate__STM Sildenafil Citrate New.txt:26"
+    },
+    {
+      "name": "Imidazole CRS",
+      "use": "standard",
+      "source": "Sildenafil Citrate__STM Sildenafil Citrate New.txt:26"
+    },
+    {
+      "name": "Methanol",
+      "use": "reagent",
+      "source": "Sildenafil Citrate__STM Sildenafil Citrate New.txt:26"
+    },
+    {
+      "name": "Methylene chloride",
+      "use": "reagent",
+      "source": "Sildenafil Citrate__STM Sildenafil Citrate New.txt:26"
+    },
+    {
+      "name": "Potassium dihydrogen phosphate",
+      "use": "reagent",
+      "source": "Sildenafil Citrate__STM Sildenafil Citrate New.txt:26"
+    },
+    {
+      "name": "Potassium hydroxide",
+      "use": "reagent",
+      "source": "Sildenafil Citrate__STM Sildenafil Citrate New.txt:26"
+    },
+    {
+      "name": "Sildenafil citrate CRS",
+      "use": "standard",
+      "source": "Sildenafil Citrate__STM Sildenafil Citrate New.txt:26"
+    },
+    {
+      "name": "Sildenafil citrate Working Standard",
+      "use": "standard",
+      "source": "Sildenafil Citrate__STM Sildenafil Citrate New.txt:26"
+    },
+    {
+      "name": "Sildenafil for peak identification CRS",
+      "use": "standard",
+      "source": "Sildenafil Citrate__STM Sildenafil Citrate New.txt:26"
+    },
+    {
+      "name": "Sildenafil impurity A CRS",
+      "use": "standard",
+      "source": "Sildenafil Citrate__STM Sildenafil Citrate New.txt:26"
+    },
+    {
+      "name": "Triethylamine (listed in Materials; only the untranscribed alternative method uses it)",
+      "use": "reagent",
+      "source": "Sildenafil Citrate__STM Sildenafil Citrate New.txt:26"
+    },
+    {
+      "name": "Potassium bromide (used in IR, not in the Materials list)",
+      "use": "reagent",
+      "source": "Sildenafil Citrate__STM Sildenafil Citrate New.txt:30"
+    },
+    {
+      "name": "Sulfuric acid (used in sulphated ash, not in the Materials list)",
+      "use": "reagent",
+      "source": "Sildenafil Citrate__STM Sildenafil Citrate New.txt:41"
+    }
   ],
   "openQuestions": [
-    { "question": "Assay: the injection line reads '10 uL of test solution (a) and reference solutions (a), (b) and (c)' and the system suitability uses reference solution (a), but the Assay section defines only test solutions (a), (b) and reference solution (d); (a)/(b)/(c) references look copied from Related substances. Which solutions are injected and which system suitability applies to the assay? (Assay values assumed to compare test solution (b) against reference (d), not stated.)", "source": "Sildenafil Citrate__STM Sildenafil Citrate New.txt:43" },
-    { "question": "Related substances: reference solution (d) is defined but not used (calculation uses reference solution (c)); test solution (b) is defined but not in the injection list; the assay section also contains a stray line 'for each impurity, use the concentration of sildenafil in reference solution (c)'. Confirm which solutions the related-substances run needs.", "source": "Sildenafil Citrate__STM Sildenafil Citrate New.txt:32,43" },
-    { "question": "Identification: spec sheet names only 'Sildenafil citrate WS' as the comparison spectrum; STM compares to Sildenafil citrate CRS (spec text in STM allows CRS or Working Standard). Which is the reference for the test? Row follows the spec sheet wording.", "source": "Sildenafil Citrate__Specifications sheet Sildenafil Citrate.txt:13; STM:30" },
-    { "question": "Related substances reporting threshold 0.05 per cent and 'disregard the peak due to citrate' are on the spec sheet but are not acceptance limits; kept in the test details, not as a spec row. Confirm no row is wanted.", "source": "Sildenafil Citrate__Specifications sheet Sildenafil Citrate.txt:15" },
-    { "question": "Water content: STM gives only 'Determined on 0.200 g, calibrated Karl Fischer' with no titrant/reagent, KF factor or solvent; Karl Fischer reagents are not in the Materials list.", "source": "Sildenafil Citrate__STM Sildenafil Citrate New.txt:42,26" },
-    { "question": "HPLC column temperature and gradient re-equilibration are not stated in the main (BP) method.", "source": "Sildenafil Citrate__STM Sildenafil Citrate New.txt:32,43" }
+    {
+      "question": "Assay: the injection line reads '10 uL of test solution (a) and reference solutions (a), (b) and (c)' and the system suitability uses reference solution (a), but the Assay section defines only test solutions (a), (b) and reference solution (d); (a)/(b)/(c) references look copied from Related substances. Which solutions are injected and which system suitability applies to the assay? (Assay values assumed to compare test solution (b) against reference (d), not stated.)",
+      "source": "Sildenafil Citrate__STM Sildenafil Citrate New.txt:43"
+    },
+    {
+      "question": "Related substances: reference solution (d) is defined but not used (calculation uses reference solution (c)); test solution (b) is defined but not in the injection list; the assay section also contains a stray line 'for each impurity, use the concentration of sildenafil in reference solution (c)'. Confirm which solutions the related-substances run needs.",
+      "source": "Sildenafil Citrate__STM Sildenafil Citrate New.txt:32,43"
+    },
+    {
+      "question": "Identification: spec sheet names only 'Sildenafil citrate WS' as the comparison spectrum; STM compares to Sildenafil citrate CRS (spec text in STM allows CRS or Working Standard). Which is the reference for the test? Row follows the spec sheet wording.",
+      "source": "Sildenafil Citrate__Specifications sheet Sildenafil Citrate.txt:13; STM:30"
+    },
+    {
+      "question": "Related substances reporting threshold 0.05 per cent and 'disregard the peak due to citrate' are on the spec sheet but are not acceptance limits; kept in the test details, not as a spec row. Confirm no row is wanted.",
+      "source": "Sildenafil Citrate__Specifications sheet Sildenafil Citrate.txt:15"
+    },
+    {
+      "question": "Water content: STM gives only 'Determined on 0.200 g, calibrated Karl Fischer' with no titrant/reagent, KF factor or solvent; Karl Fischer reagents are not in the Materials list.",
+      "source": "Sildenafil Citrate__STM Sildenafil Citrate New.txt:42,26"
+    },
+    {
+      "question": "HPLC column temperature and gradient re-equilibration are not stated in the main (BP) method.",
+      "source": "Sildenafil Citrate__STM Sildenafil Citrate New.txt:32,43"
+    }
   ]
 }

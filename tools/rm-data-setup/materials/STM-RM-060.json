@@ -90,7 +90,7 @@
           "parameterName": "pH",
           "limitType": "Range",
           "lower": 3.5,
-          "upper": 5.0,
+          "upper": 5,
           "lowerInclusive": true,
           "unit": "pH",
           "expectedResultText": null,
@@ -116,12 +116,12 @@
         {
           "testCode": "RM-IRON",
           "parameterName": "Iron",
-          "limitType": "NotMoreThan",
+          "limitType": "Qualitative",
           "lower": null,
-          "upper": 20,
+          "upper": null,
           "lowerInclusive": null,
-          "unit": "ppm",
-          "expectedResultText": null,
+          "unit": null,
+          "expectedResultText": "Complies (NMT 20 ppm)",
           "expectedState": null,
           "resultBasis": null,
           "referenceStandard": "BP 2025",
@@ -131,13 +131,13 @@
           "testCode": "RM-ASSAY",
           "parameterName": "Assay",
           "limitType": "Range",
-          "lower": 95.0,
+          "lower": 95,
           "upper": 100.5,
           "lowerInclusive": true,
           "unit": "%",
           "expectedResultText": null,
           "expectedState": null,
-          "resultBasis": "PercentAsIs",
+          "resultBasis": null,
           "referenceStandard": "BP 2025",
           "source": "Sodium Meta bisulfit__Specifications sheet.txt:19; Sodium Meta bisulfit__Sodium Metabisulfit - SM without arsenic.txt:35"
         }
@@ -283,14 +283,14 @@
     {
       "testCode": "RM-ASSAY",
       "kind": "specific",
-      "workflow": "Titration",
+      "workflow": "Measurement",
       "source": "Sodium Meta bisulfit__Sodium Metabisulfit - SM without arsenic.txt:35; Sodium Meta bisulfit__Sodium Metabisulfit - SM without arsenic.txt:26",
       "procedure": "Residual (back) iodometric titration. Dissolve 0.200 g in 50.0 mL of 0.05 M iodine, add 5 mL dilute hydrochloric acid, titrate the excess iodine with 0.1 M sodium thiosulfate using 1 mL starch solution added towards the end as indicator. Calculation as printed: %Assay = (E.p x Eq.wt x F) / Wt x 100; E.p = end point (mL), Eq.wt = 4.753 mg, F = factor of titrant, Wt = sample weight (g).",
       "details": {
         "sampleWeightG": 0.2,
         "iodineVS": {
           "molarity": 0.05,
-          "volumeMl": 50.0
+          "volumeMl": 50
         },
         "acidAdded": "5 mL dilute hydrochloric acid",
         "titrant": {
@@ -307,7 +307,8 @@
         "starchSolution": "1.0 g soluble starch triturated with 5 mL water, poured with stirring into 100 mL boiling water containing 10 mg mercuric iodide",
         "potassiumBromate033M": "5.5670 g potassium bromate in water, dilute to 1000.0 mL",
         "specification": "95.0 per cent to 100.5 per cent",
-        "reference": "BP 2025 Monograph for Sodium Metabisulfite"
+        "reference": "BP 2025 Monograph for Sodium Metabisulfite",
+        "analystEntersFinalValue": "Decision 2026-11-04: was Titration in the transcription; now Measurement, the analyst enters the final value."
       }
     }
   ],

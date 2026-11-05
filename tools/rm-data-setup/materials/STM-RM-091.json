@@ -2,8 +2,15 @@
   "itemCode": "STM-RM-091",
   "itemName": "Sodium Lauryl Sulfate",
   "stmFile": "Sodium Lauryl sulfate__Sodium Lauryl sulfate.txt",
-  "specFiles": ["Sodium Lauryl sulfate__Specifications sheet Sodium Lauryl sulfate.txt"],
-  "minQuantity": { "routine": 160, "retest": 80, "unit": "g", "source": "Sodium Lauryl sulfate__Sodium Lauryl sulfate.txt:36 (routine 160 g also spec sheet line 21)" },
+  "specFiles": [
+    "Sodium Lauryl sulfate__Specifications sheet Sodium Lauryl sulfate.txt"
+  ],
+  "minQuantity": {
+    "routine": 160,
+    "retest": 80,
+    "unit": "g",
+    "source": "Sodium Lauryl sulfate__Sodium Lauryl sulfate.txt:36 (routine 160 g also spec sheet line 21)"
+  },
   "grades": [
     {
       "grade": "BP",
@@ -12,7 +19,9 @@
           "testCode": "RM-APPEARANCE",
           "parameterName": "Appearance",
           "limitType": "Qualitative",
-          "lower": null, "upper": null, "lowerInclusive": null,
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
           "unit": null,
           "expectedResultText": "White or pale yellow, powder or crystals",
           "expectedState": null,
@@ -24,7 +33,9 @@
           "testCode": "RM-SOLUBILITY",
           "parameterName": "Solubility",
           "limitType": "Qualitative",
-          "lower": null, "upper": null, "lowerInclusive": null,
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
           "unit": null,
           "expectedResultText": "Freely soluble in water giving an opalescent solution, partly soluble in ethanol (96 per cent)",
           "expectedState": null,
@@ -36,7 +47,9 @@
           "testCode": "RM-ID-IR",
           "parameterName": "Identification (IR)",
           "limitType": "Qualitative",
-          "lower": null, "upper": null, "lowerInclusive": null,
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
           "unit": null,
           "expectedResultText": "The spectrum obtained for the sample compares with the spectrum obtained from Sodium lauryl Sulfate RS",
           "expectedState": null,
@@ -48,7 +61,9 @@
           "testCode": "RM-ID-SODIUM",
           "parameterName": "Identification (chemical reaction, sodium)",
           "limitType": "Qualitative",
-          "lower": null, "upper": null, "lowerInclusive": null,
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
           "unit": null,
           "expectedResultText": "A white, crystalline precipitate is formed",
           "expectedState": null,
@@ -60,7 +75,9 @@
           "testCode": "RM-ID-SULFATE",
           "parameterName": "Identification (chemical reaction, barium chloride after hydrolysis)",
           "limitType": "Qualitative",
-          "lower": null, "upper": null, "lowerInclusive": null,
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
           "unit": null,
           "expectedResultText": "White precipitate is produced",
           "expectedState": null,
@@ -72,7 +89,9 @@
           "testCode": "RM-ID-FOAM",
           "parameterName": "Identification (foam formation)",
           "limitType": "Qualitative",
-          "lower": null, "upper": null, "lowerInclusive": null,
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
           "unit": null,
           "expectedResultText": "A copious foam is formed",
           "expectedState": null,
@@ -84,7 +103,9 @@
           "testCode": "RM-ALKALINITY",
           "parameterName": "Alkalinity",
           "limitType": "NotMoreThan",
-          "lower": null, "upper": 0.5, "lowerInclusive": null,
+          "lower": null,
+          "upper": 0.5,
+          "lowerInclusive": null,
           "unit": "mL of 0.1 M hydrochloric acid",
           "expectedResultText": null,
           "expectedState": null,
@@ -96,7 +117,9 @@
           "testCode": "RM-NON-ESTERIFIED-ALCOHOLS",
           "parameterName": "Non-esterified alcohols",
           "limitType": "NotMoreThan",
-          "lower": null, "upper": 4.0, "lowerInclusive": null,
+          "lower": null,
+          "upper": 4,
+          "lowerInclusive": null,
           "unit": "%",
           "expectedResultText": null,
           "expectedState": null,
@@ -108,7 +131,9 @@
           "testCode": "RM-NACL-NA2SO4",
           "parameterName": "Sodium chloride and sodium sulfate (total)",
           "limitType": "NotMoreThan",
-          "lower": null, "upper": 8.0, "lowerInclusive": null,
+          "lower": null,
+          "upper": 8,
+          "lowerInclusive": null,
           "unit": "%",
           "expectedResultText": null,
           "expectedState": null,
@@ -120,11 +145,13 @@
           "testCode": "RM-ASSAY",
           "parameterName": "Assay (sodium alkyl sulfates)",
           "limitType": "NotLessThan",
-          "lower": 85.0, "upper": null, "lowerInclusive": null,
+          "lower": 85,
+          "upper": null,
+          "lowerInclusive": null,
           "unit": "%",
           "expectedResultText": null,
           "expectedState": null,
-          "resultBasis": "PercentAsIs",
+          "resultBasis": null,
           "referenceStandard": "BP",
           "source": "Sodium Lauryl sulfate__Specifications sheet Sodium Lauryl sulfate.txt:20 (no dried/anhydrous basis stated)"
         }
@@ -141,7 +168,11 @@
         "perContainer": true,
         "lighting": "strong white light",
         "vessel": "clean, transparent watch glass or glass dish",
-        "checks": ["foreign particles", "conformance of colour", "compliance with visual specification"],
+        "checks": [
+          "foreign particles",
+          "conformance of colour",
+          "compliance with visual specification"
+        ],
         "reference": "BP 2024 Monograph for Sodium Lauryl Sulfate"
       },
       "source": "Sodium Lauryl sulfate__Sodium Lauryl sulfate.txt:28"
@@ -163,7 +194,10 @@
           "not dissolved: 1 mg powdered substance + 10 mL solvent: dissolved = very slightly soluble",
           "not dissolved = practically insoluble"
         ],
-        "solvents": ["water", "ethanol (96 per cent)"],
+        "solvents": [
+          "water",
+          "ethanol (96 per cent)"
+        ],
         "reference": "BP 2023 Monograph for Sodium Lauryl Sulfate"
       },
       "source": "Sodium Lauryl sulfate__Sodium Lauryl sulfate.txt:29"
@@ -233,9 +267,9 @@
       "testCode": "RM-ALKALINITY",
       "procedure": "Dissolve 1.0 g in 100 mL carbon dioxide-free water, add 0.1 mL phenol red solution. Record the volume of 0.1 M hydrochloric acid required to change the colour of the indicator.",
       "kind": "specific",
-      "workflow": "Titration",
+      "workflow": "Measurement",
       "details": {
-        "sampleG": 1.0,
+        "sampleG": 1,
         "solvent": "100 mL carbon dioxide-free water",
         "indicator": "0.1 mL phenol red solution",
         "titrant": "0.1 M hydrochloric acid VS",
@@ -245,7 +279,8 @@
         "titrantPreparation": "0.1 M HCl VS: dilute 100.0 mL of 1 M hydrochloric acid to 1000.0 mL with carbon dioxide-free water",
         "indicatorPreparation": "Phenol red solution: dissolve 0.1 g phenol red in a mixture of 2.82 mL 0.1 M sodium hydroxide and 20 mL ethanol (96 per cent), dilute to 100 mL with water",
         "result": "mL of 0.1 M HCl used",
-        "reference": "BP 2023 Monograph for Sodium Lauryl Sulfate"
+        "reference": "BP 2023 Monograph for Sodium Lauryl Sulfate",
+        "analystEntersFinalValue": "Decision 2026-11-04: was Titration in the transcription; now Measurement, the analyst enters the final value."
       },
       "source": "Sodium Lauryl sulfate__Sodium Lauryl sulfate.txt:31; preparations line 26"
     },
@@ -253,9 +288,9 @@
       "testCode": "RM-NON-ESTERIFIED-ALCOHOLS",
       "procedure": "Dissolve 10.0 g in 100 mL water, add 100 mL ethanol (96 per cent). Extract with 3 quantities of 50 mL light petroleum (add sodium chloride if necessary to separate layers). Wash combined organic layers with 3 quantities of 50 mL water, dry over anhydrous sodium sulfate, filter, evaporate on a water-bath until the solvent has evaporated, heat the residue at 105 C for 30 min, cool, weigh the residue (maximum 0.4 g).",
       "kind": "specific",
-      "workflow": "Gravimetric",
+      "workflow": "Measurement",
       "details": {
-        "sampleG": 10.0,
+        "sampleG": 10,
         "dissolvedIn": "100 mL water + 100 mL ethanol (96 per cent)",
         "extraction": "3 x 50 mL light petroleum",
         "wash": "3 x 50 mL water",
@@ -265,7 +300,8 @@
         "residueDryingMinutes": 30,
         "residueLimit": "residue weighs a maximum of 0.4 g",
         "calculation": "not stated; limit 4.0 per cent corresponds to 0.4 g residue from 10.0 g (inferred)",
-        "reference": "BP 2023 Monograph for Sodium Lauryl Sulfate"
+        "reference": "BP 2023 Monograph for Sodium Lauryl Sulfate",
+        "analystEntersFinalValue": "Decision 2026-11-04: was Gravimetric in the transcription; now Measurement, the analyst enters the final value."
       },
       "source": "Sodium Lauryl sulfate__Sodium Lauryl sulfate.txt:32"
     },
@@ -273,10 +309,10 @@
       "testCode": "RM-NACL-NA2SO4",
       "procedure": "Two determinations summed for the total: sodium chloride by argentometric titration, sodium sulfate gravimetrically as barium sulfate.",
       "kind": "specific",
-      "workflow": "Titration",
+      "workflow": "Measurement",
       "details": {
         "sodiumChloride": {
-          "sampleG": 5.00,
+          "sampleG": 5,
           "dissolvedIn": "50 mL water",
           "neutralisation": "dilute nitric acid dropwise if necessary until neutral",
           "addition": "5.0 mL of a 5.84 g/L sodium chloride solution",
@@ -290,7 +326,7 @@
         },
         "sodiumSulfate": {
           "workflow": "Gravimetric",
-          "sampleG": 1.00,
+          "sampleG": 1,
           "dissolvedIn": "10 mL water",
           "step1": "add 100 mL ethanol (96 per cent); heat just below boiling point for 2 h",
           "step2": "filter hot through glass or porcelain filter; wash with 100 mL boiling ethanol (96 per cent)",
@@ -302,7 +338,8 @@
           "factorMgPerMg": 0.609
         },
         "limit": "Maximum 8.0 per cent for the total percentage content",
-        "reference": "BP 2023 Monograph for Sodium Lauryl Sulfate"
+        "reference": "BP 2023 Monograph for Sodium Lauryl Sulfate",
+        "analystEntersFinalValue": "Decision 2026-11-04: was Titration in the transcription; now Measurement, the analyst enters the final value."
       },
       "source": "Sodium Lauryl sulfate__Sodium Lauryl sulfate.txt:33"
     },
@@ -310,11 +347,11 @@
       "testCode": "RM-ASSAY",
       "procedure": "Dissolve 1.15 g in water (warm if necessary), dilute to 1000.0 mL. To 20.0 mL of the solution add 15 mL methylene chloride and 10 mL dimidium bromide-sulfan blue mixed solution and mix. Titrate with 0.004 M benzethonium chloride, shaking vigorously and letting the layers separate before each addition, until the pink colour of the methylene chloride layer is completely discharged and a greyish-blue colour is obtained.",
       "kind": "specific",
-      "workflow": "Titration",
+      "workflow": "Measurement",
       "details": {
         "sampleG": 1.15,
         "dissolution": "in water, warming if necessary, dilute to 1000.0 mL",
-        "aliquotMl": 20.0,
+        "aliquotMl": 20,
         "additions": "15 mL methylene chloride + 10 mL dimidium bromide-sulfan blue mixed solution",
         "titrant": "0.004 M benzethonium chloride",
         "titrantMolarity": 0.004,
@@ -323,7 +360,8 @@
         "equivalenceMgPerMl": 1.154,
         "analyte": "sodium alkyl sulfates",
         "formula": "not stated",
-        "reference": "BP 2023 Monograph for Sodium Lauryl Sulfate"
+        "reference": "BP 2023 Monograph for Sodium Lauryl Sulfate",
+        "analystEntersFinalValue": "Decision 2026-11-04: was Titration in the transcription; now Measurement, the analyst enters the final value."
       },
       "source": "Sodium Lauryl sulfate__Sodium Lauryl sulfate.txt:34"
     }
@@ -331,39 +369,158 @@
   "notApplicable": [],
   "supplierAttributes": [],
   "reagents": [
-    { "name": "0.1 M Hydrochloric Acid VS", "use": "titrant", "source": "Sodium Lauryl sulfate__Sodium Lauryl sulfate.txt:26,31" },
-    { "name": "0.1 M Silver nitrate", "use": "titrant", "source": "Sodium Lauryl sulfate__Sodium Lauryl sulfate.txt:33" },
-    { "name": "0.004 M Benzethonium chloride", "use": "titrant", "source": "Sodium Lauryl sulfate__Sodium Lauryl sulfate.txt:34" },
-    { "name": "Phenol Red Solution", "use": "indicator", "source": "Sodium Lauryl sulfate__Sodium Lauryl sulfate.txt:26,31" },
-    { "name": "Sodium fluoresceinate solution (2 g/L)", "use": "indicator", "source": "Sodium Lauryl sulfate__Sodium Lauryl sulfate.txt:33" },
-    { "name": "Dimidium bromide-sulfan blue mixed solution", "use": "indicator", "source": "Sodium Lauryl sulfate__Sodium Lauryl sulfate.txt:34" },
-    { "name": "0.1 M Sodium hydroxide", "use": "reagent", "source": "Sodium Lauryl sulfate__Sodium Lauryl sulfate.txt:26" },
-    { "name": "1 M Hydrochloric Acid VS", "use": "reagent", "source": "Sodium Lauryl sulfate__Sodium Lauryl sulfate.txt:26" },
-    { "name": "1 M Sodium Hydroxide VS", "use": "reagent", "source": "Sodium Lauryl sulfate__Sodium Lauryl sulfate.txt:26" },
-    { "name": "Hydrochloric Acid", "use": "reagent", "source": "Sodium Lauryl sulfate__Sodium Lauryl sulfate.txt:26,30,33" },
-    { "name": "Barium chloride (120 g/L solution)", "use": "reagent", "source": "Sodium Lauryl sulfate__Sodium Lauryl sulfate.txt:26,30,33" },
-    { "name": "Potassium hydroxide (150 g/L solution)", "use": "reagent", "source": "Sodium Lauryl sulfate__Sodium Lauryl sulfate.txt:26" },
-    { "name": "Potassium Pyroantimonate Solution R1", "use": "reagent", "source": "Sodium Lauryl sulfate__Sodium Lauryl sulfate.txt:26,30" },
-    { "name": "Ammonium Carbonate Solution", "use": "reagent", "source": "Sodium Lauryl sulfate__Sodium Lauryl sulfate.txt:26,30" },
-    { "name": "Sulfuric Acid, Dilute / 500 g/L / 100 g/L solutions", "use": "reagent", "source": "Sodium Lauryl sulfate__Sodium Lauryl sulfate.txt:26,30" },
-    { "name": "Methylene chloride", "use": "reagent", "source": "Sodium Lauryl sulfate__Sodium Lauryl sulfate.txt:26,34" },
-    { "name": "Light petroleum", "use": "reagent", "source": "Sodium Lauryl sulfate__Sodium Lauryl sulfate.txt:26,32" },
-    { "name": "Ethanol (96 per cent)", "use": "reagent", "source": "Sodium Lauryl sulfate__Sodium Lauryl sulfate.txt:26,32,33" },
-    { "name": "Anhydrous sodium sulfate", "use": "reagent", "source": "Sodium Lauryl sulfate__Sodium Lauryl sulfate.txt:26,32" },
-    { "name": "Sodium chloride", "use": "reagent", "source": "Sodium Lauryl sulfate__Sodium Lauryl sulfate.txt:26,32,33" },
-    { "name": "Methylene blue (1 g/L solution)", "use": "reagent", "source": "Sodium Lauryl sulfate__Sodium Lauryl sulfate.txt:26" },
-    { "name": "Carbon dioxide-free water", "use": "reagent", "source": "Sodium Lauryl sulfate__Sodium Lauryl sulfate.txt:26" },
-    { "name": "Sodium lauryl Sulfate RS", "use": "standard", "source": "Sodium Lauryl sulfate__Sodium Lauryl sulfate.txt:30" }
+    {
+      "name": "0.1 M Hydrochloric Acid VS",
+      "use": "titrant",
+      "source": "Sodium Lauryl sulfate__Sodium Lauryl sulfate.txt:26,31"
+    },
+    {
+      "name": "0.1 M Silver nitrate",
+      "use": "titrant",
+      "source": "Sodium Lauryl sulfate__Sodium Lauryl sulfate.txt:33"
+    },
+    {
+      "name": "0.004 M Benzethonium chloride",
+      "use": "titrant",
+      "source": "Sodium Lauryl sulfate__Sodium Lauryl sulfate.txt:34"
+    },
+    {
+      "name": "Phenol Red Solution",
+      "use": "indicator",
+      "source": "Sodium Lauryl sulfate__Sodium Lauryl sulfate.txt:26,31"
+    },
+    {
+      "name": "Sodium fluoresceinate solution (2 g/L)",
+      "use": "indicator",
+      "source": "Sodium Lauryl sulfate__Sodium Lauryl sulfate.txt:33"
+    },
+    {
+      "name": "Dimidium bromide-sulfan blue mixed solution",
+      "use": "indicator",
+      "source": "Sodium Lauryl sulfate__Sodium Lauryl sulfate.txt:34"
+    },
+    {
+      "name": "0.1 M Sodium hydroxide",
+      "use": "reagent",
+      "source": "Sodium Lauryl sulfate__Sodium Lauryl sulfate.txt:26"
+    },
+    {
+      "name": "1 M Hydrochloric Acid VS",
+      "use": "reagent",
+      "source": "Sodium Lauryl sulfate__Sodium Lauryl sulfate.txt:26"
+    },
+    {
+      "name": "1 M Sodium Hydroxide VS",
+      "use": "reagent",
+      "source": "Sodium Lauryl sulfate__Sodium Lauryl sulfate.txt:26"
+    },
+    {
+      "name": "Hydrochloric Acid",
+      "use": "reagent",
+      "source": "Sodium Lauryl sulfate__Sodium Lauryl sulfate.txt:26,30,33"
+    },
+    {
+      "name": "Barium chloride (120 g/L solution)",
+      "use": "reagent",
+      "source": "Sodium Lauryl sulfate__Sodium Lauryl sulfate.txt:26,30,33"
+    },
+    {
+      "name": "Potassium hydroxide (150 g/L solution)",
+      "use": "reagent",
+      "source": "Sodium Lauryl sulfate__Sodium Lauryl sulfate.txt:26"
+    },
+    {
+      "name": "Potassium Pyroantimonate Solution R1",
+      "use": "reagent",
+      "source": "Sodium Lauryl sulfate__Sodium Lauryl sulfate.txt:26,30"
+    },
+    {
+      "name": "Ammonium Carbonate Solution",
+      "use": "reagent",
+      "source": "Sodium Lauryl sulfate__Sodium Lauryl sulfate.txt:26,30"
+    },
+    {
+      "name": "Sulfuric Acid, Dilute / 500 g/L / 100 g/L solutions",
+      "use": "reagent",
+      "source": "Sodium Lauryl sulfate__Sodium Lauryl sulfate.txt:26,30"
+    },
+    {
+      "name": "Methylene chloride",
+      "use": "reagent",
+      "source": "Sodium Lauryl sulfate__Sodium Lauryl sulfate.txt:26,34"
+    },
+    {
+      "name": "Light petroleum",
+      "use": "reagent",
+      "source": "Sodium Lauryl sulfate__Sodium Lauryl sulfate.txt:26,32"
+    },
+    {
+      "name": "Ethanol (96 per cent)",
+      "use": "reagent",
+      "source": "Sodium Lauryl sulfate__Sodium Lauryl sulfate.txt:26,32,33"
+    },
+    {
+      "name": "Anhydrous sodium sulfate",
+      "use": "reagent",
+      "source": "Sodium Lauryl sulfate__Sodium Lauryl sulfate.txt:26,32"
+    },
+    {
+      "name": "Sodium chloride",
+      "use": "reagent",
+      "source": "Sodium Lauryl sulfate__Sodium Lauryl sulfate.txt:26,32,33"
+    },
+    {
+      "name": "Methylene blue (1 g/L solution)",
+      "use": "reagent",
+      "source": "Sodium Lauryl sulfate__Sodium Lauryl sulfate.txt:26"
+    },
+    {
+      "name": "Carbon dioxide-free water",
+      "use": "reagent",
+      "source": "Sodium Lauryl sulfate__Sodium Lauryl sulfate.txt:26"
+    },
+    {
+      "name": "Sodium lauryl Sulfate RS",
+      "use": "standard",
+      "source": "Sodium Lauryl sulfate__Sodium Lauryl sulfate.txt:30"
+    }
   ],
   "openQuestions": [
-    { "question": "Sodium chloride and sodium sulfate: the STM gives two separate determinations (argentometric titration for NaCl, barium sulfate gravimetry for Na2SO4) but no formula for either result and no statement of how they are summed to the 8.0 % total; spec sheet technique says 'Thermogravimetry', which matches neither. The NaCl calculation must also account for the 5.0 mL of 5.84 g/L NaCl added (29.2 mg NaCl) and the blank; not stated. Confirm the calculation. One spec row kept with the stated limit.", "source": "Sodium Lauryl sulfate__Sodium Lauryl sulfate.txt:33; Specifications sheet:19" },
-    { "question": "Assay: no calculation formula and no basis (as-is / dried) stated; 1 mL of 0.004 M benzethonium chloride = 1.154 mg sodium alkyl sulfates, sample 1.15 g in 1000 mL, 20.0 mL aliquot. As-is assumed for the row; confirm formula and basis.", "source": "Sodium Lauryl sulfate__Sodium Lauryl sulfate.txt:34; Specifications sheet:20" },
-    { "question": "Preparation of 0.004 M benzethonium chloride (and its standardization), dimidium bromide-sulfan blue mixed solution, 0.1 M silver nitrate, 2 g/L sodium fluoresceinate, 5.84 g/L sodium chloride, dilute nitric acid, 500 g/L and 100 g/L sulfuric acid and 'dilute hydrochloric acid R' are used but not in the STM reagent-preparation list (only 'Sulfuric Acid, Dilute' 5.5 mL/100 mL is given).", "source": "Sodium Lauryl sulfate__Sodium Lauryl sulfate.txt:26,33,34" },
-    { "question": "Spec sheet reference is 'BP' with no year; the STM cites BP 2023 Monograph (most tests) and BP 2024 (Appearance, IR appendix). Row reference recorded as 'BP'; confirm the edition.", "source": "Sodium Lauryl sulfate__Specifications sheet Sodium Lauryl sulfate.txt:11-20; STM:28-34" },
-    { "question": "Solubility: spec 'partly soluble in ethanol (96 per cent)' is not a term in the STM's solubility scale (very soluble ... practically insoluble), and the STM procedure uses an unspecified 'solvent'; which solvents are tested and how 'partly soluble' is judged is not stated.", "source": "Sodium Lauryl sulfate__Sodium Lauryl sulfate.txt:29; Specifications sheet:12" },
-    { "question": "Identification Test 3: volumes of hydrochloric acid and barium chloride solution are not stated, and the wording 'No precipitate is formed' after boiling is not part of the spec sheet row.", "source": "Sodium Lauryl sulfate__Sodium Lauryl sulfate.txt:30" },
-    { "question": "Alkalinity: STM spec says 'Comply with BP' while spec sheet gives NMT 0.5 mL of 0.1 M HCl; the numeric limit was used. Indicator end-point colours not stated.", "source": "Sodium Lauryl sulfate__Sodium Lauryl sulfate.txt:31; Specifications sheet:17" },
-    { "question": "Methylene blue (1 g/L solution) is prepared and listed but not used in any test procedure of the STM.", "source": "Sodium Lauryl sulfate__Sodium Lauryl sulfate.txt:26" },
-    { "question": "IR identification: amount of sample mixed with potassium bromide not stated.", "source": "Sodium Lauryl sulfate__Sodium Lauryl sulfate.txt:30" }
+    {
+      "question": "Sodium chloride and sodium sulfate: the STM gives two separate determinations (argentometric titration for NaCl, barium sulfate gravimetry for Na2SO4) but no formula for either result and no statement of how they are summed to the 8.0 % total; spec sheet technique says 'Thermogravimetry', which matches neither. The NaCl calculation must also account for the 5.0 mL of 5.84 g/L NaCl added (29.2 mg NaCl) and the blank; not stated. Confirm the calculation. One spec row kept with the stated limit.",
+      "source": "Sodium Lauryl sulfate__Sodium Lauryl sulfate.txt:33; Specifications sheet:19"
+    },
+    {
+      "question": "Assay: no calculation formula and no basis (as-is / dried) stated; 1 mL of 0.004 M benzethonium chloride = 1.154 mg sodium alkyl sulfates, sample 1.15 g in 1000 mL, 20.0 mL aliquot. As-is assumed for the row; confirm formula and basis.",
+      "source": "Sodium Lauryl sulfate__Sodium Lauryl sulfate.txt:34; Specifications sheet:20"
+    },
+    {
+      "question": "Preparation of 0.004 M benzethonium chloride (and its standardization), dimidium bromide-sulfan blue mixed solution, 0.1 M silver nitrate, 2 g/L sodium fluoresceinate, 5.84 g/L sodium chloride, dilute nitric acid, 500 g/L and 100 g/L sulfuric acid and 'dilute hydrochloric acid R' are used but not in the STM reagent-preparation list (only 'Sulfuric Acid, Dilute' 5.5 mL/100 mL is given).",
+      "source": "Sodium Lauryl sulfate__Sodium Lauryl sulfate.txt:26,33,34"
+    },
+    {
+      "question": "Spec sheet reference is 'BP' with no year; the STM cites BP 2023 Monograph (most tests) and BP 2024 (Appearance, IR appendix). Row reference recorded as 'BP'; confirm the edition.",
+      "source": "Sodium Lauryl sulfate__Specifications sheet Sodium Lauryl sulfate.txt:11-20; STM:28-34"
+    },
+    {
+      "question": "Solubility: spec 'partly soluble in ethanol (96 per cent)' is not a term in the STM's solubility scale (very soluble ... practically insoluble), and the STM procedure uses an unspecified 'solvent'; which solvents are tested and how 'partly soluble' is judged is not stated.",
+      "source": "Sodium Lauryl sulfate__Sodium Lauryl sulfate.txt:29; Specifications sheet:12"
+    },
+    {
+      "question": "Identification Test 3: volumes of hydrochloric acid and barium chloride solution are not stated, and the wording 'No precipitate is formed' after boiling is not part of the spec sheet row.",
+      "source": "Sodium Lauryl sulfate__Sodium Lauryl sulfate.txt:30"
+    },
+    {
+      "question": "Alkalinity: STM spec says 'Comply with BP' while spec sheet gives NMT 0.5 mL of 0.1 M HCl; the numeric limit was used. Indicator end-point colours not stated.",
+      "source": "Sodium Lauryl sulfate__Sodium Lauryl sulfate.txt:31; Specifications sheet:17"
+    },
+    {
+      "question": "Methylene blue (1 g/L solution) is prepared and listed but not used in any test procedure of the STM.",
+      "source": "Sodium Lauryl sulfate__Sodium Lauryl sulfate.txt:26"
+    },
+    {
+      "question": "IR identification: amount of sample mixed with potassium bromide not stated.",
+      "source": "Sodium Lauryl sulfate__Sodium Lauryl sulfate.txt:30"
+    }
   ]
 }

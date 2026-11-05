@@ -2,7 +2,7 @@
  "_meta": {
   "branch": "feat/rm-data-setup",
   "plan": "docs/superpowers/plans/2026-11-04-rm-data-setup.md",
-  "task": 3,
+  "task": "3b",
   "conventions": [
    "Object references are by NAME (solutions, methods, material master entries by name + code). The loader resolves them against the target database.",
    "\"existing\": the definition/solution exists on local LIMSV2 under that code/name (read-only check 2026-11-04). The loader upserts by code, so a prod database without it receives it from this record.",
@@ -10,10 +10,13 @@
    "titrationEquivalencyFactor is mg per mmol/mEq (TestDefinition.TitrationEquivalencyFactor). Where an STM states mg per mL of a titrant of molarity M, F = mg per mL / M and the derivation is recorded.",
    "replicateCount 1 on gravimetric/measurement/titration tests = the STM describes a single determination; confirm in gaps D.",
    "physchemArea RawPackaging for new definitions; microbiology definitions have none.",
-   "A complete test definition may still depend on an incomplete solution or method: see titrantSolution / hplcMethod / icpMethod references."
+   "A complete test definition may still depend on an incomplete solution or method: see titrantSolution / hplcMethod / icpMethod references.",
+   "\"heldBack\": \"<reason>\" on a test definition, solution, method or spec row: the loader skips it. Held-back rows are listed in reports/held-back.md. An object without heldBack is loadable and complete.",
+   "materialEntries[]: master entries the loader creates by name when absent (name only, no stock). code is null: the loader takes the next free code for codePrefix in the target database. category is the API name (Indicator, ReferenceStandard, PrimaryStandard); baseUnit is the MaterialUnit name.",
+   "Measurement tests converted from titration/gravimetric on 2026-11-04: the analyst enters the final value; the spec row has no resultBasis and keeps its unit."
   ],
   "proposedHouseDefaultsForTitrants": {
-   "note": "NOT applied. Values the local titrants use (SolutionMasters 21-28, 36-38); to be confirmed by the user before any titrant is completed.",
+   "note": "APPLIED 2026-11-04 (user: load B as written): the six loadable titrants carry these values (factor 0.98-1.02 for the 1 M / 1 N titrants, as the local 1 N titrants).",
    "replicateCount": 3,
    "factorMin": 0.97,
    "factorMax": 1.03,
@@ -236,11 +239,8 @@
    "replicateCount": 1,
    "uvCalculationMode": "SpecificAbsorbanceValue",
    "uvTotalVolumeMl": 250000,
-   "complete": false,
-   "notes": "Exists locally (one specific absorbance value). Used only by Pyridoxine BP identification (UV).",
-   "missing": [
-    "specification: the BP sheet gives three specific-absorbance ranges at three maxima on two solutions (B 288-296 nm 425-445; C 248-256 nm 175-195; C 320-327 nm 345-365); one UV test records one specific absorbance (gaps A)"
-   ],
+   "complete": true,
+   "notes": "Exists locally (one specific absorbance value). Used only by Pyridoxine BP identification (UV). Decision 2026-11-04: the three BP specific-absorbance ranges are three Range rows of this test (solutions B and C share the 1:250000 total dilution, so one total volume holds); the wavelength is entered per row at recording.",
    "usedBy": [
     "STM-RM-097"
    ],
@@ -765,12 +765,8 @@
    "physchemArea": "RawPackaging",
    "replicateCount": 1,
    "evaluationBasis": "Mean",
-   "complete": false,
-   "missing": [
-    "conditions: wavelength, temperature, tube length and the calculation formula are not stated",
-    "resultBasis: the limit is on the dried substance; Measurement tests cannot hold a dried basis (gaps A)"
-   ],
-   "notes": "0.300 g in 18.2 mL hydrochloric acid R1, to 25.0 mL; polarimeter.",
+   "complete": true,
+   "notes": "0.300 g in 18.2 mL hydrochloric acid R1, to 25.0 mL; polarimeter. Decision 2026-11-04: the analyst enters the final value on the dried substance (calculated outside the system). Wavelength, temperature, tube length and formula are not stated in the STM; the sheet gives no unit.",
    "usedBy": [
     "STM-RM-56"
    ],
@@ -889,11 +885,8 @@
    "workflowType": "Qualitative",
    "equationType": "Qualitative",
    "physchemArea": "RawPackaging",
-   "complete": false,
-   "missing": [
-    "sampleVolume: STM reads \"add 0 ml of sample\" (unreadable), gaps A"
-   ],
-   "notes": "To 10 mL of water add sample.",
+   "complete": true,
+   "notes": "To 10 mL of water add sample. Decision 2026-11-04: loaded as written; the sample volume (\"add 0 ml of sample\") is unreadable in the STM; it is procedure text, not a definition field (gaps.md D).",
    "usedBy": [
     "STM-RM-126"
    ],
@@ -1182,11 +1175,8 @@
    "workflowType": "Qualitative",
    "equationType": "Qualitative",
    "physchemArea": "RawPackaging",
-   "complete": false,
-   "notes": "Acidified solution + iodinated potassium iodide R1: blue/violet. Solution, acid and volume not stated (gaps A).",
-   "missing": [
-    "procedure: solution, acid and volume of iodinated potassium iodide not stated (gaps A)"
-   ],
+   "complete": true,
+   "notes": "Acidified solution + iodinated potassium iodide R1: blue/violet. Solution, acid and volume not stated (gaps A). Decision 2026-11-04: loaded as written; solution, acid and volume of the iodinated potassium iodide are not stated; procedure text, not a definition field (gaps.md D).",
    "usedBy": [
     "STM-RM-089"
    ],
@@ -1254,11 +1244,8 @@
    "workflowType": "Qualitative",
    "equationType": "Qualitative",
    "physchemArea": "RawPackaging",
-   "complete": false,
-   "notes": "User answer 2026-11-04: Methyl/Propyl Paraben identification is by HPLC retention time. The STMs give no chromatographic conditions for it (IR wording only), so it is a Qualitative test; the assay method conditions are the likely source (gaps A).",
-   "missing": [
-    "procedure: no chromatographic conditions stated for the identification (gaps A)"
-   ],
+   "complete": true,
+   "notes": "User answer 2026-11-04: Methyl/Propyl Paraben identification is by HPLC retention time. The STMs give no chromatographic conditions for it (IR wording only), so it is a Qualitative test; the assay method conditions are the likely source (gaps A). Decision 2026-11-04: loaded as written; no chromatographic conditions are stated for the identification; the analyst compares the retention time and records \"complies\" (paraben identification decision, gaps.md D).",
    "usedBy": [
     "STM-RM-063",
     "STM-RM-064"
@@ -1284,11 +1271,8 @@
    "workflowType": "Qualitative",
    "equationType": "Qualitative",
    "physchemArea": "RawPackaging",
-   "complete": false,
-   "notes": "STM: \"proceed as test of assay\"; no procedure of its own.",
-   "missing": [
-    "procedure: identification has no procedure of its own, it refers to the assay (gaps A)"
-   ],
+   "complete": true,
+   "notes": "STM: \"proceed as test of assay\"; no procedure of its own. Decision 2026-11-04: loaded as written; the identification has no procedure of its own (\"proceed as test of assay\"); loaded as written, \"Comply with BP\" (gaps.md D).",
    "usedBy": [
     "STM-RM-053"
    ],
@@ -1467,21 +1451,12 @@
    "displayName": "Water (Karl Fischer)",
    "kind": "general",
    "section": "Physicochemical Laboratory",
-   "workflowType": "Titration",
-   "equationType": "Titration",
+   "workflowType": "Measurement",
+   "equationType": "Measurement",
    "physchemArea": "RawPackaging",
-   "moistureRole": "Water",
-   "titrationType": "KarlFischer",
-   "titrationMode": "Direct",
-   "titrationCalculation": "UspFactor",
    "replicateCount": 1,
-   "complete": false,
-   "missing": [
-    "titrantSolution: KF reagent and its titre (mg water/mL) are not stated; STM says only \"calibrated Karl Fischer\"",
-    "titrationEndpoint: not stated",
-    "replicateCount: sample size stated (0.200 g / 0.500 g), number of determinations not stated (1 assumed from a single determination described)"
-   ],
-   "notes": "Sildenafil 0.200 g, Sodium Propyl and Methyl Paraben 0.500 g. Needed as the Water-role test for the three anhydrous-basis assays (gaps A).",
+   "complete": true,
+   "notes": "Sildenafil 0.200 g, Sodium Propyl and Methyl Paraben 0.500 g. Needed as the Water-role test for the three anhydrous-basis assays (gaps A). Decision 2026-11-04: Karl Fischer water is a Measurement test, the analyst enters water %. The MoistureRole Water cannot be set on it: the backend allows that role only on a Karl Fischer titration test whose titrant has a mg water/mL titre (TestDefinitionMasterDataService.ValidatePerContainerAndMoistureRole), and the STMs give no KF reagent or titre. So the Water row is a plain limit row; no anhydrous-basis assay can use it until the lab supplies the KF details (gaps.md A1).",
    "usedBy": [
     "STM-RM-051",
     "STM-RM-063",
@@ -1503,7 +1478,8 @@
      "provisionalCode": "RM-WATER",
      "source": "Sodium Methyl Paraben__Sodium Methyl Paraben- SM.txt:38"
     }
-   ]
+   ],
+   "evaluationBasis": "Mean"
   },
   {
    "code": "RM-DISINT",
@@ -1513,11 +1489,8 @@
    "workflowType": "Disintegration",
    "equationType": "Disintegration",
    "physchemArea": "RawPackaging",
-   "complete": false,
-   "missing": [
-    "disintegrationStage1Units, stage2Units, maxStage1Failures, minPassTotal: number of tablets and retest stages not stated; STM says only \"tablets dissolve within 15 minutes, water 19-21 C\""
-   ],
-   "notes": "Reference local DISINT-UI uses 6/12/2/16.",
+   "complete": true,
+   "notes": "Decision 2026-11-04: 6 / 12 tablets, 2 stage-1 failures, 16 pass, as the local DISINT-UI (also the API defaults); the STM states only \"tablets dissolve within 15 minutes, water 19-21 C\".",
    "usedBy": [
     "STM-RM-053"
    ],
@@ -1527,23 +1500,23 @@
      "provisionalCode": "RM-DISINT",
      "source": "Sodium Chloride Tablet__STM Sodium Chloride Tablet 1-3.txt:29 (equipment :25)"
     }
-   ]
+   ],
+   "disintegrationStage1Units": 6,
+   "disintegrationStage2Units": 12,
+   "disintegrationMaxStage1Failures": 2,
+   "disintegrationMinPassTotal": 16
   },
   {
    "code": "RM-NONEST-ALC",
    "displayName": "Non-esterified alcohols (residue)",
    "kind": "specific",
    "section": "Physicochemical Laboratory",
-   "workflowType": "Gravimetric",
-   "equationType": "GravimetricResidue",
+   "workflowType": "Measurement",
+   "equationType": "Measurement",
    "physchemArea": "RawPackaging",
    "replicateCount": 1,
-   "usesTare": false,
-   "complete": false,
-   "missing": [
-    "calculation: STM limit is a residue of max 0.4 g from 10.0 g; result expression not stated and the sample is weighed separately from the residue vessel, the system residue formula assumes one tared vessel (gaps A)"
-   ],
-   "notes": "10.0 g in 100 mL water + 100 mL ethanol, 3 x 50 mL light petroleum, wash, dry, evaporate, residue 105 C 30 min.",
+   "complete": true,
+   "notes": "10.0 g in 100 mL water + 100 mL ethanol, 3 x 50 mL light petroleum, wash, dry, evaporate, residue 105 C 30 min. Decision 2026-11-04: the analyst enters the final value, the system judges it against the limit (the written formula cannot be calculated by the titration/gravimetric workflow).",
    "usedBy": [
     "STM-RM-091"
    ],
@@ -1553,22 +1526,20 @@
      "provisionalCode": "RM-NON-ESTERIFIED-ALCOHOLS",
      "source": "Sodium Lauryl sulfate__Sodium Lauryl sulfate.txt:32"
     }
-   ]
+   ],
+   "evaluationBasis": "Mean"
   },
   {
    "code": "RM-NACL-SLS",
    "displayName": "Sodium chloride and sodium sulfate (total)",
    "kind": "specific",
    "section": "Physicochemical Laboratory",
-   "workflowType": "Titration",
-   "equationType": "Titration",
+   "workflowType": "Measurement",
+   "equationType": "Measurement",
    "physchemArea": "RawPackaging",
    "replicateCount": 1,
-   "complete": false,
-   "missing": [
-    "workflow: two determinations summed (argentometric NaCl + gravimetric BaSO4 for Na2SO4); no formula for either result and no sum rule; the titration workflow holds one result (gaps A)"
-   ],
-   "notes": "5.0 g titrated with 0.1 M AgNO3 and 1.0 g precipitated as BaSO4 (x 0.609).",
+   "complete": true,
+   "notes": "5.0 g titrated with 0.1 M AgNO3 and 1.0 g precipitated as BaSO4 (x 0.609). Decision 2026-11-04: the analyst enters the final value, the system judges it against the limit (the written formula cannot be calculated by the titration/gravimetric workflow).",
    "usedBy": [
     "STM-RM-091"
    ],
@@ -1578,7 +1549,8 @@
      "provisionalCode": "RM-NACL-NA2SO4",
      "source": "Sodium Lauryl sulfate__Sodium Lauryl sulfate.txt:33"
     }
-   ]
+   ],
+   "evaluationBasis": "Mean"
   },
   {
    "code": "RM-TIT-NACLT",
@@ -1599,12 +1571,8 @@
    "titrationIndicatorEntry": "Ferric ammonium sulfate solution R2",
    "replicateCount": 1,
    "titrationCalculation": "UspFactor",
-   "complete": false,
-   "missing": [
-    "titrationIndicatorEntry: no Indicator-category master entry for ferric ammonium sulfate solution R2 (reagents.md C)",
-    "titrationBlankRequired: not stated"
-   ],
-   "notes": "Powder of 20 tablets, 0.2 g NaCl in 35 mL water + 15 mL 2 M HNO3 + 5 mL dibutyl phthalate + 50 mL 0.1 M AgNO3. Result \"% of the stated amount\" (label claim) is not holdable for a RawPackaging item (gaps A).",
+   "complete": true,
+   "notes": "Powder of 20 tablets, 0.2 g NaCl in 35 mL water + 15 mL 2 M HNO3 + 5 mL dibutyl phthalate + 50 mL 0.1 M AgNO3. Decision 2026-11-04: result is a % value, the spec row carries the unit text \"% of stated amount\" (no label claim, no average tablet weight); no blank is stated in the STM (false).",
    "usedBy": [
     "STM-RM-053"
    ],
@@ -1614,29 +1582,20 @@
      "provisionalCode": "RM-ASSAY",
      "source": "Sodium Chloride Tablet__STM Sodium Chloride Tablet 1-3.txt:30 (main method; reagents and standardizations :25)"
     }
-   ]
+   ],
+   "titrationBlankRequired": false
   },
   {
    "code": "RM-TIT-SMB",
    "displayName": "Assay of sodium metabisulfite (iodometric back titration)",
    "kind": "specific",
    "section": "Physicochemical Laboratory",
-   "workflowType": "Titration",
-   "equationType": "Titration",
+   "workflowType": "Measurement",
+   "equationType": "Measurement",
    "physchemArea": "RawPackaging",
-   "titrationType": "Redox",
-   "titrationMode": "Residual",
-   "titrationEndpoint": "Visual",
-   "titrantSolution": "0.1 M Sodium thiosulfate VS",
-   "titrationExcessSolution": "0.05 M Iodine VS",
-   "titrationExcessVolumeMl": 50.0,
-   "titrationEquivalencyFactor": 95.06,
-   "titrationEquivalencyFactorDerivation": "4.753 mg Na2S2O5 per mL of 0.05 M iodine / 0.05 = 95.06 mg/mmol",
-   "titrationIndicatorEntry": "Starch TS",
    "replicateCount": 1,
-   "titrationCalculation": "UspFactor",
    "complete": true,
-   "notes": "0.200 g in 50.0 mL 0.05 M iodine + 5 mL dilute HCl, titrate excess with 0.1 M thiosulfate. STM does not mention a blank. STM formula is garbled (gaps A).",
+   "notes": "0.200 g in 50.0 mL 0.05 M iodine + 5 mL dilute HCl, titrate excess with 0.1 M thiosulfate. STM does not mention a blank. STM formula is garbled (gaps A). Decision 2026-11-04: the analyst enters the final value, the system judges it against the limit (the written formula cannot be calculated by the titration/gravimetric workflow).",
    "usedBy": [
     "STM-RM-060"
    ],
@@ -1646,7 +1605,8 @@
      "provisionalCode": "RM-ASSAY",
      "source": "Sodium Meta bisulfit__Sodium Metabisulfit - SM without arsenic.txt:35; Sodium Meta bisulfit__Sodium Metabisulfit - SM without arsenic.txt:26"
     }
-   ]
+   ],
+   "evaluationBasis": "Mean"
   },
   {
    "code": "RM-TIT-PYR-BP",
@@ -1723,7 +1683,7 @@
    "titrationEndpoint": "Visual",
    "titrantSolution": "1 M Hydrochloric acid VS",
    "titrationBlankRequired": false,
-   "titrationEquivalencyFactor": 40.0,
+   "titrationEquivalencyFactor": 40,
    "titrationEquivalencyFactorDerivation": "stated: 40.00 mg NaOH per mL of 1 M HCl",
    "titrationIndicatorEntry": "Methyl orange TS",
    "replicateCount": 1,
@@ -1754,7 +1714,7 @@
    "titrationEndpoint": "Visual",
    "titrantSolution": "1 N Sulfuric acid VS",
    "titrationBlankRequired": true,
-   "titrationEquivalencyFactor": 40.0,
+   "titrationEquivalencyFactor": 40,
    "titrationEquivalencyFactorDerivation": "stated: F1 = 40.00 mg/mEq",
    "titrationIndicatorEntry": "Methyl orange TS",
    "replicateCount": 1,
@@ -1777,18 +1737,12 @@
    "displayName": "Sodium carbonate in sodium hydroxide (from the assay titration)",
    "kind": "specific",
    "section": "Physicochemical Laboratory",
-   "workflowType": "Titration",
-   "equationType": "Titration",
+   "workflowType": "Measurement",
+   "equationType": "Measurement",
    "physchemArea": "RawPackaging",
    "replicateCount": 1,
-   "titrationType": "AcidBase",
-   "titrationMode": "Direct",
-   "titrationCalculation": "UspFactor",
-   "complete": false,
-   "missing": [
-    "workflow: carbonate comes from the volume of the second stage of the total-alkali titration (BP 1 mL 1 M HCl = 106.0 mg Na2CO3; USP (VS2 - VS1) x N x 106.0 / W); the titration workflow has a single endpoint and cannot return a second result from one titration (gaps A)"
-   ],
-   "notes": "BP Carbonates NMT 2.0 %; USP Sodium carbonate NMT 3.0 %.",
+   "complete": true,
+   "notes": "BP Carbonates NMT 2.0 %; USP Sodium carbonate NMT 3.0 %. Decision 2026-11-04: the analyst enters the final value, the system judges it against the limit (the written formula cannot be calculated by the titration/gravimetric workflow).",
    "usedBy": [
     "STM-RM-150"
    ],
@@ -1803,30 +1757,20 @@
      "provisionalCode": "RM-NA2CO3-USP",
      "source": "Sodium Hydroxide__Sodium Hydroxide-SM.txt:40"
     }
-   ]
+   ],
+   "evaluationBasis": "Mean"
   },
   {
    "code": "RM-TIT-SLS",
    "displayName": "Assay of sodium lauryl sulfate (two-phase titration)",
    "kind": "specific",
    "section": "Physicochemical Laboratory",
-   "workflowType": "Titration",
-   "equationType": "Titration",
+   "workflowType": "Measurement",
+   "equationType": "Measurement",
    "physchemArea": "RawPackaging",
-   "titrationMode": "Direct",
-   "titrationEndpoint": "Visual",
-   "titrantSolution": "0.004 M Benzethonium chloride VS",
-   "titrationEquivalencyFactor": 288.5,
-   "titrationEquivalencyFactorDerivation": "1.154 mg sodium alkyl sulfates per mL of 0.004 M / 0.004 = 288.5 mg/mmol",
    "replicateCount": 1,
-   "titrationCalculation": "UspFactor",
-   "complete": false,
-   "missing": [
-    "titrationType: the system types (acid-base, redox, complexometric, precipitation, KF) do not name a two-phase surfactant titration; the STM gives none",
-    "titrationIndicatorEntry: dimidium bromide-sulfan blue mixed indicator is not an Indicator-category master entry",
-    "calculation: no formula and no basis stated"
-   ],
-   "notes": "1.15 g to 1000.0 mL, 20.0 mL + 15 mL methylene chloride + 10 mL mixed indicator, titrate with 0.004 M benzethonium chloride until pink layer discharged.",
+   "complete": true,
+   "notes": "1.15 g to 1000.0 mL, 20.0 mL + 15 mL methylene chloride + 10 mL mixed indicator, titrate with 0.004 M benzethonium chloride until pink layer discharged. Decision 2026-11-04: the analyst enters the final value, the system judges it against the limit (the written formula cannot be calculated by the titration/gravimetric workflow).",
    "usedBy": [
     "STM-RM-091"
    ],
@@ -1836,28 +1780,20 @@
      "provisionalCode": "RM-ASSAY",
      "source": "Sodium Lauryl sulfate__Sodium Lauryl sulfate.txt:34"
     }
-   ]
+   ],
+   "evaluationBasis": "Mean"
   },
   {
    "code": "RM-TIT-SLS-ALK",
    "displayName": "Alkalinity of sodium lauryl sulfate (volume of 0.1 M HCl)",
    "kind": "specific",
    "section": "Physicochemical Laboratory",
-   "workflowType": "Titration",
-   "equationType": "Titration",
+   "workflowType": "Measurement",
+   "equationType": "Measurement",
    "physchemArea": "RawPackaging",
-   "titrationType": "AcidBase",
-   "titrationMode": "Direct",
-   "titrationEndpoint": "Visual",
-   "titrantSolution": "0.1 M Hydrochloric acid VS",
    "replicateCount": 1,
-   "titrationCalculation": "UspFactor",
-   "complete": false,
-   "missing": [
-    "titrationIndicatorEntry: phenol red solution is not an Indicator-category master entry (a reagent entry Phenol Red RG-050 exists)",
-    "titrationEquivalencyFactor, result: the sheet limit is NMT 0.5 mL of 0.1 M HCl (a volume); the titration workflow reports content %, no equivalence is stated (gaps A)"
-   ],
-   "notes": "1.0 g in 100 mL CO2-free water + 0.1 mL phenol red; volume of 0.1 M HCl to colour change (colours not stated).",
+   "complete": true,
+   "notes": "1.0 g in 100 mL CO2-free water + 0.1 mL phenol red; volume of 0.1 M HCl to colour change (colours not stated). Decision 2026-11-04: the analyst enters the final value, the system judges it against the limit (the written formula cannot be calculated by the titration/gravimetric workflow).",
    "usedBy": [
     "STM-RM-091"
    ],
@@ -1867,30 +1803,20 @@
      "provisionalCode": "RM-ALKALINITY",
      "source": "Sodium Lauryl sulfate__Sodium Lauryl sulfate.txt:31; preparations line 26"
     }
-   ]
+   ],
+   "evaluationBasis": "Mean"
   },
   {
    "code": "RM-TIT-NAOCL-ALK",
    "displayName": "Total alkalinity of sodium hypochlorite",
    "kind": "specific",
    "section": "Physicochemical Laboratory",
-   "workflowType": "Titration",
-   "equationType": "Titration",
+   "workflowType": "Measurement",
+   "equationType": "Measurement",
    "physchemArea": "RawPackaging",
-   "titrationType": "AcidBase",
-   "titrationMode": "Direct",
-   "titrationEndpoint": "Visual",
-   "titrantSolution": "0.5 M Hydrochloric acid VS",
-   "titrationEquivalencyFactor": 40.0,
-   "titrationEquivalencyFactorDerivation": "20 mg NaOH per mL of 0.5 M HCl / 0.5 = 40.0 mg/mmol",
-   "titrationIndicatorEntry": "Methyl orange TS",
    "replicateCount": 1,
-   "titrationCalculation": "UspFactor",
-   "complete": false,
-   "missing": [
-    "sample amount: 25 mL taken but result is % w/w and the weight per mL procedure is not stated; no volume-sample input stated (gaps A)"
-   ],
-   "notes": "25 mL + 50 mL water + 35 mL hydrogen peroxide (20 vol), titrate with 0.5 M HCl, methyl orange.",
+   "complete": true,
+   "notes": "25 mL + 50 mL water + 35 mL hydrogen peroxide (20 vol), titrate with 0.5 M HCl, methyl orange. Decision 2026-11-04: the analyst enters the final value, the system judges it against the limit (the written formula cannot be calculated by the titration/gravimetric workflow).",
    "usedBy": [
     "STM-RM-126"
    ],
@@ -1900,30 +1826,20 @@
      "provisionalCode": "RM-TOTAL-ALKALINITY",
      "source": "Sodium Hypochlorite__STM Sodium Hypochlorite.txt:32; preparations line 28"
     }
-   ]
+   ],
+   "evaluationBasis": "Mean"
   },
   {
    "code": "RM-TIT-NAOCL",
    "displayName": "Assay of sodium hypochlorite (available chlorine, iodometric)",
    "kind": "specific",
    "section": "Physicochemical Laboratory",
-   "workflowType": "Titration",
-   "equationType": "Titration",
+   "workflowType": "Measurement",
+   "equationType": "Measurement",
    "physchemArea": "RawPackaging",
-   "titrationType": "Redox",
-   "titrationMode": "Direct",
-   "titrationEndpoint": "Visual",
-   "titrantSolution": "0.1 M Sodium thiosulfate VS",
-   "titrationEquivalencyFactor": 35.45,
-   "titrationEquivalencyFactorDerivation": "3.545 mg Cl per mL of 0.1 M thiosulfate / 0.1 = 35.45 mg/mmol",
-   "titrationIndicatorEntry": "Starch TS",
    "replicateCount": 1,
-   "titrationCalculation": "UspFactor",
-   "complete": false,
-   "missing": [
-    "dilution and sample amount: 10 mL diluted to 250 mL, 10 mL aliquot, % w/w needs weight per mL; neither the dilution nor the density procedure is in the printed formula (gaps A)"
-   ],
-   "notes": "10 mL to 250 mL; 10 mL + 50 mL water + 1 g KI + 12.5 mL 2 M acetic acid; titrate with 0.1 M thiosulfate, starch near end.",
+   "complete": true,
+   "notes": "10 mL to 250 mL; 10 mL + 50 mL water + 1 g KI + 12.5 mL 2 M acetic acid; titrate with 0.1 M thiosulfate, starch near end. Decision 2026-11-04: the analyst enters the final value, the system judges it against the limit (the written formula cannot be calculated by the titration/gravimetric workflow).",
    "usedBy": [
     "STM-RM-126"
    ],
@@ -1933,7 +1849,8 @@
      "provisionalCode": "RM-ASSAY",
      "source": "Sodium Hypochlorite__STM Sodium Hypochlorite.txt:33; preparations line 28"
     }
-   ]
+   ],
+   "evaluationBasis": "Mean"
   },
   {
    "code": "RM-HPLC-SILD-AS",
@@ -1957,7 +1874,8 @@
      "provisionalCode": "RM-ASSAY",
      "source": "Sildenafil Citrate__STM Sildenafil Citrate New.txt:43 (main method only; the '*Alternative method For Assay' in the same cell is not transcribed)"
     }
-   ]
+   ],
+   "heldBack": "needs the held-back method \"Sildenafil citrate assay (BP, gradient HPLC)\""
   },
   {
    "code": "RM-HPLC-SILD-RS",
@@ -1981,7 +1899,8 @@
      "provisionalCode": "RM-RS",
      "source": "Sildenafil Citrate__STM Sildenafil Citrate New.txt:32 (main method only; the 'Alternative method ... by Normalization' in the same cell is not transcribed)"
     }
-   ]
+   ],
+   "heldBack": "needs the held-back method \"Sildenafil citrate related substances (BP, gradient HPLC)\""
   },
   {
    "code": "RM-HPLC-PPB-AS",
@@ -2005,7 +1924,8 @@
      "provisionalCode": "RM-ASSAY-HPLC",
      "source": "Sodium Propyl Paraben__Sodium propyl Paraben- SM.txt:39"
     }
-   ]
+   ],
+   "heldBack": "needs the held-back method \"Sodium propyl paraben assay (BP, HPLC)\""
   },
   {
    "code": "RM-HPLC-PPB-RS",
@@ -2028,7 +1948,8 @@
      "provisionalCode": "RM-RS",
      "source": "Sodium Propyl Paraben__Sodium propyl Paraben- SM.txt:35"
     }
-   ]
+   ],
+   "heldBack": "needs the held-back method \"Sodium propyl paraben related substances (BP, HPLC)\""
   },
   {
    "code": "RM-HPLC-MPB-AS",
@@ -2052,7 +1973,8 @@
      "provisionalCode": "RM-ASSAY",
      "source": "Sodium Methyl Paraben__Sodium Methyl Paraben- SM.txt:39"
     }
-   ]
+   ],
+   "heldBack": "needs the held-back method \"Sodium methyl paraben assay (BP, HPLC)\""
   },
   {
    "code": "RM-HPLC-MPB-RS",
@@ -2075,7 +1997,8 @@
      "provisionalCode": "RM-RS",
      "source": "Sodium Methyl Paraben__Sodium Methyl Paraben- SM.txt:35"
     }
-   ]
+   ],
+   "heldBack": "needs the held-back method \"Sodium methyl paraben related substances (BP, HPLC)\""
   },
   {
    "code": "RM-HPLC-PYR-AS",
@@ -2099,7 +2022,8 @@
      "provisionalCode": "RM-ASSAY-HPLC",
      "source": "Pyridoxine Hydrochloride__STM-Pyridoxine (004) after edit.txt:54"
     }
-   ]
+   ],
+   "heldBack": "needs the held-back method \"Pyridoxine hydrochloride assay (USP, HPLC internal standard)\""
   },
   {
    "code": "RM-HPLC-PYR-RS",
@@ -2123,7 +2047,8 @@
      "provisionalCode": "RM-RS",
      "source": "Pyridoxine Hydrochloride__STM-Pyridoxine (004) after edit.txt:55"
     }
-   ]
+   ],
+   "heldBack": "needs the held-back method \"Pyridoxine hydrochloride related substances (BP, HPLC)\""
   },
   {
    "code": "RM-ICP-SE",
@@ -2149,7 +2074,8 @@
      "provisionalCode": "RM-SE-ASSAY",
      "source": "Sodium Selenate Anhydrous__STM Sodium Selenate Anhydrous.txt:36"
     }
-   ]
+   ],
+   "heldBack": "needs the held-back method \"Selenium by AAS (sodium selenate)\""
   },
   {
    "code": "RM-ICP-NA",
@@ -2175,7 +2101,8 @@
      "provisionalCode": "RM-NA-AAS",
      "source": "Sodium Hydroxide__Sodium Hydroxide-SM.txt:36"
     }
-   ]
+   ],
+   "heldBack": "needs the held-back method \"Sodium by AAS (sodium hydroxide USP)\""
   },
   {
    "code": "RM-ICP-K",
@@ -2201,7 +2128,8 @@
      "provisionalCode": "RM-K-AAS",
      "source": "Sodium Hydroxide__Sodium Hydroxide-SM.txt:37"
     }
-   ]
+   ],
+   "heldBack": "needs the held-back method \"Potassium by AAS (sodium hydroxide USP)\""
   },
   {
    "code": "RM-ICP-PB",
@@ -2224,7 +2152,8 @@
      "provisionalCode": "RM-LEAD",
      "source": "Siberian Ginseng Powder Extract__STM Siberian Ginseng Powder Extract 1-1.txt:33 (standards also :28)"
     }
-   ]
+   ],
+   "heldBack": "needs the held-back method \"Lead by AAS (Siberian ginseng extract)\""
   }
  ],
  "solutions": [
@@ -2251,7 +2180,7 @@
     {
      "entry": "Silver nitrate",
      "entryCode": "RG-017",
-     "quantity": 17.0,
+     "quantity": 17,
      "unit": "Gram"
     }
    ],
@@ -2261,17 +2190,19 @@
    "equivalenceMgPerMl": 5.844,
    "referenceSolution": null,
    "usedBy": [
-    "STM-RM-053",
-    "STM-RM-091"
+    "STM-RM-053"
    ],
-   "notes": "Recipe 17.0 g differs from existing \"0.1 N Silver nitrate VS\" (17.5 g), so it is a separate solution. Used as the excess titrant in the Sodium Chloride Tablets assay; Sodium Lauryl Sulfate names 0.1 M silver nitrate without a recipe.",
-   "complete": false,
-   "missing": [
-    "shelfLife: not stated in the STM",
-    "storageCondition: not stated in the STM",
-    "replicateCount, factorMin, factorMax, maxRsdPercent, validityDays: standardization acceptance values not stated in the STM",
-    "standardization: STM standardizes against a quantity of tablet powder containing 0.1 g NaCl, not a primary standard; equivalence 5.844 mg NaCl per mL stated (gaps B)"
-   ]
+   "notes": "Recipe 17.0 g differs from existing \"0.1 N Silver nitrate VS\" (17.5 g), so it is a separate solution. Used as the excess titrant in the Sodium Chloride Tablets assay; Sodium Lauryl Sulfate names 0.1 M silver nitrate without a recipe. Decision 2026-11-04: house standardization defaults of the local titrants (3 replicates, factor 0.97-1.03, max RSD 0.2 %, valid 30 days, shelf life 30 days). Standardized against sodium chloride (RG-026, 5.844 mg/mL) as the catalog proposed; the STM standardizes against tablet powder holding 0.1 g NaCl (gaps.md D).",
+   "complete": true,
+   "shelfLifeValue": 30,
+   "shelfLifeUnit": "Days",
+   "storageCondition": "Tightly closed, room temperature",
+   "replicateCount": 3,
+   "maxRsdPercent": 0.2,
+   "validityDays": 30,
+   "blankRequired": false,
+   "factorMin": 0.97,
+   "factorMax": 1.03
   },
   {
    "name": "0.1 M Ammonium thiocyanate VS",
@@ -2297,13 +2228,17 @@
    "usedBy": [
     "STM-RM-053"
    ],
-   "notes": "Standardization stated: 20.0 mL 0.1 M silver nitrate + 25 mL water + 2 mL dilute nitric acid + 2 mL ferric ammonium sulfate R2, titrate to reddish-yellow. Dilute nitric acid strength not stated.",
-   "complete": false,
-   "missing": [
-    "shelfLife: not stated in the STM",
-    "storageCondition: not stated in the STM",
-    "replicateCount, factorMin, factorMax, maxRsdPercent, validityDays: standardization acceptance values not stated in the STM"
-   ]
+   "notes": "Standardization stated: 20.0 mL 0.1 M silver nitrate + 25 mL water + 2 mL dilute nitric acid + 2 mL ferric ammonium sulfate R2, titrate to reddish-yellow. Dilute nitric acid strength not stated. Decision 2026-11-04: house standardization defaults of the local titrants (3 replicates, factor 0.97-1.03, max RSD 0.2 %, valid 30 days, shelf life 30 days).",
+   "complete": true,
+   "shelfLifeValue": 30,
+   "shelfLifeUnit": "Days",
+   "storageCondition": "Tightly closed, room temperature",
+   "replicateCount": 3,
+   "maxRsdPercent": 0.2,
+   "validityDays": 30,
+   "blankRequired": false,
+   "factorMin": 0.97,
+   "factorMax": 1.03
   },
   {
    "name": "0.1 M Sodium thiosulfate VS",
@@ -2317,7 +2252,7 @@
     {
      "entry": "Sodium thiosulfate pentahydrate",
      "entryCode": "RG-016",
-     "quantity": 25.0,
+     "quantity": 25,
      "unit": "Gram"
     },
     {
@@ -2344,7 +2279,8 @@
     "replicateCount, factorMin, factorMax, maxRsdPercent, validityDays: standardization acceptance values not stated in the STM",
     "standardizationMode: STM standardizes against 0.033 M potassium bromate VS (a solution); the system offers a weighed primary standard or another titrant; potassium bromate is a plain reagent entry (RG-088), not a Primary Standard entry",
     "equivalenceMgPerMl: \"1 mL of 0.1 M sodium thiosulfate is equivalent to 2.783 mg of [text cut off]\" (substance missing)"
-   ]
+   ],
+   "heldBack": "not loaded: storageCondition; standardizationMode; equivalenceMgPerMl not stated in the STM"
   },
   {
    "name": "0.05 M Iodine VS",
@@ -2364,7 +2300,7 @@
     {
      "entry": "Potassium iodide",
      "entryCode": "RG-019",
-     "quantity": 20.0,
+     "quantity": 20,
      "unit": "Gram"
     }
    ],
@@ -2382,7 +2318,8 @@
     "shelfLife: not stated in the STM",
     "storageCondition: not stated in the STM",
     "replicateCount, factorMin, factorMax, maxRsdPercent, validityDays: standardization acceptance values not stated in the STM"
-   ]
+   ],
+   "heldBack": "not loaded: storageCondition not stated in the STM"
   },
   {
    "name": "0.1 M Perchloric acid VS",
@@ -2402,7 +2339,7 @@
     {
      "entry": "Acetic anhydride",
      "entryCode": "RG-014",
-     "quantity": 30.0,
+     "quantity": 30,
      "unit": "Milliliter"
     }
    ],
@@ -2414,13 +2351,17 @@
    "usedBy": [
     "STM-RM-097"
    ],
-   "notes": "Standardization stated: 0.170 g potassium hydrogen phthalate in 50 mL anhydrous acetic acid, potentiometric or crystal violet; 1 mL 0.1 M = 20.42 mg KHP. Glacial acetic acid is \"to volume\" (RG-006). Local \"0.1 N Perchloric acid VS\" has a different recipe (500 mL acetic acid + 21 mL anhydride).",
-   "complete": false,
-   "missing": [
-    "shelfLife: not stated in the STM",
-    "storageCondition: not stated in the STM",
-    "replicateCount, factorMin, factorMax, maxRsdPercent, validityDays: standardization acceptance values not stated in the STM"
-   ]
+   "notes": "Standardization stated: 0.170 g potassium hydrogen phthalate in 50 mL anhydrous acetic acid, potentiometric or crystal violet; 1 mL 0.1 M = 20.42 mg KHP. Glacial acetic acid is \"to volume\" (RG-006). Local \"0.1 N Perchloric acid VS\" has a different recipe (500 mL acetic acid + 21 mL anhydride). Decision 2026-11-04: house standardization defaults of the local titrants (3 replicates, factor 0.97-1.03, max RSD 0.2 %, valid 30 days, shelf life 30 days).",
+   "complete": true,
+   "shelfLifeValue": 30,
+   "shelfLifeUnit": "Days",
+   "storageCondition": "Tightly closed, room temperature",
+   "replicateCount": 3,
+   "maxRsdPercent": 0.2,
+   "validityDays": 30,
+   "blankRequired": false,
+   "factorMin": 0.97,
+   "factorMax": 1.03
   },
   {
    "name": "0.5 M Hydrochloric acid VS",
@@ -2453,13 +2394,14 @@
     "storageCondition: not stated in the STM",
     "replicateCount, factorMin, factorMax, maxRsdPercent, validityDays: standardization acceptance values not stated in the STM",
     "equivalenceMgPerMl: STM quotes 121.1 mg tris per mL of 1 M HCl only; the 0.5 M value is not stated"
-   ]
+   ],
+   "heldBack": "not loaded: storageCondition; equivalenceMgPerMl not stated in the STM"
   },
   {
    "name": "1 M Hydrochloric acid VS",
    "type": "Titrant",
    "section": "Physicochemical Laboratory",
-   "nominalStrength": 1.0,
+   "nominalStrength": 1,
    "strengthUnit": "Molar",
    "finalVolumeMl": 1000,
    "instructions": "103.0 g hydrochloric acid diluted to 1000.0 mL with water.",
@@ -2467,7 +2409,7 @@
     {
      "entry": "Hydrochloric acid 37%",
      "entryCode": "RG-012",
-     "quantity": 103.0,
+     "quantity": 103,
      "unit": "Gram"
     }
    ],
@@ -2479,19 +2421,23 @@
    "usedBy": [
     "STM-RM-150"
    ],
-   "notes": "Standardization: 0.950 g trometamol in 50 mL water, methyl orange; 1 mL 1 M HCl = 121.1 mg. Hydrochloric acid concentration not stated.",
-   "complete": false,
-   "missing": [
-    "shelfLife: not stated in the STM",
-    "storageCondition: not stated in the STM",
-    "replicateCount, factorMin, factorMax, maxRsdPercent, validityDays: standardization acceptance values not stated in the STM"
-   ]
+   "notes": "Standardization: 0.950 g trometamol in 50 mL water, methyl orange; 1 mL 1 M HCl = 121.1 mg. Hydrochloric acid concentration not stated. Decision 2026-11-04: house standardization defaults of the local titrants (3 replicates, factor 0.98-1.02 as the local 1 N titrants, max RSD 0.2 %, valid 30 days, shelf life 30 days).",
+   "complete": true,
+   "shelfLifeValue": 30,
+   "shelfLifeUnit": "Days",
+   "storageCondition": "Tightly closed, room temperature",
+   "replicateCount": 3,
+   "maxRsdPercent": 0.2,
+   "validityDays": 30,
+   "blankRequired": false,
+   "factorMin": 0.98,
+   "factorMax": 1.02
   },
   {
    "name": "1 N Sulfuric acid VS",
    "type": "Titrant",
    "section": "Physicochemical Laboratory",
-   "nominalStrength": 1.0,
+   "nominalStrength": 1,
    "strengthUnit": "Normal",
    "finalVolumeMl": 1000,
    "instructions": "27 mL sulfuric acid added slowly with stirring to water to make 1000 mL.",
@@ -2499,7 +2445,7 @@
     {
      "entry": "Sulfuric acid (95%-97%)",
      "entryCode": "RG-218",
-     "quantity": 27.0,
+     "quantity": 27,
      "unit": "Milliliter"
     }
    ],
@@ -2511,13 +2457,17 @@
    "usedBy": [
     "STM-RM-150"
    ],
-   "notes": "Standardization: about 5.0 g tromethamine (dried 105 C 3 h) in 50 mL water, bromocresol green TS, pale yellow; 121.14 mg per mL of 1 N. Sulfuric acid concentration not stated.",
-   "complete": false,
-   "missing": [
-    "shelfLife: not stated in the STM",
-    "storageCondition: not stated in the STM",
-    "replicateCount, factorMin, factorMax, maxRsdPercent, validityDays: standardization acceptance values not stated in the STM"
-   ]
+   "notes": "Standardization: about 5.0 g tromethamine (dried 105 C 3 h) in 50 mL water, bromocresol green TS, pale yellow; 121.14 mg per mL of 1 N. Sulfuric acid concentration not stated. Decision 2026-11-04: house standardization defaults of the local titrants (3 replicates, factor 0.98-1.02 as the local 1 N titrants, max RSD 0.2 %, valid 30 days, shelf life 30 days).",
+   "complete": true,
+   "shelfLifeValue": 30,
+   "shelfLifeUnit": "Days",
+   "storageCondition": "Tightly closed, room temperature",
+   "replicateCount": 3,
+   "maxRsdPercent": 0.2,
+   "validityDays": 30,
+   "blankRequired": false,
+   "factorMin": 0.98,
+   "factorMax": 1.02
   },
   {
    "name": "0.1 M Hydrochloric acid VS",
@@ -2544,7 +2494,8 @@
     "replicateCount, factorMin, factorMax, maxRsdPercent, validityDays: standardization acceptance values not stated in the STM",
     "components: prepared from another volumetric solution (1 M HCl VS), not from master entries",
     "standardization: not stated"
-   ]
+   ],
+   "heldBack": "not loaded: storageCondition; components; standardization not stated in the STM"
   },
   {
    "name": "0.004 M Benzethonium chloride VS",
@@ -2570,7 +2521,8 @@
     "storageCondition: not stated in the STM",
     "replicateCount, factorMin, factorMax, maxRsdPercent, validityDays: standardization acceptance values not stated in the STM",
     "instructions, components, standardization: preparation and standardization are not in the STM"
-   ]
+   ],
+   "heldBack": "not loaded: storageCondition; instructions, components, standardization not stated in the STM"
   },
   {
    "name": "Sildenafil buffer-based mobile phase A (acetonitrile : buffer 20:80)",
@@ -2586,7 +2538,8 @@
    "missing": [
     "shelfLife, storageCondition: not stated in the STM",
     "components, pH: the 20:80 mixture needs quantities derived from the buffer recipe (STM states per litre of buffer only); not entered"
-   ]
+   ],
+   "heldBack": "not loaded: only used by held-back HPLC methods, and shelfLife, storageCondition; components, pH not stated"
   },
   {
    "name": "Sildenafil mobile phase B (buffer : methanol : acetonitrile 20:20:60)",
@@ -2602,7 +2555,8 @@
    "missing": [
     "shelfLife, storageCondition: not stated in the STM",
     "components: derived quantities not entered (see mobile phase A)"
-   ]
+   ],
+   "heldBack": "not loaded: only used by held-back HPLC methods, and shelfLife, storageCondition; components not stated"
   },
   {
    "name": "Sildenafil diluent (acetonitrile : mobile phase A 10:90)",
@@ -2618,7 +2572,8 @@
    "missing": [
     "shelfLife, storageCondition: not stated in the STM",
     "components: refers to mobile phase A (another solution)"
-   ]
+   ],
+   "heldBack": "not loaded: only used by held-back HPLC methods, and shelfLife, storageCondition; components not stated"
   },
   {
    "name": "Paraben mobile phase A (6.8 g/L potassium dihydrogen phosphate)",
@@ -2642,7 +2597,8 @@
    "missing": [
     "shelfLife, storageCondition: not stated in the STM"
    ],
-   "notes": "Two entries named potassium dihydrogen phosphate (RG-004, RG-079); RG-079 assumed."
+   "notes": "Two entries named potassium dihydrogen phosphate (RG-004, RG-079); RG-079 assumed.",
+   "heldBack": "not loaded: only used by held-back HPLC methods, and shelfLife, storageCondition not stated"
   },
   {
    "name": "Paraben mobile phase B (methanol)",
@@ -2654,7 +2610,7 @@
     {
      "entry": "Methanol",
      "entryCode": "RG-002",
-     "quantity": 1000.0,
+     "quantity": 1000,
      "unit": "Milliliter"
     }
    ],
@@ -2666,7 +2622,8 @@
    "missing": [
     "shelfLife, storageCondition: not stated in the STM"
    ],
-   "notes": "Mobile phase is 6.8 g/L KH2PO4 : methanol (35:65 V/V) isocratic, channels A 35 / B 65."
+   "notes": "Mobile phase is 6.8 g/L KH2PO4 : methanol (35:65 V/V) isocratic, channels A 35 / B 65.",
+   "heldBack": "not loaded: only used by held-back HPLC methods, and shelfLife, storageCondition not stated"
   },
   {
    "name": "Paraben diluent (mobile phase 35:65)",
@@ -2683,7 +2640,8 @@
    "missing": [
     "shelfLife, storageCondition: not stated in the STM",
     "components: derived quantities not entered"
-   ]
+   ],
+   "heldBack": "not loaded: only used by held-back HPLC methods, and shelfLife, storageCondition; components not stated"
   },
   {
    "name": "Pyridoxine USP mobile phase (hexanesulfonate, pH 3.0, methanol)",
@@ -2695,7 +2653,7 @@
     {
      "entry": "Glacial acetic acid",
      "entryCode": "RG-006",
-     "quantity": 10.0,
+     "quantity": 10,
      "unit": "Milliliter"
     },
     {
@@ -2707,19 +2665,20 @@
     {
      "entry": "Methanol",
      "entryCode": "RG-002",
-     "quantity": 235.0,
+     "quantity": 235,
      "unit": "Milliliter"
     }
    ],
    "usedBy": [
     "STM-RM-097"
    ],
-   "phTarget": 3.0,
+   "phTarget": 3,
    "complete": false,
    "missing": [
     "shelfLife, storageCondition: not stated in the STM",
     "phTolerance: not stated"
-   ]
+   ],
+   "heldBack": "not loaded: only used by held-back HPLC methods, and shelfLife, storageCondition; phTolerance not stated"
   },
   {
    "name": "Pyridoxine USP diluent (mobile phase)",
@@ -2735,7 +2694,8 @@
    "missing": [
     "shelfLife, storageCondition: not stated in the STM",
     "components: refers to the mobile phase"
-   ]
+   ],
+   "heldBack": "not loaded: only used by held-back HPLC methods, and shelfLife, storageCondition; components not stated"
   },
   {
    "name": "Pyridoxine BP mobile phase (KH2PO4 pH 3.0)",
@@ -2754,13 +2714,14 @@
    "usedBy": [
     "STM-RM-097"
    ],
-   "phTarget": 3.0,
+   "phTarget": 3,
    "complete": false,
    "missing": [
     "shelfLife, storageCondition: not stated in the STM",
     "phTolerance: not stated",
     "phAdjustingEntry: dilute phosphoric acid (Phosphoric acid 85%, RG-005, is the entry)"
-   ]
+   ],
+   "heldBack": "not loaded: only used by held-back HPLC methods, and shelfLife, storageCondition; phTolerance; phAdjustingEntry not stated"
   },
   {
    "name": "Pyridoxine BP diluent (water)",
@@ -2772,7 +2733,7 @@
     {
      "entry": "Water, HPLC",
      "entryCode": "RG-003",
-     "quantity": 1000.0,
+     "quantity": 1000,
      "unit": "Milliliter"
     }
    ],
@@ -2782,7 +2743,8 @@
    "complete": false,
    "missing": [
     "shelfLife, storageCondition: not stated in the STM"
-   ]
+   ],
+   "heldBack": "not loaded: only used by held-back HPLC methods, and shelfLife, storageCondition not stated"
   }
  ],
  "hplcMethods": [
@@ -2848,11 +2810,11 @@
      "name": "Sildenafil citrate",
      "wavelengthNm": 230,
      "standardEntry": "Sildenafil citrate CRS (no master entry)",
-     "theoreticalWeightStdMg": 25.0,
-     "theoreticalWeightTestMg": 25.0,
+     "theoreticalWeightStdMg": 25,
+     "theoreticalWeightTestMg": 25,
      "standardInjections": null,
-     "standardDilution": 25.0,
-     "sstMinResolution": 5.0
+     "standardDilution": 25,
+     "sstMinResolution": 5
     }
    ],
    "complete": false,
@@ -2866,7 +2828,8 @@
    "usedBy": [
     "STM-RM-051"
    ],
-   "source": "Sildenafil Citrate__STM Sildenafil Citrate New.txt:32,43"
+   "source": "Sildenafil Citrate__STM Sildenafil Citrate New.txt:32,43",
+   "heldBack": "HPLC method incomplete: analyte standard entry; standardInjections; injection / system suitability for the assay; columnTemperatureC, equilibration"
   },
   {
    "name": "Sildenafil citrate related substances (BP, gradient HPLC)",
@@ -2948,7 +2911,7 @@
      "theoreticalWeightTestMg": null,
      "standardInjections": null,
      "standardDilution": null,
-     "sstMinResolution": 5.0
+     "sstMinResolution": 5
     }
    ],
    "complete": false,
@@ -2960,7 +2923,8 @@
    "usedBy": [
     "STM-RM-051"
    ],
-   "source": "Sildenafil Citrate__STM Sildenafil Citrate New.txt:32,43"
+   "source": "Sildenafil Citrate__STM Sildenafil Citrate New.txt:32,43",
+   "heldBack": "HPLC method incomplete: analyte standard entry; standardInjections"
   },
   {
    "name": "Sodium propyl paraben assay (BP, HPLC)",
@@ -2997,8 +2961,8 @@
      "name": "Propyl para hydroxybenzoate (sodium salt)",
      "wavelengthNm": 272,
      "standardEntry": "Propyl / Sodium propyl para hydroxybenzoate RS or WS (no master entry)",
-     "theoreticalWeightStdMg": 50.0,
-     "theoreticalWeightTestMg": 50.0,
+     "theoreticalWeightStdMg": 50,
+     "theoreticalWeightTestMg": 50,
      "standardInjections": 6,
      "standardDilution": 0.1
     }
@@ -3013,7 +2977,8 @@
    "usedBy": [
     "STM-RM-063"
    ],
-   "source": "Sodium Propyl Paraben__Sodium propyl Paraben- SM.txt:32,35,39"
+   "source": "Sodium Propyl Paraben__Sodium propyl Paraben- SM.txt:32,35,39",
+   "heldBack": "HPLC method incomplete: runTimeMin; analyte standard entry; system suitability acceptance"
   },
   {
    "name": "Sodium propyl paraben related substances (BP, HPLC)",
@@ -3068,7 +3033,7 @@
      "theoreticalWeightTestMg": null,
      "standardInjections": null,
      "standardDilution": null,
-     "sstMinResolution": 5.0
+     "sstMinResolution": 5
     }
    ],
    "complete": false,
@@ -3080,7 +3045,8 @@
    "usedBy": [
     "STM-RM-063"
    ],
-   "source": "Sodium Propyl Paraben__Sodium propyl Paraben- SM.txt:32,35,39"
+   "source": "Sodium Propyl Paraben__Sodium propyl Paraben- SM.txt:32,35,39",
+   "heldBack": "HPLC method incomplete: analyte standard entry; standardInjections"
   },
   {
    "name": "Sodium methyl paraben assay (BP, HPLC)",
@@ -3117,8 +3083,8 @@
      "name": "Methyl para hydroxybenzoate (sodium salt)",
      "wavelengthNm": 272,
      "standardEntry": "Methyl / Sodium methyl para hydroxybenzoate RS or WS (no master entry)",
-     "theoreticalWeightStdMg": 50.0,
-     "theoreticalWeightTestMg": 50.0,
+     "theoreticalWeightStdMg": 50,
+     "theoreticalWeightTestMg": 50,
      "standardInjections": 6,
      "standardDilution": 0.1
     }
@@ -3133,7 +3099,8 @@
    "usedBy": [
     "STM-RM-064"
    ],
-   "source": "Sodium Methyl Paraben__Sodium Methyl Paraben- SM.txt:35,39"
+   "source": "Sodium Methyl Paraben__Sodium Methyl Paraben- SM.txt:35,39",
+   "heldBack": "HPLC method incomplete: runTimeMin; analyte standard entry; system suitability acceptance"
   },
   {
    "name": "Sodium methyl paraben related substances (BP, HPLC)",
@@ -3183,7 +3150,7 @@
      "theoreticalWeightTestMg": null,
      "standardInjections": null,
      "standardDilution": null,
-     "sstMinResolution": 2.0
+     "sstMinResolution": 2
     }
    ],
    "complete": false,
@@ -3195,7 +3162,8 @@
    "usedBy": [
     "STM-RM-064"
    ],
-   "source": "Sodium Methyl Paraben__Sodium Methyl Paraben- SM.txt:35,39"
+   "source": "Sodium Methyl Paraben__Sodium Methyl Paraben- SM.txt:35,39",
+   "heldBack": "HPLC method incomplete: analyte standard entry; standardInjections"
   },
   {
    "name": "Pyridoxine hydrochloride assay (USP, HPLC internal standard)",
@@ -3233,7 +3201,7 @@
      "standardInjections": null,
      "standardDilution": null,
      "sstMinResolution": 2.5,
-     "sstMaxRsdPercent": 3.0
+     "sstMaxRsdPercent": 3
     }
    ],
    "complete": false,
@@ -3247,7 +3215,8 @@
    "usedBy": [
     "STM-RM-097"
    ],
-   "source": "Pyridoxine Hydrochloride__STM-Pyridoxine (004) after edit.txt:54-55"
+   "source": "Pyridoxine Hydrochloride__STM-Pyridoxine (004) after edit.txt:54-55",
+   "heldBack": "HPLC method incomplete: runTimeMin; theoreticalWeightStdMg, theoreticalWeightTestMg; standardInjections; column temperature, particle size"
   },
   {
    "name": "Pyridoxine hydrochloride related substances (BP, HPLC)",
@@ -3261,10 +3230,10 @@
    "columnInternalDiameterMm": 4.6,
    "particleSizeUm": 5,
    "elutionMode": "Isocratic",
-   "flowRateMlPerMin": 1.0,
+   "flowRateMlPerMin": 1,
    "detectorType": "UV",
    "injectionVolumeUl": 5,
-   "runTimeMin": 30.0,
+   "runTimeMin": 30,
    "mobilePhases": [
     {
      "channel": "A",
@@ -3308,7 +3277,8 @@
    "usedBy": [
     "STM-RM-097"
    ],
-   "source": "Pyridoxine Hydrochloride__STM-Pyridoxine (004) after edit.txt:54-55"
+   "source": "Pyridoxine Hydrochloride__STM-Pyridoxine (004) after edit.txt:54-55",
+   "heldBack": "HPLC method incomplete: standardInjections"
   }
  ],
  "icpMethods": [
@@ -3324,7 +3294,7 @@
    "elements": [
     {
      "symbol": "Se",
-     "wavelengthNm": 196.0,
+     "wavelengthNm": 196,
      "conversionFactor": null
     }
    ],
@@ -3340,7 +3310,8 @@
     "minCorrelation: not stated (single standard level, text says \"calibration graph\")",
     "conversionFactor: STM gives 78.9/188.94 = 0.4176 applied to the selenate assay; which result is the reported total Se is unclear (gaps A)",
     "standardLevelsMgPerL: only one level (100 mg/L) is stated"
-   ]
+   ],
+   "heldBack": "ICP method incomplete: element view (axial/radial); effectiveDate; minCorrelation; conversionFactor; standardLevelsMgPerL"
   },
   {
    "name": "Sodium by AAS (sodium hydroxide USP)",
@@ -3354,7 +3325,7 @@
    "elements": [
     {
      "symbol": "Na",
-     "wavelengthNm": 589.0,
+     "wavelengthNm": 589,
      "conversionFactor": 1
     }
    ],
@@ -3369,7 +3340,8 @@
     "effectiveDate: STM issue date (loader reads it from the STM header)",
     "calibrationStandardEntry: no Reference Standard master entry for sodium (gaps C)",
     "blank: STM states a diluent blank but no blank limit (blank check left off)"
-   ]
+   ],
+   "heldBack": "ICP method incomplete: element view (axial/radial); effectiveDate; calibrationStandardEntry; blank"
   },
   {
    "name": "Potassium by AAS (sodium hydroxide USP)",
@@ -3399,7 +3371,8 @@
     "calibrationStandardEntry: no Reference Standard master entry for potassium (gaps C)",
     "sampleVolumeMl: final volume of the sample solution not stated",
     "mode: NMT % result (0.5 % = 5000 ug/g) is not a ug/g impurity limit on the sheet (gaps A)"
-   ]
+   ],
+   "heldBack": "ICP method incomplete: element view (axial/radial); effectiveDate; calibrationStandardEntry; sampleVolumeMl; mode"
   },
   {
    "name": "Lead by AAS (Siberian ginseng extract)",
@@ -3428,7 +3401,8 @@
     "effectiveDate: STM issue date (loader reads it from the STM header)",
     "minCorrelation: not stated",
     "calibrationStandardEntry: two lead entries match (RS-035, RS-026); which one is the STM \"Lead Standard Solution 1000 ppm\" is not decided"
-   ]
+   ],
+   "heldBack": "ICP method incomplete: element view (axial/radial); effectiveDate; minCorrelation; calibrationStandardEntry"
   }
  ],
  "reagentLinks": [
@@ -3813,9 +3787,7 @@
    "RM-ASSAY": "RM-TIT-NACLT",
    "RM-CLARITY": "RM-SOLAPP",
    "RM-DISINT": "RM-DISINT",
-   "RM-ID": "RM-ID-NACLT",
-   "RM-SOL-AGNO3-STD": "(solution) 0.1 M Silver nitrate VS",
-   "RM-SOL-NH4SCN-STD": "(solution) 0.1 M Ammonium thiocyanate VS"
+   "RM-ID": "RM-ID-NACLT"
   },
   "STM-RM-060": {
    "RM-ASSAY": "RM-TIT-SMB",
@@ -3971,5 +3943,269 @@
    "RM-PH": "RM-PH",
    "RM-SOLUB": "RM-SOLUB"
   }
- }
+ },
+ "materialEntries": [
+  {
+   "name": "Ferric ammonium sulfate solution R2",
+   "category": "Indicator",
+   "codePrefix": "IND-",
+   "code": null,
+   "baseUnit": "Bottle",
+   "usedBy": [
+    "RM-TIT-NACLT"
+   ],
+   "source": "Sodium Chloride Tablet__STM Sodium Chloride Tablet 1-3.txt:25",
+   "loadedObjectNeedsIt": true
+  },
+  {
+   "name": "Phenol red solution",
+   "category": "Indicator",
+   "codePrefix": "IND-",
+   "code": null,
+   "baseUnit": "Bottle",
+   "usedBy": [
+    "RM-TIT-SLS-ALK (now a Measurement test)"
+   ],
+   "source": "Sodium Lauryl sulfate__Sodium Lauryl sulfate.txt:26,31",
+   "loadedObjectNeedsIt": false
+  },
+  {
+   "name": "Sodium fluoresceinate solution 2 g/L",
+   "category": "Indicator",
+   "codePrefix": "IND-",
+   "code": null,
+   "baseUnit": "Bottle",
+   "usedBy": [
+    "RM-NACL-SLS (now a Measurement test)"
+   ],
+   "source": "Sodium Lauryl sulfate__Sodium Lauryl sulfate.txt:33",
+   "loadedObjectNeedsIt": false
+  },
+  {
+   "name": "Dimidium bromide-sulfan blue mixed solution",
+   "category": "Indicator",
+   "codePrefix": "IND-",
+   "code": null,
+   "baseUnit": "Bottle",
+   "usedBy": [
+    "RM-TIT-SLS (now a Measurement test)"
+   ],
+   "source": "Sodium Lauryl sulfate__Sodium Lauryl sulfate.txt:34",
+   "loadedObjectNeedsIt": false
+  },
+  {
+   "name": "Potassium bromate (primary standard)",
+   "category": "PrimaryStandard",
+   "codePrefix": "PS-",
+   "code": null,
+   "baseUnit": "Gram",
+   "usedBy": [
+    "0.1 M Sodium thiosulfate VS (held back)"
+   ],
+   "source": "Sodium Meta bisulfit__Sodium Metabisulfit - SM without arsenic.txt:26; Sodium Hypochlorite__STM Sodium Hypochlorite.txt:28",
+   "loadedObjectNeedsIt": false
+  },
+  {
+   "name": "Sildenafil citrate CRS",
+   "category": "ReferenceStandard",
+   "codePrefix": "RS-",
+   "code": null,
+   "baseUnit": "Gram",
+   "usedBy": [
+    "RM-HPLC-SILD-AS",
+    "RM-HPLC-SILD-RS (held back)"
+   ],
+   "source": "Sildenafil Citrate__STM Sildenafil Citrate New.txt:26",
+   "loadedObjectNeedsIt": false
+  },
+  {
+   "name": "Sildenafil impurity A CRS",
+   "category": "ReferenceStandard",
+   "codePrefix": "RS-",
+   "code": null,
+   "baseUnit": "Gram",
+   "usedBy": [
+    "RM-HPLC-SILD-RS (held back)"
+   ],
+   "source": "Sildenafil Citrate__STM Sildenafil Citrate New.txt:26",
+   "loadedObjectNeedsIt": false
+  },
+  {
+   "name": "Sildenafil for peak identification CRS",
+   "category": "ReferenceStandard",
+   "codePrefix": "RS-",
+   "code": null,
+   "baseUnit": "Gram",
+   "usedBy": [
+    "RM-HPLC-SILD-RS (held back)"
+   ],
+   "source": "Sildenafil Citrate__STM Sildenafil Citrate New.txt:26",
+   "loadedObjectNeedsIt": false
+  },
+  {
+   "name": "Imidazole CRS",
+   "category": "ReferenceStandard",
+   "codePrefix": "RS-",
+   "code": null,
+   "baseUnit": "Gram",
+   "usedBy": [
+    "RM-HPLC-SILD-RS (held back)"
+   ],
+   "source": "Sildenafil Citrate__STM Sildenafil Citrate New.txt:26",
+   "loadedObjectNeedsIt": false
+  },
+  {
+   "name": "Propyl para hydroxybenzoate RS",
+   "category": "ReferenceStandard",
+   "codePrefix": "RS-",
+   "code": null,
+   "baseUnit": "Gram",
+   "usedBy": [
+    "RM-HPLC-PPB-AS",
+    "RM-HPLC-PPB-RS (held back)"
+   ],
+   "source": "Sodium Propyl Paraben__Sodium propyl Paraben- SM.txt:28",
+   "loadedObjectNeedsIt": false
+  },
+  {
+   "name": "Sodium propyl para hydroxybenzoate RS",
+   "category": "ReferenceStandard",
+   "codePrefix": "RS-",
+   "code": null,
+   "baseUnit": "Gram",
+   "usedBy": [
+    "RM-HPLC-PPB-AS",
+    "RM-HPLC-PPB-RS (held back)"
+   ],
+   "source": "Sodium Propyl Paraben__Sodium propyl Paraben- SM.txt:28",
+   "loadedObjectNeedsIt": false
+  },
+  {
+   "name": "Methyl para hydroxybenzoate RS",
+   "category": "ReferenceStandard",
+   "codePrefix": "RS-",
+   "code": null,
+   "baseUnit": "Gram",
+   "usedBy": [
+    "RM-HPLC-MPB-AS",
+    "RM-HPLC-MPB-RS (held back)"
+   ],
+   "source": "Sodium Methyl Paraben__Sodium Methyl Paraben- SM.txt:28",
+   "loadedObjectNeedsIt": false
+  },
+  {
+   "name": "Sodium methyl para hydroxybenzoate RS",
+   "category": "ReferenceStandard",
+   "codePrefix": "RS-",
+   "code": null,
+   "baseUnit": "Gram",
+   "usedBy": [
+    "RM-HPLC-MPB-AS",
+    "RM-HPLC-MPB-RS (held back)"
+   ],
+   "source": "Sodium Methyl Paraben__Sodium Methyl Paraben- SM.txt:28",
+   "loadedObjectNeedsIt": false
+  },
+  {
+   "name": "Ethyl para hydroxybenzoate RS",
+   "category": "ReferenceStandard",
+   "codePrefix": "RS-",
+   "code": null,
+   "baseUnit": "Gram",
+   "usedBy": [
+    "RM-HPLC-PPB-RS",
+    "RM-HPLC-MPB-RS (held back)"
+   ],
+   "source": "Sodium Propyl Paraben__Sodium propyl Paraben- SM.txt:28,35; Sodium Methyl Paraben__Sodium Methyl Paraben- SM.txt:28",
+   "loadedObjectNeedsIt": false
+  },
+  {
+   "name": "4-Hydroxybenzoic acid",
+   "category": "ReferenceStandard",
+   "codePrefix": "RS-",
+   "code": null,
+   "baseUnit": "Gram",
+   "usedBy": [
+    "RM-HPLC-PPB-RS",
+    "RM-HPLC-MPB-RS (impurity A)",
+    "RM-HPLC-PYR-AS (p-hydroxybenzoic acid, internal standard) (held back)"
+   ],
+   "source": "Sodium Propyl Paraben__Sodium propyl Paraben- SM.txt:28,35; Pyridoxine Hydrochloride__STM-Pyridoxine (004) after edit.txt:41",
+   "loadedObjectNeedsIt": false,
+   "note": "p-Hydroxybenzoic acid of the Pyridoxine STM is the same substance, one entry."
+  },
+  {
+   "name": "Pyridoxine impurity A CRS",
+   "category": "ReferenceStandard",
+   "codePrefix": "RS-",
+   "code": null,
+   "baseUnit": "Gram",
+   "usedBy": [
+    "RM-HPLC-PYR-RS (held back)"
+   ],
+   "source": "Pyridoxine Hydrochloride__STM-Pyridoxine (004) after edit.txt:41",
+   "loadedObjectNeedsIt": false
+  },
+  {
+   "name": "4-Deoxypyridoxine hydrochloride",
+   "category": "ReferenceStandard",
+   "codePrefix": "RS-",
+   "code": null,
+   "baseUnit": "Gram",
+   "usedBy": [
+    "RM-HPLC-PYR-RS (held back)"
+   ],
+   "source": "Pyridoxine Hydrochloride__STM-Pyridoxine (004) after edit.txt:41",
+   "loadedObjectNeedsIt": false
+  },
+  {
+   "name": "Sodium lauryl sulfate RS",
+   "category": "ReferenceStandard",
+   "codePrefix": "RS-",
+   "code": null,
+   "baseUnit": "Gram",
+   "usedBy": [
+    "RM-ID-IR on STM-RM-091 (the sheet compares with the RS)"
+   ],
+   "source": "Sodium Lauryl sulfate__Sodium Lauryl sulfate.txt:30",
+   "loadedObjectNeedsIt": false
+  },
+  {
+   "name": "Riboflavin sodium phosphate CRS",
+   "category": "ReferenceStandard",
+   "codePrefix": "RS-",
+   "code": null,
+   "baseUnit": "Gram",
+   "usedBy": [
+    "RM-ID-IR on STM-RM-56 (the sheet compares with the CRS)"
+   ],
+   "source": "Riboflavin 5-phosphate__Riboflavin 5-phosphate -SM.txt:26",
+   "loadedObjectNeedsIt": false,
+   "note": "Riboflavin RS (RS-014) is a different substance."
+  },
+  {
+   "name": "Sodium standard (NaCl) for AAS",
+   "category": "ReferenceStandard",
+   "codePrefix": "RS-",
+   "code": null,
+   "baseUnit": "Milliliter",
+   "usedBy": [
+    "RM-ICP-NA (held back)"
+   ],
+   "source": "Sodium Hydroxide__Sodium Hydroxide-SM.txt (sodium standard 25.41 ug/mL NaCl)",
+   "loadedObjectNeedsIt": false
+  },
+  {
+   "name": "Potassium standard (KCl) for AAS",
+   "category": "ReferenceStandard",
+   "codePrefix": "RS-",
+   "code": null,
+   "baseUnit": "Milliliter",
+   "usedBy": [
+    "RM-ICP-K (held back)"
+   ],
+   "source": "Sodium Hydroxide__Sodium Hydroxide-SM.txt (potassium standard KCl)",
+   "loadedObjectNeedsIt": false
+  }
+ ]
 }

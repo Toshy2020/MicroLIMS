@@ -132,14 +132,15 @@
           "parameterName": "Related substances - Impurity A",
           "limitType": "NotMoreThan",
           "lower": null,
-          "upper": 4.0,
+          "upper": 4,
           "lowerInclusive": null,
           "unit": "%",
           "expectedResultText": null,
           "expectedState": null,
           "resultBasis": null,
           "referenceStandard": "BP 2025",
-          "source": "Sodium Propyl Paraben__Sodium propyl Paraben- SM.txt:35; spec sheet:19 \"Complies with BP\""
+          "source": "Sodium Propyl Paraben__Sodium propyl Paraben- SM.txt:35; spec sheet:19 \"Complies with BP\"",
+          "heldBack": "needs the held-back method \"Sodium propyl paraben related substances (BP, HPLC)\""
         },
         {
           "testCode": "RM-RS",
@@ -153,31 +154,33 @@
           "expectedState": null,
           "resultBasis": null,
           "referenceStandard": "BP 2025",
-          "source": "Sodium Propyl Paraben__Sodium propyl Paraben- SM.txt:35; spec sheet:19 \"Complies with BP\""
+          "source": "Sodium Propyl Paraben__Sodium propyl Paraben- SM.txt:35; spec sheet:19 \"Complies with BP\"",
+          "heldBack": "needs the held-back method \"Sodium propyl paraben related substances (BP, HPLC)\""
         },
         {
           "testCode": "RM-RS",
           "parameterName": "Related substances - Sum of impurities other than A",
           "limitType": "NotMoreThan",
           "lower": null,
-          "upper": 1.0,
+          "upper": 1,
           "lowerInclusive": null,
           "unit": "%",
           "expectedResultText": null,
           "expectedState": null,
           "resultBasis": null,
           "referenceStandard": "BP 2025",
-          "source": "Sodium Propyl Paraben__Sodium propyl Paraben- SM.txt:35; spec sheet:19 \"Complies with BP\""
+          "source": "Sodium Propyl Paraben__Sodium propyl Paraben- SM.txt:35; spec sheet:19 \"Complies with BP\"",
+          "heldBack": "needs the held-back method \"Sodium propyl paraben related substances (BP, HPLC)\""
         },
         {
           "testCode": "RM-CHLORIDE",
           "parameterName": "Chlorides",
-          "limitType": "NotMoreThan",
+          "limitType": "Qualitative",
           "lower": null,
-          "upper": 350,
+          "upper": null,
           "lowerInclusive": null,
-          "unit": "ppm",
-          "expectedResultText": null,
+          "unit": null,
+          "expectedResultText": "Complies (NMT 350 ppm)",
           "expectedState": null,
           "resultBasis": null,
           "referenceStandard": "BP 2025",
@@ -186,12 +189,12 @@
         {
           "testCode": "RM-SULFATE",
           "parameterName": "Sulfates",
-          "limitType": "NotMoreThan",
+          "limitType": "Qualitative",
           "lower": null,
-          "upper": 300,
+          "upper": null,
           "lowerInclusive": null,
-          "unit": "ppm",
-          "expectedResultText": null,
+          "unit": null,
+          "expectedResultText": "Complies (NMT 300 ppm)",
           "expectedState": null,
           "resultBasis": null,
           "referenceStandard": "BP 2025",
@@ -202,7 +205,7 @@
           "parameterName": "Water",
           "limitType": "NotMoreThan",
           "lower": null,
-          "upper": 5.0,
+          "upper": 5,
           "lowerInclusive": null,
           "unit": "%",
           "expectedResultText": null,
@@ -215,15 +218,16 @@
           "testCode": "RM-ASSAY-HPLC",
           "parameterName": "Assay (Sodium Propyl Hydroxybenzoate)",
           "limitType": "Range",
-          "lower": 94.0,
-          "upper": 102.0,
+          "lower": 94,
+          "upper": 102,
           "lowerInclusive": true,
           "unit": "%",
           "expectedResultText": null,
           "expectedState": null,
           "resultBasis": "PercentAnhydrousBasis",
           "referenceStandard": "BP 2025",
-          "source": "Sodium Propyl Paraben__Specifications sheet Sodium Methyl Paraben.txt:23; Sodium Propyl Paraben__Sodium propyl Paraben- SM.txt:39"
+          "source": "Sodium Propyl Paraben__Specifications sheet Sodium Methyl Paraben.txt:23; Sodium Propyl Paraben__Sodium propyl Paraben- SM.txt:39",
+          "heldBack": "needs the held-back method \"Sodium propyl paraben assay (BP, HPLC)\""
         },
         {
           "testCode": "RM-TAMC",
@@ -428,7 +432,8 @@
           "Methanol"
         ]
       },
-      "source": "Sodium Propyl Paraben__Sodium propyl Paraben- SM.txt:35"
+      "source": "Sodium Propyl Paraben__Sodium propyl Paraben- SM.txt:35",
+      "heldBack": "needs the held-back method \"Sodium propyl paraben related substances (BP, HPLC)\""
     },
     {
       "testCode": "RM-CHLORIDE",
@@ -461,11 +466,12 @@
       "testCode": "RM-WATER",
       "procedure": "Karl Fischer water determination on 0.500 g of sample with a calibrated Karl Fischer titrator (BP Appendix IX C).",
       "kind": "general",
-      "workflow": "Titration",
+      "workflow": "Measurement",
       "details": {
         "sampleG": 0.5,
         "method": "Karl Fischer",
-        "limit": "Maximum 5.0 per cent"
+        "limit": "Maximum 5.0 per cent",
+        "analystEntersFinalValue": "Decision 2026-11-04: was Titration in the transcription; now Measurement, the analyst enters the final value."
       },
       "source": "Sodium Propyl Paraben__Sodium propyl Paraben- SM.txt:38"
     },
@@ -482,14 +488,15 @@
         "injectionUl": 10,
         "retention": "propyl Para hydroxybenzoate about 4.5 min",
         "systemSuitability": "6 replicate injections of the Standard solution (no numeric criterion stated)",
-        "standardWeightMg": 50.0,
-        "testWeightMg": 50.0,
+        "standardWeightMg": 50,
+        "testWeightMg": 50,
         "finalDilution": "50.0 mL then 10.0 mL to 100.0 mL (mobile phase)",
         "calculation": "Assay % = (PAt / PAst) x (Act.Wt.std / Theo.Wt.std) x (Theo.Wt.test / Act.Wt.test) x (100 / (100 - MC)) x Potency; the text prints the factors as PAt/PAst, Act.Wt.std/Act.Wt.std, Theo.Wt.test/Theo.Wt.test, 100/(100-MC). PAt/PAst = mean peak area test/standard; MC = moisture content of working standard; Potency = assay of working standard. Calculate sodium propylparaben using the declared content of Sodium Propyl Para hydroxybenzoate RS/WS; if Propyl Para hydroxybenzoate RS/WS is used multiply by the correction factor 1.122.",
         "correctionFactorPropylStd": 1.122,
         "limit": "94.0 per cent to 102.0 per cent (anhydrous substance)"
       },
-      "source": "Sodium Propyl Paraben__Sodium propyl Paraben- SM.txt:39"
+      "source": "Sodium Propyl Paraben__Sodium propyl Paraben- SM.txt:39",
+      "heldBack": "needs the held-back method \"Sodium propyl paraben assay (BP, HPLC)\""
     },
     {
       "testCode": "RM-TAMC",

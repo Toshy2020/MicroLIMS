@@ -11,7 +11,13 @@
     "USP": "Sodium Hydroxide__Sodium Hydroxide-SM.txt (BP and USP, STM-RM-150 v1/0, 10-07-2024)",
     "notUsed": "Sodium Hydroxide__Sodium Hydroxide- STM.txt (no STM number, references BP/USP 2023, no version; same procedures as -SM.txt apart from reference year and minor wording)"
   },
-  "minQuantity": { "routine": 50, "retest": null, "unit": "g", "source": "Sodium Hydroxide__Specifications sheet Sodium Hydroxide BP.txt:21 and ...USP.txt:19 (50 gm); retest quantity conflicts between the STM files, see openQuestions" },
+  "minQuantity": {
+    "routine": 50,
+    "retest": 100,
+    "unit": "g",
+    "source": "Sodium Hydroxide__Specifications sheet Sodium Hydroxide BP.txt:21 and Sodium Hydroxide__Specifications sheet Sodium Hydroxide USP.txt:19 (routine 50 g); Sodium Hydroxide__Sodium Hydroxide-SM.txt:42 (periodic retesting 100 g, the BP and USP STM; the BP-only STM and the 2023 STM say 60 g)",
+    "note": "Decision 2026-11-04 rule: routine from the spec sheet, retest from the STM."
+  },
   "grades": [
     {
       "grade": "BP",
@@ -20,7 +26,9 @@
           "testCode": "RM-DESC",
           "parameterName": "Appearance",
           "limitType": "Qualitative",
-          "lower": null, "upper": null, "lowerInclusive": null,
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
           "unit": null,
           "expectedResultText": "White or almost white, crystalline masses, supplied as pellets, sticks or slabs, deliquescent, readily absorbing carbon dioxide",
           "expectedState": null,
@@ -32,7 +40,9 @@
           "testCode": "RM-SOLUB",
           "parameterName": "Solubility",
           "limitType": "Qualitative",
-          "lower": null, "upper": null, "lowerInclusive": null,
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
           "unit": null,
           "expectedResultText": "Very soluble in water, freely soluble in ethanol (96 per cent)",
           "expectedState": null,
@@ -44,7 +54,9 @@
           "testCode": "RM-ID-PH",
           "parameterName": "Identification (pH)",
           "limitType": "NotLessThan",
-          "lower": 11.0, "upper": null, "lowerInclusive": null,
+          "lower": 11,
+          "upper": null,
+          "lowerInclusive": null,
           "unit": "pH",
           "expectedResultText": null,
           "expectedState": null,
@@ -56,7 +68,9 @@
           "testCode": "RM-ID-NA-PPT",
           "parameterName": "Identification (chemical reaction)",
           "limitType": "Qualitative",
-          "lower": null, "upper": null, "lowerInclusive": null,
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
           "unit": null,
           "expectedResultText": "A dense white precipitate is formed",
           "expectedState": null,
@@ -68,7 +82,9 @@
           "testCode": "RM-APPSOL",
           "parameterName": "Appearance of solution",
           "limitType": "Qualitative",
-          "lower": null, "upper": null, "lowerInclusive": null,
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
           "unit": null,
           "expectedResultText": "The solution is clear and colorless",
           "expectedState": null,
@@ -80,7 +96,9 @@
           "testCode": "RM-CARB",
           "parameterName": "Carbonates",
           "limitType": "NotMoreThan",
-          "lower": null, "upper": 2.0, "lowerInclusive": null,
+          "lower": null,
+          "upper": 2,
+          "lowerInclusive": null,
           "unit": "%",
           "expectedResultText": null,
           "expectedState": null,
@@ -91,10 +109,12 @@
         {
           "testCode": "RM-CL",
           "parameterName": "Chlorides",
-          "limitType": "NotMoreThan",
-          "lower": null, "upper": 200, "lowerInclusive": null,
-          "unit": "ppm",
-          "expectedResultText": null,
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Complies (NMT 200 ppm)",
           "expectedState": null,
           "resultBasis": null,
           "referenceStandard": "BP 2024",
@@ -103,10 +123,12 @@
         {
           "testCode": "RM-SO4",
           "parameterName": "Sulfates",
-          "limitType": "NotMoreThan",
-          "lower": null, "upper": 200, "lowerInclusive": null,
-          "unit": "ppm",
-          "expectedResultText": null,
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Complies (NMT 200 ppm)",
           "expectedState": null,
           "resultBasis": null,
           "referenceStandard": "BP 2024",
@@ -115,10 +137,12 @@
         {
           "testCode": "RM-FE",
           "parameterName": "Iron",
-          "limitType": "NotMoreThan",
-          "lower": null, "upper": 10, "lowerInclusive": null,
-          "unit": "ppm",
-          "expectedResultText": null,
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Complies (NMT 10 ppm)",
           "expectedState": null,
           "resultBasis": null,
           "referenceStandard": "BP 2024",
@@ -128,7 +152,9 @@
           "testCode": "RM-ASSAY-BP",
           "parameterName": "Assay (total alkali, calculated as NaOH)",
           "limitType": "Range",
-          "lower": 97.0, "upper": 100.5, "lowerInclusive": true,
+          "lower": 97,
+          "upper": 100.5,
+          "lowerInclusive": true,
           "unit": "%",
           "expectedResultText": null,
           "expectedState": null,
@@ -145,7 +171,9 @@
           "testCode": "RM-DESC",
           "parameterName": "Description",
           "limitType": "Qualitative",
-          "lower": null, "upper": null, "lowerInclusive": null,
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
           "unit": null,
           "expectedResultText": "White, or practically white, fused masses, in small pellets, in flakes, or sticks, and in other forms. Is hard and brittle and shows a crystalline fracture. Exposed to the air, it rapidly absorbs carbon dioxide and moisture",
           "expectedState": null,
@@ -157,7 +185,9 @@
           "testCode": "RM-SOLUB",
           "parameterName": "Solubility",
           "limitType": "Qualitative",
-          "lower": null, "upper": null, "lowerInclusive": null,
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
           "unit": null,
           "expectedResultText": "Freely soluble in water and in alcohol",
           "expectedState": null,
@@ -169,7 +199,9 @@
           "testCode": "RM-ID-PH",
           "parameterName": "Identification (pH)",
           "limitType": "NotLessThan",
-          "lower": 11.0, "upper": null, "lowerInclusive": null,
+          "lower": 11,
+          "upper": null,
+          "lowerInclusive": null,
           "unit": "pH",
           "expectedResultText": null,
           "expectedState": null,
@@ -181,7 +213,9 @@
           "testCode": "RM-ID-NA-PPT",
           "parameterName": "Identification (chemical reaction)",
           "limitType": "Qualitative",
-          "lower": null, "upper": null, "lowerInclusive": null,
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
           "unit": null,
           "expectedResultText": "A dense white precipitate is formed",
           "expectedState": null,
@@ -193,31 +227,39 @@
           "testCode": "RM-NA-AAS",
           "parameterName": "Content of Sodium",
           "limitType": "Range",
-          "lower": 54.0, "upper": 59.8, "lowerInclusive": true,
+          "lower": 54,
+          "upper": 59.8,
+          "lowerInclusive": true,
           "unit": "%",
           "expectedResultText": null,
           "expectedState": null,
           "resultBasis": "PercentAsIs",
           "referenceStandard": "USP 2024",
-          "source": "Sodium Hydroxide__Specifications sheet Sodium Hydroxide USP.txt:15"
+          "source": "Sodium Hydroxide__Specifications sheet Sodium Hydroxide USP.txt:15",
+          "heldBack": "needs the held-back method \"Sodium by AAS (sodium hydroxide USP)\""
         },
         {
           "testCode": "RM-K-AAS",
           "parameterName": "Potassium",
           "limitType": "NotMoreThan",
-          "lower": null, "upper": 0.5, "lowerInclusive": null,
+          "lower": null,
+          "upper": 0.5,
+          "lowerInclusive": null,
           "unit": "%",
           "expectedResultText": null,
           "expectedState": null,
           "resultBasis": null,
           "referenceStandard": "USP 2024",
-          "source": "Sodium Hydroxide__Specifications sheet Sodium Hydroxide USP.txt:16"
+          "source": "Sodium Hydroxide__Specifications sheet Sodium Hydroxide USP.txt:16",
+          "heldBack": "needs the held-back method \"Potassium by AAS (sodium hydroxide USP)\""
         },
         {
           "testCode": "RM-INSOL",
           "parameterName": "Insoluble Substances and Organic Matter",
           "limitType": "Qualitative",
-          "lower": null, "upper": null, "lowerInclusive": null,
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
           "unit": null,
           "expectedResultText": "Comply",
           "expectedState": null,
@@ -229,7 +271,9 @@
           "testCode": "RM-ASSAY-USP",
           "parameterName": "Assay (Total Alkali, calculated as NaOH)",
           "limitType": "Range",
-          "lower": 95.0, "upper": 100.5, "lowerInclusive": true,
+          "lower": 95,
+          "upper": 100.5,
+          "lowerInclusive": true,
           "unit": "%",
           "expectedResultText": null,
           "expectedState": null,
@@ -241,7 +285,9 @@
           "testCode": "RM-NA2CO3-USP",
           "parameterName": "Sodium carbonate (Na2CO3), from the Assay (Total Alkali)",
           "limitType": "NotMoreThan",
-          "lower": null, "upper": 3.0, "lowerInclusive": null,
+          "lower": null,
+          "upper": 3,
+          "lowerInclusive": null,
           "unit": "%",
           "expectedResultText": null,
           "expectedState": null,
@@ -260,7 +306,10 @@
       "workflow": "Observation",
       "details": {
         "perContainer": true,
-        "grades": ["BP", "USP"],
+        "grades": [
+          "BP",
+          "USP"
+        ],
         "bpSpecification": "White or almost white, crystalline masses, supplied as pellets, sticks or slabs, deliquescent, readily absorbing carbon dioxide",
         "uspSpecification": "White, or practically white, fused masses, in small pellets, in flakes, or sticks, and in other forms. Is hard and brittle and shows a crystalline fracture. Exposed to the air, it rapidly absorbs carbon dioxide and moisture",
         "reference": "BP 2024 (SC IV K.) Characters Section in Monographs (Hygroscopicity and Solubility); USP 2024 Description and Relative Solubility; BP/USP 2024 Monograph for Sodium Hydroxide"
@@ -273,13 +322,27 @@
       "kind": "general",
       "workflow": "Observation",
       "details": {
-        "grades": ["BP", "USP"],
+        "grades": [
+          "BP",
+          "USP"
+        ],
         "sample": "100 mg powdered sample in stoppered tube (10 mg and 1 mg for the lower classes)",
         "temperatureC": "25.0 +/- 0.5",
         "shakeMinutes": 1,
         "standMinutes": 15,
-        "solvents": ["water", "alcohol (BP file: ethanol 96 per cent)"],
-        "steps": ["0.1 mL: very soluble", "+0.9 mL: freely soluble", "+2 mL: soluble", "+7 mL: sparingly soluble", "10 mg in 10 mL: slightly soluble", "1 mg in 10 mL: very slightly soluble", "otherwise practically insoluble"],
+        "solvents": [
+          "water",
+          "alcohol (BP file: ethanol 96 per cent)"
+        ],
+        "steps": [
+          "0.1 mL: very soluble",
+          "+0.9 mL: freely soluble",
+          "+2 mL: soluble",
+          "+7 mL: sparingly soluble",
+          "10 mg in 10 mL: slightly soluble",
+          "1 mg in 10 mL: very slightly soluble",
+          "otherwise practically insoluble"
+        ],
         "bpSpecification": "Very soluble in water, freely soluble in ethanol (96 per cent)",
         "uspSpecification": "Freely soluble in water and in alcohol"
       },
@@ -291,7 +354,10 @@
       "kind": "general",
       "workflow": "Measurement",
       "details": {
-        "grades": ["BP", "USP"],
+        "grades": [
+          "BP",
+          "USP"
+        ],
         "equipment": "calibrated pH meter",
         "sample": "0.1 g in 10 mL water",
         "dilutionCombinedStm": "1 mL of the solution diluted to 100 mL with water (Sodium Hydroxide-SM.txt:30 only)",
@@ -307,9 +373,15 @@
       "kind": "general",
       "workflow": "Qualitative",
       "details": {
-        "grades": ["BP", "USP"],
+        "grades": [
+          "BP",
+          "USP"
+        ],
         "solutionS": "Dissolve 5.0 g in 12 mL of water. Add 17 mL of hydrochloric acid R1, adjust to pH 7 with a 103 g/L hydrochloric acid solution and dilute to 50 mL with water",
-        "reagents": ["potassium carbonate 150 g/L, 2 mL", "potassium pyroantimonate solution R1, 4 mL"],
+        "reagents": [
+          "potassium carbonate 150 g/L, 2 mL",
+          "potassium pyroantimonate solution R1, 4 mL"
+        ],
         "specification": "A dense white precipitate is formed",
         "reference": "BP 2024 Appendix VI Qualitative Reactions and Tests; USP 2024 Identification Tests - General <191>, Sodium"
       },
@@ -321,7 +393,9 @@
       "kind": "general",
       "workflow": "Observation",
       "details": {
-        "grades": ["BP"],
+        "grades": [
+          "BP"
+        ],
         "sample": "1.0 g in 10 mL water; compare 10 mL of solution S with 10 mL of water",
         "specification": "The solution is clear and colorless",
         "reference": "BP 2024 Appendix IV A. Clarity of Solution and IV B. Colour of Solution"
@@ -332,15 +406,18 @@
       "testCode": "RM-CARB",
       "procedure": "Carbonates, calculated as Na2CO3, are determined in the BP assay: 1 mL of 1 M hydrochloric acid used in the second part of the titration (after adding methyl orange) is equivalent to 0.1060 g of Na2CO3.",
       "kind": "specific",
-      "workflow": "Titration",
+      "workflow": "Measurement",
       "details": {
-        "grades": ["BP"],
+        "grades": [
+          "BP"
+        ],
         "derivedFrom": "RM-ASSAY-BP (second part of the titration)",
         "titrant": "1 M hydrochloric acid VS",
         "titrantMolarity": 1,
         "equivalence": "1 mL of 1 M hydrochloric acid in the 2nd part of the titration is equivalent to 0.1060 g (106.0 mg) of Na2CO3",
-        "equivalenceFactorMg": 106.0,
-        "specification": "Maximum 2.0 per cent"
+        "equivalenceFactorMg": 106,
+        "specification": "Maximum 2.0 per cent",
+        "analystEntersFinalValue": "Decision 2026-11-04: was Titration in the transcription; now Measurement, the analyst enters the final value."
       },
       "source": "Sodium Hydroxide__Sodium Hydroxide-SM BP.txt:32,36"
     },
@@ -350,7 +427,9 @@
       "kind": "specific",
       "workflow": "Qualitative",
       "details": {
-        "grades": ["BP"],
+        "grades": [
+          "BP"
+        ],
         "limitTest": true,
         "sampleG": 0.25,
         "standard": "chloride standard solution (5 ppm Cl): immediately before use dilute with water to 100 times its volume a solution containing sodium chloride equivalent to 0.824 g NaCl in 1000.0 mL",
@@ -366,7 +445,9 @@
       "kind": "specific",
       "workflow": "Qualitative",
       "details": {
-        "grades": ["BP"],
+        "grades": [
+          "BP"
+        ],
         "limitTest": true,
         "sampleG": 0.75,
         "standard": "sulfate standard solution (10 ppm SO4) R1: immediately before use dilute with ethanol (30 per cent V/V) to 100 times its volume a solution containing dipotassium sulfate equivalent to 0.181 g K2SO4 in 100.0 mL ethanol (30 per cent V/V)",
@@ -381,7 +462,9 @@
       "kind": "specific",
       "workflow": "Qualitative",
       "details": {
-        "grades": ["BP"],
+        "grades": [
+          "BP"
+        ],
         "limitTest": true,
         "standard": "iron standard solution (1 ppm Fe): dilute iron standard solution (20 ppm Fe) to 20 times its volume with water immediately before use; the 20 ppm solution: dilute with water to 10 times its volume a solution containing ferric ammonium sulfate equivalent to 0.863 g and 25 mL of dilute sulfuric acid in 500.0 mL",
         "specification": "Maximum 10 ppm",
@@ -395,16 +478,22 @@
       "kind": "specific",
       "workflow": "IcpMethodAssay",
       "details": {
-        "grades": ["USP"],
+        "grades": [
+          "USP"
+        ],
         "technique": "atomic absorption spectrophotometry (AAS, calibration curve; treat as ICP method per README rule 6)",
         "element": "Na",
-        "wavelengthNm": 589.0,
+        "wavelengthNm": 589,
         "lamp": "sodium hollow-cathode",
         "flame": "air-acetylene",
         "diluent": "1% hydrochloric acid solution",
         "blank": "Diluent",
         "standardStock": "25.41 ug/mL NaCl in Diluent = 10 ug/mL Na",
-        "standardLevelsUgPerMl": [0.6, 0.75, 0.9],
+        "standardLevelsUgPerMl": [
+          0.6,
+          0.75,
+          0.9
+        ],
         "standardPrep": "6.0, 7.5, 9.0 mL of stock each to 100 mL with Diluent",
         "sampleStock": "1.303 mg/mL NaOH in Diluent",
         "samplePrep": "0.1 mL of sample stock to 100 mL with Diluent",
@@ -412,9 +501,13 @@
         "calculation": "Result = (CS/CU) x 100; CS = Na concentration in sample solution from the curve (ug/mL); CU = NaOH concentration in the sample solution (ug/mL)",
         "specification": "54.0%-59.8%",
         "reference": "USP 2024 Atomic Absorption Spectroscopy <852>; USP 2024 Monograph for Sodium Hydroxide",
-        "equipment": ["Atomic Absorption Spectroscopy", "Sodium hollow-cathode lamp"]
+        "equipment": [
+          "Atomic Absorption Spectroscopy",
+          "Sodium hollow-cathode lamp"
+        ]
       },
-      "source": "Sodium Hydroxide__Sodium Hydroxide-SM.txt:36"
+      "source": "Sodium Hydroxide__Sodium Hydroxide-SM.txt:36",
+      "heldBack": "needs the held-back method \"Sodium by AAS (sodium hydroxide USP)\""
     },
     {
       "testCode": "RM-K-AAS",
@@ -422,7 +515,9 @@
       "kind": "specific",
       "workflow": "IcpMethodAssay",
       "details": {
-        "grades": ["USP"],
+        "grades": [
+          "USP"
+        ],
         "technique": "atomic absorption spectrophotometry (AAS, calibration curve; treat as ICP method per README rule 6)",
         "element": "K",
         "wavelengthNm": 766.5,
@@ -431,7 +526,11 @@
         "diluent": "1% hydrochloric acid solution",
         "blank": "Diluent",
         "standardStock": "1.907 mg/mL KCl (dried at 105 C for 2 h) in water; 5.0 mL to 1.0 L with Diluent = 5 ug/mL K",
-        "standardLevelsUgPerMl": [0.10, 0.25, 0.50],
+        "standardLevelsUgPerMl": [
+          0.1,
+          0.25,
+          0.5
+        ],
         "standardPrep": "2.0, 5.0, 10.0 mL of the 5 ug/mL K solution each to 100 mL with Diluent",
         "sampleStock": "0.5 mg/mL NaOH (solvent not stated)",
         "samplePrep": "50 ug/mL NaOH in Diluent prepared from the sample stock",
@@ -439,9 +538,14 @@
         "calculation": "Result = (CS/CU) x 100; CS = K concentration in sample solution from the curve (ug/mL); CU = NaOH concentration in the sample solution (ug/mL)",
         "specification": "NMT 0.5%",
         "reference": "USP 2024 Atomic Absorption Spectroscopy <852>; USP 2024 Monograph for Sodium Hydroxide",
-        "equipment": ["Atomic Absorption Spectroscopy", "Potassium hollow-cathode lamp", "Oven"]
+        "equipment": [
+          "Atomic Absorption Spectroscopy",
+          "Potassium hollow-cathode lamp",
+          "Oven"
+        ]
       },
-      "source": "Sodium Hydroxide__Sodium Hydroxide-SM.txt:37"
+      "source": "Sodium Hydroxide__Sodium Hydroxide-SM.txt:37",
+      "heldBack": "needs the held-back method \"Potassium by AAS (sodium hydroxide USP)\""
     },
     {
       "testCode": "RM-INSOL",
@@ -449,7 +553,9 @@
       "kind": "general",
       "workflow": "Observation",
       "details": {
-        "grades": ["USP"],
+        "grades": [
+          "USP"
+        ],
         "sample": "solution 1 in 20 (1 part in 20; solvent not stated)",
         "specification": "Comply",
         "reference": "USP 2024 Monograph for Sodium Hydroxide"
@@ -462,15 +568,23 @@
       "kind": "specific",
       "workflow": "Titration",
       "details": {
-        "grades": ["BP"],
-        "sampleG": 2.000,
+        "grades": [
+          "BP"
+        ],
+        "sampleG": 2,
         "dissolveIn": "about 80 mL carbon dioxide-free water (water boiled a few minutes and protected from the atmosphere while cooling and storage)",
         "titrant": "1 M hydrochloric acid VS (103.0 g HCl diluted to 1000.0 mL with water)",
         "titrantMolarity": 1,
-        "indicators": ["0.3 mL phenolphthalein solution (first part)", "0.3 mL methyl orange solution (second part)"],
+        "indicators": [
+          "0.3 mL phenolphthalein solution (first part)",
+          "0.3 mL methyl orange solution (second part)"
+        ],
         "twoStageTitration": "first stage with phenolphthalein; add methyl orange and continue (second part)",
         "equivalence": "1 mL of 1 M HCl in combined titrations = 40.00 mg total alkali as NaOH; 1 mL of 1 M HCl in the 2nd part = 0.1060 g (106.0 mg) Na2CO3",
-        "equivalenceFactorsMg": { "totalAlkaliAsNaOH": 40.00, "Na2CO3": 106.0 },
+        "equivalenceFactorsMg": {
+          "totalAlkaliAsNaOH": 40,
+          "Na2CO3": 106
+        },
         "standardizationOfTitrant": "Dissolve 0.950 g trometamol in 50 mL water R. Titrate with the hydrochloric acid solution, end point with 0.1 mL methyl orange solution, yellowish-red colour (1 mL of 1 M HCl = 121.1 mg C4H11NO3)",
         "calculation": "%Assay = (E.p x Eq.wt x F / Wt) x 100; E.p = end point (mL), Eq.wt = 106.0 mg and 40.00 mg, F = factor of titrant, Wt = weight of sample (g)",
         "specification": "97.0 per cent to 100.5 per cent",
@@ -484,15 +598,26 @@
       "kind": "specific",
       "workflow": "Titration",
       "details": {
-        "grades": ["USP"],
+        "grades": [
+          "USP"
+        ],
         "sampleG": 1.5,
         "blank": "40.0 mL carbon dioxide-free water",
         "mode": "direct titration, visual end point",
         "titrant": "1 N sulfuric acid VS (27 mL sulfuric acid added slowly with stirring to water to make 1000 mL)",
         "titrantNormality": 1,
-        "indicators": ["phenolphthalein TS (1 g in 100 mL alcohol)", "methyl orange TS (100 mg in 100 mL water, filter if necessary)"],
-        "endPoints": { "VS1": "discharge of the pink colour of phenolphthalein", "VS2": "persistent pink colour with methyl orange" },
-        "equivalenceFactorsMgPerMEq": { "totalAlkaliAsNaOH_F1": 40.00, "Na2CO3_F2": 106.0 },
+        "indicators": [
+          "phenolphthalein TS (1 g in 100 mL alcohol)",
+          "methyl orange TS (100 mg in 100 mL water, filter if necessary)"
+        ],
+        "endPoints": {
+          "VS1": "discharge of the pink colour of phenolphthalein",
+          "VS2": "persistent pink colour with methyl orange"
+        },
+        "equivalenceFactorsMgPerMEq": {
+          "totalAlkaliAsNaOH_F1": 40,
+          "Na2CO3_F2": 106
+        },
         "standardizationOfTitrant": "Accurately weigh about 5.0 g tromethamine (dried per label or, if not available, at 105 C for 3 h). Dissolve in 50 mL water, add 2 drops bromocresol green TS (50 mg in 100 mL alcohol). Titrate with 1 N sulfuric acid to a pale-yellow end point. Each 121.14 mg tromethamine = 1 mL of 1 N sulfuric acid. N = mg tromethamine / (121.14 x mL H2SO4)",
         "calculations": {
           "totalAlkaliPercent": "{[(VS2 - VB) x N x F1]/W} x 100; VB = blank volume, N = actual normality, W = sample weight in mg",
@@ -507,12 +632,15 @@
       "testCode": "RM-NA2CO3-USP",
       "procedure": "Sodium carbonate is obtained from the same USP total alkali titration: % Na2CO3 = {[(VS2 - VS1) x N x 106.0]/W} x 100.",
       "kind": "specific",
-      "workflow": "Titration",
+      "workflow": "Measurement",
       "details": {
-        "grades": ["USP"],
+        "grades": [
+          "USP"
+        ],
         "derivedFrom": "RM-ASSAY-USP",
-        "equivalenceFactorMgPerMEq": 106.0,
-        "specification": "NMT 3.0% of sodium carbonate (Na2CO3)"
+        "equivalenceFactorMgPerMEq": 106,
+        "specification": "NMT 3.0% of sodium carbonate (Na2CO3)",
+        "analystEntersFinalValue": "Decision 2026-11-04: was Titration in the transcription; now Measurement, the analyst enters the final value."
       },
       "source": "Sodium Hydroxide__Sodium Hydroxide-SM.txt:40"
     }
@@ -520,35 +648,137 @@
   "notApplicable": [],
   "supplierAttributes": [],
   "reagents": [
-    { "name": "1 M Hydrochloric Acid VS (103.0 g hydrochloric acid to 1000.0 mL with water)", "use": "titrant", "source": "Sodium Hydroxide__Sodium Hydroxide-SM.txt:26 (BP-only file :26)" },
-    { "name": "1 N Sulfuric Acid VS (27 mL sulfuric acid added slowly, with stirring, to water to make 1000 mL)", "use": "titrant", "source": "Sodium Hydroxide__Sodium Hydroxide-SM.txt:26" },
-    { "name": "Trometamol / Tromethamine (standardization of the acid titrants)", "use": "standard", "source": "Sodium Hydroxide__Sodium Hydroxide-SM.txt:26" },
-    { "name": "Phenolphthalein Solution (0.1 g in 80 mL ethanol 96 per cent, to 100 mL with water); BP-only file adds sensitivity test", "use": "indicator", "source": "Sodium Hydroxide__Sodium Hydroxide-SM BP.txt:26" },
-    { "name": "Phenolphthalein TS (1 g in 100 mL alcohol)", "use": "indicator", "source": "Sodium Hydroxide__Sodium Hydroxide-SM.txt:26" },
-    { "name": "Methyl Orange Solution (0.1 g in 80 mL water, to 100 mL with ethanol 96 per cent); BP-only file adds sensitivity test", "use": "indicator", "source": "Sodium Hydroxide__Sodium Hydroxide-SM BP.txt:26" },
-    { "name": "Methyl Orange TS (100 mg in 100 mL water, filter if necessary)", "use": "indicator", "source": "Sodium Hydroxide__Sodium Hydroxide-SM.txt:26" },
-    { "name": "Bromocresol Green TS (50 mg in 100 mL alcohol)", "use": "indicator", "source": "Sodium Hydroxide__Sodium Hydroxide-SM.txt:26" },
-    { "name": "Solution S (5.0 g in 12 mL water, 17 mL hydrochloric acid R1, adjust to pH 7 with 103 g/L hydrochloric acid, dilute to 50 mL)", "use": "reagent", "source": "Sodium Hydroxide__Sodium Hydroxide-SM.txt:26" },
-    { "name": "Hydrochloric Acid R1 (70 g hydrochloric acid to 100 mL with water)", "use": "reagent", "source": "Sodium Hydroxide__Sodium Hydroxide-SM.txt:26" },
-    { "name": "Chloride Standard Solution (5 ppm Cl)", "use": "standard", "source": "Sodium Hydroxide__Sodium Hydroxide-SM.txt:26" },
-    { "name": "Sulfate Standard Solution (10 ppm SO4) R1", "use": "standard", "source": "Sodium Hydroxide__Sodium Hydroxide-SM.txt:26" },
-    { "name": "Iron Standard Solution (1 ppm Fe) and (20 ppm Fe)", "use": "standard", "source": "Sodium Hydroxide__Sodium Hydroxide-SM.txt:26" },
-    { "name": "Silver Nitrate Solution R2 (1.7 g in water to 100 mL)", "use": "reagent", "source": "Sodium Hydroxide__Sodium Hydroxide-SM.txt:26" },
-    { "name": "Potassium Pyroantimonate Solution R1 (2.0 g in 100 mL hot water, boil 5 min, cool, add 10 mL of 150 g/L potassium hydroxide, stand 24 h, filter)", "use": "reagent", "source": "Sodium Hydroxide__Sodium Hydroxide-SM.txt:26" },
-    { "name": "Nitric Acid, dilute (20 g nitric acid to 100 mL with water)", "use": "reagent", "source": "Sodium Hydroxide__Sodium Hydroxide-SM.txt:26" },
-    { "name": "Water, Carbon Dioxide-free (boiled a few minutes, protected from the atmosphere during cooling and storage)", "use": "reagent", "source": "Sodium Hydroxide__Sodium Hydroxide-SM.txt:26" },
-    { "name": "Potassium carbonate 150 g/L; barium chloride 250 g/L; citric acid monohydrate 200 g/L; thioglycolic acid; ammonia; acetic acid; ethanol (96 per cent); dipotassium sulfate; ferric ammonium sulfate; potassium hydroxide; potassium chloride; sodium chloride; 1% hydrochloric acid diluent", "use": "reagent", "source": "Sodium Hydroxide__Sodium Hydroxide-SM.txt:26,30,33-37" }
+    {
+      "name": "1 M Hydrochloric Acid VS (103.0 g hydrochloric acid to 1000.0 mL with water)",
+      "use": "titrant",
+      "source": "Sodium Hydroxide__Sodium Hydroxide-SM.txt:26 (BP-only file :26)"
+    },
+    {
+      "name": "1 N Sulfuric Acid VS (27 mL sulfuric acid added slowly, with stirring, to water to make 1000 mL)",
+      "use": "titrant",
+      "source": "Sodium Hydroxide__Sodium Hydroxide-SM.txt:26"
+    },
+    {
+      "name": "Trometamol / Tromethamine (standardization of the acid titrants)",
+      "use": "standard",
+      "source": "Sodium Hydroxide__Sodium Hydroxide-SM.txt:26"
+    },
+    {
+      "name": "Phenolphthalein Solution (0.1 g in 80 mL ethanol 96 per cent, to 100 mL with water); BP-only file adds sensitivity test",
+      "use": "indicator",
+      "source": "Sodium Hydroxide__Sodium Hydroxide-SM BP.txt:26"
+    },
+    {
+      "name": "Phenolphthalein TS (1 g in 100 mL alcohol)",
+      "use": "indicator",
+      "source": "Sodium Hydroxide__Sodium Hydroxide-SM.txt:26"
+    },
+    {
+      "name": "Methyl Orange Solution (0.1 g in 80 mL water, to 100 mL with ethanol 96 per cent); BP-only file adds sensitivity test",
+      "use": "indicator",
+      "source": "Sodium Hydroxide__Sodium Hydroxide-SM BP.txt:26"
+    },
+    {
+      "name": "Methyl Orange TS (100 mg in 100 mL water, filter if necessary)",
+      "use": "indicator",
+      "source": "Sodium Hydroxide__Sodium Hydroxide-SM.txt:26"
+    },
+    {
+      "name": "Bromocresol Green TS (50 mg in 100 mL alcohol)",
+      "use": "indicator",
+      "source": "Sodium Hydroxide__Sodium Hydroxide-SM.txt:26"
+    },
+    {
+      "name": "Solution S (5.0 g in 12 mL water, 17 mL hydrochloric acid R1, adjust to pH 7 with 103 g/L hydrochloric acid, dilute to 50 mL)",
+      "use": "reagent",
+      "source": "Sodium Hydroxide__Sodium Hydroxide-SM.txt:26"
+    },
+    {
+      "name": "Hydrochloric Acid R1 (70 g hydrochloric acid to 100 mL with water)",
+      "use": "reagent",
+      "source": "Sodium Hydroxide__Sodium Hydroxide-SM.txt:26"
+    },
+    {
+      "name": "Chloride Standard Solution (5 ppm Cl)",
+      "use": "standard",
+      "source": "Sodium Hydroxide__Sodium Hydroxide-SM.txt:26"
+    },
+    {
+      "name": "Sulfate Standard Solution (10 ppm SO4) R1",
+      "use": "standard",
+      "source": "Sodium Hydroxide__Sodium Hydroxide-SM.txt:26"
+    },
+    {
+      "name": "Iron Standard Solution (1 ppm Fe) and (20 ppm Fe)",
+      "use": "standard",
+      "source": "Sodium Hydroxide__Sodium Hydroxide-SM.txt:26"
+    },
+    {
+      "name": "Silver Nitrate Solution R2 (1.7 g in water to 100 mL)",
+      "use": "reagent",
+      "source": "Sodium Hydroxide__Sodium Hydroxide-SM.txt:26"
+    },
+    {
+      "name": "Potassium Pyroantimonate Solution R1 (2.0 g in 100 mL hot water, boil 5 min, cool, add 10 mL of 150 g/L potassium hydroxide, stand 24 h, filter)",
+      "use": "reagent",
+      "source": "Sodium Hydroxide__Sodium Hydroxide-SM.txt:26"
+    },
+    {
+      "name": "Nitric Acid, dilute (20 g nitric acid to 100 mL with water)",
+      "use": "reagent",
+      "source": "Sodium Hydroxide__Sodium Hydroxide-SM.txt:26"
+    },
+    {
+      "name": "Water, Carbon Dioxide-free (boiled a few minutes, protected from the atmosphere during cooling and storage)",
+      "use": "reagent",
+      "source": "Sodium Hydroxide__Sodium Hydroxide-SM.txt:26"
+    },
+    {
+      "name": "Potassium carbonate 150 g/L; barium chloride 250 g/L; citric acid monohydrate 200 g/L; thioglycolic acid; ammonia; acetic acid; ethanol (96 per cent); dipotassium sulfate; ferric ammonium sulfate; potassium hydroxide; potassium chloride; sodium chloride; 1% hydrochloric acid diluent",
+      "use": "reagent",
+      "source": "Sodium Hydroxide__Sodium Hydroxide-SM.txt:26,30,33-37"
+    }
   ],
   "openQuestions": [
-    { "question": "Retest minimum sample quantity conflicts: Sodium Hydroxide-SM.txt:42 says routine and retention 50 g, periodic retesting 100 g; Sodium Hydroxide-SM BP.txt:38 says routine and retention 30 g, retesting 60 g; the 2023 STM (no code) says testing 30 gm, retention 60 gm (:47); both spec sheets say 50 gm. Routine = 50 g recorded from the spec sheets; retest left null.", "source": "Sodium Hydroxide__Sodium Hydroxide-SM.txt:42; Sodium Hydroxide__Sodium Hydroxide-SM BP.txt:38; Sodium Hydroxide__Specifications sheet Sodium Hydroxide BP.txt:21" },
-    { "question": "Identification pH procedure differs between the two method files: the combined STM dilutes 1 mL of the 0.1 g/10 mL solution to 100 mL before measuring, the BP-only STM measures the undiluted solution. Both recorded in the test details; confirm which is correct for BP.", "source": "Sodium Hydroxide__Sodium Hydroxide-SM.txt:30; Sodium Hydroxide__Sodium Hydroxide-SM BP.txt:30" },
-    { "question": "BP assay calculation %Assay = E.p x Eq.wt x F / Wt x 100 defines Wt in grams but Eq.wt in mg (40.00 or 106.0 mg), which gives 10x too large a result unless Wt is in mg; it also does not say which Eq.wt applies to the carbonate figure. Formula recorded as written.", "source": "Sodium Hydroxide__Sodium Hydroxide-SM BP.txt:36" },
-    { "question": "The BP assay does not state how the first (phenolphthalein) and second (methyl orange) titration volumes combine for total alkali versus carbonates (volumes V1/V2 not named, unlike the USP assay). The carbonate figure (max 2.0 per cent) is only referenced to 'the assay'.", "source": "Sodium Hydroxide__Sodium Hydroxide-SM BP.txt:32,36" },
-    { "question": "Potassium AAS calculation text says 'Calculate the percentage of sodium' although the test is for potassium; the sample stock solvent (0.5 mg/mL sodium hydroxide) is not stated. Recorded as potassium and solvent unstated.", "source": "Sodium Hydroxide__Sodium Hydroxide-SM.txt:37" },
-    { "question": "Appearance of solution: sample is 'Dissolve 1.0 g in 10 mL of water' but it is then compared 'Compare 10 mL of Solution S with the same volume of water'; Solution S is 5.0 g in 12 mL/17 mL HCl R1 diluted to 50 mL, not the 1.0 g solution. Which solution is examined is unclear.", "source": "Sodium Hydroxide__Sodium Hydroxide-SM BP.txt:31; Sodium Hydroxide__Sodium Hydroxide-SM.txt:31" },
-    { "question": "Insoluble Substances and Organic Matter: 'A solution (1 in 20)' has no stated solvent or amount; recorded as stated.", "source": "Sodium Hydroxide__Sodium Hydroxide-SM.txt:38" },
-    { "question": "Header of the Tests section says physical tests are done on each received container and chemical tests on a mixed sample. Description is explicitly per container (flagged); whether Solubility is also a per-container physical test is not stated.", "source": "Sodium Hydroxide__Sodium Hydroxide-SM.txt:27-29" },
-    { "question": "Which STM file is the issued one: 'Sodium Hydroxide- STM.txt' (no STM number, BP/USP 2023 references, 2023 wording) is superseded in content by the coded STM-RM-150 v1/0 files (10-07-2024) used here. Confirm.", "source": "Sodium Hydroxide__Sodium Hydroxide- STM.txt:1-53; Sodium Hydroxide__Sodium Hydroxide-SM.txt:5-6" },
-    { "question": "Assay result basis: spec states '97.0 per cent to 100.5 per cent' (BP) and '95.0%-100.5% of total alkali' (USP) with no dried/anhydrous qualifier; recorded as PercentAsIs, total alkali calculated as NaOH. Content of Sodium (54.0%-59.8%) likewise recorded as PercentAsIs.", "source": "Sodium Hydroxide__Specifications sheet Sodium Hydroxide BP.txt:20; Sodium Hydroxide__Specifications sheet Sodium Hydroxide USP.txt:15,18" }
+    {
+      "question": "Retest minimum sample quantity conflicts: Sodium Hydroxide-SM.txt:42 says routine and retention 50 g, periodic retesting 100 g; Sodium Hydroxide-SM BP.txt:38 says routine and retention 30 g, retesting 60 g; the 2023 STM (no code) says testing 30 gm, retention 60 gm (:47); both spec sheets say 50 gm. Routine = 50 g recorded from the spec sheets; retest left null.",
+      "source": "Sodium Hydroxide__Sodium Hydroxide-SM.txt:42; Sodium Hydroxide__Sodium Hydroxide-SM BP.txt:38; Sodium Hydroxide__Specifications sheet Sodium Hydroxide BP.txt:21"
+    },
+    {
+      "question": "Identification pH procedure differs between the two method files: the combined STM dilutes 1 mL of the 0.1 g/10 mL solution to 100 mL before measuring, the BP-only STM measures the undiluted solution. Both recorded in the test details; confirm which is correct for BP.",
+      "source": "Sodium Hydroxide__Sodium Hydroxide-SM.txt:30; Sodium Hydroxide__Sodium Hydroxide-SM BP.txt:30"
+    },
+    {
+      "question": "BP assay calculation %Assay = E.p x Eq.wt x F / Wt x 100 defines Wt in grams but Eq.wt in mg (40.00 or 106.0 mg), which gives 10x too large a result unless Wt is in mg; it also does not say which Eq.wt applies to the carbonate figure. Formula recorded as written.",
+      "source": "Sodium Hydroxide__Sodium Hydroxide-SM BP.txt:36"
+    },
+    {
+      "question": "The BP assay does not state how the first (phenolphthalein) and second (methyl orange) titration volumes combine for total alkali versus carbonates (volumes V1/V2 not named, unlike the USP assay). The carbonate figure (max 2.0 per cent) is only referenced to 'the assay'.",
+      "source": "Sodium Hydroxide__Sodium Hydroxide-SM BP.txt:32,36"
+    },
+    {
+      "question": "Potassium AAS calculation text says 'Calculate the percentage of sodium' although the test is for potassium; the sample stock solvent (0.5 mg/mL sodium hydroxide) is not stated. Recorded as potassium and solvent unstated.",
+      "source": "Sodium Hydroxide__Sodium Hydroxide-SM.txt:37"
+    },
+    {
+      "question": "Appearance of solution: sample is 'Dissolve 1.0 g in 10 mL of water' but it is then compared 'Compare 10 mL of Solution S with the same volume of water'; Solution S is 5.0 g in 12 mL/17 mL HCl R1 diluted to 50 mL, not the 1.0 g solution. Which solution is examined is unclear.",
+      "source": "Sodium Hydroxide__Sodium Hydroxide-SM BP.txt:31; Sodium Hydroxide__Sodium Hydroxide-SM.txt:31"
+    },
+    {
+      "question": "Insoluble Substances and Organic Matter: 'A solution (1 in 20)' has no stated solvent or amount; recorded as stated.",
+      "source": "Sodium Hydroxide__Sodium Hydroxide-SM.txt:38"
+    },
+    {
+      "question": "Header of the Tests section says physical tests are done on each received container and chemical tests on a mixed sample. Description is explicitly per container (flagged); whether Solubility is also a per-container physical test is not stated.",
+      "source": "Sodium Hydroxide__Sodium Hydroxide-SM.txt:27-29"
+    },
+    {
+      "question": "Which STM file is the issued one: 'Sodium Hydroxide- STM.txt' (no STM number, BP/USP 2023 references, 2023 wording) is superseded in content by the coded STM-RM-150 v1/0 files (10-07-2024) used here. Confirm.",
+      "source": "Sodium Hydroxide__Sodium Hydroxide- STM.txt:1-53; Sodium Hydroxide__Sodium Hydroxide-SM.txt:5-6"
+    },
+    {
+      "question": "Assay result basis: spec states '97.0 per cent to 100.5 per cent' (BP) and '95.0%-100.5% of total alkali' (USP) with no dried/anhydrous qualifier; recorded as PercentAsIs, total alkali calculated as NaOH. Content of Sodium (54.0%-59.8%) likewise recorded as PercentAsIs.",
+      "source": "Sodium Hydroxide__Specifications sheet Sodium Hydroxide BP.txt:20; Sodium Hydroxide__Specifications sheet Sodium Hydroxide USP.txt:15,18"
+    }
   ]
 }

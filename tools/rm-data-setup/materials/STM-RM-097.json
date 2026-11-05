@@ -61,13 +61,41 @@
         },
         {
           "testCode": "RM-ID-UV",
-          "parameterName": "Identification (UV spectrophotometry)",
-          "limitType": "Qualitative",
-          "lower": null,
-          "upper": null,
-          "lowerInclusive": null,
+          "parameterName": "Identification (UV): specific absorbance, solution B at 288-296 nm",
+          "limitType": "Range",
+          "lower": 425,
+          "upper": 445,
+          "lowerInclusive": true,
           "unit": null,
-          "expectedResultText": "Specific absorbances at the absorption maxima: 425-445 for solution B at 288-296 nm; 175-195 for solution C at 248-256 nm; 345-365 for solution C at 320-327 nm",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Pyridoxine Hydrochloride__Specifications sheet Pyridoxine Hydrochloride BP.txt:14"
+        },
+        {
+          "testCode": "RM-ID-UV",
+          "parameterName": "Identification (UV): specific absorbance, solution C at 248-256 nm",
+          "limitType": "Range",
+          "lower": 175,
+          "upper": 195,
+          "lowerInclusive": true,
+          "unit": null,
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Pyridoxine Hydrochloride__Specifications sheet Pyridoxine Hydrochloride BP.txt:14"
+        },
+        {
+          "testCode": "RM-ID-UV",
+          "parameterName": "Identification (UV): specific absorbance, solution C at 320-327 nm",
+          "limitType": "Range",
+          "lower": 345,
+          "upper": 365,
+          "lowerInclusive": true,
+          "unit": null,
+          "expectedResultText": null,
           "expectedState": null,
           "resultBasis": null,
           "referenceStandard": "BP",
@@ -162,7 +190,7 @@
           "parameterName": "pH",
           "limitType": "Range",
           "lower": 2.4,
-          "upper": 3.0,
+          "upper": 3,
           "lowerInclusive": true,
           "unit": null,
           "expectedResultText": null,
@@ -175,8 +203,8 @@
           "testCode": "RM-ASSAY-TITR",
           "parameterName": "Assay",
           "limitType": "Range",
-          "lower": 99.0,
-          "upper": 101.0,
+          "lower": 99,
+          "upper": 101,
           "lowerInclusive": true,
           "unit": "%",
           "expectedResultText": null,
@@ -197,7 +225,8 @@
           "expectedState": null,
           "resultBasis": null,
           "referenceStandard": "BP",
-          "source": "Pyridoxine Hydrochloride__Specifications sheet Pyridoxine Hydrochloride BP.txt:23"
+          "source": "Pyridoxine Hydrochloride__Specifications sheet Pyridoxine Hydrochloride BP.txt:23",
+          "heldBack": "needs the held-back method \"Pyridoxine hydrochloride related substances (BP, HPLC)\""
         },
         {
           "testCode": "RM-RS",
@@ -211,7 +240,8 @@
           "expectedState": null,
           "resultBasis": null,
           "referenceStandard": "BP",
-          "source": "Pyridoxine Hydrochloride__Specifications sheet Pyridoxine Hydrochloride BP.txt:23"
+          "source": "Pyridoxine Hydrochloride__Specifications sheet Pyridoxine Hydrochloride BP.txt:23",
+          "heldBack": "needs the held-back method \"Pyridoxine hydrochloride related substances (BP, HPLC)\""
         },
         {
           "testCode": "RM-RS",
@@ -225,7 +255,8 @@
           "expectedState": null,
           "resultBasis": null,
           "referenceStandard": "BP",
-          "source": "Pyridoxine Hydrochloride__Specifications sheet Pyridoxine Hydrochloride BP.txt:23"
+          "source": "Pyridoxine Hydrochloride__Specifications sheet Pyridoxine Hydrochloride BP.txt:23",
+          "heldBack": "needs the held-back method \"Pyridoxine hydrochloride related substances (BP, HPLC)\""
         },
         {
           "testCode": "RM-TAMC",
@@ -376,15 +407,16 @@
           "testCode": "RM-ASSAY-HPLC",
           "parameterName": "Assay",
           "limitType": "Range",
-          "lower": 98.0,
-          "upper": 102.0,
+          "lower": 98,
+          "upper": 102,
           "lowerInclusive": true,
           "unit": "%",
           "expectedResultText": null,
           "expectedState": null,
           "resultBasis": "PercentDriedBasis",
           "referenceStandard": "USP",
-          "source": "Pyridoxine Hydrochloride__Specifications sheet Pyridoxine Hydrochloride USP.txt:18"
+          "source": "Pyridoxine Hydrochloride__Specifications sheet Pyridoxine Hydrochloride USP.txt:18",
+          "heldBack": "needs the held-back method \"Pyridoxine hydrochloride assay (USP, HPLC internal standard)\""
         },
         {
           "testCode": "RM-TAMC",
@@ -540,7 +572,8 @@
             "range": "345-365"
           }
         ],
-        "reference": "BP 2.2.25"
+        "reference": "BP 2.2.25",
+        "note": "Decision 2026-11-04: three Range rows of one UV test (specific absorbance A1% 1 cm); the wavelength is entered per row."
       },
       "source": "Pyridoxine Hydrochloride__STM-Pyridoxine (004) after edit.txt:48"
     },
@@ -650,7 +683,7 @@
           "BP",
           "USP"
         ],
-        "sampleG": 1.0,
+        "sampleG": 1,
         "bpDrying": "oven 105 °C (time not stated, to constant weight)",
         "uspDrying": "vacuum over silica gel, 4 h",
         "formula": "%LOD = ((W1+W2)-W3)/W2 x 100",
@@ -671,7 +704,7 @@
           "BP",
           "USP"
         ],
-        "sampleG": 1.0,
+        "sampleG": 1,
         "ignitionTemp": "600 ± 50 °C",
         "crucibleConditioning": "ignited at 600 ± 50 °C about 30 min",
         "sulfuricAcid": "about 1 mL, twice",
@@ -762,7 +795,8 @@
         "reference": "USP <621>",
         "specBasis": "dried basis"
       },
-      "source": "Pyridoxine Hydrochloride__STM-Pyridoxine (004) after edit.txt:54"
+      "source": "Pyridoxine Hydrochloride__STM-Pyridoxine (004) after edit.txt:54",
+      "heldBack": "needs the held-back method \"Pyridoxine hydrochloride assay (USP, HPLC internal standard)\""
     },
     {
       "testCode": "RM-RS",
@@ -778,7 +812,7 @@
         "referenceB": "2.5 mg pyridoxine impurity A RS + 2.5 mg 4-deoxypyridoxine hydrochloride (impurity B) in water to 10.0 mL; 2.0 mL to 10.0 mL with water",
         "column": "l = 0.25 m, 4.6 mm id; base-deactivated end-capped octadecylsilyl silica gel for chromatography R (5 µm)",
         "mobilePhase": "2.72 g KH2PO4 in 900 mL water, adjust to pH 3.0 with dilute phosphoric acid, dilute to 1000 mL with water",
-        "flowRateMlMin": 1.0,
+        "flowRateMlMin": 1,
         "detectorNm": 210,
         "injectionUl": 5,
         "runTime": "2.5 times the retention time of pyridoxine",
@@ -793,7 +827,8 @@
         },
         "reference": "BP 2.2.29"
       },
-      "source": "Pyridoxine Hydrochloride__STM-Pyridoxine (004) after edit.txt:55"
+      "source": "Pyridoxine Hydrochloride__STM-Pyridoxine (004) after edit.txt:55",
+      "heldBack": "needs the held-back method \"Pyridoxine hydrochloride related substances (BP, HPLC)\""
     },
     {
       "testCode": "RM-TAMC",

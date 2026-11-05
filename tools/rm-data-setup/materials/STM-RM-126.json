@@ -2,8 +2,15 @@
   "itemCode": "STM-RM-126",
   "itemName": "Sodium Hypochlorite",
   "stmFile": "Sodium Hypochlorite__STM Sodium Hypochlorite.txt",
-  "specFiles": ["Sodium Hypochlorite__Specifications sheet Sodium Hypochlorite.txt"],
-  "minQuantity": { "routine": 50, "retest": 30, "unit": "mL", "source": "Sodium Hypochlorite__STM Sodium Hypochlorite.txt:36 (routine 50 mL also spec sheet line 16)" },
+  "specFiles": [
+    "Sodium Hypochlorite__Specifications sheet Sodium Hypochlorite.txt"
+  ],
+  "minQuantity": {
+    "routine": 50,
+    "retest": 30,
+    "unit": "mL",
+    "source": "Sodium Hypochlorite__STM Sodium Hypochlorite.txt:36 (routine 50 mL also spec sheet line 16)"
+  },
   "grades": [
     {
       "grade": "BP",
@@ -12,7 +19,9 @@
           "testCode": "RM-APPEARANCE",
           "parameterName": "Appearance",
           "limitType": "Qualitative",
-          "lower": null, "upper": null, "lowerInclusive": null,
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
           "unit": null,
           "expectedResultText": "Clear, Yellow to pale yellow liquid, having the Odor of chlorine",
           "expectedState": null,
@@ -24,7 +33,9 @@
           "testCode": "RM-MISCIBILITY",
           "parameterName": "Miscibility",
           "limitType": "Qualitative",
-          "lower": null, "upper": null, "lowerInclusive": null,
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
           "unit": null,
           "expectedResultText": "Miscible with water",
           "expectedState": null,
@@ -36,7 +47,9 @@
           "testCode": "RM-TOTAL-ALKALINITY",
           "parameterName": "Total alkalinity",
           "limitType": "NotMoreThan",
-          "lower": null, "upper": 1.8, "lowerInclusive": null,
+          "lower": null,
+          "upper": 1.8,
+          "lowerInclusive": null,
           "unit": "% w/w",
           "expectedResultText": null,
           "expectedState": null,
@@ -48,11 +61,13 @@
           "testCode": "RM-ASSAY",
           "parameterName": "Assay (available chlorine)",
           "limitType": "NotLessThan",
-          "lower": 8, "upper": null, "lowerInclusive": null,
+          "lower": 8,
+          "upper": null,
+          "lowerInclusive": null,
           "unit": "% w/w",
           "expectedResultText": null,
           "expectedState": null,
-          "resultBasis": "PercentAsIs",
+          "resultBasis": null,
           "referenceStandard": "BP 2024",
           "source": "Sodium Hypochlorite__Specifications sheet Sodium Hypochlorite.txt:14 (spec: 'Not less than 8% of chlorine'; unit w/w from STM line 33; no dried/anhydrous basis stated)"
         }
@@ -69,7 +84,11 @@
         "perContainer": true,
         "lighting": "strong white light",
         "vessel": "clean, transparent watch glass or glass dish",
-        "checks": ["foreign particles", "conformance of colour", "compliance with visual specification"],
+        "checks": [
+          "foreign particles",
+          "conformance of colour",
+          "compliance with visual specification"
+        ],
         "reference": "BP Strong Sodium Hypochlorite Solution"
       },
       "source": "Sodium Hypochlorite__STM Sodium Hypochlorite.txt:30"
@@ -92,7 +111,7 @@
       "testCode": "RM-TOTAL-ALKALINITY",
       "procedure": "To 25 mL of sample add 50 mL of water and 35 mL of hydrogen peroxide solution (20 vol). Titrate with 0.5 M hydrochloric acid VS using methyl orange solution as indicator. Determine the weight per mL of the solution. Calculate total alkalinity as % w/w, as NaOH.",
       "kind": "specific",
-      "workflow": "Titration",
+      "workflow": "Measurement",
       "details": {
         "sampleVolumeMl": 25,
         "water": "50 mL",
@@ -106,15 +125,16 @@
         "weightPerMl": "Determine the weight per mL of the solution (procedure not stated)",
         "formula": "% Total alkalinity = (EP x 20) / (Wt x 1000) x 100",
         "formulaTerms": {
-          "EP": "end point of titration (mL)",
-          "Wt": "weight of sample equivalent to weight per mL",
           "20": "equivalent of NaOH (mg per mL titrant)",
-          "1000": "conversion mg to g"
+          "1000": "conversion mg to g",
+          "EP": "end point of titration (mL)",
+          "Wt": "weight of sample equivalent to weight per mL"
         },
         "titrantPreparation": "0.5 M HCl VS: dilute 51.5 g of hydrochloric acid to 1000.0 mL with water",
         "titrantStandardization": "Dissolve 0.950 g Tris in 50 mL water; titrate with the HCl solution, endpoint potentiometric; 1 mL of 1 M HCl is equivalent to 121.1 mg Tris",
         "indicatorPreparation": "Methyl orange solution: dissolve 0.1 g methyl orange in 80 mL water and dilute to 100 mL with ethanol (96 per cent)",
-        "reference": "BP Strong Sodium Hypochlorite Solution"
+        "reference": "BP Strong Sodium Hypochlorite Solution",
+        "analystEntersFinalValue": "Decision 2026-11-04: was Titration in the transcription; now Measurement, the analyst enters the final value."
       },
       "source": "Sodium Hypochlorite__STM Sodium Hypochlorite.txt:32; preparations line 28"
     },
@@ -122,7 +142,7 @@
       "testCode": "RM-ASSAY",
       "procedure": "Dilute 10 mL to 250 mL with water. Add 10 mL of the resulting solution to a mixture of 50 mL water, 1 g potassium iodide and 12.5 mL of 2 M acetic acid. Titrate with 0.1 M sodium thiosulfate VS using starch solution as indicator. Determine the weight per mL of the solution. Calculate % w/w available chlorine.",
       "kind": "specific",
-      "workflow": "Titration",
+      "workflow": "Measurement",
       "details": {
         "sampleVolumeMl": 10,
         "dilutionToMl": 250,
@@ -151,7 +171,8 @@
           "starch solution": "triturate 1.0 g soluble starch with 5 mL water, pour with stirring into 100 mL boiling water containing 10 mg mercuric iodide",
           "carbon dioxide-free water": "water boiled a few minutes and protected from the atmosphere during cooling and storage"
         },
-        "reference": "BP Strong Sodium Hypochlorite Solution"
+        "reference": "BP Strong Sodium Hypochlorite Solution",
+        "analystEntersFinalValue": "Decision 2026-11-04: was Titration in the transcription; now Measurement, the analyst enters the final value."
       },
       "source": "Sodium Hypochlorite__STM Sodium Hypochlorite.txt:33; preparations line 28"
     }
@@ -159,28 +180,106 @@
   "notApplicable": [],
   "supplierAttributes": [],
   "reagents": [
-    { "name": "0.5 M Hydrochloric Acid VS", "use": "titrant", "source": "Sodium Hypochlorite__STM Sodium Hypochlorite.txt:28,32" },
-    { "name": "0.1 M Sodium Thiosulfate VS", "use": "titrant", "source": "Sodium Hypochlorite__STM Sodium Hypochlorite.txt:28,33" },
-    { "name": "Tris (tris(hydroxymethyl)aminomethane)", "use": "standard", "source": "Sodium Hypochlorite__STM Sodium Hypochlorite.txt:28" },
-    { "name": "0.033 M Potassium Bromate VS", "use": "standard", "source": "Sodium Hypochlorite__STM Sodium Hypochlorite.txt:28" },
-    { "name": "Methyl orange solution", "use": "indicator", "source": "Sodium Hypochlorite__STM Sodium Hypochlorite.txt:28,32" },
-    { "name": "Starch solution", "use": "indicator", "source": "Sodium Hypochlorite__STM Sodium Hypochlorite.txt:28,33" },
-    { "name": "Hydrogen peroxide solution (20 vol)", "use": "reagent", "source": "Sodium Hypochlorite__STM Sodium Hypochlorite.txt:28,32" },
-    { "name": "Potassium iodide", "use": "reagent", "source": "Sodium Hypochlorite__STM Sodium Hypochlorite.txt:28,33" },
-    { "name": "Potassium iodide solution R", "use": "reagent", "source": "Sodium Hypochlorite__STM Sodium Hypochlorite.txt:28" },
-    { "name": "Acetic acid (2 M)", "use": "reagent", "source": "Sodium Hypochlorite__STM Sodium Hypochlorite.txt:28,33" },
-    { "name": "Hydrochloric acid R1", "use": "reagent", "source": "Sodium Hypochlorite__STM Sodium Hypochlorite.txt:28" },
-    { "name": "Sodium carbonate", "use": "reagent", "source": "Sodium Hypochlorite__STM Sodium Hypochlorite.txt:28" },
-    { "name": "Mercuric iodide", "use": "reagent", "source": "Sodium Hypochlorite__STM Sodium Hypochlorite.txt:28" },
-    { "name": "Ethanol (96 per cent)", "use": "reagent", "source": "Sodium Hypochlorite__STM Sodium Hypochlorite.txt:28" },
-    { "name": "Carbon dioxide-free water", "use": "reagent", "source": "Sodium Hypochlorite__STM Sodium Hypochlorite.txt:28" }
+    {
+      "name": "0.5 M Hydrochloric Acid VS",
+      "use": "titrant",
+      "source": "Sodium Hypochlorite__STM Sodium Hypochlorite.txt:28,32"
+    },
+    {
+      "name": "0.1 M Sodium Thiosulfate VS",
+      "use": "titrant",
+      "source": "Sodium Hypochlorite__STM Sodium Hypochlorite.txt:28,33"
+    },
+    {
+      "name": "Tris (tris(hydroxymethyl)aminomethane)",
+      "use": "standard",
+      "source": "Sodium Hypochlorite__STM Sodium Hypochlorite.txt:28"
+    },
+    {
+      "name": "0.033 M Potassium Bromate VS",
+      "use": "standard",
+      "source": "Sodium Hypochlorite__STM Sodium Hypochlorite.txt:28"
+    },
+    {
+      "name": "Methyl orange solution",
+      "use": "indicator",
+      "source": "Sodium Hypochlorite__STM Sodium Hypochlorite.txt:28,32"
+    },
+    {
+      "name": "Starch solution",
+      "use": "indicator",
+      "source": "Sodium Hypochlorite__STM Sodium Hypochlorite.txt:28,33"
+    },
+    {
+      "name": "Hydrogen peroxide solution (20 vol)",
+      "use": "reagent",
+      "source": "Sodium Hypochlorite__STM Sodium Hypochlorite.txt:28,32"
+    },
+    {
+      "name": "Potassium iodide",
+      "use": "reagent",
+      "source": "Sodium Hypochlorite__STM Sodium Hypochlorite.txt:28,33"
+    },
+    {
+      "name": "Potassium iodide solution R",
+      "use": "reagent",
+      "source": "Sodium Hypochlorite__STM Sodium Hypochlorite.txt:28"
+    },
+    {
+      "name": "Acetic acid (2 M)",
+      "use": "reagent",
+      "source": "Sodium Hypochlorite__STM Sodium Hypochlorite.txt:28,33"
+    },
+    {
+      "name": "Hydrochloric acid R1",
+      "use": "reagent",
+      "source": "Sodium Hypochlorite__STM Sodium Hypochlorite.txt:28"
+    },
+    {
+      "name": "Sodium carbonate",
+      "use": "reagent",
+      "source": "Sodium Hypochlorite__STM Sodium Hypochlorite.txt:28"
+    },
+    {
+      "name": "Mercuric iodide",
+      "use": "reagent",
+      "source": "Sodium Hypochlorite__STM Sodium Hypochlorite.txt:28"
+    },
+    {
+      "name": "Ethanol (96 per cent)",
+      "use": "reagent",
+      "source": "Sodium Hypochlorite__STM Sodium Hypochlorite.txt:28"
+    },
+    {
+      "name": "Carbon dioxide-free water",
+      "use": "reagent",
+      "source": "Sodium Hypochlorite__STM Sodium Hypochlorite.txt:28"
+    }
   ],
   "openQuestions": [
-    { "question": "Miscibility procedure reads 'To 10 ml of water add 0 ml of sample': the sample volume is 0 mL, which is not a usable amount. What volume of sample is added?", "source": "Sodium Hypochlorite__STM Sodium Hypochlorite.txt:31" },
-    { "question": "Assay formula '(EP x Eq.w x F) / Wt x 100' has no dilution factor (10 mL diluted to 250 mL, 10 mL aliquot) and no mg-to-g conversion, unlike the Total alkalinity formula which has /1000. Confirm the intended calculation.", "source": "Sodium Hypochlorite__STM Sodium Hypochlorite.txt:33" },
-    { "question": "'Weight per mL of the solution' / 'Wt: weight of sample equivalent to weight per ml' is used in both formulas but the procedure to determine it (density method, sample volume) is not stated. For total alkalinity, is Wt the weight of the 25 mL taken? For assay, of the 10 mL taken?", "source": "Sodium Hypochlorite__STM Sodium Hypochlorite.txt:32-33" },
-    { "question": "Preparation of '2 M acetic acid' and 'hydrogen peroxide solution (20 vol)' is not given in the STM reagent list.", "source": "Sodium Hypochlorite__STM Sodium Hypochlorite.txt:28" },
-    { "question": "The 0.5 M HCl standardization quotes the factor for 1 M HCl (1 mL of 1 M HCl = 121.1 mg Tris); the factor for 0.5 M HCl is not stated, and the Tris amount (0.950 g) is the only quantity given.", "source": "Sodium Hypochlorite__STM Sodium Hypochlorite.txt:28" },
-    { "question": "Spec reference for the assay says '% of chlorine' while STM says % w/w available chlorine; w/w and as-is basis inferred, confirm.", "source": "Sodium Hypochlorite__Specifications sheet Sodium Hypochlorite.txt:14; STM:33" }
+    {
+      "question": "Miscibility procedure reads 'To 10 ml of water add 0 ml of sample': the sample volume is 0 mL, which is not a usable amount. What volume of sample is added?",
+      "source": "Sodium Hypochlorite__STM Sodium Hypochlorite.txt:31"
+    },
+    {
+      "question": "Assay formula '(EP x Eq.w x F) / Wt x 100' has no dilution factor (10 mL diluted to 250 mL, 10 mL aliquot) and no mg-to-g conversion, unlike the Total alkalinity formula which has /1000. Confirm the intended calculation.",
+      "source": "Sodium Hypochlorite__STM Sodium Hypochlorite.txt:33"
+    },
+    {
+      "question": "'Weight per mL of the solution' / 'Wt: weight of sample equivalent to weight per ml' is used in both formulas but the procedure to determine it (density method, sample volume) is not stated. For total alkalinity, is Wt the weight of the 25 mL taken? For assay, of the 10 mL taken?",
+      "source": "Sodium Hypochlorite__STM Sodium Hypochlorite.txt:32-33"
+    },
+    {
+      "question": "Preparation of '2 M acetic acid' and 'hydrogen peroxide solution (20 vol)' is not given in the STM reagent list.",
+      "source": "Sodium Hypochlorite__STM Sodium Hypochlorite.txt:28"
+    },
+    {
+      "question": "The 0.5 M HCl standardization quotes the factor for 1 M HCl (1 mL of 1 M HCl = 121.1 mg Tris); the factor for 0.5 M HCl is not stated, and the Tris amount (0.950 g) is the only quantity given.",
+      "source": "Sodium Hypochlorite__STM Sodium Hypochlorite.txt:28"
+    },
+    {
+      "question": "Spec reference for the assay says '% of chlorine' while STM says % w/w available chlorine; w/w and as-is basis inferred, confirm.",
+      "source": "Sodium Hypochlorite__Specifications sheet Sodium Hypochlorite.txt:14; STM:33"
+    }
   ]
 }

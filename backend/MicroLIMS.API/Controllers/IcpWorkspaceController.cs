@@ -54,6 +54,11 @@ public class IcpWorkspaceController : ControllerBase
     public async Task<IActionResult> GetSampleEntry(int runSampleId) =>
         Ok(ApiResponse<object>.Ok(await _service.GetSampleEntryAsync(runSampleId, CurrentUserId)));
 
+    // Auto-fill: the results the sample's uploaded instrument report proposes. Read-only; the analyst reviews and saves.
+    [HttpGet("samples/{runSampleId:int}/report-values")]
+    public async Task<IActionResult> GetReportValues(int runSampleId, [FromQuery] int? solutionIndex) =>
+        Ok(ApiResponse<object>.Ok(await _service.GetReportValuesAsync(runSampleId, solutionIndex, CurrentUserId)));
+
     [HttpGet("evidence/{id:int}/file")]
     public async Task<IActionResult> DownloadEvidence(int id)
     {

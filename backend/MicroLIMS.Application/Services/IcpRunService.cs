@@ -7,6 +7,7 @@ using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Application.DTOs.Responses;
+using MicroLIMS.Application.Services.InstrumentImport;
 
 namespace MicroLIMS.Application.Services;
 
@@ -66,6 +67,7 @@ public partial class IcpRunService
     private readonly IUserSectionScopeService _scope;
     private readonly IElectronicSignatureService _signatures;
     private readonly IFileStorageService _storage;
+    private readonly IReportTextReader? _reportReader;
     private readonly ILabClock _clock;
 
     public IcpRunService(
@@ -73,8 +75,10 @@ public partial class IcpRunService
         IUserSectionScopeService scope,
         IElectronicSignatureService signatures,
         IFileStorageService storage,
-        ILabClock? clock = null)
+        ILabClock? clock = null,
+        IReportTextReader? reportReader = null)
     {
+        _reportReader = reportReader;
         _db = db;
         _scope = scope;
         _signatures = signatures;

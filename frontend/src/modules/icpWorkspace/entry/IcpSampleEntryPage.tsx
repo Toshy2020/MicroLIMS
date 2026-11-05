@@ -28,7 +28,8 @@ import { IcpResultEntryTable } from "./IcpResultEntryTable";
 import { IcpPreviewCard } from "./IcpPreviewCard";
 import { IcpSendForReviewDialog } from "./IcpSendForReviewDialog";
 import { IcpReportUploadPanel } from "../evidence/IcpReportUploadPanel";
-import { buildSaveEntryPayload, draftFromEntry, isEntryComplete, type EntryDraft } from "./entryMapping";
+import { IcpReportAutofill } from "./IcpReportAutofill";
+import { applyReportValues, buildSaveEntryPayload, draftFromEntry, isEntryComplete, type EntryDraft } from "./entryMapping";
 import type { IcpSampleEntryDto } from "../types";
 
 export function IcpSampleEntryPage() {
@@ -199,7 +200,21 @@ export function IcpSampleEntryPage() {
 
       {/* Main sections */}
       <Stack spacing={2.5}>
-        <ResultSection step={1} title={isAssay ? "Sample weight & instrument results" : "Instrument results"}>
+        <ResultSection step={1} title="Evidence: Sample Reports">
+          <IcpReportUploadPanel
+            runId={parsedRunId || sampleEntry.icpRunId}
+            runSampleId={sampleEntry.runSampleId}
+            context="Sample"
+            kind="SampleReport"
+            evidenceList={sampleEntry.evidence}
+            onChanged={loadData}
+            title="Sample Report Upload"
+            description="Upload the instrument Syngistix/raw export or PDF report for this sample. Required before sending for review."
+            disabled={!isEditable}
+          />
+        </ResultSection>
+
+        <ResultSection step={2} title={isAssay ? "Sample weight & instrument results" : "Instrument results"}>
           {isAssay && (
             <Box sx={{ mb: 2, display: "flex", flexDirection: { xs: "column", sm: "row" }, gap: 3, alignItems: { sm: "center" } }}>
               <TextField
@@ -218,6 +233,15 @@ export function IcpSampleEntryPage() {
               </Typography>
             </Box>
           )}
+          <IcpReportAutofill
+            runSampleId={sampleEntry.runSampleId}
+            hasReport={sampleEntry.evidence.some((e) => e.kind === "SampleReport" && e.isCurrent)}
+            disabled={!isEditable || saving}
+            onUse={(values) => {
+              setDraft((prev) => applyReportValues(prev, values));
+              toast.info("Values filled from the report - review them, then save.");
+            }}
+          />
           <IcpResultEntryTable
             mode={sampleEntry.mode}
             elements={sampleEntry.elements}
@@ -254,23 +278,10 @@ export function IcpSampleEntryPage() {
           </Box>
         </ResultSection>
 
-        <ResultSection step={2} title={sampleEntry.submitted ? "Results (Official)" : "Results (Server Preview)"}>
+        <ResultSection step={3} title={sampleEntry.submitted ? "Results (Official)" : "Results (Server Preview)"}>
           <IcpPreviewCard preview={sampleEntry.preview} official={sampleEntry.official} submitted={sampleEntry.submitted} />
         </ResultSection>
 
-        <ResultSection step={3} title="Evidence: Sample Reports">
-          <IcpReportUploadPanel
-            runId={parsedRunId || sampleEntry.icpRunId}
-            runSampleId={sampleEntry.runSampleId}
-            context="Sample"
-            kind="SampleReport"
-            evidenceList={sampleEntry.evidence}
-            onChanged={loadData}
-            title="Sample Report Upload"
-            description="Upload the instrument Syngistix/raw export or PDF report for this sample. Required before sending for review."
-            disabled={!isEditable}
-          />
-        </ResultSection>
       </Stack>
 
       {/* Send for Review Dialog */}

@@ -1,4 +1,4 @@
-import type { IcpEntryElementDto, IcpTestMode, SaveIcpSampleEntryRequest } from "../types";
+import type { IcpEntryElementDto, IcpReportElementValueDto, IcpTestMode, SaveIcpSampleEntryRequest } from "../types";
 
 // Pure helpers for the ICP result entry form. The frontend only shapes what the analyst typed; the server
 // calculates, judges and decides whether the entry can be saved or sent.
@@ -59,4 +59,14 @@ export function isEntryComplete(mode: IcpTestMode, elements: IcpEntryElementDto[
     const v = parseDecimal(draft.results[el.icpTestElementId]);
     return v !== null && v >= 0;
   });
+}
+
+// Fills the draft with the ppm read from the instrument report. Only elements with a usable (non-negative)
+// reading are touched; nothing is saved - the analyst reviews the draft and saves it as their own entry.
+export function applyReportValues(draft: EntryDraft, values: IcpReportElementValueDto[]): EntryDraft {
+  const results = { ...draft.results };
+  for (const v of values) {
+    if (v.resultPpm != null && v.resultPpm >= 0) results[v.icpTestElementId] = String(v.resultPpm);
+  }
+  return { ...draft, results };
 }

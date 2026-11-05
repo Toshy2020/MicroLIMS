@@ -241,3 +241,31 @@ export interface IcpSampleEntryDto {
   canSubmit: boolean;
   canSubmitReason?: string | null;
 }
+
+export interface IcpReportSolutionDto {
+  index: number;
+  label: string;
+  page: number;
+  matchesSample: boolean;
+  elements: string;
+}
+
+export interface IcpReportElementValueDto {
+  icpTestElementId: number;
+  symbol: string;
+  resultPpm?: number | null;
+  wavelengthNm?: number | null;
+  note?: string | null;
+}
+
+export interface IcpReportValuesDto {
+  evidenceId: number;
+  fileName: string;
+  source: string;
+  requiresVerification: boolean;
+  problems: string[];
+  solutions: IcpReportSolutionDto[];
+  matchedIndex?: number | null;
+  selectedIndex?: number | null;
+  elements: IcpReportElementValueDto[];
+}

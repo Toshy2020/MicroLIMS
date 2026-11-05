@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
+  applyReportValues,
   buildSaveEntryPayload,
   draftFromEntry,
   formatQuantityLabel,
@@ -71,5 +72,18 @@ describe("entryMapping", () => {
     it("is false when the test has no elements", () => {
       expect(isEntryComplete("Assay", [], { weight: "1", results: {} })).toBe(false);
     });
+  });
+});
+
+describe("applyReportValues", () => {
+  it("fills only usable readings and keeps the rest of the draft", () => {
+    const draft = { weight: "0.5", results: { 1: "3", 2: "" } };
+    const out = applyReportValues(draft, [
+      { icpTestElementId: 1, symbol: "Zn", resultPpm: 9.5 },
+      { icpTestElementId: 2, symbol: "Ca", resultPpm: null, note: "No reading" },
+      { icpTestElementId: 3, symbol: "Fe", resultPpm: -0.1 }
+    ]);
+    expect(out).toEqual({ weight: "0.5", results: { 1: "9.5", 2: "" } });
+    expect(draft.results[1]).toBe("3");
   });
 });

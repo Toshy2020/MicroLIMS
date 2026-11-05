@@ -73,6 +73,14 @@ describe("IcpWorkspaceService endpoint URL building", () => {
     expect(apiClient.put).toHaveBeenCalledWith("/icp-workspace/samples/15/entry", payload);
   });
 
+  it("calls GET report-values with and without a chosen solution", async () => {
+    vi.mocked(apiClient.get).mockResolvedValue({ data: { success: true, data: {} } });
+    await IcpWorkspaceService.getReportValues(15);
+    expect(apiClient.get).toHaveBeenLastCalledWith("/icp-workspace/samples/15/report-values", { params: undefined });
+    await IcpWorkspaceService.getReportValues(15, 4);
+    expect(apiClient.get).toHaveBeenLastCalledWith("/icp-workspace/samples/15/report-values", { params: { solutionIndex: 4 } });
+  });
+
   it("calls POST /icp-workspace/runs/:id/abandon with reason", async () => {
     vi.mocked(apiClient.post).mockResolvedValueOnce({ data: { success: true, data: {} } });
     await IcpWorkspaceService.abandonRun(8, "Plasma unstable");

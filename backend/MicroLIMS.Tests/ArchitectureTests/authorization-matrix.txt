@@ -286,6 +286,7 @@ IcpWorkspaceController.ConfirmCalibration(Int32, ConfirmIcpCalibrationRequest): 
 IcpWorkspaceController.DownloadEvidence(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
 IcpWorkspaceController.GetEligibleTests(Int32, String): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
 IcpWorkspaceController.GetInstruments(): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
+IcpWorkspaceController.GetReportValues(Int32, Nullable`1): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
 IcpWorkspaceController.GetRun(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
 IcpWorkspaceController.GetRunHistory(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
 IcpWorkspaceController.GetSampleEntry(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager

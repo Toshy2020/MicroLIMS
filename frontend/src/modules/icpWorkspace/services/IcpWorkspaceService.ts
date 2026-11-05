@@ -5,6 +5,7 @@ import type {
   IcpRunDto,
   EligibleTestDto,
   IcpSampleEntryDto,
+  IcpReportValuesDto,
   IcpEvidenceDto,
   IcpEvidenceContext,
   IcpEvidenceKind,
@@ -137,6 +138,14 @@ export const IcpWorkspaceService = {
     const res = await apiClient.post<ApiResponse<IcpRunDto>>(
       `/icp-workspace/runs/${id}/samples/${runSampleId}/remove`,
       { reason }
+    );
+    return res.data?.data;
+  },
+
+  getReportValues: async (runSampleId: number, solutionIndex?: number | null): Promise<IcpReportValuesDto> => {
+    const res = await apiClient.get<ApiResponse<IcpReportValuesDto>>(
+      `/icp-workspace/samples/${runSampleId}/report-values`,
+      { params: solutionIndex == null ? undefined : { solutionIndex } }
     );
     return res.data?.data;
   },

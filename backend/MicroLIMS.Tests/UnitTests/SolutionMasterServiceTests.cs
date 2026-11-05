@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using MicroLIMS.Application.DTOs.Responses;
 using MicroLIMS.Application.Services;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
@@ -481,5 +482,271 @@ public class SolutionMasterServiceTests
 
         var deactivated = await service.SetActiveAsync(created.Id, false, "No longer used", userId);
         Assert.False(deactivated.IsActive);
+    }
+
+    // --- Microbiology general types: flags, prepared-solution and text components ---
+
+    private static SaveSolutionMasterRequest GeneralReq(
+        string name, SolutionType type, List<SolutionComponentInput> components, int? sectionId = null,
+        bool sterilization = false, bool release = false) =>
+        Req(name: name, type: type, components: components, sectionId: sectionId) with
+        {
+            SterilizationRequired = sterilization,
+            ReleaseRequired = release
+        };
+
+    [Theory]
+    [InlineData(SolutionType.Diluent)]
+    [InlineData(SolutionType.Reagent)]
+    [InlineData(SolutionType.Neutralizer)]
+    public async Task Create_GeneralType_SavesFlags_AndUpdateAuditsFlagChange(SolutionType type)
+    {
+        await using var db = NewDb();
+        var (section, userId) = await SeedAsync(db);
+        var entry = await AddEntryAsync(db, section.Id, "NACL");
+        var service = TestServiceFactory.SolutionMaster(db);
+
+        var created = await service.CreateAsync(GeneralReq("Saline", type, OneComponent(entry.Id), sterilization: true, release: true), userId);
+
+        Assert.Equal(type, created.Type);
+        Assert.True(created.SterilizationRequired);
+        Assert.True(created.ReleaseRequired);
+
+        var updated = await service.UpdateAsync(created.Id,
+            GeneralReq("Saline", type, OneComponent(entry.Id), sterilization: true, release: false) with { Reason = "No release needed" }, userId);
+        Assert.True(updated.SterilizationRequired);
+        Assert.False(updated.ReleaseRequired);
+    }
+
+    [Fact]
+    public async Task Create_FlagsDefaultOff_ForExistingStyleRecipe()
+    {
+        await using var db = NewDb();
+        var (section, userId) = await SeedAsync(db);
+        var entry = await AddEntryAsync(db, section.Id, "NACL");
+        var service = TestServiceFactory.SolutionMaster(db);
+
+        var created = await service.CreateAsync(Req(type: SolutionType.Diluent, components: OneComponent(entry.Id)), userId);
+
+        Assert.False(created.SterilizationRequired);
+        Assert.False(created.ReleaseRequired);
+        Assert.Equal(SolutionComponentKind.Material, created.Components[0].Kind);
+    }
+
+    [Theory]
+    [InlineData(SolutionType.MobilePhase, true, false)]
+    [InlineData(SolutionType.MobilePhase, false, true)]
+    [InlineData(SolutionType.Titrant, true, false)]
+    [InlineData(SolutionType.Titrant, false, true)]
+    public async Task Create_HplcTypeWithMicrobiologyFlags_Throws(SolutionType type, bool sterilization, bool release)
+    {
+        await using var db = NewDb();
+        var (section, userId) = await SeedAsync(db);
+        var entry = await AddEntryAsync(db, section.Id, "BUF-01");
+        var std = await AddEntryAsync(db, section.Id, "STD-01", MaterialMasterCategory.PrimaryStandard);
+        var service = TestServiceFactory.SolutionMaster(db);
+
+        var request = type == SolutionType.Titrant
+            ? TitrantReq(std.Id, components: OneComponent(entry.Id)) with { SterilizationRequired = sterilization, ReleaseRequired = release }
+            : GeneralReq("Mobile Phase A", type, OneComponent(entry.Id), sterilization: sterilization, release: release);
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.CreateAsync(request, userId));
+        Assert.Contains("only allowed for diluents, reagents and neutralizers", ex.Message);
+    }
+
+    [Fact]
+    public async Task Create_ReagentWithTitrantFields_Throws()
+    {
+        await using var db = NewDb();
+        var (section, userId) = await SeedAsync(db);
+        var entry = await AddEntryAsync(db, section.Id, "NACL");
+        var service = TestServiceFactory.SolutionMaster(db);
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.CreateAsync(
+            GeneralReq("Reagent X", SolutionType.Reagent, OneComponent(entry.Id)) with { NominalStrength = 0.1m }, userId));
+        Assert.Contains("only allowed for titrants", ex.Message);
+    }
+
+    private static async Task<SolutionMasterResponse> CreateGeneralAsync(
+        SolutionMasterService service, int userId, string name, int entryId, SolutionType type = SolutionType.Reagent) =>
+        await service.CreateAsync(GeneralReq(name, type, OneComponent(entryId)), userId);
+
+    [Fact]
+    public async Task Create_PreparedSolutionComponent_ResolvesSourceAndKeepsText()
+    {
+        await using var db = NewDb();
+        var (section, userId) = await SeedAsync(db);
+        var entry = await AddEntryAsync(db, section.Id, "PO4");
+        var service = TestServiceFactory.SolutionMaster(db);
+        var stock = await CreateGeneralAsync(service, userId, "Phosphate buffer stock", entry.Id);
+
+        var created = await service.CreateAsync(GeneralReq("Phosphate buffer solution", SolutionType.Diluent, new List<SolutionComponentInput>
+        {
+            new(null, 1.25m, SolutionComponentUnit.Milliliter, SolutionComponentKind.PreparedSolution, SourceSolutionMasterId: stock.Id),
+            new(null, null, null, SolutionComponentKind.Text, Text: "  Purified water to 1000 mL  ")
+        }, sterilization: true, release: true), userId);
+
+        Assert.Equal(SolutionComponentKind.PreparedSolution, created.Components[0].Kind);
+        Assert.Equal(stock.Id, created.Components[0].SourceSolutionMasterId);
+        Assert.Equal("Phosphate buffer stock", created.Components[0].SourceSolutionName);
+        Assert.Null(created.Components[0].MaterialMasterEntryId);
+        Assert.Equal(SolutionComponentKind.Text, created.Components[1].Kind);
+        Assert.Equal("Purified water to 1000 mL", created.Components[1].Text);
+        Assert.Null(created.Components[1].Quantity);
+        Assert.Null(created.Components[1].Unit);
+    }
+
+    [Fact]
+    public async Task Create_PreparedSolutionComponent_OtherSection_Throws()
+    {
+        await using var db = NewDb();
+        var (section, userId) = await SeedAsync(db);
+        var entry = await AddEntryAsync(db, section.Id, "PO4");
+        var service = TestServiceFactory.SolutionMaster(db);
+        var otherSection = new DocumentSection { Name = "Other Lab", Code = "OTH", DepartmentId = section.DepartmentId, IsActive = true };
+        db.DocumentSections.Add(otherSection);
+        await db.SaveChangesAsync();
+        db.SolutionMasters.Add(new SolutionMaster
+        {
+            SectionId = otherSection.Id, Name = "Foreign stock", Type = SolutionType.Reagent, ShelfLifeValue = 7,
+            ShelfLifeUnit = ShelfLifeUnit.Days, StorageCondition = "2-8 C", FinalVolumeMl = 100, Instructions = "x", IsActive = true,
+            CreatedByUserId = 1, LastModifiedByUserId = 1
+        });
+        await db.SaveChangesAsync();
+        var foreignId = (await db.SolutionMasters.SingleAsync(s => s.Name == "Foreign stock")).Id;
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.CreateAsync(
+            GeneralReq("Buffer", SolutionType.Diluent, new List<SolutionComponentInput>
+            {
+                new(entry.Id, 1m, SolutionComponentUnit.Gram),
+                new(null, 1m, SolutionComponentUnit.Milliliter, SolutionComponentKind.PreparedSolution, SourceSolutionMasterId: foreignId)
+            }), userId));
+        Assert.Contains("another laboratory", ex.Message);
+    }
+
+    [Fact]
+    public async Task Create_PreparedSolutionComponent_InactiveSource_Throws()
+    {
+        await using var db = NewDb();
+        var (section, userId) = await SeedAsync(db);
+        var entry = await AddEntryAsync(db, section.Id, "PO4");
+        var service = TestServiceFactory.SolutionMaster(db);
+        var stock = await CreateGeneralAsync(service, userId, "Old stock", entry.Id);
+        await service.SetActiveAsync(stock.Id, false, "Retired", userId);
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.CreateAsync(
+            GeneralReq("Buffer", SolutionType.Diluent, new List<SolutionComponentInput>
+            {
+                new(null, 1m, SolutionComponentUnit.Milliliter, SolutionComponentKind.PreparedSolution, SourceSolutionMasterId: stock.Id)
+            }), userId));
+        Assert.Contains("inactive", ex.Message);
+    }
+
+    [Fact]
+    public async Task Update_PreparedSolutionComponent_SelfReference_Throws()
+    {
+        await using var db = NewDb();
+        var (section, userId) = await SeedAsync(db);
+        var entry = await AddEntryAsync(db, section.Id, "PO4");
+        var service = TestServiceFactory.SolutionMaster(db);
+        var a = await CreateGeneralAsync(service, userId, "A", entry.Id);
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.UpdateAsync(a.Id,
+            GeneralReq("A", SolutionType.Reagent, new List<SolutionComponentInput>
+            {
+                new(null, 1m, SolutionComponentUnit.Milliliter, SolutionComponentKind.PreparedSolution, SourceSolutionMasterId: a.Id)
+            }) with { Reason = "Loop" }, userId));
+        Assert.Contains("itself", ex.Message);
+    }
+
+    [Fact]
+    public async Task Update_PreparedSolutionComponent_IndirectCycle_Throws()
+    {
+        await using var db = NewDb();
+        var (section, userId) = await SeedAsync(db);
+        var entry = await AddEntryAsync(db, section.Id, "PO4");
+        var service = TestServiceFactory.SolutionMaster(db);
+        var a = await CreateGeneralAsync(service, userId, "A", entry.Id);
+        var b = await service.CreateAsync(GeneralReq("B", SolutionType.Reagent, new List<SolutionComponentInput>
+        {
+            new(null, 1m, SolutionComponentUnit.Milliliter, SolutionComponentKind.PreparedSolution, SourceSolutionMasterId: a.Id)
+        }), userId);
+        var c = await service.CreateAsync(GeneralReq("C", SolutionType.Reagent, new List<SolutionComponentInput>
+        {
+            new(null, 1m, SolutionComponentUnit.Milliliter, SolutionComponentKind.PreparedSolution, SourceSolutionMasterId: b.Id)
+        }), userId);
+
+        // A -> C would close the loop A -> C -> B -> A.
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.UpdateAsync(a.Id,
+            GeneralReq("A", SolutionType.Reagent, new List<SolutionComponentInput>
+            {
+                new(null, 1m, SolutionComponentUnit.Milliliter, SolutionComponentKind.PreparedSolution, SourceSolutionMasterId: c.Id)
+            }) with { Reason = "Loop" }, userId));
+        Assert.Contains("circular", ex.Message);
+    }
+
+    [Fact]
+    public async Task Create_PreparedSolutionComponent_Duplicate_Throws()
+    {
+        await using var db = NewDb();
+        var (section, userId) = await SeedAsync(db);
+        var entry = await AddEntryAsync(db, section.Id, "PO4");
+        var service = TestServiceFactory.SolutionMaster(db);
+        var stock = await CreateGeneralAsync(service, userId, "Stock", entry.Id);
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.CreateAsync(
+            GeneralReq("Buffer", SolutionType.Diluent, new List<SolutionComponentInput>
+            {
+                new(null, 1m, SolutionComponentUnit.Milliliter, SolutionComponentKind.PreparedSolution, SourceSolutionMasterId: stock.Id),
+                new(null, 2m, SolutionComponentUnit.Milliliter, SolutionComponentKind.PreparedSolution, SourceSolutionMasterId: stock.Id)
+            }), userId));
+        Assert.Contains("twice", ex.Message);
+    }
+
+    [Fact]
+    public async Task Create_PreparedSolutionComponent_OnMobilePhase_Throws()
+    {
+        await using var db = NewDb();
+        var (section, userId) = await SeedAsync(db);
+        var entry = await AddEntryAsync(db, section.Id, "PO4");
+        var service = TestServiceFactory.SolutionMaster(db);
+        var stock = await CreateGeneralAsync(service, userId, "Stock", entry.Id);
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.CreateAsync(
+            GeneralReq("MP", SolutionType.MobilePhase, new List<SolutionComponentInput>
+            {
+                new(null, 1m, SolutionComponentUnit.Milliliter, SolutionComponentKind.PreparedSolution, SourceSolutionMasterId: stock.Id)
+            }), userId));
+        Assert.Contains("only allowed for diluents, reagents and neutralizers", ex.Message);
+    }
+
+    [Fact]
+    public async Task Create_TextComponent_Validation()
+    {
+        await using var db = NewDb();
+        var (section, userId) = await SeedAsync(db);
+        var entry = await AddEntryAsync(db, section.Id, "NACL");
+        var service = TestServiceFactory.SolutionMaster(db);
+        var material = new SolutionComponentInput(entry.Id, 9m, SolutionComponentUnit.Gram);
+
+        // Text is required.
+        await Assert.ThrowsAsync<InvalidOperationException>(() => service.CreateAsync(GeneralReq("S1", SolutionType.Diluent,
+            new() { material, new(null, null, null, SolutionComponentKind.Text, Text: "  ") }), userId));
+        // No quantity or unit on a text line.
+        await Assert.ThrowsAsync<InvalidOperationException>(() => service.CreateAsync(GeneralReq("S2", SolutionType.Diluent,
+            new() { material, new(null, 1m, null, SolutionComponentKind.Text, Text: "Water") }), userId));
+        // No entry on a text line.
+        await Assert.ThrowsAsync<InvalidOperationException>(() => service.CreateAsync(GeneralReq("S3", SolutionType.Diluent,
+            new() { material, new(entry.Id, null, null, SolutionComponentKind.Text, Text: "Water") }), userId));
+        // At most 200 characters.
+        await Assert.ThrowsAsync<InvalidOperationException>(() => service.CreateAsync(GeneralReq("S4", SolutionType.Diluent,
+            new() { material, new(null, null, null, SolutionComponentKind.Text, Text: new string('x', 201)) }), userId));
+        // A recipe needs at least one non-text component.
+        var onlyText = await Assert.ThrowsAsync<InvalidOperationException>(() => service.CreateAsync(GeneralReq("S5", SolutionType.Diluent,
+            new() { new(null, null, null, SolutionComponentKind.Text, Text: "Purified water") }), userId));
+        Assert.Contains("At least one component", onlyText.Message);
+        // A material line still needs a positive quantity.
+        await Assert.ThrowsAsync<InvalidOperationException>(() => service.CreateAsync(GeneralReq("S6", SolutionType.Diluent,
+            new() { new(entry.Id, null, null) }), userId));
     }
 }

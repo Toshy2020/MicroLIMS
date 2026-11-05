@@ -560,8 +560,10 @@ SolutionPreparationController.GetById(Int32): SystemAdministrator,SectionHead,Re
 SolutionPreparationController.GetByLot(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
 SolutionPreparationController.GetLotOptions(Int32, Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
 SolutionPreparationController.GetReferenceOptions(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
+SolutionPreparationController.GetSourcePreparations(Int32, Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
 SolutionPreparationController.GetStandardLotOptions(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
 SolutionPreparationController.GetStandardizations(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
+SolutionPreparationController.Release(Int32, ReleaseSolutionPreparationRequest): SectionHead,Reviewer
 SolutionPreparationController.Save(Int32, SavePreparationRequest): SectionHead,Analyst
 SolutionPreparationController.Standardize(Int32, StandardizeRequest): SectionHead,Analyst
 SolutionPreparationController.Start(StartPreparationRequest): SectionHead,Analyst

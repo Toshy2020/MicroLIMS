@@ -257,6 +257,9 @@ public static class TestServiceFactory
     public static MaterialReleaseService MaterialRelease(MicroLimsDbContext db) =>
         new(db, new UserSectionScopeService(db), new SegregationOfDutiesGuard(db), ReviewGate(db));
 
+    public static SolutionPreparationReleaseService SolutionPreparationRelease(MicroLimsDbContext db, ILabClock? clock = null) =>
+        new(db, new UserSectionScopeService(db), new SegregationOfDutiesGuard(db), ReviewGate(db), clock);
+
     public static SolutionMasterService SolutionMaster(MicroLimsDbContext db) =>
         new(db, new UserSectionScopeService(db),
             new AuditEventService(db, new MicroLIMS.Persistence.Helpers.DatabaseSequenceHelper(db)));

@@ -11,17 +11,28 @@ using MicroLIMS.Application.DTOs.Responses;
 namespace MicroLIMS.Application.Services;
 
 public record StartPreparationRequest(int SolutionMasterId, int? HplcMethodId);
-public record PreparationComponentInput(int ComponentId, int? MaterialId, decimal? QuantityUsed);
-public record SavePreparationRequest(List<PreparationComponentInput> Components, decimal? FinalVolumeMl, decimal? MeasuredPh);
+// Material lines send MaterialId + QuantityUsed; PreparedSolution lines send SourcePreparationId
+// (QuantityUsed optional, never deducted); Text lines send nothing.
+public record PreparationComponentInput(int ComponentId, int? MaterialId, decimal? QuantityUsed, int? SourcePreparationId = null);
+// The autoclave fields are required at completion when the recipe needs sterilization, and
+// must be left null otherwise.
+public record SavePreparationRequest(
+    List<PreparationComponentInput> Components, decimal? FinalVolumeMl, decimal? MeasuredPh,
+    int? AutoclaveEquipmentId = null, string? AutoclaveProgram = null, string? LoadType = null,
+    decimal? AutoclaveTemperature = null, int? AutoclaveCycleTime = null, int? AutoclaveCycleNumber = null);
 public record CompletePreparationRequest(string Password, string? Comment);
 public record LotOption(int MaterialId, string BatchNumber, DateTime? ExpiryDate, decimal QuantityRemaining, MaterialUnit Unit, bool Usable, string? Reason, decimal? Purity);
+public record SourcePreparationOption(int PreparationId, string? Code, DateTime? PreparedAt, DateTime? ExpiresAt, ApprovalGateStatus? ApprovalStatus, bool Usable, string? Reason);
 
 // Solution Preparation area (HPLC chain S4, spec 4): prepares Mobile
-// Phases, Diluents and Titrants from the Solution master against real
-// Material stock lots. Start snapshots the master (D7); Save records the
+// Phases, Diluents, Reagents, Neutralizers and Titrants from the Solution
+// master against real Material stock lots (and, for the general types,
+// against prepared bottles of other solutions - recorded, never deducted). Start snapshots the master (D7); Save records the
 // picked lots and quantities; Complete is one signed SaveChangesAsync that
 // deducts stock (MaterialService.ConsumeAsync), allocates a code
-// (SolutionPreparationCode) and sets an expiry. Cancel/Discard close the
+// (SolutionPreparationCode), sets an expiry and, when the recipe needs a
+// release, leaves the record PendingReview (SolutionPreparationReleaseService
+// decides it). Cancel/Discard close the
 // record without restoring stock. ExpireDueAsync is called by
 // SolutionPreparationExpiryWorker (API layer) every 5 minutes.
 public class SolutionPreparationService
@@ -126,9 +137,14 @@ public class SolutionPreparationService
             prep.Components.Add(new SolutionPreparationComponent
             {
                 Order = order++,
+                Kind = c.Kind,
                 MaterialMasterEntryId = c.MaterialMasterEntryId,
+                SourceSolutionMasterId = c.SourceSolutionMasterId,
+                Text = c.Text,
                 EntryCode = c.MaterialMasterEntry?.Code ?? string.Empty,
-                EntryName = c.MaterialMasterEntry?.Name ?? string.Empty,
+                EntryName = c.Kind == SolutionComponentKind.PreparedSolution
+                    ? c.SourceSolutionMaster?.Name ?? string.Empty
+                    : c.MaterialMasterEntry?.Name ?? string.Empty,
                 RecipeQuantity = c.Quantity,
                 RecipeUnit = c.Unit,
             });
@@ -158,11 +174,50 @@ public class SolutionPreparationService
             throw new InvalidOperationException("This preparation is closed.");
 
         var today = _clock.LabToday;
+        var now = _clock.UtcNow.UtcDateTime;
+        var snapshot = ReadSnapshot(prep);
 
         foreach (var input in r.Components)
         {
             var component = prep.Components.FirstOrDefault(c => c.Id == input.ComponentId)
                 ?? throw new InvalidOperationException($"Component {input.ComponentId} does not belong to this preparation.");
+
+            if (component.Kind == SolutionComponentKind.Text)
+            {
+                if (input.MaterialId.HasValue || input.SourcePreparationId.HasValue || input.QuantityUsed.HasValue)
+                    throw new InvalidOperationException("A text line has nothing to pick.");
+                continue;
+            }
+
+            if (component.Kind == SolutionComponentKind.PreparedSolution)
+            {
+                if (input.MaterialId.HasValue)
+                    throw new InvalidOperationException($"{component.EntryName} is a prepared solution: pick a prepared bottle, not a stock lot.");
+
+                if (!input.SourcePreparationId.HasValue)
+                {
+                    component.SourcePreparationId = null;
+                    component.QuantityUsed = null;
+                    continue;
+                }
+
+                if (input.QuantityUsed.HasValue && input.QuantityUsed.Value <= 0)
+                    throw new InvalidOperationException($"Quantity used for \"{component.EntryName}\" must be greater than zero.");
+
+                var source = await _db.SolutionPreparations.AsNoTracking().FirstOrDefaultAsync(p => p.Id == input.SourcePreparationId.Value, ct)
+                    ?? throw new NotFoundException($"Solution preparation {input.SourcePreparationId} not found.");
+
+                var sourceCheck = CheckSource(source, component, prep.SectionId, now);
+                if (!sourceCheck.Usable)
+                    throw new InvalidOperationException($"{component.EntryName} (preparation {source.Code}): {sourceCheck.Reason}");
+
+                component.SourcePreparationId = source.Id;
+                component.QuantityUsed = input.QuantityUsed;
+                continue;
+            }
+
+            if (input.SourcePreparationId.HasValue)
+                throw new InvalidOperationException($"{component.EntryName} is a stock material: pick a lot, not a prepared bottle.");
 
             if (!input.MaterialId.HasValue)
             {
@@ -180,7 +235,7 @@ public class SolutionPreparationService
             if (lot.SectionId != prep.SectionId)
                 throw new InvalidOperationException($"Lot \"{lot.LotLabel}\" belongs to another laboratory.");
 
-            var check = LotUsability.Check(lot, component.MaterialMasterEntryId, input.QuantityUsed, today);
+            var check = LotUsability.Check(lot, component.MaterialMasterEntryId!.Value, input.QuantityUsed, today);
             if (!check.Usable)
                 throw new InvalidOperationException($"{component.EntryName} (lot {lot.LotLabel}): {check.Reason}");
 
@@ -197,6 +252,8 @@ public class SolutionPreparationService
         prep.FinalVolumeMl = r.FinalVolumeMl;
         prep.MeasuredPh = r.MeasuredPh;
 
+        await ApplySterilizationAsync(prep, snapshot, r, ct);
+
         _db.CurrentUserId = userId;
         await _db.SaveChangesAsync(ct);
 
@@ -211,6 +268,9 @@ public class SolutionPreparationService
         var component = prep.Components.FirstOrDefault(c => c.Id == componentId)
             ?? throw new NotFoundException($"Component {componentId} not found on this preparation.");
 
+        if (component.Kind != SolutionComponentKind.Material)
+            throw new InvalidOperationException($"{component.EntryName} is not a stock material.");
+
         var today = _clock.LabToday;
         var lots = await _db.Materials.AsNoTracking()
             .Where(m => m.SectionId == prep.SectionId && m.MaterialMasterEntryId == component.MaterialMasterEntryId)
@@ -219,8 +279,37 @@ public class SolutionPreparationService
 
         return lots.Select(lot =>
         {
-            var check = LotUsability.Check(lot, component.MaterialMasterEntryId, component.QuantityUsed, today);
+            var check = LotUsability.Check(lot, component.MaterialMasterEntryId!.Value, component.QuantityUsed, today);
             return new LotOption(lot.Id, lot.LotLabel, lot.ExpiryDate, lot.QuantityRemaining, lot.Unit, check.Usable, check.Reason, lot.Purity);
+        }).ToList();
+    }
+
+    // Prepared bottles of the component's source recipe, usable or not (with the
+    // reason), for the PreparedSolution picker. Valid = same laboratory, Prepared and
+    // unexpired, and released when the source recipe needs a release.
+    public async Task<List<SourcePreparationOption>> GetSourcePreparationsAsync(int id, int componentId, int userId, CancellationToken ct = default)
+    {
+        var prep = await LoadPrepAsync(id, ct);
+        await EnsureAccessAsync(prep, userId, ct, SectionAccess.Read);
+
+        var component = prep.Components.FirstOrDefault(c => c.Id == componentId)
+            ?? throw new NotFoundException($"Component {componentId} not found on this preparation.");
+
+        if (component.Kind != SolutionComponentKind.PreparedSolution)
+            throw new InvalidOperationException($"{component.EntryName} is not a prepared solution.");
+
+        var now = _clock.UtcNow.UtcDateTime;
+        var candidates = await _db.SolutionPreparations.AsNoTracking()
+            .Where(p => p.SectionId == prep.SectionId && p.SolutionMasterId == component.SourceSolutionMasterId
+                && p.Code != null
+                && (p.Status == SolutionPreparationStatus.Prepared || p.Status == SolutionPreparationStatus.Expired))
+            .OrderByDescending(p => p.PreparedAt)
+            .ToListAsync(ct);
+
+        return candidates.Select(p =>
+        {
+            var check = CheckSource(p, component, prep.SectionId, now);
+            return new SourcePreparationOption(p.Id, p.Code, p.PreparedAt, p.ExpiresAt, p.ApprovalStatus, check.Usable, check.Reason);
         }).ToList();
     }
 
@@ -238,14 +327,16 @@ public class SolutionPreparationService
         if (prep.Status != SolutionPreparationStatus.InProgress)
             throw new InvalidOperationException("This preparation is closed.");
 
-        if (prep.Components.Any(c => !c.MaterialId.HasValue || !c.QuantityUsed.HasValue))
+        if (prep.Components.Any(c => c.Kind == SolutionComponentKind.Material && (!c.MaterialId.HasValue || !c.QuantityUsed.HasValue)))
             throw new InvalidOperationException("Every component needs a lot and a quantity before completion.");
+
+        if (prep.Components.Any(c => c.Kind == SolutionComponentKind.PreparedSolution && !c.SourcePreparationId.HasValue))
+            throw new InvalidOperationException("Every prepared solution component needs a prepared bottle before completion.");
 
         if (!prep.FinalVolumeMl.HasValue)
             throw new InvalidOperationException("Final volume is required before completion.");
 
-        var snapshot = JsonSerializer.Deserialize<SolutionMasterResponse>(prep.RecipeSnapshotJson, JsonOptions)
-            ?? throw new InvalidOperationException("The preparation's recipe snapshot could not be read.");
+        var snapshot = ReadSnapshot(prep);
 
         if (snapshot.PhTarget.HasValue)
         {
@@ -261,18 +352,33 @@ public class SolutionPreparationService
             }
         }
 
+        await ValidateSterilizationAsync(prep, snapshot, ct);
+
         var today = _clock.LabToday;
         var picks = new List<(SolutionPreparationComponent Component, Material Lot)>();
-        foreach (var component in prep.Components)
+        foreach (var component in prep.Components.Where(c => c.Kind == SolutionComponentKind.Material))
         {
             var lot = await _db.Materials.FirstOrDefaultAsync(m => m.Id == component.MaterialId!.Value, ct)
                 ?? throw new InvalidOperationException($"{component.EntryName}: the selected lot no longer exists.");
 
-            var check = LotUsability.Check(lot, component.MaterialMasterEntryId, component.QuantityUsed, today);
+            var check = LotUsability.Check(lot, component.MaterialMasterEntryId!.Value, component.QuantityUsed, today);
             if (!check.Usable)
                 throw new InvalidOperationException($"{component.EntryName} (lot {lot.LotLabel}): {check.Reason}");
 
             picks.Add((component, lot));
+        }
+
+        // Prepared bottles are re-checked (they may have expired or been rejected since
+        // they were picked) but never deducted.
+        var nowCheck = _clock.UtcNow.UtcDateTime;
+        foreach (var component in prep.Components.Where(c => c.Kind == SolutionComponentKind.PreparedSolution))
+        {
+            var source = await _db.SolutionPreparations.AsNoTracking().FirstOrDefaultAsync(p => p.Id == component.SourcePreparationId!.Value, ct)
+                ?? throw new InvalidOperationException($"{component.EntryName}: the selected preparation no longer exists.");
+
+            var check = CheckSource(source, component, prep.SectionId, nowCheck);
+            if (!check.Usable)
+                throw new InvalidOperationException($"{component.EntryName} (preparation {source.Code}): {check.Reason}");
         }
 
         // Signs first - see the method comment. Only after this succeeds
@@ -297,6 +403,7 @@ public class SolutionPreparationService
         prep.ExpiresAt = ShelfLifeExpiry(nowUtc, snapshot.ShelfLifeValue, snapshot.ShelfLifeUnit);
         prep.Status = SolutionPreparationStatus.Prepared;
         prep.Signature = signature;
+        prep.ApprovalStatus = snapshot.ReleaseRequired ? ApprovalGateStatus.PendingReview : null;
 
         prep.StatusHistory.Add(new SolutionPreparationStatusHistory
         {
@@ -368,7 +475,8 @@ public class SolutionPreparationService
         return await GetByIdAsync(id, userId, ct);
     }
 
-    // Prepared + unexpired, for the given solution (and, for a mobile
+    // Prepared + unexpired (and released, when the recipe needs a release - a
+    // PendingReview or Rejected preparation is not offered), for the given solution (and, for a mobile
     // phase, the method it was prepared for). S6 (HPLC workspace) uses
     // this to offer preparations for a run's mobile phase channels.
     public async Task<List<SolutionPreparationListItem>> GetAvailableAsync(int userId, int solutionMasterId, int? hplcMethodId, CancellationToken ct = default)
@@ -379,7 +487,8 @@ public class SolutionPreparationService
         var query = ListQuery().Where(p =>
             p.SolutionMasterId == solutionMasterId
             && p.Status == SolutionPreparationStatus.Prepared
-            && (!p.ExpiresAt.HasValue || p.ExpiresAt.Value > now));
+            && (!p.ExpiresAt.HasValue || p.ExpiresAt.Value > now)
+            && (p.ApprovalStatus == null || p.ApprovalStatus == ApprovalGateStatus.Approved));
 
         if (scope != null) query = query.Where(p => scope.Contains(p.SectionId));
         if (hplcMethodId.HasValue) query = query.Where(p => p.HplcMethodId == hplcMethodId.Value);
@@ -432,6 +541,93 @@ public class SolutionPreparationService
         return due.Count;
     }
 
+    private static SolutionMasterResponse ReadSnapshot(SolutionPreparation prep) =>
+        JsonSerializer.Deserialize<SolutionMasterResponse>(prep.RecipeSnapshotJson, JsonOptions)
+            ?? throw new InvalidOperationException("The preparation's recipe snapshot could not be read.");
+
+    // A prepared bottle may stand in for a PreparedSolution line when it is a Prepared,
+    // unexpired preparation of the line's source recipe in the same laboratory, and is
+    // released when its recipe needs a release (ApprovalStatus null = no release needed).
+    private static LotCheck CheckSource(SolutionPreparation source, SolutionPreparationComponent component, int sectionId, DateTime nowUtc)
+    {
+        if (source.SectionId != sectionId)
+            return new(false, "Preparation belongs to another laboratory.");
+        if (source.SolutionMasterId != component.SourceSolutionMasterId)
+            return new(false, $"Preparation is not a preparation of {component.EntryName}.");
+
+        var status = SolutionPreparationResponse.EffectiveStatusOf(source, nowUtc);
+        if (status == SolutionPreparationStatus.Expired)
+            return new(false, $"Expired on {source.ExpiresAt:yyyy-MM-dd}.");
+        if (status != SolutionPreparationStatus.Prepared)
+            return new(false, $"Preparation is {status}.");
+
+        if (source.ApprovalStatus == ApprovalGateStatus.PendingReview)
+            return new(false, "Preparation is awaiting release.");
+        if (source.ApprovalStatus == ApprovalGateStatus.Rejected)
+            return new(false, "Preparation was rejected.");
+
+        return new(true, null);
+    }
+
+    private static bool HasSterilizationFields(SavePreparationRequest r) =>
+        r.AutoclaveEquipmentId.HasValue || !string.IsNullOrWhiteSpace(r.AutoclaveProgram) || !string.IsNullOrWhiteSpace(r.LoadType)
+        || r.AutoclaveTemperature.HasValue || r.AutoclaveCycleTime.HasValue || r.AutoclaveCycleNumber.HasValue;
+
+    // Stores the autoclave record from a Save. Values given are checked here too, so a
+    // bad one is reported when entered; completeness is checked at completion.
+    private async Task ApplySterilizationAsync(SolutionPreparation prep, SolutionMasterResponse snapshot, SavePreparationRequest r, CancellationToken ct)
+    {
+        if (!snapshot.SterilizationRequired)
+        {
+            if (HasSterilizationFields(r))
+                throw new InvalidOperationException("This solution does not require sterilization; the autoclave record must be empty.");
+
+            prep.AutoclaveEquipmentId = null;
+            prep.AutoclaveProgram = null;
+            prep.LoadType = null;
+            prep.AutoclaveTemperature = null;
+            prep.AutoclaveCycleTime = null;
+            prep.AutoclaveCycleNumber = null;
+            return;
+        }
+
+        var program = string.IsNullOrWhiteSpace(r.AutoclaveProgram) ? null : r.AutoclaveProgram.Trim();
+        var loadType = string.IsNullOrWhiteSpace(r.LoadType) ? null : r.LoadType.Trim();
+        if (program is { Length: > 100 }) throw new InvalidOperationException("Autoclave program cannot exceed 100 characters.");
+        if (loadType is { Length: > 100 }) throw new InvalidOperationException("Load type cannot exceed 100 characters.");
+        if (r.AutoclaveTemperature is <= 0) throw new InvalidOperationException("Autoclave temperature must be greater than zero.");
+        if (r.AutoclaveCycleTime is <= 0) throw new InvalidOperationException("Autoclave cycle time must be greater than zero.");
+        if (r.AutoclaveCycleNumber is <= 0) throw new InvalidOperationException("Autoclave cycle number must be greater than zero.");
+
+        if (r.AutoclaveEquipmentId.HasValue
+            && !await _db.Equipment.AnyAsync(e => e.Id == r.AutoclaveEquipmentId.Value && e.Type == EquipmentType.Autoclave, ct))
+            throw new InvalidOperationException("Selected equipment is not a valid autoclave.");
+
+        prep.AutoclaveEquipmentId = r.AutoclaveEquipmentId;
+        prep.AutoclaveProgram = program;
+        prep.LoadType = loadType;
+        prep.AutoclaveTemperature = r.AutoclaveTemperature;
+        prep.AutoclaveCycleTime = r.AutoclaveCycleTime;
+        prep.AutoclaveCycleNumber = r.AutoclaveCycleNumber;
+    }
+
+    // Completion gate: a recipe that needs sterilization needs the whole autoclave record.
+    private async Task ValidateSterilizationAsync(SolutionPreparation prep, SolutionMasterResponse snapshot, CancellationToken ct)
+    {
+        if (!snapshot.SterilizationRequired) return;
+
+        if (!prep.AutoclaveEquipmentId.HasValue || string.IsNullOrWhiteSpace(prep.AutoclaveProgram) || string.IsNullOrWhiteSpace(prep.LoadType)
+            || !prep.AutoclaveTemperature.HasValue || !prep.AutoclaveCycleTime.HasValue || !prep.AutoclaveCycleNumber.HasValue)
+            throw new InvalidOperationException("The autoclave record (equipment, program, load type, temperature, cycle time and cycle number) is required before completion.");
+
+        if (!await _db.Equipment.AnyAsync(e => e.Id == prep.AutoclaveEquipmentId.Value && e.Type == EquipmentType.Autoclave, ct))
+            throw new InvalidOperationException("Selected equipment is not a valid autoclave.");
+
+        if (prep.AutoclaveTemperature.Value <= 0) throw new InvalidOperationException("Autoclave temperature must be greater than zero.");
+        if (prep.AutoclaveCycleTime.Value <= 0) throw new InvalidOperationException("Autoclave cycle time must be greater than zero.");
+        if (prep.AutoclaveCycleNumber.Value <= 0) throw new InvalidOperationException("Autoclave cycle number must be greater than zero.");
+    }
+
     private static DateTime ShelfLifeExpiry(DateTime preparedAtUtc, int shelfLifeValue, ShelfLifeUnit unit) =>
         unit == ShelfLifeUnit.Hours ? preparedAtUtc.AddHours(shelfLifeValue) : preparedAtUtc.AddDays(shelfLifeValue);
 
@@ -457,7 +653,9 @@ public class SolutionPreparationService
             .Include(p => p.Section)
             .Include(p => p.SolutionMaster)
             .Include(p => p.HplcMethod)
+            .Include(p => p.AutoclaveEquipment)
             .Include(p => p.Components).ThenInclude(c => c.Material)
+            .Include(p => p.Components).ThenInclude(c => c.SourcePreparation)
             .Include(p => p.StatusHistory)
             .FirstOrDefaultAsync(p => p.Id == id, ct)
             ?? throw new NotFoundException($"Solution preparation {id} not found.");
@@ -469,6 +667,7 @@ public class SolutionPreparationService
             .Include(s => s.StandardEntry)
             .Include(s => s.ReferenceSolution)
             .Include(s => s.Components).ThenInclude(c => c.MaterialMasterEntry)
+            .Include(s => s.Components).ThenInclude(c => c.SourceSolutionMaster)
             .FirstOrDefaultAsync(s => s.Id == id, ct);
 
     private IQueryable<SolutionPreparation> ListQuery() =>
@@ -487,7 +686,8 @@ public class SolutionPreparationService
         return rows.Select(p => new SolutionPreparationListItem(
             p.Id, p.Code, p.Type, p.SolutionMaster?.Name ?? string.Empty, p.HplcMethod?.Abbreviation,
             SolutionPreparationResponse.EffectiveStatusOf(p, now), p.PreparedAt, p.ExpiresAt,
-            p.PreparedByUserId.HasValue && names.TryGetValue(p.PreparedByUserId.Value, out var n) ? n : null))
+            p.PreparedByUserId.HasValue && names.TryGetValue(p.PreparedByUserId.Value, out var n) ? n : null,
+            p.ApprovalStatus))
             .ToList();
     }
 
@@ -495,6 +695,7 @@ public class SolutionPreparationService
     {
         var userIds = new HashSet<int> { prep.StartedByUserId };
         if (prep.PreparedByUserId.HasValue) userIds.Add(prep.PreparedByUserId.Value);
+        if (prep.ReleasedByUserId.HasValue) userIds.Add(prep.ReleasedByUserId.Value);
         foreach (var h in prep.StatusHistory)
             if (h.ChangedByUserId.HasValue) userIds.Add(h.ChangedByUserId.Value);
 

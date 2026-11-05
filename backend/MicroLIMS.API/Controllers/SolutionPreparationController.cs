@@ -9,7 +9,8 @@ namespace MicroLIMS.API.Controllers;
 
 // Solution Preparation area (HPLC chain S4, spec 4). Reads are open to any
 // authenticated user - the picker and lot-trace views need them; every
-// write (start/save/complete/cancel/discard) requires Solutions.Prepare.
+// write (start/save/complete/cancel/discard) requires Solutions.Prepare;
+// the release decision requires Solutions.Release.
 [ApiController]
 [Route("api/solution-preparations")]
 [Authorize]
@@ -17,10 +18,12 @@ public class SolutionPreparationController : ControllerBase
 {
     private readonly SolutionPreparationService _service;
     private readonly TitrantStandardizationService _standardizations;
-    public SolutionPreparationController(SolutionPreparationService service, TitrantStandardizationService standardizations)
+    private readonly SolutionPreparationReleaseService _release;
+    public SolutionPreparationController(SolutionPreparationService service, TitrantStandardizationService standardizations, SolutionPreparationReleaseService release)
     {
         _service = service;
         _standardizations = standardizations;
+        _release = release;
     }
 
     private int CurrentUserId => int.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)!.Value);
@@ -48,6 +51,20 @@ public class SolutionPreparationController : ControllerBase
     [HttpGet("{id:int}/components/{componentId:int}/lots")]
     public async Task<IActionResult> GetLotOptions(int id, int componentId) =>
         Ok(ApiResponse<object>.Ok(await _service.GetLotOptionsAsync(id, componentId, CurrentUserId)));
+
+    [HttpGet("{id:int}/components/{componentId:int}/source-preparations")]
+    public async Task<IActionResult> GetSourcePreparations(int id, int componentId) =>
+        Ok(ApiResponse<object>.Ok(await _service.GetSourcePreparationsAsync(id, componentId, CurrentUserId)));
+
+    // Release gate for a recipe that requires release before use (Reviewer or Section Head,
+    // never the preparer). Approve or reject with an electronic signature.
+    [Authorize(Policy = PermissionConstants.SolutionsRelease)]
+    [HttpPost("{id:int}/release")]
+    public async Task<IActionResult> Release(int id, [FromBody] ReleaseSolutionPreparationRequest r)
+    {
+        await _release.DecideAsync(id, r, CurrentUserId, ClientIpAddress);
+        return Ok(ApiResponse<object>.Ok(await _service.GetByIdAsync(id, CurrentUserId)));
+    }
 
     [Authorize(Policy = PermissionConstants.SolutionsPrepare)]
     [HttpPost]

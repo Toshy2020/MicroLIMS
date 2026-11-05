@@ -9,7 +9,12 @@ using MicroLIMS.Application.DTOs.Responses;
 
 namespace MicroLIMS.Application.Services;
 
-public record SolutionComponentInput(int MaterialMasterEntryId, decimal Quantity, SolutionComponentUnit Unit);
+// Kind Material uses MaterialMasterEntryId; PreparedSolution uses SourceSolutionMasterId;
+// Text uses Text only (no quantity or unit).
+public record SolutionComponentInput(
+    int? MaterialMasterEntryId, decimal? Quantity, SolutionComponentUnit? Unit,
+    SolutionComponentKind Kind = SolutionComponentKind.Material,
+    int? SourceSolutionMasterId = null, string? Text = null);
 
 public record SaveSolutionMasterRequest(
     string Name, SolutionType Type, int ShelfLifeValue, ShelfLifeUnit ShelfLifeUnit, string StorageCondition,
@@ -19,15 +24,17 @@ public record SaveSolutionMasterRequest(
     int? StandardEntryId = null, decimal? EquivalenceMgPerMl = null, int? ReferenceSolutionId = null,
     bool BlankRequired = false, int? ReplicateCount = null, decimal? FactorMin = null, decimal? FactorMax = null,
     decimal? MaxRsdPercent = null, int? ValidityDays = null,
-    string? Reason = null);   // required on update, ignored on create
+    string? Reason = null,   // required on update, ignored on create
+    bool SterilizationRequired = false, bool ReleaseRequired = false);
 
-// Solution master for Mobile Phases, Diluents and Titrants (HPLC chain S2,
+// Solution master for Mobile Phases, Diluents, Reagents, Neutralizers and Titrants (HPLC chain S2,
 // spec 3.2). Recipe components reference active Material master entries of
 // the same section; a component whose entry has since been deactivated is
 // still allowed to be kept unchanged (deactivation only blocks new picks).
 // Edited in place with a reason recorded through IAuditEventService; no
 // versions (D7). Titrant standardization fields only apply when Type ==
-// Titrant.
+// Titrant. The sterilization / release flags and prepared-solution
+// components only apply to the general types (Diluent, Reagent, Neutralizer).
 public class SolutionMasterService
 {
     private const string UpdatedActionCode = "SolutionMaster.Updated";
@@ -91,7 +98,7 @@ public class SolutionMasterService
     {
         var sectionId = await _scope.ResolveSectionForCreateAsync(currentUserId, r.SectionId, ct, SectionAccess.Configure);
 
-        await ValidateCommonAsync(r, sectionId, new HashSet<int>(), ct);
+        await ValidateCommonAsync(r, sectionId, null, new HashSet<int>(), new HashSet<int>(), ct);
         await ValidateTitrantAsync(r, sectionId, null, ct);
 
         var trimmedName = r.Name.Trim();
@@ -109,17 +116,7 @@ public class SolutionMasterService
         };
         ApplyFields(solution, r);
 
-        var order = 1;
-        foreach (var c in r.Components)
-        {
-            solution.Components.Add(new SolutionComponent
-            {
-                Order = order++,
-                MaterialMasterEntryId = c.MaterialMasterEntryId,
-                Quantity = c.Quantity,
-                Unit = c.Unit
-            });
-        }
+        AddComponents(solution, r);
 
         _db.SolutionMasters.Add(solution);
         await _db.SaveChangesAsync(ct);
@@ -140,16 +137,23 @@ public class SolutionMasterService
 
         RecordVersion.EnsureCurrent(_db, solution);
 
-        var alreadyUsed = new HashSet<int>(solution.Components.Select(c => c.MaterialMasterEntryId));
+        var alreadyUsed = new HashSet<int>(solution.Components.Where(c => c.MaterialMasterEntryId.HasValue).Select(c => c.MaterialMasterEntryId!.Value));
+        var alreadyUsedSources = new HashSet<int>(solution.Components.Where(c => c.SourceSolutionMasterId.HasValue).Select(c => c.SourceSolutionMasterId!.Value));
         if (solution.PhAdjustingEntryId.HasValue) alreadyUsed.Add(solution.PhAdjustingEntryId.Value);
         if (solution.StandardEntryId.HasValue) alreadyUsed.Add(solution.StandardEntryId.Value);
 
-        await ValidateCommonAsync(r, solution.SectionId, alreadyUsed, ct);
+        await ValidateCommonAsync(r, solution.SectionId, id, alreadyUsed, alreadyUsedSources, ct);
         await ValidateTitrantAsync(r, solution.SectionId, id, ct);
 
         var trimmedName = r.Name.Trim();
         if (await _db.SolutionMasters.AnyAsync(s => s.SectionId == solution.SectionId && s.Name == trimmedName && s.Id != id, ct))
             throw new InvalidOperationException($"A solution named \"{trimmedName}\" already exists.");
+
+        var flagChanges = new List<AuditFieldChange>();
+        if (solution.SterilizationRequired != r.SterilizationRequired)
+            flagChanges.Add(new AuditFieldChange("SterilizationRequired", solution.SterilizationRequired.ToString(), r.SterilizationRequired.ToString()));
+        if (solution.ReleaseRequired != r.ReleaseRequired)
+            flagChanges.Add(new AuditFieldChange("ReleaseRequired", solution.ReleaseRequired.ToString(), r.ReleaseRequired.ToString()));
 
         ApplyFields(solution, r);
         solution.LastModifiedByUserId = currentUserId;
@@ -157,17 +161,7 @@ public class SolutionMasterService
 
         _db.SolutionComponents.RemoveRange(solution.Components);
         solution.Components.Clear();
-        var order = 1;
-        foreach (var c in r.Components)
-        {
-            solution.Components.Add(new SolutionComponent
-            {
-                Order = order++,
-                MaterialMasterEntryId = c.MaterialMasterEntryId,
-                Quantity = c.Quantity,
-                Unit = c.Unit
-            });
-        }
+        AddComponents(solution, r);
 
         await _db.SaveChangesAsync(ct);
 
@@ -176,6 +170,7 @@ public class SolutionMasterService
             AuditActionCategory.Configuration,
             RecordType,
             reason: reason,
+            changes: flagChanges.Count > 0 ? flagChanges : null,
             entityId: id.ToString(),
             cancellationToken: ct);
 
@@ -216,7 +211,8 @@ public class SolutionMasterService
             .Include(s => s.PhAdjustingEntry)
             .Include(s => s.StandardEntry)
             .Include(s => s.ReferenceSolution)
-            .Include(s => s.Components).ThenInclude(c => c.MaterialMasterEntry);
+            .Include(s => s.Components).ThenInclude(c => c.MaterialMasterEntry)
+            .Include(s => s.Components).ThenInclude(c => c.SourceSolutionMaster);
 
     private static string ValidateReason(string? reason)
     {
@@ -253,9 +249,33 @@ public class SolutionMasterService
         solution.FactorMax = r.FactorMax;
         solution.MaxRsdPercent = r.MaxRsdPercent;
         solution.ValidityDays = r.ValidityDays;
+
+        solution.SterilizationRequired = r.SterilizationRequired;
+        solution.ReleaseRequired = r.ReleaseRequired;
     }
 
-    private async Task ValidateCommonAsync(SaveSolutionMasterRequest r, int sectionId, IReadOnlySet<int> alreadyUsedEntryIds, CancellationToken ct)
+    private static void AddComponents(SolutionMaster solution, SaveSolutionMasterRequest r)
+    {
+        var order = 1;
+        foreach (var c in r.Components)
+        {
+            var isText = c.Kind == SolutionComponentKind.Text;
+            solution.Components.Add(new SolutionComponent
+            {
+                Order = order++,
+                Kind = c.Kind,
+                MaterialMasterEntryId = c.Kind == SolutionComponentKind.Material ? c.MaterialMasterEntryId : null,
+                SourceSolutionMasterId = c.Kind == SolutionComponentKind.PreparedSolution ? c.SourceSolutionMasterId : null,
+                Text = isText ? c.Text!.Trim() : null,
+                Quantity = isText ? null : c.Quantity,
+                Unit = isText ? null : c.Unit
+            });
+        }
+    }
+
+    private async Task ValidateCommonAsync(
+        SaveSolutionMasterRequest r, int sectionId, int? selfId,
+        IReadOnlySet<int> alreadyUsedEntryIds, IReadOnlySet<int> alreadyUsedSourceIds, CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(r.Name)) throw new InvalidOperationException("Name is required.");
         if (r.ShelfLifeValue <= 0) throw new InvalidOperationException("Shelf life must be greater than zero.");
@@ -263,13 +283,46 @@ public class SolutionMasterService
         if (string.IsNullOrWhiteSpace(r.StorageCondition)) throw new InvalidOperationException("Storage condition is required.");
         if (string.IsNullOrWhiteSpace(r.Instructions)) throw new InvalidOperationException("Instructions are required.");
 
-        if (r.Components.Count < 1)
+        if (!r.Type.IsGeneral() && (r.SterilizationRequired || r.ReleaseRequired))
+            throw new InvalidOperationException("Sterilization and release settings are only allowed for diluents, reagents and neutralizers.");
+
+        if (r.Components.Count < 1 || r.Components.All(c => c.Kind == SolutionComponentKind.Text))
             throw new InvalidOperationException("At least one component is required.");
 
-        if (r.Components.Any(c => c.Quantity <= 0))
-            throw new InvalidOperationException("Component quantity must be greater than zero.");
+        foreach (var c in r.Components)
+        {
+            switch (c.Kind)
+            {
+                case SolutionComponentKind.Material:
+                    if (!c.MaterialMasterEntryId.HasValue)
+                        throw new InvalidOperationException("A material component needs a material master entry.");
+                    if (c.SourceSolutionMasterId.HasValue || c.Text != null)
+                        throw new InvalidOperationException("A material component cannot carry a source solution or text.");
+                    RequireQuantity(c);
+                    break;
+                case SolutionComponentKind.PreparedSolution:
+                    if (!r.Type.IsGeneral())
+                        throw new InvalidOperationException("Prepared solution components are only allowed for diluents, reagents and neutralizers.");
+                    if (!c.SourceSolutionMasterId.HasValue)
+                        throw new InvalidOperationException("A prepared solution component needs a source solution.");
+                    if (c.MaterialMasterEntryId.HasValue || c.Text != null)
+                        throw new InvalidOperationException("A prepared solution component cannot carry a material entry or text.");
+                    RequireQuantity(c);
+                    break;
+                case SolutionComponentKind.Text:
+                    if (string.IsNullOrWhiteSpace(c.Text))
+                        throw new InvalidOperationException("Text is required for a text line.");
+                    if (c.Text.Trim().Length > 200)
+                        throw new InvalidOperationException("A text line cannot exceed 200 characters.");
+                    if (c.MaterialMasterEntryId.HasValue || c.SourceSolutionMasterId.HasValue || c.Quantity.HasValue || c.Unit.HasValue)
+                        throw new InvalidOperationException("A text line cannot carry a material entry, source solution, quantity or unit.");
+                    break;
+                default:
+                    throw new InvalidOperationException($"Unknown component kind '{c.Kind}'.");
+            }
+        }
 
-        var componentEntryIds = r.Components.Select(c => c.MaterialMasterEntryId).ToList();
+        var componentEntryIds = r.Components.Where(c => c.Kind == SolutionComponentKind.Material).Select(c => c.MaterialMasterEntryId!.Value).ToList();
         if (componentEntryIds.Distinct().Count() != componentEntryIds.Count)
             throw new InvalidOperationException("The same component entry cannot be listed twice.");
 
@@ -284,6 +337,8 @@ public class SolutionMasterService
             if (!entry.IsActive && !alreadyUsedEntryIds.Contains(entryId))
                 throw new InvalidOperationException($"Component entry \"{entry.Code}\" is inactive.");
         }
+
+        await ValidateSourcesAsync(r, sectionId, selfId, alreadyUsedSourceIds, ct);
 
         var hasPhFields = r.PhTolerance.HasValue || r.PhAdjustingEntryId.HasValue;
         if (hasPhFields && !r.PhTarget.HasValue)
@@ -361,6 +416,60 @@ public class SolutionMasterService
 
             if (reference.SectionId != sectionId || reference.Type != SolutionType.Titrant || !reference.IsActive)
                 throw new InvalidOperationException("The reference solution must be an active titrant in this laboratory.");
+        }
+    }
+
+    private static void RequireQuantity(SolutionComponentInput c)
+    {
+        if (!c.Quantity.HasValue || c.Quantity.Value <= 0)
+            throw new InvalidOperationException("Component quantity must be greater than zero.");
+        if (!c.Unit.HasValue)
+            throw new InvalidOperationException("Component unit is required.");
+    }
+
+    // Prepared-solution lines: the source must be an active recipe of this
+    // laboratory, not the recipe itself, listed once, and must not lead back to
+    // this recipe through its own prepared-solution lines (no cycles).
+    private async Task ValidateSourcesAsync(
+        SaveSolutionMasterRequest r, int sectionId, int? selfId, IReadOnlySet<int> alreadyUsedSourceIds, CancellationToken ct)
+    {
+        var sourceIds = r.Components.Where(c => c.Kind == SolutionComponentKind.PreparedSolution).Select(c => c.SourceSolutionMasterId!.Value).ToList();
+        if (sourceIds.Count == 0) return;
+
+        if (sourceIds.Distinct().Count() != sourceIds.Count)
+            throw new InvalidOperationException("The same source solution cannot be listed twice.");
+
+        if (selfId.HasValue && sourceIds.Contains(selfId.Value))
+            throw new InvalidOperationException("A solution cannot use itself as a component.");
+
+        var sources = await _db.SolutionMasters.Where(s => sourceIds.Contains(s.Id)).ToDictionaryAsync(s => s.Id, ct);
+        foreach (var sourceId in sourceIds)
+        {
+            if (!sources.TryGetValue(sourceId, out var source))
+                throw new InvalidOperationException($"Source solution {sourceId} not found.");
+            if (source.SectionId != sectionId)
+                throw new InvalidOperationException($"Source solution \"{source.Name}\" belongs to another laboratory.");
+            if (!source.IsActive && !alreadyUsedSourceIds.Contains(sourceId))
+                throw new InvalidOperationException($"Source solution \"{source.Name}\" is inactive.");
+        }
+
+        if (!selfId.HasValue) return;   // a recipe that does not exist yet cannot be reached from another
+
+        var edges = await _db.SolutionComponents
+            .Where(c => c.Kind == SolutionComponentKind.PreparedSolution && c.SolutionMaster!.SectionId == sectionId && c.SolutionMasterId != selfId.Value)
+            .Select(c => new { c.SolutionMasterId, Source = c.SourceSolutionMasterId!.Value })
+            .ToListAsync(ct);
+        var graph = edges.GroupBy(e => e.SolutionMasterId).ToDictionary(g => g.Key, g => g.Select(e => e.Source).ToList());
+
+        var seen = new HashSet<int>();
+        var stack = new Stack<int>(sourceIds);
+        while (stack.Count > 0)
+        {
+            var node = stack.Pop();
+            if (!seen.Add(node) || !graph.TryGetValue(node, out var next)) continue;
+            if (next.Contains(selfId.Value))
+                throw new InvalidOperationException("This would create a circular reference between solutions.");
+            foreach (var n in next) stack.Push(n);
         }
     }
 }

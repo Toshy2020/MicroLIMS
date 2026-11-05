@@ -2,7 +2,7 @@ using MicroLIMS.Domain.Enums;
 
 namespace MicroLIMS.Domain.Entities;
 
-// A preparation of a Mobile Phase, Diluent or Titrant against real Material
+// A preparation of a Mobile Phase, Diluent, Reagent, Neutralizer or Titrant against real Material
 // stock lots (HPLC chain S4, spec 4). Started from a Solution master, then
 // completed with a signature that in one save deducts stock, allocates a
 // code (MP/DL/VS) and sets an expiry. Edited only while InProgress; every
@@ -30,6 +30,24 @@ public class SolutionPreparation : IVersionedEntity
     public decimal? MeasuredPh { get; set; }
     public int? SignatureId { get; set; }
     public ElectronicSignature? Signature { get; set; }
+
+    // Sterilization record, required at completion when the recipe snapshot says so.
+    public int? AutoclaveEquipmentId { get; set; }
+    public Equipment? AutoclaveEquipment { get; set; }
+    public string? AutoclaveProgram { get; set; }
+    public string? LoadType { get; set; }
+    public decimal? AutoclaveTemperature { get; set; }
+    public int? AutoclaveCycleTime { get; set; }
+    public int? AutoclaveCycleNumber { get; set; }
+
+    // Release gate: set to PendingReview at completion when the recipe needs
+    // release, null otherwise. Status stays Prepared either way.
+    public ApprovalGateStatus? ApprovalStatus { get; set; }
+    public int? ReleasedByUserId { get; set; }
+    public DateTime? ReleasedAt { get; set; }
+    public string? ReleaseComment { get; set; }
+    public int? ReleaseSignatureId { get; set; }
+    public ElectronicSignature? ReleaseSignature { get; set; }
     public List<SolutionPreparationComponent> Components { get; set; } = new();
     public List<SolutionPreparationStatusHistory> StatusHistory { get; set; } = new();
 }

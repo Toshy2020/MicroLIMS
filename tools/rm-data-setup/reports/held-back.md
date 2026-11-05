@@ -35,10 +35,8 @@ The lab must supply:
 
 The lab must supply:
 - **Sildenafil citrate related substances (BP, gradient HPLC)**:
-  - analyte standard entry: no Reference Standard entry for sildenafil citrate / impurity A CRS; RS quantitation uses reference (c), a dilution of the test solution, but the API still needs a standard entry (gaps C)
   - standardInjections: not stated
 - **Sildenafil citrate assay (BP, gradient HPLC)**:
-  - analyte standard entry: Sildenafil citrate CRS / working standard has no Reference Standard master entry (gaps C)
   - standardInjections: not stated
   - injection / system suitability for the assay: STM text copies the related-substances list (reference solutions a, b, c not defined in the assay) and the resolution 5.0 criterion is tied to reference (a); which solutions the assay injects is unclear (gaps A)
   - columnTemperatureC, equilibration: not stated (optional fields)
@@ -54,11 +52,9 @@ The lab must supply:
 
 The lab must supply:
 - **Sodium propyl paraben related substances (BP, HPLC)**:
-  - analyte standard entry: no Reference Standard entry (gaps C)
   - standardInjections: not stated
 - **Sodium propyl paraben assay (BP, HPLC)**:
   - runTimeMin: not stated for the assay (RS part gives 2.5 x retention of about 4.5 min)
-  - analyte standard entry: no Reference Standard entry for propyl / sodium propyl paraben RS or WS (gaps C)
   - system suitability acceptance: "6 replicate injections" stated, no RSD limit
 
 ### STM-RM-064 Sodium Methyl Paraben
@@ -72,11 +68,9 @@ The lab must supply:
 
 The lab must supply:
 - **Sodium methyl paraben related substances (BP, HPLC)**:
-  - analyte standard entry: no Reference Standard entry (gaps C)
   - standardInjections: not stated
 - **Sodium methyl paraben assay (BP, HPLC)**:
   - runTimeMin: not stated for the assay (RS part gives 5 x retention of about 2.3 min)
-  - analyte standard entry: no Reference Standard entry for methyl / sodium methyl paraben RS or WS (gaps C)
   - system suitability acceptance: "6 replicate injections" stated, no RSD limit
 
 ### STM-RM-097 Pyridoxine Hydrochloride
@@ -108,12 +102,10 @@ The lab must supply:
 - **Sodium by AAS (sodium hydroxide USP)**:
   - element view (axial/radial): an ICP-OES setting, not stated for flame AAS
   - effectiveDate: STM issue date (loader reads it from the STM header)
-  - calibrationStandardEntry: no Reference Standard master entry for sodium (gaps C)
   - blank: STM states a diluent blank but no blank limit (blank check left off)
 - **Potassium by AAS (sodium hydroxide USP)**:
   - element view (axial/radial): an ICP-OES setting, not stated for flame AAS
   - effectiveDate: STM issue date (loader reads it from the STM header)
-  - calibrationStandardEntry: no Reference Standard master entry for potassium (gaps C)
   - sampleVolumeMl: final volume of the sample solution not stated
   - mode: NMT % result (0.5 % = 5000 ug/g) is not a ug/g impurity limit on the sheet (gaps A)
 

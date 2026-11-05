@@ -2809,7 +2809,7 @@
     {
      "name": "Sildenafil citrate",
      "wavelengthNm": 230,
-     "standardEntry": "Sildenafil citrate CRS (no master entry)",
+     "standardEntry": "Sildenafil citrate CRS",
      "theoreticalWeightStdMg": 25,
      "theoreticalWeightTestMg": 25,
      "standardInjections": null,
@@ -2819,17 +2819,16 @@
    ],
    "complete": false,
    "missing": [
-    "analyte standard entry: Sildenafil citrate CRS / working standard has no Reference Standard master entry (gaps C)",
     "standardInjections: not stated",
     "injection / system suitability for the assay: STM text copies the related-substances list (reference solutions a, b, c not defined in the assay) and the resolution 5.0 criterion is tied to reference (a); which solutions the assay injects is unclear (gaps A)",
     "columnTemperatureC, equilibration: not stated (optional fields)"
    ],
-   "notes": "Standard dilution 25.0 mg/50 mL then 2.0 mL to 50 mL = 25 (test solution b treated the same). SST criterion NLT 5.0 resolution sildenafil/impurity A listed only in the RS part.",
+   "notes": "Standard dilution 25.0 mg/50 mL then 2.0 mL to 50 mL = 25 (test solution b treated the same). SST criterion NLT 5.0 resolution sildenafil/impurity A listed only in the RS part. Standard entries are created by the loader (catalog materialEntries), the method links them by name once released.",
    "usedBy": [
     "STM-RM-051"
    ],
    "source": "Sildenafil Citrate__STM Sildenafil Citrate New.txt:32,43",
-   "heldBack": "HPLC method incomplete: analyte standard entry; standardInjections; injection / system suitability for the assay; columnTemperatureC, equilibration"
+   "heldBack": "HPLC method incomplete: standardInjections; injection / system suitability for the assay; columnTemperatureC, equilibration"
   },
   {
    "name": "Sildenafil citrate related substances (BP, gradient HPLC)",
@@ -2906,7 +2905,7 @@
     {
      "name": "Sildenafil",
      "wavelengthNm": 230,
-     "standardEntry": "Sildenafil citrate CRS (no master entry)",
+     "standardEntry": "Sildenafil citrate CRS",
      "theoreticalWeightStdMg": null,
      "theoreticalWeightTestMg": null,
      "standardInjections": null,
@@ -2916,15 +2915,14 @@
    ],
    "complete": false,
    "missing": [
-    "analyte standard entry: no Reference Standard entry for sildenafil citrate / impurity A CRS; RS quantitation uses reference (c), a dilution of the test solution, but the API still needs a standard entry (gaps C)",
     "standardInjections: not stated"
    ],
-   "notes": "Reference (c) 1.0 mL to 100 mL then 1.0 mL to 10 mL = 0.1 % of the test solution. Reporting threshold 0.05 % taken as the disregard limit; citrate peak disregarded. Impurity D area x 0.7; impurity A RRT about 1.25, D about 0.15.",
+   "notes": "Reference (c) 1.0 mL to 100 mL then 1.0 mL to 10 mL = 0.1 % of the test solution. Reporting threshold 0.05 % taken as the disregard limit; citrate peak disregarded. Impurity D area x 0.7; impurity A RRT about 1.25, D about 0.15. Standard entries are created by the loader (catalog materialEntries), the method links them by name once released.",
    "usedBy": [
     "STM-RM-051"
    ],
    "source": "Sildenafil Citrate__STM Sildenafil Citrate New.txt:32,43",
-   "heldBack": "HPLC method incomplete: analyte standard entry; standardInjections"
+   "heldBack": "HPLC method incomplete: standardInjections"
   },
   {
    "name": "Sodium propyl paraben assay (BP, HPLC)",
@@ -2960,7 +2958,7 @@
     {
      "name": "Propyl para hydroxybenzoate (sodium salt)",
      "wavelengthNm": 272,
-     "standardEntry": "Propyl / Sodium propyl para hydroxybenzoate RS or WS (no master entry)",
+     "standardEntry": "Sodium propyl para hydroxybenzoate RS",
      "theoreticalWeightStdMg": 50,
      "theoreticalWeightTestMg": 50,
      "standardInjections": 6,
@@ -2970,15 +2968,14 @@
    "complete": false,
    "missing": [
     "runTimeMin: not stated for the assay (RS part gives 2.5 x retention of about 4.5 min)",
-    "analyte standard entry: no Reference Standard entry for propyl / sodium propyl paraben RS or WS (gaps C)",
     "system suitability acceptance: \"6 replicate injections\" stated, no RSD limit"
    ],
-   "notes": "Standard and test 50.0 mg in 2.5 mL methanol to 50.0 mL with mobile phase, then 10.0 mL to 100.0 mL (extra dilution 10). Propyl RS needs correction factor 1.122 versus the sodium salt RS; no field for it. Retention about 4.5 min.",
+   "notes": "Standard and test 50.0 mg in 2.5 mL methanol to 50.0 mL with mobile phase, then 10.0 mL to 100.0 mL (extra dilution 10). Propyl RS needs correction factor 1.122 versus the sodium salt RS; no field for it. Retention about 4.5 min. Standard entries are created by the loader (catalog materialEntries), the method links them by name once released.",
    "usedBy": [
     "STM-RM-063"
    ],
    "source": "Sodium Propyl Paraben__Sodium propyl Paraben- SM.txt:32,35,39",
-   "heldBack": "HPLC method incomplete: runTimeMin; analyte standard entry; system suitability acceptance"
+   "heldBack": "HPLC method incomplete: runTimeMin; system suitability acceptance"
   },
   {
    "name": "Sodium propyl paraben related substances (BP, HPLC)",
@@ -3028,7 +3025,7 @@
     {
      "name": "Propyl para hydroxybenzoate",
      "wavelengthNm": 272,
-     "standardEntry": "Propyl para hydroxybenzoate RS or WS (no master entry)",
+     "standardEntry": "Propyl para hydroxybenzoate RS",
      "theoreticalWeightStdMg": null,
      "theoreticalWeightTestMg": null,
      "standardInjections": null,
@@ -3038,15 +3035,14 @@
    ],
    "complete": false,
    "missing": [
-    "analyte standard entry: no Reference Standard entry (gaps C)",
     "standardInjections: not stated"
    ],
-   "notes": "Run time 2.5 x 4.5 min = 11.25 min derived. Reference (c): 1.0 mL to 20.0 mL then 1.0 mL to 10.0 mL = 0.5 % (\"each unspecified NMT area of reference (c)\"); impurity A limit 8 x = 4.0 %; others 1.0 %; disregard 0.1 %. Resolution NLT 5.0 between impurity C and propyl paraben.",
+   "notes": "Run time 2.5 x 4.5 min = 11.25 min derived. Reference (c): 1.0 mL to 20.0 mL then 1.0 mL to 10.0 mL = 0.5 % (\"each unspecified NMT area of reference (c)\"); impurity A limit 8 x = 4.0 %; others 1.0 %; disregard 0.1 %. Resolution NLT 5.0 between impurity C and propyl paraben. Standard entries are created by the loader (catalog materialEntries), the method links them by name once released.",
    "usedBy": [
     "STM-RM-063"
    ],
    "source": "Sodium Propyl Paraben__Sodium propyl Paraben- SM.txt:32,35,39",
-   "heldBack": "HPLC method incomplete: analyte standard entry; standardInjections"
+   "heldBack": "HPLC method incomplete: standardInjections"
   },
   {
    "name": "Sodium methyl paraben assay (BP, HPLC)",
@@ -3082,7 +3078,7 @@
     {
      "name": "Methyl para hydroxybenzoate (sodium salt)",
      "wavelengthNm": 272,
-     "standardEntry": "Methyl / Sodium methyl para hydroxybenzoate RS or WS (no master entry)",
+     "standardEntry": "Sodium methyl para hydroxybenzoate RS",
      "theoreticalWeightStdMg": 50,
      "theoreticalWeightTestMg": 50,
      "standardInjections": 6,
@@ -3092,15 +3088,14 @@
    "complete": false,
    "missing": [
     "runTimeMin: not stated for the assay (RS part gives 5 x retention of about 2.3 min)",
-    "analyte standard entry: no Reference Standard entry for methyl / sodium methyl paraben RS or WS (gaps C)",
     "system suitability acceptance: \"6 replicate injections\" stated, no RSD limit"
    ],
-   "notes": "Methyl RS needs correction factor 1.145 versus the sodium salt RS; no field for it. Retention about 2.3 min.",
+   "notes": "Methyl RS needs correction factor 1.145 versus the sodium salt RS; no field for it. Retention about 2.3 min. Standard entries are created by the loader (catalog materialEntries), the method links them by name once released.",
    "usedBy": [
     "STM-RM-064"
    ],
    "source": "Sodium Methyl Paraben__Sodium Methyl Paraben- SM.txt:35,39",
-   "heldBack": "HPLC method incomplete: runTimeMin; analyte standard entry; system suitability acceptance"
+   "heldBack": "HPLC method incomplete: runTimeMin; system suitability acceptance"
   },
   {
    "name": "Sodium methyl paraben related substances (BP, HPLC)",
@@ -3145,7 +3140,7 @@
     {
      "name": "Methyl para hydroxybenzoate",
      "wavelengthNm": 272,
-     "standardEntry": "Methyl para hydroxybenzoate RS or WS (no master entry)",
+     "standardEntry": "Methyl para hydroxybenzoate RS",
      "theoreticalWeightStdMg": null,
      "theoreticalWeightTestMg": null,
      "standardInjections": null,
@@ -3155,15 +3150,14 @@
    ],
    "complete": false,
    "missing": [
-    "analyte standard entry: no Reference Standard entry (gaps C)",
     "standardInjections: not stated"
    ],
-   "notes": "Run time 5 x 2.3 min = 11.5 min derived. Impurity A limit 6 x = 3.0 %; unspecified each 0.5 %; others 1.0 %; disregard 0.1 %. Resolution NLT 2.0 between impurity A and methyl paraben.",
+   "notes": "Run time 5 x 2.3 min = 11.5 min derived. Impurity A limit 6 x = 3.0 %; unspecified each 0.5 %; others 1.0 %; disregard 0.1 %. Resolution NLT 2.0 between impurity A and methyl paraben. Standard entries are created by the loader (catalog materialEntries), the method links them by name once released.",
    "usedBy": [
     "STM-RM-064"
    ],
    "source": "Sodium Methyl Paraben__Sodium Methyl Paraben- SM.txt:35,39",
-   "heldBack": "HPLC method incomplete: analyte standard entry; standardInjections"
+   "heldBack": "HPLC method incomplete: standardInjections"
   },
   {
    "name": "Pyridoxine hydrochloride assay (USP, HPLC internal standard)",
@@ -3211,7 +3205,7 @@
     "standardInjections: replicates for the 3.0 % RSD are not stated",
     "column temperature, particle size: not stated (optional fields)"
    ],
-   "notes": "Internal standard solution 5 mg/mL p-hydroxybenzoic acid; 10.0 mL + 1.0 mL IS to 100 mL. RRT pyridoxine 0.7, internal standard 1.0. Internal standard has no master entry (gaps C).",
+   "notes": "Internal standard solution 5 mg/mL p-hydroxybenzoic acid; 10.0 mL + 1.0 mL IS to 100 mL. RRT pyridoxine 0.7, internal standard 1.0. Internal standard has no master entry (gaps C). Standard entries are created by the loader (catalog materialEntries), the method links them by name once released.",
    "usedBy": [
     "STM-RM-097"
    ],
@@ -3273,7 +3267,7 @@
    "missing": [
     "standardInjections: not stated"
    ],
-   "notes": "Run time 2.5 x about 12 min = 30 min derived. Reference (a): 0.1 % of the test solution. Disregard limit 0.05 % is in the STM only (not on the BP sheet). Resolution NLT 1.5 between impurities A and B. Impurity A has no spec row; kept as an identification peak.",
+   "notes": "Run time 2.5 x about 12 min = 30 min derived. Reference (a): 0.1 % of the test solution. Disregard limit 0.05 % is in the STM only (not on the BP sheet). Resolution NLT 1.5 between impurities A and B. Impurity A has no spec row; kept as an identification peak. Standard entries are created by the loader (catalog materialEntries), the method links them by name once released.",
    "usedBy": [
     "STM-RM-097"
    ],
@@ -3319,7 +3313,7 @@
    "mode": "MineralAssay",
    "section": "Physicochemical Laboratory",
    "standardLevelsMgPerL": "0.6, 0.75, 0.9",
-   "calibrationStandardEntry": "none (NaCl 25.41 ug/mL; no Reference Standard entry for sodium)",
+   "calibrationStandardEntry": "Sodium standard (NaCl) for AAS",
    "minCorrelation": 0.995,
    "sampleVolumeMl": 100,
    "elements": [
@@ -3338,10 +3332,9 @@
    "missing": [
     "element view (axial/radial): an ICP-OES setting, not stated for flame AAS",
     "effectiveDate: STM issue date (loader reads it from the STM header)",
-    "calibrationStandardEntry: no Reference Standard master entry for sodium (gaps C)",
     "blank: STM states a diluent blank but no blank limit (blank check left off)"
    ],
-   "heldBack": "ICP method incomplete: element view (axial/radial); effectiveDate; calibrationStandardEntry; blank"
+   "heldBack": "ICP method incomplete: element view (axial/radial); effectiveDate; blank"
   },
   {
    "name": "Potassium by AAS (sodium hydroxide USP)",
@@ -3349,7 +3342,7 @@
    "mode": "ElementalImpurities",
    "section": "Physicochemical Laboratory",
    "standardLevelsMgPerL": "0.10, 0.25, 0.50",
-   "calibrationStandardEntry": "none (KCl dried 105 C 2 h; no Reference Standard entry for potassium)",
+   "calibrationStandardEntry": "Potassium standard (KCl) for AAS",
    "minCorrelation": 0.99,
    "sampleVolumeMl": null,
    "elements": [
@@ -3368,11 +3361,10 @@
    "missing": [
     "element view (axial/radial): an ICP-OES setting, not stated for flame AAS",
     "effectiveDate: STM issue date (loader reads it from the STM header)",
-    "calibrationStandardEntry: no Reference Standard master entry for potassium (gaps C)",
     "sampleVolumeMl: final volume of the sample solution not stated",
     "mode: NMT % result (0.5 % = 5000 ug/g) is not a ug/g impurity limit on the sheet (gaps A)"
    ],
-   "heldBack": "ICP method incomplete: element view (axial/radial); effectiveDate; calibrationStandardEntry; sampleVolumeMl; mode"
+   "heldBack": "ICP method incomplete: element view (axial/radial); effectiveDate; sampleVolumeMl; mode"
   },
   {
    "name": "Lead by AAS (Siberian ginseng extract)",

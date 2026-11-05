@@ -2,7 +2,7 @@ using MicroLIMS.Domain.Enums;
 
 namespace MicroLIMS.Domain.Entities;
 
-// Recipe for a mobile phase, diluent or titrant (HPLC chain S2). Edited in
+// Recipe for a mobile phase, diluent, reagent, neutralizer or titrant (HPLC chain S2). Edited in
 // place with a reason; each preparation stores its own snapshot (D7).
 public class SolutionMaster : IVersionedEntity
 {
@@ -22,6 +22,9 @@ public class SolutionMaster : IVersionedEntity
     public MaterialMasterEntry? PhAdjustingEntry { get; set; }
     public string Instructions { get; set; } = string.Empty;
     public bool IsActive { get; set; } = true;
+    // General types only (Diluent, Reagent, Neutralizer). Both off for existing recipes.
+    public bool SterilizationRequired { get; set; }       // completing a preparation needs the autoclave record
+    public bool ReleaseRequired { get; set; }             // a preparation must be released before use
     public List<SolutionComponent> Components { get; set; } = new();
 
     // Titrant only (USP Volumetric Solutions)

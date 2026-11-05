@@ -1,7 +1,14 @@
 import { apiClient, ifMatch } from "../../../../services/apiClient";
 import type { ApiResponse } from "./EquipmentConfigurationService";
 
-export type SolutionType = "MobilePhase" | "Diluent" | "Titrant";
+export type SolutionType = "MobilePhase" | "Diluent" | "Titrant" | "Reagent" | "Neutralizer";
+export type SolutionComponentKind = "Material" | "PreparedSolution" | "Text";
+
+// Diluent, Reagent and Neutralizer: the types that can carry the sterilization / release
+// flags and prepared-solution components. Mirrors the backend grouping (display only; the
+// backend enforces it).
+export const GENERAL_SOLUTION_TYPES: SolutionType[] = ["Diluent", "Reagent", "Neutralizer"];
+export const isGeneralSolutionType = (t: SolutionType): boolean => GENERAL_SOLUTION_TYPES.includes(t);
 export type ShelfLifeUnit = "Hours" | "Days";
 export type SolutionComponentUnit = "Gram" | "Milligram" | "Milliliter" | "Liter" | "PercentVolume" | "Parts";
 export type TitrantStrengthUnit = "Normal" | "Molar" | "MgWaterPerMl";
@@ -10,17 +17,24 @@ export type StandardizationMode = "PrimaryStandard" | "AgainstVolumetricSolution
 export interface SolutionComponentResponse {
   id?: number;
   order: number;
-  materialMasterEntryId: number;
+  kind?: SolutionComponentKind;
+  materialMasterEntryId?: number | null;
   entryCode: string;
   entryName: string;
-  quantity: number;
-  unit: SolutionComponentUnit;
+  quantity?: number | null;
+  unit?: SolutionComponentUnit | null;
+  sourceSolutionMasterId?: number | null;
+  sourceSolutionName?: string | null;
+  text?: string | null;
 }
 
 export interface SolutionComponentInput {
-  materialMasterEntryId: number;
-  quantity: number;
-  unit: SolutionComponentUnit;
+  kind: SolutionComponentKind;
+  materialMasterEntryId?: number | null;
+  sourceSolutionMasterId?: number | null;
+  text?: string | null;
+  quantity?: number | null;
+  unit?: SolutionComponentUnit | null;
 }
 
 export interface SolutionMaster {
@@ -40,6 +54,8 @@ export interface SolutionMaster {
   phAdjustingEntryCode?: string | null;
   instructions: string;
   isActive: boolean;
+  sterilizationRequired?: boolean;
+  releaseRequired?: boolean;
   components: SolutionComponentResponse[];
 
   // Titrant only
@@ -75,6 +91,8 @@ export interface SaveSolutionMasterRequest {
   phTolerance?: number | null;
   phAdjustingEntryId?: number | null;
   sectionId?: number | null;
+  sterilizationRequired?: boolean;
+  releaseRequired?: boolean;
 
   // Titrant fields (only sent when type is Titrant; otherwise null/false)
   nominalStrength?: number | null;

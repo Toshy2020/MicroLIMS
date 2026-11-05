@@ -170,8 +170,7 @@ public class WaterAndEMEngineTests
         await db.SaveChangesAsync();
 
         var service = TestServiceFactory.SamplePreparation(db);
-        await service.PrepareAsync(new PrepareSampleRequest(
-            sample.Id, 10m, "PourPlate", null, null, "Buffer", "Tween", UserId: 5, password));
+        await service.PrepareAsync(await PreparationTestData.ManualRequestAsync(db, sample.Id, 10m, 5, password));
 
         var reloaded = await db.Samples.FirstAsync(s => s.Id == sample.Id);
         Assert.Equal(SamplePreparationStatus.Ready, reloaded.PreparationStatus);

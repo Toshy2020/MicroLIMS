@@ -1,3 +1,5 @@
+using MicroLIMS.Domain.Enums;
+
 namespace MicroLIMS.Application.DTOs;
 
 // Grouped Test Preparation - the confirm-only path executed across many
@@ -34,6 +36,9 @@ public record GroupedPreparationDto(
     decimal? WashingVolume,
     string Diluent,
     string Neutralizer,
+    PreparationMaterialSource? DiluentSource,
+    PreparationMaterialSource? NeutralizerSource,
+    bool NeedsMaterialMapping,
     int SampleCount,
     List<GroupedPreparationSampleDto> Samples
 );
@@ -48,10 +53,14 @@ public record GroupedPreparationResponse(
 // shown: if the Section Head edits the item's configuration between the
 // panel loading and the signature, the affected samples are skipped
 // rather than silently signed against steps nobody read.
+// DiluentLotId / NeutralizerLotId: the one lot pair for the whole group, interpreted by
+// the configuration's source (see ConfirmPreparationRequest).
 public record BatchConfirmPreparationRequest(
     List<int> SampleIds,
     int ConfigurationId,
-    string Password
+    string Password,
+    int? DiluentLotId = null,
+    int? NeutralizerLotId = null
 );
 
 public record BatchPreparationSuccessItem(

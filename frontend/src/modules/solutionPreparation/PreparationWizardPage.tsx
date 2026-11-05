@@ -18,7 +18,8 @@ import { toast } from "sonner";
 import type {
   SolutionType,
   SolutionPreparationResponse,
-  PreparationComponentInput
+  PreparationComponentInput,
+  AutoclaveRecordInput
 } from "./types";
 
 const STEPS = ["Select Recipe & Method", "Lots & Quantities", "Review & Sign"];
@@ -100,7 +101,8 @@ export function PreparationWizardPage() {
   const handleSave = async (
     components: PreparationComponentInput[],
     finalVolumeMl: number | null,
-    measuredPh: number | null
+    measuredPh: number | null,
+    autoclave: AutoclaveRecordInput | null
   ) => {
     if (!preparation) return;
     setSaving(true);
@@ -108,7 +110,8 @@ export function PreparationWizardPage() {
       const updated = await SolutionPreparationService.save(preparation.id, {
         components,
         finalVolumeMl,
-        measuredPh
+        measuredPh,
+        ...(autoclave ?? {})
       });
       setPreparation(updated);
       toast.success("Draft saved successfully.");
@@ -144,7 +147,7 @@ export function PreparationWizardPage() {
     <Box sx={{ p: 3, maxWidth: 1000, mx: "auto" }}>
       <PageHeader
         title={preparation ? `Solution Preparation: ${preparation.solutionMasterName}` : "New Solution Preparation"}
-        subtitle="Prepare mobile phases, diluents, and titrants from master recipes against stock lots"
+        subtitle="Prepare mobile phases, diluents, reagents, neutralizers, and titrants from master recipes against stock lots"
       />
 
       <Stepper activeStep={activeStep} sx={{ mb: 4, mt: 1 }}>

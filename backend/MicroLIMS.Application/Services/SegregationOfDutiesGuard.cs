@@ -69,6 +69,10 @@ public class SegregationOfDutiesGuard
     public Task<bool> DidUserReceiveMaterialAsync(int materialId, int userId) =>
         _db.Materials.AnyAsync(m => m.Id == materialId && m.CreatedByUserId == userId);
 
+    // A prepared solution has one actor: whoever signed its completion.
+    public Task<bool> DidUserPrepareSolutionAsync(int preparationId, int userId) =>
+        _db.SolutionPreparations.AnyAsync(p => p.Id == preparationId && p.PreparedByUserId == userId);
+
     // A Cryovial batch has exactly one actor - whoever prepared it and
     // filled in its identity-confirmation panel (IdentityConfirmationEntry
     // carries no separate user of its own).

@@ -92,16 +92,6 @@ public class ReferenceListMasterDataController : ControllerBase
     public async Task<IActionResult> DeleteProductionStage(int id) =>
         Ok(ApiResponse<object>.Ok(await _service.DeleteProductionStageAsync(id)));
 
-    // ---- Diluent Types ----
-    [HttpGet("diluent-types")]
-    public async Task<IActionResult> GetDiluentTypes() =>
-        Ok(ApiResponse<object>.Ok(await _service.GetDiluentTypesAsync()));
-
-    [Authorize(Policy = PermissionConstants.MasterDataManage)]
-    [HttpPost("diluent-types")]
-    public async Task<IActionResult> CreateDiluentType(CreateDiluentTypeRequest request) =>
-        Ok(ApiResponse<object>.Ok(await _service.CreateDiluentTypeAsync(request)));
-
     // ---- Neutralizers ----
     [HttpGet("neutralizers")]
     public async Task<IActionResult> GetNeutralizers() =>

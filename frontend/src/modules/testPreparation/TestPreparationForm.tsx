@@ -1,6 +1,12 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Box, Select, MenuItem, TextField, Button, Alert } from "@mui/material";
-import { SamplePreparationService } from "./services/SamplePreparationService";
+import { SamplePreparationService, type PreparationLotGroup } from "./services/SamplePreparationService";
+import { PreparationMaterialPicker } from "./components/PreparationMaterialPicker";
+import { PreparationLotPicker } from "./components/PreparationLotPicker";
+import {
+  EMPTY_SELECTION, isSelectionComplete, selectionPayload,
+  type PreparationMaterialSelection
+} from "./preparationMaterial";
 import { SignatureDialog } from "../../components/SignatureDialog";
 import { useAuth } from "../../contexts/AuthContext";
 
@@ -21,6 +27,35 @@ interface Props {
 // opened directly from a Testing Workspace card. Once per Sample; renamed
 // "Start Testing" since completing it also auto-assigns the preparer as
 // analyst on every Waiting test order for this sample.
+// The lots of the master just chosen (no configuration exists yet). Null
+// until a master is chosen; ContainedInMedium never needs a lot.
+function useMasterLots(sel: PreparationMaterialSelection) {
+  const [group, setGroup] = useState<PreparationLotGroup | null>(null);
+  const [lotId, setLotId] = useState<number | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setLotId(null);
+    setError(null);
+    if (!sel.source || sel.source === "ContainedInMedium" || sel.masterId == null) {
+      setGroup(null);
+      return;
+    }
+    let cancelled = false;
+    SamplePreparationService.getLotOptionsForMaster(sel.source, sel.masterId)
+      .then((g) => { if (!cancelled) setGroup(g); })
+      .catch((e: any) => {
+        if (!cancelled) {
+          setGroup(null);
+          setError(e?.response?.data?.message ?? "Could not load the lots for this selection.");
+        }
+      });
+    return () => { cancelled = true; };
+  }, [sel.source, sel.masterId]);
+
+  return { group, lotId, setLotId, error };
+}
+
 export function TestPreparationForm({ sample, onSaved }: Props) {
   const { userId } = useAuth();
   const [form, setForm] = useState<Record<string, any>>({ technique: "PourPlate" });
@@ -33,7 +68,19 @@ export function TestPreparationForm({ sample, onSaved }: Props) {
 
   const setField = (k: string, v: any) => setForm((f) => ({ ...f, [k]: v }));
 
-  const canSubmit = Boolean(form.diluent?.trim()) && Boolean(form.neutralizer?.trim());
+  const [diluentSel, setDiluentSel] = useState<PreparationMaterialSelection>(EMPTY_SELECTION);
+  const [neutralizerSel, setNeutralizerSel] = useState<PreparationMaterialSelection>(EMPTY_SELECTION);
+  const diluentLots = useMasterLots(diluentSel);
+  const neutralizerLots = useMasterLots(neutralizerSel);
+
+  // A lot is needed once the lot list for the chosen master is known to require one.
+  const lotsReady =
+    (!diluentLots.group?.lotRequired || diluentLots.lotId != null) &&
+    (!neutralizerLots.group?.lotRequired || neutralizerLots.lotId != null);
+  const canSubmit =
+    isSelectionComplete(diluentSel) && isSelectionComplete(neutralizerSel) && lotsReady &&
+    (diluentSel.source === "ContainedInMedium" || diluentLots.group != null) &&
+    (neutralizerSel.source === "ContainedInMedium" || neutralizerLots.group != null);
 
   // Errors propagate to SignatureDialog, which surfaces the server message
   // and keeps itself open with the password cleared.
@@ -43,7 +90,10 @@ export function TestPreparationForm({ sample, onSaved }: Props) {
       sampleId: sample.sampleId, amount: Number(form.amount), technique: form.technique,
       filtrationVolume: form.filtrationVolume ? Number(form.filtrationVolume) : undefined,
       washingVolume: form.washingVolume ? Number(form.washingVolume) : undefined,
-      diluent: form.diluent.trim(), neutralizer: form.neutralizer.trim(),
+      ...(selectionPayload("diluent", diluentSel) as any),
+      ...(selectionPayload("neutralizer", neutralizerSel) as any),
+      diluentLotId: diluentLots.group?.lotRequired ? diluentLots.lotId : null,
+      neutralizerLotId: neutralizerLots.group?.lotRequired ? neutralizerLots.lotId : null,
       password
     });
     setSigning(false);
@@ -77,9 +127,24 @@ export function TestPreparationForm({ sample, onSaved }: Props) {
         </Box>
       )}
 
-      <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 2, mt: 2 }}>
-        <TextField label="Diluent" value={form.diluent ?? ""} onChange={(e) => setField("diluent", e.target.value)} disabled={isAssignedToOther} required />
-        <TextField label="Neutralizer" value={form.neutralizer ?? ""} onChange={(e) => setField("neutralizer", e.target.value)} disabled={isAssignedToOther} required />
+      <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 2, mt: 2 }}>
+        <Box sx={{ display: "grid", gap: 1.5, alignContent: "start" }}>
+          <PreparationMaterialPicker label="Diluent" value={diluentSel} onChange={setDiluentSel} disabled={isAssignedToOther} />
+          {diluentLots.error && <Alert severity="error" sx={{ fontSize: 12 }}>{diluentLots.error}</Alert>}
+          {diluentLots.group && (
+            <PreparationLotPicker label="Diluent" group={diluentLots.group} value={diluentLots.lotId}
+              onChange={diluentLots.setLotId} disabled={isAssignedToOther} />
+          )}
+        </Box>
+        <Box sx={{ display: "grid", gap: 1.5, alignContent: "start" }}>
+          <PreparationMaterialPicker label="Neutralizer" value={neutralizerSel} onChange={setNeutralizerSel}
+            allowContainedInMedium disabled={isAssignedToOther} />
+          {neutralizerLots.error && <Alert severity="error" sx={{ fontSize: 12 }}>{neutralizerLots.error}</Alert>}
+          {neutralizerLots.group && (
+            <PreparationLotPicker label="Neutralizer" group={neutralizerLots.group} value={neutralizerLots.lotId}
+              onChange={neutralizerLots.setLotId} disabled={isAssignedToOther} />
+          )}
+        </Box>
       </Box>
 
       <Alert severity="info" sx={{ mt: 2, fontSize: 12 }}>

@@ -3,10 +3,13 @@ using MicroLIMS.Domain.Enums;
 
 namespace MicroLIMS.Application.DTOs.Responses;
 
+// Material lines carry the picked lot; PreparedSolution lines the picked
+// prepared bottle (SourcePreparationId/Code); Text lines only Text.
 public record SolutionPreparationComponentResponse(
-    int Id, int Order, int MaterialMasterEntryId, string EntryCode, string EntryName,
-    decimal RecipeQuantity, SolutionComponentUnit RecipeUnit,
-    int? MaterialId, string? LotBatchNumber, MaterialUnit? LotUnit, decimal? QuantityUsed);
+    int Id, int Order, SolutionComponentKind Kind, int? MaterialMasterEntryId, string EntryCode, string EntryName,
+    decimal? RecipeQuantity, SolutionComponentUnit? RecipeUnit,
+    int? MaterialId, string? LotBatchNumber, MaterialUnit? LotUnit, decimal? QuantityUsed,
+    int? SourceSolutionMasterId = null, string? Text = null, int? SourcePreparationId = null, string? SourcePreparationCode = null);
 
 public record SolutionPreparationStatusHistoryResponse(
     SolutionPreparationStatus? FromStatus, SolutionPreparationStatus ToStatus,
@@ -35,6 +38,19 @@ public class SolutionPreparationResponse
     public DateTime? ExpiresAt { get; init; }
     public decimal? FinalVolumeMl { get; init; }
     public decimal? MeasuredPh { get; init; }
+    public int? AutoclaveEquipmentId { get; init; }
+    public string? AutoclaveEquipmentName { get; init; }
+    public string? AutoclaveProgram { get; init; }
+    public string? LoadType { get; init; }
+    public decimal? AutoclaveTemperature { get; init; }
+    public int? AutoclaveCycleTime { get; init; }
+    public int? AutoclaveCycleNumber { get; init; }
+    // Null when the recipe needs no release.
+    public ApprovalGateStatus? ApprovalStatus { get; init; }
+    public int? ReleasedByUserId { get; init; }
+    public string? ReleasedByUserName { get; init; }
+    public DateTime? ReleasedAt { get; init; }
+    public string? ReleaseComment { get; init; }
     public string RecipeSnapshotJson { get; init; } = "{}";
     public List<SolutionPreparationComponentResponse> Components { get; init; } = new();
     public List<SolutionPreparationStatusHistoryResponse> StatusHistory { get; init; } = new();
@@ -78,13 +94,26 @@ public class SolutionPreparationResponse
             ExpiresAt = p.ExpiresAt,
             FinalVolumeMl = p.FinalVolumeMl,
             MeasuredPh = p.MeasuredPh,
+            AutoclaveEquipmentId = p.AutoclaveEquipmentId,
+            AutoclaveEquipmentName = p.AutoclaveEquipment?.Name,
+            AutoclaveProgram = p.AutoclaveProgram,
+            LoadType = p.LoadType,
+            AutoclaveTemperature = p.AutoclaveTemperature,
+            AutoclaveCycleTime = p.AutoclaveCycleTime,
+            AutoclaveCycleNumber = p.AutoclaveCycleNumber,
+            ApprovalStatus = p.ApprovalStatus,
+            ReleasedByUserId = p.ReleasedByUserId,
+            ReleasedByUserName = NameOf(p.ReleasedByUserId),
+            ReleasedAt = p.ReleasedAt,
+            ReleaseComment = p.ReleaseComment,
             RecipeSnapshotJson = p.RecipeSnapshotJson,
             Components = p.Components
                 .OrderBy(c => c.Order)
                 .Select(c => new SolutionPreparationComponentResponse(
-                    c.Id, c.Order, c.MaterialMasterEntryId, c.EntryCode, c.EntryName,
+                    c.Id, c.Order, c.Kind, c.MaterialMasterEntryId, c.EntryCode, c.EntryName,
                     c.RecipeQuantity, c.RecipeUnit,
-                    c.MaterialId, c.Material?.LotLabel, c.Material?.Unit, c.QuantityUsed))
+                    c.MaterialId, c.Material?.LotLabel, c.Material?.Unit, c.QuantityUsed,
+                    c.SourceSolutionMasterId, c.Text, c.SourcePreparationId, c.SourcePreparation?.Code))
                 .ToList(),
             StatusHistory = p.StatusHistory
                 .OrderBy(h => h.ChangedAt)
@@ -98,4 +127,5 @@ public class SolutionPreparationResponse
 
 public record SolutionPreparationListItem(
     int Id, string? Code, SolutionType Type, string SolutionMasterName, string? HplcMethodAbbreviation,
-    SolutionPreparationStatus EffectiveStatus, DateTime? PreparedAt, DateTime? ExpiresAt, string? PreparedByUserName);
+    SolutionPreparationStatus EffectiveStatus, DateTime? PreparedAt, DateTime? ExpiresAt, string? PreparedByUserName,
+    ApprovalGateStatus? ApprovalStatus = null);   // PendingReview shows as "Awaiting release"

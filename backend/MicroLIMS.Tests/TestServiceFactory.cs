@@ -92,11 +92,14 @@ public static class TestServiceFactory
     public static AnalystWorkloadService AnalystWorkload(MicroLimsDbContext db, TimeProvider? time = null) =>
         new(db, WorkflowProfile(db, time), new UserSectionScopeService(db), time);
 
-    public static SamplePreparationService SamplePreparation(MicroLimsDbContext db) =>
-        new(db, new PreparationParameterValidator(), new ElectronicSignatureService(db), new UserSectionScopeService(db));
+    public static PreparationMaterialService PreparationMaterial(MicroLimsDbContext db, TimeProvider? time = null, IUserSectionScopeService? scope = null) =>
+        new(db, scope ?? new UserSectionScopeService(db), time);
+
+    public static SamplePreparationService SamplePreparation(MicroLimsDbContext db, TimeProvider? time = null) =>
+        new(db, new PreparationParameterValidator(), new ElectronicSignatureService(db), new UserSectionScopeService(db), PreparationMaterial(db, time));
 
     public static ItemPreparationConfigurationService ItemPreparationConfiguration(MicroLimsDbContext db) =>
-        new(db, new PreparationParameterValidator());
+        new(db, new PreparationParameterValidator(), PreparationMaterial(db));
 
     public static SampleCorrectionService SampleCorrection(MicroLimsDbContext db) =>
         new(db, new ElectronicSignatureService(db),
@@ -256,6 +259,9 @@ public static class TestServiceFactory
 
     public static MaterialReleaseService MaterialRelease(MicroLimsDbContext db) =>
         new(db, new UserSectionScopeService(db), new SegregationOfDutiesGuard(db), ReviewGate(db));
+
+    public static SolutionPreparationReleaseService SolutionPreparationRelease(MicroLimsDbContext db, ILabClock? clock = null) =>
+        new(db, new UserSectionScopeService(db), new SegregationOfDutiesGuard(db), ReviewGate(db), clock);
 
     public static SolutionMasterService SolutionMaster(MicroLimsDbContext db) =>
         new(db, new UserSectionScopeService(db),

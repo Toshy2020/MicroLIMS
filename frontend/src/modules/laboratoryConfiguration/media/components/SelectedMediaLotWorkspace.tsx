@@ -33,6 +33,7 @@ import { MediaSummary } from "../types/mediaSummaryTypes";
 import { apiClient } from "../../../../services/apiClient";
 import { lifecycleOf } from "./MediaLotKpiCards";
 import { MediaStoragePanel } from "./MediaStoragePanel";
+import { PreparationWhereUsedPanel } from "../../../testPreparation/components/PreparationWhereUsedPanel";
 import { tableHeadSx } from "../../../../theme";
 import { useAuth } from "../../../../contexts/AuthContext";
 import { PERMISSIONS } from "../../../../routes/routes";
@@ -436,6 +437,25 @@ export function SelectedMediaLotWorkspace({
               </Box>
             </Box>
           </Box>
+
+          {summary && summary.additives?.length > 0 && (
+            <Box
+              sx={{ p: 1.5, borderRadius: 2, bgcolor: "background.default", border: "1px solid", borderColor: "divider" }}
+              data-testid="media-lot-additives"
+            >
+              <Typography sx={{ fontSize: 12, color: "text.secondary", mb: 0.75 }}>Additives</Typography>
+              {summary.additives.map((a, i) => (
+                <Typography key={i} sx={{ fontSize: 12, fontWeight: 600, color: "text.primary" }}>
+                  {a.name} ({a.code}): {a.quantity} {a.unit}
+                  <Box component="span" sx={{ fontWeight: 400, color: "text.secondary" }}>
+                    {" "}· {a.kind === "StockLot" ? "stock lot" : "prepared solution"}
+                  </Box>
+                </Typography>
+              ))}
+            </Box>
+          )}
+
+          <PreparationWhereUsedPanel lot={{ mediaId: lot.id }} />
         </Stack>
       )}
 

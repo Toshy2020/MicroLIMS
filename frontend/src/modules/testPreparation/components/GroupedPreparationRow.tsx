@@ -17,6 +17,8 @@ import { SignatureDialog } from "../../../components/SignatureDialog";
 import { useAuth } from "../../../contexts/AuthContext";
 import { PERMISSIONS } from "../../../routes/routes";
 import { PreparationStepsSummary } from "../PreparationStepsSummary";
+import { PreparationLotPicker } from "./PreparationLotPicker";
+import { useGroupLotOptions } from "../hooks/useGroupedPreparation";
 import {
   SamplePreparationService,
   type BatchConfirmPreparationResponse,
@@ -39,6 +41,16 @@ export function GroupedPreparationRow({ group, onComplete }: Props) {
   const [expanded, setExpanded] = useState(false);
   const [signing, setSigning] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { lots, error: lotsError } = useGroupLotOptions(group.configurationId, expanded);
+  const [diluentLotId, setDiluentLotId] = useState<number | null>(null);
+  const [neutralizerLotId, setNeutralizerLotId] = useState<number | null>(null);
+
+  const needsDiluentLot = Boolean(lots?.diluent.lotRequired);
+  const needsNeutralizerLot = Boolean(lots?.neutralizer.lotRequired);
+  const lotsComplete =
+    lots != null &&
+    (!needsDiluentLot || diluentLotId != null) &&
+    (!needsNeutralizerLot || neutralizerLotId != null);
 
   const sampleWord = group.sampleCount === 1 ? "Sample" : "Samples";
 
@@ -49,7 +61,9 @@ export function GroupedPreparationRow({ group, onComplete }: Props) {
     const result = await SamplePreparationService.confirmBatch({
       sampleIds: group.samples.map((s) => s.sampleId),
       configurationId: group.configurationId,
-      password
+      password,
+      diluentLotId: needsDiluentLot ? diluentLotId : null,
+      neutralizerLotId: needsNeutralizerLot ? neutralizerLotId : null
     });
     setSigning(false);
     setExpanded(false);
@@ -188,9 +202,29 @@ export function GroupedPreparationRow({ group, onComplete }: Props) {
               filtrationVolume: group.filtrationVolume,
               washingVolume: group.washingVolume,
               diluent: group.diluent,
-              neutralizer: group.neutralizer
+              neutralizer: group.neutralizer,
+              diluentSource: group.diluentSource,
+              neutralizerSource: group.neutralizerSource
             }}
           />
+
+          {lotsError && <Alert severity="error" sx={{ mt: 1.5, py: 0.25, fontSize: "0.75rem" }}>{lotsError}</Alert>}
+          {(lots?.needsMaterialMapping || group.needsMaterialMapping) && (
+            <Alert severity="warning" sx={{ mt: 1.5, py: 0.25, fontSize: "0.75rem" }}>
+              This item's diluent/neutralizer is not linked to master data, so no lot can be recorded. A Section
+              Head can link them under Laboratory Configuration → Items.
+            </Alert>
+          )}
+          {lots && !lots.needsMaterialMapping && (needsDiluentLot || needsNeutralizerLot) && (
+            <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 1.5, mt: 1.5 }}>
+              <Box sx={{ display: "grid", gap: 1, alignContent: "start" }}>
+                <PreparationLotPicker label="Diluent" group={lots.diluent} value={diluentLotId} onChange={setDiluentLotId} />
+              </Box>
+              <Box sx={{ display: "grid", gap: 1, alignContent: "start" }}>
+                <PreparationLotPicker label="Neutralizer" group={lots.neutralizer} value={neutralizerLotId} onChange={setNeutralizerLotId} />
+              </Box>
+            </Box>
+          )}
 
           <Typography variant="caption" sx={{ display: "block", mt: 1.5, color: "text.secondary" }}>
             Confirming records these exact values against every sample listed above, each with its own signature.
@@ -203,6 +237,7 @@ export function GroupedPreparationRow({ group, onComplete }: Props) {
               variant="contained"
               size="small"
               onClick={() => setSigning(true)}
+              disabled={!lotsComplete}
               sx={{ textTransform: "none", fontWeight: 700, fontSize: "0.75rem" }}
             >
               Confirm &amp; Start Testing ({group.sampleCount} {sampleWord})
@@ -217,7 +252,8 @@ export function GroupedPreparationRow({ group, onComplete }: Props) {
         meaningStatement={
           `I confirm the preparation steps shown above are the steps performed for all ${group.sampleCount} ` +
           `${sampleWord.toLowerCase()} of ${group.itemName} listed in this group ` +
-          `(${group.samples.map((s) => s.sampleReference).join(", ")}).`
+          `(${group.samples.map((s) => s.sampleReference).join(", ")}). ` +
+          `The diluent and neutralizer lots selected apply to every sample in the group.`
         }
         onCancel={() => setSigning(false)}
         onConfirm={confirm}

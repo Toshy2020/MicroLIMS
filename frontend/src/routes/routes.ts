@@ -267,6 +267,7 @@ export const PERMISSIONS = {
   MEDIA_RELEASE: "Media.Release",
   OOS_MANAGE: "Oos.Manage",
   SOLUTIONS_PREPARE: "Solutions.Prepare",
+  SOLUTIONS_RELEASE: "Solutions.Release",
   WORKING_STANDARDS_QUALIFY: "WorkingStandards.Qualify",
   HPLC_OPERATE: "Hplc.Operate",
   MONITORING_PLAN_VIEW: "MonitoringPlan.View",

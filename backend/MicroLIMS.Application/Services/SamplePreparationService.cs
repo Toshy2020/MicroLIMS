@@ -12,9 +12,14 @@ namespace MicroLIMS.Application.Services;
 
 // Manual entry - used only when the Item has no preparation configuration
 // yet. What the analyst enters here becomes the Item's standing config.
+// DiluentChoice / NeutralizerChoice name the master (the server fills the
+// Diluent / Neutralizer text from it); the lot ids are interpreted by that
+// choice's source.
 public record PrepareSampleRequest(
     int SampleId, decimal Amount, string Technique, decimal? FiltrationVolume, decimal? WashingVolume,
-    string Diluent, string Neutralizer, int UserId, string Password);
+    string Diluent, string Neutralizer, int UserId, string Password,
+    PreparationMaterialChoice? DiluentChoice = null, PreparationMaterialChoice? NeutralizerChoice = null,
+    int? DiluentLotId = null, int? NeutralizerLotId = null);
 
 // Confirm-only - the Item already has a configuration; the analyst signs
 // off that those steps were the ones performed.
@@ -22,7 +27,12 @@ public record PrepareSampleRequest(
 // confirmation to the exact configuration row the analyst was shown, so a
 // Section Head edit landing mid-batch skips the sample instead of signing
 // it against steps nobody read.
-public record ConfirmPreparationRequest(int SampleId, int UserId, string Password, int? ExpectedConfigurationId = null);
+// DiluentLotId / NeutralizerLotId are interpreted by the configuration's
+// source: a Media, SolutionPreparation or Material id. Required when the
+// configuration has a source (except ContainedInMedium), rejected when not.
+public record ConfirmPreparationRequest(
+    int SampleId, int UserId, string Password, int? ExpectedConfigurationId = null,
+    int? DiluentLotId = null, int? NeutralizerLotId = null);
 
 // Test Preparation - Product/RM/PM only, once per Sample. Must complete
 // before any result can be entered for any of that sample's TestOrders.
@@ -32,17 +42,20 @@ public class SamplePreparationService
     private readonly PreparationParameterValidator _validator;
     private readonly IElectronicSignatureService _signatures;
     private readonly IUserSectionScopeService _scope;
+    private readonly PreparationMaterialService _materials;
 
     public SamplePreparationService(
         IMicroLimsDbContext db,
         PreparationParameterValidator validator,
         IElectronicSignatureService signatures,
-        IUserSectionScopeService scope)
+        IUserSectionScopeService scope,
+        PreparationMaterialService materials)
     {
         _db = db;
         _validator = validator;
         _signatures = signatures;
         _scope = scope;
+        _materials = materials;
     }
 
     // Manual fallback: writes the sample's preparation AND seeds the Item's
@@ -57,11 +70,18 @@ public class SamplePreparationService
         if (sample.ItemId is null)
             throw new InvalidOperationException("This sample has no Item and cannot use the preparation configuration flow.");
 
+        // The text fields are the display names of the chosen masters.
+        var diluent = await _materials.ResolveAsync(PreparationMaterialRole.Diluent, request.DiluentChoice);
+        var neutralizer = await _materials.ResolveAsync(PreparationMaterialRole.Neutralizer, request.NeutralizerChoice);
+
         var parameters = new PreparationParameters(
             request.Amount, request.Technique, request.FiltrationVolume, request.WashingVolume,
-            request.Diluent, request.Neutralizer);
+            diluent.Name, neutralizer.Name);
 
         await _validator.ValidateAsync(parameters);
+
+        var diluentLot = await _materials.RequireLotAsync(PreparationMaterialRole.Diluent, diluent.Choice, request.DiluentLotId, request.UserId);
+        var neutralizerLot = await _materials.RequireLotAsync(PreparationMaterialRole.Neutralizer, neutralizer.Choice, request.NeutralizerLotId, request.UserId);
 
         // Seed the Item's standing configuration from this first manual entry.
         // Usable immediately by later samples; Section Head reviews after the
@@ -80,11 +100,11 @@ public class SamplePreparationService
                 Technique = request.Technique,
                 FiltrationVolume = request.FiltrationVolume,
                 WashingVolume = request.WashingVolume,
-                Diluent = request.Diluent.Trim(),
-                Neutralizer = request.Neutralizer.Trim(),
                 ApprovalStatus = ApprovalGateStatus.PendingReview,
                 CreatedByUserId = request.UserId
             };
+            PreparationMaterialService.Apply(config, PreparationMaterialRole.Diluent, diluent);
+            PreparationMaterialService.Apply(config, PreparationMaterialRole.Neutralizer, neutralizer);
         }
 
         var prep = new SamplePreparation
@@ -94,14 +114,16 @@ public class SamplePreparationService
             Technique = request.Technique,
             FiltrationVolume = request.FiltrationVolume,
             WashingVolume = request.WashingVolume,
-            Diluent = request.Diluent.Trim(),
-            Neutralizer = request.Neutralizer.Trim(),
+            Diluent = diluent.Name,
+            Neutralizer = neutralizer.Name,
             PreparedByUserId = request.UserId,
             SourceConfiguration = config,
             WasConfirmedFromConfig = false
         };
+        PreparationMaterialService.Snapshot(prep, PreparationMaterialRole.Diluent, diluent.Choice, diluentLot);
+        PreparationMaterialService.Snapshot(prep, PreparationMaterialRole.Neutralizer, neutralizer.Choice, neutralizerLot);
 
-        return await CommitPreparationAsync(sample, prep, request.UserId, request.Password, ipAddress);
+        return await CommitPreparationAsync(sample, prep, request.UserId, request.Password, ipAddress, SignatureComment(prep));
     }
 
     // Confirm-only: every value is copied from the Item's configuration, so
@@ -131,6 +153,13 @@ public class SamplePreparationService
             config.Amount, config.Technique, config.FiltrationVolume, config.WashingVolume,
             config.Diluent, config.Neutralizer));
 
+        // A configuration with a source needs the lot used; a legacy one (no source)
+        // keeps working with no lot, and a lot sent for it is refused.
+        var diluentChoice = PreparationMaterialService.ChoiceOf(config, PreparationMaterialRole.Diluent);
+        var neutralizerChoice = PreparationMaterialService.ChoiceOf(config, PreparationMaterialRole.Neutralizer);
+        var diluentLot = await _materials.RequireLotAsync(PreparationMaterialRole.Diluent, diluentChoice, request.DiluentLotId, request.UserId);
+        var neutralizerLot = await _materials.RequireLotAsync(PreparationMaterialRole.Neutralizer, neutralizerChoice, request.NeutralizerLotId, request.UserId);
+
         var prep = new SamplePreparation
         {
             SampleId = request.SampleId,
@@ -144,8 +173,10 @@ public class SamplePreparationService
             SourceConfigurationId = config.Id,
             WasConfirmedFromConfig = true
         };
+        PreparationMaterialService.Snapshot(prep, PreparationMaterialRole.Diluent, diluentChoice, diluentLot);
+        PreparationMaterialService.Snapshot(prep, PreparationMaterialRole.Neutralizer, neutralizerChoice, neutralizerLot);
 
-        return await CommitPreparationAsync(sample, prep, request.UserId, request.Password, ipAddress);
+        return await CommitPreparationAsync(sample, prep, request.UserId, request.Password, ipAddress, SignatureComment(prep));
     }
 
     private async Task<Sample> LoadPreparableSampleAsync(int sampleId, int userId)
@@ -182,7 +213,7 @@ public class SamplePreparationService
     // One transaction: the preparation snapshot, the signature that attests
     // to it, and the sample moving to Ready all land together or not at all.
     private async Task<SamplePreparation> CommitPreparationAsync(
-        Sample sample, SamplePreparation prep, int userId, string password, string? ipAddress)
+        Sample sample, SamplePreparation prep, int userId, string password, string? ipAddress, string? signatureComment = null)
     {
         // Signs first - if password verification fails, nothing below is
         // written. Signed against the Sample rather than the SamplePreparation
@@ -191,7 +222,7 @@ public class SamplePreparationService
         // ordering as SampleApprovalService.DecideAsync).
         await _signatures.SignAsync(
             userId, password, SignatureMeaning.PreparationConfirmed,
-            ReviewEntityTypes.Sample, sample.Id, null, ipAddress);
+            ReviewEntityTypes.Sample, sample.Id, signatureComment, ipAddress);
 
         sample.PreparationStatus = SamplePreparationStatus.Ready;
         _db.SamplePreparations.Add(prep);
@@ -216,8 +247,33 @@ public class SamplePreparationService
         return prep;
     }
 
+    // What the analyst signs for, beside the audited snapshot columns: which diluent and
+    // neutralizer (and which lots) the preparation used.
+    private static string SignatureComment(SamplePreparation prep) =>
+        PreparationMaterialService.Describe(PreparationMaterialRole.Diluent, prep.Diluent, prep.DiluentSource, prep.DiluentLotCode)
+        + "; "
+        + PreparationMaterialService.Describe(PreparationMaterialRole.Neutralizer, prep.Neutralizer, prep.NeutralizerSource, prep.NeutralizerLotCode);
+
     public async Task<bool> IsPreparedAsync(int sampleId) =>
         await _db.SamplePreparations.AnyAsync(p => p.SampleId == sampleId);
+
+    // The lots the analyst may pick for the Item of this sample.
+    public async Task<PreparationLotOptionsDto> GetLotOptionsForSampleAsync(int sampleId, int userId, CancellationToken ct = default)
+    {
+        var itemId = await _db.Samples.AsNoTracking().Where(s => s.Id == sampleId).Select(s => s.ItemId).FirstOrDefaultAsync(ct)
+            ?? throw new InvalidOperationException("This sample has no Item and cannot use the preparation configuration flow.");
+        var config = await _db.ItemPreparationConfigurations.AsNoTracking().FirstOrDefaultAsync(c => c.ItemId == itemId, ct)
+            ?? throw new InvalidOperationException("This item has no preparation configuration yet.");
+        return await _materials.GetLotOptionsAsync(config, userId, ct);
+    }
+
+    // The same, for the grouped path, which works from the configuration.
+    public async Task<PreparationLotOptionsDto> GetLotOptionsForConfigurationAsync(int configurationId, int userId, CancellationToken ct = default)
+    {
+        var config = await _db.ItemPreparationConfigurations.AsNoTracking().FirstOrDefaultAsync(c => c.Id == configurationId, ct)
+            ?? throw new NotFoundException($"Preparation configuration {configurationId} not found.");
+        return await _materials.GetLotOptionsAsync(config, userId, ct);
+    }
 
     // ---- Grouped Test Preparation -------------------------------------
     // Only the confirm-only path groups. Manual first entry cannot: its
@@ -339,6 +395,9 @@ public class SamplePreparationService
                     WashingVolume: config.WashingVolume,
                     Diluent: config.Diluent,
                     Neutralizer: config.Neutralizer,
+                    DiluentSource: config.DiluentSource,
+                    NeutralizerSource: config.NeutralizerSource,
+                    NeedsMaterialMapping: PreparationMaterialService.NeedsMapping(config),
                     SampleCount: g.Count(),
                     Samples: g.Select(e => new GroupedPreparationSampleDto(
                         e.Sample.Id,
@@ -372,8 +431,15 @@ public class SamplePreparationService
         if (ids.Count == 0)
             throw new InvalidOperationException("No samples were selected for grouped preparation.");
 
-        if (!await _db.ItemPreparationConfigurations.AnyAsync(c => c.Id == request.ConfigurationId, ct))
-            throw new InvalidOperationException("The preparation configuration for this group no longer exists.");
+        var config = await _db.ItemPreparationConfigurations.AsNoTracking().FirstOrDefaultAsync(c => c.Id == request.ConfigurationId, ct)
+            ?? throw new InvalidOperationException("The preparation configuration for this group no longer exists.");
+
+        // One diluent lot and one neutralizer lot for the whole group (D10): check them once
+        // up front, so a bad pick fails the run before any signature instead of skipping every sample.
+        await _materials.RequireLotAsync(PreparationMaterialRole.Diluent,
+            PreparationMaterialService.ChoiceOf(config, PreparationMaterialRole.Diluent), request.DiluentLotId, userId, ct);
+        await _materials.RequireLotAsync(PreparationMaterialRole.Neutralizer,
+            PreparationMaterialService.ChoiceOf(config, PreparationMaterialRole.Neutralizer), request.NeutralizerLotId, userId, ct);
 
         var references = await _db.Samples
             .Where(s => ids.Contains(s.Id))
@@ -390,7 +456,8 @@ public class SamplePreparationService
             try
             {
                 var prep = await ConfirmFromConfigurationAsync(
-                    new ConfirmPreparationRequest(sampleId, userId, request.Password, request.ConfigurationId),
+                    new ConfirmPreparationRequest(
+                        sampleId, userId, request.Password, request.ConfigurationId, request.DiluentLotId, request.NeutralizerLotId),
                     ipAddress);
 
                 anySigned = true;

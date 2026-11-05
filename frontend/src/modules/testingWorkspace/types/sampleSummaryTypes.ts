@@ -183,6 +183,10 @@ export interface SamplePreparationSummary {
   washingVolume: number | null;
   diluent: string;
   neutralizer: string;
+  diluentSource?: string | null;
+  diluentLotCode?: string | null;
+  neutralizerSource?: string | null;
+  neutralizerLotCode?: string | null;
   preparedByName: string;
   preparedAt: string;
 }

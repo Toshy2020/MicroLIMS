@@ -160,6 +160,7 @@ const microArea: MenuItem = {
   children: [
     { label: "Workspace", path: "/microbiology/workspace", icon: BiotechOutlinedIcon, featured: true, counterKey: "workspace", description: "Receive, test, review and approve microbiology samples." },
     { label: "Media Preparation & Evaluation", path: "/laboratory-configuration/media", icon: ScienceOutlinedIcon, permission: PERMISSIONS.MEDIA_PREPARE, counterKey: "media", description: "Prepare media lots and record growth promotion and sterility checks." },
+    { label: "Solution Preparation", path: "/preparation?lab=MICRO", icon: OpacityOutlinedIcon, permission: PERMISSIONS.SOLUTIONS_PREPARE, description: "Prepare diluents, reagents and neutralizers." },
     { label: "Reference Cryovials", path: "/laboratory-configuration/cryovials", icon: AcUnitOutlinedIcon, permission: PERMISSIONS.CRYOVIALS_MANAGE, counterKey: "cryovials", description: "Reference strain cryovials: preparation, use and stock." },
     { label: "Biological Waste Destruction", path: "/laboratory-configuration/biological-waste", icon: DeleteSweepOutlinedIcon, permission: PERMISSIONS.CRYOVIALS_MANAGE, description: "Autoclave destruction of used cryovial vials and other biological waste." },
     { label: "Materials Stock", path: "/inventory/materials?lab=MICRO", icon: Inventory2OutlinedIcon, permission: PERMISSIONS.MATERIALS_MANAGE, counterKey: "materials", description: "Receive and track microbiology reagents and consumables." },
@@ -179,6 +180,7 @@ const microConfigArea: MenuItem = {
     { label: "Water", path: "/laboratory-configuration/water", icon: WaterDropOutlinedIcon, description: "Water sampling points and their test plans." },
     { label: "Environmental Monitoring", path: "/laboratory-configuration/environmental-monitoring", icon: AirOutlinedIcon, description: "EM locations, sampling methods and alert/action limits." },
     { label: "After Cleaning", path: "/laboratory-configuration/after-cleaning", icon: CleaningServicesOutlinedIcon, description: "After-cleaning swab points and acceptance limits." },
+    { label: "Solutions", path: "/laboratory-configuration/solution-master?lab=MICRO", icon: WaterOutlinedIcon, description: "Diluent, reagent and neutralizer recipes." },
     { label: "Equipment", path: "/laboratory-configuration/equipment", icon: SettingsOutlinedIcon, description: "Equipment types and settings used by microbiology tests." }
   ]
 };

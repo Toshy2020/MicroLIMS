@@ -139,7 +139,6 @@ public record SpecificationRowDto(
     // The record's row version, sent back as If-Match with an edit.
     public uint Version { get; init; }
 }
-public record CreateDiluentTypeRequest(string Name, bool RequiresBatchTracking, int? MediaProductId);
 public record CreateProductionStageRequest(string Name, ProductionStageRole Role);
 public record UpdateProductionStageRequest(string Name, ProductionStageRole Role);
 public record CreateEquipmentRequest(

@@ -11,7 +11,8 @@ namespace MicroLIMS.API.Controllers;
 public record PrepareMediaHttpRequest(
     int MaterialId, decimal TotalWeight, string TotalVolume,
     int AutoclaveEquipmentId, string AutoclaveProgram, string LoadType, decimal Temperature,
-    int CycleTime, int CycleNumber, decimal Ph, DateTime ExpiryDate);
+    int CycleTime, int CycleNumber, decimal Ph, DateTime ExpiryDate,
+    List<MediaAdditiveInput>? Additives = null);
 
 public record DecideMediaReleaseRequest(string Password, bool Approved, string? Comment);
 
@@ -61,7 +62,7 @@ public class MediaController : ControllerBase
         Ok(ApiResponse<object>.Ok(await _mediaPrep.PrepareAsync(new PrepareMediaRequest(
             r.MaterialId, r.TotalWeight, r.TotalVolume,
             r.AutoclaveEquipmentId, r.AutoclaveProgram, r.LoadType, r.Temperature,
-            r.CycleTime, r.CycleNumber, r.Ph, r.ExpiryDate, CurrentUserId))));
+            r.CycleTime, r.CycleNumber, r.Ph, r.ExpiryDate, CurrentUserId, r.Additives))));
 
     // Lots that passed evaluation and are waiting on a release signature.
     [HttpGet("awaiting-approval")]

@@ -167,6 +167,8 @@ export function SelectStep({
             >
               <MenuItem value="MobilePhase">Mobile Phase</MenuItem>
               <MenuItem value="Diluent">Diluent</MenuItem>
+              <MenuItem value="Reagent">Reagent</MenuItem>
+              <MenuItem value="Neutralizer">Neutralizer</MenuItem>
               <MenuItem value="Titrant">Titrant</MenuItem>
             </Select>
           </FormControl>
@@ -232,6 +234,12 @@ export function SelectStep({
                 <Chip size="small" label={`Target Volume: ${selectedSolution.finalVolumeMl} mL`} />
                 <Chip size="small" label={`Shelf Life: ${selectedSolution.shelfLifeValue} ${selectedSolution.shelfLifeUnit}`} />
                 <Chip size="small" label={`Storage: ${selectedSolution.storageCondition}`} />
+                {selectedSolution.sterilizationRequired && (
+                  <Chip size="small" variant="outlined" label="Autoclave required" />
+                )}
+                {selectedSolution.releaseRequired && (
+                  <Chip size="small" variant="outlined" label="Release required" />
+                )}
                 {selectedSolution.phTarget != null && (
                   <Chip
                     size="small"
@@ -250,7 +258,11 @@ export function SelectStep({
               <Stack spacing={0.5}>
                 {selectedSolution.components?.map((c) => (
                   <Typography key={c.id ?? c.order} variant="caption" sx={{ color: "text.secondary" }}>
-                    • {c.entryName} ({c.entryCode}): {c.quantity} {c.unit}
+                    {c.kind === "Text"
+                      ? `• ${c.text}`
+                      : c.kind === "PreparedSolution"
+                        ? `• Prepared ${c.sourceSolutionName}: ${c.quantity} ${c.unit}`
+                        : `• ${c.entryName} (${c.entryCode}): ${c.quantity} ${c.unit}`}
                   </Typography>
                 ))}
               </Stack>

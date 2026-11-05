@@ -2,7 +2,8 @@ import { useCallback, useEffect, useState } from "react";
 import {
   SamplePreparationService,
   type ExcludedPreparationSample,
-  type GroupedPreparation
+  type GroupedPreparation,
+  type PreparationLotOptions
 } from "../services/SamplePreparationService";
 
 interface UseGroupedPreparationProps {
@@ -54,4 +55,26 @@ export function useGroupedPreparation({ sampleIds, enabled = true }: UseGroupedP
   }, [enabled, reload]);
 
   return { groups, excluded, loading, error, reload };
+}
+
+// The lots a group's one diluent / neutralizer pair is picked from (D10: one
+// pair per group, signed once for every sample in it). Fetched once, the
+// first time the group is opened.
+export function useGroupLotOptions(configurationId: number, enabled: boolean) {
+  const [lots, setLots] = useState<PreparationLotOptions | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!enabled || lots) return;
+    let cancelled = false;
+    setError(null);
+    SamplePreparationService.getLotOptions({ configurationId })
+      .then((o) => { if (!cancelled) setLots(o); })
+      .catch((e: any) => {
+        if (!cancelled) setError(e?.response?.data?.message ?? "Could not load the available lots.");
+      });
+    return () => { cancelled = true; };
+  }, [configurationId, enabled, lots]);
+
+  return { lots, error };
 }

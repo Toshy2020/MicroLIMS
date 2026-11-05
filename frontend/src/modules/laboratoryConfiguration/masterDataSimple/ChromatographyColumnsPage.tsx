@@ -42,11 +42,21 @@ export interface ChromatographyEquipmentOption {
   sectionId?: number | null;
 }
 
+// Chromatography instruments a column can be fitted to: liquid (HPLC) and gas (GC).
+const CHROMATOGRAPHY_TYPES = ["Hplc", "Gc"] as const;
+
+export function chromatographyTypeLabel(type: ChromatographyEquipmentOption["type"]): string {
+  const t = String(type ?? "").toLowerCase();
+  if (t === "gc") return "GC";
+  if (t === "hplc") return "HPLC";
+  return "";
+}
+
 export function ChromatographyColumnsPage() {
   const { sections, sectionName } = useLaboratorySections();
 
   const [columns, setColumns] = useState<ChromatographyColumnDto[]>([]);
-  const [hplcEquipment, setHplcEquipment] = useState<ChromatographyEquipmentOption[]>([]);
+  const [chromatographyEquipment, setChromatographyEquipment] = useState<ChromatographyEquipmentOption[]>([]);
   const [mySections, setMySections] = useState<LaboratorySection[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -81,11 +91,13 @@ export function ChromatographyColumnsPage() {
     try {
       const [colData, eqData, mySecData] = await Promise.all([
         ChromatographyColumnService.getAll(),
-        EquipmentConfigurationService.getEquipmentList("Hplc").catch(() => []),
+        Promise.all(
+          CHROMATOGRAPHY_TYPES.map((t) => EquipmentConfigurationService.getEquipmentList(t).catch(() => []))
+        ).then((lists) => lists.flat()),
         getMySections().catch(() => [])
       ]);
       setColumns(Array.isArray(colData) ? colData : []);
-      setHplcEquipment(Array.isArray(eqData) ? eqData : []);
+      setChromatographyEquipment(Array.isArray(eqData) ? eqData : []);
       setMySections(Array.isArray(mySecData) ? mySecData : []);
     } catch (err: unknown) {
       console.error("Failed to load chromatography columns data:", err);
@@ -100,12 +112,14 @@ export function ChromatographyColumnsPage() {
     loadData();
   }, [loadData]);
 
-  // Available HPLC equipment filtered by current dialog section
-  const availableHplcForSection = useMemo(() => {
-    if (!formSectionId) return hplcEquipment;
-    const secIdNum = Number(formSectionId);
-    return hplcEquipment.filter((eq) => eq.sectionId === secIdNum);
-  }, [hplcEquipment, formSectionId]);
+  // Available HPLC / GC equipment filtered by current dialog section
+  const availableEquipmentForSection = useMemo(() => {
+    const list = formSectionId
+      ? chromatographyEquipment.filter((eq) => eq.sectionId === Number(formSectionId))
+      : chromatographyEquipment;
+    return [...list].sort((a, b) =>
+      chromatographyTypeLabel(a.type).localeCompare(chromatographyTypeLabel(b.type)) || a.code.localeCompare(b.code));
+  }, [chromatographyEquipment, formSectionId]);
 
   // Open Add Dialog
   const handleOpenAdd = () => {
@@ -285,7 +299,7 @@ export function ChromatographyColumnsPage() {
     },
     {
       key: "compatibleEquipment",
-      label: "Compatible HPLC Instruments",
+      label: "Compatible Instruments (HPLC / GC)",
       render: (col) =>
         col.compatibleEquipment && col.compatibleEquipment.length > 0 ? (
           <Stack useFlexGap direction="row" spacing={0.5} sx={{ flexWrap: "wrap", gap: 0.5 }}>
@@ -313,7 +327,7 @@ export function ChromatographyColumnsPage() {
   return (
     <LabPage
       title="Chromatography Columns"
-      subtitle="Manage HPLC chromatography column master records, column parameters, and instrument compatibility."
+      subtitle="Manage HPLC and GC chromatography column master records, column parameters, and instrument compatibility."
       actions={addButton}
       filters={
         <FilterBar
@@ -450,7 +464,7 @@ export function ChromatographyColumnsPage() {
                     const secIdNum = Number(newSecId);
                     setFormCompatibleEquipmentIds((prev) =>
                       prev.filter((id) => {
-                        const eq = hplcEquipment.find((e) => e.id === id);
+                        const eq = chromatographyEquipment.find((e) => e.id === id);
                         return eq && eq.sectionId === secIdNum;
                       })
                     );
@@ -467,9 +481,9 @@ export function ChromatographyColumnsPage() {
             </FormControl>
           ) : null}
 
-          {/* Compatible HPLC Instruments Multi-Select */}
+          {/* Compatible HPLC / GC Instruments Multi-Select */}
           <FormControl fullWidth size="small">
-            <InputLabel id="compatible-equipment-select-label">Compatible HPLC Instruments</InputLabel>
+            <InputLabel id="compatible-equipment-select-label">Compatible Instruments (HPLC / GC)</InputLabel>
             <Select
               labelId="compatible-equipment-select-label"
               multiple
@@ -478,11 +492,11 @@ export function ChromatographyColumnsPage() {
                 const val = e.target.value;
                 setFormCompatibleEquipmentIds(typeof val === "string" ? val.split(",").map(Number) : (val as number[]));
               }}
-              input={<OutlinedInput label="Compatible HPLC Instruments" />}
+              input={<OutlinedInput label="Compatible Instruments (HPLC / GC)" />}
               renderValue={(selectedIds) => (
                 <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
                   {selectedIds.map((id) => {
-                    const eq = hplcEquipment.find((item) => item.id === id);
+                    const eq = chromatographyEquipment.find((item) => item.id === id);
                     return (
                       <Chip
                         key={id}
@@ -498,16 +512,16 @@ export function ChromatographyColumnsPage() {
                 </Box>
               )}
             >
-              {availableHplcForSection.length === 0 ? (
+              {availableEquipmentForSection.length === 0 ? (
                 <MenuItem disabled value="">
-                  <em>No HPLC instruments found in this section</em>
+                  <em>No HPLC or GC instruments found in this section</em>
                 </MenuItem>
               ) : (
-                availableHplcForSection.map((eq) => (
+                availableEquipmentForSection.map((eq) => (
                   <MenuItem key={eq.id} value={eq.id}>
                     <Checkbox checked={formCompatibleEquipmentIds.includes(eq.id)} size="small" />
                     <ListItemText
-                      primary={`${eq.code} - ${eq.name}`}
+                      primary={`${chromatographyTypeLabel(eq.type) ? `[${chromatographyTypeLabel(eq.type)}] ` : ""}${eq.code} - ${eq.name}`}
                       secondary={eq.location ? `Location: ${eq.location}` : undefined}
                     />
                   </MenuItem>

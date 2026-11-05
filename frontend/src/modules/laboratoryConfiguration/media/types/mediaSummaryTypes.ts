@@ -35,6 +35,14 @@ export interface MediaEvaluationSummary {
   challenges: MediaChallengeSummary[];
 }
 
+export interface MediaAdditiveSummary {
+  kind: "StockLot" | "PreparedSolution";
+  name: string;
+  code: string;
+  quantity: number;
+  unit: string;
+}
+
 export interface MediaSummary {
   mediaId: number;
   lotNumber: string;
@@ -59,6 +67,7 @@ export interface MediaSummary {
   isReleasedForUse: boolean;
   approvedByName: string | null;
   approvedAt: string | null;
+  additives: MediaAdditiveSummary[];
   evaluation: MediaEvaluationSummary | null;
   timeline: SampleWorkflowEvent[];
   signatures: SignatureTrailItem[];

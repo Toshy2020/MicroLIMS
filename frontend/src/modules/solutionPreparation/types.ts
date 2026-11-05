@@ -1,4 +1,18 @@
-export type SolutionType = "MobilePhase" | "Diluent" | "Titrant";
+export type SolutionType = "MobilePhase" | "Diluent" | "Titrant" | "Reagent" | "Neutralizer";
+
+export type SolutionComponentKind = "Material" | "PreparedSolution" | "Text";
+
+export type ApprovalGateStatus = "PendingReview" | "Approved" | "Rejected";
+
+export const SOLUTION_TYPE_LABELS: Record<SolutionType, string> = {
+  MobilePhase: "Mobile Phase",
+  Diluent: "Diluent",
+  Reagent: "Reagent",
+  Neutralizer: "Neutralizer",
+  Titrant: "Titrant"
+};
+
+export const solutionTypeLabel = (type: SolutionType): string => SOLUTION_TYPE_LABELS[type] ?? type;
 
 export type SolutionPreparationStatus =
   | "InProgress"
@@ -18,15 +32,20 @@ export type SolutionComponentUnit =
 export interface SolutionPreparationComponentResponse {
   id: number;
   order: number;
-  materialMasterEntryId: number;
+  kind?: SolutionComponentKind;
+  materialMasterEntryId: number | null;
   entryCode: string;
   entryName: string;
-  recipeQuantity: number;
-  recipeUnit: SolutionComponentUnit;
+  recipeQuantity: number | null;
+  recipeUnit: SolutionComponentUnit | null;
   materialId: number | null;
   lotBatchNumber: string | null;
   lotUnit: string | null;
   quantityUsed: number | null;
+  sourceSolutionMasterId?: number | null;
+  text?: string | null;
+  sourcePreparationId?: number | null;
+  sourcePreparationCode?: string | null;
 }
 
 export interface SolutionPreparationStatusHistoryResponse {
@@ -48,6 +67,7 @@ export interface SolutionPreparationListItem {
   preparedAt: string | null;
   expiresAt: string | null;
   preparedByUserName: string | null;
+  approvalStatus?: ApprovalGateStatus | null;
 }
 
 export interface SolutionPreparationResponse {
@@ -72,6 +92,19 @@ export interface SolutionPreparationResponse {
   expiresAt: string | null;
   finalVolumeMl: number | null;
   measuredPh: number | null;
+  autoclaveEquipmentId?: number | null;
+  autoclaveEquipmentName?: string | null;
+  autoclaveProgram?: string | null;
+  loadType?: string | null;
+  autoclaveTemperature?: number | null;
+  autoclaveCycleTime?: number | null;
+  autoclaveCycleNumber?: number | null;
+  // Null when the recipe needs no release.
+  approvalStatus?: ApprovalGateStatus | null;
+  releasedByUserId?: number | null;
+  releasedByUserName?: string | null;
+  releasedAt?: string | null;
+  releaseComment?: string | null;
   recipeSnapshotJson: string;
   components: SolutionPreparationComponentResponse[];
   statusHistory: SolutionPreparationStatusHistoryResponse[];
@@ -161,12 +194,44 @@ export interface PreparationComponentInput {
   componentId: number;
   materialId?: number | null;
   quantityUsed?: number | null;
+  sourcePreparationId?: number | null;
 }
 
 export interface SavePreparationRequest {
   components: PreparationComponentInput[];
   finalVolumeMl?: number | null;
   measuredPh?: number | null;
+  autoclaveEquipmentId?: number | null;
+  autoclaveProgram?: string | null;
+  loadType?: string | null;
+  autoclaveTemperature?: number | null;
+  autoclaveCycleTime?: number | null;
+  autoclaveCycleNumber?: number | null;
+}
+
+export interface AutoclaveRecordInput {
+  autoclaveEquipmentId: number | null;
+  autoclaveProgram: string | null;
+  loadType: string | null;
+  autoclaveTemperature: number | null;
+  autoclaveCycleTime: number | null;
+  autoclaveCycleNumber: number | null;
+}
+
+export interface SourcePreparationOption {
+  preparationId: number;
+  code: string | null;
+  preparedAt: string | null;
+  expiresAt: string | null;
+  approvalStatus: ApprovalGateStatus | null;
+  usable: boolean;
+  reason: string | null;
+}
+
+export interface ReleasePreparationRequest {
+  approved: boolean;
+  comment?: string | null;
+  password: string;
 }
 
 export interface CompletePreparationRequest {
@@ -187,14 +252,20 @@ export interface RecipeSnapshot {
   phAdjustingEntryId?: number | null;
   phAdjustingEntryCode?: string | null;
   instructions: string;
+  sterilizationRequired?: boolean;
+  releaseRequired?: boolean;
   components?: Array<{
     id: number;
     order: number;
-    materialMasterEntryId: number;
+    kind?: SolutionComponentKind;
+    materialMasterEntryId?: number | null;
     entryCode: string;
     entryName: string;
-    quantity: number;
-    unit: SolutionComponentUnit;
+    quantity?: number | null;
+    unit?: SolutionComponentUnit | null;
+    sourceSolutionMasterId?: number | null;
+    sourceSolutionName?: string | null;
+    text?: string | null;
   }>;
   nominalStrength?: number | null;
   strengthUnit?: "Normal" | "Molar" | null;

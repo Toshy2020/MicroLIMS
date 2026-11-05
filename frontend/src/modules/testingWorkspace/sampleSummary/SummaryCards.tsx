@@ -1,4 +1,5 @@
 import { Box, Typography, Divider, Table, TableHead, TableRow, TableCell, TableBody, Paper, useTheme, TableContainer } from "@mui/material";
+import { withLot } from "../../testPreparation/preparationMaterial";
 import { StatusBadge } from "../../../components/StatusBadge";
 import { brandColors, tableHeadSx } from "../../../theme";
 import { SampleSummary, SampleLocationDetail, IncubationDetail } from "../types/sampleSummaryTypes";
@@ -136,8 +137,8 @@ export function SamplePreparationCard({ preparation: p }: { preparation: NonNull
             <SummaryField label="Washing Volume" value={p.washingVolume ? `${p.washingVolume} mL` : "—"} />
           </>
         )}
-        <SummaryField label="Diluent" value={p.diluent || "—"} />
-        <SummaryField label="Neutralizer" value={p.neutralizer || "—"} />
+        <SummaryField label="Diluent" value={withLot(p.diluent || "—", p.diluentLotCode)} />
+        <SummaryField label="Neutralizer" value={withLot(p.neutralizer || "—", p.neutralizerLotCode)} />
         <SummaryField label="Prepared By" value={p.preparedByName} />
         <SummaryField label="Prepared At" value={formatDate(p.preparedAt)} />
       </Box>

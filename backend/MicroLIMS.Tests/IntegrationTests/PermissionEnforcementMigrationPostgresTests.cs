@@ -30,6 +30,7 @@ public class PermissionEnforcementMigrationPostgresTests
         PermissionConstants.MaterialCategoriesManage,
         PermissionConstants.MaterialsRelease,
         PermissionConstants.SolutionsPrepare,
+        PermissionConstants.SolutionsRelease,
         PermissionConstants.HplcOperate,
         PermissionConstants.WorkingStandardsQualify,
         PermissionConstants.KpiConfigureProfiles,

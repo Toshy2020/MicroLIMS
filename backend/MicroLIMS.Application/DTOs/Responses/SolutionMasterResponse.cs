@@ -3,9 +3,12 @@ using MicroLIMS.Domain.Enums;
 
 namespace MicroLIMS.Application.DTOs.Responses;
 
+// Material lines carry the entry; PreparedSolution lines the source recipe
+// (SourceSolutionName); Text lines only Text. Quantity/Unit are null for Text.
 public record SolutionComponentResponse(
-    int Id, int Order, int MaterialMasterEntryId, string EntryCode, string EntryName,
-    decimal Quantity, SolutionComponentUnit Unit);
+    int Id, int Order, SolutionComponentKind Kind, int? MaterialMasterEntryId, string EntryCode, string EntryName,
+    decimal? Quantity, SolutionComponentUnit? Unit,
+    int? SourceSolutionMasterId = null, string? SourceSolutionName = null, string? Text = null);
 
 public class SolutionMasterResponse
 {
@@ -25,6 +28,8 @@ public class SolutionMasterResponse
     public string? PhAdjustingEntryCode { get; init; }
     public string Instructions { get; init; } = null!;
     public bool IsActive { get; init; }
+    public bool SterilizationRequired { get; init; }
+    public bool ReleaseRequired { get; init; }
     public List<SolutionComponentResponse> Components { get; init; } = new();
 
     public decimal? NominalStrength { get; init; }
@@ -65,13 +70,16 @@ public class SolutionMasterResponse
         PhAdjustingEntryCode = s.PhAdjustingEntry?.Code,
         Instructions = s.Instructions,
         IsActive = s.IsActive,
+        SterilizationRequired = s.SterilizationRequired,
+        ReleaseRequired = s.ReleaseRequired,
         Components = s.Components
             .OrderBy(c => c.Order)
             .Select(c => new SolutionComponentResponse(
-                c.Id, c.Order, c.MaterialMasterEntryId,
+                c.Id, c.Order, c.Kind, c.MaterialMasterEntryId,
                 c.MaterialMasterEntry?.Code ?? string.Empty,
                 c.MaterialMasterEntry?.Name ?? string.Empty,
-                c.Quantity, c.Unit))
+                c.Quantity, c.Unit,
+                c.SourceSolutionMasterId, c.SourceSolutionMaster?.Name, c.Text))
             .ToList(),
         NominalStrength = s.NominalStrength,
         StrengthUnit = s.StrengthUnit,

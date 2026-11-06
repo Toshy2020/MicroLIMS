@@ -1,0 +1,690 @@
+{
+  "_meta": {
+    "group": "g06",
+    "materials": [
+      "Caco3 MD",
+      "STM-RM-080",
+      "STM-RM-141",
+      "STM-RM-073",
+      "STM-RM-035"
+    ]
+  },
+  "testDefinitions": [
+    {
+      "code": "RM-RELDEN-080",
+      "displayName": "Relative density (pycnometer, Mint Flavor)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Measurement",
+      "equationType": "Measurement",
+      "physchemArea": "RawPackaging",
+      "replicateCount": 1,
+      "evaluationBasis": "Mean",
+      "complete": true,
+      "notes": "Relative density by pycnometer: weigh dry empty pycnometer (W1), fill with water and weigh (W2), fill with sample and weigh (W3). Relative density = (W3 - W1) / (W2 - W1). BP Appendix V G (source: Mint Flavor__STM Mint Flavor 1-3.txt:32).",
+      "usedBy": [
+        "STM-RM-080"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-080",
+          "provisionalCode": "RM-RELDEN",
+          "source": "Mint Flavor__STM Mint Flavor 1-3.txt:32"
+        }
+      ]
+    },
+    {
+      "code": "RM-REFIDX-080",
+      "displayName": "Refractive index (Mint Flavor)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Measurement",
+      "equationType": "Measurement",
+      "physchemArea": "RawPackaging",
+      "replicateCount": 1,
+      "evaluationBasis": "Mean",
+      "complete": true,
+      "notes": "Transfer sample to prism of calibrated refractometer and read refractive index on the scale. BP Appendix V E (source: Mint Flavor__STM Mint Flavor 1-3.txt:33).",
+      "usedBy": [
+        "STM-RM-080"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-080",
+          "provisionalCode": "RM-REFIDX",
+          "source": "Mint Flavor__STM Mint Flavor 1-3.txt:33"
+        }
+      ]
+    },
+    {
+      "code": "RM-AV-080",
+      "displayName": "Acid value (Mint Flavor)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Measurement",
+      "equationType": "Measurement",
+      "physchemArea": "RawPackaging",
+      "replicateCount": 1,
+      "evaluationBasis": "Mean",
+      "complete": true,
+      "notes": "Dissolve ~5.00 g (W) in 50 mL neutralised ethanol (96%) : light petroleum (1:1), add 0.5 mL phenolphthalein solution R1, titrate with 0.1 M KOH or 0.1 M NaOH until pink colour persists at least 15 s (n mL titrant). Acid value = 5.61 x n / W. Measurement test, analyst enters calculated acid value (mg KOH/g, not calculated by % titration workflow; CATALOG.md rule 6; source: Mint Flavor__STM Mint Flavor 1-3.txt:35).",
+      "usedBy": [
+        "STM-RM-080"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-080",
+          "provisionalCode": "RM-ACIDVAL",
+          "source": "Mint Flavor__STM Mint Flavor 1-3.txt:35"
+        }
+      ]
+    },
+    {
+      "code": "RM-ID-CU-141",
+      "displayName": "Identification (copper sulfate reaction, D-Panthenol)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Qualitative",
+      "equationType": "Qualitative",
+      "physchemArea": "RawPackaging",
+      "complete": true,
+      "notes": "Sample solution 100 mg/mL. To 1 mL add 5 mL 1 N NaOH and 1 drop cupric sulfate TS; shake vigorously: deep blue colour develops. USP Monograph for Dexpanthenol (source: Panthenol__Panthenol - SM 1.txt:30).",
+      "usedBy": [
+        "STM-RM-141"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-141",
+          "provisionalCode": "RM-ID-CU-PANT",
+          "source": "Panthenol__Panthenol - SM 1.txt:30"
+        }
+      ]
+    },
+    {
+      "code": "RM-ID-HYD-141",
+      "displayName": "Identification (hydroxylamine and ferric chloride reaction, D-Panthenol)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Qualitative",
+      "equationType": "Qualitative",
+      "physchemArea": "RawPackaging",
+      "complete": true,
+      "notes": "Sample solution 10 mg/mL. To 1 mL add 1 mL 1 N HCl, heat on steam bath 30 min, cool, add 100 mg hydroxylamine hydrochloride and 5 mL 1 N NaOH, stand 5 min, adjust to pH 2.5-3.0 with 1 N HCl, add 1 drop ferric chloride TS: purplish red colour develops. USP Monograph for Dexpanthenol (source: Panthenol__Panthenol - SM 1.txt:30).",
+      "usedBy": [
+        "STM-RM-141"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-141",
+          "provisionalCode": "RM-ID-HYDROX-PANT",
+          "source": "Panthenol__Panthenol - SM 1.txt:30"
+        }
+      ]
+    },
+    {
+      "code": "RM-TIT-AMINOPROP-141",
+      "displayName": "Limit of aminopropanol (D-Panthenol)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Titration",
+      "equationType": "Titration",
+      "physchemArea": "RawPackaging",
+      "titrationType": "AcidBase",
+      "titrationMode": "Direct",
+      "titrationEndpoint": "Visual",
+      "titrantSolution": "0.01 N Sulfuric acid VS",
+      "titrationBlankRequired": true,
+      "titrationEquivalencyFactor": 75.11,
+      "titrationEquivalencyFactorDerivation": "stated: equivalency factor F = 75.11 mg/mEq",
+      "titrationIndicatorEntry": "Bromothymol blue TS",
+      "replicateCount": 1,
+      "titrationCalculation": "UspFactor",
+      "complete": true,
+      "notes": "Dissolve 5 g sample in 10 mL water, add bromothymol blue TS, titrate with 0.01 N sulfuric acid VS to yellow endpoint. Blank determination with 10 mL water. Result % = [((VS - VB) x N x F) / W] x 100; F = 75.11 mg/mEq; W = sample weight in mg. USP <541> Titrimetry (source: Panthenol__Panthenol - SM 1.txt:31).",
+      "usedBy": [
+        "STM-RM-141"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-141",
+          "provisionalCode": "RM-TIT-AMINOPROP-PANT",
+          "source": "Panthenol__Panthenol - SM 1.txt:31"
+        }
+      ]
+    },
+    {
+      "code": "RM-REFIDX-141",
+      "displayName": "Refractive index (D-Panthenol)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Measurement",
+      "equationType": "Measurement",
+      "physchemArea": "RawPackaging",
+      "replicateCount": 1,
+      "evaluationBasis": "Mean",
+      "complete": true,
+      "notes": "Determine on sufficient amount of sample with calibrated refractometer. USP <831> Refractive Index (source: Panthenol__Panthenol - SM 1.txt:35).",
+      "usedBy": [
+        "STM-RM-141"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-141",
+          "provisionalCode": "RM-REFIDX",
+          "source": "Panthenol__Panthenol - SM 1.txt:35"
+        }
+      ]
+    },
+    {
+      "code": "RM-TIT-PANT-141",
+      "displayName": "Assay of D-Panthenol (residual non-aqueous titration)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Titration",
+      "equationType": "Titration",
+      "physchemArea": "RawPackaging",
+      "titrationType": "AcidBase",
+      "titrationNonAqueous": true,
+      "titrationMode": "Residual",
+      "titrationEndpoint": "Visual",
+      "titrantSolution": "0.1 M Potassium biphthalate VS",
+      "titrationExcessSolution": "0.1 M Perchloric acid VS",
+      "titrationExcessVolumeMl": 50.0,
+      "titrationBlankRequired": true,
+      "titrationEquivalencyFactor": 205.3,
+      "titrationEquivalencyFactorDerivation": "stated: equivalency factor F = 205.3 mg/M (mg/mmol)",
+      "titrationIndicatorEntry": "Crystal violet solution",
+      "replicateCount": 1,
+      "titrationCalculation": "UspFactor",
+      "complete": true,
+      "notes": "400 mg sample in 300-mL flask + 50.0 mL 0.1 N perchloric acid VS, reflux 5 h, cool, rinse condenser with glacial acetic acid, add 5 drops crystal violet TS, back-titrate with 0.1 M potassium biphthalate to blue-green endpoint. Blank determination without sample. Result % = {[(VB - VS) x M x F] / [W x (100 - WC)]} x 100 x 100; F = 205.3 mg/M; W in mg; WC = water content (anhydrous basis row). USP <541> Titrimetry. Note: titrant 0.1 M Potassium biphthalate VS is complete: false (no standardization procedure stated in STM; source: Panthenol__Panthenol - SM 1.txt:36).",
+      "usedBy": [
+        "STM-RM-141"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-141",
+          "provisionalCode": "RM-TIT-PANT",
+          "source": "Panthenol__Panthenol - SM 1.txt:36"
+        }
+      ]
+    },
+    {
+      "code": "RM-DISP-073",
+      "displayName": "Dispersion (Opadry White)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Qualitative",
+      "equationType": "Qualitative",
+      "physchemArea": "RawPackaging",
+      "complete": true,
+      "notes": "Disperse 1 g into 20 mL water; sample should diffuse into water and make uniform matrix (source: Opadry White__STM Opadry White new without micro.txt:29).",
+      "usedBy": [
+        "STM-RM-073"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-073",
+          "provisionalCode": "RM-DISP-OPADRYWHITE",
+          "source": "Opadry White__STM Opadry White new without micro.txt:29"
+        }
+      ]
+    },
+    {
+      "code": "RM-ID-FILM-073",
+      "displayName": "Identification (Film formation, Opadry White)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Qualitative",
+      "equationType": "Qualitative",
+      "physchemArea": "RawPackaging",
+      "complete": true,
+      "notes": "Make a slurry of powder in equal-volume mixture of isopropyl alcohol and dichloromethane, pour onto glass tile and dry; film must form (source: Opadry White__STM Opadry White new without micro.txt:30).",
+      "usedBy": [
+        "STM-RM-073"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-073",
+          "provisionalCode": "RM-ID-FILM-OPADRYWHITE",
+          "source": "Opadry White__STM Opadry White new without micro.txt:30"
+        }
+      ]
+    },
+    {
+      "code": "RM-ASH-073",
+      "displayName": "Ash content (Total ash, Opadry White)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Gravimetric",
+      "equationType": "GravimetricResidue",
+      "physchemArea": "RawPackaging",
+      "replicateCount": 1,
+      "usesTare": true,
+      "complete": true,
+      "notes": "Empty crucible previously ignited at 800 °C (W1); weigh ~1.0 g sample (W2); ignite in muffle at 800 ± 50 °C for 2 h; cool in desiccator; weigh crucible with residue (W4). Total ash % = (W4 - W1) / W2 x 100 (formula as written in STM: total ash = W2 - W3 where W3 = W4 - W1; source: Opadry White__STM Opadry White new without micro.txt:31).",
+      "usedBy": [
+        "STM-RM-073"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-073",
+          "provisionalCode": "RM-ASH-OPADRYWHITE",
+          "source": "Opadry White__STM Opadry White new without micro.txt:31"
+        }
+      ]
+    },
+    {
+      "code": "RM-ID-PH-035",
+      "displayName": "Identification (pH of solution, Citric Acid Monohydrate)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Qualitative",
+      "equationType": "Qualitative",
+      "physchemArea": "RawPackaging",
+      "complete": true,
+      "notes": "Dissolve 1.0 g in 10 mL water: solution is strongly acidic. BP Monograph for Citric Acid Monohydrate (source: Citric acid Monohydarte__Citric acid Monohydarte -SM.txt:29).",
+      "usedBy": [
+        "STM-RM-035"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-035",
+          "provisionalCode": "RM-ID-PH-CITRIC",
+          "source": "Citric acid Monohydarte__Citric acid Monohydarte -SM.txt:29"
+        }
+      ]
+    },
+    {
+      "code": "RM-ID-PYR-035",
+      "displayName": "Identification (reaction with acetic anhydride and pyridine, Citric Acid Monohydrate)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Qualitative",
+      "equationType": "Qualitative",
+      "physchemArea": "RawPackaging",
+      "complete": true,
+      "notes": "Add ~5 mg to a mixture of 1 mL acetic anhydride and 3 mL pyridine: red colour develops. BP Monograph for Citric Acid Monohydrate (source: Citric acid Monohydarte__Citric acid Monohydarte -SM.txt:29).",
+      "usedBy": [
+        "STM-RM-035"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-035",
+          "provisionalCode": "RM-ID-PYR-CITRIC",
+          "source": "Citric acid Monohydarte__Citric acid Monohydarte -SM.txt:29"
+        }
+      ]
+    },
+    {
+      "code": "RM-ID-CA-035",
+      "displayName": "Identification (calcium chloride precipitation, Citric Acid Monohydrate)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Qualitative",
+      "equationType": "Qualitative",
+      "physchemArea": "RawPackaging",
+      "complete": true,
+      "notes": "Dissolve 0.5 g in 5 mL water, neutralise with 1 M NaOH (~7 mL), add 10 mL calcium chloride solution: remains clear. Boil: white precipitate forms, soluble in dilute HCl. BP Monograph for Citric Acid Monohydrate (source: Citric acid Monohydarte__Citric acid Monohydarte -SM.txt:29).",
+      "usedBy": [
+        "STM-RM-035"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-035",
+          "provisionalCode": "RM-ID-CA-CITRIC",
+          "source": "Citric acid Monohydarte__Citric acid Monohydarte -SM.txt:29"
+        }
+      ]
+    },
+    {
+      "code": "RM-RCS-035",
+      "displayName": "Readily carbonisable substances (Citric Acid Monohydrate)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Qualitative",
+      "equationType": "Qualitative",
+      "physchemArea": "RawPackaging",
+      "complete": true,
+      "notes": "To 1.0 g in test tube add 10 mL sulfuric acid, heat in water bath at 90 ± 1 °C for 60 min, cool rapidly. Solution is not more intensely coloured than a mixture of 1 mL red primary solution and 9 mL yellow primary solution. BP Appendix IV B (source: Citric acid Monohydarte__Citric acid Monohydarte -SM.txt:32).",
+      "usedBy": [
+        "STM-RM-035"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-035",
+          "provisionalCode": "RM-RCS-CITRIC",
+          "source": "Citric acid Monohydarte__Citric acid Monohydarte -SM.txt:32"
+        }
+      ]
+    },
+    {
+      "code": "RM-LT-OXAL-035",
+      "displayName": "Oxalic acid (limit test, Citric Acid Monohydrate)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Qualitative",
+      "equationType": "Qualitative",
+      "physchemArea": "RawPackaging",
+      "complete": true,
+      "notes": "0.80 g in 4 mL water + 3 mL HCl + 1 g zinc granules, boil 1 min, stand 2 min; supernatant to 0.25 mL of 10 g/L phenylhydrazine hydrochloride, boil, cool, add equal volume HCl + 0.25 mL 50 g/L potassium ferricyanide, stand 30 min. Any pink colour not more intense than 4 mL 0.1 g/L oxalic acid treated same way (NMT 360 ppm). BP Appendix VII (source: Citric acid Monohydarte__Citric acid Monohydarte -SM.txt:34).",
+      "usedBy": [
+        "STM-RM-035"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-035",
+          "provisionalCode": "RM-LT-OXAL-CITRIC",
+          "source": "Citric acid Monohydarte__Citric acid Monohydarte -SM.txt:34"
+        }
+      ]
+    },
+    {
+      "code": "RM-TIT-CITRIC-035",
+      "displayName": "Assay of Citric Acid Monohydrate (acid-base titration)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Titration",
+      "equationType": "Titration",
+      "physchemArea": "RawPackaging",
+      "titrationType": "AcidBase",
+      "titrationMode": "Direct",
+      "titrationEndpoint": "Visual",
+      "titrantSolution": "1 M Sodium hydroxide VS",
+      "titrationBlankRequired": false,
+      "titrationEquivalencyFactor": 64.03,
+      "titrationEquivalencyFactorDerivation": "stated: 1 mL 1 M NaOH = 64.03 mg C6H8O7 / 1 = 64.03 mg/mmol",
+      "titrationIndicatorEntry": "Phenolphthalein solution",
+      "replicateCount": 1,
+      "titrationCalculation": "UspFactor",
+      "complete": true,
+      "notes": "0.550 g in 50 mL water, titrate with 1 M sodium hydroxide VS using 0.5 mL phenolphthalein solution as indicator. 1 mL 1 M NaOH = 64.03 mg C6H8O7. Result calculated on anhydrous basis using water content WC: (E.P x eq.wt x F x 100 x 100) / [Wt x (100 - WC)]. BP 2024 Monograph for Citric Acid Monohydrate (source: Citric acid Monohydarte__Citric acid Monohydarte -SM.txt:37).",
+      "usedBy": [
+        "STM-RM-035"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-035",
+          "provisionalCode": "RM-TIT-CITRIC",
+          "source": "Citric acid Monohydarte__Citric acid Monohydarte -SM.txt:37"
+        }
+      ]
+    },
+    {
+      "code": "RM-ALU-035",
+      "displayName": "Aluminium (Citric Acid Monohydrate)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Qualitative",
+      "equationType": "Qualitative",
+      "physchemArea": "RawPackaging",
+      "complete": true,
+      "notes": "Exists only so the not-applicable record can name it; no specification rows. Not-applicable justification: Use in the manufacture of dialysis solutions (source: Citric acid Monohydarte__Not applicable For Citric acid Monohydarte.txt:2).",
+      "usedBy": [
+        "STM-RM-035"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-035",
+          "provisionalCode": "RM-ALU",
+          "source": "Citric acid Monohydarte__Not applicable For Citric acid Monohydarte.txt:2"
+        }
+      ]
+    }
+  ],
+  "solutions": [
+    {
+      "name": "0.1 M Potassium biphthalate VS",
+      "type": "Titrant",
+      "section": "Physicochemical Laboratory",
+      "nominalStrength": 0.1,
+      "strengthUnit": "Molar",
+      "finalVolumeMl": 1000,
+      "instructions": "Transfer 20.42 g of potassium biphthalate into a 1000-mL volumetric flask and add sufficient glacial acetic acid to dissolve. Cool to room temperature, and dilute with glacial acetic acid to volume.",
+      "components": [
+        {
+          "entry": "Potassium biphthalate",
+          "quantity": 20.42,
+          "unit": "Gram"
+        }
+      ],
+      "waterToVolume": false,
+      "standardizationMode": null,
+      "standardEntry": null,
+      "equivalenceMgPerMl": null,
+      "referenceSolution": null,
+      "usedBy": [
+        "STM-RM-141"
+      ],
+      "notes": "Transfer 20.42 g potassium biphthalate into a 1000-mL volumetric flask, dissolve in and dilute to volume with glacial acetic acid. Used as back-titrant in Dexpanthenol assay. Complete: false because STM states no standardization procedure (prepared directly from primary standard), shelf life, or storage condition (source: Panthenol__Panthenol - SM 1.txt:26).",
+      "complete": false,
+      "missing": [
+        "standardizationMode: no standardization procedure stated in STM (prepared directly from primary standard)",
+        "shelfLife: not stated in STM",
+        "storageCondition: not stated in STM"
+      ]
+    },
+    {
+      "name": "1 M Sodium hydroxide VS",
+      "type": "Titrant",
+      "section": "Physicochemical Laboratory",
+      "nominalStrength": 1.0,
+      "strengthUnit": "Molar",
+      "finalVolumeMl": 1000,
+      "instructions": "Dissolve 42 g of sodium hydroxide in carbon dioxide-free water and dilute to 1000.0 mL with the same solvent. Standardize against 1.50 g of potassium hydrogen phthalate in 50 mL of water, using 0.1 mL of phenolphthalein solution as indicator (1 mL 1 M NaOH = 204.2 mg potassium hydrogen phthalate).",
+      "components": [
+        {
+          "entry": "Sodium hydroxide",
+          "quantity": 42.0,
+          "unit": "Gram"
+        }
+      ],
+      "waterToVolume": true,
+      "standardizationMode": "PrimaryStandard",
+      "standardEntry": "Potassium hydrogen phthalate",
+      "equivalenceMgPerMl": 204.2,
+      "referenceSolution": null,
+      "usedBy": [
+        "STM-RM-035"
+      ],
+      "notes": "42 g sodium hydroxide dissolved in carbon dioxide-free water to 1000.0 mL. Standardized against 1.50 g potassium hydrogen phthalate in 50 mL water, 0.1 mL phenolphthalein solution (1 mL 1 M NaOH = 204.2 mg KHP). House defaults applied: 3 replicates, factor 0.98-1.02 for 1 M titrant, max RSD 0.2 %, validity 30 days, shelf life 30 days, storage condition \"Tightly closed, room temperature\" (source: Citric acid Monohydarte__Citric acid Monohydarte -SM.txt:26).",
+      "complete": true,
+      "shelfLifeValue": 30,
+      "shelfLifeUnit": "Days",
+      "storageCondition": "Tightly closed, room temperature",
+      "replicateCount": 3,
+      "maxRsdPercent": 0.2,
+      "validityDays": 30,
+      "blankRequired": false,
+      "factorMin": 0.98,
+      "factorMax": 1.02
+    }
+  ],
+  "hplcMethods": [],
+  "icpMethods": [],
+  "materialEntries": [
+    {
+      "name": "Bromothymol blue TS",
+      "category": "Indicator",
+      "codePrefix": "IND-",
+      "code": null,
+      "baseUnit": "Bottle",
+      "usedBy": [
+        "RM-TIT-AMINOPROP-141"
+      ],
+      "source": "Panthenol__Panthenol - SM 1.txt:26",
+      "loadedObjectNeedsIt": true
+    },
+    {
+      "name": "Potassium biphthalate",
+      "category": "PrimaryStandard",
+      "codePrefix": "PS-",
+      "code": null,
+      "baseUnit": "Gram",
+      "usedBy": [
+        "0.1 M Potassium biphthalate VS"
+      ],
+      "source": "Panthenol__Panthenol - SM 1.txt:26",
+      "loadedObjectNeedsIt": true
+    },
+    {
+      "name": "D-Panthenol RS",
+      "category": "ReferenceStandard",
+      "codePrefix": "RS-",
+      "code": null,
+      "baseUnit": "Gram",
+      "usedBy": [
+        "STM-RM-141"
+      ],
+      "source": "Panthenol__Panthenol - SM 1.txt:26,30",
+      "loadedObjectNeedsIt": false
+    },
+    {
+      "name": "Sodium hydroxide",
+      "category": "Reagent",
+      "codePrefix": "RG-",
+      "code": null,
+      "baseUnit": "Gram",
+      "usedBy": [
+        "1 M Sodium hydroxide VS"
+      ],
+      "source": "Citric acid Monohydarte__Citric acid Monohydarte -SM.txt:26",
+      "loadedObjectNeedsIt": true
+    },
+    {
+      "name": "Potassium hydrogen phthalate",
+      "category": "PrimaryStandard",
+      "codePrefix": "PS-",
+      "code": null,
+      "baseUnit": "Gram",
+      "usedBy": [
+        "1 M Sodium hydroxide VS"
+      ],
+      "source": "Citric acid Monohydarte__Citric acid Monohydarte -SM.txt:26",
+      "loadedObjectNeedsIt": true
+    },
+    {
+      "name": "Phenolphthalein solution",
+      "category": "Indicator",
+      "codePrefix": "IND-",
+      "code": null,
+      "baseUnit": "Bottle",
+      "usedBy": [
+        "RM-TIT-CITRIC-035",
+        "1 M Sodium hydroxide VS"
+      ],
+      "source": "Citric acid Monohydarte__Citric acid Monohydarte -SM.txt:26",
+      "loadedObjectNeedsIt": true
+    },
+    {
+      "name": "Citric acid Monohydrate CRS",
+      "category": "ReferenceStandard",
+      "codePrefix": "RS-",
+      "code": null,
+      "baseUnit": "Gram",
+      "usedBy": [
+        "STM-RM-035"
+      ],
+      "source": "Citric acid Monohydarte__Citric acid Monohydarte -SM.txt:26",
+      "loadedObjectNeedsIt": false
+    },
+    {
+      "name": "Oxalic acid",
+      "category": "ReferenceStandard",
+      "codePrefix": "RS-",
+      "code": null,
+      "baseUnit": "Gram",
+      "usedBy": [
+        "RM-LT-OXAL-035"
+      ],
+      "source": "Citric acid Monohydarte__Citric acid Monohydarte -SM.txt:26,34",
+      "loadedObjectNeedsIt": false
+    },
+    {
+      "name": "Dipotassium sulfate",
+      "category": "ReferenceStandard",
+      "codePrefix": "RS-",
+      "code": null,
+      "baseUnit": "Gram",
+      "usedBy": [
+        "STM-RM-035"
+      ],
+      "source": "Citric acid Monohydarte__Citric acid Monohydarte -SM.txt:26,33",
+      "loadedObjectNeedsIt": false
+    }
+  ],
+  "reagentLinks": [],
+  "mapping": {
+    "Caco3 MD": {
+      "RM-DESC": "RM-DESC",
+      "RM-SOLUB": "RM-SOLUB",
+      "RM-ID-CARB-CACO3MD": "RM-ID-CO3",
+      "RM-ID-CA-CACO3MD": "RM-ID-CA",
+      "RM-INSOL": "RM-ACIDINS-CA",
+      "RM-LT-HM": "RM-LT-HM",
+      "RM-LOD": "RM-LOD",
+      "RM-TAPDEN": "RM-TAPDEN",
+      "RM-TIT-CA-CACO3MD": "RM-TIT-CADC-142"
+    },
+    "STM-RM-080": {
+      "RM-DESC": "RM-DESC",
+      "RM-SOLUB": "RM-SOLUB",
+      "RM-RELDEN": "RM-RELDEN-080",
+      "RM-REFIDX": "RM-REFIDX-080",
+      "RM-OPTROT": "RM-OPTROT",
+      "RM-ACIDVAL": "RM-AV-080",
+      "TAMC": "TAMC",
+      "TYMC": "TYMC",
+      "E.coli": "E.coli",
+      "Salmonella ": "Salmonella "
+    },
+    "STM-RM-141": {
+      "RM-DESC": "RM-DESC",
+      "RM-SOLUB": "RM-SOLUB",
+      "RM-ID-IR": "RM-ID-IR",
+      "RM-ID-CU-PANT": "RM-ID-CU-141",
+      "RM-ID-HYDROX-PANT": "RM-ID-HYD-141",
+      "RM-TIT-AMINOPROP-PANT": "RM-TIT-AMINOPROP-141",
+      "RM-SASH": "RM-SASH",
+      "RM-OPTROT": "RM-OPTROT",
+      "RM-KF": "RM-KF",
+      "RM-REFIDX": "RM-REFIDX-141",
+      "RM-TIT-PANT": "RM-TIT-PANT-141"
+    },
+    "STM-RM-073": {
+      "RM-DESC": "RM-DESC",
+      "RM-DISP-OPADRYWHITE": "RM-DISP-073",
+      "RM-ID-FILM-OPADRYWHITE": "RM-ID-FILM-073",
+      "RM-ASH-OPADRYWHITE": "RM-ASH-073",
+      "TAMC": "TAMC",
+      "TYMC": "TYMC",
+      "E.coli": "E.coli"
+    },
+    "STM-RM-035": {
+      "RM-DESC": "RM-DESC",
+      "RM-SOLUB": "RM-SOLUB",
+      "RM-ID-PH-CITRIC": "RM-ID-PH-035",
+      "RM-ID-IR": "RM-ID-IR",
+      "RM-ID-PYR-CITRIC": "RM-ID-PYR-035",
+      "RM-ID-CA-CITRIC": "RM-ID-CA-035",
+      "RM-SOLAPP": "RM-SOLAPP",
+      "RM-RCS-CITRIC": "RM-RCS-035",
+      "RM-LT-SO4": "RM-LT-SO4",
+      "RM-LT-OXAL-CITRIC": "RM-LT-OXAL-035",
+      "RM-KF": "RM-KF",
+      "RM-SASH": "RM-SASH",
+      "RM-TIT-CITRIC": "RM-TIT-CITRIC-035",
+      "TAMC": "TAMC",
+      "TYMC": "TYMC",
+      "E.coli": "E.coli",
+      "RM-ALU": "RM-ALU-035"
+    }
+  },
+  "gaps": [
+    {
+      "material": "STM-RM-141",
+      "test": "0.1 M Potassium biphthalate VS",
+      "missing": "standardizationMode: no standardization procedure stated in STM (prepared directly from primary standard); shelfLife, storageCondition not stated"
+    }
+  ]
+}

@@ -1,0 +1,454 @@
+{
+  "testDefinitions": [
+    {
+      "code": "RM-UV-002",
+      "displayName": "Identification and absorbance (UV, Lemon Oil)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Measurement",
+      "equationType": "Measurement",
+      "physchemArea": "RawPackaging",
+      "replicateCount": 1,
+      "evaluationBasis": "Mean",
+      "complete": true,
+      "notes": "Dilute 0.250 g to 100.0 mL with ethanol (96 per cent). Measure absorbance from 260 nm to 400 nm; plot curve; draw baseline tangent AB; maximum C at 315 +/- 3 nm; drop perpendicular from C to AB at D; value = absorbance C - D (limit 0.20 to 0.96). Geometric baseline subtraction is performed graphically; analyst enters the final calculated C - D value per CATALOG.md rule 6 (BP Appendix II B). Sources: Lemon Oil__1-1_STM Lemon Oil.txt:29, 33.",
+      "usedBy": [
+        "STM-RM-002"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-002",
+          "provisionalCode": "RM-UV-LEMON",
+          "source": "Lemon Oil__1-1_STM Lemon Oil.txt:29, 33"
+        }
+      ]
+    },
+    {
+      "code": "RM-REFR-002",
+      "displayName": "Refractive index (Lemon Oil)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Measurement",
+      "equationType": "Measurement",
+      "physchemArea": "RawPackaging",
+      "replicateCount": 1,
+      "evaluationBasis": "Mean",
+      "complete": true,
+      "notes": "Determine on 5 mL sample with a calibrated refractometer (limit 1.473 to 1.476). (BP Appendix V E). Source: Lemon Oil__1-1_STM Lemon Oil.txt:30.",
+      "usedBy": [
+        "STM-RM-002"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-002",
+          "provisionalCode": "RM-REFR-LEMON",
+          "source": "Lemon Oil__1-1_STM Lemon Oil.txt:30"
+        }
+      ]
+    },
+    {
+      "code": "RM-RELDENS-002",
+      "displayName": "Relative density (Lemon Oil)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Measurement",
+      "equationType": "Measurement",
+      "physchemArea": "RawPackaging",
+      "replicateCount": 1,
+      "evaluationBasis": "Mean",
+      "complete": true,
+      "notes": "Pycnometer method: (Wt3 - Wt1) / (Wt2 - Wt1) (limit 0.850 to 0.858). Analyst enters calculated relative density value. (BP Appendix V G). Source: Lemon Oil__1-1_STM Lemon Oil.txt:32.",
+      "usedBy": [
+        "STM-RM-002"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-002",
+          "provisionalCode": "RM-DENS-LEMON",
+          "source": "Lemon Oil__1-1_STM Lemon Oil.txt:32"
+        }
+      ]
+    },
+    {
+      "code": "RM-FATTY-002",
+      "displayName": "Fatty oils and resinified essential oils (Lemon Oil)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Qualitative",
+      "equationType": "Qualitative",
+      "physchemArea": "RawPackaging",
+      "complete": true,
+      "notes": "Allow 1 drop of the essential oil to fall onto filter paper; the drop evaporates completely within 24 h without leaving any translucent or greasy spot. (BP Appendix X M). Source: Lemon Oil__1-1_STM Lemon Oil.txt:34.",
+      "usedBy": [
+        "STM-RM-002"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-002",
+          "provisionalCode": "RM-FATTY-LEMON",
+          "source": "Lemon Oil__1-1_STM Lemon Oil.txt:34"
+        }
+      ]
+    },
+    {
+      "code": "RM-RESEV-002",
+      "displayName": "Residue on evaporation (Lemon Oil)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Gravimetric",
+      "equationType": "GravimetricResidue",
+      "physchemArea": "RawPackaging",
+      "replicateCount": 1,
+      "usesTare": true,
+      "complete": true,
+      "notes": "Dried beaker weighed (Wt1); 20 mL sample introduced and weighed (Wt2); heated on water bath for 4 h; cooled; beaker with residue weighed (Wt3). Residue (%) = (Wt3 - Wt1) / (Wt2 - Wt1) x 100 (limit 1.8% to 3.6%). (BP Appendix X M). Source: Lemon Oil__1-1_STM Lemon Oil.txt:35.",
+      "usedBy": [
+        "STM-RM-002"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-002",
+          "provisionalCode": "RM-RESEV-LEMON",
+          "source": "Lemon Oil__1-1_STM Lemon Oil.txt:35"
+        }
+      ]
+    },
+    {
+      "code": "RM-GC-002",
+      "displayName": "Chromatographic profile (GC, Lemon Oil)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Qualitative",
+      "equationType": "Qualitative",
+      "physchemArea": "RawPackaging",
+      "complete": true,
+      "notes": "Exists only so the not-applicable record can name it; no specification rows. Not-applicable justification: No Gas chromatography (source: Lemon Oil__Not applicable For Lemon Oil.txt:2).",
+      "usedBy": [
+        "STM-RM-002"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-002",
+          "provisionalCode": "RM-GC-LEMON",
+          "source": "Lemon Oil__Not applicable For Lemon Oil.txt:2"
+        }
+      ]
+    },
+    {
+      "code": "RM-ID-TLC-002",
+      "displayName": "Identification by thin layer chromatography (Lemon Oil)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Qualitative",
+      "equationType": "Qualitative",
+      "physchemArea": "RawPackaging",
+      "complete": true,
+      "notes": "Exists only so the not-applicable record can name it; no specification rows. Not-applicable justification: Reagent not available; second method for identification used (source: Lemon Oil__Not applicable For Lemon Oil.txt:3).",
+      "usedBy": [
+        "STM-RM-002"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-002",
+          "provisionalCode": "RM-ID-TLC-LEMON",
+          "source": "Lemon Oil__Not applicable For Lemon Oil.txt:3"
+        }
+      ]
+    },
+    {
+      "code": "RM-ID-MB-085",
+      "displayName": "Identification of Croscarmellose Sodium (adsorption of methylene blue)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Qualitative",
+      "equationType": "Qualitative",
+      "physchemArea": "RawPackaging",
+      "complete": true,
+      "notes": "Mix 1 g sample with 100 mL of 4 ppm (1 in 250,000) methylene blue solution, stir, and allow to settle. The sample absorbs methylene blue and settles as a blue, fibrous mass (BP 2024 / USP 2024). Source: Croscarmellose Sodium__STM Croscarmellose Sodium.txt:32.",
+      "usedBy": [
+        "STM-RM-085"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-085",
+          "provisionalCode": "RM-ID-MB-CMC",
+          "source": "Croscarmellose Sodium__STM Croscarmellose Sodium.txt:32"
+        }
+      ]
+    },
+    {
+      "code": "RM-WSS-085",
+      "displayName": "Water-soluble substances (Croscarmellose Sodium)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Measurement",
+      "equationType": "Measurement",
+      "physchemArea": "RawPackaging",
+      "replicateCount": 1,
+      "evaluationBasis": "Mean",
+      "complete": true,
+      "notes": "Disperse 10.00 g in 800.0 mL water (W1), stir 1 min every 10 min for first 30 min, stand 1 h, decant 200.0 mL, filter, collect 150.0 mL filtrate into tared 250 mL beaker (W2), evaporate to dryness, dry residue at 100-105 °C for 4 h, weigh (W3). Formula: ((W3 - W2) x 100 x 100) / (W1 x (100 - LOD)). Calculation includes aliquot ratio and LOD correction which the gravimetric workflow cannot compute; analyst enters final percentage value per CATALOG.md rule 6 (BP 2024 Monograph / USP 2024). Source: Croscarmellose Sodium__STM Croscarmellose Sodium.txt:34.",
+      "usedBy": [
+        "STM-RM-085"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-085",
+          "provisionalCode": "RM-WSS-CMC",
+          "source": "Croscarmellose Sodium__STM Croscarmellose Sodium.txt:34"
+        }
+      ]
+    },
+    {
+      "code": "RM-DS-085",
+      "displayName": "Degree of substitution (Croscarmellose Sodium)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Measurement",
+      "equationType": "Measurement",
+      "physchemArea": "RawPackaging",
+      "replicateCount": 1,
+      "evaluationBasis": "Mean",
+      "complete": true,
+      "notes": "1.000 g in 300 mL 100 g/L NaCl + 25.0 mL 0.1 M NaOH, stand 5 min, add 0.25 mL m-cresol purple, add ~15 mL 0.1 M HCl, then 1 mL portions of 0.1 M HCl to yellow. Titrate with 0.1 M NaOH to violet. Milliequivalents M of base; acid substitution A = 1150*M/(7102 - 412*M - 80*C); sodium substitution S = (162 + 58*A)*C/(7102 - 80*C), where C is sulfated ash %; degree of substitution = A + S (limit 0.60 to 0.85 on dried basis). Calculation involves multi-stage back-titration and multi-variable equation; analyst enters final degree of substitution value per CATALOG.md rule 6 (BP 2024 Monograph / USP 2024). Source: Croscarmellose Sodium__STM Croscarmellose Sodium.txt:37.",
+      "usedBy": [
+        "STM-RM-085"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-085",
+          "provisionalCode": "RM-TIT-DS-CMC",
+          "source": "Croscarmellose Sodium__STM Croscarmellose Sodium.txt:37"
+        }
+      ]
+    },
+    {
+      "code": "RM-ID-CU-124",
+      "displayName": "Identification of Sucrose (copper sulfate reaction)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Qualitative",
+      "equationType": "Qualitative",
+      "physchemArea": "RawPackaging",
+      "complete": true,
+      "notes": "Dilute 1 mL solution S to 100 mL with water. To 5 mL add 0.15 mL freshly prepared copper sulfate solution and 2 mL dilute NaOH (solution is blue and clear and remains so after boiling). To hot solution add 4 mL dilute HCl, boil 1 min, then add 4 mL dilute NaOH: an orange precipitate is formed immediately (BP 2024 Monograph). Source: Sucrose__Sucrose -SM.txt:30.",
+      "usedBy": [
+        "STM-RM-124"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-124",
+          "provisionalCode": "RM-ID-CU-SUC",
+          "source": "Sucrose__Sucrose -SM.txt:30"
+        }
+      ]
+    },
+    {
+      "code": "RM-ID-TLC-124",
+      "displayName": "Identification of Sucrose (TLC)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Qualitative",
+      "equationType": "Qualitative",
+      "physchemArea": "RawPackaging",
+      "complete": true,
+      "notes": "TLC on silica gel plate. Test solution: 10 mg in water/methanol (2:3 V/V) to 20 mL. Reference (a): 10 mg sucrose CRS in same solvent. Reference (b): 10 mg each of fructose, glucose, lactose monohydrate, sucrose. Mobile phase: cold saturated boric acid, 60% V/V glacial acetic acid, anhydrous ethanol, acetone, ethyl acetate (10:15:20:60:60 V/V). Spray thymol in sulfuric acid/ethanol (96%), heat at 130 °C for 10 min. Principal spot in test chromatogram is similar in position, colour and size to that of reference (a) (BP Appendix III A). Source: Sucrose__Sucrose -SM.txt:30.",
+      "usedBy": [
+        "STM-RM-124"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-124",
+          "provisionalCode": "RM-ID-TLC-SUC",
+          "source": "Sucrose__Sucrose -SM.txt:30"
+        }
+      ]
+    },
+    {
+      "code": "RM-RED-124",
+      "displayName": "Reducing sugars (Sucrose)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Qualitative",
+      "equationType": "Qualitative",
+      "physchemArea": "RawPackaging",
+      "complete": true,
+      "notes": "To 5 mL solution S add 5 mL water, 1.0 mL 1 M NaOH, and 1.0 mL of 1 g/L methylene blue. Mix, place in water bath for exactly 2 min; examine immediately: the blue colour does not disappear completely (ignore blue colour at air/solution interface) (BP 2024 Monograph). Source: Sucrose__Sucrose -SM.txt:34.",
+      "usedBy": [
+        "STM-RM-124"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-124",
+          "provisionalCode": "RM-RED-SUC",
+          "source": "Sucrose__Sucrose -SM.txt:34"
+        }
+      ]
+    },
+    {
+      "code": "RM-COLOR-124",
+      "displayName": "Color value (Sucrose)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Measurement",
+      "equationType": "Measurement",
+      "physchemArea": "RawPackaging",
+      "replicateCount": 1,
+      "evaluationBasis": "Mean",
+      "complete": true,
+      "notes": "50.0 g in 50.0 mL water, filtered (0.45 µm), degassed. Absorbance measured at 420 nm in >= 4 cm cell (10 cm preferred). Calculation from absorbance A, path length b, and concentration c from refractive index Table 0204.-1. Calculation formula incomplete in STM text; Measurement test, analyst enters the final calculated color value (max 45) per CATALOG.md rule 6 (BP Appendix II B, V E). Source: Sucrose__Sucrose -SM.txt:35.",
+      "usedBy": [
+        "STM-RM-124"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-124",
+          "provisionalCode": "RM-COLOR-SUC",
+          "source": "Sucrose__Sucrose -SM.txt:35"
+        }
+      ]
+    },
+    {
+      "code": "RM-SULF-124",
+      "displayName": "Sulfites (limit test, Sucrose)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Qualitative",
+      "equationType": "Qualitative",
+      "physchemArea": "RawPackaging",
+      "complete": true,
+      "notes": "Enzymatic photometric limit test: 4.0 g in 10.0 mL; reference contains 0.5 mL 80 ppm SO2 standard (10 ppm limit). Measured at ~340 nm against water blank. Absorbance difference of test solution must not be greater than half that of reference solution. Qualitative limit test per README.md (analyst records Complies / Does not comply; limit NMT 10 ppm SO2). (BP 2024 Monograph). Source: Sucrose__Sucrose -SM.txt:36.",
+      "usedBy": [
+        "STM-RM-124"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-124",
+          "provisionalCode": "RM-SULF-SUC",
+          "source": "Sucrose__Sucrose -SM.txt:36"
+        }
+      ]
+    },
+    {
+      "code": "RM-DEXTRIN-124",
+      "displayName": "Dextrin (Sucrose)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Qualitative",
+      "equationType": "Qualitative",
+      "physchemArea": "RawPackaging",
+      "complete": true,
+      "notes": "Exists only so the not-applicable record can name it; no specification rows. Not-applicable justification: use in the manufacture of large-volume parenteral preparations (source: Sucrose__Not applicable For Sucrose.txt:2).",
+      "usedBy": [
+        "STM-RM-124"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-124",
+          "provisionalCode": "RM-DEXTRIN-SUC",
+          "source": "Sucrose__Not applicable For Sucrose.txt:2"
+        }
+      ]
+    }
+  ],
+  "solutions": [],
+  "hplcMethods": [],
+  "icpMethods": [],
+  "materialEntries": [
+    {
+      "name": "Croscarmellose sodium RS",
+      "category": "ReferenceStandard",
+      "codePrefix": "RS-",
+      "code": null,
+      "baseUnit": "Gram",
+      "usedBy": [
+        "STM-RM-085"
+      ],
+      "source": "Croscarmellose Sodium__STM Croscarmellose Sodium.txt:28, 32",
+      "loadedObjectNeedsIt": false
+    },
+    {
+      "name": "Sucrose CRS",
+      "category": "ReferenceStandard",
+      "codePrefix": "RS-",
+      "code": null,
+      "baseUnit": "Gram",
+      "usedBy": [
+        "STM-RM-124"
+      ],
+      "source": "Sucrose__Sucrose -SM.txt:26, 30",
+      "loadedObjectNeedsIt": false
+    }
+  ],
+  "reagentLinks": [],
+  "mapping": {
+    "STM-RM-002": {
+      "E.coli": "E.coli",
+      "RM-DENS-LEMON": "RM-RELDENS-002",
+      "RM-DESC": "RM-DESC",
+      "RM-FATTY-LEMON": "RM-FATTY-002",
+      "RM-GC-LEMON": "RM-GC-002",
+      "RM-ID-TLC-LEMON": "RM-ID-TLC-002",
+      "RM-OPTROT": "RM-OPTROT",
+      "RM-REFR-LEMON": "RM-REFR-002",
+      "RM-RESEV-LEMON": "RM-RESEV-002",
+      "RM-UV-LEMON": "RM-UV-002",
+      "Salmonella ": "Salmonella ",
+      "TAMC": "TAMC",
+      "TYMC": "TYMC"
+    },
+    "STM-RM-085": {
+      "E.coli": "E.coli",
+      "RM-DESC": "RM-DESC",
+      "RM-ID-IR": "RM-ID-IR",
+      "RM-ID-MB-CMC": "RM-ID-MB-085",
+      "RM-ID-NA-ASH": "RM-ID-NA-ASH",
+      "RM-LOD": "RM-LOD",
+      "RM-PH": "RM-PH",
+      "RM-SASH": "RM-SASH",
+      "RM-SETVOL": "RM-SETVOL",
+      "RM-SOLUB": "RM-SOLUB",
+      "RM-TIT-DS-CMC": "RM-DS-085",
+      "RM-WSS-CMC": "RM-WSS-085",
+      "TAMC": "TAMC",
+      "TYMC": "TYMC"
+    },
+    "STM-RM-124": {
+      "E.coli": "E.coli",
+      "RM-COLOR-SUC": "RM-COLOR-124",
+      "RM-COND-SUC": "RM-COND",
+      "RM-DESC": "RM-DESC",
+      "RM-DEXTRIN-SUC": "RM-DEXTRIN-124",
+      "RM-ID-CU-SUC": "RM-ID-CU-124",
+      "RM-ID-IR": "RM-ID-IR",
+      "RM-ID-TLC-SUC": "RM-ID-TLC-124",
+      "RM-LOD": "RM-LOD",
+      "RM-OPTROT": "RM-OPTROT",
+      "RM-RED-SUC": "RM-RED-124",
+      "RM-SOLAPP": "RM-SOLAPP",
+      "RM-SOLUB": "RM-SOLUB",
+      "RM-SULF-SUC": "RM-SULF-124",
+      "TAMC": "TAMC",
+      "TYMC": "TYMC"
+    },
+    "C5I-91-213": {
+      "E.coli": "E.coli",
+      "RM-DESC": "RM-DESC",
+      "RM-LOD": "RM-LOD",
+      "RM-SOLUB": "RM-SOLUB",
+      "TAMC": "TAMC",
+      "TYMC": "TYMC"
+    },
+    "Xanth gum": {
+      "E.coli": "E.coli",
+      "RM-DESC": "RM-DESC",
+      "RM-LOD": "RM-LOD",
+      "RM-PH": "RM-PH",
+      "RM-SOLUB": "RM-SOLUB",
+      "Salmonella ": "Salmonella ",
+      "TAMC": "TAMC",
+      "TYMC": "TYMC"
+    }
+  },
+  "gaps": []
+}

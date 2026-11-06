@@ -1,0 +1,765 @@
+{
+  "testDefinitions": [
+    {
+      "code": "RM-ID-CHEM-129",
+      "displayName": "Identification (reaction with cupric-tartaric solution)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Qualitative",
+      "equationType": "Qualitative",
+      "physchemArea": "RawPackaging",
+      "complete": true,
+      "notes": "Dissolve 0.1 g in 2.5 mL water, heat with 2.5 mL cupric-tartaric solution: red precipitate.",
+      "usedBy": [
+        "STM-RM-129"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-129",
+          "provisionalCode": "RM-ID-CHEM-MALTODEXTRIN",
+          "source": "Maltodextrin__STM Maltodextrin new Without Micro.txt:30"
+        }
+      ]
+    },
+    {
+      "code": "RM-ID-VIS-129",
+      "displayName": "Identification (visual inspection, maltodextrin)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Qualitative",
+      "equationType": "Qualitative",
+      "physchemArea": "RawPackaging",
+      "complete": true,
+      "notes": "Powder or granules as test of Appearance.",
+      "usedBy": [
+        "STM-RM-129"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-129",
+          "provisionalCode": "RM-ID-VISUAL-MALTODEXTRIN",
+          "source": "Maltodextrin__STM Maltodextrin new Without Micro.txt:30"
+        }
+      ]
+    },
+    {
+      "code": "RM-SO2-129",
+      "displayName": "Sulfur dioxide",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Measurement",
+      "equationType": "Measurement",
+      "physchemArea": "RawPackaging",
+      "replicateCount": 1,
+      "evaluationBasis": "Mean",
+      "complete": true,
+      "notes": "BP Appendix IX B apparatus. Distillation with CO2 sweep into dilute H2O2, titration with 0.1 M NaOH (bromophenol blue indicator). Formula 1000 * F * V * N / W (F = 32.03). Analyst enters final ppm result (distillation blank titration cannot be calculated by titration workflow).",
+      "usedBy": [
+        "STM-RM-129"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-129",
+          "provisionalCode": "RM-SO2-MALTODEXTRIN",
+          "source": "Maltodextrin__STM Maltodextrin new Without Micro.txt:31"
+        }
+      ]
+    },
+    {
+      "code": "RM-TIT-DE-129",
+      "displayName": "Dextrose equivalent",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Measurement",
+      "equationType": "Measurement",
+      "physchemArea": "RawPackaging",
+      "replicateCount": 1,
+      "evaluationBasis": "Mean",
+      "complete": true,
+      "notes": "Cupric-tartaric redox titration standardized with glucose (V0), sample titration (V1) with methylene blue indicator. Result entered by analyst (formula (300 * V0 * 100) / (V1 * M * D) cannot be calculated by titration workflow). Shared by Dextrose equivalent and Identification (Titration).",
+      "usedBy": [
+        "STM-RM-129"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-129",
+          "provisionalCode": "RM-TIT-DE-MALTODEXTRIN",
+          "source": "Maltodextrin__STM Maltodextrin new Without Micro.txt:35"
+        },
+        {
+          "material": "STM-RM-129",
+          "provisionalCode": "RM-ID-DE-MALTODEXTRIN",
+          "source": "Maltodextrin__STM Maltodextrin new Without Micro.txt:30"
+        }
+      ]
+    },
+    {
+      "code": "RM-HPLC-LEVO-AS",
+      "displayName": "Assay of levofloxacin (USP, HPLC)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "HplcMethodAssay",
+      "equationType": "HplcMethodAssay",
+      "physchemArea": "RawPackaging",
+      "hplcMethod": "Levofloxacin assay (USP, HPLC)",
+      "requiresSystemSuitability": true,
+      "methodAbbreviation": "LEVO-AS",
+      "complete": true,
+      "notes": "Anhydrous-basis row; needs the Water-role test (RM-KF).",
+      "usedBy": [
+        "STM-RM-045"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-045",
+          "provisionalCode": "RM-HPLC-LEVO-AS",
+          "source": "Levofloxacine__Levofloxacine-SM.txt:62"
+        }
+      ],
+      "heldBack": "needs the held-back method \"Levofloxacin assay (USP, HPLC)\""
+    },
+    {
+      "code": "RM-HPLC-LEVO-RS1",
+      "displayName": "Levofloxacin organic impurities procedure 1 (USP, HPLC)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "HplcMethodAssay",
+      "equationType": "HplcMethodAssay",
+      "physchemArea": "RawPackaging",
+      "hplcMethod": "Levofloxacin organic impurities procedure 1 (USP, HPLC)",
+      "requiresSystemSuitability": true,
+      "methodAbbreviation": "LEVO-RS1",
+      "complete": true,
+      "notes": "Uses same chromatographic system as Assay. Rows: N-desmethyl, diamine derivative, N-oxide, 9-desfluoro, d-isomer, any unknown, total.",
+      "usedBy": [
+        "STM-RM-045"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-045",
+          "provisionalCode": "RM-HPLC-LEVO-RS1",
+          "source": "Levofloxacine__Levofloxacine-SM.txt:33-42"
+        }
+      ],
+      "heldBack": "needs the held-back method \"Levofloxacin organic impurities procedure 1 (USP, HPLC)\""
+    },
+    {
+      "code": "RM-HPLC-LEVO-RS2",
+      "displayName": "Levofloxacin organic impurities procedure 2 (USP, gradient HPLC)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "HplcMethodAssay",
+      "equationType": "HplcMethodAssay",
+      "physchemArea": "RawPackaging",
+      "hplcMethod": "Levofloxacin organic impurities procedure 2 (USP, gradient HPLC)",
+      "requiresSystemSuitability": true,
+      "methodAbbreviation": "LEVO-RS2",
+      "complete": true,
+      "notes": "Gradient HPLC at 38 C, 280 nm. Rows: related compound A, related compound B, any other impurity, total.",
+      "usedBy": [
+        "STM-RM-045"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-045",
+          "provisionalCode": "RM-HPLC-LEVO-RS2",
+          "source": "Levofloxacine__Levofloxacine-SM.txt:43-57"
+        }
+      ],
+      "heldBack": "needs the held-back method \"Levofloxacin organic impurities procedure 2 (USP, gradient HPLC)\""
+    },
+    {
+      "code": "RM-RELDENS-093",
+      "displayName": "Relative density (pycnometer, sweet orange oil)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Measurement",
+      "equationType": "Measurement",
+      "physchemArea": "RawPackaging",
+      "replicateCount": 1,
+      "evaluationBasis": "Mean",
+      "complete": true,
+      "notes": "Pycnometer method (W3 - W1) / (W2 - W1) at 25 C. Analyst enters calculated relative density value.",
+      "usedBy": [
+        "STM-RM-093"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-093",
+          "provisionalCode": "RM-RELDENS-ORANGE",
+          "source": "Sweet Orange Oil__SM- Sweet Orange Oil new.txt:34"
+        }
+      ]
+    },
+    {
+      "code": "RM-REFR-093",
+      "displayName": "Refractive index (sweet orange oil)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Measurement",
+      "equationType": "Measurement",
+      "physchemArea": "RawPackaging",
+      "replicateCount": 1,
+      "evaluationBasis": "Mean",
+      "complete": true,
+      "notes": "Measured on calibrated refractometer at 25 C.",
+      "usedBy": [
+        "STM-RM-093"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-093",
+          "provisionalCode": "RM-REFR-INDEX-ORANGE",
+          "source": "Sweet Orange Oil__SM- Sweet Orange Oil new.txt:35"
+        }
+      ]
+    },
+    {
+      "code": "RM-ID-CHEM-084",
+      "displayName": "Identification (reaction with ammonia, lactose)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Qualitative",
+      "equationType": "Qualitative",
+      "physchemArea": "RawPackaging",
+      "complete": true,
+      "notes": "0.25 g in 5 mL water + 5 mL dilute ammonia, heat at 80 C for 10 min: red color develops.",
+      "usedBy": [
+        "STM-RM-084"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-084",
+          "provisionalCode": "RM-ID-CHEM-LACTOSE",
+          "source": "Lactose Monohydrate__Lactose Monohydrate - SM.txt:32"
+        }
+      ]
+    },
+    {
+      "code": "RM-ID-TLC-084",
+      "displayName": "Identification (TLC, lactose monohydrate)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Qualitative",
+      "equationType": "Qualitative",
+      "physchemArea": "RawPackaging",
+      "complete": true,
+      "notes": "TLC silica gel plate. Mobile phase water:methanol:glacial acetic acid:methylene chloride (10:15:25:50). Detection thymol/sulfuric acid spray at 130 C.",
+      "usedBy": [
+        "STM-RM-084"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-084",
+          "provisionalCode": "RM-ID-TLC-LACTOSE",
+          "source": "Lactose Monohydrate__Lactose Monohydrate - SM.txt:32"
+        }
+      ]
+    },
+    {
+      "code": "RM-TIT-ACIDALK-084",
+      "displayName": "Acidity or alkalinity of lactose monohydrate (volume of 0.1 M NaOH)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Measurement",
+      "equationType": "Measurement",
+      "physchemArea": "RawPackaging",
+      "replicateCount": 1,
+      "evaluationBasis": "Mean",
+      "complete": true,
+      "notes": "6.0 g in 25 mL CO2-free water + 0.3 mL phenolphthalein R1; titrate with 0.1 M NaOH to pink/red. Analyst enters volume in mL (limit NMT 0.4 mL). Cannot be calculated by titration workflow.",
+      "usedBy": [
+        "STM-RM-084"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-084",
+          "provisionalCode": "RM-ACID-ALK-LACTOSE",
+          "source": "Lactose Monohydrate__Lactose Monohydrate - SM.txt:34"
+        }
+      ]
+    },
+    {
+      "code": "RM-UV-ABS-084",
+      "displayName": "Absorbance (UV, lactose monohydrate)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "UvSpectrophotometry",
+      "equationType": "UvSpectrophotometry",
+      "physchemArea": "RawPackaging",
+      "replicateCount": 1,
+      "uvCalculationMode": "AbsorbanceLimit",
+      "complete": true,
+      "notes": "Absorbance limits: solution (a) at 400 nm max 0.04; solution (b) 1:10 at 210-220 nm max 0.25 and at 270-300 nm max 0.07.",
+      "usedBy": [
+        "STM-RM-084"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-084",
+          "provisionalCode": "RM-UV-ABS-LACTOSE",
+          "source": "Lactose Monohydrate__Lactose Monohydrate - SM.txt:36"
+        }
+      ]
+    }
+  ],
+  "solutions": [
+    {
+      "name": "Levofloxacin mobile phase (methanol : buffer 3:7)",
+      "type": "MobilePhase",
+      "section": "Physicochemical Laboratory",
+      "usedBy": [
+        "STM-RM-045"
+      ],
+      "notes": "Buffer: 8.5 g/L ammonium acetate, 1.25 g/L cupric sulfate pentahydrate, 1.3 g/L L-isoleucine in water. Mixed with methanol (70:30 buffer:methanol). Used by Levofloxacin Assay and Organic Impurities Procedure 1.",
+      "complete": false,
+      "missing": [
+        "shelfLife: not stated in the STM",
+        "storageCondition: not stated in the STM"
+      ],
+      "heldBack": "only used by held-back HPLC methods, and shelfLife, storageCondition not stated"
+    },
+    {
+      "name": "Levofloxacin RS2 mobile phase A (acetonitrile : buffer 16:84)",
+      "type": "MobilePhase",
+      "section": "Physicochemical Laboratory",
+      "usedBy": [
+        "STM-RM-045"
+      ],
+      "notes": "Buffer: 3.08 g/L ammonium acetate and 8.43 g/L sodium perchlorate monohydrate in water, adjusted with phosphoric acid to pH 2.2. Mixed with acetonitrile (84:16 buffer:acetonitrile).",
+      "complete": false,
+      "missing": [
+        "shelfLife: not stated in the STM",
+        "storageCondition: not stated in the STM"
+      ],
+      "heldBack": "only used by held-back HPLC methods, and shelfLife, storageCondition not stated"
+    },
+    {
+      "name": "Levofloxacin RS2 mobile phase B (acetonitrile : methanol : buffer 30:20:50)",
+      "type": "MobilePhase",
+      "section": "Physicochemical Laboratory",
+      "usedBy": [
+        "STM-RM-045"
+      ],
+      "notes": "Buffer: 3.08 g/L ammonium acetate and 8.43 g/L sodium perchlorate monohydrate in water, adjusted with phosphoric acid to pH 2.2. Mixed with acetonitrile and methanol (50:30:20 buffer:acetonitrile:methanol).",
+      "complete": false,
+      "missing": [
+        "shelfLife: not stated in the STM",
+        "storageCondition: not stated in the STM"
+      ],
+      "heldBack": "only used by held-back HPLC methods, and shelfLife, storageCondition not stated"
+    }
+  ],
+  "hplcMethods": [
+    {
+      "name": "Levofloxacin assay (USP, HPLC)",
+      "abbreviation": "LEVO-AS",
+      "technique": "Hplc",
+      "resultMode": "Assay",
+      "section": "Physicochemical Laboratory",
+      "effectiveDate": "STM issue date",
+      "columnDesignation": "L1",
+      "columnLengthMm": 250,
+      "columnInternalDiameterMm": 4.6,
+      "particleSizeUm": 5,
+      "elutionMode": "Isocratic",
+      "flowRateMlPerMin": 0.8,
+      "detectorType": "UV",
+      "injectionVolumeUl": 25,
+      "runTimeMin": null,
+      "mobilePhases": [
+        {
+          "channel": "A",
+          "solution": "Levofloxacin mobile phase (methanol : buffer 3:7)",
+          "ratioPercent": 100
+        }
+      ],
+      "gradientSteps": [],
+      "diluentSolution": "Levofloxacin mobile phase (methanol : buffer 3:7)",
+      "analytes": [
+        {
+          "name": "Levofloxacin",
+          "wavelengthNm": 360,
+          "standardEntry": "USP Levofloxacin RS",
+          "theoreticalWeightStdMg": null,
+          "theoreticalWeightTestMg": null,
+          "standardInjections": null,
+          "standardDilution": null,
+          "sstMaxRsdPercent": 1.0,
+          "sstMaxTailingFactor": 1.5
+        }
+      ],
+      "complete": false,
+      "missing": [
+        "runTimeMin: not stated",
+        "standardInjections: replicates for 1.0 % RSD not stated",
+        "theoreticalWeightStdMg, theoreticalWeightTestMg: only 1 mg/mL concentration is stated, stock flask volumes not stated"
+      ],
+      "notes": "Column temperature 45 C. Mobile phase methanol:buffer 3:7 (buffer 8.5 g/L ammonium acetate, 1.25 g/L cupric sulfate pentahydrate, 1.3 g/L L-isoleucine in water). Anhydrous basis calculation.",
+      "usedBy": [
+        "STM-RM-045"
+      ],
+      "source": "Levofloxacine__Levofloxacine-SM.txt:62",
+      "heldBack": "HPLC method incomplete: runTimeMin; standardInjections; theoreticalWeightStdMg, theoreticalWeightTestMg"
+    },
+    {
+      "name": "Levofloxacin organic impurities procedure 1 (USP, HPLC)",
+      "abbreviation": "LEVO-RS1",
+      "technique": "Hplc",
+      "resultMode": "RelatedSubstances",
+      "section": "Physicochemical Laboratory",
+      "effectiveDate": "STM issue date",
+      "columnDesignation": "L1",
+      "columnLengthMm": 250,
+      "columnInternalDiameterMm": 4.6,
+      "particleSizeUm": 5,
+      "elutionMode": "Isocratic",
+      "flowRateMlPerMin": 0.8,
+      "detectorType": "UV",
+      "injectionVolumeUl": 25,
+      "runTimeMin": null,
+      "mobilePhases": [
+        {
+          "channel": "A",
+          "solution": "Levofloxacin mobile phase (methanol : buffer 3:7)",
+          "ratioPercent": 100
+        }
+      ],
+      "gradientSteps": [],
+      "diluentSolution": "Levofloxacin mobile phase (methanol : buffer 3:7)",
+      "analytes": [
+        {
+          "name": "N-Desmethyl levofloxacin",
+          "wavelengthNm": 360,
+          "standardEntry": "USP Levofloxacin RS",
+          "relativeRetentionTime": 0.47,
+          "relativeResponseFactor": 1.0
+        },
+        {
+          "name": "Diamine derivative",
+          "wavelengthNm": 360,
+          "standardEntry": "USP Levofloxacin RS",
+          "relativeRetentionTime": 0.52,
+          "relativeResponseFactor": 0.9
+        },
+        {
+          "name": "Levofloxacin N-oxide",
+          "wavelengthNm": 360,
+          "standardEntry": "USP Levofloxacin RS",
+          "relativeRetentionTime": 0.63,
+          "relativeResponseFactor": 1.1
+        },
+        {
+          "name": "9-Desfluoro levofloxacin",
+          "wavelengthNm": 360,
+          "standardEntry": "USP Levofloxacin RS",
+          "relativeRetentionTime": 0.73,
+          "relativeResponseFactor": 1.0
+        },
+        {
+          "name": "d-Isomer",
+          "wavelengthNm": 360,
+          "standardEntry": "USP Levofloxacin RS",
+          "relativeRetentionTime": 1.23,
+          "relativeResponseFactor": 1.0
+        },
+        {
+          "name": "Any unknown impurity",
+          "wavelengthNm": 360,
+          "standardEntry": "USP Levofloxacin RS",
+          "relativeResponseFactor": 1.0
+        }
+      ],
+      "complete": false,
+      "missing": [
+        "runTimeMin: not stated",
+        "standardInjections: replicates not stated"
+      ],
+      "notes": "Uses same chromatographic system as Assay. 1 mg/mL USP Levofloxacin RS in mobile phase.",
+      "usedBy": [
+        "STM-RM-045"
+      ],
+      "source": "Levofloxacine__Levofloxacine-SM.txt:33-42",
+      "heldBack": "HPLC method incomplete: runTimeMin; standardInjections"
+    },
+    {
+      "name": "Levofloxacin organic impurities procedure 2 (USP, gradient HPLC)",
+      "abbreviation": "LEVO-RS2",
+      "technique": "Hplc",
+      "resultMode": "RelatedSubstances",
+      "section": "Physicochemical Laboratory",
+      "effectiveDate": "STM issue date",
+      "columnDesignation": "L1",
+      "columnLengthMm": 150,
+      "columnInternalDiameterMm": 4.0,
+      "particleSizeUm": 3.0,
+      "elutionMode": "Gradient",
+      "flowRateMlPerMin": 1.0,
+      "detectorType": "UV",
+      "injectionVolumeUl": 10,
+      "runTimeMin": 38,
+      "mobilePhases": [
+        {
+          "channel": "A",
+          "solution": "Levofloxacin RS2 mobile phase A (acetonitrile : buffer 16:84)"
+        },
+        {
+          "channel": "B",
+          "solution": "Levofloxacin RS2 mobile phase B (acetonitrile : methanol : buffer 30:20:50)"
+        }
+      ],
+      "gradientSteps": [
+        {
+          "timeMin": 0,
+          "percentA": 100,
+          "percentB": 0,
+          "percentC": 0,
+          "percentD": 0
+        },
+        {
+          "timeMin": 5,
+          "percentA": 100,
+          "percentB": 0,
+          "percentC": 0,
+          "percentD": 0
+        },
+        {
+          "timeMin": 10,
+          "percentA": 82,
+          "percentB": 18,
+          "percentC": 0,
+          "percentD": 0
+        },
+        {
+          "timeMin": 15,
+          "percentA": 40,
+          "percentB": 60,
+          "percentC": 0,
+          "percentD": 0
+        },
+        {
+          "timeMin": 30,
+          "percentA": 40,
+          "percentB": 60,
+          "percentC": 0,
+          "percentD": 0
+        },
+        {
+          "timeMin": 30.1,
+          "percentA": 100,
+          "percentB": 0,
+          "percentC": 0,
+          "percentD": 0
+        },
+        {
+          "timeMin": 38,
+          "percentA": 100,
+          "percentB": 0,
+          "percentC": 0,
+          "percentD": 0
+        }
+      ],
+      "diluentSolution": "Water / acetonitrile",
+      "analytes": [
+        {
+          "name": "Levofloxacin related compound A (N-Desmethyl levofloxacin)",
+          "wavelengthNm": 280,
+          "standardEntry": "USP Levofloxacin Related Compound A RS",
+          "relativeRetentionTime": 0.9
+        },
+        {
+          "name": "Levofloxacin",
+          "wavelengthNm": 280,
+          "standardEntry": "USP Levofloxacin RS",
+          "relativeRetentionTime": 1.0,
+          "sstMaxRsdPercent": 2.0
+        },
+        {
+          "name": "Levofloxacin related compound B",
+          "wavelengthNm": 280,
+          "standardEntry": "USP Levofloxacin Related Compound B RS",
+          "relativeRetentionTime": 2.9
+        },
+        {
+          "name": "Any other impurity",
+          "wavelengthNm": 280
+        }
+      ],
+      "complete": false,
+      "missing": [
+        "standardInjections: replicates for 2.0 % RSD not stated"
+      ],
+      "notes": "Column temperature 38 C. Buffer 3.08 g/L ammonium acetate, 8.43 g/L sodium perchlorate monohydrate in water, pH 2.2 with phosphoric acid.",
+      "usedBy": [
+        "STM-RM-045"
+      ],
+      "source": "Levofloxacine__Levofloxacine-SM.txt:43-57",
+      "heldBack": "HPLC method incomplete: standardInjections"
+    }
+  ],
+  "icpMethods": [],
+  "materialEntries": [
+    {
+      "name": "USP Levofloxacin RS",
+      "category": "ReferenceStandard",
+      "codePrefix": "RS-",
+      "code": null,
+      "baseUnit": "Vial",
+      "usedBy": [
+        "Levofloxacin assay (USP, HPLC)",
+        "Levofloxacin organic impurities procedure 1 (USP, HPLC)",
+        "Levofloxacin organic impurities procedure 2 (USP, gradient HPLC)"
+      ],
+      "source": "Levofloxacine__Levofloxacine-SM.txt:28",
+      "loadedObjectNeedsIt": false
+    },
+    {
+      "name": "USP Levofloxacin Related Compound A RS",
+      "category": "ReferenceStandard",
+      "codePrefix": "RS-",
+      "code": null,
+      "baseUnit": "Vial",
+      "usedBy": [
+        "Levofloxacin organic impurities procedure 2 (USP, gradient HPLC)"
+      ],
+      "source": "Levofloxacine__Levofloxacine-SM.txt:28",
+      "loadedObjectNeedsIt": false
+    },
+    {
+      "name": "USP Levofloxacin Related Compound B RS",
+      "category": "ReferenceStandard",
+      "codePrefix": "RS-",
+      "code": null,
+      "baseUnit": "Vial",
+      "usedBy": [
+        "Levofloxacin organic impurities procedure 2 (USP, gradient HPLC)"
+      ],
+      "source": "Levofloxacine__Levofloxacine-SM.txt:28",
+      "loadedObjectNeedsIt": false
+    },
+    {
+      "name": "Lactose monohydrate WS",
+      "category": "ReferenceStandard",
+      "codePrefix": "RS-",
+      "code": null,
+      "baseUnit": "Vial",
+      "usedBy": [
+        "RM-ID-TLC-084"
+      ],
+      "source": "Lactose Monohydrate__Lactose Monohydrate - SM.txt:28",
+      "loadedObjectNeedsIt": false
+    },
+    {
+      "name": "Phenolphthalein Solution R1",
+      "category": "Indicator",
+      "codePrefix": "IND-",
+      "code": null,
+      "baseUnit": "Bottle",
+      "usedBy": [
+        "RM-TIT-ACIDALK-084"
+      ],
+      "source": "Lactose Monohydrate__Lactose Monohydrate - SM.txt:28,34",
+      "loadedObjectNeedsIt": false
+    },
+    {
+      "name": "Cupric-tartaric solution",
+      "category": "Reagent",
+      "codePrefix": "RG-",
+      "code": null,
+      "baseUnit": "Bottle",
+      "usedBy": [
+        "RM-ID-CHEM-129",
+        "RM-TIT-DE-129"
+      ],
+      "source": "Maltodextrin__STM Maltodextrin new Without Micro.txt:26,30,35",
+      "loadedObjectNeedsIt": false
+    }
+  ],
+  "reagentLinks": [],
+  "mapping": {
+    "C1I-91-179": {
+      "RM-DESC": "RM-DESC",
+      "RM-SOLUB": "RM-SOLUB",
+      "RM-SOLAPP": "RM-SOLAPP",
+      "TAMC": "TAMC",
+      "TYMC": "TYMC",
+      "E.coli": "E.coli"
+    },
+    "STM-RM-129": {
+      "RM-DESC": "RM-DESC",
+      "RM-SOLUB": "RM-SOLUB",
+      "RM-ID-CHEM-MALTODEXTRIN": "RM-ID-CHEM-129",
+      "RM-ID-VISUAL-MALTODEXTRIN": "RM-ID-VIS-129",
+      "RM-ID-DE-MALTODEXTRIN": "RM-TIT-DE-129",
+      "RM-SO2-MALTODEXTRIN": "RM-SO2-129",
+      "RM-PH": "RM-PH",
+      "RM-LOD": "RM-LOD",
+      "RM-SASH": "RM-SASH",
+      "RM-TIT-DE-MALTODEXTRIN": "RM-TIT-DE-129",
+      "TAMC": "TAMC",
+      "TYMC": "TYMC",
+      "E.coli": "E.coli",
+      "Salmonella ": "Salmonella "
+    },
+    "STM-RM-045": {
+      "RM-DESC": "RM-DESC",
+      "RM-SOLUB": "RM-SOLUB",
+      "RM-ID-IR": "RM-ID-IR",
+      "RM-ID-RT": "RM-ID-RT",
+      "RM-HPLC-LEVO-RS1": "RM-HPLC-LEVO-RS1",
+      "RM-HPLC-LEVO-RS2": "RM-HPLC-LEVO-RS2",
+      "RM-OPTROT": "RM-OPTROT",
+      "RM-KF": "RM-KF",
+      "RM-SASH": "RM-SASH",
+      "RM-HPLC-LEVO-AS": "RM-HPLC-LEVO-AS",
+      "TAMC": "TAMC",
+      "TYMC": "TYMC",
+      "E.coli": "E.coli"
+    },
+    "STM-RM-093": {
+      "RM-DESC": "RM-DESC",
+      "RM-SOLUB": "RM-SOLUB",
+      "RM-ODOR": "RM-ODOR",
+      "RM-PH": "RM-PH",
+      "RM-RELDENS-ORANGE": "RM-RELDENS-093",
+      "RM-REFR-INDEX-ORANGE": "RM-REFR-093",
+      "TAMC": "TAMC",
+      "TYMC": "TYMC",
+      "E.coli": "E.coli",
+      "Salmonella ": "Salmonella "
+    },
+    "STM-RM-084": {
+      "RM-DESC": "RM-DESC",
+      "RM-SOLUB": "RM-SOLUB",
+      "RM-SOLAPP": "RM-SOLAPP",
+      "RM-ID-CHEM-LACTOSE": "RM-ID-CHEM-084",
+      "RM-ID-IR": "RM-ID-IR",
+      "RM-ID-TLC-LACTOSE": "RM-ID-TLC-084",
+      "RM-ACID-ALK-LACTOSE": "RM-TIT-ACIDALK-084",
+      "RM-OPTROT": "RM-OPTROT",
+      "RM-UV-ABS-LACTOSE": "RM-UV-ABS-084",
+      "RM-KF": "RM-KF",
+      "RM-SASH": "RM-SASH",
+      "TAMC": "TAMC",
+      "TYMC": "TYMC",
+      "E.coli": "E.coli"
+    }
+  },
+  "gaps": [
+    {
+      "material": "STM-RM-045",
+      "test": "RM-HPLC-LEVO-AS",
+      "missing": "runTimeMin: not stated; standardInjections: replicates for 1.0 % RSD not stated; theoreticalWeightStdMg, theoreticalWeightTestMg: only 1 mg/mL concentration stated"
+    },
+    {
+      "material": "STM-RM-045",
+      "test": "RM-HPLC-LEVO-RS1",
+      "missing": "runTimeMin: not stated; standardInjections: replicates not stated"
+    },
+    {
+      "material": "STM-RM-045",
+      "test": "RM-HPLC-LEVO-RS2",
+      "missing": "standardInjections: replicates for 2.0 % RSD not stated"
+    }
+  ]
+}

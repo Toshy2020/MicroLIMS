@@ -1,0 +1,921 @@
+{
+  "testDefinitions": [
+    {
+      "code": "RM-ID-ZN-050",
+      "displayName": "Identification (reactions of zinc)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Qualitative",
+      "equationType": "Qualitative",
+      "physchemArea": "RawPackaging",
+      "complete": true,
+      "notes": "Reactions of zinc per USP <191>: 100 mg/mL solution gives white precipitate with H2S in presence of sodium acetate (insoluble in acetic acid, dissolved by 3 N HCl); white precipitate with ammonium sulfide TS; white precipitate with potassium ferrocyanide TS insoluble in 3 N HCl.",
+      "usedBy": [
+        "STM-RM-050"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-050",
+          "provisionalCode": "RM-ID-ZN-GLU",
+          "source": "Zinc Gluconate__STM Calcium  Zinc Gluconate.txt:30"
+        }
+      ]
+    },
+    {
+      "code": "RM-ID-TLC-050",
+      "displayName": "Identification (TLC, gluconate)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Qualitative",
+      "equationType": "Qualitative",
+      "physchemArea": "RawPackaging",
+      "complete": true,
+      "notes": "TLC identification per USP <621>: 0.25 mm silica gel layer; 5 µL application of 10 mg/mL sample vs 10 mg/mL USP Potassium Gluconate RS; developing solvent alcohol:ethyl acetate:ammonium hydroxide:water (50:10:10:30); spray reagent 2.5 g ammonium molybdate + 1.0 g ceric sulfate in 2 N sulfuric acid; principal spot corresponds in colour and size.",
+      "usedBy": [
+        "STM-RM-050"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-050",
+          "provisionalCode": "RM-ID-TLC-GLU",
+          "source": "Zinc Gluconate__STM Calcium  Zinc Gluconate.txt:30"
+        }
+      ]
+    },
+    {
+      "code": "RM-LT-AS-050",
+      "displayName": "Arsenic (limit test, arsenic apparatus)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Qualitative",
+      "equationType": "Qualitative",
+      "physchemArea": "RawPackaging",
+      "complete": true,
+      "notes": "Arsenic limit test per USP <211> procedure 1: 1 g sample vs 3.0 mL standard arsenic solution (1 µg/mL = 3 ppm) in 35 mL water with 20 mL 7 N sulfuric acid, KI TS, stannous chloride TS, isopropanol; generate arsine with granular zinc into silver diethyldithiocarbamate TS. Test colour must not exceed standard.",
+      "usedBy": [
+        "STM-RM-050"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-050",
+          "provisionalCode": "RM-LT-AS-ZNGLU",
+          "source": "Zinc Gluconate__STM Calcium  Zinc Gluconate.txt:33"
+        }
+      ]
+    },
+    {
+      "code": "RM-LT-PB-050",
+      "displayName": "Lead (limit test by AAS)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Qualitative",
+      "equationType": "Qualitative",
+      "physchemArea": "RawPackaging",
+      "complete": true,
+      "notes": "Lead limit test by AAS per USP <852>: 1.0 g sample extracted with 9 N HCl, ascorbic acid-NaI and trioctylphosphine oxide into organic layer; standard 2 µg/mL Pb organic layer; air-acetylene flame at 283.3 nm. Sample absorbance must not exceed standard absorbance (NMT 10 ppm).",
+      "usedBy": [
+        "STM-RM-050"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-050",
+          "provisionalCode": "RM-PB-ZNGLU",
+          "source": "Zinc Gluconate__STM Calcium  Zinc Gluconate.txt:34"
+        }
+      ]
+    },
+    {
+      "code": "RM-TIT-RED-050",
+      "displayName": "Reducing substances in zinc gluconate (residual titration)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Titration",
+      "equationType": "Titration",
+      "physchemArea": "RawPackaging",
+      "titrationType": "Redox",
+      "titrationMode": "Residual",
+      "titrationCalculation": "UspFactor",
+      "titrantSolution": "0.1 N Sodium thiosulfate VS",
+      "titrationExcessSolution": "0.1 N Iodine VS",
+      "titrationExcessVolumeMl": 10.0,
+      "titrationEquivalencyFactor": 27.0,
+      "titrationEquivalencyFactorDerivation": "Stated: F = 27 mg/mEq dextrose",
+      "titrationIndicatorEntry": "Starch soluble TS",
+      "titrationEndpoint": "Visual",
+      "titrationBlankRequired": true,
+      "replicateCount": 1,
+      "complete": true,
+      "notes": "Residual titration per USP <541>: 1.0 g sample in 10 mL water + 25 mL alkaline cupric citrate TS, boil 5 min, cool, add 25 mL 0.6 N acetic acid, 10.0 mL 0.1 N iodine VS, 10 mL 3 N HCl; titrate excess iodine with 0.1 N sodium thiosulfate VS using starch TS. Blank with 10 mL water. Result % (as dextrose) = [(VB - VS) * N * F / W] * 100, F = 27 mg/mEq.",
+      "usedBy": [
+        "STM-RM-050"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-050",
+          "provisionalCode": "RM-RED-ZNGLU",
+          "source": "Zinc Gluconate__STM Calcium  Zinc Gluconate.txt:36"
+        }
+      ]
+    },
+    {
+      "code": "RM-TIT-ZNG-050",
+      "displayName": "Assay of zinc gluconate (complexometric titration)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Titration",
+      "equationType": "Titration",
+      "physchemArea": "RawPackaging",
+      "titrationType": "Complexometric",
+      "titrationMode": "Direct",
+      "titrationCalculation": "UspFactor",
+      "titrantSolution": "0.05 M Edetate disodium VS",
+      "titrationEquivalencyFactor": 455.7,
+      "titrationEquivalencyFactorDerivation": "Stated: F = 455.7 mg/mmol zinc gluconate",
+      "titrationIndicatorEntry": "Eriochrome Black TS",
+      "titrationEndpoint": "Visual",
+      "titrationBlankRequired": true,
+      "replicateCount": 1,
+      "complete": true,
+      "notes": "Direct complexometric titration per USP <541>: 700 mg sample in 100 mL water + 5 mL ammonia-ammonium chloride buffer TS + 0.1 mL Eriochrome black TS, titrated with 0.05 M edetate disodium VS to deep blue; blank with 100 mL water. Result % on anhydrous basis (uses Karl Fischer water result RM-KF). Titrant defined in g03.",
+      "usedBy": [
+        "STM-RM-050"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-050",
+          "provisionalCode": "RM-TIT-ZNGLU",
+          "source": "Zinc Gluconate__STM Calcium  Zinc Gluconate.txt:39"
+        }
+      ]
+    },
+    {
+      "code": "RM-HCLINS-128",
+      "displayName": "HCl insoluble matter in tartrazine lake",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Measurement",
+      "equationType": "Measurement",
+      "physchemArea": "RawPackaging",
+      "replicateCount": 1,
+      "complete": true,
+      "notes": "5.0 g sample + 10 mL HCl + 50 mL water, filter through weighed paper, dry at 100-105 °C to constant weight. Formula as written in the STM has inconsistent labels [% = (W3 - W1) / W2 x 100]; per Rule 6 and README decision, Measurement test where analyst enters the final %.",
+      "usedBy": [
+        "STM-RM-128"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-128",
+          "provisionalCode": "RM-HCLINS-TART",
+          "source": "Tartrazine Lake__STM Tartrazine Lake new without micro.txt:30"
+        }
+      ],
+      "evaluationBasis": "Mean"
+    },
+    {
+      "code": "RM-ACID-001",
+      "displayName": "Acidity (Ferric ammonium citrate green)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Qualitative",
+      "equationType": "Qualitative",
+      "physchemArea": "RawPackaging",
+      "complete": true,
+      "notes": "Acidity per USP 2024: dissolve 1 g in 100 mL water; test with calibrated pH meter; solution must show acidic medium.",
+      "usedBy": [
+        "STM-RM-001"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-001",
+          "provisionalCode": "RM-ACID-FAC",
+          "source": "Ferric Ammonium Citrate Green__STM Ferric Ammonium Citrate Green.txt:32"
+        }
+      ]
+    },
+    {
+      "code": "RM-ID-IGN-001",
+      "displayName": "Identification by ignition (Ferric ammonium citrate green)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Qualitative",
+      "equationType": "Qualitative",
+      "physchemArea": "RawPackaging",
+      "complete": true,
+      "notes": "Identification test A per USP 2024: ignite about 0.5 g sample; chars and leaves residue of iron oxide.",
+      "usedBy": [
+        "STM-RM-001"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-001",
+          "provisionalCode": "RM-ID-FAC-IGN",
+          "source": "Ferric Ammonium Citrate Green__STM Ferric Ammonium Citrate Green.txt:30"
+        }
+      ]
+    },
+    {
+      "code": "RM-ID-NH4-001",
+      "displayName": "Identification with ammonium hydroxide (Ferric ammonium citrate green)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Qualitative",
+      "equationType": "Qualitative",
+      "physchemArea": "RawPackaging",
+      "complete": true,
+      "notes": "Identification test B per USP 2024: 10 mL of 1 in 100 solution + 6 N ammonium hydroxide dropwise; solution darkens, no precipitate forms.",
+      "usedBy": [
+        "STM-RM-001"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-001",
+          "provisionalCode": "RM-ID-FAC-NH4OH",
+          "source": "Ferric Ammonium Citrate Green__STM Ferric Ammonium Citrate Green.txt:30"
+        }
+      ]
+    },
+    {
+      "code": "RM-ID-KMN-001",
+      "displayName": "Identification with potassium permanganate (Ferric ammonium citrate green)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Qualitative",
+      "equationType": "Qualitative",
+      "physchemArea": "RawPackaging",
+      "complete": true,
+      "notes": "Identification test C per USP 2024: 5 mL of 1 in 100 solution + 0.3 mL potassium permanganate TS + 4 mL mercuric sulphate TS; heat to boiling; white precipitate forms.",
+      "usedBy": [
+        "STM-RM-001"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-001",
+          "provisionalCode": "RM-ID-FAC-KMNO4",
+          "source": "Ferric Ammonium Citrate Green__STM Ferric Ammonium Citrate Green.txt:30"
+        }
+      ]
+    },
+    {
+      "code": "RM-TIT-FAC",
+      "displayName": "Assay of ferric ammonium citrate (iodometric titration)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Titration",
+      "equationType": "Titration",
+      "physchemArea": "RawPackaging",
+      "titrationType": "Redox",
+      "titrationMode": "Direct",
+      "titrationCalculation": "UspFactor",
+      "titrantSolution": "0.1 N Sodium thiosulfate VS",
+      "titrationEquivalencyFactor": 55.85,
+      "titrationEquivalencyFactorDerivation": "5.585 mg Fe per mL of 0.1 N Na2S2O3 / 0.1 = 55.85 mg/mEq",
+      "titrationIndicatorEntry": "Starch soluble TS",
+      "titrationEndpoint": "Visual",
+      "titrationBlankRequired": true,
+      "replicateCount": 1,
+      "complete": true,
+      "notes": "Iodometric titration per USP: about 1 g sample in 25 mL water + 5 mL HCl + 4 g KI, stand 15 min protected from light; add 100 mL water, titrate liberated iodine with 0.1 N sodium thiosulfate VS using starch TS; blank determination. 1 mL of 0.1 N thiosulfate = 5.585 mg Fe. Shared procedure between STM-RM-001 (green) and STM-RM-048 (brown).",
+      "usedBy": [
+        "STM-RM-001",
+        "STM-RM-048"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-001",
+          "provisionalCode": "RM-TIT-FAC",
+          "source": "Ferric Ammonium Citrate Green__STM Ferric Ammonium Citrate Green.txt:37"
+        },
+        {
+          "material": "STM-RM-048",
+          "provisionalCode": "RM-TIT-FAC",
+          "source": "Ferric Ammonium Citrate__STM Ferric Ammonium Citrate 1-3.txt:38"
+        }
+      ]
+    },
+    {
+      "code": "RM-ID-SIL-065",
+      "displayName": "Identification of silicate (Colloidal anhydrous silica)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Qualitative",
+      "equationType": "Qualitative",
+      "physchemArea": "RawPackaging",
+      "complete": true,
+      "notes": "Reaction of silicate per BP 2025: 20 mg sample + 10 mg NaF + few drops sulfuric acid R in platinum crucible; cover with plastic plate carrying suspended water drop; warm gently. White ring forms rapidly around the drop of water.",
+      "usedBy": [
+        "C1I-91-228"
+      ],
+      "sources": [
+        {
+          "material": "C1I-91-228",
+          "provisionalCode": "RM-ID-SIL",
+          "source": "Colloidal Anhydrous Silica__New_New.txt:32"
+        }
+      ]
+    },
+    {
+      "code": "RM-LOI-SIL-065",
+      "displayName": "Loss on ignition (Colloidal anhydrous silica)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Gravimetric",
+      "equationType": "GravimetricLoss",
+      "physchemArea": "RawPackaging",
+      "replicateCount": 1,
+      "usesTare": true,
+      "complete": true,
+      "notes": "Loss on ignition per BP 2025: 0.2 g sample in dry crucible ignited at 900 ± 50 °C for 2 h, cool in desiccator, weigh. Limit NMT 5.0%.",
+      "usedBy": [
+        "C1I-91-228"
+      ],
+      "sources": [
+        {
+          "material": "C1I-91-228",
+          "provisionalCode": "RM-LOI-SIL",
+          "source": "Colloidal Anhydrous Silica__New_New.txt:35"
+        }
+      ]
+    },
+    {
+      "code": "RM-ASSAY-SIL-065",
+      "displayName": "Assay of SiO2 (Colloidal anhydrous silica)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Measurement",
+      "equationType": "Measurement",
+      "physchemArea": "RawPackaging",
+      "replicateCount": 1,
+      "complete": true,
+      "notes": "Decision per Rule 6 and README: multi-step HF volatilization from the loss-on-ignition residue cannot be calculated by standard gravimetric workflow; Measurement test, analyst enters the final % SiO2 (ignited substance).",
+      "usedBy": [
+        "C1I-91-228"
+      ],
+      "sources": [
+        {
+          "material": "C1I-91-228",
+          "provisionalCode": "RM-ASSAY-SIL",
+          "source": "Colloidal Anhydrous Silica__New_New.txt:36"
+        }
+      ],
+      "evaluationBasis": "Mean"
+    },
+    {
+      "code": "RM-ID-AAS-088",
+      "displayName": "Identification by AAS (Feroglobin B12 granules)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Qualitative",
+      "equationType": "Qualitative",
+      "physchemArea": "RawPackaging",
+      "complete": true,
+      "notes": "AAS identification for iron (248.3 nm), zinc (213.9 nm), and copper (324.8 nm): sample absorption maximum corresponds to that of the respective standard.",
+      "usedBy": [
+        "STM-RM-088"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-088",
+          "provisionalCode": "RM-ID-AAS-FERO",
+          "source": "Feroglobin Granules__SM- Feroglobin B12 granules after edit.txt:31"
+        }
+      ]
+    },
+    {
+      "code": "RM-HPLC-FERO-AS",
+      "displayName": "Assay of vitamin B6 and folic acid (HPLC, Feroglobin B12 granules)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "HplcMethodAssay",
+      "equationType": "HplcMethodAssay",
+      "physchemArea": "RawPackaging",
+      "hplcMethod": "Feroglobin B12 Granules vitamins assay (HPLC)",
+      "requiresSystemSuitability": true,
+      "methodAbbreviation": "FERO-AS",
+      "complete": false,
+      "missing": [
+        "runTimeMin: not stated in the STM",
+        "columnInternalDiameterMm and particleSizeUm: not stated in the STM",
+        "mobile phase hexanesulphonic solution: strength, pH and preparation not stated in the STM"
+      ],
+      "notes": "Assay for pyridoxine HCl and folic acid by isocratic HPLC per STM:32; C18 BDS 25 cm, 35 °C, 1.5 mL/min, 20 µL, UV 280 nm. 6 standard injections RSD NMT 2%. Incomplete method details.",
+      "usedBy": [
+        "STM-RM-088"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-088",
+          "provisionalCode": "RM-HPLC-FERO-AS",
+          "source": "Feroglobin Granules__SM- Feroglobin B12 granules after edit.txt:32"
+        }
+      ]
+    },
+    {
+      "code": "RM-ICP-FE-088",
+      "displayName": "Assay of iron by AAS (Feroglobin B12 granules)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "IcpMethodAssay",
+      "equationType": "IcpMethodAssay",
+      "physchemArea": "RawPackaging",
+      "icpMethod": "Iron by AAS (Feroglobin B12 granules)",
+      "methodAbbreviation": "AAS-FE-088",
+      "complete": false,
+      "missing": [
+        "element view (axial/radial): not applicable to flame AAS",
+        "effectiveDate: STM issue date",
+        "minCorrelation: not stated in the STM"
+      ],
+      "notes": "Flame AAS at 248.3 nm, slit 0.5 nm, air-acetylene, Fe hollow cathode lamp. Standards 2.0, 4.0, 6.0 mg/L. Microwave sample digestion. Incomplete method details.",
+      "usedBy": [
+        "STM-RM-088"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-088",
+          "provisionalCode": "RM-ICP-FE-FERO",
+          "source": "Feroglobin Granules__SM- Feroglobin B12 granules after edit.txt:34"
+        }
+      ]
+    },
+    {
+      "code": "RM-ICP-ZN-088",
+      "displayName": "Assay of zinc by AAS (Feroglobin B12 granules)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "IcpMethodAssay",
+      "equationType": "IcpMethodAssay",
+      "physchemArea": "RawPackaging",
+      "icpMethod": "Zinc by AAS (Feroglobin B12 granules)",
+      "methodAbbreviation": "AAS-ZN-088",
+      "complete": false,
+      "missing": [
+        "element view (axial/radial): not applicable to flame AAS",
+        "effectiveDate: STM issue date",
+        "minCorrelation: not stated in the STM"
+      ],
+      "notes": "Flame AAS at 213.9 nm, slit 0.5 nm, air-acetylene, Zn hollow cathode lamp. Standards 2.0, 4.0, 6.0 mg/L. Microwave sample digestion. Incomplete method details.",
+      "usedBy": [
+        "STM-RM-088"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-088",
+          "provisionalCode": "RM-ICP-ZN-FERO",
+          "source": "Feroglobin Granules__SM- Feroglobin B12 granules after edit.txt:35"
+        }
+      ]
+    },
+    {
+      "code": "RM-ICP-CU-088",
+      "displayName": "Assay of copper by AAS (Feroglobin B12 granules)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "IcpMethodAssay",
+      "equationType": "IcpMethodAssay",
+      "physchemArea": "RawPackaging",
+      "icpMethod": "Copper by AAS (Feroglobin B12 granules)",
+      "methodAbbreviation": "AAS-CU-088",
+      "complete": false,
+      "missing": [
+        "element view (axial/radial): not applicable to flame AAS",
+        "effectiveDate: STM issue date",
+        "minCorrelation: not stated in the STM"
+      ],
+      "notes": "Flame AAS at 324.8 nm, slit 1.0 nm, air-acetylene, Cu hollow cathode lamp. Standards 2.0, 4.0, 6.0 mg/L. Microwave sample digestion. Incomplete method details.",
+      "usedBy": [
+        "STM-RM-088"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-088",
+          "provisionalCode": "RM-ICP-CU-FERO",
+          "source": "Feroglobin Granules__SM- Feroglobin B12 granules after edit.txt:36"
+        }
+      ]
+    }
+  ],
+  "solutions": [
+    {
+      "name": "0.1 N Sodium thiosulfate VS",
+      "type": "Titrant",
+      "section": "Physicochemical Laboratory",
+      "nominalStrength": 0.1,
+      "strengthUnit": "Normal",
+      "finalVolumeMl": 1000,
+      "instructions": "Dissolve about 26 g of sodium thiosulfate and 200 mg of sodium carbonate in 1000 mL of recently boiled and cooled water.",
+      "components": [
+        {
+          "entry": "Sodium thiosulfate pentahydrate",
+          "entryCode": "RG-016",
+          "quantity": 26,
+          "unit": "Gram"
+        },
+        {
+          "entry": "Sodium carbonate, anhydrous",
+          "entryCode": "RG-021",
+          "quantity": 0.2,
+          "unit": "Gram"
+        }
+      ],
+      "waterToVolume": true,
+      "standardizationMode": "PrimaryStandard",
+      "standardEntry": "Potassium dichromate (primary standard)",
+      "equivalenceMgPerMl": 4.904,
+      "referenceSolution": null,
+      "usedBy": [
+        "STM-RM-001",
+        "STM-RM-050",
+        "STM-RM-048"
+      ],
+      "notes": "Standardization per STM-RM-001 line 26: accurately weigh about 210 mg of primary standard potassium dichromate, previously pulverized and dried, dissolve in 100 mL water in 500-mL glass-stoppered flask; add 3 g KI, 2 g NaHCO3, 5 mL HCl, stand 10 min in the dark, titrate liberated iodine with thiosulfate using 3 mL starch TS; blank determination. Equivalence: 49.037 * 0.1 = 4.904 mg K2Cr2O7 / mL thiosulfate. House defaults applied.",
+      "complete": true,
+      "shelfLifeValue": 30,
+      "shelfLifeUnit": "Days",
+      "storageCondition": "Tightly closed, room temperature",
+      "replicateCount": 3,
+      "maxRsdPercent": 0.2,
+      "validityDays": 30,
+      "blankRequired": true,
+      "factorMin": 0.97,
+      "factorMax": 1.03
+    },
+    {
+      "name": "0.1 N Iodine VS",
+      "type": "Titrant",
+      "section": "Physicochemical Laboratory",
+      "nominalStrength": 0.1,
+      "strengthUnit": "Normal",
+      "finalVolumeMl": 1000,
+      "instructions": "Dissolve about 14 g of iodine in a solution of 36 g of potassium iodide in 100 mL of water, add 3 drops of hydrochloric acid, and dilute with water to 1000.0 mL.",
+      "components": [
+        {
+          "entry": "Iodine",
+          "entryCode": "RG-018",
+          "quantity": 14,
+          "unit": "Gram"
+        },
+        {
+          "entry": "Potassium iodide",
+          "entryCode": "RG-019",
+          "quantity": 36,
+          "unit": "Gram"
+        }
+      ],
+      "waterToVolume": true,
+      "standardizationMode": "AgainstVolumetricSolution",
+      "standardEntry": null,
+      "equivalenceMgPerMl": null,
+      "referenceSolution": "0.1 N Sodium thiosulfate VS",
+      "usedBy": [
+        "STM-RM-050"
+      ],
+      "notes": "Standardization per STM-RM-050 line 26: 25.0 mL iodine solution + 100 mL water + 1 mL 1 N HCl, titrate with 0.1 N sodium thiosulfate VS until pale yellow, add 2 mL starch TS, continue to colorless. House defaults applied.",
+      "complete": true,
+      "shelfLifeValue": 30,
+      "shelfLifeUnit": "Days",
+      "storageCondition": "Tightly closed, room temperature",
+      "replicateCount": 3,
+      "maxRsdPercent": 0.2,
+      "validityDays": 30,
+      "blankRequired": false,
+      "factorMin": 0.97,
+      "factorMax": 1.03
+    }
+  ],
+  "hplcMethods": [
+    {
+      "name": "Feroglobin B12 Granules vitamins assay (HPLC)",
+      "abbreviation": "FERO-AS",
+      "technique": "Hplc",
+      "resultMode": "Assay",
+      "section": "Physicochemical Laboratory",
+      "effectiveDate": "STM issue date",
+      "columnDesignation": "C18 stainless steel, BDS",
+      "columnLengthMm": 250,
+      "columnInternalDiameterMm": null,
+      "particleSizeUm": null,
+      "elutionMode": "Isocratic",
+      "flowRateMlPerMin": 1.5,
+      "detectorType": "UV",
+      "injectionVolumeUl": 20,
+      "runTimeMin": null,
+      "columnTemperatureC": 35,
+      "mobilePhases": [
+        {
+          "channel": "A",
+          "solution": "87% hexanesulphonic solution : 13% HPLC methanol"
+        }
+      ],
+      "analytes": [
+        {
+          "name": "Pyridoxine hydrochloride",
+          "wavelengthNm": 280,
+          "standardEntry": "Pyridoxine HCl working standard",
+          "theoreticalWeightStdMg": 60,
+          "theoreticalWeightTestMg": 697.95,
+          "standardInjections": 6,
+          "sstMaxRsdPercent": 2.0
+        },
+        {
+          "name": "Folic acid",
+          "wavelengthNm": 280,
+          "standardEntry": "Folic acid working standard",
+          "theoreticalWeightStdMg": 75,
+          "theoreticalWeightTestMg": 697.95,
+          "standardInjections": 6,
+          "sstMaxRsdPercent": 2.0
+        }
+      ],
+      "complete": false,
+      "missing": [
+        "runTimeMin: not stated in the STM",
+        "columnInternalDiameterMm and particleSizeUm: not stated in the STM",
+        "mobile phase hexanesulphonic solution: strength, pH and preparation not stated in the STM"
+      ],
+      "notes": "Isocratic HPLC on C18 BDS 25 cm at 35 °C, 1.5 mL/min, 20 µL, UV 280 nm. 6 standard injections with RSD NMT 2%. Mobile phase recipe lacks hexanesulphonic solution strength.",
+      "usedBy": [
+        "STM-RM-088"
+      ],
+      "source": "Feroglobin Granules__SM- Feroglobin B12 granules after edit.txt:32",
+      "heldBack": null
+    }
+  ],
+  "icpMethods": [
+    {
+      "name": "Iron by AAS (Feroglobin B12 granules)",
+      "abbreviation": "AAS-FE-088",
+      "mode": "MineralAssay",
+      "section": "Physicochemical Laboratory",
+      "standardLevelsMgPerL": "2.0, 4.0, 6.0",
+      "calibrationStandardEntry": "Iron standard solution (1000 mg/L)",
+      "minCorrelation": null,
+      "sampleVolumeMl": 100,
+      "elements": [
+        {
+          "symbol": "Fe",
+          "wavelengthNm": 248.3,
+          "conversionFactor": 1
+        }
+      ],
+      "dilutionFactor": 50,
+      "usedBy": [
+        "STM-RM-088"
+      ],
+      "notes": "Flame AAS at 248.3 nm, slit 0.5 nm, air-acetylene, Fe hollow cathode lamp. Working standards 2, 4, 6 mg/L. Sample digested by microwave (465.3 mg in 9 mL HNO3 + 1 mL H2O2, to 100 mL), 10 mL to 100 mL, 10 mL to 50 mL. Blank: purified water.",
+      "complete": false,
+      "missing": [
+        "element view (axial/radial): not applicable to flame AAS",
+        "effectiveDate: STM issue date",
+        "minCorrelation: not stated in the STM"
+      ],
+      "heldBack": null
+    },
+    {
+      "name": "Zinc by AAS (Feroglobin B12 granules)",
+      "abbreviation": "AAS-ZN-088",
+      "mode": "MineralAssay",
+      "section": "Physicochemical Laboratory",
+      "standardLevelsMgPerL": "2.0, 4.0, 6.0",
+      "calibrationStandardEntry": "Zinc standard solution (1000 mg/L)",
+      "minCorrelation": null,
+      "sampleVolumeMl": 100,
+      "elements": [
+        {
+          "symbol": "Zn",
+          "wavelengthNm": 213.9,
+          "conversionFactor": 1
+        }
+      ],
+      "dilutionFactor": 25,
+      "usedBy": [
+        "STM-RM-088"
+      ],
+      "notes": "Flame AAS at 213.9 nm, slit 0.5 nm, air-acetylene, Zn hollow cathode lamp. Working standards 2, 4, 6 mg/L. Sample digested by microwave (465.3 mg to 100 mL), 10 mL to 100 mL, 20 mL to 50 mL. Blank: purified water.",
+      "complete": false,
+      "missing": [
+        "element view (axial/radial): not applicable to flame AAS",
+        "effectiveDate: STM issue date",
+        "minCorrelation: not stated in the STM"
+      ],
+      "heldBack": null
+    },
+    {
+      "name": "Copper by AAS (Feroglobin B12 granules)",
+      "abbreviation": "AAS-CU-088",
+      "mode": "MineralAssay",
+      "section": "Physicochemical Laboratory",
+      "standardLevelsMgPerL": "2.0, 4.0, 6.0",
+      "calibrationStandardEntry": "Copper standard solution (1000 mg/L)",
+      "minCorrelation": null,
+      "sampleVolumeMl": 100,
+      "elements": [
+        {
+          "symbol": "Cu",
+          "wavelengthNm": 324.8,
+          "conversionFactor": 1
+        }
+      ],
+      "dilutionFactor": 2.5,
+      "usedBy": [
+        "STM-RM-088"
+      ],
+      "notes": "Flame AAS at 324.8 nm, slit 1.0 nm, air-acetylene, Cu hollow cathode lamp. Standards 2, 4, 6 mg/L. Sample digested by microwave (465.3 mg to 100 mL), 20 mL to 50 mL. Blank: purified water.",
+      "complete": false,
+      "missing": [
+        "element view (axial/radial): not applicable to flame AAS",
+        "effectiveDate: STM issue date",
+        "minCorrelation: not stated in the STM"
+      ],
+      "heldBack": null
+    }
+  ],
+  "materialEntries": [
+    {
+      "name": "Potassium Gluconate RS",
+      "category": "ReferenceStandard",
+      "codePrefix": "RS-",
+      "code": null,
+      "baseUnit": "Vial",
+      "usedBy": [
+        "RM-ID-TLC-050"
+      ],
+      "source": "Zinc Gluconate__STM Calcium  Zinc Gluconate.txt:26",
+      "loadedObjectNeedsIt": true
+    },
+    {
+      "name": "Potassium dichromate (primary standard)",
+      "category": "PrimaryStandard",
+      "codePrefix": "PS-",
+      "code": null,
+      "baseUnit": "Gram",
+      "usedBy": [
+        "0.1 N Sodium thiosulfate VS"
+      ],
+      "source": "Ferric Ammonium Citrate Green__STM Ferric Ammonium Citrate Green.txt:26",
+      "loadedObjectNeedsIt": true
+    },
+    {
+      "name": "Starch soluble TS",
+      "category": "Indicator",
+      "codePrefix": "IND-",
+      "code": null,
+      "baseUnit": "Bottle",
+      "usedBy": [
+        "RM-TIT-FAC",
+        "RM-TIT-RED-050"
+      ],
+      "source": "Ferric Ammonium Citrate Green__STM Ferric Ammonium Citrate Green.txt:26; Zinc Gluconate__STM Calcium  Zinc Gluconate.txt:26",
+      "loadedObjectNeedsIt": true
+    },
+    {
+      "name": "Folic acid working standard",
+      "category": "ReferenceStandard",
+      "codePrefix": "RS-",
+      "code": null,
+      "baseUnit": "Vial",
+      "usedBy": [
+        "RM-HPLC-FERO-AS"
+      ],
+      "source": "Feroglobin Granules__SM- Feroglobin B12 granules after edit.txt:32",
+      "loadedObjectNeedsIt": false
+    },
+    {
+      "name": "Pyridoxine HCl working standard",
+      "category": "ReferenceStandard",
+      "codePrefix": "RS-",
+      "code": null,
+      "baseUnit": "Vial",
+      "usedBy": [
+        "RM-HPLC-FERO-AS"
+      ],
+      "source": "Feroglobin Granules__SM- Feroglobin B12 granules after edit.txt:32",
+      "loadedObjectNeedsIt": false
+    },
+    {
+      "name": "Iron standard solution (1000 mg/L)",
+      "category": "ReferenceStandard",
+      "codePrefix": "RS-",
+      "code": null,
+      "baseUnit": "Bottle",
+      "usedBy": [
+        "RM-ICP-FE-088"
+      ],
+      "source": "Feroglobin Granules__SM- Feroglobin B12 granules after edit.txt:28",
+      "loadedObjectNeedsIt": false
+    },
+    {
+      "name": "Zinc standard solution (1000 mg/L)",
+      "category": "ReferenceStandard",
+      "codePrefix": "RS-",
+      "code": null,
+      "baseUnit": "Bottle",
+      "usedBy": [
+        "RM-ICP-ZN-088"
+      ],
+      "source": "Feroglobin Granules__SM- Feroglobin B12 granules after edit.txt:28",
+      "loadedObjectNeedsIt": false
+    },
+    {
+      "name": "Copper standard solution (1000 mg/L)",
+      "category": "ReferenceStandard",
+      "codePrefix": "RS-",
+      "code": null,
+      "baseUnit": "Bottle",
+      "usedBy": [
+        "RM-ICP-CU-088"
+      ],
+      "source": "Feroglobin Granules__SM- Feroglobin B12 granules after edit.txt:28",
+      "loadedObjectNeedsIt": false
+    }
+  ],
+  "reagentLinks": [],
+  "mapping": {
+    "STM-RM-050": {
+      "RM-DESC": "RM-DESC",
+      "RM-SOLUB": "RM-SOLUB",
+      "RM-ID-ZN-GLU": "RM-ID-ZN-050",
+      "RM-ID-TLC-GLU": "RM-ID-TLC-050",
+      "RM-LT-CL": "RM-LT-CL",
+      "RM-LT-SO4": "RM-LT-SO4",
+      "RM-LT-AS-ZNGLU": "RM-LT-AS-050",
+      "RM-PB-ZNGLU": "RM-LT-PB-050",
+      "RM-RED-ZNGLU": "RM-TIT-RED-050",
+      "RM-PH": "RM-PH",
+      "RM-KF": "RM-KF",
+      "RM-TIT-ZNGLU": "RM-TIT-ZNG-050",
+      "TAMC": "TAMC",
+      "TYMC": "TYMC",
+      "E.coli": "E.coli"
+    },
+    "STM-RM-128": {
+      "RM-DESC": "RM-DESC",
+      "RM-LT-HM": "RM-LT-HM",
+      "RM-HCLINS-TART": "RM-HCLINS-128",
+      "RM-PH": "RM-PH",
+      "RM-LOD": "RM-LOD",
+      "RM-BULKD": "RM-BULKD",
+      "TAMC": "TAMC",
+      "TYMC": "TYMC",
+      "E.coli": "E.coli"
+    },
+    "STM-RM-001": {
+      "RM-DESC": "RM-DESC",
+      "RM-SOLUB": "RM-SOLUB",
+      "RM-ID-FAC-IGN": "RM-ID-IGN-001",
+      "RM-ID-FAC-NH4OH": "RM-ID-NH4-001",
+      "RM-ID-FAC-KMNO4": "RM-ID-KMN-001",
+      "RM-LT-SO4": "RM-LT-SO4",
+      "RM-ACID-FAC": "RM-ACID-001",
+      "RM-TIT-FAC": "RM-TIT-FAC",
+      "TAMC": "TAMC",
+      "TYMC": "TYMC",
+      "E.coli": "E.coli"
+    },
+    "C1I-91-228": {
+      "RM-DESC": "RM-DESC",
+      "RM-SOLUB": "RM-SOLUB",
+      "RM-ID-SIL": "RM-ID-SIL-065",
+      "RM-LT-CL": "RM-LT-CL",
+      "RM-LOI-SIL": "RM-LOI-SIL-065",
+      "RM-PH": "RM-PH",
+      "RM-ASSAY-SIL": "RM-ASSAY-SIL-065",
+      "TAMC": "TAMC",
+      "TYMC": "TYMC",
+      "E.coli": "E.coli"
+    },
+    "STM-RM-088": {
+      "RM-DESC": "RM-DESC",
+      "RM-ID-RT": "RM-ID-RT",
+      "RM-ID-AAS-FERO": "RM-ID-AAS-088",
+      "RM-HPLC-FERO-AS": "RM-HPLC-FERO-AS",
+      "RM-ICP-FE-FERO": "RM-ICP-FE-088",
+      "RM-ICP-ZN-FERO": "RM-ICP-ZN-088",
+      "RM-ICP-CU-FERO": "RM-ICP-CU-088",
+      "TAMC": "TAMC",
+      "TYMC": "TYMC",
+      "E.coli": "E.coli"
+    }
+  },
+  "gaps": [
+    {
+      "material": "STM-RM-088",
+      "test": "RM-HPLC-FERO-AS",
+      "missing": "runTimeMin; columnInternalDiameterMm; particleSizeUm; mobile phase hexanesulphonic solution strength/pH"
+    },
+    {
+      "material": "STM-RM-088",
+      "test": "RM-ICP-FE-FERO",
+      "missing": "element view (axial/radial); effectiveDate; minCorrelation"
+    },
+    {
+      "material": "STM-RM-088",
+      "test": "RM-ICP-ZN-FERO",
+      "missing": "element view (axial/radial); effectiveDate; minCorrelation"
+    },
+    {
+      "material": "STM-RM-088",
+      "test": "RM-ICP-CU-FERO",
+      "missing": "element view (axial/radial); effectiveDate; minCorrelation"
+    }
+  ]
+}

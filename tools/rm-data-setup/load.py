@@ -101,6 +101,15 @@ class Loader:
         self.base, self.token, self.dry, self.only = base.rstrip("/"), token, dry_run, only
         self.dir, self.out, self.counts = Path(data_dir), out, Counter()
         self.catalog = json.loads((self.dir / "catalog.json").read_text(encoding="utf-8"))
+        # batch-2 parts: catalog-b2/*.json hold the same lists plus "mapping" (per item), merged in file order
+        for part in sorted((self.dir / "catalog-b2").glob("*.json")):
+            extra = json.loads(part.read_text(encoding="utf-8"))
+            for key, val in extra.items():
+                if key == "mapping":
+                    self.catalog.setdefault("mapping", {}).update(val)
+                elif isinstance(val, list):
+                    have = {x.get("code") or x.get("name") for x in self.catalog.setdefault(key, [])}
+                    self.catalog[key] += [x for x in val if (x.get("code") or x.get("name")) not in have]
         self.materials = [json.loads(p.read_text(encoding="utf-8"))
                           for p in sorted((self.dir / "materials").glob("*.json"))]
         if only:

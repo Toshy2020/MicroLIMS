@@ -1,0 +1,656 @@
+{
+  "testDefinitions": [
+    {
+      "code": "RM-ID-CMC-004",
+      "displayName": "Identification of Carboxymethylcellulose Sodium (copper sulfate reaction and boiling)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Qualitative",
+      "equationType": "Qualitative",
+      "physchemArea": "RawPackaging",
+      "complete": true,
+      "notes": "Identification per BP 2024 Appendix VI on solution S (1.0 g dried substance equivalent dissolved in 90 mL CO2-free water at 40-50 °C, diluted to 100 mL): 1) To 10 mL solution S add 1 mL copper sulfate solution (12.5 g in 100 mL water); blue cotton-like precipitate forms. 2) Boil 5 mL solution S for a few minutes; no precipitate forms (source: CarboxymethylCellulose Sodium__STM Calcium CarboxymethylCellulose Sodium NEW viscity.txt:30).",
+      "usedBy": [
+        "STM-RM-004"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-004",
+          "provisionalCode": "RM-ID-CMC",
+          "source": "CarboxymethylCellulose Sodium__STM Calcium CarboxymethylCellulose Sodium NEW viscity.txt:30"
+        }
+      ]
+    },
+    {
+      "code": "RM-VISC-CMC-004",
+      "displayName": "Viscosity (Carboxymethylcellulose Sodium)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Measurement",
+      "equationType": "Measurement",
+      "physchemArea": "RawPackaging",
+      "replicateCount": 1,
+      "evaluationBasis": "Mean",
+      "complete": true,
+      "notes": "Rotating viscometer method per BP 2024 Appendix V H (method III): stir quantity equivalent to 1.00 g dried substance into 50 mL water, heat to 90 °C, cool, dilute to 100.0 mL with water and stir until dissolved. Measure at 20 °C, 100 rpm, with calibrated rotating viscometer using spindle giving higher torque. Limit 4000 to 6000 cp (source: CarboxymethylCellulose Sodium__STM Calcium CarboxymethylCellulose Sodium NEW viscity.txt:34).",
+      "usedBy": [
+        "STM-RM-004"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-004",
+          "provisionalCode": "RM-VISC-CMC",
+          "source": "CarboxymethylCellulose Sodium__STM Calcium CarboxymethylCellulose Sodium NEW viscity.txt:34"
+        }
+      ]
+    },
+    {
+      "code": "RM-LT-GLYC-004",
+      "displayName": "Sodium glycolate (limit test, Carboxymethylcellulose Sodium)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Qualitative",
+      "equationType": "Qualitative",
+      "physchemArea": "RawPackaging",
+      "complete": true,
+      "notes": "Limit test per BP 2024: 0.500 g dried substance dissolved in 5 mL acetic acid and 5 mL water, add 80 mL acetone and 2 g NaCl, filter, to 100.0 mL with acetone; 2.0 mL clear supernatant evaporated on water-bath, treated with 20.0 mL 2,7-dihydroxynaphthalene solution, heated 20 min, cooled, diluted to 25.0 mL with sulfuric acid; compared within 10 min with glycolic acid standard solution (0.310 g/L). Test not more intensely coloured than reference (NMT 0.4%, dried substance; source: CarboxymethylCellulose Sodium__STM Calcium CarboxymethylCellulose Sodium NEW viscity.txt:35).",
+      "usedBy": [
+        "STM-RM-004"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-004",
+          "provisionalCode": "RM-LT-GLYC-CMC",
+          "source": "CarboxymethylCellulose Sodium__STM Calcium CarboxymethylCellulose Sodium NEW viscity.txt:35"
+        }
+      ]
+    },
+    {
+      "code": "RM-ID-MG-058",
+      "displayName": "Identification (reaction of magnesium, USP, Magnesium Oxide)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Qualitative",
+      "equationType": "Qualitative",
+      "physchemArea": "RawPackaging",
+      "complete": true,
+      "notes": "Identification of magnesium per USP <191>: 50 mg/mL solution in 3 N HCl; add 3 mL ammonium chloride; neutralise with ammonium carbonate TS (slightly hazy precipitate); add dibasic sodium phosphate TS: white crystalline precipitate insoluble in 6 N ammonium hydroxide (source: Magnesium Oxide__Magnesium Oxide - SM-New.txt:30).",
+      "usedBy": [
+        "STM-RM-058"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-058",
+          "provisionalCode": "RM-ID-MG",
+          "source": "Magnesium Oxide__Magnesium Oxide - SM-New.txt:30"
+        }
+      ]
+    },
+    {
+      "code": "RM-FAS-MGO",
+      "displayName": "Free alkali and soluble salts (Magnesium Oxide)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Measurement",
+      "equationType": "Measurement",
+      "physchemArea": "RawPackaging",
+      "replicateCount": 1,
+      "evaluationBasis": "Mean",
+      "complete": true,
+      "notes": "USP procedure: boil 2.0 g with 100 mL water for 5 min in covered beaker, filter hot, cool, dilute to 100 mL. 1) 50 mL sample solution with methyl red TS titrated with 0.10 N sulfuric acid (limit NMT 2.0 mL). 2) 25 mL sample solution evaporated to dryness, dried at 105 °C for 1 h (limit NMT 10 mg / 2.0%). Measurement test, analyst enters the final values (source: Magnesium Oxide__Magnesium Oxide - SM-New.txt:31).",
+      "usedBy": [
+        "STM-RM-058"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-058",
+          "provisionalCode": "RM-FAS-MGO",
+          "source": "Magnesium Oxide__Magnesium Oxide - SM-New.txt:31"
+        }
+      ]
+    },
+    {
+      "code": "RM-ICP-CA-058",
+      "displayName": "Limit of Calcium (AAS as ICP, magnesium oxide USP)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "IcpMethodAssay",
+      "equationType": "IcpMethodAssay",
+      "physchemArea": "RawPackaging",
+      "icpMethod": "Calcium by AAS (magnesium oxide USP)",
+      "methodAbbreviation": "AAS-CA-058",
+      "complete": false,
+      "missing": [
+        "specification shape: % w/w content rows are not holdable by ICP spec rules without label claim (gaps A)",
+        "needs the held-back method \"Calcium by AAS (magnesium oxide USP)\""
+      ],
+      "notes": "Magnesium Oxide USP: Limit of Calcium NMT 1.1 %; % w/w content rows cannot be held by ICP spec rules without a label claim (gaps A). Flame AAS with nitrous oxide-acetylene, 422.7 nm, standards 1.0-15.0 ug/mL Ca (source: Magnesium Oxide__Magnesium Oxide - SM-New.txt:32).",
+      "usedBy": [
+        "STM-RM-058"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-058",
+          "provisionalCode": "RM-CA-MGO",
+          "source": "Magnesium Oxide__Magnesium Oxide - SM-New.txt:32"
+        }
+      ],
+      "heldBack": "needs the held-back method \"Calcium by AAS (magnesium oxide USP)\""
+    },
+    {
+      "code": "RM-LOI-058",
+      "displayName": "Loss on ignition (Magnesium Oxide)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Gravimetric",
+      "equationType": "GravimetricLoss",
+      "physchemArea": "RawPackaging",
+      "replicateCount": 1,
+      "usesTare": true,
+      "complete": true,
+      "notes": "Weigh empty crucible previously ignited at 800-900 °C (W0); weigh accurately 1.000 g into it (W1); ignite in calibrated muffle at 800-900 °C for 2 h, cool in desiccator, weigh (W2); repeat to constant weight. % loss on ignition = (W1 - W2) / (W1 - W0) x 100. Limit NMT 10.0% (source: Magnesium Oxide__Magnesium Oxide - SM-New.txt:34).",
+      "usedBy": [
+        "STM-RM-058"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-058",
+          "provisionalCode": "RM-LOI-MGO",
+          "source": "Magnesium Oxide__Magnesium Oxide - SM-New.txt:34"
+        }
+      ]
+    },
+    {
+      "code": "RM-AIS-058",
+      "displayName": "Acid-insoluble substances (Magnesium Oxide)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Gravimetric",
+      "equationType": "GravimetricResidue",
+      "physchemArea": "RawPackaging",
+      "replicateCount": 1,
+      "usesTare": true,
+      "complete": true,
+      "notes": "2.0 g sample (W1) in 75 mL water in ignited crucible (W2); add HCl until dissolved, boil 5 min, filter if residue remains, wash free from chloride; ignite and weigh (W3). Residue (%) = (W3 - W2) / W1 x 100. Limit NMT 2 mg (0.1%; source: Magnesium Oxide__Magnesium Oxide - SM-New.txt:35).",
+      "usedBy": [
+        "STM-RM-058"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-058",
+          "provisionalCode": "RM-AIS-MGO",
+          "source": "Magnesium Oxide__Magnesium Oxide - SM-New.txt:35"
+        }
+      ]
+    },
+    {
+      "code": "RM-TIT-MGO-058",
+      "displayName": "Assay of magnesium oxide (complexometric EDTA titration)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Measurement",
+      "equationType": "Measurement",
+      "physchemArea": "RawPackaging",
+      "replicateCount": 1,
+      "evaluationBasis": "Mean",
+      "complete": true,
+      "notes": "Ignite sample at 800-900 °C to constant weight. Weigh 320 mg ignited sample to 100 mL, dissolve in 20 mL 2 N HCl, dilute to volume. 20.0 mL diluted to 300 mL (equivalent to 64 mg ignited MgO). Add 10 mL ammonium chloride buffer pH 10 and 50 mg eriochrome black T-NaCl indicator; heat to 40 °C, titrate with 0.1 M edetate disodium VS to blue endpoint with blank correction. Result (%) = (VS - VCa) x (FMgO / W) x 100, where VCa is calcium correction from limit of calcium test. Measurement test per Rule 6, analyst enters the final value because formula requires cross-test calcium correction not calculable by titration workflow (source: Magnesium Oxide__Magnesium Oxide - SM-New.txt:36).",
+      "usedBy": [
+        "STM-RM-058"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-058",
+          "provisionalCode": "RM-TIT-MGO",
+          "source": "Magnesium Oxide__Magnesium Oxide - SM-New.txt:36"
+        }
+      ]
+    },
+    {
+      "code": "RM-PSD-058",
+      "displayName": "Particle size distribution (sieving / analyser, Magnesium Oxide)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Measurement",
+      "equationType": "Measurement",
+      "physchemArea": "RawPackaging",
+      "replicateCount": 1,
+      "evaluationBasis": "Mean",
+      "complete": true,
+      "notes": "Calibrated analytical sieving or particle size analyser; measure mass percentage of powder in each sieve size range (D10 297 µm / 10% pass 50 mesh; D50 590 µm / 50% pass 30 mesh; D90 1000 µm / 90% pass 18 mesh). Qualitative rows (source: Magnesium Oxide__Magnesium Oxide - SM-New.txt:38).",
+      "usedBy": [
+        "STM-RM-058"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-058",
+          "provisionalCode": "RM-PSD-MGO",
+          "source": "Magnesium Oxide__Magnesium Oxide - SM-New.txt:38"
+        }
+      ]
+    },
+    {
+      "code": "RM-ID-PEG-A-049",
+      "displayName": "Identification of Macrogols (fumes into mercuric chloride, Test A)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Qualitative",
+      "equationType": "Qualitative",
+      "physchemArea": "RawPackaging",
+      "complete": true,
+      "notes": "Identification test 1 per BP 2024 Macrogols: to 1 g add 0.5 mL sulfuric acid; heat until white fumes evolve; collect fumes through delivery tube into 1 mL mercuric chloride solution (5.4 g in 100 mL water); abundant white crystalline precipitate forms (source: Polyethylen Glycol 6000__STM Polyethylen Glycol after edit (no equipments).txt:30).",
+      "usedBy": [
+        "STM-RM-049"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-049",
+          "provisionalCode": "RM-ID-PEG-A",
+          "source": "Polyethylen Glycol 6000__STM Polyethylen Glycol after edit (no equipments).txt:30"
+        }
+      ]
+    },
+    {
+      "code": "RM-ID-PEG-B-049",
+      "displayName": "Identification of Macrogols (thiocyanate and cobalt nitrate, Test B)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Qualitative",
+      "equationType": "Qualitative",
+      "physchemArea": "RawPackaging",
+      "complete": true,
+      "notes": "Identification test 2 per BP 2024 Macrogols: to 0.1 g add 0.1 g potassium thiocyanate and 0.1 g cobalt nitrate, mix thoroughly with glass rod; add 5 mL methylene chloride and shake; liquid phase becomes blue (source: Polyethylen Glycol 6000__STM Polyethylen Glycol after edit (no equipments).txt:30).",
+      "usedBy": [
+        "STM-RM-049"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-049",
+          "provisionalCode": "RM-ID-PEG-B",
+          "source": "Polyethylen Glycol 6000__STM Polyethylen Glycol after edit (no equipments).txt:30"
+        }
+      ]
+    },
+    {
+      "code": "RM-ACID-049",
+      "displayName": "Acidity or alkalinity (Polyethylene Glycol 6000)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Measurement",
+      "equationType": "Measurement",
+      "physchemArea": "RawPackaging",
+      "replicateCount": 1,
+      "evaluationBasis": "Mean",
+      "complete": true,
+      "notes": "BP 2024: dissolve 5.0 g in 50 mL CO2-free water, add 0.15 mL bromothymol blue solution R1; solution is yellow or green. Titrate with 0.1 M sodium hydroxide to blue colour (limit NMT 0.1 mL). Measurement test, analyst enters volume of 0.1 M NaOH in mL (source: Polyethylen Glycol 6000__STM Polyethylen Glycol after edit (no equipments).txt:32).",
+      "usedBy": [
+        "STM-RM-049"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-049",
+          "provisionalCode": "RM-ACID-PEG",
+          "source": "Polyethylen Glycol 6000__STM Polyethylen Glycol after edit (no equipments).txt:32"
+        }
+      ]
+    },
+    {
+      "code": "RM-VISC-049",
+      "displayName": "Viscosity (50% m/m solution, Polyethylene Glycol 6000)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Measurement",
+      "equationType": "Measurement",
+      "physchemArea": "RawPackaging",
+      "replicateCount": 1,
+      "evaluationBasis": "Mean",
+      "complete": true,
+      "notes": "BP 2024 Appendix V H: dissolve 50 g in 50 mL water to give 50% m/m solution; measure with calibrated rotational viscometer. Range 200 to 270 mPa·s (source: Polyethylen Glycol 6000__STM Polyethylen Glycol after edit (no equipments).txt:33).",
+      "usedBy": [
+        "STM-RM-049"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-049",
+          "provisionalCode": "RM-VISC-PEG",
+          "source": "Polyethylen Glycol 6000__STM Polyethylen Glycol after edit (no equipments).txt:33"
+        }
+      ]
+    },
+    {
+      "code": "RM-FP-049",
+      "displayName": "Freezing point (Polyethylene Glycol 6000)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Measurement",
+      "equationType": "Measurement",
+      "physchemArea": "RawPackaging",
+      "replicateCount": 1,
+      "evaluationBasis": "Mean",
+      "complete": true,
+      "notes": "BP 2024 Appendix V B: sample in Nessler tube with thermometer or freezing point apparatus; heat carefully and record freezing temperature. Range 55 to 61 °C (source: Polyethylen Glycol 6000__STM Polyethylen Glycol after edit (no equipments).txt:34).",
+      "usedBy": [
+        "STM-RM-049"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-049",
+          "provisionalCode": "RM-FP-PEG",
+          "source": "Polyethylen Glycol 6000__STM Polyethylen Glycol after edit (no equipments).txt:34"
+        }
+      ]
+    },
+    {
+      "code": "RM-RED-049",
+      "displayName": "Reducing substances (Polyethylene Glycol 6000)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Qualitative",
+      "equationType": "Qualitative",
+      "physchemArea": "RawPackaging",
+      "complete": true,
+      "notes": "BP 2024: dissolve 1 g in 1 mL of 10 g/L resorcinol solution, warm gently if necessary, add 2 mL HCl; after 5 min solution not more intensely coloured than reference solution R3 (source: Polyethylen Glycol 6000__STM Polyethylen Glycol after edit (no equipments).txt:35).",
+      "usedBy": [
+        "STM-RM-049"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-049",
+          "provisionalCode": "RM-RED-PEG",
+          "source": "Polyethylen Glycol 6000__STM Polyethylen Glycol after edit (no equipments).txt:35"
+        }
+      ]
+    },
+    {
+      "code": "RM-AVWT-074",
+      "displayName": "Average weight of empty capsule shells (Size Two)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Measurement",
+      "equationType": "Measurement",
+      "physchemArea": "RawPackaging",
+      "replicateCount": 1,
+      "evaluationBasis": "Mean",
+      "complete": true,
+      "notes": "Weigh 10 capsules individually; average weight (mg) = sum of weights / 10. Range 57.35 to 66.65 mg (62.0 mg ±7.5%; source: Green Empty Hard Gelatin Capsule Size Two__Green Empty Hard Gelatin Capsule Size Two -SM.txt:32).",
+      "usedBy": [
+        "STM-RM-074"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-074",
+          "provisionalCode": "RM-AVWT-CAP",
+          "source": "Green Empty Hard Gelatin Capsule Size Two__Green Empty Hard Gelatin Capsule Size Two -SM.txt:32"
+        }
+      ]
+    },
+    {
+      "code": "RM-LEN-074",
+      "displayName": "Closed joined length of capsule shells (Size Two)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Measurement",
+      "equationType": "Measurement",
+      "physchemArea": "RawPackaging",
+      "replicateCount": 1,
+      "evaluationBasis": "Mean",
+      "complete": true,
+      "notes": "Measure length of 10 capsules with calibrated digital caliper; average length = sum of lengths / 10. Range 17.4 to 18.0 mm (17.7 ± 0.3 mm; source: Green Empty Hard Gelatin Capsule Size Two__Green Empty Hard Gelatin Capsule Size Two -SM.txt:33).",
+      "usedBy": [
+        "STM-RM-074"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-074",
+          "provisionalCode": "RM-LEN-CAP",
+          "source": "Green Empty Hard Gelatin Capsule Size Two__Green Empty Hard Gelatin Capsule Size Two -SM.txt:33"
+        }
+      ]
+    },
+    {
+      "code": "RM-CLOS-074",
+      "displayName": "Closure of capsule shells (lock test, Size Two)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Qualitative",
+      "equationType": "Qualitative",
+      "physchemArea": "RawPackaging",
+      "complete": true,
+      "notes": "Check the lock of 10 capsules visually (source: Green Empty Hard Gelatin Capsule Size Two__Green Empty Hard Gelatin Capsule Size Two -SM.txt:34).",
+      "usedBy": [
+        "STM-RM-074"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-074",
+          "provisionalCode": "RM-CLOS-CAP",
+          "source": "Green Empty Hard Gelatin Capsule Size Two__Green Empty Hard Gelatin Capsule Size Two -SM.txt:34"
+        }
+      ]
+    },
+    {
+      "code": "RM-BRITTLE-074",
+      "displayName": "Brittleness of capsule shells (Size Two)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Qualitative",
+      "equationType": "Qualitative",
+      "physchemArea": "RawPackaging",
+      "complete": true,
+      "notes": "Press on capsule shell to check brittleness on 10 capsules. Limit: no brittleness (source: Green Empty Hard Gelatin Capsule Size Two__Green Empty Hard Gelatin Capsule Size Two -SM.txt:36).",
+      "usedBy": [
+        "STM-RM-074"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-074",
+          "provisionalCode": "RM-BRITTLE-CAP",
+          "source": "Green Empty Hard Gelatin Capsule Size Two__Green Empty Hard Gelatin Capsule Size Two -SM.txt:36"
+        }
+      ]
+    },
+    {
+      "code": "RM-DISINT-074",
+      "displayName": "Disintegration of capsule shells (Size Two)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Disintegration",
+      "equationType": "Disintegration",
+      "physchemArea": "RawPackaging",
+      "complete": true,
+      "notes": "BP 2024 Appendix XII A: place shells in tubes of calibrated disintegration apparatus; record disintegration time of each shell; time (min) = sum of times / 5. Limit NMT 15 min (source: Green Empty Hard Gelatin Capsule Size Two__Green Empty Hard Gelatin Capsule Size Two -SM.txt:37).",
+      "usedBy": [
+        "STM-RM-074"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-074",
+          "provisionalCode": "RM-DISINT",
+          "source": "Green Empty Hard Gelatin Capsule Size Two__Green Empty Hard Gelatin Capsule Size Two -SM.txt:37"
+        }
+      ],
+      "disintegrationStage1Units": 6,
+      "disintegrationStage2Units": 12,
+      "disintegrationMaxStage1Failures": 2,
+      "disintegrationMinPassTotal": 16
+    }
+  ],
+  "solutions": [],
+  "hplcMethods": [],
+  "icpMethods": [
+    {
+      "name": "Calcium by AAS (magnesium oxide USP)",
+      "abbreviation": "AAS-CA-058",
+      "mode": "ElementalImpurities",
+      "section": "Physicochemical Laboratory",
+      "standardLevelsMgPerL": "1.0, 5.0, 10.0, 15.0",
+      "calibrationStandardEntry": "Calcium Standard Solution 1000 mg/L",
+      "minCorrelation": null,
+      "sampleVolumeMl": 200,
+      "elements": [
+        {
+          "symbol": "Ca",
+          "wavelengthNm": 422.7,
+          "conversionFactor": 1
+        }
+      ],
+      "dilutionFactor": 1,
+      "usedBy": [
+        "STM-RM-058"
+      ],
+      "notes": "Nitrous oxide-acetylene flame AAS, Ca hollow-cathode, 422.7 nm. 250 mg ignited sample in 30 mL dilute HCl + 4 mL lanthanum solution to 200 mL. Standards 1.0, 5.0, 10.0, 15.0 ug/mL Ca with lanthanum and HCl. Result % = (CS x 0.001 / CU) x 100.",
+      "complete": false,
+      "missing": [
+        "element view (axial/radial): an ICP-OES setting, not stated for flame AAS",
+        "effectiveDate: STM issue date (loader reads it from the STM header)",
+        "minCorrelation: not stated in STM",
+        "mode: NMT % result (1.1 % = 11000 ug/g) is not a ug/g impurity limit on the sheet (gaps A)"
+      ],
+      "heldBack": "ICP method incomplete: element view (axial/radial); effectiveDate; minCorrelation; mode"
+    }
+  ],
+  "materialEntries": [
+    {
+      "name": "Glycolic acid",
+      "category": "ReferenceStandard",
+      "codePrefix": "RS-",
+      "code": null,
+      "baseUnit": "Gram",
+      "usedBy": [
+        "RM-LT-GLYC-004"
+      ],
+      "source": "CarboxymethylCellulose Sodium__STM Calcium CarboxymethylCellulose Sodium NEW viscity.txt:26",
+      "loadedObjectNeedsIt": false
+    },
+    {
+      "name": "Methyl red",
+      "category": "Indicator",
+      "codePrefix": "IND-",
+      "code": null,
+      "baseUnit": "Bottle",
+      "usedBy": [
+        "RM-FAS-MGO"
+      ],
+      "source": "Magnesium Oxide__Magnesium Oxide - SM-New.txt:26",
+      "loadedObjectNeedsIt": false
+    },
+    {
+      "name": "Bromothymol Blue Solution R1",
+      "category": "Indicator",
+      "codePrefix": "IND-",
+      "code": null,
+      "baseUnit": "Bottle",
+      "usedBy": [
+        "RM-ACID-049"
+      ],
+      "source": "Polyethylen Glycol 6000__STM Polyethylen Glycol after edit (no equipments).txt:26",
+      "loadedObjectNeedsIt": false
+    },
+    {
+      "name": "Resorcinol",
+      "category": "Reagent",
+      "codePrefix": "RG-",
+      "code": null,
+      "baseUnit": "Gram",
+      "usedBy": [
+        "RM-RED-049"
+      ],
+      "source": "Polyethylen Glycol 6000__STM Polyethylen Glycol after edit (no equipments).txt:26",
+      "loadedObjectNeedsIt": false
+    },
+    {
+      "name": "Mercuric chloride",
+      "category": "Reagent",
+      "codePrefix": "RG-",
+      "code": null,
+      "baseUnit": "Gram",
+      "usedBy": [
+        "RM-ID-PEG-A-049"
+      ],
+      "source": "Polyethylen Glycol 6000__STM Polyethylen Glycol after edit (no equipments).txt:26",
+      "loadedObjectNeedsIt": false
+    }
+  ],
+  "reagentLinks": [],
+  "mapping": {
+    "STM-RM-004": {
+      "RM-DESC": "RM-DESC",
+      "RM-ID-CMC": "RM-ID-CMC-004",
+      "RM-ID-NA-ASH": "RM-ID-NA-ASH",
+      "RM-LOD": "RM-LOD",
+      "RM-LT-CL": "RM-LT-CL",
+      "RM-LT-GLYC-CMC": "RM-LT-GLYC-004",
+      "RM-PH": "RM-PH",
+      "RM-SASH": "RM-SASH",
+      "RM-SOLAPP": "RM-SOLAPP",
+      "RM-SOLUB": "RM-SOLUB",
+      "RM-VISC-CMC": "RM-VISC-CMC-004"
+    },
+    "STM-RM-058": {
+      "E.coli": "E.coli",
+      "RM-AIS-MGO": "RM-AIS-058",
+      "RM-BULKD": "RM-BULKD",
+      "RM-CA-MGO": "RM-ICP-CA-058",
+      "RM-DESC": "RM-DESC",
+      "RM-FAS-MGO": "RM-FAS-MGO",
+      "RM-ID-MG": "RM-ID-MG-058",
+      "RM-LOI-MGO": "RM-LOI-058",
+      "RM-LT-FE": "RM-LT-FE",
+      "RM-PSD-MGO": "RM-PSD-058",
+      "RM-SOLUB": "RM-SOLUB",
+      "RM-TIT-MGO": "RM-TIT-MGO-058",
+      "TAMC": "TAMC",
+      "TYMC": "TYMC"
+    },
+    "STM-RM-049": {
+      "E.coli": "E.coli",
+      "RM-ACID-PEG": "RM-ACID-049",
+      "RM-DESC": "RM-DESC",
+      "RM-FP-PEG": "RM-FP-049",
+      "RM-ID-PEG-A": "RM-ID-PEG-A-049",
+      "RM-ID-PEG-B": "RM-ID-PEG-B-049",
+      "RM-KF": "RM-KF",
+      "RM-RED-PEG": "RM-RED-049",
+      "RM-SASH": "RM-SASH",
+      "RM-SOLAPP": "RM-SOLAPP",
+      "RM-SOLUB": "RM-SOLUB",
+      "RM-VISC-PEG": "RM-VISC-049",
+      "TAMC": "TAMC",
+      "TYMC": "TYMC"
+    },
+    "STM-RM-074": {
+      "E.coli": "E.coli",
+      "RM-AVWT-CAP": "RM-AVWT-074",
+      "RM-BRITTLE-CAP": "RM-BRITTLE-074",
+      "RM-CLOS-CAP": "RM-CLOS-074",
+      "RM-DESC": "RM-DESC",
+      "RM-DISINT": "RM-DISINT-074",
+      "RM-LEN-CAP": "RM-LEN-074",
+      "RM-LOD": "RM-LOD",
+      "RM-PH": "RM-PH",
+      "RM-SASH": "RM-SASH",
+      "RM-SOLUB": "RM-SOLUB",
+      "Salmonella ": "Salmonella ",
+      "TAMC": "TAMC",
+      "TYMC": "TYMC"
+    },
+    "C1I-91-153": {
+      "E.coli": "E.coli",
+      "RM-DESC": "RM-DESC",
+      "RM-LT-CL": "RM-LT-CL",
+      "RM-LT-FE": "RM-LT-FE",
+      "RM-PH": "RM-PH",
+      "RM-SOLAPP": "RM-SOLAPP",
+      "RM-SOLUB": "RM-SOLUB",
+      "TAMC": "TAMC",
+      "TYMC": "TYMC"
+    }
+  },
+  "gaps": [
+    {
+      "material": "STM-RM-058",
+      "test": "RM-CA-MGO",
+      "missing": "element view (axial/radial); minCorrelation; % w/w content row not holdable without label claim"
+    }
+  ]
+}

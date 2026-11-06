@@ -1,0 +1,816 @@
+{
+  "_meta": {
+    "group": "g05",
+    "materials": [
+      "RM-ASCORBIC",
+      "STM-RM-130",
+      "STM-RM-024",
+      "STM-RM-152",
+      "STM-RM-087"
+    ]
+  },
+  "testDefinitions": [
+    {
+      "code": "RM-ID-CUTART-ASC",
+      "displayName": "Identification (reduction of alkaline cupric tartrate, Ascorbic Acid)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Qualitative",
+      "equationType": "Qualitative",
+      "physchemArea": "RawPackaging",
+      "complete": true,
+      "notes": "A 20-mg/mL solution reduces alkaline cupric tartrate TS slowly at room temperature, but more readily upon heating (source: Ascorbic Acid__Ascorbic acid- new.txt:41).",
+      "usedBy": [
+        "RM-ASCORBIC"
+      ],
+      "sources": [
+        {
+          "material": "RM-ASCORBIC",
+          "provisionalCode": "RM-ID-CUTART-ASC",
+          "source": "Ascorbic Acid__Ascorbic acid- new.txt:41"
+        }
+      ]
+    },
+    {
+      "code": "RM-TIT-ASC",
+      "displayName": "Assay of Ascorbic Acid (iodometric titration)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Titration",
+      "equationType": "Titration",
+      "physchemArea": "RawPackaging",
+      "titrationType": "Redox",
+      "titrationMode": "Direct",
+      "titrationEndpoint": "Visual",
+      "titrantSolution": "0.1 N Iodine VS",
+      "titrationBlankRequired": true,
+      "titrationEquivalencyFactor": 88.06,
+      "titrationEquivalencyFactorDerivation": "stated: equivalency factor F = 88.06 mg/mEq",
+      "titrationIndicatorEntry": "Starch TS",
+      "replicateCount": 1,
+      "titrationCalculation": "UspFactor",
+      "complete": true,
+      "notes": "400 mg sample in 100 mL water + 25 mL 2 N sulfuric acid + 3 mL starch TS, titrated immediately with 0.1 N iodine VS to persistent violet-blue colour. Blank determination performed. Result % = [(V - B) x N x F x 100] / W; F = 88.06 mg/mEq (source: Ascorbic Acid__Ascorbic acid- new.txt:41).",
+      "usedBy": [
+        "RM-ASCORBIC"
+      ],
+      "sources": [
+        {
+          "material": "RM-ASCORBIC",
+          "provisionalCode": "RM-TIT-ASC",
+          "source": "Ascorbic Acid__Ascorbic acid- new.txt:41"
+        }
+      ]
+    },
+    {
+      "code": "RM-DISP-130",
+      "displayName": "Dispersion (Opadry Brown)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Qualitative",
+      "equationType": "Qualitative",
+      "physchemArea": "RawPackaging",
+      "complete": true,
+      "notes": "Disperse 1 g into 20 mL water; sample should diffuse into water and make uniform matrix (source: Opadry Brown__STM Opadry Brown new without micro.txt:30).",
+      "usedBy": [
+        "STM-RM-130"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-130",
+          "provisionalCode": "RM-DISP-OPB",
+          "source": "Opadry Brown__STM Opadry Brown new without micro.txt:30"
+        }
+      ]
+    },
+    {
+      "code": "RM-ID-FILM-130",
+      "displayName": "Identification (Film formation, Opadry Brown)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Qualitative",
+      "equationType": "Qualitative",
+      "physchemArea": "RawPackaging",
+      "complete": true,
+      "notes": "Make a 10-12% slurry of powder in water, pour on glass tile, dry at 70 °C; a film layer must form (source: Opadry Brown__STM Opadry Brown new without micro.txt:31).",
+      "usedBy": [
+        "STM-RM-130"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-130",
+          "provisionalCode": "RM-ID-FILM-OPB",
+          "source": "Opadry Brown__STM Opadry Brown new without micro.txt:31"
+        }
+      ]
+    },
+    {
+      "code": "RM-ASH-130",
+      "displayName": "Ash content (Total ash, Opadry Brown)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Gravimetric",
+      "equationType": "GravimetricResidue",
+      "physchemArea": "RawPackaging",
+      "replicateCount": 1,
+      "usesTare": true,
+      "complete": true,
+      "notes": "Empty crucible previously ignited at 800 °C (W1); weigh ~1.0 g sample (W2); ignite in muffle at 800 ± 50 °C for 2 h; cool in desiccator; weigh crucible with residue (W4). Total ash % = (W4 - W1) / W2 x 100 (source: Opadry Brown__STM Opadry Brown new without micro.txt:32).",
+      "usedBy": [
+        "STM-RM-130"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-130",
+          "provisionalCode": "RM-TASH-OPB",
+          "source": "Opadry Brown__STM Opadry Brown new without micro.txt:32"
+        }
+      ]
+    },
+    {
+      "code": "RM-ID-IOD-024",
+      "displayName": "Identification (iodine and starch, Crospovidone)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Qualitative",
+      "equationType": "Qualitative",
+      "physchemArea": "RawPackaging",
+      "complete": true,
+      "notes": "Suspend 1 g in 10 mL water, add 0.1 mL 0.1 N iodine and shake 30 s. Add 1 mL starch TS and shake. Expectation: no blue color develops (source: Crospovidone__STM- RM-0 Crospovidone.txt:44).",
+      "usedBy": [
+        "STM-RM-024"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-024",
+          "provisionalCode": "RM-ID-IOD-CROSP",
+          "source": "Crospovidone__STM- RM-0 Crospovidone.txt:44"
+        }
+      ]
+    },
+    {
+      "code": "RM-ID-SUSP-024",
+      "displayName": "Identification (suspension in water, Crospovidone)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Qualitative",
+      "equationType": "Qualitative",
+      "physchemArea": "RawPackaging",
+      "complete": true,
+      "notes": "To 10 mL water add 0.1 g and shake. Expectation: a suspension is formed, and no clear solution is obtained within 15 min (source: Crospovidone__STM- RM-0 Crospovidone.txt:44).",
+      "usedBy": [
+        "STM-RM-024"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-024",
+          "provisionalCode": "RM-ID-SUSP-CROSP",
+          "source": "Crospovidone__STM- RM-0 Crospovidone.txt:44"
+        }
+      ]
+    },
+    {
+      "code": "RM-PEROX-024",
+      "displayName": "Peroxides in Crospovidone (UV absorbance limit at 405 nm)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "UvSpectrophotometry",
+      "equationType": "UvSpectrophotometry",
+      "physchemArea": "RawPackaging",
+      "replicateCount": 1,
+      "uvCalculationMode": "AbsorbanceLimit",
+      "complete": true,
+      "notes": "Sample suspension in water (Type A 40 mg/mL, Type B 16 mg/mL). To 25 mL add 2 mL titanium trichloride-sulfuric acid TS, stand 30 min, filter. Measure absorbance at 405 nm against matching compensation liquid (filtered suspension with 2 mL 13% H2SO4). Limit NMT 0.35 (source: Crospovidone__STM- RM-0 Crospovidone.txt:46).",
+      "usedBy": [
+        "STM-RM-024"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-024",
+          "provisionalCode": "RM-PEROX-CROSP",
+          "source": "Crospovidone__STM- RM-0 Crospovidone.txt:46"
+        }
+      ]
+    },
+    {
+      "code": "RM-WSUB-024",
+      "displayName": "Water-soluble substances (Crospovidone)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Gravimetric",
+      "equationType": "GravimetricResidue",
+      "physchemArea": "RawPackaging",
+      "replicateCount": 1,
+      "usesTare": true,
+      "complete": true,
+      "notes": "Stir 25.0 g in 200 mL water for 1 h, dilute to 250 mL, settle; filter 100 mL through 0.45 um membrane (3 um pre-filter); evaporate 50.0 mL filtrate to dryness in tared 100 mL beaker, dry at 110 °C for 3 h, weigh residue. Limit NMT 75 mg (1.5%) (source: Crospovidone__STM- RM-0 Crospovidone.txt:48).",
+      "usedBy": [
+        "STM-RM-024"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-024",
+          "provisionalCode": "RM-WSUB-CROSP",
+          "source": "Crospovidone__STM- RM-0 Crospovidone.txt:48"
+        }
+      ]
+    },
+    {
+      "code": "RM-TIT-024",
+      "displayName": "Assay of Crospovidone, nitrogen content (Kjeldahl titration)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Titration",
+      "equationType": "Titration",
+      "physchemArea": "RawPackaging",
+      "titrationType": "AcidBase",
+      "titrationMode": "Direct",
+      "titrationEndpoint": "Visual",
+      "titrantSolution": "0.01 N Sulfuric acid VS",
+      "titrationBlankRequired": true,
+      "titrationEquivalencyFactor": 14.01,
+      "titrationEquivalencyFactorDerivation": "stated: 1 mL 0.01 N H2SO4 = 140.1 ug N; 0.1401 mg / 0.01 mEq = 14.01 mg/mmol",
+      "titrationIndicatorEntry": "Methyl red-methylene blue TS",
+      "replicateCount": 1,
+      "titrationCalculation": "UspFactor",
+      "complete": true,
+      "notes": "100 mg sample digested with 5 g K2SO4/CuSO4/TiO2 (33:1:1), 7 mL H2SO4, 1 mL 30% H2O2; diluted with 70 mL water, steam-distilled with 30 mL 2:5 NaOH into 15 mL 1:25 boric acid with methyl red-methylene blue TS (80-100 mL distillate). Titrated with 0.01 N sulfuric acid VS with blank correction. Dried-basis row (source: Crospovidone__STM- RM-0 Crospovidone.txt:49).",
+      "usedBy": [
+        "STM-RM-024"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-024",
+          "provisionalCode": "RM-TIT-CROSP",
+          "source": "Crospovidone__STM- RM-0 Crospovidone.txt:49"
+        }
+      ]
+    },
+    {
+      "code": "RM-HPLC-VP-024",
+      "displayName": "Vinylpyrrolidinone in Crospovidone (USP, HPLC)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "HplcMethodAssay",
+      "equationType": "HplcMethodAssay",
+      "physchemArea": "RawPackaging",
+      "hplcMethod": "Vinylpyrrolidinone in crospovidone (USP, HPLC)",
+      "requiresSystemSuitability": true,
+      "methodAbbreviation": "VP-CROSP",
+      "complete": true,
+      "notes": "Limit of vinylpyrrolidinone (NMT 10 ppm). Peak area vs principal peak of reference solution A (source: Crospovidone__STM- RM-0 Crospovidone.txt:50).",
+      "usedBy": [
+        "STM-RM-024"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-024",
+          "provisionalCode": "RM-HPLC-VP-CROSP",
+          "source": "Crospovidone__STM- RM-0 Crospovidone.txt:50"
+        }
+      ],
+      "heldBack": "needs the held-back method \"Vinylpyrrolidinone in crospovidone (USP, HPLC)\""
+    },
+    {
+      "code": "RM-HPLC-RS-152",
+      "displayName": "Coenzyme Q10 related substances (BP, HPLC)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "HplcMethodAssay",
+      "equationType": "HplcMethodAssay",
+      "physchemArea": "RawPackaging",
+      "hplcMethod": "Coenzyme Q10 related substances (BP, HPLC)",
+      "requiresSystemSuitability": true,
+      "methodAbbreviation": "COQ-RS",
+      "complete": true,
+      "notes": "BP rows: Impurity D NMT 0.3%, unspecified impurities NMT 0.10% each, total NMT 0.6%, reporting threshold 0.05% (source: coenzyme__STM-Coenzyme Q10 (Ubidecarenone) 01-02-2022.txt:35).",
+      "usedBy": [
+        "STM-RM-152"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-152",
+          "provisionalCode": "RM-HPLC-COQ-RS",
+          "source": "coenzyme__STM-Coenzyme Q10 (Ubidecarenone) 01-02-2022.txt:35"
+        }
+      ],
+      "heldBack": "needs the held-back method \"Coenzyme Q10 related substances (BP, HPLC)\""
+    },
+    {
+      "code": "RM-HPLC-IMPF-152",
+      "displayName": "Coenzyme Q10 impurity F (BP, HPLC)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "HplcMethodAssay",
+      "equationType": "HplcMethodAssay",
+      "physchemArea": "RawPackaging",
+      "hplcMethod": "Coenzyme Q10 impurity F (BP, HPLC)",
+      "requiresSystemSuitability": true,
+      "methodAbbreviation": "COQ-IMPF",
+      "complete": true,
+      "notes": "BP row: Impurity F NMT 0.5 times the area of the principal peak in reference solution (b) (0.5%) (source: coenzyme__STM-Coenzyme Q10 (Ubidecarenone) 01-02-2022.txt:36).",
+      "usedBy": [
+        "STM-RM-152"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-152",
+          "provisionalCode": "RM-HPLC-COQ-IMPF",
+          "source": "coenzyme__STM-Coenzyme Q10 (Ubidecarenone) 01-02-2022.txt:36"
+        }
+      ],
+      "heldBack": "needs the held-back method \"Coenzyme Q10 impurity F (BP, HPLC)\""
+    },
+    {
+      "code": "RM-COL-087",
+      "displayName": "Colour (Nessler tube, Orange Oil 5-Fold)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Observation",
+      "equationType": "Observation",
+      "physchemArea": "RawPackaging",
+      "perContainer": true,
+      "complete": true,
+      "notes": "Check each sample container separately in a clean transparent Nessler tube for conformance of colour with the visual specification (Dark Yellowish) (source: Orange Oil 5-Fold__Orange Oil 5-Fold - SM.txt:33).",
+      "usedBy": [
+        "STM-RM-087"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-087",
+          "provisionalCode": "RM-COL-OO",
+          "source": "Orange Oil 5-Fold__Orange Oil 5-Fold - SM.txt:33"
+        }
+      ]
+    },
+    {
+      "code": "RM-SG-087",
+      "displayName": "Specific gravity (pycnometer, Orange Oil 5-Fold)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Measurement",
+      "equationType": "Measurement",
+      "physchemArea": "RawPackaging",
+      "replicateCount": 1,
+      "evaluationBasis": "Mean",
+      "complete": true,
+      "notes": "Pycnometer method (W3 - W1) / (W2 - W1) at 25 °C. Analyst enters calculated specific gravity value (source: Orange Oil 5-Fold__Orange Oil 5-Fold - SM.txt:35).",
+      "usedBy": [
+        "STM-RM-087"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-087",
+          "provisionalCode": "RM-SG-OO",
+          "source": "Orange Oil 5-Fold__Orange Oil 5-Fold - SM.txt:35"
+        }
+      ]
+    },
+    {
+      "code": "RM-RI-087",
+      "displayName": "Refractive index (Orange Oil 5-Fold)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Measurement",
+      "equationType": "Measurement",
+      "physchemArea": "RawPackaging",
+      "replicateCount": 1,
+      "evaluationBasis": "Mean",
+      "complete": true,
+      "notes": "Measured on calibrated refractometer at 25 °C (source: Orange Oil 5-Fold__Orange Oil 5-Fold - SM.txt:36).",
+      "usedBy": [
+        "STM-RM-087"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-087",
+          "provisionalCode": "RM-RI-OO",
+          "source": "Orange Oil 5-Fold__Orange Oil 5-Fold - SM.txt:36"
+        }
+      ]
+    }
+  ],
+  "solutions": [
+    {
+      "name": "0.01 N Sulfuric acid VS",
+      "type": "Titrant",
+      "section": "Physicochemical Laboratory",
+      "nominalStrength": 0.01,
+      "strengthUnit": "Normal",
+      "finalVolumeMl": 1000,
+      "instructions": "Transfer 10 mL of 1 N sulfuric acid VS to a 1000-mL volumetric flask. Dilute with water to volume. Standardize against ~50 mg tromethamine (Tris) previously dried, dissolved in 50 mL water, titrated potentiometrically (1 mL 0.01 N H2SO4 = 1.2114 mg tromethamine).",
+      "components": [
+        {
+          "entry": "Sulfuric acid (95%-97%)",
+          "entryCode": "RG-218",
+          "quantity": 0.27,
+          "unit": "Milliliter"
+        }
+      ],
+      "waterToVolume": true,
+      "standardizationMode": "PrimaryStandard",
+      "standardEntry": "Tromethamine (primary standard)",
+      "equivalenceMgPerMl": 1.2114,
+      "referenceSolution": null,
+      "usedBy": [
+        "STM-RM-024"
+      ],
+      "notes": "10 mL of 1 N sulfuric acid VS diluted to 1000 mL with water (equivalent to 0.27 mL H2SO4). Standardized against ~50 mg tromethamine (Tris), potentiometric endpoint. 1 mL 0.01 N H2SO4 = 1.2114 mg tromethamine. House defaults applied: 3 replicates, factor 0.97-1.03, max RSD 0.2 %, valid 30 days, shelf life 30 days.",
+      "complete": true,
+      "shelfLifeValue": 30,
+      "shelfLifeUnit": "Days",
+      "storageCondition": "Tightly closed, room temperature",
+      "replicateCount": 3,
+      "maxRsdPercent": 0.2,
+      "validityDays": 30,
+      "blankRequired": false,
+      "factorMin": 0.97,
+      "factorMax": 1.03
+    },
+    {
+      "name": "Crospovidone mobile phase (acetonitrile : water 1:9)",
+      "type": "MobilePhase",
+      "section": "Physicochemical Laboratory",
+      "usedBy": [
+        "STM-RM-024"
+      ],
+      "notes": "Mix 100 mL acetonitrile and 900 mL water (1:9 V/V). Used by Vinylpyrrolidinone in Crospovidone (USP, HPLC).",
+      "complete": false,
+      "missing": [
+        "shelfLife: not stated in the STM",
+        "storageCondition: not stated in the STM"
+      ],
+      "heldBack": "only used by held-back HPLC methods, and shelfLife, storageCondition not stated"
+    },
+    {
+      "name": "Coenzyme Q10 RS mobile phase (anhydrous ethanol : methanol 20:80)",
+      "type": "MobilePhase",
+      "section": "Physicochemical Laboratory",
+      "usedBy": [
+        "STM-RM-152"
+      ],
+      "notes": "Mix 200 mL anhydrous ethanol and 800 mL methanol (20:80 V/V). Used by Coenzyme Q10 related substances (BP, HPLC).",
+      "complete": false,
+      "missing": [
+        "shelfLife: not stated in the STM",
+        "storageCondition: not stated in the STM"
+      ],
+      "heldBack": "only used by held-back HPLC methods, and shelfLife, storageCondition not stated"
+    },
+    {
+      "name": "Coenzyme Q10 impurity F mobile phase (ethyl acetate : hexane 3:97)",
+      "type": "MobilePhase",
+      "section": "Physicochemical Laboratory",
+      "usedBy": [
+        "STM-RM-152"
+      ],
+      "notes": "Mix 30 mL ethyl acetate and 970 mL hexane (3:97 V/V). Used by Coenzyme Q10 impurity F (BP, HPLC).",
+      "complete": false,
+      "missing": [
+        "shelfLife: not stated in the STM",
+        "storageCondition: not stated in the STM"
+      ],
+      "heldBack": "only used by held-back HPLC methods, and shelfLife, storageCondition not stated"
+    }
+  ],
+  "hplcMethods": [
+    {
+      "name": "Vinylpyrrolidinone in crospovidone (USP, HPLC)",
+      "abbreviation": "VP-CROSP",
+      "technique": "Hplc",
+      "resultMode": "RelatedSubstances",
+      "section": "Physicochemical Laboratory",
+      "effectiveDate": "STM issue date",
+      "columnDesignation": "L1",
+      "columnLengthMm": 250,
+      "columnInternalDiameterMm": 4.0,
+      "particleSizeUm": 5,
+      "elutionMode": "Isocratic",
+      "flowRateMlPerMin": 1.0,
+      "detectorType": "UV",
+      "injectionVolumeUl": 50,
+      "columnTemperatureC": 40,
+      "runTimeMin": null,
+      "mobilePhases": [
+        {
+          "channel": "A",
+          "solution": "Crospovidone mobile phase (acetonitrile : water 1:9)",
+          "ratioPercent": 100
+        }
+      ],
+      "gradientSteps": [],
+      "diluentSolution": "Crospovidone mobile phase (acetonitrile : water 1:9)",
+      "analytes": [
+        {
+          "name": "Vinylpyrrolidinone",
+          "wavelengthNm": 235,
+          "standardEntry": "USP Vinylpyrrolidinone RS",
+          "theoreticalWeightStdMg": null,
+          "theoreticalWeightTestMg": null,
+          "standardInjections": 6,
+          "sstMinResolution": 2.0,
+          "sstMaxRsdPercent": 2.0
+        }
+      ],
+      "complete": false,
+      "missing": [
+        "runTimeMin: not stated in the STM",
+        "theoreticalWeightStdMg, theoreticalWeightTestMg: only stock concentration stated in the STM"
+      ],
+      "notes": "Limit of vinylpyrrolidinone (NMT 10 ppm). Standard B contains 100 ug/mL vinylpyrrolidinone and 5 mg/mL vinyl acetate for resolution NLT 2.0.",
+      "usedBy": [
+        "STM-RM-024"
+      ],
+      "source": "Crospovidone__STM- RM-0 Crospovidone.txt:50",
+      "heldBack": "HPLC method incomplete: runTimeMin; theoreticalWeightStdMg, theoreticalWeightTestMg"
+    },
+    {
+      "name": "Coenzyme Q10 related substances (BP, HPLC)",
+      "abbreviation": "COQ-RS",
+      "technique": "Hplc",
+      "resultMode": "RelatedSubstances",
+      "section": "Physicochemical Laboratory",
+      "effectiveDate": "STM issue date",
+      "columnDesignation": "End-capped octadecylsilyl silica gel for chromatography",
+      "columnLengthMm": 200,
+      "columnInternalDiameterMm": 4.6,
+      "particleSizeUm": 5,
+      "elutionMode": "Isocratic",
+      "flowRateMlPerMin": 1.7,
+      "detectorType": "UV",
+      "injectionVolumeUl": 10,
+      "columnTemperatureC": 30,
+      "runTimeMin": 28,
+      "mobilePhases": [
+        {
+          "channel": "A",
+          "solution": "Coenzyme Q10 RS mobile phase (anhydrous ethanol : methanol 20:80)",
+          "ratioPercent": 100
+        }
+      ],
+      "gradientSteps": [],
+      "diluentSolution": null,
+      "impurities": [
+        {
+          "name": "Impurity D",
+          "relativeRetention": 0.7,
+          "correctionFactor": 1.0
+        }
+      ],
+      "analytes": [
+        {
+          "name": "Ubidecarenone",
+          "wavelengthNm": 275,
+          "standardEntry": "Ubidecarenone RS",
+          "theoreticalWeightStdMg": 25,
+          "theoreticalWeightTestMg": 25,
+          "standardInjections": null
+        }
+      ],
+      "complete": false,
+      "missing": [
+        "standardInjections: replicates for system suitability not stated in the STM",
+        "sstMinResolution: numerical resolution criterion between impurity D and ubidecarenone not stated in the STM"
+      ],
+      "notes": "Run time twice retention time of ubidecarenone (~14 min -> 28 min). Impurity D RRT ~0.7. Reporting threshold 0.05%.",
+      "usedBy": [
+        "STM-RM-152"
+      ],
+      "source": "coenzyme__STM-Coenzyme Q10 (Ubidecarenone) 01-02-2022.txt:35",
+      "heldBack": "HPLC method incomplete: standardInjections; sstMinResolution"
+    },
+    {
+      "name": "Coenzyme Q10 impurity F (BP, HPLC)",
+      "abbreviation": "COQ-IMPF",
+      "technique": "Hplc",
+      "resultMode": "RelatedSubstances",
+      "section": "Physicochemical Laboratory",
+      "effectiveDate": "STM issue date",
+      "columnDesignation": "Silica gel for chromatography",
+      "columnLengthMm": 250,
+      "columnInternalDiameterMm": 4.0,
+      "particleSizeUm": 7,
+      "elutionMode": "Isocratic",
+      "flowRateMlPerMin": 2.0,
+      "detectorType": "UV",
+      "injectionVolumeUl": 20,
+      "runTimeMin": 12,
+      "mobilePhases": [
+        {
+          "channel": "A",
+          "solution": "Coenzyme Q10 impurity F mobile phase (ethyl acetate : hexane 3:97)",
+          "ratioPercent": 100
+        }
+      ],
+      "gradientSteps": [],
+      "diluentSolution": null,
+      "impurities": [
+        {
+          "name": "Impurity F",
+          "relativeRetention": 0.85,
+          "correctionFactor": 1.0
+        }
+      ],
+      "analytes": [
+        {
+          "name": "Ubidecarenone",
+          "wavelengthNm": 275,
+          "standardEntry": "Ubidecarenone for system suitability RS",
+          "theoreticalWeightStdMg": null,
+          "theoreticalWeightTestMg": 25,
+          "standardInjections": null
+        }
+      ],
+      "complete": false,
+      "missing": [
+        "standardInjections: replicates not stated in the STM",
+        "sstMinResolution: numerical system suitability criterion not stated in the STM"
+      ],
+      "notes": "Run time 1.2 times retention time of ubidecarenone (~10 min -> 12 min). Impurity F RRT ~0.85.",
+      "usedBy": [
+        "STM-RM-152"
+      ],
+      "source": "coenzyme__STM-Coenzyme Q10 (Ubidecarenone) 01-02-2022.txt:36",
+      "heldBack": "HPLC method incomplete: standardInjections; sstMinResolution"
+    }
+  ],
+  "icpMethods": [],
+  "materialEntries": [
+    {
+      "name": "Starch TS",
+      "category": "Indicator",
+      "codePrefix": "IND-",
+      "code": null,
+      "baseUnit": "Bottle",
+      "usedBy": [
+        "RM-TIT-ASC",
+        "RM-ID-IOD-024"
+      ],
+      "source": "Ascorbic Acid__Ascorbic acid- new.txt:40; Crospovidone__STM- RM-0 Crospovidone.txt:40",
+      "loadedObjectNeedsIt": true
+    },
+    {
+      "name": "Methyl red-methylene blue TS",
+      "category": "Indicator",
+      "codePrefix": "IND-",
+      "code": null,
+      "baseUnit": "Bottle",
+      "usedBy": [
+        "RM-TIT-024"
+      ],
+      "source": "Crospovidone__STM- RM-0 Crospovidone.txt:40",
+      "loadedObjectNeedsIt": true
+    },
+    {
+      "name": "Tromethamine (primary standard)",
+      "category": "PrimaryStandard",
+      "codePrefix": "PS-",
+      "code": null,
+      "baseUnit": "Gram",
+      "usedBy": [
+        "0.01 N Sulfuric acid VS"
+      ],
+      "source": "Crospovidone__STM- RM-0 Crospovidone.txt:40",
+      "loadedObjectNeedsIt": true
+    },
+    {
+      "name": "USP Vinylpyrrolidinone RS",
+      "category": "ReferenceStandard",
+      "codePrefix": "RS-",
+      "code": null,
+      "baseUnit": "Vial",
+      "usedBy": [
+        "Vinylpyrrolidinone in crospovidone (USP, HPLC)"
+      ],
+      "source": "Crospovidone__STM- RM-0 Crospovidone.txt:40,50",
+      "loadedObjectNeedsIt": false
+    },
+    {
+      "name": "USP Vinyl Acetate RS",
+      "category": "ReferenceStandard",
+      "codePrefix": "RS-",
+      "code": null,
+      "baseUnit": "Vial",
+      "usedBy": [
+        "Vinylpyrrolidinone in crospovidone (USP, HPLC)"
+      ],
+      "source": "Crospovidone__STM- RM-0 Crospovidone.txt:40,50",
+      "loadedObjectNeedsIt": false
+    },
+    {
+      "name": "Ubidecarenone RS",
+      "category": "ReferenceStandard",
+      "codePrefix": "RS-",
+      "code": null,
+      "baseUnit": "Vial",
+      "usedBy": [
+        "Coenzyme Q10 related substances (BP, HPLC)"
+      ],
+      "source": "coenzyme__STM-Coenzyme Q10 (Ubidecarenone) 01-02-2022.txt:27,35",
+      "loadedObjectNeedsIt": false
+    },
+    {
+      "name": "Ubidecarenone impurity D RS",
+      "category": "ReferenceStandard",
+      "codePrefix": "RS-",
+      "code": null,
+      "baseUnit": "Vial",
+      "usedBy": [
+        "Coenzyme Q10 related substances (BP, HPLC)"
+      ],
+      "source": "coenzyme__STM-Coenzyme Q10 (Ubidecarenone) 01-02-2022.txt:27,35",
+      "loadedObjectNeedsIt": false
+    },
+    {
+      "name": "Ubidecarenone for system suitability RS",
+      "category": "ReferenceStandard",
+      "codePrefix": "RS-",
+      "code": null,
+      "baseUnit": "Vial",
+      "usedBy": [
+        "Coenzyme Q10 impurity F (BP, HPLC)"
+      ],
+      "source": "coenzyme__STM-Coenzyme Q10 (Ubidecarenone) 01-02-2022.txt:27,36",
+      "loadedObjectNeedsIt": false
+    }
+  ],
+  "reagentLinks": [],
+  "mapping": {
+    "RM-ASCORBIC": {
+      "RM-DESC": "RM-DESC",
+      "RM-ID-CUTART-ASC": "RM-ID-CUTART-ASC",
+      "RM-ID-IR": "RM-ID-IR",
+      "RM-OPTROT": "RM-OPTROT",
+      "RM-SASH": "RM-SASH",
+      "RM-SOLUB": "RM-SOLUB",
+      "RM-TIT-ASC": "RM-TIT-ASC"
+    },
+    "STM-RM-130": {
+      "E.coli": "E.coli",
+      "RM-DESC": "RM-DESC",
+      "RM-DISP-OPB": "RM-DISP-130",
+      "RM-ID-FILM-OPB": "RM-ID-FILM-130",
+      "RM-TASH-OPB": "RM-ASH-130",
+      "TAMC": "TAMC",
+      "TYMC": "TYMC"
+    },
+    "STM-RM-024": {
+      "E.coli": "E.coli",
+      "RM-DESC": "RM-DESC",
+      "RM-HPLC-VP-CROSP": "RM-HPLC-VP-024",
+      "RM-ID-IOD-CROSP": "RM-ID-IOD-024",
+      "RM-ID-IR": "RM-ID-IR",
+      "RM-ID-SUSP-CROSP": "RM-ID-SUSP-024",
+      "RM-LOD": "RM-LOD",
+      "RM-PEROX-CROSP": "RM-PEROX-024",
+      "RM-SASH": "RM-SASH",
+      "RM-SOLUB": "RM-SOLUB",
+      "RM-TIT-CROSP": "RM-TIT-024",
+      "RM-WSUB-CROSP": "RM-WSUB-024",
+      "TAMC": "TAMC",
+      "TYMC": "TYMC"
+    },
+    "STM-RM-152": {
+      "E.coli": "E.coli",
+      "RM-DESC": "RM-DESC",
+      "RM-HPLC-COQ-IMPF": "RM-HPLC-IMPF-152",
+      "RM-HPLC-COQ-RS": "RM-HPLC-RS-152",
+      "RM-ID-IR": "RM-ID-IR",
+      "RM-KF": "RM-KF",
+      "RM-MP-QL": "RM-MP-QL",
+      "RM-SASH": "RM-SASH",
+      "RM-SOLUB": "RM-SOLUB",
+      "TAMC": "TAMC",
+      "TYMC": "TYMC"
+    },
+    "STM-RM-087": {
+      "E.coli": "E.coli",
+      "RM-COL-OO": "RM-COL-087",
+      "RM-DESC": "RM-DESC",
+      "RM-ODOR": "RM-ODOR",
+      "RM-RI-OO": "RM-RI-087",
+      "RM-SG-OO": "RM-SG-087",
+      "RM-SOLUB": "RM-SOLUB",
+      "Salmonella ": "Salmonella ",
+      "TAMC": "TAMC",
+      "TYMC": "TYMC"
+    }
+  },
+  "gaps": [
+    {
+      "material": "STM-RM-024",
+      "test": "RM-HPLC-VP-CROSP",
+      "missing": "runTimeMin: not stated in STM; theoreticalWeightStdMg, theoreticalWeightTestMg: only stock concentrations stated in STM"
+    },
+    {
+      "material": "STM-RM-152",
+      "test": "RM-HPLC-COQ-RS",
+      "missing": "standardInjections: replicates for system suitability not stated in STM; sstMinResolution: numerical resolution criterion between impurity D and ubidecarenone not stated in STM"
+    },
+    {
+      "material": "STM-RM-152",
+      "test": "RM-HPLC-COQ-IMPF",
+      "missing": "standardInjections: replicates for system suitability not stated in STM; sstMinResolution: numerical system suitability criterion not stated in STM"
+    }
+  ]
+}

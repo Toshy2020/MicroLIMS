@@ -12,8 +12,9 @@ import argparse, json, os, re, subprocess, sys
 
 PSQL = r"C:/Program Files/PostgreSQL/18/bin/psql"
 ROOT = os.path.dirname(os.path.abspath(__file__))
-ITEMS = ['STM-RM-097', 'STM-RM-56', 'STM-RM-151', 'STM-RM-051', 'STM-RM-053', 'STM-RM-150', 'STM-RM-126',
-         'STM-RM-091', 'STM-RM-060', 'STM-RM-064', 'STM-RM-063', 'STM-RM-025', 'STM-RM-089', 'STM-RM-147']
+import glob
+# every material file's item (batch 1 and 2); rows already on the target are skipped by natural key
+ITEMS = sorted({json.load(open(f, encoding='utf-8'))['itemCode'] for f in glob.glob(os.path.join(ROOT, 'materials', '*.json'))})
 
 
 def local_env():
@@ -45,13 +46,18 @@ def main():
     ap.add_argument('--target-url', required=True)
     ap.add_argument('--as-user', required=True, help='target username recorded as creator')
     ap.add_argument('--dry-run', action='store_true')
+    ap.add_argument('--baseline-db', default='LIMSV2_preload', help='restore of LIMSV2 from before the load being copied')
+    ap.add_argument('--exclude-spec-ids', default='', help='comma list of local Specifications ids not to copy')
     a = ap.parse_args()
     T = a.target_url
-    items_in = ','.join(lit(c) for c in ITEMS)
+    ITEMS_ALL = list(ITEMS)
+    loc_have = {r['Code'] for r in rows('select "Code" from "Items"')}
+    items_in = ','.join(lit(c) for c in ITEMS_ALL if c in loc_have)
+    exclude_specs = {int(x) for x in a.exclude_spec_ids.split(',') if x.strip()}
 
     # ---- local: what the loader added (ids absent from the pre-load restore) ----
     def new_ids(table):
-        before = {r['Id'] for r in rows(f'select "Id" from "{table}"', db='LIMSV2_preload')}
+        before = {r['Id'] for r in rows(f'select "Id" from "{table}"', db=a.baseline_db)}
         return [r for r in rows(f'select * from "{table}" order by "Id"') if r['Id'] not in before]
 
     tests = new_ids('TestDefinitions')
@@ -80,9 +86,11 @@ def main():
     if not t_user:
         sys.exit(f'target user {a.as_user} not found')
     uid = t_user[0]['Id']
-    missing_items = [c for c in ITEMS if c not in t_items]
+    missing_items = [c for c in ITEMS_ALL if c in loc_have and c not in t_items]
     if missing_items:
-        sys.exit(f'items missing on target: {missing_items}')
+        print(f'items missing on target (skipped): {missing_items}')
+    loc_items = {k: v for k, v in loc_items.items() if v in t_items}
+    item_ids = ','.join(str(i) for i in loc_items)
     # Rows already on the target (an earlier API load) are left alone; only missing rows are copied.
 
     # ---- which solutions / entries must be copied ----
@@ -134,8 +142,18 @@ def main():
     def item_ref(iid):
         return f'(select "Id" from "Items" where "Code"={lit(loc_items[iid])})'
 
+    t_cols = {}
+    def target_cols(table):
+        if table not in t_cols:
+            t_cols[table] = {r['column_name'] for r in rows(
+                f"select column_name from information_schema.columns where table_name={lit(table)} and table_schema='public'", db=None, url=T)}
+        return t_cols[table]
+
+    skipped_cols = set()
     def insert(table, row, overrides):
-        cols = [c for c in row if c not in ('Id', 'xmin')]
+        have = target_cols(table)      # the target may be one migration behind: copy only columns both sides have
+        skipped_cols.update(f'{table}.{c}' for c in row if c not in have and c not in ('Id', 'xmin'))
+        cols = [c for c in row if c not in ('Id', 'xmin') and c in have]
         sel = [overrides.get(c, f'r."{c}"') for c in cols]
         js = json.dumps(row, ensure_ascii=False)
         assert '$j$' not in js
@@ -170,7 +188,7 @@ def main():
         if (loc_items[st['ItemId']], st['TestCode']) not in t_assigned:
             sql.append(insert('SampleTests', st, {'ItemId': item_ref(st['ItemId'])}))
     specs = [r for r in rows(f'select * from "Specifications" where "ItemId" in ({item_ids}) order by "Id"')
-             if (loc_items[r['ItemId']], r['TestCode'], r['ParameterName'], r['Grade']) not in t_specs]
+             if r['Id'] not in exclude_specs and (loc_items[r['ItemId']], r['TestCode'], r['ParameterName'], r['Grade']) not in t_specs]
     for sp in specs:
         sql.append(insert('Specifications', sp, {'ItemId': item_ref(sp['ItemId']), 'HplcMethodAnalyteId': 'NULL', 'HplcMethodImpurityId': 'NULL', 'IcpMethodElementId': 'NULL'}))
     attrs = [r for r in rows(f'select * from "SupplierStatedAttributes" where "ItemId" in ({item_ids}) order by "Id"')
@@ -183,6 +201,8 @@ def main():
         sql.append(insert('NotApplicableTests', na, {'ItemId': item_ref(na['ItemId']), 'CreatedByUserId': str(uid), 'Status': '0',
                                                      'HeadSignatureId': 'NULL', 'FinalSignatureId': 'NULL'}))
     sql.append('rollback;' if a.dry_run else 'commit;')
+    if skipped_cols:
+        print('columns not on the target (left out):', ', '.join(sorted(skipped_cols)))
 
     path = os.path.join(ROOT, 'reports', 'prod-copy.sql')
     open(path, 'w', encoding='utf-8').write('\n'.join(sql) + '\n')

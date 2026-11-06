@@ -456,3 +456,7 @@ One sample per material and grade (batch `RM-E2E-<code>-<grade>`), received for 
 - certificate supporting rows: ['Dextrin (Sucrose): Not applicable']
 - certificate: yes (unapproved sample, read from the summary)
 
+
+## Production (2026-11-06)
+
+Direct SQL copy (`copy_to_prod.py --baseline-db LIMSV2_preload2 --exclude-spec-ids 594`) to Neon production after the backup branch `backup-before-rm-batch2-2026-11-06` (br-young-base-ayyxlmp2). Added 84 reagent entries, 8 solutions (+8 components), 218 tests, 736 specifications, 31 supplier attributes and 5 unsigned not-applicable drafts for 79 items; a second dry-run finds nothing. Six items do not exist on production and were skipped (RM-ASCORBIC, STM-RM-052, STM-RM-067, STM-RM-081, STM-RM-085, STM-RM-088; Methylene Blue and Calcium Carbonate DC have no item anywhere). Production was one migration behind (ICP test-level elements, PR #133): the five ICP columns were left out, the new tests do not use them.

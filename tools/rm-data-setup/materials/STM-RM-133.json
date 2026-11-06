@@ -1,0 +1,303 @@
+{
+  "itemCode": "STM-RM-133",
+  "itemName": "Vitamin D3 (Cholecalciferol) 100 IU/mg Stabilized",
+  "stmCode": "STM-RM-133",
+  "stmFile": "Vitamin D3 (Cholecalciferol)100 IUmg__STM Vitamin D3 (Cholecalciferol)100 IUmg) without micro.txt",
+  "specFiles": ["Vitamin D3 (Cholecalciferol)100 IUmg__Specifications sheet Vitamin D3 (100 IUmg) (Stabilized).txt"],
+  "minQuantity": {
+    "routine": 70,
+    "retest": 25,
+    "retention": 50,
+    "unit": "g",
+    "source": "Vitamin D3 (Cholecalciferol)100 IUmg__Specifications sheet Vitamin D3 (100 IUmg) (Stabilized).txt:20; Vitamin D3 (Cholecalciferol)100 IUmg__STM Vitamin D3 (Cholecalciferol)100 IUmg) without micro.txt:35"
+  },
+  "grades": [
+    {
+      "grade": null,
+      "rows": [
+        {
+          "testCode": "RM-DESC",
+          "parameterName": "Appearance",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Off white Yellowish colored free-flowing particles or powder",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "In-house",
+          "source": "Vitamin D3 (Cholecalciferol)100 IUmg__Specifications sheet Vitamin D3 (100 IUmg) (Stabilized).txt:11"
+        },
+        {
+          "testCode": "RM-SOLUB",
+          "parameterName": "Solubility",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Practically insoluble in water, swells, or forms dispersion in water, depending on the formulation",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "In-house",
+          "source": "Vitamin D3 (Cholecalciferol)100 IUmg__Specifications sheet Vitamin D3 (100 IUmg) (Stabilized).txt:12"
+        },
+        {
+          "testCode": "RM-ID-HPLC-VITD3",
+          "parameterName": "Identification (HPLC)",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "The principal peak in the chromatogram obtained with the test solution is similar in position to the principal peak in the chromatogram obtained with the reference solution",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "In-house",
+          "source": "Vitamin D3 (Cholecalciferol)100 IUmg__Specifications sheet Vitamin D3 (100 IUmg) (Stabilized).txt:13"
+        },
+        {
+          "testCode": "RM-LOD",
+          "parameterName": "Loss on drying",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 8.0,
+          "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "In-house",
+          "source": "Vitamin D3 (Cholecalciferol)100 IUmg__Specifications sheet Vitamin D3 (100 IUmg) (Stabilized).txt:14"
+        },
+        {
+          "testCode": "RM-ID-TOCO-VITD3",
+          "parameterName": "Identity for tocopherol",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "No bright red or orange color develops",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "In-house",
+          "source": "Vitamin D3 (Cholecalciferol)100 IUmg__Specifications sheet Vitamin D3 (100 IUmg) (Stabilized).txt:15"
+        },
+        {
+          "testCode": "RM-HPLC-VITD3-AS",
+          "parameterName": "Assay (% of label claim)",
+          "limitType": "Range",
+          "lower": 90.0,
+          "upper": 110.0,
+          "lowerInclusive": true,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": "PercentAsIs",
+          "referenceStandard": "In-house",
+          "source": "Vitamin D3 (Cholecalciferol)100 IUmg__Specifications sheet Vitamin D3 (100 IUmg) (Stabilized).txt:16",
+          "heldBack": "STM: HPLC method incomplete (system suitability criteria not stated)"
+        },
+        {
+          "testCode": "TAMC",
+          "parameterName": "Total aerobic microbial count",
+          "limitType": "CountTiered",
+          "lower": null,
+          "upper": 1000,
+          "lowerInclusive": null,
+          "unit": "CFU/gm",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Vitamin D3 (Cholecalciferol)100 IUmg__Specifications sheet Vitamin D3 (100 IUmg) (Stabilized).txt:17"
+        },
+        {
+          "testCode": "TYMC",
+          "parameterName": "Total yeasts and molds count",
+          "limitType": "CountTiered",
+          "lower": null,
+          "upper": 100,
+          "lowerInclusive": null,
+          "unit": "CFU/gm",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Vitamin D3 (Cholecalciferol)100 IUmg__Specifications sheet Vitamin D3 (100 IUmg) (Stabilized).txt:18"
+        },
+        {
+          "testCode": "E.coli",
+          "parameterName": "E. coli",
+          "limitType": "PresenceAbsence",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": "per 10 gm",
+          "expectedResultText": "Absent /10 gm",
+          "expectedState": "Absence",
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Vitamin D3 (Cholecalciferol)100 IUmg__Specifications sheet Vitamin D3 (100 IUmg) (Stabilized).txt:19"
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "testCode": "RM-DESC",
+      "procedure": "Under strong white light check each received sample container separately in a clean transparent watch glass or glass dish for foreign particles, colour and conformity with the visual specification.",
+      "kind": "general",
+      "workflow": "Observation",
+      "details": {
+        "perContainer": true,
+        "inHouse": "Off white Yellowish coloured free-flowing particles or powder."
+      },
+      "source": "Vitamin D3 (Cholecalciferol)100 IUmg__STM Vitamin D3 (Cholecalciferol)100 IUmg) without micro.txt:28"
+    },
+    {
+      "testCode": "RM-SOLUB",
+      "procedure": "Weigh 100 mg sample in a stoppered tube; add 0.1 mL solvent, shake 1 min, hold at 25.0 ± 0.5 °C for 15 min, repeat shake/hold once if not dissolved; stepwise add 0.9 mL, 2 mL, 7 mL solvent (same shake and hold) to classify very soluble / freely soluble / soluble / sparingly soluble; if still undissolved use 10 mg in 10 mL (slightly soluble) then 1 mg in 10 mL (very slightly soluble), else practically insoluble.",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {
+        "sample": "100 mg",
+        "temperature": "25.0 ± 0.5 °C",
+        "holdMin": 15,
+        "shakeMin": 1,
+        "volumesMl": [0.1, 0.9, 2, 7],
+        "smallSampleSteps": ["10 mg in 10 mL", "1 mg in 10 mL"],
+        "solvent": "not named in the STM",
+        "reference": "BP 2024 Part II, Characteristics"
+      },
+      "source": "Vitamin D3 (Cholecalciferol)100 IUmg__STM Vitamin D3 (Cholecalciferol)100 IUmg) without micro.txt:29"
+    },
+    {
+      "testCode": "RM-ID-HPLC-VITD3",
+      "procedure": "Identification by HPLC: prepare the chromatographic conditions and reference solution for the assay; prepare the sample solution by the assay sample preparation; run and analyse; the retention time of the principal peak of the test corresponds to that of the standard chromatogram.",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "details": {
+        "conditionsAs": "assay chromatographic conditions (RM-HPLC-VITD3-AS)",
+        "reference": "STM section 6.6"
+      },
+      "source": "Vitamin D3 (Cholecalciferol)100 IUmg__STM Vitamin D3 (Cholecalciferol)100 IUmg) without micro.txt:30"
+    },
+    {
+      "testCode": "RM-LOD",
+      "procedure": "Loss on drying (BP Appendix IX D): weigh empty weighing bottle previously dried at 105 °C and cooled in desiccator (W0); weigh 1.000 g sample (W1); dry in calibrated oven at 105 °C for 2 h, cool in desiccator, weigh (W2); repeat to constant weight. % LOD = (W1 - W2) / (W1 - W0) x 100.",
+      "kind": "general",
+      "workflow": "Gravimetric",
+      "details": {
+        "sampleG": 1.000,
+        "ovenC": 105,
+        "timeH": 2,
+        "bottleDryingC": 105,
+        "formula": "% LOD = (W1 - W2) / (W1 - W0) x 100",
+        "reference": "BP Appendix IX D"
+      },
+      "source": "Vitamin D3 (Cholecalciferol)100 IUmg__STM Vitamin D3 (Cholecalciferol)100 IUmg) without micro.txt:31"
+    },
+    {
+      "testCode": "RM-ID-TOCO-VITD3",
+      "procedure": "Identity for tocopherol: 50 mg sample in 10 mL dehydrated alcohol; add with swirling 2 mL nitric acid; heat at about 75 °C for 15 min. No bright red or orange colour develops.",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "details": {
+        "sample": "50 mg in 10 mL dehydrated alcohol",
+        "reagent": "2 mL nitric acid",
+        "heatC": 75,
+        "heatMin": 15,
+        "reference": "USP Monograph for Tocopherol Excipient"
+      },
+      "source": "Vitamin D3 (Cholecalciferol)100 IUmg__STM Vitamin D3 (Cholecalciferol)100 IUmg) without micro.txt:32"
+    },
+    {
+      "testCode": "RM-HPLC-VITD3-AS",
+      "procedure": "Assay (HPLC). Standard: 20 mg Vitamin D3 (500 IU/mg) working standard in 100 mL, about 20 mL water, shake 1 min, sonicate 10 min, make to volume with methanol, sonicate 5 min; take 5 mL to 100 mL with methanol; filter if necessary. Sample: 20 mg in 100 mL as for the standard; take 25 mL to 100 mL with methanol; filter if necessary. Column 5 µm, 150 x 4.6 mm, BDS C18; mobile phase 96% methanol; 1.5 mL/min; 265 nm; 30-35 °C; 100 µL; run time 8 min. Assay % = (PAt / PAst) x (Act.Wt.std / Theo.Wt.std) x (Theo.Wt.test / Act.Wt.test) x (100 / (100 - LOD)) x Potency.",
+      "kind": "specific",
+      "workflow": "HplcMethodAssay",
+      "details": {
+        "standardPrep": "20 mg working standard (Vitamin D3 500 IU/mg) in 100 mL; 5 mL to 100 mL",
+        "samplePrep": "20 mg in 100 mL; 25 mL to 100 mL",
+        "column": "5 µm, 150 x 4.6 mm, BDS, C18",
+        "mobilePhase": "96% methanol, HPLC grade",
+        "flowRateMlMin": 1.5,
+        "wavelengthNm": 265,
+        "columnTempC": "30-35",
+        "injectionUl": 100,
+        "runTimeMin": 8,
+        "formula": "Assay % = (PAt / PAst) x (Act.Wt.std / Theo.Wt.std) x (Theo.Wt.test / Act.Wt.test) x (100 / (100 - LOD)) x Potency",
+        "potency": "assay of working standard (value not stated in the STM)",
+        "reference": "HPLC analytical method validation for vitamin D3 100,000 IU/g as raw material, Doc# C1R-54-210"
+      },
+      "source": "Vitamin D3 (Cholecalciferol)100 IUmg__STM Vitamin D3 (Cholecalciferol)100 IUmg) without micro.txt:33",
+      "heldBack": "STM: HPLC method incomplete (system suitability criteria not stated)"
+    },
+    {
+      "testCode": "TAMC",
+      "procedure": "Microbiological method not in the latest STM (without micro version); the STM references USP 43 <2021> and <2022>.",
+      "kind": "general",
+      "workflow": "CountTest",
+      "details": {
+        "limit": "not more than 10^3 CFU/gm",
+        "reference": "USP 43 <2021>"
+      },
+      "source": "Vitamin D3 (Cholecalciferol)100 IUmg__STM Vitamin D3 (Cholecalciferol)100 IUmg) without micro.txt:46"
+    },
+    {
+      "testCode": "TYMC",
+      "procedure": "Microbiological method not in the latest STM (without micro version); the STM references USP 43 <2021> and <2022>.",
+      "kind": "general",
+      "workflow": "CountTest",
+      "details": {
+        "limit": "not more than 10^2 CFU/gm",
+        "reference": "USP 43 <2021>"
+      },
+      "source": "Vitamin D3 (Cholecalciferol)100 IUmg__STM Vitamin D3 (Cholecalciferol)100 IUmg) without micro.txt:46"
+    },
+    {
+      "testCode": "E.coli",
+      "procedure": "Microbiological method not in the latest STM (without micro version); the STM references USP 43 <2022>.",
+      "kind": "general",
+      "workflow": "Observation",
+      "details": {
+        "limit": "Absent /10 gm",
+        "reference": "USP 43 <2022>"
+      },
+      "source": "Vitamin D3 (Cholecalciferol)100 IUmg__STM Vitamin D3 (Cholecalciferol)100 IUmg) without micro.txt:47"
+    }
+  ],
+  "notApplicable": [],
+  "supplierAttributes": [],
+  "reagents": [
+    { "name": "Vitamin D3 (500 IU/mg) working standard", "use": "standard", "source": "Vitamin D3 (Cholecalciferol)100 IUmg__STM Vitamin D3 (Cholecalciferol)100 IUmg) without micro.txt:26" },
+    { "name": "Methanol", "use": "reagent", "source": "Vitamin D3 (Cholecalciferol)100 IUmg__STM Vitamin D3 (Cholecalciferol)100 IUmg) without micro.txt:26" },
+    { "name": "Nitric acid", "use": "reagent", "source": "Vitamin D3 (Cholecalciferol)100 IUmg__STM Vitamin D3 (Cholecalciferol)100 IUmg) without micro.txt:26" },
+    { "name": "Dehydrate Alcohol", "use": "reagent", "source": "Vitamin D3 (Cholecalciferol)100 IUmg__STM Vitamin D3 (Cholecalciferol)100 IUmg) without micro.txt:26" }
+  ],
+  "openQuestions": [
+    {
+      "question": "Minimum sample quantity conflicts: spec sheet 70 g for routine testing; STM 50 g for routine testing and retention. Routine loaded from the spec sheet (70 g), retention from the STM (50 g), retest from the STM (25 g). Confirm.",
+      "source": "Vitamin D3 (Cholecalciferol)100 IUmg__Specifications sheet Vitamin D3 (100 IUmg) (Stabilized).txt:20; Vitamin D3 (Cholecalciferol)100 IUmg__STM Vitamin D3 (Cholecalciferol)100 IUmg) without micro.txt:35"
+    },
+    {
+      "question": "Assay: the working standard potency is an input to the formula but its value is not stated.",
+      "source": "Vitamin D3 (Cholecalciferol)100 IUmg__STM Vitamin D3 (Cholecalciferol)100 IUmg) without micro.txt:33"
+    },
+    {
+      "question": "Assay limit is '% of the label claim', which has no result-basis option; resultBasis set to PercentAsIs. Confirm.",
+      "source": "Vitamin D3 (Cholecalciferol)100 IUmg__Specifications sheet Vitamin D3 (100 IUmg) (Stabilized).txt:16"
+    },
+    {
+      "question": "Microbiological limits (TAMC 103, TYMC 102 CFU/gm, superscripts lost) are loaded as 1000 and 100 CFU/gm per the user decision. The latest STM has no microbiological procedure; the older '+ micro' STM versions are not used.",
+      "source": "Vitamin D3 (Cholecalciferol)100 IUmg__Specifications sheet Vitamin D3 (100 IUmg) (Stabilized).txt:17-18; Vitamin D3 (Cholecalciferol)100 IUmg__STM Vitamin D3 (Cholecalciferol)100 IUmg) without micro.txt:46"
+    },
+    {
+      "question": "STM history says the STM code changed from C5I-91-262 to 'STM-SM-133' (the code used everywhere else is STM-RM-133). Recorded as STM-RM-133.",
+      "source": "Vitamin D3 (Cholecalciferol)100 IUmg__STM Vitamin D3 (Cholecalciferol)100 IUmg) without micro.txt:51"
+    }
+  ]
+}

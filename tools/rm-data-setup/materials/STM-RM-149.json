@@ -1,0 +1,358 @@
+{
+  "itemCode": "STM-RM-149",
+  "itemName": "Vitamin A Palmitate 1.7 IU/mg (Stabilized with tocopherol)",
+  "stmCode": "STM-RM-149",
+  "stmFile": "Vitamim A Palmitat__Vitamim A Palmitate-SM.txt",
+  "specFiles": [
+    "Vitamim A Palmitat__Specifications sheet Vitamin A Palmitate.txt"
+  ],
+  "minQuantity": {
+    "routine": 50,
+    "retest": 30,
+    "retention": 50,
+    "unit": "ml",
+    "source": "Vitamim A Palmitat__Specifications sheet Vitamin A Palmitate.txt:17; Vitamim A Palmitat__Vitamim A Palmitate-SM.txt:35"
+  },
+  "grades": [
+    {
+      "grade": "BP",
+      "rows": [
+        {
+          "testCode": "RM-DESC",
+          "parameterName": "Appearance",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Yellow or brownish-yellow, oily liquid",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP 2024",
+          "source": "Vitamim A Palmitat__Specifications sheet Vitamin A Palmitate.txt:11"
+        },
+        {
+          "testCode": "RM-SOLUB",
+          "parameterName": "Solubility",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Practically insoluble in water, soluble or partly soluble in anhydrous ethanol, miscible with organic solvents",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP 2024",
+          "source": "Vitamim A Palmitat__Specifications sheet Vitamin A Palmitate.txt:12"
+        },
+        {
+          "testCode": "RM-ID-UV-VITA",
+          "parameterName": "Identification",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "maximum absorbance lies between 325 nm and 327",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP 2024",
+          "source": "Vitamim A Palmitat__Specifications sheet Vitamin A Palmitate.txt:13"
+        },
+        {
+          "testCode": "RM-AV-VITA",
+          "parameterName": "Acid Value",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 2.0,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP 2024",
+          "source": "Vitamim A Palmitat__Specifications sheet Vitamin A Palmitate.txt:14"
+        },
+        {
+          "testCode": "RM-PV-VITA",
+          "parameterName": "Peroxide Value",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 10,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP 2024",
+          "source": "Vitamim A Palmitat__Specifications sheet Vitamin A Palmitate.txt:15"
+        },
+        {
+          "testCode": "RM-UV-VITA-AS",
+          "parameterName": "Assay",
+          "limitType": "Range",
+          "lower": 95.0,
+          "upper": 110.0,
+          "lowerInclusive": true,
+          "unit": "% of stated amount",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP 2024",
+          "source": "Vitamim A Palmitat__Specifications sheet Vitamin A Palmitate.txt:16"
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "testCode": "RM-DESC",
+      "procedure": "Under strong white light, check each received sample container separately in clean, transparent watch glass or glass dish to detect any foreign particles, conformance of colour & compliance with the visual specifications.",
+      "kind": "general",
+      "workflow": "Observation",
+      "details": {
+        "perContainer": true,
+        "reference": "BP 2024 Monograph for Synthetic Retinol Concentrate (Oily Form)"
+      },
+      "source": "Vitamim A Palmitat__Vitamim A Palmitate-SM.txt:28"
+    },
+    {
+      "testCode": "RM-SOLUB",
+      "procedure": "Weigh 100 mg of sample in a stoppered tube, add 0.1 mL solvent, shake 1 min, hold at 25.0 ± 0.5 °C for 15 min; stepwise add 0.9 mL, 2 mL, 7 mL; then 10 mg in 10 mL, 1 mg in 10 mL to classify solubility. Repeat with anhydrous ethanol.",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {
+        "sampleMg": 100,
+        "temperature": "25.0 ± 0.5 °C",
+        "reference": "BP 2024 (SC IV K.) Characters Section in Monographs; BP 2024 Monograph for Synthetic Retinol Concentrate (Oily Form)"
+      },
+      "source": "Vitamim A Palmitat__Vitamim A Palmitate-SM.txt:29"
+    },
+    {
+      "testCode": "RM-ID-UV-VITA",
+      "procedure": "Alternative method for Identification (described under assay): The absorption maximum of the solution lies between 325 nm and 327 nm.",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "details": {
+        "spectralRangeNm": "325-327",
+        "reference": "BP 2024 Appendix II B. Ultraviolet and Visible Absorption Spectrophotometry"
+      },
+      "source": "Vitamim A Palmitat__Vitamim A Palmitate-SM.txt:30"
+    },
+    {
+      "testCode": "RM-AV-VITA",
+      "procedure": "Dissolve 2.0 g (m) in 50 mL of equal volumes of ethanol (96%) and light petroleum R3 previously neutralised with 0.1 M KOH or 0.1 M NaOH using 0.5 mL phenolphthalein R1. If necessary heat to ~90 °C. Titrate with 0.1 M KOH or 0.1 M NaOH until pink colour persists for at least 15 s (n mL). Acid value IA = 5.61 x n / m.",
+      "kind": "specific",
+      "workflow": "Titration",
+      "details": {
+        "sampleG": 2.0,
+        "solvent": "50 mL ethanol (96%) : light petroleum R3 (1:1 V/V)",
+        "titrant": "0.1 M potassium hydroxide or 0.1 M sodium hydroxide",
+        "indicator": "0.5 mL phenolphthalein solution R1",
+        "formula": "IA = 5.61 x n / m",
+        "reference": "BP 2024 Appendix X B. Acid Value; BP 2024 Monograph for Synthetic Retinol Concentrate (Oily Form)"
+      },
+      "source": "Vitamim A Palmitat__Vitamim A Palmitate-SM.txt:31"
+    },
+    {
+      "testCode": "RM-PV-VITA",
+      "procedure": "Place 5.00 g (m) in a 250 mL stoppered conical flask. Add 30 mL of 2 volumes chloroform and 3 volumes glacial acetic acid, shake to dissolve. Add 0.5 mL saturated KI solution, shake exactly 1 min, add 30 mL CO2-free water. Titrate with 0.01 M sodium thiosulfate at 5 mL/min stirring magnetically, endpoint potentiometrically. Blank test (n2 mL, NMT 0.1 mL). Peroxide value IP = 10 x (n1 - n2) / m.",
+      "kind": "specific",
+      "workflow": "Titration",
+      "details": {
+        "sampleG": 5.0,
+        "solvent": "30 mL chloroform : glacial acetic acid (2:3 V/V)",
+        "reagents": "0.5 mL saturated KI solution; 30 mL CO2-free water",
+        "titrant": "0.01 M sodium thiosulfate",
+        "endpoint": "potentiometric",
+        "blankLimit": "NMT 0.1 mL",
+        "formula": "IP = 10 x (n1 - n2) / m",
+        "reference": "BP 2024 Appendix X F. Peroxide Value; BP 2024 Appendix VIII B Potentiometric (2.2.20); BP 2024 Monograph for Synthetic Retinol Concentrate (Oily Form)"
+      },
+      "source": "Vitamim A Palmitat__Vitamim A Palmitate-SM.txt:32"
+    },
+    {
+      "testCode": "RM-UV-VITA-AS",
+      "procedure": "Dissolve 82.44 mg in 5 mL pentane, dilute 1.0 mL to 100 mL with 2-propanol, further dilute 1.0 mL to 20 mL with 2-propanol (~15 IU/g). Verify absorption maximum between 325 and 327 nm; measure absorbances at 300, 326, 350, 370 nm. Calculate ratios Aλ/A326 (NMT 0.60 at 300 nm, 0.54 at 350 nm, 0.14 at 370 nm). Content (IU/g) = A326 x V x 1900 / (100 x m). Compare to declared potency.",
+      "kind": "specific",
+      "workflow": "UvSpectrophotometry",
+      "details": {
+        "samplePrep": "82.44 mg in 5 mL pentane; 1.0 mL to 100 mL with 2-propanol; 1.0 mL to 20 mL with 2-propanol",
+        "wavelengthsNm": [
+          300,
+          326,
+          350,
+          370
+        ],
+        "spectralPurityRatios": {
+          "A300_A326": "NMT 0.60",
+          "A350_A326": "NMT 0.54",
+          "A370_A326": "NMT 0.14"
+        },
+        "formula": "Content (IU/g) = A326 x V x 1900 / (100 x m); V = total volume (diluted to 10 IU/mL), m = sample mass (g), 1900 = conversion factor to IU/g",
+        "reference": "BP 2024 Appendix II B. Ultraviolet and Visible Absorption Spectrophotometry; BP 2024 Monograph for Synthetic Retinol Concentrate (Oily Form)"
+      },
+      "source": "Vitamim A Palmitat__Vitamim A Palmitate-SM.txt:33"
+    }
+  ],
+  "notApplicable": [
+    {
+      "testCode": "RM-ID-TLC-VITA",
+      "grade": null,
+      "justification": "Reference not available",
+      "criticality": "Minor",
+      "immediateAction": "use Alternative  method for identification",
+      "longTermAction": "Issue PR For Reference",
+      "reference": null,
+      "source": "Vitamim A Palmitat__Not applicable For Vitamin A Palmitate.txt:2"
+    }
+  ],
+  "supplierAttributes": [
+    {
+      "grade": null,
+      "name": "Stabilizer",
+      "statedValue": "Stabilized with tocopherol",
+      "source": "Vitamim A Palmitat__Specifications sheet Vitamin A Palmitate.txt:17"
+    }
+  ],
+  "reagents": [
+    {
+      "name": "Cyclohexane",
+      "use": "reagent",
+      "source": "Vitamim A Palmitat__Vitamim A Palmitate-SM.txt:26"
+    },
+    {
+      "name": "Butylhydroxytoluene",
+      "use": "reagent",
+      "source": "Vitamim A Palmitat__Vitamim A Palmitate-SM.txt:26"
+    },
+    {
+      "name": "Retinyl Palmitate CRS",
+      "use": "standard",
+      "source": "Vitamim A Palmitat__Vitamim A Palmitate-SM.txt:26"
+    },
+    {
+      "name": "Ether",
+      "use": "reagent",
+      "source": "Vitamim A Palmitat__Vitamim A Palmitate-SM.txt:26"
+    },
+    {
+      "name": "Ethanol (96 per cent)",
+      "use": "reagent",
+      "source": "Vitamim A Palmitat__Vitamim A Palmitate-SM.txt:26"
+    },
+    {
+      "name": "Light petroleum",
+      "use": "reagent",
+      "source": "Vitamim A Palmitat__Vitamim A Palmitate-SM.txt:26"
+    },
+    {
+      "name": "Potassium hydroxide",
+      "use": "reagent",
+      "source": "Vitamim A Palmitat__Vitamim A Palmitate-SM.txt:26"
+    },
+    {
+      "name": "Sodium hydroxide",
+      "use": "reagent",
+      "source": "Vitamim A Palmitat__Vitamim A Palmitate-SM.txt:26"
+    },
+    {
+      "name": "Phenolphthalein",
+      "use": "indicator",
+      "source": "Vitamim A Palmitat__Vitamim A Palmitate-SM.txt:26"
+    },
+    {
+      "name": "Chloroform",
+      "use": "reagent",
+      "source": "Vitamim A Palmitat__Vitamim A Palmitate-SM.txt:26"
+    },
+    {
+      "name": "Glacial acetic acid",
+      "use": "reagent",
+      "source": "Vitamim A Palmitat__Vitamim A Palmitate-SM.txt:26"
+    },
+    {
+      "name": "potassium iodide",
+      "use": "reagent",
+      "source": "Vitamim A Palmitat__Vitamim A Palmitate-SM.txt:26"
+    },
+    {
+      "name": "Sodium thiosulfate",
+      "use": "titrant",
+      "source": "Vitamim A Palmitat__Vitamim A Palmitate-SM.txt:26"
+    },
+    {
+      "name": "Soluble starch",
+      "use": "indicator",
+      "source": "Vitamim A Palmitat__Vitamim A Palmitate-SM.txt:26"
+    },
+    {
+      "name": "Mercuric iodide",
+      "use": "reagent",
+      "source": "Vitamim A Palmitat__Vitamim A Palmitate-SM.txt:26"
+    },
+    {
+      "name": "Sodium Carbonate",
+      "use": "reagent",
+      "source": "Vitamim A Palmitat__Vitamim A Palmitate-SM.txt:26"
+    },
+    {
+      "name": "Pentane",
+      "use": "reagent",
+      "source": "Vitamim A Palmitat__Vitamim A Palmitate-SM.txt:26"
+    },
+    {
+      "name": "2-propanol",
+      "use": "reagent",
+      "source": "Vitamim A Palmitat__Vitamim A Palmitate-SM.txt:26"
+    },
+    {
+      "name": "0.1M Potassium Hydroxide",
+      "use": "titrant",
+      "source": "Vitamim A Palmitat__Vitamim A Palmitate-SM.txt:26"
+    },
+    {
+      "name": "0.1M Sodium Hydroxide",
+      "use": "titrant",
+      "source": "Vitamim A Palmitat__Vitamim A Palmitate-SM.txt:26"
+    },
+    {
+      "name": "Phenolphthalein Solution R1",
+      "use": "indicator",
+      "source": "Vitamim A Palmitat__Vitamim A Palmitate-SM.txt:26"
+    },
+    {
+      "name": "Potassium Iodide Solution, Saturated",
+      "use": "reagent",
+      "source": "Vitamim A Palmitat__Vitamim A Palmitate-SM.txt:26"
+    },
+    {
+      "name": "0.01M Sodium Thiosulfate",
+      "use": "titrant",
+      "source": "Vitamim A Palmitat__Vitamim A Palmitate-SM.txt:26"
+    },
+    {
+      "name": "Starch Solution",
+      "use": "indicator",
+      "source": "Vitamim A Palmitat__Vitamim A Palmitate-SM.txt:26"
+    }
+  ],
+  "openQuestions": [
+    {
+      "question": "Identification by thin layer chromatography is marked not applicable (reference CRS not available) and replaced by the alternative UV identification method per STM line 30.",
+      "source": "Vitamim A Palmitat__Not applicable For Vitamin A Palmitate.txt:2; Vitamim A Palmitat__Vitamim A Palmitate-SM.txt:30"
+    },
+    {
+      "question": "Assay specification is '95.0 per cent to 110.0 per cent of the vitamin A Palmitate stated on the label' (nominal 1.7 IU/mg); transcribed as Range 95.0-110.0 with unit '% of stated amount'.",
+      "source": "Vitamim A Palmitat__Specifications sheet Vitamin A Palmitate.txt:16"
+    },
+    {
+      "question": "No microbiological limits are specified on the spec sheet or STM for this oily concentrate material.",
+      "source": "Vitamim A Palmitat__Specifications sheet Vitamin A Palmitate.txt:1-22"
+    },
+    {
+      "question": "Folder and STM document titles contain the typo 'Vitamim A Palmitat'; item name transcribed as written on spec sheet.",
+      "source": "Vitamim A Palmitat__Specifications sheet Vitamin A Palmitate.txt:7"
+    }
+  ]
+}

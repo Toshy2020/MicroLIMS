@@ -89,6 +89,14 @@ def problem(kind, where, text):
 
 def load_data():
     cat = json.loads((HERE / "catalog.json").read_text(encoding="utf-8"))
+    for part in sorted((HERE / "catalog-b2").glob("*.json")):          # batch-2 parts, same merge as load.py
+        extra = json.loads(part.read_text(encoding="utf-8"))
+        for key, val in extra.items():
+            if key == "mapping":
+                cat.setdefault("mapping", {}).update(val)
+            elif isinstance(val, list):
+                have = {x.get("code") or x.get("name") for x in cat.setdefault(key, [])}
+                cat[key] += [x for x in val if (x.get("code") or x.get("name")) not in have]
     mats = [json.loads(p.read_text(encoding="utf-8")) for p in sorted((HERE / "materials").glob("*.json"))]
     return cat, mats
 
@@ -654,20 +662,29 @@ def main():
     global BASE
     ap = argparse.ArgumentParser()
     ap.add_argument("--only")
+    ap.add_argument("--batch2", action="store_true", help="only the materials added after the first 14; report to e2e-local-b2.md")
     ap.add_argument("--report-only", action="store_true")
     ap.add_argument("--base-url", default=BASE)
     a = ap.parse_args()
     if urlparse(a.base_url).hostname not in ("localhost", "127.0.0.1"):
         raise SystemExit("e2e.py runs against a local API only")
     BASE = a.base_url
+    global REPORT
+    if a.batch2:
+        REPORT = HERE / "reports" / "e2e-local-b2.md"
     if STATE_FILE.exists():
         STATE.update(json.loads(STATE_FILE.read_text(encoding="utf-8")))
     if a.report_only:
         write_report()
         return
     cat, mats = load_data()
+    if a.batch2:
+        batch1 = {"STM-RM-097", "STM-RM-56", "STM-RM-151", "STM-RM-051", "STM-RM-053", "STM-RM-150", "STM-RM-126",
+                  "STM-RM-091", "STM-RM-060", "STM-RM-064", "STM-RM-063", "STM-RM-025", "STM-RM-089", "STM-RM-147"}
+        mats = [m for m in mats if m["itemCode"] not in batch1]
     s, items, _ = api("GET", "/items")
     items_by_code = {i["code"]: i for i in items}
+    mats = [m for m in mats if m["itemCode"] in items_by_code and m["itemCode"] in cat["mapping"]]   # no item / no mapping: nothing to test
     s, dl, _ = api("GET", "/masterdata/test-definitions")
     defs = {d["code"]: d for d in dl}
     s, eq, _ = api("GET", "/masterdata/equipment/configured-summary", who="ANALYST")

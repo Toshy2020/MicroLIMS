@@ -1,0 +1,339 @@
+{
+  "itemCode": "C1I-91-228",
+  "itemName": "Colloidal Anhydrous Silica",
+  "stmCode": "STM-RM-065",
+  "stmFile": "Colloidal Anhydrous Silica__New_New.txt",
+  "specFiles": ["Colloidal Anhydrous Silica__Specifications sheet Colloidal Anhydrous Silica.txt"],
+  "minQuantity": {
+    "routine": 100,
+    "retest": 50,
+    "retention": 70,
+    "unit": "g",
+    "source": "Colloidal Anhydrous Silica__Specifications sheet Colloidal Anhydrous Silica.txt:18; Colloidal Anhydrous Silica__New_New.txt:39"
+  },
+  "grades": [
+    {
+      "grade": "BP",
+      "rows": [
+        {
+          "testCode": "RM-DESC",
+          "parameterName": "Appearance",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "White or almost white, light, fine, amorphous powder, with a particle size of about 15 nm",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Colloidal Anhydrous Silica__Specifications sheet Colloidal Anhydrous Silica.txt:11"
+        },
+        {
+          "testCode": "RM-SOLUB",
+          "parameterName": "Solubility",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Practically insoluble in water and in mineral acids except hydrofluoric acid. It dissolves in hot solutions of alkali hydroxides",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Colloidal Anhydrous Silica__Specifications sheet Colloidal Anhydrous Silica.txt:12"
+        },
+        {
+          "testCode": "RM-ID-SIL",
+          "parameterName": "Identification (reaction of silicate)",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Complies with BP",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Colloidal Anhydrous Silica__Specifications sheet Colloidal Anhydrous Silica.txt:13"
+        },
+        {
+          "testCode": "RM-LT-CL",
+          "parameterName": "Chlorides",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Complies (NMT 250 ppm)",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Colloidal Anhydrous Silica__Specifications sheet Colloidal Anhydrous Silica.txt:14"
+        },
+        {
+          "testCode": "RM-LOI-SIL",
+          "parameterName": "Loss on ignition",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 5.0,
+          "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Colloidal Anhydrous Silica__Specifications sheet Colloidal Anhydrous Silica.txt:15"
+        },
+        {
+          "testCode": "RM-PH",
+          "parameterName": "pH",
+          "limitType": "Range",
+          "lower": 3.5,
+          "upper": 5.5,
+          "lowerInclusive": true,
+          "unit": null,
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Colloidal Anhydrous Silica__Specifications sheet Colloidal Anhydrous Silica.txt:16"
+        },
+        {
+          "testCode": "RM-ASSAY-SIL",
+          "parameterName": "Assay (SiO2, ignited substance)",
+          "limitType": "Range",
+          "lower": 99.0,
+          "upper": 100.5,
+          "lowerInclusive": true,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Colloidal Anhydrous Silica__Specifications sheet Colloidal Anhydrous Silica.txt:17; Colloidal Anhydrous Silica__New_New.txt:36"
+        },
+        {
+          "testCode": "TAMC",
+          "parameterName": "Total aerobic microbial count (TAMC)",
+          "limitType": "CountTiered",
+          "lower": null,
+          "upper": 1000,
+          "lowerInclusive": null,
+          "unit": "CFU/g",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP 2023",
+          "source": "Colloidal Anhydrous Silica__New_New.txt:37"
+        },
+        {
+          "testCode": "TYMC",
+          "parameterName": "Total yeast and mold count (TYMC)",
+          "limitType": "CountTiered",
+          "lower": null,
+          "upper": 100,
+          "lowerInclusive": null,
+          "unit": "CFU/g",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP 2023",
+          "source": "Colloidal Anhydrous Silica__New_New.txt:37"
+        },
+        {
+          "testCode": "E.coli",
+          "parameterName": "Test for E. coli",
+          "limitType": "PresenceAbsence",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": "per 10 g",
+          "expectedResultText": "Absent/ 10 gm",
+          "expectedState": "Absence",
+          "resultBasis": null,
+          "referenceStandard": "USP 2023",
+          "source": "Colloidal Anhydrous Silica__New_New.txt:37"
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "testCode": "RM-DESC",
+      "procedure": "Under strong white light check each received sample container separately in a clean transparent watch glass or glass dish for foreign particles, colour and conformity with the visual specification.",
+      "kind": "general",
+      "workflow": "Observation",
+      "details": {
+        "perContainer": true,
+        "grades": ["BP"],
+        "reference": "BP Monograph for Colloidal anhydrous silica"
+      },
+      "source": "Colloidal Anhydrous Silica__New_New.txt:30"
+    },
+    {
+      "testCode": "RM-SOLUB",
+      "procedure": "Weigh 100 mg in a stoppered tube; add 0.1 mL solvent, shake 1 min, hold at 25.0 ± 0.5 °C for 15 min, repeat once if not dissolved; add 0.9 mL, then 2 mL, then 7 mL solvent with the same steps to classify; if still undissolved use 10 mg in 10 mL, then 1 mg in 10 mL, else practically insoluble. Solvent list not extracted (see STM text).",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {
+        "sample": "100 mg",
+        "temperature": "25.0 ± 0.5 °C",
+        "holdMin": 15,
+        "shakeMin": 1,
+        "volumesMl": [0.1, 0.9, 2, 7],
+        "smallSampleSteps": ["10 mg in 10 mL", "1 mg in 10 mL"],
+        "reference": "BP (SC IV K.) Characters Section in Monographs"
+      },
+      "source": "Colloidal Anhydrous Silica__New_New.txt:31"
+    },
+    {
+      "testCode": "RM-ID-SIL",
+      "procedure": "Identification (reaction of silicate): in a platinum crucible put about 10 mg sodium fluoride R and a few drops of sulfuric acid R to give a thin slurry with about 20 mg of the sample; cover with a thin transparent plastic plate with a drop of water R suspended beneath; warm gently. A white ring must form rapidly around the drop of water.",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "details": {
+        "sampleMg": 20,
+        "sodiumFluorideMg": 10,
+        "reagent": "sulfuric acid R, few drops",
+        "reference": "BP 2025 Monograph for colloidal anhydrous silica"
+      },
+      "source": "Colloidal Anhydrous Silica__New_New.txt:32"
+    },
+    {
+      "testCode": "RM-PH",
+      "procedure": "pH: shake 1.0 g sample with 30 mL carbon dioxide-free water; measure with a calibrated pH meter.",
+      "kind": "general",
+      "workflow": "Measurement",
+      "details": {
+        "sampleG": 1.0,
+        "waterMl": 30,
+        "water": "carbon dioxide-free",
+        "reference": "BP 2025 Monograph for colloidal anhydrous silica"
+      },
+      "source": "Colloidal Anhydrous Silica__New_New.txt:33"
+    },
+    {
+      "testCode": "RM-LT-CL",
+      "procedure": "Chlorides (limit test): 1.0 g + 20 mL dilute nitric acid and 30 mL water, water bath 15 min with frequent shaking; dilute to 50 mL if needed, filter, cool; dilute 10 mL of filtrate to 15 mL; add 1 mL dilute nitric acid, pour into a tube with 1 mL silver nitrate solution R2. Standard: 10 mL chloride standard solution (5 ppm Cl) + 5 mL water treated the same way. After 5 min protected from light, opalescence in the sample must not exceed the standard (NMT 250 ppm).",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {
+        "sampleG": 1.0,
+        "nitricAcidDiluteMl": 20,
+        "waterMl": 30,
+        "waterBathMin": 15,
+        "standardCl": "10 mL chloride standard solution (5 ppm Cl)",
+        "silverNitrateR2Ml": 1,
+        "standStandMin": 5,
+        "limit": "maximum 250 ppm",
+        "reference": "BP Appendix VII Limit Tests"
+      },
+      "source": "Colloidal Anhydrous Silica__New_New.txt:34"
+    },
+    {
+      "testCode": "RM-LOI-SIL",
+      "procedure": "Loss on ignition: weigh a dry crucible (W1); weigh 0.2 g sample into it (W2); ignite in muffle at 900 ± 50 °C for 2 h; cool in desiccator; weigh the crucible with the ignited substance (W4); W3 = W1 + W2; loss on ignition (weight) = W3 - W4. Limit NMT 5.0%.",
+      "kind": "general",
+      "workflow": "Gravimetric",
+      "details": {
+        "sampleG": 0.2,
+        "ignitionC": "900 ± 50",
+        "ignitionH": 2,
+        "formula": "W3 = W1 + W2; loss = W3 - W4 (% formula not written in the STM)",
+        "limit": "maximum 5.0%",
+        "reference": "BP 2025 Monograph for colloidal anhydrous silica"
+      },
+      "source": "Colloidal Anhydrous Silica__New_New.txt:35"
+    },
+    {
+      "testCode": "RM-ASSAY-SIL",
+      "procedure": "Assay (SiO2, gravimetric, with the loss-on-ignition residue): moisten the residue with 0.2 mL sulfuric acid R and enough ethanol (96%) R; add 6 mL hydrofluoric acid R and evaporate to dryness on a hot plate at 95-105 °C; wash the sides with 6 mL hydrofluoric acid R and evaporate to dryness; ignite at 900 ± 50 °C, cool in desiccator and weigh. The difference between the final residue and the loss-on-ignition residue gives the SiO2 content. Limit 99.0-100.5% (ignited substance).",
+      "kind": "specific",
+      "workflow": "Gravimetric",
+      "details": {
+        "sulfuricAcidMl": 0.2,
+        "hydrofluoricAcidMl": "6 + 6",
+        "evaporationC": "95-105",
+        "ignitionC": "900 ± 50",
+        "limit": "99.0% to 100.5% SiO2 (ignited substance)",
+        "reference": "BP 2025 Monograph for colloidal anhydrous silica"
+      },
+      "source": "Colloidal Anhydrous Silica__New_New.txt:36"
+    },
+    {
+      "testCode": "TAMC",
+      "procedure": "Total aerobic microbial count: 'Follow the suitable steps stated in SOP (C2I-91-128) and the verification report specifically for this material' (SOP not in this STM).",
+      "kind": "general",
+      "workflow": "CountTest",
+      "details": {
+        "limit": "Not more than 10^3 CFU/gm",
+        "sop": "C2I-91-128",
+        "reference": "USP 2023 Microbiological Attributes of Non-sterile Nutritional and Dietary Supplement"
+      },
+      "source": "Colloidal Anhydrous Silica__New_New.txt:37"
+    },
+    {
+      "testCode": "TYMC",
+      "procedure": "Total yeast and mold count: 'Follow the suitable steps stated in SOP (C2I-91-128)' (SOP not in this STM).",
+      "kind": "general",
+      "workflow": "CountTest",
+      "details": {
+        "limit": "Not more than 10^2 CFU/gm",
+        "sop": "C2I-91-128",
+        "reference": "USP 2023 Microbiological Attributes of Non-sterile Nutritional and Dietary Supplement"
+      },
+      "source": "Colloidal Anhydrous Silica__New_New.txt:37"
+    },
+    {
+      "testCode": "E.coli",
+      "procedure": "Test for E. coli: 'Follow the suitable steps stated in SOP (C2I-91-128)' (SOP not in this STM).",
+      "kind": "general",
+      "workflow": "Observation",
+      "details": {
+        "limit": "Absent/ 10 gm",
+        "sop": "C2I-91-128",
+        "reference": "USP 2023 Microbiological Attributes of Non-sterile Nutritional and Dietary Supplement"
+      },
+      "source": "Colloidal Anhydrous Silica__New_New.txt:37"
+    }
+  ],
+  "notApplicable": [],
+  "supplierAttributes": [
+    { "grade": null, "name": "Surface area", "statedValue": "200 m2/g ±25", "source": "Colloidal Anhydrous Silica__Specifications sheet Colloidal Anhydrous Silica.txt:18" }
+  ],
+  "reagents": [
+    { "name": "Hydrofluoric acid R", "use": "reagent", "source": "Colloidal Anhydrous Silica__New_New.txt:28" },
+    { "name": "Sodium fluoride R", "use": "reagent", "source": "Colloidal Anhydrous Silica__New_New.txt:28" },
+    { "name": "Sulfuric acid R", "use": "reagent", "source": "Colloidal Anhydrous Silica__New_New.txt:28" },
+    { "name": "Nitric acid R", "use": "reagent", "source": "Colloidal Anhydrous Silica__New_New.txt:28" },
+    { "name": "Silver nitrate", "use": "reagent", "source": "Colloidal Anhydrous Silica__New_New.txt:28" },
+    { "name": "Silver nitrate solution R2 (17 g in 1000 mL)", "use": "reagent", "source": "Colloidal Anhydrous Silica__New_New.txt:28" },
+    { "name": "Nitric acid, dilute 125 g/L", "use": "reagent", "source": "Colloidal Anhydrous Silica__New_New.txt:28" },
+    { "name": "Water, carbon dioxide-free", "use": "reagent", "source": "Colloidal Anhydrous Silica__New_New.txt:28" },
+    { "name": "Chloride standard solution (5 ppm Cl) R", "use": "standard", "source": "Colloidal Anhydrous Silica__New_New.txt:28" },
+    { "name": "Ethanol (96 per cent)", "use": "reagent", "source": "Colloidal Anhydrous Silica__New_New.txt:36" }
+  ],
+  "openQuestions": [
+    {
+      "question": "The spec sheet is the 2022 issue (STM Code 'C1I-91-228', version 1/1, issued 24-11-2022), while the STM is STM-RM-065 v1/2 (2025). The spec is the only one in the folder; rows loaded from it. Confirm it is the current spec.",
+      "source": "Colloidal Anhydrous Silica__Specifications sheet Colloidal Anhydrous Silica.txt:9"
+    },
+    {
+      "question": "Minimum quantity: the spec sheet gives 100 g routine; the STM gives 70 g routine and retention and 50 g periodic retest. Routine 100 g from the spec, retention 70 g and retest 50 g from the STM; confirm the routine quantity.",
+      "source": "Colloidal Anhydrous Silica__Specifications sheet Colloidal Anhydrous Silica.txt:18; Colloidal Anhydrous Silica__New_New.txt:39"
+    },
+    {
+      "question": "pH: the spec sheet technique is voltammetry, the STM method is a calibrated pH meter on a 1.0 g in 30 mL suspension. Loaded as the STM method; confirm.",
+      "source": "Colloidal Anhydrous Silica__Specifications sheet Colloidal Anhydrous Silica.txt:16; Colloidal Anhydrous Silica__New_New.txt:33"
+    },
+    {
+      "question": "Loss on ignition: the STM gives no percentage formula. Assay basis: the limit is on the ignited substance, the STM gives no % formula; loaded with resultBasis null.",
+      "source": "Colloidal Anhydrous Silica__New_New.txt:35; Colloidal Anhydrous Silica__New_New.txt:36"
+    },
+    {
+      "question": "Microbiological limits read '10^3' and '10^2' (STM text 'Not more than 103 / 102', superscript lost); read as 1000 and 100 CFU/g. Confirm. Micro methods only referenced to SOP C2I-91-128, which is not in this STM.",
+      "source": "Colloidal Anhydrous Silica__New_New.txt:37"
+    }
+  ]
+}

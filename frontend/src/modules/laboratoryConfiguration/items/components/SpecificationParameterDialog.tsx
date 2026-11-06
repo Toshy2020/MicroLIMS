@@ -39,6 +39,7 @@ import {
   GRADE_SUGGESTIONS,
   RelatedSubstanceRow
 } from "../../specifications/services/SpecificationService";
+import { gradesOf, planGradeWrites, siblingsOf } from "../../specifications/services/gradeGroups";
 import { masterDataOptions } from "../../../../services/masterDataOptions";
 import { TitrationSpecBasisFields, titrationBasisNeedsLabelClaim, validateTitrationSpecBasis } from "./TitrationSpecBasisFields";
 import { ResidualSolventSpecFields } from "./ResidualSolventSpecFields";
@@ -150,8 +151,9 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
   // samples, so the field is offered only for Finished Product items.
   const [productionStageRole, setProductionStageRole] = useState<ProductionStageRole | "">("");
   const supportsProductionStage = item.category === "FinishedProduct";
-  // Raw-material specs can differ by grade (BP, USP, In-house ...); "" = ungraded.
-  const [grade, setGrade] = useState("");
+  // Raw-material specs can differ by grade (BP, USP, In-house ...); none = ungraded. Several grades with the
+  // same limits are saved as one row per grade and shown as one row.
+  const [grades, setGrades] = useState<string[]>([]);
   const supportsGrade = item.category === "RawMaterial";
 
   const [testDefs, setTestDefs] = useState<Record<string, TestDefinitionSummary>>(testDefinitionByCode || {});
@@ -346,7 +348,7 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
       );
       setDosageForm((editingSpec.dosageForm as DosageForm) || "");
       setProductionStageRole((editingSpec.productionStageRole as ProductionStageRole) || "");
-      setGrade(editingSpec.grade ?? "");
+      setGrades(gradesOf(editingSpec));
       if (editingSpec.limitType === "WeightVariation") {
         setUnit("mg");
       }
@@ -445,7 +447,7 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
       setDilutionFactor("");
       setDosageForm("");
       setProductionStageRole("");
-      setGrade("");
+      setGrades([]);
 
       setHplcMethodAnalyteId("");
       setHplcMethodImpurityId("");
@@ -850,23 +852,31 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
               ? labelClaimUnit.trim() || null
               : null)),
       productionStageRole: supportsProductionStage && productionStageRole ? productionStageRole : null,
-      grade: supportsGrade && grade.trim() ? grade.trim() : null
+      grade: null as string | null
     };
 
+    const chosenGrades = supportsGrade ? grades : [];
+    const { writes, removes } = planGradeWrites(isEditing && editingSpec ? siblingsOf(editingSpec) : [], chosenGrades);
+    let wrote = false;
     try {
-      if (isEditing && editingSpec?.id != null) {
-        const updatePayload: UpdateSpecificationPayload = basePayload;
-        await SpecificationService.update(editingSpec.id, updatePayload, editingSpec.version);
-      } else {
-        const createPayload: CreateSpecificationPayload = {
-          itemId: item.id,
-          ...basePayload
-        };
-        await SpecificationService.create(createPayload);
+      for (const w of writes) {
+        if (w.existing?.id != null) {
+          const updatePayload: UpdateSpecificationPayload = { ...basePayload, grade: w.grade };
+          await SpecificationService.update(w.existing.id, updatePayload, w.existing.version);
+        } else {
+          const createPayload: CreateSpecificationPayload = { itemId: item.id, ...basePayload, grade: w.grade };
+          await SpecificationService.create(createPayload);
+        }
+        wrote = true;
+      }
+      for (const r of removes) {
+        if (r.id != null) await SpecificationService.remove(r.id);
       }
       onSuccess();
       onClose();
     } catch (err: unknown) {
+      // Some grades may already be saved; show the list as it is now.
+      if (wrote) onSuccess();
       const axiosError = err as {
         response?: { data?: { message?: string } };
         message?: string;
@@ -972,16 +982,24 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
 
           {supportsGrade && (
             <Autocomplete
+              multiple
               freeSolo
               size="small"
               options={GRADE_SUGGESTIONS}
-              inputValue={grade}
-              onInputChange={(_, v) => setGrade(v)}
+              value={grades}
+              onChange={(_, v) => {
+                const unique: string[] = [];
+                for (const raw of v) {
+                  const g = raw.trim().slice(0, 20);
+                  if (g && !unique.some((u) => u.toLowerCase() === g.toLowerCase())) unique.push(g);
+                }
+                setGrades(unique);
+              }}
               renderInput={(params) => (
                 <TextField
                   {...params}
                   label="Grade"
-                  helperText="BP, USP, In-house or your own (max 20 characters). Leave blank for an ungraded specification."
+                  helperText="Pick every grade these limits apply to (BP, USP, In-house or your own, max 20 characters). Leave empty for an ungraded specification."
                   slotProps={{ ...params.slotProps, htmlInput: { ...params.slotProps.htmlInput, maxLength: 20 } }}
                 />
               )}

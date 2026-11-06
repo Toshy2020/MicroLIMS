@@ -1,0 +1,194 @@
+{
+  "testDefinitions": [
+    {
+      "code": "RM-ID-TOCO-133",
+      "displayName": "Identification (identity for tocopherol)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Qualitative",
+      "equationType": "Qualitative",
+      "physchemArea": "RawPackaging",
+      "complete": true,
+      "notes": "50 mg sample in 10 mL dehydrated alcohol; add with swirling 2 mL nitric acid; heat at about 75 °C for 15 min. No bright red or orange colour develops (source: Vitamin D3 (Cholecalciferol)100 IUmg__STM Vitamin D3 (Cholecalciferol)100 IUmg) without micro.txt:32).",
+      "usedBy": [
+        "STM-RM-133"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-133",
+          "provisionalCode": "RM-ID-TOCO-VITD3",
+          "source": "Vitamin D3 (Cholecalciferol)100 IUmg__STM Vitamin D3 (Cholecalciferol)100 IUmg) without micro.txt:32"
+        }
+      ]
+    },
+    {
+      "code": "RM-ALK-067",
+      "displayName": "Alkalies and alkaline earths",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Measurement",
+      "equationType": "Measurement",
+      "physchemArea": "RawPackaging",
+      "replicateCount": 1,
+      "evaluationBasis": "Mean",
+      "complete": true,
+      "notes": "USP 2022 Monograph for Zinc Sulfate Monohydrate. Dissolve equivalent of 1.12 g zinc sulfate in 150 mL water in 200 mL volumetric flask, precipitate zinc with ammonium sulfide TS, dilute to volume, filter; to 100 mL filtrate add sulfuric acid, evaporate to dryness in tared dish, ignite. Residue NMT 5 mg (0.9%). Analyst enters the final values (dual residue weight mg and percentage % limits cannot be calculated by gravimetric workflow) (source: Zinc Sulfate Monohydrate__Zinc Sulfate Monohydrate-SM-USP.txt:33).",
+      "usedBy": [
+        "STM-RM-067"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-067",
+          "provisionalCode": "RM-ALK-ZNSO4",
+          "source": "Zinc Sulfate Monohydrate__Zinc Sulfate Monohydrate-SM-USP.txt:33"
+        }
+      ]
+    },
+    {
+      "code": "RM-TIT-ZN-USP-067",
+      "displayName": "Assay of zinc sulfate (USP, complexometric titration)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Titration",
+      "equationType": "Titration",
+      "physchemArea": "RawPackaging",
+      "titrationType": "Complexometric",
+      "titrationMode": "Direct",
+      "titrationEndpoint": "Visual",
+      "titrantSolution": "0.05 M Edetate Disodium VS",
+      "titrationBlankRequired": false,
+      "titrationEquivalencyFactor": 161.44,
+      "titrationEquivalencyFactorDerivation": "stated: 1 mL of 0.05 M edetate disodium = 8.072 mg ZnSO4; 8.072 / 0.05 = 161.44 mg/mmol",
+      "titrationIndicatorEntry": "Eriochrome Black TS",
+      "replicateCount": 1,
+      "titrationCalculation": "UspFactor",
+      "complete": true,
+      "notes": "Sample equivalent to 170 mg ZnSO4 in 100 mL water, 5 mL ammonia-ammonium chloride buffer TS, 50 mg Eriochrome black TS, titrate with 0.05 M edetate disodium to deep blue endpoint. Factor 161.44 mg/mmol (8.072 / 0.05). Shared by ZnSO4 and ZnSO4.H2O rows (source: Zinc Sulfate Monohydrate__Zinc Sulfate Monohydrate-SM-USP.txt:35).",
+      "usedBy": [
+        "STM-RM-067"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-067",
+          "provisionalCode": "RM-TIT-ZNSO4-USP",
+          "source": "Zinc Sulfate Monohydrate__Zinc Sulfate Monohydrate-SM-USP.txt:35"
+        }
+      ]
+    },
+    {
+      "code": "RM-TIT-ZN-BP-067",
+      "displayName": "Assay of zinc sulfate monohydrate (BP, complexometric titration)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Titration",
+      "equationType": "Titration",
+      "physchemArea": "RawPackaging",
+      "titrationType": "Complexometric",
+      "titrationMode": "Direct",
+      "titrationEndpoint": "Visual",
+      "titrantSolution": "0.1 M Sodium edetate VS",
+      "titrationBlankRequired": false,
+      "titrationEquivalencyFactor": 179.5,
+      "titrationEquivalencyFactorDerivation": "stated: 1 mL of 0.1 M sodium edetate = 17.95 mg ZnSO4,H2O; 17.95 / 0.1 = 179.5 mg/mmol",
+      "titrationIndicatorEntry": "Xylenol orange triturate",
+      "replicateCount": 1,
+      "titrationCalculation": "UspFactor",
+      "complete": true,
+      "notes": "BP Appendix VIII D Complexometric Titrations. Dissolve 0.160 g in 5 mL dilute acetic acid, dilute to 200 mL with water, add ~50 mg xylenol orange triturate and hexamethylenetetramine until violet-pink, add 2 g hexamethylenetetramine in excess, titrate with 0.1 M sodium edetate to yellow. Factor 179.5 mg/mmol (17.95 / 0.1) (source: Zinc Sulfate Monohydrate__Zinc Sulfate Monohydrate-SM.txt:38).",
+      "usedBy": [
+        "STM-RM-067"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-067",
+          "provisionalCode": "RM-TIT-ZNSO4-BP",
+          "source": "Zinc Sulfate Monohydrate__Zinc Sulfate Monohydrate-SM.txt:38"
+        }
+      ]
+    }
+  ],
+  "solutions": [],
+  "hplcMethods": [],
+  "icpMethods": [],
+  "materialEntries": [
+    {
+      "name": "Xylenol orange triturate",
+      "category": "Indicator",
+      "codePrefix": "IND-",
+      "code": null,
+      "baseUnit": "Bottle",
+      "usedBy": [
+        "RM-TIT-ZN-BP-067"
+      ],
+      "source": "Zinc Sulfate Monohydrate__Zinc Sulfate Monohydrate-SM.txt:26,38",
+      "loadedObjectNeedsIt": true
+    }
+  ],
+  "reagentLinks": [],
+  "mapping": {
+    "C1I-91-151": {
+      "RM-DESC": "RM-DESC",
+      "RM-SOLUB": "RM-SOLUB",
+      "RM-ID-IR": "RM-ID-IR",
+      "RM-SOLAPP": "RM-SOLAPP",
+      "RM-OPTROT": "RM-OPTROT",
+      "RM-LOD": "RM-LOD",
+      "RM-SASH": "RM-SASH",
+      "TAMC": "TAMC",
+      "TYMC": "TYMC",
+      "E.coli": "E.coli"
+    },
+    "C1I-91-158": {
+      "RM-DESC": "RM-DESC",
+      "RM-SOLUB": "RM-SOLUB",
+      "RM-SOLAPP": "RM-SOLAPP",
+      "RM-LT-CL": "RM-LT-CL",
+      "RM-LT-FE": "RM-LT-FE",
+      "TAMC": "TAMC",
+      "TYMC": "TYMC",
+      "E.coli": "E.coli"
+    },
+    "C5I-91-225": {
+      "RM-DESC": "RM-DESC",
+      "RM-SOLUB": "RM-SOLUB",
+      "RM-ODOR": "RM-ODOR",
+      "RM-LOD": "RM-LOD",
+      "RM-LT-HM": "RM-LT-HM",
+      "RM-SASH": "RM-SASH",
+      "RM-BULKD": "RM-BULKD",
+      "TAMC": "TAMC",
+      "TYMC": "TYMC",
+      "E.coli": "E.coli",
+      "Salmonella ": "Salmonella "
+    },
+    "STM-RM-133": {
+      "RM-DESC": "RM-DESC",
+      "RM-SOLUB": "RM-SOLUB",
+      "RM-ID-HPLC-VITD3": "RM-ID-RT",
+      "RM-LOD": "RM-LOD",
+      "RM-ID-TOCO-VITD3": "RM-ID-TOCO-133",
+      "TAMC": "TAMC",
+      "TYMC": "TYMC",
+      "E.coli": "E.coli"
+    },
+    "STM-RM-067": {
+      "RM-DESC": "RM-DESC",
+      "RM-SOLUB": "RM-SOLUB",
+      "RM-ID-ZN-ZNSO4": "RM-ID-ZN",
+      "RM-ID-SO4-ZNSO4": "RM-ID-SO4",
+      "RM-LEAD": "RM-LT-PB",
+      "RM-ARSENIC": "RM-LT-AS",
+      "RM-ALK-ZNSO4": "RM-ALK-067",
+      "RM-ACID-ZNSO4": "RM-ACIDALK",
+      "RM-TIT-ZNSO4-USP": "RM-TIT-ZN-USP-067",
+      "RM-ID-SO4-ZNSO4-BP": "RM-ID-SO4",
+      "RM-ID-ZN-ZNSO4-BP": "RM-ID-ZN",
+      "RM-SOLAPP": "RM-SOLAPP",
+      "RM-PH": "RM-PH",
+      "RM-LT-CL": "RM-LT-CL",
+      "RM-LT-FE": "RM-LT-FE",
+      "RM-TIT-ZNSO4-BP": "RM-TIT-ZN-BP-067"
+    }
+  },
+  "gaps": []
+}

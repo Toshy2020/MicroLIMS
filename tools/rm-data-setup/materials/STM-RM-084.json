@@ -1,0 +1,511 @@
+{
+  "itemCode": "STM-RM-084",
+  "stmCode": "STM-RM-084",
+  "itemName": "Lactose Monohydrate",
+  "stmFile": "Lactose Monohydrate__Lactose Monohydrate - SM.txt",
+  "specFiles": [
+    "Lactose Monohydrate__Specifications sheet Lactose Monohydrate.txt"
+  ],
+  "minQuantity": {
+    "routine": 100,
+    "retest": 50,
+    "retention": 100,
+    "unit": "g",
+    "source": "Lactose Monohydrate__Specifications sheet Lactose Monohydrate.txt:25; Lactose Monohydrate__Lactose Monohydrate - SM.txt:42"
+  },
+  "grades": [
+    {
+      "grade": "BP",
+      "rows": [
+        {
+          "testCode": "RM-DESC",
+          "parameterName": "Appearance",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "White or almost white, crystalline powder.",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Lactose Monohydrate__Specifications sheet Lactose Monohydrate.txt:11"
+        },
+        {
+          "testCode": "RM-SOLUB",
+          "parameterName": "Solubility",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Freely soluble in water, practically insoluble in ethanol (96 per cent).",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Lactose Monohydrate__Specifications sheet Lactose Monohydrate.txt:12"
+        },
+        {
+          "testCode": "RM-SOLAPP",
+          "parameterName": "Appearance of solution",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Solution S is clear and not more intensely colored than reference solution BY7",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Lactose Monohydrate__Specifications sheet Lactose Monohydrate.txt:13"
+        },
+        {
+          "testCode": "RM-ID-CHEM-LACTOSE",
+          "parameterName": "Identification (Chemical Reaction)",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "A red color develops",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Lactose Monohydrate__Specifications sheet Lactose Monohydrate.txt:14"
+        },
+        {
+          "testCode": "RM-ID-IR",
+          "parameterName": "Identification (IR)",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "The spectrum obtained for the sample and compare to the spectrum obtained from lactose monohydrate WS",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Lactose Monohydrate__Specifications sheet Lactose Monohydrate.txt:15"
+        },
+        {
+          "testCode": "RM-ID-TLC-LACTOSE",
+          "parameterName": "Identification (TLC)",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "The principal spot in the chromatogram obtained with the test solution is similar in position, color and size to the principal spot in the chromatogram obtained with the reference solution.",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Lactose Monohydrate__Specifications sheet Lactose Monohydrate.txt:16"
+        },
+        {
+          "testCode": "RM-ACID-ALK-LACTOSE",
+          "parameterName": "Acidity or alkalinity",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 0.4,
+          "lowerInclusive": null,
+          "unit": "mL",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Lactose Monohydrate__Specifications sheet Lactose Monohydrate.txt:17"
+        },
+        {
+          "testCode": "RM-OPTROT",
+          "parameterName": "Specific optical rotation",
+          "limitType": "Range",
+          "lower": 54.4,
+          "upper": 55.9,
+          "lowerInclusive": true,
+          "unit": "°",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Lactose Monohydrate__Specifications sheet Lactose Monohydrate.txt:18"
+        },
+        {
+          "testCode": "RM-UV-ABS-LACTOSE",
+          "parameterName": "Absorbance: at 400 nm (test solution a)",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Complies (NMT 0.04)",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Lactose Monohydrate__Specifications sheet Lactose Monohydrate.txt:19"
+        },
+        {
+          "testCode": "RM-UV-ABS-LACTOSE",
+          "parameterName": "Absorbance: from 210 nm to 220 nm (test solution b)",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Complies (NMT 0.25)",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Lactose Monohydrate__Specifications sheet Lactose Monohydrate.txt:19"
+        },
+        {
+          "testCode": "RM-UV-ABS-LACTOSE",
+          "parameterName": "Absorbance: from 270 nm to 300 nm (test solution b)",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Complies (NMT 0.07)",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Lactose Monohydrate__Specifications sheet Lactose Monohydrate.txt:19"
+        },
+        {
+          "testCode": "RM-KF",
+          "parameterName": "Water",
+          "limitType": "Range",
+          "lower": 4.5,
+          "upper": 5.5,
+          "lowerInclusive": true,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Lactose Monohydrate__Specifications sheet Lactose Monohydrate.txt:20"
+        },
+        {
+          "testCode": "RM-SASH",
+          "parameterName": "Sulfated ash",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 0.1,
+          "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Lactose Monohydrate__Specifications sheet Lactose Monohydrate.txt:21"
+        },
+        {
+          "testCode": "TAMC",
+          "parameterName": "Total Aerobic Microbial Count",
+          "limitType": "CountTiered",
+          "lower": null,
+          "upper": 100,
+          "lowerInclusive": null,
+          "unit": "CFU/g",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Lactose Monohydrate__Specifications sheet Lactose Monohydrate.txt:22"
+        },
+        {
+          "testCode": "TYMC",
+          "parameterName": "Total combined Yeasts & Molds Count",
+          "limitType": "CountTiered",
+          "lower": null,
+          "upper": 50,
+          "lowerInclusive": null,
+          "unit": "CFU/g",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Lactose Monohydrate__Specifications sheet Lactose Monohydrate.txt:23"
+        },
+        {
+          "testCode": "E.coli",
+          "parameterName": "Test for E. coli",
+          "limitType": "PresenceAbsence",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": "per g",
+          "expectedResultText": "E. coli: Absent / gm",
+          "expectedState": "Absence",
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Lactose Monohydrate__Specifications sheet Lactose Monohydrate.txt:24"
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "testCode": "RM-DESC",
+      "procedure": "Under strong white light, check each received sample container separately in clean, transparent watch glass or glass dish to detect any foreign particles, conformance of colour & compliance with the visual specifications.",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {
+        "perContainer": true,
+        "reference": "BP 2025 Monograph for Lactose Monohydrate"
+      },
+      "source": "Lactose Monohydrate__Lactose Monohydrate - SM.txt:30"
+    },
+    {
+      "testCode": "RM-SOLUB",
+      "procedure": "Weigh 100 mg of sample in a stoppered tube, add solvent in graduated steps (0.1 mL, 0.9 mL, 2 mL, 7 mL, etc.) with shaking at 25.0 ± 0.5 °C to evaluate solubility according to BP descriptive terms. Repeat steps with ethanol (96 per cent).",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {
+        "solvents": [
+          "water",
+          "ethanol (96 per cent)"
+        ],
+        "reference": "BP 2025 Monograph for Lactose Monohydrate"
+      },
+      "source": "Lactose Monohydrate__Lactose Monohydrate - SM.txt:31"
+    },
+    {
+      "testCode": "RM-ID-IR",
+      "procedure": "Examine the spectrum obtained for the sample and compare to the spectrum obtained from lactose monohydrate WS.",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {
+        "reference": "BP Appendix II A. Infrared Spectrophotometry"
+      },
+      "source": "Lactose Monohydrate__Lactose Monohydrate - SM.txt:32"
+    },
+    {
+      "testCode": "RM-ID-TLC-LACTOSE",
+      "procedure": "TLC silica gel plate. Solvent mixture: water, methanol (40:60 V/V). Test solution: 10 mg sample diluted to 20 mL with solvent mixture. Reference solution: 10 mg lactose monohydrate WS diluted to 20 mL with solvent mixture. Mobile phase: water, methanol, glacial acetic acid, methylene chloride (10:15:25:50 V/V). Application: 2 uL; dry application points. Double development over 3/4 plate with drying in warm air. Spray with 0.5 g thymol in 5 mL sulfuric acid and 95 mL ethanol (96%), heat at 130 °C for 10 min. Principal spot in test solution similar in position, color and size to reference solution.",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "details": {
+        "stationaryPhase": "TLC silica gel plate",
+        "mobilePhase": "water : methanol : glacial acetic acid : methylene chloride (10:15:25:50)",
+        "detection": "spray with thymol / sulfuric acid in ethanol, heat at 130 °C for 10 min",
+        "reference": "BP Appendix III A. Thin-layer Chromatography"
+      },
+      "source": "Lactose Monohydrate__Lactose Monohydrate - SM.txt:32"
+    },
+    {
+      "testCode": "RM-ID-CHEM-LACTOSE",
+      "procedure": "Dissolve 0.25 g in 5 mL of water. Add 5 mL of ammonia. Heat in a water-bath at 80 °C for 10 min. A red color develops.",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "details": {
+        "sampleG": 0.25,
+        "waterMl": 5,
+        "ammoniaMl": 5,
+        "temperatureC": 80,
+        "timeMin": 10,
+        "reference": "BP 2025 Monograph for Lactose Monohydrate"
+      },
+      "source": "Lactose Monohydrate__Lactose Monohydrate - SM.txt:32"
+    },
+    {
+      "testCode": "RM-SOLAPP",
+      "procedure": "Compare between two Nessler tubes transparent and same volume. Test Solution Tube Containing Solution S (1.0 g dissolved in boiling water, cooled and diluted to 10.0 mL with water) and the other Containing Solution BY7. Solution S is clear and not more intensely colored than reference solution BY7.",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {
+        "reference": "BP Appendix IV B. Color of Solution & Appendix IV A. Clarity of Solution"
+      },
+      "source": "Lactose Monohydrate__Lactose Monohydrate - SM.txt:33"
+    },
+    {
+      "testCode": "RM-ACID-ALK-LACTOSE",
+      "procedure": "Dissolve 6.0 g by heating in 25 mL of carbon dioxide-free water. Cool. Add 0.3 mL of phenolphthalein solution R1. The solution is colorless. Titrate with 0.1 M sodium hydroxide until pink or red; not more than 0.4 mL required.",
+      "kind": "specific",
+      "workflow": "Measurement",
+      "details": {
+        "sampleG": 6.0,
+        "titrant": "0.1 M Sodium Hydroxide",
+        "indicator": "Phenolphthalein Solution R1",
+        "reference": "BP 2025 Monograph for Lactose Monohydrate"
+      },
+      "source": "Lactose Monohydrate__Lactose Monohydrate - SM.txt:34"
+    },
+    {
+      "testCode": "RM-OPTROT",
+      "procedure": "Dissolve 10.0 g in 80 mL of water with heating at 50 °C. Allow to cool. Add 0.2 mL of dilute ammonia R1. Allow to stand for 30 min and dilute to 100.0 mL with water. Measure specific optical rotation using calibrated polarimeter. Specification on anhydrous substance: +54.4 to +55.9.",
+      "kind": "general",
+      "workflow": "Measurement",
+      "details": {
+        "sampleG": 10.0,
+        "volumeMl": 100.0,
+        "resultBasis": "anhydrous substance",
+        "reference": "BP Appendix V F. Determination of Optical Rotation and Specific Optical Rotation"
+      },
+      "source": "Lactose Monohydrate__Lactose Monohydrate - SM.txt:35"
+    },
+    {
+      "testCode": "RM-UV-ABS-LACTOSE",
+      "procedure": "Test solution (a): Solution S. Test solution (b): Dilute 1.0 mL of test solution (a) to 10.0 mL with water. Measure absorbance using calibrated UV spectrophotometer: at 400 nm for test solution (a) [max 0.04]; from 210 nm to 220 nm for test solution (b) [max 0.25]; from 270 nm to 300 nm for test solution (b) [max 0.07].",
+      "kind": "specific",
+      "workflow": "UvSpectrophotometry",
+      "details": {
+        "spectralRanges": [
+          "400 nm",
+          "210-220 nm",
+          "270-300 nm"
+        ],
+        "reference": "BP Appendix II B. Ultraviolet and Visible Absorption Spectrophotometry"
+      },
+      "source": "Lactose Monohydrate__Lactose Monohydrate - SM.txt:36"
+    },
+    {
+      "testCode": "RM-KF",
+      "procedure": "Determined on 0.50 g, using a mixture of 1 volume of formamide and 2 volumes of methanol as solvent. Measure water content using calibrated Karl Fischer.",
+      "kind": "general",
+      "workflow": "Measurement",
+      "details": {
+        "sampleG": 0.5,
+        "solvent": "formamide : methanol (1:2)",
+        "reference": "BP Appendix IX C. Determination of Water"
+      },
+      "source": "Lactose Monohydrate__Lactose Monohydrate - SM.txt:37"
+    },
+    {
+      "testCode": "RM-SASH",
+      "procedure": "Accurately weigh 1.0 g into empty crucible previously ignited at 600-650 °C (W0, W1). Moisten with ~1 mL sulfuric acid, heat gently on hot plate until charred. Cool, moisten with sulfuric acid, heat until white fumes cease. Ignite in calibrated muffle at 600-650 °C to constant weight (W2). Calculate % Sulfated ash = ((W2 - W0) / (W1 - W0)) * 100.",
+      "kind": "general",
+      "workflow": "Gravimetric",
+      "details": {
+        "temperatureC": "600-650",
+        "sampleWeightG": 1.0,
+        "reference": "BP Appendix IX A. Determination of Sulfated Ash"
+      },
+      "source": "Lactose Monohydrate__Lactose Monohydrate - SM.txt:38"
+    },
+    {
+      "testCode": "TAMC",
+      "procedure": "Follow SOP # (C2I-91-128) and the verification report specifically for this material.",
+      "kind": "general",
+      "workflow": "CountTest",
+      "details": {
+        "sop": "C2I-91-128",
+        "reference": "BP 2025 Monograph for Lactose monohydrate; USP 2025 Monograph for Lactose monohydrate"
+      },
+      "source": "Lactose Monohydrate__Lactose Monohydrate - SM.txt:40"
+    },
+    {
+      "testCode": "TYMC",
+      "procedure": "Follow SOP # (C2I-91-128) and the verification report specifically for this material.",
+      "kind": "general",
+      "workflow": "CountTest",
+      "details": {
+        "sop": "C2I-91-128",
+        "reference": "BP 2025 Monograph for Lactose monohydrate; USP 2025 Monograph for Lactose monohydrate"
+      },
+      "source": "Lactose Monohydrate__Lactose Monohydrate - SM.txt:40"
+    },
+    {
+      "testCode": "E.coli",
+      "procedure": "Follow SOP # (C2I-91-128) and the verification report specifically for this material.",
+      "kind": "general",
+      "workflow": "Observation",
+      "details": {
+        "sop": "C2I-91-128",
+        "reference": "BP 2025 Monograph for Lactose monohydrate; USP 2025 Monograph for Lactose monohydrate"
+      },
+      "source": "Lactose Monohydrate__Lactose Monohydrate - SM.txt:40"
+    }
+  ],
+  "notApplicable": [],
+  "supplierAttributes": [
+    {
+      "grade": null,
+      "name": "Particles Size",
+      "statedValue": "Stated by Supplier",
+      "source": "Lactose Monohydrate__Specifications sheet Lactose Monohydrate.txt:25"
+    }
+  ],
+  "reagents": [
+    {
+      "name": "Lactose monohydrate WS",
+      "use": "standard",
+      "source": "Lactose Monohydrate__Lactose Monohydrate - SM.txt:28"
+    },
+    {
+      "name": "Methanol",
+      "use": "reagent",
+      "source": "Lactose Monohydrate__Lactose Monohydrate - SM.txt:28"
+    },
+    {
+      "name": "Glacial acetic acid",
+      "use": "reagent",
+      "source": "Lactose Monohydrate__Lactose Monohydrate - SM.txt:28"
+    },
+    {
+      "name": "Ethylene chloride / Methylene chloride",
+      "use": "reagent",
+      "source": "Lactose Monohydrate__Lactose Monohydrate - SM.txt:28,32"
+    },
+    {
+      "name": "Thymol",
+      "use": "reagent",
+      "source": "Lactose Monohydrate__Lactose Monohydrate - SM.txt:28,32"
+    },
+    {
+      "name": "Sulfuric acid",
+      "use": "reagent",
+      "source": "Lactose Monohydrate__Lactose Monohydrate - SM.txt:28,32,38"
+    },
+    {
+      "name": "Ferric chloride",
+      "use": "reagent",
+      "source": "Lactose Monohydrate__Lactose Monohydrate - SM.txt:28"
+    },
+    {
+      "name": "Hydrochloric acid",
+      "use": "reagent",
+      "source": "Lactose Monohydrate__Lactose Monohydrate - SM.txt:28"
+    },
+    {
+      "name": "Cobalt chloride",
+      "use": "reagent",
+      "source": "Lactose Monohydrate__Lactose Monohydrate - SM.txt:28"
+    },
+    {
+      "name": "Copper sulfate pentahydrate",
+      "use": "reagent",
+      "source": "Lactose Monohydrate__Lactose Monohydrate - SM.txt:28"
+    },
+    {
+      "name": "0.1M Sodium Hydroxide",
+      "use": "titrant",
+      "source": "Lactose Monohydrate__Lactose Monohydrate - SM.txt:28,34"
+    },
+    {
+      "name": "Phenolphthalein Solution R1",
+      "use": "indicator",
+      "source": "Lactose Monohydrate__Lactose Monohydrate - SM.txt:28,34"
+    },
+    {
+      "name": "Formamide",
+      "use": "reagent",
+      "source": "Lactose Monohydrate__Lactose Monohydrate - SM.txt:28,37"
+    },
+    {
+      "name": "Ammonia R1, Dilute",
+      "use": "reagent",
+      "source": "Lactose Monohydrate__Lactose Monohydrate - SM.txt:28,32,35"
+    }
+  ],
+  "openQuestions": [
+    {
+      "question": "The Lactose Monohydrate folder includes a misfiled document 'Specifications sheet Liquid Glucose.txt' (2024-08-14) which belongs to Liquid Glucose; it was ignored.",
+      "source": "tasks/g01.md:41; Lactose Monohydrate__Specifications sheet Liquid Glucose.txt:1"
+    },
+    {
+      "question": "In STM line 28 Testing Requirements, 'Fructose, Glucose, Sucrose' are listed under Materials but are not referenced in the analytical procedures.",
+      "source": "Lactose Monohydrate__Lactose Monohydrate - SM.txt:28"
+    }
+  ]
+}

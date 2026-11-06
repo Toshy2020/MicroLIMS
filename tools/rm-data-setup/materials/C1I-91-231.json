@@ -1,0 +1,279 @@
+{
+  "itemCode": "C1I-91-231",
+  "itemName": "Polysorbate 80",
+  "stmCode": "C1I-91-231",
+  "stmFile": null,
+  "specFiles": ["Polysorbate 80__Specifications sheet Polysorbate 80.txt"],
+  "minQuantity": {
+    "routine": 100,
+    "retest": null,
+    "unit": "g",
+    "source": "Polysorbate 80__Specifications sheet Polysorbate 80.txt:20"
+  },
+  "grades": [
+    {
+      "grade": "BP",
+      "rows": [
+        {
+          "testCode": "RM-DESC",
+          "parameterName": "Appearance",
+          "limitType": "Qualitative",
+          "lower": null, "upper": null, "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Oily, colorless or brownish-yellow, clear or slightly opalescent liquid",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Polysorbate 80__Specifications sheet Polysorbate 80.txt:11"
+        },
+        {
+          "testCode": "RM-SOLUB",
+          "parameterName": "Solubility",
+          "limitType": "Qualitative",
+          "lower": null, "upper": null, "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Dispersible in water, in anhydrous ethanol, in ethyl acetate and in methanol, practically insoluble in fatty oils and in liquid paraffin",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Polysorbate 80__Specifications sheet Polysorbate 80.txt:12"
+        },
+        {
+          "testCode": "RM-DENS-PS80",
+          "parameterName": "Relative density",
+          "limitType": "Qualitative",
+          "lower": null, "upper": null, "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "About 1.10",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Polysorbate 80__Specifications sheet Polysorbate 80.txt:13",
+          "heldBack": "no STM: method not documented"
+        },
+        {
+          "testCode": "RM-VISC-PS80",
+          "parameterName": "Viscosity at 25 °C",
+          "limitType": "Qualitative",
+          "lower": null, "upper": null, "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "About 400 mPa•s at 25 °C",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Polysorbate 80__Specifications sheet Polysorbate 80.txt:14",
+          "heldBack": "no STM: method not documented"
+        },
+        {
+          "testCode": "RM-KF",
+          "parameterName": "Water (Karl Fischer)",
+          "limitType": "NotMoreThan",
+          "lower": null, "upper": 3.0, "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Polysorbate 80__Specifications sheet Polysorbate 80.txt:15"
+        },
+        {
+          "testCode": "RM-ASH-PS80",
+          "parameterName": "Ash (ignition)",
+          "limitType": "NotMoreThan",
+          "lower": null, "upper": 0.25, "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Polysorbate 80__Specifications sheet Polysorbate 80.txt:16",
+          "heldBack": "no STM: method not documented"
+        },
+        {
+          "testCode": "RM-ID-PS80",
+          "parameterName": "Identification (chemical reaction)",
+          "limitType": "Qualitative",
+          "lower": null, "upper": null, "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Complies with BP",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Polysorbate 80__Specifications sheet Polysorbate 80.txt:17",
+          "heldBack": "no STM: method not documented"
+        },
+        {
+          "testCode": "RM-ACID-PS80",
+          "parameterName": "Acid value",
+          "limitType": "NotMoreThan",
+          "lower": null, "upper": 2.0, "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Polysorbate 80__Specifications sheet Polysorbate 80.txt:18",
+          "heldBack": "no STM: method not documented"
+        },
+        {
+          "testCode": "RM-SAP-PS80",
+          "parameterName": "Saponification value",
+          "limitType": "Range",
+          "lower": 45, "upper": 55, "lowerInclusive": true,
+          "unit": null,
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Polysorbate 80__Specifications sheet Polysorbate 80.txt:19",
+          "heldBack": "no STM: method not documented"
+        },
+        {
+          "testCode": "RM-OH-PS80",
+          "parameterName": "Hydroxyl value",
+          "limitType": "Range",
+          "lower": 65, "upper": 80, "lowerInclusive": true,
+          "unit": null,
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Polysorbate 80__Specifications sheet Polysorbate 80.txt:20",
+          "heldBack": "no STM: method not documented"
+        },
+        {
+          "testCode": "RM-PEROX-PS80",
+          "parameterName": "Peroxide value",
+          "limitType": "NotMoreThan",
+          "lower": null, "upper": 10.0, "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Polysorbate 80__Specifications sheet Polysorbate 80.txt:20",
+          "heldBack": "no STM: method not documented"
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "testCode": "RM-DESC",
+      "procedure": "No STM in folder: general description test per catalog.",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": { "perContainer": true, "grades": ["BP"], "spec_only": true },
+      "source": "Polysorbate 80__Specifications sheet Polysorbate 80.txt:11"
+    },
+    {
+      "testCode": "RM-SOLUB",
+      "procedure": "No STM in folder: general solubility test per catalog.",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": { "grades": ["BP"], "spec_only": true },
+      "source": "Polysorbate 80__Specifications sheet Polysorbate 80.txt:12"
+    },
+    {
+      "testCode": "RM-KF",
+      "procedure": "No STM in folder: Karl Fischer water determination per catalog.",
+      "kind": "general",
+      "workflow": "Measurement",
+      "details": { "grades": ["BP"], "spec_only": true, "moistureRole": "Water" },
+      "source": "Polysorbate 80__Specifications sheet Polysorbate 80.txt:15"
+    },
+    {
+      "testCode": "RM-DENS-PS80",
+      "procedure": "No STM in folder: relative density (gravimetry). Method not documented.",
+      "kind": "specific",
+      "workflow": "Measurement",
+      "details": { "grades": ["BP"], "spec_only": true },
+      "source": "Polysorbate 80__Specifications sheet Polysorbate 80.txt:13",
+      "heldBack": "no STM: method not documented"
+    },
+    {
+      "testCode": "RM-VISC-PS80",
+      "procedure": "No STM in folder: viscosity by viscometer at 25 °C. Method not documented.",
+      "kind": "specific",
+      "workflow": "Measurement",
+      "details": { "grades": ["BP"], "spec_only": true },
+      "source": "Polysorbate 80__Specifications sheet Polysorbate 80.txt:14",
+      "heldBack": "no STM: method not documented"
+    },
+    {
+      "testCode": "RM-ASH-PS80",
+      "procedure": "No STM in folder: ash by ignition. Method not documented.",
+      "kind": "specific",
+      "workflow": "Gravimetric",
+      "details": { "grades": ["BP"], "spec_only": true },
+      "source": "Polysorbate 80__Specifications sheet Polysorbate 80.txt:16",
+      "heldBack": "no STM: method not documented"
+    },
+    {
+      "testCode": "RM-ID-PS80",
+      "procedure": "No STM in folder: chemical reaction identification (spec: complies with BP). Method not documented.",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "details": { "grades": ["BP"], "spec_only": true },
+      "source": "Polysorbate 80__Specifications sheet Polysorbate 80.txt:17",
+      "heldBack": "no STM: method not documented"
+    },
+    {
+      "testCode": "RM-ACID-PS80",
+      "procedure": "No STM in folder: acid value by titration. Method not documented.",
+      "kind": "specific",
+      "workflow": "Titration",
+      "details": { "grades": ["BP"], "spec_only": true },
+      "source": "Polysorbate 80__Specifications sheet Polysorbate 80.txt:18",
+      "heldBack": "no STM: method not documented"
+    },
+    {
+      "testCode": "RM-SAP-PS80",
+      "procedure": "No STM in folder: saponification value by titration. Method not documented.",
+      "kind": "specific",
+      "workflow": "Titration",
+      "details": { "grades": ["BP"], "spec_only": true },
+      "source": "Polysorbate 80__Specifications sheet Polysorbate 80.txt:19",
+      "heldBack": "no STM: method not documented"
+    },
+    {
+      "testCode": "RM-OH-PS80",
+      "procedure": "No STM in folder: hydroxyl value (additional requirement). Method not documented.",
+      "kind": "specific",
+      "workflow": "Titration",
+      "details": { "grades": ["BP"], "spec_only": true },
+      "source": "Polysorbate 80__Specifications sheet Polysorbate 80.txt:20",
+      "heldBack": "no STM: method not documented"
+    },
+    {
+      "testCode": "RM-PEROX-PS80",
+      "procedure": "No STM in folder: peroxide value (additional requirement). Method not documented.",
+      "kind": "specific",
+      "workflow": "Titration",
+      "details": { "grades": ["BP"], "spec_only": true },
+      "source": "Polysorbate 80__Specifications sheet Polysorbate 80.txt:20",
+      "heldBack": "no STM: method not documented"
+    }
+  ],
+  "notApplicable": [],
+  "supplierAttributes": [],
+  "reagents": [],
+  "openQuestions": [
+    {
+      "question": "No STM in the folder. The sheet cites STM Code# C1I-91-231, Version 1/1 (issued 22-12-2022). Held tests need that STM before they can be loaded.",
+      "source": "Polysorbate 80__Specifications sheet Polysorbate 80.txt:9"
+    },
+    {
+      "question": "Relative density (About 1.10) and viscosity (About 400 mPa•s at 25 °C) are given as approximate values with no tolerance. Loaded as Qualitative text rows, held; confirm the acceptance limits.",
+      "source": "Polysorbate 80__Specifications sheet Polysorbate 80.txt:13; Polysorbate 80__Specifications sheet Polysorbate 80.txt:14"
+    },
+    {
+      "question": "Units are not stated for acid value (maximum 2.0), saponification value (45 to 55), hydroxyl value (65 to 80) and peroxide value (maximum 10.0). Loaded with unit null; confirm the units.",
+      "source": "Polysorbate 80__Specifications sheet Polysorbate 80.txt:18; Polysorbate 80__Specifications sheet Polysorbate 80.txt:19; Polysorbate 80__Specifications sheet Polysorbate 80.txt:20"
+    },
+    {
+      "question": "Ash is stated only as 'Ignition', without sulfated. Loaded as its own held test (RM-ASH-PS80), not as the catalog sulfated ash test RM-SASH; confirm.",
+      "source": "Polysorbate 80__Specifications sheet Polysorbate 80.txt:16"
+    }
+  ]
+}

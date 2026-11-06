@@ -1,0 +1,341 @@
+{
+  "itemCode": "STM-RM-002",
+  "itemName": "Lemon Oil",
+  "stmCode": "STM-RM-002",
+  "stmFile": "Lemon Oil__1-1_STM Lemon Oil.txt",
+  "specFiles": ["Lemon Oil__Specifications sheet Lemon Oil.txt"],
+  "minQuantity": {
+    "routine": 240,
+    "retest": null,
+    "unit": "ml",
+    "source": "Lemon Oil__Specifications sheet Lemon Oil.txt:19"
+  },
+  "grades": [
+    {
+      "grade": "BP",
+      "rows": [
+        {
+          "testCode": "RM-DESC",
+          "parameterName": "Appearance",
+          "limitType": "Qualitative",
+          "lower": null, "upper": null, "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Clear, mobile, pale yellow or greenish-yellow liquid. It may become cloudy at low temperatures. Characteristic Odor",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Lemon Oil__Specifications sheet Lemon Oil.txt:11"
+        },
+        {
+          "testCode": "RM-UV-LEMON",
+          "parameterName": "Identification: absorbance C - D",
+          "limitType": "Range",
+          "lower": 0.20, "upper": 0.96, "lowerInclusive": true,
+          "unit": null,
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Lemon Oil__Specifications sheet Lemon Oil.txt:12"
+        },
+        {
+          "testCode": "RM-REFR-LEMON",
+          "parameterName": "Refractive index",
+          "limitType": "Range",
+          "lower": 1.473, "upper": 1.476, "lowerInclusive": true,
+          "unit": null,
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Lemon Oil__Specifications sheet Lemon Oil.txt:13"
+        },
+        {
+          "testCode": "RM-OPTROT",
+          "parameterName": "Optical rotation",
+          "limitType": "Range",
+          "lower": 57, "upper": 70, "lowerInclusive": true,
+          "unit": "°",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Lemon Oil__Specifications sheet Lemon Oil.txt:14"
+        },
+        {
+          "testCode": "RM-DENS-LEMON",
+          "parameterName": "Relative density",
+          "limitType": "Range",
+          "lower": 0.850, "upper": 0.858, "lowerInclusive": true,
+          "unit": null,
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Lemon Oil__Specifications sheet Lemon Oil.txt:15"
+        },
+        {
+          "testCode": "RM-UV-LEMON",
+          "parameterName": "Absorbance: C - D",
+          "limitType": "Range",
+          "lower": 0.20, "upper": 0.96, "lowerInclusive": true,
+          "unit": null,
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Lemon Oil__Specifications sheet Lemon Oil.txt:16"
+        },
+        {
+          "testCode": "RM-FATTY-LEMON",
+          "parameterName": "Fatty oils and resinified essential oils",
+          "limitType": "Qualitative",
+          "lower": null, "upper": null, "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "The drop evaporates completely within 24 h without leaving any translucent or greasy spot",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Lemon Oil__Specifications sheet Lemon Oil.txt:17"
+        },
+        {
+          "testCode": "RM-RESEV-LEMON",
+          "parameterName": "Residue on evaporation",
+          "limitType": "Range",
+          "lower": 1.8, "upper": 3.6, "lowerInclusive": true,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Lemon Oil__Specifications sheet Lemon Oil.txt:18"
+        },
+        {
+          "testCode": "TAMC",
+          "parameterName": "Total aerobic microbial count (TAMC)",
+          "limitType": "CountTiered",
+          "lower": null, "upper": 1000, "lowerInclusive": null,
+          "unit": "CFU/ml",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": null,
+          "source": "Lemon Oil__Specifications sheet Lemon Oil.txt:19"
+        },
+        {
+          "testCode": "TYMC",
+          "parameterName": "Total yeasts and molds count (TYMC)",
+          "limitType": "CountTiered",
+          "lower": null, "upper": 100, "lowerInclusive": null,
+          "unit": "CFU/ml",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": null,
+          "source": "Lemon Oil__Specifications sheet Lemon Oil.txt:19"
+        },
+        {
+          "testCode": "E.coli",
+          "parameterName": "Escherichia coli",
+          "limitType": "PresenceAbsence",
+          "lower": null, "upper": null, "lowerInclusive": null,
+          "unit": "per 10 ml",
+          "expectedResultText": "Absence /10 ml",
+          "expectedState": "Absence",
+          "resultBasis": null,
+          "referenceStandard": null,
+          "source": "Lemon Oil__Specifications sheet Lemon Oil.txt:19"
+        },
+        {
+          "testCode": "Salmonella ",
+          "parameterName": "Salmonella spp.",
+          "limitType": "PresenceAbsence",
+          "lower": null, "upper": null, "lowerInclusive": null,
+          "unit": "per 10 ml",
+          "expectedResultText": "Absence / 10 ml",
+          "expectedState": "Absence",
+          "resultBasis": null,
+          "referenceStandard": null,
+          "source": "Lemon Oil__Specifications sheet Lemon Oil.txt:19"
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "testCode": "RM-DESC",
+      "procedure": "Under strong white light, check each received sample container separately in a clean transparent watch glass or glass dish for foreign particles, colour and compliance with the visual specification.",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {
+        "perContainer": true,
+        "grades": ["BP"],
+        "reference": "BP Monograph for Lemon Oil"
+      },
+      "source": "Lemon Oil__1-1_STM Lemon Oil.txt:28"
+    },
+    {
+      "testCode": "RM-UV-LEMON",
+      "procedure": "Dilute 0.250 g to 100.0 mL with ethanol (96 per cent). Measure the absorbance from 260 nm to 400 nm. Plot the spectrum; draw tangent AB as baseline; the maximum C is at 315 +/- 3 nm; drop a perpendicular from C to the baseline at D; value = absorbance at C minus absorbance at D.",
+      "kind": "specific",
+      "workflow": "UvSpectrophotometry",
+      "details": {
+        "grades": ["BP"],
+        "sample": "0.250 g",
+        "diluent": "ethanol (96 per cent), to 100.0 mL",
+        "spectralRangeNm": "260-400",
+        "absorptionMaximumNm": "315 +/- 3",
+        "calculation": "C - D",
+        "reference": "BP Appendix II B (Ultraviolet and Visible Absorption Spectrophotometry)",
+        "rowsUsingTest": "Identification: absorbance C - D (spec line 12); Absorbance: C - D (spec line 16)"
+      },
+      "source": "Lemon Oil__1-1_STM Lemon Oil.txt:29-33"
+    },
+    {
+      "testCode": "RM-REFR-LEMON",
+      "procedure": "Determine on 5 mL sample with a calibrated refractometer.",
+      "kind": "general",
+      "workflow": "Measurement",
+      "details": {
+        "grades": ["BP"],
+        "sampleMl": 5,
+        "reference": "BP Appendix V E (Determination of Refractive Index)"
+      },
+      "source": "Lemon Oil__1-1_STM Lemon Oil.txt:30"
+    },
+    {
+      "testCode": "RM-OPTROT",
+      "procedure": "Determine on 25 mL sample with a calibrated polarimeter; measure the angle of rotation in a 1 dm (10 cm) tube.",
+      "kind": "general",
+      "workflow": "Measurement",
+      "details": {
+        "grades": ["BP"],
+        "sampleMl": 25,
+        "tubeLengthDm": 1,
+        "reference": "BP Appendix V F (Determination of Optical Rotation and Specific Optical Rotation)"
+      },
+      "source": "Lemon Oil__1-1_STM Lemon Oil.txt:31"
+    },
+    {
+      "testCode": "RM-DENS-LEMON",
+      "procedure": "Weigh empty pycnometer Wt1; fill with water and weigh Wt2; discard water; fill with sample and weigh Wt3. Relative density = (Wt3 - Wt1) / (Wt2 - Wt1).",
+      "kind": "general",
+      "workflow": "Measurement",
+      "details": {
+        "grades": ["BP"],
+        "formula": "(Wt3 - Wt1) / (Wt2 - Wt1)",
+        "reference": "BP Appendix V G (Determination of Relative Density)"
+      },
+      "source": "Lemon Oil__1-1_STM Lemon Oil.txt:32"
+    },
+    {
+      "testCode": "RM-FATTY-LEMON",
+      "procedure": "Allow 1 drop of the essential oil to fall onto filter paper and observe.",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {
+        "grades": ["BP"],
+        "reference": "BP Appendix X M (Essential Oils, Fatty Oils and Resinified Essential Oils in Essential Oils)"
+      },
+      "source": "Lemon Oil__1-1_STM Lemon Oil.txt:34"
+    },
+    {
+      "testCode": "RM-RESEV-LEMON",
+      "procedure": "Weigh a dried beaker (Wt1); introduce 20 mL of sample and weigh again (Wt2); heat on a water-bath for 4 h; cool; weigh the beaker with residue (Wt3). Residue (%) = (Wt3 - Wt1) / (Wt2 - Wt1) x 100.",
+      "kind": "general",
+      "workflow": "Gravimetric",
+      "details": {
+        "grades": ["BP"],
+        "sampleMl": 20,
+        "bathHours": 4,
+        "formula": "(Wt3 - Wt1) / (Wt2 - Wt1) x 100",
+        "reference": "BP Appendix X M (Residue on Evaporation of Essential Oils)"
+      },
+      "source": "Lemon Oil__1-1_STM Lemon Oil.txt:35"
+    },
+    {
+      "testCode": "TAMC",
+      "procedure": "Follow the suitable steps stated in SOP C2I-91-128 and the verification report specifically for this material.",
+      "kind": "general",
+      "workflow": "CountTest",
+      "details": {
+        "limit": "Not more than 10^3 CFU/ml (STM text reads 103; spec sheet says NMT 1000 CFU/ml)",
+        "reference": "USP <2023> Microbiological Attributes of Non-sterile Nutritional and Dietary Supplement",
+        "sop": "C2I-91-128"
+      },
+      "source": "Lemon Oil__1-1_STM Lemon Oil.txt:36"
+    },
+    {
+      "testCode": "TYMC",
+      "procedure": "Follow the suitable steps stated in SOP C2I-91-128 and the verification report specifically for this material.",
+      "kind": "general",
+      "workflow": "CountTest",
+      "details": {
+        "limit": "Not more than 10^2 CFU/ml (STM text reads 102; spec sheet says NMT 100 CFU/ml)",
+        "reference": "USP <2023> Microbiological Attributes of Non-sterile Nutritional and Dietary Supplement",
+        "sop": "C2I-91-128"
+      },
+      "source": "Lemon Oil__1-1_STM Lemon Oil.txt:36"
+    },
+    {
+      "testCode": "E.coli",
+      "procedure": "Follow the suitable steps stated in SOP C2I-91-128 and the verification report specifically for this material.",
+      "kind": "general",
+      "workflow": "Observation",
+      "details": {
+        "limit": "Absent/10 ml",
+        "reference": "USP <2023> Microbiological Attributes of Non-sterile Nutritional and Dietary Supplement",
+        "sop": "C2I-91-128"
+      },
+      "source": "Lemon Oil__1-1_STM Lemon Oil.txt:36"
+    },
+    {
+      "testCode": "Salmonella ",
+      "procedure": "Follow the suitable steps stated in SOP C2I-91-128 and the verification report specifically for this material.",
+      "kind": "general",
+      "workflow": "Observation",
+      "details": {
+        "limit": "Absent/10 ml",
+        "reference": "USP <2023> Microbiological Attributes of Non-sterile Nutritional and Dietary Supplement",
+        "sop": "C2I-91-128"
+      },
+      "source": "Lemon Oil__1-1_STM Lemon Oil.txt:36"
+    }
+  ],
+  "notApplicable": [
+    {
+      "testCode": "RM-GC-LEMON",
+      "grade": null,
+      "justification": "No Gas chromatography",
+      "criticality": "Minor",
+      "immediateAction": "Remove the test from specification",
+      "longTermAction": "Issue PR for GC",
+      "reference": null,
+      "source": "Lemon Oil__Not applicable For Lemon Oil.txt:2"
+    },
+    {
+      "testCode": "RM-ID-TLC-LEMON",
+      "grade": null,
+      "justification": "Reagent not available",
+      "criticality": "Minor",
+      "immediateAction": "Remove the test from specification and use Second method for identification",
+      "longTermAction": "Issue PR For reagent",
+      "reference": null,
+      "source": "Lemon Oil__Not applicable For Lemon Oil.txt:3"
+    }
+  ],
+  "supplierAttributes": [],
+  "reagents": [
+    { "name": "ethanol (96 per cent)", "use": "reagent", "source": "Lemon Oil__1-1_STM Lemon Oil.txt:26" }
+  ],
+  "openQuestions": [
+    {
+      "question": "Minimum sample quantity conflicts: spec sheet says 240 ml (routine, loaded as minQuantity.routine with unit ml); STM 1/1 says 200 gram for routine, retention and periodic retest. Retest quantity not loaded (unit differs). Confirm the unit and value.",
+      "source": "Lemon Oil__Specifications sheet Lemon Oil.txt:19; Lemon Oil__1-1_STM Lemon Oil.txt:38"
+    },
+    {
+      "question": "The latest spec sheet (2025-09-13) still lists Chromatographic profile by GC and Identification by TLC in its additional requirements, while the 2024-04-24 Not applicable form removes both. Loaded as notApplicable as the form says; confirm the spec sheet is to be revised.",
+      "source": "Lemon Oil__Specifications sheet Lemon Oil.txt:19; Lemon Oil__Not applicable For Lemon Oil.txt:2-3"
+    }
+  ]
+}

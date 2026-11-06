@@ -1,0 +1,220 @@
+{
+  "itemCode": "C1I-91-229",
+  "stmCode": null,
+  "itemName": "PVP (Polyvinylpyrrolidone K-30)",
+  "stmFile": null,
+  "specFiles": ["PVP__Specifications sheet PVP.txt"],
+  "minQuantity": {
+    "routine": 100,
+    "retest": null,
+    "retention": null,
+    "unit": "g",
+    "source": "PVP__Specifications sheet PVP.txt:19"
+  },
+  "grades": [
+    {
+      "grade": null,
+      "rows": [
+        {
+          "testCode": "RM-DESC",
+          "parameterName": "Appearance",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "White or yellowish-white, hygroscopic powder or flakes.",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP 2024",
+          "source": "PVP__Specifications sheet PVP.txt:11"
+        },
+        {
+          "testCode": "RM-SOLUB",
+          "parameterName": "Solubility",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Freely soluble in water, in ethanol (96%) and in methanol; very slightly soluble in acetone.",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP 2024",
+          "source": "PVP__Specifications sheet PVP.txt:12"
+        },
+        {
+          "testCode": "RM-ID-PVP",
+          "parameterName": "Identification (chemical reaction)",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Complies with BP.",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP 2024",
+          "source": "PVP__Specifications sheet PVP.txt:13",
+          "heldBack": "no STM: method not documented"
+        },
+        {
+          "testCode": "RM-SOLAPP",
+          "parameterName": "Appearance of solution",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Clear.",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP 2024",
+          "source": "PVP__Specifications sheet PVP.txt:14"
+        },
+        {
+          "testCode": "RM-PH",
+          "parameterName": "pH",
+          "limitType": "Range",
+          "lower": 3.0,
+          "upper": 5.0,
+          "lowerInclusive": true,
+          "unit": null,
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP 2024",
+          "source": "PVP__Specifications sheet PVP.txt:15"
+        },
+        {
+          "testCode": "RM-VISC-PVP",
+          "parameterName": "Viscosity (K-value)",
+          "limitType": "Range",
+          "lower": 27,
+          "upper": 32.4,
+          "lowerInclusive": true,
+          "unit": null,
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP 2024",
+          "source": "PVP__Specifications sheet PVP.txt:16",
+          "heldBack": "no STM: method not documented"
+        },
+        {
+          "testCode": "RM-KF",
+          "parameterName": "Water (Karl Fischer)",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 5.0,
+          "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP 2024",
+          "source": "PVP__Specifications sheet PVP.txt:17"
+        },
+        {
+          "testCode": "RM-SASH",
+          "parameterName": "Sulphated ash",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 0.1,
+          "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP 2024",
+          "source": "PVP__Specifications sheet PVP.txt:18"
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "testCode": "RM-DESC",
+      "procedure": "No STM: method not documented (general catalog test).",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {},
+      "source": "PVP__Specifications sheet PVP.txt:11"
+    },
+    {
+      "testCode": "RM-SOLUB",
+      "procedure": "No STM: method not documented (general catalog test).",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {},
+      "source": "PVP__Specifications sheet PVP.txt:12"
+    },
+    {
+      "testCode": "RM-ID-PVP",
+      "procedure": "No STM: method not documented.",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "details": {},
+      "source": "PVP__Specifications sheet PVP.txt:13",
+      "heldBack": "no STM: method not documented"
+    },
+    {
+      "testCode": "RM-SOLAPP",
+      "procedure": "No STM: method not documented (general catalog test).",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {},
+      "source": "PVP__Specifications sheet PVP.txt:14"
+    },
+    {
+      "testCode": "RM-PH",
+      "procedure": "No STM: method not documented (general catalog test).",
+      "kind": "general",
+      "workflow": "Measurement",
+      "details": {},
+      "source": "PVP__Specifications sheet PVP.txt:15"
+    },
+    {
+      "testCode": "RM-VISC-PVP",
+      "procedure": "No STM: method not documented (K-value by viscometer).",
+      "kind": "specific",
+      "workflow": "Measurement",
+      "details": {},
+      "source": "PVP__Specifications sheet PVP.txt:16",
+      "heldBack": "no STM: method not documented"
+    },
+    {
+      "testCode": "RM-KF",
+      "procedure": "No STM: method not documented (general catalog test).",
+      "kind": "general",
+      "workflow": "Measurement",
+      "details": {},
+      "source": "PVP__Specifications sheet PVP.txt:17"
+    },
+    {
+      "testCode": "RM-SASH",
+      "procedure": "No STM: method not documented (general catalog test).",
+      "kind": "general",
+      "workflow": "Gravimetric",
+      "details": {},
+      "source": "PVP__Specifications sheet PVP.txt:18"
+    }
+  ],
+  "notApplicable": [],
+  "supplierAttributes": [],
+  "reagents": [],
+  "openQuestions": [
+    {
+      "question": "Spec-only: no STM for this material (the spec sheet carries C1I-91-229 as its STM code). Identification and K-value viscosity are held back until an STM documents the method.",
+      "source": "PVP__Specifications sheet PVP.txt:9, 13, 16"
+    },
+    {
+      "question": "Identification is only 'Complies with BP' with no reaction named. Held back; the BP identification procedure is needed.",
+      "source": "PVP__Specifications sheet PVP.txt:13"
+    },
+    {
+      "question": "pH technique is given as 'Voltammetry'. Limit 3.0 to 5.0 loaded as written; confirm the technique.",
+      "source": "PVP__Specifications sheet PVP.txt:15"
+    }
+  ]
+}

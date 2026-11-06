@@ -1,0 +1,478 @@
+{
+  "testDefinitions": [
+    {
+      "code": "RM-ID-FAC-048",
+      "displayName": "Identification of ferric ammonium citrate (ignition, ammonium hydroxide, permanganate)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Qualitative",
+      "equationType": "Qualitative",
+      "physchemArea": "RawPackaging",
+      "complete": true,
+      "notes": "USP Identification: (A) ignition leaves residue of iron oxide; (B) 6 N ammonium hydroxide darkens 1 in 100 solution without precipitate; (C) 0.3 mL KMnO4 TS and 4 mL mercuric sulphate TS to 5 mL of 1 in 100 solution, boiled, forms white precipitate. Covers all three identification rows.",
+      "usedBy": [
+        "STM-RM-048"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-048",
+          "provisionalCode": "RM-ID-FAC",
+          "source": "Ferric Ammonium Citrate__STM Ferric Ammonium Citrate 1-3.txt:32"
+        }
+      ]
+    },
+    {
+      "code": "RM-FCIT-048",
+      "displayName": "Ferric citrate",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Qualitative",
+      "equationType": "Qualitative",
+      "physchemArea": "RawPackaging",
+      "complete": true,
+      "notes": "USP Ferric citrate: to 1 in 100 solution of ferric ammonium citrate add potassium ferrocyanide TS (1 g in 10 mL water); no blue precipitate is formed.",
+      "usedBy": [
+        "STM-RM-048"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-048",
+          "provisionalCode": "RM-FCIT-FAC",
+          "source": "Ferric Ammonium Citrate__STM Ferric Ammonium Citrate 1-3.txt:35"
+        }
+      ]
+    },
+    {
+      "code": "RM-ICP-PB-048",
+      "displayName": "Lead by AAS (ferric ammonium citrate)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "IcpMethodAssay",
+      "equationType": "IcpMethodAssay",
+      "physchemArea": "RawPackaging",
+      "icpMethod": "Lead by AAS (ferric ammonium citrate)",
+      "methodAbbreviation": "AAS-PB-048",
+      "complete": false,
+      "missing": [
+        "element view (axial/radial): not applicable to flame AAS",
+        "effectiveDate: STM issue date",
+        "minCorrelation: not stated in the STM (only 1 standard level: 2 µg/mL)"
+      ],
+      "notes": "USP <852> flame AAS at 283.3 nm, air-acetylene flame, lead hollow-cathode lamp. 15 g sample in 50 mL water + 1 mL nitric acid, made up to 100 mL. Standard 2 ug/mL Pb. Incomplete method details.",
+      "usedBy": [
+        "STM-RM-048"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-048",
+          "provisionalCode": "RM-LEAD-FAC",
+          "source": "Ferric Ammonium Citrate__STM Ferric Ammonium Citrate 1-3.txt:36"
+        }
+      ],
+      "heldBack": "needs the held-back method \"Lead by AAS (ferric ammonium citrate)\""
+    },
+    {
+      "code": "RM-ICP-HG-048",
+      "displayName": "Mercury by AAS (ferric ammonium citrate)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "IcpMethodAssay",
+      "equationType": "IcpMethodAssay",
+      "physchemArea": "RawPackaging",
+      "icpMethod": "Mercury by AAS (ferric ammonium citrate)",
+      "methodAbbreviation": "AAS-HG-048",
+      "complete": false,
+      "missing": [
+        "element view (axial/radial): not applicable to cold vapour AAS",
+        "effectiveDate: STM issue date",
+        "minCorrelation: not stated in the STM"
+      ],
+      "notes": "USP <852> cold vapour AAS with aeration apparatus. 1.000 g digested with 5 mL HNO3 + 5 mL HCl on steam bath 1 h, diluted to 100 mL, aerated with stannous chloride. Standards 2.5, 5.0, 10.0, 35.0 ug/mL Hg. Incomplete method details.",
+      "usedBy": [
+        "STM-RM-048"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-048",
+          "provisionalCode": "RM-MERC-FAC",
+          "source": "Ferric Ammonium Citrate__STM Ferric Ammonium Citrate 1-3.txt:37"
+        }
+      ],
+      "heldBack": "needs the held-back method \"Mercury by AAS (ferric ammonium citrate)\""
+    },
+    {
+      "code": "RM-TIT-PROT-143",
+      "displayName": "Protein content of marine collagen peptide (Kjeldahl titration)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Titration",
+      "equationType": "Titration",
+      "physchemArea": "RawPackaging",
+      "titrationType": "AcidBase",
+      "titrationMode": "Direct",
+      "titrationEndpoint": "Visual",
+      "titrantSolution": "0.1 N Sulfuric acid VS",
+      "titrationBlankRequired": true,
+      "titrationEquivalencyFactor": 87.5,
+      "titrationEquivalencyFactorDerivation": "stated: 1 mL 0.1 N H2SO4 = 1.4 mg N; protein factor 6.25; 1.4 x 6.25 = 8.75 mg protein per mL / 0.1 mEq = 87.5 mg/mEq",
+      "titrationIndicatorEntry": "Methyl red-methylene blue TS",
+      "replicateCount": 1,
+      "titrationCalculation": "UspFactor",
+      "complete": true,
+      "notes": "100 mg sample digested with 5 g K2SO4/CuSO4/TiO2 (33:1:1) and 7 mL H2SO4; add 70 mL water, steam distil with 30 mL 2:5 NaOH into 15 mL 1:25 boric acid with methyl red-methylene blue TS (80-100 mL distillate). Titrate with 0.1 N sulfuric acid VS with blank correction. Protein (%) = (EP - B) x 0.1 x 14 x F x 6.25 / (W x 1000) x 100. F = 87.5 mg/mEq.",
+      "usedBy": [
+        "STM-RM-143"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-143",
+          "provisionalCode": "RM-PROT-MCP",
+          "source": "Marine Collagen Peptide__STM for Marine Collagen Peptide NEW.txt:34"
+        }
+      ]
+    },
+    {
+      "code": "RM-AIA-144",
+      "displayName": "Acid-insoluble ash (horsetail extract)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Measurement",
+      "equationType": "Measurement",
+      "physchemArea": "RawPackaging",
+      "replicateCount": 1,
+      "evaluationBasis": "Mean",
+      "complete": true,
+      "notes": "Acid-insoluble ash per supplier COA: 1 g sample with 25 mL dilute HCl, water bath 10 min, filtered, washed, dried, ignited at 550 °C (W2), reheated (W3). Formula ((W3 - W2) - W4) / W1 x 100 incorporates silica correction W4 from COA. Per Rule 6 and README decision, Measurement test where analyst enters the calculated final %.",
+      "usedBy": [
+        "STM-RM-144"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-144",
+          "provisionalCode": "RM-AIA-HORS",
+          "source": "Horsetail Extract__STM for Marine Horsetail Extract 1-1.txt:33"
+        }
+      ]
+    },
+    {
+      "code": "RM-ICP-PB-145",
+      "displayName": "Limit of lead by AAS (inositol)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "IcpMethodAssay",
+      "equationType": "IcpMethodAssay",
+      "physchemArea": "RawPackaging",
+      "icpMethod": "Lead by AAS (inositol)",
+      "methodAbbreviation": "AAS-PB-145",
+      "complete": false,
+      "missing": [
+        "element view (axial/radial): not applicable to flame AAS",
+        "effectiveDate: STM issue date",
+        "minCorrelation: not stated in the STM"
+      ],
+      "notes": "USP <852> flame AAS at 283.3 nm, air-acetylene flame, lead hollow-cathode lamp. 20.0 g in diluted acetic acid to 100 mL, chelated with 2 mL APDC, extracted into 10.0 mL MIBK. Standards 0.5, 1.0, 1.5 ug/mL Pb treated same way. Limit NMT 0.5 mg/kg. Incomplete method details.",
+      "usedBy": [
+        "STM-RM-145"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-145",
+          "provisionalCode": "RM-LEAD-INOS",
+          "source": "Inositol__Inositol-SM.txt:32"
+        }
+      ],
+      "heldBack": "needs the held-back method \"Lead by AAS (inositol)\""
+    }
+  ],
+  "solutions": [
+    {
+      "name": "0.1 N Sulfuric acid VS",
+      "type": "Titrant",
+      "section": "Physicochemical Laboratory",
+      "nominalStrength": 0.1,
+      "strengthUnit": "Normal",
+      "finalVolumeMl": 500,
+      "instructions": "Dilute 1.4 mL sulfuric acid to 500 mL with water. Standardize against 0.1 g anhydrous sodium carbonate in 20 mL water, methyl orange indicator, titrate to reddish colour. 1 mL 0.1 N sulfuric acid = 5.295 mg sodium carbonate.",
+      "components": [
+        {
+          "entry": "Sulfuric acid (95%-97%)",
+          "entryCode": "RG-218",
+          "quantity": 1.4,
+          "unit": "Milliliter"
+        }
+      ],
+      "waterToVolume": true,
+      "standardizationMode": "PrimaryStandard",
+      "standardEntry": "Sodium carbonate (primary standard)",
+      "equivalenceMgPerMl": 5.295,
+      "referenceSolution": null,
+      "usedBy": [
+        "STM-RM-143"
+      ],
+      "notes": "1.4 mL sulfuric acid diluted to 500 mL with water. Standardized against 0.1 g anhydrous sodium carbonate, methyl orange indicator. 1 mL 0.1 N H2SO4 = 5.295 mg Na2CO3. House defaults applied: 3 replicates, factor 0.97-1.03, max RSD 0.2 %, valid 30 days, shelf life 30 days.",
+      "complete": true,
+      "shelfLifeValue": 30,
+      "shelfLifeUnit": "Days",
+      "storageCondition": "Tightly closed, room temperature",
+      "replicateCount": 3,
+      "maxRsdPercent": 0.2,
+      "validityDays": 30,
+      "blankRequired": false,
+      "factorMin": 0.97,
+      "factorMax": 1.03
+    }
+  ],
+  "hplcMethods": [],
+  "icpMethods": [
+    {
+      "name": "Lead by AAS (ferric ammonium citrate)",
+      "abbreviation": "AAS-PB-048",
+      "mode": "ElementalImpurities",
+      "section": "Physicochemical Laboratory",
+      "standardLevelsMgPerL": "2.0",
+      "calibrationStandardEntry": "Lead Standard Solution 1000 mg/L",
+      "minCorrelation": null,
+      "sampleVolumeMl": 100,
+      "elements": [
+        {
+          "symbol": "Pb",
+          "wavelengthNm": 283.3,
+          "conversionFactor": 1
+        }
+      ],
+      "dilutionFactor": 1,
+      "usedBy": [
+        "STM-RM-048"
+      ],
+      "notes": "USP <852> flame AAS at 283.3 nm, air-acetylene flame, lead hollow-cathode lamp. 15 g sample in 50 mL water + 1 mL nitric acid, made up to 100 mL. Standard 2 ug/mL Pb. Blank corrected. Limit NMT 10 ug/g.",
+      "complete": false,
+      "missing": [
+        "element view (axial/radial): not applicable to flame AAS",
+        "effectiveDate: STM issue date",
+        "minCorrelation: not stated in the STM (only 1 standard level: 2 µg/mL)"
+      ],
+      "heldBack": "ICP method incomplete: element view (axial/radial); effectiveDate; minCorrelation"
+    },
+    {
+      "name": "Mercury by AAS (ferric ammonium citrate)",
+      "abbreviation": "AAS-HG-048",
+      "mode": "ElementalImpurities",
+      "section": "Physicochemical Laboratory",
+      "standardLevelsMgPerL": "2.5, 5.0, 10.0, 35.0",
+      "calibrationStandardEntry": "Mercury standard solution 1000 mg/L",
+      "minCorrelation": null,
+      "sampleVolumeMl": 100,
+      "elements": [
+        {
+          "symbol": "Hg",
+          "wavelengthNm": 253.7,
+          "conversionFactor": 1
+        }
+      ],
+      "dilutionFactor": 1,
+      "usedBy": [
+        "STM-RM-048"
+      ],
+      "notes": "USP <852> cold vapour AAS with aeration apparatus. 1.000 g digested with 5 mL HNO3 + 5 mL HCl on steam bath 1 h, diluted to 100 mL, aerated with stannous chloride. Standards 2.5, 5.0, 10.0, 35.0 ug/mL Hg. Limit NMT 10 ug/g.",
+      "complete": false,
+      "missing": [
+        "element view (axial/radial): not applicable to cold vapour AAS",
+        "effectiveDate: STM issue date",
+        "minCorrelation: not stated in the STM"
+      ],
+      "heldBack": "ICP method incomplete: element view (axial/radial); effectiveDate; minCorrelation"
+    },
+    {
+      "name": "Lead by AAS (inositol)",
+      "abbreviation": "AAS-PB-145",
+      "mode": "ElementalImpurities",
+      "section": "Physicochemical Laboratory",
+      "standardLevelsMgPerL": "0.5, 1.0, 1.5",
+      "calibrationStandardEntry": "Lead Standard Solution 1000 mg/L",
+      "minCorrelation": null,
+      "sampleVolumeMl": 100,
+      "elements": [
+        {
+          "symbol": "Pb",
+          "wavelengthNm": 283.3,
+          "conversionFactor": 1
+        }
+      ],
+      "dilutionFactor": 1,
+      "usedBy": [
+        "STM-RM-145"
+      ],
+      "notes": "USP <852> flame AAS at 283.3 nm, air-acetylene flame, lead hollow-cathode lamp. 20.0 g in diluted acetic acid to 100 mL, chelated with 2 mL APDC, extracted into 10.0 mL MIBK. Standards 0.5, 1.0, 1.5 ug/mL Pb treated same way. Limit NMT 0.5 mg/kg.",
+      "complete": false,
+      "missing": [
+        "element view (axial/radial): not applicable to flame AAS",
+        "effectiveDate: STM issue date",
+        "minCorrelation: not stated in the STM"
+      ],
+      "heldBack": "ICP method incomplete: element view (axial/radial); effectiveDate; minCorrelation"
+    }
+  ],
+  "materialEntries": [
+    {
+      "name": "Mercury standard solution 1000 mg/L",
+      "category": "ReferenceStandard",
+      "codePrefix": "RS-",
+      "code": null,
+      "baseUnit": "Vial",
+      "usedBy": [
+        "Mercury by AAS (ferric ammonium citrate)"
+      ],
+      "source": "Ferric Ammonium Citrate__STM Ferric Ammonium Citrate 1-3.txt:28",
+      "loadedObjectNeedsIt": false
+    },
+    {
+      "name": "Potassium ferrocyanide TS",
+      "category": "Reagent",
+      "codePrefix": "RG-",
+      "code": null,
+      "baseUnit": "Bottle",
+      "usedBy": [
+        "RM-FCIT-048"
+      ],
+      "source": "Ferric Ammonium Citrate__STM Ferric Ammonium Citrate 1-3.txt:28",
+      "loadedObjectNeedsIt": true
+    },
+    {
+      "name": "Mercuric sulfate TS",
+      "category": "Reagent",
+      "codePrefix": "RG-",
+      "code": null,
+      "baseUnit": "Bottle",
+      "usedBy": [
+        "RM-ID-FAC-048"
+      ],
+      "source": "Ferric Ammonium Citrate__STM Ferric Ammonium Citrate 1-3.txt:28",
+      "loadedObjectNeedsIt": true
+    },
+    {
+      "name": "Sodium carbonate (primary standard)",
+      "category": "PrimaryStandard",
+      "codePrefix": "PS-",
+      "code": null,
+      "baseUnit": "Gram",
+      "usedBy": [
+        "0.1 N Sulfuric acid VS"
+      ],
+      "source": "Marine Collagen Peptide__STM for Marine Collagen Peptide NEW.txt:28",
+      "loadedObjectNeedsIt": true
+    },
+    {
+      "name": "Methyl Orange",
+      "category": "Indicator",
+      "codePrefix": "IND-",
+      "code": null,
+      "baseUnit": "Bottle",
+      "usedBy": [
+        "0.1 N Sulfuric acid VS"
+      ],
+      "source": "Marine Collagen Peptide__STM for Marine Collagen Peptide NEW.txt:28",
+      "loadedObjectNeedsIt": true
+    },
+    {
+      "name": "USP Inositol RS",
+      "category": "ReferenceStandard",
+      "codePrefix": "RS-",
+      "code": null,
+      "baseUnit": "Vial",
+      "usedBy": [
+        "STM-RM-145"
+      ],
+      "source": "Inositol__Inositol-SM.txt:26",
+      "loadedObjectNeedsIt": false
+    },
+    {
+      "name": "USP Mannitol RS",
+      "category": "ReferenceStandard",
+      "codePrefix": "RS-",
+      "code": null,
+      "baseUnit": "Vial",
+      "usedBy": [
+        "STM-RM-145"
+      ],
+      "source": "Inositol__Inositol-SM.txt:26",
+      "loadedObjectNeedsIt": false
+    }
+  ],
+  "reagentLinks": [],
+  "mapping": {
+    "STM-RM-048": {
+      "RM-DESC": "RM-DESC",
+      "RM-SOLUB": "RM-SOLUB",
+      "RM-ID-FAC": "RM-ID-FAC-048",
+      "RM-FCIT-FAC": "RM-FCIT-048",
+      "RM-LT-SO4": "RM-LT-SO4",
+      "RM-OXAL-FAC": "RM-OXAL",
+      "RM-LEAD-FAC": "RM-ICP-PB-048",
+      "RM-MERC-FAC": "RM-ICP-HG-048",
+      "RM-TIT-FAC": "RM-TIT-FAC",
+      "TAMC": "TAMC",
+      "TYMC": "TYMC",
+      "E.coli": "E.coli"
+    },
+    "STM-RM-143": {
+      "RM-DESC": "RM-DESC",
+      "RM-SOLUB": "RM-SOLUB",
+      "RM-VISC-MCP": "RM-VISC",
+      "RM-LOD": "RM-LOD",
+      "RM-PROT-MCP": "RM-TIT-PROT-143",
+      "TAMC": "TAMC",
+      "TYMC": "TYMC",
+      "E.coli": "E.coli",
+      "Salmonella ": "Salmonella "
+    },
+    "STM-RM-144": {
+      "RM-DESC": "RM-DESC",
+      "RM-LOD": "RM-LOD",
+      "RM-BULKD": "RM-BULKD",
+      "RM-AIA-HORS": "RM-AIA-144",
+      "RM-LT-HM": "RM-LT-HM",
+      "TAMC": "TAMC",
+      "TYMC": "TYMC",
+      "E.coli": "E.coli",
+      "Salmonella ": "Salmonella "
+    },
+    "STM-RM-145": {
+      "RM-DESC": "RM-DESC",
+      "RM-SOLUB": "RM-SOLUB",
+      "RM-SOLAPP": "RM-SOLAPP",
+      "RM-ID-IR": "RM-ID-IR",
+      "RM-BARIUM-INOS": "RM-BA",
+      "RM-LEAD-INOS": "RM-ICP-PB-145",
+      "RM-COND-INOS": "RM-COND",
+      "RM-KF": "RM-KF",
+      "TAMC": "TAMC",
+      "TYMC": "TYMC",
+      "E.coli": "E.coli"
+    },
+    "C1I-91-169": {
+      "RM-DESC": "RM-DESC",
+      "RM-SOLUB": "RM-SOLUB",
+      "RM-SASH": "RM-SASH",
+      "RM-PH": "RM-PH",
+      "RM-LOD": "RM-LOD",
+      "RM-SOLAPP": "RM-SOLAPP"
+    }
+  },
+  "gaps": [
+    {
+      "material": "STM-RM-048",
+      "test": "RM-LEAD-FAC",
+      "missing": "element view (axial/radial): not applicable to flame AAS; effectiveDate: STM issue date; minCorrelation: not stated in STM (only 1 standard level: 2 µg/mL)"
+    },
+    {
+      "material": "STM-RM-048",
+      "test": "RM-MERC-FAC",
+      "missing": "element view (axial/radial): not applicable to cold vapour AAS; effectiveDate: STM issue date; minCorrelation: not stated in STM"
+    },
+    {
+      "material": "STM-RM-145",
+      "test": "RM-LEAD-INOS",
+      "missing": "element view (axial/radial): not applicable to flame AAS; effectiveDate: STM issue date; minCorrelation: not stated in STM"
+    }
+  ]
+}

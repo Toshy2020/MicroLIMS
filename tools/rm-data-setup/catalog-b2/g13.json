@@ -1,0 +1,537 @@
+{
+  "testDefinitions": [
+    {
+      "code": "RM-ID-UV-131",
+      "displayName": "Identification of Cyanocobalamin 0.1% in WS (UV maximum wavelength)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Measurement",
+      "equationType": "Measurement",
+      "physchemArea": "RawPackaging",
+      "replicateCount": 1,
+      "evaluationBasis": "Mean",
+      "complete": true,
+      "notes": "1.0 g dissolved in water to 100 mL, centrifuged and filtered. Scanned between 260 nm and 610 nm; maximum must be at 361 ± 2 nm (spec 359-363 nm). Measurement test, analyst enters observed wavelength of maximum absorption in nm (UV workflow does not record wavelength as a result; CATALOG.md rule 6; source: Cyanocobalamine 0.1% in WS__STM Cyanocobalamine 0.1% in WS 1-2 without micro.txt:30).",
+      "usedBy": [
+        "STM-RM-131"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-131",
+          "provisionalCode": "RM-ID-UV-CYAWS",
+          "source": "Cyanocobalamine 0.1% in WS__STM Cyanocobalamine 0.1% in WS 1-2 without micro.txt:30"
+        }
+      ]
+    },
+    {
+      "code": "RM-UV-AS-131",
+      "displayName": "Assay of Cyanocobalamin 0.1% in WS (UV A1%)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "UvSpectrophotometry",
+      "equationType": "UvSpectrophotometry",
+      "physchemArea": "RawPackaging",
+      "replicateCount": 1,
+      "uvCalculationMode": "SpecificAbsorbanceAssay",
+      "uvSpecificAbsorbance": 207,
+      "uvTotalVolumeMl": 100,
+      "complete": true,
+      "notes": "Weigh ~1.0 g into 100 mL volumetric flask, make up to volume with water, filter and centrifuge; measure absorbance at 361 nm. Vit. B12 content (%) = (A x 100) / (207 x W), where 207 is E1% 1cm. BP specification NLT 0.1% (source: Cyanocobalamine 0.1% in WS__STM Cyanocobalamine 0.1% in WS 1-2 without micro.txt:32).",
+      "usedBy": [
+        "STM-RM-131"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-131",
+          "provisionalCode": "RM-UV-ASSAY-CYAWS",
+          "source": "Cyanocobalamine 0.1% in WS__STM Cyanocobalamine 0.1% in WS 1-2 without micro.txt:32"
+        }
+      ]
+    },
+    {
+      "code": "RM-HPLC-FLU-AS",
+      "displayName": "Assay of Fluconazole (USP, HPLC)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "HplcMethodAssay",
+      "equationType": "HplcMethodAssay",
+      "physchemArea": "RawPackaging",
+      "hplcMethod": "Fluconazole assay (USP, HPLC)",
+      "requiresSystemSuitability": true,
+      "methodAbbreviation": "FLU-AS",
+      "complete": true,
+      "notes": "Assay of Fluconazole (98.0%-102.0% on dried basis; source: Fluconazole__STM Fluconazole new - EDA.txt:43).",
+      "usedBy": [
+        "STM-RM-054"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-054",
+          "provisionalCode": "RM-ASSAY-FLU",
+          "source": "Fluconazole__STM Fluconazole new - EDA.txt:43"
+        }
+      ],
+      "heldBack": "needs the held-back method \"Fluconazole assay (USP, HPLC)\""
+    },
+    {
+      "code": "RM-HPLC-FLU-IMP",
+      "displayName": "Organic impurities of Fluconazole (USP, HPLC)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "HplcMethodAssay",
+      "equationType": "HplcMethodAssay",
+      "physchemArea": "RawPackaging",
+      "hplcMethod": "Fluconazole organic impurities (USP, HPLC)",
+      "requiresSystemSuitability": true,
+      "methodAbbreviation": "FLU-IMP",
+      "complete": true,
+      "notes": "USP organic impurities rows: Related compound A NMT 0.2%, Specified impurity NMT 1.0%, Related compound B NMT 0.1%, Related compound C NMT 0.2%, Any individual unspecified impurity NMT 0.1%, Total unknown impurities NMT 0.3%, Total impurities NMT 1.5% (source: Fluconazole__STM Fluconazole new - EDA.txt:31-40).",
+      "usedBy": [
+        "STM-RM-054"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-054",
+          "provisionalCode": "RM-RS-FLU",
+          "source": "Fluconazole__STM Fluconazole new - EDA.txt:31-40"
+        }
+      ],
+      "heldBack": "needs the held-back method \"Fluconazole organic impurities (USP, HPLC)\""
+    },
+    {
+      "code": "RM-ABS233-139",
+      "displayName": "Absorbance at 233 nm (Omega-3 Fish Oil)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "UvSpectrophotometry",
+      "equationType": "UvSpectrophotometry",
+      "physchemArea": "RawPackaging",
+      "replicateCount": 1,
+      "uvCalculationMode": "AbsorbanceLimit",
+      "complete": true,
+      "notes": "Dissolve 0.24 mg/mL sample in isooctane; zero the spectrophotometer with isooctane; read absorbance at maximum near 233 nm. Limit NMT 0.65 AU. USP <857> (source: Omega-3 Fish Oil__Omega-3 Fish Oil - SM AMV aafter edit.txt:34).",
+      "usedBy": [
+        "STM-RM-139"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-139",
+          "provisionalCode": "RM-ABS233-O3",
+          "source": "Omega-3 Fish Oil__Omega-3 Fish Oil - SM AMV aafter edit.txt:34"
+        }
+      ]
+    },
+    {
+      "code": "RM-ID-TLC-123",
+      "displayName": "Identification of Purified Honey (TLC)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Qualitative",
+      "equationType": "Qualitative",
+      "physchemArea": "RawPackaging",
+      "complete": true,
+      "notes": "TLC on silica gel plate. Test solution: 0.6 g in 50 mL ethanol (30% V/V). Reference solution: 0.5 g fructose, 0.5 g glucose, 0.1 g sucrose in 100 mL ethanol (30% V/V). Mobile phase: water : acetonitrile (13:87 V/V). Apply 5 µL as bands; develop 3 times over 15 cm; dry in warm air. Spray with diphenylamine-aniline-phosphoric acid reagent, heat at 100-105 °C for 5-10 min. Chromatogram conforms to reference zone sequence (fructose intense brown, glucose intense greyish-blue, sucrose brown, 2-3 brownish-grey zones). BP Appendix III A (source: Purified Honey - Micro__STM Purified Honey.txt:31-39).",
+      "usedBy": [
+        "P.Honey"
+      ],
+      "sources": [
+        {
+          "material": "P.Honey",
+          "provisionalCode": "RM-ID-TLC-HON",
+          "source": "Purified Honey - Micro__STM Purified Honey.txt:31-39"
+        }
+      ]
+    },
+    {
+      "code": "RM-HMF-123",
+      "displayName": "Hydroxymethylfurfural (Purified Honey)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Measurement",
+      "equationType": "Measurement",
+      "physchemArea": "RawPackaging",
+      "replicateCount": 1,
+      "evaluationBasis": "Mean",
+      "complete": true,
+      "notes": "Take water content from refractive index (Table 2051.-1). Dissolve honey equivalent to 5.0 g dry solids in 25 mL water, add Carrez reagents (0.5 mL 150 g/L potassium ferrocyanide, 0.5 mL 300 g/L zinc acetate), dilute to 50.0 mL, filter. Test solution 5.0 mL filtrate + 5.0 mL water; reference solution 5.0 mL filtrate + 5.0 mL 2.0 g/L sodium hydrogen sulfite. Measure absorbance at 284 nm and 336 nm within 60 min. HMF (ppm) = (A1 - A2) x D x 149.7. Measurement test, analyst enters calculated HMF in ppm (two-wavelength subtraction not calculated by UV workflow; CATALOG.md rule 6; source: Purified Honey - Micro__STM Purified Honey.txt:70).",
+      "usedBy": [
+        "P.Honey"
+      ],
+      "sources": [
+        {
+          "material": "P.Honey",
+          "provisionalCode": "RM-HMF-HON",
+          "source": "Purified Honey - Micro__STM Purified Honey.txt:70"
+        }
+      ]
+    }
+  ],
+  "solutions": [
+    {
+      "name": "Fluconazole mobile phase (acetonitrile : water 20:80)",
+      "type": "MobilePhase",
+      "section": "Physicochemical Laboratory",
+      "nominalStrength": null,
+      "strengthUnit": null,
+      "finalVolumeMl": 1000,
+      "instructions": "Mix 200 mL of acetonitrile and 800 mL of water.",
+      "components": [
+        {
+          "entry": "Acetonitrile",
+          "quantity": 200,
+          "unit": "Milliliter"
+        }
+      ],
+      "waterToVolume": true,
+      "standardizationMode": null,
+      "standardEntry": null,
+      "equivalenceMgPerMl": null,
+      "referenceSolution": null,
+      "usedBy": [
+        "STM-RM-054"
+      ],
+      "notes": "Mobile phase for Fluconazole assay and organic impurities (USP).",
+      "complete": false,
+      "missing": [
+        "shelfLife: not stated in the STM",
+        "storageCondition: not stated in the STM"
+      ],
+      "heldBack": "only used by held-back HPLC methods, and shelfLife, storageCondition not stated"
+    },
+    {
+      "name": "Fluconazole diluent (mobile phase)",
+      "type": "Reagent",
+      "section": "Physicochemical Laboratory",
+      "nominalStrength": null,
+      "strengthUnit": null,
+      "finalVolumeMl": 1000,
+      "instructions": "Mobile phase (acetonitrile:water 20:80).",
+      "components": [],
+      "waterToVolume": false,
+      "standardizationMode": null,
+      "standardEntry": null,
+      "equivalenceMgPerMl": null,
+      "referenceSolution": "Fluconazole mobile phase (acetonitrile : water 20:80)",
+      "usedBy": [
+        "STM-RM-054"
+      ],
+      "notes": "Diluent for Fluconazole assay and organic impurities (USP).",
+      "complete": false,
+      "missing": [
+        "shelfLife: not stated in the STM",
+        "storageCondition: not stated in the STM"
+      ],
+      "heldBack": "only used by held-back HPLC methods, and shelfLife, storageCondition not stated"
+    }
+  ],
+  "hplcMethods": [
+    {
+      "name": "Fluconazole assay (USP, HPLC)",
+      "abbreviation": "FLU-AS",
+      "technique": "Hplc",
+      "resultMode": "Assay",
+      "section": "Physicochemical Laboratory",
+      "effectiveDate": "STM issue date",
+      "columnDesignation": "L1",
+      "columnLengthMm": 150,
+      "columnInternalDiameterMm": 4.6,
+      "particleSizeUm": 3,
+      "elutionMode": "Isocratic",
+      "flowRateMlPerMin": 0.5,
+      "detectorType": "UV",
+      "injectionVolumeUl": 20,
+      "runTimeMin": null,
+      "mobilePhases": [
+        {
+          "channel": "A",
+          "solution": "Fluconazole mobile phase (acetonitrile : water 20:80)",
+          "ratioPercent": 100
+        }
+      ],
+      "gradientSteps": [],
+      "diluentSolution": "Fluconazole diluent (mobile phase)",
+      "analytes": [
+        {
+          "name": "Fluconazole",
+          "wavelengthNm": 260,
+          "standardEntry": "USP Fluconazole RS",
+          "theoreticalWeightStdMg": null,
+          "theoreticalWeightTestMg": null,
+          "standardInjections": null,
+          "standardDilution": null,
+          "sstMaxRsdPercent": 2.0,
+          "sstMaxTailingFactor": 2.0
+        }
+      ],
+      "complete": false,
+      "missing": [
+        "runTimeMin: not stated in STM",
+        "standardInjections: replicates for 2.0 % RSD not stated in STM",
+        "theoreticalWeightStdMg, theoreticalWeightTestMg: only 0.5 mg/mL concentration stated in STM, stock flask volumes and weights not specified in main method"
+      ],
+      "notes": "USP 2024 Monograph for Fluconazole. Column 4.6 mm x 15 cm, 3 µm L1 at 40 °C. Mobile phase acetonitrile:water 20:80, flow rate 0.5 mL/min, injection 20 µL, UV 260 nm. Standard and sample 0.5 mg/mL in mobile phase. System suitability: tailing factor NMT 2.0, RSD NMT 2.0%. Limit 98.0%-102.0% on dried basis.",
+      "usedBy": [
+        "STM-RM-054"
+      ],
+      "source": "Fluconazole__STM Fluconazole new - EDA.txt:43",
+      "heldBack": "HPLC method incomplete: runTimeMin; standardInjections; theoreticalWeightStdMg, theoreticalWeightTestMg"
+    },
+    {
+      "name": "Fluconazole organic impurities (USP, HPLC)",
+      "abbreviation": "FLU-IMP",
+      "technique": "Hplc",
+      "resultMode": "RelatedSubstances",
+      "section": "Physicochemical Laboratory",
+      "effectiveDate": "STM issue date",
+      "columnDesignation": "L1",
+      "columnLengthMm": 150,
+      "columnInternalDiameterMm": 4.6,
+      "particleSizeUm": 3.5,
+      "elutionMode": "Isocratic",
+      "flowRateMlPerMin": 0.5,
+      "detectorType": "UV",
+      "injectionVolumeUl": 20,
+      "runTimeMin": null,
+      "mobilePhases": [
+        {
+          "channel": "A",
+          "solution": "Fluconazole mobile phase (acetonitrile : water 20:80)",
+          "ratioPercent": 100
+        }
+      ],
+      "gradientSteps": [],
+      "diluentSolution": "Fluconazole diluent (mobile phase)",
+      "analytes": [
+        {
+          "name": "Related compound A",
+          "wavelengthNm": 260,
+          "standardEntry": "USP Fluconazole Related Compound A RS",
+          "relativeRetentionTime": 0.5,
+          "relativeResponseFactor": 1.0
+        },
+        {
+          "name": "Specified impurity",
+          "wavelengthNm": 260,
+          "standardEntry": "USP Fluconazole RS",
+          "relativeRetentionTime": 0.6,
+          "relativeResponseFactor": 1.0
+        },
+        {
+          "name": "Related compound B",
+          "wavelengthNm": 260,
+          "standardEntry": "USP Fluconazole Related Compound B RS",
+          "relativeRetentionTime": 0.81,
+          "relativeResponseFactor": 1.0
+        },
+        {
+          "name": "Related compound C",
+          "wavelengthNm": 260,
+          "standardEntry": "USP Fluconazole Related Compound C RS",
+          "relativeRetentionTime": 0.86,
+          "relativeResponseFactor": 1.0
+        },
+        {
+          "name": "Any individual unspecified impurity",
+          "wavelengthNm": 260,
+          "standardEntry": "USP Fluconazole RS",
+          "relativeRetentionTime": null,
+          "relativeResponseFactor": 1.0
+        }
+      ],
+      "complete": false,
+      "missing": [
+        "runTimeMin: not stated in STM",
+        "standardInjections: replicates for 5.0 % RSD not stated in STM",
+        "theoreticalWeightStdMg, theoreticalWeightTestMg: only 10 µg/mL standard and 3 mg/mL sample concentrations stated in STM"
+      ],
+      "notes": "USP 2024 Monograph for Fluconazole. Column 4.6 mm x 15 cm, 3.5 µm L1 at 40 °C. Mobile phase acetonitrile:water 20:80, flow rate 0.5 mL/min, injection 20 µL, UV 260 nm. Standard 10 µg/mL each of Fluconazole RS and related compounds A, B, C; sample 3 mg/mL. System suitability: resolution NLT 1.5 between B and C; RSD NMT 5.0% for each peak. Impurity limits: Related compound A NMT 0.2%, Specified impurity NMT 1.0%, Related compound B NMT 0.1%, Related compound C NMT 0.2%, Any individual unspecified impurity NMT 0.1%, Total unknown impurities NMT 0.3%, Total impurities NMT 1.5%.",
+      "usedBy": [
+        "STM-RM-054"
+      ],
+      "source": "Fluconazole__STM Fluconazole new - EDA.txt:31-40",
+      "heldBack": "HPLC method incomplete: runTimeMin; standardInjections; theoreticalWeightStdMg, theoreticalWeightTestMg"
+    }
+  ],
+  "icpMethods": [],
+  "materialEntries": [
+    {
+      "name": "USP Fluconazole RS",
+      "category": "ReferenceStandard",
+      "codePrefix": "RS-",
+      "code": null,
+      "baseUnit": "Bottle",
+      "usedBy": [
+        "Fluconazole assay (USP, HPLC)",
+        "Fluconazole organic impurities (USP, HPLC)",
+        "RM-ID-IR",
+        "RM-ID-RT"
+      ],
+      "source": "Fluconazole__STM Fluconazole new - EDA.txt:26",
+      "loadedObjectNeedsIt": false
+    },
+    {
+      "name": "USP Fluconazole Related Compound A RS",
+      "category": "ReferenceStandard",
+      "codePrefix": "RS-",
+      "code": null,
+      "baseUnit": "Bottle",
+      "usedBy": [
+        "Fluconazole organic impurities (USP, HPLC)"
+      ],
+      "source": "Fluconazole__STM Fluconazole new - EDA.txt:26",
+      "loadedObjectNeedsIt": false
+    },
+    {
+      "name": "USP Fluconazole Related Compound B RS",
+      "category": "ReferenceStandard",
+      "codePrefix": "RS-",
+      "code": null,
+      "baseUnit": "Bottle",
+      "usedBy": [
+        "Fluconazole organic impurities (USP, HPLC)"
+      ],
+      "source": "Fluconazole__STM Fluconazole new - EDA.txt:26",
+      "loadedObjectNeedsIt": false
+    },
+    {
+      "name": "USP Fluconazole Related Compound C RS",
+      "category": "ReferenceStandard",
+      "codePrefix": "RS-",
+      "code": null,
+      "baseUnit": "Bottle",
+      "usedBy": [
+        "Fluconazole organic impurities (USP, HPLC)"
+      ],
+      "source": "Fluconazole__STM Fluconazole new - EDA.txt:26",
+      "loadedObjectNeedsIt": false
+    },
+    {
+      "name": "DHA working standard",
+      "category": "ReferenceStandard",
+      "codePrefix": "RS-",
+      "code": null,
+      "baseUnit": "Bottle",
+      "usedBy": [
+        "STM-RM-139"
+      ],
+      "source": "Omega-3 Fish Oil__Omega-3 Fish Oil - SM AMV aafter edit.txt:35",
+      "loadedObjectNeedsIt": false
+    },
+    {
+      "name": "EPA working standard",
+      "category": "ReferenceStandard",
+      "codePrefix": "RS-",
+      "code": null,
+      "baseUnit": "Bottle",
+      "usedBy": [
+        "STM-RM-139"
+      ],
+      "source": "Omega-3 Fish Oil__Omega-3 Fish Oil - SM AMV aafter edit.txt:35",
+      "loadedObjectNeedsIt": false
+    },
+    {
+      "name": "Fructose",
+      "category": "ReferenceStandard",
+      "codePrefix": "RS-",
+      "code": null,
+      "baseUnit": "Bottle",
+      "usedBy": [
+        "RM-ID-TLC-123"
+      ],
+      "source": "Purified Honey - Micro__STM Purified Honey.txt:28",
+      "loadedObjectNeedsIt": false
+    },
+    {
+      "name": "Glucose",
+      "category": "ReferenceStandard",
+      "codePrefix": "RS-",
+      "code": null,
+      "baseUnit": "Bottle",
+      "usedBy": [
+        "RM-ID-TLC-123"
+      ],
+      "source": "Purified Honey - Micro__STM Purified Honey.txt:28",
+      "loadedObjectNeedsIt": false
+    },
+    {
+      "name": "Sucrose",
+      "category": "ReferenceStandard",
+      "codePrefix": "RS-",
+      "code": null,
+      "baseUnit": "Bottle",
+      "usedBy": [
+        "RM-ID-TLC-123"
+      ],
+      "source": "Purified Honey - Micro__STM Purified Honey.txt:28",
+      "loadedObjectNeedsIt": false
+    }
+  ],
+  "reagentLinks": [],
+  "mapping": {
+    "C1I-91-231": {
+      "RM-DESC": "RM-DESC",
+      "RM-KF": "RM-KF",
+      "RM-SOLUB": "RM-SOLUB"
+    },
+    "STM-RM-131": {
+      "E.coli": "E.coli",
+      "RM-DESC": "RM-DESC",
+      "RM-ID-UV-CYAWS": "RM-ID-UV-131",
+      "RM-LOD": "RM-LOD",
+      "RM-SOLUB": "RM-SOLUB",
+      "RM-UV-ASSAY-CYAWS": "RM-UV-AS-131",
+      "TAMC": "TAMC",
+      "TYMC": "TYMC"
+    },
+    "STM-RM-054": {
+      "E.coli": "E.coli",
+      "RM-ASSAY-FLU": "RM-HPLC-FLU-AS",
+      "RM-DESC": "RM-DESC",
+      "RM-ID-IR": "RM-ID-IR",
+      "RM-ID-RT": "RM-ID-RT",
+      "RM-LOD": "RM-LOD",
+      "RM-RS-FLU": "RM-HPLC-FLU-IMP",
+      "RM-SASH": "RM-SASH",
+      "RM-SOLUB": "RM-SOLUB",
+      "TAMC": "TAMC",
+      "TYMC": "TYMC"
+    },
+    "STM-RM-139": {
+      "E.coli": "E.coli",
+      "RM-ABS233-O3": "RM-ABS233-139",
+      "RM-AV-O3": "RM-AV",
+      "RM-DESC": "RM-DESC",
+      "RM-PV-O3": "RM-PV",
+      "RM-SG-O3": "RM-RELDENS",
+      "Salmonella ": "Salmonella ",
+      "TAMC": "TAMC",
+      "TYMC": "TYMC"
+    },
+    "P.Honey": {
+      "E.coli": "E.coli",
+      "RM-COND-HON": "RM-COND",
+      "RM-DESC": "RM-DESC",
+      "RM-HMF-HON": "RM-HMF-123",
+      "RM-ID-TLC-HON": "RM-ID-TLC-123",
+      "RM-LT-CL": "RM-LT-CL",
+      "RM-LT-SO4": "RM-LT-SO4",
+      "RM-OPTROT": "RM-OPTROT",
+      "RM-REFR-HON": "RM-REFIDX",
+      "Salmonella ": "Salmonella ",
+      "TAMC": "TAMC",
+      "TYMC": "TYMC"
+    }
+  },
+  "gaps": [
+    {
+      "material": "STM-RM-054",
+      "test": "RM-ASSAY-FLU",
+      "missing": "runTimeMin: not stated in STM; standardInjections: replicates for 2.0 % RSD not stated in STM; theoreticalWeightStdMg, theoreticalWeightTestMg: only 0.5 mg/mL concentration stated in STM"
+    },
+    {
+      "material": "STM-RM-054",
+      "test": "RM-RS-FLU",
+      "missing": "runTimeMin: not stated in STM; standardInjections: replicates for 5.0 % RSD not stated in STM; theoreticalWeightStdMg, theoreticalWeightTestMg: only 10 µg/mL standard and 3 mg/mL sample concentrations stated in STM"
+    }
+  ]
+}

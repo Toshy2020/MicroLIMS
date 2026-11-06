@@ -1,0 +1,632 @@
+{
+  "testDefinitions": [
+    {
+      "code": "RM-ID-CR-MCC",
+      "displayName": "Identification of Microcrystalline Cellulose (reaction with iodinated zinc chloride)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Qualitative",
+      "equationType": "Qualitative",
+      "physchemArea": "RawPackaging",
+      "complete": true,
+      "notes": "About 10 mg dispersed in 2 mL iodinated zinc chloride solution on watch-glass; substance becomes violet-blue (BP 2024 / USP 2023).",
+      "usedBy": [
+        "STM-RM-081"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-081",
+          "provisionalCode": "RM-ID-CR-MCC",
+          "source": "Microcrystalline Cellulose 102__STM Microcrystalline Cellulose with merge.txt:32"
+        }
+      ]
+    },
+    {
+      "code": "RM-COND",
+      "displayName": "Conductivity",
+      "kind": "general",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Measurement",
+      "equationType": "Measurement",
+      "physchemArea": "RawPackaging",
+      "replicateCount": 1,
+      "evaluationBasis": "Mean",
+      "complete": true,
+      "notes": "Measured with calibrated conductivity meter. STM-RM-081 uses supernatant from pH test (blanked against water, limit NMT 75 µS·cm-1); STM-RM-062 measures undiluted liquid sorbitol (limit NMT 10 µS·cm-1).",
+      "usedBy": [
+        "STM-RM-062",
+        "STM-RM-081"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-081",
+          "provisionalCode": "RM-COND",
+          "source": "Microcrystalline Cellulose 102__STM Microcrystalline Cellulose with merge.txt:34"
+        },
+        {
+          "material": "STM-RM-062",
+          "provisionalCode": "RM-COND",
+          "source": "Liquid Sorbitol__Liquid Sorbitol - SM.txt:33"
+        }
+      ]
+    },
+    {
+      "code": "RM-ETH-SOL",
+      "displayName": "Ether-soluble substances",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Gravimetric",
+      "equationType": "GravimetricResidue",
+      "physchemArea": "RawPackaging",
+      "replicateCount": 1,
+      "usesTare": true,
+      "complete": true,
+      "notes": "10.0 g in column (~20 mm id), 50 mL peroxide-free ether passed, eluate evaporated to dryness, dried at 105 °C for 30 min with blank. (BP 2024 / USP 2024).",
+      "usedBy": [
+        "STM-RM-081"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-081",
+          "provisionalCode": "RM-ETH-SOL",
+          "source": "Microcrystalline Cellulose 102__STM Microcrystalline Cellulose with merge.txt:35"
+        }
+      ]
+    },
+    {
+      "code": "RM-SAUR",
+      "displayName": "Staphylococcus aureus",
+      "kind": "general",
+      "section": "Microbiology Laboratory",
+      "workflowType": "Observation",
+      "equationType": "None",
+      "complete": true,
+      "notes": "Microbiological examination per SOP C2I-91-128 and material verification report; subculture on Mannitol Salt Agar (MSA) at 30-35 °C for 18-72 h (USP <62> / BP 2024).",
+      "usedBy": [
+        "STM-RM-081"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-081",
+          "provisionalCode": "RM-SAUR",
+          "source": "Microcrystalline Cellulose 102__STM Microcrystalline Cellulose with merge.txt:43"
+        }
+      ]
+    },
+    {
+      "code": "RM-PAER",
+      "displayName": "Pseudomonas aeruginosa",
+      "kind": "general",
+      "section": "Microbiology Laboratory",
+      "workflowType": "Observation",
+      "equationType": "None",
+      "complete": true,
+      "notes": "Microbiological examination per SOP C2I-91-128 and material verification report; subculture on Cetrimide Agar Medium (CAM) at 30-35 °C for 18-72 h (USP <62> / BP 2024).",
+      "usedBy": [
+        "STM-RM-081"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-081",
+          "provisionalCode": "RM-PAER",
+          "source": "Microcrystalline Cellulose 102__STM Microcrystalline Cellulose with merge.txt:44"
+        }
+      ]
+    },
+    {
+      "code": "RM-ID-VITK1",
+      "displayName": "Identification of Vitamin K1 (conformity with assay)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Qualitative",
+      "equationType": "Qualitative",
+      "physchemArea": "RawPackaging",
+      "complete": true,
+      "notes": "Identified by conformity with the assay procedure (cerimetric titration).",
+      "usedBy": [
+        "STM-RM-012"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-012",
+          "provisionalCode": "RM-ID-VITK1",
+          "source": "Vitamin K1__SM- Vitamin K1 new + Micro.txt:29"
+        }
+      ]
+    },
+    {
+      "code": "RM-TIT-VITK1",
+      "displayName": "Assay of Vitamin K1 (cerimetric titration)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Titration",
+      "equationType": "Titration",
+      "physchemArea": "RawPackaging",
+      "titrationType": "Redox",
+      "titrationMode": "Direct",
+      "titrationEndpoint": "Visual",
+      "titrantSolution": "0.1 N Ceric Ammonium Sulfate VS",
+      "titrationBlankRequired": false,
+      "titrationEquivalencyFactor": 86.1,
+      "titrationEquivalencyFactorDerivation": "0.00861 g Vitamin K per mL of 0.1 M titrant / 0.1 = 86.1 mg/mmol",
+      "titrationIndicatorEntry": "Ferroin solution",
+      "replicateCount": 1,
+      "titrationCalculation": "UspFactor",
+      "complete": true,
+      "notes": "0.15 g sample in 15 mL glacial acetic acid + 15 mL 2 M HCl + 1 g Zn powder; stand 60 min in dark, filter, 0.1 mL ferroin solution; titrate with 0.1 M ceric ammonium sulfate to endpoint. F = 86.1 mg/mmol (0.00861 g/mL / 0.1 M). Formula in STM has LOD correction but spec sheet row has resultBasis PercentAsIs (5.0%).",
+      "usedBy": [
+        "STM-RM-012"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-012",
+          "provisionalCode": "RM-TIT-VITK1",
+          "source": "Vitamin K1__SM- Vitamin K1 new + Micro.txt:32; preparations line 26"
+        }
+      ]
+    },
+    {
+      "code": "RM-ID-FP-MG",
+      "displayName": "Freezing point of fatty acids (Magnesium Stearate ID Test B)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Measurement",
+      "equationType": "Measurement",
+      "physchemArea": "RawPackaging",
+      "replicateCount": 1,
+      "evaluationBasis": "Mean",
+      "complete": true,
+      "notes": "Determined on residue from ether layer of solution S, dried at 100-105 °C; freezing point recorded on calibrated thermometer in Nessler tube (minimum 53 °C). (BP Appendix V B; BP 2025).",
+      "usedBy": [
+        "STM-RM-086"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-086",
+          "provisionalCode": "RM-ID-FP-MG",
+          "source": "Magnesium Stearate__Magnesium Stearate - SM.txt:32"
+        }
+      ]
+    },
+    {
+      "code": "RM-ID-AV-MG",
+      "displayName": "Acid value of fatty acids (Magnesium Stearate ID Test B)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Measurement",
+      "equationType": "Measurement",
+      "physchemArea": "RawPackaging",
+      "replicateCount": 1,
+      "evaluationBasis": "Mean",
+      "complete": true,
+      "notes": "0.200 g residue in 25 mL neutralized ethanol:petroleum ether (1:1), 0.5 mL phenolphthalein R1, titrate with 0.1 M KOH or NaOH. Formula IA = 5.611 x n / m (195-210). Decision 2026-11-04: Measurement test, analyst enters the calculated acid value.",
+      "usedBy": [
+        "STM-RM-086"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-086",
+          "provisionalCode": "RM-ID-AV-MG",
+          "source": "Magnesium Stearate__Magnesium Stearate - SM.txt:32"
+        }
+      ]
+    },
+    {
+      "code": "RM-TIT-MGST",
+      "displayName": "Assay of Magnesium Stearate (complexometric back titration)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Titration",
+      "equationType": "Titration",
+      "physchemArea": "RawPackaging",
+      "titrationType": "Complexometric",
+      "titrationMode": "Residual",
+      "titrationEndpoint": "Visual",
+      "titrantSolution": "0.1 M Zinc sulfate VS",
+      "titrationExcessSolution": "0.1 M Disodium edetate VS",
+      "titrationExcessVolumeMl": 30,
+      "titrationBlankRequired": true,
+      "titrationEquivalencyFactor": 24.31,
+      "titrationEquivalencyFactorDerivation": "2.431 mg Mg per mL of 0.1 M edetate / 0.1 = 24.31 mg/mmol",
+      "titrationIndicatorEntry": "Mordant black 11 triturate",
+      "replicateCount": 1,
+      "titrationCalculation": "UspFactor",
+      "complete": true,
+      "notes": "0.500 g in 50 mL 1:1 ethanol:butanol + 5 mL conc ammonia + 3 mL ammonium chloride buffer pH 10.0 + 30.0 mL 0.1 M disodium edetate + mordant black 11 triturate; heat 45-50 °C, titrate excess with 0.1 M zinc sulfate (blue to violet). Blank titration performed. Dried-substance row.",
+      "usedBy": [
+        "STM-RM-086"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-086",
+          "provisionalCode": "RM-TIT-MGST",
+          "source": "Magnesium Stearate__Magnesium Stearate - SM.txt:52"
+        }
+      ]
+    },
+    {
+      "code": "RM-ID-CR-ATOC",
+      "displayName": "Identification of D-Alpha Tocopheryl Succinate (colour reaction)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Qualitative",
+      "equationType": "Qualitative",
+      "physchemArea": "RawPackaging",
+      "complete": true,
+      "notes": "Sample solution in absolute alcohol + 2 mL 70% nitric acid, heat at 75 °C for 15 min; bright red or orange colour develops. (USP 2024).",
+      "usedBy": [
+        "STM-RM-059"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-059",
+          "provisionalCode": "RM-ID-CR-ATOC",
+          "source": "D-Alpha Tocopherol Succinate__STM for Alpha tocopherol Succinate.txt:29"
+        }
+      ]
+    },
+    {
+      "code": "RM-ID-VIS-SORB",
+      "displayName": "Identification of Liquid Sorbitol (appearance and viscosity)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Qualitative",
+      "equationType": "Qualitative",
+      "physchemArea": "RawPackaging",
+      "complete": true,
+      "notes": "Visual check: clear, colourless or almost colourless, syrupy liquid. (BP 2025).",
+      "usedBy": [
+        "STM-RM-062"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-062",
+          "provisionalCode": "RM-ID-VIS-SORB",
+          "source": "Liquid Sorbitol__Liquid Sorbitol - SM.txt:30"
+        }
+      ]
+    },
+    {
+      "code": "RM-OPTROT-SORB",
+      "displayName": "Identification of Liquid Sorbitol (optical rotation with borate)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Measurement",
+      "equationType": "Measurement",
+      "physchemArea": "RawPackaging",
+      "replicateCount": 1,
+      "evaluationBasis": "Mean",
+      "complete": true,
+      "notes": "7.0 g + 40 mL water + 6.4 g disodium tetraborate, stand 1 h, dilute to 50.0 mL, measure on calibrated polarimeter (+1.5° to +3.5°). (BP 2025).",
+      "usedBy": [
+        "STM-RM-062"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-062",
+          "provisionalCode": "RM-OPTROT-SORB",
+          "source": "Liquid Sorbitol__Liquid Sorbitol - SM.txt:31"
+        }
+      ]
+    },
+    {
+      "code": "RM-RED-SUG",
+      "displayName": "Reducing sugars (Liquid Sorbitol)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Measurement",
+      "equationType": "Measurement",
+      "physchemArea": "RawPackaging",
+      "replicateCount": 1,
+      "evaluationBasis": "Mean",
+      "complete": true,
+      "notes": "5.0 g + 6 mL water + 20 mL cupri-citric solution, boil 3 min, cool, add 100 mL 2.4% acetic acid + 20.0 mL 0.025 M iodine + 25 mL dilute HCl, titrate with 0.05 M sodium thiosulfate (starch). NLT 12.8 mL required (max 0.2% glucose equivalent). Decision 2026-11-04: Measurement test, analyst enters calculated % glucose equivalent.",
+      "usedBy": [
+        "STM-RM-062"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-062",
+          "provisionalCode": "RM-RED-SUG",
+          "source": "Liquid Sorbitol__Liquid Sorbitol - SM.txt:34"
+        }
+      ]
+    },
+    {
+      "code": "RM-RED-SUG-HYD",
+      "displayName": "Total sugars after hydrolysis (Liquid Sorbitol)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Measurement",
+      "equationType": "Measurement",
+      "physchemArea": "RawPackaging",
+      "replicateCount": 1,
+      "evaluationBasis": "Mean",
+      "complete": true,
+      "notes": "6.0 g + 35 mL water + 40 mL 1 M HCl, reflux 4 h, cool, neutralize with NaOH (bromothymol blue R1), dilute to 100.0 mL. 3.0 mL aliquot reacted with cupri-citric and back-titrated with 0.05 M thiosulfate. NLT 8.0 mL required (max 9.3% glucose equivalent). Decision 2026-11-04: Measurement test, analyst enters calculated % glucose equivalent.",
+      "usedBy": [
+        "STM-RM-062"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-062",
+          "provisionalCode": "RM-RED-SUG-HYD",
+          "source": "Liquid Sorbitol__Liquid Sorbitol - SM.txt:35"
+        }
+      ]
+    }
+  ],
+  "solutions": [
+    {
+      "name": "0.1 N Ceric Ammonium Sulfate VS",
+      "type": "Titrant",
+      "section": "Physicochemical Laboratory",
+      "nominalStrength": 0.1,
+      "strengthUnit": "Normal",
+      "finalVolumeMl": 1000,
+      "instructions": "Transfer 65 g of ceric ammonium sulfate to a 1000-mL volumetric flask containing a mixture of 30 mL of sulfuric acid and 500 mL of water. Swirl until dissolved. Cool and dilute with water to volume.",
+      "components": [
+        {
+          "entry": "Ceric ammonium sulfate",
+          "quantity": 65,
+          "unit": "Gram"
+        },
+        {
+          "entry": "Sulfuric acid (95%-97%)",
+          "entryCode": "RG-218",
+          "quantity": 30,
+          "unit": "Milliliter"
+        }
+      ],
+      "waterToVolume": true,
+      "standardizationMode": "AgainstVolumetricSolution",
+      "standardEntry": null,
+      "equivalenceMgPerMl": null,
+      "referenceSolution": "0.1 M Sodium thiosulfate VS",
+      "usedBy": [
+        "STM-RM-012"
+      ],
+      "notes": "Standardized against 0.1 N sodium thiosulfate VS (25 mL ceric ammonium sulfate + 2 g KI + 150 mL water, 1 mL starch TS). Recipe from STM line 26; house standardization defaults applied.",
+      "complete": true,
+      "shelfLifeValue": 30,
+      "shelfLifeUnit": "Days",
+      "storageCondition": "Tightly closed, room temperature",
+      "replicateCount": 3,
+      "maxRsdPercent": 0.2,
+      "validityDays": 30,
+      "blankRequired": false,
+      "factorMin": 0.97,
+      "factorMax": 1.03
+    },
+    {
+      "name": "0.1 M Disodium edetate VS",
+      "type": "Titrant",
+      "section": "Physicochemical Laboratory",
+      "nominalStrength": 0.1,
+      "strengthUnit": "Molar",
+      "finalVolumeMl": 1000,
+      "instructions": "Dissolve 37.2 g edetate disodium in water to make 1000 mL.",
+      "components": [
+        {
+          "entry": "Edetate disodium (EDTA-Na2.2H2O)",
+          "entryCode": "RG-015",
+          "quantity": 37.2,
+          "unit": "Gram"
+        }
+      ],
+      "waterToVolume": true,
+      "standardizationMode": "PrimaryStandard",
+      "standardEntry": "Calcium carbonate (chelometric standard) (RG-024)",
+      "equivalenceMgPerMl": 10.009,
+      "referenceSolution": null,
+      "usedBy": [
+        "STM-RM-086"
+      ],
+      "notes": "STM-RM-086 (Magnesium stearate) gives no recipe. Recipe: USP 0.05 M is 18.6 g per 1000 mL; 0.1 M is that x2 = 37.2 g (scaling, USP lists no 0.1 M). Standardization (USP): about 200 mg chelometric CaCO3 (x2 for 0.1 M) dissolved with dilute HCl, 15 mL NaOH TS and hydroxy naphthol blue, titrate to blue; 10.009 mg CaCO3 per mL of 0.1 M (1:1, 100.09 g/mol, derived). USP states no shelf life: house defaults (3 replicates, factor 0.97-1.03, RSD 0.2 %, valid 30 days, shelf life 30 days). Source: USP 35-NF 30 Volumetric Solutions (drugfuture 1077-1085 Volumetric Solutions.pdf): p.1078.",
+      "complete": true,
+      "shelfLifeValue": 30,
+      "shelfLifeUnit": "Days",
+      "storageCondition": "Tightly closed, room temperature",
+      "replicateCount": 3,
+      "maxRsdPercent": 0.2,
+      "validityDays": 30,
+      "blankRequired": false,
+      "factorMin": 0.97,
+      "factorMax": 1.03
+    },
+    {
+      "name": "0.1 M Zinc sulfate VS",
+      "type": "Titrant",
+      "section": "Physicochemical Laboratory",
+      "nominalStrength": 0.1,
+      "strengthUnit": "Molar",
+      "finalVolumeMl": 1000,
+      "instructions": "Dissolve 28.8 g zinc sulfate heptahydrate in water to make 1000 mL.",
+      "components": [
+        {
+          "entry": "Zinc sulfate heptahydrate",
+          "entryCode": null,
+          "quantity": 28.8,
+          "unit": "Gram"
+        }
+      ],
+      "waterToVolume": true,
+      "standardizationMode": "AgainstVolumetricSolution",
+      "standardEntry": null,
+      "equivalenceMgPerMl": null,
+      "referenceSolution": "0.1 M Disodium edetate VS",
+      "usedBy": [
+        "STM-RM-086"
+      ],
+      "notes": "STM-RM-086 gives no recipe. USP 0.05 M is 14.4 g ZnSO4.7H2O per 1000 mL; 0.1 M is x2 = 28.8 g (scaling). Standardization (USP): titrate 10 mL of the EDTA VS with the zinc solution after adding acetic acid-ammonium acetate buffer TS, alcohol and dithizone TS, to rose-pink; molarity = M(EDTA) x V(EDTA) / V(Zn). House defaults for acceptance and shelf life. Source: USP 35-NF 30 Volumetric Solutions (drugfuture 1077-1085 Volumetric Solutions.pdf): p.1085.",
+      "complete": true,
+      "shelfLifeValue": 30,
+      "shelfLifeUnit": "Days",
+      "storageCondition": "Tightly closed, room temperature",
+      "replicateCount": 3,
+      "maxRsdPercent": 0.2,
+      "validityDays": 30,
+      "blankRequired": false,
+      "factorMin": 0.97,
+      "factorMax": 1.03
+    }
+  ],
+  "hplcMethods": [],
+  "icpMethods": [],
+  "materialEntries": [
+    {
+      "name": "Ceric ammonium sulfate",
+      "category": "Reagent",
+      "codePrefix": "RG-",
+      "code": null,
+      "baseUnit": "Gram",
+      "usedBy": [
+        "0.1 N Ceric Ammonium Sulfate VS"
+      ],
+      "source": "Vitamin K1__SM- Vitamin K1 new + Micro.txt:26",
+      "loadedObjectNeedsIt": true
+    },
+    {
+      "name": "Ferroin solution",
+      "category": "Indicator",
+      "codePrefix": "IND-",
+      "code": null,
+      "baseUnit": "Bottle",
+      "usedBy": [
+        "RM-TIT-VITK1"
+      ],
+      "source": "Vitamin K1__SM- Vitamin K1 new + Micro.txt:26",
+      "loadedObjectNeedsIt": true
+    },
+    {
+      "name": "Mordant black 11 triturate",
+      "category": "Indicator",
+      "codePrefix": "IND-",
+      "code": null,
+      "baseUnit": "Bottle",
+      "usedBy": [
+        "RM-TIT-MGST"
+      ],
+      "source": "Magnesium Stearate__Magnesium Stearate - SM.txt:52",
+      "loadedObjectNeedsIt": true
+    },
+    {
+      "name": "Zinc sulfate heptahydrate",
+      "category": "Reagent",
+      "codePrefix": "RG-",
+      "code": null,
+      "baseUnit": "Gram",
+      "usedBy": [
+        "0.1 M Zinc sulfate VS",
+        "0.02 M Zinc sulfate VS"
+      ],
+      "source": "USP 35-NF 30 Volumetric Solutions (drugfuture 1077-1085 Volumetric Solutions.pdf): p.1085",
+      "loadedObjectNeedsIt": true
+    }
+  ],
+  "reagentLinks": [
+    {
+      "stmName": "Ceric ammonium sulfate",
+      "entry": "Ceric ammonium sulfate",
+      "entryCode": null,
+      "category": "Reagent",
+      "status": "created"
+    },
+    {
+      "stmName": "Sulfuric acid",
+      "entry": "Sulfuric acid (95%-97%)",
+      "entryCode": "RG-218",
+      "category": "Reagent",
+      "status": "matched"
+    },
+    {
+      "stmName": "Ferroin solution",
+      "entry": "Ferroin solution",
+      "entryCode": null,
+      "category": "Indicator",
+      "status": "created"
+    },
+    {
+      "stmName": "Mordant black 11 triturate",
+      "entry": "Mordant black 11 triturate",
+      "entryCode": null,
+      "category": "Indicator",
+      "status": "created"
+    }
+  ],
+  "mapping": {
+    "STM-RM-081": {
+      "RM-BULKD": "RM-BULKD",
+      "RM-COND": "RM-COND",
+      "RM-DESC": "RM-DESC",
+      "RM-ECOLI": "E.coli",
+      "RM-ETH-SOL": "RM-ETH-SOL",
+      "RM-ID-CR-MCC": "RM-ID-CR-MCC",
+      "RM-ID-IR": "RM-ID-IR",
+      "RM-LOD": "RM-LOD",
+      "RM-PAER": "RM-PAER",
+      "RM-PH": "RM-PH",
+      "RM-SALM": "Salmonella ",
+      "RM-SASH": "RM-SASH",
+      "RM-SAUR": "RM-SAUR",
+      "RM-SOLUB": "RM-SOLUB",
+      "RM-TAMC": "TAMC",
+      "RM-TYMC": "TYMC",
+      "RM-WAT-SOL": "RM-WSS"
+    },
+    "STM-RM-012": {
+      "RM-DESC": "RM-DESC",
+      "RM-ECOLI": "E.coli",
+      "RM-ID-VITK1": "RM-ID-VITK1",
+      "RM-LOD": "RM-LOD",
+      "RM-LT-HM": "RM-LT-HM",
+      "RM-TAMC": "TAMC",
+      "RM-TIT-VITK1": "RM-TIT-VITK1",
+      "RM-TYMC": "TYMC"
+    },
+    "STM-RM-086": {
+      "RM-ACID-ALK-MG": "RM-ACIDALK-VOL",
+      "RM-DESC": "RM-DESC",
+      "RM-ECOLI": "E.coli",
+      "RM-ID-AV-MG": "RM-ID-AV-MG",
+      "RM-ID-CR-MG": "RM-ID-MG",
+      "RM-ID-FP-MG": "RM-ID-FP-MG",
+      "RM-LOD": "RM-LOD",
+      "RM-LT-CL": "RM-LT-CL",
+      "RM-LT-SO4": "RM-LT-SO4",
+      "RM-SALM": "Salmonella ",
+      "RM-SOLUB": "RM-SOLUB",
+      "RM-TAMC": "TAMC",
+      "RM-TIT-MGST": "RM-TIT-MGST",
+      "RM-TYMC": "TYMC"
+    },
+    "STM-RM-059": {
+      "RM-ACID-ATOC": "RM-ACIDALK-VOL",
+      "RM-BULKD": "RM-BULKD",
+      "RM-DESC": "RM-DESC",
+      "RM-ECOLI": "E.coli",
+      "RM-ID-CR-ATOC": "RM-ID-CR-ATOC",
+      "RM-ID-RT": "RM-ID-RT",
+      "RM-MP": "RM-MP",
+      "RM-OPTROT": "RM-OPTROT",
+      "RM-SOLUB": "RM-SOLUB",
+      "RM-TAMC": "TAMC",
+      "RM-TYMC": "TYMC"
+    },
+    "STM-RM-062": {
+      "RM-COND": "RM-COND",
+      "RM-DESC": "RM-DESC",
+      "RM-ECOLI": "E.coli",
+      "RM-ID-RT": "RM-ID-RT",
+      "RM-ID-VIS-SORB": "RM-ID-VIS-SORB",
+      "RM-KF": "RM-KF",
+      "RM-OPTROT-SORB": "RM-OPTROT-SORB",
+      "RM-RED-SUG": "RM-RED-SUG",
+      "RM-RED-SUG-HYD": "RM-RED-SUG-HYD",
+      "RM-SOLAPP": "RM-SOLAPP",
+      "RM-TAMC": "TAMC",
+      "RM-TYMC": "TYMC"
+    }
+  },
+  "gaps": []
+}

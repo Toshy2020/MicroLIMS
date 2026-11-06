@@ -1,0 +1,493 @@
+{
+  "itemCode": "STM-RM-145",
+  "stmCode": "STM-RM-145",
+  "itemName": "Inositol",
+  "stmFile": "Inositol__Inositol-SM.txt",
+  "specFiles": ["Inositol__Specifications sheet Inositol.txt"],
+  "minQuantity": {
+    "routine": 200,
+    "retest": 100,
+    "retention": 200,
+    "unit": "g",
+    "source": "Inositol__Specifications sheet Inositol.txt:23; Inositol__Inositol-SM.txt:40"
+  },
+  "grades": [
+    {
+      "grade": null,
+      "rows": [
+        {
+          "testCode": "RM-DESC",
+          "parameterName": "Appearance",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "White or almost white, crystalline powder.",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Inositol__Specifications sheet Inositol.txt:11"
+        },
+        {
+          "testCode": "RM-SOLUB",
+          "parameterName": "Solubility",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Very soluble in water; practically insoluble in alcohol absolute and in ether.",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Inositol__Specifications sheet Inositol.txt:12"
+        },
+        {
+          "testCode": "RM-SOLAPP",
+          "parameterName": "Clarity of solution",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "The sample solution shows the same clarity as that of water.",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Inositol__Specifications sheet Inositol.txt:13"
+        },
+        {
+          "testCode": "RM-SOLAPP",
+          "parameterName": "Colour of solution",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "The sample solution is not more intensely coloured than standard solution A, standard solution B, standard solution C, or water.",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Inositol__Specifications sheet Inositol.txt:14"
+        },
+        {
+          "testCode": "RM-ID-IR",
+          "parameterName": "Identification (IR)",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "The spectrum obtained from sample corresponds to that obtained from standard.",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Inositol__Specifications sheet Inositol.txt:15"
+        },
+        {
+          "testCode": "RM-ID-RT",
+          "parameterName": "Identification (HPLC retention time)",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "The retention time of the major peak of the sample solution corresponds to that of the standard solution.",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Inositol__Specifications sheet Inositol.txt:16",
+          "heldBack": "needs the held-back method \"Inositol assay (USP, HPLC RI)\""
+        },
+        {
+          "testCode": "RM-BARIUM-INOS",
+          "parameterName": "Barium",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Any opalescence in the solution is not more intense than that in a mixture of 1 mL of water and 10 mL of the sample solution.",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Inositol__Specifications sheet Inositol.txt:17"
+        },
+        {
+          "testCode": "RM-LEAD-INOS",
+          "parameterName": "Limit of lead",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 0.5,
+          "lowerInclusive": null,
+          "unit": "mg/kg",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Inositol__Specifications sheet Inositol.txt:18"
+        },
+        {
+          "testCode": "RM-HPLC-INOS-RS",
+          "parameterName": "Organic impurities: individual impurities",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 0.3,
+          "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Inositol__Specifications sheet Inositol.txt:19",
+          "heldBack": "needs the held-back method \"Inositol assay (USP, HPLC RI)\""
+        },
+        {
+          "testCode": "RM-HPLC-INOS-RS",
+          "parameterName": "Organic impurities: total impurities",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 1.0,
+          "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Inositol__Specifications sheet Inositol.txt:19",
+          "heldBack": "needs the held-back method \"Inositol assay (USP, HPLC RI)\""
+        },
+        {
+          "testCode": "RM-COND-INOS",
+          "parameterName": "Conductivity",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 20,
+          "lowerInclusive": null,
+          "unit": "µS/cm",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Inositol__Specifications sheet Inositol.txt:20"
+        },
+        {
+          "testCode": "RM-KF",
+          "parameterName": "Water (Karl Fischer)",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 0.5,
+          "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Inositol__Specifications sheet Inositol.txt:21"
+        },
+        {
+          "testCode": "RM-HPLC-INOS-AS",
+          "parameterName": "Assay (anhydrous basis)",
+          "limitType": "Range",
+          "lower": 97.0,
+          "upper": 102.0,
+          "lowerInclusive": true,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": "PercentAnhydrousBasis",
+          "referenceStandard": "USP",
+          "source": "Inositol__Specifications sheet Inositol.txt:22",
+          "heldBack": "needs the held-back method \"Inositol assay (USP, HPLC RI)\""
+        },
+        {
+          "testCode": "TAMC",
+          "parameterName": "Total aerobic microbial count (TAMC)",
+          "limitType": "CountTiered",
+          "lower": null,
+          "upper": 1000,
+          "lowerInclusive": null,
+          "unit": "CFU/g",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "Spec sheet additional requirements",
+          "source": "Inositol__Specifications sheet Inositol.txt:23"
+        },
+        {
+          "testCode": "TYMC",
+          "parameterName": "Total combined yeasts and molds count (TYMC)",
+          "limitType": "CountTiered",
+          "lower": null,
+          "upper": 100,
+          "lowerInclusive": null,
+          "unit": "CFU/g",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "Spec sheet additional requirements",
+          "source": "Inositol__Specifications sheet Inositol.txt:23"
+        },
+        {
+          "testCode": "E.coli",
+          "parameterName": "Test for E. coli",
+          "limitType": "PresenceAbsence",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": "per 10 g",
+          "expectedResultText": "Absent / 10 gm",
+          "expectedState": "Absence",
+          "resultBasis": null,
+          "referenceStandard": "Spec sheet additional requirements",
+          "source": "Inositol__Specifications sheet Inositol.txt:23"
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "testCode": "RM-DESC",
+      "procedure": "Under strong white light check each received sample container separately in a clean transparent watch glass or glass dish for foreign particles, colour and conformity with the visual specification.",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {
+        "perContainer": true,
+        "reference": "USP Description and Relative Solubility; USP2024 Monograph for Inositol"
+      },
+      "source": "Inositol__Inositol-SM.txt:28"
+    },
+    {
+      "testCode": "RM-SOLUB",
+      "procedure": "Stepwise solubility (USP descriptive terms): 100 mg sample in a stoppered tube with 0.1 mL solvent, shake 1 min, hold 25.0 ± 0.5 °C for 15 min (repeat once if not dissolved); add 0.9 mL, then 2 mL, then 7 mL solvent with the same shake and hold to classify very soluble / freely soluble / soluble / sparingly soluble; if still undissolved, 10 mg in 10 mL (slightly soluble), then 1 mg in 10 mL (very slightly soluble), else practically insoluble. Repeat with the other solvents.",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {
+        "sample": "100 mg",
+        "temperature": "25.0 ± 0.5 °C",
+        "holdMin": 15,
+        "shakeMin": 1,
+        "volumesMl": [0.1, 0.9, 2, 7],
+        "smallSampleSteps": ["10 mg in 10 mL", "1 mg in 10 mL"],
+        "solvents": ["water", "alcohol absolute", "ether"],
+        "reference": "USP Description and Relative Solubility"
+      },
+      "source": "Inositol__Inositol-SM.txt:29"
+    },
+    {
+      "testCode": "RM-SOLAPP",
+      "procedure": "Clarity of solution: sample solution 100 mg/mL in colourless neutral glass tubes, compared with reference suspensions A and B and water in diffused daylight, viewed vertically against a black background; sample must show the same clarity as water. Colour of solution: the sample solution (from the clarity test) is compared with standard solutions A, B and C and water in diffused daylight, viewed vertically against a white background; sample must not be more intensely coloured than any of them.",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {
+        "sampleConcentrationMgPerMl": 100,
+        "clarityReferences": "reference suspensions A (5.0 mL of opalescence standard to 100 mL) and B (10.0 mL to 100 mL), and water",
+        "colourStandards": {
+          "A": "2.5 mL standard stock A (2.4 mL ferric chloride CS, 0.6 mL cobaltous chloride CS, 7.0 mL diluted HCl) to 100 mL",
+          "B": "2.5 mL standard stock B (2.4 mL ferric chloride CS, 1.0 mL cobaltous chloride CS, 0.4 mL cupric sulfate CS, 6.2 mL diluted HCl) to 100 mL",
+          "C": "0.75 mL standard stock C (9.6 mL ferric chloride CS, 0.2 mL cobaltous chloride CS, 0.2 mL cupric sulfate CS) to 100 mL"
+        },
+        "reference": "USP 2024 <630> Visual Comparison"
+      },
+      "source": "Inositol__Inositol-SM.txt:34-35; reagents Inositol__Inositol-SM.txt:26"
+    },
+    {
+      "testCode": "RM-ID-IR",
+      "procedure": "IR identification: mix sample intimately with potassium bromide, compress into a transparent pellet, examine the spectrum and compare with that of Inositol RS.",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "details": {
+        "technique": "KBr pellet",
+        "standard": "USP Inositol RS",
+        "reference": "USP 2024 <197> Infrared Spectroscopy; USP2024 Monograph for Inositol"
+      },
+      "source": "Inositol__Inositol-SM.txt:30"
+    },
+    {
+      "testCode": "RM-ID-RT",
+      "procedure": "HPLC identification: the retention time of the major peak of the sample solution corresponds to that of the standard solution, as obtained in the assay (see RM-HPLC-INOS-AS).",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "details": {
+        "method": "Inositol assay (USP, HPLC RI) as in the assay test",
+        "stmSpecText": "A white, crystalline precipitate is formed (does not match the retention-time test; spec sheet loaded)",
+        "reference": "USP 2024 <621> Chromatography"
+      },
+      "source": "Inositol__Inositol-SM.txt:30",
+      "heldBack": "needs the held-back method \"Inositol assay (USP, HPLC RI)\""
+    },
+    {
+      "testCode": "RM-BARIUM-INOS",
+      "procedure": "Barium: to 10 mL of the sample solution (from the clarity test, 100 mg/mL) add 1 mL diluted sulfuric acid; read immediately and after 1 h. Opalescence must not be more intense than a mixture of 1 mL water and 10 mL sample solution.",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "details": {
+        "sampleSolutionMl": 10,
+        "reagent": "1 mL diluted sulfuric acid",
+        "readingsMin": [0, 60],
+        "reference": "USP2024 Monograph for Inositol"
+      },
+      "source": "Inositol__Inositol-SM.txt:31"
+    },
+    {
+      "testCode": "RM-LEAD-INOS",
+      "procedure": "Limit of lead by AAS (USP <852>): dissolve 20.0 g inositol in diluted acetic acid and make up to 100 mL; add 2.0 mL saturated ammonium pyrrolidinedithiocarbamate and 10.0 mL methyl isobutyl ketone, shake 30 s, protect from bright light, separate, use the MIBK layer. Standards: 0.5, 1.0 and 1.5 mL of standard lead solution (10 µg Pb/mL) added to 20.0 g inositol and treated the same way. Blank: as sample without inositol. Atomic absorption, 283.3 nm, lead hollow-cathode lamp, air-acetylene flame; zero on blank, read sample and the three standards; limit NMT 0.5 mg/kg.",
+      "kind": "specific",
+      "workflow": "IcpMethodAssay",
+      "details": {
+        "sampleG": 20,
+        "sampleVolumeMl": 100,
+        "chelatingAgent": "2.0 mL saturated ammonium pyrrolidinedithiocarbamate solution",
+        "extractant": "10.0 mL methyl isobutyl ketone",
+        "standardLevelsMlOfStandardLead": [0.5, 1.0, 1.5],
+        "standardLeadSolution": "10 µg Pb per mL (lead nitrate stock 159.8 mg in 1000 mL water with 1 mL nitric acid, 10.0 mL to 100.0 mL on the day of use)",
+        "wavelengthNm": 283.3,
+        "lamp": "lead hollow-cathode",
+        "flame": "air-acetylene",
+        "mode": "atomic absorption",
+        "reference": "USP2024 <852> Atomic Absorption Spectroscopy"
+      },
+      "source": "Inositol__Inositol-SM.txt:32; standard solution Inositol__Inositol-SM.txt:26"
+    },
+    {
+      "testCode": "RM-HPLC-INOS-RS",
+      "procedure": "Organic impurities (USP, HPLC RI): use the assay mobile phase, sample solution and standard solution as in the assay; dilute 2.0 mL of the assay standard solution to 100 mL with water as the impurity standard; injection volume 20 µL. Impurity (%) = (rU/rS) x (CS/CU) x 100.",
+      "kind": "specific",
+      "workflow": "HplcMethodAssay",
+      "details": {
+        "mode": "LC",
+        "detector": "refractive index",
+        "column": "7.8-mm x 30-cm, packing L19 (or equivalent)",
+        "columnTemperatureC": 85,
+        "detectorTemperatureC": "30 to 35 (constant)",
+        "flowRateMlMin": 0.5,
+        "injectionUl": 20,
+        "mobilePhase": "water",
+        "standardSolution": "50 mg/mL USP Inositol RS (assay standard solution)",
+        "impurityStandard": "2.0 mL of the assay standard solution to 100 mL with water",
+        "formula": "Result = (rU/rS) x (CS/CU) x 100",
+        "reference": "USP 2024 <621> Chromatography; USP2024 Monograph for Inositol"
+      },
+      "source": "Inositol__Inositol-SM.txt:33",
+      "heldBack": "needs the held-back method \"Inositol assay (USP, HPLC RI)\""
+    },
+    {
+      "testCode": "RM-COND-INOS",
+      "procedure": "Conductivity: sample solution 0.2 g/mL inositol in purified water; rinse the calibrated conductivity cell with boiled and cooled water and twice with the sample solution; measure while gently stirring with a magnetic stirrer.",
+      "kind": "specific",
+      "workflow": "Measurement",
+      "details": {
+        "sampleConcentrationGPerMl": 0.2,
+        "solvent": "purified water",
+        "instrument": "calibrated conductivity meter",
+        "reference": "USP2024 Monograph for Inositol"
+      },
+      "source": "Inositol__Inositol-SM.txt:36"
+    },
+    {
+      "testCode": "RM-KF",
+      "procedure": "Water determination (Karl Fischer, USP <921>) on a 1.0 g sample with a calibrated Karl Fischer apparatus.",
+      "kind": "general",
+      "workflow": "Measurement",
+      "details": {
+        "sampleG": 1.0,
+        "moistureRole": "Water",
+        "reference": "USP 2024 <921> Water Determination"
+      },
+      "source": "Inositol__Inositol-SM.txt:37"
+    },
+    {
+      "testCode": "RM-HPLC-INOS-AS",
+      "procedure": "Assay (USP, HPLC refractive index): mobile phase water; system suitability solution 0.05 mg/mL USP Inositol RS and 0.05 mg/mL USP Mannitol RS; standard solution 50 mg/mL USP Inositol RS; sample solution 50 mg/mL inositol. Column 7.8-mm x 30-cm, packing L19, 85 °C; RI detector at a constant 30-35 °C; flow 0.5 mL/min; injection 10 µL. Relative retention: inositol 1.0, mannitol 1.3. Result (%) = (rU/rS) x (CS/CU) x 100, on the anhydrous basis.",
+      "kind": "specific",
+      "workflow": "HplcMethodAssay",
+      "details": {
+        "mode": "LC",
+        "detector": "refractive index",
+        "column": "7.8-mm x 30-cm, packing L19 (or equivalent)",
+        "columnTemperatureC": 85,
+        "detectorTemperatureC": "30 to 35 (constant)",
+        "flowRateMlMin": 0.5,
+        "injectionUl": 10,
+        "mobilePhase": "water",
+        "systemSuitabilitySolution": "0.05 mg/mL USP Inositol RS and 0.05 mg/mL USP Mannitol RS",
+        "relativeRetention": {"inositol": 1.0, "mannitol": 1.3},
+        "standardSolution": "50 mg/mL USP Inositol RS",
+        "sampleSolution": "50 mg/mL inositol",
+        "systemSuitability": "samples: system suitability solution and standard solution; acceptance criteria not stated in the STM",
+        "formula": "Result = (rU/rS) x (CS/CU) x 100",
+        "reference": "USP 2024 <621> Chromatography; USP2024 Monograph for Inositol",
+        "specBasis": "anhydrous basis"
+      },
+      "source": "Inositol__Inositol-SM.txt:38",
+      "heldBack": "needs the held-back method \"Inositol assay (USP, HPLC RI)\""
+    },
+    {
+      "testCode": "TAMC",
+      "procedure": "No microbiological procedure in the STM; limit taken from the spec sheet additional requirements.",
+      "kind": "general",
+      "workflow": "CountTest",
+      "details": {
+        "limit": "NMT 1000 CFU/gm"
+      },
+      "source": "Inositol__Specifications sheet Inositol.txt:23"
+    },
+    {
+      "testCode": "TYMC",
+      "procedure": "No microbiological procedure in the STM; limit taken from the spec sheet additional requirements.",
+      "kind": "general",
+      "workflow": "CountTest",
+      "details": {
+        "limit": "NMT 100 CFU/gm"
+      },
+      "source": "Inositol__Specifications sheet Inositol.txt:23"
+    },
+    {
+      "testCode": "E.coli",
+      "procedure": "No microbiological procedure in the STM; limit taken from the spec sheet additional requirements.",
+      "kind": "general",
+      "workflow": "Observation",
+      "details": {
+        "limit": "Absent / 10 gm"
+      },
+      "source": "Inositol__Specifications sheet Inositol.txt:23"
+    }
+  ],
+  "notApplicable": [],
+  "supplierAttributes": [],
+  "reagents": [
+    { "name": "USP Inositol RS", "use": "standard", "source": "Inositol__Inositol-SM.txt:26" },
+    { "name": "USP Mannitol RS", "use": "standard", "source": "Inositol__Inositol-SM.txt:26" },
+    { "name": "Lead nitrate", "use": "standard", "source": "Inositol__Inositol-SM.txt:26" },
+    { "name": "Nitric acid", "use": "reagent", "source": "Inositol__Inositol-SM.txt:26" },
+    { "name": "Lead Standard Solution 1000 ppm", "use": "standard", "source": "Inositol__Inositol-SM.txt:26" },
+    { "name": "Acetic acid", "use": "reagent", "source": "Inositol__Inositol-SM.txt:26" },
+    { "name": "Ammonium pyrrolidinedithiocarbamate", "use": "reagent", "source": "Inositol__Inositol-SM.txt:26" },
+    { "name": "Methyl isobutyl ketone", "use": "reagent", "source": "Inositol__Inositol-SM.txt:26" },
+    { "name": "Hydrazine sulfate", "use": "reagent", "source": "Inositol__Inositol-SM.txt:26" },
+    { "name": "Methenamine", "use": "reagent", "source": "Inositol__Inositol-SM.txt:26" },
+    { "name": "Ferric chloride CS", "use": "reagent", "source": "Inositol__Inositol-SM.txt:26" },
+    { "name": "Cobaltous chloride CS", "use": "reagent", "source": "Inositol__Inositol-SM.txt:26" },
+    { "name": "Cupric sulfate CS", "use": "reagent", "source": "Inositol__Inositol-SM.txt:26" },
+    { "name": "Hydrochloric acid", "use": "reagent", "source": "Inositol__Inositol-SM.txt:26" }
+  ],
+  "openQuestions": [
+    {
+      "question": "HPLC identification: the STM gives the USP specification as 'A white, crystalline precipitate is formed', which does not match the retention-time test; the spec sheet says retention time corresponds to the standard. Spec sheet wording loaded; confirm.",
+      "source": "Inositol__Inositol-SM.txt:30; Inositol__Specifications sheet Inositol.txt:16"
+    },
+    {
+      "question": "Inositol HPLC methods (assay, organic impurities, HPLC identification) are held back: the STM gives no system suitability acceptance criteria (resolution, RSD, tailing) and no run time. Lab to supply these before the rows load.",
+      "source": "Inositol__Inositol-SM.txt:38"
+    },
+    {
+      "question": "Microbiology: TAMC, TYMC and E. coli limits appear only in the spec sheet additional requirements. The STM has no microbiological examination section, so no procedure is transcribed. Confirm the procedure and SOP.",
+      "source": "Inositol__Specifications sheet Inositol.txt:23; Inositol__Inositol-SM.txt:26-38"
+    },
+    {
+      "question": "Lead limit: the STM uses three standards (0.5, 1.0, 1.5 mL of standard lead solution, added to 20.0 g inositol) read on AAS; loaded as IcpMethodAssay with those levels. Confirm the method master (none in the catalog for this material).",
+      "source": "Inositol__Inositol-SM.txt:32"
+    }
+  ]
+}

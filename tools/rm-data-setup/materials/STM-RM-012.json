@@ -1,0 +1,371 @@
+{
+  "itemCode": "STM-RM-012",
+  "stmCode": "STM-RM-012",
+  "itemName": "Vitamin k1 5% SD",
+  "stmFile": "Vitamin K1__SM- Vitamin K1 new + Micro.txt",
+  "specFiles": [
+    "Vitamin K1__Specifications sheet Vitamin K1.txt"
+  ],
+  "minQuantity": {
+    "routine": 65,
+    "retest": 30,
+    "retention": 65,
+    "unit": "g",
+    "source": "Vitamin K1__Specifications sheet Vitamin K1.txt:19; Vitamin K1__SM- Vitamin K1 new + Micro.txt:35"
+  },
+  "grades": [
+    {
+      "grade": null,
+      "rows": [
+        {
+          "testCode": "RM-DESC",
+          "parameterName": "Description",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Off- white to yellow powder",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "In -House",
+          "source": "Vitamin K1__Specifications sheet Vitamin K1.txt:11"
+        },
+        {
+          "testCode": "RM-ID-VITK1",
+          "parameterName": "Identification",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Comply with assay",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "In -House",
+          "source": "Vitamin K1__Specifications sheet Vitamin K1.txt:12"
+        },
+        {
+          "testCode": "RM-LOD",
+          "parameterName": "Loss on drying",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 5.0,
+          "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "In -House",
+          "source": "Vitamin K1__Specifications sheet Vitamin K1.txt:13"
+        },
+        {
+          "testCode": "RM-LT-HM",
+          "parameterName": "Heavy metals",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Not more than 20 ppm",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "In -House",
+          "source": "Vitamin K1__Specifications sheet Vitamin K1.txt:14"
+        },
+        {
+          "testCode": "RM-TIT-VITK1",
+          "parameterName": "Assay",
+          "limitType": "NotLessThan",
+          "lower": 5.0,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": "PercentAsIs",
+          "referenceStandard": "In -House",
+          "source": "Vitamin K1__Specifications sheet Vitamin K1.txt:15"
+        },
+        {
+          "testCode": "RM-TAMC",
+          "parameterName": "Total aerobic microbial count",
+          "limitType": "CountTiered",
+          "lower": null,
+          "upper": 1000,
+          "lowerInclusive": null,
+          "unit": "CFU/g",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Vitamin K1__Specifications sheet Vitamin K1.txt:16"
+        },
+        {
+          "testCode": "RM-TYMC",
+          "parameterName": "Total yeasts and molds count",
+          "limitType": "CountTiered",
+          "lower": null,
+          "upper": 100,
+          "lowerInclusive": null,
+          "unit": "CFU/g",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Vitamin K1__Specifications sheet Vitamin K1.txt:17"
+        },
+        {
+          "testCode": "RM-ECOLI",
+          "parameterName": "Test for E. coli",
+          "limitType": "PresenceAbsence",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": "per 10 g",
+          "expectedResultText": "Absent / 10 gm",
+          "expectedState": "Absence",
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Vitamin K1__Specifications sheet Vitamin K1.txt:18"
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "testCode": "RM-DESC",
+      "procedure": "Under strong white light, check each received sample container separately in clean, transparent watch glass or glass dish to detect any foreign particles, conformance of colour & compliance with the visual specifications.",
+      "kind": "general",
+      "workflow": "Observation",
+      "details": {
+        "perContainer": true,
+        "specification": "Off- white to yellow powder",
+        "reference": "Supplier certificate for Vitamin K1 5%"
+      },
+      "source": "Vitamin K1__SM- Vitamin K1 new + Micro.txt:28"
+    },
+    {
+      "testCode": "RM-ID-VITK1",
+      "procedure": "Identified by conformity with the assay procedure (titration).",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "details": {
+        "specification": "Comply with assay",
+        "reference": "Analytical Method validation for Vitamin K1 5%"
+      },
+      "source": "Vitamin K1__SM- Vitamin K1 new + Micro.txt:29"
+    },
+    {
+      "testCode": "RM-LOD",
+      "procedure": "Accurately weigh empty crucible previously dried at 105 °C and cooled in desiccator (W0). Weigh accurately 1.000 g into crucible (W1 = empty plate + material). Dry in calibrated oven at 105 °C for 4 h, cool in desiccator, weigh (W2). Repeat to constant weight. % LOD = ((W1 - W2) / (W1 - W0)) x 100.",
+      "kind": "general",
+      "workflow": "Gravimetric",
+      "details": {
+        "sampleG": 1.0,
+        "dryingTemp": "105 °C",
+        "initialTimeHours": 4,
+        "formula": "% Loss on Drying = ((W1 - W2) / (W1 - W0)) x 100",
+        "reference": "USP <731> Loss on Drying"
+      },
+      "source": "Vitamin K1__SM- Vitamin K1 new + Micro.txt:30"
+    },
+    {
+      "testCode": "RM-LT-HM",
+      "procedure": "Transfer 1.0 g to crucible, add sulfuric acid to wet, char at low temperature, add 2 mL nitric acid and 5 drops sulfuric acid, heat until fumes cease, ignite in muffle at 1000 °C until carbon burned off. Digest residue with 4 mL 6 N HCl on steam bath 15 min, evaporate to dryness. Moisten with 1 drop HCl, add 10 mL hot water, digest 2 min. Neutralize with 6 N NH4OH to litmus, adjust with 1 N acetic acid to pH 3.0-4.0, dilute to 40 mL. Standard: 2 mL Lead Standard (20 µg Pb) similarly adjusted. To each add 2 mL pH 3.5 buffer and 1.2 mL thioacetamide-glycerin base TS, dilute to 50 mL, stand 2 min, compare colors against white surface.",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {
+        "sampleG": 1.0,
+        "standardLead": "2 mL of 20 µg/mL Pb standard = 40 µg (20 ppm limit for 1 g sample)",
+        "ashTemp": "1000 °C",
+        "reagents": [
+          "pH 3.5 Acetate buffer",
+          "thioacetamide-glycerin base TS",
+          "6 N HCl",
+          "6 N NH4OH",
+          "1 N acetic acid"
+        ],
+        "limit": "Not more than 20 ppm"
+      },
+      "source": "Vitamin K1__SM- Vitamin K1 new + Micro.txt:31"
+    },
+    {
+      "testCode": "RM-TIT-VITK1",
+      "procedure": "Weigh accurately about 0.15 g (Wt). Dissolve in 15 mL glacial acetic acid in stoppered flask fitted with valve. Add 15 mL 2 M hydrochloric acid and 1 g zinc powder. Close flask, allow to stand in dark for 60 min, shaking occasionally. Filter through absorbent cotton, wash with three 10-mL portions of carbon dioxide-free water into filtrate. Add 0.1 mL ferroin solution and immediately titrate with 0.1 M ceric ammonium sulphate to endpoint (E.P). Each mL of 0.1 M ceric ammonium sulphate is equivalent to 0.00861 g of Vitamin K. % = (E.P x 0.00861 x molarity x 100 x 100) / (Wt x 0.1 x (100 - LOD)).",
+      "kind": "specific",
+      "workflow": "Titration",
+      "details": {
+        "sampleG": 0.15,
+        "solvents": [
+          "15 mL glacial acetic acid",
+          "15 mL 2 M hydrochloric acid"
+        ],
+        "reduction": "1 g zinc powder, 60 min in dark with occasional shaking",
+        "indicator": "0.1 mL ferroin solution",
+        "titrant": "0.1 M Ceric Ammonium Sulfate VS",
+        "titrantMolarity": 0.1,
+        "equivalenceFactor": "0.00861 g Vitamin K per mL of 0.1 M titrant",
+        "formula": "% = (E.P x 0.00861 x molarity x 100 x 100) / (Wt x 0.1 x (100 - LOD))",
+        "specBasis": "dried basis (corrected by LOD in formula)",
+        "titrantStandardization": "25 mL ceric ammonium sulfate + 2 g KI + 150 mL water, add 1 mL starch TS, titrate with 0.1 N sodium thiosulfate VS",
+        "thiosulfateStandardization": "210 mg potassium dichromate dried at 120 °C 4 h + 100 mL water + 3 g KI + 2 g NaHCO3 + 5 mL HCl, stand 10 min dark, titrate with thiosulfate with starch TS indicator",
+        "reference": "Analytical Method validation for Vitamin K1 5%"
+      },
+      "source": "Vitamin K1__SM- Vitamin K1 new + Micro.txt:32; preparations line 26"
+    },
+    {
+      "testCode": "RM-TAMC",
+      "procedure": "Microbiological examination per SOP C2I-91-128 and the material-specific verification report.",
+      "kind": "general",
+      "workflow": "CountTest",
+      "details": {
+        "limit": "Not more than 10^3 CFU/gm",
+        "reference": "USP <2023>",
+        "sop": "C2I-91-128"
+      },
+      "source": "Vitamin K1__SM- Vitamin K1 new + Micro.txt:33"
+    },
+    {
+      "testCode": "RM-TYMC",
+      "procedure": "Microbiological examination per SOP C2I-91-128 and the material-specific verification report.",
+      "kind": "general",
+      "workflow": "CountTest",
+      "details": {
+        "limit": "Not more than 10^2 CFU/gm",
+        "reference": "USP <2023>",
+        "sop": "C2I-91-128"
+      },
+      "source": "Vitamin K1__SM- Vitamin K1 new + Micro.txt:33"
+    },
+    {
+      "testCode": "RM-ECOLI",
+      "procedure": "Microbiological examination per SOP C2I-91-128 and the material-specific verification report.",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {
+        "limit": "Absent / 10 gm",
+        "reference": "USP <2023>",
+        "sop": "C2I-91-128"
+      },
+      "source": "Vitamin K1__SM- Vitamin K1 new + Micro.txt:33"
+    }
+  ],
+  "notApplicable": [],
+  "supplierAttributes": [],
+  "reagents": [
+    {
+      "name": "Vitamin K1 Working Standard",
+      "use": "standard",
+      "source": "Vitamin K1__SM- Vitamin K1 new + Micro.txt:26"
+    },
+    {
+      "name": "Methanol",
+      "use": "reagent",
+      "source": "Vitamin K1__SM- Vitamin K1 new + Micro.txt:26"
+    },
+    {
+      "name": "Hydrochloric acid",
+      "use": "reagent",
+      "source": "Vitamin K1__SM- Vitamin K1 new + Micro.txt:26"
+    },
+    {
+      "name": "Glacial acetic acid",
+      "use": "reagent",
+      "source": "Vitamin K1__SM- Vitamin K1 new + Micro.txt:26"
+    },
+    {
+      "name": "Ammonium Hydroxide",
+      "use": "reagent",
+      "source": "Vitamin K1__SM- Vitamin K1 new + Micro.txt:26"
+    },
+    {
+      "name": "Zinc granules",
+      "use": "reagent",
+      "source": "Vitamin K1__SM- Vitamin K1 new + Micro.txt:26"
+    },
+    {
+      "name": "0.1 N Ceric Ammonium Sulfate VS",
+      "use": "titrant",
+      "source": "Vitamin K1__SM- Vitamin K1 new + Micro.txt:26"
+    },
+    {
+      "name": "Lead Standard Solution 1000 ppm",
+      "use": "standard",
+      "source": "Vitamin K1__SM- Vitamin K1 new + Micro.txt:26"
+    },
+    {
+      "name": "Nitric acid",
+      "use": "reagent",
+      "source": "Vitamin K1__SM- Vitamin K1 new + Micro.txt:26"
+    },
+    {
+      "name": "Sulfuric acid",
+      "use": "reagent",
+      "source": "Vitamin K1__SM- Vitamin K1 new + Micro.txt:26"
+    },
+    {
+      "name": "Ferrous sulfate",
+      "use": "reagent",
+      "source": "Vitamin K1__SM- Vitamin K1 new + Micro.txt:26"
+    },
+    {
+      "name": "Phenanthroline monohydrochloride",
+      "use": "reagent",
+      "source": "Vitamin K1__SM- Vitamin K1 new + Micro.txt:26"
+    },
+    {
+      "name": "Ferroin solution",
+      "use": "indicator",
+      "source": "Vitamin K1__SM- Vitamin K1 new + Micro.txt:26"
+    },
+    {
+      "name": "Potassium iodide",
+      "use": "reagent",
+      "source": "Vitamin K1__SM- Vitamin K1 new + Micro.txt:26"
+    },
+    {
+      "name": "Soluble starch",
+      "use": "indicator",
+      "source": "Vitamin K1__SM- Vitamin K1 new + Micro.txt:26"
+    },
+    {
+      "name": "0.1 N Sodium Thiosulfate VS",
+      "use": "titrant",
+      "source": "Vitamin K1__SM- Vitamin K1 new + Micro.txt:26"
+    },
+    {
+      "name": "Sodium carbonate",
+      "use": "reagent",
+      "source": "Vitamin K1__SM- Vitamin K1 new + Micro.txt:26"
+    },
+    {
+      "name": "Sodium bicarbonate",
+      "use": "reagent",
+      "source": "Vitamin K1__SM- Vitamin K1 new + Micro.txt:26"
+    },
+    {
+      "name": "Potassium dichromate",
+      "use": "standard",
+      "source": "Vitamin K1__SM- Vitamin K1 new + Micro.txt:26"
+    }
+  ],
+  "openQuestions": [
+    {
+      "question": "TAMC and TYMC limits in the spec sheet read 'NMT 103 CFU/ gm' and 'NMT 102 CFU/ gm' (superscripts flattened); transcribed as 1000 and 100 CFU/g.",
+      "source": "Vitamin K1__Specifications sheet Vitamin K1.txt:16-17; Vitamin K1__SM- Vitamin K1 new + Micro.txt:33"
+    },
+    {
+      "question": "The STM provides two assay methods: direct titration with 0.1 M ceric ammonium sulfate (main method) and an alternative HPLC method. Per transcription rules, only the main titration method is transcribed.",
+      "source": "Vitamin K1__SM- Vitamin K1 new + Micro.txt:32"
+    },
+    {
+      "question": "The assay calculation formula in STM line 32 divides by (100 - LOD), expressing content on the dried basis, whereas the spec sheet states 'Not less than 5 % of vitamin K1' without explicitly specifying dried basis. resultBasis is recorded as PercentAsIs per rule 3 (assay with no basis -> PercentAsIs).",
+      "source": "Vitamin K1__Specifications sheet Vitamin K1.txt:15; Vitamin K1__SM- Vitamin K1 new + Micro.txt:32"
+    },
+    {
+      "question": "Heavy metals limit test is recorded as a Qualitative row with expectedResultText 'Not more than 20 ppm' per visual comparison limit rules.",
+      "source": "Vitamin K1__Specifications sheet Vitamin K1.txt:14; Vitamin K1__SM- Vitamin K1 new + Micro.txt:31"
+    }
+  ]
+}

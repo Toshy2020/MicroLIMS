@@ -1079,48 +1079,6 @@
       ]
     },
     {
-      "code": "RM-ID-SO4-SMB",
-      "displayName": "Identification (reaction of sulfate, metabisulfite)",
-      "kind": "specific",
-      "section": "Physicochemical Laboratory",
-      "workflowType": "Qualitative",
-      "equationType": "Qualitative",
-      "physchemArea": "RawPackaging",
-      "complete": true,
-      "notes": "Iodinated KI decolorised by solution S, then barium chloride: white precipitate.",
-      "usedBy": [
-        "STM-RM-060"
-      ],
-      "sources": [
-        {
-          "material": "STM-RM-060",
-          "provisionalCode": "RM-ID-SULFATE",
-          "source": "Sodium Meta bisulfit__Sodium Metabisulfit - SM without arsenic.txt:30"
-        }
-      ]
-    },
-    {
-      "code": "RM-ID-SO4-SLS",
-      "displayName": "Identification (reaction of sulfate, lauryl sulfate)",
-      "kind": "specific",
-      "section": "Physicochemical Laboratory",
-      "workflowType": "Qualitative",
-      "equationType": "Qualitative",
-      "physchemArea": "RawPackaging",
-      "complete": true,
-      "notes": "10 g in 100 mL water, HCl, boil 20 min, barium chloride 120 g/L; HCl and BaCl2 volumes not stated.",
-      "usedBy": [
-        "STM-RM-091"
-      ],
-      "sources": [
-        {
-          "material": "STM-RM-091",
-          "provisionalCode": "RM-ID-SULFATE",
-          "source": "Sodium Lauryl sulfate__Sodium Lauryl sulfate.txt:30 (Test 3)"
-        }
-      ]
-    },
-    {
       "code": "RM-ID-FOAM",
       "displayName": "Identification (foam formation)",
       "kind": "specific",
@@ -1774,29 +1732,6 @@
           "material": "STM-RM-091",
           "provisionalCode": "RM-ASSAY",
           "source": "Sodium Lauryl sulfate__Sodium Lauryl sulfate.txt:34"
-        }
-      ],
-      "evaluationBasis": "Mean"
-    },
-    {
-      "code": "RM-TIT-SLS-ALK",
-      "displayName": "Alkalinity of sodium lauryl sulfate (volume of 0.1 M HCl)",
-      "kind": "specific",
-      "section": "Physicochemical Laboratory",
-      "workflowType": "Measurement",
-      "equationType": "Measurement",
-      "physchemArea": "RawPackaging",
-      "replicateCount": 1,
-      "complete": true,
-      "notes": "1.0 g in 100 mL CO2-free water + 0.1 mL phenol red; volume of 0.1 M HCl to colour change (colours not stated). Decision 2026-11-04: the analyst enters the final value, the system judges it against the limit (the written formula cannot be calculated by the titration/gravimetric workflow).",
-      "usedBy": [
-        "STM-RM-091"
-      ],
-      "sources": [
-        {
-          "material": "STM-RM-091",
-          "provisionalCode": "RM-ALKALINITY",
-          "source": "Sodium Lauryl sulfate__Sodium Lauryl sulfate.txt:31; preparations line 26"
         }
       ],
       "evaluationBasis": "Mean"
@@ -3808,7 +3743,7 @@
       "RM-ASSAY": "RM-TIT-SMB",
       "RM-DESC": "RM-DESC",
       "RM-ID-SODIUM": "RM-ID-NA",
-      "RM-ID-SULFATE": "RM-ID-SO4-SMB",
+      "RM-ID-SULFATE": "RM-ID-SO4",
       "RM-IRON": "RM-LT-FE",
       "RM-PH": "RM-PH",
       "RM-SOL": "RM-SOLUB",
@@ -3869,13 +3804,13 @@
       "RM-TYMC": "TYMC"
     },
     "STM-RM-091": {
-      "RM-ALKALINITY": "RM-TIT-SLS-ALK",
+      "RM-ALKALINITY": "RM-ACIDALK-VOL",
       "RM-APPEARANCE": "RM-DESC",
       "RM-ASSAY": "RM-TIT-SLS",
       "RM-ID-FOAM": "RM-ID-FOAM",
       "RM-ID-IR": "RM-ID-IR",
       "RM-ID-SODIUM": "RM-ID-NA-ASH",
-      "RM-ID-SULFATE": "RM-ID-SO4-SLS",
+      "RM-ID-SULFATE": "RM-ID-SO4",
       "RM-NACL-NA2SO4": "RM-NACL-SLS",
       "RM-NON-ESTERIFIED-ALCOHOLS": "RM-NONEST-ALC",
       "RM-SOLUBILITY": "RM-SOLUB"

@@ -1,0 +1,330 @@
+{
+  "itemCode": "STM-RM-072",
+  "itemName": "Vitamin D3 (Cholecalciferol) 500 IU/mg",
+  "stmCode": "STM-RM-072",
+  "stmFile": "Vitamin D3 (Cholecalciferol)500 IUmg)__STM Vitamin D3 (Cholecalciferol)500 IUmg) Micro 2-0.txt",
+  "specFiles": [
+    "Vitamin D3 (Cholecalciferol)500 IUmg)__Specifications sheet Cholecalciferol 500,000 IUg new.txt"
+  ],
+  "minQuantity": {
+    "routine": 70,
+    "retest": 25,
+    "retention": 70,
+    "unit": "g",
+    "source": "Vitamin D3 (Cholecalciferol)500 IUmg)__Specifications sheet Cholecalciferol 500,000 IUg new.txt:19; Vitamin D3 (Cholecalciferol)500 IUmg)__STM Vitamin D3 (Cholecalciferol)500 IUmg) Micro 2-0.txt:40"
+  },
+  "grades": [
+    {
+      "grade": null,
+      "rows": [
+        {
+          "testCode": "RM-DESC",
+          "parameterName": "Appearance",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "White to off white colored free flowing powder",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "In-house",
+          "source": "Vitamin D3 (Cholecalciferol)500 IUmg)__Specifications sheet Cholecalciferol 500,000 IUg new.txt:11"
+        },
+        {
+          "testCode": "RM-SOLUB",
+          "parameterName": "Solubility",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Practically insoluble, swells, or forms dispersion in water, depending on formulation",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "In-house",
+          "source": "Vitamin D3 (Cholecalciferol)500 IUmg)__Specifications sheet Cholecalciferol 500,000 IUg new.txt:12"
+        },
+        {
+          "testCode": "RM-ID-HPLC-VITD3",
+          "parameterName": "Identification",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "The principal peak in the chromatogram obtained with the test solution is similar in position to the principal peak in the chromatogram obtained with the reference solution",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "In-house",
+          "source": "Vitamin D3 (Cholecalciferol)500 IUmg)__Specifications sheet Cholecalciferol 500,000 IUg new.txt:13"
+        },
+        {
+          "testCode": "RM-LOD",
+          "parameterName": "Loss on Drying",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 1.0,
+          "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "In-house",
+          "source": "Vitamin D3 (Cholecalciferol)500 IUmg)__Specifications sheet Cholecalciferol 500,000 IUg new.txt:14"
+        },
+        {
+          "testCode": "RM-HPLC-VITD3-AS",
+          "parameterName": "Assay",
+          "limitType": "Range",
+          "lower": 95.0,
+          "upper": 105.0,
+          "lowerInclusive": true,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": "PercentAsIs",
+          "referenceStandard": "In-house",
+          "source": "Vitamin D3 (Cholecalciferol)500 IUmg)__Specifications sheet Cholecalciferol 500,000 IUg new.txt:15",
+          "heldBack": "STM: HPLC method incomplete (system suitability criteria not stated)"
+        },
+        {
+          "testCode": "TAMC",
+          "parameterName": "Total aerobic microbial count",
+          "limitType": "CountTiered",
+          "lower": null,
+          "upper": 1000,
+          "lowerInclusive": null,
+          "unit": "CFU / gm",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Vitamin D3 (Cholecalciferol)500 IUmg)__Specifications sheet Cholecalciferol 500,000 IUg new.txt:16"
+        },
+        {
+          "testCode": "TYMC",
+          "parameterName": "Total yeasts and molds count",
+          "limitType": "CountTiered",
+          "lower": null,
+          "upper": 100,
+          "lowerInclusive": null,
+          "unit": "CFU / gm",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Vitamin D3 (Cholecalciferol)500 IUmg)__Specifications sheet Cholecalciferol 500,000 IUg new.txt:17"
+        },
+        {
+          "testCode": "E.coli",
+          "parameterName": "E. coli",
+          "limitType": "PresenceAbsence",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": "per 10 g",
+          "expectedResultText": "Absent /10 gm",
+          "expectedState": "Absence",
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Vitamin D3 (Cholecalciferol)500 IUmg)__Specifications sheet Cholecalciferol 500,000 IUg new.txt:18"
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "testCode": "RM-DESC",
+      "procedure": "Under strong white light, check each received sample container separately in clean, transparent watch glass or glass dish to detect any foreign particles, conformance of colour & compliance with the visual specifications.",
+      "kind": "general",
+      "workflow": "Observation",
+      "details": {
+        "perContainer": true,
+        "reference": "Supplier Certificate for Vitamin D3 (500IU/mg)"
+      },
+      "source": "Vitamin D3 (Cholecalciferol)500 IUmg)__STM Vitamin D3 (Cholecalciferol)500 IUmg) Micro 2-0.txt:30"
+    },
+    {
+      "testCode": "RM-SOLUB",
+      "procedure": "Weigh 100 mg of sample in a stopper tube, add solvent in steps (0.1 mL, 0.9 mL, 2 mL, 7 mL; then 10 mg/10 mL, 1 mg/10 mL) shaking 1 min and maintaining 25.0 ± 0.5 °C for 15 min at each step to classify solubility.",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {
+        "sampleMg": 100,
+        "temperature": "25.0 ± 0.5 °C",
+        "reference": "BP 2024 Part II, Characteristics; Supplier Certificate for Vitamin D3 (500IU/mg)"
+      },
+      "source": "Vitamin D3 (Cholecalciferol)500 IUmg)__STM Vitamin D3 (Cholecalciferol)500 IUmg) Micro 2-0.txt:31"
+    },
+    {
+      "testCode": "RM-ID-HPLC-VITD3",
+      "procedure": "Identification by HPLC: Run the sample solution alongside working standard solution using the assay chromatographic conditions. The principal peak in the test solution chromatogram corresponds in retention time to the principal peak in the reference solution chromatogram.",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "details": {
+        "conditionsAs": "assay chromatographic conditions (RM-HPLC-VITD3-AS)",
+        "reference": "Analytical Method Validation for Vitamin D3 (Cholecalciferol)"
+      },
+      "source": "Vitamin D3 (Cholecalciferol)500 IUmg)__STM Vitamin D3 (Cholecalciferol)500 IUmg) Micro 2-0.txt:32"
+    },
+    {
+      "testCode": "RM-LOD",
+      "procedure": "Accurately weigh empty weighing bottle dried at 80 °C (W0). Weigh accurately 1.000 g into weighing bottle (W1). Dry in calibrated oven at 80 °C for 2 h, cool in desiccator, weigh (W2). Repeat to constant weight. % Loss on Drying = (W1 - W2) / (W1 - W0) x 100.",
+      "kind": "general",
+      "workflow": "Gravimetric",
+      "details": {
+        "sampleG": 1.0,
+        "dryingTempC": 80,
+        "dryingTimeH": 2,
+        "formula": "% Loss on Drying = (W1 - W2) / (W1 - W0) x 100",
+        "reference": "BP 2024 Appendix IX D. Determination of Loss on Drying; Analytical Method Verification Loss on drying in Vitamin D3 (500IU/mg)"
+      },
+      "source": "Vitamin D3 (Cholecalciferol)500 IUmg)__STM Vitamin D3 (Cholecalciferol)500 IUmg) Micro 2-0.txt:33"
+    },
+    {
+      "testCode": "RM-HPLC-VITD3-AS",
+      "procedure": "HPLC assay: Standard: 20 mg Vitamin D3 (500 IU/mg) working standard in 100 mL flask, add ~20 mL water, shake 1 min, sonicate 10 min, dilute to volume with methanol, sonicate 5 min; dilute 5 mL to 100 mL with methanol. Sample: 20 mg sample prepared identically. Column: BDS C18, 5 µm, 150 x 4.6 mm. Mobile phase: 96% methanol HPLC Grade. Flow rate: 1.5 mL/min. Wavelength: 265 nm. Column temp: 35 °C. Injection: 100 µL. Run time: 8 min. Assay % = (PAt / PAst) x (Act.Wt.std / Theo.Wt.std) x (Theo.Wt.test / Act.Wt.test) x Potency.",
+      "kind": "specific",
+      "workflow": "HplcMethodAssay",
+      "details": {
+        "standardPrep": "20 mg working standard in 100 mL (water/methanol), dilute 5 mL to 100 mL with methanol",
+        "samplePrep": "20 mg sample in 100 mL (water/methanol), dilute 5 mL to 100 mL with methanol",
+        "column": "5 µm, 150 x 4.6 mm, BDS, C18",
+        "mobilePhase": "96% Methanol HPLC Grade",
+        "flowRateMlMin": 1.5,
+        "wavelengthNm": 265,
+        "columnTempC": 35,
+        "injectionUl": 100,
+        "runTimeMin": 8,
+        "formula": "Assay % = (PAt / PAst) * (Act.Wt.std / Theo.Wt.std) * (Theo.Wt.test / Act.Wt.test) * Potency",
+        "reference": "Analytical Method Validation for Vitamin D3 (Cholecalciferol)"
+      },
+      "source": "Vitamin D3 (Cholecalciferol)500 IUmg)__STM Vitamin D3 (Cholecalciferol)500 IUmg) Micro 2-0.txt:34",
+      "heldBack": "STM: HPLC method incomplete (system suitability criteria not stated)"
+    },
+    {
+      "testCode": "TAMC",
+      "procedure": "Microbial enumeration per USP <2021> / <2023>: 10 g sample diluted to 100 mL with SCDB; pour plate with Soybean Casein Digest Agar (SCDA); incubate at 30-35 °C for 24-72 h.",
+      "kind": "general",
+      "workflow": "CountTest",
+      "details": {
+        "media": "Soybean Casein Digest Agar (SCDA)",
+        "incubation": "24-72 h at 30-35 °C",
+        "reference": "USP 2024 <2021>; USP 2024 <2023>"
+      },
+      "source": "Vitamin D3 (Cholecalciferol)500 IUmg)__STM Vitamin D3 (Cholecalciferol)500 IUmg) Micro 2-0.txt:36"
+    },
+    {
+      "testCode": "TYMC",
+      "procedure": "Microbial enumeration per USP <2021> / <2023>: 10 g sample diluted to 100 mL with SCDB; pour plate with Sabouraud Dextrose Agar (SDA); incubate at 20-25 °C for 5-7 days.",
+      "kind": "general",
+      "workflow": "CountTest",
+      "details": {
+        "media": "Sabouraud Dextrose Agar (SDA)",
+        "incubation": "5-7 days at 20-25 °C",
+        "reference": "USP 2024 <2021>; USP 2024 <2023>"
+      },
+      "source": "Vitamin D3 (Cholecalciferol)500 IUmg)__STM Vitamin D3 (Cholecalciferol)500 IUmg) Micro 2-0.txt:36"
+    },
+    {
+      "testCode": "E.coli",
+      "procedure": "Test for E. coli per USP <2022> / <2023>: Pre-enrichment in SCDB at 30-35 °C 24-48 h; 1 mL to 10 mL MacConkey Broth at 42-44 °C 24-48 h; subculture on MacConkey Agar at 30-35 °C 18-24 h; confirm brick-red colonies by Gram stain, EMB agar, TBX agar, or biochemical identification.",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {
+        "media": [
+          "Soybean Casein Digest Broth",
+          "MacConkey Broth",
+          "MacConkey Agar",
+          "Eosin Methylene Blue agar",
+          "Tryptone Bile X-glucuronide agar"
+        ],
+        "reference": "USP 2024 <2022>; USP 2024 <2023>"
+      },
+      "source": "Vitamin D3 (Cholecalciferol)500 IUmg)__STM Vitamin D3 (Cholecalciferol)500 IUmg) Micro 2-0.txt:37-38"
+    }
+  ],
+  "notApplicable": [],
+  "supplierAttributes": [],
+  "reagents": [
+    {
+      "name": "Vitamin D3 (500IU/mg) working standard",
+      "use": "standard",
+      "source": "Vitamin D3 (Cholecalciferol)500 IUmg)__STM Vitamin D3 (Cholecalciferol)500 IUmg) Micro 2-0.txt:28"
+    },
+    {
+      "name": "Methanol",
+      "use": "reagent",
+      "source": "Vitamin D3 (Cholecalciferol)500 IUmg)__STM Vitamin D3 (Cholecalciferol)500 IUmg) Micro 2-0.txt:28"
+    },
+    {
+      "name": "Tryptone Soya agar",
+      "use": "reagent",
+      "source": "Vitamin D3 (Cholecalciferol)500 IUmg)__STM Vitamin D3 (Cholecalciferol)500 IUmg) Micro 2-0.txt:28"
+    },
+    {
+      "name": "Soybean Casein Digest Agar",
+      "use": "reagent",
+      "source": "Vitamin D3 (Cholecalciferol)500 IUmg)__STM Vitamin D3 (Cholecalciferol)500 IUmg) Micro 2-0.txt:28"
+    },
+    {
+      "name": "Tryptone Soya broth",
+      "use": "reagent",
+      "source": "Vitamin D3 (Cholecalciferol)500 IUmg)__STM Vitamin D3 (Cholecalciferol)500 IUmg) Micro 2-0.txt:28"
+    },
+    {
+      "name": "Soybean Casein Digest Broth",
+      "use": "reagent",
+      "source": "Vitamin D3 (Cholecalciferol)500 IUmg)__STM Vitamin D3 (Cholecalciferol)500 IUmg) Micro 2-0.txt:28"
+    },
+    {
+      "name": "MacConkey broth",
+      "use": "reagent",
+      "source": "Vitamin D3 (Cholecalciferol)500 IUmg)__STM Vitamin D3 (Cholecalciferol)500 IUmg) Micro 2-0.txt:28"
+    },
+    {
+      "name": "MacConkey broth purple",
+      "use": "reagent",
+      "source": "Vitamin D3 (Cholecalciferol)500 IUmg)__STM Vitamin D3 (Cholecalciferol)500 IUmg) Micro 2-0.txt:28"
+    },
+    {
+      "name": "Sabaraud dextrose agar",
+      "use": "reagent",
+      "source": "Vitamin D3 (Cholecalciferol)500 IUmg)__STM Vitamin D3 (Cholecalciferol)500 IUmg) Micro 2-0.txt:28"
+    },
+    {
+      "name": "MacConkey agar No. 3",
+      "use": "reagent",
+      "source": "Vitamin D3 (Cholecalciferol)500 IUmg)__STM Vitamin D3 (Cholecalciferol)500 IUmg) Micro 2-0.txt:28"
+    },
+    {
+      "name": "Eosin methylene blue agar",
+      "use": "reagent",
+      "source": "Vitamin D3 (Cholecalciferol)500 IUmg)__STM Vitamin D3 (Cholecalciferol)500 IUmg) Micro 2-0.txt:28"
+    },
+    {
+      "name": "Tryptone Bile X-glucouronide agar",
+      "use": "reagent",
+      "source": "Vitamin D3 (Cholecalciferol)500 IUmg)__STM Vitamin D3 (Cholecalciferol)500 IUmg) Micro 2-0.txt:28"
+    }
+  ],
+  "openQuestions": [
+    {
+      "question": "Spec sheet rows 16 and 17 print TAMC and TYMC limits as '103 CFU / gm' and '102 CFU / gm' (10^3 and 10^2 CFU/g); transcribed as upper limits 1000 and 100 CFU/gm.",
+      "source": "Vitamin D3 (Cholecalciferol)500 IUmg)__Specifications sheet Cholecalciferol 500,000 IUg new.txt:16; Vitamin D3 (Cholecalciferol)500 IUmg)__Specifications sheet Cholecalciferol 500,000 IUg new.txt:17"
+    },
+    {
+      "question": "HPLC assay method specifies BDS C18 column at 35 °C, mobile phase 96% methanol, run time 8 min, but omits system suitability acceptance criteria; test and row held back.",
+      "source": "Vitamin D3 (Cholecalciferol)500 IUmg)__STM Vitamin D3 (Cholecalciferol)500 IUmg) Micro 2-0.txt:34"
+    },
+    {
+      "question": "Two versions of STM v2/0 exist in the folder ('Micro 2-0' and 'without Micro 2-0'); 'Micro 2-0' was used as it provides full microbiology procedures matching the spec sheet.",
+      "source": "Vitamin D3 (Cholecalciferol)500 IUmg)__STM Vitamin D3 (Cholecalciferol)500 IUmg) Micro 2-0.txt:1; Vitamin D3 (Cholecalciferol)500 IUmg)__STM Vitamin D3 (Cholecalciferol)500 IUmg) without Micro 2-0.txt:1"
+    },
+    {
+      "question": "Folder contains older spec sheets for 500,000 IU/g and EC coated grades dated 2024-12-11; superseded by the version 2/0 spec sheet (new).",
+      "source": "Vitamin D3 (Cholecalciferol)500 IUmg)__Specifications sheet Cholecalciferol 500,000 IUg new.txt:9"
+    }
+  ]
+}

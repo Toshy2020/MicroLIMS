@@ -1,0 +1,315 @@
+{
+  "itemCode": "C5I-91-225",
+  "itemName": "Grape Seed Extract",
+  "stmCode": null,
+  "stmFile": null,
+  "specFiles": ["Grap Seed Extract__Specifications sheet Grape Seed Extract.txt"],
+  "minQuantity": {
+    "routine": 100,
+    "retest": null,
+    "retention": null,
+    "unit": "g",
+    "source": "Grap Seed Extract__Specifications sheet Grape Seed Extract.txt:23"
+  },
+  "grades": [
+    {
+      "grade": null,
+      "rows": [
+        {
+          "testCode": "RM-DESC",
+          "parameterName": "Description",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Fine reddish-brown powder with characteristic odour.",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "Inhouse",
+          "source": "Grap Seed Extract__Specifications sheet Grape Seed Extract.txt:11"
+        },
+        {
+          "testCode": "RM-SOLUB",
+          "parameterName": "Solubility",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Slightly soluble in methanol and insoluble in water.",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "Inhouse",
+          "source": "Grap Seed Extract__Specifications sheet Grape Seed Extract.txt:12"
+        },
+        {
+          "testCode": "RM-ODOR",
+          "parameterName": "Taste",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Characteristic taste of Grape Seed",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "Inhouse",
+          "source": "Grap Seed Extract__Specifications sheet Grape Seed Extract.txt:13"
+        },
+        {
+          "testCode": "RM-LOD",
+          "parameterName": "Loss on drying",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 5.0,
+          "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "Inhouse",
+          "source": "Grap Seed Extract__Specifications sheet Grape Seed Extract.txt:14"
+        },
+        {
+          "testCode": "RM-LT-HM",
+          "parameterName": "Heavy metals",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Complies (NMT 10 ppm)",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "Inhouse",
+          "source": "Grap Seed Extract__Specifications sheet Grape Seed Extract.txt:15"
+        },
+        {
+          "testCode": "RM-SASH",
+          "parameterName": "Total ash",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 2,
+          "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "Inhouse",
+          "source": "Grap Seed Extract__Specifications sheet Grape Seed Extract.txt:16"
+        },
+        {
+          "testCode": "RM-BULKD",
+          "parameterName": "Bulk density",
+          "limitType": "Range",
+          "lower": 0.25,
+          "upper": 0.65,
+          "lowerInclusive": true,
+          "unit": "g/ml",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "Inhouse",
+          "source": "Grap Seed Extract__Specifications sheet Grape Seed Extract.txt:17"
+        },
+        {
+          "testCode": "RM-UV-PROA-GSE",
+          "parameterName": "Content of proanthocyanidins",
+          "limitType": "NotLessThan",
+          "lower": 95,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": "PercentAsIs",
+          "referenceStandard": "Inhouse",
+          "source": "Grap Seed Extract__Specifications sheet Grape Seed Extract.txt:18",
+          "heldBack": "no STM: method not documented"
+        },
+        {
+          "testCode": "TAMC",
+          "parameterName": "Total aerobic microbial count (TAMC)",
+          "limitType": "CountTiered",
+          "lower": null,
+          "upper": 1000,
+          "lowerInclusive": null,
+          "unit": "CFU/gm",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Grap Seed Extract__Specifications sheet Grape Seed Extract.txt:19"
+        },
+        {
+          "testCode": "TYMC",
+          "parameterName": "Total yeasts and molds count (TYMC)",
+          "limitType": "CountTiered",
+          "lower": null,
+          "upper": 100,
+          "lowerInclusive": null,
+          "unit": "CFU/gm",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Grap Seed Extract__Specifications sheet Grape Seed Extract.txt:20"
+        },
+        {
+          "testCode": "E.coli",
+          "parameterName": "E. coli",
+          "limitType": "PresenceAbsence",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": "per 10 gm",
+          "expectedResultText": "Absent /10 gm",
+          "expectedState": "Absence",
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Grap Seed Extract__Specifications sheet Grape Seed Extract.txt:21"
+        },
+        {
+          "testCode": "Salmonella ",
+          "parameterName": "Salmonella spp.",
+          "limitType": "PresenceAbsence",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": "per 10 gm",
+          "expectedResultText": "Absent /10 gm",
+          "expectedState": "Absence",
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Grap Seed Extract__Specifications sheet Grape Seed Extract.txt:22"
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "testCode": "RM-DESC",
+      "procedure": "No STM in the folder; spec sheet limit only.",
+      "kind": "general",
+      "workflow": "Observation",
+      "details": {},
+      "source": "Grap Seed Extract__Specifications sheet Grape Seed Extract.txt:11"
+    },
+    {
+      "testCode": "RM-SOLUB",
+      "procedure": "No STM in the folder; spec sheet limit only.",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {},
+      "source": "Grap Seed Extract__Specifications sheet Grape Seed Extract.txt:12"
+    },
+    {
+      "testCode": "RM-ODOR",
+      "procedure": "No STM in the folder; spec sheet limit only (taste).",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {},
+      "source": "Grap Seed Extract__Specifications sheet Grape Seed Extract.txt:13"
+    },
+    {
+      "testCode": "RM-LOD",
+      "procedure": "No STM in the folder; spec sheet limit only.",
+      "kind": "general",
+      "workflow": "Gravimetric",
+      "details": {},
+      "source": "Grap Seed Extract__Specifications sheet Grape Seed Extract.txt:14"
+    },
+    {
+      "testCode": "RM-LT-HM",
+      "procedure": "No STM in the folder; spec sheet limit only.",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {},
+      "source": "Grap Seed Extract__Specifications sheet Grape Seed Extract.txt:15"
+    },
+    {
+      "testCode": "RM-SASH",
+      "procedure": "No STM in the folder; spec sheet limit only (total ash).",
+      "kind": "general",
+      "workflow": "Gravimetric",
+      "details": {},
+      "source": "Grap Seed Extract__Specifications sheet Grape Seed Extract.txt:16"
+    },
+    {
+      "testCode": "RM-BULKD",
+      "procedure": "No STM in the folder; spec sheet limit only.",
+      "kind": "general",
+      "workflow": "Measurement",
+      "details": {},
+      "source": "Grap Seed Extract__Specifications sheet Grape Seed Extract.txt:17"
+    },
+    {
+      "testCode": "RM-UV-PROA-GSE",
+      "procedure": "No STM: method not documented.",
+      "kind": "specific",
+      "workflow": "UvSpectrophotometry",
+      "details": {},
+      "source": "Grap Seed Extract__Specifications sheet Grape Seed Extract.txt:18",
+      "heldBack": "no STM: method not documented"
+    },
+    {
+      "testCode": "TAMC",
+      "procedure": "No STM in the folder; spec sheet limit only.",
+      "kind": "general",
+      "workflow": "CountTest",
+      "details": {},
+      "source": "Grap Seed Extract__Specifications sheet Grape Seed Extract.txt:19"
+    },
+    {
+      "testCode": "TYMC",
+      "procedure": "No STM in the folder; spec sheet limit only.",
+      "kind": "general",
+      "workflow": "CountTest",
+      "details": {},
+      "source": "Grap Seed Extract__Specifications sheet Grape Seed Extract.txt:20"
+    },
+    {
+      "testCode": "E.coli",
+      "procedure": "No STM in the folder; spec sheet limit only.",
+      "kind": "general",
+      "workflow": "Observation",
+      "details": {},
+      "source": "Grap Seed Extract__Specifications sheet Grape Seed Extract.txt:21"
+    },
+    {
+      "testCode": "Salmonella ",
+      "procedure": "No STM in the folder; spec sheet limit only.",
+      "kind": "general",
+      "workflow": "Observation",
+      "details": {},
+      "source": "Grap Seed Extract__Specifications sheet Grape Seed Extract.txt:22"
+    }
+  ],
+  "notApplicable": [],
+  "supplierAttributes": [
+    { "grade": null, "name": "Extraction solvent", "statedValue": "Water & Ethanol", "source": "Grap Seed Extract__Specifications sheet Grape Seed Extract.txt:23" },
+    { "grade": null, "name": "Plant name", "statedValue": "Vitis vinifera", "source": "Grap Seed Extract__Specifications sheet Grape Seed Extract.txt:23" },
+    { "grade": null, "name": "Plant part used", "statedValue": "Seed", "source": "Grap Seed Extract__Specifications sheet Grape Seed Extract.txt:23" },
+    { "grade": null, "name": "Particle size", "statedValue": "Stated by supplier", "source": "Grap Seed Extract__Specifications sheet Grape Seed Extract.txt:23" }
+  ],
+  "reagents": [],
+  "openQuestions": [
+    {
+      "question": "No STM for Grape Seed Extract in the folder (spec sheet only). The proanthocyanidin UV content test is held back as 'no STM: method not documented'.",
+      "source": "Grap Seed Extract__Specifications sheet Grape Seed Extract.txt:18"
+    },
+    {
+      "question": "TAMC and TYMC limits print as 'NMT 103' and 'NMT 102' CFU/gm (superscripts lost). Loaded as 1000 and 100 per the user decision on document questions. Confirm.",
+      "source": "Grap Seed Extract__Specifications sheet Grape Seed Extract.txt:19-20"
+    },
+    {
+      "question": "Proanthocyanidin content: no basis stated; recorded as PercentAsIs on the held-back row. Confirm.",
+      "source": "Grap Seed Extract__Specifications sheet Grape Seed Extract.txt:18"
+    },
+    {
+      "question": "Sheet carries the old STM code C5I-91-225 (not an STM-RM code); stmCode left null.",
+      "source": "Grap Seed Extract__Specifications sheet Grape Seed Extract.txt:9"
+    }
+  ]
+}

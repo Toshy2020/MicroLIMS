@@ -1,0 +1,446 @@
+{
+  "itemCode": "STM-RM-049",
+  "stmCode": "STM-RM-049",
+  "itemName": "Polyethylen Glycol 6000",
+  "stmFile": "Polyethylen Glycol 6000__STM Polyethylen Glycol after edit (no equipments).txt",
+  "specFiles": ["Polyethylen Glycol 6000__Specifications sheet Polyethylen Glycol.txt"],
+  "minQuantity": {
+    "routine": 200,
+    "retest": 100,
+    "retention": 200,
+    "unit": "g",
+    "source": "Polyethylen Glycol 6000__Specifications sheet Polyethylen Glycol.txt:25; Polyethylen Glycol 6000__STM Polyethylen Glycol after edit (no equipments).txt:39"
+  },
+  "grades": [
+    {
+      "grade": "BP",
+      "rows": [
+        {
+          "testCode": "RM-DESC",
+          "parameterName": "Appearance",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "White or almost white solid with a waxy or paraffin-like appearance.",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP 2024",
+          "source": "Polyethylen Glycol 6000__Specifications sheet Polyethylen Glycol.txt:11"
+        },
+        {
+          "testCode": "RM-SOLUB",
+          "parameterName": "Solubility",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Very soluble in water and in methylene chloride, practically insoluble in alcohol, in fatty oils and in mineral oils.",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP 2024",
+          "source": "Polyethylen Glycol 6000__Specifications sheet Polyethylen Glycol.txt:12"
+        },
+        {
+          "testCode": "RM-ID-PEG-A",
+          "parameterName": "Identification (sulfuric acid fumes into mercuric chloride)",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "An abundant, white, crystalline precipitate is formed.",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP 2024",
+          "source": "Polyethylen Glycol 6000__Specifications sheet Polyethylen Glycol.txt:13"
+        },
+        {
+          "testCode": "RM-ID-PEG-B",
+          "parameterName": "Identification (thiocyanate and cobalt nitrate, methylene chloride layer)",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "The liquid phase becomes blue.",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP 2024",
+          "source": "Polyethylen Glycol 6000__Specifications sheet Polyethylen Glycol.txt:14"
+        },
+        {
+          "testCode": "RM-SOLAPP",
+          "parameterName": "Appearance of solution",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "The solution is clear and not more intensely coloured than reference solution BY6.",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP 2024",
+          "source": "Polyethylen Glycol 6000__Specifications sheet Polyethylen Glycol.txt:15"
+        },
+        {
+          "testCode": "RM-ACID-PEG",
+          "parameterName": "Acidity or alkalinity: 0.1 M sodium hydroxide to blue",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 0.1,
+          "lowerInclusive": null,
+          "unit": "mL",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP 2024",
+          "source": "Polyethylen Glycol 6000__Specifications sheet Polyethylen Glycol.txt:16"
+        },
+        {
+          "testCode": "RM-VISC-PEG",
+          "parameterName": "Viscosity (50% m/m solution)",
+          "limitType": "Range",
+          "lower": 200,
+          "upper": 270,
+          "lowerInclusive": true,
+          "unit": "mPa·s",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP 2024",
+          "source": "Polyethylen Glycol 6000__Specifications sheet Polyethylen Glycol.txt:17"
+        },
+        {
+          "testCode": "RM-FP-PEG",
+          "parameterName": "Freezing point",
+          "limitType": "Range",
+          "lower": 55,
+          "upper": 61,
+          "lowerInclusive": true,
+          "unit": "°C",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP 2024",
+          "source": "Polyethylen Glycol 6000__Specifications sheet Polyethylen Glycol.txt:18"
+        },
+        {
+          "testCode": "RM-RED-PEG",
+          "parameterName": "Reducing substances",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Complies (solution not more intensely coloured than reference solution R3)",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP 2024",
+          "source": "Polyethylen Glycol 6000__Specifications sheet Polyethylen Glycol.txt:19"
+        },
+        {
+          "testCode": "RM-KF",
+          "parameterName": "Water (Karl Fischer)",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 1.0,
+          "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP 2024",
+          "source": "Polyethylen Glycol 6000__Specifications sheet Polyethylen Glycol.txt:20"
+        },
+        {
+          "testCode": "RM-SASH",
+          "parameterName": "Sulphated ash",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 0.2,
+          "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP 2024",
+          "source": "Polyethylen Glycol 6000__Specifications sheet Polyethylen Glycol.txt:21"
+        },
+        {
+          "testCode": "TAMC",
+          "parameterName": "Total aerobic microbial count (TAMC)",
+          "limitType": "CountTiered",
+          "lower": null,
+          "upper": 1000,
+          "lowerInclusive": null,
+          "unit": "CFU/g",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "In house",
+          "source": "Polyethylen Glycol 6000__Specifications sheet Polyethylen Glycol.txt:22"
+        },
+        {
+          "testCode": "TYMC",
+          "parameterName": "Total yeast and mold count (TYMC)",
+          "limitType": "CountTiered",
+          "lower": null,
+          "upper": 100,
+          "lowerInclusive": null,
+          "unit": "CFU/g",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "In house",
+          "source": "Polyethylen Glycol 6000__Specifications sheet Polyethylen Glycol.txt:23"
+        },
+        {
+          "testCode": "E.coli",
+          "parameterName": "Test for E. coli",
+          "limitType": "PresenceAbsence",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": "per 10 g",
+          "expectedResultText": "Absent / 10 gm",
+          "expectedState": "Absence",
+          "resultBasis": null,
+          "referenceStandard": "In house",
+          "source": "Polyethylen Glycol 6000__Specifications sheet Polyethylen Glycol.txt:24"
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "testCode": "RM-DESC",
+      "procedure": "Under strong white light check each received sample container separately on a clean transparent watch glass or glass dish for foreign particles, colour and conformity with the visual specification.",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {
+        "perContainer": true,
+        "reference": "BP 2024 Monograph for Macrogols"
+      },
+      "source": "Polyethylen Glycol 6000__STM Polyethylen Glycol after edit (no equipments).txt:28"
+    },
+    {
+      "testCode": "RM-SOLUB",
+      "procedure": "BP-style stepwise solubility: 100 mg sample in a stoppered tube with 0.1 mL solvent, shake 1 min, hold 25.0 ± 0.5 °C for 15 min (repeat once if not dissolved); add 0.9 mL, then 2 mL, then 7 mL solvent with the same shake and hold to classify very soluble / freely soluble / soluble / sparingly soluble; if still undissolved, 10 mg in 10 mL (slightly soluble), then 1 mg in 10 mL (very slightly soluble), else practically insoluble. Repeat with methylene chloride, ethanol (96 per cent), dilute nitric acid and dilute hydrochloric acid.",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {
+        "sample": "100 mg",
+        "temperature": "25.0 ± 0.5 °C",
+        "holdMin": 15,
+        "shakeMin": 1,
+        "volumesMl": [0.1, 0.9, 2, 7],
+        "smallSampleSteps": ["10 mg in 10 mL", "1 mg in 10 mL"],
+        "solvents": ["first solvent not named in the STM (see openQuestions)", "methylene chloride", "ethanol (96 per cent)", "dilute nitric acid", "dilute hydrochloric acid"],
+        "reference": "BP (SC IV K.) Characters Section in Monographs (Hygroscopicity and Solubility)"
+      },
+      "source": "Polyethylen Glycol 6000__STM Polyethylen Glycol after edit (no equipments).txt:29"
+    },
+    {
+      "testCode": "RM-ID-PEG-A",
+      "procedure": "Identification test 1 (BP 2024 Macrogols): to 1 g in a test tube add 0.5 mL sulfuric acid; close with a stopper fitted with a bent delivery tube; heat until white fumes evolve; collect the fumes through the delivery tube into 1 mL mercuric chloride solution. An abundant white crystalline precipitate forms.",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "details": {
+        "sample": "1 g",
+        "acid": "0.5 mL sulfuric acid",
+        "collectionSolution": "1 mL mercury chloride solution (5.4 g mercuric chloride to 100 mL water)",
+        "reference": "BP 2024 Monograph for Macrogols"
+      },
+      "source": "Polyethylen Glycol 6000__STM Polyethylen Glycol after edit (no equipments).txt:30; reagent Polyethylen Glycol 6000__STM Polyethylen Glycol after edit (no equipments).txt:26"
+    },
+    {
+      "testCode": "RM-ID-PEG-B",
+      "procedure": "Identification test 2 (BP 2024 Macrogols): to 0.1 g add 0.1 g potassium thiocyanate and 0.1 g cobalt nitrate; mix thoroughly with a glass rod; add 5 mL methylene chloride and shake. The liquid phase becomes blue.",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "details": {
+        "sample": "0.1 g",
+        "reagents": ["0.1 g potassium thiocyanate", "0.1 g cobalt nitrate", "5 mL methylene chloride"],
+        "reference": "BP 2024 Monograph for Macrogols"
+      },
+      "source": "Polyethylen Glycol 6000__STM Polyethylen Glycol after edit (no equipments).txt:30"
+    },
+    {
+      "testCode": "RM-SOLAPP",
+      "procedure": "Appearance of solution (BP 2024 Appendix IV B): dissolve 12.5 g in water to 50 mL; the solution must be clear and not more intensely coloured than reference solution BY6. Standard solution BY: 2.4 mL yellow solution, 1.0 mL red solution and 0.4 mL blue solution with 6.2 mL hydrochloric acid (10 g/L). Reference solution BY6: 5.0 mL standard solution BY with 95.0 mL hydrochloric acid (10 g/L).",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {
+        "sample": "12.5 g in water to 50 mL",
+        "standardSolutionBY": "2.4 mL yellow + 1.0 mL red + 0.4 mL blue solution + 6.2 mL hydrochloric acid (10 g/L)",
+        "referenceSolutionBY6": "5.0 mL standard solution BY + 95.0 mL hydrochloric acid (10 g/L)",
+        "reference": "BP 2024 Appendix IV B"
+      },
+      "source": "Polyethylen Glycol 6000__STM Polyethylen Glycol after edit (no equipments).txt:31; reagents Polyethylen Glycol 6000__STM Polyethylen Glycol after edit (no equipments).txt:26"
+    },
+    {
+      "testCode": "RM-ACID-PEG",
+      "procedure": "Acidity or alkalinity (BP 2024): dissolve 5.0 g in 50 mL carbon dioxide-free water; add 0.15 mL bromothymol blue solution R1; the solution is yellow or green. Limit: not more than 0.1 mL of 0.1 M sodium hydroxide is required to change the colour of the indicator to blue. (The STM does not describe the titration step; see openQuestions.)",
+      "kind": "specific",
+      "workflow": "Measurement",
+      "details": {
+        "sampleG": 5.0,
+        "solvent": "50 mL carbon dioxide-free water",
+        "indicator": "0.15 mL bromothymol blue solution R1",
+        "startColour": "yellow or green",
+        "titrant": "0.1 M sodium hydroxide",
+        "limitMl": 0.1,
+        "endpoint": "colour change to blue",
+        "reference": "BP 2024 Monograph for Macrogols"
+      },
+      "source": "Polyethylen Glycol 6000__STM Polyethylen Glycol after edit (no equipments).txt:32"
+    },
+    {
+      "testCode": "RM-VISC-PEG",
+      "procedure": "Viscosity (BP 2024 Appendix V H, macrogols with relative molecular mass above 400): weigh 50 g sample, add 50 mL water, dissolve well to give a 50% m/m solution; measure with a calibrated rotational viscometer.",
+      "kind": "specific",
+      "workflow": "Measurement",
+      "details": {
+        "sampleG": 50,
+        "water": "50 mL",
+        "concentration": "50% m/m",
+        "instrument": "calibrated rotational viscometer",
+        "reference": "BP 2024 Appendix V H"
+      },
+      "source": "Polyethylen Glycol 6000__STM Polyethylen Glycol after edit (no equipments).txt:33"
+    },
+    {
+      "testCode": "RM-FP-PEG",
+      "procedure": "Freezing point (BP 2024 Appendix V B): place a sufficient amount of sample in a Nessler tube; insert the thermometer without touching the bottom of the tube; heat carefully and record the freezing temperature; or use a freezing point apparatus in the same way.",
+      "kind": "specific",
+      "workflow": "Measurement",
+      "details": {
+        "apparatus": "Nessler tube with thermometer, or freezing point apparatus",
+        "limitC": "55 to 61",
+        "reference": "BP 2024 Appendix V B"
+      },
+      "source": "Polyethylen Glycol 6000__STM Polyethylen Glycol after edit (no equipments).txt:34"
+    },
+    {
+      "testCode": "RM-RED-PEG",
+      "procedure": "Reducing substances (BP 2024): dissolve 1 g in 1 mL of a 10 g/L resorcinol solution, warm gently if necessary; add 2 mL hydrochloric acid; after 5 min the solution must not be more intensely coloured than reference solution R3. Standard solution R: 1.0 mL yellow solution + 2.0 mL red solution + 7.0 mL hydrochloric acid (10 g/L). Reference solution R3: 50.0 mL standard solution R + 50.0 mL hydrochloric acid (10 g/L).",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "details": {
+        "sample": "1 g",
+        "resorcinolSolution": "1 mL of 10 g/L resorcinol solution",
+        "acid": "2 mL hydrochloric acid",
+        "waitMin": 5,
+        "standardSolutionR": "1.0 mL yellow + 2.0 mL red solution + 7.0 mL hydrochloric acid (10 g/L)",
+        "referenceSolutionR3": "50.0 mL standard solution R + 50.0 mL hydrochloric acid (10 g/L)",
+        "reference": "BP 2024 Monograph for Macrogols"
+      },
+      "source": "Polyethylen Glycol 6000__STM Polyethylen Glycol after edit (no equipments).txt:35"
+    },
+    {
+      "testCode": "RM-KF",
+      "procedure": "Water (BP 2024 Appendix IX C): determined on 2.00 g with a calibrated Karl Fischer apparatus.",
+      "kind": "general",
+      "workflow": "Measurement",
+      "details": {
+        "sampleG": 2.00,
+        "moistureRole": "Water",
+        "reference": "BP 2024 Appendix IX C"
+      },
+      "source": "Polyethylen Glycol 6000__STM Polyethylen Glycol after edit (no equipments).txt:36"
+    },
+    {
+      "testCode": "RM-SASH",
+      "procedure": "Sulphated ash (BP Appendix IX A): weigh an empty crucible previously ignited at 600 ± 50 °C and cooled in desiccator (W0); weigh accurately 1.0 g into a platinum crucible (W1); moisten with about 1 mL sulfuric acid, heat gently until thoroughly charred; moisten the residue again with sulfuric acid and heat until white fumes are no longer evolved; ignite in a calibrated muffle at 600 ± 50 °C until completely incinerated, cool in desiccator and weigh (W2); repeat to constant weight. % = (W2 - W0) / (W1 - W0) x 100.",
+      "kind": "general",
+      "workflow": "Gravimetric",
+      "details": {
+        "sampleG": 1.0,
+        "ignitionC": "600 ± 50",
+        "sulfuricAcid": "about 1 mL, twice",
+        "formula": "(W2 - W0) / (W1 - W0) x 100",
+        "reference": "BP Appendix IX A"
+      },
+      "source": "Polyethylen Glycol 6000__STM Polyethylen Glycol after edit (no equipments).txt:37"
+    },
+    {
+      "testCode": "TAMC",
+      "procedure": "No microbiological procedure in the STM; limit taken from the spec sheet.",
+      "kind": "general",
+      "workflow": "CountTest",
+      "details": {
+        "limit": "Not more than 1000 CFU/gm"
+      },
+      "source": "Polyethylen Glycol 6000__Specifications sheet Polyethylen Glycol.txt:22"
+    },
+    {
+      "testCode": "TYMC",
+      "procedure": "No microbiological procedure in the STM; limit taken from the spec sheet.",
+      "kind": "general",
+      "workflow": "CountTest",
+      "details": {
+        "limit": "Not more than 100 CFU/gm"
+      },
+      "source": "Polyethylen Glycol 6000__Specifications sheet Polyethylen Glycol.txt:23"
+    },
+    {
+      "testCode": "E.coli",
+      "procedure": "No microbiological procedure in the STM; limit taken from the spec sheet.",
+      "kind": "general",
+      "workflow": "Observation",
+      "details": {
+        "limit": "Absent/ 10 gm"
+      },
+      "source": "Polyethylen Glycol 6000__Specifications sheet Polyethylen Glycol.txt:24"
+    }
+  ],
+  "notApplicable": [],
+  "supplierAttributes": [
+    { "grade": null, "name": "Hydroxyl value", "statedValue": "16 to 22", "source": "Polyethylen Glycol 6000__Specifications sheet Polyethylen Glycol.txt:25" },
+    { "grade": null, "name": "Formaldehyde", "statedValue": "Maximum 30 ppm", "source": "Polyethylen Glycol 6000__Specifications sheet Polyethylen Glycol.txt:25" },
+    { "grade": null, "name": "Ethylene glycol and diethylene glycol", "statedValue": "Maximum 0.4 per cent", "source": "Polyethylen Glycol 6000__Specifications sheet Polyethylen Glycol.txt:25" },
+    { "grade": null, "name": "Ethylene oxide", "statedValue": "Maximum 1 ppm", "source": "Polyethylen Glycol 6000__Specifications sheet Polyethylen Glycol.txt:25" },
+    { "grade": null, "name": "Dioxan", "statedValue": "Maximum 10 ppm", "source": "Polyethylen Glycol 6000__Specifications sheet Polyethylen Glycol.txt:25" }
+  ],
+  "reagents": [
+    { "name": "Methylene chloride", "use": "reagent", "source": "Polyethylen Glycol 6000__STM Polyethylen Glycol after edit (no equipments).txt:26" },
+    { "name": "Alcohol", "use": "reagent", "source": "Polyethylen Glycol 6000__STM Polyethylen Glycol after edit (no equipments).txt:26" },
+    { "name": "Sulfuric acid", "use": "reagent", "source": "Polyethylen Glycol 6000__STM Polyethylen Glycol after edit (no equipments).txt:26" },
+    { "name": "Mercuric chloride", "use": "reagent", "source": "Polyethylen Glycol 6000__STM Polyethylen Glycol after edit (no equipments).txt:26" },
+    { "name": "Potassium thiocyanate", "use": "reagent", "source": "Polyethylen Glycol 6000__STM Polyethylen Glycol after edit (no equipments).txt:26" },
+    { "name": "Cobalt nitrate", "use": "reagent", "source": "Polyethylen Glycol 6000__STM Polyethylen Glycol after edit (no equipments).txt:26" },
+    { "name": "Ferric chloride", "use": "reagent", "source": "Polyethylen Glycol 6000__STM Polyethylen Glycol after edit (no equipments).txt:26" },
+    { "name": "Hydrochloric acid", "use": "reagent", "source": "Polyethylen Glycol 6000__STM Polyethylen Glycol after edit (no equipments).txt:26" },
+    { "name": "Cobalt chloride", "use": "reagent", "source": "Polyethylen Glycol 6000__STM Polyethylen Glycol after edit (no equipments).txt:26" },
+    { "name": "Copper sulfate pentahydrate", "use": "reagent", "source": "Polyethylen Glycol 6000__STM Polyethylen Glycol after edit (no equipments).txt:26" },
+    { "name": "Sodium hydroxide", "use": "reagent", "source": "Polyethylen Glycol 6000__STM Polyethylen Glycol after edit (no equipments).txt:26" },
+    { "name": "Resorcinol", "use": "reagent", "source": "Polyethylen Glycol 6000__STM Polyethylen Glycol after edit (no equipments).txt:26" },
+    { "name": "0.1 M Sodium Hydroxide", "use": "titrant", "source": "Polyethylen Glycol 6000__STM Polyethylen Glycol after edit (no equipments).txt:26" },
+    { "name": "Bromothymol Blue Solution R1", "use": "indicator", "source": "Polyethylen Glycol 6000__STM Polyethylen Glycol after edit (no equipments).txt:26" }
+  ],
+  "openQuestions": [
+    {
+      "question": "Microbiology: TAMC, TYMC and E. coli limits appear only in the spec sheet. The STM has no microbiological examination section, so no procedure is transcribed. Confirm the procedure and SOP.",
+      "source": "Polyethylen Glycol 6000__Specifications sheet Polyethylen Glycol.txt:22-24; Polyethylen Glycol 6000__STM Polyethylen Glycol after edit (no equipments).txt:28-37"
+    },
+    {
+      "question": "Solubility: the STM does not name the first solvent (it repeats with methylene chloride, ethanol, dilute nitric and dilute hydrochloric acid). The spec sheet lists water first and also fatty and mineral oils, which the STM does not test. Confirm.",
+      "source": "Polyethylen Glycol 6000__STM Polyethylen Glycol after edit (no equipments).txt:29; Polyethylen Glycol 6000__Specifications sheet Polyethylen Glycol.txt:12"
+    },
+    {
+      "question": "Acidity or alkalinity: the STM gives the sample preparation and indicator but no titration with 0.1 M sodium hydroxide, which the spec limit depends on. Limit loaded as a Measurement (mL); confirm the titration step.",
+      "source": "Polyethylen Glycol 6000__STM Polyethylen Glycol after edit (no equipments).txt:32; Polyethylen Glycol 6000__Specifications sheet Polyethylen Glycol.txt:16"
+    },
+    {
+      "question": "Viscosity: spindle, rotational speed and measuring temperature are not stated. Method details needed before the result can be reproduced.",
+      "source": "Polyethylen Glycol 6000__STM Polyethylen Glycol after edit (no equipments).txt:33"
+    },
+    {
+      "question": "Spec additional requirements (hydroxyl value 16-22, formaldehyde NMT 30 ppm, ethylene glycol and diethylene glycol NMT 0.4%, ethylene oxide NMT 1 ppm, dioxan NMT 10 ppm) have no test in the STM. Recorded as supplier attributes only; no rows created.",
+      "source": "Polyethylen Glycol 6000__Specifications sheet Polyethylen Glycol.txt:25"
+    }
+  ]
+}

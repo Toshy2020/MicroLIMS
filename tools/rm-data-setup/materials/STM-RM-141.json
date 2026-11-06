@@ -1,0 +1,492 @@
+{
+  "itemCode": "STM-RM-141",
+  "itemName": "D-Panthenol (Dexpanthenol)",
+  "stmCode": "STM-RM-141",
+  "stmFile": "Panthenol__Panthenol - SM 1.txt",
+  "specFiles": [
+    "Panthenol__Specifications sheet Panthenol.txt"
+  ],
+  "minQuantity": {
+    "routine": 120,
+    "retest": 50,
+    "retention": 100,
+    "unit": "ml",
+    "source": "Panthenol__Specifications sheet Panthenol.txt:22; Panthenol__Panthenol - SM 1.txt:38"
+  },
+  "grades": [
+    {
+      "grade": "USP",
+      "rows": [
+        {
+          "testCode": "RM-DESC",
+          "parameterName": "Description",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Clear, viscous, somewhat hygroscopic liquid, having a slight, characteristic Odor. Some crystallization may occur on standing",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP 2024",
+          "source": "Panthenol__Specifications sheet Panthenol.txt:11"
+        },
+        {
+          "testCode": "RM-SOLUB",
+          "parameterName": "Solubility",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Freely soluble in water, in alcohol, in methanol, and in propylene glycol; soluble in chloroform and in ether; slightly soluble in glycerin",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP 2024",
+          "source": "Panthenol__Specifications sheet Panthenol.txt:12"
+        },
+        {
+          "testCode": "RM-ID-IR",
+          "parameterName": "Identification (IR)",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "The spectrum obtained for the sample is corresponding to the spectrum obtained from D-Panthenol RS",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP 2024",
+          "source": "Panthenol__Specifications sheet Panthenol.txt:13"
+        },
+        {
+          "testCode": "RM-ID-CU-PANT",
+          "parameterName": "Identification (copper sulfate reaction)",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "A deep blue color develops",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP 2024",
+          "source": "Panthenol__Specifications sheet Panthenol.txt:14"
+        },
+        {
+          "testCode": "RM-ID-HYDROX-PANT",
+          "parameterName": "Identification (hydroxylamine / ferric chloride reaction)",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "A purplish red color develops",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP 2024",
+          "source": "Panthenol__Specifications sheet Panthenol.txt:15"
+        },
+        {
+          "testCode": "RM-TIT-AMINOPROP-PANT",
+          "parameterName": "Limit of aminopropanol",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 1.0,
+          "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": "PercentAsIs",
+          "referenceStandard": "USP 2024",
+          "source": "Panthenol__Specifications sheet Panthenol.txt:16"
+        },
+        {
+          "testCode": "RM-SASH",
+          "parameterName": "Residue on ignition",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 0.1,
+          "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP 2024",
+          "source": "Panthenol__Specifications sheet Panthenol.txt:17"
+        },
+        {
+          "testCode": "RM-OPTROT",
+          "parameterName": "Specific optical rotation",
+          "limitType": "Range",
+          "lower": 29.0,
+          "upper": 31.5,
+          "lowerInclusive": true,
+          "unit": "°",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP 2024",
+          "source": "Panthenol__Specifications sheet Panthenol.txt:18"
+        },
+        {
+          "testCode": "RM-KF",
+          "parameterName": "Water determination",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 1.0,
+          "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP 2024",
+          "source": "Panthenol__Specifications sheet Panthenol.txt:19"
+        },
+        {
+          "testCode": "RM-REFIDX",
+          "parameterName": "Refractive index",
+          "limitType": "Range",
+          "lower": 1.495,
+          "upper": 1.502,
+          "lowerInclusive": true,
+          "unit": null,
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP 2024",
+          "source": "Panthenol__Specifications sheet Panthenol.txt:20"
+        },
+        {
+          "testCode": "RM-TIT-PANT",
+          "parameterName": "Assay (anhydrous basis)",
+          "limitType": "Range",
+          "lower": 98.0,
+          "upper": 102.0,
+          "lowerInclusive": true,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": "PercentAnhydrousBasis",
+          "referenceStandard": "USP 2024",
+          "source": "Panthenol__Specifications sheet Panthenol.txt:21"
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "testCode": "RM-DESC",
+      "procedure": "Under strong white light check each received sample container separately in a clean transparent watch glass or glass dish for foreign particles, colour and conformity with the visual specification.",
+      "kind": "general",
+      "workflow": "Observation",
+      "details": {
+        "perContainer": true,
+        "reference": "USP 2024 Description and Relative Solubility",
+        "uspSpecification": "Clear, viscous, somewhat hygroscopic liquid, having a slight, characteristic Odor. Some crystallization may occur on standing."
+      },
+      "source": "Panthenol__Panthenol - SM 1.txt:28"
+    },
+    {
+      "testCode": "RM-SOLUB",
+      "procedure": "Weigh 100 mg sample in a stoppered tube; add 0.1 mL solvent, shake 1 min, hold at 25.0 ± 0.5 °C for 15 min, repeat shake/hold once if not dissolved; stepwise add 0.9 mL, 2 mL, 7 mL solvent (same shake and hold) to classify very soluble / freely soluble / soluble / sparingly soluble; if still undissolved use 10 mg in 10 mL (slightly soluble) then 1 mg in 10 mL (very slightly soluble), else practically insoluble. Repeat with alcohol, methanol, chloroform, ether and glycerin.",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {
+        "sample": "100 mg",
+        "temperature": "25.0 ± 0.5 °C",
+        "holdMin": 15,
+        "shakeMin": 1,
+        "volumesMl": [
+          0.1,
+          0.9,
+          2,
+          7
+        ],
+        "smallSampleSteps": [
+          "10 mg in 10 mL",
+          "1 mg in 10 mL"
+        ],
+        "solvents": [
+          "alcohol",
+          "methanol",
+          "chloroform",
+          "ether",
+          "glycerin"
+        ],
+        "reference": "USP 2024 Description and Relative Solubility"
+      },
+      "source": "Panthenol__Panthenol - SM 1.txt:29"
+    },
+    {
+      "testCode": "RM-ID-IR",
+      "procedure": "IR identification: mix sample intimately with potassium bromide, compress into a transparent pellet, examine the spectrum and compare with that of D-Panthenol RS.",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "details": {
+        "technique": "KBr pellet",
+        "standard": "D-Panthenol RS",
+        "reference": "USP 2024 <197> Infrared Spectroscopy"
+      },
+      "source": "Panthenol__Panthenol - SM 1.txt:30"
+    },
+    {
+      "testCode": "RM-ID-CU-PANT",
+      "procedure": "Sample solution 100 mg/mL. To 1 mL of the sample solution add 5 mL of 1 N sodium hydroxide and 1 drop of cupric sulfate TS; shake vigorously. A deep blue colour develops.",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "details": {
+        "sampleSolutionMgPerMl": 100,
+        "sampleSolutionMl": 1,
+        "naOH": "5 mL of 1 N sodium hydroxide",
+        "reagent": "1 drop cupric sulfate TS",
+        "reference": "USP 2024 Monograph for Dexpanthenol"
+      },
+      "source": "Panthenol__Panthenol - SM 1.txt:30"
+    },
+    {
+      "testCode": "RM-ID-HYDROX-PANT",
+      "procedure": "Sample solution 10 mg/mL. To 1 mL add 1 mL of 1 N hydrochloric acid; heat on a steam bath 30 min; cool; add 100 mg hydroxylamine hydrochloride and 5 mL of 1 N sodium hydroxide; stand 5 min; adjust with 1 N hydrochloric acid to pH 2.5-3.0; add 1 drop of ferric chloride TS. A purplish red colour develops.",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "details": {
+        "sampleSolutionMgPerMl": 10,
+        "sampleSolutionMl": 1,
+        "hydrochloricAcid": "1 mL of 1 N",
+        "steamBathMin": 30,
+        "hydroxylamineHydrochloride": "100 mg",
+        "naOH": "5 mL of 1 N",
+        "standTimeMin": 5,
+        "phAdjust": "2.5-3.0 with 1 N hydrochloric acid",
+        "reagent": "1 drop ferric chloride TS",
+        "reference": "USP 2024 Monograph for Dexpanthenol"
+      },
+      "source": "Panthenol__Panthenol - SM 1.txt:30"
+    },
+    {
+      "testCode": "RM-TIT-AMINOPROP-PANT",
+      "procedure": "Limit of aminopropanol (USP <541>, direct titration): dissolve 5 g sample in 10 mL water, add bromothymol blue TS, titrate with 0.01 N sulfuric acid VS to a yellow endpoint (visual). Perform a blank with 10 mL water. Result % = [((VS - VB) x N x F) / W] x 100; F = 75.11 mg/mEq; W = sample weight (mg).",
+      "kind": "specific",
+      "workflow": "Titration",
+      "details": {
+        "sampleG": 5,
+        "blank": "10 mL water",
+        "mode": "direct",
+        "titrant": "0.01 N sulfuric acid VS",
+        "endpoint": "visual, yellow (bromothymol blue TS)",
+        "equivalenceFactor": "75.11 mg/mEq",
+        "formula": "Result = [((VS - VB) x N x F) / W] x 100",
+        "reference": "USP 2024 <541> Titrimetry"
+      },
+      "source": "Panthenol__Panthenol - SM 1.txt:31"
+    },
+    {
+      "testCode": "RM-SASH",
+      "procedure": "Residue on ignition (USP <281>): weigh an empty crucible previously ignited at 600-650 °C and cooled in desiccator (W0); weigh 1.0 g sample (W1); moisten with a small amount of sulfuric acid, char gently on hot plate, moisten residue again, heat until white fumes cease; ignite in muffle at 600-650 °C, cool in desiccator, weigh (W2); repeat to constant weight. % = (W2 - W0) / (W1 - W0) x 100.",
+      "kind": "general",
+      "workflow": "Gravimetric",
+      "details": {
+        "sampleG": 1.0,
+        "ignitionTemp": "600-650 °C",
+        "sulfuricAcid": "small amount, twice",
+        "formula": "%RoI = (W2 - W0) / (W1 - W0) x 100",
+        "reference": "USP 2024 <281>"
+      },
+      "source": "Panthenol__Panthenol - SM 1.txt:32"
+    },
+    {
+      "testCode": "RM-OPTROT",
+      "procedure": "Specific optical rotation (USP <781S>): sample solution 50 mg/mL in water; calibrated polarimeter; water as blank.",
+      "kind": "general",
+      "workflow": "Measurement",
+      "details": {
+        "sampleConcentrationMgPerMl": 50,
+        "solvent": "water",
+        "blank": "water",
+        "reference": "USP 2024 <781S> Specific Rotation"
+      },
+      "source": "Panthenol__Panthenol - SM 1.txt:33"
+    },
+    {
+      "testCode": "RM-KF",
+      "procedure": "Water determination (USP <921>): determine on 1.0 g sample with calibrated Karl Fischer apparatus.",
+      "kind": "general",
+      "workflow": "Measurement",
+      "details": {
+        "moistureRole": "Water",
+        "sampleG": 1.0,
+        "reference": "USP 2024 <921> Water Determination"
+      },
+      "source": "Panthenol__Panthenol - SM 1.txt:34"
+    },
+    {
+      "testCode": "RM-REFIDX",
+      "procedure": "Refractive index (USP <831>): determine on a sufficient amount of sample with a calibrated refractometer.",
+      "kind": "general",
+      "workflow": "Measurement",
+      "details": {
+        "instrument": "calibrated refractometer",
+        "reference": "USP 2024 <831> Refractive Index"
+      },
+      "source": "Panthenol__Panthenol - SM 1.txt:35"
+    },
+    {
+      "testCode": "RM-TIT-PANT",
+      "procedure": "Assay (USP <541>, residual titration): transfer 400 mg sample to a 300-mL flask with reflux condenser; add 50.0 mL of 0.1 N perchloric acid VS; reflux 5 h; cool, rinse condenser with glacial acetic acid into the flask; add 5 drops crystal violet TS; back-titrate with 0.1 M potassium biphthalate to blue-green endpoint. Blank as sample without sample. Result % = {[(VB - VS) x M x F] / W x (100 - WC)} x 100 x 100.",
+      "kind": "specific",
+      "workflow": "Titration",
+      "details": {
+        "sampleMg": 400,
+        "titrant": "0.1 N perchloric acid VS",
+        "titrantVolumeMl": 50.0,
+        "backTitrant": "0.1 M potassium biphthalate",
+        "mode": "residual",
+        "refluxH": 5,
+        "endpoint": "visual, blue-green (crystal violet TS)",
+        "blank": "proceed as directed, omitting the sample",
+        "equivalenceFactor": "205.3 mg/M (as written)",
+        "waterCorrection": "WC = water content (from water determination)",
+        "formula": "Result = {[(VB - VS) x M x F] / W x (100 - WC)} x 100 x 100",
+        "reference": "USP 2024 <541> Titrimetry",
+        "basis": "anhydrous basis"
+      },
+      "source": "Panthenol__Panthenol - SM 1.txt:36"
+    }
+  ],
+  "notApplicable": [],
+  "supplierAttributes": [],
+  "reagents": [
+    {
+      "name": "Acetic anhydride",
+      "use": "reagent",
+      "source": "Panthenol__Panthenol - SM 1.txt:26"
+    },
+    {
+      "name": "Alcohol",
+      "use": "reagent",
+      "source": "Panthenol__Panthenol - SM 1.txt:26"
+    },
+    {
+      "name": "Bromothymol blue",
+      "use": "indicator",
+      "source": "Panthenol__Panthenol - SM 1.txt:26"
+    },
+    {
+      "name": "Chloroform",
+      "use": "reagent",
+      "source": "Panthenol__Panthenol - SM 1.txt:26"
+    },
+    {
+      "name": "Crystal violet",
+      "use": "indicator",
+      "source": "Panthenol__Panthenol - SM 1.txt:26"
+    },
+    {
+      "name": "Cupric sulfate",
+      "use": "reagent",
+      "source": "Panthenol__Panthenol - SM 1.txt:26"
+    },
+    {
+      "name": "Ether",
+      "use": "reagent",
+      "source": "Panthenol__Panthenol - SM 1.txt:26"
+    },
+    {
+      "name": "Ferric chloride",
+      "use": "reagent",
+      "source": "Panthenol__Panthenol - SM 1.txt:26"
+    },
+    {
+      "name": "Glacial acetic acid",
+      "use": "reagent",
+      "source": "Panthenol__Panthenol - SM 1.txt:26"
+    },
+    {
+      "name": "Glycerin",
+      "use": "reagent",
+      "source": "Panthenol__Panthenol - SM 1.txt:26"
+    },
+    {
+      "name": "Hydrochloric acid",
+      "use": "reagent",
+      "source": "Panthenol__Panthenol - SM 1.txt:26"
+    },
+    {
+      "name": "Hydroxylamine hydrochloride",
+      "use": "reagent",
+      "source": "Panthenol__Panthenol - SM 1.txt:26"
+    },
+    {
+      "name": "Methanol",
+      "use": "reagent",
+      "source": "Panthenol__Panthenol - SM 1.txt:26"
+    },
+    {
+      "name": "Perchloric acid",
+      "use": "reagent",
+      "source": "Panthenol__Panthenol - SM 1.txt:26"
+    },
+    {
+      "name": "Potassium biphthalate",
+      "use": "standard",
+      "source": "Panthenol__Panthenol - SM 1.txt:26"
+    },
+    {
+      "name": "Sodium hydroxide",
+      "use": "reagent",
+      "source": "Panthenol__Panthenol - SM 1.txt:26"
+    },
+    {
+      "name": "Sulfuric acid",
+      "use": "reagent",
+      "source": "Panthenol__Panthenol - SM 1.txt:26"
+    },
+    {
+      "name": "Tromethamine",
+      "use": "standard",
+      "source": "Panthenol__Panthenol - SM 1.txt:26"
+    },
+    {
+      "name": "0.1 N Perchloric Acid VS",
+      "use": "titrant",
+      "source": "Panthenol__Panthenol - SM 1.txt:26"
+    },
+    {
+      "name": "0.1 M Potassium biphthalate",
+      "use": "titrant",
+      "source": "Panthenol__Panthenol - SM 1.txt:26"
+    },
+    {
+      "name": "1 N Sulfuric Acid VS",
+      "use": "titrant",
+      "source": "Panthenol__Panthenol - SM 1.txt:26"
+    },
+    {
+      "name": "0.01 N Sulfuric Acid VS",
+      "use": "titrant",
+      "source": "Panthenol__Panthenol - SM 1.txt:26"
+    }
+  ],
+  "openQuestions": [
+    {
+      "question": "Minimum sample quantity conflicts: spec sheet gives 120 ml for routine testing; STM gives 100 ml for routine testing and retention. Routine loaded from the spec sheet (120 ml), retention from the STM (100 ml), retest from the STM (50 ml). Confirm.",
+      "source": "Panthenol__Specifications sheet Panthenol.txt:22; Panthenol__Panthenol - SM 1.txt:38"
+    },
+    {
+      "question": "Water determination: the spec sheet names the technique 'Voltammetry' while the STM specifies Karl Fischer. Loaded as Karl Fischer (Measurement, moisture role Water) per the user decision. Confirm the technique.",
+      "source": "Panthenol__Specifications sheet Panthenol.txt:19; Panthenol__Panthenol - SM 1.txt:34"
+    },
+    {
+      "question": "Solubility: the spec sheet lists propylene glycol and water among the solvents; the STM lists only alcohol, methanol, chloroform, ether and glycerin. Recorded as the STM states.",
+      "source": "Panthenol__Specifications sheet Panthenol.txt:12; Panthenol__Panthenol - SM 1.txt:29"
+    },
+    {
+      "question": "Assay formula as printed ends 'x 100 x 100' (two x 100 factors), and the equivalency factor is written '205.3 mg/M'. Recorded as written. Confirm the formula before the calculation is configured.",
+      "source": "Panthenol__Panthenol - SM 1.txt:36"
+    },
+    {
+      "question": "Limit of aminopropanol is a titration with a percent limit; no basis is stated, so resultBasis is null. Confirm whether it is an assay-type result.",
+      "source": "Panthenol__Panthenol - SM 1.txt:31"
+    }
+  ]
+}

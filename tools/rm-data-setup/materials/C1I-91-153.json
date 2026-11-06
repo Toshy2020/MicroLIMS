@@ -1,0 +1,586 @@
+{
+  "itemCode": "C1I-91-153",
+  "stmCode": null,
+  "itemName": "Zinc Sulfate Heptahydrate",
+  "stmFile": null,
+  "specFiles": [
+    "Zinc Sulfate Heptahydrate__Specifications sheet Zinc Sulfate Heptahydrate usp.txt",
+    "Zinc Sulfate Heptahydrate__Specifications sheet Zinc Sulfate Heptahydrate BP.txt"
+  ],
+  "minQuantity": {
+    "routine": 90,
+    "retest": null,
+    "retention": null,
+    "unit": "g",
+    "source": "Zinc Sulfate Heptahydrate__Specifications sheet Zinc Sulfate Heptahydrate usp.txt:21; Zinc Sulfate Heptahydrate__Specifications sheet Zinc Sulfate Heptahydrate BP.txt:22"
+  },
+  "grades": [
+    {
+      "grade": "USP",
+      "rows": [
+        {
+          "testCode": "RM-DESC",
+          "parameterName": "Appearance",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Colorless, transparent prisms, or small needles. May occur as a white, granular, crystalline powder. Is odorless and is efflorescent in dry air.",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Zinc Sulfate Heptahydrate__Specifications sheet Zinc Sulfate Heptahydrate usp.txt:12"
+        },
+        {
+          "testCode": "RM-SOLUB",
+          "parameterName": "Solubility",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Very soluble in water and freely soluble in glycerin; insoluble in alcohol.",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Zinc Sulfate Heptahydrate__Specifications sheet Zinc Sulfate Heptahydrate usp.txt:13"
+        },
+        {
+          "testCode": "RM-ID-SO4-ZNS",
+          "parameterName": "Identification (reaction of sulfates)",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Positive reaction of sulfates.",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Zinc Sulfate Heptahydrate__Specifications sheet Zinc Sulfate Heptahydrate usp.txt:14",
+          "heldBack": "no STM: method not documented"
+        },
+        {
+          "testCode": "RM-ID-RT",
+          "parameterName": "Identification (HPLC retention time of zinc peak)",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "The retention time of the zinc peak of the sample solution corresponds to that of the standard solution, as obtained in the assay.",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Zinc Sulfate Heptahydrate__Specifications sheet Zinc Sulfate Heptahydrate usp.txt:15",
+          "heldBack": "no STM: method not documented"
+        },
+        {
+          "testCode": "RM-AS-ZNS",
+          "parameterName": "Arsenic (AAS)",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 14,
+          "lowerInclusive": null,
+          "unit": "ppm",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Zinc Sulfate Heptahydrate__Specifications sheet Zinc Sulfate Heptahydrate usp.txt:16",
+          "heldBack": "no STM: method not documented"
+        },
+        {
+          "testCode": "RM-LEAD-ZNS",
+          "parameterName": "Lead (limit test)",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Complies (NMT 20 ppm)",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Zinc Sulfate Heptahydrate__Specifications sheet Zinc Sulfate Heptahydrate usp.txt:17",
+          "heldBack": "no STM: method not documented"
+        },
+        {
+          "testCode": "RM-ALK-ZNS",
+          "parameterName": "Alkalies and alkaline earths (residue, 0.9%, NMT 5 mg)",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 0.9,
+          "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Zinc Sulfate Heptahydrate__Specifications sheet Zinc Sulfate Heptahydrate usp.txt:18",
+          "heldBack": "no STM: method not documented"
+        },
+        {
+          "testCode": "RM-ACID-ZNS",
+          "parameterName": "Acidity",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "The sample solution is not colored pink.",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Zinc Sulfate Heptahydrate__Specifications sheet Zinc Sulfate Heptahydrate usp.txt:19",
+          "heldBack": "no STM: method not documented"
+        },
+        {
+          "testCode": "RM-HPLC-ZNS-AS",
+          "parameterName": "Assay (% of zinc sulfate, ZnSO4)",
+          "limitType": "Range",
+          "lower": 55.6,
+          "upper": 61.0,
+          "lowerInclusive": true,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": "PercentAsIs",
+          "referenceStandard": "USP",
+          "source": "Zinc Sulfate Heptahydrate__Specifications sheet Zinc Sulfate Heptahydrate usp.txt:20",
+          "heldBack": "no STM: method not documented"
+        },
+        {
+          "testCode": "RM-HPLC-ZNS-AS",
+          "parameterName": "Assay (% of zinc sulfate heptahydrate, ZnSO4 · 7H2O)",
+          "limitType": "Range",
+          "lower": 99.0,
+          "upper": 108.7,
+          "lowerInclusive": true,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": "PercentAsIs",
+          "referenceStandard": "USP",
+          "source": "Zinc Sulfate Heptahydrate__Specifications sheet Zinc Sulfate Heptahydrate usp.txt:20",
+          "heldBack": "no STM: method not documented"
+        },
+        {
+          "testCode": "TAMC",
+          "parameterName": "Total aerobic microbial count (TAMC)",
+          "limitType": "CountTiered",
+          "lower": null,
+          "upper": 1000,
+          "lowerInclusive": null,
+          "unit": "CFU/g",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "Spec sheet additional requirements",
+          "source": "Zinc Sulfate Heptahydrate__Specifications sheet Zinc Sulfate Heptahydrate usp.txt:21"
+        },
+        {
+          "testCode": "TYMC",
+          "parameterName": "Total combined yeasts and molds count (TYMC)",
+          "limitType": "CountTiered",
+          "lower": null,
+          "upper": 100,
+          "lowerInclusive": null,
+          "unit": "CFU/g",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "Spec sheet additional requirements",
+          "source": "Zinc Sulfate Heptahydrate__Specifications sheet Zinc Sulfate Heptahydrate usp.txt:21"
+        },
+        {
+          "testCode": "E.coli",
+          "parameterName": "Test for E. coli",
+          "limitType": "PresenceAbsence",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": "per 10 g",
+          "expectedResultText": "Absent / 10 gm",
+          "expectedState": "Absence",
+          "resultBasis": null,
+          "referenceStandard": "Spec sheet additional requirements",
+          "source": "Zinc Sulfate Heptahydrate__Specifications sheet Zinc Sulfate Heptahydrate usp.txt:21"
+        }
+      ]
+    },
+    {
+      "grade": "BP",
+      "rows": [
+        {
+          "testCode": "RM-DESC",
+          "parameterName": "Appearance",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "White or almost white, crystalline powder or colourless, transparent crystals, efflorescent.",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Zinc Sulfate Heptahydrate__Specifications sheet Zinc Sulfate Heptahydrate BP.txt:12"
+        },
+        {
+          "testCode": "RM-SOLUB",
+          "parameterName": "Solubility",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Very soluble in water, practically insoluble in ethanol (96 per cent).",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Zinc Sulfate Heptahydrate__Specifications sheet Zinc Sulfate Heptahydrate BP.txt:13"
+        },
+        {
+          "testCode": "RM-ID-SO4-ZNS",
+          "parameterName": "Identification (reaction of sulfates)",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Positive reaction of sulfates.",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Zinc Sulfate Heptahydrate__Specifications sheet Zinc Sulfate Heptahydrate BP.txt:14",
+          "heldBack": "no STM: method not documented"
+        },
+        {
+          "testCode": "RM-ID-ZN-ZNS",
+          "parameterName": "Identification (reaction of zinc)",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "A flocculent white precipitate is formed.",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Zinc Sulfate Heptahydrate__Specifications sheet Zinc Sulfate Heptahydrate BP.txt:15",
+          "heldBack": "no STM: method not documented"
+        },
+        {
+          "testCode": "RM-ID-TIT-ZNS",
+          "parameterName": "Identification: titration",
+          "limitType": "Range",
+          "lower": 99.0,
+          "upper": 104.0,
+          "lowerInclusive": true,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Zinc Sulfate Heptahydrate__Specifications sheet Zinc Sulfate Heptahydrate BP.txt:16",
+          "heldBack": "no STM: method not documented"
+        },
+        {
+          "testCode": "RM-SOLAPP",
+          "parameterName": "Appearance of solution",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Solution S is clear and colourless.",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Zinc Sulfate Heptahydrate__Specifications sheet Zinc Sulfate Heptahydrate BP.txt:17"
+        },
+        {
+          "testCode": "RM-PH",
+          "parameterName": "pH",
+          "limitType": "Range",
+          "lower": 4.4,
+          "upper": 5.6,
+          "lowerInclusive": true,
+          "unit": null,
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Zinc Sulfate Heptahydrate__Specifications sheet Zinc Sulfate Heptahydrate BP.txt:18"
+        },
+        {
+          "testCode": "RM-LT-CL",
+          "parameterName": "Chlorides",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Complies (NMT 300 ppm)",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Zinc Sulfate Heptahydrate__Specifications sheet Zinc Sulfate Heptahydrate BP.txt:19"
+        },
+        {
+          "testCode": "RM-LT-FE",
+          "parameterName": "Iron",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Complies (NMT 100 ppm)",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Zinc Sulfate Heptahydrate__Specifications sheet Zinc Sulfate Heptahydrate BP.txt:20"
+        },
+        {
+          "testCode": "RM-TIT-ZNS",
+          "parameterName": "Assay",
+          "limitType": "Range",
+          "lower": 99.0,
+          "upper": 104.0,
+          "lowerInclusive": true,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": "PercentAsIs",
+          "referenceStandard": "BP",
+          "source": "Zinc Sulfate Heptahydrate__Specifications sheet Zinc Sulfate Heptahydrate BP.txt:21",
+          "heldBack": "no STM: method not documented"
+        },
+        {
+          "testCode": "TAMC",
+          "parameterName": "Total aerobic microbial count (TAMC)",
+          "limitType": "CountTiered",
+          "lower": null,
+          "upper": 1000,
+          "lowerInclusive": null,
+          "unit": "CFU/g",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "Spec sheet additional requirements",
+          "source": "Zinc Sulfate Heptahydrate__Specifications sheet Zinc Sulfate Heptahydrate BP.txt:22"
+        },
+        {
+          "testCode": "TYMC",
+          "parameterName": "Total combined yeasts and molds count (TYMC)",
+          "limitType": "CountTiered",
+          "lower": null,
+          "upper": 100,
+          "lowerInclusive": null,
+          "unit": "CFU/g",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "Spec sheet additional requirements",
+          "source": "Zinc Sulfate Heptahydrate__Specifications sheet Zinc Sulfate Heptahydrate BP.txt:22"
+        },
+        {
+          "testCode": "E.coli",
+          "parameterName": "Test for E. coli",
+          "limitType": "PresenceAbsence",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": "per 10 g",
+          "expectedResultText": "Absent / 10 gm",
+          "expectedState": "Absence",
+          "resultBasis": null,
+          "referenceStandard": "Spec sheet additional requirements",
+          "source": "Zinc Sulfate Heptahydrate__Specifications sheet Zinc Sulfate Heptahydrate BP.txt:22"
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "testCode": "RM-DESC",
+      "procedure": "No STM: method not documented (general catalog test).",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {},
+      "source": "Zinc Sulfate Heptahydrate__Specifications sheet Zinc Sulfate Heptahydrate usp.txt:12"
+    },
+    {
+      "testCode": "RM-SOLUB",
+      "procedure": "No STM: method not documented (general catalog test).",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {},
+      "source": "Zinc Sulfate Heptahydrate__Specifications sheet Zinc Sulfate Heptahydrate usp.txt:13"
+    },
+    {
+      "testCode": "RM-ID-SO4-ZNS",
+      "procedure": "No STM: method not documented.",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "details": {},
+      "source": "Zinc Sulfate Heptahydrate__Specifications sheet Zinc Sulfate Heptahydrate usp.txt:14",
+      "heldBack": "no STM: method not documented"
+    },
+    {
+      "testCode": "RM-ID-RT",
+      "procedure": "No STM: method not documented. HPLC identification as obtained in the assay.",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "details": {},
+      "source": "Zinc Sulfate Heptahydrate__Specifications sheet Zinc Sulfate Heptahydrate usp.txt:15",
+      "heldBack": "no STM: method not documented"
+    },
+    {
+      "testCode": "RM-ID-ZN-ZNS",
+      "procedure": "No STM: method not documented.",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "details": {},
+      "source": "Zinc Sulfate Heptahydrate__Specifications sheet Zinc Sulfate Heptahydrate BP.txt:15",
+      "heldBack": "no STM: method not documented"
+    },
+    {
+      "testCode": "RM-ID-TIT-ZNS",
+      "procedure": "No STM: method not documented (BP identification by titration).",
+      "kind": "specific",
+      "workflow": "Titration",
+      "details": {},
+      "source": "Zinc Sulfate Heptahydrate__Specifications sheet Zinc Sulfate Heptahydrate BP.txt:16",
+      "heldBack": "no STM: method not documented"
+    },
+    {
+      "testCode": "RM-AS-ZNS",
+      "procedure": "No STM: method not documented (arsenic by AAS).",
+      "kind": "specific",
+      "workflow": "IcpMethodAssay",
+      "details": {},
+      "source": "Zinc Sulfate Heptahydrate__Specifications sheet Zinc Sulfate Heptahydrate usp.txt:16",
+      "heldBack": "no STM: method not documented"
+    },
+    {
+      "testCode": "RM-LEAD-ZNS",
+      "procedure": "No STM: method not documented (lead limit test).",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "details": {},
+      "source": "Zinc Sulfate Heptahydrate__Specifications sheet Zinc Sulfate Heptahydrate usp.txt:17",
+      "heldBack": "no STM: method not documented"
+    },
+    {
+      "testCode": "RM-ALK-ZNS",
+      "procedure": "No STM: method not documented (alkalies and alkaline earths, residue).",
+      "kind": "specific",
+      "workflow": "Gravimetric",
+      "details": {},
+      "source": "Zinc Sulfate Heptahydrate__Specifications sheet Zinc Sulfate Heptahydrate usp.txt:18",
+      "heldBack": "no STM: method not documented"
+    },
+    {
+      "testCode": "RM-ACID-ZNS",
+      "procedure": "No STM: method not documented (acidity).",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "details": {},
+      "source": "Zinc Sulfate Heptahydrate__Specifications sheet Zinc Sulfate Heptahydrate usp.txt:19",
+      "heldBack": "no STM: method not documented"
+    },
+    {
+      "testCode": "RM-HPLC-ZNS-AS",
+      "procedure": "No STM: method not documented (USP assay by HPLC).",
+      "kind": "specific",
+      "workflow": "HplcMethodAssay",
+      "details": {},
+      "source": "Zinc Sulfate Heptahydrate__Specifications sheet Zinc Sulfate Heptahydrate usp.txt:20",
+      "heldBack": "no STM: method not documented"
+    },
+    {
+      "testCode": "RM-SOLAPP",
+      "procedure": "No STM: method not documented (general catalog test).",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {},
+      "source": "Zinc Sulfate Heptahydrate__Specifications sheet Zinc Sulfate Heptahydrate BP.txt:17"
+    },
+    {
+      "testCode": "RM-PH",
+      "procedure": "No STM: method not documented (general catalog test).",
+      "kind": "general",
+      "workflow": "Measurement",
+      "details": {},
+      "source": "Zinc Sulfate Heptahydrate__Specifications sheet Zinc Sulfate Heptahydrate BP.txt:18"
+    },
+    {
+      "testCode": "RM-LT-CL",
+      "procedure": "No STM: method not documented (general catalog test).",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {},
+      "source": "Zinc Sulfate Heptahydrate__Specifications sheet Zinc Sulfate Heptahydrate BP.txt:19"
+    },
+    {
+      "testCode": "RM-LT-FE",
+      "procedure": "No STM: method not documented (general catalog test).",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {},
+      "source": "Zinc Sulfate Heptahydrate__Specifications sheet Zinc Sulfate Heptahydrate BP.txt:20"
+    },
+    {
+      "testCode": "RM-TIT-ZNS",
+      "procedure": "No STM: method not documented (BP assay by titration).",
+      "kind": "specific",
+      "workflow": "Titration",
+      "details": {},
+      "source": "Zinc Sulfate Heptahydrate__Specifications sheet Zinc Sulfate Heptahydrate BP.txt:21",
+      "heldBack": "no STM: method not documented"
+    },
+    {
+      "testCode": "TAMC",
+      "procedure": "No STM: method not documented; limit from spec sheet additional requirements.",
+      "kind": "general",
+      "workflow": "CountTest",
+      "details": {},
+      "source": "Zinc Sulfate Heptahydrate__Specifications sheet Zinc Sulfate Heptahydrate usp.txt:21"
+    },
+    {
+      "testCode": "TYMC",
+      "procedure": "No STM: method not documented; limit from spec sheet additional requirements.",
+      "kind": "general",
+      "workflow": "CountTest",
+      "details": {},
+      "source": "Zinc Sulfate Heptahydrate__Specifications sheet Zinc Sulfate Heptahydrate usp.txt:21"
+    },
+    {
+      "testCode": "E.coli",
+      "procedure": "No STM: method not documented; limit from spec sheet additional requirements.",
+      "kind": "general",
+      "workflow": "Observation",
+      "details": {},
+      "source": "Zinc Sulfate Heptahydrate__Specifications sheet Zinc Sulfate Heptahydrate usp.txt:21"
+    }
+  ],
+  "notApplicable": [],
+  "supplierAttributes": [],
+  "reagents": [],
+  "openQuestions": [
+    {
+      "question": "NO ITEM: no item in the app for this material. itemCode is the spec sheet's STM code C1I-91-153 (no STM-RM number exists).",
+      "source": "Zinc Sulfate Heptahydrate__Specifications sheet Zinc Sulfate Heptahydrate usp.txt:10"
+    },
+    {
+      "question": "Spec-only: no STM for this material. Every specific test (identifications, arsenic, lead, alkalies, acidity, assays) is held back until an STM documents the method.",
+      "source": "Zinc Sulfate Heptahydrate__Specifications sheet Zinc Sulfate Heptahydrate usp.txt:12-21; Zinc Sulfate Heptahydrate__Specifications sheet Zinc Sulfate Heptahydrate BP.txt:12-21"
+    },
+    {
+      "question": "pH technique is given as 'Voltammetry' on the BP sheet. Limit 4.4 to 5.6 loaded as written; confirm the technique.",
+      "source": "Zinc Sulfate Heptahydrate__Specifications sheet Zinc Sulfate Heptahydrate BP.txt:18"
+    }
+  ]
+}

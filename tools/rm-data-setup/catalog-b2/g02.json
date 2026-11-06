@@ -1,0 +1,506 @@
+{
+  "_meta": {
+    "group": "g02",
+    "materials": [
+      "STM-RM-061",
+      "STM-RM-149",
+      "STM-RM-107",
+      "STM-RM-072",
+      "STM-RM-132"
+    ]
+  },
+  "testDefinitions": [
+    {
+      "code": "RM-ID-VIS-061",
+      "displayName": "Identification (Visual, Liquid Glucose)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Qualitative",
+      "equationType": "Qualitative",
+      "physchemArea": "RawPackaging",
+      "complete": true,
+      "notes": "Visual examination: clear, syrupy liquid at 25 °C. Substance may partly or totally solidify at room temperature and liquefies again when heated to 50 °C (source: Liquid Glucose__Liquid Glucose - SM.txt:32).",
+      "usedBy": [
+        "STM-RM-061"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-061",
+          "provisionalCode": "RM-ID-VIS-GLUC",
+          "source": "Liquid Glucose__Liquid Glucose - SM.txt:32"
+        }
+      ]
+    },
+    {
+      "code": "RM-ID-CUPRI-061",
+      "displayName": "Identification (Cupri-tartaric reaction, Liquid Glucose)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Qualitative",
+      "equationType": "Qualitative",
+      "physchemArea": "RawPackaging",
+      "complete": true,
+      "notes": "Dissolve 0.1 g in 2.5 mL water, heat with 2.5 mL cupri-tartaric solution; a red precipitate is formed (source: Liquid Glucose__Liquid Glucose - SM.txt:32).",
+      "usedBy": [
+        "STM-RM-061"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-061",
+          "provisionalCode": "RM-ID-CUPRI-GLUC",
+          "source": "Liquid Glucose__Liquid Glucose - SM.txt:32"
+        }
+      ]
+    },
+    {
+      "code": "RM-ID-PAD-061",
+      "displayName": "Identification (Reactive pad, Liquid Glucose)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Qualitative",
+      "equationType": "Qualitative",
+      "physchemArea": "RawPackaging",
+      "complete": true,
+      "notes": "Dip stick with reactive pad (glucose-oxidase, peroxidase, tetramethylbenzidine) for 1 s in 5 g/L solution of substance; within 60 s color changes from yellow to green or blue (source: Liquid Glucose__Liquid Glucose - SM.txt:32).",
+      "usedBy": [
+        "STM-RM-061"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-061",
+          "provisionalCode": "RM-ID-PAD-GLUC",
+          "source": "Liquid Glucose__Liquid Glucose - SM.txt:32"
+        }
+      ]
+    },
+    {
+      "code": "RM-ID-UV-149",
+      "displayName": "Identification (UV, Vitamin A Palmitate)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Qualitative",
+      "equationType": "Qualitative",
+      "physchemArea": "RawPackaging",
+      "complete": true,
+      "notes": "Alternative identification method per BP: absorption maximum of the solution lies between 325 nm and 327 nm (source: Vitamim A Palmitat__Vitamim A Palmitate-SM.txt:30).",
+      "usedBy": [
+        "STM-RM-149"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-149",
+          "provisionalCode": "RM-ID-UV-VITA",
+          "source": "Vitamim A Palmitat__Vitamim A Palmitate-SM.txt:30"
+        }
+      ]
+    },
+    {
+      "code": "RM-UV-AS-149",
+      "displayName": "Assay of Vitamin A Palmitate (UV spectrophotometry)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Measurement",
+      "equationType": "Measurement",
+      "physchemArea": "RawPackaging",
+      "replicateCount": 1,
+      "evaluationBasis": "Mean",
+      "complete": true,
+      "notes": "82.44 mg in pentane/2-propanol, measure A326 and spectral purity ratios (A300/A326 NMT 0.60, A350/A326 NMT 0.54, A370/A326 NMT 0.14). Content (IU/g) = A326 x V x 1900 / (100 x m). Limit 95.0-110.0 % of stated amount (1.7 IU/mg = 1,700,000 IU/g). Measurement test, analyst enters final % of stated amount (multi-wavelength ratio and IU conversion not calculated by UV workflow; source: Vitamim A Palmitat__Vitamim A Palmitate-SM.txt:33).",
+      "usedBy": [
+        "STM-RM-149"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-149",
+          "provisionalCode": "RM-UV-VITA-AS",
+          "source": "Vitamim A Palmitat__Vitamim A Palmitate-SM.txt:33"
+        }
+      ]
+    },
+    {
+      "code": "RM-ID-TLC-149",
+      "displayName": "Identification (TLC, Vitamin A Palmitate)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Qualitative",
+      "equationType": "Qualitative",
+      "physchemArea": "RawPackaging",
+      "complete": true,
+      "notes": "Exists only so the not-applicable record can name it; no specification rows. Not-applicable justification: Reference CRS not available; alternative UV identification method used (source: Vitamim A Palmitat__Not applicable For Vitamin A Palmitate.txt:2; Vitamim A Palmitat__Vitamim A Palmitate-SM.txt:30).",
+      "usedBy": [
+        "STM-RM-149"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-149",
+          "provisionalCode": "RM-ID-TLC-VITA",
+          "source": "Vitamim A Palmitat__Not applicable For Vitamin A Palmitate.txt:2"
+        }
+      ]
+    },
+    {
+      "code": "RM-SOLSALTS-107",
+      "displayName": "Soluble salts (Magnesium Hydroxide)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Measurement",
+      "equationType": "Measurement",
+      "physchemArea": "RawPackaging",
+      "replicateCount": 1,
+      "evaluationBasis": "Mean",
+      "complete": true,
+      "notes": "2.0 g boiled in 100 mL water 5 min, filtered, diluted to 100 mL. 1) 50 mL titrated with 0.10 N H2SO4 to methyl red (acid consumed, NMT 2.0 mL). 2) 25 mL evaporated to dryness at 105 °C for 3 h (residue, NMT 2.0%). Measurement test, analyst enters the final values (mL acid and % residue; source: Magnesium Hydroxide__Magnesium Hydroxide-SM.txt:33).",
+      "usedBy": [
+        "STM-RM-107"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-107",
+          "provisionalCode": "RM-SOLSALTS-MGOH",
+          "source": "Magnesium Hydroxide__Magnesium Hydroxide-SM.txt:33"
+        }
+      ]
+    },
+    {
+      "code": "RM-ICP-CA-107",
+      "displayName": "Limit of Calcium (AAS as ICP, magnesium hydroxide USP)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "IcpMethodAssay",
+      "equationType": "IcpMethodAssay",
+      "physchemArea": "RawPackaging",
+      "icpMethod": "Calcium by AAS (magnesium hydroxide USP)",
+      "methodAbbreviation": "AAS-CA-107",
+      "complete": false,
+      "missing": [
+        "specification shape: % w/w content rows are not holdable by ICP spec rules without label claim (gaps A)",
+        "needs the held-back method \"Calcium by AAS (magnesium hydroxide USP)\""
+      ],
+      "notes": "Magnesium Hydroxide USP: Limit of Calcium NMT 1.5 %; % w/w content rows cannot be held by ICP spec rules without a label claim (gaps A). Flame AAS with nitrous oxide-acetylene, 422.7 nm, standards 1.0-15.0 ug/mL Ca (source: Magnesium Hydroxide__Magnesium Hydroxide-SM.txt:35).",
+      "usedBy": [
+        "STM-RM-107"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-107",
+          "provisionalCode": "RM-CA-AAS-MGOH",
+          "source": "Magnesium Hydroxide__Magnesium Hydroxide-SM.txt:35"
+        }
+      ],
+      "heldBack": "needs the held-back method \"Calcium by AAS (magnesium hydroxide USP)\""
+    },
+    {
+      "code": "RM-ICP-PB-107",
+      "displayName": "Limit of Lead (ICP, magnesium hydroxide USP)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "IcpMethodAssay",
+      "equationType": "IcpMethodAssay",
+      "physchemArea": "RawPackaging",
+      "icpMethod": "Lead by ICP (magnesium hydroxide USP)",
+      "methodAbbreviation": "ICP-PB-107",
+      "complete": true,
+      "notes": "Sheet row NMT 1.5 ppm = 1.5 ug/g (MgPerKg), holdable as an elemental-impurity row. Quadrupole ICP-MS or ICP-OES (220.353 nm; source: Magnesium Hydroxide__Magnesium Hydroxide-SM.txt:36).",
+      "usedBy": [
+        "STM-RM-107"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-107",
+          "provisionalCode": "RM-PB-ICP-MGOH",
+          "source": "Magnesium Hydroxide__Magnesium Hydroxide-SM.txt:36"
+        }
+      ],
+      "heldBack": "needs the held-back method \"Lead by ICP (magnesium hydroxide USP)\""
+    },
+    {
+      "code": "RM-TIT-MGOH-107",
+      "displayName": "Assay of magnesium hydroxide (complexometric EDTA)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Titration",
+      "equationType": "Titration",
+      "physchemArea": "RawPackaging",
+      "titrationType": "Complexometric",
+      "titrationMode": "Direct",
+      "titrationEndpoint": "Visual",
+      "titrantSolution": "0.05 M Edetate Disodium VS",
+      "titrationBlankRequired": false,
+      "titrationEquivalencyFactor": 58.32,
+      "titrationEquivalencyFactorDerivation": "stated: 1 mL 0.05 M EDTA = 2.916 mg Mg(OH)2; 2.916 / 0.05 = 58.32 mg/mmol",
+      "titrationIndicatorEntry": "Eriochrome Black TS",
+      "replicateCount": 1,
+      "titrationCalculation": "UspFactor",
+      "complete": true,
+      "notes": "75 mg previously dried at 105 °C for 2 h in 2 mL 3 N HCl + 100 mL water, adjust to pH 7 with 1 N NaOH, add 5 mL ammonia-ammonium chloride buffer TS and 0.15 mL eriochrome black TS, titrate with 0.05 M EDTA to blue endpoint. Dried-basis row (source: Magnesium Hydroxide__Magnesium Hydroxide-SM.txt:39; titrant standardization :28).",
+      "usedBy": [
+        "STM-RM-107"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-107",
+          "provisionalCode": "RM-ASSAY-TITR-MGOH",
+          "source": "Magnesium Hydroxide__Magnesium Hydroxide-SM.txt:39"
+        }
+      ]
+    }
+  ],
+  "solutions": [
+    {
+      "name": "0.05 M Edetate Disodium VS",
+      "type": "Titrant",
+      "section": "Physicochemical Laboratory",
+      "nominalStrength": 0.05,
+      "strengthUnit": "Molar",
+      "finalVolumeMl": 1000,
+      "instructions": "Dissolve 18.6 g of edetate disodium in water to make 1000 mL. Standardize against standard calcium carbonate (~200 mg) dissolved in dilute HCl, diluted to 100 mL, pH 12-13 with sodium hydroxide TS, with hydroxy naphthol blue indicator to blue endpoint.",
+      "components": [
+        {
+          "entry": "Edetate Disodium",
+          "quantity": 18.6,
+          "unit": "Gram"
+        }
+      ],
+      "waterToVolume": true,
+      "standardizationMode": "PrimaryStandard",
+      "standardEntry": "Calcium carbonate",
+      "equivalenceMgPerMl": 5.0045,
+      "referenceSolution": null,
+      "usedBy": [
+        "STM-RM-107"
+      ],
+      "notes": "Recipe from STM: 18.6 g in 1000 mL water. Standardized against calcium carbonate (1 mL 0.05 M EDTA = 5.0045 mg CaCO3; 100.09 x 0.05 = 5.0045). House defaults: 3 replicates, factor 0.97-1.03, max RSD 0.2 %, valid 30 days, shelf life 30 days.",
+      "complete": true,
+      "shelfLifeValue": 30,
+      "shelfLifeUnit": "Days",
+      "storageCondition": "Tightly closed, room temperature",
+      "replicateCount": 3,
+      "maxRsdPercent": 0.2,
+      "validityDays": 30,
+      "blankRequired": false,
+      "factorMin": 0.97,
+      "factorMax": 1.03
+    }
+  ],
+  "hplcMethods": [],
+  "icpMethods": [
+    {
+      "name": "Calcium by AAS (magnesium hydroxide USP)",
+      "abbreviation": "AAS-CA-107",
+      "mode": "ElementalImpurities",
+      "section": "Physicochemical Laboratory",
+      "standardLevelsMgPerL": "1.0, 5.0, 10.0, 15.0",
+      "calibrationStandardEntry": "Calcium Standard Solution 1000 mg/L",
+      "minCorrelation": null,
+      "sampleVolumeMl": 200,
+      "elements": [
+        {
+          "symbol": "Ca",
+          "wavelengthNm": 422.7,
+          "conversionFactor": 1
+        }
+      ],
+      "dilutionFactor": 1,
+      "usedBy": [
+        "STM-RM-107"
+      ],
+      "notes": "Nitrous oxide-acetylene flame AAS, Ca hollow-cathode, 422.7 nm. 250 mg sample in 30 mL dilute HCl + 4 mL lanthanum (50 mg/mL) to 200 mL. Standards 1.0, 5.0, 10.0, 15.0 ug/mL Ca with lanthanum and HCl. Result % = (CS x 0.001 / CU) x 100.",
+      "complete": false,
+      "missing": [
+        "element view (axial/radial): an ICP-OES setting, not stated for flame AAS",
+        "effectiveDate: STM issue date (loader reads it from the STM header)",
+        "minCorrelation: not stated in STM",
+        "mode: NMT % result (1.5 % = 15000 ug/g) is not a ug/g impurity limit on the sheet (gaps A)"
+      ],
+      "heldBack": "ICP method incomplete: element view (axial/radial); effectiveDate; minCorrelation; mode"
+    },
+    {
+      "name": "Lead by ICP (magnesium hydroxide USP)",
+      "abbreviation": "ICP-PB-107",
+      "mode": "ElementalImpurities",
+      "section": "Physicochemical Laboratory",
+      "standardLevelsMgPerL": "0.001, 0.010",
+      "calibrationStandardEntry": "Lead Standard Solution 1000 mg/L",
+      "minCorrelation": 0.999,
+      "sampleVolumeMl": 50,
+      "elements": [
+        {
+          "symbol": "Pb",
+          "wavelengthNm": 220.353,
+          "conversionFactor": 1
+        }
+      ],
+      "dilutionFactor": 1,
+      "usedBy": [
+        "STM-RM-107"
+      ],
+      "notes": "0.25 g in 3.0 mL HNO3 to 50 mL. Standards 1.0 ug/L and 10 ug/L in 6% HNO3. Internal standard 20 ug/L Tl. Mode: Quadrupole ICP-MS (206, 207, 208 amu) or ICP-OES (220.353 nm). Linearity r >= 0.999.",
+      "complete": false,
+      "missing": [
+        "element view (axial/radial): not stated for ICP-OES",
+        "effectiveDate: STM issue date (loader reads it from the STM header)",
+        "instrument mode ambiguity: STM permits either Quadrupole ICP-MS or ICP-OES"
+      ],
+      "heldBack": "ICP method incomplete: element view (axial/radial); effectiveDate; instrument mode ambiguity"
+    }
+  ],
+  "materialEntries": [
+    {
+      "name": "Edetate Disodium",
+      "category": "Reagent",
+      "codePrefix": "RG-",
+      "code": null,
+      "baseUnit": "Gram",
+      "usedBy": [
+        "0.05 M Edetate Disodium VS"
+      ],
+      "source": "Magnesium Hydroxide__Magnesium Hydroxide-SM.txt:28",
+      "loadedObjectNeedsIt": true
+    },
+    {
+      "name": "Calcium carbonate",
+      "category": "PrimaryStandard",
+      "codePrefix": "PS-",
+      "code": null,
+      "baseUnit": "Gram",
+      "usedBy": [
+        "0.05 M Edetate Disodium VS"
+      ],
+      "source": "Magnesium Hydroxide__Magnesium Hydroxide-SM.txt:28",
+      "loadedObjectNeedsIt": true
+    },
+    {
+      "name": "Eriochrome Black TS",
+      "category": "Indicator",
+      "codePrefix": "IND-",
+      "code": null,
+      "baseUnit": "Bottle",
+      "usedBy": [
+        "RM-TIT-MGOH-107"
+      ],
+      "source": "Magnesium Hydroxide__Magnesium Hydroxide-SM.txt:28",
+      "loadedObjectNeedsIt": true
+    },
+    {
+      "name": "Calcium Standard Solution 1000 mg/L",
+      "category": "ReferenceStandard",
+      "codePrefix": "RS-",
+      "code": null,
+      "baseUnit": "Bottle",
+      "usedBy": [
+        "Calcium by AAS (magnesium hydroxide USP)"
+      ],
+      "source": "Magnesium Hydroxide__Magnesium Hydroxide-SM.txt:28",
+      "loadedObjectNeedsIt": false
+    },
+    {
+      "name": "Lead Standard Solution 1000 mg/L",
+      "category": "ReferenceStandard",
+      "codePrefix": "RS-",
+      "code": null,
+      "baseUnit": "Bottle",
+      "usedBy": [
+        "Lead by ICP (magnesium hydroxide USP)"
+      ],
+      "source": "Magnesium Hydroxide__Magnesium Hydroxide-SM.txt:28",
+      "loadedObjectNeedsIt": false
+    },
+    {
+      "name": "Retinyl Palmitate CRS",
+      "category": "ReferenceStandard",
+      "codePrefix": "RS-",
+      "code": null,
+      "baseUnit": "Vial",
+      "usedBy": [
+        "RM-ID-TLC-149"
+      ],
+      "source": "Vitamim A Palmitat__Vitamim A Palmitate-SM.txt:26",
+      "loadedObjectNeedsIt": false
+    },
+    {
+      "name": "Vitamin D3 (500IU/mg) working standard",
+      "category": "ReferenceStandard",
+      "codePrefix": "RS-",
+      "code": null,
+      "baseUnit": "Bottle",
+      "usedBy": [
+        "RM-ID-RT on STM-RM-072"
+      ],
+      "source": "Vitamin D3 (Cholecalciferol)500 IUmg)__STM Vitamin D3 (Cholecalciferol)500 IUmg) Micro 2-0.txt:28",
+      "loadedObjectNeedsIt": false
+    }
+  ],
+  "reagentLinks": [],
+  "mapping": {
+    "STM-RM-061": {
+      "E.coli": "E.coli",
+      "RM-DE-GLUC": "RM-DE",
+      "RM-DESC": "RM-DESC",
+      "RM-ID-CUPRI-GLUC": "RM-ID-CUPRI-061",
+      "RM-ID-PAD-GLUC": "RM-ID-PAD-061",
+      "RM-ID-VIS-GLUC": "RM-ID-VIS-061",
+      "RM-LOD": "RM-LOD",
+      "RM-PH": "RM-PH",
+      "RM-SASH": "RM-SASH",
+      "RM-SO2-GLUC": "RM-SO2",
+      "RM-SOLUB": "RM-SOLUB",
+      "TAMC": "TAMC",
+      "TYMC": "TYMC"
+    },
+    "STM-RM-149": {
+      "RM-AV-VITA": "RM-AV",
+      "RM-DESC": "RM-DESC",
+      "RM-ID-TLC-VITA": "RM-ID-TLC-149",
+      "RM-ID-UV-VITA": "RM-ID-UV-149",
+      "RM-PV-VITA": "RM-PV",
+      "RM-SOLUB": "RM-SOLUB",
+      "RM-UV-VITA-AS": "RM-UV-AS-149"
+    },
+    "STM-RM-107": {
+      "E.coli": "E.coli",
+      "RM-ASSAY-TITR-MGOH": "RM-TIT-MGOH-107",
+      "RM-BULKD": "RM-BULKD",
+      "RM-CA-AAS-MGOH": "RM-ICP-CA-107",
+      "RM-CARB-MGOH": "RM-CARB",
+      "RM-DESC": "RM-DESC",
+      "RM-ID-MG-USP": "RM-ID-MG",
+      "RM-LOD": "RM-LOD",
+      "RM-LOI-MGOH": "RM-LOI",
+      "RM-PB-ICP-MGOH": "RM-ICP-PB-107",
+      "RM-SOLSALTS-MGOH": "RM-SOLSALTS-107",
+      "RM-SOLUB": "RM-SOLUB",
+      "TAMC": "TAMC",
+      "TYMC": "TYMC"
+    },
+    "STM-RM-072": {
+      "E.coli": "E.coli",
+      "RM-DESC": "RM-DESC",
+      "RM-ID-HPLC-VITD3": "RM-ID-RT",
+      "RM-LOD": "RM-LOD",
+      "RM-SOLUB": "RM-SOLUB",
+      "TAMC": "TAMC",
+      "TYMC": "TYMC"
+    },
+    "STM-RM-132": {
+      "E.coli": "E.coli",
+      "RM-ASH-OPRED": "RM-ASH",
+      "RM-DESC": "RM-DESC",
+      "RM-DISP-OPRED": "RM-DISP",
+      "RM-ID-FILM-OPRED": "RM-ID-FILM",
+      "TAMC": "TAMC",
+      "TYMC": "TYMC"
+    }
+  },
+  "gaps": [
+    {
+      "material": "STM-RM-107",
+      "test": "RM-CA-AAS-MGOH",
+      "missing": "ICP spec rules cannot hold % w/w limit (1.5%); method missing element view, minCorrelation, effectiveDate"
+    },
+    {
+      "material": "STM-RM-107",
+      "test": "RM-PB-ICP-MGOH",
+      "missing": "ICP method missing element view, effectiveDate; instrument mode ambiguity (ICP-MS vs ICP-OES)"
+    }
+  ]
+}

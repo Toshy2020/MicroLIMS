@@ -1,0 +1,378 @@
+{
+  "itemCode": "STM-RM-054",
+  "itemName": "Fluconazole",
+  "stmCode": "STM-RM-054",
+  "stmFile": "Fluconazole__STM Fluconazole new - EDA.txt",
+  "specFiles": ["Fluconazole__Specifications sheet Fluconazole.txt"],
+  "minQuantity": {
+    "routine": 70,
+    "retest": 50,
+    "retention": 70,
+    "unit": "g",
+    "source": "Fluconazole__Specifications sheet Fluconazole.txt:19; Fluconazole__STM Fluconazole new - EDA.txt:45"
+  },
+  "grades": [
+    {
+      "grade": "USP",
+      "rows": [
+        {
+          "testCode": "RM-DESC",
+          "parameterName": "Description",
+          "limitType": "Qualitative",
+          "lower": null, "upper": null, "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "White to off white, odorless powder",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Fluconazole__Specifications sheet Fluconazole.txt:11"
+        },
+        {
+          "testCode": "RM-SOLUB",
+          "parameterName": "Solubility",
+          "limitType": "Qualitative",
+          "lower": null, "upper": null, "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Freely soluble in methanol; soluble in alcohol and in acetone; sparingly soluble in isopropanol and in chloroform; slightly soluble in water; very slightly soluble in toluene",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Fluconazole__Specifications sheet Fluconazole.txt:12"
+        },
+        {
+          "testCode": "RM-ID-IR",
+          "parameterName": "Identification (IR)",
+          "limitType": "Qualitative",
+          "lower": null, "upper": null, "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "The spectrum obtained for the sample is corresponding to the spectrum obtained from Fluconazole RS",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Fluconazole__Specifications sheet Fluconazole.txt:13"
+        },
+        {
+          "testCode": "RM-ID-RT",
+          "parameterName": "Identification (HPLC retention time of major peak)",
+          "limitType": "Qualitative",
+          "lower": null, "upper": null, "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "The retention time of the major peak of the Sample solution corresponds to that of the Standard solution",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Fluconazole__Specifications sheet Fluconazole.txt:14"
+        },
+        {
+          "testCode": "RM-RS-FLU",
+          "parameterName": "Related compound A",
+          "limitType": "NotMoreThan",
+          "lower": null, "upper": 0.2, "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Fluconazole__Specifications sheet Fluconazole.txt:15"
+        },
+        {
+          "testCode": "RM-RS-FLU",
+          "parameterName": "Specified impurity",
+          "limitType": "NotMoreThan",
+          "lower": null, "upper": 1.0, "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Fluconazole__Specifications sheet Fluconazole.txt:15"
+        },
+        {
+          "testCode": "RM-RS-FLU",
+          "parameterName": "Related compound B",
+          "limitType": "NotMoreThan",
+          "lower": null, "upper": 0.1, "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Fluconazole__Specifications sheet Fluconazole.txt:15"
+        },
+        {
+          "testCode": "RM-RS-FLU",
+          "parameterName": "Related compound C",
+          "limitType": "NotMoreThan",
+          "lower": null, "upper": 0.2, "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Fluconazole__Specifications sheet Fluconazole.txt:15"
+        },
+        {
+          "testCode": "RM-RS-FLU",
+          "parameterName": "Any individual unspecified impurity",
+          "limitType": "NotMoreThan",
+          "lower": null, "upper": 0.1, "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Fluconazole__Specifications sheet Fluconazole.txt:15"
+        },
+        {
+          "testCode": "RM-RS-FLU",
+          "parameterName": "Total unknown impurities",
+          "limitType": "NotMoreThan",
+          "lower": null, "upper": 0.3, "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Fluconazole__Specifications sheet Fluconazole.txt:15"
+        },
+        {
+          "testCode": "RM-RS-FLU",
+          "parameterName": "Total impurities",
+          "limitType": "NotMoreThan",
+          "lower": null, "upper": 1.5, "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Fluconazole__Specifications sheet Fluconazole.txt:15"
+        },
+        {
+          "testCode": "RM-SASH",
+          "parameterName": "Residue on ignition",
+          "limitType": "NotMoreThan",
+          "lower": null, "upper": 0.1, "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Fluconazole__Specifications sheet Fluconazole.txt:16"
+        },
+        {
+          "testCode": "RM-LOD",
+          "parameterName": "Loss on drying",
+          "limitType": "NotMoreThan",
+          "lower": null, "upper": 0.5, "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Fluconazole__Specifications sheet Fluconazole.txt:17"
+        },
+        {
+          "testCode": "RM-ASSAY-FLU",
+          "parameterName": "Assay (dried basis)",
+          "limitType": "Range",
+          "lower": 98.0, "upper": 102.0, "lowerInclusive": true,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": "PercentDriedBasis",
+          "referenceStandard": "USP",
+          "source": "Fluconazole__Specifications sheet Fluconazole.txt:18"
+        },
+        {
+          "testCode": "TAMC",
+          "parameterName": "Total aerobic microbial count (TAMC)",
+          "limitType": "CountTiered",
+          "lower": null, "upper": 1000, "lowerInclusive": null,
+          "unit": "CFU/g",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": null,
+          "source": "Fluconazole__Specifications sheet Fluconazole.txt:19"
+        },
+        {
+          "testCode": "TYMC",
+          "parameterName": "Total yeasts and molds count (TYMC)",
+          "limitType": "CountTiered",
+          "lower": null, "upper": 100, "lowerInclusive": null,
+          "unit": "CFU/g",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": null,
+          "source": "Fluconazole__Specifications sheet Fluconazole.txt:19"
+        },
+        {
+          "testCode": "E.coli",
+          "parameterName": "Test for E. coli",
+          "limitType": "PresenceAbsence",
+          "lower": null, "upper": null, "lowerInclusive": null,
+          "unit": "per g",
+          "expectedResultText": "Absent / gm",
+          "expectedState": "Absence",
+          "resultBasis": null,
+          "referenceStandard": null,
+          "source": "Fluconazole__Specifications sheet Fluconazole.txt:19"
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "testCode": "RM-DESC",
+      "procedure": "Under strong white light check each received sample container separately in a clean transparent watch glass or glass dish for foreign particles, colour and compliance with the visual specification.",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": { "perContainer": true, "grades": ["USP"], "reference": "USP 2024 description and relative solubility" },
+      "source": "Fluconazole__STM Fluconazole new - EDA.txt:28"
+    },
+    {
+      "testCode": "RM-SOLUB",
+      "procedure": "Stepwise solubility at 25.0 +/- 0.5 C: 100 mg powdered sample in a stoppered tube with 0.1 mL solvent, shake 1 min, hold 15 min; then add 0.9 mL, 2 mL and 7 mL of solvent (same shake and hold) to classify very soluble / freely soluble / soluble / sparingly soluble; if still undissolved, 10 mg in 10 mL (slightly soluble), then 1 mg in 10 mL (very slightly soluble), else practically insoluble. Repeat with methanol, alcohol, isopropanol and toluene.",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {
+        "grades": ["USP"],
+        "sampleMg": 100,
+        "temperatureC": "25.0 +/- 0.5",
+        "holdMin": 15,
+        "shakeMin": 1,
+        "volumesMl": [0.1, 0.9, 2, 7],
+        "solvents": ["methanol", "alcohol", "isopropanol", "toluene"],
+        "reference": "USP 2024 Description and Relative Solubility"
+      },
+      "source": "Fluconazole__STM Fluconazole new - EDA.txt:29"
+    },
+    {
+      "testCode": "RM-ID-IR",
+      "procedure": "IR: mix the sample intimately with potassium bromide and compress into a transparent pellet; examine the spectrum and compare it with the spectrum of Fluconazole RS.",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": { "grades": ["USP"], "reference": "USP Spectroscopic Identification Tests <197>, Infrared Spectroscopy: 197K" },
+      "source": "Fluconazole__STM Fluconazole new - EDA.txt:30"
+    },
+    {
+      "testCode": "RM-ID-RT",
+      "procedure": "HPLC identification: the retention time of the major peak of the sample solution corresponds to that of the standard solution, as obtained in the assay.",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": { "grades": ["USP"], "reference": "USP Chromatography <621>, System Suitability; chromatogram from the assay (STM 6.7)" },
+      "source": "Fluconazole__STM Fluconazole new - EDA.txt:30"
+    },
+    {
+      "testCode": "RM-RS-FLU",
+      "procedure": "HPLC organic impurities. Mobile phase acetonitrile and water (20:80). Standard solution: 10 ug/mL each of Fluconazole RS and related compounds A, B and C in acetonitrile, diluted in mobile phase. Sample solution: 3 mg/mL in mobile phase. LC, UV 260 nm, column 4.6 mm x 15 cm, 3.5 um L1, 40 C, 0.5 mL/min, 20 uL. System suitability (standard solution): resolution NLT 1.5 between related compounds B and C; RSD NMT 5.0 % each peak. Related compounds A, B, C (%) = (rU/rS) x (CS/CU) x 100; any unspecified impurity (%) = (rU/rS) x (CS/CU) x 100 using Fluconazole RS.",
+      "kind": "specific",
+      "workflow": "HplcMethodAssay",
+      "details": {
+        "grades": ["USP"],
+        "mobilePhase": "acetonitrile:water 20:80",
+        "standardUgPerMl": 10,
+        "sampleMgPerMl": 3,
+        "detectorNm": 260,
+        "column": "4.6 mm x 15 cm, 3.5 um, L1",
+        "columnC": 40,
+        "flowMlPerMin": 0.5,
+        "injectionUl": 20,
+        "sstResolutionNLT": 1.5,
+        "sstRsdNMT": 5.0,
+        "relativeRetentionTime": {"related compound A": 0.5, "specified impurity": 0.6, "related compound B": 0.81, "related compound C": 0.86, "fluconazole": 1.0},
+        "reference": "USP Chromatography <621>, System Suitability"
+      },
+      "source": "Fluconazole__STM Fluconazole new - EDA.txt:31-40"
+    },
+    {
+      "testCode": "RM-SASH",
+      "procedure": "Residue on ignition: ignite empty crucible at 600-650 C and cool in desiccator (W0); weigh 0.5 g sample (W1); moisten with about 1 mL sulfuric acid, heat gently until charred, moisten again, heat until white fumes stop; ignite in muffle at 600-650 C, cool in desiccator, weigh (W2); repeat to constant weight. % = (W2 - W0) / (W1 - W0) x 100.",
+      "kind": "general",
+      "workflow": "Gravimetric",
+      "details": { "grades": ["USP"], "sampleG": 0.5, "muffleC": "600-650", "reference": "USP 2024 Residue on Ignition <281>" },
+      "source": "Fluconazole__STM Fluconazole new - EDA.txt:41"
+    },
+    {
+      "testCode": "RM-LOD",
+      "procedure": "Weigh a previously dried (105 C) weighing bottle (W0); weigh 1.000 g sample (W1); dry in calibrated oven at 105 C for 3 h, cool in desiccator, weigh (W2); repeat to constant weight. % = (W1 - W2) / (W1 - W0) x 100.",
+      "kind": "general",
+      "workflow": "Gravimetric",
+      "details": { "grades": ["USP"], "sampleG": 1.000, "ovenC": 105, "ovenHours": 3, "reference": "USP Loss on Drying <731>" },
+      "source": "Fluconazole__STM Fluconazole new - EDA.txt:42"
+    },
+    {
+      "testCode": "RM-ASSAY-FLU",
+      "procedure": "HPLC assay. Mobile phase acetonitrile and water (20:80). Standard solution 0.5 mg/mL Fluconazole RS in mobile phase; sample solution 0.5 mg/mL in mobile phase. LC, UV 260 nm, column 4.6 mm x 15 cm, 3 um L1, 40 C, 0.5 mL/min, 20 uL. System suitability (standard): tailing factor NMT 2.0; RSD NMT 2.0 %. Fluconazole (%) = (rU/rS) x (CS/CU) x 100.",
+      "kind": "specific",
+      "workflow": "HplcMethodAssay",
+      "details": {
+        "grades": ["USP"],
+        "mobilePhase": "acetonitrile:water 20:80",
+        "standardMgPerMl": 0.5,
+        "sampleMgPerMl": 0.5,
+        "detectorNm": 260,
+        "column": "4.6 mm x 15 cm, 3 um, L1",
+        "columnC": 40,
+        "flowMlPerMin": 0.5,
+        "injectionUl": 20,
+        "sstTailingNMT": 2.0,
+        "sstRsdNMT": 2.0,
+        "reference": "USP Chromatography <621>, System Suitability"
+      },
+      "source": "Fluconazole__STM Fluconazole new - EDA.txt:43"
+    },
+    {
+      "testCode": "TAMC",
+      "procedure": "No microbiology procedure in the STM (see openQuestions). Limit from the spec sheet.",
+      "kind": "general",
+      "workflow": "CountTest",
+      "details": { "grades": ["USP"], "limit": "NMT 10^3 CFU/g (spec reads NMT 103 CFU/ gm)" },
+      "source": "Fluconazole__Specifications sheet Fluconazole.txt:19"
+    },
+    {
+      "testCode": "TYMC",
+      "procedure": "No microbiology procedure in the STM (see openQuestions). Limit from the spec sheet.",
+      "kind": "general",
+      "workflow": "CountTest",
+      "details": { "grades": ["USP"], "limit": "NMT 10^2 CFU/g (spec reads NMT 102 CFU/ gm)" },
+      "source": "Fluconazole__Specifications sheet Fluconazole.txt:19"
+    },
+    {
+      "testCode": "E.coli",
+      "procedure": "No microbiology procedure in the STM (see openQuestions). Limit from the spec sheet.",
+      "kind": "general",
+      "workflow": "Observation",
+      "details": { "grades": ["USP"], "limit": "Absent / gm" },
+      "source": "Fluconazole__Specifications sheet Fluconazole.txt:19"
+    }
+  ],
+  "notApplicable": [],
+  "supplierAttributes": [],
+  "reagents": [
+    { "name": "USP Fluconazole RS", "use": "standard", "source": "Fluconazole__STM Fluconazole new - EDA.txt:26" },
+    { "name": "Acetonitrile", "use": "reagent", "source": "Fluconazole__STM Fluconazole new - EDA.txt:26" },
+    { "name": "USP Fluconazole Related Compound A RS", "use": "standard", "source": "Fluconazole__STM Fluconazole new - EDA.txt:26" },
+    { "name": "USP Fluconazole Related Compound B RS", "use": "standard", "source": "Fluconazole__STM Fluconazole new - EDA.txt:26" },
+    { "name": "USP Fluconazole Related Compound C RS", "use": "standard", "source": "Fluconazole__STM Fluconazole new - EDA.txt:26" },
+    { "name": "Sulfuric acid", "use": "reagent", "source": "Fluconazole__STM Fluconazole new - EDA.txt:26" },
+    { "name": "Alcohol", "use": "reagent", "source": "Fluconazole__STM Fluconazole new - EDA.txt:26" },
+    { "name": "Ferric ammonium sulfate", "use": "reagent", "source": "Fluconazole__STM Fluconazole new - EDA.txt:26" },
+    { "name": "Ammonium thiocyanate", "use": "reagent", "source": "Fluconazole__STM Fluconazole new - EDA.txt:26" },
+    { "name": "Hydrochloric acid", "use": "reagent", "source": "Fluconazole__STM Fluconazole new - EDA.txt:26" },
+    { "name": "Ammonium peroxydisulfate", "use": "reagent", "source": "Fluconazole__STM Fluconazole new - EDA.txt:26" },
+    { "name": "Ammonium thiocyanate solution (30 g in water to 100 mL)", "use": "reagent", "source": "Fluconazole__STM Fluconazole new - EDA.txt:26" },
+    { "name": "2 N Sulfuric Acid (56.2 mL to 1000 mL)", "use": "reagent", "source": "Fluconazole__STM Fluconazole new - EDA.txt:26" }
+  ],
+  "openQuestions": [
+    {
+      "question": "Iron (USP <241>) is cited in the STM references and reagents list (ferric ammonium sulfate, ammonium thiocyanate), but there is no iron test in the spec sheet or the STM procedures. Not loaded; confirm whether an iron test applies.",
+      "source": "Fluconazole__STM Fluconazole new - EDA.txt:52; Fluconazole__STM Fluconazole new - EDA.txt:26; Fluconazole__Specifications sheet Fluconazole.txt:10-18"
+    },
+    {
+      "question": "Microbiological limits (TAMC, TYMC, E. coli) are only on the spec sheet. The STM has no microbiology section and no SOP reference. Rows loaded with catalog codes; confirm the procedure.",
+      "source": "Fluconazole__Specifications sheet Fluconazole.txt:19; Fluconazole__STM Fluconazole new - EDA.txt:26-43"
+    }
+  ]
+}

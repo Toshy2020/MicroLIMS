@@ -101,6 +101,19 @@ class Loader:
         self.base, self.token, self.dry, self.only = base.rstrip("/"), token, dry_run, only
         self.dir, self.out, self.counts = Path(data_dir), out, Counter()
         self.catalog = json.loads((self.dir / "catalog.json").read_text(encoding="utf-8"))
+        # batch-2 parts: catalog-b2/*.json hold the same lists plus "mapping" (per item), merged in file order
+        for part in sorted((self.dir / "catalog-b2").glob("*.json")):
+            extra = json.loads(part.read_text(encoding="utf-8"))
+            for key, val in extra.items():
+                if key == "mapping":
+                    self.catalog.setdefault("mapping", {}).update(val)
+                elif isinstance(val, list):
+                    have = {x.get("code") or x.get("name") for x in self.catalog.setdefault(key, [])}
+                    new = [x for x in val if (x.get("code") or x.get("name")) not in have]
+                    if key in ("solutions", "materialEntries"):
+                        for x in new:        # master data other products may use: batch 2 creates it, never rewrites it
+                            x["keepExisting"] = True
+                    self.catalog[key] += new
         self.materials = [json.loads(p.read_text(encoding="utf-8"))
                           for p in sorted((self.dir / "materials").glob("*.json"))]
         if only:
@@ -222,6 +235,9 @@ class Loader:
             for x in self.entries:
                 if low(x["name"]) == low(e["name"]):
                     found = x
+            if found and e.get("keepExisting"):
+                self.say(label, "same (exists, kept as is)")
+                continue
             want = {k: e[k] for k in ("category", "grade", "source", "baseUnit", "workingConcentration", "solvent",
                                        "transitionRangeFrom", "transitionRangeTo", "colourChange", "indicatorUse")
                     if k in e}
@@ -275,6 +291,9 @@ class Loader:
             if self.held(label, s):
                 continue
             found = next((x for x in self.solutions if low(x["name"]) == low(s["name"])), None)
+            if found and s.get("keepExisting"):
+                self.say(label, "same (exists, kept as is)")
+                continue
             if "components" not in s and "finalVolumeMl" not in s:       # reference-only record, no recipe
                 if found:
                     self.say(label, "same")
@@ -504,6 +523,9 @@ class Loader:
             code = m["itemCode"]
             item = next((x for x in self.items if x["code"] == code), None)
             rows = list(self.resolve_rows(m))
+            cat = {t["code"]: t for t in self.catalog.get("testDefinitions", [])}
+            # the API wants the water / loss-on-drying test saved before a dried or anhydrous assay
+            rows.sort(key=lambda r: 0 if cat.get(r[3] if len(r) > 3 else "", {}).get("moistureRole") else 1)
             if item is None or item.get("category") not in ("RawMaterial", "PackagingMaterial"):
                 self.say(f"specs {code}", f"skip (item not usable; {len(rows)} rows not loaded)")
                 continue

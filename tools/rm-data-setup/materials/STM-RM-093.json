@@ -1,0 +1,322 @@
+{
+  "itemCode": "STM-RM-093",
+  "stmCode": "STM-RM-093",
+  "itemName": "Sweet Orange Oil",
+  "stmFile": "Sweet Orange Oil__SM- Sweet Orange Oil new.txt",
+  "specFiles": [
+    "Sweet Orange Oil__Specifications sheet Sweet Orange Oil.txt"
+  ],
+  "minQuantity": {
+    "routine": 100,
+    "retest": 100,
+    "unit": "mL",
+    "source": "Sweet Orange Oil__Specifications sheet Sweet Orange Oil.txt:21 (100 g); Sweet Orange Oil__SM- Sweet Orange Oil new.txt:39 (100 mL)"
+  },
+  "grades": [
+    {
+      "grade": null,
+      "rows": [
+        {
+          "testCode": "RM-DESC",
+          "parameterName": "Appearance",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Turbid liquid, transparent to Orange, which may become cloudy when chilled",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "Inhouse",
+          "source": "Sweet Orange Oil__Specifications sheet Sweet Orange Oil.txt:11"
+        },
+        {
+          "testCode": "RM-SOLUB",
+          "parameterName": "Solubility",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Soluble in alcohol, dispersible in water.",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "Inhouse",
+          "source": "Sweet Orange Oil__Specifications sheet Sweet Orange Oil.txt:12"
+        },
+        {
+          "testCode": "RM-PH",
+          "parameterName": "pH",
+          "limitType": "Range",
+          "lower": 3.0,
+          "upper": 7.0,
+          "lowerInclusive": true,
+          "unit": null,
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "Inhouse",
+          "source": "Sweet Orange Oil__Specifications sheet Sweet Orange Oil.txt:13"
+        },
+        {
+          "testCode": "RM-ODOR",
+          "parameterName": "Odor",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "characteristic odour of fresh orange peel",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "Inhouse",
+          "source": "Sweet Orange Oil__Specifications sheet Sweet Orange Oil.txt:14"
+        },
+        {
+          "testCode": "RM-RELDENS-ORANGE",
+          "parameterName": "Relative density",
+          "limitType": "Range",
+          "lower": 0.9,
+          "upper": 1.1,
+          "lowerInclusive": true,
+          "unit": null,
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "Inhouse",
+          "source": "Sweet Orange Oil__Specifications sheet Sweet Orange Oil.txt:15"
+        },
+        {
+          "testCode": "RM-REFR-INDEX-ORANGE",
+          "parameterName": "Refractive index",
+          "limitType": "Range",
+          "lower": 1.42,
+          "upper": 1.4385,
+          "lowerInclusive": true,
+          "unit": null,
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "Inhouse",
+          "source": "Sweet Orange Oil__Specifications sheet Sweet Orange Oil.txt:16"
+        },
+        {
+          "testCode": "TAMC",
+          "parameterName": "Total Aerobic Microbial Count",
+          "limitType": "CountTiered",
+          "lower": null,
+          "upper": 1000,
+          "lowerInclusive": null,
+          "unit": "CFU/ml",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Sweet Orange Oil__Specifications sheet Sweet Orange Oil.txt:17"
+        },
+        {
+          "testCode": "TYMC",
+          "parameterName": "Total Yeasts & Molds Count",
+          "limitType": "CountTiered",
+          "lower": null,
+          "upper": 100,
+          "lowerInclusive": null,
+          "unit": "CFU/ml",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Sweet Orange Oil__Specifications sheet Sweet Orange Oil.txt:18"
+        },
+        {
+          "testCode": "E.coli",
+          "parameterName": "Test for E. coli",
+          "limitType": "PresenceAbsence",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": "per 10 ml",
+          "expectedResultText": "Absence /10 ml",
+          "expectedState": "Absence",
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Sweet Orange Oil__Specifications sheet Sweet Orange Oil.txt:19"
+        },
+        {
+          "testCode": "Salmonella ",
+          "parameterName": "Test for Salmonella sp.",
+          "limitType": "PresenceAbsence",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": "per 10 ml",
+          "expectedResultText": "Absence / 10 ml",
+          "expectedState": "Absence",
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Sweet Orange Oil__Specifications sheet Sweet Orange Oil.txt:20"
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "testCode": "RM-DESC",
+      "procedure": "Check the Sample visually conformance of color & compliance with the specifications.",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {
+        "perContainer": true,
+        "reference": "USP Description and Relative Solubility"
+      },
+      "source": "Sweet Orange Oil__SM- Sweet Orange Oil new.txt:30"
+    },
+    {
+      "testCode": "RM-SOLUB",
+      "procedure": "To 10 mL of Sample in a stoppered tube, add 10 mL of alcohol, shake vigorously for 1 min at 25.0 ± 0.5 °C for 15 min. Then to another 10 mL of sample, add 10 mL water at 25.0 ± 0.5 °C and shake vigorously for 1 min.",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {
+        "solvents": [
+          "alcohol",
+          "water"
+        ],
+        "temperatureC": 25.0,
+        "reference": "USP Description and Relative Solubility"
+      },
+      "source": "Sweet Orange Oil__SM- Sweet Orange Oil new.txt:31"
+    },
+    {
+      "testCode": "RM-ODOR",
+      "procedure": "Orange characteristic odor (Smell the sample).",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {
+        "reference": "In-House Specification for Sweet Orange Oil"
+      },
+      "source": "Sweet Orange Oil__SM- Sweet Orange Oil new.txt:32"
+    },
+    {
+      "testCode": "RM-PH",
+      "procedure": "To 100 mL of sample, use calibrated pH meter to measure sample, record value of pH at 25°C.",
+      "kind": "general",
+      "workflow": "Measurement",
+      "details": {
+        "temperatureC": 25,
+        "reference": "BP Appendix V L. Determination of pH Value"
+      },
+      "source": "Sweet Orange Oil__SM- Sweet Orange Oil new.txt:33"
+    },
+    {
+      "testCode": "RM-RELDENS-ORANGE",
+      "procedure": "The relative density is the ratio of mass of a certain volume of substance at t1 to mass of equal volume of water at t2. Weigh Empty Pycnometer (W1). Fill Pycnometer with water to mark without air bubbles, weigh at t2° (W2). Fill Pycnometer with Sample to mark without air bubbles, weigh at t1° (W3). Relative density = (W3 - W1) / (W2 - W1).",
+      "kind": "specific",
+      "workflow": "Measurement",
+      "details": {
+        "instrument": "Pycnometer",
+        "formula": "(W3 - W1) / (W2 - W1)",
+        "reference": "BP Appendix V G. Determination of Weight per Millilitre, Density, Relative Density and Apparent Density"
+      },
+      "source": "Sweet Orange Oil__SM- Sweet Orange Oil new.txt:34"
+    },
+    {
+      "testCode": "RM-REFR-INDEX-ORANGE",
+      "procedure": "To quantity of sample, use calibrated Refractometer to measure sample, record the value at 25°C.",
+      "kind": "specific",
+      "workflow": "Measurement",
+      "details": {
+        "instrument": "calibrated Refractometer",
+        "temperatureC": 25,
+        "reference": "BP Appendix V E. Determination of Refractive Index"
+      },
+      "source": "Sweet Orange Oil__SM- Sweet Orange Oil new.txt:35"
+    },
+    {
+      "testCode": "TAMC",
+      "procedure": "Follow the suitable steps stated in SOP # (C2I-91-128) and the verification report specifically for this material.",
+      "kind": "general",
+      "workflow": "CountTest",
+      "details": {
+        "sop": "C2I-91-128",
+        "reference": "USP <2023>"
+      },
+      "source": "Sweet Orange Oil__SM- Sweet Orange Oil new.txt:37"
+    },
+    {
+      "testCode": "TYMC",
+      "procedure": "Follow the suitable steps stated in SOP # (C2I-91-128) and the verification report specifically for this material.",
+      "kind": "general",
+      "workflow": "CountTest",
+      "details": {
+        "sop": "C2I-91-128",
+        "reference": "USP <2023>"
+      },
+      "source": "Sweet Orange Oil__SM- Sweet Orange Oil new.txt:37"
+    },
+    {
+      "testCode": "E.coli",
+      "procedure": "Follow the suitable steps stated in SOP # (C2I-91-128) and the verification report specifically for this material.",
+      "kind": "general",
+      "workflow": "Observation",
+      "details": {
+        "sop": "C2I-91-128",
+        "reference": "USP <2023>"
+      },
+      "source": "Sweet Orange Oil__SM- Sweet Orange Oil new.txt:37"
+    },
+    {
+      "testCode": "Salmonella ",
+      "procedure": "Follow the suitable steps stated in SOP # (C2I-91-128) and the verification report specifically for this material.",
+      "kind": "general",
+      "workflow": "Observation",
+      "details": {
+        "sop": "C2I-91-128",
+        "reference": "USP <2023>"
+      },
+      "source": "Sweet Orange Oil__SM- Sweet Orange Oil new.txt:37"
+    }
+  ],
+  "notApplicable": [],
+  "supplierAttributes": [
+    {
+      "grade": null,
+      "name": "Grade",
+      "statedValue": "Pharmaceutical Grade",
+      "source": "Sweet Orange Oil__Specifications sheet Sweet Orange Oil.txt:21"
+    },
+    {
+      "grade": null,
+      "name": "Solvent Used",
+      "statedValue": "MonoPropylene Glycol",
+      "source": "Sweet Orange Oil__Specifications sheet Sweet Orange Oil.txt:21"
+    },
+    {
+      "grade": null,
+      "name": "Optical Rotation",
+      "statedValue": "Stated by Supplier",
+      "source": "Sweet Orange Oil__Specifications sheet Sweet Orange Oil.txt:21"
+    }
+  ],
+  "reagents": [
+    {
+      "name": "Alcohol",
+      "use": "reagent",
+      "source": "Sweet Orange Oil__SM- Sweet Orange Oil new.txt:31"
+    },
+    {
+      "name": "Water",
+      "use": "reagent",
+      "source": "Sweet Orange Oil__SM- Sweet Orange Oil new.txt:31,34"
+    }
+  ],
+  "openQuestions": [
+    {
+      "question": "Minimum sample quantity discrepancy: spec sheet states '100 g' whereas STM states '100 milliliters'.",
+      "source": "Sweet Orange Oil__Specifications sheet Sweet Orange Oil.txt:21; Sweet Orange Oil__SM- Sweet Orange Oil new.txt:39"
+    },
+    {
+      "question": "Microbiological sample units: spec sheet specifies limits in CFU/ml and Absence / 10 ml, whereas STM clause 6.7 specifies CFU/gm and Absent/10 gm.",
+      "source": "Sweet Orange Oil__Specifications sheet Sweet Orange Oil.txt:17-20; Sweet Orange Oil__SM- Sweet Orange Oil new.txt:37"
+    }
+  ]
+}

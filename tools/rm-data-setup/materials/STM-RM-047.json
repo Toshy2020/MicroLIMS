@@ -1,0 +1,471 @@
+{
+  "itemCode": "STM-RM-047",
+  "itemName": "Potassium Sorbate",
+  "stmCode": "STM-RM-047",
+  "stmFile": "Potassium Sorbate__STM Potassium Sorbate.txt",
+  "specFiles": ["Potassium Sorbate__Specifications sheet Potassium Sorbate UPDATED.txt"],
+  "minQuantity": {
+    "routine": 70,
+    "retest": 40,
+    "retention": 70,
+    "unit": "g",
+    "source": "Potassium Sorbate__Specifications sheet Potassium Sorbate UPDATED.txt:22; Potassium Sorbate__STM Potassium Sorbate.txt:37"
+  },
+  "grades": [
+    {
+      "grade": "BP",
+      "rows": [
+        {
+          "testCode": "RM-DESC",
+          "parameterName": "Appearance",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "White or almost white powder or granules",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Potassium Sorbate__Specifications sheet Potassium Sorbate UPDATED.txt:11"
+        },
+        {
+          "testCode": "RM-SOLUB",
+          "parameterName": "Solubility",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Very soluble in water, slightly soluble in ethanol (96 per cent).",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Potassium Sorbate__Specifications sheet Potassium Sorbate UPDATED.txt:12"
+        },
+        {
+          "testCode": "RM-UV-KSORB",
+          "parameterName": "Identification (UV): specific absorbance at the absorption maximum (264 nm)",
+          "limitType": "Range",
+          "lower": 1650,
+          "upper": 1900,
+          "lowerInclusive": true,
+          "unit": null,
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Potassium Sorbate__Specifications sheet Potassium Sorbate UPDATED.txt:13"
+        },
+        {
+          "testCode": "RM-ID-IR",
+          "parameterName": "Identification (IR)",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "the spectrum obtained for the sample and compare it to the spectrum obtained from the Standard.",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Potassium Sorbate__Specifications sheet Potassium Sorbate UPDATED.txt:14"
+        },
+        {
+          "testCode": "RM-ID-THERM-KSORB",
+          "parameterName": "Identification (thermal decomposition): melting point of residue",
+          "limitType": "Range",
+          "lower": 132,
+          "upper": 136,
+          "lowerInclusive": true,
+          "unit": "°C",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Potassium Sorbate__Specifications sheet Potassium Sorbate UPDATED.txt:15"
+        },
+        {
+          "testCode": "RM-ID-K-KSORB",
+          "parameterName": "Identification (reaction of potassium)",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "A yellow or orange-yellow precipitate is formed",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Potassium Sorbate__Specifications sheet Potassium Sorbate UPDATED.txt:16"
+        },
+        {
+          "testCode": "RM-SOLAPP",
+          "parameterName": "Appearance of solution",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Solution S is clear and not more intensely colored than reference solution Y5",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Potassium Sorbate__Specifications sheet Potassium Sorbate UPDATED.txt:17"
+        },
+        {
+          "testCode": "RM-ACID-KSORB",
+          "parameterName": "Acidity or alkalinity (volume of 0.1 M sodium hydroxide or 0.1 M hydrochloric acid)",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 0.25,
+          "lowerInclusive": null,
+          "unit": "mL",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Potassium Sorbate__Specifications sheet Potassium Sorbate UPDATED.txt:18"
+        },
+        {
+          "testCode": "RM-ALD-KSORB",
+          "parameterName": "Aldehydes",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Complies (NMT 0.15 per cent, expressed as acetaldehyde)",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Potassium Sorbate__Specifications sheet Potassium Sorbate UPDATED.txt:19"
+        },
+        {
+          "testCode": "RM-LOD",
+          "parameterName": "Loss on drying",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 1.0,
+          "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Potassium Sorbate__Specifications sheet Potassium Sorbate UPDATED.txt:20"
+        },
+        {
+          "testCode": "RM-TIT-KSORB",
+          "parameterName": "Assay",
+          "limitType": "Range",
+          "lower": 99.0,
+          "upper": 101.0,
+          "lowerInclusive": true,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": "PercentDriedBasis",
+          "referenceStandard": "BP",
+          "source": "Potassium Sorbate__Specifications sheet Potassium Sorbate UPDATED.txt:21"
+        },
+        {
+          "testCode": "TAMC",
+          "parameterName": "Total Aerobic Microbial Count (TAMC)",
+          "limitType": "CountTiered",
+          "lower": null,
+          "upper": 1000,
+          "lowerInclusive": null,
+          "unit": "CFU/g",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": null,
+          "source": "Potassium Sorbate__Specifications sheet Potassium Sorbate UPDATED.txt:22"
+        },
+        {
+          "testCode": "TYMC",
+          "parameterName": "Total combined Yeasts & Molds Count (TYMC)",
+          "limitType": "CountTiered",
+          "lower": null,
+          "upper": 100,
+          "lowerInclusive": null,
+          "unit": "CFU/g",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": null,
+          "source": "Potassium Sorbate__Specifications sheet Potassium Sorbate UPDATED.txt:22"
+        },
+        {
+          "testCode": "E.coli",
+          "parameterName": "Escherichia coli",
+          "limitType": "PresenceAbsence",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": "per 10 g",
+          "expectedResultText": "Absent /10 gm",
+          "expectedState": "Absence",
+          "resultBasis": null,
+          "referenceStandard": null,
+          "source": "Potassium Sorbate__Specifications sheet Potassium Sorbate UPDATED.txt:22"
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "testCode": "RM-DESC",
+      "procedure": "Under strong white light check each received sample container separately in a clean transparent watch glass for foreign particles, colour and conformity with the visual specification.",
+      "kind": "general",
+      "workflow": "Observation",
+      "details": {
+        "perContainer": true,
+        "grades": ["BP"],
+        "bpStmText": "White or almost white powder or granules."
+      },
+      "source": "Potassium Sorbate__STM Potassium Sorbate.txt:28"
+    },
+    {
+      "testCode": "RM-SOLUB",
+      "procedure": "Weigh 100 mg in a stoppered tube; add 0.1 mL solvent, shake 1 min, hold at 25.0 ± 0.5 °C for 15 min, repeat shake/hold once if not dissolved; add 0.9 mL, then 2 mL, then 7 mL solvent with the same shake and hold steps to classify very soluble / freely soluble / soluble / sparingly soluble; if still undissolved use 10 mg in 10 mL (slightly soluble), then 1 mg in 10 mL (very slightly soluble), else practically insoluble. Repeat with ethanol (96 per cent).",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {
+        "grades": ["BP"],
+        "sample": "100 mg",
+        "temperature": "25.0 ± 0.5 °C",
+        "holdMin": 15,
+        "shakeMin": 1,
+        "volumesMl": [0.1, 0.9, 2, 7],
+        "smallSampleSteps": ["10 mg in 10 mL", "1 mg in 10 mL"],
+        "solvents": ["water", "ethanol (96 per cent)"],
+        "reference": "BP 2024 (SC IV K.) Characters Section in Monographs"
+      },
+      "source": "Potassium Sorbate__STM Potassium Sorbate.txt:29"
+    },
+    {
+      "testCode": "RM-UV-KSORB",
+      "procedure": "UV identification: test solution 50.0 mg in water to 250.0 mL; dilute 2.0 mL to 200.0 mL with 0.1 M hydrochloric acid. Spectral range 230-350 nm; read the specific absorbance at the absorption maximum (264 nm).",
+      "kind": "specific",
+      "workflow": "UvSpectrophotometry",
+      "details": {
+        "grades": ["BP"],
+        "sampleMg": 50,
+        "firstDilutionMl": "250.0 mL with water",
+        "aliquotMl": 2,
+        "secondDilutionMl": "200.0 mL with 0.1 M hydrochloric acid",
+        "spectralRangeNm": "230-350",
+        "maximumNm": 264,
+        "reference": "BP Appendix II B"
+      },
+      "source": "Potassium Sorbate__STM Potassium Sorbate.txt:30"
+    },
+    {
+      "testCode": "RM-ID-IR",
+      "procedure": "IR identification: examine the spectrum obtained for the sample and compare it with the spectrum obtained from Potassium sorbate RS.",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "details": {
+        "grades": ["BP"],
+        "standard": "Potassium sorbate RS",
+        "reference": "BP Appendix II A"
+      },
+      "source": "Potassium Sorbate__STM Potassium Sorbate.txt:30"
+    },
+    {
+      "testCode": "RM-ID-THERM-KSORB",
+      "procedure": "Thermal decomposition identification: dissolve 1.0 g in 50 mL water; add 10 mL dilute hydrochloric acid and shake; filter the crystalline precipitate; wash with water; dry in vacuo over sulfuric acid for 4 h; determine the melting point of the residue with a calibrated melting point apparatus.",
+      "kind": "specific",
+      "workflow": "Measurement",
+      "details": {
+        "grades": ["BP"],
+        "sampleG": 1.0,
+        "water": "50 mL",
+        "dilutedHydrochloricAcid": "10 mL (hydrochloric acid, dilute: 20 g HCl to 100 mL with water)",
+        "drying": "in vacuo over sulfuric acid, 4 h",
+        "apparatus": "calibrated melting point apparatus",
+        "reference": "BP Appendix V A"
+      },
+      "source": "Potassium Sorbate__STM Potassium Sorbate.txt:30"
+    },
+    {
+      "testCode": "RM-ID-K-KSORB",
+      "procedure": "Reaction of potassium: dissolve 0.2 g in 2 mL water; add 2 mL dilute acetic acid; filter; add 1 mL of freshly prepared 100 g/L sodium cobaltinitrite solution; a yellow or orange-yellow precipitate forms immediately.",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "details": {
+        "grades": ["BP"],
+        "sampleG": 0.2,
+        "water": "2 mL",
+        "diluteAceticAcid": "2 mL (acetic acid, dilute: 12 g glacial acetic acid to 100 mL with water)",
+        "reagent": "sodium cobaltinitrite 100 g/L, freshly prepared, 1 mL",
+        "reference": "BP Appendix VI (Potassium (b))"
+      },
+      "source": "Potassium Sorbate__STM Potassium Sorbate.txt:30"
+    },
+    {
+      "testCode": "RM-SOLAPP",
+      "procedure": "Appearance of solution: put 10 mL of solution S and the same volume of reference solution Y5 in two identical Nessler tubes and compare; solution S must be clear and not more intensely coloured than reference solution Y5.",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {
+        "grades": ["BP"],
+        "solutionS": "2.5 g in CO2-free water to 50 mL",
+        "volumeMl": 10,
+        "referenceSolutionY5": "12.5 mL standard solution Y + 87.5 mL hydrochloric acid (10 g/L)",
+        "reference": "BP Appendix IV B"
+      },
+      "source": "Potassium Sorbate__STM Potassium Sorbate.txt:31"
+    },
+    {
+      "testCode": "RM-ACID-KSORB",
+      "procedure": "Acidity or alkalinity: to 20 mL solution S add 0.1 mL phenolphthalein solution; titrate with 0.1 M sodium hydroxide or 0.1 M hydrochloric acid to the colour change; record the volume used (NMT 0.25 mL).",
+      "kind": "specific",
+      "workflow": "Measurement",
+      "details": {
+        "grades": ["BP"],
+        "solutionS": "2.5 g in CO2-free water to 50 mL",
+        "solutionSMl": 20,
+        "indicator": "phenolphthalein solution 0.1 mL",
+        "titrants": ["0.1 M sodium hydroxide", "0.1 M hydrochloric acid"],
+        "reference": "BP Appendix V L"
+      },
+      "source": "Potassium Sorbate__STM Potassium Sorbate.txt:32"
+    },
+    {
+      "testCode": "RM-ALD-KSORB",
+      "procedure": "Aldehydes (limit test): sample = 1.0 g in 30 mL water and 50 mL 2-propanol, adjust to pH 4 with 1 M hydrochloric acid, dilute to 100 mL with water; to 10 mL add 1 mL decolorized fuchsin solution and stand 30 min. Standard = 1.5 mL acetaldehyde standard solution (100 ppm) + 1 mL decolorized fuchsin solution + 4 mL 2-propanol + 4.5 mL water, diluted to 100 mL with water, stand 30 min. Sample colour must not be more intense than the standard.",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "details": {
+        "grades": ["BP"],
+        "sampleG": 1.0,
+        "sampleSolvents": "30 mL water + 50 mL 2-propanol",
+        "adjustPH": "4 with 1 M hydrochloric acid",
+        "sampleDilutionMl": 100,
+        "sampleAliquotMl": 10,
+        "fuchsinMl": 1,
+        "standardAcetaldehydeSolutionMl": 1.5,
+        "standardOtherSolventsMl": "4 mL 2-propanol + 4.5 mL water",
+        "standardDilutionMl": 100,
+        "standStandMin": 30,
+        "limit": "maximum 0.15 per cent, expressed as acetaldehyde",
+        "reference": "BP Appendix V L cited in STM (see openQuestions)"
+      },
+      "source": "Potassium Sorbate__STM Potassium Sorbate.txt:33"
+    },
+    {
+      "testCode": "RM-LOD",
+      "procedure": "Weigh a previously dried and cooled weighing bottle (W0), add 1.000 g sample (W1 = bottle + material); dry in calibrated oven at 105 °C for 3 h, cool in desiccator, weigh (W2); repeat drying to constant weight. % loss on drying = (W1 - W2) / (W1 - W0) x 100.",
+      "kind": "general",
+      "workflow": "Gravimetric",
+      "details": {
+        "grades": ["BP"],
+        "sampleG": 1.0,
+        "ovenC": 105,
+        "dryingH": 3,
+        "constantWeight": true,
+        "formula": "(W1 - W2) / (W1 - W0) x 100",
+        "reference": "BP Appendix IX D"
+      },
+      "source": "Potassium Sorbate__STM Potassium Sorbate.txt:34"
+    },
+    {
+      "testCode": "RM-TIT-KSORB",
+      "procedure": "Assay (titration): dissolve 0.120 g sample in 20 mL anhydrous acetic acid; titrate with 0.1 M perchloric acid using 0.1 mL crystal violet solution as indicator until the colour changes from violet to bluish green. 1 mL of 0.1 M perchloric acid = 15.02 mg potassium sorbate. Assay = (E.P x eq.wt x F x 100 * 100) / Wt x (100 - LOD), dried substance.",
+      "kind": "specific",
+      "workflow": "Titration",
+      "details": {
+        "grades": ["BP"],
+        "sampleG": 0.120,
+        "solvent": "20 mL anhydrous acetic acid",
+        "titrant": "0.1 M perchloric acid",
+        "titrantStandardization": "0.170 g potassium hydrogen phthalate in 50 mL anhydrous acetic acid, titrated potentiometrically; M = (weight of C8H5KO4 x 1000) / (204.2 x E.P)",
+        "titrantPreparation": "8.5 mL perchloric acid in about 900 mL glacial acetic acid, add 30 mL acetic anhydride, dilute to 1000.0 mL with glacial acetic acid, stand 24 h",
+        "equivalenceFactor": "1 mL of 0.1 M perchloric acid = 15.02 mg potassium sorbate",
+        "indicator": "crystal violet solution, 0.1 mL",
+        "endpoint": "violet to bluish green",
+        "formula": "(E.P x eq.wt x F x 100 * 100) / Wt x (100 - LOD); E.P = titre (mL), F = titrant factor, Wt = sample weight (g), LOD from loss on drying",
+        "specBasis": "dried substance",
+        "reference": "BP 2024 Monograph for Potassium Sorbate"
+      },
+      "source": "Potassium Sorbate__STM Potassium Sorbate.txt:35; titrant standardization Potassium Sorbate__STM Potassium Sorbate.txt:26"
+    },
+    {
+      "testCode": "TAMC",
+      "procedure": "Total aerobic microbial count: limit per spec sheet; no microbiological method is stated in the STM.",
+      "kind": "general",
+      "workflow": "CountTest",
+      "details": {
+        "limit": "NMT 1000 CFU/gm"
+      },
+      "source": "Potassium Sorbate__Specifications sheet Potassium Sorbate UPDATED.txt:22"
+    },
+    {
+      "testCode": "TYMC",
+      "procedure": "Total combined yeasts and moulds count: limit per spec sheet; no microbiological method is stated in the STM.",
+      "kind": "general",
+      "workflow": "CountTest",
+      "details": {
+        "limit": "NMT 100 CFU/gm"
+      },
+      "source": "Potassium Sorbate__Specifications sheet Potassium Sorbate UPDATED.txt:22"
+    },
+    {
+      "testCode": "E.coli",
+      "procedure": "Escherichia coli: absence in 10 g per spec sheet; no microbiological method is stated in the STM.",
+      "kind": "general",
+      "workflow": "Observation",
+      "details": {
+        "limit": "Absent /10 gm"
+      },
+      "source": "Potassium Sorbate__Specifications sheet Potassium Sorbate UPDATED.txt:22"
+    }
+  ],
+  "notApplicable": [],
+  "supplierAttributes": [],
+  "reagents": [
+    { "name": "Water, carbon dioxide-free", "use": "reagent", "source": "Potassium Sorbate__STM Potassium Sorbate.txt:26" },
+    { "name": "Solution S (2.5 g in CO2-free water to 50 mL)", "use": "reagent", "source": "Potassium Sorbate__STM Potassium Sorbate.txt:26" },
+    { "name": "Ethanol (96 per cent)", "use": "reagent", "source": "Potassium Sorbate__STM Potassium Sorbate.txt:26" },
+    { "name": "2-propanol", "use": "reagent", "source": "Potassium Sorbate__STM Potassium Sorbate.txt:26" },
+    { "name": "Hydrochloric acid, dilute (20 g HCl to 100 mL)", "use": "reagent", "source": "Potassium Sorbate__STM Potassium Sorbate.txt:26" },
+    { "name": "0.1M Hydrochloric Acid", "use": "titrant", "source": "Potassium Sorbate__STM Potassium Sorbate.txt:26" },
+    { "name": "1M Hydrochloric Acid", "use": "reagent", "source": "Potassium Sorbate__STM Potassium Sorbate.txt:26" },
+    { "name": "Acetic acid, dilute (12 g glacial acetic acid to 100 mL)", "use": "reagent", "source": "Potassium Sorbate__STM Potassium Sorbate.txt:26" },
+    { "name": "Sodium cobaltinitrite (100 g/L, freshly prepared)", "use": "reagent", "source": "Potassium Sorbate__STM Potassium Sorbate.txt:26" },
+    { "name": "Potassium sorbate RS", "use": "standard", "source": "Potassium Sorbate__STM Potassium Sorbate.txt:26" },
+    { "name": "Yellow solution", "use": "reagent", "source": "Potassium Sorbate__STM Potassium Sorbate.txt:26" },
+    { "name": "Red solution", "use": "reagent", "source": "Potassium Sorbate__STM Potassium Sorbate.txt:26" },
+    { "name": "Standard solution Y", "use": "reagent", "source": "Potassium Sorbate__STM Potassium Sorbate.txt:26" },
+    { "name": "Reference solution Y5", "use": "standard", "source": "Potassium Sorbate__STM Potassium Sorbate.txt:26" },
+    { "name": "Phenolphthalein solution", "use": "indicator", "source": "Potassium Sorbate__STM Potassium Sorbate.txt:26" },
+    { "name": "0.1M Sodium Hydroxide", "use": "titrant", "source": "Potassium Sorbate__STM Potassium Sorbate.txt:26" },
+    { "name": "Fuchsin solution, decolorized", "use": "reagent", "source": "Potassium Sorbate__STM Potassium Sorbate.txt:26" },
+    { "name": "Acetaldehyde standard solution (100 ppm)", "use": "standard", "source": "Potassium Sorbate__STM Potassium Sorbate.txt:26" },
+    { "name": "Anhydrous acetic acid", "use": "reagent", "source": "Potassium Sorbate__STM Potassium Sorbate.txt:26" },
+    { "name": "Crystal Violet Solution", "use": "indicator", "source": "Potassium Sorbate__STM Potassium Sorbate.txt:26" },
+    { "name": "0.1M Perchloric Acid VS", "use": "titrant", "source": "Potassium Sorbate__STM Potassium Sorbate.txt:26" },
+    { "name": "Potassium hydrogen phthalate", "use": "standard", "source": "Potassium Sorbate__STM Potassium Sorbate.txt:26" }
+  ],
+  "openQuestions": [
+    {
+      "question": "Assay formula: 'eq.wt' is defined as 'Equivalent Weight of Citric Acid' (apparently a copy error for potassium sorbate), and the factor reads '100 * 100' inside the bracket; formula loaded as written, confirm.",
+      "source": "Potassium Sorbate__STM Potassium Sorbate.txt:35"
+    },
+    {
+      "question": "Aldehydes limit test cites 'BP Appendix V L. Determination of pH Values' as its reference; the reference is not confirmed for this test.",
+      "source": "Potassium Sorbate__STM Potassium Sorbate.txt:33"
+    },
+    {
+      "question": "Micro methods (TAMC, TYMC, E. coli) are not described in this STM; the rows are loaded from the spec sheet limits only.",
+      "source": "Potassium Sorbate__Specifications sheet Potassium Sorbate UPDATED.txt:22"
+    },
+    {
+      "question": "Revision history says the STM code changed from C1I-91-197 to 'STM-SM-047' (SM instead of RM); the STM number in the header is STM-RM-047.",
+      "source": "Potassium Sorbate__STM Potassium Sorbate.txt:48"
+    }
+  ]
+}

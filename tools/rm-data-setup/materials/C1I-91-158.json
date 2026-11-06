@@ -1,0 +1,554 @@
+{
+  "itemCode": "C1I-91-158",
+  "itemName": "Manganese Sulfate Monohydrate",
+  "stmCode": null,
+  "stmFile": null,
+  "specFiles": ["Manganese Sulfate Monohydrate__Specifications sheet Manganese Sulfate Monohydrate USP.txt", "Manganese Sulfate Monohydrate__Specifications sheet Manganese Sulfate Monohydrate BP.txt"],
+  "minQuantity": {
+    "routine": 100,
+    "retest": null,
+    "retention": null,
+    "unit": "g",
+    "source": "Manganese Sulfate Monohydrate__Specifications sheet Manganese Sulfate Monohydrate USP.txt:18; Manganese Sulfate Monohydrate__Specifications sheet Manganese Sulfate Monohydrate BP.txt:21 (BP states 50 g)"
+  },
+  "grades": [
+    {
+      "grade": "BP",
+      "rows": [
+        {
+          "testCode": "RM-DESC",
+          "parameterName": "Description",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Pale pink crystalline powder, slightly hygroscopic",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Manganese Sulfate Monohydrate__Specifications sheet Manganese Sulfate Monohydrate BP.txt:11"
+        },
+        {
+          "testCode": "RM-SOLUB",
+          "parameterName": "Solubility",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Freely soluble in water, practically insoluble in ethanol (96 per cent)",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Manganese Sulfate Monohydrate__Specifications sheet Manganese Sulfate Monohydrate BP.txt:12"
+        },
+        {
+          "testCode": "RM-SOLAPP",
+          "parameterName": "Appearance of solution",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Solution S is not more opalescent than reference suspension II",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Manganese Sulfate Monohydrate__Specifications sheet Manganese Sulfate Monohydrate BP.txt:13"
+        },
+        {
+          "testCode": "RM-ID-MN-BP",
+          "parameterName": "Identification (chemical reaction, manganese)",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "A pale pink precipitate is formed which dissolves on the addition of 1 ml of anhydrous acetic acid",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Manganese Sulfate Monohydrate__Specifications sheet Manganese Sulfate Monohydrate BP.txt:14",
+          "heldBack": "no STM: method not documented"
+        },
+        {
+          "testCode": "RM-ID-SO4-MN-BP",
+          "parameterName": "Identification (reaction of sulfates)",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "A white precipitate is formed",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Manganese Sulfate Monohydrate__Specifications sheet Manganese Sulfate Monohydrate BP.txt:15",
+          "heldBack": "no STM: method not documented"
+        },
+        {
+          "testCode": "RM-LOI-MN-BP",
+          "parameterName": "Loss on ignition",
+          "limitType": "Range",
+          "lower": 10.0,
+          "upper": 12.0,
+          "lowerInclusive": true,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Manganese Sulfate Monohydrate__Specifications sheet Manganese Sulfate Monohydrate BP.txt:16",
+          "heldBack": "no STM: method not documented"
+        },
+        {
+          "testCode": "RM-LT-CL",
+          "parameterName": "Chlorides (limit test)",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Complies (NMT 100 ppm)",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Manganese Sulfate Monohydrate__Specifications sheet Manganese Sulfate Monohydrate BP.txt:17"
+        },
+        {
+          "testCode": "RM-LT-FE",
+          "parameterName": "Iron (limit test)",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Complies (NMT 10 ppm)",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Manganese Sulfate Monohydrate__Specifications sheet Manganese Sulfate Monohydrate BP.txt:18"
+        },
+        {
+          "testCode": "RM-LT-ZN-MN-BP",
+          "parameterName": "Zinc (limit test)",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Complies (NMT 50 ppm)",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Manganese Sulfate Monohydrate__Specifications sheet Manganese Sulfate Monohydrate BP.txt:19",
+          "heldBack": "no STM: method not documented"
+        },
+        {
+          "testCode": "RM-TIT-MN-BP",
+          "parameterName": "Assay (ignited substance)",
+          "limitType": "Range",
+          "lower": 99.0,
+          "upper": 101.0,
+          "lowerInclusive": true,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Manganese Sulfate Monohydrate__Specifications sheet Manganese Sulfate Monohydrate BP.txt:20",
+          "heldBack": "no STM: method not documented"
+        },
+        {
+          "testCode": "TAMC",
+          "parameterName": "Total Aerobic Microbial Count",
+          "limitType": "CountTiered",
+          "lower": null,
+          "upper": 1000,
+          "lowerInclusive": null,
+          "unit": "CFU/gm",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": null,
+          "source": "Manganese Sulfate Monohydrate__Specifications sheet Manganese Sulfate Monohydrate BP.txt:21"
+        },
+        {
+          "testCode": "TYMC",
+          "parameterName": "Total combined Yeasts and Molds Count",
+          "limitType": "CountTiered",
+          "lower": null,
+          "upper": 100,
+          "lowerInclusive": null,
+          "unit": "CFU/gm",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": null,
+          "source": "Manganese Sulfate Monohydrate__Specifications sheet Manganese Sulfate Monohydrate BP.txt:21"
+        },
+        {
+          "testCode": "E.coli",
+          "parameterName": "Test for E. coli",
+          "limitType": "PresenceAbsence",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": "per 10 gm",
+          "expectedResultText": "Absent /10 gm",
+          "expectedState": "Absence",
+          "resultBasis": null,
+          "referenceStandard": null,
+          "source": "Manganese Sulfate Monohydrate__Specifications sheet Manganese Sulfate Monohydrate BP.txt:21"
+        }
+      ]
+    },
+    {
+      "grade": "USP",
+      "rows": [
+        {
+          "testCode": "RM-DESC",
+          "parameterName": "Description",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Pale red, slightly efflorescent crystals, or purple, odorless powder",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Manganese Sulfate Monohydrate__Specifications sheet Manganese Sulfate Monohydrate USP.txt:11"
+        },
+        {
+          "testCode": "RM-SOLUB",
+          "parameterName": "Solubility",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Soluble in water; insoluble in alcohol",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Manganese Sulfate Monohydrate__Specifications sheet Manganese Sulfate Monohydrate USP.txt:12"
+        },
+        {
+          "testCode": "RM-ID-SO4-MN-USP",
+          "parameterName": "Identification (reaction of sulfate)",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Comply with USP",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Manganese Sulfate Monohydrate__Specifications sheet Manganese Sulfate Monohydrate USP.txt:13",
+          "heldBack": "no STM: method not documented"
+        },
+        {
+          "testCode": "RM-ID-MN-USP",
+          "parameterName": "Identification (reaction of manganese)",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Comply with USP",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Manganese Sulfate Monohydrate__Specifications sheet Manganese Sulfate Monohydrate USP.txt:14",
+          "heldBack": "no STM: method not documented"
+        },
+        {
+          "testCode": "RM-LOI-MN-USP",
+          "parameterName": "Loss on ignition",
+          "limitType": "Range",
+          "lower": 10,
+          "upper": 13,
+          "lowerInclusive": true,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Manganese Sulfate Monohydrate__Specifications sheet Manganese Sulfate Monohydrate USP.txt:15",
+          "heldBack": "no STM: method not documented"
+        },
+        {
+          "testCode": "RM-SUBST-AMS-MN-USP",
+          "parameterName": "Substances not precipitated by ammonium sulfide: residue weight",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 5,
+          "lowerInclusive": null,
+          "unit": "mg",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Manganese Sulfate Monohydrate__Specifications sheet Manganese Sulfate Monohydrate USP.txt:16",
+          "heldBack": "no STM: method not documented"
+        },
+        {
+          "testCode": "RM-SUBST-AMS-MN-USP",
+          "parameterName": "Substances not precipitated by ammonium sulfide: percentage",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 0.5,
+          "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Manganese Sulfate Monohydrate__Specifications sheet Manganese Sulfate Monohydrate USP.txt:16",
+          "heldBack": "no STM: method not documented"
+        },
+        {
+          "testCode": "RM-TIT-MN-USP",
+          "parameterName": "Assay",
+          "limitType": "Range",
+          "lower": 98.0,
+          "upper": 102.0,
+          "lowerInclusive": true,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": "PercentAsIs",
+          "referenceStandard": "USP",
+          "source": "Manganese Sulfate Monohydrate__Specifications sheet Manganese Sulfate Monohydrate USP.txt:17",
+          "heldBack": "no STM: method not documented"
+        },
+        {
+          "testCode": "TAMC",
+          "parameterName": "Total Aerobic Microbial Count",
+          "limitType": "CountTiered",
+          "lower": null,
+          "upper": 1000,
+          "lowerInclusive": null,
+          "unit": "CFU/gm",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": null,
+          "source": "Manganese Sulfate Monohydrate__Specifications sheet Manganese Sulfate Monohydrate USP.txt:18"
+        },
+        {
+          "testCode": "TYMC",
+          "parameterName": "Total combined Yeasts and Molds Count",
+          "limitType": "CountTiered",
+          "lower": null,
+          "upper": 100,
+          "lowerInclusive": null,
+          "unit": "CFU/gm",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": null,
+          "source": "Manganese Sulfate Monohydrate__Specifications sheet Manganese Sulfate Monohydrate USP.txt:18"
+        },
+        {
+          "testCode": "E.coli",
+          "parameterName": "Test for E. coli",
+          "limitType": "PresenceAbsence",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": "per 10 gm",
+          "expectedResultText": "Absent /10 gm",
+          "expectedState": "Absence",
+          "resultBasis": null,
+          "referenceStandard": null,
+          "source": "Manganese Sulfate Monohydrate__Specifications sheet Manganese Sulfate Monohydrate USP.txt:18"
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "testCode": "RM-DESC",
+      "procedure": "No STM in the folder; spec sheet limit only.",
+      "kind": "general",
+      "workflow": "Observation",
+      "details": {},
+      "source": "Manganese Sulfate Monohydrate__Specifications sheet Manganese Sulfate Monohydrate BP.txt:11"
+    },
+    {
+      "testCode": "RM-SOLUB",
+      "procedure": "No STM in the folder; spec sheet limit only.",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {},
+      "source": "Manganese Sulfate Monohydrate__Specifications sheet Manganese Sulfate Monohydrate BP.txt:12"
+    },
+    {
+      "testCode": "RM-SOLAPP",
+      "procedure": "No STM in the folder; spec sheet limit only.",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {},
+      "source": "Manganese Sulfate Monohydrate__Specifications sheet Manganese Sulfate Monohydrate BP.txt:13"
+    },
+    {
+      "testCode": "RM-ID-MN-BP",
+      "procedure": "No STM: method not documented.",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "details": {},
+      "source": "Manganese Sulfate Monohydrate__Specifications sheet Manganese Sulfate Monohydrate BP.txt:14",
+      "heldBack": "no STM: method not documented"
+    },
+    {
+      "testCode": "RM-ID-SO4-MN-BP",
+      "procedure": "No STM: method not documented.",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "details": {},
+      "source": "Manganese Sulfate Monohydrate__Specifications sheet Manganese Sulfate Monohydrate BP.txt:15",
+      "heldBack": "no STM: method not documented"
+    },
+    {
+      "testCode": "RM-LOI-MN-BP",
+      "procedure": "No STM: method not documented.",
+      "kind": "specific",
+      "workflow": "Gravimetric",
+      "details": {},
+      "source": "Manganese Sulfate Monohydrate__Specifications sheet Manganese Sulfate Monohydrate BP.txt:16",
+      "heldBack": "no STM: method not documented"
+    },
+    {
+      "testCode": "RM-LT-CL",
+      "procedure": "No STM in the folder; spec sheet limit only.",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {},
+      "source": "Manganese Sulfate Monohydrate__Specifications sheet Manganese Sulfate Monohydrate BP.txt:17"
+    },
+    {
+      "testCode": "RM-LT-FE",
+      "procedure": "No STM in the folder; spec sheet limit only.",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {},
+      "source": "Manganese Sulfate Monohydrate__Specifications sheet Manganese Sulfate Monohydrate BP.txt:18"
+    },
+    {
+      "testCode": "RM-LT-ZN-MN-BP",
+      "procedure": "No STM: method not documented.",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "details": {},
+      "source": "Manganese Sulfate Monohydrate__Specifications sheet Manganese Sulfate Monohydrate BP.txt:19",
+      "heldBack": "no STM: method not documented"
+    },
+    {
+      "testCode": "RM-TIT-MN-BP",
+      "procedure": "No STM: method not documented.",
+      "kind": "specific",
+      "workflow": "Titration",
+      "details": {},
+      "source": "Manganese Sulfate Monohydrate__Specifications sheet Manganese Sulfate Monohydrate BP.txt:20",
+      "heldBack": "no STM: method not documented"
+    },
+    {
+      "testCode": "RM-ID-SO4-MN-USP",
+      "procedure": "No STM: method not documented.",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "details": {},
+      "source": "Manganese Sulfate Monohydrate__Specifications sheet Manganese Sulfate Monohydrate USP.txt:13",
+      "heldBack": "no STM: method not documented"
+    },
+    {
+      "testCode": "RM-ID-MN-USP",
+      "procedure": "No STM: method not documented.",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "details": {},
+      "source": "Manganese Sulfate Monohydrate__Specifications sheet Manganese Sulfate Monohydrate USP.txt:14",
+      "heldBack": "no STM: method not documented"
+    },
+    {
+      "testCode": "RM-LOI-MN-USP",
+      "procedure": "No STM: method not documented.",
+      "kind": "specific",
+      "workflow": "Gravimetric",
+      "details": {},
+      "source": "Manganese Sulfate Monohydrate__Specifications sheet Manganese Sulfate Monohydrate USP.txt:15",
+      "heldBack": "no STM: method not documented"
+    },
+    {
+      "testCode": "RM-SUBST-AMS-MN-USP",
+      "procedure": "No STM: method not documented.",
+      "kind": "specific",
+      "workflow": "Gravimetric",
+      "details": {},
+      "source": "Manganese Sulfate Monohydrate__Specifications sheet Manganese Sulfate Monohydrate USP.txt:16",
+      "heldBack": "no STM: method not documented"
+    },
+    {
+      "testCode": "RM-TIT-MN-USP",
+      "procedure": "No STM: method not documented.",
+      "kind": "specific",
+      "workflow": "Titration",
+      "details": {},
+      "source": "Manganese Sulfate Monohydrate__Specifications sheet Manganese Sulfate Monohydrate USP.txt:17",
+      "heldBack": "no STM: method not documented"
+    },
+    {
+      "testCode": "TAMC",
+      "procedure": "No STM in the folder; spec sheet limit only.",
+      "kind": "general",
+      "workflow": "CountTest",
+      "details": {},
+      "source": "Manganese Sulfate Monohydrate__Specifications sheet Manganese Sulfate Monohydrate BP.txt:21"
+    },
+    {
+      "testCode": "TYMC",
+      "procedure": "No STM in the folder; spec sheet limit only.",
+      "kind": "general",
+      "workflow": "CountTest",
+      "details": {},
+      "source": "Manganese Sulfate Monohydrate__Specifications sheet Manganese Sulfate Monohydrate BP.txt:21"
+    },
+    {
+      "testCode": "E.coli",
+      "procedure": "No STM in the folder; spec sheet limit only.",
+      "kind": "general",
+      "workflow": "Observation",
+      "details": {},
+      "source": "Manganese Sulfate Monohydrate__Specifications sheet Manganese Sulfate Monohydrate BP.txt:21"
+    }
+  ],
+  "notApplicable": [],
+  "supplierAttributes": [],
+  "reagents": [],
+  "openQuestions": [
+    {
+      "question": "No STM for Manganese Sulfate Monohydrate in the folder (spec sheets only). Non-catalog and specific tests (manganese and sulfate identifications, loss on ignition, zinc, ammonium sulfide residue, assays) are held back as 'no STM: method not documented'.",
+      "source": "Manganese Sulfate Monohydrate__Specifications sheet Manganese Sulfate Monohydrate BP.txt:9"
+    },
+    {
+      "question": "Minimum sample quantity conflicts: USP sheet 100 g, BP sheet 50 g. Loaded 100 g (USP sheet listed first, newest first). Confirm.",
+      "source": "Manganese Sulfate Monohydrate__Specifications sheet Manganese Sulfate Monohydrate USP.txt:18; Manganese Sulfate Monohydrate__Specifications sheet Manganese Sulfate Monohydrate BP.txt:21"
+    },
+    {
+      "question": "BP loss on ignition assay basis is 'ignited substance', which is not a result basis option; resultBasis left null on the held-back BP assay row. Confirm the basis.",
+      "source": "Manganese Sulfate Monohydrate__Specifications sheet Manganese Sulfate Monohydrate BP.txt:20"
+    },
+    {
+      "question": "USP assay basis is not stated; recorded as PercentAsIs on the held-back row. Confirm.",
+      "source": "Manganese Sulfate Monohydrate__Specifications sheet Manganese Sulfate Monohydrate USP.txt:17"
+    },
+    {
+      "question": "Sheets carry the old STM code C1I-91-158 (not an STM-RM code); stmCode left null.",
+      "source": "Manganese Sulfate Monohydrate__Specifications sheet Manganese Sulfate Monohydrate BP.txt:9"
+    }
+  ]
+}

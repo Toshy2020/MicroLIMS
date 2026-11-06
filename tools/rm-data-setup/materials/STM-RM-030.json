@@ -1,0 +1,588 @@
+{
+  "itemCode": "STM-RM-030",
+  "itemName": "Copper Sulfate Pentahydrate",
+  "stmCode": "STM-RM-030",
+  "stmFile": "Cooper Sulfate Pentahydrate__Copper Sulphate pentahydrate-SM.txt",
+  "specFiles": [
+    "Cooper Sulfate Pentahydrate__Specifications sheet Copper Sulphate pentahydrate No micro.txt"
+  ],
+  "minQuantity": {
+    "routine": 100,
+    "retest": 50,
+    "retention": 100,
+    "unit": "g",
+    "source": "Cooper Sulfate Pentahydrate__Specifications sheet Copper Sulphate pentahydrate No micro.txt:24; Cooper Sulfate Pentahydrate__Copper Sulphate pentahydrate-SM.txt:40"
+  },
+  "grades": [
+    {
+      "grade": "BP",
+      "rows": [
+        {
+          "testCode": "RM-DESC",
+          "parameterName": "Appearance",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Blue, crystalline powder or transparent, blue crystals",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Cooper Sulfate Pentahydrate__Specifications sheet Copper Sulphate pentahydrate No micro.txt:11"
+        },
+        {
+          "testCode": "RM-SOLUB",
+          "parameterName": "Solubility",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Freely soluble in water, soluble in methanol, practically insoluble in ethanol (96 per cent)",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Cooper Sulfate Pentahydrate__Specifications sheet Copper Sulphate pentahydrate No micro.txt:12"
+        },
+        {
+          "testCode": "RM-ID-CU-CUSO4",
+          "parameterName": "Identification (ammonia, dark blue colour)",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "The precipitate dissolves and a dark blue color is produced",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Cooper Sulfate Pentahydrate__Specifications sheet Copper Sulphate pentahydrate No micro.txt:13"
+        },
+        {
+          "testCode": "RM-LOD",
+          "parameterName": "Identification (loss on drying)",
+          "limitType": "Range",
+          "lower": 35.0,
+          "upper": 36.5,
+          "lowerInclusive": true,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Cooper Sulfate Pentahydrate__Specifications sheet Copper Sulphate pentahydrate No micro.txt:14"
+        },
+        {
+          "testCode": "RM-ID-SO4-CUSO4",
+          "parameterName": "Identification (reaction of sulfates)",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "A white precipitate is formed",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Cooper Sulfate Pentahydrate__Specifications sheet Copper Sulphate pentahydrate No micro.txt:15"
+        },
+        {
+          "testCode": "RM-SOLAPP",
+          "parameterName": "Appearance of solution",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Solution S is clear",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Cooper Sulfate Pentahydrate__Specifications sheet Copper Sulphate pentahydrate No micro.txt:16"
+        },
+        {
+          "testCode": "RM-LEAD",
+          "parameterName": "Lead (AAS limit)",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Complies (NMT 20 ppm)",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Cooper Sulfate Pentahydrate__Specifications sheet Copper Sulphate pentahydrate No micro.txt:17"
+        },
+        {
+          "testCode": "RM-NI-CUSO4",
+          "parameterName": "Nickel (AAS limit)",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Complies (NMT 20 ppm)",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Cooper Sulfate Pentahydrate__Specifications sheet Copper Sulphate pentahydrate No micro.txt:18"
+        },
+        {
+          "testCode": "RM-CO-CUSO4",
+          "parameterName": "Cobalt (AAS limit)",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Complies (NMT 1 ppm)",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Cooper Sulfate Pentahydrate__Specifications sheet Copper Sulphate pentahydrate No micro.txt:19"
+        },
+        {
+          "testCode": "RM-LT-CL",
+          "parameterName": "Chlorides (limit test)",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Complies (NMT 100 ppm)",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Cooper Sulfate Pentahydrate__Specifications sheet Copper Sulphate pentahydrate No micro.txt:20"
+        },
+        {
+          "testCode": "RM-LT-FE",
+          "parameterName": "Iron (AAS limit)",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Complies (NMT 100 ppm)",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Cooper Sulfate Pentahydrate__Specifications sheet Copper Sulphate pentahydrate No micro.txt:21"
+        },
+        {
+          "testCode": "RM-LOD",
+          "parameterName": "Loss on drying",
+          "limitType": "Range",
+          "lower": 35.0,
+          "upper": 36.5,
+          "lowerInclusive": true,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Cooper Sulfate Pentahydrate__Specifications sheet Copper Sulphate pentahydrate No micro.txt:22"
+        },
+        {
+          "testCode": "RM-TIT-CUSO4",
+          "parameterName": "Assay",
+          "limitType": "Range",
+          "lower": 99.0,
+          "upper": 101.0,
+          "lowerInclusive": true,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": "PercentAsIs",
+          "referenceStandard": "BP",
+          "source": "Cooper Sulfate Pentahydrate__Specifications sheet Copper Sulphate pentahydrate No micro.txt:23"
+        },
+        {
+          "testCode": "TAMC",
+          "parameterName": "Total Aerobic Microbial Count",
+          "limitType": "CountTiered",
+          "lower": null,
+          "upper": 1000,
+          "lowerInclusive": null,
+          "unit": "CFU/gm",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": null,
+          "source": "Cooper Sulfate Pentahydrate__Specifications sheet Copper Sulphate pentahydrate No micro.txt:24"
+        },
+        {
+          "testCode": "TYMC",
+          "parameterName": "Total combined Yeasts and Molds Count",
+          "limitType": "CountTiered",
+          "lower": null,
+          "upper": 100,
+          "lowerInclusive": null,
+          "unit": "CFU/gm",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": null,
+          "source": "Cooper Sulfate Pentahydrate__Specifications sheet Copper Sulphate pentahydrate No micro.txt:24"
+        },
+        {
+          "testCode": "E.coli",
+          "parameterName": "Test for E. coli",
+          "limitType": "PresenceAbsence",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": "per 10 gm",
+          "expectedResultText": "Absent /10 gm",
+          "expectedState": "Absence",
+          "resultBasis": null,
+          "referenceStandard": null,
+          "source": "Cooper Sulfate Pentahydrate__Specifications sheet Copper Sulphate pentahydrate No micro.txt:24"
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "testCode": "RM-DESC",
+      "procedure": "Under strong white light check each received sample container separately in a clean transparent watch glass or glass dish for foreign particles, colour and conformity with the visual specification.",
+      "kind": "general",
+      "workflow": "Observation",
+      "details": {
+        "perContainer": true,
+        "bpSpecification": "Blue, crystalline powder or transparent, blue crystals."
+      },
+      "source": "Cooper Sulfate Pentahydrate__Copper Sulphate pentahydrate-SM.txt:28"
+    },
+    {
+      "testCode": "RM-SOLUB",
+      "procedure": "Weigh 100 mg sample in a stoppered tube; add 0.1 mL solvent, shake 1 min, hold at 25.0 ± 0.5 °C for 15 min, repeat shake/hold once if not dissolved; stepwise add 0.9 mL, 2 mL, 7 mL solvent (same shake and hold) to classify very soluble / freely soluble / soluble / sparingly soluble; if still undissolved use 10 mg in 10 mL (slightly soluble) then 1 mg in 10 mL (very slightly soluble), else practically insoluble. Repeat with methanol and ethanol (96 per cent).",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {
+        "sample": "100 mg",
+        "temperature": "25.0 ± 0.5 °C",
+        "holdMin": 15,
+        "shakeMin": 1,
+        "volumesMl": [
+          0.1,
+          0.9,
+          2,
+          7
+        ],
+        "smallSampleSteps": [
+          "10 mg in 10 mL",
+          "1 mg in 10 mL"
+        ],
+        "solvents": [
+          "water",
+          "methanol",
+          "ethanol (96 per cent)"
+        ],
+        "reference": "BP (SC IV K.) Characters Section (Hygroscopicity and Solubility)"
+      },
+      "source": "Cooper Sulfate Pentahydrate__Copper Sulphate pentahydrate-SM.txt:29"
+    },
+    {
+      "testCode": "RM-ID-CU-CUSO4",
+      "procedure": "Identification test 1: add several drops of dilute ammonia R2 to 1 mL of solution S; a blue precipitate forms; on further addition of dilute ammonia R2 the precipitate dissolves and a dark blue colour is produced.",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "details": {
+        "solutionSMl": 1,
+        "reagent": "dilute ammonia R2",
+        "reference": "BP 2022 Monograph for Copper Sulphate pentahydrate"
+      },
+      "source": "Cooper Sulfate Pentahydrate__Copper Sulphate pentahydrate-SM.txt:30"
+    },
+    {
+      "testCode": "RM-ID-SO4-CUSO4",
+      "procedure": "Identification test 3 (sulfates): dilute 1 mL of solution S to 5 mL with water; add 1 mL dilute hydrochloric acid and 1 mL barium chloride solution R1; a white precipitate is formed.",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "details": {
+        "solutionSMl": 1,
+        "dilutedToMl": 5,
+        "acid": "1 mL dilute hydrochloric acid",
+        "reagent": "1 mL barium chloride solution R1",
+        "reference": "BP Appendix VI, Qualitative Reactions and Tests, Sulfate"
+      },
+      "source": "Cooper Sulfate Pentahydrate__Copper Sulphate pentahydrate-SM.txt:30"
+    },
+    {
+      "testCode": "RM-SOLAPP",
+      "procedure": "Appearance of solution: compare solution S with water; solution S is clear.",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {
+        "solutionS": "5 g in water to 100 mL",
+        "reference": "BP Appendix IV A, Clarity of Solution"
+      },
+      "source": "Cooper Sulfate Pentahydrate__Copper Sulphate pentahydrate-SM.txt:31"
+    },
+    {
+      "testCode": "RM-LEAD",
+      "procedure": "Lead limit by AAS: dissolve 0.5 g in 10 mL water, add 2.5 mL lead-free nitric acid, dilute to 25.0 mL with water. Reference solutions from lead standard solution (10 ppm Pb) with 2.5 mL lead-free nitric acid, diluted to 25.0 mL. Lead hollow-cathode lamp, 217.0 nm, air-acetylene flame. NMT 20 ppm.",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "details": {
+        "sampleG": 0.5,
+        "waterMl": 10,
+        "nitricAcidMl": 2.5,
+        "finalVolumeMl": 25.0,
+        "referenceSolution": "lead standard solution 10 ppm Pb",
+        "wavelengthNm": 217.0,
+        "flame": "air-acetylene",
+        "limit": "NMT 20 ppm",
+        "reference": "BP 2024 Appendix VIII T, Determination of Elemental Impurities, AAS"
+      },
+      "source": "Cooper Sulfate Pentahydrate__Copper Sulphate pentahydrate-SM.txt:32"
+    },
+    {
+      "testCode": "RM-NI-CUSO4",
+      "procedure": "Nickel limit by AAS: dissolve 0.5 g in 10 mL water, add 2.5 mL lead-free nitric acid, dilute to 25.0 mL. Reference from nickel standard solution (10 ppm Ni) with 2.5 mL lead-free nitric acid, diluted to 25.0 mL. Nickel hollow-cathode lamp, 232.0 nm, air-acetylene flame. NMT 20 ppm.",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "details": {
+        "sampleG": 0.5,
+        "waterMl": 10,
+        "nitricAcidMl": 2.5,
+        "finalVolumeMl": 25.0,
+        "referenceSolution": "nickel standard solution 10 ppm Ni",
+        "wavelengthNm": 232.0,
+        "flame": "air-acetylene",
+        "limit": "NMT 20 ppm",
+        "reference": "BP Appendix II D, Atomic Spectrophotometry: Absorption"
+      },
+      "source": "Cooper Sulfate Pentahydrate__Copper Sulphate pentahydrate-SM.txt:33"
+    },
+    {
+      "testCode": "RM-CO-CUSO4",
+      "procedure": "Cobalt limit by AAS: dissolve 0.5 g in 10 mL water, add 2.5 mL lead-free nitric acid, dilute to 25.0 mL. Reference from cobalt standard solution (0.5 ppm Co) with 2.5 mL lead-free nitric acid, diluted to 25.0 mL. Cobalt hollow-cathode lamp, 240.7 nm, air-acetylene flame. NMT 1 ppm.",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "details": {
+        "sampleG": 0.5,
+        "waterMl": 10,
+        "nitricAcidMl": 2.5,
+        "finalVolumeMl": 25.0,
+        "referenceSolution": "cobalt standard solution 0.5 ppm Co",
+        "wavelengthNm": 240.7,
+        "flame": "air-acetylene",
+        "limit": "NMT 1 ppm",
+        "reference": "BP Appendix II D, Atomic Spectrophotometry: Absorption"
+      },
+      "source": "Cooper Sulfate Pentahydrate__Copper Sulphate pentahydrate-SM.txt:34"
+    },
+    {
+      "testCode": "RM-LT-CL",
+      "procedure": "Chlorides limit test (BP Appendix VII): 10 mL solution S diluted to 15 mL with water, add 1 mL dilute nitric acid, pour into a tube with 1 mL silver nitrate solution R2; standard 10 mL chloride standard solution (5 ppm Cl) and 5 mL water with 1 mL dilute nitric acid treated the same way. After 5 min protected from light, opalescence of the test not more intense than the standard (NMT 100 ppm).",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {
+        "solutionSMl": 10,
+        "dilutedToMl": 15,
+        "limit": "NMT 100 ppm",
+        "reference": "BP Appendix VII Limit Tests, Chloride"
+      },
+      "source": "Cooper Sulfate Pentahydrate__Copper Sulphate pentahydrate-SM.txt:35"
+    },
+    {
+      "testCode": "RM-LT-FE",
+      "procedure": "Iron limit by AAS: dissolve 0.5 g in 10 mL water, add 2.5 mL lead-free nitric acid, dilute to 25.0 mL. Reference from iron standard solution (20 ppm Fe) with 2.5 mL lead-free nitric acid, diluted to 25.0 mL. Iron hollow-cathode lamp, 248.3 nm, air-acetylene flame. NMT 100 ppm.",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "details": {
+        "sampleG": 0.5,
+        "waterMl": 10,
+        "nitricAcidMl": 2.5,
+        "finalVolumeMl": 25.0,
+        "referenceSolution": "iron standard solution 20 ppm Fe",
+        "wavelengthNm": 248.3,
+        "flame": "air-acetylene",
+        "limit": "NMT 100 ppm",
+        "reference": "BP Appendix II D, Atomic Spectrophotometry: Absorption"
+      },
+      "source": "Cooper Sulfate Pentahydrate__Copper Sulphate pentahydrate-SM.txt:36"
+    },
+    {
+      "testCode": "RM-LOD",
+      "procedure": "Loss on drying (BP Appendix IX D): weigh empty weighing bottle previously dried at 250 ± 10 °C and cooled in desiccator (W0); weigh 1.000 g sample (W1); dry in calibrated oven at 250 ± 10 °C for 2 h, cool in desiccator, weigh (W2); repeat to constant weight. % LOD = (W1 - W2) / (W1 - W0) x 100.",
+      "kind": "general",
+      "workflow": "Gravimetric",
+      "details": {
+        "sampleG": 1.0,
+        "ovenC": "250 ± 10",
+        "timeH": 2,
+        "bottleDryingC": "250 ± 10",
+        "formula": "% LOD = (W1 - W2) / (W1 - W0) x 100",
+        "reference": "BP 2024 Appendix IX D"
+      },
+      "source": "Cooper Sulfate Pentahydrate__Copper Sulphate pentahydrate-SM.txt:37"
+    },
+    {
+      "testCode": "RM-TIT-CUSO4",
+      "procedure": "Assay (iodometric titration): dissolve 0.200 g sample in 50 mL water; add 2 mL sulfuric acid and 3 g potassium iodide; titrate with 0.1 M sodium thiosulfate, adding 1 mL starch solution towards the end. 1 mL of 0.1 M sodium thiosulfate = 24.97 mg CuSO4·5H2O. Assay = (E.P x eq.wt x F x 100) / Wt.",
+      "kind": "specific",
+      "workflow": "Titration",
+      "details": {
+        "sampleG": 0.2,
+        "solvent": "50 mL water",
+        "acid": "2 mL sulfuric acid",
+        "reagent": "3 g potassium iodide",
+        "titrant": "0.1 M sodium thiosulfate VS",
+        "titrantStandardization": "10.0 mL of 0.033 M potassium bromate + 40 mL water, 10 mL potassium iodide solution, 5 mL hydrochloric acid R1; titrate with thiosulfate with starch added near the end (1 mL = 2.783 mg KBrO3)",
+        "indicator": "1 mL starch solution, added towards the end of the titration",
+        "mode": "iodometric (direct titration with thiosulfate)",
+        "equivalenceFactor": "1 mL of 0.1 M sodium thiosulfate = 24.97 mg CuSO4·5H2O",
+        "formula": "Assay = (E.P x eq.wt x F x 100) / Wt; E.P = end point (mL); eq.wt = equivalent weight of copper sulfate pentahydrate; F = titrant factor; Wt = sample weight (g)",
+        "reference": "BP Appendix VIII D (as cited in STM)",
+        "basis": "as stated (no basis word on the STM)"
+      },
+      "source": "Cooper Sulfate Pentahydrate__Copper Sulphate pentahydrate-SM.txt:38"
+    },
+    {
+      "testCode": "TAMC",
+      "procedure": "Microbiological examination per the micro SOP (general microbiology test).",
+      "kind": "general",
+      "workflow": "CountTest",
+      "details": {},
+      "source": "Cooper Sulfate Pentahydrate__Specifications sheet Copper Sulphate pentahydrate No micro.txt:24"
+    },
+    {
+      "testCode": "TYMC",
+      "procedure": "Microbiological examination per the micro SOP (general microbiology test).",
+      "kind": "general",
+      "workflow": "CountTest",
+      "details": {},
+      "source": "Cooper Sulfate Pentahydrate__Specifications sheet Copper Sulphate pentahydrate No micro.txt:24"
+    },
+    {
+      "testCode": "E.coli",
+      "procedure": "Microbiological examination per the micro SOP (general microbiology test).",
+      "kind": "general",
+      "workflow": "Observation",
+      "details": {},
+      "source": "Cooper Sulfate Pentahydrate__Specifications sheet Copper Sulphate pentahydrate No micro.txt:24"
+    }
+  ],
+  "notApplicable": [],
+  "supplierAttributes": [],
+  "reagents": [
+    {
+      "name": "Ammonia",
+      "use": "reagent",
+      "source": "Cooper Sulfate Pentahydrate__Copper Sulphate pentahydrate-SM.txt:26"
+    },
+    {
+      "name": "Barium Chloride",
+      "use": "reagent",
+      "source": "Cooper Sulfate Pentahydrate__Copper Sulphate pentahydrate-SM.txt:26"
+    },
+    {
+      "name": "Cobalt Standard Solution 1000 mg/L",
+      "use": "standard",
+      "source": "Cooper Sulfate Pentahydrate__Copper Sulphate pentahydrate-SM.txt:26"
+    },
+    {
+      "name": "Ferric ammonium sulfate",
+      "use": "standard",
+      "source": "Cooper Sulfate Pentahydrate__Copper Sulphate pentahydrate-SM.txt:26"
+    },
+    {
+      "name": "Hydrochloric Acid",
+      "use": "reagent",
+      "source": "Cooper Sulfate Pentahydrate__Copper Sulphate pentahydrate-SM.txt:26"
+    },
+    {
+      "name": "Iron Standard Solution 1000 mg/L",
+      "use": "standard",
+      "source": "Cooper Sulfate Pentahydrate__Copper Sulphate pentahydrate-SM.txt:26"
+    },
+    {
+      "name": "Lead Standard Solution 1000 mg/L",
+      "use": "standard",
+      "source": "Cooper Sulfate Pentahydrate__Copper Sulphate pentahydrate-SM.txt:26"
+    },
+    {
+      "name": "Mercuric iodide",
+      "use": "reagent",
+      "source": "Cooper Sulfate Pentahydrate__Copper Sulphate pentahydrate-SM.txt:26"
+    },
+    {
+      "name": "Nickel Standard Solution 1000 mg/L",
+      "use": "standard",
+      "source": "Cooper Sulfate Pentahydrate__Copper Sulphate pentahydrate-SM.txt:26"
+    },
+    {
+      "name": "Nitric Acid",
+      "use": "reagent",
+      "source": "Cooper Sulfate Pentahydrate__Copper Sulphate pentahydrate-SM.txt:26"
+    },
+    {
+      "name": "Potassium bromate",
+      "use": "standard",
+      "source": "Cooper Sulfate Pentahydrate__Copper Sulphate pentahydrate-SM.txt:26"
+    },
+    {
+      "name": "Potassium iodide",
+      "use": "reagent",
+      "source": "Cooper Sulfate Pentahydrate__Copper Sulphate pentahydrate-SM.txt:26"
+    },
+    {
+      "name": "Silver Nitrate",
+      "use": "reagent",
+      "source": "Cooper Sulfate Pentahydrate__Copper Sulphate pentahydrate-SM.txt:26"
+    },
+    {
+      "name": "Sodium carbonate",
+      "use": "reagent",
+      "source": "Cooper Sulfate Pentahydrate__Copper Sulphate pentahydrate-SM.txt:26"
+    },
+    {
+      "name": "Sodium thiosulfate",
+      "use": "reagent",
+      "source": "Cooper Sulfate Pentahydrate__Copper Sulphate pentahydrate-SM.txt:26"
+    },
+    {
+      "name": "Soluble starch",
+      "use": "indicator",
+      "source": "Cooper Sulfate Pentahydrate__Copper Sulphate pentahydrate-SM.txt:26"
+    },
+    {
+      "name": "Sulfuric acid",
+      "use": "reagent",
+      "source": "Cooper Sulfate Pentahydrate__Copper Sulphate pentahydrate-SM.txt:26"
+    },
+    {
+      "name": "0.1M Sodium Thiosulfate VS",
+      "use": "titrant",
+      "source": "Cooper Sulfate Pentahydrate__Copper Sulphate pentahydrate-SM.txt:26"
+    },
+    {
+      "name": "0.033M Potassium Bromate VS",
+      "use": "titrant",
+      "source": "Cooper Sulfate Pentahydrate__Copper Sulphate pentahydrate-SM.txt:26"
+    }
+  ],
+  "openQuestions": [
+    {
+      "question": "The spec sheet file name says 'No micro', yet the sheet lists TAMC, TYMC and E. coli limits in its additional requirements, and the latest STM has no microbiological section. Micro rows loaded from the spec sheet (1000/100 per the user decision) with no method. Confirm.",
+      "source": "Cooper Sulfate Pentahydrate__Specifications sheet Copper Sulphate pentahydrate No micro.txt:24"
+    },
+    {
+      "question": "Elemental limits (lead, nickel, cobalt, iron) are measured by AAS on the spec sheet. Loaded as Qualitative 'Complies (NMT x ppm)' limit-test rows, not as ICP method assays. Confirm.",
+      "source": "Cooper Sulfate Pentahydrate__Specifications sheet Copper Sulphate pentahydrate No micro.txt:17-19, 21"
+    },
+    {
+      "question": "Assay: the STM cites BP Appendix VIII D (complexometric titrations) but the method is iodometric (thiosulfate). Loaded as a Titration; the reference is kept as written. Confirm.",
+      "source": "Cooper Sulfate Pentahydrate__Copper Sulphate pentahydrate-SM.txt:38"
+    },
+    {
+      "question": "Assay basis is not stated; recorded as PercentAsIs. Confirm.",
+      "source": "Cooper Sulfate Pentahydrate__Copper Sulphate pentahydrate-SM.txt:38"
+    }
+  ]
+}

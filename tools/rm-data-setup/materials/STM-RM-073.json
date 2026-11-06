@@ -1,0 +1,230 @@
+{
+  "itemCode": "STM-RM-073",
+  "itemName": "Opadry White",
+  "stmCode": "STM-RM-073",
+  "stmFile": "Opadry White__STM Opadry White new without micro.txt",
+  "specFiles": ["Opadry White__Specifications sheet Opadry White.txt"],
+  "minQuantity": {
+    "routine": 60,
+    "retest": 60,
+    "retention": 60,
+    "unit": "g",
+    "source": "Opadry White__Specifications sheet Opadry White.txt:19; Opadry White__STM Opadry White new without micro.txt:34"
+  },
+  "grades": [
+    {
+      "grade": null,
+      "rows": [
+        {
+          "testCode": "RM-DESC",
+          "parameterName": "Appearance",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "White powder",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "In-house",
+          "source": "Opadry White__Specifications sheet Opadry White.txt:12"
+        },
+        {
+          "testCode": "RM-DISP-OPADRYWHITE",
+          "parameterName": "Dispersion",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "The powder freely dispersed in water",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "In-house",
+          "source": "Opadry White__Specifications sheet Opadry White.txt:13"
+        },
+        {
+          "testCode": "RM-ID-FILM-OPADRYWHITE",
+          "parameterName": "Identification (film formed)",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Film formed",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "In-house",
+          "source": "Opadry White__Specifications sheet Opadry White.txt:14"
+        },
+        {
+          "testCode": "RM-ASH-OPADRYWHITE",
+          "parameterName": "Ash content",
+          "limitType": "Range",
+          "lower": 35.8,
+          "upper": 43.8,
+          "lowerInclusive": true,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "In-house",
+          "source": "Opadry White__Specifications sheet Opadry White.txt:15"
+        },
+        {
+          "testCode": "TAMC",
+          "parameterName": "Total Aerobic Microbial Count",
+          "limitType": "CountTiered",
+          "lower": null,
+          "upper": 1000,
+          "lowerInclusive": null,
+          "unit": "CFU/gm",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP 2024",
+          "source": "Opadry White__Specifications sheet Opadry White.txt:16"
+        },
+        {
+          "testCode": "TYMC",
+          "parameterName": "Total Yeast and Molds Count",
+          "limitType": "CountTiered",
+          "lower": null,
+          "upper": 100,
+          "lowerInclusive": null,
+          "unit": "CFU/gm",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP 2024",
+          "source": "Opadry White__Specifications sheet Opadry White.txt:17"
+        },
+        {
+          "testCode": "E.coli",
+          "parameterName": "Test for E. coli",
+          "limitType": "PresenceAbsence",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": "per 10 gm",
+          "expectedResultText": "Absent /10 gm",
+          "expectedState": "Absence",
+          "resultBasis": null,
+          "referenceStandard": "USP 2024",
+          "source": "Opadry White__Specifications sheet Opadry White.txt:18"
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "testCode": "RM-DESC",
+      "procedure": "Under strong white light check each received sample container separately in a clean transparent watch glass or glass dish for foreign particles, colour and conformity with the visual specification.",
+      "kind": "general",
+      "workflow": "Observation",
+      "details": {
+        "perContainer": true,
+        "inHouse": "White powder"
+      },
+      "source": "Opadry White__STM Opadry White new without micro.txt:28"
+    },
+    {
+      "testCode": "RM-DISP-OPADRYWHITE",
+      "procedure": "Disperse 1 g of sample into 20 mL of water; the powder should diffuse into water and form a uniform matrix.",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "details": {
+        "sampleG": 1,
+        "waterMl": 20,
+        "reference": "Analytical Method Verification Report For Dispersion in Opadry White"
+      },
+      "source": "Opadry White__STM Opadry White new without micro.txt:29"
+    },
+    {
+      "testCode": "RM-ID-FILM-OPADRYWHITE",
+      "procedure": "Make a slurry of the powder in an equal-volume mixture of isopropyl alcohol and dichloromethane, pour it onto a glass tile and dry; a film must form.",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "details": {
+        "solvents": ["isopropyl alcohol", "dichloromethane (equal volumes)"],
+        "reference": "Analytical Method Verification Report For Identification in Opadry White"
+      },
+      "source": "Opadry White__STM Opadry White new without micro.txt:30"
+    },
+    {
+      "testCode": "RM-ASH-OPADRYWHITE",
+      "procedure": "Ash content: weigh an empty crucible previously ignited at 800 °C (W1); weigh about 1.0 g sample into it (W2); ignite in a muffle furnace at 800 ± 50 °C for 2 h; cool in desiccator; weigh the crucible with residue (W4); W3 = W4 - W1; total ash = W2 - W3; % total ash = total ash / W2 x 100.",
+      "kind": "specific",
+      "workflow": "Gravimetric",
+      "details": {
+        "crucibleIgnitionC": 800,
+        "muffleC": "800 ± 50",
+        "timeH": 2,
+        "sampleG": "about 1.0",
+        "formula": "% total ash = (W2 - W3) / W2 x 100, W3 = W4 - W1 (as written)",
+        "reference": "Analytical Method Verification Report For Ash Content in Opadry White"
+      },
+      "source": "Opadry White__STM Opadry White new without micro.txt:31"
+    },
+    {
+      "testCode": "TAMC",
+      "procedure": "Microbiological examination per SOP C2I-91-128 and the material-specific verification report.",
+      "kind": "general",
+      "workflow": "CountTest",
+      "details": {
+        "limit": "Not more than 10^3 CFU/gm",
+        "reference": "USP 2024 <2021>, <2023>",
+        "sop": "C2I-91-128"
+      },
+      "source": "Opadry White__STM Opadry White new without micro.txt:32"
+    },
+    {
+      "testCode": "TYMC",
+      "procedure": "Microbiological examination per SOP C2I-91-128 and the material-specific verification report.",
+      "kind": "general",
+      "workflow": "CountTest",
+      "details": {
+        "limit": "Not more than 10^2 CFU/gm",
+        "reference": "USP 2024 <2021>, <2023>",
+        "sop": "C2I-91-128"
+      },
+      "source": "Opadry White__STM Opadry White new without micro.txt:32"
+    },
+    {
+      "testCode": "E.coli",
+      "procedure": "Microbiological examination per SOP C2I-91-128 and the material-specific verification report.",
+      "kind": "general",
+      "workflow": "Observation",
+      "details": {
+        "limit": "Absent /10 gm",
+        "reference": "USP 2024 <2022>, <2023>",
+        "sop": "C2I-91-128"
+      },
+      "source": "Opadry White__STM Opadry White new without micro.txt:32"
+    }
+  ],
+  "notApplicable": [],
+  "supplierAttributes": [],
+  "reagents": [
+    { "name": "Isopropyl alcohol", "use": "reagent", "source": "Opadry White__STM Opadry White new without micro.txt:26" },
+    { "name": "Dichloromethane", "use": "reagent", "source": "Opadry White__STM Opadry White new without micro.txt:26" }
+  ],
+  "openQuestions": [
+    {
+      "question": "TAMC and TYMC limits print as 'NMT 103' and 'NMT 102' CFU/gm (superscripts lost). Loaded as 1000 and 100 CFU/gm per the user decision on document questions. Confirm.",
+      "source": "Opadry White__Specifications sheet Opadry White.txt:16-17"
+    },
+    {
+      "question": "Microbiological method: the latest STM only says 'follow SOP No. C2I-91-128'. The procedure text is in the older 2025-02-06 STM, which is not used. Micro rows carry the SOP reference only.",
+      "source": "Opadry White__STM Opadry White new without micro.txt:32"
+    },
+    {
+      "question": "Ash content formula: W2 is defined as the sample weight (about 1.0 g) but the total-ash formula also uses W2 as the denominator, and W3/W4 naming is unclear. Recorded as written. Confirm the formula.",
+      "source": "Opadry White__STM Opadry White new without micro.txt:31"
+    },
+    {
+      "question": "Ash content: the spec sheet cites the 'Analytical Method Verification Report For Identification' while the STM cites the 'Ash Content' report. STM reference used.",
+      "source": "Opadry White__Specifications sheet Opadry White.txt:15; Opadry White__STM Opadry White new without micro.txt:31"
+    }
+  ]
+}

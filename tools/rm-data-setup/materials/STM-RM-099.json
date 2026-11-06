@@ -1,0 +1,168 @@
+{
+  "itemCode": "STM-RM-099",
+  "itemName": "Vitamin A Concentrate (Powder Form)",
+  "stmCode": "STM-RM-099",
+  "stmFile": "Vitamin A Synrhetic__STM Synthetic Retinol Acetate (Powder Form).txt",
+  "specFiles": ["Vitamin A Synrhetic__Specifications sheet Synthetic Retinol Acetate (Powder Form).txt"],
+  "minQuantity": {
+    "routine": 100,
+    "retest": 50,
+    "retention": 100,
+    "unit": "g",
+    "source": "Vitamin A Synrhetic__Specifications sheet Synthetic Retinol Acetate (Powder Form).txt:15; Vitamin A Synrhetic__STM Synthetic Retinol Acetate (Powder Form).txt:33"
+  },
+  "grades": [
+    {
+      "grade": "BP",
+      "rows": [
+        {
+          "testCode": "RM-DESC",
+          "parameterName": "Appearance",
+          "limitType": "Qualitative",
+          "lower": null, "upper": null, "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Yellowish powder usually in the form of particles of almost uniform size",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP 2024",
+          "source": "Vitamin A Synrhetic__Specifications sheet Synthetic Retinol Acetate (Powder Form).txt:11"
+        },
+        {
+          "testCode": "RM-SOLUB",
+          "parameterName": "Solubility",
+          "limitType": "Qualitative",
+          "lower": null, "upper": null, "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Practically insoluble in water, swells or forms an emulsion, depending on the formulation",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP 2024",
+          "source": "Vitamin A Synrhetic__Specifications sheet Synthetic Retinol Acetate (Powder Form).txt:12"
+        },
+        {
+          "testCode": "RM-ID-TLC-VA",
+          "parameterName": "Identification (TLC)",
+          "limitType": "Qualitative",
+          "lower": null, "upper": null, "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "The composition of the test solution is confirmed by the correspondence of the principal spot or spots with those obtained with the reference solution",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP 2024",
+          "source": "Vitamin A Synrhetic__Specifications sheet Synthetic Retinol Acetate (Powder Form).txt:13"
+        },
+        {
+          "testCode": "RM-HPLC-VA-AS",
+          "parameterName": "Assay (% of the vitamin A content stated on the label)",
+          "limitType": "Range",
+          "lower": 95.0, "upper": 115.0, "lowerInclusive": true,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": "PercentAsIs",
+          "referenceStandard": "BP 2024",
+          "source": "Vitamin A Synrhetic__Specifications sheet Synthetic Retinol Acetate (Powder Form).txt:14",
+          "heldBack": "STM: HPLC method incomplete (system suitability and content calculation expression not stated)"
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "testCode": "RM-DESC",
+      "procedure": "Under strong white light check each received sample container separately in a clean transparent watch glass to detect foreign particles, colour and compliance with the visual specifications.",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": { "perContainer": true, "grades": ["BP"], "reference": "BP (SC IV K.) Characters Section in Monographs; BP 2024 Monograph for Synthetic Retinol Acetate (Powder Form)" },
+      "source": "Vitamin A Synrhetic__STM Synthetic Retinol Acetate (Powder Form).txt:28"
+    },
+    {
+      "testCode": "RM-SOLUB",
+      "procedure": "Stepwise solubility at 25.0 +/- 0.5 C: 100 mg sample in a stoppered tube with 0.1 mL solvent, shake 1 min, hold 15 min; then add 0.9 mL, 2 mL and 7 mL of solvent (same shake and hold) to classify very soluble / freely soluble / soluble / sparingly soluble; if still undissolved, 10 mg in 10 mL (slightly soluble), then 1 mg in 10 mL (very slightly soluble), else practically insoluble.",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": { "grades": ["BP"], "sampleMg": 100, "temperatureC": "25.0 +/- 0.5", "holdMin": 15, "solventNote": "solvent not named in the STM text", "reference": "BP Part II Monograph Section Solubility" },
+      "source": "Vitamin A Synrhetic__STM Synthetic Retinol Acetate (Powder Form).txt:29"
+    },
+    {
+      "testCode": "RM-ID-TLC-VA",
+      "procedure": "Test solution: quantity equivalent to about 17 000 IU vitamin A in a 20 mL glass-stoppered tube; add about 20 mg bromelains, 2 mL water and about 150 uL 2-propanol; swirl 2-5 min in a water bath at 60-65 C; cool below 30 C; add 5 mL 2-propanol with 1 g/L butylhydroxytoluene; shake 1 min, stand, use supernatant. Reference solution: 10 mg/mL retinol esters CRS (3.3 IU of each ester per uL) in 2-propanol with 1 g/L butylhydroxytoluene. TLC silica gel F254 plate; mobile phase ether : cyclohexane (20:80 V/V); apply 3 uL; develop over 15 cm; dry in air; examine under UV at 254 nm. System suitability: the reference chromatogram shows the individual spots of the corresponding esters; elution order bottom to top: retinol acetate.",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {
+        "grades": ["BP"],
+        "testSampleIU": 17000,
+        "bromelainsMg": 20,
+        "water": "2 mL",
+        "propanol": "about 150 uL, then 5 mL with 1 g/L BHT",
+        "referenceConcentrationMgPerMl": 10,
+        "mobilePhase": "ether : cyclohexane 20:80",
+        "applicationUl": 3,
+        "developmentCm": 15,
+        "detection": "UV 254 nm",
+        "reference": "BP Appendix III A (Thin-layer Chromatography)",
+        "note": "Alternative identification (HPLC retention time, described in the STM as the assay) is not transcribed"
+      },
+      "source": "Vitamin A Synrhetic__STM Synthetic Retinol Acetate (Powder Form).txt:30"
+    },
+    {
+      "testCode": "RM-HPLC-VA-AS",
+      "procedure": "HPLC assay of vitamin A (retinol acetate). Test solution (a): 0.200 g sample in 100 mL flask; add 20-30 mg bromelains, 5.0 mL water and 0.15 mL 2-propanol; heat 5 min at 60 C; add 40 mL 0.1 M tetrabutylammonium hydroxide in 2-propanol; react 10 min at 60-65 C; cool; dilute to 100.0 mL with 2-propanol containing 1 g/L BHT. Test solution (b): dilute (a) with 2-propanol to 100 IU/mL; filter. Reference solution (a): about 0.100 g retinol acetate CRS in 5 mL pentane; add 40 mL TBAH reagent; react 10 min at 60-65 C; dilute to 100.0 mL as above. Reference solution (b): dilute (a) to 100 IU/mL. Column 0.125 m x 4 mm, end-capped C18 5 um; mobile phase water : methanol (5:95 V/V); flow 1 mL/min; UV 325 nm; injection 10 uL; run time 1.5 x retention time of retinol (about 3 min). RS content: 25-100 mg retinol acetate CRS in 5 mL pentane diluted with 2-propanol to 10-15 IU/mL; absorbance maximum 325-327 nm; ratios A300/A326 NMT 0.60, A350/A326 NMT 0.54, A370/A326 NMT 0.14; C = A326 x V x 1900 / (100 x m). The sample content calculation expression is not stated in the text.",
+      "kind": "specific",
+      "workflow": "HplcMethodAssay",
+      "details": {
+        "grades": ["BP"],
+        "sampleG": 0.200,
+        "sampleFinalMl": 100.0,
+        "bromelainsMg": "20-30",
+        "waterMl": 5.0,
+        "propanolMl": 0.15,
+        "tbahMl": 40,
+        "tbahMolar": 0.1,
+        "referenceStandardG": 0.100,
+        "column": "0.125 m x 4 mm, end-capped octadecylsilyl silica gel 5 um",
+        "mobilePhase": "water : methanol 5:95",
+        "flowMlPerMin": 1,
+        "detectionNm": 325,
+        "injectionUl": 10,
+        "runTime": "1.5 x retention time of retinol (about 3 min)",
+        "rsStandardisation": {
+          "rsMgRange": "25-100 in 5 mL pentane, diluted to 10-15 IU/mL",
+          "ratioLimits": {"A300/A326": 0.60, "A350/A326": 0.54, "A370/A326": 0.14},
+          "potencyFormula": "C = A326 x V x 1900 / (100 x m)"
+        },
+        "missingForHold": ["system suitability criteria", "content calculation expression"],
+        "reference": "BP Appendix III D (Liquid Chromatography); BP Appendix II B (UV-Visible)"
+      },
+      "source": "Vitamin A Synrhetic__STM Synthetic Retinol Acetate (Powder Form).txt:31",
+      "heldBack": "STM: HPLC method incomplete (system suitability and content calculation expression not stated)"
+    }
+  ],
+  "notApplicable": [],
+  "supplierAttributes": [],
+  "reagents": [
+    { "name": "Bromelains", "use": "reagent", "source": "Vitamin A Synrhetic__STM Synthetic Retinol Acetate (Powder Form).txt:26" },
+    { "name": "2-propanol", "use": "reagent", "source": "Vitamin A Synrhetic__STM Synthetic Retinol Acetate (Powder Form).txt:26" },
+    { "name": "Butylhydroxytoluene", "use": "reagent", "source": "Vitamin A Synrhetic__STM Synthetic Retinol Acetate (Powder Form).txt:26" },
+    { "name": "Retinol Acetate RS", "use": "standard", "source": "Vitamin A Synrhetic__STM Synthetic Retinol Acetate (Powder Form).txt:26" },
+    { "name": "Ether", "use": "reagent", "source": "Vitamin A Synrhetic__STM Synthetic Retinol Acetate (Powder Form).txt:26" },
+    { "name": "Cyclohexane", "use": "reagent", "source": "Vitamin A Synrhetic__STM Synthetic Retinol Acetate (Powder Form).txt:26" },
+    { "name": "Methanol", "use": "reagent", "source": "Vitamin A Synrhetic__STM Synthetic Retinol Acetate (Powder Form).txt:26" },
+    { "name": "Pentane", "use": "reagent", "source": "Vitamin A Synrhetic__STM Synthetic Retinol Acetate (Powder Form).txt:26" },
+    { "name": "Tetrabutylammonium iodide", "use": "reagent", "source": "Vitamin A Synrhetic__STM Synthetic Retinol Acetate (Powder Form).txt:26" },
+    { "name": "Silver oxide", "use": "reagent", "source": "Vitamin A Synrhetic__STM Synthetic Retinol Acetate (Powder Form).txt:26" },
+    { "name": "Toluene", "use": "reagent", "source": "Vitamin A Synrhetic__STM Synthetic Retinol Acetate (Powder Form).txt:26" },
+    { "name": "0.1M Tetrabutylammonium Hydroxide in 2-propanol", "use": "reagent", "source": "Vitamin A Synrhetic__STM Synthetic Retinol Acetate (Powder Form).txt:26" },
+    { "name": "0.1M Tetrabutylammonium Hydroxide (in toluene)", "use": "reagent", "source": "Vitamin A Synrhetic__STM Synthetic Retinol Acetate (Powder Form).txt:26" }
+  ],
+  "openQuestions": [
+    {
+      "question": "HPLC assay is held back: the STM gives no system suitability criteria and no expression for the vitamin A content (only the variable definitions). Confirm the method details; then the row loads.",
+      "source": "Vitamin A Synrhetic__STM Synthetic Retinol Acetate (Powder Form).txt:31"
+    },
+    {
+      "question": "The assay limit is '% of the vitamin A content stated on the label'. The label IU value is not in the folder. Loaded as PercentAsIs against the label; confirm the label value source.",
+      "source": "Vitamin A Synrhetic__Specifications sheet Synthetic Retinol Acetate (Powder Form).txt:14"
+    }
+  ]
+}

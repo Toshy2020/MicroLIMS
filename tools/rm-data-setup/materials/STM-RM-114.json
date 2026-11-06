@@ -1,0 +1,211 @@
+{
+  "itemCode": "STM-RM-114",
+  "itemName": "Opadry Green",
+  "stmCode": "STM-RM-114",
+  "stmFile": "Opadry green__STM Opadry Green.txt",
+  "specFiles": [
+    "Opadry green__Specifications sheet Opadry Green - 1.txt",
+    "Opadry green__Specifications sheet Opadry Green - 2.txt"
+  ],
+  "minQuantity": {
+    "routine": 40,
+    "retest": 60,
+    "retention": 40,
+    "unit": "g",
+    "source": "Opadry green__Specifications sheet Opadry Green - 1.txt:17; Opadry green__STM Opadry Green.txt:38"
+  },
+  "grades": [
+    {
+      "grade": null,
+      "rows": [
+        {
+          "testCode": "RM-DESC",
+          "parameterName": "Appearance (Opadry Green 20A21508)",
+          "limitType": "Qualitative",
+          "lower": null, "upper": null, "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Green Powder",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "In house",
+          "source": "Opadry green__Specifications sheet Opadry Green - 1.txt:11"
+        },
+        {
+          "testCode": "RM-DESC",
+          "parameterName": "Appearance (Opadry Green 45U21242)",
+          "limitType": "Qualitative",
+          "lower": null, "upper": null, "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Dark green, fine granular, free flowing powder",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "In house",
+          "source": "Opadry green__Specifications sheet Opadry Green - 2.txt:11"
+        },
+        {
+          "testCode": "RM-ID-FILM-OPA",
+          "parameterName": "Identification (film formed)",
+          "limitType": "Qualitative",
+          "lower": null, "upper": null, "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Film formed",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "In house",
+          "source": "Opadry green__Specifications sheet Opadry Green - 1.txt:12"
+        },
+        {
+          "testCode": "RM-ASH-OPA",
+          "parameterName": "Ash content (% w/w)",
+          "limitType": "Range",
+          "lower": 20.0, "upper": 27.0, "lowerInclusive": true,
+          "unit": "% w/w",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "In house",
+          "source": "Opadry green__Specifications sheet Opadry Green - 1.txt:13"
+        },
+        {
+          "testCode": "TAMC",
+          "parameterName": "Total aerobic microbial count (TAMC)",
+          "limitType": "CountTiered",
+          "lower": null, "upper": 1000, "lowerInclusive": null,
+          "unit": "CFU/g",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP 2024",
+          "source": "Opadry green__Specifications sheet Opadry Green - 1.txt:14"
+        },
+        {
+          "testCode": "TYMC",
+          "parameterName": "Total yeasts and molds count (TYMC)",
+          "limitType": "CountTiered",
+          "lower": null, "upper": 100, "lowerInclusive": null,
+          "unit": "CFU/g",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP 2024",
+          "source": "Opadry green__Specifications sheet Opadry Green - 1.txt:15"
+        },
+        {
+          "testCode": "E.coli",
+          "parameterName": "Escherichia coli",
+          "limitType": "PresenceAbsence",
+          "lower": null, "upper": null, "lowerInclusive": null,
+          "unit": "per 10 g",
+          "expectedResultText": "Absent /10 gm",
+          "expectedState": "Absence",
+          "resultBasis": null,
+          "referenceStandard": "USP 2024",
+          "source": "Opadry green__Specifications sheet Opadry Green - 1.txt:16"
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "testCode": "RM-DESC",
+      "procedure": "Under strong white light check each received sample container separately in a clean transparent watch glass or glass dish to detect foreign particles, colour and compliance with the visual specifications.",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {
+        "perContainer": true,
+        "appearanceByProduct": {"45U21242": "Dark green, fine granular, free flowing powder", "20A21508": "Green Powder"},
+        "reference": "In-house Specification for Opadry Green"
+      },
+      "source": "Opadry green__STM Opadry Green.txt:30"
+    },
+    {
+      "testCode": "RM-ID-FILM-OPA",
+      "procedure": "Make a slurry of the powder in equal quantities of isopropyl alcohol and methylene dichloride; pour it on a glass tile and dry. Expected: film formed.",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "details": { "reference": "In-house Specification for Opadry Green" },
+      "source": "Opadry green__STM Opadry Green.txt:31"
+    },
+    {
+      "testCode": "RM-ASH-OPA",
+      "procedure": "Weigh an empty crucible previously ignited at 800 C (W1). Weigh about 1.0 g sample into the ignition plate (W2). Ignite in muffle at 800 +/- 50 C for 2 h; cool in desiccator; weigh plate with residue (W4). W3 = W4 - W1; total ash (wt) = W2 - W3; % total ash = total ash (wt) / W2 x 100. Note: W2 is defined as the sample weight but the step subtracts W3 from it; see openQuestions.",
+      "kind": "specific",
+      "workflow": "Measurement",
+      "details": {
+        "ignitionC": 800,
+        "ignitionTolerancePlusMinusC": 50,
+        "ignitionHours": 2,
+        "sampleG": 1.0,
+        "formulaAsWritten": "% = (W2 - W3) / W2 x 100",
+        "reference": "In-house Specification for Opadry Green"
+      },
+      "source": "Opadry green__STM Opadry Green.txt:32"
+    },
+    {
+      "testCode": "TAMC",
+      "procedure": "Aseptic technique under validated LAF. Weigh 10 g sample into a sterile container and make up to 100 mL with tryptone soya broth; process within 1 h. Pipette 1 mL of dilution into each of 4 plates: 2 SCDA (TAMC, 24-72 h at 30-35 C) and 2 SDA (TYMC, 5-7 days at 20-25 C). Total count (CFU/g) = (colonies plate 1 + colonies plate 2) / 2 x DF, DF = 10. Below detection: report 'less than 10'.",
+      "kind": "general",
+      "workflow": "CountTest",
+      "details": {
+        "sampleG": 10,
+        "volumeMl": 100,
+        "dilutionFactor": 10,
+        "limit": "NMT 10^3 CFU/g (STM and spec read 103)",
+        "reference": "USP 2024 <2021> Microbial enumeration tests; USP 2024 <2023> Microbiological Attributes of Non-sterile Nutritional and Dietary Supplement"
+      },
+      "source": "Opadry green__STM Opadry Green.txt:34"
+    },
+    {
+      "testCode": "TYMC",
+      "procedure": "Same preparation as TAMC: SDA plates incubated 5-7 days at 20-25 C; total count as for TAMC (DF = 10).",
+      "kind": "general",
+      "workflow": "CountTest",
+      "details": {
+        "limit": "NMT 10^2 CFU/g (STM and spec read 102)",
+        "reference": "USP 2024 <2021>; USP 2024 <2023>"
+      },
+      "source": "Opadry green__STM Opadry Green.txt:34"
+    },
+    {
+      "testCode": "E.coli",
+      "procedure": "From the dilution: incubate 24-48 h at 30-35 C; transfer 1 mL to 10 mL MacConkey broth, 42-44 C 24-48 h; subculture on MacConkey agar 30-35 C 18-24 h. Confirm: Gram stain (gram-negative short rods); EMB dark-centred colonies; TBX blue or green colonies at 42-44 C; identity by identification system (report if probability above 70 %).",
+      "kind": "general",
+      "workflow": "Observation",
+      "details": {
+        "limit": "Absent /10 gm",
+        "reference": "USP 2024 <2022>; USP 2024 <2023>; In-house Specification for Opadry Green"
+      },
+      "source": "Opadry green__STM Opadry Green.txt:36"
+    }
+  ],
+  "notApplicable": [],
+  "supplierAttributes": [],
+  "reagents": [
+    { "name": "Isopropyl alcohol", "use": "reagent", "source": "Opadry green__STM Opadry Green.txt:28" },
+    { "name": "Dichloromethane (methylene dichloride)", "use": "reagent", "source": "Opadry green__STM Opadry Green.txt:28" },
+    { "name": "Tryptone Soya agar", "use": "reagent", "source": "Opadry green__STM Opadry Green.txt:28" },
+    { "name": "Soybean Casein Digest Agar (SCDA)", "use": "reagent", "source": "Opadry green__STM Opadry Green.txt:28" },
+    { "name": "Tryptone Soya broth", "use": "reagent", "source": "Opadry green__STM Opadry Green.txt:28" },
+    { "name": "Soybean Casein Digest Broth (SCDB)", "use": "reagent", "source": "Opadry green__STM Opadry Green.txt:28" },
+    { "name": "MacConkey broth", "use": "reagent", "source": "Opadry green__STM Opadry Green.txt:28" },
+    { "name": "MacConkey broth purple", "use": "reagent", "source": "Opadry green__STM Opadry Green.txt:28" },
+    { "name": "Sabouraud dextrose agar (SDA)", "use": "reagent", "source": "Opadry green__STM Opadry Green.txt:28" },
+    { "name": "MacConkey agar No. 3", "use": "reagent", "source": "Opadry green__STM Opadry Green.txt:28" },
+    { "name": "Eosin methylene blue agar (EMB)", "use": "reagent", "source": "Opadry green__STM Opadry Green.txt:28" },
+    { "name": "Tryptone Bile X-glucuronide agar (TBX)", "use": "reagent", "source": "Opadry green__STM Opadry Green.txt:28" }
+  ],
+  "openQuestions": [
+    {
+      "question": "Two spec sheets cite the same STM (STM-RM-114) for two product codes, Opadry Green 20A21508 (sheet 1) and 45U21242 (sheet 2), with different appearance text. The STM lists both appearances. Both loaded as separate appearance rows, keyed by product in parameterName; confirm which product codes the local item 'Opadry green' covers.",
+      "source": "Opadry green__Specifications sheet Opadry Green - 1.txt:7, 11; Opadry green__Specifications sheet Opadry Green - 2.txt:7, 11; Opadry green__STM Opadry Green.txt:30"
+    },
+    {
+      "question": "Ash formula: W2 is defined as the weight of the sample (about 1.0 g) but the total ash step is W2 - W3 with W3 = W4 - W1 (residue). The result cannot be checked from the text; loaded as Measurement with the formula as written. Confirm the formula.",
+      "source": "Opadry green__STM Opadry Green.txt:32"
+    },
+    {
+      "question": "Retest quantity (60 g) is larger than the routine quantity (40 g). Loaded as written; confirm.",
+      "source": "Opadry green__STM Opadry Green.txt:38; Opadry green__Specifications sheet Opadry Green - 1.txt:17"
+    }
+  ]
+}

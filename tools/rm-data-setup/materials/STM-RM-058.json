@@ -1,0 +1,515 @@
+{
+  "itemCode": "STM-RM-058",
+  "stmCode": "STM-RM-058",
+  "itemName": "Magnesium Oxide",
+  "stmFile": "Magnesium Oxide__Magnesium Oxide - SM-New.txt",
+  "specFiles": ["Magnesium Oxide__Specifications sheet Magnesium Oxide (heavy).txt"],
+  "minQuantity": {
+    "routine": 120,
+    "retest": 50,
+    "retention": 120,
+    "unit": "g",
+    "source": "Magnesium Oxide__Specifications sheet Magnesium Oxide (heavy).txt:25; Magnesium Oxide__Magnesium Oxide - SM-New.txt:40"
+  },
+  "grades": [
+    {
+      "grade": "USP",
+      "rows": [
+        {
+          "testCode": "RM-DESC",
+          "parameterName": "Description",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Very bulky, white granulated powder, white heavy odourless granules.",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "In house",
+          "source": "Magnesium Oxide__Specifications sheet Magnesium Oxide (heavy).txt:11"
+        },
+        {
+          "testCode": "RM-SOLUB",
+          "parameterName": "Solubility",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Soluble in dilute acids; practically insoluble in water; insoluble in alcohol.",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Magnesium Oxide__Specifications sheet Magnesium Oxide (heavy).txt:12"
+        },
+        {
+          "testCode": "RM-ID-MG",
+          "parameterName": "Identification (reaction of magnesium)",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "White, crystalline precipitate.",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Magnesium Oxide__Specifications sheet Magnesium Oxide (heavy).txt:13"
+        },
+        {
+          "testCode": "RM-FAS-MGO",
+          "parameterName": "Free alkali and soluble salts: 0.10 N sulfuric acid consumed",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 2.0,
+          "lowerInclusive": null,
+          "unit": "mL",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Magnesium Oxide__Specifications sheet Magnesium Oxide (heavy).txt:14"
+        },
+        {
+          "testCode": "RM-FAS-MGO",
+          "parameterName": "Free alkali and soluble salts: residue of 25 mL solution (NMT 10 mg, 2.0%)",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 10,
+          "lowerInclusive": null,
+          "unit": "mg",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Magnesium Oxide__Specifications sheet Magnesium Oxide (heavy).txt:14"
+        },
+        {
+          "testCode": "RM-CA-MGO",
+          "parameterName": "Limit of calcium",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 1.1,
+          "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Magnesium Oxide__Specifications sheet Magnesium Oxide (heavy).txt:15"
+        },
+        {
+          "testCode": "RM-LT-FE",
+          "parameterName": "Limit of iron",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Complies (NMT 0.05%)",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Magnesium Oxide__Specifications sheet Magnesium Oxide (heavy).txt:16"
+        },
+        {
+          "testCode": "RM-LOI-MGO",
+          "parameterName": "Loss on ignition",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 10.0,
+          "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Magnesium Oxide__Specifications sheet Magnesium Oxide (heavy).txt:17"
+        },
+        {
+          "testCode": "RM-AIS-MGO",
+          "parameterName": "Acid-insoluble substances (NMT 2 mg, 0.1%)",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 0.1,
+          "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Magnesium Oxide__Specifications sheet Magnesium Oxide (heavy).txt:18"
+        },
+        {
+          "testCode": "RM-TIT-MGO",
+          "parameterName": "Assay (after ignition)",
+          "limitType": "Range",
+          "lower": 96.0,
+          "upper": 100.5,
+          "lowerInclusive": true,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Magnesium Oxide__Specifications sheet Magnesium Oxide (heavy).txt:19"
+        },
+        {
+          "testCode": "RM-BULKD",
+          "parameterName": "Bulk density",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "5 g occupies about 5 mL (about 1 g/mL).",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "In-house",
+          "source": "Magnesium Oxide__Specifications sheet Magnesium Oxide (heavy).txt:20"
+        },
+        {
+          "testCode": "RM-PSD-MGO",
+          "parameterName": "Particle size: 90% pass through 18 mesh",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "90% pass through 18#",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "In-house",
+          "source": "Magnesium Oxide__Specifications sheet Magnesium Oxide (heavy).txt:21"
+        },
+        {
+          "testCode": "RM-PSD-MGO",
+          "parameterName": "Particle size: 50% pass through 30 mesh",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "50% pass through 30#",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "In-house",
+          "source": "Magnesium Oxide__Specifications sheet Magnesium Oxide (heavy).txt:21"
+        },
+        {
+          "testCode": "RM-PSD-MGO",
+          "parameterName": "Particle size: 10% pass through 50 mesh",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "10% pass through 50#",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "In-house",
+          "source": "Magnesium Oxide__Specifications sheet Magnesium Oxide (heavy).txt:21"
+        },
+        {
+          "testCode": "TAMC",
+          "parameterName": "Total aerobic microbial count (TAMC)",
+          "limitType": "CountTiered",
+          "lower": null,
+          "upper": 1000,
+          "lowerInclusive": null,
+          "unit": "CFU/g",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Magnesium Oxide__Specifications sheet Magnesium Oxide (heavy).txt:22"
+        },
+        {
+          "testCode": "TYMC",
+          "parameterName": "Total combined yeasts and molds count (TYMC)",
+          "limitType": "CountTiered",
+          "lower": null,
+          "upper": 100,
+          "lowerInclusive": null,
+          "unit": "CFU/g",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Magnesium Oxide__Specifications sheet Magnesium Oxide (heavy).txt:23"
+        },
+        {
+          "testCode": "E.coli",
+          "parameterName": "Test for E. coli",
+          "limitType": "PresenceAbsence",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": "per 10 g",
+          "expectedResultText": "Absent / 10 gm",
+          "expectedState": "Absence",
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Magnesium Oxide__Specifications sheet Magnesium Oxide (heavy).txt:24"
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "testCode": "RM-DESC",
+      "procedure": "Under strong white light check each received sample container separately on a clean transparent watch glass or glass dish for foreign particles, colour and conformity with the visual specification.",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {
+        "perContainer": true,
+        "usp_stm_text": "Very bulky, white powder or relatively dense, white powder or granules (STM); spec sheet (heavy) loaded",
+        "reference": "USP Description and Relative Solubility"
+      },
+      "source": "Magnesium Oxide__Magnesium Oxide - SM-New.txt:28"
+    },
+    {
+      "testCode": "RM-SOLUB",
+      "procedure": "Stepwise solubility (USP descriptive terms): 100 mg sample in a stoppered tube with 0.1 mL solvent, shake 1 min, hold 25.0 ± 0.5 °C for 15 min (repeat once if not dissolved); add 0.9 mL, then 2 mL, then 7 mL solvent with the same shake and hold to classify very soluble / freely soluble / soluble / sparingly soluble; if still undissolved, 10 mg in 10 mL (slightly soluble), then 1 mg in 10 mL (very slightly soluble), else practically insoluble. Repeat with dilute acids and alcohol.",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {
+        "sample": "100 mg",
+        "temperature": "25.0 ± 0.5 °C",
+        "holdMin": 15,
+        "shakeMin": 1,
+        "volumesMl": [0.1, 0.9, 2, 7],
+        "smallSampleSteps": ["10 mg in 10 mL", "1 mg in 10 mL"],
+        "solvents": ["water", "dilute acids", "alcohol"],
+        "reference": "USP Description and Relative Solubility"
+      },
+      "source": "Magnesium Oxide__Magnesium Oxide - SM-New.txt:29"
+    },
+    {
+      "testCode": "RM-ID-MG",
+      "procedure": "Identification of magnesium (USP <191>): sample solution 50 mg/mL in 3 N hydrochloric acid; add 3 mL of ammonium chloride; neutralised with ammonium carbonate TS a slightly hazy precipitate may form; on subsequent addition of dibasic sodium phosphate TS a white crystalline precipitate forms that is insoluble in 6 N ammonium hydroxide.",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "details": {
+        "sampleSolution": "50 mg/mL in 3 N hydrochloric acid",
+        "ammoniumChlorideMl": 3,
+        "reagents": ["ammonium carbonate TS", "dibasic sodium phosphate TS", "6 N ammonium hydroxide"],
+        "reference": "USP <191> Chemical Identification Tests, Magnesium"
+      },
+      "source": "Magnesium Oxide__Magnesium Oxide - SM-New.txt:30"
+    },
+    {
+      "testCode": "RM-FAS-MGO",
+      "procedure": "Free alkali and soluble salts (USP): boil 2.0 g with 100 mL water for 5 min in a covered beaker, filter while hot, cool and dilute to 100 mL; dilute the filtrate with water to 100 mL. Analysis 1: 50 mL of sample solution, methyl red TS, titrate with 0.10 N sulfuric acid; NMT 2.0 mL consumed. Analysis 2: evaporate 25 mL of sample solution to dryness, dry at 105 °C for 1 h; NMT 10 mg (2.0%) residue.",
+      "kind": "specific",
+      "workflow": "Measurement",
+      "details": {
+        "sampleG": 2.0,
+        "waterMl": 100,
+        "boilMin": 5,
+        "analysis1": {"aliquotMl": 50, "indicator": "methyl red TS", "titrant": "0.10 N sulfuric acid", "limit": "NMT 2.0 mL"},
+        "analysis2": {"aliquotMl": 25, "drying": "105 °C, 1 h", "limit": "NMT 10 mg (2.0%)"},
+        "reference": "USP 2024 Monograph for Magnesium Oxide"
+      },
+      "source": "Magnesium Oxide__Magnesium Oxide - SM-New.txt:31"
+    },
+    {
+      "testCode": "RM-CA-MGO",
+      "procedure": "Limit of calcium by AAS (USP <852>, main method): sample 250 mg magnesium oxide freshly ignited 1 h at 800-900 ± 25 °C, dissolved in 30 mL dilute hydrochloric acid, transferred to a 200-mL flask with 4 mL lanthanum solution and diluted to volume (1.25 mg/mL). Standards 1.0, 5.0, 10.0 and 15.0 µg/mL calcium (each with 20 mL lanthanum solution and 40 mL dilute hydrochloric acid in 1000 mL); blank 4 mL lanthanum solution + 10 mL dilute hydrochloric acid to 200 mL. Calcium hollow-cathode lamp, 422.7 nm, nitrous oxide-acetylene flame; zero on blank; read calibration graph. Calcium (%) = (CS x F / CU) x 100, F = 0.001 mg/µg. Limit NMT 1.1%.",
+      "kind": "specific",
+      "workflow": "IcpMethodAssay",
+      "details": {
+        "sampleMg": 250,
+        "sampleVolumeMl": 200,
+        "lanthanumSolutionMl": 4,
+        "acid": "30 mL dilute hydrochloric acid to dissolve",
+        "standardLevelsUgPerMl": [1.0, 5.0, 10.0, 15.0],
+        "standardStock": "249.7 mg calcium carbonate (dried 300 °C, 3 h) in 100 mL with hydrochloric acid, 1.000 mg/mL",
+        "blank": "4 mL lanthanum solution + 10 mL dilute hydrochloric acid to 200 mL",
+        "wavelengthNm": 422.7,
+        "lamp": "calcium hollow-cathode",
+        "flame": "nitrous oxide-acetylene",
+        "mode": "atomic absorption spectrophotometry, calibration graph",
+        "formula": "Result = (CS x F / CU) x 100; CS = calcium in sample solution (µg/mL); F = 0.001 mg/µg; CU = magnesium oxide concentration in sample solution (mg/mL, STM text reads magnesium hydroxide)",
+        "reference": "USP <852>; USP 2024 Monograph for Magnesium Oxide"
+      },
+      "source": "Magnesium Oxide__Magnesium Oxide - SM-New.txt:32"
+    },
+    {
+      "testCode": "RM-LT-FE",
+      "procedure": "Limit of iron (USP <241>, procedure 1): standard 1 mL standard iron solution (10 µg Fe) diluted to 45 mL, 2 mL hydrochloric acid; sample 40 mg boiled with 5 mL 2 N nitric acid for 1 min, cooled, diluted to 50 mL; 25 mL of this diluted to 45 mL, 2 mL hydrochloric acid. To each tube add 50 mg ammonium peroxydisulfate and 3 mL ammonium thiocyanate solution, mix. Sample colour not darker than the standard.",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {
+        "standard": "1 mL standard iron solution (10 µg Fe) to 45 mL, 2 mL hydrochloric acid",
+        "sampleMg": 40,
+        "nitricAcid": "5 mL 2 N nitric acid, boil 1 min",
+        "reagents": ["ammonium peroxydisulfate 50 mg", "ammonium thiocyanate solution 3 mL"],
+        "limit": "NMT 0.05%",
+        "reference": "USP <241> Procedure 1"
+      },
+      "source": "Magnesium Oxide__Magnesium Oxide - SM-New.txt:33"
+    },
+    {
+      "testCode": "RM-LOI-MGO",
+      "procedure": "Loss on ignition (USP <733>): weigh an empty crucible previously ignited at 800-900 ± 25 °C and cooled in desiccator (W0); weigh accurately 1.000 g into it (W1); ignite in a calibrated muffle at 800-900 ± 25 °C for 2 h, cool in desiccator, weigh (W2); repeat to constant weight. % loss on ignition = (W1 - W2) / (W1 - W0) x 100.",
+      "kind": "specific",
+      "workflow": "Gravimetric",
+      "details": {
+        "sampleG": 1.000,
+        "ignition": "800-900 ± 25 °C, 2 h, then to constant weight",
+        "formula": "(W1 - W2) / (W1 - W0) x 100",
+        "limit": "NMT 10.0%",
+        "reference": "USP <733>"
+      },
+      "source": "Magnesium Oxide__Magnesium Oxide - SM-New.txt:34"
+    },
+    {
+      "testCode": "RM-AIS-MGO",
+      "procedure": "Acid-insoluble substances (USP): 2.0 g sample (W1) mixed with 75 mL water in an ignited crucible of known weight (W2); add hydrochloric acid in small portions with agitation until no more dissolves; boil 5 min; if residue remains, filter and wash with water until the washings are free from chloride; ignite and weigh (W3). Residue (%) = (W3 - W2) / W1 x 100. Limit NMT 2 mg (0.1%).",
+      "kind": "specific",
+      "workflow": "Gravimetric",
+      "details": {
+        "sampleG": 2.0,
+        "waterMl": 75,
+        "boilMin": 5,
+        "formula": "Residue (%) = (W3 - W2) / W1 x 100",
+        "limit": "NMT 2 mg (0.1%)",
+        "reference": "USP 2024 Monograph for Magnesium Oxide"
+      },
+      "source": "Magnesium Oxide__Magnesium Oxide - SM-New.txt:35"
+    },
+    {
+      "testCode": "RM-TIT-MGO",
+      "procedure": "Assay (USP, direct EDTA titration): ignite a portion to constant weight at 800-900 ± 25 °C; weigh 320 mg of ignited magnesium oxide into a 100-mL flask, dissolve in 20 mL 2 N hydrochloric acid and dilute to volume (stock). Transfer 20.0 mL of stock to a 500-mL flask and dilute to 300 mL (equivalent to 64 mg ignited magnesium oxide). Add 10 mL ammonium chloride buffer pH 10 and 50 mg eriochrome black T-sodium chloride indicator; heat to 40 °C; titrate with 0.1 M edetate disodium VS to a blue end point (visual); blank correction (VS). VCa = (W x LCa) / (FCa x 100); Result (%) = (VS - VCa) x (FMgO / W) x 100, with FCa = 4.008 mg, FMgO = 4.030 mg per mL of titrant, W = mg of ignited magnesium oxide in the sample solution, LCa = calcium content from the limit of calcium test.",
+      "kind": "specific",
+      "workflow": "Titration",
+      "details": {
+        "stockSample": "320 mg ignited magnesium oxide in 100 mL, dissolved in 20 mL 2 N hydrochloric acid",
+        "aliquot": "20.0 mL of stock to 500 mL, dilute to 300 mL",
+        "equivalentSampleMg": 64,
+        "buffer": "10 mL ammonium chloride buffer pH 10",
+        "indicator": "50 mg eriochrome black T-sodium chloride indicator",
+        "temperatureC": 40,
+        "titrant": "0.1 M edetate disodium VS",
+        "titrantStandardization": "about 400 mg calcium carbonate (dried 210 °C, 4 h) dissolved in dilute hydrochloric acid, ~30 mL 0.1 M edetate disodium, pH 12-13 with sodium hydroxide TS, 300 mg hydroxy naphthol blue, titrate to blue end point; M = gCaCO3 x (Assay/100) x 1000 / (100.09 x mL EDTA)",
+        "equivalence": "FCa = 4.008 mg calcium per mL; FMgO = 4.030 mg magnesium oxide per mL",
+        "endpoint": "visual",
+        "blank": "blank determination, correction made",
+        "reference": "USP Reagents, Indicators, and Solutions - Indicator and Test Papers",
+        "specBasis": "after ignition"
+      },
+      "source": "Magnesium Oxide__Magnesium Oxide - SM-New.txt:36"
+    },
+    {
+      "testCode": "RM-BULKD",
+      "procedure": "Bulk density: weigh an empty dry cylinder, set the balance to zero, put 10 mL of the powder into the cylinder and weigh. Bulk density (g/mL) = weight of sample / volume (10 mL).",
+      "kind": "general",
+      "workflow": "Measurement",
+      "details": {
+        "volumeMl": 10,
+        "usp_stm_text": "5 g occupies about 5 mL (about 1 g/mL); spec sheet in-house text loaded",
+        "reference": "USP 2024 Monograph for Magnesium Oxide"
+      },
+      "source": "Magnesium Oxide__Magnesium Oxide - SM-New.txt:37"
+    },
+    {
+      "testCode": "RM-PSD-MGO",
+      "procedure": "Particle size distribution: by calibrated analytical sieving or particle size analyser; measure the mass percentage of powder in each sieve size range. In-house specification: D10 297 µm (10% pass through 50 mesh); D50 590 µm (50% pass through 30 mesh); D90 1000 µm (90% pass through 18 mesh).",
+      "kind": "specific",
+      "workflow": "Measurement",
+      "details": {
+        "method": "calibrated analytical sieving or particle size analyser",
+        "D10": {"micron": 297, "passThrough": "50 mesh", "percent": 10},
+        "D50": {"micron": 590, "passThrough": "30 mesh", "percent": 50},
+        "D90": {"micron": 1000, "passThrough": "18 mesh", "percent": 90},
+        "reference": "In-house specification by R&D department for PSD"
+      },
+      "source": "Magnesium Oxide__Magnesium Oxide - SM-New.txt:38"
+    },
+    {
+      "testCode": "TAMC",
+      "procedure": "No microbiological procedure in the STM; limit taken from the spec sheet.",
+      "kind": "general",
+      "workflow": "CountTest",
+      "details": {
+        "limit": "NMT 1000 CFU/gm"
+      },
+      "source": "Magnesium Oxide__Specifications sheet Magnesium Oxide (heavy).txt:22"
+    },
+    {
+      "testCode": "TYMC",
+      "procedure": "No microbiological procedure in the STM; limit taken from the spec sheet.",
+      "kind": "general",
+      "workflow": "CountTest",
+      "details": {
+        "limit": "NMT 100 CFU/gm"
+      },
+      "source": "Magnesium Oxide__Specifications sheet Magnesium Oxide (heavy).txt:23"
+    },
+    {
+      "testCode": "E.coli",
+      "procedure": "No microbiological procedure in the STM; limit taken from the spec sheet.",
+      "kind": "general",
+      "workflow": "Observation",
+      "details": {
+        "limit": "Absent / 10 gm"
+      },
+      "source": "Magnesium Oxide__Specifications sheet Magnesium Oxide (heavy).txt:24"
+    }
+  ],
+  "notApplicable": [],
+  "supplierAttributes": [],
+  "reagents": [
+    { "name": "Acetic acid", "use": "reagent", "source": "Magnesium Oxide__Magnesium Oxide - SM-New.txt:26" },
+    { "name": "Ammonium carbonate", "use": "reagent", "source": "Magnesium Oxide__Magnesium Oxide - SM-New.txt:26" },
+    { "name": "Ammonium chloride", "use": "reagent", "source": "Magnesium Oxide__Magnesium Oxide - SM-New.txt:26" },
+    { "name": "Ammonium hydroxide", "use": "reagent", "source": "Magnesium Oxide__Magnesium Oxide - SM-New.txt:26" },
+    { "name": "Ammonium thiocyanate", "use": "reagent", "source": "Magnesium Oxide__Magnesium Oxide - SM-New.txt:26" },
+    { "name": "Calcium Standard Solution 1000 mg/L", "use": "standard", "source": "Magnesium Oxide__Magnesium Oxide - SM-New.txt:26" },
+    { "name": "Dibasic sodium phosphate", "use": "reagent", "source": "Magnesium Oxide__Magnesium Oxide - SM-New.txt:26" },
+    { "name": "Eriochrome black T", "use": "indicator", "source": "Magnesium Oxide__Magnesium Oxide - SM-New.txt:26" },
+    { "name": "Ferric ammonium sulfate", "use": "reagent", "source": "Magnesium Oxide__Magnesium Oxide - SM-New.txt:26" },
+    { "name": "Hydrochloric acid", "use": "reagent", "source": "Magnesium Oxide__Magnesium Oxide - SM-New.txt:26" },
+    { "name": "Hydroxy naphthol blue", "use": "indicator", "source": "Magnesium Oxide__Magnesium Oxide - SM-New.txt:26" },
+    { "name": "Lanthanum oxide", "use": "reagent", "source": "Magnesium Oxide__Magnesium Oxide - SM-New.txt:26" },
+    { "name": "Methyl red", "use": "indicator", "source": "Magnesium Oxide__Magnesium Oxide - SM-New.txt:26" },
+    { "name": "Nitric acid", "use": "reagent", "source": "Magnesium Oxide__Magnesium Oxide - SM-New.txt:26" },
+    { "name": "Sodium chloride", "use": "reagent", "source": "Magnesium Oxide__Magnesium Oxide - SM-New.txt:26" },
+    { "name": "Sodium hydroxide", "use": "reagent", "source": "Magnesium Oxide__Magnesium Oxide - SM-New.txt:26" },
+    { "name": "Sulfuric acid", "use": "reagent", "source": "Magnesium Oxide__Magnesium Oxide - SM-New.txt:26" },
+    { "name": "0.10 N sulfuric acid", "use": "titrant", "source": "Magnesium Oxide__Magnesium Oxide - SM-New.txt:31" },
+    { "name": "0.1 M edetate disodium VS", "use": "titrant", "source": "Magnesium Oxide__Magnesium Oxide - SM-New.txt:26" }
+  ],
+  "openQuestions": [
+    {
+      "question": "Microbiology: TAMC, TYMC and E. coli limits appear only in the spec sheet. The STM has no microbiological examination section, so no procedure is transcribed. Confirm the procedure and SOP.",
+      "source": "Magnesium Oxide__Specifications sheet Magnesium Oxide (heavy).txt:22-24; Magnesium Oxide__Magnesium Oxide - SM-New.txt:27-52"
+    },
+    {
+      "question": "Grade: the spec sheet is 'Magnesium Oxide (Heavy)' with STM code N.A, while STM-RM-058 covers Magnesium Oxide. The spec's description and bulk density differ from the STM's USP text. Confirm the STM governs the heavy grade.",
+      "source": "Magnesium Oxide__Specifications sheet Magnesium Oxide (heavy).txt:7, 9, 11; Magnesium Oxide__Magnesium Oxide - SM-New.txt:28"
+    },
+    {
+      "question": "Particle size: the spec sheet gives 90% through 18#, 50% through 30# and 10% through 50# with no direction (at least or at most). Loaded as Qualitative text; confirm the limits and direction.",
+      "source": "Magnesium Oxide__Specifications sheet Magnesium Oxide (heavy).txt:21; Magnesium Oxide__Magnesium Oxide - SM-New.txt:38"
+    },
+    {
+      "question": "Assay is specified 'after ignition', which has no resultBasis value; loaded with resultBasis null. Confirm the basis.",
+      "source": "Magnesium Oxide__Specifications sheet Magnesium Oxide (heavy).txt:19; Magnesium Oxide__Magnesium Oxide - SM-New.txt:36"
+    },
+    {
+      "question": "Limit of calcium: the formula defines CU as the concentration of magnesium hydroxide in the sample solution, while the sample is magnesium oxide. Loaded as written; confirm.",
+      "source": "Magnesium Oxide__Magnesium Oxide - SM-New.txt:32"
+    },
+    {
+      "question": "Identification: the STM text is garbled ('Add 3 ml of of ammonium chloride yield NMT a slightly hazy precipitate'); the ammonium chloride solution strength is not stated. Procedure loaded as written; confirm the reagent and reading.",
+      "source": "Magnesium Oxide__Magnesium Oxide - SM-New.txt:30"
+    },
+    {
+      "question": "Assay: the EDTA result depends on the calcium content from the limit of calcium test (LCa); the calcium test must be run first. Confirm the calculation sequence.",
+      "source": "Magnesium Oxide__Magnesium Oxide - SM-New.txt:36"
+    }
+  ]
+}

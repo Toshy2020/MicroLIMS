@@ -1,0 +1,651 @@
+{
+  "itemCode": "STM-RM-078",
+  "itemName": "Calcium Carbonate",
+  "stmCode": "STM-RM-078",
+  "stmFile": "Calcium Carbonate__STM Calcium Carbonate - New.txt",
+  "specFiles": ["Calcium Carbonate__Specifications sheet Calcium Carbonate - New.txt"],
+  "minQuantity": {
+    "routine": 100,
+    "retest": 80,
+    "retention": 100,
+    "unit": "g",
+    "source": "Calcium Carbonate__Specifications sheet Calcium Carbonate - New.txt:28; Calcium Carbonate__STM Calcium Carbonate - New.txt:49"
+  },
+  "grades": [
+    {
+      "grade": "USP",
+      "rows": [
+        {
+          "testCode": "RM-DESC",
+          "parameterName": "Description",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Fine, white, odorless, tasteless, microcrystalline powder",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Calcium Carbonate__Specifications sheet Calcium Carbonate - New.txt:11"
+        },
+        {
+          "testCode": "RM-SOLUB",
+          "parameterName": "Solubility",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Practically insoluble in water. Its solubility in water is increased by the presence of any ammonium salt or of carbon dioxide. The presence of any alkali hydroxide reduces its solubility. Insoluble in alcohol. Dissolves with effervescence in 1 N acetic acid, in 3 N hydrochloric acid, and in 2 N nitric acid",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Calcium Carbonate__Specifications sheet Calcium Carbonate - New.txt:12"
+        },
+        {
+          "testCode": "RM-ID-CA-CACO3",
+          "parameterName": "Identification (chemical reaction, calcium and carbonate)",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "a white precipitate is formed, dissolves in hydrochloric acid",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Calcium Carbonate__Specifications sheet Calcium Carbonate - New.txt:13"
+        },
+        {
+          "testCode": "RM-ACIDINS-CACO3",
+          "parameterName": "Acid-insoluble substances (%)",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 0.2,
+          "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Calcium Carbonate__Specifications sheet Calcium Carbonate - New.txt:14"
+        },
+        {
+          "testCode": "RM-ACIDINS-CACO3",
+          "parameterName": "Acid-insoluble substances (weight of residue)",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 10,
+          "lowerInclusive": null,
+          "unit": "mg",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Calcium Carbonate__Specifications sheet Calcium Carbonate - New.txt:14"
+        },
+        {
+          "testCode": "RM-LT-FE",
+          "parameterName": "Iron",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Complies (NMT 0.1%)",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Calcium Carbonate__Specifications sheet Calcium Carbonate - New.txt:15"
+        },
+        {
+          "testCode": "RM-LT-PB-CACO3",
+          "parameterName": "Lead",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Complies (NMT 3 ppm)",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Calcium Carbonate__Specifications sheet Calcium Carbonate - New.txt:16"
+        },
+        {
+          "testCode": "RM-LT-AS-CACO3",
+          "parameterName": "Arsenic",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Complies (NMT 3 ppm)",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Calcium Carbonate__Specifications sheet Calcium Carbonate - New.txt:17"
+        },
+        {
+          "testCode": "RM-LT-BA-CACO3",
+          "parameterName": "Barium",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Meet requirements",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Calcium Carbonate__Specifications sheet Calcium Carbonate - New.txt:18"
+        },
+        {
+          "testCode": "RM-FL-CACO3",
+          "parameterName": "Fluoride",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 50,
+          "lowerInclusive": null,
+          "unit": "ppm",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Calcium Carbonate__Specifications sheet Calcium Carbonate - New.txt:19"
+        },
+        {
+          "testCode": "RM-MG-ALK-CACO3",
+          "parameterName": "Magnesium and alkali salts (% residue)",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 1.0,
+          "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Calcium Carbonate__Specifications sheet Calcium Carbonate - New.txt:20"
+        },
+        {
+          "testCode": "RM-MG-ALK-CACO3",
+          "parameterName": "Magnesium and alkali salts (weight of residue)",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 5,
+          "lowerInclusive": null,
+          "unit": "mg",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Calcium Carbonate__Specifications sheet Calcium Carbonate - New.txt:20"
+        },
+        {
+          "testCode": "RM-LOD",
+          "parameterName": "Loss on drying",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 2.0,
+          "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Calcium Carbonate__Specifications sheet Calcium Carbonate - New.txt:21"
+        },
+        {
+          "testCode": "RM-BULKD",
+          "parameterName": "Bulk density",
+          "limitType": "Range",
+          "lower": 0.38,
+          "upper": 0.57,
+          "lowerInclusive": true,
+          "unit": "g/mL",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "In-house",
+          "source": "Calcium Carbonate__Specifications sheet Calcium Carbonate - New.txt:22"
+        },
+        {
+          "testCode": "RM-TIT-CACO3",
+          "parameterName": "Assay",
+          "limitType": "Range",
+          "lower": 98.0,
+          "upper": 100.5,
+          "lowerInclusive": true,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": "PercentDriedBasis",
+          "referenceStandard": "USP",
+          "source": "Calcium Carbonate__Specifications sheet Calcium Carbonate - New.txt:23"
+        },
+        {
+          "testCode": "RM-PSD-CACO3",
+          "parameterName": "Particle size distribution (D90 < 12 µm; D50 < 6 µm; D10 < 1.5 µm)",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "90% smaller than 12 µm, 50% smaller than 6 µm, 10% smaller than 1.5 µm",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "In-house",
+          "source": "Calcium Carbonate__Specifications sheet Calcium Carbonate - New.txt:24"
+        },
+        {
+          "testCode": "TAMC",
+          "parameterName": "Total Aerobic Microbial Count (TAMC)",
+          "limitType": "CountTiered",
+          "lower": null,
+          "upper": 1000,
+          "lowerInclusive": null,
+          "unit": "CFU/g",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Calcium Carbonate__Specifications sheet Calcium Carbonate - New.txt:25"
+        },
+        {
+          "testCode": "TYMC",
+          "parameterName": "Total combined Yeasts & Molds Count (TYMC)",
+          "limitType": "CountTiered",
+          "lower": null,
+          "upper": 100,
+          "lowerInclusive": null,
+          "unit": "CFU/g",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Calcium Carbonate__Specifications sheet Calcium Carbonate - New.txt:26"
+        },
+        {
+          "testCode": "E.coli",
+          "parameterName": "Escherichia coli",
+          "limitType": "PresenceAbsence",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": "per 10 g",
+          "expectedResultText": "Absent / 10 gm",
+          "expectedState": "Absence",
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Calcium Carbonate__Specifications sheet Calcium Carbonate - New.txt:27"
+        },
+        {
+          "testCode": "RM-LT-HG-CACO3",
+          "parameterName": "Mercury",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 0.5,
+          "lowerInclusive": null,
+          "unit": "ppm",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": null,
+          "source": "Calcium Carbonate__Specifications sheet Calcium Carbonate - New.txt:28",
+          "heldBack": "no STM: method not documented"
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "testCode": "RM-DESC",
+      "procedure": "Under strong white light check each received sample container separately in a clean transparent watch glass or glass dish for foreign particles, colour and conformity with the visual specification.",
+      "kind": "general",
+      "workflow": "Observation",
+      "details": {
+        "perContainer": true,
+        "grades": ["USP"],
+        "reference": "USP 2024 Monograph for Calcium Carbonate"
+      },
+      "source": "Calcium Carbonate__STM Calcium Carbonate - New.txt:30"
+    },
+    {
+      "testCode": "RM-SOLUB",
+      "procedure": "Weigh 100 mg in a stoppered tube; add 0.1 mL solvent, shake 1 min, hold at 25.0 ± 0.5 °C for 15 min, repeat shake/hold once if not dissolved; add 0.9 mL, then 2 mL, then 7 mL solvent with the same shake and hold steps to classify very soluble / freely soluble / soluble / sparingly soluble; if still undissolved use 10 mg in 10 mL (slightly soluble), then 1 mg in 10 mL (very slightly soluble), else practically insoluble. Repeat with alcohol (ethanol 96%).",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {
+        "grades": ["USP"],
+        "sample": "100 mg",
+        "temperature": "25.0 ± 0.5 °C",
+        "holdMin": 15,
+        "shakeMin": 1,
+        "volumesMl": [0.1, 0.9, 2, 7],
+        "smallSampleSteps": ["10 mg in 10 mL", "1 mg in 10 mL"],
+        "solvents": ["water", "alcohol (ethanol 96%)"],
+        "reference": "USP Description and Relative Solubility"
+      },
+      "source": "Calcium Carbonate__STM Calcium Carbonate - New.txt:31"
+    },
+    {
+      "testCode": "RM-ID-CA-CACO3",
+      "procedure": "Identification: effervescence with acetic acid (carbonate). Solution of calcium carbonate 1 in 20 with 2 drops methyl red TS, neutralised with 6 N ammonium hydroxide; add 3 N hydrochloric acid dropwise until acid to the indicator; add ammonium oxalate TS: a white precipitate forms, insoluble in 6 N acetic acid but dissolving in hydrochloric acid.",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "details": {
+        "grades": ["USP"],
+        "solution": "1 in 20",
+        "indicator": "methyl red TS, 2 drops",
+        "neutralise": "6 N ammonium hydroxide",
+        "acidify": "3 N hydrochloric acid, dropwise",
+        "precipitant": "ammonium oxalate TS",
+        "reference": "USP <191> Identification Tests - General, Calcium"
+      },
+      "source": "Calcium Carbonate__STM Calcium Carbonate - New.txt:32"
+    },
+    {
+      "testCode": "RM-ACIDINS-CACO3",
+      "procedure": "Acid-insoluble substances: mix 5 g (W1) sample with 10 mL water; add hydrochloric acid dropwise with agitation until effervescence ceases; add water to 200 mL; filter; wash the residue with water until the washings show no chloride; ignite at 600 ± 50 °C; weigh the residue. % = residue / W1 x 100.",
+      "kind": "specific",
+      "workflow": "Gravimetric",
+      "details": {
+        "grades": ["USP"],
+        "sampleG": 5,
+        "water": "10 mL",
+        "volumeMl": 200,
+        "ignitionTemp": "600 ± 50 °C",
+        "formula": "% = residue / W1 x 100",
+        "residueLimit": "weight of residue NMT 10 mg"
+      },
+      "source": "Calcium Carbonate__STM Calcium Carbonate - New.txt:33"
+    },
+    {
+      "testCode": "RM-LT-FE",
+      "procedure": "Iron (limit test): sample solution 40 mg in 5 mL 2 N hydrochloric acid, transferred and diluted with water to 10 mL; reference solution 4.0 mL standard iron solution diluted to 10 mL. Each: add 2 mL citric acid solution (1 in 5) and 2 drops thioglycolic acid; adjust to pH 9.5 ± 0.1 with ammonia TS; dilute to 20 mL, stand 5 min, dilute to 50 mL. Measure absorbance at 530 nm against water. Sample absorbance must not exceed the standard.",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {
+        "grades": ["USP"],
+        "sampleMg": 40,
+        "referenceIronMl": 4.0,
+        "wavelengthNm": 530,
+        "blank": "water",
+        "limit": "NMT 0.1%",
+        "reference": "USP <241> Procedure 1; USP <857>"
+      },
+      "source": "Calcium Carbonate__STM Calcium Carbonate - New.txt:34"
+    },
+    {
+      "testCode": "RM-LT-PB-CACO3",
+      "procedure": "Lead (limit test, dithizone): sample 1.0 g in 5 mL water, add 8 mL 3 N hydrochloric acid, evaporate to dryness, dissolve in 5 mL water; add ammonium citrate and hydroxylamine hydrochloride solutions, phenol red TS, make just alkaline with ammonia, add potassium cyanide solution; extract with dithizone extraction solution; wash with dilute nitric acid; add standard dithizone and ammonium cyanide solutions, shake. Colour must not be deeper violet than a standard made with the diluted standard lead solution equivalent to the permitted lead.",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "details": {
+        "grades": ["USP"],
+        "sampleG": 1.0,
+        "limit": "NMT 3 ppm",
+        "reference": "USP <251> Procedure 1",
+        "technique": "colorimetric dithizone (STM); spec sheet says AAS (see openQuestions)"
+      },
+      "source": "Calcium Carbonate__STM Calcium Carbonate - New.txt:35"
+    },
+    {
+      "testCode": "RM-LT-AS-CACO3",
+      "procedure": "Arsenic (limit test): test solution 1.0 g dissolved in 15 mL hydrochloric acid, diluted to 55 mL; standard = 3.0 mL standard arsenic solution diluted to 35 mL. Add potassium iodide TS, stronger acid stannous chloride TS and isopropyl alcohol to both, stand 30 min; generate arsine with granular zinc in a scrubber (lead acetate cotton) into silver diethyldithiocarbamate TS for 45 min at room temperature. Test colour must not exceed the standard colour (optionally absorbance at 535-540 nm against the reagent blank).",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "details": {
+        "grades": ["USP"],
+        "sampleG": 1.0,
+        "testVolumeMl": "15 mL HCl, to 55 mL",
+        "standardArsenicMl": 3.0,
+        "standardDilutionMl": 35,
+        "zinc": "3.0 g granular zinc (#20 mesh)",
+        "absorberReagent": "3.0 mL silver diethyldithiocarbamate TS",
+        "developmentMin": 45,
+        "limit": "NMT 3 ppm",
+        "reference": "USP <211> Procedure 1",
+        "technique": "colorimetric (STM); spec sheet says AAS (see openQuestions)"
+      },
+      "source": "Calcium Carbonate__STM Calcium Carbonate - New.txt:36"
+    },
+    {
+      "testCode": "RM-LT-BA-CACO3",
+      "procedure": "Barium: dip a platinum wire in the filtrate from the acid-insoluble substances test and hold it in a non-luminous flame; the flame must not show a green colour.",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "details": {
+        "grades": ["USP"],
+        "filtrateFrom": "acid-insoluble substances test",
+        "flame": "non-luminous"
+      },
+      "source": "Calcium Carbonate__STM Calcium Carbonate - New.txt:37"
+    },
+    {
+      "testCode": "RM-FL-CACO3",
+      "procedure": "Fluoride (potentiometric, ion-selective electrode): sample 2.0 g dissolved in 20 mL water and 4.0 mL hydrochloric acid; add 50.0 mL solution A (294 mg/mL sodium citrate dihydrate) and water to 100 mL. Calibrate with the USP Sodium Fluoride RS standard (20.0 mL stock 1.11 mg/mL + 50.0 mL solution A, to 100 mL) and additions of 100, 100, 300, 500 µL; read potential in mV at 5 min intervals; plot log concentration (0.1, 0.2, 0.5, 1.0 µg/mL) versus mV. Result = (V x C) / W, C in µg/mL from the response line, W = sample weight (g).",
+      "kind": "specific",
+      "workflow": "Measurement",
+      "details": {
+        "grades": ["USP"],
+        "sampleG": 2.0,
+        "solutionA": "294 mg/mL sodium citrate dihydrate in water",
+        "solutionAMl": 50.0,
+        "hydrochloricAcidMl": 4.0,
+        "finalVolumeMl": 100,
+        "electrodes": "fluoride-specific ion-selective electrode; silver-silver chloride reference electrode; pH meter",
+        "standard": "USP Sodium Fluoride RS, stock 1.11 mg/mL; 20.0 mL + 50.0 mL solution A to 100.0 mL",
+        "formula": "Result = (V x C) / W; V = volume of the sample solution (mL) (test volume of 100 mL implied, not stated), C = fluoride concentration (µg/mL), W = sample weight (g)",
+        "limit": "NMT 50 ppm",
+        "reference": "USP <791>"
+      },
+      "source": "Calcium Carbonate__STM Calcium Carbonate - New.txt:38"
+    },
+    {
+      "testCode": "RM-MG-ALK-CACO3",
+      "procedure": "Magnesium and alkali salts: mix 1.0 g (W) sample with 35 mL water and 3 mL hydrochloric acid; boil 1 min; add 40 mL oxalic acid TS, stir; add methyl red TS and 6 N ammonium hydroxide dropwise to just alkaline; cool; dilute to 100 mL; stand 4 h or overnight; filter. Evaporate 50 mL of filtrate in a platinum dish with 0.5 mL sulfuric acid, ignite to constant weight. % residue = weight of residue / W.",
+      "kind": "specific",
+      "workflow": "Gravimetric",
+      "details": {
+        "grades": ["USP"],
+        "sampleG": 1.0,
+        "water": "35 mL",
+        "hydrochloricAcidMl": 3,
+        "oxalicAcidTsMl": 40,
+        "dilutionMl": 100,
+        "standMinH": "4 h or overnight",
+        "filtrateAliquotMl": 50,
+        "sulfuricAcidMl": 0.5,
+        "formula": "% residue = weight of residue / W x 100",
+        "limit": "NMT 1.0%; residue NMT 5 mg"
+      },
+      "source": "Calcium Carbonate__STM Calcium Carbonate - New.txt:39"
+    },
+    {
+      "testCode": "RM-LOD",
+      "procedure": "Weigh a previously dried and cooled weighing bottle (W0); add 1.000 g sample (W1 = bottle + material); dry in calibrated oven at 200 °C for 4 h, cool in desiccator, weigh (W2); repeat drying to constant weight. % loss on drying = (W1 - W2) / (W1 - W0) x 100.",
+      "kind": "general",
+      "workflow": "Gravimetric",
+      "details": {
+        "grades": ["USP"],
+        "sampleG": 1.0,
+        "ovenC": 200,
+        "dryingH": 4,
+        "preDryC": 200,
+        "constantWeight": true,
+        "formula": "(W1 - W2) / (W1 - W0) x 100",
+        "reference": "USP <731>"
+      },
+      "source": "Calcium Carbonate__STM Calcium Carbonate - New.txt:40"
+    },
+    {
+      "testCode": "RM-BULKD",
+      "procedure": "Bulk density: tare an empty dry cylinder; put 10 mL of bulk powder into it; weigh (W); bulk density = W / 10 mL.",
+      "kind": "general",
+      "workflow": "Measurement",
+      "details": {
+        "grades": ["USP"],
+        "volumeMl": 10,
+        "formula": "W / 10 mL",
+        "reference": "Supplier Certificate (as stated in STM); spec sheet says In-house"
+      },
+      "source": "Calcium Carbonate__STM Calcium Carbonate - New.txt:41"
+    },
+    {
+      "testCode": "RM-TIT-CACO3",
+      "procedure": "Assay (direct complexometric titration): weigh 200 mg sample, previously dried at 200 °C for 4 h; moisten with water, dissolve with dropwise 3 N hydrochloric acid; add 100 mL water, 15 mL 1 N sodium hydroxide and 300 mg hydroxy naphthol blue; titrate with 0.05 M edetate disodium VS to a distinct blue endpoint (visual). Blank = 100 mL water + 15 mL 1 N sodium hydroxide. Assay % = ((V - B) x M x F x 100) / W, F = 100.09 mg/mmol, W in mg.",
+      "kind": "specific",
+      "workflow": "Titration",
+      "details": {
+        "grades": ["USP"],
+        "sampleMg": 200,
+        "sampleDrying": "previously dried at 200 °C for 4 h",
+        "mode": "direct",
+        "titrant": "0.05 M edetate disodium VS",
+        "titrantStandardization": "about 200 mg chelometric standard calcium carbonate, dried, dissolved in water and dilute HCl; titrated with edetate disodium to a blue endpoint using hydroxy naphthol blue at pH 12-13; M = (gCaCO3 x Assay/100 x 1000) / (100.09 x mL EDTA)",
+        "titrantPreparation": "18.6 g edetate disodium in water to 1000 mL",
+        "indicator": "hydroxy naphthol blue, 300 mg",
+        "blank": "100 mL water + 15 mL 1 N sodium hydroxide",
+        "endpoint": "visual, change to distinct blue",
+        "equivalenceFactor": "100.09 mg/mmol",
+        "formula": "Assay = ((V - B) x M x F x 100) / W; V = sample titrant volume (mL), B = blank titrant volume (mL), M = titrant molarity (mmol/mL), F = 100.09 mg/mmol, W = sample weight (mg)",
+        "specBasis": "dried basis",
+        "reference": "USP <541>"
+      },
+      "source": "Calcium Carbonate__STM Calcium Carbonate - New.txt:42"
+    },
+    {
+      "testCode": "RM-PSD-CACO3",
+      "procedure": "Particle size distribution: measured with a calibrated particle size analyser, reporting the mass percentage in each sieve size range; in-house specification D10 1.5 µm, D50 6 µm, D90 12 µm (10%, 50%, 90% smaller).",
+      "kind": "specific",
+      "workflow": "Measurement",
+      "details": {
+        "grades": ["USP"],
+        "instrument": "calibrated particle size analyser",
+        "d10Um": 1.5,
+        "d50Um": 6,
+        "d90Um": 12,
+        "reference": "in-house specification by R&D"
+      },
+      "source": "Calcium Carbonate__STM Calcium Carbonate - New.txt:43"
+    },
+    {
+      "testCode": "TAMC",
+      "procedure": "Total aerobic microbial count: 10 g sample + SCDB to 100 mL; within 1 h pipette 1 mL into each of 4 plates (2 SCDA, 2 SDA); incubate SCDA 24-72 h at 30-35 °C; count; CFU/g = (sum of colonies on the 2 SCDA plates / 2) x DF (10). No growth: report 'less than 10' at 1:10 dilution.",
+      "kind": "general",
+      "workflow": "CountTest",
+      "details": {
+        "limit": "NMT 10^3 CFU/gm",
+        "sampleG": 10,
+        "diluentMl": 100,
+        "diluent": "SCDB (soybean casein digest broth)",
+        "agar": "SCDA",
+        "incubation": "24-72 h at 30-35 °C",
+        "dilutionFactor": 10,
+        "reference": "USP 2024 <2021>; USP 2024 <2023>"
+      },
+      "source": "Calcium Carbonate__STM Calcium Carbonate - New.txt:45"
+    },
+    {
+      "testCode": "TYMC",
+      "procedure": "Total combined yeasts and moulds count: same preparation as TAMC; 2 SDA plates incubated 5-7 days at 20-25 °C; CFU/g = (sum of colonies on the 2 SDA plates / 2) x DF (10).",
+      "kind": "general",
+      "workflow": "CountTest",
+      "details": {
+        "limit": "NMT 10^2 CFU/gm",
+        "agar": "SDA (Sabaraud dextrose agar)",
+        "incubation": "5-7 days at 20-25 °C",
+        "dilutionFactor": 10,
+        "reference": "USP 2024 <2021>; USP 2024 <2023>"
+      },
+      "source": "Calcium Carbonate__STM Calcium Carbonate - New.txt:45"
+    },
+    {
+      "testCode": "E.coli",
+      "procedure": "Escherichia coli: incubate SCDB 30-35 °C for 24-48 h; transfer 1 mL to 10 mL MacConkey broth (MBP), incubate 42-44 °C for 24-48 h; subculture on MacConkey agar (MAR) 30-35 °C 18-24 h; confirm by Gram stain (gram-negative short rods), EMB (dark-centred colonies), and TBX at 42-44 °C 18-72 h (blue or green colonies); optional identification system, report present if probability above 70%.",
+      "kind": "general",
+      "workflow": "Observation",
+      "details": {
+        "limit": "Absent /10 gm",
+        "enrichment": "SCDB 30-35 °C 24-48 h; MBP 42-44 °C 24-48 h",
+        "agar": "MacConkey agar (MAR)",
+        "confirmation": ["Gram stain", "EMB", "TBX"],
+        "reference": "USP 2024 <2022>; USP 2024 <2023>"
+      },
+      "source": "Calcium Carbonate__STM Calcium Carbonate - New.txt:47"
+    },
+    {
+      "testCode": "RM-LT-HG-CACO3",
+      "procedure": "Mercury: no method stated in the STM.",
+      "kind": "specific",
+      "workflow": "Measurement",
+      "details": {
+        "grades": ["USP"],
+        "limit": "NMT 0.5 ppm"
+      },
+      "source": "Calcium Carbonate__Specifications sheet Calcium Carbonate - New.txt:28",
+      "heldBack": "no STM: method not documented"
+    }
+  ],
+  "notApplicable": [],
+  "supplierAttributes": [],
+  "reagents": [
+    { "name": "Acetic acid", "use": "reagent", "source": "Calcium Carbonate__STM Calcium Carbonate - New.txt:28" },
+    { "name": "Ammonium hydroxide, 6 N", "use": "reagent", "source": "Calcium Carbonate__STM Calcium Carbonate - New.txt:28" },
+    { "name": "3 N Hydrochloric acid", "use": "reagent", "source": "Calcium Carbonate__STM Calcium Carbonate - New.txt:28" },
+    { "name": "Hydrochloric acid, diluted", "use": "reagent", "source": "Calcium Carbonate__STM Calcium Carbonate - New.txt:28" },
+    { "name": "Methyl red TS", "use": "indicator", "source": "Calcium Carbonate__STM Calcium Carbonate - New.txt:28" },
+    { "name": "Ammonium oxalate TS", "use": "reagent", "source": "Calcium Carbonate__STM Calcium Carbonate - New.txt:28" },
+    { "name": "0.05 M Edetate disodium VS", "use": "titrant", "source": "Calcium Carbonate__STM Calcium Carbonate - New.txt:28" },
+    { "name": "Hydroxy naphthol blue", "use": "indicator", "source": "Calcium Carbonate__STM Calcium Carbonate - New.txt:28" },
+    { "name": "Chelometric standard calcium carbonate", "use": "standard", "source": "Calcium Carbonate__STM Calcium Carbonate - New.txt:28" },
+    { "name": "Sodium hydroxide TS / 1 N sodium hydroxide", "use": "reagent", "source": "Calcium Carbonate__STM Calcium Carbonate - New.txt:28" },
+    { "name": "Standard iron solution", "use": "standard", "source": "Calcium Carbonate__STM Calcium Carbonate - New.txt:28" },
+    { "name": "Standard arsenic solution", "use": "standard", "source": "Calcium Carbonate__STM Calcium Carbonate - New.txt:28" },
+    { "name": "Silver diethyldithiocarbamate TS", "use": "reagent", "source": "Calcium Carbonate__STM Calcium Carbonate - New.txt:28" },
+    { "name": "Granular zinc", "use": "reagent", "source": "Calcium Carbonate__STM Calcium Carbonate - New.txt:28" },
+    { "name": "Stannous chloride, acid, stronger TS", "use": "reagent", "source": "Calcium Carbonate__STM Calcium Carbonate - New.txt:28" },
+    { "name": "Standard lead solution TS / diluted standard lead solution", "use": "standard", "source": "Calcium Carbonate__STM Calcium Carbonate - New.txt:28" },
+    { "name": "Dithizone extraction solution", "use": "reagent", "source": "Calcium Carbonate__STM Calcium Carbonate - New.txt:28" },
+    { "name": "Standard dithizone solution", "use": "standard", "source": "Calcium Carbonate__STM Calcium Carbonate - New.txt:28" },
+    { "name": "Ammonium cyanide solution", "use": "reagent", "source": "Calcium Carbonate__STM Calcium Carbonate - New.txt:28" },
+    { "name": "Potassium cyanide solution", "use": "reagent", "source": "Calcium Carbonate__STM Calcium Carbonate - New.txt:28" },
+    { "name": "Ammonium citrate solution", "use": "reagent", "source": "Calcium Carbonate__STM Calcium Carbonate - New.txt:28" },
+    { "name": "Hydroxylamine hydrochloride solution", "use": "reagent", "source": "Calcium Carbonate__STM Calcium Carbonate - New.txt:28" },
+    { "name": "Phenol red TS", "use": "indicator", "source": "Calcium Carbonate__STM Calcium Carbonate - New.txt:28" },
+    { "name": "Sodium Fluoride RS (USP)", "use": "standard", "source": "Calcium Carbonate__STM Calcium Carbonate - New.txt:28" },
+    { "name": "Oxalic acid TS", "use": "reagent", "source": "Calcium Carbonate__STM Calcium Carbonate - New.txt:28" },
+    { "name": "Sulfuric acid, 7 N and 2 N", "use": "reagent", "source": "Calcium Carbonate__STM Calcium Carbonate - New.txt:28" },
+    { "name": "Water, carbon dioxide-free", "use": "reagent", "source": "Calcium Carbonate__STM Calcium Carbonate - New.txt:28" },
+    { "name": "Alcohol (Ethanol 96%)", "use": "reagent", "source": "Calcium Carbonate__STM Calcium Carbonate - New.txt:28" }
+  ],
+  "openQuestions": [
+    {
+      "question": "The spec sheet gives the STM code as 'SM-RM-078'; the STM header and the file name use STM-RM-078.",
+      "source": "Calcium Carbonate__Specifications sheet Calcium Carbonate - New.txt:9"
+    },
+    {
+      "question": "Lead and arsenic: the spec sheet gives the technique as AAS (NMT 3 ppm), but the STM procedures are colorimetric (dithizone for lead, silver diethyldithiocarbamate for arsenic, USP <251>/<211>). Loaded as comparison limit rows as written; confirm the technique.",
+      "source": "Calcium Carbonate__Specifications sheet Calcium Carbonate - New.txt:16; Calcium Carbonate__Specifications sheet Calcium Carbonate - New.txt:17; Calcium Carbonate__STM Calcium Carbonate - New.txt:35; Calcium Carbonate__STM Calcium Carbonate - New.txt:36"
+    },
+    {
+      "question": "Bulk density: the spec sheet reference is In-house, but the STM gives the reference as Supplier Certificate. Confirm which reference applies.",
+      "source": "Calcium Carbonate__Specifications sheet Calcium Carbonate - New.txt:22; Calcium Carbonate__STM Calcium Carbonate - New.txt:41"
+    },
+    {
+      "question": "Particle size: the in-house limits are percentile statements (90%, 50%, 10% smaller than 12, 6 and 1.5 µm), which the numeric limit types cannot hold; loaded as one Qualitative row with the text. Confirm the format.",
+      "source": "Calcium Carbonate__Specifications sheet Calcium Carbonate - New.txt:24; Calcium Carbonate__STM Calcium Carbonate - New.txt:43"
+    },
+    {
+      "question": "Mercury NMT 0.5 ppm is an additional requirement on the spec sheet with no method in the STM; row and test held back until a method is documented.",
+      "source": "Calcium Carbonate__Specifications sheet Calcium Carbonate - New.txt:28"
+    },
+    {
+      "question": "Fluoride formula: V is 'volume of the sample solution (mL)', but the test volume (100 mL) is only implied by the procedure; confirm V.",
+      "source": "Calcium Carbonate__STM Calcium Carbonate - New.txt:38"
+    }
+  ]
+}

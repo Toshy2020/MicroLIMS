@@ -1,0 +1,1128 @@
+{
+  "itemCode": "STM-RM-003",
+  "stmCode": "STM-RM-003",
+  "itemName": "Thiamine Hydrochloride",
+  "stmFile": "Thiamine Hydrochloride__STM-003 Thiamine Hydrochloride.txt",
+  "specFiles": [
+    "Thiamine Hydrochloride__Specifications sheet Thiamine Hydrochloride.txt",
+    "Thiamine Hydrochloride__Specifications sheet Thiamine Hydrochloride USP.txt"
+  ],
+  "minQuantity": {
+    "routine": 150,
+    "retest": 50,
+    "unit": "g",
+    "source": "Thiamine Hydrochloride__STM-003 Thiamine Hydrochloride.txt:49; Thiamine Hydrochloride__Specifications sheet Thiamine Hydrochloride.txt:14; Thiamine Hydrochloride__Specifications sheet Thiamine Hydrochloride USP.txt:13"
+  },
+  "grades": [
+    {
+      "grade": "BP",
+      "rows": [
+        {
+          "testCode": "RM-DESC",
+          "parameterName": "Appearance",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "White or almost white, crystalline powder or colorless crystals",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Thiamine Hydrochloride__Specifications sheet Thiamine Hydrochloride.txt:2"
+        },
+        {
+          "testCode": "RM-SOLUB",
+          "parameterName": "Solubility",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Freely soluble in water, soluble in glycerol, slightly soluble in ethanol (96 per cent), practically insoluble in heptane",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Thiamine Hydrochloride__Specifications sheet Thiamine Hydrochloride.txt:3"
+        },
+        {
+          "testCode": "RM-ID-IR",
+          "parameterName": "Identification (IR)",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "The spectrum obtained for the sample is corresponding to the spectrum obtained from Thiamine Hydrochloride RS",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Thiamine Hydrochloride__Specifications sheet Thiamine Hydrochloride.txt:4"
+        },
+        {
+          "testCode": "RM-ID-FLUO-THIA",
+          "parameterName": "Identification (Fluorescence)",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Practically no fluorescence is seen",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Thiamine Hydrochloride__Specifications sheet Thiamine Hydrochloride.txt:5"
+        },
+        {
+          "testCode": "RM-ID-CL",
+          "parameterName": "Identification (Reaction of chloride)",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Positive reaction for chloride",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Thiamine Hydrochloride__Specifications sheet Thiamine Hydrochloride.txt:6"
+        },
+        {
+          "testCode": "RM-SOLAPP",
+          "parameterName": "Appearance of solution",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "The solution is clear and not more intensely colored than reference solution Y7 or GY7",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Thiamine Hydrochloride__Specifications sheet Thiamine Hydrochloride.txt:7"
+        },
+        {
+          "testCode": "RM-PH",
+          "parameterName": "pH",
+          "limitType": "Range",
+          "lower": 2.7,
+          "upper": 3.3,
+          "lowerInclusive": true,
+          "unit": null,
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Thiamine Hydrochloride__Specifications sheet Thiamine Hydrochloride.txt:8"
+        },
+        {
+          "testCode": "RM-KF",
+          "parameterName": "Water content",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 5.0,
+          "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Thiamine Hydrochloride__Specifications sheet Thiamine Hydrochloride.txt:9"
+        },
+        {
+          "testCode": "RM-SASH",
+          "parameterName": "Sulfated Ash",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 0.1,
+          "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Thiamine Hydrochloride__Specifications sheet Thiamine Hydrochloride.txt:10"
+        },
+        {
+          "testCode": "RM-LT-SO4",
+          "parameterName": "Sulfates",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Complies (NMT 300 ppm)",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Thiamine Hydrochloride__Specifications sheet Thiamine Hydrochloride.txt:11"
+        },
+        {
+          "testCode": "RM-TIT-THIA",
+          "parameterName": "Assay",
+          "limitType": "Range",
+          "lower": 98.5,
+          "upper": 101.0,
+          "lowerInclusive": true,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": "PercentAnhydrousBasis",
+          "referenceStandard": "BP",
+          "source": "Thiamine Hydrochloride__Specifications sheet Thiamine Hydrochloride.txt:12"
+        },
+        {
+          "testCode": "RM-HPLC-THIA-RS",
+          "parameterName": "Related substances: Impurity B",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 0.3,
+          "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Thiamine Hydrochloride__Specifications sheet Thiamine Hydrochloride.txt:13"
+        },
+        {
+          "testCode": "RM-HPLC-THIA-RS",
+          "parameterName": "Related substances: Impurity A",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 0.15,
+          "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Thiamine Hydrochloride__Specifications sheet Thiamine Hydrochloride.txt:13"
+        },
+        {
+          "testCode": "RM-HPLC-THIA-RS",
+          "parameterName": "Related substances: Impurity C",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 0.15,
+          "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Thiamine Hydrochloride__Specifications sheet Thiamine Hydrochloride.txt:13"
+        },
+        {
+          "testCode": "RM-HPLC-THIA-RS",
+          "parameterName": "Related substances: Unspecified impurities (each)",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 0.1,
+          "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Thiamine Hydrochloride__Specifications sheet Thiamine Hydrochloride.txt:13"
+        },
+        {
+          "testCode": "RM-HPLC-THIA-RS",
+          "parameterName": "Related substances: Total",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 0.5,
+          "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Thiamine Hydrochloride__Specifications sheet Thiamine Hydrochloride.txt:13"
+        },
+        {
+          "testCode": "TAMC",
+          "parameterName": "Total aerobic microbial count (TAMC)",
+          "limitType": "CountTiered",
+          "lower": null,
+          "upper": 1000,
+          "lowerInclusive": null,
+          "unit": "CFU/g",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Thiamine Hydrochloride__Specifications sheet Thiamine Hydrochloride.txt:14"
+        },
+        {
+          "testCode": "TYMC",
+          "parameterName": "Total yeasts and molds count (TYMC)",
+          "limitType": "CountTiered",
+          "lower": null,
+          "upper": 100,
+          "lowerInclusive": null,
+          "unit": "CFU/g",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Thiamine Hydrochloride__Specifications sheet Thiamine Hydrochloride.txt:14"
+        },
+        {
+          "testCode": "E.coli",
+          "parameterName": "Test for E. coli",
+          "limitType": "PresenceAbsence",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": "per 10 g",
+          "expectedResultText": "Absent / 10gm",
+          "expectedState": "Absence",
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Thiamine Hydrochloride__Specifications sheet Thiamine Hydrochloride.txt:14"
+        }
+      ]
+    },
+    {
+      "grade": "USP",
+      "rows": [
+        {
+          "testCode": "RM-DESC",
+          "parameterName": "Description",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "White crystals or crystalline powder, usually having a slight, characteristic odor",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Thiamine Hydrochloride__Specifications sheet Thiamine Hydrochloride USP.txt:2"
+        },
+        {
+          "testCode": "RM-SOLUB",
+          "parameterName": "Solubility",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Freely soluble in water; soluble in glycerine; slightly soluble in alcohol; insoluble in ether and in benzene.",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Thiamine Hydrochloride__Specifications sheet Thiamine Hydrochloride USP.txt:3"
+        },
+        {
+          "testCode": "RM-ID-IR",
+          "parameterName": "Identification (IR)",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "The spectrum obtained for the sample is corresponding to the spectrum obtained from Thiamine Hydrochloride RS",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Thiamine Hydrochloride__Specifications sheet Thiamine Hydrochloride USP.txt:4"
+        },
+        {
+          "testCode": "RM-ID-CL",
+          "parameterName": "Identification (Reaction of chloride)",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Positive reaction for chloride",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Thiamine Hydrochloride__Specifications sheet Thiamine Hydrochloride USP.txt:5"
+        },
+        {
+          "testCode": "RM-PH",
+          "parameterName": "pH",
+          "limitType": "Range",
+          "lower": 2.7,
+          "upper": 3.4,
+          "lowerInclusive": true,
+          "unit": null,
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Thiamine Hydrochloride__Specifications sheet Thiamine Hydrochloride USP.txt:6"
+        },
+        {
+          "testCode": "RM-KF",
+          "parameterName": "Water content",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 5.0,
+          "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Thiamine Hydrochloride__Specifications sheet Thiamine Hydrochloride USP.txt:7"
+        },
+        {
+          "testCode": "RM-LT-NO3",
+          "parameterName": "Limit of Nitrate",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Gives negative reaction for nitrates.",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Thiamine Hydrochloride__Specifications sheet Thiamine Hydrochloride USP.txt:8"
+        },
+        {
+          "testCode": "RM-UV-THIA",
+          "parameterName": "Absorbance of Solution",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 0.025,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Thiamine Hydrochloride__Specifications sheet Thiamine Hydrochloride USP.txt:9"
+        },
+        {
+          "testCode": "RM-SASH",
+          "parameterName": "Residue on ignition",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 0.2,
+          "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Thiamine Hydrochloride__Specifications sheet Thiamine Hydrochloride USP.txt:10"
+        },
+        {
+          "testCode": "RM-HPLC-THIA-AS",
+          "parameterName": "Assay",
+          "limitType": "Range",
+          "lower": 98.0,
+          "upper": 102.0,
+          "lowerInclusive": true,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": "PercentAnhydrousBasis",
+          "referenceStandard": "USP",
+          "source": "Thiamine Hydrochloride__Specifications sheet Thiamine Hydrochloride USP.txt:11"
+        },
+        {
+          "testCode": "RM-HPLC-THIA-RC",
+          "parameterName": "Related Compounds",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 1.0,
+          "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Thiamine Hydrochloride__Specifications sheet Thiamine Hydrochloride USP.txt:12"
+        },
+        {
+          "testCode": "TAMC",
+          "parameterName": "Total aerobic microbial count (TAMC)",
+          "limitType": "CountTiered",
+          "lower": null,
+          "upper": 1000,
+          "lowerInclusive": null,
+          "unit": "CFU/g",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Thiamine Hydrochloride__Specifications sheet Thiamine Hydrochloride USP.txt:13"
+        },
+        {
+          "testCode": "TYMC",
+          "parameterName": "Total yeasts and molds count (TYMC)",
+          "limitType": "CountTiered",
+          "lower": null,
+          "upper": 100,
+          "lowerInclusive": null,
+          "unit": "CFU/g",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Thiamine Hydrochloride__Specifications sheet Thiamine Hydrochloride USP.txt:13"
+        },
+        {
+          "testCode": "E.coli",
+          "parameterName": "Test for E. coli",
+          "limitType": "PresenceAbsence",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": "per 10 g",
+          "expectedResultText": "Absent / 10gm",
+          "expectedState": "Absence",
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Thiamine Hydrochloride__Specifications sheet Thiamine Hydrochloride USP.txt:13"
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "testCode": "RM-DESC",
+      "procedure": "Under strong white light, check each received sample container separately in clean, transparent watch glass or glass dish to detect any foreign particles, conformance of colour & compliance with the visual specifications.",
+      "kind": "general",
+      "workflow": "Observation",
+      "details": {
+        "perContainer": true,
+        "grades": [
+          "BP",
+          "USP"
+        ],
+        "bp_spec": "White or almost white, crystalline powder or colorless crystals.",
+        "usp_spec": "White crystals or crystalline powder, usually having a slight, characteristic odor.",
+        "reference": "USP 2024 Description and Relative Solubility; BP 2024 (SC IV K.) Characters Section in Monographs (Hygroscopicity and Solubility)"
+      },
+      "source": "Thiamine Hydrochloride__STM-003 Thiamine Hydrochloride.txt:28"
+    },
+    {
+      "testCode": "RM-SOLUB",
+      "procedure": "Weigh 100 mg of powdered sample in a stoppered tube. Add 0.1 ml of solvent, shake vigorously for 1 min, place at 25.0 ± 0.5 °C for 15 min; if not dissolved repeat shake/hold once (very soluble if dissolved); stepwise add 0.9 mL (freely soluble), 2 mL (soluble), 7 mL (sparingly soluble); if still undissolved, test 10 mg in 10 mL (slightly soluble), then 1 mg in 10 mL (very slightly soluble), else practically insoluble. Repeat with specified solvents.",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {
+        "grades": [
+          "BP",
+          "USP"
+        ],
+        "sample": "100 mg powdered",
+        "temperature": "25.0 ± 0.5 °C",
+        "volumesMl": [
+          0.1,
+          0.9,
+          2.0,
+          7.0
+        ],
+        "solventsBP": [
+          "water",
+          "glycerol",
+          "ethanol (96 per cent)",
+          "practically insoluble in heptane"
+        ],
+        "solventsUSP": [
+          "water",
+          "glycerine",
+          "alcohol",
+          "insoluble in ether and in benzene"
+        ],
+        "reference": "USP 2024 Description and Relative Solubility; BP 2024 (SC IV K.) Characters Section in Monographs"
+      },
+      "source": "Thiamine Hydrochloride__STM-003 Thiamine Hydrochloride.txt:29"
+    },
+    {
+      "testCode": "RM-ID-IR",
+      "procedure": "Dry test samples at 105 °C for 2 h. Mix intimately with potassium bromide and compress into a transparent pellet. Examine the spectrum obtained for the sample and compare to the spectrum obtained from Thiamine Hydrochloride RS.",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {
+        "grades": [
+          "BP",
+          "USP"
+        ],
+        "drying": "105 °C for 2 h",
+        "technique": "KBr pellet",
+        "standard": "Thiamine Hydrochloride RS",
+        "reference": "BP 2024 Appendix II A. Infrared Spectrophotometry; USP 2024 Monograph for Thiamine Hydrochloride"
+      },
+      "source": "Thiamine Hydrochloride__STM-003 Thiamine Hydrochloride.txt:30"
+    },
+    {
+      "testCode": "RM-ID-FLUO-THIA",
+      "procedure": "Identification by fluorescence (BP): Dissolve about 20 mg of sample in 10 mL water, add 1 mL dilute acetic acid and 1.6 mL 1 M NaOH, heat in water-bath for 30 min, allow to cool; add 5 mL dilute NaOH, 10 mL potassium ferricyanide solution and 10 mL butanol, shake vigorously for 2 min. Upper layer shows intense light-blue fluorescence (especially UV 365 nm). Repeat using 0.9 mL 1 M NaOH and 0.1 g anhydrous sodium sulfite instead of 1.6 mL 1 M NaOH: practically no fluorescence is seen.",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "details": {
+        "grades": [
+          "BP"
+        ],
+        "sampleMg": 20,
+        "waterBathMin": 30,
+        "wavelengthNm": 365,
+        "negativeControlReagents": "0.9 mL 1 M sodium hydroxide and 0.1 g anhydrous sodium sulfite",
+        "expectedNegativeControl": "Practically no fluorescence is seen.",
+        "reference": "BP 2024 Monograph for Thiamine Hydrochloride"
+      },
+      "source": "Thiamine Hydrochloride__STM-003 Thiamine Hydrochloride.txt:30"
+    },
+    {
+      "testCode": "RM-ID-CL",
+      "procedure": "Chloride identification (USP / BP): Add 1 drop diluted nitric acid and 0.5 mL silver nitrate TS to a 20-mg/mL solution containing about 2 mg chloride ion in 2 mL: white curdy precipitate is formed. Centrifuge without delay, decant supernatant layer, wash precipitate with three 1-mL portions of nitric acid solution (1 in 100), discard washings. Add ammonia TS dropwise to precipitate: dissolves readily.",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {
+        "grades": [
+          "BP",
+          "USP"
+        ],
+        "sampleConc": "20 mg/mL (about 2 mg chloride in 2 mL)",
+        "reagents": [
+          "diluted nitric acid",
+          "silver nitrate TS",
+          "nitric acid (1 in 100)",
+          "ammonia TS"
+        ],
+        "expected": "Positive reaction for chloride",
+        "reference": "USP 2024 <191>; BP 2024 Appendix VII Limit Tests"
+      },
+      "source": "Thiamine Hydrochloride__STM-003 Thiamine Hydrochloride.txt:30"
+    },
+    {
+      "testCode": "RM-SOLAPP",
+      "procedure": "Appearance of solution (BP): Dilute 2.5 mL of solution S to 5 mL with water. Check appearance and compare with reference solution Y7 or GY7.",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {
+        "grades": [
+          "BP"
+        ],
+        "solutionS": "2.5 g in carbon dioxide-free water to 25 mL",
+        "dilution": "2.5 mL solution S to 5 mL with water",
+        "comparison": "Reference solution Y7 or GY7",
+        "expected": "The solution is clear and not more intensely colored than reference solution Y7 or GY7",
+        "reference": "BP 2024 Appendix IV A. Clarity of Solution & Appendix IV B. Color of Solution"
+      },
+      "source": "Thiamine Hydrochloride__STM-003 Thiamine Hydrochloride.txt:31; reagents STM-003:26"
+    },
+    {
+      "testCode": "RM-PH",
+      "procedure": "Measure the pH of the prepared solution (dilute 2.5 mL solution S to 10 mL with water, or dissolve 1 g sample in 100 mL water) with a calibrated pH meter.",
+      "kind": "general",
+      "workflow": "Measurement",
+      "details": {
+        "grades": [
+          "BP",
+          "USP"
+        ],
+        "samplePrep": "dilute 2.5 mL of solution S to 10 mL with water or dissolve 1 gm of sample in 100 mL of water",
+        "reference": "USP 2024 Monograph for Thiamine Hydrochloride; BP 2024 Monograph for Thiamine Hydrochloride"
+      },
+      "source": "Thiamine Hydrochloride__STM-003 Thiamine Hydrochloride.txt:32"
+    },
+    {
+      "testCode": "RM-KF",
+      "procedure": "Determine the water content using Karl Fischer titrator on 400 mg sample.",
+      "kind": "general",
+      "workflow": "Measurement",
+      "details": {
+        "grades": [
+          "BP",
+          "USP"
+        ],
+        "sampleMg": 400,
+        "titrator": "Karl Fischer titrator",
+        "reference": "BP 2024 Appendix IX C. Determination of Water; USP 2024 <921> Water Determination"
+      },
+      "source": "Thiamine Hydrochloride__STM-003 Thiamine Hydrochloride.txt:33"
+    },
+    {
+      "testCode": "RM-LT-NO3",
+      "procedure": "Limit of nitrate (USP): Dissolve 40 mg sample in 2 mL water, add 2 mL sulfuric acid, cool, and superimpose 2 mL ferrous sulfate TS. Check for brown ring at junction of layers.",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "details": {
+        "grades": [
+          "USP"
+        ],
+        "sampleMg": 40,
+        "waterMl": 2,
+        "sulfuricAcidMl": 2,
+        "ferrousSulfateTSMl": 2,
+        "observation": "No brown ring is produced at the junction of the two layers",
+        "expected": "Gives negative reaction for nitrates.",
+        "reference": "USP 2024 Monograph for Thiamine Hydrochloride"
+      },
+      "source": "Thiamine Hydrochloride__STM-003 Thiamine Hydrochloride.txt:34"
+    },
+    {
+      "testCode": "RM-UV-THIA",
+      "procedure": "Absorbance of solution (USP): Prepare 100 mg/mL solution in water of the test sample. Filter through syringe filter or fine-porosity, sintered-glass funnel. Determine absorbance of sample solution against water blank at 400 nm in a 1-cm cell.",
+      "kind": "specific",
+      "workflow": "UvSpectrophotometry",
+      "details": {
+        "grades": [
+          "USP"
+        ],
+        "sampleConcentration": "100 mg/mL in water",
+        "filtration": "syringe filter or fine-porosity sintered-glass funnel",
+        "wavelengthNm": 400,
+        "cell": "1 cm",
+        "blank": "water",
+        "expected": "NMT 0.025",
+        "reference": "USP 2024 <857> Ultraviolet-Visible Spectroscopy"
+      },
+      "source": "Thiamine Hydrochloride__STM-003 Thiamine Hydrochloride.txt:35"
+    },
+    {
+      "testCode": "RM-SASH",
+      "procedure": "Accurately weigh empty crucible previously ignited at 600-650 °C and cooled in desiccator (W0). Weigh accurately 1.0 g sample into platinum crucible (W1 = empty plate weight + material weight). Moisten with small amount of sulfuric acid (usually 1 mL). Heat gently on hot plate until thoroughly charred. After cooling, moisten residue with sulfuric acid, heat until white fumes cease. Ignite in muffle furnace at 600-650 °C to constant weight, cool in desiccator, weigh (W2). % Residue on ignition / sulfated ash = ((W2 - W0) / (W1 - W0)) x 100.",
+      "kind": "general",
+      "workflow": "Gravimetric",
+      "details": {
+        "grades": [
+          "BP",
+          "USP"
+        ],
+        "sampleG": 1.0,
+        "ignitionTemp": "600-650 °C",
+        "sulfuricAcid": "usually 1 mL twice",
+        "formula": "% = (W2 - W0) / (W1 - W0) x 100",
+        "crucibleType": "platinum crucible",
+        "reference": "USP 2024 <281>; BP 2024 Appendix IX A. Determination of Sulfated Ash"
+      },
+      "source": "Thiamine Hydrochloride__STM-003 Thiamine Hydrochloride.txt:36"
+    },
+    {
+      "testCode": "RM-LT-SO4",
+      "procedure": "Sulfates limit test (BP): Sample solution: dilute 5 mL solution S to 15 mL with distilled water. Suspension: add 3 mL of 250 g/L barium chloride to 4.5 mL sulfate standard solution (10 ppm SO4) R1, shake, stand 1 min. To 2.5 mL of this suspension add 15 mL sample solution and 0.5 mL acetic acid. Standard: to 2.5 mL suspension add 15 mL sulfate standard (10 ppm SO4) and 0.5 mL acetic acid. After 5 min, any opalescence in test is not more intense than standard.",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {
+        "grades": [
+          "BP"
+        ],
+        "sampleDilution": "5 mL solution S to 15 mL distilled water",
+        "suspension": "3 mL of 250 g/L barium chloride + 4.5 mL sulfate standard (10 ppm SO4) R1, stand 1 min",
+        "testMix": "2.5 mL suspension + 15 mL diluted sample + 0.5 mL acetic acid",
+        "standardMix": "2.5 mL suspension + 15 mL sulfate standard (10 ppm SO4) + 0.5 mL acetic acid",
+        "standingTime": "5 min",
+        "limit": "Maximum 300 ppm",
+        "reference": "BP 2024 Appendix VII Limit Tests"
+      },
+      "source": "Thiamine Hydrochloride__STM-003 Thiamine Hydrochloride.txt:37"
+    },
+    {
+      "testCode": "RM-TIT-THIA",
+      "procedure": "Assay (BP, potentiometry): Dissolve 0.110 g sample in 5 mL anhydrous formic acid, add 50 mL acetic anhydride. Titrate within 2 min with 0.1 M perchloric acid, determining endpoint potentiometrically. Carry out blank titration. Assay % = ((E.P sample - E.P blank) x Eq.wt x F / Wt) x 100; Eq.wt = 16.86 mg, F = titrant factor, Wt = corrected weight of sample considering moisture content.",
+      "kind": "specific",
+      "workflow": "Titration",
+      "details": {
+        "grades": [
+          "BP"
+        ],
+        "sampleG": 0.11,
+        "solvents": "5 mL anhydrous formic acid + 50 mL acetic anhydride",
+        "titrateWithin": "2 min",
+        "titrant": "0.1 M perchloric acid VS",
+        "endpoint": "potentiometric",
+        "blank": "blank titration carried out",
+        "equivalenceFactor": "each mL of 0.1 M perchloric acid is equivalent to 16.86 mg thiamine hydrochloride",
+        "formula": "Assay % = ((E.P_sample - E.P_blank) x Eq.wt x F / Wt) x 100",
+        "specBasis": "anhydrous substance",
+        "titrantPreparation": "0.1 M perchloric acid VS: 8.5 mL perchloric acid in about 900 mL glacial acetic acid, add 30 mL acetic anhydride, to 1000.0 mL with glacial acetic acid, stand 24 h",
+        "titrantStandardization": "0.170 g potassium hydrogen phthalate in 50 mL anhydrous acetic acid (warm gently if needed), cool protected from air, titrate with perchloric acid solution using 0.05 mL crystal violet solution",
+        "reference": "BP 2024 Monograph for Thiamine Hydrochloride"
+      },
+      "source": "Thiamine Hydrochloride__STM-003 Thiamine Hydrochloride.txt:39; titrant STM-003:26"
+    },
+    {
+      "testCode": "RM-HPLC-THIA-AS",
+      "procedure": "Assay (USP, HPLC with internal standard): Mobile phase: Solution A (0.005 M sodium 1-octanesulfonate in 1 in 100 glacial acetic acid) and Solution B (methanol:acetonitrile 3:2) 60:40. Internal standard: 2.0% (v/v) methyl benzoate in methanol. Standard: 20.0 mL of 1-mg/mL Thiamine HCl RS in mobile phase + 5.0 mL IS diluted to 50 mL (400 µg/mL). Sample: 10.0 mL of 2-mg/mL Thiamine HCl in mobile phase + 5.0 mL IS diluted to 50 mL (400 µg/mL). Column: 4-mm x 30-cm, packing L1. Detector: UV 254 nm. Flow rate: 1 mL/min. Injection: 10 µL. Result = (RU/RS) x (CS/CU) x 100.",
+      "kind": "specific",
+      "workflow": "HplcMethodAssay",
+      "details": {
+        "grades": [
+          "USP"
+        ],
+        "mode": "LC",
+        "detector": "UV 254 nm",
+        "column": "4-mm × 30-cm; packing L1",
+        "flowRate": "1 mL/min",
+        "injectionVolumeUl": 10,
+        "mobilePhase": "Solution A and Solution B (60:40)",
+        "solutionA": "0.005 M sodium 1-octanesulfonate in dilute glacial acetic acid (1 in 100)",
+        "solutionB": "methanol and acetonitrile (3:2)",
+        "internalStandard": "2.0% (v/v) methyl benzoate in methanol",
+        "standardSolution": "400 µg/mL thiamine hydrochloride RS + 0.2% methyl benzoate in mobile phase",
+        "sampleSolution": "400 µg/mL thiamine hydrochloride + 0.2% methyl benzoate in mobile phase",
+        "systemSuitability": {
+          "resolution": "NLT 4.0 between thiamine and methyl benzoate peaks",
+          "tailingFactor": "NMT 2.0 for thiamine peak",
+          "columnEfficiency": "NLT 1500 theoretical plates for thiamine peak",
+          "rsd": "NMT 2.0% for ratios of thiamine peak area to internal standard peak area"
+        },
+        "formula": "Result = (RU/RS) x (CS/CU) x 100",
+        "specBasis": "anhydrous basis",
+        "reference": "USP 2024 Monograph for Thiamine Hydrochloride; USP <621>"
+      },
+      "source": "Thiamine Hydrochloride__STM-003 Thiamine Hydrochloride.txt:38"
+    },
+    {
+      "testCode": "RM-HPLC-THIA-RC",
+      "procedure": "Related compounds (USP, HPLC): Sample solution: 1.0 mg/mL Thiamine Hydrochloride in mobile phase. Column: 4.0-mm x 15-cm, packing L1. Detector: UV 254 nm. Flow rate: 0.75 mL/min. Injection: 10 µL. Allow sample to elute for NLT 3 times retention time of main peak. Result % = (rU/rT) x 100; rU = sum of areas of all peaks except thiamine; rT = sum of areas of all peaks.",
+      "kind": "specific",
+      "workflow": "HplcMethodAssay",
+      "details": {
+        "grades": [
+          "USP"
+        ],
+        "sampleConcentration": "1.0 mg/mL in mobile phase",
+        "column": "4.0-mm × 15-cm; packing L1",
+        "detector": "UV 254 nm",
+        "flowRate": "0.75 mL/min",
+        "injectionVolumeUl": 10,
+        "runtime": "NLT 3 times retention time of main peak",
+        "formula": "Result = (rU/rT) x 100",
+        "limit": "NMT 1.0%",
+        "reference": "USP 2024 Monograph for Thiamine Hydrochloride; USP <621>"
+      },
+      "source": "Thiamine Hydrochloride__STM-003 Thiamine Hydrochloride.txt:41"
+    },
+    {
+      "testCode": "RM-HPLC-THIA-RS",
+      "procedure": "Related substances (BP, gradient HPLC): Test solution: 0.35 g in 15.0 mL 5% V/V glacial acetic acid, dilute to 100.0 mL with water. Ref (a): thiamine for system suitability CRS (impurities A, B, C) in 1 mL 0.75% V/V glacial acetic acid. Ref (b): test solution diluted 1:100 then 1:10 with water. Column: 250 x 4.0 mm, end-capped octadecylsilyl silica gel (5 µm), 45 °C. Mobile phase A: 3.764 g/L sodium hexanesulfonate pH 3.1 with H3PO4; B: methanol. Gradient: 0-2 min 10% B; 2-27 min 10->30% B; 27-35 min 30->50% B; 35-42 min 50% B. Flow rate: 1.0 mL/min. UV 248 nm. Injection: 25 µL.",
+      "kind": "specific",
+      "workflow": "HplcMethodAssay",
+      "details": {
+        "grades": [
+          "BP"
+        ],
+        "column": "250 mm x 4.0 mm, end-capped octadecylsilyl silica gel (5 µm)",
+        "columnTemp": "45 °C",
+        "detector": "UV 248 nm",
+        "flowRate": "1.0 mL/min",
+        "injectionVolumeUl": 25,
+        "mobilePhaseA": "3.764 g/L sodium hexanesulfonate adjusted to pH 3.1 with phosphoric acid R",
+        "mobilePhaseB": "methanol",
+        "gradient": [
+          {
+            "timeMin": "0 - 2",
+            "pctA": 90,
+            "pctB": 10
+          },
+          {
+            "timeMin": "2 - 27",
+            "pctA": "90 -> 70",
+            "pctB": "10 -> 30"
+          },
+          {
+            "timeMin": "27 - 35",
+            "pctA": "70 -> 50",
+            "pctB": "30 -> 50"
+          },
+          {
+            "timeMin": "35 - 42",
+            "pctA": 50,
+            "pctB": 50
+          }
+        ],
+        "relativeRetention": {
+          "impurityA": "about 0.3",
+          "impurityB": "about 0.9",
+          "impurityC": "about 1.2",
+          "thiamine": "retention time about 30 min"
+        },
+        "systemSuitability": {
+          "resolutionImpurityB_Thiamine": "minimum 3.0",
+          "resolutionThiamine_ImpurityC": "minimum 2.0"
+        },
+        "calculation": "for each impurity, use concentration of thiamine in reference solution (b); reporting threshold 0.05%",
+        "reference": "BP 2024 Monograph for Thiamine Hydrochloride; BP Appendix III D"
+      },
+      "source": "Thiamine Hydrochloride__STM-003 Thiamine Hydrochloride.txt:42-47"
+    },
+    {
+      "testCode": "TAMC",
+      "procedure": "Microbiological examination per SOP C2I-91-128 and the material-specific verification report (spec sheet line 14 / 13; general microbiology test).",
+      "kind": "general",
+      "workflow": "CountTest",
+      "details": {
+        "grades": [
+          "BP",
+          "USP"
+        ],
+        "limit": "Not more than 10^3 CFU/gm",
+        "reference": "USP <2023>; BP",
+        "sop": "C2I-91-128"
+      },
+      "source": "Thiamine Hydrochloride__Specifications sheet Thiamine Hydrochloride.txt:14; Thiamine Hydrochloride__Specifications sheet Thiamine Hydrochloride USP.txt:13"
+    },
+    {
+      "testCode": "TYMC",
+      "procedure": "Microbiological examination per SOP C2I-91-128 and the material-specific verification report (spec sheet line 14 / 13; general microbiology test).",
+      "kind": "general",
+      "workflow": "CountTest",
+      "details": {
+        "grades": [
+          "BP",
+          "USP"
+        ],
+        "limit": "Not more than 10^2 CFU/gm",
+        "reference": "USP <2023>; BP",
+        "sop": "C2I-91-128"
+      },
+      "source": "Thiamine Hydrochloride__Specifications sheet Thiamine Hydrochloride.txt:14; Thiamine Hydrochloride__Specifications sheet Thiamine Hydrochloride USP.txt:13"
+    },
+    {
+      "testCode": "E.coli",
+      "procedure": "Microbiological examination per SOP C2I-91-128 and the material-specific verification report (spec sheet line 14 / 13; general microbiology test).",
+      "kind": "general",
+      "workflow": "Observation",
+      "details": {
+        "grades": [
+          "BP",
+          "USP"
+        ],
+        "limit": "Absent/10 gm",
+        "reference": "USP <2023>; BP",
+        "sop": "C2I-91-128"
+      },
+      "source": "Thiamine Hydrochloride__Specifications sheet Thiamine Hydrochloride.txt:14; Thiamine Hydrochloride__Specifications sheet Thiamine Hydrochloride USP.txt:13"
+    }
+  ],
+  "notApplicable": [],
+  "supplierAttributes": [],
+  "reagents": [
+    {
+      "name": "0.1 M perchloric acid VS",
+      "use": "titrant",
+      "source": "Thiamine Hydrochloride__STM-003 Thiamine Hydrochloride.txt:26"
+    },
+    {
+      "name": "Potassium hydrogen phthalate",
+      "use": "standard",
+      "source": "Thiamine Hydrochloride__STM-003 Thiamine Hydrochloride.txt:26"
+    },
+    {
+      "name": "Crystal violet solution",
+      "use": "indicator",
+      "source": "Thiamine Hydrochloride__STM-003 Thiamine Hydrochloride.txt:26"
+    },
+    {
+      "name": "1M Sodium Hydroxide VS",
+      "use": "reagent",
+      "source": "Thiamine Hydrochloride__STM-003 Thiamine Hydrochloride.txt:26"
+    },
+    {
+      "name": "Sodium Hydroxide Solution, dilute",
+      "use": "reagent",
+      "source": "Thiamine Hydrochloride__STM-003 Thiamine Hydrochloride.txt:26"
+    },
+    {
+      "name": "Acetic Acid, dilute",
+      "use": "reagent",
+      "source": "Thiamine Hydrochloride__STM-003 Thiamine Hydrochloride.txt:26"
+    },
+    {
+      "name": "Ammonium Hydroxide, 6 N",
+      "use": "reagent",
+      "source": "Thiamine Hydrochloride__STM-003 Thiamine Hydrochloride.txt:26"
+    },
+    {
+      "name": "Diluted Nitric Acid",
+      "use": "reagent",
+      "source": "Thiamine Hydrochloride__STM-003 Thiamine Hydrochloride.txt:26"
+    },
+    {
+      "name": "Nitric Acid, dilute",
+      "use": "reagent",
+      "source": "Thiamine Hydrochloride__STM-003 Thiamine Hydrochloride.txt:26"
+    },
+    {
+      "name": "Ferrous Sulfate TS",
+      "use": "reagent",
+      "source": "Thiamine Hydrochloride__STM-003 Thiamine Hydrochloride.txt:26"
+    },
+    {
+      "name": "Hydrochloric acid, Dilute",
+      "use": "reagent",
+      "source": "Thiamine Hydrochloride__STM-003 Thiamine Hydrochloride.txt:26"
+    },
+    {
+      "name": "Potassium ferricyanide solution",
+      "use": "reagent",
+      "source": "Thiamine Hydrochloride__STM-003 Thiamine Hydrochloride.txt:26"
+    },
+    {
+      "name": "Reference solution GY7",
+      "use": "standard",
+      "source": "Thiamine Hydrochloride__STM-003 Thiamine Hydrochloride.txt:26"
+    },
+    {
+      "name": "Reference solution Y7",
+      "use": "standard",
+      "source": "Thiamine Hydrochloride__STM-003 Thiamine Hydrochloride.txt:26"
+    },
+    {
+      "name": "Standard solution GY (greenish yellow)",
+      "use": "reagent",
+      "source": "Thiamine Hydrochloride__STM-003 Thiamine Hydrochloride.txt:26"
+    },
+    {
+      "name": "Standard solution Y (yellow)",
+      "use": "reagent",
+      "source": "Thiamine Hydrochloride__STM-003 Thiamine Hydrochloride.txt:26"
+    },
+    {
+      "name": "Yellow solution",
+      "use": "reagent",
+      "source": "Thiamine Hydrochloride__STM-003 Thiamine Hydrochloride.txt:26"
+    },
+    {
+      "name": "Red solution",
+      "use": "reagent",
+      "source": "Thiamine Hydrochloride__STM-003 Thiamine Hydrochloride.txt:26"
+    },
+    {
+      "name": "Blue primary solution",
+      "use": "reagent",
+      "source": "Thiamine Hydrochloride__STM-003 Thiamine Hydrochloride.txt:26"
+    },
+    {
+      "name": "Silver Nitrate Solution R1",
+      "use": "reagent",
+      "source": "Thiamine Hydrochloride__STM-003 Thiamine Hydrochloride.txt:26"
+    },
+    {
+      "name": "Silver nitrate TS",
+      "use": "reagent",
+      "source": "Thiamine Hydrochloride__STM-003 Thiamine Hydrochloride.txt:26"
+    },
+    {
+      "name": "Solution S",
+      "use": "reagent",
+      "source": "Thiamine Hydrochloride__STM-003 Thiamine Hydrochloride.txt:26"
+    },
+    {
+      "name": "Sulfate Standard Solution (10 ppm SO4) R1",
+      "use": "standard",
+      "source": "Thiamine Hydrochloride__STM-003 Thiamine Hydrochloride.txt:26"
+    },
+    {
+      "name": "Barium chloride",
+      "use": "reagent",
+      "source": "Thiamine Hydrochloride__STM-003 Thiamine Hydrochloride.txt:26"
+    },
+    {
+      "name": "Dipotassium sulfate",
+      "use": "standard",
+      "source": "Thiamine Hydrochloride__STM-003 Thiamine Hydrochloride.txt:26"
+    },
+    {
+      "name": "Water, Carbon Dioxide-free",
+      "use": "reagent",
+      "source": "Thiamine Hydrochloride__STM-003 Thiamine Hydrochloride.txt:26"
+    },
+    {
+      "name": "Thiamine hydrochloride CRS",
+      "use": "standard",
+      "source": "Thiamine Hydrochloride__STM-003 Thiamine Hydrochloride.txt:26"
+    },
+    {
+      "name": "USP Thiamine Hydrochloride RS",
+      "use": "standard",
+      "source": "Thiamine Hydrochloride__STM-003 Thiamine Hydrochloride.txt:26"
+    },
+    {
+      "name": "Thiamine for system suitability CRS",
+      "use": "standard",
+      "source": "Thiamine Hydrochloride__STM-003 Thiamine Hydrochloride.txt:26"
+    },
+    {
+      "name": "Methylbenzoate",
+      "use": "standard",
+      "source": "Thiamine Hydrochloride__STM-003 Thiamine Hydrochloride.txt:26"
+    },
+    {
+      "name": "Sodium 1-octanesulfonate",
+      "use": "reagent",
+      "source": "Thiamine Hydrochloride__STM-003 Thiamine Hydrochloride.txt:26"
+    },
+    {
+      "name": "Sodium hexanesulfonate",
+      "use": "reagent",
+      "source": "Thiamine Hydrochloride__STM-003 Thiamine Hydrochloride.txt:26"
+    },
+    {
+      "name": "Anhydrous formic acid",
+      "use": "reagent",
+      "source": "Thiamine Hydrochloride__STM-003 Thiamine Hydrochloride.txt:26"
+    },
+    {
+      "name": "Acetic anhydride",
+      "use": "reagent",
+      "source": "Thiamine Hydrochloride__STM-003 Thiamine Hydrochloride.txt:26"
+    },
+    {
+      "name": "Sulfuric acid",
+      "use": "reagent",
+      "source": "Thiamine Hydrochloride__STM-003 Thiamine Hydrochloride.txt:26,34,36"
+    },
+    {
+      "name": "Butanol",
+      "use": "reagent",
+      "source": "Thiamine Hydrochloride__STM-003 Thiamine Hydrochloride.txt:26"
+    },
+    {
+      "name": "Anhydrous sodium sulfite",
+      "use": "reagent",
+      "source": "Thiamine Hydrochloride__STM-003 Thiamine Hydrochloride.txt:26"
+    },
+    {
+      "name": "Methanol",
+      "use": "reagent",
+      "source": "Thiamine Hydrochloride__STM-003 Thiamine Hydrochloride.txt:26"
+    },
+    {
+      "name": "Acetonitrile",
+      "use": "reagent",
+      "source": "Thiamine Hydrochloride__STM-003 Thiamine Hydrochloride.txt:26"
+    },
+    {
+      "name": "Phosphoric acid",
+      "use": "reagent",
+      "source": "Thiamine Hydrochloride__STM-003 Thiamine Hydrochloride.txt:26"
+    }
+  ],
+  "openQuestions": [
+    {
+      "question": "BP assay calculation unit inconsistency: The formula is stated as ((E.P sample - E.P blank) x Eq.wt x F / Wt) x 100 with Eq.wt = 16.86 mg and sample weight 0.110 g. If Wt is entered in grams (0.110 g), the formula produces a result off by a factor of 1000 unless Wt is in mg (110 mg) or Eq.wt is converted to 0.01686 g. Row transcribed as written; confirm Wt unit.",
+      "source": "Thiamine Hydrochloride__STM-003 Thiamine Hydrochloride.txt:39"
+    },
+    {
+      "question": "USP HPLC assay anhydrous basis correction: The USP specification requires 98.0%-102.0% on an anhydrous basis, but the calculation formula in STM line 38 (Result = (RU/RS) x (CS/CU) x 100) does not include a moisture correction factor 100 / (100 - Water%) or specify pre-drying the sample. Confirm whether anhydrous correction is applied during calculation.",
+      "source": "Thiamine Hydrochloride__STM-003 Thiamine Hydrochloride.txt:38; Thiamine Hydrochloride__Specifications sheet Thiamine Hydrochloride USP.txt:11"
+    },
+    {
+      "question": "Microbiology procedures absent from STM: Both BP and USP specification sheets specify TAMC (NMT 10^3 CFU/gm), TYMC (NMT 10^2 CFU/gm), and E. coli (Absent / 10gm), but STM-003 contains only physicochemical testing procedures. Microbiology tests are handled per general SOP C2I-91-128.",
+      "source": "Thiamine Hydrochloride__STM-003 Thiamine Hydrochloride.txt:26-56; Thiamine Hydrochloride__Specifications sheet Thiamine Hydrochloride.txt:14; Thiamine Hydrochloride__Specifications sheet Thiamine Hydrochloride USP.txt:13"
+    },
+    {
+      "question": "BP Related substances specification row splitting: Spec sheet line 13 states 'Impurity A, C: for each impurity, maximum 0.15 per cent.' This has been split into two discrete specification rows: 'Related substances: Impurity A' (NMT 0.15%) and 'Related substances: Impurity C' (NMT 0.15%).",
+      "source": "Thiamine Hydrochloride__Specifications sheet Thiamine Hydrochloride.txt:13; Thiamine Hydrochloride__STM-003 Thiamine Hydrochloride.txt:42"
+    },
+    {
+      "question": "Alternative HPLC assay for BP omitted: STM section 6.13 (line 40) describes an alternative HPLC assay for BP. Per transcription instructions (main method only), only the primary potentiometric titration method (section 6.12, line 39) has been transcribed.",
+      "source": "Thiamine Hydrochloride__STM-003 Thiamine Hydrochloride.txt:39-40"
+    }
+  ]
+}

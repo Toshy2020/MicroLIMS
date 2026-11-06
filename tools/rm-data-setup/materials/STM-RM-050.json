@@ -1,0 +1,557 @@
+{
+  "itemCode": "STM-RM-050",
+  "itemName": "Zinc Gluconate",
+  "stmCode": "STM-RM-050",
+  "stmFile": "Zinc Gluconate__STM Calcium  Zinc Gluconate.txt",
+  "specFiles": ["Zinc Gluconate__Specifications sheet Zinc Gluconate - New.txt"],
+  "minQuantity": {
+    "routine": 100,
+    "retest": 60,
+    "retention": 100,
+    "unit": "g",
+    "source": "Zinc Gluconate__Specifications sheet Zinc Gluconate - New.txt:24; Zinc Gluconate__STM Calcium  Zinc Gluconate.txt:41"
+  },
+  "grades": [
+    {
+      "grade": "USP",
+      "rows": [
+        {
+          "testCode": "RM-DESC",
+          "parameterName": "Appearance",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "White or practically white powder or granules",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Zinc Gluconate__Specifications sheet Zinc Gluconate - New.txt:11"
+        },
+        {
+          "testCode": "RM-SOLUB",
+          "parameterName": "Solubility",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Soluble in water; very slightly soluble in alcohol",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Zinc Gluconate__Specifications sheet Zinc Gluconate - New.txt:12"
+        },
+        {
+          "testCode": "RM-ID-ZN-GLU",
+          "parameterName": "Identification (reactions of zinc)",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Comply with Reactions of Zinc",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Zinc Gluconate__Specifications sheet Zinc Gluconate - New.txt:13"
+        },
+        {
+          "testCode": "RM-ID-TLC-GLU",
+          "parameterName": "Identification (TLC)",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "The principal spot of the Sample solution corresponds in color, size, to that of the Standard solution.",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Zinc Gluconate__Specifications sheet Zinc Gluconate - New.txt:14"
+        },
+        {
+          "testCode": "RM-LT-CL",
+          "parameterName": "Chloride",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Complies (NMT 0.05%)",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Zinc Gluconate__Specifications sheet Zinc Gluconate - New.txt:15"
+        },
+        {
+          "testCode": "RM-LT-SO4",
+          "parameterName": "Sulfate",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Complies (NMT 0.05%)",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Zinc Gluconate__Specifications sheet Zinc Gluconate - New.txt:16"
+        },
+        {
+          "testCode": "RM-LT-AS-ZNGLU",
+          "parameterName": "Arsenic",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Complies (NMT 3 ppm)",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Zinc Gluconate__Specifications sheet Zinc Gluconate - New.txt:17"
+        },
+        {
+          "testCode": "RM-PB-ZNGLU",
+          "parameterName": "Lead",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Complies (NMT 10 ppm)",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Zinc Gluconate__Specifications sheet Zinc Gluconate - New.txt:18"
+        },
+        {
+          "testCode": "RM-CD-ZNGLU",
+          "parameterName": "Cadmium",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 5,
+          "lowerInclusive": null,
+          "unit": "ppm",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Zinc Gluconate__Specifications sheet Zinc Gluconate - New.txt:19",
+          "heldBack": "needs the held-back method \"Zinc gluconate cadmium (AAS, standard addition)\""
+        },
+        {
+          "testCode": "RM-RED-ZNGLU",
+          "parameterName": "Reducing substances (as dextrose)",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 1.0,
+          "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": "PercentAsIs",
+          "referenceStandard": "USP",
+          "source": "Zinc Gluconate__Specifications sheet Zinc Gluconate - New.txt:20"
+        },
+        {
+          "testCode": "RM-PH",
+          "parameterName": "pH",
+          "limitType": "Range",
+          "lower": 5.5,
+          "upper": 7.5,
+          "lowerInclusive": true,
+          "unit": null,
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Zinc Gluconate__Specifications sheet Zinc Gluconate - New.txt:21"
+        },
+        {
+          "testCode": "RM-KF",
+          "parameterName": "Water (Karl Fischer)",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 11.6,
+          "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Zinc Gluconate__Specifications sheet Zinc Gluconate - New.txt:22"
+        },
+        {
+          "testCode": "RM-TIT-ZNGLU",
+          "parameterName": "Assay",
+          "limitType": "Range",
+          "lower": 97.0,
+          "upper": 102.0,
+          "lowerInclusive": true,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": "PercentAnhydrousBasis",
+          "referenceStandard": "USP",
+          "source": "Zinc Gluconate__Specifications sheet Zinc Gluconate - New.txt:23"
+        },
+        {
+          "testCode": "TAMC",
+          "parameterName": "Total Aerobic Microbial Count (TAMC)",
+          "limitType": "CountTiered",
+          "lower": null,
+          "upper": 1000,
+          "lowerInclusive": null,
+          "unit": "CFU/g",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": null,
+          "source": "Zinc Gluconate__Specifications sheet Zinc Gluconate - New.txt:24"
+        },
+        {
+          "testCode": "TYMC",
+          "parameterName": "Total combined Yeasts & Molds Count (TYMC)",
+          "limitType": "CountTiered",
+          "lower": null,
+          "upper": 100,
+          "lowerInclusive": null,
+          "unit": "CFU/g",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": null,
+          "source": "Zinc Gluconate__Specifications sheet Zinc Gluconate - New.txt:24"
+        },
+        {
+          "testCode": "E.coli",
+          "parameterName": "Escherichia coli",
+          "limitType": "PresenceAbsence",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": "per 10 g",
+          "expectedResultText": "Absent /10 gm",
+          "expectedState": "Absence",
+          "resultBasis": null,
+          "referenceStandard": null,
+          "source": "Zinc Gluconate__Specifications sheet Zinc Gluconate - New.txt:24"
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "testCode": "RM-DESC",
+      "procedure": "Under strong white light check each received sample container separately in a clean transparent watch glass or glass dish for foreign particles, colour and conformity with the visual specification.",
+      "kind": "general",
+      "workflow": "Observation",
+      "details": {
+        "perContainer": true,
+        "grades": ["USP"],
+        "reference": "USP Description and Relative Solubility"
+      },
+      "source": "Zinc Gluconate__STM Calcium  Zinc Gluconate.txt:28"
+    },
+    {
+      "testCode": "RM-SOLUB",
+      "procedure": "Weigh 100 mg in a stoppered tube; add 0.1 mL solvent, shake 1 min, hold at 25.0 ± 0.5 °C for 15 min, repeat shake/hold once if not dissolved; add 0.9 mL, then 2 mL, then 7 mL solvent with the same shake and hold steps to classify very soluble / freely soluble / soluble / sparingly soluble; if still undissolved use 10 mg in 10 mL (slightly soluble), then 1 mg in 10 mL (very slightly soluble), else practically insoluble. Repeat with the other solvent.",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {
+        "grades": ["USP"],
+        "sample": "100 mg",
+        "temperature": "25.0 ± 0.5 °C",
+        "holdMin": 15,
+        "shakeMin": 1,
+        "volumesMl": [0.1, 0.9, 2, 7],
+        "smallSampleSteps": ["10 mg in 10 mL", "1 mg in 10 mL"],
+        "solvents": ["water", "alcohol"],
+        "reference": "USP Description and Relative Solubility"
+      },
+      "source": "Zinc Gluconate__STM Calcium  Zinc Gluconate.txt:29"
+    },
+    {
+      "testCode": "RM-ID-ZN-GLU",
+      "procedure": "Identification test 1 (reactions of zinc) on a 100 mg/mL solution: (A) with sodium acetate, hydrogen sulfide gives a white precipitate insoluble in acetic acid but dissolved by 3 N hydrochloric acid; (B) ammonium sulfide TS gives a similar precipitate in neutral and alkaline solution; (C) potassium ferrocyanide TS gives a white precipitate insoluble in 3 N hydrochloric acid.",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "details": {
+        "grades": ["USP"],
+        "solution": "100 mg/mL",
+        "reactionA": "sodium acetate + hydrogen sulfide",
+        "reactionB": "ammonium sulfide TS",
+        "reactionC": "potassium ferrocyanide TS",
+        "reference": "USP <191> Identification Tests - General"
+      },
+      "source": "Zinc Gluconate__STM Calcium  Zinc Gluconate.txt:30"
+    },
+    {
+      "testCode": "RM-ID-TLC-GLU",
+      "procedure": "TLC identification: standard 10 mg/mL USP Potassium Gluconate RS; sample 10 mg/mL Zinc Gluconate (warm at 60 °C if needed). Silica gel 0.25 mm layer; apply 5 µL; develop with alcohol : ethyl acetate : ammonium hydroxide : water (50:10:10:30) to about three-quarters of the plate; dry at 110 °C 20 min; spray with ammonium molybdate / ceric sulfate reagent; heat at 110 °C about 10 min.",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "details": {
+        "grades": ["USP"],
+        "standard": "10 mg/mL USP Potassium Gluconate RS",
+        "sample": "10 mg/mL",
+        "adsorbent": "0.25 mm chromatographic silica gel",
+        "applicationUl": 5,
+        "developingSolvent": "alcohol : ethyl acetate : ammonium hydroxide : water 50:10:10:30",
+        "sprayReagent": "2.5 g ammonium molybdate in 50 mL 2 N sulfuric acid; add 1.0 g ceric sulfate; dilute with 2 N sulfuric acid to 100 mL",
+        "reference": "USP <621> Thin-Layer Chromatography"
+      },
+      "source": "Zinc Gluconate__STM Calcium  Zinc Gluconate.txt:30"
+    },
+    {
+      "testCode": "RM-LT-CL",
+      "procedure": "Chloride limit test: sample 1.0 g dissolved in 30-40 mL water, neutralised with nitric acid to litmus if necessary; add 1 mL nitric acid and 1 mL silver nitrate TS, water to 50 mL; stand 5 min protected from direct sunlight; compare turbidity with the standard (0.7 mL of 0.020 N hydrochloric acid).",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {
+        "grades": ["USP"],
+        "sampleG": 1.0,
+        "standardMl": 0.7,
+        "standardNormality": "0.020 N hydrochloric acid",
+        "limit": "NMT 0.05%",
+        "reference": "USP <221> Chloride"
+      },
+      "source": "Zinc Gluconate__STM Calcium  Zinc Gluconate.txt:31"
+    },
+    {
+      "testCode": "RM-LT-SO4",
+      "procedure": "Sulfate limit test: sample 2.0 g dissolved in 30-40 mL water, neutralised with hydrochloric acid to litmus if necessary; add 1 mL 3 N hydrochloric acid, 3 mL barium chloride TS, water to 50 mL; stand 10 min; compare turbidity with the standard (1.0 mL of 0.020 N sulfuric acid).",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {
+        "grades": ["USP"],
+        "sampleG": 2.0,
+        "standardMl": 1.0,
+        "standardNormality": "0.020 N sulfuric acid",
+        "limit": "NMT 0.05%",
+        "reference": "USP <221> Sulfate"
+      },
+      "source": "Zinc Gluconate__STM Calcium  Zinc Gluconate.txt:32"
+    },
+    {
+      "testCode": "RM-LT-AS-ZNGLU",
+      "procedure": "Arsenic limit test (arsenic apparatus, procedure 1): test preparation 1 g in 35 mL water; standard 3.0 mL standard arsenic solution in 35 mL water; both treated with 20 mL 7 N sulfuric acid, potassium iodide TS, stannous chloride TS and isopropyl alcohol, stand 30 min; generate arsine with granular zinc through a lead-acetate cotton scrubber into silver diethyldithiocarbamate TS for 45 min at room temperature. Test colour must not exceed the standard.",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "details": {
+        "grades": ["USP"],
+        "sampleG": 1.0,
+        "testVolumeMl": 35,
+        "standardArsenicMl": 3.0,
+        "standardVolumeMl": 35,
+        "sulfuricAcidMl": 20,
+        "zinc": "3.0 g granular zinc (#20 mesh)",
+        "absorberReagent": "3.0 mL silver diethyldithiocarbamate TS",
+        "developmentMin": 45,
+        "limit": "NMT 3 ppm",
+        "reference": "USP <211> Procedure 1; in-house method validation for arsenic",
+        "technique": "arsenic apparatus (colour); spec sheet says arsenic apparatus / AAS (see openQuestions)"
+      },
+      "source": "Zinc Gluconate__STM Calcium  Zinc Gluconate.txt:33"
+    },
+    {
+      "testCode": "RM-PB-ZNGLU",
+      "procedure": "Lead limit test by AAS: sample 1.0 g with 9 N hydrochloric acid, water, ascorbic acid-sodium iodide solution and trioctylphosphine oxide solution, shaken and separated; organic layer is the sample solution. Standard: organic layer containing 2 µg/mL lead (from lead nitrate stock). Blank: same reagents without sample. Atomic absorption at 283.3 nm, lead hollow-cathode lamp, air-acetylene flame. Sample absorbance must not exceed the standard absorbance.",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "details": {
+        "grades": ["USP"],
+        "sampleG": 1.0,
+        "standardLeadUgMl": 2,
+        "wavelengthNm": 283.3,
+        "lamp": "lead hollow-cathode",
+        "flame": "air-acetylene",
+        "systemSuitability": "absorbance of the standard and blank significantly different",
+        "limit": "NMT 10 ppm",
+        "reference": "USP <852>"
+      },
+      "source": "Zinc Gluconate__STM Calcium  Zinc Gluconate.txt:34"
+    },
+    {
+      "testCode": "RM-CD-ZNGLU",
+      "procedure": "Cadmium by AAS, standard addition: sample stock 10.0 g in 50 mL water; solution A = 5.0 mL stock to 25 mL (0 µg/mL added Cd), solution B = 5.0 mL stock + 2.0 mL Cd standard (12.5 µg/mL) to 25 mL (1.0 µg/mL added), solution C = 5.0 mL stock + 4.0 mL Cd standard to 25 mL (2.0 µg/mL added); blank water. Cadmium hollow-cathode lamp, 228.8 nm, air-acetylene flame; determine absorbances of A, B and C. The calculation of the cadmium result from the absorbances is not stated.",
+      "kind": "specific",
+      "workflow": "IcpMethodAssay",
+      "details": {
+        "grades": ["USP"],
+        "sampleStockG": 10.0,
+        "sampleStockMl": 50,
+        "solutionAMl": 5.0,
+        "solutionBMl": 5.0,
+        "solutionCMl": 5.0,
+        "finalVolumeMl": 25,
+        "standardAddedUgMl": [0, 1.0, 2.0],
+        "standardStock": "0.1372 mg/mL cadmium nitrate; standard 12.5 µg/mL Cd (25 mL stock to 100 mL with 1 mL HCl)",
+        "wavelengthNm": 228.8,
+        "lamp": "cadmium hollow-cathode",
+        "flame": "air-acetylene",
+        "blank": "water",
+        "limit": "NMT 5 ppm",
+        "reference": "USP <852>"
+      },
+      "source": "Zinc Gluconate__STM Calcium  Zinc Gluconate.txt:35",
+      "heldBack": "ICP method incomplete: calculation of the cadmium result from the absorbances of solutions A, B and C is not stated"
+    },
+    {
+      "testCode": "RM-RED-ZNGLU",
+      "procedure": "Reducing substances (residual titration): sample 1.0 g dissolved in 10 mL water in a 250 mL flask; add 25 mL alkaline cupric citrate TS, cover, boil gently 5 min (timed), cool rapidly; add 25 mL 0.6 N acetic acid, 10.0 mL 0.1 N iodine VS and 10 mL 3 N hydrochloric acid; titrate the excess iodine with 0.1 N sodium thiosulfate VS, adding starch TS near the endpoint; blank with 10 mL water. Result % (as dextrose) = [(VB - VS) x N x F / W] x 100, F = 27 mg/mEq.",
+      "kind": "specific",
+      "workflow": "Titration",
+      "details": {
+        "grades": ["USP"],
+        "sampleG": 1.0,
+        "blank": "10 mL water",
+        "cupricCitrateMl": 25,
+        "boilMin": 5,
+        "aceticAcidMl": 25,
+        "iodineMl": 10.0,
+        "hydrochloricAcidMl": 10,
+        "titrant": "0.1 N iodine VS (residual), back titrant 0.1 N sodium thiosulfate VS",
+        "indicator": "starch TS, 3 mL near the endpoint",
+        "endpoint": "visual",
+        "mode": "residual titration",
+        "formula": "Result = [((VB - VS) x N x F) / W] x 100; VB = blank back titrant (mL), VS = sample back titrant (mL), N = back titrant normality (mEq/mL), F = 27 mg/mEq, W = sample weight (mg)",
+        "reference": "USP <541>"
+      },
+      "source": "Zinc Gluconate__STM Calcium  Zinc Gluconate.txt:36"
+    },
+    {
+      "testCode": "RM-PH",
+      "procedure": "pH: measure a 10 mg/mL solution of the sample with a calibrated pH meter.",
+      "kind": "general",
+      "workflow": "Measurement",
+      "details": {
+        "grades": ["USP"],
+        "solutionMgMl": 10,
+        "reference": "USP <791>"
+      },
+      "source": "Zinc Gluconate__STM Calcium  Zinc Gluconate.txt:37"
+    },
+    {
+      "testCode": "RM-KF",
+      "procedure": "Water determination: Karl Fischer titration of the sample with a calibrated Karl Fischer apparatus.",
+      "kind": "general",
+      "workflow": "Measurement",
+      "details": {
+        "grades": ["USP"],
+        "moistureRole": "Water",
+        "method": "USP <921> Method Ib",
+        "reference": "USP <921> Water Determination, Method Ib"
+      },
+      "source": "Zinc Gluconate__STM Calcium  Zinc Gluconate.txt:38"
+    },
+    {
+      "testCode": "RM-TIT-ZNGLU",
+      "procedure": "Assay (direct complexometric titration): sample 700 mg dissolved in 100 mL water; add 5 mL ammonia-ammonium chloride buffer TS and 0.1 mL Eriochrome black TS; titrate with 0.05 M edetate disodium VS to deep blue; blank 100 mL water. Result % = [(VS - VB) x M x F / W] x 100, F = 455.7 mg/mmol, W in mg.",
+      "kind": "specific",
+      "workflow": "Titration",
+      "details": {
+        "grades": ["USP"],
+        "sampleMg": 700,
+        "solvent": "100 mL water",
+        "bufferMl": 5,
+        "indicator": "Eriochrome black TS, 0.1 mL",
+        "titrant": "0.05 M edetate disodium VS",
+        "titrantStandardization": "about 200 mg chelometric standard calcium carbonate, dried at 210 °C for 4 h, dissolved with dilute hydrochloric acid, titrated with edetate disodium with hydroxy naphthol blue at pH 12-13; M = (gCaCO3 x Assay/100 x 1000) / (100.09 x mL EDTA)",
+        "endpoint": "visual, deep blue",
+        "blank": "100 mL water",
+        "equivalenceFactor": "455.7 mg/mmol",
+        "formula": "Result = [((VS - VB) x M x F) / W] x 100; VS = sample titrant (mL), VB = blank titrant (mL), M = titrant molarity (mmol/mL), F = 455.7 mg/mmol, W = sample weight (mg)",
+        "specBasis": "anhydrous basis",
+        "reference": "USP <541>"
+      },
+      "source": "Zinc Gluconate__STM Calcium  Zinc Gluconate.txt:39"
+    },
+    {
+      "testCode": "TAMC",
+      "procedure": "Total aerobic microbial count: limit per spec sheet; no microbiological method is stated in the STM.",
+      "kind": "general",
+      "workflow": "CountTest",
+      "details": {
+        "limit": "NMT 1000 CFU/gm"
+      },
+      "source": "Zinc Gluconate__Specifications sheet Zinc Gluconate - New.txt:24"
+    },
+    {
+      "testCode": "TYMC",
+      "procedure": "Total combined yeasts and moulds count: limit per spec sheet; no microbiological method is stated in the STM.",
+      "kind": "general",
+      "workflow": "CountTest",
+      "details": {
+        "limit": "NMT 100 CFU/gm"
+      },
+      "source": "Zinc Gluconate__Specifications sheet Zinc Gluconate - New.txt:24"
+    },
+    {
+      "testCode": "E.coli",
+      "procedure": "Escherichia coli: absence in 10 g per spec sheet; no microbiological method is stated in the STM.",
+      "kind": "general",
+      "workflow": "Observation",
+      "details": {
+        "limit": "Absent /10 gm"
+      },
+      "source": "Zinc Gluconate__Specifications sheet Zinc Gluconate - New.txt:24"
+    }
+  ],
+  "notApplicable": [],
+  "supplierAttributes": [],
+  "reagents": [
+    { "name": "Potassium ferrocyanide TS", "use": "reagent", "source": "Zinc Gluconate__STM Calcium  Zinc Gluconate.txt:26" },
+    { "name": "Potassium Gluconate RS", "use": "standard", "source": "Zinc Gluconate__STM Calcium  Zinc Gluconate.txt:26" },
+    { "name": "Ammonium molybdate", "use": "reagent", "source": "Zinc Gluconate__STM Calcium  Zinc Gluconate.txt:26" },
+    { "name": "Ceric sulfate", "use": "reagent", "source": "Zinc Gluconate__STM Calcium  Zinc Gluconate.txt:26" },
+    { "name": "Ethyl acetate", "use": "reagent", "source": "Zinc Gluconate__STM Calcium  Zinc Gluconate.txt:26" },
+    { "name": "Ammonium hydroxide", "use": "reagent", "source": "Zinc Gluconate__STM Calcium  Zinc Gluconate.txt:26" },
+    { "name": "Nitric acid", "use": "reagent", "source": "Zinc Gluconate__STM Calcium  Zinc Gluconate.txt:26" },
+    { "name": "Silver nitrate TS", "use": "reagent", "source": "Zinc Gluconate__STM Calcium  Zinc Gluconate.txt:26" },
+    { "name": "Barium chloride TS", "use": "reagent", "source": "Zinc Gluconate__STM Calcium  Zinc Gluconate.txt:26" },
+    { "name": "Sulfuric acid, 7 N and 2 N", "use": "reagent", "source": "Zinc Gluconate__STM Calcium  Zinc Gluconate.txt:26" },
+    { "name": "Hydrochloric acid, 3 N and 9 N", "use": "reagent", "source": "Zinc Gluconate__STM Calcium  Zinc Gluconate.txt:26" },
+    { "name": "Ascorbic acid-sodium iodide solution", "use": "reagent", "source": "Zinc Gluconate__STM Calcium  Zinc Gluconate.txt:26" },
+    { "name": "Trioctylphosphine oxide solution", "use": "reagent", "source": "Zinc Gluconate__STM Calcium  Zinc Gluconate.txt:26" },
+    { "name": "Standard arsenic solution (1000 ppm)", "use": "standard", "source": "Zinc Gluconate__STM Calcium  Zinc Gluconate.txt:26" },
+    { "name": "Lead standard solution (1000 ppm) / lead nitrate stock solution", "use": "standard", "source": "Zinc Gluconate__STM Calcium  Zinc Gluconate.txt:26" },
+    { "name": "Cadmium standard solution (1000 ppm) / cadmium nitrate", "use": "standard", "source": "Zinc Gluconate__STM Calcium  Zinc Gluconate.txt:26" },
+    { "name": "Silver diethyldithiocarbamate TS", "use": "reagent", "source": "Zinc Gluconate__STM Calcium  Zinc Gluconate.txt:26" },
+    { "name": "Granular zinc (#20 mesh)", "use": "reagent", "source": "Zinc Gluconate__STM Calcium  Zinc Gluconate.txt:26" },
+    { "name": "Alkaline cupric citrate TS", "use": "reagent", "source": "Zinc Gluconate__STM Calcium  Zinc Gluconate.txt:26" },
+    { "name": "Iodine 0.1 N VS", "use": "titrant", "source": "Zinc Gluconate__STM Calcium  Zinc Gluconate.txt:36" },
+    { "name": "Sodium thiosulfate 0.1 N VS", "use": "titrant", "source": "Zinc Gluconate__STM Calcium  Zinc Gluconate.txt:36" },
+    { "name": "Starch TS (soluble starch)", "use": "indicator", "source": "Zinc Gluconate__STM Calcium  Zinc Gluconate.txt:36" },
+    { "name": "Edetate disodium 0.05 M VS", "use": "titrant", "source": "Zinc Gluconate__STM Calcium  Zinc Gluconate.txt:39" },
+    { "name": "Eriochrome black TS", "use": "indicator", "source": "Zinc Gluconate__STM Calcium  Zinc Gluconate.txt:39" },
+    { "name": "Ammonia-ammonium chloride buffer TS", "use": "reagent", "source": "Zinc Gluconate__STM Calcium  Zinc Gluconate.txt:39" },
+    { "name": "Calcium carbonate (chelometric standard)", "use": "standard", "source": "Zinc Gluconate__STM Calcium  Zinc Gluconate.txt:39" },
+    { "name": "Hydroxy naphthol blue", "use": "indicator", "source": "Zinc Gluconate__STM Calcium  Zinc Gluconate.txt:39" }
+  ],
+  "openQuestions": [
+    {
+      "question": "Cadmium: the STM gives the absorbances of sample solutions A, B and C but no calculation of the cadmium result; row and test held back until the calculation is supplied.",
+      "source": "Zinc Gluconate__STM Calcium  Zinc Gluconate.txt:35"
+    },
+    {
+      "question": "Lead: the STM compares the sample absorbance with a single standard (2 µg/mL), not a calibration curve; loaded as a Qualitative comparison. Confirm.",
+      "source": "Zinc Gluconate__STM Calcium  Zinc Gluconate.txt:34; Zinc Gluconate__Specifications sheet Zinc Gluconate - New.txt:18"
+    },
+    {
+      "question": "Arsenic: the spec sheet technique is 'Arsenic apparatus/ AAS', the STM procedure is the colour comparison (arsenic apparatus); loaded as a Qualitative comparison. Confirm the technique.",
+      "source": "Zinc Gluconate__Specifications sheet Zinc Gluconate - New.txt:17; Zinc Gluconate__STM Calcium  Zinc Gluconate.txt:33"
+    },
+    {
+      "question": "Assay is stated on the anhydrous basis, but the formula has no water (Karl Fischer) correction. Confirm how the anhydrous basis is obtained.",
+      "source": "Zinc Gluconate__STM Calcium  Zinc Gluconate.txt:39; Zinc Gluconate__Specifications sheet Zinc Gluconate - New.txt:23"
+    },
+    {
+      "question": "Microbiological methods (TAMC, TYMC, E. coli) are not in this STM; rows loaded from the spec sheet limits only.",
+      "source": "Zinc Gluconate__Specifications sheet Zinc Gluconate - New.txt:24"
+    }
+  ]
+}

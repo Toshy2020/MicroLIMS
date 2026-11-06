@@ -1,0 +1,536 @@
+{
+  "itemCode": "STM-RM-062",
+  "stmCode": "STM-RM-062",
+  "itemName": "Liquid Sorbitol (Non-crystallizing)",
+  "stmFile": "Liquid Sorbitol__Liquid Sorbitol - SM.txt",
+  "specFiles": [
+    "Liquid Sorbitol__Specifications sheet Liquid Sorbitol.txt"
+  ],
+  "minQuantity": {
+    "routine": 100,
+    "retest": 50,
+    "retention": 100,
+    "unit": "g",
+    "source": "Liquid Sorbitol__Specifications sheet Liquid Sorbitol.txt:24; Liquid Sorbitol__Liquid Sorbitol - SM.txt:41"
+  },
+  "grades": [
+    {
+      "grade": "BP",
+      "rows": [
+        {
+          "testCode": "RM-DESC",
+          "parameterName": "Appearance",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Clear, colorless, syrupy liquid, miscible with water",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Liquid Sorbitol__Specifications sheet Liquid Sorbitol.txt:11"
+        },
+        {
+          "testCode": "RM-SOLAPP",
+          "parameterName": "Appearance of solution",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Clear and colorless.",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Liquid Sorbitol__Specifications sheet Liquid Sorbitol.txt:12"
+        },
+        {
+          "testCode": "RM-ID-VIS-SORB",
+          "parameterName": "Identification (Visual)",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "It is a clear, syrupy liquid at 25 °C",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Liquid Sorbitol__Specifications sheet Liquid Sorbitol.txt:13"
+        },
+        {
+          "testCode": "RM-ID-RT",
+          "parameterName": "Identification (HPLC)",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "The principal peak in the chromatogram obtained with the test solution is similar in position to the principal peak in the chromatogram obtained with the reference solution",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Liquid Sorbitol__Specifications sheet Liquid Sorbitol.txt:14"
+        },
+        {
+          "testCode": "RM-OPTROT-SORB",
+          "parameterName": "Identification (Polarimeter)",
+          "limitType": "Range",
+          "lower": 1.5,
+          "upper": 3.5,
+          "lowerInclusive": true,
+          "unit": "°",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Liquid Sorbitol__Specifications sheet Liquid Sorbitol.txt:15"
+        },
+        {
+          "testCode": "RM-COND",
+          "parameterName": "Conductivity",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 10,
+          "lowerInclusive": null,
+          "unit": "µS·cm-1",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Liquid Sorbitol__Specifications sheet Liquid Sorbitol.txt:16"
+        },
+        {
+          "testCode": "RM-KF",
+          "parameterName": "Water",
+          "limitType": "Range",
+          "lower": 28.0,
+          "upper": 32.0,
+          "lowerInclusive": true,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Liquid Sorbitol__Specifications sheet Liquid Sorbitol.txt:17"
+        },
+        {
+          "testCode": "RM-RED-SUG",
+          "parameterName": "Reducing sugars",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 0.2,
+          "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Liquid Sorbitol__Specifications sheet Liquid Sorbitol.txt:18"
+        },
+        {
+          "testCode": "RM-RED-SUG-HYD",
+          "parameterName": "Reducing sugars after hydrolysis",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 9.3,
+          "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Liquid Sorbitol__Specifications sheet Liquid Sorbitol.txt:19"
+        },
+        {
+          "testCode": "RM-HPLC-SORB-AS",
+          "parameterName": "Assay: Anhydrous substance",
+          "limitType": "Range",
+          "lower": 68.0,
+          "upper": 72.0,
+          "lowerInclusive": true,
+          "unit": "% m/m",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": "PercentAsIs",
+          "referenceStandard": "BP",
+          "source": "Liquid Sorbitol__Specifications sheet Liquid Sorbitol.txt:20",
+          "heldBack": "needs the held-back method \"Liquid sorbitol assay (BP, HPLC-RI)\""
+        },
+        {
+          "testCode": "RM-HPLC-SORB-AS",
+          "parameterName": "Assay: D-sorbitol",
+          "limitType": "Range",
+          "lower": 72.0,
+          "upper": 92.0,
+          "lowerInclusive": true,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": "PercentAnhydrousBasis",
+          "referenceStandard": "BP",
+          "source": "Liquid Sorbitol__Specifications sheet Liquid Sorbitol.txt:20",
+          "heldBack": "needs the held-back method \"Liquid sorbitol assay (BP, HPLC-RI)\""
+        },
+        {
+          "testCode": "RM-TAMC",
+          "parameterName": "Total aerobic microbial count",
+          "limitType": "CountTiered",
+          "lower": null,
+          "upper": 1000,
+          "lowerInclusive": null,
+          "unit": "CFU/mL",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Liquid Sorbitol__Specifications sheet Liquid Sorbitol.txt:21"
+        },
+        {
+          "testCode": "RM-TYMC",
+          "parameterName": "Total yeasts and molds count",
+          "limitType": "CountTiered",
+          "lower": null,
+          "upper": 100,
+          "lowerInclusive": null,
+          "unit": "CFU/mL",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Liquid Sorbitol__Specifications sheet Liquid Sorbitol.txt:22"
+        },
+        {
+          "testCode": "RM-ECOLI",
+          "parameterName": "E. coli",
+          "limitType": "PresenceAbsence",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": "per 10 mL",
+          "expectedResultText": "Absent /10 ml",
+          "expectedState": "Absence",
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Liquid Sorbitol__Specifications sheet Liquid Sorbitol.txt:23"
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "testCode": "RM-DESC",
+      "procedure": "Under strong white light, check each received sample container separately in clean, transparent watch glass or glass dish to detect any foreign particles, conformance of colour & compliance with the visual specifications.",
+      "kind": "general",
+      "workflow": "Observation",
+      "details": {
+        "perContainer": true,
+        "specification": "Clear, colorless, syrupy liquid, miscible with water.",
+        "reference": "BP 2025 Monograph for Liquid Sorbitol"
+      },
+      "source": "Liquid Sorbitol__Liquid Sorbitol - SM.txt:30"
+    },
+    {
+      "testCode": "RM-SOLAPP",
+      "procedure": "Dilute 7.0 g to 50 mL with water. Compare with the same amount of water as standard.",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "details": {
+        "sampleG": 7.0,
+        "dilutionMl": 50,
+        "standard": "Water (same volume)",
+        "specification": "The solution is clear and colorless.",
+        "reference": "BP Appendix IV B & IV A; BP 2025 Monograph"
+      },
+      "source": "Liquid Sorbitol__Liquid Sorbitol - SM.txt:32"
+    },
+    {
+      "testCode": "RM-ID-VIS-SORB",
+      "procedure": "Inspect a sufficient quantity of sample visually at 25 °C.",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "details": {
+        "temperature": "25 °C",
+        "specification": "It is a clear, syrupy liquid at 25 °C.",
+        "reference": "BP 2025 Monograph for Liquid Sorbitol"
+      },
+      "source": "Liquid Sorbitol__Liquid Sorbitol - SM.txt:31"
+    },
+    {
+      "testCode": "RM-ID-RT",
+      "procedure": "The principal peak in the chromatogram obtained with the test solution is similar in retention time to the principal peak in the chromatogram obtained with reference solution, as obtained in the Assay.",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "details": {
+        "specification": "Similar in retention time to reference solution",
+        "reference": "BP 2025 Monograph for Liquid Sorbitol"
+      },
+      "source": "Liquid Sorbitol__Liquid Sorbitol - SM.txt:31"
+    },
+    {
+      "testCode": "RM-OPTROT-SORB",
+      "procedure": "To 7.0 g add 40 mL water and 6.4 g disodium tetraborate. Allow to stand 1 h, shaking occasionally. Dilute to 50.0 mL with water, filter if necessary. Measure on calibrated polarimeter.",
+      "kind": "specific",
+      "workflow": "Measurement",
+      "details": {
+        "sampleG": 7.0,
+        "borateG": 6.4,
+        "standTimeHours": 1,
+        "volumeMl": 50.0,
+        "specification": "+ 1.5° to + 3.5°",
+        "reference": "BP Appendix V F; BP 2025 Monograph"
+      },
+      "source": "Liquid Sorbitol__Liquid Sorbitol - SM.txt:31"
+    },
+    {
+      "testCode": "RM-COND",
+      "procedure": "Measure on undiluted liquid sorbitol while gently stirring with magnetic stirrer using calibrated conductivity meter.",
+      "kind": "general",
+      "workflow": "Measurement",
+      "details": {
+        "sample": "undiluted liquid sorbitol",
+        "stirring": "magnetic stirrer",
+        "specification": "Maximum 10 µS·cm–1",
+        "reference": "BP Appendix V O. Conductivity; BP 2025 Monograph"
+      },
+      "source": "Liquid Sorbitol__Liquid Sorbitol - SM.txt:33"
+    },
+    {
+      "testCode": "RM-KF",
+      "procedure": "Determined on 0.1 g sample using calibrated Karl Fischer apparatus.",
+      "kind": "general",
+      "workflow": "Measurement",
+      "details": {
+        "sampleG": 0.1,
+        "specification": "28.0 per cent to 32.0 per cent",
+        "reference": "BP Appendix IX C. Determination of Water; BP 2025 Monograph"
+      },
+      "source": "Liquid Sorbitol__Liquid Sorbitol - SM.txt:36"
+    },
+    {
+      "testCode": "RM-RED-SUG",
+      "procedure": "To 5.0 g add 6 mL water, 20 mL cupri-citric solution, and glass beads. Heat so boiling begins after 4 min, boil 3 min, cool rapidly. Add 100 mL of 2.4% v/v glacial acetic acid and 20.0 mL of 0.025 M iodine. With continuous shaking add 25 mL dilute HCl (6:94). Titrate excess iodine with 0.05 M sodium thiosulfate using 1 mL starch solution. NLT 12.8 mL of 0.05 M thiosulfate required.",
+      "kind": "specific",
+      "workflow": "Measurement",
+      "details": {
+        "sampleG": 5.0,
+        "reagents": [
+          "20 mL cupri-citric solution",
+          "100 mL 2.4% v/v glacial acetic acid",
+          "20.0 mL 0.025 M iodine VS",
+          "25 mL dilute HCl (6:94)"
+        ],
+        "titrant": "0.05 M sodium thiosulfate VS",
+        "indicator": "1 mL starch solution",
+        "titrantVolumeRequired": "Not less than 12.8 mL",
+        "specification": "Maximum 0.2 per cent calculated as glucose equivalent",
+        "reference": "BP 2025 Monograph for Liquid Sorbitol"
+      },
+      "source": "Liquid Sorbitol__Liquid Sorbitol - SM.txt:34"
+    },
+    {
+      "testCode": "RM-RED-SUG-HYD",
+      "procedure": "To 6.0 g add 35 mL water, 40 mL 1 M HCl, and glass beads. Boil under reflux for 4 h, cool. Neutralize with dilute NaOH using 0.2 mL bromothymol blue solution R1, dilute to 100.0 mL. To 3.0 mL add 5 mL water, 20 mL cupri-citric solution, and glass beads. Heat to boil in 4 min, boil 3 min, cool rapidly. Add 100 mL 2.4% v/v acetic acid and 20.0 mL 0.025 M iodine. Add 25 mL dilute HCl (6:94), titrate excess iodine with 0.05 M sodium thiosulfate using 1 mL starch solution. NLT 8.0 mL of 0.05 M thiosulfate required.",
+      "kind": "specific",
+      "workflow": "Measurement",
+      "details": {
+        "sampleG": 6.0,
+        "hydrolysis": "40 mL 1 M HCl, reflux 4 h",
+        "neutralization": "dilute NaOH with 0.2 mL bromothymol blue R1",
+        "hydrolyzedSolutionVolumeMl": 100.0,
+        "aliquotMl": 3.0,
+        "reagents": [
+          "20 mL cupri-citric solution",
+          "100 mL 2.4% v/v acetic acid",
+          "20.0 mL 0.025 M iodine VS",
+          "25 mL dilute HCl (6:94)"
+        ],
+        "titrant": "0.05 M sodium thiosulfate VS",
+        "indicator": "1 mL starch solution",
+        "titrantVolumeRequired": "Not less than 8.0 mL",
+        "specification": "Maximum 9.3 per cent calculated as glucose equivalent",
+        "reference": "BP 2025 Monograph for Liquid Sorbitol"
+      },
+      "source": "Liquid Sorbitol__Liquid Sorbitol - SM.txt:35"
+    },
+    {
+      "testCode": "RM-HPLC-SORB-AS",
+      "procedure": "Liquid chromatography (HPLC-RI). Sample: 1.00 g in water to 50.0 mL. Reference (a): 55.0 mg sorbitol WS in water to 5.0 mL. Reference (b): 55 mg mannitol + 55 mg sorbitol to 5 mL. Column: 0.3 m x 7.8 mm strong cation-exchange resin (calcium form) 9 µm at 85 ± 1 °C. Mobile phase: degassed water at 0.5 mL/min. Refractometer detection at 35 °C. 20 µL injection. Run time twice retention of sorbitol (~27 min). Resolution NLT 2.0 between mannitol and sorbitol.",
+      "kind": "specific",
+      "workflow": "HplcMethodAssay",
+      "details": {
+        "technique": "HPLC with differential refractometer (RI)",
+        "column": "0.3 m x 7.8 mm, strong cation-exchange resin (calcium form) 9 µm",
+        "columnTemp": "85 ± 1 °C",
+        "mobilePhase": "degassed water for chromatography",
+        "flowRateMlMin": 0.5,
+        "detector": "differential refractometer maintained at 35 °C",
+        "injectionVolumeUl": 20,
+        "runTime": "twice retention time of sorbitol",
+        "retentionTimeMin": "sorbitol ~27 min, mannitol relative ~0.8",
+        "systemSuitability": "resolution minimum 2.0 between mannitol and sorbitol peaks in reference (b)",
+        "standards": [
+          "sorbitol WS",
+          "mannitol"
+        ],
+        "formula": "Calculate percentage content of Liquid Sorbitol taking into account assigned content of sorbitol WS",
+        "reference": "BP Appendix III D; BP 2025 Monograph"
+      },
+      "source": "Liquid Sorbitol__Liquid Sorbitol - SM.txt:37",
+      "heldBack": "needs the held-back method \"Liquid sorbitol assay (BP, HPLC-RI)\""
+    },
+    {
+      "testCode": "RM-TAMC",
+      "procedure": "Microbiological examination per SOP C2I-91-128 and the material-specific verification report.",
+      "kind": "general",
+      "workflow": "CountTest",
+      "details": {
+        "limit": "Not more than 10^3 CFU/ml",
+        "reference": "USP <2023>",
+        "sop": "C2I-91-128"
+      },
+      "source": "Liquid Sorbitol__Liquid Sorbitol - SM.txt:39"
+    },
+    {
+      "testCode": "RM-TYMC",
+      "procedure": "Microbiological examination per SOP C2I-91-128 and the material-specific verification report.",
+      "kind": "general",
+      "workflow": "CountTest",
+      "details": {
+        "limit": "Not more than 10^2 CFU/ml",
+        "reference": "USP <2023>",
+        "sop": "C2I-91-128"
+      },
+      "source": "Liquid Sorbitol__Liquid Sorbitol - SM.txt:39"
+    },
+    {
+      "testCode": "RM-ECOLI",
+      "procedure": "Microbiological examination per SOP C2I-91-128 and the material-specific verification report.",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {
+        "limit": "Absent /10 ml",
+        "reference": "USP <2023>",
+        "sop": "C2I-91-128"
+      },
+      "source": "Liquid Sorbitol__Liquid Sorbitol - SM.txt:39"
+    }
+  ],
+  "notApplicable": [],
+  "supplierAttributes": [],
+  "reagents": [
+    {
+      "name": "Disodium tetraborate",
+      "use": "reagent",
+      "source": "Liquid Sorbitol__Liquid Sorbitol - SM.txt:28"
+    },
+    {
+      "name": "Glacial acetic acid",
+      "use": "reagent",
+      "source": "Liquid Sorbitol__Liquid Sorbitol - SM.txt:28"
+    },
+    {
+      "name": "Hydrochloric acid",
+      "use": "reagent",
+      "source": "Liquid Sorbitol__Liquid Sorbitol - SM.txt:28"
+    },
+    {
+      "name": "Copper sulfate pentahydrate",
+      "use": "reagent",
+      "source": "Liquid Sorbitol__Liquid Sorbitol - SM.txt:28"
+    },
+    {
+      "name": "Citric acid monohydrate",
+      "use": "reagent",
+      "source": "Liquid Sorbitol__Liquid Sorbitol - SM.txt:28"
+    },
+    {
+      "name": "Anhydrous sodium carbonate",
+      "use": "reagent",
+      "source": "Liquid Sorbitol__Liquid Sorbitol - SM.txt:28"
+    },
+    {
+      "name": "Sodium thiosulfate (0.05M Sodium Thiosulfate VS)",
+      "use": "titrant",
+      "source": "Liquid Sorbitol__Liquid Sorbitol - SM.txt:28"
+    },
+    {
+      "name": "Sodium carbonate",
+      "use": "reagent",
+      "source": "Liquid Sorbitol__Liquid Sorbitol - SM.txt:28"
+    },
+    {
+      "name": "Potassium Bromate (0.033M Potassium Bromate)",
+      "use": "standard",
+      "source": "Liquid Sorbitol__Liquid Sorbitol - SM.txt:28"
+    },
+    {
+      "name": "Potassium Iodide",
+      "use": "reagent",
+      "source": "Liquid Sorbitol__Liquid Sorbitol - SM.txt:28"
+    },
+    {
+      "name": "Soluble starch",
+      "use": "indicator",
+      "source": "Liquid Sorbitol__Liquid Sorbitol - SM.txt:28"
+    },
+    {
+      "name": "Mercuric iodide",
+      "use": "reagent",
+      "source": "Liquid Sorbitol__Liquid Sorbitol - SM.txt:28"
+    },
+    {
+      "name": "Iodine (0.025M Iodine VS)",
+      "use": "titrant",
+      "source": "Liquid Sorbitol__Liquid Sorbitol - SM.txt:28"
+    },
+    {
+      "name": "Bromothymol blue",
+      "use": "indicator",
+      "source": "Liquid Sorbitol__Liquid Sorbitol - SM.txt:28"
+    },
+    {
+      "name": "Ethanol (96 per cent)",
+      "use": "reagent",
+      "source": "Liquid Sorbitol__Liquid Sorbitol - SM.txt:28"
+    },
+    {
+      "name": "Sodium Hydroxide",
+      "use": "reagent",
+      "source": "Liquid Sorbitol__Liquid Sorbitol - SM.txt:28"
+    },
+    {
+      "name": "Sorbitol WS",
+      "use": "standard",
+      "source": "Liquid Sorbitol__Liquid Sorbitol - SM.txt:28"
+    },
+    {
+      "name": "Mannitol",
+      "use": "standard",
+      "source": "Liquid Sorbitol__Liquid Sorbitol - SM.txt:28"
+    }
+  ],
+  "openQuestions": [
+    {
+      "question": "TAMC and TYMC limits in the spec sheet read 'not more than 103 CFU / ml' and 'not more than 102 CFU / ml' (superscripts flattened); transcribed as 1000 and 100 CFU/mL.",
+      "source": "Liquid Sorbitol__Specifications sheet Liquid Sorbitol.txt:21-22; Liquid Sorbitol__Liquid Sorbitol - SM.txt:39"
+    },
+    {
+      "question": "HPLC assay for Liquid Sorbitol (refractive index detection, strong cation-exchange resin in calcium form) is held back pending creation of the HPLC-RI method in catalog.json.",
+      "source": "Liquid Sorbitol__Specifications sheet Liquid Sorbitol.txt:20; Liquid Sorbitol__Liquid Sorbitol - SM.txt:37"
+    },
+    {
+      "question": "Reducing sugars and Reducing sugars after hydrolysis are determined by back-titration (excess cupri-citric solution, then excess iodine back-titrated with 0.05 M sodium thiosulfate), where STM requires NLT 12.8 mL and NLT 8.0 mL thiosulfate corresponding to NMT 0.2% and NMT 9.3% glucose equivalent; transcribed as Measurement workflow (analyst enters calculated % glucose equivalent).",
+      "source": "Liquid Sorbitol__Specifications sheet Liquid Sorbitol.txt:18-19; Liquid Sorbitol__Liquid Sorbitol - SM.txt:34,35"
+    },
+    {
+      "question": "Identification (HPLC) is transcribed as a Qualitative row with expectedResultText matching retention time conformity, recorded by the analyst (RM-ID-RT).",
+      "source": "Liquid Sorbitol__Specifications sheet Liquid Sorbitol.txt:14; Liquid Sorbitol__Liquid Sorbitol - SM.txt:31"
+    },
+    {
+      "question": "Karl Fischer water: transcribed as Measurement workflow per Decision 2026-11-04 (gaps A1) with range 28.0% to 32.0%.",
+      "source": "Liquid Sorbitol__Specifications sheet Liquid Sorbitol.txt:17; Liquid Sorbitol__Liquid Sorbitol - SM.txt:36"
+    }
+  ]
+}

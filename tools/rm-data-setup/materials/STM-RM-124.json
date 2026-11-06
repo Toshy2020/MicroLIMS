@@ -1,0 +1,462 @@
+{
+  "itemCode": "STM-RM-124",
+  "itemName": "Sucrose",
+  "stmCode": "STM-RM-124",
+  "stmFile": "Sucrose__Sucrose -SM.txt",
+  "specFiles": ["Sucrose__Specifications sheet Sucrose.txt"],
+  "minQuantity": {
+    "routine": 200,
+    "retest": 100,
+    "retention": 200,
+    "unit": "g",
+    "source": "Sucrose__Specifications sheet Sucrose.txt:23; Sucrose__Sucrose -SM.txt:39"
+  },
+  "grades": [
+    {
+      "grade": "BP",
+      "rows": [
+        {
+          "testCode": "RM-DESC",
+          "parameterName": "Appearance",
+          "limitType": "Qualitative",
+          "lower": null, "upper": null, "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "White or almost white, crystalline powder, or lustrous, colorless, or white or almost white crystals",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Sucrose__Specifications sheet Sucrose.txt:11"
+        },
+        {
+          "testCode": "RM-SOLUB",
+          "parameterName": "Solubility",
+          "limitType": "Qualitative",
+          "lower": null, "upper": null, "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Very soluble in water, slightly soluble in ethanol (96 per cent), practically insoluble in anhydrous ethanol",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Sucrose__Specifications sheet Sucrose.txt:12"
+        },
+        {
+          "testCode": "RM-ID-IR",
+          "parameterName": "Identification (IR)",
+          "limitType": "Qualitative",
+          "lower": null, "upper": null, "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "the spectrum obtained for the sample and compare to the spectrum obtained from Standard",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Sucrose__Specifications sheet Sucrose.txt:13"
+        },
+        {
+          "testCode": "RM-ID-CU-SUC",
+          "parameterName": "Identification (chemical reaction, copper sulfate)",
+          "limitType": "Qualitative",
+          "lower": null, "upper": null, "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "An orange precipitate is formed immediately",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Sucrose__Specifications sheet Sucrose.txt:14"
+        },
+        {
+          "testCode": "RM-ID-TLC-SUC",
+          "parameterName": "Identification (TLC)",
+          "limitType": "Qualitative",
+          "lower": null, "upper": null, "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "chromatogram the test solution is similar to spot in the chromatogram obtained with reference solution",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Sucrose__Specifications sheet Sucrose.txt:15"
+        },
+        {
+          "testCode": "RM-SOLAPP",
+          "parameterName": "Appearance of solution",
+          "limitType": "Qualitative",
+          "lower": null, "upper": null, "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Solution S is clear",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Sucrose__Specifications sheet Sucrose.txt:16"
+        },
+        {
+          "testCode": "RM-COND-SUC",
+          "parameterName": "Conductivity",
+          "limitType": "NotMoreThan",
+          "lower": null, "upper": 35, "lowerInclusive": null,
+          "unit": "µS·cm-1",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Sucrose__Specifications sheet Sucrose.txt:17"
+        },
+        {
+          "testCode": "RM-OPTROT",
+          "parameterName": "Specific optical rotation",
+          "limitType": "Range",
+          "lower": 66.3, "upper": 67.0, "lowerInclusive": true,
+          "unit": null,
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Sucrose__Specifications sheet Sucrose.txt:18"
+        },
+        {
+          "testCode": "RM-RED-SUC",
+          "parameterName": "Reducing sugars",
+          "limitType": "Qualitative",
+          "lower": null, "upper": null, "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "The blue color does not disappear completely",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Sucrose__Specifications sheet Sucrose.txt:19"
+        },
+        {
+          "testCode": "RM-COLOR-SUC",
+          "parameterName": "Color value",
+          "limitType": "NotMoreThan",
+          "lower": null, "upper": 45, "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Sucrose__Specifications sheet Sucrose.txt:20"
+        },
+        {
+          "testCode": "RM-SULF-SUC",
+          "parameterName": "Sulfites",
+          "limitType": "Qualitative",
+          "lower": null, "upper": null, "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Complies (maximum 10 ppm, calculated as SO2)",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Sucrose__Specifications sheet Sucrose.txt:21"
+        },
+        {
+          "testCode": "RM-LOD",
+          "parameterName": "Loss on drying",
+          "limitType": "NotMoreThan",
+          "lower": null, "upper": 0.1, "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Sucrose__Specifications sheet Sucrose.txt:22"
+        },
+        {
+          "testCode": "TAMC",
+          "parameterName": "Total aerobic microbial count (TAMC)",
+          "limitType": "CountTiered",
+          "lower": null, "upper": 1000, "lowerInclusive": null,
+          "unit": "CFU/g",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": null,
+          "source": "Sucrose__Specifications sheet Sucrose.txt:23"
+        },
+        {
+          "testCode": "TYMC",
+          "parameterName": "Total yeasts and molds count (TYMC)",
+          "limitType": "CountTiered",
+          "lower": null, "upper": 100, "lowerInclusive": null,
+          "unit": "CFU/g",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": null,
+          "source": "Sucrose__Specifications sheet Sucrose.txt:23"
+        },
+        {
+          "testCode": "E.coli",
+          "parameterName": "Escherichia coli",
+          "limitType": "PresenceAbsence",
+          "lower": null, "upper": null, "lowerInclusive": null,
+          "unit": "per 10 g",
+          "expectedResultText": "Absent /10 gm",
+          "expectedState": "Absence",
+          "resultBasis": null,
+          "referenceStandard": null,
+          "source": "Sucrose__Specifications sheet Sucrose.txt:23"
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "testCode": "RM-DESC",
+      "procedure": "Under strong white light, check each received sample container separately in a clean transparent watch glass or glass dish for foreign particles, colour and compliance with the visual specifications.",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {
+        "perContainer": true,
+        "grades": ["BP"],
+        "reference": "BP 2024 (SC IV K.) Characters Section in Monographs; BP 2024 Monograph for Sucrose"
+      },
+      "source": "Sucrose__Sucrose -SM.txt:28"
+    },
+    {
+      "testCode": "RM-SOLUB",
+      "procedure": "Weigh 100 mg of sample in a stoppered tube; add 0.1 mL of the solvent, shake 1 min, hold at 25.0 +/- 0.5 C for 15 min (repeat if not dissolved); stepwise add 0.9 mL, 2 mL and 7 mL of solvent (same shake and hold) to classify very soluble / freely soluble / soluble / sparingly soluble; if still undissolved, 10 mg in 10 mL (slightly soluble), then 1 mg in 10 mL (very slightly soluble), else practically insoluble.",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {
+        "grades": ["BP"],
+        "sampleMg": 100,
+        "temperatureC": "25.0 +/- 0.5",
+        "holdMin": 15,
+        "shakeMin": 1,
+        "volumesMl": [0.1, 0.9, 2, 7],
+        "solventsNote": "solvents as stated in the spec sheet row"
+      },
+      "source": "Sucrose__Sucrose -SM.txt:29"
+    },
+    {
+      "testCode": "RM-ID-IR",
+      "procedure": "IR: examine the spectrum obtained for the sample and compare it with the spectrum obtained from Sucrose CRS.",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {
+        "grades": ["BP"],
+        "reference": "BP 2024 Appendix II A (Infrared Spectrophotometry)",
+        "standard": "Sucrose CRS"
+      },
+      "source": "Sucrose__Sucrose -SM.txt:30"
+    },
+    {
+      "testCode": "RM-ID-CU-SUC",
+      "procedure": "Dilute 1 mL of solution S to 100 mL with water. To 5 mL add 0.15 mL freshly prepared copper sulfate solution and 2 mL dilute sodium hydroxide; solution is blue and clear and remains so after boiling. Add 4 mL dilute hydrochloric acid to the hot solution, boil 1 min, then add 4 mL dilute sodium hydroxide. An orange precipitate is formed immediately.",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "details": {
+        "grades": ["BP"],
+        "solutionS": "50.0 g in water, diluted to 100 mL (STM Prepared reagents)",
+        "reference": "BP 2024 Monograph for Sucrose"
+      },
+      "source": "Sucrose__Sucrose -SM.txt:30"
+    },
+    {
+      "testCode": "RM-ID-TLC-SUC",
+      "procedure": "TLC on silica gel plate. Test solution: 10 mg in 2 volumes water and 3 volumes methanol, diluted to 20 mL. Reference (a): 10 mg sucrose CRS in same solvent mixture. Reference (b): 10 mg each of fructose, glucose, lactose monohydrate and sucrose in same mixture. Mobile phase: cold saturated boric acid solution, 60 % V/V glacial acetic acid, anhydrous ethanol, acetone, ethyl acetate (10:15:20:60:60 V/V/V/V/V). Apply 2 µL; develop in unsaturated tank over 3/4 of plate; dry in warm air; spray with 0.5 g thymol in 5 mL sulfuric acid and 95 mL ethanol (96 per cent); heat at 130 C for 10 min. System suitability: reference (b) shows 4 clearly separated spots. The principal spot of the test solution is similar in position, colour and size to that of reference (a).",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {
+        "grades": ["BP"],
+        "systemSuitability": "reference (b) shows 4 clearly separated spots",
+        "reference": "BP 2024 Appendix III A (Thin-layer Chromatography)"
+      },
+      "source": "Sucrose__Sucrose -SM.txt:30"
+    },
+    {
+      "testCode": "RM-SOLAPP",
+      "procedure": "To a sufficient amount of solution S, compare the clarity of the sample with water. Solution S is clear.",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {
+        "grades": ["BP"],
+        "reference": "BP 2024 Appendix IV A (Clarity of Solution)"
+      },
+      "source": "Sucrose__Sucrose -SM.txt:31"
+    },
+    {
+      "testCode": "RM-COND-SUC",
+      "procedure": "Dissolve 31.3 g in CO2-free water (from distilled water) and dilute to 100 mL. Measure the conductivity of the solution (C1) and of the water used (C2) with a calibrated conductivity meter, stirring gently; readings must be stable within 1 % over 30 s. Calculate conductivity of the substance with the expression in the STM (expression not shown in the text, see openQuestions).",
+      "kind": "general",
+      "workflow": "Measurement",
+      "details": {
+        "grades": ["BP"],
+        "sampleG": 31.3,
+        "volumeMl": 100,
+        "temperatureC": 20,
+        "reference": "BP 2024 Appendix V O (Conductivity)"
+      },
+      "source": "Sucrose__Sucrose -SM.txt:32"
+    },
+    {
+      "testCode": "RM-OPTROT",
+      "procedure": "Dissolve 26.0 g in water and dilute to 100.0 mL with the same solvent. Measure with a calibrated polarimeter.",
+      "kind": "general",
+      "workflow": "Measurement",
+      "details": {
+        "grades": ["BP"],
+        "sampleG": 26.0,
+        "volumeMl": 100.0,
+        "reference": "BP 2024 Appendix V F (Determination of Optical Rotation and Specific Optical Rotation)"
+      },
+      "source": "Sucrose__Sucrose -SM.txt:33"
+    },
+    {
+      "testCode": "RM-RED-SUC",
+      "procedure": "To 5 mL of solution S add 5 mL water, 1.0 mL of 1 M sodium hydroxide and 1.0 mL of 1 g/L methylene blue. Mix, place in water-bath; after exactly 2 min remove and examine immediately. The blue colour must not disappear completely; ignore blue colour at the air/solution interface.",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {
+        "grades": ["BP"],
+        "timeMin": 2,
+        "reference": "BP 2024 Monograph for Sucrose"
+      },
+      "source": "Sucrose__Sucrose -SM.txt:34"
+    },
+    {
+      "testCode": "RM-COLOR-SUC",
+      "procedure": "Dissolve 50.0 g in 50.0 mL water; mix; filter (0.45 µm pores); degas. Measure absorbance at 420 nm, minimum path length 4 cm (10 cm or more preferred). Calculate the colour value with the expression in the STM (expression not shown in the text, see openQuestions). The STM also says 'Mix and place in a water-bath' (no purpose stated).",
+      "kind": "general",
+      "workflow": "Measurement",
+      "details": {
+        "grades": ["BP"],
+        "sampleG": 50.0,
+        "volumeMl": 50.0,
+        "wavelengthNm": 420,
+        "minPathCm": 4,
+        "preferredPathCm": 10,
+        "concentrationNote": "from refractive index, Table 0204.-1 (interpolate if necessary)",
+        "reference": "BP 2024 Appendix II B (UV-Visible); BP 2024 Appendix V E (Refractive Index)"
+      },
+      "source": "Sucrose__Sucrose -SM.txt:35"
+    },
+    {
+      "testCode": "RM-SULF-SUC",
+      "procedure": "Test solution: 4.0 g sample in freshly prepared distilled water diluted to 10.0 mL. Reference solution: 4.0 g sample + 0.5 mL sulfite standard solution (80 ppm SO2) diluted to 10.0 mL. Blank: distilled water. Take 2.0 mL each in 10 mm cuvettes; add kit reagents; measure absorbance at about 340 nm before and at end of reaction; subtract blank. The absorbance difference of the test solution must not be greater than half that of the reference solution.",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {
+        "grades": ["BP"],
+        "testSampleG": 4.0,
+        "testVolumeMl": 10.0,
+        "standardMlOf80ppmSO2": 0.5,
+        "wavelengthNm": "about 340",
+        "cuvetteMm": 10,
+        "criterion": "absorbance difference of test not greater than half that of reference",
+        "reference": "BP 2024 Appendix II B (UV-Visible); BP 2024 Monograph for Sucrose"
+      },
+      "source": "Sucrose__Sucrose -SM.txt:36"
+    },
+    {
+      "testCode": "RM-LOD",
+      "procedure": "Weigh a previously dried (105 C) weighing bottle (W0); weigh 2.000 g sample into it (W1); dry in calibrated oven at 105 C for 3 h, cool in desiccator, weigh (W2); repeat to constant weight. % LOD = (W1 - W2) / (W1 - W0) x 100.",
+      "kind": "general",
+      "workflow": "Gravimetric",
+      "details": {
+        "grades": ["BP"],
+        "sampleG": 2.000,
+        "ovenC": 105,
+        "ovenHours": 3,
+        "reference": "BP 2024 Appendix IX D (Determination of Loss on Drying)"
+      },
+      "source": "Sucrose__Sucrose -SM.txt:37"
+    },
+    {
+      "testCode": "TAMC",
+      "procedure": "Follow the SOP and verification report for microbiological examination. The STM text has no microbiology section (see openQuestions).",
+      "kind": "general",
+      "workflow": "CountTest",
+      "details": {
+        "grades": ["BP"],
+        "limit": "NMT 1000 CFU/g (spec sheet)"
+      },
+      "source": "Sucrose__Specifications sheet Sucrose.txt:23"
+    },
+    {
+      "testCode": "TYMC",
+      "procedure": "Follow the SOP and verification report for microbiological examination. The STM text has no microbiology section (see openQuestions).",
+      "kind": "general",
+      "workflow": "CountTest",
+      "details": {
+        "grades": ["BP"],
+        "limit": "NMT 100 CFU/g (spec sheet)"
+      },
+      "source": "Sucrose__Specifications sheet Sucrose.txt:23"
+    },
+    {
+      "testCode": "E.coli",
+      "procedure": "Follow the SOP and verification report for microbiological examination. The STM text has no microbiology section (see openQuestions).",
+      "kind": "general",
+      "workflow": "Observation",
+      "details": {
+        "grades": ["BP"],
+        "limit": "Absent /10 gm (spec sheet)"
+      },
+      "source": "Sucrose__Specifications sheet Sucrose.txt:23"
+    }
+  ],
+  "notApplicable": [
+    {
+      "testCode": "RM-DEXTRIN-SUC",
+      "grade": null,
+      "justification": "use in the manufacture of large-volume parenteral preparations",
+      "criticality": "Minor",
+      "immediateAction": "Remove Test from Specifications",
+      "longTermAction": "NA",
+      "reference": null,
+      "source": "Sucrose__Not applicable For Sucrose.txt:2"
+    }
+  ],
+  "supplierAttributes": [],
+  "reagents": [
+    { "name": "Anhydrous ethanol", "use": "reagent", "source": "Sucrose__Sucrose -SM.txt:26" },
+    { "name": "Copper sulfate", "use": "reagent", "source": "Sucrose__Sucrose -SM.txt:26" },
+    { "name": "Ethanol (96 per cent)", "use": "reagent", "source": "Sucrose__Sucrose -SM.txt:26" },
+    { "name": "Hydrochloric Acid", "use": "reagent", "source": "Sucrose__Sucrose -SM.txt:26" },
+    { "name": "Methylene blue", "use": "reagent", "source": "Sucrose__Sucrose -SM.txt:26" },
+    { "name": "Sodium Hydroxide", "use": "reagent", "source": "Sucrose__Sucrose -SM.txt:26" },
+    { "name": "Methanol", "use": "reagent", "source": "Sucrose__Sucrose -SM.txt:26" },
+    { "name": "Sucrose", "use": "standard", "source": "Sucrose__Sucrose -SM.txt:26" },
+    { "name": "Fructose", "use": "standard", "source": "Sucrose__Sucrose -SM.txt:26" },
+    { "name": "Glucose", "use": "standard", "source": "Sucrose__Sucrose -SM.txt:26" },
+    { "name": "Lactose monohydrate", "use": "standard", "source": "Sucrose__Sucrose -SM.txt:26" },
+    { "name": "Boric Acid", "use": "reagent", "source": "Sucrose__Sucrose -SM.txt:26" },
+    { "name": "Glacial acetic acid", "use": "reagent", "source": "Sucrose__Sucrose -SM.txt:26" },
+    { "name": "Acetone", "use": "reagent", "source": "Sucrose__Sucrose -SM.txt:26" },
+    { "name": "Ethyl acetate", "use": "reagent", "source": "Sucrose__Sucrose -SM.txt:26" },
+    { "name": "Thymol", "use": "reagent", "source": "Sucrose__Sucrose -SM.txt:26" },
+    { "name": "Sulfuric acid", "use": "reagent", "source": "Sucrose__Sucrose -SM.txt:26" },
+    { "name": "Anhydrous sodium sulfite", "use": "reagent", "source": "Sucrose__Sucrose -SM.txt:26" },
+    { "name": "1M Sodium Hydroxide", "use": "reagent", "source": "Sucrose__Sucrose -SM.txt:26" },
+    { "name": "Boric Acid Solution, Cold Saturated", "use": "reagent", "source": "Sucrose__Sucrose -SM.txt:26" },
+    { "name": "Copper Sulfate Solution", "use": "reagent", "source": "Sucrose__Sucrose -SM.txt:26" },
+    { "name": "Sulfite Standard Solution (80 ppm SO2)", "use": "standard", "source": "Sucrose__Sucrose -SM.txt:26" },
+    { "name": "Hydrochloric Acid, Dilute", "use": "reagent", "source": "Sucrose__Sucrose -SM.txt:26" },
+    { "name": "Sodium Hydroxide Solution, Dilute", "use": "reagent", "source": "Sucrose__Sucrose -SM.txt:26" },
+    { "name": "Solution S", "use": "reagent", "source": "Sucrose__Sucrose -SM.txt:26" },
+    { "name": "Water, Carbon Dioxide-free", "use": "reagent", "source": "Sucrose__Sucrose -SM.txt:26" },
+    { "name": "Water, Distilled", "use": "reagent", "source": "Sucrose__Sucrose -SM.txt:26" }
+  ],
+  "openQuestions": [
+    {
+      "question": "Conductivity: the STM says 'Calculate the conductivity ... using the following expression' but the expression is missing from the text. Row loaded as Measurement (analyst enters the value); confirm the formula.",
+      "source": "Sucrose__Sucrose -SM.txt:32"
+    },
+    {
+      "question": "Color value: the expression is missing from the text (only the variable definitions A, b, c appear), and the procedure contains an unexplained 'Mix and place in a water-bath' step. Row loaded as Measurement; confirm the formula and whether the water-bath step applies.",
+      "source": "Sucrose__Sucrose -SM.txt:35"
+    },
+    {
+      "question": "Specific optical rotation limit (+66.3 to +67.0) has no unit on the spec sheet. Loaded with unit null; confirm the unit.",
+      "source": "Sucrose__Specifications sheet Sucrose.txt:18"
+    },
+    {
+      "question": "Microbiological limits (TAMC, TYMC, E. coli) are on the spec sheet, but the STM has no microbiology section and no SOP reference. Rows loaded with catalog general codes; confirm the procedure to use.",
+      "source": "Sucrose__Specifications sheet Sucrose.txt:23; Sucrose__Sucrose -SM.txt:26-37"
+    },
+    {
+      "question": "Not applicable form lists Dextrin (large-volume parenteral use) for removal; the latest spec sheet (2025-09-13) has no Dextrin row. Loaded as notApplicable as the form says; confirm.",
+      "source": "Sucrose__Not applicable For Sucrose.txt:2; Sucrose__Specifications sheet Sucrose.txt:11-22"
+    }
+  ]
+}

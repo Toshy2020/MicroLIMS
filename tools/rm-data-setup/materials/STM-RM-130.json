@@ -1,0 +1,222 @@
+{
+  "itemCode": "STM-RM-130",
+  "itemName": "Opadry Brown",
+  "stmCode": "STM-RM-130",
+  "stmFile": "Opadry Brown__STM Opadry Brown new without micro.txt",
+  "specFiles": ["Opadry Brown__Specifications sheet Opadry Brown 3.txt"],
+  "minQuantity": {
+    "routine": 60,
+    "retest": 60,
+    "retention": 60,
+    "unit": "g",
+    "source": "Opadry Brown__Specifications sheet Opadry Brown 3.txt:18; Opadry Brown__STM Opadry Brown new without micro.txt:34"
+  },
+  "grades": [
+    {
+      "grade": null,
+      "rows": [
+        {
+          "testCode": "RM-DESC",
+          "parameterName": "Appearance",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Brown granular powder to agglomerated mixture",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "In-house",
+          "source": "Opadry Brown__Specifications sheet Opadry Brown 3.txt:11"
+        },
+        {
+          "testCode": "RM-DISP-OPB",
+          "parameterName": "Dispersion",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Powder Freely dispersed in water",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "In-house",
+          "source": "Opadry Brown__Specifications sheet Opadry Brown 3.txt:12"
+        },
+        {
+          "testCode": "RM-ID-FILM-OPB",
+          "parameterName": "Identification (film formation)",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Film formed",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "In-house",
+          "source": "Opadry Brown__Specifications sheet Opadry Brown 3.txt:13"
+        },
+        {
+          "testCode": "RM-TASH-OPB",
+          "parameterName": "Ash Content",
+          "limitType": "Range",
+          "lower": 21.07,
+          "upper": 28.50,
+          "lowerInclusive": true,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "In-house",
+          "source": "Opadry Brown__Specifications sheet Opadry Brown 3.txt:14"
+        },
+        {
+          "testCode": "TAMC",
+          "parameterName": "Total Aerobic Microbial Count (TAMC)",
+          "limitType": "CountTiered",
+          "lower": null,
+          "upper": 1000,
+          "lowerInclusive": null,
+          "unit": "CFU/g",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP 2024",
+          "source": "Opadry Brown__Specifications sheet Opadry Brown 3.txt:15"
+        },
+        {
+          "testCode": "TYMC",
+          "parameterName": "Total Yeast and Molds Count (TYMC)",
+          "limitType": "CountTiered",
+          "lower": null,
+          "upper": 100,
+          "lowerInclusive": null,
+          "unit": "CFU/g",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP 2024",
+          "source": "Opadry Brown__Specifications sheet Opadry Brown 3.txt:16"
+        },
+        {
+          "testCode": "E.coli",
+          "parameterName": "Test for E. coli",
+          "limitType": "PresenceAbsence",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": "per 10 g",
+          "expectedResultText": "Absent /10 gm",
+          "expectedState": "Absence",
+          "resultBasis": null,
+          "referenceStandard": "USP 2024",
+          "source": "Opadry Brown__Specifications sheet Opadry Brown 3.txt:17"
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "testCode": "RM-DESC",
+      "procedure": "Under strong white light check each received sample container separately in a clean transparent watch glass or glass dish for foreign particles, colour and conformity with the visual specification.",
+      "kind": "general",
+      "workflow": "Observation",
+      "details": {
+        "perContainer": true,
+        "reference": "Supplier Certificate for Opadry Brown; in-house specification"
+      },
+      "source": "Opadry Brown__STM Opadry Brown new without micro.txt:28"
+    },
+    {
+      "testCode": "RM-DISP-OPB",
+      "procedure": "Dispersion: disperse 1 g of sample into 20 mL water; the sample should diffuse into water and make a uniform matrix.",
+      "kind": "specific",
+      "workflow": "Observation",
+      "details": {
+        "sampleG": 1,
+        "waterMl": 20,
+        "reference": "Analytical Method Verification Report For Dispersion in Opadry Brown"
+      },
+      "source": "Opadry Brown__STM Opadry Brown new without micro.txt:29"
+    },
+    {
+      "testCode": "RM-ID-FILM-OPB",
+      "procedure": "Identification: make a 10-12% slurry of the powder in water, pour it on a glass tile, dry at 70 °C; a film layer must form.",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "details": {
+        "slurryPercent": "10-12",
+        "solvent": "water",
+        "dryingC": 70,
+        "surface": "glass tile",
+        "reference": "Analytical Method Verification Report For Identification in Opadry Brown"
+      },
+      "source": "Opadry Brown__STM Opadry Brown new without micro.txt:30"
+    },
+    {
+      "testCode": "RM-TASH-OPB",
+      "procedure": "Total ash: weigh an empty crucible previously ignited at 800 °C (W1); weigh about 1.0 g sample (W2); ignite in muffle at 800 ± 50 °C for 2 h; cool in desiccator; weigh the crucible with residue (W4). W3 = W4 - W1; total ash (weight) = W2 - W3; % total ash = total ash / W2 x 100.",
+      "kind": "specific",
+      "workflow": "Gravimetric",
+      "details": {
+        "sampleG": 1.0,
+        "crucibleIgnitedC": 800,
+        "ignitionC": "800 ± 50",
+        "ignitionH": 2,
+        "formula": "% = (W2 - W3) / W2 x 100, W3 = W4 - W1",
+        "reference": "Analytical Method Verification Report For Ash Content in Opadry Brown"
+      },
+      "source": "Opadry Brown__STM Opadry Brown new without micro.txt:31"
+    },
+    {
+      "testCode": "TAMC",
+      "procedure": "Total aerobic microbial count: 'For Microbiological Testing Follow SOP No. C2I-91-128' (SOP not in this STM).",
+      "kind": "general",
+      "workflow": "CountTest",
+      "details": {
+        "limit": "NMT 10^3 CFU/gm",
+        "sop": "C2I-91-128"
+      },
+      "source": "Opadry Brown__STM Opadry Brown new without micro.txt:32"
+    },
+    {
+      "testCode": "TYMC",
+      "procedure": "Total yeast and molds count: 'For Microbiological Testing Follow SOP No. C2I-91-128' (SOP not in this STM).",
+      "kind": "general",
+      "workflow": "CountTest",
+      "details": {
+        "limit": "NMT 10^2 CFU/gm",
+        "sop": "C2I-91-128"
+      },
+      "source": "Opadry Brown__STM Opadry Brown new without micro.txt:32"
+    },
+    {
+      "testCode": "E.coli",
+      "procedure": "Test for E. coli: 'For Microbiological Testing Follow SOP No. C2I-91-128' (SOP not in this STM).",
+      "kind": "general",
+      "workflow": "Observation",
+      "details": {
+        "limit": "Absent /10 gm",
+        "sop": "C2I-91-128"
+      },
+      "source": "Opadry Brown__STM Opadry Brown new without micro.txt:32"
+    }
+  ],
+  "notApplicable": [],
+  "supplierAttributes": [],
+  "reagents": [
+    { "name": "Isopropyl alcohol", "use": "reagent", "source": "Opadry Brown__STM Opadry Brown new without micro.txt:26" },
+    { "name": "Dichloromethane", "use": "reagent", "source": "Opadry Brown__STM Opadry Brown new without micro.txt:26" }
+  ],
+  "openQuestions": [
+    {
+      "question": "Three spec sheets carry STM-RM-130 with different product codes: Opadry 20U565027 Brown (VB010121900028, spec 1), Opadry 03M26652 Brown (VB010121900031, spec 2) and Opadry 20U565023 Brown (VB010121900027, spec 3). Spec 3 is loaded (latest version); the three have identical specification rows. Confirm which Opadry product the local item is.",
+      "source": "Opadry Brown__Specifications sheet Opadry Brown 3.txt:7-8; Opadry Brown__Specifications sheet Opadry Brown 1.txt:7-8; Opadry Brown__Specifications sheet Opadry Brown 2.txt:7-8"
+    },
+    {
+      "question": "Microbiological limits: the spec sheet reads 'NMT 103 CFU / gm' and 'NMT 102 CFU / gm' (superscript lost); read as 10^3 = 1000 and 10^2 = 100 CFU/g. Confirm. The micro methods are only referenced to SOP C2I-91-128, which is not in this STM.",
+      "source": "Opadry Brown__Specifications sheet Opadry Brown 3.txt:15; Opadry Brown__Specifications sheet Opadry Brown 3.txt:16; Opadry Brown__STM Opadry Brown new without micro.txt:32"
+    }
+  ]
+}

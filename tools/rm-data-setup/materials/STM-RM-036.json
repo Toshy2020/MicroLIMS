@@ -1,0 +1,629 @@
+{
+  "itemCode": "STM-RM-036",
+  "itemName": "Calcium Glycerophosphate",
+  "stmCode": "STM-RM-036",
+  "stmFile": "Calcium Glycerophosphate__Calcium Glycerophosphate-SM.txt",
+  "specFiles": ["Calcium Glycerophosphate__Specifications sheet Calcium Glycerophosphate.txt"],
+  "minQuantity": {
+    "routine": 100,
+    "retest": 50,
+    "retention": 100,
+    "unit": "g",
+    "source": "Calcium Glycerophosphate__Specifications sheet Calcium Glycerophosphate.txt:27; Calcium Glycerophosphate__Calcium Glycerophosphate-SM.txt:43"
+  },
+  "grades": [
+    {
+      "grade": "BP",
+      "rows": [
+        {
+          "testCode": "RM-DESC",
+          "parameterName": "Appearance",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "White or almost white powder, hygroscopic",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Calcium Glycerophosphate__Specifications sheet Calcium Glycerophosphate.txt:11"
+        },
+        {
+          "testCode": "RM-SOLUB",
+          "parameterName": "Solubility",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Sparingly soluble in water, practically insoluble in ethanol (96 per cent)",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Calcium Glycerophosphate__Specifications sheet Calcium Glycerophosphate.txt:12"
+        },
+        {
+          "testCode": "RM-ID-PIP-CAGLY",
+          "parameterName": "Identification (filter paper with piperidine)",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "The filter paper develops a blue color in contact with piperidine",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Calcium Glycerophosphate__Specifications sheet Calcium Glycerophosphate.txt:13"
+        },
+        {
+          "testCode": "RM-ID-PO4",
+          "parameterName": "Identification (reaction of phosphates)",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "A yellow color develops",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Calcium Glycerophosphate__Specifications sheet Calcium Glycerophosphate.txt:14"
+        },
+        {
+          "testCode": "RM-ID-CA-CAGLY",
+          "parameterName": "Identification (reaction of calcium)",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "A white, crystalline precipitate is formed",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Calcium Glycerophosphate__Specifications sheet Calcium Glycerophosphate.txt:15"
+        },
+        {
+          "testCode": "RM-SOLAPP",
+          "parameterName": "Appearance of solution",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Solution S is not more opalescent than reference suspension III",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Calcium Glycerophosphate__Specifications sheet Calcium Glycerophosphate.txt:16"
+        },
+        {
+          "testCode": "RM-ACIDALK-CAGLY",
+          "parameterName": "Acidity or alkalinity",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Not more than 1.5 mL of 0.1 M hydrochloric acid or 0.5 mL of 0.1 M sodium hydroxide is required to change the color of the indicator",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Calcium Glycerophosphate__Specifications sheet Calcium Glycerophosphate.txt:17"
+        },
+        {
+          "testCode": "RM-CITRIC-CAGLY",
+          "parameterName": "Citric acid",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "No precipitate is formed",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Calcium Glycerophosphate__Specifications sheet Calcium Glycerophosphate.txt:18"
+        },
+        {
+          "testCode": "RM-ETOH-SOL-CAGLY",
+          "parameterName": "Glycerol and ethanol (96 per cent)-soluble substances",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 0.5,
+          "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Calcium Glycerophosphate__Specifications sheet Calcium Glycerophosphate.txt:19"
+        },
+        {
+          "testCode": "RM-LT-CL",
+          "parameterName": "Chlorides (limit test)",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Complies (NMT 500 ppm)",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Calcium Glycerophosphate__Specifications sheet Calcium Glycerophosphate.txt:20"
+        },
+        {
+          "testCode": "RM-LT-PO4-CAGLY",
+          "parameterName": "Phosphates (limit test)",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Complies (NMT 400 ppm)",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Calcium Glycerophosphate__Specifications sheet Calcium Glycerophosphate.txt:21"
+        },
+        {
+          "testCode": "RM-LT-SO4",
+          "parameterName": "Sulfates (limit test)",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Complies (NMT 0.1 %)",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Calcium Glycerophosphate__Specifications sheet Calcium Glycerophosphate.txt:22"
+        },
+        {
+          "testCode": "RM-ARSENIC",
+          "parameterName": "Arsenic (limit test)",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Complies (NMT 3 ppm)",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Calcium Glycerophosphate__Specifications sheet Calcium Glycerophosphate.txt:23"
+        },
+        {
+          "testCode": "RM-LT-FE",
+          "parameterName": "Iron (limit test)",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Complies (NMT 50 ppm)",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Calcium Glycerophosphate__Specifications sheet Calcium Glycerophosphate.txt:24"
+        },
+        {
+          "testCode": "RM-LOD",
+          "parameterName": "Loss on drying",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 12.0,
+          "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Calcium Glycerophosphate__Specifications sheet Calcium Glycerophosphate.txt:25"
+        },
+        {
+          "testCode": "RM-TIT-CAGLY",
+          "parameterName": "Assay (Ca, dried substance)",
+          "limitType": "Range",
+          "lower": 18.6,
+          "upper": 19.4,
+          "lowerInclusive": true,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": "PercentDriedBasis",
+          "referenceStandard": "BP",
+          "source": "Calcium Glycerophosphate__Specifications sheet Calcium Glycerophosphate.txt:26"
+        },
+        {
+          "testCode": "TAMC",
+          "parameterName": "Total Aerobic Microbial Count",
+          "limitType": "CountTiered",
+          "lower": null,
+          "upper": 1000,
+          "lowerInclusive": null,
+          "unit": "CFU/gm",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": null,
+          "source": "Calcium Glycerophosphate__Specifications sheet Calcium Glycerophosphate.txt:27"
+        },
+        {
+          "testCode": "TYMC",
+          "parameterName": "Total combined Yeasts and Molds Count",
+          "limitType": "CountTiered",
+          "lower": null,
+          "upper": 100,
+          "lowerInclusive": null,
+          "unit": "CFU/gm",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": null,
+          "source": "Calcium Glycerophosphate__Specifications sheet Calcium Glycerophosphate.txt:27"
+        },
+        {
+          "testCode": "E.coli",
+          "parameterName": "Test for E. coli",
+          "limitType": "PresenceAbsence",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": "per 10 gm",
+          "expectedResultText": "Absent /10 gm",
+          "expectedState": "Absence",
+          "resultBasis": null,
+          "referenceStandard": null,
+          "source": "Calcium Glycerophosphate__Specifications sheet Calcium Glycerophosphate.txt:27"
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "testCode": "RM-DESC",
+      "procedure": "Under strong white light check each received sample container separately in a clean transparent watch glass or glass dish for foreign particles, colour and conformity with the visual specification. Hygroscopicity: weigh about 2 g in a glass weighing vessel with stopper (m1, m2); stand unstoppered in a climatic cabinet at 25 ± 1 °C for 24 h; stopper and weigh (m3); % increase in mass: very hygroscopic 15% or more; hygroscopic 2% to 15%; slightly hygroscopic less than 2%.",
+      "kind": "general",
+      "workflow": "Observation",
+      "details": {
+        "perContainer": true,
+        "sample": "about 2 g",
+        "cabinetC": "25 ± 1",
+        "standH": 24,
+        "classes": "very hygroscopic >= 15%; hygroscopic 2-15%; slightly hygroscopic < 2%",
+        "reference": "BP (SC IV K.) Characters Section (Hygroscopicity)"
+      },
+      "source": "Calcium Glycerophosphate__Calcium Glycerophosphate-SM.txt:28"
+    },
+    {
+      "testCode": "RM-SOLUB",
+      "procedure": "Weigh 100 mg sample in a stoppered tube; add 0.1 mL solvent, shake 1 min, hold at 25.0 ± 0.5 °C for 15 min, repeat shake/hold once if not dissolved; stepwise add 0.9 mL, 2 mL, 7 mL solvent (same shake and hold) to classify very soluble / freely soluble / soluble / sparingly soluble; if still undissolved use 10 mg in 10 mL (slightly soluble) then 1 mg in 10 mL (very slightly soluble), else practically insoluble. Repeat with ethanol (96 per cent).",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {
+        "sample": "100 mg",
+        "temperature": "25.0 ± 0.5 °C",
+        "holdMin": 15,
+        "shakeMin": 1,
+        "volumesMl": [0.1, 0.9, 2, 7],
+        "smallSampleSteps": ["10 mg in 10 mL", "1 mg in 10 mL"],
+        "solvents": ["water", "ethanol (96 per cent)"],
+        "reference": "BP (SC IV K.) Characters Section (Hygroscopicity and Solubility)"
+      },
+      "source": "Calcium Glycerophosphate__Calcium Glycerophosphate-SM.txt:29"
+    },
+    {
+      "testCode": "RM-ID-PIP-CAGLY",
+      "procedure": "Identification test 1: mix 1 g with 1 g potassium hydrogen sulfate in a test tube fitted with a glass tube; heat strongly and direct the white vapour onto filter paper impregnated with freshly prepared 10 g/L sodium nitroprusside solution. The paper develops a blue colour in contact with piperidine.",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "details": {
+        "sampleG": 1,
+        "reagent": "1 g potassium hydrogen sulfate",
+        "paper": "filter paper with 10 g/L sodium nitroprusside",
+        "reference": "BP 2024 Monograph for Calcium Glycerophosphate"
+      },
+      "source": "Calcium Glycerophosphate__Calcium Glycerophosphate-SM.txt:30"
+    },
+    {
+      "testCode": "RM-ID-PO4",
+      "procedure": "Identification test 2 (phosphates): ignite 0.1 g in a crucible; take up the residue with 5 mL nitric acid; heat on a water bath 1 min; filter; mix 1 mL of the solution with 2 mL molybdovanadic reagent. A yellow colour develops.",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {
+        "sampleG": 0.1,
+        "acid": "5 mL nitric acid",
+        "waterBathMin": 1,
+        "reagent": "2 mL molybdovanadic reagent",
+        "reference": "BP Appendix VI, Qualitative Reactions and Tests, phosphates"
+      },
+      "source": "Calcium Glycerophosphate__Calcium Glycerophosphate-SM.txt:30"
+    },
+    {
+      "testCode": "RM-ID-CA-CAGLY",
+      "procedure": "Identification test 3 (calcium): dissolve about 20 mg sample in 5 mL acetic acid; add 0.5 mL potassium ferrocyanide solution (solution remains clear); add about 50 mg ammonium chloride; a white crystalline precipitate is formed.",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "details": {
+        "sample": "about 20 mg",
+        "acid": "5 mL acetic acid",
+        "reagent": "0.5 mL potassium ferrocyanide solution",
+        "ammoniumChloride": "about 50 mg",
+        "reference": "BP Appendix VI, Qualitative Reactions and Tests, Calcium"
+      },
+      "source": "Calcium Glycerophosphate__Calcium Glycerophosphate-SM.txt:30"
+    },
+    {
+      "testCode": "RM-SOLAPP",
+      "procedure": "Appearance of solution: solution S (1.5 g in carbon dioxide-free water diluted to 150 mL) is not more opalescent than reference suspension III.",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {
+        "solutionS": "1.5 g in CO2-free water to 150 mL",
+        "reference": "BP Appendix IV A, Clarity of Solution"
+      },
+      "source": "Calcium Glycerophosphate__Calcium Glycerophosphate-SM.txt:31"
+    },
+    {
+      "testCode": "RM-ACIDALK-CAGLY",
+      "procedure": "Acidity or alkalinity: to 100 mL of solution S add 0.1 mL phenolphthalein solution. Not more than 1.5 mL of 0.1 M hydrochloric acid or 0.5 mL of 0.1 M sodium hydroxide is required to change the colour of the indicator.",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "details": {
+        "solutionSMl": 100,
+        "indicator": "0.1 mL phenolphthalein solution",
+        "limitHClMl": 1.5,
+        "limitNaOHMl": 0.5,
+        "reference": "BP 2024 Monograph for Calcium Glycerophosphate"
+      },
+      "source": "Calcium Glycerophosphate__Calcium Glycerophosphate-SM.txt:32"
+    },
+    {
+      "testCode": "RM-CITRIC-CAGLY",
+      "procedure": "Citric acid: shake 5.0 g with 20 mL CO2-free water; filter; add 0.15 mL sulfuric acid and filter again; add 5 mL mercuric sulfate solution; heat to boiling; add 0.5 mL of 3.2 g/L potassium permanganate; heat to boiling again. No precipitate is formed.",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "details": {
+        "sampleG": 5.0,
+        "water": "20 mL CO2-free water",
+        "sulfuricAcidMl": 0.15,
+        "mercuricSulfate": "5 mL",
+        "permanganate": "0.5 mL of 3.2 g/L",
+        "reference": "BP 2024 Monograph for Calcium Glycerophosphate"
+      },
+      "source": "Calcium Glycerophosphate__Calcium Glycerophosphate-SM.txt:33"
+    },
+    {
+      "testCode": "RM-ETOH-SOL-CAGLY",
+      "procedure": "Glycerol and ethanol (96 per cent)-soluble substances: shake 1.000 g with 25 mL ethanol (96 per cent) for 1 min (W0); filter; weigh dry empty beaker (W1); evaporate filtrate on a water bath; dry residue at 70 °C for 1 h; weigh beaker with residue (W2). Residue = W2 - W1; Residue % = residue / W0 x 100 (maximum 0.5 %).",
+      "kind": "general",
+      "workflow": "Gravimetric",
+      "details": {
+        "sampleG": 1.000,
+        "solvent": "25 mL ethanol (96 per cent)",
+        "dryC": 70,
+        "dryH": 1,
+        "formula": "Residue % = (W2 - W1) / W0 x 100",
+        "reference": "BP 2024 Monograph for Calcium Glycerophosphate"
+      },
+      "source": "Calcium Glycerophosphate__Calcium Glycerophosphate-SM.txt:34"
+    },
+    {
+      "testCode": "RM-LT-CL",
+      "procedure": "Chlorides limit test (BP Appendix VII): test solution 0.1 g in 2 mL acetic acid and 8 mL water, diluted to 15 mL, plus 1 mL dilute nitric acid, added to 1 mL silver nitrate solution R2; standard 10 mL chloride standard solution (5 ppm Cl) and 5 mL water treated the same way. Opalescence after 5 min not more intense than the standard (NMT 500 ppm).",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {
+        "sampleG": 0.1,
+        "limit": "NMT 500 ppm",
+        "reference": "BP Appendix VII Limit Tests, Chloride"
+      },
+      "source": "Calcium Glycerophosphate__Calcium Glycerophosphate-SM.txt:35"
+    },
+    {
+      "testCode": "RM-LT-PO4-CAGLY",
+      "procedure": "Phosphates limit test (BP Appendix VII): 2.5 mL solution S diluted to 100 mL with water, add 4 mL sulfomolybdic reagent R3, shake, add 0.1 mL stannous chloride solution R1; standard 2 mL phosphate standard solution (5 ppm PO4) and 98 mL water treated the same way; after 10 min compare 20 mL of each. Test colour not more intense than standard (NMT 400 ppm).",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "details": {
+        "solutionSMl": 2.5,
+        "dilutedToMl": 100,
+        "sulfomolybdicMl": 4,
+        "stannousChlorideMl": 0.1,
+        "standard": "2 mL of 5 ppm PO4",
+        "compareAfterMin": 10,
+        "limit": "NMT 400 ppm",
+        "reference": "BP Appendix VII Limit Tests, Phosphates"
+      },
+      "source": "Calcium Glycerophosphate__Calcium Glycerophosphate-SM.txt:36"
+    },
+    {
+      "testCode": "RM-LT-SO4",
+      "procedure": "Sulfates limit test (BP Appendix VII): 3 mL of 250 g/L barium chloride added to 4.5 mL sulfate standard solution (10 ppm SO4), shake, stand 1 min; 2.5 mL of this suspension with 15 mL solution S and 0.5 mL acetic acid (standard: 15 mL sulfate standard solution instead of S). After 5 min opalescence of the test not more intense than the standard (NMT 0.1 %).",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {
+        "bariumChlorideMl": 3,
+        "sulfateStandardMl": 4.5,
+        "suspensionMl": 2.5,
+        "solutionSMl": 15,
+        "acetic": "0.5 mL acetic acid",
+        "waitMin": 5,
+        "limit": "NMT 0.1 %",
+        "reference": "BP Appendix VII Limit Tests, Sulfates"
+      },
+      "source": "Calcium Glycerophosphate__Calcium Glycerophosphate-SM.txt:37"
+    },
+    {
+      "testCode": "RM-ARSENIC",
+      "procedure": "Arsenic limit test (BP Appendix VII Method A): 0.33 g sample dissolved in water and diluted to 25 mL; add 15 mL hydrochloric acid, 0.1 mL stannous chloride solution and 5 mL potassium iodide solution, stand 15 min; add 5 g activated zinc and connect the gas evolution apparatus. Standard: 1 mL arsenic standard solution (1 ppm As) diluted to 25 mL, treated the same way. After at least 2 h the test colour is not more intense than the standard (NMT 3 ppm).",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "details": {
+        "sampleG": 0.33,
+        "dilutedToMl": 25,
+        "hydrochloricAcidMl": 15,
+        "stannousChlorideMl": 0.1,
+        "potassiumIodideMl": 5,
+        "standStandardMin": 15,
+        "activatedZincG": 5,
+        "standard": "1 mL of 1 ppm As diluted to 25 mL",
+        "waitH": 2,
+        "limit": "NMT 3 ppm",
+        "reference": "BP Appendix VII Limit Tests, Arsenic Method A"
+      },
+      "source": "Calcium Glycerophosphate__Calcium Glycerophosphate-SM.txt:38"
+    },
+    {
+      "testCode": "RM-LT-FE",
+      "procedure": "Iron limit test (BP Appendix VII): 0.20 g sample dissolved in water and diluted to 10 mL; add 2 mL of 200 g/L citric acid monohydrate and 0.1 mL thioglycolic acid; make alkaline with ammonia; dilute to 20 mL. Standard: 10 mL iron standard solution (1 ppm Fe) treated the same way. After 5 min any pink colour in the test is not more intense than the standard (NMT 50 ppm).",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {
+        "sampleG": 0.20,
+        "dilutedToMl": 10,
+        "citricAcidMl": 2,
+        "thioglycolicMl": 0.1,
+        "finalVolumeMl": 20,
+        "standard": "10 mL of 1 ppm Fe",
+        "waitMin": 5,
+        "limit": "NMT 50 ppm",
+        "reference": "BP Appendix VII Limit Tests, Iron"
+      },
+      "source": "Calcium Glycerophosphate__Calcium Glycerophosphate-SM.txt:39"
+    },
+    {
+      "testCode": "RM-LOD",
+      "procedure": "Loss on drying (BP Appendix IX D): weigh empty weighing bottle previously dried at 150 °C and cooled in desiccator (W0); weigh 1.000 g sample (W1); dry in calibrated oven at 150 °C for 4 h, cool in desiccator, weigh (W2); repeat to constant weight. % LOD = (W1 - W2) / (W1 - W0) x 100.",
+      "kind": "general",
+      "workflow": "Gravimetric",
+      "details": {
+        "sampleG": 1.000,
+        "ovenC": 150,
+        "timeH": 4,
+        "bottleDryingC": 150,
+        "formula": "% LOD = (W1 - W2) / (W1 - W0) x 100",
+        "reference": "BP 2024 Appendix IX D"
+      },
+      "source": "Calcium Glycerophosphate__Calcium Glycerophosphate-SM.txt:40"
+    },
+    {
+      "testCode": "RM-TIT-CAGLY",
+      "procedure": "Assay (BP complexometric titration, calcium): dissolve 0.200 g sample previously dried at 150 °C for 4 h in water; introduce the prescribed solution into a 500 mL conical flask and dilute to 300 mL with water; add 6.0 mL strong sodium hydroxide solution and about 200 mg calconecarboxylic acid triturate; titrate with 0.1 M sodium edetate from violet to full blue. 1 mL of 0.1 M sodium edetate = 4.008 mg Ca. Assay = (E.P x eq.wt x F x 100) / Wt.",
+      "kind": "specific",
+      "workflow": "Titration",
+      "details": {
+        "sampleG": 0.200,
+        "driedAt": "150 °C, 4 h",
+        "volumeMl": 300,
+        "strongNaOHMl": 6.0,
+        "indicator": "about 200 mg calconecarboxylic acid triturate",
+        "titrant": "0.1 M sodium edetate",
+        "endpoint": "violet to full blue",
+        "mode": "direct",
+        "equivalenceFactor": "1 mL of 0.1 M sodium edetate = 4.008 mg Ca",
+        "formula": "Assay = (E.P x eq.wt x F x 100) / Wt; E.P = end point (mL); eq.wt = equivalent weight of calcium; F = titrant factor; Wt = sample weight (g)",
+        "titrantStandardization": "0.120 g zinc in 4 mL hydrochloric acid R1, xylenol orange triturate and hexamethylenetetramine (STM 0.1 M disodium edetate standardisation); 1 mL = 6.54 mg Zn",
+        "reference": "BP Appendix VIII D, Complexometric Titrations, Calcium",
+        "basis": "dried substance"
+      },
+      "source": "Calcium Glycerophosphate__Calcium Glycerophosphate-SM.txt:41"
+    },
+    {
+      "testCode": "TAMC",
+      "procedure": "No microbiological method in the STM; the limit is from the spec sheet additional requirements only.",
+      "kind": "general",
+      "workflow": "CountTest",
+      "details": {
+        "limit": "NMT 1000 CFU/gm"
+      },
+      "source": "Calcium Glycerophosphate__Specifications sheet Calcium Glycerophosphate.txt:27"
+    },
+    {
+      "testCode": "TYMC",
+      "procedure": "No microbiological method in the STM; the limit is from the spec sheet additional requirements only.",
+      "kind": "general",
+      "workflow": "CountTest",
+      "details": {
+        "limit": "NMT 100 CFU/gm"
+      },
+      "source": "Calcium Glycerophosphate__Specifications sheet Calcium Glycerophosphate.txt:27"
+    },
+    {
+      "testCode": "E.coli",
+      "procedure": "No microbiological method in the STM; the limit is from the spec sheet additional requirements only.",
+      "kind": "general",
+      "workflow": "Observation",
+      "details": {
+        "limit": "Absent /10 gm"
+      },
+      "source": "Calcium Glycerophosphate__Specifications sheet Calcium Glycerophosphate.txt:27"
+    }
+  ],
+  "notApplicable": [],
+  "supplierAttributes": [],
+  "reagents": [
+    { "name": "2-propanol", "use": "reagent", "source": "Calcium Glycerophosphate__Calcium Glycerophosphate-SM.txt:26" },
+    { "name": "Acetic acid", "use": "reagent", "source": "Calcium Glycerophosphate__Calcium Glycerophosphate-SM.txt:26" },
+    { "name": "Ammonia", "use": "reagent", "source": "Calcium Glycerophosphate__Calcium Glycerophosphate-SM.txt:26" },
+    { "name": "Ammonium chloride", "use": "reagent", "source": "Calcium Glycerophosphate__Calcium Glycerophosphate-SM.txt:26" },
+    { "name": "Ammonium molybdate", "use": "reagent", "source": "Calcium Glycerophosphate__Calcium Glycerophosphate-SM.txt:26" },
+    { "name": "Ammonium vanadate", "use": "reagent", "source": "Calcium Glycerophosphate__Calcium Glycerophosphate-SM.txt:26" },
+    { "name": "Arsenious trioxide", "use": "standard", "source": "Calcium Glycerophosphate__Calcium Glycerophosphate-SM.txt:26" },
+    { "name": "Barium chloride", "use": "reagent", "source": "Calcium Glycerophosphate__Calcium Glycerophosphate-SM.txt:26" },
+    { "name": "Calconecarboxylic acid", "use": "indicator", "source": "Calcium Glycerophosphate__Calcium Glycerophosphate-SM.txt:26" },
+    { "name": "Citric acid monohydrate", "use": "reagent", "source": "Calcium Glycerophosphate__Calcium Glycerophosphate-SM.txt:26" },
+    { "name": "Dipotassium sulfate", "use": "standard", "source": "Calcium Glycerophosphate__Calcium Glycerophosphate-SM.txt:26" },
+    { "name": "Disodium Edetate", "use": "titrant", "source": "Calcium Glycerophosphate__Calcium Glycerophosphate-SM.txt:26" },
+    { "name": "Ethanol (96 per cent)", "use": "reagent", "source": "Calcium Glycerophosphate__Calcium Glycerophosphate-SM.txt:26" },
+    { "name": "Ferric ammonium sulfate", "use": "standard", "source": "Calcium Glycerophosphate__Calcium Glycerophosphate-SM.txt:26" },
+    { "name": "Glacial acetic acid", "use": "reagent", "source": "Calcium Glycerophosphate__Calcium Glycerophosphate-SM.txt:26" },
+    { "name": "Hexamethylenetetramine", "use": "reagent", "source": "Calcium Glycerophosphate__Calcium Glycerophosphate-SM.txt:26" },
+    { "name": "Hydrazine sulfate", "use": "reagent", "source": "Calcium Glycerophosphate__Calcium Glycerophosphate-SM.txt:26" },
+    { "name": "Hydrochloric Acid", "use": "reagent", "source": "Calcium Glycerophosphate__Calcium Glycerophosphate-SM.txt:26" },
+    { "name": "Lead acetate", "use": "reagent", "source": "Calcium Glycerophosphate__Calcium Glycerophosphate-SM.txt:26" },
+    { "name": "Mercuric oxide", "use": "reagent", "source": "Calcium Glycerophosphate__Calcium Glycerophosphate-SM.txt:26" },
+    { "name": "Nitric acid", "use": "reagent", "source": "Calcium Glycerophosphate__Calcium Glycerophosphate-SM.txt:26" },
+    { "name": "Phenolphthalein", "use": "indicator", "source": "Calcium Glycerophosphate__Calcium Glycerophosphate-SM.txt:26" },
+    { "name": "Piperidine", "use": "reagent", "source": "Calcium Glycerophosphate__Calcium Glycerophosphate-SM.txt:26" },
+    { "name": "Potassium dihydrogen phosphate", "use": "standard", "source": "Calcium Glycerophosphate__Calcium Glycerophosphate-SM.txt:26" },
+    { "name": "Potassium ferrocyanide", "use": "reagent", "source": "Calcium Glycerophosphate__Calcium Glycerophosphate-SM.txt:26" },
+    { "name": "Potassium hydrogen sulfate", "use": "reagent", "source": "Calcium Glycerophosphate__Calcium Glycerophosphate-SM.txt:26" },
+    { "name": "Potassium iodide", "use": "reagent", "source": "Calcium Glycerophosphate__Calcium Glycerophosphate-SM.txt:26" },
+    { "name": "Potassium nitrate", "use": "reagent", "source": "Calcium Glycerophosphate__Calcium Glycerophosphate-SM.txt:26" },
+    { "name": "Potassium permanganate", "use": "reagent", "source": "Calcium Glycerophosphate__Calcium Glycerophosphate-SM.txt:26" },
+    { "name": "Pyridine", "use": "reagent", "source": "Calcium Glycerophosphate__Calcium Glycerophosphate-SM.txt:26" },
+    { "name": "Silver diethyldithiocarbamate", "use": "reagent", "source": "Calcium Glycerophosphate__Calcium Glycerophosphate-SM.txt:26" },
+    { "name": "Silver nitrate", "use": "reagent", "source": "Calcium Glycerophosphate__Calcium Glycerophosphate-SM.txt:26" },
+    { "name": "Sodium chloride", "use": "standard", "source": "Calcium Glycerophosphate__Calcium Glycerophosphate-SM.txt:26" },
+    { "name": "Sodium hydroxide", "use": "reagent", "source": "Calcium Glycerophosphate__Calcium Glycerophosphate-SM.txt:26" },
+    { "name": "Sodium nitroprusside", "use": "reagent", "source": "Calcium Glycerophosphate__Calcium Glycerophosphate-SM.txt:26" },
+    { "name": "Stannous chloride", "use": "reagent", "source": "Calcium Glycerophosphate__Calcium Glycerophosphate-SM.txt:26" },
+    { "name": "Sulfuric acid", "use": "reagent", "source": "Calcium Glycerophosphate__Calcium Glycerophosphate-SM.txt:26" },
+    { "name": "Thioglycolic acid", "use": "reagent", "source": "Calcium Glycerophosphate__Calcium Glycerophosphate-SM.txt:26" },
+    { "name": "Xylenol orange", "use": "indicator", "source": "Calcium Glycerophosphate__Calcium Glycerophosphate-SM.txt:26" },
+    { "name": "Zinc", "use": "standard", "source": "Calcium Glycerophosphate__Calcium Glycerophosphate-SM.txt:26" },
+    { "name": "0.1M Disodium Edetate VS", "use": "titrant", "source": "Calcium Glycerophosphate__Calcium Glycerophosphate-SM.txt:26" },
+    { "name": "0.1M Hydrochloric Acid", "use": "titrant", "source": "Calcium Glycerophosphate__Calcium Glycerophosphate-SM.txt:26" },
+    { "name": "0.1M Sodium Hydroxide", "use": "titrant", "source": "Calcium Glycerophosphate__Calcium Glycerophosphate-SM.txt:26" }
+  ],
+  "openQuestions": [
+    {
+      "question": "Microbiological tests (TAMC, TYMC, E. coli): the STM has no microbiological section and no method; limits come from the spec sheet additional requirements only. Confirm the method reference.",
+      "source": "Calcium Glycerophosphate__Specifications sheet Calcium Glycerophosphate.txt:27"
+    },
+    {
+      "question": "Assay: 'Introduce the prescribed solution into a 500 mL conical flask' does not say which solution is prescribed. Recorded as written. Confirm.",
+      "source": "Calcium Glycerophosphate__Calcium Glycerophosphate-SM.txt:41"
+    },
+    {
+      "question": "Acidity or alkalinity: the result is a titrant volume limit (1.5 mL HCl or 0.5 mL NaOH), not a single number; loaded as a Qualitative row with the text. Confirm whether the analyst should enter the volume instead.",
+      "source": "Calcium Glycerophosphate__Specifications sheet Calcium Glycerophosphate.txt:17; Calcium Glycerophosphate__Calcium Glycerophosphate-SM.txt:32"
+    }
+  ]
+}

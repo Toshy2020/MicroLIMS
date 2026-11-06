@@ -1,0 +1,494 @@
+{
+  "itemCode": "STM-RM-024",
+  "itemName": "Crospovidone",
+  "stmCode": "STM-RM-024",
+  "stmFile": "Crospovidone__STM- RM-0 Crospovidone.txt",
+  "specFiles": [],
+  "minQuantity": {
+    "routine": 100,
+    "retest": 80,
+    "retention": 100,
+    "unit": "g",
+    "source": "Crospovidone__STM- RM-0 Crospovidone.txt:53"
+  },
+  "grades": [
+    {
+      "grade": "USP",
+      "rows": [
+        {
+          "testCode": "RM-DESC",
+          "parameterName": "Description (hygroscopicity)",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "White to creamy-white, hygroscopic powder, having a faint odor.",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Crospovidone__STM- RM-0 Crospovidone.txt:42"
+        },
+        {
+          "testCode": "RM-SOLUB",
+          "parameterName": "Solubility",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Insoluble in water and in ordinary organic solvents.",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Crospovidone__STM- RM-0 Crospovidone.txt:43"
+        },
+        {
+          "testCode": "RM-ID-IR",
+          "parameterName": "Identification (IR)",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "The retention time of the major peak of the Sample solution corresponds to that of the Standard solution.",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Crospovidone__STM- RM-0 Crospovidone.txt:44"
+        },
+        {
+          "testCode": "RM-ID-IOD-CROSP",
+          "parameterName": "Identification (iodine and starch)",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "No blue color develops.",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Crospovidone__STM- RM-0 Crospovidone.txt:44"
+        },
+        {
+          "testCode": "RM-ID-SUSP-CROSP",
+          "parameterName": "Identification (suspension in water)",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "A suspension is formed, and no clear solution is obtained within 15 min.",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Crospovidone__STM- RM-0 Crospovidone.txt:44"
+        },
+        {
+          "testCode": "RM-SASH",
+          "parameterName": "Residue on ignition",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 0.1,
+          "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Crospovidone__STM- RM-0 Crospovidone.txt:45"
+        },
+        {
+          "testCode": "RM-PEROX-CROSP",
+          "parameterName": "Peroxides (absorbance at 405 nm)",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 0.35,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Crospovidone__STM- RM-0 Crospovidone.txt:46"
+        },
+        {
+          "testCode": "RM-LOD",
+          "parameterName": "Loss on drying",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 5.0,
+          "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Crospovidone__STM- RM-0 Crospovidone.txt:47"
+        },
+        {
+          "testCode": "RM-WSUB-CROSP",
+          "parameterName": "Water-soluble substances (residue weight)",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 75,
+          "lowerInclusive": null,
+          "unit": "mg",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Crospovidone__STM- RM-0 Crospovidone.txt:48"
+        },
+        {
+          "testCode": "RM-WSUB-CROSP",
+          "parameterName": "Water-soluble substances (%)",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 1.5,
+          "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Crospovidone__STM- RM-0 Crospovidone.txt:48"
+        },
+        {
+          "testCode": "RM-TIT-CROSP",
+          "parameterName": "Assay (nitrogen content)",
+          "limitType": "Range",
+          "lower": 11.0,
+          "upper": 12.8,
+          "lowerInclusive": true,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": "PercentDriedBasis",
+          "referenceStandard": "USP",
+          "source": "Crospovidone__STM- RM-0 Crospovidone.txt:49"
+        },
+        {
+          "testCode": "RM-HPLC-VP-CROSP",
+          "parameterName": "Vinylpyrrolidinone",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 10,
+          "lowerInclusive": null,
+          "unit": "ppm",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": "Ppm",
+          "referenceStandard": "USP",
+          "source": "Crospovidone__STM- RM-0 Crospovidone.txt:50"
+        },
+        {
+          "testCode": "TAMC",
+          "parameterName": "Total aerobic microbial count (TAMC)",
+          "limitType": "CountTiered",
+          "lower": null,
+          "upper": 1000,
+          "lowerInclusive": null,
+          "unit": "CFU/g",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Crospovidone__STM- RM-0 Crospovidone.txt:51"
+        },
+        {
+          "testCode": "TYMC",
+          "parameterName": "Total yeast and mold count (TYMC)",
+          "limitType": "CountTiered",
+          "lower": null,
+          "upper": 100,
+          "lowerInclusive": null,
+          "unit": "CFU/g",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Crospovidone__STM- RM-0 Crospovidone.txt:51"
+        },
+        {
+          "testCode": "E.coli",
+          "parameterName": "Test for E. coli",
+          "limitType": "PresenceAbsence",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": "per 10 g",
+          "expectedResultText": "Absent/10 gm",
+          "expectedState": "Absence",
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Crospovidone__STM- RM-0 Crospovidone.txt:51"
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "testCode": "RM-DESC",
+      "procedure": "Visual check in a clean transparent watch glass. Hygroscopicity: weigh a glass vessel with stopper (m1), add about 2 g sample (m2), stand unstoppered in a climatic cabinet at 25 ± 1 °C for 24 h, stopper and weigh (m3); % increase in mass = (m3 - m2) / (m2 - m1) x 100 (formula as written in the STM). Interpretation: very hygroscopic >= 15%, hygroscopic 2-15%, slightly hygroscopic < 2%.",
+      "kind": "general",
+      "workflow": "Observation",
+      "details": {
+        "perContainer": true,
+        "sampleG": 2,
+        "temperatureC": "25 ± 1",
+        "timeH": 24,
+        "grades": ["USP"],
+        "reference": "USP Crospovidone monograph"
+      },
+      "source": "Crospovidone__STM- RM-0 Crospovidone.txt:42"
+    },
+    {
+      "testCode": "RM-SOLUB",
+      "procedure": "Weigh 100 mg in a stoppered tube; add 0.1 mL solvent, shake 1 min, hold at 25.0 ± 0.5 °C for 15 min, repeat shake/hold once if not dissolved; add 0.9 mL, then 2 mL, then 7 mL solvent with the same steps to classify; if still undissolved use 10 mg in 10 mL (slightly soluble), then 1 mg in 10 mL (very slightly soluble), else practically insoluble. Repeat with organic solvents.",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {
+        "sample": "100 mg",
+        "temperature": "25.0 ± 0.5 °C",
+        "holdMin": 15,
+        "shakeMin": 1,
+        "volumesMl": [0.1, 0.9, 2, 7],
+        "smallSampleSteps": ["10 mg in 10 mL", "1 mg in 10 mL"],
+        "solvents": ["water", "organic solvents (not named in the STM text)"],
+        "reference": "USP Description and Relative Solubility, Crospovidone"
+      },
+      "source": "Crospovidone__STM- RM-0 Crospovidone.txt:43"
+    },
+    {
+      "testCode": "RM-ID-IR",
+      "procedure": "IR identification: dry the powder in vacuum at 105 °C for 1 h, mix intimately with potassium bromide, compress into a transparent pellet; compare the spectrum with that of Crospovidone RS or WS.",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "details": {
+        "technique": "KBr pellet",
+        "dryingC": 105,
+        "dryingH": 1,
+        "standard": "Crospovidone RS or WS",
+        "reference": "USP <197K>"
+      },
+      "source": "Crospovidone__STM- RM-0 Crospovidone.txt:44"
+    },
+    {
+      "testCode": "RM-ID-IOD-CROSP",
+      "procedure": "Identification test B: suspend 1 g sample in 10 mL water, add 0.1 mL 0.1 N iodine, shake 30 s; add 1 mL starch TS and shake. No blue colour must develop.",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "details": {
+        "sampleG": 1,
+        "waterMl": 10,
+        "iodineMl": 0.1,
+        "starchTsMl": 1
+      },
+      "source": "Crospovidone__STM- RM-0 Crospovidone.txt:44"
+    },
+    {
+      "testCode": "RM-ID-SUSP-CROSP",
+      "procedure": "Identification test C: add 0.1 g sample to 10 mL water and shake; a suspension must form and no clear solution must be obtained within 15 min.",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "details": {
+        "sampleG": 0.1,
+        "waterMl": 10,
+        "standMin": 15
+      },
+      "source": "Crospovidone__STM- RM-0 Crospovidone.txt:44"
+    },
+    {
+      "testCode": "RM-SASH",
+      "procedure": "Residue on ignition (USP <281>): ignite crucible at 600 ± 50 °C 30 min, cool, weigh (W1); weigh 1 g sample (W2); moisten with about 1 mL sulfuric acid, char gently, moisten again, heat until white fumes cease; ignite at 600 ± 50 °C until incinerated; cool, weigh (W3). % residue = (W3 - W1) / W2 x 100; repeat the sulfuric acid/ignition cycle if above limit (weighings within 0.5 mg).",
+      "kind": "general",
+      "workflow": "Gravimetric",
+      "details": {
+        "sampleG": 1,
+        "crucibleIgnitionC": "600 ± 50, ~30 min",
+        "sulfuricAcidMl": "about 1, repeated",
+        "ignitionC": "600 ± 50",
+        "constantWeightCriterionMg": 0.5,
+        "formula": "(W3 - W1) / W2 x 100",
+        "reference": "USP <281>"
+      },
+      "source": "Crospovidone__STM- RM-0 Crospovidone.txt:45"
+    },
+    {
+      "testCode": "RM-PEROX-CROSP",
+      "procedure": "Peroxides: Type A: sample suspension 40 mg/mL in water; Type B: 16 mg/mL in water. To 25 mL of each add 2 mL titanium trichloride-sulfuric acid TS, stand 30 min, filter. Compensation liquids: 25 mL of the same suspension filtered with 2 mL of 13% sulfuric acid. Measure the absorbance of the filtrate at 405 nm against the matching compensation liquid.",
+      "kind": "specific",
+      "workflow": "UvSpectrophotometry",
+      "details": {
+        "typeA": {"suspensionMgMl": 40},
+        "typeB": {"suspensionMgMl": 16},
+        "aliquotMl": 25,
+        "titaniumTrichlorideSulfuricAcidTsMl": 2,
+        "standStandMin": 30,
+        "compensationAcidPercent": 13,
+        "wavelengthNm": 405,
+        "limit": "NMT 0.35 absorbance (Type A corresponds to NMT 400 ppm H2O2; Type B to NMT 1000 ppm H2O2)",
+        "reference": "USP Crospovidone monograph"
+      },
+      "source": "Crospovidone__STM- RM-0 Crospovidone.txt:46"
+    },
+    {
+      "testCode": "RM-LOD",
+      "procedure": "Weigh a dry petri dish (W1); add 0.5 g sample (W2); dry in calibrated oven at 105 °C to constant weight; cool in desiccator; weigh the dish with dried substance (W3). % loss on drying = ((W1 + W2) - W3) / W2 x 100.",
+      "kind": "general",
+      "workflow": "Gravimetric",
+      "details": {
+        "sampleG": 0.5,
+        "ovenC": 105,
+        "constantWeight": true,
+        "formula": "((W1 + W2) - W3) / W2 x 100",
+        "reference": "USP <731>"
+      },
+      "source": "Crospovidone__STM- RM-0 Crospovidone.txt:47"
+    },
+    {
+      "testCode": "RM-WSUB-CROSP",
+      "procedure": "Water-soluble substances: stir 25.0 g sample in 200 mL water for 1 h; transfer to 250 mL flask with 25 mL water, make to volume, settle; filter 100 mL through 0.45 µm membrane (3 µm pre-filter); evaporate 50.0 mL of the filtrate to dryness in a tared 100 mL beaker, dry at 110 °C for 3 h, weigh the residue. Limit: NMT 75 mg (1.5%).",
+      "kind": "specific",
+      "workflow": "Gravimetric",
+      "details": {
+        "sampleG": 25.0,
+        "water": "200 mL, stirred 1 h",
+        "volumeMl": 250,
+        "filtrateMl": 100,
+        "aliquotMl": 50,
+        "dryingC": 110,
+        "dryingH": 3,
+        "limit": "NMT 75 mg (1.5%)",
+        "reference": "USP Crospovidone monograph"
+      },
+      "source": "Crospovidone__STM- RM-0 Crospovidone.txt:48"
+    },
+    {
+      "testCode": "RM-TIT-CROSP",
+      "procedure": "Assay (nitrogen, Kjeldahl): weigh 100 mg sample in a Kjeldahl flask; add 5 g potassium sulfate / cupric sulfate / titanium dioxide (33:1:1), 7 mL sulfuric acid and, cautiously, 1 mL 30% hydrogen peroxide; digest until clear blue; cool, add 70 mL water and 30 mL sodium hydroxide solution (2 in 5) by steam distillation; collect the distillate (80-100 mL) in boric acid/indicator and titrate with 0.01 N sulfuric acid VS; blank corrected. Nitrogen % = (E.P x Eq.wt x F) / Wt x 100, Eq.wt = 140.1 µg N per mL 0.01 N acid.",
+      "kind": "specific",
+      "workflow": "Titration",
+      "details": {
+        "sampleMg": 100,
+        "digestionReagents": "potassium sulfate, cupric sulfate, titanium dioxide 33:1:1 (5 g); sulfuric acid 7 mL; hydrogen peroxide 30% 1 mL",
+        "dilution": "70 mL water",
+        "alkali": "sodium hydroxide solution (2 in 5), 30 mL",
+        "distillateMl": "80-100",
+        "titrant": "0.01 N sulfuric acid VS",
+        "titrantStandardization": "about 50 mg tromethamine (Tris) dried, in 50 mL water, titrated potentiometrically; N = Mg tromethamine / (121.14 x mL H2SO4)",
+        "equivalenceFactor": "1 mL of 0.01 N sulfuric acid = 140.1 µg nitrogen",
+        "formula": "Nitrogen content (%) = (E.P x Eq.wt x F) / Wt x 100; Eq.wt = 140.1; F = titrant correction factor; Wt = sample weight",
+        "specBasis": "dried basis",
+        "reference": "USP Crospovidone monograph"
+      },
+      "source": "Crospovidone__STM- RM-0 Crospovidone.txt:49; Crospovidone__STM- RM-0 Crospovidone.txt:40"
+    },
+    {
+      "testCode": "RM-HPLC-VP-CROSP",
+      "procedure": "Vinylpyrrolidinone (LC): mobile phase acetonitrile : water (1:9); sample 25 mg/mL suspension in methanol, shake 60 min, settle, filter 0.2 µm; reference stock A 5 µg/mL and B 100 µg/mL vinylpyrrolidinone with 5 mg/mL vinyl acetate in methanol; reference solution A = 1 in 20 of stock A in mobile phase, B = 1 in 100 of stock B. UV 235 nm; column 4 mm x 25 cm, 5 µm L1 at 40 °C; flow 1 mL/min; injection 50 µL. Suitability: resolution NLT 2.0 between vinylpyrrolidinone and vinyl acetate (solution B); RSD NMT 2.0% for 6 injections (solution A). Limit: sample peak area NMT the area of the principal peak of reference solution A (NMT 10 ppm).",
+      "kind": "specific",
+      "workflow": "HplcMethodAssay",
+      "details": {
+        "mode": "LC",
+        "detector": "UV",
+        "wavelengthNm": 235,
+        "column": "4 mm x 25 cm; 5 µm packing L1",
+        "columnTempC": 40,
+        "flowRateMlMin": 1,
+        "injectionUl": 50,
+        "mobilePhase": "acetonitrile : water (1:9)",
+        "sampleSolution": "25 mg/mL suspension in methanol, shaken 60 min, filtered 0.2 µm",
+        "referenceSolutionA": "1 in 20 of 5 µg/mL vinylpyrrolidinone stock in mobile phase",
+        "referenceSolutionB": "1 in 100 of stock with 100 µg/mL vinylpyrrolidinone and 5 mg/mL vinyl acetate",
+        "systemSuitability": {"resolution": "NLT 2.0 (vinylpyrrolidinone / vinyl acetate, B)", "rsd": "NMT 2.0% for 6 injections (A)"},
+        "limit": "NMT 10 ppm (area vs principal peak of reference solution A)",
+        "reference": "USP <621>"
+      },
+      "source": "Crospovidone__STM- RM-0 Crospovidone.txt:50"
+    },
+    {
+      "testCode": "TAMC",
+      "procedure": "Total aerobic microbial count: 'Follow the suitable steps stated in SOP (C2I-91-128)' (SOP not in this STM).",
+      "kind": "general",
+      "workflow": "CountTest",
+      "details": {
+        "limit": "NMT 10^3 CFU/gm",
+        "sop": "C2I-91-128"
+      },
+      "source": "Crospovidone__STM- RM-0 Crospovidone.txt:51"
+    },
+    {
+      "testCode": "TYMC",
+      "procedure": "Total yeast and mold count: 'Follow the suitable steps stated in SOP (C2I-91-128)' (SOP not in this STM).",
+      "kind": "general",
+      "workflow": "CountTest",
+      "details": {
+        "limit": "NMT 10^2 CFU/gm",
+        "sop": "C2I-91-128"
+      },
+      "source": "Crospovidone__STM- RM-0 Crospovidone.txt:51"
+    },
+    {
+      "testCode": "E.coli",
+      "procedure": "Test for E. coli: 'Follow the suitable steps stated in SOP (C2I-91-128)' (SOP not in this STM).",
+      "kind": "general",
+      "workflow": "Observation",
+      "details": {
+        "limit": "Absent/10 gm",
+        "sop": "C2I-91-128"
+      },
+      "source": "Crospovidone__STM- RM-0 Crospovidone.txt:51"
+    }
+  ],
+  "notApplicable": [],
+  "supplierAttributes": [],
+  "reagents": [
+    { "name": "Sulfuric acid", "use": "reagent", "source": "Crospovidone__STM- RM-0 Crospovidone.txt:40" },
+    { "name": "Iodine 0.1 N (titrant)", "use": "titrant", "source": "Crospovidone__STM- RM-0 Crospovidone.txt:40" },
+    { "name": "Soluble starch / starch TS", "use": "indicator", "source": "Crospovidone__STM- RM-0 Crospovidone.txt:40" },
+    { "name": "Potassium iodide", "use": "reagent", "source": "Crospovidone__STM- RM-0 Crospovidone.txt:40" },
+    { "name": "Potassium sulfate", "use": "reagent", "source": "Crospovidone__STM- RM-0 Crospovidone.txt:40" },
+    { "name": "Cupric sulfate", "use": "reagent", "source": "Crospovidone__STM- RM-0 Crospovidone.txt:40" },
+    { "name": "Titanium dioxide", "use": "reagent", "source": "Crospovidone__STM- RM-0 Crospovidone.txt:40" },
+    { "name": "Hydrogen peroxide 30%", "use": "reagent", "source": "Crospovidone__STM- RM-0 Crospovidone.txt:40" },
+    { "name": "Sodium hydroxide solution (2 in 5)", "use": "reagent", "source": "Crospovidone__STM- RM-0 Crospovidone.txt:40" },
+    { "name": "Boric acid", "use": "reagent", "source": "Crospovidone__STM- RM-0 Crospovidone.txt:40" },
+    { "name": "Methyl red", "use": "indicator", "source": "Crospovidone__STM- RM-0 Crospovidone.txt:40" },
+    { "name": "Methylene blue", "use": "indicator", "source": "Crospovidone__STM- RM-0 Crospovidone.txt:40" },
+    { "name": "Potassium bromide", "use": "reagent", "source": "Crospovidone__STM- RM-0 Crospovidone.txt:40" },
+    { "name": "Crospovidone RS or WS", "use": "standard", "source": "Crospovidone__STM- RM-0 Crospovidone.txt:40" },
+    { "name": "Hydrochloric acid", "use": "reagent", "source": "Crospovidone__STM- RM-0 Crospovidone.txt:40" },
+    { "name": "Acetonitrile", "use": "reagent", "source": "Crospovidone__STM- RM-0 Crospovidone.txt:40" },
+    { "name": "Methanol", "use": "reagent", "source": "Crospovidone__STM- RM-0 Crospovidone.txt:40" },
+    { "name": "Vinylpyrrolidinone", "use": "standard", "source": "Crospovidone__STM- RM-0 Crospovidone.txt:40" },
+    { "name": "Vinyl acetate", "use": "standard", "source": "Crospovidone__STM- RM-0 Crospovidone.txt:40" },
+    { "name": "Tromethamine (Tris)", "use": "standard", "source": "Crospovidone__STM- RM-0 Crospovidone.txt:40" },
+    { "name": "Titanium trichloride-sulfuric acid TS", "use": "reagent", "source": "Crospovidone__STM- RM-0 Crospovidone.txt:46" },
+    { "name": "Sulfuric acid 0.01 N VS", "use": "titrant", "source": "Crospovidone__STM- RM-0 Crospovidone.txt:40" }
+  ],
+  "openQuestions": [
+    {
+      "question": "The spec sheet in this folder ('Specifications sheet Sodium Methyl Paraben') is for Sodium Propyl Paraben (STM-RM-063, issued 17-07-2025), not Crospovidone. Misfiled; ignored. Rows are taken from the STM's own specification lines (USP Crospovidone monograph). Confirm.",
+      "source": "Crospovidone__Specifications sheet Sodium Methyl Paraben.txt:7-9"
+    },
+    {
+      "question": "Identification test A (IR) specification reads 'The retention time of the major peak of the Sample solution corresponds to that of the Standard solution' (HPLC wording). Loaded as written; confirm the IR limit.",
+      "source": "Crospovidone__STM- RM-0 Crospovidone.txt:44"
+    },
+    {
+      "question": "Assay is a nitrogen content (%) on the dried basis, but the procedure has no drying step and the formula has no loss-on-drying correction. Confirm how the dried basis is obtained.",
+      "source": "Crospovidone__STM- RM-0 Crospovidone.txt:49"
+    },
+    {
+      "question": "Peroxides: the limit is an absorbance (NMT 0.35); the ppm H2O2 values are for Type A (NMT 400 ppm) and Type B (NMT 1000 ppm). Only the absorbance is loaded. The STM does not say which type the item is; confirm the type.",
+      "source": "Crospovidone__STM- RM-0 Crospovidone.txt:46"
+    },
+    {
+      "question": "Microbiological limits read 'Not more than 103 CFU/gm' and '102 CFU/gm' (superscript lost); read as 10^3 = 1000 and 10^2 = 100 CFU/g. Confirm. Micro methods only referenced to SOP C2I-91-128.",
+      "source": "Crospovidone__STM- RM-0 Crospovidone.txt:51"
+    }
+  ]
+}

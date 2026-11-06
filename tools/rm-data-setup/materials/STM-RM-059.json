@@ -1,0 +1,501 @@
+{
+  "itemCode": "STM-RM-059",
+  "stmCode": "STM-RM-059",
+  "itemName": "D-Alpha Tocopheryl acid Succinate",
+  "stmFile": "D-Alpha Tocopherol Succinate__STM for Alpha tocopherol Succinate.txt",
+  "specFiles": [
+    "D-Alpha Tocopherol Succinate__Specifications sheet D-Alpha Tocopheryl Succinate.txt"
+  ],
+  "minQuantity": {
+    "routine": 100,
+    "retest": 100,
+    "retention": 50,
+    "unit": "g",
+    "source": "D-Alpha Tocopherol Succinate__Specifications sheet D-Alpha Tocopheryl Succinate.txt:21; D-Alpha Tocopherol Succinate__STM for Alpha tocopherol Succinate.txt:36"
+  },
+  "grades": [
+    {
+      "grade": "USP",
+      "rows": [
+        {
+          "testCode": "RM-DESC",
+          "parameterName": "Description",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "a white powder, melts at about 75°",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "D-Alpha Tocopherol Succinate__Specifications sheet D-Alpha Tocopheryl Succinate.txt:11"
+        },
+        {
+          "testCode": "RM-SOLUB",
+          "parameterName": "Solubility",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "very soluble in chloroform; soluble in alcohol, in ether, in acetone, and in vegetable oils; practically insoluble in water.",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "D-Alpha Tocopherol Succinate__Specifications sheet D-Alpha Tocopheryl Succinate.txt:12"
+        },
+        {
+          "testCode": "RM-ID-CR-ATOC",
+          "parameterName": "Identification (Chemical Reaction)",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Bright red to orange color develops",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "D-Alpha Tocopherol Succinate__Specifications sheet D-Alpha Tocopheryl Succinate.txt:13"
+        },
+        {
+          "testCode": "RM-OPTROT",
+          "parameterName": "Identification (Polarimetry)",
+          "limitType": "NotLessThan",
+          "lower": 24,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": "°",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "D-Alpha Tocopherol Succinate__Specifications sheet D-Alpha Tocopheryl Succinate.txt:14"
+        },
+        {
+          "testCode": "RM-ID-RT",
+          "parameterName": "Identification (HPLC / GC)",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "The retention time of the major peak of the Sample solution corresponds to that of the Standard solution, as obtained in the Assay",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "D-Alpha Tocopherol Succinate__Specifications sheet D-Alpha Tocopheryl Succinate.txt:15"
+        },
+        {
+          "testCode": "RM-ACID-ATOC",
+          "parameterName": "Acidity",
+          "limitType": "Range",
+          "lower": 18.0,
+          "upper": 19.3,
+          "lowerInclusive": true,
+          "unit": "mL of 0.10 N sodium hydroxide",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "D-Alpha Tocopherol Succinate__Specifications sheet D-Alpha Tocopheryl Succinate.txt:16"
+        },
+        {
+          "testCode": "RM-GC-AS-ATOC",
+          "parameterName": "Assay",
+          "limitType": "Range",
+          "lower": 96.0,
+          "upper": 102.0,
+          "lowerInclusive": true,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": "PercentAsIs",
+          "referenceStandard": "USP",
+          "source": "D-Alpha Tocopherol Succinate__Specifications sheet D-Alpha Tocopheryl Succinate.txt:17",
+          "heldBack": "STM: GC method incomplete (system suitability criteria not stated)"
+        },
+        {
+          "testCode": "RM-OPTROT",
+          "parameterName": "Specific Rotation",
+          "limitType": "NotLessThan",
+          "lower": 24,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": "°",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "D-Alpha Tocopherol Succinate__Specifications sheet D-Alpha Tocopheryl Succinate.txt:18"
+        },
+        {
+          "testCode": "RM-MP",
+          "parameterName": "Melting point",
+          "limitType": "Range",
+          "lower": 72.00,
+          "upper": 78.00,
+          "lowerInclusive": true,
+          "unit": "°C",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "Inhouse",
+          "source": "D-Alpha Tocopherol Succinate__Specifications sheet D-Alpha Tocopheryl Succinate.txt:19"
+        },
+        {
+          "testCode": "RM-BULKD",
+          "parameterName": "Bulk Density",
+          "limitType": "Range",
+          "lower": 0.3,
+          "upper": 0.6,
+          "lowerInclusive": true,
+          "unit": "g/ml",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "Inhouse",
+          "source": "D-Alpha Tocopherol Succinate__Specifications sheet D-Alpha Tocopheryl Succinate.txt:20"
+        },
+        {
+          "testCode": "RM-TAMC",
+          "parameterName": "Total aerobic microbial count",
+          "limitType": "CountTiered",
+          "lower": null,
+          "upper": 1000,
+          "lowerInclusive": null,
+          "unit": "CFU/g",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "D-Alpha Tocopherol Succinate__Specifications sheet D-Alpha Tocopheryl Succinate.txt:21"
+        },
+        {
+          "testCode": "RM-TYMC",
+          "parameterName": "Total yeasts and molds count",
+          "limitType": "CountTiered",
+          "lower": null,
+          "upper": 100,
+          "lowerInclusive": null,
+          "unit": "CFU/g",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "D-Alpha Tocopherol Succinate__Specifications sheet D-Alpha Tocopheryl Succinate.txt:21"
+        },
+        {
+          "testCode": "RM-ECOLI",
+          "parameterName": "E. coli",
+          "limitType": "PresenceAbsence",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": "per 10 g",
+          "expectedResultText": "Absent / 10gm",
+          "expectedState": "Absence",
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "D-Alpha Tocopherol Succinate__Specifications sheet D-Alpha Tocopheryl Succinate.txt:21"
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "testCode": "RM-DESC",
+      "procedure": "Under strong white light, check each received sample container separately in clean, transparent watch glass or glass dish to detect any foreign particles, conformance of colour & compliance with the visual specifications.",
+      "kind": "general",
+      "workflow": "Observation",
+      "details": {
+        "perContainer": true,
+        "specification": "a white powder, melts at about 75°",
+        "reference": "USP 2024 Monograph for Vitamin E Succinate"
+      },
+      "source": "D-Alpha Tocopherol Succinate__STM for Alpha tocopherol Succinate.txt:28"
+    },
+    {
+      "testCode": "RM-SOLUB",
+      "procedure": "Weigh 100 mg of sample in a stoppered tube. Stepwise add solvent: 0.1 mL, 0.9 mL, 2 mL, 7 mL with 1 min vigorous shaking and 15 min hold at 25.0 ± 0.5 °C; if undissolved test 10 mg in 10 mL then 1 mg in 10 mL. Repeat with acetone, alcohol, ether, chloroform.",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {
+        "solvents": [
+          "chloroform",
+          "alcohol",
+          "ether",
+          "acetone"
+        ],
+        "specification": "very soluble in chloroform; soluble in alcohol, in ether, in acetone, and in vegetable oils; practically insoluble in water."
+      },
+      "source": "D-Alpha Tocopherol Succinate__STM for Alpha tocopherol Succinate.txt:29"
+    },
+    {
+      "testCode": "RM-ID-CR-ATOC",
+      "procedure": "Transfer sample equivalent to 200 mg alpha tocopherol to 250 mL flask, dissolve in 50 mL dehydrated alcohol, reflux 1 min. Add 1 g KOH pellets through condenser, reflux 20 min. Add 2 mL HCl dropwise, cool, transfer to 500 mL separator, rinse with 100 mL water and 100 mL ether. Extract aqueous layer with two 50-mL portions of ether. Wash combined ether with four 100-mL portions water. Evaporate ether until 7-8 mL remain, complete without heat. Dissolve in alcoholic sulfuric acid (1 in 72) to 200 mL. To 10 mL add 2 mL nitric acid with swirling, heat at ~75 °C for 15 min. A bright red or orange color develops.",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "details": {
+        "sample": "equivalent to 200 mg alpha tocopherol",
+        "reagents": [
+          "dehydrated alcohol",
+          "KOH pellets",
+          "HCl",
+          "ether",
+          "alcoholic sulfuric acid (1 in 72)",
+          "nitric acid"
+        ],
+        "expected": "Bright red to orange color develops",
+        "reference": "USP 2024 Monograph for Vitamin E Succinate"
+      },
+      "source": "D-Alpha Tocopherol Succinate__STM for Alpha tocopherol Succinate.txt:30"
+    },
+    {
+      "testCode": "RM-OPTROT",
+      "procedure": "Transfer sample solution from Identification A equivalent to 100 mg alpha tocopheryl acid succinate to separator, add 200 mL water, extract with 75 mL then 25 mL ether. Add 20 mL of potassium ferricyanide (1 in 10) in NaOH (1 in 125) solution, shake 3 min. Wash ether with four 50-mL portions water, dry over anhydrous Na2SO4, evaporate without heat. Dissolve residue in 5.0 mL 2,2,4-trimethylpentane. Measure on calibrated polarimeter using concentration determined in assay. NLT +24°.",
+      "kind": "specific",
+      "workflow": "Measurement",
+      "details": {
+        "sample": "solution from ID-A equivalent to 100 mg alpha tocopheryl acid succinate",
+        "oxidizingReagent": "potassium ferricyanide in NaOH",
+        "solvent": "5.0 mL 2,2,4-trimethylpentane",
+        "instrument": "Calibrated Polarimeter",
+        "specification": "NLT +24°",
+        "reference": "USP <781S>; USP 2024 Monograph"
+      },
+      "source": "D-Alpha Tocopherol Succinate__STM for Alpha tocopherol Succinate.txt:30"
+    },
+    {
+      "testCode": "RM-ID-RT",
+      "procedure": "The retention time of the major peak of the Sample solution corresponds to that of the Standard solution, as obtained in the Assay.",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "details": {
+        "specification": "Comply with assay retention time",
+        "reference": "USP 2024 Monograph for Vitamin E Succinate"
+      },
+      "source": "D-Alpha Tocopherol Succinate__STM for Alpha tocopherol Succinate.txt:30"
+    },
+    {
+      "testCode": "RM-ACID-ATOC",
+      "procedure": "Dissolve 1.0 g sample in 25 mL diluent (equal parts alcohol and ether, neutralized to phenolphthalein with 0.1 N NaOH). Add 0.5 mL phenolphthalein TS. Titrate with 0.10 N sodium hydroxide until solution remains faintly pink after shaking for 30 s. Requires 18.0–19.3 mL of 0.10 N sodium hydroxide.",
+      "kind": "specific",
+      "workflow": "Measurement",
+      "details": {
+        "sampleG": 1.0,
+        "diluent": "25 mL alcohol + ether (1:1) neutralized",
+        "indicator": "0.5 mL phenolphthalein TS",
+        "titrant": "0.10 N sodium hydroxide",
+        "limit": "18.0–19.3 mL",
+        "reference": "USP 2024 Monograph for Vitamin E Succinate"
+      },
+      "source": "D-Alpha Tocopherol Succinate__STM for Alpha tocopherol Succinate.txt:31"
+    },
+    {
+      "testCode": "RM-BULKD",
+      "procedure": "Weigh empty and dry cylinder. Tare balance. Put volume of sample in cylinder (V). Weigh filled cylinder (W). Bulk Density = W / V.",
+      "kind": "general",
+      "workflow": "Measurement",
+      "details": {
+        "formula": "Bulk Density = W / V",
+        "specification": "0.3 to 0.6 g/ml",
+        "reference": "Inhouse Specification for Bulk density"
+      },
+      "source": "D-Alpha Tocopherol Succinate__STM for Alpha tocopherol Succinate.txt:32"
+    },
+    {
+      "testCode": "RM-MP",
+      "procedure": "Fill capillary tube with sufficient amount of sample. Measure using calibrated melting point apparatus.",
+      "kind": "general",
+      "workflow": "Measurement",
+      "details": {
+        "specification": "72.00 to 78.00 °C",
+        "reference": "USP <741>; USP 2024 Monograph"
+      },
+      "source": "D-Alpha Tocopherol Succinate__STM for Alpha tocopherol Succinate.txt:33"
+    },
+    {
+      "testCode": "RM-GC-AS-ATOC",
+      "procedure": "Gas chromatography with internal standard. Internal standard: 10 mg/mL squalane in cyclohexane. Standard: 30.0 mg USP Alpha Tocopheryl Acid Succinate RS in 20-mL vial + 2.0 mL methanol + 1.0 mL 2,2-dimethoxypropane + 0.1 mL HCl, sonicate, stand in dark 1 h ± 5 min, evaporate just to dryness with stream of nitrogen, dissolve in 3.0 mL internal standard solution. Sample: 30.0 mg prepared identically. GC-FID: 0.25-mm x 30-m fused silica capillary (phase G2 0.25 µm), He carrier at 1 mL/min, split 100:1, column 280 °C, injector 290 °C, detector 290 °C, 1 µL injection. Result % = (RU/RS) x (CS/CU) x 100.",
+      "kind": "specific",
+      "workflow": "Measurement",
+      "details": {
+        "technique": "Gas Chromatography (GC-FID) with internal standard",
+        "column": "0.25-mm x 30-m fused silica capillary, film 0.25 µm phase G2",
+        "carrierGas": "Helium at 1 mL/min",
+        "splitRatio": "100:1",
+        "temperatures": {
+          "injectionPort": "290 °C",
+          "column": "280 °C",
+          "detector": "290 °C"
+        },
+        "injectionVolumeUl": 1,
+        "internalStandard": "10 mg/mL squalane in cyclohexane",
+        "standards": [
+          "USP Alpha Tocopheryl Acid Succinate RS",
+          "USP Alpha Tocopherol RS"
+        ],
+        "derivatization": "methanol + 2,2-dimethoxypropane + HCl, 1 h in dark, dry under N2",
+        "formula": "Result = (RU/RS) x (CS/CU) x 100",
+        "specification": "96.0%–102.0%",
+        "reference": "USP <621>; USP 2024 Monograph for Vitamin E Succinate"
+      },
+      "source": "D-Alpha Tocopherol Succinate__STM for Alpha tocopherol Succinate.txt:34",
+      "heldBack": "STM: GC method incomplete (system suitability criteria not stated)"
+    },
+    {
+      "testCode": "RM-TAMC",
+      "procedure": "Microbiological examination per SOP C2I-91-128 and the material-specific verification report.",
+      "kind": "general",
+      "workflow": "CountTest",
+      "details": {
+        "limit": "Not more than 10^3 CFU/gm",
+        "reference": "USP <61>",
+        "sop": "C2I-91-128"
+      },
+      "source": "D-Alpha Tocopherol Succinate__Specifications sheet D-Alpha Tocopheryl Succinate.txt:21"
+    },
+    {
+      "testCode": "RM-TYMC",
+      "procedure": "Microbiological examination per SOP C2I-91-128 and the material-specific verification report.",
+      "kind": "general",
+      "workflow": "CountTest",
+      "details": {
+        "limit": "Not more than 10^2 CFU/gm",
+        "reference": "USP <61>",
+        "sop": "C2I-91-128"
+      },
+      "source": "D-Alpha Tocopherol Succinate__Specifications sheet D-Alpha Tocopheryl Succinate.txt:21"
+    },
+    {
+      "testCode": "RM-ECOLI",
+      "procedure": "Microbiological examination per SOP C2I-91-128 and the material-specific verification report.",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {
+        "limit": "Absent / 10gm",
+        "reference": "USP <62>",
+        "sop": "C2I-91-128"
+      },
+      "source": "D-Alpha Tocopherol Succinate__Specifications sheet D-Alpha Tocopheryl Succinate.txt:21"
+    }
+  ],
+  "notApplicable": [],
+  "supplierAttributes": [],
+  "reagents": [
+    {
+      "name": "Dehydrated alcohol",
+      "use": "reagent",
+      "source": "D-Alpha Tocopherol Succinate__STM for Alpha tocopherol Succinate.txt:26"
+    },
+    {
+      "name": "Potassium hydroxide",
+      "use": "reagent",
+      "source": "D-Alpha Tocopherol Succinate__STM for Alpha tocopherol Succinate.txt:26"
+    },
+    {
+      "name": "Hydrochloric acid",
+      "use": "reagent",
+      "source": "D-Alpha Tocopherol Succinate__STM for Alpha tocopherol Succinate.txt:26"
+    },
+    {
+      "name": "Ether",
+      "use": "reagent",
+      "source": "D-Alpha Tocopherol Succinate__STM for Alpha tocopherol Succinate.txt:26"
+    },
+    {
+      "name": "Alcohol",
+      "use": "reagent",
+      "source": "D-Alpha Tocopherol Succinate__STM for Alpha tocopherol Succinate.txt:26"
+    },
+    {
+      "name": "Nitric acid",
+      "use": "reagent",
+      "source": "D-Alpha Tocopherol Succinate__STM for Alpha tocopherol Succinate.txt:26"
+    },
+    {
+      "name": "Sulfuric acid",
+      "use": "reagent",
+      "source": "D-Alpha Tocopherol Succinate__STM for Alpha tocopherol Succinate.txt:26"
+    },
+    {
+      "name": "Potassium ferricyanide",
+      "use": "reagent",
+      "source": "D-Alpha Tocopherol Succinate__STM for Alpha tocopherol Succinate.txt:26"
+    },
+    {
+      "name": "Sodium hydroxide",
+      "use": "reagent",
+      "source": "D-Alpha Tocopherol Succinate__STM for Alpha tocopherol Succinate.txt:26"
+    },
+    {
+      "name": "Anhydrous sodium sulfate",
+      "use": "reagent",
+      "source": "D-Alpha Tocopherol Succinate__STM for Alpha tocopherol Succinate.txt:26"
+    },
+    {
+      "name": "2,2,4-trimethylpentane",
+      "use": "reagent",
+      "source": "D-Alpha Tocopherol Succinate__STM for Alpha tocopherol Succinate.txt:26"
+    },
+    {
+      "name": "Cyclohexane",
+      "use": "reagent",
+      "source": "D-Alpha Tocopherol Succinate__STM for Alpha tocopherol Succinate.txt:26"
+    },
+    {
+      "name": "USP Alpha Tocopherol RS",
+      "use": "standard",
+      "source": "D-Alpha Tocopherol Succinate__STM for Alpha tocopherol Succinate.txt:26"
+    },
+    {
+      "name": "USP Alpha Tocopheryl Succinate RS",
+      "use": "standard",
+      "source": "D-Alpha Tocopherol Succinate__STM for Alpha tocopherol Succinate.txt:26"
+    },
+    {
+      "name": "Methanol",
+      "use": "reagent",
+      "source": "D-Alpha Tocopherol Succinate__STM for Alpha tocopherol Succinate.txt:26"
+    },
+    {
+      "name": "Phenolphthalein",
+      "use": "indicator",
+      "source": "D-Alpha Tocopherol Succinate__STM for Alpha tocopherol Succinate.txt:26"
+    },
+    {
+      "name": "Squalane",
+      "use": "standard",
+      "source": "D-Alpha Tocopherol Succinate__STM for Alpha tocopherol Succinate.txt:34"
+    },
+    {
+      "name": "2,2-dimethoxypropane",
+      "use": "reagent",
+      "source": "D-Alpha Tocopherol Succinate__STM for Alpha tocopherol Succinate.txt:34"
+    }
+  ],
+  "openQuestions": [
+    {
+      "question": "Microbial limits (TAMC NMT 10^3 CFU/gm, TYMC NMT 10^2 CFU/gm, E. coli Absent/10 gm) appear under 'Additional requirements and attachments' on the spec sheet (line 21); recorded as spec rows per Rule 4. Salmonella was removed as it does not appear in line 21.",
+      "source": "D-Alpha Tocopherol Succinate__Specifications sheet D-Alpha Tocopheryl Succinate.txt:21"
+    },
+    {
+      "question": "Minimum sample quantity: spec sheet gives 100 gm routine; STM gives 50 g routine/retention and 100 g periodic retesting. minQuantity holds 100 g routine / 100 g retest / 50 g retention.",
+      "source": "D-Alpha Tocopherol Succinate__Specifications sheet D-Alpha Tocopheryl Succinate.txt:21; D-Alpha Tocopherol Succinate__STM for Alpha tocopherol Succinate.txt:36"
+    },
+    {
+      "question": "Assay: main STM method is gas chromatography (GC-FID) with squalane internal standard; held back per Rule 6 because the STM lacks system suitability criteria.",
+      "source": "D-Alpha Tocopherol Succinate__STM for Alpha tocopherol Succinate.txt:34"
+    },
+    {
+      "question": "Acidity: direct titration whose specification is expressed as volume of titrant (18.0–19.3 mL of 0.10 N NaOH); transcribed as Measurement workflow with unit 'mL of 0.10 N sodium hydroxide'.",
+      "source": "D-Alpha Tocopherol Succinate__Specifications sheet D-Alpha Tocopheryl Succinate.txt:16; D-Alpha Tocopherol Succinate__STM for Alpha tocopherol Succinate.txt:31"
+    },
+    {
+      "question": "Specific rotation and Identification (Polarimetry): both rows share the same polarimetric procedure (NLT +24°).",
+      "source": "D-Alpha Tocopherol Succinate__Specifications sheet D-Alpha Tocopheryl Succinate.txt:14,18; D-Alpha Tocopherol Succinate__STM for Alpha tocopherol Succinate.txt:30"
+    }
+  ]
+}

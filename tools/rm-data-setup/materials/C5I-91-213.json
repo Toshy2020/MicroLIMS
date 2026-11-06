@@ -1,0 +1,488 @@
+{
+  "itemCode": "C5I-91-213",
+  "itemName": "Cyanocobalamine",
+  "stmCode": "C5I-91-213",
+  "stmFile": null,
+  "specFiles": [
+    "Cyanocobalamine__Specifications sheet Cyanocobalamine BP.txt",
+    "Cyanocobalamine__Specifications sheet Cyanocobalamine USP.txt"
+  ],
+  "minQuantity": {
+    "routine": 20,
+    "retest": null,
+    "unit": "g",
+    "source": "Cyanocobalamine__Specifications sheet Cyanocobalamine BP.txt:18; Cyanocobalamine__Specifications sheet Cyanocobalamine USP.txt:19"
+  },
+  "grades": [
+    {
+      "grade": "BP",
+      "rows": [
+        {
+          "testCode": "RM-DESC",
+          "parameterName": "Appearance",
+          "limitType": "Qualitative",
+          "lower": null, "upper": null, "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Dark red, crystalline powder or dark red crystals.  The anhydrous substance is very hygroscopic",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Cyanocobalamine__Specifications sheet Cyanocobalamine BP.txt:11"
+        },
+        {
+          "testCode": "RM-SOLUB",
+          "parameterName": "Solubility",
+          "limitType": "Qualitative",
+          "lower": null, "upper": null, "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Sparingly soluble in water and in ethanol (96 per cent), practically insoluble in acetone",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Cyanocobalamine__Specifications sheet Cyanocobalamine BP.txt:12"
+        },
+        {
+          "testCode": "RM-ID-UV-CYANO",
+          "parameterName": "Identification (UV absorbance ratio A361 / A547-559)",
+          "limitType": "Range",
+          "lower": 3.15, "upper": 3.45, "lowerInclusive": true,
+          "unit": null,
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Cyanocobalamine__Specifications sheet Cyanocobalamine BP.txt:13",
+          "heldBack": "no STM: method not documented"
+        },
+        {
+          "testCode": "RM-ID-UV-CYANO",
+          "parameterName": "Identification (UV absorbance ratio A361 / A278)",
+          "limitType": "Range",
+          "lower": 1.70, "upper": 1.90, "lowerInclusive": true,
+          "unit": null,
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Cyanocobalamine__Specifications sheet Cyanocobalamine BP.txt:13",
+          "heldBack": "no STM: method not documented"
+        },
+        {
+          "testCode": "RM-ID-RT",
+          "parameterName": "Identification (HPLC: principal peak retention time and size)",
+          "limitType": "Qualitative",
+          "lower": null, "upper": null, "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "The principal peak in the chromatogram obtained with the test solution is similar in retention time and size to the principal peak in the chromatogram obtained with reference solution",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Cyanocobalamine__Specifications sheet Cyanocobalamine BP.txt:14",
+          "heldBack": "no STM: method not documented"
+        },
+        {
+          "testCode": "RM-LOD",
+          "parameterName": "Loss on drying",
+          "limitType": "NotMoreThan",
+          "lower": null, "upper": 12.0, "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Cyanocobalamine__Specifications sheet Cyanocobalamine BP.txt:15"
+        },
+        {
+          "testCode": "RM-RS-CYANO",
+          "parameterName": "Related substances: Impurity C",
+          "limitType": "NotMoreThan",
+          "lower": null, "upper": 1.5, "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Cyanocobalamine__Specifications sheet Cyanocobalamine BP.txt:16",
+          "heldBack": "no STM: method not documented"
+        },
+        {
+          "testCode": "RM-RS-CYANO",
+          "parameterName": "Related substances: Impurity A",
+          "limitType": "NotMoreThan",
+          "lower": null, "upper": 0.7, "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Cyanocobalamine__Specifications sheet Cyanocobalamine BP.txt:16",
+          "heldBack": "no STM: method not documented"
+        },
+        {
+          "testCode": "RM-RS-CYANO",
+          "parameterName": "Related substances: Impurities B, D, E, F (each)",
+          "limitType": "NotMoreThan",
+          "lower": null, "upper": 0.5, "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Cyanocobalamine__Specifications sheet Cyanocobalamine BP.txt:16",
+          "heldBack": "no STM: method not documented"
+        },
+        {
+          "testCode": "RM-RS-CYANO",
+          "parameterName": "Related substances: Unspecified impurities (each)",
+          "limitType": "NotMoreThan",
+          "lower": null, "upper": 0.2, "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Cyanocobalamine__Specifications sheet Cyanocobalamine BP.txt:16",
+          "heldBack": "no STM: method not documented"
+        },
+        {
+          "testCode": "RM-RS-CYANO",
+          "parameterName": "Related substances: Total",
+          "limitType": "NotMoreThan",
+          "lower": null, "upper": 3.0, "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Cyanocobalamine__Specifications sheet Cyanocobalamine BP.txt:16",
+          "heldBack": "no STM: method not documented"
+        },
+        {
+          "testCode": "RM-UV-ASSAY-CYANO",
+          "parameterName": "Assay (dried basis)",
+          "limitType": "Range",
+          "lower": 96.0, "upper": 102.0, "lowerInclusive": true,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": "PercentDriedBasis",
+          "referenceStandard": "BP",
+          "source": "Cyanocobalamine__Specifications sheet Cyanocobalamine BP.txt:17",
+          "heldBack": "no STM: method not documented"
+        },
+        {
+          "testCode": "TAMC",
+          "parameterName": "Total aerobic microbial count (TAMC)",
+          "limitType": "CountTiered",
+          "lower": null, "upper": 1000, "lowerInclusive": null,
+          "unit": "CFU/g",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": null,
+          "source": "Cyanocobalamine__Specifications sheet Cyanocobalamine BP.txt:18"
+        },
+        {
+          "testCode": "TYMC",
+          "parameterName": "Total yeasts and molds count (TYMC)",
+          "limitType": "CountTiered",
+          "lower": null, "upper": 100, "lowerInclusive": null,
+          "unit": "CFU/g",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": null,
+          "source": "Cyanocobalamine__Specifications sheet Cyanocobalamine BP.txt:18"
+        },
+        {
+          "testCode": "E.coli",
+          "parameterName": "Escherichia coli",
+          "limitType": "PresenceAbsence",
+          "lower": null, "upper": null, "lowerInclusive": null,
+          "unit": "per 10 g",
+          "expectedResultText": "Absent /10 gm",
+          "expectedState": "Absence",
+          "resultBasis": null,
+          "referenceStandard": null,
+          "source": "Cyanocobalamine__Specifications sheet Cyanocobalamine BP.txt:18"
+        }
+      ]
+    },
+    {
+      "grade": "USP",
+      "rows": [
+        {
+          "testCode": "RM-DESC",
+          "parameterName": "Description",
+          "limitType": "Qualitative",
+          "lower": null, "upper": null, "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Dark red crystals or amorphous or crystalline red powder, In the anhydrous form, it is very hygroscopic and when exposed to air it may absorb about 12% of water.",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Cyanocobalamine__Specifications sheet Cyanocobalamine USP.txt:11"
+        },
+        {
+          "testCode": "RM-SOLUB",
+          "parameterName": "Solubility",
+          "limitType": "Qualitative",
+          "lower": null, "upper": null, "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Soluble in alcohol; sparingly soluble in water; insoluble in acetone, in chloroform, and in ether",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Cyanocobalamine__Specifications sheet Cyanocobalamine USP.txt:12"
+        },
+        {
+          "testCode": "RM-ID-UV-CYANO",
+          "parameterName": "Identification (UV absorption maxima)",
+          "limitType": "Qualitative",
+          "lower": null, "upper": null, "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "The absorption spectrum exhibits maxima at 278 ± 1, 361 ± 1, and 550 ± 2 nm.",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Cyanocobalamine__Specifications sheet Cyanocobalamine USP.txt:13",
+          "heldBack": "no STM: method not documented"
+        },
+        {
+          "testCode": "RM-ID-UV-CYANO",
+          "parameterName": "Identification (UV absorbance ratio A361 / A278)",
+          "limitType": "Range",
+          "lower": 1.70, "upper": 1.90, "lowerInclusive": true,
+          "unit": null,
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Cyanocobalamine__Specifications sheet Cyanocobalamine USP.txt:13",
+          "heldBack": "no STM: method not documented"
+        },
+        {
+          "testCode": "RM-ID-UV-CYANO",
+          "parameterName": "Identification (UV absorbance ratio A361 / A550)",
+          "limitType": "Range",
+          "lower": 3.15, "upper": 3.40, "lowerInclusive": true,
+          "unit": null,
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Cyanocobalamine__Specifications sheet Cyanocobalamine USP.txt:13",
+          "heldBack": "no STM: method not documented"
+        },
+        {
+          "testCode": "RM-ID-RT",
+          "parameterName": "Identification (HPLC: principal peak retention time)",
+          "limitType": "Qualitative",
+          "lower": null, "upper": null, "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "The principal peak in the chromatogram obtained with the test solution is similar in retention time to the principal peak in the chromatogram obtained with reference solution",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Cyanocobalamine__Specifications sheet Cyanocobalamine USP.txt:14",
+          "heldBack": "no STM: method not documented"
+        },
+        {
+          "testCode": "RM-ID-CHEM-CYANO",
+          "parameterName": "Identification (chemical reaction, nitroso R salt)",
+          "limitType": "Qualitative",
+          "lower": null, "upper": null, "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "A red or orange-red color appears immediately after the addition of nitroso R salt. The red color persists after boiling with the addition of hydrochloric acid",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Cyanocobalamine__Specifications sheet Cyanocobalamine USP.txt:15",
+          "heldBack": "no STM: method not documented"
+        },
+        {
+          "testCode": "RM-LOD",
+          "parameterName": "Loss on drying",
+          "limitType": "NotMoreThan",
+          "lower": null, "upper": 12.0, "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Cyanocobalamine__Specifications sheet Cyanocobalamine USP.txt:16"
+        },
+        {
+          "testCode": "RM-RS-CYANO",
+          "parameterName": "Related substances (per USP requirements)",
+          "limitType": "Qualitative",
+          "lower": null, "upper": null, "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Comply with USP requirements",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Cyanocobalamine__Specifications sheet Cyanocobalamine USP.txt:17",
+          "heldBack": "no STM: method not documented"
+        },
+        {
+          "testCode": "RM-UV-ASSAY-CYANO",
+          "parameterName": "Assay (dried basis)",
+          "limitType": "Range",
+          "lower": 96.0, "upper": 102.0, "lowerInclusive": true,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": "PercentDriedBasis",
+          "referenceStandard": "USP",
+          "source": "Cyanocobalamine__Specifications sheet Cyanocobalamine USP.txt:18",
+          "heldBack": "no STM: method not documented"
+        },
+        {
+          "testCode": "TAMC",
+          "parameterName": "Total aerobic microbial count (TAMC)",
+          "limitType": "CountTiered",
+          "lower": null, "upper": 1000, "lowerInclusive": null,
+          "unit": "CFU/g",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": null,
+          "source": "Cyanocobalamine__Specifications sheet Cyanocobalamine USP.txt:19"
+        },
+        {
+          "testCode": "TYMC",
+          "parameterName": "Total yeasts and molds count (TYMC)",
+          "limitType": "CountTiered",
+          "lower": null, "upper": 100, "lowerInclusive": null,
+          "unit": "CFU/g",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": null,
+          "source": "Cyanocobalamine__Specifications sheet Cyanocobalamine USP.txt:19"
+        },
+        {
+          "testCode": "E.coli",
+          "parameterName": "Escherichia coli",
+          "limitType": "PresenceAbsence",
+          "lower": null, "upper": null, "lowerInclusive": null,
+          "unit": "per 10 g",
+          "expectedResultText": "Absent /10 gm",
+          "expectedState": "Absence",
+          "resultBasis": null,
+          "referenceStandard": null,
+          "source": "Cyanocobalamine__Specifications sheet Cyanocobalamine USP.txt:19"
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "testCode": "RM-DESC",
+      "procedure": "No STM in folder: general description test per catalog.",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": { "perContainer": true, "grades": ["BP", "USP"], "spec_only": true },
+      "source": "Cyanocobalamine__Specifications sheet Cyanocobalamine BP.txt:11"
+    },
+    {
+      "testCode": "RM-SOLUB",
+      "procedure": "No STM in folder: general solubility test per catalog.",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": { "grades": ["BP", "USP"], "spec_only": true },
+      "source": "Cyanocobalamine__Specifications sheet Cyanocobalamine BP.txt:12"
+    },
+    {
+      "testCode": "RM-ID-UV-CYANO",
+      "procedure": "No STM in folder: UV absorbance ratios (BP A361/A547-559 and A361/A278; USP maxima 278, 361, 550 nm and ratios A361/A278, A361/A550). Method not documented.",
+      "kind": "specific",
+      "workflow": "UvSpectrophotometry",
+      "details": { "grades": ["BP", "USP"], "spec_only": true },
+      "source": "Cyanocobalamine__Specifications sheet Cyanocobalamine BP.txt:13",
+      "heldBack": "no STM: method not documented"
+    },
+    {
+      "testCode": "RM-ID-RT",
+      "procedure": "No STM in folder: HPLC retention-time identification. Method not documented.",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": { "grades": ["BP", "USP"], "spec_only": true },
+      "source": "Cyanocobalamine__Specifications sheet Cyanocobalamine BP.txt:14",
+      "heldBack": "no STM: method not documented"
+    },
+    {
+      "testCode": "RM-ID-CHEM-CYANO",
+      "procedure": "No STM in folder: nitroso R salt reaction. Method not documented.",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "details": { "grades": ["USP"], "spec_only": true },
+      "source": "Cyanocobalamine__Specifications sheet Cyanocobalamine USP.txt:15",
+      "heldBack": "no STM: method not documented"
+    },
+    {
+      "testCode": "RM-LOD",
+      "procedure": "No STM in folder: general loss-on-drying test per catalog (spec technique: thermogravimetry).",
+      "kind": "general",
+      "workflow": "Gravimetric",
+      "details": { "grades": ["BP", "USP"], "spec_only": true },
+      "source": "Cyanocobalamine__Specifications sheet Cyanocobalamine BP.txt:15"
+    },
+    {
+      "testCode": "RM-RS-CYANO",
+      "procedure": "No STM in folder: HPLC related substances (BP limits per impurity; USP refers to the USP monograph). Method not documented.",
+      "kind": "specific",
+      "workflow": "HplcMethodAssay",
+      "details": { "grades": ["BP", "USP"], "spec_only": true },
+      "source": "Cyanocobalamine__Specifications sheet Cyanocobalamine BP.txt:16",
+      "heldBack": "no STM: method not documented"
+    },
+    {
+      "testCode": "RM-UV-ASSAY-CYANO",
+      "procedure": "No STM in folder: UV assay on the dried basis. Method not documented.",
+      "kind": "specific",
+      "workflow": "UvSpectrophotometry",
+      "details": { "grades": ["BP", "USP"], "spec_only": true },
+      "source": "Cyanocobalamine__Specifications sheet Cyanocobalamine BP.txt:17",
+      "heldBack": "no STM: method not documented"
+    },
+    {
+      "testCode": "TAMC",
+      "procedure": "No STM in folder: microbial limits per the spec sheet; general test per catalog.",
+      "kind": "general",
+      "workflow": "CountTest",
+      "details": { "grades": ["BP", "USP"], "spec_only": true },
+      "source": "Cyanocobalamine__Specifications sheet Cyanocobalamine BP.txt:18"
+    },
+    {
+      "testCode": "TYMC",
+      "procedure": "No STM in folder: microbial limits per the spec sheet; general test per catalog.",
+      "kind": "general",
+      "workflow": "CountTest",
+      "details": { "grades": ["BP", "USP"], "spec_only": true },
+      "source": "Cyanocobalamine__Specifications sheet Cyanocobalamine BP.txt:18"
+    },
+    {
+      "testCode": "E.coli",
+      "procedure": "No STM in folder: microbial limit per the spec sheet; general test per catalog.",
+      "kind": "general",
+      "workflow": "Observation",
+      "details": { "grades": ["BP", "USP"], "spec_only": true },
+      "source": "Cyanocobalamine__Specifications sheet Cyanocobalamine BP.txt:18"
+    }
+  ],
+  "notApplicable": [],
+  "supplierAttributes": [],
+  "reagents": [],
+  "openQuestions": [
+    {
+      "question": "No STM in the folder. Both sheets cite STM Code# C5I-91-213, Version 1/2 (issued 01-02-2024). Held tests (UV identification and assay, HPLC identification and related substances, nitroso R salt reaction) need that STM before they can be loaded.",
+      "source": "Cyanocobalamine__Specifications sheet Cyanocobalamine BP.txt:9; Cyanocobalamine__Specifications sheet Cyanocobalamine USP.txt:9"
+    },
+    {
+      "question": "USP related substances limit reads only 'Comply with USP requirements'; the USP monograph limits are not in the folder. Row held; the limits need to be stated.",
+      "source": "Cyanocobalamine__Specifications sheet Cyanocobalamine USP.txt:17"
+    }
+  ]
+}

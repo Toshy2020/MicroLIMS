@@ -1,0 +1,526 @@
+{
+  "itemCode": "STM-RM-035",
+  "itemName": "Citric acid Monohydrate",
+  "stmCode": "STM-RM-035",
+  "stmFile": "Citric acid Monohydarte__Citric acid Monohydarte -SM.txt",
+  "specFiles": ["Citric acid Monohydarte__Specifications sheet Citric acid Monohydarte.txt"],
+  "minQuantity": {
+    "routine": 100,
+    "retest": 75,
+    "retention": 100,
+    "unit": "g",
+    "source": "Citric acid Monohydarte__Specifications sheet Citric acid Monohydarte.txt:16; Citric acid Monohydarte__Citric acid Monohydarte -SM.txt:39"
+  },
+  "grades": [
+    {
+      "grade": "BP",
+      "rows": [
+        {
+          "testCode": "RM-DESC",
+          "parameterName": "Appearance",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "White or almost white, crystalline powder, colorless crystals or granules, efflorescent",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Citric acid Monohydarte__Specifications sheet Citric acid Monohydarte.txt:2"
+        },
+        {
+          "testCode": "RM-SOLUB",
+          "parameterName": "Solubility",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Very soluble in water, freely soluble in ethanol (96 per cent)",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Citric acid Monohydarte__Specifications sheet Citric acid Monohydarte.txt:3"
+        },
+        {
+          "testCode": "RM-ID-PH-CITRIC",
+          "parameterName": "Identification (pH of solution, 1 g in 10 mL water)",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "The solution is strongly acidic < 4",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Citric acid Monohydarte__Specifications sheet Citric acid Monohydarte.txt:4"
+        },
+        {
+          "testCode": "RM-ID-IR",
+          "parameterName": "Identification (IR)",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "The spectrum of sample corresponds to standard",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Citric acid Monohydarte__Specifications sheet Citric acid Monohydarte.txt:5"
+        },
+        {
+          "testCode": "RM-ID-PYR-CITRIC",
+          "parameterName": "Identification (chemical reaction, acetic anhydride / pyridine)",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "A red color develops",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Citric acid Monohydarte__Specifications sheet Citric acid Monohydarte.txt:6"
+        },
+        {
+          "testCode": "RM-ID-CA-CITRIC",
+          "parameterName": "Identification (chemical reaction, calcium chloride)",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "A white precipitate is formed",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Citric acid Monohydarte__Specifications sheet Citric acid Monohydarte.txt:7"
+        },
+        {
+          "testCode": "RM-SOLAPP",
+          "parameterName": "Appearance of solution",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "The solution is clear and colorless or not more intensely colored than reference solution Y7",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Citric acid Monohydarte__Specifications sheet Citric acid Monohydarte.txt:9"
+        },
+        {
+          "testCode": "RM-RCS-CITRIC",
+          "parameterName": "Readily carbonisable substances",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "The solution is not more intensely colored than a mixture of 1 mL of red primary solution and 9 mL of yellow primary solution",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Citric acid Monohydarte__Specifications sheet Citric acid Monohydarte.txt:10"
+        },
+        {
+          "testCode": "RM-LT-SO4",
+          "parameterName": "Sulphates (limit test)",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Complies (NMT 150 ppm)",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Citric acid Monohydarte__Specifications sheet Citric acid Monohydarte.txt:11"
+        },
+        {
+          "testCode": "RM-LT-OXAL-CITRIC",
+          "parameterName": "Oxalic acid (limit test)",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Complies (NMT 360 ppm)",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Citric acid Monohydarte__Specifications sheet Citric acid Monohydarte.txt:12"
+        },
+        {
+          "testCode": "RM-KF",
+          "parameterName": "Water content (Karl Fischer)",
+          "limitType": "Range",
+          "lower": 7.5,
+          "upper": 9.0,
+          "lowerInclusive": true,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Citric acid Monohydarte__Specifications sheet Citric acid Monohydarte.txt:13"
+        },
+        {
+          "testCode": "RM-SASH",
+          "parameterName": "Sulphated ash",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 0.1,
+          "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Citric acid Monohydarte__Specifications sheet Citric acid Monohydarte.txt:14"
+        },
+        {
+          "testCode": "RM-TIT-CITRIC",
+          "parameterName": "Assay (anhydrous substance)",
+          "limitType": "Range",
+          "lower": 99.5,
+          "upper": 100.5,
+          "lowerInclusive": true,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": "PercentAnhydrousBasis",
+          "referenceStandard": "BP",
+          "source": "Citric acid Monohydarte__Specifications sheet Citric acid Monohydarte.txt:15"
+        },
+        {
+          "testCode": "TAMC",
+          "parameterName": "Total Aerobic Microbial Count",
+          "limitType": "CountTiered",
+          "lower": null,
+          "upper": 1000,
+          "lowerInclusive": null,
+          "unit": "CFU/gm",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": null,
+          "source": "Citric acid Monohydarte__Specifications sheet Citric acid Monohydarte.txt:16"
+        },
+        {
+          "testCode": "TYMC",
+          "parameterName": "Total combined Yeasts and Molds Count",
+          "limitType": "CountTiered",
+          "lower": null,
+          "upper": 100,
+          "lowerInclusive": null,
+          "unit": "CFU/gm",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": null,
+          "source": "Citric acid Monohydarte__Specifications sheet Citric acid Monohydarte.txt:16"
+        },
+        {
+          "testCode": "E.coli",
+          "parameterName": "Test for E. coli",
+          "limitType": "PresenceAbsence",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": "per 10 gm",
+          "expectedResultText": "Absent /10 gm",
+          "expectedState": "Absence",
+          "resultBasis": null,
+          "referenceStandard": null,
+          "source": "Citric acid Monohydarte__Specifications sheet Citric acid Monohydarte.txt:16"
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "testCode": "RM-DESC",
+      "procedure": "Under strong white light check each received sample container separately in a clean transparent watch glass or glass dish for foreign particles, colour and conformity with the visual specification.",
+      "kind": "general",
+      "workflow": "Observation",
+      "details": {
+        "perContainer": true,
+        "bpText": "White or almost white, crystalline powder, colorless crystals or granules, efflorescent."
+      },
+      "source": "Citric acid Monohydarte__Citric acid Monohydarte -SM.txt:28"
+    },
+    {
+      "testCode": "RM-SOLUB",
+      "procedure": "Weigh 100 mg sample in a stoppered tube; add 0.1 mL solvent, shake 1 min, hold at 25.0 ± 0.5 °C for 15 min, repeat shake/hold once if not dissolved; stepwise add 0.9 mL, 2 mL, 7 mL solvent (same shake and hold) to classify very soluble / freely soluble / soluble / sparingly soluble; if still undissolved use 10 mg in 10 mL (slightly soluble) then 1 mg in 10 mL (very slightly soluble), else practically insoluble. Repeat with ethanol (96 per cent).",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {
+        "sample": "100 mg",
+        "temperature": "25.0 ± 0.5 °C",
+        "holdMin": 15,
+        "shakeMin": 1,
+        "volumesMl": [0.1, 0.9, 2, 7],
+        "smallSampleSteps": ["10 mg in 10 mL", "1 mg in 10 mL"],
+        "solvents": ["water", "ethanol (96 per cent)"],
+        "reference": "BP (SC IV K.) Characters Section (Hygroscopicity and Solubility)"
+      },
+      "source": "Citric acid Monohydarte__Citric acid Monohydarte -SM.txt:29"
+    },
+    {
+      "testCode": "RM-ID-PH-CITRIC",
+      "procedure": "Dissolve 1 g in 10 mL water; the solution is strongly acidic (< 4).",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "details": {
+        "sampleG": 1,
+        "waterMl": 10,
+        "reference": "BP Appendix V K. Approximate pH of Solutions"
+      },
+      "source": "Citric acid Monohydarte__Citric acid Monohydarte -SM.txt:30"
+    },
+    {
+      "testCode": "RM-ID-IR",
+      "procedure": "IR identification: dry the sample and the reference at 105 ± 2 °C for 2 h; mix intimately with potassium bromide and compress into a transparent pellet; compare the spectrum with that of Citric Acid Monohydrate CRS.",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "details": {
+        "drying": "105 ± 2 °C, 2 h",
+        "technique": "KBr pellet",
+        "standard": "Citric Acid Monohydrate CRS",
+        "reference": "BP Appendix II A. Infrared Spectrophotometry"
+      },
+      "source": "Citric acid Monohydarte__Citric acid Monohydarte -SM.txt:30"
+    },
+    {
+      "testCode": "RM-ID-PYR-CITRIC",
+      "procedure": "Add about 5 mg of the substance to a mixture of 1 mL acetic anhydride and 3 mL pyridine; a red colour develops.",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "details": {
+        "sampleMg": 5,
+        "reagents": "1 mL acetic anhydride + 3 mL pyridine"
+      },
+      "source": "Citric acid Monohydarte__Citric acid Monohydarte -SM.txt:30"
+    },
+    {
+      "testCode": "RM-ID-CA-CITRIC",
+      "procedure": "Dissolve 0.5 g in 5 mL water; neutralise with 1 M sodium hydroxide (about 7 mL); add 10 mL calcium chloride solution; heat to boiling; a white precipitate is formed.",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "details": {
+        "sampleG": 0.5,
+        "waterMl": 5,
+        "neutraliser": "1 M sodium hydroxide, about 7 mL",
+        "reagent": "10 mL calcium chloride solution (7.35 g in 100 mL water)",
+        "step": "heat to boiling"
+      },
+      "source": "Citric acid Monohydarte__Citric acid Monohydarte -SM.txt:30"
+    },
+    {
+      "testCode": "RM-SOLAPP",
+      "procedure": "Appearance of solution: dissolve 2.0 g in water and dilute to 10 mL; the solution is clear and colourless or not more intensely coloured than reference solution Y7.",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {
+        "sampleG": 2.0,
+        "volumeMl": 10,
+        "referenceSolution": "Y7 (2.5 mL standard solution Y + 97.5 mL hydrochloric acid 10 g/L)",
+        "reference": "BP Appendix IV A and IV B"
+      },
+      "source": "Citric acid Monohydarte__Citric acid Monohydarte -SM.txt:31"
+    },
+    {
+      "testCode": "RM-RCS-CITRIC",
+      "procedure": "Readily carbonisable substances: 1.0 g in a clean test tube; add 10 mL sulfuric acid; heat immediately in a water bath at 90 ± 1 °C for 60 min; cool rapidly; the solution is not more intensely coloured than a mixture of 1 mL red primary solution and 9 mL yellow primary solution.",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "details": {
+        "sampleG": 1.0,
+        "sulfuricAcidMl": 10,
+        "waterBath": "90 ± 1 °C, 60 min",
+        "comparator": "1 mL red primary + 9 mL yellow primary solution",
+        "reference": "BP Appendix IV B"
+      },
+      "source": "Citric acid Monohydarte__Citric acid Monohydarte -SM.txt:32"
+    },
+    {
+      "testCode": "RM-LT-SO4",
+      "procedure": "Sulphates limit test (BP Appendix VII): to 4.5 mL sulfate standard solution (10 ppm SO4) R1 add 3 mL of 250 g/L barium chloride, shake, stand 1 min; to 2.5 mL of this suspension add 15 mL of the sample solution (2.0 g in water diluted to 30 mL) and 0.5 mL acetic acid (standard: 15 mL of 10 ppm SO4 solution). After 5 min any opalescence in the test solution is not more intense than the standard.",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {
+        "sampleG": 2.0,
+        "sampleVolumeMl": 30,
+        "bariumChloride": "3 mL of 250 g/L",
+        "acetic": "0.5 mL acetic acid",
+        "standardSolution": "10 ppm SO4 (R1)",
+        "waitMin": 5,
+        "limit": "Maximum 150 ppm",
+        "reference": "BP Appendix VII Limit Tests, Sulfates"
+      },
+      "source": "Citric acid Monohydarte__Citric acid Monohydarte -SM.txt:33"
+    },
+    {
+      "testCode": "RM-LT-OXAL-CITRIC",
+      "procedure": "Oxalic acid limit test (BP Appendix VII): test solution 0.80 g in 4 mL water, add 3 mL hydrochloric acid and 1 g zinc granules, boil 1 min, stand 2 min; transfer supernatant to 0.25 mL of 10 g/L phenyl hydrazine hydrochloride, boil, cool, add equal volume of hydrochloric acid and 0.25 mL of 50 g/L potassium ferricyanide, stand 30 min. Standard: 4 mL of 0.1 g/L oxalic acid treated the same way. Any pink colour in the test is not more intense than the standard.",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {
+        "sampleG": 0.80,
+        "waterMl": 4,
+        "hydrochloricAcidMl": 3,
+        "zinc": "1 g granules",
+        "phenylHydrazineHCl": "0.25 mL of 10 g/L",
+        "potassiumFerricyanide": "0.25 mL of 50 g/L",
+        "standard": "4 mL of 0.1 g/L oxalic acid",
+        "limit": "Maximum 360 ppm",
+        "reference": "BP Appendix VII Limit Tests"
+      },
+      "source": "Citric acid Monohydarte__Citric acid Monohydarte -SM.txt:34"
+    },
+    {
+      "testCode": "RM-KF",
+      "procedure": "Water content by calibrated Karl Fischer on 0.500 g sample.",
+      "kind": "general",
+      "workflow": "Measurement",
+      "details": {
+        "moistureRole": "Water",
+        "sampleG": 0.500,
+        "reference": "BP Appendix IX C. Determination of Water"
+      },
+      "source": "Citric acid Monohydarte__Citric acid Monohydarte -SM.txt:35"
+    },
+    {
+      "testCode": "RM-SASH",
+      "procedure": "Sulphated ash (BP Appendix IX A): weigh empty crucible previously ignited at 600-650 °C and cooled in desiccator (W0); weigh 1.0 g sample (W1); moisten with a small amount of sulfuric acid, char gently on hot plate, moisten residue again, heat until white fumes cease; ignite in muffle at 600-650 °C, cool in desiccator, weigh (W2); repeat to constant weight. % = (W2 - W0) / (W1 - W0) x 100.",
+      "kind": "general",
+      "workflow": "Gravimetric",
+      "details": {
+        "sampleG": 1.0,
+        "ignitionTemp": "600-650 °C",
+        "sulfuricAcid": "small amount, twice",
+        "formula": "% Sulfated ash = (W2 - W0) / (W1 - W0) x 100",
+        "reference": "BP Appendix IX A. Determination of Sulfated Ash"
+      },
+      "source": "Citric acid Monohydarte__Citric acid Monohydarte -SM.txt:36"
+    },
+    {
+      "testCode": "RM-TIT-CITRIC",
+      "procedure": "Assay (BP, acid-base titration): dissolve 0.550 g in 50 mL water; titrate with 1 M sodium hydroxide using 0.5 mL phenolphthalein solution as indicator. 1 mL of 1 M sodium hydroxide = 64.03 mg C6H8O7. Assay = (E.P x eq.wt x F x 100 x 100) / (Wt x (100 - WC)) as printed.",
+      "kind": "specific",
+      "workflow": "Titration",
+      "details": {
+        "sampleG": 0.550,
+        "volumeMl": 50,
+        "titrant": "1 M sodium hydroxide",
+        "titrantStandardization": "1.50 g potassium hydrogen phthalate in 50 mL water; 1 mL 1 M NaOH = 204.2 mg potassium hydrogen phthalate",
+        "indicator": "0.5 mL phenolphthalein solution",
+        "endpoint": "visual",
+        "mode": "direct",
+        "equivalenceFactor": "1 mL of 1 M sodium hydroxide = 64.03 mg C6H8O7",
+        "formula": "Assay = (E.P x eq.wt x F x 100 * 100) / Wt x (100 - WC); Wt in g; WC = water content",
+        "reference": "BP 2024 Monograph for Citric Acid Monohydrate",
+        "basis": "anhydrous substance"
+      },
+      "source": "Citric acid Monohydarte__Citric acid Monohydarte -SM.txt:37"
+    },
+    {
+      "testCode": "TAMC",
+      "procedure": "No microbiological method in the STM; the limit is from the spec sheet additional requirements only.",
+      "kind": "general",
+      "workflow": "CountTest",
+      "details": {
+        "limit": "NMT 1000 CFU/gm"
+      },
+      "source": "Citric acid Monohydarte__Specifications sheet Citric acid Monohydarte.txt:16"
+    },
+    {
+      "testCode": "TYMC",
+      "procedure": "No microbiological method in the STM; the limit is from the spec sheet additional requirements only.",
+      "kind": "general",
+      "workflow": "CountTest",
+      "details": {
+        "limit": "NMT 100 CFU/gm"
+      },
+      "source": "Citric acid Monohydarte__Specifications sheet Citric acid Monohydarte.txt:16"
+    },
+    {
+      "testCode": "E.coli",
+      "procedure": "No microbiological method in the STM; the limit is from the spec sheet additional requirements only.",
+      "kind": "general",
+      "workflow": "Observation",
+      "details": {
+        "limit": "Absent /10 gm"
+      },
+      "source": "Citric acid Monohydarte__Specifications sheet Citric acid Monohydarte.txt:16"
+    }
+  ],
+  "notApplicable": [
+    {
+      "testCode": "RM-ALU",
+      "grade": null,
+      "justification": "Use in the manufacture of dialysis solutions",
+      "criticality": "Mainor",
+      "immediateAction": "Remove Test from Specification",
+      "longTermAction": "-----------",
+      "reference": null,
+      "source": "Citric acid Monohydarte__Not applicable For Citric acid Monohydarte.txt:2"
+    }
+  ],
+  "supplierAttributes": [],
+  "reagents": [
+    { "name": "Acetic acid", "use": "reagent", "source": "Citric acid Monohydarte__Citric acid Monohydarte -SM.txt:26" },
+    { "name": "Acetic anhydride", "use": "reagent", "source": "Citric acid Monohydarte__Citric acid Monohydarte -SM.txt:26" },
+    { "name": "Citric acid Monohydrate CRS", "use": "standard", "source": "Citric acid Monohydarte__Citric acid Monohydarte -SM.txt:26" },
+    { "name": "Barium chloride", "use": "reagent", "source": "Citric acid Monohydarte__Citric acid Monohydarte -SM.txt:26" },
+    { "name": "Calcium Chloride", "use": "reagent", "source": "Citric acid Monohydarte__Citric acid Monohydarte -SM.txt:26" },
+    { "name": "Cobalt chloride", "use": "reagent", "source": "Citric acid Monohydarte__Citric acid Monohydarte -SM.txt:26" },
+    { "name": "Dipotassium sulfate", "use": "standard", "source": "Citric acid Monohydarte__Citric acid Monohydarte -SM.txt:26" },
+    { "name": "Ethanol (96%)", "use": "reagent", "source": "Citric acid Monohydarte__Citric acid Monohydarte -SM.txt:26" },
+    { "name": "Ferric chloride", "use": "reagent", "source": "Citric acid Monohydarte__Citric acid Monohydarte -SM.txt:26" },
+    { "name": "Hydrochloric acid", "use": "reagent", "source": "Citric acid Monohydarte__Citric acid Monohydarte -SM.txt:26" },
+    { "name": "Oxalic acid", "use": "standard", "source": "Citric acid Monohydarte__Citric acid Monohydarte -SM.txt:26" },
+    { "name": "Phenolphthalein", "use": "indicator", "source": "Citric acid Monohydarte__Citric acid Monohydarte -SM.txt:26" },
+    { "name": "Phenyl hydrazine hydrochloride", "use": "reagent", "source": "Citric acid Monohydarte__Citric acid Monohydarte -SM.txt:26" },
+    { "name": "Potassium ferricyanide", "use": "reagent", "source": "Citric acid Monohydarte__Citric acid Monohydarte -SM.txt:26" },
+    { "name": "Potassium hydrogen phthalate", "use": "standard", "source": "Citric acid Monohydarte__Citric acid Monohydarte -SM.txt:26" },
+    { "name": "Pyridine", "use": "reagent", "source": "Citric acid Monohydarte__Citric acid Monohydarte -SM.txt:26" },
+    { "name": "Sodium hydroxide", "use": "reagent", "source": "Citric acid Monohydarte__Citric acid Monohydarte -SM.txt:26" },
+    { "name": "Sulfuric acid", "use": "reagent", "source": "Citric acid Monohydarte__Citric acid Monohydarte -SM.txt:26" },
+    { "name": "Zinc", "use": "reagent", "source": "Citric acid Monohydarte__Citric acid Monohydarte -SM.txt:26" },
+    { "name": "1M Sodium Hydroxide", "use": "titrant", "source": "Citric acid Monohydarte__Citric acid Monohydarte -SM.txt:26" },
+    { "name": "Phenolphthalein Solution", "use": "indicator", "source": "Citric acid Monohydarte__Citric acid Monohydarte -SM.txt:26" },
+    { "name": "Sulfate Standard Solution (10 ppm SO4) R1", "use": "standard", "source": "Citric acid Monohydarte__Citric acid Monohydarte -SM.txt:26" }
+  ],
+  "openQuestions": [
+    {
+      "question": "Spec sheet row 8 repeats 'Water Content 7.5-9.0%' in the identification group with the limit in the technique column; loaded once from row 13 (Karl Fischer). Confirm the duplicate is a layout error.",
+      "source": "Citric acid Monohydarte__Specifications sheet Citric acid Monohydarte.txt:8"
+    },
+    {
+      "question": "STM identification Test 5 (water content) gives BP specification 'Maximum 1.0 per cent', which conflicts with the water content limit 7.5-9.0% in the spec sheet and the STM test below. Spec sheet limit loaded. Confirm.",
+      "source": "Citric acid Monohydarte__Citric acid Monohydarte -SM.txt:30"
+    },
+    {
+      "question": "Assay formula as printed has '100 * 100' and a '(100 - WC)' term; recorded as written. Confirm the formula.",
+      "source": "Citric acid Monohydarte__Citric acid Monohydarte -SM.txt:37"
+    },
+    {
+      "question": "Microbiological limits (TAMC, TYMC, E. coli) appear only in the spec sheet additional requirements; the STM has no microbiological method section and no method is loaded. Confirm the method reference.",
+      "source": "Citric acid Monohydarte__Specifications sheet Citric acid Monohydarte.txt:16"
+    },
+    {
+      "question": "Spec sheet lists the pH identification test with technique 'Voltammetry'. The STM describes a pH measurement (1 g in 10 mL water). Recorded as the STM describes it.",
+      "source": "Citric acid Monohydarte__Specifications sheet Citric acid Monohydarte.txt:4"
+    },
+    {
+      "question": "Not-applicable draft (Aluminum): long-term action is blank ('-----------'), criticality is spelled 'Mainor' and no reference is given. Recorded as written; confirm before approval.",
+      "source": "Citric acid Monohydarte__Not applicable For Citric acid Monohydarte.txt:2"
+    }
+  ]
+}

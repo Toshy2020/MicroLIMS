@@ -1,0 +1,773 @@
+{
+  "itemCode": "STM-RM-067",
+  "itemName": "Zinc Sulfate Monohydrate",
+  "stmCode": "STM-RM-067",
+  "stmFile": "Zinc Sulfate Monohydrate__Zinc Sulfate Monohydrate-SM-USP.txt",
+  "specFiles": [
+    "Zinc Sulfate Monohydrate__Specifications sheet Zinc Sulfate Monohydrate USP.txt",
+    "Zinc Sulfate Monohydrate__Specifications sheet Zinc Sulfate Monohydrate BP.txt"
+  ],
+  "minQuantity": {
+    "routine": 50,
+    "retest": 50,
+    "retention": 100,
+    "unit": "g",
+    "source": "Zinc Sulfate Monohydrate__Specifications sheet Zinc Sulfate Monohydrate USP.txt:20; Zinc Sulfate Monohydrate__Specifications sheet Zinc Sulfate Monohydrate BP.txt:21; Zinc Sulfate Monohydrate__Zinc Sulfate Monohydrate-SM-USP.txt:37"
+  },
+  "grades": [
+    {
+      "grade": "USP",
+      "rows": [
+        {
+          "testCode": "RM-DESC",
+          "parameterName": "Description",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Colorless, transparent prisms, or small needles. May occur as a white, granular, crystalline powder. Is odorless and is efflorescent in dry air",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP 2022",
+          "source": "Zinc Sulfate Monohydrate__Specifications sheet Zinc Sulfate Monohydrate USP.txt:11"
+        },
+        {
+          "testCode": "RM-SOLUB",
+          "parameterName": "Solubility",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Freely soluble in water; practically insoluble in alcohol",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP 2022",
+          "source": "Zinc Sulfate Monohydrate__Specifications sheet Zinc Sulfate Monohydrate USP.txt:12"
+        },
+        {
+          "testCode": "RM-ID-ZN-ZNSO4",
+          "parameterName": "Identification (zinc)",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "A white precipitate is formed",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP 2022",
+          "source": "Zinc Sulfate Monohydrate__Specifications sheet Zinc Sulfate Monohydrate USP.txt:13"
+        },
+        {
+          "testCode": "RM-ID-SO4-ZNSO4",
+          "parameterName": "Identification (sulfate)",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "A white precipitate is formed",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP 2022",
+          "source": "Zinc Sulfate Monohydrate__Specifications sheet Zinc Sulfate Monohydrate USP.txt:14"
+        },
+        {
+          "testCode": "RM-LEAD",
+          "parameterName": "Lead (limit test)",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Complies (NMT 20 ppm)",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP 2022",
+          "source": "Zinc Sulfate Monohydrate__Specifications sheet Zinc Sulfate Monohydrate USP.txt:15"
+        },
+        {
+          "testCode": "RM-ARSENIC",
+          "parameterName": "Arsenic (limit test)",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Complies (NMT 14 ppm)",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": null,
+          "source": "Zinc Sulfate Monohydrate__Specifications sheet Zinc Sulfate Monohydrate USP.txt:16"
+        },
+        {
+          "testCode": "RM-ALK-ZNSO4",
+          "parameterName": "Alkalies and alkaline earths: residue weight",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 5,
+          "lowerInclusive": null,
+          "unit": "mg",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP 2022",
+          "source": "Zinc Sulfate Monohydrate__Specifications sheet Zinc Sulfate Monohydrate USP.txt:17"
+        },
+        {
+          "testCode": "RM-ALK-ZNSO4",
+          "parameterName": "Alkalies and alkaline earths: percentage",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 0.9,
+          "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP 2022",
+          "source": "Zinc Sulfate Monohydrate__Specifications sheet Zinc Sulfate Monohydrate USP.txt:17"
+        },
+        {
+          "testCode": "RM-ACID-ZNSO4",
+          "parameterName": "Acidity",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "The Sample is not colored pink by methyl orange TS",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP 2022",
+          "source": "Zinc Sulfate Monohydrate__Specifications sheet Zinc Sulfate Monohydrate USP.txt:18"
+        },
+        {
+          "testCode": "RM-TIT-ZNSO4-USP",
+          "parameterName": "Assay (zinc sulfate, ZnSO4)",
+          "limitType": "Range",
+          "lower": 89.0,
+          "upper": 90.4,
+          "lowerInclusive": true,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": "PercentAsIs",
+          "referenceStandard": "USP 2022",
+          "source": "Zinc Sulfate Monohydrate__Specifications sheet Zinc Sulfate Monohydrate USP.txt:19"
+        },
+        {
+          "testCode": "RM-TIT-ZNSO4-USP",
+          "parameterName": "Assay (zinc sulfate monohydrate, ZnSO4 \u00b7 H2O)",
+          "limitType": "Range",
+          "lower": 99.0,
+          "upper": 100.5,
+          "lowerInclusive": true,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": "PercentAsIs",
+          "referenceStandard": "USP 2022",
+          "source": "Zinc Sulfate Monohydrate__Specifications sheet Zinc Sulfate Monohydrate USP.txt:19"
+        }
+      ]
+    },
+    {
+      "grade": "BP",
+      "rows": [
+        {
+          "testCode": "RM-DESC",
+          "parameterName": "Appearance",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "White or almost white, crystalline powder, or colorless, transparent crystals",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP2024",
+          "source": "Zinc Sulfate Monohydrate__Specifications sheet Zinc Sulfate Monohydrate BP.txt:11"
+        },
+        {
+          "testCode": "RM-SOLUB",
+          "parameterName": "Solubility",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Very soluble in water, practically insoluble in ethanol (96 per cent)",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP2024",
+          "source": "Zinc Sulfate Monohydrate__Specifications sheet Zinc Sulfate Monohydrate BP.txt:12"
+        },
+        {
+          "testCode": "RM-ID-SO4-ZNSO4-BP",
+          "parameterName": "Identification (reactions of sulfates)",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "A white precipitate is formed",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP2024",
+          "source": "Zinc Sulfate Monohydrate__Specifications sheet Zinc Sulfate Monohydrate BP.txt:13"
+        },
+        {
+          "testCode": "RM-ID-ZN-ZNSO4-BP",
+          "parameterName": "Identification (reaction of zinc)",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "A flocculent white precipitate is formed",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP2024",
+          "source": "Zinc Sulfate Monohydrate__Specifications sheet Zinc Sulfate Monohydrate BP.txt:14"
+        },
+        {
+          "testCode": "RM-SOLAPP",
+          "parameterName": "Appearance of solution",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Solution S is clear and colorless",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP2024",
+          "source": "Zinc Sulfate Monohydrate__Specifications sheet Zinc Sulfate Monohydrate BP.txt:16"
+        },
+        {
+          "testCode": "RM-PH",
+          "parameterName": "pH",
+          "limitType": "Range",
+          "lower": 4.0,
+          "upper": 5.6,
+          "lowerInclusive": true,
+          "unit": null,
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP2024",
+          "source": "Zinc Sulfate Monohydrate__Specifications sheet Zinc Sulfate Monohydrate BP.txt:17"
+        },
+        {
+          "testCode": "RM-LT-CL",
+          "parameterName": "Chlorides (limit test)",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Complies (NMT 300 ppm)",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP2024",
+          "source": "Zinc Sulfate Monohydrate__Specifications sheet Zinc Sulfate Monohydrate BP.txt:18"
+        },
+        {
+          "testCode": "RM-LT-FE",
+          "parameterName": "Iron (limit test)",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Complies (NMT 100 ppm)",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP2024",
+          "source": "Zinc Sulfate Monohydrate__Specifications sheet Zinc Sulfate Monohydrate BP.txt:19"
+        },
+        {
+          "testCode": "RM-TIT-ZNSO4-BP",
+          "parameterName": "Assay",
+          "limitType": "Range",
+          "lower": 99.0,
+          "upper": 101.0,
+          "lowerInclusive": true,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": "PercentAsIs",
+          "referenceStandard": "BP2024",
+          "source": "Zinc Sulfate Monohydrate__Specifications sheet Zinc Sulfate Monohydrate BP.txt:20"
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "testCode": "RM-DESC",
+      "procedure": "Under strong white light check each received sample container separately in a clean transparent watch glass or glass dish for foreign particles, colour and conformity with the visual specification.",
+      "kind": "general",
+      "workflow": "Observation",
+      "details": {
+        "perContainer": true,
+        "reference": "USP Description and Relative Solubility"
+      },
+      "source": "Zinc Sulfate Monohydrate__Zinc Sulfate Monohydrate-SM-USP.txt:28"
+    },
+    {
+      "testCode": "RM-SOLUB",
+      "procedure": "Weigh 100 mg sample in a stoppered tube; add 0.1 mL solvent, shake 1 min, hold at 25.0 \u00b1 0.5 \u00b0C for 15 min, repeat shake/hold once if not dissolved; stepwise add 0.9 mL, 2 mL, 7 mL solvent (same shake and hold) to classify very soluble / freely soluble / soluble / sparingly soluble; if still undissolved use 10 mg in 10 mL (slightly soluble) then 1 mg in 10 mL (very slightly soluble), else practically insoluble. Repeat with alcohol.",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {
+        "sample": "100 mg",
+        "temperature": "25.0 \u00b1 0.5 \u00b0C",
+        "holdMin": 15,
+        "shakeMin": 1,
+        "volumesMl": [
+          0.1,
+          0.9,
+          2,
+          7
+        ],
+        "smallSampleSteps": [
+          "10 mg in 10 mL",
+          "1 mg in 10 mL"
+        ],
+        "solvents": [
+          "water",
+          "alcohol"
+        ],
+        "reference": "USP Description and Relative Solubility"
+      },
+      "source": "Zinc Sulfate Monohydrate__Zinc Sulfate Monohydrate-SM-USP.txt:29"
+    },
+    {
+      "testCode": "RM-ID-ZN-ZNSO4",
+      "procedure": "Test 1 (zinc): dissolve 0.1 g in 5 mL water; add 0.2 mL strong sodium hydroxide solution; a white precipitate is formed.",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "details": {
+        "sampleG": 0.1,
+        "waterMl": 5,
+        "reagent": "0.2 mL strong sodium hydroxide solution",
+        "reference": "USP Identification Tests-General <191>, Chemical Identification Tests, Zinc"
+      },
+      "source": "Zinc Sulfate Monohydrate__Zinc Sulfate Monohydrate-SM-USP.txt:30"
+    },
+    {
+      "testCode": "RM-ID-SO4-ZNSO4",
+      "procedure": "Test 2 (sulfate): with barium chloride TS, solutions of sulfates yield a white precipitate that is insoluble in hydrochloric acid and in nitric acid.",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "details": {
+        "reagent": "barium chloride TS",
+        "reference": "USP Identification Tests-General <191>, Chemical Identification Tests, Sulfate"
+      },
+      "source": "Zinc Sulfate Monohydrate__Zinc Sulfate Monohydrate-SM-USP.txt:30"
+    },
+    {
+      "testCode": "RM-LEAD",
+      "procedure": "Lead limit test (USP <251> Procedure 1, chemical method): standard = 5 mL water, 0.50 mL standard lead solution (10 ppm) and 10 mL potassium cyanide solution (1 in 10) in a comparison tube; test = 0.25 g zinc sulfate in 5 mL water with 10 mL potassium cyanide solution (1 in 10), allowed to clear; add 0.1 mL sodium sulfide TS to each, stand 5 min, view downward over white surface. Sample not darker than standard (NMT 20 ppm).",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "details": {
+        "sampleG": 0.25,
+        "standardLeadMl": 0.5,
+        "potassiumCyanide": "10 mL of 1 in 10",
+        "sodiumSulfideMl": 0.1,
+        "standTimeMin": 5,
+        "limit": "NMT 20 ppm",
+        "reference": "USP Lead <251>, Procedure 1"
+      },
+      "source": "Zinc Sulfate Monohydrate__Zinc Sulfate Monohydrate-SM-USP.txt:31"
+    },
+    {
+      "testCode": "RM-ARSENIC",
+      "procedure": "Arsenic limit test (USP <211> Procedure 1, colorimetry): standard = 3.0 mL standard arsenic solution diluted to 35 mL; test = portion equivalent to 215 mg zinc sulfate in 35 mL water; add 20 mL 7 N sulfuric acid, 2 mL potassium iodide TS, 0.5 mL stronger acid stannous chloride TS and 1 mL isopropyl alcohol; stand 30 min; generate hydrogen with 3.0 g granular zinc for 45 min into silver diethyldithiocarbamate TS. Any red colour from the test does not exceed the standard (NMT 14 ppm); if needed read absorbance at 535-540 nm.",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "details": {
+        "standardArsenicMl": 3.0,
+        "standardVolumeMl": 35,
+        "sampleEquivalentMg": 215,
+        "granularZincG": 3.0,
+        "generationMin": 45,
+        "limit": "NMT 14 ppm",
+        "reference": "USP <211> Procedure 1: Colorimetry"
+      },
+      "source": "Zinc Sulfate Monohydrate__Zinc Sulfate Monohydrate-SM-USP.txt:32"
+    },
+    {
+      "testCode": "RM-ALK-ZNSO4",
+      "procedure": "Alkalies and alkaline earths (gravimetric): dissolve the equivalent of 1.12 g zinc sulfate in 150 mL water in a 200-mL volumetric flask; precipitate zinc completely with ammonium sulfide TS; dilute to volume; filter through a dry filter and reject the first portion. To 100 mL of the filtrate add a few drops of sulfuric acid, evaporate to dryness in a tared dish, ignite to constant weight. Residue NMT 5 mg (0.9%).",
+      "kind": "specific",
+      "workflow": "Gravimetric",
+      "details": {
+        "sampleEquivalentG": 1.12,
+        "volumeMl": 200,
+        "filtrateAliquotMl": 100,
+        "limit": "NMT 5 mg (0.9%)",
+        "reference": "USP 2022 Monograph for Zinc Sulfate Monohydrate"
+      },
+      "source": "Zinc Sulfate Monohydrate__Zinc Sulfate Monohydrate-SM-USP.txt:33"
+    },
+    {
+      "testCode": "RM-ACID-ZNSO4",
+      "procedure": "Acidity: sample solution equivalent to 28 mg/mL zinc sulfate; the sample solution is not coloured pink by methyl orange TS.",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "details": {
+        "concentrationMgPerMl": 28,
+        "indicator": "methyl orange TS",
+        "reference": "USP 2022 Monograph for Zinc Sulfate Monohydrate"
+      },
+      "source": "Zinc Sulfate Monohydrate__Zinc Sulfate Monohydrate-SM-USP.txt:34"
+    },
+    {
+      "testCode": "RM-TIT-ZNSO4-USP",
+      "procedure": "Assay (complexometric titration): sample equivalent to 170 mg zinc sulfate (ZnSO4); dissolve in 100 mL water; add 5 mL ammonia-ammonium chloride buffer TS and 50 mg Eriochrome black TS; titrate with 0.05 M edetate disodium VS to deep blue. 1 mL of 0.05 M edetate disodium = 8.072 mg ZnSO4. Assay = (E.P x eq.wt x F x 100) / Wt.",
+      "kind": "specific",
+      "workflow": "Titration",
+      "details": {
+        "sampleEquivalentMg": 170,
+        "solvent": "100 mL water",
+        "buffer": "5 mL ammonia-ammonium chloride buffer TS",
+        "indicator": "Eriochrome black TS, 50 mg (as written)",
+        "titrant": "0.05 M edetate disodium VS",
+        "endpoint": "deep blue",
+        "mode": "direct",
+        "equivalenceFactor": "1 mL of 0.05 M edetate disodium = 8.072 mg ZnSO4",
+        "formula": "Assay = (E.P x eq.wt x F x 100) / Wt; E.P = end point (mL); eq.wt = equivalent weight of zinc sulfate monohydrate; F = titrant factor; Wt = sample weight (g)",
+        "titrantStandardization": "about 200 mg standard calcium carbonate, 2 mL diluted hydrochloric acid, hydroxy naphthol blue titration with 0.05 M edetate disodium; M = (g CaCO3 x Assay/100 x 1000) / (100.09 x mL EDTA)",
+        "reference": "USP 2022 Monograph for Zinc Sulfate Monohydrate",
+        "basis": "as stated (no basis word on the STM)"
+      },
+      "source": "Zinc Sulfate Monohydrate__Zinc Sulfate Monohydrate-SM-USP.txt:35"
+    },
+    {
+      "testCode": "RM-ID-SO4-ZNSO4-BP",
+      "procedure": "Test 3 (reactions of sulfates, BP): Use 5 mL of solution S; add 1 mL of dilute hydrochloric acid and 1 mL of barium chloride solution R1; a white precipitate is formed.",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "details": {
+        "solutionS": "2.5 g in carbon dioxide-free water diluted to 50 mL",
+        "reagents": [
+          "1 mL dilute hydrochloric acid",
+          "1 mL barium chloride solution R1"
+        ],
+        "reference": "BP Appendix VI Qualitative Reactions and Tests, Sulfate"
+      },
+      "source": "Zinc Sulfate Monohydrate__Zinc Sulfate Monohydrate-SM.txt:30"
+    },
+    {
+      "testCode": "RM-ID-ZN-ZNSO4-BP",
+      "procedure": "Test 4 (reaction of zinc, BP): Use 5 mL of the prescribed solution; add 0.2 mL of strong sodium hydroxide solution (a white precipitate is formed); add further 2 mL strong sodium hydroxide solution (precipitate dissolves); add 10 mL ammonium chloride solution (remains clear); add 0.1 mL sodium sulfide solution; a flocculent white precipitate is formed.",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "details": {
+        "reagents": [
+          "strong sodium hydroxide solution",
+          "ammonium chloride solution",
+          "sodium sulfide solution"
+        ],
+        "reference": "BP Appendix VI Qualitative Reactions and Tests, Zinc"
+      },
+      "source": "Zinc Sulfate Monohydrate__Zinc Sulfate Monohydrate-SM.txt:30"
+    },
+    {
+      "testCode": "RM-SOLAPP",
+      "procedure": "Appearance of solution (BP): Compare Solution S with water. Solution S is clear and colourless.",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {
+        "solutionS": "2.5 g in carbon dioxide-free water diluted to 50 mL",
+        "reference": "BP Appendix IV A & IV B"
+      },
+      "source": "Zinc Sulfate Monohydrate__Zinc Sulfate Monohydrate-SM.txt:31"
+    },
+    {
+      "testCode": "RM-PH",
+      "procedure": "pH (BP): Determine on Solution S using a calibrated pH meter.",
+      "kind": "general",
+      "workflow": "Measurement",
+      "details": {
+        "solutionS": "2.5 g in carbon dioxide-free water diluted to 50 mL",
+        "reference": "BP Appendix V L"
+      },
+      "source": "Zinc Sulfate Monohydrate__Zinc Sulfate Monohydrate-SM.txt:35"
+    },
+    {
+      "testCode": "RM-LT-CL",
+      "procedure": "Chlorides limit test (BP): Sample = 3.3 mL of solution S diluted to 15 mL with water, add 1 mL dilute nitric acid, pour into 1 mL silver nitrate solution R2. Standard = 10 mL chloride standard solution (5 ppm Cl) and 5 mL water, add 1 mL dilute nitric acid, pour into 1 mL silver nitrate solution R2. Stand 5 min protected from light. Any opalescence in test not more intense than standard (maximum 300 ppm).",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {
+        "sampleVolumeMl": 3.3,
+        "standardChlorideMl": 10,
+        "limit": "maximum 300 ppm",
+        "reference": "BP Appendix VII Limit Tests, Chloride"
+      },
+      "source": "Zinc Sulfate Monohydrate__Zinc Sulfate Monohydrate-SM.txt:36"
+    },
+    {
+      "testCode": "RM-LT-FE",
+      "procedure": "Iron limit test (BP): Sample = 2 mL solution S diluted to 10 mL with water, add 2 mL of 200 g/L citric acid monohydrate and 0.1 mL thioglycolic acid, make alkaline with ammonia, dilute to 20 mL with water. Standard = 10 mL iron standard solution (1 ppm Fe), add 2 mL citric acid and 0.1 mL thioglycolic acid, make alkaline with ammonia, dilute to 20 mL with water. After 5 min, any pink colour in test not more intense than standard (maximum 100 ppm).",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {
+        "sampleVolumeMl": 2,
+        "standardIronMl": 10,
+        "limit": "maximum 100 ppm",
+        "reference": "BP Appendix VII Limit Tests, Iron"
+      },
+      "source": "Zinc Sulfate Monohydrate__Zinc Sulfate Monohydrate-SM.txt:37"
+    },
+    {
+      "testCode": "RM-TIT-ZNSO4-BP",
+      "procedure": "Assay (complexometric titration, BP): Dissolve 0.160 g in 5 mL dilute acetic acid, dilute to 200 mL with water. Add ~50 mg xylenol orange triturate and hexamethylenetetramine until violet-pink, add 2 g hexamethylenetetramine in excess. Titrate with 0.1 M sodium edetate until yellow. 1 mL of 0.1 M sodium edetate = 17.95 mg ZnSO4,H2O. Calculation: Assay = (E.P * eq.wt * F * 100) / Wt.",
+      "kind": "specific",
+      "workflow": "Titration",
+      "details": {
+        "sampleG": 0.16,
+        "solvent": "5 mL dilute acetic acid diluted to 200 mL with water",
+        "buffer": "hexamethylenetetramine (2 g in excess)",
+        "indicator": "xylenol orange triturate ~50 mg",
+        "titrant": "0.1 M sodium edetate VS",
+        "endpoint": "yellow",
+        "mode": "direct",
+        "equivalenceFactor": "1 mL of 0.1 M sodium edetate = 17.95 mg ZnSO4,H2O",
+        "formula": "Assay = (E.P * eq.wt * F * 100) / Wt",
+        "titrantStandardization": "0.120 g zinc dissolved in 4 mL HCl R1, dilute NaOH to weakly acid, xylenol orange triturate, hexamethylenetetramine, titrate with 0.1 M sodium edetate to yellow",
+        "reference": "BP 2024 Monograph for Zinc Sulfate Monohydrate",
+        "basis": "as stated (no basis word on the STM)"
+      },
+      "source": "Zinc Sulfate Monohydrate__Zinc Sulfate Monohydrate-SM.txt:38"
+    }
+  ],
+  "notApplicable": [],
+  "supplierAttributes": [],
+  "reagents": [
+    {
+      "name": "Alcohol",
+      "use": "reagent",
+      "source": "Zinc Sulfate Monohydrate__Zinc Sulfate Monohydrate-SM-USP.txt:26"
+    },
+    {
+      "name": "Ammonium citrate",
+      "use": "reagent",
+      "source": "Zinc Sulfate Monohydrate__Zinc Sulfate Monohydrate-SM-USP.txt:26"
+    },
+    {
+      "name": "Ammonium hydroxide",
+      "use": "reagent",
+      "source": "Zinc Sulfate Monohydrate__Zinc Sulfate Monohydrate-SM-USP.txt:26"
+    },
+    {
+      "name": "Ammonium sulfide",
+      "use": "reagent",
+      "source": "Zinc Sulfate Monohydrate__Zinc Sulfate Monohydrate-SM-USP.txt:26"
+    },
+    {
+      "name": "Arsenic trioxide",
+      "use": "standard",
+      "source": "Zinc Sulfate Monohydrate__Zinc Sulfate Monohydrate-SM-USP.txt:26"
+    },
+    {
+      "name": "Barium Chloride",
+      "use": "reagent",
+      "source": "Zinc Sulfate Monohydrate__Zinc Sulfate Monohydrate-SM-USP.txt:26"
+    },
+    {
+      "name": "Chloroform",
+      "use": "reagent",
+      "source": "Zinc Sulfate Monohydrate__Zinc Sulfate Monohydrate-SM-USP.txt:26"
+    },
+    {
+      "name": "Cupric sulfate",
+      "use": "reagent",
+      "source": "Zinc Sulfate Monohydrate__Zinc Sulfate Monohydrate-SM-USP.txt:26"
+    },
+    {
+      "name": "Dithizone",
+      "use": "reagent",
+      "source": "Zinc Sulfate Monohydrate__Zinc Sulfate Monohydrate-SM-USP.txt:26"
+    },
+    {
+      "name": "Edetate Disodium",
+      "use": "titrant",
+      "source": "Zinc Sulfate Monohydrate__Zinc Sulfate Monohydrate-SM-USP.txt:26"
+    },
+    {
+      "name": "Granular zinc",
+      "use": "reagent",
+      "source": "Zinc Sulfate Monohydrate__Zinc Sulfate Monohydrate-SM-USP.txt:26"
+    },
+    {
+      "name": "Hydrochloric Acid",
+      "use": "reagent",
+      "source": "Zinc Sulfate Monohydrate__Zinc Sulfate Monohydrate-SM-USP.txt:26"
+    },
+    {
+      "name": "Hydroxylamine hydrochloride",
+      "use": "reagent",
+      "source": "Zinc Sulfate Monohydrate__Zinc Sulfate Monohydrate-SM-USP.txt:26"
+    },
+    {
+      "name": "Isopropyl alcohol",
+      "use": "reagent",
+      "source": "Zinc Sulfate Monohydrate__Zinc Sulfate Monohydrate-SM-USP.txt:26"
+    },
+    {
+      "name": "Lead Acetate",
+      "use": "reagent",
+      "source": "Zinc Sulfate Monohydrate__Zinc Sulfate Monohydrate-SM-USP.txt:26"
+    },
+    {
+      "name": "Lead nitrate",
+      "use": "standard",
+      "source": "Zinc Sulfate Monohydrate__Zinc Sulfate Monohydrate-SM-USP.txt:26"
+    },
+    {
+      "name": "Nitric acid",
+      "use": "reagent",
+      "source": "Zinc Sulfate Monohydrate__Zinc Sulfate Monohydrate-SM-USP.txt:26"
+    },
+    {
+      "name": "Phenol red",
+      "use": "indicator",
+      "source": "Zinc Sulfate Monohydrate__Zinc Sulfate Monohydrate-SM-USP.txt:26"
+    },
+    {
+      "name": "Potassium cyanide",
+      "use": "reagent",
+      "source": "Zinc Sulfate Monohydrate__Zinc Sulfate Monohydrate-SM-USP.txt:26"
+    },
+    {
+      "name": "Pyridine",
+      "use": "reagent",
+      "source": "Zinc Sulfate Monohydrate__Zinc Sulfate Monohydrate-SM-USP.txt:26"
+    },
+    {
+      "name": "Silver diethyldithiocarbamate",
+      "use": "reagent",
+      "source": "Zinc Sulfate Monohydrate__Zinc Sulfate Monohydrate-SM-USP.txt:26"
+    },
+    {
+      "name": "Sodium hydroxide",
+      "use": "reagent",
+      "source": "Zinc Sulfate Monohydrate__Zinc Sulfate Monohydrate-SM-USP.txt:26"
+    },
+    {
+      "name": "Sodium sulfide",
+      "use": "reagent",
+      "source": "Zinc Sulfate Monohydrate__Zinc Sulfate Monohydrate-SM-USP.txt:26"
+    },
+    {
+      "name": "Stannous chloride",
+      "use": "reagent",
+      "source": "Zinc Sulfate Monohydrate__Zinc Sulfate Monohydrate-SM-USP.txt:26"
+    },
+    {
+      "name": "Sulfuric acid",
+      "use": "reagent",
+      "source": "Zinc Sulfate Monohydrate__Zinc Sulfate Monohydrate-SM-USP.txt:26"
+    },
+    {
+      "name": "Hydroxy naphthol blue",
+      "use": "indicator",
+      "source": "Zinc Sulfate Monohydrate__Zinc Sulfate Monohydrate-SM-USP.txt:26"
+    },
+    {
+      "name": "Standard calcium carbonate",
+      "use": "standard",
+      "source": "Zinc Sulfate Monohydrate__Zinc Sulfate Monohydrate-SM-USP.txt:26"
+    },
+    {
+      "name": "Thymol blue",
+      "use": "indicator",
+      "source": "Zinc Sulfate Monohydrate__Zinc Sulfate Monohydrate-SM-USP.txt:26"
+    },
+    {
+      "name": "0.05 M Edetate Disodium VS",
+      "use": "titrant",
+      "source": "Zinc Sulfate Monohydrate__Zinc Sulfate Monohydrate-SM-USP.txt:26"
+    },
+    {
+      "name": "0.1M Disodium Edetate VS",
+      "use": "titrant",
+      "source": "Zinc Sulfate Monohydrate__Zinc Sulfate Monohydrate-SM.txt:26"
+    },
+    {
+      "name": "Xylenol Orange Triturate",
+      "use": "indicator",
+      "source": "Zinc Sulfate Monohydrate__Zinc Sulfate Monohydrate-SM.txt:26"
+    },
+    {
+      "name": "Hexamethylenetetramine",
+      "use": "reagent",
+      "source": "Zinc Sulfate Monohydrate__Zinc Sulfate Monohydrate-SM.txt:26"
+    },
+    {
+      "name": "Thioglycolic acid",
+      "use": "reagent",
+      "source": "Zinc Sulfate Monohydrate__Zinc Sulfate Monohydrate-SM.txt:26"
+    },
+    {
+      "name": "Citric acid monohydrate",
+      "use": "reagent",
+      "source": "Zinc Sulfate Monohydrate__Zinc Sulfate Monohydrate-SM.txt:26"
+    },
+    {
+      "name": "Silver Nitrate",
+      "use": "reagent",
+      "source": "Zinc Sulfate Monohydrate__Zinc Sulfate Monohydrate-SM.txt:26"
+    },
+    {
+      "name": "Ferric ammonium sulfate",
+      "use": "reagent",
+      "source": "Zinc Sulfate Monohydrate__Zinc Sulfate Monohydrate-SM.txt:26"
+    },
+    {
+      "name": "Ammonium Acetate",
+      "use": "reagent",
+      "source": "Zinc Sulfate Monohydrate__Zinc Sulfate Monohydrate-SM.txt:26"
+    },
+    {
+      "name": "Glacial acetic acid",
+      "use": "reagent",
+      "source": "Zinc Sulfate Monohydrate__Zinc Sulfate Monohydrate-SM.txt:26"
+    },
+    {
+      "name": "Barium Chloride Solution R1",
+      "use": "reagent",
+      "source": "Zinc Sulfate Monohydrate__Zinc Sulfate Monohydrate-SM.txt:26"
+    }
+  ],
+  "openQuestions": [
+    {
+      "question": "Minimum sample quantity conflicts: spec sheet 50 g for routine testing; STM 100 g for routine testing and retention, 50 g for retest. Routine loaded from the spec sheet (50 g), retention from the STM (100 g), retest from the STM (50 g). Confirm.",
+      "source": "Zinc Sulfate Monohydrate__Specifications sheet Zinc Sulfate Monohydrate USP.txt:20; Zinc Sulfate Monohydrate__Zinc Sulfate Monohydrate-SM-USP.txt:37"
+    },
+    {
+      "question": "Assay limits are given twice: 89.0-90.4% of ZnSO4 and 99.0-100.5% of ZnSO4 \u00b7 H2O. Both loaded as rows; the STM formula's equivalent weight is for the monohydrate. Confirm which result the titration reports and the basis (no basis word stated; PercentAsIs used).",
+      "source": "Zinc Sulfate Monohydrate__Specifications sheet Zinc Sulfate Monohydrate USP.txt:19; Zinc Sulfate Monohydrate__Zinc Sulfate Monohydrate-SM-USP.txt:35"
+    },
+    {
+      "question": "Arsenic limit row on the spec sheet has no reference (the reference cell is blank). Limit taken as written; the STM method cites USP <211>.",
+      "source": "Zinc Sulfate Monohydrate__Specifications sheet Zinc Sulfate Monohydrate USP.txt:16"
+    },
+    {
+      "question": "Assay STM text says 50 mg Eriochrome black 'TS'; the reagent is listed as Eriochrome black TS 200 mg in 50 mL methanol. Loaded as written (50 mg); confirm the indicator amount.",
+      "source": "Zinc Sulfate Monohydrate__Zinc Sulfate Monohydrate-SM-USP.txt:35; Zinc Sulfate Monohydrate__Zinc Sulfate Monohydrate-SM-USP.txt:26"
+    },
+    {
+      "question": "BP identification row 'Titration 99.0 per cent to 101.0 per cent' duplicates the BP assay and is not an identification test. Not loaded as an identification row; confirm.",
+      "source": "Zinc Sulfate Monohydrate__Specifications sheet Zinc Sulfate Monohydrate BP.txt:15"
+    }
+  ]
+}

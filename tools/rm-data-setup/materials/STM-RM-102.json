@@ -1,0 +1,381 @@
+{
+  "itemCode": "STM-RM-102",
+  "stmCode": "STM-RM-102",
+  "itemName": "Natural beta-carotene 20%",
+  "stmFile": "Natural betacarotene 20%__STM for Natural betacarotene 20% new without micro.txt",
+  "specFiles": ["Natural betacarotene 20%__Specifications sheet Natural betacarotene 20% without particle size.txt"],
+  "minQuantity": {
+    "routine": 100,
+    "retest": 50,
+    "retention": 100,
+    "unit": "g",
+    "source": "Natural betacarotene 20%__Specifications sheet Natural betacarotene 20% without particle size.txt:23; Natural betacarotene 20%__STM for Natural betacarotene 20% new without micro.txt:38"
+  },
+  "grades": [
+    {
+      "grade": null,
+      "rows": [
+        {
+          "testCode": "RM-DESC",
+          "parameterName": "Appearance",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Reddish fine granular powder.",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "In-house",
+          "source": "Natural betacarotene 20%__Specifications sheet Natural betacarotene 20% without particle size.txt:11"
+        },
+        {
+          "testCode": "RM-DISPERS-BC",
+          "parameterName": "Dispersibility",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Dispersible in water.",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "In-house",
+          "source": "Natural betacarotene 20%__Specifications sheet Natural betacarotene 20% without particle size.txt:12"
+        },
+        {
+          "testCode": "RM-ODOR",
+          "parameterName": "Odor",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Characteristic of carrot.",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "In-house",
+          "source": "Natural betacarotene 20%__Specifications sheet Natural betacarotene 20% without particle size.txt:13"
+        },
+        {
+          "testCode": "RM-ID-BC",
+          "parameterName": "Identification (UV, comply as assay)",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Comply as assay.",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "In-house",
+          "source": "Natural betacarotene 20%__Specifications sheet Natural betacarotene 20% without particle size.txt:14"
+        },
+        {
+          "testCode": "RM-LOD",
+          "parameterName": "Loss on drying",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 8.0,
+          "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "In-house",
+          "source": "Natural betacarotene 20%__Specifications sheet Natural betacarotene 20% without particle size.txt:15"
+        },
+        {
+          "testCode": "RM-PB-BC",
+          "parameterName": "Heavy metals (as lead)",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 2,
+          "lowerInclusive": null,
+          "unit": "ppm",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "In-house",
+          "source": "Natural betacarotene 20%__Specifications sheet Natural betacarotene 20% without particle size.txt:16",
+          "heldBack": "ICP method incomplete: result calculation not stated"
+        },
+        {
+          "testCode": "RM-AS-BC",
+          "parameterName": "Arsenic",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 3,
+          "lowerInclusive": null,
+          "unit": "ppm",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "In-house",
+          "source": "Natural betacarotene 20%__Specifications sheet Natural betacarotene 20% without particle size.txt:17",
+          "heldBack": "ICP method incomplete: result calculation not stated"
+        },
+        {
+          "testCode": "RM-UV-BC",
+          "parameterName": "Assay (beta-carotene content)",
+          "limitType": "NotLessThan",
+          "lower": 20,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": "PercentAsIs",
+          "referenceStandard": "In-house",
+          "source": "Natural betacarotene 20%__Specifications sheet Natural betacarotene 20% without particle size.txt:18"
+        },
+        {
+          "testCode": "TAMC",
+          "parameterName": "Total aerobic microbial count (TAMC)",
+          "limitType": "CountTiered",
+          "lower": null,
+          "upper": 1000,
+          "lowerInclusive": null,
+          "unit": "CFU/g",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Natural betacarotene 20%__Specifications sheet Natural betacarotene 20% without particle size.txt:19"
+        },
+        {
+          "testCode": "TYMC",
+          "parameterName": "Total yeasts and molds count (TYMC)",
+          "limitType": "CountTiered",
+          "lower": null,
+          "upper": 100,
+          "lowerInclusive": null,
+          "unit": "CFU/g",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Natural betacarotene 20%__Specifications sheet Natural betacarotene 20% without particle size.txt:20"
+        },
+        {
+          "testCode": "E.coli",
+          "parameterName": "Test for E. coli",
+          "limitType": "PresenceAbsence",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": "per 10 g",
+          "expectedResultText": "Absent / 10gm",
+          "expectedState": "Absence",
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Natural betacarotene 20%__Specifications sheet Natural betacarotene 20% without particle size.txt:21"
+        },
+        {
+          "testCode": "Salmonella ",
+          "parameterName": "Test for Salmonella spp.",
+          "limitType": "PresenceAbsence",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": "per 10 g",
+          "expectedResultText": "Absent / 10gm",
+          "expectedState": "Absence",
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Natural betacarotene 20%__Specifications sheet Natural betacarotene 20% without particle size.txt:22"
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "testCode": "RM-DESC",
+      "procedure": "Under strong white light check each received sample container separately on a clean transparent watch glass dish for foreign particles, colour and conformity with the in-house visual specification.",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {
+        "perContainer": true,
+        "reference": "Supplier Certificate for Natural beta-carotene 20%"
+      },
+      "source": "Natural betacarotene 20%__STM for Natural betacarotene 20% new without micro.txt:28"
+    },
+    {
+      "testCode": "RM-DISPERS-BC",
+      "procedure": "Dispersibility: put a small amount of sample in a test tube, pour 20 mL water on the sample, shake the tube well. Requirement: dispersible in water.",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "details": {
+        "sample": "small amount",
+        "water": "20 mL",
+        "reference": "Analytical Method Verification Report for Dispersion in Natural Beta carotene 20 %"
+      },
+      "source": "Natural betacarotene 20%__STM for Natural betacarotene 20% new without micro.txt:29"
+    },
+    {
+      "testCode": "RM-ODOR",
+      "procedure": "Odour: smell a sufficient amount of sample. Requirement: characteristic of carrot.",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {
+        "reference": "Supplier Certificate for Natural beta-carotene 20%"
+      },
+      "source": "Natural betacarotene 20%__STM for Natural betacarotene 20% new without micro.txt:30"
+    },
+    {
+      "testCode": "RM-ID-BC",
+      "procedure": "Identification (UV): proceed as the assay test (see RM-UV-BC); detect the maximum peak at the desired wavelength. Requirement: comply (as assay).",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "details": {
+        "method": "as RM-UV-BC (assay)",
+        "wavelength": "desired wavelength (not stated, see openQuestions)",
+        "reference": "Analytical Method Verification Report for Content of Natural Beta carotene 20 %"
+      },
+      "source": "Natural betacarotene 20%__STM for Natural betacarotene 20% new without micro.txt:31"
+    },
+    {
+      "testCode": "RM-LOD",
+      "procedure": "Loss on drying: weigh an empty weighing bottle previously dried at 105 °C and cooled in desiccator (W0); weigh accurately 1.000 g (W1); dry in a calibrated oven at 105 °C for 2 h, cool in desiccator, weigh (W2); repeat to constant weight. % = (W1 - W2) / (W1 - W0) x 100. Limit NMT 8.0%.",
+      "kind": "general",
+      "workflow": "Gravimetric",
+      "details": {
+        "sampleG": 1.000,
+        "drying": "calibrated oven 105 °C, 2 h, then to constant weight",
+        "formula": "(W1 - W2) / (W1 - W0) x 100",
+        "reference": "USP <731>; Analytical Method Verification Report for loss on drying in Natural Beta carotene 20 %"
+      },
+      "source": "Natural betacarotene 20%__STM for Natural betacarotene 20% new without micro.txt:32"
+    },
+    {
+      "testCode": "RM-PB-BC",
+      "procedure": "Heavy metals as lead by AAS: standards from 1000 ppm lead standard (1 mL to 100 mL, then 5, 7.5, 10 and 12.5 mL each to 100 mL) giving 0.5, 0.75, 1.0 and 1.25 ppm; calibration curve. Sample: 1 g with 10 mL conc. HCl and 10 mL distilled water, boil 5 min, transfer to 100 mL flask, cool, make up with distilled water, filter. Blank with distilled water, read standards from low to high, then sample. Wavelength 283.31 nm, lead hollow-cathode lamp, air-acetylene flame. Limit NMT 2 ppm.",
+      "kind": "specific",
+      "workflow": "IcpMethodAssay",
+      "details": {
+        "sampleG": 1,
+        "digestion": "10 mL conc. HCl + 10 mL distilled water, boil 5 min",
+        "finalVolumeMl": 100,
+        "standardLevelsPpm": [0.5, 0.75, 1.0, 1.25],
+        "standardPreparation": "1 mL of 1000 ppm lead standard to 100 mL; 5, 7.5, 10, 12.5 mL of that to 100 mL each",
+        "wavelengthNm": 283.31,
+        "lamp": "lead hollow-cathode",
+        "flame": "air-acetylene",
+        "limit": "NMT 2 ppm",
+        "reference": "Analytical Method Verification Report for Heavy Metals in Natural Beta carotene 20 %"
+      },
+      "source": "Natural betacarotene 20%__STM for Natural betacarotene 20% new without micro.txt:33",
+      "heldBack": "ICP method incomplete: result calculation not stated"
+    },
+    {
+      "testCode": "RM-AS-BC",
+      "procedure": "Arsenic by AAS: standards from 1000 ppm arsenic standard (2 mL to 200 mL, then 10, 20, 30, 40 mL each to 100 mL) giving 1, 2, 3 and 4 ppm; calibration curve. Sample: 1 g with 10 mL conc. HCl and 10 mL distilled water, boil 5 min, transfer to 25 mL flask, cool, make up with distilled water, filter. Blank with distilled water, read standards low to high, then sample. Wavelength 193.07 nm, arsenic hollow-cathode lamp, air-acetylene flame. Limit NMT 3 ppm.",
+      "kind": "specific",
+      "workflow": "IcpMethodAssay",
+      "details": {
+        "sampleG": 1,
+        "digestion": "10 mL conc. HCl + 10 mL distilled water, boil 5 min",
+        "finalVolumeMl": 25,
+        "standardLevelsPpm": [1, 2, 3, 4],
+        "standardPreparation": "2 mL of 1000 ppm arsenic standard to 200 mL; 10, 20, 30, 40 mL of that to 100 mL each",
+        "wavelengthNm": 193.07,
+        "lamp": "arsenic hollow-cathode",
+        "flame": "air-acetylene",
+        "limit": "NMT 3 ppm",
+        "reference": "USP <852>; Analytical Method Verification Report for Arsenic in Natural Beta carotene 20 %"
+      },
+      "source": "Natural betacarotene 20%__STM for Natural betacarotene 20% new without micro.txt:34",
+      "heldBack": "ICP method incomplete: result calculation not stated"
+    },
+    {
+      "testCode": "RM-UV-BC",
+      "procedure": "Assay (UV, spectrophotometric): weigh about 350 mg sample into a 50 mL volumetric flask, add distilled water and disperse (ultrasonic bath if needed), make up to 50 mL. Take 1 mL and dilute to 100 mL with acetone; from this prepare a 5 in 50 dilution with acetone (final dilution factor 50000). Read absorbance at 456 nm and 800 nm against acetone. % beta-carotene = (A456 - A800) x 50000 / (2500 x W), W = sample weight (g), 2500 = A1% 1 cm of beta-carotene in acetone. Limit NLT 20%.",
+      "kind": "specific",
+      "workflow": "UvSpectrophotometry",
+      "details": {
+        "sampleMg": 350,
+        "dispersion": "50 mL distilled water, ultrasonic bath if needed",
+        "dilution1": "1 mL to 100 mL with acetone",
+        "dilution2": "5 in 50 with acetone",
+        "dilutionFactor": 50000,
+        "wavelengthsNm": [456, 800],
+        "reference solvent": "acetone",
+        "formula": "%beta-carotene = (A456 - A800) x 50000 / (2500 x W)",
+        "a1cm1pctAcetone": 2500,
+        "limit": "NLT 20%",
+        "reference": "USP <857>; Analytical Method Validation Report for Content of Natural Beta carotene 20 % (Doc C6R-72-208)"
+      },
+      "source": "Natural betacarotene 20%__STM for Natural betacarotene 20% new without micro.txt:35"
+    },
+    {
+      "testCode": "TAMC",
+      "procedure": "Microbiological examination per SOP C2I-91-128 (the STM refers to the SOP; no microbiological procedure is written in the STM).",
+      "kind": "general",
+      "workflow": "CountTest",
+      "details": {
+        "sop": "C2I-91-128",
+        "limit": "Not more than 10^3 CFU/gm (spec sheet NMT 103, superscript lost; loaded as 1000)"
+      },
+      "source": "Natural betacarotene 20%__STM for Natural betacarotene 20% new without micro.txt:36"
+    },
+    {
+      "testCode": "TYMC",
+      "procedure": "Microbiological examination per SOP C2I-91-128 (the STM refers to the SOP).",
+      "kind": "general",
+      "workflow": "CountTest",
+      "details": {
+        "sop": "C2I-91-128",
+        "limit": "Not more than 10^2 CFU/gm (spec sheet NMT 102 loaded as 100)"
+      },
+      "source": "Natural betacarotene 20%__STM for Natural betacarotene 20% new without micro.txt:36"
+    },
+    {
+      "testCode": "E.coli",
+      "procedure": "Microbiological examination per SOP C2I-91-128 (the STM refers to the SOP).",
+      "kind": "general",
+      "workflow": "Observation",
+      "details": {
+        "sop": "C2I-91-128",
+        "limit": "Absent / 10 gm"
+      },
+      "source": "Natural betacarotene 20%__STM for Natural betacarotene 20% new without micro.txt:36"
+    },
+    {
+      "testCode": "Salmonella ",
+      "procedure": "Microbiological examination per SOP C2I-91-128 (the STM refers to the SOP).",
+      "kind": "general",
+      "workflow": "Observation",
+      "details": {
+        "sop": "C2I-91-128",
+        "limit": "Absent / 10 gm"
+      },
+      "source": "Natural betacarotene 20%__STM for Natural betacarotene 20% new without micro.txt:36"
+    }
+  ],
+  "notApplicable": [],
+  "supplierAttributes": [],
+  "reagents": [
+    { "name": "Acetone", "use": "reagent", "source": "Natural betacarotene 20%__STM for Natural betacarotene 20% new without micro.txt:26" },
+    { "name": "Hydrochloric acid", "use": "reagent", "source": "Natural betacarotene 20%__STM for Natural betacarotene 20% new without micro.txt:26" },
+    { "name": "Standard Lead Solution (1000 ppm)", "use": "standard", "source": "Natural betacarotene 20%__STM for Natural betacarotene 20% new without micro.txt:26" },
+    { "name": "Standard Arsenic Solution (1000 ppm)", "use": "standard", "source": "Natural betacarotene 20%__STM for Natural betacarotene 20% new without micro.txt:26" }
+  ],
+  "openQuestions": [
+    {
+      "question": "Identification (UV): the STM says 'Detect Maximum Peak at desired Wavelength' without giving the wavelength. Row loaded as Qualitative 'Comply as assay'; the wavelength is needed.",
+      "source": "Natural betacarotene 20%__STM for Natural betacarotene 20% new without micro.txt:31"
+    },
+    {
+      "question": "Heavy metals (lead) and arsenic by AAS: the sample is made up to 100 mL (lead) and 25 mL (arsenic) from 1 g, but no formula converts the reading to ppm in the sample. Rows and tests held back until method details and calculation are supplied.",
+      "source": "Natural betacarotene 20%__STM for Natural betacarotene 20% new without micro.txt:33-34"
+    },
+    {
+      "question": "TAMC and TYMC limits print as 'NMT 103' and 'NMT 102' in the spec sheet (superscripts lost). Rows hold 1000 and 100 CFU/g as in the other materials; confirm 10^3 and 10^2.",
+      "source": "Natural betacarotene 20%__Specifications sheet Natural betacarotene 20% without particle size.txt:19-20"
+    },
+    {
+      "question": "Microbiology: the STM only refers to SOP C2I-91-128 (no procedure written). Limits are from the spec sheet; no microbiological procedure is transcribed.",
+      "source": "Natural betacarotene 20%__STM for Natural betacarotene 20% new without micro.txt:36"
+    }
+  ]
+}

@@ -1,0 +1,258 @@
+{
+  "itemCode": "RM-ASCORBIC",
+  "itemName": "Ascorbic acid",
+  "stmCode": null,
+  "stmFile": "Ascorbic Acid__Ascorbic acid- new.txt",
+  "specFiles": [],
+  "minQuantity": {
+    "routine": 20,
+    "retest": null,
+    "retention": 40,
+    "unit": "g",
+    "source": "Ascorbic Acid__Ascorbic acid- new.txt:42"
+  },
+  "grades": [
+    {
+      "grade": "USP",
+      "rows": [
+        {
+          "testCode": "RM-DESC",
+          "parameterName": "Description",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "White or slightly yellow crystals or powder. On exposure to light, it gradually darkens. In the dry state, is reasonably stable in air, but in solution rapidly oxidizes.",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Ascorbic Acid__Ascorbic acid- new.txt:41"
+        },
+        {
+          "testCode": "RM-SOLUB",
+          "parameterName": "Solubility",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Freely soluble in water; sparingly soluble in alcohol; insoluble in chloroform, in ether, and in benzene.",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Ascorbic Acid__Ascorbic acid- new.txt:41"
+        },
+        {
+          "testCode": "RM-ID-IR",
+          "parameterName": "Identification (IR)",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Comply",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Ascorbic Acid__Ascorbic acid- new.txt:41"
+        },
+        {
+          "testCode": "RM-ID-CUTART-ASC",
+          "parameterName": "Identification (reduction of alkaline cupric tartrate)",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Comply",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Ascorbic Acid__Ascorbic acid- new.txt:41"
+        },
+        {
+          "testCode": "RM-OPTROT",
+          "parameterName": "Specific optical rotation",
+          "limitType": "Range",
+          "lower": 20.5,
+          "upper": 21.5,
+          "lowerInclusive": true,
+          "unit": "°",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Ascorbic Acid__Ascorbic acid- new.txt:41"
+        },
+        {
+          "testCode": "RM-SASH",
+          "parameterName": "Residue on ignition",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 0.1,
+          "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Ascorbic Acid__Ascorbic acid- new.txt:41"
+        },
+        {
+          "testCode": "RM-TIT-ASC",
+          "parameterName": "Assay",
+          "limitType": "Range",
+          "lower": 99.0,
+          "upper": 100.5,
+          "lowerInclusive": true,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": "PercentAsIs",
+          "referenceStandard": "USP",
+          "source": "Ascorbic Acid__Ascorbic acid- new.txt:41"
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "testCode": "RM-DESC",
+      "procedure": "Under strong white light check each received sample container separately in a clean transparent watch glass or glass dish for foreign particles, colour and conformity with the visual specification.",
+      "kind": "general",
+      "workflow": "Observation",
+      "details": {
+        "perContainer": true,
+        "grades": ["USP"],
+        "reference": "USP Description and Relative Solubility"
+      },
+      "source": "Ascorbic Acid__Ascorbic acid- new.txt:41"
+    },
+    {
+      "testCode": "RM-SOLUB",
+      "procedure": "Weigh 100 mg powdered sample in a stoppered tube; add 0.1 mL solvent, shake 1 min, hold at 25.0 ± 0.5 °C for 15 min, repeat once if not dissolved; add 0.9 mL, then 2 mL, then 7 mL solvent with the same steps to classify; if still undissolved use 10 mg in 10 mL, then 1 mg in 10 mL, else practically insoluble. Repeat with alcohol, chloroform, benzene and ether.",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {
+        "sample": "100 mg powdered",
+        "temperature": "25.0 ± 0.5 °C",
+        "holdMin": 15,
+        "shakeMin": 1,
+        "volumesMl": [0.1, 0.9, 2, 7],
+        "smallSampleSteps": ["10 mg in 10 mL", "1 mg in 10 mL"],
+        "solvents": ["water", "alcohol", "chloroform", "benzene", "ether"],
+        "reference": "USP Description and Relative Solubility"
+      },
+      "source": "Ascorbic Acid__Ascorbic acid- new.txt:41"
+    },
+    {
+      "testCode": "RM-ID-IR",
+      "procedure": "IR identification: mix the substance intimately with potassium bromide, compress into a transparent pellet; compare the spectrum with that obtained from Ascorbic Acid (the two spectra should correspond).",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "details": {
+        "technique": "KBr pellet",
+        "reference": "USP <197K>"
+      },
+      "source": "Ascorbic Acid__Ascorbic acid- new.txt:41"
+    },
+    {
+      "testCode": "RM-ID-CUTART-ASC",
+      "procedure": "Identification test 2: a 20 mg/mL solution reduces alkaline cupric tartrate TS slowly at room temperature, more readily on heating.",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "details": {
+        "solutionMgMl": 20,
+        "reagent": "alkaline cupric tartrate TS",
+        "conditions": "slowly at room temperature; more readily on heating"
+      },
+      "source": "Ascorbic Acid__Ascorbic acid- new.txt:41"
+    },
+    {
+      "testCode": "RM-OPTROT",
+      "procedure": "Specific optical rotation: sample solution 100 mg/mL in carbon dioxide-free water, measured immediately after preparation on a calibrated polarimeter.",
+      "kind": "general",
+      "workflow": "Measurement",
+      "details": {
+        "concentrationMgMl": 100,
+        "solvent": "carbon dioxide-free water",
+        "timing": "immediately after preparation",
+        "unit": "°",
+        "reference": "USP <781S>"
+      },
+      "source": "Ascorbic Acid__Ascorbic acid- new.txt:41"
+    },
+    {
+      "testCode": "RM-SASH",
+      "procedure": "Residue on ignition (USP <281>): ignite crucible at 600-650 °C, cool, weigh (W0); weigh 1.0 g (W1 = crucible + material); moisten with sulfuric acid, char gently, moisten again, heat until white fumes cease; ignite at 600-650 °C to constant weight (W2). % = (W2 - W0) / (W1 - W0) x 100.",
+      "kind": "general",
+      "workflow": "Gravimetric",
+      "details": {
+        "sampleG": 1.0,
+        "ignitionC": "600-650",
+        "formula": "(W2 - W0) / (W1 - W0) x 100",
+        "reference": "USP <281>"
+      },
+      "source": "Ascorbic Acid__Ascorbic acid- new.txt:41"
+    },
+    {
+      "testCode": "RM-TIT-ASC",
+      "procedure": "Assay (iodometric direct titration): dissolve 400 mg sample in 100 mL water and 25 mL 2 N sulfuric acid, add 3 mL starch TS; titrate immediately with 0.1 N iodine VS to a persistent violet-blue colour. Blank: 100 mL water + 25 mL 2 N sulfuric acid + 3 mL starch TS. Result % = [(V - B) x N x F x 100] / W; F = 88.06 mg/mEq.",
+      "kind": "specific",
+      "workflow": "Titration",
+      "details": {
+        "grades": ["USP"],
+        "sampleMg": 400,
+        "solvent": "100 mL water + 25 mL 2 N sulfuric acid",
+        "mode": "direct",
+        "titrant": "0.1 N iodine VS",
+        "titrantStandardization": "25.0 mL iodine solution, 100 mL water, 1 mL 1 N hydrochloric acid, titrated with 0.1 N sodium thiosulfate VS to pale yellow; 2 mL starch TS, to colourless",
+        "indicator": "starch TS, 3 mL",
+        "endpoint": "visual, persistent violet-blue",
+        "blank": "100 mL water + 25 mL 2 N sulfuric acid + 3 mL starch TS",
+        "equivalenceFactor": "88.06 mg/mEq",
+        "formula": "Result = [(V - B) x N x F x 100] / W; V = sample titrant (mL), B = blank titrant (mL), N = titrant normality (mEq/mL), F = 88.06 mg/mEq, W = sample weight (mg)",
+        "reference": "USP <541>"
+      },
+      "source": "Ascorbic Acid__Ascorbic acid- new.txt:41"
+    }
+  ],
+  "notApplicable": [],
+  "supplierAttributes": [],
+  "reagents": [
+    { "name": "Iodine", "use": "reagent", "source": "Ascorbic Acid__Ascorbic acid- new.txt:38" },
+    { "name": "Cupric sulfate", "use": "reagent", "source": "Ascorbic Acid__Ascorbic acid- new.txt:38" },
+    { "name": "Potassium sodium tartrate", "use": "reagent", "source": "Ascorbic Acid__Ascorbic acid- new.txt:38" },
+    { "name": "Sodium hydroxide", "use": "reagent", "source": "Ascorbic Acid__Ascorbic acid- new.txt:38" },
+    { "name": "Potassium iodide", "use": "reagent", "source": "Ascorbic Acid__Ascorbic acid- new.txt:38" },
+    { "name": "Hydrochloric acid", "use": "reagent", "source": "Ascorbic Acid__Ascorbic acid- new.txt:38" },
+    { "name": "Sulfuric acid", "use": "reagent", "source": "Ascorbic Acid__Ascorbic acid- new.txt:38" },
+    { "name": "Sodium thiosulfate", "use": "titrant", "source": "Ascorbic Acid__Ascorbic acid- new.txt:38" },
+    { "name": "Sodium carbonate", "use": "reagent", "source": "Ascorbic Acid__Ascorbic acid- new.txt:38" },
+    { "name": "Starch soluble", "use": "indicator", "source": "Ascorbic Acid__Ascorbic acid- new.txt:38" },
+    { "name": "Salicylic acid", "use": "reagent", "source": "Ascorbic Acid__Ascorbic acid- new.txt:38" },
+    { "name": "0.1 N Iodine VS (in-house)", "use": "titrant", "source": "Ascorbic Acid__Ascorbic acid- new.txt:40" },
+    { "name": "2 N Sulfuric acid TS", "use": "reagent", "source": "Ascorbic Acid__Ascorbic acid- new.txt:40" },
+    { "name": "1 N Hydrochloric acid", "use": "reagent", "source": "Ascorbic Acid__Ascorbic acid- new.txt:40" },
+    { "name": "0.1 N Sodium thiosulfate VS", "use": "titrant", "source": "Ascorbic Acid__Ascorbic acid- new.txt:40" }
+  ],
+  "openQuestions": [
+    {
+      "question": "No STM number and no version on the Ascorbic Acid document ('Ascorbic acid- new'); stmCode left null. Item match uncertain: local item 'RM-ASCORBIC' (Ascorbic acid, raw material). Confirm the document and the item before loading.",
+      "source": "Ascorbic Acid__Ascorbic acid- new.txt:1"
+    },
+    {
+      "question": "'Ascorbic Acid__STM-Ascorbic Acid.txt' is for Hydroxypropyl cellulose (its safety text), not ascorbic acid. Misfiled; ignored. The certificate of analysis is a supplier CoA, not used as a spec.",
+      "source": "Ascorbic Acid__STM-Ascorbic Acid.txt:36"
+    },
+    {
+      "question": "Assay: the document gives no basis (dried or as-is); resultBasis set to PercentAsIs. Confirm.",
+      "source": "Ascorbic Acid__Ascorbic acid- new.txt:41"
+    },
+    {
+      "question": "Micro tests are not in this document, and it lists no spec sheet; no microbiological rows are loaded. Confirm whether micro limits apply.",
+      "source": "Ascorbic Acid__Ascorbic acid- new.txt:43"
+    }
+  ]
+}

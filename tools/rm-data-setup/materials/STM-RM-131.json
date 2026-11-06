@@ -1,0 +1,229 @@
+{
+  "itemCode": "STM-RM-131",
+  "itemName": "Cyanocobalamin 0.1% in WS",
+  "stmCode": "STM-RM-131",
+  "stmFile": "Cyanocobalamine 0.1% in WS__STM Cyanocobalamine 0.1% in WS 1-2 without micro.txt",
+  "specFiles": ["Cyanocobalamine 0.1% in WS__C5I-91-260  Specification and Method of Analysis for Cyanocobalamin 0.1% WS.txt"],
+  "minQuantity": {
+    "routine": 50,
+    "retest": 20,
+    "retention": 50,
+    "unit": "g",
+    "source": "Cyanocobalamine 0.1% in WS__STM Cyanocobalamine 0.1% in WS 1-2 without micro.txt:35"
+  },
+  "grades": [
+    {
+      "grade": null,
+      "rows": [
+        {
+          "testCode": "RM-DESC",
+          "parameterName": "Description",
+          "limitType": "Qualitative",
+          "lower": null, "upper": null, "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Pink coloured powder and it should be free from visible extraneous matter.",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "supplier certificate for Cyanocobalamin 0.1% in WS",
+          "source": "Cyanocobalamine 0.1% in WS__STM Cyanocobalamine 0.1% in WS 1-2 without micro.txt:28"
+        },
+        {
+          "testCode": "RM-SOLUB",
+          "parameterName": "Solubility",
+          "limitType": "Qualitative",
+          "lower": null, "upper": null, "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Soluble in water.",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "supplier certificate for Cyanocobalamin 0.1% in WS",
+          "source": "Cyanocobalamine 0.1% in WS__STM Cyanocobalamine 0.1% in WS 1-2 without micro.txt:29"
+        },
+        {
+          "testCode": "RM-ID-UV-CYAWS",
+          "parameterName": "Identification (UV): maximum wavelength 361 nm ±2",
+          "limitType": "Range",
+          "lower": 359, "upper": 363, "lowerInclusive": true,
+          "unit": "nm",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "Analytical method validation for Cyanocobalamin 0.1 % WS",
+          "source": "Cyanocobalamine 0.1% in WS__STM Cyanocobalamine 0.1% in WS 1-2 without micro.txt:30"
+        },
+        {
+          "testCode": "RM-LOD",
+          "parameterName": "Loss on drying",
+          "limitType": "NotMoreThan",
+          "lower": null, "upper": 4.0, "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "Analytical method verification for Loss on drying in Cyanocobalamin 0.1 % WS",
+          "source": "Cyanocobalamine 0.1% in WS__STM Cyanocobalamine 0.1% in WS 1-2 without micro.txt:31"
+        },
+        {
+          "testCode": "RM-UV-ASSAY-CYAWS",
+          "parameterName": "Assay (Vit. B12 content)",
+          "limitType": "NotLessThan",
+          "lower": 0.1, "upper": null, "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": "PercentAsIs",
+          "referenceStandard": "Analytical method validation for Cyanocobalamin 0.1 % WS",
+          "source": "Cyanocobalamine 0.1% in WS__STM Cyanocobalamine 0.1% in WS 1-2 without micro.txt:32"
+        },
+        {
+          "testCode": "TAMC",
+          "parameterName": "Total aerobic microbial count (TAMC)",
+          "limitType": "CountTiered",
+          "lower": null, "upper": 1000, "lowerInclusive": null,
+          "unit": "CFU/g",
+          "expectedResultText": "Not more than 10^3 CFU/g (spec text: NMT 103 CFU/gm)",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP2018 Appendix XVID",
+          "source": "Cyanocobalamine 0.1% in WS__C5I-91-260  Specification and Method of Analysis for Cyanocobalamin 0.1% WS.txt:39"
+        },
+        {
+          "testCode": "TYMC",
+          "parameterName": "Total yeasts and molds count (TYMC)",
+          "limitType": "CountTiered",
+          "lower": null, "upper": 100, "lowerInclusive": null,
+          "unit": "CFU/g",
+          "expectedResultText": "Not more than 10^2 CFU/g (spec text: not more than 102 CFU/gm)",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP2018 Appendix XVID",
+          "source": "Cyanocobalamine 0.1% in WS__C5I-91-260  Specification and Method of Analysis for Cyanocobalamin 0.1% WS.txt:39"
+        },
+        {
+          "testCode": "E.coli",
+          "parameterName": "Escherichia coli",
+          "limitType": "PresenceAbsence",
+          "lower": null, "upper": null, "lowerInclusive": null,
+          "unit": "per 10 g",
+          "expectedResultText": "Absent /10gm",
+          "expectedState": "Absence",
+          "resultBasis": null,
+          "referenceStandard": "BP2018 Appendix XVID",
+          "source": "Cyanocobalamine 0.1% in WS__C5I-91-260  Specification and Method of Analysis for Cyanocobalamin 0.1% WS.txt:39"
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "testCode": "RM-DESC",
+      "procedure": "Under strong white light check each received sample container separately in a clean transparent watch glass or glass dish to detect foreign particles, conformance of colour and compliance with the visual specifications.",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": { "perContainer": true, "specSource": "supplier certificate (not in folder)" },
+      "source": "Cyanocobalamine 0.1% in WS__STM Cyanocobalamine 0.1% in WS 1-2 without micro.txt:28"
+    },
+    {
+      "testCode": "RM-SOLUB",
+      "procedure": "Stepwise solubility at 25.0 +/- 0.5 C: 100 mg in a stoppered tube with 0.1 mL solvent, shake 1 min, hold 15 min; then add 0.9 mL, 2 mL and 7 mL of solvent (same shake and hold) to classify very soluble / freely soluble / soluble / sparingly soluble; if still undissolved, 10 mg in 10 mL (slightly soluble), then 1 mg in 10 mL (very slightly soluble), else practically insoluble.",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {
+        "sampleMg": 100,
+        "temperatureC": "25.0 +/- 0.5",
+        "holdMin": 15,
+        "solventNote": "solvent not named in the STM; spec states soluble in water",
+        "specSource": "supplier certificate (not in folder)",
+        "reference": "BP (SC IV K.) Characters Section in Monographs (Hygroscopicity and Solubility)"
+      },
+      "source": "Cyanocobalamine 0.1% in WS__STM Cyanocobalamine 0.1% in WS 1-2 without micro.txt:29"
+    },
+    {
+      "testCode": "RM-ID-UV-CYAWS",
+      "procedure": "Weigh accurately about 1 g and dissolve in sufficient water to produce 100 mL. Centrifuge and filter. Using calibrated UV spectrophotometer, examine between 260 nm and 610 nm; the maximum must be at 361 nm ±2.",
+      "kind": "specific",
+      "workflow": "UvSpectrophotometry",
+      "details": {
+        "sampleG": 1,
+        "volumeMl": 100,
+        "scanRangeNm": "260-610",
+        "maxNm": "361 ±2",
+        "reference": "Analytical method validation for Cyanocobalamin 0.1 % WS"
+      },
+      "source": "Cyanocobalamine 0.1% in WS__STM Cyanocobalamine 0.1% in WS 1-2 without micro.txt:30"
+    },
+    {
+      "testCode": "RM-LOD",
+      "procedure": "Weigh a previously dried (105 C) weighing bottle (W0); weigh 10.00 g sample into it (W1); oven at 105 C for 4 h, cool in desiccator, weigh (W2); repeat to constant weight. % loss on drying = (W1 - W2) / (W1 - W0) x 100.",
+      "kind": "general",
+      "workflow": "Gravimetric",
+      "details": {
+        "sampleG": 10.00,
+        "ovenC": 105,
+        "ovenHours": 4,
+        "reference": "Analytical method verification for Loss on drying in Cyanocobalamin 0.1 % WS; BP Appendix IX D"
+      },
+      "source": "Cyanocobalamine 0.1% in WS__STM Cyanocobalamine 0.1% in WS 1-2 without micro.txt:31"
+    },
+    {
+      "testCode": "RM-UV-ASSAY-CYAWS",
+      "procedure": "Weigh accurately about 1.0 g into a 100 mL volumetric flask, make up to volume with water, filter (Whatman paper), centrifuge; measure absorbance at 361 nm (maximum). Vit. B12 content (%) = absorbance x dilution / (207 x weight of sample), where 207 is the molar extinction of a 1 cm layer of 1 % w/v solution.",
+      "kind": "specific",
+      "workflow": "UvSpectrophotometry",
+      "details": {
+        "sampleG": 1.0,
+        "volumeMl": 100,
+        "wavelengthNm": 361,
+        "E1cmOf1pct": 207,
+        "formula": "absorbance x dilution / (207 x weight of sample)",
+        "reference": "Analytical method validation for Cyanocobalamin 0.1 % WS"
+      },
+      "source": "Cyanocobalamine 0.1% in WS__STM Cyanocobalamine 0.1% in WS 1-2 without micro.txt:32"
+    },
+    {
+      "testCode": "TAMC",
+      "procedure": "For microbiological testing follow SOP No. C2I-91-128 (the STM 1/2 removed the method details). In-house method per the C5I-91-260 document: 10 g in SCDB with 4 % polysorbate 20 to 100 mL; SCDA plates 30-35 C for 3-5 days.",
+      "kind": "general",
+      "workflow": "CountTest",
+      "details": { "sop": "C2I-91-128", "limitSource": "C5I-91-260 document, line 39" },
+      "source": "Cyanocobalamine 0.1% in WS__STM Cyanocobalamine 0.1% in WS 1-2 without micro.txt:33"
+    },
+    {
+      "testCode": "TYMC",
+      "procedure": "For microbiological testing follow SOP No. C2I-91-128. Sabouraud dextrose agar plates 20-25 C for 5-7 days (per C5I-91-260 document).",
+      "kind": "general",
+      "workflow": "CountTest",
+      "details": { "sop": "C2I-91-128", "limitSource": "C5I-91-260 document, line 39" },
+      "source": "Cyanocobalamine 0.1% in WS__STM Cyanocobalamine 0.1% in WS 1-2 without micro.txt:33"
+    },
+    {
+      "testCode": "E.coli",
+      "procedure": "For microbiological testing follow SOP No. C2I-91-128 (E. coli: enrichment, MacConkey broth and agar, confirmation per C5I-91-260 document).",
+      "kind": "general",
+      "workflow": "Observation",
+      "details": { "sop": "C2I-91-128", "limitSource": "C5I-91-260 document, line 39" },
+      "source": "Cyanocobalamine 0.1% in WS__STM Cyanocobalamine 0.1% in WS 1-2 without micro.txt:33"
+    }
+  ],
+  "notApplicable": [],
+  "supplierAttributes": [],
+  "reagents": [],
+  "openQuestions": [
+    {
+      "question": "Microbiological limits (TAMC, TYMC, E. coli) are not in the current STM (1/2 refers them to SOP C2I-91-128). Loaded from the C5I-91-260 in-house document (version 1/0, 2024-12-11). Confirm these limits and that that document still applies.",
+      "source": "Cyanocobalamine 0.1% in WS__STM Cyanocobalamine 0.1% in WS 1-2 without micro.txt:33; Cyanocobalamine 0.1% in WS__C5I-91-260  Specification and Method of Analysis for Cyanocobalamin 0.1% WS.txt:39"
+    },
+    {
+      "question": "Loss on drying differs between documents: STM 1/2 weighs 10.00 g and dries 4 h at 105 C; C5I-91-260 weighs 40.0 mg in a petri dish, 4 h at 105 C. STM procedure loaded; confirm which governs.",
+      "source": "Cyanocobalamine 0.1% in WS__STM Cyanocobalamine 0.1% in WS 1-2 without micro.txt:31; Cyanocobalamine 0.1% in WS__C5I-91-260  Specification and Method of Analysis for Cyanocobalamin 0.1% WS.txt:39"
+    },
+    {
+      "question": "Assay formula uses 'dilution' in the numerator without defining it. Dilution factor not loaded; confirm its value (the sample is made up to 100 mL).",
+      "source": "Cyanocobalamine 0.1% in WS__STM Cyanocobalamine 0.1% in WS 1-2 without micro.txt:32"
+    },
+    {
+      "question": "Description and solubility limits cite a supplier certificate that is not in the folder. Loaded as written in the STM.",
+      "source": "Cyanocobalamine 0.1% in WS__STM Cyanocobalamine 0.1% in WS 1-2 without micro.txt:28; Cyanocobalamine 0.1% in WS__STM Cyanocobalamine 0.1% in WS 1-2 without micro.txt:29"
+    }
+  ]
+}

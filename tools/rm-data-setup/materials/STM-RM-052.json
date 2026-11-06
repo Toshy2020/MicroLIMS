@@ -1,0 +1,556 @@
+{
+  "itemCode": "STM-RM-052",
+  "itemName": "Glimepiride",
+  "stmCode": "STM-RM-052",
+  "stmFile": "Glimepiride__STM Glimepiride New - EDA.txt",
+  "specFiles": [
+    "Glimepiride__Specifications sheet Glimepiride.txt"
+  ],
+  "minQuantity": {
+    "routine": 70,
+    "retest": 50,
+    "retention": 70,
+    "unit": "g",
+    "source": "Glimepiride__Specifications sheet Glimepiride.txt:20; Glimepiride__STM Glimepiride New - EDA.txt:44"
+  },
+  "grades": [
+    {
+      "grade": "USP",
+      "rows": [
+        {
+          "testCode": "RM-DESC",
+          "parameterName": "Description",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "White, crystalline powder",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Glimepiride__Specifications sheet Glimepiride.txt:11"
+        },
+        {
+          "testCode": "RM-SOLUB",
+          "parameterName": "Solubility",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Practically insoluble in water, Soluble in dilute acid and Dimethylformamide, slightly soluble in Methanol, sparingly soluble in methylene chloride",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Glimepiride__Specifications sheet Glimepiride.txt:12"
+        },
+        {
+          "testCode": "RM-ID-IR",
+          "parameterName": "Identification (IR)",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "The spectrum obtained for the sample is corresponding to the spectrum obtained from Glimepiride RS",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Glimepiride__Specifications sheet Glimepiride.txt:13"
+        },
+        {
+          "testCode": "RM-ID-RT",
+          "parameterName": "Identification (HPLC retention time)",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "The retention time of the major peak of the Sample solution corresponds to that of the Standard solution",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Glimepiride__Specifications sheet Glimepiride.txt:14"
+        },
+        {
+          "testCode": "RM-HPLC-GLIM-CIS",
+          "parameterName": "Limit of cis-isomer (Glimepiride related compound A)",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 0.8,
+          "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Glimepiride__Specifications sheet Glimepiride.txt:15"
+        },
+        {
+          "testCode": "RM-HPLC-GLIM-IMP",
+          "parameterName": "Organic impurities: related compound B (sulfonamide)",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 0.4,
+          "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Glimepiride__Specifications sheet Glimepiride.txt:16"
+        },
+        {
+          "testCode": "RM-HPLC-GLIM-IMP",
+          "parameterName": "Organic impurities: related compound C (urethane)",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 0.1,
+          "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Glimepiride__Specifications sheet Glimepiride.txt:16"
+        },
+        {
+          "testCode": "RM-HPLC-GLIM-IMP",
+          "parameterName": "Organic impurities: related compound D (3-isomer)",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 0.2,
+          "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Glimepiride__Specifications sheet Glimepiride.txt:16"
+        },
+        {
+          "testCode": "RM-HPLC-GLIM-IMP",
+          "parameterName": "Organic impurities: any individual unspecified impurity",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 0.1,
+          "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Glimepiride__Specifications sheet Glimepiride.txt:16"
+        },
+        {
+          "testCode": "RM-HPLC-GLIM-IMP",
+          "parameterName": "Organic impurities: total excluding related compound B",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 0.5,
+          "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Glimepiride__Specifications sheet Glimepiride.txt:16"
+        },
+        {
+          "testCode": "RM-SASH",
+          "parameterName": "Residue on ignition",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 0.2,
+          "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Glimepiride__Specifications sheet Glimepiride.txt:17"
+        },
+        {
+          "testCode": "RM-KF",
+          "parameterName": "Water content",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 0.5,
+          "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Glimepiride__Specifications sheet Glimepiride.txt:18"
+        },
+        {
+          "testCode": "RM-HPLC-GLIM-AS",
+          "parameterName": "Assay (anhydrous basis)",
+          "limitType": "Range",
+          "lower": 98.0,
+          "upper": 102.0,
+          "lowerInclusive": true,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": "PercentAnhydrousBasis",
+          "referenceStandard": "USP",
+          "source": "Glimepiride__Specifications sheet Glimepiride.txt:19"
+        },
+        {
+          "testCode": "TAMC",
+          "parameterName": "Total aerobic microbial count",
+          "limitType": "CountTiered",
+          "lower": null,
+          "upper": 1000,
+          "lowerInclusive": null,
+          "unit": "CFU/gm",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": null,
+          "source": "Glimepiride__Specifications sheet Glimepiride.txt:20"
+        },
+        {
+          "testCode": "TYMC",
+          "parameterName": "Total yeasts and molds count",
+          "limitType": "CountTiered",
+          "lower": null,
+          "upper": 100,
+          "lowerInclusive": null,
+          "unit": "CFU/gm",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": null,
+          "source": "Glimepiride__Specifications sheet Glimepiride.txt:20"
+        },
+        {
+          "testCode": "E.coli",
+          "parameterName": "Test for E. coli",
+          "limitType": "PresenceAbsence",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": "per gm",
+          "expectedResultText": "Absent / gm",
+          "expectedState": "Absence",
+          "resultBasis": null,
+          "referenceStandard": null,
+          "source": "Glimepiride__Specifications sheet Glimepiride.txt:20"
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "testCode": "RM-DESC",
+      "procedure": "Under strong white light check each received sample container separately in a clean transparent watch glass or glass dish for foreign particles, colour and conformity with the visual specification.",
+      "kind": "general",
+      "workflow": "Observation",
+      "details": {
+        "perContainer": true,
+        "uspSpecification": "White, crystalline powder."
+      },
+      "source": "Glimepiride__STM Glimepiride New - EDA.txt:28"
+    },
+    {
+      "testCode": "RM-SOLUB",
+      "procedure": "Weigh 100 mg powdered sample in a stoppered tube; add 0.1 mL solvent, shake 1 min, hold at 25.0 ± 0.5 °C for 15 min, repeat shake/hold once if not dissolved; stepwise add 0.9 mL, 2 mL, 7 mL solvent (same shake and hold) to classify very soluble / freely soluble / soluble / sparingly soluble; if still undissolved use 10 mg in 10 mL (slightly soluble) then 1 mg in 10 mL (very slightly soluble), else practically insoluble. Repeat with methanol, dimethylformamide and methylene chloride.",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {
+        "sample": "100 mg powdered",
+        "temperature": "25.0 ± 0.5 °C",
+        "holdMin": 15,
+        "shakeMin": 1,
+        "volumesMl": [
+          0.1,
+          0.9,
+          2,
+          7
+        ],
+        "smallSampleSteps": [
+          "10 mg in 10 mL",
+          "1 mg in 10 mL"
+        ],
+        "solvents": [
+          "methanol",
+          "dimethylformamide",
+          "methylene chloride"
+        ],
+        "reference": "USP 2024 Description and Relative Solubility"
+      },
+      "source": "Glimepiride__STM Glimepiride New - EDA.txt:29"
+    },
+    {
+      "testCode": "RM-ID-IR",
+      "procedure": "IR identification: mix sample intimately with potassium bromide, compress into a transparent pellet; examine the spectrum and compare with that of Glimepiride RS.",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "details": {
+        "technique": "KBr pellet",
+        "standard": "Glimepiride RS",
+        "reference": "USP <197K> Infrared Spectroscopy"
+      },
+      "source": "Glimepiride__STM Glimepiride New - EDA.txt:30"
+    },
+    {
+      "testCode": "RM-ID-RT",
+      "procedure": "Identification by HPLC: the retention time of the major peak of the sample solution corresponds to that of the standard solution, as obtained in the assay (section 6.8).",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "details": {
+        "referencesAssay": "RM-HPLC-GLIM-AS (section 6.8)",
+        "reference": "USP <621> System Suitability"
+      },
+      "source": "Glimepiride__STM Glimepiride New - EDA.txt:30"
+    },
+    {
+      "testCode": "RM-HPLC-GLIM-CIS",
+      "procedure": "Limit of cis-isomer (USP <621>): mobile phase = 100 mL isopropyl alcohol + 1 mL glacial acetic acid, diluted with hexane to 1 L. System suitability stock: 1 mg USP Glimepiride Related Compound A RS in 1 mL methylene chloride + 3 mL mobile phase. System suitability solution: 10 mg USP Glimepiride RS in 20 mL flask, dissolve in 5 mL methylene chloride, dilute with mobile phase to volume; transfer 5 mL to a separate flask, add 50 µL stock, mix. Sample solution: 10 mg glimepiride in 20 mL flask, dissolve in 5 mL methylene chloride, dilute with mobile phase to volume. Column 3 mm x 15 cm, 5 µm L20; UV 228 nm; 0.5 mL/min; 10 µL. Suitability: S/N NLT 15 for cis-isomer peak; peak-to-valley ratio NLT 2.0. Result % = rcis / (rcis + rG) x 100. NMT 0.8%.",
+      "kind": "specific",
+      "workflow": "HplcMethodAssay",
+      "details": {
+        "mobilePhase": "100 mL isopropyl alcohol + 1 mL glacial acetic acid, hexane to 1 L",
+        "sampleMg": 10,
+        "column": "3 mm x 15 cm, 5 µm, L20",
+        "detector": "UV 228 nm",
+        "flowRateMlMin": 0.5,
+        "injectionUl": 10,
+        "suitability": {
+          "signalToNoise": "NLT 15 for cis-isomer peak",
+          "peakToValley": "NLT 2.0 for cis-isomer and glimepiride"
+        },
+        "formula": "Result % = rcis / (rcis + rG) x 100",
+        "limit": "NMT 0.8%",
+        "reference": "USP 2024 Chromatography <621>"
+      },
+      "source": "Glimepiride__STM Glimepiride New - EDA.txt:31"
+    },
+    {
+      "testCode": "RM-HPLC-GLIM-IMP",
+      "procedure": "Organic impurities (USP): as the assay chromatography (section 6.8), run time 2.5 times the glimepiride retention time. Diluted sample solution 1: 5.0 mL of sample solution to 100.0 mL with diluent, then 5.0 mL to 50.0 mL (about 0.001 mg/mL glimepiride). Diluted sample solution 2: 1.0 mL of solution 1 to 10.0 mL. Analyse sample, diluted solutions 1 and 2. Result % = (rU / rS) x (CS / CU) x 100. Limits: related compound B NMT 0.4%, compound C NMT 0.1%, compound D NMT 0.2%, any unspecified impurity NMT 0.1%, total excluding B NMT 0.5%.",
+      "kind": "specific",
+      "workflow": "HplcMethodAssay",
+      "details": {
+        "referencesAssay": "section 6.8 (RM-HPLC-GLIM-AS chromatographic conditions)",
+        "runTime": "2.5 times the retention time of glimepiride",
+        "diluentSteps": "sample solution 5.0 mL to 100.0 mL, then 5.0 mL to 50.0 mL; then 1.0 mL to 10.0 mL",
+        "approxConcentration": "about 0.001 mg/mL glimepiride (diluted solution 1)",
+        "formula": "Result % = (rU / rS) x (CS / CU) x 100",
+        "relativeRetention": {
+          "compoundB": 0.2,
+          "compoundC": 0.3,
+          "glimepiride": 1.0,
+          "compoundD": 1.1
+        },
+        "limits": {
+          "compoundB": "NMT 0.4%",
+          "compoundC": "NMT 0.1%",
+          "compoundD": "NMT 0.2%",
+          "anyUnspecified": "NMT 0.1%",
+          "totalExcludingB": "NMT 0.5%"
+        },
+        "reference": "USP 2024 Chromatography <621>"
+      },
+      "source": "Glimepiride__STM Glimepiride New - EDA.txt:32-39"
+    },
+    {
+      "testCode": "RM-SASH",
+      "procedure": "Residue on ignition (USP <281>): weigh empty crucible previously ignited at 600-650 °C and cooled in desiccator (W0); weigh 0.5 g sample (W1); moisten with about 1 mL sulfuric acid, char gently on hot plate, moisten residue again with sulfuric acid, heat until white fumes cease; ignite in muffle at 600-650 °C, cool in desiccator, weigh (W2); repeat to constant weight. % = (W2 - W0) / (W1 - W0) x 100.",
+      "kind": "general",
+      "workflow": "Gravimetric",
+      "details": {
+        "sampleG": 0.5,
+        "ignitionTemp": "600-650 °C",
+        "sulfuricAcid": "about 1 mL",
+        "formula": "% Residue on ignition = (W2 - W0) / (W1 - W0) x 100",
+        "reference": "USP <281>"
+      },
+      "source": "Glimepiride__STM Glimepiride New - EDA.txt:40"
+    },
+    {
+      "testCode": "RM-KF",
+      "procedure": "Water content (USP <921> Method Ic): sample solution 0.25 g glimepiride in dimethylformamide diluted to 5.0 mL; use 1.0 mL of sample solution; blank with 1.0 mL of the solvent; calibrated Karl Fischer apparatus.",
+      "kind": "general",
+      "workflow": "Measurement",
+      "details": {
+        "moistureRole": "Water",
+        "sampleG": 0.25,
+        "solvent": "dimethylformamide",
+        "dilutedToMl": 5.0,
+        "aliquotMl": 1.0,
+        "blank": "1.0 mL solvent",
+        "reference": "USP <921> Method I, Method Ic"
+      },
+      "source": "Glimepiride__STM Glimepiride New - EDA.txt:41"
+    },
+    {
+      "testCode": "RM-HPLC-GLIM-AS",
+      "procedure": "Assay (USP, HPLC): mobile phase = 0.5 g monobasic sodium phosphate in 500 mL water, adjust with phosphoric acid to pH 2.1-2.7, add 500 mL acetonitrile. Diluent acetonitrile : water 4:1. Standard and sample solutions 0.2 mg/mL (USP Glimepiride RS and glimepiride in diluent). Column 4 mm or 4.6 mm x 25 cm, 4 or 5 µm L1; UV 228 nm; 1 mL/min; 20 µL. System suitability: RSD NMT 0.73% for the standard solution. Result % = (rU / rS) x (CS / CU) x 100. Limit 98.0-102.0% on the anhydrous basis. The alternative method in the STM is not transcribed.",
+      "kind": "specific",
+      "workflow": "HplcMethodAssay",
+      "details": {
+        "mobilePhase": "0.5 g monobasic sodium phosphate in 500 mL water, pH 2.1-2.7 with phosphoric acid, + 500 mL acetonitrile",
+        "diluent": "acetonitrile : water 4:1",
+        "standardMgPerMl": 0.2,
+        "sampleMgPerMl": 0.2,
+        "detector": "UV 228 nm",
+        "column": "4 mm x 25 cm or 4.6 mm x 25 cm, 4 or 5 µm, L1",
+        "flowRateMlMin": 1,
+        "injectionUl": 20,
+        "systemSuitability": "RSD NMT 0.73% (standard solution)",
+        "formula": "Result % = (rU / rS) x (CS / CU) x 100",
+        "reference": "USP 2024 Chromatography <621>"
+      },
+      "source": "Glimepiride__STM Glimepiride New - EDA.txt:42"
+    },
+    {
+      "testCode": "TAMC",
+      "procedure": "Microbiological examination per the micro SOP (general microbiology test).",
+      "kind": "general",
+      "workflow": "CountTest",
+      "details": {},
+      "source": "Glimepiride__Specifications sheet Glimepiride.txt:20"
+    },
+    {
+      "testCode": "TYMC",
+      "procedure": "Microbiological examination per the micro SOP (general microbiology test).",
+      "kind": "general",
+      "workflow": "CountTest",
+      "details": {},
+      "source": "Glimepiride__Specifications sheet Glimepiride.txt:20"
+    },
+    {
+      "testCode": "E.coli",
+      "procedure": "Microbiological examination per the micro SOP (general microbiology test).",
+      "kind": "general",
+      "workflow": "Observation",
+      "details": {},
+      "source": "Glimepiride__Specifications sheet Glimepiride.txt:20"
+    }
+  ],
+  "notApplicable": [],
+  "supplierAttributes": [
+    {
+      "grade": null,
+      "name": "Particle size",
+      "statedValue": "Stated by supplier",
+      "source": "Glimepiride__Specifications sheet Glimepiride.txt:20"
+    },
+    {
+      "grade": null,
+      "name": "Residual solvents",
+      "statedValue": "Stated by supplier",
+      "source": "Glimepiride__Specifications sheet Glimepiride.txt:20"
+    }
+  ],
+  "reagents": [
+    {
+      "name": "Methanol",
+      "use": "reagent",
+      "source": "Glimepiride__STM Glimepiride New - EDA.txt:26"
+    },
+    {
+      "name": "Dimethylformamide",
+      "use": "reagent",
+      "source": "Glimepiride__STM Glimepiride New - EDA.txt:26"
+    },
+    {
+      "name": "Methylene chloride",
+      "use": "reagent",
+      "source": "Glimepiride__STM Glimepiride New - EDA.txt:26"
+    },
+    {
+      "name": "Monobasic sodium phosphate",
+      "use": "reagent",
+      "source": "Glimepiride__STM Glimepiride New - EDA.txt:26"
+    },
+    {
+      "name": "Phosphoric acid",
+      "use": "reagent",
+      "source": "Glimepiride__STM Glimepiride New - EDA.txt:26"
+    },
+    {
+      "name": "USP Glimepiride RS",
+      "use": "standard",
+      "source": "Glimepiride__STM Glimepiride New - EDA.txt:26"
+    },
+    {
+      "name": "Glimepiride working standard",
+      "use": "standard",
+      "source": "Glimepiride__STM Glimepiride New - EDA.txt:26"
+    },
+    {
+      "name": "USP Glimepiride Related Compound B RS",
+      "use": "standard",
+      "source": "Glimepiride__STM Glimepiride New - EDA.txt:26"
+    },
+    {
+      "name": "USP Glimepiride Related Compound C RS",
+      "use": "standard",
+      "source": "Glimepiride__STM Glimepiride New - EDA.txt:26"
+    },
+    {
+      "name": "USP Glimepiride Related Compound D RS",
+      "use": "standard",
+      "source": "Glimepiride__STM Glimepiride New - EDA.txt:26"
+    },
+    {
+      "name": "USP Glimepiride Related Compound A RS",
+      "use": "standard",
+      "source": "Glimepiride__STM Glimepiride New - EDA.txt:26"
+    },
+    {
+      "name": "Isopropyl alcohol",
+      "use": "reagent",
+      "source": "Glimepiride__STM Glimepiride New - EDA.txt:26"
+    },
+    {
+      "name": "Glacial acetic acid",
+      "use": "reagent",
+      "source": "Glimepiride__STM Glimepiride New - EDA.txt:26"
+    },
+    {
+      "name": "Hexane",
+      "use": "reagent",
+      "source": "Glimepiride__STM Glimepiride New - EDA.txt:26"
+    },
+    {
+      "name": "Sodium di hydrogen Ortho phosphate",
+      "use": "reagent",
+      "source": "Glimepiride__STM Glimepiride New - EDA.txt:26"
+    },
+    {
+      "name": "Orthophosphoric acid",
+      "use": "reagent",
+      "source": "Glimepiride__STM Glimepiride New - EDA.txt:26"
+    },
+    {
+      "name": "Acetonitrile",
+      "use": "reagent",
+      "source": "Glimepiride__STM Glimepiride New - EDA.txt:26"
+    }
+  ],
+  "openQuestions": [
+    {
+      "question": "Microbiological limits (TAMC 103, TYMC 102 CFU/gm, superscripts lost; E. coli 'Absent / gm') are in the spec sheet only. The latest STM has no microbiological method, so the rows carry no method. TAMC/TYMC loaded as 1000 and 100 per the user decision. Confirm.",
+      "source": "Glimepiride__Specifications sheet Glimepiride.txt:20"
+    },
+    {
+      "question": "Assay is 'on the anhydrous basis' but the USP main-method formula has no water-content correction. Recorded as written. Confirm.",
+      "source": "Glimepiride__STM Glimepiride New - EDA.txt:42"
+    },
+    {
+      "question": "Solubility: the spec sheet lists water and dilute acid among the solvents, but the STM procedure repeats only methanol, dimethylformamide and methylene chloride. Recorded as the STM states.",
+      "source": "Glimepiride__Specifications sheet Glimepiride.txt:12; Glimepiride__STM Glimepiride New - EDA.txt:29"
+    },
+    {
+      "question": "Materials list names both 'Monobasic sodium phosphate' and 'Sodium di hydrogen Ortho phosphate'. Both loaded as reagents; confirm whether they are the same material.",
+      "source": "Glimepiride__STM Glimepiride New - EDA.txt:26"
+    }
+  ]
+}

@@ -1,0 +1,600 @@
+{
+  "itemCode": "STM-RM-127",
+  "stmCode": "STM-RM-127",
+  "itemName": "Calcium Hydrogen Phosphate Dihydrate",
+  "stmFile": "Calcium Hydrogen Phosphate Dihydrate__New 1-2_STM Calcium Hydrogen Phosphate Dihydrate - New.txt",
+  "specFiles": ["Calcium Hydrogen Phosphate Dihydrate__New 1-2_Specifications sheet Calcium Hydrogen Phosphate Dihydrate - Copy - New.txt"],
+  "minQuantity": {
+    "routine": 70,
+    "retest": 40,
+    "retention": 70,
+    "unit": "g",
+    "source": "Calcium Hydrogen Phosphate Dihydrate__New 1-2_Specifications sheet Calcium Hydrogen Phosphate Dihydrate - Copy - New.txt:28; Calcium Hydrogen Phosphate Dihydrate__New 1-2_STM Calcium Hydrogen Phosphate Dihydrate - New.txt:48"
+  },
+  "grades": [
+    {
+      "grade": null,
+      "rows": [
+        {
+          "testCode": "RM-DESC",
+          "parameterName": "Appearance",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "White or almost white, granules.",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Calcium Hydrogen Phosphate Dihydrate__New 1-2_Specifications sheet Calcium Hydrogen Phosphate Dihydrate - Copy - New.txt:11"
+        },
+        {
+          "testCode": "RM-SOLUB",
+          "parameterName": "Solubility",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Practically insoluble in water and in ethanol (96 per cent). It dissolves in dilute hydrochloric acid and in dilute nitric acid.",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Calcium Hydrogen Phosphate Dihydrate__New 1-2_Specifications sheet Calcium Hydrogen Phosphate Dihydrate - Copy - New.txt:12"
+        },
+        {
+          "testCode": "RM-ID-CAHP",
+          "parameterName": "Identification test 1 (ammonium oxalate)",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "A white precipitate is produced.",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Calcium Hydrogen Phosphate Dihydrate__New 1-2_Specifications sheet Calcium Hydrogen Phosphate Dihydrate - Copy - New.txt:13"
+        },
+        {
+          "testCode": "RM-ID-CAHP",
+          "parameterName": "Identification test 2 (ammonium molybdate)",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "A yellow precipitate is produced.",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Calcium Hydrogen Phosphate Dihydrate__New 1-2_Specifications sheet Calcium Hydrogen Phosphate Dihydrate - Copy - New.txt:14"
+        },
+        {
+          "testCode": "RM-AIS-CAHP",
+          "parameterName": "Acid-insoluble substances",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 0.2,
+          "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Calcium Hydrogen Phosphate Dihydrate__New 1-2_Specifications sheet Calcium Hydrogen Phosphate Dihydrate - Copy - New.txt:15"
+        },
+        {
+          "testCode": "RM-CARB-CAHP",
+          "parameterName": "Carbonates",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "No effervescence is produced.",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Calcium Hydrogen Phosphate Dihydrate__New 1-2_Specifications sheet Calcium Hydrogen Phosphate Dihydrate - Copy - New.txt:16"
+        },
+        {
+          "testCode": "RM-LT-CL",
+          "parameterName": "Chlorides",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Complies (NMT 0.25%)",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Calcium Hydrogen Phosphate Dihydrate__New 1-2_Specifications sheet Calcium Hydrogen Phosphate Dihydrate - Copy - New.txt:17"
+        },
+        {
+          "testCode": "RM-LT-SO4",
+          "parameterName": "Sulfates",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Complies (NMT 0.5%)",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Calcium Hydrogen Phosphate Dihydrate__New 1-2_Specifications sheet Calcium Hydrogen Phosphate Dihydrate - Copy - New.txt:18"
+        },
+        {
+          "testCode": "RM-LT-AS-CAHP",
+          "parameterName": "Arsenic",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Complies (NMT 10 ppm)",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Calcium Hydrogen Phosphate Dihydrate__New 1-2_Specifications sheet Calcium Hydrogen Phosphate Dihydrate - Copy - New.txt:19"
+        },
+        {
+          "testCode": "RM-BARIUM-CAHP",
+          "parameterName": "Barium",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "No turbidity is produced.",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Calcium Hydrogen Phosphate Dihydrate__New 1-2_Specifications sheet Calcium Hydrogen Phosphate Dihydrate - Copy - New.txt:20"
+        },
+        {
+          "testCode": "RM-LT-FE",
+          "parameterName": "Iron",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Complies (NMT 400 ppm)",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Calcium Hydrogen Phosphate Dihydrate__New 1-2_Specifications sheet Calcium Hydrogen Phosphate Dihydrate - Copy - New.txt:21"
+        },
+        {
+          "testCode": "RM-LOI-CAHP",
+          "parameterName": "Loss on ignition",
+          "limitType": "Range",
+          "lower": 24.5,
+          "upper": 26.5,
+          "lowerInclusive": true,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Calcium Hydrogen Phosphate Dihydrate__New 1-2_Specifications sheet Calcium Hydrogen Phosphate Dihydrate - Copy - New.txt:22"
+        },
+        {
+          "testCode": "RM-TIT-CAHP",
+          "parameterName": "Assay",
+          "limitType": "Range",
+          "lower": 98.0,
+          "upper": 105.0,
+          "lowerInclusive": true,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": "PercentAsIs",
+          "referenceStandard": "BP",
+          "source": "Calcium Hydrogen Phosphate Dihydrate__New 1-2_Specifications sheet Calcium Hydrogen Phosphate Dihydrate - Copy - New.txt:23"
+        },
+        {
+          "testCode": "RM-PSD-CAHP",
+          "parameterName": "Particle size: 90% pass through 35 mesh",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "90% pass through 35#",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "In-house",
+          "source": "Calcium Hydrogen Phosphate Dihydrate__New 1-2_Specifications sheet Calcium Hydrogen Phosphate Dihydrate - Copy - New.txt:24"
+        },
+        {
+          "testCode": "RM-PSD-CAHP",
+          "parameterName": "Particle size: 50% pass through 60 mesh",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "50% pass through 60#",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "In-house",
+          "source": "Calcium Hydrogen Phosphate Dihydrate__New 1-2_Specifications sheet Calcium Hydrogen Phosphate Dihydrate - Copy - New.txt:24"
+        },
+        {
+          "testCode": "RM-PSD-CAHP",
+          "parameterName": "Particle size: 10% pass through 120 mesh",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "10% pass through 120#",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "In-house",
+          "source": "Calcium Hydrogen Phosphate Dihydrate__New 1-2_Specifications sheet Calcium Hydrogen Phosphate Dihydrate - Copy - New.txt:24"
+        },
+        {
+          "testCode": "TAMC",
+          "parameterName": "Total aerobic microbial count (TAMC)",
+          "limitType": "CountTiered",
+          "lower": null,
+          "upper": 1000,
+          "lowerInclusive": null,
+          "unit": "CFU/g",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Calcium Hydrogen Phosphate Dihydrate__New 1-2_Specifications sheet Calcium Hydrogen Phosphate Dihydrate - Copy - New.txt:25"
+        },
+        {
+          "testCode": "TYMC",
+          "parameterName": "Total combined yeasts and molds count (TYMC)",
+          "limitType": "CountTiered",
+          "lower": null,
+          "upper": 100,
+          "lowerInclusive": null,
+          "unit": "CFU/g",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Calcium Hydrogen Phosphate Dihydrate__New 1-2_Specifications sheet Calcium Hydrogen Phosphate Dihydrate - Copy - New.txt:26"
+        },
+        {
+          "testCode": "E.coli",
+          "parameterName": "Test for E. coli",
+          "limitType": "PresenceAbsence",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": "per 10 g",
+          "expectedResultText": "Absent / 10 gm",
+          "expectedState": "Absence",
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Calcium Hydrogen Phosphate Dihydrate__New 1-2_Specifications sheet Calcium Hydrogen Phosphate Dihydrate - Copy - New.txt:27"
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "testCode": "RM-DESC",
+      "procedure": "Under strong white light check each received sample container separately on a clean transparent watch glass or glass dish for foreign particles, colour and conformity with the visual specification.",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {
+        "perContainer": true,
+        "reference": "BP 2024 Monograph for Calcium Hydrogen Phosphate Dihydrate"
+      },
+      "source": "Calcium Hydrogen Phosphate Dihydrate__New 1-2_STM Calcium Hydrogen Phosphate Dihydrate - New.txt:30"
+    },
+    {
+      "testCode": "RM-SOLUB",
+      "procedure": "BP-style stepwise solubility: 100 mg sample in a stoppered tube with 0.1 mL solvent, shake 1 min, hold 25.0 ± 0.5 °C for 15 min (repeat once if not dissolved); add 0.9 mL, then 2 mL, then 7 mL solvent with the same shake and hold to classify very soluble / freely soluble / soluble / sparingly soluble; if still undissolved, 10 mg in 10 mL (slightly soluble), then 1 mg in 10 mL (very slightly soluble), else practically insoluble. Repeat with methanol, ethanol (96 per cent), dilute nitric acid and dilute hydrochloric acid.",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {
+        "sample": "100 mg",
+        "temperature": "25.0 ± 0.5 °C",
+        "holdMin": 15,
+        "shakeMin": 1,
+        "volumesMl": [0.1, 0.9, 2, 7],
+        "smallSampleSteps": ["10 mg in 10 mL", "1 mg in 10 mL"],
+        "solvents": ["first solvent not named in the STM (see openQuestions)", "methanol", "ethanol (96 per cent)", "dilute nitric acid", "dilute hydrochloric acid"],
+        "reference": "BP (SC IV K.) Characters Section in Monographs (Hygroscopicity and Solubility)"
+      },
+      "source": "Calcium Hydrogen Phosphate Dihydrate__New 1-2_STM Calcium Hydrogen Phosphate Dihydrate - New.txt:31"
+    },
+    {
+      "testCode": "RM-ID-CAHP",
+      "procedure": "Identification (BP 2024): test 1: dissolve 0.1 g with heating in 10 mL dilute hydrochloric acid, add 2.5 mL dilute ammonia R1, shake, add 5 mL of a 35 g/L ammonium oxalate solution; a white precipitate is produced. Test 2: dissolve 0.1 g in 5 mL dilute nitric acid, add 2 mL ammonium molybdate solution, heat at 70 °C for 2 min; a yellow precipitate is produced.",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "details": {
+        "test1": {"sample": "0.1 g in 10 mL dilute hydrochloric acid, heated", "reagents": ["2.5 mL dilute ammonia R1", "5 mL 35 g/L ammonium oxalate solution"]},
+        "test2": {"sample": "0.1 g in 5 mL dilute nitric acid", "reagents": ["2 mL ammonium molybdate solution"], "heat": "70 °C, 2 min"},
+        "reference": "BP 2024 Monograph for Calcium Hydrogen Phosphate Dihydrate"
+      },
+      "source": "Calcium Hydrogen Phosphate Dihydrate__New 1-2_STM Calcium Hydrogen Phosphate Dihydrate - New.txt:32"
+    },
+    {
+      "testCode": "RM-AIS-CAHP",
+      "procedure": "Acid-insoluble substances (BP 2024): dissolve 5.0 g in 40 mL water (W1); add 10 mL hydrochloric acid, heat to boiling for 5 min, cool; collect the insoluble substances on ashless filter paper; wash until no turbidity forms when silver nitrate solution R2 is added to the filtrate; ignite at 600 ± 50 °C. The residue must weigh not more than 10 mg. % = residue / W1 x 100.",
+      "kind": "specific",
+      "workflow": "Gravimetric",
+      "details": {
+        "sampleG": 5.0,
+        "water": "40 mL",
+        "acid": "10 mL hydrochloric acid, boil 5 min",
+        "ignition": "600 ± 50 °C",
+        "limit": "NMT 10 mg residue (0.2%)",
+        "formula": "residue (g) / W1 (g) x 100",
+        "reference": "BP 2024 Monograph for Calcium Hydrogen Phosphate Dihydrate"
+      },
+      "source": "Calcium Hydrogen Phosphate Dihydrate__New 1-2_STM Calcium Hydrogen Phosphate Dihydrate - New.txt:33"
+    },
+    {
+      "testCode": "RM-LT-CL",
+      "procedure": "Chlorides limit test (BP 2024 Appendix VII): test solution 0.20 g dissolved in 20 mL water and 13 mL dilute nitric acid, diluted to 100 mL, filtered if necessary; 50 mL used. Reference: 0.70 mL 0.01 M hydrochloric acid, 6 mL dilute nitric acid, diluted to 50 mL with water. Add 1 mL silver nitrate solution R2 to each and mix; after 5 min protected from light the opalescence of the test is not more intense than the reference. Limit NMT 0.25%.",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {
+        "testSample": "0.20 g in 20 mL water + 13 mL dilute nitric acid, to 100 mL; 50 mL used",
+        "reference": "0.70 mL 0.01 M hydrochloric acid + 6 mL dilute nitric acid to 50 mL",
+        "silverNitrate": "1 mL silver nitrate solution R2",
+        "waitMin": 5,
+        "limit": "NMT 0.25 per cent",
+        "reference2": "BP 2024 Appendix VII"
+      },
+      "source": "Calcium Hydrogen Phosphate Dihydrate__New 1-2_STM Calcium Hydrogen Phosphate Dihydrate - New.txt:34"
+    },
+    {
+      "testCode": "RM-CARB-CAHP",
+      "procedure": "Carbonates: shake 0.5 g with 5 mL carbon dioxide-free water, add 1 mL hydrochloric acid. No effervescence is produced.",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "details": {
+        "sampleG": 0.5,
+        "water": "5 mL carbon dioxide-free water",
+        "acid": "1 mL hydrochloric acid",
+        "reference": "BP 2024 Monograph for Calcium Hydrogen Phosphate Dihydrate"
+      },
+      "source": "Calcium Hydrogen Phosphate Dihydrate__New 1-2_STM Calcium Hydrogen Phosphate Dihydrate - New.txt:35"
+    },
+    {
+      "testCode": "RM-LT-SO4",
+      "procedure": "Sulfates limit test (BP 2024): test solution 0.5 g in 5 mL water and 5 mL dilute hydrochloric acid, diluted to 100 mL, filtered if necessary; 20 mL + 1 mL dilute hydrochloric acid, diluted to 50 mL. Reference: 1.0 mL 0.005 M sulfuric acid + 1 mL dilute hydrochloric acid, diluted to 50 mL, filtered if necessary. Add 2 mL of 120 g/L barium chloride solution to each; stand 10 min; any opalescence in the test is not more intense than the reference. Limit NMT 0.5%.",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {
+        "testSample": "0.5 g in 5 mL water + 5 mL dilute hydrochloric acid, to 100 mL; 20 mL + 1 mL dilute hydrochloric acid to 50 mL",
+        "reference": "1.0 mL 0.005 M sulfuric acid + 1 mL dilute hydrochloric acid to 50 mL",
+        "bariumChloride": "2 mL of 120 g/L barium chloride solution",
+        "waitMin": 10,
+        "limit": "NMT 0.5 per cent",
+        "reference2": "BP 2024 Monograph for Calcium Hydrogen Phosphate Dihydrate"
+      },
+      "source": "Calcium Hydrogen Phosphate Dihydrate__New 1-2_STM Calcium Hydrogen Phosphate Dihydrate - New.txt:36"
+    },
+    {
+      "testCode": "RM-LT-AS-CAHP",
+      "procedure": "Arsenic limit test, Method A (BP 2024 Appendix VII): test solution 2 mL of solution S in a conical flask, diluted to 25 mL with water; add 15 mL hydrochloric acid, 0.1 mL stannous chloride solution and 5 mL potassium iodide solution, stand 15 min; add 5 g activated zinc, assemble the apparatus immediately and immerse the flask in a water-bath. Reference: 1 mL arsenic standard solution (1 ppm As) diluted to 25 mL and treated the same way. After at least 2 h the colour of the test is not more intense than the standard. Limit NMT 10 ppm. The STM's alternative AAS method is not transcribed.",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "details": {
+        "solutionS": "2.5 g in 20 mL dilute hydrochloric acid, precipitate with dilute ammonia R1, redissolve with dilute hydrochloric acid, dilute to 50 mL with distilled water",
+        "testVolumeMl": 2,
+        "dilutedToMl": 25,
+        "acid": "15 mL hydrochloric acid",
+        "stannousChloride": "0.1 mL",
+        "potassiumIodide": "5 mL",
+        "standMin": 15,
+        "zinc": "5 g activated zinc",
+        "referenceStandard": "1 mL arsenic standard solution (1 ppm As) to 25 mL",
+        "readingAfterMin": 120,
+        "limit": "NMT 10 ppm",
+        "reference": "BP Appendix VII Limit Tests, Arsenic (Method A)"
+      },
+      "source": "Calcium Hydrogen Phosphate Dihydrate__New 1-2_STM Calcium Hydrogen Phosphate Dihydrate - New.txt:37"
+    },
+    {
+      "testCode": "RM-BARIUM-CAHP",
+      "procedure": "Barium: to 0.5 g add 10 mL water and heat to boiling; while stirring add 1 mL hydrochloric acid dropwise; cool and filter if necessary; add 2 mL of a 10 g/L dipotassium sulfate solution; stand 10 min. No turbidity is produced.",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "details": {
+        "sampleG": 0.5,
+        "water": "10 mL",
+        "acid": "1 mL hydrochloric acid, dropwise",
+        "reagent": "2 mL of 10 g/L dipotassium sulfate solution",
+        "waitMin": 10,
+        "reference": "BP 2024 Monograph for Calcium Hydrogen Phosphate Dihydrate"
+      },
+      "source": "Calcium Hydrogen Phosphate Dihydrate__New 1-2_STM Calcium Hydrogen Phosphate Dihydrate - New.txt:38"
+    },
+    {
+      "testCode": "RM-LT-FE",
+      "procedure": "Iron limit test (BP 2024 Appendix VII): test solution 0.5 mL of solution S diluted to 10 mL with water; add 2 mL of 200 g/L citric acid monohydrate and 0.1 mL thioglycolic acid, mix, make alkaline with ammonia, dilute to 20 mL. Reference: 10 mL iron standard solution (1 ppm Fe) with the same reagents. After 5 min any pink colour in the test is not more intense than the standard. Limit NMT 400 ppm.",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {
+        "testSolution": "0.5 mL solution S to 10 mL water",
+        "reagents": ["2 mL 200 g/L citric acid monohydrate", "0.1 mL thioglycolic acid", "ammonia to alkaline"],
+        "finalVolumeMl": 20,
+        "referenceSolution": "10 mL iron standard solution (1 ppm Fe)",
+        "waitMin": 5,
+        "limit": "NMT 400 ppm",
+        "reference2": "BP Appendix VII Limit Tests, Iron"
+      },
+      "source": "Calcium Hydrogen Phosphate Dihydrate__New 1-2_STM Calcium Hydrogen Phosphate Dihydrate - New.txt:39"
+    },
+    {
+      "testCode": "RM-LOI-CAHP",
+      "procedure": "Loss on ignition (BP 2024): weigh an empty crucible previously ignited at 800-825 °C and cooled in desiccator (W0); weigh accurately 1.000 g into it (W1); ignite in a calibrated muffle at 800-825 °C for 2 h, cool in desiccator, weigh (W2); repeat to constant weight. % loss on ignition = (W1 - W2) / (W1 - W0) x 100.",
+      "kind": "specific",
+      "workflow": "Gravimetric",
+      "details": {
+        "sampleG": 1.000,
+        "ignition": "800-825 °C, 2 h, then to constant weight",
+        "formula": "(W1 - W2) / (W1 - W0) x 100",
+        "reference": "BP 2024 Monograph for Calcium Hydrogen Phosphate Dihydrate"
+      },
+      "source": "Calcium Hydrogen Phosphate Dihydrate__New 1-2_STM Calcium Hydrogen Phosphate Dihydrate - New.txt:40"
+    },
+    {
+      "testCode": "RM-TIT-CAHP",
+      "procedure": "Assay (BP Appendix VIII D, complexometric back titration): dissolve 0.4 g in 12 mL dilute hydrochloric acid (heat on water-bath if needed), dilute to 200 mL with water. Transfer 20.0 mL to a flask, add 25.0 mL of 0.02 M sodium edetate, 50 mL water, 5 mL ammonium chloride buffer solution pH 10.7 and about 25 mg mordant black 11 triturate; titrate the excess sodium edetate with 0.02 M zinc sulfate; blank titration. 1 mL of 0.02 M sodium edetate = 3.44 mg of calcium hydrogen phosphate dihydrate. Assay = (E.P x eq.wt x F x 100) / Wt.",
+      "kind": "specific",
+      "workflow": "Titration",
+      "details": {
+        "sampleG": 0.4,
+        "solvent": "12 mL dilute hydrochloric acid, dilute to 200 mL",
+        "aliquotMl": 20,
+        "edetateAddedMl": 25.0,
+        "edetateMolarity": 0.02,
+        "water": "50 mL",
+        "buffer": "5 mL ammonium chloride buffer solution pH 10.7",
+        "indicator": "about 25 mg mordant black 11 triturate",
+        "backTitrant": "0.02 M zinc sulfate",
+        "blank": "blank titration carried out",
+        "eqWt": "3.44 mg per mL of 0.02 M sodium edetate",
+        "formula": "Assay = (E.P x eq.wt x F x 100) / Wt; E.P end point (mL), eq.wt 3.44 mg, F titrant factor, Wt sample weight (g) as written",
+        "titrantStandardization": "0.02 M disodium edetate VS: 7.444 g disodium edetate in 1000 mL; standardise against 0.100 g zinc in 4 mL 7 M hydrochloric acid, diluted to 100 mL, 25 mL to 200 mL, xylenol orange triturate and hexamine, titrate to yellow; 1 mL = 1.308 mg Zn",
+        "reference": "BP Appendix VIII D Complexometric Titrations; BP 2024 Monograph for Calcium Hydrogen Phosphate Dihydrate",
+        "specBasis": "as stated (no basis)"
+      },
+      "source": "Calcium Hydrogen Phosphate Dihydrate__New 1-2_STM Calcium Hydrogen Phosphate Dihydrate - New.txt:41; titrant Calcium Hydrogen Phosphate Dihydrate__New 1-2_STM Calcium Hydrogen Phosphate Dihydrate - New.txt:28"
+    },
+    {
+      "testCode": "RM-PSD-CAHP",
+      "procedure": "Particle size distribution: calibrated analytical sieving or particle size analyser; measure mass percentage in each sieve size range. In-house specification: D10 125 µm (10% pass through 120 mesh); D50 250 µm (50% pass through 60 mesh); D90 500 µm (90% pass through 35 mesh).",
+      "kind": "specific",
+      "workflow": "Measurement",
+      "details": {
+        "method": "calibrated analytical sieving or particle size analyser",
+        "D10": {"micron": 125, "passThrough": "120 mesh", "percent": 10},
+        "D50": {"micron": 250, "passThrough": "60 mesh", "percent": 50},
+        "D90": {"micron": 500, "passThrough": "35 mesh", "percent": 90},
+        "reference": "In-house specification by R&D department for PSD"
+      },
+      "source": "Calcium Hydrogen Phosphate Dihydrate__New 1-2_STM Calcium Hydrogen Phosphate Dihydrate - New.txt:42"
+    },
+    {
+      "testCode": "TAMC",
+      "procedure": "Microbial enumeration (USP <2021>): weigh 10 g sample into a sterile container and complete to 100 mL with soyabean casein digest broth (SCDB); within 1 h pipette 1 mL of the dilution into each of four plates, two with SCDA (TAMC) and two with SDA (TYMC). Incubate SCDA 24-72 h at 30-35 °C. Total CFU/g = (colonies on the two plates / 2) x DF (10); if no colonies from the lowest dilution, report less than 10.",
+      "kind": "general",
+      "workflow": "CountTest",
+      "details": {
+        "sampleG": 10,
+        "broth": "SCDB, 100 mL",
+        "plates": "2 SCDA for TAMC",
+        "incubation": "24-72 h at 30-35 °C",
+        "dilutionFactor": 10,
+        "limit": "Not more than 10^3 CFU/gm (STM prints 103, superscript lost; spec sheet NMT 1000 CFU/g, loaded)",
+        "reference": "USP 2024 <2021>; USP 2024 <2023>"
+      },
+      "source": "Calcium Hydrogen Phosphate Dihydrate__New 1-2_STM Calcium Hydrogen Phosphate Dihydrate - New.txt:44"
+    },
+    {
+      "testCode": "TYMC",
+      "procedure": "Microbial enumeration (USP <2021>): as for TAMC; the two SDA plates are incubated 5-7 days at 20-25 °C; total yeasts and molds CFU/g = (colonies on the two plates / 2) x DF (10).",
+      "kind": "general",
+      "workflow": "CountTest",
+      "details": {
+        "plates": "2 SDA for TYMC",
+        "incubation": "5-7 days at 20-25 °C",
+        "dilutionFactor": 10,
+        "limit": "Not more than 10^2 CFU/gm (STM prints 102, superscript lost; spec sheet NMT 100 CFU/g, loaded)",
+        "reference": "USP 2024 <2021>; USP 2024 <2023>"
+      },
+      "source": "Calcium Hydrogen Phosphate Dihydrate__New 1-2_STM Calcium Hydrogen Phosphate Dihydrate - New.txt:44"
+    },
+    {
+      "testCode": "E.coli",
+      "procedure": "Specified microorganism E. coli (USP <2022>): incubate SCDB 30-35 °C 24-48 h; transfer 1 mL to 10 mL MacConkey broth, 42-44 °C 24-48 h; subculture both on MacConkey agar, 30-35 °C 18-24 h; brick red colonies (possibly with a zone of precipitated bile) indicate possible E. coli; confirm by Gram stain (gram-negative short rods), EMB (dark-centred colonies with or without metallic sheen) and TBX (blue or green colonies, 42-44 °C 18-72 h); if possible confirm with an identification system (report if probability above 70%). Limit absent in 10 g.",
+      "kind": "general",
+      "workflow": "Observation",
+      "details": {
+        "enrichment": "SCDB 30-35 °C, 24-48 h",
+        "selective": "10 mL MacConkey broth, 42-44 °C, 24-48 h",
+        "plating": "MacConkey agar, 30-35 °C, 18-24 h",
+        "confirmatory": ["Gram stain", "EMB agar, 30-35 °C, 24-48 h", "TBX agar, 42-44 °C, 18-72 h"],
+        "identificationThresholdPercent": 70,
+        "limit": "Absent / 10 gm",
+        "reference": "USP 2024 <2022>; USP 2024 <2023>"
+      },
+      "source": "Calcium Hydrogen Phosphate Dihydrate__New 1-2_STM Calcium Hydrogen Phosphate Dihydrate - New.txt:46"
+    }
+  ],
+  "notApplicable": [],
+  "supplierAttributes": [
+    { "grade": null, "name": "Fluorides", "statedValue": "Maximum 100 ppm", "source": "Calcium Hydrogen Phosphate Dihydrate__New 1-2_Specifications sheet Calcium Hydrogen Phosphate Dihydrate - Copy - New.txt:28" }
+  ],
+  "reagents": [
+    { "name": "2-propanol", "use": "reagent", "source": "Calcium Hydrogen Phosphate Dihydrate__New 1-2_STM Calcium Hydrogen Phosphate Dihydrate - New.txt:28" },
+    { "name": "Acetic acid", "use": "reagent", "source": "Calcium Hydrogen Phosphate Dihydrate__New 1-2_STM Calcium Hydrogen Phosphate Dihydrate - New.txt:28" },
+    { "name": "Activated zinc", "use": "reagent", "source": "Calcium Hydrogen Phosphate Dihydrate__New 1-2_STM Calcium Hydrogen Phosphate Dihydrate - New.txt:28" },
+    { "name": "Ammonia", "use": "reagent", "source": "Calcium Hydrogen Phosphate Dihydrate__New 1-2_STM Calcium Hydrogen Phosphate Dihydrate - New.txt:28" },
+    { "name": "Ammonium chloride", "use": "reagent", "source": "Calcium Hydrogen Phosphate Dihydrate__New 1-2_STM Calcium Hydrogen Phosphate Dihydrate - New.txt:28" },
+    { "name": "Ammonium molybdate", "use": "reagent", "source": "Calcium Hydrogen Phosphate Dihydrate__New 1-2_STM Calcium Hydrogen Phosphate Dihydrate - New.txt:28" },
+    { "name": "Ammonium oxalate", "use": "reagent", "source": "Calcium Hydrogen Phosphate Dihydrate__New 1-2_STM Calcium Hydrogen Phosphate Dihydrate - New.txt:28" },
+    { "name": "Arsenic Standard Solution (1000 ppm)", "use": "standard", "source": "Calcium Hydrogen Phosphate Dihydrate__New 1-2_STM Calcium Hydrogen Phosphate Dihydrate - New.txt:28" },
+    { "name": "Barium chloride", "use": "reagent", "source": "Calcium Hydrogen Phosphate Dihydrate__New 1-2_STM Calcium Hydrogen Phosphate Dihydrate - New.txt:28" },
+    { "name": "Citric acid monohydrate", "use": "reagent", "source": "Calcium Hydrogen Phosphate Dihydrate__New 1-2_STM Calcium Hydrogen Phosphate Dihydrate - New.txt:28" },
+    { "name": "Dipotassium sulfate", "use": "reagent", "source": "Calcium Hydrogen Phosphate Dihydrate__New 1-2_STM Calcium Hydrogen Phosphate Dihydrate - New.txt:28" },
+    { "name": "Disodium edetate (0.02 M Disodium Edetate VS)", "use": "titrant", "source": "Calcium Hydrogen Phosphate Dihydrate__New 1-2_STM Calcium Hydrogen Phosphate Dihydrate - New.txt:28" },
+    { "name": "Ferric ammonium sulfate", "use": "reagent", "source": "Calcium Hydrogen Phosphate Dihydrate__New 1-2_STM Calcium Hydrogen Phosphate Dihydrate - New.txt:28" },
+    { "name": "Hexamine", "use": "reagent", "source": "Calcium Hydrogen Phosphate Dihydrate__New 1-2_STM Calcium Hydrogen Phosphate Dihydrate - New.txt:28" },
+    { "name": "Hydrochloric acid", "use": "reagent", "source": "Calcium Hydrogen Phosphate Dihydrate__New 1-2_STM Calcium Hydrogen Phosphate Dihydrate - New.txt:28" },
+    { "name": "Lead acetate", "use": "reagent", "source": "Calcium Hydrogen Phosphate Dihydrate__New 1-2_STM Calcium Hydrogen Phosphate Dihydrate - New.txt:28" },
+    { "name": "Mordant black 11", "use": "indicator", "source": "Calcium Hydrogen Phosphate Dihydrate__New 1-2_STM Calcium Hydrogen Phosphate Dihydrate - New.txt:28" },
+    { "name": "Nitric acid", "use": "reagent", "source": "Calcium Hydrogen Phosphate Dihydrate__New 1-2_STM Calcium Hydrogen Phosphate Dihydrate - New.txt:28" },
+    { "name": "Potassium iodide", "use": "reagent", "source": "Calcium Hydrogen Phosphate Dihydrate__New 1-2_STM Calcium Hydrogen Phosphate Dihydrate - New.txt:28" },
+    { "name": "Potassium nitrate", "use": "reagent", "source": "Calcium Hydrogen Phosphate Dihydrate__New 1-2_STM Calcium Hydrogen Phosphate Dihydrate - New.txt:28" },
+    { "name": "Pyridine", "use": "reagent", "source": "Calcium Hydrogen Phosphate Dihydrate__New 1-2_STM Calcium Hydrogen Phosphate Dihydrate - New.txt:28" },
+    { "name": "Silver diethyldithiocarbamate", "use": "reagent", "source": "Calcium Hydrogen Phosphate Dihydrate__New 1-2_STM Calcium Hydrogen Phosphate Dihydrate - New.txt:28" },
+    { "name": "Silver nitrate", "use": "reagent", "source": "Calcium Hydrogen Phosphate Dihydrate__New 1-2_STM Calcium Hydrogen Phosphate Dihydrate - New.txt:28" },
+    { "name": "Sodium chloride", "use": "reagent", "source": "Calcium Hydrogen Phosphate Dihydrate__New 1-2_STM Calcium Hydrogen Phosphate Dihydrate - New.txt:28" },
+    { "name": "Stannous chloride", "use": "reagent", "source": "Calcium Hydrogen Phosphate Dihydrate__New 1-2_STM Calcium Hydrogen Phosphate Dihydrate - New.txt:28" },
+    { "name": "Stock Iron Standard Solution (1000 ppm)", "use": "standard", "source": "Calcium Hydrogen Phosphate Dihydrate__New 1-2_STM Calcium Hydrogen Phosphate Dihydrate - New.txt:28" },
+    { "name": "Sulfuric acid", "use": "reagent", "source": "Calcium Hydrogen Phosphate Dihydrate__New 1-2_STM Calcium Hydrogen Phosphate Dihydrate - New.txt:28" },
+    { "name": "Thioglycolic acid", "use": "reagent", "source": "Calcium Hydrogen Phosphate Dihydrate__New 1-2_STM Calcium Hydrogen Phosphate Dihydrate - New.txt:28" },
+    { "name": "Xylenol orange", "use": "indicator", "source": "Calcium Hydrogen Phosphate Dihydrate__New 1-2_STM Calcium Hydrogen Phosphate Dihydrate - New.txt:28" },
+    { "name": "Zinc sulfate (0.02 M Zinc Sulfate VS)", "use": "titrant", "source": "Calcium Hydrogen Phosphate Dihydrate__New 1-2_STM Calcium Hydrogen Phosphate Dihydrate - New.txt:28" },
+    { "name": "Zinc", "use": "standard", "source": "Calcium Hydrogen Phosphate Dihydrate__New 1-2_STM Calcium Hydrogen Phosphate Dihydrate - New.txt:28" }
+  ],
+  "openQuestions": [
+    {
+      "question": "Solubility: the STM does not name the first solvent (it repeats with methanol, ethanol 96%, dilute nitric acid and dilute hydrochloric acid). Confirm.",
+      "source": "Calcium Hydrogen Phosphate Dihydrate__New 1-2_STM Calcium Hydrogen Phosphate Dihydrate - New.txt:31"
+    },
+    {
+      "question": "Arsenic limit test: the water-bath temperature is missing ('Immerse the flask in a water-bath at a temperature'). Procedure loaded without a temperature; confirm.",
+      "source": "Calcium Hydrogen Phosphate Dihydrate__New 1-2_STM Calcium Hydrogen Phosphate Dihydrate - New.txt:37"
+    },
+    {
+      "question": "Assay formula: the STM formula (E.P x eq.wt x F x 100) / Wt has no 1000 for mg to g and no aliquot factor (20.0 mL of 200 mL). Loaded as written; confirm the calculation.",
+      "source": "Calcium Hydrogen Phosphate Dihydrate__New 1-2_STM Calcium Hydrogen Phosphate Dihydrate - New.txt:41"
+    },
+    {
+      "question": "Particle size: the spec sheet gives 90% through 35#, 50% through 60# and 10% through 120# with no direction (at least or at most). Loaded as Qualitative text; confirm the limits and direction.",
+      "source": "Calcium Hydrogen Phosphate Dihydrate__New 1-2_Specifications sheet Calcium Hydrogen Phosphate Dihydrate - Copy - New.txt:24; Calcium Hydrogen Phosphate Dihydrate__New 1-2_STM Calcium Hydrogen Phosphate Dihydrate - New.txt:42"
+    },
+    {
+      "question": "Fluorides NMT 100 ppm is an additional requirement with no test in the STM. Recorded as a supplier attribute only.",
+      "source": "Calcium Hydrogen Phosphate Dihydrate__New 1-2_Specifications sheet Calcium Hydrogen Phosphate Dihydrate - Copy - New.txt:28"
+    },
+    {
+      "question": "Assay is a Range with no basis stated in the spec or STM; loaded with resultBasis PercentAsIs. Confirm the basis.",
+      "source": "Calcium Hydrogen Phosphate Dihydrate__New 1-2_Specifications sheet Calcium Hydrogen Phosphate Dihydrate - Copy - New.txt:23"
+    }
+  ]
+}

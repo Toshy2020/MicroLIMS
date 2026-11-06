@@ -1,0 +1,554 @@
+{
+  "itemCode": "C1I-91-151",
+  "itemName": "Biotin",
+  "stmCode": null,
+  "stmFile": null,
+  "specFiles": ["Biotin__Specifications sheet Biotin BP.txt", "Biotin__Specifications sheet Biotin USP.txt"],
+  "minQuantity": {
+    "routine": 50,
+    "retest": null,
+    "retention": null,
+    "unit": "g",
+    "source": "Biotin__Specifications sheet Biotin BP.txt:23; Biotin__Specifications sheet Biotin USP.txt:20"
+  },
+  "grades": [
+    {
+      "grade": "BP",
+      "rows": [
+        {
+          "testCode": "RM-DESC",
+          "parameterName": "Description",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "White or almost white crystalline powder or colorless crystals",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Biotin__Specifications sheet Biotin BP.txt:12"
+        },
+        {
+          "testCode": "RM-SOLUB",
+          "parameterName": "Solubility",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Very slightly soluble in water and in alcohol, practically insoluble in acetone, it dissolves in dilute solutions of alkali hydroxides",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Biotin__Specifications sheet Biotin BP.txt:13"
+        },
+        {
+          "testCode": "RM-ID-IR",
+          "parameterName": "Identification (IR absorption)",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "The spectrum obtained from reference standard and test sample are corresponding",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Biotin__Specifications sheet Biotin BP.txt:14"
+        },
+        {
+          "testCode": "RM-ID-BROM-BIOT",
+          "parameterName": "Identification (chemical reaction, bromine water)",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "The bromine water is decolorized",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Biotin__Specifications sheet Biotin BP.txt:15",
+          "heldBack": "no STM: method not documented"
+        },
+        {
+          "testCode": "RM-ID-RT-BIOT-BP",
+          "parameterName": "Identification (HPLC retention time)",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "The retention time of the major peak of the Sample solution corresponds to that of the Standard solution, as obtained in the Assay",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Biotin__Specifications sheet Biotin BP.txt:16",
+          "heldBack": "no STM: method not documented"
+        },
+        {
+          "testCode": "RM-RS-BIOT-BP",
+          "parameterName": "Related compounds (TLC)",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Any spot in the chromatogram obtained with test solution a apart from the principle spot is not more intense than the spot in the chromatogram obtained with reference solution (b) (0.5%) and at most one such spot is more intense",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Biotin__Specifications sheet Biotin BP.txt:17",
+          "heldBack": "no STM: method not documented"
+        },
+        {
+          "testCode": "RM-SOLAPP",
+          "parameterName": "Appearance of solution",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Solution S is clear and colorless",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Biotin__Specifications sheet Biotin BP.txt:18"
+        },
+        {
+          "testCode": "RM-OPTROT",
+          "parameterName": "Specific optical rotation",
+          "limitType": "Range",
+          "lower": 89,
+          "upper": 93,
+          "lowerInclusive": true,
+          "unit": "°",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Biotin__Specifications sheet Biotin BP.txt:19"
+        },
+        {
+          "testCode": "RM-HPLC-BIOT-AS-BP",
+          "parameterName": "Assay",
+          "limitType": "Range",
+          "lower": 98.5,
+          "upper": 101.0,
+          "lowerInclusive": true,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": "PercentAsIs",
+          "referenceStandard": "BP",
+          "source": "Biotin__Specifications sheet Biotin BP.txt:20",
+          "heldBack": "no STM: method not documented"
+        },
+        {
+          "testCode": "RM-LOD",
+          "parameterName": "Loss on drying",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 0.1,
+          "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Biotin__Specifications sheet Biotin BP.txt:21"
+        },
+        {
+          "testCode": "RM-SASH",
+          "parameterName": "Sulfated ash",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 0.1,
+          "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Biotin__Specifications sheet Biotin BP.txt:22"
+        },
+        {
+          "testCode": "TAMC",
+          "parameterName": "Total Aerobic Microbial Count",
+          "limitType": "CountTiered",
+          "lower": null,
+          "upper": 1000,
+          "lowerInclusive": null,
+          "unit": "CFU/gm",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": null,
+          "source": "Biotin__Specifications sheet Biotin BP.txt:23"
+        },
+        {
+          "testCode": "TYMC",
+          "parameterName": "Total combined Yeasts and Molds Count",
+          "limitType": "CountTiered",
+          "lower": null,
+          "upper": 100,
+          "lowerInclusive": null,
+          "unit": "CFU/gm",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": null,
+          "source": "Biotin__Specifications sheet Biotin BP.txt:23"
+        },
+        {
+          "testCode": "E.coli",
+          "parameterName": "Test for E. coli",
+          "limitType": "PresenceAbsence",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": "per 10 gm",
+          "expectedResultText": "Absent /10 gm",
+          "expectedState": "Absence",
+          "resultBasis": null,
+          "referenceStandard": null,
+          "source": "Biotin__Specifications sheet Biotin BP.txt:23"
+        }
+      ]
+    },
+    {
+      "grade": "USP",
+      "rows": [
+        {
+          "testCode": "RM-DESC",
+          "parameterName": "Description",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "White, crystalline powder",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Biotin__Specifications sheet Biotin USP.txt:12"
+        },
+        {
+          "testCode": "RM-SOLUB",
+          "parameterName": "Solubility",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Very slightly soluble in water and in alcohol , insoluble in other common organic solvents",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Biotin__Specifications sheet Biotin USP.txt:13"
+        },
+        {
+          "testCode": "RM-ID-IR",
+          "parameterName": "Identification (IR absorption)",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "The spectrum obtained from reference standard and test sample are corresponding",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Biotin__Specifications sheet Biotin USP.txt:14"
+        },
+        {
+          "testCode": "RM-ID-RT-BIOT-USP",
+          "parameterName": "Identification (HPLC retention time)",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "The retention time of the major peak of the Sample solution corresponds to that of the Standard solution, as obtained in the Assay",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Biotin__Specifications sheet Biotin USP.txt:16",
+          "heldBack": "no STM: method not documented"
+        },
+        {
+          "testCode": "RM-RS-BIOT-USP",
+          "parameterName": "Related compounds: individual impurity",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 1.0,
+          "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Biotin__Specifications sheet Biotin USP.txt:17",
+          "heldBack": "no STM: method not documented"
+        },
+        {
+          "testCode": "RM-RS-BIOT-USP",
+          "parameterName": "Related compounds: total impurities",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 2.0,
+          "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Biotin__Specifications sheet Biotin USP.txt:17",
+          "heldBack": "no STM: method not documented"
+        },
+        {
+          "testCode": "RM-HPLC-BIOT-AS-USP",
+          "parameterName": "Assay",
+          "limitType": "Range",
+          "lower": 97.5,
+          "upper": 102.0,
+          "lowerInclusive": true,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": "PercentAsIs",
+          "referenceStandard": "USP",
+          "source": "Biotin__Specifications sheet Biotin USP.txt:18",
+          "heldBack": "no STM: method not documented"
+        },
+        {
+          "testCode": "RM-OPTROT",
+          "parameterName": "Specific rotation",
+          "limitType": "Range",
+          "lower": 89,
+          "upper": 93,
+          "lowerInclusive": true,
+          "unit": "°",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Biotin__Specifications sheet Biotin USP.txt:19"
+        },
+        {
+          "testCode": "TAMC",
+          "parameterName": "Total Aerobic Microbial Count",
+          "limitType": "CountTiered",
+          "lower": null,
+          "upper": 1000,
+          "lowerInclusive": null,
+          "unit": "CFU/gm",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": null,
+          "source": "Biotin__Specifications sheet Biotin USP.txt:20"
+        },
+        {
+          "testCode": "TYMC",
+          "parameterName": "Total combined Yeasts and Molds Count",
+          "limitType": "CountTiered",
+          "lower": null,
+          "upper": 100,
+          "lowerInclusive": null,
+          "unit": "CFU/gm",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": null,
+          "source": "Biotin__Specifications sheet Biotin USP.txt:20"
+        },
+        {
+          "testCode": "E.coli",
+          "parameterName": "Test for E. coli",
+          "limitType": "PresenceAbsence",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": "per 10 gm",
+          "expectedResultText": "Absent /10 gm",
+          "expectedState": "Absence",
+          "resultBasis": null,
+          "referenceStandard": null,
+          "source": "Biotin__Specifications sheet Biotin USP.txt:20"
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "testCode": "RM-DESC",
+      "procedure": "No STM in the folder; spec sheet limit only.",
+      "kind": "general",
+      "workflow": "Observation",
+      "details": {},
+      "source": "Biotin__Specifications sheet Biotin BP.txt:12"
+    },
+    {
+      "testCode": "RM-SOLUB",
+      "procedure": "No STM in the folder; spec sheet limit only.",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {},
+      "source": "Biotin__Specifications sheet Biotin BP.txt:13"
+    },
+    {
+      "testCode": "RM-ID-IR",
+      "procedure": "No STM in the folder; spec sheet limit only (IR absorption).",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {},
+      "source": "Biotin__Specifications sheet Biotin BP.txt:14"
+    },
+    {
+      "testCode": "RM-ID-BROM-BIOT",
+      "procedure": "No STM: method not documented.",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "details": {},
+      "source": "Biotin__Specifications sheet Biotin BP.txt:15",
+      "heldBack": "no STM: method not documented"
+    },
+    {
+      "testCode": "RM-ID-RT-BIOT-BP",
+      "procedure": "No STM: method not documented.",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "details": {},
+      "source": "Biotin__Specifications sheet Biotin BP.txt:16",
+      "heldBack": "no STM: method not documented"
+    },
+    {
+      "testCode": "RM-RS-BIOT-BP",
+      "procedure": "No STM: method not documented.",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "details": {},
+      "source": "Biotin__Specifications sheet Biotin BP.txt:17",
+      "heldBack": "no STM: method not documented"
+    },
+    {
+      "testCode": "RM-SOLAPP",
+      "procedure": "No STM in the folder; spec sheet limit only.",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {},
+      "source": "Biotin__Specifications sheet Biotin BP.txt:18"
+    },
+    {
+      "testCode": "RM-OPTROT",
+      "procedure": "No STM in the folder; spec sheet limit only (specific rotation by polarimetry).",
+      "kind": "general",
+      "workflow": "Measurement",
+      "details": {},
+      "source": "Biotin__Specifications sheet Biotin BP.txt:19"
+    },
+    {
+      "testCode": "RM-HPLC-BIOT-AS-BP",
+      "procedure": "No STM: method not documented.",
+      "kind": "specific",
+      "workflow": "HplcMethodAssay",
+      "details": {},
+      "source": "Biotin__Specifications sheet Biotin BP.txt:20",
+      "heldBack": "no STM: method not documented"
+    },
+    {
+      "testCode": "RM-LOD",
+      "procedure": "No STM in the folder; spec sheet limit only.",
+      "kind": "general",
+      "workflow": "Gravimetric",
+      "details": {},
+      "source": "Biotin__Specifications sheet Biotin BP.txt:21"
+    },
+    {
+      "testCode": "RM-SASH",
+      "procedure": "No STM in the folder; spec sheet limit only.",
+      "kind": "general",
+      "workflow": "Gravimetric",
+      "details": {},
+      "source": "Biotin__Specifications sheet Biotin BP.txt:22"
+    },
+    {
+      "testCode": "RM-ID-RT-BIOT-USP",
+      "procedure": "No STM: method not documented.",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "details": {},
+      "source": "Biotin__Specifications sheet Biotin USP.txt:16",
+      "heldBack": "no STM: method not documented"
+    },
+    {
+      "testCode": "RM-RS-BIOT-USP",
+      "procedure": "No STM: method not documented.",
+      "kind": "specific",
+      "workflow": "HplcMethodAssay",
+      "details": {},
+      "source": "Biotin__Specifications sheet Biotin USP.txt:17",
+      "heldBack": "no STM: method not documented"
+    },
+    {
+      "testCode": "RM-HPLC-BIOT-AS-USP",
+      "procedure": "No STM: method not documented.",
+      "kind": "specific",
+      "workflow": "HplcMethodAssay",
+      "details": {},
+      "source": "Biotin__Specifications sheet Biotin USP.txt:18",
+      "heldBack": "no STM: method not documented"
+    },
+    {
+      "testCode": "TAMC",
+      "procedure": "No STM in the folder; spec sheet limit only.",
+      "kind": "general",
+      "workflow": "CountTest",
+      "details": {},
+      "source": "Biotin__Specifications sheet Biotin BP.txt:23"
+    },
+    {
+      "testCode": "TYMC",
+      "procedure": "No STM in the folder; spec sheet limit only.",
+      "kind": "general",
+      "workflow": "CountTest",
+      "details": {},
+      "source": "Biotin__Specifications sheet Biotin BP.txt:23"
+    },
+    {
+      "testCode": "E.coli",
+      "procedure": "No STM in the folder; spec sheet limit only.",
+      "kind": "general",
+      "workflow": "Observation",
+      "details": {},
+      "source": "Biotin__Specifications sheet Biotin BP.txt:23"
+    }
+  ],
+  "notApplicable": [],
+  "supplierAttributes": [],
+  "reagents": [],
+  "openQuestions": [
+    {
+      "question": "No STM for Biotin in the folder (spec sheets only). Specific methods (bromine, HPLC retention, TLC related compounds, HPLC assays) are held back as 'no STM: method not documented'. Confirm the STM to load them.",
+      "source": "Biotin__Specifications sheet Biotin BP.txt:10"
+    },
+    {
+      "question": "Sheets carry the old STM code C1I-91-151 (not an STM-RM code); stmCode left null.",
+      "source": "Biotin__Specifications sheet Biotin BP.txt:10"
+    },
+    {
+      "question": "USP sheet row 4 (identification, polarimetry, specific rotation +89 to +93) duplicates the USP specific rotation row at line 19; loaded once from line 19.",
+      "source": "Biotin__Specifications sheet Biotin USP.txt:15"
+    },
+    {
+      "question": "Assay limits have no stated basis (as-is, dried or anhydrous); recorded as PercentAsIs on the held-back HPLC assay rows. Confirm.",
+      "source": "Biotin__Specifications sheet Biotin BP.txt:20; Biotin__Specifications sheet Biotin USP.txt:18"
+    },
+    {
+      "question": "TAMC and TYMC limits are written 'NMT 1000' and 'NMT 100' CFU/gm on both sheets; the additional requirements carry no pharmacopoeia reference, so referenceStandard is null on the micro rows.",
+      "source": "Biotin__Specifications sheet Biotin BP.txt:23; Biotin__Specifications sheet Biotin USP.txt:20"
+    }
+  ]
+}

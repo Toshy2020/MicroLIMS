@@ -1,0 +1,220 @@
+{
+  "itemCode": "C1I-91-169",
+  "stmCode": null,
+  "itemName": "Hydroxypropylmethylcellulose (5 cps)",
+  "stmFile": null,
+  "specFiles": ["HPMC (5cps)__Specifications sheet HPMC (5cps).txt"],
+  "minQuantity": {
+    "routine": 100,
+    "retest": null,
+    "retention": null,
+    "unit": "g",
+    "source": "HPMC (5cps)__Specifications sheet HPMC (5cps).txt:19"
+  },
+  "grades": [
+    {
+      "grade": null,
+      "rows": [
+        {
+          "testCode": "RM-DESC",
+          "parameterName": "Appearance",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "White, yellowish-white or greyish-white powder, fibrous or granules, hygroscopic after drying.",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP 2024",
+          "source": "HPMC (5cps)__Specifications sheet HPMC (5cps).txt:11"
+        },
+        {
+          "testCode": "RM-SOLUB",
+          "parameterName": "Solubility",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Practically insoluble in hot water, in acetone, in anhydrous ethanol and in toluene. It dissolves in cold water giving a colloidal solution.",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP 2024",
+          "source": "HPMC (5cps)__Specifications sheet HPMC (5cps).txt:12"
+        },
+        {
+          "testCode": "RM-ID-HPMC",
+          "parameterName": "Identification (chemical reaction)",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Comply with BP.",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP 2024",
+          "source": "HPMC (5cps)__Specifications sheet HPMC (5cps).txt:13",
+          "heldBack": "no STM: method not documented"
+        },
+        {
+          "testCode": "RM-SASH",
+          "parameterName": "Residue on ignition",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 1.5,
+          "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP 2024",
+          "source": "HPMC (5cps)__Specifications sheet HPMC (5cps).txt:14"
+        },
+        {
+          "testCode": "RM-PH",
+          "parameterName": "pH",
+          "limitType": "Range",
+          "lower": 5.0,
+          "upper": 8.0,
+          "lowerInclusive": true,
+          "unit": null,
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP 2024",
+          "source": "HPMC (5cps)__Specifications sheet HPMC (5cps).txt:15"
+        },
+        {
+          "testCode": "RM-LOD",
+          "parameterName": "Loss on drying",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 5.0,
+          "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP 2024",
+          "source": "HPMC (5cps)__Specifications sheet HPMC (5cps).txt:16"
+        },
+        {
+          "testCode": "RM-VISC-HPMC",
+          "parameterName": "% Viscosity (Method 1), nominal viscosity 5 cp",
+          "limitType": "Range",
+          "lower": 80,
+          "upper": 120,
+          "lowerInclusive": true,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP 2024",
+          "source": "HPMC (5cps)__Specifications sheet HPMC (5cps).txt:17",
+          "heldBack": "no STM: method not documented"
+        },
+        {
+          "testCode": "RM-SOLAPP",
+          "parameterName": "Appearance of solution",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Comply with BP.",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP 2024",
+          "source": "HPMC (5cps)__Specifications sheet HPMC (5cps).txt:18"
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "testCode": "RM-DESC",
+      "procedure": "No STM: method not documented (general catalog test).",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {},
+      "source": "HPMC (5cps)__Specifications sheet HPMC (5cps).txt:11"
+    },
+    {
+      "testCode": "RM-SOLUB",
+      "procedure": "No STM: method not documented (general catalog test).",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {},
+      "source": "HPMC (5cps)__Specifications sheet HPMC (5cps).txt:12"
+    },
+    {
+      "testCode": "RM-ID-HPMC",
+      "procedure": "No STM: method not documented.",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "details": {},
+      "source": "HPMC (5cps)__Specifications sheet HPMC (5cps).txt:13",
+      "heldBack": "no STM: method not documented"
+    },
+    {
+      "testCode": "RM-SASH",
+      "procedure": "No STM: method not documented (general catalog test).",
+      "kind": "general",
+      "workflow": "Gravimetric",
+      "details": {},
+      "source": "HPMC (5cps)__Specifications sheet HPMC (5cps).txt:14"
+    },
+    {
+      "testCode": "RM-PH",
+      "procedure": "No STM: method not documented (general catalog test).",
+      "kind": "general",
+      "workflow": "Measurement",
+      "details": {},
+      "source": "HPMC (5cps)__Specifications sheet HPMC (5cps).txt:15"
+    },
+    {
+      "testCode": "RM-LOD",
+      "procedure": "No STM: method not documented (general catalog test).",
+      "kind": "general",
+      "workflow": "Gravimetric",
+      "details": {},
+      "source": "HPMC (5cps)__Specifications sheet HPMC (5cps).txt:16"
+    },
+    {
+      "testCode": "RM-VISC-HPMC",
+      "procedure": "No STM: method not documented. Spec sheet: % viscosity (Method 1), 80 to 120 percent of nominal viscosity 5 cp.",
+      "kind": "specific",
+      "workflow": "Measurement",
+      "details": {},
+      "source": "HPMC (5cps)__Specifications sheet HPMC (5cps).txt:17",
+      "heldBack": "no STM: method not documented"
+    },
+    {
+      "testCode": "RM-SOLAPP",
+      "procedure": "No STM: method not documented (general catalog test).",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {},
+      "source": "HPMC (5cps)__Specifications sheet HPMC (5cps).txt:18"
+    }
+  ],
+  "notApplicable": [],
+  "supplierAttributes": [],
+  "reagents": [],
+  "openQuestions": [
+    {
+      "question": "No HPMC STM exists in the folder. The spec sheet carries the old document code C1I-91-169 (no STM-RM number), so itemCode is C1I-91-169 and stmCode is null. The folder's 'Omega-3 Fish Oil - SM' file is the Omega-3 STM (STM-RM-139), misfiled and ignored.",
+      "source": "HPMC (5cps)__Specifications sheet HPMC (5cps).txt:9; HPMC (5cps)__Omega-3 Fish Oil - SM.txt:5"
+    },
+    {
+      "question": "Identification (chemical reaction) and % viscosity (Method 1) have no documented method, so they are held back as no STM. Spec-only: the lab must supply the STM procedure.",
+      "source": "HPMC (5cps)__Specifications sheet HPMC (5cps).txt:13, 17"
+    },
+    {
+      "question": "pH technique is given as 'Voltammetry' on the spec sheet, which does not match a pH measurement. Limit 5.0-8.0 loaded as written; confirm the technique.",
+      "source": "HPMC (5cps)__Specifications sheet HPMC (5cps).txt:15"
+    }
+  ]
+}

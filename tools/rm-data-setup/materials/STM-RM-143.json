@@ -1,0 +1,309 @@
+{
+  "itemCode": "STM-RM-143",
+  "stmCode": "STM-RM-143",
+  "itemName": "Marine Collagen Peptide",
+  "stmFile": "Marine Collagen Peptide__STM for Marine Collagen Peptide NEW.txt",
+  "specFiles": ["Marine Collagen Peptide__Specifications sheet Marine Collagen Peptide - New.txt"],
+  "minQuantity": {
+    "routine": 70,
+    "retest": 100,
+    "retention": 70,
+    "unit": "g",
+    "source": "Marine Collagen Peptide__Specifications sheet Marine Collagen Peptide - New.txt:20; Marine Collagen Peptide__STM for Marine Collagen Peptide NEW.txt:37"
+  },
+  "grades": [
+    {
+      "grade": null,
+      "rows": [
+        {
+          "testCode": "RM-DESC",
+          "parameterName": "Appearance",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Off-white powder.",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "In-house",
+          "source": "Marine Collagen Peptide__Specifications sheet Marine Collagen Peptide - New.txt:11"
+        },
+        {
+          "testCode": "RM-SOLUB",
+          "parameterName": "Solubility",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Soluble in water at room temperature.",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "In-house",
+          "source": "Marine Collagen Peptide__Specifications sheet Marine Collagen Peptide - New.txt:12"
+        },
+        {
+          "testCode": "RM-VISC-MCP",
+          "parameterName": "Viscosity",
+          "limitType": "Range",
+          "lower": 1,
+          "upper": 2,
+          "lowerInclusive": true,
+          "unit": "cp",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "In-house",
+          "source": "Marine Collagen Peptide__Specifications sheet Marine Collagen Peptide - New.txt:13"
+        },
+        {
+          "testCode": "RM-LOD",
+          "parameterName": "Loss on drying",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 8,
+          "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "In-house",
+          "source": "Marine Collagen Peptide__Specifications sheet Marine Collagen Peptide - New.txt:14"
+        },
+        {
+          "testCode": "RM-PROT-MCP",
+          "parameterName": "Protein content",
+          "limitType": "NotLessThan",
+          "lower": 90,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": "PercentAsIs",
+          "referenceStandard": "In-house",
+          "source": "Marine Collagen Peptide__Specifications sheet Marine Collagen Peptide - New.txt:15"
+        },
+        {
+          "testCode": "TAMC",
+          "parameterName": "Total aerobic microbial count (TAMC)",
+          "limitType": "CountTiered",
+          "lower": null,
+          "upper": 1000,
+          "lowerInclusive": null,
+          "unit": "CFU/g",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP 2024",
+          "source": "Marine Collagen Peptide__Specifications sheet Marine Collagen Peptide - New.txt:16"
+        },
+        {
+          "testCode": "TYMC",
+          "parameterName": "Total yeasts and molds count (TYMC)",
+          "limitType": "CountTiered",
+          "lower": null,
+          "upper": 100,
+          "lowerInclusive": null,
+          "unit": "CFU/g",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP 2024",
+          "source": "Marine Collagen Peptide__Specifications sheet Marine Collagen Peptide - New.txt:17"
+        },
+        {
+          "testCode": "E.coli",
+          "parameterName": "Test for E. coli",
+          "limitType": "PresenceAbsence",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": "per 10 g",
+          "expectedResultText": "Absent / 10 gm",
+          "expectedState": "Absence",
+          "resultBasis": null,
+          "referenceStandard": "USP 2024",
+          "source": "Marine Collagen Peptide__Specifications sheet Marine Collagen Peptide - New.txt:18"
+        },
+        {
+          "testCode": "Salmonella ",
+          "parameterName": "Test for Salmonella spp.",
+          "limitType": "PresenceAbsence",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": "per 10 g",
+          "expectedResultText": "Absent / 10 gm",
+          "expectedState": "Absence",
+          "resultBasis": null,
+          "referenceStandard": "USP 2024",
+          "source": "Marine Collagen Peptide__Specifications sheet Marine Collagen Peptide - New.txt:19"
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "testCode": "RM-DESC",
+      "procedure": "Under strong white light check each received sample container separately on a clean transparent watch glass dish for foreign particles, colour and conformity with the in-house visual specification.",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {
+        "perContainer": true,
+        "requirement": "Inhouse Specification: Off-white powder"
+      },
+      "source": "Marine Collagen Peptide__STM for Marine Collagen Peptide NEW.txt:30"
+    },
+    {
+      "testCode": "RM-SOLUB",
+      "procedure": "Stepwise solubility (USP descriptive terms): 100 mg sample in a stoppered tube with 0.1 mL solvent, shake 1 min, hold 25.0 ± 0.5 °C for 15 min (repeat once if not dissolved); add 0.9 mL, then 2 mL, then 7 mL solvent with the same shake and hold to classify very soluble / freely soluble / soluble / sparingly soluble; if still undissolved, 10 mg in 10 mL (slightly soluble), then 1 mg in 10 mL (very slightly soluble), else practically insoluble.",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {
+        "sample": "100 mg",
+        "temperature": "25.0 ± 0.5 °C",
+        "holdMin": 15,
+        "shakeMin": 1,
+        "volumesMl": [0.1, 0.9, 2, 7],
+        "smallSampleSteps": ["10 mg in 10 mL", "1 mg in 10 mL"],
+        "solvents": ["water (per spec sheet; the STM says only 'the solvent')"],
+        "reference": "USP 2024 Description and Relative Solubility; In-house Method for Marine Collagen Peptide"
+      },
+      "source": "Marine Collagen Peptide__STM for Marine Collagen Peptide NEW.txt:31"
+    },
+    {
+      "testCode": "RM-VISC-MCP",
+      "procedure": "Viscosity (USP <912> rotational methods): dissolve about 15 g sample in water and make up to 100 mL with the same solvent; warm the solution to about 40 °C; measure with a calibrated viscometer.",
+      "kind": "specific",
+      "workflow": "Measurement",
+      "details": {
+        "sample": "about 15 g in water, made up to 100 mL",
+        "warmTemperatureC": 40,
+        "instrument": "calibrated viscometer",
+        "reference": "USP <912>; In-house Method for Marine Collagen Peptide"
+      },
+      "source": "Marine Collagen Peptide__STM for Marine Collagen Peptide NEW.txt:32"
+    },
+    {
+      "testCode": "RM-LOD",
+      "procedure": "Loss on drying (USP <731>): weigh an empty weighing bottle previously dried at 105 °C and cooled in a desiccator (W0); weigh accurately 1.000 g sample into it (W1 = bottle + material); dry in a calibrated oven at 105 °C for 2 h, cool in desiccator, weigh (W2); repeat to constant weight. % loss on drying = (W1 - W2) / (W1 - W0) x 100.",
+      "kind": "general",
+      "workflow": "Gravimetric",
+      "details": {
+        "sampleG": 1,
+        "drying": "calibrated oven 105 °C, 2 h, then to constant weight",
+        "formula": "(W1 - W2) / (W1 - W0) x 100",
+        "W0": "empty weighing bottle (dried at 105 °C)",
+        "W1": "bottle + sample",
+        "W2": "bottle + dried substance",
+        "reference": "USP <731>; In-house Method for Marine Collagen Peptide"
+      },
+      "source": "Marine Collagen Peptide__STM for Marine Collagen Peptide NEW.txt:33"
+    },
+    {
+      "testCode": "RM-PROT-MCP",
+      "procedure": "Protein content (Kjeldahl, titrimetric): digest 100 mg collagen in the flask with 5 g of a potassium sulfate : cupric sulfate : titanium dioxide (33:1:1) mixture and 7 mL sulfuric acid until clear light green and free of carbonaceous material; add 70 mL water and cool; steam distil after adding 30 mL sodium hydroxide solution (2 in 5) under the acid layer, collecting into 15 mL boric acid solution (1 in 25) with 3 drops methyl red-methylene blue TS until the distillate is 80-100 mL; titrate with 0.1 N sulfuric acid VS, blank correction. Protein (%) = (EP - B) x 0.1 x 14 x F x 6.25 / (W x 1000) x 100.",
+      "kind": "specific",
+      "workflow": "Titration",
+      "details": {
+        "sampleMg": 100,
+        "digestion": "5 g K2SO4 : CuSO4 : TiO2 (33:1:1) mixture; 7 mL sulfuric acid; heat until clear light green",
+        "waterMl": 70,
+        "alkali": "30 mL sodium hydroxide solution (2 in 5)",
+        "receiver": "15 mL boric acid solution (1 in 25) with 3 drops methyl red-methylene blue TS",
+        "distillateMl": "80 to 100",
+        "titrant": "0.1 N sulfuric acid VS",
+        "titrantStandardization": "dilute 1.4 mL sulfuric acid to 500 mL; 0.1 g anhydrous sodium carbonate in 20 mL water, methyl orange, titrate to reddish colour; 1 mL 0.1 N sulfuric acid = 5.295 mg sodium carbonate",
+        "equivalence": "1 mL 0.1 N sulfuric acid = 1.4 mg nitrogen",
+        "blank": "blank determination, necessary correction made",
+        "proteinNitrogenFactor": 6.25,
+        "formula": "Protein (%) = (EP - B) x 0.1 x 14 x F x 6.25 / (W x 1000) x 100; EP end point, B blank end point, F titrant correction factor, W sample weight (g)",
+        "reference": "Analytical Method Validation Report for Content of Protein in Collagen"
+      },
+      "source": "Marine Collagen Peptide__STM for Marine Collagen Peptide NEW.txt:34; titrant Marine Collagen Peptide__STM for Marine Collagen Peptide NEW.txt:28"
+    },
+    {
+      "testCode": "TAMC",
+      "procedure": "Microbiological examination per SOP C2I-91-128 and the material-specific verification report.",
+      "kind": "general",
+      "workflow": "CountTest",
+      "details": {
+        "limit": "Not more than 10^3 CFU/gm (STM prints 103, superscript lost; spec sheet NMT 1000 CFU/g, loaded)",
+        "reference": "USP 2024 <2021>; USP 2024 <2023>",
+        "sop": "C2I-91-128"
+      },
+      "source": "Marine Collagen Peptide__STM for Marine Collagen Peptide NEW.txt:35"
+    },
+    {
+      "testCode": "TYMC",
+      "procedure": "Microbiological examination per SOP C2I-91-128 and the material-specific verification report.",
+      "kind": "general",
+      "workflow": "CountTest",
+      "details": {
+        "limit": "Not more than 10^2 CFU/gm (STM prints 102, superscript lost; spec sheet NMT 100 CFU/g, loaded)",
+        "reference": "USP 2024 <2021>; USP 2024 <2023>",
+        "sop": "C2I-91-128"
+      },
+      "source": "Marine Collagen Peptide__STM for Marine Collagen Peptide NEW.txt:35"
+    },
+    {
+      "testCode": "E.coli",
+      "procedure": "Microbiological examination per SOP C2I-91-128 and the material-specific verification report.",
+      "kind": "general",
+      "workflow": "Observation",
+      "details": {
+        "limit": "Absent / 10 gm",
+        "reference": "USP 2024 <2022>; USP 2024 <2023>",
+        "sop": "C2I-91-128"
+      },
+      "source": "Marine Collagen Peptide__STM for Marine Collagen Peptide NEW.txt:35"
+    },
+    {
+      "testCode": "Salmonella ",
+      "procedure": "Microbiological examination per SOP C2I-91-128 and the material-specific verification report.",
+      "kind": "general",
+      "workflow": "Observation",
+      "details": {
+        "limit": "Absent / 10 gm",
+        "reference": "USP 2024 <2022>; USP 2024 <2023>",
+        "sop": "C2I-91-128"
+      },
+      "source": "Marine Collagen Peptide__STM for Marine Collagen Peptide NEW.txt:35"
+    }
+  ],
+  "notApplicable": [],
+  "supplierAttributes": [],
+  "reagents": [
+    { "name": "Potassium Sulfate", "use": "reagent", "source": "Marine Collagen Peptide__STM for Marine Collagen Peptide NEW.txt:28" },
+    { "name": "Copper Sulfate Pentahydrate", "use": "reagent", "source": "Marine Collagen Peptide__STM for Marine Collagen Peptide NEW.txt:28" },
+    { "name": "Titanium Dioxide", "use": "reagent", "source": "Marine Collagen Peptide__STM for Marine Collagen Peptide NEW.txt:28" },
+    { "name": "Methyl red", "use": "indicator", "source": "Marine Collagen Peptide__STM for Marine Collagen Peptide NEW.txt:28" },
+    { "name": "Methylene blue", "use": "indicator", "source": "Marine Collagen Peptide__STM for Marine Collagen Peptide NEW.txt:28" },
+    { "name": "Methyl Orange", "use": "indicator", "source": "Marine Collagen Peptide__STM for Marine Collagen Peptide NEW.txt:28" },
+    { "name": "Sulfuric acid", "use": "reagent", "source": "Marine Collagen Peptide__STM for Marine Collagen Peptide NEW.txt:28" },
+    { "name": "0.1 N sulfuric acid VS", "use": "titrant", "source": "Marine Collagen Peptide__STM for Marine Collagen Peptide NEW.txt:28" },
+    { "name": "Alcohol", "use": "reagent", "source": "Marine Collagen Peptide__STM for Marine Collagen Peptide NEW.txt:28" },
+    { "name": "Sodium Hydroxide", "use": "reagent", "source": "Marine Collagen Peptide__STM for Marine Collagen Peptide NEW.txt:28" },
+    { "name": "Sodium Carbonate", "use": "standard", "source": "Marine Collagen Peptide__STM for Marine Collagen Peptide NEW.txt:28" }
+  ],
+  "openQuestions": [
+    {
+      "question": "Solubility: the STM says 'add 0.1 ml of the solvent' without naming it; the spec sheet says soluble in water at room temperature. Water loaded as the solvent; confirm.",
+      "source": "Marine Collagen Peptide__STM for Marine Collagen Peptide NEW.txt:31; Marine Collagen Peptide__Specifications sheet Marine Collagen Peptide - New.txt:12"
+    },
+    {
+      "question": "Viscosity: spindle, rotational speed and measuring temperature are not stated (only warming to about 40 °C for dissolution). Method details needed before the result can be reproduced.",
+      "source": "Marine Collagen Peptide__STM for Marine Collagen Peptide NEW.txt:32"
+    },
+    {
+      "question": "Loss on drying: the spec sheet technique is 'Thermogravimetric', but the STM procedure is oven drying at 105 °C for 2 h to constant weight. Procedure loaded as written; confirm the technique.",
+      "source": "Marine Collagen Peptide__Specifications sheet Marine Collagen Peptide - New.txt:14; Marine Collagen Peptide__STM for Marine Collagen Peptide NEW.txt:33"
+    },
+    {
+      "question": "Protein content: the spec sheet says 'More than 90 %' (strictly greater); the schema has only NotLessThan, so loaded as NotLessThan 90 (90 accepted). Confirm the limit.",
+      "source": "Marine Collagen Peptide__Specifications sheet Marine Collagen Peptide - New.txt:15"
+    }
+  ]
+}

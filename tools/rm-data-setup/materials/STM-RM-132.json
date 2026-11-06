@@ -1,0 +1,296 @@
+{
+  "itemCode": "STM-RM-132",
+  "itemName": "Opadry Red",
+  "stmCode": "STM-RM-132",
+  "stmFile": "Opadry Red__STM Opadry Red 3-1.txt",
+  "specFiles": [
+    "Opadry Red__Specifications sheet Opadry Red.txt"
+  ],
+  "minQuantity": {
+    "routine": 60,
+    "retest": 60,
+    "retention": 60,
+    "unit": "g",
+    "source": "Opadry Red__Specifications sheet Opadry Red.txt:18; Opadry Red__STM Opadry Red 3-1.txt:39"
+  },
+  "grades": [
+    {
+      "grade": null,
+      "rows": [
+        {
+          "testCode": "RM-DESC",
+          "parameterName": "Appearance",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Brownish Red, free flowing powder with mild characteristic odour",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "In-house",
+          "source": "Opadry Red__Specifications sheet Opadry Red.txt:11"
+        },
+        {
+          "testCode": "RM-DISP-OPRED",
+          "parameterName": "Dispersion",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Powder Freely dispersed in water",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "In-house",
+          "source": "Opadry Red__Specifications sheet Opadry Red.txt:12"
+        },
+        {
+          "testCode": "RM-ID-FILM-OPRED",
+          "parameterName": "Identification",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Film formed",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "In-house",
+          "source": "Opadry Red__Specifications sheet Opadry Red.txt:13"
+        },
+        {
+          "testCode": "RM-ASH-OPRED",
+          "parameterName": "Ash Content",
+          "limitType": "Range",
+          "lower": 27.0,
+          "upper": 35.0,
+          "lowerInclusive": true,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "In-house",
+          "source": "Opadry Red__Specifications sheet Opadry Red.txt:14"
+        },
+        {
+          "testCode": "TAMC",
+          "parameterName": "Total Aerobic Microbial Count",
+          "limitType": "CountTiered",
+          "lower": null,
+          "upper": 1000,
+          "lowerInclusive": null,
+          "unit": "CFU / gm",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP 2024",
+          "source": "Opadry Red__Specifications sheet Opadry Red.txt:15"
+        },
+        {
+          "testCode": "TYMC",
+          "parameterName": "Total Yeast and Molds Count",
+          "limitType": "CountTiered",
+          "lower": null,
+          "upper": 100,
+          "lowerInclusive": null,
+          "unit": "CFU / gm",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP 2024",
+          "source": "Opadry Red__Specifications sheet Opadry Red.txt:16"
+        },
+        {
+          "testCode": "E.coli",
+          "parameterName": "Test for E. coli",
+          "limitType": "PresenceAbsence",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": "per 10 g",
+          "expectedResultText": "Absent /10 gm",
+          "expectedState": "Absence",
+          "resultBasis": null,
+          "referenceStandard": "USP 2024",
+          "source": "Opadry Red__Specifications sheet Opadry Red.txt:17"
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "testCode": "RM-DESC",
+      "procedure": "Under strong white light, check each received sample container separately in clean, transparent watch glass or glass dish to detect any foreign particles, conformance of colour & compliance with the visual specifications.",
+      "kind": "general",
+      "workflow": "Observation",
+      "details": {
+        "perContainer": true,
+        "reference": "Supplier certificate for Opadry Red"
+      },
+      "source": "Opadry Red__STM Opadry Red 3-1.txt:30"
+    },
+    {
+      "testCode": "RM-DISP-OPRED",
+      "procedure": "Use a clean and dry transparent glass bottle, weigh accurately 20 g substance to be examined, transfer into bottle, add 100 mL purified water, mix by swirling for 2 min. Examine visually to ensure complete dispersion without particles, forming uniform matrix with water.",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "details": {
+        "sampleG": 20,
+        "waterMl": 100,
+        "swirlMin": 2,
+        "reference": "Analytical method verification for dispersion in Opadry Red"
+      },
+      "source": "Opadry Red__STM Opadry Red 3-1.txt:31"
+    },
+    {
+      "testCode": "RM-ID-FILM-OPRED",
+      "procedure": "Make slurry of powder in water 10-12%. Pour on glass tile. Dry at 70 °C. Film formed layer appears.",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "details": {
+        "slurry": "10-12% in water",
+        "dryingTempC": 70,
+        "reference": "Analytical method verification for identification in Opadry Red"
+      },
+      "source": "Opadry Red__STM Opadry Red 3-1.txt:32"
+    },
+    {
+      "testCode": "RM-ASH-OPRED",
+      "procedure": "Accurately weigh empty crucible previously ignited at 600 °C (W1). Weigh accurately ~1.0 g into crucible (W2). Ignite in muffle furnace at 600 ± 50 °C for 2 h. Cool in desiccator. Weigh crucible with residue (W4). Residue weight W3 = W4 - W1. Total ash % = (W3 / W2) x 100.",
+      "kind": "specific",
+      "workflow": "Gravimetric",
+      "details": {
+        "sampleG": 1.0,
+        "muffleTempC": "600 ± 50",
+        "ignitionTimeH": 2,
+        "formula": "% total ash = (W3 / W2) x 100; W3 = W4 - W1 (residue wt), W2 = sample wt",
+        "reference": "Analytical method verification for ash content in Opadry Red"
+      },
+      "source": "Opadry Red__STM Opadry Red 3-1.txt:33"
+    },
+    {
+      "testCode": "TAMC",
+      "procedure": "Microbial enumeration per USP <2021> / <2023>: 10 g sample diluted to 100 mL with SCDB; pour plate with Soybean Casein Digest Agar (SCDA); incubate at 30-35 °C for 24-72 h.",
+      "kind": "general",
+      "workflow": "CountTest",
+      "details": {
+        "media": "Soybean Casein Digest Agar (SCDA)",
+        "incubation": "24-72 h at 30-35 °C",
+        "reference": "USP 2024 <2021>; USP 2024 <2023>"
+      },
+      "source": "Opadry Red__STM Opadry Red 3-1.txt:35"
+    },
+    {
+      "testCode": "TYMC",
+      "procedure": "Microbial enumeration per USP <2021> / <2023>: 10 g sample diluted to 100 mL with SCDB; pour plate with Sabouraud Dextrose Agar (SDA); incubate at 20-25 °C for 5-7 days.",
+      "kind": "general",
+      "workflow": "CountTest",
+      "details": {
+        "media": "Sabouraud Dextrose Agar (SDA)",
+        "incubation": "5-7 days at 20-25 °C",
+        "reference": "USP 2024 <2021>; USP 2024 <2023>"
+      },
+      "source": "Opadry Red__STM Opadry Red 3-1.txt:35"
+    },
+    {
+      "testCode": "E.coli",
+      "procedure": "Test for E. coli per USP <2022> / <2023>: Pre-enrichment in SCDB at 30-35 °C 24-48 h; transfer 1 mL to 10 mL MacConkey Broth at 42-44 °C 24-48 h; subculture on MacConkey Agar at 30-35 °C 18-24 h; confirm brick-red colonies by Gram stain, EMB agar, TBX agar, or biochemical identification.",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {
+        "media": [
+          "Soybean Casein Digest Broth",
+          "MacConkey Broth",
+          "MacConkey Agar",
+          "Eosin Methylene Blue agar",
+          "Tryptone Bile X-glucouronide agar"
+        ],
+        "reference": "USP 2024 <2022>; USP 2024 <2023>"
+      },
+      "source": "Opadry Red__STM Opadry Red 3-1.txt:36-37"
+    }
+  ],
+  "notApplicable": [],
+  "supplierAttributes": [],
+  "reagents": [
+    {
+      "name": "Isopropyl alcohol",
+      "use": "reagent",
+      "source": "Opadry Red__STM Opadry Red 3-1.txt:28"
+    },
+    {
+      "name": "Dichloromethane",
+      "use": "reagent",
+      "source": "Opadry Red__STM Opadry Red 3-1.txt:28"
+    },
+    {
+      "name": "Tryptone Soya agar",
+      "use": "reagent",
+      "source": "Opadry Red__STM Opadry Red 3-1.txt:28"
+    },
+    {
+      "name": "Soybean Casein Digest Agar",
+      "use": "reagent",
+      "source": "Opadry Red__STM Opadry Red 3-1.txt:28"
+    },
+    {
+      "name": "Tryptone Soya broth",
+      "use": "reagent",
+      "source": "Opadry Red__STM Opadry Red 3-1.txt:28"
+    },
+    {
+      "name": "Soybean Casein Digest Broth",
+      "use": "reagent",
+      "source": "Opadry Red__STM Opadry Red 3-1.txt:28"
+    },
+    {
+      "name": "MacConkey broth",
+      "use": "reagent",
+      "source": "Opadry Red__STM Opadry Red 3-1.txt:28"
+    },
+    {
+      "name": "MacConkey broth purple",
+      "use": "reagent",
+      "source": "Opadry Red__STM Opadry Red 3-1.txt:28"
+    },
+    {
+      "name": "Sabouraud dextrose agar",
+      "use": "reagent",
+      "source": "Opadry Red__STM Opadry Red 3-1.txt:28"
+    },
+    {
+      "name": "MacConkey agar No. 3",
+      "use": "reagent",
+      "source": "Opadry Red__STM Opadry Red 3-1.txt:28"
+    },
+    {
+      "name": "Eosin methylene blue agar",
+      "use": "reagent",
+      "source": "Opadry Red__STM Opadry Red 3-1.txt:28"
+    },
+    {
+      "name": "Tryptone Bile X-glucouronide agar",
+      "use": "reagent",
+      "source": "Opadry Red__STM Opadry Red 3-1.txt:28"
+    }
+  ],
+  "openQuestions": [
+    {
+      "question": "Header line 5 in STM Opadry Red 3-1.txt lists STM No. as 'STM-RM-130' while history line 55 and the spec sheet confirm code STM-RM-132; transcribed with STM code STM-RM-132.",
+      "source": "Opadry Red__STM Opadry Red 3-1.txt:5; Opadry Red__Specifications sheet Opadry Red.txt:9"
+    },
+    {
+      "question": "Ash content formula in STM line 33 contains a calculation typo stating 'Calculate W2-W3= total ash (wt)' where W3 is residue (ash) weight and W2 is sample weight; transcribed as ash content Range 27.0% to 35.0%.",
+      "source": "Opadry Red__STM Opadry Red 3-1.txt:33"
+    },
+    {
+      "question": "Spec sheet rows 15 and 16 print TAMC and TYMC limits as '103 CFU / gm' and '102 CFU / gm' (10^3 and 10^2 CFU/g); transcribed as upper limits 1000 and 100 CFU/gm.",
+      "source": "Opadry Red__Specifications sheet Opadry Red.txt:15; Opadry Red__Specifications sheet Opadry Red.txt:16"
+    },
+    {
+      "question": "Folder contains two version 3-1 STMs: one with micro procedures ('STM Opadry Red 3-1.txt') and one without ('without micro'); the full version with micro was used for transcription.",
+      "source": "Opadry Red__STM Opadry Red 3-1.txt:1; Opadry Red__STM Opadry Red 3-1 without micro.txt:1"
+    }
+  ]
+}

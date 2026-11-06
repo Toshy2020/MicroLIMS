@@ -1,0 +1,840 @@
+{
+  "itemCode": "STM-RM-086",
+  "stmCode": "STM-RM-086",
+  "itemName": "Magnesium Stearate",
+  "stmFile": "Magnesium Stearate__Magnesium Stearate - SM.txt",
+  "specFiles": [
+    "Magnesium Stearate__Specifications sheet Magnesium Stearate.txt"
+  ],
+  "minQuantity": {
+    "routine": 100,
+    "retest": 50,
+    "retention": 100,
+    "unit": "g",
+    "source": "Magnesium Stearate__Specifications sheet Magnesium Stearate.txt:29; Magnesium Stearate__Magnesium Stearate - SM.txt:57"
+  },
+  "grades": [
+    {
+      "grade": "BP",
+      "rows": [
+        {
+          "testCode": "RM-DESC",
+          "parameterName": "Appearance",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "White or almost white, very fine, light powder, greasy to the touch",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Magnesium Stearate__Specifications sheet Magnesium Stearate.txt:11"
+        },
+        {
+          "testCode": "RM-SOLUB",
+          "parameterName": "Solubility",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Practically insoluble in water and in anhydrous ethanol",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Magnesium Stearate__Specifications sheet Magnesium Stearate.txt:12"
+        },
+        {
+          "testCode": "RM-ID-CR-MG",
+          "parameterName": "Identification (Chemical Reaction)",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "a white crystalline precipitate is formed",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Magnesium Stearate__Specifications sheet Magnesium Stearate.txt:13"
+        },
+        {
+          "testCode": "RM-ID-FP-MG",
+          "parameterName": "Identification (Freezing Point)",
+          "limitType": "NotLessThan",
+          "lower": 53,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": "°C",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Magnesium Stearate__Specifications sheet Magnesium Stearate.txt:14"
+        },
+        {
+          "testCode": "RM-ID-AV-MG",
+          "parameterName": "Identification (Acid value)",
+          "limitType": "Range",
+          "lower": 195,
+          "upper": 210,
+          "lowerInclusive": true,
+          "unit": null,
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Magnesium Stearate__Specifications sheet Magnesium Stearate.txt:15"
+        },
+        {
+          "testCode": "RM-ACID-ALK-MG",
+          "parameterName": "Acidity or alkalinity",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 0.05,
+          "lowerInclusive": null,
+          "unit": "mL of 0.1 M hydrochloric acid or 0.1 M sodium hydroxide",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Magnesium Stearate__Specifications sheet Magnesium Stearate.txt:16"
+        },
+        {
+          "testCode": "RM-LT-CL",
+          "parameterName": "Chlorides",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Complies (Maximum 0.1 per cent)",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Magnesium Stearate__Specifications sheet Magnesium Stearate.txt:17"
+        },
+        {
+          "testCode": "RM-LT-SO4",
+          "parameterName": "Sulfates",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Complies (Maximum 1.0 per cent)",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Magnesium Stearate__Specifications sheet Magnesium Stearate.txt:18"
+        },
+        {
+          "testCode": "RM-ICP-CD-MG",
+          "parameterName": "Cadmium",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 3,
+          "lowerInclusive": null,
+          "unit": "ppm",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Magnesium Stearate__Specifications sheet Magnesium Stearate.txt:19",
+          "heldBack": "needs the held-back method \"Cadmium by AAS (magnesium stearate BP)\""
+        },
+        {
+          "testCode": "RM-ICP-PB-MG",
+          "parameterName": "Lead",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 10,
+          "lowerInclusive": null,
+          "unit": "ppm",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Magnesium Stearate__Specifications sheet Magnesium Stearate.txt:20",
+          "heldBack": "needs the held-back method \"Lead by AAS (magnesium stearate BP)\""
+        },
+        {
+          "testCode": "RM-ICP-NI-MG",
+          "parameterName": "Nickel",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 5,
+          "lowerInclusive": null,
+          "unit": "ppm",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Magnesium Stearate__Specifications sheet Magnesium Stearate.txt:21",
+          "heldBack": "needs the held-back method \"Nickel by AAS (magnesium stearate BP)\""
+        },
+        {
+          "testCode": "RM-LOD",
+          "parameterName": "Loss on drying",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 6.0,
+          "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Magnesium Stearate__Specifications sheet Magnesium Stearate.txt:22"
+        },
+        {
+          "testCode": "RM-TIT-MGST",
+          "parameterName": "Assay",
+          "limitType": "Range",
+          "lower": 4.0,
+          "upper": 5.0,
+          "lowerInclusive": true,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": "PercentDriedBasis",
+          "referenceStandard": "BP",
+          "source": "Magnesium Stearate__Specifications sheet Magnesium Stearate.txt:23"
+        },
+        {
+          "testCode": "RM-GC-FA-MG",
+          "parameterName": "Stearic acid in the fatty acid fraction",
+          "limitType": "NotLessThan",
+          "lower": 40.0,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Magnesium Stearate__Specifications sheet Magnesium Stearate.txt:24",
+          "heldBack": "STM: GC method incomplete (calculation expression not stated)"
+        },
+        {
+          "testCode": "RM-GC-FA-MG",
+          "parameterName": "Sum of stearic acid and palmitic acid in the fatty acid fraction",
+          "limitType": "NotLessThan",
+          "lower": 90.0,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Magnesium Stearate__Specifications sheet Magnesium Stearate.txt:24",
+          "heldBack": "STM: GC method incomplete (calculation expression not stated)"
+        },
+        {
+          "testCode": "RM-TAMC",
+          "parameterName": "Total aerobic microbial count",
+          "limitType": "CountTiered",
+          "lower": null,
+          "upper": 1000,
+          "lowerInclusive": null,
+          "unit": "CFU/g",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Magnesium Stearate__Specifications sheet Magnesium Stearate.txt:25"
+        },
+        {
+          "testCode": "RM-TYMC",
+          "parameterName": "Total yeasts and molds count",
+          "limitType": "CountTiered",
+          "lower": null,
+          "upper": 100,
+          "lowerInclusive": null,
+          "unit": "CFU/g",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Magnesium Stearate__Specifications sheet Magnesium Stearate.txt:26"
+        },
+        {
+          "testCode": "RM-ECOLI",
+          "parameterName": "Test for E. coli",
+          "limitType": "PresenceAbsence",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": "per g",
+          "expectedResultText": "Absent / gm",
+          "expectedState": "Absence",
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Magnesium Stearate__Specifications sheet Magnesium Stearate.txt:27"
+        },
+        {
+          "testCode": "RM-SALM",
+          "parameterName": "Test for Salmonella spp.",
+          "limitType": "PresenceAbsence",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": "per 10 g",
+          "expectedResultText": "Absent /10 gm",
+          "expectedState": "Absence",
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Magnesium Stearate__Specifications sheet Magnesium Stearate.txt:28"
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "testCode": "RM-DESC",
+      "procedure": "Under strong white light, check each received sample container separately in clean, transparent watch glass or glass dish to detect any foreign particles, conformance of colour & compliance with the visual specifications.",
+      "kind": "general",
+      "workflow": "Observation",
+      "details": {
+        "perContainer": true,
+        "specification": "White or almost white, very fine, light powder, greasy to the touch",
+        "reference": "BP 2025 Monograph for Magnesium Stearate"
+      },
+      "source": "Magnesium Stearate__Magnesium Stearate - SM.txt:30"
+    },
+    {
+      "testCode": "RM-SOLUB",
+      "procedure": "Weigh 100 mg of sample in a stoppered tube. Stepwise add solvent: 0.1 mL, 0.9 mL, 2 mL, 7 mL with 1 min vigorous shaking and 15 min hold at 25.0 ± 0.5 °C; if undissolved test 10 mg in 10 mL then 1 mg in 10 mL. Repeat with water and anhydrous ethanol.",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {
+        "solvents": [
+          "water",
+          "anhydrous ethanol"
+        ],
+        "specification": "Practically insoluble in water and in anhydrous ethanol"
+      },
+      "source": "Magnesium Stearate__Magnesium Stearate - SM.txt:31"
+    },
+    {
+      "testCode": "RM-ID-CR-MG",
+      "procedure": "To 1 mL of solution S add 1 mL of dilute ammonia R1. A white precipitate forms that dissolves on addition of 1 mL ammonium chloride solution. Add 1 mL of 120 g/L disodium hydrogen phosphate dodecahydrate solution; a white crystalline precipitate is formed.",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "details": {
+        "sampleSolution": "1 mL solution S (5.0 g refluxed in 50 mL ether + 20 mL dilute HNO3 + 20 mL water, aqueous layer diluted to 50.0 mL)",
+        "reagents": [
+          "1 mL dilute ammonia R1",
+          "1 mL ammonium chloride solution",
+          "1 mL 120 g/L disodium hydrogen phosphate"
+        ],
+        "expected": "White crystalline precipitate is formed",
+        "reference": "BP 2025 Monograph for Magnesium Stearate"
+      },
+      "source": "Magnesium Stearate__Magnesium Stearate - SM.txt:32"
+    },
+    {
+      "testCode": "RM-ID-FP-MG",
+      "procedure": "Determined on the residue obtained from evaporating the ether layer in preparation of solution S, dried at 100-105 °C. Insert thermometer in Nessler tube containing the residue, warm on hot plate, record freezing point.",
+      "kind": "specific",
+      "workflow": "Measurement",
+      "details": {
+        "sample": "Residue from ether layer of solution S, dried at 100-105 °C",
+        "specification": "Minimum 53 °C",
+        "reference": "BP Appendix V B. Determination of Freezing Point"
+      },
+      "source": "Magnesium Stearate__Magnesium Stearate - SM.txt:32"
+    },
+    {
+      "testCode": "RM-ID-AV-MG",
+      "procedure": "Dissolve 0.200 g (m) of residue from solution S in 25 mL of neutralized equal parts ethanol (96%) and light petroleum R3, using 0.5 mL phenolphthalein solution R1. Heat to ~90 °C if needed. Titrate with 0.1 M KOH or 0.1 M NaOH until pink color persists for at least 15 s (n mL). Acid value IA = 5.611 x n / m.",
+      "kind": "specific",
+      "workflow": "Titration",
+      "details": {
+        "sampleG": 0.2,
+        "solvent": "25 mL neutralized ethanol (96%) + light petroleum R3 (1:1)",
+        "indicator": "0.5 mL phenolphthalein solution R1",
+        "titrant": "0.1 M KOH or 0.1 M NaOH",
+        "formula": "IA = 5.611 x n / m",
+        "specification": "195 to 210",
+        "reference": "BP Appendix X B. Acid Value"
+      },
+      "source": "Magnesium Stearate__Magnesium Stearate - SM.txt:32"
+    },
+    {
+      "testCode": "RM-ACID-ALK-MG",
+      "procedure": "To 1.0 g add 20 mL carbon dioxide-free water, boil 1 min with continuous shaking, cool, filter. To 10 mL filtrate add 0.05 mL bromothymol blue solution R4. Not more than 0.05 mL of 0.1 M HCl or 0.1 M NaOH is required to change indicator color.",
+      "kind": "specific",
+      "workflow": "Measurement",
+      "details": {
+        "sampleG": 1.0,
+        "waterMl": 20,
+        "boilTimeMin": 1,
+        "filtrateAliquotMl": 10,
+        "indicator": "0.05 mL bromothymol blue solution R4",
+        "titrant": "0.1 M HCl or 0.1 M NaOH",
+        "limit": "Not more than 0.05 mL",
+        "reference": "BP 2025 Monograph for Magnesium Stearate"
+      },
+      "source": "Magnesium Stearate__Magnesium Stearate - SM.txt:33"
+    },
+    {
+      "testCode": "RM-LT-CL",
+      "procedure": "Dilute 10.0 mL solution S to 40 mL with water. Neutralize if necessary with nitric acid to litmus. Add 1 mL nitric acid and 1 mL 0.1 M silver nitrate, dilute to 50 mL, stand 5 min protected from light. Turbidity not greater than standard with 1.4 mL of 0.02 M hydrochloric acid.",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {
+        "sampleSolution": "10.0 mL solution S diluted to 40 mL",
+        "reagents": [
+          "1 mL nitric acid",
+          "1 mL 0.1 M silver nitrate"
+        ],
+        "standard": "1.4 mL of 0.02 M HCl (0.1% limit)",
+        "limit": "Maximum 0.1 per cent",
+        "reference": "BP 2025 Monograph for Magnesium Stearate"
+      },
+      "source": "Magnesium Stearate__Magnesium Stearate - SM.txt:34"
+    },
+    {
+      "testCode": "RM-LT-SO4",
+      "procedure": "Dilute 6.0 mL solution S to 40 mL with water. Neutralize if necessary with hydrochloric acid to litmus. Add 1 mL 3 M HCl and 3 mL 120 g/L barium chloride, dilute to 50 mL, stand 10 min. Turbidity not greater than standard with 3.0 mL of 0.02 M sulfuric acid.",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {
+        "sampleSolution": "6.0 mL solution S diluted to 40 mL",
+        "reagents": [
+          "1 mL 3 M HCl",
+          "3 mL 120 g/L barium chloride"
+        ],
+        "standard": "3.0 mL of 0.02 M sulfuric acid (1.0% limit)",
+        "limit": "Maximum 1.0 per cent",
+        "reference": "BP 2025 Monograph for Magnesium Stearate"
+      },
+      "source": "Magnesium Stearate__Magnesium Stearate - SM.txt:35"
+    },
+    {
+      "testCode": "RM-ICP-CD-MG",
+      "procedure": "Graphite furnace atomic absorption spectrometry (GFAA). Digest 0.100 g in PTFE bomb with 2.5 mL cadmium- and lead-free nitric acid at 170 °C for 3 h, dilute to 10.0 mL. Dilute 1.0 mL to 10.0 mL. Standard addition with 0.0030 µg/mL Cd reference solution and matrix modifier (NH4H2PO4 + Mg(NO3)2). Wavelength 228.8 nm.",
+      "kind": "specific",
+      "workflow": "IcpMethodAssay",
+      "details": {
+        "technique": "Atomic Absorption Spectrophotometry (GFAA, standard additions)",
+        "element": "Cd",
+        "wavelengthNm": 228.8,
+        "sampleWeightG": 0.1,
+        "digestion": "2.5 mL HNO3 at 170 °C for 3 h in PTFE bomb",
+        "matrixModifier": "20 g NH4H2PO4 + 1 g Mg(NO3)2 in 100 mL water (50 µL added)",
+        "referenceSolution": "0.0030 µg/mL Cd from cadmium nitrate tetrahydrate",
+        "standardAdditionLevelsUgPerMl": [
+          0,
+          0.00075,
+          0.0015
+        ],
+        "specification": "Maximum 3 ppm",
+        "reference": "BP Appendix II D"
+      },
+      "source": "Magnesium Stearate__Magnesium Stearate - SM.txt:36",
+      "heldBack": "needs the held-back method \"Cadmium by AAS (magnesium stearate BP)\""
+    },
+    {
+      "testCode": "RM-ICP-PB-MG",
+      "procedure": "Graphite furnace atomic absorption spectrometry (GFAA). Use digested solution from cadmium test. Standard addition with 0.100 µg/mL Pb reference solution and matrix modifier. Wavelength 283.3 nm.",
+      "kind": "specific",
+      "workflow": "IcpMethodAssay",
+      "details": {
+        "technique": "Atomic Absorption Spectrophotometry (GFAA, standard additions)",
+        "element": "Pb",
+        "wavelengthNm": 283.3,
+        "sampleSolution": "same digest as cadmium",
+        "matrixModifier": "50 µL modifier from cadmium test",
+        "referenceSolution": "0.100 µg/mL Pb from lead standard solution (100 ppm Pb)",
+        "standardAdditionLevelsUgPerMl": [
+          0,
+          0.025,
+          0.05
+        ],
+        "specification": "Maximum 10 ppm",
+        "reference": "BP Appendix II D"
+      },
+      "source": "Magnesium Stearate__Magnesium Stearate - SM.txt:41",
+      "heldBack": "needs the held-back method \"Lead by AAS (magnesium stearate BP)\""
+    },
+    {
+      "testCode": "RM-ICP-NI-MG",
+      "procedure": "Graphite furnace atomic absorption spectrometry (GFAA). Use digested solution from cadmium test. Standard addition with 0.050 µg/mL Ni reference solution and matrix modifier (20 g NH4H2PO4 in 100 mL water). Wavelength 232.0 nm.",
+      "kind": "specific",
+      "workflow": "IcpMethodAssay",
+      "details": {
+        "technique": "Atomic Absorption Spectrophotometry (GFAA, standard additions)",
+        "element": "Ni",
+        "wavelengthNm": 232.0,
+        "sampleSolution": "same digest as cadmium",
+        "matrixModifier": "20 g NH4H2PO4 in 100 mL water (50 µL added)",
+        "referenceSolution": "0.050 µg/mL Ni from nickel nitrate hexahydrate",
+        "standardAdditionLevelsUgPerMl": [
+          0,
+          0.0125,
+          0.025
+        ],
+        "specification": "Maximum 5 ppm",
+        "reference": "BP Appendix II D"
+      },
+      "source": "Magnesium Stearate__Magnesium Stearate - SM.txt:46",
+      "heldBack": "needs the held-back method \"Nickel by AAS (magnesium stearate BP)\""
+    },
+    {
+      "testCode": "RM-LOD",
+      "procedure": "Accurately weigh empty weighing bottle previously dried at 105 °C and cooled in desiccator (W0). Weigh accurately 1.000 g into bottle (W1 = empty bottle + sample). Dry in oven at 105 °C for 3 h, cool in desiccator, weigh (W2). Repeat to constant weight. % LOD = ((W1 - W2) / (W1 - W0)) x 100.",
+      "kind": "general",
+      "workflow": "Gravimetric",
+      "details": {
+        "sampleG": 1.0,
+        "dryingTemp": "105 °C",
+        "initialTimeHours": 3,
+        "formula": "% Loss on Drying = ((W1 - W2) / (W1 - W0)) x 100",
+        "reference": "BP Appendix IX D"
+      },
+      "source": "Magnesium Stearate__Magnesium Stearate - SM.txt:51"
+    },
+    {
+      "testCode": "RM-TIT-MGST",
+      "procedure": "To 0.500 g in 250 mL flask add 50 mL 1:1 anhydrous ethanol and butanol, 5 mL concentrated ammonia, 3 mL ammonium chloride buffer (pH 10.9), 30.0 mL 0.1 M disodium edetate VS, 15 mL water, and ~0.2 g mordant black 11 triturate. Heat to 45-50 °C and titrate excess edetate with 0.1 M zinc sulfate until color changes from blue to violet. Carry out blank titration. 1 mL 0.1 M edetate = 2.431 mg Mg. % Mg = ((Vblank - Vsample) x 2.431 x factor) / (sample weight x 10 x (1 - LOD/100)).",
+      "kind": "specific",
+      "workflow": "Titration",
+      "details": {
+        "sampleG": 0.5,
+        "solvents": [
+          "25 mL anhydrous ethanol",
+          "25 mL butanol"
+        ],
+        "additions": [
+          "5 mL concentrated ammonia",
+          "3 mL ammonium chloride buffer pH 10.9",
+          "30.0 mL 0.1 M disodium edetate VS",
+          "15 mL water"
+        ],
+        "indicator": "~0.2 g mordant black 11 triturate",
+        "titrant": "0.1 M zinc sulfate (back titration)",
+        "equivalenceFactor": "2.431 mg Mg per mL of 0.1 M disodium edetate",
+        "endpoint": "blue to violet at 45-50 °C",
+        "blank": true,
+        "specBasis": "dried substance",
+        "formula": "% Mg = ((Vblank - Vsample) x 2.431 x factor) / (sample weight x 10 x (1 - LOD/100))",
+        "specification": "4.0 per cent to 5.0 per cent (dried substance)",
+        "reference": "BP 2025 Monograph for Magnesium Stearate"
+      },
+      "source": "Magnesium Stearate__Magnesium Stearate - SM.txt:52"
+    },
+    {
+      "testCode": "RM-GC-FA-MG",
+      "procedure": "Gas chromatography of fatty acid methyl esters. Dissolve 0.10 g in 5 mL boron trifluoride-methanol, reflux 10 min, add 4 mL heptane, reflux 10 min, cool, add 20 mL saturated NaCl. Separate organic layer, dry over anhydrous Na2SO4, dilute 1.0 mL to 10.0 mL with heptane. Reference solution: 50.0 mg palmitic acid RS + 50.0 mg stearic acid RS prepared identically. Fused silica column 30 m x 0.32 mm, macrogol 20 000 (0.5 µm), carrier He at 2.4 mL/min, FID detection. Inject 1 µL.",
+      "kind": "specific",
+      "workflow": "Measurement",
+      "details": {
+        "technique": "Gas Chromatography (GC-FID)",
+        "column": "fused silica, 30 m x 0.32 mm, macrogol 20 000 (0.5 µm)",
+        "carrierGas": "Helium at 2.4 mL/min",
+        "temperatureProgram": "70 °C (2 min) -> 240 °C (34 min) -> 240 °C (5 min)",
+        "injectorTemp": "220 °C",
+        "detectorTemp": "260 °C (FID)",
+        "injectionUl": 1,
+        "standards": [
+          "palmitic acid RS",
+          "stearic acid RS"
+        ],
+        "derivatization": "boron trifluoride-methanol, reflux",
+        "systemSuitability": {
+          "resolution": "min 5.0 between methyl palmitate and methyl stearate",
+          "rsdAreas": "max 3.0% (6 injections)",
+          "rsdRatio": "max 1.0% (6 injections)"
+        },
+        "limits": {
+          "stearicAcidFraction": "minimum 40.0 per cent",
+          "stearicPlusPalmiticFraction": "minimum 90.0 per cent"
+        },
+        "reference": "BP Appendix III B; BP 2025 Monograph"
+      },
+      "source": "Magnesium Stearate__Magnesium Stearate - SM.txt:53",
+      "heldBack": "STM: GC method incomplete (calculation expression not stated)"
+    },
+    {
+      "testCode": "RM-TAMC",
+      "procedure": "Microbiological examination per SOP C2I-91-128 and the material-specific verification report.",
+      "kind": "general",
+      "workflow": "CountTest",
+      "details": {
+        "limit": "Not more than 10^3 CFU/gm",
+        "reference": "BP 2025 Monograph",
+        "sop": "C2I-91-128"
+      },
+      "source": "Magnesium Stearate__Magnesium Stearate - SM.txt:55"
+    },
+    {
+      "testCode": "RM-TYMC",
+      "procedure": "Microbiological examination per SOP C2I-91-128 and the material-specific verification report.",
+      "kind": "general",
+      "workflow": "CountTest",
+      "details": {
+        "limit": "Not more than 10^2 CFU/gm",
+        "reference": "BP 2025 Monograph",
+        "sop": "C2I-91-128"
+      },
+      "source": "Magnesium Stearate__Magnesium Stearate - SM.txt:55"
+    },
+    {
+      "testCode": "RM-ECOLI",
+      "procedure": "Microbiological examination per SOP C2I-91-128 and the material-specific verification report.",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {
+        "limit": "Absent / gm",
+        "reference": "BP 2025 Monograph",
+        "sop": "C2I-91-128"
+      },
+      "source": "Magnesium Stearate__Magnesium Stearate - SM.txt:55"
+    },
+    {
+      "testCode": "RM-SALM",
+      "procedure": "Microbiological examination per SOP C2I-91-128 and the material-specific verification report.",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {
+        "limit": "Absent / 10 gm",
+        "reference": "BP 2025 Monograph",
+        "sop": "C2I-91-128"
+      },
+      "source": "Magnesium Stearate__Magnesium Stearate - SM.txt:55"
+    }
+  ],
+  "notApplicable": [],
+  "supplierAttributes": [
+    {
+      "grade": null,
+      "name": "Particle-size distribution",
+      "statedValue": "No Particle is greater than 250 µm",
+      "source": "Magnesium Stearate__Specifications sheet Magnesium Stearate.txt:29"
+    },
+    {
+      "grade": null,
+      "name": "Specific Surface area",
+      "statedValue": "5.0 m2/gm to 15.0 m2/gm",
+      "source": "Magnesium Stearate__Specifications sheet Magnesium Stearate.txt:29"
+    }
+  ],
+  "reagents": [
+    {
+      "name": "Ammonium Chloride",
+      "use": "reagent",
+      "source": "Magnesium Stearate__Magnesium Stearate - SM.txt:28"
+    },
+    {
+      "name": "Ammonium dihydrogen phosphate",
+      "use": "reagent",
+      "source": "Magnesium Stearate__Magnesium Stearate - SM.txt:28"
+    },
+    {
+      "name": "Anhydrous ethanol",
+      "use": "reagent",
+      "source": "Magnesium Stearate__Magnesium Stearate - SM.txt:28"
+    },
+    {
+      "name": "Anhydrous sodium sulfate",
+      "use": "reagent",
+      "source": "Magnesium Stearate__Magnesium Stearate - SM.txt:28"
+    },
+    {
+      "name": "Barium chloride",
+      "use": "reagent",
+      "source": "Magnesium Stearate__Magnesium Stearate - SM.txt:28"
+    },
+    {
+      "name": "Boron trifluoride",
+      "use": "reagent",
+      "source": "Magnesium Stearate__Magnesium Stearate - SM.txt:28"
+    },
+    {
+      "name": "Bromothymol blue",
+      "use": "reagent",
+      "source": "Magnesium Stearate__Magnesium Stearate - SM.txt:28"
+    },
+    {
+      "name": "Butanol",
+      "use": "reagent",
+      "source": "Magnesium Stearate__Magnesium Stearate - SM.txt:28"
+    },
+    {
+      "name": "Cadmium nitrate tetrahydrate",
+      "use": "standard",
+      "source": "Magnesium Stearate__Magnesium Stearate - SM.txt:28"
+    },
+    {
+      "name": "Concentrated ammonia",
+      "use": "reagent",
+      "source": "Magnesium Stearate__Magnesium Stearate - SM.txt:28"
+    },
+    {
+      "name": "Disodium Edetate (0.1 M Disodium Edetate VS)",
+      "use": "titrant",
+      "source": "Magnesium Stearate__Magnesium Stearate - SM.txt:28"
+    },
+    {
+      "name": "Disodium Hydrogen Orthophosphate",
+      "use": "reagent",
+      "source": "Magnesium Stearate__Magnesium Stearate - SM.txt:28"
+    },
+    {
+      "name": "Ethanol (96 per cent)",
+      "use": "reagent",
+      "source": "Magnesium Stearate__Magnesium Stearate - SM.txt:28"
+    },
+    {
+      "name": "Ether, Peroxide-free",
+      "use": "reagent",
+      "source": "Magnesium Stearate__Magnesium Stearate - SM.txt:28"
+    },
+    {
+      "name": "Heptane",
+      "use": "reagent",
+      "source": "Magnesium Stearate__Magnesium Stearate - SM.txt:28"
+    },
+    {
+      "name": "Hydrochloric acid",
+      "use": "reagent",
+      "source": "Magnesium Stearate__Magnesium Stearate - SM.txt:28"
+    },
+    {
+      "name": "Iron (II) sulfate",
+      "use": "reagent",
+      "source": "Magnesium Stearate__Magnesium Stearate - SM.txt:28"
+    },
+    {
+      "name": "Lead nitrate",
+      "use": "standard",
+      "source": "Magnesium Stearate__Magnesium Stearate - SM.txt:28"
+    },
+    {
+      "name": "Light petroleum (Petroleum ether 100-120 °C)",
+      "use": "reagent",
+      "source": "Magnesium Stearate__Magnesium Stearate - SM.txt:28"
+    },
+    {
+      "name": "Litmus",
+      "use": "indicator",
+      "source": "Magnesium Stearate__Magnesium Stearate - SM.txt:28"
+    },
+    {
+      "name": "Macrogol 20 000",
+      "use": "reagent",
+      "source": "Magnesium Stearate__Magnesium Stearate - SM.txt:28"
+    },
+    {
+      "name": "Magnesium nitrate",
+      "use": "reagent",
+      "source": "Magnesium Stearate__Magnesium Stearate - SM.txt:28"
+    },
+    {
+      "name": "Methanol",
+      "use": "reagent",
+      "source": "Magnesium Stearate__Magnesium Stearate - SM.txt:28"
+    },
+    {
+      "name": "Mordant black 11 (Eriochrome black T)",
+      "use": "indicator",
+      "source": "Magnesium Stearate__Magnesium Stearate - SM.txt:28"
+    },
+    {
+      "name": "Nickel nitrate hexahydrate",
+      "use": "standard",
+      "source": "Magnesium Stearate__Magnesium Stearate - SM.txt:28"
+    },
+    {
+      "name": "Nitric Acid",
+      "use": "reagent",
+      "source": "Magnesium Stearate__Magnesium Stearate - SM.txt:28"
+    },
+    {
+      "name": "Palmitic acid RS",
+      "use": "standard",
+      "source": "Magnesium Stearate__Magnesium Stearate - SM.txt:28"
+    },
+    {
+      "name": "Stearic acid RS",
+      "use": "standard",
+      "source": "Magnesium Stearate__Magnesium Stearate - SM.txt:28"
+    },
+    {
+      "name": "Phenolphthalein",
+      "use": "indicator",
+      "source": "Magnesium Stearate__Magnesium Stearate - SM.txt:28"
+    },
+    {
+      "name": "Potassium hydroxide",
+      "use": "reagent",
+      "source": "Magnesium Stearate__Magnesium Stearate - SM.txt:28"
+    },
+    {
+      "name": "Potassium iodide",
+      "use": "reagent",
+      "source": "Magnesium Stearate__Magnesium Stearate - SM.txt:28"
+    },
+    {
+      "name": "Silver Nitrate",
+      "use": "reagent",
+      "source": "Magnesium Stearate__Magnesium Stearate - SM.txt:28"
+    },
+    {
+      "name": "Sodium chloride",
+      "use": "reagent",
+      "source": "Magnesium Stearate__Magnesium Stearate - SM.txt:28"
+    },
+    {
+      "name": "Sodium hydroxide",
+      "use": "reagent",
+      "source": "Magnesium Stearate__Magnesium Stearate - SM.txt:28"
+    },
+    {
+      "name": "Soluble starch",
+      "use": "indicator",
+      "source": "Magnesium Stearate__Magnesium Stearate - SM.txt:28"
+    },
+    {
+      "name": "Sulfuric acid",
+      "use": "reagent",
+      "source": "Magnesium Stearate__Magnesium Stearate - SM.txt:28"
+    },
+    {
+      "name": "Zinc",
+      "use": "standard",
+      "source": "Magnesium Stearate__Magnesium Stearate - SM.txt:28"
+    },
+    {
+      "name": "Zinc sulfate",
+      "use": "reagent",
+      "source": "Magnesium Stearate__Magnesium Stearate - SM.txt:28"
+    }
+  ],
+  "openQuestions": [
+    {
+      "question": "TAMC and TYMC limits in the spec sheet and STM read 'NMT 103 CFU/ gm' and 'NMT 102 CFU/ gm' (superscripts flattened); transcribed as 1000 and 100 CFU/g.",
+      "source": "Magnesium Stearate__Specifications sheet Magnesium Stearate.txt:25-26; Magnesium Stearate__Magnesium Stearate - SM.txt:55"
+    },
+    {
+      "question": "Cadmium, Lead, and Nickel are determined by graphite furnace atomic absorption spectroscopy (GFAA) using standard additions; held back as ICP methods pending definition of GFAA/ICP method in catalog.json.",
+      "source": "Magnesium Stearate__Specifications sheet Magnesium Stearate.txt:19-21; Magnesium Stearate__Magnesium Stearate - SM.txt:36,41,46"
+    },
+    {
+      "question": "Stearic acid and palmitic acid composition is determined by gas chromatography (GC-FID); held back per rule 6 because the STM lacks the calculation formula.",
+      "source": "Magnesium Stearate__Specifications sheet Magnesium Stearate.txt:24; Magnesium Stearate__Magnesium Stearate - SM.txt:53"
+    },
+    {
+      "question": "Additional requirements on the spec sheet (line 29) list Particle-size distribution (No particle > 250 µm) and Specific Surface area (5.0 to 15.0 m2/gm); neither has a procedure in the STM, so they are recorded as supplierAttributes.",
+      "source": "Magnesium Stearate__Specifications sheet Magnesium Stearate.txt:29"
+    },
+    {
+      "question": "Chlorides and sulfates visual limit tests are recorded as Qualitative rows with expectedResultText 'Complies (Maximum 0.1 per cent)' and 'Complies (Maximum 1.0 per cent)' per visual comparison limit rules.",
+      "source": "Magnesium Stearate__Specifications sheet Magnesium Stearate.txt:17-18; Magnesium Stearate__Magnesium Stearate - SM.txt:34,35"
+    }
+  ]
+}

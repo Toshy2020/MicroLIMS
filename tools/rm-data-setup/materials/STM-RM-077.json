@@ -1,0 +1,41 @@
+{
+  "itemCode": "STM-RM-077",
+  "itemName": "Methylene Blue",
+  "stmCode": "STM-RM-077",
+  "stmFile": "Methylene Blue__STM-Methylene Blue.txt",
+  "specFiles": [],
+  "minQuantity": {
+    "routine": 50,
+    "retest": 100,
+    "retention": 50,
+    "unit": "g",
+    "source": "Methylene Blue__STM-Methylene Blue.txt:42"
+  },
+  "grades": [],
+  "tests": [],
+  "notApplicable": [],
+  "supplierAttributes": [],
+  "reagents": [],
+  "openQuestions": [
+    {
+      "question": "No item in the app for this STM (NO ITEM): itemCode set to the STM number STM-RM-077. Confirm the item before loading.",
+      "source": "Methylene Blue__STM-Methylene Blue.txt:5"
+    },
+    {
+      "question": "The STM is titled 'Methylene blue' but every test, reference and limit in it is for Natural Beta carotene 20 % (inhouse specifications, USP references, Analytical Method Validation Report for Natural beta carotene 20 %). No methylene blue test or limit can be confirmed, so no grades, rows or tests are loaded. The micro limits in the text (TAMC NMT 10^3 CFU/gm, TYMC NMT 10^2 CFU/gm, E. coli and Salmonella absent /10 gm) are also held back for the same reason. Confirm the correct STM text.",
+      "source": "Methylene Blue__STM-Methylene Blue.txt:30; Methylene Blue__STM-Methylene Blue.txt:38; Methylene Blue__STM-Methylene Blue.txt:39; Methylene Blue__STM-Methylene Blue.txt:40"
+    },
+    {
+      "question": "The spec sheet in this folder is for Magnesium Oxide (STM-RM-058, item codes VB010100100038, VB010121800016), not Methylene Blue. Misfiled; ignored, not used for specFiles.",
+      "source": "Methylene Blue__Specifications sheet Methylene Blue.txt:7-9"
+    },
+    {
+      "question": "Revision history says the STM code changed from C5I-91-212 to 'STM-SM-102', which does not match STM-RM-077.",
+      "source": "Methylene Blue__STM-Methylene Blue.txt:55"
+    },
+    {
+      "question": "Minimum sample quantity (50 g routine and retention, 100 g periodic retest) comes from the same beta carotene text; loaded because it is a plain statement in section 7, but confirm it applies to methylene blue.",
+      "source": "Methylene Blue__STM-Methylene Blue.txt:42"
+    }
+  ]
+}

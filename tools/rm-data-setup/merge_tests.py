@@ -103,9 +103,15 @@ def db(args, dry):
     sql = ["BEGIN;"]
     for new, (name, members) in MERGES.items():
         present = [m for m in members if m in by and m != new]
+        # Item assignments keep their own copy of the name, and an item that had two members (BP and USP
+        # versions) would now list the test twice. Both are fixed every run (idempotent).
+        tidy = [f'UPDATE "SampleTests" SET "DisplayName"={q(name)} WHERE "TestCode"={q(new)};',
+                f'DELETE FROM "SampleTests" a USING "SampleTests" b WHERE a."TestCode"={q(new)} AND b."TestCode"={q(new)} '
+                f'AND a."ItemId" = b."ItemId" AND a."Id" > b."Id";']
         if not present:
             if new in by:
                 print(f"{new}: done already")
+                sql.extend(tidy)
             continue
         sigs = {json.dumps({k: v for k, v in by[m].items() if k not in ign}, sort_keys=True) for m in present}
         if new in by and new not in members:
@@ -119,6 +125,7 @@ def db(args, dry):
         sql.append(f'UPDATE "TestDefinitions" SET "Code"={q(new)}, "DisplayName"={q(name)} WHERE "Code"={q(keeper)};')
         for t in REF_COLUMNS:
             sql.append(f'UPDATE "{t}" SET "TestCode"={q(new)} WHERE "TestCode" IN ({lst});')
+        sql.extend(tidy)
         if others:
             ol = ",".join(q(m) for m in others)
             sql.append(f'DELETE FROM "TestWorkflowSteps" WHERE "TestDefinitionId" IN (SELECT "Id" FROM "TestDefinitions" WHERE "Code" IN ({ol}));')

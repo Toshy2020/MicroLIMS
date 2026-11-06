@@ -26,6 +26,7 @@ import {
   LimitType,
   productionStageRoleLabel
 } from "../../specifications/services/SpecificationService";
+import { collapseGrades, gradesOf, siblingsOf } from "../../specifications/services/gradeGroups";
 import { ConfirmationDialog } from "../../../../components/ConfirmationDialog";
 import { tableHeadSx } from "../../../../theme";
 import { masterDataOptions } from "../../../../services/masterDataOptions";
@@ -307,7 +308,9 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
     setDeleting(true);
     setError(null);
     try {
-      await SpecificationService.remove(pendingDelete.id);
+      for (const s of siblingsOf(pendingDelete)) {
+        if (s.id != null) await SpecificationService.remove(s.id);
+      }
       setPendingDelete(null);
       await loadSpecs();
       onSpecsChanged?.();
@@ -329,7 +332,7 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
   // Group specs by testCode (preserving order of appearance)
   const groupedSpecs: { testCode: string; specs: SpecificationDto[] }[] = [];
   const groupMap = new Map<string, SpecificationDto[]>();
-  for (const spec of specs) {
+  for (const spec of collapseGrades(specs)) {
     const list = groupMap.get(spec.testCode) ?? [];
     list.push(spec);
     groupMap.set(spec.testCode, list);
@@ -497,7 +500,7 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
                               {(spec.resultBasis || spec.hplcMethodAnalyteId || spec.canEdit === false || spec.productionStageRole || spec.grade) && (
                                 <Box sx={{ display: "flex", gap: 0.75, mt: 0.5, flexWrap: "wrap", alignItems: "center" }}>
                                   {spec.grade && (
-                                    <Chip size="small" label={`Grade: ${spec.grade}`} sx={{ height: 20, fontSize: 12, fontWeight: 600, color: "primary.main", border: "1px solid", borderColor: "primary.main", bgcolor: "transparent" }} />
+                                    <Chip size="small" label={`Grade: ${gradesOf(spec).join(", ")}`} sx={{ height: 20, fontSize: 12, fontWeight: 600, color: "primary.main", border: "1px solid", borderColor: "primary.main", bgcolor: "transparent" }} />
                                   )}
                                   {spec.productionStageRole && (
                                     <Chip
@@ -750,7 +753,7 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
                                       {(spec.resultBasis || spec.hplcMethodAnalyteId || spec.productionStageRole || spec.grade) && (
                                         <Box sx={{ display: "flex", gap: 0.75, mt: 0.5, flexWrap: "wrap", alignItems: "center" }}>
                                           {spec.grade && (
-                                            <Chip size="small" label={`Grade: ${spec.grade}`} sx={{ height: 20, fontSize: 12, fontWeight: 600, color: "primary.main", border: "1px solid", borderColor: "primary.main", bgcolor: "transparent" }} />
+                                            <Chip size="small" label={`Grade: ${gradesOf(spec).join(", ")}`} sx={{ height: 20, fontSize: 12, fontWeight: 600, color: "primary.main", border: "1px solid", borderColor: "primary.main", bgcolor: "transparent" }} />
                                           )}
                                           {spec.productionStageRole && (
                                             <Chip
@@ -975,7 +978,7 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
         open={pendingDelete != null}
         message={
           pendingDelete
-            ? `Delete specification parameter "${pendingDelete.parameterName || pendingDelete.testCode}" for "${item.name}"? This cannot be undone.`
+            ? `Delete specification parameter "${pendingDelete.parameterName || pendingDelete.testCode}"${gradesOf(pendingDelete).length > 1 ? ` (grades ${gradesOf(pendingDelete).join(", ")})` : ""} for "${item.name}"? This cannot be undone.`
             : ""
         }
         onCancel={() => setPendingDelete(null)}

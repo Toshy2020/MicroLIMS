@@ -207,7 +207,8 @@
           "provisionalCode": "RM-TIT-PANT",
           "source": "Panthenol__Panthenol - SM 1.txt:36"
         }
-      ]
+      ],
+      "heldBack": "titrant 0.1 M Potassium biphthalate VS has no standardization; see held-back report"
     },
     {
       "code": "RM-DISP-073",
@@ -462,7 +463,8 @@
         "standardizationMode: no standardization procedure stated in STM (prepared directly from primary standard)",
         "shelfLife: not stated in STM",
         "storageCondition: not stated in STM"
-      ]
+      ],
+      "heldBack": "USP states no standardization for this non-aqueous titrant (STM: prepared from the primary standard); needs the lab"
     },
     {
       "name": "1 M Sodium hydroxide VS",

@@ -407,7 +407,8 @@
           "provisionalCode": "RM-HPLC-FERO-AS",
           "source": "Feroglobin Granules__SM- Feroglobin B12 granules after edit.txt:32"
         }
-      ]
+      ],
+      "heldBack": "method details missing in the STM (API needs run time, replicates, element view etc.); see gaps, waits for the lab"
     },
     {
       "code": "RM-ICP-FE-088",
@@ -435,7 +436,8 @@
           "provisionalCode": "RM-ICP-FE-FERO",
           "source": "Feroglobin Granules__SM- Feroglobin B12 granules after edit.txt:34"
         }
-      ]
+      ],
+      "heldBack": "method details missing in the STM (API needs run time, replicates, element view etc.); see gaps, waits for the lab"
     },
     {
       "code": "RM-ICP-ZN-088",
@@ -463,7 +465,8 @@
           "provisionalCode": "RM-ICP-ZN-FERO",
           "source": "Feroglobin Granules__SM- Feroglobin B12 granules after edit.txt:35"
         }
-      ]
+      ],
+      "heldBack": "method details missing in the STM (API needs run time, replicates, element view etc.); see gaps, waits for the lab"
     },
     {
       "code": "RM-ICP-CU-088",
@@ -491,7 +494,8 @@
           "provisionalCode": "RM-ICP-CU-FERO",
           "source": "Feroglobin Granules__SM- Feroglobin B12 granules after edit.txt:36"
         }
-      ]
+      ],
+      "heldBack": "method details missing in the STM (API needs run time, replicates, element view etc.); see gaps, waits for the lab"
     }
   ],
   "solutions": [
@@ -637,7 +641,7 @@
         "STM-RM-088"
       ],
       "source": "Feroglobin Granules__SM- Feroglobin B12 granules after edit.txt:32",
-      "heldBack": null
+      "heldBack": "method details missing in the STM (API needs run time, replicates, element view etc.); see gaps, waits for the lab"
     }
   ],
   "icpMethods": [
@@ -668,7 +672,7 @@
         "effectiveDate: STM issue date",
         "minCorrelation: not stated in the STM"
       ],
-      "heldBack": null
+      "heldBack": "method details missing in the STM (API needs run time, replicates, element view etc.); see gaps, waits for the lab"
     },
     {
       "name": "Zinc by AAS (Feroglobin B12 granules)",
@@ -697,7 +701,7 @@
         "effectiveDate: STM issue date",
         "minCorrelation: not stated in the STM"
       ],
-      "heldBack": null
+      "heldBack": "method details missing in the STM (API needs run time, replicates, element view etc.); see gaps, waits for the lab"
     },
     {
       "name": "Copper by AAS (Feroglobin B12 granules)",
@@ -726,7 +730,7 @@
         "effectiveDate: STM issue date",
         "minCorrelation: not stated in the STM"
       ],
-      "heldBack": null
+      "heldBack": "method details missing in the STM (API needs run time, replicates, element view etc.); see gaps, waits for the lab"
     }
   ],
   "materialEntries": [

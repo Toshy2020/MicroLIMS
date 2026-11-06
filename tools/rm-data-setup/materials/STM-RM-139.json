@@ -3,7 +3,9 @@
   "itemName": "Omega-3 Fish Oil",
   "stmCode": "STM-RM-139",
   "stmFile": "Omega-3 Fish Oil__Omega-3 Fish Oil - SM AMV aafter edit.txt",
-  "specFiles": ["Omega-3 Fish Oil__Specifications sheet Omega-3 Fish Oil - New.txt"],
+  "specFiles": [
+    "Omega-3 Fish Oil__Specifications sheet Omega-3 Fish Oil - New.txt"
+  ],
   "minQuantity": {
     "routine": 140,
     "retest": 60,
@@ -19,7 +21,9 @@
           "testCode": "RM-DESC",
           "parameterName": "Appearance",
           "limitType": "Qualitative",
-          "lower": null, "upper": null, "lowerInclusive": null,
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
           "unit": null,
           "expectedResultText": "Colorless to pale yellow liquid oil",
           "expectedState": null,
@@ -31,7 +35,9 @@
           "testCode": "RM-SG-O3",
           "parameterName": "Specific gravity",
           "limitType": "Range",
-          "lower": 0.93, "upper": 0.96, "lowerInclusive": true,
+          "lower": 0.93,
+          "upper": 0.96,
+          "lowerInclusive": true,
           "unit": null,
           "expectedResultText": null,
           "expectedState": null,
@@ -43,7 +49,9 @@
           "testCode": "RM-PV-O3",
           "parameterName": "Peroxide value",
           "limitType": "NotMoreThan",
-          "lower": null, "upper": 1.0, "lowerInclusive": null,
+          "lower": null,
+          "upper": 1.0,
+          "lowerInclusive": null,
           "unit": "meq/kg",
           "expectedResultText": null,
           "expectedState": null,
@@ -55,7 +63,9 @@
           "testCode": "RM-AV-O3",
           "parameterName": "Acid value",
           "limitType": "NotMoreThan",
-          "lower": null, "upper": 1.0, "lowerInclusive": null,
+          "lower": null,
+          "upper": 1.0,
+          "lowerInclusive": null,
           "unit": "mg/g",
           "expectedResultText": null,
           "expectedState": null,
@@ -66,10 +76,12 @@
         {
           "testCode": "RM-ABS233-O3",
           "parameterName": "Absorbance at 233 nm",
-          "limitType": "NotMoreThan",
-          "lower": null, "upper": 0.65, "lowerInclusive": null,
-          "unit": "AU",
-          "expectedResultText": null,
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Complies (NMT 0.65 AU)",
           "expectedState": null,
           "resultBasis": null,
           "referenceStandard": "In house",
@@ -79,7 +91,9 @@
           "testCode": "RM-HPLC-O3-AS",
           "parameterName": "DHA (docosahexaenoic acid as TG)",
           "limitType": "NotLessThan",
-          "lower": 50, "upper": null, "lowerInclusive": null,
+          "lower": 50,
+          "upper": null,
+          "lowerInclusive": null,
           "unit": "%",
           "expectedResultText": null,
           "expectedState": null,
@@ -92,7 +106,9 @@
           "testCode": "RM-HPLC-O3-AS",
           "parameterName": "EPA (eicosapentaenoic acid as TG)",
           "limitType": "NotLessThan",
-          "lower": 10, "upper": null, "lowerInclusive": null,
+          "lower": 10,
+          "upper": null,
+          "lowerInclusive": null,
           "unit": "%",
           "expectedResultText": null,
           "expectedState": null,
@@ -105,7 +121,9 @@
           "testCode": "TAMC",
           "parameterName": "Total aerobic microbial count (TAMC)",
           "limitType": "CountTiered",
-          "lower": null, "upper": 1000, "lowerInclusive": null,
+          "lower": null,
+          "upper": 1000,
+          "lowerInclusive": null,
           "unit": "CFU/ml",
           "expectedResultText": null,
           "expectedState": null,
@@ -117,7 +135,9 @@
           "testCode": "TYMC",
           "parameterName": "Total yeasts and molds count (TYMC)",
           "limitType": "CountTiered",
-          "lower": null, "upper": 100, "lowerInclusive": null,
+          "lower": null,
+          "upper": 100,
+          "lowerInclusive": null,
           "unit": "CFU/ml",
           "expectedResultText": null,
           "expectedState": null,
@@ -129,7 +149,9 @@
           "testCode": "E.coli",
           "parameterName": "Escherichia coli",
           "limitType": "PresenceAbsence",
-          "lower": null, "upper": null, "lowerInclusive": null,
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
           "unit": "per 10 ml",
           "expectedResultText": "Absent /10 ml",
           "expectedState": "Absence",
@@ -141,7 +163,9 @@
           "testCode": "Salmonella ",
           "parameterName": "Salmonella spp.",
           "limitType": "PresenceAbsence",
-          "lower": null, "upper": null, "lowerInclusive": null,
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
           "unit": "per 10 ml",
           "expectedResultText": "Absent /10 ml",
           "expectedState": "Absence",
@@ -153,7 +177,9 @@
           "testCode": "RM-PB-O3",
           "parameterName": "Lead",
           "limitType": "NotMoreThan",
-          "lower": null, "upper": 0.008, "lowerInclusive": null,
+          "lower": null,
+          "upper": 0.008,
+          "lowerInclusive": null,
           "unit": "mg/kg",
           "expectedResultText": null,
           "expectedState": null,
@@ -166,7 +192,9 @@
           "testCode": "RM-CD-O3",
           "parameterName": "Cadmium",
           "limitType": "NotMoreThan",
-          "lower": null, "upper": 0.005, "lowerInclusive": null,
+          "lower": null,
+          "upper": 0.005,
+          "lowerInclusive": null,
           "unit": "mg/kg",
           "expectedResultText": null,
           "expectedState": null,
@@ -179,7 +207,9 @@
           "testCode": "RM-HG-O3",
           "parameterName": "Mercury",
           "limitType": "NotMoreThan",
-          "lower": null, "upper": 0.005, "lowerInclusive": null,
+          "lower": null,
+          "upper": 0.005,
+          "lowerInclusive": null,
           "unit": "mg/kg",
           "expectedResultText": null,
           "expectedState": null,
@@ -192,7 +222,9 @@
           "testCode": "RM-AS-O3",
           "parameterName": "Arsenic",
           "limitType": "NotMoreThan",
-          "lower": null, "upper": 0.1, "lowerInclusive": null,
+          "lower": null,
+          "upper": 0.1,
+          "lowerInclusive": null,
           "unit": "mg/kg",
           "expectedResultText": null,
           "expectedState": null,
@@ -205,7 +237,9 @@
           "testCode": "RM-OMEGA3-O3",
           "parameterName": "Total omega-3 fatty acids as TG",
           "limitType": "NotLessThan",
-          "lower": 670, "upper": null, "lowerInclusive": null,
+          "lower": 670,
+          "upper": null,
+          "lowerInclusive": null,
           "unit": "mg/g",
           "expectedResultText": null,
           "expectedState": null,
@@ -218,7 +252,9 @@
           "testCode": "RM-COL-O3",
           "parameterName": "Colour Gardner",
           "limitType": "NotMoreThan",
-          "lower": null, "upper": 2.0, "lowerInclusive": null,
+          "lower": null,
+          "upper": 2.0,
+          "lowerInclusive": null,
           "unit": null,
           "expectedResultText": null,
           "expectedState": null,
@@ -236,7 +272,10 @@
       "procedure": "Under strong white light, check each received sample container separately in clean, transparent watch glass or glass dish to detect foreign particles, conformance of colour and compliance with the visual specifications.",
       "kind": "general",
       "workflow": "Qualitative",
-      "details": { "perContainer": true, "reference": "In-house specification" },
+      "details": {
+        "perContainer": true,
+        "reference": "In-house specification"
+      },
       "source": "Omega-3 Fish Oil__Omega-3 Fish Oil - SM AMV aafter edit.txt:30"
     },
     {
@@ -257,7 +296,7 @@
       "kind": "general",
       "workflow": "Measurement",
       "details": {
-        "sampleG": 5.00,
+        "sampleG": 5.0,
         "solvent": "chloroform : glacial acetic acid 2:3, 30 mL",
         "titrant": "0.01 M sodium thiosulfate",
         "blankMaxMl": 0.1,
@@ -271,7 +310,7 @@
       "kind": "general",
       "workflow": "Measurement",
       "details": {
-        "sampleG": 10.00,
+        "sampleG": 10.0,
         "solvent": "ethanol (96 per cent) : light petroleum, equal volumes, 50 mL",
         "indicator": "phenolphthalein solution R1, 0.5 mL",
         "titrant": "0.1 M potassium hydroxide or 0.1 M sodium hydroxide",
@@ -298,7 +337,10 @@
       "kind": "specific",
       "workflow": "HplcMethodAssay",
       "details": {
-        "analytes": ["DHA (as TG)", "EPA (as TG)"],
+        "analytes": [
+          "DHA (as TG)",
+          "EPA (as TG)"
+        ],
         "dhaStandardMg": 104.6,
         "dhaStandardExpectedMgPerMl": 0.6276,
         "epaStandardMg": 27.4,
@@ -309,7 +351,12 @@
         "flowRate": "1.5 (unit not stated)",
         "injectionUl": 20,
         "mobilePhase": "acetonitrile 65 : buffer 35; buffer = 1 mL orthophosphoric acid + 1 g hexane sulfonic acid sodium + 2 mL triethylamine in 1000 mL water",
-        "missingForHold": ["column internal diameter and particle size", "flow rate unit", "system suitability (standard injections, criteria)", "run time"],
+        "missingForHold": [
+          "column internal diameter and particle size",
+          "flow rate unit",
+          "system suitability (standard injections, criteria)",
+          "run time"
+        ],
         "reference": "Analytical Method Validation for assay of Omega-3 Fish Oil"
       },
       "source": "Omega-3 Fish Oil__Omega-3 Fish Oil - SM AMV aafter edit.txt:35",
@@ -320,7 +367,10 @@
       "procedure": "Follow the suitable steps in SOP C2I-91-128 and the verification report specifically for this material.",
       "kind": "general",
       "workflow": "CountTest",
-      "details": { "limit": "Not more than 10^3 CFU/ml (STM text reads 103)", "reference": "USP <2023> Microbiological Attributes of Non-sterile Nutritional and Dietary Supplement" },
+      "details": {
+        "limit": "Not more than 10^3 CFU/ml (STM text reads 103)",
+        "reference": "USP <2023> Microbiological Attributes of Non-sterile Nutritional and Dietary Supplement"
+      },
       "source": "Omega-3 Fish Oil__Omega-3 Fish Oil - SM AMV aafter edit.txt:36"
     },
     {
@@ -328,7 +378,10 @@
       "procedure": "Follow the suitable steps in SOP C2I-91-128 and the verification report specifically for this material.",
       "kind": "general",
       "workflow": "CountTest",
-      "details": { "limit": "Not more than 10^2 CFU/ml (STM text reads 102)", "reference": "USP <2023> Microbiological Attributes of Non-sterile Nutritional and Dietary Supplement" },
+      "details": {
+        "limit": "Not more than 10^2 CFU/ml (STM text reads 102)",
+        "reference": "USP <2023> Microbiological Attributes of Non-sterile Nutritional and Dietary Supplement"
+      },
       "source": "Omega-3 Fish Oil__Omega-3 Fish Oil - SM AMV aafter edit.txt:36"
     },
     {
@@ -336,7 +389,10 @@
       "procedure": "Follow the suitable steps in SOP C2I-91-128 and the verification report specifically for this material.",
       "kind": "general",
       "workflow": "Observation",
-      "details": { "limit": "Absent/10 ml", "reference": "USP <2023> Microbiological Attributes of Non-sterile Nutritional and Dietary Supplement" },
+      "details": {
+        "limit": "Absent/10 ml",
+        "reference": "USP <2023> Microbiological Attributes of Non-sterile Nutritional and Dietary Supplement"
+      },
       "source": "Omega-3 Fish Oil__Omega-3 Fish Oil - SM AMV aafter edit.txt:36"
     },
     {
@@ -344,7 +400,10 @@
       "procedure": "Follow the suitable steps in SOP C2I-91-128 and the verification report specifically for this material.",
       "kind": "general",
       "workflow": "Observation",
-      "details": { "limit": "Absent/10 ml", "reference": "USP <2023> Microbiological Attributes of Non-sterile Nutritional and Dietary Supplement" },
+      "details": {
+        "limit": "Absent/10 ml",
+        "reference": "USP <2023> Microbiological Attributes of Non-sterile Nutritional and Dietary Supplement"
+      },
       "source": "Omega-3 Fish Oil__Omega-3 Fish Oil - SM AMV aafter edit.txt:36"
     },
     {
@@ -405,34 +464,146 @@
   "notApplicable": [],
   "supplierAttributes": [],
   "reagents": [
-    { "name": "Chloroform", "use": "reagent", "source": "Omega-3 Fish Oil__Omega-3 Fish Oil - SM AMV aafter edit.txt:28" },
-    { "name": "Ethanol (96 per cent)", "use": "reagent", "source": "Omega-3 Fish Oil__Omega-3 Fish Oil - SM AMV aafter edit.txt:28" },
-    { "name": "Glacial acetic acid", "use": "reagent", "source": "Omega-3 Fish Oil__Omega-3 Fish Oil - SM AMV aafter edit.txt:28" },
-    { "name": "Acetonitrile", "use": "reagent", "source": "Omega-3 Fish Oil__Omega-3 Fish Oil - SM AMV aafter edit.txt:28" },
-    { "name": "Orthophosphoric acid", "use": "reagent", "source": "Omega-3 Fish Oil__Omega-3 Fish Oil - SM AMV aafter edit.txt:28" },
-    { "name": "Triethylamine", "use": "reagent", "source": "Omega-3 Fish Oil__Omega-3 Fish Oil - SM AMV aafter edit.txt:28" },
-    { "name": "Hexane Sulfonic acid Sodium", "use": "reagent", "source": "Omega-3 Fish Oil__Omega-3 Fish Oil - SM AMV aafter edit.txt:28" },
-    { "name": "Light petroleum", "use": "reagent", "source": "Omega-3 Fish Oil__Omega-3 Fish Oil - SM AMV aafter edit.txt:28" },
-    { "name": "Mercuric iodide", "use": "reagent", "source": "Omega-3 Fish Oil__Omega-3 Fish Oil - SM AMV aafter edit.txt:28" },
-    { "name": "Phenolphthalein solution", "use": "indicator", "source": "Omega-3 Fish Oil__Omega-3 Fish Oil - SM AMV aafter edit.txt:28" },
-    { "name": "Potassium hydroxide", "use": "reagent", "source": "Omega-3 Fish Oil__Omega-3 Fish Oil - SM AMV aafter edit.txt:28" },
-    { "name": "Potassium Iodide", "use": "reagent", "source": "Omega-3 Fish Oil__Omega-3 Fish Oil - SM AMV aafter edit.txt:28" },
-    { "name": "Sodium carbonate", "use": "reagent", "source": "Omega-3 Fish Oil__Omega-3 Fish Oil - SM AMV aafter edit.txt:28" },
-    { "name": "Sodium hydroxide", "use": "reagent", "source": "Omega-3 Fish Oil__Omega-3 Fish Oil - SM AMV aafter edit.txt:28" },
-    { "name": "Sodium thiosulfate", "use": "reagent", "source": "Omega-3 Fish Oil__Omega-3 Fish Oil - SM AMV aafter edit.txt:28" },
-    { "name": "Isooctane", "use": "reagent", "source": "Omega-3 Fish Oil__Omega-3 Fish Oil - SM AMV aafter edit.txt:28" },
-    { "name": "Ethanol absolute", "use": "reagent", "source": "Omega-3 Fish Oil__Omega-3 Fish Oil - SM AMV aafter edit.txt:28" },
-    { "name": "Soluble starch", "use": "reagent", "source": "Omega-3 Fish Oil__Omega-3 Fish Oil - SM AMV aafter edit.txt:28" },
-    { "name": "0.01 M Sodium Thiosulfate VS", "use": "titrant", "source": "Omega-3 Fish Oil__Omega-3 Fish Oil - SM AMV aafter edit.txt:28" },
-    { "name": "0.1 M Potassium Hydroxide VS", "use": "titrant", "source": "Omega-3 Fish Oil__Omega-3 Fish Oil - SM AMV aafter edit.txt:28" },
-    { "name": "0.1 M Sodium Hydroxide VS", "use": "titrant", "source": "Omega-3 Fish Oil__Omega-3 Fish Oil - SM AMV aafter edit.txt:28" },
-    { "name": "Phenolphthalein Solution R1", "use": "indicator", "source": "Omega-3 Fish Oil__Omega-3 Fish Oil - SM AMV aafter edit.txt:28" },
-    { "name": "Potassium Iodide Solution, Saturated", "use": "reagent", "source": "Omega-3 Fish Oil__Omega-3 Fish Oil - SM AMV aafter edit.txt:28" },
-    { "name": "Starch Solution", "use": "indicator", "source": "Omega-3 Fish Oil__Omega-3 Fish Oil - SM AMV aafter edit.txt:28" },
-    { "name": "Water, Carbon Dioxide-Free", "use": "reagent", "source": "Omega-3 Fish Oil__Omega-3 Fish Oil - SM AMV aafter edit.txt:28" },
-    { "name": "Potassium Hydroxide, Methanolic", "use": "reagent", "source": "Omega-3 Fish Oil__Omega-3 Fish Oil - SM AMV aafter edit.txt:28" },
-    { "name": "Working standard (DHA)", "use": "standard", "source": "Omega-3 Fish Oil__Omega-3 Fish Oil - SM AMV aafter edit.txt:35" },
-    { "name": "Working standard (EPA)", "use": "standard", "source": "Omega-3 Fish Oil__Omega-3 Fish Oil - SM AMV aafter edit.txt:35" }
+    {
+      "name": "Chloroform",
+      "use": "reagent",
+      "source": "Omega-3 Fish Oil__Omega-3 Fish Oil - SM AMV aafter edit.txt:28"
+    },
+    {
+      "name": "Ethanol (96 per cent)",
+      "use": "reagent",
+      "source": "Omega-3 Fish Oil__Omega-3 Fish Oil - SM AMV aafter edit.txt:28"
+    },
+    {
+      "name": "Glacial acetic acid",
+      "use": "reagent",
+      "source": "Omega-3 Fish Oil__Omega-3 Fish Oil - SM AMV aafter edit.txt:28"
+    },
+    {
+      "name": "Acetonitrile",
+      "use": "reagent",
+      "source": "Omega-3 Fish Oil__Omega-3 Fish Oil - SM AMV aafter edit.txt:28"
+    },
+    {
+      "name": "Orthophosphoric acid",
+      "use": "reagent",
+      "source": "Omega-3 Fish Oil__Omega-3 Fish Oil - SM AMV aafter edit.txt:28"
+    },
+    {
+      "name": "Triethylamine",
+      "use": "reagent",
+      "source": "Omega-3 Fish Oil__Omega-3 Fish Oil - SM AMV aafter edit.txt:28"
+    },
+    {
+      "name": "Hexane Sulfonic acid Sodium",
+      "use": "reagent",
+      "source": "Omega-3 Fish Oil__Omega-3 Fish Oil - SM AMV aafter edit.txt:28"
+    },
+    {
+      "name": "Light petroleum",
+      "use": "reagent",
+      "source": "Omega-3 Fish Oil__Omega-3 Fish Oil - SM AMV aafter edit.txt:28"
+    },
+    {
+      "name": "Mercuric iodide",
+      "use": "reagent",
+      "source": "Omega-3 Fish Oil__Omega-3 Fish Oil - SM AMV aafter edit.txt:28"
+    },
+    {
+      "name": "Phenolphthalein solution",
+      "use": "indicator",
+      "source": "Omega-3 Fish Oil__Omega-3 Fish Oil - SM AMV aafter edit.txt:28"
+    },
+    {
+      "name": "Potassium hydroxide",
+      "use": "reagent",
+      "source": "Omega-3 Fish Oil__Omega-3 Fish Oil - SM AMV aafter edit.txt:28"
+    },
+    {
+      "name": "Potassium Iodide",
+      "use": "reagent",
+      "source": "Omega-3 Fish Oil__Omega-3 Fish Oil - SM AMV aafter edit.txt:28"
+    },
+    {
+      "name": "Sodium carbonate",
+      "use": "reagent",
+      "source": "Omega-3 Fish Oil__Omega-3 Fish Oil - SM AMV aafter edit.txt:28"
+    },
+    {
+      "name": "Sodium hydroxide",
+      "use": "reagent",
+      "source": "Omega-3 Fish Oil__Omega-3 Fish Oil - SM AMV aafter edit.txt:28"
+    },
+    {
+      "name": "Sodium thiosulfate",
+      "use": "reagent",
+      "source": "Omega-3 Fish Oil__Omega-3 Fish Oil - SM AMV aafter edit.txt:28"
+    },
+    {
+      "name": "Isooctane",
+      "use": "reagent",
+      "source": "Omega-3 Fish Oil__Omega-3 Fish Oil - SM AMV aafter edit.txt:28"
+    },
+    {
+      "name": "Ethanol absolute",
+      "use": "reagent",
+      "source": "Omega-3 Fish Oil__Omega-3 Fish Oil - SM AMV aafter edit.txt:28"
+    },
+    {
+      "name": "Soluble starch",
+      "use": "reagent",
+      "source": "Omega-3 Fish Oil__Omega-3 Fish Oil - SM AMV aafter edit.txt:28"
+    },
+    {
+      "name": "0.01 M Sodium Thiosulfate VS",
+      "use": "titrant",
+      "source": "Omega-3 Fish Oil__Omega-3 Fish Oil - SM AMV aafter edit.txt:28"
+    },
+    {
+      "name": "0.1 M Potassium Hydroxide VS",
+      "use": "titrant",
+      "source": "Omega-3 Fish Oil__Omega-3 Fish Oil - SM AMV aafter edit.txt:28"
+    },
+    {
+      "name": "0.1 M Sodium Hydroxide VS",
+      "use": "titrant",
+      "source": "Omega-3 Fish Oil__Omega-3 Fish Oil - SM AMV aafter edit.txt:28"
+    },
+    {
+      "name": "Phenolphthalein Solution R1",
+      "use": "indicator",
+      "source": "Omega-3 Fish Oil__Omega-3 Fish Oil - SM AMV aafter edit.txt:28"
+    },
+    {
+      "name": "Potassium Iodide Solution, Saturated",
+      "use": "reagent",
+      "source": "Omega-3 Fish Oil__Omega-3 Fish Oil - SM AMV aafter edit.txt:28"
+    },
+    {
+      "name": "Starch Solution",
+      "use": "indicator",
+      "source": "Omega-3 Fish Oil__Omega-3 Fish Oil - SM AMV aafter edit.txt:28"
+    },
+    {
+      "name": "Water, Carbon Dioxide-Free",
+      "use": "reagent",
+      "source": "Omega-3 Fish Oil__Omega-3 Fish Oil - SM AMV aafter edit.txt:28"
+    },
+    {
+      "name": "Potassium Hydroxide, Methanolic",
+      "use": "reagent",
+      "source": "Omega-3 Fish Oil__Omega-3 Fish Oil - SM AMV aafter edit.txt:28"
+    },
+    {
+      "name": "Working standard (DHA)",
+      "use": "standard",
+      "source": "Omega-3 Fish Oil__Omega-3 Fish Oil - SM AMV aafter edit.txt:35"
+    },
+    {
+      "name": "Working standard (EPA)",
+      "use": "standard",
+      "source": "Omega-3 Fish Oil__Omega-3 Fish Oil - SM AMV aafter edit.txt:35"
+    }
   ],
   "openQuestions": [
     {

@@ -102,12 +102,12 @@
         {
           "testCode": "RM-PEROX-CROSP",
           "parameterName": "Peroxides (absorbance at 405 nm)",
-          "limitType": "NotMoreThan",
+          "limitType": "Qualitative",
           "lower": null,
-          "upper": 0.35,
+          "upper": null,
           "lowerInclusive": null,
           "unit": null,
-          "expectedResultText": null,
+          "expectedResultText": "Complies (NMT 0.35)",
           "expectedState": null,
           "resultBasis": null,
           "referenceStandard": "USP",
@@ -239,7 +239,9 @@
         "sampleG": 2,
         "temperatureC": "25 ± 1",
         "timeH": 24,
-        "grades": ["USP"],
+        "grades": [
+          "USP"
+        ],
         "reference": "USP Crospovidone monograph"
       },
       "source": "Crospovidone__STM- RM-0 Crospovidone.txt:42"
@@ -254,9 +256,20 @@
         "temperature": "25.0 ± 0.5 °C",
         "holdMin": 15,
         "shakeMin": 1,
-        "volumesMl": [0.1, 0.9, 2, 7],
-        "smallSampleSteps": ["10 mg in 10 mL", "1 mg in 10 mL"],
-        "solvents": ["water", "organic solvents (not named in the STM text)"],
+        "volumesMl": [
+          0.1,
+          0.9,
+          2,
+          7
+        ],
+        "smallSampleSteps": [
+          "10 mg in 10 mL",
+          "1 mg in 10 mL"
+        ],
+        "solvents": [
+          "water",
+          "organic solvents (not named in the STM text)"
+        ],
         "reference": "USP Description and Relative Solubility, Crospovidone"
       },
       "source": "Crospovidone__STM- RM-0 Crospovidone.txt:43"
@@ -322,8 +335,12 @@
       "kind": "specific",
       "workflow": "UvSpectrophotometry",
       "details": {
-        "typeA": {"suspensionMgMl": 40},
-        "typeB": {"suspensionMgMl": 16},
+        "typeA": {
+          "suspensionMgMl": 40
+        },
+        "typeB": {
+          "suspensionMgMl": 16
+        },
         "aliquotMl": 25,
         "titaniumTrichlorideSulfuricAcidTsMl": 2,
         "standStandMin": 30,
@@ -403,7 +420,10 @@
         "sampleSolution": "25 mg/mL suspension in methanol, shaken 60 min, filtered 0.2 µm",
         "referenceSolutionA": "1 in 20 of 5 µg/mL vinylpyrrolidinone stock in mobile phase",
         "referenceSolutionB": "1 in 100 of stock with 100 µg/mL vinylpyrrolidinone and 5 mg/mL vinyl acetate",
-        "systemSuitability": {"resolution": "NLT 2.0 (vinylpyrrolidinone / vinyl acetate, B)", "rsd": "NMT 2.0% for 6 injections (A)"},
+        "systemSuitability": {
+          "resolution": "NLT 2.0 (vinylpyrrolidinone / vinyl acetate, B)",
+          "rsd": "NMT 2.0% for 6 injections (A)"
+        },
         "limit": "NMT 10 ppm (area vs principal peak of reference solution A)",
         "reference": "USP <621>"
       },
@@ -446,28 +466,116 @@
   "notApplicable": [],
   "supplierAttributes": [],
   "reagents": [
-    { "name": "Sulfuric acid", "use": "reagent", "source": "Crospovidone__STM- RM-0 Crospovidone.txt:40" },
-    { "name": "Iodine 0.1 N (titrant)", "use": "titrant", "source": "Crospovidone__STM- RM-0 Crospovidone.txt:40" },
-    { "name": "Soluble starch / starch TS", "use": "indicator", "source": "Crospovidone__STM- RM-0 Crospovidone.txt:40" },
-    { "name": "Potassium iodide", "use": "reagent", "source": "Crospovidone__STM- RM-0 Crospovidone.txt:40" },
-    { "name": "Potassium sulfate", "use": "reagent", "source": "Crospovidone__STM- RM-0 Crospovidone.txt:40" },
-    { "name": "Cupric sulfate", "use": "reagent", "source": "Crospovidone__STM- RM-0 Crospovidone.txt:40" },
-    { "name": "Titanium dioxide", "use": "reagent", "source": "Crospovidone__STM- RM-0 Crospovidone.txt:40" },
-    { "name": "Hydrogen peroxide 30%", "use": "reagent", "source": "Crospovidone__STM- RM-0 Crospovidone.txt:40" },
-    { "name": "Sodium hydroxide solution (2 in 5)", "use": "reagent", "source": "Crospovidone__STM- RM-0 Crospovidone.txt:40" },
-    { "name": "Boric acid", "use": "reagent", "source": "Crospovidone__STM- RM-0 Crospovidone.txt:40" },
-    { "name": "Methyl red", "use": "indicator", "source": "Crospovidone__STM- RM-0 Crospovidone.txt:40" },
-    { "name": "Methylene blue", "use": "indicator", "source": "Crospovidone__STM- RM-0 Crospovidone.txt:40" },
-    { "name": "Potassium bromide", "use": "reagent", "source": "Crospovidone__STM- RM-0 Crospovidone.txt:40" },
-    { "name": "Crospovidone RS or WS", "use": "standard", "source": "Crospovidone__STM- RM-0 Crospovidone.txt:40" },
-    { "name": "Hydrochloric acid", "use": "reagent", "source": "Crospovidone__STM- RM-0 Crospovidone.txt:40" },
-    { "name": "Acetonitrile", "use": "reagent", "source": "Crospovidone__STM- RM-0 Crospovidone.txt:40" },
-    { "name": "Methanol", "use": "reagent", "source": "Crospovidone__STM- RM-0 Crospovidone.txt:40" },
-    { "name": "Vinylpyrrolidinone", "use": "standard", "source": "Crospovidone__STM- RM-0 Crospovidone.txt:40" },
-    { "name": "Vinyl acetate", "use": "standard", "source": "Crospovidone__STM- RM-0 Crospovidone.txt:40" },
-    { "name": "Tromethamine (Tris)", "use": "standard", "source": "Crospovidone__STM- RM-0 Crospovidone.txt:40" },
-    { "name": "Titanium trichloride-sulfuric acid TS", "use": "reagent", "source": "Crospovidone__STM- RM-0 Crospovidone.txt:46" },
-    { "name": "Sulfuric acid 0.01 N VS", "use": "titrant", "source": "Crospovidone__STM- RM-0 Crospovidone.txt:40" }
+    {
+      "name": "Sulfuric acid",
+      "use": "reagent",
+      "source": "Crospovidone__STM- RM-0 Crospovidone.txt:40"
+    },
+    {
+      "name": "Iodine 0.1 N (titrant)",
+      "use": "titrant",
+      "source": "Crospovidone__STM- RM-0 Crospovidone.txt:40"
+    },
+    {
+      "name": "Soluble starch / starch TS",
+      "use": "indicator",
+      "source": "Crospovidone__STM- RM-0 Crospovidone.txt:40"
+    },
+    {
+      "name": "Potassium iodide",
+      "use": "reagent",
+      "source": "Crospovidone__STM- RM-0 Crospovidone.txt:40"
+    },
+    {
+      "name": "Potassium sulfate",
+      "use": "reagent",
+      "source": "Crospovidone__STM- RM-0 Crospovidone.txt:40"
+    },
+    {
+      "name": "Cupric sulfate",
+      "use": "reagent",
+      "source": "Crospovidone__STM- RM-0 Crospovidone.txt:40"
+    },
+    {
+      "name": "Titanium dioxide",
+      "use": "reagent",
+      "source": "Crospovidone__STM- RM-0 Crospovidone.txt:40"
+    },
+    {
+      "name": "Hydrogen peroxide 30%",
+      "use": "reagent",
+      "source": "Crospovidone__STM- RM-0 Crospovidone.txt:40"
+    },
+    {
+      "name": "Sodium hydroxide solution (2 in 5)",
+      "use": "reagent",
+      "source": "Crospovidone__STM- RM-0 Crospovidone.txt:40"
+    },
+    {
+      "name": "Boric acid",
+      "use": "reagent",
+      "source": "Crospovidone__STM- RM-0 Crospovidone.txt:40"
+    },
+    {
+      "name": "Methyl red",
+      "use": "indicator",
+      "source": "Crospovidone__STM- RM-0 Crospovidone.txt:40"
+    },
+    {
+      "name": "Methylene blue",
+      "use": "indicator",
+      "source": "Crospovidone__STM- RM-0 Crospovidone.txt:40"
+    },
+    {
+      "name": "Potassium bromide",
+      "use": "reagent",
+      "source": "Crospovidone__STM- RM-0 Crospovidone.txt:40"
+    },
+    {
+      "name": "Crospovidone RS or WS",
+      "use": "standard",
+      "source": "Crospovidone__STM- RM-0 Crospovidone.txt:40"
+    },
+    {
+      "name": "Hydrochloric acid",
+      "use": "reagent",
+      "source": "Crospovidone__STM- RM-0 Crospovidone.txt:40"
+    },
+    {
+      "name": "Acetonitrile",
+      "use": "reagent",
+      "source": "Crospovidone__STM- RM-0 Crospovidone.txt:40"
+    },
+    {
+      "name": "Methanol",
+      "use": "reagent",
+      "source": "Crospovidone__STM- RM-0 Crospovidone.txt:40"
+    },
+    {
+      "name": "Vinylpyrrolidinone",
+      "use": "standard",
+      "source": "Crospovidone__STM- RM-0 Crospovidone.txt:40"
+    },
+    {
+      "name": "Vinyl acetate",
+      "use": "standard",
+      "source": "Crospovidone__STM- RM-0 Crospovidone.txt:40"
+    },
+    {
+      "name": "Tromethamine (Tris)",
+      "use": "standard",
+      "source": "Crospovidone__STM- RM-0 Crospovidone.txt:40"
+    },
+    {
+      "name": "Titanium trichloride-sulfuric acid TS",
+      "use": "reagent",
+      "source": "Crospovidone__STM- RM-0 Crospovidone.txt:46"
+    },
+    {
+      "name": "Sulfuric acid 0.01 N VS",
+      "use": "titrant",
+      "source": "Crospovidone__STM- RM-0 Crospovidone.txt:40"
+    }
   ],
   "openQuestions": [
     {

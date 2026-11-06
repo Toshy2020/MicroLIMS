@@ -495,24 +495,34 @@
       "nominalStrength": 0.1,
       "strengthUnit": "Molar",
       "finalVolumeMl": 1000,
-      "instructions": "",
-      "components": [],
-      "waterToVolume": false,
-      "standardizationMode": null,
-      "standardEntry": null,
-      "equivalenceMgPerMl": null,
+      "instructions": "Dissolve 37.2 g edetate disodium in water to make 1000 mL.",
+      "components": [
+        {
+          "entry": "Edetate disodium (EDTA-Na2.2H2O)",
+          "entryCode": "RG-015",
+          "quantity": 37.2,
+          "unit": "Gram"
+        }
+      ],
+      "waterToVolume": true,
+      "standardizationMode": "PrimaryStandard",
+      "standardEntry": "Calcium carbonate (chelometric standard) (RG-024)",
+      "equivalenceMgPerMl": 10.009,
       "referenceSolution": null,
       "usedBy": [
         "STM-RM-086"
       ],
-      "notes": "Disodium edetate volumetric solution used as excess in Magnesium Stearate complexometric assay; preparation and standardization not stated in STM.",
-      "complete": false,
-      "missing": [
-        "shelfLife: not stated in the STM",
-        "storageCondition: not stated in the STM",
-        "replicateCount, factorMin, factorMax, maxRsdPercent, validityDays: standardization acceptance values not stated in the STM",
-        "instructions, components, standardization: preparation and standardization are not in the STM"
-      ]
+      "notes": "STM-RM-086 (Magnesium stearate) gives no recipe. Recipe: USP 0.05 M is 18.6 g per 1000 mL; 0.1 M is that x2 = 37.2 g (scaling, USP lists no 0.1 M). Standardization (USP): about 200 mg chelometric CaCO3 (x2 for 0.1 M) dissolved with dilute HCl, 15 mL NaOH TS and hydroxy naphthol blue, titrate to blue; 10.009 mg CaCO3 per mL of 0.1 M (1:1, 100.09 g/mol, derived). USP states no shelf life: house defaults (3 replicates, factor 0.97-1.03, RSD 0.2 %, valid 30 days, shelf life 30 days). Source: USP 35-NF 30 Volumetric Solutions (drugfuture 1077-1085 Volumetric Solutions.pdf): p.1078.",
+      "complete": true,
+      "shelfLifeValue": 30,
+      "shelfLifeUnit": "Days",
+      "storageCondition": "Tightly closed, room temperature",
+      "replicateCount": 3,
+      "maxRsdPercent": 0.2,
+      "validityDays": 30,
+      "blankRequired": false,
+      "factorMin": 0.97,
+      "factorMax": 1.03
     },
     {
       "name": "0.1 M Zinc sulfate VS",
@@ -521,24 +531,34 @@
       "nominalStrength": 0.1,
       "strengthUnit": "Molar",
       "finalVolumeMl": 1000,
-      "instructions": "",
-      "components": [],
-      "waterToVolume": false,
-      "standardizationMode": null,
+      "instructions": "Dissolve 28.8 g zinc sulfate heptahydrate in water to make 1000 mL.",
+      "components": [
+        {
+          "entry": "Zinc sulfate heptahydrate",
+          "entryCode": null,
+          "quantity": 28.8,
+          "unit": "Gram"
+        }
+      ],
+      "waterToVolume": true,
+      "standardizationMode": "AgainstVolumetricSolution",
       "standardEntry": null,
       "equivalenceMgPerMl": null,
-      "referenceSolution": null,
+      "referenceSolution": "0.1 M Disodium edetate VS",
       "usedBy": [
         "STM-RM-086"
       ],
-      "notes": "Zinc sulfate volumetric solution used as titrant in Magnesium Stearate complexometric back titration; preparation and standardization not stated in STM.",
-      "complete": false,
-      "missing": [
-        "shelfLife: not stated in the STM",
-        "storageCondition: not stated in the STM",
-        "replicateCount, factorMin, factorMax, maxRsdPercent, validityDays: standardization acceptance values not stated in the STM",
-        "instructions, components, standardization: preparation and standardization are not in the STM"
-      ]
+      "notes": "STM-RM-086 gives no recipe. USP 0.05 M is 14.4 g ZnSO4.7H2O per 1000 mL; 0.1 M is x2 = 28.8 g (scaling). Standardization (USP): titrate 10 mL of the EDTA VS with the zinc solution after adding acetic acid-ammonium acetate buffer TS, alcohol and dithizone TS, to rose-pink; molarity = M(EDTA) x V(EDTA) / V(Zn). House defaults for acceptance and shelf life. Source: USP 35-NF 30 Volumetric Solutions (drugfuture 1077-1085 Volumetric Solutions.pdf): p.1085.",
+      "complete": true,
+      "shelfLifeValue": 30,
+      "shelfLifeUnit": "Days",
+      "storageCondition": "Tightly closed, room temperature",
+      "replicateCount": 3,
+      "maxRsdPercent": 0.2,
+      "validityDays": 30,
+      "blankRequired": false,
+      "factorMin": 0.97,
+      "factorMax": 1.03
     }
   ],
   "hplcMethods": [],
@@ -578,6 +598,19 @@
         "RM-TIT-MGST"
       ],
       "source": "Magnesium Stearate__Magnesium Stearate - SM.txt:52",
+      "loadedObjectNeedsIt": true
+    },
+    {
+      "name": "Zinc sulfate heptahydrate",
+      "category": "Reagent",
+      "codePrefix": "RG-",
+      "code": null,
+      "baseUnit": "Gram",
+      "usedBy": [
+        "0.1 M Zinc sulfate VS",
+        "0.02 M Zinc sulfate VS"
+      ],
+      "source": "USP 35-NF 30 Volumetric Solutions (drugfuture 1077-1085 Volumetric Solutions.pdf): p.1085",
       "loadedObjectNeedsIt": true
     }
   ],
@@ -685,11 +718,5 @@
       "RM-TYMC": "TYMC"
     }
   },
-  "gaps": [
-    {
-      "material": "STM-RM-086",
-      "test": "RM-TIT-MGST",
-      "missing": "0.1 M Zinc sulfate VS and 0.1 M Disodium edetate VS preparation and standardization not stated in STM"
-    }
-  ]
+  "gaps": []
 }

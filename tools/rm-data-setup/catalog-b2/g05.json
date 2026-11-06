@@ -327,9 +327,9 @@
       "kind": "specific",
       "section": "Physicochemical Laboratory",
       "workflowType": "Observation",
-      "equationType": "Observation",
+      "equationType": "None",
       "physchemArea": "RawPackaging",
-      "perContainer": true,
+      "perContainer": false,
       "complete": true,
       "notes": "Check each sample container separately in a clean transparent Nessler tube for conformance of colour with the visual specification (Dark Yellowish) (source: Orange Oil 5-Fold__Orange Oil 5-Fold - SM.txt:33).",
       "usedBy": [

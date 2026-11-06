@@ -3,7 +3,9 @@
   "itemName": "Zinc Gluconate",
   "stmCode": "STM-RM-050",
   "stmFile": "Zinc Gluconate__STM Calcium  Zinc Gluconate.txt",
-  "specFiles": ["Zinc Gluconate__Specifications sheet Zinc Gluconate - New.txt"],
+  "specFiles": [
+    "Zinc Gluconate__Specifications sheet Zinc Gluconate - New.txt"
+  ],
   "minQuantity": {
     "routine": 100,
     "retest": 60,
@@ -196,7 +198,8 @@
           "expectedState": null,
           "resultBasis": "PercentAnhydrousBasis",
           "referenceStandard": "USP",
-          "source": "Zinc Gluconate__Specifications sheet Zinc Gluconate - New.txt:23"
+          "source": "Zinc Gluconate__Specifications sheet Zinc Gluconate - New.txt:23",
+          "heldBack": "anhydrous basis needs a Karl Fischer titration test on the item (backend rule); the lab's water test is a Measurement: decision pending (see gaps)"
         },
         {
           "testCode": "TAMC",
@@ -251,7 +254,9 @@
       "workflow": "Observation",
       "details": {
         "perContainer": true,
-        "grades": ["USP"],
+        "grades": [
+          "USP"
+        ],
         "reference": "USP Description and Relative Solubility"
       },
       "source": "Zinc Gluconate__STM Calcium  Zinc Gluconate.txt:28"
@@ -262,14 +267,27 @@
       "kind": "general",
       "workflow": "Qualitative",
       "details": {
-        "grades": ["USP"],
+        "grades": [
+          "USP"
+        ],
         "sample": "100 mg",
         "temperature": "25.0 ± 0.5 °C",
         "holdMin": 15,
         "shakeMin": 1,
-        "volumesMl": [0.1, 0.9, 2, 7],
-        "smallSampleSteps": ["10 mg in 10 mL", "1 mg in 10 mL"],
-        "solvents": ["water", "alcohol"],
+        "volumesMl": [
+          0.1,
+          0.9,
+          2,
+          7
+        ],
+        "smallSampleSteps": [
+          "10 mg in 10 mL",
+          "1 mg in 10 mL"
+        ],
+        "solvents": [
+          "water",
+          "alcohol"
+        ],
         "reference": "USP Description and Relative Solubility"
       },
       "source": "Zinc Gluconate__STM Calcium  Zinc Gluconate.txt:29"
@@ -280,7 +298,9 @@
       "kind": "specific",
       "workflow": "Qualitative",
       "details": {
-        "grades": ["USP"],
+        "grades": [
+          "USP"
+        ],
         "solution": "100 mg/mL",
         "reactionA": "sodium acetate + hydrogen sulfide",
         "reactionB": "ammonium sulfide TS",
@@ -295,7 +315,9 @@
       "kind": "specific",
       "workflow": "Qualitative",
       "details": {
-        "grades": ["USP"],
+        "grades": [
+          "USP"
+        ],
         "standard": "10 mg/mL USP Potassium Gluconate RS",
         "sample": "10 mg/mL",
         "adsorbent": "0.25 mm chromatographic silica gel",
@@ -312,7 +334,9 @@
       "kind": "general",
       "workflow": "Qualitative",
       "details": {
-        "grades": ["USP"],
+        "grades": [
+          "USP"
+        ],
         "sampleG": 1.0,
         "standardMl": 0.7,
         "standardNormality": "0.020 N hydrochloric acid",
@@ -327,7 +351,9 @@
       "kind": "general",
       "workflow": "Qualitative",
       "details": {
-        "grades": ["USP"],
+        "grades": [
+          "USP"
+        ],
         "sampleG": 2.0,
         "standardMl": 1.0,
         "standardNormality": "0.020 N sulfuric acid",
@@ -342,7 +368,9 @@
       "kind": "specific",
       "workflow": "Qualitative",
       "details": {
-        "grades": ["USP"],
+        "grades": [
+          "USP"
+        ],
         "sampleG": 1.0,
         "testVolumeMl": 35,
         "standardArsenicMl": 3.0,
@@ -363,7 +391,9 @@
       "kind": "specific",
       "workflow": "Qualitative",
       "details": {
-        "grades": ["USP"],
+        "grades": [
+          "USP"
+        ],
         "sampleG": 1.0,
         "standardLeadUgMl": 2,
         "wavelengthNm": 283.3,
@@ -381,14 +411,20 @@
       "kind": "specific",
       "workflow": "IcpMethodAssay",
       "details": {
-        "grades": ["USP"],
+        "grades": [
+          "USP"
+        ],
         "sampleStockG": 10.0,
         "sampleStockMl": 50,
         "solutionAMl": 5.0,
         "solutionBMl": 5.0,
         "solutionCMl": 5.0,
         "finalVolumeMl": 25,
-        "standardAddedUgMl": [0, 1.0, 2.0],
+        "standardAddedUgMl": [
+          0,
+          1.0,
+          2.0
+        ],
         "standardStock": "0.1372 mg/mL cadmium nitrate; standard 12.5 µg/mL Cd (25 mL stock to 100 mL with 1 mL HCl)",
         "wavelengthNm": 228.8,
         "lamp": "cadmium hollow-cathode",
@@ -406,7 +442,9 @@
       "kind": "specific",
       "workflow": "Titration",
       "details": {
-        "grades": ["USP"],
+        "grades": [
+          "USP"
+        ],
         "sampleG": 1.0,
         "blank": "10 mL water",
         "cupricCitrateMl": 25,
@@ -429,7 +467,9 @@
       "kind": "general",
       "workflow": "Measurement",
       "details": {
-        "grades": ["USP"],
+        "grades": [
+          "USP"
+        ],
         "solutionMgMl": 10,
         "reference": "USP <791>"
       },
@@ -441,7 +481,9 @@
       "kind": "general",
       "workflow": "Measurement",
       "details": {
-        "grades": ["USP"],
+        "grades": [
+          "USP"
+        ],
         "moistureRole": "Water",
         "method": "USP <921> Method Ib",
         "reference": "USP <921> Water Determination, Method Ib"
@@ -454,7 +496,9 @@
       "kind": "specific",
       "workflow": "Titration",
       "details": {
-        "grades": ["USP"],
+        "grades": [
+          "USP"
+        ],
         "sampleMg": 700,
         "solvent": "100 mL water",
         "bufferMl": 5,
@@ -504,33 +548,141 @@
   "notApplicable": [],
   "supplierAttributes": [],
   "reagents": [
-    { "name": "Potassium ferrocyanide TS", "use": "reagent", "source": "Zinc Gluconate__STM Calcium  Zinc Gluconate.txt:26" },
-    { "name": "Potassium Gluconate RS", "use": "standard", "source": "Zinc Gluconate__STM Calcium  Zinc Gluconate.txt:26" },
-    { "name": "Ammonium molybdate", "use": "reagent", "source": "Zinc Gluconate__STM Calcium  Zinc Gluconate.txt:26" },
-    { "name": "Ceric sulfate", "use": "reagent", "source": "Zinc Gluconate__STM Calcium  Zinc Gluconate.txt:26" },
-    { "name": "Ethyl acetate", "use": "reagent", "source": "Zinc Gluconate__STM Calcium  Zinc Gluconate.txt:26" },
-    { "name": "Ammonium hydroxide", "use": "reagent", "source": "Zinc Gluconate__STM Calcium  Zinc Gluconate.txt:26" },
-    { "name": "Nitric acid", "use": "reagent", "source": "Zinc Gluconate__STM Calcium  Zinc Gluconate.txt:26" },
-    { "name": "Silver nitrate TS", "use": "reagent", "source": "Zinc Gluconate__STM Calcium  Zinc Gluconate.txt:26" },
-    { "name": "Barium chloride TS", "use": "reagent", "source": "Zinc Gluconate__STM Calcium  Zinc Gluconate.txt:26" },
-    { "name": "Sulfuric acid, 7 N and 2 N", "use": "reagent", "source": "Zinc Gluconate__STM Calcium  Zinc Gluconate.txt:26" },
-    { "name": "Hydrochloric acid, 3 N and 9 N", "use": "reagent", "source": "Zinc Gluconate__STM Calcium  Zinc Gluconate.txt:26" },
-    { "name": "Ascorbic acid-sodium iodide solution", "use": "reagent", "source": "Zinc Gluconate__STM Calcium  Zinc Gluconate.txt:26" },
-    { "name": "Trioctylphosphine oxide solution", "use": "reagent", "source": "Zinc Gluconate__STM Calcium  Zinc Gluconate.txt:26" },
-    { "name": "Standard arsenic solution (1000 ppm)", "use": "standard", "source": "Zinc Gluconate__STM Calcium  Zinc Gluconate.txt:26" },
-    { "name": "Lead standard solution (1000 ppm) / lead nitrate stock solution", "use": "standard", "source": "Zinc Gluconate__STM Calcium  Zinc Gluconate.txt:26" },
-    { "name": "Cadmium standard solution (1000 ppm) / cadmium nitrate", "use": "standard", "source": "Zinc Gluconate__STM Calcium  Zinc Gluconate.txt:26" },
-    { "name": "Silver diethyldithiocarbamate TS", "use": "reagent", "source": "Zinc Gluconate__STM Calcium  Zinc Gluconate.txt:26" },
-    { "name": "Granular zinc (#20 mesh)", "use": "reagent", "source": "Zinc Gluconate__STM Calcium  Zinc Gluconate.txt:26" },
-    { "name": "Alkaline cupric citrate TS", "use": "reagent", "source": "Zinc Gluconate__STM Calcium  Zinc Gluconate.txt:26" },
-    { "name": "Iodine 0.1 N VS", "use": "titrant", "source": "Zinc Gluconate__STM Calcium  Zinc Gluconate.txt:36" },
-    { "name": "Sodium thiosulfate 0.1 N VS", "use": "titrant", "source": "Zinc Gluconate__STM Calcium  Zinc Gluconate.txt:36" },
-    { "name": "Starch TS (soluble starch)", "use": "indicator", "source": "Zinc Gluconate__STM Calcium  Zinc Gluconate.txt:36" },
-    { "name": "Edetate disodium 0.05 M VS", "use": "titrant", "source": "Zinc Gluconate__STM Calcium  Zinc Gluconate.txt:39" },
-    { "name": "Eriochrome black TS", "use": "indicator", "source": "Zinc Gluconate__STM Calcium  Zinc Gluconate.txt:39" },
-    { "name": "Ammonia-ammonium chloride buffer TS", "use": "reagent", "source": "Zinc Gluconate__STM Calcium  Zinc Gluconate.txt:39" },
-    { "name": "Calcium carbonate (chelometric standard)", "use": "standard", "source": "Zinc Gluconate__STM Calcium  Zinc Gluconate.txt:39" },
-    { "name": "Hydroxy naphthol blue", "use": "indicator", "source": "Zinc Gluconate__STM Calcium  Zinc Gluconate.txt:39" }
+    {
+      "name": "Potassium ferrocyanide TS",
+      "use": "reagent",
+      "source": "Zinc Gluconate__STM Calcium  Zinc Gluconate.txt:26"
+    },
+    {
+      "name": "Potassium Gluconate RS",
+      "use": "standard",
+      "source": "Zinc Gluconate__STM Calcium  Zinc Gluconate.txt:26"
+    },
+    {
+      "name": "Ammonium molybdate",
+      "use": "reagent",
+      "source": "Zinc Gluconate__STM Calcium  Zinc Gluconate.txt:26"
+    },
+    {
+      "name": "Ceric sulfate",
+      "use": "reagent",
+      "source": "Zinc Gluconate__STM Calcium  Zinc Gluconate.txt:26"
+    },
+    {
+      "name": "Ethyl acetate",
+      "use": "reagent",
+      "source": "Zinc Gluconate__STM Calcium  Zinc Gluconate.txt:26"
+    },
+    {
+      "name": "Ammonium hydroxide",
+      "use": "reagent",
+      "source": "Zinc Gluconate__STM Calcium  Zinc Gluconate.txt:26"
+    },
+    {
+      "name": "Nitric acid",
+      "use": "reagent",
+      "source": "Zinc Gluconate__STM Calcium  Zinc Gluconate.txt:26"
+    },
+    {
+      "name": "Silver nitrate TS",
+      "use": "reagent",
+      "source": "Zinc Gluconate__STM Calcium  Zinc Gluconate.txt:26"
+    },
+    {
+      "name": "Barium chloride TS",
+      "use": "reagent",
+      "source": "Zinc Gluconate__STM Calcium  Zinc Gluconate.txt:26"
+    },
+    {
+      "name": "Sulfuric acid, 7 N and 2 N",
+      "use": "reagent",
+      "source": "Zinc Gluconate__STM Calcium  Zinc Gluconate.txt:26"
+    },
+    {
+      "name": "Hydrochloric acid, 3 N and 9 N",
+      "use": "reagent",
+      "source": "Zinc Gluconate__STM Calcium  Zinc Gluconate.txt:26"
+    },
+    {
+      "name": "Ascorbic acid-sodium iodide solution",
+      "use": "reagent",
+      "source": "Zinc Gluconate__STM Calcium  Zinc Gluconate.txt:26"
+    },
+    {
+      "name": "Trioctylphosphine oxide solution",
+      "use": "reagent",
+      "source": "Zinc Gluconate__STM Calcium  Zinc Gluconate.txt:26"
+    },
+    {
+      "name": "Standard arsenic solution (1000 ppm)",
+      "use": "standard",
+      "source": "Zinc Gluconate__STM Calcium  Zinc Gluconate.txt:26"
+    },
+    {
+      "name": "Lead standard solution (1000 ppm) / lead nitrate stock solution",
+      "use": "standard",
+      "source": "Zinc Gluconate__STM Calcium  Zinc Gluconate.txt:26"
+    },
+    {
+      "name": "Cadmium standard solution (1000 ppm) / cadmium nitrate",
+      "use": "standard",
+      "source": "Zinc Gluconate__STM Calcium  Zinc Gluconate.txt:26"
+    },
+    {
+      "name": "Silver diethyldithiocarbamate TS",
+      "use": "reagent",
+      "source": "Zinc Gluconate__STM Calcium  Zinc Gluconate.txt:26"
+    },
+    {
+      "name": "Granular zinc (#20 mesh)",
+      "use": "reagent",
+      "source": "Zinc Gluconate__STM Calcium  Zinc Gluconate.txt:26"
+    },
+    {
+      "name": "Alkaline cupric citrate TS",
+      "use": "reagent",
+      "source": "Zinc Gluconate__STM Calcium  Zinc Gluconate.txt:26"
+    },
+    {
+      "name": "Iodine 0.1 N VS",
+      "use": "titrant",
+      "source": "Zinc Gluconate__STM Calcium  Zinc Gluconate.txt:36"
+    },
+    {
+      "name": "Sodium thiosulfate 0.1 N VS",
+      "use": "titrant",
+      "source": "Zinc Gluconate__STM Calcium  Zinc Gluconate.txt:36"
+    },
+    {
+      "name": "Starch TS (soluble starch)",
+      "use": "indicator",
+      "source": "Zinc Gluconate__STM Calcium  Zinc Gluconate.txt:36"
+    },
+    {
+      "name": "Edetate disodium 0.05 M VS",
+      "use": "titrant",
+      "source": "Zinc Gluconate__STM Calcium  Zinc Gluconate.txt:39"
+    },
+    {
+      "name": "Eriochrome black TS",
+      "use": "indicator",
+      "source": "Zinc Gluconate__STM Calcium  Zinc Gluconate.txt:39"
+    },
+    {
+      "name": "Ammonia-ammonium chloride buffer TS",
+      "use": "reagent",
+      "source": "Zinc Gluconate__STM Calcium  Zinc Gluconate.txt:39"
+    },
+    {
+      "name": "Calcium carbonate (chelometric standard)",
+      "use": "standard",
+      "source": "Zinc Gluconate__STM Calcium  Zinc Gluconate.txt:39"
+    },
+    {
+      "name": "Hydroxy naphthol blue",
+      "use": "indicator",
+      "source": "Zinc Gluconate__STM Calcium  Zinc Gluconate.txt:39"
+    }
   ],
   "openQuestions": [
     {

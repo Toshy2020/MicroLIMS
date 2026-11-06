@@ -168,7 +168,8 @@
           "provisionalCode": "RM-UV-D3",
           "source": "Vitmain D3 40 MIU__STM Crystalline Vitamin D3.txt:30"
         }
-      ]
+      ],
+      "heldBack": "STM states no total volume for the UV assay; waits for the lab"
     },
     {
       "code": "RM-ID-CA-078",
@@ -506,24 +507,34 @@
       "nominalStrength": 0.1,
       "strengthUnit": "Molar",
       "finalVolumeMl": 1000,
-      "instructions": null,
-      "components": [],
+      "instructions": "Dissolve 37.2 g edetate disodium in water to make 1000 mL.",
+      "components": [
+        {
+          "entry": "Edetate disodium (EDTA-Na2.2H2O)",
+          "entryCode": "RG-015",
+          "quantity": 37.2,
+          "unit": "Gram"
+        }
+      ],
       "waterToVolume": true,
-      "standardizationMode": null,
-      "standardEntry": null,
-      "equivalenceMgPerMl": null,
+      "standardizationMode": "PrimaryStandard",
+      "standardEntry": "Calcium carbonate (chelometric standard) (RG-024)",
+      "equivalenceMgPerMl": 10.009,
       "referenceSolution": null,
       "usedBy": [
         "STM-RM-142"
       ],
-      "notes": "Calcium Carbonate DC STM-RM-142 gives no recipe, components, or standardization for 0.1 M sodium edetate.",
-      "complete": false,
-      "missing": [
-        "instructions",
-        "components",
-        "standardizationMode",
-        "storageCondition"
-      ]
+      "notes": "STM-RM-142 gives no recipe (same substance as 0.1 M Disodium edetate VS). Recipe: USP 0.05 M is 18.6 g per 1000 mL; 0.1 M is that x2 = 37.2 g (scaling, USP lists no 0.1 M). Standardization (USP): about 200 mg chelometric CaCO3 (x2 for 0.1 M) dissolved with dilute HCl, 15 mL NaOH TS and hydroxy naphthol blue, titrate to blue; 10.009 mg CaCO3 per mL of 0.1 M (1:1, 100.09 g/mol, derived). USP states no shelf life: house defaults (3 replicates, factor 0.97-1.03, RSD 0.2 %, valid 30 days, shelf life 30 days). Source: USP 35-NF 30 Volumetric Solutions (drugfuture 1077-1085 Volumetric Solutions.pdf): p.1078.",
+      "complete": true,
+      "shelfLifeValue": 30,
+      "shelfLifeUnit": "Days",
+      "storageCondition": "Tightly closed, room temperature",
+      "replicateCount": 3,
+      "maxRsdPercent": 0.2,
+      "validityDays": 30,
+      "blankRequired": false,
+      "factorMin": 0.97,
+      "factorMax": 1.03
     }
   ],
   "hplcMethods": [],
@@ -734,11 +745,6 @@
       "material": "STM-RM-146",
       "test": "RM-UV-D3-146",
       "missing": "uvTotalVolumeMl: STM does not state the preparation dilution steps or sample weight for the 10 ug/mL solution; spec sheet gives 460-500 range (A1% value) while STM describes comparison against standard absorptivity"
-    },
-    {
-      "material": "STM-RM-142",
-      "test": "0.1 M Sodium edetate VS",
-      "missing": "instructions, components, standardization: Calcium Carbonate DC STM-RM-142 gives no recipe, components, or standardization for 0.1 M sodium edetate titrant"
     }
   ]
 }

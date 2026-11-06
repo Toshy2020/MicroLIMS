@@ -1,0 +1,16 @@
+begin;
+update "Items" set "MinSampleQuantity"='50.0', "MinRetestSampleQuantity"='30.0', "MinSampleQuantityUnit"='mL' where "Code"='STM-RM-126';
+update "Items" set "MinSampleQuantity"='100.0', "MinRetestSampleQuantity"='50.0', "MinSampleQuantityUnit"='g' where "Code"='STM-RM-060';
+update "Items" set "MinSampleQuantity"='80.0', "MinRetestSampleQuantity"='60.0', "MinSampleQuantityUnit"='g' where "Code"='STM-RM-063';
+update "Items" set "MinSampleQuantity"='80.0', "MinRetestSampleQuantity"='60.0', "MinSampleQuantityUnit"='g' where "Code"='STM-RM-064';
+update "Items" set "MinSampleQuantity"='120.0', "MinRetestSampleQuantity"='50.0', "MinSampleQuantityUnit"='g' where "Code"='STM-RM-089';
+update "Items" set "MinSampleQuantity"='160.0', "MinRetestSampleQuantity"='80.0', "MinSampleQuantityUnit"='g' where "Code"='STM-RM-091';
+update "Items" set "MinSampleQuantity"='100.0', "MinRetestSampleQuantity"='50.0', "MinSampleQuantityUnit"='g' where "Code"='STM-RM-147';
+update "Items" set "MinSampleQuantity"='50.0', "MinRetestSampleQuantity"='100.0', "MinSampleQuantityUnit"='g' where "Code"='STM-RM-150';
+update "Items" set "MinSampleQuantity"='130.0', "MinRetestSampleQuantity"='50.0', "MinSampleQuantityUnit"='g' where "Code"='STM-RM-151';
+update "Items" set "MinSampleQuantity"='200.0', "MinRetestSampleQuantity"='25.0', "MinSampleQuantityUnit"='g' where "Code"='STM-RM-56';
+update "Items" set "MinSampleQuantity"='130.0', "MinRetestSampleQuantity"='50.0', "MinSampleQuantityUnit"='g' where "Code"='STM-RM-025';
+update "Items" set "MinSampleQuantity"='90.0', "MinRetestSampleQuantity"='60.0', "MinSampleQuantityUnit"='g' where "Code"='STM-RM-051';
+update "Items" set "MinSampleQuantity"='100.0', "MinRetestSampleQuantity"='50.0', "MinSampleQuantityUnit"='g' where "Code"='STM-RM-053';
+update "Items" set "MinSampleQuantity"='100.0', "MinRetestSampleQuantity"=NULL, "MinSampleQuantityUnit"='g' where "Code"='STM-RM-097';
+rollback;

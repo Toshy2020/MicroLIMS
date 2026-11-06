@@ -97,7 +97,7 @@
           "unit": "% of stated amount",
           "expectedResultText": null,
           "expectedState": null,
-          "resultBasis": "PercentAsIs",
+          "resultBasis": null,
           "referenceStandard": "BP 2024",
           "source": "Vitamim A Palmitat__Specifications sheet Vitamin A Palmitate.txt:16"
         }
@@ -178,7 +178,12 @@
       "workflow": "UvSpectrophotometry",
       "details": {
         "samplePrep": "82.44 mg in 5 mL pentane; 1.0 mL to 100 mL with 2-propanol; 1.0 mL to 20 mL with 2-propanol",
-        "wavelengthsNm": [300, 326, 350, 370],
+        "wavelengthsNm": [
+          300,
+          326,
+          350,
+          370
+        ],
         "spectralPurityRatios": {
           "A300_A326": "NMT 0.60",
           "A350_A326": "NMT 0.54",

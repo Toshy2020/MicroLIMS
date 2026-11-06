@@ -1,0 +1,1837 @@
+== material master entries ==
+entry Ferric ammonium sulfate solution R2: same
+entry Phenol red solution: same
+entry Sodium fluoresceinate solution 2 g/L: same
+entry Dimidium bromide-sulfan blue mixed solution: same
+entry Potassium bromate (primary standard): same
+entry Sildenafil citrate CRS: same
+entry Sildenafil impurity A CRS: same
+entry Sildenafil for peak identification CRS: same
+entry Imidazole CRS: same
+entry Propyl para hydroxybenzoate RS: same
+entry Sodium propyl para hydroxybenzoate RS: same
+entry Methyl para hydroxybenzoate RS: same
+entry Sodium methyl para hydroxybenzoate RS: same
+entry Ethyl para hydroxybenzoate RS: same
+entry 4-Hydroxybenzoic acid: same
+entry Pyridoxine impurity A CRS: same
+entry 4-Deoxypyridoxine hydrochloride: same
+entry Sodium lauryl sulfate RS: same
+entry Riboflavin sodium phosphate CRS: same
+entry Sodium standard (NaCl) for AAS: same
+entry Potassium standard (KCl) for AAS: same
+entry Ceric ammonium sulfate: create
+entry Ferroin solution: create
+entry Mordant black 11 triturate: create
+entry Zinc sulfate heptahydrate: create
+entry USP Levofloxacin RS: create
+entry USP Levofloxacin Related Compound A RS: create
+entry USP Levofloxacin Related Compound B RS: create
+entry Lactose monohydrate WS: create
+entry Phenolphthalein Solution R1: create
+entry Cupric-tartaric solution: create
+entry Edetate Disodium: create
+entry Calcium carbonate: create
+entry Eriochrome Black TS: create
+entry Calcium Standard Solution 1000 mg/L: create
+entry Lead Standard Solution 1000 mg/L: create
+entry Retinyl Palmitate CRS: create
+entry Vitamin D3 (500IU/mg) working standard: create
+entry Crystal violet solution: create
+entry Hydroxy naphthol blue: same (exists, kept as is)
+entry Calconcarboxylic acid triturate: create
+entry Chelometric standard calcium carbonate: create
+entry Edetate disodium: same (exists, kept as is)
+entry Potassium sorbate RS: create
+entry Crystalline Vitamin D3 RS: create
+entry USP Cholecalciferol RS: create
+entry USP Vitamin D Assay System Suitability RS: same (exists, kept as is)
+entry Sodium Fluoride RS (USP): create
+entry Potassium Gluconate RS: create
+entry Potassium dichromate (primary standard): create
+entry Starch soluble TS: create
+entry Folic acid working standard: create
+entry Pyridoxine HCl working standard: create
+entry Iron standard solution (1000 mg/L): create
+entry Zinc standard solution (1000 mg/L): create
+entry Copper standard solution (1000 mg/L): create
+entry Starch TS: same (exists, kept as is)
+entry Methyl red-methylene blue TS: create
+entry Tromethamine (primary standard): create
+entry USP Vinylpyrrolidinone RS: create
+entry USP Vinyl Acetate RS: create
+entry Ubidecarenone RS: create
+entry Ubidecarenone impurity D RS: create
+entry Ubidecarenone for system suitability RS: create
+entry Bromothymol blue TS: create
+entry Potassium biphthalate: create
+entry D-Panthenol RS: create
+entry Sodium hydroxide: create
+entry Potassium hydrogen phthalate: create
+entry Phenolphthalein solution: create
+entry Citric acid Monohydrate CRS: create
+entry Oxalic acid: create
+entry Dipotassium sulfate: create
+entry Xylenol orange triturate: create
+entry USP Glimepiride RS: create
+entry USP Glimepiride Related Compound A RS: create
+entry USP Glimepiride Related Compound B RS: create
+entry USP Glimepiride Related Compound C RS: create
+entry USP Glimepiride Related Compound D RS: create
+entry Glimepiride working standard: create
+entry Cobalt Standard Solution 1000 mg/L: create
+entry Nickel Standard Solution 1000 mg/L: create
+entry Mercury standard solution 1000 mg/L: create
+entry Potassium ferrocyanide TS: create
+entry Mercuric sulfate TS: create
+entry Sodium carbonate (primary standard): create
+entry Methyl Orange: create
+entry USP Inositol RS: create
+entry USP Mannitol RS: create
+entry Glycolic acid: same (exists, kept as is)
+entry Methyl red: same (exists, kept as is)
+entry Bromothymol Blue Solution R1: create
+entry Resorcinol: same (exists, kept as is)
+entry Mercuric chloride: create
+entry Zinc: create
+entry Zinc sulfate: create
+entry Croscarmellose sodium RS: create
+entry Sucrose CRS: create
+entry USP Fluconazole RS: create
+entry USP Fluconazole Related Compound A RS: create
+entry USP Fluconazole Related Compound B RS: create
+entry USP Fluconazole Related Compound C RS: create
+entry DHA working standard: create
+entry EPA working standard: create
+entry Fructose: create
+entry Glucose: create
+entry Sucrose: same (exists, kept as is)
+entry Retinol esters CRS: create
+entry Retinol Acetate RS: create
+entry USP Thiamine Hydrochloride RS: create
+entry Thiamine hydrochloride CRS: create
+entry Thiamine for system suitability CRS: create
+entry Methylbenzoate: create
+== solutions ==
+solution 0.1 N Silver nitrate VS: same
+solution 0.1 M Silver nitrate VS: same
+solution 0.1 M Sodium thiosulfate VS: skip (held back: not loaded: storageCondition; standardizationMode; equivalenceMgPerMl not stated in the STM)
+solution 0.1 M Perchloric acid VS: same
+solution 0.5 M Hydrochloric acid VS: skip (held back: not loaded: storageCondition; equivalenceMgPerMl not stated in the STM)
+solution 1 M Hydrochloric acid VS: same
+solution 1 N Sulfuric acid VS: same
+solution 0.1 M Hydrochloric acid VS: skip (held back: not loaded: storageCondition; components; standardization not stated in the STM)
+solution 0.004 M Benzethonium chloride VS: skip (held back: not loaded: storageCondition; instructions, components, standardization not stated in the STM)
+solution Sildenafil buffer-based mobile phase A (acetonitrile : buffer 20:80): skip (held back: not loaded: only used by held-back HPLC methods, and shelfLife, storageCondition; components, pH not stated)
+solution Sildenafil mobile phase B (buffer : methanol : acetonitrile 20:20:60): skip (held back: not loaded: only used by held-back HPLC methods, and shelfLife, storageCondition; components not stated)
+solution Sildenafil diluent (acetonitrile : mobile phase A 10:90): skip (held back: not loaded: only used by held-back HPLC methods, and shelfLife, storageCondition; components not stated)
+solution Paraben mobile phase A (6.8 g/L potassium dihydrogen phosphate): skip (held back: not loaded: only used by held-back HPLC methods, and shelfLife, storageCondition not stated)
+solution Paraben mobile phase B (methanol): skip (held back: not loaded: only used by held-back HPLC methods, and shelfLife, storageCondition not stated)
+solution Paraben diluent (mobile phase 35:65): skip (held back: not loaded: only used by held-back HPLC methods, and shelfLife, storageCondition; components not stated)
+solution Pyridoxine USP mobile phase (hexanesulfonate, pH 3.0, methanol): skip (held back: not loaded: only used by held-back HPLC methods, and shelfLife, storageCondition; phTolerance not stated)
+solution Pyridoxine USP diluent (mobile phase): skip (held back: not loaded: only used by held-back HPLC methods, and shelfLife, storageCondition; components not stated)
+solution Pyridoxine BP mobile phase (KH2PO4 pH 3.0): skip (held back: not loaded: only used by held-back HPLC methods, and shelfLife, storageCondition; phTolerance; phAdjustingEntry not stated)
+solution Pyridoxine BP diluent (water): skip (held back: not loaded: only used by held-back HPLC methods, and shelfLife, storageCondition not stated)
+solution 0.1 M Disodium edetate VS: create
+solution Levofloxacin mobile phase (methanol : buffer 3:7): skip (held back: only used by held-back HPLC methods, and shelfLife, storageCondition not stated)
+solution Levofloxacin RS2 mobile phase A (acetonitrile : buffer 16:84): skip (held back: only used by held-back HPLC methods, and shelfLife, storageCondition not stated)
+solution Levofloxacin RS2 mobile phase B (acetonitrile : methanol : buffer 30:20:50): skip (held back: only used by held-back HPLC methods, and shelfLife, storageCondition not stated)
+solution 0.05 M Edetate Disodium VS: same (exists, kept as is)
+solution 0.05 M Edetate disodium VS: same (exists, kept as is)
+solution 0.1 M Sodium edetate VS: create
+solution 0.1 N Sodium thiosulfate VS: same (exists, kept as is)
+solution 0.01 N Sulfuric acid VS: create
+solution Crospovidone mobile phase (acetonitrile : water 1:9): skip (held back: only used by held-back HPLC methods, and shelfLife, storageCondition not stated)
+solution Coenzyme Q10 RS mobile phase (anhydrous ethanol : methanol 20:80): skip (held back: only used by held-back HPLC methods, and shelfLife, storageCondition not stated)
+solution Coenzyme Q10 impurity F mobile phase (ethyl acetate : hexane 3:97): skip (held back: only used by held-back HPLC methods, and shelfLife, storageCondition not stated)
+solution 0.1 M Potassium biphthalate VS: skip (held back: USP states no standardization for this non-aqueous titrant (STM: prepared from the primary standard); needs the lab)
+solution 1 M Sodium hydroxide VS: create
+solution Glimepiride assay mobile phase (phosphate buffer pH 2.1-2.7 : acetonitrile 1:1): skip (held back: only used by held-back HPLC methods, and shelfLife, storageCondition not stated)
+solution Glimepiride cis-isomer mobile phase (IPA : glacial acetic acid : hexane 100:1:900): skip (held back: only used by held-back HPLC methods, and shelfLife, storageCondition not stated)
+solution Glimepiride diluent (acetonitrile : water 4:1): skip (held back: only used by held-back HPLC methods, and shelfLife, storageCondition not stated)
+solution 0.1 N Sulfuric acid VS: create
+solution 0.02 M Disodium edetate VS: create
+solution Fluconazole mobile phase (acetonitrile : water 20:80): skip (held back: only used by held-back HPLC methods, and shelfLife, storageCondition not stated)
+solution Thiamine USP mobile phase (octanesulfonate : methanol : acetonitrile): skip (held back: only used by held-back HPLC methods, and shelfLife, storageCondition not stated)
+solution Thiamine BP mobile phase A (sodium hexanesulfonate pH 3.1): skip (held back: only used by held-back HPLC methods, and shelfLife, storageCondition not stated)
+solution Thiamine BP mobile phase B (methanol): skip (held back: only used by held-back HPLC methods, and shelfLife, storageCondition not stated)
+solution 0.1 M Ammonium thiocyanate VS: same
+solution 0.05 M Iodine VS: skip (held back: not loaded: storageCondition not stated in the STM)
+solution 0.1 N Ceric Ammonium Sulfate VS: skip (solution '0.1 M Sodium thiosulfate VS' not found)
+solution 0.1 M Zinc sulfate VS: create
+solution 0.1 N Iodine VS: same (exists, kept as is)
+solution 0.02 M Zinc sulfate VS: create
+solution Fluconazole diluent (mobile phase): skip (held back: only used by held-back HPLC methods, and shelfLife, storageCondition not stated)
+== test definitions ==
+test RM-DESC: same
+test RM-LOD: same
+test RM-UV-RIBO: same
+test RM-UV-PHOS: same
+test RM-UV-PYRI: same
+test TAMC: same
+test TYMC: same
+test E.coli: same
+test Salmonella: same
+test RM-SOLUB: same
+test RM-SASH: same
+test RM-PH: same
+test RM-MP: same
+test RM-MP-QL: same
+test RM-BULKD: same
+test RM-TAPDEN: same
+test RM-SETVOL: same
+test RM-OPTROT: same
+test RM-SOLAPP: same
+test RM-INSOL: same
+test RM-ODOR: same
+test RM-MISC: same
+test RM-THIOSULFATE: same
+test RM-ID-IR: same
+test RM-ID-NA: same
+test RM-ID-NA-ASH: same
+test RM-ID-CL: same
+test RM-ID-PO4: same
+test RM-ID-SO4-SMB: same
+test RM-ID-SO4-SLS: same
+test RM-ID-FOAM: same
+test RM-ID-SSG-B: same
+test RM-ID-SSG-C: same
+test RM-ID-TLC-PARAB: same
+test RM-ID-TLC-PYR: same
+test RM-ID-RT: same
+test RM-ID-NACLT: same
+test RM-LT-CL: same
+test RM-LT-SO4: same
+test RM-LT-FE: same
+test RM-LT-HM: same
+test RM-IMP-E-SILD: same
+test RM-IMP-E-RIBO: same
+test RM-KF: same
+test RM-DISINT: same
+test RM-NONEST-ALC: same
+test RM-NACL-SLS: same
+test RM-TIT-NACLT: same
+test RM-TIT-SMB: same
+test RM-TIT-PYR-BP: same
+test RM-TIT-CL-PYR: same
+test RM-TIT-NAOH-BP: same
+test RM-TIT-NAOH-USP: same
+test RM-CARB-NAOH: same
+test RM-TIT-SLS: same
+test RM-TIT-SLS-ALK: same
+test RM-TIT-NAOCL-ALK: same
+test RM-TIT-NAOCL: same
+test RM-HPLC-SILD-AS: skip (held back: needs the held-back method "Sildenafil citrate assay (BP, gradient HPLC)")
+test RM-HPLC-SILD-RS: skip (held back: needs the held-back method "Sildenafil citrate related substances (BP, gradient HPLC)")
+test RM-HPLC-PPB-AS: skip (held back: needs the held-back method "Sodium propyl paraben assay (BP, HPLC)")
+test RM-HPLC-PPB-RS: skip (held back: needs the held-back method "Sodium propyl paraben related substances (BP, HPLC)")
+test RM-HPLC-MPB-AS: skip (held back: needs the held-back method "Sodium methyl paraben assay (BP, HPLC)")
+test RM-HPLC-MPB-RS: skip (held back: needs the held-back method "Sodium methyl paraben related substances (BP, HPLC)")
+test RM-HPLC-PYR-AS: skip (held back: needs the held-back method "Pyridoxine hydrochloride assay (USP, HPLC internal standard)")
+test RM-HPLC-PYR-RS: skip (held back: needs the held-back method "Pyridoxine hydrochloride related substances (BP, HPLC)")
+test RM-ICP-SE: skip (held back: needs the held-back method "Selenium by AAS (sodium selenate)")
+test RM-ICP-NA: skip (held back: needs the held-back method "Sodium by AAS (sodium hydroxide USP)")
+test RM-ICP-K: skip (held back: needs the held-back method "Potassium by AAS (sodium hydroxide USP)")
+test RM-ICP-PB: skip (held back: needs the held-back method "Lead by AAS (Siberian ginseng extract)")
+test RM-RIBO-RS: same
+test RM-RIBO-COMP: same
+test RM-ID-CR-MCC: create
+test RM-COND: create
+test RM-ETH-SOL: create
+test RM-WAT-SOL: create
+test RM-SAUR: error (HTTP 400: You are not a member of the selected laboratory section.)
+test RM-PAER: error (HTTP 400: You are not a member of the selected laboratory section.)
+test RM-ID-VITK1: create
+test RM-TIT-VITK1: skip (solution '0.1 N Ceric Ammonium Sulfate VS' not found)
+test RM-ID-CR-MG: create
+test RM-ID-FP-MG: create
+test RM-ID-AV-MG: create
+test RM-ACID-ALK-MG: create
+test RM-TIT-MGST: create
+test RM-ID-CR-ATOC: create
+test RM-ACID-ATOC: create
+test RM-ID-VIS-SORB: create
+test RM-OPTROT-SORB: create
+test RM-RED-SUG: create
+test RM-RED-SUG-HYD: create
+test RM-ID-CHEM-129: create
+test RM-ID-VIS-129: create
+test RM-SO2-129: create
+test RM-TIT-DE-129: create
+test RM-HPLC-LEVO-AS: skip (held back: needs the held-back method "Levofloxacin assay (USP, HPLC)")
+test RM-HPLC-LEVO-RS1: skip (held back: needs the held-back method "Levofloxacin organic impurities procedure 1 (USP, HPLC)")
+test RM-HPLC-LEVO-RS2: skip (held back: needs the held-back method "Levofloxacin organic impurities procedure 2 (USP, gradient HPLC)")
+test RM-RELDENS-093: create
+test RM-REFR-093: create
+test RM-ID-CHEM-084: create
+test RM-ID-TLC-084: create
+test RM-TIT-ACIDALK-084: create
+test RM-UV-ABS-084: create
+test RM-ID-VIS-061: create
+test RM-ID-CUPRI-061: create
+test RM-ID-PAD-061: create
+test RM-SO2-061: create
+test RM-DE-061: create
+test RM-ID-UV-149: create
+test RM-AV-149: create
+test RM-PV-149: create
+test RM-UV-AS-149: create
+test RM-ID-TLC-149: create
+test RM-ID-MG-107: create
+test RM-SOLSALTS-107: create
+test RM-CARB-107: create
+test RM-ICP-CA-107: skip (held back: needs the held-back method "Calcium by AAS (magnesium hydroxide USP)")
+test RM-ICP-PB-107: skip (held back: needs the held-back method "Lead by ICP (magnesium hydroxide USP)")
+test RM-LOI-107: create
+test RM-TIT-MGOH-107: create
+test RM-DISP-132: create
+test RM-ID-FILM-132: create
+test RM-ASH-132: create
+test RM-UV-KSORB-047: create
+test RM-ID-THERM-047: create
+test RM-ID-K: create
+test RM-ACID-KSORB-047: create
+test RM-ALD-KSORB-047: create
+test RM-TIT-KSORB-047: create
+test RM-UV-D3-146: error (HTTP 400: This UV mode needs a total volume above 0.)
+test RM-ID-CA-078: create
+test RM-ACIDINS-CA: create
+test RM-LT-PB-078: create
+test RM-LT-AS-078: create
+test RM-LT-BA-078: create
+test RM-FL-CACO3-078: create
+test RM-MG-ALK-CA: create
+test RM-TIT-CACO3-078: create
+test RM-PSD-CACO3-078: create
+test RM-ID-CA: create
+test RM-ID-CO3: create
+test RM-TIT-CADC-142: create
+test RM-ID-ZN-050: create
+test RM-ID-TLC-050: create
+test RM-LT-AS-050: create
+test RM-LT-PB-050: create
+test RM-TIT-RED-050: create
+test RM-TIT-ZNG-050: create
+test RM-HCLINS-128: create
+test RM-ACID-001: create
+test RM-ID-IGN-001: create
+test RM-ID-NH4-001: create
+test RM-ID-KMN-001: create
+test RM-TIT-FAC: create
+test RM-ID-SIL-065: create
+test RM-LOI-SIL-065: create
+test RM-ASSAY-SIL-065: create
+test RM-ID-AAS-088: create
+test RM-HPLC-FERO-AS: skip (held back: method details missing in the STM (API needs run time, replicates, element view etc.); see gaps, waits for the lab)
+test RM-ICP-FE-088: skip (held back: method details missing in the STM (API needs run time, replicates, element view etc.); see gaps, waits for the lab)
+test RM-ICP-ZN-088: skip (held back: method details missing in the STM (API needs run time, replicates, element view etc.); see gaps, waits for the lab)
+test RM-ICP-CU-088: skip (held back: method details missing in the STM (API needs run time, replicates, element view etc.); see gaps, waits for the lab)
+test RM-ID-CUTART-ASC: create
+test RM-TIT-ASC: create
+test RM-DISP-130: create
+test RM-ID-FILM-130: create
+test RM-ASH-130: create
+test RM-ID-IOD-024: create
+test RM-ID-SUSP-024: create
+test RM-PEROX-024: create
+test RM-WSUB-024: create
+test RM-TIT-024: create
+test RM-HPLC-VP-024: skip (held back: needs the held-back method "Vinylpyrrolidinone in crospovidone (USP, HPLC)")
+test RM-HPLC-RS-152: skip (held back: needs the held-back method "Coenzyme Q10 related substances (BP, HPLC)")
+test RM-HPLC-IMPF-152: skip (held back: needs the held-back method "Coenzyme Q10 impurity F (BP, HPLC)")
+test RM-COL-087: error (HTTP 400: {"request": ["The request field is required."], "$.equationType": ["The JSON value could not be converted to MicroLIMS.Domain.Enums.EquationType. Path: $.equationType | LineNumber: 0 | BytePositionInLine: 120."]})
+test RM-SG-087: create
+test RM-RI-087: create
+test RM-RELDEN-080: create
+test RM-REFIDX-080: create
+test RM-AV-080: create
+test RM-ID-CU-141: create
+test RM-ID-HYD-141: create
+test RM-TIT-AMINOPROP-141: create
+test RM-REFIDX-141: create
+test RM-TIT-PANT-141: skip (held back: titrant 0.1 M Potassium biphthalate VS has no standardization; see held-back report)
+test RM-DISP-073: create
+test RM-ID-FILM-073: create
+test RM-ASH-073: create
+test RM-ID-PH-035: create
+test RM-ID-PYR-035: create
+test RM-ID-CA-035: create
+test RM-RCS-035: create
+test RM-LT-OXAL-035: create
+test RM-TIT-CITRIC-035: create
+test RM-ALU-035: create
+test RM-ID-TOCO-133: create
+test RM-ID-ZN-USP-067: create
+test RM-ID-SO4-USP-067: create
+test RM-LT-PB-067: create
+test RM-LT-AS-067: create
+test RM-ALK-067: create
+test RM-ACID-067: create
+test RM-TIT-ZN-USP-067: create
+test RM-ID-SO4-BP-067: create
+test RM-ID-ZN-BP-067: create
+test RM-TIT-ZN-BP-067: create
+test RM-ID-SILICATE-125: create
+test RM-ID-PINK-125: create
+test RM-ID-PHOS-125: create
+test RM-ID-AAS-125: create
+test RM-VISC-125: create
+test RM-LT-AS-125: create
+test RM-LT-PB-125: create
+test RM-ACIDDEM-125: create
+test RM-ICP-ALMG-125: create
+test RM-ID-PIP-036: create
+test RM-ID-CA-036: create
+test RM-ACIDALK-036: create
+test RM-CITRIC-036: create
+test RM-ETOH-SOL-036: create
+test RM-LT-PO4-036: create
+test RM-LT-AS-036: create
+test RM-TIT-CAGLY-036: create
+test RM-ID-CU-030: create
+test RM-ID-SO4-030: create
+test RM-LT-PB-030: create
+test RM-LT-NI-030: create
+test RM-LT-CO-030: create
+test RM-LT-FE-030: create
+test RM-TIT-CUSO4-030: create
+test RM-DISP-119: create
+test RM-ID-FILM-119: create
+test RM-ASH-119: create
+test RM-HPLC-GLIM-CIS: skip (held back: needs the held-back method "Glimepiride related compound A / cis-isomer (USP, HPLC)")
+test RM-HPLC-GLIM-IMP: skip (held back: needs the held-back method "Glimepiride organic impurities (USP, HPLC)")
+test RM-HPLC-GLIM-AS: skip (held back: needs the held-back method "Glimepiride assay (USP, HPLC)")
+test RM-ID-FAC-048: create
+test RM-FCIT-048: create
+test RM-OXAL-048: create
+test RM-ICP-PB-048: skip (held back: needs the held-back method "Lead by AAS (ferric ammonium citrate)")
+test RM-ICP-HG-048: skip (held back: needs the held-back method "Mercury by AAS (ferric ammonium citrate)")
+test RM-VISC-143: create
+test RM-TIT-PROT-143: create
+test RM-AIA-144: create
+test RM-BA-145: create
+test RM-ICP-PB-145: skip (held back: needs the held-back method "Lead by AAS (inositol)")
+test RM-ID-CMC-004: create
+test RM-VISC-CMC-004: create
+test RM-LT-GLYC-004: create
+test RM-ID-MG-058: create
+test RM-FAS-MGO: create
+test RM-ICP-CA-058: skip (held back: needs the held-back method "Calcium by AAS (magnesium oxide USP)")
+test RM-LOI-058: create
+test RM-AIS-058: create
+test RM-TIT-MGO-058: create
+test RM-PSD-058: create
+test RM-ID-PEG-A-049: create
+test RM-ID-PEG-B-049: create
+test RM-ACID-049: create
+test RM-VISC-049: create
+test RM-FP-049: create
+test RM-RED-049: create
+test RM-AVWT-074: create
+test RM-LEN-074: create
+test RM-CLOS-074: create
+test RM-BRITTLE-074: create
+test RM-DISINT-074: create
+test RM-ID-CAHP-127: create
+test RM-AIS-127: create
+test RM-CARB-127: create
+test RM-LT-AS-127: create
+test RM-BA-127: create
+test RM-LOI-127: create
+test RM-TIT-CAHP-127: create
+test RM-PSD-127: create
+test RM-DISP-102: create
+test RM-ID-UV-102: create
+test RM-UV-BC-102: create
+test RM-UV-002: create
+test RM-REFR-002: create
+test RM-RELDENS-002: create
+test RM-FATTY-002: create
+test RM-RESEV-002: create
+test RM-GC-002: create
+test RM-ID-TLC-002: create
+test RM-ID-MB-085: create
+test RM-WSS-085: create
+test RM-DS-085: create
+test RM-ID-CU-124: create
+test RM-ID-TLC-124: create
+test RM-RED-124: create
+test RM-COLOR-124: create
+test RM-SULF-124: create
+test RM-DEXTRIN-124: create
+test RM-ID-UV-131: create
+test RM-UV-AS-131: create
+test RM-HPLC-FLU-AS: skip (held back: needs the held-back method "Fluconazole assay (USP, HPLC)")
+test RM-HPLC-FLU-IMP: skip (held back: needs the held-back method "Fluconazole organic impurities (USP, HPLC)")
+test RM-SG-139: create
+test RM-PV-139: create
+test RM-AV-139: create
+test RM-ABS233-139: create
+test RM-ID-TLC-123: create
+test RM-REFR-123: create
+test RM-HMF-123: create
+test RM-ID-TLC-099: create
+test RM-ID-FILM-114: create
+test RM-ASH-114: create
+test RM-ID-FLUO-003: create
+test RM-LT-NO3-003: create
+test RM-UV-ABS-003: create
+test RM-TIT-THIA-003: create
+test RM-HPLC-THIA-AS: skip (held back: needs the held-back method "Thiamine hydrochloride assay (USP, HPLC)")
+test RM-HPLC-THIA-RC: skip (held back: needs the held-back method "Thiamine hydrochloride related compounds (USP, HPLC)")
+test RM-HPLC-THIA-RS: skip (held back: needs the held-back method "Thiamine hydrochloride related substances (BP, gradient HPLC)")
+== items ==
+item C1I-91-151: update {minSampleQuantity: None -> 50, minSampleQuantityUnit: None -> "g", assignedTests: [] -> ["E.coli", "RM-DESC", "RM-ID-IR", "RM-LOD", "RM-OPTROT", "RM-SASH", "RM-SOLAPP", "RM-SOLUB", "TAMC", "TYMC"]}
+item C1I-91-153: update {minSampleQuantity: None -> 90, minSampleQuantityUnit: None -> "g", assignedTests: [] -> ["E.coli", "RM-DESC", "RM-LT-CL", "RM-LT-FE", "RM-PH", "RM-SOLAPP", "RM-SOLUB", "TAMC", "TYMC"]}
+item C1I-91-158: update {minSampleQuantity: None -> 100, minSampleQuantityUnit: None -> "g", assignedTests: [] -> ["E.coli", "RM-DESC", "RM-LT-CL", "RM-LT-FE", "RM-SOLAPP", "RM-SOLUB", "TAMC", "TYMC"]}
+item C1I-91-169: update {minSampleQuantity: None -> 100, minSampleQuantityUnit: None -> "g", assignedTests: [] -> ["RM-DESC", "RM-LOD", "RM-PH", "RM-SASH", "RM-SOLAPP", "RM-SOLUB"]}
+item C1I-91-178: update {minSampleQuantity: None -> 100, minSampleQuantityUnit: None -> "g", assignedTests: [] -> ["E.coli", "RM-DESC", "RM-LOD", "RM-LT-FE", "RM-LT-SO4", "RM-SOLAPP", "RM-SOLUB", "RM-THIOSULFATE", "TAMC", "TYMC"]}
+item C1I-91-179: update {minSampleQuantity: None -> 100, minSampleQuantityUnit: None -> "g", assignedTests: [] -> ["E.coli", "RM-DESC", "RM-SOLAPP", "RM-SOLUB", "TAMC", "TYMC"]}
+item C1I-91-228: update {minSampleQuantity: None -> 100, minRetestSampleQuantity: None -> 50, minSampleQuantityUnit: None -> "g", assignedTests: [] -> ["E.coli", "RM-ASSAY-SIL-065", "RM-DESC", "RM-ID-SIL-065", "RM-LOI-SIL-065", "RM-LT-CL", "RM-PH", "RM-SOLUB", "TAMC", "TYMC"]}
+item C1I-91-229: update {minSampleQuantity: None -> 100, minSampleQuantityUnit: None -> "g", assignedTests: [] -> ["RM-DESC", "RM-KF", "RM-PH", "RM-SASH", "RM-SOLAPP", "RM-SOLUB"]}
+item C1I-91-231: update {minSampleQuantity: None -> 100, minSampleQuantityUnit: None -> "g", assignedTests: [] -> ["RM-DESC", "RM-KF", "RM-SOLUB"]}
+item C5I-91-213: update {minSampleQuantity: None -> 20, minSampleQuantityUnit: None -> "g", assignedTests: [] -> ["E.coli", "RM-DESC", "RM-LOD", "RM-SOLUB", "TAMC", "TYMC"]}
+item C5I-91-225: update {minSampleQuantity: None -> 100, minSampleQuantityUnit: None -> "g", assignedTests: [] -> ["E.coli", "RM-BULKD", "RM-DESC", "RM-LOD", "RM-LT-HM", "RM-ODOR", "RM-SASH", "RM-SOLUB", "Salmonella ", "TAMC", "TYMC"]}
+item Caco3 MD: update {minSampleQuantity: None -> 200, minRetestSampleQuantity: None -> 120, minSampleQuantityUnit: None -> "g", assignedTests: ["E.coli", "TAMC", "TIT-E2E-ACID", "TYMC"] -> ["E.coli", "RM-ACIDINS-CA", "RM-DESC", "RM-ID-CA", "RM-ID-CO3", "RM-LOD", "RM-LT-HM", "RM-SOLUB", "RM-TAPDEN", "RM-TIT-CADC-142", "TAMC", "TIT-E2E-ACID", "TYMC"]}
+item P.Honey: update {minSampleQuantity: None -> 180, minRetestSampleQuantity: None -> 70, minSampleQuantityUnit: None -> "g", assignedTests: ["E.coli", "Salmonella ", "TAMC", "TYMC"] -> ["E.coli", "RM-COND", "RM-DESC", "RM-HMF-123", "RM-ID-TLC-123", "RM-LT-CL", "RM-LT-SO4", "RM-OPTROT", "RM-REFR-123", "Salmonella ", "TAMC", "TYMC"]}
+item RM-ASCORBIC: update {minSampleQuantity: None -> 20, minSampleQuantityUnit: None -> "g", assignedTests: ["TIT-ASCORBIC", "TIT-REL"] -> ["RM-DESC", "RM-ID-CUTART-ASC", "RM-ID-IR", "RM-OPTROT", "RM-SASH", "RM-SOLUB", "RM-TIT-ASC", "TIT-ASCORBIC", "TIT-REL"]}
+item STM-RM-001: update {minSampleQuantity: None -> 150, minRetestSampleQuantity: None -> 150, minSampleQuantityUnit: None -> "g", assignedTests: [] -> ["E.coli", "RM-ACID-001", "RM-DESC", "RM-ID-IGN-001", "RM-ID-KMN-001", "RM-ID-NH4-001", "RM-LT-SO4", "RM-SOLUB", "RM-TIT-FAC", "TAMC", "TYMC"]}
+item STM-RM-002: update {minSampleQuantity: None -> 240, minSampleQuantityUnit: None -> "ml", assignedTests: [] -> ["E.coli", "RM-DESC", "RM-FATTY-002", "RM-GC-002", "RM-ID-TLC-002", "RM-OPTROT", "RM-REFR-002", "RM-RELDENS-002", "RM-RESEV-002", "RM-UV-002", "Salmonella ", "TAMC", "TYMC"]}
+item STM-RM-003: update {minSampleQuantity: None -> 150, minRetestSampleQuantity: None -> 50, minSampleQuantityUnit: None -> "g", assignedTests: [] -> ["E.coli", "RM-DESC", "RM-ID-CL", "RM-ID-FLUO-003", "RM-ID-IR", "RM-KF", "RM-LT-NO3-003", "RM-LT-SO4", "RM-PH", "RM-SASH", "RM-SOLAPP", "RM-SOLUB", "RM-TIT-THIA-003", "RM-UV-ABS-003", "TAMC", "TYMC"]}
+item STM-RM-004: update {minSampleQuantity: None -> 100, minRetestSampleQuantity: None -> 70, minSampleQuantityUnit: None -> "g", assignedTests: [] -> ["RM-DESC", "RM-ID-CMC-004", "RM-ID-NA-ASH", "RM-LOD", "RM-LT-CL", "RM-LT-GLYC-004", "RM-PH", "RM-SASH", "RM-SOLAPP", "RM-SOLUB", "RM-VISC-CMC-004"]}
+item STM-RM-012: update {minSampleQuantity: None -> 65, minRetestSampleQuantity: None -> 30, minSampleQuantityUnit: None -> "g", assignedTests: [] -> ["E.coli", "RM-DESC", "RM-ID-VITK1", "RM-LOD", "RM-LT-HM", "TAMC", "TYMC"]}
+item STM-RM-024: update {minSampleQuantity: None -> 100, minRetestSampleQuantity: None -> 80, minSampleQuantityUnit: None -> "g", assignedTests: [] -> ["E.coli", "RM-DESC", "RM-ID-IOD-024", "RM-ID-IR", "RM-ID-SUSP-024", "RM-LOD", "RM-PEROX-024", "RM-SASH", "RM-SOLUB", "RM-TIT-024", "RM-WSUB-024", "TAMC", "TYMC"]}
+item STM-RM-025: same
+item STM-RM-030: update {minSampleQuantity: None -> 100, minRetestSampleQuantity: None -> 50, minSampleQuantityUnit: None -> "g", assignedTests: [] -> ["E.coli", "RM-DESC", "RM-ID-CU-030", "RM-ID-SO4-030", "RM-LOD", "RM-LT-CL", "RM-LT-CO-030", "RM-LT-FE-030", "RM-LT-NI-030", "RM-LT-PB-030", "RM-SOLAPP", "RM-SOLUB", "RM-TIT-CUSO4-030", "TAMC", "TYMC"]}
+item STM-RM-035: update {minSampleQuantity: None -> 100, minRetestSampleQuantity: None -> 75, minSampleQuantityUnit: None -> "g", assignedTests: [] -> ["E.coli", "RM-ALU-035", "RM-DESC", "RM-ID-CA-035", "RM-ID-IR", "RM-ID-PH-035", "RM-ID-PYR-035", "RM-KF", "RM-LT-OXAL-035", "RM-LT-SO4", "RM-RCS-035", "RM-SASH", "RM-SOLAPP", "RM-SOLUB", "RM-TIT-CITRIC-035", "TAMC", "TYMC"]}
+item STM-RM-036: update {minSampleQuantity: None -> 100, minRetestSampleQuantity: None -> 50, minSampleQuantityUnit: None -> "g", assignedTests: [] -> ["E.coli", "RM-ACIDALK-036", "RM-CITRIC-036", "RM-DESC", "RM-ETOH-SOL-036", "RM-ID-CA-036", "RM-ID-PIP-036", "RM-ID-PO4", "RM-LOD", "RM-LT-AS-036", "RM-LT-CL", "RM-LT-FE", "RM-LT-PO4-036", "RM-LT-SO4", "RM-SOLAPP", "RM-SOLUB", "RM-TIT-CAGLY-036", "TAMC", "TYMC"]}
+item STM-RM-045: update {minSampleQuantity: None -> 60, minRetestSampleQuantity: None -> 30, minSampleQuantityUnit: None -> "g", assignedTests: [] -> ["E.coli", "RM-DESC", "RM-ID-IR", "RM-ID-RT", "RM-KF", "RM-OPTROT", "RM-SASH", "RM-SOLUB", "TAMC", "TYMC"]}
+item STM-RM-047: update {minSampleQuantity: None -> 70, minRetestSampleQuantity: None -> 40, minSampleQuantityUnit: None -> "g", assignedTests: [] -> ["E.coli", "RM-ACID-KSORB-047", "RM-ALD-KSORB-047", "RM-DESC", "RM-ID-IR", "RM-ID-K", "RM-ID-THERM-047", "RM-LOD", "RM-SOLAPP", "RM-SOLUB", "RM-TIT-KSORB-047", "RM-UV-KSORB-047", "TAMC", "TYMC"]}
+item STM-RM-048: update {minSampleQuantity: None -> 90, minRetestSampleQuantity: None -> 50, minSampleQuantityUnit: None -> "g", assignedTests: [] -> ["E.coli", "RM-DESC", "RM-FCIT-048", "RM-ID-FAC-048", "RM-LT-SO4", "RM-OXAL-048", "RM-SOLUB", "RM-TIT-FAC", "TAMC", "TYMC"]}
+item STM-RM-049: update {minSampleQuantity: None -> 200, minRetestSampleQuantity: None -> 100, minSampleQuantityUnit: None -> "g", assignedTests: [] -> ["E.coli", "RM-ACID-049", "RM-DESC", "RM-FP-049", "RM-ID-PEG-A-049", "RM-ID-PEG-B-049", "RM-KF", "RM-RED-049", "RM-SASH", "RM-SOLAPP", "RM-SOLUB", "RM-VISC-049", "TAMC", "TYMC"]}
+item STM-RM-050: update {minSampleQuantity: None -> 100, minRetestSampleQuantity: None -> 60, minSampleQuantityUnit: None -> "g", assignedTests: [] -> ["E.coli", "RM-DESC", "RM-ID-TLC-050", "RM-ID-ZN-050", "RM-KF", "RM-LT-AS-050", "RM-LT-CL", "RM-LT-PB-050", "RM-LT-SO4", "RM-PH", "RM-SOLUB", "RM-TIT-RED-050", "RM-TIT-ZNG-050", "TAMC", "TYMC"]}
+item STM-RM-051: same
+item STM-RM-052: update {minSampleQuantity: None -> 70, minRetestSampleQuantity: None -> 50, minSampleQuantityUnit: None -> "g", assignedTests: [] -> ["E.coli", "RM-DESC", "RM-ID-IR", "RM-ID-RT", "RM-KF", "RM-SASH", "RM-SOLUB", "TAMC", "TYMC"]}
+item STM-RM-053: same
+item STM-RM-054: update {minSampleQuantity: None -> 70, minRetestSampleQuantity: None -> 50, minSampleQuantityUnit: None -> "g", assignedTests: [] -> ["E.coli", "RM-DESC", "RM-ID-IR", "RM-ID-RT", "RM-LOD", "RM-SASH", "RM-SOLUB", "TAMC", "TYMC"]}
+item STM-RM-058: update {minSampleQuantity: None -> 120, minRetestSampleQuantity: None -> 50, minSampleQuantityUnit: None -> "g", assignedTests: [] -> ["E.coli", "RM-AIS-058", "RM-BULKD", "RM-DESC", "RM-FAS-MGO", "RM-ID-MG-058", "RM-LOI-058", "RM-LT-FE", "RM-PSD-058", "RM-SOLUB", "RM-TIT-MGO-058", "TAMC", "TYMC"]}
+item STM-RM-059: update {minSampleQuantity: None -> 100, minRetestSampleQuantity: None -> 100, minSampleQuantityUnit: None -> "g", assignedTests: [] -> ["E.coli", "RM-ACID-ATOC", "RM-BULKD", "RM-DESC", "RM-ID-CR-ATOC", "RM-ID-RT", "RM-MP", "RM-OPTROT", "RM-SOLUB", "TAMC", "TYMC"]}
+item STM-RM-060: same
+item STM-RM-061: update {minSampleQuantity: None -> 100, minRetestSampleQuantity: None -> 50, minSampleQuantityUnit: None -> "g", assignedTests: [] -> ["E.coli", "RM-DE-061", "RM-DESC", "RM-ID-CUPRI-061", "RM-ID-PAD-061", "RM-ID-VIS-061", "RM-LOD", "RM-PH", "RM-SASH", "RM-SO2-061", "RM-SOLUB", "TAMC", "TYMC"]}
+item STM-RM-062: update {minSampleQuantity: None -> 100, minRetestSampleQuantity: None -> 50, minSampleQuantityUnit: None -> "g", assignedTests: [] -> ["E.coli", "RM-COND", "RM-DESC", "RM-ID-RT", "RM-ID-VIS-SORB", "RM-KF", "RM-OPTROT-SORB", "RM-RED-SUG", "RM-RED-SUG-HYD", "RM-SOLAPP", "TAMC", "TYMC"]}
+item STM-RM-063: same
+item STM-RM-064: same
+item STM-RM-067: update {minSampleQuantity: None -> 50, minRetestSampleQuantity: None -> 50, minSampleQuantityUnit: None -> "g", assignedTests: [] -> ["RM-ACID-067", "RM-ALK-067", "RM-DESC", "RM-ID-SO4-BP-067", "RM-ID-SO4-USP-067", "RM-ID-ZN-BP-067", "RM-ID-ZN-USP-067", "RM-LT-AS-067", "RM-LT-CL", "RM-LT-FE", "RM-LT-PB-067", "RM-PH", "RM-SOLAPP", "RM-SOLUB", "RM-TIT-ZN-BP-067", "RM-TIT-ZN-USP-067"]}
+item STM-RM-072: update {minSampleQuantity: None -> 70, minRetestSampleQuantity: None -> 25, minSampleQuantityUnit: None -> "g", assignedTests: [] -> ["E.coli", "RM-DESC", "RM-ID-RT", "RM-LOD", "RM-SOLUB", "TAMC", "TYMC"]}
+item STM-RM-073: update {minSampleQuantity: None -> 60, minRetestSampleQuantity: None -> 60, minSampleQuantityUnit: None -> "g", assignedTests: [] -> ["E.coli", "RM-ASH-073", "RM-DESC", "RM-DISP-073", "RM-ID-FILM-073", "TAMC", "TYMC"]}
+item STM-RM-074: update {minSampleQuantity: None -> 140, minRetestSampleQuantity: None -> 70, minSampleQuantityUnit: None -> "g", assignedTests: [] -> ["E.coli", "RM-AVWT-074", "RM-BRITTLE-074", "RM-CLOS-074", "RM-DESC", "RM-DISINT-074", "RM-LEN-074", "RM-LOD", "RM-PH", "RM-SASH", "RM-SOLUB", "Salmonella ", "TAMC", "TYMC"]}
+item STM-RM-077: skip (item not found)
+item STM-RM-078: update {minSampleQuantity: None -> 100, minRetestSampleQuantity: None -> 80, minSampleQuantityUnit: None -> "g", assignedTests: [] -> ["E.coli", "RM-ACIDINS-CA", "RM-BULKD", "RM-DESC", "RM-FL-CACO3-078", "RM-ID-CA-078", "RM-LOD", "RM-LT-AS-078", "RM-LT-BA-078", "RM-LT-FE", "RM-LT-PB-078", "RM-MG-ALK-CA", "RM-PSD-CACO3-078", "RM-SOLUB", "RM-TIT-CACO3-078", "TAMC", "TYMC"]}
+item STM-RM-080: update {minSampleQuantity: None -> 100, minRetestSampleQuantity: None -> 80, minSampleQuantityUnit: None -> "ml", assignedTests: [] -> ["E.coli", "RM-AV-080", "RM-DESC", "RM-OPTROT", "RM-REFIDX-080", "RM-RELDEN-080", "RM-SOLUB", "Salmonella ", "TAMC", "TYMC"]}
+item STM-RM-081: update {minSampleQuantity: None -> 120, minRetestSampleQuantity: None -> 50, minSampleQuantityUnit: None -> "g", assignedTests: [] -> ["E.coli", "RM-BULKD", "RM-COND", "RM-DESC", "RM-ETH-SOL", "RM-ID-CR-MCC", "RM-ID-IR", "RM-LOD", "RM-PH", "RM-SASH", "RM-SOLUB", "RM-WAT-SOL", "Salmonella ", "TAMC", "TYMC"]}
+item STM-RM-084: update {minSampleQuantity: None -> 100, minRetestSampleQuantity: None -> 50, minSampleQuantityUnit: None -> "g", assignedTests: [] -> ["E.coli", "RM-DESC", "RM-ID-CHEM-084", "RM-ID-IR", "RM-ID-TLC-084", "RM-KF", "RM-OPTROT", "RM-SASH", "RM-SOLAPP", "RM-SOLUB", "RM-TIT-ACIDALK-084", "RM-UV-ABS-084", "TAMC", "TYMC"]}
+item STM-RM-085: update {minSampleQuantity: None -> 180, minRetestSampleQuantity: None -> 90, minSampleQuantityUnit: None -> "g", assignedTests: [] -> ["E.coli", "RM-DESC", "RM-DS-085", "RM-ID-IR", "RM-ID-MB-085", "RM-ID-NA-ASH", "RM-LOD", "RM-PH", "RM-SASH", "RM-SETVOL", "RM-SOLUB", "RM-WSS-085", "TAMC", "TYMC"]}
+item STM-RM-086: update {minSampleQuantity: None -> 100, minRetestSampleQuantity: None -> 50, minSampleQuantityUnit: None -> "g", assignedTests: [] -> ["E.coli", "RM-ACID-ALK-MG", "RM-DESC", "RM-ID-AV-MG", "RM-ID-CR-MG", "RM-ID-FP-MG", "RM-LOD", "RM-LT-CL", "RM-LT-SO4", "RM-SOLUB", "RM-TIT-MGST", "Salmonella ", "TAMC", "TYMC"]}
+item STM-RM-087: update {minSampleQuantity: None -> 140, minRetestSampleQuantity: None -> 140, minSampleQuantityUnit: None -> "mL", assignedTests: [] -> ["E.coli", "RM-DESC", "RM-ODOR", "RM-RI-087", "RM-SG-087", "RM-SOLUB", "Salmonella ", "TAMC", "TYMC"]}
+item STM-RM-088: update {minSampleQuantity: None -> 60, minRetestSampleQuantity: None -> 50, minSampleQuantityUnit: None -> "g", assignedTests: [] -> ["E.coli", "RM-DESC", "RM-ID-AAS-088", "RM-ID-RT", "TAMC", "TYMC"]}
+item STM-RM-089: same
+item STM-RM-090: update {minSampleQuantity: None -> 50, minSampleQuantityUnit: None -> "g", assignedTests: [] -> ["E.coli", "RM-DESC", "RM-LOD", "RM-LT-FE", "RM-PH", "RM-SASH", "RM-SOLUB", "Salmonella ", "TAMC", "TYMC"]}
+item STM-RM-091: same
+item STM-RM-093: update {minSampleQuantity: None -> 100, minRetestSampleQuantity: None -> 100, minSampleQuantityUnit: None -> "mL", assignedTests: [] -> ["E.coli", "RM-DESC", "RM-ODOR", "RM-PH", "RM-REFR-093", "RM-RELDENS-093", "RM-SOLUB", "Salmonella ", "TAMC", "TYMC"]}
+item STM-RM-097: same
+item STM-RM-099: update {minSampleQuantity: None -> 100, minRetestSampleQuantity: None -> 50, minSampleQuantityUnit: None -> "g", assignedTests: [] -> ["RM-DESC", "RM-ID-TLC-099", "RM-SOLUB"]}
+item STM-RM-102: update {minSampleQuantity: None -> 100, minRetestSampleQuantity: None -> 50, minSampleQuantityUnit: None -> "g", assignedTests: [] -> ["E.coli", "RM-DESC", "RM-DISP-102", "RM-ID-UV-102", "RM-LOD", "RM-ODOR", "RM-UV-BC-102", "Salmonella ", "TAMC", "TYMC"]}
+item STM-RM-107: update {minSampleQuantity: None -> 100, minRetestSampleQuantity: None -> 50, minSampleQuantityUnit: None -> "g", assignedTests: [] -> ["E.coli", "RM-BULKD", "RM-CARB-107", "RM-DESC", "RM-ID-MG-107", "RM-LOD", "RM-LOI-107", "RM-SOLSALTS-107", "RM-SOLUB", "RM-TIT-MGOH-107", "TAMC", "TYMC"]}
+item STM-RM-114: update {minSampleQuantity: None -> 40, minRetestSampleQuantity: None -> 60, minSampleQuantityUnit: None -> "g", assignedTests: [] -> ["E.coli", "RM-ASH-114", "RM-DESC", "RM-ID-FILM-114", "TAMC", "TYMC"]}
+item STM-RM-119: update {minSampleQuantity: None -> 130, minRetestSampleQuantity: None -> 50, minSampleQuantityUnit: None -> "g", assignedTests: [] -> ["E.coli", "RM-ASH-119", "RM-DESC", "RM-DISP-119", "RM-ID-FILM-119", "TAMC", "TYMC"]}
+item STM-RM-124: update {minSampleQuantity: None -> 200, minRetestSampleQuantity: None -> 100, minSampleQuantityUnit: None -> "g", assignedTests: [] -> ["E.coli", "RM-COLOR-124", "RM-COND", "RM-DESC", "RM-DEXTRIN-124", "RM-ID-CU-124", "RM-ID-IR", "RM-ID-TLC-124", "RM-LOD", "RM-OPTROT", "RM-RED-124", "RM-SOLAPP", "RM-SOLUB", "RM-SULF-124", "TAMC", "TYMC"]}
+item STM-RM-125: update {minSampleQuantity: None -> 80, minRetestSampleQuantity: None -> 50, minSampleQuantityUnit: None -> "g", assignedTests: [] -> ["E.coli", "RM-ACIDDEM-125", "RM-DESC", "RM-ICP-ALMG-125", "RM-ID-AAS-125", "RM-ID-PHOS-125", "RM-ID-PINK-125", "RM-ID-SILICATE-125", "RM-LOD", "RM-LT-AS-125", "RM-LT-PB-125", "RM-PH", "RM-SOLUB", "RM-VISC-125", "TAMC", "TYMC"]}
+item STM-RM-126: same
+item STM-RM-127: update {minSampleQuantity: None -> 70, minRetestSampleQuantity: None -> 40, minSampleQuantityUnit: None -> "g", assignedTests: [] -> ["E.coli", "RM-AIS-127", "RM-BA-127", "RM-CARB-127", "RM-DESC", "RM-ID-CAHP-127", "RM-LOI-127", "RM-LT-AS-127", "RM-LT-CL", "RM-LT-FE", "RM-LT-SO4", "RM-PSD-127", "RM-SOLUB", "RM-TIT-CAHP-127", "TAMC", "TYMC"]}
+item STM-RM-128: update {minSampleQuantity: None -> 80, minRetestSampleQuantity: None -> 50, minSampleQuantityUnit: None -> "g", assignedTests: [] -> ["E.coli", "RM-BULKD", "RM-DESC", "RM-HCLINS-128", "RM-LOD", "RM-LT-HM", "RM-PH", "TAMC", "TYMC"]}
+item STM-RM-129: update {minSampleQuantity: None -> 60, minRetestSampleQuantity: None -> 30, minSampleQuantityUnit: None -> "g", assignedTests: [] -> ["E.coli", "RM-DESC", "RM-ID-CHEM-129", "RM-ID-VIS-129", "RM-LOD", "RM-PH", "RM-SASH", "RM-SO2-129", "RM-SOLUB", "RM-TIT-DE-129", "Salmonella ", "TAMC", "TYMC"]}
+item STM-RM-130: update {minSampleQuantity: None -> 60, minRetestSampleQuantity: None -> 60, minSampleQuantityUnit: None -> "g", assignedTests: [] -> ["E.coli", "RM-ASH-130", "RM-DESC", "RM-DISP-130", "RM-ID-FILM-130", "TAMC", "TYMC"]}
+item STM-RM-131: update {minSampleQuantity: None -> 50, minRetestSampleQuantity: None -> 20, minSampleQuantityUnit: None -> "g", assignedTests: [] -> ["E.coli", "RM-DESC", "RM-ID-UV-131", "RM-LOD", "RM-SOLUB", "RM-UV-AS-131", "TAMC", "TYMC"]}
+item STM-RM-132: update {minSampleQuantity: None -> 60, minRetestSampleQuantity: None -> 60, minSampleQuantityUnit: None -> "g", assignedTests: [] -> ["E.coli", "RM-ASH-132", "RM-DESC", "RM-DISP-132", "RM-ID-FILM-132", "TAMC", "TYMC"]}
+item STM-RM-133: update {minSampleQuantity: None -> 70, minRetestSampleQuantity: None -> 25, minSampleQuantityUnit: None -> "g", assignedTests: [] -> ["E.coli", "RM-DESC", "RM-ID-RT", "RM-ID-TOCO-133", "RM-LOD", "RM-SOLUB", "TAMC", "TYMC"]}
+item STM-RM-139: update {minSampleQuantity: None -> 140, minRetestSampleQuantity: None -> 60, minSampleQuantityUnit: None -> "ml", assignedTests: [] -> ["E.coli", "RM-ABS233-139", "RM-AV-139", "RM-DESC", "RM-PV-139", "RM-SG-139", "Salmonella ", "TAMC", "TYMC"]}
+item STM-RM-141: update {minSampleQuantity: None -> 120, minRetestSampleQuantity: None -> 50, minSampleQuantityUnit: None -> "ml", assignedTests: [] -> ["RM-DESC", "RM-ID-CU-141", "RM-ID-HYD-141", "RM-ID-IR", "RM-KF", "RM-OPTROT", "RM-REFIDX-141", "RM-SASH", "RM-SOLUB", "RM-TIT-AMINOPROP-141"]}
+item STM-RM-142: skip (item not found)
+item STM-RM-143: update {minSampleQuantity: None -> 70, minRetestSampleQuantity: None -> 100, minSampleQuantityUnit: None -> "g", assignedTests: [] -> ["E.coli", "RM-DESC", "RM-LOD", "RM-SOLUB", "RM-TIT-PROT-143", "RM-VISC-143", "Salmonella ", "TAMC", "TYMC"]}
+item STM-RM-144: update {minSampleQuantity: None -> 50, minRetestSampleQuantity: None -> 70, minSampleQuantityUnit: None -> "g", assignedTests: [] -> ["E.coli", "RM-AIA-144", "RM-BULKD", "RM-DESC", "RM-LOD", "RM-LT-HM", "Salmonella ", "TAMC", "TYMC"]}
+item STM-RM-145: update {minSampleQuantity: None -> 200, minRetestSampleQuantity: None -> 100, minSampleQuantityUnit: None -> "g", assignedTests: [] -> ["E.coli", "RM-BA-145", "RM-COND", "RM-DESC", "RM-ID-IR", "RM-KF", "RM-SOLAPP", "RM-SOLUB", "TAMC", "TYMC"]}
+item STM-RM-146: update {minSampleQuantity: None -> 20, minRetestSampleQuantity: None -> 10, minSampleQuantityUnit: None -> "g", assignedTests: [] -> ["RM-DESC", "RM-ID-IR", "RM-OPTROT", "RM-SOLUB"]}
+item STM-RM-147: same
+item STM-RM-149: update {minSampleQuantity: None -> 50, minRetestSampleQuantity: None -> 30, minSampleQuantityUnit: None -> "ml", assignedTests: [] -> ["RM-AV-149", "RM-DESC", "RM-ID-TLC-149", "RM-ID-UV-149", "RM-PV-149", "RM-SOLUB", "RM-UV-AS-149"]}
+item STM-RM-150: same
+item STM-RM-151: same
+item STM-RM-152: update {minSampleQuantity: None -> 80, minRetestSampleQuantity: None -> 60, minSampleQuantityUnit: None -> "g", assignedTests: [] -> ["E.coli", "RM-DESC", "RM-ID-IR", "RM-KF", "RM-MP-QL", "RM-SASH", "RM-SOLUB", "TAMC", "TYMC"]}
+item STM-RM-56: same
+item Xanth gum: update {minSampleQuantity: None -> 120, minSampleQuantityUnit: None -> "g", assignedTests: ["E.coli", "Salmonella ", "TAMC", "TYMC"] -> ["E.coli", "RM-DESC", "RM-LOD", "RM-PH", "RM-SOLUB", "Salmonella ", "TAMC", "TYMC"]}
+== specifications ==
+spec C1I-91-151/BP/Description: create
+spec C1I-91-151/BP/Solubility: create
+spec C1I-91-151/BP/Identification (IR absorption): create
+spec C1I-91-151/BP/Identification (chemical reaction, bromine water): skip (held back: no STM: method not documented)
+spec C1I-91-151/BP/Identification (HPLC retention time): skip (held back: no STM: method not documented)
+spec C1I-91-151/BP/Related compounds (TLC): skip (held back: no STM: method not documented)
+spec C1I-91-151/BP/Appearance of solution: create
+spec C1I-91-151/BP/Specific optical rotation: create
+spec C1I-91-151/BP/Assay: skip (held back: no STM: method not documented)
+spec C1I-91-151/BP/Loss on drying: create
+spec C1I-91-151/BP/Sulfated ash: create
+spec C1I-91-151/BP/Total Aerobic Microbial Count: error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec C1I-91-151/BP/Total combined Yeasts and Molds Count: error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec C1I-91-151/BP/Test for E. coli: error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec C1I-91-151/USP/Description: create
+spec C1I-91-151/USP/Solubility: create
+spec C1I-91-151/USP/Identification (IR absorption): create
+spec C1I-91-151/USP/Identification (HPLC retention time): skip (held back: no STM: method not documented)
+spec C1I-91-151/USP/Related compounds: individual impurity: skip (held back: no STM: method not documented)
+spec C1I-91-151/USP/Related compounds: total impurities: skip (held back: no STM: method not documented)
+spec C1I-91-151/USP/Assay: skip (held back: no STM: method not documented)
+spec C1I-91-151/USP/Specific rotation: create
+spec C1I-91-151/USP/Total Aerobic Microbial Count: error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec C1I-91-151/USP/Total combined Yeasts and Molds Count: error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec C1I-91-151/USP/Test for E. coli: error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec C1I-91-153/USP/Appearance: create
+spec C1I-91-153/USP/Solubility: create
+spec C1I-91-153/USP/Identification (reaction of sulfates): skip (held back: no STM: method not documented)
+spec C1I-91-153/USP/Identification (HPLC retention time of zinc peak): skip (held back: no STM: method not documented)
+spec C1I-91-153/USP/Arsenic (AAS): skip (held back: no STM: method not documented)
+spec C1I-91-153/USP/Lead (limit test): skip (held back: no STM: method not documented)
+spec C1I-91-153/USP/Alkalies and alkaline earths (residue, 0.9%, NMT 5 mg): skip (held back: no STM: method not documented)
+spec C1I-91-153/USP/Acidity: skip (held back: no STM: method not documented)
+spec C1I-91-153/USP/Assay (% of zinc sulfate, ZnSO4): skip (held back: no STM: method not documented)
+spec C1I-91-153/USP/Assay (% of zinc sulfate heptahydrate, ZnSO4 · 7H2O): skip (held back: no STM: method not documented)
+spec C1I-91-153/USP/Total aerobic microbial count (TAMC): error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec C1I-91-153/USP/Total combined yeasts and molds count (TYMC): error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec C1I-91-153/USP/Test for E. coli: error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec C1I-91-153/BP/Appearance: create
+spec C1I-91-153/BP/Solubility: create
+spec C1I-91-153/BP/Identification (reaction of sulfates): skip (held back: no STM: method not documented)
+spec C1I-91-153/BP/Identification (reaction of zinc): skip (held back: no STM: method not documented)
+spec C1I-91-153/BP/Identification: titration: skip (held back: no STM: method not documented)
+spec C1I-91-153/BP/Appearance of solution: create
+spec C1I-91-153/BP/pH: create
+spec C1I-91-153/BP/Chlorides: create
+spec C1I-91-153/BP/Iron: create
+spec C1I-91-153/BP/Assay: skip (held back: no STM: method not documented)
+spec C1I-91-153/BP/Total aerobic microbial count (TAMC): error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec C1I-91-153/BP/Total combined yeasts and molds count (TYMC): error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec C1I-91-153/BP/Test for E. coli: error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec C1I-91-158/BP/Description: create
+spec C1I-91-158/BP/Solubility: create
+spec C1I-91-158/BP/Appearance of solution: create
+spec C1I-91-158/BP/Identification (chemical reaction, manganese): skip (held back: no STM: method not documented)
+spec C1I-91-158/BP/Identification (reaction of sulfates): skip (held back: no STM: method not documented)
+spec C1I-91-158/BP/Loss on ignition: skip (held back: no STM: method not documented)
+spec C1I-91-158/BP/Chlorides (limit test): create
+spec C1I-91-158/BP/Iron (limit test): create
+spec C1I-91-158/BP/Zinc (limit test): skip (held back: no STM: method not documented)
+spec C1I-91-158/BP/Assay (ignited substance): skip (held back: no STM: method not documented)
+spec C1I-91-158/BP/Total Aerobic Microbial Count: error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec C1I-91-158/BP/Total combined Yeasts and Molds Count: error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec C1I-91-158/BP/Test for E. coli: error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec C1I-91-158/USP/Description: create
+spec C1I-91-158/USP/Solubility: create
+spec C1I-91-158/USP/Identification (reaction of sulfate): skip (held back: no STM: method not documented)
+spec C1I-91-158/USP/Identification (reaction of manganese): skip (held back: no STM: method not documented)
+spec C1I-91-158/USP/Loss on ignition: skip (held back: no STM: method not documented)
+spec C1I-91-158/USP/Substances not precipitated by ammonium sulfide: residue weight: skip (held back: no STM: method not documented)
+spec C1I-91-158/USP/Substances not precipitated by ammonium sulfide: percentage: skip (held back: no STM: method not documented)
+spec C1I-91-158/USP/Assay: skip (held back: no STM: method not documented)
+spec C1I-91-158/USP/Total Aerobic Microbial Count: error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec C1I-91-158/USP/Total combined Yeasts and Molds Count: error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec C1I-91-158/USP/Test for E. coli: error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec C1I-91-169/None/Appearance: create
+spec C1I-91-169/None/Solubility: create
+spec C1I-91-169/None/Identification (chemical reaction): skip (held back: no STM: method not documented)
+spec C1I-91-169/None/Residue on ignition: create
+spec C1I-91-169/None/pH: create
+spec C1I-91-169/None/Loss on drying: create
+spec C1I-91-169/None/% Viscosity (Method 1), nominal viscosity 5 cp: skip (held back: no STM: method not documented)
+spec C1I-91-169/None/Appearance of solution: create
+spec C1I-91-178/None/Appearance: create
+spec C1I-91-178/None/Solubility: create
+spec C1I-91-178/None/Identification (reactions of iodides: precipitate): skip (held back: no STM: method not documented)
+spec C1I-91-178/None/Identification (reactions of potassium): skip (held back: no STM: method not documented)
+spec C1I-91-178/None/Appearance of solution: create
+spec C1I-91-178/None/Alkalinity (0.01 M hydrochloric acid to colour change): skip (held back: no STM: method not documented)
+spec C1I-91-178/None/Iodates: skip (held back: no STM: method not documented)
+spec C1I-91-178/None/Sulfates: create
+spec C1I-91-178/None/Thiosulfates: create
+spec C1I-91-178/None/Iron: create
+spec C1I-91-178/None/Loss on drying: create
+spec C1I-91-178/None/Assay (dried substance): skip (held back: no STM: method not documented)
+spec C1I-91-178/None/Total aerobic microbial count (TAMC): error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec C1I-91-178/None/Total combined yeasts and molds count (TYMC): error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec C1I-91-178/None/Test for E. coli: error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec C1I-91-179/BP/Appearance: create
+spec C1I-91-179/BP/Solubility: create
+spec C1I-91-179/BP/Liquid Appearance: create
+spec C1I-91-179/BP/Identification (Acid Value): skip (held back: no STM: method not documented)
+spec C1I-91-179/BP/Acidity: skip (held back: no STM: method not documented)
+spec C1I-91-179/BP/Iodine value: skip (held back: no STM: method not documented)
+spec C1I-91-179/BP/Freezing point: skip (held back: no STM: method not documented)
+spec C1I-91-179/BP/Assay: Stearic acid: skip (held back: no STM: method not documented)
+spec C1I-91-179/BP/Assay: Sum of the contents of stearic and palmitic acids: skip (held back: no STM: method not documented)
+spec C1I-91-179/BP/Total Aerobic Microbial Count: error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec C1I-91-179/BP/Total combined Yeasts & Molds Count: error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec C1I-91-179/BP/E. coli: error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec C1I-91-228/BP/Appearance: create
+spec C1I-91-228/BP/Solubility: create
+spec C1I-91-228/BP/Identification (reaction of silicate): create
+spec C1I-91-228/BP/Chlorides: create
+spec C1I-91-228/BP/Loss on ignition: create
+spec C1I-91-228/BP/pH: create
+spec C1I-91-228/BP/Assay (SiO2, ignited substance): create
+spec C1I-91-228/BP/Total aerobic microbial count (TAMC): error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec C1I-91-228/BP/Total yeast and mold count (TYMC): error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec C1I-91-228/BP/Test for E. coli: error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec C1I-91-229/None/Appearance: create
+spec C1I-91-229/None/Solubility: create
+spec C1I-91-229/None/Identification (chemical reaction): skip (held back: no STM: method not documented)
+spec C1I-91-229/None/Appearance of solution: create
+spec C1I-91-229/None/pH: create
+spec C1I-91-229/None/Viscosity (K-value): skip (held back: no STM: method not documented)
+spec C1I-91-229/None/Water (Karl Fischer): create
+spec C1I-91-229/None/Sulphated ash: create
+spec C1I-91-231/BP/Appearance: create
+spec C1I-91-231/BP/Solubility: create
+spec C1I-91-231/BP/Relative density: skip (held back: no STM: method not documented)
+spec C1I-91-231/BP/Viscosity at 25 °C: skip (held back: no STM: method not documented)
+spec C1I-91-231/BP/Water (Karl Fischer): create
+spec C1I-91-231/BP/Ash (ignition): skip (held back: no STM: method not documented)
+spec C1I-91-231/BP/Identification (chemical reaction): skip (held back: no STM: method not documented)
+spec C1I-91-231/BP/Acid value: skip (held back: no STM: method not documented)
+spec C1I-91-231/BP/Saponification value: skip (held back: no STM: method not documented)
+spec C1I-91-231/BP/Hydroxyl value: skip (held back: no STM: method not documented)
+spec C1I-91-231/BP/Peroxide value: skip (held back: no STM: method not documented)
+spec C5I-91-213/BP/Appearance: create
+spec C5I-91-213/BP/Solubility: create
+spec C5I-91-213/BP/Identification (UV absorbance ratio A361 / A547-559): skip (held back: no STM: method not documented)
+spec C5I-91-213/BP/Identification (UV absorbance ratio A361 / A278): skip (held back: no STM: method not documented)
+spec C5I-91-213/BP/Identification (HPLC: principal peak retention time and size): skip (held back: no STM: method not documented)
+spec C5I-91-213/BP/Loss on drying: create
+spec C5I-91-213/BP/Related substances: Impurity C: skip (held back: no STM: method not documented)
+spec C5I-91-213/BP/Related substances: Impurity A: skip (held back: no STM: method not documented)
+spec C5I-91-213/BP/Related substances: Impurities B, D, E, F (each): skip (held back: no STM: method not documented)
+spec C5I-91-213/BP/Related substances: Unspecified impurities (each): skip (held back: no STM: method not documented)
+spec C5I-91-213/BP/Related substances: Total: skip (held back: no STM: method not documented)
+spec C5I-91-213/BP/Assay (dried basis): skip (held back: no STM: method not documented)
+spec C5I-91-213/BP/Total aerobic microbial count (TAMC): error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec C5I-91-213/BP/Total yeasts and molds count (TYMC): error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec C5I-91-213/BP/Escherichia coli: error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec C5I-91-213/USP/Description: create
+spec C5I-91-213/USP/Solubility: create
+spec C5I-91-213/USP/Identification (UV absorption maxima): skip (held back: no STM: method not documented)
+spec C5I-91-213/USP/Identification (UV absorbance ratio A361 / A278): skip (held back: no STM: method not documented)
+spec C5I-91-213/USP/Identification (UV absorbance ratio A361 / A550): skip (held back: no STM: method not documented)
+spec C5I-91-213/USP/Identification (HPLC: principal peak retention time): skip (held back: no STM: method not documented)
+spec C5I-91-213/USP/Identification (chemical reaction, nitroso R salt): skip (held back: no STM: method not documented)
+spec C5I-91-213/USP/Loss on drying: create
+spec C5I-91-213/USP/Related substances (per USP requirements): skip (held back: no STM: method not documented)
+spec C5I-91-213/USP/Assay (dried basis): skip (held back: no STM: method not documented)
+spec C5I-91-213/USP/Total aerobic microbial count (TAMC): error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec C5I-91-213/USP/Total yeasts and molds count (TYMC): error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec C5I-91-213/USP/Escherichia coli: error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec C5I-91-225/None/Description: create
+spec C5I-91-225/None/Solubility: create
+spec C5I-91-225/None/Taste: create
+spec C5I-91-225/None/Loss on drying: create
+spec C5I-91-225/None/Heavy metals: create
+spec C5I-91-225/None/Total ash: create
+spec C5I-91-225/None/Bulk density: create
+spec C5I-91-225/None/Content of proanthocyanidins: skip (held back: no STM: method not documented)
+spec C5I-91-225/None/Total aerobic microbial count (TAMC): error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec C5I-91-225/None/Total yeasts and molds count (TYMC): error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec C5I-91-225/None/E. coli: error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec C5I-91-225/None/Salmonella spp.: error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec Caco3 MD/None/Appearance: create
+spec Caco3 MD/None/Solubility: create
+spec Caco3 MD/None/Identification (carbonates): effervescence: create
+spec Caco3 MD/None/Identification (calcium): white crystalline precipitate: create
+spec Caco3 MD/None/Acid-insoluble substances: create
+spec Caco3 MD/None/Acid-insoluble substances: weight of residue: create
+spec Caco3 MD/None/Heavy metals: create
+spec Caco3 MD/None/Loss on drying: create
+spec Caco3 MD/None/Tapped density: create
+spec Caco3 MD/None/Assay: create
+spec P.Honey/BP/Appearance: create
+spec P.Honey/BP/Identification (TLC): create
+spec P.Honey/BP/Refractive index: create
+spec P.Honey/BP/Conductivity: create
+spec P.Honey/BP/Optical rotation: create
+spec P.Honey/BP/5-Hydroxymethylfurfural (calculated on dry solids): error (HTTP 400: ppm is only used for residual-solvent specifications.)
+spec P.Honey/BP/Chlorides (limit test): create
+spec P.Honey/BP/Sulfates (limit test): create
+spec P.Honey/BP/Total aerobic microbial count (TAMC): error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec P.Honey/BP/Total yeasts and molds count (TYMC): error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec P.Honey/BP/Escherichia coli: error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec P.Honey/BP/Salmonella spp.: error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec RM-ASCORBIC/USP/Description: create
+spec RM-ASCORBIC/USP/Solubility: create
+spec RM-ASCORBIC/USP/Identification (IR): create
+spec RM-ASCORBIC/USP/Identification (reduction of alkaline cupric tartrate): create
+spec RM-ASCORBIC/USP/Specific optical rotation: create
+spec RM-ASCORBIC/USP/Residue on ignition: create
+spec RM-ASCORBIC/USP/Assay: create
+spec STM-RM-001/None/Appearance: create
+spec STM-RM-001/None/Solubility: create
+spec STM-RM-001/None/Identification (ignition): create
+spec STM-RM-001/None/Identification (reaction with ammonium hydroxide): create
+spec STM-RM-001/None/Identification (reaction with potassium permanganate): create
+spec STM-RM-001/None/Sulfates: create
+spec STM-RM-001/None/Acidity: create
+spec STM-RM-001/None/Arsenic: skip (held back: needs the held-back method "Ferric ammonium citrate green metals (AAS): arsenic, lead, cobalt, nickel")
+spec STM-RM-001/None/Cobalt: skip (held back: needs the held-back method "Ferric ammonium citrate green metals (AAS): arsenic, lead, cobalt, nickel")
+spec STM-RM-001/None/Nickel: skip (held back: needs the held-back method "Ferric ammonium citrate green metals (AAS): arsenic, lead, cobalt, nickel")
+spec STM-RM-001/None/Lead: skip (held back: needs the held-back method "Ferric ammonium citrate green metals (AAS): arsenic, lead, cobalt, nickel")
+spec STM-RM-001/None/Assay (iron): create
+spec STM-RM-001/None/Total Aerobic Microbial Count (TAMC): error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-001/None/Total combined Yeasts & Molds Count (TYMC): error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-001/None/Test for E. coli: error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-002/BP/Appearance: create
+spec STM-RM-002/BP/Identification: absorbance C - D: create
+spec STM-RM-002/BP/Refractive index: create
+spec STM-RM-002/BP/Optical rotation: create
+spec STM-RM-002/BP/Relative density: create
+spec STM-RM-002/BP/Absorbance: C - D: create
+spec STM-RM-002/BP/Fatty oils and resinified essential oils: create
+spec STM-RM-002/BP/Residue on evaporation: create
+spec STM-RM-002/BP/Total aerobic microbial count (TAMC): error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-002/BP/Total yeasts and molds count (TYMC): error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-002/BP/Escherichia coli: error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-002/BP/Salmonella spp.: error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-003/BP/Appearance: create
+spec STM-RM-003/BP/Solubility: create
+spec STM-RM-003/BP/Identification (IR): create
+spec STM-RM-003/BP/Identification (Fluorescence): create
+spec STM-RM-003/BP/Identification (Reaction of chloride): create
+spec STM-RM-003/BP/Appearance of solution: create
+spec STM-RM-003/BP/pH: create
+spec STM-RM-003/BP/Water content: create
+spec STM-RM-003/BP/Sulfated Ash: create
+spec STM-RM-003/BP/Sulfates: create
+spec STM-RM-003/BP/Assay: error (HTTP 400: Assign a water (Karl Fischer) test to this item before using an anhydrous basis.)
+spec STM-RM-003/BP/Related substances: Impurity B: skip (test RM-HPLC-THIA-RS held back: needs the held-back method "Thiamine hydrochloride related substances (BP, gradient HPLC)")
+spec STM-RM-003/BP/Related substances: Impurity A: skip (test RM-HPLC-THIA-RS held back: needs the held-back method "Thiamine hydrochloride related substances (BP, gradient HPLC)")
+spec STM-RM-003/BP/Related substances: Impurity C: skip (test RM-HPLC-THIA-RS held back: needs the held-back method "Thiamine hydrochloride related substances (BP, gradient HPLC)")
+spec STM-RM-003/BP/Related substances: Unspecified impurities (each): skip (test RM-HPLC-THIA-RS held back: needs the held-back method "Thiamine hydrochloride related substances (BP, gradient HPLC)")
+spec STM-RM-003/BP/Related substances: Total: skip (test RM-HPLC-THIA-RS held back: needs the held-back method "Thiamine hydrochloride related substances (BP, gradient HPLC)")
+spec STM-RM-003/BP/Total aerobic microbial count (TAMC): error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-003/BP/Total yeasts and molds count (TYMC): error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-003/BP/Test for E. coli: error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-003/USP/Description: create
+spec STM-RM-003/USP/Solubility: create
+spec STM-RM-003/USP/Identification (IR): create
+spec STM-RM-003/USP/Identification (Reaction of chloride): create
+spec STM-RM-003/USP/pH: create
+spec STM-RM-003/USP/Water content: create
+spec STM-RM-003/USP/Limit of Nitrate: create
+spec STM-RM-003/USP/Absorbance of Solution: error (HTTP 400: An absorbance limit test takes a Qualitative specification.)
+spec STM-RM-003/USP/Residue on ignition: create
+spec STM-RM-003/USP/Assay: skip (test RM-HPLC-THIA-AS held back: needs the held-back method "Thiamine hydrochloride assay (USP, HPLC)")
+spec STM-RM-003/USP/Related Compounds: skip (test RM-HPLC-THIA-RC held back: needs the held-back method "Thiamine hydrochloride related compounds (USP, HPLC)")
+spec STM-RM-003/USP/Total aerobic microbial count (TAMC): error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-003/USP/Total yeasts and molds count (TYMC): error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-003/USP/Test for E. coli: error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-004/BP/Appearance: create
+spec STM-RM-004/BP/Solubility: create
+spec STM-RM-004/BP/Identification: copper sulfate reaction: create
+spec STM-RM-004/BP/Identification: boiling of solution S: create
+spec STM-RM-004/BP/Identification: reaction of sodium on the sulfated ash residue: create
+spec STM-RM-004/BP/Appearance of solution: create
+spec STM-RM-004/BP/Chlorides: create
+spec STM-RM-004/BP/pH: create
+spec STM-RM-004/BP/Viscosity: create
+spec STM-RM-004/BP/Sodium glycolate: create
+spec STM-RM-004/BP/Loss on drying: create
+spec STM-RM-004/BP/Sulfated ash: create
+spec STM-RM-012/None/Description: create
+spec STM-RM-012/None/Identification: create
+spec STM-RM-012/None/Loss on drying: create
+spec STM-RM-012/None/Heavy metals: create
+spec STM-RM-012/None/Assay: skip (test RM-TIT-VITK1 not found)
+spec STM-RM-012/None/Total aerobic microbial count: error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-012/None/Total yeasts and molds count: error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-012/None/Test for E. coli: error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-024/USP/Description (hygroscopicity): create
+spec STM-RM-024/USP/Solubility: create
+spec STM-RM-024/USP/Identification (IR): create
+spec STM-RM-024/USP/Identification (iodine and starch): create
+spec STM-RM-024/USP/Identification (suspension in water): create
+spec STM-RM-024/USP/Residue on ignition: create
+spec STM-RM-024/USP/Peroxides (absorbance at 405 nm): error (HTTP 400: An absorbance limit test takes a Qualitative specification.)
+spec STM-RM-024/USP/Loss on drying: create
+spec STM-RM-024/USP/Water-soluble substances (residue weight): create
+spec STM-RM-024/USP/Water-soluble substances (%): create
+spec STM-RM-024/USP/Assay (nitrogen content): create
+spec STM-RM-024/USP/Vinylpyrrolidinone: skip (test RM-HPLC-VP-024 held back: needs the held-back method "Vinylpyrrolidinone in crospovidone (USP, HPLC)")
+spec STM-RM-024/USP/Total aerobic microbial count (TAMC): error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-024/USP/Total yeast and mold count (TYMC): error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-024/USP/Test for E. coli: error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-025/In-house/Description: same
+spec STM-RM-025/In-house/Solubility: same
+spec STM-RM-025/In-house/Identification - Reaction of sodium: same
+spec STM-RM-025/In-house/Bulk density: same
+spec STM-RM-025/In-house/Heavy metals: same
+spec STM-RM-025/In-house/Loss on drying: same
+spec STM-RM-025/In-house/Total Selenium: skip (held back: needs the held-back method "Selenium by AAS (sodium selenate)")
+spec STM-RM-025/In-house/Se as Selenate: skip (held back: needs the held-back method "Selenium by AAS (sodium selenate)")
+spec STM-RM-025/In-house/Se as Selenite: skip (held back: needs the held-back method "Selenium by AAS (sodium selenate)")
+spec STM-RM-025/In-house/Total Aerobic Microbial Count (TAMC): same
+spec STM-RM-025/In-house/Total combined Yeasts & Molds Count (TYMC): same
+spec STM-RM-025/In-house/Test for E. coli: same
+spec STM-RM-030/BP/Appearance: create
+spec STM-RM-030/BP/Solubility: create
+spec STM-RM-030/BP/Identification (ammonia, dark blue colour): create
+spec STM-RM-030/BP/Identification (loss on drying): create
+spec STM-RM-030/BP/Identification (reaction of sulfates): create
+spec STM-RM-030/BP/Appearance of solution: create
+spec STM-RM-030/BP/Lead (AAS limit): create
+spec STM-RM-030/BP/Nickel (AAS limit): create
+spec STM-RM-030/BP/Cobalt (AAS limit): create
+spec STM-RM-030/BP/Chlorides (limit test): create
+spec STM-RM-030/BP/Iron (AAS limit): create
+spec STM-RM-030/BP/Loss on drying: create
+spec STM-RM-030/BP/Assay: create
+spec STM-RM-030/BP/Total Aerobic Microbial Count: error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-030/BP/Total combined Yeasts and Molds Count: error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-030/BP/Test for E. coli: error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-035/BP/Appearance: create
+spec STM-RM-035/BP/Solubility: create
+spec STM-RM-035/BP/Identification (pH of solution, 1 g in 10 mL water): create
+spec STM-RM-035/BP/Identification (IR): create
+spec STM-RM-035/BP/Identification (chemical reaction, acetic anhydride / pyridine): create
+spec STM-RM-035/BP/Identification (chemical reaction, calcium chloride): create
+spec STM-RM-035/BP/Appearance of solution: create
+spec STM-RM-035/BP/Readily carbonisable substances: create
+spec STM-RM-035/BP/Sulphates (limit test): create
+spec STM-RM-035/BP/Oxalic acid (limit test): create
+spec STM-RM-035/BP/Water content (Karl Fischer): create
+spec STM-RM-035/BP/Sulphated ash: create
+spec STM-RM-035/BP/Assay (anhydrous substance): error (HTTP 400: Assign a water (Karl Fischer) test to this item before using an anhydrous basis.)
+spec STM-RM-035/BP/Total Aerobic Microbial Count: error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-035/BP/Total combined Yeasts and Molds Count: error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-035/BP/Test for E. coli: error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-036/BP/Appearance: create
+spec STM-RM-036/BP/Solubility: create
+spec STM-RM-036/BP/Identification (filter paper with piperidine): create
+spec STM-RM-036/BP/Identification (reaction of phosphates): create
+spec STM-RM-036/BP/Identification (reaction of calcium): create
+spec STM-RM-036/BP/Appearance of solution: create
+spec STM-RM-036/BP/Acidity or alkalinity: create
+spec STM-RM-036/BP/Citric acid: create
+spec STM-RM-036/BP/Glycerol and ethanol (96 per cent)-soluble substances: create
+spec STM-RM-036/BP/Chlorides (limit test): create
+spec STM-RM-036/BP/Phosphates (limit test): create
+spec STM-RM-036/BP/Sulfates (limit test): create
+spec STM-RM-036/BP/Arsenic (limit test): create
+spec STM-RM-036/BP/Iron (limit test): create
+spec STM-RM-036/BP/Loss on drying: create
+spec STM-RM-036/BP/Assay (Ca, dried substance): create
+spec STM-RM-036/BP/Total Aerobic Microbial Count: error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-036/BP/Total combined Yeasts and Molds Count: error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-036/BP/Test for E. coli: error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-045/USP/Description: create
+spec STM-RM-045/USP/Solubility: create
+spec STM-RM-045/USP/Identification (IR): create
+spec STM-RM-045/USP/Identification (HPLC): create
+spec STM-RM-045/USP/Organic Impurities, Procedure 1: N-Desmethyl levofloxacin: skip (test RM-HPLC-LEVO-RS1 held back: needs the held-back method "Levofloxacin organic impurities procedure 1 (USP, HPLC)")
+spec STM-RM-045/USP/Organic Impurities, Procedure 1: Diamine derivative: skip (test RM-HPLC-LEVO-RS1 held back: needs the held-back method "Levofloxacin organic impurities procedure 1 (USP, HPLC)")
+spec STM-RM-045/USP/Organic Impurities, Procedure 1: Levofloxacin N-oxide: skip (test RM-HPLC-LEVO-RS1 held back: needs the held-back method "Levofloxacin organic impurities procedure 1 (USP, HPLC)")
+spec STM-RM-045/USP/Organic Impurities, Procedure 1: 9-Desfluoro levofloxacin: skip (test RM-HPLC-LEVO-RS1 held back: needs the held-back method "Levofloxacin organic impurities procedure 1 (USP, HPLC)")
+spec STM-RM-045/USP/Organic Impurities, Procedure 1: D-Isomer: skip (test RM-HPLC-LEVO-RS1 held back: needs the held-back method "Levofloxacin organic impurities procedure 1 (USP, HPLC)")
+spec STM-RM-045/USP/Organic Impurities, Procedure 1: Any unknown impurity: skip (test RM-HPLC-LEVO-RS1 held back: needs the held-back method "Levofloxacin organic impurities procedure 1 (USP, HPLC)")
+spec STM-RM-045/USP/Organic Impurities, Procedure 1: Total Impurities: skip (test RM-HPLC-LEVO-RS1 held back: needs the held-back method "Levofloxacin organic impurities procedure 1 (USP, HPLC)")
+spec STM-RM-045/USP/Organic Impurities, Procedure 2: Levofloxacin related compound A: skip (test RM-HPLC-LEVO-RS2 held back: needs the held-back method "Levofloxacin organic impurities procedure 2 (USP, gradient HPLC)")
+spec STM-RM-045/USP/Organic Impurities, Procedure 2: Levofloxacin related compound B: skip (test RM-HPLC-LEVO-RS2 held back: needs the held-back method "Levofloxacin organic impurities procedure 2 (USP, gradient HPLC)")
+spec STM-RM-045/USP/Organic Impurities, Procedure 2: Any other impurity: skip (test RM-HPLC-LEVO-RS2 held back: needs the held-back method "Levofloxacin organic impurities procedure 2 (USP, gradient HPLC)")
+spec STM-RM-045/USP/Organic Impurities, Procedure 2: Total impurities: skip (test RM-HPLC-LEVO-RS2 held back: needs the held-back method "Levofloxacin organic impurities procedure 2 (USP, gradient HPLC)")
+spec STM-RM-045/USP/Organic Impurities, Procedure 3: skip (held back: STM: HPLC method incomplete (system suitability criteria not stated))
+spec STM-RM-045/USP/Specific Rotation: create
+spec STM-RM-045/USP/Water Determination: create
+spec STM-RM-045/USP/Residue on Ignition: create
+spec STM-RM-045/USP/Assay: skip (test RM-HPLC-LEVO-AS held back: needs the held-back method "Levofloxacin assay (USP, HPLC)")
+spec STM-RM-045/USP/Total aerobic microbial count (TAMC): error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-045/USP/Total Yeast and mold count (TYMC): error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-045/USP/Test for E.coli: error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-047/BP/Appearance: create
+spec STM-RM-047/BP/Solubility: create
+spec STM-RM-047/BP/Identification (UV): specific absorbance at the absorption maximum (264 nm): create
+spec STM-RM-047/BP/Identification (IR): create
+spec STM-RM-047/BP/Identification (thermal decomposition): melting point of residue: create
+spec STM-RM-047/BP/Identification (reaction of potassium): create
+spec STM-RM-047/BP/Appearance of solution: create
+spec STM-RM-047/BP/Acidity or alkalinity (volume of 0.1 M sodium hydroxide or 0.1 M hydrochloric acid): create
+spec STM-RM-047/BP/Aldehydes: create
+spec STM-RM-047/BP/Loss on drying: create
+spec STM-RM-047/BP/Assay: create
+spec STM-RM-047/BP/Total Aerobic Microbial Count (TAMC): error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-047/BP/Total combined Yeasts & Molds Count (TYMC): error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-047/BP/Escherichia coli: error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-048/None/Description: create
+spec STM-RM-048/None/Solubility: create
+spec STM-RM-048/None/Identification: ignition: create
+spec STM-RM-048/None/Identification: reaction with ammonium hydroxide: create
+spec STM-RM-048/None/Identification: reaction with potassium permanganate: create
+spec STM-RM-048/None/Ferric citrate: create
+spec STM-RM-048/None/Sulphates: create
+spec STM-RM-048/None/Oxalate: create
+spec STM-RM-048/None/Lead: skip (test RM-ICP-PB-048 held back: needs the held-back method "Lead by AAS (ferric ammonium citrate)")
+spec STM-RM-048/None/Mercury: skip (test RM-ICP-HG-048 held back: needs the held-back method "Mercury by AAS (ferric ammonium citrate)")
+spec STM-RM-048/None/Assay (iron, Fe): create
+spec STM-RM-048/None/Total aerobic microbial count (TAMC): error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-048/None/Total combined yeasts and molds count (TYMC): error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-048/None/Test for E. coli: error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-049/BP/Appearance: create
+spec STM-RM-049/BP/Solubility: create
+spec STM-RM-049/BP/Identification (sulfuric acid fumes into mercuric chloride): create
+spec STM-RM-049/BP/Identification (thiocyanate and cobalt nitrate, methylene chloride layer): create
+spec STM-RM-049/BP/Appearance of solution: create
+spec STM-RM-049/BP/Acidity or alkalinity: 0.1 M sodium hydroxide to blue: create
+spec STM-RM-049/BP/Viscosity (50% m/m solution): create
+spec STM-RM-049/BP/Freezing point: create
+spec STM-RM-049/BP/Reducing substances: create
+spec STM-RM-049/BP/Water (Karl Fischer): create
+spec STM-RM-049/BP/Sulphated ash: create
+spec STM-RM-049/BP/Total aerobic microbial count (TAMC): error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-049/BP/Total yeast and mold count (TYMC): error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-049/BP/Test for E. coli: error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-050/USP/Appearance: create
+spec STM-RM-050/USP/Solubility: create
+spec STM-RM-050/USP/Identification (reactions of zinc): create
+spec STM-RM-050/USP/Identification (TLC): create
+spec STM-RM-050/USP/Chloride: create
+spec STM-RM-050/USP/Sulfate: create
+spec STM-RM-050/USP/Arsenic: create
+spec STM-RM-050/USP/Lead: create
+spec STM-RM-050/USP/Cadmium: skip (held back: needs the held-back method "Zinc gluconate cadmium (AAS, standard addition)")
+spec STM-RM-050/USP/Reducing substances (as dextrose): create
+spec STM-RM-050/USP/pH: create
+spec STM-RM-050/USP/Water (Karl Fischer): create
+spec STM-RM-050/USP/Assay: error (HTTP 400: Assign a water (Karl Fischer) test to this item before using an anhydrous basis.)
+spec STM-RM-050/USP/Total Aerobic Microbial Count (TAMC): error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-050/USP/Total combined Yeasts & Molds Count (TYMC): error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-050/USP/Escherichia coli: error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-051/BP/Description: same
+spec STM-RM-051/BP/Solubility: same
+spec STM-RM-051/BP/Identification (IR): same
+spec STM-RM-051/BP/Impurity E: same
+spec STM-RM-051/BP/Related substances - Impurity A: skip (held back: needs the held-back method "Sildenafil citrate related substances (BP, gradient HPLC)")
+spec STM-RM-051/BP/Related substances - Impurity D: skip (held back: needs the held-back method "Sildenafil citrate related substances (BP, gradient HPLC)")
+spec STM-RM-051/BP/Related substances - Unspecified impurities (each): skip (held back: needs the held-back method "Sildenafil citrate related substances (BP, gradient HPLC)")
+spec STM-RM-051/BP/Related substances - Total impurities: skip (held back: needs the held-back method "Sildenafil citrate related substances (BP, gradient HPLC)")
+spec STM-RM-051/BP/Sulphated ash: same
+spec STM-RM-051/BP/Water content: same
+spec STM-RM-051/BP/Assay: skip (held back: needs the held-back method "Sildenafil citrate assay (BP, gradient HPLC)")
+spec STM-RM-052/USP/Description: create
+spec STM-RM-052/USP/Solubility: create
+spec STM-RM-052/USP/Identification (IR): create
+spec STM-RM-052/USP/Identification (HPLC retention time): create
+spec STM-RM-052/USP/Limit of cis-isomer (Glimepiride related compound A): skip (test RM-HPLC-GLIM-CIS held back: needs the held-back method "Glimepiride related compound A / cis-isomer (USP, HPLC)")
+spec STM-RM-052/USP/Organic impurities: related compound B (sulfonamide): skip (test RM-HPLC-GLIM-IMP held back: needs the held-back method "Glimepiride organic impurities (USP, HPLC)")
+spec STM-RM-052/USP/Organic impurities: related compound C (urethane): skip (test RM-HPLC-GLIM-IMP held back: needs the held-back method "Glimepiride organic impurities (USP, HPLC)")
+spec STM-RM-052/USP/Organic impurities: related compound D (3-isomer): skip (test RM-HPLC-GLIM-IMP held back: needs the held-back method "Glimepiride organic impurities (USP, HPLC)")
+spec STM-RM-052/USP/Organic impurities: any individual unspecified impurity: skip (test RM-HPLC-GLIM-IMP held back: needs the held-back method "Glimepiride organic impurities (USP, HPLC)")
+spec STM-RM-052/USP/Organic impurities: total excluding related compound B: skip (test RM-HPLC-GLIM-IMP held back: needs the held-back method "Glimepiride organic impurities (USP, HPLC)")
+spec STM-RM-052/USP/Residue on ignition: create
+spec STM-RM-052/USP/Water content: create
+spec STM-RM-052/USP/Assay (anhydrous basis): skip (test RM-HPLC-GLIM-AS held back: needs the held-back method "Glimepiride assay (USP, HPLC)")
+spec STM-RM-052/USP/Total aerobic microbial count: error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-052/USP/Total yeasts and molds count: error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-052/USP/Test for E. coli: error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-053/BP/Identification: same
+spec STM-RM-053/BP/Clarity of solution: same
+spec STM-RM-053/BP/Disintegration: same
+spec STM-RM-053/BP/Assay: same
+spec STM-RM-054/USP/Description: create
+spec STM-RM-054/USP/Solubility: create
+spec STM-RM-054/USP/Identification (IR): create
+spec STM-RM-054/USP/Identification (HPLC retention time of major peak): create
+spec STM-RM-054/USP/Related compound A: skip (test RM-HPLC-FLU-IMP held back: needs the held-back method "Fluconazole organic impurities (USP, HPLC)")
+spec STM-RM-054/USP/Specified impurity: skip (test RM-HPLC-FLU-IMP held back: needs the held-back method "Fluconazole organic impurities (USP, HPLC)")
+spec STM-RM-054/USP/Related compound B: skip (test RM-HPLC-FLU-IMP held back: needs the held-back method "Fluconazole organic impurities (USP, HPLC)")
+spec STM-RM-054/USP/Related compound C: skip (test RM-HPLC-FLU-IMP held back: needs the held-back method "Fluconazole organic impurities (USP, HPLC)")
+spec STM-RM-054/USP/Any individual unspecified impurity: skip (test RM-HPLC-FLU-IMP held back: needs the held-back method "Fluconazole organic impurities (USP, HPLC)")
+spec STM-RM-054/USP/Total unknown impurities: skip (test RM-HPLC-FLU-IMP held back: needs the held-back method "Fluconazole organic impurities (USP, HPLC)")
+spec STM-RM-054/USP/Total impurities: skip (test RM-HPLC-FLU-IMP held back: needs the held-back method "Fluconazole organic impurities (USP, HPLC)")
+spec STM-RM-054/USP/Residue on ignition: create
+spec STM-RM-054/USP/Loss on drying: create
+spec STM-RM-054/USP/Assay (dried basis): skip (test RM-HPLC-FLU-AS held back: needs the held-back method "Fluconazole assay (USP, HPLC)")
+spec STM-RM-054/USP/Total aerobic microbial count (TAMC): error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-054/USP/Total yeasts and molds count (TYMC): error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-054/USP/Test for E. coli: error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-058/USP/Description: create
+spec STM-RM-058/USP/Solubility: create
+spec STM-RM-058/USP/Identification (reaction of magnesium): create
+spec STM-RM-058/USP/Free alkali and soluble salts: 0.10 N sulfuric acid consumed: create
+spec STM-RM-058/USP/Free alkali and soluble salts: residue of 25 mL solution (NMT 10 mg, 2.0%): create
+spec STM-RM-058/USP/Limit of calcium: skip (test RM-ICP-CA-058 held back: needs the held-back method "Calcium by AAS (magnesium oxide USP)")
+spec STM-RM-058/USP/Limit of iron: create
+spec STM-RM-058/USP/Loss on ignition: create
+spec STM-RM-058/USP/Acid-insoluble substances (NMT 2 mg, 0.1%): create
+spec STM-RM-058/USP/Assay (after ignition): create
+spec STM-RM-058/USP/Bulk density: create
+spec STM-RM-058/USP/Particle size: 90% pass through 18 mesh: create
+spec STM-RM-058/USP/Particle size: 50% pass through 30 mesh: create
+spec STM-RM-058/USP/Particle size: 10% pass through 50 mesh: create
+spec STM-RM-058/USP/Total aerobic microbial count (TAMC): error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-058/USP/Total combined yeasts and molds count (TYMC): error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-058/USP/Test for E. coli: error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-059/USP/Description: create
+spec STM-RM-059/USP/Solubility: create
+spec STM-RM-059/USP/Identification (Chemical Reaction): create
+spec STM-RM-059/USP/Identification (Polarimetry): create
+spec STM-RM-059/USP/Identification (HPLC / GC): create
+spec STM-RM-059/USP/Acidity: create
+spec STM-RM-059/USP/Assay: skip (held back: STM: GC method incomplete (system suitability criteria not stated))
+spec STM-RM-059/USP/Specific Rotation: create
+spec STM-RM-059/USP/Melting point: create
+spec STM-RM-059/USP/Bulk Density: create
+spec STM-RM-059/USP/Total aerobic microbial count: error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-059/USP/Total yeasts and molds count: error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-059/USP/E. coli: error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-060/BP/Appearance: same
+spec STM-RM-060/BP/Solubility: same
+spec STM-RM-060/BP/Identification - Reaction of Sulfate: same
+spec STM-RM-060/BP/Identification - Reaction of Sodium: same
+spec STM-RM-060/BP/Appearance of solution: same
+spec STM-RM-060/BP/pH: same
+spec STM-RM-060/BP/Thiosulfates: same
+spec STM-RM-060/BP/Iron: same
+spec STM-RM-060/BP/Assay: same
+spec STM-RM-061/BP/Appearance: create
+spec STM-RM-061/BP/Solubility: create
+spec STM-RM-061/BP/Identification (Visual): create
+spec STM-RM-061/BP/Identification (Chemical Reaction: Cupri-tartaric): create
+spec STM-RM-061/BP/Identification (Chemical Reaction: Reactive pad): create
+spec STM-RM-061/BP/pH: create
+spec STM-RM-061/BP/Sulfated ash: create
+spec STM-RM-061/BP/Loss on drying: create
+spec STM-RM-061/BP/Sulfur dioxide: create
+spec STM-RM-061/BP/Dextrose equivalent: create
+spec STM-RM-061/BP/Total aerobic microbial count: error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-061/BP/Total yeasts and molds count: error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-061/BP/E. coli: error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-062/BP/Appearance: create
+spec STM-RM-062/BP/Appearance of solution: create
+spec STM-RM-062/BP/Identification (Visual): create
+spec STM-RM-062/BP/Identification (HPLC): create
+spec STM-RM-062/BP/Identification (Polarimeter): create
+spec STM-RM-062/BP/Conductivity: create
+spec STM-RM-062/BP/Water: create
+spec STM-RM-062/BP/Reducing sugars: create
+spec STM-RM-062/BP/Reducing sugars after hydrolysis: create
+spec STM-RM-062/BP/Assay: Anhydrous substance: skip (held back: needs the held-back method "Liquid sorbitol assay (BP, HPLC-RI)")
+spec STM-RM-062/BP/Assay: D-sorbitol: skip (held back: needs the held-back method "Liquid sorbitol assay (BP, HPLC-RI)")
+spec STM-RM-062/BP/Total aerobic microbial count: error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-062/BP/Total yeasts and molds count: error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-062/BP/E. coli: error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-063/BP/Appearance: same
+spec STM-RM-063/BP/Solubility: same
+spec STM-RM-063/BP/Identification - Melting point: same
+spec STM-RM-063/BP/Identification - HPLC retention time: same
+spec STM-RM-063/BP/Identification - TLC: same
+spec STM-RM-063/BP/Identification - Reaction of sodium: same
+spec STM-RM-063/BP/Appearance of solution: same
+spec STM-RM-063/BP/pH: same
+spec STM-RM-063/BP/Related substances - Impurity A: skip (held back: needs the held-back method "Sodium propyl paraben related substances (BP, HPLC)")
+spec STM-RM-063/BP/Related substances - Unspecified impurities (each): skip (held back: needs the held-back method "Sodium propyl paraben related substances (BP, HPLC)")
+spec STM-RM-063/BP/Related substances - Sum of impurities other than A: skip (held back: needs the held-back method "Sodium propyl paraben related substances (BP, HPLC)")
+spec STM-RM-063/BP/Chlorides: same
+spec STM-RM-063/BP/Sulfates: same
+spec STM-RM-063/BP/Water: same
+spec STM-RM-063/BP/Assay (Sodium Propyl Hydroxybenzoate): skip (held back: needs the held-back method "Sodium propyl paraben assay (BP, HPLC)")
+spec STM-RM-063/BP/Total aerobic microbial count (TAMC): same
+spec STM-RM-063/BP/Total yeast and mold count (TYMC): same
+spec STM-RM-063/BP/Test for E. coli: same
+spec STM-RM-064/BP/Appearance: same
+spec STM-RM-064/BP/Solubility: same
+spec STM-RM-064/BP/Identification - Melting point of precipitate: same
+spec STM-RM-064/BP/Identification - HPLC retention time: same
+spec STM-RM-064/BP/Identification - TLC: same
+spec STM-RM-064/BP/Identification - Reaction of Sodium: same
+spec STM-RM-064/BP/Appearance of solution: same
+spec STM-RM-064/BP/pH: same
+spec STM-RM-064/BP/Related substances - Impurity A: skip (held back: needs the held-back method "Sodium methyl paraben related substances (BP, HPLC)")
+spec STM-RM-064/BP/Related substances - Unspecified impurities (each): skip (held back: needs the held-back method "Sodium methyl paraben related substances (BP, HPLC)")
+spec STM-RM-064/BP/Related substances - Sum of impurities other than A: skip (held back: needs the held-back method "Sodium methyl paraben related substances (BP, HPLC)")
+spec STM-RM-064/BP/Chlorides: same
+spec STM-RM-064/BP/Sulfates: same
+spec STM-RM-064/BP/Water: same
+spec STM-RM-064/BP/Assay: skip (held back: needs the held-back method "Sodium methyl paraben assay (BP, HPLC)")
+spec STM-RM-064/BP/Total aerobic microbial count (TAMC): same
+spec STM-RM-064/BP/Total yeast and mold count (TYMC): same
+spec STM-RM-064/BP/Test for E. coli: same
+spec STM-RM-067/USP/Description: create
+spec STM-RM-067/USP/Solubility: create
+spec STM-RM-067/USP/Identification (zinc): create
+spec STM-RM-067/USP/Identification (sulfate): create
+spec STM-RM-067/USP/Lead (limit test): create
+spec STM-RM-067/USP/Arsenic (limit test): create
+spec STM-RM-067/USP/Alkalies and alkaline earths: residue weight: create
+spec STM-RM-067/USP/Alkalies and alkaline earths: percentage: create
+spec STM-RM-067/USP/Acidity: create
+spec STM-RM-067/USP/Assay (zinc sulfate, ZnSO4): create
+spec STM-RM-067/USP/Assay (zinc sulfate monohydrate, ZnSO4 · H2O): create
+spec STM-RM-067/BP/Appearance: create
+spec STM-RM-067/BP/Solubility: create
+spec STM-RM-067/BP/Identification (reactions of sulfates): create
+spec STM-RM-067/BP/Identification (reaction of zinc): create
+spec STM-RM-067/BP/Appearance of solution: create
+spec STM-RM-067/BP/pH: create
+spec STM-RM-067/BP/Chlorides (limit test): create
+spec STM-RM-067/BP/Iron (limit test): create
+spec STM-RM-067/BP/Assay: create
+spec STM-RM-072/None/Appearance: create
+spec STM-RM-072/None/Solubility: create
+spec STM-RM-072/None/Identification: create
+spec STM-RM-072/None/Loss on Drying: create
+spec STM-RM-072/None/Assay: skip (held back: STM: HPLC method incomplete (system suitability criteria not stated))
+spec STM-RM-072/None/Total aerobic microbial count: error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-072/None/Total yeasts and molds count: error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-072/None/E. coli: error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-073/None/Appearance: create
+spec STM-RM-073/None/Dispersion: create
+spec STM-RM-073/None/Identification (film formed): create
+spec STM-RM-073/None/Ash content: create
+spec STM-RM-073/None/Total Aerobic Microbial Count: error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-073/None/Total Yeast and Molds Count: error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-073/None/Test for E. coli: error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-074/None/Appearance: create
+spec STM-RM-074/None/Solubility: create
+spec STM-RM-074/None/Average weight (62.0 mg ±7.5%): create
+spec STM-RM-074/None/Closed joined filled length (17.7 mm ±0.3): create
+spec STM-RM-074/None/Closure: create
+spec STM-RM-074/None/pH: create
+spec STM-RM-074/None/Brittleness: create
+spec STM-RM-074/None/Disintegration (shells): create
+spec STM-RM-074/None/Ash: create
+spec STM-RM-074/None/Loss on drying: create
+spec STM-RM-074/None/Total aerobic microbial count (TAMC): error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-074/None/Total yeasts and molds count (TYMC): error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-074/None/Test for E. coli: error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-074/None/Test for Salmonella spp.: error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+specs STM-RM-077: skip (item not usable; 0 rows not loaded)
+spec STM-RM-078/USP/Description: create
+spec STM-RM-078/USP/Solubility: create
+spec STM-RM-078/USP/Identification (chemical reaction, calcium and carbonate): create
+spec STM-RM-078/USP/Acid-insoluble substances (%): create
+spec STM-RM-078/USP/Acid-insoluble substances (weight of residue): create
+spec STM-RM-078/USP/Iron: create
+spec STM-RM-078/USP/Lead: create
+spec STM-RM-078/USP/Arsenic: create
+spec STM-RM-078/USP/Barium: create
+spec STM-RM-078/USP/Fluoride: create
+spec STM-RM-078/USP/Magnesium and alkali salts (% residue): create
+spec STM-RM-078/USP/Magnesium and alkali salts (weight of residue): create
+spec STM-RM-078/USP/Loss on drying: create
+spec STM-RM-078/USP/Bulk density: create
+spec STM-RM-078/USP/Assay: create
+spec STM-RM-078/USP/Particle size distribution (D90 < 12 µm; D50 < 6 µm; D10 < 1.5 µm): create
+spec STM-RM-078/USP/Total Aerobic Microbial Count (TAMC): error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-078/USP/Total combined Yeasts & Molds Count (TYMC): error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-078/USP/Escherichia coli: error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-078/USP/Mercury: skip (held back: no STM: method not documented)
+spec STM-RM-080/None/Appearance: create
+spec STM-RM-080/None/Solubility: create
+spec STM-RM-080/None/Relative density: create
+spec STM-RM-080/None/Refractive index: create
+spec STM-RM-080/None/Optical rotation: create
+spec STM-RM-080/None/Acid value: create
+spec STM-RM-080/None/Total Aerobic Microbial Count: error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-080/None/Total Yeasts and Molds Count: error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-080/None/Test for E. coli: error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-080/None/Test for Salmonella spp.: error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-081/BP/Appearance: create
+spec STM-RM-081/BP/Solubility: create
+spec STM-RM-081/BP/Identification (IR): create
+spec STM-RM-081/BP/Identification (Chemical Reaction): create
+spec STM-RM-081/BP/pH: create
+spec STM-RM-081/BP/Conductivity: create
+spec STM-RM-081/BP/Ether-soluble substances: create
+spec STM-RM-081/BP/Water -soluble substances: create
+spec STM-RM-081/BP/Loss on drying: create
+spec STM-RM-081/BP/Sulphated Ash2: create
+spec STM-RM-081/BP/Total aerobic microbial count (TAMC): error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-081/BP/Total yeasts and molds count (TYMC): error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-081/BP/E. coli: error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-081/BP/Salmonella spp.: error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-081/BP/Staphylococcus aureus: skip (test RM-SAUR not found)
+spec STM-RM-081/BP/P. aeruginosa: skip (test RM-PAER not found)
+spec STM-RM-081/USP/Appearance: create
+spec STM-RM-081/USP/Solubility: create
+spec STM-RM-081/USP/Identification (IR): create
+spec STM-RM-081/USP/Identification (Chemical Reaction): create
+spec STM-RM-081/USP/pH: create
+spec STM-RM-081/USP/Conductivity: create
+spec STM-RM-081/USP/Ether-soluble substances: create
+spec STM-RM-081/USP/Water -soluble substances: create
+spec STM-RM-081/USP/Loss on drying: create
+spec STM-RM-081/USP/Residue on ignition: create
+spec STM-RM-081/USP/Bulk Density: create
+spec STM-RM-081/USP/Total aerobic microbial count (TAMC): error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-081/USP/Total yeasts and molds count (TYMC): error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-081/USP/E. coli: error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-081/USP/Salmonella spp.: error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-081/USP/Staphylococcus aureus: skip (test RM-SAUR not found)
+spec STM-RM-081/USP/P. aeruginosa: skip (test RM-PAER not found)
+spec STM-RM-084/BP/Appearance: create
+spec STM-RM-084/BP/Solubility: create
+spec STM-RM-084/BP/Appearance of solution: create
+spec STM-RM-084/BP/Identification (Chemical Reaction): create
+spec STM-RM-084/BP/Identification (IR): create
+spec STM-RM-084/BP/Identification (TLC): create
+spec STM-RM-084/BP/Acidity or alkalinity: create
+spec STM-RM-084/BP/Specific optical rotation: create
+spec STM-RM-084/BP/Absorbance: at 400 nm (test solution a): error (HTTP 400: An absorbance limit test takes a Qualitative specification.)
+spec STM-RM-084/BP/Absorbance: from 210 nm to 220 nm (test solution b): error (HTTP 400: An absorbance limit test takes a Qualitative specification.)
+spec STM-RM-084/BP/Absorbance: from 270 nm to 300 nm (test solution b): error (HTTP 400: An absorbance limit test takes a Qualitative specification.)
+spec STM-RM-084/BP/Water: create
+spec STM-RM-084/BP/Sulfated ash: create
+spec STM-RM-084/BP/Total Aerobic Microbial Count: error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-084/BP/Total combined Yeasts & Molds Count: error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-084/BP/Test for E. coli: error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-085/BP/Appearance: create
+spec STM-RM-085/BP/Solubility: create
+spec STM-RM-085/BP/Identification (IR): create
+spec STM-RM-085/BP/Identification (physical adsorption of methylene blue): create
+spec STM-RM-085/BP/Identification (reaction of sodium, ash): create
+spec STM-RM-085/BP/pH: create
+spec STM-RM-085/BP/Water-soluble substances: create
+spec STM-RM-085/BP/Sulphated ash: create
+spec STM-RM-085/BP/Loss on drying: create
+spec STM-RM-085/BP/Degree of substitution / (Assay): error (HTTP 400: Result basis is not used for this test type.)
+spec STM-RM-085/BP/Settling volume: create
+spec STM-RM-085/BP/Total aerobic microbial count (TAMC): error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-085/BP/Total yeasts and molds count (TYMC): error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-085/BP/Escherichia coli: error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-085/BP/Sodium chloride and sodium glycolate, sum (dried substance): skip (held back: STM: method not documented)
+spec STM-RM-085/USP/Description: create
+spec STM-RM-085/USP/Solubility: create
+spec STM-RM-085/USP/Identification (IR): create
+spec STM-RM-085/USP/Identification (physical adsorption of methylene blue): create
+spec STM-RM-085/USP/Identification (reaction of sodium, ash): create
+spec STM-RM-085/USP/pH: create
+spec STM-RM-085/USP/Water-soluble substances: create
+spec STM-RM-085/USP/Residue on ignition: create
+spec STM-RM-085/USP/Loss on drying: create
+spec STM-RM-085/USP/Degree of substitution: error (HTTP 400: Result basis is not used for this test type.)
+spec STM-RM-085/USP/Settling volume: create
+spec STM-RM-085/USP/Total aerobic microbial count (TAMC): error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-085/USP/Total yeasts and molds count (TYMC): error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-085/USP/Escherichia coli: error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-085/USP/Sodium chloride and sodium glycolate, sum (dried substance): skip (held back: STM: method not documented)
+spec STM-RM-086/BP/Appearance: create
+spec STM-RM-086/BP/Solubility: create
+spec STM-RM-086/BP/Identification (Chemical Reaction): create
+spec STM-RM-086/BP/Identification (Freezing Point): create
+spec STM-RM-086/BP/Identification (Acid value): create
+spec STM-RM-086/BP/Acidity or alkalinity: create
+spec STM-RM-086/BP/Chlorides: create
+spec STM-RM-086/BP/Sulfates: create
+spec STM-RM-086/BP/Cadmium: skip (held back: needs the held-back method "Cadmium by AAS (magnesium stearate BP)")
+spec STM-RM-086/BP/Lead: skip (held back: needs the held-back method "Lead by AAS (magnesium stearate BP)")
+spec STM-RM-086/BP/Nickel: skip (held back: needs the held-back method "Nickel by AAS (magnesium stearate BP)")
+spec STM-RM-086/BP/Loss on drying: create
+spec STM-RM-086/BP/Assay: create
+spec STM-RM-086/BP/Stearic acid in the fatty acid fraction: skip (held back: STM: GC method incomplete (calculation expression not stated))
+spec STM-RM-086/BP/Sum of stearic acid and palmitic acid in the fatty acid fraction: skip (held back: STM: GC method incomplete (calculation expression not stated))
+spec STM-RM-086/BP/Total aerobic microbial count: error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-086/BP/Total yeasts and molds count: error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-086/BP/Test for E. coli: error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-086/BP/Test for Salmonella spp.: error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-087/None/Appearance: create
+spec STM-RM-087/None/Solubility: create
+spec STM-RM-087/None/Odor: create
+spec STM-RM-087/None/Color: skip (test RM-COL-087 not found)
+spec STM-RM-087/None/Taste (at low dilution): create
+spec STM-RM-087/None/Specific gravity: create
+spec STM-RM-087/None/Refractive index: create
+spec STM-RM-087/None/Total Aerobic Microbial Count (TAMC): error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-087/None/Total Yeast and Molds Count (TYMC): error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-087/None/Test for E. coli: error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-087/None/Test for Salmonella spp.: error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-088/None/Appearance: create
+spec STM-RM-088/None/Identification (HPLC retention time): vitamin B6 and folic acid: create
+spec STM-RM-088/None/Identification (AAS): iron, absorption maximum at 248.3 nm: create
+spec STM-RM-088/None/Identification (AAS): zinc, absorption maximum at 213.9 nm: create
+spec STM-RM-088/None/Identification (AAS): copper, absorption maximum at 324.8 nm: create
+spec STM-RM-088/None/Assay (folic acid, % of labeled amount): skip (test RM-HPLC-FERO-AS held back: method details missing in the STM (API needs run time, replicates, element view etc.); see gaps, waits for the lab)
+spec STM-RM-088/None/Assay (pyridoxine HCl, % of labeled amount): skip (test RM-HPLC-FERO-AS held back: method details missing in the STM (API needs run time, replicates, element view etc.); see gaps, waits for the lab)
+spec STM-RM-088/None/Assay (iron, % of labeled amount): skip (test RM-ICP-FE-088 held back: method details missing in the STM (API needs run time, replicates, element view etc.); see gaps, waits for the lab)
+spec STM-RM-088/None/Assay (zinc, % of labeled amount): skip (test RM-ICP-ZN-088 held back: method details missing in the STM (API needs run time, replicates, element view etc.); see gaps, waits for the lab)
+spec STM-RM-088/None/Assay (copper, % of labeled amount): skip (test RM-ICP-CU-088 held back: method details missing in the STM (API needs run time, replicates, element view etc.); see gaps, waits for the lab)
+spec STM-RM-088/None/Total Aerobic Microbial Count (TAMC): error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-088/None/Total Yeast and Mold Count (TYMC): error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-088/None/Test for E. coli: error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-089/BP/Appearance: same
+spec STM-RM-089/BP/Solubility: same
+spec STM-RM-089/BP/Identification (A): pH: same
+spec STM-RM-089/BP/Identification (B): Visual: same
+spec STM-RM-089/BP/Identification (C): Chemical Reaction: same
+spec STM-RM-089/BP/Identification (D): Chemical Reaction: same
+spec STM-RM-089/BP/pH: same
+spec STM-RM-089/BP/Loss on drying: same
+spec STM-RM-089/BP/Iron: same
+spec STM-RM-089/BP/Appearance of solution: same
+spec STM-RM-089/BP/Settling volume: same
+spec STM-RM-089/BP/Total Aerobic Microbial Count (TAMC): same
+spec STM-RM-089/BP/Total Yeast and Molds Count (TYMC): same
+spec STM-RM-089/BP/Test for E. coli: same
+spec STM-RM-089/BP/Test for Salmonella spp.: same
+spec STM-RM-090/None/Appearance: create
+spec STM-RM-090/None/Solubility: create
+spec STM-RM-090/None/Identification (microscopic: black cross at the hilum): skip (held back: no STM: method not documented)
+spec STM-RM-090/None/Identification (reactions of iodides: mucilage): skip (held back: no STM: method not documented)
+spec STM-RM-090/None/Identification (iodine colour, disappears on heating): skip (held back: no STM: method not documented)
+spec STM-RM-090/None/pH: create
+spec STM-RM-090/None/Foreign matter (microscopic): skip (held back: no STM: method not documented)
+spec STM-RM-090/None/Oxidizing substances: skip (held back: no STM: method not documented)
+spec STM-RM-090/None/Iron: create
+spec STM-RM-090/None/Loss on drying: create
+spec STM-RM-090/None/Sulfated ash: create
+spec STM-RM-090/None/Total aerobic microbial count (TAMC): error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-090/None/Total yeasts and molds count (TYMC): error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-090/None/Test for E. coli: error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-090/None/Test for Salmonella spp.: error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-091/BP/Appearance: same
+spec STM-RM-091/BP/Solubility: same
+spec STM-RM-091/BP/Identification (IR): same
+spec STM-RM-091/BP/Identification (chemical reaction, sodium): same
+spec STM-RM-091/BP/Identification (chemical reaction, barium chloride after hydrolysis): same
+spec STM-RM-091/BP/Identification (foam formation): same
+spec STM-RM-091/BP/Alkalinity: same
+spec STM-RM-091/BP/Non-esterified alcohols: same
+spec STM-RM-091/BP/Sodium chloride and sodium sulfate (total): same
+spec STM-RM-091/BP/Assay (sodium alkyl sulfates): same
+spec STM-RM-093/None/Appearance: create
+spec STM-RM-093/None/Solubility: create
+spec STM-RM-093/None/pH: create
+spec STM-RM-093/None/Odor: create
+spec STM-RM-093/None/Relative density: create
+spec STM-RM-093/None/Refractive index: create
+spec STM-RM-093/None/Total Aerobic Microbial Count: error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-093/None/Total Yeasts & Molds Count: error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-093/None/Test for E. coli: error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-093/None/Test for Salmonella sp.: error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-097/BP/Appearance: same
+spec STM-RM-097/BP/Solubility: same
+spec STM-RM-097/BP/Melting Point: same
+spec STM-RM-097/BP/Identification (UV): specific absorbance, solution B at 288-296 nm: same
+spec STM-RM-097/BP/Identification (UV): specific absorbance, solution C at 248-256 nm: same
+spec STM-RM-097/BP/Identification (UV): specific absorbance, solution C at 320-327 nm: same
+spec STM-RM-097/BP/Identification (IR): same
+spec STM-RM-097/BP/Identification (Thin-layer chromatography): same
+spec STM-RM-097/BP/Identification (Reaction of chlorides): same
+spec STM-RM-097/BP/Appearance of solution: same
+spec STM-RM-097/BP/Loss on Drying: same
+spec STM-RM-097/BP/Sulfated Ash: same
+spec STM-RM-097/BP/pH: same
+spec STM-RM-097/BP/Assay: same
+spec STM-RM-097/BP/Related substances: Impurity B: skip (held back: needs the held-back method "Pyridoxine hydrochloride related substances (BP, HPLC)")
+spec STM-RM-097/BP/Related substances: Unspecified impurities (each): skip (held back: needs the held-back method "Pyridoxine hydrochloride related substances (BP, HPLC)")
+spec STM-RM-097/BP/Related substances: Total: skip (held back: needs the held-back method "Pyridoxine hydrochloride related substances (BP, HPLC)")
+spec STM-RM-097/BP/Total aerobic microbial count (TAMC): same
+spec STM-RM-097/BP/Total Yeast and mold count (TYMC): same
+spec STM-RM-097/BP/Test for E.coli: same
+spec STM-RM-097/USP/Description: same
+spec STM-RM-097/USP/Solubility: same
+spec STM-RM-097/USP/Identification (IR): same
+spec STM-RM-097/USP/Identification (Reactions of Chloride): same
+spec STM-RM-097/USP/Loss on Drying: same
+spec STM-RM-097/USP/Residue on Ignition: same
+spec STM-RM-097/USP/Content of Chloride: same
+spec STM-RM-097/USP/Assay: skip (held back: needs the held-back method "Pyridoxine hydrochloride assay (USP, HPLC internal standard)")
+spec STM-RM-097/USP/Total aerobic microbial count (TAMC): same
+spec STM-RM-097/USP/Total Yeast and mold count (TYMC): same
+spec STM-RM-097/USP/Test for E.coli: same
+spec STM-RM-099/BP/Appearance: create
+spec STM-RM-099/BP/Solubility: create
+spec STM-RM-099/BP/Identification (TLC): create
+spec STM-RM-099/BP/Assay (% of the vitamin A content stated on the label): skip (held back: STM: HPLC method incomplete (system suitability and content calculation expression not stated))
+spec STM-RM-102/None/Appearance: create
+spec STM-RM-102/None/Dispersibility: create
+spec STM-RM-102/None/Odor: create
+spec STM-RM-102/None/Identification (UV, comply as assay): create
+spec STM-RM-102/None/Loss on drying: create
+spec STM-RM-102/None/Heavy metals (as lead): skip (held back: ICP method incomplete: result calculation not stated)
+spec STM-RM-102/None/Arsenic: skip (held back: ICP method incomplete: result calculation not stated)
+spec STM-RM-102/None/Assay (beta-carotene content): create
+spec STM-RM-102/None/Total aerobic microbial count (TAMC): error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-102/None/Total yeasts and molds count (TYMC): error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-102/None/Test for E. coli: error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-102/None/Test for Salmonella spp.: error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-107/USP/Description: create
+spec STM-RM-107/USP/Solubility: create
+spec STM-RM-107/USP/Identification: create
+spec STM-RM-107/USP/Soluble Salts (acid consumed): create
+spec STM-RM-107/USP/Soluble Salts (residue): create
+spec STM-RM-107/USP/Carbonate: create
+spec STM-RM-107/USP/Limit of Calcium: skip (test RM-ICP-CA-107 held back: needs the held-back method "Calcium by AAS (magnesium hydroxide USP)")
+spec STM-RM-107/USP/Limit of Lead: skip (test RM-ICP-PB-107 held back: needs the held-back method "Lead by ICP (magnesium hydroxide USP)")
+spec STM-RM-107/USP/Loss on Ignition: create
+spec STM-RM-107/USP/Loss on drying: create
+spec STM-RM-107/USP/Assay: create
+spec STM-RM-107/USP/Bulk Density: create
+spec STM-RM-107/USP/Test for E. coli: error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-107/USP/Total Aerobic Microbial Count: error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-107/USP/Total combined Yeasts & Molds Count: error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-114/None/Appearance (Opadry Green 20A21508): create
+spec STM-RM-114/None/Appearance (Opadry Green 45U21242): create
+spec STM-RM-114/None/Identification (film formed): create
+spec STM-RM-114/None/Ash content (% w/w): create
+spec STM-RM-114/None/Total aerobic microbial count (TAMC): error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-114/None/Total yeasts and molds count (TYMC): error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-114/None/Escherichia coli: error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-119/None/Appearance: create
+spec STM-RM-119/None/Dispersion: create
+spec STM-RM-119/None/Identification (film formed): create
+spec STM-RM-119/None/Ash content: create
+spec STM-RM-119/None/Total Aerobic Microbial Count (TAMC): error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-119/None/Total Yeast and Molds Count (TYMC): error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-119/None/Test for E. coli: error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-124/BP/Appearance: create
+spec STM-RM-124/BP/Solubility: create
+spec STM-RM-124/BP/Identification (IR): create
+spec STM-RM-124/BP/Identification (chemical reaction, copper sulfate): create
+spec STM-RM-124/BP/Identification (TLC): create
+spec STM-RM-124/BP/Appearance of solution: create
+spec STM-RM-124/BP/Conductivity: create
+spec STM-RM-124/BP/Specific optical rotation: create
+spec STM-RM-124/BP/Reducing sugars: create
+spec STM-RM-124/BP/Color value: create
+spec STM-RM-124/BP/Sulfites: create
+spec STM-RM-124/BP/Loss on drying: create
+spec STM-RM-124/BP/Total aerobic microbial count (TAMC): error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-124/BP/Total yeasts and molds count (TYMC): error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-124/BP/Escherichia coli: error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-125/BP/Appearance: create
+spec STM-RM-125/BP/Solubility: create
+spec STM-RM-125/BP/Identification (reaction of silicate): create
+spec STM-RM-125/BP/Identification (residue turns pink again with sodium fluoride): create
+spec STM-RM-125/BP/Identification (reaction of phosphate, white precipitate): create
+spec STM-RM-125/BP/Identification (AAS, comply with assay): create
+spec STM-RM-125/BP/pH: create
+spec STM-RM-125/BP/Viscosity: create
+spec STM-RM-125/BP/Arsenic (limit test): create
+spec STM-RM-125/BP/Lead (limit test): create
+spec STM-RM-125/BP/Loss on drying: create
+spec STM-RM-125/BP/Acid demand (pH after acid addition): create
+spec STM-RM-125/BP/Assay (Al content / Mg content ratio): create
+spec STM-RM-125/BP/Total Aerobic Microbial Count (TAMC): error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-125/BP/Total Yeast and Molds Count (TYMC): error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-125/BP/Test for E. coli: error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-126/BP/Appearance: same
+spec STM-RM-126/BP/Miscibility: same
+spec STM-RM-126/BP/Total alkalinity: same
+spec STM-RM-126/BP/Assay (available chlorine): same
+spec STM-RM-127/None/Appearance: create
+spec STM-RM-127/None/Solubility: create
+spec STM-RM-127/None/Identification test 1 (ammonium oxalate): create
+spec STM-RM-127/None/Identification test 2 (ammonium molybdate): create
+spec STM-RM-127/None/Acid-insoluble substances: create
+spec STM-RM-127/None/Carbonates: create
+spec STM-RM-127/None/Chlorides: create
+spec STM-RM-127/None/Sulfates: create
+spec STM-RM-127/None/Arsenic: create
+spec STM-RM-127/None/Barium: create
+spec STM-RM-127/None/Iron: create
+spec STM-RM-127/None/Loss on ignition: create
+spec STM-RM-127/None/Assay: create
+spec STM-RM-127/None/Particle size: 90% pass through 35 mesh: create
+spec STM-RM-127/None/Particle size: 50% pass through 60 mesh: create
+spec STM-RM-127/None/Particle size: 10% pass through 120 mesh: create
+spec STM-RM-127/None/Total aerobic microbial count (TAMC): error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-127/None/Total combined yeasts and molds count (TYMC): error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-127/None/Test for E. coli: error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-128/None/Appearance: create
+spec STM-RM-128/None/Heavy metals (as lead): create
+spec STM-RM-128/None/HCl insoluble matter: create
+spec STM-RM-128/None/pH: create
+spec STM-RM-128/None/Loss on drying: create
+spec STM-RM-128/None/Bulk density: create
+spec STM-RM-128/None/Total Aerobic Microbial Count (TAMC): error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-128/None/Total Yeast and Molds Count (TYMC): error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-128/None/Test for E. coli: error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-129/BP/Appearance: create
+spec STM-RM-129/BP/Solubility: create
+spec STM-RM-129/BP/Identification (Chemical Reaction): create
+spec STM-RM-129/BP/Identification (Visual): create
+spec STM-RM-129/BP/Identification (Titration / Dextrose equivalent): create
+spec STM-RM-129/BP/Sulfur dioxide: create
+spec STM-RM-129/BP/pH: create
+spec STM-RM-129/BP/Loss on Drying: create
+spec STM-RM-129/BP/Sulphated Ash: create
+spec STM-RM-129/BP/Dextrose equivalent: create
+spec STM-RM-129/BP/Total aerobic microbial count: error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-129/BP/Total yeasts and molds count: error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-129/BP/E. coli: error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-129/BP/Salmonella spp.: error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-130/None/Appearance: create
+spec STM-RM-130/None/Dispersion: create
+spec STM-RM-130/None/Identification (film formation): create
+spec STM-RM-130/None/Ash Content: create
+spec STM-RM-130/None/Total Aerobic Microbial Count (TAMC): error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-130/None/Total Yeast and Molds Count (TYMC): error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-130/None/Test for E. coli: error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-131/None/Description: create
+spec STM-RM-131/None/Solubility: create
+spec STM-RM-131/None/Identification (UV): maximum wavelength 361 nm ±2: create
+spec STM-RM-131/None/Loss on drying: create
+spec STM-RM-131/None/Assay (Vit. B12 content): create
+spec STM-RM-131/None/Total aerobic microbial count (TAMC): error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-131/None/Total yeasts and molds count (TYMC): error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-131/None/Escherichia coli: error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-132/None/Appearance: create
+spec STM-RM-132/None/Dispersion: create
+spec STM-RM-132/None/Identification: create
+spec STM-RM-132/None/Ash Content: create
+spec STM-RM-132/None/Total Aerobic Microbial Count: error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-132/None/Total Yeast and Molds Count: error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-132/None/Test for E. coli: error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-133/None/Appearance: create
+spec STM-RM-133/None/Solubility: create
+spec STM-RM-133/None/Identification (HPLC): create
+spec STM-RM-133/None/Loss on drying: create
+spec STM-RM-133/None/Identity for tocopherol: create
+spec STM-RM-133/None/Assay (% of label claim): skip (held back: STM: HPLC method incomplete (system suitability criteria not stated))
+spec STM-RM-133/None/Total aerobic microbial count: error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-133/None/Total yeasts and molds count: error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-133/None/E. coli: error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-139/None/Appearance: create
+spec STM-RM-139/None/Specific gravity: create
+spec STM-RM-139/None/Peroxide value: create
+spec STM-RM-139/None/Acid value: create
+spec STM-RM-139/None/Absorbance at 233 nm: error (HTTP 400: An absorbance limit test takes a Qualitative specification.)
+spec STM-RM-139/None/DHA (docosahexaenoic acid as TG): skip (held back: STM: HPLC method incomplete (column diameter and particle size, flow unit, system suitability, run time))
+spec STM-RM-139/None/EPA (eicosapentaenoic acid as TG): skip (held back: STM: HPLC method incomplete (column diameter and particle size, flow unit, system suitability, run time))
+spec STM-RM-139/None/Total aerobic microbial count (TAMC): error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-139/None/Total yeasts and molds count (TYMC): error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-139/None/Escherichia coli: error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-139/None/Salmonella spp.: error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-139/None/Lead: skip (held back: STM: method not documented)
+spec STM-RM-139/None/Cadmium: skip (held back: STM: method not documented)
+spec STM-RM-139/None/Mercury: skip (held back: STM: method not documented)
+spec STM-RM-139/None/Arsenic: skip (held back: STM: method not documented)
+spec STM-RM-139/None/Total omega-3 fatty acids as TG: skip (held back: STM: method not documented)
+spec STM-RM-139/None/Colour Gardner: skip (held back: STM: method not documented)
+spec STM-RM-141/USP/Description: create
+spec STM-RM-141/USP/Solubility: create
+spec STM-RM-141/USP/Identification (IR): create
+spec STM-RM-141/USP/Identification (copper sulfate reaction): create
+spec STM-RM-141/USP/Identification (hydroxylamine / ferric chloride reaction): create
+spec STM-RM-141/USP/Limit of aminopropanol: error (HTTP 400: Result basis is required for titration specifications: % as is, % dried basis, % anhydrous basis, % of label claim or mg per unit.)
+spec STM-RM-141/USP/Residue on ignition: create
+spec STM-RM-141/USP/Specific optical rotation: create
+spec STM-RM-141/USP/Water determination: create
+spec STM-RM-141/USP/Refractive index: create
+spec STM-RM-141/USP/Assay (anhydrous basis): skip (test RM-TIT-PANT-141 held back: titrant 0.1 M Potassium biphthalate VS has no standardization; see held-back report)
+specs STM-RM-142: skip (item not usable; 18 rows not loaded)
+spec STM-RM-143/None/Appearance: create
+spec STM-RM-143/None/Solubility: create
+spec STM-RM-143/None/Viscosity: create
+spec STM-RM-143/None/Loss on drying: create
+spec STM-RM-143/None/Protein content: create
+spec STM-RM-143/None/Total aerobic microbial count (TAMC): error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-143/None/Total yeasts and molds count (TYMC): error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-143/None/Test for E. coli: error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-143/None/Test for Salmonella spp.: error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-144/None/Appearance: create
+spec STM-RM-144/None/Loss on drying: create
+spec STM-RM-144/None/Bulk density: create
+spec STM-RM-144/None/Acid insoluble ash: create
+spec STM-RM-144/None/Heavy metals: create
+spec STM-RM-144/None/Total aerobic microbial count (TAMC): error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-144/None/Total yeasts and molds count (TYMC): error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-144/None/Test for E. coli: error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-144/None/Test for Salmonella spp.: error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-145/None/Appearance: create
+spec STM-RM-145/None/Solubility: create
+spec STM-RM-145/None/Clarity of solution: create
+spec STM-RM-145/None/Colour of solution: create
+spec STM-RM-145/None/Identification (IR): create
+spec STM-RM-145/None/Identification (HPLC retention time): skip (held back: needs the held-back method "Inositol assay (USP, HPLC RI)")
+spec STM-RM-145/None/Barium: create
+spec STM-RM-145/None/Limit of lead: skip (test RM-ICP-PB-145 held back: needs the held-back method "Lead by AAS (inositol)")
+spec STM-RM-145/None/Organic impurities: individual impurities: skip (held back: needs the held-back method "Inositol assay (USP, HPLC RI)")
+spec STM-RM-145/None/Organic impurities: total impurities: skip (held back: needs the held-back method "Inositol assay (USP, HPLC RI)")
+spec STM-RM-145/None/Conductivity: create
+spec STM-RM-145/None/Water (Karl Fischer): create
+spec STM-RM-145/None/Assay (anhydrous basis): skip (held back: needs the held-back method "Inositol assay (USP, HPLC RI)")
+spec STM-RM-145/None/Total aerobic microbial count (TAMC): error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-145/None/Total combined yeasts and molds count (TYMC): error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-145/None/Test for E. coli: error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-146/USP/Description: create
+spec STM-RM-146/USP/Solubility: create
+spec STM-RM-146/USP/Identification (IR): create
+spec STM-RM-146/USP/Identification (UV): absorbance in ethanol at 265 nm: skip (test RM-UV-D3-146 not found)
+spec STM-RM-146/USP/Identification (HPLC): retention time of the major peak corresponds to the standard: skip (held back: needs the held-back method "Vitamin D3 assay (USP, HPLC)")
+spec STM-RM-146/USP/Specific optical rotation: create
+spec STM-RM-146/USP/Assay: skip (held back: needs the held-back method "Vitamin D3 assay (USP, HPLC)")
+spec STM-RM-147/In-house/Description: same
+spec STM-RM-147/In-house/Loss on drying: same
+spec STM-RM-147/In-house/Tapped density: same
+spec STM-RM-147/In-house/Total aerobic microbial count: same
+spec STM-RM-147/In-house/Total yeasts and molds count: same
+spec STM-RM-147/In-house/E. coli: same
+spec STM-RM-147/In-house/Salmonella spp.: same
+spec STM-RM-149/BP/Appearance: create
+spec STM-RM-149/BP/Solubility: create
+spec STM-RM-149/BP/Identification: create
+spec STM-RM-149/BP/Acid Value: create
+spec STM-RM-149/BP/Peroxide Value: create
+spec STM-RM-149/BP/Assay: error (HTTP 400: Result basis is not used for this test type.)
+spec STM-RM-150/BP/Appearance: same
+spec STM-RM-150/BP/Solubility: same
+spec STM-RM-150/BP/Identification (pH): same
+spec STM-RM-150/BP/Identification (chemical reaction): same
+spec STM-RM-150/BP/Appearance of solution: same
+spec STM-RM-150/BP/Carbonates: same
+spec STM-RM-150/BP/Chlorides: same
+spec STM-RM-150/BP/Sulfates: same
+spec STM-RM-150/BP/Iron: same
+spec STM-RM-150/BP/Assay (total alkali, calculated as NaOH): same
+spec STM-RM-150/USP/Description: same
+spec STM-RM-150/USP/Solubility: same
+spec STM-RM-150/USP/Identification (pH): same
+spec STM-RM-150/USP/Identification (chemical reaction): same
+spec STM-RM-150/USP/Content of Sodium: skip (held back: needs the held-back method "Sodium by AAS (sodium hydroxide USP)")
+spec STM-RM-150/USP/Potassium: skip (held back: needs the held-back method "Potassium by AAS (sodium hydroxide USP)")
+spec STM-RM-150/USP/Insoluble Substances and Organic Matter: same
+spec STM-RM-150/USP/Assay (Total Alkali, calculated as NaOH): same
+spec STM-RM-150/USP/Sodium carbonate (Na2CO3), from the Assay (Total Alkali): same
+spec STM-RM-151/In-house/Description: same
+spec STM-RM-151/In-house/Solubility: same
+spec STM-RM-151/In-house/Odor & Taste: same
+spec STM-RM-151/In-house/Sulphated ash: same
+spec STM-RM-151/In-house/Loss on drying: same
+spec STM-RM-151/In-house/Lead: skip (held back: needs the held-back method "Lead by AAS (Siberian ginseng extract)")
+spec STM-RM-151/In-house/Total aerobic microbial count: same
+spec STM-RM-151/In-house/Total yeasts and molds count: same
+spec STM-RM-151/In-house/Test for E. coli: same
+spec STM-RM-151/In-house/Test for Salmonella spp.: same
+spec STM-RM-152/BP/Appearance: create
+spec STM-RM-152/BP/Solubility: create
+spec STM-RM-152/BP/Identification (IR): create
+spec STM-RM-152/BP/Identification (HPLC): principal peak similar in retention time and size to reference solution: skip (held back: needs the held-back method "Coenzyme Q10 assay (BP, HPLC)")
+spec STM-RM-152/BP/Melting point: create
+spec STM-RM-152/BP/Related substances: impurity D: skip (test RM-HPLC-RS-152 held back: needs the held-back method "Coenzyme Q10 related substances (BP, HPLC)")
+spec STM-RM-152/BP/Related substances: unspecified impurities (each): skip (test RM-HPLC-RS-152 held back: needs the held-back method "Coenzyme Q10 related substances (BP, HPLC)")
+spec STM-RM-152/BP/Related substances: total: skip (test RM-HPLC-RS-152 held back: needs the held-back method "Coenzyme Q10 related substances (BP, HPLC)")
+spec STM-RM-152/BP/Impurity F (not more than 0.5 times the principal peak area of reference solution (b)): skip (test RM-HPLC-IMPF-152 held back: needs the held-back method "Coenzyme Q10 impurity F (BP, HPLC)")
+spec STM-RM-152/BP/Assay (anhydrous substance): skip (held back: needs the held-back method "Coenzyme Q10 assay (BP, HPLC)")
+spec STM-RM-152/BP/Water content (Karl Fischer): create
+spec STM-RM-152/BP/Sulphated ash: create
+spec STM-RM-152/BP/Total aerobic microbial count (TAMC): error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-152/BP/Total yeasts and molds count (TYMC): error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-152/BP/Test for E. coli: error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec STM-RM-56/BP/Appearance: same
+spec STM-RM-56/BP/Solubility: same
+spec STM-RM-56/BP/Identification (IR): same
+spec STM-RM-56/BP/Identification (Reaction of Sodium): same
+spec STM-RM-56/BP/Identification (Reaction of Phosphate): same
+spec STM-RM-56/BP/pH: same
+spec STM-RM-56/BP/Specific optical rotation (dried substance): same
+spec STM-RM-56/BP/Impurity E: same
+spec STM-RM-56/BP/Inorganic phosphate: same
+spec STM-RM-56/BP/Loss on drying: same
+spec STM-RM-56/BP/Assay (riboflavin): same
+spec Xanth gum/BP/Appearance: create
+spec Xanth gum/BP/Solubility: create
+spec Xanth gum/BP/Identification (barium hydroxide solution): skip (held back: no STM: method not documented)
+spec Xanth gum/BP/pH: create
+spec Xanth gum/BP/Loss on drying: create
+spec Xanth gum/BP/Total ash (dried substance): skip (held back: no STM: method not documented)
+spec Xanth gum/BP/Viscosity (minimum): skip (held back: no STM: method not documented)
+spec Xanth gum/BP/Assay: pyruvate acetal groups (dried substance): skip (held back: no STM: method not documented)
+spec Xanth gum/BP/Identification B (gel formation): skip (held back: no STM: method not documented)
+spec Xanth gum/BP/2-Propanol: skip (held back: no STM: method not documented)
+spec Xanth gum/USP/Appearance: create
+spec Xanth gum/USP/Solubility: create
+spec Xanth gum/USP/Arsenic (limit test): skip (held back: no STM: method not documented)
+spec Xanth gum/USP/Lead (limit test): skip (held back: no STM: method not documented)
+spec Xanth gum/USP/Pyruvic acid (UV, NLT 1.5 % of pyruvic acid): skip (held back: no STM: method not documented)
+spec Xanth gum/USP/Loss on drying: create
+spec Xanth gum/USP/Ash (dried basis): skip (held back: no STM: method not documented)
+spec Xanth gum/USP/Viscosity at 24 °C (minimum): skip (held back: no STM: method not documented)
+spec Xanth gum/USP/Carbon dioxide content (dried basis): skip (held back: no STM: method not documented)
+spec Xanth gum/USP/Assay equivalent (xanthan gum): skip (held back: no STM: method not documented)
+spec Xanth gum/USP/Identification A (gel formation): skip (held back: no STM: method not documented)
+spec Xanth gum/USP/Isopropyl alcohol (limit): skip (held back: no STM: method not documented)
+spec Xanth gum/USP/Total aerobic microbial count (TAMC): error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec Xanth gum/USP/Total yeast and mold count (TYMC): error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec Xanth gum/USP/Test for E. coli: error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+spec Xanth gum/USP/Test for Salmonella species: error (HTTP 403: This specification belongs to Microbiology Laboratory - only its Section Head can change it.)
+== supplier attributes ==
+attribute C1I-91-228/-/Surface area: create
+attribute C5I-91-225/-/Extraction solvent: create
+attribute C5I-91-225/-/Plant name: create
+attribute C5I-91-225/-/Plant part used: create
+attribute C5I-91-225/-/Particle size: create
+attribute STM-RM-025/-/Particle Size: same
+attribute STM-RM-045/-/Residual Solvents: create
+attribute STM-RM-049/-/Hydroxyl value: create
+attribute STM-RM-049/-/Formaldehyde: create
+attribute STM-RM-049/-/Ethylene glycol and diethylene glycol: create
+attribute STM-RM-049/-/Ethylene oxide: create
+attribute STM-RM-049/-/Dioxan: create
+attribute STM-RM-052/-/Particle size: create
+attribute STM-RM-052/-/Residual solvents: create
+attribute STM-RM-081/-/Particle Size Distribution: Retained 60 mesh (250 microns): create
+attribute STM-RM-081/-/Particle Size Distribution: Retained 200 mesh (75 microns): create
+attribute STM-RM-081/-/Identification Test (C): Degree of polymerization: create
+attribute STM-RM-084/-/Particles Size: create
+attribute STM-RM-086/-/Particle-size distribution: create
+attribute STM-RM-086/-/Specific Surface area: create
+attribute STM-RM-089/-/Grade: same
+attribute STM-RM-089/-/Degree of substitution: same
+attribute STM-RM-089/-/Sodium glycolate: same
+attribute STM-RM-089/-/Sodium chloride: same
+attribute STM-RM-089/-/Assay: same
+attribute STM-RM-089/-/Particles Size: same
+attribute STM-RM-090/-/Sulfur dioxide: create
+attribute STM-RM-093/-/Grade: create
+attribute STM-RM-093/-/Solvent Used: create
+attribute STM-RM-093/-/Optical Rotation: create
+attribute STM-RM-127/-/Fluorides: create
+attribute STM-RM-129/-/Protein %: create
+attribute STM-RM-129/-/Iodine Test: create
+attribute STM-RM-129/-/Residue on 40 micron: create
+attribute STM-RM-144/-/Plant part used: create
+attribute STM-RM-144/-/Extraction solvent: create
+attribute STM-RM-144/-/Extraction ratio: create
+attribute STM-RM-144/-/Particle size: create
+attribute STM-RM-144/-/Residual solvents: create
+attribute STM-RM-144/-/Assay of silica: create
+attribute STM-RM-147/-/Plant: same
+attribute STM-RM-147/-/Plant part used: same
+attribute STM-RM-147/-/Extraction solvent: same
+attribute STM-RM-147/-/Carrier / preservatives / additives: same
+attribute STM-RM-147/-/Lead (Pb): same
+attribute STM-RM-147/-/Mercury (Hg): same
+attribute STM-RM-147/-/Cadmium (Cd): same
+attribute STM-RM-147/-/Arsenic (As): same
+attribute STM-RM-147/-/Residual ethanol: same
+attribute STM-RM-147/-/Pesticides: same
+attribute STM-RM-149/-/Stabilizer: create
+attribute STM-RM-151/-/Working standard: same
+attribute STM-RM-151/-/Plant part used: same
+attribute STM-RM-151/-/Extraction solvent: same
+attribute STM-RM-151/-/Extraction ratio: same
+attribute STM-RM-151/-/Carrier used: same
+attribute STM-RM-151/-/Particle size: same
+attribute Xanth gum/BP/Particle-size distribution: create
+attribute Xanth gum/BP/Powder flow: create
+== not-applicable drafts ==
+not-applicable STM-RM-002/RM-GC-LEMON/-: create
+not-applicable STM-RM-002/RM-ID-TLC-LEMON/-: create
+not-applicable STM-RM-035/RM-ALU/-: create
+not-applicable STM-RM-124/RM-DEXTRIN-SUC/-: create
+not-applicable STM-RM-149/RM-ID-TLC-VITA/-: create
+not-applicable STM-RM-56/RM-RS/-: same
+not-applicable STM-RM-56/RM-COMPOSITION/-: same
+totals: create 945, update 71, same 294, skip 283, error 236

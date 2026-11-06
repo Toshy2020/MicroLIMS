@@ -22,7 +22,9 @@
           "testCode": "RM-DESC",
           "parameterName": "Appearance",
           "limitType": "Qualitative",
-          "lower": null, "upper": null, "lowerInclusive": null,
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
           "unit": null,
           "expectedResultText": "White or greyish-white, hygroscopic powder",
           "expectedState": null,
@@ -34,7 +36,9 @@
           "testCode": "RM-SOLUB",
           "parameterName": "Solubility",
           "limitType": "Qualitative",
-          "lower": null, "upper": null, "lowerInclusive": null,
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
           "unit": null,
           "expectedResultText": "Practically insoluble in acetone, in anhydrous ethanol and in toluene",
           "expectedState": null,
@@ -46,7 +50,9 @@
           "testCode": "RM-ID-IR",
           "parameterName": "Identification (IR)",
           "limitType": "Qualitative",
-          "lower": null, "upper": null, "lowerInclusive": null,
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
           "unit": null,
           "expectedResultText": "The spectrum obtained for the sample corresponds to the spectrum obtained from croscarmellose sodium RS. Depending on the degree of substitution, the intensity of the absorption band at about 1750 cm-1 may vary",
           "expectedState": null,
@@ -58,7 +64,9 @@
           "testCode": "RM-ID-MB-CMC",
           "parameterName": "Identification (physical adsorption of methylene blue)",
           "limitType": "Qualitative",
-          "lower": null, "upper": null, "lowerInclusive": null,
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
           "unit": null,
           "expectedResultText": "The sample absorbs the methylene blue and settles as a blue, fibrous mass",
           "expectedState": null,
@@ -70,7 +78,9 @@
           "testCode": "RM-ID-NA-ASH",
           "parameterName": "Identification (reaction of sodium, ash)",
           "limitType": "Qualitative",
-          "lower": null, "upper": null, "lowerInclusive": null,
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
           "unit": null,
           "expectedResultText": "A dense white precipitate is formed",
           "expectedState": null,
@@ -82,7 +92,9 @@
           "testCode": "RM-PH",
           "parameterName": "pH",
           "limitType": "Range",
-          "lower": 5.0, "upper": 7.0, "lowerInclusive": true,
+          "lower": 5.0,
+          "upper": 7.0,
+          "lowerInclusive": true,
           "unit": null,
           "expectedResultText": null,
           "expectedState": null,
@@ -94,7 +106,9 @@
           "testCode": "RM-WSS-CMC",
           "parameterName": "Water-soluble substances",
           "limitType": "NotMoreThan",
-          "lower": null, "upper": 10.0, "lowerInclusive": null,
+          "lower": null,
+          "upper": 10.0,
+          "lowerInclusive": null,
           "unit": "%",
           "expectedResultText": null,
           "expectedState": null,
@@ -106,7 +120,9 @@
           "testCode": "RM-SASH",
           "parameterName": "Sulphated ash",
           "limitType": "Range",
-          "lower": 14.0, "upper": 28.0, "lowerInclusive": true,
+          "lower": 14.0,
+          "upper": 28.0,
+          "lowerInclusive": true,
           "unit": "%",
           "expectedResultText": null,
           "expectedState": null,
@@ -118,7 +134,9 @@
           "testCode": "RM-LOD",
           "parameterName": "Loss on drying",
           "limitType": "NotMoreThan",
-          "lower": null, "upper": 10, "lowerInclusive": null,
+          "lower": null,
+          "upper": 10,
+          "lowerInclusive": null,
           "unit": "%",
           "expectedResultText": null,
           "expectedState": null,
@@ -130,11 +148,13 @@
           "testCode": "RM-TIT-DS-CMC",
           "parameterName": "Degree of substitution / (Assay)",
           "limitType": "Range",
-          "lower": 0.60, "upper": 0.85, "lowerInclusive": true,
+          "lower": 0.6,
+          "upper": 0.85,
+          "lowerInclusive": true,
           "unit": null,
           "expectedResultText": null,
           "expectedState": null,
-          "resultBasis": "PercentDriedBasis",
+          "resultBasis": null,
           "referenceStandard": "BP",
           "source": "Croscarmellose Sodium__Specifications sheet Croscarmellose Sodium BP new.txt:20"
         },
@@ -142,7 +162,9 @@
           "testCode": "RM-SETVOL",
           "parameterName": "Settling volume",
           "limitType": "Range",
-          "lower": 10.0, "upper": 30.0, "lowerInclusive": true,
+          "lower": 10.0,
+          "upper": 30.0,
+          "lowerInclusive": true,
           "unit": "mL",
           "expectedResultText": null,
           "expectedState": null,
@@ -154,7 +176,9 @@
           "testCode": "TAMC",
           "parameterName": "Total aerobic microbial count (TAMC)",
           "limitType": "CountTiered",
-          "lower": null, "upper": 1000, "lowerInclusive": null,
+          "lower": null,
+          "upper": 1000,
+          "lowerInclusive": null,
           "unit": "CFU/g",
           "expectedResultText": null,
           "expectedState": null,
@@ -166,7 +190,9 @@
           "testCode": "TYMC",
           "parameterName": "Total yeasts and molds count (TYMC)",
           "limitType": "CountTiered",
-          "lower": null, "upper": 100, "lowerInclusive": null,
+          "lower": null,
+          "upper": 100,
+          "lowerInclusive": null,
           "unit": "CFU/g",
           "expectedResultText": null,
           "expectedState": null,
@@ -178,7 +204,9 @@
           "testCode": "E.coli",
           "parameterName": "Escherichia coli",
           "limitType": "PresenceAbsence",
-          "lower": null, "upper": null, "lowerInclusive": null,
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
           "unit": "per g",
           "expectedResultText": "Absent / gm",
           "expectedState": "Absence",
@@ -190,7 +218,9 @@
           "testCode": "RM-NACL-GLYC-CMC",
           "parameterName": "Sodium chloride and sodium glycolate, sum (dried substance)",
           "limitType": "NotMoreThan",
-          "lower": null, "upper": 0.5, "lowerInclusive": null,
+          "lower": null,
+          "upper": 0.5,
+          "lowerInclusive": null,
           "unit": "%",
           "expectedResultText": null,
           "expectedState": null,
@@ -208,7 +238,9 @@
           "testCode": "RM-DESC",
           "parameterName": "Description",
           "limitType": "Qualitative",
-          "lower": null, "upper": null, "lowerInclusive": null,
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
           "unit": null,
           "expectedResultText": "White, free-flowing powder",
           "expectedState": null,
@@ -220,7 +252,9 @@
           "testCode": "RM-SOLUB",
           "parameterName": "Solubility",
           "limitType": "Qualitative",
-          "lower": null, "upper": null, "lowerInclusive": null,
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
           "unit": null,
           "expectedResultText": "Partially soluble in water; insoluble in alcohol, in ether, and in other organic solvents",
           "expectedState": null,
@@ -232,7 +266,9 @@
           "testCode": "RM-ID-IR",
           "parameterName": "Identification (IR)",
           "limitType": "Qualitative",
-          "lower": null, "upper": null, "lowerInclusive": null,
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
           "unit": null,
           "expectedResultText": "The spectrum obtained for the sample corresponds to the spectrum obtained from croscarmellose sodium RS. Depending on the degree of substitution, the intensity of the absorption band at about 1750 cm-1 may vary",
           "expectedState": null,
@@ -244,7 +280,9 @@
           "testCode": "RM-ID-MB-CMC",
           "parameterName": "Identification (physical adsorption of methylene blue)",
           "limitType": "Qualitative",
-          "lower": null, "upper": null, "lowerInclusive": null,
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
           "unit": null,
           "expectedResultText": "The sample absorbs the methylene blue and settles as a blue, fibrous mass",
           "expectedState": null,
@@ -256,7 +294,9 @@
           "testCode": "RM-ID-NA-ASH",
           "parameterName": "Identification (reaction of sodium, ash)",
           "limitType": "Qualitative",
-          "lower": null, "upper": null, "lowerInclusive": null,
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
           "unit": null,
           "expectedResultText": "A dense white precipitate is formed",
           "expectedState": null,
@@ -268,7 +308,9 @@
           "testCode": "RM-PH",
           "parameterName": "pH",
           "limitType": "Range",
-          "lower": 5.0, "upper": 7.0, "lowerInclusive": true,
+          "lower": 5.0,
+          "upper": 7.0,
+          "lowerInclusive": true,
           "unit": null,
           "expectedResultText": null,
           "expectedState": null,
@@ -280,7 +322,9 @@
           "testCode": "RM-WSS-CMC",
           "parameterName": "Water-soluble substances",
           "limitType": "NotMoreThan",
-          "lower": null, "upper": 10.0, "lowerInclusive": null,
+          "lower": null,
+          "upper": 10.0,
+          "lowerInclusive": null,
           "unit": "%",
           "expectedResultText": null,
           "expectedState": null,
@@ -292,7 +336,9 @@
           "testCode": "RM-SASH",
           "parameterName": "Residue on ignition",
           "limitType": "Range",
-          "lower": 14.0, "upper": 28.0, "lowerInclusive": true,
+          "lower": 14.0,
+          "upper": 28.0,
+          "lowerInclusive": true,
           "unit": "%",
           "expectedResultText": null,
           "expectedState": null,
@@ -304,7 +350,9 @@
           "testCode": "RM-LOD",
           "parameterName": "Loss on drying",
           "limitType": "NotMoreThan",
-          "lower": null, "upper": 10, "lowerInclusive": null,
+          "lower": null,
+          "upper": 10,
+          "lowerInclusive": null,
           "unit": "%",
           "expectedResultText": null,
           "expectedState": null,
@@ -316,11 +364,13 @@
           "testCode": "RM-TIT-DS-CMC",
           "parameterName": "Degree of substitution",
           "limitType": "Range",
-          "lower": 0.60, "upper": 0.85, "lowerInclusive": true,
+          "lower": 0.6,
+          "upper": 0.85,
+          "lowerInclusive": true,
           "unit": null,
           "expectedResultText": null,
           "expectedState": null,
-          "resultBasis": "PercentDriedBasis",
+          "resultBasis": null,
           "referenceStandard": "USP 2024",
           "source": "Croscarmellose Sodium__Specifications sheet Croscarmellose Sodium USP-1.txt:20"
         },
@@ -328,7 +378,9 @@
           "testCode": "RM-SETVOL",
           "parameterName": "Settling volume",
           "limitType": "Range",
-          "lower": 10.0, "upper": 30.0, "lowerInclusive": true,
+          "lower": 10.0,
+          "upper": 30.0,
+          "lowerInclusive": true,
           "unit": "mL",
           "expectedResultText": null,
           "expectedState": null,
@@ -340,7 +392,9 @@
           "testCode": "TAMC",
           "parameterName": "Total aerobic microbial count (TAMC)",
           "limitType": "CountTiered",
-          "lower": null, "upper": 1000, "lowerInclusive": null,
+          "lower": null,
+          "upper": 1000,
+          "lowerInclusive": null,
           "unit": "CFU/g",
           "expectedResultText": null,
           "expectedState": null,
@@ -352,7 +406,9 @@
           "testCode": "TYMC",
           "parameterName": "Total yeasts and molds count (TYMC)",
           "limitType": "CountTiered",
-          "lower": null, "upper": 100, "lowerInclusive": null,
+          "lower": null,
+          "upper": 100,
+          "lowerInclusive": null,
           "unit": "CFU/g",
           "expectedResultText": null,
           "expectedState": null,
@@ -364,7 +420,9 @@
           "testCode": "E.coli",
           "parameterName": "Escherichia coli",
           "limitType": "PresenceAbsence",
-          "lower": null, "upper": null, "lowerInclusive": null,
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
           "unit": "per g",
           "expectedResultText": "Absent / gm",
           "expectedState": "Absence",
@@ -376,7 +434,9 @@
           "testCode": "RM-NACL-GLYC-CMC",
           "parameterName": "Sodium chloride and sodium glycolate, sum (dried substance)",
           "limitType": "NotMoreThan",
-          "lower": null, "upper": 0.5, "lowerInclusive": null,
+          "lower": null,
+          "upper": 0.5,
+          "lowerInclusive": null,
           "unit": "%",
           "expectedResultText": null,
           "expectedState": null,
@@ -396,7 +456,10 @@
       "workflow": "Qualitative",
       "details": {
         "perContainer": true,
-        "grades": ["BP", "USP"],
+        "grades": [
+          "BP",
+          "USP"
+        ],
         "reference": "BP 2024 (SC IV K.) Characters Section in Monographs (Hygroscopicity and Solubility)"
       },
       "source": "Croscarmellose Sodium__STM Croscarmellose Sodium.txt:30"
@@ -407,7 +470,10 @@
       "kind": "general",
       "workflow": "Qualitative",
       "details": {
-        "grades": ["BP", "USP"],
+        "grades": [
+          "BP",
+          "USP"
+        ],
         "sampleMgStepwise": 100,
         "reference": "BP 2024 Monograph Section Solubility"
       },
@@ -419,7 +485,10 @@
       "kind": "general",
       "workflow": "Qualitative",
       "details": {
-        "grades": ["BP", "USP"],
+        "grades": [
+          "BP",
+          "USP"
+        ],
         "reference": "BP 2024 Appendix II A (Infrared Spectrophotometry)"
       },
       "source": "Croscarmellose Sodium__STM Croscarmellose Sodium.txt:32"
@@ -430,7 +499,10 @@
       "kind": "specific",
       "workflow": "Qualitative",
       "details": {
-        "grades": ["BP", "USP"],
+        "grades": [
+          "BP",
+          "USP"
+        ],
         "sampleG": 1,
         "volumeMl": 100,
         "methyleneBlue": "4 ppm (1 in 250,000)",
@@ -444,7 +516,10 @@
       "kind": "general",
       "workflow": "Qualitative",
       "details": {
-        "grades": ["BP", "USP"],
+        "grades": [
+          "BP",
+          "USP"
+        ],
         "residueFrom": "RM-SASH test",
         "reference": "BP 2024 Monograph for Croscarmellose Sodium"
       },
@@ -456,7 +531,10 @@
       "kind": "general",
       "workflow": "Measurement",
       "details": {
-        "grades": ["BP", "USP"],
+        "grades": [
+          "BP",
+          "USP"
+        ],
         "sampleG": 1,
         "volumeMl": 100,
         "reference": "BP 2024 Appendix V L (Determination of pH Values)"
@@ -469,8 +547,11 @@
       "kind": "specific",
       "workflow": "Gravimetric",
       "details": {
-        "grades": ["BP", "USP"],
-        "sampleG": 10.00,
+        "grades": [
+          "BP",
+          "USP"
+        ],
+        "sampleG": 10.0,
         "volumeMl": 800.0,
         "filtrateMl": 150.0,
         "formula": "((W3 - W2) x 100 x 100) / (W1 x (100 - LOD))",
@@ -485,8 +566,11 @@
       "kind": "general",
       "workflow": "Gravimetric",
       "details": {
-        "grades": ["BP", "USP"],
-        "sampleG": 1.000,
+        "grades": [
+          "BP",
+          "USP"
+        ],
+        "sampleG": 1.0,
         "ovenC": 105,
         "ovenHours": 6,
         "reference": "BP 2024 Appendix IX D (Determination of Loss on Drying)"
@@ -499,7 +583,10 @@
       "kind": "general",
       "workflow": "Gravimetric",
       "details": {
-        "grades": ["BP", "USP"],
+        "grades": [
+          "BP",
+          "USP"
+        ],
         "sampleG": 1.0,
         "muffleC": "600-650",
         "reagent": "sulfuric acid, about 1 mL per moistening",
@@ -513,8 +600,11 @@
       "kind": "specific",
       "workflow": "Titration",
       "details": {
-        "grades": ["BP", "USP"],
-        "sampleG": 1.000,
+        "grades": [
+          "BP",
+          "USP"
+        ],
+        "sampleG": 1.0,
         "naohMolar": 0.1,
         "hclMolar": 0.1,
         "indicator": "m-cresol purple solution, 0.25 mL",
@@ -531,7 +621,10 @@
       "kind": "general",
       "workflow": "Measurement",
       "details": {
-        "grades": ["BP", "USP"],
+        "grades": [
+          "BP",
+          "USP"
+        ],
         "sampleG": 1.5,
         "volumeMl": 100.0,
         "standH": 4
@@ -544,7 +637,10 @@
       "kind": "general",
       "workflow": "CountTest",
       "details": {
-        "grades": ["BP", "USP"],
+        "grades": [
+          "BP",
+          "USP"
+        ],
         "limit": "Not more than 10^3 CFU/g (STM and spec read 103)",
         "dilutionFactor": 50,
         "reference": "USP 2024 <61> Microbiological Examination of Nonsterile Products: Microbial Enumeration Tests"
@@ -557,7 +653,10 @@
       "kind": "general",
       "workflow": "CountTest",
       "details": {
-        "grades": ["BP", "USP"],
+        "grades": [
+          "BP",
+          "USP"
+        ],
         "limit": "Not more than 10^2 CFU/g (STM and spec read 102)",
         "reference": "USP 2024 <61> Microbiological Examination of Nonsterile Products: Microbial Enumeration Tests"
       },
@@ -569,7 +668,10 @@
       "kind": "general",
       "workflow": "Observation",
       "details": {
-        "grades": ["BP", "USP"],
+        "grades": [
+          "BP",
+          "USP"
+        ],
         "limit": "Absent / gm",
         "reference": "USP 2024 <62> Microbiological Examination of Nonsterile Products: Tests for Specified Microorganisms"
       },
@@ -581,7 +683,10 @@
       "kind": "specific",
       "workflow": "Measurement",
       "details": {
-        "grades": ["BP", "USP"],
+        "grades": [
+          "BP",
+          "USP"
+        ],
         "note": "Held back: no method in the STM"
       },
       "source": "Croscarmellose Sodium__Specifications sheet Croscarmellose Sodium BP new.txt:25",
@@ -591,31 +696,131 @@
   "notApplicable": [],
   "supplierAttributes": [],
   "reagents": [
-    { "name": "Methylene blue", "use": "reagent", "source": "Croscarmellose Sodium__STM Croscarmellose Sodium.txt:28" },
-    { "name": "Croscarmellose sodium RS", "use": "standard", "source": "Croscarmellose Sodium__STM Croscarmellose Sodium.txt:28" },
-    { "name": "Potassium carbonate", "use": "reagent", "source": "Croscarmellose Sodium__STM Croscarmellose Sodium.txt:28" },
-    { "name": "Potassium pyroantimonate", "use": "reagent", "source": "Croscarmellose Sodium__STM Croscarmellose Sodium.txt:28" },
-    { "name": "Potassium hydroxide", "use": "reagent", "source": "Croscarmellose Sodium__STM Croscarmellose Sodium.txt:28" },
-    { "name": "Hydrochloric acid", "use": "reagent", "source": "Croscarmellose Sodium__STM Croscarmellose Sodium.txt:28" },
-    { "name": "Sodium chloride", "use": "reagent", "source": "Croscarmellose Sodium__STM Croscarmellose Sodium.txt:28" },
-    { "name": "m-Cresol Purple", "use": "indicator", "source": "Croscarmellose Sodium__STM Croscarmellose Sodium.txt:28" },
-    { "name": "Sodium Hydroxide", "use": "reagent", "source": "Croscarmellose Sodium__STM Croscarmellose Sodium.txt:28" },
-    { "name": "Tryptone Soya agar", "use": "reagent", "source": "Croscarmellose Sodium__STM Croscarmellose Sodium.txt:28" },
-    { "name": "Soybean Casein Digest Agar", "use": "reagent", "source": "Croscarmellose Sodium__STM Croscarmellose Sodium.txt:28" },
-    { "name": "Tryptone Soya broth", "use": "reagent", "source": "Croscarmellose Sodium__STM Croscarmellose Sodium.txt:28" },
-    { "name": "Soybean Casein Digest Broth", "use": "reagent", "source": "Croscarmellose Sodium__STM Croscarmellose Sodium.txt:28" },
-    { "name": "Sabouraud dextrose agar", "use": "reagent", "source": "Croscarmellose Sodium__STM Croscarmellose Sodium.txt:28" },
-    { "name": "MacConkey broth", "use": "reagent", "source": "Croscarmellose Sodium__STM Croscarmellose Sodium.txt:28" },
-    { "name": "MacConkey broth purple", "use": "reagent", "source": "Croscarmellose Sodium__STM Croscarmellose Sodium.txt:28" },
-    { "name": "MacConkey agar", "use": "reagent", "source": "Croscarmellose Sodium__STM Croscarmellose Sodium.txt:28" },
-    { "name": "Eosin methylene blue agar", "use": "reagent", "source": "Croscarmellose Sodium__STM Croscarmellose Sodium.txt:28" },
-    { "name": "Tryptone Bile X-glucuronide agar", "use": "reagent", "source": "Croscarmellose Sodium__STM Croscarmellose Sodium.txt:28" },
-    { "name": "Phosphate buffer 7.2", "use": "reagent", "source": "Croscarmellose Sodium__STM Croscarmellose Sodium.txt:28" },
-    { "name": "0.1M Hydrochloric Acid VS", "use": "titrant", "source": "Croscarmellose Sodium__STM Croscarmellose Sodium.txt:28" },
-    { "name": "0.1M Sodium Hydroxide VS", "use": "titrant", "source": "Croscarmellose Sodium__STM Croscarmellose Sodium.txt:28" },
-    { "name": "m-Cresol Purple Solution", "use": "indicator", "source": "Croscarmellose Sodium__STM Croscarmellose Sodium.txt:28" },
-    { "name": "Potassium Pyroantimonate Solution", "use": "reagent", "source": "Croscarmellose Sodium__STM Croscarmellose Sodium.txt:28" },
-    { "name": "Water, Carbon Dioxide-free", "use": "reagent", "source": "Croscarmellose Sodium__STM Croscarmellose Sodium.txt:28" }
+    {
+      "name": "Methylene blue",
+      "use": "reagent",
+      "source": "Croscarmellose Sodium__STM Croscarmellose Sodium.txt:28"
+    },
+    {
+      "name": "Croscarmellose sodium RS",
+      "use": "standard",
+      "source": "Croscarmellose Sodium__STM Croscarmellose Sodium.txt:28"
+    },
+    {
+      "name": "Potassium carbonate",
+      "use": "reagent",
+      "source": "Croscarmellose Sodium__STM Croscarmellose Sodium.txt:28"
+    },
+    {
+      "name": "Potassium pyroantimonate",
+      "use": "reagent",
+      "source": "Croscarmellose Sodium__STM Croscarmellose Sodium.txt:28"
+    },
+    {
+      "name": "Potassium hydroxide",
+      "use": "reagent",
+      "source": "Croscarmellose Sodium__STM Croscarmellose Sodium.txt:28"
+    },
+    {
+      "name": "Hydrochloric acid",
+      "use": "reagent",
+      "source": "Croscarmellose Sodium__STM Croscarmellose Sodium.txt:28"
+    },
+    {
+      "name": "Sodium chloride",
+      "use": "reagent",
+      "source": "Croscarmellose Sodium__STM Croscarmellose Sodium.txt:28"
+    },
+    {
+      "name": "m-Cresol Purple",
+      "use": "indicator",
+      "source": "Croscarmellose Sodium__STM Croscarmellose Sodium.txt:28"
+    },
+    {
+      "name": "Sodium Hydroxide",
+      "use": "reagent",
+      "source": "Croscarmellose Sodium__STM Croscarmellose Sodium.txt:28"
+    },
+    {
+      "name": "Tryptone Soya agar",
+      "use": "reagent",
+      "source": "Croscarmellose Sodium__STM Croscarmellose Sodium.txt:28"
+    },
+    {
+      "name": "Soybean Casein Digest Agar",
+      "use": "reagent",
+      "source": "Croscarmellose Sodium__STM Croscarmellose Sodium.txt:28"
+    },
+    {
+      "name": "Tryptone Soya broth",
+      "use": "reagent",
+      "source": "Croscarmellose Sodium__STM Croscarmellose Sodium.txt:28"
+    },
+    {
+      "name": "Soybean Casein Digest Broth",
+      "use": "reagent",
+      "source": "Croscarmellose Sodium__STM Croscarmellose Sodium.txt:28"
+    },
+    {
+      "name": "Sabouraud dextrose agar",
+      "use": "reagent",
+      "source": "Croscarmellose Sodium__STM Croscarmellose Sodium.txt:28"
+    },
+    {
+      "name": "MacConkey broth",
+      "use": "reagent",
+      "source": "Croscarmellose Sodium__STM Croscarmellose Sodium.txt:28"
+    },
+    {
+      "name": "MacConkey broth purple",
+      "use": "reagent",
+      "source": "Croscarmellose Sodium__STM Croscarmellose Sodium.txt:28"
+    },
+    {
+      "name": "MacConkey agar",
+      "use": "reagent",
+      "source": "Croscarmellose Sodium__STM Croscarmellose Sodium.txt:28"
+    },
+    {
+      "name": "Eosin methylene blue agar",
+      "use": "reagent",
+      "source": "Croscarmellose Sodium__STM Croscarmellose Sodium.txt:28"
+    },
+    {
+      "name": "Tryptone Bile X-glucuronide agar",
+      "use": "reagent",
+      "source": "Croscarmellose Sodium__STM Croscarmellose Sodium.txt:28"
+    },
+    {
+      "name": "Phosphate buffer 7.2",
+      "use": "reagent",
+      "source": "Croscarmellose Sodium__STM Croscarmellose Sodium.txt:28"
+    },
+    {
+      "name": "0.1M Hydrochloric Acid VS",
+      "use": "titrant",
+      "source": "Croscarmellose Sodium__STM Croscarmellose Sodium.txt:28"
+    },
+    {
+      "name": "0.1M Sodium Hydroxide VS",
+      "use": "titrant",
+      "source": "Croscarmellose Sodium__STM Croscarmellose Sodium.txt:28"
+    },
+    {
+      "name": "m-Cresol Purple Solution",
+      "use": "indicator",
+      "source": "Croscarmellose Sodium__STM Croscarmellose Sodium.txt:28"
+    },
+    {
+      "name": "Potassium Pyroantimonate Solution",
+      "use": "reagent",
+      "source": "Croscarmellose Sodium__STM Croscarmellose Sodium.txt:28"
+    },
+    {
+      "name": "Water, Carbon Dioxide-free",
+      "use": "reagent",
+      "source": "Croscarmellose Sodium__STM Croscarmellose Sodium.txt:28"
+    }
   ],
   "openQuestions": [
     {

@@ -169,7 +169,8 @@
           "expectedState": null,
           "resultBasis": "PercentAnhydrousBasis",
           "referenceStandard": "BP",
-          "source": "Thiamine Hydrochloride__Specifications sheet Thiamine Hydrochloride.txt:12"
+          "source": "Thiamine Hydrochloride__Specifications sheet Thiamine Hydrochloride.txt:12",
+          "heldBack": "anhydrous basis needs a Karl Fischer titration test on the item (backend rule); the lab's water test is a Measurement: decision pending (see gaps)"
         },
         {
           "testCode": "RM-HPLC-THIA-RS",
@@ -389,12 +390,12 @@
         {
           "testCode": "RM-UV-THIA",
           "parameterName": "Absorbance of Solution",
-          "limitType": "NotMoreThan",
+          "limitType": "Qualitative",
           "lower": null,
-          "upper": 0.025,
+          "upper": null,
           "lowerInclusive": null,
           "unit": null,
-          "expectedResultText": null,
+          "expectedResultText": "Complies (NMT 0.025)",
           "expectedState": null,
           "resultBasis": null,
           "referenceStandard": "USP",

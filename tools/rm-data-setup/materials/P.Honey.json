@@ -3,7 +3,9 @@
   "itemName": "Purified Honey",
   "stmCode": "STM-RM-123",
   "stmFile": "Purified Honey - Micro__STM Purified Honey.txt",
-  "specFiles": ["Purified Honey - Micro__Specifications sheet Purified Honey.txt"],
+  "specFiles": [
+    "Purified Honey - Micro__Specifications sheet Purified Honey.txt"
+  ],
   "minQuantity": {
     "routine": 180,
     "retest": 70,
@@ -19,7 +21,9 @@
           "testCode": "RM-DESC",
           "parameterName": "Appearance",
           "limitType": "Qualitative",
-          "lower": null, "upper": null, "lowerInclusive": null,
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
           "unit": null,
           "expectedResultText": "Viscous liquid which may be partly crystalline, almost white to dark brown.",
           "expectedState": null,
@@ -31,7 +35,9 @@
           "testCode": "RM-ID-TLC-HON",
           "parameterName": "Identification (TLC)",
           "limitType": "Qualitative",
-          "lower": null, "upper": null, "lowerInclusive": null,
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
           "unit": null,
           "expectedResultText": "the Zones obtained for the sample and compare it to the spectrum obtained from the Reference Solution",
           "expectedState": null,
@@ -43,7 +49,9 @@
           "testCode": "RM-REFR-HON",
           "parameterName": "Refractive index",
           "limitType": "NotLessThan",
-          "lower": 1.487, "upper": null, "lowerInclusive": null,
+          "lower": 1.487,
+          "upper": null,
+          "lowerInclusive": null,
           "unit": null,
           "expectedResultText": null,
           "expectedState": null,
@@ -55,7 +63,9 @@
           "testCode": "RM-COND-HON",
           "parameterName": "Conductivity",
           "limitType": "NotMoreThan",
-          "lower": null, "upper": 800, "lowerInclusive": null,
+          "lower": null,
+          "upper": 800,
+          "lowerInclusive": null,
           "unit": "µS·cm-1",
           "expectedResultText": null,
           "expectedState": null,
@@ -67,7 +77,9 @@
           "testCode": "RM-OPTROT",
           "parameterName": "Optical rotation",
           "limitType": "NotMoreThan",
-          "lower": null, "upper": 0.6, "lowerInclusive": null,
+          "lower": null,
+          "upper": 0.6,
+          "lowerInclusive": null,
           "unit": "°",
           "expectedResultText": null,
           "expectedState": null,
@@ -79,11 +91,13 @@
           "testCode": "RM-HMF-HON",
           "parameterName": "5-Hydroxymethylfurfural (calculated on dry solids)",
           "limitType": "NotMoreThan",
-          "lower": null, "upper": 80, "lowerInclusive": null,
-          "unit": "ppm",
+          "lower": null,
+          "upper": 80,
+          "lowerInclusive": null,
+          "unit": "mg/kg",
           "expectedResultText": null,
           "expectedState": null,
-          "resultBasis": "Ppm",
+          "resultBasis": null,
           "referenceStandard": "BP",
           "source": "Purified Honey - Micro__Specifications sheet Purified Honey.txt:16"
         },
@@ -91,7 +105,9 @@
           "testCode": "RM-LT-CL",
           "parameterName": "Chlorides (limit test)",
           "limitType": "Qualitative",
-          "lower": null, "upper": null, "lowerInclusive": null,
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
           "unit": null,
           "expectedResultText": "Complies (NMT 350 ppm)",
           "expectedState": null,
@@ -103,7 +119,9 @@
           "testCode": "RM-LT-SO4",
           "parameterName": "Sulfates (limit test)",
           "limitType": "Qualitative",
-          "lower": null, "upper": null, "lowerInclusive": null,
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
           "unit": null,
           "expectedResultText": "Complies (NMT 250 ppm)",
           "expectedState": null,
@@ -115,7 +133,9 @@
           "testCode": "TAMC",
           "parameterName": "Total aerobic microbial count (TAMC)",
           "limitType": "CountTiered",
-          "lower": null, "upper": 1000, "lowerInclusive": null,
+          "lower": null,
+          "upper": 1000,
+          "lowerInclusive": null,
           "unit": "CFU/g",
           "expectedResultText": null,
           "expectedState": null,
@@ -127,7 +147,9 @@
           "testCode": "TYMC",
           "parameterName": "Total yeasts and molds count (TYMC)",
           "limitType": "CountTiered",
-          "lower": null, "upper": 100, "lowerInclusive": null,
+          "lower": null,
+          "upper": 100,
+          "lowerInclusive": null,
           "unit": "CFU/g",
           "expectedResultText": null,
           "expectedState": null,
@@ -139,7 +161,9 @@
           "testCode": "E.coli",
           "parameterName": "Escherichia coli",
           "limitType": "PresenceAbsence",
-          "lower": null, "upper": null, "lowerInclusive": null,
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
           "unit": "per 10 g",
           "expectedResultText": "Absent / 10 gm",
           "expectedState": "Absence",
@@ -151,7 +175,9 @@
           "testCode": "Salmonella ",
           "parameterName": "Salmonella spp.",
           "limitType": "PresenceAbsence",
-          "lower": null, "upper": null, "lowerInclusive": null,
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
           "unit": "per 10 g",
           "expectedResultText": "Absent / 10 gm",
           "expectedState": "Absence",
@@ -168,7 +194,13 @@
       "procedure": "Under strong white light check each received sample container separately in a clean transparent watch glass to detect foreign particles, colour and compliance with the visual specification.",
       "kind": "general",
       "workflow": "Qualitative",
-      "details": { "perContainer": true, "grades": ["BP"], "reference": "BP 2024 (SC IV K.) Characters Section in Monographs; BP 2024 Monograph for Purified Honey" },
+      "details": {
+        "perContainer": true,
+        "grades": [
+          "BP"
+        ],
+        "reference": "BP 2024 (SC IV K.) Characters Section in Monographs; BP 2024 Monograph for Purified Honey"
+      },
       "source": "Purified Honey - Micro__STM Purified Honey.txt:30"
     },
     {
@@ -177,9 +209,15 @@
       "kind": "general",
       "workflow": "Qualitative",
       "details": {
-        "grades": ["BP"],
+        "grades": [
+          "BP"
+        ],
         "sampleG": 0.6,
-        "referenceG": {"fructose": 0.5, "glucose": 0.5, "sucrose": 0.1},
+        "referenceG": {
+          "fructose": 0.5,
+          "glucose": 0.5,
+          "sucrose": 0.1
+        },
         "solventEthanolPct": 30,
         "mobilePhase": "water : acetonitrile 13:87",
         "applicationUl": 5,
@@ -192,7 +230,16 @@
       "procedure": "Homogenize 100 g honey in a flask, close tightly, place in a water bath at 50 +/- 0.2 C until sugar crystals dissolve; cool to 20 C and re-homogenize; cover the prism of a calibrated refractometer with the sample; read the refractive index after 4 min.",
       "kind": "general",
       "workflow": "Measurement",
-      "details": { "grades": ["BP"], "sampleG": 100, "bathC": "50 +/- 0.2", "readingTemperatureC": 20, "readAfterMin": 4, "reference": "BP Appendix V E (Determination of Refractive Index)" },
+      "details": {
+        "grades": [
+          "BP"
+        ],
+        "sampleG": 100,
+        "bathC": "50 +/- 0.2",
+        "readingTemperatureC": 20,
+        "readAfterMin": 4,
+        "reference": "BP Appendix V E (Determination of Refractive Index)"
+      },
       "source": "Purified Honey - Micro__STM Purified Honey.txt:40"
     },
     {
@@ -201,12 +248,117 @@
       "kind": "general",
       "workflow": "Measurement",
       "details": {
-        "grades": ["BP"],
+        "grades": [
+          "BP"
+        ],
         "dryAmountG": 20.0,
         "volumeMl": 100.0,
         "reference": "BP Appendix V O (Conductivity)",
         "table2051_1_waterPct_RI20C": [
-          [15, 1.4992], [15.2, 1.4987], [15.4, 1.4982], [15.6, 1.4976], [15.8, 1.4971], [16.0, 1.4966], [16.2, 1.4961], [16.4, 1.4956], [16.6, 1.4951], [16.8, 1.4946], [17.0, 1.4940], [17.2, 1.4935], [17.4, 1.4930], [17.6, 1.4925], [17.8, 1.4920], [18.0, 1.4915], [18.2, 1.4910], [18.4, 1.4905], [18.6, 1.4900], [18.8, 1.4895], [19.0, 1.4890], [19.2, 1.4885], [19.4, 1.4880], [19.6, 1.4875], [19.8, 1.4870], [20.0, 1.4865]
+          [
+            15,
+            1.4992
+          ],
+          [
+            15.2,
+            1.4987
+          ],
+          [
+            15.4,
+            1.4982
+          ],
+          [
+            15.6,
+            1.4976
+          ],
+          [
+            15.8,
+            1.4971
+          ],
+          [
+            16.0,
+            1.4966
+          ],
+          [
+            16.2,
+            1.4961
+          ],
+          [
+            16.4,
+            1.4956
+          ],
+          [
+            16.6,
+            1.4951
+          ],
+          [
+            16.8,
+            1.4946
+          ],
+          [
+            17.0,
+            1.494
+          ],
+          [
+            17.2,
+            1.4935
+          ],
+          [
+            17.4,
+            1.493
+          ],
+          [
+            17.6,
+            1.4925
+          ],
+          [
+            17.8,
+            1.492
+          ],
+          [
+            18.0,
+            1.4915
+          ],
+          [
+            18.2,
+            1.491
+          ],
+          [
+            18.4,
+            1.4905
+          ],
+          [
+            18.6,
+            1.49
+          ],
+          [
+            18.8,
+            1.4895
+          ],
+          [
+            19.0,
+            1.489
+          ],
+          [
+            19.2,
+            1.4885
+          ],
+          [
+            19.4,
+            1.488
+          ],
+          [
+            19.6,
+            1.4875
+          ],
+          [
+            19.8,
+            1.487
+          ],
+          [
+            20.0,
+            1.4865
+          ]
         ]
       },
       "source": "Purified Honey - Micro__STM Purified Honey.txt:41"
@@ -217,7 +369,9 @@
       "kind": "general",
       "workflow": "Measurement",
       "details": {
-        "grades": ["BP"],
+        "grades": [
+          "BP"
+        ],
         "dryAmountG": 20.0,
         "waterVolumeMl": 50,
         "finalVolumeMl": 100.0,
@@ -232,14 +386,19 @@
       "kind": "specific",
       "workflow": "UvSpectrophotometry",
       "details": {
-        "grades": ["BP"],
+        "grades": [
+          "BP"
+        ],
         "dryAmountG": 5.0,
         "waterVolumeMl": 25,
         "finalVolumeMl": 50.0,
         "ferrocyanideGPerL": 150,
         "zincAcetateGPerL": 300,
         "referenceSolution": "2.0 g/L sodium hydrogen sulfite",
-        "wavelengthsNm": [284, 336],
+        "wavelengthsNm": [
+          284,
+          336
+        ],
         "absorbanceLimitA284": 0.8,
         "formula": "(A1 - A2) x D x 149.7",
         "basis": "calculated on dry solids",
@@ -252,7 +411,13 @@
       "procedure": "Chlorides limit test by opalescence comparison. Test solution: 15 mL of 10 g/L sample solution; add 1 mL dilute nitric acid and pour as one addition into a tube with 1 mL silver nitrate solution R2. Standard: 10 mL chloride standard solution (5 ppm Cl) and 5 mL water, same reagents. Examine laterally against black background; after 5 min protected from light, opalescence of test not more intense than standard.",
       "kind": "general",
       "workflow": "Qualitative",
-      "details": { "grades": ["BP"], "limitPpm": 350, "reference": "BP Appendix VII Limit Tests, Chloride" },
+      "details": {
+        "grades": [
+          "BP"
+        ],
+        "limitPpm": 350,
+        "reference": "BP Appendix VII Limit Tests, Chloride"
+      },
       "source": "Purified Honey - Micro__STM Purified Honey.txt:71"
     },
     {
@@ -260,7 +425,13 @@
       "procedure": "Sulfates limit test by opalescence comparison. Test solution: 15 mL of 40 g/L sample solution; add 0.5 mL acetic acid and 3 mL 250 g/L barium chloride. Standard: 3 mL 250 g/L barium chloride added to 4.5 mL sulfate standard solution (10 ppm SO4); add 0.5 mL acetic acid; shake, stand 1 min. After 5 min, opalescence of test not more intense than standard.",
       "kind": "general",
       "workflow": "Qualitative",
-      "details": { "grades": ["BP"], "limitPpm": 250, "reference": "BP Appendix VII Limit Tests, Sulfate" },
+      "details": {
+        "grades": [
+          "BP"
+        ],
+        "limitPpm": 250,
+        "reference": "BP Appendix VII Limit Tests, Sulfate"
+      },
       "source": "Purified Honey - Micro__STM Purified Honey.txt:72"
     },
     {
@@ -268,7 +439,16 @@
       "procedure": "Weigh 10 g sample and dissolve in SCDB to 100 mL (warm at most 45 C, not more than 45 min); process within 1 h. Pipette 1 mL of dilution into each of 4 plates: 2 SCDA and 2 SDA. SCDA incubated 3-5 days at 30-35 C (TAMC); SDA 5-7 days at 20-25 C (TYMC). Total count (CFU/g) = (colonies plate 1 + colonies plate 2) / 2 x DF, DF = 10.",
       "kind": "general",
       "workflow": "CountTest",
-      "details": { "grades": ["BP"], "sampleG": 10, "volumeMl": 100, "dilutionFactor": 10, "limit": "NMT 10^3 CFU/g (STM and spec read 103)", "reference": "USP 2024 <61> Microbiological Examination of Nonsterile Products: Microbial Enumeration Tests" },
+      "details": {
+        "grades": [
+          "BP"
+        ],
+        "sampleG": 10,
+        "volumeMl": 100,
+        "dilutionFactor": 10,
+        "limit": "NMT 10^3 CFU/g (STM and spec read 103)",
+        "reference": "USP 2024 <61> Microbiological Examination of Nonsterile Products: Microbial Enumeration Tests"
+      },
       "source": "Purified Honey - Micro__STM Purified Honey.txt:73"
     },
     {
@@ -276,7 +456,13 @@
       "procedure": "Same preparation as TAMC: SDA plates incubated 5-7 days at 20-25 C; total count as for TAMC (DF = 10).",
       "kind": "general",
       "workflow": "CountTest",
-      "details": { "grades": ["BP"], "limit": "NMT 10^2 CFU/g (STM and spec read 102)", "reference": "USP 2024 <61> Microbiological Examination of Nonsterile Products: Microbial Enumeration Tests" },
+      "details": {
+        "grades": [
+          "BP"
+        ],
+        "limit": "NMT 10^2 CFU/g (STM and spec read 102)",
+        "reference": "USP 2024 <61> Microbiological Examination of Nonsterile Products: Microbial Enumeration Tests"
+      },
       "source": "Purified Honey - Micro__STM Purified Honey.txt:73"
     },
     {
@@ -284,7 +470,13 @@
       "procedure": "From the SCDB preparation: incubate 24-48 h at 30-35 C; transfer 1 mL to 10 mL MacConkey broth, 42-44 C 24-48 h; subculture on MacConkey agar 30-35 C 18-24 h. Confirm: Gram stain (gram-negative short rods); EMB dark-centred colonies; TBX blue or green colonies at 42-44 C 18-72 h; identity by identification system (report if probability above 70 %).",
       "kind": "general",
       "workflow": "Observation",
-      "details": { "grades": ["BP"], "limit": "Absent /10 gm", "reference": "USP 2024 <2022> and <2023>; in-house requirements" },
+      "details": {
+        "grades": [
+          "BP"
+        ],
+        "limit": "Absent /10 gm",
+        "reference": "USP 2024 <2022> and <2023>; in-house requirements"
+      },
       "source": "Purified Honey - Micro__STM Purified Honey.txt:74"
     },
     {
@@ -292,53 +484,219 @@
       "procedure": "From the SCDB preparation: incubate 18-24 h at 30-35 C; transfer 1 mL to 10 mL Rappaport Vassiliadis broth (RVS), 30-35 C 18-24 h; subculture on XLD, BGA and/or HEA, 30-35 C 24-48 h. Confirm: Gram stain of XLD colonies; TSI slant (red alkaline slope and yellow acid butt, with or without blackening, confirms); identity by identification system (report if probability above 70 %).",
       "kind": "general",
       "workflow": "Observation",
-      "details": { "grades": ["BP"], "limit": "Absent /10 gm", "reference": "USP 2024 <2022> and <2023>; in-house requirements" },
+      "details": {
+        "grades": [
+          "BP"
+        ],
+        "limit": "Absent /10 gm",
+        "reference": "USP 2024 <2022> and <2023>; in-house requirements"
+      },
       "source": "Purified Honey - Micro__STM Purified Honey.txt:74"
     }
   ],
   "notApplicable": [],
   "supplierAttributes": [],
   "reagents": [
-    { "name": "Acetic acid", "use": "reagent", "source": "Purified Honey - Micro__STM Purified Honey.txt:28" },
-    { "name": "Acetone", "use": "reagent", "source": "Purified Honey - Micro__STM Purified Honey.txt:28" },
-    { "name": "Acetonitrile", "use": "reagent", "source": "Purified Honey - Micro__STM Purified Honey.txt:28" },
-    { "name": "Activated charcoal", "use": "reagent", "source": "Purified Honey - Micro__STM Purified Honey.txt:28" },
-    { "name": "Anhydrous ethanol", "use": "reagent", "source": "Purified Honey - Micro__STM Purified Honey.txt:28" },
-    { "name": "Aniline", "use": "reagent", "source": "Purified Honey - Micro__STM Purified Honey.txt:28" },
-    { "name": "Barium chloride", "use": "reagent", "source": "Purified Honey - Micro__STM Purified Honey.txt:28" },
-    { "name": "Concentrated ammonia", "use": "reagent", "source": "Purified Honey - Micro__STM Purified Honey.txt:28" },
-    { "name": "Diphenylamine", "use": "reagent", "source": "Purified Honey - Micro__STM Purified Honey.txt:28" },
-    { "name": "Dipotassium sulfate", "use": "standard", "source": "Purified Honey - Micro__STM Purified Honey.txt:28" },
-    { "name": "Ethanol (96 per cent)", "use": "reagent", "source": "Purified Honey - Micro__STM Purified Honey.txt:28" },
-    { "name": "Fructose", "use": "standard", "source": "Purified Honey - Micro__STM Purified Honey.txt:28" },
-    { "name": "Glucose", "use": "standard", "source": "Purified Honey - Micro__STM Purified Honey.txt:28" },
-    { "name": "Nitric acid", "use": "reagent", "source": "Purified Honey - Micro__STM Purified Honey.txt:28" },
-    { "name": "Phosphoric acid", "use": "reagent", "source": "Purified Honey - Micro__STM Purified Honey.txt:28" },
-    { "name": "Potassium ferrocyanide", "use": "reagent", "source": "Purified Honey - Micro__STM Purified Honey.txt:28" },
-    { "name": "Silver nitrate", "use": "reagent", "source": "Purified Honey - Micro__STM Purified Honey.txt:28" },
-    { "name": "Sodium chloride", "use": "reagent", "source": "Purified Honey - Micro__STM Purified Honey.txt:28" },
-    { "name": "Sodium hydrogen sulfite", "use": "reagent", "source": "Purified Honey - Micro__STM Purified Honey.txt:28" },
-    { "name": "Sucrose", "use": "standard", "source": "Purified Honey - Micro__STM Purified Honey.txt:28" },
-    { "name": "Zinc acetate", "use": "reagent", "source": "Purified Honey - Micro__STM Purified Honey.txt:28" },
-    { "name": "Tryptone Soya broth", "use": "reagent", "source": "Purified Honey - Micro__STM Purified Honey.txt:28" },
-    { "name": "Soybean Casein Digest broth (SCDB)", "use": "reagent", "source": "Purified Honey - Micro__STM Purified Honey.txt:28" },
-    { "name": "Soybean Casein Digest Agar / Tryptone soya agar (SCDA)", "use": "reagent", "source": "Purified Honey - Micro__STM Purified Honey.txt:28" },
-    { "name": "Sabouraud Dextrose Agar (SDA)", "use": "reagent", "source": "Purified Honey - Micro__STM Purified Honey.txt:28" },
-    { "name": "MacConkey Broth", "use": "reagent", "source": "Purified Honey - Micro__STM Purified Honey.txt:28" },
-    { "name": "MacConkey Agar", "use": "reagent", "source": "Purified Honey - Micro__STM Purified Honey.txt:28" },
-    { "name": "Eosin Methylene Blue agar", "use": "reagent", "source": "Purified Honey - Micro__STM Purified Honey.txt:28" },
-    { "name": "Tryptone Bile X-glucuronide agar", "use": "reagent", "source": "Purified Honey - Micro__STM Purified Honey.txt:28" },
-    { "name": "Rappaport Vassiliadis Salmonella Enrichment Broth (RVS)", "use": "reagent", "source": "Purified Honey - Micro__STM Purified Honey.txt:28" },
-    { "name": "Xylose-Lysine-Deoxycholate Agar (XLD)", "use": "reagent", "source": "Purified Honey - Micro__STM Purified Honey.txt:28" },
-    { "name": "Brilliant Green Agar (BGA)", "use": "reagent", "source": "Purified Honey - Micro__STM Purified Honey.txt:28" },
-    { "name": "Hektoen Enteric Agar (HEA)", "use": "reagent", "source": "Purified Honey - Micro__STM Purified Honey.txt:28" },
-    { "name": "Triple sugar iron agar (TSI)", "use": "reagent", "source": "Purified Honey - Micro__STM Purified Honey.txt:28" },
-    { "name": "Ethanol (30 per cent)", "use": "reagent", "source": "Purified Honey - Micro__STM Purified Honey.txt:28" },
-    { "name": "Sulfate Standard Solution (10 ppm SO4)", "use": "standard", "source": "Purified Honey - Micro__STM Purified Honey.txt:28" },
-    { "name": "Water, distilled", "use": "reagent", "source": "Purified Honey - Micro__STM Purified Honey.txt:28" },
-    { "name": "Nitric Acid, Dilute (20 g in 100 mL)", "use": "reagent", "source": "Purified Honey - Micro__STM Purified Honey.txt:28" },
-    { "name": "Silver Nitrate Solution R2 (17 g in 100 mL)", "use": "reagent", "source": "Purified Honey - Micro__STM Purified Honey.txt:28" },
-    { "name": "Chloride Standard Solution (5 ppm Cl)", "use": "standard", "source": "Purified Honey - Micro__STM Purified Honey.txt:28" }
+    {
+      "name": "Acetic acid",
+      "use": "reagent",
+      "source": "Purified Honey - Micro__STM Purified Honey.txt:28"
+    },
+    {
+      "name": "Acetone",
+      "use": "reagent",
+      "source": "Purified Honey - Micro__STM Purified Honey.txt:28"
+    },
+    {
+      "name": "Acetonitrile",
+      "use": "reagent",
+      "source": "Purified Honey - Micro__STM Purified Honey.txt:28"
+    },
+    {
+      "name": "Activated charcoal",
+      "use": "reagent",
+      "source": "Purified Honey - Micro__STM Purified Honey.txt:28"
+    },
+    {
+      "name": "Anhydrous ethanol",
+      "use": "reagent",
+      "source": "Purified Honey - Micro__STM Purified Honey.txt:28"
+    },
+    {
+      "name": "Aniline",
+      "use": "reagent",
+      "source": "Purified Honey - Micro__STM Purified Honey.txt:28"
+    },
+    {
+      "name": "Barium chloride",
+      "use": "reagent",
+      "source": "Purified Honey - Micro__STM Purified Honey.txt:28"
+    },
+    {
+      "name": "Concentrated ammonia",
+      "use": "reagent",
+      "source": "Purified Honey - Micro__STM Purified Honey.txt:28"
+    },
+    {
+      "name": "Diphenylamine",
+      "use": "reagent",
+      "source": "Purified Honey - Micro__STM Purified Honey.txt:28"
+    },
+    {
+      "name": "Dipotassium sulfate",
+      "use": "standard",
+      "source": "Purified Honey - Micro__STM Purified Honey.txt:28"
+    },
+    {
+      "name": "Ethanol (96 per cent)",
+      "use": "reagent",
+      "source": "Purified Honey - Micro__STM Purified Honey.txt:28"
+    },
+    {
+      "name": "Fructose",
+      "use": "standard",
+      "source": "Purified Honey - Micro__STM Purified Honey.txt:28"
+    },
+    {
+      "name": "Glucose",
+      "use": "standard",
+      "source": "Purified Honey - Micro__STM Purified Honey.txt:28"
+    },
+    {
+      "name": "Nitric acid",
+      "use": "reagent",
+      "source": "Purified Honey - Micro__STM Purified Honey.txt:28"
+    },
+    {
+      "name": "Phosphoric acid",
+      "use": "reagent",
+      "source": "Purified Honey - Micro__STM Purified Honey.txt:28"
+    },
+    {
+      "name": "Potassium ferrocyanide",
+      "use": "reagent",
+      "source": "Purified Honey - Micro__STM Purified Honey.txt:28"
+    },
+    {
+      "name": "Silver nitrate",
+      "use": "reagent",
+      "source": "Purified Honey - Micro__STM Purified Honey.txt:28"
+    },
+    {
+      "name": "Sodium chloride",
+      "use": "reagent",
+      "source": "Purified Honey - Micro__STM Purified Honey.txt:28"
+    },
+    {
+      "name": "Sodium hydrogen sulfite",
+      "use": "reagent",
+      "source": "Purified Honey - Micro__STM Purified Honey.txt:28"
+    },
+    {
+      "name": "Sucrose",
+      "use": "standard",
+      "source": "Purified Honey - Micro__STM Purified Honey.txt:28"
+    },
+    {
+      "name": "Zinc acetate",
+      "use": "reagent",
+      "source": "Purified Honey - Micro__STM Purified Honey.txt:28"
+    },
+    {
+      "name": "Tryptone Soya broth",
+      "use": "reagent",
+      "source": "Purified Honey - Micro__STM Purified Honey.txt:28"
+    },
+    {
+      "name": "Soybean Casein Digest broth (SCDB)",
+      "use": "reagent",
+      "source": "Purified Honey - Micro__STM Purified Honey.txt:28"
+    },
+    {
+      "name": "Soybean Casein Digest Agar / Tryptone soya agar (SCDA)",
+      "use": "reagent",
+      "source": "Purified Honey - Micro__STM Purified Honey.txt:28"
+    },
+    {
+      "name": "Sabouraud Dextrose Agar (SDA)",
+      "use": "reagent",
+      "source": "Purified Honey - Micro__STM Purified Honey.txt:28"
+    },
+    {
+      "name": "MacConkey Broth",
+      "use": "reagent",
+      "source": "Purified Honey - Micro__STM Purified Honey.txt:28"
+    },
+    {
+      "name": "MacConkey Agar",
+      "use": "reagent",
+      "source": "Purified Honey - Micro__STM Purified Honey.txt:28"
+    },
+    {
+      "name": "Eosin Methylene Blue agar",
+      "use": "reagent",
+      "source": "Purified Honey - Micro__STM Purified Honey.txt:28"
+    },
+    {
+      "name": "Tryptone Bile X-glucuronide agar",
+      "use": "reagent",
+      "source": "Purified Honey - Micro__STM Purified Honey.txt:28"
+    },
+    {
+      "name": "Rappaport Vassiliadis Salmonella Enrichment Broth (RVS)",
+      "use": "reagent",
+      "source": "Purified Honey - Micro__STM Purified Honey.txt:28"
+    },
+    {
+      "name": "Xylose-Lysine-Deoxycholate Agar (XLD)",
+      "use": "reagent",
+      "source": "Purified Honey - Micro__STM Purified Honey.txt:28"
+    },
+    {
+      "name": "Brilliant Green Agar (BGA)",
+      "use": "reagent",
+      "source": "Purified Honey - Micro__STM Purified Honey.txt:28"
+    },
+    {
+      "name": "Hektoen Enteric Agar (HEA)",
+      "use": "reagent",
+      "source": "Purified Honey - Micro__STM Purified Honey.txt:28"
+    },
+    {
+      "name": "Triple sugar iron agar (TSI)",
+      "use": "reagent",
+      "source": "Purified Honey - Micro__STM Purified Honey.txt:28"
+    },
+    {
+      "name": "Ethanol (30 per cent)",
+      "use": "reagent",
+      "source": "Purified Honey - Micro__STM Purified Honey.txt:28"
+    },
+    {
+      "name": "Sulfate Standard Solution (10 ppm SO4)",
+      "use": "standard",
+      "source": "Purified Honey - Micro__STM Purified Honey.txt:28"
+    },
+    {
+      "name": "Water, distilled",
+      "use": "reagent",
+      "source": "Purified Honey - Micro__STM Purified Honey.txt:28"
+    },
+    {
+      "name": "Nitric Acid, Dilute (20 g in 100 mL)",
+      "use": "reagent",
+      "source": "Purified Honey - Micro__STM Purified Honey.txt:28"
+    },
+    {
+      "name": "Silver Nitrate Solution R2 (17 g in 100 mL)",
+      "use": "reagent",
+      "source": "Purified Honey - Micro__STM Purified Honey.txt:28"
+    },
+    {
+      "name": "Chloride Standard Solution (5 ppm Cl)",
+      "use": "standard",
+      "source": "Purified Honey - Micro__STM Purified Honey.txt:28"
+    }
   ],
   "openQuestions": [
     {

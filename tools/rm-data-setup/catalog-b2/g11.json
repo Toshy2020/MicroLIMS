@@ -300,26 +300,31 @@
       "instructions": "Dissolve 5.8 g of zinc sulfate in water and dilute to 1000.0 mL with the same solvent.",
       "components": [
         {
-          "entry": "Zinc sulfate",
+          "entry": "Zinc sulfate heptahydrate",
+          "entryCode": null,
           "quantity": 5.8,
           "unit": "Gram"
         }
       ],
       "waterToVolume": true,
-      "standardizationMode": null,
+      "standardizationMode": "AgainstVolumetricSolution",
       "standardEntry": null,
       "equivalenceMgPerMl": null,
-      "referenceSolution": null,
+      "referenceSolution": "0.1 M Disodium edetate VS",
       "usedBy": [
         "STM-RM-127"
       ],
-      "notes": "Dissolve 5.8 g of zinc sulfate in water and dilute to 1000.0 mL with the same solvent. Used as back-titrant in Calcium Hydrogen Phosphate Dihydrate complexometric assay. Complete: false because STM states no standardization procedure, shelf life, or storage condition (source: Calcium Hydrogen Phosphate Dihydrate__New 1-2_STM Calcium Hydrogen Phosphate Dihydrate - New.txt:28).",
-      "complete": false,
-      "missing": [
-        "standardizationMode: no standardization procedure stated in STM",
-        "shelfLife: not stated in STM",
-        "storageCondition: not stated in STM"
-      ]
+      "notes": "Recipe as the STM states (5.8 g in 1000 mL; USP scaling from 0.05 M would be 5.76 g). Standardization from USP (zinc sulfate against edetate disodium VS, buffer TS/alcohol/dithizone TS, rose-pink; molarity = M x V / V). House defaults for acceptance and shelf life. Source: USP 35-NF 30 Volumetric Solutions (drugfuture 1077-1085 Volumetric Solutions.pdf): p.1085.",
+      "complete": true,
+      "shelfLifeValue": 30,
+      "shelfLifeUnit": "Days",
+      "storageCondition": "Tightly closed, room temperature",
+      "replicateCount": 3,
+      "maxRsdPercent": 0.2,
+      "validityDays": 30,
+      "blankRequired": false,
+      "factorMin": 0.97,
+      "factorMax": 1.03
     }
   ],
   "hplcMethods": [],
@@ -415,11 +420,5 @@
       "TYMC": "TYMC"
     }
   },
-  "gaps": [
-    {
-      "material": "STM-RM-127",
-      "test": "0.02 M Zinc sulfate VS",
-      "missing": "standardizationMode: no standardization procedure stated in STM; shelfLife, storageCondition not stated"
-    }
-  ]
+  "gaps": []
 }

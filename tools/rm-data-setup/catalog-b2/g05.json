@@ -63,71 +63,6 @@
       ]
     },
     {
-      "code": "RM-DISP-130",
-      "displayName": "Dispersion (Opadry Brown)",
-      "kind": "specific",
-      "section": "Physicochemical Laboratory",
-      "workflowType": "Qualitative",
-      "equationType": "Qualitative",
-      "physchemArea": "RawPackaging",
-      "complete": true,
-      "notes": "Disperse 1 g into 20 mL water; sample should diffuse into water and make uniform matrix (source: Opadry Brown__STM Opadry Brown new without micro.txt:30).",
-      "usedBy": [
-        "STM-RM-130"
-      ],
-      "sources": [
-        {
-          "material": "STM-RM-130",
-          "provisionalCode": "RM-DISP-OPB",
-          "source": "Opadry Brown__STM Opadry Brown new without micro.txt:30"
-        }
-      ]
-    },
-    {
-      "code": "RM-ID-FILM-130",
-      "displayName": "Identification (Film formation, Opadry Brown)",
-      "kind": "specific",
-      "section": "Physicochemical Laboratory",
-      "workflowType": "Qualitative",
-      "equationType": "Qualitative",
-      "physchemArea": "RawPackaging",
-      "complete": true,
-      "notes": "Make a 10-12% slurry of powder in water, pour on glass tile, dry at 70 °C; a film layer must form (source: Opadry Brown__STM Opadry Brown new without micro.txt:31).",
-      "usedBy": [
-        "STM-RM-130"
-      ],
-      "sources": [
-        {
-          "material": "STM-RM-130",
-          "provisionalCode": "RM-ID-FILM-OPB",
-          "source": "Opadry Brown__STM Opadry Brown new without micro.txt:31"
-        }
-      ]
-    },
-    {
-      "code": "RM-ASH-130",
-      "displayName": "Ash content (Total ash, Opadry Brown)",
-      "kind": "specific",
-      "section": "Physicochemical Laboratory",
-      "workflowType": "Gravimetric",
-      "equationType": "GravimetricResidue",
-      "physchemArea": "RawPackaging",
-      "replicateCount": 1,
-      "usesTare": true,
-      "complete": true,
-      "notes": "Empty crucible previously ignited at 800 °C (W1); weigh ~1.0 g sample (W2); ignite in muffle at 800 ± 50 °C for 2 h; cool in desiccator; weigh crucible with residue (W4). Total ash % = (W4 - W1) / W2 x 100 (source: Opadry Brown__STM Opadry Brown new without micro.txt:32).",
-      "usedBy": [
-        "STM-RM-130"
-      ],
-      "sources": [
-        {
-          "material": "STM-RM-130",
-          "provisionalCode": "RM-TASH-OPB",
-          "source": "Opadry Brown__STM Opadry Brown new without micro.txt:32"
-        }
-      ]
-    },
-    {
       "code": "RM-ID-IOD-024",
       "displayName": "Identification (iodine and starch, Crospovidone)",
       "kind": "specific",
@@ -189,29 +124,6 @@
           "material": "STM-RM-024",
           "provisionalCode": "RM-PEROX-CROSP",
           "source": "Crospovidone__STM- RM-0 Crospovidone.txt:46"
-        }
-      ]
-    },
-    {
-      "code": "RM-WSUB-024",
-      "displayName": "Water-soluble substances (Crospovidone)",
-      "kind": "specific",
-      "section": "Physicochemical Laboratory",
-      "workflowType": "Gravimetric",
-      "equationType": "GravimetricResidue",
-      "physchemArea": "RawPackaging",
-      "replicateCount": 1,
-      "usesTare": true,
-      "complete": true,
-      "notes": "Stir 25.0 g in 200 mL water for 1 h, dilute to 250 mL, settle; filter 100 mL through 0.45 um membrane (3 um pre-filter); evaporate 50.0 mL filtrate to dryness in tared 100 mL beaker, dry at 110 °C for 3 h, weigh residue. Limit NMT 75 mg (1.5%) (source: Crospovidone__STM- RM-0 Crospovidone.txt:48).",
-      "usedBy": [
-        "STM-RM-024"
-      ],
-      "sources": [
-        {
-          "material": "STM-RM-024",
-          "provisionalCode": "RM-WSUB-CROSP",
-          "source": "Crospovidone__STM- RM-0 Crospovidone.txt:48"
         }
       ]
     },
@@ -340,52 +252,6 @@
           "material": "STM-RM-087",
           "provisionalCode": "RM-COL-OO",
           "source": "Orange Oil 5-Fold__Orange Oil 5-Fold - SM.txt:33"
-        }
-      ]
-    },
-    {
-      "code": "RM-SG-087",
-      "displayName": "Specific gravity (pycnometer, Orange Oil 5-Fold)",
-      "kind": "specific",
-      "section": "Physicochemical Laboratory",
-      "workflowType": "Measurement",
-      "equationType": "Measurement",
-      "physchemArea": "RawPackaging",
-      "replicateCount": 1,
-      "evaluationBasis": "Mean",
-      "complete": true,
-      "notes": "Pycnometer method (W3 - W1) / (W2 - W1) at 25 °C. Analyst enters calculated specific gravity value (source: Orange Oil 5-Fold__Orange Oil 5-Fold - SM.txt:35).",
-      "usedBy": [
-        "STM-RM-087"
-      ],
-      "sources": [
-        {
-          "material": "STM-RM-087",
-          "provisionalCode": "RM-SG-OO",
-          "source": "Orange Oil 5-Fold__Orange Oil 5-Fold - SM.txt:35"
-        }
-      ]
-    },
-    {
-      "code": "RM-RI-087",
-      "displayName": "Refractive index (Orange Oil 5-Fold)",
-      "kind": "specific",
-      "section": "Physicochemical Laboratory",
-      "workflowType": "Measurement",
-      "equationType": "Measurement",
-      "physchemArea": "RawPackaging",
-      "replicateCount": 1,
-      "evaluationBasis": "Mean",
-      "complete": true,
-      "notes": "Measured on calibrated refractometer at 25 °C (source: Orange Oil 5-Fold__Orange Oil 5-Fold - SM.txt:36).",
-      "usedBy": [
-        "STM-RM-087"
-      ],
-      "sources": [
-        {
-          "material": "STM-RM-087",
-          "provisionalCode": "RM-RI-OO",
-          "source": "Orange Oil 5-Fold__Orange Oil 5-Fold - SM.txt:36"
         }
       ]
     }
@@ -748,9 +614,9 @@
     "STM-RM-130": {
       "E.coli": "E.coli",
       "RM-DESC": "RM-DESC",
-      "RM-DISP-OPB": "RM-DISP-130",
-      "RM-ID-FILM-OPB": "RM-ID-FILM-130",
-      "RM-TASH-OPB": "RM-ASH-130",
+      "RM-DISP-OPB": "RM-DISP",
+      "RM-ID-FILM-OPB": "RM-ID-FILM",
+      "RM-TASH-OPB": "RM-ASH",
       "TAMC": "TAMC",
       "TYMC": "TYMC"
     },
@@ -766,7 +632,7 @@
       "RM-SASH": "RM-SASH",
       "RM-SOLUB": "RM-SOLUB",
       "RM-TIT-CROSP": "RM-TIT-024",
-      "RM-WSUB-CROSP": "RM-WSUB-024",
+      "RM-WSUB-CROSP": "RM-WSS",
       "TAMC": "TAMC",
       "TYMC": "TYMC"
     },
@@ -788,8 +654,8 @@
       "RM-COL-OO": "RM-COL-087",
       "RM-DESC": "RM-DESC",
       "RM-ODOR": "RM-ODOR",
-      "RM-RI-OO": "RM-RI-087",
-      "RM-SG-OO": "RM-SG-087",
+      "RM-RI-OO": "RM-REFIDX",
+      "RM-SG-OO": "RM-RELDENS",
       "RM-SOLUB": "RM-SOLUB",
       "Salmonella ": "Salmonella ",
       "TAMC": "TAMC",

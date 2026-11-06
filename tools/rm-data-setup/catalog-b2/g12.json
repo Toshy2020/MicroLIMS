@@ -24,52 +24,6 @@
       ]
     },
     {
-      "code": "RM-REFR-002",
-      "displayName": "Refractive index (Lemon Oil)",
-      "kind": "specific",
-      "section": "Physicochemical Laboratory",
-      "workflowType": "Measurement",
-      "equationType": "Measurement",
-      "physchemArea": "RawPackaging",
-      "replicateCount": 1,
-      "evaluationBasis": "Mean",
-      "complete": true,
-      "notes": "Determine on 5 mL sample with a calibrated refractometer (limit 1.473 to 1.476). (BP Appendix V E). Source: Lemon Oil__1-1_STM Lemon Oil.txt:30.",
-      "usedBy": [
-        "STM-RM-002"
-      ],
-      "sources": [
-        {
-          "material": "STM-RM-002",
-          "provisionalCode": "RM-REFR-LEMON",
-          "source": "Lemon Oil__1-1_STM Lemon Oil.txt:30"
-        }
-      ]
-    },
-    {
-      "code": "RM-RELDENS-002",
-      "displayName": "Relative density (Lemon Oil)",
-      "kind": "specific",
-      "section": "Physicochemical Laboratory",
-      "workflowType": "Measurement",
-      "equationType": "Measurement",
-      "physchemArea": "RawPackaging",
-      "replicateCount": 1,
-      "evaluationBasis": "Mean",
-      "complete": true,
-      "notes": "Pycnometer method: (Wt3 - Wt1) / (Wt2 - Wt1) (limit 0.850 to 0.858). Analyst enters calculated relative density value. (BP Appendix V G). Source: Lemon Oil__1-1_STM Lemon Oil.txt:32.",
-      "usedBy": [
-        "STM-RM-002"
-      ],
-      "sources": [
-        {
-          "material": "STM-RM-002",
-          "provisionalCode": "RM-DENS-LEMON",
-          "source": "Lemon Oil__1-1_STM Lemon Oil.txt:32"
-        }
-      ]
-    },
-    {
       "code": "RM-FATTY-002",
       "displayName": "Fatty oils and resinified essential oils (Lemon Oil)",
       "kind": "specific",
@@ -384,13 +338,13 @@
   "mapping": {
     "STM-RM-002": {
       "E.coli": "E.coli",
-      "RM-DENS-LEMON": "RM-RELDENS-002",
+      "RM-DENS-LEMON": "RM-RELDENS",
       "RM-DESC": "RM-DESC",
       "RM-FATTY-LEMON": "RM-FATTY-002",
       "RM-GC-LEMON": "RM-GC-002",
       "RM-ID-TLC-LEMON": "RM-ID-TLC-002",
       "RM-OPTROT": "RM-OPTROT",
-      "RM-REFR-LEMON": "RM-REFR-002",
+      "RM-REFR-LEMON": "RM-REFIDX",
       "RM-RESEV-LEMON": "RM-RESEV-002",
       "RM-UV-LEMON": "RM-UV-002",
       "Salmonella ": "Salmonella ",

@@ -1,27 +1,6 @@
 {
   "testDefinitions": [
     {
-      "code": "RM-ID-ZN-050",
-      "displayName": "Identification (reactions of zinc)",
-      "kind": "specific",
-      "section": "Physicochemical Laboratory",
-      "workflowType": "Qualitative",
-      "equationType": "Qualitative",
-      "physchemArea": "RawPackaging",
-      "complete": true,
-      "notes": "Reactions of zinc per USP <191>: 100 mg/mL solution gives white precipitate with H2S in presence of sodium acetate (insoluble in acetic acid, dissolved by 3 N HCl); white precipitate with ammonium sulfide TS; white precipitate with potassium ferrocyanide TS insoluble in 3 N HCl.",
-      "usedBy": [
-        "STM-RM-050"
-      ],
-      "sources": [
-        {
-          "material": "STM-RM-050",
-          "provisionalCode": "RM-ID-ZN-GLU",
-          "source": "Zinc Gluconate__STM Calcium  Zinc Gluconate.txt:30"
-        }
-      ]
-    },
-    {
       "code": "RM-ID-TLC-050",
       "displayName": "Identification (TLC, gluconate)",
       "kind": "specific",
@@ -39,48 +18,6 @@
           "material": "STM-RM-050",
           "provisionalCode": "RM-ID-TLC-GLU",
           "source": "Zinc Gluconate__STM Calcium  Zinc Gluconate.txt:30"
-        }
-      ]
-    },
-    {
-      "code": "RM-LT-AS-050",
-      "displayName": "Arsenic (limit test, arsenic apparatus)",
-      "kind": "specific",
-      "section": "Physicochemical Laboratory",
-      "workflowType": "Qualitative",
-      "equationType": "Qualitative",
-      "physchemArea": "RawPackaging",
-      "complete": true,
-      "notes": "Arsenic limit test per USP <211> procedure 1: 1 g sample vs 3.0 mL standard arsenic solution (1 µg/mL = 3 ppm) in 35 mL water with 20 mL 7 N sulfuric acid, KI TS, stannous chloride TS, isopropanol; generate arsine with granular zinc into silver diethyldithiocarbamate TS. Test colour must not exceed standard.",
-      "usedBy": [
-        "STM-RM-050"
-      ],
-      "sources": [
-        {
-          "material": "STM-RM-050",
-          "provisionalCode": "RM-LT-AS-ZNGLU",
-          "source": "Zinc Gluconate__STM Calcium  Zinc Gluconate.txt:33"
-        }
-      ]
-    },
-    {
-      "code": "RM-LT-PB-050",
-      "displayName": "Lead (limit test by AAS)",
-      "kind": "specific",
-      "section": "Physicochemical Laboratory",
-      "workflowType": "Qualitative",
-      "equationType": "Qualitative",
-      "physchemArea": "RawPackaging",
-      "complete": true,
-      "notes": "Lead limit test by AAS per USP <852>: 1.0 g sample extracted with 9 N HCl, ascorbic acid-NaI and trioctylphosphine oxide into organic layer; standard 2 µg/mL Pb organic layer; air-acetylene flame at 283.3 nm. Sample absorbance must not exceed standard absorbance (NMT 10 ppm).",
-      "usedBy": [
-        "STM-RM-050"
-      ],
-      "sources": [
-        {
-          "material": "STM-RM-050",
-          "provisionalCode": "RM-PB-ZNGLU",
-          "source": "Zinc Gluconate__STM Calcium  Zinc Gluconate.txt:34"
         }
       ]
     },
@@ -170,27 +107,6 @@
         }
       ],
       "evaluationBasis": "Mean"
-    },
-    {
-      "code": "RM-ACID-001",
-      "displayName": "Acidity (Ferric ammonium citrate green)",
-      "kind": "specific",
-      "section": "Physicochemical Laboratory",
-      "workflowType": "Qualitative",
-      "equationType": "Qualitative",
-      "physchemArea": "RawPackaging",
-      "complete": true,
-      "notes": "Acidity per USP 2024: dissolve 1 g in 100 mL water; test with calibrated pH meter; solution must show acidic medium.",
-      "usedBy": [
-        "STM-RM-001"
-      ],
-      "sources": [
-        {
-          "material": "STM-RM-001",
-          "provisionalCode": "RM-ACID-FAC",
-          "source": "Ferric Ammonium Citrate Green__STM Ferric Ammonium Citrate Green.txt:32"
-        }
-      ]
     },
     {
       "code": "RM-ID-IGN-001",
@@ -310,29 +226,6 @@
           "material": "C1I-91-228",
           "provisionalCode": "RM-ID-SIL",
           "source": "Colloidal Anhydrous Silica__New_New.txt:32"
-        }
-      ]
-    },
-    {
-      "code": "RM-LOI-SIL-065",
-      "displayName": "Loss on ignition (Colloidal anhydrous silica)",
-      "kind": "specific",
-      "section": "Physicochemical Laboratory",
-      "workflowType": "Gravimetric",
-      "equationType": "GravimetricLoss",
-      "physchemArea": "RawPackaging",
-      "replicateCount": 1,
-      "usesTare": true,
-      "complete": true,
-      "notes": "Loss on ignition per BP 2025: 0.2 g sample in dry crucible ignited at 900 ± 50 °C for 2 h, cool in desiccator, weigh. Limit NMT 5.0%.",
-      "usedBy": [
-        "C1I-91-228"
-      ],
-      "sources": [
-        {
-          "material": "C1I-91-228",
-          "provisionalCode": "RM-LOI-SIL",
-          "source": "Colloidal Anhydrous Silica__New_New.txt:35"
         }
       ]
     },
@@ -837,12 +730,12 @@
     "STM-RM-050": {
       "RM-DESC": "RM-DESC",
       "RM-SOLUB": "RM-SOLUB",
-      "RM-ID-ZN-GLU": "RM-ID-ZN-050",
+      "RM-ID-ZN-GLU": "RM-ID-ZN",
       "RM-ID-TLC-GLU": "RM-ID-TLC-050",
       "RM-LT-CL": "RM-LT-CL",
       "RM-LT-SO4": "RM-LT-SO4",
-      "RM-LT-AS-ZNGLU": "RM-LT-AS-050",
-      "RM-PB-ZNGLU": "RM-LT-PB-050",
+      "RM-LT-AS-ZNGLU": "RM-LT-AS",
+      "RM-PB-ZNGLU": "RM-LT-PB-AAS",
       "RM-RED-ZNGLU": "RM-TIT-RED-050",
       "RM-PH": "RM-PH",
       "RM-KF": "RM-KF",
@@ -869,7 +762,7 @@
       "RM-ID-FAC-NH4OH": "RM-ID-NH4-001",
       "RM-ID-FAC-KMNO4": "RM-ID-KMN-001",
       "RM-LT-SO4": "RM-LT-SO4",
-      "RM-ACID-FAC": "RM-ACID-001",
+      "RM-ACID-FAC": "RM-ACIDALK",
       "RM-TIT-FAC": "RM-TIT-FAC",
       "TAMC": "TAMC",
       "TYMC": "TYMC",
@@ -880,7 +773,7 @@
       "RM-SOLUB": "RM-SOLUB",
       "RM-ID-SIL": "RM-ID-SIL-065",
       "RM-LT-CL": "RM-LT-CL",
-      "RM-LOI-SIL": "RM-LOI-SIL-065",
+      "RM-LOI-SIL": "RM-LOI",
       "RM-PH": "RM-PH",
       "RM-ASSAY-SIL": "RM-ASSAY-SIL-065",
       "TAMC": "TAMC",

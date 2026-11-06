@@ -85,71 +85,6 @@
       ]
     },
     {
-      "code": "RM-VISC-125",
-      "displayName": "Viscosity of Aluminium Magnesium Silicate",
-      "kind": "specific",
-      "section": "Physicochemical Laboratory",
-      "workflowType": "Measurement",
-      "equationType": "Measurement",
-      "physchemArea": "RawPackaging",
-      "replicateCount": 1,
-      "evaluationBasis": "Mean",
-      "complete": true,
-      "notes": "Weigh quantity equivalent to 25.0 g dried substance into blender jar containing water to 500 g. Blend 3 min at 14000-15000 r/min. Stand 5 min, sample temperature 33 ± 3 °C. Rotating viscometer spindle No. 3 at 60 r/min for 6 min (spindle No. 4 if > 90% full scale). Range: 800-2200 mPa·s (BP 2024 Appendix V H Method III; source: Veegum__STM Veegum.txt:34).",
-      "usedBy": [
-        "STM-RM-125"
-      ],
-      "sources": [
-        {
-          "material": "STM-RM-125",
-          "provisionalCode": "RM-VISC",
-          "source": "Veegum__STM Veegum.txt:34"
-        }
-      ]
-    },
-    {
-      "code": "RM-LT-AS-125",
-      "displayName": "Arsenic (limit test, Aluminium Magnesium Silicate)",
-      "kind": "specific",
-      "section": "Physicochemical Laboratory",
-      "workflowType": "Qualitative",
-      "equationType": "Qualitative",
-      "physchemArea": "RawPackaging",
-      "complete": true,
-      "notes": "16.6 g extracted with dilute HCl, diluted to 250.0 mL; 5.0 mL aliquot diluted to 25.0 mL; treated with 15 mL HCl, 0.1 mL stannous chloride, 5 mL KI, 5 g activated zinc; silver diethyldithiocarbamate absorber vs 1 mL 1 ppm As standard (NMT 3 ppm). (BP 2024 Appendix VII Method A; source: Veegum__STM Veegum.txt:35).",
-      "usedBy": [
-        "STM-RM-125"
-      ],
-      "sources": [
-        {
-          "material": "STM-RM-125",
-          "provisionalCode": "RM-ARSENIC",
-          "source": "Veegum__STM Veegum.txt:35"
-        }
-      ]
-    },
-    {
-      "code": "RM-LT-PB-125",
-      "displayName": "Lead (limit test by AAS, Aluminium Magnesium Silicate)",
-      "kind": "specific",
-      "section": "Physicochemical Laboratory",
-      "workflowType": "Qualitative",
-      "equationType": "Qualitative",
-      "physchemArea": "RawPackaging",
-      "complete": true,
-      "notes": "10.0 g extracted with dilute HCl, filtered, washed, concentrated, diluted to 50.0 mL with water; measured by flame AAS at 217 nm (air-acetylene) vs lead standard 10 ppm Pb (NMT 15 ppm). (BP 2024 Appendix II D; source: Veegum__STM Veegum.txt:36).",
-      "usedBy": [
-        "STM-RM-125"
-      ],
-      "sources": [
-        {
-          "material": "STM-RM-125",
-          "provisionalCode": "RM-LEAD",
-          "source": "Veegum__STM Veegum.txt:36"
-        }
-      ]
-    },
-    {
       "code": "RM-ACIDDEM-125",
       "displayName": "Acid demand of Aluminium Magnesium Silicate",
       "kind": "specific",
@@ -213,48 +148,6 @@
           "material": "STM-RM-036",
           "provisionalCode": "RM-ID-PIP-CAGLY",
           "source": "Calcium Glycerophosphate__Calcium Glycerophosphate-SM.txt:30"
-        }
-      ]
-    },
-    {
-      "code": "RM-ID-CA-036",
-      "displayName": "Identification of Calcium Glycerophosphate (reaction of calcium with potassium ferrocyanide)",
-      "kind": "specific",
-      "section": "Physicochemical Laboratory",
-      "workflowType": "Qualitative",
-      "equationType": "Qualitative",
-      "physchemArea": "RawPackaging",
-      "complete": true,
-      "notes": "Dissolve ~20 mg in 5 mL acetic acid, add 0.5 mL potassium ferrocyanide solution (remains clear); add ~50 mg ammonium chloride: white crystalline precipitate formed (BP Appendix VI Calcium; source: Calcium Glycerophosphate__Calcium Glycerophosphate-SM.txt:30).",
-      "usedBy": [
-        "STM-RM-036"
-      ],
-      "sources": [
-        {
-          "material": "STM-RM-036",
-          "provisionalCode": "RM-ID-CA-CAGLY",
-          "source": "Calcium Glycerophosphate__Calcium Glycerophosphate-SM.txt:30"
-        }
-      ]
-    },
-    {
-      "code": "RM-ACIDALK-036",
-      "displayName": "Acidity or alkalinity of Calcium Glycerophosphate",
-      "kind": "specific",
-      "section": "Physicochemical Laboratory",
-      "workflowType": "Qualitative",
-      "equationType": "Qualitative",
-      "physchemArea": "RawPackaging",
-      "complete": true,
-      "notes": "To 100 mL solution S add 0.1 mL phenolphthalein solution: not more than 1.5 mL of 0.1 M HCl or 0.5 mL of 0.1 M NaOH required to change indicator colour (BP 2024 Monograph; source: Calcium Glycerophosphate__Calcium Glycerophosphate-SM.txt:32).",
-      "usedBy": [
-        "STM-RM-036"
-      ],
-      "sources": [
-        {
-          "material": "STM-RM-036",
-          "provisionalCode": "RM-ACIDALK-CAGLY",
-          "source": "Calcium Glycerophosphate__Calcium Glycerophosphate-SM.txt:32"
         }
       ]
     },
@@ -324,58 +217,6 @@
       ]
     },
     {
-      "code": "RM-LT-AS-036",
-      "displayName": "Arsenic (limit test for Calcium Glycerophosphate)",
-      "kind": "specific",
-      "section": "Physicochemical Laboratory",
-      "workflowType": "Qualitative",
-      "equationType": "Qualitative",
-      "physchemArea": "RawPackaging",
-      "complete": true,
-      "notes": "0.33 g in 25 mL water, 15 mL HCl, 0.1 mL stannous chloride, 5 mL KI, 5 g activated zinc; silver diethyldithiocarbamate vs 1 mL 1 ppm As standard (NMT 3 ppm). (BP Appendix VII Limit Tests Arsenic Method A; source: Calcium Glycerophosphate__Calcium Glycerophosphate-SM.txt:38).",
-      "usedBy": [
-        "STM-RM-036"
-      ],
-      "sources": [
-        {
-          "material": "STM-RM-036",
-          "provisionalCode": "RM-ARSENIC",
-          "source": "Calcium Glycerophosphate__Calcium Glycerophosphate-SM.txt:38"
-        }
-      ]
-    },
-    {
-      "code": "RM-TIT-CAGLY-036",
-      "displayName": "Assay of Calcium Glycerophosphate (complexometric titration)",
-      "kind": "specific",
-      "section": "Physicochemical Laboratory",
-      "workflowType": "Titration",
-      "equationType": "Titration",
-      "physchemArea": "RawPackaging",
-      "titrationType": "Complexometric",
-      "titrationMode": "Direct",
-      "titrationCalculation": "UspFactor",
-      "titrantSolution": "0.1 M Sodium edetate VS",
-      "titrationEquivalencyFactor": 40.08,
-      "titrationEquivalencyFactorDerivation": "4.008 mg Ca per mL of 0.1 M sodium edetate / 0.1 = 40.08 mg/mmol",
-      "titrationIndicatorEntry": "Calconcarboxylic acid triturate",
-      "titrationEndpoint": "Visual",
-      "titrationBlankRequired": false,
-      "replicateCount": 1,
-      "complete": true,
-      "notes": "Dissolve 0.200 g previously dried at 150 °C for 4 h in water to 300 mL; add 6.0 mL strong NaOH and ~200 mg calconcarboxylic acid triturate; titrate with 0.1 M sodium edetate from violet to full blue. 1 mL 0.1 M sodium edetate = 4.008 mg Ca. Limit 18.6%-19.4% Ca on dried substance (BP Appendix VIII D; source: Calcium Glycerophosphate__Calcium Glycerophosphate-SM.txt:41).",
-      "usedBy": [
-        "STM-RM-036"
-      ],
-      "sources": [
-        {
-          "material": "STM-RM-036",
-          "provisionalCode": "RM-TIT-CAGLY",
-          "source": "Calcium Glycerophosphate__Calcium Glycerophosphate-SM.txt:41"
-        }
-      ]
-    },
-    {
       "code": "RM-ID-CU-030",
       "displayName": "Identification of Copper Sulfate Pentahydrate (reactions of copper)",
       "kind": "specific",
@@ -393,48 +234,6 @@
           "material": "STM-RM-030",
           "provisionalCode": "RM-ID-CU-CUSO4",
           "source": "Cooper Sulfate Pentahydrate__Copper Sulphate pentahydrate-SM.txt:30"
-        }
-      ]
-    },
-    {
-      "code": "RM-ID-SO4-030",
-      "displayName": "Identification of Copper Sulfate Pentahydrate (reactions of sulfate)",
-      "kind": "specific",
-      "section": "Physicochemical Laboratory",
-      "workflowType": "Qualitative",
-      "equationType": "Qualitative",
-      "physchemArea": "RawPackaging",
-      "complete": true,
-      "notes": "45 mg in 5 mL water + 1 mL dilute HCl + 1 mL barium chloride: white precipitate (BP Appendix VI Sulfates; source: Cooper Sulfate Pentahydrate__Copper Sulphate pentahydrate-SM.txt:30).",
-      "usedBy": [
-        "STM-RM-030"
-      ],
-      "sources": [
-        {
-          "material": "STM-RM-030",
-          "provisionalCode": "RM-ID-SO4-CUSO4",
-          "source": "Cooper Sulfate Pentahydrate__Copper Sulphate pentahydrate-SM.txt:30"
-        }
-      ]
-    },
-    {
-      "code": "RM-LT-PB-030",
-      "displayName": "Lead (limit test by AAS for Copper Sulfate Pentahydrate)",
-      "kind": "specific",
-      "section": "Physicochemical Laboratory",
-      "workflowType": "Qualitative",
-      "equationType": "Qualitative",
-      "physchemArea": "RawPackaging",
-      "complete": true,
-      "notes": "0.5 g in 10 mL water + 2.5 mL lead-free HNO3 to 25.0 mL; measured by flame AAS at 217 nm (air-acetylene) vs lead standard 2.5 ppm Pb (NMT 5 ppm). (BP Appendix II D; source: Cooper Sulfate Pentahydrate__Copper Sulphate pentahydrate-SM.txt:32).",
-      "usedBy": [
-        "STM-RM-030"
-      ],
-      "sources": [
-        {
-          "material": "STM-RM-030",
-          "provisionalCode": "RM-LEAD",
-          "source": "Cooper Sulfate Pentahydrate__Copper Sulphate pentahydrate-SM.txt:32"
         }
       ]
     },
@@ -529,71 +328,6 @@
           "material": "STM-RM-030",
           "provisionalCode": "RM-TIT-CUSO4",
           "source": "Cooper Sulfate Pentahydrate__Copper Sulphate pentahydrate-SM.txt:38"
-        }
-      ]
-    },
-    {
-      "code": "RM-DISP-119",
-      "displayName": "Dispersion (Opadry Pink)",
-      "kind": "specific",
-      "section": "Physicochemical Laboratory",
-      "workflowType": "Qualitative",
-      "equationType": "Qualitative",
-      "physchemArea": "RawPackaging",
-      "complete": true,
-      "notes": "Disperse 1 g of sample into 20 mL of water; the sample diffuses into water to make a uniform matrix; in-house specification: disperse in water (source: Opadry Pink__STM Opadry Pink.txt:31).",
-      "usedBy": [
-        "STM-RM-119"
-      ],
-      "sources": [
-        {
-          "material": "STM-RM-119",
-          "provisionalCode": "RM-DISP-OPADRYPINK",
-          "source": "Opadry Pink__STM Opadry Pink.txt:31"
-        }
-      ]
-    },
-    {
-      "code": "RM-ID-FILM-119",
-      "displayName": "Identification (Film formation, Opadry Pink)",
-      "kind": "specific",
-      "section": "Physicochemical Laboratory",
-      "workflowType": "Qualitative",
-      "equationType": "Qualitative",
-      "physchemArea": "RawPackaging",
-      "complete": true,
-      "notes": "Make a slurry of the powder in an equal-volume mixture of isopropyl alcohol and methylene dichloride, pour it onto a glass tile and dry; a film must form (source: Opadry Pink__STM Opadry Pink.txt:32).",
-      "usedBy": [
-        "STM-RM-119"
-      ],
-      "sources": [
-        {
-          "material": "STM-RM-119",
-          "provisionalCode": "RM-ID-FILM-OPADRYPINK",
-          "source": "Opadry Pink__STM Opadry Pink.txt:32"
-        }
-      ]
-    },
-    {
-      "code": "RM-ASH-119",
-      "displayName": "Ash content (Total ash, Opadry Pink)",
-      "kind": "specific",
-      "section": "Physicochemical Laboratory",
-      "workflowType": "Gravimetric",
-      "equationType": "GravimetricResidue",
-      "physchemArea": "RawPackaging",
-      "replicateCount": 1,
-      "usesTare": true,
-      "complete": true,
-      "notes": "Empty crucible previously ignited at 800 °C (W1); weigh ~1.0 g sample into it (W2); ignite in muffle at 800 ± 50 °C for 2 h; cool in desiccator; weigh crucible with residue (W4). Residue W3 = W4 - W1; total ash % = (W4 - W1) / W2 x 100. Limit: 15.08%-20.41% w/w (source: Opadry Pink__STM Opadry Pink.txt:33).",
-      "usedBy": [
-        "STM-RM-119"
-      ],
-      "sources": [
-        {
-          "material": "STM-RM-119",
-          "provisionalCode": "RM-ASH-OPADRYPINK",
-          "source": "Opadry Pink__STM Opadry Pink.txt:33"
         }
       ]
     },
@@ -1055,29 +789,29 @@
     "STM-RM-125": {
       "E.coli": "E.coli",
       "RM-ACIDDEM-VEEGUM": "RM-ACIDDEM-125",
-      "RM-ARSENIC": "RM-LT-AS-125",
+      "RM-ARSENIC": "RM-LT-AS",
       "RM-DESC": "RM-DESC",
       "RM-ICP-AL-MG-VEEGUM": "RM-ICP-ALMG-125",
       "RM-ID-AAS-VEEGUM": "RM-ID-AAS-125",
       "RM-ID-PHOS-VEEGUM": "RM-ID-PHOS-125",
       "RM-ID-PINK-VEEGUM": "RM-ID-PINK-125",
       "RM-ID-SILICATE-VEEGUM": "RM-ID-SILICATE-125",
-      "RM-LEAD": "RM-LT-PB-125",
+      "RM-LEAD": "RM-LT-PB-AAS",
       "RM-LOD": "RM-LOD",
       "RM-PH": "RM-PH",
       "RM-SOLUB": "RM-SOLUB",
-      "RM-VISC": "RM-VISC-125",
+      "RM-VISC": "RM-VISC",
       "TAMC": "TAMC",
       "TYMC": "TYMC"
     },
     "STM-RM-036": {
       "E.coli": "E.coli",
-      "RM-ACIDALK-CAGLY": "RM-ACIDALK-036",
-      "RM-ARSENIC": "RM-LT-AS-036",
+      "RM-ACIDALK-CAGLY": "RM-ACIDALK",
+      "RM-ARSENIC": "RM-LT-AS",
       "RM-CITRIC-CAGLY": "RM-CITRIC-036",
       "RM-DESC": "RM-DESC",
       "RM-ETOH-SOL-CAGLY": "RM-ETOH-SOL-036",
-      "RM-ID-CA-CAGLY": "RM-ID-CA-036",
+      "RM-ID-CA-CAGLY": "RM-ID-CA",
       "RM-ID-PIP-CAGLY": "RM-ID-PIP-036",
       "RM-ID-PO4": "RM-ID-PO4",
       "RM-LOD": "RM-LOD",
@@ -1087,7 +821,7 @@
       "RM-LT-SO4": "RM-LT-SO4",
       "RM-SOLAPP": "RM-SOLAPP",
       "RM-SOLUB": "RM-SOLUB",
-      "RM-TIT-CAGLY": "RM-TIT-CAGLY-036",
+      "RM-TIT-CAGLY": "RM-TIT-CA-EDTA",
       "TAMC": "TAMC",
       "TYMC": "TYMC"
     },
@@ -1096,8 +830,8 @@
       "RM-CO-CUSO4": "RM-LT-CO-030",
       "RM-DESC": "RM-DESC",
       "RM-ID-CU-CUSO4": "RM-ID-CU-030",
-      "RM-ID-SO4-CUSO4": "RM-ID-SO4-030",
-      "RM-LEAD": "RM-LT-PB-030",
+      "RM-ID-SO4-CUSO4": "RM-ID-SO4",
+      "RM-LEAD": "RM-LT-PB-AAS",
       "RM-LOD": "RM-LOD",
       "RM-LT-CL": "RM-LT-CL",
       "RM-LT-FE": "RM-LT-FE-030",
@@ -1110,10 +844,10 @@
     },
     "STM-RM-119": {
       "E.coli": "E.coli",
-      "RM-ASH-OPADRYPINK": "RM-ASH-119",
+      "RM-ASH-OPADRYPINK": "RM-ASH",
       "RM-DESC": "RM-DESC",
-      "RM-DISP-OPADRYPINK": "RM-DISP-119",
-      "RM-ID-FILM-OPADRYPINK": "RM-ID-FILM-119",
+      "RM-DISP-OPADRYPINK": "RM-DISP",
+      "RM-ID-FILM-OPADRYPINK": "RM-ID-FILM",
       "TAMC": "TAMC",
       "TYMC": "TYMC"
     },

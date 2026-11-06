@@ -74,29 +74,6 @@
       ]
     },
     {
-      "code": "RM-WAT-SOL",
-      "displayName": "Water-soluble substances",
-      "kind": "specific",
-      "section": "Physicochemical Laboratory",
-      "workflowType": "Gravimetric",
-      "equationType": "GravimetricResidue",
-      "physchemArea": "RawPackaging",
-      "replicateCount": 1,
-      "usesTare": true,
-      "complete": true,
-      "notes": "5.0 g shaken with 80 mL water for 10 min, filtered, evaporated to dryness, dried at 105 °C for 1 h with blank. (BP 2024 / USP 2024).",
-      "usedBy": [
-        "STM-RM-081"
-      ],
-      "sources": [
-        {
-          "material": "STM-RM-081",
-          "provisionalCode": "RM-WAT-SOL",
-          "source": "Microcrystalline Cellulose 102__STM Microcrystalline Cellulose with merge.txt:36"
-        }
-      ]
-    },
-    {
       "code": "RM-SAUR",
       "displayName": "Staphylococcus aureus",
       "kind": "general",
@@ -189,27 +166,6 @@
       ]
     },
     {
-      "code": "RM-ID-CR-MG",
-      "displayName": "Identification of Magnesium (reaction of magnesium, Test C)",
-      "kind": "specific",
-      "section": "Physicochemical Laboratory",
-      "workflowType": "Qualitative",
-      "equationType": "Qualitative",
-      "physchemArea": "RawPackaging",
-      "complete": true,
-      "notes": "1 mL solution S + 1 mL dilute ammonia R1 (white precipitate forms, dissolves on 1 mL ammonium chloride); add 1 mL 120 g/L disodium hydrogen phosphate (white crystalline precipitate forms). (BP 2025).",
-      "usedBy": [
-        "STM-RM-086"
-      ],
-      "sources": [
-        {
-          "material": "STM-RM-086",
-          "provisionalCode": "RM-ID-CR-MG",
-          "source": "Magnesium Stearate__Magnesium Stearate - SM.txt:32"
-        }
-      ]
-    },
-    {
       "code": "RM-ID-FP-MG",
       "displayName": "Freezing point of fatty acids (Magnesium Stearate ID Test B)",
       "kind": "specific",
@@ -252,29 +208,6 @@
           "material": "STM-RM-086",
           "provisionalCode": "RM-ID-AV-MG",
           "source": "Magnesium Stearate__Magnesium Stearate - SM.txt:32"
-        }
-      ]
-    },
-    {
-      "code": "RM-ACID-ALK-MG",
-      "displayName": "Acidity or alkalinity (Magnesium Stearate)",
-      "kind": "specific",
-      "section": "Physicochemical Laboratory",
-      "workflowType": "Measurement",
-      "equationType": "Measurement",
-      "physchemArea": "RawPackaging",
-      "replicateCount": 1,
-      "evaluationBasis": "Mean",
-      "complete": true,
-      "notes": "1.0 g boiled in 20 mL CO2-free water for 1 min, cool, filter. To 10 mL filtrate add 0.05 mL bromothymol blue R4; NMT 0.05 mL of 0.1 M HCl or 0.1 M NaOH to change colour. Decision 2026-11-04: Measurement test, analyst enters titrant volume in mL.",
-      "usedBy": [
-        "STM-RM-086"
-      ],
-      "sources": [
-        {
-          "material": "STM-RM-086",
-          "provisionalCode": "RM-ACID-ALK-MG",
-          "source": "Magnesium Stearate__Magnesium Stearate - SM.txt:33"
         }
       ]
     },
@@ -329,29 +262,6 @@
           "material": "STM-RM-059",
           "provisionalCode": "RM-ID-CR-ATOC",
           "source": "D-Alpha Tocopherol Succinate__STM for Alpha tocopherol Succinate.txt:29"
-        }
-      ]
-    },
-    {
-      "code": "RM-ACID-ATOC",
-      "displayName": "Acidity of D-Alpha Tocopheryl Succinate",
-      "kind": "specific",
-      "section": "Physicochemical Laboratory",
-      "workflowType": "Measurement",
-      "equationType": "Measurement",
-      "physchemArea": "RawPackaging",
-      "replicateCount": 1,
-      "evaluationBasis": "Mean",
-      "complete": true,
-      "notes": "1.0 g dissolved in 25 mL ethanol, 0.5 mL phenolphthalein, titrate with 0.10 N NaOH until pink colour persists. Specification: 18.0 to 19.3 mL of 0.10 N NaOH. Decision 2026-11-04: Measurement test, analyst enters titrant volume in mL.",
-      "usedBy": [
-        "STM-RM-059"
-      ],
-      "sources": [
-        {
-          "material": "STM-RM-059",
-          "provisionalCode": "RM-ACID-ATOC",
-          "source": "D-Alpha Tocopherol Succinate__STM for Alpha tocopherol Succinate.txt:31"
         }
       ]
     },
@@ -662,7 +572,7 @@
       "RM-SOLUB": "RM-SOLUB",
       "RM-TAMC": "TAMC",
       "RM-TYMC": "TYMC",
-      "RM-WAT-SOL": "RM-WAT-SOL"
+      "RM-WAT-SOL": "RM-WSS"
     },
     "STM-RM-012": {
       "RM-DESC": "RM-DESC",
@@ -675,11 +585,11 @@
       "RM-TYMC": "TYMC"
     },
     "STM-RM-086": {
-      "RM-ACID-ALK-MG": "RM-ACID-ALK-MG",
+      "RM-ACID-ALK-MG": "RM-ACIDALK-VOL",
       "RM-DESC": "RM-DESC",
       "RM-ECOLI": "E.coli",
       "RM-ID-AV-MG": "RM-ID-AV-MG",
-      "RM-ID-CR-MG": "RM-ID-CR-MG",
+      "RM-ID-CR-MG": "RM-ID-MG",
       "RM-ID-FP-MG": "RM-ID-FP-MG",
       "RM-LOD": "RM-LOD",
       "RM-LT-CL": "RM-LT-CL",
@@ -691,7 +601,7 @@
       "RM-TYMC": "TYMC"
     },
     "STM-RM-059": {
-      "RM-ACID-ATOC": "RM-ACID-ATOC",
+      "RM-ACID-ATOC": "RM-ACIDALK-VOL",
       "RM-BULKD": "RM-BULKD",
       "RM-DESC": "RM-DESC",
       "RM-ECOLI": "E.coli",

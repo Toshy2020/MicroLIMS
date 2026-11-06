@@ -69,29 +69,6 @@
       ]
     },
     {
-      "code": "RM-ACID-KSORB-047",
-      "displayName": "Acidity or alkalinity of potassium sorbate",
-      "kind": "specific",
-      "section": "Physicochemical Laboratory",
-      "workflowType": "Measurement",
-      "equationType": "Measurement",
-      "physchemArea": "RawPackaging",
-      "replicateCount": 1,
-      "evaluationBasis": "Mean",
-      "complete": true,
-      "notes": "20 mL solution S + 0.1 mL phenolphthalein solution, titrate with 0.1 M NaOH or 0.1 M HCl to colour change; mL volume result (NMT 0.25 mL) cannot be calculated by the titration workflow, analyst enters final mL value (CATALOG.md rule 6). BP Appendix V L. Source: Potassium Sorbate__STM Potassium Sorbate.txt:32",
-      "usedBy": [
-        "STM-RM-047"
-      ],
-      "sources": [
-        {
-          "material": "STM-RM-047",
-          "provisionalCode": "RM-ACID-KSORB",
-          "source": "Potassium Sorbate__STM Potassium Sorbate.txt:32"
-        }
-      ]
-    },
-    {
       "code": "RM-ALD-KSORB-047",
       "displayName": "Aldehydes (limit test)",
       "kind": "specific",
@@ -193,98 +170,6 @@
       ]
     },
     {
-      "code": "RM-ACIDINS-CA",
-      "displayName": "Acid-insoluble substances (calcium carbonate)",
-      "kind": "specific",
-      "section": "Physicochemical Laboratory",
-      "workflowType": "Gravimetric",
-      "equationType": "GravimetricResidue",
-      "physchemArea": "RawPackaging",
-      "replicateCount": 1,
-      "usesTare": true,
-      "complete": true,
-      "notes": "5.0 g mixed with 10 mL water, add dilute HCl dropwise with agitation until effervescence ceases, add water to 200 mL, filter, wash residue chloride-free, ignite (600 +/- 50 C in 078), weigh residue. Shared between Calcium Carbonate STM-RM-078 and Calcium Carbonate DC STM-RM-142 (same procedure, CATALOG.md rule 2). Source: Calcium Carbonate__STM Calcium Carbonate - New.txt:33; Calcium Carbonate DC__Calcium Carbonate DC-SM - Micro.txt:33",
-      "usedBy": [
-        "STM-RM-078",
-        "STM-RM-142"
-      ],
-      "sources": [
-        {
-          "material": "STM-RM-078",
-          "provisionalCode": "RM-ACIDINS-CACO3",
-          "source": "Calcium Carbonate__STM Calcium Carbonate - New.txt:33"
-        },
-        {
-          "material": "STM-RM-142",
-          "provisionalCode": "RM-ACIDINS-CADC",
-          "source": "Calcium Carbonate DC__Calcium Carbonate DC-SM - Micro.txt:33"
-        }
-      ]
-    },
-    {
-      "code": "RM-LT-PB-078",
-      "displayName": "Lead (limit test, dithizone)",
-      "kind": "specific",
-      "section": "Physicochemical Laboratory",
-      "workflowType": "Qualitative",
-      "equationType": "Qualitative",
-      "physchemArea": "RawPackaging",
-      "complete": true,
-      "notes": "1.0 g in 5 mL water + 8 mL 3 N HCl, evaporate to dryness, dissolve in 5 mL water; citrate, hydroxylamine, ammonia, potassium cyanide, dithizone extraction; visual comparison vs 3 ug lead standard (NMT 3 ppm). USP <251>. Source: Calcium Carbonate__STM Calcium Carbonate - New.txt:35",
-      "usedBy": [
-        "STM-RM-078"
-      ],
-      "sources": [
-        {
-          "material": "STM-RM-078",
-          "provisionalCode": "RM-LT-PB-CACO3",
-          "source": "Calcium Carbonate__STM Calcium Carbonate - New.txt:35"
-        }
-      ]
-    },
-    {
-      "code": "RM-LT-AS-078",
-      "displayName": "Arsenic (limit test)",
-      "kind": "specific",
-      "section": "Physicochemical Laboratory",
-      "workflowType": "Qualitative",
-      "equationType": "Qualitative",
-      "physchemArea": "RawPackaging",
-      "complete": true,
-      "notes": "1.0 g dissolved in 15 mL HCl to 55 mL vs 3.0 mL arsenic standard solution to 35 mL. KI, SnCl2, granular zinc in scrubber with lead acetate cotton into silver diethyldithiocarbamate TS (NMT 3 ppm). USP <211>. Source: Calcium Carbonate__STM Calcium Carbonate - New.txt:36",
-      "usedBy": [
-        "STM-RM-078"
-      ],
-      "sources": [
-        {
-          "material": "STM-RM-078",
-          "provisionalCode": "RM-LT-AS-CACO3",
-          "source": "Calcium Carbonate__STM Calcium Carbonate - New.txt:36"
-        }
-      ]
-    },
-    {
-      "code": "RM-LT-BA-078",
-      "displayName": "Barium (flame test)",
-      "kind": "specific",
-      "section": "Physicochemical Laboratory",
-      "workflowType": "Qualitative",
-      "equationType": "Qualitative",
-      "physchemArea": "RawPackaging",
-      "complete": true,
-      "notes": "Platinum wire dipped in filtrate from acid-insoluble substances, held in non-luminous flame: no green colour imparted to flame. USP monograph. Source: Calcium Carbonate__STM Calcium Carbonate - New.txt:37",
-      "usedBy": [
-        "STM-RM-078"
-      ],
-      "sources": [
-        {
-          "material": "STM-RM-078",
-          "provisionalCode": "RM-LT-BA-CACO3",
-          "source": "Calcium Carbonate__STM Calcium Carbonate - New.txt:37"
-        }
-      ]
-    },
-    {
       "code": "RM-FL-CACO3-078",
       "displayName": "Fluoride (potentiometric, ISE)",
       "kind": "specific",
@@ -368,50 +253,6 @@
       ]
     },
     {
-      "code": "RM-PSD-CACO3-078",
-      "displayName": "Particle size distribution (laser diffraction / analyser)",
-      "kind": "specific",
-      "section": "Physicochemical Laboratory",
-      "workflowType": "Measurement",
-      "equationType": "Measurement",
-      "physchemArea": "RawPackaging",
-      "replicateCount": 1,
-      "evaluationBasis": "Mean",
-      "complete": true,
-      "notes": "Measured with calibrated particle size analyser, mass percentage in sieve size ranges (D10 1.5 um, D50 6 um, D90 12 um). Qualitative row. Source: Calcium Carbonate__STM Calcium Carbonate - New.txt:43",
-      "usedBy": [
-        "STM-RM-078"
-      ],
-      "sources": [
-        {
-          "material": "STM-RM-078",
-          "provisionalCode": "RM-PSD-CACO3",
-          "source": "Calcium Carbonate__STM Calcium Carbonate - New.txt:43"
-        }
-      ]
-    },
-    {
-      "code": "RM-ID-CA",
-      "displayName": "Identification (reaction of calcium)",
-      "kind": "general",
-      "section": "Physicochemical Laboratory",
-      "workflowType": "Qualitative",
-      "equationType": "Qualitative",
-      "physchemArea": "RawPackaging",
-      "complete": true,
-      "notes": "0.1 g in 2 mL dilute HCl + 1 mL 6 N NH4OH + 1 mL ammonium oxalate TS: white precipitate soluble in HCl and insoluble in acetic acid. BP Appendix VI / USP <191>. Source: Calcium Carbonate DC__Calcium Carbonate DC-SM - Micro.txt:32",
-      "usedBy": [
-        "STM-RM-142"
-      ],
-      "sources": [
-        {
-          "material": "STM-RM-142",
-          "provisionalCode": "RM-ID-CA-CADC",
-          "source": "Calcium Carbonate DC__Calcium Carbonate DC-SM - Micro.txt:32"
-        }
-      ]
-    },
-    {
       "code": "RM-ID-CO3",
       "displayName": "Identification (reaction of carbonate)",
       "kind": "general",
@@ -429,37 +270,6 @@
           "material": "STM-RM-142",
           "provisionalCode": "RM-ID-CO3-CADC",
           "source": "Calcium Carbonate DC__Calcium Carbonate DC-SM - Micro.txt:32"
-        }
-      ]
-    },
-    {
-      "code": "RM-TIT-CADC-142",
-      "displayName": "Assay of calcium carbonate DC (complexometric titration)",
-      "kind": "specific",
-      "section": "Physicochemical Laboratory",
-      "workflowType": "Titration",
-      "equationType": "Titration",
-      "physchemArea": "RawPackaging",
-      "titrationType": "Complexometric",
-      "titrationMode": "Direct",
-      "titrationEndpoint": "Visual",
-      "titrantSolution": "0.1 M Sodium edetate VS",
-      "titrationBlankRequired": false,
-      "titrationEquivalencyFactor": 40.08,
-      "titrationEquivalencyFactorDerivation": "4.008 mg Ca per mL of 0.1 M sodium edetate / 0.1 = 40.08 mg/mmol",
-      "titrationIndicatorEntry": "Calconcarboxylic acid triturate",
-      "replicateCount": 1,
-      "titrationCalculation": "UspFactor",
-      "complete": true,
-      "notes": "0.150 g in 3 mL dilute HCl + 20 mL water, boil 2 min, dilute to 50 mL, add 6.0 mL strong NaOH and about 200 mg calconcarboxylic acid triturate; titrate with 0.1 M sodium edetate VS from violet to full blue. Equivalence: 1 mL 0.1 M = 4.008 mg Ca. Titrant 0.1 M sodium edetate VS is complete: false (no recipe in STM). BP Appendix VIII D. Source: Calcium Carbonate DC__Calcium Carbonate DC-SM - Micro.txt:38",
-      "usedBy": [
-        "STM-RM-142"
-      ],
-      "sources": [
-        {
-          "material": "STM-RM-142",
-          "provisionalCode": "RM-TIT-CADC",
-          "source": "Calcium Carbonate DC__Calcium Carbonate DC-SM - Micro.txt:38"
         }
       ]
     }
@@ -666,7 +476,7 @@
   "mapping": {
     "STM-RM-047": {
       "E.coli": "E.coli",
-      "RM-ACID-KSORB": "RM-ACID-KSORB-047",
+      "RM-ACID-KSORB": "RM-ACIDALK-VOL",
       "RM-ALD-KSORB": "RM-ALD-KSORB-047",
       "RM-DESC": "RM-DESC",
       "RM-ID-IR": "RM-ID-IR",
@@ -690,18 +500,18 @@
     },
     "STM-RM-078": {
       "E.coli": "E.coli",
-      "RM-ACIDINS-CACO3": "RM-ACIDINS-CA",
+      "RM-ACIDINS-CACO3": "RM-AIS",
       "RM-BULKD": "RM-BULKD",
       "RM-DESC": "RM-DESC",
       "RM-FL-CACO3": "RM-FL-CACO3-078",
       "RM-ID-CA-CACO3": "RM-ID-CA-078",
       "RM-LOD": "RM-LOD",
-      "RM-LT-AS-CACO3": "RM-LT-AS-078",
-      "RM-LT-BA-CACO3": "RM-LT-BA-078",
+      "RM-LT-AS-CACO3": "RM-LT-AS",
+      "RM-LT-BA-CACO3": "RM-BA",
       "RM-LT-FE": "RM-LT-FE",
-      "RM-LT-PB-CACO3": "RM-LT-PB-078",
+      "RM-LT-PB-CACO3": "RM-LT-PB",
       "RM-MG-ALK-CACO3": "RM-MG-ALK-CA",
-      "RM-PSD-CACO3": "RM-PSD-CACO3-078",
+      "RM-PSD-CACO3": "RM-PSD",
       "RM-SOLUB": "RM-SOLUB",
       "RM-TIT-CACO3": "RM-TIT-CACO3-078",
       "TAMC": "TAMC",
@@ -709,7 +519,7 @@
     },
     "STM-RM-142": {
       "E.coli": "E.coli",
-      "RM-ACIDINS-CADC": "RM-ACIDINS-CA",
+      "RM-ACIDINS-CADC": "RM-AIS",
       "RM-DESC": "RM-DESC",
       "RM-ID-CA-CADC": "RM-ID-CA",
       "RM-ID-CO3-CADC": "RM-ID-CO3",
@@ -718,14 +528,14 @@
       "RM-MG-ALK-CADC": "RM-MG-ALK-CA",
       "RM-SOLUB": "RM-SOLUB",
       "RM-TAPDEN": "RM-TAPDEN",
-      "RM-TIT-CADC": "RM-TIT-CADC-142",
+      "RM-TIT-CADC": "RM-TIT-CA-EDTA",
       "Salmonella ": "Salmonella ",
       "TAMC": "TAMC",
       "TYMC": "TYMC"
     },
     "STM-RM-142-DC": {
       "E.coli": "E.coli",
-      "RM-ACIDINS-CADC": "RM-ACIDINS-CA",
+      "RM-ACIDINS-CADC": "RM-AIS",
       "RM-DESC": "RM-DESC",
       "RM-ID-CA-CADC": "RM-ID-CA",
       "RM-ID-CO3-CADC": "RM-ID-CO3",
@@ -734,7 +544,7 @@
       "RM-MG-ALK-CADC": "RM-MG-ALK-CA",
       "RM-SOLUB": "RM-SOLUB",
       "RM-TAPDEN": "RM-TAPDEN",
-      "RM-TIT-CADC": "RM-TIT-CADC-142",
+      "RM-TIT-CADC": "RM-TIT-CA-EDTA",
       "Salmonella ": "Salmonella ",
       "TAMC": "TAMC",
       "TYMC": "TYMC"

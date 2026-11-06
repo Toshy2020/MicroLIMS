@@ -99,75 +99,6 @@
       "heldBack": "needs the held-back method \"Fluconazole organic impurities (USP, HPLC)\""
     },
     {
-      "code": "RM-SG-139",
-      "displayName": "Specific gravity (pycnometer, Omega-3 Fish Oil)",
-      "kind": "specific",
-      "section": "Physicochemical Laboratory",
-      "workflowType": "Measurement",
-      "equationType": "Measurement",
-      "physchemArea": "RawPackaging",
-      "replicateCount": 1,
-      "evaluationBasis": "Mean",
-      "complete": true,
-      "notes": "Weigh empty pycnometer (W1); fill with water and weigh at 20 °C (W2); fill with sample and weigh at 20 °C (W3). S.G. = (W3 - W1) / (W2 - W1). BP Appendix V G (source: Omega-3 Fish Oil__Omega-3 Fish Oil - SM AMV aafter edit.txt:31).",
-      "usedBy": [
-        "STM-RM-139"
-      ],
-      "sources": [
-        {
-          "material": "STM-RM-139",
-          "provisionalCode": "RM-SG-O3",
-          "source": "Omega-3 Fish Oil__Omega-3 Fish Oil - SM AMV aafter edit.txt:31"
-        }
-      ]
-    },
-    {
-      "code": "RM-PV-139",
-      "displayName": "Peroxide value (Omega-3 Fish Oil)",
-      "kind": "specific",
-      "section": "Physicochemical Laboratory",
-      "workflowType": "Measurement",
-      "equationType": "Measurement",
-      "physchemArea": "RawPackaging",
-      "replicateCount": 1,
-      "evaluationBasis": "Mean",
-      "complete": true,
-      "notes": "Place 5.00 g in 250 mL conical flask, add 30 mL chloroform : glacial acetic acid (2:3), dissolve, add 0.5 mL saturated KI, shake exactly 1 min, add 30 mL water, titrate with 0.01 M sodium thiosulfate to starch discharge (n1 mL) against blank (n2 mL, NMT 0.1 mL). Measurement test, analyst enters the final value in meq/kg (calculation expression not stated in STM and unit meq/kg not calculated by % titration workflow; CATALOG.md rule 6; source: Omega-3 Fish Oil__Omega-3 Fish Oil - SM AMV aafter edit.txt:32).",
-      "usedBy": [
-        "STM-RM-139"
-      ],
-      "sources": [
-        {
-          "material": "STM-RM-139",
-          "provisionalCode": "RM-PV-O3",
-          "source": "Omega-3 Fish Oil__Omega-3 Fish Oil - SM AMV aafter edit.txt:32"
-        }
-      ]
-    },
-    {
-      "code": "RM-AV-139",
-      "displayName": "Acid value (Omega-3 Fish Oil)",
-      "kind": "specific",
-      "section": "Physicochemical Laboratory",
-      "workflowType": "Measurement",
-      "equationType": "Measurement",
-      "physchemArea": "RawPackaging",
-      "replicateCount": 1,
-      "evaluationBasis": "Mean",
-      "complete": true,
-      "notes": "Dissolve 10.00 g in 50 mL neutralised ethanol (96%) : light petroleum (1:1), add 0.5 mL phenolphthalein solution R1, titrate with 0.1 M KOH or 0.1 M NaOH until pink persists at least 15 s (n mL). Measurement test, analyst enters final value in mg/g (mg KOH/g not calculated by % titration workflow; CATALOG.md rule 6; source: Omega-3 Fish Oil__Omega-3 Fish Oil - SM AMV aafter edit.txt:33).",
-      "usedBy": [
-        "STM-RM-139"
-      ],
-      "sources": [
-        {
-          "material": "STM-RM-139",
-          "provisionalCode": "RM-AV-O3",
-          "source": "Omega-3 Fish Oil__Omega-3 Fish Oil - SM AMV aafter edit.txt:33"
-        }
-      ]
-    },
-    {
       "code": "RM-ABS233-139",
       "displayName": "Absorbance at 233 nm (Omega-3 Fish Oil)",
       "kind": "specific",
@@ -208,29 +139,6 @@
           "material": "P.Honey",
           "provisionalCode": "RM-ID-TLC-HON",
           "source": "Purified Honey - Micro__STM Purified Honey.txt:31-39"
-        }
-      ]
-    },
-    {
-      "code": "RM-REFR-123",
-      "displayName": "Refractive index (Purified Honey)",
-      "kind": "specific",
-      "section": "Physicochemical Laboratory",
-      "workflowType": "Measurement",
-      "equationType": "Measurement",
-      "physchemArea": "RawPackaging",
-      "replicateCount": 1,
-      "evaluationBasis": "Mean",
-      "complete": true,
-      "notes": "Homogenize 100 g honey in flask, close tightly, place in water bath at 50 ± 0.2 °C until crystals dissolve; cool to 20 °C and re-homogenize. Cover prism of calibrated refractometer with sample; read refractive index after 4 min at 20 °C. BP Appendix V E (source: Purified Honey - Micro__STM Purified Honey.txt:40).",
-      "usedBy": [
-        "P.Honey"
-      ],
-      "sources": [
-        {
-          "material": "P.Honey",
-          "provisionalCode": "RM-REFR-HON",
-          "source": "Purified Honey - Micro__STM Purified Honey.txt:40"
         }
       ]
     },
@@ -591,10 +499,10 @@
     "STM-RM-139": {
       "E.coli": "E.coli",
       "RM-ABS233-O3": "RM-ABS233-139",
-      "RM-AV-O3": "RM-AV-139",
+      "RM-AV-O3": "RM-AV",
       "RM-DESC": "RM-DESC",
-      "RM-PV-O3": "RM-PV-139",
-      "RM-SG-O3": "RM-SG-139",
+      "RM-PV-O3": "RM-PV",
+      "RM-SG-O3": "RM-RELDENS",
       "Salmonella ": "Salmonella ",
       "TAMC": "TAMC",
       "TYMC": "TYMC"
@@ -608,7 +516,7 @@
       "RM-LT-CL": "RM-LT-CL",
       "RM-LT-SO4": "RM-LT-SO4",
       "RM-OPTROT": "RM-OPTROT",
-      "RM-REFR-HON": "RM-REFR-123",
+      "RM-REFR-HON": "RM-REFIDX",
       "Salmonella ": "Salmonella ",
       "TAMC": "TAMC",
       "TYMC": "TYMC"

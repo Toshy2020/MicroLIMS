@@ -1,0 +1,1006 @@
+{
+  "testDefinitions": [
+    {
+      "code": "RM-REFIDX",
+      "displayName": "Refractive index",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Measurement",
+      "equationType": "Measurement",
+      "physchemArea": "RawPackaging",
+      "replicateCount": 1,
+      "evaluationBasis": "Mean",
+      "complete": true,
+      "notes": "Shared test; the item specification holds the limits. Procedure notes by former code: RM-REFIDX-141: Determine on sufficient amount of sample with calibrated refractometer. USP <831> Refractive Index (source: Panthenol__Panthenol - SM 1.txt:35). | RM-REFR-002: Determine on 5 mL sample with a calibrated refractometer (limit 1.473 to 1.476). (BP Appendix V E). Source: Lemon Oil__1-1_STM Lemon Oil.txt:30. | RM-REFIDX-080: Transfer sample to prism of calibrated refractometer and read refractive index on the scale. BP Appendix V E (source: Mint Flavor__STM Mint Flavor 1-3.txt:33). | RM-RI-087: Measured on calibrated refractometer at 25 °C (source: Orange Oil 5-Fold__Orange Oil 5-Fold - SM.txt:36). | RM-REFR-123: Homogenize 100 g honey in flask, close tightly, place in water bath at 50 ± 0.2 °C until crystals dissolve; cool to 20 °C and re-homogenize. Cover prism of calibrated refractometer with sample; read refractive index after 4 min at 20 °C. BP Appendix V E (source: Purified Honey - Micro__STM Purified Honey.txt:40). | RM-REFR-093: Measured on calibrated refractometer at 25 C.",
+      "usedBy": [
+        "P.Honey",
+        "STM-RM-002",
+        "STM-RM-080",
+        "STM-RM-087",
+        "STM-RM-093",
+        "STM-RM-141"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-141",
+          "provisionalCode": "RM-REFIDX",
+          "source": "Panthenol__Panthenol - SM 1.txt:35"
+        },
+        {
+          "material": "STM-RM-002",
+          "provisionalCode": "RM-REFR-LEMON",
+          "source": "Lemon Oil__1-1_STM Lemon Oil.txt:30"
+        },
+        {
+          "material": "STM-RM-080",
+          "provisionalCode": "RM-REFIDX",
+          "source": "Mint Flavor__STM Mint Flavor 1-3.txt:33"
+        },
+        {
+          "material": "STM-RM-087",
+          "provisionalCode": "RM-RI-OO",
+          "source": "Orange Oil 5-Fold__Orange Oil 5-Fold - SM.txt:36"
+        },
+        {
+          "material": "P.Honey",
+          "provisionalCode": "RM-REFR-HON",
+          "source": "Purified Honey - Micro__STM Purified Honey.txt:40"
+        },
+        {
+          "material": "STM-RM-093",
+          "provisionalCode": "RM-REFR-INDEX-ORANGE",
+          "source": "Sweet Orange Oil__SM- Sweet Orange Oil new.txt:35"
+        }
+      ]
+    },
+    {
+      "code": "RM-RELDENS",
+      "displayName": "Relative density / specific gravity",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Measurement",
+      "equationType": "Measurement",
+      "physchemArea": "RawPackaging",
+      "replicateCount": 1,
+      "evaluationBasis": "Mean",
+      "complete": true,
+      "notes": "Shared test; the item specification holds the limits. Procedure notes by former code: RM-RELDENS-002: Pycnometer method: (Wt3 - Wt1) / (Wt2 - Wt1) (limit 0.850 to 0.858). Analyst enters calculated relative density value. (BP Appendix V G). Source: Lemon Oil__1-1_STM Lemon Oil.txt:32. | RM-RELDEN-080: Relative density by pycnometer: weigh dry empty pycnometer (W1), fill with water and weigh (W2), fill with sample and weigh (W3). Relative density = (W3 - W1) / (W2 - W1). BP Appendix V G (source: Mint Flavor__STM Mint Flavor 1-3.txt:32). | RM-RELDENS-093: Pycnometer method (W3 - W1) / (W2 - W1) at 25 C. Analyst enters calculated relative density value. | RM-SG-139: Weigh empty pycnometer (W1); fill with water and weigh at 20 °C (W2); fill with sample and weigh at 20 °C (W3). S.G. = (W3 - W1) / (W2 - W1). BP Appendix V G (source: Omega-3 Fish Oil__Omega-3 Fish Oil - SM AMV aafter edit.txt:31). | RM-SG-087: Pycnometer method (W3 - W1) / (W2 - W1) at 25 °C. Analyst enters calculated specific gravity value (source: Orange Oil 5-Fold__Orange Oil 5-Fold - SM.txt:35).",
+      "usedBy": [
+        "STM-RM-002",
+        "STM-RM-080",
+        "STM-RM-087",
+        "STM-RM-093",
+        "STM-RM-139"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-002",
+          "provisionalCode": "RM-DENS-LEMON",
+          "source": "Lemon Oil__1-1_STM Lemon Oil.txt:32"
+        },
+        {
+          "material": "STM-RM-080",
+          "provisionalCode": "RM-RELDEN",
+          "source": "Mint Flavor__STM Mint Flavor 1-3.txt:32"
+        },
+        {
+          "material": "STM-RM-093",
+          "provisionalCode": "RM-RELDENS-ORANGE",
+          "source": "Sweet Orange Oil__SM- Sweet Orange Oil new.txt:34"
+        },
+        {
+          "material": "STM-RM-139",
+          "provisionalCode": "RM-SG-O3",
+          "source": "Omega-3 Fish Oil__Omega-3 Fish Oil - SM AMV aafter edit.txt:31"
+        },
+        {
+          "material": "STM-RM-087",
+          "provisionalCode": "RM-SG-OO",
+          "source": "Orange Oil 5-Fold__Orange Oil 5-Fold - SM.txt:35"
+        }
+      ]
+    },
+    {
+      "code": "RM-LT-AS",
+      "displayName": "Arsenic (limit test)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Qualitative",
+      "equationType": "Qualitative",
+      "physchemArea": "RawPackaging",
+      "complete": true,
+      "notes": "Shared test; the item specification holds the limits. Procedure notes by former code: RM-LT-AS-036: 0.33 g in 25 mL water, 15 mL HCl, 0.1 mL stannous chloride, 5 mL KI, 5 g activated zinc; silver diethyldithiocarbamate vs 1 mL 1 ppm As standard (NMT 3 ppm). (BP Appendix VII Limit Tests Arsenic Method A; source: Calcium Glycerophosphate__Calcium Glycerophosphate-SM.txt:38). | RM-LT-AS-050: Arsenic limit test per USP <211> procedure 1: 1 g sample vs 3.0 mL standard arsenic solution (1 µg/mL = 3 ppm) in 35 mL water with 20 mL 7 N sulfuric acid, KI TS, stannous chloride TS, isopropanol; generate arsine with granular zinc into silver diethyldithiocarbamate TS. Test colour must not exceed standard. | RM-LT-AS-067: USP <211> Procedure 1 (colorimetry). Standard 3.0 mL standard arsenic solution; test equivalent to 215 mg zinc sulfate in 35 mL water with 20 mL 7 N sulfuric acid, 2 mL potassium iodide TS, 0.5 mL stronger acid stannous chloride TS, 1 mL isopropyl alcohol; generate hydrogen with 3.0 g granular zinc for 45 min into silver diethyldithiocarbamate TS. Any red colour does not exceed standard (NMT 14 ppm) (source: Zinc Sulfate Monohydrate__Zinc Sulfate Monohydrate-SM-USP.txt:32). | RM-LT-AS-078: 1.0 g dissolved in 15 mL HCl to 55 mL vs 3.0 mL arsenic standard solution to 35 mL. KI, SnCl2, granular zinc in scrubber with lead acetate cotton into silver diethyldithiocarbamate TS (NMT 3 ppm). USP <211>. Source: Calcium Carbonate__STM Calcium Carbonate - New.txt:36 | RM-LT-AS-125: 16.6 g extracted with dilute HCl, diluted to 250.0 mL; 5.0 mL aliquot diluted to 25.0 mL; treated with 15 mL HCl, 0.1 mL stannous chloride, 5 mL KI, 5 g activated zinc; silver diethyldithiocarbamate absorber vs 1 mL 1 ppm As standard (NMT 3 ppm). (BP 2024 Appendix VII Method A; source: Veegum__STM Veegum.txt:35). | RM-LT-AS-127: BP Appendix VII Limit Tests, Arsenic (Method A). Solution S: 2.5 g in 20 mL dilute HCl, dilute ammonia R1 to precipitate, dilute HCl to redissolve, dilute to 50 mL with water. Test solution: 2 mL solution S to 25 mL with water + 15 mL HCl + 0.1 mL stannous chloride solution + 5 mL potassium iodide solution; stand 15 min; add 5 g activated zinc. Assemble apparatus, immerse flask in water-bath. Reference solution: 1 mL arsenic standard solution (1 ppm As) to 25 mL with water, same reagents. After at least 2 h, colour in test solution is not more intense than standard. Limit NMT 10 ppm (source: Calcium Hydrogen Phosphate Dihydrate__New 1-2_STM Calcium Hydrogen Phosphate Dihydrate - New.txt:37).",
+      "usedBy": [
+        "STM-RM-036",
+        "STM-RM-050",
+        "STM-RM-067",
+        "STM-RM-078",
+        "STM-RM-125",
+        "STM-RM-127"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-036",
+          "provisionalCode": "RM-ARSENIC",
+          "source": "Calcium Glycerophosphate__Calcium Glycerophosphate-SM.txt:38"
+        },
+        {
+          "material": "STM-RM-050",
+          "provisionalCode": "RM-LT-AS-ZNGLU",
+          "source": "Zinc Gluconate__STM Calcium  Zinc Gluconate.txt:33"
+        },
+        {
+          "material": "STM-RM-067",
+          "provisionalCode": "RM-ARSENIC",
+          "source": "Zinc Sulfate Monohydrate__Zinc Sulfate Monohydrate-SM-USP.txt:32"
+        },
+        {
+          "material": "STM-RM-078",
+          "provisionalCode": "RM-LT-AS-CACO3",
+          "source": "Calcium Carbonate__STM Calcium Carbonate - New.txt:36"
+        },
+        {
+          "material": "STM-RM-125",
+          "provisionalCode": "RM-ARSENIC",
+          "source": "Veegum__STM Veegum.txt:35"
+        },
+        {
+          "material": "STM-RM-127",
+          "provisionalCode": "RM-LT-AS-CAHP",
+          "source": "Calcium Hydrogen Phosphate Dihydrate__New 1-2_STM Calcium Hydrogen Phosphate Dihydrate - New.txt:37"
+        }
+      ]
+    },
+    {
+      "code": "RM-LT-PB-AAS",
+      "displayName": "Lead (limit test by AAS)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Qualitative",
+      "equationType": "Qualitative",
+      "physchemArea": "RawPackaging",
+      "complete": true,
+      "notes": "Shared test; the item specification holds the limits. Procedure notes by former code: RM-LT-PB-030: 0.5 g in 10 mL water + 2.5 mL lead-free HNO3 to 25.0 mL; measured by flame AAS at 217 nm (air-acetylene) vs lead standard 2.5 ppm Pb (NMT 5 ppm). (BP Appendix II D; source: Cooper Sulfate Pentahydrate__Copper Sulphate pentahydrate-SM.txt:32). | RM-LT-PB-050: Lead limit test by AAS per USP <852>: 1.0 g sample extracted with 9 N HCl, ascorbic acid-NaI and trioctylphosphine oxide into organic layer; standard 2 µg/mL Pb organic layer; air-acetylene flame at 283.3 nm. Sample absorbance must not exceed standard absorbance (NMT 10 ppm). | RM-LT-PB-125: 10.0 g extracted with dilute HCl, filtered, washed, concentrated, diluted to 50.0 mL with water; measured by flame AAS at 217 nm (air-acetylene) vs lead standard 10 ppm Pb (NMT 15 ppm). (BP 2024 Appendix II D; source: Veegum__STM Veegum.txt:36).",
+      "usedBy": [
+        "STM-RM-030",
+        "STM-RM-050",
+        "STM-RM-125"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-030",
+          "provisionalCode": "RM-LEAD",
+          "source": "Cooper Sulfate Pentahydrate__Copper Sulphate pentahydrate-SM.txt:32"
+        },
+        {
+          "material": "STM-RM-050",
+          "provisionalCode": "RM-PB-ZNGLU",
+          "source": "Zinc Gluconate__STM Calcium  Zinc Gluconate.txt:34"
+        },
+        {
+          "material": "STM-RM-125",
+          "provisionalCode": "RM-LEAD",
+          "source": "Veegum__STM Veegum.txt:36"
+        }
+      ]
+    },
+    {
+      "code": "RM-LT-PB",
+      "displayName": "Lead (limit test)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Qualitative",
+      "equationType": "Qualitative",
+      "physchemArea": "RawPackaging",
+      "complete": true,
+      "notes": "Shared test; the item specification holds the limits. Procedure notes by former code: RM-LT-PB-067: USP <251> Procedure 1 (chemical method). Standard 0.50 mL lead standard solution (10 ppm) in comparison tube; test 0.25 g zinc sulfate in 5 mL water with 10 mL potassium cyanide solution (1 in 10); add 0.1 mL sodium sulfide TS, stand 5 min. Sample not darker than standard (NMT 20 ppm) (source: Zinc Sulfate Monohydrate__Zinc Sulfate Monohydrate-SM-USP.txt:31). | RM-LT-PB-078: 1.0 g in 5 mL water + 8 mL 3 N HCl, evaporate to dryness, dissolve in 5 mL water; citrate, hydroxylamine, ammonia, potassium cyanide, dithizone extraction; visual comparison vs 3 ug lead standard (NMT 3 ppm). USP <251>. Source: Calcium Carbonate__STM Calcium Carbonate - New.txt:35",
+      "usedBy": [
+        "STM-RM-067",
+        "STM-RM-078"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-067",
+          "provisionalCode": "RM-LEAD",
+          "source": "Zinc Sulfate Monohydrate__Zinc Sulfate Monohydrate-SM-USP.txt:31"
+        },
+        {
+          "material": "STM-RM-078",
+          "provisionalCode": "RM-LT-PB-CACO3",
+          "source": "Calcium Carbonate__STM Calcium Carbonate - New.txt:35"
+        }
+      ]
+    },
+    {
+      "code": "RM-BA",
+      "displayName": "Barium",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Qualitative",
+      "equationType": "Qualitative",
+      "physchemArea": "RawPackaging",
+      "complete": true,
+      "notes": "Shared test; the item specification holds the limits. Procedure notes by former code: RM-BA-127: To 0.5 g add 10 mL water, heat to boiling; while stirring add 1 mL hydrochloric acid dropwise; allow to cool and filter if necessary; add 2 mL of a 10 g/L solution of dipotassium sulfate; allow to stand for 10 min: no turbidity is produced. BP 2024 Monograph for Calcium Hydrogen Phosphate Dihydrate (source: Calcium Hydrogen Phosphate Dihydrate__New 1-2_STM Calcium Hydrogen Phosphate Dihydrate - New.txt:38). | RM-LT-BA-078: Platinum wire dipped in filtrate from acid-insoluble substances, held in non-luminous flame: no green colour imparted to flame. USP monograph. Source: Calcium Carbonate__STM Calcium Carbonate - New.txt:37 | RM-BA-145: USP Barium: to 10 mL of 100 mg/mL sample solution add 1 mL diluted sulfuric acid; read immediately and after 1 h. Opalescence not more intense than 1 mL water + 10 mL sample solution.",
+      "usedBy": [
+        "STM-RM-078",
+        "STM-RM-127",
+        "STM-RM-145"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-127",
+          "provisionalCode": "RM-BARIUM-CAHP",
+          "source": "Calcium Hydrogen Phosphate Dihydrate__New 1-2_STM Calcium Hydrogen Phosphate Dihydrate - New.txt:38"
+        },
+        {
+          "material": "STM-RM-078",
+          "provisionalCode": "RM-LT-BA-CACO3",
+          "source": "Calcium Carbonate__STM Calcium Carbonate - New.txt:37"
+        },
+        {
+          "material": "STM-RM-145",
+          "provisionalCode": "RM-BARIUM-INOS",
+          "source": "Inositol__Inositol-SM.txt:31"
+        }
+      ]
+    },
+    {
+      "code": "RM-ASH",
+      "displayName": "Total ash",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Gravimetric",
+      "equationType": "GravimetricResidue",
+      "physchemArea": "RawPackaging",
+      "replicateCount": 1,
+      "usesTare": true,
+      "complete": true,
+      "notes": "Shared test; the item specification holds the limits. Procedure notes by former code: RM-ASH-130: Empty crucible previously ignited at 800 °C (W1); weigh ~1.0 g sample (W2); ignite in muffle at 800 ± 50 °C for 2 h; cool in desiccator; weigh crucible with residue (W4). Total ash % = (W4 - W1) / W2 x 100 (source: Opadry Brown__STM Opadry Brown new without micro.txt:32). | RM-ASH-114: Empty crucible previously ignited at 800 °C (W1); weigh ~1.0 g sample (W2); ignite in muffle at 800 ± 50 °C for 2 h; cool in desiccator; weigh crucible with residue (W4). Residue W3 = W4 - W1; total ash % = (W4 - W1) / W2 x 100 (formula as written in STM: total ash = W2 - W3 where W3 = W4 - W1; source: Opadry green__STM Opadry Green.txt:32). | RM-ASH-119: Empty crucible previously ignited at 800 °C (W1); weigh ~1.0 g sample into it (W2); ignite in muffle at 800 ± 50 °C for 2 h; cool in desiccator; weigh crucible with residue (W4). Residue W3 = W4 - W1; total ash % = (W4 - W1) / W2 x 100. Limit: 15.08%-20.41% w/w (source: Opadry Pink__STM Opadry Pink.txt:33). | RM-ASH-132: Accurately weigh empty crucible previously ignited at 600 °C (W1). Weigh ~1.0 g into crucible (W2). Ignite in muffle furnace at 600 ± 50 °C for 2 h. Cool in desiccator. Weigh residue (W4). Total ash % = (W4 - W1) / W2 x 100 (source: Opadry Red__STM Opadry Red 3-1.txt:33). | RM-ASH-073: Empty crucible previously ignited at 800 °C (W1); weigh ~1.0 g sample (W2); ignite in muffle at 800 ± 50 °C for 2 h; cool in desiccator; weigh crucible with residue (W4). Total ash % = (W4 - W1) / W2 x 100 (formula as written in STM: total ash = W2 - W3 where W3 = W4 - W1; source: Opadry White__STM Opadry White new without micro.txt:31).",
+      "usedBy": [
+        "STM-RM-073",
+        "STM-RM-114",
+        "STM-RM-119",
+        "STM-RM-130",
+        "STM-RM-132"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-130",
+          "provisionalCode": "RM-TASH-OPB",
+          "source": "Opadry Brown__STM Opadry Brown new without micro.txt:32"
+        },
+        {
+          "material": "STM-RM-114",
+          "provisionalCode": "RM-ASH-OPA",
+          "source": "Opadry green__STM Opadry Green.txt:32"
+        },
+        {
+          "material": "STM-RM-119",
+          "provisionalCode": "RM-ASH-OPADRYPINK",
+          "source": "Opadry Pink__STM Opadry Pink.txt:33"
+        },
+        {
+          "material": "STM-RM-132",
+          "provisionalCode": "RM-ASH-OPRED",
+          "source": "Opadry Red__STM Opadry Red 3-1.txt:33"
+        },
+        {
+          "material": "STM-RM-073",
+          "provisionalCode": "RM-ASH-OPADRYWHITE",
+          "source": "Opadry White__STM Opadry White new without micro.txt:31"
+        }
+      ]
+    },
+    {
+      "code": "RM-ID-FILM",
+      "displayName": "Identification (film formation)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Qualitative",
+      "equationType": "Qualitative",
+      "physchemArea": "RawPackaging",
+      "complete": true,
+      "notes": "Shared test; the item specification holds the limits. Procedure notes by former code: RM-ID-FILM-130: Make a 10-12% slurry of powder in water, pour on glass tile, dry at 70 °C; a film layer must form (source: Opadry Brown__STM Opadry Brown new without micro.txt:31). | RM-ID-FILM-114: Make a slurry of the powder in an equal-volume mixture of isopropyl alcohol and methylene dichloride, pour onto a glass tile and dry; film formed (source: Opadry green__STM Opadry Green.txt:31). | RM-ID-FILM-119: Make a slurry of the powder in an equal-volume mixture of isopropyl alcohol and methylene dichloride, pour it onto a glass tile and dry; a film must form (source: Opadry Pink__STM Opadry Pink.txt:32). | RM-ID-FILM-132: Make slurry of powder in water 10-12%, pour on glass tile, dry at 70 °C. Film formed layer appears (source: Opadry Red__STM Opadry Red 3-1.txt:32). | RM-ID-FILM-073: Make a slurry of powder in equal-volume mixture of isopropyl alcohol and dichloromethane, pour onto glass tile and dry; film must form (source: Opadry White__STM Opadry White new without micro.txt:30).",
+      "usedBy": [
+        "STM-RM-073",
+        "STM-RM-114",
+        "STM-RM-119",
+        "STM-RM-130",
+        "STM-RM-132"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-130",
+          "provisionalCode": "RM-ID-FILM-OPB",
+          "source": "Opadry Brown__STM Opadry Brown new without micro.txt:31"
+        },
+        {
+          "material": "STM-RM-114",
+          "provisionalCode": "RM-ID-FILM-OPA",
+          "source": "Opadry green__STM Opadry Green.txt:31"
+        },
+        {
+          "material": "STM-RM-119",
+          "provisionalCode": "RM-ID-FILM-OPADRYPINK",
+          "source": "Opadry Pink__STM Opadry Pink.txt:32"
+        },
+        {
+          "material": "STM-RM-132",
+          "provisionalCode": "RM-ID-FILM-OPRED",
+          "source": "Opadry Red__STM Opadry Red 3-1.txt:32"
+        },
+        {
+          "material": "STM-RM-073",
+          "provisionalCode": "RM-ID-FILM-OPADRYWHITE",
+          "source": "Opadry White__STM Opadry White new without micro.txt:30"
+        }
+      ]
+    },
+    {
+      "code": "RM-DISP",
+      "displayName": "Dispersion",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Qualitative",
+      "equationType": "Qualitative",
+      "physchemArea": "RawPackaging",
+      "complete": true,
+      "notes": "Shared test; the item specification holds the limits. Procedure notes by former code: RM-DISP-130: Disperse 1 g into 20 mL water; sample should diffuse into water and make uniform matrix (source: Opadry Brown__STM Opadry Brown new without micro.txt:30). | RM-DISP-119: Disperse 1 g of sample into 20 mL of water; the sample diffuses into water to make a uniform matrix; in-house specification: disperse in water (source: Opadry Pink__STM Opadry Pink.txt:31). | RM-DISP-132: Weigh 20 g into bottle, add 100 mL purified water, swirl 2 min. Examine visually to ensure complete dispersion without particles, forming uniform matrix with water (source: Opadry Red__STM Opadry Red 3-1.txt:31). | RM-DISP-073: Disperse 1 g into 20 mL water; sample should diffuse into water and make uniform matrix (source: Opadry White__STM Opadry White new without micro.txt:29).",
+      "usedBy": [
+        "STM-RM-073",
+        "STM-RM-119",
+        "STM-RM-130",
+        "STM-RM-132"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-130",
+          "provisionalCode": "RM-DISP-OPB",
+          "source": "Opadry Brown__STM Opadry Brown new without micro.txt:30"
+        },
+        {
+          "material": "STM-RM-119",
+          "provisionalCode": "RM-DISP-OPADRYPINK",
+          "source": "Opadry Pink__STM Opadry Pink.txt:31"
+        },
+        {
+          "material": "STM-RM-132",
+          "provisionalCode": "RM-DISP-OPRED",
+          "source": "Opadry Red__STM Opadry Red 3-1.txt:31"
+        },
+        {
+          "material": "STM-RM-073",
+          "provisionalCode": "RM-DISP-OPADRYWHITE",
+          "source": "Opadry White__STM Opadry White new without micro.txt:29"
+        }
+      ]
+    },
+    {
+      "code": "RM-VISC",
+      "displayName": "Viscosity",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Measurement",
+      "equationType": "Measurement",
+      "physchemArea": "RawPackaging",
+      "replicateCount": 1,
+      "evaluationBasis": "Mean",
+      "complete": true,
+      "notes": "Shared test; the item specification holds the limits. Procedure notes by former code: RM-VISC-049: BP 2024 Appendix V H: dissolve 50 g in 50 mL water to give 50% m/m solution; measure with calibrated rotational viscometer. Range 200 to 270 mPa·s (source: Polyethylen Glycol 6000__STM Polyethylen Glycol after edit (no equipments).txt:33). | RM-VISC-CMC-004: Rotating viscometer method per BP 2024 Appendix V H (method III): stir quantity equivalent to 1.00 g dried substance into 50 mL water, heat to 90 °C, cool, dilute to 100.0 mL with water and stir until dissolved. Measure at 20 °C, 100 rpm, with calibrated rotating viscometer using spindle giving higher torque. Limit 4000 to 6000 cp (source: CarboxymethylCellulose Sodium__STM Calcium CarboxymethylCellulose Sodium NEW viscity.txt:34). | RM-VISC-143: Viscosity per USP <912> rotational methods: dissolve about 15 g sample in water, make up to 100 mL, warm to 40 °C, measure with calibrated viscometer. Analyst enters final viscosity in mPa.s. | RM-VISC-125: Weigh quantity equivalent to 25.0 g dried substance into blender jar containing water to 500 g. Blend 3 min at 14000-15000 r/min. Stand 5 min, sample temperature 33 ± 3 °C. Rotating viscometer spindle No. 3 at 60 r/min for 6 min (spindle No. 4 if > 90% full scale). Range: 800-2200 mPa·s (BP 2024 Appendix V H Method III; source: Veegum__STM Veegum.txt:34).",
+      "usedBy": [
+        "STM-RM-004",
+        "STM-RM-049",
+        "STM-RM-125",
+        "STM-RM-143"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-049",
+          "provisionalCode": "RM-VISC-PEG",
+          "source": "Polyethylen Glycol 6000__STM Polyethylen Glycol after edit (no equipments).txt:33"
+        },
+        {
+          "material": "STM-RM-004",
+          "provisionalCode": "RM-VISC-CMC",
+          "source": "CarboxymethylCellulose Sodium__STM Calcium CarboxymethylCellulose Sodium NEW viscity.txt:34"
+        },
+        {
+          "material": "STM-RM-143",
+          "provisionalCode": "RM-VISC-MCP",
+          "source": "Marine Collagen Peptide__STM for Marine Collagen Peptide NEW.txt:32"
+        },
+        {
+          "material": "STM-RM-125",
+          "provisionalCode": "RM-VISC",
+          "source": "Veegum__STM Veegum.txt:34"
+        }
+      ]
+    },
+    {
+      "code": "RM-LOI",
+      "displayName": "Loss on ignition",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Gravimetric",
+      "equationType": "GravimetricLoss",
+      "physchemArea": "RawPackaging",
+      "replicateCount": 1,
+      "usesTare": true,
+      "complete": true,
+      "notes": "Shared test; the item specification holds the limits. Procedure notes by former code: RM-LOI-127: Accurately weighed empty crucible, previously ignited at 800-825 °C and cooled in desiccator (W0). Weigh accurately 1.000 g into crucible (W1 = tare + sample). Ignite in calibrated muffle at 800-825 °C for 2 h, cool in desiccator, weigh (W2). Repeat to constant weight. % loss on ignition = (W1 - W2) / (W1 - W0) x 100. Limit 24.5% to 26.5%. BP 2024 Monograph for Calcium Hydrogen Phosphate Dihydrate (source: Calcium Hydrogen Phosphate Dihydrate__New 1-2_STM Calcium Hydrogen Phosphate Dihydrate - New.txt:40). | RM-LOI-SIL-065: Loss on ignition per BP 2025: 0.2 g sample in dry crucible ignited at 900 ± 50 °C for 2 h, cool in desiccator, weigh. Limit NMT 5.0%. | RM-LOI-107: Weigh empty crucible ignited at 800 °C (W0). Weigh accurately 1.000 g into crucible (W1). Ignite in muffle at 800 °C for 2 h, cool in desiccator, weigh (W2). Repeat to constant weight. % Loss on Ignition = (W1 - W2) / (W1 - W0) x 100 (source: Magnesium Hydroxide__Magnesium Hydroxide-SM.txt:37). | RM-LOI-058: Weigh empty crucible previously ignited at 800-900 °C (W0); weigh accurately 1.000 g into it (W1); ignite in calibrated muffle at 800-900 °C for 2 h, cool in desiccator, weigh (W2); repeat to constant weight. % loss on ignition = (W1 - W2) / (W1 - W0) x 100. Limit NMT 10.0% (source: Magnesium Oxide__Magnesium Oxide - SM-New.txt:34).",
+      "usedBy": [
+        "C1I-91-228",
+        "STM-RM-058",
+        "STM-RM-107",
+        "STM-RM-127"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-127",
+          "provisionalCode": "RM-LOI-CAHP",
+          "source": "Calcium Hydrogen Phosphate Dihydrate__New 1-2_STM Calcium Hydrogen Phosphate Dihydrate - New.txt:40"
+        },
+        {
+          "material": "C1I-91-228",
+          "provisionalCode": "RM-LOI-SIL",
+          "source": "Colloidal Anhydrous Silica__New_New.txt:35"
+        },
+        {
+          "material": "STM-RM-107",
+          "provisionalCode": "RM-LOI-MGOH",
+          "source": "Magnesium Hydroxide__Magnesium Hydroxide-SM.txt:37"
+        },
+        {
+          "material": "STM-RM-058",
+          "provisionalCode": "RM-LOI-MGO",
+          "source": "Magnesium Oxide__Magnesium Oxide - SM-New.txt:34"
+        }
+      ]
+    },
+    {
+      "code": "RM-AIS",
+      "displayName": "Acid-insoluble substances",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Gravimetric",
+      "equationType": "GravimetricResidue",
+      "physchemArea": "RawPackaging",
+      "replicateCount": 1,
+      "usesTare": true,
+      "complete": true,
+      "notes": "Shared test; the item specification holds the limits. Procedure notes by former code: RM-ACIDINS-CA: 5.0 g mixed with 10 mL water, add dilute HCl dropwise with agitation until effervescence ceases, add water to 200 mL, filter, wash residue chloride-free, ignite (600 +/- 50 C in 078), weigh residue. Shared between Calcium Carbonate STM-RM-078 and Calcium Carbonate DC STM-RM-142 (same procedure, CATALOG.md rule 2). Source: Calcium Carbonate__STM Calcium Carbonate - New.txt:33; Calcium Carbonate DC__Calcium Carbonate DC-SM - Micro.txt:33 | RM-AIS-127: Dissolve 5.0 g (W1) in 40 mL water + 10 mL hydrochloric acid, boil 5 min, collect insoluble substances on ashless filter paper, wash with water until AgNO3 test negative, ignite at 600 ± 50 °C. Residue weighs not more than 10 mg (0.2%). Formula: (residue / W1) x 100. BP 2024 Monograph for Calcium Hydrogen Phosphate Dihydrate (source: Calcium Hydrogen Phosphate Dihydrate__New 1-2_STM Calcium Hydrogen Phosphate Dihydrate - New.txt:33). | RM-AIS-058: 2.0 g sample (W1) in 75 mL water in ignited crucible (W2); add HCl until dissolved, boil 5 min, filter if residue remains, wash free from chloride; ignite and weigh (W3). Residue (%) = (W3 - W2) / W1 x 100. Limit NMT 2 mg (0.1%; source: Magnesium Oxide__Magnesium Oxide - SM-New.txt:35).",
+      "usedBy": [
+        "STM-RM-058",
+        "STM-RM-078",
+        "STM-RM-127",
+        "STM-RM-142"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-078",
+          "provisionalCode": "RM-ACIDINS-CACO3",
+          "source": "Calcium Carbonate__STM Calcium Carbonate - New.txt:33"
+        },
+        {
+          "material": "STM-RM-142",
+          "provisionalCode": "RM-ACIDINS-CADC",
+          "source": "Calcium Carbonate DC__Calcium Carbonate DC-SM - Micro.txt:33"
+        },
+        {
+          "material": "STM-RM-127",
+          "provisionalCode": "RM-AIS-CAHP",
+          "source": "Calcium Hydrogen Phosphate Dihydrate__New 1-2_STM Calcium Hydrogen Phosphate Dihydrate - New.txt:33"
+        },
+        {
+          "material": "STM-RM-058",
+          "provisionalCode": "RM-AIS-MGO",
+          "source": "Magnesium Oxide__Magnesium Oxide - SM-New.txt:35"
+        }
+      ]
+    },
+    {
+      "code": "RM-PSD",
+      "displayName": "Particle size distribution",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Measurement",
+      "equationType": "Measurement",
+      "physchemArea": "RawPackaging",
+      "replicateCount": 1,
+      "evaluationBasis": "Mean",
+      "complete": true,
+      "notes": "Shared test; the item specification holds the limits. Procedure notes by former code: RM-PSD-CACO3-078: Measured with calibrated particle size analyser, mass percentage in sieve size ranges (D10 1.5 um, D50 6 um, D90 12 um). Qualitative row. Source: Calcium Carbonate__STM Calcium Carbonate - New.txt:43 | RM-PSD-127: Calibrated analytical sieving or particle size analyser; measure mass percentage of powder in each sieve size range (D10 125 µm / 10% pass through 120 mesh; D50 250 µm / 50% pass through 60 mesh; D90 500 µm / 90% pass through 35 mesh). Qualitative rows per in-house specification by R&D department (source: Calcium Hydrogen Phosphate Dihydrate__New 1-2_STM Calcium Hydrogen Phosphate Dihydrate - New.txt:42). | RM-PSD-058: Calibrated analytical sieving or particle size analyser; measure mass percentage of powder in each sieve size range (D10 297 µm / 10% pass 50 mesh; D50 590 µm / 50% pass 30 mesh; D90 1000 µm / 90% pass 18 mesh). Qualitative rows (source: Magnesium Oxide__Magnesium Oxide - SM-New.txt:38).",
+      "usedBy": [
+        "STM-RM-058",
+        "STM-RM-078",
+        "STM-RM-127"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-078",
+          "provisionalCode": "RM-PSD-CACO3",
+          "source": "Calcium Carbonate__STM Calcium Carbonate - New.txt:43"
+        },
+        {
+          "material": "STM-RM-127",
+          "provisionalCode": "RM-PSD-CAHP",
+          "source": "Calcium Hydrogen Phosphate Dihydrate__New 1-2_STM Calcium Hydrogen Phosphate Dihydrate - New.txt:42"
+        },
+        {
+          "material": "STM-RM-058",
+          "provisionalCode": "RM-PSD-MGO",
+          "source": "Magnesium Oxide__Magnesium Oxide - SM-New.txt:38"
+        }
+      ]
+    },
+    {
+      "code": "RM-AV",
+      "displayName": "Acid value",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Measurement",
+      "equationType": "Measurement",
+      "physchemArea": "RawPackaging",
+      "replicateCount": 1,
+      "evaluationBasis": "Mean",
+      "complete": true,
+      "notes": "Shared test; the item specification holds the limits. Procedure notes by former code: RM-AV-080: Dissolve ~5.00 g (W) in 50 mL neutralised ethanol (96%) : light petroleum (1:1), add 0.5 mL phenolphthalein solution R1, titrate with 0.1 M KOH or 0.1 M NaOH until pink colour persists at least 15 s (n mL titrant). Acid value = 5.61 x n / W. Measurement test, analyst enters calculated acid value (mg KOH/g, not calculated by % titration workflow; CATALOG.md rule 6; source: Mint Flavor__STM Mint Flavor 1-3.txt:35). | RM-AV-139: Dissolve 10.00 g in 50 mL neutralised ethanol (96%) : light petroleum (1:1), add 0.5 mL phenolphthalein solution R1, titrate with 0.1 M KOH or 0.1 M NaOH until pink persists at least 15 s (n mL). Measurement test, analyst enters final value in mg/g (mg KOH/g not calculated by % titration workflow; CATALOG.md rule 6; source: Omega-3 Fish Oil__Omega-3 Fish Oil - SM AMV aafter edit.txt:33). | RM-AV-149: Dissolve 2.0 g in 50 mL neutralised ethanol (96%) : light petroleum R3 (1:1), titrate with 0.1 M KOH/NaOH to phenolphthalein pink (15 s). Acid value IA = 5.61 x n / m. Measurement test, analyst enters the final value (mg KOH/g, not calculated by % titration workflow; source: Vitamim A Palmitat__Vitamim A Palmitate-SM.txt:31).",
+      "usedBy": [
+        "STM-RM-080",
+        "STM-RM-139",
+        "STM-RM-149"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-080",
+          "provisionalCode": "RM-ACIDVAL",
+          "source": "Mint Flavor__STM Mint Flavor 1-3.txt:35"
+        },
+        {
+          "material": "STM-RM-139",
+          "provisionalCode": "RM-AV-O3",
+          "source": "Omega-3 Fish Oil__Omega-3 Fish Oil - SM AMV aafter edit.txt:33"
+        },
+        {
+          "material": "STM-RM-149",
+          "provisionalCode": "RM-AV-VITA",
+          "source": "Vitamim A Palmitat__Vitamim A Palmitate-SM.txt:31"
+        }
+      ]
+    },
+    {
+      "code": "RM-PV",
+      "displayName": "Peroxide value",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Measurement",
+      "equationType": "Measurement",
+      "physchemArea": "RawPackaging",
+      "replicateCount": 1,
+      "evaluationBasis": "Mean",
+      "complete": true,
+      "notes": "Shared test; the item specification holds the limits. Procedure notes by former code: RM-PV-139: Place 5.00 g in 250 mL conical flask, add 30 mL chloroform : glacial acetic acid (2:3), dissolve, add 0.5 mL saturated KI, shake exactly 1 min, add 30 mL water, titrate with 0.01 M sodium thiosulfate to starch discharge (n1 mL) against blank (n2 mL, NMT 0.1 mL). Measurement test, analyst enters the final value in meq/kg (calculation expression not stated in STM and unit meq/kg not calculated by % titration workflow; CATALOG.md rule 6; source: Omega-3 Fish Oil__Omega-3 Fish Oil - SM AMV aafter edit.txt:32). | RM-PV-149: 5.00 g in 30 mL chloroform : glacial acetic acid (2:3), 0.5 mL saturated KI, shake 1 min, 30 mL water, titrate with 0.01 M sodium thiosulfate potentiometrically with blank (NMT 0.1 mL). Peroxide value IP = 10 x (n1 - n2) / m. Measurement test, analyst enters the final value (meq O2/kg, not calculated by % titration workflow; source: Vitamim A Palmitat__Vitamim A Palmitate-SM.txt:32).",
+      "usedBy": [
+        "STM-RM-139",
+        "STM-RM-149"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-139",
+          "provisionalCode": "RM-PV-O3",
+          "source": "Omega-3 Fish Oil__Omega-3 Fish Oil - SM AMV aafter edit.txt:32"
+        },
+        {
+          "material": "STM-RM-149",
+          "provisionalCode": "RM-PV-VITA",
+          "source": "Vitamim A Palmitat__Vitamim A Palmitate-SM.txt:32"
+        }
+      ]
+    },
+    {
+      "code": "RM-ACIDALK-VOL",
+      "displayName": "Acidity or alkalinity (titration volume)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Measurement",
+      "equationType": "Measurement",
+      "physchemArea": "RawPackaging",
+      "replicateCount": 1,
+      "evaluationBasis": "Mean",
+      "complete": true,
+      "notes": "Shared test; the item specification holds the limits. Procedure notes by former code: RM-ACID-ATOC: 1.0 g dissolved in 25 mL ethanol, 0.5 mL phenolphthalein, titrate with 0.10 N NaOH until pink colour persists. Specification: 18.0 to 19.3 mL of 0.10 N NaOH. Decision 2026-11-04: Measurement test, analyst enters titrant volume in mL. | RM-ACID-ALK-MG: 1.0 g boiled in 20 mL CO2-free water for 1 min, cool, filter. To 10 mL filtrate add 0.05 mL bromothymol blue R4; NMT 0.05 mL of 0.1 M HCl or 0.1 M NaOH to change colour. Decision 2026-11-04: Measurement test, analyst enters titrant volume in mL. | RM-ACID-049: BP 2024: dissolve 5.0 g in 50 mL CO2-free water, add 0.15 mL bromothymol blue solution R1; solution is yellow or green. Titrate with 0.1 M sodium hydroxide to blue colour (limit NMT 0.1 mL). Measurement test, analyst enters volume of 0.1 M NaOH in mL (source: Polyethylen Glycol 6000__STM Polyethylen Glycol after edit (no equipments).txt:32). | RM-TIT-ACIDALK-084: 6.0 g in 25 mL CO2-free water + 0.3 mL phenolphthalein R1; titrate with 0.1 M NaOH to pink/red. Analyst enters volume in mL (limit NMT 0.4 mL). Cannot be calculated by titration workflow. | RM-ACID-KSORB-047: 20 mL solution S + 0.1 mL phenolphthalein solution, titrate with 0.1 M NaOH or 0.1 M HCl to colour change; mL volume result (NMT 0.25 mL) cannot be calculated by the titration workflow, analyst enters final mL value (CATALOG.md rule 6). BP Appendix V L. Source: Potassium Sorbate__STM Potassium Sorbate.txt:32 | RM-TIT-SLS-ALK: 1.0 g in 100 mL CO2-free water + 0.1 mL phenol red; volume of 0.1 M HCl to colour change (colours not stated). Decision 2026-11-04: the analyst enters the final value, the system judges it against the limit (the written formula cannot be calculated by the titration/gravimetric workflow).",
+      "usedBy": [
+        "STM-RM-047",
+        "STM-RM-049",
+        "STM-RM-059",
+        "STM-RM-084",
+        "STM-RM-086",
+        "STM-RM-091"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-059",
+          "provisionalCode": "RM-ACID-ATOC",
+          "source": "D-Alpha Tocopherol Succinate__STM for Alpha tocopherol Succinate.txt:31"
+        },
+        {
+          "material": "STM-RM-086",
+          "provisionalCode": "RM-ACID-ALK-MG",
+          "source": "Magnesium Stearate__Magnesium Stearate - SM.txt:33"
+        },
+        {
+          "material": "STM-RM-049",
+          "provisionalCode": "RM-ACID-PEG",
+          "source": "Polyethylen Glycol 6000__STM Polyethylen Glycol after edit (no equipments).txt:32"
+        },
+        {
+          "material": "STM-RM-084",
+          "provisionalCode": "RM-ACID-ALK-LACTOSE",
+          "source": "Lactose Monohydrate__Lactose Monohydrate - SM.txt:34"
+        },
+        {
+          "material": "STM-RM-047",
+          "provisionalCode": "RM-ACID-KSORB",
+          "source": "Potassium Sorbate__STM Potassium Sorbate.txt:32"
+        },
+        {
+          "material": "STM-RM-091",
+          "provisionalCode": "RM-ALKALINITY",
+          "source": "Sodium Lauryl sulfate__Sodium Lauryl sulfate.txt:31; preparations line 26"
+        }
+      ]
+    },
+    {
+      "code": "RM-ACIDALK",
+      "displayName": "Acidity or alkalinity",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Qualitative",
+      "equationType": "Qualitative",
+      "physchemArea": "RawPackaging",
+      "complete": true,
+      "notes": "Shared test; the item specification holds the limits. Procedure notes by former code: RM-ACID-001: Acidity per USP 2024: dissolve 1 g in 100 mL water; test with calibrated pH meter; solution must show acidic medium. | RM-ACID-067: USP 2022 Monograph for Zinc Sulfate Monohydrate. Sample solution equivalent to 28 mg/mL zinc sulfate; the sample solution is not coloured pink by methyl orange TS (source: Zinc Sulfate Monohydrate__Zinc Sulfate Monohydrate-SM-USP.txt:34). | RM-ACIDALK-036: To 100 mL solution S add 0.1 mL phenolphthalein solution: not more than 1.5 mL of 0.1 M HCl or 0.5 mL of 0.1 M NaOH required to change indicator colour (BP 2024 Monograph; source: Calcium Glycerophosphate__Calcium Glycerophosphate-SM.txt:32).",
+      "usedBy": [
+        "STM-RM-001",
+        "STM-RM-036",
+        "STM-RM-067"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-001",
+          "provisionalCode": "RM-ACID-FAC",
+          "source": "Ferric Ammonium Citrate Green__STM Ferric Ammonium Citrate Green.txt:32"
+        },
+        {
+          "material": "STM-RM-067",
+          "provisionalCode": "RM-ACID-ZNSO4",
+          "source": "Zinc Sulfate Monohydrate__Zinc Sulfate Monohydrate-SM-USP.txt:34"
+        },
+        {
+          "material": "STM-RM-036",
+          "provisionalCode": "RM-ACIDALK-CAGLY",
+          "source": "Calcium Glycerophosphate__Calcium Glycerophosphate-SM.txt:32"
+        }
+      ]
+    },
+    {
+      "code": "RM-ID-SO4",
+      "displayName": "Identification (reaction of sulfate)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Qualitative",
+      "equationType": "Qualitative",
+      "physchemArea": "RawPackaging",
+      "complete": true,
+      "notes": "Shared test; the item specification holds the limits. Procedure notes by former code: RM-ID-SO4-SLS: 10 g in 100 mL water, HCl, boil 20 min, barium chloride 120 g/L; HCl and BaCl2 volumes not stated. | RM-ID-SO4-SMB: Iodinated KI decolorised by solution S, then barium chloride: white precipitate. | RM-ID-SO4-BP-067: BP Appendix VI Qualitative Reactions and Tests, Sulfate. 5 mL of solution S + 1 mL dilute hydrochloric acid + 1 mL barium chloride solution R1: white precipitate is formed (source: Zinc Sulfate Monohydrate__Zinc Sulfate Monohydrate-SM.txt:30). | RM-ID-SO4-USP-067: USP <191> Chemical Identification Tests, Sulfate. With barium chloride TS, solutions of sulfates yield a white precipitate insoluble in hydrochloric acid and in nitric acid (source: Zinc Sulfate Monohydrate__Zinc Sulfate Monohydrate-SM-USP.txt:30). | RM-ID-SO4-030: 45 mg in 5 mL water + 1 mL dilute HCl + 1 mL barium chloride: white precipitate (BP Appendix VI Sulfates; source: Cooper Sulfate Pentahydrate__Copper Sulphate pentahydrate-SM.txt:30).",
+      "usedBy": [
+        "STM-RM-030",
+        "STM-RM-060",
+        "STM-RM-067",
+        "STM-RM-091"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-091",
+          "provisionalCode": "RM-ID-SULFATE",
+          "source": "Sodium Lauryl sulfate__Sodium Lauryl sulfate.txt:30 (Test 3)"
+        },
+        {
+          "material": "STM-RM-060",
+          "provisionalCode": "RM-ID-SULFATE",
+          "source": "Sodium Meta bisulfit__Sodium Metabisulfit - SM without arsenic.txt:30"
+        },
+        {
+          "material": "STM-RM-067",
+          "provisionalCode": "RM-ID-SO4-ZNSO4-BP",
+          "source": "Zinc Sulfate Monohydrate__Zinc Sulfate Monohydrate-SM.txt:30"
+        },
+        {
+          "material": "STM-RM-067",
+          "provisionalCode": "RM-ID-SO4-ZNSO4",
+          "source": "Zinc Sulfate Monohydrate__Zinc Sulfate Monohydrate-SM-USP.txt:30"
+        },
+        {
+          "material": "STM-RM-030",
+          "provisionalCode": "RM-ID-SO4-CUSO4",
+          "source": "Cooper Sulfate Pentahydrate__Copper Sulphate pentahydrate-SM.txt:30"
+        }
+      ]
+    },
+    {
+      "code": "RM-ID-ZN",
+      "displayName": "Identification (reaction of zinc)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Qualitative",
+      "equationType": "Qualitative",
+      "physchemArea": "RawPackaging",
+      "complete": true,
+      "notes": "Shared test; the item specification holds the limits. Procedure notes by former code: RM-ID-ZN-BP-067: BP Appendix VI Qualitative Reactions and Tests, Zinc. 5 mL prescribed solution + 0.2 mL strong NaOH (white precipitate), + 2 mL strong NaOH (precipitate dissolves), + 10 mL ammonium chloride solution (clear), + 0.1 mL sodium sulfide solution: flocculent white precipitate (source: Zinc Sulfate Monohydrate__Zinc Sulfate Monohydrate-SM.txt:30). | RM-ID-ZN-050: Reactions of zinc per USP <191>: 100 mg/mL solution gives white precipitate with H2S in presence of sodium acetate (insoluble in acetic acid, dissolved by 3 N HCl); white precipitate with ammonium sulfide TS; white precipitate with potassium ferrocyanide TS insoluble in 3 N HCl. | RM-ID-ZN-USP-067: USP <191> Chemical Identification Tests, Zinc. Dissolve 0.1 g in 5 mL water; add 0.2 mL strong sodium hydroxide solution: a white precipitate is formed (source: Zinc Sulfate Monohydrate__Zinc Sulfate Monohydrate-SM-USP.txt:30).",
+      "usedBy": [
+        "STM-RM-050",
+        "STM-RM-067"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-067",
+          "provisionalCode": "RM-ID-ZN-ZNSO4-BP",
+          "source": "Zinc Sulfate Monohydrate__Zinc Sulfate Monohydrate-SM.txt:30"
+        },
+        {
+          "material": "STM-RM-050",
+          "provisionalCode": "RM-ID-ZN-GLU",
+          "source": "Zinc Gluconate__STM Calcium  Zinc Gluconate.txt:30"
+        },
+        {
+          "material": "STM-RM-067",
+          "provisionalCode": "RM-ID-ZN-ZNSO4",
+          "source": "Zinc Sulfate Monohydrate__Zinc Sulfate Monohydrate-SM-USP.txt:30"
+        }
+      ]
+    },
+    {
+      "code": "RM-ID-MG",
+      "displayName": "Identification (reaction of magnesium)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Qualitative",
+      "equationType": "Qualitative",
+      "physchemArea": "RawPackaging",
+      "complete": true,
+      "notes": "Shared test; the item specification holds the limits. Procedure notes by former code: RM-ID-MG-107: 50 mg/mL in 3 N HCl + 3 mL ammonium chloride, neutralise with ammonium carbonate TS, add dibasic sodium phosphate TS: white crystalline precipitate insoluble in 6 N ammonium hydroxide (source: Magnesium Hydroxide__Magnesium Hydroxide-SM.txt:32). | RM-ID-MG-058: Identification of magnesium per USP <191>: 50 mg/mL solution in 3 N HCl; add 3 mL ammonium chloride; neutralise with ammonium carbonate TS (slightly hazy precipitate); add dibasic sodium phosphate TS: white crystalline precipitate insoluble in 6 N ammonium hydroxide (source: Magnesium Oxide__Magnesium Oxide - SM-New.txt:30). | RM-ID-CR-MG: 1 mL solution S + 1 mL dilute ammonia R1 (white precipitate forms, dissolves on 1 mL ammonium chloride); add 1 mL 120 g/L disodium hydrogen phosphate (white crystalline precipitate forms). (BP 2025).",
+      "usedBy": [
+        "STM-RM-058",
+        "STM-RM-086",
+        "STM-RM-107"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-107",
+          "provisionalCode": "RM-ID-MG-USP",
+          "source": "Magnesium Hydroxide__Magnesium Hydroxide-SM.txt:32"
+        },
+        {
+          "material": "STM-RM-058",
+          "provisionalCode": "RM-ID-MG",
+          "source": "Magnesium Oxide__Magnesium Oxide - SM-New.txt:30"
+        },
+        {
+          "material": "STM-RM-086",
+          "provisionalCode": "RM-ID-CR-MG",
+          "source": "Magnesium Stearate__Magnesium Stearate - SM.txt:32"
+        }
+      ]
+    },
+    {
+      "code": "RM-ID-CA",
+      "displayName": "Identification (reaction of calcium)",
+      "kind": "general",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Qualitative",
+      "equationType": "Qualitative",
+      "physchemArea": "RawPackaging",
+      "complete": true,
+      "notes": "Shared test; the item specification holds the limits. Procedure notes by former code: RM-ID-CA: 0.1 g in 2 mL dilute HCl + 1 mL 6 N NH4OH + 1 mL ammonium oxalate TS: white precipitate soluble in HCl and insoluble in acetic acid. BP Appendix VI / USP <191>. Source: Calcium Carbonate DC__Calcium Carbonate DC-SM - Micro.txt:32 | RM-ID-CA-036: Dissolve ~20 mg in 5 mL acetic acid, add 0.5 mL potassium ferrocyanide solution (remains clear); add ~50 mg ammonium chloride: white crystalline precipitate formed (BP Appendix VI Calcium; source: Calcium Glycerophosphate__Calcium Glycerophosphate-SM.txt:30).",
+      "usedBy": [
+        "STM-RM-036",
+        "STM-RM-142"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-142",
+          "provisionalCode": "RM-ID-CA-CADC",
+          "source": "Calcium Carbonate DC__Calcium Carbonate DC-SM - Micro.txt:32"
+        },
+        {
+          "material": "STM-RM-036",
+          "provisionalCode": "RM-ID-CA-CAGLY",
+          "source": "Calcium Glycerophosphate__Calcium Glycerophosphate-SM.txt:30"
+        }
+      ]
+    },
+    {
+      "code": "RM-WSS",
+      "displayName": "Water-soluble substances",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Gravimetric",
+      "equationType": "GravimetricResidue",
+      "physchemArea": "RawPackaging",
+      "replicateCount": 1,
+      "usesTare": true,
+      "complete": true,
+      "notes": "Shared test; the item specification holds the limits. Procedure notes by former code: RM-WAT-SOL: 5.0 g shaken with 80 mL water for 10 min, filtered, evaporated to dryness, dried at 105 °C for 1 h with blank. (BP 2024 / USP 2024). | RM-WSUB-024: Stir 25.0 g in 200 mL water for 1 h, dilute to 250 mL, settle; filter 100 mL through 0.45 um membrane (3 um pre-filter); evaporate 50.0 mL filtrate to dryness in tared 100 mL beaker, dry at 110 °C for 3 h, weigh residue. Limit NMT 75 mg (1.5%) (source: Crospovidone__STM- RM-0 Crospovidone.txt:48).",
+      "usedBy": [
+        "STM-RM-024",
+        "STM-RM-081"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-081",
+          "provisionalCode": "RM-WAT-SOL",
+          "source": "Microcrystalline Cellulose 102__STM Microcrystalline Cellulose with merge.txt:36"
+        },
+        {
+          "material": "STM-RM-024",
+          "provisionalCode": "RM-WSUB-CROSP",
+          "source": "Crospovidone__STM- RM-0 Crospovidone.txt:48"
+        }
+      ]
+    },
+    {
+      "code": "RM-DE",
+      "displayName": "Dextrose equivalent",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Measurement",
+      "equationType": "Measurement",
+      "physchemArea": "RawPackaging",
+      "replicateCount": 1,
+      "evaluationBasis": "Mean",
+      "complete": true,
+      "notes": "Shared test; the item specification holds the limits. Procedure notes by former code: RM-TIT-DE-129: Cupric-tartaric redox titration standardized with glucose (V0), sample titration (V1) with methylene blue indicator. Result entered by analyst (formula (300 * V0 * 100) / (V1 * M * D) cannot be calculated by titration workflow). Shared by Dextrose equivalent and Identification (Titration). | RM-DE-061: Titration of boiling cupri-tartaric solution (25.0 mL) with sample solution to methylene blue endpoint, standardized against 6.00 g/L glucose. Dextrose equivalent = 300 x V0 x 100 / (V1 x M x D). Measurement test, analyst enters final value (source: Liquid Glucose__Liquid Glucose - SM.txt:37).",
+      "usedBy": [
+        "STM-RM-061",
+        "STM-RM-129"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-129",
+          "provisionalCode": "RM-TIT-DE-MALTODEXTRIN",
+          "source": "Maltodextrin__STM Maltodextrin new Without Micro.txt:35"
+        },
+        {
+          "material": "STM-RM-129",
+          "provisionalCode": "RM-ID-DE-MALTODEXTRIN",
+          "source": "Maltodextrin__STM Maltodextrin new Without Micro.txt:30"
+        },
+        {
+          "material": "STM-RM-061",
+          "provisionalCode": "RM-DE-GLUC",
+          "source": "Liquid Glucose__Liquid Glucose - SM.txt:37"
+        }
+      ]
+    },
+    {
+      "code": "RM-SO2",
+      "displayName": "Sulfur dioxide",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Measurement",
+      "equationType": "Measurement",
+      "physchemArea": "RawPackaging",
+      "replicateCount": 1,
+      "evaluationBasis": "Mean",
+      "complete": true,
+      "notes": "Shared test; the item specification holds the limits. Procedure notes by former code: RM-SO2-129: BP Appendix IX B apparatus. Distillation with CO2 sweep into dilute H2O2, titration with 0.1 M NaOH (bromophenol blue indicator). Formula 1000 * F * V * N / W (F = 32.03). Analyst enters final ppm result (distillation blank titration cannot be calculated by titration workflow). | RM-SO2-061: 25.0 g sample boiled 1 h with 80 mL dilute HCl in CO2 stream into neutralised H2O2, titrate with 0.1 M NaOH to bromophenol blue; blank test; ppm = 32030 x (V1 - V2) x (n / m). Measurement test, analyst enters the final ppm result (source: Liquid Glucose__Liquid Glucose - SM.txt:36).",
+      "usedBy": [
+        "STM-RM-061",
+        "STM-RM-129"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-129",
+          "provisionalCode": "RM-SO2-MALTODEXTRIN",
+          "source": "Maltodextrin__STM Maltodextrin new Without Micro.txt:31"
+        },
+        {
+          "material": "STM-RM-061",
+          "provisionalCode": "RM-SO2-GLUC",
+          "source": "Liquid Glucose__Liquid Glucose - SM.txt:36"
+        }
+      ]
+    },
+    {
+      "code": "RM-CARB",
+      "displayName": "Carbonates",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Qualitative",
+      "equationType": "Qualitative",
+      "physchemArea": "RawPackaging",
+      "complete": true,
+      "notes": "Shared test; the item specification holds the limits. Procedure notes by former code: RM-CARB-107: Boil 0.10 g with 5 mL water, cool, add 5 mL 6 N acetic acid: NMT a slight effervescence is observed (source: Magnesium Hydroxide__Magnesium Hydroxide-SM.txt:34). | RM-CARB-127: Shake 0.5 g with 5 mL carbon dioxide-free water. Add 1 mL hydrochloric acid: no effervescence is produced. BP 2024 Monograph for Calcium Hydrogen Phosphate Dihydrate (source: Calcium Hydrogen Phosphate Dihydrate__New 1-2_STM Calcium Hydrogen Phosphate Dihydrate - New.txt:35).",
+      "usedBy": [
+        "STM-RM-107",
+        "STM-RM-127"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-107",
+          "provisionalCode": "RM-CARB-MGOH",
+          "source": "Magnesium Hydroxide__Magnesium Hydroxide-SM.txt:34"
+        },
+        {
+          "material": "STM-RM-127",
+          "provisionalCode": "RM-CARB-CAHP",
+          "source": "Calcium Hydrogen Phosphate Dihydrate__New 1-2_STM Calcium Hydrogen Phosphate Dihydrate - New.txt:35"
+        }
+      ]
+    },
+    {
+      "code": "RM-OXAL",
+      "displayName": "Oxalate / oxalic acid (limit test)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Qualitative",
+      "equationType": "Qualitative",
+      "physchemArea": "RawPackaging",
+      "complete": true,
+      "notes": "Shared test; the item specification holds the limits. Procedure notes by former code: RM-OXAL-048: USP Oxalate: 1 g in 10 mL water + 2 mL HCl, extract with 50 mL then 20 mL ether, evaporate ether, add 1 drop glacial acetic acid and 1 mL calcium acetate solution (1 in 20); no turbidity within 5 minutes. | RM-LT-OXAL-035: 0.80 g in 4 mL water + 3 mL HCl + 1 g zinc granules, boil 1 min, stand 2 min; supernatant to 0.25 mL of 10 g/L phenylhydrazine hydrochloride, boil, cool, add equal volume HCl + 0.25 mL 50 g/L potassium ferricyanide, stand 30 min. Any pink colour not more intense than 4 mL 0.1 g/L oxalic acid treated same way (NMT 360 ppm). BP Appendix VII (source: Citric acid Monohydarte__Citric acid Monohydarte -SM.txt:34).",
+      "usedBy": [
+        "STM-RM-035",
+        "STM-RM-048"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-048",
+          "provisionalCode": "RM-OXAL-FAC",
+          "source": "Ferric Ammonium Citrate__STM Ferric Ammonium Citrate 1-3.txt:34"
+        },
+        {
+          "material": "STM-RM-035",
+          "provisionalCode": "RM-LT-OXAL-CITRIC",
+          "source": "Citric acid Monohydarte__Citric acid Monohydarte -SM.txt:34"
+        }
+      ]
+    },
+    {
+      "code": "RM-TIT-CA-EDTA",
+      "displayName": "Assay of calcium (complexometric EDTA titration)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Titration",
+      "equationType": "Titration",
+      "physchemArea": "RawPackaging",
+      "titrationType": "Complexometric",
+      "titrationMode": "Direct",
+      "titrationEndpoint": "Visual",
+      "titrantSolution": "0.1 M Sodium edetate VS",
+      "titrationBlankRequired": false,
+      "titrationEquivalencyFactor": 40.08,
+      "titrationEquivalencyFactorDerivation": "4.008 mg Ca per mL of 0.1 M sodium edetate / 0.1 = 40.08 mg/mmol",
+      "titrationIndicatorEntry": "Calconcarboxylic acid triturate",
+      "replicateCount": 1,
+      "titrationCalculation": "UspFactor",
+      "complete": true,
+      "notes": "Shared test; the item specification holds the limits. Procedure notes by former code: RM-TIT-CADC-142: 0.150 g in 3 mL dilute HCl + 20 mL water, boil 2 min, dilute to 50 mL, add 6.0 mL strong NaOH and about 200 mg calconcarboxylic acid triturate; titrate with 0.1 M sodium edetate VS from violet to full blue. Equivalence: 1 mL 0.1 M = 4.008 mg Ca. Titrant 0.1 M sodium edetate VS is complete: false (no recipe in STM). BP Appendix VIII D. Source: Calcium Carbonate DC__Calcium Carbonate DC-SM - Micro.txt:38 | RM-TIT-CAGLY-036: Dissolve 0.200 g previously dried at 150 °C for 4 h in water to 300 mL; add 6.0 mL strong NaOH and ~200 mg calconcarboxylic acid triturate; titrate with 0.1 M sodium edetate from violet to full blue. 1 mL 0.1 M sodium edetate = 4.008 mg Ca. Limit 18.6%-19.4% Ca on dried substance (BP Appendix VIII D; source: Calcium Glycerophosphate__Calcium Glycerophosphate-SM.txt:41).",
+      "usedBy": [
+        "STM-RM-036",
+        "STM-RM-142"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-142",
+          "provisionalCode": "RM-TIT-CADC",
+          "source": "Calcium Carbonate DC__Calcium Carbonate DC-SM - Micro.txt:38"
+        },
+        {
+          "material": "STM-RM-036",
+          "provisionalCode": "RM-TIT-CAGLY",
+          "source": "Calcium Glycerophosphate__Calcium Glycerophosphate-SM.txt:41"
+        }
+      ]
+    }
+  ]
+}

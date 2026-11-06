@@ -43,27 +43,6 @@
       ]
     },
     {
-      "code": "RM-OXAL-048",
-      "displayName": "Oxalate",
-      "kind": "specific",
-      "section": "Physicochemical Laboratory",
-      "workflowType": "Qualitative",
-      "equationType": "Qualitative",
-      "physchemArea": "RawPackaging",
-      "complete": true,
-      "notes": "USP Oxalate: 1 g in 10 mL water + 2 mL HCl, extract with 50 mL then 20 mL ether, evaporate ether, add 1 drop glacial acetic acid and 1 mL calcium acetate solution (1 in 20); no turbidity within 5 minutes.",
-      "usedBy": [
-        "STM-RM-048"
-      ],
-      "sources": [
-        {
-          "material": "STM-RM-048",
-          "provisionalCode": "RM-OXAL-FAC",
-          "source": "Ferric Ammonium Citrate__STM Ferric Ammonium Citrate 1-3.txt:34"
-        }
-      ]
-    },
-    {
       "code": "RM-ICP-PB-048",
       "displayName": "Lead by AAS (ferric ammonium citrate)",
       "kind": "specific",
@@ -122,29 +101,6 @@
       "heldBack": "needs the held-back method \"Mercury by AAS (ferric ammonium citrate)\""
     },
     {
-      "code": "RM-VISC-143",
-      "displayName": "Viscosity (marine collagen peptide)",
-      "kind": "specific",
-      "section": "Physicochemical Laboratory",
-      "workflowType": "Measurement",
-      "equationType": "Measurement",
-      "physchemArea": "RawPackaging",
-      "replicateCount": 1,
-      "evaluationBasis": "Mean",
-      "complete": true,
-      "notes": "Viscosity per USP <912> rotational methods: dissolve about 15 g sample in water, make up to 100 mL, warm to 40 °C, measure with calibrated viscometer. Analyst enters final viscosity in mPa.s.",
-      "usedBy": [
-        "STM-RM-143"
-      ],
-      "sources": [
-        {
-          "material": "STM-RM-143",
-          "provisionalCode": "RM-VISC-MCP",
-          "source": "Marine Collagen Peptide__STM for Marine Collagen Peptide NEW.txt:32"
-        }
-      ]
-    },
-    {
       "code": "RM-TIT-PROT-143",
       "displayName": "Protein content of marine collagen peptide (Kjeldahl titration)",
       "kind": "specific",
@@ -195,27 +151,6 @@
           "material": "STM-RM-144",
           "provisionalCode": "RM-AIA-HORS",
           "source": "Horsetail Extract__STM for Marine Horsetail Extract 1-1.txt:33"
-        }
-      ]
-    },
-    {
-      "code": "RM-BA-145",
-      "displayName": "Barium (inositol)",
-      "kind": "specific",
-      "section": "Physicochemical Laboratory",
-      "workflowType": "Qualitative",
-      "equationType": "Qualitative",
-      "physchemArea": "RawPackaging",
-      "complete": true,
-      "notes": "USP Barium: to 10 mL of 100 mg/mL sample solution add 1 mL diluted sulfuric acid; read immediately and after 1 h. Opalescence not more intense than 1 mL water + 10 mL sample solution.",
-      "usedBy": [
-        "STM-RM-145"
-      ],
-      "sources": [
-        {
-          "material": "STM-RM-145",
-          "provisionalCode": "RM-BARIUM-INOS",
-          "source": "Inositol__Inositol-SM.txt:31"
         }
       ]
     },
@@ -471,7 +406,7 @@
       "RM-ID-FAC": "RM-ID-FAC-048",
       "RM-FCIT-FAC": "RM-FCIT-048",
       "RM-LT-SO4": "RM-LT-SO4",
-      "RM-OXAL-FAC": "RM-OXAL-048",
+      "RM-OXAL-FAC": "RM-OXAL",
       "RM-LEAD-FAC": "RM-ICP-PB-048",
       "RM-MERC-FAC": "RM-ICP-HG-048",
       "RM-TIT-FAC": "RM-TIT-FAC",
@@ -482,7 +417,7 @@
     "STM-RM-143": {
       "RM-DESC": "RM-DESC",
       "RM-SOLUB": "RM-SOLUB",
-      "RM-VISC-MCP": "RM-VISC-143",
+      "RM-VISC-MCP": "RM-VISC",
       "RM-LOD": "RM-LOD",
       "RM-PROT-MCP": "RM-TIT-PROT-143",
       "TAMC": "TAMC",
@@ -506,7 +441,7 @@
       "RM-SOLUB": "RM-SOLUB",
       "RM-SOLAPP": "RM-SOLAPP",
       "RM-ID-IR": "RM-ID-IR",
-      "RM-BARIUM-INOS": "RM-BA-145",
+      "RM-BARIUM-INOS": "RM-BA",
       "RM-LEAD-INOS": "RM-ICP-PB-145",
       "RM-COND-INOS": "RM-COND",
       "RM-KF": "RM-KF",

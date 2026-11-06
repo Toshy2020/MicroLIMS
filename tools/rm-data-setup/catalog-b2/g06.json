@@ -11,75 +11,6 @@
   },
   "testDefinitions": [
     {
-      "code": "RM-RELDEN-080",
-      "displayName": "Relative density (pycnometer, Mint Flavor)",
-      "kind": "specific",
-      "section": "Physicochemical Laboratory",
-      "workflowType": "Measurement",
-      "equationType": "Measurement",
-      "physchemArea": "RawPackaging",
-      "replicateCount": 1,
-      "evaluationBasis": "Mean",
-      "complete": true,
-      "notes": "Relative density by pycnometer: weigh dry empty pycnometer (W1), fill with water and weigh (W2), fill with sample and weigh (W3). Relative density = (W3 - W1) / (W2 - W1). BP Appendix V G (source: Mint Flavor__STM Mint Flavor 1-3.txt:32).",
-      "usedBy": [
-        "STM-RM-080"
-      ],
-      "sources": [
-        {
-          "material": "STM-RM-080",
-          "provisionalCode": "RM-RELDEN",
-          "source": "Mint Flavor__STM Mint Flavor 1-3.txt:32"
-        }
-      ]
-    },
-    {
-      "code": "RM-REFIDX-080",
-      "displayName": "Refractive index (Mint Flavor)",
-      "kind": "specific",
-      "section": "Physicochemical Laboratory",
-      "workflowType": "Measurement",
-      "equationType": "Measurement",
-      "physchemArea": "RawPackaging",
-      "replicateCount": 1,
-      "evaluationBasis": "Mean",
-      "complete": true,
-      "notes": "Transfer sample to prism of calibrated refractometer and read refractive index on the scale. BP Appendix V E (source: Mint Flavor__STM Mint Flavor 1-3.txt:33).",
-      "usedBy": [
-        "STM-RM-080"
-      ],
-      "sources": [
-        {
-          "material": "STM-RM-080",
-          "provisionalCode": "RM-REFIDX",
-          "source": "Mint Flavor__STM Mint Flavor 1-3.txt:33"
-        }
-      ]
-    },
-    {
-      "code": "RM-AV-080",
-      "displayName": "Acid value (Mint Flavor)",
-      "kind": "specific",
-      "section": "Physicochemical Laboratory",
-      "workflowType": "Measurement",
-      "equationType": "Measurement",
-      "physchemArea": "RawPackaging",
-      "replicateCount": 1,
-      "evaluationBasis": "Mean",
-      "complete": true,
-      "notes": "Dissolve ~5.00 g (W) in 50 mL neutralised ethanol (96%) : light petroleum (1:1), add 0.5 mL phenolphthalein solution R1, titrate with 0.1 M KOH or 0.1 M NaOH until pink colour persists at least 15 s (n mL titrant). Acid value = 5.61 x n / W. Measurement test, analyst enters calculated acid value (mg KOH/g, not calculated by % titration workflow; CATALOG.md rule 6; source: Mint Flavor__STM Mint Flavor 1-3.txt:35).",
-      "usedBy": [
-        "STM-RM-080"
-      ],
-      "sources": [
-        {
-          "material": "STM-RM-080",
-          "provisionalCode": "RM-ACIDVAL",
-          "source": "Mint Flavor__STM Mint Flavor 1-3.txt:35"
-        }
-      ]
-    },
-    {
       "code": "RM-ID-CU-141",
       "displayName": "Identification (copper sulfate reaction, D-Panthenol)",
       "kind": "specific",
@@ -153,29 +84,6 @@
       ]
     },
     {
-      "code": "RM-REFIDX-141",
-      "displayName": "Refractive index (D-Panthenol)",
-      "kind": "specific",
-      "section": "Physicochemical Laboratory",
-      "workflowType": "Measurement",
-      "equationType": "Measurement",
-      "physchemArea": "RawPackaging",
-      "replicateCount": 1,
-      "evaluationBasis": "Mean",
-      "complete": true,
-      "notes": "Determine on sufficient amount of sample with calibrated refractometer. USP <831> Refractive Index (source: Panthenol__Panthenol - SM 1.txt:35).",
-      "usedBy": [
-        "STM-RM-141"
-      ],
-      "sources": [
-        {
-          "material": "STM-RM-141",
-          "provisionalCode": "RM-REFIDX",
-          "source": "Panthenol__Panthenol - SM 1.txt:35"
-        }
-      ]
-    },
-    {
       "code": "RM-TIT-PANT-141",
       "displayName": "Assay of D-Panthenol (residual non-aqueous titration)",
       "kind": "specific",
@@ -209,71 +117,6 @@
         }
       ],
       "heldBack": "titrant 0.1 M Potassium biphthalate VS has no standardization; see held-back report"
-    },
-    {
-      "code": "RM-DISP-073",
-      "displayName": "Dispersion (Opadry White)",
-      "kind": "specific",
-      "section": "Physicochemical Laboratory",
-      "workflowType": "Qualitative",
-      "equationType": "Qualitative",
-      "physchemArea": "RawPackaging",
-      "complete": true,
-      "notes": "Disperse 1 g into 20 mL water; sample should diffuse into water and make uniform matrix (source: Opadry White__STM Opadry White new without micro.txt:29).",
-      "usedBy": [
-        "STM-RM-073"
-      ],
-      "sources": [
-        {
-          "material": "STM-RM-073",
-          "provisionalCode": "RM-DISP-OPADRYWHITE",
-          "source": "Opadry White__STM Opadry White new without micro.txt:29"
-        }
-      ]
-    },
-    {
-      "code": "RM-ID-FILM-073",
-      "displayName": "Identification (Film formation, Opadry White)",
-      "kind": "specific",
-      "section": "Physicochemical Laboratory",
-      "workflowType": "Qualitative",
-      "equationType": "Qualitative",
-      "physchemArea": "RawPackaging",
-      "complete": true,
-      "notes": "Make a slurry of powder in equal-volume mixture of isopropyl alcohol and dichloromethane, pour onto glass tile and dry; film must form (source: Opadry White__STM Opadry White new without micro.txt:30).",
-      "usedBy": [
-        "STM-RM-073"
-      ],
-      "sources": [
-        {
-          "material": "STM-RM-073",
-          "provisionalCode": "RM-ID-FILM-OPADRYWHITE",
-          "source": "Opadry White__STM Opadry White new without micro.txt:30"
-        }
-      ]
-    },
-    {
-      "code": "RM-ASH-073",
-      "displayName": "Ash content (Total ash, Opadry White)",
-      "kind": "specific",
-      "section": "Physicochemical Laboratory",
-      "workflowType": "Gravimetric",
-      "equationType": "GravimetricResidue",
-      "physchemArea": "RawPackaging",
-      "replicateCount": 1,
-      "usesTare": true,
-      "complete": true,
-      "notes": "Empty crucible previously ignited at 800 °C (W1); weigh ~1.0 g sample (W2); ignite in muffle at 800 ± 50 °C for 2 h; cool in desiccator; weigh crucible with residue (W4). Total ash % = (W4 - W1) / W2 x 100 (formula as written in STM: total ash = W2 - W3 where W3 = W4 - W1; source: Opadry White__STM Opadry White new without micro.txt:31).",
-      "usedBy": [
-        "STM-RM-073"
-      ],
-      "sources": [
-        {
-          "material": "STM-RM-073",
-          "provisionalCode": "RM-ASH-OPADRYWHITE",
-          "source": "Opadry White__STM Opadry White new without micro.txt:31"
-        }
-      ]
     },
     {
       "code": "RM-ID-PH-035",
@@ -356,27 +199,6 @@
           "material": "STM-RM-035",
           "provisionalCode": "RM-RCS-CITRIC",
           "source": "Citric acid Monohydarte__Citric acid Monohydarte -SM.txt:32"
-        }
-      ]
-    },
-    {
-      "code": "RM-LT-OXAL-035",
-      "displayName": "Oxalic acid (limit test, Citric Acid Monohydrate)",
-      "kind": "specific",
-      "section": "Physicochemical Laboratory",
-      "workflowType": "Qualitative",
-      "equationType": "Qualitative",
-      "physchemArea": "RawPackaging",
-      "complete": true,
-      "notes": "0.80 g in 4 mL water + 3 mL HCl + 1 g zinc granules, boil 1 min, stand 2 min; supernatant to 0.25 mL of 10 g/L phenylhydrazine hydrochloride, boil, cool, add equal volume HCl + 0.25 mL 50 g/L potassium ferricyanide, stand 30 min. Any pink colour not more intense than 4 mL 0.1 g/L oxalic acid treated same way (NMT 360 ppm). BP Appendix VII (source: Citric acid Monohydarte__Citric acid Monohydarte -SM.txt:34).",
-      "usedBy": [
-        "STM-RM-035"
-      ],
-      "sources": [
-        {
-          "material": "STM-RM-035",
-          "provisionalCode": "RM-LT-OXAL-CITRIC",
-          "source": "Citric acid Monohydarte__Citric acid Monohydarte -SM.txt:34"
         }
       ]
     },
@@ -622,19 +444,19 @@
       "RM-SOLUB": "RM-SOLUB",
       "RM-ID-CARB-CACO3MD": "RM-ID-CO3",
       "RM-ID-CA-CACO3MD": "RM-ID-CA",
-      "RM-INSOL": "RM-ACIDINS-CA",
+      "RM-INSOL": "RM-AIS",
       "RM-LT-HM": "RM-LT-HM",
       "RM-LOD": "RM-LOD",
       "RM-TAPDEN": "RM-TAPDEN",
-      "RM-TIT-CA-CACO3MD": "RM-TIT-CADC-142"
+      "RM-TIT-CA-CACO3MD": "RM-TIT-CA-EDTA"
     },
     "STM-RM-080": {
       "RM-DESC": "RM-DESC",
       "RM-SOLUB": "RM-SOLUB",
-      "RM-RELDEN": "RM-RELDEN-080",
-      "RM-REFIDX": "RM-REFIDX-080",
+      "RM-RELDEN": "RM-RELDENS",
+      "RM-REFIDX": "RM-REFIDX",
       "RM-OPTROT": "RM-OPTROT",
-      "RM-ACIDVAL": "RM-AV-080",
+      "RM-ACIDVAL": "RM-AV",
       "TAMC": "TAMC",
       "TYMC": "TYMC",
       "E.coli": "E.coli",
@@ -650,14 +472,14 @@
       "RM-SASH": "RM-SASH",
       "RM-OPTROT": "RM-OPTROT",
       "RM-KF": "RM-KF",
-      "RM-REFIDX": "RM-REFIDX-141",
+      "RM-REFIDX": "RM-REFIDX",
       "RM-TIT-PANT": "RM-TIT-PANT-141"
     },
     "STM-RM-073": {
       "RM-DESC": "RM-DESC",
-      "RM-DISP-OPADRYWHITE": "RM-DISP-073",
-      "RM-ID-FILM-OPADRYWHITE": "RM-ID-FILM-073",
-      "RM-ASH-OPADRYWHITE": "RM-ASH-073",
+      "RM-DISP-OPADRYWHITE": "RM-DISP",
+      "RM-ID-FILM-OPADRYWHITE": "RM-ID-FILM",
+      "RM-ASH-OPADRYWHITE": "RM-ASH",
       "TAMC": "TAMC",
       "TYMC": "TYMC",
       "E.coli": "E.coli"
@@ -672,7 +494,7 @@
       "RM-SOLAPP": "RM-SOLAPP",
       "RM-RCS-CITRIC": "RM-RCS-035",
       "RM-LT-SO4": "RM-LT-SO4",
-      "RM-LT-OXAL-CITRIC": "RM-LT-OXAL-035",
+      "RM-LT-OXAL-CITRIC": "RM-OXAL",
       "RM-KF": "RM-KF",
       "RM-SASH": "RM-SASH",
       "RM-TIT-CITRIC": "RM-TIT-CITRIC-035",

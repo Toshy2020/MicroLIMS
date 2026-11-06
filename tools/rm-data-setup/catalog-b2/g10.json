@@ -22,29 +22,6 @@
       ]
     },
     {
-      "code": "RM-VISC-CMC-004",
-      "displayName": "Viscosity (Carboxymethylcellulose Sodium)",
-      "kind": "specific",
-      "section": "Physicochemical Laboratory",
-      "workflowType": "Measurement",
-      "equationType": "Measurement",
-      "physchemArea": "RawPackaging",
-      "replicateCount": 1,
-      "evaluationBasis": "Mean",
-      "complete": true,
-      "notes": "Rotating viscometer method per BP 2024 Appendix V H (method III): stir quantity equivalent to 1.00 g dried substance into 50 mL water, heat to 90 °C, cool, dilute to 100.0 mL with water and stir until dissolved. Measure at 20 °C, 100 rpm, with calibrated rotating viscometer using spindle giving higher torque. Limit 4000 to 6000 cp (source: CarboxymethylCellulose Sodium__STM Calcium CarboxymethylCellulose Sodium NEW viscity.txt:34).",
-      "usedBy": [
-        "STM-RM-004"
-      ],
-      "sources": [
-        {
-          "material": "STM-RM-004",
-          "provisionalCode": "RM-VISC-CMC",
-          "source": "CarboxymethylCellulose Sodium__STM Calcium CarboxymethylCellulose Sodium NEW viscity.txt:34"
-        }
-      ]
-    },
-    {
       "code": "RM-LT-GLYC-004",
       "displayName": "Sodium glycolate (limit test, Carboxymethylcellulose Sodium)",
       "kind": "specific",
@@ -62,27 +39,6 @@
           "material": "STM-RM-004",
           "provisionalCode": "RM-LT-GLYC-CMC",
           "source": "CarboxymethylCellulose Sodium__STM Calcium CarboxymethylCellulose Sodium NEW viscity.txt:35"
-        }
-      ]
-    },
-    {
-      "code": "RM-ID-MG-058",
-      "displayName": "Identification (reaction of magnesium, USP, Magnesium Oxide)",
-      "kind": "specific",
-      "section": "Physicochemical Laboratory",
-      "workflowType": "Qualitative",
-      "equationType": "Qualitative",
-      "physchemArea": "RawPackaging",
-      "complete": true,
-      "notes": "Identification of magnesium per USP <191>: 50 mg/mL solution in 3 N HCl; add 3 mL ammonium chloride; neutralise with ammonium carbonate TS (slightly hazy precipitate); add dibasic sodium phosphate TS: white crystalline precipitate insoluble in 6 N ammonium hydroxide (source: Magnesium Oxide__Magnesium Oxide - SM-New.txt:30).",
-      "usedBy": [
-        "STM-RM-058"
-      ],
-      "sources": [
-        {
-          "material": "STM-RM-058",
-          "provisionalCode": "RM-ID-MG",
-          "source": "Magnesium Oxide__Magnesium Oxide - SM-New.txt:30"
         }
       ]
     },
@@ -138,52 +94,6 @@
       "heldBack": "needs the held-back method \"Calcium by AAS (magnesium oxide USP)\""
     },
     {
-      "code": "RM-LOI-058",
-      "displayName": "Loss on ignition (Magnesium Oxide)",
-      "kind": "specific",
-      "section": "Physicochemical Laboratory",
-      "workflowType": "Gravimetric",
-      "equationType": "GravimetricLoss",
-      "physchemArea": "RawPackaging",
-      "replicateCount": 1,
-      "usesTare": true,
-      "complete": true,
-      "notes": "Weigh empty crucible previously ignited at 800-900 °C (W0); weigh accurately 1.000 g into it (W1); ignite in calibrated muffle at 800-900 °C for 2 h, cool in desiccator, weigh (W2); repeat to constant weight. % loss on ignition = (W1 - W2) / (W1 - W0) x 100. Limit NMT 10.0% (source: Magnesium Oxide__Magnesium Oxide - SM-New.txt:34).",
-      "usedBy": [
-        "STM-RM-058"
-      ],
-      "sources": [
-        {
-          "material": "STM-RM-058",
-          "provisionalCode": "RM-LOI-MGO",
-          "source": "Magnesium Oxide__Magnesium Oxide - SM-New.txt:34"
-        }
-      ]
-    },
-    {
-      "code": "RM-AIS-058",
-      "displayName": "Acid-insoluble substances (Magnesium Oxide)",
-      "kind": "specific",
-      "section": "Physicochemical Laboratory",
-      "workflowType": "Gravimetric",
-      "equationType": "GravimetricResidue",
-      "physchemArea": "RawPackaging",
-      "replicateCount": 1,
-      "usesTare": true,
-      "complete": true,
-      "notes": "2.0 g sample (W1) in 75 mL water in ignited crucible (W2); add HCl until dissolved, boil 5 min, filter if residue remains, wash free from chloride; ignite and weigh (W3). Residue (%) = (W3 - W2) / W1 x 100. Limit NMT 2 mg (0.1%; source: Magnesium Oxide__Magnesium Oxide - SM-New.txt:35).",
-      "usedBy": [
-        "STM-RM-058"
-      ],
-      "sources": [
-        {
-          "material": "STM-RM-058",
-          "provisionalCode": "RM-AIS-MGO",
-          "source": "Magnesium Oxide__Magnesium Oxide - SM-New.txt:35"
-        }
-      ]
-    },
-    {
       "code": "RM-TIT-MGO-058",
       "displayName": "Assay of magnesium oxide (complexometric EDTA titration)",
       "kind": "specific",
@@ -203,29 +113,6 @@
           "material": "STM-RM-058",
           "provisionalCode": "RM-TIT-MGO",
           "source": "Magnesium Oxide__Magnesium Oxide - SM-New.txt:36"
-        }
-      ]
-    },
-    {
-      "code": "RM-PSD-058",
-      "displayName": "Particle size distribution (sieving / analyser, Magnesium Oxide)",
-      "kind": "specific",
-      "section": "Physicochemical Laboratory",
-      "workflowType": "Measurement",
-      "equationType": "Measurement",
-      "physchemArea": "RawPackaging",
-      "replicateCount": 1,
-      "evaluationBasis": "Mean",
-      "complete": true,
-      "notes": "Calibrated analytical sieving or particle size analyser; measure mass percentage of powder in each sieve size range (D10 297 µm / 10% pass 50 mesh; D50 590 µm / 50% pass 30 mesh; D90 1000 µm / 90% pass 18 mesh). Qualitative rows (source: Magnesium Oxide__Magnesium Oxide - SM-New.txt:38).",
-      "usedBy": [
-        "STM-RM-058"
-      ],
-      "sources": [
-        {
-          "material": "STM-RM-058",
-          "provisionalCode": "RM-PSD-MGO",
-          "source": "Magnesium Oxide__Magnesium Oxide - SM-New.txt:38"
         }
       ]
     },
@@ -268,52 +155,6 @@
           "material": "STM-RM-049",
           "provisionalCode": "RM-ID-PEG-B",
           "source": "Polyethylen Glycol 6000__STM Polyethylen Glycol after edit (no equipments).txt:30"
-        }
-      ]
-    },
-    {
-      "code": "RM-ACID-049",
-      "displayName": "Acidity or alkalinity (Polyethylene Glycol 6000)",
-      "kind": "specific",
-      "section": "Physicochemical Laboratory",
-      "workflowType": "Measurement",
-      "equationType": "Measurement",
-      "physchemArea": "RawPackaging",
-      "replicateCount": 1,
-      "evaluationBasis": "Mean",
-      "complete": true,
-      "notes": "BP 2024: dissolve 5.0 g in 50 mL CO2-free water, add 0.15 mL bromothymol blue solution R1; solution is yellow or green. Titrate with 0.1 M sodium hydroxide to blue colour (limit NMT 0.1 mL). Measurement test, analyst enters volume of 0.1 M NaOH in mL (source: Polyethylen Glycol 6000__STM Polyethylen Glycol after edit (no equipments).txt:32).",
-      "usedBy": [
-        "STM-RM-049"
-      ],
-      "sources": [
-        {
-          "material": "STM-RM-049",
-          "provisionalCode": "RM-ACID-PEG",
-          "source": "Polyethylen Glycol 6000__STM Polyethylen Glycol after edit (no equipments).txt:32"
-        }
-      ]
-    },
-    {
-      "code": "RM-VISC-049",
-      "displayName": "Viscosity (50% m/m solution, Polyethylene Glycol 6000)",
-      "kind": "specific",
-      "section": "Physicochemical Laboratory",
-      "workflowType": "Measurement",
-      "equationType": "Measurement",
-      "physchemArea": "RawPackaging",
-      "replicateCount": 1,
-      "evaluationBasis": "Mean",
-      "complete": true,
-      "notes": "BP 2024 Appendix V H: dissolve 50 g in 50 mL water to give 50% m/m solution; measure with calibrated rotational viscometer. Range 200 to 270 mPa·s (source: Polyethylen Glycol 6000__STM Polyethylen Glycol after edit (no equipments).txt:33).",
-      "usedBy": [
-        "STM-RM-049"
-      ],
-      "sources": [
-        {
-          "material": "STM-RM-049",
-          "provisionalCode": "RM-VISC-PEG",
-          "source": "Polyethylen Glycol 6000__STM Polyethylen Glycol after edit (no equipments).txt:33"
         }
       ]
     },
@@ -584,19 +425,19 @@
       "RM-SASH": "RM-SASH",
       "RM-SOLAPP": "RM-SOLAPP",
       "RM-SOLUB": "RM-SOLUB",
-      "RM-VISC-CMC": "RM-VISC-CMC-004"
+      "RM-VISC-CMC": "RM-VISC"
     },
     "STM-RM-058": {
       "E.coli": "E.coli",
-      "RM-AIS-MGO": "RM-AIS-058",
+      "RM-AIS-MGO": "RM-AIS",
       "RM-BULKD": "RM-BULKD",
       "RM-CA-MGO": "RM-ICP-CA-058",
       "RM-DESC": "RM-DESC",
       "RM-FAS-MGO": "RM-FAS-MGO",
-      "RM-ID-MG": "RM-ID-MG-058",
-      "RM-LOI-MGO": "RM-LOI-058",
+      "RM-ID-MG": "RM-ID-MG",
+      "RM-LOI-MGO": "RM-LOI",
       "RM-LT-FE": "RM-LT-FE",
-      "RM-PSD-MGO": "RM-PSD-058",
+      "RM-PSD-MGO": "RM-PSD",
       "RM-SOLUB": "RM-SOLUB",
       "RM-TIT-MGO": "RM-TIT-MGO-058",
       "TAMC": "TAMC",
@@ -604,7 +445,7 @@
     },
     "STM-RM-049": {
       "E.coli": "E.coli",
-      "RM-ACID-PEG": "RM-ACID-049",
+      "RM-ACID-PEG": "RM-ACIDALK-VOL",
       "RM-DESC": "RM-DESC",
       "RM-FP-PEG": "RM-FP-049",
       "RM-ID-PEG-A": "RM-ID-PEG-A-049",
@@ -614,7 +455,7 @@
       "RM-SASH": "RM-SASH",
       "RM-SOLAPP": "RM-SOLAPP",
       "RM-SOLUB": "RM-SOLUB",
-      "RM-VISC-PEG": "RM-VISC-049",
+      "RM-VISC-PEG": "RM-VISC",
       "TAMC": "TAMC",
       "TYMC": "TYMC"
     },

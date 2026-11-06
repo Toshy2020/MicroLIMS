@@ -22,115 +22,6 @@
       ]
     },
     {
-      "code": "RM-AIS-127",
-      "displayName": "Acid-insoluble substances (Calcium Hydrogen Phosphate Dihydrate)",
-      "kind": "specific",
-      "section": "Physicochemical Laboratory",
-      "workflowType": "Gravimetric",
-      "equationType": "GravimetricResidue",
-      "physchemArea": "RawPackaging",
-      "replicateCount": 1,
-      "usesTare": true,
-      "complete": true,
-      "notes": "Dissolve 5.0 g (W1) in 40 mL water + 10 mL hydrochloric acid, boil 5 min, collect insoluble substances on ashless filter paper, wash with water until AgNO3 test negative, ignite at 600 ± 50 °C. Residue weighs not more than 10 mg (0.2%). Formula: (residue / W1) x 100. BP 2024 Monograph for Calcium Hydrogen Phosphate Dihydrate (source: Calcium Hydrogen Phosphate Dihydrate__New 1-2_STM Calcium Hydrogen Phosphate Dihydrate - New.txt:33).",
-      "usedBy": [
-        "STM-RM-127"
-      ],
-      "sources": [
-        {
-          "material": "STM-RM-127",
-          "provisionalCode": "RM-AIS-CAHP",
-          "source": "Calcium Hydrogen Phosphate Dihydrate__New 1-2_STM Calcium Hydrogen Phosphate Dihydrate - New.txt:33"
-        }
-      ]
-    },
-    {
-      "code": "RM-CARB-127",
-      "displayName": "Carbonates (Calcium Hydrogen Phosphate Dihydrate)",
-      "kind": "specific",
-      "section": "Physicochemical Laboratory",
-      "workflowType": "Qualitative",
-      "equationType": "Qualitative",
-      "physchemArea": "RawPackaging",
-      "complete": true,
-      "notes": "Shake 0.5 g with 5 mL carbon dioxide-free water. Add 1 mL hydrochloric acid: no effervescence is produced. BP 2024 Monograph for Calcium Hydrogen Phosphate Dihydrate (source: Calcium Hydrogen Phosphate Dihydrate__New 1-2_STM Calcium Hydrogen Phosphate Dihydrate - New.txt:35).",
-      "usedBy": [
-        "STM-RM-127"
-      ],
-      "sources": [
-        {
-          "material": "STM-RM-127",
-          "provisionalCode": "RM-CARB-CAHP",
-          "source": "Calcium Hydrogen Phosphate Dihydrate__New 1-2_STM Calcium Hydrogen Phosphate Dihydrate - New.txt:35"
-        }
-      ]
-    },
-    {
-      "code": "RM-LT-AS-127",
-      "displayName": "Arsenic (limit test, Calcium Hydrogen Phosphate Dihydrate)",
-      "kind": "specific",
-      "section": "Physicochemical Laboratory",
-      "workflowType": "Qualitative",
-      "equationType": "Qualitative",
-      "physchemArea": "RawPackaging",
-      "complete": true,
-      "notes": "BP Appendix VII Limit Tests, Arsenic (Method A). Solution S: 2.5 g in 20 mL dilute HCl, dilute ammonia R1 to precipitate, dilute HCl to redissolve, dilute to 50 mL with water. Test solution: 2 mL solution S to 25 mL with water + 15 mL HCl + 0.1 mL stannous chloride solution + 5 mL potassium iodide solution; stand 15 min; add 5 g activated zinc. Assemble apparatus, immerse flask in water-bath. Reference solution: 1 mL arsenic standard solution (1 ppm As) to 25 mL with water, same reagents. After at least 2 h, colour in test solution is not more intense than standard. Limit NMT 10 ppm (source: Calcium Hydrogen Phosphate Dihydrate__New 1-2_STM Calcium Hydrogen Phosphate Dihydrate - New.txt:37).",
-      "usedBy": [
-        "STM-RM-127"
-      ],
-      "sources": [
-        {
-          "material": "STM-RM-127",
-          "provisionalCode": "RM-LT-AS-CAHP",
-          "source": "Calcium Hydrogen Phosphate Dihydrate__New 1-2_STM Calcium Hydrogen Phosphate Dihydrate - New.txt:37"
-        }
-      ]
-    },
-    {
-      "code": "RM-BA-127",
-      "displayName": "Barium (Calcium Hydrogen Phosphate Dihydrate)",
-      "kind": "specific",
-      "section": "Physicochemical Laboratory",
-      "workflowType": "Qualitative",
-      "equationType": "Qualitative",
-      "physchemArea": "RawPackaging",
-      "complete": true,
-      "notes": "To 0.5 g add 10 mL water, heat to boiling; while stirring add 1 mL hydrochloric acid dropwise; allow to cool and filter if necessary; add 2 mL of a 10 g/L solution of dipotassium sulfate; allow to stand for 10 min: no turbidity is produced. BP 2024 Monograph for Calcium Hydrogen Phosphate Dihydrate (source: Calcium Hydrogen Phosphate Dihydrate__New 1-2_STM Calcium Hydrogen Phosphate Dihydrate - New.txt:38).",
-      "usedBy": [
-        "STM-RM-127"
-      ],
-      "sources": [
-        {
-          "material": "STM-RM-127",
-          "provisionalCode": "RM-BARIUM-CAHP",
-          "source": "Calcium Hydrogen Phosphate Dihydrate__New 1-2_STM Calcium Hydrogen Phosphate Dihydrate - New.txt:38"
-        }
-      ]
-    },
-    {
-      "code": "RM-LOI-127",
-      "displayName": "Loss on ignition (Calcium Hydrogen Phosphate Dihydrate)",
-      "kind": "specific",
-      "section": "Physicochemical Laboratory",
-      "workflowType": "Gravimetric",
-      "equationType": "GravimetricLoss",
-      "physchemArea": "RawPackaging",
-      "replicateCount": 1,
-      "usesTare": true,
-      "complete": true,
-      "notes": "Accurately weighed empty crucible, previously ignited at 800-825 °C and cooled in desiccator (W0). Weigh accurately 1.000 g into crucible (W1 = tare + sample). Ignite in calibrated muffle at 800-825 °C for 2 h, cool in desiccator, weigh (W2). Repeat to constant weight. % loss on ignition = (W1 - W2) / (W1 - W0) x 100. Limit 24.5% to 26.5%. BP 2024 Monograph for Calcium Hydrogen Phosphate Dihydrate (source: Calcium Hydrogen Phosphate Dihydrate__New 1-2_STM Calcium Hydrogen Phosphate Dihydrate - New.txt:40).",
-      "usedBy": [
-        "STM-RM-127"
-      ],
-      "sources": [
-        {
-          "material": "STM-RM-127",
-          "provisionalCode": "RM-LOI-CAHP",
-          "source": "Calcium Hydrogen Phosphate Dihydrate__New 1-2_STM Calcium Hydrogen Phosphate Dihydrate - New.txt:40"
-        }
-      ]
-    },
-    {
       "code": "RM-TIT-CAHP-127",
       "displayName": "Assay of Calcium Hydrogen Phosphate Dihydrate (complexometric back titration)",
       "kind": "specific",
@@ -160,29 +51,6 @@
           "material": "STM-RM-127",
           "provisionalCode": "RM-TIT-CAHP",
           "source": "Calcium Hydrogen Phosphate Dihydrate__New 1-2_STM Calcium Hydrogen Phosphate Dihydrate - New.txt:41"
-        }
-      ]
-    },
-    {
-      "code": "RM-PSD-127",
-      "displayName": "Particle size distribution (sieving / analyser, Calcium Hydrogen Phosphate Dihydrate)",
-      "kind": "specific",
-      "section": "Physicochemical Laboratory",
-      "workflowType": "Measurement",
-      "equationType": "Measurement",
-      "physchemArea": "RawPackaging",
-      "replicateCount": 1,
-      "evaluationBasis": "Mean",
-      "complete": true,
-      "notes": "Calibrated analytical sieving or particle size analyser; measure mass percentage of powder in each sieve size range (D10 125 µm / 10% pass through 120 mesh; D50 250 µm / 50% pass through 60 mesh; D90 500 µm / 90% pass through 35 mesh). Qualitative rows per in-house specification by R&D department (source: Calcium Hydrogen Phosphate Dihydrate__New 1-2_STM Calcium Hydrogen Phosphate Dihydrate - New.txt:42).",
-      "usedBy": [
-        "STM-RM-127"
-      ],
-      "sources": [
-        {
-          "material": "STM-RM-127",
-          "provisionalCode": "RM-PSD-CAHP",
-          "source": "Calcium Hydrogen Phosphate Dihydrate__New 1-2_STM Calcium Hydrogen Phosphate Dihydrate - New.txt:42"
         }
       ]
     },
@@ -391,17 +259,17 @@
     },
     "STM-RM-127": {
       "E.coli": "E.coli",
-      "RM-AIS-CAHP": "RM-AIS-127",
-      "RM-BARIUM-CAHP": "RM-BA-127",
-      "RM-CARB-CAHP": "RM-CARB-127",
+      "RM-AIS-CAHP": "RM-AIS",
+      "RM-BARIUM-CAHP": "RM-BA",
+      "RM-CARB-CAHP": "RM-CARB",
       "RM-DESC": "RM-DESC",
       "RM-ID-CAHP": "RM-ID-CAHP-127",
-      "RM-LOI-CAHP": "RM-LOI-127",
-      "RM-LT-AS-CAHP": "RM-LT-AS-127",
+      "RM-LOI-CAHP": "RM-LOI",
+      "RM-LT-AS-CAHP": "RM-LT-AS",
       "RM-LT-CL": "RM-LT-CL",
       "RM-LT-FE": "RM-LT-FE",
       "RM-LT-SO4": "RM-LT-SO4",
-      "RM-PSD-CAHP": "RM-PSD-127",
+      "RM-PSD-CAHP": "RM-PSD",
       "RM-SOLUB": "RM-SOLUB",
       "RM-TIT-CAHP": "RM-TIT-CAHP-127",
       "TAMC": "TAMC",

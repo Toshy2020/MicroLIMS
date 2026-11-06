@@ -43,57 +43,6 @@
       ]
     },
     {
-      "code": "RM-SO2-129",
-      "displayName": "Sulfur dioxide",
-      "kind": "specific",
-      "section": "Physicochemical Laboratory",
-      "workflowType": "Measurement",
-      "equationType": "Measurement",
-      "physchemArea": "RawPackaging",
-      "replicateCount": 1,
-      "evaluationBasis": "Mean",
-      "complete": true,
-      "notes": "BP Appendix IX B apparatus. Distillation with CO2 sweep into dilute H2O2, titration with 0.1 M NaOH (bromophenol blue indicator). Formula 1000 * F * V * N / W (F = 32.03). Analyst enters final ppm result (distillation blank titration cannot be calculated by titration workflow).",
-      "usedBy": [
-        "STM-RM-129"
-      ],
-      "sources": [
-        {
-          "material": "STM-RM-129",
-          "provisionalCode": "RM-SO2-MALTODEXTRIN",
-          "source": "Maltodextrin__STM Maltodextrin new Without Micro.txt:31"
-        }
-      ]
-    },
-    {
-      "code": "RM-TIT-DE-129",
-      "displayName": "Dextrose equivalent",
-      "kind": "specific",
-      "section": "Physicochemical Laboratory",
-      "workflowType": "Measurement",
-      "equationType": "Measurement",
-      "physchemArea": "RawPackaging",
-      "replicateCount": 1,
-      "evaluationBasis": "Mean",
-      "complete": true,
-      "notes": "Cupric-tartaric redox titration standardized with glucose (V0), sample titration (V1) with methylene blue indicator. Result entered by analyst (formula (300 * V0 * 100) / (V1 * M * D) cannot be calculated by titration workflow). Shared by Dextrose equivalent and Identification (Titration).",
-      "usedBy": [
-        "STM-RM-129"
-      ],
-      "sources": [
-        {
-          "material": "STM-RM-129",
-          "provisionalCode": "RM-TIT-DE-MALTODEXTRIN",
-          "source": "Maltodextrin__STM Maltodextrin new Without Micro.txt:35"
-        },
-        {
-          "material": "STM-RM-129",
-          "provisionalCode": "RM-ID-DE-MALTODEXTRIN",
-          "source": "Maltodextrin__STM Maltodextrin new Without Micro.txt:30"
-        }
-      ]
-    },
-    {
       "code": "RM-HPLC-LEVO-AS",
       "displayName": "Assay of levofloxacin (USP, HPLC)",
       "kind": "specific",
@@ -169,52 +118,6 @@
       "heldBack": "needs the held-back method \"Levofloxacin organic impurities procedure 2 (USP, gradient HPLC)\""
     },
     {
-      "code": "RM-RELDENS-093",
-      "displayName": "Relative density (pycnometer, sweet orange oil)",
-      "kind": "specific",
-      "section": "Physicochemical Laboratory",
-      "workflowType": "Measurement",
-      "equationType": "Measurement",
-      "physchemArea": "RawPackaging",
-      "replicateCount": 1,
-      "evaluationBasis": "Mean",
-      "complete": true,
-      "notes": "Pycnometer method (W3 - W1) / (W2 - W1) at 25 C. Analyst enters calculated relative density value.",
-      "usedBy": [
-        "STM-RM-093"
-      ],
-      "sources": [
-        {
-          "material": "STM-RM-093",
-          "provisionalCode": "RM-RELDENS-ORANGE",
-          "source": "Sweet Orange Oil__SM- Sweet Orange Oil new.txt:34"
-        }
-      ]
-    },
-    {
-      "code": "RM-REFR-093",
-      "displayName": "Refractive index (sweet orange oil)",
-      "kind": "specific",
-      "section": "Physicochemical Laboratory",
-      "workflowType": "Measurement",
-      "equationType": "Measurement",
-      "physchemArea": "RawPackaging",
-      "replicateCount": 1,
-      "evaluationBasis": "Mean",
-      "complete": true,
-      "notes": "Measured on calibrated refractometer at 25 C.",
-      "usedBy": [
-        "STM-RM-093"
-      ],
-      "sources": [
-        {
-          "material": "STM-RM-093",
-          "provisionalCode": "RM-REFR-INDEX-ORANGE",
-          "source": "Sweet Orange Oil__SM- Sweet Orange Oil new.txt:35"
-        }
-      ]
-    },
-    {
       "code": "RM-ID-CHEM-084",
       "displayName": "Identification (reaction with ammonia, lactose)",
       "kind": "specific",
@@ -253,29 +156,6 @@
           "material": "STM-RM-084",
           "provisionalCode": "RM-ID-TLC-LACTOSE",
           "source": "Lactose Monohydrate__Lactose Monohydrate - SM.txt:32"
-        }
-      ]
-    },
-    {
-      "code": "RM-TIT-ACIDALK-084",
-      "displayName": "Acidity or alkalinity of lactose monohydrate (volume of 0.1 M NaOH)",
-      "kind": "specific",
-      "section": "Physicochemical Laboratory",
-      "workflowType": "Measurement",
-      "equationType": "Measurement",
-      "physchemArea": "RawPackaging",
-      "replicateCount": 1,
-      "evaluationBasis": "Mean",
-      "complete": true,
-      "notes": "6.0 g in 25 mL CO2-free water + 0.3 mL phenolphthalein R1; titrate with 0.1 M NaOH to pink/red. Analyst enters volume in mL (limit NMT 0.4 mL). Cannot be calculated by titration workflow.",
-      "usedBy": [
-        "STM-RM-084"
-      ],
-      "sources": [
-        {
-          "material": "STM-RM-084",
-          "provisionalCode": "RM-ACID-ALK-LACTOSE",
-          "source": "Lactose Monohydrate__Lactose Monohydrate - SM.txt:34"
         }
       ]
     },
@@ -690,12 +570,12 @@
       "RM-SOLUB": "RM-SOLUB",
       "RM-ID-CHEM-MALTODEXTRIN": "RM-ID-CHEM-129",
       "RM-ID-VISUAL-MALTODEXTRIN": "RM-ID-VIS-129",
-      "RM-ID-DE-MALTODEXTRIN": "RM-TIT-DE-129",
-      "RM-SO2-MALTODEXTRIN": "RM-SO2-129",
+      "RM-ID-DE-MALTODEXTRIN": "RM-DE",
+      "RM-SO2-MALTODEXTRIN": "RM-SO2",
       "RM-PH": "RM-PH",
       "RM-LOD": "RM-LOD",
       "RM-SASH": "RM-SASH",
-      "RM-TIT-DE-MALTODEXTRIN": "RM-TIT-DE-129",
+      "RM-TIT-DE-MALTODEXTRIN": "RM-DE",
       "TAMC": "TAMC",
       "TYMC": "TYMC",
       "E.coli": "E.coli",
@@ -721,8 +601,8 @@
       "RM-SOLUB": "RM-SOLUB",
       "RM-ODOR": "RM-ODOR",
       "RM-PH": "RM-PH",
-      "RM-RELDENS-ORANGE": "RM-RELDENS-093",
-      "RM-REFR-INDEX-ORANGE": "RM-REFR-093",
+      "RM-RELDENS-ORANGE": "RM-RELDENS",
+      "RM-REFR-INDEX-ORANGE": "RM-REFIDX",
       "TAMC": "TAMC",
       "TYMC": "TYMC",
       "E.coli": "E.coli",
@@ -735,7 +615,7 @@
       "RM-ID-CHEM-LACTOSE": "RM-ID-CHEM-084",
       "RM-ID-IR": "RM-ID-IR",
       "RM-ID-TLC-LACTOSE": "RM-ID-TLC-084",
-      "RM-ACID-ALK-LACTOSE": "RM-TIT-ACIDALK-084",
+      "RM-ACID-ALK-LACTOSE": "RM-ACIDALK-VOL",
       "RM-OPTROT": "RM-OPTROT",
       "RM-UV-ABS-LACTOSE": "RM-UV-ABS-084",
       "RM-KF": "RM-KF",

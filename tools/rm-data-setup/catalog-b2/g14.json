@@ -22,50 +22,6 @@
       ]
     },
     {
-      "code": "RM-ID-FILM-114",
-      "displayName": "Identification (Film formation, Opadry Green)",
-      "kind": "specific",
-      "section": "Physicochemical Laboratory",
-      "workflowType": "Qualitative",
-      "equationType": "Qualitative",
-      "physchemArea": "RawPackaging",
-      "complete": true,
-      "notes": "Make a slurry of the powder in an equal-volume mixture of isopropyl alcohol and methylene dichloride, pour onto a glass tile and dry; film formed (source: Opadry green__STM Opadry Green.txt:31).",
-      "usedBy": [
-        "STM-RM-114"
-      ],
-      "sources": [
-        {
-          "material": "STM-RM-114",
-          "provisionalCode": "RM-ID-FILM-OPA",
-          "source": "Opadry green__STM Opadry Green.txt:31"
-        }
-      ]
-    },
-    {
-      "code": "RM-ASH-114",
-      "displayName": "Ash content (Total ash, Opadry Green)",
-      "kind": "specific",
-      "section": "Physicochemical Laboratory",
-      "workflowType": "Gravimetric",
-      "equationType": "GravimetricResidue",
-      "physchemArea": "RawPackaging",
-      "replicateCount": 1,
-      "usesTare": true,
-      "complete": true,
-      "notes": "Empty crucible previously ignited at 800 °C (W1); weigh ~1.0 g sample (W2); ignite in muffle at 800 ± 50 °C for 2 h; cool in desiccator; weigh crucible with residue (W4). Residue W3 = W4 - W1; total ash % = (W4 - W1) / W2 x 100 (formula as written in STM: total ash = W2 - W3 where W3 = W4 - W1; source: Opadry green__STM Opadry Green.txt:32).",
-      "usedBy": [
-        "STM-RM-114"
-      ],
-      "sources": [
-        {
-          "material": "STM-RM-114",
-          "provisionalCode": "RM-ASH-OPA",
-          "source": "Opadry green__STM Opadry Green.txt:32"
-        }
-      ]
-    },
-    {
       "code": "RM-ID-FLUO-003",
       "displayName": "Identification (Fluorescence, Thiamine Hydrochloride)",
       "kind": "specific",
@@ -575,9 +531,9 @@
     },
     "STM-RM-114": {
       "E.coli": "E.coli",
-      "RM-ASH-OPA": "RM-ASH-114",
+      "RM-ASH-OPA": "RM-ASH",
       "RM-DESC": "RM-DESC",
-      "RM-ID-FILM-OPA": "RM-ID-FILM-114",
+      "RM-ID-FILM-OPA": "RM-ID-FILM",
       "TAMC": "TAMC",
       "TYMC": "TYMC"
     },

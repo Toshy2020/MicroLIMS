@@ -74,52 +74,6 @@
       ]
     },
     {
-      "code": "RM-SO2-061",
-      "displayName": "Sulfur dioxide (Liquid Glucose)",
-      "kind": "specific",
-      "section": "Physicochemical Laboratory",
-      "workflowType": "Measurement",
-      "equationType": "Measurement",
-      "physchemArea": "RawPackaging",
-      "replicateCount": 1,
-      "evaluationBasis": "Mean",
-      "complete": true,
-      "notes": "25.0 g sample boiled 1 h with 80 mL dilute HCl in CO2 stream into neutralised H2O2, titrate with 0.1 M NaOH to bromophenol blue; blank test; ppm = 32030 x (V1 - V2) x (n / m). Measurement test, analyst enters the final ppm result (source: Liquid Glucose__Liquid Glucose - SM.txt:36).",
-      "usedBy": [
-        "STM-RM-061"
-      ],
-      "sources": [
-        {
-          "material": "STM-RM-061",
-          "provisionalCode": "RM-SO2-GLUC",
-          "source": "Liquid Glucose__Liquid Glucose - SM.txt:36"
-        }
-      ]
-    },
-    {
-      "code": "RM-DE-061",
-      "displayName": "Dextrose equivalent (Liquid Glucose)",
-      "kind": "specific",
-      "section": "Physicochemical Laboratory",
-      "workflowType": "Measurement",
-      "equationType": "Measurement",
-      "physchemArea": "RawPackaging",
-      "replicateCount": 1,
-      "evaluationBasis": "Mean",
-      "complete": true,
-      "notes": "Titration of boiling cupri-tartaric solution (25.0 mL) with sample solution to methylene blue endpoint, standardized against 6.00 g/L glucose. Dextrose equivalent = 300 x V0 x 100 / (V1 x M x D). Measurement test, analyst enters final value (source: Liquid Glucose__Liquid Glucose - SM.txt:37).",
-      "usedBy": [
-        "STM-RM-061"
-      ],
-      "sources": [
-        {
-          "material": "STM-RM-061",
-          "provisionalCode": "RM-DE-GLUC",
-          "source": "Liquid Glucose__Liquid Glucose - SM.txt:37"
-        }
-      ]
-    },
-    {
       "code": "RM-ID-UV-149",
       "displayName": "Identification (UV, Vitamin A Palmitate)",
       "kind": "specific",
@@ -137,52 +91,6 @@
           "material": "STM-RM-149",
           "provisionalCode": "RM-ID-UV-VITA",
           "source": "Vitamim A Palmitat__Vitamim A Palmitate-SM.txt:30"
-        }
-      ]
-    },
-    {
-      "code": "RM-AV-149",
-      "displayName": "Acid Value (Vitamin A Palmitate)",
-      "kind": "specific",
-      "section": "Physicochemical Laboratory",
-      "workflowType": "Measurement",
-      "equationType": "Measurement",
-      "physchemArea": "RawPackaging",
-      "replicateCount": 1,
-      "evaluationBasis": "Mean",
-      "complete": true,
-      "notes": "Dissolve 2.0 g in 50 mL neutralised ethanol (96%) : light petroleum R3 (1:1), titrate with 0.1 M KOH/NaOH to phenolphthalein pink (15 s). Acid value IA = 5.61 x n / m. Measurement test, analyst enters the final value (mg KOH/g, not calculated by % titration workflow; source: Vitamim A Palmitat__Vitamim A Palmitate-SM.txt:31).",
-      "usedBy": [
-        "STM-RM-149"
-      ],
-      "sources": [
-        {
-          "material": "STM-RM-149",
-          "provisionalCode": "RM-AV-VITA",
-          "source": "Vitamim A Palmitat__Vitamim A Palmitate-SM.txt:31"
-        }
-      ]
-    },
-    {
-      "code": "RM-PV-149",
-      "displayName": "Peroxide Value (Vitamin A Palmitate)",
-      "kind": "specific",
-      "section": "Physicochemical Laboratory",
-      "workflowType": "Measurement",
-      "equationType": "Measurement",
-      "physchemArea": "RawPackaging",
-      "replicateCount": 1,
-      "evaluationBasis": "Mean",
-      "complete": true,
-      "notes": "5.00 g in 30 mL chloroform : glacial acetic acid (2:3), 0.5 mL saturated KI, shake 1 min, 30 mL water, titrate with 0.01 M sodium thiosulfate potentiometrically with blank (NMT 0.1 mL). Peroxide value IP = 10 x (n1 - n2) / m. Measurement test, analyst enters the final value (meq O2/kg, not calculated by % titration workflow; source: Vitamim A Palmitat__Vitamim A Palmitate-SM.txt:32).",
-      "usedBy": [
-        "STM-RM-149"
-      ],
-      "sources": [
-        {
-          "material": "STM-RM-149",
-          "provisionalCode": "RM-PV-VITA",
-          "source": "Vitamim A Palmitat__Vitamim A Palmitate-SM.txt:32"
         }
       ]
     },
@@ -231,27 +139,6 @@
       ]
     },
     {
-      "code": "RM-ID-MG-107",
-      "displayName": "Identification (reaction of magnesium, USP)",
-      "kind": "specific",
-      "section": "Physicochemical Laboratory",
-      "workflowType": "Qualitative",
-      "equationType": "Qualitative",
-      "physchemArea": "RawPackaging",
-      "complete": true,
-      "notes": "50 mg/mL in 3 N HCl + 3 mL ammonium chloride, neutralise with ammonium carbonate TS, add dibasic sodium phosphate TS: white crystalline precipitate insoluble in 6 N ammonium hydroxide (source: Magnesium Hydroxide__Magnesium Hydroxide-SM.txt:32).",
-      "usedBy": [
-        "STM-RM-107"
-      ],
-      "sources": [
-        {
-          "material": "STM-RM-107",
-          "provisionalCode": "RM-ID-MG-USP",
-          "source": "Magnesium Hydroxide__Magnesium Hydroxide-SM.txt:32"
-        }
-      ]
-    },
-    {
       "code": "RM-SOLSALTS-107",
       "displayName": "Soluble salts (Magnesium Hydroxide)",
       "kind": "specific",
@@ -271,27 +158,6 @@
           "material": "STM-RM-107",
           "provisionalCode": "RM-SOLSALTS-MGOH",
           "source": "Magnesium Hydroxide__Magnesium Hydroxide-SM.txt:33"
-        }
-      ]
-    },
-    {
-      "code": "RM-CARB-107",
-      "displayName": "Carbonate (effervescence, Magnesium Hydroxide)",
-      "kind": "specific",
-      "section": "Physicochemical Laboratory",
-      "workflowType": "Qualitative",
-      "equationType": "Qualitative",
-      "physchemArea": "RawPackaging",
-      "complete": true,
-      "notes": "Boil 0.10 g with 5 mL water, cool, add 5 mL 6 N acetic acid: NMT a slight effervescence is observed (source: Magnesium Hydroxide__Magnesium Hydroxide-SM.txt:34).",
-      "usedBy": [
-        "STM-RM-107"
-      ],
-      "sources": [
-        {
-          "material": "STM-RM-107",
-          "provisionalCode": "RM-CARB-MGOH",
-          "source": "Magnesium Hydroxide__Magnesium Hydroxide-SM.txt:34"
         }
       ]
     },
@@ -348,29 +214,6 @@
       "heldBack": "needs the held-back method \"Lead by ICP (magnesium hydroxide USP)\""
     },
     {
-      "code": "RM-LOI-107",
-      "displayName": "Loss on ignition (Magnesium Hydroxide)",
-      "kind": "specific",
-      "section": "Physicochemical Laboratory",
-      "workflowType": "Gravimetric",
-      "equationType": "GravimetricLoss",
-      "physchemArea": "RawPackaging",
-      "replicateCount": 1,
-      "usesTare": true,
-      "complete": true,
-      "notes": "Weigh empty crucible ignited at 800 °C (W0). Weigh accurately 1.000 g into crucible (W1). Ignite in muffle at 800 °C for 2 h, cool in desiccator, weigh (W2). Repeat to constant weight. % Loss on Ignition = (W1 - W2) / (W1 - W0) x 100 (source: Magnesium Hydroxide__Magnesium Hydroxide-SM.txt:37).",
-      "usedBy": [
-        "STM-RM-107"
-      ],
-      "sources": [
-        {
-          "material": "STM-RM-107",
-          "provisionalCode": "RM-LOI-MGOH",
-          "source": "Magnesium Hydroxide__Magnesium Hydroxide-SM.txt:37"
-        }
-      ]
-    },
-    {
       "code": "RM-TIT-MGOH-107",
       "displayName": "Assay of magnesium hydroxide (complexometric EDTA)",
       "kind": "specific",
@@ -398,71 +241,6 @@
           "material": "STM-RM-107",
           "provisionalCode": "RM-ASSAY-TITR-MGOH",
           "source": "Magnesium Hydroxide__Magnesium Hydroxide-SM.txt:39"
-        }
-      ]
-    },
-    {
-      "code": "RM-DISP-132",
-      "displayName": "Dispersion (Opadry Red)",
-      "kind": "specific",
-      "section": "Physicochemical Laboratory",
-      "workflowType": "Qualitative",
-      "equationType": "Qualitative",
-      "physchemArea": "RawPackaging",
-      "complete": true,
-      "notes": "Weigh 20 g into bottle, add 100 mL purified water, swirl 2 min. Examine visually to ensure complete dispersion without particles, forming uniform matrix with water (source: Opadry Red__STM Opadry Red 3-1.txt:31).",
-      "usedBy": [
-        "STM-RM-132"
-      ],
-      "sources": [
-        {
-          "material": "STM-RM-132",
-          "provisionalCode": "RM-DISP-OPRED",
-          "source": "Opadry Red__STM Opadry Red 3-1.txt:31"
-        }
-      ]
-    },
-    {
-      "code": "RM-ID-FILM-132",
-      "displayName": "Identification (Film formation, Opadry Red)",
-      "kind": "specific",
-      "section": "Physicochemical Laboratory",
-      "workflowType": "Qualitative",
-      "equationType": "Qualitative",
-      "physchemArea": "RawPackaging",
-      "complete": true,
-      "notes": "Make slurry of powder in water 10-12%, pour on glass tile, dry at 70 °C. Film formed layer appears (source: Opadry Red__STM Opadry Red 3-1.txt:32).",
-      "usedBy": [
-        "STM-RM-132"
-      ],
-      "sources": [
-        {
-          "material": "STM-RM-132",
-          "provisionalCode": "RM-ID-FILM-OPRED",
-          "source": "Opadry Red__STM Opadry Red 3-1.txt:32"
-        }
-      ]
-    },
-    {
-      "code": "RM-ASH-132",
-      "displayName": "Ash content (Total ash, Opadry Red)",
-      "kind": "specific",
-      "section": "Physicochemical Laboratory",
-      "workflowType": "Gravimetric",
-      "equationType": "GravimetricResidue",
-      "physchemArea": "RawPackaging",
-      "replicateCount": 1,
-      "usesTare": true,
-      "complete": true,
-      "notes": "Accurately weigh empty crucible previously ignited at 600 °C (W1). Weigh ~1.0 g into crucible (W2). Ignite in muffle furnace at 600 ± 50 °C for 2 h. Cool in desiccator. Weigh residue (W4). Total ash % = (W4 - W1) / W2 x 100 (source: Opadry Red__STM Opadry Red 3-1.txt:33).",
-      "usedBy": [
-        "STM-RM-132"
-      ],
-      "sources": [
-        {
-          "material": "STM-RM-132",
-          "provisionalCode": "RM-ASH-OPRED",
-          "source": "Opadry Red__STM Opadry Red 3-1.txt:33"
         }
       ]
     }
@@ -656,7 +434,7 @@
   "mapping": {
     "STM-RM-061": {
       "E.coli": "E.coli",
-      "RM-DE-GLUC": "RM-DE-061",
+      "RM-DE-GLUC": "RM-DE",
       "RM-DESC": "RM-DESC",
       "RM-ID-CUPRI-GLUC": "RM-ID-CUPRI-061",
       "RM-ID-PAD-GLUC": "RM-ID-PAD-061",
@@ -664,17 +442,17 @@
       "RM-LOD": "RM-LOD",
       "RM-PH": "RM-PH",
       "RM-SASH": "RM-SASH",
-      "RM-SO2-GLUC": "RM-SO2-061",
+      "RM-SO2-GLUC": "RM-SO2",
       "RM-SOLUB": "RM-SOLUB",
       "TAMC": "TAMC",
       "TYMC": "TYMC"
     },
     "STM-RM-149": {
-      "RM-AV-VITA": "RM-AV-149",
+      "RM-AV-VITA": "RM-AV",
       "RM-DESC": "RM-DESC",
       "RM-ID-TLC-VITA": "RM-ID-TLC-149",
       "RM-ID-UV-VITA": "RM-ID-UV-149",
-      "RM-PV-VITA": "RM-PV-149",
+      "RM-PV-VITA": "RM-PV",
       "RM-SOLUB": "RM-SOLUB",
       "RM-UV-VITA-AS": "RM-UV-AS-149"
     },
@@ -683,11 +461,11 @@
       "RM-ASSAY-TITR-MGOH": "RM-TIT-MGOH-107",
       "RM-BULKD": "RM-BULKD",
       "RM-CA-AAS-MGOH": "RM-ICP-CA-107",
-      "RM-CARB-MGOH": "RM-CARB-107",
+      "RM-CARB-MGOH": "RM-CARB",
       "RM-DESC": "RM-DESC",
-      "RM-ID-MG-USP": "RM-ID-MG-107",
+      "RM-ID-MG-USP": "RM-ID-MG",
       "RM-LOD": "RM-LOD",
-      "RM-LOI-MGOH": "RM-LOI-107",
+      "RM-LOI-MGOH": "RM-LOI",
       "RM-PB-ICP-MGOH": "RM-ICP-PB-107",
       "RM-SOLSALTS-MGOH": "RM-SOLSALTS-107",
       "RM-SOLUB": "RM-SOLUB",
@@ -705,10 +483,10 @@
     },
     "STM-RM-132": {
       "E.coli": "E.coli",
-      "RM-ASH-OPRED": "RM-ASH-132",
+      "RM-ASH-OPRED": "RM-ASH",
       "RM-DESC": "RM-DESC",
-      "RM-DISP-OPRED": "RM-DISP-132",
-      "RM-ID-FILM-OPRED": "RM-ID-FILM-132",
+      "RM-DISP-OPRED": "RM-DISP",
+      "RM-ID-FILM-OPRED": "RM-ID-FILM",
       "TAMC": "TAMC",
       "TYMC": "TYMC"
     }

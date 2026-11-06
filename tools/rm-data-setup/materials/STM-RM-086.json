@@ -94,7 +94,7 @@
           "lower": null,
           "upper": 0.05,
           "lowerInclusive": null,
-          "unit": "mL of 0.1 M hydrochloric acid or 0.1 M sodium hydroxide",
+          "unit": "mL",
           "expectedResultText": null,
           "expectedState": null,
           "resultBasis": null,
@@ -835,6 +835,10 @@
     {
       "question": "Chlorides and sulfates visual limit tests are recorded as Qualitative rows with expectedResultText 'Complies (Maximum 0.1 per cent)' and 'Complies (Maximum 1.0 per cent)' per visual comparison limit rules.",
       "source": "Magnesium Stearate__Specifications sheet Magnesium Stearate.txt:17-18; Magnesium Stearate__Magnesium Stearate - SM.txt:34,35"
+    },
+    {
+      "question": "Acidity or alkalinity limit is \"NMT 0.05 mL of 0.1 M hydrochloric acid or 0.1 M sodium hydroxide\"; the unit column holds 50 characters, so the unit is \"mL\" and the titrant wording is kept here.",
+      "source": "see the row source"
     }
   ]
 }

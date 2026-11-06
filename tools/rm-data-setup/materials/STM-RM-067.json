@@ -160,7 +160,7 @@
         },
         {
           "testCode": "RM-TIT-ZNSO4-USP",
-          "parameterName": "Assay (zinc sulfate monohydrate, ZnSO4 \u00b7 H2O)",
+          "parameterName": "Assay (zinc sulfate monohydrate, ZnSO4 · H2O)",
           "limitType": "Range",
           "lower": 99.0,
           "upper": 100.5,
@@ -320,12 +320,12 @@
     },
     {
       "testCode": "RM-SOLUB",
-      "procedure": "Weigh 100 mg sample in a stoppered tube; add 0.1 mL solvent, shake 1 min, hold at 25.0 \u00b1 0.5 \u00b0C for 15 min, repeat shake/hold once if not dissolved; stepwise add 0.9 mL, 2 mL, 7 mL solvent (same shake and hold) to classify very soluble / freely soluble / soluble / sparingly soluble; if still undissolved use 10 mg in 10 mL (slightly soluble) then 1 mg in 10 mL (very slightly soluble), else practically insoluble. Repeat with alcohol.",
+      "procedure": "Weigh 100 mg sample in a stoppered tube; add 0.1 mL solvent, shake 1 min, hold at 25.0 ± 0.5 °C for 15 min, repeat shake/hold once if not dissolved; stepwise add 0.9 mL, 2 mL, 7 mL solvent (same shake and hold) to classify very soluble / freely soluble / soluble / sparingly soluble; if still undissolved use 10 mg in 10 mL (slightly soluble) then 1 mg in 10 mL (very slightly soluble), else practically insoluble. Repeat with alcohol.",
       "kind": "general",
       "workflow": "Qualitative",
       "details": {
         "sample": "100 mg",
-        "temperature": "25.0 \u00b1 0.5 \u00b0C",
+        "temperature": "25.0 ± 0.5 °C",
         "holdMin": 15,
         "shakeMin": 1,
         "volumesMl": [
@@ -754,7 +754,7 @@
       "source": "Zinc Sulfate Monohydrate__Specifications sheet Zinc Sulfate Monohydrate USP.txt:20; Zinc Sulfate Monohydrate__Zinc Sulfate Monohydrate-SM-USP.txt:37"
     },
     {
-      "question": "Assay limits are given twice: 89.0-90.4% of ZnSO4 and 99.0-100.5% of ZnSO4 \u00b7 H2O. Both loaded as rows; the STM formula's equivalent weight is for the monohydrate. Confirm which result the titration reports and the basis (no basis word stated; PercentAsIs used).",
+      "question": "Assay limits are given twice: 89.0-90.4% of ZnSO4 and 99.0-100.5% of ZnSO4 · H2O. Both loaded as rows; the STM formula's equivalent weight is for the monohydrate. Confirm which result the titration reports and the basis (no basis word stated; PercentAsIs used).",
       "source": "Zinc Sulfate Monohydrate__Specifications sheet Zinc Sulfate Monohydrate USP.txt:19; Zinc Sulfate Monohydrate__Zinc Sulfate Monohydrate-SM-USP.txt:35"
     },
     {

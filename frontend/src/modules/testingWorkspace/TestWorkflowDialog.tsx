@@ -12,7 +12,7 @@ import { PathogenLocationResultGridDialog } from "./PathogenLocationResultGridDi
 import { WaterLocationResultGridDialog } from "./WaterLocationResultGridDialog";
 import { PathogenStepDialog } from "./PathogenStepDialog";
 import { StepChainStrip } from "./components/StepChainStrip";
-import { LocationResultsPanel } from "./components/LocationResultsPanel";
+import { LocationResultsPanel } from "./LocationResultsPanel";
 import { MeasurementPanel } from "./MeasurementPanel";
 import { GravimetricPanel } from "./GravimetricPanel";
 import { TitrationPanel } from "./TitrationPanel";

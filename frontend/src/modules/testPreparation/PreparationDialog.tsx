@@ -23,6 +23,7 @@ interface Props {
     departmentId?: number | null;
     machineId?: number | null;
     waterDepartmentId?: number | null;
+    labSectionId?: number | null;
     // Every analyst on the sample's tests - any of them may prepare it.
     assignedAnalystIds?: number[];
     assignedAnalystNames?: string[];
@@ -76,10 +77,20 @@ export function PreparationDialog({ open, sample, onClose }: Props) {
         <EMPreparationForm sampleId={sample.sampleId} departmentId={sample.departmentId} onComplete={onClose} />
       )}
       {sample.category === "AfterCleaning" && sample.machineId != null && (
-        <AfterCleaningPreparationForm sampleId={sample.sampleId} machineId={sample.machineId} onComplete={onClose} />
+        <AfterCleaningPreparationForm
+          sampleId={sample.sampleId}
+          machineId={sample.machineId}
+          labSectionId={sample.labSectionId}
+          onComplete={onClose}
+        />
       )}
       {sample.category === "Water" && sample.waterDepartmentId != null && (
-        <WaterPreparationForm sampleId={sample.sampleId} waterDepartmentId={sample.waterDepartmentId} onComplete={onClose} />
+        <WaterPreparationForm
+          sampleId={sample.sampleId}
+          waterDepartmentId={sample.waterDepartmentId}
+          labSectionId={sample.labSectionId}
+          onComplete={onClose}
+        />
       )}
 
       {isItemCategory(sample.category) && !canPrepare && (

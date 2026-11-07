@@ -64,6 +64,7 @@ export interface SampleRecord {
   departmentId: number | null;
   machineId: number | null;
   waterDepartmentId: number | null;
+  labSectionId?: number | null;
   productionStage: string | null;
   causeOfTesting: string;
   causeOfTestingId?: number;
@@ -166,6 +167,7 @@ export interface WaterReceiveRequest {
   sampledBy: string;
   controlNumber: string;
   sampledAt?: string | null;
+  labSectionId?: number;
 }
 
 export interface EMReceiveRequest {
@@ -184,6 +186,7 @@ export interface AfterCleaningReceiveRequest {
   previousProductName: string;
   previousProductBatchNumber: string;
   sampledAt?: string | null;
+  labSectionId?: number;
 }
 
 export type SampleCategoryKey = "product" | "rm" | "pm" | "water" | "em" | "ac";

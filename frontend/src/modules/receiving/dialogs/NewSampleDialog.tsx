@@ -299,7 +299,8 @@ export function NewSampleDialog({ open, onClose, onSuccess, allowedCategories, l
             sampleQuantity: row.sampleQuantity || "",
             sampledBy: row.sampledBy || "",
             controlNumber: row.controlNumber || "",
-            sampledAt: sampledAtIso(row)
+            sampledAt: sampledAtIso(row),
+            labSectionId: labMode.kind === "fixed" ? labMode.sectionId : undefined
           });
         } else if (category === "em") {
           await ReceiveService.receiveEM({
@@ -317,7 +318,8 @@ export function NewSampleDialog({ open, onClose, onSuccess, allowedCategories, l
             controlNumber: row.controlNumber || "",
             previousProductName: String(row.previousProductName || "").trim(),
             previousProductBatchNumber: String(row.previousProductBatchNumber || "").trim(),
-            sampledAt: sampledAtIso(row)
+            sampledAt: sampledAtIso(row),
+            labSectionId: labMode.kind === "fixed" ? labMode.sectionId : undefined
           });
         }
       }

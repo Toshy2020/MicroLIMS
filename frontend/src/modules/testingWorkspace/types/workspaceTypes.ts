@@ -37,6 +37,7 @@ export interface SampleCard {
   departmentId: number | null;
   machineId: number | null;
   waterDepartmentId: number | null;
+  labSectionId?: number | null;
   productionStage: string | null;
   causeOfTesting: string;
   causeOfTestingId?: number;

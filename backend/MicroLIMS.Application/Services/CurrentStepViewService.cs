@@ -291,7 +291,9 @@ public class CurrentStepViewService
             }
         }
 
-        var hasLocationEntry = sampleLocations.Count > 0 && sampleLocations.Any(l =>
+        // HPLC and ICP orders take their limits from the method or the ICP test, never from the location.
+        var hasLocationEntry = current.WorkflowType is not (WorkflowType.HplcMethodAssay or WorkflowType.IcpMethodAssay)
+            && sampleLocations.Count > 0 && sampleLocations.Any(l =>
             (l.SamplingConfiguration?.LimitType != null) || (l.MachinePartConfiguration?.LimitType != null));
 
         if (hasLocationEntry)

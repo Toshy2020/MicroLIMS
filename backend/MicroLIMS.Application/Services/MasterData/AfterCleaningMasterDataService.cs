@@ -126,10 +126,20 @@ public class AfterCleaningMasterDataService
             throw new InvalidOperationException($"{testCode} ({testType}) is already configured for this part.");
     }
 
+    // HPLC and ICP part tests take the limit from the cleaning method (MACO) or the ICP test (ppm).
+    private async Task EnsureNoLocationLimitOnMethodTestAsync(string testCode, LimitType? limitType)
+    {
+        if (limitType == null) return;
+        var workflowType = await _db.TestDefinitions.Where(d => d.Code == testCode).Select(d => (WorkflowType?)d.WorkflowType).FirstOrDefaultAsync();
+        if (workflowType is WorkflowType.HplcMethodAssay or WorkflowType.IcpMethodAssay)
+            throw new InvalidOperationException($"{testCode} takes its limit from the {(workflowType == WorkflowType.HplcMethodAssay ? "cleaning HPLC method" : "ICP test")}; leave the part limit empty.");
+    }
+
     public async Task<MachinePartConfigurationResponse> CreateMachinePartConfigurationAsync(int currentUserId, CreateMachinePartConfigRequest request)
     {
         await TestCodeOwnership.EnsureCanEditAsync(_db, _scope, currentUserId, request.TestCode, "Machine part configuration");
         LocationChemistryLimitRules.Validate(request.LimitType, request.LowerLimit, request.UpperLimit, request.ExpectedResultText);
+        await EnsureNoLocationLimitOnMethodTestAsync(request.TestCode, request.LimitType);
         await EnsureNotDuplicateAsync(request.MachinePartId, request.TestType, request.TestCode, null);
         var entity = new MachinePartConfiguration
         {
@@ -161,6 +171,7 @@ public class AfterCleaningMasterDataService
 
         await TestCodeOwnership.EnsureCanEditAsync(_db, _scope, currentUserId, new[] { entity.TestCode, request.TestCode }, "Machine part configuration");
         LocationChemistryLimitRules.Validate(request.LimitType, request.LowerLimit, request.UpperLimit, request.ExpectedResultText);
+        await EnsureNoLocationLimitOnMethodTestAsync(request.TestCode, request.LimitType);
 
         if (request.IsActive.HasValue) entity.IsActive = request.IsActive.Value;
         await EnsureNotDuplicateAsync(entity.MachinePartId, request.TestType, request.TestCode, entity.Id);

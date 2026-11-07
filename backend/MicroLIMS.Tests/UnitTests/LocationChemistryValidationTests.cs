@@ -170,4 +170,27 @@ public class LocationChemistryValidationTests
         var updated = await service.UpdateMachinePartConfigurationAsync(1, created.Id, validUpdate);
         Assert.Equal("Conforms", updated.ExpectedResultText);
     }
+
+    [Theory]
+    [InlineData(WorkflowType.HplcMethodAssay)]
+    [InlineData(WorkflowType.IcpMethodAssay)]
+    public async Task AfterCleaningMasterDataService_RefusesPartLimitOnHplcOrIcpTest(WorkflowType workflowType)
+    {
+        await using var db = NewDb();
+        var service = new AfterCleaningMasterDataService(db, new StubSectionScope(_ => null));
+        var machine = new Machine { Name = "Filler" };
+        db.Machines.Add(machine);
+        await db.SaveChangesAsync();
+        var part = new MachinePart { Name = "Nozzle", MachineId = machine.Id };
+        db.MachineParts.Add(part);
+        db.TestDefinitions.Add(new TestDefinition { Code = "AC-RES", DisplayName = "Residue", WorkflowType = workflowType });
+        await db.SaveChangesAsync();
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => service.CreateMachinePartConfigurationAsync(1,
+            new CreateMachinePartConfigRequest(part.Id, "Swab", "AC-RES", LimitType: LimitType.NotMoreThan, UpperLimit: 10m)));
+
+        var created = await service.CreateMachinePartConfigurationAsync(1,
+            new CreateMachinePartConfigRequest(part.Id, "Swab", "AC-RES"));
+        Assert.Null(created.LimitType);
+    }
 }

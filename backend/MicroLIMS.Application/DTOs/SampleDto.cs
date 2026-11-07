@@ -48,6 +48,7 @@ public class SampleDto
     public int? DepartmentId { get; set; }
     public int? MachineId { get; set; }
     public int? WaterDepartmentId { get; set; }
+    public int? LabSectionId { get; set; }
     public string? ProductionStage { get; set; }
     public string CauseOfTesting { get; set; } = string.Empty;
     public int CauseOfTestingId { get; set; }

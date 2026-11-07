@@ -1,6 +1,7 @@
 using MicroLIMS.Application.Services.Monitoring;
 using MicroLIMS.Application.Helpers;
 using MicroLIMS.Application.Interfaces;
+using MicroLIMS.Shared.Constants;
 using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Domain.Entities;
@@ -17,7 +18,8 @@ public record AfterCleaningReceiveRequest(
     int ReceivedByUserId,
     string PreviousProductName,
     string PreviousProductBatchNumber,
-    DateTime? SampledAt = null
+    DateTime? SampledAt = null,
+    int? LabSectionId = null
 );
 
 public interface IAfterCleaningWorkflowEngine : IStatefulWorkflowEngine
@@ -63,12 +65,47 @@ public class AfterCleaningWorkflowEngine : IAfterCleaningWorkflowEngine
             throw new InvalidOperationException("Previous Product Batch Number is required for After Cleaning receiving.");
         }
 
+        int? labSectionId;
+        if (_scope != null)
+        {
+            labSectionId = await _scope.ResolveSectionForCreateAsync(request.ReceivedByUserId, request.LabSectionId);
+        }
+        else
+        {
+            labSectionId = request.LabSectionId
+                ?? await _db.DocumentSections
+                    .Where(s => s.Code == LaboratoryCodes.Microbiology)
+                    .Select(s => (int?)s.Id)
+                    .FirstOrDefaultAsync();
+        }
+
+        if (labSectionId.HasValue)
+        {
+            var sectionCode = await _db.DocumentSections
+                .Where(s => s.Id == labSectionId.Value)
+                .Select(s => s.Code)
+                .FirstOrDefaultAsync();
+
+            if (string.Equals(sectionCode, PhyschemAreas.SectionCode, StringComparison.OrdinalIgnoreCase))
+            {
+                if (_scope != null)
+                {
+                    var areas = await _scope.GetPhyschemAreasAsync(request.ReceivedByUserId);
+                    if (!areas.Contains(PhyschemAreas.OfCategory(SampleCategory.AfterCleaning)))
+                    {
+                        throw new UnauthorizedAccessException("After-cleaning samples are received by the FP area.");
+                    }
+                }
+            }
+        }
+
         var sample = new Sample
         {
             ReferenceNumber = await _refNumbers.GenerateAsync(SampleCategory.AfterCleaning),
             Category = SampleCategory.AfterCleaning,
             MachineId = machine.Id,
             ItemId = null,
+            LabSectionId = labSectionId,
             PreviousProductName = request.PreviousProductName.Trim(),
             PreviousProductBatchNumber = request.PreviousProductBatchNumber.Trim(),
             BatchNumber = request.PreviousProductBatchNumber.Trim(),
@@ -136,11 +173,35 @@ public class AfterCleaningWorkflowEngine : IAfterCleaningWorkflowEngine
             throw new InvalidOperationException(
                 $"Part(s) {string.Join(", ", wrongMachine.Select(c => c.MachinePart?.Name))} do not belong to this sample's machine.");
 
-        // One TestOrder per distinct TestCode across every selected part -
-        // the whole batch shares a single incubation setup per test type.
-        var testSections = await TestSectionLookup.ResolveAsync(_db, configs.Select(c => c.TestCode));
+        var microSection = await _db.DocumentSections
+            .FirstOrDefaultAsync(s => s.Code == LaboratoryCodes.Microbiology);
+        var labId = sample.LabSectionId ?? microSection?.Id ?? 0;
+        var labSection = await _db.DocumentSections
+            .FirstOrDefaultAsync(s => s.Id == labId);
+        bool isPhyschem = string.Equals(labSection?.Code, PhyschemAreas.SectionCode, StringComparison.OrdinalIgnoreCase);
+
+        var allCodes = configs.Select(c => c.TestCode).Distinct().ToList();
+        var testDefs = await _db.TestDefinitions
+            .Where(t => allCodes.Contains(t.Code))
+            .ToListAsync();
+
+        var allowedDefs = testDefs.Where(t =>
+            t.SectionId == labId &&
+            (!isPhyschem || PhyschemAreas.Includes(t.PhyschemArea, PhyschemAreas.OfCategory(sample.Category)))
+        ).ToList();
+        var allowedCodes = allowedDefs.Select(t => t.Code).ToHashSet(StringComparer.Ordinal);
+
+        foreach (var config in configs)
+        {
+            if (!allowedCodes.Contains(config.TestCode))
+            {
+                throw new InvalidOperationException($"Part test {config.TestCode} belongs to another laboratory.");
+            }
+        }
+
         if (_scope is not null)
-            await _scope.EnsureSectionsAccessAsync(userId, testSections.Values);
+            await _scope.EnsureSectionsAccessAsync(userId, new[] { labId });
+
         var testOrdersByCode = new Dictionary<string, TestOrder>();
         foreach (var config in configs)
         {
@@ -149,7 +210,7 @@ public class AfterCleaningWorkflowEngine : IAfterCleaningWorkflowEngine
                 order = new TestOrder
                 {
                     TestCode = config.TestCode,
-                    SectionId = testSections[config.TestCode],
+                    SectionId = labId,
                     Status = ApprovalStatus.Pending,
                     CurrentStep = WorkflowStep.Waiting,
                     AssignedAnalystId = userId

@@ -1,6 +1,7 @@
 using MicroLIMS.Application.Services.Monitoring;
 using MicroLIMS.Application.Helpers;
 using MicroLIMS.Application.Interfaces;
+using MicroLIMS.Shared.Constants;
 using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Services;
@@ -14,7 +15,7 @@ public record WaterComparisonResult(decimal Average, string Status, string? Exce
 
 public record WaterReceiveRequest(
     int WaterDepartmentId, int CauseOfTestingId, string SampleQuantity, string SampledBy,
-    string ControlNumber, int ReceivedByUserId, DateTime? SampledAt = null);
+    string ControlNumber, int ReceivedByUserId, DateTime? SampledAt = null, int? LabSectionId = null);
 
 public interface IWaterWorkflowEngine : IStatefulWorkflowEngine
 {
@@ -60,11 +61,46 @@ public class WaterWorkflowEngine : IWaterWorkflowEngine
         if (!department.IsActive)
             throw new InvalidOperationException($"Water department '{department.Name}' is inactive and cannot receive samples.");
 
+        int? labSectionId;
+        if (_scope != null)
+        {
+            labSectionId = await _scope.ResolveSectionForCreateAsync(request.ReceivedByUserId, request.LabSectionId);
+        }
+        else
+        {
+            labSectionId = request.LabSectionId
+                ?? await _db.DocumentSections
+                    .Where(s => s.Code == LaboratoryCodes.Microbiology)
+                    .Select(s => (int?)s.Id)
+                    .FirstOrDefaultAsync();
+        }
+
+        if (labSectionId.HasValue)
+        {
+            var sectionCode = await _db.DocumentSections
+                .Where(s => s.Id == labSectionId.Value)
+                .Select(s => s.Code)
+                .FirstOrDefaultAsync();
+
+            if (string.Equals(sectionCode, PhyschemAreas.SectionCode, StringComparison.OrdinalIgnoreCase))
+            {
+                if (_scope != null)
+                {
+                    var areas = await _scope.GetPhyschemAreasAsync(request.ReceivedByUserId);
+                    if (!areas.Contains(PhyschemAreas.OfCategory(SampleCategory.Water)))
+                    {
+                        throw new UnauthorizedAccessException("Water samples are received by the RM & PM area.");
+                    }
+                }
+            }
+        }
+
         var sample = new Sample
         {
             ReferenceNumber = await _refNumbers.GenerateAsync(SampleCategory.Water),
             Category = SampleCategory.Water,
             WaterDepartmentId = department.Id,
+            LabSectionId = labSectionId,
             CauseOfTestingId = request.CauseOfTestingId,
             SampleQuantity = request.SampleQuantity,
             SampledBy = request.SampledBy,
@@ -136,34 +172,54 @@ public class WaterWorkflowEngine : IWaterWorkflowEngine
             throw new InvalidOperationException(
                 $"Sampling point(s) {string.Join(", ", wrongDepartment.Select(p => p.Code))} do not belong to this sample's department.");
 
+        var microSection = await _db.DocumentSections
+            .FirstOrDefaultAsync(s => s.Code == LaboratoryCodes.Microbiology);
+        var labId = sample.LabSectionId ?? microSection?.Id ?? 0;
+        var labSection = await _db.DocumentSections
+            .FirstOrDefaultAsync(s => s.Id == labId);
+        var labName = labSection?.Name ?? "Microbiology";
+        bool isPhyschem = string.Equals(labSection?.Code, PhyschemAreas.SectionCode, StringComparison.OrdinalIgnoreCase);
+
         var allCodes = points.SelectMany(p => p.AssignedTestCodes).Distinct().ToList();
-        var countTestCodeSet = (await _db.TestDefinitions
-            .Where(t => allCodes.Contains(t.Code) && t.WorkflowType == WorkflowType.CountTest)
+        var testDefs = await _db.TestDefinitions
+            .Where(t => allCodes.Contains(t.Code))
+            .ToListAsync();
+
+        var allowedDefs = testDefs.Where(t =>
+            t.SectionId == labId &&
+            (!isPhyschem || PhyschemAreas.Includes(t.PhyschemArea, PhyschemAreas.OfCategory(sample.Category)))
+        ).ToList();
+        var allowedCodes = allowedDefs.Select(t => t.Code).ToHashSet(StringComparer.Ordinal);
+
+        if (allowedCodes.Count == 0)
+            throw new InvalidOperationException($"None of the selected sampling points has {labName} tests assigned.");
+
+        var countTestCodeSet = allowedDefs
+            .Where(t => t.WorkflowType == WorkflowType.CountTest)
             .Select(t => t.Code)
-            .ToListAsync())
             .ToHashSet();
 
         var configs = await _db.SamplingConfigurations
             .Where(c => waterSamplingPointIds.Contains(c.WaterSamplingPointId))
             .ToListAsync();
 
-        // One TestOrder per distinct TestCode across every selected point -
-        // the whole batch shares a single workflow per test type, same as
-        // EMWorkflowEngine.PrepareAsync.
-        var testSections = await TestSectionLookup.ResolveAsync(_db, allCodes);
         if (_scope is not null)
-            await _scope.EnsureSectionsAccessAsync(userId, testSections.Values);
+            await _scope.EnsureSectionsAccessAsync(userId, new[] { labId });
+
         var testOrdersByCode = new Dictionary<string, TestOrder>();
         foreach (var point in points)
         {
             foreach (var testCode in point.AssignedTestCodes)
             {
+                if (!allowedCodes.Contains(testCode))
+                    continue;
+
                 if (!testOrdersByCode.TryGetValue(testCode, out var order))
                 {
                     order = new TestOrder
                     {
                         TestCode = testCode,
-                        SectionId = testSections[testCode],
+                        SectionId = labId,
                         Status = ApprovalStatus.Pending,
                         CurrentStep = WorkflowStep.Waiting,
                         AssignedAnalystId = userId

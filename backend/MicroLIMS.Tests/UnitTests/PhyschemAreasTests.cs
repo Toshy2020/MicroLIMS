@@ -10,7 +10,7 @@ public class PhyschemAreasTests
     [InlineData(SampleCategory.RawMaterial, WorkspaceArea.RmPm)]
     [InlineData(SampleCategory.PackagingMaterial, WorkspaceArea.RmPm)]
     [InlineData(SampleCategory.FinishedProduct, WorkspaceArea.Fp)]
-    [InlineData(SampleCategory.Water, WorkspaceArea.Fp)]
+    [InlineData(SampleCategory.Water, WorkspaceArea.RmPm)]
     public void OfCategory_MapsRmPmAndEverythingElseToFp(SampleCategory c, WorkspaceArea expected) =>
         Assert.Equal(expected, PhyschemAreas.OfCategory(c));
 
@@ -31,7 +31,7 @@ public class PhyschemAreasTests
     {
         var rm = PhyschemAreas.CategoriesOf(WorkspaceArea.RmPm);
         var fp = PhyschemAreas.CategoriesOf(WorkspaceArea.Fp);
-        Assert.Equal(new[] { SampleCategory.RawMaterial, SampleCategory.PackagingMaterial }, rm);
+        Assert.Equal(new[] { SampleCategory.RawMaterial, SampleCategory.PackagingMaterial, SampleCategory.Water }, rm);
         Assert.Empty(rm.Intersect(fp));
         Assert.Equal(Enum.GetValues<SampleCategory>().Length, rm.Count + fp.Count);
     }

@@ -490,8 +490,9 @@ public class TestingWorkspaceService : ITestWorkspaceService
         {
             var hasInScopeNonSuperseded = sample.TestOrders.Any(t => !t.IsSuperseded && scope.Contains(t.SectionId))
                 || (labSectionId == null && SampleSectionRollup.PendingSectionIds(sample).Any(scope.Contains));
-            if (!hasInScopeNonSuperseded
-                && !(SampleWorkflowQueues.IsAwaitingPreparationWithoutTests(sample) && await IncludesPreparingLabAsync(scope)))
+            var awaitingPrepInScope = SampleWorkflowQueues.IsAwaitingPreparationWithoutTests(sample)
+                && (sample.LabSectionId != null ? scope.Contains(sample.LabSectionId.Value) : await IncludesPreparingLabAsync(scope));
+            if (!hasInScopeNonSuperseded && !awaitingPrepInScope)
                 return null;
         }
 
@@ -610,6 +611,7 @@ public class TestingWorkspaceService : ITestWorkspaceService
             DepartmentId = s.DepartmentId,
             MachineId = s.MachineId,
             WaterDepartmentId = s.WaterDepartmentId,
+            LabSectionId = s.LabSectionId,
             ProductionStage = s.ProductionStage,
             CauseOfTesting = s.CauseOfTesting?.Name ?? string.Empty,
             CauseOfTestingId = s.CauseOfTestingId,

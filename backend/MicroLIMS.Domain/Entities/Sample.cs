@@ -46,6 +46,10 @@ public class Sample : IVersionedEntity
     public int? WaterDepartmentId { get; set; }    // Water only (batch model)
     public WaterDepartment? WaterDepartment { get; set; }
 
+    // Water / After Cleaning only: the lab that received the sample and prepares it
+    public int? LabSectionId { get; set; }
+    public DocumentSection? LabSection { get; set; }
+
     // Product only - descriptive, does not affect assigned tests. This is
     // the historical snapshot of what was recorded at receiving time -
     // kept exactly as typed/selected then, unaffected by a stage being

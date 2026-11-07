@@ -9109,6 +9109,9 @@ namespace MicroLIMS.Persistence.Migrations
                     b.Property<int?>("ItemId")
                         .HasColumnType("integer");
 
+                    b.Property<int?>("LabSectionId")
+                        .HasColumnType("integer");
+
                     b.Property<int?>("MachineId")
                         .HasColumnType("integer");
 
@@ -9216,6 +9219,8 @@ namespace MicroLIMS.Persistence.Migrations
                     b.HasIndex("DepartmentId");
 
                     b.HasIndex("ItemId");
+
+                    b.HasIndex("LabSectionId");
 
                     b.HasIndex("MachineId");
 
@@ -14866,6 +14871,11 @@ namespace MicroLIMS.Persistence.Migrations
                         .HasForeignKey("ItemId")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.HasOne("MicroLIMS.Domain.Entities.DocumentSection", "LabSection")
+                        .WithMany()
+                        .HasForeignKey("LabSectionId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("MicroLIMS.Domain.Entities.Machine", "Machine")
                         .WithMany()
                         .HasForeignKey("MachineId")
@@ -14912,6 +14922,8 @@ namespace MicroLIMS.Persistence.Migrations
                     b.Navigation("Department");
 
                     b.Navigation("Item");
+
+                    b.Navigation("LabSection");
 
                     b.Navigation("Machine");
 

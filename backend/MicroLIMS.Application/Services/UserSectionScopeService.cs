@@ -229,7 +229,8 @@ public class UserSectionScopeService : IUserSectionScopeService
                     .Select(t => t.SectionId)
                     .ToList(),
                 s.AwaitingTestSelection,
-                s.PendingTargetSectionIds
+                s.PendingTargetSectionIds,
+                s.LabSectionId
             })
             .FirstOrDefaultAsync(ct);
 
@@ -238,6 +239,10 @@ public class UserSectionScopeService : IUserSectionScopeService
         // A periodic retest awaiting its tests has no orders: its laboratories decide.
         var sectionIds = sampleInfo.OrderSectionIds.Concat(SampleSectionRollup.PendingSectionIds(
             sampleInfo.AwaitingTestSelection, sampleInfo.PendingTargetSectionIds));
+        if (sampleInfo.LabSectionId.HasValue)
+        {
+            sectionIds = sectionIds.Concat(new[] { sampleInfo.LabSectionId.Value });
+        }
         if (!sectionIds.Any(s => scope.Contains(s)))
         {
             throw new UnauthorizedAccessException("This test belongs to a laboratory section you are not assigned to.");

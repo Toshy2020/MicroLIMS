@@ -29,6 +29,8 @@ public class SampleConfiguration : IEntityTypeConfiguration<Sample>
         builder.HasOne(s => s.Department).WithMany().HasForeignKey(s => s.DepartmentId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne(s => s.Machine).WithMany().HasForeignKey(s => s.MachineId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne(s => s.WaterDepartment).WithMany().HasForeignKey(s => s.WaterDepartmentId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne(s => s.LabSection).WithMany().HasForeignKey(s => s.LabSectionId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasIndex(s => s.LabSectionId);
         builder.HasOne(s => s.CauseOfTesting).WithMany().HasForeignKey(s => s.CauseOfTestingId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne(s => s.OriginSample).WithMany().HasForeignKey(s => s.OriginSampleId).OnDelete(DeleteBehavior.Restrict);
         builder.HasIndex(s => s.OriginSampleId);

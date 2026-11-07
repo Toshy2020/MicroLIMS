@@ -183,4 +183,131 @@ describe("LocationResultsPanel", () => {
       expect(screen.getByText("Limits for pH at PW-01 are not configured.")).toBeDefined();
     });
   });
+
+  it("renders No peaks and Peaks detected buttons for UV qualitative rows and submits selection", async () => {
+    const onRecorded = vi.fn();
+    (TestWorkflowService.recordLocationResults as any).mockResolvedValueOnce({ success: true });
+
+    const uvCurrent: CurrentStepResponse = {
+      testOrderId: 99,
+      testName: "UV-CLEAN",
+      workflowType: "Qualitative" as any,
+      step: null,
+      stepNumber: 1,
+      totalSteps: 1,
+      sampleContext: { sampleName: "AC Swab Sample" } as any,
+      incubationLock: null,
+      previousSteps: [],
+      allStepsComplete: false,
+      finalResult: null,
+      allSteps: [],
+      completedSteps: [],
+      locationEntry: true,
+      locations: [
+        {
+          sampleLocationId: 201,
+          name: "Chute Swab",
+          limitType: "Qualitative",
+          lowerLimit: null,
+          upperLimit: null,
+          expectedResultText: "No peaks",
+          unit: null,
+          specLimit: "No peaks",
+          value: null,
+          text: null
+        }
+      ]
+    };
+
+    render(
+      <PinnedLightTheme>
+        <LocationResultsPanel
+          testOrderId={99}
+          displayName="UV Scan"
+          current={uvCurrent}
+          onRecorded={onRecorded}
+        />
+      </PinnedLightTheme>
+    );
+
+    // Verify buttons are rendered and no text field
+    const noPeaksBtn = screen.getByRole("button", { name: "No peaks for Chute Swab" });
+    const peaksDetectedBtn = screen.getByRole("button", { name: "Peaks detected for Chute Swab" });
+    expect(noPeaksBtn).toBeDefined();
+    expect(peaksDetectedBtn).toBeDefined();
+    expect(screen.queryByPlaceholderText("Result text")).toBeNull();
+
+    // Click No peaks
+    fireEvent.click(noPeaksBtn);
+
+    const submitBtn = screen.getByRole("button", { name: "Submit" });
+    fireEvent.click(submitBtn);
+
+    await waitFor(() => {
+      expect(TestWorkflowService.recordLocationResults).toHaveBeenCalledWith(99, [
+        { sampleLocationId: 201, value: null, text: "No peaks" }
+      ]);
+      expect(onRecorded).toHaveBeenCalled();
+    });
+  });
+
+  it("submits Peaks detected when Peaks detected button is clicked", async () => {
+    const onRecorded = vi.fn();
+    (TestWorkflowService.recordLocationResults as any).mockResolvedValueOnce({ success: true });
+
+    const uvCurrent: CurrentStepResponse = {
+      testOrderId: 100,
+      testName: "UV-CLEAN",
+      workflowType: "Qualitative" as any,
+      step: null,
+      stepNumber: 1,
+      totalSteps: 1,
+      sampleContext: { sampleName: "AC Swab Sample" } as any,
+      incubationLock: null,
+      previousSteps: [],
+      allStepsComplete: false,
+      finalResult: null,
+      allSteps: [],
+      completedSteps: [],
+      locationEntry: true,
+      locations: [
+        {
+          sampleLocationId: 202,
+          name: "Needle Rinse",
+          limitType: "Qualitative",
+          lowerLimit: null,
+          upperLimit: null,
+          expectedResultText: "No peaks",
+          unit: null,
+          specLimit: "No peaks",
+          value: null,
+          text: null
+        }
+      ]
+    };
+
+    render(
+      <PinnedLightTheme>
+        <LocationResultsPanel
+          testOrderId={100}
+          displayName="UV Scan"
+          current={uvCurrent}
+          onRecorded={onRecorded}
+        />
+      </PinnedLightTheme>
+    );
+
+    const peaksDetectedBtn = screen.getByRole("button", { name: "Peaks detected for Needle Rinse" });
+    fireEvent.click(peaksDetectedBtn);
+
+    const submitBtn = screen.getByRole("button", { name: "Submit" });
+    fireEvent.click(submitBtn);
+
+    await waitFor(() => {
+      expect(TestWorkflowService.recordLocationResults).toHaveBeenCalledWith(100, [
+        { sampleLocationId: 202, value: null, text: "Peaks detected" }
+      ]);
+      expect(onRecorded).toHaveBeenCalled();
+    });
+  });
 });

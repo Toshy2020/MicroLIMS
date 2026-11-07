@@ -5,6 +5,7 @@ import { AfterCleaningPreparationService } from "./services/AfterCleaningPrepara
 import { SamplingPointGrid, SamplingPointGridItem } from "../../testPreparation/components/SamplingPointGrid";
 import { useTestDefinitions } from "../../../hooks/useTestDefinitions";
 import { isTestCodeInLab } from "../water/WaterPreparationForm";
+import { cleaningTechniqueOf } from "./cleaningTechniques";
 
 interface PartConfig { id: number; testType: string; testCode: string }
 interface Part { id: number; name: string; configs?: PartConfig[] }
@@ -13,13 +14,14 @@ interface Props {
   sampleId: number;
   machineId: number;
   labSectionId?: number | null;
+  cleaningTechniques?: string[] | null;
   onComplete: () => void;
 }
 
 // Grid/card-based selection per machine part - checking a part includes ALL of its
 // configured tests in this batch (one TestOrder per distinct TestCode
 // across every selected part, not one TestOrder per part).
-export function AfterCleaningPreparationForm({ sampleId, machineId, labSectionId, onComplete }: Props) {
+export function AfterCleaningPreparationForm({ sampleId, machineId, labSectionId, cleaningTechniques, onComplete }: Props) {
   const [parts, setParts] = useState<Part[]>([]);
   const [loadingParts, setLoadingParts] = useState(true);
   const [checked, setChecked] = useState<Record<number, boolean>>({});
@@ -56,11 +58,21 @@ export function AfterCleaningPreparationForm({ sampleId, machineId, labSectionId
   const filteredParts = useMemo(() => {
     return parts.map((part) => ({
       ...part,
-      configs: (part.configs ?? []).filter((c) =>
-        isTestCodeInLab(c.testCode, labSectionId, testDefinitions)
-      )
+      configs: (part.configs ?? []).filter((c) => {
+        if (!isTestCodeInLab(c.testCode, labSectionId, testDefinitions)) {
+          return false;
+        }
+        if (cleaningTechniques !== undefined && cleaningTechniques !== null) {
+          const def = testDefinitions.find((t) => t.code === c.testCode);
+          const tech = cleaningTechniqueOf(def?.workflowType);
+          if (!cleaningTechniques.includes(tech)) {
+            return false;
+          }
+        }
+        return true;
+      })
     }));
-  }, [parts, testDefinitions, labSectionId]);
+  }, [parts, testDefinitions, labSectionId, cleaningTechniques]);
 
   const items: SamplingPointGridItem[] = useMemo(() => {
     return filteredParts.map((part) => ({

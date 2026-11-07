@@ -96,6 +96,8 @@ export interface SampleRecord {
   assignedAnalystName?: string | null;
   previousProductName?: string | null;
   previousProductBatchNumber?: string | null;
+  previousProductItemId?: number | null;
+  cleaningTechniques?: string[] | null;
   originSampleId?: number | null;
   originReferenceNumber?: string | null;
   oosGroupCode?: string | null;
@@ -183,10 +185,12 @@ export interface AfterCleaningReceiveRequest {
   causeOfTestingId: number;
   sampledBy: string;
   controlNumber: string;
-  previousProductName: string;
-  previousProductBatchNumber: string;
+  previousProductName?: string | null;
+  previousProductBatchNumber?: string | null;
   sampledAt?: string | null;
   labSectionId?: number;
+  previousProductItemId?: number | null;
+  techniques?: string[] | null;
 }
 
 export type SampleCategoryKey = "product" | "rm" | "pm" | "water" | "em" | "ac";
@@ -211,8 +215,10 @@ export interface SampleKpiCounts {
 export interface ReceiveRowItem {
   id: string; // unique client-side key for row rendering
   itemId?: number | "";
+  previousProductItemId?: number | null;
   previousProductName?: string;
   previousProductBatchNumber?: string;
+  techniques?: string[];
   productionStage?: string;
   waterSamplingPointId?: number | "";
   departmentId?: number | "";

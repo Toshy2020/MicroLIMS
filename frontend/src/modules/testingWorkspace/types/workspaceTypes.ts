@@ -65,5 +65,7 @@ export interface SampleCard {
   assignedAnalystName?: string | null;
   previousProductName?: string | null;
   previousProductBatchNumber?: string | null;
+  previousProductItemId?: number | null;
+  cleaningTechniques?: string[] | null;
   assignedTests: TestOrderSummary[];
 }

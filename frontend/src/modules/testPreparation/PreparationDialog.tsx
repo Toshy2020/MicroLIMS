@@ -27,6 +27,7 @@ interface Props {
     // Every analyst on the sample's tests - any of them may prepare it.
     assignedAnalystIds?: number[];
     assignedAnalystNames?: string[];
+    cleaningTechniques?: string[] | null;
   } | null;
   onClose: () => void;
 }
@@ -81,6 +82,7 @@ export function PreparationDialog({ open, sample, onClose }: Props) {
           sampleId={sample.sampleId}
           machineId={sample.machineId}
           labSectionId={sample.labSectionId}
+          cleaningTechniques={sample.cleaningTechniques}
           onComplete={onClose}
         />
       )}

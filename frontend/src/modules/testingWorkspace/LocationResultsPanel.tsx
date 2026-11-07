@@ -158,6 +158,12 @@ export function LocationResultsPanel({
             ) : (
               locations.map((loc) => {
                 const isQualitative = loc.limitType === "Qualitative";
+                const isNoPeaks =
+                  isQualitative &&
+                  (loc.expectedResultText?.trim().toLowerCase() === "no peaks" ||
+                   loc.specLimit?.trim().toLowerCase() === "no peaks");
+                const currentText = values[loc.sampleLocationId]?.text ?? "";
+
                 return (
                   <TableRow key={loc.sampleLocationId}>
                     <TableCell sx={{ fontWeight: 600 }}>{loc.name}</TableCell>
@@ -165,18 +171,43 @@ export function LocationResultsPanel({
                     <TableCell>{loc.unit || "—"}</TableCell>
                     <TableCell>
                       {isQualitative ? (
-                        <TextField
-                          size="small"
-                          fullWidth
-                          placeholder="Result text"
-                          value={values[loc.sampleLocationId]?.text ?? ""}
-                          onChange={(e) => updateText(loc.sampleLocationId, e.target.value)}
-                          slotProps={{
-                            htmlInput: {
-                              "aria-label": `Result for ${loc.name}`
-                            }
-                          }}
-                        />
+                        isNoPeaks ? (
+                          <Stack direction="row" spacing={1}>
+                            <Button
+                              size="small"
+                              variant={currentText === "No peaks" ? "contained" : "outlined"}
+                              color="primary"
+                              onClick={() => updateText(loc.sampleLocationId, "No peaks")}
+                              aria-label={`No peaks for ${loc.name}`}
+                              aria-pressed={currentText === "No peaks"}
+                            >
+                              No peaks
+                            </Button>
+                            <Button
+                              size="small"
+                              variant={currentText === "Peaks detected" ? "contained" : "outlined"}
+                              color="error"
+                              onClick={() => updateText(loc.sampleLocationId, "Peaks detected")}
+                              aria-label={`Peaks detected for ${loc.name}`}
+                              aria-pressed={currentText === "Peaks detected"}
+                            >
+                              Peaks detected
+                            </Button>
+                          </Stack>
+                        ) : (
+                          <TextField
+                            size="small"
+                            fullWidth
+                            placeholder="Result text"
+                            value={values[loc.sampleLocationId]?.text ?? ""}
+                            onChange={(e) => updateText(loc.sampleLocationId, e.target.value)}
+                            slotProps={{
+                              htmlInput: {
+                                "aria-label": `Result for ${loc.name}`
+                              }
+                            }}
+                          />
+                        )
                       ) : (
                         <TextField
                           size="small"

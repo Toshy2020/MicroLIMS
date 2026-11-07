@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
 import { MenuItem, Stack, TextField, Typography } from "@mui/material";
-import { LimitFields, LimitValues, PanelSection, SidePanel, emptyLimits } from "../../../../components/configHierarchy";
+import { LimitFields, ChemistryLimitFields, LimitValues, PanelSection, SidePanel, emptyLimits } from "../../../../components/configHierarchy";
 import { TestCodePicker } from "../../../../components/TestCodePicker";
 import { useEditableTestCodes } from "../../../../hooks/useEditableTestCodes";
+import { useTestDefinitions } from "../../../../hooks/useTestDefinitions";
 import { AfterCleaningConfigService } from "../services/AfterCleaningConfigService";
 import { AC_COUNT_TYPES, Machine, MachinePart, PATHOGEN_TEST_TYPE, PartConfig } from "../acConfigTypes";
+import { cleaningTechniqueOf } from "../cleaningTechniques";
 import { PathogenPicker } from "./PathogenPicker";
 
 const errorText = (e: any, fallback: string) => e?.response?.data?.message ?? fallback;
@@ -133,10 +135,11 @@ interface CountProps {
   editableCodes?: Set<string>;
 }
 
-// A swab or rinse count test for a part, with its limits.
+// A swab or rinse count test or chemistry test for a part, with its limits.
 export function AcCountTestPanel({ open, part, config, onClose, onSaved, editableCodes }: CountProps) {
   const { editableCodes: hookEditable } = useEditableTestCodes();
   const effectiveEditable = editableCodes !== undefined ? editableCodes : hookEditable;
+  const { options: testDefinitions } = useTestDefinitions();
 
   const [testType, setTestType] = useState(AC_COUNT_TYPES[0].value);
   const [testCode, setTestCode] = useState("");
@@ -144,28 +147,144 @@ export function AcCountTestPanel({ open, part, config, onClose, onSaved, editabl
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const activeDef = testDefinitions.find((t) => t.code === testCode);
+  const isPhyschem = activeDef
+    ? activeDef.section?.code !== "MICRO" && activeDef.workflowType !== "CountTest"
+    : config?.limitType != null;
+  const technique = activeDef ? cleaningTechniqueOf(activeDef.workflowType) : (config?.limitType === "Qualitative" ? "UV" : "HPLC");
+  const isUv = technique === "UV";
+
   useEffect(() => {
     if (!open) return;
     setTestType(config?.testType ?? AC_COUNT_TYPES[0].value);
     setTestCode(config?.testCode ?? "");
-    setLimits(
-      config
-        ? { alertLimit: config.alertLimit ?? "", actionLimit: config.actionLimit ?? "", specLimit: config.specLimit ?? "", unit: config.unit ?? "" }
-        : emptyLimits
-    );
+    if (config) {
+      const def = testDefinitions.find((t) => t.code === config.testCode);
+      const isChem = def ? def.section?.code !== "MICRO" && def.workflowType !== "CountTest" : config.limitType != null;
+      const tech = def ? cleaningTechniqueOf(def.workflowType) : (config.limitType === "Qualitative" ? "UV" : "HPLC");
+      setLimits({
+        alertLimit: config.alertLimit ?? "",
+        actionLimit: config.actionLimit ?? "",
+        specLimit: config.specLimit ?? "",
+        unit: config.unit ?? "",
+        limitType: config.limitType ?? (isChem ? (tech === "UV" ? "Qualitative" : "Range") : "Range"),
+        lowerLimit: config.lowerLimit ?? null,
+        upperLimit: config.upperLimit ?? null,
+        lowerInclusive: config.lowerInclusive ?? true,
+        upperInclusive: config.upperInclusive ?? true,
+        expectedResultText: config.expectedResultText ?? (tech === "UV" ? "No peaks" : "")
+      });
+    } else {
+      setLimits(emptyLimits);
+    }
     setError(null);
-  }, [open, config]);
+  }, [open, config, testDefinitions]);
+
+  const handleTestCodeChange = (newCode: string) => {
+    setTestCode(newCode);
+    const def = testDefinitions.find((t) => t.code === newCode);
+    const isChem = def ? def.section?.code !== "MICRO" && def.workflowType !== "CountTest" : false;
+    if (isChem) {
+      const tech = cleaningTechniqueOf(def?.workflowType);
+      if (tech === "UV") {
+        setLimits((prev) => ({
+          ...prev,
+          limitType: "Qualitative",
+          expectedResultText: prev.expectedResultText || "No peaks"
+        }));
+      } else {
+        setLimits((prev) => ({
+          ...prev,
+          limitType: prev.limitType === "Qualitative" ? "Range" : (prev.limitType ?? "Range")
+        }));
+      }
+    }
+  };
 
   const save = async () => {
     if (!part) return;
     if (!testCode) return setError("Choose the test to run.");
+
+    if (isPhyschem) {
+      const type = limits.limitType ?? (isUv ? "Qualitative" : "Range");
+      if (type === "Range") {
+        if (limits.lowerLimit == null && limits.upperLimit == null) {
+          return setError("Range limit requires a lower limit, an upper limit, or both.");
+        }
+        if (limits.lowerLimit != null && limits.upperLimit != null && limits.lowerLimit > limits.upperLimit) {
+          return setError("Lower limit cannot be greater than upper limit.");
+        }
+      } else if (type === "NotMoreThan") {
+        if (limits.upperLimit == null) {
+          return setError("Upper limit is required for Not More Than.");
+        }
+      } else if (type === "NotLessThan") {
+        if (limits.lowerLimit == null) {
+          return setError("Lower limit is required for Not Less Than.");
+        }
+      } else if (type === "Qualitative") {
+        if (!limits.expectedResultText || limits.expectedResultText.trim() === "") {
+          return setError("Expected result text is required for Qualitative.");
+        }
+      }
+    }
+
     setSaving(true);
     setError(null);
+
+    let spec = limits.specLimit;
+    if (isPhyschem) {
+      const type = limits.limitType ?? (isUv ? "Qualitative" : "Range");
+      if (type === "Range") {
+        if (limits.lowerLimit != null && limits.upperLimit != null) spec = `${limits.lowerLimit}-${limits.upperLimit}`;
+        else if (limits.lowerLimit != null) spec = `NLT ${limits.lowerLimit}`;
+        else if (limits.upperLimit != null) spec = `NMT ${limits.upperLimit}`;
+      } else if (type === "NotMoreThan") {
+        spec = limits.upperLimit != null ? `NMT ${limits.upperLimit}` : "";
+      } else if (type === "NotLessThan") {
+        spec = limits.lowerLimit != null ? `NLT ${limits.lowerLimit}` : "";
+      } else if (type === "Qualitative") {
+        spec = limits.expectedResultText ?? "";
+      }
+    }
+
+    const extra = isPhyschem
+      ? {
+          limitType: limits.limitType ?? (isUv ? "Qualitative" : "Range"),
+          lowerLimit: limits.lowerLimit ?? null,
+          upperLimit: limits.upperLimit ?? null,
+          lowerInclusive: limits.lowerInclusive ?? true,
+          upperInclusive: limits.upperInclusive ?? true,
+          expectedResultText: limits.expectedResultText ?? null
+        }
+      : undefined;
+
     try {
       if (config) {
-        await AfterCleaningConfigService.updatePartConfiguration(config.id, testType, testCode, limits.alertLimit, limits.actionLimit, limits.specLimit, false, limits.unit, config.version);
+        await AfterCleaningConfigService.updatePartConfiguration(
+          config.id,
+          testType,
+          testCode,
+          limits.alertLimit,
+          limits.actionLimit,
+          isPhyschem ? spec : limits.specLimit,
+          false,
+          limits.unit,
+          config.version,
+          extra
+        );
       } else {
-        await AfterCleaningConfigService.createPartConfiguration(part.id, testType, testCode, limits.alertLimit, limits.actionLimit, limits.specLimit, false, limits.unit);
+        await AfterCleaningConfigService.createPartConfiguration(
+          part.id,
+          testType,
+          testCode,
+          limits.alertLimit,
+          limits.actionLimit,
+          isPhyschem ? spec : limits.specLimit,
+          false,
+          limits.unit,
+          extra
+        );
       }
       onSaved(config ? `Test updated for ${part.name}.` : `Test added to ${part.name}.`);
     } catch (e) {
@@ -181,7 +300,7 @@ export function AcCountTestPanel({ open, part, config, onClose, onSaved, editabl
     <SidePanel
       open={open}
       overline={part?.name}
-      title={config ? "Edit count test" : "Add swab / rinse test"}
+      title={config ? (isPhyschem ? "Edit test" : "Edit count test") : (isPhyschem ? "Add test" : "Add swab / rinse test")}
       onClose={onClose}
       onSave={save}
       saving={saving}
@@ -196,10 +315,21 @@ export function AcCountTestPanel({ open, part, config, onClose, onSaved, editabl
             </MenuItem>
           ))}
         </TextField>
-        <TestCodePicker value={testCode} onChange={setTestCode} label="Test" editableCodes={effectiveEditable ?? new Set<string>()} />
+        <TestCodePicker value={testCode} onChange={handleTestCodeChange} label="Test" editableCodes={effectiveEditable ?? new Set<string>()} />
       </PanelSection>
-      <PanelSection title="2 · Limits" hint={`Results for ${testType.toLowerCase()} samples are reported in ${unitHint}.`}>
-        <LimitFields idPrefix="ac-limit" value={limits} onChange={setLimits} unitPlaceholder={unitHint} />
+      <PanelSection
+        title="2 · Limits"
+        hint={
+          isPhyschem
+            ? (isUv ? "UV scan limit (defaults to Qualitative: 'No peaks')." : "Chemistry limits for residue testing.")
+            : `Results for ${testType.toLowerCase()} samples are reported in ${unitHint}.`
+        }
+      >
+        {isPhyschem ? (
+          <ChemistryLimitFields idPrefix="ac-limit" value={limits} onChange={setLimits} unitPlaceholder="e.g. ppm, µg/swab" />
+        ) : (
+          <LimitFields idPrefix="ac-limit" value={limits} onChange={setLimits} unitPlaceholder={unitHint} />
+        )}
       </PanelSection>
     </SidePanel>
   );

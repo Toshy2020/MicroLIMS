@@ -1063,7 +1063,7 @@ export function ReceivingTestingWorkspacePage({ lab }: Props) {
         onClose={() => setNewSampleDialogOpen(false)}
         onSuccess={handleReceiveSuccess}
         allowedCategories={getAllowedCategories(lab)}
-        labMode={{ kind: "fixed", sectionId: lab.sectionId }}
+        labMode={{ kind: "fixed", sectionId: lab.sectionId, code: lab.code }}
       />
 
       {/* 2. Signed Sample Details Correction Dialog */}

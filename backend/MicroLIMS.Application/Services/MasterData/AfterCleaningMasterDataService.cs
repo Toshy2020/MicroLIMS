@@ -18,10 +18,10 @@ public class AfterCleaningMasterDataService
     private readonly IMicroLimsDbContext _db;
     private readonly IUserSectionScopeService _scope;
 
-    public AfterCleaningMasterDataService(IMicroLimsDbContext db, IUserSectionScopeService? scope = null)
+    public AfterCleaningMasterDataService(IMicroLimsDbContext db, IUserSectionScopeService scope)
     {
         _db = db;
-        _scope = scope ?? new UserSectionScopeService(db);
+        _scope = scope;
     }
 
     public async Task<object> GetMachinesAsync()
@@ -146,9 +146,6 @@ public class AfterCleaningMasterDataService
         return MachinePartConfigurationResponse.From(entity);
     }
 
-    public Task<MachinePartConfigurationResponse> CreateMachinePartConfigurationAsync(CreateMachinePartConfigRequest request) =>
-        CreateMachinePartConfigurationAsync(0, request);
-
     public async Task<MachinePartConfigurationResponse> UpdateMachinePartConfigurationAsync(int currentUserId, int id, UpdateMachinePartConfigRequest request)
     {
         var entity = await _db.MachinePartConfigurations.FirstOrDefaultAsync(c => c.Id == id)
@@ -170,9 +167,6 @@ public class AfterCleaningMasterDataService
         return MachinePartConfigurationResponse.From(entity);
     }
 
-    public Task<MachinePartConfigurationResponse> UpdateMachinePartConfigurationAsync(int id, UpdateMachinePartConfigRequest request) =>
-        UpdateMachinePartConfigurationAsync(0, id, request);
-
     // TestOrder.TestCode is a copied string, but SampleLocation keeps a
     // restricted FK to this row - refuse with a clear message rather than
     // a raw FK error once samples have used it.
@@ -191,7 +185,4 @@ public class AfterCleaningMasterDataService
         await _db.SaveChangesAsync();
         return new { };
     }
-
-    public Task<object> DeleteMachinePartConfigurationAsync(int id) =>
-        DeleteMachinePartConfigurationAsync(0, id);
 }

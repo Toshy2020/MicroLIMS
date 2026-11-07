@@ -35,6 +35,9 @@ public class TestDefinitionMasterDataService
     public async Task<List<TestDefinitionResponse>> GetTestDefinitionsAsync() =>
         (await _db.TestDefinitions.AsNoTracking().Include(t => t.Section).Include(t => t.UvStandardEntry).Include(t => t.IcpElements).OrderBy(t => t.Code).ToListAsync()).Select(TestDefinitionResponse.From).ToList();
 
+    public Task<string[]> GetEditableCodesAsync(int currentUserId, CancellationToken ct = default) =>
+        TestCodeOwnership.GetEditableCodesOrAllActiveAsync(_db, _scope, currentUserId, ct);
+
     public async Task<TestDefinitionResponse> CreateTestDefinitionAsync(int currentUserId, CreateTestDefinitionRequest request)
     {
         if (await _db.TestDefinitions.AnyAsync(t => t.Code == request.Code))

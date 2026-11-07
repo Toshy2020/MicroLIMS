@@ -13,8 +13,6 @@ public static class TestCodeOwnership
         int userId,
         CancellationToken ct = default)
     {
-        if (userId == 0) return null;
-
         var scopeIds = await scope.GetAccessibleSectionIdsAsync(userId, ct);
         if (scopeIds is null) return null; // System Administrator - unrestricted
 
@@ -65,8 +63,6 @@ public static class TestCodeOwnership
         string what,
         CancellationToken ct = default)
     {
-        if (userId == 0) return;
-
         var codeList = codes?.Where(c => !string.IsNullOrWhiteSpace(c)).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
         if (codeList is null || codeList.Count == 0) return;
 

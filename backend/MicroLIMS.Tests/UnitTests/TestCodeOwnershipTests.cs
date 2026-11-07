@@ -253,6 +253,21 @@ public class TestCodeOwnershipTests
         Assert.Equal("Test code 'NOPE' is not in the Test Master.", ex.Message);
     }
 
+    [Fact]
+    public async Task UserIdZero_WithEmptySectionList_IsDenied()
+    {
+        await using var db = NewDb();
+        Seed(db);
+        var scope = new UserSectionScopeService(db);
+
+        var editable = await TestCodeOwnership.GetEditableCodesAsync(db, scope, 0);
+        Assert.NotNull(editable);
+        Assert.Empty(editable!);
+
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(
+            () => TestCodeOwnership.EnsureCanEditAsync(db, scope, 0, "TAMC", "Point"));
+    }
+
     // ---- Task 2: Water Master Data ----
 
     [Fact]
@@ -331,8 +346,8 @@ public class TestCodeOwnershipTests
 
         var controller = BuildController(db, f.MicroHead);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.Water.DeleteWaterSamplingPoint(point.Id));
-        Assert.Equal("Cannot delete 'SP-1' - it still has Finished Product Laboratory tests assigned.", ex.Message);
+        var ex = await Assert.ThrowsAsync<UnauthorizedAccessException>(() => controller.Water.DeleteWaterSamplingPoint(point.Id));
+        Assert.Equal("Cannot delete 'SP-1' - it still has tests from another laboratory assigned.", ex.Message);
     }
 
     [Fact]

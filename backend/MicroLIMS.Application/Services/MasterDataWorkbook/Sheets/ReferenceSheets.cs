@@ -187,7 +187,7 @@ public sealed class WaterPointsSheet : SheetHandler
 
         // Stored with Test Master's spelling of each code.
         var canonical = codes.Select(c => known.First(k => k.Equals(c, StringComparison.OrdinalIgnoreCase))).ToList();
-        var created = await _service.CreateWaterSamplingPointAsync(new CreateWaterSamplingPointRequest(
+        var created = await _service.CreateWaterSamplingPointAsync(ctx.UserId, new CreateWaterSamplingPointRequest(
             r.Text("Code"), r.Text("Location"), r.OptionalText("TestingFrequency") ?? string.Empty, canonical, deptId));
         return Created("WaterSamplingPoint", created.Id, r);
     }

@@ -33,6 +33,15 @@ const mockTestDefs: TestDefinitionOption[] = [
     workflowType: "HplcMethodAssay",
     sectionId: 2,
     section: { id: 2, name: "Physicochemical", code: "FP" }
+  },
+  {
+    id: 4,
+    code: "ICP-Clean",
+    displayName: "ICP Clean Impurity",
+    isActive: true,
+    workflowType: "IcpMethodAssay",
+    sectionId: 2,
+    section: { id: 2, name: "Physicochemical", code: "FP" }
   }
 ];
 
@@ -49,8 +58,8 @@ vi.mock("../../../../hooks/useTestDefinitions", () => ({
 
 vi.mock("../../../../hooks/useEditableTestCodes", () => ({
   useEditableTestCodes: () => ({
-    codes: ["TAMC-Swab", "UV-Clean", "HPLC-Clean"],
-    editableCodes: new Set(["TAMC-Swab", "UV-Clean", "HPLC-Clean"]),
+    codes: ["TAMC-Swab", "UV-Clean", "HPLC-Clean", "ICP-Clean"],
+    editableCodes: new Set(["TAMC-Swab", "UV-Clean", "HPLC-Clean", "ICP-Clean"]),
     loading: false,
     reload: vi.fn()
   })
@@ -141,5 +150,99 @@ describe("AcCountTestPanel chemistry limits", () => {
     expect(await screen.findByLabelText("Alert")).toBeDefined();
     expect(screen.getByLabelText("Action")).toBeDefined();
     expect(screen.getByLabelText("Specification")).toBeDefined();
+  });
+
+  it("shows 'Limit from the method' and sends no limit fields for HPLC method assay", async () => {
+    const onSaved = vi.fn();
+
+    render(
+      <PinnedLightTheme>
+        <AcCountTestPanel
+          open={true}
+          part={part}
+          config={null}
+          onClose={vi.fn()}
+          onSaved={onSaved}
+        />
+      </PinnedLightTheme>
+    );
+
+    // Pick HPLC test
+    const testPickerInput = screen.getByLabelText("Test");
+    fireEvent.change(testPickerInput, { target: { value: "HPLC-Clean" } });
+    fireEvent.click(await screen.findByText(/HPLC Clean Assay/i));
+
+    // Shows caption
+    expect(await screen.findByText("Limit from the method")).toBeTruthy();
+
+    // ChemistryLimitFields is hidden
+    expect(screen.queryByLabelText("Limit type")).toBeNull();
+    expect(screen.queryByLabelText("Expected result text")).toBeNull();
+
+    // Save
+    const saveBtn = screen.getByRole("button", { name: "Add test" });
+    fireEvent.click(saveBtn);
+
+    await waitFor(() => {
+      expect(AfterCleaningConfigService.createPartConfiguration).toHaveBeenCalledWith(
+        10,
+        "Swab",
+        "HPLC-Clean",
+        "",
+        "",
+        "",
+        false,
+        "",
+        undefined
+      );
+      expect(onSaved).toHaveBeenCalled();
+    });
+  });
+
+  it("shows 'Limit from the ICP test' and sends no limit fields for ICP method assay", async () => {
+    const onSaved = vi.fn();
+
+    render(
+      <PinnedLightTheme>
+        <AcCountTestPanel
+          open={true}
+          part={part}
+          config={null}
+          onClose={vi.fn()}
+          onSaved={onSaved}
+        />
+      </PinnedLightTheme>
+    );
+
+    // Pick ICP test
+    const testPickerInput = screen.getByLabelText("Test");
+    fireEvent.change(testPickerInput, { target: { value: "ICP-Clean" } });
+    fireEvent.click(await screen.findByText(/ICP Clean Impurity/i));
+
+    // Shows caption
+    expect(await screen.findByText("Limit from the ICP test")).toBeTruthy();
+
+    // ChemistryLimitFields is hidden
+    expect(screen.queryByLabelText("Limit type")).toBeNull();
+    expect(screen.queryByLabelText("Expected result text")).toBeNull();
+
+    // Save
+    const saveBtn = screen.getByRole("button", { name: "Add test" });
+    fireEvent.click(saveBtn);
+
+    await waitFor(() => {
+      expect(AfterCleaningConfigService.createPartConfiguration).toHaveBeenCalledWith(
+        10,
+        "Swab",
+        "ICP-Clean",
+        "",
+        "",
+        "",
+        false,
+        "",
+        undefined
+      );
+      expect(onSaved).toHaveBeenCalled();
+    });
   });
 });

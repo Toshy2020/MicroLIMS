@@ -148,6 +148,9 @@ export function AcCountTestPanel({ open, part, config, onClose, onSaved, editabl
   const [error, setError] = useState<string | null>(null);
 
   const activeDef = testDefinitions.find((t) => t.code === testCode);
+  const isHplc = activeDef?.workflowType === "HplcMethodAssay";
+  const isIcp = activeDef?.workflowType === "IcpMethodAssay";
+  const isMethodLimit = isHplc || isIcp;
   const isPhyschem = activeDef
     ? activeDef.section?.code !== "MICRO" && activeDef.workflowType !== "CountTest"
     : config?.limitType != null;
@@ -160,20 +163,25 @@ export function AcCountTestPanel({ open, part, config, onClose, onSaved, editabl
     setTestCode(config?.testCode ?? "");
     if (config) {
       const def = testDefinitions.find((t) => t.code === config.testCode);
-      const isChem = def ? def.section?.code !== "MICRO" && def.workflowType !== "CountTest" : config.limitType != null;
-      const tech = def ? cleaningTechniqueOf(def.workflowType) : (config.limitType === "Qualitative" ? "UV" : "HPLC");
-      setLimits({
-        alertLimit: config.alertLimit ?? "",
-        actionLimit: config.actionLimit ?? "",
-        specLimit: config.specLimit ?? "",
-        unit: config.unit ?? "",
-        limitType: config.limitType ?? (isChem ? (tech === "UV" ? "Qualitative" : "Range") : "Range"),
-        lowerLimit: config.lowerLimit ?? null,
-        upperLimit: config.upperLimit ?? null,
-        lowerInclusive: config.lowerInclusive ?? true,
-        upperInclusive: config.upperInclusive ?? true,
-        expectedResultText: config.expectedResultText ?? (tech === "UV" ? "No peaks" : "")
-      });
+      const isMethod = def?.workflowType === "HplcMethodAssay" || def?.workflowType === "IcpMethodAssay";
+      if (isMethod) {
+        setLimits(emptyLimits);
+      } else {
+        const isChem = def ? def.section?.code !== "MICRO" && def.workflowType !== "CountTest" : config.limitType != null;
+        const tech = def ? cleaningTechniqueOf(def.workflowType) : (config.limitType === "Qualitative" ? "UV" : "HPLC");
+        setLimits({
+          alertLimit: config.alertLimit ?? "",
+          actionLimit: config.actionLimit ?? "",
+          specLimit: config.specLimit ?? "",
+          unit: config.unit ?? "",
+          limitType: config.limitType ?? (isChem ? (tech === "UV" ? "Qualitative" : "Range") : "Range"),
+          lowerLimit: config.lowerLimit ?? null,
+          upperLimit: config.upperLimit ?? null,
+          lowerInclusive: config.lowerInclusive ?? true,
+          upperInclusive: config.upperInclusive ?? true,
+          expectedResultText: config.expectedResultText ?? (tech === "UV" ? "No peaks" : "")
+        });
+      }
     } else {
       setLimits(emptyLimits);
     }
@@ -183,6 +191,11 @@ export function AcCountTestPanel({ open, part, config, onClose, onSaved, editabl
   const handleTestCodeChange = (newCode: string) => {
     setTestCode(newCode);
     const def = testDefinitions.find((t) => t.code === newCode);
+    const isMethod = def?.workflowType === "HplcMethodAssay" || def?.workflowType === "IcpMethodAssay";
+    if (isMethod) {
+      setLimits(emptyLimits);
+      return;
+    }
     const isChem = def ? def.section?.code !== "MICRO" && def.workflowType !== "CountTest" : false;
     if (isChem) {
       const tech = cleaningTechniqueOf(def?.workflowType);
@@ -205,7 +218,7 @@ export function AcCountTestPanel({ open, part, config, onClose, onSaved, editabl
     if (!part) return;
     if (!testCode) return setError("Choose the test to run.");
 
-    if (isPhyschem) {
+    if (isPhyschem && !isMethodLimit) {
       const type = limits.limitType ?? (isUv ? "Qualitative" : "Range");
       if (type === "Range") {
         if (limits.lowerLimit == null && limits.upperLimit == null) {
@@ -233,7 +246,7 @@ export function AcCountTestPanel({ open, part, config, onClose, onSaved, editabl
     setError(null);
 
     let spec = limits.specLimit;
-    if (isPhyschem) {
+    if (isPhyschem && !isMethodLimit) {
       const type = limits.limitType ?? (isUv ? "Qualitative" : "Range");
       if (type === "Range") {
         if (limits.lowerLimit != null && limits.upperLimit != null) spec = `${limits.lowerLimit}-${limits.upperLimit}`;
@@ -248,7 +261,7 @@ export function AcCountTestPanel({ open, part, config, onClose, onSaved, editabl
       }
     }
 
-    const extra = isPhyschem
+    const extra = isPhyschem && !isMethodLimit
       ? {
           limitType: limits.limitType ?? (isUv ? "Qualitative" : "Range"),
           lowerLimit: limits.lowerLimit ?? null,
@@ -259,17 +272,22 @@ export function AcCountTestPanel({ open, part, config, onClose, onSaved, editabl
         }
       : undefined;
 
+    const alertLimit = isMethodLimit ? "" : limits.alertLimit;
+    const actionLimit = isMethodLimit ? "" : limits.actionLimit;
+    const specLimit = isMethodLimit ? "" : (isPhyschem ? spec : limits.specLimit);
+    const unit = isMethodLimit ? "" : limits.unit;
+
     try {
       if (config) {
         await AfterCleaningConfigService.updatePartConfiguration(
           config.id,
           testType,
           testCode,
-          limits.alertLimit,
-          limits.actionLimit,
-          isPhyschem ? spec : limits.specLimit,
+          alertLimit,
+          actionLimit,
+          specLimit,
           false,
-          limits.unit,
+          unit,
           config.version,
           extra
         );
@@ -278,11 +296,11 @@ export function AcCountTestPanel({ open, part, config, onClose, onSaved, editabl
           part.id,
           testType,
           testCode,
-          limits.alertLimit,
-          limits.actionLimit,
-          isPhyschem ? spec : limits.specLimit,
+          alertLimit,
+          actionLimit,
+          specLimit,
           false,
-          limits.unit,
+          unit,
           extra
         );
       }
@@ -320,12 +338,18 @@ export function AcCountTestPanel({ open, part, config, onClose, onSaved, editabl
       <PanelSection
         title="2 · Limits"
         hint={
-          isPhyschem
+          isMethodLimit
+            ? undefined
+            : isPhyschem
             ? (isUv ? "UV scan limit (defaults to Qualitative: 'No peaks')." : "Chemistry limits for residue testing.")
             : `Results for ${testType.toLowerCase()} samples are reported in ${unitHint}.`
         }
       >
-        {isPhyschem ? (
+        {isMethodLimit ? (
+          <Typography variant="body2" sx={{ color: "text.secondary", py: 1 }}>
+            {isHplc ? "Limit from the method" : "Limit from the ICP test"}
+          </Typography>
+        ) : isPhyschem ? (
           <ChemistryLimitFields idPrefix="ac-limit" value={limits} onChange={setLimits} unitPlaceholder="e.g. ppm, µg/swab" />
         ) : (
           <LimitFields idPrefix="ac-limit" value={limits} onChange={setLimits} unitPlaceholder={unitHint} />

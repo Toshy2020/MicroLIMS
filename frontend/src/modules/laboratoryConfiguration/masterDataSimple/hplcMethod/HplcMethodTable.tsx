@@ -55,6 +55,8 @@ export function HplcMethodTable({
       render: (m) => {
         const isGc = m.technique === "Gc";
         const isResidual = isGc && m.resultMode === "ResidualSolvents";
+        const isRelatedSubstances = !isGc && m.resultMode === "RelatedSubstances";
+        const isCleaningResidue = !isGc && m.resultMode === "CleaningResidue";
         return (
           <Stack direction="row" spacing={0.5} sx={{ alignItems: "center" }}>
             <Chip
@@ -69,6 +71,24 @@ export function HplcMethodTable({
                 label="Residual solvents"
                 size="small"
                 color="warning"
+                variant="outlined"
+                sx={{ fontSize: 12, fontWeight: 600 }}
+              />
+            )}
+            {isRelatedSubstances && (
+              <Chip
+                label="Related substances"
+                size="small"
+                color="info"
+                variant="outlined"
+                sx={{ fontSize: 12, fontWeight: 600 }}
+              />
+            )}
+            {isCleaningResidue && (
+              <Chip
+                label="Cleaning residue"
+                size="small"
+                color="info"
                 variant="outlined"
                 sx={{ fontSize: 12, fontWeight: 600 }}
               />

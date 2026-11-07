@@ -66,7 +66,7 @@ public sealed class IcpMethodAssayRecorder : TestWorkflowSupport
             parameterResults.Add(new ParameterResult
             {
                 TestOrderId = order.Id,
-                SpecificationId = spec.Id,
+                SpecificationId = spec.Id == 0 ? null : spec.Id,
                 ParameterName = !string.IsNullOrWhiteSpace(spec.ParameterName) ? spec.ParameterName : row.Symbol,
                 ReportedValue = row.Value,
                 ReportedDisplay = row.Display,

@@ -3820,6 +3820,9 @@ namespace MicroLIMS.Persistence.Migrations
                     b.Property<decimal?>("ParticleSizeUm")
                         .HasColumnType("decimal(10,3)");
 
+                    b.Property<int?>("ProductItemId")
+                        .HasColumnType("integer");
+
                     b.Property<decimal?>("ReferenceSolutionPercent")
                         .HasColumnType("decimal(10,4)");
 
@@ -3838,6 +3841,9 @@ namespace MicroLIMS.Persistence.Migrations
                     b.Property<decimal?>("SplitRatio")
                         .HasColumnType("decimal(10,3)");
 
+                    b.Property<decimal?>("SwabAreaCm2")
+                        .HasColumnType("decimal(10,3)");
+
                     b.Property<int>("Technique")
                         .HasColumnType("integer");
 
@@ -3850,6 +3856,8 @@ namespace MicroLIMS.Persistence.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("DiluentSolutionId");
+
+                    b.HasIndex("ProductItemId");
 
                     b.HasIndex("SectionId", "Abbreviation")
                         .IsUnique();
@@ -3869,6 +3877,12 @@ namespace MicroLIMS.Persistence.Migrations
                         .HasColumnType("integer");
 
                     b.Property<int>("HplcMethodId")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal?>("MacoLimit")
+                        .HasColumnType("decimal(12,4)");
+
+                    b.Property<int?>("MacoUnit")
                         .HasColumnType("integer");
 
                     b.Property<string>("Name")
@@ -7805,7 +7819,7 @@ namespace MicroLIMS.Persistence.Migrations
                         .HasMaxLength(1000)
                         .HasColumnType("character varying(1000)");
 
-                    b.Property<int>("SpecificationId")
+                    b.Property<int?>("SpecificationId")
                         .HasColumnType("integer");
 
                     b.Property<int?>("StageReached")
@@ -10947,6 +10961,10 @@ namespace MicroLIMS.Persistence.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
+                    b.Property<decimal?>("CleaningLimitPpm")
+                        .HasPrecision(18, 6)
+                        .HasColumnType("numeric(18,6)");
+
                     b.Property<int>("DisplayOrder")
                         .HasColumnType("integer");
 
@@ -13392,6 +13410,11 @@ namespace MicroLIMS.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("MicroLIMS.Domain.Entities.Item", "ProductItem")
+                        .WithMany()
+                        .HasForeignKey("ProductItemId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("MicroLIMS.Domain.Entities.DocumentSection", "Section")
                         .WithMany()
                         .HasForeignKey("SectionId")
@@ -13399,6 +13422,8 @@ namespace MicroLIMS.Persistence.Migrations
                         .IsRequired();
 
                     b.Navigation("DiluentSolution");
+
+                    b.Navigation("ProductItem");
 
                     b.Navigation("Section");
                 });
@@ -14551,8 +14576,7 @@ namespace MicroLIMS.Persistence.Migrations
                     b.HasOne("MicroLIMS.Domain.Entities.Specification", "Specification")
                         .WithMany()
                         .HasForeignKey("SpecificationId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("MicroLIMS.Domain.Entities.TestAnalysis", "TestAnalysis")
                         .WithMany("ParameterResults")

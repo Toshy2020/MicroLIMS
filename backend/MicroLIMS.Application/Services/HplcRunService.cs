@@ -64,7 +64,7 @@ public record HplcSstRecordDto(
 public record HplcRunSampleSummaryDto(
     int Id, int? TestOrderId, HplcRunSampleStatus Status,
     string SampleNumber, string? BatchNumber, string? ProductName, string TestCode, bool Submitted, bool IsDissolution,
-    int? WorkingStandardQualificationId = null);
+    int? WorkingStandardQualificationId = null, string? SubjectName = null);
 
 public record HplcRunDto(
     int Id, uint Version, string Code, int SectionId,

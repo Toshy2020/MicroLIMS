@@ -16,7 +16,8 @@ public record HplcMethodAnalyteResponse(
     decimal? SstMaxRsdPercent, decimal? SstMinResolution, decimal? SstMaxTailingFactor,
     decimal? SstMinTheoreticalPlates, decimal? SstMinRetentionFactor, decimal? SstMinSignalToNoise,
     decimal? SstMinPeakToValley, decimal? StandardDilution = null,
-    decimal? StandardConcentrationUgPerMl = null);
+    decimal? StandardConcentrationUgPerMl = null,
+    decimal? MacoLimit = null, MacoUnit? MacoUnit = null);
 
 public record HplcMethodImpurityResponse(
     int Id, int DisplayOrder, string Name, decimal? RelativeRetention, decimal CorrectionFactor);
@@ -75,6 +76,10 @@ public class HplcMethodResponse
     public decimal? DisregardLimitPercent { get; init; }
     public List<HplcMethodImpurityResponse> Impurities { get; init; } = new();
     public string? InternalStandardName { get; init; }
+
+    public int? ProductItemId { get; init; }
+    public string? ProductItemName { get; init; }
+    public decimal? SwabAreaCm2 { get; init; }
 
     public int CreatedByUserId { get; init; }
     public DateTime CreatedAt { get; init; }
@@ -139,11 +144,15 @@ public class HplcMethodResponse
                 a.TheoreticalWeightStdMg, a.TheoreticalWeightTestMg, a.StandardInjections,
                 a.SstMaxRsdPercent, a.SstMinResolution, a.SstMaxTailingFactor,
                 a.SstMinTheoreticalPlates, a.SstMinRetentionFactor, a.SstMinSignalToNoise,
-                a.SstMinPeakToValley, a.StandardDilution, a.StandardConcentrationUgPerMl))
+                a.SstMinPeakToValley, a.StandardDilution, a.StandardConcentrationUgPerMl,
+                a.MacoLimit, a.MacoUnit))
             .ToList(),
         ReferenceSolutionPercent = m.ReferenceSolutionPercent,
         DisregardLimitPercent = m.DisregardLimitPercent,
         InternalStandardName = m.InternalStandardName,
+        ProductItemId = m.ProductItemId,
+        ProductItemName = m.ProductItem?.Name,
+        SwabAreaCm2 = m.SwabAreaCm2,
         Impurities = m.Impurities
             .OrderBy(i => i.DisplayOrder)
             .Select(i => new HplcMethodImpurityResponse(i.Id, i.DisplayOrder, i.Name, i.RelativeRetention, i.CorrectionFactor))

@@ -235,12 +235,9 @@ public class WaterWorkflowEngine : IWaterWorkflowEngine
                     WaterSamplingPointId = point.Id
                 };
 
-                if (countTestCodeSet.Contains(testCode))
-                {
-                    var config = configs.FirstOrDefault(c => c.WaterSamplingPointId == point.Id && c.TestCode == testCode);
-                    if (config != null)
-                        location.SamplingConfigurationId = config.Id;
-                }
+                var config = configs.FirstOrDefault(c => c.WaterSamplingPointId == point.Id && c.TestCode == testCode);
+                if (config != null)
+                    location.SamplingConfigurationId = config.Id;
 
                 sample.Locations.Add(location);
             }

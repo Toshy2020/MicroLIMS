@@ -181,15 +181,22 @@ public class WaterMasterDataService
     public async Task<SamplingConfigurationResponse> CreateWaterSamplingConfigurationAsync(int currentUserId, CreateWaterSamplingConfigRequest request)
     {
         await TestCodeOwnership.EnsureCanEditAsync(_db, _scope, currentUserId, request.TestCode, "Water sampling configuration");
+        LocationChemistryLimitRules.Validate(request.LimitType, request.LowerLimit, request.UpperLimit, request.ExpectedResultText);
 
         var entity = new SamplingConfiguration
         {
             WaterSamplingPointId = request.WaterSamplingPointId,
             TestCode = request.TestCode,
-            AlertLimit = request.AlertLimit,
-            ActionLimit = request.ActionLimit,
-            SpecLimit = request.SpecLimit,
-            Unit = request.Unit ?? string.Empty
+            AlertLimit = request.AlertLimit ?? string.Empty,
+            ActionLimit = request.ActionLimit ?? string.Empty,
+            SpecLimit = request.SpecLimit ?? string.Empty,
+            Unit = request.Unit ?? string.Empty,
+            LimitType = request.LimitType,
+            LowerLimit = request.LowerLimit,
+            UpperLimit = request.UpperLimit,
+            LowerInclusive = request.LowerInclusive,
+            UpperInclusive = request.UpperInclusive,
+            ExpectedResultText = request.ExpectedResultText
         };
         _db.SamplingConfigurations.Add(entity);
         await _db.SaveChangesAsync();
@@ -203,12 +210,19 @@ public class WaterMasterDataService
         RecordVersion.EnsureCurrent(_db, entity);
 
         await TestCodeOwnership.EnsureCanEditAsync(_db, _scope, currentUserId, new[] { entity.TestCode, request.TestCode }, "Water sampling configuration");
+        LocationChemistryLimitRules.Validate(request.LimitType, request.LowerLimit, request.UpperLimit, request.ExpectedResultText);
 
         entity.TestCode = request.TestCode;
-        entity.AlertLimit = request.AlertLimit;
-        entity.ActionLimit = request.ActionLimit;
-        entity.SpecLimit = request.SpecLimit;
+        entity.AlertLimit = request.AlertLimit ?? string.Empty;
+        entity.ActionLimit = request.ActionLimit ?? string.Empty;
+        entity.SpecLimit = request.SpecLimit ?? string.Empty;
         entity.Unit = request.Unit ?? string.Empty;
+        entity.LimitType = request.LimitType;
+        entity.LowerLimit = request.LowerLimit;
+        entity.UpperLimit = request.UpperLimit;
+        entity.LowerInclusive = request.LowerInclusive;
+        entity.UpperInclusive = request.UpperInclusive;
+        entity.ExpectedResultText = request.ExpectedResultText;
         await _db.SaveChangesAsync();
         return SamplingConfigurationResponse.From(entity);
     }

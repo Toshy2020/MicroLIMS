@@ -606,6 +606,7 @@ TestWorkflowController.RecordDisintegrationStage(Int32, RecordDisintegrationStag
 TestWorkflowController.RecordDissolutionResult(Int32, RecordDissolutionResultRequest): SectionHead,Reviewer,Analyst
 TestWorkflowController.RecordDissolutionStage(Int32, RecordDissolutionStageRequest): SectionHead,Reviewer,Analyst
 TestWorkflowController.RecordGravimetricResult(Int32, RecordGravimetricResultRequest): SectionHead,Reviewer,Analyst
+TestWorkflowController.RecordLocationResults(Int32, LocationResultsRequest): SectionHead,Reviewer,Analyst
 TestWorkflowController.RecordMeasurementResult(Int32, RecordMeasurementResultRequest): SectionHead,Reviewer,Analyst
 TestWorkflowController.RecordOutsourcedResult(Int32, RecordOutsourcedResultRequest): SectionHead,Reviewer,Analyst
 TestWorkflowController.RecordQualitativeResult(Int32, RecordQualitativeResultRequest): SectionHead,Reviewer,Analyst

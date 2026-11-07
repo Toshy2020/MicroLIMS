@@ -2,6 +2,7 @@ using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Helpers;
 using MicroLIMS.Application.Workflows;
+using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Application.Abstractions.Persistence;
 
@@ -258,6 +259,161 @@ public class CurrentStepViewService
 
         var returnInfo = await TestReturnHelper.GetPendingReturnAsync(_db, testOrderId, hasActiveReadings: facts.ActiveCountReadings.Count > 0);
         var perContainer = await _db.TestDefinitions.AsNoTracking().Where(t => t.Code == order.TestCode).Select(t => t.PerContainer).FirstOrDefaultAsync();
+
+        var sampleLocations = await _db.SampleLocations
+            .Include(l => l.WaterSamplingPoint)
+            .Include(l => l.SamplingConfiguration!).ThenInclude(c => c.WaterSamplingPoint)
+            .Include(l => l.MachinePartConfiguration!).ThenInclude(c => c.MachinePart!).ThenInclude(p => p.Machine)
+            .Where(l => l.TestOrderId == testOrderId)
+            .OrderBy(l => l.Id)
+            .ToListAsync();
+
+        foreach (var loc in sampleLocations)
+        {
+            if (loc.SamplingConfiguration == null && loc.SamplingConfigurationId != null)
+            {
+                loc.SamplingConfiguration = await _db.SamplingConfigurations
+                    .Include(c => c.WaterSamplingPoint)
+                    .FirstOrDefaultAsync(c => c.Id == loc.SamplingConfigurationId);
+            }
+            else if (loc.SamplingConfiguration == null && loc.WaterSamplingPointId != null)
+            {
+                loc.SamplingConfiguration = await _db.SamplingConfigurations
+                    .Include(c => c.WaterSamplingPoint)
+                    .FirstOrDefaultAsync(c => c.WaterSamplingPointId == loc.WaterSamplingPointId && c.TestCode == order.TestCode);
+            }
+
+            if (loc.MachinePartConfiguration == null && loc.MachinePartConfigurationId != null)
+            {
+                loc.MachinePartConfiguration = await _db.MachinePartConfigurations
+                    .Include(c => c.MachinePart!).ThenInclude(p => p.Machine)
+                    .FirstOrDefaultAsync(c => c.Id == loc.MachinePartConfigurationId);
+            }
+        }
+
+        var hasLocationEntry = sampleLocations.Count > 0 && sampleLocations.Any(l =>
+            (l.SamplingConfiguration?.LimitType != null) || (l.MachinePartConfiguration?.LimitType != null));
+
+        if (hasLocationEntry)
+        {
+            var locationItems = sampleLocations.Select(l =>
+            {
+                var waterConfig = l.SamplingConfiguration;
+                var acConfig = l.MachinePartConfiguration;
+                var limitType = waterConfig?.LimitType ?? acConfig?.LimitType;
+                var lowerLimit = waterConfig?.LowerLimit ?? acConfig?.LowerLimit;
+                var upperLimit = waterConfig?.UpperLimit ?? acConfig?.UpperLimit;
+                var lowerInclusive = waterConfig?.LowerInclusive ?? acConfig?.LowerInclusive ?? true;
+                var upperInclusive = waterConfig?.UpperInclusive ?? acConfig?.UpperInclusive ?? true;
+                var expectedResultText = waterConfig?.ExpectedResultText ?? acConfig?.ExpectedResultText;
+                var unit = waterConfig?.Unit ?? acConfig?.Unit;
+
+                string? specLimit = !string.IsNullOrWhiteSpace(l.SpecLimit)
+                    ? l.SpecLimit
+                    : (limitType.HasValue
+                        ? SpecificationService.BuildCanonicalSpecLimit(new Specification
+                        {
+                            LimitType = limitType.Value,
+                            LowerLimit = lowerLimit,
+                            UpperLimit = upperLimit,
+                            LowerInclusive = lowerInclusive,
+                            UpperInclusive = upperInclusive,
+                            ExpectedResultText = expectedResultText
+                        })
+                        : (waterConfig?.SpecLimit ?? acConfig?.SpecLimit));
+
+                string name;
+                var point = l.WaterSamplingPoint ?? waterConfig?.WaterSamplingPoint;
+                if (point != null)
+                {
+                    name = !string.IsNullOrWhiteSpace(point.Location)
+                        ? $"{point.Code} - {point.Location}"
+                        : point.Code;
+                }
+                else if (acConfig?.MachinePart != null)
+                {
+                    var part = acConfig.MachinePart;
+                    name = !string.IsNullOrWhiteSpace(part.Machine?.Name)
+                        ? $"{part.Machine.Name} - {part.Name}"
+                        : part.Name;
+                }
+                else
+                {
+                    name = $"Location {l.Id}";
+                }
+
+                return new
+                {
+                    sampleLocationId = l.Id,
+                    name,
+                    limitType = limitType?.ToString(),
+                    lowerLimit,
+                    upperLimit,
+                    expectedResultText,
+                    unit,
+                    specLimit,
+                    value = l.CalculatedResult,
+                    text = l.ReportedResult
+                };
+            }).ToList();
+
+            return new
+            {
+                testOrderId,
+                step = current.Step is null ? null : new
+                {
+                    current.Step.Id, current.Step.StepOrder, current.Step.StepName,
+                    stepType = current.Step.StepType.ToString(),
+                    current.Step.TargetOrganismId,
+                    phenotypicTestType = current.Step.PhenotypicTestType?.ToString(),
+                    phenotypicTestTypes = current.Step.PhenotypicTests.OrderBy(t => t.DisplayOrder).Select(t => t.PhenotypicTestType.ToString()),
+                    incubationMinHours = incMin,
+                    incubationMaxHours = incMax,
+                    temperatureMin = tempMin,
+                    temperatureMax = tempMax,
+                    current.Step.IsFinalStep,
+                    current.Step.RequiresIncubationTransfer,
+                    stepMedia = current.Step.StepMedia.OrderBy(m => m.DisplayOrder).Select(m => new
+                    {
+                        m.Id,
+                        m.MediaProductId, mediaProductName = m.MediaProduct!.Name, m.TempMin, m.TempMax,
+                        m.IncubationMinHours, m.IncubationMaxHours, m.IsRequired
+                    }),
+                    incubationStages = current.Step.IncubationStages.OrderBy(x => x.StageNumber).Select(x => new
+                    {
+                        x.StageNumber,
+                        x.TempMin,
+                        x.TempMax,
+                        x.IncubationMinHours,
+                        x.IncubationMaxHours
+                    })
+                },
+                stepNumber = current.Step?.StepOrder,
+                totalSteps = current.TotalSteps,
+                testName = order.TestCode,
+                workflowType = current.WorkflowType.ToString(),
+                perContainer,
+                sampleContext,
+                incubationLock,
+                returnInfo = returnInfo is null ? null : new
+                {
+                    reason = returnInfo.Reason,
+                    returnedAt = returnInfo.ReturnedAt
+                },
+                previousSteps = enrichedPreviousSteps,
+                sharedTsbSummary,
+                allStepsComplete = current.AllStepsComplete,
+                finalResult = current.FinalResult,
+                allSteps = current.AllSteps.Select(s => new { s.StepOrder, s.StepName }),
+                completedSteps = current.CompletedSteps.Select(s => new
+                {
+                    s.StepOrder, s.StepName, stepType = s.StepType.ToString(), s.IsFinalStep,
+                    s.Outcome, s.ObservedAt, s.ReportedResult, s.CalculatedResult, s.Status
+                }),
+                locationEntry = true,
+                locations = locationItems
+            };
+        }
 
         return new
         {

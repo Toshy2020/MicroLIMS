@@ -138,6 +138,12 @@ public class MachinePartConfigurationResponse
     public string SpecLimit { get; init; } = null!;
     public string Unit { get; init; } = null!;
     public bool IsPathogenTest { get; init; }
+    public LimitType? LimitType { get; init; }
+    public decimal? LowerLimit { get; init; }
+    public decimal? UpperLimit { get; init; }
+    public bool LowerInclusive { get; init; }
+    public bool UpperInclusive { get; init; }
+    public string? ExpectedResultText { get; init; }
 
     public static MachinePartConfigurationResponse From(MachinePartConfiguration e) => new()
     {
@@ -152,6 +158,12 @@ public class MachinePartConfigurationResponse
         SpecLimit = e.SpecLimit,
         Unit = e.Unit,
         IsPathogenTest = e.IsPathogenTest,
+        LimitType = e.LimitType,
+        LowerLimit = e.LowerLimit,
+        UpperLimit = e.UpperLimit,
+        LowerInclusive = e.LowerInclusive,
+        UpperInclusive = e.UpperInclusive,
+        ExpectedResultText = e.ExpectedResultText,
     };
 }
 
@@ -307,6 +319,12 @@ public class SamplingConfigurationResponse
     public string ActionLimit { get; init; } = null!;
     public string SpecLimit { get; init; } = null!;
     public string Unit { get; init; } = null!;
+    public LimitType? LimitType { get; init; }
+    public decimal? LowerLimit { get; init; }
+    public decimal? UpperLimit { get; init; }
+    public bool LowerInclusive { get; init; }
+    public bool UpperInclusive { get; init; }
+    public string? ExpectedResultText { get; init; }
 
     public static SamplingConfigurationResponse From(SamplingConfiguration e) => new()
     {
@@ -318,5 +336,11 @@ public class SamplingConfigurationResponse
         ActionLimit = e.ActionLimit,
         SpecLimit = e.SpecLimit,
         Unit = e.Unit,
+        LimitType = e.LimitType,
+        LowerLimit = e.LowerLimit,
+        UpperLimit = e.UpperLimit,
+        LowerInclusive = e.LowerInclusive,
+        UpperInclusive = e.UpperInclusive,
+        ExpectedResultText = e.ExpectedResultText,
     };
 }

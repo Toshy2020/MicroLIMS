@@ -468,6 +468,24 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext, IMicr
         modelBuilder.Entity<Machine>().Property(e => e.IsActive).HasDefaultValue(true).ValueGeneratedNever();
         modelBuilder.Entity<MachinePart>().Property(e => e.IsActive).HasDefaultValue(true).ValueGeneratedNever();
         modelBuilder.Entity<MachinePartConfiguration>().Property(e => e.IsActive).HasDefaultValue(true).ValueGeneratedNever();
+
+        modelBuilder.Entity<SamplingConfiguration>(b =>
+        {
+            b.Property(e => e.LowerLimit).HasPrecision(18, 6);
+            b.Property(e => e.UpperLimit).HasPrecision(18, 6);
+            b.Property(e => e.LowerInclusive).HasDefaultValue(true);
+            b.Property(e => e.UpperInclusive).HasDefaultValue(true);
+            b.Property(e => e.ExpectedResultText).HasMaxLength(1000);
+        });
+
+        modelBuilder.Entity<MachinePartConfiguration>(b =>
+        {
+            b.Property(e => e.LowerLimit).HasPrecision(18, 6);
+            b.Property(e => e.UpperLimit).HasPrecision(18, 6);
+            b.Property(e => e.LowerInclusive).HasDefaultValue(true);
+            b.Property(e => e.UpperInclusive).HasDefaultValue(true);
+            b.Property(e => e.ExpectedResultText).HasMaxLength(1000);
+        });
     }
 
     public Task<bool> TrySaveChangesAsync(params string[] uniqueIndexNames) =>

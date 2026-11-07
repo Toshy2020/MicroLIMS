@@ -129,17 +129,24 @@ public class AfterCleaningMasterDataService
     public async Task<MachinePartConfigurationResponse> CreateMachinePartConfigurationAsync(int currentUserId, CreateMachinePartConfigRequest request)
     {
         await TestCodeOwnership.EnsureCanEditAsync(_db, _scope, currentUserId, request.TestCode, "Machine part configuration");
+        LocationChemistryLimitRules.Validate(request.LimitType, request.LowerLimit, request.UpperLimit, request.ExpectedResultText);
         await EnsureNotDuplicateAsync(request.MachinePartId, request.TestType, request.TestCode, null);
         var entity = new MachinePartConfiguration
         {
             MachinePartId = request.MachinePartId,
             TestType = request.TestType,
             TestCode = request.TestCode,
-            AlertLimit = request.AlertLimit,
-            ActionLimit = request.ActionLimit,
-            SpecLimit = request.SpecLimit,
+            AlertLimit = request.AlertLimit ?? string.Empty,
+            ActionLimit = request.ActionLimit ?? string.Empty,
+            SpecLimit = request.SpecLimit ?? string.Empty,
             IsPathogenTest = request.IsPathogenTest,
-            Unit = request.Unit ?? string.Empty
+            Unit = request.Unit ?? string.Empty,
+            LimitType = request.LimitType,
+            LowerLimit = request.LowerLimit,
+            UpperLimit = request.UpperLimit,
+            LowerInclusive = request.LowerInclusive,
+            UpperInclusive = request.UpperInclusive,
+            ExpectedResultText = request.ExpectedResultText
         };
         _db.MachinePartConfigurations.Add(entity);
         await _db.SaveChangesAsync();
@@ -153,16 +160,23 @@ public class AfterCleaningMasterDataService
         RecordVersion.EnsureCurrent(_db, entity);
 
         await TestCodeOwnership.EnsureCanEditAsync(_db, _scope, currentUserId, new[] { entity.TestCode, request.TestCode }, "Machine part configuration");
+        LocationChemistryLimitRules.Validate(request.LimitType, request.LowerLimit, request.UpperLimit, request.ExpectedResultText);
 
         if (request.IsActive.HasValue) entity.IsActive = request.IsActive.Value;
         await EnsureNotDuplicateAsync(entity.MachinePartId, request.TestType, request.TestCode, entity.Id);
         entity.TestType = request.TestType;
         entity.TestCode = request.TestCode;
-        entity.AlertLimit = request.AlertLimit;
-        entity.ActionLimit = request.ActionLimit;
-        entity.SpecLimit = request.SpecLimit;
+        entity.AlertLimit = request.AlertLimit ?? string.Empty;
+        entity.ActionLimit = request.ActionLimit ?? string.Empty;
+        entity.SpecLimit = request.SpecLimit ?? string.Empty;
         entity.IsPathogenTest = request.IsPathogenTest;
         entity.Unit = request.Unit ?? string.Empty;
+        entity.LimitType = request.LimitType;
+        entity.LowerLimit = request.LowerLimit;
+        entity.UpperLimit = request.UpperLimit;
+        entity.LowerInclusive = request.LowerInclusive;
+        entity.UpperInclusive = request.UpperInclusive;
+        entity.ExpectedResultText = request.ExpectedResultText;
         await _db.SaveChangesAsync();
         return MachinePartConfigurationResponse.From(entity);
     }

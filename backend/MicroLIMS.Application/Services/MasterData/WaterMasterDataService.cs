@@ -17,10 +17,12 @@ namespace MicroLIMS.Application.Services.MasterData;
 public class WaterMasterDataService
 {
     private readonly IMicroLimsDbContext _db;
+    private readonly IUserSectionScopeService _scope;
 
-    public WaterMasterDataService(IMicroLimsDbContext db)
+    public WaterMasterDataService(IMicroLimsDbContext db, IUserSectionScopeService? scope = null)
     {
         _db = db;
+        _scope = scope ?? new UserSectionScopeService(db);
     }
 
     public async Task<List<WaterSamplingPointResponse>> GetWaterSamplingPointsAsync() =>
@@ -34,38 +36,98 @@ public class WaterMasterDataService
         FrequencyRules.Apply(target, rule);
     }
 
-    public async Task<WaterSamplingPointResponse> CreateWaterSamplingPointAsync(CreateWaterSamplingPointRequest request)
+    public async Task<WaterSamplingPointResponse> CreateWaterSamplingPointAsync(int currentUserId, CreateWaterSamplingPointRequest request)
     {
-        var point = new WaterSamplingPoint { Code = request.Code, Location = request.Location, TestingFrequency = request.TestingFrequency, AssignedTestCodes = request.AssignedTestCodes, WaterDepartmentId = request.WaterDepartmentId };
+        if (request.AssignedTestCodes is { Count: > 0 })
+        {
+            await TestCodeOwnership.EnsureCanEditAsync(_db, _scope, currentUserId, request.AssignedTestCodes, "Water sampling point");
+        }
+
+        var point = new WaterSamplingPoint
+        {
+            Code = request.Code,
+            Location = request.Location,
+            TestingFrequency = request.TestingFrequency,
+            AssignedTestCodes = request.AssignedTestCodes ?? new List<string>(),
+            WaterDepartmentId = request.WaterDepartmentId
+        };
         ApplyFrequency(point, request.Frequency);
         _db.WaterSamplingPoints.Add(point);
         await _db.SaveChangesAsync();
         return WaterSamplingPointResponse.From(point);
     }
 
-    public async Task<WaterSamplingPointResponse> UpdateWaterSamplingPointAsync(int id, UpdateWaterSamplingPointRequest request)
+    public Task<WaterSamplingPointResponse> CreateWaterSamplingPointAsync(CreateWaterSamplingPointRequest request) =>
+        CreateWaterSamplingPointAsync(0, request);
+
+    public async Task<WaterSamplingPointResponse> UpdateWaterSamplingPointAsync(int currentUserId, int id, UpdateWaterSamplingPointRequest request)
     {
         var point = await _db.WaterSamplingPoints.FirstOrDefaultAsync(p => p.Id == id)
             ?? throw new NotFoundException($"Sampling point {id} not found.");
         RecordVersion.EnsureCurrent(_db, point);
+
+        var storedCodes = new HashSet<string>(point.AssignedTestCodes ?? new List<string>(), StringComparer.OrdinalIgnoreCase);
+        var newCodes = new HashSet<string>(request.AssignedTestCodes ?? new List<string>(), StringComparer.OrdinalIgnoreCase);
+        var changedCodes = newCodes.Except(storedCodes, StringComparer.OrdinalIgnoreCase)
+            .Concat(storedCodes.Except(newCodes, StringComparer.OrdinalIgnoreCase))
+            .ToList();
+
+        if (changedCodes.Count > 0)
+        {
+            await TestCodeOwnership.EnsureCanEditAsync(_db, _scope, currentUserId, changedCodes, "Water sampling point");
+        }
+
         if (request.IsActive.HasValue) point.IsActive = request.IsActive.Value;
         point.Code = request.Code;
         point.Location = request.Location;
         point.TestingFrequency = request.TestingFrequency;
-        point.AssignedTestCodes = request.AssignedTestCodes;
+        point.AssignedTestCodes = request.AssignedTestCodes ?? new List<string>();
         point.WaterDepartmentId = request.WaterDepartmentId;
         ApplyFrequency(point, request.Frequency);
         await _db.SaveChangesAsync();
         return WaterSamplingPointResponse.From(point);
     }
 
+    public Task<WaterSamplingPointResponse> UpdateWaterSamplingPointAsync(int id, UpdateWaterSamplingPointRequest request) =>
+        UpdateWaterSamplingPointAsync(0, id, request);
+
     // Blocked if any Sample, SampleLocation or SamplingConfiguration still references
     // this point - same "guard with a clear message" pattern as
     // ItemService.DeleteAsync.
-    public async Task<object> DeleteWaterSamplingPointAsync(int id)
+    public async Task<object> DeleteWaterSamplingPointAsync(int currentUserId, int id)
     {
         var point = await _db.WaterSamplingPoints.FirstOrDefaultAsync(p => p.Id == id)
             ?? throw new NotFoundException($"Sampling point {id} not found.");
+
+        if (currentUserId != 0 && point.AssignedTestCodes is { Count: > 0 })
+        {
+            var scopeIds = await _scope.GetAccessibleSectionIdsAsync(currentUserId);
+            if (scopeIds is not null) // not admin
+            {
+                var userAreas = await _scope.GetPhyschemAreasAsync(currentUserId);
+                var testDefs = await _db.TestDefinitions
+                    .AsNoTracking()
+                    .Include(t => t.Section)
+                    .Where(t => point.AssignedTestCodes.Contains(t.Code))
+                    .ToListAsync();
+                var byCode = testDefs.ToDictionary(t => t.Code, StringComparer.OrdinalIgnoreCase);
+
+                foreach (var code in point.AssignedTestCodes)
+                {
+                    if (byCode.TryGetValue(code, out var testDef))
+                    {
+                        var labName = testDef.Section?.Name ?? "another laboratory section";
+                        bool canEdit = scopeIds.Contains(testDef.SectionId) &&
+                            (!testDef.PhyschemArea.HasValue || userAreas.Any(a => PhyschemAreas.Includes(testDef.PhyschemArea.Value, a)));
+                        if (!canEdit)
+                        {
+                            throw new InvalidOperationException(
+                                $"Cannot delete '{point.Code}' - it still has {labName} tests assigned.");
+                        }
+                    }
+                }
+            }
+        }
 
         var sampleCount = await _db.Samples.CountAsync(s => s.WaterSamplingPointId == id);
         var configCount = await _db.SamplingConfigurations.CountAsync(c => c.WaterSamplingPointId == id);
@@ -78,6 +140,9 @@ public class WaterMasterDataService
         await _db.SaveChangesAsync();
         return new { };
     }
+
+    public Task<object> DeleteWaterSamplingPointAsync(int id) =>
+        DeleteWaterSamplingPointAsync(0, id);
 
     public async Task<object> GetWaterDepartmentsAsync()
     {
@@ -133,12 +198,17 @@ public class WaterMasterDataService
     public async Task<List<SamplingConfigurationResponse>> GetWaterSamplingConfigurationsAsync(int pointId) =>
         (await _db.SamplingConfigurations.AsNoTracking().Where(c => c.WaterSamplingPointId == pointId).ToListAsync()).Select(SamplingConfigurationResponse.From).ToList();
 
-    public async Task<SamplingConfigurationResponse> CreateWaterSamplingConfigurationAsync(CreateWaterSamplingConfigRequest request)
+    public async Task<SamplingConfigurationResponse> CreateWaterSamplingConfigurationAsync(int currentUserId, CreateWaterSamplingConfigRequest request)
     {
+        await TestCodeOwnership.EnsureCanEditAsync(_db, _scope, currentUserId, request.TestCode, "Water sampling configuration");
+
         var entity = new SamplingConfiguration
         {
-            WaterSamplingPointId = request.WaterSamplingPointId, TestCode = request.TestCode,
-            AlertLimit = request.AlertLimit, ActionLimit = request.ActionLimit, SpecLimit = request.SpecLimit,
+            WaterSamplingPointId = request.WaterSamplingPointId,
+            TestCode = request.TestCode,
+            AlertLimit = request.AlertLimit,
+            ActionLimit = request.ActionLimit,
+            SpecLimit = request.SpecLimit,
             Unit = request.Unit ?? string.Empty
         };
         _db.SamplingConfigurations.Add(entity);
@@ -146,11 +216,17 @@ public class WaterMasterDataService
         return SamplingConfigurationResponse.From(entity);
     }
 
-    public async Task<SamplingConfigurationResponse> UpdateWaterSamplingConfigurationAsync(int id, UpdateWaterSamplingConfigRequest request)
+    public Task<SamplingConfigurationResponse> CreateWaterSamplingConfigurationAsync(CreateWaterSamplingConfigRequest request) =>
+        CreateWaterSamplingConfigurationAsync(0, request);
+
+    public async Task<SamplingConfigurationResponse> UpdateWaterSamplingConfigurationAsync(int currentUserId, int id, UpdateWaterSamplingConfigRequest request)
     {
         var entity = await _db.SamplingConfigurations.FirstOrDefaultAsync(c => c.Id == id)
             ?? throw new NotFoundException($"Water sampling configuration {id} not found.");
         RecordVersion.EnsureCurrent(_db, entity);
+
+        await TestCodeOwnership.EnsureCanEditAsync(_db, _scope, currentUserId, new[] { entity.TestCode, request.TestCode }, "Water sampling configuration");
+
         entity.TestCode = request.TestCode;
         entity.AlertLimit = request.AlertLimit;
         entity.ActionLimit = request.ActionLimit;
@@ -160,12 +236,21 @@ public class WaterMasterDataService
         return SamplingConfigurationResponse.From(entity);
     }
 
-    public async Task<object> DeleteWaterSamplingConfigurationAsync(int id)
+    public Task<SamplingConfigurationResponse> UpdateWaterSamplingConfigurationAsync(int id, UpdateWaterSamplingConfigRequest request) =>
+        UpdateWaterSamplingConfigurationAsync(0, id, request);
+
+    public async Task<object> DeleteWaterSamplingConfigurationAsync(int currentUserId, int id)
     {
         var entity = await _db.SamplingConfigurations.FirstOrDefaultAsync(c => c.Id == id)
             ?? throw new NotFoundException($"Water sampling configuration {id} not found.");
+
+        await TestCodeOwnership.EnsureCanEditAsync(_db, _scope, currentUserId, entity.TestCode, "Water sampling configuration");
+
         _db.SamplingConfigurations.Remove(entity);
         await _db.SaveChangesAsync();
         return new { };
     }
+
+    public Task<object> DeleteWaterSamplingConfigurationAsync(int id) =>
+        DeleteWaterSamplingConfigurationAsync(0, id);
 }

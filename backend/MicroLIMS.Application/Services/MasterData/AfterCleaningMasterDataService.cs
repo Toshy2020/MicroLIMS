@@ -16,10 +16,12 @@ namespace MicroLIMS.Application.Services.MasterData;
 public class AfterCleaningMasterDataService
 {
     private readonly IMicroLimsDbContext _db;
+    private readonly IUserSectionScopeService _scope;
 
-    public AfterCleaningMasterDataService(IMicroLimsDbContext db)
+    public AfterCleaningMasterDataService(IMicroLimsDbContext db, IUserSectionScopeService? scope = null)
     {
         _db = db;
+        _scope = scope ?? new UserSectionScopeService(db);
     }
 
     public async Task<object> GetMachinesAsync()
@@ -124,13 +126,18 @@ public class AfterCleaningMasterDataService
             throw new InvalidOperationException($"{testCode} ({testType}) is already configured for this part.");
     }
 
-    public async Task<MachinePartConfigurationResponse> CreateMachinePartConfigurationAsync(CreateMachinePartConfigRequest request)
+    public async Task<MachinePartConfigurationResponse> CreateMachinePartConfigurationAsync(int currentUserId, CreateMachinePartConfigRequest request)
     {
+        await TestCodeOwnership.EnsureCanEditAsync(_db, _scope, currentUserId, request.TestCode, "Machine part configuration");
         await EnsureNotDuplicateAsync(request.MachinePartId, request.TestType, request.TestCode, null);
         var entity = new MachinePartConfiguration
         {
-            MachinePartId = request.MachinePartId, TestType = request.TestType, TestCode = request.TestCode,
-            AlertLimit = request.AlertLimit, ActionLimit = request.ActionLimit, SpecLimit = request.SpecLimit,
+            MachinePartId = request.MachinePartId,
+            TestType = request.TestType,
+            TestCode = request.TestCode,
+            AlertLimit = request.AlertLimit,
+            ActionLimit = request.ActionLimit,
+            SpecLimit = request.SpecLimit,
             IsPathogenTest = request.IsPathogenTest,
             Unit = request.Unit ?? string.Empty
         };
@@ -139,11 +146,17 @@ public class AfterCleaningMasterDataService
         return MachinePartConfigurationResponse.From(entity);
     }
 
-    public async Task<MachinePartConfigurationResponse> UpdateMachinePartConfigurationAsync(int id, UpdateMachinePartConfigRequest request)
+    public Task<MachinePartConfigurationResponse> CreateMachinePartConfigurationAsync(CreateMachinePartConfigRequest request) =>
+        CreateMachinePartConfigurationAsync(0, request);
+
+    public async Task<MachinePartConfigurationResponse> UpdateMachinePartConfigurationAsync(int currentUserId, int id, UpdateMachinePartConfigRequest request)
     {
         var entity = await _db.MachinePartConfigurations.FirstOrDefaultAsync(c => c.Id == id)
             ?? throw new NotFoundException($"Machine part configuration {id} not found.");
         RecordVersion.EnsureCurrent(_db, entity);
+
+        await TestCodeOwnership.EnsureCanEditAsync(_db, _scope, currentUserId, new[] { entity.TestCode, request.TestCode }, "Machine part configuration");
+
         if (request.IsActive.HasValue) entity.IsActive = request.IsActive.Value;
         await EnsureNotDuplicateAsync(entity.MachinePartId, request.TestType, request.TestCode, entity.Id);
         entity.TestType = request.TestType;
@@ -157,13 +170,19 @@ public class AfterCleaningMasterDataService
         return MachinePartConfigurationResponse.From(entity);
     }
 
+    public Task<MachinePartConfigurationResponse> UpdateMachinePartConfigurationAsync(int id, UpdateMachinePartConfigRequest request) =>
+        UpdateMachinePartConfigurationAsync(0, id, request);
+
     // TestOrder.TestCode is a copied string, but SampleLocation keeps a
     // restricted FK to this row - refuse with a clear message rather than
     // a raw FK error once samples have used it.
-    public async Task<object> DeleteMachinePartConfigurationAsync(int id)
+    public async Task<object> DeleteMachinePartConfigurationAsync(int currentUserId, int id)
     {
         var entity = await _db.MachinePartConfigurations.FirstOrDefaultAsync(c => c.Id == id)
             ?? throw new NotFoundException($"Machine part configuration {id} not found.");
+
+        await TestCodeOwnership.EnsureCanEditAsync(_db, _scope, currentUserId, entity.TestCode, "Machine part configuration");
+
         var usedBy = await _db.SampleLocations.CountAsync(l => l.MachinePartConfigurationId == id);
         if (usedBy > 0)
             throw new InvalidOperationException(
@@ -172,4 +191,7 @@ public class AfterCleaningMasterDataService
         await _db.SaveChangesAsync();
         return new { };
     }
+
+    public Task<object> DeleteMachinePartConfigurationAsync(int id) =>
+        DeleteMachinePartConfigurationAsync(0, id);
 }

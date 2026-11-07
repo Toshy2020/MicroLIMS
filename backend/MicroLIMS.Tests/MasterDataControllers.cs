@@ -1,4 +1,5 @@
 using MicroLIMS.API.Controllers;
+using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Application.Services;
 using MicroLIMS.Application.Services.MasterData;
@@ -24,6 +25,14 @@ public sealed class MasterDataControllers
     public TestWorkflowStepMasterDataController TestWorkflowStep { get; }
     public TestStageReplicateMasterDataController TestStageReplicate { get; }
 
+    private sealed class SimpleServiceProvider(MicroLimsDbContext db, IUserSectionScopeService scope) : IServiceProvider
+    {
+        public object? GetService(Type serviceType) =>
+            serviceType == typeof(IMicroLimsDbContext) || serviceType == typeof(MicroLimsDbContext) ? db
+            : serviceType == typeof(IUserSectionScopeService) ? scope
+            : null;
+    }
+
     // Same arguments the single MasterDataController used to take.
     public MasterDataControllers(
         MicroLimsDbContext db,
@@ -34,15 +43,15 @@ public sealed class MasterDataControllers
         ChromatographyColumnService columnService,
         SpecificationService? specificationService = null)
     {
-        Water = new(new WaterMasterDataService(db));
+        Water = new(new WaterMasterDataService(db, scope));
         EnvironmentalMonitoring = new(new EnvironmentalMonitoringMasterDataService(db));
-        AfterCleaning = new(new AfterCleaningMasterDataService(db));
+        AfterCleaning = new(new AfterCleaningMasterDataService(db, scope));
         Specification = new(new SpecificationMasterDataService(db, scope, specificationService));
         ReferenceList = new(new ReferenceListMasterDataService(db));
         Equipment = new(new EquipmentMasterDataService(db, scope), configService, scope, columnService);
         Media = new(new MediaMasterDataService(db), mediaProductService, mediaIncubationConditionService);
         Organism = new(new OrganismMasterDataService(db));
-        TestDefinition = new(TestServiceFactory.TestDefinitionMaster(db, scope));
+        TestDefinition = new(TestServiceFactory.TestDefinitionMaster(db, scope), new SimpleServiceProvider(db, scope), scope);
         TestWorkflowStep = new(new TestWorkflowStepMasterDataService(db));
         TestStageReplicate = new(new TestStageReplicateMasterDataService(db, scope));
     }

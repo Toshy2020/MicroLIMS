@@ -576,6 +576,7 @@ SystemController.ReportClientError(ClientErrorReportRequest, CancellationToken):
 SystemStatusController.Get(CancellationToken): anonymous
 TestDefinitionMasterDataController.CreateTestDefinition(CreateTestDefinitionRequest): SystemAdministrator,SectionHead
 TestDefinitionMasterDataController.FreezeTestDefinition(Int32): SystemAdministrator,SectionHead
+TestDefinitionMasterDataController.GetEditableCodes(): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
 TestDefinitionMasterDataController.GetEquationTypes(): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
 TestDefinitionMasterDataController.GetTestDefinitions(): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
 TestDefinitionMasterDataController.UnfreezeTestDefinition(Int32): SystemAdministrator,SectionHead

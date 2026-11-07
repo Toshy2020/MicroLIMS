@@ -8,12 +8,14 @@ import {
   frequencyLabel,
   frequencyRule,
   LimitFields,
+  LimitPills,
   LimitValues,
   PanelSection,
   SidePanel,
   emptyLimits
 } from "../../../../components/configHierarchy";
 import { TestCodePickerMulti } from "../../../../components/TestCodePickerMulti";
+import { useTestDefinitions } from "../../../../hooks/useTestDefinitions";
 import { WaterConfigService } from "../services/WaterConfigService";
 import { SamplingConfig, SamplingPoint, WaterDept } from "../waterConfigTypes";
 
@@ -27,6 +29,7 @@ interface Props {
   isCountTest: (code: string) => boolean;
   onClose: () => void;
   onSaved: (message: string) => void;
+  editableCodes?: Set<string>;
 }
 
 const sameLimits = (a: LimitValues, c: SamplingConfig) =>
@@ -38,7 +41,8 @@ const hasAny = (v: LimitValues) => [v.alertLimit, v.actionLimit, v.specLimit].so
 // One panel for a sample location: its details, its assigned tests, and
 // the limits of each assigned count test (one row per test, created on
 // save) - so a location can be fully configured in one place.
-export function WaterLocationPanel({ open, point, defaultDepartmentId, departments, configs, isCountTest, onClose, onSaved }: Props) {
+export function WaterLocationPanel({ open, point, defaultDepartmentId, departments, configs, isCountTest, onClose, onSaved, editableCodes }: Props) {
+  const { options } = useTestDefinitions();
   const [code, setCode] = useState("");
   const [location, setLocation] = useState("");
   const [frequency, setFrequency] = useState<FrequencyValue>(emptyFrequency);
@@ -71,6 +75,8 @@ export function WaterLocationPanel({ open, point, defaultDepartmentId, departmen
 
   const countCodes = useMemo(() => testCodes.filter(isCountTest), [testCodes, isCountTest]);
 
+  const labName = (testCode: string) => options.find((o) => o.code === testCode)?.section?.name || "Other laboratory";
+
   const save = async () => {
     if (!code.trim() || departmentId === "") {
       setError("Point code and water system are required.");
@@ -101,6 +107,8 @@ export function WaterLocationPanel({ open, point, defaultDepartmentId, departmen
 
     const failed: string[] = [];
     for (const testCode of countCodes) {
+      // Do not touch locked tests that the user cannot edit
+      if (editableCodes !== undefined && !editableCodes.has(testCode)) continue;
       const value = limits[testCode] ?? emptyLimits;
       const existing = configs.find((c) => c.testCode === testCode);
       try {
@@ -163,7 +171,12 @@ export function WaterLocationPanel({ open, point, defaultDepartmentId, departmen
       </PanelSection>
 
       <PanelSection title="2 · Assigned tests" hint="Every test here is ordered when a sample from this location is received.">
-        <TestCodePickerMulti value={testCodes} onChange={setTestCodes} label="Assigned tests" />
+        <TestCodePickerMulti
+          value={testCodes}
+          onChange={setTestCodes}
+          label="Assigned tests"
+          editableCodes={editableCodes ?? new Set<string>()}
+        />
       </PanelSection>
 
       <PanelSection title="3 · Limits for count tests" hint="One row per assigned count test. Presence/absence tests need no limits.">
@@ -171,17 +184,30 @@ export function WaterLocationPanel({ open, point, defaultDepartmentId, departmen
           <Typography sx={{ fontSize: 13, color: "text.secondary" }}>Assign a count test (e.g. TAMC-Water) to set limits.</Typography>
         ) : (
           <Stack spacing={2}>
-            {countCodes.map((testCode) => (
-              <Stack key={testCode} spacing={1} sx={{ p: 1.5, border: "1px solid", borderColor: "divider", borderRadius: 1.5 }}>
-                <Typography sx={{ fontSize: 14, fontWeight: 600 }}>{testCode}</Typography>
-                <LimitFields
-                  idPrefix={`water-limit-${testCode}`}
-                  value={limits[testCode] ?? emptyLimits}
-                  onChange={(v) => setLimits((prev) => ({ ...prev, [testCode]: v }))}
-                  unitPlaceholder="e.g. CFU/mL"
-                />
-              </Stack>
-            ))}
+            {countCodes.map((testCode) => {
+              const isEditable = editableCodes !== undefined && editableCodes.has(testCode);
+              return isEditable ? (
+                <Stack key={testCode} spacing={1} sx={{ p: 1.5, border: "1px solid", borderColor: "divider", borderRadius: 1.5 }}>
+                  <Typography sx={{ fontSize: 14, fontWeight: 600 }}>{testCode}</Typography>
+                  <LimitFields
+                    idPrefix={`water-limit-${testCode}`}
+                    value={limits[testCode] ?? emptyLimits}
+                    onChange={(v) => setLimits((prev) => ({ ...prev, [testCode]: v }))}
+                    unitPlaceholder="e.g. CFU/mL"
+                  />
+                </Stack>
+              ) : (
+                <Stack key={testCode} spacing={1} sx={{ p: 1.5, border: "1px solid", borderColor: "divider", borderRadius: 1.5, bgcolor: "action.hover" }}>
+                  <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "center" }}>
+                    <Typography sx={{ fontSize: 14, fontWeight: 600 }}>{testCode}</Typography>
+                    <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
+                      {labName(testCode)} · Read-only
+                    </Typography>
+                  </Stack>
+                  <LimitPills {...(limits[testCode] ?? emptyLimits)} />
+                </Stack>
+              );
+            })}
           </Stack>
         )}
       </PanelSection>

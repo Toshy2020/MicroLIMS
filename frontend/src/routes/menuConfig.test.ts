@@ -133,6 +133,39 @@ describe("menuConfig area filtering", () => {
     expect(rmpmTestMasterTrail?.item.label).toBe("RM & PM Test Master");
     expect(rmpmTestMasterTrail?.exact).toBe(true);
   });
+
+  it("places Water and After Cleaning in General Laboratory Configuration and removes them from Microbiology Configuration", () => {
+    const groups = getGroupedMenu({
+      role: "SectionHead",
+      permissions: allPermissions,
+      labCodes: ["MICRO", "FP"],
+      physchemAreas: ["fp", "rmpm"]
+    });
+
+    const labGroup = groups.find((g) => g.groupName === "LABORATORIES");
+    const microConfig = labGroup?.items.find((i) => i.path === "/sections/microbiology-configuration");
+    expect(microConfig).toBeDefined();
+
+    const microWater = microConfig?.children?.find((c) => c.path === "/laboratory-configuration/water");
+    const microAc = microConfig?.children?.find((c) => c.path === "/laboratory-configuration/after-cleaning");
+    expect(microWater).toBeUndefined();
+    expect(microAc).toBeUndefined();
+
+    const generalConfigGroup = groups.find((g) => g.groupName === "GENERAL LABORATORY CONFIGURATION");
+    expect(generalConfigGroup).toBeDefined();
+
+    const water = generalConfigGroup?.items.find((i) => i.path === "/laboratory-configuration/water");
+    expect(water).toBeDefined();
+    expect(water?.label).toBe("Water");
+    expect(water?.description).toBe("Water systems, sampling points and each lab's tests and limits.");
+    expect(water?.permission).toBe(PERMISSIONS.MASTER_DATA_MANAGE);
+
+    const afterCleaning = generalConfigGroup?.items.find((i) => i.path === "/laboratory-configuration/after-cleaning");
+    expect(afterCleaning).toBeDefined();
+    expect(afterCleaning?.label).toBe("After Cleaning");
+    expect(afterCleaning?.description).toBe("Machines, parts and each lab's after-cleaning tests and limits.");
+    expect(afterCleaning?.permission).toBe(PERMISSIONS.MASTER_DATA_MANAGE);
+  });
 });
 
 describe("Items menu entry", () => {

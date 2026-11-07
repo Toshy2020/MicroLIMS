@@ -1,4 +1,4 @@
-import { Autocomplete, TextField, Chip, createFilterOptions } from "@mui/material";
+import { Autocomplete, TextField, Chip, createFilterOptions, Tooltip } from "@mui/material";
 import { useTestDefinitions, TestDefinitionOption } from "../hooks/useTestDefinitions";
 
 interface TestCodePickerMultiProps {
@@ -6,6 +6,7 @@ interface TestCodePickerMultiProps {
   onChange: (codes: string[]) => void;
   label?: string;
   sx?: any;
+  editableCodes?: Set<string>;
 }
 
 type Option = TestDefinitionOption | { inputValue: string; isNew: true };
@@ -16,18 +17,23 @@ const filter = createFilterOptions<Option>();
 // several tests at once (an Item's AssignedTests, a WaterSamplingPoint's
 // AssignedTestCodes). Same Test Master source, same inline "add new"
 // support.
-export function TestCodePickerMulti({ value, onChange, label = "Assigned Tests", sx }: TestCodePickerMultiProps) {
+export function TestCodePickerMulti({ value, onChange, label = "Assigned Tests", sx, editableCodes }: TestCodePickerMultiProps) {
   const { options, activeOptions, addNew } = useTestDefinitions();
   // Looked up against the full list (not just activeOptions) so tests
   // already assigned before being frozen still render as tags.
   const selected = options.filter((o) => value.includes(o.code));
+
+  // If editableCodes is passed, only offer options inside the set.
+  const availableOptions = editableCodes
+    ? activeOptions.filter((o) => editableCodes.has(o.code))
+    : activeOptions;
 
   return (
     <Autocomplete<Option, true, false, false>
       multiple
       size="small"
       sx={sx}
-      options={activeOptions}
+      options={availableOptions}
       value={selected}
       getOptionLabel={(o) => (typeof o === "string" ? o : "inputValue" in o ? o.inputValue : `${o.code}: ${o.displayName}`)}
       filterOptions={(opts, params) => {
@@ -35,7 +41,7 @@ export function TestCodePickerMulti({ value, onChange, label = "Assigned Tests",
         // Checked against the full Test Master so a frozen-but-existing
         // code doesn't show a misleading "Add ... to Test Master".
         const exists = options.some((o) => o.code.toLowerCase() === params.inputValue.toLowerCase());
-        if (params.inputValue !== "" && !exists) {
+        if (!editableCodes && params.inputValue !== "" && !exists) {
           filtered.push({ inputValue: params.inputValue, isNew: true });
         }
         return filtered;
@@ -51,6 +57,14 @@ export function TestCodePickerMulti({ value, onChange, label = "Assigned Tests",
             codes.push(item.code);
           }
         }
+        // Preserve locked codes from other labs that cannot be removed
+        if (editableCodes) {
+          for (const code of value) {
+            if (!editableCodes.has(code) && !codes.includes(code)) {
+              codes.push(code);
+            }
+          }
+        }
         onChange(codes);
       }}
       renderOption={(props, option) => (
@@ -59,9 +73,22 @@ export function TestCodePickerMulti({ value, onChange, label = "Assigned Tests",
         </li>
       )}
       renderValue={(tagValue, getItemProps) =>
-        tagValue.map((option, index) =>
-          "code" in option ? <Chip label={option.code} size="small" {...getItemProps({ index })} key={option.code} /> : null
-        )
+        tagValue.map((option, index) => {
+          if (!("code" in option)) return null;
+          const isLocked = editableCodes ? !editableCodes.has(option.code) : false;
+          if (isLocked) {
+            const { onDelete, ...chipProps } = getItemProps({ index });
+            const sectionName = option.section?.name || "Owned by another laboratory";
+            return (
+              <Tooltip title={sectionName} key={option.code}>
+                <span>
+                  <Chip label={option.code} size="small" {...chipProps} />
+                </span>
+              </Tooltip>
+            );
+          }
+          return <Chip label={option.code} size="small" {...getItemProps({ index })} key={option.code} />;
+        })
       }
       renderInput={(params) => <TextField {...params} label={label} placeholder="e.g. TAMC, PATHOGEN_ECOLI" />}
     />

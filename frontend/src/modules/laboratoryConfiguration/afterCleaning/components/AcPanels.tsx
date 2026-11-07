@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { MenuItem, Stack, TextField, Typography } from "@mui/material";
 import { LimitFields, LimitValues, PanelSection, SidePanel, emptyLimits } from "../../../../components/configHierarchy";
 import { TestCodePicker } from "../../../../components/TestCodePicker";
+import { useEditableTestCodes } from "../../../../hooks/useEditableTestCodes";
 import { AfterCleaningConfigService } from "../services/AfterCleaningConfigService";
 import { AC_COUNT_TYPES, Machine, MachinePart, PATHOGEN_TEST_TYPE, PartConfig } from "../acConfigTypes";
 import { PathogenPicker } from "./PathogenPicker";
@@ -129,10 +130,14 @@ interface CountProps {
   config: PartConfig | null;
   onClose: () => void;
   onSaved: (message: string) => void;
+  editableCodes?: Set<string>;
 }
 
 // A swab or rinse count test for a part, with its limits.
-export function AcCountTestPanel({ open, part, config, onClose, onSaved }: CountProps) {
+export function AcCountTestPanel({ open, part, config, onClose, onSaved, editableCodes }: CountProps) {
+  const { editableCodes: hookEditable } = useEditableTestCodes();
+  const effectiveEditable = editableCodes !== undefined ? editableCodes : hookEditable;
+
   const [testType, setTestType] = useState(AC_COUNT_TYPES[0].value);
   const [testCode, setTestCode] = useState("");
   const [limits, setLimits] = useState<LimitValues>(emptyLimits);
@@ -191,7 +196,7 @@ export function AcCountTestPanel({ open, part, config, onClose, onSaved }: Count
             </MenuItem>
           ))}
         </TextField>
-        <TestCodePicker value={testCode} onChange={setTestCode} label="Test" />
+        <TestCodePicker value={testCode} onChange={setTestCode} label="Test" editableCodes={effectiveEditable ?? new Set<string>()} />
       </PanelSection>
       <PanelSection title="2 · Limits" hint={`Results for ${testType.toLowerCase()} samples are reported in ${unitHint}.`}>
         <LimitFields idPrefix="ac-limit" value={limits} onChange={setLimits} unitPlaceholder={unitHint} />
@@ -207,12 +212,16 @@ interface PathogenProps {
   configs: PartConfig[];
   onClose: () => void;
   onSaved: (message: string) => void;
+  editableCodes?: Set<string>;
 }
 
 // Every pathogen test for a part in one place: pick any number of
 // pathogens; saving adds the new ones and removes the unticked ones
 // (each is its own configuration row, so each gets its own TestOrder).
-export function AcPathogenPanel({ open, part, configs, onClose, onSaved }: PathogenProps) {
+export function AcPathogenPanel({ open, part, configs, onClose, onSaved, editableCodes }: PathogenProps) {
+  const { editableCodes: hookEditable } = useEditableTestCodes();
+  const effectiveEditable = editableCodes !== undefined ? editableCodes : hookEditable;
+
   const [codes, setCodes] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -232,13 +241,15 @@ export function AcPathogenPanel({ open, part, configs, onClose, onSaved }: Patho
     setError(null);
     const failed: string[] = [];
     for (const code of added) {
+      if (effectiveEditable !== undefined && !effectiveEditable.has(code)) continue;
       try {
         await AfterCleaningConfigService.createPartConfiguration(part.id, PATHOGEN_TEST_TYPE, code, "", "", "", true, "");
       } catch (e) {
         failed.push(`${code}: ${errorText(e, "could not be added")}`);
       }
     }
-    for (const c of removed) {
+    const safeRemoved = removed.filter((c) => effectiveEditable === undefined || effectiveEditable.has(c.testCode));
+    for (const c of safeRemoved) {
       try {
         await AfterCleaningConfigService.deletePartConfiguration(c.id);
       } catch (e) {
@@ -268,7 +279,7 @@ export function AcPathogenPanel({ open, part, configs, onClose, onSaved }: Patho
         title="Pathogens tested on this part"
         hint="Choose as many as needed. Each is a presence/absence test with its own test order - no numeric limits."
       >
-        <PathogenPicker value={codes} onChange={setCodes} />
+        <PathogenPicker value={codes} onChange={setCodes} editableCodes={effectiveEditable ?? new Set<string>()} />
         {(added.length > 0 || removed.length > 0) && (
           <Typography sx={{ fontSize: 13, color: "text.secondary" }}>
             {[added.length > 0 && `${added.length} to add`, removed.length > 0 && `${removed.length} to remove`].filter(Boolean).join(", ")}.

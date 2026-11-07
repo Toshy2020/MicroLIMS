@@ -55,7 +55,9 @@ export function WaterLocationList({ points, configsByPoint, healthByPoint, isCou
         const configs = configsByPoint[p.id] ?? [];
         const isOpen = expanded.has(p.id);
         const countCodes = countTestsOf(p, isCountTest);
-        const otherCodes = (p.assignedTestCodes ?? []).filter((c) => !isCountTest(c));
+        const assignedCodes = p.assignedTestCodes ?? [];
+        const isObservation = (code: string) => options.find((o) => o.code === code)?.workflowType === "Observation";
+        const observationCodes = assignedCodes.filter(isObservation);
 
         const isLockedCode = (code: string) => editableCodes === undefined || !editableCodes.has(code);
         const hasLockedCodes = (p.assignedTestCodes ?? []).some(isLockedCode);
@@ -131,15 +133,15 @@ export function WaterLocationList({ points, configsByPoint, healthByPoint, isCou
             {isOpen && (
               <Box sx={{ px: 2, py: 1.75, borderTop: "1px solid", borderColor: "divider", bgcolor: "background.default" }}>
                 <Typography sx={{ fontSize: 12, fontWeight: 600, letterSpacing: "0.04em", textTransform: "uppercase", color: "text.secondary", mb: 1 }}>
-                  Count-test limits
+                  Limits
                 </Typography>
-                {countCodes.length === 0 ? (
+                {assignedCodes.length === 0 ? (
                   <Typography sx={{ fontSize: 13, color: "text.secondary" }}>
-                    No count tests assigned (e.g. TAMC-Water) - limits apply only to count tests.
+                    No tests assigned.
                   </Typography>
                 ) : (
                   <Stack spacing={1}>
-                    {countCodes.map((code) => {
+                    {assignedCodes.map((code) => {
                       const c = configs.find((x) => x.testCode === code);
                       const isEditable = editableCodes !== undefined && editableCodes.has(code);
                       return (
@@ -162,9 +164,9 @@ export function WaterLocationList({ points, configsByPoint, healthByPoint, isCou
                     })}
                   </Stack>
                 )}
-                {otherCodes.length > 0 && (
+                {observationCodes.length > 0 && (
                   <Typography sx={{ fontSize: 12, color: "text.secondary", mt: 1 }}>
-                    {otherCodes.join(", ")} {otherCodes.length === 1 ? "is a presence/absence test" : "are presence/absence tests"} - no numeric limits needed.
+                    {observationCodes.join(", ")} {observationCodes.length === 1 ? "is a presence/absence test" : "are presence/absence tests"} - no numeric limits needed.
                   </Typography>
                 )}
               </Box>

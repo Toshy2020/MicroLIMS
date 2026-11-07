@@ -26,6 +26,12 @@ export interface SamplingConfig {
   actionLimit: string;
   specLimit: string;
   unit: string;
+  limitType?: "Range" | "NotMoreThan" | "NotLessThan" | "Qualitative" | null;
+  lowerLimit?: number | null;
+  upperLimit?: number | null;
+  lowerInclusive?: boolean;
+  upperInclusive?: boolean;
+  expectedResultText?: string | null;
 }
 
 // Only count tests (e.g. TAMC-Water) carry Alert/Action/Spec limits;

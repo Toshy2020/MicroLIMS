@@ -13,10 +13,10 @@ public static class TestCodeOwnership
         int userId,
         CancellationToken ct = default)
     {
-        var scopeIds = await scope.GetAccessibleSectionIdsAsync(userId, ct);
+        var scopeIds = await scope.GetConfigurableSectionIdsAsync(userId, ct);
         if (scopeIds is null) return null; // System Administrator - unrestricted
 
-        var userAreas = await scope.GetPhyschemAreasAsync(userId, ct);
+        var userAreas = await scope.GetPhyschemAreasAsync(userId, ct, SectionAccess.Configure);
 
         var tests = await db.TestDefinitions
             .AsNoTracking()
@@ -66,10 +66,10 @@ public static class TestCodeOwnership
         var codeList = codes?.Where(c => !string.IsNullOrWhiteSpace(c)).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
         if (codeList is null || codeList.Count == 0) return;
 
-        var scopeIds = await scope.GetAccessibleSectionIdsAsync(userId, ct);
+        var scopeIds = await scope.GetConfigurableSectionIdsAsync(userId, ct);
         if (scopeIds is null) return; // System Administrator - unrestricted
 
-        var userAreas = await scope.GetPhyschemAreasAsync(userId, ct);
+        var userAreas = await scope.GetPhyschemAreasAsync(userId, ct, SectionAccess.Configure);
 
         var testDefs = await db.TestDefinitions
             .AsNoTracking()

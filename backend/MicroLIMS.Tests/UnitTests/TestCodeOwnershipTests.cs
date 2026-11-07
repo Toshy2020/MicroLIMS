@@ -127,25 +127,28 @@ public class TestCodeOwnershipTests
     // ---- Task 1: TestCodeOwnership helper (direct) ----
 
     [Fact]
-    public async Task GetEditableCodesAsync_Admin_ReturnsNull()
+    // Same rule as SpecificationOwnership: master data follows lab membership,
+    // so an administrator with no section membership edits nothing.
+    public async Task GetEditableCodesAsync_Admin_NoMembership_ReturnsEmpty()
     {
         await using var db = NewDb();
         var f = Seed(db);
         var scope = new UserSectionScopeService(db);
 
         var result = await TestCodeOwnership.GetEditableCodesAsync(db, scope, f.Admin.Id);
-        Assert.Null(result);
+        Assert.NotNull(result);
+        Assert.Empty(result!);
     }
 
     [Fact]
-    public async Task EnsureCanEditAsync_Admin_AnyRow_Succeeds()
+    public async Task EnsureCanEditAsync_Admin_NoMembership_IsRefused()
     {
         await using var db = NewDb();
         var f = Seed(db);
         var scope = new UserSectionScopeService(db);
 
-        await TestCodeOwnership.EnsureCanEditAsync(db, scope, f.Admin.Id, new[] { "TAMC", "ASSAY_FP", "ASSAY_RM", "ASSAY_BOTH" }, "Test");
-        // no exception - passed
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
+            TestCodeOwnership.EnsureCanEditAsync(db, scope, f.Admin.Id, new[] { "TAMC", "ASSAY_FP" }, "Test"));
     }
 
     [Fact]
@@ -351,7 +354,7 @@ public class TestCodeOwnershipTests
     }
 
     [Fact]
-    public async Task WaterSamplingPoint_Delete_Admin_Succeeds()
+    public async Task WaterSamplingPoint_Delete_Admin_NoMembership_IsRefused()
     {
         await using var db = NewDb();
         var f = Seed(db);
@@ -361,9 +364,8 @@ public class TestCodeOwnershipTests
 
         var controller = BuildController(db, f.Admin);
 
-        var result = await controller.Water.DeleteWaterSamplingPoint(point.Id);
-        Assert.IsType<OkObjectResult>(result);
-        Assert.Null(await db.WaterSamplingPoints.FindAsync(point.Id));
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => controller.Water.DeleteWaterSamplingPoint(point.Id));
+        Assert.NotNull(await db.WaterSamplingPoints.FindAsync(point.Id));
     }
 
     [Fact]
@@ -441,15 +443,10 @@ public class TestCodeOwnershipTests
         await using var db = NewDb();
         var f = Seed(db);
 
-        // Admin sees all active codes
+        // Admin with no section membership can edit none
         var adminController = BuildController(db, f.Admin);
         var adminRes = Assert.IsType<OkObjectResult>(await adminController.TestDefinition.GetEditableCodes());
-        var adminCodes = Assert.IsType<string[]>(Assert.IsType<ApiResponse<object>>(adminRes.Value).Data);
-        Assert.Contains("TAMC", adminCodes);
-        Assert.Contains("ASSAY_FP", adminCodes);
-        Assert.Contains("ASSAY_RM", adminCodes);
-        Assert.Contains("ASSAY_BOTH", adminCodes);
-        Assert.DoesNotContain("TAMC_FROZEN", adminCodes); // frozen is inactive
+        Assert.Empty(Assert.IsType<string[]>(Assert.IsType<ApiResponse<object>>(adminRes.Value).Data));
 
         // MicroHead sees only Micro codes
         var microController = BuildController(db, f.MicroHead);

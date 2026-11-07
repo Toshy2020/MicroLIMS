@@ -261,6 +261,10 @@ public class PerLabReceivingWaterAndACTests
             acEngine.PrepareAsync(microSample.Id, new List<int> { fpConfig.Id }, seed.MicroUser.Id));
         Assert.Equal("Part test TOC belongs to another laboratory.", exA.Message);
 
+        var fpItem = new Item { Name = "Product B", Code = "PRD-B", Category = SampleCategory.FinishedProduct, IsActive = true };
+        db.Items.Add(fpItem);
+        await db.SaveChangesAsync();
+
         // Case B: Sample received into FP lab, but prepared with Micro config
         var fpSample = await acEngine.ReceiveAsync(new AfterCleaningReceiveRequest(
             MachineId: seed.TestMachine.Id,
@@ -270,7 +274,9 @@ public class PerLabReceivingWaterAndACTests
             ReceivedByUserId: seed.FpFpUser.Id,
             PreviousProductName: "Product B",
             PreviousProductBatchNumber: "BATCH-B",
-            LabSectionId: seed.Fp.Id));
+            LabSectionId: seed.Fp.Id,
+            PreviousProductItemId: fpItem.Id,
+            Techniques: new() { "UV" }));
 
         var exB = await Assert.ThrowsAsync<InvalidOperationException>(() =>
             acEngine.PrepareAsync(fpSample.Id, new List<int> { microConfig.Id }, seed.FpFpUser.Id));

@@ -89,6 +89,8 @@ public class SampleDto
     // After Cleaning Previous Product Traceability (historical free text)
     public string? PreviousProductName { get; set; }
     public string? PreviousProductBatchNumber { get; set; }
+    public int? PreviousProductItemId { get; set; }
+    public string[]? CleaningTechniques { get; set; }
 
     // Retest spin-off linkage (for nested sub-row rendering in register)
     public int? OriginSampleId { get; set; }

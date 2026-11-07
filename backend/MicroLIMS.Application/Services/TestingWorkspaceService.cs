@@ -651,6 +651,10 @@ public class TestingWorkspaceService : ITestWorkspaceService
             AssignedTests = assignedTests,
             PreviousProductName = s.Category == SampleCategory.AfterCleaning ? s.PreviousProductName : null,
             PreviousProductBatchNumber = s.Category == SampleCategory.AfterCleaning ? (s.PreviousProductBatchNumber ?? s.BatchNumber) : null,
+            PreviousProductItemId = s.Category == SampleCategory.AfterCleaning ? s.PreviousProductItemId : null,
+            CleaningTechniques = s.Category == SampleCategory.AfterCleaning && !string.IsNullOrWhiteSpace(s.CleaningTechniques)
+                ? s.CleaningTechniques.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                : null,
             OriginSampleId = s.OriginSampleId,
             OriginReferenceNumber = s.OriginSample?.ReferenceNumber,
             OosGroupCode = s.OosGroupCode,

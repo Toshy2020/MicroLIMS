@@ -9116,6 +9116,10 @@ namespace MicroLIMS.Persistence.Migrations
                     b.Property<string>("CertificateRemarks")
                         .HasColumnType("text");
 
+                    b.Property<string>("CleaningTechniques")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
                     b.Property<string>("ControlNumber")
                         .IsRequired()
                         .HasMaxLength(50)
@@ -9160,6 +9164,9 @@ namespace MicroLIMS.Persistence.Migrations
                     b.Property<string>("PreviousProductBatchNumber")
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
+
+                    b.Property<int?>("PreviousProductItemId")
+                        .HasColumnType("integer");
 
                     b.Property<string>("PreviousProductName")
                         .HasMaxLength(200)
@@ -9252,6 +9259,8 @@ namespace MicroLIMS.Persistence.Migrations
                     b.HasIndex("OosGroupCode");
 
                     b.HasIndex("OriginSampleId");
+
+                    b.HasIndex("PreviousProductItemId");
 
                     b.HasIndex("ProductionStageId");
 
@@ -14936,6 +14945,11 @@ namespace MicroLIMS.Persistence.Migrations
                         .HasForeignKey("OriginSampleId")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.HasOne("MicroLIMS.Domain.Entities.Item", "PreviousProductItem")
+                        .WithMany()
+                        .HasForeignKey("PreviousProductItemId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("MicroLIMS.Domain.Entities.ProductionStage", "ProductionStageRef")
                         .WithMany()
                         .HasForeignKey("ProductionStageId")
@@ -14978,6 +14992,8 @@ namespace MicroLIMS.Persistence.Migrations
                     b.Navigation("Machine");
 
                     b.Navigation("OriginSample");
+
+                    b.Navigation("PreviousProductItem");
 
                     b.Navigation("ProductionStageRef");
 

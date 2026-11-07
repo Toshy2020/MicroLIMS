@@ -16,10 +16,12 @@ public record AfterCleaningReceiveRequest(
     string SampledBy,
     string ControlNumber,
     int ReceivedByUserId,
-    string PreviousProductName,
-    string PreviousProductBatchNumber,
+    string? PreviousProductName = null,
+    string? PreviousProductBatchNumber = null,
     DateTime? SampledAt = null,
-    int? LabSectionId = null
+    int? LabSectionId = null,
+    int? PreviousProductItemId = null,
+    List<string>? Techniques = null
 );
 
 public interface IAfterCleaningWorkflowEngine : IStatefulWorkflowEngine
@@ -55,11 +57,6 @@ public class AfterCleaningWorkflowEngine : IAfterCleaningWorkflowEngine
         if (!machine.IsActive)
             throw new InvalidOperationException($"Machine '{machine.Name}' is inactive and cannot receive samples.");
 
-        if (string.IsNullOrWhiteSpace(request.PreviousProductName))
-        {
-            throw new InvalidOperationException("Previous Product is required for After Cleaning receiving.");
-        }
-
         if (string.IsNullOrWhiteSpace(request.PreviousProductBatchNumber))
         {
             throw new InvalidOperationException("Previous Product Batch Number is required for After Cleaning receiving.");
@@ -79,9 +76,10 @@ public class AfterCleaningWorkflowEngine : IAfterCleaningWorkflowEngine
                     .FirstOrDefaultAsync();
         }
 
+        string? sectionCode = null;
         if (labSectionId.HasValue)
         {
-            var sectionCode = await _db.DocumentSections
+            sectionCode = await _db.DocumentSections
                 .Where(s => s.Id == labSectionId.Value)
                 .Select(s => s.Code)
                 .FirstOrDefaultAsync();
@@ -99,6 +97,50 @@ public class AfterCleaningWorkflowEngine : IAfterCleaningWorkflowEngine
             }
         }
 
+        bool isPhyschem = string.Equals(sectionCode, PhyschemAreas.SectionCode, StringComparison.OrdinalIgnoreCase);
+
+        int? previousProductItemId = null;
+        string? previousProductName = null;
+        string? cleaningTechniques = null;
+
+        if (request.PreviousProductItemId.HasValue)
+        {
+            var item = await _db.Items.FirstOrDefaultAsync(i => i.Id == request.PreviousProductItemId.Value)
+                ?? throw new InvalidOperationException($"Item {request.PreviousProductItemId.Value} not found.");
+            if (!item.IsActive)
+                throw new InvalidOperationException($"Item '{item.Name}' is inactive and cannot be selected.");
+            if (item.Category != SampleCategory.FinishedProduct)
+                throw new InvalidOperationException($"Item '{item.Name}' is not a Finished Product.");
+
+            previousProductItemId = item.Id;
+            previousProductName = item.Name;
+        }
+
+        if (isPhyschem)
+        {
+            if (!request.PreviousProductItemId.HasValue)
+            {
+                throw new InvalidOperationException("Previous product item is required for Physicochemical after-cleaning receiving.");
+            }
+            if (request.Techniques == null || !request.Techniques.Any(t => !string.IsNullOrWhiteSpace(t)))
+            {
+                throw new InvalidOperationException("At least one cleaning technique is required.");
+            }
+            cleaningTechniques = CleaningTechniques.Normalize(request.Techniques);
+        }
+        else
+        {
+            cleaningTechniques = null;
+            if (!request.PreviousProductItemId.HasValue)
+            {
+                if (string.IsNullOrWhiteSpace(request.PreviousProductName))
+                {
+                    throw new InvalidOperationException("Previous Product is required for After Cleaning receiving.");
+                }
+                previousProductName = request.PreviousProductName.Trim();
+            }
+        }
+
         var sample = new Sample
         {
             ReferenceNumber = await _refNumbers.GenerateAsync(SampleCategory.AfterCleaning),
@@ -106,9 +148,11 @@ public class AfterCleaningWorkflowEngine : IAfterCleaningWorkflowEngine
             MachineId = machine.Id,
             ItemId = null,
             LabSectionId = labSectionId,
-            PreviousProductName = request.PreviousProductName.Trim(),
+            PreviousProductItemId = previousProductItemId,
+            PreviousProductName = previousProductName,
             PreviousProductBatchNumber = request.PreviousProductBatchNumber.Trim(),
             BatchNumber = request.PreviousProductBatchNumber.Trim(),
+            CleaningTechniques = cleaningTechniques,
             CauseOfTestingId = request.CauseOfTestingId,
             SampledBy = request.SampledBy,
             ControlNumber = request.ControlNumber,
@@ -196,6 +240,26 @@ public class AfterCleaningWorkflowEngine : IAfterCleaningWorkflowEngine
             if (!allowedCodes.Contains(config.TestCode))
             {
                 throw new InvalidOperationException($"Part test {config.TestCode} belongs to another laboratory.");
+            }
+        }
+
+        if (isPhyschem)
+        {
+            var chosenTechniques = (sample.CleaningTechniques ?? "")
+                .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+            var defsByCode = testDefs.ToDictionary(t => t.Code, StringComparer.Ordinal);
+            foreach (var config in configs)
+            {
+                if (defsByCode.TryGetValue(config.TestCode, out var testDef))
+                {
+                    var technique = CleaningTechniques.Of(testDef.WorkflowType);
+                    if (!chosenTechniques.Contains(technique))
+                    {
+                        throw new InvalidOperationException($"Part test {config.TestCode} is {technique}, which was not chosen at receipt.");
+                    }
+                }
             }
         }
 

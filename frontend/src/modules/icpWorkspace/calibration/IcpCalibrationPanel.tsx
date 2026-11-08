@@ -137,10 +137,10 @@ export function IcpCalibrationPanel({
           sx={{
             p: 2.5,
             borderRadius: 2,
-            border: `1px solid ${isExpired ? theme.palette.warning.main : theme.palette.success.main}`,
+            border: `1px solid ${isExpired ? theme.custom.status.inconclusive.border : theme.custom.status.notDetected.border}`,
             backgroundColor: isExpired
-              ? theme.palette.mode === "dark" ? "rgba(237, 108, 2, 0.08)" : "#fff8e1"
-              : theme.palette.mode === "dark" ? "rgba(46, 125, 50, 0.08)" : "#f1f8e9"
+              ? theme.custom.status.inconclusive.bg
+              : theme.custom.status.notDetected.bg
           }}
         >
           <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 1.5 }}>

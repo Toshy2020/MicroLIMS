@@ -87,4 +87,31 @@ describe("GlobalSearchDialog", () => {
     expect(screen.getByText("PARACETAMOL")).toBeTruthy();
     expect(screen.getByText("BATCH-99")).toBeTruthy();
   });
+
+  it("renders category filter chips and scopes search when a category is selected", async () => {
+    vi.mocked(globalSearchApi.search).mockResolvedValue({
+      query: "WATER",
+      totalMatches: 0,
+      executionTimeMs: 5,
+      categories: []
+    });
+
+    render(
+      <MemoryRouter>
+        <PinnedLightTheme>
+          <GlobalSearchDialog open={true} onClose={vi.fn()} />
+        </PinnedLightTheme>
+      </MemoryRouter>
+    );
+
+    const samplesChip = screen.getByRole("button", { name: "Samples" });
+    fireEvent.click(samplesChip);
+
+    const input = screen.getByPlaceholderText(/search microlims/i);
+    fireEvent.change(input, { target: { value: "WATER" } });
+
+    await waitFor(() => {
+      expect(globalSearchApi.search).toHaveBeenCalledWith("WATER", "Samples", 15, expect.any(AbortSignal));
+    });
+  });
 });

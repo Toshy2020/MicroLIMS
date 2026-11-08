@@ -201,7 +201,7 @@ export function RegisterTable<T>({
                       {titleCol ? cellText(row, titleCol) : null}
                     </Box>
                     {actions.length > 0 && (
-                      <IconButton size="small" aria-label="Row actions" onClick={(e) => openMenu(e, row)} sx={{ mt: -0.5, mr: -0.5 }}>
+                      <IconButton size="small" aria-label={`Row actions for ${getRowId(row)}`} onClick={(e) => openMenu(e, row)} sx={{ mt: -0.5, mr: -0.5 }}>
                         <MoreVertIcon fontSize="small" />
                       </IconButton>
                     )}
@@ -350,7 +350,7 @@ export function RegisterTable<T>({
                   {rowActions && (
                     <TableCell align="right" sx={{ py: cellPy, px: 0.5 }}>
                       {rowActions(row).length > 0 && (
-                        <IconButton size="small" aria-label="Row actions" onClick={(e) => openMenu(e, row)}>
+                        <IconButton size="small" aria-label={`Row actions for ${getRowId(row)}`} onClick={(e) => openMenu(e, row)}>
                           <MoreVertIcon fontSize="small" />
                         </IconButton>
                       )}

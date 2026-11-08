@@ -67,3 +67,41 @@ Rules that keep delegation from failing:
 2. **Laboratory Logic on Backend:** Frontend never enforces GMP or microbiology rules directly; validation and business logic live in the backend Application layer.
 3. **Auditability & Traceability:** Every sensitive lab action must record electronic signatures and audit trail entries.
 4. **Validation After Delegation:** Always verify `agy` changes with `dotnet build` / `npm test` before concluding tasks.
+
+---
+
+## Accessibility Requirements (WCAG 2.2 AA — Non-Negotiable)
+
+Generate UI that conforms to WCAG 2.2 Level AA. When a requirement conflicts with brevity, choose accessibility.
+
+### HTML Semantics & Structure
+- Actions use `<Button>` or `<button type="button">`. Never attach `onClick` to a raw `<div>` or `<span>` without `clickable()` keyboard support (`Enter`/`Space`, `tabIndex={0}`, and appropriate role).
+- Navigation uses `<Link>` / `<a href>`.
+- Use landmarks (`<header>`, `<nav>`, `<main>`, `<section aria-label="...">`) and sequential headings (`<h1>`–`<h6>` via `PageHeader` and `SectionTitle`).
+- Never nest heading elements (`<h6>` inside `<h2>`) inside dialog titles; use `component="span"` for styled typography inside `DialogTitle`.
+
+### Accessible Names & Forms
+- Icon-only buttons (`<IconButton>`) must always include a descriptive `aria-label` (with record context in tables, e.g., `Row actions for ${id}`).
+- Every form control (`<TextField>`, `<Select>`, `<DateField>`, `<input type="file">`) must have a programmatic `<label>` or `aria-label`.
+- Expose dynamic validation, search counts, and status updates with `aria-live="polite"` or `role="status"` / `role="alert"`.
+
+### Keyboard, Contrast, and Motion
+- Every interactive control must be reachable and operable by keyboard alone; overlays/popovers must dismiss on `Escape` and manage focus cleanly.
+- Maintain ≥ 4.5:1 text contrast and ≥ 3:1 non-text UI contrast across both light and dark theme tokens (`theme.custom.status` and `theme.custom.chrome`). Never convey status by color alone.
+- Preserve visible focus indicators (`*:focus-visible`) and respect `@media (prefers-reduced-motion: reduce)`.
+
+---
+
+## Design Ops, Token Architecture & Design QA Acceptance Criteria
+
+Every frontend feature, vertical slice, or UI refactor must satisfy these Design Ops standards before completion:
+
+### 1. Semantic Token Discipline (Zero Unapproved Raw Hex)
+- **Status Badges, Banners & Alerts:** Always use `theme.custom.status.<tone>.{bg, text, border}` (`notDetected`, `detected`, `inconclusive`, `pending`, `action`, `info`, `purple`, `pale`) or register new domain statuses in `frontend/src/theme/statusTokens.ts` (`STATUS_TONE`). Never write component-local `theme.palette.mode === "dark" ? ... : "#hex"` ternaries.
+- **Surfaces & Chrome:** Use `theme.palette.background.{default, paper}` and `theme.custom.chrome.*`. Never use `<PinnedLightTheme>` on interactive dialogs (`SignatureDialog`, `FormDialog`, `ConfirmationDialog`); `<PinnedLightTheme>` and paper-ink hex tokens are reserved strictly for physical print/PDF CoA and report views.
+- **Typography & Tabular Numerals:** Use `monospaceFontFamily` for sample/batch/order identifiers and enforce `fontVariantNumeric: "tabular-nums"` on all KPI metrics, countdown timers, and numeric/date table columns.
+
+### 2. Shared Primitives & 9-State Completeness
+- Reuse canonical primitives from `frontend/src/components/` (`LabPage`, `PageHeader`, `SectionTitle`, `SummaryTiles`, `KpiStrip`, `RegisterTable`, `DataTable`, `EmptyState`, `PartialOutageBanner`, `FormDialog`, `ConfirmationDialog`, `SignatureDialog`).
+- Account for all 9 UI states: **Empty** (`EmptyState`), **Loading** (skeletons / disabled submit spinner), **Populated** (sortable/paginated at `> 25` rows), **Partial Outage** (`PartialOutageBanner` on multi-endpoint views), **Overflow** (`<Tooltip>` on truncated metadata cells), **Error** (actionable field/alert messages), **Locked/GMP Gate** (explicit reason why an action is gated), **Focus/Hover**, and **GMP Signature/Confirmation** (`Cancel` auto-focused on destructive dialogs; human-readable roles via `formatRoleName`).
+

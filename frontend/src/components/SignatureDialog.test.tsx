@@ -15,6 +15,7 @@ describe("SignatureDialog", () => {
     render(<SignatureDialog open meaningStatement="I am approving this." onCancel={() => {}} onConfirm={onConfirm} />);
 
     expect(screen.getByText("Head One")).toBeTruthy();
+    expect(screen.getByText("Section Head")).toBeTruthy();
     expect(screen.getByText("I am approving this.")).toBeTruthy();
     expect(screen.queryByText("Second signature")).toBeNull();
     const sign = screen.getByRole("button", { name: "Sign" }) as HTMLButtonElement;

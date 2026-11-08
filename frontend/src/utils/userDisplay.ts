@@ -15,6 +15,21 @@ const BUILT_IN_ROLE_NAME_TYPES = new Map<string, string>([
   ["QC Manager", "QcManager"]
 ]);
 
+const ROLE_LABELS: Record<string, string> = {
+  Analyst: "Analyst",
+  Reviewer: "Reviewer",
+  SectionHead: "Section Head",
+  QcManager: "QC Manager",
+  SystemAdministrator: "System Administrator"
+};
+
+export function formatRoleName(role: string | null | undefined, roleName?: string | null): string {
+  const custom = roleName?.trim();
+  if (custom) return custom;
+  if (!role) return "";
+  return ROLE_LABELS[role] ?? role;
+}
+
 export function formatRoleFallback(role: string | null, labCodes: string[], roleName?: string | null): string {
   const name = roleName?.trim();
   if (name && !BUILT_IN_ROLE_NAME_TYPES.has(name)) return name;

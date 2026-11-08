@@ -444,12 +444,21 @@ export function AssignedTestCard({
         borderRadius: 1.5,
         border: "1px solid",
         borderColor: expanded ? theme.palette.primary.main : "divider",
+        borderLeft: "3px solid",
+        borderLeftColor:
+          dynamicBadge.status === "Approved"
+            ? theme.custom.status.notDetected.text
+            : effectiveIsIncubating
+            ? theme.custom.status.info.text
+            : awaitingPreparation
+            ? theme.palette.divider
+            : theme.palette.primary.main,
         bgcolor: "background.paper",
         cursor: "pointer",
-        transition: "all 0.12s ease-in-out",
+        transition: "border-color 150ms cubic-bezier(0.4, 0, 0.2, 1), background-color 150ms cubic-bezier(0.4, 0, 0.2, 1), box-shadow 150ms cubic-bezier(0.4, 0, 0.2, 1)",
         "&:hover": {
           borderColor: theme.palette.primary.main,
-          boxShadow: "0 1px 6px rgba(123, 45, 142, 0.08)",
+          boxShadow: "0 2px 8px rgba(31, 35, 53, 0.08)",
           bgcolor: theme.custom.status.purple.bg
         }
       }}
@@ -462,7 +471,7 @@ export function AssignedTestCard({
           <Typography sx={{ fontSize: 13, fontWeight: 700, color: "text.primary", whiteSpace: "nowrap" }}>
             {test.testCode}{locationLabel}
           </Typography>
-          <Typography sx={{ fontSize: 12, color: "text.secondary", whiteSpace: "nowrap" }}>
+          <Typography sx={{ fontSize: 12, color: "text.secondary", fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" }}>
             #{test.testOrderId}
           </Typography>
           <StatusBadge status={dynamicBadge.status} label={dynamicBadge.label} />
@@ -475,6 +484,7 @@ export function AssignedTestCard({
             sx={{
               fontSize: 12,
               fontWeight: effectiveIsIncubating ? 600 : 500,
+              fontVariantNumeric: "tabular-nums",
               color: effectiveIsIncubating ? theme.custom.status.info.text : "text.secondary"
             }}
           >

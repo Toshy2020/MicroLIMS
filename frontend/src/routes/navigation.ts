@@ -53,19 +53,21 @@ export function findNavTrail(groups: MenuGroup[], pathname: string, searchString
   return best;
 }
 
-// Pages reached from the profile menu rather than the sidebar - they still
-// get a breadcrumb and a tab title.
+// Pages reached from the profile menu or notifications rather than the sidebar -
+// they still get a breadcrumb and a tab title.
 const ACCOUNT_PAGES: Record<string, string> = {
   "/profile": "My Profile",
   "/change-password": "Change Password",
   "/messages": "Messages",
-  "/discussions": "Discussions"
+  "/discussions": "Discussions",
+  "/receiving-testing": "Receiving & Testing Workspace"
 };
 
 export function accountPageTrail(pathname: string): NavTrail | null {
   const match = Object.keys(ACCOUNT_PAGES).find((p) => pathname === p || pathname.startsWith(`${p}/`));
   if (!match) return null;
-  return { group: "ACCOUNT", item: { label: ACCOUNT_PAGES[match], path: match }, exact: pathname === match };
+  const group = match === "/receiving-testing" ? "LABORATORIES" : "ACCOUNT";
+  return { group, item: { label: ACCOUNT_PAGES[match], path: match }, exact: pathname === match };
 }
 
 // Menu groups are stored upper-case for the sidebar's overline labels;

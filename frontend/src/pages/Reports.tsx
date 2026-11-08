@@ -108,48 +108,62 @@ export function ReportsPage() {
           onChange={(_, v) => handleTabChange(v)}
           variant="scrollable"
           scrollButtons="auto"
+          aria-label="Report sections"
           sx={{ "& .Mui-selected": { fontWeight: 700 } }}
         >
-          {tabs.map((label) => <Tab key={label} label={label} />)}
+          {tabs.map((label, idx) => (
+            <Tab
+              key={label}
+              label={label}
+              id={`reports-tab-${idx}`}
+              aria-controls={`reports-tabpanel-${idx}`}
+            />
+          ))}
         </Tabs>
       </Box>
 
-      {tab === 0 && (
-        <OverviewTab
-          fromDate={range.fromDate}
-          toDate={range.toDate}
-          onNavigateTab={handleTabChange}
-          canViewKpi={canViewKpi}
-        />
-      )}
+      <Box
+        role="tabpanel"
+        id={`reports-tabpanel-${tab}`}
+        aria-labelledby={`reports-tab-${tab}`}
+      >
+        {tab === 0 && (
+          <OverviewTab
+            fromDate={range.fromDate}
+            toDate={range.toDate}
+            onNavigateTab={handleTabChange}
+            canViewKpi={canViewKpi}
+          />
+        )}
 
-      {tab === 1 && (
-        <RecordSearchTab
-          fromDate={range.fromDate}
-          toDate={range.toDate}
-          onAnalyzeTrend={handleAnalyzeTrend}
-          onNavigateTab={handleTabChange}
-        />
-      )}
+        {tab === 1 && (
+          <RecordSearchTab
+            fromDate={range.fromDate}
+            toDate={range.toDate}
+            onAnalyzeTrend={handleAnalyzeTrend}
+            onNavigateTab={handleTabChange}
+          />
+        )}
 
-      {tab === 2 && (
-        <MediaGptReportTab
-          fromDate={range.fromDate}
-          toDate={range.toDate}
-        />
-      )}
+        {tab === 2 && (
+          <MediaGptReportTab
+            fromDate={range.fromDate}
+            toDate={range.toDate}
+          />
+        )}
 
-      {tab === 3 && (
-        <ReferenceStrainReportTab />
-      )}
+        {tab === 3 && (
+          <ReferenceStrainReportTab />
+        )}
 
-      {tab === CONTROL_CHARTS_TAB && (
-        <ControlChartTab />
-      )}
+        {tab === CONTROL_CHARTS_TAB && (
+          <ControlChartTab />
+        )}
 
-      {tab === PERFORMANCE_TAB && canViewKpi && (
-        <KpiPerformanceTab />
-      )}
+        {tab === PERFORMANCE_TAB && canViewKpi && (
+          <KpiPerformanceTab />
+        )}
+      </Box>
     </>
   );
 }

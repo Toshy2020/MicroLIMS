@@ -180,7 +180,12 @@ export function IcpSampleAssignmentPanel({
                   return (
                     <TableRow key={s.id} hover>
                       <TableCell sx={{ fontFamily: monospaceFontFamily, fontWeight: 600 }}>
-                        {s.sampleNumber}
+                        <div>{s.sampleNumber}</div>
+                        {s.subjectName && (
+                          <Typography variant="caption" sx={{ display: "block", color: "text.secondary", fontWeight: 400 }}>
+                            {s.subjectName}
+                          </Typography>
+                        )}
                       </TableCell>
                       <TableCell>{s.batchNumber ?? "—"}</TableCell>
                       <TableCell>{s.productName ?? "—"}</TableCell>

@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
@@ -18,22 +19,67 @@ public class NegativeEntityIdCorrectionScriptPostgresTests
 
     public NegativeEntityIdCorrectionScriptPostgresTests(PostgresTestFixture fixture) => _fixture = fixture;
 
-    private static string ScriptPath()
+    private static string ScriptPath([CallerFilePath] string callerFilePath = "")
     {
-        var dir = new DirectoryInfo(AppContext.BaseDirectory);
-        while (dir is not null)
+        var roots = new List<string>();
+        if (!string.IsNullOrEmpty(callerFilePath))
         {
-            var candidate = Path.Combine(dir.FullName, "scripts", "audit", "append-negative-entityid-corrections.sql");
-            if (File.Exists(candidate)) return candidate;
-            dir = dir.Parent;
+            var callerDir = Path.GetDirectoryName(callerFilePath);
+            if (!string.IsNullOrEmpty(callerDir)) roots.Add(callerDir);
+        }
+        roots.Add(Directory.GetCurrentDirectory());
+        roots.Add(AppContext.BaseDirectory);
+
+        foreach (var start in roots)
+        {
+            var dir = new DirectoryInfo(start);
+            while (dir is not null)
+            {
+                var candidate = Path.Combine(dir.FullName, "scripts", "audit", "append-negative-entityid-corrections.sql");
+                if (File.Exists(candidate)) return candidate;
+                dir = dir.Parent;
+            }
         }
         throw new FileNotFoundException("append-negative-entityid-corrections.sql not found above " + AppContext.BaseDirectory);
+    }
+
+    private static string ResolvePsqlCommand()
+    {
+        var pathEnv = Environment.GetEnvironmentVariable("PATH");
+        if (!string.IsNullOrEmpty(pathEnv))
+        {
+            var extensions = OperatingSystem.IsWindows() ? new[] { ".exe", ".cmd", ".bat", "" } : new[] { "" };
+            foreach (var dir in pathEnv.Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries))
+            {
+                foreach (var ext in extensions)
+                {
+                    var candidate = Path.Combine(dir, "psql" + ext);
+                    if (File.Exists(candidate)) return candidate;
+                }
+            }
+        }
+
+        if (OperatingSystem.IsWindows())
+        {
+            var programFiles = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles);
+            var pgDir = Path.Combine(programFiles, "PostgreSQL");
+            if (Directory.Exists(pgDir))
+            {
+                foreach (var verDir in Directory.GetDirectories(pgDir))
+                {
+                    var candidate = Path.Combine(verDir, "bin", "psql.exe");
+                    if (File.Exists(candidate)) return candidate;
+                }
+            }
+        }
+
+        return "psql";
     }
 
     private (int ExitCode, string Output) RunPsql(bool apply)
     {
         var cs = new NpgsqlConnectionStringBuilder(_fixture.TestConnectionString);
-        var psi = new ProcessStartInfo("psql")
+        var psi = new ProcessStartInfo(ResolvePsqlCommand())
         {
             RedirectStandardOutput = true,
             RedirectStandardError = true,

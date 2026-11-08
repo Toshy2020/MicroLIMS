@@ -23,12 +23,17 @@ public class SampleConfiguration : IEntityTypeConfiguration<Sample>
         builder.Property(s => s.SampledBy).IsRequired().HasMaxLength(100);
         builder.Property(s => s.PreviousProductName).HasMaxLength(200);
         builder.Property(s => s.PreviousProductBatchNumber).HasMaxLength(100);
+        builder.Property(s => s.CleaningTechniques).HasMaxLength(50);
 
         builder.HasOne(s => s.Item).WithMany().HasForeignKey(s => s.ItemId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne(s => s.PreviousProductItem).WithMany().HasForeignKey(s => s.PreviousProductItemId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasIndex(s => s.PreviousProductItemId);
         builder.HasOne(s => s.WaterSamplingPoint).WithMany().HasForeignKey(s => s.WaterSamplingPointId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne(s => s.Department).WithMany().HasForeignKey(s => s.DepartmentId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne(s => s.Machine).WithMany().HasForeignKey(s => s.MachineId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne(s => s.WaterDepartment).WithMany().HasForeignKey(s => s.WaterDepartmentId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne(s => s.LabSection).WithMany().HasForeignKey(s => s.LabSectionId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasIndex(s => s.LabSectionId);
         builder.HasOne(s => s.CauseOfTesting).WithMany().HasForeignKey(s => s.CauseOfTestingId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne(s => s.OriginSample).WithMany().HasForeignKey(s => s.OriginSampleId).OnDelete(DeleteBehavior.Restrict);
         builder.HasIndex(s => s.OriginSampleId);

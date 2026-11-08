@@ -11,10 +11,51 @@ namespace MicroLIMS.Application.DTOs;
 
 public record CreateWaterSamplingPointRequest(string Code, string Location, string TestingFrequency, List<string> AssignedTestCodes, int? WaterDepartmentId, FrequencyRuleDto? Frequency = null);
 public record UpdateWaterSamplingPointRequest(string Code, string Location, string TestingFrequency, List<string> AssignedTestCodes, int? WaterDepartmentId, bool? IsActive = null, FrequencyRuleDto? Frequency = null);
+public record SetWaterPointLabFrequencyRequest(
+    FrequencyType? FrequencyType = null,
+    FrequencyType? Type = null,
+    int? FrequencyInterval = null,
+    int? Interval = null,
+    DayOfWeek? SamplingWeekday = null,
+    int? FrequencyAnchorMonth = null,
+    int? AnchorMonth = null,
+    int? FrequencyWeekOfMonth = null,
+    int? WeekOfMonth = null)
+{
+    public FrequencyRuleDto ToRuleDto() => new(
+        Type ?? FrequencyType,
+        Interval ?? FrequencyInterval,
+        SamplingWeekday,
+        AnchorMonth ?? FrequencyAnchorMonth,
+        WeekOfMonth ?? FrequencyWeekOfMonth);
+}
 public record CreateWaterDepartmentRequest(string Name);
 public record UpdateWaterDepartmentRequest(string Name, bool? IsActive = null);
-public record CreateWaterSamplingConfigRequest(int WaterSamplingPointId, string TestCode, string AlertLimit, string ActionLimit, string SpecLimit, string? Unit = null);
-public record UpdateWaterSamplingConfigRequest(string TestCode, string AlertLimit, string ActionLimit, string SpecLimit, string? Unit = null);
+public record CreateWaterSamplingConfigRequest(
+    int WaterSamplingPointId,
+    string TestCode,
+    string? AlertLimit = null,
+    string? ActionLimit = null,
+    string? SpecLimit = null,
+    string? Unit = null,
+    LimitType? LimitType = null,
+    decimal? LowerLimit = null,
+    decimal? UpperLimit = null,
+    bool LowerInclusive = true,
+    bool UpperInclusive = true,
+    string? ExpectedResultText = null);
+public record UpdateWaterSamplingConfigRequest(
+    string TestCode,
+    string? AlertLimit = null,
+    string? ActionLimit = null,
+    string? SpecLimit = null,
+    string? Unit = null,
+    LimitType? LimitType = null,
+    decimal? LowerLimit = null,
+    decimal? UpperLimit = null,
+    bool LowerInclusive = true,
+    bool UpperInclusive = true,
+    string? ExpectedResultText = null);
 public record CreateDepartmentRequest(string Name, string Class, string TestingFrequency, FrequencyRuleDto? Frequency = null);
 public record CreateRoomRequest(string Name, int DepartmentId, string GradeClassification, RoomKind Kind = RoomKind.Room, int? ParentRoomId = null, FrequencyRuleDto? Frequency = null);
 public record UpdateDepartmentRequest(string Name, string Class, string TestingFrequency, bool? IsActive = null, FrequencyRuleDto? Frequency = null);
@@ -24,7 +65,21 @@ public record CreateMachineRequest(string Name);
 public record UpdateMachineRequest(string Name, bool? IsActive = null);
 public record CreateMachinePartRequest(string Name, int MachineId);
 public record UpdateMachinePartRequest(string Name, int MachineId, bool? IsActive = null);
-public record UpdateMachinePartConfigRequest(string TestType, string TestCode, string AlertLimit, string ActionLimit, string SpecLimit, bool IsPathogenTest, string? Unit = null, bool? IsActive = null);
+public record UpdateMachinePartConfigRequest(
+    string TestType,
+    string TestCode,
+    string? AlertLimit = null,
+    string? ActionLimit = null,
+    string? SpecLimit = null,
+    bool IsPathogenTest = false,
+    string? Unit = null,
+    bool? IsActive = null,
+    LimitType? LimitType = null,
+    decimal? LowerLimit = null,
+    decimal? UpperLimit = null,
+    bool LowerInclusive = true,
+    bool UpperInclusive = true,
+    string? ExpectedResultText = null);
 public record SpecificationStageDto(int? Id, int StageNumber, string StageLabel, string AcceptanceCriteriaText);
 public record CreateSpecificationRequest(
     int ItemId,
@@ -165,7 +220,21 @@ public record UpdateEquipmentRequest(
     string? ConnectionSettings = null,
     int? SectionId = null);
 public record CreateRoomTestConfigRequest(int RoomId, string TestType, string TestCode, string AlertLimit, string ActionLimit, string SpecLimit, string? Unit = null);
-public record CreateMachinePartConfigRequest(int MachinePartId, string TestType, string TestCode, string AlertLimit, string ActionLimit, string SpecLimit, bool IsPathogenTest, string? Unit = null);
+public record CreateMachinePartConfigRequest(
+    int MachinePartId,
+    string TestType,
+    string TestCode,
+    string? AlertLimit = null,
+    string? ActionLimit = null,
+    string? SpecLimit = null,
+    bool IsPathogenTest = false,
+    string? Unit = null,
+    LimitType? LimitType = null,
+    decimal? LowerLimit = null,
+    decimal? UpperLimit = null,
+    bool LowerInclusive = true,
+    bool UpperInclusive = true,
+    string? ExpectedResultText = null);
 public record CreateMediaProductRequest(string Name, string Code);
 public record UpdateMediaProductRequest(string Name);
 public record ChangeMediaProductCodeRequest(string Code, string Reason, string Password);

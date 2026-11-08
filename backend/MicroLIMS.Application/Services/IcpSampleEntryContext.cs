@@ -33,7 +33,7 @@ public sealed class IcpSampleEntryContext
     public List<TestDefinitionIcpElement> NeededElements =>
         Definition.IcpElements.Where(e => Specs.Any(s => s.IcpTestElementId == e.Id)).OrderBy(e => e.DisplayOrder).ToList();
 
-    public bool NeedsWeight => Mode == IcpTestMode.Assay;
+    public bool NeedsWeight => Mode == IcpTestMode.Assay && Sample.Category != SampleCategory.AfterCleaning;
 
     // States of the needed elements only.
     public List<IcpElementStateDto> NeededStates() =>
@@ -85,7 +85,10 @@ public sealed class IcpSampleEntryContext
         }
 
         var needed = NeededElements;
-        if (needed.Count == 0) return "No specification is configured for this test on this item.";
+        if (needed.Count == 0)
+            return Sample.Category == SampleCategory.AfterCleaning
+                ? "No cleaning limits are set on this ICP test's elements."
+                : "No specification is configured for this test on this item.";
         if (NeedsWeight && RunSample.ActualWeightG is not > 0m) return "Enter the actual weight of the sample.";
         foreach (var el in needed)
             if (!RunSample.Concentrations.Any(c => c.IcpTestElementId == el.Id))
@@ -122,9 +125,30 @@ public sealed class IcpSampleEntryContext
 
         var definition = await db.TestDefinitions.Include(t => t.IcpElements).FirstAsync(t => t.Code == order.TestCode, ct);
 
-        var specs = order.Sample?.ItemId is int itemId
-            ? (await SpecificationLookup.ForSampleAsync(db, order.SampleId, itemId, order.TestCode, ct)).ToList()
-            : new List<Specification>();
+        List<Specification> specs;
+        if (order.Sample?.ItemId is int itemId)
+        {
+            specs = (await SpecificationLookup.ForSampleAsync(db, order.SampleId, itemId, order.TestCode, ct)).ToList();
+        }
+        else if (order.Sample?.Category == SampleCategory.AfterCleaning)
+        {
+            specs = definition.IcpElements
+                .Where(e => e.CleaningLimitPpm.HasValue)
+                .OrderBy(e => e.DisplayOrder)
+                .Select(e => new Specification
+                {
+                    Id = 0,
+                    IcpTestElementId = e.Id,
+                    LimitType = LimitType.NotMoreThan,
+                    UpperLimit = e.CleaningLimitPpm,
+                    Unit = "ppm",
+                    ParameterName = e.Symbol,
+                }).ToList();
+        }
+        else
+        {
+            specs = new List<Specification>();
+        }
 
         var submitted = await db.TestAnalyses.AnyAsync(a => a.TestOrderId == order.Id && a.IsActive, ct);
         var returned = !submitted && await db.TestReturnEvents.AnyAsync(e => e.TestOrderId == order.Id, ct);

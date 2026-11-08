@@ -26,7 +26,8 @@ public record IcpSampleEntryDto(
     IcpRunSampleStatus Status, IcpTestMode Mode, IcpSampleForm? SampleForm, decimal? TheoreticalAmount, decimal? SpecificGravity,
     decimal? ActualWeightG, List<IcpEntryElementDto> Elements,
     List<IcpPreviewResultDto> Preview, List<IcpOfficialResultDto> Official, List<IcpEvidenceDto> Evidence,
-    bool Editable, string? EditableReason, bool Submitted, bool CanSubmit, string? CanSubmitReason);
+    bool Editable, string? EditableReason, bool Submitted, bool CanSubmit, string? CanSubmitReason,
+    string? SubjectName = null);
 
 // ICP workspace: sample assignment after the calibration is confirmed, result entry with a live
 // (preview) calculation. Submission itself is the ICP recorder.
@@ -52,9 +53,22 @@ public partial class IcpRunService
         }
 
         var orders = await query.OrderBy(o => o.Sample!.ReceivedAt).ThenBy(o => o.Id).ToListAsync(ct);
-        return orders.Select(o => new EligibleTestDto(
-            o.Id, o.Sample!.ReferenceNumber, o.Sample.BatchNumber, o.Sample.Item?.Name, o.TestCode,
-            o.Sample.ReceivedAt, o.Sample.ProductionStageRef?.Name ?? o.Sample.ProductionStage)).ToList();
+        var orderIds = orders.Select(o => o.Id).ToList();
+        var locations = orderIds.Count == 0 ? new List<SampleLocation>() : await _db.SampleLocations.AsNoTracking()
+            .Include(l => l.Sample).ThenInclude(s => s!.Machine)
+            .Include(l => l.MachinePartConfiguration).ThenInclude(c => c!.MachinePart).ThenInclude(p => p!.Machine)
+            .Where(l => orderIds.Contains(l.TestOrderId))
+            .ToListAsync(ct);
+        var locationsByOrder = locations.GroupBy(l => l.TestOrderId).ToDictionary(g => g.Key, g => g.ToList());
+
+        return orders.Select(o =>
+        {
+            locationsByOrder.TryGetValue(o.Id, out var locs);
+            return new EligibleTestDto(
+                o.Id, o.Sample!.ReferenceNumber, o.Sample.BatchNumber, o.Sample.Item?.Name, o.TestCode,
+                o.Sample.ReceivedAt, o.Sample.ProductionStageRef?.Name ?? o.Sample.ProductionStage,
+                SubjectNameHelper.FormatSingleLocationSubject(locs));
+        }).ToList();
     }
 
     // ICP assay tests in the run's laboratory, not finalized, not cancelled/voided, and not
@@ -265,13 +279,22 @@ public partial class IcpRunService
 
         var editableReason = c.EditableProblem();
         var assay = c.Mode == IcpTestMode.Assay;
+
+        var orderLocations = await _db.SampleLocations.AsNoTracking()
+            .Include(l => l.Sample).ThenInclude(s => s!.Machine)
+            .Include(l => l.MachinePartConfiguration).ThenInclude(c => c!.MachinePart).ThenInclude(p => p!.Machine)
+            .Where(l => l.TestOrderId == c.Order.Id)
+            .ToListAsync(ct);
+        var subjectName = SubjectNameHelper.FormatSingleLocationSubject(orderLocations);
+
         return new IcpSampleEntryDto(
             c.RunSample.Id, c.Run.Id, c.Run.Code, c.Run.Calibration!.Code, c.Run.Calibration.Status,
             c.Order.Id, c.Sample.ReferenceNumber, c.Sample.BatchNumber, c.Sample.Item?.Name, c.Order.TestCode, c.StageName,
             c.RunSample.Status, c.Mode, assay ? c.Definition.IcpSampleForm : null,
             assay ? c.Definition.IcpTheoreticalAmount : null, assay ? c.Definition.IcpSpecificGravity : null,
             c.RunSample.ActualWeightG, elements, preview, official, evidence,
-            editableReason == null, editableReason, c.Submitted, problem == null, problem);
+            editableReason == null, editableReason, c.Submitted, problem == null, problem,
+            subjectName);
     }
 
     private static string QuantityOf(IcpTestMode mode) => mode == IcpTestMode.Assay ? "IcpAssayPercent" : "IcpImpurityPpm";

@@ -14,7 +14,7 @@ public class ParameterResult
     public int TestOrderId { get; set; }
     public TestOrder? TestOrder { get; set; }
 
-    public int SpecificationId { get; set; }
+    public int? SpecificationId { get; set; }
     public Specification? Specification { get; set; }
 
     public string ParameterName { get; set; } = string.Empty;

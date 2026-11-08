@@ -213,7 +213,14 @@ export function EligibleSampleTable({
                             slotProps={{ input: { "aria-label": `Select ${t.sampleNumber} - ${t.testCode}` } }}
                           />
                         </TableCell>
-                        <TableCell sx={{ fontWeight: 600, fontFamily: monospaceFontFamily }}>{t.sampleNumber}</TableCell>
+                        <TableCell sx={{ fontWeight: 600, fontFamily: monospaceFontFamily }}>
+                          <div>{t.sampleNumber}</div>
+                          {t.subjectName && (
+                            <Typography variant="caption" sx={{ display: "block", color: "text.secondary", fontWeight: 400 }}>
+                              {t.subjectName}
+                            </Typography>
+                          )}
+                        </TableCell>
                         <TableCell>{t.batchNumber ?? "—"}</TableCell>
                         <TableCell>{t.productName ?? "—"}</TableCell>
                         <TableCell sx={{ fontWeight: 600, fontFamily: monospaceFontFamily }}>{t.testCode}</TableCell>

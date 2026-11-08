@@ -44,6 +44,7 @@ public class TestWorkflowEngine : ITestWorkflowEngine
     private readonly UvRecorder _uvRecorder;
     private readonly OutsourcedRecorder _outsourcedRecorder;
     private readonly PathogenConfirmationRecorder _pathogenConfirmationRecorder;
+    private readonly LocationResultRecorder _locationResultRecorder;
 
     public TestWorkflowEngine(
         IMicroLimsDbContext db, SampleReviewService sampleReviewService, ResultProjectionService resultProjection,
@@ -72,6 +73,7 @@ public class TestWorkflowEngine : ITestWorkflowEngine
         _uvRecorder = new UvRecorder(deps);
         _outsourcedRecorder = new OutsourcedRecorder(deps);
         _pathogenConfirmationRecorder = new PathogenConfirmationRecorder(deps);
+        _locationResultRecorder = new LocationResultRecorder(deps);
     }
 
     public Task<bool> IsStepDoneAsync(int testOrderId, WorkflowType workflowType, TestWorkflowStep step) =>
@@ -126,6 +128,10 @@ public class TestWorkflowEngine : ITestWorkflowEngine
     public Task<TestWorkflowResult> RecordBatchPathogenResultsAsync(
         int testOrderId, List<BatchLocationObservation>? observations, int userId) =>
         _incubationStepRecorder.RecordBatchPathogenResultsAsync(testOrderId, observations, userId);
+
+    public Task<TestWorkflowResult> RecordLocationResultsAsync(
+        int testOrderId, List<LocationResultInput> inputs, int userId) =>
+        _locationResultRecorder.RecordLocationResultsAsync(testOrderId, inputs, userId);
 
     public static string GetCfuUnit(SampleCategory category, string? prepUnit) =>
         IncubationStepRecorder.GetCfuUnit(category, prepUnit);

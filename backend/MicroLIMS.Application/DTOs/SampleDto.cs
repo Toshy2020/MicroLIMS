@@ -48,6 +48,7 @@ public class SampleDto
     public int? DepartmentId { get; set; }
     public int? MachineId { get; set; }
     public int? WaterDepartmentId { get; set; }
+    public int? LabSectionId { get; set; }
     public string? ProductionStage { get; set; }
     public string CauseOfTesting { get; set; } = string.Empty;
     public int CauseOfTestingId { get; set; }
@@ -88,6 +89,8 @@ public class SampleDto
     // After Cleaning Previous Product Traceability (historical free text)
     public string? PreviousProductName { get; set; }
     public string? PreviousProductBatchNumber { get; set; }
+    public int? PreviousProductItemId { get; set; }
+    public string[]? CleaningTechniques { get; set; }
 
     // Retest spin-off linkage (for nested sub-row rendering in register)
     public int? OriginSampleId { get; set; }

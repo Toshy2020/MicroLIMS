@@ -14,7 +14,8 @@ public record PlanTarget(
     string Name,
     FrequencyRuleDto? Rule,
     string RuleSource,
-    IReadOnlyList<PlanItem> Items);
+    IReadOnlyList<PlanItem> Items,
+    int? LabSectionId = null);
 
 public record GeneratedOccurrence(
     MonitoringCategory Category,
@@ -23,9 +24,10 @@ public record GeneratedOccurrence(
     string TargetName,
     PlannedPeriod Period,
     string FrequencySnapshot,
-    IReadOnlyList<PlanItem> Items)
+    IReadOnlyList<PlanItem> Items,
+    int? LabSectionId = null)
 {
-    public (MonitoringTargetType, int, string, int) Key => (TargetType, TargetId, Period.PeriodKey, 1);
+    public (MonitoringTargetType, int, int?, string, int) Key => (TargetType, TargetId, LabSectionId, Period.PeriodKey, 1);
 }
 
 public enum PlanExceptionKind
@@ -84,7 +86,7 @@ public static class PlanGenerator
             {
                 if (period.WindowEnd < effectiveFrom) continue;
 
-                occurrences.Add(new GeneratedOccurrence(target.Category, target.Type, target.Id, target.Name, period, snapshot, target.Items));
+                occurrences.Add(new GeneratedOccurrence(target.Category, target.Type, target.Id, target.Name, period, snapshot, target.Items, target.LabSectionId));
                 if (period.MovedForNonWorkingDate)
                     exceptions.Add(new(PlanExceptionKind.TargetDateMoved, target.Category, target.Name,
                         $"{period.OriginalTargetDate:yyyy-MM-dd} is not a working day; moved to {period.TargetDate:yyyy-MM-dd}."));

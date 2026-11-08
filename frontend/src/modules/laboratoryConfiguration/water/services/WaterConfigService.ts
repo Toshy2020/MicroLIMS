@@ -20,11 +20,78 @@ export const WaterConfigService = {
     apiClient.put(`/masterdata/water-sampling-points/${id}`, { code, location, testingFrequency, assignedTestCodes, waterDepartmentId, frequency }, ifMatch(version)).then((r) => r.data.data),
   deleteSamplingPoint: (id: number) => apiClient.delete(`/masterdata/water-sampling-points/${id}`),
 
+  getPointLabFrequency: (pointId: number, sectionId: number) =>
+    apiClient.get(`/masterdata/water/points/${pointId}/lab-frequencies/${sectionId}`).then((r) => r.data.data),
+  setPointLabFrequency: (pointId: number, sectionId: number, frequency: object) =>
+    apiClient.put(`/masterdata/water/points/${pointId}/lab-frequencies/${sectionId}`, frequency).then((r) => r.data.data),
+  deletePointLabFrequency: (pointId: number, sectionId: number) =>
+    apiClient.delete(`/masterdata/water/points/${pointId}/lab-frequencies/${sectionId}`),
+
   getSamplingConfigurations: (pointId: number) =>
     apiClient.get("/masterdata/water-sampling-configurations", { params: { pointId } }).then((r) => r.data.data),
-  createSamplingConfiguration: (waterSamplingPointId: number, testCode: string, alertLimit: string, actionLimit: string, specLimit: string, unit?: string) =>
-    apiClient.post("/masterdata/water-sampling-configurations", { waterSamplingPointId, testCode, alertLimit, actionLimit, specLimit, unit }).then((r) => r.data.data),
-  updateSamplingConfiguration: (id: number, testCode: string, alertLimit: string, actionLimit: string, specLimit: string, unit?: string, version?: number) =>
-    apiClient.put(`/masterdata/water-sampling-configurations/${id}`, { testCode, alertLimit, actionLimit, specLimit, unit }, ifMatch(version)).then((r) => r.data.data),
+  createSamplingConfiguration: (
+    waterSamplingPointId: number,
+    testCode: string,
+    alertLimit?: string | null,
+    actionLimit?: string | null,
+    specLimit?: string | null,
+    unit?: string | null,
+    limitType?: "Range" | "NotMoreThan" | "NotLessThan" | "Qualitative" | null,
+    lowerLimit?: number | null,
+    upperLimit?: number | null,
+    lowerInclusive?: boolean,
+    upperInclusive?: boolean,
+    expectedResultText?: string | null
+  ) =>
+    apiClient
+      .post("/masterdata/water-sampling-configurations", {
+        waterSamplingPointId,
+        testCode,
+        alertLimit: alertLimit ?? null,
+        actionLimit: actionLimit ?? null,
+        specLimit: specLimit ?? null,
+        unit: unit ?? null,
+        limitType: limitType ?? null,
+        lowerLimit: lowerLimit ?? null,
+        upperLimit: upperLimit ?? null,
+        lowerInclusive: lowerInclusive ?? true,
+        upperInclusive: upperInclusive ?? true,
+        expectedResultText: expectedResultText ?? null
+      })
+      .then((r) => r.data.data),
+  updateSamplingConfiguration: (
+    id: number,
+    testCode: string,
+    alertLimit?: string | null,
+    actionLimit?: string | null,
+    specLimit?: string | null,
+    unit?: string | null,
+    version?: number,
+    limitType?: "Range" | "NotMoreThan" | "NotLessThan" | "Qualitative" | null,
+    lowerLimit?: number | null,
+    upperLimit?: number | null,
+    lowerInclusive?: boolean,
+    upperInclusive?: boolean,
+    expectedResultText?: string | null
+  ) =>
+    apiClient
+      .put(
+        `/masterdata/water-sampling-configurations/${id}`,
+        {
+          testCode,
+          alertLimit: alertLimit ?? null,
+          actionLimit: actionLimit ?? null,
+          specLimit: specLimit ?? null,
+          unit: unit ?? null,
+          limitType: limitType ?? null,
+          lowerLimit: lowerLimit ?? null,
+          upperLimit: upperLimit ?? null,
+          lowerInclusive: lowerInclusive ?? true,
+          upperInclusive: upperInclusive ?? true,
+          expectedResultText: expectedResultText ?? null
+        },
+        ifMatch(version)
+      )
+      .then((r) => r.data.data),
   deleteSamplingConfiguration: (id: number) => apiClient.delete(`/masterdata/water-sampling-configurations/${id}`)
 };

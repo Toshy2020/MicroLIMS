@@ -51,4 +51,47 @@ describe("TestWorkflowDialog count test", () => {
     expect(await screen.findByText("Plate reading is available now")).toBeTruthy();
     expect((screen.getByRole("button", { name: "Record Result" }) as HTMLButtonElement).disabled).toBe(false);
   });
+
+  it("renders LocationResultsPanel when current.locationEntry is true", async () => {
+    service.getCurrentStep.mockResolvedValue({
+      testOrderId: 42,
+      testName: "PH",
+      workflowType: "Measurement",
+      step: null,
+      stepNumber: 1,
+      totalSteps: 1,
+      sampleContext: { sampleName: "Water Sample" },
+      incubationLock: null,
+      previousSteps: [],
+      allStepsComplete: false,
+      finalResult: null,
+      allSteps: [],
+      completedSteps: [],
+      locationEntry: true,
+      locations: [
+        {
+          sampleLocationId: 101,
+          name: "PW-01 - Point 1",
+          limitType: "Range",
+          lowerLimit: 6.5,
+          upperLimit: 8.5,
+          expectedResultText: null,
+          unit: "pH",
+          specLimit: "6.5 – 8.5",
+          value: null,
+          text: null
+        }
+      ]
+    });
+
+    render(
+      <ThemeProvider theme={lightTheme}>
+        <TestWorkflowDialog testOrderId={42} testCode="PH" category="Water" displayName="Purified Water pH" />
+      </ThemeProvider>
+    );
+
+    expect(await screen.findByText("PW-01 - Point 1")).toBeTruthy();
+    expect(screen.getByText("6.5 – 8.5")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Submit" })).toBeTruthy();
+  });
 });

@@ -1,4 +1,4 @@
-using MicroLIMS.Application.DTOs;
+ï»¿using MicroLIMS.Application.DTOs;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 
@@ -40,13 +40,33 @@ public static class SampleSummaryTestOrderBuilder
         var locationDtos = BuildLocations(order, d, NameOf);
         specificationsByTestCode.TryGetValue(order.TestCode, out var testSpecs);
 
+        var baseDisplayName = def?.DisplayName ?? order.TestCode;
+        var hasParameterResults = activeAnalyses.Any(e => e.TestOrderId == order.Id && e.Results.Count > 0);
+        var orderLocations = sampleLocations.Where(l => l.TestOrderId == order.Id).ToList();
+        var singlePartLoc = hasParameterResults && orderLocations.Count == 1 ? orderLocations[0] : null;
+        var testDisplayName = baseDisplayName;
+        if (singlePartLoc != null)
+        {
+            var partName = singlePartLoc.MachinePartConfiguration?.MachinePart?.Name;
+            if (string.IsNullOrWhiteSpace(partName))
+            {
+                var locName = ResolveLocationName(singlePartLoc);
+                if (locName != "â€”") partName = locName;
+            }
+            if (!string.IsNullOrWhiteSpace(partName))
+            {
+                testDisplayName = $"{baseDisplayName} \u2013 {partName}";
+            }
+            locationDtos = new List<SampleLocationDetailDto>();
+        }
+
         return new TestOrderSummaryDetailDto
         {
             TestOrderId = order.Id,
             SectionId = order.SectionId,
             SectionName = sectionRows.TryGetValue(order.SectionId, out var sectionRow) ? sectionRow.Name : string.Empty,
             TestCode = order.TestCode,
-            TestDisplayName = def?.DisplayName ?? order.TestCode,
+            TestDisplayName = testDisplayName,
             SourceSampleReferenceNumber = sourceRefByOrderId.TryGetValue(order.Id, out var sourceRef) ? sourceRef : null,
             SpecificationText = SampleSummaryService.FormatSpecificationsText(testSpecs),
             Status = order.Status.ToString(),
@@ -197,7 +217,7 @@ public static class SampleSummaryTestOrderBuilder
                         GrowthObservation.NoGrowth => "Not Detected (-)",
                         GrowthObservation.GrowthNonConforming => "Growth Non-Conforming",
                         GrowthObservation.GrowthConforming => "Growth Conforming (Presumptive +)",
-                        _ => "—"
+                        _ => "â€”"
                     };
                     status = obs.GrowthObservation == GrowthObservation.NoGrowth
                         ? ResultStatus.WithinLimits
@@ -347,19 +367,19 @@ public static class SampleSummaryTestOrderBuilder
 
     private static string ResolveLocationName(SampleLocation? loc)
     {
-        if (loc == null) return "—";
+        if (loc == null) return "â€”";
         if (loc.WaterSamplingPoint != null)
             return !string.IsNullOrWhiteSpace(loc.WaterSamplingPoint.Code)
                 ? loc.WaterSamplingPoint.Code
-                : loc.WaterSamplingPoint.Location ?? "—";
+                : loc.WaterSamplingPoint.Location ?? "â€”";
         if (loc.SamplingConfiguration?.WaterSamplingPoint != null)
             return !string.IsNullOrWhiteSpace(loc.SamplingConfiguration.WaterSamplingPoint.Code)
                 ? loc.SamplingConfiguration.WaterSamplingPoint.Code
-                : loc.SamplingConfiguration.WaterSamplingPoint.Location ?? "—";
+                : loc.SamplingConfiguration.WaterSamplingPoint.Location ?? "â€”";
         if (loc.RoomTestConfiguration?.Room != null)
-            return loc.RoomTestConfiguration.Room.Name ?? "—";
+            return loc.RoomTestConfiguration.Room.Name ?? "â€”";
         if (loc.MachinePartConfiguration?.MachinePart != null)
-            return loc.MachinePartConfiguration.MachinePart.Name ?? "—";
+            return loc.MachinePartConfiguration.MachinePart.Name ?? "â€”";
         return $"Location {loc.Id}";
     }
 }

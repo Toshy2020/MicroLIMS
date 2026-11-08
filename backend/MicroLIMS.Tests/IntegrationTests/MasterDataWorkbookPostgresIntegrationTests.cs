@@ -28,7 +28,7 @@ public class MasterDataWorkbookPostgresIntegrationTests
         return new MasterDataWorkbookService(
             db, new ClosedXmlWorkbookFormat(), storage ?? new InMemoryFileStorageService(), signatures, TimeProvider.System,
             new OrganismMasterDataService(db), new ReferenceListMasterDataService(db),
-            new EnvironmentalMonitoringMasterDataService(db), new WaterMasterDataService(db),
+            new EnvironmentalMonitoringMasterDataService(db), new WaterMasterDataService(db, scope),
             new MaterialMasterService(db, scope, signatures, audit), new ReferenceOrganismService(db, scope, signatures, audit), new MediaProductService(db, signatures, audit),
             new EquipmentMasterDataService(db, scope), new ItemService(db),
             new SpecificationMasterDataService(db, scope));

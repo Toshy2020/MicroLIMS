@@ -40,7 +40,8 @@ public record IcpCalibrationDto(
 
 public record IcpRunSampleSummaryDto(
     int Id, int TestOrderId, IcpRunSampleStatus Status,
-    string SampleNumber, string? BatchNumber, string? ProductName, string TestCode);
+    string SampleNumber, string? BatchNumber, string? ProductName, string TestCode,
+    string? SubjectName = null);
 
 public record IcpRunDto(
     int Id, uint Version, string Code, int SectionId,
@@ -299,12 +300,21 @@ public partial class IcpRunService
         var orders = orderIds.Count == 0 ? new Dictionary<int, TestOrder>() : await _db.TestOrders.AsNoTracking()
             .Include(o => o.Sample).ThenInclude(s => s!.Item)
             .Where(o => orderIds.Contains(o.Id)).ToDictionaryAsync(o => o.Id, ct);
+        var locations = orderIds.Count == 0 ? new List<SampleLocation>() : await _db.SampleLocations.AsNoTracking()
+            .Include(l => l.Sample).ThenInclude(s => s!.Machine)
+            .Include(l => l.MachinePartConfiguration).ThenInclude(c => c!.MachinePart).ThenInclude(p => p!.Machine)
+            .Where(l => orderIds.Contains(l.TestOrderId))
+            .ToListAsync(ct);
+        var locationsByOrder = locations.GroupBy(l => l.TestOrderId).ToDictionary(g => g.Key, g => g.ToList());
+
         var samples = run.Samples.OrderBy(s => s.Id).Select(s =>
         {
             orders.TryGetValue(s.TestOrderId, out var o);
+            locationsByOrder.TryGetValue(s.TestOrderId, out var locs);
             return new IcpRunSampleSummaryDto(
                 s.Id, s.TestOrderId, s.Status, o?.Sample?.ReferenceNumber ?? string.Empty,
-                o?.Sample?.BatchNumber, o?.Sample?.Item?.Name, o?.TestCode ?? string.Empty);
+                o?.Sample?.BatchNumber, o?.Sample?.Item?.Name, o?.TestCode ?? string.Empty,
+                SubjectNameHelper.FormatSingleLocationSubject(locs));
         }).ToList();
 
         var evidence = run.Evidence.OrderByDescending(e => e.UploadedAt).Select(e => ToEvidenceDto(e, NameOf(e.UploadedByUserId))).ToList();

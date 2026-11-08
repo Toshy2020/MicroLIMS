@@ -285,6 +285,8 @@ export const masterDataOptions = {
   getEquationTypes: (): Promise<EquationTypeDto[]> =>
     apiClient.get("/masterdata/equation-types").then((r) => r.data.data || []),
   getTestDefinitions: () => apiClient.get("/masterdata/test-definitions").then((r) => r.data.data),
+  getEditableTestCodes: (): Promise<string[]> =>
+    apiClient.get("/masterdata/test-definitions/editable-codes").then((r) => r.data.data || []),
   createTestDefinition: (codeOrPayload: string | CreateTestDefinitionPayload, displayName?: string, sectionId?: number | null) => {
     const payload = typeof codeOrPayload === "string"
       ? { code: codeOrPayload, displayName: displayName ?? codeOrPayload, ...(sectionId != null ? { sectionId } : {}) }

@@ -58,7 +58,7 @@ public class MonitoringPlanLinkingTests
         w.Db.MonitoringPlanRevisions.Add(w.Revision);
         await w.Db.SaveChangesAsync();
 
-        w.Links = new MonitoringLinkService(w.Db, w.Clock, new OccurrenceStatusService(w.Db, w.Clock));
+        w.Links = new MonitoringLinkService(w.Db, w.Clock, new OccurrenceStatusService(w.Db, w.Clock), new UserSectionScopeService(w.Db));
         w.Engine = new EMWorkflowEngine(w.Db, new ReferenceNumberGenerator(w.Db), null, w.Links);
         return w;
     }

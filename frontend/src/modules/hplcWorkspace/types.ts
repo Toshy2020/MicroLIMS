@@ -52,7 +52,7 @@ export type {
   HplcDetectorType
 } from "../laboratoryConfiguration/masterDataSimple/services/HplcMethodService";
 
-export type HplcResultMode = "Assay" | "ResidualSolvents" | "RelatedSubstances";
+export type HplcResultMode = "Assay" | "ResidualSolvents" | "RelatedSubstances" | "CleaningResidue";
 
 export type HplcMethodImpuritySnapshot = HplcMethodImpurityResponse;
 export type HplcMethodSnapshot = HplcMethodResponse;
@@ -185,6 +185,7 @@ export interface HplcRunSampleSummaryDto {
   testCode: string;
   submitted: boolean;
   isDissolution: boolean;
+  subjectName?: string | null;
 }
 
 export interface HplcDissolutionStandardValues {
@@ -258,6 +259,7 @@ export interface EligibleTestDto {
   testCode: string;
   receivedAt: string;
   stageName?: string | null;
+  subjectName?: string | null;
 }
 
 export interface HplcReplicateResponseInput {
@@ -340,6 +342,7 @@ export interface HplcSampleEntryDto {
   productName?: string | null;
   testCode: string;
   stageName?: string | null;
+  subjectName?: string | null;
   status: HplcRunSampleStatus;
   basis: string;
   moistureRole?: "LossOnDrying" | "Water" | null;

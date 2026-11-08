@@ -102,6 +102,7 @@ export function IcpTestFields({ form, onChange }: IcpTestFieldsProps) {
               <TableRow>
                 <TableCell sx={{ width: 120 }}>Symbol</TableCell>
                 {assay && <TableCell>Target concentration (ppm)</TableCell>}
+                <TableCell>Cleaning limit (ppm)</TableCell>
                 <TableCell sx={{ width: 56 }} />
               </TableRow>
             </TableHead>
@@ -132,6 +133,17 @@ export function IcpTestFields({ form, onChange }: IcpTestFieldsProps) {
                     </TableCell>
                   )}
                   <TableCell>
+                    <TextField
+                      size="small"
+                      type="number"
+                      value={el.cleaningLimitPpm}
+                      onChange={(e) => updateElement(index, { cleaningLimitPpm: e.target.value })}
+                      placeholder="Optional"
+                      slotProps={{ htmlInput: { min: 0, step: "any", "aria-label": `Element ${index + 1} cleaning limit ppm` } }}
+                      sx={{ width: 180 }}
+                    />
+                  </TableCell>
+                  <TableCell>
                     <IconButton
                       size="small"
                       aria-label={`Remove element ${index + 1}`}
@@ -148,7 +160,7 @@ export function IcpTestFields({ form, onChange }: IcpTestFieldsProps) {
           <Button
             size="small"
             startIcon={<AddIcon />}
-            onClick={() => set({ elements: [...form.elements, { symbol: "", targetPpm: "" }] })}
+            onClick={() => set({ elements: [...form.elements, { symbol: "", targetPpm: "", cleaningLimitPpm: "" }] })}
             sx={{ mt: 1, textTransform: "none" }}
           >
             Add element

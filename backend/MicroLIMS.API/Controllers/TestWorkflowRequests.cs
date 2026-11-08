@@ -1,4 +1,5 @@
 using MicroLIMS.Domain.Enums;
+using MicroLIMS.Application.Workflows;
 
 namespace MicroLIMS.API.Controllers;
 
@@ -33,6 +34,17 @@ public record WaterBatchLocationRequest(int SampleLocationId, List<decimal> Read
 public record WaterBatchReadingsRequest(List<WaterBatchLocationRequest> Locations);
 public record BatchPathogenLocationRequest(int SampleLocationId, bool? GrowthObserved);
 public record BatchPathogenResultsRequest(List<BatchPathogenLocationRequest> Locations);
+
+public record LocationResultItemRequest(int SampleLocationId, decimal? Value = null, string? Text = null);
+public record LocationResultsRequest(
+    List<LocationResultItemRequest>? Locations = null,
+    List<LocationResultItemRequest>? Inputs = null)
+{
+    public List<LocationResultInput> ToDomainInputs() =>
+        (Inputs ?? Locations ?? new List<LocationResultItemRequest>())
+        .Select(i => new LocationResultInput(i.SampleLocationId, i.Value, i.Text))
+        .ToList();
+}
 
 public record SubmitBrothRequest(string StepName, string? Observation);
 

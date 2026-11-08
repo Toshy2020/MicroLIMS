@@ -262,7 +262,7 @@ public class AnalysisDetailDto
 public class ParameterResultDetailDto
 {
     public int Id { get; set; }
-    public int SpecificationId { get; set; }
+    public int? SpecificationId { get; set; }
     public string ParameterName { get; set; } = string.Empty;
     public decimal? ReportedValue { get; set; }
     public string ReportedDisplay { get; set; } = string.Empty;

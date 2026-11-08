@@ -205,9 +205,16 @@ export function HplcSampleEntryPage() {
         <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 2 }}>
           <Box>
             <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 1, flexWrap: "wrap" }}>
-              <Typography variant="h5" sx={{ fontWeight: 700 }}>
-                {sampleEntry.sampleNumber}
-              </Typography>
+              <Box>
+                <Typography variant="h5" sx={{ fontWeight: 700 }}>
+                  {sampleEntry.sampleNumber}
+                </Typography>
+                {sampleEntry.subjectName && (
+                  <Typography variant="caption" sx={{ display: "block", color: "text.secondary" }}>
+                    {sampleEntry.subjectName}
+                  </Typography>
+                )}
+              </Box>
               <HplcStatusBadge status={sampleEntry.status} />
               <StatusBadge status="Prepared" label={`Basis: ${sampleEntry.basis}`} />
               <HplcStatusBadge

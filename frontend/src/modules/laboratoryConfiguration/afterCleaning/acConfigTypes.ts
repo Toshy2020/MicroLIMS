@@ -23,6 +23,12 @@ export interface PartConfig {
   specLimit: string;
   isPathogenTest: boolean;
   unit: string;
+  limitType?: "Range" | "NotMoreThan" | "NotLessThan" | "Qualitative" | null;
+  lowerLimit?: number | null;
+  upperLimit?: number | null;
+  lowerInclusive?: boolean;
+  upperInclusive?: boolean;
+  expectedResultText?: string | null;
 }
 
 // Count (CFU) sample types; their unit is fixed by the backend

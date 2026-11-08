@@ -63,6 +63,8 @@ public class SampleApprovalService
             MachineId = original.MachineId,
             PreviousProductName = original.PreviousProductName,
             PreviousProductBatchNumber = original.PreviousProductBatchNumber,
+            PreviousProductItemId = original.PreviousProductItemId,
+            CleaningTechniques = original.CleaningTechniques,
             WaterDepartmentId = original.WaterDepartmentId,
             ProductionStage = original.ProductionStage,
             CauseOfTestingId = causeOfTestingId,

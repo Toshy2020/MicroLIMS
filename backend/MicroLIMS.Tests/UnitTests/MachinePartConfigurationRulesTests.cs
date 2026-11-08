@@ -4,6 +4,7 @@ using MicroLIMS.Application.Services.MasterData;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Persistence.DbContext;
+using MicroLIMS.Tests.Fixtures;
 using Xunit;
 
 namespace MicroLIMS.Tests.UnitTests;
@@ -13,8 +14,13 @@ namespace MicroLIMS.Tests.UnitTests;
 // configuration samples have already used.
 public class MachinePartConfigurationRulesTests
 {
+    private const int UserId = 1;
+
     private static MicroLimsDbContext NewDb() =>
         new(new DbContextOptionsBuilder<MicroLimsDbContext>().UseInMemoryDatabase(Guid.NewGuid().ToString()).Options);
+
+    private static AfterCleaningMasterDataService NewService(MicroLimsDbContext db) =>
+        new(db, new StubSectionScope(_ => null));
 
     private static CreateMachinePartConfigRequest Pathogen(string code) =>
         new(MachinePartId: 1, TestType: "Pathogen", TestCode: code, AlertLimit: "", ActionLimit: "", SpecLimit: "", IsPathogenTest: true);
@@ -23,11 +29,11 @@ public class MachinePartConfigurationRulesTests
     public async Task APart_CanHaveSeveralPathogenTests()
     {
         await using var db = NewDb();
-        var service = new AfterCleaningMasterDataService(db);
+        var service = NewService(db);
 
-        await service.CreateMachinePartConfigurationAsync(Pathogen("ECOLI"));
-        await service.CreateMachinePartConfigurationAsync(Pathogen("SALM"));
-        await service.CreateMachinePartConfigurationAsync(Pathogen("PSEUDO"));
+        await service.CreateMachinePartConfigurationAsync(UserId, Pathogen("ECOLI"));
+        await service.CreateMachinePartConfigurationAsync(UserId, Pathogen("SALM"));
+        await service.CreateMachinePartConfigurationAsync(UserId, Pathogen("PSEUDO"));
 
         Assert.Equal(3, await db.MachinePartConfigurations.CountAsync(c => c.MachinePartId == 1 && c.IsPathogenTest));
     }
@@ -36,10 +42,10 @@ public class MachinePartConfigurationRulesTests
     public async Task TheSameTestTwiceOnOnePart_IsRefused()
     {
         await using var db = NewDb();
-        var service = new AfterCleaningMasterDataService(db);
-        await service.CreateMachinePartConfigurationAsync(Pathogen("ECOLI"));
+        var service = NewService(db);
+        await service.CreateMachinePartConfigurationAsync(UserId, Pathogen("ECOLI"));
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => service.CreateMachinePartConfigurationAsync(Pathogen("ECOLI")));
+        await Assert.ThrowsAsync<InvalidOperationException>(() => service.CreateMachinePartConfigurationAsync(UserId, Pathogen("ECOLI")));
         Assert.Equal(1, await db.MachinePartConfigurations.CountAsync());
     }
 
@@ -47,9 +53,9 @@ public class MachinePartConfigurationRulesTests
     public async Task TheSameTestCode_UnderAnotherTestType_IsAllowed()
     {
         await using var db = NewDb();
-        var service = new AfterCleaningMasterDataService(db);
-        await service.CreateMachinePartConfigurationAsync(new(1, "Swab", "TAMC", "1", "3", "5", false));
-        await service.CreateMachinePartConfigurationAsync(new(1, "Rinse", "TAMC", "1", "3", "5", false));
+        var service = NewService(db);
+        await service.CreateMachinePartConfigurationAsync(UserId, new(1, "Swab", "TAMC", "1", "3", "5", false));
+        await service.CreateMachinePartConfigurationAsync(UserId, new(1, "Rinse", "TAMC", "1", "3", "5", false));
 
         Assert.Equal(2, await db.MachinePartConfigurations.CountAsync());
     }
@@ -58,22 +64,22 @@ public class MachinePartConfigurationRulesTests
     public async Task Update_OntoAnotherRowsTest_IsRefused()
     {
         await using var db = NewDb();
-        var service = new AfterCleaningMasterDataService(db);
-        await service.CreateMachinePartConfigurationAsync(Pathogen("ECOLI"));
-        var salm = await service.CreateMachinePartConfigurationAsync(Pathogen("SALM"));
+        var service = NewService(db);
+        await service.CreateMachinePartConfigurationAsync(UserId, Pathogen("ECOLI"));
+        var salm = await service.CreateMachinePartConfigurationAsync(UserId, Pathogen("SALM"));
 
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            service.UpdateMachinePartConfigurationAsync(salm.Id, new UpdateMachinePartConfigRequest("Pathogen", "ECOLI", "", "", "", true)));
+            service.UpdateMachinePartConfigurationAsync(UserId, salm.Id, new UpdateMachinePartConfigRequest("Pathogen", "ECOLI", "", "", "", true)));
     }
 
     [Fact]
     public async Task Update_KeepingItsOwnTest_IsAllowed()
     {
         await using var db = NewDb();
-        var service = new AfterCleaningMasterDataService(db);
-        var ecoli = await service.CreateMachinePartConfigurationAsync(Pathogen("ECOLI"));
+        var service = NewService(db);
+        var ecoli = await service.CreateMachinePartConfigurationAsync(UserId, Pathogen("ECOLI"));
 
-        var saved = await service.UpdateMachinePartConfigurationAsync(ecoli.Id, new UpdateMachinePartConfigRequest("Pathogen", "ECOLI", "", "", "", true, "per swab"));
+        var saved = await service.UpdateMachinePartConfigurationAsync(UserId, ecoli.Id, new UpdateMachinePartConfigRequest("Pathogen", "ECOLI", "", "", "", true, "per swab"));
 
         Assert.Equal("per swab", saved.Unit);
     }
@@ -82,12 +88,12 @@ public class MachinePartConfigurationRulesTests
     public async Task Delete_OfAConfigurationSamplesUsed_IsRefused()
     {
         await using var db = NewDb();
-        var service = new AfterCleaningMasterDataService(db);
-        var ecoli = await service.CreateMachinePartConfigurationAsync(Pathogen("ECOLI"));
+        var service = NewService(db);
+        var ecoli = await service.CreateMachinePartConfigurationAsync(UserId, Pathogen("ECOLI"));
         db.SampleLocations.Add(new SampleLocation { SampleId = 1, TestOrderId = 1, LocationType = LocationType.MachinePart, MachinePartConfigurationId = ecoli.Id });
         await db.SaveChangesAsync();
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => service.DeleteMachinePartConfigurationAsync(ecoli.Id));
+        await Assert.ThrowsAsync<InvalidOperationException>(() => service.DeleteMachinePartConfigurationAsync(UserId, ecoli.Id));
         Assert.Equal(1, await db.MachinePartConfigurations.CountAsync());
     }
 
@@ -95,10 +101,10 @@ public class MachinePartConfigurationRulesTests
     public async Task Delete_OfAnUnusedConfiguration_Succeeds()
     {
         await using var db = NewDb();
-        var service = new AfterCleaningMasterDataService(db);
-        var ecoli = await service.CreateMachinePartConfigurationAsync(Pathogen("ECOLI"));
+        var service = NewService(db);
+        var ecoli = await service.CreateMachinePartConfigurationAsync(UserId, Pathogen("ECOLI"));
 
-        await service.DeleteMachinePartConfigurationAsync(ecoli.Id);
+        await service.DeleteMachinePartConfigurationAsync(UserId, ecoli.Id);
 
         Assert.Equal(0, await db.MachinePartConfigurations.CountAsync());
     }

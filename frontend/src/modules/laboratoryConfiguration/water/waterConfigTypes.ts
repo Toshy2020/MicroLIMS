@@ -1,5 +1,15 @@
 import type { FrequencyColumns } from "../../../components/configHierarchy";
 
+export interface WaterPointLabFrequency extends FrequencyColumns {
+  sectionId: number;
+  sectionCode: string;
+  type?: "Daily" | "Weekly" | "Monthly" | null;
+  interval?: number | null;
+  anchorMonth?: number | null;
+  weekOfMonth?: number | null;
+  description?: string;
+}
+
 export interface SamplingPoint extends FrequencyColumns {
   id: number;
   version?: number;
@@ -8,6 +18,7 @@ export interface SamplingPoint extends FrequencyColumns {
   testingFrequency: string;
   assignedTestCodes: string[];
   waterDepartmentId: number | null;
+  labFrequencies?: WaterPointLabFrequency[];
 }
 
 export interface WaterDept {
@@ -26,6 +37,12 @@ export interface SamplingConfig {
   actionLimit: string;
   specLimit: string;
   unit: string;
+  limitType?: "Range" | "NotMoreThan" | "NotLessThan" | "Qualitative" | null;
+  lowerLimit?: number | null;
+  upperLimit?: number | null;
+  lowerInclusive?: boolean;
+  upperInclusive?: boolean;
+  expectedResultText?: string | null;
 }
 
 // Only count tests (e.g. TAMC-Water) carry Alert/Action/Spec limits;

@@ -70,7 +70,7 @@ public class MonitoringDeviationServiceTests
         var status = new OccurrenceStatusService(w.Db, clock);
         var signatures = new ElectronicSignatureService(w.Db);
         w.Service = new MonitoringDeviationService(w.Db, clock, status, signatures);
-        w.Occurrences = new MonitoringOccurrenceService(w.Db, clock, status, signatures);
+        w.Occurrences = new MonitoringOccurrenceService(w.Db, clock, status, signatures, new UserSectionScopeService(w.Db));
         return w;
     }
 
@@ -230,12 +230,12 @@ public class MonitoringDeviationServiceTests
         var w = await BuildAsync();
         var missed = await AddOccurrenceAsync(w, "2026-W40", new DateOnly(2026, 9, 27), new DateOnly(2026, 10, 1));
         await w.Service.DetectAsync();
-        Assert.Contains((await w.Occurrences.GetDueAsync(null)).Items, i => i.Id == missed.Id);
+        Assert.Contains((await w.Occurrences.GetDueAsync(w.Head.Id, null)).Items, i => i.Id == missed.Id);
 
         await w.Service.CloseAsync(Close(new[] { (await w.Db.MonitoringDeviations.SingleAsync()).Id }, DeviationClosure.Justified, "Room was shut down for maintenance"), w.Head.Id, null);
 
         Assert.Equal(OccurrenceExceptionState.None, (await w.Db.MonitoringOccurrences.SingleAsync(o => o.Id == missed.Id)).ExceptionState);
-        Assert.DoesNotContain((await w.Occurrences.GetDueAsync(null)).Items, i => i.Id == missed.Id);
+        Assert.DoesNotContain((await w.Occurrences.GetDueAsync(w.Head.Id, null)).Items, i => i.Id == missed.Id);
     }
 
     [Fact]

@@ -17,14 +17,98 @@ namespace MicroLIMS.Application.Services.MasterData;
 public class WaterMasterDataService
 {
     private readonly IMicroLimsDbContext _db;
+    private readonly IUserSectionScopeService _scope;
 
-    public WaterMasterDataService(IMicroLimsDbContext db)
+    public WaterMasterDataService(IMicroLimsDbContext db, IUserSectionScopeService scope)
     {
         _db = db;
+        _scope = scope;
     }
 
     public async Task<List<WaterSamplingPointResponse>> GetWaterSamplingPointsAsync() =>
-        (await _db.WaterSamplingPoints.AsNoTracking().ToListAsync()).Select(WaterSamplingPointResponse.From).ToList();
+        (await _db.WaterSamplingPoints.AsNoTracking()
+            .Include(p => p.LabFrequencies).ThenInclude(f => f.Section)
+            .ToListAsync()).Select(WaterSamplingPointResponse.From).ToList();
+
+    public async Task<WaterPointLabFrequencyResponse> GetWaterPointLabFrequencyAsync(int currentUserId, int id, int sectionId)
+    {
+        var point = await _db.WaterSamplingPoints.AsNoTracking().FirstOrDefaultAsync(p => p.Id == id)
+            ?? throw new NotFoundException($"Sampling point {id} not found.");
+
+        var section = await _db.DocumentSections.AsNoTracking().FirstOrDefaultAsync(s => s.Id == sectionId)
+            ?? throw new NotFoundException($"Section {sectionId} not found.");
+
+        var existing = await _db.WaterPointLabFrequencies.AsNoTracking()
+            .Include(f => f.Section)
+            .FirstOrDefaultAsync(f => f.WaterSamplingPointId == id && f.SectionId == sectionId);
+
+        if (existing is null)
+            throw new NotFoundException($"No frequency override found for point {id} and section {sectionId}.");
+
+        return WaterPointLabFrequencyResponse.From(existing);
+    }
+
+    public async Task<WaterPointLabFrequencyResponse> SetWaterPointLabFrequencyAsync(
+        int currentUserId, int id, int sectionId, SetWaterPointLabFrequencyRequest request)
+    {
+        var point = await _db.WaterSamplingPoints.FirstOrDefaultAsync(p => p.Id == id)
+            ?? throw new NotFoundException($"Sampling point {id} not found.");
+
+        var section = await _db.DocumentSections.FirstOrDefaultAsync(s => s.Id == sectionId)
+            ?? throw new NotFoundException($"Section {sectionId} not found.");
+
+        var configurable = await _scope.GetConfigurableSectionIdsAsync(currentUserId);
+        if (configurable is not null && !configurable.Contains(sectionId))
+            throw new UnauthorizedAccessException($"You do not have permission to configure section {sectionId}.");
+
+        var rule = request.ToRuleDto();
+        if (rule is not null && FrequencyRules.Validate(rule, weekdayRequired: true) is { } problem)
+            throw new BusinessRuleException(problem);
+
+        var existing = await _db.WaterPointLabFrequencies
+            .FirstOrDefaultAsync(f => f.WaterSamplingPointId == id && f.SectionId == sectionId);
+
+        if (existing is null)
+        {
+            existing = new WaterPointLabFrequency
+            {
+                WaterSamplingPointId = id,
+                SectionId = sectionId,
+            };
+            ApplyFrequency(existing, rule);
+            _db.WaterPointLabFrequencies.Add(existing);
+        }
+        else
+        {
+            RecordVersion.EnsureCurrent(_db, existing);
+            ApplyFrequency(existing, rule);
+        }
+
+        await _db.SaveChangesAsync();
+        existing.Section = section;
+        return WaterPointLabFrequencyResponse.From(existing);
+    }
+
+    public async Task<object> DeleteWaterPointLabFrequencyAsync(int currentUserId, int id, int sectionId)
+    {
+        var point = await _db.WaterSamplingPoints.FirstOrDefaultAsync(p => p.Id == id)
+            ?? throw new NotFoundException($"Sampling point {id} not found.");
+
+        var configurable = await _scope.GetConfigurableSectionIdsAsync(currentUserId);
+        if (configurable is not null && !configurable.Contains(sectionId))
+            throw new UnauthorizedAccessException($"You do not have permission to configure section {sectionId}.");
+
+        var existing = await _db.WaterPointLabFrequencies
+            .FirstOrDefaultAsync(f => f.WaterSamplingPointId == id && f.SectionId == sectionId);
+
+        if (existing is not null)
+        {
+            _db.WaterPointLabFrequencies.Remove(existing);
+            await _db.SaveChangesAsync();
+        }
+
+        return new { };
+    }
 
     // A weekly Water point must say which weekday it is sampled on.
     private static void ApplyFrequency(IHasFrequency target, FrequencyRuleDto? rule)
@@ -34,25 +118,51 @@ public class WaterMasterDataService
         FrequencyRules.Apply(target, rule);
     }
 
-    public async Task<WaterSamplingPointResponse> CreateWaterSamplingPointAsync(CreateWaterSamplingPointRequest request)
+    public async Task<WaterSamplingPointResponse> CreateWaterSamplingPointAsync(int currentUserId, CreateWaterSamplingPointRequest request)
     {
-        var point = new WaterSamplingPoint { Code = request.Code, Location = request.Location, TestingFrequency = request.TestingFrequency, AssignedTestCodes = request.AssignedTestCodes, WaterDepartmentId = request.WaterDepartmentId };
+        if (request.AssignedTestCodes is { Count: > 0 })
+        {
+            await TestCodeOwnership.EnsureCanEditAsync(_db, _scope, currentUserId, request.AssignedTestCodes, "Water sampling point");
+        }
+
+        var point = new WaterSamplingPoint
+        {
+            Code = request.Code,
+            Location = request.Location,
+            TestingFrequency = request.TestingFrequency,
+            AssignedTestCodes = request.AssignedTestCodes ?? new List<string>(),
+            WaterDepartmentId = request.WaterDepartmentId
+        };
         ApplyFrequency(point, request.Frequency);
         _db.WaterSamplingPoints.Add(point);
         await _db.SaveChangesAsync();
         return WaterSamplingPointResponse.From(point);
     }
 
-    public async Task<WaterSamplingPointResponse> UpdateWaterSamplingPointAsync(int id, UpdateWaterSamplingPointRequest request)
+    public async Task<WaterSamplingPointResponse> UpdateWaterSamplingPointAsync(int currentUserId, int id, UpdateWaterSamplingPointRequest request)
     {
-        var point = await _db.WaterSamplingPoints.FirstOrDefaultAsync(p => p.Id == id)
+        var point = await _db.WaterSamplingPoints
+            .Include(p => p.LabFrequencies).ThenInclude(f => f.Section)
+            .FirstOrDefaultAsync(p => p.Id == id)
             ?? throw new NotFoundException($"Sampling point {id} not found.");
         RecordVersion.EnsureCurrent(_db, point);
+
+        var storedCodes = new HashSet<string>(point.AssignedTestCodes ?? new List<string>(), StringComparer.OrdinalIgnoreCase);
+        var newCodes = new HashSet<string>(request.AssignedTestCodes ?? new List<string>(), StringComparer.OrdinalIgnoreCase);
+        var changedCodes = newCodes.Except(storedCodes, StringComparer.OrdinalIgnoreCase)
+            .Concat(storedCodes.Except(newCodes, StringComparer.OrdinalIgnoreCase))
+            .ToList();
+
+        if (changedCodes.Count > 0)
+        {
+            await TestCodeOwnership.EnsureCanEditAsync(_db, _scope, currentUserId, changedCodes, "Water sampling point");
+        }
+
         if (request.IsActive.HasValue) point.IsActive = request.IsActive.Value;
         point.Code = request.Code;
         point.Location = request.Location;
         point.TestingFrequency = request.TestingFrequency;
-        point.AssignedTestCodes = request.AssignedTestCodes;
+        point.AssignedTestCodes = request.AssignedTestCodes ?? new List<string>();
         point.WaterDepartmentId = request.WaterDepartmentId;
         ApplyFrequency(point, request.Frequency);
         await _db.SaveChangesAsync();
@@ -62,10 +172,29 @@ public class WaterMasterDataService
     // Blocked if any Sample, SampleLocation or SamplingConfiguration still references
     // this point - same "guard with a clear message" pattern as
     // ItemService.DeleteAsync.
-    public async Task<object> DeleteWaterSamplingPointAsync(int id)
+    public async Task<object> DeleteWaterSamplingPointAsync(int currentUserId, int id)
     {
         var point = await _db.WaterSamplingPoints.FirstOrDefaultAsync(p => p.Id == id)
             ?? throw new NotFoundException($"Sampling point {id} not found.");
+
+        if (point.AssignedTestCodes is { Count: > 0 })
+        {
+            var editable = await TestCodeOwnership.GetEditableCodesAsync(_db, _scope, currentUserId);
+            if (editable is not null)
+            {
+                var existingCodes = await _db.TestDefinitions
+                    .AsNoTracking()
+                    .Where(t => point.AssignedTestCodes.Contains(t.Code))
+                    .Select(t => t.Code)
+                    .ToListAsync();
+
+                if (existingCodes.Any(c => !editable.Contains(c)))
+                {
+                    throw new UnauthorizedAccessException(
+                        $"Cannot delete '{point.Code}' - it still has tests from another laboratory assigned.");
+                }
+            }
+        }
 
         var sampleCount = await _db.Samples.CountAsync(s => s.WaterSamplingPointId == id);
         var configCount = await _db.SamplingConfigurations.CountAsync(c => c.WaterSamplingPointId == id);
@@ -133,37 +262,62 @@ public class WaterMasterDataService
     public async Task<List<SamplingConfigurationResponse>> GetWaterSamplingConfigurationsAsync(int pointId) =>
         (await _db.SamplingConfigurations.AsNoTracking().Where(c => c.WaterSamplingPointId == pointId).ToListAsync()).Select(SamplingConfigurationResponse.From).ToList();
 
-    public async Task<SamplingConfigurationResponse> CreateWaterSamplingConfigurationAsync(CreateWaterSamplingConfigRequest request)
+    public async Task<SamplingConfigurationResponse> CreateWaterSamplingConfigurationAsync(int currentUserId, CreateWaterSamplingConfigRequest request)
     {
+        await TestCodeOwnership.EnsureCanEditAsync(_db, _scope, currentUserId, request.TestCode, "Water sampling configuration");
+        LocationChemistryLimitRules.Validate(request.LimitType, request.LowerLimit, request.UpperLimit, request.ExpectedResultText);
+
         var entity = new SamplingConfiguration
         {
-            WaterSamplingPointId = request.WaterSamplingPointId, TestCode = request.TestCode,
-            AlertLimit = request.AlertLimit, ActionLimit = request.ActionLimit, SpecLimit = request.SpecLimit,
-            Unit = request.Unit ?? string.Empty
+            WaterSamplingPointId = request.WaterSamplingPointId,
+            TestCode = request.TestCode,
+            AlertLimit = request.AlertLimit ?? string.Empty,
+            ActionLimit = request.ActionLimit ?? string.Empty,
+            SpecLimit = request.SpecLimit ?? string.Empty,
+            Unit = request.Unit ?? string.Empty,
+            LimitType = request.LimitType,
+            LowerLimit = request.LowerLimit,
+            UpperLimit = request.UpperLimit,
+            LowerInclusive = request.LowerInclusive,
+            UpperInclusive = request.UpperInclusive,
+            ExpectedResultText = request.ExpectedResultText
         };
         _db.SamplingConfigurations.Add(entity);
         await _db.SaveChangesAsync();
         return SamplingConfigurationResponse.From(entity);
     }
 
-    public async Task<SamplingConfigurationResponse> UpdateWaterSamplingConfigurationAsync(int id, UpdateWaterSamplingConfigRequest request)
+    public async Task<SamplingConfigurationResponse> UpdateWaterSamplingConfigurationAsync(int currentUserId, int id, UpdateWaterSamplingConfigRequest request)
     {
         var entity = await _db.SamplingConfigurations.FirstOrDefaultAsync(c => c.Id == id)
             ?? throw new NotFoundException($"Water sampling configuration {id} not found.");
         RecordVersion.EnsureCurrent(_db, entity);
+
+        await TestCodeOwnership.EnsureCanEditAsync(_db, _scope, currentUserId, new[] { entity.TestCode, request.TestCode }, "Water sampling configuration");
+        LocationChemistryLimitRules.Validate(request.LimitType, request.LowerLimit, request.UpperLimit, request.ExpectedResultText);
+
         entity.TestCode = request.TestCode;
-        entity.AlertLimit = request.AlertLimit;
-        entity.ActionLimit = request.ActionLimit;
-        entity.SpecLimit = request.SpecLimit;
+        entity.AlertLimit = request.AlertLimit ?? string.Empty;
+        entity.ActionLimit = request.ActionLimit ?? string.Empty;
+        entity.SpecLimit = request.SpecLimit ?? string.Empty;
         entity.Unit = request.Unit ?? string.Empty;
+        entity.LimitType = request.LimitType;
+        entity.LowerLimit = request.LowerLimit;
+        entity.UpperLimit = request.UpperLimit;
+        entity.LowerInclusive = request.LowerInclusive;
+        entity.UpperInclusive = request.UpperInclusive;
+        entity.ExpectedResultText = request.ExpectedResultText;
         await _db.SaveChangesAsync();
         return SamplingConfigurationResponse.From(entity);
     }
 
-    public async Task<object> DeleteWaterSamplingConfigurationAsync(int id)
+    public async Task<object> DeleteWaterSamplingConfigurationAsync(int currentUserId, int id)
     {
         var entity = await _db.SamplingConfigurations.FirstOrDefaultAsync(c => c.Id == id)
             ?? throw new NotFoundException($"Water sampling configuration {id} not found.");
+
+        await TestCodeOwnership.EnsureCanEditAsync(_db, _scope, currentUserId, entity.TestCode, "Water sampling configuration");
+
         _db.SamplingConfigurations.Remove(entity);
         await _db.SaveChangesAsync();
         return new { };

@@ -63,9 +63,9 @@ public static class StageReplicateResolver
             .FirstOrDefaultAsync(cancellationToken);
         var productionStageId = sample?.ProductionStageId;
 
-        // Raw and packaging materials have no production stage. The analyst decides
-        // how many replicates to run (at least one), as with plates in a micro count test.
-        if (sample?.Category is SampleCategory.RawMaterial or SampleCategory.PackagingMaterial)
+        // Raw and packaging materials (and location-based categories like After Cleaning and Water)
+        // have no production stage. The analyst decides how many replicates to run (at least one).
+        if (sample?.Category is SampleCategory.RawMaterial or SampleCategory.PackagingMaterial or SampleCategory.AfterCleaning or SampleCategory.Water)
             return new StageReplicateResolution(StageReplicateResolutionStatus.Resolved, null, null, null);
 
         if (productionStageId is null)

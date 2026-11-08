@@ -233,6 +233,14 @@ export const TestWorkflowService = {
   recordWaterBatchReadings: (testOrderId: number, locations: { sampleLocationId: number; readings: number[] }[]) =>
     apiClient.post(`/test-workflow/${testOrderId}/water-batch-readings`, { locations }).then((r) => r.data.data),
 
+  recordLocationResults: (
+    testOrderId: number,
+    locations: Array<{ sampleLocationId: number; value?: number | null; text?: string | null }>
+  ) =>
+    apiClient
+      .post(`/test-workflow/${testOrderId}/location-results`, { locations })
+      .then((r) => r.data.data),
+
   // ---- Pathogen five-stage workflow ----
 
   submitBroth: (

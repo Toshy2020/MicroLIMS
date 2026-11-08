@@ -50,6 +50,21 @@ public class WaterMasterDataController : ControllerBase
     public async Task<IActionResult> DeleteWaterSamplingPoint(int id) =>
         Ok(ApiResponse<object>.Ok(await _service.DeleteWaterSamplingPointAsync(CurrentUserId, id)));
 
+    [Authorize(Policy = PermissionConstants.MasterDataManage)]
+    [HttpGet("water/points/{id}/lab-frequencies/{sectionId}")]
+    public async Task<IActionResult> GetWaterPointLabFrequency(int id, int sectionId) =>
+        Ok(ApiResponse<object>.Ok(await _service.GetWaterPointLabFrequencyAsync(CurrentUserId, id, sectionId)));
+
+    [Authorize(Policy = PermissionConstants.MasterDataManage)]
+    [HttpPut("water/points/{id}/lab-frequencies/{sectionId}")]
+    public async Task<IActionResult> SetWaterPointLabFrequency(int id, int sectionId, SetWaterPointLabFrequencyRequest request) =>
+        Ok(ApiResponse<object>.Ok(await _service.SetWaterPointLabFrequencyAsync(CurrentUserId, id, sectionId, request)));
+
+    [Authorize(Policy = PermissionConstants.MasterDataManage)]
+    [HttpDelete("water/points/{id}/lab-frequencies/{sectionId}")]
+    public async Task<IActionResult> DeleteWaterPointLabFrequency(int id, int sectionId) =>
+        Ok(ApiResponse<object>.Ok(await _service.DeleteWaterPointLabFrequencyAsync(CurrentUserId, id, sectionId)));
+
     // ---- Water Departments ----
     [HttpGet("water-departments")]
     public async Task<IActionResult> GetWaterDepartments() =>

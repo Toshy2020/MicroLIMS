@@ -26,7 +26,89 @@ public class WaterMasterDataService
     }
 
     public async Task<List<WaterSamplingPointResponse>> GetWaterSamplingPointsAsync() =>
-        (await _db.WaterSamplingPoints.AsNoTracking().ToListAsync()).Select(WaterSamplingPointResponse.From).ToList();
+        (await _db.WaterSamplingPoints.AsNoTracking()
+            .Include(p => p.LabFrequencies).ThenInclude(f => f.Section)
+            .ToListAsync()).Select(WaterSamplingPointResponse.From).ToList();
+
+    public async Task<WaterPointLabFrequencyResponse> GetWaterPointLabFrequencyAsync(int currentUserId, int id, int sectionId)
+    {
+        var point = await _db.WaterSamplingPoints.AsNoTracking().FirstOrDefaultAsync(p => p.Id == id)
+            ?? throw new NotFoundException($"Sampling point {id} not found.");
+
+        var section = await _db.DocumentSections.AsNoTracking().FirstOrDefaultAsync(s => s.Id == sectionId)
+            ?? throw new NotFoundException($"Section {sectionId} not found.");
+
+        var existing = await _db.WaterPointLabFrequencies.AsNoTracking()
+            .Include(f => f.Section)
+            .FirstOrDefaultAsync(f => f.WaterSamplingPointId == id && f.SectionId == sectionId);
+
+        if (existing is null)
+            throw new NotFoundException($"No frequency override found for point {id} and section {sectionId}.");
+
+        return WaterPointLabFrequencyResponse.From(existing);
+    }
+
+    public async Task<WaterPointLabFrequencyResponse> SetWaterPointLabFrequencyAsync(
+        int currentUserId, int id, int sectionId, SetWaterPointLabFrequencyRequest request)
+    {
+        var point = await _db.WaterSamplingPoints.FirstOrDefaultAsync(p => p.Id == id)
+            ?? throw new NotFoundException($"Sampling point {id} not found.");
+
+        var section = await _db.DocumentSections.FirstOrDefaultAsync(s => s.Id == sectionId)
+            ?? throw new NotFoundException($"Section {sectionId} not found.");
+
+        var configurable = await _scope.GetConfigurableSectionIdsAsync(currentUserId);
+        if (configurable is not null && !configurable.Contains(sectionId))
+            throw new UnauthorizedAccessException($"You do not have permission to configure section {sectionId}.");
+
+        var rule = request.ToRuleDto();
+        if (rule is not null && FrequencyRules.Validate(rule, weekdayRequired: true) is { } problem)
+            throw new BusinessRuleException(problem);
+
+        var existing = await _db.WaterPointLabFrequencies
+            .FirstOrDefaultAsync(f => f.WaterSamplingPointId == id && f.SectionId == sectionId);
+
+        if (existing is null)
+        {
+            existing = new WaterPointLabFrequency
+            {
+                WaterSamplingPointId = id,
+                SectionId = sectionId,
+            };
+            ApplyFrequency(existing, rule);
+            _db.WaterPointLabFrequencies.Add(existing);
+        }
+        else
+        {
+            RecordVersion.EnsureCurrent(_db, existing);
+            ApplyFrequency(existing, rule);
+        }
+
+        await _db.SaveChangesAsync();
+        existing.Section = section;
+        return WaterPointLabFrequencyResponse.From(existing);
+    }
+
+    public async Task<object> DeleteWaterPointLabFrequencyAsync(int currentUserId, int id, int sectionId)
+    {
+        var point = await _db.WaterSamplingPoints.FirstOrDefaultAsync(p => p.Id == id)
+            ?? throw new NotFoundException($"Sampling point {id} not found.");
+
+        var configurable = await _scope.GetConfigurableSectionIdsAsync(currentUserId);
+        if (configurable is not null && !configurable.Contains(sectionId))
+            throw new UnauthorizedAccessException($"You do not have permission to configure section {sectionId}.");
+
+        var existing = await _db.WaterPointLabFrequencies
+            .FirstOrDefaultAsync(f => f.WaterSamplingPointId == id && f.SectionId == sectionId);
+
+        if (existing is not null)
+        {
+            _db.WaterPointLabFrequencies.Remove(existing);
+            await _db.SaveChangesAsync();
+        }
+
+        return new { };
+    }
 
     // A weekly Water point must say which weekday it is sampled on.
     private static void ApplyFrequency(IHasFrequency target, FrequencyRuleDto? rule)
@@ -59,7 +141,9 @@ public class WaterMasterDataService
 
     public async Task<WaterSamplingPointResponse> UpdateWaterSamplingPointAsync(int currentUserId, int id, UpdateWaterSamplingPointRequest request)
     {
-        var point = await _db.WaterSamplingPoints.FirstOrDefaultAsync(p => p.Id == id)
+        var point = await _db.WaterSamplingPoints
+            .Include(p => p.LabFrequencies).ThenInclude(f => f.Section)
+            .FirstOrDefaultAsync(p => p.Id == id)
             ?? throw new NotFoundException($"Sampling point {id} not found.");
         RecordVersion.EnsureCurrent(_db, point);
 

@@ -60,7 +60,7 @@ public class MonitoringReportTests
 
         var status = new OccurrenceStatusService(w.Db, clock);
         w.Reports = new MonitoringReportService(w.Db, clock, status);
-        var occurrences = new MonitoringOccurrenceService(w.Db, clock, status, new ElectronicSignatureService(w.Db));
+        var occurrences = new MonitoringOccurrenceService(w.Db, clock, status, new ElectronicSignatureService(w.Db), new UserSectionScopeService(w.Db));
         w.Reminders = new MonitoringReminderService(w.Db, occurrences);
         return w;
     }

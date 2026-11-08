@@ -83,6 +83,7 @@ public interface IMicroLimsDbContext
     DbSet<Machine> Machines { get; }
     DbSet<MachinePart> MachineParts { get; }
     DbSet<WaterSamplingPoint> WaterSamplingPoints { get; }
+    DbSet<WaterPointLabFrequency> WaterPointLabFrequencies { get; }
     DbSet<WaterDepartment> WaterDepartments { get; }
     DbSet<EMRoom> EMRooms { get; }
     DbSet<AuditLog> AuditLogs { get; }

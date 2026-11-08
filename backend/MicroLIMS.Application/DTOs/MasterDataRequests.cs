@@ -11,6 +11,24 @@ namespace MicroLIMS.Application.DTOs;
 
 public record CreateWaterSamplingPointRequest(string Code, string Location, string TestingFrequency, List<string> AssignedTestCodes, int? WaterDepartmentId, FrequencyRuleDto? Frequency = null);
 public record UpdateWaterSamplingPointRequest(string Code, string Location, string TestingFrequency, List<string> AssignedTestCodes, int? WaterDepartmentId, bool? IsActive = null, FrequencyRuleDto? Frequency = null);
+public record SetWaterPointLabFrequencyRequest(
+    FrequencyType? FrequencyType = null,
+    FrequencyType? Type = null,
+    int? FrequencyInterval = null,
+    int? Interval = null,
+    DayOfWeek? SamplingWeekday = null,
+    int? FrequencyAnchorMonth = null,
+    int? AnchorMonth = null,
+    int? FrequencyWeekOfMonth = null,
+    int? WeekOfMonth = null)
+{
+    public FrequencyRuleDto ToRuleDto() => new(
+        Type ?? FrequencyType,
+        Interval ?? FrequencyInterval,
+        SamplingWeekday,
+        AnchorMonth ?? FrequencyAnchorMonth,
+        WeekOfMonth ?? FrequencyWeekOfMonth);
+}
 public record CreateWaterDepartmentRequest(string Name);
 public record UpdateWaterDepartmentRequest(string Name, bool? IsActive = null);
 public record CreateWaterSamplingConfigRequest(

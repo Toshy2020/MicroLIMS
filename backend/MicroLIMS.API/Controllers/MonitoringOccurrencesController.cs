@@ -35,25 +35,25 @@ public class MonitoringOccurrencesController : ControllerBase
     [Authorize(Policy = PermissionConstants.MonitoringPlanView)]
     [HttpGet("calendar")]
     public async Task<IActionResult> GetCalendar(
-        [FromQuery] DateOnly from, [FromQuery] DateOnly to, [FromQuery] MonitoringCategory? category, [FromQuery] bool includeRetired = false) =>
-        Ok(ApiResponse<object>.Ok(await _service.GetCalendarAsync(from, to, category, includeRetired)));
+        [FromQuery] DateOnly from, [FromQuery] DateOnly to, [FromQuery] MonitoringCategory? category, [FromQuery] bool includeRetired = false, [FromQuery] int? labSectionId = null) =>
+        Ok(ApiResponse<object>.Ok(await _service.GetCalendarAsync(CurrentUserId, from, to, category, includeRetired, labSectionId)));
 
     // Month totals for the year grid.
     [Authorize(Policy = PermissionConstants.MonitoringPlanView)]
     [HttpGet("calendar/year")]
-    public async Task<IActionResult> GetYearSummary([FromQuery] int year, [FromQuery] MonitoringCategory? category) =>
-        Ok(ApiResponse<object>.Ok(await _service.GetYearSummaryAsync(year, category)));
+    public async Task<IActionResult> GetYearSummary([FromQuery] int year, [FromQuery] MonitoringCategory? category, [FromQuery] int? labSectionId = null) =>
+        Ok(ApiResponse<object>.Ok(await _service.GetYearSummaryAsync(CurrentUserId, year, category, labSectionId)));
 
     // What is still to do this month, and anything overdue.
     [Authorize(Policy = PermissionConstants.MonitoringPlanView)]
     [HttpGet("due")]
-    public async Task<IActionResult> GetDue([FromQuery] MonitoringCategory? category) =>
-        Ok(ApiResponse<object>.Ok(await _service.GetDueAsync(category)));
+    public async Task<IActionResult> GetDue([FromQuery] MonitoringCategory? category, [FromQuery] int? labSectionId = null) =>
+        Ok(ApiResponse<object>.Ok(await _service.GetDueAsync(CurrentUserId, category, labSectionId)));
 
     [Authorize(Policy = PermissionConstants.MonitoringPlanView)]
     [HttpGet("{id:int}")]
     public async Task<IActionResult> GetDetail(int id) =>
-        Ok(ApiResponse<object>.Ok(await _service.GetDetailAsync(id)));
+        Ok(ApiResponse<object>.Ok(await _service.GetDetailAsync(CurrentUserId, id)));
 
     // A manual After Cleaning entry.
     [Authorize(Policy = PermissionConstants.MonitoringPlanManage)]

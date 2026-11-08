@@ -1,5 +1,6 @@
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
+using MicroLIMS.Application.Services.Monitoring;
 
 namespace MicroLIMS.Application.DTOs.Responses;
 
@@ -290,6 +291,7 @@ public class WaterSamplingPointResponse
     public DayOfWeek? SamplingWeekday { get; init; }
     public int? FrequencyAnchorMonth { get; init; }
     public int? FrequencyWeekOfMonth { get; init; }
+    public List<WaterPointLabFrequencyResponse> LabFrequencies { get; init; } = new();
 
     public static WaterSamplingPointResponse From(WaterSamplingPoint e) => new()
     {
@@ -306,7 +308,40 @@ public class WaterSamplingPointResponse
         SamplingWeekday = e.SamplingWeekday,
         FrequencyAnchorMonth = e.FrequencyAnchorMonth,
         FrequencyWeekOfMonth = e.FrequencyWeekOfMonth,
+        LabFrequencies = e.LabFrequencies?.Select(WaterPointLabFrequencyResponse.From).ToList() ?? new(),
     };
+}
+
+public class WaterPointLabFrequencyResponse
+{
+    public int SectionId { get; init; }
+    public string SectionCode { get; init; } = string.Empty;
+    public FrequencyType? FrequencyType { get; init; }
+    public int? FrequencyInterval { get; init; }
+    public DayOfWeek? SamplingWeekday { get; init; }
+    public int? FrequencyAnchorMonth { get; init; }
+    public int? FrequencyWeekOfMonth { get; init; }
+    public FrequencyType? Type => FrequencyType;
+    public int? Interval => FrequencyInterval;
+    public int? AnchorMonth => FrequencyAnchorMonth;
+    public int? WeekOfMonth => FrequencyWeekOfMonth;
+    public string Description { get; init; } = string.Empty;
+
+    public static WaterPointLabFrequencyResponse From(WaterPointLabFrequency f)
+    {
+        var ruleDto = FrequencyRules.From(f);
+        return new WaterPointLabFrequencyResponse
+        {
+            SectionId = f.SectionId,
+            SectionCode = f.Section?.Code ?? string.Empty,
+            FrequencyType = f.FrequencyType,
+            FrequencyInterval = f.FrequencyInterval,
+            SamplingWeekday = f.SamplingWeekday,
+            FrequencyAnchorMonth = f.FrequencyAnchorMonth,
+            FrequencyWeekOfMonth = f.FrequencyWeekOfMonth,
+            Description = ruleDto != null ? FrequencyRules.Describe(ruleDto) : string.Empty
+        };
+    }
 }
 
 public class SamplingConfigurationResponse

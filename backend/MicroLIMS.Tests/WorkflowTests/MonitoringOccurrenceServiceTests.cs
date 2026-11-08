@@ -77,7 +77,7 @@ public class MonitoringOccurrenceServiceTests
         await w.Db.SaveChangesAsync();
 
         var status = new OccurrenceStatusService(w.Db, clock);
-        w.Service = new MonitoringOccurrenceService(w.Db, clock, status, new ElectronicSignatureService(w.Db));
+        w.Service = new MonitoringOccurrenceService(w.Db, clock, status, new ElectronicSignatureService(w.Db), new UserSectionScopeService(w.Db));
         return w;
     }
 
@@ -330,7 +330,7 @@ public class MonitoringOccurrenceServiceTests
         await w.Service.ChangeWindowAsync(occurrence.Id,
             new ChangeWindowRequest(null, new DateOnly(2026, 11, 1), "Room busy on Thursday", Password, "approver", Password), w.Head.Id, null);
 
-        var detail = await w.Service.GetDetailAsync(occurrence.Id);
+        var detail = await w.Service.GetDetailAsync(w.Head.Id, occurrence.Id);
 
         Assert.Equal("Room A", detail.Summary.Target);
         Assert.Equal("Filling", detail.Summary.Group);
@@ -353,15 +353,15 @@ public class MonitoringOccurrenceServiceTests
         w.Db.MonitoringOccurrences.AddRange(thisWeek, nextMonth, retired);
         await w.Db.SaveChangesAsync();
 
-        var october = await w.Service.GetCalendarAsync(new DateOnly(2026, 10, 1), new DateOnly(2026, 10, 31), null, false);
-        var november = await w.Service.GetCalendarAsync(new DateOnly(2026, 11, 1), new DateOnly(2026, 11, 30), null, false);
-        var withRetired = await w.Service.GetCalendarAsync(new DateOnly(2026, 11, 1), new DateOnly(2026, 11, 30), null, true);
+        var october = await w.Service.GetCalendarAsync(w.Head.Id, new DateOnly(2026, 10, 1), new DateOnly(2026, 10, 31), null, false);
+        var november = await w.Service.GetCalendarAsync(w.Head.Id, new DateOnly(2026, 11, 1), new DateOnly(2026, 11, 30), null, false);
+        var withRetired = await w.Service.GetCalendarAsync(w.Head.Id, new DateOnly(2026, 11, 1), new DateOnly(2026, 11, 30), null, true);
 
         Assert.Equal(new[] { thisWeek.Id }, october.Select(o => o.Id));
         Assert.Equal(new[] { nextMonth.Id }, november.Select(o => o.Id));
         Assert.Equal(2, withRetired.Count);
         await Assert.ThrowsAsync<BusinessRuleException>(() =>
-            w.Service.GetCalendarAsync(new DateOnly(2026, 1, 1), new DateOnly(2027, 12, 31), null, false));
+            w.Service.GetCalendarAsync(w.Head.Id, new DateOnly(2026, 1, 1), new DateOnly(2027, 12, 31), null, false));
     }
 
     [Fact]
@@ -375,7 +375,7 @@ public class MonitoringOccurrenceServiceTests
             RoomOccurrence(w, "2026-11", new DateOnly(2026, 11, 1), new DateOnly(2026, 11, 30)));  // upcoming, month of window end
         await w.Db.SaveChangesAsync();
 
-        var summary = await w.Service.GetYearSummaryAsync(2026, null);
+        var summary = await w.Service.GetYearSummaryAsync(w.Head.Id, 2026, null);
 
         var october = summary.Months[9];
         Assert.Equal((4 - 1, 0, 1, 1, 1, 0), (october.Total, october.Performed, october.InProgress, october.Overdue, october.Upcoming, october.Skipped));
@@ -393,7 +393,7 @@ public class MonitoringOccurrenceServiceTests
         w.Db.MonitoringOccurrences.AddRange(overdue, open, november);
         await w.Db.SaveChangesAsync();
 
-        var due = await w.Service.GetDueAsync(null);
+        var due = await w.Service.GetDueAsync(w.Head.Id, null);
 
         Assert.Equal(new[] { overdue.Id, open.Id }, due.Items.Select(i => i.Id));
         Assert.Equal(20, due.WarningDayOfMonth);

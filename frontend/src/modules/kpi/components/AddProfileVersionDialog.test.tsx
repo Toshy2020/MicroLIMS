@@ -75,7 +75,7 @@ describe("AddProfileVersionDialog", () => {
     renderDialog();
     expect(continueButton().disabled).toBe(true);
 
-    await userEvent.type(screen.getByLabelText(/Work units/i), "2");
+    await userEvent.type(await screen.findByLabelText(/Work units/i), "2");
     expect(continueButton().disabled).toBe(true);
 
     await userEvent.type(screen.getByLabelText(/Reason for change/i), "SOP time study");
@@ -101,12 +101,12 @@ describe("AddProfileVersionDialog", () => {
     vi.mocked(workflowProfileService.create).mockResolvedValue(draft());
     const { onClose, onDone } = renderDialog();
 
-    await userEvent.type(screen.getByLabelText(/Work units/i), "2.5");
+    await userEvent.type(await screen.findByLabelText(/Work units/i), "2.5");
     await userEvent.type(screen.getByLabelText(/Target analyst days/i), "10");
     await userEvent.type(screen.getByLabelText(/Reason for change/i), "SOP time study");
     await userEvent.click(continueButton());
-    expect(screen.getByText(/Count Test type default/)).toBeTruthy();
-    await userEvent.click(screen.getByText("confirm-sign"));
+    expect(await screen.findByText(/Count Test type default/)).toBeTruthy();
+    await userEvent.click(await screen.findByText("confirm-sign"));
 
     await waitFor(() => expect(onDone).toHaveBeenCalled());
     expect(workflowProfileService.create).toHaveBeenCalledWith({
@@ -125,9 +125,9 @@ describe("AddProfileVersionDialog", () => {
     vi.mocked(workflowProfileService.signDraft).mockResolvedValue(draft({ status: "Effective" }));
     const { onDone } = renderDialog({ draft: draft(), testCode: "TAMC" });
 
-    await userEvent.type(screen.getByLabelText(/Reason for change/i), "Reviewed against the SOP");
+    await userEvent.type(await screen.findByLabelText(/Reason for change/i), "Reviewed against the SOP");
     await userEvent.click(continueButton());
-    await userEvent.click(screen.getByText("confirm-sign"));
+    await userEvent.click(await screen.findByText("confirm-sign"));
 
     await waitFor(() => expect(onDone).toHaveBeenCalled());
     expect(workflowProfileService.signDraft).toHaveBeenCalledWith(7, 4, {

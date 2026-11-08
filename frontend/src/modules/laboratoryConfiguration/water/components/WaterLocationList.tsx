@@ -67,7 +67,14 @@ export function WaterLocationList({ points, configsByPoint, healthByPoint, isCou
             <Box sx={{ display: "grid", gridTemplateColumns: COLS, gap: 1.5, px: 1.75, py: 1.5, alignItems: "center" }}>
               <Typography sx={{ fontFamily: "monospace", fontSize: 14, fontWeight: 600 }}>{p.code}</Typography>
               <Typography sx={{ fontSize: 14, overflowWrap: "anywhere" }}>{p.location || "—"}</Typography>
-              <Box>{frequencyLabel(p) || p.testingFrequency ? <ToneChip label={frequencyLabel(p) || p.testingFrequency} tone="pending" /> : <Typography sx={{ fontSize: 13, color: "text.secondary" }}>—</Typography>}</Box>
+              <Box>
+                {frequencyLabel(p) || p.testingFrequency ? <ToneChip label={frequencyLabel(p) || p.testingFrequency} tone="pending" /> : <Typography sx={{ fontSize: 13, color: "text.secondary" }}>—</Typography>}
+                {p.labFrequencies && p.labFrequencies.length > 0 && (
+                  <Typography sx={{ fontSize: 11, color: "text.secondary", mt: 0.25 }}>
+                    {p.labFrequencies.map((lf) => `${lf.sectionCode}: ${lf.description || frequencyLabel(lf)}`).join(" · ")}
+                  </Typography>
+                )}
+              </Box>
               <Box>
                 {health?.noTests ? (
                   <Stack spacing={0.25}>

@@ -23,6 +23,8 @@ export interface OccurrenceSummary {
   itemsTotal: number;
   itemsPerformed: number;
   manual: boolean;
+  labSectionId?: number | null;
+  labSectionCode?: string | null;
 }
 
 export interface OccurrenceItem {
@@ -50,6 +52,8 @@ export interface OccurrenceDetail {
   originalTargetDate: string | null;
   items: OccurrenceItem[];
   events: OccurrenceEvent[];
+  labSectionId?: number | null;
+  labSectionCode?: string | null;
 }
 
 export interface MonthSummary {

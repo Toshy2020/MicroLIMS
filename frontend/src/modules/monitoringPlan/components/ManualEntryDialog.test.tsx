@@ -35,4 +35,50 @@ describe("ManualEntryDialog", () => {
     });
     await waitFor(() => expect(onCreated).toHaveBeenCalled());
   });
+
+  it("asks for the lab when target is a water point and sends labSectionId", async () => {
+    vi.mocked(apiClient.get).mockImplementation(async (url: string) => {
+      if (url === "/masterdata/water-sampling-points") {
+        return { data: { data: [{ id: 42, code: "SP-01", location: "Loop A", assignedTestCodes: ["TAMC-Water"] }] } };
+      }
+      return { data: { data: [] } };
+    });
+
+    const onCreated = vi.fn();
+    render(<ManualEntryDialog open onClose={() => {}} onCreated={onCreated} />);
+
+    // Switch target to Water
+    fireEvent.mouseDown(screen.getByLabelText("Target type"));
+    fireEvent.click(await screen.findByRole("option", { name: "Water sampling point" }));
+
+    expect(screen.getByLabelText("Water point")).toBeDefined();
+    expect(screen.getByLabelText("Lab")).toBeDefined();
+
+    const add = screen.getByRole("button", { name: "Add" }) as HTMLButtonElement;
+    expect(add.disabled).toBe(true);
+
+    // Pick Water Point
+    fireEvent.mouseDown(screen.getByLabelText("Water point"));
+    fireEvent.click(await screen.findByRole("option", { name: "SP-01 – Loop A" }));
+
+    // Pick Lab section
+    fireEvent.mouseDown(screen.getByLabelText("Lab"));
+    fireEvent.click(await screen.findByRole("option", { name: "MICRO" }));
+
+    // Pick date
+    fireEvent.change(screen.getByLabelText("Target date"), { target: { value: "2026-10-30" } });
+
+    expect(add.disabled).toBe(false);
+    fireEvent.click(add);
+
+    await waitFor(() => expect(MonitoringPlanService.createManual).toHaveBeenCalledTimes(1));
+    expect(MonitoringPlanService.createManual).toHaveBeenCalledWith({
+      waterSamplingPointId: 42,
+      labSectionId: 1,
+      targetDate: "2026-10-30",
+      kind: "Day",
+      reason: undefined
+    });
+    await waitFor(() => expect(onCreated).toHaveBeenCalled());
+  });
 });

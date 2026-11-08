@@ -32,7 +32,7 @@ function OccurrenceChip({ o, onPick }: { o: OccurrenceSummary; onPick: (o: Occur
         e.stopPropagation();
         onPick(o);
       }}
-      aria-label={`${o.target}, ${STATUS_LABEL[o.status]}`}
+      aria-label={`${o.target}${o.category === "Water" && o.labSectionCode ? ` (${o.labSectionCode})` : ""}, ${STATUS_LABEL[o.status]}`}
       sx={{
         display: "flex", alignItems: "center", gap: 0.5, width: "100%", textAlign: "left", fontSize: 12, lineHeight: 1.4,
         px: 0.5, py: 0.25, mt: 0.375, borderRadius: 0.5, overflow: "hidden",
@@ -41,7 +41,24 @@ function OccurrenceChip({ o, onPick }: { o: OccurrenceSummary; onPick: (o: Occur
       }}
     >
       <Box component="span" aria-hidden="true" sx={{ flex: "none", fontWeight: 700 }}>{STATUS_SYMBOL[o.status]}</Box>
-      <Box component="span" sx={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{o.target}</Box>
+      <Box component="span" sx={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>{o.target}</Box>
+      {o.category === "Water" && o.labSectionCode && (
+        <Box
+          component="span"
+          sx={{
+            flex: "none",
+            fontSize: 9,
+            fontWeight: 700,
+            px: 0.5,
+            py: 0.1,
+            borderRadius: 0.5,
+            bgcolor: "action.selected",
+            letterSpacing: "0.02em"
+          }}
+        >
+          {o.labSectionCode}
+        </Box>
+      )}
     </ButtonBase>
   );
 }
@@ -303,7 +320,25 @@ export function MonthGrid({
                   onClick={() => { setMore(null); onPick(o); }}
                   sx={{ display: "flex", width: "100%", justifyContent: "space-between", gap: 1, py: 0.5, px: 0.75, textAlign: "left", borderRadius: 1, "&:hover": { bgcolor: "action.hover" } }}
                 >
-                  <Typography sx={{ fontSize: 13 }}>{o.target}</Typography>
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
+                    <Typography sx={{ fontSize: 13 }}>{o.target}</Typography>
+                    {o.category === "Water" && o.labSectionCode && (
+                      <Box
+                        component="span"
+                        sx={{
+                          fontSize: 10,
+                          fontWeight: 700,
+                          px: 0.6,
+                          py: 0.15,
+                          borderRadius: 0.5,
+                          bgcolor: "action.selected",
+                          letterSpacing: "0.02em"
+                        }}
+                      >
+                        {o.labSectionCode}
+                      </Box>
+                    )}
+                  </Box>
                   <OccurrenceStatusChip status={o.status} late={o.late} />
                 </ButtonBase>
               );

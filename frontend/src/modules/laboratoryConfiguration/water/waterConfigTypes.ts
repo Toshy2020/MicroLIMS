@@ -1,5 +1,15 @@
 import type { FrequencyColumns } from "../../../components/configHierarchy";
 
+export interface WaterPointLabFrequency extends FrequencyColumns {
+  sectionId: number;
+  sectionCode: string;
+  type?: "Daily" | "Weekly" | "Monthly" | null;
+  interval?: number | null;
+  anchorMonth?: number | null;
+  weekOfMonth?: number | null;
+  description?: string;
+}
+
 export interface SamplingPoint extends FrequencyColumns {
   id: number;
   version?: number;
@@ -8,6 +18,7 @@ export interface SamplingPoint extends FrequencyColumns {
   testingFrequency: string;
   assignedTestCodes: string[];
   waterDepartmentId: number | null;
+  labFrequencies?: WaterPointLabFrequency[];
 }
 
 export interface WaterDept {

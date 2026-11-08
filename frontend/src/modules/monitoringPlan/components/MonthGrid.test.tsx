@@ -59,6 +59,24 @@ describe("MonthGrid", () => {
     expect(onPick).toHaveBeenCalledWith(occurrence);
   });
 
+  it("renders a lab chip for water occurrences", () => {
+    const waterOcc: OccurrenceSummary = {
+      id: 8, version: 1, category: "Water", target: "Point A", group: "WFI", periodKey: "2026-W43",
+      targetDate: "2026-10-28", windowStart: "2026-10-25", windowEnd: "2026-10-29", originalWindowEnd: "2026-10-29",
+      status: "Upcoming", late: false, itemsTotal: 1, itemsPerformed: 0, manual: false,
+      labSectionId: 1, labSectionCode: "MICRO"
+    };
+
+    render(
+      <ThemeProvider theme={lightTheme}>
+        <MonthGrid year={2026} month={9} occurrences={[waterOcc]} today="2026-10-21" onPick={vi.fn()} />
+      </ThemeProvider>
+    );
+
+    expect(screen.getByText("Point A")).toBeDefined();
+    expect(screen.getByText("MICRO")).toBeDefined();
+  });
+
   it("lists the days beyond the second occurrence in a popover", () => {
     const onPick = vi.fn();
     const more = [1, 2, 3, 4].map((n) => ({ ...occurrence, id: n, target: `Point ${n}` }));

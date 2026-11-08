@@ -20,6 +20,13 @@ export const WaterConfigService = {
     apiClient.put(`/masterdata/water-sampling-points/${id}`, { code, location, testingFrequency, assignedTestCodes, waterDepartmentId, frequency }, ifMatch(version)).then((r) => r.data.data),
   deleteSamplingPoint: (id: number) => apiClient.delete(`/masterdata/water-sampling-points/${id}`),
 
+  getPointLabFrequency: (pointId: number, sectionId: number) =>
+    apiClient.get(`/masterdata/water/points/${pointId}/lab-frequencies/${sectionId}`).then((r) => r.data.data),
+  setPointLabFrequency: (pointId: number, sectionId: number, frequency: object) =>
+    apiClient.put(`/masterdata/water/points/${pointId}/lab-frequencies/${sectionId}`, frequency).then((r) => r.data.data),
+  deletePointLabFrequency: (pointId: number, sectionId: number) =>
+    apiClient.delete(`/masterdata/water/points/${pointId}/lab-frequencies/${sectionId}`),
+
   getSamplingConfigurations: (pointId: number) =>
     apiClient.get("/masterdata/water-sampling-configurations", { params: { pointId } }).then((r) => r.data.data),
   createSamplingConfiguration: (

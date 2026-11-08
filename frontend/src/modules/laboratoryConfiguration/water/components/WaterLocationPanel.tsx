@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { MenuItem, Stack, TextField, Typography } from "@mui/material";
+import { useEffect, useMemo, useState } from "react";
+import { Alert, Box, Button, MenuItem, Stack, TextField, Typography } from "@mui/material";
 import {
   StructuredFrequencyField,
   FrequencyValue,
@@ -17,8 +17,9 @@ import {
 } from "../../../../components/configHierarchy";
 import { TestCodePickerMulti } from "../../../../components/TestCodePickerMulti";
 import { useTestDefinitions } from "../../../../hooks/useTestDefinitions";
+import { isTestCodeInLab } from "../WaterPreparationForm";
 import { WaterConfigService } from "../services/WaterConfigService";
-import { SamplingConfig, SamplingPoint, WaterDept } from "../waterConfigTypes";
+import { SamplingConfig, SamplingPoint, WaterDept, WaterPointLabFrequency } from "../waterConfigTypes";
 
 interface Props {
   open: boolean;
@@ -150,6 +151,12 @@ export function WaterLocationPanel({ open, point, defaultDepartmentId, departmen
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const [labFrequencies, setLabFrequencies] = useState<WaterPointLabFrequency[]>([]);
+  const [editingLabId, setEditingLabId] = useState<number | null>(null);
+  const [editingFrequency, setEditingFrequency] = useState<FrequencyValue>(emptyFrequency);
+  const [labSavingId, setLabSavingId] = useState<number | null>(null);
+  const [labError, setLabError] = useState<string | null>(null);
+
   useEffect(() => {
     if (!open) return;
     setCode(point?.code ?? "");
@@ -173,8 +180,107 @@ export function WaterLocationPanel({ open, point, defaultDepartmentId, departmen
     setLimits(initialLimits);
     setSavedPointId(point?.id ?? null);
     setPointVersion(point?.version);
+    setLabFrequencies(point?.labFrequencies ?? []);
+    setEditingLabId(null);
+    setLabSavingId(null);
+    setLabError(null);
     setError(null);
   }, [open, point, defaultDepartmentId, configs, options, isCountTest]);
+
+  const labSections = useMemo(() => {
+    const map = new Map<number, { id: number; code: string; name: string; testCodes: string[] }>();
+    for (const code of testCodes) {
+      const def = options.find((o) => o.code === code);
+      let sectionId: number | undefined = def?.section?.id ?? def?.sectionId;
+      let sectionCode: string | undefined = def?.section?.code;
+      let sectionName: string | undefined = def?.section?.name;
+
+      if (sectionId == null) {
+        const microOpt = options.find((o) => o.section?.code?.toUpperCase() === "MICRO");
+        if (microOpt) {
+          sectionId = microOpt.section?.id ?? microOpt.sectionId;
+          sectionCode = microOpt.section?.code;
+          sectionName = microOpt.section?.name;
+        }
+      }
+
+      if (sectionId != null) {
+        if (!sectionCode) {
+          sectionCode = sectionId === 1 ? "MICRO" : sectionId === 2 ? "FP" : `Section ${sectionId}`;
+        }
+        if (!sectionName) {
+          sectionName = sectionCode;
+        }
+        if (!map.has(sectionId)) {
+          map.set(sectionId, { id: sectionId, code: sectionCode, name: sectionName, testCodes: [code] });
+        } else {
+          map.get(sectionId)!.testCodes.push(code);
+        }
+      }
+    }
+    return Array.from(map.values()).sort((a, b) => a.code.localeCompare(b.code));
+  }, [testCodes, options]);
+
+  const canConfigureLab = (group: { id: number; testCodes: string[] }) => {
+    if (editableCodes === undefined) return true;
+    return (
+      group.testCodes.some((code) => editableCodes.has(code)) ||
+      Array.from(editableCodes).some((code) => isTestCodeInLab(code, group.id, options))
+    );
+  };
+
+  const startEditLab = (secId: number) => {
+    setLabError(null);
+    setEditingLabId(secId);
+    const existing = labFrequencies.find((f) => f.sectionId === secId && f.frequencyType);
+    if (existing) {
+      setEditingFrequency(frequencyFrom(existing));
+    } else {
+      setEditingFrequency(frequencyFrom(point));
+    }
+  };
+
+  const saveLabFrequency = async (secId: number) => {
+    const currentPointId = savedPointId ?? point?.id;
+    if (!currentPointId) {
+      setLabError("Save the location details first to configure frequencies per lab.");
+      return;
+    }
+    if (editingFrequency.type === "Weekly" && !editingFrequency.weekday) {
+      setLabError("A weekly frequency needs a sampling weekday.");
+      return;
+    }
+    setLabSavingId(secId);
+    setLabError(null);
+    try {
+      const updated = await WaterConfigService.setPointLabFrequency(currentPointId, secId, frequencyRule(editingFrequency));
+      setLabFrequencies((prev) => {
+        const rest = prev.filter((f) => f.sectionId !== secId);
+        return [...rest, updated];
+      });
+      setEditingLabId(null);
+    } catch (e: any) {
+      setLabError(e?.response?.data?.message ?? "Could not save lab frequency override.");
+    } finally {
+      setLabSavingId(null);
+    }
+  };
+
+  const resetLabFrequency = async (secId: number) => {
+    const currentPointId = savedPointId ?? point?.id;
+    if (!currentPointId) return;
+    setLabSavingId(secId);
+    setLabError(null);
+    try {
+      await WaterConfigService.deletePointLabFrequency(currentPointId, secId);
+      setLabFrequencies((prev) => prev.filter((f) => f.sectionId !== secId));
+      if (editingLabId === secId) setEditingLabId(null);
+    } catch (e: any) {
+      setLabError(e?.response?.data?.message ?? "Could not reset lab frequency.");
+    } finally {
+      setLabSavingId(null);
+    }
+  };
 
   const labName = (testCode: string) => options.find((o) => o.code === testCode)?.section?.name || "Other laboratory";
 
@@ -353,7 +459,105 @@ export function WaterLocationPanel({ open, point, defaultDepartmentId, departmen
         />
       </PanelSection>
 
-      <PanelSection title="3 · Limits for assigned tests" hint="Configure limits for count tests and chemistry tests.">
+      <PanelSection title="3 · Frequency per lab" hint="Sampling frequency overrides per laboratory section.">
+        {labError && <Alert severity="error" sx={{ mb: 1.5 }}>{labError}</Alert>}
+        {!(point || savedPointId) ? (
+          <Typography sx={{ fontSize: 13, color: "text.secondary" }}>
+            Save the sample location first to configure frequencies per lab.
+          </Typography>
+        ) : labSections.length === 0 ? (
+          <Typography sx={{ fontSize: 13, color: "text.secondary" }}>
+            Assign tests to configure frequencies per lab.
+          </Typography>
+        ) : (
+          <Stack spacing={1.5}>
+            {labSections.map((sec) => {
+              const override = labFrequencies.find((f) => f.sectionId === sec.id && f.frequencyType);
+              const desc = override ? (override.description || frequencyLabel(override)) : "Point default";
+              const editable = canConfigureLab(sec);
+              const isEditing = editingLabId === sec.id;
+              const isBusy = labSavingId === sec.id;
+
+              return (
+                <Box
+                  key={sec.id}
+                  data-testid={`lab-freq-row-${sec.code}`}
+                  sx={{
+                    p: 1.5,
+                    border: "1px solid",
+                    borderColor: "divider",
+                    borderRadius: 1.5,
+                    bgcolor: editable ? "background.paper" : "action.hover"
+                  }}
+                >
+                  <Stack direction="row" spacing={1.5} sx={{ alignItems: "center", justifyContent: "space-between", flexWrap: "wrap" }}>
+                    <Box>
+                      <Typography sx={{ fontSize: 14, fontWeight: 600 }}>{sec.code}</Typography>
+                      <Typography sx={{ fontSize: 13, color: override ? "text.primary" : "text.secondary" }}>
+                        {desc}
+                      </Typography>
+                    </Box>
+                    {editable ? (
+                      !isEditing && (
+                        <Stack direction="row" spacing={1}>
+                          <Button size="small" onClick={() => startEditLab(sec.id)} disabled={isBusy}>
+                            Edit
+                          </Button>
+                          {override && (
+                            <Button
+                              size="small"
+                              color="error"
+                              onClick={() => resetLabFrequency(sec.id)}
+                              disabled={isBusy}
+                            >
+                              Reset to default
+                            </Button>
+                          )}
+                        </Stack>
+                      )
+                    ) : (
+                      <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
+                        Read-only
+                      </Typography>
+                    )}
+                  </Stack>
+
+                  {isEditing && (
+                    <Box sx={{ mt: 1.5, pt: 1.5, borderTop: "1px solid", borderColor: "divider" }}>
+                      <StructuredFrequencyField
+                        idPrefix={`water-lab-frequency-${sec.id}`}
+                        value={editingFrequency}
+                        onChange={setEditingFrequency}
+                        weekdayRequired
+                        inheritedHint={`Point default: ${frequencyLabel(frequency) || "No frequency"}`}
+                      />
+                      <Stack direction="row" spacing={1} sx={{ mt: 1.5 }}>
+                        <Button
+                          size="small"
+                          variant="contained"
+                          onClick={() => saveLabFrequency(sec.id)}
+                          disabled={isBusy}
+                        >
+                          Save
+                        </Button>
+                        <Button
+                          size="small"
+                          onClick={() => setEditingLabId(null)}
+                          disabled={isBusy}
+                        >
+                          Cancel
+                        </Button>
+                      </Stack>
+                    </Box>
+                  )}
+                </Box>
+              );
+            })}
+          </Stack>
+        )}
+      </PanelSection>
+
+      <PanelSection title="4 · Limits for assigned tests" hint="Configure limits for count tests and chemistry tests.">
         {testCodes.length === 0 ? (
           <Typography sx={{ fontSize: 13, color: "text.secondary" }}>Assign tests to set limits.</Typography>
         ) : (

@@ -2,6 +2,7 @@ using MicroLIMS.Shared.Constants;
 using MicroLIMS.Shared.Exceptions;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Security.Claims;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
@@ -39,6 +40,13 @@ public class DocumentEscalationController : ControllerBase
     public async Task<IActionResult> GetAssignmentEscalationHistory(int assignmentId)
     {
         var history = await _escalationService.GetAssignmentEscalationHistoryAsync(assignmentId);
+
+        // Non-privileged callers may only see the history of their own assignment.
+        if (!IsAdminOrSectionHead && history.Any(h => h.AssignedUserId != CurrentUserId))
+        {
+            return StatusCode(403, ApiResponse<object>.Fail("You are not authorized to view the escalation history of this training assignment."));
+        }
+
         return Ok(ApiResponse<IReadOnlyList<DocumentEscalationSummaryDto>>.Ok(history));
     }
 

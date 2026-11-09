@@ -438,6 +438,7 @@ public class DashboardService
     // for the last N months - powers the trend bar chart.
     public async Task<List<object>> GetMonthlyTrendAsync(int months = 6, IReadOnlyCollection<int>? sectionIds = null)
     {
+        months = Math.Clamp(months, 1, 60);
         var now = _time.GetUtcNow().UtcDateTime;
         var start = new DateTime(now.Year, now.Month, 1, 0, 0, 0, DateTimeKind.Utc).AddMonths(-(months - 1));
 

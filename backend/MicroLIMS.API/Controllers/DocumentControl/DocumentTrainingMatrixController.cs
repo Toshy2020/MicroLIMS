@@ -55,6 +55,11 @@ public class DocumentTrainingMatrixController : ControllerBase
     [HttpGet("kpis")]
     public async Task<IActionResult> GetComplianceKpis([FromQuery] int? departmentId = null)
     {
+        if (!CanViewEveryonesTraining)
+        {
+            return StatusCode(403, ApiResponse<object>.Fail("You are not authorized to view organizational compliance KPIs."));
+        }
+
         var kpis = await _matrixService.GetComplianceKpisAsync(departmentId);
         return Ok(ApiResponse<ComplianceKpiSummaryDto>.Ok(kpis));
     }
@@ -83,6 +88,11 @@ public class DocumentTrainingMatrixController : ControllerBase
     [HttpGet("documents/{documentMasterId:int}")]
     public async Task<IActionResult> GetDocumentCompliance(int documentMasterId)
     {
+        if (!CanViewEveryonesTraining)
+        {
+            return StatusCode(403, ApiResponse<object>.Fail("You are not authorized to view document-level compliance details."));
+        }
+
         var detail = await _matrixService.GetDocumentComplianceDetailAsync(documentMasterId);
         if (detail == null)
             return NotFound(ApiResponse<object>.Fail($"Document {documentMasterId} not found."));

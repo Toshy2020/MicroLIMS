@@ -1,20 +1,11 @@
 import { MediaGptListItem } from "../types/mediaGptTypes";
+import { escapeHtml } from "../../../utils/escapeHtml";
 
 export interface MediaGptPdfExportOptions {
   title?: string;
   criteriaSummary?: string;
   generatedBy?: string;
   isSelection?: boolean;
-}
-
-function escapeHtml(str: string | null | undefined): string {
-  if (!str) return "—";
-  return String(str)
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
 }
 
 function formatDate(iso: string | null | undefined): string {

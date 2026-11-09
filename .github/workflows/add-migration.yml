@@ -34,13 +34,16 @@ jobs:
 
       - name: Find the requested migration name
         id: req
+        env:
+          EVENT_BEFORE: ${{ github.event.before }}
+          EVENT_SHA: ${{ github.sha }}
         run: |
-          BEFORE="${{ github.event.before }}"
+          BEFORE="$EVENT_BEFORE"
           if echo "$BEFORE" | grep -Eq '^0+$'; then
             # A new branch has no previous commit to diff against: use the request files it carries.
             FILE="$(ls .github/migration-requests/*.txt 2>/dev/null | head -n1)"
           else
-            FILE="$(git diff --name-only --diff-filter=AR "$BEFORE" "${{ github.sha }}" -- '.github/migration-requests/*.txt' | head -n1)"
+            FILE="$(git diff --name-only --diff-filter=AR "$BEFORE" "$EVENT_SHA" -- '.github/migration-requests/*.txt' | head -n1)"
           fi
           if [ -z "$FILE" ]; then echo "No request file added; nothing to do."; echo "skip=true" >> "$GITHUB_OUTPUT"; exit 0; fi
           NAME="$(basename "$FILE" .txt)"
@@ -76,8 +79,9 @@ jobs:
         env:
           # Design-time only: deliberately unreachable, never opens a database.
           ConnectionStrings__Default: "Host=127.0.0.1;Port=1;Database=unused;Username=unused;Timeout=1"
+          MIGRATION_NAME: ${{ steps.req.outputs.name }}
         run: |
-          dotnet ef migrations add "${{ steps.req.outputs.name }}" \
+          dotnet ef migrations add "$MIGRATION_NAME" \
             --project backend/MicroLIMS.Persistence \
             --startup-project backend/MicroLIMS.API
 
@@ -85,11 +89,14 @@ jobs:
         if: steps.req.outputs.skip != 'true'
         env:
           GH_TOKEN: ${{ github.token }}
+          REF_NAME: ${{ github.ref_name }}
+          REQ_FILE: ${{ steps.req.outputs.file }}
+          MIGRATION_NAME: ${{ steps.req.outputs.name }}
         run: |
-          git rm -q "${{ steps.req.outputs.file }}"
+          git rm -q "$REQ_FILE"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A backend/MicroLIMS.Persistence/Migrations
-          git commit -m "Add EF migration ${{ steps.req.outputs.name }}"
-          git push origin "HEAD:${{ github.ref_name }}"
-          gh workflow run ci.yml --ref "${{ github.ref_name }}"
+          git commit -m "Add EF migration $MIGRATION_NAME"
+          git push origin "HEAD:$REF_NAME"
+          gh workflow run ci.yml --ref "$REF_NAME"

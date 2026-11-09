@@ -302,6 +302,7 @@ public class MessageService
 
     public async Task<List<DirectMessageDto>> GetMessagesAsync(int conversationId, int userId, int take = 50)
     {
+        take = Math.Clamp(take, 1, 100);
         var isParticipant = await _db.ConversationParticipants
             .AnyAsync(cp => cp.ConversationId == conversationId && cp.UserId == userId);
         if (!isParticipant)

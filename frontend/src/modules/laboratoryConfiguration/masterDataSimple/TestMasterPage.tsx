@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { TextField, Button, Stack, Alert, Select, MenuItem, Box, Typography, FormControlLabel, Chip, Tooltip, FormControl, InputLabel, FormHelperText, Switch } from "@mui/material";
 import { getMySections, getSections, LaboratorySection } from "../../../services/laboratorySectionService";
 import AddIcon from "@mui/icons-material/Add";
-import { LabPage, FilterBar, RegisterTable, RegisterColumn } from "../../../components/lab";
+import { LabPage, FilterBar, FormDialog, RegisterTable, RegisterColumn } from "../../../components/lab";
 import { monospaceFontFamily } from "../../../theme/palette";
 import { StatusBadge } from "../../../components/StatusBadge";
 import { LoadErrorAlert, LoadFailuresAlert } from "../../../components/LoadErrorAlert";
@@ -817,26 +817,20 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
         )}
       </FloatingDialog>
 
-      <FloatingDialog
+      {/* A form, so Enter in any field saves the test. */}
+      <FormDialog
         open={dialogOpen}
         title={editingId ? "Edit Test" : "Add Test"}
         onClose={closeDialog}
+        onSubmit={save}
+        submitLabel={editingId ? "Save Changes" : "Add Test"}
+        submitting={saving}
+        error={dialogError}
         maxWidth="md"
-        actions={
-          <>
-            <Button onClick={closeDialog} variant="outlined" disabled={saving}>
-              Cancel
-            </Button>
-            <Button variant="contained" onClick={save} disabled={saving}>
-              {saving ? "Saving…" : editingId ? "Save Changes" : "Add Test"}
-            </Button>
-          </>
-        }
       >
-        <LoadFailuresAlert failed={dialogListFailures} retryHint="Reload the page to try again." sx={{ mb: 2 }} />
-        {dialogError && <Alert severity="error" sx={{ mb: 2 }}>{dialogError}</Alert>}
+        <LoadFailuresAlert failed={dialogListFailures} retryHint="Reload the page to try again." />
 
-        <Stack spacing={2} sx={{ pt: 1 }}>
+        <Stack spacing={2}>
           <Stack useFlexGap direction="row" spacing={2} sx={{ flexWrap: "wrap", alignItems: "center" }}>
             <TextField
               size="small"
@@ -1615,7 +1609,7 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
             )
           )}
         </Stack>
-      </FloatingDialog>
+      </FormDialog>
     </>
   );
 }

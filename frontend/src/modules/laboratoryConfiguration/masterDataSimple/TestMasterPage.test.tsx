@@ -252,3 +252,123 @@ describe("TestMasterPage flag visibility and interaction", () => {
     expect((recheckedSwitch as HTMLInputElement).checked).toBe(false);
   });
 });
+
+describe("TestMasterPage - saving with Enter", () => {
+  const createdDefinition: TestDefinitionOption = {
+    id: 10,
+    code: "TAMC-01",
+    displayName: "Total Aerobic Count",
+    sectionId: 2,
+    workflowType: "Observation",
+    equationType: "None",
+    isActive: true
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(laboratorySectionService.getSections).mockResolvedValue([
+      { sectionId: 1, sectionCode: "FP", sectionName: "Finished Product" },
+      { sectionId: 2, sectionCode: "MICRO", sectionName: "Microbiology" }
+    ] as never);
+    vi.mocked(laboratorySectionService.getMySections).mockResolvedValue([
+      { sectionId: 2, sectionCode: "MICRO", sectionName: "Microbiology" }
+    ] as never);
+    vi.mocked(masterDataOptions.getTestDefinitions).mockResolvedValue([]);
+    vi.mocked(masterDataOptions.createTestDefinition).mockResolvedValue(createdDefinition as never);
+  });
+
+  async function openAddDialog(user: ReturnType<typeof userEvent.setup>) {
+    render(
+      <PinnedLightTheme>
+        <TestMasterPage lab="micro" />
+      </PinnedLightTheme>
+    );
+    await user.click(await screen.findByRole("button", { name: /Add Test/i }));
+    const dialog = await screen.findByRole("dialog");
+    // The single user section is auto-filled once the section lists have loaded.
+    await waitFor(() => {
+      expect(within(dialog).getByRole("combobox", { name: "Section" }).textContent).toContain("Microbiology");
+    });
+    return dialog;
+  }
+
+  it("Enter in the Display Name field adds the test", async () => {
+    const user = userEvent.setup();
+    const dialog = await openAddDialog(user);
+
+    await user.type(within(dialog).getByLabelText(/^Code/), "TAMC-01");
+    await user.type(within(dialog).getByLabelText(/^Display Name/), "Total Aerobic Count{Enter}");
+
+    await waitFor(() => {
+      expect(masterDataOptions.createTestDefinition).toHaveBeenCalledTimes(1);
+    });
+    const payload = vi.mocked(masterDataOptions.createTestDefinition).mock.calls[0][0];
+    expect(payload).toMatchObject({
+      code: "TAMC-01",
+      displayName: "Total Aerobic Count",
+      sectionId: 2,
+      workflowType: "Observation",
+      equationType: "None",
+      coaDisplayOrder: null
+    });
+
+    await waitFor(() => {
+      expect(screen.queryByRole("dialog")).toBeNull();
+    });
+    expect(screen.getByText('Test "TAMC-01" added to the Test Master.')).toBeTruthy();
+  });
+
+  it("Enter with a required field missing shows the reason and saves nothing", async () => {
+    const user = userEvent.setup();
+    const dialog = await openAddDialog(user);
+
+    await user.type(within(dialog).getByLabelText(/^Display Name/), "Total Aerobic Count{Enter}");
+
+    expect(await within(dialog).findByText("Both Code and Display Name are required.")).toBeTruthy();
+    expect(masterDataOptions.createTestDefinition).not.toHaveBeenCalled();
+    expect(screen.getByRole("dialog")).toBeTruthy();
+  });
+
+  it("shows the server's refusal and keeps the dialog open", async () => {
+    vi.mocked(masterDataOptions.createTestDefinition).mockRejectedValue({
+      response: { data: { message: "A test with this code already exists." } }
+    });
+    const user = userEvent.setup();
+    const dialog = await openAddDialog(user);
+
+    await user.type(within(dialog).getByLabelText(/^Code/), "TAMC-01");
+    await user.type(within(dialog).getByLabelText(/^Display Name/), "Total Aerobic Count{Enter}");
+
+    expect(await within(dialog).findByText("A test with this code already exists.")).toBeTruthy();
+    expect(masterDataOptions.createTestDefinition).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole("dialog")).toBeTruthy();
+    expect((within(dialog).getByLabelText(/^Code/) as HTMLInputElement).value).toBe("TAMC-01");
+  });
+
+  it("Enter while a save is in flight does not send a second request", async () => {
+    let resolveCreate: (value: never) => void = () => {};
+    vi.mocked(masterDataOptions.createTestDefinition).mockReturnValue(
+      new Promise<never>((resolve) => {
+        resolveCreate = resolve;
+      })
+    );
+    const user = userEvent.setup();
+    const dialog = await openAddDialog(user);
+
+    await user.type(within(dialog).getByLabelText(/^Code/), "TAMC-01");
+    await user.type(within(dialog).getByLabelText(/^Display Name/), "Total Aerobic Count{Enter}");
+    await waitFor(() => {
+      expect(masterDataOptions.createTestDefinition).toHaveBeenCalledTimes(1);
+    });
+
+    await user.type(within(dialog).getByLabelText(/^Display Name/), "{Enter}");
+    expect(masterDataOptions.createTestDefinition).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole("dialog")).toBeTruthy();
+
+    resolveCreate(createdDefinition as never);
+    await waitFor(() => {
+      expect(screen.queryByRole("dialog")).toBeNull();
+    });
+    expect(masterDataOptions.createTestDefinition).toHaveBeenCalledTimes(1);
+  });
+});

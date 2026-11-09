@@ -28,6 +28,7 @@ import { AuditHistoryDialog } from "../../../../components/AuditHistoryDialog";
 import { ItemDocumentActionButtons } from "../../../../components/ItemDocumentActionButtons";
 import { ItemStmPanel } from "../../../../components/ItemStmPanel";
 import { ItemSpecificationsSection } from "./ItemSpecificationsSection";
+import { ItemAssignedTestsSection } from "./ItemAssignedTestsSection";
 import { ItemPreparationConfigurationSection } from "./ItemPreparationConfigurationSection";
 import { NotApplicableTestsSection } from "./NotApplicableTestsSection";
 import { SupplierAttributesSection } from "./SupplierAttributesSection";
@@ -398,40 +399,7 @@ export function ItemWorkspace({ item, onClose, onItemUpdated }: ItemWorkspacePro
 
         {/* Tab 1: Assigned Tests */}
         {activeTab === 1 && (
-          <Stack spacing={2}>
-            <Alert severity="info" sx={{ py: 0.5, fontSize: 12 }}>
-              These tests are automatically assigned when a new sample is received for <strong>{item.name}</strong>.
-            </Alert>
-
-            {item.assignedTests && item.assignedTests.length > 0 ? (
-              <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 1.5 }}>
-                {item.assignedTests.map((t, idx) => (
-                  <Paper
-                    key={idx}
-                    sx={{
-                      p: 1.5,
-                      border: "1px solid",
-                      borderColor: "divider",
-                      borderRadius: 1,
-                      bgcolor: "background.default",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                    }}
-                  >
-                    <Typography variant="body2" sx={{ fontWeight: 700, color: "text.primary" }}>
-                      {t.displayName || t.testCode}
-                    </Typography>
-                    <Chip label={t.testCode} size="small" sx={{ fontSize: 12, height: 20, fontWeight: 600 }} />
-                  </Paper>
-                ))}
-              </Box>
-            ) : (
-              <Typography variant="body2" sx={{ color: "text.secondary" }}>
-                No tests assigned to this item yet.
-              </Typography>
-            )}
-          </Stack>
+          <ItemAssignedTestsSection key={item.id} item={item} readOnly={!canManage} onSaved={onItemUpdated} />
         )}
 
         {/* Tab 2: Specifications */}

@@ -355,6 +355,7 @@ public class TestDefinitionMasterDataService
             WorkflowType = request.WorkflowType,
             PerContainer = request.PerContainer ?? false,
             MoistureRole = request.MoistureRole ?? MoistureRole.None,
+            CoaDisplayOrder = CoaDisplayOrderRule.ForCreate(request.CoaDisplayOrder),
             EquationType = request.EquationType,
             RequiresSystemSuitability = request.RequiresSystemSuitability,
             MethodAbbreviation = methodAbbr,
@@ -821,6 +822,7 @@ public class TestDefinitionMasterDataService
         else if (effectiveWorkflowType == WorkflowType.WeightVariation && !entity.WvCapsuleS2MaxOutside.HasValue) entity.WvCapsuleS2MaxOutside = 6;
         if (request.PerContainer.HasValue) entity.PerContainer = request.PerContainer.Value;
         if (request.MoistureRole.HasValue) entity.MoistureRole = request.MoistureRole.Value;
+        if (request.CoaDisplayOrder.HasValue) entity.CoaDisplayOrder = CoaDisplayOrderRule.ForUpdate(request.CoaDisplayOrder.Value);
         if (request.HplcMethodId.HasValue) entity.HplcMethodId = request.HplcMethodId;
         if (request.TitrationType.HasValue) entity.TitrationType = request.TitrationType;
         if (request.TitrationNonAqueous.HasValue) entity.TitrationNonAqueous = request.TitrationNonAqueous;

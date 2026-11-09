@@ -219,11 +219,9 @@ public static class CertificateOfAnalysisBuilder
 
     public static CoaSimpleResultDto? BuildSimpleRows(IReadOnlyList<TestOrderSummaryDetailDto> testOrders)
     {
-        // TAMC, then TYMC, then E.coli, then the rest in their order.
-        var tests = testOrders
-            .Where(t => t.Locations.Count == 0 && !t.IsSuperseded)
-            .OrderBy(t => SimpleRowRank(t.TestCode))
-            .ToList();
+        // Physicochemical (qualitative, assays, other) then microbiology
+        // (counts, pathogens), each ordered by its Test Master CoA order.
+        var tests = CoaTestOrdering.Order(testOrders.Where(t => t.Locations.Count == 0 && !t.IsSuperseded)).ToList();
         if (tests.Count == 0) return null;
 
         var rows = tests.SelectMany(SimpleRowsFor).ToList();
@@ -373,15 +371,6 @@ public static class CertificateOfAnalysisBuilder
 
     private static bool HasNonConformingLocation(TestOrderSummaryDetailDto t) =>
         t.Locations.Any(l => ResultConformanceRules.FromStatus(l.Status) != ResultConformance.Conforms);
-
-    private static int SimpleRowRank(string testCode)
-    {
-        var code = testCode.ToUpperInvariant();
-        if (code.StartsWith("TAMC")) return 0;
-        if (code.StartsWith("TYMC")) return 1;
-        if (code.StartsWith("E.COLI") || code.StartsWith("ECOLI")) return 2;
-        return 3;
-    }
 
     private static string? WithUnit(string? value, string? unit) =>
         string.IsNullOrEmpty(value) ? null : string.IsNullOrEmpty(unit) ? value : $"{value} {unit}";

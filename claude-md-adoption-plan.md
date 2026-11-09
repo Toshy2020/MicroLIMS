@@ -129,9 +129,15 @@ workflows. If later required:
 - Pathogen confirmatory-media count no longer special-cases Salmonella
   (`PathogenSessionService` ×4, two frontend panels); guarded by
   `PathogenConfirmatoryMediaConfigurationTests` and `OrganismLiteralTests`.
-- Open: Certificate of Analysis row order (`CertificateOfAnalysisBuilder.SimpleRowRank`)
-  still ranks TAMC/TYMC/E. coli by code; needs a configured display order on
-  `TestDefinition` (owner decision). Listed as a known offender in `OrganismLiteralTests`.
+- Certificate of Analysis row order (Product / Raw Material / Packaging) no
+  longer ranks TAMC/TYMC/E. coli by code: physicochemical (qualitative, assays,
+  other) then microbiology (counts, pathogens), grouped by section + workflow
+  type and ordered inside each group by the new Test Master "CoA order"
+  (`TestDefinition.CoaDisplayOrder`, migration `AddTestDefinitionCoaDisplayOrder`).
+  Guarded by `CoaTestOrderingTests`, `TestDefinitionCoaOrderPostgresTests` and
+  `TestMasterCoaOrder.test.tsx`.
+- Open: the Water / EM / After Cleaning matrix still puts the TAMC column first
+  by test code (`CertificateOfAnalysisBuilder.BuildMatrix`).
 
 ## Order & effort
 

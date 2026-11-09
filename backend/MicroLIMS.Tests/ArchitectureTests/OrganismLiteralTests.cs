@@ -14,14 +14,9 @@ public class OrganismLiteralTests
         "\"[^\"]*(salmonella|e\\.? ?coli|aeruginosa|aureus|albicans|clostridi|brasiliensis)[^\"]*\"",
         RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
-    // Known remaining offenders, each pending a configuration field. Remove an
-    // entry when it is fixed; never add one without the owner's approval.
-    private static readonly HashSet<string> KnownOffenders = new(StringComparer.Ordinal)
-    {
-        // Certificate of Analysis row order (TAMC, TYMC, E. coli, rest):
-        // needs a configured display order on TestDefinition.
-        "MicroLIMS.Application/Services/CertificateOfAnalysisBuilder.cs",
-    };
+    // Files allowed to name an organism in a string literal. Empty: keep it
+    // that way, and never add an entry without the owner's approval.
+    private static readonly HashSet<string> KnownOffenders = new(StringComparer.Ordinal);
 
     private static string BackendDirectory([System.Runtime.CompilerServices.CallerFilePath] string thisFile = "") =>
         Path.GetFullPath(Path.Combine(Path.GetDirectoryName(thisFile)!, "..", ".."));

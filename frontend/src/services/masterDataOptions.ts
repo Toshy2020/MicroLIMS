@@ -151,6 +151,7 @@ export interface CreateTestDefinitionPayload extends TitrationDefinitionFields {
   physchemArea?: PhyschemArea | null;
   perContainer?: boolean;
   moistureRole?: MoistureRole;
+  coaDisplayOrder?: number | null;
   uvCalculationMode?: UvCalculationMode | null;
   uvSpecificAbsorbance?: number | null;
   uvTotalVolumeMl?: number | null;
@@ -204,6 +205,7 @@ export interface UpdateTestDefinitionPayload extends TitrationDefinitionFields {
   physchemArea?: PhyschemArea | null;
   perContainer?: boolean;
   moistureRole?: MoistureRole;
+  coaDisplayOrder?: number | null;
   changeReason?: string | null;
   uvCalculationMode?: UvCalculationMode | null;
   uvSpecificAbsorbance?: number | null;

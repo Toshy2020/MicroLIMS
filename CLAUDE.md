@@ -2,7 +2,7 @@
 
 This document is the authoritative engineering and GMP domain constitution for AI coding agents working on **MicroLIMS v2** ([Toshy2020/MicroLIMS](https://github.com/Toshy2020/MicroLIMS/tree/main)). Every rule in this file is a binding constraint. Do not bypass, weaken, or work around these rules to make builds, linters, or tests appear green.
 
-> **Regulatory Scope & Design Intent:** MicroLIMS v2 is engineered to support GMP-regulated pharmaceutical quality control and microbiology laboratory operations and the technical controls relevant to FDA 21 CFR Part 11, EU GMP Annex 11, and ALCOA+ data integrity principles. Formal regulatory compliance for a specific intended use is established through documented risk assessment, computer system validation (CSV), approved SOPs, and operational controls.
+> **Regulatory Scope & Design Intent:** MicroLIMS v2 is engineered to support GMP-regulated pharmaceutical quality control (QC) laboratory operations, including microbiology and physicochemical testing, and the technical controls relevant to FDA 21 CFR Part 11, EU GMP Annex 11, and ALCOA+ data integrity principles. Formal regulatory compliance for a specific intended use is established through documented risk assessment, computer system validation (CSV), approved SOPs, and operational controls.
 
 ## 1. System Architecture & Frozen Guiding Principles
 

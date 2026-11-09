@@ -170,9 +170,9 @@ describe("KpiPerformanceTab", () => {
     vi.spyOn(window, "open").mockReturnValue({ document: doc } as unknown as Window);
     renderTab();
     await screen.findByText("Workload refused");
-    const button = screen.getByRole("button", { name: "Export PDF" }) as HTMLButtonElement;
-    await waitFor(() => expect(button.disabled).toBe(false));
-    await userEvent.click(button);
+    const button = () => screen.getByRole("button", { name: "Export PDF" }) as HTMLButtonElement;
+    await waitFor(() => expect(button().disabled).toBe(false));
+    await userEvent.click(button());
     expect(String(doc.write.mock.calls[0][0])).toContain("Workload could not be loaded: Workload refused");
   });
 });

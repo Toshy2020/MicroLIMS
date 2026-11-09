@@ -33,7 +33,7 @@ public class MonitoringReminderService
             .AnyAsync(rp => rp.RoleId == user.RoleId && rp.Permission!.Code == PermissionConstants.MonitoringPlanView);
         if (!canView) return reminders;
 
-        var due = await _occurrences.GetDueAsync(null);
+        var due = await _occurrences.GetDueAsync(userId, null);
         // Missed occurrences are tracked as deviations below; only those still inside their grace period are "overdue".
         var late = due.Items.Count(i => i.Status is OccurrenceStatus.Overdue or OccurrenceStatus.Missed);
         var overdue = due.Items.Count(i => i.Status == OccurrenceStatus.Overdue);

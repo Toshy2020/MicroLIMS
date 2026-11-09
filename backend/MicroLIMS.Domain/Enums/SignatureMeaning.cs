@@ -42,5 +42,6 @@ public enum SignatureMeaning
     NotApplicableHeadApproved,
     NotApplicableFinalApproved,
     NotApplicableWithdrawn,
-    TestOutsourced
+    TestOutsourced,
+    SampleAssignedToRun
 }

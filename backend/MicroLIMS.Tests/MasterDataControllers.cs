@@ -34,9 +34,9 @@ public sealed class MasterDataControllers
         ChromatographyColumnService columnService,
         SpecificationService? specificationService = null)
     {
-        Water = new(new WaterMasterDataService(db));
+        Water = new(new WaterMasterDataService(db, scope));
         EnvironmentalMonitoring = new(new EnvironmentalMonitoringMasterDataService(db));
-        AfterCleaning = new(new AfterCleaningMasterDataService(db));
+        AfterCleaning = new(new AfterCleaningMasterDataService(db, scope));
         Specification = new(new SpecificationMasterDataService(db, scope, specificationService));
         ReferenceList = new(new ReferenceListMasterDataService(db));
         Equipment = new(new EquipmentMasterDataService(db, scope), configService, scope, columnService);

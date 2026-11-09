@@ -19,7 +19,8 @@ public record HplcAnalyteInput(int? Id, string Name, decimal? WavelengthNm, int 
     decimal? SstMaxRsdPercent = null, decimal? SstMinResolution = null, decimal? SstMaxTailingFactor = null,
     decimal? SstMinTheoreticalPlates = null, decimal? SstMinRetentionFactor = null,
     decimal? SstMinSignalToNoise = null, decimal? SstMinPeakToValley = null, decimal? StandardDilution = null,
-    decimal? StandardConcentrationUgPerMl = null);
+    decimal? StandardConcentrationUgPerMl = null,
+    decimal? MacoLimit = null, MacoUnit? MacoUnit = null);
 
 public record SaveHplcMethodRequest(
     string Name, string Abbreviation, DateTime EffectiveDate,
@@ -37,7 +38,8 @@ public record SaveHplcMethodRequest(
     decimal? HeadspaceEquilibrationMin = null, decimal? HeadspaceTransferLineTemperatureC = null,
     decimal? SampleSolutionVolumeMl = null,
     decimal? ReferenceSolutionPercent = null, decimal? DisregardLimitPercent = null,
-    List<HplcImpurityInput>? Impurities = null, string? InternalStandardName = null);
+    List<HplcImpurityInput>? Impurities = null, string? InternalStandardName = null,
+    int? ProductItemId = null, decimal? SwabAreaCm2 = null);
 
 public record HplcMethodListItem(int Id, string Name, string Abbreviation, bool IsActive, int AnalyteCount, string SectionName, DateTime LastModifiedAt,
     HplcTechnique Technique = HplcTechnique.Hplc, HplcResultMode ResultMode = HplcResultMode.Assay);
@@ -324,6 +326,7 @@ public partial class HplcMethodService
         _db.HplcMethods
             .Include(m => m.Section)
             .Include(m => m.DiluentSolution)
+            .Include(m => m.ProductItem)
             .Include(m => m.MobilePhases).ThenInclude(p => p.SolutionMaster)
             .Include(m => m.GradientSteps)
             .Include(m => m.OvenSteps)
@@ -370,7 +373,18 @@ public partial class HplcMethodService
         method.HeadspaceEquilibrationTemperatureC = r.HeadspaceEquilibrationTemperatureC;
         method.HeadspaceEquilibrationMin = r.HeadspaceEquilibrationMin;
         method.HeadspaceTransferLineTemperatureC = r.HeadspaceTransferLineTemperatureC;
-        method.SampleSolutionVolumeMl = r.SampleSolutionVolumeMl;
+        if (r.ResultMode == HplcResultMode.CleaningResidue)
+        {
+            method.ProductItemId = r.ProductItemId;
+            method.SwabAreaCm2 = r.SwabAreaCm2;
+            method.SampleSolutionVolumeMl = r.SampleSolutionVolumeMl;
+        }
+        else
+        {
+            method.ProductItemId = null;
+            method.SwabAreaCm2 = null;
+            method.SampleSolutionVolumeMl = r.ResultMode == HplcResultMode.ResidualSolvents ? r.SampleSolutionVolumeMl : null;
+        }
         method.ReferenceSolutionPercent = r.ReferenceSolutionPercent;
         method.DisregardLimitPercent = r.DisregardLimitPercent;
         method.InternalStandardName = string.IsNullOrWhiteSpace(r.InternalStandardName) ? null : r.InternalStandardName.Trim();
@@ -463,7 +477,18 @@ public partial class HplcMethodService
             analyte.SstMinSignalToNoise = input.SstMinSignalToNoise;
             analyte.SstMinPeakToValley = input.SstMinPeakToValley;
             analyte.StandardDilution = input.StandardDilution;
-            analyte.StandardConcentrationUgPerMl = input.StandardConcentrationUgPerMl;
+            if (r.ResultMode == HplcResultMode.CleaningResidue)
+            {
+                analyte.StandardConcentrationUgPerMl = input.StandardConcentrationUgPerMl;
+                analyte.MacoLimit = input.MacoLimit;
+                analyte.MacoUnit = input.MacoUnit;
+            }
+            else
+            {
+                analyte.StandardConcentrationUgPerMl = r.ResultMode == HplcResultMode.ResidualSolvents ? input.StandardConcentrationUgPerMl : null;
+                analyte.MacoLimit = null;
+                analyte.MacoUnit = null;
+            }
         }
 
         var toRemove = method.Analytes.Where(a => a.Id != 0 && !keepIds.Contains(a.Id)).ToList();
@@ -532,6 +557,42 @@ public partial class HplcMethodService
             if (i.RelativeRetention <= 0m || i.RelativeRetention > 100m)
                 throw new InvalidOperationException("The relative retention must be greater than zero and at most 100.");
         }
+    }
+
+    private async Task ValidateCleaningResidueAsync(SaveHplcMethodRequest r, CancellationToken ct)
+    {
+        if (r.Technique != HplcTechnique.Hplc)
+            throw new InvalidOperationException("Cleaning residue is available for HPLC methods only.");
+
+        if (!r.ProductItemId.HasValue)
+            throw new InvalidOperationException("A finished product item is required for a cleaning-residue method.");
+
+        var item = await _db.Items.FirstOrDefaultAsync(i => i.Id == r.ProductItemId.Value, ct)
+            ?? throw new InvalidOperationException($"Item {r.ProductItemId.Value} not found.");
+        if (item.Category != SampleCategory.FinishedProduct)
+            throw new InvalidOperationException("The cleaning-residue method must reference a Finished Product item.");
+
+        if (!(r.SampleSolutionVolumeMl > 0m))
+            throw new InvalidOperationException("Sample extraction volume (mL) must be greater than zero.");
+
+        if (r.Analytes.Count < 1)
+            throw new InvalidOperationException("At least one analyte is required.");
+
+        var usesCm2 = false;
+        foreach (var a in r.Analytes)
+        {
+            if (!(a.StandardConcentrationUgPerMl > 0m))
+                throw new InvalidOperationException($"{a.Name}: standard concentration (µg/mL) is required.");
+            if (!(a.MacoLimit > 0m))
+                throw new InvalidOperationException($"{a.Name}: MACO limit must be greater than zero.");
+            if (!a.MacoUnit.HasValue)
+                throw new InvalidOperationException($"{a.Name}: MACO unit is required.");
+            if (a.MacoUnit == MacoUnit.UgPerCm2)
+                usesCm2 = true;
+        }
+
+        if (usesCm2 && !(r.SwabAreaCm2 > 0m))
+            throw new InvalidOperationException("Swabbed area (cm²) must be greater than zero when an analyte uses µg/cm².");
     }
 
     private async Task<string> ValidateCommonAsync(
@@ -641,11 +702,15 @@ public partial class HplcMethodService
             throw new InvalidOperationException("Residual solvents mode is only available for GC methods.");
         if (r.ResultMode == HplcResultMode.RelatedSubstances)
             ValidateRelatedSubstances(r);
+        if (r.ResultMode == HplcResultMode.CleaningResidue)
+            await ValidateCleaningResidueAsync(r, ct);
+        else if (r.ProductItemId.HasValue || r.SwabAreaCm2.HasValue || r.Analytes.Any(a => a.MacoLimit.HasValue || a.MacoUnit.HasValue))
+            throw new InvalidOperationException("Cleaning residue settings belong to cleaning residue methods only.");
 
         if (r.FilmThicknessUm.HasValue || r.CarrierGas.HasValue || r.SplitRatio.HasValue || r.InletTemperatureC.HasValue
-            || r.DetectorTemperatureC.HasValue || r.SampleSolutionVolumeMl.HasValue
+            || r.DetectorTemperatureC.HasValue || (r.ResultMode != HplcResultMode.CleaningResidue && r.SampleSolutionVolumeMl.HasValue)
             || r.OvenSteps?.Count > 0 || r.HeadspaceEnabled
-            || r.Analytes.Any(a => a.StandardConcentrationUgPerMl.HasValue))
+            || (r.ResultMode != HplcResultMode.CleaningResidue && r.Analytes.Any(a => a.StandardConcentrationUgPerMl.HasValue)))
             throw new InvalidOperationException("GC settings are not used on an HPLC method.");
 
         // Mobile phases
@@ -731,7 +796,7 @@ public partial class HplcMethodService
             if (!(a.WavelengthNm >= 190m && a.WavelengthNm <= 900m))
                 throw new InvalidOperationException("Analyte wavelength must be between 190 and 900 nm.");
 
-            if (r.ResultMode != HplcResultMode.RelatedSubstances
+            if (r.ResultMode is not (HplcResultMode.RelatedSubstances or HplcResultMode.CleaningResidue)
                 && (a.TheoreticalWeightStdMg <= 0m || a.TheoreticalWeightTestMg <= 0m))
                 throw new InvalidOperationException("Theoretical weights must be greater than zero.");
 

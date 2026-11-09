@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Persistence.DbContext;
+using MicroLIMS.Tests.Fixtures;
 using Xunit;
 
 namespace MicroLIMS.Tests.WorkflowTests;
@@ -13,6 +14,18 @@ public class WaterConfigCrudTests
             .UseInMemoryDatabase(Guid.NewGuid().ToString())
             .Options;
         return new MicroLimsDbContext(options);
+    }
+
+    private static MasterDataControllers NewController(MicroLimsDbContext db)
+    {
+        var scope = new StubSectionScope(_ => null);
+        return new MasterDataControllers(
+            db,
+            new MicroLIMS.Application.Services.EquipmentConfigurationService(db),
+            TestServiceFactory.MediaProduct(db),
+            TestServiceFactory.MediaIncubationCondition(db),
+            scope,
+            new MicroLIMS.Application.Services.ChromatographyColumnService(db, scope));
     }
 
     [Fact]
@@ -38,7 +51,7 @@ public class WaterConfigCrudTests
     public async Task CreateWaterDepartment_PersistsRow()
     {
         await using var db = NewDb();
-        var controller = new MasterDataControllers(db, new MicroLIMS.Application.Services.EquipmentConfigurationService(db), TestServiceFactory.MediaProduct(db), TestServiceFactory.MediaIncubationCondition(db), new MicroLIMS.Application.Services.UserSectionScopeService(db), new MicroLIMS.Application.Services.ChromatographyColumnService(db, new MicroLIMS.Application.Services.UserSectionScopeService(db)));
+        var controller = NewController(db);
 
         await controller.Water.CreateWaterDepartment(
             new MicroLIMS.Application.DTOs.CreateWaterDepartmentRequest("WTU"));
@@ -57,7 +70,7 @@ public class WaterConfigCrudTests
         db.WaterSamplingPoints.Add(new WaterSamplingPoint { Code = "SP1", WaterDepartmentId = dept.Id });
         await db.SaveChangesAsync();
 
-        var controller = new MasterDataControllers(db, new MicroLIMS.Application.Services.EquipmentConfigurationService(db), TestServiceFactory.MediaProduct(db), TestServiceFactory.MediaIncubationCondition(db), new MicroLIMS.Application.Services.UserSectionScopeService(db), new MicroLIMS.Application.Services.ChromatographyColumnService(db, new MicroLIMS.Application.Services.UserSectionScopeService(db)));
+        var controller = NewController(db);
         await Assert.ThrowsAsync<InvalidOperationException>(() => controller.Water.DeleteWaterDepartment(dept.Id));
     }
 
@@ -69,7 +82,7 @@ public class WaterConfigCrudTests
         db.WaterDepartments.Add(dept);
         await db.SaveChangesAsync();
 
-        var controller = new MasterDataControllers(db, new MicroLIMS.Application.Services.EquipmentConfigurationService(db), TestServiceFactory.MediaProduct(db), TestServiceFactory.MediaIncubationCondition(db), new MicroLIMS.Application.Services.UserSectionScopeService(db), new MicroLIMS.Application.Services.ChromatographyColumnService(db, new MicroLIMS.Application.Services.UserSectionScopeService(db)));
+        var controller = NewController(db);
         await controller.Water.CreateWaterSamplingPoint(new MicroLIMS.Application.DTOs.CreateWaterSamplingPointRequest(
             "SP205", "WTU", "Weekly", new List<string> { "TAMC-Water" }, dept.Id));
 
@@ -86,7 +99,7 @@ public class WaterConfigCrudTests
         db.WaterSamplingPoints.Add(point);
         await db.SaveChangesAsync();
 
-        var controller = new MasterDataControllers(db, new MicroLIMS.Application.Services.EquipmentConfigurationService(db), TestServiceFactory.MediaProduct(db), TestServiceFactory.MediaIncubationCondition(db), new MicroLIMS.Application.Services.UserSectionScopeService(db), new MicroLIMS.Application.Services.ChromatographyColumnService(db, new MicroLIMS.Application.Services.UserSectionScopeService(db)));
+        var controller = NewController(db);
         await controller.Water.CreateWaterSamplingConfiguration(new MicroLIMS.Application.DTOs.CreateWaterSamplingConfigRequest(
             point.Id, "TAMC-Water", "10", "50", "100"));
 

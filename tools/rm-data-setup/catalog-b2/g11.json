@@ -1,0 +1,292 @@
+{
+  "testDefinitions": [
+    {
+      "code": "RM-ID-CAHP-127",
+      "displayName": "Identification of Calcium Hydrogen Phosphate Dihydrate (ammonium oxalate and ammonium molybdate)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Qualitative",
+      "equationType": "Qualitative",
+      "physchemArea": "RawPackaging",
+      "complete": true,
+      "notes": "Test 1: Dissolve with heating 0.1 g in 10 mL dilute HCl, add 2.5 mL dilute ammonia R1, shake, add 5 mL 35 g/L ammonium oxalate solution: white precipitate is produced. Test 2: Dissolve 0.1 g in 5 mL dilute nitric acid, add 2 mL ammonium molybdate solution, heat at 70 °C for 2 min: yellow precipitate is produced. BP 2024 Monograph for Calcium Hydrogen Phosphate Dihydrate (source: Calcium Hydrogen Phosphate Dihydrate__New 1-2_STM Calcium Hydrogen Phosphate Dihydrate - New.txt:32).",
+      "usedBy": [
+        "STM-RM-127"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-127",
+          "provisionalCode": "RM-ID-CAHP",
+          "source": "Calcium Hydrogen Phosphate Dihydrate__New 1-2_STM Calcium Hydrogen Phosphate Dihydrate - New.txt:32"
+        }
+      ]
+    },
+    {
+      "code": "RM-TIT-CAHP-127",
+      "displayName": "Assay of Calcium Hydrogen Phosphate Dihydrate (complexometric back titration)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Titration",
+      "equationType": "Titration",
+      "physchemArea": "RawPackaging",
+      "titrationType": "Complexometric",
+      "titrationMode": "Residual",
+      "titrationEndpoint": "Visual",
+      "titrantSolution": "0.02 M Zinc sulfate VS",
+      "titrationExcessSolution": "0.02 M Disodium edetate VS",
+      "titrationExcessVolumeMl": 25.0,
+      "titrationBlankRequired": true,
+      "titrationEquivalencyFactor": 172.09,
+      "titrationEquivalencyFactorDerivation": "Stated in STM: 1 mL of 0.02 M sodium edetate is equivalent to 3.44 mg of Calcium Hydrogen Phosphate Dihydrate (3.44 mg / 0.02 M = 172.0 mg/mmol, MW 172.09 g/mol)",
+      "titrationIndicatorEntry": "Mordant black 11 triturate",
+      "replicateCount": 1,
+      "titrationCalculation": "UspFactor",
+      "complete": true,
+      "notes": "BP Appendix VIII D Complexometric Titrations. Dissolve 0.4 g in 12 mL dilute HCl (heat on water bath if necessary), dilute to 200 mL with water. To 20.0 mL add 25.0 mL 0.02 M sodium edetate, 50 mL water, 5 mL ammonium chloride buffer pH 10.7, ~25 mg mordant black 11 triturate. Titrate excess edetate with 0.02 M zinc sulfate with blank titration. 1 mL 0.02 M edetate = 3.44 mg CaHPO4.2H2O (F = 172.09 mg/mmol). Note: titrant 0.02 M Zinc sulfate VS is complete: false (no standardization stated in STM; source: Calcium Hydrogen Phosphate Dihydrate__New 1-2_STM Calcium Hydrogen Phosphate Dihydrate - New.txt:28,41).",
+      "usedBy": [
+        "STM-RM-127"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-127",
+          "provisionalCode": "RM-TIT-CAHP",
+          "source": "Calcium Hydrogen Phosphate Dihydrate__New 1-2_STM Calcium Hydrogen Phosphate Dihydrate - New.txt:41"
+        }
+      ]
+    },
+    {
+      "code": "RM-DISP-102",
+      "displayName": "Dispersibility (Natural beta-carotene 20%)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Qualitative",
+      "equationType": "Qualitative",
+      "physchemArea": "RawPackaging",
+      "complete": true,
+      "notes": "Put a small amount of sample in test tube, pour 20 mL of water on the sample, shake test tube well; in-house specification: dispersible in water (source: Natural betacarotene 20%__STM for Natural betacarotene 20% new without micro.txt:29).",
+      "usedBy": [
+        "STM-RM-102"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-102",
+          "provisionalCode": "RM-DISPERS-BC",
+          "source": "Natural betacarotene 20%__STM for Natural betacarotene 20% new without micro.txt:29"
+        }
+      ]
+    },
+    {
+      "code": "RM-ID-UV-102",
+      "displayName": "Identification (UV, Natural beta-carotene 20%)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Qualitative",
+      "equationType": "Qualitative",
+      "physchemArea": "RawPackaging",
+      "complete": true,
+      "notes": "Proceed as test of assay; detect maximum peak at desired wavelength; in-house specification: comply (source: Natural betacarotene 20%__STM for Natural betacarotene 20% new without micro.txt:31).",
+      "usedBy": [
+        "STM-RM-102"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-102",
+          "provisionalCode": "RM-ID-BC",
+          "source": "Natural betacarotene 20%__STM for Natural betacarotene 20% new without micro.txt:31"
+        }
+      ]
+    },
+    {
+      "code": "RM-UV-BC-102",
+      "displayName": "Assay of Natural beta-carotene 20% (UV spectrophotometry)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "UvSpectrophotometry",
+      "equationType": "UvSpectrophotometry",
+      "physchemArea": "RawPackaging",
+      "replicateCount": 1,
+      "uvCalculationMode": "SpecificAbsorbanceAssay",
+      "uvSpecificAbsorbance": 2500,
+      "uvTotalVolumeMl": 50000,
+      "complete": true,
+      "notes": "Assay per UV spectrophotometry: weigh about 350 mg sample into 50 mL flask, disperse in water to 50 mL. Dilute 1 mL to 100 mL with acetone; dilute 5 mL of that to 50 mL with acetone (final dilution 50000). Measure absorbance at 456 nm and 800 nm against acetone. % beta-carotene = (A456 - A800) x 50000 / (2500 x W), where W is sample weight (g), 2500 = A1% 1 cm in acetone. Net absorbance A = A456 - A800 recorded by analyst (source: Natural betacarotene 20%__STM for Natural betacarotene 20% new without micro.txt:35).",
+      "usedBy": [
+        "STM-RM-102"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-102",
+          "provisionalCode": "RM-UV-BC",
+          "source": "Natural betacarotene 20%__STM for Natural betacarotene 20% new without micro.txt:35"
+        }
+      ]
+    }
+  ],
+  "solutions": [
+    {
+      "name": "0.02 M Disodium edetate VS",
+      "type": "Titrant",
+      "section": "Physicochemical Laboratory",
+      "nominalStrength": 0.02,
+      "strengthUnit": "Molar",
+      "finalVolumeMl": 1000,
+      "instructions": "Dissolve 7.444 g of disodium edetate in sufficient water to produce 1000 ml. Standardize against 0.100 g of zinc granules dissolved in 4 mL 7M hydrochloric acid, diluted to 100 mL, 25 mL diluted to 200 mL, add ~50 mg xylenol orange triturate and hexamine until violet-pink plus 2 g excess, titrate to yellow endpoint (1 mL 0.02 M disodium edetate = 1.308 mg Zn).",
+      "components": [
+        {
+          "entry": "Edetate disodium",
+          "quantity": 7.444,
+          "unit": "Gram"
+        }
+      ],
+      "waterToVolume": true,
+      "standardizationMode": "PrimaryStandard",
+      "standardEntry": "Zinc",
+      "equivalenceMgPerMl": 1.308,
+      "referenceSolution": null,
+      "usedBy": [
+        "STM-RM-127"
+      ],
+      "notes": "Recipe from STM: 7.444 g in 1000 mL water. Standardized against zinc granules (1 mL 0.02 M EDTA = 1.308 mg Zn). House defaults applied: 3 replicates, factor 0.97-1.03, max RSD 0.2 %, valid 30 days, shelf life 30 days, storage condition \"Tightly closed, room temperature\" (source: Calcium Hydrogen Phosphate Dihydrate__New 1-2_STM Calcium Hydrogen Phosphate Dihydrate - New.txt:28).",
+      "complete": true,
+      "shelfLifeValue": 30,
+      "shelfLifeUnit": "Days",
+      "storageCondition": "Tightly closed, room temperature",
+      "replicateCount": 3,
+      "maxRsdPercent": 0.2,
+      "validityDays": 30,
+      "blankRequired": false,
+      "factorMin": 0.97,
+      "factorMax": 1.03
+    },
+    {
+      "name": "0.02 M Zinc sulfate VS",
+      "type": "Titrant",
+      "section": "Physicochemical Laboratory",
+      "nominalStrength": 0.02,
+      "strengthUnit": "Molar",
+      "finalVolumeMl": 1000,
+      "instructions": "Dissolve 5.8 g of zinc sulfate in water and dilute to 1000.0 mL with the same solvent.",
+      "components": [
+        {
+          "entry": "Zinc sulfate heptahydrate",
+          "entryCode": null,
+          "quantity": 5.8,
+          "unit": "Gram"
+        }
+      ],
+      "waterToVolume": true,
+      "standardizationMode": "AgainstVolumetricSolution",
+      "standardEntry": null,
+      "equivalenceMgPerMl": null,
+      "referenceSolution": "0.1 M Disodium edetate VS",
+      "usedBy": [
+        "STM-RM-127"
+      ],
+      "notes": "Recipe as the STM states (5.8 g in 1000 mL; USP scaling from 0.05 M would be 5.76 g). Standardization from USP (zinc sulfate against edetate disodium VS, buffer TS/alcohol/dithizone TS, rose-pink; molarity = M x V / V). House defaults for acceptance and shelf life. Source: USP 35-NF 30 Volumetric Solutions (drugfuture 1077-1085 Volumetric Solutions.pdf): p.1085.",
+      "complete": true,
+      "shelfLifeValue": 30,
+      "shelfLifeUnit": "Days",
+      "storageCondition": "Tightly closed, room temperature",
+      "replicateCount": 3,
+      "maxRsdPercent": 0.2,
+      "validityDays": 30,
+      "blankRequired": false,
+      "factorMin": 0.97,
+      "factorMax": 1.03
+    }
+  ],
+  "hplcMethods": [],
+  "icpMethods": [],
+  "materialEntries": [
+    {
+      "name": "Zinc",
+      "category": "PrimaryStandard",
+      "codePrefix": "PS-",
+      "code": null,
+      "baseUnit": "Gram",
+      "usedBy": [
+        "0.02 M Disodium edetate VS"
+      ],
+      "source": "Calcium Hydrogen Phosphate Dihydrate__New 1-2_STM Calcium Hydrogen Phosphate Dihydrate - New.txt:28",
+      "loadedObjectNeedsIt": true
+    },
+    {
+      "name": "Zinc sulfate",
+      "category": "Reagent",
+      "codePrefix": "RG-",
+      "code": null,
+      "baseUnit": "Gram",
+      "usedBy": [
+        "0.02 M Zinc sulfate VS"
+      ],
+      "source": "Calcium Hydrogen Phosphate Dihydrate__New 1-2_STM Calcium Hydrogen Phosphate Dihydrate - New.txt:28",
+      "loadedObjectNeedsIt": true
+    }
+  ],
+  "reagentLinks": [],
+  "mapping": {
+    "STM-RM-090": {
+      "E.coli": "E.coli",
+      "RM-DESC": "RM-DESC",
+      "RM-LOD": "RM-LOD",
+      "RM-LT-FE": "RM-LT-FE",
+      "RM-PH": "RM-PH",
+      "RM-SASH": "RM-SASH",
+      "RM-SOLUB": "RM-SOLUB",
+      "Salmonella ": "Salmonella ",
+      "TAMC": "TAMC",
+      "TYMC": "TYMC"
+    },
+    "C1I-91-178": {
+      "E.coli": "E.coli",
+      "RM-DESC": "RM-DESC",
+      "RM-LOD": "RM-LOD",
+      "RM-LT-FE": "RM-LT-FE",
+      "RM-LT-SO4": "RM-LT-SO4",
+      "RM-SOLAPP": "RM-SOLAPP",
+      "RM-SOLUB": "RM-SOLUB",
+      "RM-THIOSULFATE": "RM-THIOSULFATE",
+      "TAMC": "TAMC",
+      "TYMC": "TYMC"
+    },
+    "C1I-91-229": {
+      "RM-DESC": "RM-DESC",
+      "RM-KF": "RM-KF",
+      "RM-PH": "RM-PH",
+      "RM-SASH": "RM-SASH",
+      "RM-SOLAPP": "RM-SOLAPP",
+      "RM-SOLUB": "RM-SOLUB"
+    },
+    "STM-RM-127": {
+      "E.coli": "E.coli",
+      "RM-AIS-CAHP": "RM-AIS",
+      "RM-BARIUM-CAHP": "RM-BA",
+      "RM-CARB-CAHP": "RM-CARB",
+      "RM-DESC": "RM-DESC",
+      "RM-ID-CAHP": "RM-ID-CAHP-127",
+      "RM-LOI-CAHP": "RM-LOI",
+      "RM-LT-AS-CAHP": "RM-LT-AS",
+      "RM-LT-CL": "RM-LT-CL",
+      "RM-LT-FE": "RM-LT-FE",
+      "RM-LT-SO4": "RM-LT-SO4",
+      "RM-PSD-CAHP": "RM-PSD",
+      "RM-SOLUB": "RM-SOLUB",
+      "RM-TIT-CAHP": "RM-TIT-CAHP-127",
+      "TAMC": "TAMC",
+      "TYMC": "TYMC"
+    },
+    "STM-RM-102": {
+      "E.coli": "E.coli",
+      "RM-DESC": "RM-DESC",
+      "RM-DISPERS-BC": "RM-DISP-102",
+      "RM-ID-BC": "RM-ID-UV-102",
+      "RM-LOD": "RM-LOD",
+      "RM-ODOR": "RM-ODOR",
+      "RM-UV-BC": "RM-UV-BC-102",
+      "Salmonella ": "Salmonella ",
+      "TAMC": "TAMC",
+      "TYMC": "TYMC"
+    }
+  },
+  "gaps": []
+}

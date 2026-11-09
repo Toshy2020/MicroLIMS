@@ -70,7 +70,7 @@ describe("MaterialCategoriesDialog", () => {
 
     await userEvent.click(screen.getByRole("button", { name: /Add Category/ }));
     const next = () => screen.getByRole("button", { name: "Continue to sign" }) as HTMLButtonElement;
-    await userEvent.type(screen.getByLabelText(/^Name/), "PPE");
+    await userEvent.type(await screen.findByLabelText(/^Name/), "PPE");
     await userEvent.type(screen.getByLabelText(/^Code prefix/), "ppe");
     // Name and prefix are not enough: the reason is required too.
     expect(next().disabled).toBe(true);
@@ -80,7 +80,7 @@ describe("MaterialCategoriesDialog", () => {
 
     expect(await screen.findByText("Electronic Signature")).toBeTruthy();
     expect(MaterialCategoryService.create).not.toHaveBeenCalled();
-    await userEvent.type(screen.getByLabelText(/Password/), "secret");
+    await userEvent.type(await screen.findByLabelText(/Password/), "secret");
     await userEvent.click(screen.getByRole("button", { name: "Sign" }));
 
     await waitFor(() => expect(MaterialCategoryService.create).toHaveBeenCalledTimes(1));
@@ -94,7 +94,7 @@ describe("MaterialCategoriesDialog", () => {
     renderDialog();
     await screen.findByText("Filter Membrane");
     await userEvent.click(screen.getByRole("button", { name: /Add Category/ }));
-    await userEvent.type(screen.getByLabelText(/^Name/), "PPE");
+    await userEvent.type(await screen.findByLabelText(/^Name/), "PPE");
     await userEvent.type(screen.getByLabelText(/^Code prefix/), "P");
     await userEvent.type(screen.getByLabelText(/^Reason/), "Because");
     await userEvent.click(screen.getByRole("button", { name: "Continue to sign" }));
@@ -109,7 +109,7 @@ describe("MaterialCategoriesDialog", () => {
 
     // Filter Membrane has entries.
     await userEvent.click(screen.getByText("Filter Membrane"));
-    const prefix = screen.getByLabelText(/^Code prefix/) as HTMLInputElement;
+    const prefix = (await screen.findByLabelText(/^Code prefix/)) as HTMLInputElement;
     expect(prefix.value).toBe("FLT");
     expect(prefix.disabled).toBe(true);
     expect(screen.getByText(/can no longer change/)).toBeTruthy();
@@ -119,6 +119,6 @@ describe("MaterialCategoriesDialog", () => {
     renderDialog();
     await screen.findByText("Filter Membrane");
     await userEvent.click(screen.getByText("Supplement"));
-    expect((screen.getByLabelText(/^Code prefix/) as HTMLInputElement).disabled).toBe(false);
+    expect(((await screen.findByLabelText(/^Code prefix/)) as HTMLInputElement).disabled).toBe(false);
   });
 });

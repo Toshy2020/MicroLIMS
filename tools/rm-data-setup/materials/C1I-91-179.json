@@ -1,0 +1,316 @@
+{
+  "itemCode": "C1I-91-179",
+  "stmCode": null,
+  "itemName": "Stearic acid",
+  "stmFile": null,
+  "specFiles": [
+    "Stearic acid__Specifications sheet Stearic acid.txt"
+  ],
+  "minQuantity": {
+    "routine": 100,
+    "retest": null,
+    "unit": "g",
+    "source": "Stearic acid__Specifications sheet Stearic acid.txt:17"
+  },
+  "grades": [
+    {
+      "grade": "BP",
+      "rows": [
+        {
+          "testCode": "RM-DESC",
+          "parameterName": "Appearance",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "White or almost white, waxy, flaky crystals, white or almost white hard masses, or white or yellowish-white powder",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Stearic acid__Specifications sheet Stearic acid.txt:11"
+        },
+        {
+          "testCode": "RM-SOLUB",
+          "parameterName": "Solubility",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Practically insoluble in water, soluble in ethanol (96 per cent) and in light petroleum",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Stearic acid__Specifications sheet Stearic acid.txt:12"
+        },
+        {
+          "testCode": "RM-SOLAPP",
+          "parameterName": "Liquid Appearance",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "The resulting liquid not more intensely coloured than reference solution Y7 or BY7",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Stearic acid__Specifications sheet Stearic acid.txt:13"
+        },
+        {
+          "testCode": "RM-ID-ACIDVAL-STEARIC",
+          "parameterName": "Identification (Acid Value)",
+          "limitType": "Range",
+          "lower": 194.0,
+          "upper": 212.0,
+          "lowerInclusive": true,
+          "unit": null,
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "heldBack": "no STM: method not documented",
+          "source": "Stearic acid__Specifications sheet Stearic acid.txt:14"
+        },
+        {
+          "testCode": "RM-ACIDITY-STEARIC",
+          "parameterName": "Acidity",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "No red colour develops",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "heldBack": "no STM: method not documented",
+          "source": "Stearic acid__Specifications sheet Stearic acid.txt:15"
+        },
+        {
+          "testCode": "RM-IODINE-VAL-STEARIC",
+          "parameterName": "Iodine value",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 4.0,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "heldBack": "no STM: method not documented",
+          "source": "Stearic acid__Specifications sheet Stearic acid.txt:16"
+        },
+        {
+          "testCode": "RM-FREEZ-PT-STEARIC",
+          "parameterName": "Freezing point",
+          "limitType": "Range",
+          "lower": 53.0,
+          "upper": 59.0,
+          "lowerInclusive": true,
+          "unit": "°C",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "heldBack": "no STM: method not documented",
+          "source": "Stearic acid__Specifications sheet Stearic acid.txt:17"
+        },
+        {
+          "testCode": "RM-ASSAY-STEARIC",
+          "parameterName": "Assay: Stearic acid",
+          "limitType": "Range",
+          "lower": 40.0,
+          "upper": 60.0,
+          "lowerInclusive": true,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "heldBack": "no STM: method not documented",
+          "source": "Stearic acid__Specifications sheet Stearic acid.txt:17"
+        },
+        {
+          "testCode": "RM-ASSAY-STEARIC",
+          "parameterName": "Assay: Sum of the contents of stearic and palmitic acids",
+          "limitType": "NotLessThan",
+          "lower": 90.0,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "heldBack": "no STM: method not documented",
+          "source": "Stearic acid__Specifications sheet Stearic acid.txt:17"
+        },
+        {
+          "testCode": "TAMC",
+          "parameterName": "Total Aerobic Microbial Count",
+          "limitType": "CountTiered",
+          "lower": null,
+          "upper": 1000,
+          "lowerInclusive": null,
+          "unit": "CFU/g",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Stearic acid__Specifications sheet Stearic acid.txt:17"
+        },
+        {
+          "testCode": "TYMC",
+          "parameterName": "Total combined Yeasts & Molds Count",
+          "limitType": "CountTiered",
+          "lower": null,
+          "upper": 100,
+          "lowerInclusive": null,
+          "unit": "CFU/g",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Stearic acid__Specifications sheet Stearic acid.txt:17"
+        },
+        {
+          "testCode": "E.coli",
+          "parameterName": "E. coli",
+          "limitType": "PresenceAbsence",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": "per 10 g",
+          "expectedResultText": "Absent /10 gm",
+          "expectedState": "Absence",
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Stearic acid__Specifications sheet Stearic acid.txt:17"
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "testCode": "RM-DESC",
+      "procedure": null,
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {
+        "perContainer": true
+      },
+      "source": "Stearic acid__Specifications sheet Stearic acid.txt:11"
+    },
+    {
+      "testCode": "RM-SOLUB",
+      "procedure": null,
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {},
+      "source": "Stearic acid__Specifications sheet Stearic acid.txt:12"
+    },
+    {
+      "testCode": "RM-SOLAPP",
+      "procedure": null,
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {},
+      "source": "Stearic acid__Specifications sheet Stearic acid.txt:13"
+    },
+    {
+      "testCode": "RM-ID-ACIDVAL-STEARIC",
+      "procedure": null,
+      "kind": "specific",
+      "workflow": "Measurement",
+      "details": {
+        "technique": "Acid Value"
+      },
+      "heldBack": "no STM: method not documented",
+      "source": "Stearic acid__Specifications sheet Stearic acid.txt:14"
+    },
+    {
+      "testCode": "RM-ACIDITY-STEARIC",
+      "procedure": null,
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "details": {
+        "technique": "Ignition"
+      },
+      "heldBack": "no STM: method not documented",
+      "source": "Stearic acid__Specifications sheet Stearic acid.txt:15"
+    },
+    {
+      "testCode": "RM-IODINE-VAL-STEARIC",
+      "procedure": null,
+      "kind": "specific",
+      "workflow": "Measurement",
+      "details": {
+        "technique": "Voltammetry"
+      },
+      "heldBack": "no STM: method not documented",
+      "source": "Stearic acid__Specifications sheet Stearic acid.txt:16"
+    },
+    {
+      "testCode": "RM-FREEZ-PT-STEARIC",
+      "procedure": null,
+      "kind": "specific",
+      "workflow": "Measurement",
+      "details": {},
+      "heldBack": "no STM: method not documented",
+      "source": "Stearic acid__Specifications sheet Stearic acid.txt:17"
+    },
+    {
+      "testCode": "RM-ASSAY-STEARIC",
+      "procedure": null,
+      "kind": "specific",
+      "workflow": "Measurement",
+      "details": {},
+      "heldBack": "no STM: method not documented",
+      "source": "Stearic acid__Specifications sheet Stearic acid.txt:17"
+    },
+    {
+      "testCode": "TAMC",
+      "procedure": null,
+      "kind": "general",
+      "workflow": "CountTest",
+      "details": {},
+      "source": "Stearic acid__Specifications sheet Stearic acid.txt:17"
+    },
+    {
+      "testCode": "TYMC",
+      "procedure": null,
+      "kind": "general",
+      "workflow": "CountTest",
+      "details": {},
+      "source": "Stearic acid__Specifications sheet Stearic acid.txt:17"
+    },
+    {
+      "testCode": "E.coli",
+      "procedure": null,
+      "kind": "general",
+      "workflow": "Observation",
+      "details": {},
+      "source": "Stearic acid__Specifications sheet Stearic acid.txt:17"
+    }
+  ],
+  "notApplicable": [],
+  "supplierAttributes": [],
+  "reagents": [],
+  "openQuestions": [
+    {
+      "question": "No STM document found for Stearic acid (spec-only material); spec sheet header cites STM Code# C1I-91-179. Tests without documented analytical procedures (Identification by acid value, Acidity, Iodine value, Freezing point, Assay) are held back.",
+      "source": "Stearic acid__Specifications sheet Stearic acid.txt:9,14-17"
+    },
+    {
+      "question": "Assay, Freezing point, TAMC, TYMC, and E. coli are listed in the 'Additional requirements and attachments' cell of the specification sheet rather than separate table rows.",
+      "source": "Stearic acid__Specifications sheet Stearic acid.txt:17"
+    },
+    {
+      "question": "Technique for Iodine value is listed as 'Voltammetry' in the specification sheet; pharmacopoeial methods typically use halogenation titration.",
+      "source": "Stearic acid__Specifications sheet Stearic acid.txt:16"
+    }
+  ]
+}

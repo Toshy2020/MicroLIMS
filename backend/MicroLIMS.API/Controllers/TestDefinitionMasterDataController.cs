@@ -28,12 +28,16 @@ public class TestDefinitionMasterDataController : ControllerBase
         _service = service;
     }
 
-    private int CurrentUserId => int.TryParse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value, out var uid) ? uid : 0;
+    private int CurrentUserId => int.TryParse(User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value, out var uid) ? uid : 0;
 
     // ---- Test Master ----
     [HttpGet("test-definitions")]
     public async Task<IActionResult> GetTestDefinitions() =>
         Ok(ApiResponse<object>.Ok(await _service.GetTestDefinitionsAsync()));
+
+    [HttpGet("test-definitions/editable-codes")]
+    public async Task<IActionResult> GetEditableCodes() =>
+        Ok(ApiResponse<object>.Ok(await _service.GetEditableCodesAsync(CurrentUserId)));
 
     [Authorize(Policy = PermissionConstants.MasterDataManage)]
     [HttpPost("test-definitions")]

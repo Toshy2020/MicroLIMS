@@ -17,12 +17,16 @@ public class MonitoringPlanService
     private readonly IMicroLimsDbContext _db;
     private readonly ILabClock _clock;
     private readonly IElectronicSignatureService _signatures;
+    private readonly IUserSectionScopeService _scope;
 
-    public MonitoringPlanService(IMicroLimsDbContext db, ILabClock clock, IElectronicSignatureService signatures)
+    public MonitoringPlanService(
+        IMicroLimsDbContext db, ILabClock clock, IElectronicSignatureService signatures,
+        IUserSectionScopeService scope)
     {
         _db = db;
         _clock = clock;
         _signatures = signatures;
+        _scope = scope;
     }
 
     public async Task<List<PlanRevisionResponse>> GetRevisionsAsync(int year)
@@ -236,13 +240,49 @@ public class MonitoringPlanService
     {
         var points = await _db.WaterSamplingPoints.AsNoTracking()
             .Where(p => p.IsActive && (p.WaterDepartment == null || p.WaterDepartment.IsActive))
+            .Include(p => p.LabFrequencies)
             .OrderBy(p => p.Code)
             .ToListAsync();
 
-        return points.Select(p => new PlanTarget(
-            MonitoringCategory.Water, MonitoringTargetType.WaterSamplingPoint, p.Id, p.Code,
-            FrequencyRules.From(p), "own",
-            p.AssignedTestCodes.Distinct().Select(c => new PlanItem(null, null, c)).ToList())).ToList();
+        var allCodes = points.SelectMany(p => p.AssignedTestCodes).Distinct().ToList();
+        var testDefs = await _db.TestDefinitions.AsNoTracking()
+            .Where(t => allCodes.Contains(t.Code))
+            .Select(t => new { t.Code, t.SectionId })
+            .ToListAsync();
+        var sectionByCode = testDefs.ToDictionary(t => t.Code, t => t.SectionId, StringComparer.OrdinalIgnoreCase);
+
+        var result = new List<PlanTarget>();
+        foreach (var p in points)
+        {
+            var validCodes = p.AssignedTestCodes.Distinct()
+                .Where(c => sectionByCode.ContainsKey(c))
+                .ToList();
+
+            var groups = validCodes.GroupBy(c => sectionByCode[c]).ToList();
+            if (groups.Count == 0)
+            {
+                result.Add(new PlanTarget(
+                    MonitoringCategory.Water, MonitoringTargetType.WaterSamplingPoint, p.Id, p.Code,
+                    FrequencyRules.From(p), "own",
+                    Array.Empty<PlanItem>(),
+                    null));
+                continue;
+            }
+
+            foreach (var g in groups)
+            {
+                var sectionId = g.Key;
+                var overrideFreq = p.LabFrequencies.FirstOrDefault(f => f.SectionId == sectionId && f.FrequencyType != null);
+                var rule = overrideFreq != null ? FrequencyRules.From(overrideFreq) : FrequencyRules.From(p);
+                var source = overrideFreq != null ? "lab" : "own";
+                var items = g.Select(c => new PlanItem(null, null, c)).ToList();
+
+                result.Add(new PlanTarget(
+                    MonitoringCategory.Water, MonitoringTargetType.WaterSamplingPoint, p.Id, p.Code,
+                    rule, source, items, sectionId));
+            }
+        }
+        return result;
     }
 
     private async Task<List<PlanTarget>> RoomTargetsAsync()
@@ -305,15 +345,15 @@ public class MonitoringPlanService
 
     // Every key already taken in the year, retired or not. Drafts are left
     // out: rebuilding a draft replaces its rows.
-    private async Task<HashSet<(MonitoringTargetType, int, string, int)>> AllKeysAsync(int year)
+    private async Task<HashSet<(MonitoringTargetType, int, int?, string, int)>> AllKeysAsync(int year)
     {
         var (prefix, dailyPrefix) = PlanKeyPrefixes(year);
         var rows = await _db.MonitoringOccurrences.AsNoTracking()
             .Where(o => (o.PeriodKey.StartsWith(prefix) || o.PeriodKey.StartsWith(dailyPrefix)) && o.TargetType != MonitoringTargetType.Machine
                         && o.CreatedByRevision!.Status != PlanRevisionStatus.Draft)
-            .Select(o => new { o.TargetType, o.WaterSamplingPointId, o.RoomId, o.PeriodKey, o.Sequence })
+            .Select(o => new { o.TargetType, o.WaterSamplingPointId, o.RoomId, o.LabSectionId, o.PeriodKey, o.Sequence })
             .ToListAsync();
-        return rows.Select(o => (o.TargetType, (o.WaterSamplingPointId ?? o.RoomId)!.Value, o.PeriodKey, o.Sequence)).ToHashSet();
+        return rows.Select(o => (o.TargetType, (o.WaterSamplingPointId ?? o.RoomId)!.Value, o.LabSectionId, o.PeriodKey, o.Sequence)).ToHashSet();
     }
 
     // Occurrences a revision may retire: in force, no longer in the plan,
@@ -355,10 +395,10 @@ public class MonitoringPlanService
     private static string DescribeDates(DateOnly? target, DateOnly start, DateOnly end) =>
         $"{(target.HasValue ? $"target {target:yyyy-MM-dd}, " : string.Empty)}window {start:yyyy-MM-dd} to {end:yyyy-MM-dd}";
 
-    private static (MonitoringTargetType, int, string, int) KeyOf(GeneratedOccurrence g) => g.Key;
+    private static (MonitoringTargetType, int, int?, string, int) KeyOf(GeneratedOccurrence g) => g.Key;
 
-    private static (MonitoringTargetType, int, string, int) KeyOf(MonitoringOccurrence o) =>
-        (o.TargetType, (o.WaterSamplingPointId ?? o.RoomId ?? o.MachineId)!.Value, o.PeriodKey, o.Sequence);
+    private static (MonitoringTargetType, int, int?, string, int) KeyOf(MonitoringOccurrence o) =>
+        (o.TargetType, (o.WaterSamplingPointId ?? o.RoomId ?? o.MachineId)!.Value, o.LabSectionId, o.PeriodKey, o.Sequence);
 
     private static MonitoringOccurrence ToEntity(GeneratedOccurrence g) => new()
     {
@@ -367,6 +407,7 @@ public class MonitoringPlanService
         WaterSamplingPointId = g.TargetType == MonitoringTargetType.WaterSamplingPoint ? g.TargetId : null,
         RoomId = g.TargetType == MonitoringTargetType.Room ? g.TargetId : null,
         MachineId = g.TargetType == MonitoringTargetType.Machine ? g.TargetId : null,
+        LabSectionId = g.LabSectionId,
         PeriodKey = g.Period.PeriodKey,
         Sequence = 1,
         FrequencySnapshot = g.FrequencySnapshot,

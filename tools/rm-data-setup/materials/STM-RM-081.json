@@ -1,0 +1,988 @@
+{
+  "itemCode": "STM-RM-081",
+  "stmCode": "STM-RM-081",
+  "itemName": "Microcrystalline Cellulose 102",
+  "stmFile": "Microcrystalline Cellulose 102__STM Microcrystalline Cellulose with merge.txt",
+  "specFiles": [
+    "Microcrystalline Cellulose 102__Specifications sheet Microcrystalline Cellulose 102 BP New - Copy.txt",
+    "Microcrystalline Cellulose 102__Specifications sheet Microcrystalline Cellulose 102 USP New - Copy.txt"
+  ],
+  "minQuantity": {
+    "routine": 120,
+    "retest": 50,
+    "retention": 120,
+    "unit": "g",
+    "source": "Microcrystalline Cellulose 102__Specifications sheet Microcrystalline Cellulose 102 BP New - Copy.txt:19; Microcrystalline Cellulose 102__Specifications sheet Microcrystalline Cellulose 102 USP New - Copy.txt:20; Microcrystalline Cellulose 102__STM Microcrystalline Cellulose with merge.txt:46"
+  },
+  "grades": [
+    {
+      "grade": "BP",
+      "rows": [
+        {
+          "testCode": "RM-DESC",
+          "parameterName": "Appearance",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "White or almost white, fine or granular, slightly hygroscopic powder",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Microcrystalline Cellulose 102__Specifications sheet Microcrystalline Cellulose 102 BP New - Copy.txt:2"
+        },
+        {
+          "testCode": "RM-SOLUB",
+          "parameterName": "Solubility",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Practically insoluble in water, in acetone, in anhydrous ethanol, in toluene, in dilute acids and in a 50 g/L solution of sodium hydroxide.",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Microcrystalline Cellulose 102__Specifications sheet Microcrystalline Cellulose 102 BP New - Copy.txt:3"
+        },
+        {
+          "testCode": "RM-ID-IR",
+          "parameterName": "Identification (IR)",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "the spectrum obtained for the sample and compare to the spectrum obtained from microcrystalline cellulose RS",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Microcrystalline Cellulose 102__Specifications sheet Microcrystalline Cellulose 102 BP New - Copy.txt:4"
+        },
+        {
+          "testCode": "RM-ID-CR-MCC",
+          "parameterName": "Identification (Chemical Reaction)",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "The substance becomes violet-blue",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Microcrystalline Cellulose 102__Specifications sheet Microcrystalline Cellulose 102 BP New - Copy.txt:5"
+        },
+        {
+          "testCode": "RM-PH",
+          "parameterName": "pH",
+          "limitType": "Range",
+          "lower": 5.0,
+          "upper": 7.5,
+          "lowerInclusive": true,
+          "unit": null,
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Microcrystalline Cellulose 102__Specifications sheet Microcrystalline Cellulose 102 BP New - Copy.txt:6"
+        },
+        {
+          "testCode": "RM-COND",
+          "parameterName": "Conductivity",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 75,
+          "lowerInclusive": null,
+          "unit": "µS·cm-1",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Microcrystalline Cellulose 102__Specifications sheet Microcrystalline Cellulose 102 BP New - Copy.txt:7"
+        },
+        {
+          "testCode": "RM-ETH-SOL",
+          "parameterName": "Ether-soluble substances",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 0.05,
+          "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Microcrystalline Cellulose 102__Specifications sheet Microcrystalline Cellulose 102 BP New - Copy.txt:8"
+        },
+        {
+          "testCode": "RM-WAT-SOL",
+          "parameterName": "Water -soluble substances",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 0.25,
+          "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Microcrystalline Cellulose 102__Specifications sheet Microcrystalline Cellulose 102 BP New - Copy.txt:9"
+        },
+        {
+          "testCode": "RM-LOD",
+          "parameterName": "Loss on drying",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 7.0,
+          "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Microcrystalline Cellulose 102__Specifications sheet Microcrystalline Cellulose 102 BP New - Copy.txt:10"
+        },
+        {
+          "testCode": "RM-SASH",
+          "parameterName": "Sulphated Ash2",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 0.1,
+          "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Microcrystalline Cellulose 102__Specifications sheet Microcrystalline Cellulose 102 BP New - Copy.txt:11"
+        },
+        {
+          "testCode": "RM-TAMC",
+          "parameterName": "Total aerobic microbial count (TAMC)",
+          "limitType": "CountTiered",
+          "lower": null,
+          "upper": 1000,
+          "lowerInclusive": null,
+          "unit": "CFU/g",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Microcrystalline Cellulose 102__Specifications sheet Microcrystalline Cellulose 102 BP New - Copy.txt:12"
+        },
+        {
+          "testCode": "RM-TYMC",
+          "parameterName": "Total yeasts and molds count (TYMC)",
+          "limitType": "CountTiered",
+          "lower": null,
+          "upper": 100,
+          "lowerInclusive": null,
+          "unit": "CFU/g",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Microcrystalline Cellulose 102__Specifications sheet Microcrystalline Cellulose 102 BP New - Copy.txt:13"
+        },
+        {
+          "testCode": "RM-ECOLI",
+          "parameterName": "E. coli",
+          "limitType": "PresenceAbsence",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": "per g",
+          "expectedResultText": "Absent /gm",
+          "expectedState": "Absence",
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Microcrystalline Cellulose 102__Specifications sheet Microcrystalline Cellulose 102 BP New - Copy.txt:14"
+        },
+        {
+          "testCode": "RM-SALM",
+          "parameterName": "Salmonella spp.",
+          "limitType": "PresenceAbsence",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": "per 10 g",
+          "expectedResultText": "Absent /10 gm",
+          "expectedState": "Absence",
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Microcrystalline Cellulose 102__Specifications sheet Microcrystalline Cellulose 102 BP New - Copy.txt:15"
+        },
+        {
+          "testCode": "RM-SAUR",
+          "parameterName": "Staphylococcus aureus",
+          "limitType": "PresenceAbsence",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": "per g",
+          "expectedResultText": "Absent /gm",
+          "expectedState": "Absence",
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Microcrystalline Cellulose 102__Specifications sheet Microcrystalline Cellulose 102 BP New - Copy.txt:16"
+        },
+        {
+          "testCode": "RM-PAER",
+          "parameterName": "P. aeruginosa",
+          "limitType": "PresenceAbsence",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": "per g",
+          "expectedResultText": "Absent /gm",
+          "expectedState": "Absence",
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Microcrystalline Cellulose 102__Specifications sheet Microcrystalline Cellulose 102 BP New - Copy.txt:18"
+        }
+      ]
+    },
+    {
+      "grade": "USP",
+      "rows": [
+        {
+          "testCode": "RM-DESC",
+          "parameterName": "Appearance",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Fine, white or almost white powder. It consists of free-flowing, nonfibrous particles.",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Microcrystalline Cellulose 102__Specifications sheet Microcrystalline Cellulose 102 USP New - Copy.txt:2"
+        },
+        {
+          "testCode": "RM-SOLUB",
+          "parameterName": "Solubility",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Practically insoluble in sodium hydroxide solution (1 in 20); insoluble in water, in dilute acids, and in most organic solvents.",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Microcrystalline Cellulose 102__Specifications sheet Microcrystalline Cellulose 102 USP New - Copy.txt:3"
+        },
+        {
+          "testCode": "RM-ID-IR",
+          "parameterName": "Identification (IR)",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "the spectrum obtained for the sample and compare to the spectrum obtained from microcrystalline cellulose RS",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Microcrystalline Cellulose 102__Specifications sheet Microcrystalline Cellulose 102 USP New - Copy.txt:4"
+        },
+        {
+          "testCode": "RM-ID-CR-MCC",
+          "parameterName": "Identification (Chemical Reaction)",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "The substance becomes violet-blue",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Microcrystalline Cellulose 102__Specifications sheet Microcrystalline Cellulose 102 USP New - Copy.txt:5"
+        },
+        {
+          "testCode": "RM-PH",
+          "parameterName": "pH",
+          "limitType": "Range",
+          "lower": 5.0,
+          "upper": 7.5,
+          "lowerInclusive": true,
+          "unit": null,
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Microcrystalline Cellulose 102__Specifications sheet Microcrystalline Cellulose 102 USP New - Copy.txt:6"
+        },
+        {
+          "testCode": "RM-COND",
+          "parameterName": "Conductivity",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 75,
+          "lowerInclusive": null,
+          "unit": "µS·cm-1",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Microcrystalline Cellulose 102__Specifications sheet Microcrystalline Cellulose 102 USP New - Copy.txt:7"
+        },
+        {
+          "testCode": "RM-ETH-SOL",
+          "parameterName": "Ether-soluble substances",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 0.05,
+          "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Microcrystalline Cellulose 102__Specifications sheet Microcrystalline Cellulose 102 USP New - Copy.txt:8"
+        },
+        {
+          "testCode": "RM-WAT-SOL",
+          "parameterName": "Water -soluble substances",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 0.25,
+          "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Microcrystalline Cellulose 102__Specifications sheet Microcrystalline Cellulose 102 USP New - Copy.txt:9"
+        },
+        {
+          "testCode": "RM-LOD",
+          "parameterName": "Loss on drying",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 7.0,
+          "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Microcrystalline Cellulose 102__Specifications sheet Microcrystalline Cellulose 102 USP New - Copy.txt:10"
+        },
+        {
+          "testCode": "RM-SASH",
+          "parameterName": "Residue on ignition",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 0.1,
+          "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Microcrystalline Cellulose 102__Specifications sheet Microcrystalline Cellulose 102 USP New - Copy.txt:11"
+        },
+        {
+          "testCode": "RM-BULKD",
+          "parameterName": "Bulk Density",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "The bulk density is within the labeled specification",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Microcrystalline Cellulose 102__Specifications sheet Microcrystalline Cellulose 102 USP New - Copy.txt:12"
+        },
+        {
+          "testCode": "RM-TAMC",
+          "parameterName": "Total aerobic microbial count (TAMC)",
+          "limitType": "CountTiered",
+          "lower": null,
+          "upper": 1000,
+          "lowerInclusive": null,
+          "unit": "CFU/g",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Microcrystalline Cellulose 102__Specifications sheet Microcrystalline Cellulose 102 USP New - Copy.txt:13"
+        },
+        {
+          "testCode": "RM-TYMC",
+          "parameterName": "Total yeasts and molds count (TYMC)",
+          "limitType": "CountTiered",
+          "lower": null,
+          "upper": 100,
+          "lowerInclusive": null,
+          "unit": "CFU/g",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Microcrystalline Cellulose 102__Specifications sheet Microcrystalline Cellulose 102 USP New - Copy.txt:14"
+        },
+        {
+          "testCode": "RM-ECOLI",
+          "parameterName": "E. coli",
+          "limitType": "PresenceAbsence",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": "per g",
+          "expectedResultText": "Absent /gm",
+          "expectedState": "Absence",
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Microcrystalline Cellulose 102__Specifications sheet Microcrystalline Cellulose 102 USP New - Copy.txt:15"
+        },
+        {
+          "testCode": "RM-SALM",
+          "parameterName": "Salmonella spp.",
+          "limitType": "PresenceAbsence",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": "per 10 g",
+          "expectedResultText": "Absent /10 gm",
+          "expectedState": "Absence",
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Microcrystalline Cellulose 102__Specifications sheet Microcrystalline Cellulose 102 USP New - Copy.txt:17"
+        },
+        {
+          "testCode": "RM-SAUR",
+          "parameterName": "Staphylococcus aureus",
+          "limitType": "PresenceAbsence",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": "per g",
+          "expectedResultText": "Absent /gm",
+          "expectedState": "Absence",
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Microcrystalline Cellulose 102__Specifications sheet Microcrystalline Cellulose 102 USP New - Copy.txt:18"
+        },
+        {
+          "testCode": "RM-PAER",
+          "parameterName": "P. aeruginosa",
+          "limitType": "PresenceAbsence",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": "per g",
+          "expectedResultText": "Absent /gm",
+          "expectedState": "Absence",
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Microcrystalline Cellulose 102__Specifications sheet Microcrystalline Cellulose 102 USP New - Copy.txt:19"
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "testCode": "RM-DESC",
+      "procedure": "Under strong white light, check each received sample container separately in clean, transparent watch glass to detect any foreign particles, conformance of colour & compliance with the visual specifications. Hygroscopicity: weigh vessel and stopper (m1), add ~2 g substance (m2), place un-stoppered in climatic cabinet at 25 ± 1 °C for 24 h, stopper and weigh (m3). Calculate percentage increase in mass.",
+      "kind": "general",
+      "workflow": "Observation",
+      "details": {
+        "perContainer": true,
+        "grades": [
+          "BP",
+          "USP"
+        ],
+        "bp_text": "White or almost white, fine or granular, slightly hygroscopic powder.",
+        "usp_text": "Fine, white or almost white powder. It consists of free-flowing, nonfibrous particles.",
+        "hygroscopicityInterpretation": {
+          "veryHygroscopic": ">= 15 %",
+          "hygroscopic": "2 % to 15 %",
+          "slightlyHygroscopic": "< 2 %"
+        },
+        "references": [
+          "BP 2024 Monograph for Microcrystalline Cellulose",
+          "USP 2024 Monograph for Microcrystalline Cellulose"
+        ]
+      },
+      "source": "Microcrystalline Cellulose 102__STM Microcrystalline Cellulose with merge.txt:30"
+    },
+    {
+      "testCode": "RM-SOLUB",
+      "procedure": "Weigh 100 mg of sample in a stoppered tube. Stepwise add solvent: 0.1 mL, 0.9 mL, 2 mL, 7 mL with 1 min vigorous shaking and 15 min hold at 25.0 ± 0.5 °C; if undissolved test 10 mg in 10 mL then 1 mg in 10 mL. Repeat with specified solvents.",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {
+        "grades": [
+          "BP",
+          "USP"
+        ],
+        "bpSolvents": [
+          "water",
+          "acetone",
+          "anhydrous ethanol",
+          "toluene",
+          "dilute acids",
+          "50 g/L solution of sodium hydroxide"
+        ],
+        "uspSolvents": [
+          "sodium hydroxide solution (1 in 20)",
+          "water",
+          "dilute acids",
+          "organic solvents"
+        ]
+      },
+      "source": "Microcrystalline Cellulose 102__STM Microcrystalline Cellulose with merge.txt:31"
+    },
+    {
+      "testCode": "RM-ID-IR",
+      "procedure": "Mix intimately with potassium bromide and compress into a transparent pellet. Disregard any band between 800 cm-1 and 825 cm-1 or between 950 cm-1 and 1000 cm-1. Compare spectrum with microcrystalline cellulose CRS / RS.",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "details": {
+        "grades": [
+          "BP",
+          "USP"
+        ],
+        "technique": "KBr pellet",
+        "disregardBands": [
+          "800-825 cm-1",
+          "950-1000 cm-1"
+        ],
+        "standard": "microcrystalline cellulose CRS / RS",
+        "references": [
+          "BP Appendix II A",
+          "USP <197A> or <197K>"
+        ]
+      },
+      "source": "Microcrystalline Cellulose 102__STM Microcrystalline Cellulose with merge.txt:32"
+    },
+    {
+      "testCode": "RM-ID-CR-MCC",
+      "procedure": "Place about 10 mg on a watch-glass, disperse in 2 mL of iodinated zinc chloride solution. The substance becomes violet-blue.",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "details": {
+        "grades": [
+          "BP",
+          "USP"
+        ],
+        "sampleMg": 10,
+        "reagent": "2 mL iodinated zinc chloride solution",
+        "expected": "The substance becomes violet-blue",
+        "references": [
+          "BP 2024 Monograph for Microcrystalline Cellulose",
+          "USP 2023 Monograph for Microcrystalline Cellulose"
+        ]
+      },
+      "source": "Microcrystalline Cellulose 102__STM Microcrystalline Cellulose with merge.txt:32"
+    },
+    {
+      "testCode": "RM-PH",
+      "procedure": "Shake 5 g with 40 mL of carbon dioxide-free water for 20 min, centrifuge, use supernatant. Measure with calibrated pH meter.",
+      "kind": "general",
+      "workflow": "Measurement",
+      "details": {
+        "grades": [
+          "BP",
+          "USP"
+        ],
+        "sampleG": 5,
+        "solvent": "40 mL carbon dioxide-free water",
+        "shakeTimeMin": 20,
+        "references": [
+          "BP Appendix V L",
+          "USP <791>"
+        ]
+      },
+      "source": "Microcrystalline Cellulose 102__STM Microcrystalline Cellulose with merge.txt:33"
+    },
+    {
+      "testCode": "RM-COND",
+      "procedure": "Use supernatant obtained in pH test. Measure conductivity of supernatant and conductivity of the water used to prepare the test solution using calibrated conductivity meter. Difference must not exceed 75 µS·cm-1.",
+      "kind": "general",
+      "workflow": "Measurement",
+      "details": {
+        "grades": [
+          "BP",
+          "USP"
+        ],
+        "samplePreparation": "Supernatant from pH test (5 g in 40 mL water)",
+        "blank": "Water used to prepare test solution",
+        "limit": "Supernatant conductivity does not exceed water conductivity by more than 75 µS·cm-1",
+        "references": [
+          "BP Appendix V O. Conductivity",
+          "BP 2024 Monograph",
+          "USP 2024 Monograph"
+        ]
+      },
+      "source": "Microcrystalline Cellulose 102__STM Microcrystalline Cellulose with merge.txt:34"
+    },
+    {
+      "testCode": "RM-ETH-SOL",
+      "procedure": "Place 10.0 g (W1) in a chromatography column (~20 mm id), pass 50 mL peroxide-free ether. Evaporate eluate to dryness in tared dish, dry residue at 105 °C for 30 min, cool in desiccator, weigh (W2). Carry out blank determination. Limit: max 0.05% (5.0 mg difference between residue and blank).",
+      "kind": "specific",
+      "workflow": "Gravimetric",
+      "details": {
+        "grades": [
+          "BP",
+          "USP"
+        ],
+        "sampleG": 10.0,
+        "columnId": "~20 mm",
+        "solvent": "50 mL peroxide-free ether",
+        "drying": "105 °C for 30 min",
+        "blank": true,
+        "calculation": "% = (W2 - blank) / W1 x 100",
+        "references": [
+          "BP 2024 Monograph",
+          "USP 2024 Monograph"
+        ]
+      },
+      "source": "Microcrystalline Cellulose 102__STM Microcrystalline Cellulose with merge.txt:35"
+    },
+    {
+      "testCode": "RM-WAT-SOL",
+      "procedure": "Shake 5.0 g (W1) with 80 mL water for 10 min, filter through filter paper with vacuum into tared flask. Evaporate to dryness on water bath avoiding charring, dry at 105 °C for 1 h, cool in desiccator, weigh (W2). Carry out blank determination. Limit: max 0.25% (12.5 mg difference between residue and blank).",
+      "kind": "specific",
+      "workflow": "Gravimetric",
+      "details": {
+        "grades": [
+          "BP",
+          "USP"
+        ],
+        "sampleG": 5.0,
+        "solvent": "80 mL water",
+        "shakeTimeMin": 10,
+        "drying": "105 °C for 1 h",
+        "blank": true,
+        "calculation": "% = (W2 - blank) / W1 x 100",
+        "references": [
+          "BP 2024 Monograph",
+          "USP 2024 Monograph"
+        ]
+      },
+      "source": "Microcrystalline Cellulose 102__STM Microcrystalline Cellulose with merge.txt:36"
+    },
+    {
+      "testCode": "RM-LOD",
+      "procedure": "Accurately weigh empty weighing bottle previously dried at 105 °C and cooled in desiccator (W0). Weigh accurately 1.000 g into bottle (W1 = empty bottle + sample). Dry in calibrated oven at 105 °C for 3 h, cool in desiccator, weigh (W2). Repeat to constant weight. % LOD = ((W1 - W2) / (W1 - W0)) x 100.",
+      "kind": "general",
+      "workflow": "Gravimetric",
+      "details": {
+        "grades": [
+          "BP",
+          "USP"
+        ],
+        "sampleG": 1.0,
+        "dryingTemp": "105 °C",
+        "initialTimeHours": 3,
+        "formula": "% Loss on Drying = ((W1 - W2) / (W1 - W0)) x 100",
+        "references": [
+          "BP Appendix IX D",
+          "USP <731>"
+        ]
+      },
+      "source": "Microcrystalline Cellulose 102__STM Microcrystalline Cellulose with merge.txt:37"
+    },
+    {
+      "testCode": "RM-SASH",
+      "procedure": "Accurately weigh empty platinum crucible previously ignited at 600-650 °C and cooled in desiccator (W0). Weigh 1.0 g sample into crucible (W1 = crucible + sample). Moisten with ~1 mL sulfuric acid, char gently on hot plate, moisten with sulfuric acid, heat until white fumes cease, ignite in muffle at 600-650 °C, cool, weigh (W2). Repeat to constant weight. % = ((W2 - W0) / (W1 - W0)) x 100.",
+      "kind": "general",
+      "workflow": "Gravimetric",
+      "details": {
+        "grades": [
+          "BP",
+          "USP"
+        ],
+        "sampleG": 1.0,
+        "ignitionTemp": "600-650 °C",
+        "acid": "sulfuric acid (usually 1 mL, twice)",
+        "formula": "% = ((W2 - W0) / (W1 - W0)) x 100",
+        "references": [
+          "BP Appendix IX A",
+          "USP <281>"
+        ]
+      },
+      "source": "Microcrystalline Cellulose 102__STM Microcrystalline Cellulose with merge.txt:38"
+    },
+    {
+      "testCode": "RM-BULKD",
+      "procedure": "Weigh empty cylinder. Slowly pour powder above funnel. Weigh filled cup. Calculate bulk density by dividing powder weight by cylinder volume.",
+      "kind": "general",
+      "workflow": "Measurement",
+      "details": {
+        "grades": [
+          "USP"
+        ],
+        "apparatus": "Funnel and cylinder",
+        "specification": "within labeled specification",
+        "reference": "USP 2024 Monograph for Microcrystalline Cellulose"
+      },
+      "source": "Microcrystalline Cellulose 102__STM Microcrystalline Cellulose with merge.txt:39"
+    },
+    {
+      "testCode": "RM-TAMC",
+      "procedure": "Dissolve ~10 g sample in SCDB with 4% polysorbate 20 to 100 mL homogeneous suspension. Plate count / membrane filtration per SOP C2I-91-128 and verification report.",
+      "kind": "general",
+      "workflow": "CountTest",
+      "details": {
+        "grades": [
+          "BP",
+          "USP"
+        ],
+        "sampleG": 10,
+        "diluent": "SCDB with 4% polysorbate 20 to 100 mL",
+        "limit": "NMT 10^3 CFU/gm",
+        "references": [
+          "USP <61>",
+          "BP 2024 Monograph",
+          "USP 2024 Monograph"
+        ]
+      },
+      "source": "Microcrystalline Cellulose 102__STM Microcrystalline Cellulose with merge.txt:40"
+    },
+    {
+      "testCode": "RM-TYMC",
+      "procedure": "Dissolve ~10 g sample in SCDB with 4% polysorbate 20 to 100 mL homogeneous suspension. Plate count / membrane filtration per SOP C2I-91-128 and verification report.",
+      "kind": "general",
+      "workflow": "CountTest",
+      "details": {
+        "grades": [
+          "BP",
+          "USP"
+        ],
+        "sampleG": 10,
+        "diluent": "SCDB with 4% polysorbate 20 to 100 mL",
+        "limit": "NMT 10^2 CFU/gm",
+        "references": [
+          "USP <61>",
+          "BP 2024 Monograph",
+          "USP 2024 Monograph"
+        ]
+      },
+      "source": "Microcrystalline Cellulose 102__STM Microcrystalline Cellulose with merge.txt:40"
+    },
+    {
+      "testCode": "RM-ECOLI",
+      "procedure": "Take 10 mL prepared SCDB dilution into 90 mL SCDB, incubate at 30-35 °C for 18-24 h. Transfer 1 mL to 100 mL MacConkey broth, incubate 42-44 °C 24-48 h, subculture on MacConkey agar at 30-35 °C 18-72 h.",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {
+        "grades": [
+          "BP",
+          "USP"
+        ],
+        "media": [
+          "SCDB",
+          "MacConkey Broth",
+          "MacConkey Agar"
+        ],
+        "limit": "Absent /gm",
+        "references": [
+          "USP <62>",
+          "BP 2024 Monograph",
+          "USP 2024 Monograph"
+        ]
+      },
+      "source": "Microcrystalline Cellulose 102__STM Microcrystalline Cellulose with merge.txt:41"
+    },
+    {
+      "testCode": "RM-SALM",
+      "procedure": "Incubate prepared SCDB dilution at 30-35 °C 18-24 h. Transfer 0.1 mL to 10 mL Rappaport Vassiliadis broth, incubate 30-35 °C 18-24 h, subculture on XLD agar at 30-35 °C 18-48 h.",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {
+        "grades": [
+          "BP",
+          "USP"
+        ],
+        "media": [
+          "SCDB",
+          "RVS Broth",
+          "XLD Agar"
+        ],
+        "limit": "Absent /10 gm",
+        "references": [
+          "USP <62>",
+          "BP 2024 Monograph",
+          "USP 2024 Monograph"
+        ]
+      },
+      "source": "Microcrystalline Cellulose 102__STM Microcrystalline Cellulose with merge.txt:42"
+    },
+    {
+      "testCode": "RM-SAUR",
+      "procedure": "Subculture from incubated SCDB on Mannitol Salt Agar (MSA) plate, incubate 30-35 °C 18-72 h. Golden yellow or white colonies with yellow zone indicate S. aureus; confirm by Gram stain, coagulase kit, and identification system.",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {
+        "grades": [
+          "BP",
+          "USP"
+        ],
+        "media": [
+          "SCDB",
+          "Mannitol Salt Agar (MSA)"
+        ],
+        "limit": "Absent /gm",
+        "references": [
+          "USP <62>",
+          "BP 2024 Monograph",
+          "USP 2024 Monograph"
+        ]
+      },
+      "source": "Microcrystalline Cellulose 102__STM Microcrystalline Cellulose with merge.txt:43"
+    },
+    {
+      "testCode": "RM-PAER",
+      "procedure": "Subculture from incubated SCDB on Cetrimide Agar Medium (CAM), incubate 30-35 °C 18-72 h. Confirm colonies by Gram stain, oxidase test, catalase test, Burkholderia cepacia agar, and identification system.",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {
+        "grades": [
+          "BP",
+          "USP"
+        ],
+        "media": [
+          "SCDB",
+          "Cetrimide Agar Medium (CAM)",
+          "Burkholderia cepacia selective agar (BUR)"
+        ],
+        "limit": "Absent /gm",
+        "references": [
+          "USP <62>",
+          "BP 2024 Monograph",
+          "USP 2024 Monograph"
+        ]
+      },
+      "source": "Microcrystalline Cellulose 102__STM Microcrystalline Cellulose with merge.txt:44"
+    }
+  ],
+  "notApplicable": [],
+  "supplierAttributes": [
+    {
+      "grade": null,
+      "name": "Particle Size Distribution: Retained 60 mesh (250 microns)",
+      "statedValue": "NMT 8 % m/m",
+      "source": "Microcrystalline Cellulose 102__Specifications sheet Microcrystalline Cellulose 102 BP New - Copy.txt:19; Microcrystalline Cellulose 102__Specifications sheet Microcrystalline Cellulose 102 USP New - Copy.txt:20"
+    },
+    {
+      "grade": null,
+      "name": "Particle Size Distribution: Retained 200 mesh (75 microns)",
+      "statedValue": "NLT 45 % m/m",
+      "source": "Microcrystalline Cellulose 102__Specifications sheet Microcrystalline Cellulose 102 BP New - Copy.txt:19; Microcrystalline Cellulose 102__Specifications sheet Microcrystalline Cellulose 102 USP New - Copy.txt:20"
+    },
+    {
+      "grade": null,
+      "name": "Identification Test (C): Degree of polymerization",
+      "statedValue": "NMT 350",
+      "source": "Microcrystalline Cellulose 102__Specifications sheet Microcrystalline Cellulose 102 BP New - Copy.txt:19; Microcrystalline Cellulose 102__Specifications sheet Microcrystalline Cellulose 102 USP New - Copy.txt:20"
+    }
+  ],
+  "reagents": [
+    {
+      "name": "Microcrystalline cellulose RS",
+      "use": "standard",
+      "source": "Microcrystalline Cellulose 102__STM Microcrystalline Cellulose with merge.txt:28"
+    },
+    {
+      "name": "Zinc chloride",
+      "use": "reagent",
+      "source": "Microcrystalline Cellulose 102__STM Microcrystalline Cellulose with merge.txt:28"
+    },
+    {
+      "name": "Potassium iodide",
+      "use": "reagent",
+      "source": "Microcrystalline Cellulose 102__STM Microcrystalline Cellulose with merge.txt:28"
+    },
+    {
+      "name": "Iodine",
+      "use": "reagent",
+      "source": "Microcrystalline Cellulose 102__STM Microcrystalline Cellulose with merge.txt:28"
+    },
+    {
+      "name": "Copper sulfate pentahydrate",
+      "use": "reagent",
+      "source": "Microcrystalline Cellulose 102__STM Microcrystalline Cellulose with merge.txt:28"
+    },
+    {
+      "name": "Concentrated ammonia",
+      "use": "reagent",
+      "source": "Microcrystalline Cellulose 102__STM Microcrystalline Cellulose with merge.txt:28"
+    },
+    {
+      "name": "Sodium hydroxide",
+      "use": "reagent",
+      "source": "Microcrystalline Cellulose 102__STM Microcrystalline Cellulose with merge.txt:28"
+    },
+    {
+      "name": "Ether",
+      "use": "reagent",
+      "source": "Microcrystalline Cellulose 102__STM Microcrystalline Cellulose with merge.txt:28"
+    },
+    {
+      "name": "Ferrous sulphate (Iron(ii) sulphate)",
+      "use": "reagent",
+      "source": "Microcrystalline Cellulose 102__STM Microcrystalline Cellulose with merge.txt:28"
+    },
+    {
+      "name": "Sulfuric acid",
+      "use": "reagent",
+      "source": "Microcrystalline Cellulose 102__STM Microcrystalline Cellulose with merge.txt:28"
+    },
+    {
+      "name": "Soluble starch",
+      "use": "reagent",
+      "source": "Microcrystalline Cellulose 102__STM Microcrystalline Cellulose with merge.txt:28"
+    },
+    {
+      "name": "Potassium bromide",
+      "use": "reagent",
+      "source": "Microcrystalline Cellulose 102__STM Microcrystalline Cellulose with merge.txt:32"
+    },
+    {
+      "name": "Polysorbate 20",
+      "use": "reagent",
+      "source": "Microcrystalline Cellulose 102__STM Microcrystalline Cellulose with merge.txt:28"
+    },
+    {
+      "name": "3 % hydrogen peroxide",
+      "use": "reagent",
+      "source": "Microcrystalline Cellulose 102__STM Microcrystalline Cellulose with merge.txt:28"
+    }
+  ],
+  "openQuestions": [
+    {
+      "question": "TAMC and TYMC limits in the spec sheets and STM read 'NMT 103 CFU/ gm' and 'NMT 102 CFU/ gm' (superscripts flattened); transcribed as 1000 and 100 CFU/g.",
+      "source": "Microcrystalline Cellulose 102__Specifications sheet Microcrystalline Cellulose 102 BP New - Copy.txt:12-13; Microcrystalline Cellulose 102__Specifications sheet Microcrystalline Cellulose 102 USP New - Copy.txt:13-14; Microcrystalline Cellulose 102__STM Microcrystalline Cellulose with merge.txt:40"
+    },
+    {
+      "question": "Hygroscopicity test: STM line 30 states 'Calculate the percentage increase in mass using the expression:' but the formula expression itself is omitted from the document text (likely (m3-m2)/(m2-m1) x 100).",
+      "source": "Microcrystalline Cellulose 102__STM Microcrystalline Cellulose with merge.txt:30"
+    },
+    {
+      "question": "Ether-soluble and water-soluble substances: formulas in lines 35 and 36 print 'W2 / % = ---------- / W1', but the text states the limit is for the difference between the mass of the residue and the mass obtained from a blank determination ((W2 - blank)/W1 x 100).",
+      "source": "Microcrystalline Cellulose 102__STM Microcrystalline Cellulose with merge.txt:35,36"
+    },
+    {
+      "question": "Conductivity limit states 'does not exceed the conductivity of the water by more than 75 µS·cm-1'; represented as NotMoreThan 75 µS·cm-1 over water blank in Measurement workflow.",
+      "source": "Microcrystalline Cellulose 102__Specifications sheet Microcrystalline Cellulose 102 BP New - Copy.txt:7; Microcrystalline Cellulose 102__Specifications sheet Microcrystalline Cellulose 102 USP New - Copy.txt:7; Microcrystalline Cellulose 102__STM Microcrystalline Cellulose with merge.txt:34"
+    },
+    {
+      "question": "Additional requirements on spec sheets (BP:19, USP:20) list Particle Size Distribution (Retained 60 mesh NMT 8%, Retained 200 mesh NLT 45%) and Identification Test (C) (Degree of polymerization NMT 350); neither is documented in the STM procedure, so they are transcribed under supplierAttributes.",
+      "source": "Microcrystalline Cellulose 102__Specifications sheet Microcrystalline Cellulose 102 BP New - Copy.txt:19; Microcrystalline Cellulose 102__Specifications sheet Microcrystalline Cellulose 102 USP New - Copy.txt:20"
+    },
+    {
+      "question": "BP spec sheet line 11 gives parameter name 'Sulphated Ash2' (retaining typographical '2' from the original document footnote/superscript as written).",
+      "source": "Microcrystalline Cellulose 102__Specifications sheet Microcrystalline Cellulose 102 BP New - Copy.txt:11"
+    }
+  ]
+}

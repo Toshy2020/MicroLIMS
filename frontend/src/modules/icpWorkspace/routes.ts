@@ -6,7 +6,6 @@ export const ICP_ROUTES = {
   instrument: (equipmentId: number | string) => `/icp-workspace/${equipmentId}`,
   run: (equipmentId: number | string, runId: number | string) => `/icp-workspace/${equipmentId}/run/${runId}`,
   calibration: (equipmentId: number | string, runId: number | string) => `/icp-workspace/${equipmentId}/run/${runId}/calibration`,
-  ccv: (equipmentId: number | string, runId: number | string) => `/icp-workspace/${equipmentId}/run/${runId}/ccv`,
   samples: (equipmentId: number | string, runId: number | string) => `/icp-workspace/${equipmentId}/run/${runId}/samples`,
   evidence: (equipmentId: number | string, runId: number | string) => `/icp-workspace/${equipmentId}/run/${runId}/evidence`,
   history: (equipmentId: number | string) => `/icp-workspace/${equipmentId}/history`,

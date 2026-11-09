@@ -126,7 +126,7 @@ export function IcpSampleAssignmentPanel({
               Assigned Run Samples ({samples.length})
             </Typography>
             <Typography variant="body2" sx={{ color: "text.secondary" }}>
-              Samples linked to this ICP run for analysis and replicate entry.
+              Samples linked to this ICP run for analysis and result entry.
             </Typography>
           </Box>
 
@@ -180,7 +180,12 @@ export function IcpSampleAssignmentPanel({
                   return (
                     <TableRow key={s.id} hover>
                       <TableCell sx={{ fontFamily: monospaceFontFamily, fontWeight: 600 }}>
-                        {s.sampleNumber}
+                        <div>{s.sampleNumber}</div>
+                        {s.subjectName && (
+                          <Typography variant="caption" sx={{ display: "block", color: "text.secondary", fontWeight: 400 }}>
+                            {s.subjectName}
+                          </Typography>
+                        )}
                       </TableCell>
                       <TableCell>{s.batchNumber ?? "—"}</TableCell>
                       <TableCell>{s.productName ?? "—"}</TableCell>
@@ -200,7 +205,7 @@ export function IcpSampleAssignmentPanel({
                             onClick={() => navigate(entryUrl)}
                             sx={{ textTransform: "none", py: 0.25 }}
                           >
-                            Enter Replicates
+                            Enter Results
                           </Button>
 
                           {canRemove && (

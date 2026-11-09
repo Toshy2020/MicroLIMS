@@ -42,7 +42,6 @@ export function IcpWorkspaceRunHeader({
           </Box>
           <Typography variant="body2" sx={{ color: "text.secondary" }}>
             <strong>Run Code:</strong> <Box component="span" sx={{ fontFamily: monospaceFontFamily }}>{run.code}</Box> ·{" "}
-            <strong>Method:</strong> {run.icpMethodAbbreviation} ({run.method.mode === "MineralAssay" ? "Mineral Assay" : "Elemental Impurities"}) ·{" "}
             <strong>Analyst:</strong> {run.analystUserName ?? "Analyst"} ·{" "}
             <strong>Started:</strong> {new Date(run.startedAt).toLocaleString()}
           </Typography>
@@ -76,7 +75,7 @@ export function IcpWorkspaceRunHeader({
       </Box>
 
       {/* Element Status Strip */}
-      <IcpElementStatusStrip elementStates={run.elementStates} />
+      <IcpElementStatusStrip elements={run.calibration?.elements} />
     </Box>
   );
 }

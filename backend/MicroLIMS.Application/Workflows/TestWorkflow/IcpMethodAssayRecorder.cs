@@ -30,66 +30,35 @@ public sealed class IcpMethodAssayRecorder : TestWorkflowSupport
         var (order, _, _, analysedAtUtc) = await ValidateTestAnalysisOrderAsync(
             c.Order.Id, _clock.UtcNow.UtcDateTime, null, null, password, WorkflowType.IcpMethodAssay, userId);
 
-        var levels = CalibrationStandardLevelsHelper.ParseAndValidate(c.Snapshot.StandardLevelsMgPerL).Levels;
         var cal = c.Run.Calibration!;
-        var unitAmount = c.RunSample.UnitAmount;
+        var def = c.Definition;
 
         var parameterResults = new List<ParameterResult>();
         foreach (var row in c.EvaluateRows())
         {
-            var element = c.Snapshot.Elements.First(e => e.Id == row.ElementId);
+            var element = def.IcpElements.First(e => e.Id == row.ElementId);
             var spec = row.Spec;
-            var reps = c.RunSample.Replicates.OrderBy(r => r.ReplicateNo).ToList();
-            var calc = IcpContentCalculator.Calculate(
-                reps.Select(r => new IcpReplicateInput(r.ReplicateNo, r.SampleAmount, r.VolumeMl, r.DilutionFactor,
-                    r.Concentrations.First(x => x.IcpMethodElementId == element.Id).SolutionMgPerL)).ToList(),
-                levels.Min(), levels.Max(), element.ConversionFactor, unitAmount, spec.LabelClaim);
+            var conc = c.RunSample.Concentrations.First(x => x.IcpTestElementId == element.Id);
+            var assay = row.Mode == IcpTestMode.Assay;
 
             var calculationJson = JsonSerializer.Serialize(new
             {
                 element = element.Symbol,
-                icpMethodElementId = element.Id,
-                quantity = row.Basis switch
-                {
-                    ResultBasis.MgPerUnit => "IcpMgPerUnit",
-                    ResultBasis.PercentLabelClaim => "IcpPercentLabelClaim",
-                    _ => "IcpMgPerKg",
-                },
-                amountUnit = c.RunSample.AmountUnit.ToString(),
-                unitAmount,
-                conversionFactor = element.ConversionFactor,
-                labelClaim = spec.LabelClaim,
-                labelClaimUnit = spec.LabelClaimUnit,
-                standardLevelsMgPerL = levels,
-                replicates = reps.Select(r =>
-                {
-                    var content = calc.Replicates.First(x => x.ReplicateNo == r.ReplicateNo);
-                    return new
-                    {
-                        replicateNo = r.ReplicateNo,
-                        sampleAmount = r.SampleAmount,
-                        volumeMl = r.VolumeMl,
-                        dilutionFactor = r.DilutionFactor,
-                        solutionMgPerL = r.Concentrations.First(x => x.IcpMethodElementId == element.Id).SolutionMgPerL,
-                        contentPerAmount = content.ContentPerAmount,
-                        belowLoq = content.BelowLoq,
-                    };
-                }),
-                meanContentPerAmount = calc.MeanContentPerAmount,
+                icpTestElementId = element.Id,
+                quantity = assay ? "IcpAssayPercent" : "IcpImpurityPpm",
+                mode = row.Mode.ToString(),
+                sampleForm = assay ? def.IcpSampleForm?.ToString() : null,
+                targetPpm = assay ? element.TargetPpm : null,
+                theoreticalAmount = assay ? def.IcpTheoreticalAmount : null,
+                specificGravity = assay && def.IcpSampleForm == IcpSampleForm.Liquid ? def.IcpSpecificGravity : null,
+                actualWeightG = assay ? c.RunSample.ActualWeightG : null,
+                resultPpm = conc.ResultPpm,
                 reportedValue = row.Value,
                 display = row.Display,
                 runCode = c.Run.Code,
                 calibrationCode = cal.Code,
                 calibrationConfirmedAt = cal.ConfirmedAt,
-                correlationR = cal.Elements.FirstOrDefault(e => e.IcpMethodElementId == element.Id)?.CorrelationR,
-                ccv = c.Run.CcvReadings.Where(r => r.IcpMethodElementId == element.Id).OrderBy(r => r.EnteredAt).Select(r => new
-                {
-                    measuredMgPerL = r.MeasuredMgPerL,
-                    recoveryPercent = r.RecoveryPercent,
-                    passed = r.Passed,
-                    enteredAt = r.EnteredAt,
-                }),
-                icpMethodId = c.Run.IcpMethodId,
+                correlationR = cal.Elements.FirstOrDefault(e => string.Equals(e.Symbol, element.Symbol, StringComparison.OrdinalIgnoreCase))?.CorrelationR,
                 icpRunId = c.Run.Id,
                 icpRunSampleId = c.RunSample.Id,
             }, JsonOptions);
@@ -97,16 +66,16 @@ public sealed class IcpMethodAssayRecorder : TestWorkflowSupport
             parameterResults.Add(new ParameterResult
             {
                 TestOrderId = order.Id,
-                SpecificationId = spec.Id,
+                SpecificationId = spec.Id == 0 ? null : spec.Id,
                 ParameterName = !string.IsNullOrWhiteSpace(spec.ParameterName) ? spec.ParameterName : row.Symbol,
                 ReportedValue = row.Value,
                 ReportedDisplay = row.Display,
                 Unit = row.Unit,
                 SpecLimit = !string.IsNullOrWhiteSpace(spec.SpecLimit) ? spec.SpecLimit : SpecificationService.BuildCanonicalSpecLimit(spec),
-                ResultBasis = row.Basis,
+                ResultBasis = null,
                 ComparisonStatus = row.Status!.Value,
                 OverRange = false,
-                BelowLoq = calc.AllBelowLoq,
+                BelowLoq = false,
                 CalculationJson = calculationJson,
                 IsActive = true,
             });

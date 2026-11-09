@@ -96,7 +96,7 @@ export interface SpecificationDto {
   hplcMethodAnalyteId?: number | null;
   hplcMethodImpurityId?: number | null;
   relatedSubstanceRow?: RelatedSubstanceRow | null;
-  icpMethodElementId?: number | null;
+  icpTestElementId?: number | null;
   productionStageRole?: ProductionStageRole | string | null;
   grade?: string | null;
 }
@@ -132,7 +132,7 @@ export interface CreateSpecificationPayload {
   hplcMethodAnalyteId?: number | null;
   hplcMethodImpurityId?: number | null;
   relatedSubstanceRow?: RelatedSubstanceRow | null;
-  icpMethodElementId?: number | null;
+  icpTestElementId?: number | null;
   productionStageRole?: ProductionStageRole | null;
   grade?: string | null;
 }

@@ -21,12 +21,6 @@ describe("IcpWorkspaceService endpoint URL building", () => {
     expect(apiClient.get).toHaveBeenCalledWith("/icp-workspace/instruments");
   });
 
-  it("calls GET /icp-workspace/method-options", async () => {
-    vi.mocked(apiClient.get).mockResolvedValueOnce({ data: { success: true, data: [] } });
-    await IcpWorkspaceService.getMethodOptions();
-    expect(apiClient.get).toHaveBeenCalledWith("/icp-workspace/method-options");
-  });
-
   it("calls GET /icp-workspace/instruments/:equipmentId/runs", async () => {
     vi.mocked(apiClient.get).mockResolvedValueOnce({ data: { success: true, data: [] } });
     await IcpWorkspaceService.getRunHistory(42);
@@ -49,19 +43,15 @@ describe("IcpWorkspaceService endpoint URL building", () => {
 
   it("calls POST /icp-workspace/runs for startRun", async () => {
     vi.mocked(apiClient.post).mockResolvedValueOnce({ data: { success: true, data: { id: 10 } } });
-    await IcpWorkspaceService.startRun({ equipmentId: 5, icpMethodId: 3 });
-    expect(apiClient.post).toHaveBeenCalledWith("/icp-workspace/runs", {
-      equipmentId: 5,
-      icpMethodId: 3
-    });
+    await IcpWorkspaceService.startRun({ equipmentId: 5 });
+    expect(apiClient.post).toHaveBeenCalledWith("/icp-workspace/runs", { equipmentId: 5 });
   });
 
   it("calls PUT /icp-workspace/runs/:id/calibration for saveCalibration", async () => {
     vi.mocked(apiClient.put).mockResolvedValueOnce({ data: { success: true, data: {} } });
     const payload = {
       calibrationStandardMaterialId: 101,
-      icvStandardMaterialId: 102,
-      elements: []
+      elements: [{ symbol: "Zn", correlationR: 0.9995 }]
     };
     await IcpWorkspaceService.saveCalibration(8, payload);
     expect(apiClient.put).toHaveBeenCalledWith("/icp-workspace/runs/8/calibration", payload);
@@ -76,12 +66,28 @@ describe("IcpWorkspaceService endpoint URL building", () => {
     });
   });
 
-  it("calls POST /icp-workspace/runs/:id/ccv for addCcv", async () => {
+  it("calls PUT /icp-workspace/samples/:runSampleId/entry for saveEntry", async () => {
+    vi.mocked(apiClient.put).mockResolvedValueOnce({ data: { success: true, data: {} } });
+    const payload = { actualWeightG: 0.5, concentrations: [{ icpTestElementId: 3, resultPpm: 9.5 }] };
+    await IcpWorkspaceService.saveEntry(15, payload);
+    expect(apiClient.put).toHaveBeenCalledWith("/icp-workspace/samples/15/entry", payload);
+  });
+
+  it("calls GET report-values with and without a chosen solution", async () => {
+    vi.mocked(apiClient.get).mockResolvedValue({ data: { success: true, data: {} } });
+    await IcpWorkspaceService.getReportValues(15);
+    expect(apiClient.get).toHaveBeenLastCalledWith("/icp-workspace/samples/15/report-values", { params: undefined });
+    await IcpWorkspaceService.getReportValues(15, 4);
+    expect(apiClient.get).toHaveBeenLastCalledWith("/icp-workspace/samples/15/report-values", { params: { solutionIndex: 4 } });
+  });
+
+  it("posts the assignment with the signature password and comment", async () => {
     vi.mocked(apiClient.post).mockResolvedValueOnce({ data: { success: true, data: {} } });
-    await IcpWorkspaceService.addCcv(8, { icpMethodElementId: 3, measuredMgPerL: 5.01 });
-    expect(apiClient.post).toHaveBeenCalledWith("/icp-workspace/runs/8/ccv", {
-      icpMethodElementId: 3,
-      measuredMgPerL: 5.01
+    await IcpWorkspaceService.assignSamples(8, { testOrderIds: [1, 2], password: "pw", comment: "two samples" });
+    expect(apiClient.post).toHaveBeenCalledWith("/icp-workspace/runs/8/samples", {
+      testOrderIds: [1, 2],
+      password: "pw",
+      comment: "two samples"
     });
   });
 

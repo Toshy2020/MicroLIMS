@@ -81,6 +81,7 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext, IMicr
     public DbSet<Machine> Machines => Set<Machine>();
     public DbSet<MachinePart> MachineParts => Set<MachinePart>();
     public DbSet<WaterSamplingPoint> WaterSamplingPoints => Set<WaterSamplingPoint>();
+    public DbSet<WaterPointLabFrequency> WaterPointLabFrequencies => Set<WaterPointLabFrequency>();
     public DbSet<WaterDepartment> WaterDepartments => Set<WaterDepartment>();
     public DbSet<EMRoom> EMRooms => Set<EMRoom>();
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
@@ -148,8 +149,7 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext, IMicr
     public DbSet<SolutionComponent> SolutionComponents => Set<SolutionComponent>();
     public DbSet<HplcMethod> HplcMethods => Set<HplcMethod>();
     public DbSet<HplcMethodAnalyte> HplcMethodAnalytes => Set<HplcMethodAnalyte>();
-    public DbSet<IcpMethod> IcpMethods => Set<IcpMethod>();
-    public DbSet<IcpMethodElement> IcpMethodElements => Set<IcpMethodElement>();
+    public DbSet<TestDefinitionIcpElement> TestDefinitionIcpElements => Set<TestDefinitionIcpElement>();
     public DbSet<HplcMethodMobilePhase> HplcMethodMobilePhases => Set<HplcMethodMobilePhase>();
     public DbSet<HplcMethodGradientStep> HplcMethodGradientSteps => Set<HplcMethodGradientStep>();
     public DbSet<HplcMethodOvenStep> HplcMethodOvenSteps => Set<HplcMethodOvenStep>();
@@ -178,10 +178,8 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext, IMicr
     public DbSet<IcpRun> IcpRuns => Set<IcpRun>();
     public DbSet<IcpCalibration> IcpCalibrations => Set<IcpCalibration>();
     public DbSet<IcpCalibrationElement> IcpCalibrationElements => Set<IcpCalibrationElement>();
-    public DbSet<IcpCcvReading> IcpCcvReadings => Set<IcpCcvReading>();
     public DbSet<IcpRunSample> IcpRunSamples => Set<IcpRunSample>();
-    public DbSet<IcpSampleReplicate> IcpSampleReplicates => Set<IcpSampleReplicate>();
-    public DbSet<IcpReplicateConcentration> IcpReplicateConcentrations => Set<IcpReplicateConcentration>();
+    public DbSet<IcpSampleConcentration> IcpSampleConcentrations => Set<IcpSampleConcentration>();
     public DbSet<IcpEvidence> IcpEvidences => Set<IcpEvidence>();
     public DbSet<EquipmentInventory> EquipmentInventories => Set<EquipmentInventory>();
     public DbSet<EquipmentStatusHistory> EquipmentStatusHistories => Set<EquipmentStatusHistory>();
@@ -329,13 +327,29 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext, IMicr
             e.HasIndex(r => r.Year).IsUnique().HasFilter("\"Status\" = 1").HasDatabaseName("IX_MonitoringPlanRevisions_Year_Approved");
             e.HasOne(r => r.ApprovalSignature).WithMany().HasForeignKey(r => r.ApprovalSignatureId).OnDelete(DeleteBehavior.Restrict);
         });
+        modelBuilder.Entity<WaterPointLabFrequency>(e =>
+        {
+            e.HasOne(f => f.WaterSamplingPoint)
+                .WithMany(p => p.LabFrequencies)
+                .HasForeignKey(f => f.WaterSamplingPointId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            e.HasOne(f => f.Section)
+                .WithMany()
+                .HasForeignKey(f => f.SectionId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            e.HasIndex(f => new { f.WaterSamplingPointId, f.SectionId }).IsUnique();
+        });
+
         modelBuilder.Entity<MonitoringOccurrence>(e =>
         {
             e.HasOne(o => o.CreatedByRevision).WithMany(r => r.CreatedOccurrences).HasForeignKey(o => o.CreatedByRevisionId).OnDelete(DeleteBehavior.Restrict);
             e.HasOne(o => o.RetiredByRevision).WithMany().HasForeignKey(o => o.RetiredByRevisionId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(o => o.LabSection).WithMany().HasForeignKey(o => o.LabSectionId).OnDelete(DeleteBehavior.Restrict);
             e.Property(o => o.PeriodKey).HasMaxLength(40);
             e.Property(o => o.FrequencySnapshot).HasMaxLength(200);
-            e.HasIndex(o => new { o.TargetType, o.WaterSamplingPointId, o.RoomId, o.MachineId, o.PeriodKey, o.Sequence })
+            e.HasIndex(o => new { o.TargetType, o.WaterSamplingPointId, o.RoomId, o.MachineId, o.LabSectionId, o.PeriodKey, o.Sequence })
                 // Two of the three target ids are always null, so nulls must compare equal.
                 .IsUnique().AreNullsDistinct(false).HasDatabaseName("IX_MonitoringOccurrences_Target_Period");
             e.HasIndex(o => o.WindowStart);
@@ -343,6 +357,7 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext, IMicr
             e.HasIndex(o => o.WaterSamplingPointId);
             e.HasIndex(o => o.RoomId);
             e.HasIndex(o => o.MachineId);
+            e.HasIndex(o => o.LabSectionId);
             e.HasIndex(o => o.CreatedByRevisionId);
             e.ToTable(t => t.HasCheckConstraint("CK_MonitoringOccurrences_OneTarget",
                 "(CASE WHEN \"WaterSamplingPointId\" IS NULL THEN 0 ELSE 1 END + CASE WHEN \"RoomId\" IS NULL THEN 0 ELSE 1 END + CASE WHEN \"MachineId\" IS NULL THEN 0 ELSE 1 END) = 1"));
@@ -471,6 +486,24 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext, IMicr
         modelBuilder.Entity<Machine>().Property(e => e.IsActive).HasDefaultValue(true).ValueGeneratedNever();
         modelBuilder.Entity<MachinePart>().Property(e => e.IsActive).HasDefaultValue(true).ValueGeneratedNever();
         modelBuilder.Entity<MachinePartConfiguration>().Property(e => e.IsActive).HasDefaultValue(true).ValueGeneratedNever();
+
+        modelBuilder.Entity<SamplingConfiguration>(b =>
+        {
+            b.Property(e => e.LowerLimit).HasPrecision(18, 6);
+            b.Property(e => e.UpperLimit).HasPrecision(18, 6);
+            b.Property(e => e.LowerInclusive).HasDefaultValue(true);
+            b.Property(e => e.UpperInclusive).HasDefaultValue(true);
+            b.Property(e => e.ExpectedResultText).HasMaxLength(1000);
+        });
+
+        modelBuilder.Entity<MachinePartConfiguration>(b =>
+        {
+            b.Property(e => e.LowerLimit).HasPrecision(18, 6);
+            b.Property(e => e.UpperLimit).HasPrecision(18, 6);
+            b.Property(e => e.LowerInclusive).HasDefaultValue(true);
+            b.Property(e => e.UpperInclusive).HasDefaultValue(true);
+            b.Property(e => e.ExpectedResultText).HasMaxLength(1000);
+        });
     }
 
     public Task<bool> TrySaveChangesAsync(params string[] uniqueIndexNames) =>

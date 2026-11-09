@@ -279,28 +279,21 @@ HplcWorkspaceController.Submit(Int32, SubmitHplcSampleRequest): SectionHead,Anal
 HplcWorkspaceController.SubmitQualification(Int32, SubmitHplcSampleRequest): SectionHead,Analyst
 HplcWorkspaceController.SupersedeEvidence(Int32, IFormFile, String): SectionHead,Analyst
 HplcWorkspaceController.UploadEvidence(Int32, IFormFile, HplcEvidenceContext, HplcEvidenceKind, Nullable`1): SectionHead,Analyst
-IcpMethodController.Create(SaveIcpMethodRequest): SystemAdministrator,SectionHead
-IcpMethodController.GetAll(Boolean): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-IcpMethodController.GetById(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-IcpMethodController.GetHistory(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-IcpMethodController.SetActive(Int32, Boolean, SetActiveRequest): SystemAdministrator,SectionHead
-IcpMethodController.Update(Int32, SaveIcpMethodRequest): SystemAdministrator,SectionHead
 IcpWorkspaceController.Abandon(Int32, ReasonRequest): SectionHead,Analyst
-IcpWorkspaceController.AddCcv(Int32, AddIcpCcvRequest): SectionHead,Analyst
 IcpWorkspaceController.AssignSamples(Int32, AssignIcpSamplesRequest): SectionHead,Analyst
 IcpWorkspaceController.Complete(Int32): SectionHead,Analyst
 IcpWorkspaceController.ConfirmCalibration(Int32, ConfirmIcpCalibrationRequest): SectionHead,Analyst
 IcpWorkspaceController.DownloadEvidence(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
 IcpWorkspaceController.GetEligibleTests(Int32, String): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
 IcpWorkspaceController.GetInstruments(): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-IcpWorkspaceController.GetMethodOptions(): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
+IcpWorkspaceController.GetReportValues(Int32, Nullable`1): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
 IcpWorkspaceController.GetRun(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
 IcpWorkspaceController.GetRunHistory(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
 IcpWorkspaceController.GetSampleEntry(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
 IcpWorkspaceController.GetTestOrderEvidence(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
 IcpWorkspaceController.RemoveSample(Int32, Int32, ReasonRequest): SectionHead,Analyst
 IcpWorkspaceController.SaveCalibration(Int32, SaveIcpCalibrationRequest): SectionHead,Analyst
-IcpWorkspaceController.SaveReplicates(Int32, SaveIcpReplicatesRequest): SectionHead,Analyst
+IcpWorkspaceController.SaveEntry(Int32, SaveIcpSampleEntryRequest): SectionHead,Analyst
 IcpWorkspaceController.StartRun(StartIcpRunRequest): SectionHead,Analyst
 IcpWorkspaceController.Submit(Int32, SubmitHplcSampleRequest): SectionHead,Analyst
 IcpWorkspaceController.SupersedeEvidence(Int32, IFormFile, String): SectionHead,Analyst
@@ -414,11 +407,11 @@ MonitoringDeviationsController.List(Nullable`1, Nullable`1): SystemAdministrator
 MonitoringDeviationsController.Scan(): SectionHead
 MonitoringOccurrencesController.ChangeWindow(Int32, ChangeWindowRequest): SectionHead
 MonitoringOccurrencesController.CreateManual(CreateManualOccurrenceRequest): SectionHead
-MonitoringOccurrencesController.GetCalendar(DateOnly, DateOnly, Nullable`1, Boolean): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
+MonitoringOccurrencesController.GetCalendar(DateOnly, DateOnly, Nullable`1, Boolean, Nullable`1): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
 MonitoringOccurrencesController.GetDetail(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-MonitoringOccurrencesController.GetDue(Nullable`1): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
+MonitoringOccurrencesController.GetDue(Nullable`1, Nullable`1): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
 MonitoringOccurrencesController.GetForSession(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-MonitoringOccurrencesController.GetYearSummary(Int32, Nullable`1): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
+MonitoringOccurrencesController.GetYearSummary(Int32, Nullable`1, Nullable`1): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
 MonitoringOccurrencesController.Skip(Int32, SkipOccurrenceRequest): SectionHead
 MonitoringPlanController.ApproveRevision(Int32, ApprovePlanRequest): SectionHead
 MonitoringPlanController.GenerateRevision(GeneratePlanRequest): SectionHead
@@ -583,6 +576,7 @@ SystemController.ReportClientError(ClientErrorReportRequest, CancellationToken):
 SystemStatusController.Get(CancellationToken): anonymous
 TestDefinitionMasterDataController.CreateTestDefinition(CreateTestDefinitionRequest): SystemAdministrator,SectionHead
 TestDefinitionMasterDataController.FreezeTestDefinition(Int32): SystemAdministrator,SectionHead
+TestDefinitionMasterDataController.GetEditableCodes(): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
 TestDefinitionMasterDataController.GetEquationTypes(): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
 TestDefinitionMasterDataController.GetTestDefinitions(): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
 TestDefinitionMasterDataController.UnfreezeTestDefinition(Int32): SystemAdministrator,SectionHead
@@ -612,6 +606,7 @@ TestWorkflowController.RecordDisintegrationStage(Int32, RecordDisintegrationStag
 TestWorkflowController.RecordDissolutionResult(Int32, RecordDissolutionResultRequest): SectionHead,Reviewer,Analyst
 TestWorkflowController.RecordDissolutionStage(Int32, RecordDissolutionStageRequest): SectionHead,Reviewer,Analyst
 TestWorkflowController.RecordGravimetricResult(Int32, RecordGravimetricResultRequest): SectionHead,Reviewer,Analyst
+TestWorkflowController.RecordLocationResults(Int32, LocationResultsRequest): SectionHead,Reviewer,Analyst
 TestWorkflowController.RecordMeasurementResult(Int32, RecordMeasurementResultRequest): SectionHead,Reviewer,Analyst
 TestWorkflowController.RecordOutsourcedResult(Int32, RecordOutsourcedResultRequest): SectionHead,Reviewer,Analyst
 TestWorkflowController.RecordQualitativeResult(Int32, RecordQualitativeResultRequest): SectionHead,Reviewer,Analyst
@@ -662,11 +657,14 @@ WaterMasterDataController.CreateWaterDepartment(CreateWaterDepartmentRequest): S
 WaterMasterDataController.CreateWaterSamplingConfiguration(CreateWaterSamplingConfigRequest): SystemAdministrator,SectionHead
 WaterMasterDataController.CreateWaterSamplingPoint(CreateWaterSamplingPointRequest): SystemAdministrator,SectionHead
 WaterMasterDataController.DeleteWaterDepartment(Int32): SystemAdministrator,SectionHead
+WaterMasterDataController.DeleteWaterPointLabFrequency(Int32, Int32): SystemAdministrator,SectionHead
 WaterMasterDataController.DeleteWaterSamplingConfiguration(Int32): SystemAdministrator,SectionHead
 WaterMasterDataController.DeleteWaterSamplingPoint(Int32): SystemAdministrator,SectionHead
 WaterMasterDataController.GetWaterDepartments(): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
+WaterMasterDataController.GetWaterPointLabFrequency(Int32, Int32): SystemAdministrator,SectionHead
 WaterMasterDataController.GetWaterSamplingConfigurations(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
 WaterMasterDataController.GetWaterSamplingPoints(): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
+WaterMasterDataController.SetWaterPointLabFrequency(Int32, Int32, SetWaterPointLabFrequencyRequest): SystemAdministrator,SectionHead
 WaterMasterDataController.UpdateWaterDepartment(Int32, UpdateWaterDepartmentRequest): SystemAdministrator,SectionHead
 WaterMasterDataController.UpdateWaterSamplingConfiguration(Int32, UpdateWaterSamplingConfigRequest): SystemAdministrator,SectionHead
 WaterMasterDataController.UpdateWaterSamplingPoint(Int32, UpdateWaterSamplingPointRequest): SystemAdministrator,SectionHead

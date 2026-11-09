@@ -1,0 +1,394 @@
+{
+  "itemCode": "STM-RM-088",
+  "itemName": "Feroglobin B12 Granules",
+  "stmCode": "STM-RM-088",
+  "stmFile": "Feroglobin Granules__SM- Feroglobin B12 granules after edit.txt",
+  "specFiles": [],
+  "minQuantity": {
+    "routine": 60,
+    "retest": 50,
+    "retention": 60,
+    "unit": "g",
+    "source": "Feroglobin Granules__SM- Feroglobin B12 granules after edit.txt:40"
+  },
+  "grades": [
+    {
+      "grade": null,
+      "rows": [
+        {
+          "testCode": "RM-DESC",
+          "parameterName": "Appearance",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Greenish brown and yellow granular seeds",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "In house",
+          "source": "Feroglobin Granules__SM- Feroglobin B12 granules after edit.txt:30"
+        },
+        {
+          "testCode": "RM-ID-RT",
+          "parameterName": "Identification (HPLC retention time): vitamin B6 and folic acid",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Positive",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "In house",
+          "source": "Feroglobin Granules__SM- Feroglobin B12 granules after edit.txt:31"
+        },
+        {
+          "testCode": "RM-ID-AAS-FERO",
+          "parameterName": "Identification (AAS): iron, absorption maximum at 248.3 nm",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Positive (absorption maximum at the same wavelength as the standard, 248.3 nm)",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "In house",
+          "source": "Feroglobin Granules__SM- Feroglobin B12 granules after edit.txt:31"
+        },
+        {
+          "testCode": "RM-ID-AAS-FERO",
+          "parameterName": "Identification (AAS): zinc, absorption maximum at 213.9 nm",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Positive (absorption maximum at the same wavelength as the standard, 213.9 nm)",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "In house",
+          "source": "Feroglobin Granules__SM- Feroglobin B12 granules after edit.txt:31"
+        },
+        {
+          "testCode": "RM-ID-AAS-FERO",
+          "parameterName": "Identification (AAS): copper, absorption maximum at 324.8 nm",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Positive (absorption maximum at the same wavelength as the standard, 324.8 nm)",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "In house",
+          "source": "Feroglobin Granules__SM- Feroglobin B12 granules after edit.txt:31"
+        },
+        {
+          "testCode": "RM-HPLC-FERO-AS",
+          "parameterName": "Assay (folic acid, % of labeled amount)",
+          "limitType": "Range",
+          "lower": 90.0,
+          "upper": 150.0,
+          "lowerInclusive": true,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": "PercentAsIs",
+          "referenceStandard": "In house",
+          "source": "Feroglobin Granules__SM- Feroglobin B12 granules after edit.txt:32"
+        },
+        {
+          "testCode": "RM-HPLC-FERO-AS",
+          "parameterName": "Assay (pyridoxine HCl, % of labeled amount)",
+          "limitType": "Range",
+          "lower": 90.0,
+          "upper": 150.0,
+          "lowerInclusive": true,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": "PercentAsIs",
+          "referenceStandard": "In house",
+          "source": "Feroglobin Granules__SM- Feroglobin B12 granules after edit.txt:32"
+        },
+        {
+          "testCode": "RM-ICP-FE-FERO",
+          "parameterName": "Assay (iron, % of labeled amount)",
+          "limitType": "Range",
+          "lower": 90.0,
+          "upper": 125.0,
+          "lowerInclusive": true,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "In house",
+          "source": "Feroglobin Granules__SM- Feroglobin B12 granules after edit.txt:34"
+        },
+        {
+          "testCode": "RM-ICP-ZN-FERO",
+          "parameterName": "Assay (zinc, % of labeled amount)",
+          "limitType": "Range",
+          "lower": 90.0,
+          "upper": 125.0,
+          "lowerInclusive": true,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "In house",
+          "source": "Feroglobin Granules__SM- Feroglobin B12 granules after edit.txt:35"
+        },
+        {
+          "testCode": "RM-ICP-CU-FERO",
+          "parameterName": "Assay (copper, % of labeled amount)",
+          "limitType": "Range",
+          "lower": 90.0,
+          "upper": 125.0,
+          "lowerInclusive": true,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "In house",
+          "source": "Feroglobin Granules__SM- Feroglobin B12 granules after edit.txt:36"
+        },
+        {
+          "testCode": "TAMC",
+          "parameterName": "Total Aerobic Microbial Count (TAMC)",
+          "limitType": "CountTiered",
+          "lower": null,
+          "upper": 1000,
+          "lowerInclusive": null,
+          "unit": "CFU/g",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "In house",
+          "source": "Feroglobin Granules__SM- Feroglobin B12 granules after edit.txt:38"
+        },
+        {
+          "testCode": "TYMC",
+          "parameterName": "Total Yeast and Mold Count (TYMC)",
+          "limitType": "CountTiered",
+          "lower": null,
+          "upper": 100,
+          "lowerInclusive": null,
+          "unit": "CFU/g",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "In house",
+          "source": "Feroglobin Granules__SM- Feroglobin B12 granules after edit.txt:38"
+        },
+        {
+          "testCode": "E.coli",
+          "parameterName": "Test for E. coli",
+          "limitType": "PresenceAbsence",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": "per 10 g",
+          "expectedResultText": "Absent/10 gm",
+          "expectedState": "Absence",
+          "resultBasis": null,
+          "referenceStandard": "In house",
+          "source": "Feroglobin Granules__SM- Feroglobin B12 granules after edit.txt:38"
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "testCode": "RM-DESC",
+      "procedure": "Under strong white light check each received sample container separately in a clean transparent watch glass or glass dish for foreign particles, colour and conformity with the visual specification.",
+      "kind": "general",
+      "workflow": "Observation",
+      "details": {
+        "perContainer": true,
+        "reference": "In house specification"
+      },
+      "source": "Feroglobin Granules__SM- Feroglobin B12 granules after edit.txt:30"
+    },
+    {
+      "testCode": "RM-ID-RT",
+      "procedure": "Identification by HPLC: apply the chromatographic conditions of the assay; the retention time of the principal peaks in the test chromatogram must correspond to those of the standard chromatograms (vitamin B6 and folic acid).",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "details": {
+        "vitamins": ["pyridoxine HCl", "folic acid"],
+        "methodReference": "RM-HPLC-FERO-AS",
+        "reference": "HPLC Analytical Method Validation for Folic acid & Pyridoxine hydrochloride in Feroglobin B12 Capsules (C5R-54-513)"
+      },
+      "source": "Feroglobin Granules__SM- Feroglobin B12 granules after edit.txt:31"
+    },
+    {
+      "testCode": "RM-ID-AAS-FERO",
+      "procedure": "Identification by AAS: the assay preparation prepared as directed in the assay for iron, zinc or copper exhibits an absorption maximum at the same wavelength as that of the corresponding standard (248.3 nm for Fe, 213.9 nm for Zn, 324.8 nm for Cu).",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "details": {
+        "wavelengthsNm": {"iron": 248.3, "zinc": 213.9, "copper": 324.8},
+        "technique": "Atomic Absorption Spectroscopy"
+      },
+      "source": "Feroglobin Granules__SM- Feroglobin B12 granules after edit.txt:31"
+    },
+    {
+      "testCode": "RM-HPLC-FERO-AS",
+      "procedure": "Assay of vitamin B6 (pyridoxine HCl) and folic acid by HPLC: standards 60 mg pyridoxine HCl and 75 mg folic acid working standard in 100 mL each with 5 mL 1 N NaOH, sonicate, make to volume with purified water; working standard = 5 mL pyridoxine stock + 1 mL folic acid stock to 100 mL. Sample: about 697.95 mg sample in 100 mL with 5 mL 1 N NaOH, sonicate 15 min, filter. Mobile phase 87% hexanesulphonic solution : 13% HPLC methanol; C18 BDS column 25 cm, 35 °C; 20 µL; 1.5 mL/min; UV 280 nm. Suitability: 6 replicate standard injections, RSD NMT 2%. Assay % = (PAt / PAst) x (Act.Wt std / Theo.Wt std) x (Theo.Wt test / Act.Wt test) x Potency. Limit 90.0% to 150.0% of labeled amount.",
+      "kind": "specific",
+      "workflow": "HplcMethodAssay",
+      "details": {
+        "mode": "LC",
+        "detector": "UV 280 nm",
+        "column": "C18 stainless steel, BDS, 25 cm",
+        "columnTempC": 35,
+        "flowRateMlMin": 1.5,
+        "injectionUl": 20,
+        "mobilePhase": "87% hexanesulphonic solution : 13% HPLC methanol",
+        "pyridoxineStandardMg": 60,
+        "folicAcidStandardMg": 75,
+        "standardDilutionMl": 100,
+        "naoHMl": 5,
+        "sampleMg": 697.95,
+        "sampleDilutionMl": 100,
+        "workingStandard": "5 mL pyridoxine stock + 1 mL folic acid stock to 100 mL amber flask",
+        "systemSuitability": {"injections": 6, "rsd": "NMT 2%"},
+        "formula": "Assay % = (PAt/PAst) x (Act.Wt std / Theo.Wt std) x (Theo.Wt test / Act.Wt test) x Potency",
+        "limit": "90.0% to 150.0% from labeled amount",
+        "specBasis": "% of labeled amount"
+      },
+      "source": "Feroglobin Granules__SM- Feroglobin B12 granules after edit.txt:32"
+    },
+    {
+      "testCode": "RM-ICP-FE-FERO",
+      "procedure": "Iron by AAS: stock 2 mL of 1000 mg/L iron standard to 100 mL; working standards 2.0, 4.0 and 6.0 mg/L (10, 20, 30 mL of stock to 100 mL); sample 10 mL of sample stock to 100 mL, then 10 mL to 50 mL (expected 4.8 mg/L). Hollow cathode Fe, 248.3 nm, slit 0.5 nm, air-acetylene; calibration curve, purified water blank. Assay % = (sample conc. by AAS x theoretical weight 465.3 mg x 100) / (expected conc. x actual weight).",
+      "kind": "specific",
+      "workflow": "IcpMethodAssay",
+      "details": {
+        "calibrationMgL": [2.0, 4.0, 6.0],
+        "stockMgL": 1000,
+        "sampleTheoMg": 465.3,
+        "expectedConcMgL": 4.8,
+        "wavelengthNm": 248.3,
+        "slitNm": 0.5,
+        "lamp": "Hollow cathode Fe",
+        "flame": "air-acetylene",
+        "blank": "purified water",
+        "formula": "Assay % = (sample conc. by AAS x Th.Wt x 100) / (expected conc. x Act.Wt)",
+        "limit": "90.0% to 125.0%"
+      },
+      "source": "Feroglobin Granules__SM- Feroglobin B12 granules after edit.txt:34"
+    },
+    {
+      "testCode": "RM-ICP-ZN-FERO",
+      "procedure": "Zinc by AAS: stock 2 mL of 1000 mg/L zinc standard to 100 mL; working standards 2.0, 4.0 and 6.0 mg/L; sample 10 mL of sample stock to 100 mL, then 20 mL to 50 mL (expected 4.0 mg/L). Hollow cathode Zn, 213.9 nm, slit 0.5 nm, air-acetylene; calibration curve, purified water blank. Assay % = (sample conc. by AAS x theoretical weight 465.3 mg x 100) / (expected conc. x actual weight).",
+      "kind": "specific",
+      "workflow": "IcpMethodAssay",
+      "details": {
+        "calibrationMgL": [2.0, 4.0, 6.0],
+        "stockMgL": 1000,
+        "sampleTheoMg": 465.3,
+        "expectedConcMgL": 4.0,
+        "wavelengthNm": 213.9,
+        "slitNm": 0.5,
+        "lamp": "Hollow cathode Zn",
+        "flame": "air-acetylene",
+        "blank": "purified water",
+        "formula": "Assay % = (sample conc. by AAS x Th.Wt x 100) / (expected conc. x Act.Wt)",
+        "limit": "90.0% to 125.0%"
+      },
+      "source": "Feroglobin Granules__SM- Feroglobin B12 granules after edit.txt:35"
+    },
+    {
+      "testCode": "RM-ICP-CU-FERO",
+      "procedure": "Copper by AAS: stock 2 mL of 1000 mg/L copper standard to 100 mL; working standards 2.0, 4.0 and 6.0 mg/L; sample 20 mL of sample stock to 50 mL (expected 3.6 mg/L). Hollow cathode Cu, 324.8 nm, slit 1.0 nm, air-acetylene; calibration curve, purified water blank. Assay % = (sample conc. by AAS x theoretical weight 465.3 mg x 100) / (expected conc. x actual weight).",
+      "kind": "specific",
+      "workflow": "IcpMethodAssay",
+      "details": {
+        "calibrationMgL": [2.0, 4.0, 6.0],
+        "stockMgL": 1000,
+        "sampleTheoMg": 465.3,
+        "expectedConcMgL": 3.6,
+        "wavelengthNm": 324.8,
+        "slitNm": 1.0,
+        "lamp": "Hollow cathode Cu",
+        "flame": "air-acetylene",
+        "blank": "purified water",
+        "formula": "Assay % = (sample conc. by AAS x Th.Wt x 100) / (expected conc. x Act.Wt)",
+        "limit": "90.0% to 125.0%"
+      },
+      "source": "Feroglobin Granules__SM- Feroglobin B12 granules after edit.txt:36"
+    },
+    {
+      "testCode": "TAMC",
+      "procedure": "Total aerobic microbial count: 'Follow the suitable steps stated in SOP (C2I-91-128)' (SOP not in this STM).",
+      "kind": "general",
+      "workflow": "CountTest",
+      "details": {
+        "limit": "NMT 10^3 CFU/gm",
+        "sop": "C2I-91-128"
+      },
+      "source": "Feroglobin Granules__SM- Feroglobin B12 granules after edit.txt:38"
+    },
+    {
+      "testCode": "TYMC",
+      "procedure": "Total yeast and mold count: 'Follow the suitable steps stated in SOP (C2I-91-128)' (SOP not in this STM).",
+      "kind": "general",
+      "workflow": "CountTest",
+      "details": {
+        "limit": "NMT 10^2 CFU/gm",
+        "sop": "C2I-91-128"
+      },
+      "source": "Feroglobin Granules__SM- Feroglobin B12 granules after edit.txt:38"
+    },
+    {
+      "testCode": "E.coli",
+      "procedure": "Test for E. coli: 'Follow the suitable steps stated in SOP (C2I-91-128)' (SOP not in this STM).",
+      "kind": "general",
+      "workflow": "Observation",
+      "details": {
+        "limit": "Absent/10 gm",
+        "sop": "C2I-91-128"
+      },
+      "source": "Feroglobin Granules__SM- Feroglobin B12 granules after edit.txt:38"
+    }
+  ],
+  "notApplicable": [],
+  "supplierAttributes": [],
+  "reagents": [
+    { "name": "Hydrogen peroxide", "use": "reagent", "source": "Feroglobin Granules__SM- Feroglobin B12 granules after edit.txt:28" },
+    { "name": "Iron standard solution (1000 mg/L)", "use": "standard", "source": "Feroglobin Granules__SM- Feroglobin B12 granules after edit.txt:28" },
+    { "name": "Copper standard solution (1000 mg/L)", "use": "standard", "source": "Feroglobin Granules__SM- Feroglobin B12 granules after edit.txt:28" },
+    { "name": "Zinc standard solution (1000 mg/L)", "use": "standard", "source": "Feroglobin Granules__SM- Feroglobin B12 granules after edit.txt:28" },
+    { "name": "Nitric acid", "use": "reagent", "source": "Feroglobin Granules__SM- Feroglobin B12 granules after edit.txt:28" },
+    { "name": "Sodium hydroxide (1 N)", "use": "reagent", "source": "Feroglobin Granules__SM- Feroglobin B12 granules after edit.txt:28" },
+    { "name": "Hexanesulphonic acid", "use": "reagent", "source": "Feroglobin Granules__SM- Feroglobin B12 granules after edit.txt:28" },
+    { "name": "Triethylamine", "use": "reagent", "source": "Feroglobin Granules__SM- Feroglobin B12 granules after edit.txt:28" },
+    { "name": "Glacial acetic acid", "use": "reagent", "source": "Feroglobin Granules__SM- Feroglobin B12 granules after edit.txt:28" },
+    { "name": "Acetonitrile", "use": "reagent", "source": "Feroglobin Granules__SM- Feroglobin B12 granules after edit.txt:28" },
+    { "name": "Methanol HPLC grade", "use": "reagent", "source": "Feroglobin Granules__SM- Feroglobin B12 granules after edit.txt:28" },
+    { "name": "Folic acid working standard", "use": "standard", "source": "Feroglobin Granules__SM- Feroglobin B12 granules after edit.txt:32" },
+    { "name": "Pyridoxine HCl working standard", "use": "standard", "source": "Feroglobin Granules__SM- Feroglobin B12 granules after edit.txt:32" }
+  ],
+  "openQuestions": [
+    {
+      "question": "No spec sheet for this STM; rows come from the STM's own specification lines. The older Feroglobin documents in the folder (2025-03-20 and 2025-05-27) are superseded and not used. Confirm.",
+      "source": "Feroglobin Granules__SM- Feroglobin B12 granules after edit.txt:30"
+    },
+    {
+      "question": "The limit '90.0%: 150.0% from labeled amount' is printed after each vitamin assay formula; loaded for both folic acid and pyridoxine HCl. Confirm each vitamin's limit and the result basis (no dried or as-is basis is stated).",
+      "source": "Feroglobin Granules__SM- Feroglobin B12 granules after edit.txt:32"
+    },
+    {
+      "question": "Mobile phase: '87% hexanesulphonic solution' gives no strength or pH for the hexanesulphonic solution; check the prepared reagents section.",
+      "source": "Feroglobin Granules__SM- Feroglobin B12 granules after edit.txt:32"
+    },
+    {
+      "question": "Microbiological limits read 'NMT 103 CFU/gm' and '102 CFU/gm' (superscript lost); read as 10^3 = 1000 and 10^2 = 100 CFU/g. Confirm. Micro methods only referenced to SOP C2I-91-128, which is not in this STM.",
+      "source": "Feroglobin Granules__SM- Feroglobin B12 granules after edit.txt:38"
+    }
+  ]
+}

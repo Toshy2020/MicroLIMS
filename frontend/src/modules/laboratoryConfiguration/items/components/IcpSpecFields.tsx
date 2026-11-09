@@ -1,4 +1,3 @@
-import React from "react";
 import {
   Box,
   FormControl,
@@ -6,51 +5,27 @@ import {
   InputLabel,
   MenuItem,
   Select,
-  TextField,
-  Typography,
-  Stack
+  Typography
 } from "@mui/material";
-import type {
-  IcpMethodResponse,
-  IcpMethodElementResponse
-} from "../../masterDataSimple/services/IcpMethodService";
-import type { ResultBasis } from "../../specifications/services/SpecificationService";
 
-export interface IcpSpecFieldsProps {
-  method: IcpMethodResponse | null;
-  loadingMethod: boolean;
-  selectedElementId: number | "";
-  onElementChange: (id: number, element: IcpMethodElementResponse | undefined) => void;
-  resultBasis: ResultBasis | string | "";
-  onBasisChange: (basis: ResultBasis) => void;
-  labelClaim: string;
-  onLabelClaimChange: (val: string) => void;
-  labelClaimUnit: string;
-  onLabelClaimUnitChange: (val: string) => void;
+export interface IcpSpecElementOption {
+  id: number;
+  symbol: string;
+  targetPpm?: number | null;
 }
 
-export const ICP_MINERAL_BASIS_OPTIONS: { value: ResultBasis; label: string }[] = [
-  { value: "PercentLabelClaim", label: "% of label claim" },
-  { value: "MgPerUnit", label: "mg per unit" }
-];
+export interface IcpSpecFieldsProps {
+  // What the test reports, from the Test Master.
+  mode: "Assay" | "Impurity" | null;
+  elements: IcpSpecElementOption[];
+  selectedElementId: number | "";
+  onElementChange: (id: number, element: IcpSpecElementOption | undefined) => void;
+}
 
-export const icpParameterName = (symbol: string, basis: ResultBasis | string | ""): string =>
-  basis === "MgPerUnit" ? `${symbol} (per unit)` : symbol;
-
-export function IcpSpecFields({
-  method,
-  loadingMethod,
-  selectedElementId,
-  onElementChange,
-  resultBasis,
-  onBasisChange,
-  labelClaim,
-  onLabelClaimChange,
-  labelClaimUnit,
-  onLabelClaimUnitChange
-}: IcpSpecFieldsProps) {
-  const isImpurities = method?.mode === "ElementalImpurities";
-  const elements = method?.elements ?? [];
+// The ICP part of an item specification: pick one of the test's elements. The test already defines the
+// target concentration (assay) and the basis, so the item only needs the element and its limits.
+export function IcpSpecFields({ mode, elements, selectedElementId, onElementChange }: IcpSpecFieldsProps) {
+  const isImpurity = mode === "Impurity";
 
   return (
     <Box
@@ -73,122 +48,40 @@ export function IcpSpecFields({
           mb: 1.5
         }}
       >
-        {isImpurities ? "Elemental Impurities (ICP) Specification" : "Mineral Assay (ICP) Specification"}
+        {isImpurity ? "Elemental Impurity (ICP) Specification" : "Assay (ICP) Specification"}
       </Typography>
 
-      <Stack spacing={2}>
-        <Box
-          sx={{
-            display: "grid",
-            gridTemplateColumns: { xs: "1fr", sm: isImpurities ? "1fr 1fr 1fr" : "1fr 1fr" },
-            gap: 2
+      <FormControl size="small" fullWidth required>
+        <InputLabel id="icp-spec-element-label">Element *</InputLabel>
+        <Select
+          labelId="icp-spec-element-label"
+          label="Element *"
+          value={selectedElementId}
+          onChange={(e) => {
+            const id = Number(e.target.value);
+            onElementChange(id, elements.find((el) => el.id === id));
           }}
+          inputProps={{ "aria-label": "Element" }}
         >
-          <FormControl size="small" fullWidth required>
-            <InputLabel id="icp-spec-element-label">Element *</InputLabel>
-            <Select
-              labelId="icp-spec-element-label"
-              label="Element *"
-              value={selectedElementId}
-              onChange={(e) => {
-                const id = Number(e.target.value);
-                const chosen = elements.find((el) => el.id === id);
-                onElementChange(id, chosen);
-              }}
-              disabled={loadingMethod}
-              inputProps={{ "aria-label": "Element" }}
-            >
-              {loadingMethod ? (
-                <MenuItem disabled value="">
-                  <em>Loading elements...</em>
-                </MenuItem>
-              ) : elements.length === 0 ? (
-                <MenuItem disabled value="">
-                  <em>{method ? "No elements configured in ICP method" : "No ICP method loaded"}</em>
-                </MenuItem>
-              ) : (
-                elements.map((el) => (
-                  <MenuItem key={el.id} value={el.id}>
-                    {el.symbol} ({el.wavelengthNm} nm)
-                  </MenuItem>
-                ))
-              )}
-            </Select>
-            <FormHelperText>Element and wavelength from ICP method</FormHelperText>
-          </FormControl>
-
-          {isImpurities ? (
-            <>
-              <TextField
-                size="small"
-                label="Result Basis *"
-                value="µg/g"
-                slotProps={{ input: { readOnly: true } }}
-                helperText="Fixed basis for elemental impurities (MgPerKg)"
-                fullWidth
-              />
-              <TextField
-                size="small"
-                label="Limit Type *"
-                value="NMT (Not More Than)"
-                slotProps={{ input: { readOnly: true } }}
-                helperText="Fixed limit type for elemental impurities"
-                fullWidth
-              />
-            </>
+          {elements.length === 0 ? (
+            <MenuItem disabled value="">
+              <em>No elements configured on this test</em>
+            </MenuItem>
           ) : (
-            <FormControl size="small" fullWidth required>
-              <InputLabel id="icp-spec-basis-label">Basis *</InputLabel>
-              <Select
-                labelId="icp-spec-basis-label"
-                label="Basis *"
-                value={resultBasis}
-                onChange={(e) => onBasisChange(e.target.value as ResultBasis)}
-                inputProps={{ "aria-label": "Basis" }}
-              >
-                {ICP_MINERAL_BASIS_OPTIONS.map((opt) => (
-                  <MenuItem key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </MenuItem>
-                ))}
-              </Select>
-              <FormHelperText>Assay basis for mineral elements</FormHelperText>
-            </FormControl>
+            elements.map((el) => (
+              <MenuItem key={el.id} value={el.id}>
+                {el.symbol}
+                {!isImpurity && el.targetPpm != null ? ` (target ${el.targetPpm} ppm)` : ""}
+              </MenuItem>
+            ))
           )}
-        </Box>
-
-        {!isImpurities && (
-          <Box
-            sx={{
-              display: "grid",
-              gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" },
-              gap: 2
-            }}
-          >
-            <TextField
-              size="small"
-              label="Label Claim *"
-              type="number"
-              value={labelClaim}
-              onChange={(e) => onLabelClaimChange(e.target.value)}
-              required
-              helperText="Target nominal claim (> 0)"
-              slotProps={{ htmlInput: { step: "any", min: "0" } }}
-              fullWidth
-            />
-            <TextField
-              size="small"
-              label="Label Claim Unit *"
-              value={labelClaimUnit}
-              onChange={(e) => onLabelClaimUnitChange(e.target.value)}
-              required
-              helperText="Unit for label claim (e.g. mg)"
-              placeholder="e.g. mg"
-              fullWidth
-            />
-          </Box>
-        )}
-      </Stack>
+        </Select>
+        <FormHelperText>
+          {isImpurity
+            ? "Limit is not more than the value below in ppm; 0 means not detected."
+            : "Limits apply to the assay % of the test's target concentration."}
+        </FormHelperText>
+      </FormControl>
     </Box>
   );
 }

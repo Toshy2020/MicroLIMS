@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Alert,
   Box,
@@ -19,6 +19,7 @@ import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import { PageHeader } from "../../components/PageHeader";
 import { useHasPermission } from "../../contexts/AuthContext";
 import { PERMISSIONS } from "../../routes/routes";
+import { laboratorySectionService } from "../../services/laboratorySectionService";
 import { AddEventDialog } from "./components/AddEventDialog";
 import { CoverageTable } from "./components/CoverageTable";
 import { DeviationsPanel } from "./components/DeviationsPanel";
@@ -57,6 +58,19 @@ export function MonitoringPlanPage() {
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState<number | null>(null);
   const [category, setCategory] = useState<CalendarArea | "">("");
+  const [labSectionId, setLabSectionId] = useState<number | "">("");
+  const [loadedSections, setLoadedSections] = useState<{ id: number; code: string; name?: string }[]>([]);
+
+  useEffect(() => {
+    laboratorySectionService
+      .getSections()
+      .then((list) => {
+        if (Array.isArray(list)) {
+          setLoadedSections(list.map((s) => ({ id: s.sectionId, code: s.sectionCode, name: s.sectionName })));
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   const [summary, setSummary] = useState<YearSummary | null>(null);
   const [equipmentSummary, setEquipmentSummary] = useState<EquipmentMonthSummary[] | null>(null);
@@ -130,15 +144,17 @@ export function MonitoringPlanPage() {
 
       const promises: Promise<unknown>[] = [];
 
+      const filterLabId = labSectionId === "" ? null : Number(labSectionId);
+
       if (!isEquipmentOnly && !isEventsOnly) {
         promises.push(
-          MonitoringPlanService.getYear(year, monitoringCategory).then((res) => { monYear = res; }),
-          MonitoringPlanService.getDue(monitoringCategory).then((res) => { monDue = res; })
+          MonitoringPlanService.getYear(year, monitoringCategory, filterLabId).then((res) => { monYear = res; }),
+          MonitoringPlanService.getDue(monitoringCategory, filterLabId).then((res) => { monDue = res; })
         );
         if (month !== null) {
           const last = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
           promises.push(
-            MonitoringPlanService.getCalendar(isoDate(year, month, 1), isoDate(year, month, last), monitoringCategory).then((res) => { monDays = res; })
+            MonitoringPlanService.getCalendar(isoDate(year, month, 1), isoDate(year, month, last), monitoringCategory, filterLabId).then((res) => { monDays = res; })
           );
         }
       }
@@ -217,11 +233,24 @@ export function MonitoringPlanPage() {
     } finally {
       if (latest()) setLoading(false);
     }
-  }, [year, month, category, tab, flaggedOnly, monitoringCategory]);
+  }, [year, month, category, tab, flaggedOnly, monitoringCategory, labSectionId]);
 
   useEffect(() => {
     void load();
   }, [load]);
+
+  const availableSections = useMemo(() => {
+    const map = new Map<number, { id: number; code: string; name?: string }>();
+    for (const s of loadedSections) {
+      map.set(s.id, s);
+    }
+    for (const o of [...days, ...(due?.items ?? [])]) {
+      if (o.labSectionId != null && o.labSectionCode && !map.has(o.labSectionId)) {
+        map.set(o.labSectionId, { id: o.labSectionId, code: o.labSectionCode });
+      }
+    }
+    return Array.from(map.values()).sort((a, b) => a.code.localeCompare(b.code));
+  }, [loadedSections, days, due]);
 
   const today = due?.today ?? isoDate(now.getFullYear(), now.getMonth(), now.getDate());
 
@@ -318,6 +347,23 @@ export function MonitoringPlanPage() {
               <MenuItem value="Calibration">Calibration</MenuItem>
               <MenuItem value="PreventiveMaintenance">Preventive maintenance</MenuItem>
               <MenuItem value="Events">Events</MenuItem>
+            </TextField>
+          )}
+          {showsData && (
+            <TextField
+              select
+              size="small"
+              label="Lab"
+              value={labSectionId}
+              sx={{ minWidth: 150 }}
+              onChange={(e) => setLabSectionId(e.target.value === "" ? "" : Number(e.target.value))}
+            >
+              <MenuItem value="">All labs</MenuItem>
+              {availableSections.map((s) => (
+                <MenuItem key={s.id} value={s.id}>
+                  {s.code || s.name}
+                </MenuItem>
+              ))}
             </TextField>
           )}
         </Box>

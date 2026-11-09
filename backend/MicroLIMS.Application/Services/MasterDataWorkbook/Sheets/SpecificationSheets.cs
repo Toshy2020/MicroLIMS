@@ -39,7 +39,7 @@ public sealed class SpecificationsSheet : SheetHandler
         new SheetColumn("LabelClaim"), new SheetColumn("LabelClaimUnit"),
         new SheetColumn("DosageForm", EnumType: typeof(DosageForm)),
         new SheetColumn("HplcAnalyte", Help: "Method abbreviation / analyte name, e.g. PCM / Paracetamol. The method must exist."),
-        new SheetColumn("IcpElement", Help: "Method abbreviation / element symbol, e.g. ICP1 / Zn. The method must exist."),
+        new SheetColumn("IcpElement", Help: "Element symbol of the ICP test, e.g. Zn. The element must exist on the test in Test Master."),
     };
 
     public static string SpecKey(string? item, string? test, string? parameter, string? role, string? grade) => Key(item, test, parameter, role, grade);
@@ -51,7 +51,7 @@ public sealed class SpecificationsSheet : SheetHandler
         (await db.Specifications.AsNoTracking()
             .Include(s => s.Item)
             .Include(s => s.HplcMethodAnalyte).ThenInclude(a => a!.HplcMethod)
-            .Include(s => s.IcpMethodElement).ThenInclude(e => e!.IcpMethod)
+            .Include(s => s.IcpTestElement)
             .OrderBy(s => s.Item!.Code).ThenBy(s => s.TestCode).ThenBy(s => s.DisplayOrder)
             .ToListAsync())
         .Select(s => new Dictionary<string, string>
@@ -68,7 +68,7 @@ public sealed class SpecificationsSheet : SheetHandler
             ["ResultBasis"] = Fmt(s.ResultBasis), ["LabelClaim"] = Fmt(s.LabelClaim), ["LabelClaimUnit"] = Fmt(s.LabelClaimUnit),
             ["DosageForm"] = Fmt(s.DosageForm),
             ["HplcAnalyte"] = s.HplcMethodAnalyte is { } a ? $"{a.HplcMethod?.Abbreviation} / {a.Name}" : string.Empty,
-            ["IcpElement"] = s.IcpMethodElement is { } e ? $"{e.IcpMethod?.Abbreviation} / {e.Symbol}" : string.Empty,
+            ["IcpElement"] = s.IcpTestElement?.Symbol ?? string.Empty,
         }).ToList();
 
     public override async Task<IReadOnlyList<string>> DbChoicesAsync(IMicroLimsDbContext db, string column) => column switch
@@ -107,7 +107,7 @@ public sealed class SpecificationsSheet : SheetHandler
             HplcMethodAnalyteId: await AnalyteIdAsync(ctx.Db, r.OptionalText("HplcAnalyte")),
             ProductionStageRole: role,
             Grade: grade,
-            IcpMethodElementId: await ElementIdAsync(ctx.Db, r.OptionalText("IcpElement"))));
+            IcpTestElementId: await ElementIdAsync(ctx.Db, testCode, r.OptionalText("IcpElement"))));
 
         ctx.CreatedSpecifications[key] = created.Id;
         return Created("Specification", created.Id, r);
@@ -145,12 +145,13 @@ public sealed class SpecificationsSheet : SheetHandler
             ?? throw new RowError("HplcAnalyte", $"No HPLC method '{abbr}' with analyte '{name}'.");
     }
 
-    private static async Task<int?> ElementIdAsync(IMicroLimsDbContext db, string? text)
+    private static async Task<int?> ElementIdAsync(IMicroLimsDbContext db, string testCode, string? symbol)
     {
-        if (text is null) return null;
-        var (abbr, symbol) = Split(text, "IcpElement");
-        return await db.IcpMethodElements.Where(e => e.IcpMethod!.Abbreviation.ToLower() == abbr.ToLower() && e.Symbol.ToLower() == symbol.ToLower()).Select(e => (int?)e.Id).FirstOrDefaultAsync()
-            ?? throw new RowError("IcpElement", $"No ICP method '{abbr}' with element '{symbol}'.");
+        if (symbol is null) return null;
+        return await db.TestDefinitionIcpElements
+                .Where(e => e.TestDefinition!.Code == testCode && e.Symbol.ToLower() == symbol.ToLower())
+                .Select(e => (int?)e.Id).FirstOrDefaultAsync()
+            ?? throw new RowError("IcpElement", $"Test '{testCode}' has no ICP element '{symbol}'.");
     }
 
     private static (string, string) Split(string text, string column)

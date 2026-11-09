@@ -22,6 +22,10 @@ public class MonitoringOccurrence : IVersionedEntity
     public int? RoomId { get; set; }
     public int? MachineId { get; set; }
 
+    // Water only: the lab section that performs the testing (MICRO or FP)
+    public int? LabSectionId { get; set; }
+    public DocumentSection? LabSection { get; set; }
+
     // Week ("2026-W43", lab week), month ("2026-11") or a manual-entry key.
     public string PeriodKey { get; set; } = string.Empty;
     public int Sequence { get; set; } = 1;

@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Alert, Box, ButtonBase, Paper, ToggleButton, ToggleButtonGroup, Typography, useTheme } from "@mui/material";
+import { Alert, Box, ButtonBase, Chip, Paper, ToggleButton, ToggleButtonGroup, Typography, useTheme } from "@mui/material";
 import { CATEGORY_LABEL, MONTH_NAMES } from "../statusDisplay";
 import type { DueResult, EquipmentTaskItem, OccurrenceSummary } from "../types";
 import { OccurrenceStatusChip } from "./OccurrenceStatusChip";
@@ -26,7 +26,7 @@ const shortDate = (iso: string, thisYear: string) =>
 function groupByPoint(items: OccurrenceSummary[]): MissedPoint[] {
   const points = new Map<string, MissedPoint>();
   for (const o of items) {
-    const key = `${o.category}|${o.group ?? ""}|${o.target}`;
+    const key = `${o.category}|${o.group ?? ""}|${o.target}${o.category === "Water" && o.labSectionId ? `|${o.labSectionId}` : ""}`;
     const point = points.get(key) ?? { key, target: o.target, group: o.group, category: o.category, occurrences: [] };
     point.occurrences.push(o);
     points.set(key, point);
@@ -38,10 +38,16 @@ function groupByPoint(items: OccurrenceSummary[]): MissedPoint[] {
 function MissedPointRow({ point, thisYear, onPick }: { point: MissedPoint; thisYear: string; onPick: (o: OccurrenceSummary) => void }) {
   const tokens = useTheme().custom.status.detected;
   const allMissed = point.occurrences.every((o) => o.status === "Missed");
+  const waterLabCode = point.category === "Water" ? point.occurrences[0]?.labSectionCode : undefined;
   return (
     <Box sx={{ display: "flex", justifyContent: "space-between", gap: 1.5, py: 1, px: 0.75, borderBottom: 1, borderColor: "divider" }}>
       <Box sx={{ minWidth: 0 }}>
-        <Typography sx={{ fontSize: 14, fontWeight: 600 }}>{point.target}</Typography>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
+          <Typography sx={{ fontSize: 14, fontWeight: 600 }}>{point.target}</Typography>
+          {waterLabCode && (
+            <Chip size="small" label={waterLabCode} sx={{ height: 18, fontSize: 10, fontWeight: 600 }} />
+          )}
+        </Box>
         <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
           {point.group ? `${point.group} · ` : ""}{CATEGORY_LABEL[point.category]}
         </Typography>
@@ -199,7 +205,12 @@ export function DuePanel({
                 sx={{ display: "flex", width: "100%", justifyContent: "space-between", py: 0.5, px: 0.75, textAlign: "left", borderRadius: 1, "&:hover": { bgcolor: "action.hover" } }}
               >
                 <Box>
-                  <Typography sx={{ fontSize: 14 }}>{o.target}</Typography>
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
+                    <Typography sx={{ fontSize: 14 }}>{o.target}</Typography>
+                    {o.category === "Water" && o.labSectionCode && (
+                      <Chip size="small" label={o.labSectionCode} sx={{ height: 18, fontSize: 10, fontWeight: 600 }} />
+                    )}
+                  </Box>
                   <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
                     {o.group ? `${o.group} · ` : ""}window {o.windowEnd < due.today ? "ended" : "ends"} {o.windowEnd}
                   </Typography>

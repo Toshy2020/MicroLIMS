@@ -234,6 +234,8 @@ public record BatchLocationReadings(int SampleLocationId, List<decimal> Readings
 // unlike BatchLocationResult's CFU x dilution model (EM/After Cleaning).
 public record WaterBatchLocationReadings(int SampleLocationId, List<decimal> Readings);
 
+public record LocationResultInput(int SampleLocationId, decimal? Value, string? Text);
+
 // EM/After Cleaning batch pathogen results - the final step's per-
 // location growth observation call.
 public record BatchLocationObservation(int SampleLocationId, bool GrowthObserved);
@@ -279,6 +281,7 @@ public interface ITestWorkflowEngine : IStatefulWorkflowEngine
     Task<TestWorkflowResult> RecordBatchResultsAsync(int testOrderId, List<BatchLocationReadings> locations, int userId);
     Task<TestWorkflowResult> RecordWaterBatchReadingsAsync(int testOrderId, List<WaterBatchLocationReadings> locations, int userId);
     Task<TestWorkflowResult> RecordBatchPathogenResultsAsync(int testOrderId, List<BatchLocationObservation>? observations, int userId);
+    Task<TestWorkflowResult> RecordLocationResultsAsync(int testOrderId, List<LocationResultInput> inputs, int userId);
 
     // Broth steps carry no result logic - completion is the incubation
     // window elapsing plus the analyst submitting the form. The window

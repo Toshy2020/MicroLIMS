@@ -1,0 +1,438 @@
+{
+  "itemCode": "STM-RM-074",
+  "stmCode": "STM-RM-074",
+  "itemName": "Green Empty Hard Gelatin Capsule Size Two",
+  "stmFile": "Green Empty Hard Gelatin Capsule Size Two__Green Empty Hard Gelatin Capsule Size Two -SM.txt",
+  "specFiles": ["Green Empty Hard Gelatin Capsule Size Two__Specifications sheet Green Empty Hard Gelatin Capsule Size Two.txt"],
+  "minQuantity": {
+    "routine": 140,
+    "retest": 70,
+    "retention": 140,
+    "unit": "g",
+    "source": "Green Empty Hard Gelatin Capsule Size Two__Specifications sheet Green Empty Hard Gelatin Capsule Size Two.txt:25; Green Empty Hard Gelatin Capsule Size Two__Green Empty Hard Gelatin Capsule Size Two -SM.txt:43"
+  },
+  "grades": [
+    {
+      "grade": null,
+      "rows": [
+        {
+          "testCode": "RM-DESC",
+          "parameterName": "Appearance",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Green cap and green body hard gelatin capsules of size Two.",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "In-house",
+          "source": "Green Empty Hard Gelatin Capsule Size Two__Specifications sheet Green Empty Hard Gelatin Capsule Size Two.txt:11"
+        },
+        {
+          "testCode": "RM-SOLUB",
+          "parameterName": "Solubility",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Practically insoluble in common organic solvents; gelling grades swell in cold water and give on heating a colloidal solution which on cooling forms a more or less firm gel.",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "In-house",
+          "source": "Green Empty Hard Gelatin Capsule Size Two__Specifications sheet Green Empty Hard Gelatin Capsule Size Two.txt:12"
+        },
+        {
+          "testCode": "RM-AVWT-CAP",
+          "parameterName": "Average weight (62.0 mg ±7.5%)",
+          "limitType": "Range",
+          "lower": 57.35,
+          "upper": 66.65,
+          "lowerInclusive": true,
+          "unit": "mg",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "In-house",
+          "source": "Green Empty Hard Gelatin Capsule Size Two__Specifications sheet Green Empty Hard Gelatin Capsule Size Two.txt:13"
+        },
+        {
+          "testCode": "RM-LEN-CAP",
+          "parameterName": "Closed joined filled length (17.7 mm ±0.3)",
+          "limitType": "Range",
+          "lower": 17.4,
+          "upper": 18.0,
+          "lowerInclusive": true,
+          "unit": "mm",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "In-house",
+          "source": "Green Empty Hard Gelatin Capsule Size Two__Specifications sheet Green Empty Hard Gelatin Capsule Size Two.txt:14"
+        },
+        {
+          "testCode": "RM-CLOS-CAP",
+          "parameterName": "Closure",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Comply",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "In-house",
+          "source": "Green Empty Hard Gelatin Capsule Size Two__Specifications sheet Green Empty Hard Gelatin Capsule Size Two.txt:15"
+        },
+        {
+          "testCode": "RM-PH",
+          "parameterName": "pH",
+          "limitType": "Range",
+          "lower": 5.0,
+          "upper": 7.0,
+          "lowerInclusive": true,
+          "unit": null,
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "In-house",
+          "source": "Green Empty Hard Gelatin Capsule Size Two__Specifications sheet Green Empty Hard Gelatin Capsule Size Two.txt:16"
+        },
+        {
+          "testCode": "RM-BRITTLE-CAP",
+          "parameterName": "Brittleness",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "No brittleness",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "In-house",
+          "source": "Green Empty Hard Gelatin Capsule Size Two__Specifications sheet Green Empty Hard Gelatin Capsule Size Two.txt:17"
+        },
+        {
+          "testCode": "RM-DISINT",
+          "parameterName": "Disintegration (shells)",
+          "limitType": "DisintegrationTime",
+          "lower": null,
+          "upper": 15,
+          "lowerInclusive": null,
+          "unit": "min",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "In-house",
+          "source": "Green Empty Hard Gelatin Capsule Size Two__Specifications sheet Green Empty Hard Gelatin Capsule Size Two.txt:18"
+        },
+        {
+          "testCode": "RM-SASH",
+          "parameterName": "Ash",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 7.0,
+          "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "In-house",
+          "source": "Green Empty Hard Gelatin Capsule Size Two__Specifications sheet Green Empty Hard Gelatin Capsule Size Two.txt:19"
+        },
+        {
+          "testCode": "RM-LOD",
+          "parameterName": "Loss on drying",
+          "limitType": "Range",
+          "lower": 13.0,
+          "upper": 16.0,
+          "lowerInclusive": true,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "In-house",
+          "source": "Green Empty Hard Gelatin Capsule Size Two__Specifications sheet Green Empty Hard Gelatin Capsule Size Two.txt:20"
+        },
+        {
+          "testCode": "TAMC",
+          "parameterName": "Total aerobic microbial count (TAMC)",
+          "limitType": "CountTiered",
+          "lower": null,
+          "upper": 1000,
+          "lowerInclusive": null,
+          "unit": "CFU/g",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP 2024",
+          "source": "Green Empty Hard Gelatin Capsule Size Two__Specifications sheet Green Empty Hard Gelatin Capsule Size Two.txt:21"
+        },
+        {
+          "testCode": "TYMC",
+          "parameterName": "Total yeasts and molds count (TYMC)",
+          "limitType": "CountTiered",
+          "lower": null,
+          "upper": 100,
+          "lowerInclusive": null,
+          "unit": "CFU/g",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP 2024",
+          "source": "Green Empty Hard Gelatin Capsule Size Two__Specifications sheet Green Empty Hard Gelatin Capsule Size Two.txt:22"
+        },
+        {
+          "testCode": "E.coli",
+          "parameterName": "Test for E. coli",
+          "limitType": "PresenceAbsence",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": "per 10 g",
+          "expectedResultText": "Absent / 10 gm",
+          "expectedState": "Absence",
+          "resultBasis": null,
+          "referenceStandard": "USP 2024",
+          "source": "Green Empty Hard Gelatin Capsule Size Two__Specifications sheet Green Empty Hard Gelatin Capsule Size Two.txt:23"
+        },
+        {
+          "testCode": "Salmonella ",
+          "parameterName": "Test for Salmonella spp.",
+          "limitType": "PresenceAbsence",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": "per 10 g",
+          "expectedResultText": "Absent / 10 gm",
+          "expectedState": "Absence",
+          "resultBasis": null,
+          "referenceStandard": "USP 2024",
+          "source": "Green Empty Hard Gelatin Capsule Size Two__Specifications sheet Green Empty Hard Gelatin Capsule Size Two.txt:24"
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "testCode": "RM-DESC",
+      "procedure": "Under strong white light check each received sample container separately on a clean transparent watch glass or glass dish for foreign particles, colour and conformity with the in-house visual specification.",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {
+        "perContainer": true,
+        "reference": "In-House Specification"
+      },
+      "source": "Green Empty Hard Gelatin Capsule Size Two__Green Empty Hard Gelatin Capsule Size Two -SM.txt:30"
+    },
+    {
+      "testCode": "RM-SOLUB",
+      "procedure": "Weigh 1 capsule in a stoppered tube; add 25 mL of the solvent, shake vigorously 1 min, hold at 25.0 ± 0.5 °C for 15 min. If not completely dissolved, the capsule is practically insoluble.",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {
+        "sample": "1 capsule",
+        "solventVolumeMl": 25,
+        "temperature": "25.0 ± 0.5 °C",
+        "holdMin": 15,
+        "shakeMin": 1,
+        "solvent": "not named in the STM (spec sheet: common organic solvents; gelling grades swell in cold water)",
+        "reference": "BP 2024 (SC IV K.) Characters Section in Monographs; In-House Specification"
+      },
+      "source": "Green Empty Hard Gelatin Capsule Size Two__Green Empty Hard Gelatin Capsule Size Two -SM.txt:31"
+    },
+    {
+      "testCode": "RM-AVWT-CAP",
+      "procedure": "Average weight: weigh about 10 capsules individually; average = sum of weights / 10. Limit 62.0 mg ±7.5% (57.35 mg to 66.65 mg).",
+      "kind": "specific",
+      "workflow": "Measurement",
+      "details": {
+        "capsulesNumber": 10,
+        "formula": "Av. Wt (g) = sum of weights / 10",
+        "nominalMg": 62.0,
+        "tolerancePercent": 7.5,
+        "limitMg": {"lower": 57.35, "upper": 66.65},
+        "reference": "In-House Specification"
+      },
+      "source": "Green Empty Hard Gelatin Capsule Size Two__Green Empty Hard Gelatin Capsule Size Two -SM.txt:32"
+    },
+    {
+      "testCode": "RM-LEN-CAP",
+      "procedure": "Closed joined filled length: with a calibrated digital caliper measure the capsule shell length (L) of 10 capsules; length (mm) = sum of lengths / 10. Limit 17.7 mm ±0.3 (17.4 to 18 mm).",
+      "kind": "specific",
+      "workflow": "Measurement",
+      "details": {
+        "capsulesNumber": 10,
+        "instrument": "calibrated digital caliper",
+        "formula": "Length (mm) = sum of lengths / 10",
+        "nominalMm": 17.7,
+        "limitMm": {"lower": 17.4, "upper": 18.0},
+        "reference": "In-House Specification"
+      },
+      "source": "Green Empty Hard Gelatin Capsule Size Two__Green Empty Hard Gelatin Capsule Size Two -SM.txt:33"
+    },
+    {
+      "testCode": "RM-CLOS-CAP",
+      "procedure": "Closure: check the lock of 10 capsules visually.",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "details": {
+        "capsulesNumber": 10,
+        "reference": "In-House Specification"
+      },
+      "source": "Green Empty Hard Gelatin Capsule Size Two__Green Empty Hard Gelatin Capsule Size Two -SM.txt:34"
+    },
+    {
+      "testCode": "RM-PH",
+      "procedure": "pH: dissolve about 1.0 g capsule in 100 mL water; measure with a calibrated pH meter (BP 2024 Appendix V L).",
+      "kind": "general",
+      "workflow": "Measurement",
+      "details": {
+        "sampleG": 1.0,
+        "solvent": "100 mL water",
+        "reference": "BP 2024 Appendix V L; In-House Specification"
+      },
+      "source": "Green Empty Hard Gelatin Capsule Size Two__Green Empty Hard Gelatin Capsule Size Two -SM.txt:35"
+    },
+    {
+      "testCode": "RM-BRITTLE-CAP",
+      "procedure": "Brittleness: press on the capsule shell to check brittleness; repeat on 10 capsules. Limit: no brittleness.",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "details": {
+        "capsulesNumber": 10,
+        "reference": "In-House Specification"
+      },
+      "source": "Green Empty Hard Gelatin Capsule Size Two__Green Empty Hard Gelatin Capsule Size Two -SM.txt:36"
+    },
+    {
+      "testCode": "RM-DISINT",
+      "procedure": "Disintegration (BP 2024 Appendix XII A): place 5 shells in the tubes of a calibrated disintegration apparatus; record the time of disintegration of each shell (T); time (min) = sum of times / 5. Limit NMT 15 min.",
+      "kind": "general",
+      "workflow": "Disintegration",
+      "details": {
+        "shells": 5,
+        "formula": "Time (min) = sum of times / 5",
+        "limitMin": 15,
+        "reference": "BP 2024 Appendix XII A; In-House Specification"
+      },
+      "source": "Green Empty Hard Gelatin Capsule Size Two__Green Empty Hard Gelatin Capsule Size Two -SM.txt:37"
+    },
+    {
+      "testCode": "RM-SASH",
+      "procedure": "Ash (sulfated ash, BP 2024 Appendix IX A): weigh an empty crucible ignited at 600-650 °C and cooled in desiccator (W0); weigh 1.0 g into a platinum crucible (W1); moisten with about 1 mL sulfuric acid, heat gently until thoroughly charred; after cooling moisten with sulfuric acid and heat until white fumes cease; ignite in a calibrated muffle at 600-650 °C, cool in desiccator and weigh (W2); repeat to constant weight. % ash = (W2 - W0) / (W1 - W0) x 100. Limit NMT 7.0%.",
+      "kind": "general",
+      "workflow": "Gravimetric",
+      "details": {
+        "sampleG": 1.0,
+        "ignitionC": "600-650",
+        "sulfuricAcid": "about 1 mL",
+        "formula": "(W2 - W0) / (W1 - W0) x 100",
+        "reference": "BP 2024 Appendix IX A; In-House Specification"
+      },
+      "source": "Green Empty Hard Gelatin Capsule Size Two__Green Empty Hard Gelatin Capsule Size Two -SM.txt:38"
+    },
+    {
+      "testCode": "RM-LOD",
+      "procedure": "Loss on drying (BP 2024 Appendix IX D): weigh an empty weighing bottle previously dried at 105 °C and cooled (W0); weigh accurately 1.000 g (W1); dry in a calibrated oven at 105 °C for 2 h, cool, weigh (W2); repeat to constant weight. % = (W1 - W2) / (W1 - W0) x 100. Limit 13.0 to 16.0%.",
+      "kind": "general",
+      "workflow": "Gravimetric",
+      "details": {
+        "sampleG": 1.000,
+        "drying": "calibrated oven 105 °C, 2 h, then to constant weight",
+        "formula": "(W1 - W2) / (W1 - W0) x 100",
+        "reference": "BP 2024 Appendix IX D; In-House Specification"
+      },
+      "source": "Green Empty Hard Gelatin Capsule Size Two__Green Empty Hard Gelatin Capsule Size Two -SM.txt:39"
+    },
+    {
+      "testCode": "TAMC",
+      "procedure": "Microbial enumeration (USP <2021>), aseptic technique under LAF: suspend 167 capsules (about 10 g) in 100 mL soybean casein digest broth with 4% polysorbate 20 (SCDB'), warm in water bath at max 45 °C for not more than 45 min until dissolved; within 1 h pipette 1 mL of the dilution into each of four plates (two with SCDA for TAMC, two with SDA for TYMC). Incubate SCDA plates 24-72 h at 30-35 °C. Count; total CFU/g = (sum of colonies on the two plates / 2) x DF (10); if no colonies, report less than 10 CFU/g.",
+      "kind": "general",
+      "workflow": "CountTest",
+      "details": {
+        "capsulesNumber": 167,
+        "sampleG": 10,
+        "broth": "SCDB' (soybean casein digest broth with 4% polysorbate 20), 100 mL",
+        "plates": "2 SCDA for TAMC",
+        "incubation": "24-72 h at 30-35 °C",
+        "dilutionFactor": 10,
+        "noGrowthReport": "less than 10 CFU per gm",
+        "limit": "Not more than 10^3 CFU/gm (STM prints 103, superscript lost; spec sheet NMT 103, loaded as 1000)",
+        "reference": "USP 2024 <2021>; USP 2024 <2023>",
+        "media": "SCDA, SDA, SCDB'"
+      },
+      "source": "Green Empty Hard Gelatin Capsule Size Two__Green Empty Hard Gelatin Capsule Size Two -SM.txt:40"
+    },
+    {
+      "testCode": "TYMC",
+      "procedure": "Microbial enumeration (USP <2021>): as for TAMC, the two SDA plates are incubated 5-7 days at 20-25 °C; total yeasts and molds CFU/g = (sum of colonies on the two plates / 2) x DF (10).",
+      "kind": "general",
+      "workflow": "CountTest",
+      "details": {
+        "plates": "2 SDA for TYMC",
+        "incubation": "5-7 days at 20-25 °C",
+        "dilutionFactor": 10,
+        "limit": "Not more than 10^2 CFU/gm (STM prints 102, superscript lost; spec sheet NMT 102, loaded as 100)",
+        "reference": "USP 2024 <2021>; USP 2024 <2023>",
+        "media": "SDA"
+      },
+      "source": "Green Empty Hard Gelatin Capsule Size Two__Green Empty Hard Gelatin Capsule Size Two -SM.txt:40"
+    },
+    {
+      "testCode": "E.coli",
+      "procedure": "Specified microorganism E. coli (USP <2022>): incubate SCDB' 30-35 °C 24-48 h; transfer 1 mL to 10 mL MacConkey broth, incubate 42-44 °C 24-48 h; subculture both broths on MacConkey agar, 30-35 °C 18-24 h; brick red colonies indicate possible E. coli; confirm by Gram stain (gram-negative short rods), EMB (dark centred colonies with or without metallic sheen) and TBX (blue or green colonies, 42-44 °C 18-72 h); if possible confirm with an identification system (report if probability above 70%). Limit absent in 10 g.",
+      "kind": "general",
+      "workflow": "Observation",
+      "details": {
+        "enrichment": "SCDB' 30-35 °C, 24-48 h",
+        "selective": "10 mL MacConkey broth, 42-44 °C, 24-48 h",
+        "plating": "MacConkey agar, 30-35 °C, 18-24 h",
+        "confirmatory": ["Gram stain", "EMB agar", "TBX agar, 42-44 °C, 18-72 h"],
+        "identificationThresholdPercent": 70,
+        "limit": "Absent / 10 gm",
+        "reference": "USP 2024 <2022>; USP 2024 <2023>"
+      },
+      "source": "Green Empty Hard Gelatin Capsule Size Two__Green Empty Hard Gelatin Capsule Size Two -SM.txt:41"
+    },
+    {
+      "testCode": "Salmonella ",
+      "procedure": "Specified microorganism Salmonella spp. (USP <2022>): transfer 1 mL of the 18-24 h incubated SCDB' to 10 mL Rappaport Vassiliadis Salmonella broth (RVS), 30-35 °C 18-24 h; subculture on XLD, BGA or HEA agar, 30-35 °C 24-48 h; suspect colonies (red with or without black centres on XLD; small transparent colourless or opaque pink/white on BGA; blue-green with or without black centres on HEA); confirm by Gram stain (gram-negative short rods), TSI slant (alkaline red slant, acid yellow butt, with or without blackening) at 30-35 °C 24-48 h; if possible confirm with an identification system (report if probability above 70%). Limit absent in 10 g.",
+      "kind": "general",
+      "workflow": "Observation",
+      "details": {
+        "enrichment": "SCDB' 18-24 h, then 1 mL to 10 mL RVS, 30-35 °C 18-24 h",
+        "plating": "XLD, BGA or HEA, 30-35 °C 24-48 h",
+        "confirmatory": ["Gram stain", "TSI slant, 30-35 °C 24-48 h"],
+        "identificationThresholdPercent": 70,
+        "limit": "Absent / 10 gm",
+        "reference": "USP 2024 <2022>; USP 2024 <2023>"
+      },
+      "source": "Green Empty Hard Gelatin Capsule Size Two__Green Empty Hard Gelatin Capsule Size Two -SM.txt:41"
+    }
+  ],
+  "notApplicable": [],
+  "supplierAttributes": [],
+  "reagents": [
+    { "name": "Sulfuric acid", "use": "reagent", "source": "Green Empty Hard Gelatin Capsule Size Two__Green Empty Hard Gelatin Capsule Size Two -SM.txt:28" }
+  ],
+  "openQuestions": [
+    {
+      "question": "TAMC and TYMC limits print as 'NMT 103' and 'NMT 102' in the spec sheet and STM (superscripts lost). Rows hold 1000 and 100 CFU/g as in the other materials; confirm 10^3 and 10^2.",
+      "source": "Green Empty Hard Gelatin Capsule Size Two__Specifications sheet Green Empty Hard Gelatin Capsule Size Two.txt:21-22; Green Empty Hard Gelatin Capsule Size Two__Green Empty Hard Gelatin Capsule Size Two -SM.txt:40"
+    },
+    {
+      "question": "Length: the spec sheet says '17.7 mm ± 0.3%' and also '(17.4 - 18) mm'. A 0.3% tolerance would be about ±0.05 mm; the bracketed range equals ±0.3 mm. Loaded as 17.4 to 18.0 mm; confirm the tolerance unit.",
+      "source": "Green Empty Hard Gelatin Capsule Size Two__Specifications sheet Green Empty Hard Gelatin Capsule Size Two.txt:14"
+    },
+    {
+      "question": "pH: the spec sheet gives '5.0: 7.0' (colon, presumed 5.0 to 7.0) and the technique 'Voltammetry'. Loaded as 5.0 to 7.0 with a pH meter procedure; confirm both.",
+      "source": "Green Empty Hard Gelatin Capsule Size Two__Specifications sheet Green Empty Hard Gelatin Capsule Size Two.txt:16"
+    },
+    {
+      "question": "Solubility: the STM does not name the solvent ('25 mL of the solvent'); the spec sheet refers to common organic solvents. Test solvent to confirm.",
+      "source": "Green Empty Hard Gelatin Capsule Size Two__Green Empty Hard Gelatin Capsule Size Two -SM.txt:31"
+    }
+  ]
+}

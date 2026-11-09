@@ -1,0 +1,331 @@
+{
+  "itemCode": "STM-RM-087",
+  "itemName": "Orange Oil 5-Fold Extract",
+  "stmCode": "STM-RM-087",
+  "stmFile": "Orange Oil 5-Fold__Orange Oil 5-Fold - SM.txt",
+  "specFiles": ["Orange Oil 5-Fold__Specifications sheet Orange Oil 5-Fold.txt"],
+  "minQuantity": {
+    "routine": 140,
+    "retest": 140,
+    "retention": 140,
+    "unit": "mL",
+    "source": "Orange Oil 5-Fold__Specifications sheet Orange Oil 5-Fold.txt:22; Orange Oil 5-Fold__Orange Oil 5-Fold - SM.txt:40"
+  },
+  "grades": [
+    {
+      "grade": null,
+      "rows": [
+        {
+          "testCode": "RM-DESC",
+          "parameterName": "Appearance",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "A Clear Transparent Liquid",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "In house",
+          "source": "Orange Oil 5-Fold__Specifications sheet Orange Oil 5-Fold.txt:11"
+        },
+        {
+          "testCode": "RM-SOLUB",
+          "parameterName": "Solubility",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Insoluble in Water",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "In house",
+          "source": "Orange Oil 5-Fold__Specifications sheet Orange Oil 5-Fold.txt:12"
+        },
+        {
+          "testCode": "RM-ODOR",
+          "parameterName": "Odor",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Sweet orange like",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "In house",
+          "source": "Orange Oil 5-Fold__Specifications sheet Orange Oil 5-Fold.txt:13"
+        },
+        {
+          "testCode": "RM-COL-OO",
+          "parameterName": "Color",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Dark Yellowish",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "In house",
+          "source": "Orange Oil 5-Fold__Specifications sheet Orange Oil 5-Fold.txt:14"
+        },
+        {
+          "testCode": "RM-ODOR",
+          "parameterName": "Taste (at low dilution)",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Fresh orange juicy like",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "In house",
+          "source": "Orange Oil 5-Fold__Specifications sheet Orange Oil 5-Fold.txt:15"
+        },
+        {
+          "testCode": "RM-SG-OO",
+          "parameterName": "Specific gravity",
+          "limitType": "Range",
+          "lower": 0.8300,
+          "upper": 0.8800,
+          "lowerInclusive": true,
+          "unit": null,
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "In house",
+          "source": "Orange Oil 5-Fold__Specifications sheet Orange Oil 5-Fold.txt:16"
+        },
+        {
+          "testCode": "RM-RI-OO",
+          "parameterName": "Refractive index",
+          "limitType": "Range",
+          "lower": 1.4000,
+          "upper": 1.5000,
+          "lowerInclusive": true,
+          "unit": null,
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "In house",
+          "source": "Orange Oil 5-Fold__Specifications sheet Orange Oil 5-Fold.txt:17"
+        },
+        {
+          "testCode": "TAMC",
+          "parameterName": "Total Aerobic Microbial Count (TAMC)",
+          "limitType": "CountTiered",
+          "lower": null,
+          "upper": 1000,
+          "lowerInclusive": null,
+          "unit": "CFU/mL",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Orange Oil 5-Fold__Specifications sheet Orange Oil 5-Fold.txt:18"
+        },
+        {
+          "testCode": "TYMC",
+          "parameterName": "Total Yeast and Molds Count (TYMC)",
+          "limitType": "CountTiered",
+          "lower": null,
+          "upper": 100,
+          "lowerInclusive": null,
+          "unit": "CFU/mL",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Orange Oil 5-Fold__Specifications sheet Orange Oil 5-Fold.txt:19"
+        },
+        {
+          "testCode": "E.coli",
+          "parameterName": "Test for E. coli",
+          "limitType": "PresenceAbsence",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": "per 10 mL",
+          "expectedResultText": "Absent /10 ml",
+          "expectedState": "Absence",
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Orange Oil 5-Fold__Specifications sheet Orange Oil 5-Fold.txt:20"
+        },
+        {
+          "testCode": "Salmonella ",
+          "parameterName": "Test for Salmonella spp.",
+          "limitType": "PresenceAbsence",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": "per 10 mL",
+          "expectedResultText": "Absent /10 ml",
+          "expectedState": "Absence",
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Orange Oil 5-Fold__Specifications sheet Orange Oil 5-Fold.txt:21"
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "testCode": "RM-DESC",
+      "procedure": "Under strong white light check each received sample container separately in a clean transparent watch glass or glass dish for foreign particles, colour and conformity with the visual specification.",
+      "kind": "general",
+      "workflow": "Observation",
+      "details": {
+        "perContainer": true,
+        "reference": "In-house specification for Orange Oil 5-Fold"
+      },
+      "source": "Orange Oil 5-Fold__Orange Oil 5-Fold - SM.txt:30"
+    },
+    {
+      "testCode": "RM-COL-OO",
+      "procedure": "Colour: check each sample container separately in a clean transparent Nessler tube for conformance of colour with the visual specification.",
+      "kind": "specific",
+      "workflow": "Observation",
+      "details": {
+        "perContainer": true,
+        "vessel": "Nessler tube"
+      },
+      "source": "Orange Oil 5-Fold__Orange Oil 5-Fold - SM.txt:31"
+    },
+    {
+      "testCode": "RM-SOLUB",
+      "procedure": "Solubility: put 5 mL water in a Nessler tube, add 5 mL or some quantity of sample; a turbid solution must form (insoluble in water).",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "details": {
+        "waterMl": 5,
+        "sampleMl": 5,
+        "vessel": "Nessler tube",
+        "expected": "turbid solution"
+      },
+      "source": "Orange Oil 5-Fold__Orange Oil 5-Fold - SM.txt:33"
+    },
+    {
+      "testCode": "RM-ODOR",
+      "procedure": "Odor: open the container or transfer a quantity to a watch glass and smell the sample. Taste: dilute 5 mL sample to 100 mL with water and taste with the tip of the tongue.",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {
+        "odorExpected": "Sweet orange like",
+        "tasteDilutionMl": "5 to 100 with water",
+        "tasteExpected": "Fresh orange juicy like"
+      },
+      "source": "Orange Oil 5-Fold__Orange Oil 5-Fold - SM.txt:32; Orange Oil 5-Fold__Orange Oil 5-Fold - SM.txt:34"
+    },
+    {
+      "testCode": "RM-SG-OO",
+      "procedure": "Specific gravity: weigh empty pycnometer (W1); fill with water and weigh at 25 °C (W2); fill with sample and weigh (W3). S.G. = (W3 - W1) / (W2 - W1).",
+      "kind": "specific",
+      "workflow": "Measurement",
+      "details": {
+        "temperatureC": 25,
+        "vessel": "pycnometer",
+        "formula": "(W3 - W1) / (W2 - W1)"
+      },
+      "source": "Orange Oil 5-Fold__Orange Oil 5-Fold - SM.txt:35"
+    },
+    {
+      "testCode": "RM-RI-OO",
+      "procedure": "Refractive index: use sufficient quantity of sample and a calibrated refractometer at 25 °C.",
+      "kind": "specific",
+      "workflow": "Measurement",
+      "details": {
+        "temperatureC": 25,
+        "instrument": "calibrated refractometer"
+      },
+      "source": "Orange Oil 5-Fold__Orange Oil 5-Fold - SM.txt:36"
+    },
+    {
+      "testCode": "TAMC",
+      "procedure": "Total aerobic microbial count (membrane filtration): take 10 mL sample in a sterile container and make to 100 mL with SCDB' (soybean casein digest broth with 4% polysorbate 20); within 1 h filter 1 mL of the suspension through each of four 0.45 µm membranes under vacuum; wash each with three 100 mL portions of phosphate buffer pH 7.2; place two membranes on SCDA plates (TAMC) and two on SDA plates (TYMC); incubate SCDA 48-72 h at 30-35 °C. CFU/mL = (sum of colonies on the 2 SCDA plates / 2) x DF (10); no growth reported as less than 10 CFU/mL.",
+      "kind": "general",
+      "workflow": "CountTest",
+      "details": {
+        "sampleMl": 10,
+        "diluentMl": 100,
+        "diluent": "SCDB' (soybean casein digest broth with 4% polysorbate 20)",
+        "filtrationMl": 1,
+        "membranePoreUm": 0.45,
+        "washBuffer": "phosphate buffer pH 7.2, 3 x 100 mL",
+        "agar": "SCDA",
+        "incubation": "48-72 h at 30-35 °C",
+        "dilutionFactor": 10,
+        "limit": "NMT 10^3 CFU/mL",
+        "reference": "USP 2024 <2021>; USP 2024 <2023>"
+      },
+      "source": "Orange Oil 5-Fold__Orange Oil 5-Fold - SM.txt:37"
+    },
+    {
+      "testCode": "TYMC",
+      "procedure": "Total yeast and mold count: same membrane preparation as TAMC; the two SDA plates incubated 5-7 days at 20-25 °C; CFU/mL = (sum of colonies on the 2 SDA plates / 2) x DF (10).",
+      "kind": "general",
+      "workflow": "CountTest",
+      "details": {
+        "agar": "SDA (Sabouraud dextrose agar)",
+        "incubation": "5-7 days at 20-25 °C",
+        "dilutionFactor": 10,
+        "limit": "NMT 10^2 CFU/mL",
+        "reference": "USP 2024 <2021>; USP 2024 <2023>"
+      },
+      "source": "Orange Oil 5-Fold__Orange Oil 5-Fold - SM.txt:37"
+    },
+    {
+      "testCode": "E.coli",
+      "procedure": "Escherichia coli: filter the whole prepared SCDB' through a 0.45 µm membrane, wash with phosphate buffer pH 7.2; transfer the membrane to 100 mL SCDB' and incubate 30-35 °C for 24-48 h; transfer 1 mL to 10 mL MacConkey broth (MBP), incubate 42-44 °C 24-48 h; subculture on MacConkey agar 30-35 °C 18-24 h; confirm by Gram stain, EMB (30-35 °C 24-48 h) and TBX (42-44 °C 18-72 h); optional identification system, report present if probability above 70%.",
+      "kind": "general",
+      "workflow": "Observation",
+      "details": {
+        "limit": "Absent /10 mL",
+        "enrichment": "SCDB' 30-35 °C 24-48 h; MBP 42-44 °C 24-48 h",
+        "agar": "MacConkey agar 30-35 °C 18-24 h",
+        "confirmation": ["Gram stain", "EMB 30-35 °C 24-48 h", "TBX 42-44 °C 18-72 h"],
+        "reference": "USP 2024 <2022>; USP 2024 <2023>"
+      },
+      "source": "Orange Oil 5-Fold__Orange Oil 5-Fold - SM.txt:38"
+    },
+    {
+      "testCode": "Salmonella ",
+      "procedure": "Salmonella spp.: after 18-24 h incubation of SCDB', transfer 1 mL to 10 mL Rappaport Vassiliadis broth (RVS), incubate 30-35 °C 18-24 h; subculture both broths on XLD, BGA or HEA, incubate 30-35 °C 24-48 h; suspect colonies confirmed by Gram stain and TSI slant; optional identification system, report present if probability above 70%.",
+      "kind": "general",
+      "workflow": "Observation",
+      "details": {
+        "limit": "Absent /10 mL",
+        "enrichment": "RVS 30-35 °C 18-24 h",
+        "agars": ["XLD", "BGA", "HEA"],
+        "agarIncubation": "30-35 °C 24-48 h",
+        "confirmation": ["Gram stain", "TSI slant"],
+        "reference": "USP 2024 <2022>; USP 2024 <2023>"
+      },
+      "source": "Orange Oil 5-Fold__Orange Oil 5-Fold - SM.txt:38"
+    }
+  ],
+  "notApplicable": [],
+  "supplierAttributes": [],
+  "reagents": [
+    { "name": "Sabouraud dextrose agar", "use": "reagent", "source": "Orange Oil 5-Fold__Orange Oil 5-Fold - SM.txt:28" },
+    { "name": "Tryptone soya agar / Soyabean casein digestive agar", "use": "reagent", "source": "Orange Oil 5-Fold__Orange Oil 5-Fold - SM.txt:28" },
+    { "name": "Tryptone soya broth with 4% polysorbate 20 / Soyabean casein digestive broth with 4% polysorbate 20", "use": "reagent", "source": "Orange Oil 5-Fold__Orange Oil 5-Fold - SM.txt:28" },
+    { "name": "Xylose-Lysine-Deoxycholate agar", "use": "reagent", "source": "Orange Oil 5-Fold__Orange Oil 5-Fold - SM.txt:28" },
+    { "name": "Triple sugar iron agar", "use": "reagent", "source": "Orange Oil 5-Fold__Orange Oil 5-Fold - SM.txt:28" },
+    { "name": "Phosphate buffer pH 7.2", "use": "reagent", "source": "Orange Oil 5-Fold__Orange Oil 5-Fold - SM.txt:28" },
+    { "name": "Gram stain reagents", "use": "reagent", "source": "Orange Oil 5-Fold__Orange Oil 5-Fold - SM.txt:28" }
+  ],
+  "openQuestions": [
+    {
+      "question": "Microbiological limits read 'NMT 103 CFU / ml' and 'NMT 102 CFU / ml' (superscript lost); read as 10^3 = 1000 and 10^2 = 100 CFU/mL. Confirm.",
+      "source": "Orange Oil 5-Fold__Specifications sheet Orange Oil 5-Fold.txt:18; Orange Oil 5-Fold__Specifications sheet Orange Oil 5-Fold.txt:19"
+    },
+    {
+      "question": "The taste test (Taste at low dilution) requires tasting the diluted sample with the tip of the tongue. Confirm this is acceptable under the laboratory safety rules, or give an alternative.",
+      "source": "Orange Oil 5-Fold__Orange Oil 5-Fold - SM.txt:34"
+    }
+  ]
+}

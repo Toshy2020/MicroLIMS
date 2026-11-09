@@ -1,3 +1,5 @@
+using MicroLIMS.Domain.Enums;
+
 namespace MicroLIMS.Domain.Entities;
 
 // Generalized sampling configuration for Water sampling points (and
@@ -13,4 +15,11 @@ public class SamplingConfiguration : IVersionedEntity
     public string ActionLimit { get; set; } = string.Empty;
     public string SpecLimit { get; set; } = string.Empty;
     public string Unit { get; set; } = string.Empty;
+
+    public LimitType? LimitType { get; set; }
+    public decimal? LowerLimit { get; set; }
+    public decimal? UpperLimit { get; set; }
+    public bool LowerInclusive { get; set; } = true;
+    public bool UpperInclusive { get; set; } = true;
+    public string? ExpectedResultText { get; set; }
 }

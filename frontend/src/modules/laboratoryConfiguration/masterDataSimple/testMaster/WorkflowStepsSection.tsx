@@ -262,15 +262,33 @@ export function WorkflowStepsSection({ test, workflowTypes, onWorkflowTypeChange
       )}
       {test.workflowType === "IcpMethodAssay" && (
         <Box sx={{ mb: 2, p: 1.5, bgcolor: "background.paper", borderRadius: 1, border: "1px solid", borderColor: "divider" }}>
-          <Typography sx={{ fontWeight: 700, fontSize: 12, mb: 1, color: "primary.main" }}>ICP Method Assay Configuration</Typography>
+          <Typography sx={{ fontWeight: 700, fontSize: 12, mb: 1, color: "primary.main" }}>ICP Assay Configuration</Typography>
           <Stack useFlexGap direction="row" spacing={3} sx={{ flexWrap: "wrap", alignItems: "center" }}>
             <Box>
-              <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>Equation Type</Typography>
-              <Typography variant="body2" sx={{ fontWeight: 600 }}>{EQUATION_TYPE_LABELS[test.equationType ?? "IcpMethodAssay"] ?? test.equationType}</Typography>
+              <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>Test type</Typography>
+              <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                {test.icpMode === "Impurity" ? "Elemental impurity (ppm)" : test.icpMode === "Assay" ? "Assay (% of target)" : "Not configured"}
+              </Typography>
             </Box>
+            {test.icpMode === "Assay" && (
+              <Box>
+                <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>Sample basis</Typography>
+                <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                  {test.icpSampleForm === "Liquid"
+                    ? `Th.Vol ${test.icpTheoreticalAmount ?? "—"} mL × Sp.gr ${test.icpSpecificGravity ?? "—"}`
+                    : `Th.Wt ${test.icpTheoreticalAmount ?? "—"} g`}
+                </Typography>
+              </Box>
+            )}
             <Box>
-              <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>Method Abbreviation</Typography>
-              <Typography variant="body2" sx={{ fontWeight: 600 }}>{test.methodAbbreviation ?? "—"}</Typography>
+              <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>Elements</Typography>
+              <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                {(test.icpElements ?? []).length === 0
+                  ? "None - edit the test to add them"
+                  : (test.icpElements ?? [])
+                      .map((e) => (test.icpMode === "Assay" && e.targetPpm != null ? `${e.symbol} (${e.targetPpm} ppm)` : e.symbol))
+                      .join(", ")}
+              </Typography>
             </Box>
           </Stack>
         </Box>
@@ -283,7 +301,7 @@ export function WorkflowStepsSection({ test, workflowTypes, onWorkflowTypeChange
         </Typography>
       ) : test.workflowType === "IcpMethodAssay" ? (
         <Typography variant="body2" sx={{ color: "text.secondary", mb: 1 }}>
-          ICP Method Assay tests have no workflow steps or local test analytes: elements, calibration standards, and quality controls are configured centrally in ICP Methods Master.
+          ICP assay tests have no workflow steps or local test analytes: the elements and target concentrations are set on the test, and each run is calibrated and signed in the ICP Workspace.
         </Typography>
       ) : test.workflowType === "Measurement" ? (
         <Box sx={{ p: 2, bgcolor: "background.paper", borderRadius: 1, border: "1px solid", borderColor: "divider" }}>

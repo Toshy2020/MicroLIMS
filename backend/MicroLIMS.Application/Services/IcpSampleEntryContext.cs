@@ -1,9 +1,7 @@
 using System.Globalization;
-using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Shared.Exceptions;
 using MicroLIMS.Application.Abstractions.Persistence;
-using MicroLIMS.Application.DTOs.Responses;
 using MicroLIMS.Application.Helpers;
 using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Domain.Entities;
@@ -20,7 +18,6 @@ public sealed class IcpSampleEntryContext
     public required TestOrder Order { get; init; }
     public required Sample Sample { get; init; }
     public required TestDefinition Definition { get; init; }
-    public required IcpMethodResponse Snapshot { get; init; }
     public required List<Specification> Specs { get; init; }
     public required bool Submitted { get; init; }
     public required bool Returned { get; init; }
@@ -30,21 +27,17 @@ public sealed class IcpSampleEntryContext
     public string? StageName => Sample.ProductionStageRef?.Name ?? Sample.ProductionStage;
     public bool Editable => EditableProblem() == null;
 
-    // Elements the test's specs refer to, in method order.
-    public List<IcpMethodElementResponse> NeededElements =>
-        Snapshot.Elements.Where(e => Specs.Any(s => s.IcpMethodElementId == e.Id)).OrderBy(e => e.DisplayOrder).ToList();
+    public IcpTestMode Mode => Definition.IcpMode ?? IcpTestMode.Assay;
 
-    public bool NeedsUnitAmount => Specs.Any(s => s.ResultBasis is ResultBasis.MgPerUnit or ResultBasis.PercentLabelClaim);
+    // Elements the test's specs refer to, in the test's order.
+    public List<TestDefinitionIcpElement> NeededElements =>
+        Definition.IcpElements.Where(e => Specs.Any(s => s.IcpTestElementId == e.Id)).OrderBy(e => e.DisplayOrder).ToList();
 
-    public List<IcpElementStateDto> ElementStates() =>
-        IcpElementAvailability.Evaluate(Snapshot, Run.Calibration!, Run.CcvReadings, Clock.UtcNow.UtcDateTime, Clock);
+    public bool NeedsWeight => Mode == IcpTestMode.Assay && Sample.Category != SampleCategory.AfterCleaning;
 
     // States of the needed elements only.
-    public List<IcpElementStateDto> NeededStates()
-    {
-        var needed = NeededElements.Select(e => e.Id).ToHashSet();
-        return ElementStates().Where(s => needed.Contains(s.IcpMethodElementId)).ToList();
-    }
+    public List<IcpElementStateDto> NeededStates() =>
+        IcpElementAvailability.Evaluate(NeededElements, Run.Calibration!, Clock.UtcNow.UtcDateTime, Clock);
 
     // Editable while the run is open, or - after a submitted result was returned to the analyst - until submitted again.
     public string? EditableProblem()
@@ -59,7 +52,7 @@ public sealed class IcpSampleEntryContext
     // Null while the calibration is confirmed and inside its validity window.
     public string? CalibrationProblem()
     {
-        var expiresAt = IcpElementAvailability.ExpiresAt(Run.Calibration!, Snapshot.MaxCalibrationAgeHours);
+        var expiresAt = IcpElementAvailability.ExpiresAt(Run.Calibration!);
         if (expiresAt is null)
             return "Confirm the calibration before entering results.";
         if (expiresAt < Clock.UtcNow.UtcDateTime)
@@ -85,26 +78,21 @@ public sealed class IcpSampleEntryContext
 
         foreach (var spec in Specs.OrderBy(s => s.DisplayOrder).ThenBy(s => s.Id))
         {
-            if (spec.IcpMethodElementId is not int specElementId)
-                return $"Specification \"{spec.ParameterName}\" is not linked to an ICP method element.";
-            if (Snapshot.Elements.All(e => e.Id != specElementId))
-                return $"Specification \"{spec.ParameterName}\" refers to an element that is not on this run's method.";
+            if (spec.IcpTestElementId is not int specElementId)
+                return $"Specification \"{spec.ParameterName}\" is not linked to an ICP element.";
+            if (Definition.IcpElements.All(e => e.Id != specElementId))
+                return $"Specification \"{spec.ParameterName}\" refers to an element that is not on this test.";
         }
 
         var needed = NeededElements;
-        if (needed.Count == 0) return "No specification is configured for this test on this item.";
-        if (RunSample.Replicates.Count == 0) return "Enter the replicates.";
-
-        foreach (var rep in RunSample.Replicates.OrderBy(r => r.ReplicateNo))
-        {
-            if (rep.SampleAmount <= 0 || rep.VolumeMl <= 0 || rep.DilutionFactor < 1)
-                return $"Replicate {rep.ReplicateNo}: the sample amount, volume and dilution factor are required.";
-            foreach (var el in needed)
-                if (!rep.Concentrations.Any(c => c.IcpMethodElementId == el.Id))
-                    return $"Replicate {rep.ReplicateNo}: a concentration for {el.Symbol} is required.";
-        }
-        if (NeedsUnitAmount && RunSample.UnitAmount is not > 0m)
-            return "Enter the unit amount (average unit weight or dose).";
+        if (needed.Count == 0)
+            return Sample.Category == SampleCategory.AfterCleaning
+                ? "No cleaning limits are set on this ICP test's elements."
+                : "No specification is configured for this test on this item.";
+        if (NeedsWeight && RunSample.ActualWeightG is not > 0m) return "Enter the actual weight of the sample.";
+        foreach (var el in needed)
+            if (!RunSample.Concentrations.Any(c => c.IcpTestElementId == el.Id))
+                return $"A result for {el.Symbol} is required.";
         return null;
     }
 
@@ -115,19 +103,18 @@ public sealed class IcpSampleEntryContext
     }
 
     public List<IcpSampleRow> EvaluateRows() =>
-        IcpSampleEvaluator.Evaluate(Snapshot, ElementStates(), Specs, RunSample.Replicates, RunSample.UnitAmount);
+        IcpSampleEvaluator.Evaluate(Definition, NeededStates(), Specs, RunSample.Concentrations, RunSample.ActualWeightG);
 
     public static async Task<IcpSampleEntryContext> LoadAsync(
         IMicroLimsDbContext db, int runSampleId, CancellationToken ct = default, ILabClock? clock = null)
     {
         var runSample = await db.IcpRunSamples
-            .Include(s => s.Replicates).ThenInclude(r => r.Concentrations)
+            .Include(s => s.Concentrations)
             .FirstOrDefaultAsync(s => s.Id == runSampleId, ct)
             ?? throw new NotFoundException($"Run sample {runSampleId} not found.");
 
         var run = await db.IcpRuns
             .Include(r => r.Calibration).ThenInclude(c => c!.Elements)
-            .Include(r => r.CcvReadings)
             .Include(r => r.Evidence)
             .FirstAsync(r => r.Id == runSample.IcpRunId, ct);
 
@@ -136,13 +123,32 @@ public sealed class IcpSampleEntryContext
             .Include(o => o.Sample).ThenInclude(s => s!.ProductionStageRef)
             .FirstAsync(o => o.Id == runSample.TestOrderId, ct);
 
-        var definition = await db.TestDefinitions.FirstAsync(t => t.Code == order.TestCode, ct);
-        var snapshot = JsonSerializer.Deserialize<IcpMethodResponse>(run.MethodSnapshotJson, SnapshotJson.Options)
-            ?? throw new InvalidOperationException("The run's method snapshot could not be read.");
+        var definition = await db.TestDefinitions.Include(t => t.IcpElements).FirstAsync(t => t.Code == order.TestCode, ct);
 
-        var specs = order.Sample?.ItemId is int itemId
-            ? (await SpecificationLookup.ForSampleAsync(db, order.SampleId, itemId, order.TestCode, ct)).ToList()
-            : new List<Specification>();
+        List<Specification> specs;
+        if (order.Sample?.ItemId is int itemId)
+        {
+            specs = (await SpecificationLookup.ForSampleAsync(db, order.SampleId, itemId, order.TestCode, ct)).ToList();
+        }
+        else if (order.Sample?.Category == SampleCategory.AfterCleaning)
+        {
+            specs = definition.IcpElements
+                .Where(e => e.CleaningLimitPpm.HasValue)
+                .OrderBy(e => e.DisplayOrder)
+                .Select(e => new Specification
+                {
+                    Id = 0,
+                    IcpTestElementId = e.Id,
+                    LimitType = LimitType.NotMoreThan,
+                    UpperLimit = e.CleaningLimitPpm,
+                    Unit = "ppm",
+                    ParameterName = e.Symbol,
+                }).ToList();
+        }
+        else
+        {
+            specs = new List<Specification>();
+        }
 
         var submitted = await db.TestAnalyses.AnyAsync(a => a.TestOrderId == order.Id && a.IsActive, ct);
         var returned = !submitted && await db.TestReturnEvents.AnyAsync(e => e.TestOrderId == order.Id, ct);
@@ -152,7 +158,7 @@ public sealed class IcpSampleEntryContext
         return new IcpSampleEntryContext
         {
             RunSample = runSample, Run = run, Order = order, Sample = order.Sample!, Definition = definition,
-            Snapshot = snapshot, Specs = specs, Submitted = submitted, Returned = returned,
+            Specs = specs, Submitted = submitted, Returned = returned,
             HasCurrentSampleReport = hasReport, Clock = clock ?? LabClock.Default,
         };
     }

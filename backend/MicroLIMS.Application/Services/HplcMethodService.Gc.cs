@@ -7,6 +7,9 @@ public partial class HplcMethodService
 {
     private static void ValidateGcSection(SaveHplcMethodRequest r)
     {
+        if (r.ResultMode == HplcResultMode.CleaningResidue)
+            throw new InvalidOperationException("Cleaning residue is available for HPLC methods only.");
+
         if (!(r.FilmThicknessUm > 0m))
             throw new InvalidOperationException("Film thickness is required for a GC method.");
         if (r.CarrierGas == null)

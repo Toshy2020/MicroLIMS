@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations.Schema;
 using MicroLIMS.Domain.Enums;
 
 namespace MicroLIMS.Domain.Entities;
@@ -62,6 +63,13 @@ public class HplcMethod : IVersionedEntity
     public decimal? DisregardLimitPercent { get; set; }
     public List<HplcMethodImpurity> Impurities { get; set; } = new();
 
+    // Cleaning residue only (null otherwise). Reuses SampleSolutionVolumeMl as the extraction volume.
+    public int? ProductItemId { get; set; }
+    public Item? ProductItem { get; set; }
+    [NotMapped]
+    public Item? Item { get => ProductItem; set => ProductItem = value; }
+    public decimal? SwabAreaCm2 { get; set; }
+
     public int CreatedByUserId { get; set; }
     public DateTime CreatedAt { get; set; }
     public int LastModifiedByUserId { get; set; }
@@ -113,7 +121,9 @@ public class HplcMethodAnalyte
     public decimal? SstMinSignalToNoise { get; set; }
     public decimal? SstMinPeakToValley { get; set; }
     public decimal? StandardDilution { get; set; } // mL; dissolution standard only (Cs = W x P x (100-MC) / dilution)
-    public decimal? StandardConcentrationUgPerMl { get; set; } // residual solvents only
+    public decimal? StandardConcentrationUgPerMl { get; set; } // residual solvents and cleaning residue
+    public decimal? MacoLimit { get; set; } // cleaning residue only
+    public MacoUnit? MacoUnit { get; set; }
 }
 
 // Named impurity of a related-substances method. Kept on update when unchanged (matched by Id)

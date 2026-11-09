@@ -1,0 +1,579 @@
+{
+  "testDefinitions": [
+    {
+      "code": "RM-ID-TLC-099",
+      "displayName": "Identification of Vitamin A (TLC)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Qualitative",
+      "equationType": "Qualitative",
+      "physchemArea": "RawPackaging",
+      "complete": true,
+      "notes": "TLC silica gel F254 plate; test solution (~17 000 IU vitamin A digested with bromelains in 2-propanol and water) vs 10 mg/mL retinol esters CRS in 2-propanol with 1 g/L BHT; mobile phase ether : cyclohexane (20:80 V/V); develop 15 cm, dry in air, examine under UV 254 nm. Principal spot corresponds to reference solution (BP 2024; source: Vitamin A Synrhetic__STM Synthetic Retinol Acetate (Powder Form).txt:30).",
+      "usedBy": [
+        "STM-RM-099"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-099",
+          "provisionalCode": "RM-ID-TLC-VA",
+          "source": "Vitamin A Synrhetic__STM Synthetic Retinol Acetate (Powder Form).txt:30"
+        }
+      ]
+    },
+    {
+      "code": "RM-ID-FLUO-003",
+      "displayName": "Identification (Fluorescence, Thiamine Hydrochloride)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Qualitative",
+      "equationType": "Qualitative",
+      "physchemArea": "RawPackaging",
+      "complete": true,
+      "notes": "Dissolve ~20 mg in 10 mL water, add 1 mL dilute acetic acid and 1.6 mL 1 M NaOH, heat 30 min in water bath, cool, add 5 mL dilute NaOH, 10 mL potassium ferricyanide solution and 10 mL butanol, shake 2 min. Upper layer shows intense light-blue fluorescence (UV 365 nm). Negative control with 0.9 mL 1 M NaOH and 0.1 g anhydrous sodium sulfite shows practically no fluorescence (BP 2024; source: Thiamine Hydrochloride__STM-003 Thiamine Hydrochloride.txt:30).",
+      "usedBy": [
+        "STM-RM-003"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-003",
+          "provisionalCode": "RM-ID-FLUO-THIA",
+          "source": "Thiamine Hydrochloride__STM-003 Thiamine Hydrochloride.txt:30"
+        }
+      ]
+    },
+    {
+      "code": "RM-LT-NO3-003",
+      "displayName": "Limit of nitrate (USP)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Qualitative",
+      "equationType": "Qualitative",
+      "physchemArea": "RawPackaging",
+      "complete": true,
+      "notes": "Dissolve 40 mg sample in 2 mL water, add 2 mL sulfuric acid, cool, superimpose 2 mL ferrous sulfate TS; no brown ring produced at junction of two layers (USP 2024; source: Thiamine Hydrochloride__STM-003 Thiamine Hydrochloride.txt:34).",
+      "usedBy": [
+        "STM-RM-003"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-003",
+          "provisionalCode": "RM-LT-NO3",
+          "source": "Thiamine Hydrochloride__STM-003 Thiamine Hydrochloride.txt:34"
+        }
+      ]
+    },
+    {
+      "code": "RM-UV-ABS-003",
+      "displayName": "Absorbance of solution (USP, UV 400 nm)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "UvSpectrophotometry",
+      "equationType": "UvSpectrophotometry",
+      "physchemArea": "RawPackaging",
+      "replicateCount": 1,
+      "uvCalculationMode": "AbsorbanceLimit",
+      "complete": true,
+      "notes": "100 mg/mL solution in water, filtered through syringe filter or fine sintered-glass funnel; absorbance against water blank in 1-cm cell at 400 nm; limit NMT 0.025 (USP 2024 <857>; source: Thiamine Hydrochloride__STM-003 Thiamine Hydrochloride.txt:35).",
+      "usedBy": [
+        "STM-RM-003"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-003",
+          "provisionalCode": "RM-UV-THIA",
+          "source": "Thiamine Hydrochloride__STM-003 Thiamine Hydrochloride.txt:35"
+        }
+      ]
+    },
+    {
+      "code": "RM-TIT-THIA-003",
+      "displayName": "Assay of thiamine hydrochloride (BP, non-aqueous potentiometric titration)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Titration",
+      "equationType": "Titration",
+      "physchemArea": "RawPackaging",
+      "titrationType": "AcidBase",
+      "titrationNonAqueous": true,
+      "titrationMode": "Direct",
+      "titrationEndpoint": "Potentiometric",
+      "titrantSolution": "0.1 M Perchloric acid VS",
+      "titrationBlankRequired": true,
+      "titrationEquivalencyFactor": 168.6,
+      "titrationEquivalencyFactorDerivation": "16.86 mg C12H18Cl2N4OS per mL of 0.1 M HClO4 / 0.1 = 168.6 mg/mmol",
+      "replicateCount": 1,
+      "titrationCalculation": "UspFactor",
+      "complete": true,
+      "notes": "Dissolve 0.110 g sample in 5 mL anhydrous formic acid, add 50 mL acetic anhydride, titrate within 2 min with 0.1 M perchloric acid VS potentiometrically; blank titration. Eq.wt = 16.86 mg/mL of 0.1 M titrant (F = 168.6 mg/mmol). Anhydrous substance basis (BP 2024; source: Thiamine Hydrochloride__STM-003 Thiamine Hydrochloride.txt:39).",
+      "usedBy": [
+        "STM-RM-003"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-003",
+          "provisionalCode": "RM-TIT-THIA",
+          "source": "Thiamine Hydrochloride__STM-003 Thiamine Hydrochloride.txt:39; titrant Thiamine Hydrochloride__STM-003 Thiamine Hydrochloride.txt:26"
+        }
+      ]
+    },
+    {
+      "code": "RM-HPLC-THIA-AS",
+      "displayName": "Assay of thiamine hydrochloride (USP, HPLC internal standard)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "HplcMethodAssay",
+      "equationType": "HplcMethodAssay",
+      "physchemArea": "RawPackaging",
+      "hplcMethod": "Thiamine hydrochloride assay (USP, HPLC)",
+      "requiresSystemSuitability": true,
+      "methodAbbreviation": "THIA-AS",
+      "complete": true,
+      "notes": "USP assay: 400 µg/mL thiamine HCl + 0.2% methyl benzoate internal standard in mobile phase (Solution A 0.005 M sodium 1-octanesulfonate in 1% acetic acid : Solution B methanol:acetonitrile 3:2, 60:40); column 4.0-mm x 30-cm L1, 1 mL/min, UV 254 nm. Limit 98.0%-102.0% on anhydrous basis (USP 2024; source: Thiamine Hydrochloride__STM-003 Thiamine Hydrochloride.txt:38).",
+      "usedBy": [
+        "STM-RM-003"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-003",
+          "provisionalCode": "RM-HPLC-THIA-AS",
+          "source": "Thiamine Hydrochloride__STM-003 Thiamine Hydrochloride.txt:38"
+        }
+      ],
+      "heldBack": "needs the held-back method \"Thiamine hydrochloride assay (USP, HPLC)\""
+    },
+    {
+      "code": "RM-HPLC-THIA-RC",
+      "displayName": "Related compounds of thiamine hydrochloride (USP, HPLC)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "HplcMethodAssay",
+      "equationType": "HplcMethodAssay",
+      "physchemArea": "RawPackaging",
+      "hplcMethod": "Thiamine hydrochloride related compounds (USP, HPLC)",
+      "requiresSystemSuitability": true,
+      "methodAbbreviation": "THIA-RC",
+      "complete": true,
+      "notes": "USP related compounds: 1.0 mg/mL sample in mobile phase; column 4.0-mm x 15-cm L1, 0.75 mL/min, UV 254 nm. Total secondary peaks NMT 1.0% (USP 2024; source: Thiamine Hydrochloride__STM-003 Thiamine Hydrochloride.txt:41).",
+      "usedBy": [
+        "STM-RM-003"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-003",
+          "provisionalCode": "RM-HPLC-THIA-RC",
+          "source": "Thiamine Hydrochloride__STM-003 Thiamine Hydrochloride.txt:41"
+        }
+      ],
+      "heldBack": "needs the held-back method \"Thiamine hydrochloride related compounds (USP, HPLC)\""
+    },
+    {
+      "code": "RM-HPLC-THIA-RS",
+      "displayName": "Related substances of thiamine hydrochloride (BP, gradient HPLC)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "HplcMethodAssay",
+      "equationType": "HplcMethodAssay",
+      "physchemArea": "RawPackaging",
+      "hplcMethod": "Thiamine hydrochloride related substances (BP, gradient HPLC)",
+      "requiresSystemSuitability": true,
+      "methodAbbreviation": "THIA-RS",
+      "complete": true,
+      "notes": "BP related substances (gradient HPLC): Impurity B NMT 0.3%, Impurity A NMT 0.15%, Impurity C NMT 0.15%, unspecified impurities NMT 0.1% each, total NMT 0.5% (BP 2024; source: Thiamine Hydrochloride__STM-003 Thiamine Hydrochloride.txt:42-47).",
+      "usedBy": [
+        "STM-RM-003"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-003",
+          "provisionalCode": "RM-HPLC-THIA-RS",
+          "source": "Thiamine Hydrochloride__STM-003 Thiamine Hydrochloride.txt:42-47"
+        }
+      ],
+      "heldBack": "needs the held-back method \"Thiamine hydrochloride related substances (BP, gradient HPLC)\""
+    }
+  ],
+  "solutions": [
+    {
+      "name": "Thiamine USP mobile phase (octanesulfonate : methanol : acetonitrile)",
+      "type": "MobilePhase",
+      "section": "Physicochemical Laboratory",
+      "usedBy": [
+        "STM-RM-003"
+      ],
+      "notes": "Solution A: 0.005 M sodium 1-octanesulfonate in 1 in 100 dilute glacial acetic acid; Solution B: methanol and acetonitrile (3:2); mixed 60:40 Solution A:B. Used by Thiamine USP Assay and Related Compounds (source: Thiamine Hydrochloride__STM-003 Thiamine Hydrochloride.txt:38).",
+      "complete": false,
+      "missing": [
+        "shelfLife: not stated in the STM",
+        "storageCondition: not stated in the STM"
+      ],
+      "heldBack": "only used by held-back HPLC methods, and shelfLife, storageCondition not stated"
+    },
+    {
+      "name": "Thiamine BP mobile phase A (sodium hexanesulfonate pH 3.1)",
+      "type": "MobilePhase",
+      "section": "Physicochemical Laboratory",
+      "usedBy": [
+        "STM-RM-003"
+      ],
+      "notes": "3.764 g/L solution of sodium hexanesulfonate adjusted to pH 3.1 with phosphoric acid R. Used by Thiamine BP Related Substances (source: Thiamine Hydrochloride__STM-003 Thiamine Hydrochloride.txt:42).",
+      "complete": false,
+      "missing": [
+        "shelfLife: not stated in the STM",
+        "storageCondition: not stated in the STM"
+      ],
+      "heldBack": "only used by held-back HPLC methods, and shelfLife, storageCondition not stated"
+    },
+    {
+      "name": "Thiamine BP mobile phase B (methanol)",
+      "type": "MobilePhase",
+      "section": "Physicochemical Laboratory",
+      "usedBy": [
+        "STM-RM-003"
+      ],
+      "notes": "Methanol HPLC grade. Used by Thiamine BP Related Substances (source: Thiamine Hydrochloride__STM-003 Thiamine Hydrochloride.txt:42).",
+      "complete": false,
+      "missing": [
+        "shelfLife: not stated in the STM",
+        "storageCondition: not stated in the STM"
+      ],
+      "heldBack": "only used by held-back HPLC methods, and shelfLife, storageCondition not stated"
+    }
+  ],
+  "hplcMethods": [
+    {
+      "name": "Thiamine hydrochloride assay (USP, HPLC)",
+      "abbreviation": "THIA-AS",
+      "technique": "Hplc",
+      "resultMode": "Assay",
+      "section": "Physicochemical Laboratory",
+      "effectiveDate": "STM issue date",
+      "columnDesignation": "L1",
+      "columnLengthMm": 300,
+      "columnInternalDiameterMm": 4.0,
+      "particleSizeUm": null,
+      "elutionMode": "Isocratic",
+      "flowRateMlPerMin": 1.0,
+      "detectorType": "UV",
+      "injectionVolumeUl": 10,
+      "runTimeMin": null,
+      "mobilePhases": [
+        {
+          "channel": "A",
+          "solution": "Thiamine USP mobile phase (octanesulfonate : methanol : acetonitrile)",
+          "ratioPercent": 100
+        }
+      ],
+      "gradientSteps": [],
+      "diluentSolution": "Thiamine USP mobile phase (octanesulfonate : methanol : acetonitrile)",
+      "internalStandardName": "Methylbenzoate",
+      "analytes": [
+        {
+          "name": "Thiamine hydrochloride",
+          "wavelengthNm": 254,
+          "standardEntry": "USP Thiamine Hydrochloride RS",
+          "theoreticalWeightStdMg": 20,
+          "theoreticalWeightTestMg": 20,
+          "standardInjections": null,
+          "standardDilution": null,
+          "sstMinResolution": 4.0,
+          "sstMaxTailingFactor": 2.0,
+          "sstMinTheoreticalPlates": 1500,
+          "sstMaxRsdPercent": 2.0
+        }
+      ],
+      "complete": false,
+      "missing": [
+        "runTimeMin: not stated (retention time about 12 min stated, total run time not stated)",
+        "particleSizeUm: not stated",
+        "standardInjections: replicates for 2.0 % RSD not stated"
+      ],
+      "notes": "Internal standard solution 2.0% v/v methyl benzoate in methanol. Mobile phase Solution A (0.005 M sodium 1-octanesulfonate in 1 in 100 glacial acetic acid) and Solution B (methanol:acetonitrile 3:2) 60:40. System suitability: resolution NLT 4.0 between thiamine and methyl benzoate, tailing factor NMT 2.0, theoretical plates NLT 1500, RSD NMT 2.0%. Anhydrous basis calculation (source: Thiamine Hydrochloride__STM-003 Thiamine Hydrochloride.txt:38).",
+      "usedBy": [
+        "STM-RM-003"
+      ],
+      "source": "Thiamine Hydrochloride__STM-003 Thiamine Hydrochloride.txt:38",
+      "heldBack": "HPLC method incomplete: runTimeMin; particleSizeUm; standardInjections"
+    },
+    {
+      "name": "Thiamine hydrochloride related compounds (USP, HPLC)",
+      "abbreviation": "THIA-RC",
+      "technique": "Hplc",
+      "resultMode": "RelatedSubstances",
+      "section": "Physicochemical Laboratory",
+      "effectiveDate": "STM issue date",
+      "columnDesignation": "L1",
+      "columnLengthMm": 150,
+      "columnInternalDiameterMm": 4.0,
+      "particleSizeUm": null,
+      "elutionMode": "Isocratic",
+      "flowRateMlPerMin": 0.75,
+      "detectorType": "UV",
+      "injectionVolumeUl": 10,
+      "runTimeMin": null,
+      "mobilePhases": [
+        {
+          "channel": "A",
+          "solution": "Thiamine USP mobile phase (octanesulfonate : methanol : acetonitrile)",
+          "ratioPercent": 100
+        }
+      ],
+      "gradientSteps": [],
+      "diluentSolution": "Thiamine USP mobile phase (octanesulfonate : methanol : acetonitrile)",
+      "analytes": [
+        {
+          "name": "Total secondary peaks",
+          "wavelengthNm": 254
+        }
+      ],
+      "complete": false,
+      "missing": [
+        "runTimeMin: exact numeric run time not stated (allow sample to elute for NLT 3 times retention time of main peak)",
+        "particleSizeUm: not stated",
+        "standardInjections: not stated"
+      ],
+      "notes": "Sample 1.0 mg/mL in mobile phase. Column 4.0-mm x 15-cm L1, flow 0.75 mL/min, UV 254 nm. Total secondary peaks NMT 1.0% (source: Thiamine Hydrochloride__STM-003 Thiamine Hydrochloride.txt:41).",
+      "usedBy": [
+        "STM-RM-003"
+      ],
+      "source": "Thiamine Hydrochloride__STM-003 Thiamine Hydrochloride.txt:41",
+      "heldBack": "HPLC method incomplete: runTimeMin; particleSizeUm; standardInjections"
+    },
+    {
+      "name": "Thiamine hydrochloride related substances (BP, gradient HPLC)",
+      "abbreviation": "THIA-RS",
+      "technique": "Hplc",
+      "resultMode": "RelatedSubstances",
+      "section": "Physicochemical Laboratory",
+      "effectiveDate": "STM issue date",
+      "columnDesignation": "End-capped octadecylsilyl silica gel for chromatography",
+      "columnLengthMm": 250,
+      "columnInternalDiameterMm": 4.0,
+      "particleSizeUm": 5,
+      "columnTemperatureC": 45,
+      "elutionMode": "Gradient",
+      "flowRateMlPerMin": 1.0,
+      "detectorType": "UV",
+      "injectionVolumeUl": 25,
+      "runTimeMin": 42,
+      "mobilePhases": [
+        {
+          "channel": "A",
+          "solution": "Thiamine BP mobile phase A (sodium hexanesulfonate pH 3.1)"
+        },
+        {
+          "channel": "B",
+          "solution": "Thiamine BP mobile phase B (methanol)"
+        }
+      ],
+      "gradientSteps": [
+        {
+          "timeMin": 0,
+          "percentA": 90,
+          "percentB": 10,
+          "percentC": 0,
+          "percentD": 0
+        },
+        {
+          "timeMin": 2,
+          "percentA": 90,
+          "percentB": 10,
+          "percentC": 0,
+          "percentD": 0
+        },
+        {
+          "timeMin": 27,
+          "percentA": 70,
+          "percentB": 30,
+          "percentC": 0,
+          "percentD": 0
+        },
+        {
+          "timeMin": 35,
+          "percentA": 50,
+          "percentB": 50,
+          "percentC": 0,
+          "percentD": 0
+        },
+        {
+          "timeMin": 42,
+          "percentA": 50,
+          "percentB": 50,
+          "percentC": 0,
+          "percentD": 0
+        }
+      ],
+      "diluentSolution": "Thiamine BP diluent (0.75% V/V glacial acetic acid in water)",
+      "referenceSolutionPercent": 0.1,
+      "disregardLimitPercent": 0.05,
+      "impurities": [
+        {
+          "name": "Impurity A",
+          "relativeRetention": 0.3,
+          "correctionFactor": null
+        },
+        {
+          "name": "Impurity B",
+          "relativeRetention": 0.9,
+          "correctionFactor": null
+        },
+        {
+          "name": "Impurity C",
+          "relativeRetention": 1.2,
+          "correctionFactor": null
+        }
+      ],
+      "analytes": [
+        {
+          "name": "Thiamine hydrochloride",
+          "wavelengthNm": 248,
+          "standardEntry": "Thiamine for system suitability CRS",
+          "theoreticalWeightStdMg": null,
+          "theoreticalWeightTestMg": null,
+          "standardInjections": null,
+          "standardDilution": null,
+          "sstMinResolution": 3.0
+        }
+      ],
+      "complete": false,
+      "missing": [
+        "standardInjections: not stated in the STM"
+      ],
+      "notes": "Reference (a): thiamine for system suitability CRS in 1 mL 0.75% V/V glacial acetic acid. Reference (b): test solution diluted 1:100 then 1:10 = 0.1%. Reporting threshold 0.05% taken as disregard limit. System suitability: resolution min 3.0 between impurity B and thiamine, min 2.0 between thiamine and impurity C (source: Thiamine Hydrochloride__STM-003 Thiamine Hydrochloride.txt:42-47).",
+      "usedBy": [
+        "STM-RM-003"
+      ],
+      "source": "Thiamine Hydrochloride__STM-003 Thiamine Hydrochloride.txt:42-47",
+      "heldBack": "HPLC method incomplete: standardInjections"
+    }
+  ],
+  "icpMethods": [],
+  "materialEntries": [
+    {
+      "name": "Retinol esters CRS",
+      "category": "ReferenceStandard",
+      "codePrefix": "RS-",
+      "code": null,
+      "baseUnit": "Vial",
+      "usedBy": [
+        "RM-ID-TLC-099"
+      ],
+      "source": "Vitamin A Synrhetic__STM Synthetic Retinol Acetate (Powder Form).txt:30",
+      "loadedObjectNeedsIt": true
+    },
+    {
+      "name": "Retinol Acetate RS",
+      "category": "ReferenceStandard",
+      "codePrefix": "RS-",
+      "code": null,
+      "baseUnit": "Vial",
+      "usedBy": [
+        "STM-RM-099"
+      ],
+      "source": "Vitamin A Synrhetic__STM Synthetic Retinol Acetate (Powder Form).txt:26",
+      "loadedObjectNeedsIt": false
+    },
+    {
+      "name": "USP Thiamine Hydrochloride RS",
+      "category": "ReferenceStandard",
+      "codePrefix": "RS-",
+      "code": null,
+      "baseUnit": "Vial",
+      "usedBy": [
+        "STM-RM-003"
+      ],
+      "source": "Thiamine Hydrochloride__STM-003 Thiamine Hydrochloride.txt:26,38",
+      "loadedObjectNeedsIt": true
+    },
+    {
+      "name": "Thiamine hydrochloride CRS",
+      "category": "ReferenceStandard",
+      "codePrefix": "RS-",
+      "code": null,
+      "baseUnit": "Vial",
+      "usedBy": [
+        "STM-RM-003"
+      ],
+      "source": "Thiamine Hydrochloride__STM-003 Thiamine Hydrochloride.txt:26",
+      "loadedObjectNeedsIt": false
+    },
+    {
+      "name": "Thiamine for system suitability CRS",
+      "category": "ReferenceStandard",
+      "codePrefix": "RS-",
+      "code": null,
+      "baseUnit": "Vial",
+      "usedBy": [
+        "STM-RM-003"
+      ],
+      "source": "Thiamine Hydrochloride__STM-003 Thiamine Hydrochloride.txt:26,42",
+      "loadedObjectNeedsIt": true
+    },
+    {
+      "name": "Methylbenzoate",
+      "category": "ReferenceStandard",
+      "codePrefix": "RS-",
+      "code": null,
+      "baseUnit": "Bottle",
+      "usedBy": [
+        "STM-RM-003"
+      ],
+      "source": "Thiamine Hydrochloride__STM-003 Thiamine Hydrochloride.txt:26,38",
+      "loadedObjectNeedsIt": true
+    }
+  ],
+  "reagentLinks": [],
+  "mapping": {
+    "STM-RM-099": {
+      "RM-DESC": "RM-DESC",
+      "RM-ID-TLC-VA": "RM-ID-TLC-099",
+      "RM-SOLUB": "RM-SOLUB"
+    },
+    "STM-RM-114": {
+      "E.coli": "E.coli",
+      "RM-ASH-OPA": "RM-ASH",
+      "RM-DESC": "RM-DESC",
+      "RM-ID-FILM-OPA": "RM-ID-FILM",
+      "TAMC": "TAMC",
+      "TYMC": "TYMC"
+    },
+    "STM-RM-003": {
+      "E.coli": "E.coli",
+      "RM-DESC": "RM-DESC",
+      "RM-HPLC-THIA-AS": "RM-HPLC-THIA-AS",
+      "RM-HPLC-THIA-RC": "RM-HPLC-THIA-RC",
+      "RM-HPLC-THIA-RS": "RM-HPLC-THIA-RS",
+      "RM-ID-CL": "RM-ID-CL",
+      "RM-ID-FLUO-THIA": "RM-ID-FLUO-003",
+      "RM-ID-IR": "RM-ID-IR",
+      "RM-KF": "RM-KF",
+      "RM-LT-NO3": "RM-LT-NO3-003",
+      "RM-LT-SO4": "RM-LT-SO4",
+      "RM-PH": "RM-PH",
+      "RM-SASH": "RM-SASH",
+      "RM-SOLAPP": "RM-SOLAPP",
+      "RM-SOLUB": "RM-SOLUB",
+      "RM-TIT-THIA": "RM-TIT-THIA-003",
+      "RM-UV-THIA": "RM-UV-ABS-003",
+      "TAMC": "TAMC",
+      "TYMC": "TYMC"
+    }
+  },
+  "gaps": [
+    {
+      "material": "STM-RM-003",
+      "test": "RM-HPLC-THIA-AS",
+      "missing": "runTimeMin: not stated (retention time about 12 min stated); particleSizeUm: not stated; standardInjections: replicates for 2.0 % RSD not stated"
+    },
+    {
+      "material": "STM-RM-003",
+      "test": "RM-HPLC-THIA-RC",
+      "missing": "runTimeMin: exact numeric run time not stated (elute for NLT 3 times retention time of main peak); particleSizeUm: not stated; standardInjections: not stated"
+    },
+    {
+      "material": "STM-RM-003",
+      "test": "RM-HPLC-THIA-RS",
+      "missing": "standardInjections: replicates for system suitability not stated in the STM"
+    }
+  ]
+}

@@ -43,8 +43,15 @@ public class Sample : IVersionedEntity
     public Machine? Machine { get; set; }
     public string? PreviousProductName { get; set; } // After Cleaning only (free text)
     public string? PreviousProductBatchNumber { get; set; } // After Cleaning only (free text)
+    public int? PreviousProductItemId { get; set; } // After Cleaning only
+    public Item? PreviousProductItem { get; set; }
+    public string? CleaningTechniques { get; set; } // After Cleaning only (comma list of "UV","HPLC","ICP")
     public int? WaterDepartmentId { get; set; }    // Water only (batch model)
     public WaterDepartment? WaterDepartment { get; set; }
+
+    // Water / After Cleaning only: the lab that received the sample and prepares it
+    public int? LabSectionId { get; set; }
+    public DocumentSection? LabSection { get; set; }
 
     // Product only - descriptive, does not affect assigned tests. This is
     // the historical snapshot of what was recorded at receiving time -

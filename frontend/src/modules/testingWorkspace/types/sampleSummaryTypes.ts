@@ -265,6 +265,8 @@ export interface SampleSummary {
   certificateRemarks: string | null;
   previousProductName?: string | null;
   previousProductBatchNumber?: string | null;
+  previousProductItemId?: number | null;
+  cleaningTechniques?: string[] | null;
   preparation: SamplePreparationSummary | null;
   testOrders: TestOrderSummaryDetail[];
   timeline: SampleWorkflowEvent[];

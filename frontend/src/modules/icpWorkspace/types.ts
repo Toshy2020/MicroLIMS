@@ -1,5 +1,5 @@
-// ICP Workspace DTOs and enums (spec 2026-10-03 §4.2, §4.3, §6).
-// Mirrors DTOs from IcpRunService.cs, IcpRunService.Samples.cs, and IcpElementAvailability.cs.
+// ICP Workspace DTOs and enums. Mirrors IcpRunService.cs, IcpRunService.Samples.cs and IcpElementAvailability.cs.
+// The run carries no method: the analyst lists the calibrated elements; the tests define what is measured.
 // Enums serialize as strings via JsonStringEnumConverter.
 
 export type IcpRunStatus = "Open" | "Completed" | "Abandoned";
@@ -7,19 +7,9 @@ export type IcpCalibrationStatus = "Pending" | "Confirmed";
 export type IcpRunSampleStatus = "Assigned" | "Removed";
 export type IcpEvidenceContext = "Run" | "Calibration" | "Sample";
 export type IcpEvidenceKind = "CalibrationReport" | "SampleReport" | "Other";
-export type IcpAmountUnit = "Gram" | "Milliliter";
-
-export type {
-  IcpMethodMode,
-  IcpAnalyteView,
-  IcpMethodResponse,
-  IcpMethodElementResponse
-} from "../laboratoryConfiguration/masterDataSimple/services/IcpMethodService";
-
-import type {
-  IcpMethodMode,
-  IcpMethodResponse
-} from "../laboratoryConfiguration/masterDataSimple/services/IcpMethodService";
+// What an ICP test reports (Test Master): assay % of target, or impurity ppm against the item's NMT limit.
+export type IcpTestMode = "Assay" | "Impurity";
+export type IcpSampleForm = "Solid" | "Liquid";
 
 export type ResultStatus =
   | "WithinLimits"
@@ -35,12 +25,11 @@ export type ResultStatus =
   | "NextStageRequired"
   | "Inconclusive";
 
-// ---- Instruments / Methods ----
+// ---- Instruments ----
 
 export interface IcpActiveRunSummaryDto {
   runId: number;
   code: string;
-  methodAbbreviation: string;
   analystName: string;
   sampleCount: number;
   calibrationStatus: IcpCalibrationStatus;
@@ -55,42 +44,25 @@ export interface IcpInstrumentDto {
   activeRun?: IcpActiveRunSummaryDto | null;
 }
 
-export interface IcpMethodOptionDto {
-  id: number;
-  abbreviation: string;
-  name: string;
-  mode: IcpMethodMode;
-  eligibleTestOrderCount: number;
-}
-
 // ---- Requests ----
 
 export interface StartIcpRunRequest {
   equipmentId: number;
-  icpMethodId: number;
 }
 
 export interface SaveIcpCalibrationElementInput {
-  icpCalibrationElementId: number;
+  symbol: string;
   correlationR?: number | null;
-  blankMgPerL?: number | null;
-  icvMeasuredMgPerL?: number | null;
 }
 
 export interface SaveIcpCalibrationRequest {
   calibrationStandardMaterialId: number | null;
-  icvStandardMaterialId: number | null;
   elements: SaveIcpCalibrationElementInput[];
 }
 
 export interface ConfirmIcpCalibrationRequest {
   password: string;
   comment?: string | null;
-}
-
-export interface AddIcpCcvRequest {
-  icpMethodElementId: number;
-  measuredMgPerL: number;
 }
 
 export interface ReasonRequest {
@@ -121,12 +93,8 @@ export interface IcpEvidenceDto {
 
 export interface IcpCalibrationElementDto {
   id: number;
-  icpMethodElementId: number;
   symbol: string;
   correlationR?: number | null;
-  blankMgPerL?: number | null;
-  icvMeasuredMgPerL?: number | null;
-  icvRecoveryPercent?: number | null;
   passed: boolean;
   failureReasons?: string | null;
 }
@@ -138,26 +106,12 @@ export interface IcpCalibrationDto {
   calibrationStandardMaterialId?: number | null;
   calibrationStandardLotLabel?: string | null;
   calibrationStandardCode?: string | null;
-  icvStandardMaterialId?: number | null;
-  icvStandardLotLabel?: string | null;
-  icvStandardCode?: string | null;
   confirmedByUserId?: number | null;
   confirmedByUserName?: string | null;
   confirmedAt?: string | null;
   expiresAt?: string | null;
+  minCorrelation: number;
   elements: IcpCalibrationElementDto[];
-}
-
-export interface IcpCcvReadingDto {
-  id: number;
-  icpMethodElementId: number;
-  symbol: string;
-  measuredMgPerL: number;
-  recoveryPercent: number;
-  passed: boolean;
-  enteredByUserId: number;
-  enteredByUserName?: string | null;
-  enteredAt: string;
 }
 
 export interface IcpRunSampleSummaryDto {
@@ -168,13 +122,7 @@ export interface IcpRunSampleSummaryDto {
   batchNumber?: string | null;
   productName?: string | null;
   testCode: string;
-}
-
-export interface IcpElementStateDto {
-  icpMethodElementId: number;
-  symbol: string;
-  valid: boolean;
-  reason?: string | null;
+  subjectName?: string | null;
 }
 
 export interface IcpRunDto {
@@ -185,9 +133,6 @@ export interface IcpRunDto {
   equipmentId: number;
   equipmentCode: string;
   equipmentName: string;
-  icpMethodId: number;
-  icpMethodAbbreviation: string;
-  method: IcpMethodResponse;
   analystUserId: number;
   analystUserName?: string | null;
   startedAt: string;
@@ -195,12 +140,10 @@ export interface IcpRunDto {
   closedAt?: string | null;
   closeReason?: string | null;
   calibration: IcpCalibrationDto;
-  ccvReadings: IcpCcvReadingDto[];
   samples: IcpRunSampleSummaryDto[];
   evidence: IcpEvidenceDto[];
   canConfirmCalibration: boolean;
   canConfirmCalibrationReason?: string | null;
-  elementStates: IcpElementStateDto[];
   canAssignSamples: boolean;
   canAssignSamplesReason?: string | null;
 }
@@ -208,7 +151,6 @@ export interface IcpRunDto {
 export interface IcpRunListItem {
   id: number;
   code: string;
-  methodAbbreviation: string;
   analystUserName: string;
   startedAt: string;
   status: IcpRunStatus;
@@ -216,7 +158,7 @@ export interface IcpRunListItem {
   sampleCount: number;
 }
 
-// ---- Sample Entry & Replicates (used in slice 2, defined here per contract) ----
+// ---- Sample Entry ----
 
 export interface EligibleTestDto {
   testOrderId: number;
@@ -226,40 +168,37 @@ export interface EligibleTestDto {
   testCode: string;
   receivedAt: string;
   stageName?: string | null;
+  subjectName?: string | null;
 }
 
 export interface IcpConcentrationInput {
-  icpMethodElementId: number;
-  solutionMgPerL: number;
+  icpTestElementId: number;
+  resultPpm: number;
 }
 
-export interface IcpReplicateInputDto {
-  sampleAmount: number;
-  volumeMl: number;
-  dilutionFactor: number;
+export interface SaveIcpSampleEntryRequest {
+  actualWeightG?: number | null;
   concentrations: IcpConcentrationInput[];
-}
-
-export interface SaveIcpReplicatesRequest {
-  amountUnit: IcpAmountUnit;
-  unitAmount?: number | null;
-  replicates: IcpReplicateInputDto[];
 }
 
 export interface AssignIcpSamplesRequest {
   testOrderIds: number[];
+  password: string;
+  comment?: string | null;
 }
 
-export interface IcpReplicateDto {
-  replicateNo: number;
-  sampleAmount: number;
-  volumeMl: number;
-  dilutionFactor: number;
-  concentrations: IcpConcentrationInput[];
+// One element of the test: its target, whether the run's calibration allows it, and the entered result.
+export interface IcpEntryElementDto {
+  icpTestElementId: number;
+  symbol: string;
+  targetPpm?: number | null;
+  valid: boolean;
+  reason?: string | null;
+  resultPpm?: number | null;
 }
 
 export interface IcpPreviewResultDto {
-  icpMethodElementId: number;
+  icpTestElementId: number;
   parameterName: string;
   quantity: string;
   value?: number | null;
@@ -290,14 +229,14 @@ export interface IcpSampleEntryDto {
   productName?: string | null;
   testCode: string;
   stageName?: string | null;
+  subjectName?: string | null;
   status: IcpRunSampleStatus;
-  mode: IcpMethodMode;
-  amountUnit: IcpAmountUnit;
-  unitAmount?: number | null;
-  sampleVolumeMl: number;
-  dilutionFactor: number;
-  elements: IcpElementStateDto[];
-  replicates: IcpReplicateDto[];
+  mode: IcpTestMode;
+  sampleForm?: IcpSampleForm | null;
+  theoreticalAmount?: number | null;
+  specificGravity?: number | null;
+  actualWeightG?: number | null;
+  elements: IcpEntryElementDto[];
   preview: IcpPreviewResultDto[];
   official: IcpOfficialResultDto[];
   evidence: IcpEvidenceDto[];
@@ -306,4 +245,32 @@ export interface IcpSampleEntryDto {
   submitted: boolean;
   canSubmit: boolean;
   canSubmitReason?: string | null;
+}
+
+export interface IcpReportSolutionDto {
+  index: number;
+  label: string;
+  page: number;
+  matchesSample: boolean;
+  elements: string;
+}
+
+export interface IcpReportElementValueDto {
+  icpTestElementId: number;
+  symbol: string;
+  resultPpm?: number | null;
+  wavelengthNm?: number | null;
+  note?: string | null;
+}
+
+export interface IcpReportValuesDto {
+  evidenceId: number;
+  fileName: string;
+  source: string;
+  requiresVerification: boolean;
+  problems: string[];
+  solutions: IcpReportSolutionDto[];
+  matchedIndex?: number | null;
+  selectedIndex?: number | null;
+  elements: IcpReportElementValueDto[];
 }

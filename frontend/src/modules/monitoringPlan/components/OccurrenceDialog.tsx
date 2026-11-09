@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Alert, Box, Button, Divider, Stack, TextField, Typography } from "@mui/material";
+import { Alert, Box, Button, Chip, Divider, Stack, TextField, Typography } from "@mui/material";
 import { FloatingDialog } from "../../../components/FloatingDialog";
 import { SignatureDialog } from "../../../components/SignatureDialog";
 import { useAuth, useHasPermission } from "../../../contexts/AuthContext";
@@ -114,6 +114,13 @@ export function OccurrenceDialog({
           <Stack spacing={1.5}>
             <Box sx={{ display: "flex", gap: 1, alignItems: "center", flexWrap: "wrap" }}>
               <OccurrenceStatusChip status={summary.status} late={summary.late} />
+              {summary.category === "Water" && (detail.labSectionCode || summary.labSectionCode) && (
+                <Chip
+                  size="small"
+                  label={detail.labSectionCode || summary.labSectionCode}
+                  sx={{ height: 20, fontSize: 11, fontWeight: 600 }}
+                />
+              )}
               <Typography sx={{ fontSize: 13, color: "text.secondary" }}>
                 {CATEGORY_LABEL[summary.category]}{summary.group ? ` · ${summary.group}` : ""}{summary.manual ? " · manual entry" : ""}
               </Typography>

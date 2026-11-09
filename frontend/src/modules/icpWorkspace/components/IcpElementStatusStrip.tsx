@@ -1,16 +1,17 @@
 import { Box, Chip, Tooltip, Typography, useTheme } from "@mui/material";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import ErrorOutlinedIcon from "@mui/icons-material/ErrorOutlined";
-import type { IcpElementStateDto } from "../types";
+import type { IcpCalibrationElementDto } from "../types";
 
 export interface IcpElementStatusStripProps {
-  elementStates?: IcpElementStateDto[];
+  // The elements the analyst calibrated on this run, with the server's r verdict.
+  elements?: IcpCalibrationElementDto[];
 }
 
-export function IcpElementStatusStrip({ elementStates = [] }: IcpElementStatusStripProps) {
+export function IcpElementStatusStrip({ elements = [] }: IcpElementStatusStripProps) {
   const theme = useTheme();
 
-  if (elementStates.length === 0) {
+  if (elements.length === 0) {
     return null;
   }
 
@@ -28,18 +29,18 @@ export function IcpElementStatusStrip({ elementStates = [] }: IcpElementStatusSt
       }}
     >
       <Typography variant="caption" sx={{ fontWeight: 700, color: "text.secondary", mr: 0.5, textTransform: "uppercase", letterSpacing: 0.5 }}>
-        Element Availability:
+        Calibrated elements:
       </Typography>
 
       <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
-        {elementStates.map((el) => {
-          if (el.valid) {
+        {elements.map((el) => {
+          if (el.passed) {
             return (
               <Chip
-                key={el.icpMethodElementId}
+                key={el.id}
                 size="small"
                 icon={<CheckCircleIcon sx={{ fontSize: "16px !important" }} />}
-                label={`${el.symbol}: Valid`}
+                label={`${el.symbol}: r ${el.correlationR ?? "-"}`}
                 color="success"
                 variant="outlined"
                 sx={{
@@ -52,9 +53,9 @@ export function IcpElementStatusStrip({ elementStates = [] }: IcpElementStatusSt
             );
           }
 
-          const failureText = el.reason || "Not available";
+          const failureText = el.failureReasons || "Failed calibration";
           return (
-            <Tooltip key={el.icpMethodElementId} title={failureText} arrow placement="top">
+            <Tooltip key={el.id} title={failureText} arrow placement="top">
               <Chip
                 size="small"
                 icon={<ErrorOutlinedIcon sx={{ fontSize: "16px !important" }} />}

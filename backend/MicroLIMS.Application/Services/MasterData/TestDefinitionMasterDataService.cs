@@ -33,7 +33,10 @@ public class TestDefinitionMasterDataService
     // Machine Part Configurations). See TestDefinition.cs for why this
     // exists.
     public async Task<List<TestDefinitionResponse>> GetTestDefinitionsAsync() =>
-        (await _db.TestDefinitions.AsNoTracking().Include(t => t.Section).Include(t => t.UvStandardEntry).OrderBy(t => t.Code).ToListAsync()).Select(TestDefinitionResponse.From).ToList();
+        (await _db.TestDefinitions.AsNoTracking().Include(t => t.Section).Include(t => t.UvStandardEntry).Include(t => t.IcpElements).OrderBy(t => t.Code).ToListAsync()).Select(TestDefinitionResponse.From).ToList();
+
+    public Task<string[]> GetEditableCodesAsync(int currentUserId, CancellationToken ct = default) =>
+        TestCodeOwnership.GetEditableCodesOrAllActiveAsync(_db, _scope, currentUserId, ct);
 
     public async Task<TestDefinitionResponse> CreateTestDefinitionAsync(int currentUserId, CreateTestDefinitionRequest request)
     {
@@ -275,7 +278,7 @@ public class TestDefinitionMasterDataService
             || request.EquationType is EquationType.HplcAssay or EquationType.HplcMultiAnalyte or EquationType.StandardComparison)
             throw new InvalidOperationException("HPLC Assay, HPLC Multi-Analyte and Standard-Comparison are retired; use HPLC method assay.");
 
-        // ICP workspace: IcpMethodAssay tests are driven by the linked IcpMethod; the
+        // ICP workspace: IcpMethodAssay tests define their own elements; the
         // run calibration (not system suitability) is the gate.
         if (request.EquationType == EquationType.IcpMethodAssay)
         {
@@ -287,25 +290,8 @@ public class TestDefinitionMasterDataService
             throw new InvalidOperationException("Equation type must be IcpMethodAssay when workflow type is IcpMethodAssay.");
         }
 
-        if (request.WorkflowType == WorkflowType.IcpMethodAssay)
-        {
-            if (request.RequiresSystemSuitability)
-                throw new InvalidOperationException("ICP method assay tests use the run calibration, not system suitability.");
-
-            if (!request.IcpMethodId.HasValue)
-                throw new InvalidOperationException("ICP method is required for ICP method assay tests.");
-
-            var icpMethod = await _db.IcpMethods.FirstOrDefaultAsync(m => m.Id == request.IcpMethodId.Value)
-                ?? throw new InvalidOperationException("ICP method not found.");
-            if (icpMethod.SectionId != sectionId)
-                throw new InvalidOperationException("The ICP method belongs to another laboratory.");
-            if (!icpMethod.IsActive)
-                throw new InvalidOperationException("The ICP method is inactive.");
-        }
-        else if (request.IcpMethodId.HasValue)
-        {
-            throw new InvalidOperationException("ICP method is only allowed for ICP method assay tests.");
-        }
+        if (request.WorkflowType == WorkflowType.IcpMethodAssay && request.RequiresSystemSuitability)
+            throw new InvalidOperationException("ICP method assay tests use the run calibration, not system suitability.");
 
         if (request.RequiresSystemSuitability && request.WorkflowType is not (WorkflowType.HplcMethodAssay or WorkflowType.Dissolution))
             throw new InvalidOperationException("Only HPLC method assay and dissolution tests can require system suitability.");
@@ -402,7 +388,6 @@ public class TestDefinitionMasterDataService
             WvCapsuleS2ExtraUnits = request.WorkflowType == WorkflowType.WeightVariation ? (request.WvCapsuleS2ExtraUnits ?? 40) : request.WvCapsuleS2ExtraUnits,
             WvCapsuleS2MaxOutside = request.WorkflowType == WorkflowType.WeightVariation ? (request.WvCapsuleS2MaxOutside ?? 6) : request.WvCapsuleS2MaxOutside,
             HplcMethodId = request.WorkflowType is WorkflowType.HplcMethodAssay or WorkflowType.Dissolution ? request.HplcMethodId : null,
-            IcpMethodId = request.WorkflowType == WorkflowType.IcpMethodAssay ? request.IcpMethodId : null,
             TitrationType = request.TitrationType,
             TitrationNonAqueous = request.TitrationNonAqueous,
             TitrationMode = request.TitrationMode,
@@ -427,6 +412,8 @@ public class TestDefinitionMasterDataService
         await TitrationDefinitionRules.NormalizeAndValidateAsync(_db, entity);
         await NormalizeUvStandardEntryAsync(entity);
         await ApplyPhyschemAreaAsync(entity, request.PhyschemArea);
+        await IcpTestDefinitionRules.ApplyAsync(_db, entity, request.WorkflowType == WorkflowType.IcpMethodAssay,
+            request.IcpMode, request.IcpSampleForm, request.IcpTheoreticalAmount, request.IcpSpecificGravity, request.IcpElements);
         _db.TestDefinitions.Add(entity);
         await _db.SaveChangesAsync();
         return TestDefinitionResponse.From(entity);
@@ -438,7 +425,7 @@ public class TestDefinitionMasterDataService
 
     private async Task<TestDefinitionResponse> UpdateTestDefinitionCoreAsync(int currentUserId, int id, UpdateTestDefinitionRequest request)
     {
-        var entity = await _db.TestDefinitions.FirstOrDefaultAsync(t => t.Id == id)
+        var entity = await _db.TestDefinitions.Include(t => t.IcpElements).FirstOrDefaultAsync(t => t.Id == id)
             ?? throw new NotFoundException($"Test {id} not found.");
         RecordVersion.EnsureCurrent(_db, entity);
         var titrationBefore = entity.WorkflowType == WorkflowType.Titration
@@ -703,9 +690,8 @@ public class TestDefinitionMasterDataService
             || (request.EquationType is EquationType.HplcAssay or EquationType.HplcMultiAnalyte or EquationType.StandardComparison))
             throw new InvalidOperationException("HPLC Assay, HPLC Multi-Analyte and Standard-Comparison are retired; use HPLC method assay.");
 
-        var effectiveIcpMethodId = request.IcpMethodId ?? entity.IcpMethodId;
-        // ICP workspace: IcpMethodAssay tests are driven by the linked IcpMethod; the
-        // run calibration (not system suitability) is the gate.
+        // ICP workspace: IcpMethodAssay tests define their own elements; the run calibration
+        // (not system suitability) is the gate.
         if (effectiveEquationType == EquationType.IcpMethodAssay)
         {
             if (effectiveWorkflowType != WorkflowType.IcpMethodAssay)
@@ -716,28 +702,10 @@ public class TestDefinitionMasterDataService
             throw new InvalidOperationException("Equation type must be IcpMethodAssay when workflow type is IcpMethodAssay.");
         }
 
-        if (effectiveWorkflowType == WorkflowType.IcpMethodAssay)
-        {
-            if (effectiveRequiresSst)
-                throw new InvalidOperationException("ICP method assay tests use the run calibration, not system suitability.");
-
-            if (!effectiveIcpMethodId.HasValue)
-                throw new InvalidOperationException("ICP method is required for ICP method assay tests.");
-
-            var icpMethod = await _db.IcpMethods.FirstOrDefaultAsync(m => m.Id == effectiveIcpMethodId.Value)
-                ?? throw new InvalidOperationException("ICP method not found.");
-            if (icpMethod.SectionId != entity.SectionId)
-                throw new InvalidOperationException("The ICP method belongs to another laboratory.");
-            if (!icpMethod.IsActive && effectiveIcpMethodId != entity.IcpMethodId)
-                throw new InvalidOperationException("The ICP method is inactive.");
-            if (entity.IcpMethodId.HasValue && effectiveIcpMethodId != entity.IcpMethodId
-                && await _db.Specifications.AnyAsync(s => s.TestCode == entity.Code && s.IcpMethodElementId != null))
-                throw new InvalidOperationException("This test has specifications linked to elements of its current ICP method; remove them before changing the method.");
-        }
-        else if (effectiveIcpMethodId.HasValue)
-        {
-            throw new InvalidOperationException("ICP method is only allowed for ICP method assay tests.");
-        }
+        if (effectiveWorkflowType == WorkflowType.IcpMethodAssay && effectiveRequiresSst)
+            throw new InvalidOperationException("ICP method assay tests use the run calibration, not system suitability.");
+        await IcpTestDefinitionRules.ApplyAsync(_db, entity, effectiveWorkflowType == WorkflowType.IcpMethodAssay,
+            request.IcpMode, request.IcpSampleForm, request.IcpTheoreticalAmount, request.IcpSpecificGravity, request.IcpElements);
 
         if (effectiveRequiresSst && effectiveWorkflowType is not (WorkflowType.HplcMethodAssay or WorkflowType.Dissolution))
             throw new InvalidOperationException("Only HPLC method assay and dissolution tests can require system suitability.");
@@ -854,7 +822,6 @@ public class TestDefinitionMasterDataService
         if (request.PerContainer.HasValue) entity.PerContainer = request.PerContainer.Value;
         if (request.MoistureRole.HasValue) entity.MoistureRole = request.MoistureRole.Value;
         if (request.HplcMethodId.HasValue) entity.HplcMethodId = request.HplcMethodId;
-        if (request.IcpMethodId.HasValue) entity.IcpMethodId = request.IcpMethodId;
         if (request.TitrationType.HasValue) entity.TitrationType = request.TitrationType;
         if (request.TitrationNonAqueous.HasValue) entity.TitrationNonAqueous = request.TitrationNonAqueous;
         if (request.TitrationMode.HasValue) entity.TitrationMode = request.TitrationMode;
@@ -986,7 +953,7 @@ public class TestDefinitionMasterDataService
 
     public async Task<TestDefinitionResponse> FreezeTestDefinitionAsync(int id)
     {
-        var entity = await _db.TestDefinitions.FirstOrDefaultAsync(t => t.Id == id)
+        var entity = await _db.TestDefinitions.Include(t => t.IcpElements).FirstOrDefaultAsync(t => t.Id == id)
             ?? throw new NotFoundException($"Test {id} not found.");
         entity.IsActive = false;
         await _db.SaveChangesAsync();
@@ -995,7 +962,7 @@ public class TestDefinitionMasterDataService
 
     public async Task<TestDefinitionResponse> UnfreezeTestDefinitionAsync(int id)
     {
-        var entity = await _db.TestDefinitions.FirstOrDefaultAsync(t => t.Id == id)
+        var entity = await _db.TestDefinitions.Include(t => t.IcpElements).FirstOrDefaultAsync(t => t.Id == id)
             ?? throw new NotFoundException($"Test {id} not found.");
         entity.IsActive = true;
         await _db.SaveChangesAsync();

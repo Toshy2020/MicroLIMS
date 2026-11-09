@@ -1,3 +1,4 @@
+using MicroLIMS.Application.Services.InstrumentImport;
 using Microsoft.Extensions.Logging;
 using MicroLIMS.Persistence.Helpers;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -271,10 +272,6 @@ public static class TestServiceFactory
         new(db, new UserSectionScopeService(db),
             new AuditEventService(db, new MicroLIMS.Persistence.Helpers.DatabaseSequenceHelper(db)));
 
-    public static IcpMethodService IcpMethod(MicroLimsDbContext db) =>
-        new(db, new UserSectionScopeService(db),
-            new AuditEventService(db, new MicroLIMS.Persistence.Helpers.DatabaseSequenceHelper(db)));
-
     public static SolutionPreparationService SolutionPreparation(
         MicroLimsDbContext db,
         IUserSectionScopeService? scope = null,
@@ -314,12 +311,14 @@ public static class TestServiceFactory
         IUserSectionScopeService? scope = null,
         IElectronicSignatureService? signatures = null,
         IFileStorageService? storage = null,
-        ILabClock? clock = null) =>
+        ILabClock? clock = null,
+        IReportTextReader? reportReader = null) =>
         new(db,
             scope ?? new UserSectionScopeService(db),
             signatures ?? new ElectronicSignatureService(db),
             storage ?? new InMemoryFileStorageService(),
-            clock);
+            clock,
+            reportReader);
 
     // Finished Product receipts and corrections require a known production
     // stage (by name, case-insensitive) - fixtures seed the one they use.

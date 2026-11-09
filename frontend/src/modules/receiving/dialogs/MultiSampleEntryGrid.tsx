@@ -38,7 +38,7 @@ const ALL_LABS: { code: string; label: string }[] = [
   { code: "FP", label: "Physicochemical Laboratory" }
 ];
 
-export type LabMode = { kind: "choose" } | { kind: "fixed"; sectionId: number };
+export type LabMode = { kind: "choose" } | { kind: "fixed"; sectionId: number; code?: string };
 
 interface MasterData {
   items: any[];
@@ -75,6 +75,7 @@ export function MultiSampleEntryGrid({
   const isWater = category === "water";
   const isEM = category === "em";
   const isAC = category === "ac";
+  const isPhyschem = labMode.kind === "fixed" && labMode.code !== "MICRO";
   const showLabColumn = isItemBased && labMode.kind === "choose";
 
   // Cached receipt-labs by item id, shared across rows that picked the
@@ -217,6 +218,11 @@ export function MultiSampleEntryGrid({
                     <TableCell sx={{ minWidth: 200 }}>
                       Previous Product <span style={{ color: theme.custom.status.detected.text }}>*</span>
                     </TableCell>
+                    {isPhyschem && (
+                      <TableCell sx={{ minWidth: 220 }}>
+                        Techniques <span style={{ color: theme.custom.status.detected.text }}>*</span>
+                      </TableCell>
+                    )}
                     <TableCell sx={{ minWidth: 150 }}>
                       Previous Batch No. <span style={{ color: theme.custom.status.detected.text }}>*</span>
                     </TableCell>
@@ -442,18 +448,118 @@ export function MultiSampleEntryGrid({
                     {isAC && (
                       <>
                         <TableCell>
-                          <TextField
-                            size="small"
-                            fullWidth
-                            placeholder="Previous Product Name"
-                            value={row.previousProductName ?? ""}
-                            error={Boolean(errors.previousProductName)}
-                            onChange={(e) => onChangeRow(idx, "previousProductName", e.target.value)}
-                            slotProps={{
-                              htmlInput: { "aria-label": `Sample ${idx + 1} previous product name`, style: { fontSize: 12 } }
-                            }}
-                          />
+                          {isPhyschem ? (
+                            <Autocomplete
+                              size="small"
+                              fullWidth
+                              options={masterData.items}
+                              getOptionLabel={(o) => (typeof o === "string" ? o : o.name ?? "")}
+                              value={masterData.items.find((i) => i.id === row.previousProductItemId) ?? null}
+                              onChange={(_, val) => {
+                                onChangeRow(idx, "previousProductItemId", val ? val.id : null);
+                                onChangeRow(idx, "previousProductName", val ? val.name : "");
+                              }}
+                              isOptionEqualToValue={(a, b) => a.id === b.id}
+                              renderInput={(params) => (
+                                <TextField
+                                  {...params}
+                                  placeholder="Select Finished Product"
+                                  error={Boolean(errors.previousProductItemId || errors.previousProductName)}
+                                  slotProps={{
+                                    ...params.slotProps,
+                                    htmlInput: {
+                                      ...params.slotProps.htmlInput,
+                                      "aria-label": `Sample ${idx + 1} previous product`,
+                                      style: { fontSize: 12 }
+                                    }
+                                  }}
+                                />
+                              )}
+                            />
+                          ) : (
+                            <Autocomplete
+                              freeSolo
+                              size="small"
+                              fullWidth
+                              options={masterData.items}
+                              getOptionLabel={(o) => (typeof o === "string" ? o : o.name ?? "")}
+                              value={
+                                masterData.items.find((i) => i.id === row.previousProductItemId) ??
+                                row.previousProductName ??
+                                ""
+                              }
+                              onChange={(_, val) => {
+                                if (typeof val === "string") {
+                                  onChangeRow(idx, "previousProductItemId", null);
+                                  onChangeRow(idx, "previousProductName", val);
+                                } else if (val) {
+                                  onChangeRow(idx, "previousProductItemId", val.id);
+                                  onChangeRow(idx, "previousProductName", val.name);
+                                } else {
+                                  onChangeRow(idx, "previousProductItemId", null);
+                                  onChangeRow(idx, "previousProductName", "");
+                                }
+                              }}
+                              onInputChange={(_, val, reason) => {
+                                if (reason === "input") {
+                                  onChangeRow(idx, "previousProductItemId", null);
+                                  onChangeRow(idx, "previousProductName", val);
+                                }
+                              }}
+                              renderInput={(params) => (
+                                <TextField
+                                  {...params}
+                                  placeholder="Previous Product Name"
+                                  error={Boolean(errors.previousProductName)}
+                                  slotProps={{
+                                    ...params.slotProps,
+                                    htmlInput: {
+                                      ...params.slotProps.htmlInput,
+                                      "aria-label": `Sample ${idx + 1} previous product name`,
+                                      style: { fontSize: 12 }
+                                    }
+                                  }}
+                                />
+                              )}
+                            />
+                          )}
                         </TableCell>
+                        {isPhyschem && (
+                          <TableCell>
+                            <FormGroup row sx={{ flexWrap: "nowrap" }}>
+                              {(["UV", "HPLC", "ICP"] as const).map((tech) => (
+                                <FormControlLabel
+                                  key={tech}
+                                  control={
+                                    <Checkbox
+                                      size="small"
+                                      checked={(row.techniques ?? []).includes(tech)}
+                                      onChange={(e) => {
+                                        const current = row.techniques ?? [];
+                                        const next = e.target.checked
+                                          ? [...current, tech]
+                                          : current.filter((t) => t !== tech);
+                                        onChangeRow(idx, "techniques", next);
+                                      }}
+                                      slotProps={{
+                                        input: {
+                                          "aria-label": `Sample ${idx + 1} technique ${tech}`
+                                        }
+                                      }}
+                                    />
+                                  }
+                                  label={<Typography sx={{ fontSize: 12 }}>{tech}</Typography>}
+                                  sx={{ mr: 1 }}
+                                />
+                              ))}
+                            </FormGroup>
+                            {errors.techniques && (
+                              <Typography sx={{ fontSize: 11, color: theme.custom.status.detected.text }}>
+                                {errors.techniques}
+                              </Typography>
+                            )}
+                          </TableCell>
+                        )}
                         <TableCell>
                           <TextField
                             size="small"

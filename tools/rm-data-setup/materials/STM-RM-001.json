@@ -1,0 +1,503 @@
+{
+  "itemCode": "STM-RM-001",
+  "itemName": "Ferric Ammonium Citrate Green",
+  "stmCode": "STM-RM-001",
+  "stmFile": "Ferric Ammonium Citrate Green__STM Ferric Ammonium Citrate Green.txt",
+  "specFiles": ["Ferric Ammonium Citrate Green__Specifications sheet Ferric Ammonium Citrate Green.txt"],
+  "minQuantity": {
+    "routine": 150,
+    "retest": 150,
+    "retention": 150,
+    "unit": "g",
+    "source": "Ferric Ammonium Citrate Green__Specifications sheet Ferric Ammonium Citrate Green.txt:23; Ferric Ammonium Citrate Green__STM Ferric Ammonium Citrate Green.txt:39"
+  },
+  "grades": [
+    {
+      "grade": null,
+      "rows": [
+        {
+          "testCode": "RM-DESC",
+          "parameterName": "Appearance",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Green Colored Powder",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "In-house",
+          "source": "Ferric Ammonium Citrate Green__Specifications sheet Ferric Ammonium Citrate Green.txt:11"
+        },
+        {
+          "testCode": "RM-SOLUB",
+          "parameterName": "Solubility",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Slightly soluble in water, very slightly soluble in ethanol (96 per cent)",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "In-house",
+          "source": "Ferric Ammonium Citrate Green__Specifications sheet Ferric Ammonium Citrate Green.txt:12"
+        },
+        {
+          "testCode": "RM-ID-FAC-IGN",
+          "parameterName": "Identification (ignition)",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "It chars and leaves a residue of iron oxide",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "In-house",
+          "source": "Ferric Ammonium Citrate Green__Specifications sheet Ferric Ammonium Citrate Green.txt:13"
+        },
+        {
+          "testCode": "RM-ID-FAC-NH4OH",
+          "parameterName": "Identification (reaction with ammonium hydroxide)",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "The solution darkens, but no precipitate forms",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "In-house",
+          "source": "Ferric Ammonium Citrate Green__Specifications sheet Ferric Ammonium Citrate Green.txt:14"
+        },
+        {
+          "testCode": "RM-ID-FAC-KMNO4",
+          "parameterName": "Identification (reaction with potassium permanganate)",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "white precipitate forms",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "In-house",
+          "source": "Ferric Ammonium Citrate Green__Specifications sheet Ferric Ammonium Citrate Green.txt:15"
+        },
+        {
+          "testCode": "RM-LT-SO4",
+          "parameterName": "Sulfates",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Complies (NMT 0.3%)",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "In-house",
+          "source": "Ferric Ammonium Citrate Green__Specifications sheet Ferric Ammonium Citrate Green.txt:16"
+        },
+        {
+          "testCode": "RM-ACID-FAC",
+          "parameterName": "Acidity",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "The solution shows acidic medium",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "In-house",
+          "source": "Ferric Ammonium Citrate Green__Specifications sheet Ferric Ammonium Citrate Green.txt:17"
+        },
+        {
+          "testCode": "RM-LT-AS-FAC",
+          "parameterName": "Arsenic",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 2,
+          "lowerInclusive": null,
+          "unit": "ppm",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "In-house",
+          "source": "Ferric Ammonium Citrate Green__Specifications sheet Ferric Ammonium Citrate Green.txt:18",
+          "heldBack": "needs the held-back method \"Ferric ammonium citrate green metals (AAS): arsenic, lead, cobalt, nickel\""
+        },
+        {
+          "testCode": "RM-CO-FAC",
+          "parameterName": "Cobalt",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 50,
+          "lowerInclusive": null,
+          "unit": "ppm",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "In-house",
+          "source": "Ferric Ammonium Citrate Green__Specifications sheet Ferric Ammonium Citrate Green.txt:19",
+          "heldBack": "needs the held-back method \"Ferric ammonium citrate green metals (AAS): arsenic, lead, cobalt, nickel\""
+        },
+        {
+          "testCode": "RM-NI-FAC",
+          "parameterName": "Nickel",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 100,
+          "lowerInclusive": null,
+          "unit": "ppm",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "In-house",
+          "source": "Ferric Ammonium Citrate Green__Specifications sheet Ferric Ammonium Citrate Green.txt:20",
+          "heldBack": "needs the held-back method \"Ferric ammonium citrate green metals (AAS): arsenic, lead, cobalt, nickel\""
+        },
+        {
+          "testCode": "RM-PB-FAC",
+          "parameterName": "Lead",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 3,
+          "lowerInclusive": null,
+          "unit": "ppm",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "In-house",
+          "source": "Ferric Ammonium Citrate Green__Specifications sheet Ferric Ammonium Citrate Green.txt:21",
+          "heldBack": "needs the held-back method \"Ferric ammonium citrate green metals (AAS): arsenic, lead, cobalt, nickel\""
+        },
+        {
+          "testCode": "RM-TIT-FAC",
+          "parameterName": "Assay (iron)",
+          "limitType": "Range",
+          "lower": 14.0,
+          "upper": 16.0,
+          "lowerInclusive": true,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": "PercentAsIs",
+          "referenceStandard": "In-house",
+          "source": "Ferric Ammonium Citrate Green__Specifications sheet Ferric Ammonium Citrate Green.txt:22"
+        },
+        {
+          "testCode": "TAMC",
+          "parameterName": "Total Aerobic Microbial Count (TAMC)",
+          "limitType": "CountTiered",
+          "lower": null,
+          "upper": 1000,
+          "lowerInclusive": null,
+          "unit": "CFU/g",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": null,
+          "source": "Ferric Ammonium Citrate Green__Specifications sheet Ferric Ammonium Citrate Green.txt:23"
+        },
+        {
+          "testCode": "TYMC",
+          "parameterName": "Total combined Yeasts & Molds Count (TYMC)",
+          "limitType": "CountTiered",
+          "lower": null,
+          "upper": 100,
+          "lowerInclusive": null,
+          "unit": "CFU/g",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": null,
+          "source": "Ferric Ammonium Citrate Green__Specifications sheet Ferric Ammonium Citrate Green.txt:23"
+        },
+        {
+          "testCode": "E.coli",
+          "parameterName": "Test for E. coli",
+          "limitType": "PresenceAbsence",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": "per 10 g",
+          "expectedResultText": "Absent / 10gm",
+          "expectedState": "Absence",
+          "resultBasis": null,
+          "referenceStandard": null,
+          "source": "Ferric Ammonium Citrate Green__Specifications sheet Ferric Ammonium Citrate Green.txt:23"
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "testCode": "RM-DESC",
+      "procedure": "Under strong white light check each received sample container separately in a clean transparent watch glass or glass dish for foreign particles, colour and conformity with the visual specification.",
+      "kind": "general",
+      "workflow": "Observation",
+      "details": {
+        "perContainer": true,
+        "reference": "USP 2024 description and relative solubility; in-house specification"
+      },
+      "source": "Ferric Ammonium Citrate Green__STM Ferric Ammonium Citrate Green.txt:28"
+    },
+    {
+      "testCode": "RM-SOLUB",
+      "procedure": "Weigh 100 mg of powdered sample in a stoppered tube; add 0.1 mL solvent, shake 1 min, hold at 25.0 ± 0.5 °C for 15 min, repeat shake/hold once if not dissolved; add 0.9 mL, then 2 mL, then 7 mL solvent with the same shake and hold steps to classify very soluble / freely soluble / soluble / sparingly soluble; if still undissolved use 10 mg in 10 mL (slightly soluble), then 1 mg in 10 mL (very slightly soluble), else practically insoluble. Repeat with ethanol (96 per cent).",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {
+        "sample": "100 mg powdered",
+        "temperature": "25.0 ± 0.5 °C",
+        "holdMin": 15,
+        "shakeMin": 1,
+        "volumesMl": [0.1, 0.9, 2, 7],
+        "smallSampleSteps": ["10 mg in 10 mL", "1 mg in 10 mL"],
+        "solvents": ["water", "ethanol (96 per cent)"],
+        "reference": "in-house"
+      },
+      "source": "Ferric Ammonium Citrate Green__STM Ferric Ammonium Citrate Green.txt:29"
+    },
+    {
+      "testCode": "RM-ID-FAC-IGN",
+      "procedure": "Identification test (A): ignite about 0.5 (unit not stated, see openQuestions); the material chars and leaves a residue of iron oxide.",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "details": {
+        "sampleG": 0.5,
+        "reference": "USP 2024 Ferric Ammonium Citrate"
+      },
+      "source": "Ferric Ammonium Citrate Green__STM Ferric Ammonium Citrate Green.txt:30"
+    },
+    {
+      "testCode": "RM-ID-FAC-NH4OH",
+      "procedure": "Identification test (B): to 10 mL of a 1 in 100 solution of ferric ammonium citrate green add 6 N ammonium hydroxide dropwise; the solution darkens but no precipitate forms.",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "details": {
+        "solution": "1 in 100",
+        "solutionMl": 10,
+        "reagent": "6 N ammonium hydroxide, dropwise",
+        "reference": "USP 2024 Ferric Ammonium Citrate"
+      },
+      "source": "Ferric Ammonium Citrate Green__STM Ferric Ammonium Citrate Green.txt:30"
+    },
+    {
+      "testCode": "RM-ID-FAC-KMNO4",
+      "procedure": "Identification test (C): to 5 mL of a 1 in 100 solution of ferric ammonium citrate add 0.3 mL potassium permanganate TS and 4 mL mercuric sulphate TS; heat the mixture to boiling; a white precipitate forms.",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "details": {
+        "solution": "1 in 100",
+        "solutionMl": 5,
+        "potassiumPermanganateTsMl": 0.3,
+        "mercuricSulphateTsMl": 4,
+        "reference": "USP 2024 Ferric Ammonium Citrate"
+      },
+      "source": "Ferric Ammonium Citrate Green__STM Ferric Ammonium Citrate Green.txt:30"
+    },
+    {
+      "testCode": "RM-LT-SO4",
+      "procedure": "Sulfates (limit test): sample 100 mg dissolved in 1 mL 2.7 N hydrochloric acid, diluted with water to 30 mL; add 3 mL barium chloride TS and water to 50 mL. Standard: 0.31 mL of 0.020 N sulfuric acid diluted to 30 mL, with 3 mL barium chloride TS, to 50 mL. Turbidity in the sample after 10 min must not exceed the standard (NMT 0.3%).",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {
+        "sampleMg": 100,
+        "hydrochloricAcidMl": 1,
+        "standardMl": 0.31,
+        "standardNormality": "0.020 N sulfuric acid",
+        "bariumChlorideMl": 3,
+        "standStandMin": 10,
+        "limit": "NMT 0.3%",
+        "reference": "USP 2024 Ferric Ammonium Citrate"
+      },
+      "source": "Ferric Ammonium Citrate Green__STM Ferric Ammonium Citrate Green.txt:31"
+    },
+    {
+      "testCode": "RM-ACID-FAC",
+      "procedure": "Acidity: dissolve 1 g sample in 100 mL water; measure with a calibrated pH meter; the solution must show an acidic medium.",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "details": {
+        "sampleG": 1,
+        "waterMl": 100,
+        "reference": "USP <791> pH"
+      },
+      "source": "Ferric Ammonium Citrate Green__STM Ferric Ammonium Citrate Green.txt:32"
+    },
+    {
+      "testCode": "RM-LT-AS-FAC",
+      "procedure": "Arsenic by AAS: reference solutions 2, 4 and 6 ppm from 1000 ppm arsenic standard solution in water; sample 15 g dissolved in 50 mL water and 1 mL nitric acid, diluted to 100 mL with water. Arsenic hollow-cathode lamp, air-acetylene flame. Analytical wavelength and the calculation of the result are not stated.",
+      "kind": "specific",
+      "workflow": "IcpMethodAssay",
+      "details": {
+        "sampleG": 15,
+        "sampleDiluent": "50 mL water + 1 mL nitric acid, to 100 mL",
+        "calibrationPpm": [2, 4, 6],
+        "lamp": "arsenic hollow-cathode",
+        "flame": "air-acetylene",
+        "limit": "NMT 2 ppm",
+        "reference": "USP <852>",
+        "missingDetails": "analytical wavelength and result calculation not stated"
+      },
+      "source": "Ferric Ammonium Citrate Green__STM Ferric Ammonium Citrate Green.txt:33",
+      "heldBack": "ICP method incomplete: analytical wavelength and result calculation not stated"
+    },
+    {
+      "testCode": "RM-PB-FAC",
+      "procedure": "Lead by AAS: reference solutions 2, 4 and 6 ppm from 1000 ppm lead standard solution in water; sample 15 g dissolved in 50 mL water and 1 mL nitric acid, diluted to 100 mL with water. Lead hollow-cathode lamp, air-acetylene flame. Analytical wavelength and the calculation of the result are not stated.",
+      "kind": "specific",
+      "workflow": "IcpMethodAssay",
+      "details": {
+        "sampleG": 15,
+        "sampleDiluent": "50 mL water + 1 mL nitric acid, to 100 mL",
+        "calibrationPpm": [2, 4, 6],
+        "lamp": "lead hollow-cathode",
+        "flame": "air-acetylene",
+        "limit": "NMT 3 ppm",
+        "reference": "USP <852>",
+        "missingDetails": "analytical wavelength and result calculation not stated"
+      },
+      "source": "Ferric Ammonium Citrate Green__STM Ferric Ammonium Citrate Green.txt:34",
+      "heldBack": "ICP method incomplete: analytical wavelength and result calculation not stated"
+    },
+    {
+      "testCode": "RM-CO-FAC",
+      "procedure": "Cobalt by AAS: reference solutions 20, 40 and 60 ppm from 1000 ppm cobalt standard solution in water; sample 15 g dissolved in 50 mL water and 1 mL nitric acid, diluted to 100 mL with water. Cobalt hollow-cathode lamp, air-acetylene flame. Analytical wavelength and the calculation of the result are not stated.",
+      "kind": "specific",
+      "workflow": "IcpMethodAssay",
+      "details": {
+        "sampleG": 15,
+        "sampleDiluent": "50 mL water + 1 mL nitric acid, to 100 mL",
+        "calibrationPpm": [20, 40, 60],
+        "lamp": "cobalt hollow-cathode",
+        "flame": "air-acetylene",
+        "limit": "NMT 50 ppm",
+        "reference": "USP <852>",
+        "missingDetails": "analytical wavelength and result calculation not stated"
+      },
+      "source": "Ferric Ammonium Citrate Green__STM Ferric Ammonium Citrate Green.txt:35",
+      "heldBack": "ICP method incomplete: analytical wavelength and result calculation not stated"
+    },
+    {
+      "testCode": "RM-NI-FAC",
+      "procedure": "Nickel by AAS: reference solutions 80, 100 and 120 ppm from 1000 ppm nickel standard solution in water; sample 15 g dissolved in 50 mL water and 1 mL nitric acid, diluted to 100 mL with water. Nickel hollow-cathode lamp, air-acetylene flame. Analytical wavelength and the calculation of the result are not stated.",
+      "kind": "specific",
+      "workflow": "IcpMethodAssay",
+      "details": {
+        "sampleG": 15,
+        "sampleDiluent": "50 mL water + 1 mL nitric acid, to 100 mL",
+        "calibrationPpm": [80, 100, 120],
+        "lamp": "nickel hollow-cathode",
+        "flame": "air-acetylene",
+        "limit": "NMT 100 ppm",
+        "reference": "USP <852>",
+        "missingDetails": "analytical wavelength and result calculation not stated"
+      },
+      "source": "Ferric Ammonium Citrate Green__STM Ferric Ammonium Citrate Green.txt:36",
+      "heldBack": "ICP method incomplete: analytical wavelength and result calculation not stated"
+    },
+    {
+      "testCode": "RM-TIT-FAC",
+      "procedure": "Assay (iodometric titration): transfer about 1 g accurately weighed sample to a 250 mL conical flask; dissolve in 25 mL water and 5 mL hydrochloric acid; add 4 g potassium iodide, stopper, stand 15 min protected from light; add 100 mL water; titrate the liberated iodine with 0.1 N sodium thiosulfate VS using starch TS; perform a blank and correct. Each mL of 0.1 N sodium thiosulfate = 5.585 mg iron (Fe).",
+      "kind": "specific",
+      "workflow": "Titration",
+      "details": {
+        "sampleG": 1,
+        "solution": "25 mL water + 5 mL hydrochloric acid",
+        "potassiumIodideG": 4,
+        "standStandMin": 15,
+        "waterMl": 100,
+        "titrant": "0.1 N sodium thiosulfate VS",
+        "titrantStandardization": "about 210 mg primary standard potassium dichromate (pulverised, dried), per STM standardization paragraph (see source line 26)",
+        "indicator": "starch TS",
+        "blank": "blank determination performed",
+        "equivalenceFactor": "1 mL of 0.1 N sodium thiosulfate = 5.585 mg Fe",
+        "formula": "Assay = (E.P x eq.wt x F x 100) / Wt; E.P = end point, eq.wt = equivalent weight of iron (Fe), F = titrant factor, Wt = sample weight (mg) (as written)",
+        "specBasis": "% of iron (Fe)",
+        "reference": "in-house specification"
+      },
+      "source": "Ferric Ammonium Citrate Green__STM Ferric Ammonium Citrate Green.txt:37"
+    },
+    {
+      "testCode": "TAMC",
+      "procedure": "Total aerobic microbial count: limit per spec sheet; no microbiological method is stated in the STM.",
+      "kind": "general",
+      "workflow": "CountTest",
+      "details": {
+        "limit": "NMT 1000 CFU/gm"
+      },
+      "source": "Ferric Ammonium Citrate Green__Specifications sheet Ferric Ammonium Citrate Green.txt:23"
+    },
+    {
+      "testCode": "TYMC",
+      "procedure": "Total combined yeasts and moulds count: limit per spec sheet; no microbiological method is stated in the STM.",
+      "kind": "general",
+      "workflow": "CountTest",
+      "details": {
+        "limit": "NMT 100 CFU/gm"
+      },
+      "source": "Ferric Ammonium Citrate Green__Specifications sheet Ferric Ammonium Citrate Green.txt:23"
+    },
+    {
+      "testCode": "E.coli",
+      "procedure": "Escherichia coli: absence in 10 g per spec sheet; no microbiological method is stated in the STM.",
+      "kind": "general",
+      "workflow": "Observation",
+      "details": {
+        "limit": "Absent /10 gm"
+      },
+      "source": "Ferric Ammonium Citrate Green__Specifications sheet Ferric Ammonium Citrate Green.txt:23"
+    }
+  ],
+  "notApplicable": [],
+  "supplierAttributes": [],
+  "reagents": [
+    { "name": "Ammonium hydroxide (6 N)", "use": "reagent", "source": "Ferric Ammonium Citrate Green__STM Ferric Ammonium Citrate Green.txt:26" },
+    { "name": "Barium chloride TS (12 g in 100 mL)", "use": "reagent", "source": "Ferric Ammonium Citrate Green__STM Ferric Ammonium Citrate Green.txt:26" },
+    { "name": "2.7 N Hydrochloric acid", "use": "reagent", "source": "Ferric Ammonium Citrate Green__STM Ferric Ammonium Citrate Green.txt:26" },
+    { "name": "Hydrochloric acid", "use": "reagent", "source": "Ferric Ammonium Citrate Green__STM Ferric Ammonium Citrate Green.txt:26" },
+    { "name": "0.1 N Sodium thiosulfate VS", "use": "titrant", "source": "Ferric Ammonium Citrate Green__STM Ferric Ammonium Citrate Green.txt:26" },
+    { "name": "Potassium dichromate (primary standard)", "use": "standard", "source": "Ferric Ammonium Citrate Green__STM Ferric Ammonium Citrate Green.txt:26" },
+    { "name": "Potassium iodide", "use": "reagent", "source": "Ferric Ammonium Citrate Green__STM Ferric Ammonium Citrate Green.txt:26" },
+    { "name": "Starch soluble TS", "use": "indicator", "source": "Ferric Ammonium Citrate Green__STM Ferric Ammonium Citrate Green.txt:26" },
+    { "name": "Arsenic standard solution (1000 ppm)", "use": "standard", "source": "Ferric Ammonium Citrate Green__STM Ferric Ammonium Citrate Green.txt:26" },
+    { "name": "Lead standard solution (1000 ppm)", "use": "standard", "source": "Ferric Ammonium Citrate Green__STM Ferric Ammonium Citrate Green.txt:26" },
+    { "name": "Cobalt standard solution (1000 ppm)", "use": "standard", "source": "Ferric Ammonium Citrate Green__STM Ferric Ammonium Citrate Green.txt:26" },
+    { "name": "Nickel standard solution (1000 ppm)", "use": "standard", "source": "Ferric Ammonium Citrate Green__STM Ferric Ammonium Citrate Green.txt:26" },
+    { "name": "Nitric acid", "use": "reagent", "source": "Ferric Ammonium Citrate Green__STM Ferric Ammonium Citrate Green.txt:26" },
+    { "name": "Sulfuric acid", "use": "reagent", "source": "Ferric Ammonium Citrate Green__STM Ferric Ammonium Citrate Green.txt:26" },
+    { "name": "Ethanol (96 per cent)", "use": "reagent", "source": "Ferric Ammonium Citrate Green__STM Ferric Ammonium Citrate Green.txt:26" },
+    { "name": "Potassium permanganate TS", "use": "reagent", "source": "Ferric Ammonium Citrate Green__STM Ferric Ammonium Citrate Green.txt:30" },
+    { "name": "Mercuric sulphate TS", "use": "reagent", "source": "Ferric Ammonium Citrate Green__STM Ferric Ammonium Citrate Green.txt:30" }
+  ],
+  "openQuestions": [
+    {
+      "question": "Minimum quantity: the spec sheet says 150 mg; the STM says 150 grams for routine, retention and retest. Loaded as 150 g (STM); confirm the unit.",
+      "source": "Ferric Ammonium Citrate Green__Specifications sheet Ferric Ammonium Citrate Green.txt:23; Ferric Ammonium Citrate Green__STM Ferric Ammonium Citrate Green.txt:39"
+    },
+    {
+      "question": "Metals by AAS (arsenic, lead, cobalt, nickel): the STM gives the calibration levels and lamps, but no analytical wavelength and no result calculation. Rows and tests held back until the method details are supplied.",
+      "source": "Ferric Ammonium Citrate Green__STM Ferric Ammonium Citrate Green.txt:33; Ferric Ammonium Citrate Green__STM Ferric Ammonium Citrate Green.txt:34; Ferric Ammonium Citrate Green__STM Ferric Ammonium Citrate Green.txt:35; Ferric Ammonium Citrate Green__STM Ferric Ammonium Citrate Green.txt:36"
+    },
+    {
+      "question": "Identification test (A): the sample amount is 'Ignite about 0.5' with no unit.",
+      "source": "Ferric Ammonium Citrate Green__STM Ferric Ammonium Citrate Green.txt:30"
+    },
+    {
+      "question": "Reagents: the materials list gives potassium dichromate and mercuric iodide, but the procedures use potassium permanganate TS and mercuric sulphate TS. Confirm the reagents.",
+      "source": "Ferric Ammonium Citrate Green__STM Ferric Ammonium Citrate Green.txt:26; Ferric Ammonium Citrate Green__STM Ferric Ammonium Citrate Green.txt:30"
+    },
+    {
+      "question": "Assay formula is copied from a generic template (eq.wt, 100 factor, Wt as mg) while the STM gives 5.585 mg Fe per mL of 0.1 N thiosulfate; the result is the % of iron. Confirm the formula.",
+      "source": "Ferric Ammonium Citrate Green__STM Ferric Ammonium Citrate Green.txt:37"
+    },
+    {
+      "question": "Microbiological limits (TAMC, TYMC, E. coli) are on the spec sheet only; the STM has no microbiological method.",
+      "source": "Ferric Ammonium Citrate Green__Specifications sheet Ferric Ammonium Citrate Green.txt:23"
+    }
+  ]
+}

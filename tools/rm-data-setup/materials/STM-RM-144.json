@@ -1,0 +1,315 @@
+{
+  "itemCode": "STM-RM-144",
+  "stmCode": "STM-RM-144",
+  "itemName": "Horsetail Extract",
+  "stmFile": "Horsetail Extract__STM for Marine Horsetail Extract 1-1.txt",
+  "specFiles": ["Horsetail Extract__Specifications sheet Horsetail Extract - new.txt"],
+  "minQuantity": {
+    "routine": 50,
+    "retest": 70,
+    "retention": 100,
+    "unit": "g",
+    "source": "Horsetail Extract__Specifications sheet Horsetail Extract - new.txt:20 (routine 50 g); Horsetail Extract__STM for Marine Horsetail Extract 1-1.txt:37 (routine and retention 100 g, retest 70 g)"
+  },
+  "grades": [
+    {
+      "grade": null,
+      "rows": [
+        {
+          "testCode": "RM-DESC",
+          "parameterName": "Appearance",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Brown powder with characteristic odor and taste.",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "In-house",
+          "source": "Horsetail Extract__Specifications sheet Horsetail Extract - new.txt:11"
+        },
+        {
+          "testCode": "RM-LOD",
+          "parameterName": "Loss on drying",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 5.0,
+          "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "In-house",
+          "source": "Horsetail Extract__Specifications sheet Horsetail Extract - new.txt:12"
+        },
+        {
+          "testCode": "RM-BULKD",
+          "parameterName": "Bulk density",
+          "limitType": "Range",
+          "lower": 0.45,
+          "upper": 0.65,
+          "lowerInclusive": true,
+          "unit": "g/ml",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "In-house",
+          "source": "Horsetail Extract__Specifications sheet Horsetail Extract - new.txt:13"
+        },
+        {
+          "testCode": "RM-AIA-HORS",
+          "parameterName": "Acid insoluble ash",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 2.0,
+          "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "In-house",
+          "source": "Horsetail Extract__Specifications sheet Horsetail Extract - new.txt:14"
+        },
+        {
+          "testCode": "RM-LT-HM",
+          "parameterName": "Heavy metals",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Complies (NMT 10 ppm)",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "In-house",
+          "source": "Horsetail Extract__Specifications sheet Horsetail Extract - new.txt:15"
+        },
+        {
+          "testCode": "TAMC",
+          "parameterName": "Total aerobic microbial count (TAMC)",
+          "limitType": "CountTiered",
+          "lower": null,
+          "upper": 1000,
+          "lowerInclusive": null,
+          "unit": "CFU/g",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP 2024",
+          "source": "Horsetail Extract__Specifications sheet Horsetail Extract - new.txt:16"
+        },
+        {
+          "testCode": "TYMC",
+          "parameterName": "Total yeasts and molds count (TYMC)",
+          "limitType": "CountTiered",
+          "lower": null,
+          "upper": 100,
+          "lowerInclusive": null,
+          "unit": "CFU/g",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP 2024",
+          "source": "Horsetail Extract__Specifications sheet Horsetail Extract - new.txt:17"
+        },
+        {
+          "testCode": "E.coli",
+          "parameterName": "Test for E. coli",
+          "limitType": "PresenceAbsence",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": "per 10 g",
+          "expectedResultText": "Absent / 10 gm",
+          "expectedState": "Absence",
+          "resultBasis": null,
+          "referenceStandard": "USP 2024",
+          "source": "Horsetail Extract__Specifications sheet Horsetail Extract - new.txt:18"
+        },
+        {
+          "testCode": "Salmonella ",
+          "parameterName": "Test for Salmonella spp.",
+          "limitType": "PresenceAbsence",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": "per 10 g",
+          "expectedResultText": "Absent / 10 gm",
+          "expectedState": "Absence",
+          "resultBasis": null,
+          "referenceStandard": "USP 2024",
+          "source": "Horsetail Extract__Specifications sheet Horsetail Extract - new.txt:19"
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "testCode": "RM-DESC",
+      "procedure": "Under strong white light check each received sample container separately on a clean transparent watch glass dish for foreign particles, colour and conformity with the in-house visual specification.",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {
+        "perContainer": true,
+        "requirement": "Inhouse Specification: Fine Brown powder with characteristic odor and taste (spec sheet: Brown powder with characteristic odor and taste; see openQuestions)",
+        "reference": "Supplier COA for Horsetail Extract 07-10%"
+      },
+      "source": "Horsetail Extract__STM for Marine Horsetail Extract 1-1.txt:30"
+    },
+    {
+      "testCode": "RM-LOD",
+      "procedure": "Loss on drying (USP <731>): weigh an empty weighing bottle previously dried at 105 °C for about 30 min and cooled in a desiccator (W1); tare; weigh accurately 1.000 g sample (W2); dry in a calibrated oven at 105 °C for 2 h, cool in desiccator, weigh (W3); repeat to constant weight. % loss on drying = (W1 + W2 - W3) / W2 x 100.",
+      "kind": "general",
+      "workflow": "Gravimetric",
+      "details": {
+        "sampleG": 1,
+        "drying": "calibrated oven 105 °C, 2 h, then to constant weight",
+        "formula": "(W1 + W2 - W3) / W2 x 100",
+        "reference": "USP <731>; Supplier COA"
+      },
+      "source": "Horsetail Extract__STM for Marine Horsetail Extract 1-1.txt:32"
+    },
+    {
+      "testCode": "RM-BULKD",
+      "procedure": "Bulk density: weigh an empty dry cylinder, set the balance to zero, put 10 mL of the powder into the cylinder and weigh. Bulk density (g/mL) = weight of sample / volume (10 mL).",
+      "kind": "general",
+      "workflow": "Measurement",
+      "details": {
+        "volumeMl": 10,
+        "stmSpecification": "0.40 to 0.65 g/ml (STM); spec sheet 0.45 to 0.65 g/ml, loaded",
+        "reference": "Supplier COA for Horsetail Extract 07-10%"
+      },
+      "source": "Horsetail Extract__STM for Marine Horsetail Extract 1-1.txt:31"
+    },
+    {
+      "testCode": "RM-AIA-HORS",
+      "procedure": "Acid insoluble ash (main method as written): 1 g sample with 25 mL dilute hydrochloric acid (W1), cover and heat on a water-bath 10 min, cool, filter, wash the filter paper until free from acid, return to the dish, dry at 100 ± 2 °C about 3 h, ignite at 550 ± 10 °C for 1 h, cool and weigh (W2), reheat at 550 ± 10 °C for 30 min, cool and weigh (W3). Acid insoluble ash (%) = ((W3 - W2) - W4) / W1 x 100, W4 = silica in the sample (silica assay from COA x W2 / 100).",
+      "kind": "specific",
+      "workflow": "Gravimetric",
+      "details": {
+        "sampleG": 1,
+        "acid": "25 mL dilute hydrochloric acid (20 g HCl to 100 mL water)",
+        "waterBathMin": 10,
+        "dryingTemp": "100 ± 2 °C, about 3 h",
+        "ignition": "550 ± 10 °C, 1 h, then 30 min reheat",
+        "silicaCorrection": "W4 = silica assay from supplier COA x W2 / 100; spec sheet silica assay 7.0 to 10.0 %",
+        "alternativeMethod": "USP acid-insoluble ash (crucible ignited at 675 ± 25 °C, 1 g, boil with 25 mL 3 N HCl) is listed after 'or' in the STM and is not transcribed (main method only)",
+        "reference": "Supplier COA for Horsetail Extract 07-10%"
+      },
+      "source": "Horsetail Extract__STM for Marine Horsetail Extract 1-1.txt:33"
+    },
+    {
+      "testCode": "RM-LT-HM",
+      "procedure": "Heavy metals limit test (in-house): weigh 1 g, moisten with sulfuric acid, char, add a few drops of nitric acid and heat to 500 °C; cool, add 4 mL hydrochloric acid, evaporate to dryness, moisten residue with 10 mL hydrochloric acid, digest 2 min, neutralise with ammonia solution and make just acid with acetic acid. Standard: 2 mL lead standard solution (10 ppm) diluted to 25 mL. Adjust test and standard to pH 3-4 with about 2 mL pH 3.5 acetate buffer, dilute to 35 mL, add 10 mL sodium sulfide solution (or 1.2 mL thioacetamide reagent), dilute to 50 mL, stand 5 min, view downwards over a white surface. Brown colour of the test is not more intense than the reference.",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {
+        "sampleG": 1,
+        "standard": "2 mL lead standard solution (10 ppm Pb) diluted to 25 mL",
+        "bufferPh": 3.5,
+        "sulfideReagent": "10 mL sodium sulfide solution, or 1.2 mL thioacetamide reagent",
+        "dilutionsMl": {"toBuffer": 35, "final": 50},
+        "waitMin": 5,
+        "limit": "NMT 10 ppm",
+        "reference": "In-house specification; Supplier COA for Horsetail Extract 07-10%"
+      },
+      "source": "Horsetail Extract__STM for Marine Horsetail Extract 1-1.txt:34"
+    },
+    {
+      "testCode": "TAMC",
+      "procedure": "Microbiological examination per SOP C2I-91-128 and the material-specific verification report.",
+      "kind": "general",
+      "workflow": "CountTest",
+      "details": {
+        "limit": "Not more than 10^3 CFU/gm (STM prints 103, superscript lost; spec sheet NMT 1000 CFU/g, loaded)",
+        "reference": "USP 2024 <2021>; USP <2023>",
+        "sop": "C2I-91-128"
+      },
+      "source": "Horsetail Extract__STM for Marine Horsetail Extract 1-1.txt:35"
+    },
+    {
+      "testCode": "TYMC",
+      "procedure": "Microbiological examination per SOP C2I-91-128 and the material-specific verification report.",
+      "kind": "general",
+      "workflow": "CountTest",
+      "details": {
+        "limit": "Not more than 10^2 CFU/gm (STM prints 102, superscript lost; spec sheet NMT 100 CFU/g, loaded)",
+        "reference": "USP 2024 <2021>; USP <2023>",
+        "sop": "C2I-91-128"
+      },
+      "source": "Horsetail Extract__STM for Marine Horsetail Extract 1-1.txt:35"
+    },
+    {
+      "testCode": "E.coli",
+      "procedure": "Microbiological examination per SOP C2I-91-128 and the material-specific verification report.",
+      "kind": "general",
+      "workflow": "Observation",
+      "details": {
+        "limit": "Absent / 10 gm",
+        "reference": "USP <2023>",
+        "sop": "C2I-91-128"
+      },
+      "source": "Horsetail Extract__STM for Marine Horsetail Extract 1-1.txt:35"
+    },
+    {
+      "testCode": "Salmonella ",
+      "procedure": "Microbiological examination per SOP C2I-91-128 and the material-specific verification report.",
+      "kind": "general",
+      "workflow": "Observation",
+      "details": {
+        "limit": "Absent / 10 gm",
+        "reference": "USP <2023>",
+        "sop": "C2I-91-128"
+      },
+      "source": "Horsetail Extract__STM for Marine Horsetail Extract 1-1.txt:35"
+    }
+  ],
+  "notApplicable": [],
+  "supplierAttributes": [
+    { "grade": null, "name": "Plant part used", "statedValue": "Aerial parts (stem + leaf)", "source": "Horsetail Extract__Specifications sheet Horsetail Extract - new.txt:20" },
+    { "grade": null, "name": "Extraction solvent", "statedValue": "Ethanol + water", "source": "Horsetail Extract__Specifications sheet Horsetail Extract - new.txt:20" },
+    { "grade": null, "name": "Extraction ratio", "statedValue": "5-7:1", "source": "Horsetail Extract__Specifications sheet Horsetail Extract - new.txt:20" },
+    { "grade": null, "name": "Particle size", "statedValue": "100% pass through mesh 80", "source": "Horsetail Extract__Specifications sheet Horsetail Extract - new.txt:20" },
+    { "grade": null, "name": "Residual solvents", "statedValue": "Maximum 2.0%", "source": "Horsetail Extract__Specifications sheet Horsetail Extract - new.txt:20" },
+    { "grade": null, "name": "Assay of silica", "statedValue": "7.0 to 10.0 %", "source": "Horsetail Extract__Specifications sheet Horsetail Extract - new.txt:20" }
+  ],
+  "reagents": [
+    { "name": "Sulfuric acid", "use": "reagent", "source": "Horsetail Extract__STM for Marine Horsetail Extract 1-1.txt:28" },
+    { "name": "Sodium sulfide", "use": "reagent", "source": "Horsetail Extract__STM for Marine Horsetail Extract 1-1.txt:28" },
+    { "name": "Thioacetamide", "use": "reagent", "source": "Horsetail Extract__STM for Marine Horsetail Extract 1-1.txt:28" },
+    { "name": "Ammonium acetate", "use": "reagent", "source": "Horsetail Extract__STM for Marine Horsetail Extract 1-1.txt:28" },
+    { "name": "Hydrochloric acid", "use": "reagent", "source": "Horsetail Extract__STM for Marine Horsetail Extract 1-1.txt:28" },
+    { "name": "Ammonia solution", "use": "reagent", "source": "Horsetail Extract__STM for Marine Horsetail Extract 1-1.txt:28" },
+    { "name": "Lead nitrate", "use": "standard", "source": "Horsetail Extract__STM for Marine Horsetail Extract 1-1.txt:28" },
+    { "name": "Sodium hydroxide", "use": "reagent", "source": "Horsetail Extract__STM for Marine Horsetail Extract 1-1.txt:28" },
+    { "name": "Glycerol", "use": "reagent", "source": "Horsetail Extract__STM for Marine Horsetail Extract 1-1.txt:28" },
+    { "name": "Lead standard solution (100 ppm Pb)", "use": "standard", "source": "Horsetail Extract__STM for Marine Horsetail Extract 1-1.txt:28" }
+  ],
+  "openQuestions": [
+    {
+      "question": "Bulk density: spec sheet gives 0.45 to 0.65 g/ml; the STM gives 0.40 to 0.65 g/ml. Spec sheet loaded; confirm the lower limit.",
+      "source": "Horsetail Extract__Specifications sheet Horsetail Extract - new.txt:13; Horsetail Extract__STM for Marine Horsetail Extract 1-1.txt:31"
+    },
+    {
+      "question": "Minimum quantity: spec sheet says 50 g; STM says 100 g for routine testing and retention. Routine taken from the spec sheet (50 g), retention and retest from the STM (100 g, 70 g). Confirm.",
+      "source": "Horsetail Extract__Specifications sheet Horsetail Extract - new.txt:20; Horsetail Extract__STM for Marine Horsetail Extract 1-1.txt:37"
+    },
+    {
+      "question": "Appearance: STM says 'Fine Brown powder'; spec sheet says 'Brown powder with characteristic odor and taste'. Spec sheet loaded.",
+      "source": "Horsetail Extract__Specifications sheet Horsetail Extract - new.txt:11; Horsetail Extract__STM for Marine Horsetail Extract 1-1.txt:30"
+    },
+    {
+      "question": "Acid insoluble ash: the STM gives two methods joined by 'or'. The first (in-house, dilute HCl and 550 °C) is loaded as the main method. Its W labels are inconsistent (W1 is sample weight in one formula and the empty crucible in the other), and W4 needs the supplier COA silica assay. Confirm the main method and the W definitions.",
+      "source": "Horsetail Extract__STM for Marine Horsetail Extract 1-1.txt:33"
+    },
+    {
+      "question": "Heavy metals: the standard (2 mL of 10 ppm lead made up to 25 mL) holds 20 µg Pb, which on a 1 g sample corresponds to 20 ppm, not the NMT 10 ppm stated. Standard volume to confirm.",
+      "source": "Horsetail Extract__STM for Marine Horsetail Extract 1-1.txt:34"
+    },
+    {
+      "question": "Spec additional requirements (particle size, residual solvents NMT 2.0%, assay of silica 7.0 to 10.0%) have no test in the STM. Recorded as supplier attributes only; no rows created.",
+      "source": "Horsetail Extract__Specifications sheet Horsetail Extract - new.txt:20"
+    }
+  ]
+}

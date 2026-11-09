@@ -14,7 +14,7 @@ import ErrorOutlinedIcon from "@mui/icons-material/ErrorOutlined";
 import { StatusBadge } from "../../../components/StatusBadge";
 import { IcpStatusBadge } from "../components/IcpStatusBadge";
 import { tableHeadSx } from "../../../theme";
-import { formatQuantityLabel } from "./replicateMapping";
+import { formatQuantityLabel } from "./entryMapping";
 import type { IcpPreviewResultDto, IcpOfficialResultDto } from "../types";
 
 export interface IcpPreviewCardProps {
@@ -94,7 +94,7 @@ export function IcpPreviewCard({
       <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap", mb: 1.5 }}>
         <StatusBadge status="Pending Review" label="Server Preview (Draft)" />
         <Typography variant="body2" sx={{ color: "text.secondary" }}>
-          Computed server-side from calibration curve and current replicate entries. Not the official result.
+          Computed server-side from the entered weight and instrument results. Not the official result.
         </Typography>
       </Box>
 
@@ -106,7 +106,7 @@ export function IcpPreviewCard({
 
       {preview.length === 0 ? (
         <Alert severity="info">
-          No preview results available yet. Enter sample amounts, volumes, dilution factors, and element concentrations above, then click <strong>Save Replicates</strong> to generate the server calculation.
+          No preview results available yet. Enter the sample weight (assay) and the instrument result for each element above, then click <strong>Save results</strong> to generate the server calculation.
         </Alert>
       ) : (
         <TableContainer
@@ -131,7 +131,7 @@ export function IcpPreviewCard({
             <TableBody>
               {preview.map((p, idx) => (
                 <TableRow
-                  key={`${p.icpMethodElementId}-${p.quantity}-${idx}`}
+                  key={`${p.icpTestElementId}-${p.quantity}-${idx}`}
                   hover
                   sx={{
                     backgroundColor: p.problem ? "rgba(211, 47, 47, 0.04)" : "inherit"

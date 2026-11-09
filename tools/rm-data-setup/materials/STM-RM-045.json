@@ -1,0 +1,710 @@
+{
+  "itemCode": "STM-RM-045",
+  "stmCode": "STM-RM-045",
+  "itemName": "Levofloxacin",
+  "stmFile": "Levofloxacine__Levofloxacine-SM.txt",
+  "specFiles": [
+    "Levofloxacine__Specifications sheet Levofloxacin.txt"
+  ],
+  "minQuantity": {
+    "routine": 60,
+    "retest": 30,
+    "retention": 60,
+    "unit": "g",
+    "source": "Levofloxacine__Specifications sheet Levofloxacin.txt:25; Levofloxacine__Levofloxacine-SM.txt:65"
+  },
+  "grades": [
+    {
+      "grade": "USP",
+      "rows": [
+        {
+          "testCode": "RM-DESC",
+          "parameterName": "Description",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Light yellowish white to yellow or white crystals or crystalline powder",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Levofloxacine__Specifications sheet Levofloxacin.txt:11"
+        },
+        {
+          "testCode": "RM-SOLUB",
+          "parameterName": "Solubility",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Soluble in dimethylsulfoxide and in acetic acid; sparingly soluble in water, in acetone, and in methanol; practically insoluble in glycerin and in n-octanol",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Levofloxacine__Specifications sheet Levofloxacin.txt:12"
+        },
+        {
+          "testCode": "RM-ID-IR",
+          "parameterName": "Identification (IR)",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "The spectrum obtained for the sample is corresponding to the spectrum obtained from Levofloxacin",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Levofloxacine__Specifications sheet Levofloxacin.txt:13"
+        },
+        {
+          "testCode": "RM-ID-RT",
+          "parameterName": "Identification (HPLC)",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "The retention time of the major peak of the Sample solution corresponds to that of the Standard solution",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Levofloxacine__Specifications sheet Levofloxacin.txt:14"
+        },
+        {
+          "testCode": "RM-HPLC-LEVO-RS1",
+          "parameterName": "Organic Impurities, Procedure 1: N-Desmethyl levofloxacin",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 0.3,
+          "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Levofloxacine__Specifications sheet Levofloxacin.txt:15; Levofloxacine__Levofloxacine-SM.txt:33,35"
+        },
+        {
+          "testCode": "RM-HPLC-LEVO-RS1",
+          "parameterName": "Organic Impurities, Procedure 1: Diamine derivative",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 0.3,
+          "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Levofloxacine__Specifications sheet Levofloxacin.txt:15; Levofloxacine__Levofloxacine-SM.txt:33,36"
+        },
+        {
+          "testCode": "RM-HPLC-LEVO-RS1",
+          "parameterName": "Organic Impurities, Procedure 1: Levofloxacin N-oxide",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 0.3,
+          "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Levofloxacine__Specifications sheet Levofloxacin.txt:15; Levofloxacine__Levofloxacine-SM.txt:33,37"
+        },
+        {
+          "testCode": "RM-HPLC-LEVO-RS1",
+          "parameterName": "Organic Impurities, Procedure 1: 9-Desfluoro levofloxacin",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 0.3,
+          "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Levofloxacine__Specifications sheet Levofloxacin.txt:15; Levofloxacine__Levofloxacine-SM.txt:33,38"
+        },
+        {
+          "testCode": "RM-HPLC-LEVO-RS1",
+          "parameterName": "Organic Impurities, Procedure 1: D-Isomer",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 0.8,
+          "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Levofloxacine__Specifications sheet Levofloxacin.txt:15; Levofloxacine__Levofloxacine-SM.txt:33,40"
+        },
+        {
+          "testCode": "RM-HPLC-LEVO-RS1",
+          "parameterName": "Organic Impurities, Procedure 1: Any unknown impurity",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 0.1,
+          "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Levofloxacine__Specifications sheet Levofloxacin.txt:15; Levofloxacine__Levofloxacine-SM.txt:33,41"
+        },
+        {
+          "testCode": "RM-HPLC-LEVO-RS1",
+          "parameterName": "Organic Impurities, Procedure 1: Total Impurities",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 0.5,
+          "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Levofloxacine__Specifications sheet Levofloxacin.txt:15; Levofloxacine__Levofloxacine-SM.txt:33,42"
+        },
+        {
+          "testCode": "RM-HPLC-LEVO-RS2",
+          "parameterName": "Organic Impurities, Procedure 2: Levofloxacin related compound A",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 0.2,
+          "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Levofloxacine__Specifications sheet Levofloxacin.txt:16; Levofloxacine__Levofloxacine-SM.txt:43,53"
+        },
+        {
+          "testCode": "RM-HPLC-LEVO-RS2",
+          "parameterName": "Organic Impurities, Procedure 2: Levofloxacin related compound B",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 0.13,
+          "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Levofloxacine__Specifications sheet Levofloxacin.txt:16; Levofloxacine__Levofloxacine-SM.txt:43,55"
+        },
+        {
+          "testCode": "RM-HPLC-LEVO-RS2",
+          "parameterName": "Organic Impurities, Procedure 2: Any other impurity",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 0.1,
+          "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Levofloxacine__Specifications sheet Levofloxacin.txt:16; Levofloxacine__Levofloxacine-SM.txt:43,56"
+        },
+        {
+          "testCode": "RM-HPLC-LEVO-RS2",
+          "parameterName": "Organic Impurities, Procedure 2: Total impurities",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 0.5,
+          "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Levofloxacine__Specifications sheet Levofloxacin.txt:16; Levofloxacine__Levofloxacine-SM.txt:43,57"
+        },
+        {
+          "testCode": "RM-HPLC-LEVO-RS3",
+          "parameterName": "Organic Impurities, Procedure 3",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 1.0,
+          "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "heldBack": "STM: HPLC method incomplete (system suitability criteria not stated)",
+          "source": "Levofloxacine__Specifications sheet Levofloxacin.txt:17; Levofloxacine__Levofloxacine-SM.txt:58"
+        },
+        {
+          "testCode": "RM-OPTROT",
+          "parameterName": "Specific Rotation",
+          "limitType": "Range",
+          "lower": -106.0,
+          "upper": -92.0,
+          "lowerInclusive": true,
+          "unit": "°",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Levofloxacine__Specifications sheet Levofloxacin.txt:18; Levofloxacine__Levofloxacine-SM.txt:59"
+        },
+        {
+          "testCode": "RM-KF",
+          "parameterName": "Water Determination",
+          "limitType": "Range",
+          "lower": 2.0,
+          "upper": 3.0,
+          "lowerInclusive": true,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Levofloxacine__Specifications sheet Levofloxacin.txt:19; Levofloxacine__Levofloxacine-SM.txt:60"
+        },
+        {
+          "testCode": "RM-SASH",
+          "parameterName": "Residue on Ignition",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 0.2,
+          "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Levofloxacine__Specifications sheet Levofloxacin.txt:20; Levofloxacine__Levofloxacine-SM.txt:61"
+        },
+        {
+          "testCode": "RM-HPLC-LEVO-AS",
+          "parameterName": "Assay",
+          "limitType": "Range",
+          "lower": 98.0,
+          "upper": 102.0,
+          "lowerInclusive": true,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": "PercentAnhydrousBasis",
+          "referenceStandard": "USP",
+          "source": "Levofloxacine__Specifications sheet Levofloxacin.txt:21; Levofloxacine__Levofloxacine-SM.txt:62"
+        },
+        {
+          "testCode": "TAMC",
+          "parameterName": "Total aerobic microbial count (TAMC)",
+          "limitType": "CountTiered",
+          "lower": null,
+          "upper": 1000,
+          "lowerInclusive": null,
+          "unit": "CFU/g",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Levofloxacine__Specifications sheet Levofloxacin.txt:22; Levofloxacine__Levofloxacine-SM.txt:63"
+        },
+        {
+          "testCode": "TYMC",
+          "parameterName": "Total Yeast and mold count (TYMC)",
+          "limitType": "CountTiered",
+          "lower": null,
+          "upper": 100,
+          "lowerInclusive": null,
+          "unit": "CFU/g",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Levofloxacine__Specifications sheet Levofloxacin.txt:23; Levofloxacine__Levofloxacine-SM.txt:63"
+        },
+        {
+          "testCode": "E.coli",
+          "parameterName": "Test for E.coli",
+          "limitType": "PresenceAbsence",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": "per g",
+          "expectedResultText": "Absent/ gm",
+          "expectedState": "Absence",
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Levofloxacine__Specifications sheet Levofloxacin.txt:24; Levofloxacine__Levofloxacine-SM.txt:63"
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "testCode": "RM-DESC",
+      "procedure": "Under strong white light, check each received sample container separately in clean, transparent watch glass or glass dish to detect any foreign particles, conformance of colour & compliance with the visual specifications.",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {
+        "perContainer": true,
+        "reference": "USP Description and Relative Solubility"
+      },
+      "source": "Levofloxacine__Levofloxacine-SM.txt:30"
+    },
+    {
+      "testCode": "RM-SOLUB",
+      "procedure": "Weigh 100 mg sample in stoppered tube, add solvent in graduated steps (0.1 mL, 0.9 mL, 2 mL, 7 mL, etc.) with shaking at 25.0 ± 0.5 °C to evaluate solubility according to USP descriptive terms. Repeat with Ethanol, chloroform and Methanol.",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {
+        "solvents": [
+          "dimethylsulfoxide",
+          "acetic acid",
+          "water",
+          "acetone",
+          "methanol",
+          "glycerin",
+          "n-octanol",
+          "ethanol",
+          "chloroform"
+        ],
+        "reference": "USP Description and Relative Solubility"
+      },
+      "source": "Levofloxacine__Levofloxacine-SM.txt:31"
+    },
+    {
+      "testCode": "RM-ID-IR",
+      "procedure": "Mix intimately with potassium bromide and compress into a transparent pellet. Examine spectrum obtained for the sample and compare to spectrum obtained from Levofloxacin.",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {
+        "technique": "Infrared Spectroscopy: 197K",
+        "reference": "USP Spectroscopic Identification Tests <197>, Infrared Spectroscopy: 197K"
+      },
+      "source": "Levofloxacine__Levofloxacine-SM.txt:32"
+    },
+    {
+      "testCode": "RM-ID-RT",
+      "procedure": "Proceed as Test of Assay described below. The retention time of the major peak of the Sample solution corresponds to that of the Standard solution.",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {
+        "reference": "USP Chromatography <621>, System Suitability"
+      },
+      "source": "Levofloxacine__Levofloxacine-SM.txt:32"
+    },
+    {
+      "testCode": "RM-HPLC-LEVO-RS1",
+      "procedure": "Buffer, Mobile phase, Sample solution, and Chromatographic system: Proceed as directed in the Assay. System suitability solution: 1 mg/mL USP Levofloxacin RS in Mobile phase. Sample: Sample solution. Calculate percentage of each individual impurity: Result = (rU/rS) * (1/F) * 100.",
+      "kind": "specific",
+      "workflow": "HplcMethodAssay",
+      "details": {
+        "relativeResponseFactors": {
+          "N-Desmethyl levofloxacin": 1.0,
+          "Diamine derivative": 0.9,
+          "Levofloxacin N-oxide": 1.1,
+          "9-Desfluoro levofloxacin": 1.0,
+          "d-Isomer": 1.0,
+          "Any unknown impurity": 1.0
+        },
+        "relativeRetentionTimes": {
+          "N-Desmethyl levofloxacin": 0.47,
+          "Diamine derivative": 0.52,
+          "Levofloxacin N-oxide": 0.63,
+          "9-Desfluoro levofloxacin": 0.73,
+          "Levofloxacin": 1.0,
+          "d-Isomer": 1.23
+        },
+        "reference": "USP Chromatography <621>, System Suitability"
+      },
+      "source": "Levofloxacine__Levofloxacine-SM.txt:33-42"
+    },
+    {
+      "testCode": "RM-HPLC-LEVO-RS2",
+      "procedure": "Buffer: 3.08 g/L ammonium acetate and 8.43 g/L sodium perchlorate monohydrate in water, adjust with phosphoric acid to pH 2.2. Solution A: Acetonitrile and Buffer (16:84). Solution B: Acetonitrile, methanol, Buffer (30:20:50). Gradient: 0-5 min 100% A; 10 min 82% A; 15-30 min 40% A; 30.1-38 min 100% A. Column: 4.0-mm x 15-cm 3.0-um L1 at 38 °C. Flow rate: 1.0 mL/min. Detector: UV 280 nm. Injection: 10 uL. Calculate levofloxacin related compound B and other impurities using formulas Result = (rU/rS) * (CS/CU) * 100.",
+      "kind": "specific",
+      "workflow": "HplcMethodAssay",
+      "details": {
+        "column": "4.0-mm x 15-cm; 3.0-um packing L1",
+        "columnTemperatureC": 38,
+        "detectorWavelengthNm": 280,
+        "flowRateMlPerMin": 1.0,
+        "injectionVolumeUl": 10,
+        "gradientSteps": [
+          {
+            "timeMin": 0,
+            "percentA": 100,
+            "percentB": 0
+          },
+          {
+            "timeMin": 5,
+            "percentA": 100,
+            "percentB": 0
+          },
+          {
+            "timeMin": 10,
+            "percentA": 82,
+            "percentB": 18
+          },
+          {
+            "timeMin": 15,
+            "percentA": 40,
+            "percentB": 60
+          },
+          {
+            "timeMin": 30,
+            "percentA": 40,
+            "percentB": 60
+          },
+          {
+            "timeMin": 30.1,
+            "percentA": 100,
+            "percentB": 0
+          },
+          {
+            "timeMin": 38,
+            "percentA": 100,
+            "percentB": 0
+          }
+        ],
+        "relativeRetentionTimes": {
+          "Levofloxacin related compound A (N-Desmethyl levofloxacin)": 0.9,
+          "Levofloxacin": 1.0,
+          "Levofloxacin related compound B": 2.9
+        },
+        "reference": "USP Chromatography <621>, System Suitability"
+      },
+      "source": "Levofloxacine__Levofloxacine-SM.txt:43-57"
+    },
+    {
+      "testCode": "RM-HPLC-LEVO-RS3",
+      "procedure": "Buffer: 1.32 g/L d-phenylalanine and 0.75 g/L cupric sulfate pentahydrate in water. Mobile phase: Methanol and Buffer (15:85). Column: 4.6-mm x 15-cm; 3.5-um packing L1 at 40 °C. Flow rate: 0.7 mL/min. Detector: UV 294 nm. Injection size: 10 uL. Sample: 0.08 mg/mL in water. Calculate percentage of d-ofloxacin: Result = (rU/rT) * 100.",
+      "kind": "specific",
+      "workflow": "HplcMethodAssay",
+      "details": {
+        "column": "4.6-mm x 15-cm; 3.5-um packing L1",
+        "columnTemperatureC": 40,
+        "detectorWavelengthNm": 294,
+        "flowRateMlPerMin": 0.7,
+        "injectionVolumeUl": 10,
+        "mobilePhase": "Methanol : Buffer (15:85)",
+        "reference": "USP Chromatography <621>, System Suitability"
+      },
+      "heldBack": "STM: HPLC method incomplete (system suitability criteria not stated)",
+      "source": "Levofloxacine__Levofloxacine-SM.txt:58"
+    },
+    {
+      "testCode": "RM-OPTROT",
+      "procedure": "Sample solution: 5 mg/mL in Methanol. Measure specific optical rotation using calibrated polarimeter at 20 °C.",
+      "kind": "general",
+      "workflow": "Measurement",
+      "details": {
+        "concentrationMgPerMl": 5,
+        "solvent": "Methanol",
+        "temperatureC": 20,
+        "reference": "USP Optical Rotation, Specific Rotation <781S>"
+      },
+      "source": "Levofloxacine__Levofloxacine-SM.txt:59"
+    },
+    {
+      "testCode": "RM-KF",
+      "procedure": "Determine on enough quantity of Sample using calibrated Karl Fischer.",
+      "kind": "general",
+      "workflow": "Measurement",
+      "details": {
+        "reference": "USP Water Determination, Method Ia<921>"
+      },
+      "source": "Levofloxacine__Levofloxacine-SM.txt:60"
+    },
+    {
+      "testCode": "RM-SASH",
+      "procedure": "Accurately weigh 1.0 g into empty crucible previously ignited at 600-650 °C (W0, W1). Moisten with sulfuric acid, heat gently on hot plate until charred. Cool, moisten with sulfuric acid, heat until white fumes cease. Ignite in calibrated muffle at 600-650 °C to constant weight (W2). Calculate % Residue on Ignition.",
+      "kind": "general",
+      "workflow": "Gravimetric",
+      "details": {
+        "sampleWeightG": 1.0,
+        "temperatureC": "600-650",
+        "reference": "USP Residue on Ignition <281>"
+      },
+      "source": "Levofloxacine__Levofloxacine-SM.txt:61"
+    },
+    {
+      "testCode": "RM-HPLC-LEVO-AS",
+      "procedure": "Buffer: 8.5 g/L ammonium acetate, 1.25 g/L cupric sulfate pentahydrate, 1.3 g/L l-isoleucine in water. Mobile phase: Methanol and Buffer (3:7). Standard solution: 1 mg/mL USP Levofloxacin RS in Mobile phase. Sample solution: 1 mg/mL Levofloxacin in Mobile phase. Column: 4.6-mm x 25-cm; 5-um packing L1 at 45 °C. Flow rate: 0.8 mL/min. Detector: UV 360 nm. Injection size: 25 uL. System suitability: Tailing factor 0.5-1.5, RSD NMT 1.0%. Calculate percentage of levofloxacin: Result = (rU/rS) * (CS/CU) * 100 on anhydrous basis.",
+      "kind": "specific",
+      "workflow": "HplcMethodAssay",
+      "details": {
+        "column": "4.6-mm x 25-cm; 5-um packing L1",
+        "columnTemperatureC": 45,
+        "detectorWavelengthNm": 360,
+        "flowRateMlPerMin": 0.8,
+        "injectionVolumeUl": 25,
+        "mobilePhase": "Methanol : Buffer (3:7)",
+        "reference": "USP Chromatography <621>, System Suitability"
+      },
+      "source": "Levofloxacine__Levofloxacine-SM.txt:62"
+    },
+    {
+      "testCode": "TAMC",
+      "procedure": "Follow the suitable steps stated in SOP # (C2I-91-128) and the verification report specifically for this material.",
+      "kind": "general",
+      "workflow": "CountTest",
+      "details": {
+        "sop": "C2I-91-128",
+        "reference": "USP <1111>, USP <61>"
+      },
+      "source": "Levofloxacine__Levofloxacine-SM.txt:63"
+    },
+    {
+      "testCode": "TYMC",
+      "procedure": "Follow the suitable steps stated in SOP # (C2I-91-128) and the verification report specifically for this material.",
+      "kind": "general",
+      "workflow": "CountTest",
+      "details": {
+        "sop": "C2I-91-128",
+        "reference": "USP <1111>, USP <61>"
+      },
+      "source": "Levofloxacine__Levofloxacine-SM.txt:63"
+    },
+    {
+      "testCode": "E.coli",
+      "procedure": "Follow the suitable steps stated in SOP # (C2I-91-128) and the verification report specifically for this material.",
+      "kind": "general",
+      "workflow": "Observation",
+      "details": {
+        "sop": "C2I-91-128",
+        "reference": "USP <62>"
+      },
+      "source": "Levofloxacine__Levofloxacine-SM.txt:63"
+    }
+  ],
+  "notApplicable": [],
+  "supplierAttributes": [
+    {
+      "grade": null,
+      "name": "Residual Solvents",
+      "statedValue": "Comply as Supplier COA",
+      "source": "Levofloxacine__Specifications sheet Levofloxacin.txt:25"
+    }
+  ],
+  "reagents": [
+    {
+      "name": "USP Levofloxacin RS",
+      "use": "standard",
+      "source": "Levofloxacine__Levofloxacine-SM.txt:28,33,43,58,62"
+    },
+    {
+      "name": "USP Levofloxacin Related Compound A RS",
+      "use": "standard",
+      "source": "Levofloxacine__Levofloxacine-SM.txt:28,43"
+    },
+    {
+      "name": "USP Levofloxacin Related Compound B RS",
+      "use": "standard",
+      "source": "Levofloxacine__Levofloxacine-SM.txt:28,43"
+    },
+    {
+      "name": "USP Ofloxacin RS",
+      "use": "standard",
+      "source": "Levofloxacine__Levofloxacine-SM.txt:28,58"
+    },
+    {
+      "name": "Levofloxacin WS",
+      "use": "standard",
+      "source": "Levofloxacine__Levofloxacine-SM.txt:28,62"
+    },
+    {
+      "name": "Methanol",
+      "use": "reagent",
+      "source": "Levofloxacine__Levofloxacine-SM.txt:28,43,58,59,62"
+    },
+    {
+      "name": "Ethanol",
+      "use": "reagent",
+      "source": "Levofloxacine__Levofloxacine-SM.txt:28,31"
+    },
+    {
+      "name": "Chloroform",
+      "use": "reagent",
+      "source": "Levofloxacine__Levofloxacine-SM.txt:28,31"
+    },
+    {
+      "name": "Acetonitrile",
+      "use": "reagent",
+      "source": "Levofloxacine__Levofloxacine-SM.txt:28,43"
+    },
+    {
+      "name": "Hydrochloric acid",
+      "use": "reagent",
+      "source": "Levofloxacine__Levofloxacine-SM.txt:28,62"
+    },
+    {
+      "name": "Triethylamine",
+      "use": "reagent",
+      "source": "Levofloxacine__Levofloxacine-SM.txt:28,62"
+    },
+    {
+      "name": "Acetic acid",
+      "use": "reagent",
+      "source": "Levofloxacine__Levofloxacine-SM.txt:28,31,62"
+    },
+    {
+      "name": "Ammonium acetate",
+      "use": "reagent",
+      "source": "Levofloxacine__Levofloxacine-SM.txt:28,43,62"
+    },
+    {
+      "name": "Sodium perchlorate monohydrate",
+      "use": "reagent",
+      "source": "Levofloxacine__Levofloxacine-SM.txt:28,43"
+    },
+    {
+      "name": "Ammonium hydroxide",
+      "use": "reagent",
+      "source": "Levofloxacine__Levofloxacine-SM.txt:28,43"
+    },
+    {
+      "name": "Cupric sulfate, pentahydrate",
+      "use": "reagent",
+      "source": "Levofloxacine__Levofloxacine-SM.txt:28,58,62"
+    },
+    {
+      "name": "l-isoleucine",
+      "use": "reagent",
+      "source": "Levofloxacine__Levofloxacine-SM.txt:28,62"
+    },
+    {
+      "name": "d-phenylalanine",
+      "use": "reagent",
+      "source": "Levofloxacine__Levofloxacine-SM.txt:28,58"
+    },
+    {
+      "name": "Potassium bromide",
+      "use": "reagent",
+      "source": "Levofloxacine__Levofloxacine-SM.txt:32"
+    },
+    {
+      "name": "Sulfuric acid",
+      "use": "reagent",
+      "source": "Levofloxacine__Levofloxacine-SM.txt:61"
+    }
+  ],
+  "openQuestions": [
+    {
+      "question": "Residue on Ignition calculation formula in STM line 61 is written as '% Residue on Ignition = ((W1 - W2) / (W1 - W0)) * 100' where W1 is tare + sample and W2 is tare + ignited residue; this calculates loss rather than remaining residue ((W2 - W0) / (W1 - W0) * 100).",
+      "source": "Levofloxacine__Levofloxacine-SM.txt:61"
+    },
+    {
+      "question": "Organic Impurities Procedure 1 refers to chromatographic conditions 'directed in the Assay (6.8)', but Assay is located at STM line 62 without numbering 6.8 (it was cited as 6.10 in line 32).",
+      "source": "Levofloxacine__Levofloxacine-SM.txt:32,33,62"
+    },
+    {
+      "question": "STM line 62 provides an 'Alternative Method for Assay' using working standard HPLC conditions; per README transcription rule 2, only the main USP method was transcribed.",
+      "source": "Levofloxacine__Levofloxacine-SM.txt:62"
+    }
+  ]
+}

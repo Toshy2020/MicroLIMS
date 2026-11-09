@@ -1,0 +1,340 @@
+== material master entries ==
+entry Ferric ammonium sulfate solution R2: same
+entry Phenol red solution: same
+entry Sodium fluoresceinate solution 2 g/L: same
+entry Dimidium bromide-sulfan blue mixed solution: same
+entry Potassium bromate (primary standard): same
+entry Sildenafil citrate CRS: same
+entry Sildenafil impurity A CRS: same
+entry Sildenafil for peak identification CRS: same
+entry Imidazole CRS: same
+entry Propyl para hydroxybenzoate RS: same
+entry Sodium propyl para hydroxybenzoate RS: same
+entry Methyl para hydroxybenzoate RS: same
+entry Sodium methyl para hydroxybenzoate RS: same
+entry Ethyl para hydroxybenzoate RS: same
+entry 4-Hydroxybenzoic acid: same
+entry Pyridoxine impurity A CRS: same
+entry 4-Deoxypyridoxine hydrochloride: same
+entry Sodium lauryl sulfate RS: same
+entry Riboflavin sodium phosphate CRS: same
+entry Sodium standard (NaCl) for AAS: same
+entry Potassium standard (KCl) for AAS: same
+== solutions ==
+solution 0.1 N Silver nitrate VS: same
+solution 0.1 M Silver nitrate VS: same
+solution 0.1 M Sodium thiosulfate VS: skip (held back: not loaded: storageCondition; standardizationMode; equivalenceMgPerMl not stated in the STM)
+solution 0.1 M Perchloric acid VS: same
+solution 0.5 M Hydrochloric acid VS: skip (held back: not loaded: storageCondition; equivalenceMgPerMl not stated in the STM)
+solution 1 M Hydrochloric acid VS: same
+solution 1 N Sulfuric acid VS: same
+solution 0.1 M Hydrochloric acid VS: skip (held back: not loaded: storageCondition; components; standardization not stated in the STM)
+solution 0.004 M Benzethonium chloride VS: skip (held back: not loaded: storageCondition; instructions, components, standardization not stated in the STM)
+solution Sildenafil buffer-based mobile phase A (acetonitrile : buffer 20:80): skip (held back: not loaded: only used by held-back HPLC methods, and shelfLife, storageCondition; components, pH not stated)
+solution Sildenafil mobile phase B (buffer : methanol : acetonitrile 20:20:60): skip (held back: not loaded: only used by held-back HPLC methods, and shelfLife, storageCondition; components not stated)
+solution Sildenafil diluent (acetonitrile : mobile phase A 10:90): skip (held back: not loaded: only used by held-back HPLC methods, and shelfLife, storageCondition; components not stated)
+solution Paraben mobile phase A (6.8 g/L potassium dihydrogen phosphate): skip (held back: not loaded: only used by held-back HPLC methods, and shelfLife, storageCondition not stated)
+solution Paraben mobile phase B (methanol): skip (held back: not loaded: only used by held-back HPLC methods, and shelfLife, storageCondition not stated)
+solution Paraben diluent (mobile phase 35:65): skip (held back: not loaded: only used by held-back HPLC methods, and shelfLife, storageCondition; components not stated)
+solution Pyridoxine USP mobile phase (hexanesulfonate, pH 3.0, methanol): skip (held back: not loaded: only used by held-back HPLC methods, and shelfLife, storageCondition; phTolerance not stated)
+solution Pyridoxine USP diluent (mobile phase): skip (held back: not loaded: only used by held-back HPLC methods, and shelfLife, storageCondition; components not stated)
+solution Pyridoxine BP mobile phase (KH2PO4 pH 3.0): skip (held back: not loaded: only used by held-back HPLC methods, and shelfLife, storageCondition; phTolerance; phAdjustingEntry not stated)
+solution Pyridoxine BP diluent (water): skip (held back: not loaded: only used by held-back HPLC methods, and shelfLife, storageCondition not stated)
+solution 0.1 M Ammonium thiocyanate VS: same
+solution 0.05 M Iodine VS: skip (held back: not loaded: storageCondition not stated in the STM)
+== test definitions ==
+test RM-DESC: same
+test RM-LOD: same
+test RM-UV-RIBO: same
+test RM-UV-PHOS: same
+test RM-UV-PYRI: same
+test TAMC: same
+test TYMC: same
+test E.coli: same
+test Salmonella: same
+test RM-SOLUB: same
+test RM-SASH: same
+test RM-PH: same
+test RM-MP: same
+test RM-MP-QL: same
+test RM-BULKD: same
+test RM-TAPDEN: same
+test RM-SETVOL: same
+test RM-OPTROT: same
+test RM-SOLAPP: same
+test RM-INSOL: same
+test RM-ODOR: same
+test RM-MISC: same
+test RM-THIOSULFATE: same
+test RM-ID-IR: same
+test RM-ID-NA: same
+test RM-ID-NA-ASH: same
+test RM-ID-CL: same
+test RM-ID-PO4: same
+test RM-ID-SO4-SMB: same
+test RM-ID-SO4-SLS: same
+test RM-ID-FOAM: same
+test RM-ID-SSG-B: same
+test RM-ID-SSG-C: same
+test RM-ID-TLC-PARAB: same
+test RM-ID-TLC-PYR: same
+test RM-ID-RT: same
+test RM-ID-NACLT: same
+test RM-LT-CL: same
+test RM-LT-SO4: same
+test RM-LT-FE: same
+test RM-LT-HM: same
+test RM-IMP-E-SILD: same
+test RM-IMP-E-RIBO: same
+test RM-KF: same
+test RM-DISINT: same
+test RM-NONEST-ALC: same
+test RM-NACL-SLS: same
+test RM-TIT-NACLT: same
+test RM-TIT-SMB: same
+test RM-TIT-PYR-BP: same
+test RM-TIT-CL-PYR: same
+test RM-TIT-NAOH-BP: same
+test RM-TIT-NAOH-USP: same
+test RM-CARB-NAOH: same
+test RM-TIT-SLS: same
+test RM-TIT-SLS-ALK: same
+test RM-TIT-NAOCL-ALK: same
+test RM-TIT-NAOCL: same
+test RM-HPLC-SILD-AS: skip (held back: needs the held-back method "Sildenafil citrate assay (BP, gradient HPLC)")
+test RM-HPLC-SILD-RS: skip (held back: needs the held-back method "Sildenafil citrate related substances (BP, gradient HPLC)")
+test RM-HPLC-PPB-AS: skip (held back: needs the held-back method "Sodium propyl paraben assay (BP, HPLC)")
+test RM-HPLC-PPB-RS: skip (held back: needs the held-back method "Sodium propyl paraben related substances (BP, HPLC)")
+test RM-HPLC-MPB-AS: skip (held back: needs the held-back method "Sodium methyl paraben assay (BP, HPLC)")
+test RM-HPLC-MPB-RS: skip (held back: needs the held-back method "Sodium methyl paraben related substances (BP, HPLC)")
+test RM-HPLC-PYR-AS: skip (held back: needs the held-back method "Pyridoxine hydrochloride assay (USP, HPLC internal standard)")
+test RM-HPLC-PYR-RS: skip (held back: needs the held-back method "Pyridoxine hydrochloride related substances (BP, HPLC)")
+test RM-ICP-SE: skip (held back: needs the held-back method "Selenium by AAS (sodium selenate)")
+test RM-ICP-NA: skip (held back: needs the held-back method "Sodium by AAS (sodium hydroxide USP)")
+test RM-ICP-K: skip (held back: needs the held-back method "Potassium by AAS (sodium hydroxide USP)")
+test RM-ICP-PB: skip (held back: needs the held-back method "Lead by AAS (Siberian ginseng extract)")
+test RM-RIBO-RS: same
+test RM-RIBO-COMP: same
+== items ==
+item STM-RM-025: same
+item STM-RM-051: same
+item STM-RM-053: same
+item STM-RM-060: same
+item STM-RM-063: same
+item STM-RM-064: same
+item STM-RM-089: same
+item STM-RM-091: same
+item STM-RM-097: same
+item STM-RM-126: same
+item STM-RM-147: same
+item STM-RM-150: same
+item STM-RM-151: same
+item STM-RM-56: same
+== specifications ==
+spec STM-RM-025/In-house/Description: same
+spec STM-RM-025/In-house/Solubility: same
+spec STM-RM-025/In-house/Identification - Reaction of sodium: same
+spec STM-RM-025/In-house/Bulk density: same
+spec STM-RM-025/In-house/Heavy metals: same
+spec STM-RM-025/In-house/Loss on drying: same
+spec STM-RM-025/In-house/Total Selenium: skip (held back: needs the held-back method "Selenium by AAS (sodium selenate)")
+spec STM-RM-025/In-house/Se as Selenate: skip (held back: needs the held-back method "Selenium by AAS (sodium selenate)")
+spec STM-RM-025/In-house/Se as Selenite: skip (held back: needs the held-back method "Selenium by AAS (sodium selenate)")
+spec STM-RM-025/In-house/Total Aerobic Microbial Count (TAMC): same
+spec STM-RM-025/In-house/Total combined Yeasts & Molds Count (TYMC): same
+spec STM-RM-025/In-house/Test for E. coli: same
+spec STM-RM-051/BP/Description: same
+spec STM-RM-051/BP/Solubility: same
+spec STM-RM-051/BP/Identification (IR): same
+spec STM-RM-051/BP/Impurity E: same
+spec STM-RM-051/BP/Related substances - Impurity A: skip (held back: needs the held-back method "Sildenafil citrate related substances (BP, gradient HPLC)")
+spec STM-RM-051/BP/Related substances - Impurity D: skip (held back: needs the held-back method "Sildenafil citrate related substances (BP, gradient HPLC)")
+spec STM-RM-051/BP/Related substances - Unspecified impurities (each): skip (held back: needs the held-back method "Sildenafil citrate related substances (BP, gradient HPLC)")
+spec STM-RM-051/BP/Related substances - Total impurities: skip (held back: needs the held-back method "Sildenafil citrate related substances (BP, gradient HPLC)")
+spec STM-RM-051/BP/Sulphated ash: same
+spec STM-RM-051/BP/Water content: same
+spec STM-RM-051/BP/Assay: skip (held back: needs the held-back method "Sildenafil citrate assay (BP, gradient HPLC)")
+spec STM-RM-053/BP/Identification: same
+spec STM-RM-053/BP/Clarity of solution: same
+spec STM-RM-053/BP/Disintegration: same
+spec STM-RM-053/BP/Assay: same
+spec STM-RM-060/BP/Appearance: same
+spec STM-RM-060/BP/Solubility: same
+spec STM-RM-060/BP/Identification - Reaction of Sulfate: same
+spec STM-RM-060/BP/Identification - Reaction of Sodium: same
+spec STM-RM-060/BP/Appearance of solution: same
+spec STM-RM-060/BP/pH: same
+spec STM-RM-060/BP/Thiosulfates: same
+spec STM-RM-060/BP/Iron: same
+spec STM-RM-060/BP/Assay: same
+spec STM-RM-063/BP/Appearance: same
+spec STM-RM-063/BP/Solubility: same
+spec STM-RM-063/BP/Identification - Melting point: same
+spec STM-RM-063/BP/Identification - HPLC retention time: same
+spec STM-RM-063/BP/Identification - TLC: same
+spec STM-RM-063/BP/Identification - Reaction of sodium: same
+spec STM-RM-063/BP/Appearance of solution: same
+spec STM-RM-063/BP/pH: same
+spec STM-RM-063/BP/Related substances - Impurity A: skip (held back: needs the held-back method "Sodium propyl paraben related substances (BP, HPLC)")
+spec STM-RM-063/BP/Related substances - Unspecified impurities (each): skip (held back: needs the held-back method "Sodium propyl paraben related substances (BP, HPLC)")
+spec STM-RM-063/BP/Related substances - Sum of impurities other than A: skip (held back: needs the held-back method "Sodium propyl paraben related substances (BP, HPLC)")
+spec STM-RM-063/BP/Chlorides: same
+spec STM-RM-063/BP/Sulfates: same
+spec STM-RM-063/BP/Water: same
+spec STM-RM-063/BP/Assay (Sodium Propyl Hydroxybenzoate): skip (held back: needs the held-back method "Sodium propyl paraben assay (BP, HPLC)")
+spec STM-RM-063/BP/Total aerobic microbial count (TAMC): same
+spec STM-RM-063/BP/Total yeast and mold count (TYMC): same
+spec STM-RM-063/BP/Test for E. coli: same
+spec STM-RM-064/BP/Appearance: same
+spec STM-RM-064/BP/Solubility: same
+spec STM-RM-064/BP/Identification - Melting point of precipitate: same
+spec STM-RM-064/BP/Identification - HPLC retention time: same
+spec STM-RM-064/BP/Identification - TLC: same
+spec STM-RM-064/BP/Identification - Reaction of Sodium: same
+spec STM-RM-064/BP/Appearance of solution: same
+spec STM-RM-064/BP/pH: same
+spec STM-RM-064/BP/Related substances - Impurity A: skip (held back: needs the held-back method "Sodium methyl paraben related substances (BP, HPLC)")
+spec STM-RM-064/BP/Related substances - Unspecified impurities (each): skip (held back: needs the held-back method "Sodium methyl paraben related substances (BP, HPLC)")
+spec STM-RM-064/BP/Related substances - Sum of impurities other than A: skip (held back: needs the held-back method "Sodium methyl paraben related substances (BP, HPLC)")
+spec STM-RM-064/BP/Chlorides: same
+spec STM-RM-064/BP/Sulfates: same
+spec STM-RM-064/BP/Water: same
+spec STM-RM-064/BP/Assay: skip (held back: needs the held-back method "Sodium methyl paraben assay (BP, HPLC)")
+spec STM-RM-064/BP/Total aerobic microbial count (TAMC): same
+spec STM-RM-064/BP/Total yeast and mold count (TYMC): same
+spec STM-RM-064/BP/Test for E. coli: same
+spec STM-RM-089/BP/Appearance: same
+spec STM-RM-089/BP/Solubility: same
+spec STM-RM-089/BP/Identification (A): pH: same
+spec STM-RM-089/BP/Identification (B): Visual: same
+spec STM-RM-089/BP/Identification (C): Chemical Reaction: same
+spec STM-RM-089/BP/Identification (D): Chemical Reaction: same
+spec STM-RM-089/BP/pH: same
+spec STM-RM-089/BP/Loss on drying: same
+spec STM-RM-089/BP/Iron: same
+spec STM-RM-089/BP/Appearance of solution: same
+spec STM-RM-089/BP/Settling volume: same
+spec STM-RM-089/BP/Total Aerobic Microbial Count (TAMC): same
+spec STM-RM-089/BP/Total Yeast and Molds Count (TYMC): same
+spec STM-RM-089/BP/Test for E. coli: same
+spec STM-RM-089/BP/Test for Salmonella spp.: same
+spec STM-RM-091/BP/Appearance: same
+spec STM-RM-091/BP/Solubility: same
+spec STM-RM-091/BP/Identification (IR): same
+spec STM-RM-091/BP/Identification (chemical reaction, sodium): same
+spec STM-RM-091/BP/Identification (chemical reaction, barium chloride after hydrolysis): same
+spec STM-RM-091/BP/Identification (foam formation): same
+spec STM-RM-091/BP/Alkalinity: same
+spec STM-RM-091/BP/Non-esterified alcohols: same
+spec STM-RM-091/BP/Sodium chloride and sodium sulfate (total): same
+spec STM-RM-091/BP/Assay (sodium alkyl sulfates): same
+spec STM-RM-097/BP/Appearance: same
+spec STM-RM-097/BP/Solubility: same
+spec STM-RM-097/BP/Melting Point: same
+spec STM-RM-097/BP/Identification (UV): specific absorbance, solution B at 288-296 nm: same
+spec STM-RM-097/BP/Identification (UV): specific absorbance, solution C at 248-256 nm: same
+spec STM-RM-097/BP/Identification (UV): specific absorbance, solution C at 320-327 nm: same
+spec STM-RM-097/BP/Identification (IR): same
+spec STM-RM-097/BP/Identification (Thin-layer chromatography): same
+spec STM-RM-097/BP/Identification (Reaction of chlorides): same
+spec STM-RM-097/BP/Appearance of solution: same
+spec STM-RM-097/BP/Loss on Drying: same
+spec STM-RM-097/BP/Sulfated Ash: same
+spec STM-RM-097/BP/pH: same
+spec STM-RM-097/BP/Assay: same
+spec STM-RM-097/BP/Related substances: Impurity B: skip (held back: needs the held-back method "Pyridoxine hydrochloride related substances (BP, HPLC)")
+spec STM-RM-097/BP/Related substances: Unspecified impurities (each): skip (held back: needs the held-back method "Pyridoxine hydrochloride related substances (BP, HPLC)")
+spec STM-RM-097/BP/Related substances: Total: skip (held back: needs the held-back method "Pyridoxine hydrochloride related substances (BP, HPLC)")
+spec STM-RM-097/BP/Total aerobic microbial count (TAMC): same
+spec STM-RM-097/BP/Total Yeast and mold count (TYMC): same
+spec STM-RM-097/BP/Test for E.coli: same
+spec STM-RM-097/USP/Description: same
+spec STM-RM-097/USP/Solubility: same
+spec STM-RM-097/USP/Identification (IR): same
+spec STM-RM-097/USP/Identification (Reactions of Chloride): same
+spec STM-RM-097/USP/Loss on Drying: same
+spec STM-RM-097/USP/Residue on Ignition: same
+spec STM-RM-097/USP/Content of Chloride: same
+spec STM-RM-097/USP/Assay: skip (held back: needs the held-back method "Pyridoxine hydrochloride assay (USP, HPLC internal standard)")
+spec STM-RM-097/USP/Total aerobic microbial count (TAMC): same
+spec STM-RM-097/USP/Total Yeast and mold count (TYMC): same
+spec STM-RM-097/USP/Test for E.coli: same
+spec STM-RM-126/BP/Appearance: same
+spec STM-RM-126/BP/Miscibility: same
+spec STM-RM-126/BP/Total alkalinity: same
+spec STM-RM-126/BP/Assay (available chlorine): same
+spec STM-RM-147/In-house/Description: same
+spec STM-RM-147/In-house/Loss on drying: same
+spec STM-RM-147/In-house/Tapped density: same
+spec STM-RM-147/In-house/Total aerobic microbial count: same
+spec STM-RM-147/In-house/Total yeasts and molds count: same
+spec STM-RM-147/In-house/E. coli: same
+spec STM-RM-147/In-house/Salmonella spp.: same
+spec STM-RM-150/BP/Appearance: same
+spec STM-RM-150/BP/Solubility: same
+spec STM-RM-150/BP/Identification (pH): same
+spec STM-RM-150/BP/Identification (chemical reaction): same
+spec STM-RM-150/BP/Appearance of solution: same
+spec STM-RM-150/BP/Carbonates: same
+spec STM-RM-150/BP/Chlorides: same
+spec STM-RM-150/BP/Sulfates: same
+spec STM-RM-150/BP/Iron: same
+spec STM-RM-150/BP/Assay (total alkali, calculated as NaOH): same
+spec STM-RM-150/USP/Description: same
+spec STM-RM-150/USP/Solubility: same
+spec STM-RM-150/USP/Identification (pH): same
+spec STM-RM-150/USP/Identification (chemical reaction): same
+spec STM-RM-150/USP/Content of Sodium: skip (held back: needs the held-back method "Sodium by AAS (sodium hydroxide USP)")
+spec STM-RM-150/USP/Potassium: skip (held back: needs the held-back method "Potassium by AAS (sodium hydroxide USP)")
+spec STM-RM-150/USP/Insoluble Substances and Organic Matter: same
+spec STM-RM-150/USP/Assay (Total Alkali, calculated as NaOH): same
+spec STM-RM-150/USP/Sodium carbonate (Na2CO3), from the Assay (Total Alkali): same
+spec STM-RM-151/In-house/Description: same
+spec STM-RM-151/In-house/Solubility: same
+spec STM-RM-151/In-house/Odor & Taste: same
+spec STM-RM-151/In-house/Sulphated ash: same
+spec STM-RM-151/In-house/Loss on drying: same
+spec STM-RM-151/In-house/Lead: skip (held back: needs the held-back method "Lead by AAS (Siberian ginseng extract)")
+spec STM-RM-151/In-house/Total aerobic microbial count: same
+spec STM-RM-151/In-house/Total yeasts and molds count: same
+spec STM-RM-151/In-house/Test for E. coli: same
+spec STM-RM-151/In-house/Test for Salmonella spp.: same
+spec STM-RM-56/BP/Appearance: same
+spec STM-RM-56/BP/Solubility: same
+spec STM-RM-56/BP/Identification (IR): same
+spec STM-RM-56/BP/Identification (Reaction of Sodium): same
+spec STM-RM-56/BP/Identification (Reaction of Phosphate): same
+spec STM-RM-56/BP/pH: same
+spec STM-RM-56/BP/Specific optical rotation (dried substance): same
+spec STM-RM-56/BP/Impurity E: same
+spec STM-RM-56/BP/Inorganic phosphate: same
+spec STM-RM-56/BP/Loss on drying: same
+spec STM-RM-56/BP/Assay (riboflavin): same
+== supplier attributes ==
+attribute STM-RM-025/-/Particle Size: same
+attribute STM-RM-089/-/Grade: same
+attribute STM-RM-089/-/Degree of substitution: same
+attribute STM-RM-089/-/Sodium glycolate: same
+attribute STM-RM-089/-/Sodium chloride: same
+attribute STM-RM-089/-/Assay: same
+attribute STM-RM-089/-/Particles Size: same
+attribute STM-RM-147/-/Plant: same
+attribute STM-RM-147/-/Plant part used: same
+attribute STM-RM-147/-/Extraction solvent: same
+attribute STM-RM-147/-/Carrier / preservatives / additives: same
+attribute STM-RM-147/-/Lead (Pb): same
+attribute STM-RM-147/-/Mercury (Hg): same
+attribute STM-RM-147/-/Cadmium (Cd): same
+attribute STM-RM-147/-/Arsenic (As): same
+attribute STM-RM-147/-/Residual ethanol: same
+attribute STM-RM-147/-/Pesticides: same
+attribute STM-RM-151/-/Working standard: same
+attribute STM-RM-151/-/Plant part used: same
+attribute STM-RM-151/-/Extraction solvent: same
+attribute STM-RM-151/-/Extraction ratio: same
+attribute STM-RM-151/-/Carrier used: same
+attribute STM-RM-151/-/Particle size: same
+== not-applicable drafts ==
+not-applicable STM-RM-56/RM-RS/-: same
+not-applicable STM-RM-56/RM-COMPOSITION/-: same
+totals: create 0, update 0, same 282, skip 50, error 0 (dry-run, nothing written)

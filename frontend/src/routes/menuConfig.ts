@@ -177,9 +177,7 @@ const microConfigArea: MenuItem = {
   permission: PERMISSIONS.MASTER_DATA_MANAGE,
   children: [
     { label: "Test Master", path: "/laboratory-configuration/test-master", icon: ListAltOutlinedIcon, description: "Microbiology test definitions, steps, media and limits." },
-    { label: "Water", path: "/laboratory-configuration/water", icon: WaterDropOutlinedIcon, description: "Water sampling points and their test plans." },
     { label: "Environmental Monitoring", path: "/laboratory-configuration/environmental-monitoring", icon: AirOutlinedIcon, description: "EM locations, sampling methods and alert/action limits." },
-    { label: "After Cleaning", path: "/laboratory-configuration/after-cleaning", icon: CleaningServicesOutlinedIcon, description: "After-cleaning swab points and acceptance limits." },
     { label: "Solutions", path: "/laboratory-configuration/solution-master?lab=MICRO", icon: WaterOutlinedIcon, description: "Diluent, reagent and neutralizer recipes." },
     { label: "Equipment", path: "/laboratory-configuration/equipment", icon: SettingsOutlinedIcon, description: "Equipment types and settings used by microbiology tests." }
   ]
@@ -228,8 +226,7 @@ const physchemConfigArea: MenuItem = {
     { label: "Physicochemical Instruments", path: "/laboratory-configuration/fp-instruments", icon: MemoryOutlinedIcon, description: "Instrument types available to physicochemical tests." },
     { label: "Chromatography Columns", path: "/laboratory-configuration/columns", icon: ViewColumnOutlinedIcon, description: "Chromatography columns and their usage history." },
     { label: "Solutions", path: "/laboratory-configuration/solution-master", icon: WaterOutlinedIcon, description: "Solution recipes and standardization rules." },
-    { label: "HPLC Methods", path: "/laboratory-configuration/hplc-methods", icon: BubbleChartOutlinedIcon, description: "HPLC methods: conditions, analytes and suitability criteria." },
-    { label: "ICP Methods", path: "/laboratory-configuration/icp-methods", icon: BlurOnOutlinedIcon, description: "ICP methods: elements, wavelengths and limits." }
+    { label: "HPLC Methods", path: "/laboratory-configuration/hplc-methods", icon: BubbleChartOutlinedIcon, description: "HPLC methods: conditions, analytes and suitability criteria." }
   ]
 };
 
@@ -238,6 +235,8 @@ const itemsItem: MenuItem = { label: "Items", path: "/laboratory-configuration/i
 const masterTestingMaterialsItem: MenuItem = { label: "Master Testing Materials", description: "Reagents, standards, culture media, reference organisms and other materials the labs receive into stock.", path: "/laboratory-configuration/master-testing-materials", icon: GrainOutlinedIcon, group: "GENERAL LABORATORY CONFIGURATION", permission: PERMISSIONS.MASTER_DATA_MANAGE };
 const receivingConfigItem: MenuItem = { label: "Receiving Configuration", description: "Reference lists offered on the sample receiving form.", path: "/laboratory-configuration/receiving-configuration", icon: FactCheckOutlinedIcon, group: "GENERAL LABORATORY CONFIGURATION", permission: PERMISSIONS.MASTER_DATA_MANAGE };
 const masterDataWorkbookItem: MenuItem = { label: "Master Data Workbook", description: "Load master data and specifications from one Excel workbook.", path: "/laboratory-configuration/master-data-workbook", icon: TableViewOutlinedIcon, group: "GENERAL LABORATORY CONFIGURATION", permission: PERMISSIONS.MASTER_DATA_MANAGE };
+const waterItem: MenuItem = { label: "Water", path: "/laboratory-configuration/water", description: "Water systems, sampling points and each lab's tests and limits.", icon: WaterDropOutlinedIcon, group: "GENERAL LABORATORY CONFIGURATION", permission: PERMISSIONS.MASTER_DATA_MANAGE };
+const afterCleaningItem: MenuItem = { label: "After Cleaning", path: "/laboratory-configuration/after-cleaning", description: "Machines, parts and each lab's after-cleaning tests and limits.", icon: CleaningServicesOutlinedIcon, group: "GENERAL LABORATORY CONFIGURATION", permission: PERMISSIONS.MASTER_DATA_MANAGE };
 
 // Drops every item whose permission the user lacks, then any parent left
 // with no children.
@@ -286,7 +285,7 @@ export function getGroupedMenu({ role, permissions, labCodes, physchemAreas }: M
     items.push(buildPhyschemArea(areas), physchemConfigArea);
   }
   items.push(
-    itemsItem, masterTestingMaterialsItem, receivingConfigItem, masterDataWorkbookItem,
+    itemsItem, masterTestingMaterialsItem, receivingConfigItem, masterDataWorkbookItem, waterItem, afterCleaningItem,
     documentControlItem(role, permissions), ...adminItems, reportsItem, monitoringPlanItem, oosTrackingItem
   );
   return groupItems(visibleItems(items, permissions));

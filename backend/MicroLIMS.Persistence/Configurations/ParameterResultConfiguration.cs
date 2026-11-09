@@ -15,7 +15,7 @@ public class ParameterResultConfiguration : IEntityTypeConfiguration<ParameterRe
         builder.Property(r => r.ReportedValue).HasPrecision(28, 10);
         builder.Property(r => r.ReportedDisplay).IsRequired().HasMaxLength(100);
         builder.Property(r => r.Unit).HasMaxLength(50);
-        builder.Property(r => r.SpecLimit).HasMaxLength(100);
+        builder.Property(r => r.SpecLimit).HasMaxLength(1000);   // holds a qualitative spec's expected text (Specification.ExpectedResultText is 1000)
         builder.Property(r => r.ComparisonStatus).HasConversion<string>().IsRequired().HasMaxLength(50);
         builder.Property(r => r.CalculationJson).HasColumnType("jsonb");
         builder.Property(r => r.IsActive).HasDefaultValue(true);
@@ -33,6 +33,7 @@ public class ParameterResultConfiguration : IEntityTypeConfiguration<ParameterRe
         builder.HasOne(r => r.Specification)
             .WithMany()
             .HasForeignKey(r => r.SpecificationId)
+            .IsRequired(false)
             .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasIndex(r => new { r.TestOrderId, r.IsActive });

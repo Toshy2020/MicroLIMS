@@ -51,7 +51,7 @@ public class MonitoringPlanServiceTests
         w.Db.RoomTestConfigurations.Add(w.RoomConfig);
         await w.Db.SaveChangesAsync();
 
-        w.Service = new MonitoringPlanService(w.Db, clock, new ElectronicSignatureService(w.Db));
+        w.Service = new MonitoringPlanService(w.Db, clock, new ElectronicSignatureService(w.Db), new UserSectionScopeService(w.Db));
         return w;
     }
 

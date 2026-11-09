@@ -68,10 +68,6 @@ vi.mock("./services/HplcMethodService", () => ({
   HplcMethodService: { getAll: vi.fn().mockResolvedValue([]) }
 }));
 
-vi.mock("./services/IcpMethodService", () => ({
-  IcpMethodService: { getAll: vi.fn().mockResolvedValue([]) }
-}));
-
 vi.mock("./services/SolutionMasterService", () => ({
   SolutionMasterService: { getAll: vi.fn().mockResolvedValue([]) }
 }));

@@ -64,7 +64,7 @@ public class SpecificationMasterDataService
                 s.LowerInclusive, s.UpperInclusive, s.Target, s.Tolerance, s.ToleranceMode, s.ExpectedResultText,
                 s.ExpectedState, s.SampleQuantity, s.SampleQuantityUnit, s.ResultBasis,
                 s.LabelClaim, s.LabelClaimUnit, s.DosageForm, s.Stages.Select(SpecificationStageResponse.From).ToList(),
-                canEdit, def?.Section?.Name ?? string.Empty, s.HplcMethodAnalyteId, s.ProductionStageRole, s.IcpMethodElementId, s.Grade, s.RelatedSubstanceRow, s.HplcMethodImpurityId) { Version = s.Version };
+                canEdit, def?.Section?.Name ?? string.Empty, s.HplcMethodAnalyteId, s.ProductionStageRole, s.IcpTestElementId, s.Grade, s.RelatedSubstanceRow, s.HplcMethodImpurityId) { Version = s.Version };
         }).ToList();
 
         return rows;
@@ -120,7 +120,7 @@ public class SpecificationMasterDataService
             HplcMethodAnalyteId = request.HplcMethodAnalyteId,
             RelatedSubstanceRow = request.RelatedSubstanceRow,
             HplcMethodImpurityId = request.HplcMethodImpurityId,
-            IcpMethodElementId = request.IcpMethodElementId,
+            IcpTestElementId = request.IcpTestElementId,
             ProductionStageRole = request.ProductionStageRole,
             Grade = request.Grade,
             Stages = request.Stages?.Select(s => new SpecificationStage
@@ -187,7 +187,7 @@ public class SpecificationMasterDataService
         spec.HplcMethodAnalyteId = request.HplcMethodAnalyteId;
         spec.RelatedSubstanceRow = request.RelatedSubstanceRow;
         spec.HplcMethodImpurityId = request.HplcMethodImpurityId;
-        spec.IcpMethodElementId = request.IcpMethodElementId;
+        spec.IcpTestElementId = request.IcpTestElementId;
         spec.ProductionStageRole = request.ProductionStageRole;
         spec.Grade = request.Grade;
 

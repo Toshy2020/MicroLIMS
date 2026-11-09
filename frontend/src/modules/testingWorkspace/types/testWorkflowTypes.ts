@@ -142,6 +142,19 @@ export interface CompletedStepSummary {
   status: string | null;
 }
 
+export interface CurrentStepLocationItem {
+  sampleLocationId: number;
+  name: string;
+  limitType: "Range" | "NotMoreThan" | "NotLessThan" | "Qualitative" | string;
+  lowerLimit: number | null;
+  upperLimit: number | null;
+  expectedResultText: string | null;
+  unit: string | null;
+  specLimit: string | null;
+  value: number | null;
+  text: string | null;
+}
+
 export interface CurrentStepResponse {
   testOrderId: number;
   step: TestWorkflowStepDto | null;
@@ -158,6 +171,8 @@ export interface CurrentStepResponse {
   finalResult: string | null;
   allSteps: { stepOrder: number; stepName: string }[];
   completedSteps: CompletedStepSummary[];
+  locationEntry?: boolean;
+  locations?: CurrentStepLocationItem[];
   // Legacy CountTest/EM fields, still present on the same response for those workflow types:
   incubation?: {
     id: number; mediaId?: number; equipmentId?: number;

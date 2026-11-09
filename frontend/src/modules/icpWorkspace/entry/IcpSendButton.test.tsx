@@ -30,37 +30,25 @@ const baseMockEntry: IcpSampleEntryDto = {
   testCode: "ICP-MINERALS",
   stageName: "Finished Product",
   status: "Assigned",
-  mode: "MineralAssay",
-  amountUnit: "Gram",
-  unitAmount: 0.5,
-  sampleVolumeMl: 50,
-  dilutionFactor: 1,
+  mode: "Assay",
+  sampleForm: "Solid",
+  theoreticalAmount: 0.5,
+  specificGravity: null,
+  actualWeightG: 0.5,
   elements: [
-    { icpMethodElementId: 1, symbol: "Fe", valid: true, reason: null },
-    { icpMethodElementId: 2, symbol: "Zn", valid: true, reason: null }
-  ],
-  replicates: [
-    {
-      replicateNo: 1,
-      sampleAmount: 1.0,
-      volumeMl: 50,
-      dilutionFactor: 1,
-      concentrations: [
-        { icpMethodElementId: 1, solutionMgPerL: 10.5 },
-        { icpMethodElementId: 2, solutionMgPerL: 5.2 }
-      ]
-    }
+    { icpTestElementId: 1, symbol: "Fe", targetPpm: 10, valid: true, reason: null, resultPpm: 10.5 },
+    { icpTestElementId: 2, symbol: "Zn", targetPpm: 5, valid: true, reason: null, resultPpm: 5.2 }
   ],
   preview: [
     {
-      icpMethodElementId: 1,
+      icpTestElementId: 1,
       parameterName: "Iron",
-      quantity: "IcpMgPerUnit",
-      value: 10.5,
-      display: "10.5 mg/tab",
-      unit: "mg/tab",
+      quantity: "IcpAssayPercent",
+      value: 105,
+      display: "105.0 %",
+      unit: "%",
       status: "WithinLimits",
-      specLimit: "9.0 - 11.0",
+      specLimit: "90-110",
       problem: null
     }
   ],

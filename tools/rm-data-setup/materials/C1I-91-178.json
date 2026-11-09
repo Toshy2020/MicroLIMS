@@ -1,0 +1,371 @@
+{
+  "itemCode": "C1I-91-178",
+  "stmCode": null,
+  "itemName": "Potassium Iodide",
+  "stmFile": null,
+  "specFiles": ["Potassium Iodide__Specifications sheet Potassium Iodide No micro.txt"],
+  "minQuantity": {
+    "routine": 100,
+    "retest": null,
+    "retention": null,
+    "unit": "g",
+    "source": "Potassium Iodide__Specifications sheet Potassium Iodide No micro.txt:23"
+  },
+  "grades": [
+    {
+      "grade": null,
+      "rows": [
+        {
+          "testCode": "RM-DESC",
+          "parameterName": "Appearance",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "White or almost white powder or colorless crystals.",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Potassium Iodide__Specifications sheet Potassium Iodide No micro.txt:11"
+        },
+        {
+          "testCode": "RM-SOLUB",
+          "parameterName": "Solubility",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Very soluble in water, freely soluble in glycerol, soluble in ethanol (96 per cent).",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Potassium Iodide__Specifications sheet Potassium Iodide No micro.txt:12"
+        },
+        {
+          "testCode": "RM-ID-KI",
+          "parameterName": "Identification (reactions of iodides: precipitate)",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "The precipitate does not dissolve.",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Potassium Iodide__Specifications sheet Potassium Iodide No micro.txt:13",
+          "heldBack": "no STM: method not documented"
+        },
+        {
+          "testCode": "RM-ID-KI",
+          "parameterName": "Identification (reactions of potassium)",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "A white crystalline precipitate is formed.",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Potassium Iodide__Specifications sheet Potassium Iodide No micro.txt:14",
+          "heldBack": "no STM: method not documented"
+        },
+        {
+          "testCode": "RM-SOLAPP",
+          "parameterName": "Appearance of solution",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Solution S is clear and colorless.",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Potassium Iodide__Specifications sheet Potassium Iodide No micro.txt:15"
+        },
+        {
+          "testCode": "RM-ALK-KI",
+          "parameterName": "Alkalinity (0.01 M hydrochloric acid to colour change)",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 0.5,
+          "lowerInclusive": null,
+          "unit": "mL",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Potassium Iodide__Specifications sheet Potassium Iodide No micro.txt:16",
+          "heldBack": "no STM: method not documented"
+        },
+        {
+          "testCode": "RM-IODATE-KI",
+          "parameterName": "Iodates",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "No reddish-brown colour develops.",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Potassium Iodide__Specifications sheet Potassium Iodide No micro.txt:17",
+          "heldBack": "no STM: method not documented"
+        },
+        {
+          "testCode": "RM-LT-SO4",
+          "parameterName": "Sulfates",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Complies (NMT 150 ppm)",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Potassium Iodide__Specifications sheet Potassium Iodide No micro.txt:18"
+        },
+        {
+          "testCode": "RM-THIOSULFATE",
+          "parameterName": "Thiosulfates",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "A reddish-brown colour is produced.",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Potassium Iodide__Specifications sheet Potassium Iodide No micro.txt:19"
+        },
+        {
+          "testCode": "RM-LT-FE",
+          "parameterName": "Iron",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Complies (NMT 20 ppm)",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Potassium Iodide__Specifications sheet Potassium Iodide No micro.txt:20"
+        },
+        {
+          "testCode": "RM-LOD",
+          "parameterName": "Loss on drying",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 1.0,
+          "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Potassium Iodide__Specifications sheet Potassium Iodide No micro.txt:21"
+        },
+        {
+          "testCode": "RM-TIT-KI",
+          "parameterName": "Assay (dried substance)",
+          "limitType": "Range",
+          "lower": 99.0,
+          "upper": 100.5,
+          "lowerInclusive": true,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": "PercentDriedBasis",
+          "referenceStandard": "BP",
+          "source": "Potassium Iodide__Specifications sheet Potassium Iodide No micro.txt:22",
+          "heldBack": "no STM: method not documented"
+        },
+        {
+          "testCode": "TAMC",
+          "parameterName": "Total aerobic microbial count (TAMC)",
+          "limitType": "CountTiered",
+          "lower": null,
+          "upper": 1000,
+          "lowerInclusive": null,
+          "unit": "CFU/g",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "Spec sheet additional requirements",
+          "source": "Potassium Iodide__Specifications sheet Potassium Iodide No micro.txt:23"
+        },
+        {
+          "testCode": "TYMC",
+          "parameterName": "Total combined yeasts and molds count (TYMC)",
+          "limitType": "CountTiered",
+          "lower": null,
+          "upper": 100,
+          "lowerInclusive": null,
+          "unit": "CFU/g",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "Spec sheet additional requirements",
+          "source": "Potassium Iodide__Specifications sheet Potassium Iodide No micro.txt:23"
+        },
+        {
+          "testCode": "E.coli",
+          "parameterName": "Test for E. coli",
+          "limitType": "PresenceAbsence",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": "per 10 g",
+          "expectedResultText": "Absent / 10 gm",
+          "expectedState": "Absence",
+          "resultBasis": null,
+          "referenceStandard": "Spec sheet additional requirements",
+          "source": "Potassium Iodide__Specifications sheet Potassium Iodide No micro.txt:23"
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "testCode": "RM-DESC",
+      "procedure": "No STM: method not documented (general catalog test).",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {},
+      "source": "Potassium Iodide__Specifications sheet Potassium Iodide No micro.txt:11"
+    },
+    {
+      "testCode": "RM-SOLUB",
+      "procedure": "No STM: method not documented (general catalog test).",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {},
+      "source": "Potassium Iodide__Specifications sheet Potassium Iodide No micro.txt:12"
+    },
+    {
+      "testCode": "RM-ID-KI",
+      "procedure": "No STM: method not documented (iodide and potassium identifications).",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "details": {},
+      "source": "Potassium Iodide__Specifications sheet Potassium Iodide No micro.txt:13-14",
+      "heldBack": "no STM: method not documented"
+    },
+    {
+      "testCode": "RM-SOLAPP",
+      "procedure": "No STM: method not documented (general catalog test).",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {},
+      "source": "Potassium Iodide__Specifications sheet Potassium Iodide No micro.txt:15"
+    },
+    {
+      "testCode": "RM-ALK-KI",
+      "procedure": "No STM: method not documented (alkalinity, colorimetric end point).",
+      "kind": "specific",
+      "workflow": "Measurement",
+      "details": {},
+      "source": "Potassium Iodide__Specifications sheet Potassium Iodide No micro.txt:16",
+      "heldBack": "no STM: method not documented"
+    },
+    {
+      "testCode": "RM-IODATE-KI",
+      "procedure": "No STM: method not documented (iodates).",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "details": {},
+      "source": "Potassium Iodide__Specifications sheet Potassium Iodide No micro.txt:17",
+      "heldBack": "no STM: method not documented"
+    },
+    {
+      "testCode": "RM-LT-SO4",
+      "procedure": "No STM: method not documented (general catalog test).",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {},
+      "source": "Potassium Iodide__Specifications sheet Potassium Iodide No micro.txt:18"
+    },
+    {
+      "testCode": "RM-THIOSULFATE",
+      "procedure": "No STM: method not documented (general catalog test).",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {},
+      "source": "Potassium Iodide__Specifications sheet Potassium Iodide No micro.txt:19"
+    },
+    {
+      "testCode": "RM-LT-FE",
+      "procedure": "No STM: method not documented (general catalog test).",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {},
+      "source": "Potassium Iodide__Specifications sheet Potassium Iodide No micro.txt:20"
+    },
+    {
+      "testCode": "RM-LOD",
+      "procedure": "No STM: method not documented (general catalog test).",
+      "kind": "general",
+      "workflow": "Gravimetric",
+      "details": {},
+      "source": "Potassium Iodide__Specifications sheet Potassium Iodide No micro.txt:21"
+    },
+    {
+      "testCode": "RM-TIT-KI",
+      "procedure": "No STM: method not documented (assay by titration, dried substance).",
+      "kind": "specific",
+      "workflow": "Titration",
+      "details": {},
+      "source": "Potassium Iodide__Specifications sheet Potassium Iodide No micro.txt:22",
+      "heldBack": "no STM: method not documented"
+    },
+    {
+      "testCode": "TAMC",
+      "procedure": "No STM: method not documented; limit from spec sheet additional requirements.",
+      "kind": "general",
+      "workflow": "CountTest",
+      "details": {},
+      "source": "Potassium Iodide__Specifications sheet Potassium Iodide No micro.txt:23"
+    },
+    {
+      "testCode": "TYMC",
+      "procedure": "No STM: method not documented; limit from spec sheet additional requirements.",
+      "kind": "general",
+      "workflow": "CountTest",
+      "details": {},
+      "source": "Potassium Iodide__Specifications sheet Potassium Iodide No micro.txt:23"
+    },
+    {
+      "testCode": "E.coli",
+      "procedure": "No STM: method not documented; limit from spec sheet additional requirements.",
+      "kind": "general",
+      "workflow": "Observation",
+      "details": {},
+      "source": "Potassium Iodide__Specifications sheet Potassium Iodide No micro.txt:23"
+    }
+  ],
+  "notApplicable": [],
+  "supplierAttributes": [],
+  "reagents": [],
+  "openQuestions": [
+    {
+      "question": "Spec-only: no STM for this material (the spec sheet carries C1I-91-178 as its STM code). Every specific test is held back until an STM documents the method.",
+      "source": "Potassium Iodide__Specifications sheet Potassium Iodide No micro.txt:9, 11-22"
+    },
+    {
+      "question": "The file name says 'No micro', but the sheet's additional requirements still print TAMC NMT 1000, TYMC NMT 100 and E. coli absent in 10 g. Micro rows loaded as written; confirm whether micro applies to this material.",
+      "source": "Potassium Iodide__Specifications sheet Potassium Iodide No micro.txt:23"
+    },
+    {
+      "question": "Alkalinity is printed 'Not more than 0.5 mL of 0.01 M hydrochloric acid' with no indicator named. Loaded as a Measurement (mL); confirm the indicator and end point.",
+      "source": "Potassium Iodide__Specifications sheet Potassium Iodide No micro.txt:16"
+    }
+  ]
+}

@@ -6,6 +6,7 @@ import { PageHeader } from "../../../components/PageHeader";
 import { ConfirmationDialog } from "../../../components/ConfirmationDialog";
 import { ConfigMasterList, MasterListItem, SummaryTiles } from "../../../components/configHierarchy";
 import { useTestDefinitions } from "../../../hooks/useTestDefinitions";
+import { useEditableTestCodes } from "../../../hooks/useEditableTestCodes";
 import { WaterConfigService } from "./services/WaterConfigService";
 import { WaterLocationList } from "./components/WaterLocationList";
 import { WaterDepartmentPanel } from "./components/WaterDepartmentPanel";
@@ -23,6 +24,7 @@ const NO_CONFIGS: SamplingConfig[] = [];
 // in a side panel.
 export function WaterConfigPage() {
   const { options } = useTestDefinitions();
+  const { editableCodes } = useEditableTestCodes();
   const [departments, setDepartments] = useState<WaterDept[]>([]);
   const [configsByPoint, setConfigsByPoint] = useState<Record<number, SamplingConfig[]>>({});
   const [loading, setLoading] = useState(true);
@@ -260,6 +262,7 @@ export function WaterConfigPage() {
                   onDelete={setPendingDeletePoint}
                   onAdd={() => setPointPanel({ open: true, point: null })}
                   addLabel={`Add sample location to ${selectedDept.name}`}
+                  editableCodes={editableCodes}
                 />
               </Box>
             </>
@@ -280,6 +283,7 @@ export function WaterConfigPage() {
         departments={departments}
         configs={pointPanelConfigs}
         isCountTest={isCountTest}
+        editableCodes={editableCodes}
         onClose={() => {
           setPointPanel({ open: false, point: null });
           // A partly failed save may have written the location already.

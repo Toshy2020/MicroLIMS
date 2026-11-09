@@ -89,7 +89,16 @@ export function SampleAssignmentPanel({
       key: "sampleNumber",
       label: "Sample Number",
       sortable: true,
-      render: (s) => <span style={{ fontFamily: monospaceFontFamily, fontWeight: 600 }}>{s.sampleNumber}</span>
+      render: (s) => (
+        <div>
+          <span style={{ fontFamily: monospaceFontFamily, fontWeight: 600 }}>{s.sampleNumber}</span>
+          {s.subjectName && (
+            <Typography variant="caption" sx={{ display: "block", color: "text.secondary" }}>
+              {s.subjectName}
+            </Typography>
+          )}
+        </div>
+      )
     },
     { key: "batchNumber", label: "Batch", sortable: true, render: (s) => s.batchNumber ?? "—" },
     { key: "productName", label: "Product", sortable: true, render: (s) => s.productName ?? "—" },

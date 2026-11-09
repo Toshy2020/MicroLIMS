@@ -1,0 +1,589 @@
+{
+  "itemCode": "STM-RM-107",
+  "itemName": "Magnesium Hydroxide ( Heavy)",
+  "stmCode": "STM-RM-107",
+  "stmFile": "Magnesium Hydroxide__Magnesium Hydroxide-SM.txt",
+  "specFiles": [
+    "Magnesium Hydroxide__Specifications sheet Magnesium Hydroxide.txt"
+  ],
+  "minQuantity": {
+    "routine": 100,
+    "retest": 50,
+    "retention": 100,
+    "unit": "g",
+    "source": "Magnesium Hydroxide__Specifications sheet Magnesium Hydroxide.txt:23; Magnesium Hydroxide__Magnesium Hydroxide-SM.txt:43"
+  },
+  "grades": [
+    {
+      "grade": "USP",
+      "rows": [
+        {
+          "testCode": "RM-DESC",
+          "parameterName": "Description",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Bulky, white powder",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Magnesium Hydroxide__Specifications sheet Magnesium Hydroxide.txt:11"
+        },
+        {
+          "testCode": "RM-SOLUB",
+          "parameterName": "Solubility",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Soluble in dilute acids; practically insoluble in water and in alcohol",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Magnesium Hydroxide__Specifications sheet Magnesium Hydroxide.txt:12"
+        },
+        {
+          "testCode": "RM-ID-MG-USP",
+          "parameterName": "Identification",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "White, crystalline precipitate",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Magnesium Hydroxide__Specifications sheet Magnesium Hydroxide.txt:13"
+        },
+        {
+          "testCode": "RM-SOLSALTS-MGOH",
+          "parameterName": "Soluble Salts (acid consumed)",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 2.0,
+          "lowerInclusive": null,
+          "unit": "mL",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Magnesium Hydroxide__Specifications sheet Magnesium Hydroxide.txt:14"
+        },
+        {
+          "testCode": "RM-SOLSALTS-MGOH",
+          "parameterName": "Soluble Salts (residue)",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 2.0,
+          "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Magnesium Hydroxide__Specifications sheet Magnesium Hydroxide.txt:14"
+        },
+        {
+          "testCode": "RM-CARB-MGOH",
+          "parameterName": "Carbonate",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "NMT a slight effervescence is observed",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Magnesium Hydroxide__Specifications sheet Magnesium Hydroxide.txt:15"
+        },
+        {
+          "testCode": "RM-CA-AAS-MGOH",
+          "parameterName": "Limit of Calcium",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 1.5,
+          "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Magnesium Hydroxide__Specifications sheet Magnesium Hydroxide.txt:16"
+        },
+        {
+          "testCode": "RM-PB-ICP-MGOH",
+          "parameterName": "Limit of Lead",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 1.5,
+          "lowerInclusive": null,
+          "unit": "ppm",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Magnesium Hydroxide__Specifications sheet Magnesium Hydroxide.txt:17"
+        },
+        {
+          "testCode": "RM-LOI-MGOH",
+          "parameterName": "Loss on Ignition",
+          "limitType": "Range",
+          "lower": 30.0,
+          "upper": 33.0,
+          "lowerInclusive": true,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Magnesium Hydroxide__Specifications sheet Magnesium Hydroxide.txt:18"
+        },
+        {
+          "testCode": "RM-LOD",
+          "parameterName": "Loss on drying",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 2.0,
+          "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Magnesium Hydroxide__Specifications sheet Magnesium Hydroxide.txt:19"
+        },
+        {
+          "testCode": "RM-ASSAY-TITR-MGOH",
+          "parameterName": "Assay",
+          "limitType": "Range",
+          "lower": 95.0,
+          "upper": 100.5,
+          "lowerInclusive": true,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": "PercentDriedBasis",
+          "referenceStandard": "USP",
+          "source": "Magnesium Hydroxide__Specifications sheet Magnesium Hydroxide.txt:20"
+        },
+        {
+          "testCode": "RM-BULKD",
+          "parameterName": "Bulk Density",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "About 550 g/L",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "Inhouse",
+          "source": "Magnesium Hydroxide__Specifications sheet Magnesium Hydroxide.txt:21"
+        },
+        {
+          "testCode": "E.coli",
+          "parameterName": "Test for E. coli",
+          "limitType": "PresenceAbsence",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": "per gm",
+          "expectedResultText": "E. coli:  Absent /gm",
+          "expectedState": "Absence",
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Magnesium Hydroxide__Specifications sheet Magnesium Hydroxide.txt:22"
+        },
+        {
+          "testCode": "TAMC",
+          "parameterName": "Total Aerobic Microbial Count",
+          "limitType": "CountTiered",
+          "lower": null,
+          "upper": 1000,
+          "lowerInclusive": null,
+          "unit": "CFU / gm",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Magnesium Hydroxide__Specifications sheet Magnesium Hydroxide.txt:23"
+        },
+        {
+          "testCode": "TYMC",
+          "parameterName": "Total combined Yeasts & Molds Count",
+          "limitType": "CountTiered",
+          "lower": null,
+          "upper": 100,
+          "lowerInclusive": null,
+          "unit": "CFU / gm",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Magnesium Hydroxide__Specifications sheet Magnesium Hydroxide.txt:23"
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "testCode": "RM-DESC",
+      "procedure": "Under strong white light, check each received sample container separately in clean, transparent watch glass or glass dish to detect any foreign particles, conformance of colour & compliance with the visual specifications.",
+      "kind": "general",
+      "workflow": "Observation",
+      "details": {
+        "perContainer": true,
+        "reference": "USP 2024 Monograph for Magnesium Hydroxide"
+      },
+      "source": "Magnesium Hydroxide__Magnesium Hydroxide-SM.txt:30"
+    },
+    {
+      "testCode": "RM-SOLUB",
+      "procedure": "Weigh 100 mg of sample in a stoppered tube, add solvent in steps (0.1 mL, 0.9 mL, 2 mL, 7 mL; then 10 mg/10 mL, 1 mg/10 mL) to classify solubility. Test with dilute acids and alcohol.",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {
+        "solvents": [
+          "dilute acids",
+          "water",
+          "alcohol"
+        ],
+        "reference": "USP 2024 Monograph for Magnesium Hydroxide"
+      },
+      "source": "Magnesium Hydroxide__Magnesium Hydroxide-SM.txt:31"
+    },
+    {
+      "testCode": "RM-ID-MG-USP",
+      "procedure": "Sample solution: 50 mg/mL in 3 N HCl. Add 3 mL ammonium chloride, neutralize with ammonium carbonate TS (yields NMT a slightly hazy precipitate); subsequent addition of dibasic sodium phosphate TS produces a white crystalline precipitate insoluble in 6 N ammonium hydroxide.",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "details": {
+        "sample": "50 mg/mL in 3 N HCl",
+        "reagents": "3 mL ammonium chloride, ammonium carbonate TS, dibasic sodium phosphate TS, 6 N ammonium hydroxide",
+        "reference": "USP <191> Chemical Identification Tests, Magnesium; USP 2024 Monograph for Magnesium Hydroxide"
+      },
+      "source": "Magnesium Hydroxide__Magnesium Hydroxide-SM.txt:32"
+    },
+    {
+      "testCode": "RM-SOLSALTS-MGOH",
+      "procedure": "Boil 2.0 g with 100 mL water 5 min in covered beaker, filter hot, cool, dilute to 100 mL. 1) Titrate 50 mL with 0.10 N H2SO4 using methyl red TS: NMT 2.0 mL acid consumed. 2) Evaporate 25 mL to dryness, dry at 105 °C for 3 h: residue NMT 10 mg (2.0%).",
+      "kind": "specific",
+      "workflow": "Measurement",
+      "details": {
+        "samplePrep": "2.0 g boiled in 100 mL water 5 min, filtered hot, cooled, made up to 100 mL",
+        "titration": "50 mL titrated with 0.10 N H2SO4 to methyl red; NMT 2.0 mL consumed",
+        "residue": "25 mL evaporated to dryness, dried at 105 °C for 3 h; NMT 10 mg (2.0%)",
+        "reference": "USP 2024 Monograph for Magnesium Hydroxide"
+      },
+      "source": "Magnesium Hydroxide__Magnesium Hydroxide-SM.txt:33"
+    },
+    {
+      "testCode": "RM-CARB-MGOH",
+      "procedure": "Boil 0.10 g with 5 mL water, cool, add 5 mL 6 N acetic acid. NMT a slight effervescence is observed.",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "details": {
+        "sample": "0.10 g in 5 mL water, boiled, cooled",
+        "reagent": "5 mL 6 N acetic acid",
+        "reference": "USP 2024 Monograph for Magnesium Hydroxide"
+      },
+      "source": "Magnesium Hydroxide__Magnesium Hydroxide-SM.txt:34"
+    },
+    {
+      "testCode": "RM-CA-AAS-MGOH",
+      "procedure": "AAS for calcium: Dissolve 250 mg previously dried sample in 30 mL dilute HCl, transfer to 200 mL flask with 4 mL lanthanum solution (50 mg/mL), dilute to volume. Standards: 1.0, 5.0, 10.0, 15.0 µg/mL Ca with 20 mL lanthanum solution and 40 mL dilute HCl per 1000 mL. Blank: 4 mL lanthanum + 10 mL dilute HCl to 200 mL. Wavelength 422.7 nm, Ca hollow-cathode, nitrous oxide-acetylene flame. Result = (CS x F / CU) x 100; F = 0.001 mg/µg.",
+      "kind": "specific",
+      "workflow": "IcpMethodAssay",
+      "details": {
+        "technique": "atomic absorption spectrophotometry (AAS, calibration curve)",
+        "wavelengthNm": 422.7,
+        "lamp": "Calcium hollow-cathode",
+        "flame": "nitrous oxide-acetylene",
+        "lanthanumSolution": "50 mg/mL lanthanum (58.65 g La2O3 + 250 mL HCl to 1000 mL)",
+        "samplePrep": "250 mg dried in 30 mL dilute HCl + 4 mL lanthanum to 200 mL",
+        "standardLevelsUgPerMl": [1.0, 5.0, 10.0, 15.0],
+        "formula": "Result = (CS x F / CU) x 100",
+        "reference": "USP <852> Atomic Absorption Spectroscopy; USP 2024 Monograph for Magnesium Hydroxide"
+      },
+      "source": "Magnesium Hydroxide__Magnesium Hydroxide-SM.txt:35"
+    },
+    {
+      "testCode": "RM-PB-ICP-MGOH",
+      "procedure": "ICP-MS / ICP-OES for lead: Accurately weigh ~0.25 g sample, dissolve cautiously in 3.0 mL HNO3, dilute to 50 mL. Standard stock: 100 µg/L in 2% HNO3. Standard A: 10 µg/L, Standard B: 1.0 µg/L in 6% HNO3 blank. Internal standard: 20 µg/L Tl in water. Mode: Quadrupole ICP-MS (isotopes 206, 207, 208 Pb, 205 Tl) or ICP-OES (220.353 nm). Linearity r >= 0.999. Duplicate aspiration, report lead content.",
+      "kind": "specific",
+      "workflow": "IcpMethodAssay",
+      "details": {
+        "mode": "Quadrupole ICP-MS or ICP-OES",
+        "isotopes": "206, 207, 208 amu (Pb); 205 amu (Tl internal standard)",
+        "icpOesWavelengthNm": 220.353,
+        "samplePrep": "0.25 g in 3.0 mL HNO3 diluted to 50 mL",
+        "internalStandard": "20 µg/L thallium in water",
+        "blank": "6.0% (v/v) nitric acid in water",
+        "diluent": "2.0% (v/v) nitric acid in water",
+        "standards": "1.0 µg/L and 10 µg/L lead",
+        "linearity": "r >= 0.999",
+        "reference": "USP <730> Plasma Spectrochemistry; USP 2024 Monograph for Magnesium Hydroxide"
+      },
+      "source": "Magnesium Hydroxide__Magnesium Hydroxide-SM.txt:36"
+    },
+    {
+      "testCode": "RM-LOI-MGOH",
+      "procedure": "Weigh empty crucible ignited at 800 °C (W0). Weigh accurately 1.000 g into crucible (W1). Ignite in muffle at 800 °C for 2 h, cool in desiccator, weigh (W2). Repeat to constant weight. % Loss on Ignition = (W1 - W2) / (W1 - W0) x 100.",
+      "kind": "general",
+      "workflow": "Gravimetric",
+      "details": {
+        "sampleG": 1.0,
+        "ignitionTempC": 800,
+        "ignitionTimeH": 2,
+        "formula": "% Loss on Ignition = (W1 - W2) / (W1 - W0) x 100",
+        "reference": "USP <733> Loss on Ignition; USP 2024 Monograph for Magnesium Hydroxide"
+      },
+      "source": "Magnesium Hydroxide__Magnesium Hydroxide-SM.txt:37"
+    },
+    {
+      "testCode": "RM-LOD",
+      "procedure": "Weigh empty weighing bottle dried at 105 °C (W0). Weigh accurately 1.000 g into bottle (W1). Dry in oven at 105 °C for 2 h, cool in desiccator, weigh (W2). Repeat to constant weight. % Loss on Drying = (W1 - W2) / (W1 - W0) x 100.",
+      "kind": "general",
+      "workflow": "Gravimetric",
+      "details": {
+        "sampleG": 1.0,
+        "dryingTempC": 105,
+        "dryingTimeH": 2,
+        "formula": "% Loss on Drying = (W1 - W2) / (W1 - W0) x 100",
+        "reference": "USP <731> Loss on Drying; USP 2024 Monograph for Magnesium Hydroxide"
+      },
+      "source": "Magnesium Hydroxide__Magnesium Hydroxide-SM.txt:38"
+    },
+    {
+      "testCode": "RM-ASSAY-TITR-MGOH",
+      "procedure": "Weigh 75 mg previously dried at 105 °C for 2 h into conical flask, add 2 mL 3 N HCl, swirl to dissolve. Add 100 mL water, adjust to pH 7 with 1 N NaOH (litmus paper). Add 5 mL ammonia-ammonium chloride buffer TS and 0.15 mL eriochrome black TS. Titrate with 0.05 M edetate disodium VS to blue endpoint. 1 mL 0.05 M EDTA = 2.916 mg Mg(OH)2. Assay % = (E.P x eq.wt x F x 100) / Wt.",
+      "kind": "specific",
+      "workflow": "Titration",
+      "details": {
+        "sampleMg": 75,
+        "sampleDrying": "105 °C for 2 h",
+        "solvent": "2 mL 3 N HCl + 100 mL water, adjusted to pH 7 with 1 N NaOH",
+        "buffer": "5 mL ammonia-ammonium chloride buffer TS",
+        "indicator": "0.15 mL eriochrome black TS",
+        "titrant": "0.05 M edetate disodium VS",
+        "endpoint": "visual blue",
+        "equivalenceFactor": "1 mL 0.05 M EDTA = 2.916 mg Mg(OH)2",
+        "formula": "Assay % = (E.P * eq.wt * F * 100) / Wt",
+        "specBasis": "dried basis",
+        "reference": "USP 2024 Monograph for Magnesium Hydroxide"
+      },
+      "source": "Magnesium Hydroxide__Magnesium Hydroxide-SM.txt:39"
+    },
+    {
+      "testCode": "RM-BULKD",
+      "procedure": "Weigh empty and dry cylinder, tare balance. Place 10 mL bulky powder sample in cylinder, weigh 10 mL sample. Bulk Density = Weight / Volume (10 mL).",
+      "kind": "general",
+      "workflow": "Measurement",
+      "details": {
+        "volumeMl": 10,
+        "formula": "Bulk Density = Weight / Volume (10 mL)",
+        "reference": "USP 2024 Monograph for Magnesium Hydroxide"
+      },
+      "source": "Magnesium Hydroxide__Magnesium Hydroxide-SM.txt:40"
+    },
+    {
+      "testCode": "E.coli",
+      "procedure": "Microbiological examination for E. coli per USP <62> and USP <1111>: 10 g sample diluted to 100 mL with phosphate buffer 7.2; 10 mL into 90 mL SCDB, incubate at 30-35 °C for 18-24 h; 1 mL to 100 mL MacConkey Broth, incubate at 42-44 °C for 24-48 h; subculture on MacConkey Agar (MAR), incubate 30-35 °C 18-72 h; confirm brick-red colonies by Gram stain, EMB agar, TBX agar or biochemical identification.",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {
+        "media": [
+          "Soybean Casein Digest Broth",
+          "MacConkey Broth",
+          "MacConkey Agar",
+          "Eosin Methylene Blue agar",
+          "Tryptone Bile X-glucuronide agar"
+        ],
+        "reference": "USP <62> Tests for Specified Microorganisms; USP <1111>; USP 2024 Monograph for Magnesium Hydroxide"
+      },
+      "source": "Magnesium Hydroxide__Magnesium Hydroxide-SM.txt:41"
+    },
+    {
+      "testCode": "TAMC",
+      "procedure": "Total Aerobic Microbial Count per USP <2023> / USP <61>.",
+      "kind": "general",
+      "workflow": "CountTest",
+      "details": {
+        "reference": "USP <2023> / USP <61>"
+      },
+      "source": "Magnesium Hydroxide__Specifications sheet Magnesium Hydroxide.txt:23"
+    },
+    {
+      "testCode": "TYMC",
+      "procedure": "Total combined Yeasts and Molds Count per USP <2023> / USP <61>.",
+      "kind": "general",
+      "workflow": "CountTest",
+      "details": {
+        "reference": "USP <2023> / USP <61>"
+      },
+      "source": "Magnesium Hydroxide__Specifications sheet Magnesium Hydroxide.txt:23"
+    }
+  ],
+  "notApplicable": [],
+  "supplierAttributes": [],
+  "reagents": [
+    {
+      "name": "Acetic Acid",
+      "use": "reagent",
+      "source": "Magnesium Hydroxide__Magnesium Hydroxide-SM.txt:28"
+    },
+    {
+      "name": "Ammonium carbonate",
+      "use": "reagent",
+      "source": "Magnesium Hydroxide__Magnesium Hydroxide-SM.txt:28"
+    },
+    {
+      "name": "Ammonium chloride",
+      "use": "reagent",
+      "source": "Magnesium Hydroxide__Magnesium Hydroxide-SM.txt:28"
+    },
+    {
+      "name": "Ammonium hydroxide",
+      "use": "reagent",
+      "source": "Magnesium Hydroxide__Magnesium Hydroxide-SM.txt:28"
+    },
+    {
+      "name": "Calcium Standard Solution 1000 mg/L",
+      "use": "standard",
+      "source": "Magnesium Hydroxide__Magnesium Hydroxide-SM.txt:28"
+    },
+    {
+      "name": "Calcium carbonate",
+      "use": "standard",
+      "source": "Magnesium Hydroxide__Magnesium Hydroxide-SM.txt:28"
+    },
+    {
+      "name": "Dibasic sodium phosphate",
+      "use": "reagent",
+      "source": "Magnesium Hydroxide__Magnesium Hydroxide-SM.txt:28"
+    },
+    {
+      "name": "Edetate Disodium",
+      "use": "titrant",
+      "source": "Magnesium Hydroxide__Magnesium Hydroxide-SM.txt:28"
+    },
+    {
+      "name": "Eriochrome Black",
+      "use": "indicator",
+      "source": "Magnesium Hydroxide__Magnesium Hydroxide-SM.txt:28"
+    },
+    {
+      "name": "Hydrochloric acid",
+      "use": "reagent",
+      "source": "Magnesium Hydroxide__Magnesium Hydroxide-SM.txt:28"
+    },
+    {
+      "name": "Hydroxy naphthol blue",
+      "use": "indicator",
+      "source": "Magnesium Hydroxide__Magnesium Hydroxide-SM.txt:28"
+    },
+    {
+      "name": "Hydroxylamine hydrochloride",
+      "use": "reagent",
+      "source": "Magnesium Hydroxide__Magnesium Hydroxide-SM.txt:28"
+    },
+    {
+      "name": "Lanthanum oxide",
+      "use": "reagent",
+      "source": "Magnesium Hydroxide__Magnesium Hydroxide-SM.txt:28"
+    },
+    {
+      "name": "Lead Standard Solution 1000 mg/L",
+      "use": "standard",
+      "source": "Magnesium Hydroxide__Magnesium Hydroxide-SM.txt:28"
+    },
+    {
+      "name": "Methanol",
+      "use": "reagent",
+      "source": "Magnesium Hydroxide__Magnesium Hydroxide-SM.txt:28"
+    },
+    {
+      "name": "Methyl Red",
+      "use": "indicator",
+      "source": "Magnesium Hydroxide__Magnesium Hydroxide-SM.txt:28"
+    },
+    {
+      "name": "Nitric acid",
+      "use": "reagent",
+      "source": "Magnesium Hydroxide__Magnesium Hydroxide-SM.txt:28"
+    },
+    {
+      "name": "Sodium hydroxide",
+      "use": "reagent",
+      "source": "Magnesium Hydroxide__Magnesium Hydroxide-SM.txt:28"
+    },
+    {
+      "name": "Sulfuric acid",
+      "use": "titrant",
+      "source": "Magnesium Hydroxide__Magnesium Hydroxide-SM.txt:28"
+    },
+    {
+      "name": "Thallium",
+      "use": "standard",
+      "source": "Magnesium Hydroxide__Magnesium Hydroxide-SM.txt:28"
+    },
+    {
+      "name": "0.05 M Edetate Disodium VS",
+      "use": "titrant",
+      "source": "Magnesium Hydroxide__Magnesium Hydroxide-SM.txt:28"
+    },
+    {
+      "name": "Ammonia–Ammonium Chloride Buffer TS",
+      "use": "reagent",
+      "source": "Magnesium Hydroxide__Magnesium Hydroxide-SM.txt:28"
+    },
+    {
+      "name": "Eriochrome Black TS",
+      "use": "indicator",
+      "source": "Magnesium Hydroxide__Magnesium Hydroxide-SM.txt:28"
+    },
+    {
+      "name": "0.1 N Sulfuric Acid",
+      "use": "titrant",
+      "source": "Magnesium Hydroxide__Magnesium Hydroxide-SM.txt:28"
+    },
+    {
+      "name": "Ammonium carbonate TS",
+      "use": "reagent",
+      "source": "Magnesium Hydroxide__Magnesium Hydroxide-SM.txt:28"
+    },
+    {
+      "name": "Dibasic sodium phosphate TS",
+      "use": "reagent",
+      "source": "Magnesium Hydroxide__Magnesium Hydroxide-SM.txt:28"
+    },
+    {
+      "name": "Lanthanum solution",
+      "use": "reagent",
+      "source": "Magnesium Hydroxide__Magnesium Hydroxide-SM.txt:28"
+    }
+  ],
+  "openQuestions": [
+    {
+      "question": "Soluble salts spec lists two limits in one cell: 'NMT 2.0 mL of acid is consumed. / NMT 10 mg (2.0%) of residue remains'; transcribed as two rows of test RM-SOLSALTS-MGOH (acid consumed NMT 2.0 mL and residue NMT 2.0%).",
+      "source": "Magnesium Hydroxide__Specifications sheet Magnesium Hydroxide.txt:14"
+    },
+    {
+      "question": "TAMC (NMT 1000 CFU/gm) and TYMC (NMT 100 CFU/gm) are listed under Additional requirements and attachments in the spec sheet; STM section 6.11 only describes the E. coli test. Transcribed with catalog codes TAMC and TYMC.",
+      "source": "Magnesium Hydroxide__Specifications sheet Magnesium Hydroxide.txt:23"
+    },
+    {
+      "question": "Limit of Lead specification gives 'NMT 0.00015% (1.5 ppm)'; transcribed as upper limit 1.5 with unit 'ppm'.",
+      "source": "Magnesium Hydroxide__Specifications sheet Magnesium Hydroxide.txt:17"
+    },
+    {
+      "question": "Folder contains older files: Magnesium Hydroxide COA.txt and Magnesium Hydroxide - New.txt (which includes bilingual BP and USP drafts); the current approved spec sheet (version 1/2) and STM-RM-107 (version 1/2) govern.",
+      "source": "Magnesium Hydroxide__Specifications sheet Magnesium Hydroxide.txt:9; Magnesium Hydroxide__Magnesium Hydroxide-SM.txt:6"
+    }
+  ]
+}

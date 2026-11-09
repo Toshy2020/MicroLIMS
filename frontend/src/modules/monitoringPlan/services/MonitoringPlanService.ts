@@ -60,14 +60,26 @@ export const MonitoringPlanService = {
   getSpacing: (year: number, category: MonitoringCategory | undefined, flaggedOnly: boolean) =>
     apiClient.get(`${REPORTS}/spacing`, { params: { year, category, flaggedOnly } }).then((r) => r.data.data as SpacingReport),
 
-  getYear: (year: number, category?: MonitoringCategory) =>
-    apiClient.get(`${BASE}/calendar/year`, { params: { year, category } }).then((r) => r.data.data as YearSummary),
+  getYear: (year: number, category?: MonitoringCategory, labSectionId?: number | null) =>
+    apiClient
+      .get(`${BASE}/calendar/year`, {
+        params: { year, category, ...(labSectionId != null ? { labSectionId } : {}) }
+      })
+      .then((r) => r.data.data as YearSummary),
 
-  getCalendar: (from: string, to: string, category?: MonitoringCategory) =>
-    apiClient.get(`${BASE}/calendar`, { params: { from, to, category } }).then((r) => r.data.data as OccurrenceSummary[]),
+  getCalendar: (from: string, to: string, category?: MonitoringCategory, labSectionId?: number | null) =>
+    apiClient
+      .get(`${BASE}/calendar`, {
+        params: { from, to, category, ...(labSectionId != null ? { labSectionId } : {}) }
+      })
+      .then((r) => r.data.data as OccurrenceSummary[]),
 
-  getDue: (category?: MonitoringCategory) =>
-    apiClient.get(`${BASE}/due`, { params: { category } }).then((r) => r.data.data as DueResult),
+  getDue: (category?: MonitoringCategory, labSectionId?: number | null) =>
+    apiClient
+      .get(`${BASE}/due`, {
+        params: { category, ...(labSectionId != null ? { labSectionId } : {}) }
+      })
+      .then((r) => r.data.data as DueResult),
 
   getDetail: (id: number) =>
     apiClient.get(`${BASE}/${id}`).then((r) => r.data.data as OccurrenceDetail),
@@ -75,7 +87,15 @@ export const MonitoringPlanService = {
   getChecklist: (sampleId: number) =>
     apiClient.get(`${BASE}/for-session`, { params: { sampleId } }).then((r) => r.data.data as MonitoringChecklist),
 
-  createManual: (body: { machineId: number; targetDate: string; machinePartConfigurationIds?: number[]; reason?: string; kind?: "Day" | "Week" | "Month" }) =>
+  createManual: (body: {
+    machineId?: number;
+    waterSamplingPointId?: number;
+    labSectionId?: number;
+    targetDate: string;
+    machinePartConfigurationIds?: number[];
+    reason?: string;
+    kind?: "Day" | "Week" | "Month";
+  }) =>
     apiClient.post(`${BASE}/manual`, body).then((r) => r.data.data as OccurrenceSummary),
 
   skip: (id: number, version: number, body: { reason: string; password: string }) =>

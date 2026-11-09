@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Helpers;
-using MicroLIMS.Application.DTOs.Responses;
+using MicroLIMS.Application.Services.MasterData;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 
@@ -8,7 +8,7 @@ namespace MicroLIMS.Application.Services;
 
 public partial class IcpRunService
 {
-    private const string MissingCalibrationReportReason = "Upload the Syngistix calibration report before confirming.";
+    private const string MissingCalibrationReportReason = "Upload the Syngistix calibration report (the calibration curve) before confirming.";
 
     private static bool IsCurrentCalibrationReport(IcpEvidence e) =>
         e.Context == IcpEvidenceContext.Calibration && e.Kind == IcpEvidenceKind.CalibrationReport && e.SupersededByEvidenceId == null;
@@ -21,47 +21,32 @@ public partial class IcpRunService
         if (run.Status != IcpRunStatus.Open) return "The run is closed.";
         if (cal == null || cal.Status != IcpCalibrationStatus.Pending) return "The calibration has already been confirmed.";
         if (cal.CalibrationStandardMaterialId == null) return "Choose the calibration standard lot.";
-        if (ReadSnapshot(run).RequireIcv && cal.IcvStandardMaterialId == null) return "Choose the ICV standard lot.";
+        if (cal.Elements.Count == 0) return "Add the elements calibrated on this run, with their r.";
         if (!run.Evidence.Any(IsCurrentCalibrationReport)) return MissingCalibrationReportReason;
+        if (!cal.Elements.Any(e => e.Passed)) return "No element passes the calibration check (r), so the instrument is not ready for testing.";
         return null;
     }
 
-    private static IcpCheckLimits LimitsOf(IcpMethodResponse m) => new(
-        m.MinCorrelation, m.RequireBlank, m.BlankMaxMgPerL, m.RequireIcv,
-        m.IcvNominalMgPerL, m.IcvRecoveryLowPercent, m.IcvRecoveryHighPercent);
-
-    // Pure evaluation of every element against the snapshot's limits.
-    private static Dictionary<int, IcpCalibrationElementVerdict> Evaluate(IcpCalibration cal, IcpMethodResponse snapshot)
+    private static void ApplyVerdict(IcpCalibrationElement e)
     {
-        var limits = LimitsOf(snapshot);
-        return cal.Elements.ToDictionary(
-            e => e.Id,
-            e => IcpCalibrationEvaluator.Evaluate(new IcpCalibrationElementInput(e.Symbol, e.CorrelationR, e.BlankMgPerL, e.IcvMeasuredMgPerL), limits));
+        var v = IcpCalibrationEvaluator.Evaluate(e.Symbol, e.CorrelationR);
+        e.Passed = v.Passed;
+        e.FailureReasons = v.FailureReason;
     }
 
-    private static void ApplyVerdicts(IcpCalibration cal, Dictionary<int, IcpCalibrationElementVerdict> verdicts)
+    // Lot must be a usable ReferenceStandard lot in this lab.
+    private async Task<Material> RequireStandardLotAsync(int materialId, int sectionId, CancellationToken ct)
     {
-        foreach (var e in cal.Elements)
-        {
-            var v = verdicts[e.Id];
-            e.Passed = v.Passed;
-            e.IcvRecoveryPercent = v.IcvRecoveryPercent;
-            e.FailureReasons = v.FailureReasons.Count > 0 ? string.Join(" ", v.FailureReasons) : null;
-        }
-    }
-
-    // Lot must be a usable ReferenceStandard lot of the method's standard entry, in this lab.
-    private async Task<Material> RequireStandardLotAsync(int materialId, int entryId, string? entryCode, string which, int sectionId, CancellationToken ct)
-    {
-        var message = $"The {which} standard lot must be a usable lot of {entryCode}.";
+        const string message = "The calibration standard must be a usable reference standard lot of this laboratory.";
         var lot = await _db.Materials.FirstOrDefaultAsync(m => m.Id == materialId, ct)
             ?? throw new InvalidOperationException(message);
         if (lot.MaterialType != MaterialType.ReferenceStandard || lot.SectionId != sectionId
-            || !LotUsability.Check(lot, entryId, null, _clock.LabToday).Usable)
+            || !LotUsability.Check(lot, lot.MaterialMasterEntryId ?? 0, null, _clock.LabToday).Usable)
             throw new InvalidOperationException(message);
         return lot;
     }
 
+    // Saves the standard lot and the elements the analyst calibrated (symbol + r). The server judges r.
     public async Task<IcpRunDto> SaveCalibrationAsync(int runId, SaveIcpCalibrationRequest r, int userId, CancellationToken ct = default)
     {
         var run = await LoadRunAsync(runId, ct);
@@ -73,43 +58,48 @@ public partial class IcpRunService
         if (cal == null || cal.Status != IcpCalibrationStatus.Pending)
             throw new InvalidOperationException("The calibration has already been confirmed.");
 
-        var snapshot = ReadSnapshot(run);
-
-        if (r.IcvStandardMaterialId.HasValue && !snapshot.RequireIcv)
-            throw new InvalidOperationException("The ICV standard lot is only used when the method requires ICV.");
-
         // Validate everything before mutating anything.
-        Material? calLot = null, icvLot = null;
+        Material? calLot = null;
         if (r.CalibrationStandardMaterialId is int calId)
-            calLot = await RequireStandardLotAsync(calId, snapshot.CalibrationStandardEntryId, snapshot.CalibrationStandardEntryCode, "calibration", run.SectionId, ct);
-        if (r.IcvStandardMaterialId is int icvId)
-            icvLot = await RequireStandardLotAsync(icvId, snapshot.IcvStandardEntryId ?? 0, snapshot.IcvStandardEntryCode, "ICV", run.SectionId, ct);
+            calLot = await RequireStandardLotAsync(calId, run.SectionId, ct);
 
-        var rows = new List<(IcpCalibrationElement Row, SaveIcpCalibrationElementInput Input)>();
+        var inputs = new List<(string Symbol, decimal? R)>();
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var input in r.Elements ?? new List<SaveIcpCalibrationElementInput>())
         {
-            var row = cal.Elements.FirstOrDefault(e => e.Id == input.IcpCalibrationElementId)
-                ?? throw new InvalidOperationException($"Element {input.IcpCalibrationElementId} does not belong to this calibration.");
+            var symbol = IcpTestDefinitionRules.NormalizeSymbol(input.Symbol);
+            if (!seen.Add(symbol))
+                throw new InvalidOperationException($"Element \"{symbol}\" is listed more than once.");
             if (input.CorrelationR is < 0m or > 1m)
-                throw new InvalidOperationException("r must be between 0 and 1.");
-            rows.Add((row, input));
+                throw new InvalidOperationException($"{symbol}: r must be between 0 and 1.");
+            // numeric(8,6): round before judging so save-time and confirm-time verdicts match what is stored.
+            inputs.Add((symbol, input.CorrelationR is decimal r6 ? Math.Round(r6, 6, MidpointRounding.AwayFromZero) : null));
         }
 
         cal.CalibrationStandardMaterialId = calLot?.Id;
-        cal.IcvStandardMaterialId = icvLot?.Id;
-        foreach (var (row, input) in rows)
+        foreach (var gone in cal.Elements.Where(e => !seen.Contains(e.Symbol)).ToList())
         {
-            // numeric(8,6): round before judging so save-time and confirm-time verdicts match what is stored.
-            row.CorrelationR = input.CorrelationR is decimal r6 ? Math.Round(r6, 6, MidpointRounding.AwayFromZero) : null;
-            row.BlankMgPerL = input.BlankMgPerL;
-            row.IcvMeasuredMgPerL = input.IcvMeasuredMgPerL;
+            cal.Elements.Remove(gone);
+            _db.IcpCalibrationElements.Remove(gone);
         }
-        ApplyVerdicts(cal, Evaluate(cal, snapshot));
+        foreach (var (symbol, rValue) in inputs)
+        {
+            var row = cal.Elements.FirstOrDefault(e => string.Equals(e.Symbol, symbol, StringComparison.OrdinalIgnoreCase));
+            if (row == null)
+            {
+                row = new IcpCalibrationElement { Symbol = symbol };
+                cal.Elements.Add(row);
+            }
+            row.Symbol = symbol;
+            row.CorrelationR = rValue;
+            ApplyVerdict(row);
+        }
 
         await _db.SaveChangesAsync(ct);
         return await GetRunAsync(runId, userId, ct);
     }
 
+    // The e-signature states that the instrument is calibrated and ready for testing; it starts the validity clock.
     public async Task<IcpRunDto> ConfirmCalibrationAsync(int runId, ConfirmIcpCalibrationRequest r, int userId, string? ip, CancellationToken ct = default)
     {
         var run = await LoadRunAsync(runId, ct);
@@ -119,19 +109,14 @@ public partial class IcpRunService
         if (blocked != null) throw new InvalidOperationException(blocked);
         var cal = run.Calibration!;
 
-        var snapshot = ReadSnapshot(run);
-        // The lots were checked at save; they may have expired or run out since.
-        await RequireStandardLotAsync(cal.CalibrationStandardMaterialId!.Value, snapshot.CalibrationStandardEntryId, snapshot.CalibrationStandardEntryCode, "calibration", run.SectionId, ct);
-        if (snapshot.RequireIcv)
-            await RequireStandardLotAsync(cal.IcvStandardMaterialId!.Value, snapshot.IcvStandardEntryId ?? 0, snapshot.IcvStandardEntryCode, "ICV", run.SectionId, ct);
-
-        var verdicts = Evaluate(cal, snapshot);
+        // The lot was checked at save; it may have expired or run out since.
+        await RequireStandardLotAsync(cal.CalibrationStandardMaterialId!.Value, run.SectionId, ct);
 
         // Signs first - a wrong password must leave nothing else persisted.
         var signature = await _signatures.SignAsync(
             userId, r.Password, SignatureMeaning.SuitabilityRunPerformed, nameof(IcpCalibration), cal.Id, r.Comment, ip);
 
-        ApplyVerdicts(cal, verdicts);
+        foreach (var e in cal.Elements) ApplyVerdict(e);
         cal.Status = IcpCalibrationStatus.Confirmed;
         cal.ConfirmedByUserId = userId;
         cal.ConfirmedAt = _clock.UtcNow.UtcDateTime;

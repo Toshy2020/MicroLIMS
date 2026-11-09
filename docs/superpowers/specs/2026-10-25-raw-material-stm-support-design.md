@@ -141,6 +141,16 @@ physchem tests cite BP; that is one spec set, not two grades.
 - Riboflavin phosphate: minimum sample quantity "200 ml" for a powder.
 - Sodium Lauryl Sulfate: micro limits appear only under "Additional requirements".
 
+## User answers on the document issues (2026-11-04)
+
+- Soya isoflavone total isoflavones (UV): **skipped**, no row.
+- Siberian Ginseng assay: **skipped**, no row.
+- Pyridoxine USP content of chloride: **titration** (as the STM).
+- Methyl/Propyl Paraben identification: **HPLC retention time**.
+- Sodium Starch Glycolate E. coli: **keep "Absence / gm"** as written.
+- Riboflavin phosphate minimum sample quantity: **200 g**.
+- Sodium Lauryl Sulfate micro limits: **not added**.
+
 ## User decisions after the builder check
 
 - **Main method only.** Each grade's spec set runs its main method; "alternative" methods in the

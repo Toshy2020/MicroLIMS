@@ -26,6 +26,7 @@ import {
   LimitType,
   productionStageRoleLabel
 } from "../../specifications/services/SpecificationService";
+import { collapseGrades, gradesOf, siblingsOf } from "../../specifications/services/gradeGroups";
 import { ConfirmationDialog } from "../../../../components/ConfirmationDialog";
 import { tableHeadSx } from "../../../../theme";
 import { masterDataOptions } from "../../../../services/masterDataOptions";
@@ -35,7 +36,6 @@ import {
   formatTrimmedDecimal
 } from "./SpecificationParameterDialog";
 import { HplcMethodService } from "../../masterDataSimple/services/HplcMethodService";
-import { IcpMethodService } from "../../masterDataSimple/services/IcpMethodService";
 
 interface ItemSpecificationsSectionProps {
   item: Item;
@@ -156,7 +156,7 @@ export const formatLimitCell = (spec: SpecificationDto): string => {
 
 const formatResultBasis = (basis?: string | null, isIcp?: boolean) => {
   if (!basis) return null;
-  if (isIcp && basis === "MgPerKg") return "µg/g";
+  if (isIcp && basis === "MgPerKg") return "ppm";
   switch (basis) {
     case "MgPerKg":
       return "mg/kg per sample";
@@ -211,14 +211,10 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
       .then(async (defs: TestDefinitionSummary[]) => {
         const byCode: Record<string, TestDefinitionSummary> = {};
         const hplcMethodIds: number[] = [];
-        const icpMethodIds: number[] = [];
         for (const d of defs) {
           byCode[d.code] = d;
           if ((d.workflowType === "HplcMethodAssay" || d.equationType === "HplcMethodAssay") && d.hplcMethodId) {
             hplcMethodIds.push(d.hplcMethodId);
-          }
-          if ((d.workflowType === "IcpMethodAssay" || d.equationType === "IcpMethodAssay") && d.icpMethodId) {
-            icpMethodIds.push(d.icpMethodId);
           }
         }
         setTestDefinitionByCode(byCode);
@@ -241,22 +237,14 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
           setHplcAnalyteById(hMap);
         }
 
-        const uniqueIcpMethodIds = Array.from(new Set(icpMethodIds));
-        if (uniqueIcpMethodIds.length > 0) {
-          const iMap: Record<number, { symbol: string }> = {};
-          await Promise.all(
-            uniqueIcpMethodIds.map((mId) =>
-              IcpMethodService.getById(mId)
-                .then((method) => {
-                  for (const el of method.elements ?? []) {
-                    iMap[el.id] = { symbol: el.symbol };
-                  }
-                })
-                .catch(() => setLookupsIncomplete(true))
-            )
-          );
-          setIcpElementById(iMap);
+        // ICP elements belong to the test itself, so the labels come with the test definitions.
+        const iMap: Record<number, { symbol: string }> = {};
+        for (const d of defs) {
+          for (const el of d.icpElements ?? []) {
+            iMap[el.id] = { symbol: el.symbol };
+          }
         }
+        setIcpElementById(iMap);
       })
       .catch(() => {
         // Non-fatal: the specifications still load, only labels are missing.
@@ -320,7 +308,9 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
     setDeleting(true);
     setError(null);
     try {
-      await SpecificationService.remove(pendingDelete.id);
+      for (const s of siblingsOf(pendingDelete)) {
+        if (s.id != null) await SpecificationService.remove(s.id);
+      }
       setPendingDelete(null);
       await loadSpecs();
       onSpecsChanged?.();
@@ -342,7 +332,7 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
   // Group specs by testCode (preserving order of appearance)
   const groupedSpecs: { testCode: string; specs: SpecificationDto[] }[] = [];
   const groupMap = new Map<string, SpecificationDto[]>();
-  for (const spec of specs) {
+  for (const spec of collapseGrades(specs)) {
     const list = groupMap.get(spec.testCode) ?? [];
     list.push(spec);
     groupMap.set(spec.testCode, list);
@@ -510,7 +500,7 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
                               {(spec.resultBasis || spec.hplcMethodAnalyteId || spec.canEdit === false || spec.productionStageRole || spec.grade) && (
                                 <Box sx={{ display: "flex", gap: 0.75, mt: 0.5, flexWrap: "wrap", alignItems: "center" }}>
                                   {spec.grade && (
-                                    <Chip size="small" label={`Grade: ${spec.grade}`} sx={{ height: 20, fontSize: 12, fontWeight: 600, color: "primary.main", border: "1px solid", borderColor: "primary.main", bgcolor: "transparent" }} />
+                                    <Chip size="small" label={`Grade: ${gradesOf(spec).join(", ")}`} sx={{ height: 20, fontSize: 12, fontWeight: 600, color: "primary.main", border: "1px solid", borderColor: "primary.main", bgcolor: "transparent" }} />
                                   )}
                                   {spec.productionStageRole && (
                                     <Chip
@@ -546,10 +536,10 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
                                       }}
                                     />
                                   )}
-                                  {spec.icpMethodElementId && icpElementById[spec.icpMethodElementId] && (
+                                  {spec.icpTestElementId && icpElementById[spec.icpTestElementId] && (
                                     <Chip
                                       size="small"
-                                      label={`Element: ${icpElementById[spec.icpMethodElementId].symbol}`}
+                                      label={`Element: ${icpElementById[spec.icpTestElementId].symbol}`}
                                       sx={{
                                         height: 20,
                                         fontSize: 12,
@@ -763,7 +753,7 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
                                       {(spec.resultBasis || spec.hplcMethodAnalyteId || spec.productionStageRole || spec.grade) && (
                                         <Box sx={{ display: "flex", gap: 0.75, mt: 0.5, flexWrap: "wrap", alignItems: "center" }}>
                                           {spec.grade && (
-                                            <Chip size="small" label={`Grade: ${spec.grade}`} sx={{ height: 20, fontSize: 12, fontWeight: 600, color: "primary.main", border: "1px solid", borderColor: "primary.main", bgcolor: "transparent" }} />
+                                            <Chip size="small" label={`Grade: ${gradesOf(spec).join(", ")}`} sx={{ height: 20, fontSize: 12, fontWeight: 600, color: "primary.main", border: "1px solid", borderColor: "primary.main", bgcolor: "transparent" }} />
                                           )}
                                           {spec.productionStageRole && (
                                             <Chip
@@ -787,10 +777,10 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
                                               }}
                                             />
                                           )}
-                                          {spec.icpMethodElementId && icpElementById[spec.icpMethodElementId] && (
+                                          {spec.icpTestElementId && icpElementById[spec.icpTestElementId] && (
                                             <Chip
                                               size="small"
-                                              label={`Element: ${icpElementById[spec.icpMethodElementId].symbol}`}
+                                              label={`Element: ${icpElementById[spec.icpTestElementId].symbol}`}
                                               sx={{
                                                 height: 20,
                                                 fontSize: 12,
@@ -988,7 +978,7 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
         open={pendingDelete != null}
         message={
           pendingDelete
-            ? `Delete specification parameter "${pendingDelete.parameterName || pendingDelete.testCode}" for "${item.name}"? This cannot be undone.`
+            ? `Delete specification parameter "${pendingDelete.parameterName || pendingDelete.testCode}"${gradesOf(pendingDelete).length > 1 ? ` (grades ${gradesOf(pendingDelete).join(", ")})` : ""} for "${item.name}"? This cannot be undone.`
             : ""
         }
         onCancel={() => setPendingDelete(null)}

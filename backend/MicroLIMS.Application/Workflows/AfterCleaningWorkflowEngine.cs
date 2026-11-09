@@ -1,6 +1,7 @@
 using MicroLIMS.Application.Services.Monitoring;
 using MicroLIMS.Application.Helpers;
 using MicroLIMS.Application.Interfaces;
+using MicroLIMS.Shared.Constants;
 using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Domain.Entities;
@@ -15,9 +16,12 @@ public record AfterCleaningReceiveRequest(
     string SampledBy,
     string ControlNumber,
     int ReceivedByUserId,
-    string PreviousProductName,
-    string PreviousProductBatchNumber,
-    DateTime? SampledAt = null
+    string? PreviousProductName = null,
+    string? PreviousProductBatchNumber = null,
+    DateTime? SampledAt = null,
+    int? LabSectionId = null,
+    int? PreviousProductItemId = null,
+    List<string>? Techniques = null
 );
 
 public interface IAfterCleaningWorkflowEngine : IStatefulWorkflowEngine
@@ -53,14 +57,88 @@ public class AfterCleaningWorkflowEngine : IAfterCleaningWorkflowEngine
         if (!machine.IsActive)
             throw new InvalidOperationException($"Machine '{machine.Name}' is inactive and cannot receive samples.");
 
-        if (string.IsNullOrWhiteSpace(request.PreviousProductName))
-        {
-            throw new InvalidOperationException("Previous Product is required for After Cleaning receiving.");
-        }
-
         if (string.IsNullOrWhiteSpace(request.PreviousProductBatchNumber))
         {
             throw new InvalidOperationException("Previous Product Batch Number is required for After Cleaning receiving.");
+        }
+
+        int? labSectionId;
+        if (_scope != null)
+        {
+            labSectionId = await _scope.ResolveSectionForCreateAsync(request.ReceivedByUserId, request.LabSectionId);
+        }
+        else
+        {
+            labSectionId = request.LabSectionId
+                ?? await _db.DocumentSections
+                    .Where(s => s.Code == LaboratoryCodes.Microbiology)
+                    .Select(s => (int?)s.Id)
+                    .FirstOrDefaultAsync();
+        }
+
+        string? sectionCode = null;
+        if (labSectionId.HasValue)
+        {
+            sectionCode = await _db.DocumentSections
+                .Where(s => s.Id == labSectionId.Value)
+                .Select(s => s.Code)
+                .FirstOrDefaultAsync();
+
+            if (string.Equals(sectionCode, PhyschemAreas.SectionCode, StringComparison.OrdinalIgnoreCase))
+            {
+                if (_scope != null)
+                {
+                    var areas = await _scope.GetPhyschemAreasAsync(request.ReceivedByUserId);
+                    if (!areas.Contains(PhyschemAreas.OfCategory(SampleCategory.AfterCleaning)))
+                    {
+                        throw new UnauthorizedAccessException("After-cleaning samples are received by the FP area.");
+                    }
+                }
+            }
+        }
+
+        bool isPhyschem = string.Equals(sectionCode, PhyschemAreas.SectionCode, StringComparison.OrdinalIgnoreCase);
+
+        int? previousProductItemId = null;
+        string? previousProductName = null;
+        string? cleaningTechniques = null;
+
+        if (request.PreviousProductItemId.HasValue)
+        {
+            var item = await _db.Items.FirstOrDefaultAsync(i => i.Id == request.PreviousProductItemId.Value)
+                ?? throw new InvalidOperationException($"Item {request.PreviousProductItemId.Value} not found.");
+            if (!item.IsActive)
+                throw new InvalidOperationException($"Item '{item.Name}' is inactive and cannot be selected.");
+            if (item.Category != SampleCategory.FinishedProduct)
+                throw new InvalidOperationException($"Item '{item.Name}' is not a Finished Product.");
+
+            previousProductItemId = item.Id;
+            previousProductName = item.Name;
+        }
+
+        if (isPhyschem)
+        {
+            if (!request.PreviousProductItemId.HasValue)
+            {
+                throw new InvalidOperationException("Previous product item is required for Physicochemical after-cleaning receiving.");
+            }
+            if (request.Techniques == null || !request.Techniques.Any(t => !string.IsNullOrWhiteSpace(t)))
+            {
+                throw new InvalidOperationException("At least one cleaning technique is required.");
+            }
+            cleaningTechniques = CleaningTechniques.Normalize(request.Techniques);
+        }
+        else
+        {
+            cleaningTechniques = null;
+            if (!request.PreviousProductItemId.HasValue)
+            {
+                if (string.IsNullOrWhiteSpace(request.PreviousProductName))
+                {
+                    throw new InvalidOperationException("Previous Product is required for After Cleaning receiving.");
+                }
+                previousProductName = request.PreviousProductName.Trim();
+            }
         }
 
         var sample = new Sample
@@ -69,9 +147,12 @@ public class AfterCleaningWorkflowEngine : IAfterCleaningWorkflowEngine
             Category = SampleCategory.AfterCleaning,
             MachineId = machine.Id,
             ItemId = null,
-            PreviousProductName = request.PreviousProductName.Trim(),
+            LabSectionId = labSectionId,
+            PreviousProductItemId = previousProductItemId,
+            PreviousProductName = previousProductName,
             PreviousProductBatchNumber = request.PreviousProductBatchNumber.Trim(),
             BatchNumber = request.PreviousProductBatchNumber.Trim(),
+            CleaningTechniques = cleaningTechniques,
             CauseOfTestingId = request.CauseOfTestingId,
             SampledBy = request.SampledBy,
             ControlNumber = request.ControlNumber,
@@ -108,7 +189,11 @@ public class AfterCleaningWorkflowEngine : IAfterCleaningWorkflowEngine
 
     private async Task<Sample> PrepareCoreAsync(int sampleId, List<int> machinePartConfigurationIds, int userId, IReadOnlyList<int>? monitoringOccurrenceIds)
     {
-        var sample = await _db.Samples.Include(s => s.TestOrders).Include(s => s.Locations).FirstOrDefaultAsync(s => s.Id == sampleId)
+        var sample = await _db.Samples
+            .Include(s => s.TestOrders)
+            .Include(s => s.Locations)
+            .Include(s => s.PreviousProductItem)
+            .FirstOrDefaultAsync(s => s.Id == sampleId)
             ?? throw new NotFoundException($"Sample {sampleId} not found.");
 
         if (sample.PreparationStatus != SamplePreparationStatus.NeedsPreparation)
@@ -136,34 +221,118 @@ public class AfterCleaningWorkflowEngine : IAfterCleaningWorkflowEngine
             throw new InvalidOperationException(
                 $"Part(s) {string.Join(", ", wrongMachine.Select(c => c.MachinePart?.Name))} do not belong to this sample's machine.");
 
-        // One TestOrder per distinct TestCode across every selected part -
-        // the whole batch shares a single incubation setup per test type.
-        var testSections = await TestSectionLookup.ResolveAsync(_db, configs.Select(c => c.TestCode));
+        var microSection = await _db.DocumentSections
+            .FirstOrDefaultAsync(s => s.Code == LaboratoryCodes.Microbiology);
+        var labId = sample.LabSectionId ?? microSection?.Id ?? 0;
+        var labSection = await _db.DocumentSections
+            .FirstOrDefaultAsync(s => s.Id == labId);
+        bool isPhyschem = string.Equals(labSection?.Code, PhyschemAreas.SectionCode, StringComparison.OrdinalIgnoreCase);
+
+        var allCodes = configs.Select(c => c.TestCode).Distinct().ToList();
+        var testDefs = await _db.TestDefinitions
+            .Include(t => t.HplcMethod)
+            .Where(t => allCodes.Contains(t.Code))
+            .ToListAsync();
+
+        var allowedDefs = testDefs.Where(t =>
+            t.SectionId == labId &&
+            (!isPhyschem || PhyschemAreas.Includes(t.PhyschemArea, PhyschemAreas.OfCategory(sample.Category)))
+        ).ToList();
+        var allowedCodes = allowedDefs.Select(t => t.Code).ToHashSet(StringComparer.Ordinal);
+
+        foreach (var config in configs)
+        {
+            if (!allowedCodes.Contains(config.TestCode))
+            {
+                throw new InvalidOperationException($"Part test {config.TestCode} belongs to another laboratory.");
+            }
+        }
+
+        var defsByCode = testDefs.ToDictionary(t => t.Code, StringComparer.Ordinal);
+
+        if (isPhyschem)
+        {
+            var chosenTechniques = (sample.CleaningTechniques ?? "")
+                .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+            foreach (var config in configs)
+            {
+                if (defsByCode.TryGetValue(config.TestCode, out var testDef))
+                {
+                    var technique = CleaningTechniques.Of(testDef.WorkflowType);
+                    if (!chosenTechniques.Contains(technique))
+                    {
+                        throw new InvalidOperationException($"Part test {config.TestCode} is {technique}, which was not chosen at receipt.");
+                    }
+
+                    if (testDef.WorkflowType == WorkflowType.HplcMethodAssay)
+                    {
+                        var method = testDef.HplcMethod;
+                        if (method == null || method.ResultMode != HplcResultMode.CleaningResidue || method.ProductItemId != sample.PreviousProductItemId)
+                        {
+                            var productName = sample.PreviousProductItem?.Name
+                                ?? (await _db.Items.Where(i => i.Id == sample.PreviousProductItemId).Select(i => i.Name).FirstOrDefaultAsync())
+                                ?? "the previous product";
+                            throw new InvalidOperationException($"No cleaning HPLC method for {productName} on test {testDef.Code}.");
+                        }
+                    }
+                }
+            }
+        }
+
         if (_scope is not null)
-            await _scope.EnsureSectionsAccessAsync(userId, testSections.Values);
+            await _scope.EnsureSectionsAccessAsync(userId, new[] { labId });
+
         var testOrdersByCode = new Dictionary<string, TestOrder>();
         foreach (var config in configs)
         {
-            if (!testOrdersByCode.TryGetValue(config.TestCode, out var order))
+            var testDef = defsByCode.TryGetValue(config.TestCode, out var td) ? td : null;
+            var isHplcOrIcp = isPhyschem && testDef != null &&
+                (testDef.WorkflowType is WorkflowType.HplcMethodAssay or WorkflowType.IcpMethodAssay);
+
+            if (isHplcOrIcp)
             {
-                order = new TestOrder
+                var order = new TestOrder
                 {
                     TestCode = config.TestCode,
-                    SectionId = testSections[config.TestCode],
+                    SectionId = labId,
                     Status = ApprovalStatus.Pending,
                     CurrentStep = WorkflowStep.Waiting,
                     AssignedAnalystId = userId
                 };
                 sample.TestOrders.Add(order);
-                testOrdersByCode[config.TestCode] = order;
-            }
 
-            sample.Locations.Add(new SampleLocation
+                sample.Locations.Add(new SampleLocation
+                {
+                    TestOrder = order,
+                    LocationType = LocationType.MachinePart,
+                    MachinePartConfigurationId = config.Id
+                });
+            }
+            else
             {
-                TestOrder = order,
-                LocationType = LocationType.MachinePart,
-                MachinePartConfigurationId = config.Id
-            });
+                if (!testOrdersByCode.TryGetValue(config.TestCode, out var order))
+                {
+                    order = new TestOrder
+                    {
+                        TestCode = config.TestCode,
+                        SectionId = labId,
+                        Status = ApprovalStatus.Pending,
+                        CurrentStep = WorkflowStep.Waiting,
+                        AssignedAnalystId = userId
+                    };
+                    sample.TestOrders.Add(order);
+                    testOrdersByCode[config.TestCode] = order;
+                }
+
+                sample.Locations.Add(new SampleLocation
+                {
+                    TestOrder = order,
+                    LocationType = LocationType.MachinePart,
+                    MachinePartConfigurationId = config.Id
+                });
+            }
         }
 
         if (monitoringOccurrenceIds is { Count: > 0 })

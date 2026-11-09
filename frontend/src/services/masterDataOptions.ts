@@ -143,7 +143,11 @@ export interface CreateTestDefinitionPayload extends TitrationDefinitionFields {
   wvCapsuleS2ExtraUnits?: number | null;
   wvCapsuleS2MaxOutside?: number | null;
   hplcMethodId?: number | null;
-  icpMethodId?: number | null;
+  icpMode?: "Assay" | "Impurity" | null;
+  icpSampleForm?: "Solid" | "Liquid" | null;
+  icpTheoreticalAmount?: number | null;
+  icpSpecificGravity?: number | null;
+  icpElements?: { id: number | null; symbol: string; targetPpm: number | null }[] | null;
   physchemArea?: PhyschemArea | null;
   perContainer?: boolean;
   moistureRole?: MoistureRole;
@@ -192,7 +196,11 @@ export interface UpdateTestDefinitionPayload extends TitrationDefinitionFields {
   wvCapsuleS2ExtraUnits?: number | null;
   wvCapsuleS2MaxOutside?: number | null;
   hplcMethodId?: number | null;
-  icpMethodId?: number | null;
+  icpMode?: "Assay" | "Impurity" | null;
+  icpSampleForm?: "Solid" | "Liquid" | null;
+  icpTheoreticalAmount?: number | null;
+  icpSpecificGravity?: number | null;
+  icpElements?: { id: number | null; symbol: string; targetPpm: number | null }[] | null;
   physchemArea?: PhyschemArea | null;
   perContainer?: boolean;
   moistureRole?: MoistureRole;
@@ -277,6 +285,8 @@ export const masterDataOptions = {
   getEquationTypes: (): Promise<EquationTypeDto[]> =>
     apiClient.get("/masterdata/equation-types").then((r) => r.data.data || []),
   getTestDefinitions: () => apiClient.get("/masterdata/test-definitions").then((r) => r.data.data),
+  getEditableTestCodes: (): Promise<string[]> =>
+    apiClient.get("/masterdata/test-definitions/editable-codes").then((r) => r.data.data || []),
   createTestDefinition: (codeOrPayload: string | CreateTestDefinitionPayload, displayName?: string, sectionId?: number | null) => {
     const payload = typeof codeOrPayload === "string"
       ? { code: codeOrPayload, displayName: displayName ?? codeOrPayload, ...(sectionId != null ? { sectionId } : {}) }

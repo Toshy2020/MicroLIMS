@@ -23,7 +23,6 @@ export function IcpRunHistoryTable({
       sortable: true,
       render: (hr) => <span style={{ fontFamily: monospaceFontFamily, fontWeight: 600 }}>{hr.code}</span>
     },
-    { key: "methodAbbreviation", label: "Method", sortable: true },
     { key: "analystUserName", label: "Analyst", sortable: true },
     {
       key: "startedAt",

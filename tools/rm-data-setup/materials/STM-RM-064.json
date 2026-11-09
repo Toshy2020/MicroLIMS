@@ -1,0 +1,773 @@
+{
+  "itemCode": "STM-RM-064",
+  "itemName": "Sodium Methyl Paraben",
+  "stmFile": "Sodium Methyl Paraben__Sodium Methyl Paraben- SM.txt",
+  "specFiles": [
+    "Sodium Methyl Paraben__Specifications sheet Sodium Methyl Paraben.txt"
+  ],
+  "minQuantity": {
+    "routine": 80,
+    "retest": 60,
+    "unit": "g",
+    "source": "Sodium Methyl Paraben__Sodium Methyl Paraben- SM.txt:42; Sodium Methyl Paraben__Specifications sheet Sodium Methyl Paraben.txt:27"
+  },
+  "grades": [
+    {
+      "grade": "BP",
+      "rows": [
+        {
+          "testCode": "RM-DESC",
+          "parameterName": "Appearance",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "White or almost white, hygroscopic, crystalline powder",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP 2025",
+          "source": "Sodium Methyl Paraben__Specifications sheet Sodium Methyl Paraben.txt:11; Sodium Methyl Paraben__Sodium Methyl Paraben- SM.txt:30"
+        },
+        {
+          "testCode": "RM-SOL",
+          "parameterName": "Solubility",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Freely soluble in water, sparingly soluble in ethanol (96 per cent), practically insoluble in methylene chloride.",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP 2025",
+          "source": "Sodium Methyl Paraben__Specifications sheet Sodium Methyl Paraben.txt:12; Sodium Methyl Paraben__Sodium Methyl Paraben- SM.txt:31"
+        },
+        {
+          "testCode": "RM-ID-MP",
+          "parameterName": "Identification - Melting point of precipitate",
+          "limitType": "Range",
+          "lower": 125,
+          "upper": 128,
+          "lowerInclusive": true,
+          "unit": "C",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP 2025",
+          "source": "Sodium Methyl Paraben__Specifications sheet Sodium Methyl Paraben.txt:13; Sodium Methyl Paraben__Sodium Methyl Paraben- SM.txt:32"
+        },
+        {
+          "testCode": "RM-ID-HPLC",
+          "parameterName": "Identification - HPLC retention time",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "The retention time of the major peak of the Sample solution corresponds to that of the Standard solution",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP 2025",
+          "source": "Sodium Methyl Paraben__Specifications sheet Sodium Methyl Paraben.txt:14; Sodium Methyl Paraben__Sodium Methyl Paraben- SM.txt:32"
+        },
+        {
+          "testCode": "RM-ID-TLC",
+          "parameterName": "Identification - TLC",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "The principal spot in the chromatogram obtained with test solution (b) is similar in position and size to the principal spot in the chromatogram obtained with reference solution (a)",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP 2025",
+          "source": "Sodium Methyl Paraben__Specifications sheet Sodium Methyl Paraben.txt:15; Sodium Methyl Paraben__Sodium Methyl Paraben- SM.txt:32"
+        },
+        {
+          "testCode": "RM-ID-SODIUM",
+          "parameterName": "Identification - Reaction of Sodium",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "A dense white precipitate is formed",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP 2025",
+          "source": "Sodium Methyl Paraben__Specifications sheet Sodium Methyl Paraben.txt:16; Sodium Methyl Paraben__Sodium Methyl Paraben- SM.txt:32"
+        },
+        {
+          "testCode": "RM-SOLAPP",
+          "parameterName": "Appearance of solution",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Solution S is Clear and not more intensely colored than reference solution BY6",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP 2025",
+          "source": "Sodium Methyl Paraben__Specifications sheet Sodium Methyl Paraben.txt:17; Sodium Methyl Paraben__Sodium Methyl Paraben- SM.txt:33"
+        },
+        {
+          "testCode": "RM-PH",
+          "parameterName": "pH",
+          "limitType": "Range",
+          "lower": 9.5,
+          "upper": 10.5,
+          "lowerInclusive": true,
+          "unit": "pH",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP 2025",
+          "source": "Sodium Methyl Paraben__Specifications sheet Sodium Methyl Paraben.txt:18; Sodium Methyl Paraben__Sodium Methyl Paraben- SM.txt:34"
+        },
+        {
+          "testCode": "RM-RS",
+          "parameterName": "Related substances - Impurity A",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 3,
+          "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP 2025",
+          "source": "Sodium Methyl Paraben__Sodium Methyl Paraben- SM.txt:35; Sodium Methyl Paraben__Specifications sheet Sodium Methyl Paraben.txt:19",
+          "heldBack": "needs the held-back method \"Sodium methyl paraben related substances (BP, HPLC)\""
+        },
+        {
+          "testCode": "RM-RS",
+          "parameterName": "Related substances - Unspecified impurities (each)",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 0.5,
+          "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP 2025",
+          "source": "Sodium Methyl Paraben__Sodium Methyl Paraben- SM.txt:35; Sodium Methyl Paraben__Specifications sheet Sodium Methyl Paraben.txt:19",
+          "heldBack": "needs the held-back method \"Sodium methyl paraben related substances (BP, HPLC)\""
+        },
+        {
+          "testCode": "RM-RS",
+          "parameterName": "Related substances - Sum of impurities other than A",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 1,
+          "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP 2025",
+          "source": "Sodium Methyl Paraben__Sodium Methyl Paraben- SM.txt:35; Sodium Methyl Paraben__Specifications sheet Sodium Methyl Paraben.txt:19",
+          "heldBack": "needs the held-back method \"Sodium methyl paraben related substances (BP, HPLC)\""
+        },
+        {
+          "testCode": "RM-CHLORIDE",
+          "parameterName": "Chlorides",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Complies (NMT 350 ppm)",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP 2025",
+          "source": "Sodium Methyl Paraben__Specifications sheet Sodium Methyl Paraben.txt:20; Sodium Methyl Paraben__Sodium Methyl Paraben- SM.txt:36"
+        },
+        {
+          "testCode": "RM-SULFATE",
+          "parameterName": "Sulfates",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Complies (NMT 300 ppm)",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP 2025",
+          "source": "Sodium Methyl Paraben__Specifications sheet Sodium Methyl Paraben.txt:21; Sodium Methyl Paraben__Sodium Methyl Paraben- SM.txt:37"
+        },
+        {
+          "testCode": "RM-WATER",
+          "parameterName": "Water",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 5,
+          "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP 2025",
+          "source": "Sodium Methyl Paraben__Specifications sheet Sodium Methyl Paraben.txt:22; Sodium Methyl Paraben__Sodium Methyl Paraben- SM.txt:38"
+        },
+        {
+          "testCode": "RM-ASSAY",
+          "parameterName": "Assay",
+          "limitType": "Range",
+          "lower": 95,
+          "upper": 102,
+          "lowerInclusive": true,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": "PercentAnhydrousBasis",
+          "referenceStandard": "BP 2025",
+          "source": "Sodium Methyl Paraben__Specifications sheet Sodium Methyl Paraben.txt:23; Sodium Methyl Paraben__Sodium Methyl Paraben- SM.txt:39",
+          "heldBack": "needs the held-back method \"Sodium methyl paraben assay (BP, HPLC)\""
+        },
+        {
+          "testCode": "RM-TAMC",
+          "parameterName": "Total aerobic microbial count (TAMC)",
+          "limitType": "CountTiered",
+          "lower": null,
+          "upper": 1000,
+          "lowerInclusive": null,
+          "unit": "CFU/g",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Sodium Methyl Paraben__Specifications sheet Sodium Methyl Paraben.txt:24; Sodium Methyl Paraben__Sodium Methyl Paraben- SM.txt:40"
+        },
+        {
+          "testCode": "RM-TYMC",
+          "parameterName": "Total yeast and mold count (TYMC)",
+          "limitType": "CountTiered",
+          "lower": null,
+          "upper": 100,
+          "lowerInclusive": null,
+          "unit": "CFU/g",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Sodium Methyl Paraben__Specifications sheet Sodium Methyl Paraben.txt:25; Sodium Methyl Paraben__Sodium Methyl Paraben- SM.txt:40"
+        },
+        {
+          "testCode": "RM-ECOLI",
+          "parameterName": "Test for E. coli",
+          "limitType": "PresenceAbsence",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": "per 10 g",
+          "expectedResultText": null,
+          "expectedState": "Absence",
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Sodium Methyl Paraben__Specifications sheet Sodium Methyl Paraben.txt:26; Sodium Methyl Paraben__Sodium Methyl Paraben- SM.txt:40"
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "testCode": "RM-DESC",
+      "kind": "general",
+      "workflow": "Observation",
+      "source": "Sodium Methyl Paraben__Sodium Methyl Paraben- SM.txt:30",
+      "procedure": "Under strong white light, check each received container separately in a clean transparent watch glass/dish for foreign particles, colour and conformance. Hygroscopicity: weigh a glass weighing vessel with stopper (m1); add about 2 g substance and weigh (m2); place unstoppered in a climatic cabinet at 25 +/- 1 C for 24 h; stopper and weigh (m3); calculate percentage increase in mass.",
+      "details": {
+        "perContainer": true,
+        "hygroscopicity": {
+          "sampleG": 2,
+          "temperatureC": "25 +/- 1",
+          "hours": 24,
+          "weighings": "m1 vessel+stopper, m2 vessel+sample, m3 after 24 h",
+          "veryHygroscopic": "increase >= 15 %",
+          "hygroscopic": "increase 2 % to 15 %",
+          "slightlyHygroscopic": "increase < 2 %"
+        },
+        "specification": "White or almost white, hygroscopic, crystalline powder",
+        "reference": "BP Monograph for Sodium Methyl Hydroxybenzoate"
+      }
+    },
+    {
+      "testCode": "RM-SOL",
+      "kind": "general",
+      "workflow": "Observation",
+      "source": "Sodium Methyl Paraben__Sodium Methyl Paraben- SM.txt:31",
+      "procedure": "Stepwise solubility (BP descriptive terms) at 25.0 +/- 0.5 C: 100 mg in a stoppered tube + 0.1 mL solvent, shake vigorously 1 min, hold 15 min at 25.0 +/- 0.5 C, repeat shake/hold once if not dissolved. Dissolved = very soluble. Not dissolved: add 0.9 mL (freely soluble if dissolved), then 2 mL (soluble), then 7 mL (sparingly soluble), each step shake 1 min + 15 min hold (repeat once). Then 10 mg powdered substance + 10 mL solvent (slightly soluble), then 1 mg + 10 mL (very slightly soluble), otherwise practically insoluble. Repeat with ethanol (96 per cent) and methylene chloride.",
+      "details": {
+        "sampleWeightsMg": [
+          100,
+          10,
+          1
+        ],
+        "solventVolumesMl": [
+          0.1,
+          0.9,
+          2,
+          7,
+          10
+        ],
+        "temperatureC": "25.0 +/- 0.5",
+        "shakeMin": 1,
+        "holdMin": 15,
+        "solvents": [
+          "water (implied for first pass, not named)",
+          "ethanol (96 per cent)",
+          "methylene chloride"
+        ],
+        "specification": "Freely soluble in water, sparingly soluble in ethanol (96 per cent), practically insoluble in methylene chloride",
+        "reference": "BP Monograph for Sodium Methyl Hydroxybenzoate"
+      }
+    },
+    {
+      "testCode": "RM-ID-MP",
+      "kind": "specific",
+      "workflow": "Measurement",
+      "source": "Sodium Methyl Paraben__Sodium Methyl Paraben- SM.txt:32",
+      "procedure": "Identification test 1 (melting point): dissolve 0.5 g in 50 mL water; immediately add 5 mL hydrochloric acid R1; filter; wash the precipitate with water; dry in vacuo at 80 C for 2 h; determine melting point with a calibrated melting point apparatus. The same precipitate is used for the next identification test.",
+      "details": {
+        "sampleG": 0.5,
+        "waterMl": 50,
+        "hydrochloricAcidR1Ml": 5,
+        "washing": "water",
+        "dryingTemperatureC": 80,
+        "dryingHours": 2,
+        "dryingCondition": "in vacuo",
+        "equipment": "calibrated melting point apparatus",
+        "specification": "The precipitation melts at 125 C to 128 C",
+        "reference": "BP Appendix V A Determination of Melting Point"
+      }
+    },
+    {
+      "testCode": "RM-ID-HPLC",
+      "kind": "specific",
+      "workflow": "HplcMethodAssay",
+      "source": "Sodium Methyl Paraben__Sodium Methyl Paraben- SM.txt:32; Sodium Methyl Paraben__Specifications sheet Sodium Methyl Paraben.txt:14",
+      "procedure": "Identification by HPLC retention time (user answer 2026-11-04: the IR wording in the STM and spec sheet is a mistake). Compare the retention time of the major peak of the sample solution with that of the standard solution (Methyl Para hydroxybenzoate RS/WS or Sodium methyl para hydroxybenzoate RS/WS). The STM text as written describes the precipitate from the melting point test pressed with potassium bromide into a pellet and an IR spectrum compared with the reference; no chromatographic conditions are stated in the identification section.",
+      "details": {
+        "basisOfModelling": "user answer 2026-11-04",
+        "stmWordingIsIR": "precipitate from test 1 mixed with KBr, compressed to a transparent pellet, spectrum compared with Methyl/Sodium methyl para hydroxybenzoate RS or WS (BP Appendix II A Infrared Spectrophotometry)",
+        "standard": "Methyl Para hydroxybenzoate RS or WS, or Sodium Methyl Para hydroxybenzoate RS or WS",
+        "specification": "The retention time of the major peak of the Sample solution corresponds to that of the Standard solution"
+      }
+    },
+    {
+      "testCode": "RM-ID-TLC",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "source": "Sodium Methyl Paraben__Sodium Methyl Paraben- SM.txt:32",
+      "procedure": "Identification test 3 (TLC). Test solution (a): 0.10 g in 10 mL water, immediately add 2 mL hydrochloric acid, shake with 50 mL 1,1-dimethylethyl methyl ether, evaporate the upper layer to dryness, take up residue in 10 mL acetone. Test solution (b): dilute 1 mL of (a) to 10 mL with acetone. Reference (a): 10 mg methyl (or sodium methyl) para hydroxybenzoate RS/WS in acetone, dilute to 10 mL. Reference (b): 10 mg ethyl para hydroxybenzoate RS in 1 mL of test solution (a), dilute to 10 mL with acetone. Plate: TLC octadecyl silyl silica gel F254. Mobile phase glacial acetic acid : water : methanol (1:30:70 V/V/V). Apply 5 uL of test solution (b) and references (a) and (b); develop over 2/3 of the plate; dry in air; examine at 254 nm.",
+      "details": {
+        "testSolutionA": {
+          "sampleG": 0.1,
+          "waterMl": 10,
+          "hydrochloricAcidMl": 2,
+          "extraction": "50 mL 1,1-dimethylethyl methyl ether, evaporate upper layer, residue in 10 mL acetone"
+        },
+        "testSolutionB": "1 mL of (a) diluted to 10 mL with acetone",
+        "referenceA": "10 mg methyl para hydroxybenzoate RS/WS or sodium methyl para hydroxybenzoate RS/WS, acetone to 10 mL",
+        "referenceB": "10 mg ethyl para hydroxybenzoate RS in 1 mL test solution (a), acetone to 10 mL",
+        "plate": "TLC octadecyl silyl silica gel F254",
+        "mobilePhase": "glacial acetic acid : water : methanol (1:30:70 V/V/V)",
+        "applicationUl": 5,
+        "development": "over 2/3 of the plate",
+        "drying": "in air",
+        "detection": "UV 254 nm",
+        "systemSuitability": "reference solution (b): chromatogram shows 2 clearly separated principal spots",
+        "specification": "The principal spot in the chromatogram obtained with test solution (b) is similar in position and size to the principal spot in the chromatogram obtained with reference solution (a)",
+        "reference": "BP Appendix III A Thin-layer Chromatography"
+      }
+    },
+    {
+      "testCode": "RM-ID-SODIUM",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "source": "Sodium Methyl Paraben__Sodium Methyl Paraben- SM.txt:32",
+      "procedure": "Identification test 4 (reaction of sodium): 1 mL solution S + 1 mL water + 2 mL of 150 g/L potassium carbonate solution, heat to boiling, no precipitate is formed; add 4 mL potassium pyroantimonate solution, heat to boiling, cool in iced water.",
+      "details": {
+        "solutionSMl": 1,
+        "waterMl": 1,
+        "potassiumCarbonate150gPerLMl": 2,
+        "pyroantimonateMl": 4,
+        "intermediateObservation": "no precipitate after carbonate and boiling",
+        "specification": "A dense white precipitate is formed",
+        "reference": "BP Appendix VI Qualitative Reactions and Tests, Sodium"
+      }
+    },
+    {
+      "testCode": "RM-SOLAPP",
+      "kind": "general",
+      "workflow": "Observation",
+      "source": "Sodium Methyl Paraben__Sodium Methyl Paraben- SM.txt:33; Sodium Methyl Paraben__Sodium Methyl Paraben- SM.txt:28",
+      "procedure": "Examine solution S immediately after preparation for clarity and colour against reference solution BY6.",
+      "details": {
+        "solutionS": "5.0 g in carbon dioxide-free water (from distilled water), diluted to 50 mL",
+        "referenceSolutionBY6": "mix 5.0 mL Standard solution BY and 95.0 mL hydrochloric acid (10 g/L HCl)",
+        "standardSolutionBY": "mix 2.4 mL Yellow solution, 1.0 mL Red solution, 0.4 mL Blue solution and 6.2 mL hydrochloric acid (10 g/L HCl)",
+        "yellowSolution": "46 g ferric chloride in about 900 mL of a mixture of 25 mL hydrochloric acid and 975 mL water, dilute to 1000.0 mL with the same mixture",
+        "redSolution": "60 g cobalt chloride, same diluent, 1000.0 mL",
+        "blueSolution": "63 g copper sulfate pentahydrate, same diluent, 1000.0 mL",
+        "specification": "Solution S is Clear and not more intensely colored than reference solution BY6",
+        "reference": "BP Appendix IV A Clarity of Solution, Appendix IV B Color of Solution"
+      }
+    },
+    {
+      "testCode": "RM-PH",
+      "kind": "general",
+      "workflow": "Measurement",
+      "source": "Sodium Methyl Paraben__Sodium Methyl Paraben- SM.txt:34",
+      "procedure": "Dilute 1 mL of solution S to 100 mL with carbon dioxide-free water; record the pH.",
+      "details": {
+        "solutionSMl": 1,
+        "dilutionMl": 100,
+        "diluent": "carbon dioxide-free water",
+        "equipment": "pH meter (STM equipment list); spec sheet technique column says 'Voltammetry'",
+        "specification": "9.5 to 10.5",
+        "reference": "BP Appendix V L Determination of pH Values"
+      }
+    },
+    {
+      "testCode": "RM-RS",
+      "kind": "specific",
+      "workflow": "HplcMethodAssay",
+      "source": "Sodium Methyl Paraben__Sodium Methyl Paraben- SM.txt:35",
+      "procedure": "HPLC related substances. Test solution: 50.0 mg in 2.5 mL methanol, dilute to 50.0 mL with mobile phase, then 10.0 mL to 100.0 mL with mobile phase. Reference (a): 5 mg 4-hydroxybenzoic acid (impurity A) and 5 mg of the substance in mobile phase to 100.0 mL, then 1.0 mL to 10.0 mL with mobile phase. Reference (b): 50.0 mg methyl (or sodium methyl) para hydroxybenzoate RS/WS in 2.5 mL methanol, 50.0 mL with mobile phase, then 10.0 mL to 100.0 mL. Reference (c): 1.0 mL of test solution to 20.0 mL with mobile phase, then 1.0 mL to 10.0 mL. Inject 10 uL of test solution and references (a) and (c).",
+      "details": {
+        "column": {
+          "size": "l = 0.15 m, diameter 4.6 mm",
+          "stationaryPhase": "end-capped octadecyl silyl silica gel for chromatography (5 um)"
+        },
+        "mobilePhase": "6.8 g/L solution of potassium dihydrogen phosphate : methanol (35:65 V/V)",
+        "flowMlMin": 1.3,
+        "detection": "spectrophotometer at 272 nm",
+        "injectionUl": 10,
+        "injectedSolutions": "test solution, reference (a), reference (c)",
+        "runTime": "5 times the retention time of methyl para hydroxybenzoate",
+        "relativeRetention": "methyl para hydroxybenzoate about 2.3 min; impurity A about 0.6",
+        "systemSuitability": "reference solution (a): resolution minimum 2.0 between impurity A and methyl para hydroxybenzoate",
+        "correctionFactor": "multiply the peak area of impurity A by 1.4",
+        "limits": {
+          "impurityA": "not more than 6 times the area of the principal peak of reference (c) (3.0 per cent)",
+          "unspecifiedEach": "not more than the area of the principal peak of reference (c) (0.5 per cent)",
+          "sumOtherThanA": "not more than twice the area of the principal peak of reference (c) (1.0 per cent)",
+          "disregardLimit": "0.2 times the area of the principal peak of reference (c) (0.1 per cent)"
+        },
+        "specSheetWording": "Complies with BP",
+        "reference": "BP Appendix III D Liquid Chromatography"
+      },
+      "heldBack": "needs the held-back method \"Sodium methyl paraben related substances (BP, HPLC)\""
+    },
+    {
+      "testCode": "RM-CHLORIDE",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "source": "Sodium Methyl Paraben__Sodium Methyl Paraben- SM.txt:36; Sodium Methyl Paraben__Sodium Methyl Paraben- SM.txt:28",
+      "procedure": "Limit test, opalescence comparison. Sample: 10 mL solution S + 30 mL water + 1 mL nitric acid, dilute to 50 mL, shake, filter; dilute 10 mL of filtrate to 15 mL with water, add 1 mL dilute nitric acid, pour as a single addition into a test tube containing 1 mL silver nitrate solution R2. Standard: 14 mL chloride standard solution (5 ppm Cl) + 1 mL water + 1 mL diluted nitric acid, poured into 1 mL silver nitrate R2. After 5 min protected from light, examine tubes laterally against a black background; opalescence in the test solution not more intense than in the standard.",
+      "details": {
+        "solutionSMl": 10,
+        "waterMl": 30,
+        "nitricAcidMl": 1,
+        "dilutedTo": 50,
+        "filtrateAliquotMl": 10,
+        "filtrateDilutedToMl": 15,
+        "diluteNitricAcidMl": 1,
+        "silverNitrateR2Ml": 1,
+        "standard": "14 mL chloride standard solution (5 ppm Cl)",
+        "standingMin": 5,
+        "protectedFromLight": true,
+        "background": "black",
+        "reagentPrep": {
+          "chlorideStandard5ppm": "immediately before use dilute with water to 100 times its volume a solution containing sodium chloride equivalent to 0.824 g NaCl in 1000.0 mL",
+          "silverNitrateR2": "1.7 g silver nitrate in water, to 100 mL",
+          "diluteNitricAcid": "20 g nitric acid to 100 mL with water"
+        },
+        "specification": "Maximum 350 ppm",
+        "reference": "BP Appendix VII Limit Tests, Chlorides"
+      }
+    },
+    {
+      "testCode": "RM-SULFATE",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "source": "Sodium Methyl Paraben__Sodium Methyl Paraben- SM.txt:37; Sodium Methyl Paraben__Sodium Methyl Paraben- SM.txt:28",
+      "procedure": "Limit test, opalescence comparison. Sample: 25 mL solution S + 5 mL distilled water + 10 mL hydrochloric acid, dilute to 50 mL, shake, filter; dilute 10 mL of filtrate to 15 mL with distilled water (solution 1). Add 3 mL of 250 g/L barium chloride to 4.5 mL sulfate standard solution (10 ppm SO4) R1, shake, stand 1 min; to 2.5 mL of this suspension add 15 mL of solution 1 and 0.5 mL acetic acid. Standard: same suspension, 2.5 mL + 15 mL sulfate standard solution (10 ppm SO4) + 0.5 mL acetic acid. After 5 min opalescence in the test solution not more intense than in the standard.",
+      "details": {
+        "solutionSMl": 25,
+        "distilledWaterMl": 5,
+        "hydrochloricAcidMl": 10,
+        "dilutedToMl": 50,
+        "filtrateAliquotMl": 10,
+        "filtrateDilutedToMl": 15,
+        "bariumChloride250gPerLMl": 3,
+        "sulfateStandardMl": 4.5,
+        "suspensionStandingMin": 1,
+        "suspensionAliquotMl": 2.5,
+        "solution1Ml": 15,
+        "aceticAcidMl": 0.5,
+        "standard": "2.5 mL suspension + 15 mL sulfate standard solution (10 ppm SO4) + 0.5 mL acetic acid",
+        "standingMin": 5,
+        "reagentPrep": {
+          "sulfateStandard10ppm": "immediately before use dilute with distilled water to 100 times its volume a solution in distilled water containing dipotassium sulfate equivalent to 0.181 g K2SO4 in 100.0 mL"
+        },
+        "specification": "Maximum 300 ppm",
+        "reference": "BP Appendix VII Limit Tests, Sulfates"
+      }
+    },
+    {
+      "testCode": "RM-WATER",
+      "kind": "general",
+      "workflow": "Measurement",
+      "source": "Sodium Methyl Paraben__Sodium Methyl Paraben- SM.txt:38",
+      "procedure": "Karl Fischer water determination on 0.500 g of sample with a calibrated Karl Fischer titrator.",
+      "details": {
+        "sampleG": 0.5,
+        "equipment": "calibrated Karl Fischer",
+        "specification": "Maximum 5.0 per cent",
+        "reference": "BP Appendix IX C Determination of Water"
+      }
+    },
+    {
+      "testCode": "RM-ASSAY",
+      "kind": "specific",
+      "workflow": "HplcMethodAssay",
+      "source": "Sodium Methyl Paraben__Sodium Methyl Paraben- SM.txt:39",
+      "procedure": "HPLC assay against Methyl or Sodium methyl para hydroxybenzoate RS/WS. Test solution: 50.0 mg in 2.5 mL methanol, dilute to 50.0 mL with mobile phase, then 10.0 mL to 100.0 mL with mobile phase. Standard solution: 50.0 mg of the RS/WS in 2.5 mL methanol, 50.0 mL with mobile phase, then 10.0 mL to 100.0 mL. System suitability: 6 replicate injections of the standard solution. Calculate the content of sodium methylparaben against the declared content of Sodium Methyl Para hydroxybenzoate RS/WS, or against Methyl Para hydroxybenzoate RS/WS multiplied by a correction factor of 1.145.",
+      "details": {
+        "column": {
+          "size": "l = 0.15 m, diameter 4.6 mm",
+          "stationaryPhase": "end-capped octadecyl silyl silica gel for chromatography ODS (5 um)"
+        },
+        "mobilePhase": "6.8 g/L solution of potassium dihydrogen phosphate : methanol (35:65 V/V)",
+        "flowMlMin": 1.3,
+        "detection": "spectrophotometer at 272 nm",
+        "injectionUl": 10,
+        "relativeRetention": "methyl para hydroxybenzoate retention time about 2.3 min",
+        "systemSuitability": "6 replicate injections of the standard solution (no acceptance limit stated)",
+        "standards": "Sodium Methyl Para hydroxybenzoate RS or WS (no factor), or Methyl Para hydroxybenzoate RS or WS (multiply by 1.145)",
+        "correctionFactor": 1.145,
+        "formulaAsPrinted": "Assay % = PAt/PAst x Act.Wt.std/Theo.Wt.test x 100/(100-MC) x Potency (as printed, terms garbled); PAt = mean area in test, PAst = mean area in standard, MC = moisture content of working standard, Potency = assay of working standard",
+        "specification": "95.0 per cent to 102.0 per cent (anhydrous substance)",
+        "reference": "BP Appendix III D Liquid Chromatography"
+      },
+      "heldBack": "needs the held-back method \"Sodium methyl paraben assay (BP, HPLC)\""
+    },
+    {
+      "testCode": "RM-TAMC",
+      "kind": "specific",
+      "workflow": "CountTest",
+      "source": "Sodium Methyl Paraben__Sodium Methyl Paraben- SM.txt:40",
+      "procedure": "Total aerobic microbial count per SOP C2I-91-128 and the verification report specific to this material.",
+      "details": {
+        "sop": "C2I-91-128",
+        "record": "C2F-91-128-01",
+        "limit": "Not more than 10^3 CFU/gm (STM prints '103'; spec sheet 1000)",
+        "reference": "USP <2023> Microbiological attributes of nonsterile nutritional and dietary supplements; USP <61>, <62>, <1111> in references"
+      }
+    },
+    {
+      "testCode": "RM-TYMC",
+      "kind": "specific",
+      "workflow": "CountTest",
+      "source": "Sodium Methyl Paraben__Sodium Methyl Paraben- SM.txt:40",
+      "procedure": "Total yeast and mold count per SOP C2I-91-128 and the verification report specific to this material.",
+      "details": {
+        "sop": "C2I-91-128",
+        "limit": "Not more than 10^2 CFU/gm (STM prints '102'; spec sheet 100)",
+        "reference": "USP <2023>"
+      }
+    },
+    {
+      "testCode": "RM-ECOLI",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "source": "Sodium Methyl Paraben__Sodium Methyl Paraben- SM.txt:40",
+      "procedure": "Test for E. coli per SOP C2I-91-128 and the verification report specific to this material.",
+      "details": {
+        "sop": "C2I-91-128",
+        "limit": "Absent / 10 gm",
+        "reference": "USP <2023>"
+      }
+    }
+  ],
+  "notApplicable": [],
+  "supplierAttributes": [],
+  "reagents": [
+    {
+      "name": "Methyl Para hydroxybenzoate RS or WS",
+      "use": "standard",
+      "source": "Sodium Methyl Paraben__Sodium Methyl Paraben- SM.txt:28"
+    },
+    {
+      "name": "Sodium Methyl Para hydroxybenzoate RS or WS",
+      "use": "standard",
+      "source": "Sodium Methyl Paraben__Sodium Methyl Paraben- SM.txt:28"
+    },
+    {
+      "name": "Ethyl Para hydroxybenzoate RS",
+      "use": "standard",
+      "source": "Sodium Methyl Paraben__Sodium Methyl Paraben- SM.txt:28"
+    },
+    {
+      "name": "4-hydroxybenzoic acid (impurity A)",
+      "use": "standard",
+      "source": "Sodium Methyl Paraben__Sodium Methyl Paraben- SM.txt:28"
+    },
+    {
+      "name": "Hydrochloric Acid",
+      "use": "reagent",
+      "source": "Sodium Methyl Paraben__Sodium Methyl Paraben- SM.txt:28"
+    },
+    {
+      "name": "Hydrochloric Acid R1",
+      "use": "reagent",
+      "source": "Sodium Methyl Paraben__Sodium Methyl Paraben- SM.txt:28"
+    },
+    {
+      "name": "1,1-dimethylethyl methyl ether",
+      "use": "reagent",
+      "source": "Sodium Methyl Paraben__Sodium Methyl Paraben- SM.txt:28"
+    },
+    {
+      "name": "Acetone",
+      "use": "reagent",
+      "source": "Sodium Methyl Paraben__Sodium Methyl Paraben- SM.txt:28"
+    },
+    {
+      "name": "Glacial acetic acid",
+      "use": "reagent",
+      "source": "Sodium Methyl Paraben__Sodium Methyl Paraben- SM.txt:28"
+    },
+    {
+      "name": "Methanol",
+      "use": "reagent",
+      "source": "Sodium Methyl Paraben__Sodium Methyl Paraben- SM.txt:28"
+    },
+    {
+      "name": "Potassium carbonate",
+      "use": "reagent",
+      "source": "Sodium Methyl Paraben__Sodium Methyl Paraben- SM.txt:28"
+    },
+    {
+      "name": "Potassium pyroantimonate",
+      "use": "reagent",
+      "source": "Sodium Methyl Paraben__Sodium Methyl Paraben- SM.txt:28"
+    },
+    {
+      "name": "Potassium Pyroantimonate Solution R1",
+      "use": "reagent",
+      "source": "Sodium Methyl Paraben__Sodium Methyl Paraben- SM.txt:28"
+    },
+    {
+      "name": "Potassium hydroxide",
+      "use": "reagent",
+      "source": "Sodium Methyl Paraben__Sodium Methyl Paraben- SM.txt:28"
+    },
+    {
+      "name": "Sodium Hydroxide Solution, Dilute",
+      "use": "reagent",
+      "source": "Sodium Methyl Paraben__Sodium Methyl Paraben- SM.txt:28"
+    },
+    {
+      "name": "Potassium dihydrogen phosphate",
+      "use": "reagent",
+      "source": "Sodium Methyl Paraben__Sodium Methyl Paraben- SM.txt:28"
+    },
+    {
+      "name": "Nitric acid",
+      "use": "reagent",
+      "source": "Sodium Methyl Paraben__Sodium Methyl Paraben- SM.txt:28"
+    },
+    {
+      "name": "Sodium chloride",
+      "use": "standard",
+      "source": "Sodium Methyl Paraben__Sodium Methyl Paraben- SM.txt:28"
+    },
+    {
+      "name": "Chloride Standard Solution (5 ppm Cl)",
+      "use": "standard",
+      "source": "Sodium Methyl Paraben__Sodium Methyl Paraben- SM.txt:28"
+    },
+    {
+      "name": "Barium chloride",
+      "use": "reagent",
+      "source": "Sodium Methyl Paraben__Sodium Methyl Paraben- SM.txt:28"
+    },
+    {
+      "name": "Dipotassium sulfate",
+      "use": "standard",
+      "source": "Sodium Methyl Paraben__Sodium Methyl Paraben- SM.txt:28"
+    },
+    {
+      "name": "Sulfate Standard Solution (10 ppm SO4)",
+      "use": "standard",
+      "source": "Sodium Methyl Paraben__Sodium Methyl Paraben- SM.txt:28"
+    },
+    {
+      "name": "Silver Nitrate Solution R2",
+      "use": "reagent",
+      "source": "Sodium Methyl Paraben__Sodium Methyl Paraben- SM.txt:28"
+    },
+    {
+      "name": "Ferric chloride",
+      "use": "reagent",
+      "source": "Sodium Methyl Paraben__Sodium Methyl Paraben- SM.txt:28"
+    },
+    {
+      "name": "Cobalt chloride",
+      "use": "reagent",
+      "source": "Sodium Methyl Paraben__Sodium Methyl Paraben- SM.txt:28"
+    },
+    {
+      "name": "Copper sulfate pentahydrate",
+      "use": "reagent",
+      "source": "Sodium Methyl Paraben__Sodium Methyl Paraben- SM.txt:28"
+    },
+    {
+      "name": "Standard solution BY / Reference solution BY6",
+      "use": "standard",
+      "source": "Sodium Methyl Paraben__Sodium Methyl Paraben- SM.txt:28"
+    }
+  ],
+  "openQuestions": [
+    {
+      "question": "Identification: STM and spec sheet say 'IR' but the expectation text is a retention-time match. Modelled as HPLC retention-time identification per the user answer, but the STM gives no chromatographic conditions, sample preparation or standard concentration for this identification (only the KBr/IR wording). Should the Assay HPLC conditions be used?",
+      "source": "Sodium Methyl Paraben__Sodium Methyl Paraben- SM.txt:32; Sodium Methyl Paraben__Specifications sheet Sodium Methyl Paraben.txt:14"
+    },
+    {
+      "question": "Appearance (hygroscopicity): the calculation expression is missing from the STM ('Calculate the percentage increase in mass using the expression:' with nothing after). Not transcribed.",
+      "source": "Sodium Methyl Paraben__Sodium Methyl Paraben- SM.txt:30"
+    },
+    {
+      "question": "Related substances: spec sheet gives only 'Complies with BP' while the STM states numeric limits (Impurity A 3.0 %, each unspecified 0.5 %, sum of others 1.0 %, disregard 0.1 %). Three rows were created from the STM limits; confirm.",
+      "source": "Sodium Methyl Paraben__Specifications sheet Sodium Methyl Paraben.txt:19; Sodium Methyl Paraben__Sodium Methyl Paraben- SM.txt:35"
+    },
+    {
+      "question": "Assay formula text is garbled and copied from another STM ('Sildenafil as raw material', duplicated term labels, 'Theo.Wt.test.' defined twice). Basis is 'anhydrous substance' but the printed formula corrects only for MC of the working standard, not for water in the sample. Confirm the intended calculation.",
+      "source": "Sodium Methyl Paraben__Sodium Methyl Paraben- SM.txt:39"
+    },
+    {
+      "question": "Assay system suitability: '6 replicated injections from Standard solution' has no acceptance criterion (RSD) and the 'Relative retention' heading is empty.",
+      "source": "Sodium Methyl Paraben__Sodium Methyl Paraben- SM.txt:39"
+    },
+    {
+      "question": "pH technique: spec sheet says 'Voltammetry', STM equipment list and procedure say pH meter. Limit (9.5 to 10.5) is the same; row kept, technique wording to be confirmed.",
+      "source": "Sodium Methyl Paraben__Specifications sheet Sodium Methyl Paraben.txt:18; Sodium Methyl Paraben__Sodium Methyl Paraben- SM.txt:28; Sodium Methyl Paraben__Sodium Methyl Paraben- SM.txt:34"
+    },
+    {
+      "question": "Microbiology limits print as '103' and '102' in the STM (superscripts lost); spec sheet gives 1000 and 100 CFU/g. Used the spec sheet values.",
+      "source": "Sodium Methyl Paraben__Sodium Methyl Paraben- SM.txt:40; Sodium Methyl Paraben__Specifications sheet Sodium Methyl Paraben.txt:24"
+    },
+    {
+      "question": "Sulfates: STM uses '10 mL of hydrochloric acid' and 'acetic acid' without stating concentration or dilution (only Hydrochloric Acid R1 is defined).",
+      "source": "Sodium Methyl Paraben__Sodium Methyl Paraben- SM.txt:37; Sodium Methyl Paraben__Sodium Methyl Paraben- SM.txt:28"
+    }
+  ]
+}

@@ -456,6 +456,13 @@ public class TestWorkflowController : ControllerBase
         });
     }
 
+    [HttpPost("{testOrderId}/location-results")]
+    public async Task<IActionResult> RecordLocationResults(int testOrderId, LocationResultsRequest request)
+    {
+        await _scopeService.EnsureTestOrderAccessAsync(CurrentUserId, testOrderId);
+        return await RunAsync(() => _engine.RecordLocationResultsAsync(testOrderId, request.ToDomainInputs(), CurrentUserId));
+    }
+
     // Water batch count entry - one set of plate readings per sampling
     // point, averaged with no shared dilution factor (see
     // TestWorkflowEngine.RecordWaterBatchReadingsAsync).

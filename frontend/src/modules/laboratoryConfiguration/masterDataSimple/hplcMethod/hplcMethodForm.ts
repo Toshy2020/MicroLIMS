@@ -3,6 +3,7 @@ import {
   HplcDetectorType,
   HplcTechnique,
   HplcResultMode,
+  MacoUnit,
   CarrierGas,
   HplcMethodResponse,
   HplcMethodMobilePhaseResponse,
@@ -71,6 +72,8 @@ export interface AnalyteRowState {
   sstMinSignalToNoise: string | number;
   sstMinPeakToValley: string | number;
   standardConcentrationUgPerMl: string | number;
+  macoLimit?: string | number;
+  macoUnit?: MacoUnit | "";
 }
 
 export interface HplcMethodFormState {
@@ -108,6 +111,9 @@ export interface HplcMethodFormState {
   disregardLimitPercent: string | number;
   impurities: ImpurityRowState[];
   internalStandardName: string;
+  productItemId: number | "";
+  productItemName?: string;
+  swabAreaCm2: string | number;
   ovenSteps: GcOvenStepRowState[];
   mobilePhases: MobilePhaseRowState[];
   gradientSteps: GradientStepRowState[];
@@ -122,7 +128,8 @@ export const TECHNIQUE_OPTIONS: Array<{ value: HplcTechnique; label: string }> =
 export const RESULT_MODE_OPTIONS: Array<{ value: HplcResultMode; label: string }> = [
   { value: "Assay", label: "Assay" },
   { value: "ResidualSolvents", label: "Residual Solvents" },
-  { value: "RelatedSubstances", label: "Related Substances" }
+  { value: "RelatedSubstances", label: "Related Substances" },
+  { value: "CleaningResidue", label: "Cleaning Residue" }
 ];
 
 export const CARRIER_GAS_OPTIONS: Array<{ value: CarrierGas; label: string }> = [
@@ -199,6 +206,9 @@ export function createInitialHplcMethodFormState(
       disregardLimitPercent: "",
       impurities: [],
       internalStandardName: "",
+      productItemId: "",
+      productItemName: "",
+      swabAreaCm2: "",
       ovenSteps: [{ rateCPerMin: "", temperatureC: "40", holdMin: "5" }],
       mobilePhases: [],
       gradientSteps: [],
@@ -218,7 +228,9 @@ export function createInitialHplcMethodFormState(
           sstMinRetentionFactor: "",
           sstMinSignalToNoise: "",
           sstMinPeakToValley: "",
-          standardConcentrationUgPerMl: ""
+          standardConcentrationUgPerMl: "",
+          macoLimit: "",
+          macoUnit: ""
         }
       ]
     };
@@ -259,6 +271,9 @@ export function createInitialHplcMethodFormState(
     disregardLimitPercent: "",
     impurities: [],
     internalStandardName: "",
+    productItemId: "",
+    productItemName: "",
+    swabAreaCm2: "",
     ovenSteps: [],
     mobilePhases: [{ channel: "A", solutionMasterId: "", ratioPercent: "100" }],
     gradientSteps: [
@@ -281,7 +296,9 @@ export function createInitialHplcMethodFormState(
         sstMinRetentionFactor: "",
         sstMinSignalToNoise: "",
         sstMinPeakToValley: "",
-        standardConcentrationUgPerMl: ""
+        standardConcentrationUgPerMl: "",
+        macoLimit: "",
+        macoUnit: ""
       }
     ]
   };
@@ -352,6 +369,9 @@ export function hplcMethodEntityToFormState(m: HplcMethodResponse): HplcMethodFo
           )
         : [],
     internalStandardName: m.internalStandardName ?? "",
+    productItemId: m.productItemId ?? "",
+    productItemName: m.productItemName ?? "",
+    swabAreaCm2: m.swabAreaCm2 != null ? String(m.swabAreaCm2) : "",
     ovenSteps:
       m.ovenSteps && m.ovenSteps.length > 0
         ? m.ovenSteps.map((s) => ({
@@ -404,7 +424,9 @@ export function hplcMethodEntityToFormState(m: HplcMethodResponse): HplcMethodFo
             sstMinSignalToNoise: a.sstMinSignalToNoise != null ? a.sstMinSignalToNoise : "",
             sstMinPeakToValley: a.sstMinPeakToValley != null ? a.sstMinPeakToValley : "",
             standardConcentrationUgPerMl:
-              a.standardConcentrationUgPerMl != null ? String(a.standardConcentrationUgPerMl) : ""
+              a.standardConcentrationUgPerMl != null ? String(a.standardConcentrationUgPerMl) : "",
+            macoLimit: a.macoLimit != null ? String(a.macoLimit) : "",
+            macoUnit: a.macoUnit ?? ""
           }))
         : []
   };
@@ -474,6 +496,8 @@ export function formToSaveRequest(
       disregardLimitPercent: null,
       impurities: [],
       internalStandardName: null,
+      productItemId: null,
+      swabAreaCm2: null,
       ovenSteps: form.ovenSteps.map((s, idx) => ({
         rateCPerMin:
           idx === 0 || s.rateCPerMin === "" || s.rateCPerMin == null ? null : Number(s.rateCPerMin),
@@ -498,7 +522,9 @@ export function formToSaveRequest(
             sstMinTheoreticalPlates: a.sstMinTheoreticalPlates !== "" ? Number(a.sstMinTheoreticalPlates) : null,
             sstMinRetentionFactor: a.sstMinRetentionFactor !== "" ? Number(a.sstMinRetentionFactor) : null,
             sstMinSignalToNoise: a.sstMinSignalToNoise !== "" ? Number(a.sstMinSignalToNoise) : null,
-            sstMinPeakToValley: a.sstMinPeakToValley !== "" ? Number(a.sstMinPeakToValley) : null
+            sstMinPeakToValley: a.sstMinPeakToValley !== "" ? Number(a.sstMinPeakToValley) : null,
+            macoLimit: null,
+            macoUnit: null
           };
         }
         return {
@@ -518,7 +544,9 @@ export function formToSaveRequest(
           sstMinTheoreticalPlates: a.sstMinTheoreticalPlates !== "" ? Number(a.sstMinTheoreticalPlates) : null,
           sstMinRetentionFactor: a.sstMinRetentionFactor !== "" ? Number(a.sstMinRetentionFactor) : null,
           sstMinSignalToNoise: a.sstMinSignalToNoise !== "" ? Number(a.sstMinSignalToNoise) : null,
-          sstMinPeakToValley: a.sstMinPeakToValley !== "" ? Number(a.sstMinPeakToValley) : null
+          sstMinPeakToValley: a.sstMinPeakToValley !== "" ? Number(a.sstMinPeakToValley) : null,
+          macoLimit: null,
+          macoUnit: null
         };
       })
     };
@@ -528,6 +556,7 @@ export function formToSaveRequest(
   const isGradient = form.elutionMode === "Gradient";
   const isRelatedSubstances = form.resultMode === "RelatedSubstances";
   const isAssay = form.resultMode === "Assay";
+  const isCleaningResidue = form.resultMode === "CleaningResidue";
 
   return {
     technique: "Hplc",
@@ -559,7 +588,10 @@ export function formToSaveRequest(
     headspaceEquilibrationTemperatureC: null,
     headspaceEquilibrationMin: null,
     headspaceTransferLineTemperatureC: null,
-    sampleSolutionVolumeMl: null,
+    sampleSolutionVolumeMl:
+      isCleaningResidue && form.sampleSolutionVolumeMl !== "" && form.sampleSolutionVolumeMl != null
+        ? Number(form.sampleSolutionVolumeMl)
+        : null,
     referenceSolutionPercent:
       isRelatedSubstances && form.referenceSolutionPercent !== "" && form.referenceSolutionPercent != null
         ? Number(form.referenceSolutionPercent)
@@ -585,6 +617,14 @@ export function formToSaveRequest(
     internalStandardName:
       isAssay && form.internalStandardName && form.internalStandardName.trim()
         ? form.internalStandardName.trim()
+        : null,
+    productItemId:
+      isCleaningResidue && form.productItemId !== "" && form.productItemId != null
+        ? Number(form.productItemId)
+        : null,
+    swabAreaCm2:
+      isCleaningResidue && form.swabAreaCm2 !== "" && form.swabAreaCm2 != null
+        ? Number(form.swabAreaCm2)
         : null,
     ovenSteps: [],
     mobilePhases: form.mobilePhases.map((p) => ({
@@ -619,7 +659,31 @@ export function formToSaveRequest(
           sstMinTheoreticalPlates: a.sstMinTheoreticalPlates !== "" ? Number(a.sstMinTheoreticalPlates) : null,
           sstMinRetentionFactor: a.sstMinRetentionFactor !== "" ? Number(a.sstMinRetentionFactor) : null,
           sstMinSignalToNoise: a.sstMinSignalToNoise !== "" ? Number(a.sstMinSignalToNoise) : null,
-          sstMinPeakToValley: a.sstMinPeakToValley !== "" ? Number(a.sstMinPeakToValley) : null
+          sstMinPeakToValley: a.sstMinPeakToValley !== "" ? Number(a.sstMinPeakToValley) : null,
+          macoLimit: null,
+          macoUnit: null
+        };
+      }
+      if (isCleaningResidue) {
+        return {
+          id: a.id ?? null,
+          name: a.name.trim(),
+          wavelengthNm: a.wavelengthNm !== "" && a.wavelengthNm != null ? Number(a.wavelengthNm) : null,
+          standardEntryId: Number(a.standardEntryId),
+          theoreticalWeightStdMg: 0,
+          theoreticalWeightTestMg: 0,
+          standardDilution: null,
+          standardConcentrationUgPerMl: Number(a.standardConcentrationUgPerMl),
+          standardInjections: Number(a.standardInjections),
+          sstMaxRsdPercent: a.sstMaxRsdPercent !== "" ? Number(a.sstMaxRsdPercent) : null,
+          sstMinResolution: a.sstMinResolution !== "" ? Number(a.sstMinResolution) : null,
+          sstMaxTailingFactor: a.sstMaxTailingFactor !== "" ? Number(a.sstMaxTailingFactor) : null,
+          sstMinTheoreticalPlates: a.sstMinTheoreticalPlates !== "" ? Number(a.sstMinTheoreticalPlates) : null,
+          sstMinRetentionFactor: a.sstMinRetentionFactor !== "" ? Number(a.sstMinRetentionFactor) : null,
+          sstMinSignalToNoise: a.sstMinSignalToNoise !== "" ? Number(a.sstMinSignalToNoise) : null,
+          sstMinPeakToValley: a.sstMinPeakToValley !== "" ? Number(a.sstMinPeakToValley) : null,
+          macoLimit: a.macoLimit !== "" && a.macoLimit != null ? Number(a.macoLimit) : null,
+          macoUnit: (a.macoUnit as MacoUnit) || null
         };
       }
       return {
@@ -639,7 +703,9 @@ export function formToSaveRequest(
         sstMinTheoreticalPlates: a.sstMinTheoreticalPlates !== "" ? Number(a.sstMinTheoreticalPlates) : null,
         sstMinRetentionFactor: a.sstMinRetentionFactor !== "" ? Number(a.sstMinRetentionFactor) : null,
         sstMinSignalToNoise: a.sstMinSignalToNoise !== "" ? Number(a.sstMinSignalToNoise) : null,
-        sstMinPeakToValley: a.sstMinPeakToValley !== "" ? Number(a.sstMinPeakToValley) : null
+        sstMinPeakToValley: a.sstMinPeakToValley !== "" ? Number(a.sstMinPeakToValley) : null,
+        macoLimit: null,
+        macoUnit: null
       };
     })
   };

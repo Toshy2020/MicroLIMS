@@ -11,7 +11,6 @@ import { FloatingDialog } from "../../../components/FloatingDialog";
 import { useTestDefinitions, TestDefinitionOption } from "../../../hooks/useTestDefinitions";
 import { CreateTestDefinitionPayload, UpdateTestDefinitionPayload, MoistureRole } from "../../../services/masterDataOptions";
 import { HplcMethodService, HplcMethodListItem } from "./services/HplcMethodService";
-import { IcpMethodService, IcpMethodListItem } from "./services/IcpMethodService";
 import { TitrationConfigSection } from "./TitrationConfigSection";
 import { TitrationFormState, createInitialTitrationForm, titrationFormFromDefinition, titrationPayloadFields, validateTitrationForm } from "./titrationConfig";
 import { PageArea, PhyschemArea, areaIncludes, defaultAreaFor } from "./testMasterArea";
@@ -21,6 +20,8 @@ import { EQUATION_TYPES, EQUATION_TYPE_LABELS, FP_SECTION_CODE, TestMasterLab, W
 import { TestStageReplicatesSection } from "./testMaster/TestStageReplicatesSection";
 import { WorkflowStepsSection } from "./testMaster/WorkflowStepsSection";
 import { UvTestFields } from "./testMaster/UvTestFields";
+import { IcpTestFields } from "./testMaster/IcpTestFields";
+import { IcpTestForm, createInitialIcpForm, icpFormFromDefinition, icpPayloadFields, validateIcpForm } from "./testMaster/icpTestConfig";
 import type { UvCalculationMode } from "../../../services/masterDataOptions";
 
 // The Test Master - one canonical Code/DisplayName per test, referenced
@@ -74,8 +75,7 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
   const [methodAbbreviation, setMethodAbbreviation] = useState<string>("");
   const [hplcMethodId, setHplcMethodId] = useState<number | "">("");
   const [hplcMethods, setHplcMethods] = useState<HplcMethodListItem[]>([]);
-  const [icpMethodId, setIcpMethodId] = useState<number | "">("");
-  const [icpMethods, setIcpMethods] = useState<IcpMethodListItem[]>([]);
+  const [icp, setIcp] = useState<IcpTestForm>(createInitialIcpForm);
 
   // Lists the Add/Edit Test dialog picks from; a failure is named in the
   // dialog instead of leaving an empty picker.
@@ -85,9 +85,6 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
     HplcMethodService.getAll(false)
       .then((data) => setHplcMethods(data))
       .catch(failDialogList("HPLC methods"));
-    IcpMethodService.getAll(false)
-      .then((data) => setIcpMethods(data))
-      .catch(failDialogList("ICP methods"));
   }, [failDialogList]);
 
   const [replicateCount, setReplicateCount] = useState<string>("1");
@@ -158,7 +155,7 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
     setRequiresSystemSuitability(false);
     setMethodAbbreviation("");
     setHplcMethodId("");
-    setIcpMethodId("");
+    setIcp(createInitialIcpForm());
     setReplicateCount("1");
     setEvaluationBasis("Mean");
     setConditionFields("");
@@ -211,7 +208,7 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
     setRequiresSystemSuitability((t.workflowType === "Dissolution" || t.workflowType === "HplcMethodAssay") ? true : (t.workflowType === "Disintegration" || t.workflowType === "WeightVariation" || t.workflowType === "IcpMethodAssay" || t.workflowType === "UvSpectrophotometry") ? false : !!t.requiresSystemSuitability);
     setMethodAbbreviation(t.methodAbbreviation ?? "");
     setHplcMethodId(t.hplcMethodId ?? "");
-    setIcpMethodId(t.icpMethodId ?? "");
+    setIcp(icpFormFromDefinition(t));
     setReplicateCount(t.replicateCount != null ? String(t.replicateCount) : "1");
     setEvaluationBasis(t.evaluationBasis || "Mean");
     setConditionFields(t.conditionFields || "");
@@ -465,8 +462,9 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
     }
 
     if (isIcpMethodAssay) {
-      if (!icpMethodId) {
-        setDialogError("ICP method is required for ICP method assay tests.");
+      const icpProblem = validateIcpForm(icp);
+      if (icpProblem) {
+        setDialogError(icpProblem);
         return;
       }
     }
@@ -567,7 +565,7 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
             ? (moistureRole === "Water" ? "Water" : "None")
             : "None",
           hplcMethodId: (isHplcMethodAssay || workflowType === "Dissolution") && hplcMethodId !== "" ? Number(hplcMethodId) : null,
-          icpMethodId: isIcpMethodAssay && icpMethodId !== "" ? Number(icpMethodId) : null,
+          ...(isIcpMethodAssay ? icpPayloadFields(icp) : {}),
           uvCalculationMode: isUv && uvCalculationMode ? uvCalculationMode : null,
           uvSpecificAbsorbance: isUv && uvCalculationMode === "SpecificAbsorbanceAssay" && uvSpecificAbsorbance !== "" ? Number(uvSpecificAbsorbance) : null,
           uvTotalVolumeMl: isUv && uvCalculationMode !== "AbsorbanceLimit" && uvTotalVolumeMl !== "" ? Number(uvTotalVolumeMl) : null,
@@ -619,7 +617,7 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
           ...titrationPayloadFields(titration, isTitration),
           physchemArea: isFp ? physchemArea ?? defaultAreaFor(area ?? "fp") : null,
           hplcMethodId: (isHplcMethodAssay || workflowType === "Dissolution") && hplcMethodId !== "" ? Number(hplcMethodId) : null,
-          icpMethodId: isIcpMethodAssay && icpMethodId !== "" ? Number(icpMethodId) : null,
+          ...(isIcpMethodAssay ? icpPayloadFields(icp) : {}),
           uvCalculationMode: isUv && uvCalculationMode ? uvCalculationMode : null,
           uvSpecificAbsorbance: isUv && uvCalculationMode === "SpecificAbsorbanceAssay" && uvSpecificAbsorbance !== "" ? Number(uvSpecificAbsorbance) : null,
           uvTotalVolumeMl: isUv && uvCalculationMode !== "AbsorbanceLimit" && uvTotalVolumeMl !== "" ? Number(uvTotalVolumeMl) : null,
@@ -1092,55 +1090,7 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
             </Box>
           )}
 
-          {workflowType === "IcpMethodAssay" && (
-            <Box sx={{ p: 2, bgcolor: "action.hover", borderRadius: 1, border: "1px solid", borderColor: "divider" }}>
-              <Typography sx={{ fontWeight: 700, fontSize: 13, mb: 1.5 }}>
-                ICP Method Assay Configuration
-              </Typography>
-              <Stack spacing={2}>
-                <FormControl size="small" fullWidth required>
-                  <InputLabel id="dialog-icp-method-label">ICP Method *</InputLabel>
-                  <Select<number | "">
-                    labelId="dialog-icp-method-label"
-                    label="ICP Method *"
-                    value={icpMethodId}
-                    onChange={(e) => {
-                      const val = e.target.value === "" ? "" : Number(e.target.value);
-                      setIcpMethodId(val);
-                      const chosen = icpMethods.find((m) => m.id === val);
-                      if (chosen) {
-                        setMethodAbbreviation(chosen.abbreviation);
-                      }
-                    }}
-                    inputProps={{ "aria-label": "ICP Method" }}
-                  >
-                    <MenuItem value=""><em>Select ICP Method</em></MenuItem>
-                    {icpMethods
-                      .filter((m) => m.isActive || m.id === icpMethodId)
-                      .map((m) => (
-                        <MenuItem key={m.id} value={m.id}>
-                          {m.name} ({m.abbreviation}){!m.isActive ? " (Inactive)" : ""}
-                        </MenuItem>
-                      ))}
-                  </Select>
-                  <FormHelperText>Select the active master ICP method that defines this test&apos;s elements and calibration standards.</FormHelperText>
-                </FormControl>
-
-                <TextField
-                  size="small"
-                  label="Method Abbreviation"
-                  value={methodAbbreviation}
-                  slotProps={{
-                    input: {
-                      readOnly: true,
-                    },
-                  }}
-                  helperText="Auto-populated from the selected ICP method (read-only)."
-                  fullWidth
-                />
-              </Stack>
-            </Box>
-          )}
+          {workflowType === "IcpMethodAssay" && <IcpTestFields form={icp} onChange={setIcp} />}
 
           {workflowType === "Measurement" && (
             <Box sx={{ p: 2, bgcolor: "action.hover", borderRadius: 1, border: "1px solid", borderColor: "divider" }}>

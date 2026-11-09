@@ -16,10 +16,12 @@ namespace MicroLIMS.Application.Services.MasterData;
 public class AfterCleaningMasterDataService
 {
     private readonly IMicroLimsDbContext _db;
+    private readonly IUserSectionScopeService _scope;
 
-    public AfterCleaningMasterDataService(IMicroLimsDbContext db)
+    public AfterCleaningMasterDataService(IMicroLimsDbContext db, IUserSectionScopeService scope)
     {
         _db = db;
+        _scope = scope;
     }
 
     public async Task<object> GetMachinesAsync()
@@ -124,35 +126,68 @@ public class AfterCleaningMasterDataService
             throw new InvalidOperationException($"{testCode} ({testType}) is already configured for this part.");
     }
 
-    public async Task<MachinePartConfigurationResponse> CreateMachinePartConfigurationAsync(CreateMachinePartConfigRequest request)
+    // HPLC and ICP part tests take the limit from the cleaning method (MACO) or the ICP test (ppm).
+    private async Task EnsureNoLocationLimitOnMethodTestAsync(string testCode, LimitType? limitType)
     {
+        if (limitType == null) return;
+        var workflowType = await _db.TestDefinitions.Where(d => d.Code == testCode).Select(d => (WorkflowType?)d.WorkflowType).FirstOrDefaultAsync();
+        if (workflowType is WorkflowType.HplcMethodAssay or WorkflowType.IcpMethodAssay)
+            throw new InvalidOperationException($"{testCode} takes its limit from the {(workflowType == WorkflowType.HplcMethodAssay ? "cleaning HPLC method" : "ICP test")}; leave the part limit empty.");
+    }
+
+    public async Task<MachinePartConfigurationResponse> CreateMachinePartConfigurationAsync(int currentUserId, CreateMachinePartConfigRequest request)
+    {
+        await TestCodeOwnership.EnsureCanEditAsync(_db, _scope, currentUserId, request.TestCode, "Machine part configuration");
+        LocationChemistryLimitRules.Validate(request.LimitType, request.LowerLimit, request.UpperLimit, request.ExpectedResultText);
+        await EnsureNoLocationLimitOnMethodTestAsync(request.TestCode, request.LimitType);
         await EnsureNotDuplicateAsync(request.MachinePartId, request.TestType, request.TestCode, null);
         var entity = new MachinePartConfiguration
         {
-            MachinePartId = request.MachinePartId, TestType = request.TestType, TestCode = request.TestCode,
-            AlertLimit = request.AlertLimit, ActionLimit = request.ActionLimit, SpecLimit = request.SpecLimit,
+            MachinePartId = request.MachinePartId,
+            TestType = request.TestType,
+            TestCode = request.TestCode,
+            AlertLimit = request.AlertLimit ?? string.Empty,
+            ActionLimit = request.ActionLimit ?? string.Empty,
+            SpecLimit = request.SpecLimit ?? string.Empty,
             IsPathogenTest = request.IsPathogenTest,
-            Unit = request.Unit ?? string.Empty
+            Unit = request.Unit ?? string.Empty,
+            LimitType = request.LimitType,
+            LowerLimit = request.LowerLimit,
+            UpperLimit = request.UpperLimit,
+            LowerInclusive = request.LowerInclusive,
+            UpperInclusive = request.UpperInclusive,
+            ExpectedResultText = request.ExpectedResultText
         };
         _db.MachinePartConfigurations.Add(entity);
         await _db.SaveChangesAsync();
         return MachinePartConfigurationResponse.From(entity);
     }
 
-    public async Task<MachinePartConfigurationResponse> UpdateMachinePartConfigurationAsync(int id, UpdateMachinePartConfigRequest request)
+    public async Task<MachinePartConfigurationResponse> UpdateMachinePartConfigurationAsync(int currentUserId, int id, UpdateMachinePartConfigRequest request)
     {
         var entity = await _db.MachinePartConfigurations.FirstOrDefaultAsync(c => c.Id == id)
             ?? throw new NotFoundException($"Machine part configuration {id} not found.");
         RecordVersion.EnsureCurrent(_db, entity);
+
+        await TestCodeOwnership.EnsureCanEditAsync(_db, _scope, currentUserId, new[] { entity.TestCode, request.TestCode }, "Machine part configuration");
+        LocationChemistryLimitRules.Validate(request.LimitType, request.LowerLimit, request.UpperLimit, request.ExpectedResultText);
+        await EnsureNoLocationLimitOnMethodTestAsync(request.TestCode, request.LimitType);
+
         if (request.IsActive.HasValue) entity.IsActive = request.IsActive.Value;
         await EnsureNotDuplicateAsync(entity.MachinePartId, request.TestType, request.TestCode, entity.Id);
         entity.TestType = request.TestType;
         entity.TestCode = request.TestCode;
-        entity.AlertLimit = request.AlertLimit;
-        entity.ActionLimit = request.ActionLimit;
-        entity.SpecLimit = request.SpecLimit;
+        entity.AlertLimit = request.AlertLimit ?? string.Empty;
+        entity.ActionLimit = request.ActionLimit ?? string.Empty;
+        entity.SpecLimit = request.SpecLimit ?? string.Empty;
         entity.IsPathogenTest = request.IsPathogenTest;
         entity.Unit = request.Unit ?? string.Empty;
+        entity.LimitType = request.LimitType;
+        entity.LowerLimit = request.LowerLimit;
+        entity.UpperLimit = request.UpperLimit;
+        entity.LowerInclusive = request.LowerInclusive;
+        entity.UpperInclusive = request.UpperInclusive;
+        entity.ExpectedResultText = request.ExpectedResultText;
         await _db.SaveChangesAsync();
         return MachinePartConfigurationResponse.From(entity);
     }
@@ -160,10 +195,13 @@ public class AfterCleaningMasterDataService
     // TestOrder.TestCode is a copied string, but SampleLocation keeps a
     // restricted FK to this row - refuse with a clear message rather than
     // a raw FK error once samples have used it.
-    public async Task<object> DeleteMachinePartConfigurationAsync(int id)
+    public async Task<object> DeleteMachinePartConfigurationAsync(int currentUserId, int id)
     {
         var entity = await _db.MachinePartConfigurations.FirstOrDefaultAsync(c => c.Id == id)
             ?? throw new NotFoundException($"Machine part configuration {id} not found.");
+
+        await TestCodeOwnership.EnsureCanEditAsync(_db, _scope, currentUserId, entity.TestCode, "Machine part configuration");
+
         var usedBy = await _db.SampleLocations.CountAsync(l => l.MachinePartConfigurationId == id);
         if (usedBy > 0)
             throw new InvalidOperationException(

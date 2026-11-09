@@ -1,0 +1,331 @@
+{
+  "itemCode": "STM-RM-080",
+  "itemName": "Mint Flavor (Peppermint Oil)",
+  "stmCode": "STM-RM-080",
+  "stmFile": "Mint Flavor__STM Mint Flavor 1-3.txt",
+  "specFiles": ["Mint Flavor__Specifications sheet Mint Flavor - New.txt"],
+  "minQuantity": {
+    "routine": 100,
+    "retest": 80,
+    "retention": 100,
+    "unit": "ml",
+    "source": "Mint Flavor__Specifications sheet Mint Flavor - New.txt:21; Mint Flavor__STM Mint Flavor 1-3.txt:36"
+  },
+  "grades": [
+    {
+      "grade": null,
+      "rows": [
+        {
+          "testCode": "RM-DESC",
+          "parameterName": "Appearance",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Colourless, pale yellow or pale greenish-yellow liquid. Characteristic odour and taste followed by a sensation of cold",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "In-house",
+          "source": "Mint Flavor__Specifications sheet Mint Flavor - New.txt:11"
+        },
+        {
+          "testCode": "RM-SOLUB",
+          "parameterName": "Solubility",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Miscible with ethanol (96 %) and with methylene chloride.",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "In-house",
+          "source": "Mint Flavor__Specifications sheet Mint Flavor - New.txt:12"
+        },
+        {
+          "testCode": "RM-RELDEN",
+          "parameterName": "Relative density",
+          "limitType": "Range",
+          "lower": 0.900,
+          "upper": 0.916,
+          "lowerInclusive": true,
+          "unit": null,
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "In-house",
+          "source": "Mint Flavor__Specifications sheet Mint Flavor - New.txt:13"
+        },
+        {
+          "testCode": "RM-REFIDX",
+          "parameterName": "Refractive index",
+          "limitType": "Range",
+          "lower": 1.457,
+          "upper": 1.467,
+          "lowerInclusive": true,
+          "unit": null,
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "In-house",
+          "source": "Mint Flavor__Specifications sheet Mint Flavor - New.txt:14"
+        },
+        {
+          "testCode": "RM-OPTROT",
+          "parameterName": "Optical rotation",
+          "limitType": "Range",
+          "lower": -30,
+          "upper": -10,
+          "lowerInclusive": true,
+          "unit": "°",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "In-house",
+          "source": "Mint Flavor__Specifications sheet Mint Flavor - New.txt:15"
+        },
+        {
+          "testCode": "RM-ACIDVAL",
+          "parameterName": "Acid value",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 1.4,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "In-house",
+          "source": "Mint Flavor__Specifications sheet Mint Flavor - New.txt:16"
+        },
+        {
+          "testCode": "TAMC",
+          "parameterName": "Total Aerobic Microbial Count",
+          "limitType": "CountTiered",
+          "lower": null,
+          "upper": 1000,
+          "lowerInclusive": null,
+          "unit": "CFU/ml",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Mint Flavor__Specifications sheet Mint Flavor - New.txt:17"
+        },
+        {
+          "testCode": "TYMC",
+          "parameterName": "Total Yeasts and Molds Count",
+          "limitType": "CountTiered",
+          "lower": null,
+          "upper": 100,
+          "lowerInclusive": null,
+          "unit": "CFU/ml",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Mint Flavor__Specifications sheet Mint Flavor - New.txt:18"
+        },
+        {
+          "testCode": "E.coli",
+          "parameterName": "Test for E. coli",
+          "limitType": "PresenceAbsence",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": "per 10 ml",
+          "expectedResultText": "Absence / 10 ml",
+          "expectedState": "Absence",
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Mint Flavor__Specifications sheet Mint Flavor - New.txt:19"
+        },
+        {
+          "testCode": "Salmonella ",
+          "parameterName": "Test for Salmonella spp.",
+          "limitType": "PresenceAbsence",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": "per 10 ml",
+          "expectedResultText": "Absence /10 ml",
+          "expectedState": "Absence",
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Mint Flavor__Specifications sheet Mint Flavor - New.txt:20"
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "testCode": "RM-DESC",
+      "procedure": "Under strong white light check each received sample container separately in a clean transparent watch glass or glass dish for foreign particles, colour and conformity with the visual specification.",
+      "kind": "general",
+      "workflow": "Observation",
+      "details": {
+        "perContainer": true,
+        "inHouse": "Colourless, pale yellow or pale greenish-yellow liquid. Characteristic odour and taste followed by a sensation of cold."
+      },
+      "source": "Mint Flavor__STM Mint Flavor 1-3.txt:30"
+    },
+    {
+      "testCode": "RM-SOLUB",
+      "procedure": "Miscible 10 mL of sample with ethanol and with methylene chloride.",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {
+        "sampleMl": 10,
+        "solvents": ["ethanol (96 %)", "methylene chloride"]
+      },
+      "source": "Mint Flavor__STM Mint Flavor 1-3.txt:31"
+    },
+    {
+      "testCode": "RM-RELDEN",
+      "procedure": "Relative density by pycnometer: weigh the dry empty pycnometer (W1); fill with water and weigh (W2); fill with sample and weigh (W3). Weight of water W4 = W2 - W1; weight of sample W5 = W3 - W1; relative density = W5 / W4.",
+      "kind": "general",
+      "workflow": "Measurement",
+      "details": {
+        "instrument": "pycnometer",
+        "formula": "W5 / W4 (W4 = W2 - W1, W5 = W3 - W1)",
+        "reference": "BP Appendix V G",
+        "verificationReport": "Analytical method verification report for relative density in Mint Flavor"
+      },
+      "source": "Mint Flavor__STM Mint Flavor 1-3.txt:32"
+    },
+    {
+      "testCode": "RM-REFIDX",
+      "procedure": "Transfer the sample to the prism of a calibrated refractometer and read the refractive index on the scale.",
+      "kind": "general",
+      "workflow": "Measurement",
+      "details": {
+        "instrument": "calibrated refractometer",
+        "reference": "BP Appendix V E",
+        "verificationReport": "Analytical method verification report for refractive index in Mint Flavor"
+      },
+      "source": "Mint Flavor__STM Mint Flavor 1-3.txt:33"
+    },
+    {
+      "testCode": "RM-OPTROT",
+      "procedure": "Using a calibrated polarimeter: set the zero with the empty tube, fill with sample and detect the angle of rotation.",
+      "kind": "general",
+      "workflow": "Measurement",
+      "details": {
+        "instrument": "calibrated polarimeter",
+        "result": "angle of rotation (degrees)",
+        "reference": "BP Appendix V F",
+        "verificationReport": "Analytical method verification report for optical rotation in Mint Flavor"
+      },
+      "source": "Mint Flavor__STM Mint Flavor 1-3.txt:34"
+    },
+    {
+      "testCode": "RM-ACIDVAL",
+      "procedure": "Acid value: dissolve about 5.00 g (W) of sample in 50 mL of a mixture of equal volumes of ethanol (96 %) and light petroleum, previously neutralised with 0.1 M potassium hydroxide or 0.1 M sodium hydroxide. Add 0.5 mL phenolphthalein solution R1 as indicator; titrate with 0.1 M potassium hydroxide or 0.1 M sodium hydroxide until the pink colour persists for at least 15 s (n mL of titrant). Acid value = 5.61 x n / W.",
+      "kind": "general",
+      "workflow": "Titration",
+      "details": {
+        "sampleG": 5.00,
+        "solvent": "50 mL ethanol (96 %) : light petroleum, equal volumes",
+        "indicator": "0.5 mL phenolphthalein solution R1",
+        "titrant": "0.1 M potassium hydroxide or 0.1 M sodium hydroxide",
+        "endpoint": "pink colour persists at least 15 s",
+        "formula": "Acid value = 5.61 x n / W",
+        "reference": "BP Appendix X B",
+        "verificationReport": "Analytical method verification report for acid value in Mint Flavor"
+      },
+      "source": "Mint Flavor__STM Mint Flavor 1-3.txt:35"
+    },
+    {
+      "testCode": "TAMC",
+      "procedure": "Microbial enumeration per USP <2021>, membrane filtration: suspend 10 mL sample in SCDB to 100 mL; filter the dilution (equivalent to 0.1 mL of sample) through a 0.45 µm membrane, wash with phosphate buffer pH 7.2 (three 100 mL volumes, repeated); place membranes on SCDA (TAMC, 24-72 h at 30-35 °C) and SDA (TYMC, 5-7 days at 20-25 °C). Count colonies, average the plates and calculate CFU/ml x DF (DF = 10).",
+      "kind": "general",
+      "workflow": "CountTest",
+      "details": {
+        "onlyForNaturalOriginMint": true,
+        "method": "membrane filtration",
+        "sampleMl": 10,
+        "dilutionMl": 100,
+        "dilutionFactor": 10,
+        "media": "SCDA (TAMC), SDA (TYMC)",
+        "limit": "NMT 10^3 CFU/ml (STM prints 103)",
+        "reference": "USP 2024 <2021>, <2023>",
+        "sop": "C2I-91-128"
+      },
+      "source": "Mint Flavor__STM Mint Flavor 1-3.txt:36-37"
+    },
+    {
+      "testCode": "TYMC",
+      "procedure": "Yeasts and molds, same membrane filtration as TAMC; SDA plates incubated 5-7 days at 20-25 °C; average the two SDA plates and calculate CFU/ml x DF (DF = 10).",
+      "kind": "general",
+      "workflow": "CountTest",
+      "details": {
+        "onlyForNaturalOriginMint": true,
+        "media": "SDA",
+        "limit": "NMT 10^2 CFU/ml (STM prints 102)",
+        "reference": "USP 2024 <2021>, <2023>"
+      },
+      "source": "Mint Flavor__STM Mint Flavor 1-3.txt:37"
+    },
+    {
+      "testCode": "E.coli",
+      "procedure": "Specified microorganism E. coli per USP 2024 <2022>: filter 10 mL sample dilution in SCDB, incubate SCDB 30-35 °C 24-48 h; transfer 1 mL to MacConkey broth (MBP), 42-44 °C 24-48 h; subculture on MacConkey agar (MAR) 30-35 °C 18-24 h; confirm by Gram stain, EMB and TBX (42-44 °C 18-72 h) and optionally an identification system (probability above 70 %).",
+      "kind": "general",
+      "workflow": "Observation",
+      "details": {
+        "onlyForNaturalOriginMint": true,
+        "limit": "Absent /10 ml",
+        "media": "SCDB, MBP, MAR, EMB, TBX",
+        "reference": "USP 2024 <2022>, <2023>",
+        "sop": "C2I-91-128"
+      },
+      "source": "Mint Flavor__STM Mint Flavor 1-3.txt:38-39"
+    },
+    {
+      "testCode": "Salmonella ",
+      "procedure": "Specified microorganism Salmonella spp.: from the incubated SCDB (18-24 h at 30-35 °C), transfer 1 mL to RVS broth, 30-35 °C 18-24 h; streak on XLD, BGA or HEA, 30-35 °C 24-48 h; confirm by Gram stain and TSI slant (red alkaline slope, yellow acid butt) and optionally a biochemical identification system (probability above 70 %).",
+      "kind": "general",
+      "workflow": "Observation",
+      "details": {
+        "onlyForNaturalOriginMint": true,
+        "limit": "Absent /10 ml",
+        "media": "SCDB, RVS, XLD, BGA, HEA, TSI",
+        "reference": "USP 2024 <2022>",
+        "sop": "C2I-91-128"
+      },
+      "source": "Mint Flavor__STM Mint Flavor 1-3.txt:40-41"
+    }
+  ],
+  "notApplicable": [],
+  "supplierAttributes": [],
+  "reagents": [
+    { "name": "Sodium Hydroxide", "use": "reagent", "source": "Mint Flavor__STM Mint Flavor 1-3.txt:28" },
+    { "name": "Potassium Hydroxide", "use": "reagent", "source": "Mint Flavor__STM Mint Flavor 1-3.txt:28" },
+    { "name": "ethanol (96 per cent)", "use": "reagent", "source": "Mint Flavor__STM Mint Flavor 1-3.txt:28" },
+    { "name": "Light petroleum", "use": "reagent", "source": "Mint Flavor__STM Mint Flavor 1-3.txt:28" },
+    { "name": "Phenolphthalein", "use": "indicator", "source": "Mint Flavor__STM Mint Flavor 1-3.txt:28" },
+    { "name": "Phenolphthalein Solution R1", "use": "indicator", "source": "Mint Flavor__STM Mint Flavor 1-3.txt:28" },
+    { "name": "0.1M Sodium Hydroxide", "use": "titrant", "source": "Mint Flavor__STM Mint Flavor 1-3.txt:28" },
+    { "name": "0.1M Potassium Hydroxide", "use": "titrant", "source": "Mint Flavor__STM Mint Flavor 1-3.txt:28" },
+    { "name": "Phosphate buffer pH 7.2", "use": "reagent", "source": "Mint Flavor__STM Mint Flavor 1-3.txt:28" },
+    { "name": "Water, Carbon Dioxide-free", "use": "reagent", "source": "Mint Flavor__STM Mint Flavor 1-3.txt:28" }
+  ],
+  "openQuestions": [
+    {
+      "question": "Acid value: no unit is stated on the spec sheet or STM; the formula 5.61 x n / W implies mg KOH/g. Row loaded with unit null. Confirm.",
+      "source": "Mint Flavor__Specifications sheet Mint Flavor - New.txt:16"
+    },
+    {
+      "question": "TAMC/TYMC limits print as 'NMT 103' and 'NMT 102' (superscripts lost). Loaded as 1000 and 100 CFU/ml per the user decision on document questions. Confirm.",
+      "source": "Mint Flavor__Specifications sheet Mint Flavor - New.txt:17-18"
+    },
+    {
+      "question": "The STM marks the microbiological tests (TAMC, TYMC, E. coli, Salmonella) 'Only for the Natural Origin mint', but the spec sheet lists them with no such qualifier. Confirm which mint grades they apply to.",
+      "source": "Mint Flavor__STM Mint Flavor 1-3.txt:36"
+    },
+    {
+      "question": "Optical rotation: the STM and spec state an angle of rotation (-30° to -10°) with no sample concentration or path length, so this is not a specific rotation. Recorded as optical rotation (observed angle).",
+      "source": "Mint Flavor__STM Mint Flavor 1-3.txt:34"
+    }
+  ]
+}

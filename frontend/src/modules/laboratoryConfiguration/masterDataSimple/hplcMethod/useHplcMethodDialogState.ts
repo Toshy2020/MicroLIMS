@@ -10,6 +10,7 @@ import {
 import { SolutionMaster } from "../services/SolutionMasterService";
 import { MaterialMasterEntry } from "../services/MaterialMasterService";
 import { LaboratorySection } from "../../../../services/laboratorySectionService";
+import { masterDataOptions } from "../../../../services/masterDataOptions";
 import {
   HplcMethodErrors,
   HplcMethodFormState,
@@ -29,6 +30,7 @@ export interface UseHplcMethodDialogStateProps {
   solutions: SolutionMaster[];
   materialMasters: MaterialMasterEntry[];
   mySections: LaboratorySection[];
+  finishedProducts?: Array<{ id: number; name: string }>;
   onClose: () => void;
   onSuccess: () => void;
 }
@@ -39,12 +41,14 @@ export function useHplcMethodDialogState({
   solutions,
   materialMasters,
   mySections,
+  finishedProducts: propFinishedProducts,
   onClose,
   onSuccess
 }: UseHplcMethodDialogStateProps) {
   const [tabIndex, setTabIndex] = useState(0);
   const [loadingMethod, setLoadingMethod] = useState(false);
   const [loadedEntity, setLoadedEntity] = useState<HplcMethodResponse | null>(null);
+  const [finishedProducts, setFinishedProducts] = useState<Array<{ id: number; name: string }>>([]);
 
   const defaultSectionId = mySections.length === 1 ? mySections[0].sectionId : "";
   const [form, setForm] = useState<HplcMethodFormState>(() =>
@@ -92,8 +96,16 @@ export function useHplcMethodDialogState({
   useEffect(() => {
     if (open) {
       initForm();
+      if (propFinishedProducts && propFinishedProducts.length > 0) {
+        setFinishedProducts(propFinishedProducts);
+      } else {
+        masterDataOptions
+          .getItems("FinishedProduct")
+          .then((items) => setFinishedProducts(items || []))
+          .catch(() => setFinishedProducts([]));
+      }
     }
-  }, [open, initForm]);
+  }, [open, initForm, propFinishedProducts]);
 
   const currentSectionId = useMemo(() => {
     if (loadedEntity) return loadedEntity.sectionId;
@@ -160,12 +172,17 @@ export function useHplcMethodDialogState({
         return {
           ...prev,
           technique: "Gc",
-          resultMode: prev.resultMode === "RelatedSubstances" ? "Assay" : (prev.resultMode ?? "Assay"),
+          resultMode:
+            prev.resultMode === "RelatedSubstances" || prev.resultMode === "CleaningResidue"
+              ? "Assay"
+              : (prev.resultMode ?? "Assay"),
           columnDesignation: "",
           columnLength: "30",
           columnInternalDiameterMm: "0.32",
           particleSizeUm: "",
           filmThicknessUm: "1.8",
+          columnBrand: "",
+          columnPartNumber: "",
           columnTemperatureC: "",
           elutionMode: "Isocratic",
           equilibrationMin: "",
@@ -186,13 +203,18 @@ export function useHplcMethodDialogState({
           disregardLimitPercent: "",
           impurities: [],
           internalStandardName: "",
+          productItemId: "",
+          productItemName: "",
+          swabAreaCm2: "",
           ovenSteps: [{ rateCPerMin: "", temperatureC: "40", holdMin: "5" }],
           mobilePhases: [],
           gradientSteps: [],
           analytes: prev.analytes.map((a) => ({
             ...a,
             wavelengthNm: "",
-            standardConcentrationUgPerMl: ""
+            standardConcentrationUgPerMl: "",
+            macoLimit: "",
+            macoUnit: ""
           }))
         };
       } else {
@@ -205,6 +227,8 @@ export function useHplcMethodDialogState({
           columnInternalDiameterMm: "4.6",
           particleSizeUm: "5",
           filmThicknessUm: "",
+          columnBrand: "",
+          columnPartNumber: "",
           columnTemperatureC: "25",
           elutionMode: "Isocratic",
           equilibrationMin: "",
@@ -225,6 +249,9 @@ export function useHplcMethodDialogState({
           disregardLimitPercent: "",
           impurities: [],
           internalStandardName: "",
+          productItemId: "",
+          productItemName: "",
+          swabAreaCm2: "",
           ovenSteps: [],
           mobilePhases: [{ channel: "A", solutionMasterId: "", ratioPercent: "100" }],
           gradientSteps: [
@@ -234,7 +261,9 @@ export function useHplcMethodDialogState({
           analytes: prev.analytes.map((a) => ({
             ...a,
             wavelengthNm: a.wavelengthNm || "254",
-            standardConcentrationUgPerMl: ""
+            standardConcentrationUgPerMl: "",
+            macoLimit: "",
+            macoUnit: ""
           }))
         };
       }
@@ -246,20 +275,36 @@ export function useHplcMethodDialogState({
     setForm((prev) => {
       const isResidual = nextMode === "ResidualSolvents";
       const isRs = nextMode === "RelatedSubstances";
+      const isCleaningResidue = nextMode === "CleaningResidue";
       return {
         ...prev,
         resultMode: nextMode,
-        sampleSolutionVolumeMl: isResidual ? (prev.sampleSolutionVolumeMl || "5") : "",
-        referenceSolutionPercent: isRs ? (prev.referenceSolutionPercent || "") : "",
-        disregardLimitPercent: isRs ? (prev.disregardLimitPercent || "") : "",
+        productItemId: isCleaningResidue ? prev.productItemId : "",
+        productItemName: isCleaningResidue ? prev.productItemName : "",
+        swabAreaCm2: isCleaningResidue ? prev.swabAreaCm2 : "",
+        sampleSolutionVolumeMl:
+          isResidual
+            ? prev.sampleSolutionVolumeMl || "5"
+            : isCleaningResidue
+            ? prev.sampleSolutionVolumeMl || "10"
+            : "",
+        referenceSolutionPercent: isRs ? prev.referenceSolutionPercent || "" : "",
+        disregardLimitPercent: isRs ? prev.disregardLimitPercent || "" : "",
         internalStandardName: nextMode === "Assay" ? prev.internalStandardName : "",
         impurities: isRs ? prev.impurities : [],
         analytes: (isRs && prev.analytes.length > 1 ? [prev.analytes[0]] : prev.analytes).map((a) => ({
           ...a,
-          theoreticalWeightStdMg: isResidual || isRs ? "0" : a.theoreticalWeightStdMg || "50",
-          theoreticalWeightTestMg: isResidual || isRs ? "0" : a.theoreticalWeightTestMg || "50",
-          standardDilution: isResidual || isRs ? "" : a.standardDilution,
-          standardConcentrationUgPerMl: isResidual ? a.standardConcentrationUgPerMl || "100" : ""
+          theoreticalWeightStdMg: isResidual || isRs || isCleaningResidue ? "0" : a.theoreticalWeightStdMg || "50",
+          theoreticalWeightTestMg: isResidual || isRs || isCleaningResidue ? "0" : a.theoreticalWeightTestMg || "50",
+          standardDilution: isResidual || isRs || isCleaningResidue ? "" : a.standardDilution,
+          standardConcentrationUgPerMl:
+            isResidual
+              ? a.standardConcentrationUgPerMl || "100"
+              : isCleaningResidue
+              ? a.standardConcentrationUgPerMl || "10"
+              : "",
+          macoLimit: isCleaningResidue ? a.macoLimit : "",
+          macoUnit: isCleaningResidue ? a.macoUnit || "UgPerSwab" : ""
         }))
       };
     });
@@ -357,6 +402,7 @@ export function useHplcMethodDialogState({
     availableDiluents,
     availableMobilePhases,
     availableReferenceStandards,
+    finishedProducts,
     handleInitiateSave,
     handleConfirmEditWithReason
   };

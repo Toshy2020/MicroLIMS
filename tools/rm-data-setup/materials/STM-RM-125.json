@@ -1,0 +1,560 @@
+{
+  "itemCode": "STM-RM-125",
+  "itemName": "Aluminium Magnesium Silicate (Veegum)",
+  "stmCode": "STM-RM-125",
+  "stmFile": "Veegum__STM Veegum.txt",
+  "specFiles": ["Veegum__Specifications sheet Veegum.txt"],
+  "minQuantity": {
+    "routine": 80,
+    "retest": 50,
+    "retention": 80,
+    "unit": "g",
+    "source": "Veegum__Specifications sheet Veegum.txt:27; Veegum__STM Veegum.txt:45"
+  },
+  "grades": [
+    {
+      "grade": "BP",
+      "rows": [
+        {
+          "testCode": "RM-DESC",
+          "parameterName": "Appearance",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Almost white, coarse powder, granules or flakes",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Veegum__Specifications sheet Veegum.txt:11"
+        },
+        {
+          "testCode": "RM-SOLUB",
+          "parameterName": "Solubility",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Practically insoluble in water and in organic solvents, it swells in water to produce a colloidal dispersion",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Veegum__Specifications sheet Veegum.txt:12"
+        },
+        {
+          "testCode": "RM-ID-SILICATE-VEEGUM",
+          "parameterName": "Identification (reaction of silicate)",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "White ring is rapidly formed around the drop of water",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Veegum__Specifications sheet Veegum.txt:13"
+        },
+        {
+          "testCode": "RM-ID-PINK-VEEGUM",
+          "parameterName": "Identification (residue turns pink again with sodium fluoride)",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "The residue, in contact with the crystals, turns pink again in a short time",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Veegum__Specifications sheet Veegum.txt:14"
+        },
+        {
+          "testCode": "RM-ID-PHOS-VEEGUM",
+          "parameterName": "Identification (reaction of phosphate, white precipitate)",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "A white precipitate is formed",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Veegum__Specifications sheet Veegum.txt:15"
+        },
+        {
+          "testCode": "RM-ID-AAS-VEEGUM",
+          "parameterName": "Identification (AAS, comply with assay)",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Comply with test of assay",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Veegum__Specifications sheet Veegum.txt:16"
+        },
+        {
+          "testCode": "RM-PH",
+          "parameterName": "pH",
+          "limitType": "Range",
+          "lower": 9.0,
+          "upper": 10.0,
+          "lowerInclusive": true,
+          "unit": null,
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Veegum__Specifications sheet Veegum.txt:17"
+        },
+        {
+          "testCode": "RM-VISC",
+          "parameterName": "Viscosity",
+          "limitType": "Range",
+          "lower": 800,
+          "upper": 2200,
+          "lowerInclusive": true,
+          "unit": "mPa·s",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Veegum__Specifications sheet Veegum.txt:18"
+        },
+        {
+          "testCode": "RM-ARSENIC",
+          "parameterName": "Arsenic (limit test)",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Complies (NMT 3 ppm)",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Veegum__Specifications sheet Veegum.txt:19"
+        },
+        {
+          "testCode": "RM-LEAD",
+          "parameterName": "Lead (limit test)",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Complies (NMT 15 ppm)",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Veegum__Specifications sheet Veegum.txt:20"
+        },
+        {
+          "testCode": "RM-LOD",
+          "parameterName": "Loss on drying",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 8.0,
+          "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Veegum__Specifications sheet Veegum.txt:21"
+        },
+        {
+          "testCode": "RM-ACIDDEM-VEEGUM",
+          "parameterName": "Acid demand (pH after acid addition)",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 4.0,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Veegum__Specifications sheet Veegum.txt:22"
+        },
+        {
+          "testCode": "RM-ICP-AL-MG-VEEGUM",
+          "parameterName": "Assay (Al content / Mg content ratio)",
+          "limitType": "Range",
+          "lower": 0.5,
+          "upper": 1.2,
+          "lowerInclusive": true,
+          "unit": null,
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Veegum__Specifications sheet Veegum.txt:23"
+        },
+        {
+          "testCode": "TAMC",
+          "parameterName": "Total Aerobic Microbial Count (TAMC)",
+          "limitType": "CountTiered",
+          "lower": null,
+          "upper": 1000,
+          "lowerInclusive": null,
+          "unit": "CFU/gm",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Veegum__Specifications sheet Veegum.txt:24"
+        },
+        {
+          "testCode": "TYMC",
+          "parameterName": "Total Yeast and Molds Count (TYMC)",
+          "limitType": "CountTiered",
+          "lower": null,
+          "upper": 100,
+          "lowerInclusive": null,
+          "unit": "CFU/gm",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Veegum__Specifications sheet Veegum.txt:25"
+        },
+        {
+          "testCode": "E.coli",
+          "parameterName": "Test for E. coli",
+          "limitType": "PresenceAbsence",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": "per gm",
+          "expectedResultText": "Absent / gm",
+          "expectedState": "Absence",
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Veegum__Specifications sheet Veegum.txt:26"
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "testCode": "RM-DESC",
+      "procedure": "Under strong white light check each received sample container separately in a clean transparent watch glass or glass dish for foreign particles, colour and conformity with the visual specification.",
+      "kind": "general",
+      "workflow": "Observation",
+      "details": {
+        "perContainer": true,
+        "bpSpecification": "Almost white, coarse powder, granules or flakes."
+      },
+      "source": "Veegum__STM Veegum.txt:30"
+    },
+    {
+      "testCode": "RM-SOLUB",
+      "procedure": "Weigh 100 mg sample in a stoppered tube; add 0.1 mL solvent, shake 1 min, hold at 25.0 ± 0.5 °C for 15 min, repeat shake/hold once if not dissolved; stepwise add 0.9 mL, 2 mL, 7 mL solvent (same shake and hold) to classify very soluble / freely soluble / soluble / sparingly soluble; if still undissolved use 10 mg in 10 mL (slightly soluble) then 1 mg in 10 mL (very slightly soluble), else practically insoluble.",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {
+        "sample": "100 mg",
+        "temperature": "25.0 ± 0.5 °C",
+        "holdMin": 15,
+        "shakeMin": 1,
+        "volumesMl": [0.1, 0.9, 2, 7],
+        "smallSampleSteps": ["10 mg in 10 mL", "1 mg in 10 mL"],
+        "reference": "BP 2024 (SC IV K.) Characters Section (Hygroscopicity and Solubility)"
+      },
+      "source": "Veegum__STM Veegum.txt:31"
+    },
+    {
+      "testCode": "RM-ID-SILICATE-VEEGUM",
+      "procedure": "Identification test 1: in a platinum crucible mix 1.0 g sample with 5.0 g anhydrous lithium metaborate; heat slowly, ignite at 1000-1200 °C for 15 min; cool and crush. Take 0.25 g residue, mix with about 10 mg sodium fluoride and a few drops of sulfuric acid to a thin slurry; cover with a plastic plate with a drop of water suspended under it and warm gently. A white ring forms rapidly around the drop.",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "details": {
+        "sampleG": 1.0,
+        "flux": "5.0 g anhydrous lithium metaborate",
+        "ignitionC": "1000-1200",
+        "ignitionMin": 15,
+        "residueG": 0.25,
+        "sodiumFluorideMg": 10,
+        "reference": "BP 2024 Appendix VI, Silicates"
+      },
+      "source": "Veegum__STM Veegum.txt:32"
+    },
+    {
+      "testCode": "RM-ID-PINK-VEEGUM",
+      "procedure": "Identification test 2: dissolve 1.0 g of the residue (test 1) in 5 mL dilute hydrochloric acid and 10 mL water; filter; add ammonium chloride buffer pH 10.0 (white gelatinous precipitate); centrifuge and keep the supernatant for test 3. Dissolve the precipitate in dilute hydrochloric acid, add dilute sodium hydroxide dropwise (white gelatinous precipitate); filter, add phenolphthalein to the residue (pink), wash with water until colourless and still white with phenolphthalein; sprinkle sodium fluoride crystals on the residue: it turns pink again in a short time.",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "details": {
+        "sampleG": 1.0,
+        "hydrochloricAcidMl": 5,
+        "waterMl": 10,
+        "buffer": "ammonium chloride buffer pH 10.0",
+        "indicator": "phenolphthalein solution",
+        "reagent": "sodium fluoride crystals"
+      },
+      "source": "Veegum__STM Veegum.txt:32"
+    },
+    {
+      "testCode": "RM-ID-PHOS-VEEGUM",
+      "procedure": "Identification test 3: to 2 mL of the supernatant from test 2 add 1 mL dilute ammonia R1 and 1 mL ammonium chloride solution (a white precipitate may form and dissolve on adding the ammonium chloride solution); add 1 mL disodium hydrogen phosphate solution. A white precipitate is formed.",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "details": {
+        "supernatantMl": 2,
+        "ammoniaMl": 1,
+        "ammoniumChlorideMl": 1,
+        "reagent": "1 mL disodium hydrogen phosphate solution"
+      },
+      "source": "Veegum__STM Veegum.txt:32"
+    },
+    {
+      "testCode": "RM-ID-AAS-VEEGUM",
+      "procedure": "Identification test 4 (AAS): the sample complies with the limits of the assay described in section 6.10 (assay for aluminium and magnesium).",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "details": {
+        "refersTo": "RM-ICP-AL-MG-VEEGUM (assay)"
+      },
+      "source": "Veegum__STM Veegum.txt:32"
+    },
+    {
+      "testCode": "RM-PH",
+      "procedure": "Disperse 5.0 g in 100 mL carbon dioxide-free water; measure pH with a calibrated pH meter.",
+      "kind": "general",
+      "workflow": "Measurement",
+      "details": {
+        "sampleG": 5.0,
+        "waterMl": 100,
+        "reference": "BP 2024 Appendix V L. Determination of pH Values"
+      },
+      "source": "Veegum__STM Veegum.txt:33"
+    },
+    {
+      "testCode": "RM-VISC",
+      "procedure": "Viscosity (BP Method III, rotating viscometer): weigh a quantity equivalent to 25.0 g dried substance and transfer to a 1 L blender jar containing water at 25 ± 2 °C to make 500 g; blend exactly 3 min at 14 000-15 000 r/min; transfer to a 600 mL beaker and stand 5 min; sample temperature 33 ± 3 °C; read with calibrated viscometer, spindle No. 3, 60 r/min for exactly 6 min; if the reading is above 90% of full scale, repeat with spindle No. 4 (0.32 cm diameter, 4.05 cm immersion depth).",
+      "kind": "general",
+      "workflow": "Measurement",
+      "details": {
+        "driedEquivalentG": 25.0,
+        "waterTotalG": 500,
+        "blendMin": 3,
+        "blendRpm": "14 000-15 000",
+        "standMin": 5,
+        "sampleTempC": "33 ± 3",
+        "spindle": "No. 3 at 60 r/min for 6 min; No. 4 if above 90% full scale",
+        "reference": "BP 2024 Appendix V H, Method III"
+      },
+      "source": "Veegum__STM Veegum.txt:34"
+    },
+    {
+      "testCode": "RM-ARSENIC",
+      "procedure": "Arsenic limit test, main method (BP Appendix VII Method A): sample 16.6 g in 100 mL dilute hydrochloric acid, boil 15 min, decant through filter into 250 mL flask with repeated hot dilute hydrochloric acid extractions; dilute to 250.0 mL; take 5.0 mL to 25.0 mL; add 15 mL hydrochloric acid, 0.1 mL stannous chloride solution and 5 mL potassium iodide solution, stand 15 min; add 5 g activated zinc and connect the gas evolution apparatus into silver diethyldithiocarbamate solution (3.0 mL) with lead acetate cotton. Compare colour after at least 2 h with the standard (1 mL of 1 ppm arsenic solution diluted to 25 mL). The sample colour must not be more intense than the standard (NMT 3 ppm). The alternative AAS method is not transcribed.",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "details": {
+        "sampleG": 16.6,
+        "acid": "100 mL dilute hydrochloric acid, boil 15 min",
+        "finalVolumeMl": 250,
+        "aliquotMl": 5.0,
+        "aliquotDiluteToMl": 25.0,
+        "stannousChlorideMl": 0.1,
+        "potassiumIodideMl": 5,
+        "activatedZincG": 5,
+        "absorber": "3.0 mL silver diethyldithiocarbamate solution",
+        "standard": "1 mL of 1 ppm arsenic solution diluted to 25 mL",
+        "waitH": 2,
+        "limit": "NMT 3 ppm",
+        "reference": "BP 2024 Appendix VII Limit Tests, Method A"
+      },
+      "source": "Veegum__STM Veegum.txt:35"
+    },
+    {
+      "testCode": "RM-LEAD",
+      "procedure": "Lead limit test by AAS: test solution 10.0 g in 100 mL dilute hydrochloric acid, boil 15 min, decant and extract insoluble matter with hot water, concentrate filtrates to about 20 mL, dilute to 50.0 mL with water. Reference solutions from lead standard solution (10 ppm Pb). Lead hollow-cathode lamp, 217 nm, air-acetylene flame, calibrated AAS, single-point standardisation. NMT 15 ppm.",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "details": {
+        "sampleG": 10.0,
+        "acid": "100 mL dilute hydrochloric acid",
+        "finalVolumeMl": 50.0,
+        "wavelengthNm": 217,
+        "flame": "air-acetylene",
+        "referenceSolution": "lead standard solution 10 ppm Pb",
+        "limit": "NMT 15 ppm",
+        "reference": "BP 2024 Appendix II D, Atomic Spectrophotometry: Absorption"
+      },
+      "source": "Veegum__STM Veegum.txt:36"
+    },
+    {
+      "testCode": "RM-LOD",
+      "procedure": "Loss on drying (BP Appendix IX D): weigh an empty crucible previously dried at 110 °C and cooled in desiccator (W0); weigh 1.000 g sample (W1); dry in calibrated oven at 110 °C for 2 h, cool in desiccator, weigh (W2); repeat to constant weight. % LOD = (W1 - W2) / (W1 - W0) x 100.",
+      "kind": "general",
+      "workflow": "Gravimetric",
+      "details": {
+        "sampleG": 1.000,
+        "ovenC": 110,
+        "timeH": 2,
+        "crucibleDryingC": 110,
+        "formula": "% LOD = (W1 - W2) / (W1 - W0) x 100",
+        "reference": "BP 2024 Appendix IX D"
+      },
+      "source": "Veegum__STM Veegum.txt:37"
+    },
+    {
+      "testCode": "RM-ACIDDEM-VEEGUM",
+      "procedure": "Acid demand: weigh sample equivalent to 5.00 g dried substance; disperse in 500 mL water with constant mixing in a blender jar. Add 3.0 mL portions of 0.1 M hydrochloric acid at 5 s, 65 s, 125 s, 185 s, 245 s, 305 s, 365 s, 425 s, 485 s, 545 s, 605 s, 665 s and 725 s, and a 1.0 mL portion at 785 s. Determine pH at 840 s; the pH must not be greater than 4.0.",
+      "kind": "specific",
+      "workflow": "Measurement",
+      "details": {
+        "driedEquivalentG": 5.00,
+        "waterMl": 500,
+        "acidPortionsMl": 3.0,
+        "finalPortionMl": 1.0,
+        "portionTimesS": [5, 65, 125, 185, 245, 305, 365, 425, 485, 545, 605, 665, 725],
+        "finalPortionTimeS": 785,
+        "phReadingTimeS": 840,
+        "titrant": "0.1 M hydrochloric acid",
+        "limit": "pH not greater than 4.0"
+      },
+      "source": "Veegum__STM Veegum.txt:38"
+    },
+    {
+      "testCode": "RM-ICP-AL-MG-VEEGUM",
+      "procedure": "Assay by AAS (Al / Mg ratio). Aluminium: fuse 0.200 g sample with 1.0 g anhydrous lithium metaborate in platinum crucible at 1000-1200 °C for 15 min; dissolve in 75 mL of 50 g/L nitric acid; make to 200.0 mL (solution A). Take 20.0 mL of A, add 20 mL sodium chloride solution 10 g/L, dilute to 100.0 mL. Standards: 1.0, 2.0, 3.0 and 4.0 mL of aluminium 1 mg/mL solution in 0.20 g sodium chloride each made to 100.0 mL; blank 0.20 g sodium chloride in 100.0 mL. Aluminium hollow-cathode lamp, 309 nm, acetylene-nitrous oxide flame. Magnesium: take 25.0 mL of A to 50.0 mL; take 5.0 mL, add 20.0 mL lanthanum chloride solution, dilute to 100.0 mL. Standards: 5.0, 10.0, 15.0 and 20.0 mL of magnesium solution (diluted 5.0 mL to 500.0 mL), each with 20.0 mL lanthanum chloride, made to 100.0 mL; blank 20 mL lanthanum chloride to 100.0 mL. Magnesium hollow-cathode lamp, 285 nm, air-acetylene flame. Ratio Al/Mg must be 0.5 to 1.2.",
+      "kind": "specific",
+      "workflow": "IcpMethodAssay",
+      "details": {
+        "analytes": ["Al", "Mg"],
+        "sampleG": 0.200,
+        "flux": "1.0 g anhydrous lithium metaborate",
+        "solventA": "50 g/L nitric acid, 75 mL then to 200.0 mL",
+        "aluminium": {
+          "wavelengthNm": 309,
+          "flame": "acetylene-nitrous oxide",
+          "aliquotMl": 20.0,
+          "naClSolution": "20 mL sodium chloride 10 g/L, to 100.0 mL",
+          "standards": "1.0, 2.0, 3.0, 4.0 mL of 1 mg/mL Al, each with 0.20 g NaCl, to 100.0 mL",
+          "blank": "0.20 g sodium chloride in 100.0 mL"
+        },
+        "magnesium": {
+          "wavelengthNm": 285,
+          "flame": "air-acetylene",
+          "aliquotMl": 5.0,
+          "dilutionOfA": "25.0 mL to 50.0 mL",
+          "lanthanumChloride": "20.0 mL to 100.0 mL",
+          "standards": "5.0, 10.0, 15.0, 20.0 mL of Mg solution (5.0 mL of 1 mg/mL to 500.0 mL), each with 20.0 mL lanthanum chloride, to 100.0 mL",
+          "blank": "20 mL lanthanum chloride solution to 100.0 mL"
+        },
+        "ratioLimit": "Al content / Mg content 0.5 to 1.2",
+        "reference": "BP 2024 Appendix II D, Atomic Spectrophotometry: Emission and Absorption, Method I"
+      },
+      "source": "Veegum__STM Veegum.txt:39"
+    },
+    {
+      "testCode": "TAMC",
+      "procedure": "Microbial enumeration (USP 2024 <2021>): 10 g sample in SCDB with 4% polysorbate 20 to 100 mL; within 1 h pipette 1 mL of the dilution into each of four plates; add SCDA to two plates and SDA to two plates; incubate SCDA 3-5 days at 30-35 °C (TAMC) and SDA 5-7 days at 20-25 °C (TYMC); count, average the plates and express as CFU/gm x DF (DF = 10).",
+      "kind": "general",
+      "workflow": "CountTest",
+      "details": {
+        "sampleG": 10,
+        "dilutionMl": 100,
+        "media": "SCDA (TAMC), SDA (TYMC)",
+        "incubationTamc": "3-5 days at 30-35 °C",
+        "incubationTymc": "5-7 days at 20-25 °C",
+        "dilutionFactor": 10,
+        "limit": "NMT 10^3 CFU/gm",
+        "reference": "USP 2024 <2021>",
+        "sop": "C2I-91-128"
+      },
+      "source": "Veegum__STM Veegum.txt:41"
+    },
+    {
+      "testCode": "TYMC",
+      "procedure": "Yeasts and molds: as TAMC, SDA plates incubated 5-7 days at 20-25 °C; express as CFU/gm x DF (DF = 10).",
+      "kind": "general",
+      "workflow": "CountTest",
+      "details": {
+        "media": "SDA",
+        "incubation": "5-7 days at 20-25 °C",
+        "limit": "NMT 10^2 CFU/gm",
+        "reference": "USP 2024 <2021>"
+      },
+      "source": "Veegum__STM Veegum.txt:41"
+    },
+    {
+      "testCode": "E.coli",
+      "procedure": "Specified microorganism E. coli: incubate SCDB'' 18-24 h at 30-35 °C; transfer 1 mL to 100 mL MacConkey broth (MBP), 42-44 °C 24-48 h; subculture on MacConkey agar (MAR) 30-35 °C 18-72 h; confirm by Gram stain, EMB (30-35 °C 24-48 h) and TBX (42-44 °C 18-72 h); optionally confirm identity with an identification system (probability above 70%).",
+      "kind": "general",
+      "workflow": "Observation",
+      "details": {
+        "incubationSCDB": "18-24 h at 30-35 °C",
+        "transferMl": 1,
+        "mbpMl": 100,
+        "mbpIncubation": "42-44 °C, 24-48 h",
+        "marIncubation": "30-35 °C, 18-72 h",
+        "limit": "Absent / gm",
+        "reference": "BP 2024 Monograph of Aluminium Magnesium Silicate"
+      },
+      "source": "Veegum__STM Veegum.txt:43"
+    }
+  ],
+  "notApplicable": [],
+  "supplierAttributes": [],
+  "reagents": [
+    { "name": "2-propanol", "use": "reagent", "source": "Veegum__STM Veegum.txt:28" },
+    { "name": "Activated zinc", "use": "reagent", "source": "Veegum__STM Veegum.txt:28" },
+    { "name": "Aluminum", "use": "standard", "source": "Veegum__STM Veegum.txt:28" },
+    { "name": "Ammonia", "use": "reagent", "source": "Veegum__STM Veegum.txt:28" },
+    { "name": "Ammonium chloride", "use": "reagent", "source": "Veegum__STM Veegum.txt:28" },
+    { "name": "Anhydrous lithium metaborate", "use": "reagent", "source": "Veegum__STM Veegum.txt:28" },
+    { "name": "Ethanol (96 per cent)", "use": "reagent", "source": "Veegum__STM Veegum.txt:28" },
+    { "name": "Glacial acetic acid", "use": "reagent", "source": "Veegum__STM Veegum.txt:28" },
+    { "name": "Hydrochloric acid", "use": "reagent", "source": "Veegum__STM Veegum.txt:28" },
+    { "name": "Lanthanum trioxide", "use": "reagent", "source": "Veegum__STM Veegum.txt:28" },
+    { "name": "Lead acetate", "use": "reagent", "source": "Veegum__STM Veegum.txt:28" },
+    { "name": "Lead nitrate", "use": "standard", "source": "Veegum__STM Veegum.txt:28" },
+    { "name": "Magnesium", "use": "standard", "source": "Veegum__STM Veegum.txt:28" },
+    { "name": "Nitric acid", "use": "reagent", "source": "Veegum__STM Veegum.txt:28" },
+    { "name": "Phenolphthalein", "use": "indicator", "source": "Veegum__STM Veegum.txt:28" },
+    { "name": "Potassium iodide", "use": "reagent", "source": "Veegum__STM Veegum.txt:28" },
+    { "name": "Pyridine", "use": "reagent", "source": "Veegum__STM Veegum.txt:28" },
+    { "name": "Silver diethyldithiocarbamate", "use": "reagent", "source": "Veegum__STM Veegum.txt:28" },
+    { "name": "Sodium chloride", "use": "reagent", "source": "Veegum__STM Veegum.txt:28" },
+    { "name": "Sodium fluoride", "use": "reagent", "source": "Veegum__STM Veegum.txt:28" },
+    { "name": "Sodium hydroxide", "use": "reagent", "source": "Veegum__STM Veegum.txt:28" },
+    { "name": "Stannous chloride", "use": "reagent", "source": "Veegum__STM Veegum.txt:28" },
+    { "name": "Stock arsenic standard solution (1000 ppm)", "use": "standard", "source": "Veegum__STM Veegum.txt:28" },
+    { "name": "Stock lead standard solution (1000 ppm)", "use": "standard", "source": "Veegum__STM Veegum.txt:28" },
+    { "name": "Sulfuric acid", "use": "reagent", "source": "Veegum__STM Veegum.txt:28" },
+    { "name": "0.1M Hydrochloric Acid", "use": "titrant", "source": "Veegum__STM Veegum.txt:28" }
+  ],
+  "openQuestions": [
+    {
+      "question": "E. coli limit is written 'Absent / gm' in the spec sheet and the STM (other materials use 'Absent /10 gm'). Loaded per gm as written. Confirm.",
+      "source": "Veegum__Specifications sheet Veegum.txt:26; Veegum__STM Veegum.txt:43"
+    },
+    {
+      "question": "E. coli procedure: 1 mL of the incubated SCDB is transferred to 100 mL MacConkey broth as written (other STMs use 10 mL). Recorded as written. Confirm.",
+      "source": "Veegum__STM Veegum.txt:43"
+    },
+    {
+      "question": "Arsenic: the spec sheet technique is AAS, but the main STM method is the colour comparison (Method A); the AAS alternative is not transcribed (main method only). Confirm the method.",
+      "source": "Veegum__Specifications sheet Veegum.txt:19; Veegum__STM Veegum.txt:35"
+    },
+    {
+      "question": "TAMC and TYMC limits print as 'NMT 103' and 'NMT 102' CFU/gm (superscripts lost). Loaded as 1000 and 100 per the user decision on document questions. Confirm.",
+      "source": "Veegum__Specifications sheet Veegum.txt:24-25; Veegum__STM Veegum.txt:41"
+    },
+    {
+      "question": "Assay is a ratio of two analytes (Al/Mg) measured in two separate solutions; the ratio row has no unit. Loaded as a dimensionless ratio. Confirm.",
+      "source": "Veegum__Specifications sheet Veegum.txt:23; Veegum__STM Veegum.txt:39"
+    }
+  ]
+}

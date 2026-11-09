@@ -1,0 +1,472 @@
+{
+  "itemCode": "STM-RM-061",
+  "itemName": "Liquid Glucose",
+  "stmCode": "STM-RM-061",
+  "stmFile": "Liquid Glucose__Liquid Glucose - SM.txt",
+  "specFiles": [
+    "Liquid Glucose__Specifications sheet Liquid Glucose.txt"
+  ],
+  "minQuantity": {
+    "routine": 100,
+    "retest": 50,
+    "retention": 100,
+    "unit": "g",
+    "source": "Liquid Glucose__Specifications sheet Liquid Glucose.txt:24; Liquid Glucose__Liquid Glucose - SM.txt:41"
+  },
+  "grades": [
+    {
+      "grade": "BP",
+      "rows": [
+        {
+          "testCode": "RM-DESC",
+          "parameterName": "Appearance",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Clear, colorless or brown, viscous liquid.",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Liquid Glucose__Specifications sheet Liquid Glucose.txt:11"
+        },
+        {
+          "testCode": "RM-SOLUB",
+          "parameterName": "Solubility",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Miscible with water",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Liquid Glucose__Specifications sheet Liquid Glucose.txt:12"
+        },
+        {
+          "testCode": "RM-ID-VIS-GLUC",
+          "parameterName": "Identification (Visual)",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "It is a clear, syrupy liquid at 25 °C",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Liquid Glucose__Specifications sheet Liquid Glucose.txt:13"
+        },
+        {
+          "testCode": "RM-ID-CUPRI-GLUC",
+          "parameterName": "Identification (Chemical Reaction: Cupri-tartaric)",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "A red precipitate is formed",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Liquid Glucose__Specifications sheet Liquid Glucose.txt:14"
+        },
+        {
+          "testCode": "RM-ID-PAD-GLUC",
+          "parameterName": "Identification (Chemical Reaction: Reactive pad)",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Comply (the color changes from yellow to green or blue)",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Liquid Glucose__Specifications sheet Liquid Glucose.txt:15"
+        },
+        {
+          "testCode": "RM-PH",
+          "parameterName": "pH",
+          "limitType": "Range",
+          "lower": 4.0,
+          "upper": 6.0,
+          "lowerInclusive": true,
+          "unit": null,
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Liquid Glucose__Specifications sheet Liquid Glucose.txt:16"
+        },
+        {
+          "testCode": "RM-SASH",
+          "parameterName": "Sulfated ash",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 0.5,
+          "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Liquid Glucose__Specifications sheet Liquid Glucose.txt:17"
+        },
+        {
+          "testCode": "RM-LOD",
+          "parameterName": "Loss on drying",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 30.0,
+          "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Liquid Glucose__Specifications sheet Liquid Glucose.txt:18"
+        },
+        {
+          "testCode": "RM-SO2-GLUC",
+          "parameterName": "Sulfur dioxide",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 20,
+          "lowerInclusive": null,
+          "unit": "ppm",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Liquid Glucose__Specifications sheet Liquid Glucose.txt:19"
+        },
+        {
+          "testCode": "RM-DE-GLUC",
+          "parameterName": "Dextrose equivalent",
+          "limitType": "Range",
+          "lower": 36,
+          "upper": 44,
+          "lowerInclusive": true,
+          "unit": null,
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Liquid Glucose__Specifications sheet Liquid Glucose.txt:20"
+        },
+        {
+          "testCode": "TAMC",
+          "parameterName": "Total aerobic microbial count",
+          "limitType": "CountTiered",
+          "lower": null,
+          "upper": 1000,
+          "lowerInclusive": null,
+          "unit": "CFU / gm",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Liquid Glucose__Specifications sheet Liquid Glucose.txt:21"
+        },
+        {
+          "testCode": "TYMC",
+          "parameterName": "Total yeasts and molds count",
+          "limitType": "CountTiered",
+          "lower": null,
+          "upper": 100,
+          "lowerInclusive": null,
+          "unit": "CFU / gm",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Liquid Glucose__Specifications sheet Liquid Glucose.txt:22"
+        },
+        {
+          "testCode": "E.coli",
+          "parameterName": "E. coli",
+          "limitType": "PresenceAbsence",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": "per 10 g",
+          "expectedResultText": "Absent /10 gm",
+          "expectedState": "Absence",
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "Liquid Glucose__Specifications sheet Liquid Glucose.txt:23"
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "testCode": "RM-DESC",
+      "procedure": "Under strong white light, check each received sample container separately in clean, transparent watch glass or glass dish to detect any foreign particles, conformance of colour & compliance with the visual specifications.",
+      "kind": "general",
+      "workflow": "Observation",
+      "details": {
+        "perContainer": true,
+        "reference": "BP 2025 Monograph for Liquid Glucose"
+      },
+      "source": "Liquid Glucose__Liquid Glucose - SM.txt:30"
+    },
+    {
+      "testCode": "RM-SOLUB",
+      "procedure": "Mix small quantity of sample with water. Note full miscibility with water. It may partly or totally solidify at room temperature and liquefies again when heated to 50 °C.",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {
+        "reference": "BP 2025 Monograph for Liquid Glucose"
+      },
+      "source": "Liquid Glucose__Liquid Glucose - SM.txt:31"
+    },
+    {
+      "testCode": "RM-ID-VIS-GLUC",
+      "procedure": "Visual examination: It is a clear, colorless or brown, viscous liquid, miscible with water. The substance may partly or totally solidify at room temperature and liquefies again when heated to 50 °C. Specification: It is a clear, syrupy liquid at 25 °C.",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "details": {
+        "reference": "BP 2025 Monograph for Liquid Glucose"
+      },
+      "source": "Liquid Glucose__Liquid Glucose - SM.txt:32"
+    },
+    {
+      "testCode": "RM-ID-CUPRI-GLUC",
+      "procedure": "Dissolve 0.1 g in 2.5 mL of water. Heat with 2.5 mL of cupri-tartaric solution. A red precipitate is formed.",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "details": {
+        "sample": "0.1 g in 2.5 mL water",
+        "reagent": "2.5 mL cupri-tartaric solution",
+        "reference": "BP 2025 Monograph for Liquid Glucose"
+      },
+      "source": "Liquid Glucose__Liquid Glucose - SM.txt:32"
+    },
+    {
+      "testCode": "RM-ID-PAD-GLUC",
+      "procedure": "Dip, for 1 s, a suitable stick with a reactive pad containing glucose-oxidase, peroxidase and a hydrogen-donating substance, such as tetramethylbenzidine, in a 5 g/L solution of the substance to be examined. Observe the color of the reactive pad; within 60 s the color changes from yellow to green or blue.",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "details": {
+        "sample": "5 g/L solution of substance",
+        "reactivePad": "glucose-oxidase, peroxidase, tetramethylbenzidine",
+        "dipTimeS": 1,
+        "observationTimeS": 60,
+        "reference": "BP 2025 Monograph for Liquid Glucose"
+      },
+      "source": "Liquid Glucose__Liquid Glucose - SM.txt:32"
+    },
+    {
+      "testCode": "RM-PH",
+      "procedure": "Mix 1 mL of a 223.6 g/L solution of potassium chloride and 30 mL of solution S (25.0 g in CO2-free water to 50.0 mL). Measure using a calibrated pH meter.",
+      "kind": "general",
+      "workflow": "Measurement",
+      "details": {
+        "solutionS": "25.0 g in CO2-free water to 50.0 mL",
+        "kclSolution": "1 mL of 223.6 g/L KCl solution with 30 mL Solution S",
+        "reference": "BP Appendix V L. Determination of pH Values; BP 2025 Monograph for Liquid Glucose"
+      },
+      "source": "Liquid Glucose__Liquid Glucose - SM.txt:33"
+    },
+    {
+      "testCode": "RM-SASH",
+      "procedure": "Accurately weigh empty crucible previously ignited at 600-650 °C (W0). Weigh 1.0 g into crucible (W1). Moisten with ~1 mL sulfuric acid, heat gently on hot plate until thoroughly charred. Cool, moisten again with sulfuric acid, heat until white fumes cease. Ignite in muffle at 600-650 °C, cool in desiccator, weigh (W2). Repeat to constant weight. % Sulfated ash = (W2 - W0) / (W1 - W0) x 100.",
+      "kind": "general",
+      "workflow": "Gravimetric",
+      "details": {
+        "sampleG": 1.0,
+        "muffleTempC": "600-650",
+        "acid": "sulfuric acid ~1 mL",
+        "formula": "% Sulfated ash = (W2 - W0) / (W1 - W0) x 100",
+        "reference": "BP Appendix IX A. Determination of Sulfated Ash; BP 2025 Monograph for Liquid Glucose"
+      },
+      "source": "Liquid Glucose__Liquid Glucose - SM.txt:34"
+    },
+    {
+      "testCode": "RM-LOD",
+      "procedure": "Accurately weigh empty weighing bottle previously dried at 80 °C (W0). Weigh accurately 1.000 g into weighing bottle (W1). Dry in calibrated oven at 80 °C for 2 h. Cool in desiccator, weigh (W2). Repeat to constant weight. % Loss on drying = (W1 - W2) / (W1 - W0) x 100.",
+      "kind": "general",
+      "workflow": "Gravimetric",
+      "details": {
+        "sampleG": 1.0,
+        "ovenTempC": 80,
+        "dryTimeH": 2,
+        "formula": "% Loss on Drying = (W1 - W2) / (W1 - W0) x 100",
+        "reference": "BP Appendix IX D. Determination of Loss on Drying; BP 2025 Monograph for Liquid Glucose"
+      },
+      "source": "Liquid Glucose__Liquid Glucose - SM.txt:35"
+    },
+    {
+      "testCode": "RM-SO2-GLUC",
+      "procedure": "Introduce 150 mL water into flask A, pass CO2 for 15 min at 100 ± 5 mL/min. To 10 mL dilute H2O2 add 0.15 mL 1 g/L bromophenol blue in ethanol (20% V/V), add 0.1 M NaOH until violet-blue colour obtained without exceeding endpoint. Place in tube D. Add 25.0 g sample with 100 mL water to flask A. Add 80 mL dilute HCl, boil for 1 h. Transfer tube D contents to flask, heat on water bath 15 min, cool, add 0.1 mL bromophenol blue, titrate with 0.1 M NaOH to violet-blue (V1 mL). Carry out blank (V2 mL). ppm = 32030 x (V1 - V2) x (n / m).",
+      "kind": "specific",
+      "workflow": "Measurement",
+      "details": {
+        "sampleG": 25.0,
+        "co2Flow": "100 ± 5 mL/min for 15 min",
+        "absorbent": "10 mL dilute H2O2 neutralised with 0.1 M NaOH to bromophenol blue",
+        "acid": "80 mL dilute HCl",
+        "boilTimeH": 1,
+        "titrant": "0.1 M sodium hydroxide",
+        "indicator": "bromophenol blue solution (1 g/L in ethanol 20% V/V)",
+        "formula": "ppm = 32030 x (V1 - V2) x (n / m)",
+        "reference": "BP Appendix IX B. Determination of Sulfur Dioxide; BP 2025 Monograph for Liquid Glucose"
+      },
+      "source": "Liquid Glucose__Liquid Glucose - SM.txt:36"
+    },
+    {
+      "testCode": "RM-DE-GLUC",
+      "procedure": "Weigh substance equivalent to 2.85-3.15 g reducing carbohydrates as dextrose equivalent into 500 mL volumetric flask, dissolve in water to volume. Transfer to 50 mL burette. Pipette 25.0 mL cupri-tartaric solution into 250 mL flask, add 18.5 mL test solution from burette, add glass beads. Boil after 2 min ± 15 s, boil exactly 120 s. Add 1 mL 1 g/L methylene blue solution, titrate with test solution (V1) until blue colour disappears while maintaining boiling. Standardize cupri-tartaric solution with 6.00 g/L glucose solution (V0). Dextrose equivalent = 300 x V0 x 100 / (V1 x M x D).",
+      "kind": "specific",
+      "workflow": "Measurement",
+      "details": {
+        "samplePrep": "equivalent to 2.85-3.15 g reducing carbohydrates in 500.0 mL water",
+        "reagents": "25.0 mL cupri-tartaric solution, 18.5 mL test solution, glass beads",
+        "indicator": "1 mL 1 g/L methylene blue solution",
+        "standardization": "6.00 g/L solution of glucose (V0)",
+        "formula": "Dextrose equivalent = 300 x V0 x 100 / (V1 x M x D); V0 = total volume glucose standard (mL), V1 = total volume test solution (mL), M = mass of sample (g), D = percentage content of dry matter",
+        "reference": "BP 2025 Monograph for Liquid Glucose"
+      },
+      "source": "Liquid Glucose__Liquid Glucose - SM.txt:37"
+    },
+    {
+      "testCode": "TAMC",
+      "procedure": "Microbiological examination per SOP C2I-91-128 and the verification report specifically for this material.",
+      "kind": "general",
+      "workflow": "CountTest",
+      "details": {
+        "sop": "C2I-91-128",
+        "reference": "USP <2023> Microbiological Attributes of Nonsterile Nutritional and Dietary Supplements"
+      },
+      "source": "Liquid Glucose__Liquid Glucose - SM.txt:39"
+    },
+    {
+      "testCode": "TYMC",
+      "procedure": "Microbiological examination per SOP C2I-91-128 and the verification report specifically for this material.",
+      "kind": "general",
+      "workflow": "CountTest",
+      "details": {
+        "sop": "C2I-91-128",
+        "reference": "USP <2023> Microbiological Attributes of Nonsterile Nutritional and Dietary Supplements"
+      },
+      "source": "Liquid Glucose__Liquid Glucose - SM.txt:39"
+    },
+    {
+      "testCode": "E.coli",
+      "procedure": "Microbiological examination per SOP C2I-91-128 and the verification report specifically for this material.",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {
+        "sop": "C2I-91-128",
+        "reference": "USP <2023> Microbiological Attributes of Nonsterile Nutritional and Dietary Supplements"
+      },
+      "source": "Liquid Glucose__Liquid Glucose - SM.txt:39"
+    }
+  ],
+  "notApplicable": [],
+  "supplierAttributes": [],
+  "reagents": [
+    {
+      "name": "Copper sulfate pentahydrate",
+      "use": "reagent",
+      "source": "Liquid Glucose__Liquid Glucose - SM.txt:28"
+    },
+    {
+      "name": "Sodium potassium tartrate",
+      "use": "reagent",
+      "source": "Liquid Glucose__Liquid Glucose - SM.txt:28"
+    },
+    {
+      "name": "Sodium hydroxide",
+      "use": "reagent",
+      "source": "Liquid Glucose__Liquid Glucose - SM.txt:28"
+    },
+    {
+      "name": "Tetramethylbenzidine",
+      "use": "reagent",
+      "source": "Liquid Glucose__Liquid Glucose - SM.txt:28"
+    },
+    {
+      "name": "Potassium chloride",
+      "use": "reagent",
+      "source": "Liquid Glucose__Liquid Glucose - SM.txt:28"
+    },
+    {
+      "name": "Methylene blue",
+      "use": "indicator",
+      "source": "Liquid Glucose__Liquid Glucose - SM.txt:28"
+    },
+    {
+      "name": "Glucose",
+      "use": "standard",
+      "source": "Liquid Glucose__Liquid Glucose - SM.txt:28"
+    },
+    {
+      "name": "Bromophenol Blue",
+      "use": "indicator",
+      "source": "Liquid Glucose__Liquid Glucose - SM.txt:28"
+    },
+    {
+      "name": "Hydrogen Peroxide Solution",
+      "use": "reagent",
+      "source": "Liquid Glucose__Liquid Glucose - SM.txt:28"
+    },
+    {
+      "name": "Ethanol (96%)",
+      "use": "reagent",
+      "source": "Liquid Glucose__Liquid Glucose - SM.txt:28"
+    },
+    {
+      "name": "Potassium hydrogen phthalate",
+      "use": "standard",
+      "source": "Liquid Glucose__Liquid Glucose - SM.txt:28"
+    },
+    {
+      "name": "Phenolphthalein",
+      "use": "indicator",
+      "source": "Liquid Glucose__Liquid Glucose - SM.txt:28"
+    },
+    {
+      "name": "Hydrochloric Acid",
+      "use": "reagent",
+      "source": "Liquid Glucose__Liquid Glucose - SM.txt:28"
+    },
+    {
+      "name": "0.1M Sodium Hydroxide VS",
+      "use": "titrant",
+      "source": "Liquid Glucose__Liquid Glucose - SM.txt:28"
+    },
+    {
+      "name": "Cupri-tartaric Solution",
+      "use": "reagent",
+      "source": "Liquid Glucose__Liquid Glucose - SM.txt:28"
+    },
+    {
+      "name": "Solution S",
+      "use": "reagent",
+      "source": "Liquid Glucose__Liquid Glucose - SM.txt:28"
+    }
+  ],
+  "openQuestions": [
+    {
+      "question": "Spec sheet row 20 defines Dextrose equivalent as '36-44 (±10 % of the manufacturer nominal value)'; transcribed as Range 36-44. Confirm whether nominal value tolerance should be evaluated instead.",
+      "source": "Liquid Glucose__Specifications sheet Liquid Glucose.txt:20"
+    },
+    {
+      "question": "Spec sheet rows 21 and 22 print TAMC and TYMC limits as '103 CFU / gm' and '102 CFU / gm' (10^3 and 10^2 CFU/g); transcribed as upper limits 1000 and 100 CFU/gm.",
+      "source": "Liquid Glucose__Specifications sheet Liquid Glucose.txt:21; Liquid Glucose__Specifications sheet Liquid Glucose.txt:22"
+    },
+    {
+      "question": "STM line 37 references '(BP Appendix IX C. Determination of Water)' for Dextrose equivalent; this is a typographic reference error in the STM for reducing sugars / dextrose equivalent.",
+      "source": "Liquid Glucose__Liquid Glucose - SM.txt:37"
+    },
+    {
+      "question": "Related item code VB010121900046 noted on spec sheet line 8.",
+      "source": "Liquid Glucose__Specifications sheet Liquid Glucose.txt:8"
+    }
+  ]
+}

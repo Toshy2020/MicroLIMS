@@ -1,0 +1,886 @@
+{
+  "testDefinitions": [
+    {
+      "code": "RM-ID-SILICATE-125",
+      "displayName": "Identification of Aluminium Magnesium Silicate (reaction of silicates)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Qualitative",
+      "equationType": "Qualitative",
+      "physchemArea": "RawPackaging",
+      "complete": true,
+      "notes": "In platinum crucible mix 1.0 g with 5.0 g anhydrous lithium metaborate; ignite at 1000-1200 °C for 15 min; crush residue; mix 0.25 g residue with 10 mg NaF and a few drops H2SO4; warm gently under plastic plate with drop of water: white ring rapidly formed (BP 2024 Appendix VI Silicates; source: Veegum__STM Veegum.txt:32).",
+      "usedBy": [
+        "STM-RM-125"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-125",
+          "provisionalCode": "RM-ID-SILICATE-VEEGUM",
+          "source": "Veegum__STM Veegum.txt:32"
+        }
+      ]
+    },
+    {
+      "code": "RM-ID-PINK-125",
+      "displayName": "Identification of Aluminium Magnesium Silicate (aluminium reaction with phenolphthalein and NaF)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Qualitative",
+      "equationType": "Qualitative",
+      "physchemArea": "RawPackaging",
+      "complete": true,
+      "notes": "Dissolve 1.0 g residue from test A in 5 mL dilute HCl and 10 mL water; filter; add ammonium chloride buffer pH 10.0 (white gelatinous precipitate); dissolve precipitate in dilute HCl, add dropwise dilute NaOH (white gelatinous precipitate); filter, add phenolphthalein to residue (turns pink); wash until pink discharges, sprinkle NaF crystals: turns pink again (source: Veegum__STM Veegum.txt:32).",
+      "usedBy": [
+        "STM-RM-125"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-125",
+          "provisionalCode": "RM-ID-PINK-VEEGUM",
+          "source": "Veegum__STM Veegum.txt:32"
+        }
+      ]
+    },
+    {
+      "code": "RM-ID-PHOS-125",
+      "displayName": "Identification of Aluminium Magnesium Silicate (magnesium reaction with phosphate)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Qualitative",
+      "equationType": "Qualitative",
+      "physchemArea": "RawPackaging",
+      "complete": true,
+      "notes": "To 2 mL supernatant from test B add 1 mL dilute ammonia R1 and 1 mL ammonium chloride solution; add 1 mL disodium hydrogen phosphate solution: white precipitate forms (source: Veegum__STM Veegum.txt:32).",
+      "usedBy": [
+        "STM-RM-125"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-125",
+          "provisionalCode": "RM-ID-PHOS-VEEGUM",
+          "source": "Veegum__STM Veegum.txt:32"
+        }
+      ]
+    },
+    {
+      "code": "RM-ID-AAS-125",
+      "displayName": "Identification of Aluminium Magnesium Silicate (AAS, comply with assay)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Qualitative",
+      "equationType": "Qualitative",
+      "physchemArea": "RawPackaging",
+      "complete": true,
+      "notes": "Complies with limits of the assay for aluminium and magnesium (source: Veegum__STM Veegum.txt:32).",
+      "usedBy": [
+        "STM-RM-125"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-125",
+          "provisionalCode": "RM-ID-AAS-VEEGUM",
+          "source": "Veegum__STM Veegum.txt:32"
+        }
+      ]
+    },
+    {
+      "code": "RM-ACIDDEM-125",
+      "displayName": "Acid demand of Aluminium Magnesium Silicate",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Measurement",
+      "equationType": "Measurement",
+      "physchemArea": "RawPackaging",
+      "replicateCount": 1,
+      "evaluationBasis": "Mean",
+      "complete": true,
+      "notes": "Weigh quantity equivalent to 5.00 g dried substance in 500 mL water. With constant mixing, add 3.0 mL portions of 0.1 M HCl at 5, 65, 125, 185, 245, 305, 365, 425, 485, 545, 605, 665, 725 s, and 1.0 mL at 785 s. Determine pH at 840 s: pH NMT 4.0 (source: Veegum__STM Veegum.txt:38).",
+      "usedBy": [
+        "STM-RM-125"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-125",
+          "provisionalCode": "RM-ACIDDEM-VEEGUM",
+          "source": "Veegum__STM Veegum.txt:38"
+        }
+      ]
+    },
+    {
+      "code": "RM-ICP-ALMG-125",
+      "displayName": "Assay of Aluminium Magnesium Silicate (Al/Mg ratio by AAS)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Measurement",
+      "equationType": "Measurement",
+      "physchemArea": "RawPackaging",
+      "replicateCount": 1,
+      "evaluationBasis": "Mean",
+      "complete": true,
+      "notes": "0.200 g ignited with 1.0 g lithium metaborate at 1000-1200 °C for 15 min, dissolved in 50 g/L HNO3 to 200.0 mL (solution A). Al measured at 309 nm (N2O-acetylene) vs 10-40 µg/mL Al standards with NaCl. Mg measured at 285 nm (air-acetylene) vs 0.5-2.0 µg/mL Mg standards with LaCl3. Ratio of Al content to Mg content: 0.5 to 1.2. Result entered by analyst (ratio cannot be calculated by standard AAS/ICP workflows; CATALOG.md rule 6; source: Veegum__STM Veegum.txt:39).",
+      "usedBy": [
+        "STM-RM-125"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-125",
+          "provisionalCode": "RM-ICP-AL-MG-VEEGUM",
+          "source": "Veegum__STM Veegum.txt:39"
+        }
+      ]
+    },
+    {
+      "code": "RM-ID-PIP-036",
+      "displayName": "Identification of Calcium Glycerophosphate (reaction with KHSO4 and piperidine)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Qualitative",
+      "equationType": "Qualitative",
+      "physchemArea": "RawPackaging",
+      "complete": true,
+      "notes": "Mix 1 g with 1 g KHSO4, heat strongly, direct vapour to filter paper impregnated with 10 g/L sodium nitroprusside: develops blue colour in contact with piperidine (BP 2024 Monograph; source: Calcium Glycerophosphate__Calcium Glycerophosphate-SM.txt:30).",
+      "usedBy": [
+        "STM-RM-036"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-036",
+          "provisionalCode": "RM-ID-PIP-CAGLY",
+          "source": "Calcium Glycerophosphate__Calcium Glycerophosphate-SM.txt:30"
+        }
+      ]
+    },
+    {
+      "code": "RM-CITRIC-036",
+      "displayName": "Citric acid test for Calcium Glycerophosphate",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Qualitative",
+      "equationType": "Qualitative",
+      "physchemArea": "RawPackaging",
+      "complete": true,
+      "notes": "Shake 5.0 g with 20 mL CO2-free water, filter; add 0.15 mL H2SO4, filter; add 5 mL mercuric sulfate solution, heat to boiling; add 0.5 mL 3.2 g/L KMnO4, heat to boiling: no precipitate formed (BP 2024 Monograph; source: Calcium Glycerophosphate__Calcium Glycerophosphate-SM.txt:33).",
+      "usedBy": [
+        "STM-RM-036"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-036",
+          "provisionalCode": "RM-CITRIC-CAGLY",
+          "source": "Calcium Glycerophosphate__Calcium Glycerophosphate-SM.txt:33"
+        }
+      ]
+    },
+    {
+      "code": "RM-ETOH-SOL-036",
+      "displayName": "Glycerol and ethanol-soluble substances in Calcium Glycerophosphate",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Gravimetric",
+      "equationType": "GravimetricResidue",
+      "physchemArea": "RawPackaging",
+      "replicateCount": 1,
+      "usesTare": true,
+      "complete": true,
+      "notes": "Shake 1.000 g with 25 mL ethanol (96%) for 1 min, filter, evaporate filtrate on water bath, dry residue at 70 °C for 1 h, weigh beaker with residue: residue NMT 5 mg / 0.5% (BP 2024 Monograph; source: Calcium Glycerophosphate__Calcium Glycerophosphate-SM.txt:34).",
+      "usedBy": [
+        "STM-RM-036"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-036",
+          "provisionalCode": "RM-ETOH-SOL-CAGLY",
+          "source": "Calcium Glycerophosphate__Calcium Glycerophosphate-SM.txt:34"
+        }
+      ]
+    },
+    {
+      "code": "RM-LT-PO4-036",
+      "displayName": "Phosphates (limit test for Calcium Glycerophosphate)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Qualitative",
+      "equationType": "Qualitative",
+      "physchemArea": "RawPackaging",
+      "complete": true,
+      "notes": "Dilute 2.5 mL solution S to 100 mL with water; add 4 mL sulfomolybdic reagent R3, shake, add 0.1 mL stannous chloride R1; standard 2 mL phosphate standard (5 ppm PO4) + 98 mL water. After 10 min, compare colours (NMT 400 ppm). (BP Appendix VII Limit Tests Phosphates; source: Calcium Glycerophosphate__Calcium Glycerophosphate-SM.txt:36).",
+      "usedBy": [
+        "STM-RM-036"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-036",
+          "provisionalCode": "RM-LT-PO4-CAGLY",
+          "source": "Calcium Glycerophosphate__Calcium Glycerophosphate-SM.txt:36"
+        }
+      ]
+    },
+    {
+      "code": "RM-ID-CU-030",
+      "displayName": "Identification of Copper Sulfate Pentahydrate (reactions of copper)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Qualitative",
+      "equationType": "Qualitative",
+      "physchemArea": "RawPackaging",
+      "complete": true,
+      "notes": "0.1 g in 1 mL water + 1 mL dilute ammonia: blue precipitate dissolving to deep blue; add 1 mL dilute acetic acid and 1 mL potassium ferrocyanide: reddish-brown precipitate (BP Appendix VI Copper; source: Cooper Sulfate Pentahydrate__Copper Sulphate pentahydrate-SM.txt:30).",
+      "usedBy": [
+        "STM-RM-030"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-030",
+          "provisionalCode": "RM-ID-CU-CUSO4",
+          "source": "Cooper Sulfate Pentahydrate__Copper Sulphate pentahydrate-SM.txt:30"
+        }
+      ]
+    },
+    {
+      "code": "RM-LT-NI-030",
+      "displayName": "Nickel (limit test by AAS for Copper Sulfate Pentahydrate)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Qualitative",
+      "equationType": "Qualitative",
+      "physchemArea": "RawPackaging",
+      "complete": true,
+      "notes": "0.5 g in 10 mL water + 2.5 mL lead-free HNO3 to 25.0 mL; measured by flame AAS at 232.0 nm (air-acetylene) vs nickel standard 0.5 ppm Ni (NMT 1 ppm). (BP Appendix II D; source: Cooper Sulfate Pentahydrate__Copper Sulphate pentahydrate-SM.txt:33).",
+      "usedBy": [
+        "STM-RM-030"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-030",
+          "provisionalCode": "RM-NI-CUSO4",
+          "source": "Cooper Sulfate Pentahydrate__Copper Sulphate pentahydrate-SM.txt:33"
+        }
+      ]
+    },
+    {
+      "code": "RM-LT-CO-030",
+      "displayName": "Cobalt (limit test by AAS for Copper Sulfate Pentahydrate)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Qualitative",
+      "equationType": "Qualitative",
+      "physchemArea": "RawPackaging",
+      "complete": true,
+      "notes": "0.5 g in 10 mL water + 2.5 mL lead-free HNO3 to 25.0 mL; measured by flame AAS at 240.7 nm (air-acetylene) vs cobalt standard 0.5 ppm Co (NMT 1 ppm). (BP Appendix II D; source: Cooper Sulfate Pentahydrate__Copper Sulphate pentahydrate-SM.txt:34).",
+      "usedBy": [
+        "STM-RM-030"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-030",
+          "provisionalCode": "RM-CO-CUSO4",
+          "source": "Cooper Sulfate Pentahydrate__Copper Sulphate pentahydrate-SM.txt:34"
+        }
+      ]
+    },
+    {
+      "code": "RM-LT-FE-030",
+      "displayName": "Iron (limit test by AAS for Copper Sulfate Pentahydrate)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Qualitative",
+      "equationType": "Qualitative",
+      "physchemArea": "RawPackaging",
+      "complete": true,
+      "notes": "0.5 g in 10 mL water + 2.5 mL lead-free HNO3 to 25.0 mL; measured by flame AAS at 248.3 nm (air-acetylene) vs iron standard 20 ppm Fe (NMT 100 ppm). (BP Appendix II D; source: Cooper Sulfate Pentahydrate__Copper Sulphate pentahydrate-SM.txt:36).",
+      "usedBy": [
+        "STM-RM-030"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-030",
+          "provisionalCode": "RM-LT-FE",
+          "source": "Cooper Sulfate Pentahydrate__Copper Sulphate pentahydrate-SM.txt:36"
+        }
+      ]
+    },
+    {
+      "code": "RM-TIT-CUSO4-030",
+      "displayName": "Assay of Copper Sulfate Pentahydrate (iodometric titration)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Titration",
+      "equationType": "Titration",
+      "physchemArea": "RawPackaging",
+      "titrationType": "Redox",
+      "titrationMode": "Direct",
+      "titrationCalculation": "UspFactor",
+      "titrantSolution": "0.1 N Sodium thiosulfate VS",
+      "titrationEquivalencyFactor": 249.7,
+      "titrationEquivalencyFactorDerivation": "24.97 mg CuSO4·5H2O per mL 0.1 M (0.1 N) sodium thiosulfate / 0.1 = 249.7 mg/mmol",
+      "titrationIndicatorEntry": "Starch soluble TS",
+      "titrationEndpoint": "Visual",
+      "titrationBlankRequired": false,
+      "replicateCount": 1,
+      "complete": true,
+      "notes": "0.200 g dissolved in 50 mL water + 2 mL sulfuric acid + 3 g potassium iodide; titrate with 0.1 M (0.1 N) sodium thiosulfate VS, adding 1 mL starch solution near the end. 1 mL 0.1 M sodium thiosulfate = 24.97 mg CuSO4·5H2O. Limit: 99.0%-101.0% (BP Appendix VIII D; source: Cooper Sulfate Pentahydrate__Copper Sulphate pentahydrate-SM.txt:38).",
+      "usedBy": [
+        "STM-RM-030"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-030",
+          "provisionalCode": "RM-TIT-CUSO4",
+          "source": "Cooper Sulfate Pentahydrate__Copper Sulphate pentahydrate-SM.txt:38"
+        }
+      ]
+    },
+    {
+      "code": "RM-HPLC-GLIM-CIS",
+      "displayName": "Limit of cis-isomer (Glimepiride related compound A)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "HplcMethodAssay",
+      "equationType": "HplcMethodAssay",
+      "physchemArea": "RawPackaging",
+      "hplcMethod": "Glimepiride related compound A / cis-isomer (USP, HPLC)",
+      "requiresSystemSuitability": true,
+      "methodAbbreviation": "GLIM-CIS",
+      "complete": true,
+      "notes": "Limit of cis-isomer (NMT 0.8%; source: Glimepiride__STM Glimepiride New - EDA.txt:31).",
+      "usedBy": [
+        "STM-RM-052"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-052",
+          "provisionalCode": "RM-HPLC-GLIM-CIS",
+          "source": "Glimepiride__STM Glimepiride New - EDA.txt:31"
+        }
+      ],
+      "heldBack": "needs the held-back method \"Glimepiride related compound A / cis-isomer (USP, HPLC)\""
+    },
+    {
+      "code": "RM-HPLC-GLIM-IMP",
+      "displayName": "Organic impurities of glimepiride (USP, HPLC)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "HplcMethodAssay",
+      "equationType": "HplcMethodAssay",
+      "physchemArea": "RawPackaging",
+      "hplcMethod": "Glimepiride organic impurities (USP, HPLC)",
+      "requiresSystemSuitability": true,
+      "methodAbbreviation": "GLIM-IMP",
+      "complete": true,
+      "notes": "USP rows: Related compound B NMT 0.4%, C NMT 0.1%, D NMT 0.2%, any unspecified NMT 0.1%, total excluding B NMT 0.5% (source: Glimepiride__STM Glimepiride New - EDA.txt:32).",
+      "usedBy": [
+        "STM-RM-052"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-052",
+          "provisionalCode": "RM-HPLC-GLIM-IMP",
+          "source": "Glimepiride__STM Glimepiride New - EDA.txt:32"
+        }
+      ],
+      "heldBack": "needs the held-back method \"Glimepiride organic impurities (USP, HPLC)\""
+    },
+    {
+      "code": "RM-HPLC-GLIM-AS",
+      "displayName": "Assay of glimepiride (USP, HPLC)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "HplcMethodAssay",
+      "equationType": "HplcMethodAssay",
+      "physchemArea": "RawPackaging",
+      "hplcMethod": "Glimepiride assay (USP, HPLC)",
+      "requiresSystemSuitability": true,
+      "methodAbbreviation": "GLIM-AS",
+      "complete": true,
+      "notes": "Assay of glimepiride (98.0%-102.0% on anhydrous basis; source: Glimepiride__STM Glimepiride New - EDA.txt:42).",
+      "usedBy": [
+        "STM-RM-052"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-052",
+          "provisionalCode": "RM-HPLC-GLIM-AS",
+          "source": "Glimepiride__STM Glimepiride New - EDA.txt:42"
+        }
+      ],
+      "heldBack": "needs the held-back method \"Glimepiride assay (USP, HPLC)\""
+    }
+  ],
+  "solutions": [
+    {
+      "name": "Glimepiride assay mobile phase (phosphate buffer pH 2.1-2.7 : acetonitrile 1:1)",
+      "type": "MobilePhase",
+      "section": "Physicochemical Laboratory",
+      "nominalStrength": null,
+      "strengthUnit": null,
+      "finalVolumeMl": 1000,
+      "instructions": "Dissolve 0.5 g of monobasic sodium phosphate in 500 mL of water. Adjust with phosphoric acid to a pH of 2.1-2.7. Add 500 mL of acetonitrile.",
+      "components": [
+        {
+          "entry": "Monobasic sodium phosphate",
+          "quantity": 0.5,
+          "unit": "Gram"
+        },
+        {
+          "entry": "Acetonitrile",
+          "quantity": 500,
+          "unit": "Milliliter"
+        }
+      ],
+      "waterToVolume": false,
+      "standardizationMode": null,
+      "standardEntry": null,
+      "equivalenceMgPerMl": null,
+      "referenceSolution": null,
+      "usedBy": [
+        "STM-RM-052"
+      ],
+      "notes": "Mobile phase for Glimepiride assay and organic impurities (USP).",
+      "complete": false,
+      "missing": [
+        "shelfLife: not stated in the STM",
+        "storageCondition: not stated in the STM"
+      ],
+      "heldBack": "only used by held-back HPLC methods, and shelfLife, storageCondition not stated"
+    },
+    {
+      "name": "Glimepiride cis-isomer mobile phase (IPA : glacial acetic acid : hexane 100:1:900)",
+      "type": "MobilePhase",
+      "section": "Physicochemical Laboratory",
+      "nominalStrength": null,
+      "strengthUnit": null,
+      "finalVolumeMl": 1000,
+      "instructions": "Transfer 100 mL of isopropyl alcohol to a 1-L volumetric flask. Add 1 mL of glacial acetic acid. Dilute with hexane to volume.",
+      "components": [
+        {
+          "entry": "Isopropyl alcohol",
+          "quantity": 100,
+          "unit": "Milliliter"
+        },
+        {
+          "entry": "Glacial acetic acid",
+          "quantity": 1,
+          "unit": "Milliliter"
+        },
+        {
+          "entry": "Hexane",
+          "quantity": 900,
+          "unit": "Milliliter"
+        }
+      ],
+      "waterToVolume": false,
+      "standardizationMode": null,
+      "standardEntry": null,
+      "equivalenceMgPerMl": null,
+      "referenceSolution": null,
+      "usedBy": [
+        "STM-RM-052"
+      ],
+      "notes": "Mobile phase for Glimepiride cis-isomer determination (USP).",
+      "complete": false,
+      "missing": [
+        "shelfLife: not stated in the STM",
+        "storageCondition: not stated in the STM"
+      ],
+      "heldBack": "only used by held-back HPLC methods, and shelfLife, storageCondition not stated"
+    },
+    {
+      "name": "Glimepiride diluent (acetonitrile : water 4:1)",
+      "type": "Reagent",
+      "section": "Physicochemical Laboratory",
+      "nominalStrength": null,
+      "strengthUnit": null,
+      "finalVolumeMl": 1000,
+      "instructions": "Mix 800 mL of acetonitrile and 200 mL of water.",
+      "components": [
+        {
+          "entry": "Acetonitrile",
+          "quantity": 800,
+          "unit": "Milliliter"
+        }
+      ],
+      "waterToVolume": false,
+      "standardizationMode": null,
+      "standardEntry": null,
+      "equivalenceMgPerMl": null,
+      "referenceSolution": null,
+      "usedBy": [
+        "STM-RM-052"
+      ],
+      "notes": "Diluent for Glimepiride assay and organic impurities (USP).",
+      "complete": false,
+      "missing": [
+        "shelfLife: not stated in the STM",
+        "storageCondition: not stated in the STM"
+      ],
+      "heldBack": "only used by held-back HPLC methods, and shelfLife, storageCondition not stated"
+    }
+  ],
+  "hplcMethods": [
+    {
+      "name": "Glimepiride assay (USP, HPLC)",
+      "abbreviation": "GLIM-AS",
+      "technique": "Hplc",
+      "resultMode": "Assay",
+      "section": "Physicochemical Laboratory",
+      "effectiveDate": "STM issue date",
+      "columnDesignation": "L1",
+      "columnLengthMm": 250,
+      "columnInternalDiameterMm": 4.6,
+      "particleSizeUm": 5,
+      "elutionMode": "Isocratic",
+      "flowRateMlPerMin": 1.0,
+      "detectorType": "UV",
+      "injectionVolumeUl": 20,
+      "runTimeMin": null,
+      "mobilePhases": [
+        {
+          "channel": "A",
+          "solution": "Glimepiride assay mobile phase (phosphate buffer pH 2.1-2.7 : acetonitrile 1:1)",
+          "ratioPercent": 100
+        }
+      ],
+      "gradientSteps": [],
+      "diluentSolution": "Glimepiride diluent (acetonitrile : water 4:1)",
+      "analytes": [
+        {
+          "name": "Glimepiride",
+          "wavelengthNm": 228,
+          "standardEntry": "USP Glimepiride RS",
+          "theoreticalWeightStdMg": null,
+          "theoreticalWeightTestMg": null,
+          "standardInjections": null,
+          "standardDilution": null,
+          "sstMaxRsdPercent": 0.73
+        }
+      ],
+      "complete": false,
+      "missing": [
+        "runTimeMin: not stated in STM",
+        "standardInjections: replicates for 0.73 % RSD not stated in STM",
+        "theoreticalWeightStdMg, theoreticalWeightTestMg: only 0.2 mg/mL concentration stated in STM, stock flask volumes and weights not specified in main method"
+      ],
+      "notes": "USP 2024 Monograph for Glimepiride. Column 4.0 or 4.6 mm x 25 cm, 4 or 5 µm L1. Mobile phase 0.5 g monobasic sodium phosphate in 500 mL water pH 2.1-2.7 with H3PO4 + 500 mL acetonitrile. Diluent acetonitrile:water 4:1. Standard and sample 0.2 mg/mL. System suitability RSD NMT 0.73%. Limit 98.0%-102.0% on anhydrous basis.",
+      "usedBy": [
+        "STM-RM-052"
+      ],
+      "source": "Glimepiride__STM Glimepiride New - EDA.txt:42",
+      "heldBack": "HPLC method incomplete: runTimeMin; standardInjections; theoreticalWeightStdMg, theoreticalWeightTestMg"
+    },
+    {
+      "name": "Glimepiride related compound A / cis-isomer (USP, HPLC)",
+      "abbreviation": "GLIM-CIS",
+      "technique": "Hplc",
+      "resultMode": "RelatedSubstances",
+      "section": "Physicochemical Laboratory",
+      "effectiveDate": "STM issue date",
+      "columnDesignation": "L20",
+      "columnLengthMm": 150,
+      "columnInternalDiameterMm": 3.0,
+      "particleSizeUm": 5,
+      "elutionMode": "Isocratic",
+      "flowRateMlPerMin": 0.5,
+      "detectorType": "UV",
+      "injectionVolumeUl": 10,
+      "runTimeMin": null,
+      "mobilePhases": [
+        {
+          "channel": "A",
+          "solution": "Glimepiride cis-isomer mobile phase (IPA : glacial acetic acid : hexane 100:1:900)",
+          "ratioPercent": 100
+        }
+      ],
+      "gradientSteps": [],
+      "diluentSolution": null,
+      "analytes": [
+        {
+          "name": "Glimepiride cis-isomer (related compound A)",
+          "wavelengthNm": 228,
+          "standardEntry": "USP Glimepiride Related Compound A RS",
+          "relativeRetentionTime": null,
+          "relativeResponseFactor": 1.0
+        }
+      ],
+      "complete": false,
+      "missing": [
+        "runTimeMin: not stated in the STM",
+        "standardInjections: replicates not stated in the STM"
+      ],
+      "notes": "USP 2024 Monograph for Glimepiride. Normal phase HPLC: L20 packing, 3 mm x 15 cm, 5 µm. Mobile phase 100 mL IPA + 1 mL glacial acetic acid, hexane to 1 L. System suitability: signal-to-noise NLT 15 for cis-isomer peak, peak-to-valley NLT 2.0. Result % = rcis / (rcis + rG) * 100 (NMT 0.8%).",
+      "usedBy": [
+        "STM-RM-052"
+      ],
+      "source": "Glimepiride__STM Glimepiride New - EDA.txt:31",
+      "heldBack": "HPLC method incomplete: runTimeMin; standardInjections"
+    },
+    {
+      "name": "Glimepiride organic impurities (USP, HPLC)",
+      "abbreviation": "GLIM-IMP",
+      "technique": "Hplc",
+      "resultMode": "RelatedSubstances",
+      "section": "Physicochemical Laboratory",
+      "effectiveDate": "STM issue date",
+      "columnDesignation": "L1",
+      "columnLengthMm": 250,
+      "columnInternalDiameterMm": 4.6,
+      "particleSizeUm": 5,
+      "elutionMode": "Isocratic",
+      "flowRateMlPerMin": 1.0,
+      "detectorType": "UV",
+      "injectionVolumeUl": 20,
+      "runTimeMin": null,
+      "mobilePhases": [
+        {
+          "channel": "A",
+          "solution": "Glimepiride assay mobile phase (phosphate buffer pH 2.1-2.7 : acetonitrile 1:1)",
+          "ratioPercent": 100
+        }
+      ],
+      "gradientSteps": [],
+      "diluentSolution": "Glimepiride diluent (acetonitrile : water 4:1)",
+      "analytes": [
+        {
+          "name": "Glimepiride sulfonamide (related compound B)",
+          "wavelengthNm": 228,
+          "standardEntry": "USP Glimepiride RS",
+          "relativeRetentionTime": 0.2,
+          "relativeResponseFactor": 1.0
+        },
+        {
+          "name": "Glimepiride urethane (related compound C)",
+          "wavelengthNm": 228,
+          "standardEntry": "USP Glimepiride RS",
+          "relativeRetentionTime": 0.3,
+          "relativeResponseFactor": 1.0
+        },
+        {
+          "name": "Glimepiride 3-isomer (related compound D)",
+          "wavelengthNm": 228,
+          "standardEntry": "USP Glimepiride RS",
+          "relativeRetentionTime": 1.1,
+          "relativeResponseFactor": 1.0
+        },
+        {
+          "name": "Any individual unspecified impurity",
+          "wavelengthNm": 228,
+          "standardEntry": "USP Glimepiride RS",
+          "relativeRetentionTime": null,
+          "relativeResponseFactor": 1.0
+        }
+      ],
+      "complete": false,
+      "missing": [
+        "runTimeMin: exact numeric runtime not stated (2.5 times glimepiride retention time, RT not stated)",
+        "standardInjections: replicates not stated in STM",
+        "sstMinResolution: resolution criteria between glimepiride and related compound D not stated in STM"
+      ],
+      "notes": "USP 2024 Monograph for Glimepiride. Same chromatographic system as Assay. Diluted sample solution 1 (~0.001 mg/mL glimepiride). Impurity limits: Related compound B NMT 0.4%, C NMT 0.1%, D NMT 0.2%, any unspecified NMT 0.1%, total excluding B NMT 0.5%.",
+      "usedBy": [
+        "STM-RM-052"
+      ],
+      "source": "Glimepiride__STM Glimepiride New - EDA.txt:32",
+      "heldBack": "HPLC method incomplete: runTimeMin; standardInjections; sstMinResolution"
+    }
+  ],
+  "icpMethods": [],
+  "materialEntries": [
+    {
+      "name": "USP Glimepiride RS",
+      "category": "ReferenceStandard",
+      "codePrefix": "RS-",
+      "code": null,
+      "baseUnit": "Bottle",
+      "usedBy": [
+        "Glimepiride assay (USP, HPLC)",
+        "Glimepiride organic impurities (USP, HPLC)",
+        "RM-ID-IR"
+      ],
+      "source": "Glimepiride__STM Glimepiride New - EDA.txt:26",
+      "loadedObjectNeedsIt": false
+    },
+    {
+      "name": "USP Glimepiride Related Compound A RS",
+      "category": "ReferenceStandard",
+      "codePrefix": "RS-",
+      "code": null,
+      "baseUnit": "Bottle",
+      "usedBy": [
+        "Glimepiride related compound A / cis-isomer (USP, HPLC)"
+      ],
+      "source": "Glimepiride__STM Glimepiride New - EDA.txt:26",
+      "loadedObjectNeedsIt": false
+    },
+    {
+      "name": "USP Glimepiride Related Compound B RS",
+      "category": "ReferenceStandard",
+      "codePrefix": "RS-",
+      "code": null,
+      "baseUnit": "Bottle",
+      "usedBy": [
+        "Glimepiride organic impurities (USP, HPLC)"
+      ],
+      "source": "Glimepiride__STM Glimepiride New - EDA.txt:26",
+      "loadedObjectNeedsIt": false
+    },
+    {
+      "name": "USP Glimepiride Related Compound C RS",
+      "category": "ReferenceStandard",
+      "codePrefix": "RS-",
+      "code": null,
+      "baseUnit": "Bottle",
+      "usedBy": [
+        "Glimepiride organic impurities (USP, HPLC)"
+      ],
+      "source": "Glimepiride__STM Glimepiride New - EDA.txt:26",
+      "loadedObjectNeedsIt": false
+    },
+    {
+      "name": "USP Glimepiride Related Compound D RS",
+      "category": "ReferenceStandard",
+      "codePrefix": "RS-",
+      "code": null,
+      "baseUnit": "Bottle",
+      "usedBy": [
+        "Glimepiride organic impurities (USP, HPLC)"
+      ],
+      "source": "Glimepiride__STM Glimepiride New - EDA.txt:26",
+      "loadedObjectNeedsIt": false
+    },
+    {
+      "name": "Glimepiride working standard",
+      "category": "ReferenceStandard",
+      "codePrefix": "RS-",
+      "code": null,
+      "baseUnit": "Bottle",
+      "usedBy": [
+        "STM-RM-052"
+      ],
+      "source": "Glimepiride__STM Glimepiride New - EDA.txt:26",
+      "loadedObjectNeedsIt": false
+    },
+    {
+      "name": "Cobalt Standard Solution 1000 mg/L",
+      "category": "ReferenceStandard",
+      "codePrefix": "RS-",
+      "code": null,
+      "baseUnit": "Bottle",
+      "usedBy": [
+        "RM-LT-CO-030"
+      ],
+      "source": "Cooper Sulfate Pentahydrate__Copper Sulphate pentahydrate-SM.txt:26",
+      "loadedObjectNeedsIt": false
+    },
+    {
+      "name": "Nickel Standard Solution 1000 mg/L",
+      "category": "ReferenceStandard",
+      "codePrefix": "RS-",
+      "code": null,
+      "baseUnit": "Bottle",
+      "usedBy": [
+        "RM-LT-NI-030"
+      ],
+      "source": "Cooper Sulfate Pentahydrate__Copper Sulphate pentahydrate-SM.txt:26",
+      "loadedObjectNeedsIt": false
+    }
+  ],
+  "reagentLinks": [],
+  "mapping": {
+    "STM-RM-125": {
+      "E.coli": "E.coli",
+      "RM-ACIDDEM-VEEGUM": "RM-ACIDDEM-125",
+      "RM-ARSENIC": "RM-LT-AS",
+      "RM-DESC": "RM-DESC",
+      "RM-ICP-AL-MG-VEEGUM": "RM-ICP-ALMG-125",
+      "RM-ID-AAS-VEEGUM": "RM-ID-AAS-125",
+      "RM-ID-PHOS-VEEGUM": "RM-ID-PHOS-125",
+      "RM-ID-PINK-VEEGUM": "RM-ID-PINK-125",
+      "RM-ID-SILICATE-VEEGUM": "RM-ID-SILICATE-125",
+      "RM-LEAD": "RM-LT-PB-AAS",
+      "RM-LOD": "RM-LOD",
+      "RM-PH": "RM-PH",
+      "RM-SOLUB": "RM-SOLUB",
+      "RM-VISC": "RM-VISC",
+      "TAMC": "TAMC",
+      "TYMC": "TYMC"
+    },
+    "STM-RM-036": {
+      "E.coli": "E.coli",
+      "RM-ACIDALK-CAGLY": "RM-ACIDALK",
+      "RM-ARSENIC": "RM-LT-AS",
+      "RM-CITRIC-CAGLY": "RM-CITRIC-036",
+      "RM-DESC": "RM-DESC",
+      "RM-ETOH-SOL-CAGLY": "RM-ETOH-SOL-036",
+      "RM-ID-CA-CAGLY": "RM-ID-CA",
+      "RM-ID-PIP-CAGLY": "RM-ID-PIP-036",
+      "RM-ID-PO4": "RM-ID-PO4",
+      "RM-LOD": "RM-LOD",
+      "RM-LT-CL": "RM-LT-CL",
+      "RM-LT-FE": "RM-LT-FE",
+      "RM-LT-PO4-CAGLY": "RM-LT-PO4-036",
+      "RM-LT-SO4": "RM-LT-SO4",
+      "RM-SOLAPP": "RM-SOLAPP",
+      "RM-SOLUB": "RM-SOLUB",
+      "RM-TIT-CAGLY": "RM-TIT-CA-EDTA",
+      "TAMC": "TAMC",
+      "TYMC": "TYMC"
+    },
+    "STM-RM-030": {
+      "E.coli": "E.coli",
+      "RM-CO-CUSO4": "RM-LT-CO-030",
+      "RM-DESC": "RM-DESC",
+      "RM-ID-CU-CUSO4": "RM-ID-CU-030",
+      "RM-ID-SO4-CUSO4": "RM-ID-SO4",
+      "RM-LEAD": "RM-LT-PB-AAS",
+      "RM-LOD": "RM-LOD",
+      "RM-LT-CL": "RM-LT-CL",
+      "RM-LT-FE": "RM-LT-FE-030",
+      "RM-NI-CUSO4": "RM-LT-NI-030",
+      "RM-SOLAPP": "RM-SOLAPP",
+      "RM-SOLUB": "RM-SOLUB",
+      "RM-TIT-CUSO4": "RM-TIT-CUSO4-030",
+      "TAMC": "TAMC",
+      "TYMC": "TYMC"
+    },
+    "STM-RM-119": {
+      "E.coli": "E.coli",
+      "RM-ASH-OPADRYPINK": "RM-ASH",
+      "RM-DESC": "RM-DESC",
+      "RM-DISP-OPADRYPINK": "RM-DISP",
+      "RM-ID-FILM-OPADRYPINK": "RM-ID-FILM",
+      "TAMC": "TAMC",
+      "TYMC": "TYMC"
+    },
+    "STM-RM-052": {
+      "E.coli": "E.coli",
+      "RM-DESC": "RM-DESC",
+      "RM-HPLC-GLIM-AS": "RM-HPLC-GLIM-AS",
+      "RM-HPLC-GLIM-CIS": "RM-HPLC-GLIM-CIS",
+      "RM-HPLC-GLIM-IMP": "RM-HPLC-GLIM-IMP",
+      "RM-ID-IR": "RM-ID-IR",
+      "RM-ID-RT": "RM-ID-RT",
+      "RM-KF": "RM-KF",
+      "RM-SASH": "RM-SASH",
+      "RM-SOLUB": "RM-SOLUB",
+      "TAMC": "TAMC",
+      "TYMC": "TYMC"
+    }
+  },
+  "gaps": [
+    {
+      "material": "STM-RM-052",
+      "test": "RM-HPLC-GLIM-AS",
+      "missing": "runTimeMin: not stated; standardInjections: replicates for 0.73 % RSD not stated; theoreticalWeightStdMg, theoreticalWeightTestMg: only 0.2 mg/mL concentration stated"
+    },
+    {
+      "material": "STM-RM-052",
+      "test": "RM-HPLC-GLIM-CIS",
+      "missing": "runTimeMin: not stated; standardInjections: replicates not stated"
+    },
+    {
+      "material": "STM-RM-052",
+      "test": "RM-HPLC-GLIM-IMP",
+      "missing": "runTimeMin: exact numeric runtime not stated (2.5 times glimepiride retention time); standardInjections: replicates not stated; sstMinResolution: resolution criteria between glimepiride and related compound D not stated"
+    }
+  ]
+}

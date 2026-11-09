@@ -1,0 +1,487 @@
+{
+  "itemCode": "STM-RM-129",
+  "stmCode": "STM-RM-129",
+  "itemName": "Glucidex 19 Maltodextrin",
+  "stmFile": "Maltodextrin__STM Maltodextrin new Without Micro.txt",
+  "specFiles": [
+    "Maltodextrin__Specifications sheet Maltodextrin.txt"
+  ],
+  "minQuantity": {
+    "routine": 60,
+    "retest": 30,
+    "retention": 60,
+    "unit": "g",
+    "source": "Maltodextrin__Specifications sheet Maltodextrin.txt:25; Maltodextrin__STM Maltodextrin new Without Micro.txt:38"
+  },
+  "grades": [
+    {
+      "grade": "BP",
+      "rows": [
+        {
+          "testCode": "RM-DESC",
+          "parameterName": "Appearance",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "White or almost white, slightly hygroscopic powder or granules",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Maltodextrin__Specifications sheet Maltodextrin.txt:11"
+        },
+        {
+          "testCode": "RM-SOLUB",
+          "parameterName": "Solubility",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Freely soluble in water",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Maltodextrin__Specifications sheet Maltodextrin.txt:12"
+        },
+        {
+          "testCode": "RM-ID-CHEM-MALTODEXTRIN",
+          "parameterName": "Identification (Chemical Reaction)",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "A red precipitate is formed",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Maltodextrin__Specifications sheet Maltodextrin.txt:13"
+        },
+        {
+          "testCode": "RM-ID-VISUAL-MALTODEXTRIN",
+          "parameterName": "Identification (Visual)",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "It is a powder or granules",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Maltodextrin__Specifications sheet Maltodextrin.txt:14"
+        },
+        {
+          "testCode": "RM-ID-DE-MALTODEXTRIN",
+          "parameterName": "Identification (Titration / Dextrose equivalent)",
+          "limitType": "Range",
+          "lower": 18.0,
+          "upper": 22.0,
+          "lowerInclusive": true,
+          "unit": null,
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Maltodextrin__Specifications sheet Maltodextrin.txt:15"
+        },
+        {
+          "testCode": "RM-SO2-MALTODEXTRIN",
+          "parameterName": "Sulfur dioxide",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 20.0,
+          "lowerInclusive": null,
+          "unit": "ppm",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Maltodextrin__Specifications sheet Maltodextrin.txt:16"
+        },
+        {
+          "testCode": "RM-PH",
+          "parameterName": "pH",
+          "limitType": "Range",
+          "lower": 4.0,
+          "upper": 7.0,
+          "lowerInclusive": true,
+          "unit": null,
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Maltodextrin__Specifications sheet Maltodextrin.txt:17"
+        },
+        {
+          "testCode": "RM-LOD",
+          "parameterName": "Loss on Drying",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 6.0,
+          "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Maltodextrin__Specifications sheet Maltodextrin.txt:18"
+        },
+        {
+          "testCode": "RM-SASH",
+          "parameterName": "Sulphated Ash",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 0.5,
+          "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Maltodextrin__Specifications sheet Maltodextrin.txt:19"
+        },
+        {
+          "testCode": "RM-TIT-DE-MALTODEXTRIN",
+          "parameterName": "Dextrose equivalent",
+          "limitType": "Range",
+          "lower": 18.0,
+          "upper": 22.0,
+          "lowerInclusive": true,
+          "unit": null,
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Maltodextrin__Specifications sheet Maltodextrin.txt:20"
+        },
+        {
+          "testCode": "TAMC",
+          "parameterName": "Total aerobic microbial count",
+          "limitType": "CountTiered",
+          "lower": null,
+          "upper": 1000,
+          "lowerInclusive": null,
+          "unit": "CFU/g",
+          "expectedResultText": "not more than 10^3 CFU / gm",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Maltodextrin__Specifications sheet Maltodextrin.txt:21"
+        },
+        {
+          "testCode": "TYMC",
+          "parameterName": "Total yeasts and molds count",
+          "limitType": "CountTiered",
+          "lower": null,
+          "upper": 100,
+          "lowerInclusive": null,
+          "unit": "CFU/g",
+          "expectedResultText": "not more than 10^2 CFU / gm",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Maltodextrin__Specifications sheet Maltodextrin.txt:22"
+        },
+        {
+          "testCode": "E.coli",
+          "parameterName": "E. coli",
+          "limitType": "PresenceAbsence",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": "per g",
+          "expectedResultText": "Absent /gm",
+          "expectedState": "Absence",
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Maltodextrin__Specifications sheet Maltodextrin.txt:23"
+        },
+        {
+          "testCode": "Salmonella ",
+          "parameterName": "Salmonella spp.",
+          "limitType": "PresenceAbsence",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": "per 10 g",
+          "expectedResultText": "Absent /10 gm",
+          "expectedState": "Absence",
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "Maltodextrin__Specifications sheet Maltodextrin.txt:24"
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "testCode": "RM-DESC",
+      "procedure": "Under strong white light, check each received sample container separately in clean, transparent watch glass or glass dish to detect any foreign particles, conformance of colour & compliance with the visual specifications. Use a glass weighing vessel. Weigh the vessel and stopper (m1). Place around 2 g of substance in vessel and weigh (m2). Place un-stoppered vessel in climatic cabinet set at 25 ± 1 °C for 24 h. Stopper weighing vessel and weigh (m3). Calculate percentage increase in mass (slightly hygroscopic < 2%).",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {
+        "perContainer": true,
+        "temperatureC": 25,
+        "durationHours": 24,
+        "reference": "BP (SC IV K.) Characters Section in Monographs (Hygroscopicity and Solubility)"
+      },
+      "source": "Maltodextrin__STM Maltodextrin new Without Micro.txt:28"
+    },
+    {
+      "testCode": "RM-SOLUB",
+      "procedure": "Weigh 100 mg of sample in a stoppered tube. Add 0.1 mL solvent, shake vigorously 1 min, place at 25.0 ± 0.5 °C for 15 min. Continue in graduated solvent volumes according to BP descriptive terms. Soluble in water (freely soluble).",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {
+        "reference": "BP (SC IV K.) Characters Section in Monographs (Hygroscopicity and Solubility)"
+      },
+      "source": "Maltodextrin__STM Maltodextrin new Without Micro.txt:29"
+    },
+    {
+      "testCode": "RM-ID-CHEM-MALTODEXTRIN",
+      "procedure": "Dissolve 0.1 g in 2.5 mL of water. Heat with 2.5 mL of cupric-tartaric solution. A red precipitate is formed.",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "details": {
+        "reagent": "Cupric-tartaric solution",
+        "sampleG": 0.1,
+        "waterMl": 2.5,
+        "reagentMl": 2.5
+      },
+      "source": "Maltodextrin__STM Maltodextrin new Without Micro.txt:30"
+    },
+    {
+      "testCode": "RM-ID-VISUAL-MALTODEXTRIN",
+      "procedure": "It is a powder or granules as test of Appearance.",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "details": {},
+      "source": "Maltodextrin__STM Maltodextrin new Without Micro.txt:30"
+    },
+    {
+      "testCode": "RM-ID-DE-MALTODEXTRIN",
+      "procedure": "Described as test of Dextrose equivalent below (6.8). Specification: 18 to 22.",
+      "kind": "specific",
+      "workflow": "Measurement",
+      "details": {},
+      "source": "Maltodextrin__STM Maltodextrin new Without Micro.txt:30"
+    },
+    {
+      "testCode": "RM-SO2-MALTODEXTRIN",
+      "procedure": "Introduce 150 mL water into flask A. Pass carbon dioxide through the whole system for 15 min at 100 ± 5 mL/min. To 10 mL dilute hydrogen peroxide solution, add 0.15 mL of 1 g/L bromophenol blue in ethanol (20% V/V), add 0.1 M sodium hydroxide until violet-blue. Place in test-tube D. Add 25.0 g sample in 100 mL water and 80 mL dilute hydrochloric acid to flask A. Boil for 1 h. Transfer tube contents to conical flask, heat on water-bath for 15 min, cool. Add 0.1 mL bromophenol blue, titrate with 0.1 M sodium hydroxide to violet-blue (V1 mL). Carry out blank titration (V2 mL). Result = 1000 × F × V × N / W, where F = 32.03.",
+      "kind": "specific",
+      "workflow": "Measurement",
+      "details": {
+        "apparatus": "BP Appendix IX B Determination of Sulfur Dioxide",
+        "sampleWeightG": 25.0,
+        "titrant": "0.1 M Sodium Hydroxide VS",
+        "formula": "1000 * F * V * N / W",
+        "factor": 32.03
+      },
+      "source": "Maltodextrin__STM Maltodextrin new Without Micro.txt:31"
+    },
+    {
+      "testCode": "RM-PH",
+      "procedure": "Mix 1 mL of a 223.6 g/L solution of potassium chloride and 30 mL of solution S (12.5 g in carbon dioxide-free water diluted to 50.0 mL). Measure using calibrated pH meter.",
+      "kind": "general",
+      "workflow": "Measurement",
+      "details": {
+        "reference": "BP Appendix V L. Determination of pH Values"
+      },
+      "source": "Maltodextrin__STM Maltodextrin new Without Micro.txt:32"
+    },
+    {
+      "testCode": "RM-LOD",
+      "procedure": "Accurately weigh 10.00 g into weighing bottle previously dried at 105 °C (W0, W1). Dry in calibrated oven at 105 °C for 2 h. Cool in desiccator and weigh (W2). Repeat to constant weight. Calculate % Loss on Drying = ((W1 - W2) / (W1 - W0)) * 100.",
+      "kind": "general",
+      "workflow": "Gravimetric",
+      "details": {
+        "temperatureC": 105,
+        "sampleWeightG": 10.0,
+        "reference": "BP Appendix IX D. Determination of Loss on Drying"
+      },
+      "source": "Maltodextrin__STM Maltodextrin new Without Micro.txt:33"
+    },
+    {
+      "testCode": "RM-SASH",
+      "procedure": "Accurately weigh 1.0 g into crucible previously ignited at 600-650 °C (W0, W1). Moisten with ~1 mL sulfuric acid, heat gently on hot plate until charred. Cool, moisten with sulfuric acid, heat until fumes cease. Ignite in calibrated muffle at 600-650 °C to constant weight (W2). Calculate % Sulfated ash = ((W2 - W0) / (W1 - W0)) * 100.",
+      "kind": "general",
+      "workflow": "Gravimetric",
+      "details": {
+        "temperatureC": "600-650",
+        "sampleWeightG": 1.0,
+        "reference": "BP 2024 Appendix IX A. Determination of Sulfated Ash"
+      },
+      "source": "Maltodextrin__STM Maltodextrin new Without Micro.txt:34"
+    },
+    {
+      "testCode": "RM-TIT-DE-MALTODEXTRIN",
+      "procedure": "Weigh substance equivalent to 2.85-3.15 g reducing carbohydrates (as DE) into 500 mL volumetric flask, dissolve and dilute to volume with water. Transfer to 50 mL burette. Pipette 25.0 mL cupric-tartaric solution into 250 mL flask, add 18.5 mL test solution from burette, add glass beads. Heat on hot plate to boil within 2 min ± 15 s, boil exactly 120 s. Add 1 mL of 1 g/L methylene blue solution. Titrate with test solution (V1) maintaining boil until blue color disappears. Standardize cupric-tartaric solution using 6.00 g/L glucose solution (V0). Calculate DE = (300 * V0 * 100) / (V1 * M * D).",
+      "kind": "specific",
+      "workflow": "Measurement",
+      "details": {
+        "titrant": "Cupric-tartaric solution",
+        "indicator": "Methylene blue",
+        "formula": "(300 * V0 * 100) / (V1 * M * D)",
+        "reference": "BP 2024 Monograph for Maltodextrin"
+      },
+      "source": "Maltodextrin__STM Maltodextrin new Without Micro.txt:35"
+    },
+    {
+      "testCode": "TAMC",
+      "procedure": "For Microbiological Testing Follow SOP No. C2I-91-128.",
+      "kind": "general",
+      "workflow": "CountTest",
+      "details": {
+        "sop": "C2I-91-128"
+      },
+      "source": "Maltodextrin__STM Maltodextrin new Without Micro.txt:36"
+    },
+    {
+      "testCode": "TYMC",
+      "procedure": "For Microbiological Testing Follow SOP No. C2I-91-128.",
+      "kind": "general",
+      "workflow": "CountTest",
+      "details": {
+        "sop": "C2I-91-128"
+      },
+      "source": "Maltodextrin__STM Maltodextrin new Without Micro.txt:36"
+    },
+    {
+      "testCode": "E.coli",
+      "procedure": "For Microbiological Testing Follow SOP No. C2I-91-128.",
+      "kind": "general",
+      "workflow": "Observation",
+      "details": {
+        "sop": "C2I-91-128"
+      },
+      "source": "Maltodextrin__STM Maltodextrin new Without Micro.txt:36"
+    },
+    {
+      "testCode": "Salmonella ",
+      "procedure": "For Microbiological Testing Follow SOP No. C2I-91-128.",
+      "kind": "general",
+      "workflow": "Observation",
+      "details": {
+        "sop": "C2I-91-128"
+      },
+      "source": "Maltodextrin__STM Maltodextrin new Without Micro.txt:36"
+    }
+  ],
+  "notApplicable": [],
+  "supplierAttributes": [
+    {
+      "grade": null,
+      "name": "Protein %",
+      "statedValue": "max 0.1%",
+      "source": "Maltodextrin__Specifications sheet Maltodextrin.txt:25"
+    },
+    {
+      "grade": null,
+      "name": "Iodine Test",
+      "statedValue": "negative",
+      "source": "Maltodextrin__Specifications sheet Maltodextrin.txt:25"
+    },
+    {
+      "grade": null,
+      "name": "Residue on 40 micron",
+      "statedValue": "results must be minimum 70%",
+      "source": "Maltodextrin__Specifications sheet Maltodextrin.txt:25"
+    }
+  ],
+  "reagents": [
+    {
+      "name": "Copper sulfate pentahydrate",
+      "use": "reagent",
+      "source": "Maltodextrin__STM Maltodextrin new Without Micro.txt:26"
+    },
+    {
+      "name": "Sodium potassium tartrate",
+      "use": "reagent",
+      "source": "Maltodextrin__STM Maltodextrin new Without Micro.txt:26"
+    },
+    {
+      "name": "Sodium hydroxide",
+      "use": "reagent",
+      "source": "Maltodextrin__STM Maltodextrin new Without Micro.txt:26"
+    },
+    {
+      "name": "Potassium chloride",
+      "use": "reagent",
+      "source": "Maltodextrin__STM Maltodextrin new Without Micro.txt:26"
+    },
+    {
+      "name": "Hydrochloric acid",
+      "use": "reagent",
+      "source": "Maltodextrin__STM Maltodextrin new Without Micro.txt:26"
+    },
+    {
+      "name": "Carbon dioxide",
+      "use": "reagent",
+      "source": "Maltodextrin__STM Maltodextrin new Without Micro.txt:26"
+    },
+    {
+      "name": "Bromophenol blue",
+      "use": "indicator",
+      "source": "Maltodextrin__STM Maltodextrin new Without Micro.txt:26"
+    },
+    {
+      "name": "Ethanol (96 per cent)",
+      "use": "reagent",
+      "source": "Maltodextrin__STM Maltodextrin new Without Micro.txt:26"
+    },
+    {
+      "name": "Sodium carbonate",
+      "use": "reagent",
+      "source": "Maltodextrin__STM Maltodextrin new Without Micro.txt:26"
+    },
+    {
+      "name": "Hydrogen Peroxide",
+      "use": "reagent",
+      "source": "Maltodextrin__STM Maltodextrin new Without Micro.txt:26"
+    },
+    {
+      "name": "Methylene blue",
+      "use": "indicator",
+      "source": "Maltodextrin__STM Maltodextrin new Without Micro.txt:26,35"
+    },
+    {
+      "name": "Sulfuric acid",
+      "use": "reagent",
+      "source": "Maltodextrin__STM Maltodextrin new Without Micro.txt:26,34"
+    },
+    {
+      "name": "0.1M Sodium Hydroxide VS",
+      "use": "titrant",
+      "source": "Maltodextrin__STM Maltodextrin new Without Micro.txt:26,31"
+    },
+    {
+      "name": "Potassium hydrogen phthalate",
+      "use": "standard",
+      "source": "Maltodextrin__STM Maltodextrin new Without Micro.txt:26"
+    },
+    {
+      "name": "Phenolphthalein solution",
+      "use": "indicator",
+      "source": "Maltodextrin__STM Maltodextrin new Without Micro.txt:26"
+    },
+    {
+      "name": "Glucose standard solution (6.00 g/L)",
+      "use": "standard",
+      "source": "Maltodextrin__STM Maltodextrin new Without Micro.txt:35"
+    }
+  ],
+  "openQuestions": [
+    {
+      "question": "Spec sheet rows 21 and 22 contain typographically flattened scientific notations ('not more than 103 CFU / gm' and 'not more than 102 CFU / gm'), transcribed as 10^3 (1000) and 10^2 (100) CFU/g.",
+      "source": "Maltodextrin__Specifications sheet Maltodextrin.txt:21,22"
+    },
+    {
+      "question": "Additional requirements list Protein % (max 0.1%), Iodine Test (negative), and Residue on 40 micron (minimum 70%), which lack procedures in the current STM; transcribed as supplierAttributes.",
+      "source": "Maltodextrin__Specifications sheet Maltodextrin.txt:25"
+    }
+  ]
+}

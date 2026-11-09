@@ -1,0 +1,560 @@
+{
+  "testDefinitions": [
+    {
+      "code": "RM-UV-KSORB-047",
+      "displayName": "Potassium sorbate identification (UV A1%)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "UvSpectrophotometry",
+      "equationType": "UvSpectrophotometry",
+      "physchemArea": "RawPackaging",
+      "replicateCount": 1,
+      "uvCalculationMode": "SpecificAbsorbanceValue",
+      "uvTotalVolumeMl": 25000,
+      "complete": true,
+      "notes": "50.0 mg in water to 250.0 mL; dilute 2.0 mL to 200.0 mL with 0.1 M HCl (total dilution: 250 x 200 / 2 = 25,000 mL). Measure specific absorbance at 264 nm. BP Appendix II B. Source: Potassium Sorbate__STM Potassium Sorbate.txt:30",
+      "usedBy": [
+        "STM-RM-047"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-047",
+          "provisionalCode": "RM-UV-KSORB",
+          "source": "Potassium Sorbate__STM Potassium Sorbate.txt:30"
+        }
+      ]
+    },
+    {
+      "code": "RM-ID-THERM-047",
+      "displayName": "Thermal decomposition (melting point of residue)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Measurement",
+      "equationType": "Measurement",
+      "physchemArea": "RawPackaging",
+      "replicateCount": 1,
+      "evaluationBasis": "Mean",
+      "complete": true,
+      "notes": "1.0 g in 50 mL water, add 10 mL dilute HCl, filter crystalline precipitate, wash with water, dry in vacuo over sulfuric acid for 4 h, determine melting point of residue (132-136 °C). BP Appendix V A. Source: Potassium Sorbate__STM Potassium Sorbate.txt:30",
+      "usedBy": [
+        "STM-RM-047"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-047",
+          "provisionalCode": "RM-ID-THERM-KSORB",
+          "source": "Potassium Sorbate__STM Potassium Sorbate.txt:30"
+        }
+      ]
+    },
+    {
+      "code": "RM-ID-K",
+      "displayName": "Identification (reaction of potassium)",
+      "kind": "general",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Qualitative",
+      "equationType": "Qualitative",
+      "physchemArea": "RawPackaging",
+      "complete": true,
+      "notes": "0.2 g in 2 mL water + 2 mL dilute acetic acid, filter, add 1 mL freshly prepared 100 g/L sodium cobaltinitrite solution: yellow or orange-yellow precipitate forms immediately. BP Appendix VI. Source: Potassium Sorbate__STM Potassium Sorbate.txt:30",
+      "usedBy": [
+        "STM-RM-047"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-047",
+          "provisionalCode": "RM-ID-K-KSORB",
+          "source": "Potassium Sorbate__STM Potassium Sorbate.txt:30"
+        }
+      ]
+    },
+    {
+      "code": "RM-ALD-KSORB-047",
+      "displayName": "Aldehydes (limit test)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Qualitative",
+      "equationType": "Qualitative",
+      "physchemArea": "RawPackaging",
+      "complete": true,
+      "notes": "1.0 g in 30 mL water + 50 mL 2-propanol, pH 4 with 1 M HCl, to 100 mL; 10 mL + 1 mL decolorized fuchsin vs acetaldehyde standard (1.5 mL of 100 ppm, NMT 0.15% as acetaldehyde). Stand 30 min. Visual comparison. Source: Potassium Sorbate__STM Potassium Sorbate.txt:33",
+      "usedBy": [
+        "STM-RM-047"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-047",
+          "provisionalCode": "RM-ALD-KSORB",
+          "source": "Potassium Sorbate__STM Potassium Sorbate.txt:33"
+        }
+      ]
+    },
+    {
+      "code": "RM-TIT-KSORB-047",
+      "displayName": "Assay of potassium sorbate (non-aqueous titration)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Titration",
+      "equationType": "Titration",
+      "physchemArea": "RawPackaging",
+      "titrationType": "AcidBase",
+      "titrationNonAqueous": true,
+      "titrationMode": "Direct",
+      "titrationEndpoint": "Visual",
+      "titrantSolution": "0.1 M Perchloric acid VS",
+      "titrationBlankRequired": false,
+      "titrationEquivalencyFactor": 150.2,
+      "titrationEquivalencyFactorDerivation": "15.02 mg C6H7KO2 per mL of 0.1 M HClO4 / 0.1 = 150.2 mg/mmol",
+      "titrationIndicatorEntry": "Crystal violet solution",
+      "replicateCount": 1,
+      "titrationCalculation": "UspFactor",
+      "complete": true,
+      "notes": "0.120 g sample in 20 mL anhydrous acetic acid, 0.1 mL crystal violet solution, titrate with 0.1 M perchloric acid VS from violet to bluish green. Dried basis row. BP 2024 Monograph for Potassium Sorbate. Source: Potassium Sorbate__STM Potassium Sorbate.txt:35",
+      "usedBy": [
+        "STM-RM-047"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-047",
+          "provisionalCode": "RM-TIT-KSORB",
+          "source": "Potassium Sorbate__STM Potassium Sorbate.txt:35; titrant standardization Potassium Sorbate__STM Potassium Sorbate.txt:26"
+        }
+      ]
+    },
+    {
+      "code": "RM-UV-D3-146",
+      "displayName": "Crystalline vitamin D3 identification (UV absorbance)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "UvSpectrophotometry",
+      "equationType": "UvSpectrophotometry",
+      "physchemArea": "RawPackaging",
+      "replicateCount": 1,
+      "uvCalculationMode": "SpecificAbsorbanceValue",
+      "complete": false,
+      "missing": [
+        "uvTotalVolumeMl: STM does not state the preparation dilution steps or sample weight for the 10 ug/mL solution; spec sheet gives 460-500 range (A1% value) while STM describes comparison against standard absorptivity"
+      ],
+      "notes": "Sample solution 10 ug/mL in alcohol; wavelength 265 nm; alcohol blank. Spec sheet limit: 460 to 500 (A1% at 265 nm). STM does not state sample weight or flask dilution steps to compute uvTotalVolumeMl; marked complete: false per CATALOG.md rule 5. USP <197U>. Source: Vitmain D3 40 MIU__STM Crystalline Vitamin D3.txt:30; Vitmain D3 40 MIU__Specifications sheet Crystalline Vitamin D3 - New.txt:14",
+      "usedBy": [
+        "STM-RM-146"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-146",
+          "provisionalCode": "RM-UV-D3",
+          "source": "Vitmain D3 40 MIU__STM Crystalline Vitamin D3.txt:30"
+        }
+      ],
+      "heldBack": "STM states no total volume for the UV assay; waits for the lab"
+    },
+    {
+      "code": "RM-ID-CA-078",
+      "displayName": "Identification (chemical reaction of calcium and carbonate)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Qualitative",
+      "equationType": "Qualitative",
+      "physchemArea": "RawPackaging",
+      "complete": true,
+      "notes": "0.1 g in 2 mL dilute HCl, effervescence of CO2, boil 1 min, add 10 mL water and 1 mL 6 N NH4OH, add 1 mL ammonium oxalate TS: white precipitate of calcium oxalate soluble in HCl and insoluble in acetic acid. USP monograph. Source: Calcium Carbonate__STM Calcium Carbonate - New.txt:32",
+      "usedBy": [
+        "STM-RM-078"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-078",
+          "provisionalCode": "RM-ID-CA-CACO3",
+          "source": "Calcium Carbonate__STM Calcium Carbonate - New.txt:32"
+        }
+      ]
+    },
+    {
+      "code": "RM-FL-CACO3-078",
+      "displayName": "Fluoride (potentiometric, ISE)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Measurement",
+      "equationType": "Measurement",
+      "physchemArea": "RawPackaging",
+      "replicateCount": 1,
+      "evaluationBasis": "Mean",
+      "complete": true,
+      "notes": "2.0 g in 20 mL water + 4.0 mL HCl, 50.0 mL sodium citrate solution A, to 100 mL. Fluoride ion-selective electrode calibrated with USP Sodium Fluoride RS standard additions (0.1, 0.2, 0.5, 1.0 ug/mL vs mV). Result (NMT 50 ppm) cannot be calculated by standard workflows; analyst enters final ppm value (CATALOG.md rule 6). USP <591>. Source: Calcium Carbonate__STM Calcium Carbonate - New.txt:38",
+      "usedBy": [
+        "STM-RM-078"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-078",
+          "provisionalCode": "RM-FL-CACO3",
+          "source": "Calcium Carbonate__STM Calcium Carbonate - New.txt:38"
+        }
+      ]
+    },
+    {
+      "code": "RM-MG-ALK-CA",
+      "displayName": "Magnesium and alkali salts (calcium carbonate)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Gravimetric",
+      "equationType": "GravimetricResidue",
+      "physchemArea": "RawPackaging",
+      "replicateCount": 1,
+      "usesTare": true,
+      "complete": true,
+      "notes": "1.0 g sample in 35 mL water + 3 mL HCl, boil 1 min, rapidly add 40 mL oxalic acid TS, methyl red, 6 N NH4OH to alkaline, dilute to 100 mL, stand 4 h, filter. Evaporate 50 mL filtrate in platinum dish with 0.5 mL H2SO4, ignite to constant weight. Shared between STM-RM-078 and STM-RM-142 (same procedure, CATALOG.md rule 2). Source: Calcium Carbonate__STM Calcium Carbonate - New.txt:39; Calcium Carbonate DC__Calcium Carbonate DC-SM - Micro.txt:35",
+      "usedBy": [
+        "STM-RM-078",
+        "STM-RM-142"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-078",
+          "provisionalCode": "RM-MG-ALK-CACO3",
+          "source": "Calcium Carbonate__STM Calcium Carbonate - New.txt:39"
+        },
+        {
+          "material": "STM-RM-142",
+          "provisionalCode": "RM-MG-ALK-CADC",
+          "source": "Calcium Carbonate DC__Calcium Carbonate DC-SM - Micro.txt:35"
+        }
+      ]
+    },
+    {
+      "code": "RM-TIT-CACO3-078",
+      "displayName": "Assay of calcium carbonate (complexometric titration)",
+      "kind": "specific",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Titration",
+      "equationType": "Titration",
+      "physchemArea": "RawPackaging",
+      "titrationType": "Complexometric",
+      "titrationMode": "Direct",
+      "titrationEndpoint": "Visual",
+      "titrantSolution": "0.05 M Edetate disodium VS",
+      "titrationBlankRequired": true,
+      "titrationEquivalencyFactor": 100.09,
+      "titrationEquivalencyFactorDerivation": "stated: 100.09 mg/mmol",
+      "titrationIndicatorEntry": "Hydroxy naphthol blue",
+      "replicateCount": 1,
+      "titrationCalculation": "UspFactor",
+      "complete": true,
+      "notes": "200 mg previously dried at 200 °C for 4 h, dissolved in dropwise 3 N HCl, 100 mL water, 15 mL 1 N NaOH, 300 mg hydroxy naphthol blue; titrate with 0.05 M edetate disodium VS to distinct blue; blank 100 mL water + 15 mL 1 N NaOH. Dried basis row. USP <541>. Source: Calcium Carbonate__STM Calcium Carbonate - New.txt:42",
+      "usedBy": [
+        "STM-RM-078"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-078",
+          "provisionalCode": "RM-TIT-CACO3",
+          "source": "Calcium Carbonate__STM Calcium Carbonate - New.txt:42; titrant lines 28"
+        }
+      ]
+    },
+    {
+      "code": "RM-ID-CO3",
+      "displayName": "Identification (reaction of carbonate)",
+      "kind": "general",
+      "section": "Physicochemical Laboratory",
+      "workflowType": "Qualitative",
+      "equationType": "Qualitative",
+      "physchemArea": "RawPackaging",
+      "complete": true,
+      "notes": "0.1 g in 2 mL water + 2 mL dilute HCl: effervescence of gas giving a white precipitate with barium hydroxide solution, soluble in dilute HCl. BP Appendix VI / USP <191>. Source: Calcium Carbonate DC__Calcium Carbonate DC-SM - Micro.txt:32",
+      "usedBy": [
+        "STM-RM-142"
+      ],
+      "sources": [
+        {
+          "material": "STM-RM-142",
+          "provisionalCode": "RM-ID-CO3-CADC",
+          "source": "Calcium Carbonate DC__Calcium Carbonate DC-SM - Micro.txt:32"
+        }
+      ]
+    }
+  ],
+  "solutions": [
+    {
+      "name": "0.05 M Edetate disodium VS",
+      "type": "Titrant",
+      "section": "Physicochemical Laboratory",
+      "nominalStrength": 0.05,
+      "strengthUnit": "Molar",
+      "finalVolumeMl": 1000,
+      "instructions": "Dissolve 18.6 g of edetate disodium in water to make 1000 ml.",
+      "components": [
+        {
+          "entry": "Edetate disodium",
+          "quantity": 18.6,
+          "unit": "Gram"
+        }
+      ],
+      "waterToVolume": true,
+      "standardizationMode": "PrimaryStandard",
+      "standardEntry": "Chelometric standard calcium carbonate",
+      "equivalenceMgPerMl": 5.0045,
+      "referenceSolution": null,
+      "usedBy": [
+        "STM-RM-078"
+      ],
+      "notes": "Preparation and standardization stated: 18.6 g in water to 1000 mL. Standardized against about 200 mg chelometric standard calcium carbonate, dissolved in dilute HCl, pH 12-13, hydroxy naphthol blue indicator, titrated to blue endpoint. Equivalence: 1 mL 0.05 M EDTA = 5.0045 mg CaCO3 (100.09 x 0.05). House defaults: 3 replicates, factor 0.97-1.03, max RSD 0.2 %, validity 30 days, shelf life 30 days. Source: Calcium Carbonate__STM Calcium Carbonate - New.txt:28",
+      "complete": true,
+      "shelfLifeValue": 30,
+      "shelfLifeUnit": "Days",
+      "storageCondition": "Tightly closed, room temperature",
+      "replicateCount": 3,
+      "maxRsdPercent": 0.2,
+      "validityDays": 30,
+      "blankRequired": false,
+      "factorMin": 0.97,
+      "factorMax": 1.03
+    },
+    {
+      "name": "0.1 M Sodium edetate VS",
+      "type": "Titrant",
+      "section": "Physicochemical Laboratory",
+      "nominalStrength": 0.1,
+      "strengthUnit": "Molar",
+      "finalVolumeMl": 1000,
+      "instructions": "Dissolve 37.2 g edetate disodium in water to make 1000 mL.",
+      "components": [
+        {
+          "entry": "Edetate disodium (EDTA-Na2.2H2O)",
+          "entryCode": "RG-015",
+          "quantity": 37.2,
+          "unit": "Gram"
+        }
+      ],
+      "waterToVolume": true,
+      "standardizationMode": "PrimaryStandard",
+      "standardEntry": "Calcium carbonate (chelometric standard) (RG-024)",
+      "equivalenceMgPerMl": 10.009,
+      "referenceSolution": null,
+      "usedBy": [
+        "STM-RM-142"
+      ],
+      "notes": "STM-RM-142 gives no recipe (same substance as 0.1 M Disodium edetate VS). Recipe: USP 0.05 M is 18.6 g per 1000 mL; 0.1 M is that x2 = 37.2 g (scaling, USP lists no 0.1 M). Standardization (USP): about 200 mg chelometric CaCO3 (x2 for 0.1 M) dissolved with dilute HCl, 15 mL NaOH TS and hydroxy naphthol blue, titrate to blue; 10.009 mg CaCO3 per mL of 0.1 M (1:1, 100.09 g/mol, derived). USP states no shelf life: house defaults (3 replicates, factor 0.97-1.03, RSD 0.2 %, valid 30 days, shelf life 30 days). Source: USP 35-NF 30 Volumetric Solutions (drugfuture 1077-1085 Volumetric Solutions.pdf): p.1078.",
+      "complete": true,
+      "shelfLifeValue": 30,
+      "shelfLifeUnit": "Days",
+      "storageCondition": "Tightly closed, room temperature",
+      "replicateCount": 3,
+      "maxRsdPercent": 0.2,
+      "validityDays": 30,
+      "blankRequired": false,
+      "factorMin": 0.97,
+      "factorMax": 1.03
+    }
+  ],
+  "hplcMethods": [],
+  "icpMethods": [],
+  "materialEntries": [
+    {
+      "name": "Crystal violet solution",
+      "category": "Indicator",
+      "codePrefix": "IND-",
+      "code": null,
+      "baseUnit": "Bottle",
+      "usedBy": [
+        "RM-TIT-KSORB-047"
+      ],
+      "source": "Potassium Sorbate__STM Potassium Sorbate.txt:35",
+      "loadedObjectNeedsIt": true
+    },
+    {
+      "name": "Hydroxy naphthol blue",
+      "category": "Indicator",
+      "codePrefix": "IND-",
+      "code": null,
+      "baseUnit": "Bottle",
+      "usedBy": [
+        "RM-TIT-CACO3-078",
+        "0.05 M Edetate disodium VS"
+      ],
+      "source": "Calcium Carbonate__STM Calcium Carbonate - New.txt:28,42",
+      "loadedObjectNeedsIt": true
+    },
+    {
+      "name": "Calconcarboxylic acid triturate",
+      "category": "Indicator",
+      "codePrefix": "IND-",
+      "code": null,
+      "baseUnit": "Bottle",
+      "usedBy": [
+        "RM-TIT-CADC-142"
+      ],
+      "source": "Calcium Carbonate DC__Calcium Carbonate DC-SM - Micro.txt:38",
+      "loadedObjectNeedsIt": true
+    },
+    {
+      "name": "Chelometric standard calcium carbonate",
+      "category": "PrimaryStandard",
+      "codePrefix": "PS-",
+      "code": null,
+      "baseUnit": "Gram",
+      "usedBy": [
+        "0.05 M Edetate disodium VS"
+      ],
+      "source": "Calcium Carbonate__STM Calcium Carbonate - New.txt:28",
+      "loadedObjectNeedsIt": true
+    },
+    {
+      "name": "Edetate disodium",
+      "category": "Reagent",
+      "codePrefix": "RG-",
+      "code": null,
+      "baseUnit": "Gram",
+      "usedBy": [
+        "0.05 M Edetate disodium VS"
+      ],
+      "source": "Calcium Carbonate__STM Calcium Carbonate - New.txt:28",
+      "loadedObjectNeedsIt": true
+    },
+    {
+      "name": "Potassium sorbate RS",
+      "category": "ReferenceStandard",
+      "codePrefix": "RS-",
+      "code": null,
+      "baseUnit": "Gram",
+      "usedBy": [
+        "STM-RM-047"
+      ],
+      "source": "Potassium Sorbate__STM Potassium Sorbate.txt:30",
+      "loadedObjectNeedsIt": false
+    },
+    {
+      "name": "Crystalline Vitamin D3 RS",
+      "category": "ReferenceStandard",
+      "codePrefix": "RS-",
+      "code": null,
+      "baseUnit": "Gram",
+      "usedBy": [
+        "STM-RM-146"
+      ],
+      "source": "Vitmain D3 40 MIU__STM Crystalline Vitamin D3.txt:30",
+      "loadedObjectNeedsIt": false
+    },
+    {
+      "name": "USP Cholecalciferol RS",
+      "category": "ReferenceStandard",
+      "codePrefix": "RS-",
+      "code": null,
+      "baseUnit": "Gram",
+      "usedBy": [
+        "STM-RM-146"
+      ],
+      "source": "Vitmain D3 40 MIU__STM Crystalline Vitamin D3.txt:32",
+      "loadedObjectNeedsIt": false
+    },
+    {
+      "name": "USP Vitamin D Assay System Suitability RS",
+      "category": "ReferenceStandard",
+      "codePrefix": "RS-",
+      "code": null,
+      "baseUnit": "Gram",
+      "usedBy": [
+        "STM-RM-146"
+      ],
+      "source": "Vitmain D3 40 MIU__STM Crystalline Vitamin D3.txt:32",
+      "loadedObjectNeedsIt": false
+    },
+    {
+      "name": "Sodium Fluoride RS (USP)",
+      "category": "ReferenceStandard",
+      "codePrefix": "RS-",
+      "code": null,
+      "baseUnit": "Gram",
+      "usedBy": [
+        "STM-RM-078"
+      ],
+      "source": "Calcium Carbonate__STM Calcium Carbonate - New.txt:38",
+      "loadedObjectNeedsIt": false
+    }
+  ],
+  "reagentLinks": [],
+  "mapping": {
+    "STM-RM-047": {
+      "E.coli": "E.coli",
+      "RM-ACID-KSORB": "RM-ACIDALK-VOL",
+      "RM-ALD-KSORB": "RM-ALD-KSORB-047",
+      "RM-DESC": "RM-DESC",
+      "RM-ID-IR": "RM-ID-IR",
+      "RM-ID-K-KSORB": "RM-ID-K",
+      "RM-ID-THERM-KSORB": "RM-ID-THERM-047",
+      "RM-LOD": "RM-LOD",
+      "RM-SOLAPP": "RM-SOLAPP",
+      "RM-SOLUB": "RM-SOLUB",
+      "RM-TIT-KSORB": "RM-TIT-KSORB-047",
+      "RM-UV-KSORB": "RM-UV-KSORB-047",
+      "TAMC": "TAMC",
+      "TYMC": "TYMC"
+    },
+    "STM-RM-077": {},
+    "STM-RM-146": {
+      "RM-DESC": "RM-DESC",
+      "RM-ID-IR": "RM-ID-IR",
+      "RM-OPTROT": "RM-OPTROT",
+      "RM-SOLUB": "RM-SOLUB",
+      "RM-UV-D3": "RM-UV-D3-146"
+    },
+    "STM-RM-078": {
+      "E.coli": "E.coli",
+      "RM-ACIDINS-CACO3": "RM-AIS",
+      "RM-BULKD": "RM-BULKD",
+      "RM-DESC": "RM-DESC",
+      "RM-FL-CACO3": "RM-FL-CACO3-078",
+      "RM-ID-CA-CACO3": "RM-ID-CA-078",
+      "RM-LOD": "RM-LOD",
+      "RM-LT-AS-CACO3": "RM-LT-AS",
+      "RM-LT-BA-CACO3": "RM-BA",
+      "RM-LT-FE": "RM-LT-FE",
+      "RM-LT-PB-CACO3": "RM-LT-PB",
+      "RM-MG-ALK-CACO3": "RM-MG-ALK-CA",
+      "RM-PSD-CACO3": "RM-PSD",
+      "RM-SOLUB": "RM-SOLUB",
+      "RM-TIT-CACO3": "RM-TIT-CACO3-078",
+      "TAMC": "TAMC",
+      "TYMC": "TYMC"
+    },
+    "STM-RM-142": {
+      "E.coli": "E.coli",
+      "RM-ACIDINS-CADC": "RM-AIS",
+      "RM-DESC": "RM-DESC",
+      "RM-ID-CA-CADC": "RM-ID-CA",
+      "RM-ID-CO3-CADC": "RM-ID-CO3",
+      "RM-LOD": "RM-LOD",
+      "RM-LT-HM": "RM-LT-HM",
+      "RM-MG-ALK-CADC": "RM-MG-ALK-CA",
+      "RM-SOLUB": "RM-SOLUB",
+      "RM-TAPDEN": "RM-TAPDEN",
+      "RM-TIT-CADC": "RM-TIT-CA-EDTA",
+      "Salmonella ": "Salmonella ",
+      "TAMC": "TAMC",
+      "TYMC": "TYMC"
+    },
+    "STM-RM-142-DC": {
+      "E.coli": "E.coli",
+      "RM-ACIDINS-CADC": "RM-AIS",
+      "RM-DESC": "RM-DESC",
+      "RM-ID-CA-CADC": "RM-ID-CA",
+      "RM-ID-CO3-CADC": "RM-ID-CO3",
+      "RM-LOD": "RM-LOD",
+      "RM-LT-HM": "RM-LT-HM",
+      "RM-MG-ALK-CADC": "RM-MG-ALK-CA",
+      "RM-SOLUB": "RM-SOLUB",
+      "RM-TAPDEN": "RM-TAPDEN",
+      "RM-TIT-CADC": "RM-TIT-CA-EDTA",
+      "Salmonella ": "Salmonella ",
+      "TAMC": "TAMC",
+      "TYMC": "TYMC"
+    }
+  },
+  "gaps": [
+    {
+      "material": "STM-RM-146",
+      "test": "RM-UV-D3-146",
+      "missing": "uvTotalVolumeMl: STM does not state the preparation dilution steps or sample weight for the 10 ug/mL solution; spec sheet gives 460-500 range (A1% value) while STM describes comparison against standard absorptivity"
+    }
+  ]
+}

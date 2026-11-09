@@ -1,0 +1,343 @@
+{
+  "itemCode": "Caco3 MD",
+  "itemName": "Calcium Carbonate MD",
+  "stmCode": "STM-RM-142",
+  "stmFile": "Calcium Carbonate MD__New folder_SM -Calcium Carbonate MD.txt",
+  "specFiles": [],
+  "minQuantity": {
+    "routine": 200,
+    "retest": 120,
+    "retention": 200,
+    "unit": "g",
+    "source": "Calcium Carbonate MD__New folder_SM -Calcium Carbonate MD.txt:41"
+  },
+  "grades": [
+    {
+      "grade": null,
+      "rows": [
+        {
+          "testCode": "RM-DESC",
+          "parameterName": "Appearance",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "White irregular granular.",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "In-house",
+          "source": "Calcium Carbonate MD__New folder_SM -Calcium Carbonate MD.txt:30"
+        },
+        {
+          "testCode": "RM-SOLUB",
+          "parameterName": "Solubility",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Practically insoluble in water.",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "In-house",
+          "source": "Calcium Carbonate MD__New folder_SM -Calcium Carbonate MD.txt:31"
+        },
+        {
+          "testCode": "RM-ID-CARB-CACO3MD",
+          "parameterName": "Identification (carbonates): effervescence",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "It produces effervescence.",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "In-house",
+          "source": "Calcium Carbonate MD__New folder_SM -Calcium Carbonate MD.txt:32"
+        },
+        {
+          "testCode": "RM-ID-CA-CACO3MD",
+          "parameterName": "Identification (calcium): white crystalline precipitate",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "A white, crystalline precipitate is formed.",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "In-house",
+          "source": "Calcium Carbonate MD__New folder_SM -Calcium Carbonate MD.txt:32"
+        },
+        {
+          "testCode": "RM-INSOL",
+          "parameterName": "Acid-insoluble substances",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 0.2,
+          "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "In-house",
+          "source": "Calcium Carbonate MD__New folder_SM -Calcium Carbonate MD.txt:33"
+        },
+        {
+          "testCode": "RM-INSOL",
+          "parameterName": "Acid-insoluble substances: weight of residue",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 10,
+          "lowerInclusive": null,
+          "unit": "mg",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "In-house",
+          "source": "Calcium Carbonate MD__New folder_SM -Calcium Carbonate MD.txt:33"
+        },
+        {
+          "testCode": "RM-LT-HM",
+          "parameterName": "Heavy metals",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Complies (NMT 20 ppm)",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "In-house",
+          "source": "Calcium Carbonate MD__New folder_SM -Calcium Carbonate MD.txt:34"
+        },
+        {
+          "testCode": "RM-LOD",
+          "parameterName": "Loss on drying",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 2.0,
+          "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "In-house",
+          "source": "Calcium Carbonate MD__New folder_SM -Calcium Carbonate MD.txt:35"
+        },
+        {
+          "testCode": "RM-TAPDEN",
+          "parameterName": "Tapped density",
+          "limitType": "NotLessThan",
+          "lower": 0.95,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": "g/mL",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "In-house",
+          "source": "Calcium Carbonate MD__New folder_SM -Calcium Carbonate MD.txt:36"
+        },
+        {
+          "testCode": "RM-TIT-CA-CACO3MD",
+          "parameterName": "Assay",
+          "limitType": "NotLessThan",
+          "lower": 90,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": "PercentAsIs",
+          "referenceStandard": "In-house",
+          "source": "Calcium Carbonate MD__New folder_SM -Calcium Carbonate MD.txt:37"
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "testCode": "RM-DESC",
+      "procedure": "Under strong white light check each received sample container separately in a clean transparent watch glass or glass dish for foreign particles, colour and conformity with the visual specification.",
+      "kind": "general",
+      "workflow": "Observation",
+      "details": {
+        "perContainer": true,
+        "inHouse": "White irregular granular."
+      },
+      "source": "Calcium Carbonate MD__New folder_SM -Calcium Carbonate MD.txt:30"
+    },
+    {
+      "testCode": "RM-SOLUB",
+      "procedure": "Weigh 100 mg sample in a stoppered tube; add 0.1 mL solvent, shake 1 min, hold at 25.0 ± 0.5 °C for 15 min, repeat shake/hold once if not dissolved; stepwise add 0.9 mL, 2 mL, 7 mL solvent (same shake and hold) to classify very soluble / freely soluble / soluble / sparingly soluble; if still undissolved use 10 mg in 10 mL (slightly soluble) then 1 mg in 10 mL (very slightly soluble), else practically insoluble.",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {
+        "sample": "100 mg",
+        "temperature": "25.0 ± 0.5 °C",
+        "holdMin": 15,
+        "shakeMin": 1,
+        "volumesMl": [0.1, 0.9, 2, 7],
+        "smallSampleSteps": ["10 mg in 10 mL", "1 mg in 10 mL"],
+        "solvent": "water",
+        "reference": "BP (SC IV K.) Characters; USP Description and Relative Solubility"
+      },
+      "source": "Calcium Carbonate MD__New folder_SM -Calcium Carbonate MD.txt:31"
+    },
+    {
+      "testCode": "RM-ID-CARB-CACO3MD",
+      "procedure": "Carbonates: suspend 0.1 g of the substance in 2 mL of water, add 3 mL of 2 M acetic acid; the solution or suspension effervesces, evolving a colourless and odourless gas. (Test 1, first step, as written: addition of acetic acid to 0.1 g produces effervescence.)",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "details": {
+        "sample": "0.1 g",
+        "water": "2 mL",
+        "acid": "3 mL of 2 M acetic acid",
+        "reference": "USP Identification Tests-General, Calcium <191>; BP Appendix VI (Carbonates)"
+      },
+      "source": "Calcium Carbonate MD__New folder_SM -Calcium Carbonate MD.txt:32"
+    },
+    {
+      "testCode": "RM-ID-CA-CACO3MD",
+      "procedure": "Calcium: dissolve about 20 mg of the substance (as written: 0.2 mL of solution S) in 5 mL of acetic acid; add 0.5 mL potassium ferrocyanide solution, the solution remains clear; add about 50 mg ammonium chloride; a white crystalline precipitate is formed.",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "details": {
+        "sample": "about 20 mg",
+        "acid": "5 mL acetic acid",
+        "reagent": "0.5 mL potassium ferrocyanide solution (5.3 g in water to 100 mL)",
+        "ammoniumChloride": "about 50 mg",
+        "reference": "BP Appendix VI (Calcium)"
+      },
+      "source": "Calcium Carbonate MD__New folder_SM -Calcium Carbonate MD.txt:32"
+    },
+    {
+      "testCode": "RM-INSOL",
+      "procedure": "Acid-insoluble substances: mix 5.0 g sample with 10 mL water; add hydrochloric acid dropwise with agitation until effervescence ceases; add water to 200 mL and filter; wash the residue with water until the last washing shows no chloride; ignite; weigh the residue.",
+      "kind": "general",
+      "workflow": "Gravimetric",
+      "details": {
+        "sampleG": 5.0,
+        "water": "10 mL",
+        "dilutedVolumeMl": 200,
+        "washing": "until no chloride",
+        "step": "ignite and weigh residue"
+      },
+      "source": "Calcium Carbonate MD__New folder_SM -Calcium Carbonate MD.txt:33"
+    },
+    {
+      "testCode": "RM-LT-HM",
+      "procedure": "Heavy metals limit test: test solution 1.0 g dissolved in 5 mL dilute acetic acid, diluted to 12 mL with water, 2 mL pH 3.5 buffer added. Standard: 1 mL of 20 ppm lead, 2 mL pH 3.5 buffer, 1.2 mL thioacetamide reagent (mixed immediately). Examine after 2 min; any brown colour in the test solution is not more intense than the reference.",
+      "kind": "general",
+      "workflow": "Observation",
+      "details": {
+        "sampleG": 1.0,
+        "testSolutionVolumeMl": 12,
+        "bufferPh": 3.5,
+        "standard": "1 mL of 20 ppm lead",
+        "thioacetamideMl": 1.2,
+        "examineAfterMin": 2,
+        "limit": "Maximum 20 ppm"
+      },
+      "source": "Calcium Carbonate MD__New folder_SM -Calcium Carbonate MD.txt:34"
+    },
+    {
+      "testCode": "RM-LOD",
+      "procedure": "Weigh accurately an empty weighing bottle previously dried at 200 ± 10 °C and cooled in desiccator (W0); weigh 1.000 g sample into it (W1); dry in calibrated oven at 200 ± 10 °C for 4 h, cool in desiccator, weigh (W2); repeat to constant weight. % Loss on drying = (W1 - W2) / (W1 - W0) x 100.",
+      "kind": "general",
+      "workflow": "Gravimetric",
+      "details": {
+        "sampleG": 1.0,
+        "ovenC": "200 ± 10",
+        "timeH": 4,
+        "bottleDryingC": "200 ± 10",
+        "formula": "% LOD = (W1 - W2) / (W1 - W0) x 100",
+        "reference": "BP Appendix IX D; USP Loss on Drying <731>"
+      },
+      "source": "Calcium Carbonate MD__New folder_SM -Calcium Carbonate MD.txt:35"
+    },
+    {
+      "testCode": "RM-TAPDEN",
+      "procedure": "Tapped density: weigh a 10 mL empty, dry cylinder and set as zero; pour the sample into the cylinder to the volume; record the weight of sample. Tapped density = Wt / Vol (g/mL).",
+      "kind": "general",
+      "workflow": "Measurement",
+      "details": {
+        "cylinderVolumeMl": 10,
+        "formula": "Tapped density = Wt / Vol",
+        "tapping": "not stated"
+      },
+      "source": "Calcium Carbonate MD__New folder_SM -Calcium Carbonate MD.txt:36"
+    },
+    {
+      "testCode": "RM-TIT-CA-CACO3MD",
+      "procedure": "Assay (complexometric titration): dissolve 0.150 g sample in 3 mL dilute hydrochloric acid and 20 mL water; boil 2 min, cool, dilute to 50 mL with water; add 6.0 mL strong sodium hydroxide solution and about 200 mg calconcarboxylic acid triturate; titrate with 0.1 M sodium edetate from violet to full blue. 1 mL of 0.1 M sodium edetate = 4.008 mg Ca. Assay = (E.P x eq.wt x F x 100) / Wt.",
+      "kind": "specific",
+      "workflow": "Titration",
+      "details": {
+        "sampleG": 0.150,
+        "dilutedHClMl": 3,
+        "waterMl": 20,
+        "volumeMl": 50,
+        "strongNaOHMl": 6.0,
+        "indicator": "about 200 mg calconcarboxylic acid triturate",
+        "titrant": "0.1 M sodium edetate",
+        "endpoint": "violet to full blue",
+        "mode": "direct",
+        "equivalenceFactor": "1 mL of 0.1 M sodium edetate = 4.008 mg Ca",
+        "formula": "Assay = (E.P x eq.wt x F x 100) / Wt; E.P = end point titre; eq.wt = equivalent weight of Ca; F = titrant factor; Wt = sample weight (mg)",
+        "reference": "BP Appendix VIII D (Complexometric Titrations)"
+      },
+      "source": "Calcium Carbonate MD__New folder_SM -Calcium Carbonate MD.txt:37"
+    }
+  ],
+  "notApplicable": [],
+  "supplierAttributes": [],
+  "reagents": [
+    { "name": "Acetic acid", "use": "reagent", "source": "Calcium Carbonate MD__New folder_SM -Calcium Carbonate MD.txt:28" },
+    { "name": "Ammonium acetate", "use": "reagent", "source": "Calcium Carbonate MD__New folder_SM -Calcium Carbonate MD.txt:28" },
+    { "name": "Ammonium chloride", "use": "reagent", "source": "Calcium Carbonate MD__New folder_SM -Calcium Carbonate MD.txt:28" },
+    { "name": "Ammonium Hydroxide", "use": "reagent", "source": "Calcium Carbonate MD__New folder_SM -Calcium Carbonate MD.txt:28" },
+    { "name": "Calcium chloride", "use": "reagent", "source": "Calcium Carbonate MD__New folder_SM -Calcium Carbonate MD.txt:28" },
+    { "name": "Calconcarboxylic acid", "use": "indicator", "source": "Calcium Carbonate MD__New folder_SM -Calcium Carbonate MD.txt:28" },
+    { "name": "Disodium Edetate", "use": "reagent", "source": "Calcium Carbonate MD__New folder_SM -Calcium Carbonate MD.txt:28" },
+    { "name": "Glycerol", "use": "reagent", "source": "Calcium Carbonate MD__New folder_SM -Calcium Carbonate MD.txt:28" },
+    { "name": "Hydrochloric acid", "use": "reagent", "source": "Calcium Carbonate MD__New folder_SM -Calcium Carbonate MD.txt:28" },
+    { "name": "Magnesium sulfate", "use": "reagent", "source": "Calcium Carbonate MD__New folder_SM -Calcium Carbonate MD.txt:28" },
+    { "name": "Methyl red", "use": "indicator", "source": "Calcium Carbonate MD__New folder_SM -Calcium Carbonate MD.txt:28" },
+    { "name": "Oxalic acid", "use": "reagent", "source": "Calcium Carbonate MD__New folder_SM -Calcium Carbonate MD.txt:28" },
+    { "name": "Potassium ferrocyanide", "use": "reagent", "source": "Calcium Carbonate MD__New folder_SM -Calcium Carbonate MD.txt:28" },
+    { "name": "Sodium chloride", "use": "reagent", "source": "Calcium Carbonate MD__New folder_SM -Calcium Carbonate MD.txt:28" },
+    { "name": "Sodium edetate", "use": "titrant", "source": "Calcium Carbonate MD__New folder_SM -Calcium Carbonate MD.txt:28" },
+    { "name": "Sodium hydroxide", "use": "reagent", "source": "Calcium Carbonate MD__New folder_SM -Calcium Carbonate MD.txt:28" },
+    { "name": "Thioacetamide", "use": "reagent", "source": "Calcium Carbonate MD__New folder_SM -Calcium Carbonate MD.txt:28" }
+  ],
+  "openQuestions": [
+    {
+      "question": "The spec sheet in this folder is for Calcium Carbonate DC (item code VB010121800075, STM-RM-142), not Calcium Carbonate MD. It was ignored; no MD spec sheet is present, so the rows above are the in-house specifications of the latest MD STM (grade null).",
+      "source": "Calcium Carbonate MD__Specifications sheet Calcium Carbonate DC.txt:7"
+    },
+    {
+      "question": "The latest STM (version 1/1) has empty Particle Size and Microbiological Analysis sections, so no particle size, TAMC, TYMC, E. coli or Salmonella rows were loaded. The older 2025-02-27 STM has a microbial procedure but is an older version and was not used.",
+      "source": "Calcium Carbonate MD__New folder_SM -Calcium Carbonate MD.txt:38-39"
+    },
+    {
+      "question": "Assay: no basis (as-is, dried or anhydrous) is stated; the row is loaded as PercentAsIs. Confirm.",
+      "source": "Calcium Carbonate MD__New folder_SM -Calcium Carbonate MD.txt:37"
+    },
+    {
+      "question": "Assay: the sample is 0.150 g but the formula takes Wt in mg, and the factor F and the blank are not defined. Confirm the formula and the units before the calculation is configured.",
+      "source": "Calcium Carbonate MD__New folder_SM -Calcium Carbonate MD.txt:37"
+    },
+    {
+      "question": "Calcium identification: the step 'Dissolve about 20 mg of the substance 0.2 mL of solution S in 5 mL of acetic acid' is unclear (solution S is not defined for this material). Recorded as written.",
+      "source": "Calcium Carbonate MD__New folder_SM -Calcium Carbonate MD.txt:32"
+    },
+    {
+      "question": "Tapped density: the tapping procedure (number of taps, apparatus) is not stated; only the empty-cylinder weighing and Wt/Vol calculation are given.",
+      "source": "Calcium Carbonate MD__New folder_SM -Calcium Carbonate MD.txt:36"
+    }
+  ]
+}

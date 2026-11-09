@@ -1,0 +1,469 @@
+{
+  "itemCode": "STM-RM-004",
+  "stmCode": "STM-RM-004",
+  "itemName": "CarboxymethylCellulose Sodium",
+  "stmFile": "CarboxymethylCellulose Sodium__STM Calcium CarboxymethylCellulose Sodium NEW viscity.txt",
+  "specFiles": [
+    "CarboxymethylCellulose Sodium__Specifications sheet CarboxymethylCellulose Sodium-New.txt"
+  ],
+  "minQuantity": {
+    "routine": 100,
+    "retest": 70,
+    "retention": 100,
+    "unit": "g",
+    "source": "CarboxymethylCellulose Sodium__Specifications sheet CarboxymethylCellulose Sodium-New.txt:23; CarboxymethylCellulose Sodium__STM Calcium CarboxymethylCellulose Sodium NEW viscity.txt:39"
+  },
+  "grades": [
+    {
+      "grade": "BP",
+      "rows": [
+        {
+          "testCode": "RM-DESC",
+          "parameterName": "Appearance",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "White or almost white, granular powder, hygroscopic after drying.",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP 2024",
+          "source": "CarboxymethylCellulose Sodium__Specifications sheet CarboxymethylCellulose Sodium-New.txt:11"
+        },
+        {
+          "testCode": "RM-SOLUB",
+          "parameterName": "Solubility",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Practically insoluble in acetone, in anhydrous ethanol and in toluene. It is easily dispersed in water giving colloidal solutions.",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP 2024",
+          "source": "CarboxymethylCellulose Sodium__Specifications sheet CarboxymethylCellulose Sodium-New.txt:12"
+        },
+        {
+          "testCode": "RM-ID-CMC",
+          "parameterName": "Identification: copper sulfate reaction",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "A blue, cotton-like precipitate is formed.",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP 2024",
+          "source": "CarboxymethylCellulose Sodium__Specifications sheet CarboxymethylCellulose Sodium-New.txt:13"
+        },
+        {
+          "testCode": "RM-ID-CMC",
+          "parameterName": "Identification: boiling of solution S",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "No precipitate is formed.",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP 2024",
+          "source": "CarboxymethylCellulose Sodium__Specifications sheet CarboxymethylCellulose Sodium-New.txt:14"
+        },
+        {
+          "testCode": "RM-ID-NA-ASH",
+          "parameterName": "Identification: reaction of sodium on the sulfated ash residue",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "A dense white precipitate is formed.",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP 2024",
+          "source": "CarboxymethylCellulose Sodium__Specifications sheet CarboxymethylCellulose Sodium-New.txt:15"
+        },
+        {
+          "testCode": "RM-SOLAPP",
+          "parameterName": "Appearance of solution",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Solution S is not more opalescent than reference suspension III and not more intensely coloured than reference solution Y6.",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP 2024",
+          "source": "CarboxymethylCellulose Sodium__Specifications sheet CarboxymethylCellulose Sodium-New.txt:16"
+        },
+        {
+          "testCode": "RM-LT-CL",
+          "parameterName": "Chlorides",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Complies (NMT 0.25%)",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP 2024",
+          "source": "CarboxymethylCellulose Sodium__Specifications sheet CarboxymethylCellulose Sodium-New.txt:17"
+        },
+        {
+          "testCode": "RM-PH",
+          "parameterName": "pH",
+          "limitType": "Range",
+          "lower": 6.0,
+          "upper": 8.0,
+          "lowerInclusive": true,
+          "unit": null,
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP 2024",
+          "source": "CarboxymethylCellulose Sodium__Specifications sheet CarboxymethylCellulose Sodium-New.txt:18"
+        },
+        {
+          "testCode": "RM-VISC-CMC",
+          "parameterName": "Viscosity",
+          "limitType": "Range",
+          "lower": 4000,
+          "upper": 6000,
+          "lowerInclusive": true,
+          "unit": "cp",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP 2024",
+          "source": "CarboxymethylCellulose Sodium__Specifications sheet CarboxymethylCellulose Sodium-New.txt:19"
+        },
+        {
+          "testCode": "RM-LT-GLYC-CMC",
+          "parameterName": "Sodium glycolate",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Complies (NMT 0.4%, dried substance)",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP 2024",
+          "source": "CarboxymethylCellulose Sodium__Specifications sheet CarboxymethylCellulose Sodium-New.txt:20"
+        },
+        {
+          "testCode": "RM-LOD",
+          "parameterName": "Loss on drying",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 10.0,
+          "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP 2024",
+          "source": "CarboxymethylCellulose Sodium__Specifications sheet CarboxymethylCellulose Sodium-New.txt:21"
+        },
+        {
+          "testCode": "RM-SASH",
+          "parameterName": "Sulfated ash",
+          "limitType": "Range",
+          "lower": 20.0,
+          "upper": 33.3,
+          "lowerInclusive": true,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP 2024",
+          "source": "CarboxymethylCellulose Sodium__Specifications sheet CarboxymethylCellulose Sodium-New.txt:22"
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "testCode": "RM-DESC",
+      "procedure": "Under strong white light check each received sample container separately on a clean transparent watch glass or glass dish for foreign particles, colour and conformity with the visual specification. Hygroscopicity: weigh a glass vessel with stopper (m1), place about 2 g in it and weigh (m2); stand un-stoppered in a climatic cabinet at 25 ± 1 °C for 24 h; stopper and weigh (m3); % increase in mass by the expression that is missing from the STM text (see openQuestions). Very hygroscopic: increase of 15% or more; hygroscopic: 2% to 15%; slightly hygroscopic: less than 2%.",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {
+        "perContainer": true,
+        "hygroscopicity": "m1 vessel + stopper; m2 vessel + about 2 g; 25 ± 1 °C, 24 h; m3 after stoppering; classes: >=15% very hygroscopic, 2-15% hygroscopic, <2% slightly hygroscopic",
+        "reference": "BP (SC IV K.) Characters Section in Monographs; BP 2024 Monograph for Carboxymethyl Cellulose Sodium"
+      },
+      "source": "CarboxymethylCellulose Sodium__STM Calcium CarboxymethylCellulose Sodium NEW viscity.txt:28"
+    },
+    {
+      "testCode": "RM-SOLUB",
+      "procedure": "BP-style stepwise solubility: 100 mg sample in a stoppered tube with 0.1 mL solvent, shake 1 min, hold 25.0 ± 0.5 °C for 15 min (repeat once if not dissolved); add 0.9 mL, then 2 mL, then 7 mL solvent with the same shake and hold to classify very soluble / freely soluble / soluble / sparingly soluble; if still undissolved, 10 mg in 10 mL (slightly soluble), then 1 mg in 10 mL (very slightly soluble), else practically insoluble. Repeat the procedure with anhydrous ethanol and toluene.",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {
+        "sample": "100 mg",
+        "temperature": "25.0 ± 0.5 °C",
+        "holdMin": 15,
+        "shakeMin": 1,
+        "volumesMl": [
+          0.1,
+          0.9,
+          2,
+          7
+        ],
+        "smallSampleSteps": [
+          "10 mg in 10 mL",
+          "1 mg in 10 mL"
+        ],
+        "solvents": [
+          "first solvent not named in the STM (see openQuestions)",
+          "anhydrous ethanol",
+          "toluene"
+        ],
+        "reference": "BP (SC IV K.) Characters Section in Monographs (Hygroscopicity and Solubility)"
+      },
+      "source": "CarboxymethylCellulose Sodium__STM Calcium CarboxymethylCellulose Sodium NEW viscity.txt:29"
+    },
+    {
+      "testCode": "RM-ID-CMC",
+      "procedure": "Identification (BP 2024 Appendix VI, sodium), on solution S: test 1: to 10 mL of solution S add 1 mL copper sulfate solution, a blue cotton-like precipitate forms. Test 2: boil 5 mL of solution S for a few minutes, no precipitate forms.",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "details": {
+        "solutionS": "sprinkle substance equivalent to 1.0 g dried substance onto 90 mL CO2-free water at 40-50 °C with vigorous stirring until colloidal; cool; dilute to 100 mL with CO2-free water",
+        "copperSulfateSolution": "12.5 g copper sulfate pentahydrate in water to 100 mL",
+        "test1Volume": "10 mL solution S + 1 mL copper sulfate solution",
+        "test2Volume": "5 mL solution S boiled",
+        "reference": "BP 2024 Appendix VI Qualitative Reactions and Tests, Sodium"
+      },
+      "source": "CarboxymethylCellulose Sodium__STM Calcium CarboxymethylCellulose Sodium NEW viscity.txt:30; reagents CarboxymethylCellulose Sodium__STM Calcium CarboxymethylCellulose Sodium NEW viscity.txt:26"
+    },
+    {
+      "testCode": "RM-ID-NA-ASH",
+      "procedure": "Identification of sodium on the sulfated ash residue (BP 2024 Appendix VI): to the residue from the sulfated ash test add 1 mL hydrochloric acid and evaporate on a water-bath; take up in 20 mL water; use 2 mL, add 2 mL of 150 g/L potassium carbonate and heat to boiling (no precipitate); add 4 mL potassium pyroantimonate solution, heat to boiling, cool in iced water, rub the tube with a glass rod if needed; a dense white precipitate forms.",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {
+        "residueFrom": "sulfated ash test (RM-SASH)",
+        "acid": "1 mL hydrochloric acid",
+        "carbonate": "2 mL of 150 g/L potassium carbonate",
+        "pyroantimonate": "4 mL potassium pyroantimonate solution R1 (2.0 g in 100 mL hot water, boiled, cooled, plus 10 mL of 150 g/L potassium hydroxide)",
+        "reference": "BP 2024 Appendix VI"
+      },
+      "source": "CarboxymethylCellulose Sodium__STM Calcium CarboxymethylCellulose Sodium NEW viscity.txt:30"
+    },
+    {
+      "testCode": "RM-SOLAPP",
+      "procedure": "Appearance of solution (BP 2024 Appendix IV A and IV B): 20 mL of solution S is compared with reference suspension III (opalescence) and reference solution Y6 (colour); solution S must not be more opalescent than suspension III and not more intensely coloured than Y6.",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {
+        "referenceSuspensionIII": "30 mL standard of opalescence + 70 mL water",
+        "referenceSolutionY6": "5 mL standard solution Y + 95 mL hydrochloric acid (10 g/L)",
+        "standardSolutionY": "2.4 mL yellow solution + 0.6 mL red solution + 7 mL hydrochloric acid (10 g/L)",
+        "reference": "BP 2024 Appendix IV A and IV B"
+      },
+      "source": "CarboxymethylCellulose Sodium__STM Calcium CarboxymethylCellulose Sodium NEW viscity.txt:31"
+    },
+    {
+      "testCode": "RM-LT-CL",
+      "procedure": "Chlorides limit test (BP 2024 Appendix VII): test solution 2 mL of solution S diluted to 15 mL with water, add 1 mL dilute nitric acid, pour as a single addition into 1 mL silver nitrate solution R2. Reference: 10 mL chloride standard solution (5 ppm Cl) + 5 mL water, 1 mL dilute nitric acid, same addition. View laterally on black background; after 5 min protected from light, opalescence of the test is not more intense than the standard. Limit NMT 0.25%.",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {
+        "testSolution": "2 mL solution S diluted to 15 mL",
+        "referenceSolution": "10 mL chloride standard solution (5 ppm Cl) + 5 mL water",
+        "acid": "1 mL dilute nitric acid",
+        "silverNitrate": "1 mL silver nitrate solution R2 (1.7 g in 100 mL water)",
+        "waitMin": 5,
+        "limit": "NMT 0.25 per cent",
+        "reference": "BP 2024 Appendix VII Limit of Chloride"
+      },
+      "source": "CarboxymethylCellulose Sodium__STM Calcium CarboxymethylCellulose Sodium NEW viscity.txt:32"
+    },
+    {
+      "testCode": "RM-PH",
+      "procedure": "pH of solution S measured with a calibrated pH meter (BP 2024 Appendix V L).",
+      "kind": "general",
+      "workflow": "Measurement",
+      "details": {
+        "solution": "solution S (sufficient quantity)",
+        "reference": "BP 2024 Appendix V L"
+      },
+      "source": "CarboxymethylCellulose Sodium__STM Calcium CarboxymethylCellulose Sodium NEW viscity.txt:33"
+    },
+    {
+      "testCode": "RM-VISC-CMC",
+      "procedure": "Viscosity (BP 2024 Appendix V H, method III, rotating viscometer): stir a quantity equivalent to 1.00 g dried substance into 50 mL water, heat to 90 °C, cool, dilute to 100.0 mL with water and stir until dissolved. Measure with a calibrated rotating viscometer at 20 °C, 100 rpm, using the spindle giving the higher torque.",
+      "kind": "specific",
+      "workflow": "Measurement",
+      "details": {
+        "sampleG": 1.0,
+        "sampleBasis": "dried substance equivalent",
+        "water1Ml": 50,
+        "heatC": 90,
+        "finalVolumeMl": 100,
+        "temperatureC": 20,
+        "speedRpm": 100,
+        "spindle": "the spindle giving the higher torque",
+        "labelRelativeLimit": "NLT 75% and NMT 140% of the value stated on the label (not loaded, see openQuestions)",
+        "reference": "BP 2024 Appendix V H, Method III"
+      },
+      "source": "CarboxymethylCellulose Sodium__STM Calcium CarboxymethylCellulose Sodium NEW viscity.txt:34"
+    },
+    {
+      "testCode": "RM-LT-GLYC-CMC",
+      "procedure": "Sodium glycolate limit test (BP 2024): test solution from 0.500 g dried substance dissolved in 5 mL acetic acid and 5 mL water (about 30 min), add 80 mL acetone and 2 g sodium chloride, filter, dilute to 100.0 mL with acetone, stand 24 h, use the clear supernatant. Reference: 0.310 g glycolic acid in water to 1000.0 mL, 5.0 mL of this with 5 mL acetic acid, then acetone and sodium chloride as above, to 100 mL. Each solution: 2.0 mL to a 25-mL flask, evaporate acetone on water-bath, add 5.0 mL 2,7-dihydroxynaphthalene solution and then 15.0 mL more; close with foil, heat 20 min on water-bath, cool, dilute to 25.0 mL with sulfuric acid; within 10 min view 10.0 mL of each vertically. Test not more intensely coloured than reference. Limit NMT 0.4% (dried substance).",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "details": {
+        "sampleG": 0.5,
+        "sampleBasis": "dried substance",
+        "reagentStandard": "glycolic acid, dried in desiccator",
+        "colourReagent": "2,7-dihydroxynaphthalene solution (10 mg in 100 mL sulfuric acid, left until decolourised)",
+        "heatMin": 20,
+        "finalDilutionMl": 25,
+        "viewWithinMin": 10,
+        "limit": "NMT 0.4 per cent (dried substance)",
+        "reference": "BP 2024 Monograph for Carboxymethyl Cellulose Sodium"
+      },
+      "source": "CarboxymethylCellulose Sodium__STM Calcium CarboxymethylCellulose Sodium NEW viscity.txt:35"
+    },
+    {
+      "testCode": "RM-LOD",
+      "procedure": "Loss on drying (BP Appendix IX D): weigh an empty weighing bottle previously dried at 105 °C and cooled in desiccator (W0); weigh accurately 1.000 g into it (W1 = bottle + material); dry in a calibrated oven at 105 °C for 2 h, cool in desiccator, weigh (W2); repeat to constant weight. % loss on drying = (W1 - W2) / (W1 - W0) x 100.",
+      "kind": "general",
+      "workflow": "Gravimetric",
+      "details": {
+        "sampleG": 1.0,
+        "drying": "calibrated oven 105 °C, 2 h, then to constant weight",
+        "formula": "(W1 - W2) / (W1 - W0) x 100",
+        "reference": "BP Appendix IX D"
+      },
+      "source": "CarboxymethylCellulose Sodium__STM Calcium CarboxymethylCellulose Sodium NEW viscity.txt:36"
+    },
+    {
+      "testCode": "RM-SASH",
+      "procedure": "Sulfated ash (BP Appendix IX A): weigh an empty crucible ignited at 600-650 °C and cooled (W0); weigh 1.0 g sample (W1); moisten with equal volumes of sulfuric acid and water, char gently on a hot plate; moisten residue with sulfuric acid, heat until white fumes cease; ignite in a calibrated muffle at 600-650 °C, cool in desiccator, weigh (W2); repeat to constant weight. % = (W2 - W0) / (W1 - W0) x 100.",
+      "kind": "general",
+      "workflow": "Gravimetric",
+      "details": {
+        "sampleG": 1.0,
+        "ignitionC": "600-650",
+        "formula": "(W2 - W0) / (W1 - W0) x 100",
+        "sodiumEquivalent": "20.0-33.3 % sulfated ash corresponds to 6.5-10.8 % sodium",
+        "reference": "BP Appendix IX A"
+      },
+      "source": "CarboxymethylCellulose Sodium__STM Calcium CarboxymethylCellulose Sodium NEW viscity.txt:37"
+    }
+  ],
+  "notApplicable": [],
+  "supplierAttributes": [],
+  "reagents": [
+    {
+      "name": "Copper sulfate pentahydrate",
+      "use": "reagent",
+      "source": "CarboxymethylCellulose Sodium__STM Calcium CarboxymethylCellulose Sodium NEW viscity.txt:26"
+    },
+    {
+      "name": "Hydrochloric acid",
+      "use": "reagent",
+      "source": "CarboxymethylCellulose Sodium__STM Calcium CarboxymethylCellulose Sodium NEW viscity.txt:26"
+    },
+    {
+      "name": "Potassium carbonate",
+      "use": "reagent",
+      "source": "CarboxymethylCellulose Sodium__STM Calcium CarboxymethylCellulose Sodium NEW viscity.txt:26"
+    },
+    {
+      "name": "Potassium pyroantimonate",
+      "use": "reagent",
+      "source": "CarboxymethylCellulose Sodium__STM Calcium CarboxymethylCellulose Sodium NEW viscity.txt:26"
+    },
+    {
+      "name": "Hydrazine sulfate",
+      "use": "reagent",
+      "source": "CarboxymethylCellulose Sodium__STM Calcium CarboxymethylCellulose Sodium NEW viscity.txt:26"
+    },
+    {
+      "name": "Hexamethylenetetramine",
+      "use": "reagent",
+      "source": "CarboxymethylCellulose Sodium__STM Calcium CarboxymethylCellulose Sodium NEW viscity.txt:26"
+    },
+    {
+      "name": "Ferric chloride",
+      "use": "reagent",
+      "source": "CarboxymethylCellulose Sodium__STM Calcium CarboxymethylCellulose Sodium NEW viscity.txt:26"
+    },
+    {
+      "name": "Cobalt chloride",
+      "use": "reagent",
+      "source": "CarboxymethylCellulose Sodium__STM Calcium CarboxymethylCellulose Sodium NEW viscity.txt:26"
+    },
+    {
+      "name": "Acetic acid",
+      "use": "reagent",
+      "source": "CarboxymethylCellulose Sodium__STM Calcium CarboxymethylCellulose Sodium NEW viscity.txt:26"
+    },
+    {
+      "name": "Acetone",
+      "use": "reagent",
+      "source": "CarboxymethylCellulose Sodium__STM Calcium CarboxymethylCellulose Sodium NEW viscity.txt:26"
+    },
+    {
+      "name": "Sodium chloride",
+      "use": "reagent",
+      "source": "CarboxymethylCellulose Sodium__STM Calcium CarboxymethylCellulose Sodium NEW viscity.txt:26"
+    },
+    {
+      "name": "Glycolic acid",
+      "use": "standard",
+      "source": "CarboxymethylCellulose Sodium__STM Calcium CarboxymethylCellulose Sodium NEW viscity.txt:26"
+    },
+    {
+      "name": "Diphosphorus pentoxide",
+      "use": "reagent",
+      "source": "CarboxymethylCellulose Sodium__STM Calcium CarboxymethylCellulose Sodium NEW viscity.txt:26"
+    },
+    {
+      "name": "2,7-dihydroxynaphthalene",
+      "use": "reagent",
+      "source": "CarboxymethylCellulose Sodium__STM Calcium CarboxymethylCellulose Sodium NEW viscity.txt:26"
+    },
+    {
+      "name": "Sulfuric acid",
+      "use": "reagent",
+      "source": "CarboxymethylCellulose Sodium__STM Calcium CarboxymethylCellulose Sodium NEW viscity.txt:26"
+    },
+    {
+      "name": "Nitric acid",
+      "use": "reagent",
+      "source": "CarboxymethylCellulose Sodium__STM Calcium CarboxymethylCellulose Sodium NEW viscity.txt:26"
+    },
+    {
+      "name": "Silver nitrate",
+      "use": "reagent",
+      "source": "CarboxymethylCellulose Sodium__STM Calcium CarboxymethylCellulose Sodium NEW viscity.txt:26"
+    }
+  ],
+  "openQuestions": [
+    {
+      "question": "Viscosity: the BP limit is 4000-6000 cp and also NLT 75% and NMT 140% of the value on the label. The label value is not held in the system, so only the 4000-6000 cp range is loaded; the label-relative limit needs a decision.",
+      "source": "CarboxymethylCellulose Sodium__Specifications sheet CarboxymethylCellulose Sodium-New.txt:19; CarboxymethylCellulose Sodium__STM Calcium CarboxymethylCellulose Sodium NEW viscity.txt:34"
+    },
+    {
+      "question": "Solubility: the STM does not name the first solvent (it says to repeat with anhydrous ethanol and toluene). The spec sheet lists acetone, anhydrous ethanol, toluene and water (dispersion). Solvents not fixed in the test.",
+      "source": "CarboxymethylCellulose Sodium__STM Calcium CarboxymethylCellulose Sodium NEW viscity.txt:29; CarboxymethylCellulose Sodium__Specifications sheet CarboxymethylCellulose Sodium-New.txt:12"
+    },
+    {
+      "question": "Appearance: the STM hygroscopicity procedure gives no formula for the percentage increase in mass (the expression is blank in the text), so the result cannot be calculated as written.",
+      "source": "CarboxymethylCellulose Sodium__STM Calcium CarboxymethylCellulose Sodium NEW viscity.txt:28"
+    }
+  ]
+}

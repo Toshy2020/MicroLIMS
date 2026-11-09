@@ -3,6 +3,8 @@ import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import { LimitPills, ToneChip } from "../../../../components/configHierarchy";
+import { useTestDefinitions } from "../../../../hooks/useTestDefinitions";
+import { useEditableTestCodes } from "../../../../hooks/useEditableTestCodes";
 import { MachinePart, PartConfig, acTestTypeLabel, isPathogenConfig } from "../acConfigTypes";
 
 interface Props {
@@ -15,16 +17,23 @@ interface Props {
   onEditCount: (c: PartConfig) => void;
   onDeleteCount: (c: PartConfig) => void;
   onEditPathogens: () => void;
+  editableCodes?: Set<string>;
 }
 
 const heading = { fontSize: 12, fontWeight: 600, letterSpacing: "0.04em", textTransform: "uppercase", color: "text.secondary" } as const;
 
 // One machine part: its count tests (swab/rinse, with limits) and the
 // set of pathogen tests run on it. A part with no tests is highlighted.
-export function AcPartCard({ part, configs, testName, onEditPart, onDeletePart, onAddCount, onEditCount, onDeleteCount, onEditPathogens }: Props) {
+export function AcPartCard({ part, configs, testName, onEditPart, onDeletePart, onAddCount, onEditCount, onDeleteCount, onEditPathogens, editableCodes }: Props) {
+  const { options } = useTestDefinitions();
+  const { editableCodes: hookCodes } = useEditableTestCodes();
+  const effectiveEditable = editableCodes !== undefined ? editableCodes : hookCodes;
+
   const counts = configs.filter((c) => !isPathogenConfig(c));
   const pathogens = configs.filter(isPathogenConfig);
   const empty = configs.length === 0;
+
+  const labName = (code: string) => options.find((o) => o.code === code)?.section?.name || "Other laboratory";
 
   return (
     <Paper variant="outlined" sx={{ borderRadius: 2, overflow: "hidden", display: "flex", flexDirection: "column", borderColor: empty ? "warning.light" : "divider" }}>
@@ -56,27 +65,38 @@ export function AcPartCard({ part, configs, testName, onEditPart, onDeletePart, 
       <Stack spacing={1.5} sx={{ px: 2, py: 1.5, borderTop: "1px solid", borderColor: "divider", bgcolor: "background.default", flexGrow: 1 }}>
         <Stack spacing={1}>
           <Typography sx={heading}>Count tests</Typography>
-          {counts.map((c) => (
-            <Stack key={c.id} spacing={0.75} sx={{ p: 1.25, borderRadius: 1, bgcolor: "background.paper", border: "1px solid", borderColor: "divider" }}>
-              <Stack direction="row" sx={{ alignItems: "center", gap: 1 }}>
-                <Box sx={{ flexGrow: 1, minWidth: 0 }}>
-                  <Typography sx={{ fontSize: 14, fontWeight: 600 }}>{acTestTypeLabel(c.testType)}</Typography>
-                  <Typography sx={{ fontSize: 12, color: "text.secondary" }}>{c.testCode}</Typography>
-                </Box>
-                <Tooltip title="Edit test">
-                  <IconButton size="small" aria-label={`Edit ${c.testType} ${c.testCode}`} onClick={() => onEditCount(c)}>
-                    <EditIcon fontSize="small" />
-                  </IconButton>
-                </Tooltip>
-                <Tooltip title="Remove test">
-                  <IconButton size="small" color="error" aria-label={`Remove ${c.testType} ${c.testCode}`} onClick={() => onDeleteCount(c)}>
-                    <DeleteIcon fontSize="small" />
-                  </IconButton>
-                </Tooltip>
+          {counts.map((c) => {
+            const isEditable = effectiveEditable !== undefined && effectiveEditable.has(c.testCode);
+            return (
+              <Stack key={c.id} spacing={0.75} sx={{ p: 1.25, borderRadius: 1, bgcolor: "background.paper", border: "1px solid", borderColor: "divider" }}>
+                <Stack direction="row" sx={{ alignItems: "center", gap: 1 }}>
+                  <Box sx={{ flexGrow: 1, minWidth: 0 }}>
+                    <Typography sx={{ fontSize: 14, fontWeight: 600 }}>{acTestTypeLabel(c.testType)}</Typography>
+                    <Typography sx={{ fontSize: 12, color: "text.secondary" }}>{c.testCode}</Typography>
+                  </Box>
+                  {isEditable ? (
+                    <>
+                      <Tooltip title="Edit test">
+                        <IconButton size="small" aria-label={`Edit ${c.testType} ${c.testCode}`} onClick={() => onEditCount(c)}>
+                          <EditIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+                      <Tooltip title="Remove test">
+                        <IconButton size="small" color="error" aria-label={`Remove ${c.testType} ${c.testCode}`} onClick={() => onDeleteCount(c)}>
+                          <DeleteIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+                    </>
+                  ) : (
+                    <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
+                      {labName(c.testCode)}
+                    </Typography>
+                  )}
+                </Stack>
+                <LimitPills {...c} />
               </Stack>
-              <LimitPills {...c} />
-            </Stack>
-          ))}
+            );
+          })}
           <Button
             size="small"
             variant="outlined"
@@ -95,9 +115,16 @@ export function AcPartCard({ part, configs, testName, onEditPart, onDeletePart, 
             <Typography sx={{ fontSize: 13, color: "text.secondary" }}>None - presence/absence tests such as E. coli or Salmonella.</Typography>
           ) : (
             <Stack direction="row" sx={{ flexWrap: "wrap", gap: 0.75 }}>
-              {pathogens.map((c) => (
-                <ToneChip key={c.id} label={testName(c.testCode)} tone="purple" />
-              ))}
+              {pathogens.map((c) => {
+                const isLocked = effectiveEditable !== undefined && !effectiveEditable.has(c.testCode);
+                return (
+                  <Tooltip key={c.id} title={isLocked ? labName(c.testCode) : ""}>
+                    <span>
+                      <ToneChip label={testName(c.testCode)} tone={isLocked ? "pending" : "purple"} />
+                    </span>
+                  </Tooltip>
+                );
+              })}
             </Stack>
           )}
           <Button

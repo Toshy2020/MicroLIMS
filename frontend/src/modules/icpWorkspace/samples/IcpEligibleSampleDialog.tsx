@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { SignatureDialog } from "../../../components/SignatureDialog";
 import {
   Dialog,
   DialogTitle,
@@ -42,6 +43,8 @@ export function IcpEligibleSampleDialog({
 }: IcpEligibleSampleDialogProps) {
   const theme = useTheme();
   const [searchTerm, setSearchTerm] = useState("");
+  const [signOpen, setSignOpen] = useState(false);
+  const [signComment, setSignComment] = useState("");
   const [loading, setLoading] = useState(false);
   const [assigning, setAssigning] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -89,18 +92,22 @@ export function IcpEligibleSampleDialog({
     );
   };
 
-  const handleAssign = async () => {
+  // One signature covers every sample assigned in this action; the server signs before assigning anything.
+  const handleSignedAssign = async (password: string) => {
     if (selectedIds.length === 0) return;
     setAssigning(true);
     setError(null);
     try {
-      await IcpWorkspaceService.assignSamples(runId, selectedIds);
+      await IcpWorkspaceService.assignSamples(runId, {
+        testOrderIds: selectedIds,
+        password,
+        comment: signComment.trim() || null
+      });
       toast.success(`Assigned ${selectedIds.length} sample(s) to this run.`);
+      setSignOpen(false);
+      setSignComment("");
       onAssigned();
       onClose();
-    } catch (err: unknown) {
-      const e = err as { response?: { data?: { message?: string } }; message?: string };
-      setError(e.response?.data?.message ?? e.message ?? "Could not assign samples.");
     } finally {
       setAssigning(false);
     }
@@ -190,7 +197,7 @@ export function IcpEligibleSampleDialog({
                 {eligibleTests.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={7} sx={{ textAlign: "center", py: 4, color: "text.secondary" }}>
-                      No eligible test orders found matching this ICP method.
+                      No eligible ICP test orders found.
                     </TableCell>
                   </TableRow>
                 ) : (
@@ -212,7 +219,14 @@ export function IcpEligibleSampleDialog({
                             slotProps={{ input: { "aria-label": `Select ${t.sampleNumber} - ${t.testCode}` } }}
                           />
                         </TableCell>
-                        <TableCell sx={{ fontWeight: 600, fontFamily: monospaceFontFamily }}>{t.sampleNumber}</TableCell>
+                        <TableCell sx={{ fontWeight: 600, fontFamily: monospaceFontFamily }}>
+                          <div>{t.sampleNumber}</div>
+                          {t.subjectName && (
+                            <Typography variant="caption" sx={{ display: "block", color: "text.secondary", fontWeight: 400 }}>
+                              {t.subjectName}
+                            </Typography>
+                          )}
+                        </TableCell>
                         <TableCell>{t.batchNumber ?? "—"}</TableCell>
                         <TableCell>{t.productName ?? "—"}</TableCell>
                         <TableCell sx={{ fontWeight: 600, fontFamily: monospaceFontFamily }}>{t.testCode}</TableCell>
@@ -242,13 +256,26 @@ export function IcpEligibleSampleDialog({
         <Button
           variant="contained"
           color="primary"
-          onClick={handleAssign}
+          onClick={() => setSignOpen(true)}
           disabled={selectedIds.length === 0 || assigning}
           sx={{ textTransform: "none", fontWeight: 600 }}
         >
           {assigning ? "Assigning..." : `Assign (${selectedIds.length})`}
         </Button>
       </DialogActions>
+
+      <SignatureDialog
+        open={signOpen}
+        meaningStatement={`I am assigning ${selectedIds.length} sample(s) to this ICP run.`}
+        showComment={true}
+        comment={signComment}
+        onCommentChange={setSignComment}
+        onCancel={() => {
+          setSignOpen(false);
+          setSignComment("");
+        }}
+        onConfirm={handleSignedAssign}
+      />
     </Dialog>
   );
 }

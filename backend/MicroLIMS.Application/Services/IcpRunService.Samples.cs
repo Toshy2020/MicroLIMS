@@ -8,27 +8,28 @@ using MicroLIMS.Domain.Enums;
 
 namespace MicroLIMS.Application.Services;
 
-public record IcpConcentrationInput(int IcpMethodElementId, decimal SolutionMgPerL);
-public record IcpReplicateInputDto(decimal SampleAmount, decimal VolumeMl, decimal DilutionFactor, List<IcpConcentrationInput> Concentrations);
-public record SaveIcpReplicatesRequest(IcpAmountUnit AmountUnit, decimal? UnitAmount, List<IcpReplicateInputDto> Replicates);
-public record AssignIcpSamplesRequest(List<int> TestOrderIds);
+public record IcpConcentrationInput(int IcpTestElementId, decimal ResultPpm);
+public record SaveIcpSampleEntryRequest(decimal? ActualWeightG, List<IcpConcentrationInput> Concentrations);
+public record AssignIcpSamplesRequest(List<int> TestOrderIds, string Password, string? Comment);
 
-public record IcpReplicateDto(int ReplicateNo, decimal SampleAmount, decimal VolumeMl, decimal DilutionFactor, List<IcpConcentrationInput> Concentrations);
 public record IcpPreviewResultDto(
-    int IcpMethodElementId, string ParameterName, string Quantity, decimal? Value, string Display, string Unit,
+    int IcpTestElementId, string ParameterName, string Quantity, decimal? Value, string Display, string Unit,
     ResultStatus? Status, string? SpecLimit, string? Problem);
 public record IcpOfficialResultDto(string ParameterName, string Quantity, string Display, ResultStatus Status, string? SpecLimit);
+
+// One element of the test with its target, whether the run's calibration allows it, and the entered result.
+public record IcpEntryElementDto(int IcpTestElementId, string Symbol, decimal? TargetPpm, bool Valid, string? Reason, decimal? ResultPpm);
 
 public record IcpSampleEntryDto(
     int RunSampleId, int IcpRunId, string RunCode, string CalibrationCode, IcpCalibrationStatus CalibrationStatus,
     int TestOrderId, string SampleNumber, string? BatchNumber, string? ProductName, string TestCode, string? StageName,
-    IcpRunSampleStatus Status, IcpMethodMode Mode, IcpAmountUnit AmountUnit, decimal? UnitAmount,
-    decimal SampleVolumeMl, decimal DilutionFactor,
-    List<IcpElementStateDto> Elements, List<IcpReplicateDto> Replicates,
+    IcpRunSampleStatus Status, IcpTestMode Mode, IcpSampleForm? SampleForm, decimal? TheoreticalAmount, decimal? SpecificGravity,
+    decimal? ActualWeightG, List<IcpEntryElementDto> Elements,
     List<IcpPreviewResultDto> Preview, List<IcpOfficialResultDto> Official, List<IcpEvidenceDto> Evidence,
-    bool Editable, string? EditableReason, bool Submitted, bool CanSubmit, string? CanSubmitReason);
+    bool Editable, string? EditableReason, bool Submitted, bool CanSubmit, string? CanSubmitReason,
+    string? SubjectName = null);
 
-// ICP workspace (I2): sample assignment after the calibration is confirmed, replicate entry with a live
+// ICP workspace: sample assignment after the calibration is confirmed, result entry with a live
 // (preview) calculation. Submission itself is the ICP recorder.
 public partial class IcpRunService
 {
@@ -41,7 +42,7 @@ public partial class IcpRunService
         var run = await LoadRunAsync(runId, ct);
         await EnsureAccessAsync(run, userId, ct, SectionAccess.Read);
 
-        var query = EligibleOrdersQuery(run);
+        var query = EligibleOrdersQuery(run.SectionId);
         if (!string.IsNullOrWhiteSpace(search))
         {
             var term = search.Trim().ToLower();
@@ -52,19 +53,30 @@ public partial class IcpRunService
         }
 
         var orders = await query.OrderBy(o => o.Sample!.ReceivedAt).ThenBy(o => o.Id).ToListAsync(ct);
-        return orders.Select(o => new EligibleTestDto(
-            o.Id, o.Sample!.ReferenceNumber, o.Sample.BatchNumber, o.Sample.Item?.Name, o.TestCode,
-            o.Sample.ReceivedAt, o.Sample.ProductionStageRef?.Name ?? o.Sample.ProductionStage)).ToList();
+        var orderIds = orders.Select(o => o.Id).ToList();
+        var locations = orderIds.Count == 0 ? new List<SampleLocation>() : await _db.SampleLocations.AsNoTracking()
+            .Include(l => l.Sample).ThenInclude(s => s!.Machine)
+            .Include(l => l.MachinePartConfiguration).ThenInclude(c => c!.MachinePart).ThenInclude(p => p!.Machine)
+            .Where(l => orderIds.Contains(l.TestOrderId))
+            .ToListAsync(ct);
+        var locationsByOrder = locations.GroupBy(l => l.TestOrderId).ToDictionary(g => g.Key, g => g.ToList());
+
+        return orders.Select(o =>
+        {
+            locationsByOrder.TryGetValue(o.Id, out var locs);
+            return new EligibleTestDto(
+                o.Id, o.Sample!.ReferenceNumber, o.Sample.BatchNumber, o.Sample.Item?.Name, o.TestCode,
+                o.Sample.ReceivedAt, o.Sample.ProductionStageRef?.Name ?? o.Sample.ProductionStage,
+                SubjectNameHelper.FormatSingleLocationSubject(locs));
+        }).ToList();
     }
 
-    // The method's ICP assay tests in the run's laboratory, not finalized, not cancelled/voided, and not
+    // ICP assay tests in the run's laboratory, not finalized, not cancelled/voided, and not
     // already assigned to another run that has not been abandoned.
-    private IQueryable<TestOrder> EligibleOrdersQuery(IcpRun run) => EligibleOrdersQuery(run.IcpMethodId, run.SectionId);
-
-    private IQueryable<TestOrder> EligibleOrdersQuery(int icpMethodId, int sectionId)
+    private IQueryable<TestOrder> EligibleOrdersQuery(int sectionId)
     {
         var codes = _db.TestDefinitions
-            .Where(t => t.WorkflowType == WorkflowType.IcpMethodAssay && t.IcpMethodId == icpMethodId)
+            .Where(t => t.WorkflowType == WorkflowType.IcpMethodAssay)
             .Select(t => t.Code);
         var busy = _db.IcpRunSamples
             .Where(s => s.Status == IcpRunSampleStatus.Assigned && s.IcpRun!.Status != IcpRunStatus.Abandoned)
@@ -87,14 +99,13 @@ public partial class IcpRunService
     {
         if (run.Status != IcpRunStatus.Open) return "The run is closed.";
         if (run.Calibration?.Status != IcpCalibrationStatus.Confirmed) return "Confirm the calibration before assigning samples.";
-        var states = IcpElementAvailability.Evaluate(ReadSnapshot(run), run.Calibration, run.CcvReadings, _clock.UtcNow.UtcDateTime, _clock);
-        if (states.Any(s => s.Valid)) return null;
-        // When every element is blocked for the same reason (e.g. no passing CCV yet), say so.
-        var reasons = states.Select(s => s.Reason).Distinct().ToList();
-        return reasons.Count == 1 && reasons[0] != null ? $"No element is valid on this run: {reasons[0]}" : "No element is valid on this run.";
+        if (IcpElementAvailability.ExpiresAt(run.Calibration) is { } expiresAt && expiresAt < _clock.UtcNow.UtcDateTime)
+            return "The calibration has expired. Start a new run with a new calibration.";
+        if (!run.Calibration.Elements.Any(e => e.Passed)) return "No calibrated element passes on this run.";
+        return null;
     }
 
-    public async Task<IcpRunDto> AssignSamplesAsync(int runId, List<int> testOrderIds, int userId, CancellationToken ct = default)
+    public async Task<IcpRunDto> AssignSamplesAsync(int runId, AssignIcpSamplesRequest r, int userId, string? ip, CancellationToken ct = default)
     {
         var run = await LoadRunAsync(runId, ct);
         await EnsureAccessAsync(run, userId, ct);
@@ -102,11 +113,11 @@ public partial class IcpRunService
         var blocked = AssignBlockReason(run);
         if (blocked != null) throw new InvalidOperationException(blocked);
 
-        var ids = (testOrderIds ?? new List<int>()).Distinct().ToList();
+        var ids = (r.TestOrderIds ?? new List<int>()).Distinct().ToList();
         if (ids.Count == 0)
             throw new InvalidOperationException("Select at least one test.");
 
-        var eligible = await EligibleOrdersQuery(run).Where(o => ids.Contains(o.Id)).Select(o => o.Id).ToListAsync(ct);
+        var eligible = await EligibleOrdersQuery(run.SectionId).Where(o => ids.Contains(o.Id)).Select(o => o.Id).ToListAsync(ct);
         foreach (var id in ids.Where(id => !eligible.Contains(id)))
         {
             var busyRun = await _db.IcpRunSamples
@@ -117,9 +128,17 @@ public partial class IcpRunService
                 : $"Test order {id} is not eligible for this run.");
         }
 
+        // Signs first - a wrong password must leave nothing assigned. One signature covers the whole action.
+        var signature = await _signatures.SignAsync(
+            userId, r.Password, SignatureMeaning.SampleAssignedToRun, nameof(IcpRun), run.Id, r.Comment, ip);
+
         var nowUtc = _clock.UtcNow.UtcDateTime;
         foreach (var id in ids)
-            run.Samples.Add(new IcpRunSample { TestOrderId = id, Status = IcpRunSampleStatus.Assigned, AssignedAt = nowUtc, AssignedByUserId = userId });
+            run.Samples.Add(new IcpRunSample
+            {
+                TestOrderId = id, Status = IcpRunSampleStatus.Assigned, AssignedAt = nowUtc,
+                AssignedByUserId = userId, AssignmentSignature = signature
+            });
 
         await _db.SaveChangesAsync(ct);
         return await GetRunAsync(runId, userId, ct);
@@ -161,7 +180,7 @@ public partial class IcpRunService
         return await BuildEntryDtoAsync(context, ct);
     }
 
-    public async Task<IcpSampleEntryDto> SaveReplicatesAsync(int runSampleId, SaveIcpReplicatesRequest r, int userId, CancellationToken ct = default)
+    public async Task<IcpSampleEntryDto> SaveEntryAsync(int runSampleId, SaveIcpSampleEntryRequest r, int userId, CancellationToken ct = default)
     {
         var context = await IcpSampleEntryContext.LoadAsync(_db, runSampleId, ct, _clock);
         await EnsureAccessAsync(context.Run, userId, ct);
@@ -173,55 +192,32 @@ public partial class IcpRunService
         var needed = context.NeededElements;
         if (needed.Count == 0)
             throw new InvalidOperationException("No specification is configured for this test on this item.");
-        if (context.Snapshot.Mode == IcpMethodMode.ElementalImpurities && r.AmountUnit != IcpAmountUnit.Gram)
-            throw new InvalidOperationException("Elemental impurities are reported per gram; enter the sample amount in g.");
-        if (r.UnitAmount is <= 0m || (context.NeedsUnitAmount && r.UnitAmount is null))
-            throw new InvalidOperationException("Enter the unit amount (average unit weight or dose).");
+        if (context.NeedsWeight && r.ActualWeightG is not > 0m)
+            throw new InvalidOperationException("Enter the actual weight of the sample (g).");
+        if (!context.NeedsWeight && r.ActualWeightG.HasValue)
+            throw new InvalidOperationException("The actual weight is only used for assay tests.");
 
-        var inputs = r.Replicates ?? new List<IcpReplicateInputDto>();
+        var inputs = r.Concentrations ?? new List<IcpConcentrationInput>();
         var neededIds = needed.Select(e => e.Id).ToList();
-        for (var i = 0; i < inputs.Count; i++)
-        {
-            var input = inputs[i];
-            if (input.SampleAmount <= 0 || input.VolumeMl <= 0)
-                throw new InvalidOperationException($"Replicate {i + 1}: the sample amount and volume must be greater than zero.");
-            if (input.DilutionFactor < 1)
-                throw new InvalidOperationException($"Replicate {i + 1}: the dilution factor must be at least 1.");
+        if (inputs.Any(c => !neededIds.Contains(c.IcpTestElementId)))
+            throw new InvalidOperationException("A result belongs to an element that is not needed by this test.");
+        foreach (var el in needed.Where(e => inputs.Count(c => c.IcpTestElementId == e.Id) != 1))
+            throw new InvalidOperationException($"Exactly one result for {el.Symbol} is required.");
+        if (inputs.Any(c => c.ResultPpm < 0m))
+            throw new InvalidOperationException("A result cannot be negative.");
 
-            var concentrations = input.Concentrations ?? new List<IcpConcentrationInput>();
-            if (concentrations.Any(c => !neededIds.Contains(c.IcpMethodElementId)))
-                throw new InvalidOperationException($"Replicate {i + 1}: a concentration belongs to an element that is not needed by this test.");
-            foreach (var el in needed.Where(e => concentrations.Count(c => c.IcpMethodElementId == e.Id) != 1))
-                throw new InvalidOperationException($"Replicate {i + 1}: exactly one concentration for {el.Symbol} is required.");
+        var sample = context.RunSample;
+        sample.ActualWeightG = r.ActualWeightG;
+        foreach (var input in inputs)
+        {
+            var row = sample.Concentrations.FirstOrDefault(c => c.IcpTestElementId == input.IcpTestElementId);
+            if (row == null)
+                sample.Concentrations.Add(new IcpSampleConcentration { IcpTestElementId = input.IcpTestElementId, ResultPpm = input.ResultPpm });
+            else
+                row.ResultPpm = input.ResultPpm;
         }
-
-        await ReplaceReplicatesAsync(context.RunSample, r, inputs, ct);
+        await _db.SaveChangesAsync(ct);
         return await GetSampleEntryAsync(runSampleId, userId, ct);
-    }
-
-    // Replace-all: the old rows are removed first so the (sample, replicate no) unique index never sees both generations.
-    private async Task ReplaceReplicatesAsync(IcpRunSample runSample, SaveIcpReplicatesRequest r, List<IcpReplicateInputDto> inputs, CancellationToken ct)
-    {
-        await UnitOfWork.RunAsync(_db, async () =>
-        {
-            _db.IcpSampleReplicates.RemoveRange(runSample.Replicates);
-            runSample.Replicates.Clear();
-            runSample.AmountUnit = r.AmountUnit;
-            runSample.UnitAmount = r.UnitAmount;
-            await _db.SaveChangesAsync(ct);
-
-            for (var i = 0; i < inputs.Count; i++)
-            {
-                runSample.Replicates.Add(new IcpSampleReplicate
-                {
-                    ReplicateNo = i + 1, SampleAmount = inputs[i].SampleAmount,
-                    VolumeMl = inputs[i].VolumeMl, DilutionFactor = inputs[i].DilutionFactor,
-                    Concentrations = inputs[i].Concentrations
-                        .Select(x => new IcpReplicateConcentration { IcpMethodElementId = x.IcpMethodElementId, SolutionMgPerL = x.SolutionMgPerL }).ToList(),
-                });
-            }
-            await _db.SaveChangesAsync(ct);
-        });
     }
 
     // ---- Run completion ----
@@ -260,7 +256,7 @@ public partial class IcpRunService
         if (c.EntryProblem() == null)
         {
             preview = c.EvaluateRows().Select(row => new IcpPreviewResultDto(
-                row.ElementId, row.Spec.ParameterName is { Length: > 0 } name ? name : row.Symbol, QuantityOf(row.Basis),
+                row.ElementId, row.Spec.ParameterName is { Length: > 0 } name ? name : row.Symbol, QuantityOf(row.Mode),
                 row.Value, row.Display, row.Unit, row.Status,
                 !string.IsNullOrWhiteSpace(row.Spec.SpecLimit) ? row.Spec.SpecLimit : SpecificationService.BuildCanonicalSpecLimit(row.Spec),
                 row.Problem)).ToList();
@@ -273,27 +269,35 @@ public partial class IcpRunService
         var names = await _db.Users.Where(u => uploaderIds.Contains(u.Id)).ToDictionaryAsync(u => u.Id, u => u.FullName, ct);
         var evidence = evidenceRows.Select(e => ToEvidenceDto(e, names.GetValueOrDefault(e.UploadedByUserId))).ToList();
 
-        var replicates = c.RunSample.Replicates.OrderBy(r => r.ReplicateNo)
-            .Select(r => new IcpReplicateDto(r.ReplicateNo, r.SampleAmount, r.VolumeMl, r.DilutionFactor,
-                r.Concentrations.OrderBy(x => x.IcpMethodElementId).Select(x => new IcpConcentrationInput(x.IcpMethodElementId, x.SolutionMgPerL)).ToList()))
-            .ToList();
+        var states = c.NeededStates();
+        var elements = c.NeededElements.Select(e =>
+        {
+            var state = states.First(s => s.IcpTestElementId == e.Id);
+            var entered = c.RunSample.Concentrations.FirstOrDefault(x => x.IcpTestElementId == e.Id);
+            return new IcpEntryElementDto(e.Id, e.Symbol, e.TargetPpm, state.Valid, state.Reason, entered?.ResultPpm);
+        }).ToList();
 
         var editableReason = c.EditableProblem();
+        var assay = c.Mode == IcpTestMode.Assay;
+
+        var orderLocations = await _db.SampleLocations.AsNoTracking()
+            .Include(l => l.Sample).ThenInclude(s => s!.Machine)
+            .Include(l => l.MachinePartConfiguration).ThenInclude(c => c!.MachinePart).ThenInclude(p => p!.Machine)
+            .Where(l => l.TestOrderId == c.Order.Id)
+            .ToListAsync(ct);
+        var subjectName = SubjectNameHelper.FormatSingleLocationSubject(orderLocations);
+
         return new IcpSampleEntryDto(
             c.RunSample.Id, c.Run.Id, c.Run.Code, c.Run.Calibration!.Code, c.Run.Calibration.Status,
             c.Order.Id, c.Sample.ReferenceNumber, c.Sample.BatchNumber, c.Sample.Item?.Name, c.Order.TestCode, c.StageName,
-            c.RunSample.Status, c.Snapshot.Mode, c.RunSample.AmountUnit, c.RunSample.UnitAmount,
-            c.Snapshot.SampleVolumeMl, c.Snapshot.DilutionFactor,
-            c.NeededStates(), replicates, preview, official, evidence,
-            editableReason == null, editableReason, c.Submitted, problem == null, problem);
+            c.RunSample.Status, c.Mode, assay ? c.Definition.IcpSampleForm : null,
+            assay ? c.Definition.IcpTheoreticalAmount : null, assay ? c.Definition.IcpSpecificGravity : null,
+            c.RunSample.ActualWeightG, elements, preview, official, evidence,
+            editableReason == null, editableReason, c.Submitted, problem == null, problem,
+            subjectName);
     }
 
-    private static string QuantityOf(ResultBasis basis) => basis switch
-    {
-        ResultBasis.MgPerUnit => "IcpMgPerUnit",
-        ResultBasis.PercentLabelClaim => "IcpPercentLabelClaim",
-        _ => "IcpMgPerKg",
-    };
+    private static string QuantityOf(IcpTestMode mode) => mode == IcpTestMode.Assay ? "IcpAssayPercent" : "IcpImpurityPpm";
 
     // What the ICP recorder stored; Quantity comes from its calculation payload, tolerating rows without one.
     private async Task<List<IcpOfficialResultDto>> LoadOfficialResultsAsync(int testOrderId, CancellationToken ct)
@@ -303,7 +307,7 @@ public partial class IcpRunService
             .OrderBy(p => p.Id).ToListAsync(ct);
         return rows.Select(p =>
         {
-            var quantity = "IcpMgPerKg";
+            var quantity = "IcpAssayPercent";
             if (!string.IsNullOrWhiteSpace(p.CalculationJson))
             {
                 try

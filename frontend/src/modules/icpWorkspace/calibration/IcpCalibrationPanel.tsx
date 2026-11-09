@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   Box,
   Paper,
@@ -17,12 +17,13 @@ import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import { toast } from "sonner";
 import { IcpWorkspaceService } from "../services/IcpWorkspaceService";
 import { MaterialService } from "../../inventory/materials/services/MaterialService";
-import { IcpCalibrationLotPickers, StandardMaterialOption } from "./IcpCalibrationLotPickers";
-import { IcpCalibrationElementTable, ElementInputState } from "./IcpCalibrationElementTable";
+import { IcpCalibrationLotPicker, StandardMaterialOption } from "./IcpCalibrationLotPicker";
+import { IcpCalibrationElementTable } from "./IcpCalibrationElementTable";
+import { buildSaveCalibrationPayload, type CalibrationRowInput } from "./calibrationPayload";
 import { IcpReportUploadPanel } from "../evidence/IcpReportUploadPanel";
 import { SignatureDialog } from "../../../components/SignatureDialog";
 import { StatusBadge } from "../../../components/StatusBadge";
-import type { IcpRunDto, SaveIcpCalibrationRequest, SaveIcpCalibrationElementInput } from "../types";
+import type { IcpRunDto } from "../types";
 
 export interface IcpCalibrationPanelProps {
   run: IcpRunDto;
@@ -36,7 +37,6 @@ export function IcpCalibrationPanel({
   onRunUpdated
 }: IcpCalibrationPanelProps) {
   const theme = useTheme();
-  const method = run.method;
   const cal = run.calibration;
   const isConfirmed = cal?.status === "Confirmed";
 
@@ -48,12 +48,9 @@ export function IcpCalibrationPanel({
   const [selectedCalLotId, setSelectedCalLotId] = useState<number | null>(
     cal?.calibrationStandardMaterialId ?? null
   );
-  const [selectedIcvLotId, setSelectedIcvLotId] = useState<number | null>(
-    cal?.icvStandardMaterialId ?? null
-  );
 
-  // Element inputs map
-  const [elementInputs, setElementInputs] = useState<Record<number, ElementInputState>>({});
+  // The elements the analyst calibrated, with the r from the curve
+  const [rows, setRows] = useState<CalibrationRowInput[]>([]);
 
   // Actions state
   const [saving, setSaving] = useState(false);
@@ -66,17 +63,12 @@ export function IcpCalibrationPanel({
   // Sync state when run updates
   useEffect(() => {
     setSelectedCalLotId(cal?.calibrationStandardMaterialId ?? null);
-    setSelectedIcvLotId(cal?.icvStandardMaterialId ?? null);
-
-    const initialInputs: Record<number, ElementInputState> = {};
-    cal?.elements?.forEach((el) => {
-      initialInputs[el.id] = {
-        correlationR: el.correlationR != null ? String(el.correlationR) : "",
-        blankMgPerL: el.blankMgPerL != null ? String(el.blankMgPerL) : "",
-        icvMeasuredMgPerL: el.icvMeasuredMgPerL != null ? String(el.icvMeasuredMgPerL) : ""
-      };
-    });
-    setElementInputs(initialInputs);
+    setRows(
+      (cal?.elements ?? []).map((el) => ({
+        symbol: el.symbol,
+        correlationR: el.correlationR != null ? String(el.correlationR) : ""
+      }))
+    );
   }, [cal]);
 
   // Load usable reference standard lots
@@ -100,19 +92,6 @@ export function IcpCalibrationPanel({
     };
   }, []);
 
-  const handleInputChange = useCallback(
-    (calElementId: number, field: keyof ElementInputState, value: string) => {
-      setElementInputs((prev) => ({
-        ...prev,
-        [calElementId]: {
-          ...(prev[calElementId] || { correlationR: "", blankMgPerL: "", icvMeasuredMgPerL: "" }),
-          [field]: value
-        }
-      }));
-    },
-    []
-  );
-
   // Check if expired
   const isExpired = useMemo(() => {
     if (!isConfirmed || !cal?.expiresAt) return false;
@@ -124,29 +103,11 @@ export function IcpCalibrationPanel({
     setSaving(true);
     setSaveError(null);
 
-    const elementsPayload: SaveIcpCalibrationElementInput[] = (cal.elements || []).map((el) => {
-      const state = elementInputs[el.id];
-      const rNum = state?.correlationR && state.correlationR.trim() !== "" ? Number(state.correlationR) : null;
-      const blankNum = state?.blankMgPerL && state.blankMgPerL.trim() !== "" ? Number(state.blankMgPerL) : null;
-      const icvNum = state?.icvMeasuredMgPerL && state.icvMeasuredMgPerL.trim() !== "" ? Number(state.icvMeasuredMgPerL) : null;
-
-      return {
-        icpCalibrationElementId: el.id,
-        correlationR: rNum,
-        blankMgPerL: method.requireBlank ? blankNum : null,
-        icvMeasuredMgPerL: method.requireIcv ? icvNum : null
-      };
-    });
-
-    const payload: SaveIcpCalibrationRequest = {
-      calibrationStandardMaterialId: selectedCalLotId,
-      icvStandardMaterialId: method.requireIcv ? selectedIcvLotId : null,
-      elements: elementsPayload
-    };
+    const payload = buildSaveCalibrationPayload(selectedCalLotId, rows);
 
     try {
       await IcpWorkspaceService.saveCalibration(run.id, payload);
-      toast.success("Calibration inputs saved.");
+      toast.success("Calibration saved.");
       onRunUpdated();
     } catch (err: unknown) {
       const e = err as { response?: { data?: { message?: string } }; message?: string };
@@ -202,7 +163,7 @@ export function IcpCalibrationPanel({
 
             <Box sx={{ textAlign: { xs: "left", sm: "right" } }}>
               <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>
-                Validity Window ({method.maxCalibrationAgeHours}h max)
+                Validity window
               </Typography>
               <Typography
                 variant="body2"
@@ -234,16 +195,6 @@ export function IcpCalibrationPanel({
               </Typography>
             </Box>
 
-            {method.requireIcv && (
-              <Box>
-                <Typography variant="caption" sx={{ color: "text.secondary" }}>
-                  ICV Standard Lot:
-                </Typography>
-                <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                  {cal.icvStandardLotLabel || "Lot unrecorded"}
-                </Typography>
-              </Box>
-            )}
           </Box>
         </Paper>
       )}
@@ -261,10 +212,10 @@ export function IcpCalibrationPanel({
         <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 2, flexWrap: "wrap", gap: 1.5 }}>
           <Box>
             <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-              Calibration Elements & Lot Selection
+              Calibration standard & elements
             </Typography>
             <Typography variant="body2" sx={{ color: "text.secondary" }}>
-              Record correlation coefficients, blanks, and ICV check recoveries per method specifications.
+              Choose the standard lot, then list each metal calibrated and the correlation coefficient (r) read from the calibration curve.
             </Typography>
           </Box>
 
@@ -277,22 +228,12 @@ export function IcpCalibrationPanel({
           </Alert>
         )}
 
-        {/* Standard Lot Pickers (Visible when Pending) */}
+        {/* Standard lot (visible when Pending) */}
         {!isConfirmed && (
           <Box sx={{ mb: 3 }}>
-            <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1.5 }}>
-              Standard Reference Lots
-            </Typography>
-            <IcpCalibrationLotPickers
-              calibrationEntryId={method.calibrationStandardEntryId}
-              calibrationEntryCode={method.calibrationStandardEntryCode}
-              selectedCalLotId={selectedCalLotId}
-              onSelectCalLotId={setSelectedCalLotId}
-              requireIcv={method.requireIcv}
-              icvEntryId={method.icvStandardEntryId}
-              icvEntryCode={method.icvStandardEntryCode}
-              selectedIcvLotId={selectedIcvLotId}
-              onSelectIcvLotId={setSelectedIcvLotId}
+            <IcpCalibrationLotPicker
+              selectedLotId={selectedCalLotId}
+              onSelectLotId={setSelectedCalLotId}
               usableLots={usableLots}
               loadingLots={loadingLots}
               disabled={!canOperate || run.status !== "Open"}
@@ -300,17 +241,16 @@ export function IcpCalibrationPanel({
           </Box>
         )}
 
-        {/* Elements Table */}
+        {/* Elements */}
         <Box sx={{ mb: 3 }}>
           <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>
-            Element Calibration Readings
+            Calibrated elements
           </Typography>
           <IcpCalibrationElementTable
-            status={cal?.status ?? "Pending"}
-            elements={cal?.elements || []}
-            method={method}
-            elementInputs={elementInputs}
-            onInputChange={handleInputChange}
+            rows={rows}
+            onRowsChange={setRows}
+            savedElements={cal?.elements || []}
+            minCorrelation={cal?.minCorrelation ?? 0.999}
             disabled={isConfirmed || !canOperate || run.status !== "Open"}
           />
         </Box>
@@ -325,7 +265,7 @@ export function IcpCalibrationPanel({
               disabled={saving}
               sx={{ textTransform: "none" }}
             >
-              {saving ? "Saving..." : "Save Calibration Readings"}
+              {saving ? "Saving..." : "Save calibration"}
             </Button>
 
             <Tooltip title={!run.canConfirmCalibration ? (run.canConfirmCalibrationReason || "Cannot confirm calibration") : ""}>
@@ -358,8 +298,8 @@ export function IcpCalibrationPanel({
         context="Calibration"
         kind="CalibrationReport"
         evidenceList={run.evidence}
-        title="Calibration Report Document"
-        description="Upload the Syngistix or instrument raw export report. This report is required to confirm calibration."
+        title="Calibration curve report"
+        description="Upload the Syngistix report showing the calibration curve. It is the evidence for the r values above and is required to confirm."
         disabled={isConfirmed || !canOperate || run.status !== "Open"}
         onChanged={onRunUpdated}
       />
@@ -367,7 +307,7 @@ export function IcpCalibrationPanel({
       {/* 21 CFR Part 11 Electronic Signature Dialog */}
       <SignatureDialog
         open={signOpen}
-        meaningStatement="I confirm this ICP calibration is accurate and complies with laboratory standards."
+        meaningStatement="I confirm the ICP-OES is calibrated and ready for testing."
         showComment={true}
         comment={signComment}
         onCommentChange={setSignComment}

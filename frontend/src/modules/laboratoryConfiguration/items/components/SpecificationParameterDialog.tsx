@@ -39,14 +39,14 @@ import {
   GRADE_SUGGESTIONS,
   RelatedSubstanceRow
 } from "../../specifications/services/SpecificationService";
+import { gradesOf, planGradeWrites, siblingsOf } from "../../specifications/services/gradeGroups";
 import { masterDataOptions } from "../../../../services/masterDataOptions";
 import { TitrationSpecBasisFields, titrationBasisNeedsLabelClaim, validateTitrationSpecBasis } from "./TitrationSpecBasisFields";
 import { ResidualSolventSpecFields } from "./ResidualSolventSpecFields";
-import { IcpSpecFields, icpParameterName } from "./IcpSpecFields";
+import { IcpSpecFields } from "./IcpSpecFields";
 import { useMyLabs } from "../../../../hooks/useMyLabs";
 import { useLaboratorySections } from "../../../../hooks/useLaboratorySections";
 import { HplcMethodService, HplcMethodAnalyteResponse, HplcMethodImpurityResponse, HplcResultMode } from "../../masterDataSimple/services/HplcMethodService";
-import { IcpMethodService, IcpMethodResponse } from "../../masterDataSimple/services/IcpMethodService";
 import { PhyschemArea, areaIncludes, areaOfItemCategory } from "../../masterDataSimple/testMasterArea";
 
 export interface TestDefinitionSummary {
@@ -57,7 +57,8 @@ export interface TestDefinitionSummary {
   equationType?: string;
   sectionId?: number | null;
   hplcMethodId?: number | null;
-  icpMethodId?: number | null;
+  icpMode?: "Assay" | "Impurity" | null;
+  icpElements?: { id: number; displayOrder: number; symbol: string; targetPpm?: number | null }[] | null;
   physchemArea?: PhyschemArea | null;
   uvCalculationMode?: string | null;
   uvSpecificAbsorbance?: number | null;
@@ -150,8 +151,9 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
   // samples, so the field is offered only for Finished Product items.
   const [productionStageRole, setProductionStageRole] = useState<ProductionStageRole | "">("");
   const supportsProductionStage = item.category === "FinishedProduct";
-  // Raw-material specs can differ by grade (BP, USP, In-house ...); "" = ungraded.
-  const [grade, setGrade] = useState("");
+  // Raw-material specs can differ by grade (BP, USP, In-house ...); none = ungraded. Several grades with the
+  // same limits are saved as one row per grade and shown as one row.
+  const [grades, setGrades] = useState<string[]>([]);
   const supportsGrade = item.category === "RawMaterial";
 
   const [testDefs, setTestDefs] = useState<Record<string, TestDefinitionSummary>>(testDefinitionByCode || {});
@@ -189,9 +191,7 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
   const [methodImpurities, setMethodImpurities] = useState<HplcMethodImpurityResponse[]>([]);
   const [loadingMethodAnalytes, setLoadingMethodAnalytes] = useState(false);
   const [hplcMethodResultMode, setHplcMethodResultMode] = useState<HplcResultMode | undefined>(undefined);
-  const [icpMethodElementId, setIcpMethodElementId] = useState<number | "">("");
-  const [icpMethod, setIcpMethod] = useState<IcpMethodResponse | null>(null);
-  const [loadingIcpMethod, setLoadingIcpMethod] = useState(false);
+  const [icpTestElementId, setIcpTestElementId] = useState<number | "">("");
 
   // Range
   const [lowerLimit, setLowerLimit] = useState("");
@@ -314,36 +314,15 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
     currentTestDef?.workflowType === "IcpMethodAssay" ||
     workflowTypeByCode[testCode] === "IcpMethodAssay";
 
-  const isIcpElementalImpurities =
-    isIcpMethodAssay && (icpMethod?.mode === "ElementalImpurities" || editingSpec?.resultBasis === "MgPerKg");
+  // The test (Test Master) defines the elements and whether it is an assay (% of target) or an impurity (ppm).
+  const icpElements = [...(currentTestDef?.icpElements ?? [])].sort((x, y) => x.displayOrder - y.displayOrder);
+  const isIcpElementalImpurities = isIcpMethodAssay && currentTestDef?.icpMode === "Impurity";
 
   useEffect(() => {
-    if (!isIcpMethodAssay || !currentTestDef?.icpMethodId) {
-      setIcpMethod(null);
-      return;
-    }
-    setLoadingIcpMethod(true);
-    IcpMethodService.getById(currentTestDef.icpMethodId)
-      .then((res) => {
-        setIcpMethod(res);
-        if (res.mode === "ElementalImpurities") {
-          setResultBasis("MgPerKg");
-          setLimitType("NotMoreThan");
-          setUnit("µg/g");
-        } else if (res.mode === "MineralAssay") {
-          if (!editingSpec?.resultBasis) {
-            setResultBasis("PercentLabelClaim");
-            setUnit("%");
-          }
-        }
-      })
-      .catch(() => {
-        setIcpMethod(null);
-      })
-      .finally(() => {
-        setLoadingIcpMethod(false);
-      });
-  }, [isIcpMethodAssay, currentTestDef?.icpMethodId, editingSpec?.resultBasis]);
+    if (!isIcpElementalImpurities) return;
+    setLimitType("NotMoreThan");
+    setUnit("ppm");
+  }, [isIcpElementalImpurities]);
 
   const getTestDisplayName = (code: string) => {
     const match = assignedTests.find((t) => t.testCode === code);
@@ -369,7 +348,7 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
       );
       setDosageForm((editingSpec.dosageForm as DosageForm) || "");
       setProductionStageRole((editingSpec.productionStageRole as ProductionStageRole) || "");
-      setGrade(editingSpec.grade ?? "");
+      setGrades(gradesOf(editingSpec));
       if (editingSpec.limitType === "WeightVariation") {
         setUnit("mg");
       }
@@ -377,7 +356,7 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
       setHplcMethodAnalyteId(editingSpec.hplcMethodAnalyteId ?? "");
       setHplcMethodImpurityId(editingSpec.hplcMethodImpurityId ?? "");
       setRelatedSubstanceRow((editingSpec.relatedSubstanceRow as RelatedSubstanceRow) || "");
-      setIcpMethodElementId(editingSpec.icpMethodElementId ?? "");
+      setIcpTestElementId(editingSpec.icpTestElementId ?? "");
       const editDef = testDefs[editingSpec.testCode];
       const isEditHplcAssay =
         editDef?.equationType === "HplcMethodAssay" ||
@@ -393,7 +372,9 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
       const editUvMode = editDef?.uvCalculationMode;
       const editBasisFallback = isEditUv
         ? (editUvMode === "AbsorbanceLimit" || editUvMode === "SpecificAbsorbanceValue" ? "" : "PercentAsIs")
-        : (isEditHplcAssay || isEditIcpAssay ? "PercentLabelClaim" : "MgPerKg");
+        : isEditIcpAssay
+        ? ""
+        : (isEditHplcAssay ? "PercentLabelClaim" : "MgPerKg");
       setResultBasis(
         editingSpec.resultBasis === null
           ? ""
@@ -466,15 +447,17 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
       setDilutionFactor("");
       setDosageForm("");
       setProductionStageRole("");
-      setGrade("");
+      setGrades([]);
 
       setHplcMethodAnalyteId("");
       setHplcMethodImpurityId("");
       setRelatedSubstanceRow("");
-      setIcpMethodElementId("");
+      setIcpTestElementId("");
       const initUvMode = def?.uvCalculationMode;
       const defaultBasis: ResultBasis | "" =
-        isInitHplc || isInitIcp
+        isInitIcp
+          ? ""
+          : isInitHplc
           ? "PercentLabelClaim"
           : isInitUv
           ? (initUvMode === "AbsorbanceLimit" || initUvMode === "SpecificAbsorbanceValue" ? "" : "PercentAsIs")
@@ -537,7 +520,7 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
       }
       setDilutionFactor("");
       setHplcMethodAnalyteId("");
-      setIcpMethodElementId("");
+      setIcpTestElementId("");
       setRelatedSubstanceRow("");
       setLabelClaim("");
       setLabelClaimUnit("");
@@ -560,10 +543,10 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
       setLabelClaimUnit("");
     } else if (isIcpAssay) {
       setLimitType("Range");
-      setIcpMethodElementId("");
+      setIcpTestElementId("");
       setHplcMethodAnalyteId("");
       setDilutionFactor("");
-      setResultBasis("PercentLabelClaim");
+      setResultBasis("");
       setUnit("%");
       setLabelClaim("");
       setLabelClaimUnit("");
@@ -683,29 +666,9 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
     }
 
     if (isIcpMethodAssay) {
-      if (!icpMethodElementId) {
-        setError("Please select an element from the ICP method.");
+      if (!icpTestElementId) {
+        setError("Please select an element of the test.");
         return;
-      }
-      if (icpMethod?.mode === "ElementalImpurities" || resultBasis === "MgPerKg") {
-        if (resultBasis !== "MgPerKg") {
-          setError("Basis must be µg/g for elemental impurities.");
-          return;
-        }
-      } else {
-        if (!resultBasis || (resultBasis !== "PercentLabelClaim" && resultBasis !== "MgPerUnit")) {
-          setError("Please select a basis (% of label claim or mg per unit).");
-          return;
-        }
-        const lcNum = Number(labelClaim);
-        if (!labelClaim.trim() || isNaN(lcNum) || lcNum <= 0) {
-          setError("Label claim must be greater than 0.");
-          return;
-        }
-        if (!labelClaimUnit.trim()) {
-          setError("Label claim unit is required.");
-          return;
-        }
       }
     }
 
@@ -856,11 +819,11 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
         isRelatedSubstances && relatedSubstanceRow === "Named" && hplcMethodImpurityId !== ""
           ? Number(hplcMethodImpurityId)
           : null,
-      icpMethodElementId: isIcpMethodAssay && icpMethodElementId !== "" ? Number(icpMethodElementId) : null,
+      icpTestElementId: isIcpMethodAssay && icpTestElementId !== "" ? Number(icpTestElementId) : null,
       resultBasis: isRelatedSubstances
         ? "PercentAsIs"
         : isIcpMethodAssay
-        ? (resultBasis as ResultBasis)
+        ? null
         : isUv
         ? (isUvLimit ? null : resultBasis ? (resultBasis as ResultBasis) : null)
         : (isHplcMethodAssay || isTitration) && resultBasis
@@ -872,7 +835,7 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
           : (limitType === "DissolutionQ"
             ? (labelClaim.trim() !== "" ? Number(labelClaim) : null)
             : isIcpMethodAssay
-            ? (icpMethod?.mode === "MineralAssay" && labelClaim.trim() !== "" ? Number(labelClaim) : null)
+            ? null
             : (((isHplcMethodAssay && resultBasis === "MgPerUnit") || (isTitration && titrationBasisNeedsLabelClaim(resultBasis))) && labelClaim.trim() !== ""
               ? Number(labelClaim)
               : null)),
@@ -882,30 +845,38 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
           : (limitType === "DissolutionQ"
             ? "mg"
             : isIcpMethodAssay
-            ? (icpMethod?.mode === "MineralAssay" ? labelClaimUnit.trim() || null : null)
+            ? null
             : (isTitration
               ? (titrationBasisNeedsLabelClaim(resultBasis) ? "mg" : null)
               : isHplcMethodAssay && resultBasis === "MgPerUnit"
               ? labelClaimUnit.trim() || null
               : null)),
       productionStageRole: supportsProductionStage && productionStageRole ? productionStageRole : null,
-      grade: supportsGrade && grade.trim() ? grade.trim() : null
+      grade: null as string | null
     };
 
+    const chosenGrades = supportsGrade ? grades : [];
+    const { writes, removes } = planGradeWrites(isEditing && editingSpec ? siblingsOf(editingSpec) : [], chosenGrades);
+    let wrote = false;
     try {
-      if (isEditing && editingSpec?.id != null) {
-        const updatePayload: UpdateSpecificationPayload = basePayload;
-        await SpecificationService.update(editingSpec.id, updatePayload, editingSpec.version);
-      } else {
-        const createPayload: CreateSpecificationPayload = {
-          itemId: item.id,
-          ...basePayload
-        };
-        await SpecificationService.create(createPayload);
+      for (const w of writes) {
+        if (w.existing?.id != null) {
+          const updatePayload: UpdateSpecificationPayload = { ...basePayload, grade: w.grade };
+          await SpecificationService.update(w.existing.id, updatePayload, w.existing.version);
+        } else {
+          const createPayload: CreateSpecificationPayload = { itemId: item.id, ...basePayload, grade: w.grade };
+          await SpecificationService.create(createPayload);
+        }
+        wrote = true;
+      }
+      for (const r of removes) {
+        if (r.id != null) await SpecificationService.remove(r.id);
       }
       onSuccess();
       onClose();
     } catch (err: unknown) {
+      // Some grades may already be saved; show the list as it is now.
+      if (wrote) onSuccess();
       const axiosError = err as {
         response?: { data?: { message?: string } };
         message?: string;
@@ -1011,16 +982,24 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
 
           {supportsGrade && (
             <Autocomplete
+              multiple
               freeSolo
               size="small"
               options={GRADE_SUGGESTIONS}
-              inputValue={grade}
-              onInputChange={(_, v) => setGrade(v)}
+              value={grades}
+              onChange={(_, v) => {
+                const unique: string[] = [];
+                for (const raw of v) {
+                  const g = raw.trim().slice(0, 20);
+                  if (g && !unique.some((u) => u.toLowerCase() === g.toLowerCase())) unique.push(g);
+                }
+                setGrades(unique);
+              }}
               renderInput={(params) => (
                 <TextField
                   {...params}
                   label="Grade"
-                  helperText="BP, USP, In-house or your own (max 20 characters). Leave blank for an ungraded specification."
+                  helperText="Pick every grade these limits apply to (BP, USP, In-house or your own, max 20 characters). Leave empty for an ungraded specification."
                   slotProps={{ ...params.slotProps, htmlInput: { ...params.slotProps.htmlInput, maxLength: 20 } }}
                 />
               )}
@@ -1346,43 +1325,19 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
           {/* ICP Method Assay Parameters Block */}
           {isIcpMethodAssay && (
             <IcpSpecFields
-              method={icpMethod}
-              loadingMethod={loadingIcpMethod}
-              selectedElementId={icpMethodElementId}
+              mode={currentTestDef?.icpMode ?? null}
+              elements={icpElements}
+              selectedElementId={icpTestElementId}
               onElementChange={(id, chosen) => {
-                setIcpMethodElementId(id);
+                setIcpTestElementId(id);
                 if (chosen) {
-                  const prevMatchesElement = (icpMethod?.elements ?? []).some(
-                    (el) => el.symbol === parameterName || icpParameterName(el.symbol, "MgPerUnit") === parameterName
-                  );
+                  const prevMatchesElement = icpElements.some((el) => el.symbol === parameterName);
                   const prevMatchesTest = assignedTests.some(
                     (t) => t.displayName === parameterName || t.testCode === parameterName
                   );
                   if (!parameterName.trim() || prevMatchesElement || prevMatchesTest) {
-                    setParameterName(icpParameterName(chosen.symbol, resultBasis));
+                    setParameterName(chosen.symbol);
                   }
-                }
-              }}
-              resultBasis={resultBasis}
-              onBasisChange={(val) => {
-                setResultBasis(val);
-                const el = icpMethod?.elements?.find((e) => e.id === icpMethodElementId);
-                if (el && (parameterName === el.symbol || parameterName === icpParameterName(el.symbol, "MgPerUnit"))) {
-                  setParameterName(icpParameterName(el.symbol, val));
-                }
-                if (val === "PercentLabelClaim") {
-                  setUnit("%");
-                } else if (val === "MgPerUnit") {
-                  if (labelClaimUnit) setUnit(labelClaimUnit);
-                }
-              }}
-              labelClaim={labelClaim}
-              onLabelClaimChange={setLabelClaim}
-              labelClaimUnit={labelClaimUnit}
-              onLabelClaimUnitChange={(u) => {
-                setLabelClaimUnit(u);
-                if (resultBasis === "MgPerUnit") {
-                  setUnit(u);
                 }
               }}
             />
@@ -1524,7 +1479,7 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
               <Box sx={{ maxWidth: 300 }}>
                 <TextField
                   size="small"
-                  label={isRelatedSubstances ? "NMT (%) *" : isResidualSolvents ? "NMT (ppm) *" : isIcpElementalImpurities ? "NMT (µg/g) *" : "Upper Limit (NMT) *"}
+                  label={isRelatedSubstances ? "NMT (%) *" : isResidualSolvents ? "NMT (ppm) *" : isIcpElementalImpurities ? "NMT (ppm) *" : "Upper Limit (NMT) *"}
                   type="number"
                   value={upperLimit}
                   onChange={(e) => setUpperLimit(e.target.value)}
@@ -1883,7 +1838,7 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
                   : isResidualSolvents
                   ? "ppm"
                   : isIcpElementalImpurities
-                  ? "µg/g"
+                  ? "ppm"
                   : limitType === "WeightVariation"
                   ? "mg"
                   : limitType === "DisintegrationTime"

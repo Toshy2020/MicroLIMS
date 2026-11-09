@@ -124,7 +124,7 @@ public sealed class UvRecorder : TestWorkflowSupport
         var specs = specById.Values.OrderBy(s => s.DisplayOrder).ThenBy(s => s.Id).ToList();
         foreach (var s in specs)
         {
-            if (s.HplcMethodAnalyteId.HasValue || s.IcpMethodElementId.HasValue || s.RelatedSubstanceRow.HasValue)
+            if (s.HplcMethodAnalyteId.HasValue || s.IcpTestElementId.HasValue || s.RelatedSubstanceRow.HasValue)
                 throw new InvalidOperationException($"Specification '{s.ParameterName}' cannot be used by a UV test.");
             if (!AllowedBases.Contains(s.ResultBasis))
                 throw new InvalidOperationException($"Specification '{s.ParameterName}' has no valid UV result basis.");

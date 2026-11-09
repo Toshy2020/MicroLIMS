@@ -12,6 +12,7 @@ import { PathogenLocationResultGridDialog } from "./PathogenLocationResultGridDi
 import { WaterLocationResultGridDialog } from "./WaterLocationResultGridDialog";
 import { PathogenStepDialog } from "./PathogenStepDialog";
 import { StepChainStrip } from "./components/StepChainStrip";
+import { LocationResultsPanel } from "./LocationResultsPanel";
 import { MeasurementPanel } from "./MeasurementPanel";
 import { GravimetricPanel } from "./GravimetricPanel";
 import { TitrationPanel } from "./TitrationPanel";
@@ -319,6 +320,20 @@ export function TestWorkflowDialog({ testOrderId, testCode, category, displayNam
       {panel}
     </>
   );
+
+  // Water / AC per-location result entry
+  if (current.locationEntry) {
+    return (
+      <LocationResultsPanel
+        testOrderId={testOrderId}
+        displayName={displayName}
+        testCode={testCode}
+        current={current}
+        onRecorded={load}
+        onClose={onClose}
+      />
+    );
+  }
 
   // Measurement workflow (pH, density, etc.)
   if (current.workflowType === "Measurement") {

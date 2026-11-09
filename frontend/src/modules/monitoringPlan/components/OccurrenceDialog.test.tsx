@@ -63,4 +63,14 @@ describe("OccurrenceDialog", () => {
     expect(dateFieldValue(/^New window end/)).toBe("2026-10-29");
     expect((screen.getByRole("button", { name: "Continue to sign" }) as HTMLButtonElement).disabled).toBe(true);
   });
+
+  it("renders a lab chip for water occurrence with labSectionCode", async () => {
+    vi.mocked(MonitoringPlanService.getDetail).mockResolvedValueOnce({
+      ...detail,
+      labSectionId: 2,
+      labSectionCode: "FP"
+    });
+    renderDialog();
+    expect(await screen.findByText("FP")).toBeTruthy();
+  });
 });

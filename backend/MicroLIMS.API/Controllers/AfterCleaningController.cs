@@ -12,9 +12,12 @@ public record ReceiveAfterCleaningRequest(
     int CauseOfTestingId,
     string SampledBy,
     string ControlNumber,
-    string PreviousProductName,
-    string PreviousProductBatchNumber,
-    DateTime? SampledAt = null
+    string? PreviousProductName = null,
+    string? PreviousProductBatchNumber = null,
+    DateTime? SampledAt = null,
+    int? LabSectionId = null,
+    int? PreviousProductItemId = null,
+    List<string>? Techniques = null
 );
 public record PrepareAfterCleaningRequest(int SampleId, List<int> MachinePartConfigurationIds, List<int>? MonitoringOccurrenceIds = null);
 
@@ -43,7 +46,10 @@ public class AfterCleaningController : ControllerBase
             CurrentUserId,
             request.PreviousProductName,
             request.PreviousProductBatchNumber,
-            request.SampledAt))));
+            request.SampledAt,
+            request.LabSectionId,
+            request.PreviousProductItemId,
+            request.Techniques))));
 
     // The checklist screen - selecting which machine parts are included
     // in this batch generates the batch TestOrders + SampleLocations.

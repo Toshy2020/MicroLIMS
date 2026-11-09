@@ -14,9 +14,71 @@ export const AfterCleaningConfigService = {
 
   getPartConfigurations: (machinePartId: number) =>
     apiClient.get("/masterdata/machine-part-configurations", { params: { machinePartId } }).then((r) => r.data.data),
-  createPartConfiguration: (machinePartId: number, testType: string, testCode: string, alertLimit: string, actionLimit: string, specLimit: string, isPathogenTest: boolean, unit?: string) =>
-    apiClient.post("/masterdata/machine-part-configurations", { machinePartId, testType, testCode, alertLimit, actionLimit, specLimit, isPathogenTest, unit }).then((r) => r.data.data),
-  updatePartConfiguration: (id: number, testType: string, testCode: string, alertLimit: string, actionLimit: string, specLimit: string, isPathogenTest: boolean, unit?: string, version?: number) =>
-    apiClient.put(`/masterdata/machine-part-configurations/${id}`, { testType, testCode, alertLimit, actionLimit, specLimit, isPathogenTest, unit }, ifMatch(version)).then((r) => r.data.data),
+  createPartConfiguration: (
+    machinePartId: number,
+    testType: string,
+    testCode: string,
+    alertLimit: string,
+    actionLimit: string,
+    specLimit: string,
+    isPathogenTest: boolean,
+    unit?: string,
+    extra?: {
+      limitType?: "Range" | "NotMoreThan" | "NotLessThan" | "Qualitative" | null;
+      lowerLimit?: number | null;
+      upperLimit?: number | null;
+      lowerInclusive?: boolean;
+      upperInclusive?: boolean;
+      expectedResultText?: string | null;
+    }
+  ) =>
+    apiClient
+      .post("/masterdata/machine-part-configurations", {
+        machinePartId,
+        testType,
+        testCode,
+        alertLimit: alertLimit || null,
+        actionLimit: actionLimit || null,
+        specLimit: specLimit || null,
+        isPathogenTest,
+        unit: unit || null,
+        ...extra
+      })
+      .then((r) => r.data.data),
+  updatePartConfiguration: (
+    id: number,
+    testType: string,
+    testCode: string,
+    alertLimit: string,
+    actionLimit: string,
+    specLimit: string,
+    isPathogenTest: boolean,
+    unit?: string,
+    version?: number,
+    extra?: {
+      limitType?: "Range" | "NotMoreThan" | "NotLessThan" | "Qualitative" | null;
+      lowerLimit?: number | null;
+      upperLimit?: number | null;
+      lowerInclusive?: boolean;
+      upperInclusive?: boolean;
+      expectedResultText?: string | null;
+    }
+  ) =>
+    apiClient
+      .put(
+        `/masterdata/machine-part-configurations/${id}`,
+        {
+          testType,
+          testCode,
+          alertLimit: alertLimit || null,
+          actionLimit: actionLimit || null,
+          specLimit: specLimit || null,
+          isPathogenTest,
+          unit: unit || null,
+          ...extra
+        },
+        ifMatch(version)
+      )
+      .then((r) => r.data.data),
   deletePartConfiguration: (id: number) => apiClient.delete(`/masterdata/machine-part-configurations/${id}`)
 };

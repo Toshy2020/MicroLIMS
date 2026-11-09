@@ -1,0 +1,540 @@
+{
+  "itemCode": "Xanth gum",
+  "itemName": "Xanthan Gum",
+  "stmCode": null,
+  "stmFile": null,
+  "specFiles": [
+    "Xanthan Gum__Specifications sheet Xanthan Gum-BP.txt",
+    "Xanthan Gum__Specifications sheet Xanthan Gum-USP.txt"
+  ],
+  "minQuantity": {
+    "routine": 120,
+    "retest": null,
+    "unit": "g",
+    "source": "Xanthan Gum__Specifications sheet Xanthan Gum-BP.txt:19; Xanthan Gum__Specifications sheet Xanthan Gum-USP.txt:24"
+  },
+  "grades": [
+    {
+      "grade": "BP",
+      "rows": [
+        {
+          "testCode": "RM-DESC",
+          "parameterName": "Appearance",
+          "limitType": "Qualitative",
+          "lower": null, "upper": null, "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "White or yellowish-white, free-flowing powder",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP 2024",
+          "source": "Xanthan Gum__Specifications sheet Xanthan Gum-BP.txt:11"
+        },
+        {
+          "testCode": "RM-SOLUB",
+          "parameterName": "Solubility",
+          "limitType": "Qualitative",
+          "lower": null, "upper": null, "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Soluble in water giving a highly viscous solution, practically insoluble in organic solvents",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP 2024",
+          "source": "Xanthan Gum__Specifications sheet Xanthan Gum-BP.txt:12"
+        },
+        {
+          "testCode": "RM-ID-BAOH-XAN",
+          "parameterName": "Identification (barium hydroxide solution)",
+          "limitType": "Qualitative",
+          "lower": null, "upper": null, "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "The barium hydroxide solution shows a white turbidity",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP 2024",
+          "source": "Xanthan Gum__Specifications sheet Xanthan Gum-BP.txt:13",
+          "heldBack": "no STM: method not documented"
+        },
+        {
+          "testCode": "RM-PH",
+          "parameterName": "pH",
+          "limitType": "Range",
+          "lower": 6.0, "upper": 8.0, "lowerInclusive": true,
+          "unit": null,
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP 2024",
+          "source": "Xanthan Gum__Specifications sheet Xanthan Gum-BP.txt:14"
+        },
+        {
+          "testCode": "RM-LOD",
+          "parameterName": "Loss on drying",
+          "limitType": "NotMoreThan",
+          "lower": null, "upper": 15.0, "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP 2024",
+          "source": "Xanthan Gum__Specifications sheet Xanthan Gum-BP.txt:15"
+        },
+        {
+          "testCode": "RM-ASH-XAN",
+          "parameterName": "Total ash (dried substance)",
+          "limitType": "Range",
+          "lower": 6.5, "upper": 16.0, "lowerInclusive": true,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP 2024",
+          "source": "Xanthan Gum__Specifications sheet Xanthan Gum-BP.txt:16",
+          "heldBack": "no STM: method not documented"
+        },
+        {
+          "testCode": "RM-VISC-XAN",
+          "parameterName": "Viscosity (minimum)",
+          "limitType": "NotLessThan",
+          "lower": 600, "upper": null, "lowerInclusive": null,
+          "unit": "mPa·s",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP 2024",
+          "source": "Xanthan Gum__Specifications sheet Xanthan Gum-BP.txt:17",
+          "heldBack": "no STM: method not documented"
+        },
+        {
+          "testCode": "RM-ASSAY-XAN",
+          "parameterName": "Assay: pyruvate acetal groups (dried substance)",
+          "limitType": "NotLessThan",
+          "lower": 1.5, "upper": null, "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": "PercentDriedBasis",
+          "referenceStandard": "BP 2024",
+          "source": "Xanthan Gum__Specifications sheet Xanthan Gum-BP.txt:18",
+          "heldBack": "no STM: method not documented"
+        },
+        {
+          "testCode": "RM-ID-B-XAN",
+          "parameterName": "Identification B (gel formation)",
+          "limitType": "Qualitative",
+          "lower": null, "upper": null, "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "A firm rubbery gel forms after the temperature drops below 40 °C",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP 2024",
+          "source": "Xanthan Gum__Specifications sheet Xanthan Gum-BP.txt:19",
+          "heldBack": "no STM: method not documented"
+        },
+        {
+          "testCode": "RM-IPA-XAN",
+          "parameterName": "2-Propanol",
+          "limitType": "NotMoreThan",
+          "lower": null, "upper": 750, "lowerInclusive": null,
+          "unit": "ppm",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP 2024",
+          "source": "Xanthan Gum__Specifications sheet Xanthan Gum-BP.txt:19",
+          "heldBack": "no STM: method not documented"
+        }
+      ]
+    },
+    {
+      "grade": "USP",
+      "rows": [
+        {
+          "testCode": "RM-DESC",
+          "parameterName": "Appearance",
+          "limitType": "Qualitative",
+          "lower": null, "upper": null, "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Cream-colored powder. Its solutions in water are neutral to litmus.",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP 2024",
+          "source": "Xanthan Gum__Specifications sheet Xanthan Gum-USP.txt:11"
+        },
+        {
+          "testCode": "RM-SOLUB",
+          "parameterName": "Solubility",
+          "limitType": "Qualitative",
+          "lower": null, "upper": null, "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Soluble in hot or cold water",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP 2024",
+          "source": "Xanthan Gum__Specifications sheet Xanthan Gum-USP.txt:12"
+        },
+        {
+          "testCode": "RM-LT-AS-XAN",
+          "parameterName": "Arsenic (limit test)",
+          "limitType": "Qualitative",
+          "lower": null, "upper": null, "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Complies (NMT 3 µg/g)",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP 2024",
+          "source": "Xanthan Gum__Specifications sheet Xanthan Gum-USP.txt:13",
+          "heldBack": "no STM: method not documented"
+        },
+        {
+          "testCode": "RM-LT-PB-XAN",
+          "parameterName": "Lead (limit test)",
+          "limitType": "Qualitative",
+          "lower": null, "upper": null, "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Complies (NMT 5 µg/g)",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP 2024",
+          "source": "Xanthan Gum__Specifications sheet Xanthan Gum-USP.txt:14",
+          "heldBack": "no STM: method not documented"
+        },
+        {
+          "testCode": "RM-UV-PYR-XAN",
+          "parameterName": "Pyruvic acid (UV, NLT 1.5 % of pyruvic acid)",
+          "limitType": "NotLessThan",
+          "lower": 1.5, "upper": null, "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": "PercentAsIs",
+          "referenceStandard": "USP 2024",
+          "source": "Xanthan Gum__Specifications sheet Xanthan Gum-USP.txt:15",
+          "heldBack": "no STM: method not documented"
+        },
+        {
+          "testCode": "RM-LOD",
+          "parameterName": "Loss on drying",
+          "limitType": "NotMoreThan",
+          "lower": null, "upper": 15.0, "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP 2024",
+          "source": "Xanthan Gum__Specifications sheet Xanthan Gum-USP.txt:16"
+        },
+        {
+          "testCode": "RM-ASH-XAN",
+          "parameterName": "Ash (dried basis)",
+          "limitType": "Range",
+          "lower": 6.5, "upper": 16.0, "lowerInclusive": true,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP 2024",
+          "source": "Xanthan Gum__Specifications sheet Xanthan Gum-USP.txt:17",
+          "heldBack": "no STM: method not documented"
+        },
+        {
+          "testCode": "RM-VISC-XAN",
+          "parameterName": "Viscosity at 24 °C (minimum)",
+          "limitType": "NotLessThan",
+          "lower": 600, "upper": null, "lowerInclusive": null,
+          "unit": "centipoises",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP 2024",
+          "source": "Xanthan Gum__Specifications sheet Xanthan Gum-USP.txt:18",
+          "heldBack": "no STM: method not documented"
+        },
+        {
+          "testCode": "RM-ASSAY-CO2-XAN",
+          "parameterName": "Carbon dioxide content (dried basis)",
+          "limitType": "Range",
+          "lower": 4.2, "upper": 5.0, "lowerInclusive": true,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": "PercentDriedBasis",
+          "referenceStandard": "USP 2024",
+          "source": "Xanthan Gum__Specifications sheet Xanthan Gum-USP.txt:19",
+          "heldBack": "no STM: method not documented"
+        },
+        {
+          "testCode": "RM-ASSAY-CO2-XAN",
+          "parameterName": "Assay equivalent (xanthan gum)",
+          "limitType": "Range",
+          "lower": 91.0, "upper": 108.0, "lowerInclusive": true,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": "PercentAsIs",
+          "referenceStandard": "USP 2024",
+          "source": "Xanthan Gum__Specifications sheet Xanthan Gum-USP.txt:19",
+          "heldBack": "no STM: method not documented"
+        },
+        {
+          "testCode": "RM-ID-A-XAN",
+          "parameterName": "Identification A (gel formation)",
+          "limitType": "Qualitative",
+          "lower": null, "upper": null, "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "A firm, rubbery gel forms with the sample after the temperature drops below 40°, but no such gel forms with the control",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP 2024",
+          "source": "Xanthan Gum__Specifications sheet Xanthan Gum-USP.txt:24",
+          "heldBack": "no STM: method not documented"
+        },
+        {
+          "testCode": "RM-IPA-XAN",
+          "parameterName": "Isopropyl alcohol (limit)",
+          "limitType": "NotMoreThan",
+          "lower": null, "upper": 0.075, "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP 2024",
+          "source": "Xanthan Gum__Specifications sheet Xanthan Gum-USP.txt:24",
+          "heldBack": "no STM: method not documented"
+        },
+        {
+          "testCode": "TAMC",
+          "parameterName": "Total aerobic microbial count (TAMC)",
+          "limitType": "CountTiered",
+          "lower": null, "upper": 1000, "lowerInclusive": null,
+          "unit": "CFU/g",
+          "expectedResultText": "Less than 1000 CFU/g",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": null,
+          "source": "Xanthan Gum__Specifications sheet Xanthan Gum-USP.txt:20"
+        },
+        {
+          "testCode": "TYMC",
+          "parameterName": "Total yeast and mold count (TYMC)",
+          "limitType": "CountTiered",
+          "lower": null, "upper": 100, "lowerInclusive": null,
+          "unit": "CFU/g",
+          "expectedResultText": "Less than 100 CFU/g",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": null,
+          "source": "Xanthan Gum__Specifications sheet Xanthan Gum-USP.txt:21"
+        },
+        {
+          "testCode": "E.coli",
+          "parameterName": "Test for E. coli",
+          "limitType": "PresenceAbsence",
+          "lower": null, "upper": null, "lowerInclusive": null,
+          "unit": "per g",
+          "expectedResultText": "Absent / gm",
+          "expectedState": "Absence",
+          "resultBasis": null,
+          "referenceStandard": null,
+          "source": "Xanthan Gum__Specifications sheet Xanthan Gum-USP.txt:22"
+        },
+        {
+          "testCode": "Salmonella ",
+          "parameterName": "Test for Salmonella species",
+          "limitType": "PresenceAbsence",
+          "lower": null, "upper": null, "lowerInclusive": null,
+          "unit": "per 10 g",
+          "expectedResultText": "Absent / 10 gm",
+          "expectedState": "Absence",
+          "resultBasis": null,
+          "referenceStandard": null,
+          "source": "Xanthan Gum__Specifications sheet Xanthan Gum-USP.txt:23"
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "testCode": "RM-DESC",
+      "procedure": "No STM in folder: general description test per catalog.",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": { "perContainer": true, "grades": ["BP", "USP"], "spec_only": true },
+      "source": "Xanthan Gum__Specifications sheet Xanthan Gum-BP.txt:11"
+    },
+    {
+      "testCode": "RM-SOLUB",
+      "procedure": "No STM in folder: general solubility test per catalog.",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": { "grades": ["BP", "USP"], "spec_only": true },
+      "source": "Xanthan Gum__Specifications sheet Xanthan Gum-BP.txt:12"
+    },
+    {
+      "testCode": "RM-PH",
+      "procedure": "No STM in folder: general pH test per catalog.",
+      "kind": "general",
+      "workflow": "Measurement",
+      "details": { "grades": ["BP"], "spec_only": true },
+      "source": "Xanthan Gum__Specifications sheet Xanthan Gum-BP.txt:14"
+    },
+    {
+      "testCode": "RM-LOD",
+      "procedure": "No STM in folder: general loss-on-drying test per catalog (spec technique: thermogravimetry).",
+      "kind": "general",
+      "workflow": "Gravimetric",
+      "details": { "grades": ["BP", "USP"], "spec_only": true },
+      "source": "Xanthan Gum__Specifications sheet Xanthan Gum-BP.txt:15"
+    },
+    {
+      "testCode": "RM-ID-BAOH-XAN",
+      "procedure": "No STM in folder: barium hydroxide identification. Method not documented.",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "details": { "grades": ["BP"], "spec_only": true },
+      "source": "Xanthan Gum__Specifications sheet Xanthan Gum-BP.txt:13",
+      "heldBack": "no STM: method not documented"
+    },
+    {
+      "testCode": "RM-ASH-XAN",
+      "procedure": "No STM in folder: total ash by ignition, on the dried substance. Method not documented.",
+      "kind": "specific",
+      "workflow": "Gravimetric",
+      "details": { "grades": ["BP", "USP"], "spec_only": true },
+      "source": "Xanthan Gum__Specifications sheet Xanthan Gum-BP.txt:16",
+      "heldBack": "no STM: method not documented"
+    },
+    {
+      "testCode": "RM-VISC-XAN",
+      "procedure": "No STM in folder: viscosity by viscometer. Method not documented.",
+      "kind": "specific",
+      "workflow": "Measurement",
+      "details": { "grades": ["BP", "USP"], "spec_only": true },
+      "source": "Xanthan Gum__Specifications sheet Xanthan Gum-BP.txt:17",
+      "heldBack": "no STM: method not documented"
+    },
+    {
+      "testCode": "RM-ASSAY-XAN",
+      "procedure": "No STM in folder: UV assay for pyruvate acetal groups, dried substance. Method not documented.",
+      "kind": "specific",
+      "workflow": "UvSpectrophotometry",
+      "details": { "grades": ["BP"], "spec_only": true },
+      "source": "Xanthan Gum__Specifications sheet Xanthan Gum-BP.txt:18",
+      "heldBack": "no STM: method not documented"
+    },
+    {
+      "testCode": "RM-ID-B-XAN",
+      "procedure": "No STM in folder: identification B (gel formation below 40 °C). Method not documented.",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "details": { "grades": ["BP"], "spec_only": true },
+      "source": "Xanthan Gum__Specifications sheet Xanthan Gum-BP.txt:19",
+      "heldBack": "no STM: method not documented"
+    },
+    {
+      "testCode": "RM-IPA-XAN",
+      "procedure": "No STM in folder: 2-propanol (isopropyl alcohol) limit. Method not documented.",
+      "kind": "specific",
+      "workflow": "Measurement",
+      "details": { "grades": ["BP", "USP"], "spec_only": true },
+      "source": "Xanthan Gum__Specifications sheet Xanthan Gum-BP.txt:19",
+      "heldBack": "no STM: method not documented"
+    },
+    {
+      "testCode": "RM-LT-AS-XAN",
+      "procedure": "No STM in folder: arsenic limit test. Method not documented.",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "details": { "grades": ["USP"], "spec_only": true },
+      "source": "Xanthan Gum__Specifications sheet Xanthan Gum-USP.txt:13",
+      "heldBack": "no STM: method not documented"
+    },
+    {
+      "testCode": "RM-LT-PB-XAN",
+      "procedure": "No STM in folder: lead limit test. Method not documented.",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "details": { "grades": ["USP"], "spec_only": true },
+      "source": "Xanthan Gum__Specifications sheet Xanthan Gum-USP.txt:14",
+      "heldBack": "no STM: method not documented"
+    },
+    {
+      "testCode": "RM-UV-PYR-XAN",
+      "procedure": "No STM in folder: UV pyruvic acid comparison of sample and standard absorbance. Method not documented.",
+      "kind": "specific",
+      "workflow": "UvSpectrophotometry",
+      "details": { "grades": ["USP"], "spec_only": true },
+      "source": "Xanthan Gum__Specifications sheet Xanthan Gum-USP.txt:15",
+      "heldBack": "no STM: method not documented"
+    },
+    {
+      "testCode": "RM-ASSAY-CO2-XAN",
+      "procedure": "No STM in folder: UV assay for carbon dioxide content (dried basis) and equivalent xanthan gum content. Method not documented.",
+      "kind": "specific",
+      "workflow": "UvSpectrophotometry",
+      "details": { "grades": ["USP"], "spec_only": true },
+      "source": "Xanthan Gum__Specifications sheet Xanthan Gum-USP.txt:19",
+      "heldBack": "no STM: method not documented"
+    },
+    {
+      "testCode": "RM-ID-A-XAN",
+      "procedure": "No STM in folder: identification A (gel formation with sample and control). Method not documented.",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "details": { "grades": ["USP"], "spec_only": true },
+      "source": "Xanthan Gum__Specifications sheet Xanthan Gum-USP.txt:24",
+      "heldBack": "no STM: method not documented"
+    },
+    {
+      "testCode": "TAMC",
+      "procedure": "No STM in folder: microbial limit per the spec sheet; general test per catalog.",
+      "kind": "general",
+      "workflow": "CountTest",
+      "details": { "grades": ["USP"], "spec_only": true },
+      "source": "Xanthan Gum__Specifications sheet Xanthan Gum-USP.txt:20"
+    },
+    {
+      "testCode": "TYMC",
+      "procedure": "No STM in folder: microbial limit per the spec sheet; general test per catalog.",
+      "kind": "general",
+      "workflow": "CountTest",
+      "details": { "grades": ["USP"], "spec_only": true },
+      "source": "Xanthan Gum__Specifications sheet Xanthan Gum-USP.txt:21"
+    },
+    {
+      "testCode": "E.coli",
+      "procedure": "No STM in folder: microbial limit per the spec sheet; general test per catalog.",
+      "kind": "general",
+      "workflow": "Observation",
+      "details": { "grades": ["USP"], "spec_only": true },
+      "source": "Xanthan Gum__Specifications sheet Xanthan Gum-USP.txt:22"
+    },
+    {
+      "testCode": "Salmonella ",
+      "procedure": "No STM in folder: microbial limit per the spec sheet; general test per catalog.",
+      "kind": "general",
+      "workflow": "Observation",
+      "details": { "grades": ["USP"], "spec_only": true },
+      "source": "Xanthan Gum__Specifications sheet Xanthan Gum-USP.txt:23"
+    }
+  ],
+  "notApplicable": [],
+  "supplierAttributes": [
+    { "grade": "BP", "name": "Particle-size distribution", "statedValue": "100% through 60 mesh; not less than 95% through 80 mesh", "source": "Xanthan Gum__Specifications sheet Xanthan Gum-BP.txt:19" },
+    { "grade": "BP", "name": "Powder flow", "statedValue": "Comply", "source": "Xanthan Gum__Specifications sheet Xanthan Gum-BP.txt:19" }
+  ],
+  "reagents": [],
+  "openQuestions": [
+    {
+      "question": "No STM in the folder. The sheets cite STM Code# C5I-91-221/BP and C5I-91-221/USP (Version 1/0, issued 18-10-2023). Held tests need those STMs before they can be loaded.",
+      "source": "Xanthan Gum__Specifications sheet Xanthan Gum-BP.txt:9; Xanthan Gum__Specifications sheet Xanthan Gum-USP.txt:9"
+    },
+    {
+      "question": "Result basis not stated for USP pyruvic acid (NLT 1.5 %) and for the assay equivalent (91.0 % to 108.0 % of xanthan gum). Loaded as PercentAsIs; confirm.",
+      "source": "Xanthan Gum__Specifications sheet Xanthan Gum-USP.txt:15; Xanthan Gum__Specifications sheet Xanthan Gum-USP.txt:19"
+    },
+    {
+      "question": "USP microbial limits read 'Less than 1000 CFU/gm' and 'Less than 100 CFU/gm' (strict). The schema's CountTiered upper is treated as not more than; the wording is kept in expectedResultText. Confirm whether the limit is strict.",
+      "source": "Xanthan Gum__Specifications sheet Xanthan Gum-USP.txt:20; Xanthan Gum__Specifications sheet Xanthan Gum-USP.txt:21"
+    }
+  ]
+}

@@ -1,19 +1,19 @@
 import { apiClient } from "../../../services/apiClient";
 import type {
   IcpInstrumentDto,
-  IcpMethodOptionDto,
   IcpRunListItem,
   IcpRunDto,
   EligibleTestDto,
   IcpSampleEntryDto,
+  IcpReportValuesDto,
+  AssignIcpSamplesRequest,
   IcpEvidenceDto,
   IcpEvidenceContext,
   IcpEvidenceKind,
   StartIcpRunRequest,
   SaveIcpCalibrationRequest,
   ConfirmIcpCalibrationRequest,
-  AddIcpCcvRequest,
-  SaveIcpReplicatesRequest,
+  SaveIcpSampleEntryRequest,
   SubmitIcpSampleRequest
 } from "../types";
 
@@ -24,15 +24,10 @@ interface ApiResponse<T> {
 }
 
 export const IcpWorkspaceService = {
-  // ---- Instruments / Methods ----
+  // ---- Instruments ----
 
   getInstruments: async (): Promise<IcpInstrumentDto[]> => {
     const res = await apiClient.get<ApiResponse<IcpInstrumentDto[]>>("/icp-workspace/instruments");
-    return Array.isArray(res.data?.data) ? res.data.data : [];
-  },
-
-  getMethodOptions: async (): Promise<IcpMethodOptionDto[]> => {
-    const res = await apiClient.get<ApiResponse<IcpMethodOptionDto[]>>("/icp-workspace/method-options");
     return Array.isArray(res.data?.data) ? res.data.data : [];
   },
 
@@ -119,11 +114,6 @@ export const IcpWorkspaceService = {
     return res.data?.data;
   },
 
-  addCcv: async (id: number, req: AddIcpCcvRequest): Promise<IcpRunDto> => {
-    const res = await apiClient.post<ApiResponse<IcpRunDto>>(`/icp-workspace/runs/${id}/ccv`, req);
-    return res.data?.data;
-  },
-
   abandonRun: async (id: number, reason: string): Promise<IcpRunDto> => {
     const res = await apiClient.post<ApiResponse<IcpRunDto>>(`/icp-workspace/runs/${id}/abandon`, {
       reason
@@ -136,12 +126,10 @@ export const IcpWorkspaceService = {
     return res.data?.data;
   },
 
-  // ---- Samples & Entry (slice 1 client methods, full usage in slice 2) ----
+  // ---- Samples & Entry ----
 
-  assignSamples: async (id: number, testOrderIds: number[]): Promise<IcpRunDto> => {
-    const res = await apiClient.post<ApiResponse<IcpRunDto>>(`/icp-workspace/runs/${id}/samples`, {
-      testOrderIds
-    });
+  assignSamples: async (id: number, req: AssignIcpSamplesRequest): Promise<IcpRunDto> => {
+    const res = await apiClient.post<ApiResponse<IcpRunDto>>(`/icp-workspace/runs/${id}/samples`, req);
     return res.data?.data;
   },
 
@@ -153,9 +141,17 @@ export const IcpWorkspaceService = {
     return res.data?.data;
   },
 
-  saveReplicates: async (runSampleId: number, req: SaveIcpReplicatesRequest): Promise<IcpSampleEntryDto> => {
+  getReportValues: async (runSampleId: number, solutionIndex?: number | null): Promise<IcpReportValuesDto> => {
+    const res = await apiClient.get<ApiResponse<IcpReportValuesDto>>(
+      `/icp-workspace/samples/${runSampleId}/report-values`,
+      { params: solutionIndex == null ? undefined : { solutionIndex } }
+    );
+    return res.data?.data;
+  },
+
+  saveEntry: async (runSampleId: number, req: SaveIcpSampleEntryRequest): Promise<IcpSampleEntryDto> => {
     const res = await apiClient.put<ApiResponse<IcpSampleEntryDto>>(
-      `/icp-workspace/samples/${runSampleId}/replicates`,
+      `/icp-workspace/samples/${runSampleId}/entry`,
       req
     );
     return res.data?.data;

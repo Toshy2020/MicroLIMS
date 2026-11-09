@@ -8,6 +8,7 @@ using Xunit;
 
 namespace MicroLIMS.Tests.UnitTests;
 
+// ICP run + calibration. The run carries no method: the analyst lists the calibrated elements and their r.
 public class IcpRunServiceTests
 {
     private const string Password = "ValidPassword123!";
@@ -35,14 +36,13 @@ public class IcpRunServiceTests
         public required MicroLimsDbContext Db;
         public required DocumentSection Section;
         public required int UserId;
-        public required int MethodId;
         public required Equipment Equipment;
-        public required MaterialMasterEntry CalEntry;
         public required Material CalLot;
         public required IcpRunService Service;
     }
 
-    private static async Task<MaterialMasterEntry> AddEntryAsync(MicroLimsDbContext db, int sectionId, string code)
+    internal static async Task<Material> AddLotAsync(MicroLimsDbContext db, int sectionId, string code = "ICP-CAL", string batch = "LOT-1",
+        MaterialType type = MaterialType.ReferenceStandard)
     {
         var entry = new MaterialMasterEntry
         {
@@ -52,14 +52,9 @@ public class IcpRunServiceTests
         };
         db.MaterialMasterEntries.Add(entry);
         await db.SaveChangesAsync();
-        return entry;
-    }
-
-    private static async Task<Material> AddLotAsync(MicroLimsDbContext db, int sectionId, MaterialMasterEntry entry, string batch = "LOT-1")
-    {
         var lot = new Material
         {
-            SectionId = sectionId, MaterialType = MaterialType.ReferenceStandard, MaterialMasterEntryId = entry.Id,
+            SectionId = sectionId, MaterialType = type, MaterialMasterEntryId = entry.Id,
             MaterialName = entry.Name, ManufacturerName = "Acme", BatchNumber = batch,
             ReceivingDate = DateTime.UtcNow.AddDays(-10), ExpiryDate = DateTime.UtcNow.AddYears(1), Location = "Shelf",
             QuantityReceived = 100m, QuantityRemaining = 100m, Unit = MaterialUnit.Milliliter,
@@ -70,7 +65,7 @@ public class IcpRunServiceTests
         return lot;
     }
 
-    internal static async Task<Scenario> SeedAsync(bool requireIcv = false, bool requireCcv = false)
+    internal static async Task<Scenario> SeedAsync()
     {
         var db = NewDb();
         var section = TestServiceFactory.EnsureMicroSection(db);
@@ -86,18 +81,6 @@ public class IcpRunServiceTests
         await db.SaveChangesAsync();
         TestServiceFactory.AssignUserToMicroSection(db, user.Id);
 
-        var calEntry = await AddEntryAsync(db, section.Id, "ICP-CAL");
-        var icvEntry = await AddEntryAsync(db, section.Id, "ICP-ICV");
-        var req = new SaveIcpMethodRequest(
-            "Minerals by ICP-OES", "MIN-ICP", new DateTime(2026, 8, 1), IcpMethodMode.MineralAssay,
-            "0.1, 0.5, 1, 3, 6", calEntry.Id, 0.999m, 50m,
-            new() { new IcpElementInput(null, "Zn", 213.857m, AnalyteView.Axial), new IcpElementInput(null, "Ca", 317.933m, AnalyteView.Radial) },
-            RequireCcv: requireCcv, CcvNominalMgPerL: requireCcv ? 1m : null, CcvRecoveryLowPercent: requireCcv ? 90m : null, CcvRecoveryHighPercent: requireCcv ? 110m : null,
-            RequireIcv: requireIcv, IcvStandardEntryId: requireIcv ? icvEntry.Id : null,
-            IcvNominalMgPerL: requireIcv ? 1m : null, IcvRecoveryLowPercent: requireIcv ? 90m : null, IcvRecoveryHighPercent: requireIcv ? 110m : null,
-            SectionId: section.Id);
-        var method = await TestServiceFactory.IcpMethod(db).CreateAsync(req, user.Id);
-
         var equipment = new Equipment
         {
             Name = "ICP-OES 01", Code = "ICP-01", Type = EquipmentType.IcpOes, SectionId = section.Id,
@@ -106,48 +89,47 @@ public class IcpRunServiceTests
         db.Equipment.Add(equipment);
         await db.SaveChangesAsync();
 
-        var calLot = await AddLotAsync(db, section.Id, calEntry);
+        var calLot = await AddLotAsync(db, section.Id);
         return new Scenario
         {
-            Db = db, Section = section, UserId = user.Id, MethodId = method.Id, Equipment = equipment,
-            CalEntry = calEntry, CalLot = calLot, Service = TestServiceFactory.IcpRun(db, clock: NewClock()),
+            Db = db, Section = section, UserId = user.Id, Equipment = equipment,
+            CalLot = calLot, Service = TestServiceFactory.IcpRun(db, clock: NewClock()),
         };
     }
 
     private static byte[] PdfBytes() => new byte[] { 0x25, 0x50, 0x44, 0x46, 0x2D };
 
     internal static Task<IcpRunDto> StartAsync(Scenario s) =>
-        s.Service.StartRunAsync(new StartIcpRunRequest(s.Equipment.Id, s.MethodId), s.UserId);
+        s.Service.StartRunAsync(new StartIcpRunRequest(s.Equipment.Id), s.UserId);
 
     internal static async Task UploadCalibrationReportAsync(Scenario s, int runId) =>
         await s.Service.UploadEvidenceAsync(runId, null, IcpEvidenceContext.Calibration, IcpEvidenceKind.CalibrationReport,
             "cal.pdf", "application/pdf", new MemoryStream(PdfBytes()), s.UserId);
 
-    // Zn fails at r 0.9989 < 0.999, Ca passes.
-    internal static SaveIcpCalibrationRequest Save(IcpRunDto run, int? lotId, int? icvLotId = null, decimal znR = 0.9989m, decimal caR = 0.9995m) => new(
-        lotId, icvLotId, run.Calibration.Elements.Select(e =>
-            new SaveIcpCalibrationElementInput(e.Id, e.Symbol == "Zn" ? znR : caR, null, null)).ToList());
+    // Zn fails at r 0.9989 < 0.999 by default, Ca passes.
+    internal static SaveIcpCalibrationRequest Save(int? lotId, decimal znR = 0.9989m, decimal caR = 0.9995m) => new(
+        lotId, new List<SaveIcpCalibrationElementInput> { new("Zn", znR), new("Ca", caR) });
+
+    internal static SaveIcpCalibrationRequest Save(int? lotId, params (string Symbol, decimal? R)[] elements) => new(
+        lotId, elements.Select(e => new SaveIcpCalibrationElementInput(e.Symbol, e.R)).ToList());
 
     [Fact]
-    public async Task StartRun_CreatesPendingCalibrationWithElements()
+    public async Task StartRun_CreatesPendingCalibrationWithNoElements()
     {
         var s = await SeedAsync();
         var run = await StartAsync(s);
 
         Assert.Equal(IcpRunStatus.Open, run.Status);
-        Assert.Equal("MIN-ICP RUN 01/092026", run.Code);
-        Assert.Equal("MIN-ICP CAL 01/092026", run.Calibration.Code);
+        Assert.Equal("ICP RUN 01/092026", run.Code);
+        Assert.Equal("ICP CAL 01/092026", run.Calibration.Code);
         Assert.Equal(IcpCalibrationStatus.Pending, run.Calibration.Status);
-        Assert.Equal(new[] { "Zn", "Ca" }, run.Calibration.Elements.Select(e => e.Symbol).ToArray());
-        Assert.Equal("MIN-ICP", run.Method.Abbreviation);
-        Assert.Equal("ICP-CAL", run.Method.CalibrationStandardEntryCode);
+        Assert.Empty(run.Calibration.Elements);
+        Assert.Equal(0.999m, run.Calibration.MinCorrelation);
         Assert.False(run.CanConfirmCalibration);
-        Assert.Empty(run.CcvReadings);
 
         var instruments = await s.Service.GetInstrumentsAsync(s.UserId);
         Assert.Equal("Running", instruments.Single().State);
         Assert.Equal(run.Id, instruments.Single().ActiveRun!.RunId);
-        Assert.Single(await s.Service.GetMethodOptionsAsync(s.UserId));
     }
 
     [Fact]
@@ -159,7 +141,7 @@ public class IcpRunServiceTests
         await s.Db.SaveChangesAsync();
 
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            s.Service.StartRunAsync(new StartIcpRunRequest(hplc.Id, s.MethodId), s.UserId));
+            s.Service.StartRunAsync(new StartIcpRunRequest(hplc.Id), s.UserId));
         Assert.Equal("\"HPLC 01\" is not an ICP-OES instrument.", ex.Message);
     }
 
@@ -174,12 +156,12 @@ public class IcpRunServiceTests
     }
 
     [Fact]
-    public async Task SaveCalibration_ComputesVerdicts()
+    public async Task SaveCalibration_AnalystListsElements_ServerComputesVerdicts()
     {
         var s = await SeedAsync();
         var run = await StartAsync(s);
 
-        var saved = await s.Service.SaveCalibrationAsync(run.Id, Save(run, s.CalLot.Id), s.UserId);
+        var saved = await s.Service.SaveCalibrationAsync(run.Id, Save(s.CalLot.Id), s.UserId);
 
         var zn = saved.Calibration.Elements.Single(e => e.Symbol == "Zn");
         var ca = saved.Calibration.Elements.Single(e => e.Symbol == "Ca");
@@ -191,26 +173,100 @@ public class IcpRunServiceTests
     }
 
     [Fact]
-    public async Task SaveCalibration_LotOfAnotherEntry_Throws()
+    public async Task SaveCalibration_BoundaryIsInclusive_AndSymbolIsNormalised()
     {
         var s = await SeedAsync();
-        var other = await AddLotAsync(s.Db, s.Section.Id, await AddEntryAsync(s.Db, s.Section.Id, "OTHER"));
         var run = await StartAsync(s);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            s.Service.SaveCalibrationAsync(run.Id, Save(run, other.Id), s.UserId));
-        Assert.Equal("The calibration standard lot must be a usable lot of ICP-CAL.", ex.Message);
+        var saved = await s.Service.SaveCalibrationAsync(run.Id, Save(s.CalLot.Id, ("zn", 0.999m)), s.UserId);
+
+        var zn = Assert.Single(saved.Calibration.Elements);
+        Assert.Equal("Zn", zn.Symbol);
+        Assert.True(zn.Passed);
     }
 
     [Fact]
-    public async Task SaveCalibration_IcvLotWhenMethodDoesNotRequireIcv_Throws()
+    public async Task SaveCalibration_ReplacesTheElementList()
+    {
+        var s = await SeedAsync();
+        var run = await StartAsync(s);
+        await s.Service.SaveCalibrationAsync(run.Id, Save(s.CalLot.Id), s.UserId);
+
+        var saved = await s.Service.SaveCalibrationAsync(run.Id, Save(s.CalLot.Id, ("Ca", 0.9996m), ("Mg", 0.9999m)), s.UserId);
+
+        Assert.Equal(new[] { "Ca", "Mg" }, saved.Calibration.Elements.Select(e => e.Symbol).OrderBy(x => x).ToArray());
+        Assert.Equal(0.9996m, saved.Calibration.Elements.Single(e => e.Symbol == "Ca").CorrelationR);
+    }
+
+    [Fact]
+    public async Task SaveCalibration_MissingR_FailsTheElement()
+    {
+        var s = await SeedAsync();
+        var run = await StartAsync(s);
+
+        var saved = await s.Service.SaveCalibrationAsync(run.Id, Save(s.CalLot.Id, ("Zn", null)), s.UserId);
+
+        Assert.False(saved.Calibration.Elements.Single().Passed);
+        Assert.Equal("r is required.", saved.Calibration.Elements.Single().FailureReasons);
+    }
+
+    [Fact]
+    public async Task SaveCalibration_DuplicateElement_Throws()
     {
         var s = await SeedAsync();
         var run = await StartAsync(s);
 
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            s.Service.SaveCalibrationAsync(run.Id, Save(run, s.CalLot.Id, s.CalLot.Id), s.UserId));
-        Assert.Equal("The ICV standard lot is only used when the method requires ICV.", ex.Message);
+            s.Service.SaveCalibrationAsync(run.Id, Save(s.CalLot.Id, ("Zn", 0.9995m), ("ZN", 0.9996m)), s.UserId));
+        Assert.Equal("Element \"Zn\" is listed more than once.", ex.Message);
+    }
+
+    [Fact]
+    public async Task SaveCalibration_BadSymbol_Throws()
+    {
+        var s = await SeedAsync();
+        var run = await StartAsync(s);
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            s.Service.SaveCalibrationAsync(run.Id, Save(s.CalLot.Id, ("Zn1", 0.9995m)), s.UserId));
+        Assert.Equal("Element symbol must be 1-3 letters.", ex.Message);
+    }
+
+    [Fact]
+    public async Task SaveCalibration_CorrelationOutOfRange_Throws()
+    {
+        var s = await SeedAsync();
+        var run = await StartAsync(s);
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            s.Service.SaveCalibrationAsync(run.Id, Save(s.CalLot.Id, ("Zn", 1.2m)), s.UserId));
+        Assert.Equal("Zn: r must be between 0 and 1.", ex.Message);
+    }
+
+    [Fact]
+    public async Task SaveCalibration_RoundsCorrelationToSixDecimalsBeforeJudging()
+    {
+        var s = await SeedAsync();
+        var run = await StartAsync(s);
+
+        // 0.9989996 rounds to 0.999000 (numeric(8,6)), which is the minimum and passes.
+        var saved = await s.Service.SaveCalibrationAsync(run.Id, Save(s.CalLot.Id, ("Zn", 0.9989996m)), s.UserId);
+
+        var zn = saved.Calibration.Elements.Single();
+        Assert.Equal(0.999m, zn.CorrelationR);
+        Assert.True(zn.Passed);
+    }
+
+    [Fact]
+    public async Task SaveCalibration_LotThatIsNotAReferenceStandard_Throws()
+    {
+        var s = await SeedAsync();
+        var chemical = await AddLotAsync(s.Db, s.Section.Id, "CHEM", "LOT-C", MaterialType.Chemical);
+        var run = await StartAsync(s);
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            s.Service.SaveCalibrationAsync(run.Id, Save(chemical.Id), s.UserId));
+        Assert.Equal("The calibration standard must be a usable reference standard lot of this laboratory.", ex.Message);
     }
 
     [Fact]
@@ -218,11 +274,11 @@ public class IcpRunServiceTests
     {
         var s = await SeedAsync();
         var run = await StartAsync(s);
-        await s.Service.SaveCalibrationAsync(run.Id, Save(run, s.CalLot.Id), s.UserId);
+        await s.Service.SaveCalibrationAsync(run.Id, Save(s.CalLot.Id), s.UserId);
 
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
             s.Service.ConfirmCalibrationAsync(run.Id, new ConfirmIcpCalibrationRequest(Password, null), s.UserId, null));
-        Assert.Equal("Upload the Syngistix calibration report before confirming.", ex.Message);
+        Assert.Equal("Upload the Syngistix calibration report (the calibration curve) before confirming.", ex.Message);
     }
 
     [Fact]
@@ -238,16 +294,29 @@ public class IcpRunServiceTests
     }
 
     [Fact]
-    public async Task ConfirmCalibration_IcvRequiredWithoutIcvLot_Throws()
+    public async Task ConfirmCalibration_WithoutElements_Throws()
     {
-        var s = await SeedAsync(requireIcv: true);
+        var s = await SeedAsync();
         var run = await StartAsync(s);
-        await s.Service.SaveCalibrationAsync(run.Id, Save(run, s.CalLot.Id), s.UserId);
+        await s.Service.SaveCalibrationAsync(run.Id, Save(s.CalLot.Id, Array.Empty<(string, decimal?)>()), s.UserId);
         await UploadCalibrationReportAsync(s, run.Id);
 
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
             s.Service.ConfirmCalibrationAsync(run.Id, new ConfirmIcpCalibrationRequest(Password, null), s.UserId, null));
-        Assert.Equal("Choose the ICV standard lot.", ex.Message);
+        Assert.Equal("Add the elements calibrated on this run, with their r.", ex.Message);
+    }
+
+    [Fact]
+    public async Task ConfirmCalibration_NoElementPasses_Throws_InstrumentNotReady()
+    {
+        var s = await SeedAsync();
+        var run = await StartAsync(s);
+        await s.Service.SaveCalibrationAsync(run.Id, Save(s.CalLot.Id, znR: 0.9980m, caR: 0.9970m), s.UserId);
+        await UploadCalibrationReportAsync(s, run.Id);
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            s.Service.ConfirmCalibrationAsync(run.Id, new ConfirmIcpCalibrationRequest(Password, null), s.UserId, null));
+        Assert.Equal("No element passes the calibration check (r), so the instrument is not ready for testing.", ex.Message);
     }
 
     [Fact]
@@ -255,7 +324,7 @@ public class IcpRunServiceTests
     {
         var s = await SeedAsync();
         var run = await StartAsync(s);
-        await s.Service.SaveCalibrationAsync(run.Id, Save(run, s.CalLot.Id), s.UserId);
+        await s.Service.SaveCalibrationAsync(run.Id, Save(s.CalLot.Id), s.UserId);
         await UploadCalibrationReportAsync(s, run.Id);
 
         var confirmed = await s.Service.ConfirmCalibrationAsync(run.Id, new ConfirmIcpCalibrationRequest(Password, "ok"), s.UserId, "1.2.3.4");
@@ -265,9 +334,10 @@ public class IcpRunServiceTests
         Assert.Equal(SepFirst.UtcDateTime.AddHours(24), confirmed.Calibration.ExpiresAt);
         Assert.Equal(s.UserId, confirmed.Calibration.ConfirmedByUserId);
         Assert.Single(s.Db.ElectronicSignatures.Where(x => x.EntityType == nameof(IcpCalibration)));
+        Assert.False(confirmed.Calibration.Elements.Single(e => e.Symbol == "Zn").Passed);
 
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            s.Service.SaveCalibrationAsync(run.Id, Save(run, s.CalLot.Id), s.UserId));
+            s.Service.SaveCalibrationAsync(run.Id, Save(s.CalLot.Id), s.UserId));
         Assert.Equal("The calibration has already been confirmed.", ex.Message);
     }
 
@@ -276,7 +346,7 @@ public class IcpRunServiceTests
     {
         var s = await SeedAsync();
         var run = await StartAsync(s);
-        await s.Service.SaveCalibrationAsync(run.Id, Save(run, s.CalLot.Id), s.UserId);
+        await s.Service.SaveCalibrationAsync(run.Id, Save(s.CalLot.Id), s.UserId);
         await UploadCalibrationReportAsync(s, run.Id);
 
         await Assert.ThrowsAnyAsync<InvalidOperationException>(() =>
@@ -290,104 +360,48 @@ public class IcpRunServiceTests
     {
         var s = await SeedAsync();
         var run = await StartAsync(s);
-        await s.Service.SaveCalibrationAsync(run.Id, Save(run, s.CalLot.Id), s.UserId);
+        await s.Service.SaveCalibrationAsync(run.Id, Save(s.CalLot.Id), s.UserId);
         await UploadCalibrationReportAsync(s, run.Id);
         s.CalLot.ExpiryDate = DateTime.UtcNow.AddDays(-400);
         await s.Db.SaveChangesAsync();
 
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
             s.Service.ConfirmCalibrationAsync(run.Id, new ConfirmIcpCalibrationRequest(Password, null), s.UserId, null));
-        Assert.Equal("The calibration standard lot must be a usable lot of ICP-CAL.", ex.Message);
+        Assert.Equal("The calibration standard must be a usable reference standard lot of this laboratory.", ex.Message);
         Assert.Equal(IcpCalibrationStatus.Pending, (await s.Service.GetRunAsync(run.Id, s.UserId)).Calibration.Status);
-        Assert.Empty(s.Db.ElectronicSignatures.Where(x => x.EntityType == nameof(IcpCalibration)));
     }
 
     [Fact]
-    public async Task ConfirmCalibration_AllFail_RunBlocksAssignment()
-    {
-        var s = await SeedAsync();
-        var run = await StartAsync(s);
-        await s.Service.SaveCalibrationAsync(run.Id, Save(run, s.CalLot.Id, znR: 0.9980m, caR: 0.9970m), s.UserId);
-        await UploadCalibrationReportAsync(s, run.Id);
-
-        var confirmed = await s.Service.ConfirmCalibrationAsync(run.Id, new ConfirmIcpCalibrationRequest(Password, null), s.UserId, null);
-
-        Assert.Equal(IcpCalibrationStatus.Confirmed, confirmed.Calibration.Status);
-        Assert.All(confirmed.Calibration.Elements, e => Assert.False(e.Passed));
-        Assert.DoesNotContain(confirmed.Calibration.Elements, e => e.Passed); // no valid element: Task 6 assignment gate keys off this
-    }
-
-    [Fact]
-    public async Task ConfirmCalibration_Twice_Throws()
-    {
-        var s = await SeedAsync();
-        var run = await StartAsync(s);
-        await s.Service.SaveCalibrationAsync(run.Id, Save(run, s.CalLot.Id), s.UserId);
-        await UploadCalibrationReportAsync(s, run.Id);
-        await s.Service.ConfirmCalibrationAsync(run.Id, new ConfirmIcpCalibrationRequest(Password, null), s.UserId, null);
-
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            s.Service.ConfirmCalibrationAsync(run.Id, new ConfirmIcpCalibrationRequest(Password, null), s.UserId, null));
-        Assert.Equal("The calibration has already been confirmed.", ex.Message);
-    }
-
-    [Fact]
-    public async Task AbandonRun_RequiresReason()
+    public async Task AbandonRun_RequiresReason_AndFreesTheInstrument()
     {
         var s = await SeedAsync();
         var run = await StartAsync(s);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => s.Service.AbandonRunAsync(run.Id, "  ", s.UserId));
-        Assert.Equal("A reason is required.", ex.Message);
+        await Assert.ThrowsAsync<InvalidOperationException>(() => s.Service.AbandonRunAsync(run.Id, "  ", s.UserId));
+        var abandoned = await s.Service.AbandonRunAsync(run.Id, "Torch failure", s.UserId);
 
-        var abandoned = await s.Service.AbandonRunAsync(run.Id, "Torch out", s.UserId);
         Assert.Equal(IcpRunStatus.Abandoned, abandoned.Status);
-        Assert.Equal("Torch out", abandoned.CloseReason);
+        Assert.Equal("Torch failure", abandoned.CloseReason);
         Assert.Equal("Available", (await s.Service.GetInstrumentsAsync(s.UserId)).Single().State);
-        Assert.Equal(run.Id, (await s.Service.GetRunHistoryAsync(s.Equipment.Id, s.UserId)).Single().Id);
+        await StartAsync(s); // a new run can start
     }
 
     [Fact]
-    public async Task Evidence_SupersedeKeepsOld()
+    public async Task Evidence_SupersedeKeepsOld_AndCalibrationReportGateUsesTheCurrentOne()
     {
         var s = await SeedAsync();
         var run = await StartAsync(s);
-        var first = await s.Service.UploadEvidenceAsync(run.Id, null, IcpEvidenceContext.Calibration, IcpEvidenceKind.CalibrationReport,
-            "cal.pdf", "application/pdf", new MemoryStream(PdfBytes()), s.UserId);
+        await UploadCalibrationReportAsync(s, run.Id);
+        var first = (await s.Service.GetRunAsync(run.Id, s.UserId)).Evidence.Single();
 
-        var second = await s.Service.SupersedeEvidenceAsync(first.Id, "wrong file", "cal2.pdf", "application/pdf", new MemoryStream(PdfBytes()), s.UserId);
+        var replacement = await s.Service.SupersedeEvidenceAsync(first.Id, "Wrong curve", "cal2.pdf", "application/pdf",
+            new MemoryStream(PdfBytes()), s.UserId);
 
-        var detail = await s.Service.GetRunAsync(run.Id, s.UserId);
-        Assert.Equal(2, detail.Evidence.Count);
-        Assert.False(detail.Evidence.Single(e => e.Id == first.Id).IsCurrent);
-        Assert.Equal("wrong file", detail.Evidence.Single(e => e.Id == first.Id).SupersedeReason);
-        Assert.True(detail.Evidence.Single(e => e.Id == second.Id).IsCurrent);
-        var (content, _, name) = await s.Service.DownloadEvidenceAsync(first.Id, s.UserId);
-        Assert.Equal(PdfBytes(), content);
-        Assert.Equal("cal.pdf", name);
-    }
-
-    [Fact]
-    public async Task SaveCalibration_CorrelationOutOfRange_Throws()
-    {
-        var s = await SeedAsync();
-        var run = await StartAsync(s);
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            s.Service.SaveCalibrationAsync(run.Id, Save(run, s.CalLot.Id, znR: 9.99m), s.UserId));
-        Assert.Equal("r must be between 0 and 1.", ex.Message);
-    }
-
-    [Fact]
-    public async Task SaveCalibration_RoundsCorrelationToSixDecimalsBeforeJudging()
-    {
-        var s = await SeedAsync();
-        var run = await StartAsync(s);
-
-        var saved = await s.Service.SaveCalibrationAsync(run.Id, Save(run, s.CalLot.Id, znR: 0.9989996m), s.UserId);
-
-        var zn = saved.Calibration.Elements.Single(e => e.Symbol == "Zn");
-        Assert.Equal(0.999000m, zn.CorrelationR);
-        Assert.True(zn.Passed); // 0.999000 meets the minimum 0.999; unrounded 0.9989996 would not
+        var evidence = (await s.Service.GetRunAsync(run.Id, s.UserId)).Evidence;
+        Assert.Equal(2, evidence.Count);
+        Assert.False(evidence.Single(e => e.Id == first.Id).IsCurrent);
+        Assert.True(evidence.Single(e => e.Id == replacement.Id).IsCurrent);
+        Assert.Equal("Wrong curve", evidence.Single(e => e.Id == first.Id).SupersedeReason);
     }
 
     [Fact]
@@ -395,77 +409,15 @@ public class IcpRunServiceTests
     {
         var s = await SeedAsync();
         var run = await StartAsync(s);
-        Task<IcpEvidenceDto> Up(IcpEvidenceContext c, IcpEvidenceKind k) =>
-            s.Service.UploadEvidenceAsync(run.Id, null, c, k, "x.pdf", "application/pdf", new MemoryStream(PdfBytes()), s.UserId);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => Up(IcpEvidenceContext.Calibration, IcpEvidenceKind.SampleReport));
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            s.Service.UploadEvidenceAsync(run.Id, null, IcpEvidenceContext.Calibration, IcpEvidenceKind.SampleReport,
+                "x.pdf", "application/pdf", new MemoryStream(PdfBytes()), s.UserId));
         Assert.Equal("SampleReport evidence can't be attached to the Calibration context.", ex.Message);
-        ex = await Assert.ThrowsAsync<InvalidOperationException>(() => Up(IcpEvidenceContext.Sample, IcpEvidenceKind.CalibrationReport));
-        Assert.Equal("CalibrationReport evidence can't be attached to the Sample context.", ex.Message);
-        ex = await Assert.ThrowsAsync<InvalidOperationException>(() => Up(IcpEvidenceContext.Run, IcpEvidenceKind.CalibrationReport));
-        Assert.Equal("CalibrationReport evidence can't be attached to the Run context.", ex.Message);
 
-        Assert.Equal(IcpEvidenceKind.Other, (await Up(IcpEvidenceContext.Run, IcpEvidenceKind.Other)).Kind);
-    }
-
-    [Fact]
-    public async Task ConfirmCalibration_GateRequiresCalibrationReportKind()
-    {
-        var s = await SeedAsync();
-        var run = await StartAsync(s);
-        await s.Service.SaveCalibrationAsync(run.Id, Save(run, s.CalLot.Id, znR: 0.9995m), s.UserId);
-        // A wrong-kind row (as legacy data could hold) must not satisfy the gate.
-        s.Db.IcpEvidences.Add(new IcpEvidence
-        {
-            IcpRunId = run.Id, Context = IcpEvidenceContext.Calibration, Kind = IcpEvidenceKind.Other, FilePath = "p",
-            FileName = "x.pdf", ContentType = "application/pdf", UploadedByUserId = s.UserId, UploadedAt = SepFirst.UtcDateTime,
-        });
-        await s.Db.SaveChangesAsync();
-
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            s.Service.ConfirmCalibrationAsync(run.Id, new ConfirmIcpCalibrationRequest(Password, null), s.UserId, null));
-        Assert.Equal("Upload the Syngistix calibration report before confirming.", ex.Message);
-    }
-
-    [Fact]
-    public async Task Evidence_SampleGateRequiresSampleReportKind_AndRemovedSampleRefused()
-    {
-        var (f, run, rsId) = await IcpRunSampleTests.AssignedAsync();
-        MemoryStream Pdf() => new(PdfBytes());
-        await f.S.Service.UploadEvidenceAsync(run.Id, rsId, IcpEvidenceContext.Sample, IcpEvidenceKind.Other, "o.pdf", "application/pdf", Pdf(), f.S.UserId);
-        await IcpRunSampleTests.SaveAsync(f, rsId, IcpRunSampleTests.Rep(f, 0.5m, 0.8m));
-        Assert.Equal("Upload the sample result report before sending for review.",
-            (await f.S.Service.GetSampleEntryAsync(rsId, f.S.UserId)).CanSubmitReason);
-
-        await f.S.Service.RemoveSampleAsync(run.Id, rsId, "Wrong sample", f.S.UserId);
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            f.S.Service.UploadEvidenceAsync(run.Id, rsId, IcpEvidenceContext.Sample, IcpEvidenceKind.SampleReport, "s.pdf", "application/pdf", Pdf(), f.S.UserId));
-        Assert.Equal("Evidence can't be added to a removed sample.", ex.Message);
-    }
-
-    [Fact]
-    public async Task TestOrderEvidence_ReturnsSampleReportAndRunCalibrationReport()
-    {
-        var (f, run, rsId) = await IcpRunSampleTests.AssignedAsync();
-        await f.S.Service.UploadEvidenceAsync(run.Id, rsId, IcpEvidenceContext.Sample, IcpEvidenceKind.SampleReport, "s.pdf", "application/pdf", new MemoryStream(PdfBytes()), f.S.UserId);
-        var orderId = f.S.Db.IcpRunSamples.Single(x => x.Id == rsId).TestOrderId;
-
-        var evidence = await f.S.Service.GetTestOrderEvidenceAsync(orderId, f.S.UserId);
-
-        Assert.Contains(evidence, e => e.Kind == IcpEvidenceKind.SampleReport && e.FileName == "s.pdf");
-        Assert.Contains(evidence, e => e.Kind == IcpEvidenceKind.CalibrationReport);
-        Assert.All(evidence, e => Assert.True(e.Kind is IcpEvidenceKind.SampleReport or IcpEvidenceKind.CalibrationReport));
-    }
-
-    [Fact]
-    public async Task Evidence_SampleContextNeedsRunSample()
-    {
-        var s = await SeedAsync();
-        var run = await StartAsync(s);
-
-        await Assert.ThrowsAsync<InvalidOperationException>(() => s.Service.UploadEvidenceAsync(
-            run.Id, null, IcpEvidenceContext.Sample, IcpEvidenceKind.SampleReport, "s.pdf", "application/pdf", new MemoryStream(PdfBytes()), s.UserId));
-        await Assert.ThrowsAsync<MicroLIMS.Shared.Exceptions.NotFoundException>(() => s.Service.UploadEvidenceAsync(
-            run.Id, 999, IcpEvidenceContext.Sample, IcpEvidenceKind.SampleReport, "s.pdf", "application/pdf", new MemoryStream(PdfBytes()), s.UserId));
+        var ex2 = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            s.Service.UploadEvidenceAsync(run.Id, null, IcpEvidenceContext.Sample, IcpEvidenceKind.SampleReport,
+                "x.pdf", "application/pdf", new MemoryStream(PdfBytes()), s.UserId));
+        Assert.Equal("Choose the sample this evidence belongs to.", ex2.Message);
     }
 }

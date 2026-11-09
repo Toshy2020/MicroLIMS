@@ -1,0 +1,461 @@
+{
+  "itemCode": "STM-RM-152",
+  "itemName": "Coenzyme Q10 (Ubidecarenone)",
+  "stmCode": "STM-RM-152",
+  "stmFile": "coenzyme__STM-Coenzyme Q10 (Ubidecarenone) 01-02-2022.txt",
+  "specFiles": ["coenzyme__Specifications sheet.txt"],
+  "minQuantity": {
+    "routine": 80,
+    "retest": 60,
+    "retention": 80,
+    "unit": "g",
+    "source": "coenzyme__Specifications sheet.txt:15; coenzyme__STM-Coenzyme Q10 (Ubidecarenone) 01-02-2022.txt:40"
+  },
+  "grades": [
+    {
+      "grade": "BP",
+      "rows": [
+        {
+          "testCode": "RM-DESC",
+          "parameterName": "Appearance",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Yellow or Orange, Hygroscopic, Crystalline powder.",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "coenzyme__Specifications sheet.txt:2"
+        },
+        {
+          "testCode": "RM-SOLUB",
+          "parameterName": "Solubility",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Practically insoluble in water, soluble in acetone, very slightly soluble in anhydrous ethanol.",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "coenzyme__Specifications sheet.txt:3"
+        },
+        {
+          "testCode": "RM-ID-IR",
+          "parameterName": "Identification (IR)",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "The spectrum obtained for the sample and compare to the spectrum obtained from Ubidecarenone RS",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "coenzyme__Specifications sheet.txt:5"
+        },
+        {
+          "testCode": "RM-ID-RT",
+          "parameterName": "Identification (HPLC): principal peak similar in retention time and size to reference solution",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "The principal peak in the chromatogram obtained with the test solution is similar in retention time and size to the principal peak in the chromatogram obtained with reference solution",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "coenzyme__Specifications sheet.txt:4",
+          "heldBack": "needs the held-back method \"Coenzyme Q10 assay (BP, HPLC)\""
+        },
+        {
+          "testCode": "RM-MP-QL",
+          "parameterName": "Melting point",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "About 48 °C",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "coenzyme__Specifications sheet.txt:6"
+        },
+        {
+          "testCode": "RM-HPLC-COQ-RS",
+          "parameterName": "Related substances: impurity D",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 0.3,
+          "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "coenzyme__Specifications sheet.txt:7"
+        },
+        {
+          "testCode": "RM-HPLC-COQ-RS",
+          "parameterName": "Related substances: unspecified impurities (each)",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 0.10,
+          "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "coenzyme__Specifications sheet.txt:7"
+        },
+        {
+          "testCode": "RM-HPLC-COQ-RS",
+          "parameterName": "Related substances: total",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 0.6,
+          "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "coenzyme__Specifications sheet.txt:7"
+        },
+        {
+          "testCode": "RM-HPLC-COQ-IMPF",
+          "parameterName": "Impurity F (not more than 0.5 times the principal peak area of reference solution (b))",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 0.5,
+          "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "coenzyme__Specifications sheet.txt:8"
+        },
+        {
+          "testCode": "RM-HPLC-COQ-AS",
+          "parameterName": "Assay (anhydrous substance)",
+          "limitType": "Range",
+          "lower": 98.0,
+          "upper": 102.0,
+          "lowerInclusive": true,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": "PercentAnhydrousBasis",
+          "referenceStandard": "BP",
+          "source": "coenzyme__Specifications sheet.txt:9",
+          "heldBack": "needs the held-back method \"Coenzyme Q10 assay (BP, HPLC)\""
+        },
+        {
+          "testCode": "RM-KF",
+          "parameterName": "Water content (Karl Fischer)",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 0.2,
+          "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "coenzyme__Specifications sheet.txt:10"
+        },
+        {
+          "testCode": "RM-SASH",
+          "parameterName": "Sulphated ash",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 0.1,
+          "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP",
+          "source": "coenzyme__Specifications sheet.txt:11"
+        },
+        {
+          "testCode": "TAMC",
+          "parameterName": "Total aerobic microbial count (TAMC)",
+          "limitType": "CountTiered",
+          "lower": null,
+          "upper": 1000,
+          "lowerInclusive": null,
+          "unit": "CFU/g",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "coenzyme__Specifications sheet.txt:12"
+        },
+        {
+          "testCode": "TYMC",
+          "parameterName": "Total yeasts and molds count (TYMC)",
+          "limitType": "CountTiered",
+          "lower": null,
+          "upper": 100,
+          "lowerInclusive": null,
+          "unit": "CFU/g",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "coenzyme__Specifications sheet.txt:13"
+        },
+        {
+          "testCode": "E.coli",
+          "parameterName": "Test for E. coli",
+          "limitType": "PresenceAbsence",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": "per 10 g",
+          "expectedResultText": "Absent / 10 gm",
+          "expectedState": "Absence",
+          "resultBasis": null,
+          "referenceStandard": "USP",
+          "source": "coenzyme__Specifications sheet.txt:14"
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "testCode": "RM-DESC",
+      "procedure": "Visual check in a clean transparent watch glass (protected from light). Hygroscopicity: weigh a vessel with stopper (m1), add about 2 g sample (m2), stand unstoppered in a climatic cabinet at 25 ± 1 °C for 24 h, stopper and weigh (m3); % increase in mass per the STM equation. Interpretation: very hygroscopic >= 15%, hygroscopic 2-15%, slightly hygroscopic < 2%.",
+      "kind": "general",
+      "workflow": "Observation",
+      "details": {
+        "perContainer": true,
+        "sampleG": 2,
+        "temperatureC": "25 ± 1",
+        "timeH": 24,
+        "grades": ["BP"],
+        "reference": "BP (SC IV K.) Characters Section in Monographs"
+      },
+      "source": "coenzyme__STM-Coenzyme Q10 (Ubidecarenone) 01-02-2022.txt:29"
+    },
+    {
+      "testCode": "RM-SOLUB",
+      "procedure": "Weigh 100 mg of powdered sample in a stoppered tube; add 0.1 mL solvent, shake 1 min, hold at 25.0 ± 0.5 °C for 15 min, repeat once if not dissolved; add 0.9 mL, then 2 mL, then 7 mL solvent with the same steps to classify; if still undissolved use 10 mg in 10 mL, then 1 mg in 10 mL, else practically insoluble. Protect from light.",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {
+        "sample": "100 mg powdered",
+        "temperature": "25.0 ± 0.5 °C",
+        "holdMin": 15,
+        "shakeMin": 1,
+        "volumesMl": [0.1, 0.9, 2, 7],
+        "smallSampleSteps": ["10 mg in 10 mL", "1 mg in 10 mL"],
+        "solvents": ["water", "acetone", "anhydrous ethanol"],
+        "reference": "BP (SC IV K.) Characters Section in Monographs"
+      },
+      "source": "coenzyme__STM-Coenzyme Q10 (Ubidecarenone) 01-02-2022.txt:30"
+    },
+    {
+      "testCode": "RM-ID-IR",
+      "procedure": "IR identification: mix the substance intimately with potassium bromide and compress into a transparent pellet; compare the spectrum with that of Ubidecarenone RS.",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "details": {
+        "technique": "KBr pellet",
+        "standard": "Ubidecarenone RS",
+        "reference": "BP Appendix II A"
+      },
+      "source": "coenzyme__STM-Coenzyme Q10 (Ubidecarenone) 01-02-2022.txt:31"
+    },
+    {
+      "testCode": "RM-ID-RT",
+      "procedure": "Identification test B: the principal peak of the test solution is compared with the reference solution in the assay chromatogram (see RM-HPLC-COQ-AS).",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "details": {
+        "methodReference": "RM-HPLC-COQ-AS"
+      },
+      "source": "coenzyme__STM-Coenzyme Q10 (Ubidecarenone) 01-02-2022.txt:31",
+      "heldBack": "needs the held-back method \"Coenzyme Q10 assay (BP, HPLC)\""
+    },
+    {
+      "testCode": "RM-MP-QL",
+      "procedure": "Melting point: determine on a sufficient amount of sample with a calibrated melting point apparatus.",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {
+        "expected": "About 48 °C",
+        "reference": "BP Monograph for Ubidecarenone"
+      },
+      "source": "coenzyme__STM-Coenzyme Q10 (Ubidecarenone) 01-02-2022.txt:33"
+    },
+    {
+      "testCode": "RM-KF",
+      "procedure": "Water content: determine on about 3.00 g with a calibrated Karl Fischer titrator.",
+      "kind": "general",
+      "workflow": "Measurement",
+      "details": {
+        "sampleG": 3.00,
+        "moistureRole": "Water",
+        "reference": "BP Appendix IX C"
+      },
+      "source": "coenzyme__STM-Coenzyme Q10 (Ubidecarenone) 01-02-2022.txt:32"
+    },
+    {
+      "testCode": "RM-SASH",
+      "procedure": "Sulphated ash (BP Appendix IX A): crucible previously ignited at 600-650 °C, cooled (W0); weigh 1.0 g (W1 = crucible + material); moisten with about 1 mL sulfuric acid, heat gently until charred, moisten again, heat until white fumes cease; ignite in muffle at 600-650 °C to constant weight (W2). % = (W2 - W0) / (W1 - W0) x 100.",
+      "kind": "general",
+      "workflow": "Gravimetric",
+      "details": {
+        "sampleG": 1.0,
+        "ignitionC": "600-650",
+        "sulfuricAcidMl": "about 1",
+        "formula": "(W2 - W0) / (W1 - W0) x 100",
+        "reference": "BP Appendix IX A"
+      },
+      "source": "coenzyme__STM-Coenzyme Q10 (Ubidecarenone) 01-02-2022.txt:34"
+    },
+    {
+      "testCode": "RM-HPLC-COQ-RS",
+      "procedure": "Related substances (BP, HPLC): test solution 25.0 mg in 25.0 mL anhydrous ethanol (about 50 °C, 2 min); reference (a) 25.0 mg ubidecarenone RS in 25.0 mL; reference (b) 2 mg impurity D RS in 2.0 mL test solution, 1.0 mL of this to 50.0 mL; reference (c) 1.0 mL test solution to 100.0 mL, then 5.0 mL to 10.0 mL, all anhydrous ethanol. Column L = 0.2 m, 4.6 mm, end-capped octadecylsilyl silica gel 5 µm; mobile phase anhydrous ethanol : methanol (20:80 V/V); 1.7 mL/min; 275 nm; 30 °C; 10 µL; run time twice the retention of ubidecarenone; impurity D RRT about 0.7; quantitate each impurity against ubidecarenone in reference (c); reporting threshold 0.05%.",
+      "kind": "specific",
+      "workflow": "HplcMethodAssay",
+      "details": {
+        "mode": "LC",
+        "testSolution": "25.0 mg in 25.0 mL anhydrous ethanol",
+        "referenceA": "25.0 mg ubidecarenone RS in 25.0 mL anhydrous ethanol",
+        "referenceB": "2 mg impurity D RS in 2.0 mL test solution, 1.0 mL to 50.0 mL",
+        "referenceC": "1.0 mL test solution to 100.0 mL, then 5.0 mL to 10.0 mL",
+        "column": "L = 0.2 m, 4.6 mm; end-capped octadecylsilyl silica gel 5 µm",
+        "mobilePhase": "anhydrous ethanol : methanol (20:80 V/V)",
+        "flowRateMlMin": 1.7,
+        "wavelengthNm": 275,
+        "columnTempC": 30,
+        "injectionUl": 10,
+        "runTime": "twice the retention time of ubidecarenone",
+        "relativeRetention": "impurity D about 0.7 (ubidecarenone about 14 min)",
+        "systemSuitability": "reference solution (b)",
+        "quantitation": "each impurity against ubidecarenone in reference solution (c)",
+        "reportingThresholdPercent": 0.05,
+        "reference": "BP Appendix III D"
+      },
+      "source": "coenzyme__STM-Coenzyme Q10 (Ubidecarenone) 01-02-2022.txt:35"
+    },
+    {
+      "testCode": "RM-HPLC-COQ-IMPF",
+      "procedure": "Impurity F (BP, HPLC): test solution 25.0 mg in 25.0 mL hexane; reference (a) the contents of a vial of ubidecarenone for system suitability RS (contains impurity F) in 1.0 mL hexane; reference (b) 1.0 mL test solution to 100.0 mL hexane. Column L = 0.25 m, 4.0 mm, silica gel 7 µm; mobile phase ethyl acetate : hexane (3:97 V/V); 2 mL/min; 275 nm; 20 µL; run time 1.2 times the retention of ubidecarenone; impurity F RRT about 0.85; system suitability reference (a).",
+      "kind": "specific",
+      "workflow": "HplcMethodAssay",
+      "details": {
+        "mode": "LC",
+        "testSolution": "25.0 mg in 25.0 mL hexane",
+        "referenceA": "contents of a vial of ubidecarenone for system suitability RS in 1.0 mL hexane",
+        "referenceB": "1.0 mL test solution to 100.0 mL hexane",
+        "column": "L = 0.25 m, 4.0 mm; silica gel 7 µm",
+        "mobilePhase": "ethyl acetate : hexane (3:97 V/V)",
+        "flowRateMlMin": 2,
+        "wavelengthNm": 275,
+        "injectionUl": 20,
+        "runTime": "1.2 times the retention time of ubidecarenone",
+        "relativeRetention": "impurity F about 0.85 (ubidecarenone about 10 min)",
+        "systemSuitability": "reference solution (a)",
+        "limit": "NMT 0.5 times the principal peak area of reference solution (b) (0.5 per cent)",
+        "reference": "BP Appendix III D"
+      },
+      "source": "coenzyme__STM-Coenzyme Q10 (Ubidecarenone) 01-02-2022.txt:36"
+    },
+    {
+      "testCode": "RM-HPLC-COQ-AS",
+      "procedure": "Assay (BP, HPLC): test solution 25.0 mg in 25.0 mL anhydrous ethanol (about 50 °C, 2 min); standard solution 25.0 mg ubidecarenone RS in 25.0 mL anhydrous ethanol. Column end-capped octadecylsilyl silica gel 5 µm (length and internal diameter not stated); mobile phase anhydrous ethanol : methanol (20:80 V/V); 1.7 mL/min; 275 nm; 30 °C; 10 µL. Result % = (rU/rS) x (CS/CU) x P x 100 / (100 - WC).",
+      "kind": "specific",
+      "workflow": "HplcMethodAssay",
+      "details": {
+        "mode": "LC",
+        "testSolution": "25.0 mg in 25.0 mL anhydrous ethanol",
+        "standardSolution": "25.0 mg ubidecarenone RS in 25.0 mL anhydrous ethanol",
+        "column": "end-capped octadecylsilyl silica gel, 5 µm; length and internal diameter NOT stated",
+        "mobilePhase": "anhydrous ethanol : methanol (20:80 V/V)",
+        "flowRateMlMin": 1.7,
+        "wavelengthNm": 275,
+        "columnTempC": 30,
+        "injectionUl": 10,
+        "runTime": "twice the retention time of ubidecarenone",
+        "formula": "Result = (rU/rS) x (CS/CU) x P x 100/(100 - WC); P = potency of ubidecarenone working standard; WC = water content",
+        "specBasis": "anhydrous substance",
+        "reference": "BP Appendix III D",
+        "missingDetails": "column length and internal diameter not stated"
+      },
+      "source": "coenzyme__STM-Coenzyme Q10 (Ubidecarenone) 01-02-2022.txt:37",
+      "heldBack": "HPLC method incomplete: column length and internal diameter not stated"
+    },
+    {
+      "testCode": "TAMC",
+      "procedure": "Total aerobic microbial count: 'Follow the suitable steps stated in SOP (C2I-91-128)' (SOP not in this STM).",
+      "kind": "general",
+      "workflow": "CountTest",
+      "details": {
+        "limit": "NMT 10^3 CFU/gm",
+        "sop": "C2I-91-128"
+      },
+      "source": "coenzyme__STM-Coenzyme Q10 (Ubidecarenone) 01-02-2022.txt:38"
+    },
+    {
+      "testCode": "TYMC",
+      "procedure": "Total yeast and mold count: 'Follow the suitable steps stated in SOP (C2I-91-128)' (SOP not in this STM).",
+      "kind": "general",
+      "workflow": "CountTest",
+      "details": {
+        "limit": "NMT 10^2 CFU/gm",
+        "sop": "C2I-91-128"
+      },
+      "source": "coenzyme__STM-Coenzyme Q10 (Ubidecarenone) 01-02-2022.txt:38"
+    },
+    {
+      "testCode": "E.coli",
+      "procedure": "Test for E. coli: 'Follow the suitable steps stated in SOP (C2I-91-128)' (SOP not in this STM).",
+      "kind": "general",
+      "workflow": "Observation",
+      "details": {
+        "limit": "Absent/10 gm",
+        "sop": "C2I-91-128"
+      },
+      "source": "coenzyme__STM-Coenzyme Q10 (Ubidecarenone) 01-02-2022.txt:38"
+    }
+  ],
+  "notApplicable": [],
+  "supplierAttributes": [],
+  "reagents": [
+    { "name": "Acetone", "use": "reagent", "source": "coenzyme__STM-Coenzyme Q10 (Ubidecarenone) 01-02-2022.txt:27" },
+    { "name": "Anhydrous ethanol", "use": "reagent", "source": "coenzyme__STM-Coenzyme Q10 (Ubidecarenone) 01-02-2022.txt:27" },
+    { "name": "Ethyl acetate", "use": "reagent", "source": "coenzyme__STM-Coenzyme Q10 (Ubidecarenone) 01-02-2022.txt:27" },
+    { "name": "Methanol HPLC grade", "use": "reagent", "source": "coenzyme__STM-Coenzyme Q10 (Ubidecarenone) 01-02-2022.txt:27" },
+    { "name": "n-Hexane", "use": "reagent", "source": "coenzyme__STM-Coenzyme Q10 (Ubidecarenone) 01-02-2022.txt:27" },
+    { "name": "Potassium hydroxide", "use": "reagent", "source": "coenzyme__STM-Coenzyme Q10 (Ubidecarenone) 01-02-2022.txt:27" },
+    { "name": "Sulfuric acid", "use": "reagent", "source": "coenzyme__STM-Coenzyme Q10 (Ubidecarenone) 01-02-2022.txt:27" },
+    { "name": "Ubidecarenone impurity D", "use": "standard", "source": "coenzyme__STM-Coenzyme Q10 (Ubidecarenone) 01-02-2022.txt:27" },
+    { "name": "Ubidecarenone for system suitability RS", "use": "standard", "source": "coenzyme__STM-Coenzyme Q10 (Ubidecarenone) 01-02-2022.txt:27" },
+    { "name": "Ubidecarenone RS", "use": "standard", "source": "coenzyme__STM-Coenzyme Q10 (Ubidecarenone) 01-02-2022.txt:27" }
+  ],
+  "openQuestions": [
+    {
+      "question": "The spec sheet has no item name, STM code or version line; it is assumed to be the spec for STM-RM-152 (Coenzyme Q10 / Ubidecarenone) from its folder and content. Confirm.",
+      "source": "coenzyme__Specifications sheet.txt:1"
+    },
+    {
+      "question": "Assay HPLC method: the column length and internal diameter are not stated (only 'end-capped octadecylsilyl silica gel, 5 µm'). The assay row, the assay method and the HPLC identification row are held back until the column is specified.",
+      "source": "coenzyme__STM-Coenzyme Q10 (Ubidecarenone) 01-02-2022.txt:37"
+    },
+    {
+      "question": "Microbiological limits read 'Not more than 103 CFU/gm' and '102 CFU /gm' (superscript lost); read as 10^3 = 1000 and 10^2 = 100 CFU/g. Confirm. Micro methods only referenced to SOP C2I-91-128, which is not in this STM.",
+      "source": "coenzyme__Specifications sheet.txt:12; coenzyme__Specifications sheet.txt:13; coenzyme__STM-Coenzyme Q10 (Ubidecarenone) 01-02-2022.txt:38"
+    }
+  ]
+}

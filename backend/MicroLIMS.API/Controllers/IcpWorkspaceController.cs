@@ -34,10 +34,6 @@ public class IcpWorkspaceController : ControllerBase
     public async Task<IActionResult> GetInstruments() =>
         Ok(ApiResponse<object>.Ok(await _service.GetInstrumentsAsync(CurrentUserId)));
 
-    [HttpGet("method-options")]
-    public async Task<IActionResult> GetMethodOptions() =>
-        Ok(ApiResponse<object>.Ok(await _service.GetMethodOptionsAsync(CurrentUserId)));
-
     [HttpGet("instruments/{equipmentId:int}/runs")]
     public async Task<IActionResult> GetRunHistory(int equipmentId) =>
         Ok(ApiResponse<object>.Ok(await _service.GetRunHistoryAsync(equipmentId, CurrentUserId)));
@@ -57,6 +53,11 @@ public class IcpWorkspaceController : ControllerBase
     [HttpGet("samples/{runSampleId:int}")]
     public async Task<IActionResult> GetSampleEntry(int runSampleId) =>
         Ok(ApiResponse<object>.Ok(await _service.GetSampleEntryAsync(runSampleId, CurrentUserId)));
+
+    // Auto-fill: the results the sample's uploaded instrument report proposes. Read-only; the analyst reviews and saves.
+    [HttpGet("samples/{runSampleId:int}/report-values")]
+    public async Task<IActionResult> GetReportValues(int runSampleId, [FromQuery] int? solutionIndex) =>
+        Ok(ApiResponse<object>.Ok(await _service.GetReportValuesAsync(runSampleId, solutionIndex, CurrentUserId)));
 
     [HttpGet("evidence/{id:int}/file")]
     public async Task<IActionResult> DownloadEvidence(int id)
@@ -83,11 +84,6 @@ public class IcpWorkspaceController : ControllerBase
         Ok(ApiResponse<object>.Ok(await _service.ConfirmCalibrationAsync(id, r, CurrentUserId, ClientIpAddress)));
 
     [Authorize(Policy = PermissionConstants.HplcOperate)]
-    [HttpPost("runs/{id:int}/ccv")]
-    public async Task<IActionResult> AddCcv(int id, [FromBody] AddIcpCcvRequest r) =>
-        Ok(ApiResponse<object>.Ok(await _service.AddCcvReadingAsync(id, r, CurrentUserId)));
-
-    [Authorize(Policy = PermissionConstants.HplcOperate)]
     [HttpPost("runs/{id:int}/abandon")]
     public async Task<IActionResult> Abandon(int id, [FromBody] ReasonRequest body) =>
         Ok(ApiResponse<object>.Ok(await _service.AbandonRunAsync(id, body.Reason, CurrentUserId)));
@@ -102,7 +98,7 @@ public class IcpWorkspaceController : ControllerBase
     [Authorize(Policy = PermissionConstants.HplcOperate)]
     [HttpPost("runs/{id:int}/samples")]
     public async Task<IActionResult> AssignSamples(int id, [FromBody] AssignIcpSamplesRequest r) =>
-        Ok(ApiResponse<object>.Ok(await _service.AssignSamplesAsync(id, r.TestOrderIds, CurrentUserId)));
+        Ok(ApiResponse<object>.Ok(await _service.AssignSamplesAsync(id, r, CurrentUserId, ClientIpAddress)));
 
     [Authorize(Policy = PermissionConstants.HplcOperate)]
     [HttpPost("runs/{id:int}/samples/{runSampleId:int}/remove")]
@@ -110,9 +106,9 @@ public class IcpWorkspaceController : ControllerBase
         Ok(ApiResponse<object>.Ok(await _service.RemoveSampleAsync(id, runSampleId, body.Reason, CurrentUserId)));
 
     [Authorize(Policy = PermissionConstants.HplcOperate)]
-    [HttpPut("samples/{runSampleId:int}/replicates")]
-    public async Task<IActionResult> SaveReplicates(int runSampleId, [FromBody] SaveIcpReplicatesRequest r) =>
-        Ok(ApiResponse<object>.Ok(await _service.SaveReplicatesAsync(runSampleId, r, CurrentUserId)));
+    [HttpPut("samples/{runSampleId:int}/entry")]
+    public async Task<IActionResult> SaveEntry(int runSampleId, [FromBody] SaveIcpSampleEntryRequest r) =>
+        Ok(ApiResponse<object>.Ok(await _service.SaveEntryAsync(runSampleId, r, CurrentUserId)));
 
     [Authorize(Policy = PermissionConstants.HplcOperate)]
     [HttpPost("samples/{runSampleId:int}/submit")]

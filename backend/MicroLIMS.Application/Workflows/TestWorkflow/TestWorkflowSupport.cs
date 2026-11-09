@@ -624,7 +624,14 @@ public class TestWorkflowSupport
         }
 
         if (order.Sample?.ItemId is null)
+        {
+            if (order.Sample?.Category == SampleCategory.AfterCleaning
+                && (expectedWorkflowType == WorkflowType.HplcMethodAssay || expectedWorkflowType == WorkflowType.IcpMethodAssay))
+            {
+                return (order, definition, new Dictionary<int, Specification>(), analysedAtUtc);
+            }
             throw new InvalidOperationException("Test order sample must be linked to an item with specifications.");
+        }
 
         var itemId = order.Sample.ItemId.Value;
 
@@ -659,8 +666,8 @@ public class TestWorkflowSupport
         }
         else if (expectedWorkflowType == WorkflowType.IcpMethodAssay)
         {
-            if (specs.Any(s => !s.IcpMethodElementId.HasValue))
-                throw new InvalidOperationException("Every specification for an ICP method assay must be linked to a method element.");
+            if (specs.Any(s => !s.IcpTestElementId.HasValue))
+                throw new InvalidOperationException("Every specification for an ICP method assay must be linked to a test element.");
         }
         else
         {

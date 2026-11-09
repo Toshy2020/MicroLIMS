@@ -44,23 +44,15 @@ export function IcpWorkflowStepRail({ run, activeTabKey, onSelectTab }: IcpWorkf
   const steps: StepDefinition[] = [
     {
       index: 0,
-      label: "Run Setup",
-      tabKey: "overview",
-      isCompleted: true,
-      isCurrent: activeTabKey === "overview",
-      isLocked: false
-    },
-    {
-      index: 1,
       label: "Calibration",
       tabKey: "calibration",
       isCompleted: calConfirmed,
       isFailed: calFailed && calPending,
-      isCurrent: activeTabKey === "calibration" || (calPending && activeTabKey === "overview"),
+      isCurrent: activeTabKey === "calibration",
       isLocked: false
     },
     {
-      index: 2,
+      index: 1,
       label: "Samples",
       tabKey: "samples",
       isCompleted: calConfirmed && sampleCount > 0,
@@ -73,7 +65,7 @@ export function IcpWorkflowStepRail({ run, activeTabKey, onSelectTab }: IcpWorkf
           : "Sample assignment is locked until calibration is confirmed.")
     },
     {
-      index: 3,
+      index: 2,
       label: "Testing & Evidence",
       tabKey: "evidence",
       isCompleted: allSamplesProcessed,
@@ -86,11 +78,11 @@ export function IcpWorkflowStepRail({ run, activeTabKey, onSelectTab }: IcpWorkf
         : undefined
     },
     {
-      index: 4,
+      index: 3,
       label: "Review & Complete",
-      tabKey: "overview",
+      tabKey: "samples",
       isCompleted: run.status === "Completed",
-      isCurrent: activeTabKey === "overview" && run.status === "Completed",
+      isCurrent: false,
       isLocked: run.status === "Open" && sampleCount === 0,
       lockReason:
         run.status === "Open" && sampleCount === 0

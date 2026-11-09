@@ -1,0 +1,368 @@
+{
+  "itemCode": "STM-RM-090",
+  "stmCode": null,
+  "itemName": "Maize Starch",
+  "stmFile": null,
+  "specFiles": ["Maize Starch__Specifications sheet Maize Starch.txt"],
+  "minQuantity": {
+    "routine": 50,
+    "retest": null,
+    "retention": null,
+    "unit": "g",
+    "source": "Maize Starch__Specifications sheet Maize Starch.txt:26"
+  },
+  "grades": [
+    {
+      "grade": null,
+      "rows": [
+        {
+          "testCode": "RM-DESC",
+          "parameterName": "Appearance",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Matt, white to slightly yellowish, very fine powder that creaks when pressed between the fingers.",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP 2024",
+          "source": "Maize Starch__Specifications sheet Maize Starch.txt:11"
+        },
+        {
+          "testCode": "RM-SOLUB",
+          "parameterName": "Solubility",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Practically insoluble in cold water and in ethanol (96 per cent).",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP 2024",
+          "source": "Maize Starch__Specifications sheet Maize Starch.txt:12"
+        },
+        {
+          "testCode": "RM-ID-MAIZE",
+          "parameterName": "Identification (microscopic: black cross at the hilum)",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "The starch granules show a distinct black cross intersecting at the hilum.",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP 2024",
+          "source": "Maize Starch__Specifications sheet Maize Starch.txt:13",
+          "heldBack": "no STM: method not documented"
+        },
+        {
+          "testCode": "RM-ID-MAIZE",
+          "parameterName": "Identification (reactions of iodides: mucilage)",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "A thin, cloudy mucilage is formed.",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP 2024",
+          "source": "Maize Starch__Specifications sheet Maize Starch.txt:14",
+          "heldBack": "no STM: method not documented"
+        },
+        {
+          "testCode": "RM-ID-MAIZE",
+          "parameterName": "Identification (iodine colour, disappears on heating)",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "An orange-red to dark blue colour is produced, which disappears on heating.",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP 2024",
+          "source": "Maize Starch__Specifications sheet Maize Starch.txt:15",
+          "heldBack": "no STM: method not documented"
+        },
+        {
+          "testCode": "RM-PH",
+          "parameterName": "pH",
+          "limitType": "Range",
+          "lower": 4.0,
+          "upper": 7.0,
+          "lowerInclusive": true,
+          "unit": null,
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP 2024",
+          "source": "Maize Starch__Specifications sheet Maize Starch.txt:16"
+        },
+        {
+          "testCode": "RM-FM-MAIZE",
+          "parameterName": "Foreign matter (microscopic)",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "No starch granules of any other origin are present.",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP 2024",
+          "source": "Maize Starch__Specifications sheet Maize Starch.txt:17",
+          "heldBack": "no STM: method not documented"
+        },
+        {
+          "testCode": "RM-OXID-MAIZE",
+          "parameterName": "Oxidizing substances",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 20,
+          "lowerInclusive": null,
+          "unit": "ppm",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": "Ppm",
+          "referenceStandard": "BP 2024",
+          "source": "Maize Starch__Specifications sheet Maize Starch.txt:18",
+          "heldBack": "no STM: method not documented"
+        },
+        {
+          "testCode": "RM-LT-FE",
+          "parameterName": "Iron",
+          "limitType": "Qualitative",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": null,
+          "expectedResultText": "Complies (NMT 10 ppm)",
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP 2024",
+          "source": "Maize Starch__Specifications sheet Maize Starch.txt:19"
+        },
+        {
+          "testCode": "RM-LOD",
+          "parameterName": "Loss on drying",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 15.0,
+          "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP 2024",
+          "source": "Maize Starch__Specifications sheet Maize Starch.txt:20"
+        },
+        {
+          "testCode": "RM-SASH",
+          "parameterName": "Sulfated ash",
+          "limitType": "NotMoreThan",
+          "lower": null,
+          "upper": 0.6,
+          "lowerInclusive": null,
+          "unit": "%",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP 2024",
+          "source": "Maize Starch__Specifications sheet Maize Starch.txt:21"
+        },
+        {
+          "testCode": "TAMC",
+          "parameterName": "Total aerobic microbial count (TAMC)",
+          "limitType": "CountTiered",
+          "lower": null,
+          "upper": 1000,
+          "lowerInclusive": null,
+          "unit": "CFU/g",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP 2024",
+          "source": "Maize Starch__Specifications sheet Maize Starch.txt:22"
+        },
+        {
+          "testCode": "TYMC",
+          "parameterName": "Total yeasts and molds count (TYMC)",
+          "limitType": "CountTiered",
+          "lower": null,
+          "upper": 100,
+          "lowerInclusive": null,
+          "unit": "CFU/g",
+          "expectedResultText": null,
+          "expectedState": null,
+          "resultBasis": null,
+          "referenceStandard": "BP 2024",
+          "source": "Maize Starch__Specifications sheet Maize Starch.txt:23"
+        },
+        {
+          "testCode": "E.coli",
+          "parameterName": "Test for E. coli",
+          "limitType": "PresenceAbsence",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": "per g",
+          "expectedResultText": "Absent / gm",
+          "expectedState": "Absence",
+          "resultBasis": null,
+          "referenceStandard": "BP 2024",
+          "source": "Maize Starch__Specifications sheet Maize Starch.txt:24"
+        },
+        {
+          "testCode": "Salmonella ",
+          "parameterName": "Test for Salmonella spp.",
+          "limitType": "PresenceAbsence",
+          "lower": null,
+          "upper": null,
+          "lowerInclusive": null,
+          "unit": "per 10 g",
+          "expectedResultText": "Absent / 10 gm",
+          "expectedState": "Absence",
+          "resultBasis": null,
+          "referenceStandard": "BP 2024",
+          "source": "Maize Starch__Specifications sheet Maize Starch.txt:25"
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "testCode": "RM-DESC",
+      "procedure": "No STM: method not documented (general catalog test).",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {},
+      "source": "Maize Starch__Specifications sheet Maize Starch.txt:11"
+    },
+    {
+      "testCode": "RM-SOLUB",
+      "procedure": "No STM: method not documented (general catalog test).",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {},
+      "source": "Maize Starch__Specifications sheet Maize Starch.txt:12"
+    },
+    {
+      "testCode": "RM-ID-MAIZE",
+      "procedure": "No STM: method not documented (microscopic and iodide identifications).",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "details": {},
+      "source": "Maize Starch__Specifications sheet Maize Starch.txt:13-15",
+      "heldBack": "no STM: method not documented"
+    },
+    {
+      "testCode": "RM-PH",
+      "procedure": "No STM: method not documented (general catalog test).",
+      "kind": "general",
+      "workflow": "Measurement",
+      "details": {},
+      "source": "Maize Starch__Specifications sheet Maize Starch.txt:16"
+    },
+    {
+      "testCode": "RM-FM-MAIZE",
+      "procedure": "No STM: method not documented (microscopic foreign matter).",
+      "kind": "specific",
+      "workflow": "Qualitative",
+      "details": {},
+      "source": "Maize Starch__Specifications sheet Maize Starch.txt:17",
+      "heldBack": "no STM: method not documented"
+    },
+    {
+      "testCode": "RM-OXID-MAIZE",
+      "procedure": "No STM: method not documented (oxidizing substances, titration).",
+      "kind": "specific",
+      "workflow": "Titration",
+      "details": {},
+      "source": "Maize Starch__Specifications sheet Maize Starch.txt:18",
+      "heldBack": "no STM: method not documented"
+    },
+    {
+      "testCode": "RM-LT-FE",
+      "procedure": "No STM: method not documented (general catalog test).",
+      "kind": "general",
+      "workflow": "Qualitative",
+      "details": {},
+      "source": "Maize Starch__Specifications sheet Maize Starch.txt:19"
+    },
+    {
+      "testCode": "RM-LOD",
+      "procedure": "No STM: method not documented (general catalog test).",
+      "kind": "general",
+      "workflow": "Gravimetric",
+      "details": {},
+      "source": "Maize Starch__Specifications sheet Maize Starch.txt:20"
+    },
+    {
+      "testCode": "RM-SASH",
+      "procedure": "No STM: method not documented (general catalog test).",
+      "kind": "general",
+      "workflow": "Gravimetric",
+      "details": {},
+      "source": "Maize Starch__Specifications sheet Maize Starch.txt:21"
+    },
+    {
+      "testCode": "TAMC",
+      "procedure": "No STM: method not documented; limit from spec sheet.",
+      "kind": "general",
+      "workflow": "CountTest",
+      "details": {},
+      "source": "Maize Starch__Specifications sheet Maize Starch.txt:22"
+    },
+    {
+      "testCode": "TYMC",
+      "procedure": "No STM: method not documented; limit from spec sheet.",
+      "kind": "general",
+      "workflow": "CountTest",
+      "details": {},
+      "source": "Maize Starch__Specifications sheet Maize Starch.txt:23"
+    },
+    {
+      "testCode": "E.coli",
+      "procedure": "No STM: method not documented; limit from spec sheet.",
+      "kind": "general",
+      "workflow": "Observation",
+      "details": {},
+      "source": "Maize Starch__Specifications sheet Maize Starch.txt:24"
+    },
+    {
+      "testCode": "Salmonella ",
+      "procedure": "No STM: method not documented; limit from spec sheet.",
+      "kind": "general",
+      "workflow": "Observation",
+      "details": {},
+      "source": "Maize Starch__Specifications sheet Maize Starch.txt:25"
+    }
+  ],
+  "notApplicable": [],
+  "supplierAttributes": [
+    { "grade": null, "name": "Sulfur dioxide", "statedValue": "Maximum 50 ppm", "source": "Maize Starch__Specifications sheet Maize Starch.txt:26" }
+  ],
+  "reagents": [],
+  "openQuestions": [
+    {
+      "question": "Spec-only: no STM for this material (the spec sheet carries C5I-91-192 as its STM code). Every specific test is held back until an STM documents the method.",
+      "source": "Maize Starch__Specifications sheet Maize Starch.txt:9, 12-21"
+    },
+    {
+      "question": "E. coli is printed 'Absent / gm' (no 10 g quantity), while the other sheets and the catalog use Absent / 10 gm. Loaded as written with unit 'per g'; confirm the sample quantity.",
+      "source": "Maize Starch__Specifications sheet Maize Starch.txt:24"
+    },
+    {
+      "question": "Sulfur dioxide maximum 50 ppm is an additional requirement with no test; recorded as a supplier attribute only.",
+      "source": "Maize Starch__Specifications sheet Maize Starch.txt:26"
+    },
+    {
+      "question": "pH technique is given as 'Voltammetry'. Limit 4.0 to 7.0 loaded as written; confirm the technique.",
+      "source": "Maize Starch__Specifications sheet Maize Starch.txt:16"
+    }
+  ]
+}

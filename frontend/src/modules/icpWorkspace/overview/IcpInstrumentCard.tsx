@@ -107,7 +107,7 @@ export function IcpInstrumentCard({
               <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                 <BiotechIcon sx={{ fontSize: 16, color: "text.secondary" }} />
                 <Typography variant="body2" sx={{ fontSize: 13 }}>
-                  Method: <strong>{instrument.activeRun.methodAbbreviation}</strong>
+                  Run: <strong>{instrument.activeRun.code}</strong>
                 </Typography>
               </Box>
 

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { TextField, Button, Stack, Alert, Select, MenuItem, Box, Typography, FormControlLabel, Chip, Tooltip, FormControl, InputLabel, FormHelperText, Switch } from "@mui/material";
 import { getMySections, getSections, LaboratorySection } from "../../../services/laboratorySectionService";
 import AddIcon from "@mui/icons-material/Add";
@@ -35,8 +36,11 @@ import type { UvCalculationMode } from "../../../services/masterDataOptions";
 // Freezing a test hides it from those pickers' dropdown for *new*
 // selections without touching anything that already references its
 // Code - see useTestDefinitions.activeOptions.
+// Query parameter naming the test whose "Details & Workflow Steps" dialog is open.
+const OPEN_TEST_PARAM = "test";
+
 export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; area?: PageArea }) {
-  const { options: allOptions, addNew, update, setActive, reload } = useTestDefinitions();
+  const { options: allOptions, loading: definitionsLoading, addNew, update, setActive, reload } = useTestDefinitions();
   const isFp = lab === "fp";
   const workflowTypes = WORKFLOW_TYPES_BY_LAB[lab];
   const defaultWorkflowType: string = isFp ? "HplcMethodAssay" : "Observation";
@@ -136,7 +140,24 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
   const [allMySections, setMySections] = useState<LaboratorySection[]>([]);
   const mySections = allMySections.filter((s) => sectionsState === "loaded" && inLab(s.sectionId));
   const [message, setMessage] = useState<{ text: string; ok: boolean } | null>(null);
-  const [expandedId, setExpandedId] = useState<number | null>(null);
+  // Code of the test the open Add dialog was copied from (null for a plain add or an edit).
+  const [duplicateOfCode, setDuplicateOfCode] = useState<string | null>(null);
+  // The test whose details dialog is open lives in the URL (?test=<id>), so the
+  // address can be bookmarked or shared and survives a reload.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const testParam = searchParams.get(OPEN_TEST_PARAM);
+  const expandedId = testParam !== null && /^\d+$/.test(testParam) ? Number(testParam) : null;
+  const setExpandedId = (id: number | null) => {
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        if (id === null) next.delete(OPEN_TEST_PARAM);
+        else next.set(OPEN_TEST_PARAM, String(id));
+        return next;
+      },
+      { replace: true }
+    );
+  };
   const [search, setSearch] = useState("");
 
   useEffect(() => {
@@ -145,7 +166,24 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
       .catch(failDialogList("your laboratory sections"));
   }, [failDialogList]);
 
+  // A ?test=<id> that names nothing on this page (wrong lab, deleted, mistyped) is
+  // ignored silently and dropped from the address once the lists have loaded.
+  const listsLoaded = sectionsState === "loaded" && !definitionsLoading;
+  const testParamMatches = expandedId !== null && options.some((t) => t.id === expandedId);
+  useEffect(() => {
+    if (!listsLoaded || testParam === null || testParamMatches) return;
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        next.delete(OPEN_TEST_PARAM);
+        return next;
+      },
+      { replace: true }
+    );
+  }, [listsLoaded, testParam, testParamMatches, setSearchParams]);
+
   const openCreateDialog = () => {
+    setDuplicateOfCode(null);
     setEditingId(null);
     setEditingTest(null);
     setCode("");
@@ -199,14 +237,13 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
     setDialogOpen(true);
   };
 
-  const startEdit = (t: TestDefinitionOption) => {
-    setEditingId(t.id);
-    setEditingTest(t);
+  // Fills every form field from a saved test. Shared by Edit and Duplicate so the
+  // two cannot drift apart; the callers decide what else to set.
+  const fillFormFromTest = (t: TestDefinitionOption) => {
     setCode(t.code);
     setDisplayName(t.displayName);
     setCoaDisplayOrder(t.coaDisplayOrder != null ? String(t.coaDisplayOrder) : "");
     setSectionId(t.sectionId ?? (mySections.length === 1 ? mySections[0].sectionId : ""));
-    setEditingSectionId(t.sectionId ?? null);
     setWorkflowType(t.workflowType || defaultWorkflowType);
     setEquationType(t.equationType || (t.workflowType === "HplcMethodAssay" ? "HplcMethodAssay" : t.workflowType === "IcpMethodAssay" ? "IcpMethodAssay" : t.workflowType === "Measurement" ? "Measurement" : t.workflowType === "Gravimetric" ? "GravimetricLoss" : t.workflowType === "Qualitative" ? "Qualitative" : t.workflowType === "Dissolution" ? "Dissolution" : t.workflowType === "Disintegration" ? "Disintegration" : t.workflowType === "WeightVariation" ? "WeightVariation" : t.workflowType === "Titration" ? "Titration" : t.workflowType === "UvSpectrophotometry" ? "UvSpectrophotometry" : "None"));
     setRequiresSystemSuitability((t.workflowType === "Dissolution" || t.workflowType === "HplcMethodAssay") ? true : (t.workflowType === "Disintegration" || t.workflowType === "WeightVariation" || t.workflowType === "IcpMethodAssay" || t.workflowType === "UvSpectrophotometry") ? false : !!t.requiresSystemSuitability);
@@ -253,7 +290,35 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
     setDialogOpen(true);
   };
 
+  const startEdit = (t: TestDefinitionOption) => {
+    setEditingId(t.id);
+    setEditingTest(t);
+    setEditingSectionId(t.sectionId ?? null);
+    setDuplicateOfCode(null);
+    fillFormFromTest(t);
+  };
+
+  // Opens the ADD dialog prefilled from an existing test. Nothing is saved until
+  // the user presses "Add Test", so the server validates it like any new test.
+  const startDuplicate = (t: TestDefinitionOption) => {
+    setEditingId(null);
+    setEditingTest(null);
+    setEditingSectionId(null);
+    setDuplicateOfCode(t.code);
+    fillFormFromTest(t);
+    setCode("");
+    setDisplayName(`${t.displayName} (copy)`);
+    setCoaDisplayOrder("");
+    // A section the user cannot work in is not offered by the picker.
+    if (t.sectionId == null || !mySections.some((s) => s.sectionId === t.sectionId)) {
+      setSectionId(mySections.length === 1 ? mySections[0].sectionId : "");
+    }
+    // The copy gets its own elements; keeping the source ids would point it at the original's.
+    setIcp((form) => ({ ...form, elements: form.elements.map((e) => ({ ...e, id: undefined })) }));
+  };
+
   const closeDialog = () => {
+    setDuplicateOfCode(null);
     setDialogOpen(false);
     setEditingId(null);
     setEditingTest(null);
@@ -637,8 +702,10 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
           uvStandardVolumeMl: isUv && uvCalculationMode === "StandardComparison" && uvStandardVolumeMl !== "" ? Number(uvStandardVolumeMl) : null,
           uvStandardEntryId: isUv && uvCalculationMode === "StandardComparison" && uvStandardEntryId !== "" ? uvStandardEntryId : null
         };
-        await addNew(payload);
+        const created = await addNew(payload);
         setMessage({ text: `Test "${trimmedCode}" added to the Test Master.`, ok: true });
+        // A new microbiology test has no workflow steps yet: open them straight away.
+        if (!isFp && created?.id != null) setExpandedId(created.id);
       }
       closeDialog();
     } catch (e: unknown) {
@@ -796,6 +863,7 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
           rowActions={(t) => [
             { label: "Details & Workflow Steps", onClick: () => setExpandedId(t.id) },
             { label: "Edit", onClick: () => startEdit(t) },
+            { label: "Duplicate", onClick: () => startDuplicate(t) },
             { label: t.isActive ? "Freeze" : "Unfreeze", onClick: () => { void toggleFreeze(t); }, danger: t.isActive }
           ]}
           empty={{
@@ -820,7 +888,7 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
       {/* A form, so Enter in any field saves the test. */}
       <FormDialog
         open={dialogOpen}
-        title={editingId ? "Edit Test" : "Add Test"}
+        title={editingId ? "Edit Test" : duplicateOfCode !== null ? `Add Test (copy of ${duplicateOfCode})` : "Add Test"}
         onClose={closeDialog}
         onSubmit={save}
         submitLabel={editingId ? "Save Changes" : "Add Test"}

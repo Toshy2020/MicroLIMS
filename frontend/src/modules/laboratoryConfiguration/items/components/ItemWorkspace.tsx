@@ -40,16 +40,40 @@ import { clickable } from "../../../../utils/clickable";
 import { useHasPermission } from "../../../../contexts/AuthContext";
 import { PERMISSIONS } from "../../../../routes/routes";
 
+export const ITEM_WORKSPACE_TABS = [
+  "overview",
+  "tests",
+  "specifications",
+  "records",
+  "documents",
+  "preparation",
+  "audit",
+] as const;
+export type ItemWorkspaceTab = (typeof ITEM_WORKSPACE_TABS)[number];
+
+/** Resolves an untrusted value (e.g. a URL parameter) to a workspace tab; unknown values fall back to Overview. */
+export function parseItemWorkspaceTab(value: string | null | undefined): ItemWorkspaceTab {
+  return ITEM_WORKSPACE_TABS.find((t) => t === value) ?? "overview";
+}
+
 interface ItemWorkspaceProps {
   item: Item;
   onClose: () => void;
   onItemUpdated?: () => void;
+  /** Controlled active tab (e.g. kept in the URL). When absent the workspace keeps its own tab state. */
+  activeTab?: ItemWorkspaceTab;
+  onTabChange?: (tab: ItemWorkspaceTab) => void;
 }
 
-export function ItemWorkspace({ item, onClose, onItemUpdated }: ItemWorkspaceProps) {
+export function ItemWorkspace({ item, onClose, onItemUpdated, activeTab: controlledTab, onTabChange }: ItemWorkspaceProps) {
   // The QC Manager opens this workspace to approve not-applicable tests; changing the item needs Items.Manage.
   const canManage = useHasPermission(PERMISSIONS.ITEMS_MANAGE);
-  const [activeTab, setActiveTab] = useState(0);
+  const [internalTab, setInternalTab] = useState<ItemWorkspaceTab>("overview");
+  const activeTab = controlledTab ?? internalTab;
+  const setActiveTab = (tab: ItemWorkspaceTab) => {
+    if (controlledTab === undefined) setInternalTab(tab);
+    onTabChange?.(tab);
+  };
   const [documents, setDocuments] = useState<ItemDocumentDto[]>([]);
   const [_loadingDocs, setLoadingDocs] = useState(false);
   const [docError, setDocError] = useState<string | null>(null);
@@ -124,8 +148,9 @@ export function ItemWorkspace({ item, onClose, onItemUpdated }: ItemWorkspacePro
   const specsCount = item.specifications?.length ?? 0;
 
   const grades = useMemo(() => {
-    if (Array.isArray((item as any).grades)) {
-      return (item as any).grades as string[];
+    const declaredGrades = (item as Item & { grades?: unknown }).grades;
+    if (Array.isArray(declaredGrades)) {
+      return declaredGrades as string[];
     }
     const set = new Set<string>();
     for (const s of item.specifications || []) {
@@ -202,30 +227,33 @@ export function ItemWorkspace({ item, onClose, onItemUpdated }: ItemWorkspacePro
 
       {/* Tabs */}
       <Box sx={{ borderBottom: 1, borderColor: "divider", px: 2, bgcolor: "background.paper" }}>
-        <Tabs value={activeTab} onChange={(_, val) => setActiveTab(val)} variant="scrollable" scrollButtons="auto">
-          <Tab label="Overview" sx={{ textTransform: "none", fontWeight: 600, fontSize: 13 }} />
+        <Tabs value={activeTab} onChange={(_, val: ItemWorkspaceTab) => setActiveTab(val)} variant="scrollable" scrollButtons="auto">
+          <Tab value="overview" label="Overview" sx={{ textTransform: "none", fontWeight: 600, fontSize: 13 }} />
           <Tab
+            value="tests"
             label={`Assigned Tests (${item.assignedTests?.length || 0})`}
             sx={{ textTransform: "none", fontWeight: 600, fontSize: 13 }}
           />
           <Tab
+            value="specifications"
             label={`Specifications (${specsCount})`}
             sx={{ textTransform: "none", fontWeight: 600, fontSize: 13 }}
           />
-          <Tab label="Supporting Records" sx={{ textTransform: "none", fontWeight: 600, fontSize: 13 }} />
+          <Tab value="records" label="Supporting Records" sx={{ textTransform: "none", fontWeight: 600, fontSize: 13 }} />
           <Tab
+            value="documents"
             label={`Documents & Attachments (${documents.length})`}
             sx={{ textTransform: "none", fontWeight: 600, fontSize: 13 }}
           />
-          <Tab label="Preparation Configuration" sx={{ textTransform: "none", fontWeight: 600, fontSize: 13 }} />
-          <Tab label="Audit History" sx={{ textTransform: "none", fontWeight: 600, fontSize: 13 }} />
+          <Tab value="preparation" label="Preparation Configuration" sx={{ textTransform: "none", fontWeight: 600, fontSize: 13 }} />
+          <Tab value="audit" label="Audit History" sx={{ textTransform: "none", fontWeight: 600, fontSize: 13 }} />
         </Tabs>
       </Box>
 
       {/* Tab Content */}
       <Box sx={{ p: 2.5, flexGrow: 1, overflowY: "auto" }}>
         {/* Tab 0: Overview */}
-        {activeTab === 0 && (
+        {activeTab === "overview" && (
           <Stack spacing={2.5}>
             <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 2 }}>
               <Paper sx={{ p: 2, bgcolor: "background.default", border: "1px solid", borderColor: "divider" }}>
@@ -311,8 +339,8 @@ export function ItemWorkspace({ item, onClose, onItemUpdated }: ItemWorkspacePro
                     borderRadius: 1,
                     "&:hover": { bgcolor: "action.hover" },
                   }}
-                  onClick={() => setActiveTab(1)}
-                  {...clickable(() => setActiveTab(1))}
+                  onClick={() => setActiveTab("tests")}
+                  {...clickable(() => setActiveTab("tests"))}
                 >
                   <Typography variant="body2" sx={{ color: "text.secondary" }}>
                     Assigned Tests:
@@ -332,8 +360,8 @@ export function ItemWorkspace({ item, onClose, onItemUpdated }: ItemWorkspacePro
                     borderRadius: 1,
                     "&:hover": { bgcolor: "action.hover" },
                   }}
-                  onClick={() => setActiveTab(2)}
-                  {...clickable(() => setActiveTab(2))}
+                  onClick={() => setActiveTab("specifications")}
+                  {...clickable(() => setActiveTab("specifications"))}
                 >
                   <Typography variant="body2" sx={{ color: "text.secondary" }}>
                     Specifications:
@@ -353,8 +381,8 @@ export function ItemWorkspace({ item, onClose, onItemUpdated }: ItemWorkspacePro
                     borderRadius: 1,
                     "&:hover": { bgcolor: "action.hover" },
                   }}
-                  onClick={() => setActiveTab(4)}
-                  {...clickable(() => setActiveTab(4))}
+                  onClick={() => setActiveTab("documents")}
+                  {...clickable(() => setActiveTab("documents"))}
                 >
                   <Typography variant="body2" sx={{ color: "text.secondary" }}>
                     Controlled Documents:
@@ -374,8 +402,8 @@ export function ItemWorkspace({ item, onClose, onItemUpdated }: ItemWorkspacePro
                     borderRadius: 1,
                     "&:hover": { bgcolor: "action.hover" },
                   }}
-                  onClick={() => setActiveTab(5)}
-                  {...clickable(() => setActiveTab(5))}
+                  onClick={() => setActiveTab("preparation")}
+                  {...clickable(() => setActiveTab("preparation"))}
                 >
                   <Typography variant="body2" sx={{ color: "text.secondary" }}>
                     Preparation Steps:
@@ -398,12 +426,12 @@ export function ItemWorkspace({ item, onClose, onItemUpdated }: ItemWorkspacePro
         )}
 
         {/* Tab 1: Assigned Tests */}
-        {activeTab === 1 && (
+        {activeTab === "tests" && (
           <ItemAssignedTestsSection key={item.id} item={item} readOnly={!canManage} onSaved={onItemUpdated} />
         )}
 
         {/* Tab 2: Specifications */}
-        {activeTab === 2 && (
+        {activeTab === "specifications" && (
           <ItemSpecificationsSection
             item={item}
             readOnly={!canManage}
@@ -414,7 +442,7 @@ export function ItemWorkspace({ item, onClose, onItemUpdated }: ItemWorkspacePro
         )}
 
         {/* Tab 3: Supporting Records */}
-        {activeTab === 3 && (
+        {activeTab === "records" && (
           <Stack spacing={4}>
             <NotApplicableTestsSection
               itemId={item.id}
@@ -430,7 +458,7 @@ export function ItemWorkspace({ item, onClose, onItemUpdated }: ItemWorkspacePro
         )}
 
         {/* Tab 4: Documents & Attachments */}
-        {activeTab === 4 && (
+        {activeTab === "documents" && (
           <Stack spacing={3}>
             {docError && <Alert severity="error">{docError}</Alert>}
 
@@ -502,7 +530,7 @@ export function ItemWorkspace({ item, onClose, onItemUpdated }: ItemWorkspacePro
         )}
 
         {/* Tab 5: Preparation Configuration */}
-        {activeTab === 5 && (
+        {activeTab === "preparation" && (
           <ItemPreparationConfigurationSection
             itemId={item.id}
             itemName={item.name}
@@ -511,7 +539,7 @@ export function ItemWorkspace({ item, onClose, onItemUpdated }: ItemWorkspacePro
         )}
 
         {/* Tab 6: Audit History */}
-        {activeTab === 6 && (
+        {activeTab === "audit" && (
           <Stack spacing={2} sx={{
             alignItems: "flex-start"
           }}>

@@ -19,22 +19,20 @@ import {
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import AddIcon from "@mui/icons-material/Add";
+import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import { Item } from "../services/ItemService";
 import {
   SpecificationService,
   SpecificationDto,
-  LimitType,
   productionStageRoleLabel
 } from "../../specifications/services/SpecificationService";
 import { collapseGrades, gradesOf, siblingsOf } from "../../specifications/services/gradeGroups";
 import { ConfirmationDialog } from "../../../../components/ConfirmationDialog";
 import { tableHeadSx } from "../../../../theme";
 import { masterDataOptions } from "../../../../services/masterDataOptions";
-import {
-  SpecificationParameterDialog,
-  TestDefinitionSummary,
-  formatTrimmedDecimal
-} from "./SpecificationParameterDialog";
+import { SpecificationParameterDialog, TestDefinitionSummary } from "./SpecificationParameterDialog";
+import { CopySpecificationsDialog } from "./CopySpecificationsDialog";
+import { formatLimitCell, formatResultBasis } from "./copySpecifications";
 import { HplcMethodService } from "../../masterDataSimple/services/HplcMethodService";
 
 interface ItemSpecificationsSectionProps {
@@ -84,99 +82,6 @@ export const LimitTypeBadge: React.FC<{ type: string; labelOverride?: string }> 
   );
 };
 
-export const formatLimitCell = (spec: SpecificationDto): string => {
-  const type = (spec.limitType as LimitType) || "CountTiered";
-  switch (type) {
-    case "Range": {
-      const lower = formatTrimmedDecimal(spec.lowerLimit);
-      const upper = formatTrimmedDecimal(spec.upperLimit);
-      if (lower && upper) return `NLT ${lower} \u2014 NMT ${upper}`;
-      if (upper) return `NMT ${upper}`;
-      if (lower) return `NLT ${lower}`;
-      return spec.specLimit || "\u2014";
-    }
-    case "NotMoreThan": {
-      const upper = formatTrimmedDecimal(spec.upperLimit);
-      return upper ? `NMT ${upper}` : spec.specLimit || "\u2014";
-    }
-    case "NotLessThan": {
-      const lower = formatTrimmedDecimal(spec.lowerLimit);
-      return lower ? `NLT ${lower}` : spec.specLimit || "\u2014";
-    }
-    case "TargetWithTolerance": {
-      const target = formatTrimmedDecimal(spec.target);
-      const tol = formatTrimmedDecimal(spec.tolerance);
-      const suffix = spec.toleranceMode === "Percent" ? "%" : "";
-      if (target && tol) return `${target} \u00B1 ${tol}${suffix}`;
-      return spec.specLimit || "\u2014";
-    }
-    case "CountTiered": {
-      const alert = spec.alertLimit ? `Alert ${spec.alertLimit}` : "";
-      const action = spec.actionLimit ? `Action ${spec.actionLimit}` : "";
-      const sp = spec.specLimit ? `Spec ${spec.specLimit}` : "";
-      const parts = [alert, action, sp].filter(Boolean);
-      return parts.length > 0 ? parts.join(" \u00B7 ") : spec.specLimit || "\u2014";
-    }
-    case "Qualitative": {
-      return spec.expectedResultText || spec.specLimit || "\u2014";
-    }
-    case "PresenceAbsence": {
-      const state = spec.expectedState === "Presence" ? "Present" : "Absent";
-      const qty = formatTrimmedDecimal(spec.sampleQuantity);
-      if (qty) {
-        const unitStr = spec.sampleQuantityUnit ? ` ${spec.sampleQuantityUnit}` : "";
-        return `${state} in ${qty}${unitStr}`;
-      }
-      return spec.specLimit || state;
-    }
-    case "MultiStage": {
-      return "\u2014";
-    }
-    case "DissolutionQ": {
-      const q = formatTrimmedDecimal(spec.lowerLimit);
-      return q ? `Q = ${q} %` : spec.specLimit || "\u2014";
-    }
-    case "DisintegrationTime": {
-      const t = formatTrimmedDecimal(spec.upperLimit);
-      return t ? `NMT ${t} min` : spec.specLimit || "\u2014";
-    }
-    case "WeightVariation": {
-      if (spec.dosageForm === "Tablet") {
-        return "USP <2091>: tablets, limit by average weight";
-      }
-      if (spec.dosageForm === "HardCapsule" || spec.dosageForm === "SoftCapsule") {
-        return "USP <2091>: net content 90-110 % of average";
-      }
-      return spec.specLimit || "\u2014";
-    }
-    default:
-      return spec.specLimit || "\u2014";
-  }
-};
-
-const formatResultBasis = (basis?: string | null, isIcp?: boolean) => {
-  if (!basis) return null;
-  if (isIcp && basis === "MgPerKg") return "ppm";
-  switch (basis) {
-    case "MgPerKg":
-      return "mg/kg per sample";
-    case "MgPerUnit":
-      return "mg per unit";
-    case "PercentLabelClaim":
-      return "% label claim";
-    case "PercentAsIs":
-      return "% as is";
-    case "PercentDriedBasis":
-      return "% dried basis";
-    case "PercentAnhydrousBasis":
-      return "% anhydrous basis";
-    case "Ppm":
-      return "ppm";
-    default:
-      return basis;
-  }
-};
-
 export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps> = ({
   item,
   onSpecsChanged,
@@ -200,6 +105,8 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingSpec, setEditingSpec] = useState<SpecificationDto | null>(null);
   const [preselectedTestCode, setPreselectedTestCode] = useState<string | null>(null);
+  const [copyOpen, setCopyOpen] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
 
   // Delete state
   const [pendingDelete, setPendingDelete] = useState<SpecificationDto | null>(null);
@@ -371,10 +278,34 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
           >
             One table for every limit type: count-based, numeric, qualitative and multi-stage.
           </Typography>
+          {assignedTests.length > 0 && (
+            <Typography
+              variant="caption"
+              sx={{ color: "text.secondary", display: "block" }}
+            >
+              Limits set for {assignedTests.filter((t) => specs.some((s) => s.testCode === t.testCode)).length} of{" "}
+              {assignedTests.length} assigned tests
+            </Typography>
+          )}
         </Box>
 
         <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
           {loading && <CircularProgress size={16} />}
+          {assignedTests.length > 0 && !readOnly && (
+            <Button
+              variant="outlined"
+              size="small"
+              startIcon={<ContentCopyIcon />}
+              onClick={() => setCopyOpen(true)}
+              sx={{
+                fontWeight: 700,
+                textTransform: "none",
+                fontSize: 12
+              }}
+            >
+              Copy from another item
+            </Button>
+          )}
           {assignedTests.length > 0 && !readOnly && (
             <Button
               variant="contained"
@@ -424,6 +355,11 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
       {error && (
         <Alert severity="error" onClose={() => setError(null)} sx={{ mb: 2 }}>
           {error}
+        </Alert>
+      )}
+      {notice && (
+        <Alert severity="success" onClose={() => setNotice(null)} sx={{ mb: 2 }}>
+          {notice}
         </Alert>
       )}
 
@@ -972,6 +908,21 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
           onSpecsChanged?.();
         }}
       />
+
+      {copyOpen && (
+        <CopySpecificationsDialog
+          item={item}
+          testDefinitionByCode={testDefinitionByCode}
+          onClose={() => setCopyOpen(false)}
+          onSpecsCreated={() => {
+            void loadSpecs().then(() => onSpecsChanged?.());
+          }}
+          onCompleted={(count) => {
+            setError(null);
+            setNotice(`Copied ${count} specification parameter${count === 1 ? "" : "s"} to ${item.name}.`);
+          }}
+        />
+      )}
 
       {/* Delete Confirmation Dialog */}
       <ConfirmationDialog

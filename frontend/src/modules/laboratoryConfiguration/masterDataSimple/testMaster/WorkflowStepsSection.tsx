@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { TextField, Button, Table, TableHead, TableRow, TableCell, TableBody, Stack, Alert, IconButton, Select, MenuItem, Box, Typography, Checkbox, FormControlLabel, Chip, Tooltip, TableContainer } from "@mui/material";
 import EditIcon from "@mui/icons-material/Edit";
 import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
+import ContentCopyOutlinedIcon from "@mui/icons-material/ContentCopyOutlined";
 import DeleteIcon from "@mui/icons-material/Delete";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import { ConfirmationDialog } from "../../../../components/ConfirmationDialog";
@@ -37,6 +38,28 @@ export interface WorkflowStepItem {
   phenotypicTestTypes?: string[];
 }
 
+// Maps a saved step to the step form's state; shared by edit and duplicate.
+function stepToFormState(s: WorkflowStepItem): StepFormState {
+  const stage2 = (s.incubationStages ?? []).find((x) => x.stageNumber === 2);
+  return {
+    stepName: s.stepName, isFinalStep: s.isFinalStep, stepType: s.stepType,
+    targetOrganismId: s.targetOrganismId ?? null,
+    stepMedia: (s.stepMedia ?? []).map((m) => ({
+      mediaProductId: m.mediaProductId,
+      mediaIncubationConditionId: typeof m.mediaIncubationConditionId === "number" ? m.mediaIncubationConditionId : "",
+      isRequired: !!m.isRequired,
+      displayOrder: typeof m.displayOrder === "number" ? m.displayOrder : 0
+    })),
+    requiresIncubationTransfer: !!s.requiresIncubationTransfer,
+    stage2TempMin: stage2 ? String(stage2.tempMin) : undefined,
+    stage2TempMax: stage2 ? String(stage2.tempMax) : undefined,
+    stage2IncubationMinHours: stage2 ? stage2.incubationMinHours : undefined,
+    stage2IncubationMaxHours: stage2 ? stage2.incubationMaxHours : undefined,
+    phenotypicTestType: s.phenotypicTestType ?? null,
+    phenotypicTestTypes: s.phenotypicTestTypes ?? []
+  };
+}
+
 // Shown when a Test Master row is expanded, alongside Approved Media -
 // the configurable workflow template TestWorkflowEngine reads instead
 // of a hardcoded per-test-code chain (see backend TestWorkflowStep.cs).
@@ -52,6 +75,7 @@ export function WorkflowStepsSection({ test, workflowTypes, onWorkflowTypeChange
   const [editingStepId, setEditingStepId] = useState<number | null>(null);
   const [stepToDelete, setStepToDelete] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const stepNameInputRef = useRef<HTMLInputElement>(null);
 
   const loadSteps = () => masterDataOptions.getTestWorkflowSteps(test.id).then(setSteps);
   useEffect(() => {
@@ -74,25 +98,18 @@ export function WorkflowStepsSection({ test, workflowTypes, onWorkflowTypeChange
 
   const startEditStep = (s: WorkflowStepItem) => {
     setEditingStepId(s.id);
-    const stage2 = (s.incubationStages ?? []).find((x) => x.stageNumber === 2);
-    setForm({
-      stepName: s.stepName, isFinalStep: s.isFinalStep, stepType: s.stepType,
-      targetOrganismId: s.targetOrganismId ?? null,
-      stepMedia: (s.stepMedia ?? []).map((m) => ({
-        mediaProductId: m.mediaProductId,
-        mediaIncubationConditionId: typeof m.mediaIncubationConditionId === "number" ? m.mediaIncubationConditionId : "",
-        isRequired: !!m.isRequired,
-        displayOrder: typeof m.displayOrder === "number" ? m.displayOrder : 0
-      })),
-      requiresIncubationTransfer: !!s.requiresIncubationTransfer,
-      stage2TempMin: stage2 ? String(stage2.tempMin) : undefined,
-      stage2TempMax: stage2 ? String(stage2.tempMax) : undefined,
-      stage2IncubationMinHours: stage2 ? stage2.incubationMinHours : undefined,
-      stage2IncubationMaxHours: stage2 ? stage2.incubationMaxHours : undefined,
-      phenotypicTestType: s.phenotypicTestType ?? null,
-      phenotypicTestTypes: s.phenotypicTestTypes ?? []
-    });
+    setForm(stepToFormState(s));
     setError(null);
+  };
+
+  // Prefills the add form from an existing step. Nothing is saved until
+  // "Add Step"; a workflow may have only one final step, so the copy is
+  // never final (TestWorkflowStepMasterDataService rejects a second one).
+  const startDuplicateStep = (s: WorkflowStepItem) => {
+    setEditingStepId(null);
+    setForm({ ...stepToFormState(s), stepName: `${s.stepName} (copy)`, isFinalStep: false });
+    setError(null);
+    stepNameInputRef.current?.focus();
   };
 
   const cancelEditStep = () => { setEditingStepId(null); setForm(defaultStepForm()); };
@@ -631,6 +648,11 @@ export function WorkflowStepsSection({ test, workflowTypes, onWorkflowTypeChange
                           <EditIcon fontSize="small" />
                         </IconButton>
                       </Tooltip>
+                      <Tooltip title="Duplicate step">
+                        <IconButton size="small" onClick={() => startDuplicateStep(s)} aria-label="Duplicate step">
+                          <ContentCopyOutlinedIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
                       <Tooltip title="Delete step">
                         <IconButton size="small" color="error" onClick={() => setStepToDelete(s.id)} aria-label="Delete step">
                           <DeleteIcon fontSize="small" />
@@ -660,7 +682,7 @@ export function WorkflowStepsSection({ test, workflowTypes, onWorkflowTypeChange
           flexWrap: "wrap",
           alignItems: "center"
         }}>
-        <TextField size="small" label="Step Name" placeholder="e.g. TSB" value={form.stepName ?? ""} onChange={(e) => setForm({ ...form, stepName: e.target.value })} sx={{ minWidth: 140 }} />
+        <TextField size="small" label="Step Name" inputRef={stepNameInputRef} placeholder="e.g. TSB" value={form.stepName ?? ""} onChange={(e) => setForm({ ...form, stepName: e.target.value })} sx={{ minWidth: 140 }} />
         {isBiochemical && (
           <Stack useFlexGap
             direction="row"

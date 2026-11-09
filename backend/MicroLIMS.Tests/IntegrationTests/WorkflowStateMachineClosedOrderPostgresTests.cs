@@ -27,25 +27,35 @@ public class WorkflowStateMachineClosedOrderPostgresTests
         _fixture = fixture;
     }
 
-    [PostgresTheory]
-    [InlineData(ApprovalStatus.Approved, WorkflowStep.Approved)]
-    [InlineData(ApprovalStatus.Rejected, WorkflowStep.Reviewed)]
-    [InlineData(ApprovalStatus.Voided, WorkflowStep.Ready)]
-    [InlineData(ApprovalStatus.Cancelled, WorkflowStep.Incubating)]
-    public async Task ClosedOrder_RefusesEveryTransition_AndNothingIsRecorded(ApprovalStatus status, WorkflowStep step)
+    // A [PostgresFact] looping over the cases, not a multi-row [PostgresTheory]:
+    // skipped without a database, a theory counts as one test, and CI's
+    // verify_test_results.py then sees different totals for its two runs.
+    [PostgresFact]
+    public async Task ClosedOrder_RefusesEveryTransition_AndNothingIsRecorded()
     {
-        var orderId = await SeedOrderAsync(status, step, superseded: false);
-
-        await using (var actDb = _fixture.CreateDbContext())
+        var cases = new[]
         {
-            actDb.CurrentUserId = _fixture.SeededUserId;
-            var order = await WorkflowStateMachine.LoadOrThrowAsync(actDb, orderId);
-            var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
-                WorkflowStateMachine.TransitionAsync(actDb, order, WorkflowStep.Ready, _fixture.SeededUserId, "late entry"));
-            Assert.Contains(status.ToString(), ex.Message);
-        }
+            (Status: ApprovalStatus.Approved, Step: WorkflowStep.Approved),
+            (Status: ApprovalStatus.Rejected, Step: WorkflowStep.Reviewed),
+            (Status: ApprovalStatus.Voided, Step: WorkflowStep.Ready),
+            (Status: ApprovalStatus.Cancelled, Step: WorkflowStep.Incubating)
+        };
 
-        await AssertUnchangedAsync(orderId, status, step);
+        await PostgresCases.RunAsync(cases, async c =>
+        {
+            var orderId = await SeedOrderAsync(c.Status, c.Step, superseded: false);
+
+            await using (var actDb = _fixture.CreateDbContext())
+            {
+                actDb.CurrentUserId = _fixture.SeededUserId;
+                var order = await WorkflowStateMachine.LoadOrThrowAsync(actDb, orderId);
+                var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
+                    WorkflowStateMachine.TransitionAsync(actDb, order, WorkflowStep.Ready, _fixture.SeededUserId, "late entry"));
+                Assert.Contains(c.Status.ToString(), ex.Message);
+            }
+
+            await AssertUnchangedAsync(orderId, c.Status, c.Step);
+        });
     }
 
     [PostgresFact]

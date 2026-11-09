@@ -541,7 +541,7 @@ public class AnalystWorkloadServiceTests
     }
 
     [Theory]
-    [InlineData(1000, 200)] // capped
+    [InlineData(1000, 100)] // capped at Paging.MaxPageSize
     [InlineData(0, 50)]     // default
     public async Task GetTests_CapsAndDefaultsThePageSize(int requested, int expected)
     {

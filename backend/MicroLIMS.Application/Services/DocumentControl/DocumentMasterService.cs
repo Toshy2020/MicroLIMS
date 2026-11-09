@@ -320,8 +320,7 @@ public class DocumentMasterService : IDocumentMasterService
         };
 
         var totalCount = await query.CountAsync();
-        var page = Math.Max(1, filter.Page);
-        var pageSize = Math.Clamp(filter.PageSize, 1, 100);
+        var (page, pageSize) = Paging.Normalize(filter.Page, filter.PageSize, defaultPageSize: 20);
 
         var masters = await query
             .Skip((page - 1) * pageSize)

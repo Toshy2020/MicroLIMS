@@ -1,3 +1,4 @@
+using MicroLIMS.Application.Helpers;
 using System.Data.Common;
 using System.Diagnostics;
 using Microsoft.EntityFrameworkCore;
@@ -38,11 +39,11 @@ public class TestingWorkspacePerformancePostgresIntegrationTests
 
     /// <summary>
     /// Hard maximum page size enforced server-side.
-    /// Defined in TestingWorkspaceService.GetActiveSamplesAsync(filter): Math.Min(filter.PageSize, 200).
+    /// Defined once for every list endpoint in Paging.Normalize (CLAUDE.md Rule 5.4).
     /// Protects against excessive database materialisation or memory exhaustion when a caller
     /// requests an unbounded or maliciously large page size (e.g. pageSize=10000).
     /// </summary>
-    public const int MaxServerPageSizeClamp = 200;
+    public const int MaxServerPageSizeClamp = Paging.MaxPageSize;
 
     /// <summary>
     /// Total sample volumes for the scaling benchmark: 150 and then 1,200 samples,
@@ -172,7 +173,7 @@ public class TestingWorkspacePerformancePostgresIntegrationTests
         Assert.Equal(25, specificResult.Items.Count);
         Assert.Equal(seededCount, specificResult.TotalCount);
 
-        // 3. Excessive page size (10,000) must be clamped to MaxServerPageSizeClamp (200)
+        // 3. Excessive page size (10,000) must be clamped to MaxServerPageSizeClamp (100)
         var clampedResult = await service.GetActiveSamplesAsync(new TestingWorkspaceFilterDto { Page = 1, PageSize = 10000 });
         _output.WriteLine($"[Paging Budget] Excessive pageSize: requested 10000 -> clamped to {clampedResult.PageSize}, returned {clampedResult.Items.Count}, TotalCount={clampedResult.TotalCount}");
         Assert.Equal(MaxServerPageSizeClamp, clampedResult.PageSize);

@@ -1,3 +1,4 @@
+using MicroLIMS.Application.Helpers;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -61,7 +62,8 @@ public class KpiDashboardService
     {
         var kpi = _registry.Find(key) ?? throw new NotFoundException($"Unknown KPI '{key}'.");
         var q = await BuildQueryAsync(userId, canViewTeam, from, to, category, location, testCode, analystId, ct);
-        return await kpi.GetRecordsAsync(q, Math.Max(page, 1), pageSize <= 0 ? 50 : Math.Min(pageSize, 200), ct);
+        (page, pageSize) = Paging.Normalize(page, pageSize, defaultPageSize: 50);
+        return await kpi.GetRecordsAsync(q, page, pageSize, ct);
     }
 
     public async Task<KpiDefinitionsDto> GetDefinitionsAsync(DateOnly from, DateOnly to, CancellationToken ct = default)

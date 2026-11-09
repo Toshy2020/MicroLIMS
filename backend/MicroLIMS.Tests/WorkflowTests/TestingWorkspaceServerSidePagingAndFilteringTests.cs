@@ -1,3 +1,4 @@
+using MicroLIMS.Application.Helpers;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.DTOs;
 using MicroLIMS.Application.Services;
@@ -81,9 +82,9 @@ public class TestingWorkspaceServerSidePagingAndFilteringTests
         Assert.Equal(60, paged2.TotalCount);
         Assert.Equal(2, paged2.Page);
 
-        // Clamping to max 200: even if client asks for 500, pageSize is clamped to 200
+        // Clamping to Paging.MaxPageSize (100): a client asking for 500 gets 100
         var pagedLarge = await service.GetActiveSamplesAsync(new TestingWorkspaceFilterDto { PageSize = 500 });
-        Assert.Equal(200, pagedLarge.PageSize);
+        Assert.Equal(Paging.MaxPageSize, pagedLarge.PageSize);
         Assert.Equal(60, pagedLarge.Items.Count);
     }
 

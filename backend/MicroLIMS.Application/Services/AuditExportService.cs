@@ -15,7 +15,7 @@ public class AuditExportService
 {
     // Hard ceiling per export. A larger result is cut at the newest rows and the CSV says so.
     public const int MaxExportRows = 50_000;
-    private const int PageSize = 1000;
+    private const int ExportChunkSize = 1000;
     public const string ExportActionCode = "AuditExported";
 
     private readonly AuditSearchService _search;
@@ -30,7 +30,7 @@ public class AuditExportService
     public async Task<AuditExportPlan> PrepareAsync(AuditSearchRequest request, CancellationToken ct = default)
     {
         // The cursor and page size are paging concerns, not part of the export's filter.
-        var filter = request with { BeforeId = null, Take = PageSize };
+        var filter = request with { BeforeId = null, Take = ExportChunkSize };
         var total = await _search.CountAsync(filter);
         var rowCount = Math.Min(total, MaxExportRows);
         var truncated = total > MaxExportRows;
@@ -84,7 +84,7 @@ public class AuditExportService
         while (written < plan.RowCount && cursor is not null)
         {
             ct.ThrowIfCancellationRequested();
-            var page = await _search.ReadPageForExportAsync(plan.Filter with { BeforeId = cursor }, Math.Min(PageSize, plan.RowCount - written));
+            var page = await _search.ReadPageForExportAsync(plan.Filter with { BeforeId = cursor }, Math.Min(ExportChunkSize, plan.RowCount - written));
             if (page.Count == 0) break;
             foreach (var r in page)
             {

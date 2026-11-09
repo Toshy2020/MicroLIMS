@@ -18,13 +18,13 @@ by decision of the project owner; `.claude/commands/` (`/delegate`, `/research`,
 | G1 | §3.3.0 regulated-entity marker (`IRegulatedEntity` / `[Regulated]`) | None. Instead **everything is audited by default** in `MicroLimsDbContext.SaveChangesAsync`, with an explicit opt-out list `AuditCaptureExcludedTypes` (each entry justified) and `[AuditRedacted]` for secrets | **Rewrite the rule to describe the real mechanism** (Phase 0). Do *not* build an opt-in marker — opt-out is safer (a new entity cannot be forgotten). |
 | G2 | §5.1 `backend/Directory.Build.props` + `Directory.Packages.props` | Absent; 26 `PackageReference` versions spread across 5 `.csproj` | Build it (Phase 1) |
 | G3 | §5.4 "`EnableRetryOnFailure` is active" | **Not enabled** (`Program.cs:30` is plain `UseNpgsql`). 8 `BeginTransaction` call sites are not wrapped in an execution strategy | Make rule conditional now (Phase 0); decide on enabling (Phase 4) |
-| G4 | §7.4 post-migration test asserts triggers exist via `pg_trigger` | `AppendOnlyAuditHardeningPostgresTests` checks UPDATE/DELETE are *rejected*, but nothing asserts the trigger *catalogue* | Add test (Phase 2) |
+| G4 | §7.4 post-migration test asserts triggers exist via `pg_trigger` | **Done:** `AppendOnlyTriggerCatalogPostgresTests` (13 tables, shape + enabled + reverse check, with a rollback self-check) | — |
 | G5 | §5.4 pagination `Math.Clamp(pageSize, 1, 100)` | 28 `pageSize` parameters; ~8 clamp, some use `Math.Min` only, KPI/Reporting/Discussion paths unverified | Audit + architecture test (Phase 2) |
 | G6 | §2 Postgres command uses `Database=microlims_test` | Fixture expects a **maintenance** DB and creates `microlims_test_<32hex>` itself (as CI does with `Database=postgres`) | Fix the command (Phase 0) |
 | G7 | §4.5 MSW for HTTP isolation | MSW not installed; tests mock at `apiClient` boundary | Reword to "`apiClient` boundary mocks (MSW optional)" (Phase 0) |
 | G8 | §6.1 `types/` folder | No `frontend/src/types/`; types live in `services/` and modules | Reword (Phase 0) |
 | G9 | §4.5 / §4.6 / §6.1 frontend test & typing rules | 72 test files use `fireEvent`, 108 use `vi.mock` (many legitimately at `apiClient`), 325 `any` occurrences | Legacy backlog — ratchet, don't mass-rewrite (Phase 3) |
-| G10 | §2 / §4.2 agents must run `[PostgresFact]` | CI does (`ci.yml` two-run gate). Cloud agent container has **no .NET SDK**; Postgres 16 binaries present but no running server | Environment setup script (Phase 2) |
+| G10 | §2 / §4.2 agents must run `[PostgresFact]` | **Done:** cloud environment "MicroLIMS" setup script (.NET 10, PostgreSQL 16, Tesseract, `microlims_ci` role). CI uses PostgreSQL 18 | — |
 
 Already true (no action): net10.0 + Nullable + ImplicitUsings in all 7 projects;
 frontend versions; `[PostgresFact]`; `ClockUsageTests` (covers `DateTime(Offset).Now/UtcNow/Today`);
@@ -123,6 +123,15 @@ workflows. If later required:
 4. Remove the Phase-0 conditional wording in §5.4.
 
 ---
+
+## Also done (outside the original gap list)
+
+- Pathogen confirmatory-media count no longer special-cases Salmonella
+  (`PathogenSessionService` ×4, two frontend panels); guarded by
+  `PathogenConfirmatoryMediaConfigurationTests` and `OrganismLiteralTests`.
+- Open: Certificate of Analysis row order (`CertificateOfAnalysisBuilder.SimpleRowRank`)
+  still ranks TAMC/TYMC/E. coli by code; needs a configured display order on
+  `TestDefinition` (owner decision). Listed as a known offender in `OrganismLiteralTests`.
 
 ## Order & effort
 

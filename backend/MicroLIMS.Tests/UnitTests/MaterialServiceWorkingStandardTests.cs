@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using MicroLIMS.Application.Services;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
@@ -33,7 +34,7 @@ public class MaterialServiceWorkingStandardTests
         var section = TestServiceFactory.EnsureMicroSection(db);
         var service = TestServiceFactory.Material(db);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.CreateAsync(new SaveMaterialRequest(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => service.CreateAsync(new SaveMaterialRequest(
             MaterialType.WorkingStandard, "P", "M", "B1", DateTime.UtcNow, null, null, "S1", 1m, MaterialUnit.Gram,
             null, null, null, SectionId: section.Id), 1));
         Assert.Equal("Working standards are created by approving a qualification, not received here.", ex.Message);
@@ -49,7 +50,7 @@ public class MaterialServiceWorkingStandardTests
         await db.SaveChangesAsync();
         var service = TestServiceFactory.Material(db);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.UpdateAsync(lot.Id, new SaveMaterialRequest(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => service.UpdateAsync(lot.Id, new SaveMaterialRequest(
             MaterialType.WorkingStandard, "P", "M", "WS1", DateTime.UtcNow, null, null, "S1", 5m, MaterialUnit.Gram,
             null, null, null), 1));
         Assert.Equal("Working standards change only through their qualifications.", ex.Message);

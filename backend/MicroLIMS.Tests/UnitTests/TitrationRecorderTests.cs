@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using MicroLIMS.Application.DTOs;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
@@ -103,7 +104,7 @@ public class TitrationRecorderTests
         using var db = NewDb();
         var s = TitrationScenario.Seed(db);
         var p = Payload(s) with { Replicates = new() { new(200m, 22.6m) } };
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => Record(db, s, p));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => Record(db, s, p));
         Assert.Contains("Exactly 2 replicate", ex.Message);
     }
 
@@ -112,12 +113,12 @@ public class TitrationRecorderTests
     {
         using var db = NewDb();
         var s = TitrationScenario.Seed(db);
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => Record(db, s, Payload(s, blank: null)));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => Record(db, s, Payload(s, blank: null)));
         Assert.Contains("blank", ex.Message);
 
         using var db2 = NewDb();
         var s2 = TitrationScenario.Seed(db2, new() { Tweak = t => t.TitrationBlankRequired = false });
-        var ex2 = await Assert.ThrowsAsync<InvalidOperationException>(() => Record(db2, s2, Payload(s2, blank: 0.1m)));
+        var ex2 = await Assert.ThrowsAsync<BusinessRuleException>(() => Record(db2, s2, Payload(s2, blank: 0.1m)));
         Assert.Contains("does not use a blank", ex2.Message);
     }
 
@@ -126,7 +127,7 @@ public class TitrationRecorderTests
     {
         using var db = NewDb();
         var s = TitrationScenario.Seed(db, new() { Standardized = false });
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => Record(db, s, Payload(s)));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => Record(db, s, Payload(s)));
         Assert.Contains("not been standardized", ex.Message);
     }
 
@@ -135,7 +136,7 @@ public class TitrationRecorderTests
     {
         using var db = NewDb();
         var s = TitrationScenario.Seed(db, new() { ValidityDays = 1, StandardizedDaysAgo = 5 });
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => Record(db, s, Payload(s)));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => Record(db, s, Payload(s)));
         Assert.Contains("due", ex.Message);
     }
 
@@ -153,7 +154,7 @@ public class TitrationRecorderTests
     {
         using var db = NewDb();
         var s = TitrationScenario.Seed(db, new() { WithExcess = true });
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => Record(db, s, Payload(s, titrantPrepId: s.ExcessPrep!.Id)));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => Record(db, s, Payload(s, titrantPrepId: s.ExcessPrep!.Id)));
         Assert.Contains("not of the solution configured", ex.Message);
     }
 
@@ -183,9 +184,9 @@ public class TitrationRecorderTests
         {
             Tweak = t => { t.TitrationType = TitrationType.AcidBase; t.TitrationNonAqueous = true; t.TitrationTempCorrection = true; t.TitrationExpansionCoefficient = 0.0011m; },
         });
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => Record(db2, s2, Payload(s2)));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => Record(db2, s2, Payload(s2)));
         Assert.Contains("titration temperature", ex.Message);
-        var ex2 = await Assert.ThrowsAsync<InvalidOperationException>(() => Record(db, TitrationScenario.Seed(db), Payload(s, temp: 30m)));
+        var ex2 = await Assert.ThrowsAsync<BusinessRuleException>(() => Record(db, TitrationScenario.Seed(db), Payload(s, temp: 30m)));
         Assert.NotNull(ex2);
     }
 
@@ -198,7 +199,7 @@ public class TitrationRecorderTests
             StandardizationTemperatureC = null,
             Tweak = t => { t.TitrationType = TitrationType.AcidBase; t.TitrationNonAqueous = true; t.TitrationTempCorrection = true; t.TitrationExpansionCoefficient = 0.0011m; },
         });
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => Record(db, s, Payload(s, temp: 30m)));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => Record(db, s, Payload(s, temp: 30m)));
         Assert.Contains("record the temperature", ex.Message);
 
         var ctx = await new TitrationContextService(db, new UserSectionScopeService(db)).GetContextAsync(s.Order.Id, s.UserId);
@@ -220,7 +221,7 @@ public class TitrationRecorderTests
             },
             TweakSpec = sp => { sp.LowerLimit = 0m; sp.UpperLimit = 1000m; },
         });
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => Record(db, s, Payload(s, blank: 25.1m, v1: 10.3m, v2: 10.3m)));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => Record(db, s, Payload(s, blank: 25.1m, v1: 10.3m, v2: 10.3m)));
         Assert.Contains("excess titrant preparation is required", ex.Message);
 
         // blank 25.1, V 10.3: net 14.8 x 0.1 x 1.0023 x 8.0 = 11.8672... mg ; W 200 -> 5.93 %
@@ -273,12 +274,12 @@ public class TitrationRecorderTests
     {
         using var db = NewDb();
         var s = TitrationScenario.Seed(db, new() { TweakSpec = sp => sp.ResultBasis = ResultBasis.PercentDriedBasis });
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => Record(db, s, Payload(s)));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => Record(db, s, Payload(s)));
         Assert.Contains("Record the sample's loss on drying result before this assay.", ex.Message);
 
         // A typed value is never accepted any more.
         s.AddMoistureResult(db, MoistureRole.LossOnDrying, 5m);
-        var typed = await Assert.ThrowsAsync<InvalidOperationException>(() => Record(db, s, Payload(s, lod: 5m)));
+        var typed = await Assert.ThrowsAsync<BusinessRuleException>(() => Record(db, s, Payload(s, lod: 5m)));
         Assert.Contains("read from the sample's own result", typed.Message);
 
         // 99.07469891 x 100 / 95 = 104.2891 -> OOS above 102
@@ -288,7 +289,7 @@ public class TitrationRecorderTests
 
         using var db2 = NewDb();
         var s2 = TitrationScenario.Seed(db2);
-        var ex2 = await Assert.ThrowsAsync<InvalidOperationException>(() => Record(db2, s2, Payload(s2, lod: 5m)));
+        var ex2 = await Assert.ThrowsAsync<BusinessRuleException>(() => Record(db2, s2, Payload(s2, lod: 5m)));
         Assert.Contains("read from the sample's own result", ex2.Message);
     }
 
@@ -297,7 +298,7 @@ public class TitrationRecorderTests
     {
         using var db = NewDb();
         var s = TitrationScenario.Seed(db, new() { TweakSpec = sp => { sp.ResultBasis = ResultBasis.PercentLabelClaim; sp.LabelClaim = 100m; sp.LabelClaimUnit = "mg"; } });
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => Record(db, s, Payload(s)));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => Record(db, s, Payload(s)));
         Assert.Contains("average unit weight", ex.Message);
 
         // mg / W x AvgWt / claim x 100 : 99.0747 % x 200 / 200... AvgWt 200 mg, claim 100 mg -> 198.15 %
@@ -396,7 +397,7 @@ public class TitrationRecorderTests
     {
         var (db, s) = await DueRelativeAsync();
         using var _ = db;
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => Record(db, s, DuePayload(s)));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => Record(db, s, DuePayload(s)));
         Assert.Contains("acknowledge it and give a justification", ex.Message);
     }
 
@@ -426,7 +427,7 @@ public class TitrationRecorderTests
     {
         var (db, s) = await DueRelativeAsync();
         using var _ = db;
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             Record(db, s, DuePayload(s) with { DueTitrantAcknowledged = true, DueTitrantJustification = "too short" }));
         Assert.Contains("10 to 500", ex.Message);
     }
@@ -436,7 +437,7 @@ public class TitrationRecorderTests
     {
         using var db = NewDb();
         var s = TitrationScenario.Seed(db);
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             Record(db, s, Payload(s) with { DueTitrantAcknowledged = true, DueTitrantJustification = Justification }));
         Assert.Contains("No titrant warning to acknowledge", ex.Message);
     }
@@ -473,19 +474,19 @@ public class TitrationRecorderTests
         var s = TitrationScenario.Seed(db, RelativeOptions());
         var lot = s.StandardLot!;
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => Record(db, s, Payload(s)));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => Record(db, s, Payload(s)));
         Assert.Contains("standard titrations are required", ex.Message);
 
-        ex = await Assert.ThrowsAsync<InvalidOperationException>(() => Record(db, s,
+        ex = await Assert.ThrowsAsync<BusinessRuleException>(() => Record(db, s,
             Payload(s, standards: new() { new(lot.Id, 1m, 1m), new(lot.Id, 1m, 1m), new(lot.Id, 1m, 1m), new(lot.Id, 1m, 1m) })));
         Assert.Contains("One to three", ex.Message);
 
-        ex = await Assert.ThrowsAsync<InvalidOperationException>(() => Record(db, s,
+        ex = await Assert.ThrowsAsync<BusinessRuleException>(() => Record(db, s,
             Payload(s, standards: new() { new(lot.Id, 6000m, 10m) })));
         Assert.Contains("left", ex.Message);
 
         lot.ExpiryDate = DateTime.UtcNow.AddDays(-1); db.SaveChanges();
-        ex = await Assert.ThrowsAsync<InvalidOperationException>(() => Record(db, s,
+        ex = await Assert.ThrowsAsync<BusinessRuleException>(() => Record(db, s,
             Payload(s, standards: new() { new(lot.Id, 100m, 10m) })));
         Assert.Contains("Expired", ex.Message);
         Assert.Equal(5m, lot.QuantityRemaining);
@@ -493,7 +494,7 @@ public class TitrationRecorderTests
         // a standard on a UspFactor test is refused
         using var db2 = NewDb();
         var s2 = TitrationScenario.Seed(db2, new() { WithStandard = true });
-        ex = await Assert.ThrowsAsync<InvalidOperationException>(() => Record(db2, s2,
+        ex = await Assert.ThrowsAsync<BusinessRuleException>(() => Record(db2, s2,
             Payload(s2, standards: new() { new(s2.StandardLot!.Id, 100m, 10m) })));
         Assert.Contains("only used with the relative", ex.Message);
     }
@@ -522,7 +523,7 @@ public class TitrationRecorderTests
         using var db = NewDb();
         var s = TitrationScenario.Seed(db);
         s.Equipment.Type = EquipmentType.Balance; db.SaveChanges();
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => Record(db, s, Payload(s)));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => Record(db, s, Payload(s)));
         Assert.Contains("not a titrator", ex.Message);
     }
 
@@ -532,7 +533,7 @@ public class TitrationRecorderTests
         using var db = NewDb();
         var s = TitrationScenario.Seed(db);
         await Record(db, s, Payload(s));
-        await Assert.ThrowsAsync<InvalidOperationException>(() => Record(db, s, Payload(s)));
+        await Assert.ThrowsAsync<BusinessRuleException>(() => Record(db, s, Payload(s)));
     }
 
     [Fact]
@@ -642,7 +643,7 @@ public class TitrationRecorderTests
             "kfResidual" => Create(s, "X1", r => r with { TitrationType = TitrationType.KarlFischer, TitrationMode = TitrationMode.Residual }),
             _ => throw new ArgumentException(which)
         };
-        await Assert.ThrowsAsync<InvalidOperationException>(() => svc.CreateTestDefinitionAsync(s.UserId, req));
+        await Assert.ThrowsAsync<BusinessRuleException>(() => svc.CreateTestDefinitionAsync(s.UserId, req));
     }
 
     [Fact]
@@ -684,11 +685,11 @@ public class TitrationRecorderTests
         Task Run(Specification sp) => svc.ValidateAsync(sp);
 
         await Run(NewSpec(_ => { }));
-        await Assert.ThrowsAsync<InvalidOperationException>(() => Run(NewSpec(sp => sp.ResultBasis = null)));
-        await Assert.ThrowsAsync<InvalidOperationException>(() => Run(NewSpec(sp => sp.ResultBasis = ResultBasis.MgPerKg)));
-        await Assert.ThrowsAsync<InvalidOperationException>(() => Run(NewSpec(sp => sp.ResultBasis = ResultBasis.PercentLabelClaim)));
+        await Assert.ThrowsAsync<BusinessRuleException>(() => Run(NewSpec(sp => sp.ResultBasis = null)));
+        await Assert.ThrowsAsync<BusinessRuleException>(() => Run(NewSpec(sp => sp.ResultBasis = ResultBasis.MgPerKg)));
+        await Assert.ThrowsAsync<BusinessRuleException>(() => Run(NewSpec(sp => sp.ResultBasis = ResultBasis.PercentLabelClaim)));
         await Run(NewSpec(sp => { sp.ResultBasis = ResultBasis.PercentLabelClaim; sp.LabelClaim = 500m; sp.LabelClaimUnit = "mg"; }));
-        await Assert.ThrowsAsync<InvalidOperationException>(() => Run(NewSpec(sp => sp.LabelClaim = 500m)));
+        await Assert.ThrowsAsync<BusinessRuleException>(() => Run(NewSpec(sp => sp.LabelClaim = 500m)));
 
         // Label claim bases exist only for dosage units: a raw material may use % bases only.
         item.Category = SampleCategory.RawMaterial;
@@ -698,7 +699,7 @@ public class TitrationRecorderTests
         db.SampleTests.Add(new SampleTest { ItemId = item.Id, TestCode = "LOD-RM" });
         await db.SaveChangesAsync();
         await Run(NewSpec(sp => sp.ResultBasis = ResultBasis.PercentDriedBasis));
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => Run(NewSpec(sp => { sp.ResultBasis = ResultBasis.MgPerUnit; sp.LabelClaim = 500m; sp.LabelClaimUnit = "mg"; })));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => Run(NewSpec(sp => { sp.ResultBasis = ResultBasis.MgPerUnit; sp.LabelClaim = 500m; sp.LabelClaimUnit = "mg"; })));
         Assert.Contains("Finished Product", ex.Message);
     }
 }

@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using MicroLIMS.Application.Services;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
@@ -101,6 +102,6 @@ public class ConfirmationAgreementEvaluatorTests
             new() { MediumIndex = 0, MaterialId = 1, Observation = GrowthObservation.GrowthConforming }
         };
 
-        Assert.Throws<InvalidOperationException>(() => _evaluator.EvaluateAgreement(plates, requiredMediaCount: 2));
+        Assert.Throws<BusinessRuleException>(() => _evaluator.EvaluateAgreement(plates, requiredMediaCount: 2));
     }
 }

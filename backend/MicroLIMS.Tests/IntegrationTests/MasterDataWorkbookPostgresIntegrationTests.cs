@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using ClosedXML.Excel;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Services;
@@ -260,7 +261,7 @@ public class MasterDataWorkbookPostgresIntegrationTests
         var admin = await AdminAsync(db);
         var result = await Service(db).ImportAsync(ItemWorkbook(Guid.NewGuid().ToString("N")[..8]), "x.xlsx", admin.Id, Password, null, null);
 
-        var e = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var e = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             Service(db).VerifyAsync(result.Import!.Id, admin.Id, Password, null, null));
         Assert.Contains("cannot verify", e.Message);
     }
@@ -339,7 +340,7 @@ public class MasterDataWorkbookPostgresIntegrationTests
         var result = await Service(db).ImportAsync(MicroReagentWorkbook(tag), "x.xlsx", loader.Id, Password, null, null);
         Assert.True(result.Committed, string.Join("\n", result.Report.Errors.Select(e => e.Message)));
 
-        var e = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var e = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             Service(db).VerifyAsync(result.Import!.Id, outsider.Id, Password, null, null));
 
         Assert.Contains("MICRO", e.Message);
@@ -409,7 +410,7 @@ public class MasterDataWorkbookPostgresIntegrationTests
         var admin = await AdminAsync(db);
         var tag = Guid.NewGuid().ToString("N")[..8];
 
-        var e = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var e = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             Service(db).ImportAsync(ItemWorkbook(tag), "x.xlsx", admin.Id, Password, new string('c', 2001), null));
 
         Assert.Contains("comment", e.Message);

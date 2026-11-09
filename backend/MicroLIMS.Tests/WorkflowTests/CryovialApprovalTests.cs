@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Services;
 using MicroLIMS.Domain.Entities;
@@ -94,7 +95,7 @@ public class CryovialApprovalTests
         await SeedUser(db, PreparerId);
         var cryovial = await SeedPendingBatchAsync(db);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             NewService(db).ApproveAsync(cryovial.Id, approved: true, PreparerId, Password, null, null));
         Assert.Contains("cannot approve a cryovial batch you prepared", ex.Message);
 
@@ -143,7 +144,7 @@ public class CryovialApprovalTests
 
         await service.ApproveAsync(cryovial.Id, approved: true, SectionHeadId, Password, null, null);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             service.ApproveAsync(cryovial.Id, approved: false, SectionHeadId, Password, null, null));
         Assert.Contains("already been decided", ex.Message);
     }

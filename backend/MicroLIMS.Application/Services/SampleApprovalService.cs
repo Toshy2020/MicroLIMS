@@ -162,14 +162,14 @@ public class SampleApprovalService
         SampleSectionRollup.FreezeOpenSections(sample);
 
         if (sectionHeadUserId == signoff.ReviewedByUserId)
-            throw new InvalidOperationException("You cannot approve a sample you reviewed.");
+            throw new BusinessRuleException("You cannot approve a sample you reviewed.");
 
         // Only this section's tests are decided here.
         var currentOrders = SampleSectionRollup.CurrentOrders(sample, section);
         foreach (var order in currentOrders)
         {
             if (await _segregationOfDuties.DidUserPerformTestAsync(order.Id, sectionHeadUserId))
-                throw new InvalidOperationException("You cannot approve a sample you tested.");
+                throw new BusinessRuleException("You cannot approve a sample you tested.");
         }
 
         // REQ-FP-033: server-side reject approval of a section if any test in it
@@ -189,7 +189,7 @@ public class SampleApprovalService
             foreach (var sstOrder in currentOrders.Where(o => sstCodes.Contains(o.TestCode)))
             {
                 if (!hplcWorkspaceCodes.Contains(sstOrder.TestCode))
-                    throw new InvalidOperationException(
+                    throw new BusinessRuleException(
                         $"Cannot approve section: test order {sstOrder.Id} (\"{sstOrder.TestCode}\") requires system suitability, but only HPLC workspace tests (assay, dissolution) can supply one. Clear \"Requires system suitability\" for this test in Test Master.");
 
                 // HPLC Workspace tests take their system suitability from the
@@ -201,7 +201,7 @@ public class SampleApprovalService
                         && s.HplcRun!.Sst != null && s.HplcRun.Sst.Status == HplcSstStatus.Passed);
                     if (!runPassed)
                     {
-                        throw new InvalidOperationException(
+                        throw new BusinessRuleException(
                             $"Cannot approve section: test order {sstOrder.Id} (\"{sstOrder.TestCode}\") lacks an HPLC run with a passed system suitability.");
                     }
                 }
@@ -230,13 +230,13 @@ public class SampleApprovalService
                     {
                         var wfType = testAnalysisCodes[analysisOrder.TestCode];
                         var displayName = AnalysisWorkflows.GetDisplayName(wfType);
-                        throw new InvalidOperationException(
+                        throw new BusinessRuleException(
                             $"Cannot approve section: test order {analysisOrder.Id} (\"{analysisOrder.TestCode}\") lacks an active {displayName} entry.");
                     }
 
                     if (activeAnalyses.Any(e => e.ParameterResults.Any(pr => pr.ComparisonStatus == ResultStatus.NextStageRequired)))
                     {
-                        throw new InvalidOperationException(
+                        throw new BusinessRuleException(
                             $"Cannot approve section: test order {analysisOrder.Id} (\"{analysisOrder.TestCode}\") has a pending stage.");
                     }
                 }
@@ -250,12 +250,12 @@ public class SampleApprovalService
         if (decision is ApprovalDecision.RetestRetainedSample or ApprovalDecision.NewSampleRequest)
         {
             if (selectedTestOrderIds is null || selectedTestOrderIds.Count == 0)
-                throw new InvalidOperationException("At least one test must be selected for retest.");
+                throw new BusinessRuleException("At least one test must be selected for retest.");
 
             var distinctIds = selectedTestOrderIds.Distinct().ToList();
             selectedOrders = currentOrders.Where(o => distinctIds.Contains(o.Id)).ToList();
             if (selectedOrders.Count != distinctIds.Count)
-                throw new InvalidOperationException("One or more selected tests do not belong to this sample's current test orders.");
+                throw new BusinessRuleException("One or more selected tests do not belong to this sample's current test orders.");
         }
 
         // NewSampleRequest spins up two independent samples that must go
@@ -266,9 +266,9 @@ public class SampleApprovalService
         if (decision == ApprovalDecision.NewSampleRequest)
         {
             if (newSampleAnalystOneId is null || newSampleAnalystTwoId is null)
-                throw new InvalidOperationException("Two analysts must be assigned - one per new sample - when requesting a new sample.");
+                throw new BusinessRuleException("Two analysts must be assigned - one per new sample - when requesting a new sample.");
             if (newSampleAnalystOneId == newSampleAnalystTwoId)
-                throw new InvalidOperationException("The two new samples must be assigned to two different analysts.");
+                throw new BusinessRuleException("The two new samples must be assigned to two different analysts.");
 
             // Each new sample carries the selected tests, so each analyst must
             // be assignable in every one of their sections.
@@ -280,7 +280,7 @@ public class SampleApprovalService
             foreach (var order in selectedOrders)
             {
                 if (order.AssignedAnalystId == newSampleAnalystOneId || order.AssignedAnalystId == newSampleAnalystTwoId)
-                    throw new InvalidOperationException("Neither new sample's analyst may be the analyst who tested the original sample.");
+                    throw new BusinessRuleException("Neither new sample's analyst may be the analyst who tested the original sample.");
             }
         }
 
@@ -288,7 +288,7 @@ public class SampleApprovalService
         if (decision is ApprovalDecision.RetestRetainedSample or ApprovalDecision.NewSampleRequest)
         {
             retestCause = await _db.CausesOfTesting.FirstOrDefaultAsync(c => c.Name == "Retest")
-                ?? throw new InvalidOperationException("The 'Retest' cause of testing is not configured.");
+                ?? throw new BusinessRuleException("The 'Retest' cause of testing is not configured.");
         }
 
         var meaning = decision switch
@@ -297,7 +297,7 @@ public class SampleApprovalService
             ApprovalDecision.Reject => SignatureMeaning.Rejected,
             ApprovalDecision.NewSampleRequest => SignatureMeaning.Rejected,
             ApprovalDecision.RetestRetainedSample => SignatureMeaning.RetestRequested,
-            _ => throw new InvalidOperationException($"'{decision}' is not a valid sample-level decision.")
+            _ => throw new BusinessRuleException($"'{decision}' is not a valid sample-level decision.")
         };
 
         // Signs first - if password verification fails, nothing below is

@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.DTOs.Responses;
 using MicroLIMS.Application.Services;
@@ -148,7 +149,7 @@ public class SolutionMasterServiceTests
         var (_, userId) = await SeedAsync(db);
         var service = TestServiceFactory.SolutionMaster(db);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(
             () => service.CreateAsync(Req(), userId));
         Assert.Contains("at least one component", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -167,7 +168,7 @@ public class SolutionMasterServiceTests
             new(entry.Id, 200, SolutionComponentUnit.Milliliter)
         };
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(
             () => service.CreateAsync(Req(components: components), userId));
         Assert.Contains("listed twice", ex.Message);
     }
@@ -202,7 +203,7 @@ public class SolutionMasterServiceTests
         var entry = await AddEntryAsync(db, section.Id, "BUF-01", isActive: false);
         var service = TestServiceFactory.SolutionMaster(db);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(
             () => service.CreateAsync(Req(components: OneComponent(entry.Id)), userId));
         Assert.Contains("inactive", ex.Message);
     }
@@ -215,7 +216,7 @@ public class SolutionMasterServiceTests
         var entry = await AddEntryAsync(db, section.Id, "BUF-01");
         var service = TestServiceFactory.SolutionMaster(db);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(
             () => service.CreateAsync(Req(shelfLifeValue: 0, components: OneComponent(entry.Id)), userId));
         Assert.Contains("greater than zero", ex.Message);
     }
@@ -228,7 +229,7 @@ public class SolutionMasterServiceTests
         var entry = await AddEntryAsync(db, section.Id, "BUF-01");
         var service = TestServiceFactory.SolutionMaster(db);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(
             () => service.CreateAsync(Req(finalVolumeMl: 0, components: OneComponent(entry.Id)), userId));
         Assert.Contains("greater than zero", ex.Message);
     }
@@ -241,7 +242,7 @@ public class SolutionMasterServiceTests
         var entry = await AddEntryAsync(db, section.Id, "BUF-01");
         var service = TestServiceFactory.SolutionMaster(db);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(
             () => service.CreateAsync(Req(components: OneComponent(entry.Id), phTolerance: 0.2m), userId));
         Assert.Contains("pH target", ex.Message);
     }
@@ -254,7 +255,7 @@ public class SolutionMasterServiceTests
         var entry = await AddEntryAsync(db, section.Id, "BUF-01");
         var service = TestServiceFactory.SolutionMaster(db);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(
             () => service.CreateAsync(Req(type: SolutionType.Diluent, components: OneComponent(entry.Id), nominalStrength: 0.1m), userId));
         Assert.Contains("only allowed for titrants", ex.Message);
     }
@@ -275,7 +276,7 @@ public class SolutionMasterServiceTests
             // StandardEntryId and EquivalenceMgPerMl deliberately omitted
             replicateCount: 3, factorMin: 0.95m, factorMax: 1.05m, maxRsdPercent: 1.0m, validityDays: 30);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.CreateAsync(req, userId));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => service.CreateAsync(req, userId));
         Assert.Contains("standard entry", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -290,7 +291,7 @@ public class SolutionMasterServiceTests
 
         var req = TitrantReq(indicator.Id, components: OneComponent(titrantComponent.Id));
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.CreateAsync(req, userId));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => service.CreateAsync(req, userId));
         Assert.Contains("must be a Primary Standard entry", ex.Message);
     }
 
@@ -303,7 +304,7 @@ public class SolutionMasterServiceTests
         var reagent = await AddEntryAsync(db, section.Id, "KHP-R", category: MaterialMasterCategory.Reagent);
         var service = TestServiceFactory.SolutionMaster(db);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(
             () => service.CreateAsync(TitrantReq(reagent.Id, components: OneComponent(titrantComponent.Id)), userId));
         Assert.Equal("The primary standard must be a Primary Standard entry in Reagents & Standards.", ex.Message);
     }
@@ -333,7 +334,7 @@ public class SolutionMasterServiceTests
         var created = await service.CreateAsync(TitrantReq(khp.Id, components: OneComponent(titrantComponent.Id)), userId);
 
         var req = TitrantReq(reagent.Id, components: OneComponent(titrantComponent.Id)) with { Reason = "Switch standard" };
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.UpdateAsync(created.Id, req, userId));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => service.UpdateAsync(created.Id, req, userId));
         Assert.Contains("must be a Primary Standard entry", ex.Message);
     }
 
@@ -350,7 +351,7 @@ public class SolutionMasterServiceTests
 
         var req = TitrantReq(0, components: OneComponent(titrantComponent.Id), referenceSolutionId: diluent.Id, mode: StandardizationMode.AgainstVolumetricSolution);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.CreateAsync(req, userId));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => service.CreateAsync(req, userId));
         Assert.Contains("active titrant", ex.Message);
     }
 
@@ -365,7 +366,7 @@ public class SolutionMasterServiceTests
 
         var req = TitrantReq(standard.Id, components: OneComponent(titrantComponent.Id)) with { FactorMin = 1.10m, FactorMax = 0.90m };
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.CreateAsync(req, userId));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => service.CreateAsync(req, userId));
         Assert.Contains("Factor min and max", ex.Message);
     }
 
@@ -380,7 +381,7 @@ public class SolutionMasterServiceTests
 
         var req = TitrantReq(standard.Id, components: OneComponent(titrantComponent.Id)) with { ReplicateCount = 0 };
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.CreateAsync(req, userId));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => service.CreateAsync(req, userId));
         Assert.Contains("Replicate count", ex.Message);
     }
 
@@ -394,7 +395,7 @@ public class SolutionMasterServiceTests
 
         var created = await service.CreateAsync(Req(components: OneComponent(entry.Id)), userId);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(
             () => service.UpdateAsync(created.Id, Req(name: "Renamed", components: OneComponent(entry.Id)), userId));
         Assert.Contains("reason", ex.Message, StringComparison.OrdinalIgnoreCase);
 
@@ -462,7 +463,7 @@ public class SolutionMasterServiceTests
         var req = TitrantReq(0, components: OneComponent(titrantComponent.Id), referenceSolutionId: created.Id, mode: StandardizationMode.AgainstVolumetricSolution)
             with { Reason = "Self reference attempt" };
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.UpdateAsync(created.Id, req, userId));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => service.UpdateAsync(created.Id, req, userId));
         Assert.Contains("cannot reference itself", ex.Message);
     }
 
@@ -476,7 +477,7 @@ public class SolutionMasterServiceTests
 
         var created = await service.CreateAsync(Req(components: OneComponent(entry.Id)), userId);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(
             () => service.SetActiveAsync(created.Id, false, "", userId));
         Assert.Contains("reason", ex.Message, StringComparison.OrdinalIgnoreCase);
 
@@ -550,7 +551,7 @@ public class SolutionMasterServiceTests
             ? TitrantReq(std.Id, components: OneComponent(entry.Id)) with { SterilizationRequired = sterilization, ReleaseRequired = release }
             : GeneralReq("Mobile Phase A", type, OneComponent(entry.Id), sterilization: sterilization, release: release);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.CreateAsync(request, userId));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => service.CreateAsync(request, userId));
         Assert.Contains("only allowed for diluents, reagents and neutralizers", ex.Message);
     }
 
@@ -562,7 +563,7 @@ public class SolutionMasterServiceTests
         var entry = await AddEntryAsync(db, section.Id, "NACL");
         var service = TestServiceFactory.SolutionMaster(db);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.CreateAsync(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => service.CreateAsync(
             GeneralReq("Reagent X", SolutionType.Reagent, OneComponent(entry.Id)) with { NominalStrength = 0.1m }, userId));
         Assert.Contains("only allowed for titrants", ex.Message);
     }
@@ -615,7 +616,7 @@ public class SolutionMasterServiceTests
         await db.SaveChangesAsync();
         var foreignId = (await db.SolutionMasters.SingleAsync(s => s.Name == "Foreign stock")).Id;
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.CreateAsync(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => service.CreateAsync(
             GeneralReq("Buffer", SolutionType.Diluent, new List<SolutionComponentInput>
             {
                 new(entry.Id, 1m, SolutionComponentUnit.Gram),
@@ -634,7 +635,7 @@ public class SolutionMasterServiceTests
         var stock = await CreateGeneralAsync(service, userId, "Old stock", entry.Id);
         await service.SetActiveAsync(stock.Id, false, "Retired", userId);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.CreateAsync(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => service.CreateAsync(
             GeneralReq("Buffer", SolutionType.Diluent, new List<SolutionComponentInput>
             {
                 new(null, 1m, SolutionComponentUnit.Milliliter, SolutionComponentKind.PreparedSolution, SourceSolutionMasterId: stock.Id)
@@ -651,7 +652,7 @@ public class SolutionMasterServiceTests
         var service = TestServiceFactory.SolutionMaster(db);
         var a = await CreateGeneralAsync(service, userId, "A", entry.Id);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.UpdateAsync(a.Id,
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => service.UpdateAsync(a.Id,
             GeneralReq("A", SolutionType.Reagent, new List<SolutionComponentInput>
             {
                 new(null, 1m, SolutionComponentUnit.Milliliter, SolutionComponentKind.PreparedSolution, SourceSolutionMasterId: a.Id)
@@ -677,7 +678,7 @@ public class SolutionMasterServiceTests
         }), userId);
 
         // A -> C would close the loop A -> C -> B -> A.
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.UpdateAsync(a.Id,
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => service.UpdateAsync(a.Id,
             GeneralReq("A", SolutionType.Reagent, new List<SolutionComponentInput>
             {
                 new(null, 1m, SolutionComponentUnit.Milliliter, SolutionComponentKind.PreparedSolution, SourceSolutionMasterId: c.Id)
@@ -694,7 +695,7 @@ public class SolutionMasterServiceTests
         var service = TestServiceFactory.SolutionMaster(db);
         var stock = await CreateGeneralAsync(service, userId, "Stock", entry.Id);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.CreateAsync(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => service.CreateAsync(
             GeneralReq("Buffer", SolutionType.Diluent, new List<SolutionComponentInput>
             {
                 new(null, 1m, SolutionComponentUnit.Milliliter, SolutionComponentKind.PreparedSolution, SourceSolutionMasterId: stock.Id),
@@ -712,7 +713,7 @@ public class SolutionMasterServiceTests
         var service = TestServiceFactory.SolutionMaster(db);
         var stock = await CreateGeneralAsync(service, userId, "Stock", entry.Id);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.CreateAsync(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => service.CreateAsync(
             GeneralReq("MP", SolutionType.MobilePhase, new List<SolutionComponentInput>
             {
                 new(null, 1m, SolutionComponentUnit.Milliliter, SolutionComponentKind.PreparedSolution, SourceSolutionMasterId: stock.Id)
@@ -730,23 +731,23 @@ public class SolutionMasterServiceTests
         var material = new SolutionComponentInput(entry.Id, 9m, SolutionComponentUnit.Gram);
 
         // Text is required.
-        await Assert.ThrowsAsync<InvalidOperationException>(() => service.CreateAsync(GeneralReq("S1", SolutionType.Diluent,
+        await Assert.ThrowsAsync<BusinessRuleException>(() => service.CreateAsync(GeneralReq("S1", SolutionType.Diluent,
             new() { material, new(null, null, null, SolutionComponentKind.Text, Text: "  ") }), userId));
         // No quantity or unit on a text line.
-        await Assert.ThrowsAsync<InvalidOperationException>(() => service.CreateAsync(GeneralReq("S2", SolutionType.Diluent,
+        await Assert.ThrowsAsync<BusinessRuleException>(() => service.CreateAsync(GeneralReq("S2", SolutionType.Diluent,
             new() { material, new(null, 1m, null, SolutionComponentKind.Text, Text: "Water") }), userId));
         // No entry on a text line.
-        await Assert.ThrowsAsync<InvalidOperationException>(() => service.CreateAsync(GeneralReq("S3", SolutionType.Diluent,
+        await Assert.ThrowsAsync<BusinessRuleException>(() => service.CreateAsync(GeneralReq("S3", SolutionType.Diluent,
             new() { material, new(entry.Id, null, null, SolutionComponentKind.Text, Text: "Water") }), userId));
         // At most 200 characters.
-        await Assert.ThrowsAsync<InvalidOperationException>(() => service.CreateAsync(GeneralReq("S4", SolutionType.Diluent,
+        await Assert.ThrowsAsync<BusinessRuleException>(() => service.CreateAsync(GeneralReq("S4", SolutionType.Diluent,
             new() { material, new(null, null, null, SolutionComponentKind.Text, Text: new string('x', 201)) }), userId));
         // A recipe needs at least one non-text component.
-        var onlyText = await Assert.ThrowsAsync<InvalidOperationException>(() => service.CreateAsync(GeneralReq("S5", SolutionType.Diluent,
+        var onlyText = await Assert.ThrowsAsync<BusinessRuleException>(() => service.CreateAsync(GeneralReq("S5", SolutionType.Diluent,
             new() { new(null, null, null, SolutionComponentKind.Text, Text: "Purified water") }), userId));
         Assert.Contains("At least one component", onlyText.Message);
         // A material line still needs a positive quantity.
-        await Assert.ThrowsAsync<InvalidOperationException>(() => service.CreateAsync(GeneralReq("S6", SolutionType.Diluent,
+        await Assert.ThrowsAsync<BusinessRuleException>(() => service.CreateAsync(GeneralReq("S6", SolutionType.Diluent,
             new() { new(entry.Id, null, null) }), userId));
     }
 }

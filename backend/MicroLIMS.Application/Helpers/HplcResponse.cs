@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 namespace MicroLIMS.Application.Helpers;
 
 public static class HplcResponse
@@ -7,7 +8,7 @@ public static class HplcResponse
         if (!hasInternalStandard)
             return response;
         if (isResponse is null or <= 0m)
-            throw new InvalidOperationException(errorMessage ?? "The internal standard response is required.");
+            throw new BusinessRuleException(errorMessage ?? "The internal standard response is required.");
         return response / isResponse.Value;
     }
 

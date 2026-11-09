@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Application.DTOs.Responses;
@@ -180,7 +181,7 @@ public class SolutionPreparationServiceTests
         var s = await SeedScenarioAsync(db);
         var service = TestServiceFactory.SolutionPreparation(db);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(
             () => service.StartAsync(new StartPreparationRequest(s.MobilePhase.Id, null), s.UserId));
 
         Assert.Contains("HPLC method is required", ex.Message);
@@ -195,7 +196,7 @@ public class SolutionPreparationServiceTests
         var otherMobilePhase = await AddSolutionAsync(db, s.Section.Id, "Mobile Phase D", SolutionType.MobilePhase, otherEntry);
         var service = TestServiceFactory.SolutionPreparation(db);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(
             () => service.StartAsync(new StartPreparationRequest(otherMobilePhase.Id, s.Method.Id), s.UserId));
 
         Assert.Contains("does not use this mobile phase", ex.Message);
@@ -208,7 +209,7 @@ public class SolutionPreparationServiceTests
         var s = await SeedScenarioAsync(db);
         var service = TestServiceFactory.SolutionPreparation(db);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(
             () => service.StartAsync(new StartPreparationRequest(s.Diluent.Id, s.Method.Id), s.UserId));
 
         Assert.Contains("only applies to mobile phase", ex.Message);
@@ -244,7 +245,7 @@ public class SolutionPreparationServiceTests
         var prep = await service.StartAsync(new StartPreparationRequest(s.MobilePhase.Id, s.Method.Id), s.UserId);
         var componentId = prep.Components[0].Id;
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.SaveAsync(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => service.SaveAsync(
             prep.Id,
             new SavePreparationRequest(new List<PreparationComponentInput> { new(componentId, otherLot.Id, 5m) }, null, null),
             s.UserId));
@@ -262,7 +263,7 @@ public class SolutionPreparationServiceTests
         var prep = await service.StartAsync(new StartPreparationRequest(s.MobilePhase.Id, s.Method.Id), s.UserId);
         var componentId = prep.Components[0].Id;
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.SaveAsync(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => service.SaveAsync(
             prep.Id,
             new SavePreparationRequest(new List<PreparationComponentInput> { new(componentId, expiredLot.Id, 5m) }, null, null),
             s.UserId));
@@ -279,7 +280,7 @@ public class SolutionPreparationServiceTests
         var prep = await service.StartAsync(new StartPreparationRequest(s.MobilePhase.Id, s.Method.Id), s.UserId);
         var componentId = prep.Components[0].Id;
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.SaveAsync(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => service.SaveAsync(
             prep.Id,
             new SavePreparationRequest(new List<PreparationComponentInput> { new(componentId, s.Lot.Id, 10m) }, null, null),
             s.UserId));
@@ -400,7 +401,7 @@ public class SolutionPreparationServiceTests
         var prep = await service.StartAsync(new StartPreparationRequest(s.MobilePhase.Id, s.Method.Id), s.UserId);
         // Never saved a lot for the component.
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(
             () => service.CompleteAsync(prep.Id, new CompletePreparationRequest(Password, null), s.UserId, null));
 
         Assert.Contains("lot and a quantity", ex.Message);
@@ -419,7 +420,7 @@ public class SolutionPreparationServiceTests
             new SavePreparationRequest(new List<PreparationComponentInput> { new(prep.Components[0].Id, s.Lot.Id, 5m) }, 1000m, 7.5m),
             s.UserId);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(
             () => service.CompleteAsync(prep.Id, new CompletePreparationRequest(Password, null), s.UserId, null));
 
         Assert.Contains("outside", ex.Message);
@@ -441,7 +442,7 @@ public class SolutionPreparationServiceTests
         trackedLot.ExpiryDate = DateTime.UtcNow.AddDays(-1);
         await db.SaveChangesAsync();
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(
             () => service.CompleteAsync(prep.Id, new CompletePreparationRequest(Password, null), s.UserId, null));
 
         Assert.Contains(s.Entry.Name, ex.Message);
@@ -478,7 +479,7 @@ public class SolutionPreparationServiceTests
         var service = TestServiceFactory.SolutionPreparation(db);
         var prep = await service.StartAsync(new StartPreparationRequest(s.MobilePhase.Id, s.Method.Id), s.UserId);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => service.CancelAsync(prep.Id, "", s.UserId));
+        await Assert.ThrowsAsync<BusinessRuleException>(() => service.CancelAsync(prep.Id, "", s.UserId));
 
         var cancelled = await service.CancelAsync(prep.Id, "Analyst changed their mind.", s.UserId);
         Assert.Equal(SolutionPreparationStatus.Cancelled, cancelled.Status);
@@ -518,11 +519,11 @@ public class SolutionPreparationServiceTests
             s.UserId);
         await service.CompleteAsync(prep.Id, new CompletePreparationRequest(Password, null), s.UserId, null);
 
-        var cancelEx = await Assert.ThrowsAsync<InvalidOperationException>(() => service.CancelAsync(prep.Id, "reason", s.UserId));
+        var cancelEx = await Assert.ThrowsAsync<BusinessRuleException>(() => service.CancelAsync(prep.Id, "reason", s.UserId));
         Assert.Contains("closed", cancelEx.Message);
 
         await service.DiscardAsync(prep.Id, "reason", s.UserId);
-        var discardAgainEx = await Assert.ThrowsAsync<InvalidOperationException>(() => service.DiscardAsync(prep.Id, "reason", s.UserId));
+        var discardAgainEx = await Assert.ThrowsAsync<BusinessRuleException>(() => service.DiscardAsync(prep.Id, "reason", s.UserId));
         Assert.Contains("closed", discardAgainEx.Message);
     }
 
@@ -734,7 +735,7 @@ public class SolutionPreparationServiceTests
         var m = await SeedMicroAsync(db);
         var service = TestServiceFactory.SolutionPreparation(db);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        await Assert.ThrowsAsync<BusinessRuleException>(() =>
             service.StartAsync(new StartPreparationRequest(m.Stock.Id, 1), m.PreparerId));
     }
 
@@ -804,7 +805,7 @@ public class SolutionPreparationServiceTests
 
         // Pending release.
         var pending = await PrepareStockAsync(service, m);
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             service.SaveAsync(working.Id, WorkingSave(working, m, pending.Id), m.PreparerId));
         Assert.Contains("awaiting release", ex.Message);
         var listed = Assert.Single(await service.GetSourcePreparationsAsync(working.Id, working.Components[0].Id, m.PreparerId));
@@ -812,7 +813,7 @@ public class SolutionPreparationServiceTests
 
         // Rejected.
         await release.DecideAsync(pending.Id, new ReleaseSolutionPreparationRequest(false, "Cloudy", Password), m.ReleaserId, null);
-        ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             service.SaveAsync(working.Id, WorkingSave(working, m, pending.Id), m.PreparerId));
         Assert.Contains("rejected", ex.Message);
 
@@ -820,7 +821,7 @@ public class SolutionPreparationServiceTests
         var otherRecipe = await AddGeneralAsync(db, m.Section.Id, "Other reagent", SolutionType.Reagent,
             new() { new(m.SaltEntry.Id, 1m, SolutionComponentUnit.Gram) });
         var wrong = await PrepareStockAsync(service, m, otherRecipe);
-        ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             service.SaveAsync(working.Id, WorkingSave(working, m, wrong.Id), m.PreparerId));
         Assert.Contains("not a preparation of", ex.Message);
 
@@ -828,7 +829,7 @@ public class SolutionPreparationServiceTests
         var released = await PrepareStockAsync(service, m);
         await release.DecideAsync(released.Id, new ReleaseSolutionPreparationRequest(true, null, Password), m.ReleaserId, null);
         fake.SetUtcNow(SepFirst.AddHours(2));
-        ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             service.SaveAsync(working.Id, WorkingSave(working, m, released.Id), m.PreparerId));
         Assert.Contains("Expired", ex.Message);
     }
@@ -847,7 +848,7 @@ public class SolutionPreparationServiceTests
 
         fake.SetUtcNow(SepFirst.AddHours(4));
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             service.CompleteAsync(working.Id, new CompletePreparationRequest(Password, null), m.PreparerId, null));
         Assert.Contains("Expired", ex.Message);
         Assert.Equal(100m, (await db.Materials.AsNoTracking().SingleAsync(x => x.Id == m.NaclLot.Id)).QuantityRemaining);
@@ -862,7 +863,7 @@ public class SolutionPreparationServiceTests
         var working = await service.StartAsync(new StartPreparationRequest(m.Working.Id, null), m.PreparerId);
         await service.SaveAsync(working.Id, WorkingSave(working, m, null), m.PreparerId);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             service.CompleteAsync(working.Id, new CompletePreparationRequest(Password, null), m.PreparerId, null));
         Assert.Contains("prepared bottle", ex.Message);
     }
@@ -875,11 +876,11 @@ public class SolutionPreparationServiceTests
         var service = TestServiceFactory.SolutionPreparation(db);
         var working = await service.StartAsync(new StartPreparationRequest(m.Working.Id, null), m.PreparerId);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => service.SaveAsync(working.Id,
+        await Assert.ThrowsAsync<BusinessRuleException>(() => service.SaveAsync(working.Id,
             new SavePreparationRequest(new List<PreparationComponentInput> { new(working.Components[2].Id, m.NaclLot.Id, 1m) }, null, null),
             m.PreparerId));
-        await Assert.ThrowsAsync<InvalidOperationException>(() => service.GetLotOptionsAsync(working.Id, working.Components[0].Id, m.PreparerId));
-        await Assert.ThrowsAsync<InvalidOperationException>(() => service.GetSourcePreparationsAsync(working.Id, working.Components[1].Id, m.PreparerId));
+        await Assert.ThrowsAsync<BusinessRuleException>(() => service.GetLotOptionsAsync(working.Id, working.Components[0].Id, m.PreparerId));
+        await Assert.ThrowsAsync<BusinessRuleException>(() => service.GetSourcePreparationsAsync(working.Id, working.Components[1].Id, m.PreparerId));
     }
 
     [Fact]
@@ -896,18 +897,18 @@ public class SolutionPreparationServiceTests
 
         // Nothing recorded.
         await service.SaveAsync(working.Id, WorkingSave(working, m, stockPrep.Id), m.PreparerId);
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             service.CompleteAsync(working.Id, new CompletePreparationRequest(Password, null), m.PreparerId, null));
         Assert.Contains("autoclave record", ex.Message);
 
         // Equipment that is not an autoclave is refused when entered.
-        ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.SaveAsync(working.Id,
+        ex = await Assert.ThrowsAsync<BusinessRuleException>(() => service.SaveAsync(working.Id,
             WorkingSave(working, m, stockPrep.Id, autoclaveEquipmentId: incubator.Id, program: "P1", loadType: "Liquid", temperature: 121m, cycleTime: 15, cycleNumber: 3),
             m.PreparerId));
         Assert.Equal("Selected equipment is not a valid autoclave.", ex.Message);
 
         // Zero values are refused.
-        ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.SaveAsync(working.Id,
+        ex = await Assert.ThrowsAsync<BusinessRuleException>(() => service.SaveAsync(working.Id,
             WorkingSave(working, m, stockPrep.Id, autoclaveEquipmentId: autoclave.Id, program: "P1", loadType: "Liquid", temperature: 0m, cycleTime: 15, cycleNumber: 3),
             m.PreparerId));
         Assert.Contains("temperature", ex.Message);
@@ -916,7 +917,7 @@ public class SolutionPreparationServiceTests
         await service.SaveAsync(working.Id,
             WorkingSave(working, m, stockPrep.Id, autoclaveEquipmentId: autoclave.Id, program: "P1", loadType: "Liquid", temperature: 121m),
             m.PreparerId);
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        await Assert.ThrowsAsync<BusinessRuleException>(() =>
             service.CompleteAsync(working.Id, new CompletePreparationRequest(Password, null), m.PreparerId, null));
 
         // Complete record.
@@ -943,7 +944,7 @@ public class SolutionPreparationServiceTests
         var autoclave = await AddEquipmentAsync(db, m.Section.Id, EquipmentType.Autoclave);
         var prep = await service.StartAsync(new StartPreparationRequest(m.Stock.Id, null), m.PreparerId);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.SaveAsync(prep.Id,
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => service.SaveAsync(prep.Id,
             new SavePreparationRequest(new List<PreparationComponentInput> { new(prep.Components[0].Id, m.SaltLot.Id, 34m) }, 1000m, null,
                 AutoclaveEquipmentId: autoclave.Id), m.PreparerId));
         Assert.Contains("does not require sterilization", ex.Message);
@@ -984,7 +985,7 @@ public class SolutionPreparationServiceTests
         Assert.Single(await db.ReviewWorkflowEvents.Where(e => e.EntityType == "SolutionPreparation" && e.EntityId == stockPrep.Id).ToListAsync());
 
         // A decision is final.
-        var again = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var again = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             release.DecideAsync(stockPrep.Id, new ReleaseSolutionPreparationRequest(false, "Changed my mind", Password), m.ReleaserId, null));
         Assert.Contains("already been decided", again.Message);
     }
@@ -999,7 +1000,7 @@ public class SolutionPreparationServiceTests
         var release = TestServiceFactory.SolutionPreparationRelease(db, clock);
         var stockPrep = await PrepareStockAsync(service, m);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             release.DecideAsync(stockPrep.Id, new ReleaseSolutionPreparationRequest(false, "  ", Password), m.ReleaserId, null));
         Assert.Contains("comment is required", ex.Message);
         Assert.Empty(await db.ElectronicSignatures.Where(x => x.MeaningOfSignature == SignatureMeaning.Rejected).ToListAsync());
@@ -1023,7 +1024,7 @@ public class SolutionPreparationServiceTests
         var stockPrep = await PrepareStockAsync(service, m);
         var signaturesBefore = await db.ElectronicSignatures.CountAsync();
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             release.DecideAsync(stockPrep.Id, new ReleaseSolutionPreparationRequest(true, null, Password), m.PreparerId, null));
 
         Assert.Contains("you prepared", ex.Message);
@@ -1057,15 +1058,15 @@ public class SolutionPreparationServiceTests
         var request = new ReleaseSolutionPreparationRequest(true, null, Password);
 
         var inProgress = await service.StartAsync(new StartPreparationRequest(m.Stock.Id, null), m.PreparerId);
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => release.DecideAsync(inProgress.Id, request, m.ReleaserId, null));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => release.DecideAsync(inProgress.Id, request, m.ReleaserId, null));
         Assert.Contains("closed", ex.Message);
 
         var done = await PrepareStockAsync(service, m);
-        ex = await Assert.ThrowsAsync<InvalidOperationException>(() => release.DecideAsync(done.Id, request, m.ReleaserId, null));
+        ex = await Assert.ThrowsAsync<BusinessRuleException>(() => release.DecideAsync(done.Id, request, m.ReleaserId, null));
         Assert.Contains("does not need a release", ex.Message);
 
         fake.SetUtcNow(SepFirst.AddHours(2));
-        ex = await Assert.ThrowsAsync<InvalidOperationException>(() => release.DecideAsync(done.Id, request, m.ReleaserId, null));
+        ex = await Assert.ThrowsAsync<BusinessRuleException>(() => release.DecideAsync(done.Id, request, m.ReleaserId, null));
         Assert.Contains("closed", ex.Message);
     }
 

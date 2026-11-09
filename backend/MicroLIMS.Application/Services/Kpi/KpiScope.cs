@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using MicroLIMS.Application.Helpers;
 using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore;
@@ -41,7 +42,7 @@ public static class KpiScope
     {
         if (string.IsNullOrWhiteSpace(category)) return null;
         if (Enum.TryParse<SampleCategory>(category.Trim(), true, out var parsed) && Enum.IsDefined(parsed)) return parsed;
-        throw new InvalidOperationException($"Unknown sample category '{category}'.");
+        throw new BusinessRuleException($"Unknown sample category '{category}'.");
     }
 
     // Sample-level filters. Location keeps the legacy meaning (item name or water point code).

@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Services;
 using MicroLIMS.Application.Workflows;
@@ -127,7 +128,7 @@ public class WaterAndEMEngineTests
         var prepared = await engine.PrepareAsync(sample.Id, new List<int> { point.Id }, 1, "RoomTemperature");
         var order = prepared.TestOrders.Single();
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => engine.CalculateAndCompareAsync(order.Id, new List<decimal> { 5 }));
+        await Assert.ThrowsAsync<BusinessRuleException>(() => engine.CalculateAndCompareAsync(order.Id, new List<decimal> { 5 }));
     }
 
     // EM/After Cleaning batch preparation (multiple rooms/parts -> one

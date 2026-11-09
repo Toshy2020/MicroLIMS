@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Application.Services;
@@ -211,7 +212,7 @@ public class ControlChartServiceTests
         db.TestDefinitions.Add(new TestDefinition { Code = "ECOLI", DisplayName = "E. coli", SectionId = 1, WorkflowType = WorkflowType.Observation });
         await db.SaveChangesAsync();
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        await Assert.ThrowsAsync<BusinessRuleException>(() =>
             NewService(db).GetChartAsync(new ControlChartQuery("ECOLI", "Room", null, null, null, null, null, false, new ControlChartSettings())));
     }
 
@@ -326,7 +327,7 @@ public class ControlChartServiceTests
         var user = await SeedUserAsync(db);
         var config = await SeedRoomAsync(db);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        await Assert.ThrowsAsync<BusinessRuleException>(() =>
             NewService(db).ApplyLimitsAsync(Apply(config.Id, config.Version, (decimal)alert, (decimal)action), user.Id, null));
         Assert.Empty(db.ElectronicSignatures);
     }
@@ -349,7 +350,7 @@ public class ControlChartServiceTests
         var user = await SeedUserAsync(db);
         var config = await SeedRoomAsync(db);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        await Assert.ThrowsAsync<BusinessRuleException>(() =>
             NewService(db).ApplyLimitsAsync(Apply(config.Id, config.Version, 5, 7, subject: "Other Room"), user.Id, null));
     }
 
@@ -360,7 +361,7 @@ public class ControlChartServiceTests
         var user = await SeedUserAsync(db);
         var config = await SeedRoomAsync(db);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        await Assert.ThrowsAsync<BusinessRuleException>(() =>
             NewService(db).ApplyLimitsAsync(Apply(config.Id, config.Version, 5, 7, category: SampleCategory.FinishedProduct), user.Id, null));
     }
 
@@ -371,7 +372,7 @@ public class ControlChartServiceTests
         var user = await SeedUserAsync(db);
         var config = await SeedRoomAsync(db);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        await Assert.ThrowsAsync<BusinessRuleException>(() =>
             NewService(db).ApplyLimitsAsync(Apply(config.Id, config.Version, 5, 7) with { Reason = "  " }, user.Id, null));
     }
 }

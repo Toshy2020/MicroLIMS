@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Workflows;
@@ -92,14 +93,14 @@ public class TitrationPostgresIntegrationTests
         // Due titrant on UspFactor
         await using var db = _fixture.CreateDbContext();
         var s = TitrationScenario.Seed(db, new() { ExistingUserId = _fixture.SeededUserId, ValidityDays = 1, StandardizedDaysAgo = 5 });
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => Record(db, s, TitrationRecorderTests.Payload(s)));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => Record(db, s, TitrationRecorderTests.Payload(s)));
         Assert.Contains("due", ex.Message);
 
         // wrong replicate count on a relative test holding stock
         await using var db2 = _fixture.CreateDbContext();
         var s2 = TitrationScenario.Seed(db2, Relative());
         var p = TitrationRecorderTests.Payload(s2, standards: new() { new(s2.StandardLot!.Id, 100m, 10m) }) with { Replicates = new() { new(200m, 22.6m) } };
-        var ex2 = await Assert.ThrowsAsync<InvalidOperationException>(() => Record(db2, s2, p));
+        var ex2 = await Assert.ThrowsAsync<BusinessRuleException>(() => Record(db2, s2, p));
         Assert.Contains("Exactly 2 replicate", ex2.Message);
 
         await using var v = _fixture.CreateDbContext();

@@ -233,7 +233,7 @@ public class AccessReviewTests
     public async Task Generate_RequiresAReason_AndStoresNothingWithout(string? reason)
     {
         var rig = CreateRig();
-        await Assert.ThrowsAsync<InvalidOperationException>(() => rig.Service.GenerateAsync("2026 Q4", reason, Admin));
+        await Assert.ThrowsAsync<BusinessRuleException>(() => rig.Service.GenerateAsync("2026 Q4", reason, Admin));
         Assert.Empty(await rig.Db.AccessReviews.ToListAsync());
     }
 
@@ -294,11 +294,11 @@ public class AccessReviewTests
         var rig = CreateRig();
         var review = await rig.Service.GenerateAsync(null, Reason, Admin);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => rig.Service.AddFindingAsync(review.Id, Finding(999), Qa));
-        await Assert.ThrowsAsync<InvalidOperationException>(() => rig.Service.AddFindingAsync(review.Id, Finding(Dormant, kind: "Nonsense"), Qa));
-        await Assert.ThrowsAsync<InvalidOperationException>(() => rig.Service.AddFindingAsync(review.Id, Finding(Dormant, action: "Delete"), Qa));
-        await Assert.ThrowsAsync<InvalidOperationException>(() => rig.Service.AddFindingAsync(review.Id, Finding(Dormant, action: "ChangeRequested"), Qa)); // note required
-        await Assert.ThrowsAsync<InvalidOperationException>(() => rig.Service.AddFindingAsync(review.Id, Finding(Dormant) with { Detail = " " }, Qa));
+        await Assert.ThrowsAsync<BusinessRuleException>(() => rig.Service.AddFindingAsync(review.Id, Finding(999), Qa));
+        await Assert.ThrowsAsync<BusinessRuleException>(() => rig.Service.AddFindingAsync(review.Id, Finding(Dormant, kind: "Nonsense"), Qa));
+        await Assert.ThrowsAsync<BusinessRuleException>(() => rig.Service.AddFindingAsync(review.Id, Finding(Dormant, action: "Delete"), Qa));
+        await Assert.ThrowsAsync<BusinessRuleException>(() => rig.Service.AddFindingAsync(review.Id, Finding(Dormant, action: "ChangeRequested"), Qa)); // note required
+        await Assert.ThrowsAsync<BusinessRuleException>(() => rig.Service.AddFindingAsync(review.Id, Finding(Dormant) with { Detail = " " }, Qa));
         await Assert.ThrowsAsync<NotFoundException>(() => rig.Service.AddFindingAsync(999, Finding(Dormant), Qa));
         Assert.Empty(await rig.Db.AccessReviewFindings.ToListAsync());
     }
@@ -311,9 +311,9 @@ public class AccessReviewTests
         var finding = await rig.Service.AddFindingAsync(review.Id, Finding(Dormant), Qa);
         await rig.Service.SignAsync(review.Id, QaPassword, "Reviewed; no further action", Qa, null);
 
-        var add = await Assert.ThrowsAsync<InvalidOperationException>(() => rig.Service.AddFindingAsync(review.Id, Finding(NeverIn, "NeverLoggedIn"), Qa));
+        var add = await Assert.ThrowsAsync<BusinessRuleException>(() => rig.Service.AddFindingAsync(review.Id, Finding(NeverIn, "NeverLoggedIn"), Qa));
         Assert.Contains("signed", add.Message);
-        await Assert.ThrowsAsync<InvalidOperationException>(() => rig.Service.UpdateFindingAsync(review.Id, finding.Id, Finding(Dormant, note: "edit"), Qa));
+        await Assert.ThrowsAsync<BusinessRuleException>(() => rig.Service.UpdateFindingAsync(review.Id, finding.Id, Finding(Dormant, note: "edit"), Qa));
         Assert.Single(await rig.Db.AccessReviewFindings.ToListAsync());
     }
 
@@ -378,7 +378,7 @@ public class AccessReviewTests
         var rig = CreateRig();
         var review = await rig.Service.GenerateAsync(null, Reason, Admin);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => rig.Service.SignAsync(review.Id, QaPassword, "  ", Qa, null));
+        await Assert.ThrowsAsync<BusinessRuleException>(() => rig.Service.SignAsync(review.Id, QaPassword, "  ", Qa, null));
         await AssertStillDraft(rig, review.Id);
     }
 
@@ -389,7 +389,7 @@ public class AccessReviewTests
         var review = await rig.Service.GenerateAsync(null, Reason, Admin);
         await rig.Service.SignAsync(review.Id, QaPassword, "Fine", Qa, null);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => rig.Service.SignAsync(review.Id, QaPassword, "Again", Qa, null));
+        await Assert.ThrowsAsync<BusinessRuleException>(() => rig.Service.SignAsync(review.Id, QaPassword, "Again", Qa, null));
         var stored = await rig.Db.AccessReviews.AsNoTracking().SingleAsync();
         Assert.Equal("Fine", stored.Conclusion);
         Assert.Single(await rig.Db.ElectronicSignatures.ToListAsync());
@@ -402,13 +402,13 @@ public class AccessReviewTests
 
         // The report flags the signer's own account (a segregation-of-duties conflict).
         var flagged = await rig.Service.GenerateAsync(null, Reason, Admin);
-        var self = await Assert.ThrowsAsync<InvalidOperationException>(() => rig.Service.SignAsync(flagged.Id, QaPassword, "Fine", Conflict, null));
+        var self = await Assert.ThrowsAsync<BusinessRuleException>(() => rig.Service.SignAsync(flagged.Id, QaPassword, "Fine", Conflict, null));
         Assert.Contains("your own access", self.Message);
 
         // A finding is recorded about the signer's account.
         var review = await rig.Service.GenerateAsync(null, Reason, Admin);
         await rig.Service.AddFindingAsync(review.Id, Finding(Qa, "RoleReview"), Admin);
-        await Assert.ThrowsAsync<InvalidOperationException>(() => rig.Service.SignAsync(review.Id, QaPassword, "Fine", Qa, null));
+        await Assert.ThrowsAsync<BusinessRuleException>(() => rig.Service.SignAsync(review.Id, QaPassword, "Fine", Qa, null));
         Assert.Empty(await rig.Db.ElectronicSignatures.ToListAsync());
     }
 
@@ -432,7 +432,7 @@ public class AccessReviewTests
         await rig.Db.SaveChangesAsync();
 
         Assert.False((await rig.Service.GetAsync(review.Id)).SnapshotIntact);
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => rig.Service.SignAsync(review.Id, QaPassword, "Fine", Qa, null));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => rig.Service.SignAsync(review.Id, QaPassword, "Fine", Qa, null));
         Assert.Contains("checksum", ex.Message);
     }
 

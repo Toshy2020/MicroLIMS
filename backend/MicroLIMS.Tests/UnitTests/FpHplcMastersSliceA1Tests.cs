@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using MicroLIMS.Application.DTOs;
 using MicroLIMS.Persistence.Helpers;
 using Microsoft.EntityFrameworkCore;
@@ -290,7 +291,7 @@ public class FpHplcMastersSliceA1Tests
         db.Equipment.Add(incubator);
         await db.SaveChangesAsync();
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             service.CreateAsync(new CreateChromatographyColumnRequest(
                 Code: "COL-002",
                 Name: "Test Column",
@@ -319,7 +320,7 @@ public class FpHplcMastersSliceA1Tests
         db.Equipment.Add(microHplc);
         await db.SaveChangesAsync();
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             service.CreateAsync(new CreateChromatographyColumnRequest(
                 Code: "COL-003",
                 Name: "Test Column",
@@ -344,7 +345,7 @@ public class FpHplcMastersSliceA1Tests
             SectionId: fpSec.Id
         ), fpUser.Id);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             service.CreateAsync(new CreateChromatographyColumnRequest(
                 Code: "COL-DUP",
                 Name: "Second Column",
@@ -453,7 +454,7 @@ public class FpHplcMastersSliceA1Tests
         var scope = new UserSectionScopeService(db);
         var service = new MaterialService(db, scope, new DatabaseSequenceHelper(db));
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             service.CreateAsync(new SaveMaterialRequest(
                 MaterialType: MaterialType.ReferenceStandard,
                 MaterialName: "Ascorbic Acid Standard",
@@ -487,7 +488,7 @@ public class FpHplcMastersSliceA1Tests
         var scope = new UserSectionScopeService(db);
         var service = new MaterialService(db, scope, new DatabaseSequenceHelper(db));
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             service.CreateAsync(new SaveMaterialRequest(
                 MaterialType: MaterialType.ReferenceStandard,
                 MaterialName: "Ascorbic Acid Standard",
@@ -517,7 +518,7 @@ public class FpHplcMastersSliceA1Tests
         var scope = new UserSectionScopeService(db);
         var service = new MaterialService(db, scope, new DatabaseSequenceHelper(db));
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             service.CreateAsync(new SaveMaterialRequest(
                 MaterialType: MaterialType.Chemical,
                 MaterialName: "Acetonitrile HPLC Grade",

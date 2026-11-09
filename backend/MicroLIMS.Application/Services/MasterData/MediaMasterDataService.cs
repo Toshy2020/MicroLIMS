@@ -66,32 +66,32 @@ public class MediaMasterDataService
     public async Task<object> CreateMediaConfigurationAsync(CreateMediaConfigurationRequest request)
     {
         var product = await _db.MediaProducts.FirstOrDefaultAsync(p => p.Id == request.MediaProductId)
-            ?? throw new InvalidOperationException($"Media product with ID {request.MediaProductId} not found.");
+            ?? throw new BusinessRuleException($"Media product with ID {request.MediaProductId} not found.");
         if (!product.IsActive)
-            throw new InvalidOperationException($"Media product \"{product.Name}\" is inactive and can't get a new configuration.");
+            throw new BusinessRuleException($"Media product \"{product.Name}\" is inactive and can't get a new configuration.");
 
         var condition = await _db.MediaIncubationConditions.FirstOrDefaultAsync(c => c.Id == request.MediaIncubationConditionId)
-            ?? throw new InvalidOperationException($"Incubation condition {request.MediaIncubationConditionId} not found.");
+            ?? throw new BusinessRuleException($"Incubation condition {request.MediaIncubationConditionId} not found.");
         if (condition.MediaProductId != product.Id)
         {
-            throw new InvalidOperationException("The chosen incubation condition belongs to a different media product.");
+            throw new BusinessRuleException("The chosen incubation condition belongs to a different media product.");
         }
 
         var exists = await _db.MediaConfigurations.AnyAsync(m => m.MediaProductId == request.MediaProductId);
         if (exists)
         {
-            throw new InvalidOperationException($"'{product.Name}' already has an evaluation configuration. Edit it instead.");
+            throw new BusinessRuleException($"'{product.Name}' already has an evaluation configuration. Edit it instead.");
         }
 
         if (!Enum.IsDefined(typeof(EvaluationType), request.EvaluationType))
-            throw new InvalidOperationException("Valid evaluation type is required.");
+            throw new BusinessRuleException("Valid evaluation type is required.");
 
         if (request.EvaluationType == EvaluationType.GrowthPromotion)
         {
             if (request.RecoveryPercentMin.HasValue && request.RecoveryPercentMax.HasValue &&
                 request.RecoveryPercentMin > request.RecoveryPercentMax)
             {
-                throw new InvalidOperationException("Recovery percent min cannot exceed recovery percent max.");
+                throw new BusinessRuleException("Recovery percent min cannot exceed recovery percent max.");
             }
         }
 
@@ -111,12 +111,12 @@ public class MediaMasterDataService
             {
                 var organismExists = await _db.Organisms.AnyAsync(o => o.Id == ch.OrganismId);
                 if (!organismExists)
-                    throw new InvalidOperationException($"Organism with ID {ch.OrganismId} not found.");
+                    throw new BusinessRuleException($"Organism with ID {ch.OrganismId} not found.");
 
                 if (request.EvaluationType == EvaluationType.IndicationInhibition)
                 {
                     if (!ch.ChallengeRole.HasValue || !Enum.IsDefined(typeof(ChallengeRole), ch.ChallengeRole.Value))
-                        throw new InvalidOperationException("Challenge role is required for Indication/Inhibition evaluation.");
+                        throw new BusinessRuleException("Challenge role is required for Indication/Inhibition evaluation.");
                 }
 
                 entity.Challenges.Add(new MediaConfigurationChallenge
@@ -173,28 +173,28 @@ public class MediaMasterDataService
 
         if (request.MediaProductId != entity.MediaProductId)
         {
-            throw new InvalidOperationException("A configuration can't be moved to another media product.");
+            throw new BusinessRuleException("A configuration can't be moved to another media product.");
         }
 
         var product = await _db.MediaProducts.FirstOrDefaultAsync(p => p.Id == entity.MediaProductId)
-            ?? throw new InvalidOperationException($"Media product with ID {entity.MediaProductId} not found.");
+            ?? throw new BusinessRuleException($"Media product with ID {entity.MediaProductId} not found.");
 
         var condition = await _db.MediaIncubationConditions.FirstOrDefaultAsync(c => c.Id == request.MediaIncubationConditionId)
-            ?? throw new InvalidOperationException($"Incubation condition {request.MediaIncubationConditionId} not found.");
+            ?? throw new BusinessRuleException($"Incubation condition {request.MediaIncubationConditionId} not found.");
         if (condition.MediaProductId != entity.MediaProductId)
         {
-            throw new InvalidOperationException("The chosen incubation condition belongs to a different media product.");
+            throw new BusinessRuleException("The chosen incubation condition belongs to a different media product.");
         }
 
         if (!Enum.IsDefined(typeof(EvaluationType), request.EvaluationType))
-            throw new InvalidOperationException("Valid evaluation type is required.");
+            throw new BusinessRuleException("Valid evaluation type is required.");
 
         if (request.EvaluationType == EvaluationType.GrowthPromotion)
         {
             if (request.RecoveryPercentMin.HasValue && request.RecoveryPercentMax.HasValue &&
                 request.RecoveryPercentMin > request.RecoveryPercentMax)
             {
-                throw new InvalidOperationException("Recovery percent min cannot exceed recovery percent max.");
+                throw new BusinessRuleException("Recovery percent min cannot exceed recovery percent max.");
             }
         }
 
@@ -210,12 +210,12 @@ public class MediaMasterDataService
         {
             var organismExists = await _db.Organisms.AnyAsync(o => o.Id == ch.OrganismId);
             if (!organismExists)
-                throw new InvalidOperationException($"Organism with ID {ch.OrganismId} not found.");
+                throw new BusinessRuleException($"Organism with ID {ch.OrganismId} not found.");
 
             if (request.EvaluationType == EvaluationType.IndicationInhibition)
             {
                 if (!ch.ChallengeRole.HasValue || !Enum.IsDefined(typeof(ChallengeRole), ch.ChallengeRole.Value))
-                    throw new InvalidOperationException("Challenge role is required for Indication/Inhibition evaluation.");
+                    throw new BusinessRuleException("Challenge role is required for Indication/Inhibition evaluation.");
             }
         }
 
@@ -223,7 +223,7 @@ public class MediaMasterDataService
             .GroupBy(c => new { c.OrganismId, Role = request.EvaluationType == EvaluationType.IndicationInhibition ? c.ChallengeRole : null })
             .Any(g => g.Count() > 1);
         if (duplicateIncoming)
-            throw new InvalidOperationException("Duplicate challenge organism and role combination in request.");
+            throw new BusinessRuleException("Duplicate challenge organism and role combination in request.");
 
         var toRemove = entity.Challenges.Where(existing =>
             !incomingChallenges.Any(inc =>

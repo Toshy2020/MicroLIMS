@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using System.Reflection;
 using System.Text.Json;
 using Microsoft.AspNetCore.Authorization;
@@ -93,8 +94,8 @@ public class UserSessionsAdminTests
         db.RefreshTokens.Add(new RefreshToken { UserId = 10, TokenHash = "h", ExpiresAt = DateTime.UtcNow.AddDays(1) });
         db.SaveChanges();
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => users.RevokeSessionsAsync(10, "  ", 900));
-        await Assert.ThrowsAsync<InvalidOperationException>(() => users.RevokeSessionsAsync(10, null, 900));
+        await Assert.ThrowsAsync<BusinessRuleException>(() => users.RevokeSessionsAsync(10, "  ", 900));
+        await Assert.ThrowsAsync<BusinessRuleException>(() => users.RevokeSessionsAsync(10, null, 900));
 
         Assert.Null((await db.RefreshTokens.SingleAsync()).RevokedAt);
         Assert.Empty(await db.SecurityAuditEvents.Where(e => e.EventCode == SecurityEventCodes.SessionRevoked).ToListAsync());

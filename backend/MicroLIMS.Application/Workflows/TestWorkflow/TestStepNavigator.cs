@@ -259,7 +259,7 @@ public sealed class TestStepNavigator : TestWorkflowSupport
         }
 
         var errors = await ValidateAsync(testOrderId);
-        if (errors.Count > 0) throw new InvalidOperationException(string.Join(" ", errors));
+        if (errors.Count > 0) throw new BusinessRuleException(string.Join(" ", errors));
 
         var next = order.CurrentStep switch
         {

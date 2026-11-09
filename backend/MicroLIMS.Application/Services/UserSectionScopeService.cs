@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Helpers;
 using MicroLIMS.Application.Interfaces;
@@ -145,12 +146,12 @@ public class UserSectionScopeService : IUserSectionScopeService
 
             if (!existsAndActive)
             {
-                throw new InvalidOperationException("Selected laboratory section was not found or is inactive.");
+                throw new BusinessRuleException("Selected laboratory section was not found or is inactive.");
             }
 
             if (scope is not null && !scope.Contains(sectionId))
             {
-                throw new InvalidOperationException("You are not a member of the selected laboratory section.");
+                throw new BusinessRuleException("You are not a member of the selected laboratory section.");
             }
 
             return sectionId;
@@ -158,12 +159,12 @@ public class UserSectionScopeService : IUserSectionScopeService
 
         if (scope is null)
         {
-            throw new InvalidOperationException("Choose a laboratory section.");
+            throw new BusinessRuleException("Choose a laboratory section.");
         }
 
         if (scope.Count == 0)
         {
-            throw new InvalidOperationException("Your account is not assigned to any laboratory section. Ask an administrator to assign one.");
+            throw new BusinessRuleException("Your account is not assigned to any laboratory section. Ask an administrator to assign one.");
         }
 
         if (scope.Count == 1)
@@ -171,7 +172,7 @@ public class UserSectionScopeService : IUserSectionScopeService
             return scope[0];
         }
 
-        throw new InvalidOperationException("Choose a laboratory section - you belong to more than one.");
+        throw new BusinessRuleException("Choose a laboratory section - you belong to more than one.");
     }
 
     public async Task EnsureTestOrderAccessAsync(int userId, int testOrderId, CancellationToken ct = default, SectionAccess access = SectionAccess.Write)

@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Helpers;
@@ -456,7 +457,7 @@ public class WeightVariationWorkflowEngineTests
             Password: "Password123!");
 
         // Try stage 2 without stage 1 -> rejected
-        var ex1 = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex1 = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             engine.RecordWeightVariationStageAsync(order.Id, stagePayload, analyst.Id));
         Assert.Contains("No active weight variation entry found", ex1.Message);
 
@@ -471,7 +472,7 @@ public class WeightVariationWorkflowEngineTests
         await engine.RecordWeightVariationResultAsync(order.Id, s1PassPayload, analyst.Id);
 
         // Try stage 2 now -> order already finalized to Ready
-        var ex2 = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex2 = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             engine.RecordWeightVariationStageAsync(order.Id, stagePayload, analyst.Id));
         Assert.Contains("already at Ready", ex2.Message);
     }
@@ -491,7 +492,7 @@ public class WeightVariationWorkflowEngineTests
             Units: Enumerable.Range(0, 19).Select(_ => new WeightVariationUnitPayload(WeightMg: 500m)).ToList(),
             Password: "Password123!");
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             engine.RecordWeightVariationResultAsync(order.Id, badS1Payload, analyst.Id));
         Assert.Contains("Stage 1 weight variation requires exactly 20 units", ex.Message);
     }
@@ -511,7 +512,7 @@ public class WeightVariationWorkflowEngineTests
             Units: Enumerable.Range(0, 20).Select(_ => new WeightVariationUnitPayload(GrossMg: 600m, ShellMg: 200m)).ToList(),
             Password: "Password123!");
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             engine.RecordWeightVariationResultAsync(order.Id, badShapePayload, analyst.Id));
         Assert.Contains("Tablet units must only contain WeightMg", ex.Message);
     }

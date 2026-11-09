@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using MicroLIMS.Application.Services;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
@@ -74,7 +75,7 @@ public class BatchSelectMediaRulesTests
     [InlineData("Plate Reading")]
     [InlineData("Result Entry")]
     public void ResultEntrySteps_AreRefused(string step) =>
-        Assert.Throws<InvalidOperationException>(() => BatchSelectMediaRules.EnsureNotResultEntry(step));
+        Assert.Throws<BusinessRuleException>(() => BatchSelectMediaRules.EnsureNotResultEntry(step));
 
     [Theory]
     [InlineData("TAMC Incubation")]
@@ -86,14 +87,14 @@ public class BatchSelectMediaRulesTests
     {
         var media = new Media { LotNumber = "L1", IsReleasedForUse = true, ExpiryDate = Now.AddDays(-1) };
 
-        var ex = Assert.Throws<InvalidOperationException>(() => BatchSelectMediaRules.EnsureMediaLotUsable(media, Now));
+        var ex = Assert.Throws<BusinessRuleException>(() => BatchSelectMediaRules.EnsureMediaLotUsable(media, Now));
         Assert.Contains("expired", ex.Message);
     }
 
     [Fact]
     public void IncubatorWithoutSetPoint_IsRefused()
     {
-        var ex = Assert.Throws<InvalidOperationException>(() => BatchSelectMediaRules.EnsureIncubatorUsable(new Equipment { Code = "INC-1" }, 1, Now));
+        var ex = Assert.Throws<BusinessRuleException>(() => BatchSelectMediaRules.EnsureIncubatorUsable(new Equipment { Code = "INC-1" }, 1, Now));
         Assert.Contains("set point", ex.Message);
     }
 

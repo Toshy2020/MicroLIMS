@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.DTOs;
 using MicroLIMS.Application.Interfaces;
@@ -106,7 +107,7 @@ public class SupplierStatedAttributeServiceTests
             StatedValue: "< 10 ppm",
             SortOrder: 1);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.CreateAsync(userId: 1, request));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => service.CreateAsync(userId: 1, request));
         Assert.Contains("Grade EP has no specification for this item.", ex.Message);
     }
 
@@ -264,7 +265,7 @@ public class SupplierStatedAttributeServiceTests
             StatedValue: value,
             SortOrder: 0);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => service.CreateAsync(userId: 1, request));
+        await Assert.ThrowsAsync<BusinessRuleException>(() => service.CreateAsync(userId: 1, request));
     }
 
     [Theory]
@@ -282,7 +283,7 @@ public class SupplierStatedAttributeServiceTests
             StatedValue: new string('b', valueLength),
             SortOrder: 0);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.CreateAsync(userId: 1, request));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => service.CreateAsync(userId: 1, request));
         Assert.Equal(expectedMessage, ex.Message);
     }
 }

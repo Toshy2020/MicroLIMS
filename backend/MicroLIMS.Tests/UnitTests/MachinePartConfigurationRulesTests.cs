@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.DTOs;
 using MicroLIMS.Application.Services.MasterData;
@@ -45,7 +46,7 @@ public class MachinePartConfigurationRulesTests
         var service = NewService(db);
         await service.CreateMachinePartConfigurationAsync(UserId, Pathogen("ECOLI"));
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => service.CreateMachinePartConfigurationAsync(UserId, Pathogen("ECOLI")));
+        await Assert.ThrowsAsync<BusinessRuleException>(() => service.CreateMachinePartConfigurationAsync(UserId, Pathogen("ECOLI")));
         Assert.Equal(1, await db.MachinePartConfigurations.CountAsync());
     }
 
@@ -68,7 +69,7 @@ public class MachinePartConfigurationRulesTests
         await service.CreateMachinePartConfigurationAsync(UserId, Pathogen("ECOLI"));
         var salm = await service.CreateMachinePartConfigurationAsync(UserId, Pathogen("SALM"));
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        await Assert.ThrowsAsync<BusinessRuleException>(() =>
             service.UpdateMachinePartConfigurationAsync(UserId, salm.Id, new UpdateMachinePartConfigRequest("Pathogen", "ECOLI", "", "", "", true)));
     }
 
@@ -93,7 +94,7 @@ public class MachinePartConfigurationRulesTests
         db.SampleLocations.Add(new SampleLocation { SampleId = 1, TestOrderId = 1, LocationType = LocationType.MachinePart, MachinePartConfigurationId = ecoli.Id });
         await db.SaveChangesAsync();
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => service.DeleteMachinePartConfigurationAsync(UserId, ecoli.Id));
+        await Assert.ThrowsAsync<BusinessRuleException>(() => service.DeleteMachinePartConfigurationAsync(UserId, ecoli.Id));
         Assert.Equal(1, await db.MachinePartConfigurations.CountAsync());
     }
 

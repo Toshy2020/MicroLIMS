@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using System.Text;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.DTOs.DocumentControl;
@@ -130,7 +131,7 @@ public class DocumentControlReviewPostgresIntegrationTests
         Assert.Equal(ReviewFindingStatus.AuthorResponded, responded.Status);
 
         // 4. Verification that gate blocks early completion
-        var gateEx = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var gateEx = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             reviewService.DecideReviewAsync(task.Id, new ReviewDecisionRequest
             {
                 Decision = ReviewDecision.CompleteReview

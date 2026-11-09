@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 ﻿using System.Security.Cryptography;
 using System.Text;
 using Microsoft.EntityFrameworkCore;
@@ -164,7 +165,7 @@ public class DocumentControlReviewUnitTests
             SubmissionNotes = "Draft without PDF"
         };
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        await Assert.ThrowsAsync<BusinessRuleException>(() =>
             _reviewService.SubmitForReviewAsync(revId, req, _authorUserId));
     }
 
@@ -325,7 +326,7 @@ public class DocumentControlReviewUnitTests
         }, _reviewerUserId);
 
         // Reviewer attempts to complete review while finding is Open
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             _reviewService.DecideReviewAsync(task.Id, new ReviewDecisionRequest
             {
                 Decision = ReviewDecision.CompleteReview,

@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Persistence.DbContext;
@@ -71,7 +72,7 @@ public class WaterConfigCrudTests
         await db.SaveChangesAsync();
 
         var controller = NewController(db);
-        await Assert.ThrowsAsync<InvalidOperationException>(() => controller.Water.DeleteWaterDepartment(dept.Id));
+        await Assert.ThrowsAsync<BusinessRuleException>(() => controller.Water.DeleteWaterDepartment(dept.Id));
     }
 
     [Fact]

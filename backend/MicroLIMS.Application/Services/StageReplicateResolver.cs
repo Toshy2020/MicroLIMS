@@ -49,7 +49,7 @@ public static class StageReplicateResolver
             .FirstOrDefaultAsync(cancellationToken);
 
         if (testDefinitionId is null)
-            throw new InvalidOperationException($"Test code '{order.TestCode}' is not in the Test Master.");
+            throw new BusinessRuleException($"Test code '{order.TestCode}' is not in the Test Master.");
 
         return await ResolveAsync(db, order.SampleId, testDefinitionId.Value, cancellationToken);
     }

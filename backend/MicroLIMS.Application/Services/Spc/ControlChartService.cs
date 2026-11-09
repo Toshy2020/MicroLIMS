@@ -40,7 +40,7 @@ public class ControlChartService
 
     public async Task<ControlChartResult> GetChartAsync(ControlChartQuery q, IReadOnlyCollection<int>? sectionIds = null, CancellationToken ct = default)
     {
-        if (string.IsNullOrWhiteSpace(q.SubjectName)) throw new InvalidOperationException("subjectName is required.");
+        if (string.IsNullOrWhiteSpace(q.SubjectName)) throw new BusinessRuleException("subjectName is required.");
         ControlChartCalculator.Validate(q.Settings);
         var test = await RequireNumericTestAsync(q.TestCode, ct);
 
@@ -59,7 +59,7 @@ public class ControlChartService
             _ => new CapabilitySpec(current.SpecLower, current.SpecUpper)
         };
         if (spec.Lsl.HasValue && spec.Usl.HasValue && spec.Lsl > spec.Usl)
-            throw new InvalidOperationException("The lower capability limit must not be above the upper limit.");
+            throw new BusinessRuleException("The lower capability limit must not be above the upper limit.");
 
         var stats = ControlChartCalculator.Compute(values, q.Settings, spec, inCalc);
 
@@ -126,14 +126,14 @@ public class ControlChartService
         ApplyTrendLimitsRequest r, int userId, string? ip, IReadOnlyCollection<int>? sectionIds, CancellationToken ct)
     {
         if (r.Category is not (SampleCategory.EnvironmentalMonitoring or SampleCategory.Water))
-            throw new InvalidOperationException("Limits can only be applied to Water and Environmental Monitoring configurations.");
+            throw new BusinessRuleException("Limits can only be applied to Water and Environmental Monitoring configurations.");
         if (r.Items is null || r.Items.Count == 0)
-            throw new InvalidOperationException("Select at least one location to update.");
+            throw new BusinessRuleException("Select at least one location to update.");
         if (r.Items.Select(i => (i.Kind, i.ConfigurationId)).Distinct().Count() != r.Items.Count)
-            throw new InvalidOperationException("A configuration is listed more than once.");
+            throw new BusinessRuleException("A configuration is listed more than once.");
         var reason = r.Reason?.Trim();
         if (string.IsNullOrWhiteSpace(reason))
-            throw new InvalidOperationException("A reason for change is required.");
+            throw new BusinessRuleException("A reason for change is required.");
         if (string.IsNullOrEmpty(r.Password))
             throw new SignatureVerificationException("Password is required to sign.");
         ControlChartCalculator.Validate(r.Settings);
@@ -152,11 +152,11 @@ public class ControlChartService
                 throw new DbUpdateConcurrencyException(
                     $"The limits for {location} changed after the analysis was loaded (version {item.Version}, now {entity.Version}). Reload and try again.");
             if (!string.Equals(location, item.SubjectName, StringComparison.Ordinal))
-                throw new InvalidOperationException($"Configuration {item.ConfigurationId} belongs to {location}, not {item.SubjectName}.");
+                throw new BusinessRuleException($"Configuration {item.ConfigurationId} belongs to {location}, not {item.SubjectName}.");
 
             var specMax = SpecLimitParser.Parse(spec).Max;
             if (specMax.HasValue && item.ActionLimit > specMax.Value)
-                throw new InvalidOperationException($"{location}: the action limit {Fmt(item.ActionLimit)} is above the specification limit {spec}.");
+                throw new BusinessRuleException($"{location}: the action limit {Fmt(item.ActionLimit)} is above the specification limit {spec}.");
 
             var pts = bySubject.TryGetValue(location, out var v) ? v : new List<SeriesPoint>();
             var stats = ControlChartCalculator.Compute(pts.Select(p => p.Value).ToList(), r.Settings, null, InCalculation(pts, r.Settings));
@@ -196,9 +196,9 @@ public class ControlChartService
     private static void ValidateLimitPair(ApplyLimitItem item)
     {
         if (item.AlertLimit < 0 || item.ActionLimit < 0)
-            throw new InvalidOperationException($"{item.SubjectName}: limits cannot be negative.");
+            throw new BusinessRuleException($"{item.SubjectName}: limits cannot be negative.");
         if (item.AlertLimit > item.ActionLimit)
-            throw new InvalidOperationException($"{item.SubjectName}: the alert limit must not be above the action limit.");
+            throw new BusinessRuleException($"{item.SubjectName}: the alert limit must not be above the action limit.");
     }
 
     private async Task<(IVersionedEntity Entity, string Location, string Spec)> LoadConfigurationAsync(
@@ -210,19 +210,19 @@ public class ControlChartService
             {
                 var c = await _db.RoomTestConfigurations.Include(x => x.Room).FirstOrDefaultAsync(x => x.Id == item.ConfigurationId, ct)
                     ?? throw new NotFoundException($"Room test configuration {item.ConfigurationId} not found.");
-                if (!c.IsActive) throw new InvalidOperationException($"Room test configuration {c.Id} is inactive.");
-                if (c.TestCode != testCode) throw new InvalidOperationException($"Room test configuration {c.Id} is for {c.TestCode}, not {testCode}.");
+                if (!c.IsActive) throw new BusinessRuleException($"Room test configuration {c.Id} is inactive.");
+                if (c.TestCode != testCode) throw new BusinessRuleException($"Room test configuration {c.Id} is for {c.TestCode}, not {testCode}.");
                 return (c, c.Room?.Name ?? string.Empty, c.SpecLimit);
             }
             case SamplingConfigurationKind when category == SampleCategory.Water:
             {
                 var c = await _db.SamplingConfigurations.Include(x => x.WaterSamplingPoint).FirstOrDefaultAsync(x => x.Id == item.ConfigurationId, ct)
                     ?? throw new NotFoundException($"Water sampling configuration {item.ConfigurationId} not found.");
-                if (c.TestCode != testCode) throw new InvalidOperationException($"Water sampling configuration {c.Id} is for {c.TestCode}, not {testCode}.");
+                if (c.TestCode != testCode) throw new BusinessRuleException($"Water sampling configuration {c.Id} is for {c.TestCode}, not {testCode}.");
                 return (c, c.WaterSamplingPoint?.Code ?? string.Empty, c.SpecLimit);
             }
             default:
-                throw new InvalidOperationException($"'{item.Kind}' is not a {category} limit configuration.");
+                throw new BusinessRuleException($"'{item.Kind}' is not a {category} limit configuration.");
         }
     }
 
@@ -230,7 +230,7 @@ public class ControlChartService
     {
         RoomTestConfiguration c => (c.AlertLimit, c.ActionLimit),
         SamplingConfiguration c => (c.AlertLimit, c.ActionLimit),
-        _ => throw new InvalidOperationException("Unsupported configuration.")
+        _ => throw new BusinessRuleException("Unsupported configuration.")
     };
 
     private static void SetLimits(IVersionedEntity e, string alert, string action)
@@ -246,11 +246,11 @@ public class ControlChartService
 
     private async Task<TestDefinition> RequireNumericTestAsync(string testCode, CancellationToken ct)
     {
-        if (string.IsNullOrWhiteSpace(testCode)) throw new InvalidOperationException("testCode is required.");
+        if (string.IsNullOrWhiteSpace(testCode)) throw new BusinessRuleException("testCode is required.");
         var test = await _db.TestDefinitions.FirstOrDefaultAsync(t => t.Code == testCode, ct)
-            ?? throw new InvalidOperationException($"Test code \"{testCode}\" is not configured in Test Master.");
+            ?? throw new BusinessRuleException($"Test code \"{testCode}\" is not configured in Test Master.");
         if (test.WorkflowType != WorkflowType.CountTest)
-            throw new InvalidOperationException($"Control charts are only available for numeric results. {testCode} produces qualitative results.");
+            throw new BusinessRuleException($"Control charts are only available for numeric results. {testCode} produces qualitative results.");
         return test;
     }
 

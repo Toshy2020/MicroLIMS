@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using System.Globalization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
@@ -60,7 +61,7 @@ public class MediaLotNumberPostgresIntegrationTests
         var (material, autoclaveId) = await SeedAsync(code);
         await using var db = _fixture.CreateDbContext(new TakeLotNumberBeforeSave(_fixture, material.Id, times: 2));
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(
             () => TestServiceFactory.MediaPreparation(db).PrepareAsync(Request(material.Id, autoclaveId)));
 
         Assert.Contains($"{code}/02/{Yy}", ex.Message);

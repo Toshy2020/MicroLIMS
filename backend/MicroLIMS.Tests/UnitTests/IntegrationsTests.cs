@@ -136,7 +136,7 @@ public class IntegrationsTests
     public void Recipients_RejectInvalidAddresses(string raw)
     {
         var definition = SystemSettingDefinitions.Get(SystemSettingKeys.AlertsCriticalRecipients);
-        Assert.Throws<InvalidOperationException>(() => definition.Normalize(raw));
+        Assert.Throws<BusinessRuleException>(() => definition.Normalize(raw));
     }
 
     [Fact]
@@ -146,7 +146,7 @@ public class IntegrationsTests
         var twenty = string.Join(",", Enumerable.Range(1, 20).Select(i => $"u{i}@example.test"));
         var twentyOne = twenty + ",u21@example.test";
         Assert.Equal(twenty, definition.Normalize(twenty));
-        Assert.Throws<InvalidOperationException>(() => definition.Normalize(twentyOne));
+        Assert.Throws<BusinessRuleException>(() => definition.Normalize(twentyOne));
     }
 
     [Fact]
@@ -247,8 +247,8 @@ public class IntegrationsTests
     {
         using var db = NewDb();
         var email = new FakeEmailSender();
-        await Assert.ThrowsAsync<InvalidOperationException>(() => Service(db, email).SendTestAlertAsync(1, " "));
-        await Assert.ThrowsAsync<InvalidOperationException>(() => Service(db, email).SendTestAlertAsync(1, "drill"));
+        await Assert.ThrowsAsync<BusinessRuleException>(() => Service(db, email).SendTestAlertAsync(1, " "));
+        await Assert.ThrowsAsync<BusinessRuleException>(() => Service(db, email).SendTestAlertAsync(1, "drill"));
         Assert.Empty(email.Sent);
         Assert.Empty(db.SecurityAuditEvents);
     }
@@ -295,8 +295,8 @@ public class IntegrationsTests
         var email = new FakeEmailSender();
         var service = Service(db, email);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => service.SendTestEmailAsync(1, "nope", "check"));
-        await Assert.ThrowsAsync<InvalidOperationException>(() => service.SendTestEmailAsync(1, "a@example.test", ""));
+        await Assert.ThrowsAsync<BusinessRuleException>(() => service.SendTestEmailAsync(1, "nope", "check"));
+        await Assert.ThrowsAsync<BusinessRuleException>(() => service.SendTestEmailAsync(1, "a@example.test", ""));
 
         var result = await service.SendTestEmailAsync(1, "A@Example.test", "SMTP relay change");
         Assert.Equal(1, result.Sent);
@@ -398,7 +398,7 @@ public class IntegrationsTests
         using var db = NewDb();
         var service = Service(db, new FakeEmailSender(), plainStorage: new NoDeleteStorage());
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => service.RunStorageProbeAsync(1, ""));
+        await Assert.ThrowsAsync<BusinessRuleException>(() => service.RunStorageProbeAsync(1, ""));
         var result = await service.RunStorageProbeAsync(1, "check");
         Assert.NotNull(result.Warning);
         await Assert.ThrowsAsync<RateLimitedException>(() => service.RunStorageProbeAsync(1, "again"));

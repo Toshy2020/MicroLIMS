@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Services.Kpi;
 using MicroLIMS.Domain.Entities;
@@ -52,8 +53,8 @@ public class AnalystWorkloadServiceTests
         await SeedBaselineAsync(db);
         var service = TestServiceFactory.AnalystWorkload(db, Clock());
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => service.BuildQueryAsync(Sam, true, WeekTo, WeekFrom, null, null, null, null));
-        await Assert.ThrowsAsync<InvalidOperationException>(() => service.BuildQueryAsync(Sam, true, WeekFrom, WeekTo, "Nonsense", null, null, null));
+        await Assert.ThrowsAsync<BusinessRuleException>(() => service.BuildQueryAsync(Sam, true, WeekTo, WeekFrom, null, null, null, null));
+        await Assert.ThrowsAsync<BusinessRuleException>(() => service.BuildQueryAsync(Sam, true, WeekFrom, WeekTo, "Nonsense", null, null, null));
     }
 
     [Fact]

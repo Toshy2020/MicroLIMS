@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 
@@ -139,23 +140,23 @@ public static class SampleSectionRollup
         if (requestedSectionId is int requested)
         {
             if (!SectionIds(sample).Contains(requested))
-                throw new InvalidOperationException("This sample has no tests in the selected laboratory section.");
+                throw new BusinessRuleException("This sample has no tests in the selected laboratory section.");
             if (userScope is not null && !userScope.Contains(requested))
                 throw new UnauthorizedAccessException("This test belongs to a laboratory section you are not assigned to.");
             if (StatusOf(sample, requested) != requiredStatus)
-                throw new InvalidOperationException(wrongStateMessage);
+                throw new BusinessRuleException(wrongStateMessage);
             return requested;
         }
 
         var inState = SectionIds(sample).Where(id => StatusOf(sample, id) == requiredStatus).ToList();
         if (inState.Count == 0)
-            throw new InvalidOperationException(wrongStateMessage);
+            throw new BusinessRuleException(wrongStateMessage);
 
         var candidates = userScope is null ? inState : inState.Where(userScope.Contains).ToList();
         if (candidates.Count == 0)
             throw new UnauthorizedAccessException("This test belongs to a laboratory section you are not assigned to.");
         if (candidates.Count > 1)
-            throw new InvalidOperationException("Choose a laboratory section - more than one section of this sample is waiting.");
+            throw new BusinessRuleException("Choose a laboratory section - more than one section of this sample is waiting.");
 
         return candidates[0];
     }

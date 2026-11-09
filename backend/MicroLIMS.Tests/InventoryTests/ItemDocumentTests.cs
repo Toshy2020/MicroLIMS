@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using MicroLIMS.Application.Services;
@@ -126,7 +127,7 @@ public class ItemDocumentTests
             var service = new ItemDocumentService(db, new LocalFileStorageService(tempDir), NullLogger<ItemDocumentService>.Instance);
 
             using var stream = new MemoryStream("SOP content"u8.ToArray());
-            var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.UploadDocumentAsync(
+            var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => service.UploadDocumentAsync(
                 itemId: 1,
                 documentType: ItemDocumentType.Sop,
                 version: "Rev 01",

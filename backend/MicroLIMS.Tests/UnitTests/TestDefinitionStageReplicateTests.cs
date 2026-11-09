@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -102,7 +103,7 @@ public class TestDefinitionStageReplicateTests
         var (controller, _) = SetupAdminController(db);
         var testDef = await SeedTestDefinitionAsync(db);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             controller.TestStageReplicate.CreateTestDefinitionStageReplicate(testDef.Id, new CreateTestDefinitionStageReplicateRequest(ProductionStageRole.Bulk, 0)));
         Assert.Contains("Sample replicates must be at least 1", ex.Message);
     }
@@ -116,7 +117,7 @@ public class TestDefinitionStageReplicateTests
 
         await controller.TestStageReplicate.CreateTestDefinitionStageReplicate(testDef.Id, new CreateTestDefinitionStageReplicateRequest(ProductionStageRole.Bulk, 1));
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             controller.TestStageReplicate.CreateTestDefinitionStageReplicate(testDef.Id, new CreateTestDefinitionStageReplicateRequest(ProductionStageRole.Bulk, 2)));
         Assert.Contains("already exists", ex.Message);
     }
@@ -146,7 +147,7 @@ public class TestDefinitionStageReplicateTests
         var created = await controller.TestStageReplicate.CreateTestDefinitionStageReplicate(testDef.Id, new CreateTestDefinitionStageReplicateRequest(ProductionStageRole.Bulk, 1));
         var dto = Assert.IsType<TestDefinitionStageReplicateDto>(Assert.IsType<ApiResponse<object>>(Assert.IsType<OkObjectResult>(created).Value).Data);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             controller.TestStageReplicate.UpdateTestDefinitionStageReplicate(testDef.Id, dto.Id, new UpdateTestDefinitionStageReplicateRequest(SampleReplicates: 0)));
         Assert.Contains("Sample replicates must be at least 1", ex.Message);
     }

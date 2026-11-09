@@ -69,13 +69,13 @@ public class ItemDocumentService
         int userId)
     {
         if (documentType == ItemDocumentType.Sop)
-            throw new InvalidOperationException("STMs are managed in the Document Library. Link the item's SOP number to its library document instead of uploading a file.");
+            throw new BusinessRuleException("STMs are managed in the Document Library. Link the item's SOP number to its library document instead of uploading a file.");
 
         var item = await _db.Items.FirstOrDefaultAsync(i => i.Id == itemId)
             ?? throw new NotFoundException($"Item {itemId} not found.");
 
         if (fileLength <= 0 || fileLength > 25 * 1024 * 1024)
-            throw new InvalidOperationException("File size must be between 1 byte and 25 MB.");
+            throw new BusinessRuleException("File size must be between 1 byte and 25 MB.");
 
         var ext = Path.GetExtension(originalFileName).ToLowerInvariant();
         if (string.IsNullOrWhiteSpace(ext)) ext = ".pdf";

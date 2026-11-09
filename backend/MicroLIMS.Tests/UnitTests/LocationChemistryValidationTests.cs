@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using MicroLIMS.Application.DTOs;
 using MicroLIMS.Application.Services.MasterData;
 using MicroLIMS.Domain.Entities;
@@ -22,7 +23,7 @@ public class LocationChemistryValidationTests
     [Fact]
     public void Range_RequiresLowerOrUpperLimit()
     {
-        var ex = Assert.Throws<InvalidOperationException>(() =>
+        var ex = Assert.Throws<BusinessRuleException>(() =>
             LocationChemistryLimitRules.Validate(LimitType.Range, null, null, null));
         Assert.Contains("Range limit requires a lower limit, an upper limit, or both", ex.Message);
 
@@ -35,7 +36,7 @@ public class LocationChemistryValidationTests
     [Fact]
     public void Range_RejectsLowerGreaterThanUpper()
     {
-        var ex = Assert.Throws<InvalidOperationException>(() =>
+        var ex = Assert.Throws<BusinessRuleException>(() =>
             LocationChemistryLimitRules.Validate(LimitType.Range, 10m, 5m, null));
         Assert.Contains("Lower limit cannot be greater than upper limit", ex.Message);
     }
@@ -43,7 +44,7 @@ public class LocationChemistryValidationTests
     [Fact]
     public void NotMoreThan_RequiresUpperLimit()
     {
-        var ex = Assert.Throws<InvalidOperationException>(() =>
+        var ex = Assert.Throws<BusinessRuleException>(() =>
             LocationChemistryLimitRules.Validate(LimitType.NotMoreThan, null, null, null));
         Assert.Contains("Upper limit is required", ex.Message);
 
@@ -53,7 +54,7 @@ public class LocationChemistryValidationTests
     [Fact]
     public void NotLessThan_RequiresLowerLimit()
     {
-        var ex = Assert.Throws<InvalidOperationException>(() =>
+        var ex = Assert.Throws<BusinessRuleException>(() =>
             LocationChemistryLimitRules.Validate(LimitType.NotLessThan, null, null, null));
         Assert.Contains("Lower limit is required", ex.Message);
 
@@ -63,11 +64,11 @@ public class LocationChemistryValidationTests
     [Fact]
     public void Qualitative_RequiresExpectedResultText()
     {
-        var ex1 = Assert.Throws<InvalidOperationException>(() =>
+        var ex1 = Assert.Throws<BusinessRuleException>(() =>
             LocationChemistryLimitRules.Validate(LimitType.Qualitative, null, null, null));
         Assert.Contains("Expected result text is required", ex1.Message);
 
-        var ex2 = Assert.Throws<InvalidOperationException>(() =>
+        var ex2 = Assert.Throws<BusinessRuleException>(() =>
             LocationChemistryLimitRules.Validate(LimitType.Qualitative, null, null, "   "));
         Assert.Contains("Expected result text is required", ex2.Message);
 
@@ -84,7 +85,7 @@ public class LocationChemistryValidationTests
     [InlineData(LimitType.WeightVariation)]
     public void UnsupportedLimitTypes_Throw(LimitType unsupported)
     {
-        var ex = Assert.Throws<InvalidOperationException>(() =>
+        var ex = Assert.Throws<BusinessRuleException>(() =>
             LocationChemistryLimitRules.Validate(unsupported, 1m, 2m, "text"));
         Assert.Contains("Only Range, NotMoreThan, NotLessThan, and Qualitative", ex.Message);
     }
@@ -110,7 +111,7 @@ public class LocationChemistryValidationTests
         // Range with lower > upper fails
         var invalidReq = new CreateWaterSamplingConfigRequest(
             point.Id, "PH", LimitType: LimitType.Range, LowerLimit: 9m, UpperLimit: 5m);
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        await Assert.ThrowsAsync<BusinessRuleException>(() =>
             service.CreateWaterSamplingConfigurationAsync(1, invalidReq));
 
         // Valid create
@@ -125,7 +126,7 @@ public class LocationChemistryValidationTests
         // Invalid update fails
         var invalidUpdate = new UpdateWaterSamplingConfigRequest(
             "PH", LimitType: LimitType.NotMoreThan, UpperLimit: null);
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        await Assert.ThrowsAsync<BusinessRuleException>(() =>
             service.UpdateWaterSamplingConfigurationAsync(1, created.Id, invalidUpdate));
 
         // Valid update succeeds
@@ -154,7 +155,7 @@ public class LocationChemistryValidationTests
         // Qualitative without expected text fails
         var invalidReq = new CreateMachinePartConfigRequest(
             part.Id, "Swab", "TOC", LimitType: LimitType.Qualitative, ExpectedResultText: "");
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        await Assert.ThrowsAsync<BusinessRuleException>(() =>
             service.CreateMachinePartConfigurationAsync(1, invalidReq));
 
         // Valid create
@@ -186,7 +187,7 @@ public class LocationChemistryValidationTests
         db.TestDefinitions.Add(new TestDefinition { Code = "AC-RES", DisplayName = "Residue", WorkflowType = workflowType });
         await db.SaveChangesAsync();
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => service.CreateMachinePartConfigurationAsync(1,
+        await Assert.ThrowsAsync<BusinessRuleException>(() => service.CreateMachinePartConfigurationAsync(1,
             new CreateMachinePartConfigRequest(part.Id, "Swab", "AC-RES", LimitType: LimitType.NotMoreThan, UpperLimit: 10m)));
 
         var created = await service.CreateMachinePartConfigurationAsync(1,

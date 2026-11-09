@@ -30,7 +30,7 @@ public class ReferenceListMasterDataService
     public async Task<CauseOfTestingResponse> CreateCauseOfTestingAsync(string name)
     {
         if (await _db.CausesOfTesting.AnyAsync(c => c.Name.ToLower() == name.ToLower()))
-            throw new InvalidOperationException($"Cause of Testing \"{name}\" already exists.");
+            throw new BusinessRuleException($"Cause of Testing \"{name}\" already exists.");
 
         var entity = new CauseOfTesting { Name = name };
         _db.CausesOfTesting.Add(entity);
@@ -45,7 +45,7 @@ public class ReferenceListMasterDataService
         RecordVersion.EnsureCurrent(_db, entity);
 
         if (await _db.CausesOfTesting.AnyAsync(c => c.Id != id && c.Name.ToLower() == name.ToLower()))
-            throw new InvalidOperationException($"Cause of Testing \"{name}\" already exists.");
+            throw new BusinessRuleException($"Cause of Testing \"{name}\" already exists.");
 
         entity.Name = name;
         await _db.SaveChangesAsync();
@@ -62,7 +62,7 @@ public class ReferenceListMasterDataService
 
         var sampleCount = await _db.Samples.CountAsync(s => s.CauseOfTestingId == id);
         if (sampleCount > 0)
-            throw new InvalidOperationException($"Cannot delete '{entity.Name}' - it is referenced by {sampleCount} sample(s).");
+            throw new BusinessRuleException($"Cannot delete '{entity.Name}' - it is referenced by {sampleCount} sample(s).");
 
         _db.CausesOfTesting.Remove(entity);
         await _db.SaveChangesAsync();
@@ -75,7 +75,7 @@ public class ReferenceListMasterDataService
     public async Task<SamplerResponse> CreateSamplerAsync(string name)
     {
         if (await _db.Samplers.AnyAsync(s => s.Name.ToLower() == name.ToLower()))
-            throw new InvalidOperationException($"Sampler \"{name}\" already exists.");
+            throw new BusinessRuleException($"Sampler \"{name}\" already exists.");
 
         var entity = new Sampler { Name = name };
         _db.Samplers.Add(entity);
@@ -90,7 +90,7 @@ public class ReferenceListMasterDataService
         RecordVersion.EnsureCurrent(_db, entity);
 
         if (await _db.Samplers.AnyAsync(s => s.Id != id && s.Name.ToLower() == name.ToLower()))
-            throw new InvalidOperationException($"Sampler \"{name}\" already exists.");
+            throw new BusinessRuleException($"Sampler \"{name}\" already exists.");
 
         entity.Name = name;
         await _db.SaveChangesAsync();
@@ -113,10 +113,10 @@ public class ReferenceListMasterDataService
     public async Task<ProductionStageResponse> CreateProductionStageAsync(CreateProductionStageRequest request)
     {
         if (string.IsNullOrWhiteSpace(request.Name))
-            throw new InvalidOperationException("Name is required.");
+            throw new BusinessRuleException("Name is required.");
 
         if (await _db.ProductionStages.AnyAsync(s => s.Name.ToLower() == request.Name.ToLower()))
-            throw new InvalidOperationException($"Production Stage \"{request.Name}\" already exists.");
+            throw new BusinessRuleException($"Production Stage \"{request.Name}\" already exists.");
 
         var entity = new ProductionStage { Name = request.Name, Role = request.Role };
         _db.ProductionStages.Add(entity);
@@ -131,10 +131,10 @@ public class ReferenceListMasterDataService
         RecordVersion.EnsureCurrent(_db, entity);
 
         if (string.IsNullOrWhiteSpace(request.Name))
-            throw new InvalidOperationException("Name is required.");
+            throw new BusinessRuleException("Name is required.");
 
         if (await _db.ProductionStages.AnyAsync(s => s.Id != id && s.Name.ToLower() == request.Name.ToLower()))
-            throw new InvalidOperationException($"Production Stage \"{request.Name}\" already exists.");
+            throw new BusinessRuleException($"Production Stage \"{request.Name}\" already exists.");
 
         entity.Name = request.Name;
         entity.Role = request.Role;

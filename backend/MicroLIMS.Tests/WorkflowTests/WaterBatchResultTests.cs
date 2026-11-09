@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Services;
 using MicroLIMS.Application.Workflows;
@@ -171,7 +172,7 @@ public class WaterBatchResultTests
         await using var db = NewDb();
         var (engine, testOrderId, locationAId, _) = await SetupPreparedWaterCountOrderAsync(db);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => engine.RecordWaterBatchReadingsAsync(testOrderId,
+        await Assert.ThrowsAsync<BusinessRuleException>(() => engine.RecordWaterBatchReadingsAsync(testOrderId,
             new List<MicroLIMS.Application.Workflows.WaterBatchLocationReadings> { new(locationAId, new List<decimal> { 1 }) }, 1));
     }
 
@@ -181,7 +182,7 @@ public class WaterBatchResultTests
         await using var db = NewDb();
         var (engine, testOrderId, locationAId, locationBId) = await SetupPreparedWaterCountOrderAsync(db);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => engine.RecordWaterBatchReadingsAsync(testOrderId,
+        await Assert.ThrowsAsync<BusinessRuleException>(() => engine.RecordWaterBatchReadingsAsync(testOrderId,
             new List<MicroLIMS.Application.Workflows.WaterBatchLocationReadings>
             {
                 new(locationAId, new List<decimal>()),

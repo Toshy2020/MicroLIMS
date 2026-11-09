@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.DTOs;
 using MicroLIMS.Domain.Entities;
@@ -84,12 +85,12 @@ public class TestDefinitionCoaOrderPostgresTests
         {
             await using var actDb = _fixture.CreateDbContext();
             actDb.CurrentUserId = userId;
-            await Assert.ThrowsAsync<InvalidOperationException>(() => TestServiceFactory.TestDefinitionMaster(actDb)
+            await Assert.ThrowsAsync<BusinessRuleException>(() => TestServiceFactory.TestDefinitionMaster(actDb)
                 .UpdateTestDefinitionAsync(userId, id, new UpdateTestDefinitionRequest("ECOLI-" + tag, "E. coli " + tag) { CoaDisplayOrder = bad }));
         }
         await using (var actDb = _fixture.CreateDbContext())
         {
-            await Assert.ThrowsAsync<InvalidOperationException>(() => TestServiceFactory.TestDefinitionMaster(actDb).CreateTestDefinitionAsync(userId,
+            await Assert.ThrowsAsync<BusinessRuleException>(() => TestServiceFactory.TestDefinitionMaster(actDb).CreateTestDefinitionAsync(userId,
                 new CreateTestDefinitionRequest(Code: "BAD-" + tag, DisplayName: "Bad " + tag, SectionId: sectionId,
                     WorkflowType: WorkflowType.Observation) { CoaDisplayOrder = 0 }));
         }

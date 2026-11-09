@@ -69,7 +69,7 @@ public class AccessReviewService : IAccessReviewService
         var now = _time.GetUtcNow().UtcDateTime;
         var label = rawLabel?.Trim();
         if (string.IsNullOrEmpty(label)) label = $"Access review {now:yyyy-MM-dd}";
-        if (label.Length > 100) throw new InvalidOperationException("The period label must be 100 characters or fewer.");
+        if (label.Length > 100) throw new BusinessRuleException("The period label must be 100 characters or fewer.");
 
         var dormantDays = await _settings.GetIntOrDefaultAsync(SystemSettingKeys.AccessReviewDormantDays);
         var snapshot = await BuildSnapshotAsync(label, dormantDays, now);
@@ -224,21 +224,21 @@ public class AccessReviewService : IAccessReviewService
 
         var snapshot = Deserialize(review.SnapshotJson);
         var subject = snapshot.Users.FirstOrDefault(u => u.UserId == request.UserId)
-            ?? throw new InvalidOperationException("The account is not part of this review's report.");
+            ?? throw new BusinessRuleException("The account is not part of this review's report.");
 
         var kind = request.Kind?.Trim();
         if (string.IsNullOrEmpty(kind) || !FindingKinds.Contains(kind, StringComparer.Ordinal))
-            throw new InvalidOperationException($"The finding kind must be one of: {string.Join(", ", FindingKinds)}.");
+            throw new BusinessRuleException($"The finding kind must be one of: {string.Join(", ", FindingKinds)}.");
         var detail = request.Detail?.Trim();
-        if (string.IsNullOrEmpty(detail)) throw new InvalidOperationException("A finding needs a detail.");
-        if (detail.Length > 1000) throw new InvalidOperationException("The finding detail must be 1000 characters or fewer.");
+        if (string.IsNullOrEmpty(detail)) throw new BusinessRuleException("A finding needs a detail.");
+        if (detail.Length > 1000) throw new BusinessRuleException("The finding detail must be 1000 characters or fewer.");
         if (!Enum.TryParse<AccessReviewFindingAction>(request.Action, ignoreCase: true, out var action)
             || !Enum.IsDefined(action))
-            throw new InvalidOperationException("The finding action must be NoChange or ChangeRequested.");
+            throw new BusinessRuleException("The finding action must be NoChange or ChangeRequested.");
         var note = string.IsNullOrWhiteSpace(request.Note) ? null : request.Note.Trim();
-        if (note is { Length: > 1000 }) throw new InvalidOperationException("The finding note must be 1000 characters or fewer.");
+        if (note is { Length: > 1000 }) throw new BusinessRuleException("The finding note must be 1000 characters or fewer.");
         if (action == AccessReviewFindingAction.ChangeRequested && note is null)
-            throw new InvalidOperationException("A note describing the requested change is required.");
+            throw new BusinessRuleException("A note describing the requested change is required.");
 
         var now = _time.GetUtcNow().UtcDateTime;
         AccessReviewFinding finding;
@@ -253,7 +253,7 @@ public class AccessReviewService : IAccessReviewService
             finding = await _db.AccessReviewFindings.FirstOrDefaultAsync(f => f.Id == findingId && f.ReviewId == reviewId)
                 ?? throw new NotFoundException($"Finding {findingId} not found.");
             if (finding.UserId != request.UserId)
-                throw new InvalidOperationException("A finding cannot be moved to another account; record a new finding.");
+                throw new BusinessRuleException("A finding cannot be moved to another account; record a new finding.");
             previous = JsonSerializer.Serialize(new { finding.Kind, finding.Detail, Action = finding.Action.ToString(), finding.Note });
             finding.RecordedByUserId = actingUserId;
             finding.RecordedAt = now;
@@ -289,11 +289,11 @@ public class AccessReviewService : IAccessReviewService
         EnsureDraft(review);
 
         var conclusion = rawConclusion?.Trim();
-        if (string.IsNullOrEmpty(conclusion)) throw new InvalidOperationException("A conclusion is required to sign the review.");
-        if (conclusion.Length > 2000) throw new InvalidOperationException("The conclusion must be 2000 characters or fewer.");
+        if (string.IsNullOrEmpty(conclusion)) throw new BusinessRuleException("A conclusion is required to sign the review.");
+        if (conclusion.Length > 2000) throw new BusinessRuleException("The conclusion must be 2000 characters or fewer.");
 
         if (!string.Equals(Sha256(review.SnapshotJson), review.SnapshotSha256, StringComparison.Ordinal))
-            throw new InvalidOperationException("The stored report no longer matches its checksum; the review cannot be signed.");
+            throw new BusinessRuleException("The stored report no longer matches its checksum; the review cannot be signed.");
 
         // A review about the signer's own access cannot be signed by the signer.
         var snapshot = Deserialize(review.SnapshotJson);
@@ -301,7 +301,7 @@ public class AccessReviewService : IAccessReviewService
         var ownEntry = snapshot.Users.FirstOrDefault(u => u.UserId == actingUserId);
         var ownFlagged = ownEntry is not null && (ownEntry.Dormant || ownEntry.NeverLoggedIn || ownEntry.SodConflicts.Count > 0);
         if (ownFinding || ownFlagged)
-            throw new InvalidOperationException(
+            throw new BusinessRuleException(
                 "You cannot sign a review that concerns your own access (a finding about your account, or your account is flagged in the report). Another reviewer must sign it.");
 
         var now = _time.GetUtcNow().UtcDateTime;
@@ -381,7 +381,7 @@ public class AccessReviewService : IAccessReviewService
     private static void EnsureDraft(AccessReview review)
     {
         if (review.Status != AccessReviewStatus.Draft)
-            throw new InvalidOperationException("This access review is signed and can no longer be changed.");
+            throw new BusinessRuleException("This access review is signed and can no longer be changed.");
     }
 
     private static AuditLog Audit(int reviewId, string action, string actionCode, AuditActionCategory category,
@@ -411,7 +411,7 @@ public class AccessReviewService : IAccessReviewService
 
     private static AccessReviewSnapshot Deserialize(string json) =>
         JsonSerializer.Deserialize<AccessReviewSnapshot>(json, JsonOptions)
-        ?? throw new InvalidOperationException("The stored access review report could not be read.");
+        ?? throw new BusinessRuleException("The stored access review report could not be read.");
 
     private static string Sha256(string text) =>
         Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(text))).ToLowerInvariant();

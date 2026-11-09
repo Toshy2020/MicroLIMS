@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using MicroLIMS.Domain.Enums;
 
 namespace MicroLIMS.Application.Helpers;
@@ -28,7 +29,7 @@ public static class PhyschemAreas
         "fp" => WorkspaceArea.Fp,
         "rmpm" => WorkspaceArea.RmPm,
         null or "" => null,
-        _ => throw new InvalidOperationException("area must be 'fp' or 'rmpm'."),
+        _ => throw new BusinessRuleException("area must be 'fp' or 'rmpm'."),
     };
 
     // Membership area (null = Both) -> workspace areas it grants.

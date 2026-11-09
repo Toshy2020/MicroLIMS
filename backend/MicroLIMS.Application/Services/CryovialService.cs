@@ -54,30 +54,30 @@ public class CryovialService
     private async Task<Cryovial> PrepareCryovialsCoreAsync(PrepareCryovialsRequest request)
     {
         if (!request.PhysicalCheckConfirmed)
-            throw new InvalidOperationException("Physical check confirmation against the organism reference description is required.");
+            throw new BusinessRuleException("Physical check confirmation against the organism reference description is required.");
 
         var material = await _db.Materials.Include(m => m.Organism).Include(m => m.ReferenceOrganism).FirstOrDefaultAsync(m => m.Id == request.MaterialId)
-            ?? throw new InvalidOperationException($"Material {request.MaterialId} not found.");
+            ?? throw new BusinessRuleException($"Material {request.MaterialId} not found.");
 
         if (material.MaterialType != MaterialType.LyophilizedMicroorganism)
-            throw new InvalidOperationException($"Material {material.MaterialName} is not a Lyophilized Microorganism item.");
+            throw new BusinessRuleException($"Material {material.MaterialName} is not a Lyophilized Microorganism item.");
 
         if (material.OrganismId is null || material.Organism is null)
-            throw new InvalidOperationException($"Set an Organism on material \"{material.MaterialName}\" (Inventory > Materials Stock) before preparing cryovials from it.");
+            throw new BusinessRuleException($"Set an Organism on material \"{material.MaterialName}\" (Inventory > Materials Stock) before preparing cryovials from it.");
 
         foreach (var row in request.Panel)
         {
             var media = await _db.Media.FirstOrDefaultAsync(m => m.Id == row.MediaId)
-                ?? throw new InvalidOperationException($"Media {row.MediaId} not found.");
+                ?? throw new BusinessRuleException($"Media {row.MediaId} not found.");
             if (!media.IsReleasedForUse || media.Status == MediaStatus.OutOfStock || media.Status == MediaStatus.QuarantineFailed)
-                throw new InvalidOperationException($"Media lot {media.LotNumber} is not GPT-released, out of stock, or rejected - cannot be used for identity confirmation.");
+                throw new BusinessRuleException($"Media lot {media.LotNumber} is not GPT-released, out of stock, or rejected - cannot be used for identity confirmation.");
         }
 
         // Identity-confirmation media must be this section's own lots.
         await SectionMediaRule.EnsureLotsAsync(_db, request.Panel.Select(p => p.MediaId), material.SectionId);
 
         if (request.Panel.Count == 0)
-            throw new InvalidOperationException("At least one identity confirmation row is required.");
+            throw new BusinessRuleException("At least one identity confirmation row is required.");
 
         // Guards + decrements the Material row in memory - not saved
         // until the SaveChangesAsync below, so a failure here leaves
@@ -125,7 +125,7 @@ public class CryovialService
         {
             cryovial.Code = await PreparedLotNumber.NextAsync(_db.Cryovials.Select(c => c.Code), codePrefix, _time.GetUtcNow().UtcDateTime);
             if (!await _db.TrySaveChangesAsync(UniqueIndexNames.CryovialCode))
-                throw new InvalidOperationException(
+                throw new BusinessRuleException(
                     $"Cryovial code {cryovial.Code} was taken by another preparation at the same moment. Nothing was saved - submit the preparation again.");
         }
 
@@ -148,10 +148,10 @@ public class CryovialService
             ?? throw new NotFoundException($"Cryovial {cryovialId} not found.");
 
         if (cryovial.ApprovalStatus != ApprovalGateStatus.PendingReview)
-            throw new InvalidOperationException($"Cryovial batch {cryovial.Code} has already been decided ({cryovial.ApprovalStatus}).");
+            throw new BusinessRuleException($"Cryovial batch {cryovial.Code} has already been decided ({cryovial.ApprovalStatus}).");
 
         if (await _segregationOfDuties.DidUserPrepareCryovialAsync(cryovialId, userId))
-            throw new InvalidOperationException("You cannot approve a cryovial batch you prepared.");
+            throw new BusinessRuleException("You cannot approve a cryovial batch you prepared.");
 
         // Signs first - if password verification fails, nothing below is
         // written (the signature, the event, and the state change below
@@ -216,12 +216,12 @@ public class CryovialService
     private async Task<CryovialResponse> MoveStorageCoreAsync(int cryovialId, int userId, int? equipmentId, string? locationText, string reason)
     {
         if (string.IsNullOrWhiteSpace(reason))
-            throw new InvalidOperationException("A reason is required to move cryovial storage.");
+            throw new BusinessRuleException("A reason is required to move cryovial storage.");
 
         var hasEquipment = equipmentId.HasValue;
         var hasLocationText = !string.IsNullOrWhiteSpace(locationText);
         if ((hasEquipment && hasLocationText) || (!hasEquipment && !hasLocationText))
-            throw new InvalidOperationException("Exactly one of EquipmentId or LocationText must be provided.");
+            throw new BusinessRuleException("Exactly one of EquipmentId or LocationText must be provided.");
 
         var cryovial = await _db.Cryovials
             .Include(c => c.Material)
@@ -233,9 +233,9 @@ public class CryovialService
             ?? throw new NotFoundException($"Cryovial {cryovialId} not found.");
 
         if (cryovial.ApprovalStatus != ApprovalGateStatus.Approved)
-            throw new InvalidOperationException($"Cryovial batch {cryovial.Code} is not approved - cannot move storage.");
+            throw new BusinessRuleException($"Cryovial batch {cryovial.Code} is not approved - cannot move storage.");
         if (cryovial.IsDestroyed)
-            throw new InvalidOperationException($"Cryovial batch {cryovial.Code} has been destroyed and cannot be moved.");
+            throw new BusinessRuleException($"Cryovial batch {cryovial.Code} has been destroyed and cannot be moved.");
 
         EquipmentInventory? equipment = null;
         string newLocation;
@@ -246,7 +246,7 @@ public class CryovialService
                 ?? throw new NotFoundException($"Equipment {equipmentId!.Value} not found.");
 
             if (equipment.Status != EquipmentOperationalStatus.InService)
-                throw new InvalidOperationException($"Equipment {equipment.Code} is not currently in service.");
+                throw new BusinessRuleException($"Equipment {equipment.Code} is not currently in service.");
 
             newLocation = $"{equipment.InstrumentType}, {equipment.ManufacturerName} ({equipment.Code})";
         }

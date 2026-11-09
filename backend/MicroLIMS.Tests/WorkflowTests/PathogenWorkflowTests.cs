@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Workflows;
 using MicroLIMS.Domain.Enums;
@@ -93,7 +94,7 @@ public class PathogenWorkflowTests
         await db.SaveChangesAsync();
 
         var engine = TestServiceFactory.TestWorkflow(db);
-        await Assert.ThrowsAsync<InvalidOperationException>(() => engine.SubmitBrothAsync(
+        await Assert.ThrowsAsync<BusinessRuleException>(() => engine.SubmitBrothAsync(
             order.Id, "Broth Enrichment", media.BrothLotId, incubator.Id,
             DateTime.UtcNow.AddHours(-30), DateTime.UtcNow.AddHours(-6), null, AnalystId));
     }

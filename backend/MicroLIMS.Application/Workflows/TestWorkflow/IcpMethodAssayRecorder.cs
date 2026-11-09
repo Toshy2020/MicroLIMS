@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using System.Text.Json;
 using MicroLIMS.Application.Helpers;
 using MicroLIMS.Application.Services;
@@ -25,7 +26,7 @@ public sealed class IcpMethodAssayRecorder : TestWorkflowSupport
 
         var problem = c.SubmitProblem();
         if (problem != null)
-            throw new InvalidOperationException(problem);
+            throw new BusinessRuleException(problem);
 
         var (order, _, _, analysedAtUtc) = await ValidateTestAnalysisOrderAsync(
             c.Order.Id, _clock.UtcNow.UtcDateTime, null, null, password, WorkflowType.IcpMethodAssay, userId);

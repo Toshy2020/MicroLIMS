@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Helpers;
 using MicroLIMS.Application.Services;
@@ -242,7 +243,7 @@ public class DissolutionWorkflowEngineTests
         db.HplcRuns.Single().Status = HplcRunStatus.Abandoned;
         db.SaveChanges();
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             TestServiceFactory.TestWorkflow(db).RecordDissolutionResultAsync(order.Id, new DissolutionPayload(
                 DateTime.UtcNow, equip.Id, new Dictionary<string, string> { ["Medium"] = "0.01M HCl 900mL", ["RPM"] = "50" },
                 900m, 1m, new List<decimal> { 0.45m, 0.45m, 0.45m, 0.45m, 0.45m, 0.45m }, "Password123!"), analyst.Id));

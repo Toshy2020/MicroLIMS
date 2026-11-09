@@ -36,7 +36,7 @@ public class TestWorkflowStepMasterDataService
             or EquationType.GravimetricLoss or EquationType.GravimetricResidue
             or EquationType.UvSpectrophotometry;
         if (!StepDriven(entity.WorkflowType) || !StepDriven(request.WorkflowType) || dedicatedEquation)
-            throw new InvalidOperationException("The workflow type of this test is set by its test type; change it in the test settings.");
+            throw new BusinessRuleException("The workflow type of this test is set by its test type; change it in the test settings.");
         entity.WorkflowType = request.WorkflowType;
         await _db.SaveChangesAsync();
         return TestDefinitionResponse.From(entity);
@@ -80,7 +80,7 @@ public class TestWorkflowStepMasterDataService
         var test = await _db.TestDefinitions.FirstOrDefaultAsync(t => t.Id == id)
             ?? throw new NotFoundException($"Test {id} not found.");
         if (AnalysisWorkflows.UsesTestAnalysis(test.WorkflowType))
-            throw new InvalidOperationException($"{test.WorkflowType} tests have no workflow steps.");
+            throw new BusinessRuleException($"{test.WorkflowType} tests have no workflow steps.");
 
         var nextOrder = 1 + await _db.TestWorkflowSteps.Where(s => s.TestDefinitionId == id)
             .Select(s => (int?)s.StepOrder).MaxAsync() ?? 1;
@@ -208,7 +208,7 @@ public class TestWorkflowStepMasterDataService
         var neighborOrder = request.Direction == "up" ? step.StepOrder - 1 : step.StepOrder + 1;
         var neighbor = await _db.TestWorkflowSteps.FirstOrDefaultAsync(s => s.TestDefinitionId == step.TestDefinitionId && s.StepOrder == neighborOrder);
         if (neighbor is null)
-            throw new InvalidOperationException("This step is already at that end of the sequence.");
+            throw new BusinessRuleException("This step is already at that end of the sequence.");
 
         var stepOrder = step.StepOrder;
         var neighborStepOrder = neighbor.StepOrder;
@@ -235,7 +235,7 @@ public class TestWorkflowStepMasterDataService
         var inUse = await _db.Incubations.Include(i => i.TestOrder)
             .AnyAsync(i => i.StepName == step.StepName && i.TestOrder!.TestCode == step.TestDefinition!.Code);
         if (inUse)
-            throw new InvalidOperationException($"Cannot delete step \"{step.StepName}\" - it has already been used by a test order.");
+            throw new BusinessRuleException($"Cannot delete step \"{step.StepName}\" - it has already been used by a test order.");
 
         _db.TestWorkflowSteps.Remove(step);
 
@@ -274,19 +274,19 @@ public class TestWorkflowStepMasterDataService
         foreach (var m in requests)
         {
             if (!products.TryGetValue(m.MediaProductId, out var product))
-                throw new InvalidOperationException($"Media product {m.MediaProductId} not found.");
+                throw new BusinessRuleException($"Media product {m.MediaProductId} not found.");
 
             if (!product.IsActive && alreadyOnStep?.Contains(product.Id) != true)
-                throw new InvalidOperationException($"Media product '{product.Name}' is inactive and can't be added to a test step.");
+                throw new BusinessRuleException($"Media product '{product.Name}' is inactive and can't be added to a test step.");
 
             if (!m.MediaIncubationConditionId.HasValue)
-                throw new InvalidOperationException($"Choose an incubation condition for medium '{product.Name}'.");
+                throw new BusinessRuleException($"Choose an incubation condition for medium '{product.Name}'.");
 
             if (!conditions.TryGetValue(m.MediaIncubationConditionId.Value, out var condition))
-                throw new InvalidOperationException($"Incubation condition {m.MediaIncubationConditionId.Value} not found.");
+                throw new BusinessRuleException($"Incubation condition {m.MediaIncubationConditionId.Value} not found.");
 
             if (condition.MediaProductId != product.Id)
-                throw new InvalidOperationException($"The incubation condition chosen for '{product.Name}' belongs to a different media product.");
+                throw new BusinessRuleException($"The incubation condition chosen for '{product.Name}' belongs to a different media product.");
 
             var entity = new TestWorkflowStepMedia
             {
@@ -310,7 +310,7 @@ public class TestWorkflowStepMasterDataService
     {
         var errors = WorkflowTemplateValidator.Validate(candidate);
         if (errors.Count > 0)
-            throw new InvalidOperationException(string.Join(" ",
+            throw new BusinessRuleException(string.Join(" ",
                 errors.Select(e => $"Rule {e.RuleNumber} ({e.StepName}): {e.Message}")));
 
         if (candidate.IsFinalStep)
@@ -318,7 +318,7 @@ public class TestWorkflowStepMasterDataService
             var otherFinalExists = await _db.TestWorkflowSteps
                 .AnyAsync(s => s.TestDefinitionId == testDefinitionId && s.IsFinalStep && s.Id != (excludeStepId ?? -1));
             if (otherFinalExists)
-                throw new InvalidOperationException("Only one step per test can be marked as the final step.");
+                throw new BusinessRuleException("Only one step per test can be marked as the final step.");
         }
     }
 
@@ -333,7 +333,7 @@ public class TestWorkflowStepMasterDataService
         for (var i = 0; i < orders.Count; i++)
         {
             if (orders[i] != i + 1)
-                throw new InvalidOperationException("Workflow steps must have contiguous step numbers starting from 1.");
+                throw new BusinessRuleException("Workflow steps must have contiguous step numbers starting from 1.");
         }
     }
 }

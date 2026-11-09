@@ -117,12 +117,12 @@ public class EquipmentInventoryService
     private async Task<int> ResolveInventorySectionAsync(int userId, int? requestedSectionId)
     {
         if (!requestedSectionId.HasValue)
-            throw new InvalidOperationException("Choose the laboratory this asset belongs to.");
+            throw new BusinessRuleException("Choose the laboratory this asset belongs to.");
 
         var sectionId = requestedSectionId.Value;
         var existsAndActive = await _db.DocumentSections.AnyAsync(s => s.Id == sectionId && s.IsActive);
         if (!existsAndActive)
-            throw new InvalidOperationException("Selected laboratory section was not found or is inactive.");
+            throw new BusinessRuleException("Selected laboratory section was not found or is inactive.");
 
         var scope = await _scope.GetMemberSectionIdsAsync(userId);
         if (scope != null && !scope.Contains(sectionId))
@@ -155,14 +155,14 @@ public class EquipmentInventoryService
 
         if (conflict != null)
         {
-            throw new InvalidOperationException($"Instrument {conflict.Code} already has serial number {trimmedSerial} from {trimmedManufacturer}.");
+            throw new BusinessRuleException($"Instrument {conflict.Code} already has serial number {trimmedSerial} from {trimmedManufacturer}.");
         }
     }
 
     public async Task<EquipmentInventoryResponse> CreateAsync(SaveEquipmentInventoryRequest r, int currentUserId)
     {
         if (await _db.EquipmentInventories.AnyAsync(e => e.Code == r.Code))
-            throw new InvalidOperationException($"Equipment code \"{r.Code}\" already exists.");
+            throw new BusinessRuleException($"Equipment code \"{r.Code}\" already exists.");
 
         await EnsureUniqueSerialNumberAsync(excludeId: null, r.SerialNumber, r.ManufacturerName);
 
@@ -198,7 +198,7 @@ public class EquipmentInventoryService
         RecordVersion.EnsureCurrent(_db, entity);
 
         if (r.Code != entity.Code && await _db.EquipmentInventories.AnyAsync(e => e.Code == r.Code))
-            throw new InvalidOperationException($"Equipment code \"{r.Code}\" already exists.");
+            throw new BusinessRuleException($"Equipment code \"{r.Code}\" already exists.");
 
         await EnsureUniqueSerialNumberAsync(excludeId: id, r.SerialNumber, r.ManufacturerName);
 
@@ -210,7 +210,7 @@ public class EquipmentInventoryService
         if (statusChanged || manualConfirmWithAuto)
         {
             if (string.IsNullOrWhiteSpace(r.StatusChangeComment))
-                throw new InvalidOperationException("A comment explaining the reason for changing the operational status is required.");
+                throw new BusinessRuleException("A comment explaining the reason for changing the operational status is required.");
 
             var history = new EquipmentStatusHistory
             {

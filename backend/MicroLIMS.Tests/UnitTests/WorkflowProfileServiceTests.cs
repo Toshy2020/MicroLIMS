@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Application.Services;
@@ -142,7 +143,7 @@ public class WorkflowProfileServiceTests
         var service = NewService(db);
         await service.AddVersionAsync(Create(from: Today), user.Id, null);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(
             () => service.AddVersionAsync(Create(units: 2m, from: Today.AddDays(-1)), user.Id, null));
 
         Assert.Contains("cannot be in the past", ex.Message);
@@ -159,7 +160,7 @@ public class WorkflowProfileServiceTests
         var first = await service.AddVersionAsync(Create(from: Today.AddDays(-400)), user.Id, null);
         Assert.Equal(Today.AddDays(-400), first.EffectiveFrom);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(
+        await Assert.ThrowsAsync<BusinessRuleException>(
             () => service.AddVersionAsync(Create(units: 2m, from: Today.AddDays(-400)), user.Id, null));
     }
 
@@ -207,7 +208,7 @@ public class WorkflowProfileServiceTests
         var user = await SeedUserAsync(db);
         var service = NewService(db);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(
+        await Assert.ThrowsAsync<BusinessRuleException>(
             () => service.AddVersionAsync(Create(units: (decimal)units, target: (decimal)target), user.Id, null));
 
         Assert.Empty(await db.ElectronicSignatures.ToListAsync());
@@ -218,7 +219,7 @@ public class WorkflowProfileServiceTests
     {
         await using var db = NewDb();
         var user = await SeedUserAsync(db);
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(
             () => NewService(db).AddVersionAsync(Create(units: null, target: null), user.Id, null));
         Assert.Contains("work units, a target, or both", ex.Message);
     }
@@ -230,7 +231,7 @@ public class WorkflowProfileServiceTests
     {
         await using var db = NewDb();
         var user = await SeedUserAsync(db);
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(
             () => NewService(db).AddVersionAsync(Create(reason: reason), user.Id, null));
         Assert.Contains("reason", ex.Message);
     }
@@ -240,7 +241,7 @@ public class WorkflowProfileServiceTests
     {
         await using var db = NewDb();
         var user = await SeedUserAsync(db);
-        await Assert.ThrowsAsync<InvalidOperationException>(
+        await Assert.ThrowsAsync<BusinessRuleException>(
             () => NewService(db).AddVersionAsync(Create(reason: new string('x', 501)), user.Id, null));
     }
 
@@ -253,7 +254,7 @@ public class WorkflowProfileServiceTests
     {
         await using var db = NewDb();
         var user = await SeedUserAsync(db);
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(
             () => NewService(db).AddVersionAsync(Create(type: retired), user.Id, null));
         Assert.Contains("retired", ex.Message);
     }
@@ -263,7 +264,7 @@ public class WorkflowProfileServiceTests
     {
         await using var db = NewDb();
         var user = await SeedUserAsync(db);
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(
             () => NewService(db).AddVersionAsync(Create(testCode: "GHOST"), user.Id, null));
         Assert.Contains("GHOST", ex.Message);
     }
@@ -288,7 +289,7 @@ public class WorkflowProfileServiceTests
         await using var db = NewDb();
         var user = await SeedUserAsync(db);
         await SeedTestAsync(db, "OLDHPLC", WorkflowType.HplcAssay);
-        await Assert.ThrowsAsync<InvalidOperationException>(
+        await Assert.ThrowsAsync<BusinessRuleException>(
             () => NewService(db).AddVersionAsync(Create(testCode: "OLDHPLC"), user.Id, null));
     }
 
@@ -347,7 +348,7 @@ public class WorkflowProfileServiceTests
         var service = NewService(db);
         await service.SignDraftAsync(draft.Id, Sign(), user.Id, null);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(
             () => service.SignDraftAsync(draft.Id, Sign(units: 3m), user.Id, null));
 
         Assert.Contains("already Effective", ex.Message);
@@ -386,7 +387,7 @@ public class WorkflowProfileServiceTests
         var draft = await SeedRowAsync(db, WorkflowType.CountTest, null, 2m, null, Today.AddDays(-5), WorkflowProfileStatus.Draft);
         var service = NewService(db);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(
             () => service.SignDraftAsync(draft.Id, Sign(from: Today.AddDays(-5)), user.Id, null));
         Assert.Contains("cannot be in the past", ex.Message);
 
@@ -426,7 +427,7 @@ public class WorkflowProfileServiceTests
         await using var db = NewDb();
         var user = await SeedUserAsync(db);
         var draft = await SeedRowAsync(db, WorkflowType.CountTest, null, 2m, null, Today, WorkflowProfileStatus.Draft);
-        await Assert.ThrowsAsync<InvalidOperationException>(
+        await Assert.ThrowsAsync<BusinessRuleException>(
             () => NewService(db).SignDraftAsync(draft.Id, Sign(units: 12.345m), user.Id, null));
     }
 

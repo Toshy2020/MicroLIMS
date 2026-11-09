@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using MicroLIMS.Application.Helpers;
 using MicroLIMS.Domain.Enums;
 using Xunit;
@@ -175,7 +176,7 @@ public class DisintegrationCalculatorTests
         var units = new List<decimal?>();
         for (int i = 0; i < count; i++) units.Add(20m);
 
-        var ex = Assert.Throws<InvalidOperationException>(() => DisintegrationStageEvaluator.Evaluate(units, 30m));
+        var ex = Assert.Throws<BusinessRuleException>(() => DisintegrationStageEvaluator.Evaluate(units, 30m));
         Assert.Contains("requires 6 (Stage 1) or 18 (Stage 2) units", ex.Message);
     }
 
@@ -185,7 +186,7 @@ public class DisintegrationCalculatorTests
     public void NegativeOrZeroLimit_Throws(decimal limit)
     {
         var units = new List<decimal?> { 20m, 20m, 20m, 20m, 20m, 20m };
-        var ex = Assert.Throws<InvalidOperationException>(() => DisintegrationStageEvaluator.Evaluate(units, limit));
+        var ex = Assert.Throws<BusinessRuleException>(() => DisintegrationStageEvaluator.Evaluate(units, limit));
         Assert.Contains("greater than zero", ex.Message);
     }
 
@@ -193,7 +194,7 @@ public class DisintegrationCalculatorTests
     public void NegativeOrZeroUnitMinutes_Throws()
     {
         var units = new List<decimal?> { 20m, 20m, 0m, 20m, 20m, 20m };
-        var ex = Assert.Throws<InvalidOperationException>(() => DisintegrationStageEvaluator.Evaluate(units, 30m));
+        var ex = Assert.Throws<BusinessRuleException>(() => DisintegrationStageEvaluator.Evaluate(units, 30m));
         Assert.Contains("greater than zero", ex.Message);
     }
 
@@ -203,15 +204,15 @@ public class DisintegrationCalculatorTests
         var units = new List<decimal?> { 20m, 20m, 20m, 20m, 20m, 20m };
 
         // Stage1Units < 1
-        Assert.Throws<InvalidOperationException>(() =>
+        Assert.Throws<BusinessRuleException>(() =>
             DisintegrationStageEvaluator.Evaluate(units, 30m, new DisintegrationStageConfig(Stage1Units: 0)));
 
         // MaxFailures >= Stage1Units
-        Assert.Throws<InvalidOperationException>(() =>
+        Assert.Throws<BusinessRuleException>(() =>
             DisintegrationStageEvaluator.Evaluate(units, 30m, new DisintegrationStageConfig(Stage1Units: 6, MaxStage1Failures: 6)));
 
         // MinPassTotal > TotalUnits
-        Assert.Throws<InvalidOperationException>(() =>
+        Assert.Throws<BusinessRuleException>(() =>
             DisintegrationStageEvaluator.Evaluate(units, 30m, new DisintegrationStageConfig(Stage1Units: 6, Stage2Units: 12, MinPassTotal: 19)));
     }
 }

@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.DTOs;
 using MicroLIMS.Application.DTOs.Responses;
@@ -177,7 +178,7 @@ public class HplcMethodAssayTestMasterTests
         var method = await AddMethodAsync(db, otherSection.Id, userId);
         var service = TestServiceFactory.TestDefinitionMaster(db);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(
             () => service.CreateTestDefinitionAsync(userId, DissolutionReq(section.Id, method.Id)));
         Assert.Contains("another laboratory", ex.Message);
     }
@@ -191,7 +192,7 @@ public class HplcMethodAssayTestMasterTests
 
         var req = AssayReq(section.Id, null);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.CreateTestDefinitionAsync(userId, req));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => service.CreateTestDefinitionAsync(userId, req));
         Assert.Contains("HPLC method is required", ex.Message);
     }
 
@@ -205,7 +206,7 @@ public class HplcMethodAssayTestMasterTests
 
         var req = AssayReq(section.Id, method.Id);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.CreateTestDefinitionAsync(userId, req));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => service.CreateTestDefinitionAsync(userId, req));
         Assert.Contains("inactive", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -220,7 +221,7 @@ public class HplcMethodAssayTestMasterTests
 
         var req = AssayReq(section.Id, method.Id);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.CreateTestDefinitionAsync(userId, req));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => service.CreateTestDefinitionAsync(userId, req));
         Assert.Contains("another laboratory", ex.Message);
     }
 
@@ -234,7 +235,7 @@ public class HplcMethodAssayTestMasterTests
 
         var req = AssayReq(section.Id, method.Id) with { EquationType = EquationType.None };
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.CreateTestDefinitionAsync(userId, req));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => service.CreateTestDefinitionAsync(userId, req));
         Assert.Contains("HplcMethodAssay", ex.Message);
     }
 
@@ -252,7 +253,7 @@ public class HplcMethodAssayTestMasterTests
             ReplicateCount: 3, EvaluationBasis: MeasurementEvaluationBasis.Mean,
             HplcMethodId: method.Id);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.CreateTestDefinitionAsync(userId, req));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => service.CreateTestDefinitionAsync(userId, req));
         Assert.Contains("only allowed for HPLC method assay and dissolution tests", ex.Message);
     }
 
@@ -301,7 +302,7 @@ public class HplcMethodAssayTestMasterTests
             LimitType: LimitType.Range, LowerLimit: 90m, UpperLimit: 110m,
             ResultBasis: ResultBasis.PercentLabelClaim, HplcMethodAnalyteId: null);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => specService.CreateSpecificationAsync(userId, req));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => specService.CreateSpecificationAsync(userId, req));
         Assert.Contains("Method analyte is required", ex.Message);
     }
 
@@ -331,7 +332,7 @@ public class HplcMethodAssayTestMasterTests
             LimitType: LimitType.Range, LowerLimit: 90m, UpperLimit: 110m,
             ResultBasis: ResultBasis.MgPerKg, HplcMethodAnalyteId: analyteId);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => specService.CreateSpecificationAsync(userId, req));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => specService.CreateSpecificationAsync(userId, req));
         Assert.Contains("Result basis must be assay %", ex.Message);
     }
 
@@ -361,7 +362,7 @@ public class HplcMethodAssayTestMasterTests
             LimitType: LimitType.Range, LowerLimit: 90m, UpperLimit: 110m,
             ResultBasis: ResultBasis.MgPerUnit, HplcMethodAnalyteId: analyteId);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => specService.CreateSpecificationAsync(userId, req));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => specService.CreateSpecificationAsync(userId, req));
         Assert.Contains("needs a label claim and its unit", ex.Message);
     }
 
@@ -392,7 +393,7 @@ public class HplcMethodAssayTestMasterTests
             ResultBasis: ResultBasis.PercentLabelClaim, HplcMethodAnalyteId: analyteId,
             LabelClaim: 500m, LabelClaimUnit: "mg");
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => specService.CreateSpecificationAsync(userId, req));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => specService.CreateSpecificationAsync(userId, req));
         Assert.Contains("Label claim belongs on the amount-per-unit row", ex.Message);
     }
 
@@ -428,7 +429,7 @@ public class HplcMethodAssayTestMasterTests
             LimitType: LimitType.Range, LowerLimit: 91m, UpperLimit: 111m,
             ResultBasis: ResultBasis.PercentLabelClaim, HplcMethodAnalyteId: analyteId);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => specService.CreateSpecificationAsync(userId, req2));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => specService.CreateSpecificationAsync(userId, req2));
         Assert.Contains("analyte and basis already exists", ex.Message);
     }
 
@@ -467,7 +468,7 @@ public class HplcMethodAssayTestMasterTests
             LimitType: LimitType.Qualitative, ExpectedResultText: "Conforms",
             HplcMethodAnalyteId: analyteId);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => specService.CreateSpecificationAsync(userId, req));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => specService.CreateSpecificationAsync(userId, req));
         Assert.Contains("only allowed for HPLC method assay specifications", ex.Message);
     }
 
@@ -521,7 +522,7 @@ public class HplcMethodAssayTestMasterTests
     {
         await using var db = NewDb();
         var a = await ArrangeRsSpecAsync(db);
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => a.Svc.CreateSpecificationAsync(a.UserId, new CreateSpecificationRequest(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => a.Svc.CreateSpecificationAsync(a.UserId, new CreateSpecificationRequest(
             ItemId: a.Item.Id, TestCode: a.Def.Code, ParameterName: "Methanol",
             LimitType: limitType, LowerLimit: limitType == LimitType.Range ? 0m : null, UpperLimit: 3000m,
             ResultBasis: basis, HplcMethodAnalyteId: a.AnalyteId)));
@@ -540,7 +541,7 @@ public class HplcMethodAssayTestMasterTests
         db.Items.Add(item);
         await db.SaveChangesAsync();
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => new SpecificationMasterDataService(db, new UserSectionScopeService(db))
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => new SpecificationMasterDataService(db, new UserSectionScopeService(db))
             .CreateSpecificationAsync(userId, new CreateSpecificationRequest(
                 ItemId: item.Id, TestCode: testDef.Code, ParameterName: "Assay",
                 LimitType: LimitType.NotMoreThan, LowerLimit: null, UpperLimit: 3000m,
@@ -553,7 +554,7 @@ public class HplcMethodAssayTestMasterTests
     {
         await using var db = NewDb();
         var a = await ArrangeRsSpecAsync(db);
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => a.Svc.CreateSpecificationAsync(a.UserId, new CreateSpecificationRequest(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => a.Svc.CreateSpecificationAsync(a.UserId, new CreateSpecificationRequest(
             ItemId: a.Item.Id, TestCode: a.Def.Code, ParameterName: "Methanol",
             LimitType: LimitType.NotMoreThan, LowerLimit: null, UpperLimit: 3000m,
             ResultBasis: ResultBasis.Ppm, HplcMethodAnalyteId: a.AnalyteId, LabelClaim: 100m)));
@@ -570,7 +571,7 @@ public class HplcMethodAssayTestMasterTests
             LimitType: LimitType.NotMoreThan, LowerLimit: null, UpperLimit: 3000m,
             ResultBasis: ResultBasis.Ppm, HplcMethodAnalyteId: a.AnalyteId);
         await a.Svc.CreateSpecificationAsync(a.UserId, req);
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => a.Svc.CreateSpecificationAsync(a.UserId, req));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => a.Svc.CreateSpecificationAsync(a.UserId, req));
         Assert.Equal("A specification for this analyte and basis already exists.", ex.Message);
     }
 
@@ -582,7 +583,7 @@ public class HplcMethodAssayTestMasterTests
         var method = await AddRsMethodAsync(db, section.Id);
         var service = TestServiceFactory.TestDefinitionMaster(db);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(
             () => service.CreateTestDefinitionAsync(userId, DissolutionReq(section.Id, method.Id)));
         Assert.Equal("Dissolution needs an HPLC method.", ex.Message);
     }

@@ -101,20 +101,20 @@ public class BiologicalWasteDestructionService
         var others = r.OtherItems ?? new();
 
         if (string.IsNullOrWhiteSpace(r.CycleNumber))
-            throw new InvalidOperationException("The autoclave cycle number is required.");
+            throw new BusinessRuleException("The autoclave cycle number is required.");
         var cycleStartedAt = DateTime.SpecifyKind(r.CycleStartedAt, DateTimeKind.Utc);
         if (cycleStartedAt > now + ClockTolerance)
-            throw new InvalidOperationException("The autoclave cycle start cannot be in the future.");
+            throw new BusinessRuleException("The autoclave cycle start cannot be in the future.");
         if (thawIds.Count + batchIds.Count + others.Count == 0)
-            throw new InvalidOperationException("Select at least one thawed vial, withdrawn batch or other waste item destroyed in this cycle.");
+            throw new BusinessRuleException("Select at least one thawed vial, withdrawn batch or other waste item destroyed in this cycle.");
 
         var autoclave = await _db.Equipment.FirstOrDefaultAsync(e => e.Id == r.AutoclaveEquipmentId && e.Type == EquipmentType.Autoclave)
-            ?? throw new InvalidOperationException("Selected equipment is not a valid autoclave.");
+            ?? throw new BusinessRuleException("Selected equipment is not a valid autoclave.");
         await _scope.EnsureEquipmentAccessAsync(userId, autoclave.Id);
         var program = await _db.AutoclavePrograms.FirstOrDefaultAsync(p => p.Id == r.AutoclaveProgramId && p.EquipmentId == autoclave.Id)
-            ?? throw new InvalidOperationException($"The selected program does not belong to autoclave {autoclave.Code}.");
+            ?? throw new BusinessRuleException($"The selected program does not belong to autoclave {autoclave.Code}.");
         if (!program.IsActive)
-            throw new InvalidOperationException($"Autoclave program {program.ProgramCode} is inactive.");
+            throw new BusinessRuleException($"Autoclave program {program.ProgramCode} is inactive.");
 
         var sectionIds = await _scope.GetMemberSectionIdsAsync(userId);
         var items = new List<BiologicalWasteDestructionItem>();
@@ -132,9 +132,9 @@ public class BiologicalWasteDestructionService
             if (sectionIds != null && !sectionIds.Contains(thaw.Cryovial.Material!.SectionId))
                 throw new UnauthorizedAccessException($"The {vial} belongs to a laboratory section you do not have access to.");
             if (thaw.DestructionItem is not null)
-                throw new InvalidOperationException($"The {vial} has already been destroyed.");
+                throw new BusinessRuleException($"The {vial} has already been destroyed.");
             if (!thaw.Cryovial.IsDestroyed && thaw.ThawedAt.Add(CryovialThaw.UsableFor) > now)
-                throw new InvalidOperationException($"The {vial} is still within its {CryovialThaw.UsableFor.TotalHours:0}-hour use window and is not yet eligible for destruction.");
+                throw new BusinessRuleException($"The {vial} is still within its {CryovialThaw.UsableFor.TotalHours:0}-hour use window and is not yet eligible for destruction.");
 
             items.Add(new BiologicalWasteDestructionItem
             {
@@ -156,9 +156,9 @@ public class BiologicalWasteDestructionService
             if (sectionIds != null && !sectionIds.Contains(batch.Material!.SectionId))
                 throw new UnauthorizedAccessException($"Cryovial batch {batch.Code} belongs to a laboratory section you do not have access to.");
             if (!batch.IsDestroyed)
-                throw new InvalidOperationException($"Cryovial batch {batch.Code} has not been withdrawn - only a withdrawn batch's unthawed vials can be destroyed.");
+                throw new BusinessRuleException($"Cryovial batch {batch.Code} has not been withdrawn - only a withdrawn batch's unthawed vials can be destroyed.");
             if (batch.VialsRemaining <= 0)
-                throw new InvalidOperationException($"Cryovial batch {batch.Code} has no unthawed vials left to destroy.");
+                throw new BusinessRuleException($"Cryovial batch {batch.Code} has no unthawed vials left to destroy.");
 
             items.Add(new BiologicalWasteDestructionItem
             {
@@ -173,11 +173,11 @@ public class BiologicalWasteDestructionService
         foreach (var o in others)
         {
             if (string.IsNullOrWhiteSpace(o.Description))
-                throw new InvalidOperationException("Every other waste item needs a description.");
+                throw new BusinessRuleException("Every other waste item needs a description.");
             if (o.Quantity <= 0)
-                throw new InvalidOperationException($"Quantity for \"{o.Description.Trim()}\" must be greater than zero.");
+                throw new BusinessRuleException($"Quantity for \"{o.Description.Trim()}\" must be greater than zero.");
             if (string.IsNullOrWhiteSpace(o.Unit))
-                throw new InvalidOperationException($"Unit for \"{o.Description.Trim()}\" is required.");
+                throw new BusinessRuleException($"Unit for \"{o.Description.Trim()}\" is required.");
             items.Add(new BiologicalWasteDestructionItem
             {
                 ItemType = BiologicalWasteItemType.Other,

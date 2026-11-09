@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Workflows;
@@ -226,7 +227,7 @@ public class QualitativeWorkflowUnitTests
             },
             Password: "Password123!");
 
-        var ex1 = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex1 = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             engine.RecordQualitativeResultAsync(order.Id, payload1, user.Id));
         Assert.Contains("An observation is required when result does not conform", ex1.Message);
 
@@ -240,7 +241,7 @@ public class QualitativeWorkflowUnitTests
             },
             Password: "Password123!");
 
-        var ex2 = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex2 = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             engine.RecordQualitativeResultAsync(order.Id, payload2, user.Id));
         Assert.Contains("An observation is required when result does not conform", ex2.Message);
     }
@@ -261,7 +262,7 @@ public class QualitativeWorkflowUnitTests
             },
             Password: "Password123!");
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             engine.RecordQualitativeResultAsync(order.Id, payload, user.Id));
         Assert.Contains("must have limit type Qualitative or PresenceAbsence", ex.Message);
     }
@@ -283,7 +284,7 @@ public class QualitativeWorkflowUnitTests
             },
             Password: "Password123!");
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             engine.RecordQualitativeResultAsync(order.Id, payload, user.Id));
         Assert.Contains("Observation cannot exceed 500 characters", ex.Message);
     }
@@ -459,7 +460,7 @@ public class QualitativeWorkflowUnitTests
             _ => AllConform(3)
         };
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             engine.RecordQualitativeResultAsync(order.Id, PerContainerPayload(spec, count, containers), user.Id));
         Assert.Equal(expected, ex.Message);
         Assert.Empty(db.TestAnalyses.Where(a => a.TestOrderId == order.Id));
@@ -473,7 +474,7 @@ public class QualitativeWorkflowUnitTests
         var (order, spec, user, _) = SeedQualitativeTest(db);
         var engine = TestServiceFactory.TestWorkflow(db);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             engine.RecordQualitativeResultAsync(order.Id, PerContainerPayload(spec, 2, AllConform(2)), user.Id));
         Assert.Equal("This test is not recorded per container.", ex.Message);
         Assert.Empty(db.TestAnalyses.Where(a => a.TestOrderId == order.Id));
@@ -554,7 +555,7 @@ public class QualitativeWorkflowUnitTests
         var (order, spec, user, _) = SeedQualitativeTest(db);
         var engine = TestServiceFactory.TestWorkflow(db);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             engine.RecordQualitativeResultAsync(order.Id, PerContainerPayload(spec, 3, null), user.Id));
         Assert.Equal("This test is not recorded per container.", ex.Message);
         Assert.Empty(db.TestAnalyses.Where(a => a.TestOrderId == order.Id));
@@ -584,7 +585,7 @@ public class QualitativeWorkflowUnitTests
             new List<QualitativeParameterInput> { new(spec.Id, true, new string('A', 501), AllConform(2)) },
             "Password123!", ContainerCount: 2);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             engine.RecordQualitativeResultAsync(order.Id, payload, user.Id));
         Assert.Equal("Observation cannot exceed 500 characters.", ex.Message);
         Assert.Empty(db.TestAnalyses.Where(a => a.TestOrderId == order.Id));

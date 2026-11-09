@@ -141,7 +141,7 @@ public class MediaIncubationConditionServiceTests
         var service = TestServiceFactory.MediaIncubationCondition(db);
         var product = await MediaProductTestData.CreateOrGetAsync(db, "TSA", "TSA");
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(
             () => service.CreateAsync(product.Id, minH, maxH, tMin, tMax));
         Assert.Equal(expectedMessage, ex.Message);
         Assert.False(await db.MediaIncubationConditions.AnyAsync());
@@ -156,7 +156,7 @@ public class MediaIncubationConditionServiceTests
 
         await service.CreateAsync(product.Id, 24, 48, 30m, 35m);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(
             () => service.CreateAsync(product.Id, 24, 48, 30m, 35m));
         Assert.Contains("already has an incubation condition", ex.Message);
     }
@@ -224,7 +224,7 @@ public class MediaIncubationConditionServiceTests
         var condition = await MediaProductTestData.AddConditionAsync(db, product, 24, 48, 30m, 35m);
         await SeedConfigurationUsageAsync(db, product, condition);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(
             () => service.UpdateAsync(condition.Id, 48, 72, 20m, 25m));
         Assert.Contains("used by 1 evaluation configuration(s) and 0 Test Master step medium/media", ex.Message);
 
@@ -244,7 +244,7 @@ public class MediaIncubationConditionServiceTests
         var condition = await MediaProductTestData.AddConditionAsync(db, product, 24, 48, 30m, 35m);
         await SeedStepMediaUsageAsync(db, condition);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(
             () => service.UpdateAsync(condition.Id, 48, 72, 20m, 25m));
         Assert.Contains("used by 0 evaluation configuration(s) and 1 Test Master", ex.Message);
     }
@@ -258,7 +258,7 @@ public class MediaIncubationConditionServiceTests
         var condition1 = await MediaProductTestData.AddConditionAsync(db, product, 24, 48, 30m, 35m);
         var condition2 = await MediaProductTestData.AddConditionAsync(db, product, 48, 72, 20m, 25m);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(
             () => service.UpdateAsync(condition2.Id, 24, 48, 30m, 35m));
         Assert.Contains("already has an incubation condition", ex.Message);
     }
@@ -288,7 +288,7 @@ public class MediaIncubationConditionServiceTests
         var product = await MediaProductTestData.CreateOrGetAsync(db, "TSA", "TSA");
         var condition = await MediaProductTestData.AddConditionAsync(db, product, 24, 48, 30m, 35m);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(
             () => service.UpdateAsync(condition.Id, 48, 24, 30m, 35m));
         Assert.Equal("Incubation max hours cannot be less than min hours.", ex.Message);
 
@@ -323,7 +323,7 @@ public class MediaIncubationConditionServiceTests
         var condition = await MediaProductTestData.AddConditionAsync(db, product, 24, 48, 30m, 35m);
         await SeedConfigurationUsageAsync(db, product, condition);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(
             () => service.DeleteAsync(condition.Id));
         Assert.Contains("used by 1 evaluation configuration(s) and 0 Test Master step medium/media", ex.Message);
         Assert.True(await db.MediaIncubationConditions.AnyAsync(c => c.Id == condition.Id));
@@ -338,7 +338,7 @@ public class MediaIncubationConditionServiceTests
         var condition = await MediaProductTestData.AddConditionAsync(db, product, 24, 48, 30m, 35m);
         await SeedStepMediaUsageAsync(db, condition);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(
             () => service.DeleteAsync(condition.Id));
         Assert.Contains("used by 0 evaluation configuration(s) and 1 Test Master", ex.Message);
         Assert.True(await db.MediaIncubationConditions.AnyAsync(c => c.Id == condition.Id));

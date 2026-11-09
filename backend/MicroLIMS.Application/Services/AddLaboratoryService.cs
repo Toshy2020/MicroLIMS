@@ -27,20 +27,20 @@ public class AddLaboratoryService
     private async Task AddCoreAsync(int sampleId, int sectionId, int userId, string password, string reason, string? ipAddress)
     {
         if (string.IsNullOrWhiteSpace(reason))
-            throw new InvalidOperationException("A reason is required to add a laboratory.");
+            throw new BusinessRuleException("A reason is required to add a laboratory.");
 
         var sample = await _db.Samples.Include(s => s.TestOrders).Include(s => s.SectionSignoffs)
             .FirstOrDefaultAsync(s => s.Id == sampleId)
             ?? throw new NotFoundException($"Sample {sampleId} not found.");
 
         if (SampleSectionRollup.Overall(sample) is OverallSampleStatus.Rejected or OverallSampleStatus.Voided or OverallSampleStatus.Cancelled)
-            throw new InvalidOperationException("A laboratory cannot be added to a rejected, voided or cancelled sample.");
+            throw new BusinessRuleException("A laboratory cannot be added to a rejected, voided or cancelled sample.");
         if (sample.AwaitingTestSelection)
-            throw new InvalidOperationException("The tests for this periodic retest have not been chosen yet; a laboratory cannot be added until they are.");
+            throw new BusinessRuleException("The tests for this periodic retest have not been chosen yet; a laboratory cannot be added until they are.");
         if (sample.TestOrders.Any(t => t.SectionId == sectionId))
-            throw new InvalidOperationException("This laboratory is already testing the sample.");
+            throw new BusinessRuleException("This laboratory is already testing the sample.");
         if (sample.ItemId is not int itemId)
-            throw new InvalidOperationException("A laboratory can be added only to a product, raw material or packaging material sample.");
+            throw new BusinessRuleException("A laboratory can be added only to a product, raw material or packaging material sample.");
 
         var item = await _db.Items.Include(i => i.AssignedTests).FirstAsync(i => i.Id == itemId);
         var sections = await TestSectionLookup.ResolveAsync(_db, item.AssignedTests.Select(t => t.TestCode));
@@ -52,7 +52,7 @@ public class AddLaboratoryService
         if (tests.Count == 0)
         {
             var name = await _db.DocumentSections.Where(s => s.Id == sectionId).Select(s => s.Name).FirstOrDefaultAsync() ?? $"section {sectionId}";
-            throw new InvalidOperationException($"Item '{item.Name}' has no tests for {name}.");
+            throw new BusinessRuleException($"Item '{item.Name}' has no tests for {name}.");
         }
 
         SampleSectionRollup.FreezeOpenSections(sample);

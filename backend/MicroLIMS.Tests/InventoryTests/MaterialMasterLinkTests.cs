@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Persistence.Helpers;
 using MicroLIMS.Application.Services;
@@ -50,7 +51,7 @@ public class MaterialMasterLinkTests
         await using var db = NewDb();
         var (svc, _, fpUserId, _, _) = Seed(db);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => svc.CreateAsync(Req(MaterialType.Chemical), fpUserId));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => svc.CreateAsync(Req(MaterialType.Chemical), fpUserId));
         Assert.Contains("Choose the material master entry", ex.Message);
     }
 
@@ -61,7 +62,7 @@ public class MaterialMasterLinkTests
         var (svc, masterSvc, fpUserId, _, _) = Seed(db);
         var entry = await SeedEntryAsync(masterSvc, fpUserId, MaterialMasterCategory.Indicator);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => svc.CreateAsync(Req(MaterialType.Chemical, entry.Id), fpUserId));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => svc.CreateAsync(Req(MaterialType.Chemical, entry.Id), fpUserId));
         Assert.Contains("Indicator", ex.Message);
     }
 
@@ -73,7 +74,7 @@ public class MaterialMasterLinkTests
         var entry = await SeedEntryAsync(masterSvc, fpUserId, MaterialMasterCategory.Reagent);
         await masterSvc.SetActiveAsync(entry.Id, false, fpUserId);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => svc.CreateAsync(Req(MaterialType.Chemical, entry.Id), fpUserId));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => svc.CreateAsync(Req(MaterialType.Chemical, entry.Id), fpUserId));
         Assert.Contains("inactive", ex.Message);
     }
 
@@ -151,7 +152,7 @@ public class MaterialMasterLinkTests
         var entry = await SeedEntryAsync(masterSvc, fpUserId, MaterialMasterCategory.ReferenceStandard);
 
         var req = Req(MaterialType.ReferenceStandard, entry.Id, moisture: 100m) with { Purity = 99.5m };
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => svc.CreateAsync(req, fpUserId));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => svc.CreateAsync(req, fpUserId));
         Assert.Contains("Moisture", ex.Message);
     }
 
@@ -162,7 +163,7 @@ public class MaterialMasterLinkTests
         var (svc, masterSvc, fpUserId, _, _) = Seed(db);
         var entry = await SeedEntryAsync(masterSvc, fpUserId, MaterialMasterCategory.Reagent);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => svc.CreateAsync(Req(MaterialType.Chemical, entry.Id, moisture: 2m), fpUserId));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => svc.CreateAsync(Req(MaterialType.Chemical, entry.Id, moisture: 2m), fpUserId));
         Assert.Contains("only allowed for reference standards", ex.Message);
     }
 

@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using MicroLIMS.API.Controllers;
 using MicroLIMS.Application.Services;
 using MicroLIMS.Application.Workflows;
@@ -192,7 +193,7 @@ public class LocationChemistryWorkflowTests
             // missing loc2!
         };
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             engine.RecordLocationResultsAsync(order.Id, inputs, 1));
         Assert.Contains("Results are missing for", ex.Message);
     }
@@ -215,7 +216,7 @@ public class LocationChemistryWorkflowTests
             new(loc2.Id, 7.0m, null)
         };
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             engine.RecordLocationResultsAsync(order.Id, inputs, 1));
         Assert.Contains("Limits for PH at W-02 are not configured", ex.Message);
     }

@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Application.DTOs.Responses;
@@ -33,7 +34,7 @@ public class TestingMaterialCatalogService
         if (!string.IsNullOrWhiteSpace(group))
         {
             wanted = TestingMaterialGroups.All.FirstOrDefault(g => g.Equals(group.Trim(), StringComparison.OrdinalIgnoreCase))
-                ?? throw new InvalidOperationException($"Unknown group \"{group}\". Use one of: {string.Join(", ", TestingMaterialGroups.All)}.");
+                ?? throw new BusinessRuleException($"Unknown group \"{group}\". Use one of: {string.Join(", ", TestingMaterialGroups.All)}.");
         }
         var term = string.IsNullOrWhiteSpace(search) ? null : search.Trim().ToLower();
         bool Wants(string g) => wanted == null || wanted == g;

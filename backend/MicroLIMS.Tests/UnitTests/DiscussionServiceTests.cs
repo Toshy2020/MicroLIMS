@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Services;
 using MicroLIMS.Domain.Entities;
@@ -38,7 +39,7 @@ public class DiscussionServiceTests
     private static async Task<string> RejectionAsync(MicroLimsDbContext db, InMemoryFileStorageService storage,
         List<(string FileName, string ContentType, byte[] Data)> attachments)
     {
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             TestServiceFactory.Discussion(db, storage).CreatePostAsync(AnyPost(), attachments, authorUserId: 1));
 
         // Refused before anything was written: no post, no stored file.

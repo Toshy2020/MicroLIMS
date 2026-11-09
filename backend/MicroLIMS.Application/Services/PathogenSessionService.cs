@@ -584,7 +584,7 @@ public class PathogenSessionService
         var media = await _db.Media
             .Include(m => m.Material)
             .FirstOrDefaultAsync(m => m.Id == request.MediaLotId)
-            ?? throw new InvalidOperationException($"Media #{request.MediaLotId} not found.");
+            ?? throw new BusinessRuleException($"Media #{request.MediaLotId} not found.");
 
         if (media.ExpiryDate.Date < _time.GetUtcNow().UtcDateTime.Date)
             throw new WorkflowStepException("MediaExpired", $"Media lot #{media.LotNumber} expired on {media.ExpiryDate:yyyy-MM-dd}.");
@@ -592,7 +592,7 @@ public class PathogenSessionService
         // The incubator is Laboratory Configuration equipment, which carries
         // the set point - never the EquipmentInventories asset register.
         var incubator = await _db.Equipment.FirstOrDefaultAsync(e => e.Id == request.IncubatorEquipmentId && e.Type == EquipmentType.Incubator)
-            ?? throw new InvalidOperationException($"Incubator #{request.IncubatorEquipmentId} not found.");
+            ?? throw new BusinessRuleException($"Incubator #{request.IncubatorEquipmentId} not found.");
 
         var joining = await ResolveJoiningTestsAsync(sample, media, incubator);
 
@@ -871,7 +871,7 @@ public class PathogenSessionService
             ?? throw new NotFoundException($"Sample #{sampleId} not found.");
 
         var testOrder = sample.TestOrders.FirstOrDefault(t => t.Id == request.TestOrderId)
-            ?? throw new InvalidOperationException($"TestOrder #{request.TestOrderId} not found.");
+            ?? throw new BusinessRuleException($"TestOrder #{request.TestOrderId} not found.");
 
         var testDef = await _db.TestDefinitions
             .Include(d => d.Steps)
@@ -915,7 +915,7 @@ public class PathogenSessionService
         // Laboratory Configuration equipment (carries the set point), never
         // the EquipmentInventories asset register.
         var incubator = await _db.Equipment.FirstOrDefaultAsync(e => e.Id == request.IncubatorEquipmentId && e.Type == EquipmentType.Incubator, cancellationToken)
-            ?? throw new InvalidOperationException($"Incubator #{request.IncubatorEquipmentId} not found.");
+            ?? throw new BusinessRuleException($"Incubator #{request.IncubatorEquipmentId} not found.");
 
         var chosen = await ResolveChosenConfirmatoryMediaAsync(request, testOrder, confirmatoryStep, incubator, cancellationToken);
 

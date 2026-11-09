@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Services;
 using MicroLIMS.Application.Workflows;
@@ -94,7 +95,7 @@ public class CountTestWorkflowTests
         var (order, _, selectiveAgarMedia) = await SeedTamcOrderAsync(db);
         var engine = TestServiceFactory.TestWorkflow(db);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             engine.SelectMediaAsync(order.Id, "CountIncubation", selectiveAgarMedia.Id, incubatorEquipmentId: 1, userId: 1));
         Assert.Contains("requires", ex.Message);
     }
@@ -106,7 +107,7 @@ public class CountTestWorkflowTests
         var (order, _, _) = await SeedTamcOrderAsync(db);
         var engine = TestServiceFactory.TestWorkflow(db);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        await Assert.ThrowsAsync<BusinessRuleException>(() =>
             engine.RecordResultAsync(order.Id, "CountIncubation", new CountTestPayload(new List<decimal> { 50 }, 1), userId: 1));
     }
 

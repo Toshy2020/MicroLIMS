@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.DTOs;
 using MicroLIMS.Application.Services;
@@ -47,7 +48,7 @@ public class MoistureRoleSpecificationTests
     {
         var (db, item) = await SetupAsync();
         using var _ = db;
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(
             () => new SpecificationService(db).ValidateAsync(TitrationSpec(item, ResultBasis.PercentDriedBasis)));
         Assert.Contains("Assign a loss on drying test to this item before using a dried basis.", ex.Message);
     }
@@ -58,7 +59,7 @@ public class MoistureRoleSpecificationTests
         // A LOD test does not satisfy the anhydrous basis.
         var (db, item) = await SetupAsync(("LOD", WorkflowType.Gravimetric, MoistureRole.LossOnDrying));
         using var _ = db;
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(
             () => new SpecificationService(db).ValidateAsync(TitrationSpec(item, ResultBasis.PercentAnhydrousBasis)));
         Assert.Contains("Assign a water (Karl Fischer) test to this item before using an anhydrous basis.", ex.Message);
     }
@@ -87,7 +88,7 @@ public class MoistureRoleSpecificationTests
         using var _ = db;
         var spec = TitrationSpec(item, ResultBasis.PercentAnhydrousBasis);
         spec.TestCode = "KF";
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => new SpecificationService(db).ValidateAsync(spec));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => new SpecificationService(db).ValidateAsync(spec));
         Assert.Contains("Assign a water (Karl Fischer) test to this item", ex.Message);
     }
 
@@ -98,7 +99,7 @@ public class MoistureRoleSpecificationTests
         using var _ = db;
         (await db.TestDefinitions.SingleAsync(t => t.Code == "LOD")).IsActive = false;
         await db.SaveChangesAsync();
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(
             () => new SpecificationService(db).ValidateAsync(TitrationSpec(item, ResultBasis.PercentDriedBasis)));
         Assert.Contains("Assign a loss on drying test to this item", ex.Message);
     }
@@ -118,7 +119,7 @@ public class MoistureRoleSpecificationTests
         });
         var svc = TestServiceFactory.TestDefinitionMaster(db);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(
             () => svc.UpdateTestDefinitionAsync(s.UserId, s.Test.Id, new UpdateTestDefinitionRequest(s.Test.Code, s.Test.DisplayName, MoistureRole: MoistureRole.Water)));
         Assert.Contains("reason for change", ex.Message);
     }
@@ -136,7 +137,7 @@ public class MoistureRoleSpecificationTests
 
         var anhydrous = TitrationSpec(item, ResultBasis.PercentAnhydrousBasis);
         anhydrous.ParameterName = "Assay (anhydrous)";
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => new SpecificationService(db).ValidateAsync(anhydrous));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => new SpecificationService(db).ValidateAsync(anhydrous));
         Assert.Contains("One titration cannot report on both dried and anhydrous basis.", ex.Message);
 
         // Re-validating the existing dried row (an edit) is not blocked by itself.
@@ -205,7 +206,7 @@ public class MoistureRoleSpecificationTests
     {
         var (db, item, analyte, _) = await SetupHplcAsync();
         using var _ = db;
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(
             () => new SpecificationService(db).ValidateAsync(HplcSpec(item, analyte, ResultBasis.PercentDriedBasis)));
         Assert.Contains("Assign a loss on drying test to this item before using a dried basis.", ex.Message);
 
@@ -225,13 +226,13 @@ public class MoistureRoleSpecificationTests
 
         var driedSpec = HplcSpec(item, analyte, ResultBasis.PercentDriedBasis);
         driedSpec.ParameterName = "Assay (dried)";
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(
             () => new SpecificationService(db).ValidateAsync(driedSpec));
         Assert.Contains("An HPLC analyte reports either % of label claim or a content basis, not both.", ex.Message);
 
         var asIsSpec = HplcSpec(item, analyte, ResultBasis.PercentAsIs);
         asIsSpec.ParameterName = "Assay (as-is)";
-        var ex2 = await Assert.ThrowsAsync<InvalidOperationException>(
+        var ex2 = await Assert.ThrowsAsync<BusinessRuleException>(
             () => new SpecificationService(db).ValidateAsync(asIsSpec));
         Assert.Contains("An HPLC analyte reports either % of label claim or a content basis, not both.", ex2.Message);
     }
@@ -250,7 +251,7 @@ public class MoistureRoleSpecificationTests
 
         var anhydrous = HplcSpec(item, analyte2, ResultBasis.PercentAnhydrousBasis);
         anhydrous.ParameterName = "Assay 2";
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => new SpecificationService(db).ValidateAsync(anhydrous));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => new SpecificationService(db).ValidateAsync(anhydrous));
         Assert.Equal("One HPLC test cannot report on both dried and anhydrous basis.", ex.Message);
     }
 
@@ -259,7 +260,7 @@ public class MoistureRoleSpecificationTests
     {
         var (db, item, analyte, _) = await SetupHplcAsync();
         using var _ = db;
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(
             () => new SpecificationService(db).ValidateAsync(HplcSpec(item, analyte, ResultBasis.Ppm)));
         Assert.Equal("Result basis must be assay % of label claim, amount per unit, % as is, % dried basis or % anhydrous basis.", ex.Message);
     }
@@ -299,13 +300,13 @@ public class MoistureRoleSpecificationTests
         var sameScope = HplcSpec(item, analyte, ResultBasis.PercentAsIs);
         sameScope.ParameterName = "Assay (as is)";
         sameScope.Grade = "usp"; // case-insensitive, like the duplicate check
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.ValidateAsync(sameScope));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => service.ValidateAsync(sameScope));
         Assert.Equal("An HPLC analyte reports either % of label claim or a content basis, not both.", ex.Message);
         var anhydrousSameScope = HplcSpec(item, analyte, ResultBasis.PercentAnhydrousBasis);
         anhydrousSameScope.ParameterName = "Assay (anhydrous)";
         anhydrousSameScope.Grade = "USP";
         anhydrousSameScope.ProductionStageRole = ProductionStageRole.Bulk;
-        var ex2 = await Assert.ThrowsAsync<InvalidOperationException>(() => service.ValidateAsync(anhydrousSameScope));
+        var ex2 = await Assert.ThrowsAsync<BusinessRuleException>(() => service.ValidateAsync(anhydrousSameScope));
         Assert.Equal("One HPLC test cannot report on both dried and anhydrous basis.", ex2.Message);
     }
 }

@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Services;
@@ -57,7 +58,7 @@ public class AdminPasswordRecoveryTests
         db.Users.Add(new User { Id = 1, FullName = "Admin User", Username = "admin", RoleId = 1, IsActive = true });
         await db.SaveChangesAsync();
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             service.CreateRecoveryRequestAsync(targetUserId: 1, reason: "Self recovery attempt", actingUserId: 1));
 
         Assert.Contains("cannot initiate admin-assisted password recovery for their own account", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -71,7 +72,7 @@ public class AdminPasswordRecoveryTests
         db.Users.Add(new User { Id = 2, FullName = "Target User", Username = "target2", RoleId = 4, IsActive = true });
         await db.SaveChangesAsync();
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             service.CreateRecoveryRequestAsync(targetUserId: 2, reason: "   ", actingUserId: 1));
 
         Assert.Contains("reason is required", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -100,7 +101,7 @@ public class AdminPasswordRecoveryTests
         }
         else
         {
-            await Assert.ThrowsAsync<InvalidOperationException>(confirm);
+            await Assert.ThrowsAsync<BusinessRuleException>(confirm);
             Assert.Equal(AdminPasswordRecoveryStatus.Expired, (await db.AdminPasswordRecoveries.SingleAsync()).Status);
         }
     }
@@ -153,7 +154,7 @@ public class AdminPasswordRecoveryTests
         });
         await db.SaveChangesAsync();
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             service.ConfirmRecoveryAsync("target7", code, "NewP@ss1234!"));
 
         Assert.Contains("expired", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -189,7 +190,7 @@ public class AdminPasswordRecoveryTests
 
         await service.ConfirmRecoveryAsync("target9", request.RecoveryCode, "ValidP@ss123!");
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             service.ConfirmRecoveryAsync("target9", request.RecoveryCode, "AnotherP@ss123!"));
 
         Assert.Contains("invalid or expired", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -208,11 +209,11 @@ public class AdminPasswordRecoveryTests
 
         for (int i = 1; i <= 4; i++)
         {
-            await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            await Assert.ThrowsAsync<BusinessRuleException>(() =>
                 service.ConfirmRecoveryAsync("target11", "WRON-GCOD-E123", "ValidP@ss123!"));
         }
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             service.ConfirmRecoveryAsync("target11", "WRON-GCOD-E123", "ValidP@ss123!"));
 
         Assert.Contains("exceeded", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -232,7 +233,7 @@ public class AdminPasswordRecoveryTests
 
         var request = await service.CreateRecoveryRequestAsync(targetUserId: 2, reason: "Policy test", actingUserId: 1);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             service.ConfirmRecoveryAsync("target12", request.RecoveryCode, "weak"));
 
         Assert.Contains("at least 8 characters", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -253,7 +254,7 @@ public class AdminPasswordRecoveryTests
 
         var request = await service.CreateRecoveryRequestAsync(targetUserId: 2, reason: "History test", actingUserId: 1);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             service.ConfirmRecoveryAsync("target13", request.RecoveryCode, "PreviousP@ss123!"));
 
         Assert.Contains("must not match any of your last 5 passwords", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -286,7 +287,7 @@ public class AdminPasswordRecoveryTests
         db.Users.Add(user);
         await db.SaveChangesAsync();
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             service.CreateRecoveryRequestAsync(targetUserId: 2, reason: "Attempt on disabled", actingUserId: 1));
 
         Assert.Contains("disabled user account", ex.Message, StringComparison.OrdinalIgnoreCase);

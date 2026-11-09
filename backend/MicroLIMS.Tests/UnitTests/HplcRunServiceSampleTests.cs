@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Application.Services;
@@ -237,7 +238,7 @@ public partial class HplcRunServiceTests
         var (s, dissOrder, clock) = await SeedDissolutionAsync(db, null);
         var (service, run) = await StartPassedRunAsync(db, clock, s);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(
             () => service.AssignSamplesAsync(run.Id, new List<int> { dissOrder.Id }, s.UserId));
 
         Assert.Contains("standard dilution", ex.Message);
@@ -254,7 +255,7 @@ public partial class HplcRunServiceTests
         (await db.HplcRuns.Include(r => r.Sst).SingleAsync(r => r.Id == run.Id)).Sst!.Status = HplcSstStatus.Passed;
         await db.SaveChangesAsync();
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(
             () => service.AssignSamplesAsync(run.Id, new List<int> { dissOrder.Id }, s.UserId));
 
         Assert.Contains("exactly one analyte", ex.Message);
@@ -292,7 +293,7 @@ public partial class HplcRunServiceTests
         run2 = await PassSstAsync(db, service, s, run2);
 
         Assert.DoesNotContain(await service.GetEligibleTestsAsync(run2.Id, null, s.UserId), e => e.TestOrderId == dissOrder.Id);
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(
             () => service.AssignSamplesAsync(run2.Id, new List<int> { dissOrder.Id }, s.UserId));
         Assert.Contains("not eligible", ex.Message);
     }
@@ -309,7 +310,7 @@ public partial class HplcRunServiceTests
 
         var summary = await service.GetRunAsync(run.Id, s.UserId);
         Assert.False(summary.Samples.Single().Submitted);
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.CompleteRunAsync(run.Id, s.UserId));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => service.CompleteRunAsync(run.Id, s.UserId));
         Assert.Contains("not been sent for review", ex.Message);
 
         dissOrder.CurrentStep = WorkflowStep.Ready;
@@ -329,7 +330,7 @@ public partial class HplcRunServiceTests
         var runSample = assigned.Samples.Single();
         var analyteId = (await db.HplcMethodAnalytes.FirstAsync(a => a.HplcMethodId == s.Method.Id)).Id;
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(
             () => service.SaveReplicatesAsync(runSample.Id, Replicates(analyteId, (50m, 1000m)), s.UserId));
 
         Assert.Contains("Testing page", ex.Message);
@@ -350,7 +351,7 @@ public partial class HplcRunServiceTests
         var service = TestServiceFactory.HplcRun(db, clock: clock);
         var run = await service.StartRunAsync(StartRequest(s), s.UserId);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.AssignSamplesAsync(run.Id, new List<int> { order.Id }, s.UserId));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => service.AssignSamplesAsync(run.Id, new List<int> { order.Id }, s.UserId));
 
         Assert.Equal("Sample assignment is locked until system suitability passes.", ex.Message);
         Assert.Empty(db.HplcRunSamples);
@@ -369,7 +370,7 @@ public partial class HplcRunServiceTests
         run = await PassSstAsync(db, service, s, run, new List<decimal> { 1000m, 1300m, 700m });
         Assert.Equal(HplcSstStatus.Failed, run.Sst!.Status);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => service.AssignSamplesAsync(run.Id, new List<int> { order.Id }, s.UserId));
+        await Assert.ThrowsAsync<BusinessRuleException>(() => service.AssignSamplesAsync(run.Id, new List<int> { order.Id }, s.UserId));
     }
 
     [Fact]
@@ -410,7 +411,7 @@ public partial class HplcRunServiceTests
             new StartHplcRunRequest(equipment2.Id, s.Method.Id, column2.Id, new List<HplcMobilePhaseAssignmentInput> { new("A", s.MobilePhasePrep.Id) }), s.UserId);
         run2 = await PassSstAsync(db, service, s, run2);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.AssignSamplesAsync(run2.Id, new List<int> { order.Id }, s.UserId));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => service.AssignSamplesAsync(run2.Id, new List<int> { order.Id }, s.UserId));
 
         Assert.Contains("already assigned to run", ex.Message);
         Assert.Contains(run1.Code, ex.Message);
@@ -428,7 +429,7 @@ public partial class HplcRunServiceTests
         await db.SaveChangesAsync();
         var (service, run) = await StartPassedRunAsync(db, clock, s);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.AssignSamplesAsync(run.Id, new List<int> { order.Id }, s.UserId));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => service.AssignSamplesAsync(run.Id, new List<int> { order.Id }, s.UserId));
 
         Assert.Contains("not eligible", ex.Message);
     }
@@ -486,7 +487,7 @@ public partial class HplcRunServiceTests
         var (service, run) = await StartPassedRunAsync(db, clock, s);
         var assigned = await service.AssignSamplesAsync(run.Id, new List<int> { order.Id }, s.UserId);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => service.RemoveSampleAsync(run.Id, assigned.Samples[0].Id, " ", s.UserId));
+        await Assert.ThrowsAsync<BusinessRuleException>(() => service.RemoveSampleAsync(run.Id, assigned.Samples[0].Id, " ", s.UserId));
     }
 
     // ---- GetSampleEntryAsync / SaveReplicatesAsync ----
@@ -579,9 +580,9 @@ public partial class HplcRunServiceTests
         var assigned = await service.AssignSamplesAsync(run.Id, new List<int> { order.Id }, s.UserId);
         var id = assigned.Samples[0].Id;
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => service.SaveReplicatesAsync(id, Replicates(f.Analyte.Id, (0m, 1000m)), s.UserId));
-        await Assert.ThrowsAsync<InvalidOperationException>(() => service.SaveReplicatesAsync(id, Replicates(f.Analyte.Id, (50m, 0m)), s.UserId));
-        await Assert.ThrowsAsync<InvalidOperationException>(() => service.SaveReplicatesAsync(id,
+        await Assert.ThrowsAsync<BusinessRuleException>(() => service.SaveReplicatesAsync(id, Replicates(f.Analyte.Id, (0m, 1000m)), s.UserId));
+        await Assert.ThrowsAsync<BusinessRuleException>(() => service.SaveReplicatesAsync(id, Replicates(f.Analyte.Id, (50m, 0m)), s.UserId));
+        await Assert.ThrowsAsync<BusinessRuleException>(() => service.SaveReplicatesAsync(id,
             new SaveReplicatesRequest(new List<HplcReplicateInput> { new(50m, new List<HplcReplicateResponseInput>()) }), s.UserId));
         Assert.Empty(db.HplcSampleReplicates);
     }
@@ -598,7 +599,7 @@ public partial class HplcRunServiceTests
         var assigned = await service.AssignSamplesAsync(run.Id, new List<int> { order.Id }, s.UserId);
         await service.RemoveSampleAsync(run.Id, assigned.Samples[0].Id, "not needed", s.UserId);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        await Assert.ThrowsAsync<BusinessRuleException>(() =>
             service.SaveReplicatesAsync(assigned.Samples[0].Id, Replicates(f.Analyte.Id, (50m, 1000m), (50m, 1000m)), s.UserId));
     }
 

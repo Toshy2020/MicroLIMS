@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using MicroLIMS.Application.Helpers;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
@@ -107,29 +108,29 @@ public class CleaningResidueCalculatorTests
         var validReps = new List<CleaningResidueReplicateInput> { new(1, 100m) };
 
         // Std conc <= 0
-        Assert.Throws<InvalidOperationException>(() =>
+        Assert.Throws<BusinessRuleException>(() =>
             CleaningResidueCalculator.Calculate(0m, 5m, null, MacoUnit.UgPerSwab, 2000m, validReps));
 
         // Extraction vol <= 0
-        Assert.Throws<InvalidOperationException>(() =>
+        Assert.Throws<BusinessRuleException>(() =>
             CleaningResidueCalculator.Calculate(10m, 0m, null, MacoUnit.UgPerSwab, 2000m, validReps));
 
         // Std mean response <= 0
-        Assert.Throws<InvalidOperationException>(() =>
+        Assert.Throws<BusinessRuleException>(() =>
             CleaningResidueCalculator.Calculate(10m, 5m, null, MacoUnit.UgPerSwab, 0m, validReps));
 
         // UgPerCm2 without area
-        Assert.Throws<InvalidOperationException>(() =>
+        Assert.Throws<BusinessRuleException>(() =>
             CleaningResidueCalculator.Calculate(10m, 5m, null, MacoUnit.UgPerCm2, 2000m, validReps));
-        Assert.Throws<InvalidOperationException>(() =>
+        Assert.Throws<BusinessRuleException>(() =>
             CleaningResidueCalculator.Calculate(10m, 5m, 0m, MacoUnit.UgPerCm2, 2000m, validReps));
 
         // Negative response
-        Assert.Throws<InvalidOperationException>(() =>
+        Assert.Throws<BusinessRuleException>(() =>
             CleaningResidueCalculator.Calculate(10m, 5m, null, MacoUnit.UgPerSwab, 2000m, new List<CleaningResidueReplicateInput> { new(1, -5m) }));
 
         // Empty reps
-        Assert.Throws<InvalidOperationException>(() =>
+        Assert.Throws<BusinessRuleException>(() =>
             CleaningResidueCalculator.Calculate(10m, 5m, null, MacoUnit.UgPerSwab, 2000m, new List<CleaningResidueReplicateInput>()));
     }
 

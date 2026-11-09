@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.DTOs;
@@ -135,7 +136,7 @@ public class HplcDissolutionStandardTests
         await db.SaveChangesAsync();
 
         var master = TestServiceFactory.TestDefinitionMaster(db);
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => master.CreateTestDefinitionAsync(1, new CreateTestDefinitionRequest(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => master.CreateTestDefinitionAsync(1, new CreateTestDefinitionRequest(
             Code: "DISS-RS", DisplayName: "Dissolution RS", SectionId: section.Id, WorkflowType: WorkflowType.Dissolution, EquationType: EquationType.Dissolution, RequiresSystemSuitability: true, MethodAbbreviation: "MRS", HplcMethodId: method.Id)));
         Assert.Equal("Dissolution needs an HPLC assay method.", ex.Message);
     }
@@ -151,7 +152,7 @@ public class HplcDissolutionStandardTests
         await db.SaveChangesAsync();
 
         var master = TestServiceFactory.TestDefinitionMaster(db);
-        var exCreate = await Assert.ThrowsAsync<InvalidOperationException>(() => master.CreateTestDefinitionAsync(1, new CreateTestDefinitionRequest(
+        var exCreate = await Assert.ThrowsAsync<BusinessRuleException>(() => master.CreateTestDefinitionAsync(1, new CreateTestDefinitionRequest(
             Code: "DISS-IS", DisplayName: "Dissolution IS", SectionId: section.Id, WorkflowType: WorkflowType.Dissolution, EquationType: EquationType.Dissolution, RequiresSystemSuitability: true, MethodAbbreviation: "MIS", HplcMethodId: method.Id)));
         Assert.Equal("Dissolution does not support internal-standard methods.", exCreate.Message);
     }
@@ -175,7 +176,7 @@ public class HplcDissolutionStandardTests
         await db.SaveChangesAsync();
 
         var master = TestServiceFactory.TestDefinitionMaster(db);
-        var exUpdate = await Assert.ThrowsAsync<InvalidOperationException>(() => master.UpdateTestDefinitionAsync(testDef.Id, 1, new UpdateTestDefinitionRequest(
+        var exUpdate = await Assert.ThrowsAsync<BusinessRuleException>(() => master.UpdateTestDefinitionAsync(testDef.Id, 1, new UpdateTestDefinitionRequest(
             Code: "DISS-1", DisplayName: "Diss 1", RequiresSystemSuitability: true, MethodAbbreviation: "MIS", HplcMethodId: method.Id)));
         Assert.Equal("Dissolution does not support internal-standard methods.", exUpdate.Message);
     }
@@ -199,7 +200,7 @@ public class HplcDissolutionStandardTests
         await db.SaveChangesAsync();
 
         var master = TestServiceFactory.TestDefinitionMaster(db);
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => master.UpdateTestDefinitionAsync(testDef.Id, 1, new UpdateTestDefinitionRequest(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => master.UpdateTestDefinitionAsync(testDef.Id, 1, new UpdateTestDefinitionRequest(
             Code: "DISS-3", DisplayName: "Diss 3", RequiresSystemSuitability: true, MethodAbbreviation: "MRS", HplcMethodId: method.Id)));
         Assert.Equal("Dissolution needs an HPLC assay method.", ex.Message);
     }
@@ -231,7 +232,7 @@ public class HplcDissolutionStandardTests
 
         var run = SeedRun(db, testOrderId: 999, sectionId: section.Id, equipmentId: eq.Id, columnId: col.Id, methodId: method.Id, internalStandardName: "Benzoic acid");
         var runSvc = TestServiceFactory.HplcRun(db);
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => runSvc.AssignSamplesAsync(run.Id, new List<int> { order.Id }, 1));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => runSvc.AssignSamplesAsync(run.Id, new List<int> { order.Id }, 1));
         Assert.Equal("Dissolution does not support internal-standard methods.", ex.Message);
     }
     }

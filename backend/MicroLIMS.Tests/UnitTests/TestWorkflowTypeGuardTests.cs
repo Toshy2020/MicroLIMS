@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.DTOs;
 using MicroLIMS.Application.Services;
@@ -41,7 +42,7 @@ public class TestWorkflowTypeGuardTests
     public async Task UpdateWorkflowType_EquationBoundTest_Throws()
     {
         var (db, svc, id) = await SeedAsync(WorkflowType.HplcMethodAssay, EquationType.HplcMethodAssay);
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(
             () => svc.UpdateWorkflowTypeAsync(id, new UpdateWorkflowTypeRequest(WorkflowType.ElementalAssay)));
         Assert.Equal(Msg, ex.Message);
         Assert.Equal(WorkflowType.HplcMethodAssay, db.TestDefinitions.Single(t => t.Id == id).WorkflowType);
@@ -51,7 +52,7 @@ public class TestWorkflowTypeGuardTests
     public async Task UpdateWorkflowType_ToNonStepWorkflow_Throws()
     {
         var (db, svc, id) = await SeedAsync(WorkflowType.CountTest, EquationType.None);
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(
             () => svc.UpdateWorkflowTypeAsync(id, new UpdateWorkflowTypeRequest(WorkflowType.ElementalAssay)));
         Assert.Equal(Msg, ex.Message);
         Assert.Equal(WorkflowType.CountTest, db.TestDefinitions.Single(t => t.Id == id).WorkflowType);

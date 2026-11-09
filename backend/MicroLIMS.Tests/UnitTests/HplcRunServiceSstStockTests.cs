@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Services;
 using MicroLIMS.Domain.Entities;
@@ -79,7 +80,7 @@ public partial class HplcRunServiceTests
     {
         await using var db = NewDb();
         var (svc, runId, lot, uid) = await ArrangeAsync(db, MaterialUnit.Gram, 0.01m, 50m, Good);
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => ConfirmSstOnlyAsync(svc, runId, uid));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => ConfirmSstOnlyAsync(svc, runId, uid));
         Assert.Contains(lot.LotLabel, ex.Message);
         Assert.Equal(0.01m, (await db.Materials.AsNoTracking().FirstAsync(m => m.Id == lot.Id)).QuantityRemaining);
         Assert.Equal(HplcSstStatus.Pending, (await svc.GetRunAsync(runId, uid)).Sst!.Status);
@@ -100,7 +101,7 @@ public partial class HplcRunServiceTests
     {
         await using var db = NewDb();
         var (svc, runId, lot, uid) = await ArrangeAsync(db, MaterialUnit.Milliliter, 100m, 50m, Good);
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => ConfirmSstOnlyAsync(svc, runId, uid));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => ConfirmSstOnlyAsync(svc, runId, uid));
         Assert.Contains("cannot be deducted", ex.Message);
         Assert.Equal(100m, (await db.Materials.AsNoTracking().FirstAsync(m => m.Id == lot.Id)).QuantityRemaining);
         Assert.Equal(0, await db.ElectronicSignatures.CountAsync(x => x.MeaningOfSignature == SignatureMeaning.SuitabilityRunPerformed));

@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Services;
@@ -68,7 +69,7 @@ public class SampleMoisturePostgresTests
                 await using var db = _fixture.CreateDbContext();
                 var s = Seed(db);
                 s.AddMoistureResult(db, role, value, parameterCount: count);
-                var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => new SampleMoistureResolver(db).ResolveAsync(s.Order.SampleId, role));
+                var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => new SampleMoistureResolver(db).ResolveAsync(s.Order.SampleId, role));
                 Assert.Equal(text, ex.Message);
             }
         }
@@ -104,7 +105,7 @@ public class SampleMoisturePostgresTests
         await using var db = _fixture.CreateDbContext();
         var s = Seed(db, ResultBasis.PercentAnhydrousBasis);
         s.AddMoistureResult(db, MoistureRole.LossOnDrying, 9m);
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => Record(db, s, TitrationRecorderTests.Payload(s)));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => Record(db, s, TitrationRecorderTests.Payload(s)));
         Assert.Equal("Record the sample's water content (Karl Fischer) result before this assay.", ex.Message);
 
         var (_, kf) = s.AddMoistureResult(db, MoistureRole.Water, 5m);
@@ -124,7 +125,7 @@ public class SampleMoisturePostgresTests
         await using var db = _fixture.CreateDbContext();
         var s = Seed(db);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => Record(db, s, TitrationRecorderTests.Payload(s)));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => Record(db, s, TitrationRecorderTests.Payload(s)));
         Assert.Equal("Record the sample's loss on drying result before this assay.", ex.Message);
 
         await using var v = _fixture.CreateDbContext();
@@ -140,7 +141,7 @@ public class SampleMoisturePostgresTests
             await using var db = _fixture.CreateDbContext();
             var s = Seed(db, basis);
             s.AddMoistureResult(db, MoistureRole.LossOnDrying, 2.5m);
-            var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => Record(db, s, TitrationRecorderTests.Payload(s, lod: 2.5m)));
+            var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => Record(db, s, TitrationRecorderTests.Payload(s, lod: 2.5m)));
             Assert.Equal("The loss on drying / water value is read from the sample's own result.", ex.Message);
         }
     }
@@ -161,7 +162,7 @@ public class SampleMoisturePostgresTests
         db.SaveChanges();
 
         var p = TitrationRecorderTests.Payload(s) with { SpecificationIds = new List<int> { s.Spec.Id, second.Id } };
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => Record(db, s, p));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => Record(db, s, p));
         Assert.Equal("One titration cannot report on both dried and anhydrous basis.", ex.Message);
     }
 
@@ -266,7 +267,7 @@ public class SampleMoisturePostgresTests
         await TestServiceFactory.SampleReview(db).ReturnToAnalystAsync(lodOrder.Id, s.UserId, null);
 
         await using var db2 = _fixture.CreateDbContext();
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => Record(db2, s, TitrationRecorderTests.Payload(s)));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => Record(db2, s, TitrationRecorderTests.Payload(s)));
         Assert.Equal("Record the sample's loss on drying result before this assay.", ex.Message);
     }
 
@@ -298,7 +299,7 @@ public class SampleMoisturePostgresTests
         await db1.SaveChangesAsync();
         await tx.CommitAsync();
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => recording);
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => recording);
         Assert.Equal("Record the sample's loss on drying result before this assay.", ex.Message);
         await using var v = _fixture.CreateDbContext();
         Assert.False(await v.TestAnalyses.AnyAsync(x => x.TestOrderId == s.Order.Id));
@@ -342,7 +343,7 @@ public class SampleMoisturePostgresTests
         db.SampleSectionSignoffs.Add(new SampleSectionSignoff { SampleId = assayOrder.SampleId, SectionId = other.Id, Status = SectionSignoffStatus.UnderApproval });
         db.SaveChanges();
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(
             () => TestServiceFactory.SampleReview(db).ReturnToAnalystAsync(lodOrder.Id, s.UserId, null));
         Assert.Equal($"Cannot return {lodOrder.TestCode}: assay {s.Test.Code} has already been reviewed.", ex.Message);
 
@@ -361,7 +362,7 @@ public class SampleMoisturePostgresTests
         var (lodOrder, lod) = s.AddMoistureResult(db, MoistureRole.LossOnDrying, 2.5m);
         var reviewed = AddAssay(db, s, lod.Id, ApprovalStatus.Reviewed);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(
             () => TestServiceFactory.SampleReview(db).ReturnToAnalystAsync(lodOrder.Id, s.UserId, null));
         Assert.Equal($"Cannot return {lodOrder.TestCode}: assay {s.Test.Code} has already been reviewed.", ex.Message);
 

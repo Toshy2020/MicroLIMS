@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using MicroLIMS.Application.Helpers;
 using Xunit;
 
@@ -29,14 +30,14 @@ public class ResidualSolventCalculatorTests
     [InlineData(60, 20, 1000, 0)]
     public void Calculate_NonPositiveInput_Throws(decimal conc, decimal volume, decimal stdMean, decimal weight)
     {
-        Assert.Throws<InvalidOperationException>(() => ResidualSolventCalculator.Calculate(conc, volume, stdMean,
+        Assert.Throws<BusinessRuleException>(() => ResidualSolventCalculator.Calculate(conc, volume, stdMean,
             new[] { new ResidualSolventReplicateInput(1, weight, 900m) }));
     }
 
     [Fact]
     public void Calculate_ZeroStandardMean_Throws()
     {
-        var ex = Assert.Throws<InvalidOperationException>(() => ResidualSolventCalculator.Calculate(60m, 20m, 0m,
+        var ex = Assert.Throws<BusinessRuleException>(() => ResidualSolventCalculator.Calculate(60m, 20m, 0m,
             new[] { new ResidualSolventReplicateInput(1, 400m, 900m) }));
         Assert.Equal("The standard mean response must be greater than zero.", ex.Message);
     }
@@ -44,7 +45,7 @@ public class ResidualSolventCalculatorTests
     [Fact]
     public void Calculate_NoReplicates_Throws()
     {
-        Assert.Throws<InvalidOperationException>(() => ResidualSolventCalculator.Calculate(60m, 20m, 1000m, Array.Empty<ResidualSolventReplicateInput>()));
+        Assert.Throws<BusinessRuleException>(() => ResidualSolventCalculator.Calculate(60m, 20m, 1000m, Array.Empty<ResidualSolventReplicateInput>()));
     }
 
     [Fact]
@@ -63,7 +64,7 @@ public class ResidualSolventCalculatorTests
     [Fact]
     public void Calculate_NegativeResponse_Throws()
     {
-        var ex = Assert.Throws<InvalidOperationException>(() => ResidualSolventCalculator.Calculate(60m, 20m, 1000m,
+        var ex = Assert.Throws<BusinessRuleException>(() => ResidualSolventCalculator.Calculate(60m, 20m, 1000m,
             new[] { new ResidualSolventReplicateInput(1, 400m, 900m), new ResidualSolventReplicateInput(2, 400m, -1m) }));
         Assert.Equal("Replicate 2: the response must be zero or more.", ex.Message);
     }

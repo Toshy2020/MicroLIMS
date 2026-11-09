@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Application.Services;
@@ -51,7 +52,7 @@ public class InactiveUserVisibilityTests
         var inactive = await users.GetAllAsync("inactive");
         Assert.Equal("ivan", Assert.Single(inactive).Username);
         Assert.Equal(3, (await users.GetAllAsync("all")).Count);
-        await Assert.ThrowsAsync<InvalidOperationException>(() => users.GetAllAsync("bogus"));
+        await Assert.ThrowsAsync<BusinessRuleException>(() => users.GetAllAsync("bogus"));
     }
 
     [Fact]
@@ -71,7 +72,7 @@ public class InactiveUserVisibilityTests
         var spy = new SpyNotificationService();
         var service = TestServiceFactory.Message(db, spy);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        await Assert.ThrowsAsync<BusinessRuleException>(() =>
             service.CreateConversationAsync(new CreateConversationRequest(null, true, new List<int> { 2, 3 }, "Hi"), 1));
 
         // A conversation that predates the deactivation: the inactive participant is not notified.
@@ -128,7 +129,7 @@ public class InactiveUserVisibilityTests
         using var db = NewDb();
         var org = new LaboratoryOrganizationService(db, new UserSectionScopeService(db));
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             org.ReplaceMembershipsAsync(3, new List<UserOrgMembershipDto>(), "test", 1));
         Assert.Contains("Inactive", ex.Message);
     }
@@ -139,7 +140,7 @@ public class InactiveUserVisibilityTests
         using var db = NewDb();
         var service = TestServiceFactory.AnalystAvailability(db);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        await Assert.ThrowsAsync<BusinessRuleException>(() =>
             service.CreateAsync(new MicroLIMS.Application.Services.Kpi.SaveAvailabilityRequest(3, new DateOnly(2026, 1, 1), new DateOnly(2026, 1, 2), 0.5m, "Leave"), 1));
     }
 

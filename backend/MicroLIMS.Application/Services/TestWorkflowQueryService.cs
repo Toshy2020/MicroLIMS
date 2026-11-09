@@ -55,7 +55,7 @@ public class TestWorkflowQueryService
             .Include(s => s.TargetOrganism)
             .Include(s => s.TestDefinition)
             .FirstOrDefaultAsync(s => s.TestDefinition!.Code == order.TestCode && s.StepName == stepName)
-            ?? throw new InvalidOperationException($"Step '{stepName}' is not part of {order.TestCode}.");
+            ?? throw new BusinessRuleException($"Step '{stepName}' is not part of {order.TestCode}.");
 
         // The run still awaiting its plate readings - the same row
         // SubmitConfirmatoryObservationsAsync reads; null before plating starts.

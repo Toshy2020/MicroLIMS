@@ -42,14 +42,14 @@ public class KpiSettingsService
     public async Task<KpiSettingsDto> UpdateAsync(int sectionId, UpdateKpiSettingsRequest r, int userId, CancellationToken ct = default)
     {
         var reason = (r.Reason ?? string.Empty).Trim();
-        if (reason.Length == 0) throw new InvalidOperationException("A reason for the change is required.");
-        if (reason.Length > 500) throw new InvalidOperationException("The reason must be 500 characters or fewer.");
+        if (reason.Length == 0) throw new BusinessRuleException("A reason for the change is required.");
+        if (reason.Length > 500) throw new BusinessRuleException("The reason must be 500 characters or fewer.");
         if (r.HoursPerAnalystDay <= 0 || r.HoursPerAnalystDay > 24 || decimal.Round(r.HoursPerAnalystDay, 2) != r.HoursPerAnalystDay)
-            throw new InvalidOperationException("Hours per analyst day must be greater than 0 and at most 24, with at most two decimals.");
+            throw new BusinessRuleException("Hours per analyst day must be greater than 0 and at most 24, with at most two decimals.");
         if (r.WorkingWeekdays is < 1 or > 127)
-            throw new InvalidOperationException("Select at least one working weekday.");
+            throw new BusinessRuleException("Select at least one working weekday.");
         if (r.LoadHorizonDays is < 1 or > 30)
-            throw new InvalidOperationException("The load horizon must be between 1 and 30 working days.");
+            throw new BusinessRuleException("The load horizon must be between 1 and 30 working days.");
 
         await EnsureSectionAccessAsync(sectionId, userId, ct, SectionAccess.Configure);
         _db.CurrentUserId = userId;

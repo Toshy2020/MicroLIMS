@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Services;
@@ -84,7 +85,7 @@ public partial class HplcRunServiceTests
         s.Column.UspDesignation = null;
         await db.SaveChangesAsync();
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(
             () => TestServiceFactory.HplcRun(db, clock: clock).StartRunAsync(StartRequest(s), s.UserId));
 
         Assert.Equal("Column COL-01 has no USP designation; set it in the column master.", ex.Message);
@@ -99,7 +100,7 @@ public partial class HplcRunServiceTests
         s.Column.UspDesignation = "L7";
         await db.SaveChangesAsync();
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(
             () => TestServiceFactory.HplcRun(db, clock: clock).StartRunAsync(StartRequest(s), s.UserId));
 
         Assert.Equal("Column COL-01 is USP L7; method VIT-C requires L1.", ex.Message);

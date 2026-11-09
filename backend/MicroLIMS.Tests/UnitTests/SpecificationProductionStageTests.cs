@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Services;
 using MicroLIMS.Application.Workflows;
@@ -150,7 +151,7 @@ public class SpecificationProductionStageTests
         var finished = AddSpec(db, seed, ProductionStageRole.Finished, FinishedText);
         var order = AddSampleOrder(db, seed, ProductionStageRole.Bulk);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => TestServiceFactory.TestWorkflow(db).RecordQualitativeResultAsync(order.Id, new QualitativePayload(
+        await Assert.ThrowsAsync<BusinessRuleException>(() => TestServiceFactory.TestWorkflow(db).RecordQualitativeResultAsync(order.Id, new QualitativePayload(
             AnalysedAt: DateTime.UtcNow, EquipmentId: null,
             Parameters: new List<QualitativeParameterInput> { new(finished.Id, Conforms: true, Observation: "White tablets") },
             Password: "Password123!", Comment: null), seed.User.Id));
@@ -186,9 +187,9 @@ public class SpecificationProductionStageTests
         await service.CreateAsync(New(ProductionStageRole.Finished));
         await service.CreateAsync(New(null));
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.CreateAsync(New(ProductionStageRole.Bulk)));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => service.CreateAsync(New(ProductionStageRole.Bulk)));
         Assert.Contains("Bulk", ex.Message);
-        await Assert.ThrowsAsync<InvalidOperationException>(() => service.CreateAsync(New(null)));
+        await Assert.ThrowsAsync<BusinessRuleException>(() => service.CreateAsync(New(null)));
     }
 
     [Fact]
@@ -197,7 +198,7 @@ public class SpecificationProductionStageTests
         await using var db = NewDb();
         var seed = SeedProduct(db, SampleCategory.RawMaterial);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => TestServiceFactory.Specification(db).CreateAsync(new Specification
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => TestServiceFactory.Specification(db).CreateAsync(new Specification
         {
             ItemId = seed.Item.Id, TestCode = seed.Test.Code, ParameterName = "Appearance",
             LimitType = LimitType.Qualitative, ExpectedResultText = "x", ProductionStageRole = ProductionStageRole.Bulk

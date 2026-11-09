@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using System.Globalization;
 using MicroLIMS.Application.DTOs.Responses;
 using MicroLIMS.Application.Services;
@@ -45,7 +46,7 @@ public static class RelatedSubstancesEvaluator
         var reps = input.Replicates.OrderBy(r => r.ReplicateNo).Select(rep =>
         {
             if (rep.ReferenceArea <= 0m)
-                throw new InvalidOperationException($"{principalName}: the reference solution area is required.");
+                throw new BusinessRuleException($"{principalName}: the reference solution area is required.");
             var peaks = rep.Peaks.Select(p =>
             {
                 var impurity = p.HplcMethodImpurityId is int id ? impurities.FirstOrDefault(i => i.Id == id) : null;

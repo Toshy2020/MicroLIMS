@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using System.Globalization;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Domain.Enums;
@@ -16,13 +17,13 @@ public static class SolutionPreparationCode
     public static string Head(SolutionType type, string? methodAbbreviation) => type switch
     {
         SolutionType.MobilePhase => string.IsNullOrWhiteSpace(methodAbbreviation)
-            ? throw new InvalidOperationException("A method abbreviation is required for a mobile phase code.")
+            ? throw new BusinessRuleException("A method abbreviation is required for a mobile phase code.")
             : $"MP-{methodAbbreviation} ",
         SolutionType.Diluent => "DL-",
         SolutionType.Titrant => "VS-",
         SolutionType.Reagent => "RE-",
         SolutionType.Neutralizer => "NT-",
-        _ => throw new InvalidOperationException($"Unknown solution type '{type}'.")
+        _ => throw new BusinessRuleException($"Unknown solution type '{type}'.")
     };
 
     public static async Task<string> NextAsync(

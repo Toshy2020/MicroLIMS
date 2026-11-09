@@ -40,7 +40,7 @@ public class AnalystAvailabilityServiceTests
         await using var db = NewDb();
         await SeedBaselineAsync(db);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        await Assert.ThrowsAsync<BusinessRuleException>(() =>
             TestServiceFactory.AnalystAvailability(db, Clock()).CreateAsync(Req(fromDay: fromDay, toDay: toDay, fraction: (decimal)fraction, reason: reason), Sam));
         Assert.Empty(db.AnalystAvailabilities);
     }
@@ -51,7 +51,7 @@ public class AnalystAvailabilityServiceTests
         await using var db = NewDb();
         await SeedBaselineAsync(db);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        await Assert.ThrowsAsync<BusinessRuleException>(() =>
             TestServiceFactory.AnalystAvailability(db, Clock()).CreateAsync(Req(user: 999), Sam));
     }
 
@@ -63,7 +63,7 @@ public class AnalystAvailabilityServiceTests
         var service = TestServiceFactory.AnalystAvailability(db, Clock());
         await service.CreateAsync(Req(fromDay: 14, toDay: 16), Sam);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => service.CreateAsync(Req(fromDay: 16, toDay: 17), Sam));
+        await Assert.ThrowsAsync<BusinessRuleException>(() => service.CreateAsync(Req(fromDay: 16, toDay: 17), Sam));
         await service.CreateAsync(Req(fromDay: 17, toDay: 18), Sam); // starts the day after the first ends
 
         Assert.Equal(2, await db.AnalystAvailabilities.CountAsync());
@@ -105,7 +105,7 @@ public class AnalystAvailabilityServiceTests
         var service = TestServiceFactory.AnalystAvailability(db, Clock());
         var created = await service.CreateAsync(Req(), Sam);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => service.UpdateAsync(created.Id, Req(user: Bob), Sam));
+        await Assert.ThrowsAsync<BusinessRuleException>(() => service.UpdateAsync(created.Id, Req(user: Bob), Sam));
     }
 
     [Fact]

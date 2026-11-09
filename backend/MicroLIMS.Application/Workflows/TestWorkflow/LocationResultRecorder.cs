@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using System.Globalization;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Helpers;
@@ -21,7 +22,7 @@ public sealed class LocationResultRecorder : TestWorkflowSupport
         var order = await WorkflowStateMachine.LoadOrThrowAsync(_db, testOrderId);
         RequireOrderNotFinalized(order);
         if (order.Status is ApprovalStatus.Voided or ApprovalStatus.Cancelled or ApprovalStatus.Rejected or ApprovalStatus.Approved or ApprovalStatus.Reviewed or ApprovalStatus.ResultEntered)
-            throw new InvalidOperationException($"Test order {order.Id} is not open (status: {order.Status}).");
+            throw new BusinessRuleException($"Test order {order.Id} is not open (status: {order.Status}).");
 
         var sampleLocations = await _db.SampleLocations
             .Include(l => l.SamplingConfiguration!).ThenInclude(c => c.WaterSamplingPoint)
@@ -32,7 +33,7 @@ public sealed class LocationResultRecorder : TestWorkflowSupport
             .ToListAsync();
 
         if (sampleLocations.Count == 0)
-            throw new InvalidOperationException("No locations are assigned to this test order.");
+            throw new BusinessRuleException("No locations are assigned to this test order.");
 
         foreach (var loc in sampleLocations)
         {
@@ -60,20 +61,20 @@ public sealed class LocationResultRecorder : TestWorkflowSupport
         }
 
         if (inputs is null || inputs.Count == 0)
-            throw new InvalidOperationException("Results are missing for all locations.");
+            throw new BusinessRuleException("Results are missing for all locations.");
 
         var duplicateInputs = inputs.GroupBy(i => i.SampleLocationId).Where(g => g.Count() > 1).ToList();
         if (duplicateInputs.Count > 0)
-            throw new InvalidOperationException($"Duplicate inputs provided for location ID(s): {string.Join(", ", duplicateInputs.Select(g => g.Key))}.");
+            throw new BusinessRuleException($"Duplicate inputs provided for location ID(s): {string.Join(", ", duplicateInputs.Select(g => g.Key))}.");
 
         var submitted = inputs.ToDictionary(i => i.SampleLocationId);
         var missing = sampleLocations.Where(l => !submitted.ContainsKey(l.Id)).ToList();
         if (missing.Count > 0)
-            throw new InvalidOperationException($"Results are missing for: {string.Join(", ", missing.Select(LocationName))}.");
+            throw new BusinessRuleException($"Results are missing for: {string.Join(", ", missing.Select(LocationName))}.");
 
         var extra = inputs.Where(i => !sampleLocations.Any(l => l.Id == i.SampleLocationId)).ToList();
         if (extra.Count > 0)
-            throw new InvalidOperationException($"Input contains location ID(s) that do not belong to this test order: {string.Join(", ", extra.Select(i => i.SampleLocationId))}.");
+            throw new BusinessRuleException($"Input contains location ID(s) that do not belong to this test order: {string.Join(", ", extra.Select(i => i.SampleLocationId))}.");
 
         var worstStatus = ResultStatus.WithinLimits;
         var conformCount = 0;
@@ -83,7 +84,7 @@ public sealed class LocationResultRecorder : TestWorkflowSupport
             var pointName = LocationName(location);
             var limitType = location.SamplingConfiguration?.LimitType ?? location.MachinePartConfiguration?.LimitType;
             if (!limitType.HasValue)
-                throw new InvalidOperationException($"Limits for {order.TestCode} at {pointName} are not configured.");
+                throw new BusinessRuleException($"Limits for {order.TestCode} at {pointName} are not configured.");
 
             var input = submitted[location.Id];
             decimal? lowerLimit = location.SamplingConfiguration?.LowerLimit ?? location.MachinePartConfiguration?.LowerLimit;
@@ -99,7 +100,7 @@ public sealed class LocationResultRecorder : TestWorkflowSupport
             if (limitType.Value == LimitType.Qualitative)
             {
                 if (string.IsNullOrWhiteSpace(input.Text))
-                    throw new InvalidOperationException($"Text result is required for {pointName}.");
+                    throw new BusinessRuleException($"Text result is required for {pointName}.");
 
                 var text = input.Text.Trim();
                 var conforms = string.Equals(text, expectedResultText?.Trim(), StringComparison.OrdinalIgnoreCase);
@@ -112,7 +113,7 @@ public sealed class LocationResultRecorder : TestWorkflowSupport
             else
             {
                 if (!input.Value.HasValue)
-                    throw new InvalidOperationException($"Numeric value is required for {pointName}.");
+                    throw new BusinessRuleException($"Numeric value is required for {pointName}.");
 
                 var spec = new Specification
                 {

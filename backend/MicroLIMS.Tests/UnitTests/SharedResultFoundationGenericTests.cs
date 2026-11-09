@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Services;
 using MicroLIMS.Application.Workflows;
@@ -158,7 +159,7 @@ public class SharedResultFoundationGenericTests
 
         var approvalService = TestServiceFactory.SampleApproval(db);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             approvalService.DecideAsync(sample.Id, head.Id, Password, ApprovalDecision.Approve, "Approving without analysis", "127.0.0.1", sectionId: sec.Id));
 
         Assert.Contains("lacks an active gravimetric entry", ex.Message);
@@ -210,7 +211,7 @@ public class SharedResultFoundationGenericTests
 
         var approvalService = TestServiceFactory.SampleApproval(db);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             approvalService.DecideAsync(sample.Id, head.Id, Password, ApprovalDecision.Approve, "Self approval", "127.0.0.1", sectionId: sec.Id));
 
         Assert.Contains("You cannot approve a sample you tested", ex.Message);

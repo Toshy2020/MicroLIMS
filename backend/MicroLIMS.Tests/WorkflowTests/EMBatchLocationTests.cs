@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Services;
 using MicroLIMS.Application.Workflows;
@@ -164,7 +165,7 @@ public class EMBatchLocationTests
         var engine = new EMWorkflowEngine(db, new ReferenceNumberGenerator(db));
         var sample = await engine.ReceiveAsync(new EMReceiveRequest(dept.Id, 0, "Analyst", "CTRL-1", 1));
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => engine.PrepareAsync(sample.Id, new List<int>(), 1));
+        await Assert.ThrowsAsync<BusinessRuleException>(() => engine.PrepareAsync(sample.Id, new List<int>(), 1));
     }
 
     [Fact]
@@ -185,7 +186,7 @@ public class EMBatchLocationTests
         var engine = new EMWorkflowEngine(db, new ReferenceNumberGenerator(db));
         var sample = await engine.ReceiveAsync(new EMReceiveRequest(deptA.Id, 0, "Analyst", "CTRL-2", 1));
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => engine.PrepareAsync(sample.Id, new List<int> { config.Id }, 1));
+        await Assert.ThrowsAsync<BusinessRuleException>(() => engine.PrepareAsync(sample.Id, new List<int> { config.Id }, 1));
     }
 
     [Fact]
@@ -218,7 +219,7 @@ public class EMBatchLocationTests
         var onlyOne = new List<BatchLocationReadings> { new(locations[0].Id, new List<decimal> { 5 }) };
 
         await IncubationTestClock.ElapseOpenIncubationsAsync(db, order.Id);
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             workflowEngine.RecordBatchResultsAsync(order.Id, onlyOne, 1));
         Assert.Contains(locations[1].LocationName, ex.Message);
     }
@@ -362,7 +363,7 @@ public class EMBatchLocationTests
         var submissions = new List<BatchLocationReadings> { new(locations[0].Id, new List<decimal>()) };
 
         await IncubationTestClock.ElapseOpenIncubationsAsync(db, order.Id);
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             workflowEngine.RecordBatchResultsAsync(order.Id, submissions, 1));
         Assert.Contains(locations[0].LocationName, ex.Message);
     }
@@ -483,7 +484,7 @@ public class EMBatchLocationTests
         var workflowEngine = NewTestWorkflowEngine(db);
         await workflowEngine.SelectMediaAsync(order.Id, "CountIncubation", window1Media.Id, equipment1.Id, 1);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => workflowEngine.CloseCurrentIncubationWindowAsync(order.Id, 1));
+        await Assert.ThrowsAsync<BusinessRuleException>(() => workflowEngine.CloseCurrentIncubationWindowAsync(order.Id, 1));
     }
 
     [Fact]
@@ -520,7 +521,7 @@ public class EMBatchLocationTests
 
         // Can't record results before window 2's own minimum has elapsed.
         var locations = await workflowEngine.GetLocationsAsync(order.Id);
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        await Assert.ThrowsAsync<BusinessRuleException>(() =>
             workflowEngine.RecordBatchResultsAsync(order.Id, locations.Select(l => new BatchLocationReadings(l.Id, new List<decimal> { 0 })).ToList(), 1));
 
         await BackdateOpenIncubationAsync(db, order.Id, hours: 49);
@@ -560,7 +561,7 @@ public class EMBatchLocationTests
         await workflowEngine.SelectMediaAsync(order.Id, "CountIncubation", window1Media.Id, equipment1.Id, 1);
 
         var locations = await workflowEngine.GetLocationsAsync(order.Id);
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             workflowEngine.RecordBatchResultsAsync(order.Id, locations.Select(l => new BatchLocationReadings(l.Id, new List<decimal> { 0 })).ToList(), 1));
         Assert.Contains("not the final incubation window", ex.Message);
     }
@@ -639,7 +640,7 @@ public class EMBatchLocationTests
         var submissions = locations.Select(l => new BatchLocationReadings(l.Id, new List<decimal> { 0 })).ToList();
 
         // Blocked before the override - minimum 72h has not elapsed.
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        await Assert.ThrowsAsync<BusinessRuleException>(() =>
             workflowEngine.RecordBatchResultsAsync(order.Id, submissions, 1));
 
         var overridden = await workflowEngine.OverrideMinimumDurationAsync(order.Id, 99);
@@ -691,7 +692,7 @@ public class EMBatchLocationTests
         await workflowEngine.SelectMediaAsync(order.Id, "transfer", window2Media.Id, equipment2.Id, 1);
 
         var locations = await workflowEngine.GetLocationsAsync(order.Id);
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             workflowEngine.RecordBatchResultsAsync(order.Id, locations.Select(l => new BatchLocationReadings(l.Id, new List<decimal> { 0 })).ToList(), 1));
         Assert.Contains("48 hours", ex.Message); // window 2's own gate, not silently bypassed by window 1's override
     }

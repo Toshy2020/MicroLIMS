@@ -76,19 +76,19 @@ public class SystemSettingsRegistryTests
     {
         var number = SystemSettingDefinitions.Get(SystemSettingKeys.LockoutMaxFailedAttempts);
         Assert.Equal("7", number.Normalize(" 7 "));
-        Assert.Throws<InvalidOperationException>(() => number.Normalize("seven"));
-        Assert.Throws<InvalidOperationException>(() => number.Normalize("2.5"));
-        Assert.Throws<InvalidOperationException>(() => number.Normalize("2"));   // below min 3
-        Assert.Throws<InvalidOperationException>(() => number.Normalize("21"));  // above max 20
-        Assert.Throws<InvalidOperationException>(() => number.Normalize(" "));
+        Assert.Throws<BusinessRuleException>(() => number.Normalize("seven"));
+        Assert.Throws<BusinessRuleException>(() => number.Normalize("2.5"));
+        Assert.Throws<BusinessRuleException>(() => number.Normalize("2"));   // below min 3
+        Assert.Throws<BusinessRuleException>(() => number.Normalize("21"));  // above max 20
+        Assert.Throws<BusinessRuleException>(() => number.Normalize(" "));
 
         var flag = new SystemSettingDefinition("x.flag", "Test", SystemSettingValueType.Boolean, "false", "d");
         Assert.Equal("true", flag.Normalize("TRUE"));
-        Assert.Throws<InvalidOperationException>(() => flag.Normalize("yes"));
+        Assert.Throws<BusinessRuleException>(() => flag.Normalize("yes"));
 
         var choice = new SystemSettingDefinition("x.choice", "Test", SystemSettingValueType.String, "a", "d", AllowedValues: new[] { "a", "b" });
         Assert.Equal("b", choice.Normalize("b"));
-        Assert.Throws<InvalidOperationException>(() => choice.Normalize("c"));
+        Assert.Throws<BusinessRuleException>(() => choice.Normalize("c"));
     }
 
     // ---- value precedence ---------------------------------------------------
@@ -123,7 +123,7 @@ public class SystemSettingsRegistryTests
         var rig = CreateRig();
         foreach (var reason in new string?[] { null, "", "   " })
         {
-            var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
                 rig.Service.UpdateAsync(SystemSettingKeys.SessionTokenRetentionDays, "45", reason, 1, null, null));
             Assert.Contains("reason", ex.Message, StringComparison.OrdinalIgnoreCase);
         }
@@ -136,9 +136,9 @@ public class SystemSettingsRegistryTests
     {
         var rig = CreateRig();
         await Assert.ThrowsAsync<NotFoundException>(() => rig.Service.UpdateAsync("no.such.key", "1", Reason, 1, null, null));
-        await Assert.ThrowsAsync<InvalidOperationException>(() => rig.Service.UpdateAsync(SystemSettingKeys.SessionTokenRetentionDays, "0", Reason, 1, null, null));
-        await Assert.ThrowsAsync<InvalidOperationException>(() => rig.Service.UpdateAsync(SystemSettingKeys.SessionTokenRetentionDays, "abc", Reason, 1, null, null));
-        var same = await Assert.ThrowsAsync<InvalidOperationException>(() => rig.Service.UpdateAsync(SystemSettingKeys.SessionTokenRetentionDays, "30", Reason, 1, null, null));
+        await Assert.ThrowsAsync<BusinessRuleException>(() => rig.Service.UpdateAsync(SystemSettingKeys.SessionTokenRetentionDays, "0", Reason, 1, null, null));
+        await Assert.ThrowsAsync<BusinessRuleException>(() => rig.Service.UpdateAsync(SystemSettingKeys.SessionTokenRetentionDays, "abc", Reason, 1, null, null));
+        var same = await Assert.ThrowsAsync<BusinessRuleException>(() => rig.Service.UpdateAsync(SystemSettingKeys.SessionTokenRetentionDays, "30", Reason, 1, null, null));
         Assert.Contains("Nothing was changed", same.Message);
         Assert.Empty(rig.Db.SystemSettingVersions);
     }
@@ -254,7 +254,7 @@ public class SystemSettingsRegistryTests
         Assert.NotNull((await rig.Db.Users.AsNoTracking().SingleAsync(u => u.Id == 1)).LockedUntil);
 
         // 11 characters satisfy the default policy (8) but not the configured 12.
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             auth.ChangePasswordAsync(1, AdminPassword, "Abcdefg1!xy"));
         Assert.Contains("at least 12 characters", ex.Message);
     }

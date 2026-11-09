@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Helpers;
 using MicroLIMS.Application.Interfaces;
@@ -78,7 +79,7 @@ public partial class HplcRunServiceTests
         await service.UploadEvidenceAsync(run.Id, null, HplcEvidenceContext.Sst, HplcEvidenceKind.StandardReport, "std.pdf", "application/pdf", PdfBytes(), s.UserId);
         await service.ConfirmSstAsync(run.Id, new ConfirmSstRequest(Password, null), s.UserId, null);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(
             () => service.AssignQualificationsAsync(run.Id, new List<int> { q.Id }, s.UserId));
         Assert.Contains("primary reference standard", ex.Message);
     }
@@ -151,7 +152,7 @@ public partial class HplcRunServiceTests
         var analyteId = (await db.WorkingStandardQualifications.FindAsync(q.Id))!.HplcMethodAnalyteId!.Value;
         await service.SaveQualificationReplicatesAsync(rsId, SixReplicates(analyteId), s.UserId);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(
             () => service.SubmitQualificationAsync(rsId, new SubmitHplcSampleRequest(Password, null), s.UserId, null));
         Assert.Equal("Upload the sample report before submitting.", ex.Message);
     }
@@ -197,7 +198,7 @@ public partial class HplcRunServiceTests
             "s.pdf", "application/pdf", PdfBytes(), s.UserId);
         await service.SubmitQualificationAsync(rsId, new SubmitHplcSampleRequest(Password, null), s.UserId, null);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(
             () => service.RemoveSampleAsync(run.Id, rsId, "oops", s.UserId));
         Assert.Equal("The qualification has already been submitted.", ex.Message);
     }
@@ -215,7 +216,7 @@ public partial class HplcRunServiceTests
         await service.AssignSamplesAsync(run.Id, new List<int> { order.Id }, s.UserId);
         await service.AssignQualificationsAsync(run.Id, new List<int> { q.Id }, s.UserId);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.CompleteRunAsync(run.Id, s.UserId));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => service.CompleteRunAsync(run.Id, s.UserId));
         Assert.StartsWith("2 assigned sample(s)", ex.Message);
     }
 
@@ -227,7 +228,7 @@ public partial class HplcRunServiceTests
         var s = await SeedScenarioAsync(db, clock);
         var (service, _, _, rsId) = await AssignedWsAsync(db, clock, s);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.GetSampleEntryAsync(rsId, s.UserId));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => service.GetSampleEntryAsync(rsId, s.UserId));
         Assert.Equal("This run sample is a working standard qualification - open it from its qualification entry.", ex.Message);
     }
 
@@ -241,7 +242,7 @@ public partial class HplcRunServiceTests
         (await db.WorkingStandardQualifications.FindAsync(q.Id))!.HplcMethodAnalyteId = 999999;
         await db.SaveChangesAsync();
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.GetQualificationEntryAsync(rsId, s.UserId));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => service.GetQualificationEntryAsync(rsId, s.UserId));
         Assert.Equal("This qualification is no longer measured on this run's method analyte.", ex.Message);
     }
 
@@ -283,7 +284,7 @@ public partial class HplcRunServiceTests
         {
             new(50m, new List<HplcReplicateResponseInput> { new(analyteId, 1000m) }, null, InternalStandardResponse: 500m)
         });
-        var exNoIs = await Assert.ThrowsAsync<InvalidOperationException>(
+        var exNoIs = await Assert.ThrowsAsync<BusinessRuleException>(
             () => service.SaveQualificationReplicatesAsync(rsId, repsWithIs, s.UserId));
         Assert.Equal("This method has no internal standard.", exNoIs.Message);
     }
@@ -301,7 +302,7 @@ public partial class HplcRunServiceTests
         {
             new(50m, new List<HplcReplicateResponseInput> { new(analyteId, 1000m) }, new List<HplcReplicatePeakInput> { new(null, 0.8m, 100m) })
         });
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.SaveQualificationReplicatesAsync(rsId, withPeaks, s.UserId));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => service.SaveQualificationReplicatesAsync(rsId, withPeaks, s.UserId));
         Assert.Equal("Peaks are not used for working-standard qualification.", ex.Message);
 
         Assert.Null((await service.GetQualificationEntryAsync(rsId, s.UserId)).InternalStandardName);
@@ -346,13 +347,13 @@ public partial class HplcRunServiceTests
         var rsId = assignedRun.Samples.Single(x => x.WorkingStandardQualificationId == q.Id).Id;
 
         // Refuse missing IS at save time
-        var exNull = await Assert.ThrowsAsync<InvalidOperationException>(() => runSvc.SaveQualificationReplicatesAsync(rsId,
+        var exNull = await Assert.ThrowsAsync<BusinessRuleException>(() => runSvc.SaveQualificationReplicatesAsync(rsId,
             new SaveReplicatesRequest(Enumerable.Range(1, 6).Select(i => new HplcReplicateInput(50m,
                 new List<HplcReplicateResponseInput> { new(analyte.Id, 49000m) }, null, InternalStandardResponse: i == 1 ? null : 100000m)).ToList()), s.UserId));
         Assert.Equal("Replicate 1: the internal standard response is required.", exNull.Message);
 
         // Refuse <= 0 IS at save time
-        var exZero = await Assert.ThrowsAsync<InvalidOperationException>(() => runSvc.SaveQualificationReplicatesAsync(rsId,
+        var exZero = await Assert.ThrowsAsync<BusinessRuleException>(() => runSvc.SaveQualificationReplicatesAsync(rsId,
             new SaveReplicatesRequest(Enumerable.Range(1, 6).Select(i => new HplcReplicateInput(50m,
                 new List<HplcReplicateResponseInput> { new(analyte.Id, 49000m) }, null, InternalStandardResponse: i == 1 ? 0m : 100000m)).ToList()), s.UserId));
         Assert.Equal("Replicate 1: the internal standard response is required.", exZero.Message);

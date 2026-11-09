@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using System.Globalization;
 using System.Text.Json;
 using MicroLIMS.Application.Services;
@@ -67,11 +68,11 @@ public static class GravimetricCalculator
             decimal w2 = rep.Final - container;
 
             if (w1 <= 0m)
-                throw new InvalidOperationException("Initial sample weight (W1) must be greater than zero.");
+                throw new BusinessRuleException("Initial sample weight (W1) must be greater than zero.");
             if (w2 < 0m)
-                throw new InvalidOperationException("Final weight (W2) cannot be negative.");
+                throw new BusinessRuleException("Final weight (W2) cannot be negative.");
             if (w2 > w1)
-                throw new InvalidOperationException("Final weight (W2) cannot be greater than initial weight (W1).");
+                throw new BusinessRuleException("Final weight (W2) cannot be greater than initial weight (W1).");
 
             decimal percent = equationType == EquationType.GravimetricLoss
                 ? ((w1 - w2) * 100m) / w1

@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Application.Helpers;
 using Xunit;
@@ -30,7 +31,7 @@ public class TitrationEngineTests
     [Fact]
     public void VolumeNotAboveBlank_Throws()
     {
-        var ex = Assert.Throws<InvalidOperationException>(() =>
+        var ex = Assert.Throws<BusinessRuleException>(() =>
             TitrationEngine.PrimaryStandardFactor(408.4m, 99.9m, 0.05m, 0.05m, 20.42m));
         Assert.Equal("Titrant volume must be greater than the blank.", ex.Message);
     }
@@ -38,7 +39,7 @@ public class TitrationEngineTests
     [Fact]
     public void Purity_Zero_Throws()
     {
-        var ex = Assert.Throws<InvalidOperationException>(() =>
+        var ex = Assert.Throws<BusinessRuleException>(() =>
             TitrationEngine.PrimaryStandardFactor(408.4m, 0m, 20.05m, 0.05m, 20.42m));
         Assert.Equal("Purity must be greater than 0 and at most 100.", ex.Message);
     }
@@ -46,7 +47,7 @@ public class TitrationEngineTests
     [Fact]
     public void Weight_Zero_Throws()
     {
-        var ex = Assert.Throws<InvalidOperationException>(() =>
+        var ex = Assert.Throws<BusinessRuleException>(() =>
             TitrationEngine.PrimaryStandardFactor(0m, 99.9m, 20.05m, 0.05m, 20.42m));
         Assert.Equal("Standard weight must be greater than zero.", ex.Message);
     }
@@ -54,7 +55,7 @@ public class TitrationEngineTests
     [Fact]
     public void Blank_Negative_Throws()
     {
-        var ex = Assert.Throws<InvalidOperationException>(() =>
+        var ex = Assert.Throws<BusinessRuleException>(() =>
             TitrationEngine.PrimaryStandardFactor(408.4m, 99.9m, 20.05m, -0.05m, 20.42m));
         Assert.Equal("Blank must not be negative.", ex.Message);
     }
@@ -97,7 +98,7 @@ public class TitrationEngineTests
     [Fact]
     public void Evaluate_NoFactors_Throws()
     {
-        var ex = Assert.Throws<InvalidOperationException>(() =>
+        var ex = Assert.Throws<BusinessRuleException>(() =>
             TitrationEngine.Evaluate(Array.Empty<decimal>(), 0.95m, 1.05m, 0.5m));
         Assert.Equal("At least one replicate is required.", ex.Message);
     }
@@ -144,7 +145,7 @@ public class TitrationEngineTests
 
     [Fact]
     public void Residual_BackTitreAboveExcess_Throws() =>
-        Assert.Throws<InvalidOperationException>(() => TitrationEngine.MgResidualNoBlank(10m, 0.1m, 1m, 20m, 0.1m, 1m, 8m));
+        Assert.Throws<BusinessRuleException>(() => TitrationEngine.MgResidualNoBlank(10m, 0.1m, 1m, 20m, 0.1m, 1m, 8m));
 
     [Fact]
     public void KarlFischer_WaterPercent()
@@ -197,8 +198,8 @@ public class TitrationEngineTests
         Near(99.29535525m, TitrationEngine.ApplyBasis(mg, 400m, ResultBasis.PercentLabelClaim, null, 500m, 250m), 0.00001m);
         // 0.49647677625 x 500 = 248.238388125 mg/unit
         Near(248.238388125m, TitrationEngine.ApplyBasis(mg, 400m, ResultBasis.MgPerUnit, null, 500m, null), 0.00001m);
-        Assert.Throws<InvalidOperationException>(() => TitrationEngine.ApplyBasis(mg, 400m, ResultBasis.PercentDriedBasis, null, null, null));
-        Assert.Throws<InvalidOperationException>(() => TitrationEngine.ApplyBasis(mg, 400m, ResultBasis.MgPerUnit, null, null, null));
+        Assert.Throws<BusinessRuleException>(() => TitrationEngine.ApplyBasis(mg, 400m, ResultBasis.PercentDriedBasis, null, null, null));
+        Assert.Throws<BusinessRuleException>(() => TitrationEngine.ApplyBasis(mg, 400m, ResultBasis.MgPerUnit, null, null, null));
     }
 
     [Fact]
@@ -217,9 +218,9 @@ public class TitrationEngineTests
     [Fact]
     public void Guards()
     {
-        Assert.Throws<InvalidOperationException>(() => TitrationEngine.NetVolume(false, 0.1m, 0.1m));
-        Assert.Throws<InvalidOperationException>(() => TitrationEngine.NetVolume(true, 5m, 5m));
-        Assert.Throws<InvalidOperationException>(() => TitrationEngine.MgDirect(1m, 0.1m, 0m, 88m));
-        Assert.Throws<InvalidOperationException>(() => TitrationEngine.StandardK(0m, 100m, 0m, 1m));
+        Assert.Throws<BusinessRuleException>(() => TitrationEngine.NetVolume(false, 0.1m, 0.1m));
+        Assert.Throws<BusinessRuleException>(() => TitrationEngine.NetVolume(true, 5m, 5m));
+        Assert.Throws<BusinessRuleException>(() => TitrationEngine.MgDirect(1m, 0.1m, 0m, 88m));
+        Assert.Throws<BusinessRuleException>(() => TitrationEngine.StandardK(0m, 100m, 0m, 1m));
     }
 }

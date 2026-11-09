@@ -64,7 +64,7 @@ public class LaboratoryOrganizationService
         var memberUser = await _db.Users.AsNoTracking().Where(u => u.Id == userId).Select(u => new { u.IsActive }).FirstOrDefaultAsync()
             ?? throw new NotFoundException($"User {userId} not found.");
         if (!memberUser.IsActive)
-            throw new InvalidOperationException("Inactive users cannot be assigned to laboratory sections. Reactivate the user first.");
+            throw new BusinessRuleException("Inactive users cannot be assigned to laboratory sections. Reactivate the user first.");
 
         // Memberships are keyed by department + section; the last row for a key wins.
         var wanted = memberships.GroupBy(m => (m.DepartmentId, m.SectionId)).Select(g => g.Last()).ToList();
@@ -72,7 +72,7 @@ public class LaboratoryOrganizationService
         var activeDepartments = await _db.DocumentDepartments
             .Where(d => departmentIds.Contains(d.Id) && d.IsActive).Select(d => d.Id).ToListAsync();
         if (activeDepartments.Count != departmentIds.Count)
-            throw new InvalidOperationException("One or more departments were not found or are inactive.");
+            throw new BusinessRuleException("One or more departments were not found or are inactive.");
 
         var sectionIds = wanted.Where(m => m.SectionId.HasValue).Select(m => m.SectionId!.Value).Distinct().ToList();
         var sections = await _db.DocumentSections
@@ -81,12 +81,12 @@ public class LaboratoryOrganizationService
         foreach (var m in wanted.Where(m => m.SectionId.HasValue))
         {
             if (!sections.TryGetValue(m.SectionId!.Value, out var section))
-                throw new InvalidOperationException($"Laboratory section {m.SectionId} was not found or is inactive.");
+                throw new BusinessRuleException($"Laboratory section {m.SectionId} was not found or is inactive.");
             if (section.DepartmentId != m.DepartmentId)
-                throw new InvalidOperationException($"Laboratory section {m.SectionId} does not belong to department {m.DepartmentId}.");
+                throw new BusinessRuleException($"Laboratory section {m.SectionId} does not belong to department {m.DepartmentId}.");
         }
         if (wanted.Any(m => m.PhyschemArea.HasValue && (!m.SectionId.HasValue || sections[m.SectionId.Value].Code != PhyschemAreas.SectionCode)))
-            throw new InvalidOperationException("An area can only be set on a Physicochemical Laboratory membership.");
+            throw new BusinessRuleException("An area can only be set on a Physicochemical Laboratory membership.");
 
         _db.CurrentUserId = actingUserId;
         _db.CurrentReason = reason;

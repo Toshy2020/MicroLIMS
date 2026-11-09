@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using System.Globalization;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Services;
@@ -93,7 +94,7 @@ public class MediaProductPreparationTests
 
         var service = TestServiceFactory.MediaPreparation(db);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(
             () => service.PrepareAsync(MediaRequest(material, autoclave)));
         Assert.Contains("isn't linked to a configured media product", ex.Message);
 

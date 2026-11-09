@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Services;
@@ -160,7 +161,7 @@ public class IcpRunPostgresIntegrationTests
         await svc.SaveEntryAsync(znRs, new SaveIcpSampleEntryRequest(0.5m, new() { new IcpConcentrationInput(znEl.Id, 10m) }), userId);
         await svc.UploadEvidenceAsync(run.Id, znRs, IcpEvidenceContext.Sample, IcpEvidenceKind.SampleReport,
             "z.pdf", "application/pdf", new MemoryStream(Pdf), userId);
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             workflow.SubmitIcpMethodAssayAsync(znRs, Password, "ok", userId, "127.0.0.1"));
         Assert.StartsWith("Zn is not valid on this run: Failed calibration", ex.Message);
         await using var final = _fixture.CreateDbContext();

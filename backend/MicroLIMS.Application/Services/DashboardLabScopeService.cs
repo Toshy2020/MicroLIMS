@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Application.Abstractions.Persistence;
@@ -39,7 +40,7 @@ public class DashboardLabScopeService
 
         if (!LaboratoryCodes.IsKnown(labCode))
         {
-            throw new InvalidOperationException($"Unknown laboratory '{labCode}'.");
+            throw new BusinessRuleException($"Unknown laboratory '{labCode}'.");
         }
 
         var code = labCode.Trim().ToUpperInvariant();

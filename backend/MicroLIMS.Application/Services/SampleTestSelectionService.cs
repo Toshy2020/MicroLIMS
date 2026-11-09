@@ -65,11 +65,11 @@ public class SampleTestSelectionService
 
         const string AlreadySelected = "Tests for this sample have already been selected.";
         if (!sample.AwaitingTestSelection)
-            throw new InvalidOperationException(AlreadySelected);
+            throw new BusinessRuleException(AlreadySelected);
         // A second laboratory may still choose after the first has started testing (InTesting);
         // only a closed sample is refused.
         if (sample.Status is SampleStatus.Voided or SampleStatus.Cancelled or SampleStatus.Rejected or SampleStatus.Approved)
-            throw new InvalidOperationException("This sample is closed; tests can no longer be selected.");
+            throw new BusinessRuleException("This sample is closed; tests can no longer be selected.");
 
         // The laboratories this call covers: still pending, and the signer's own.
         var userScope = await _scope.GetMemberSectionIdsAsync(userId, ct);
@@ -79,20 +79,20 @@ public class SampleTestSelectionService
         {
             // A head of a laboratory that already has its tests is told so; anyone else is simply not in scope.
             if (userScope is not null && sample.TestOrders.Any(t => userScope.Contains(t.SectionId)))
-                throw new InvalidOperationException(AlreadySelected);
+                throw new BusinessRuleException(AlreadySelected);
             throw new UnauthorizedAccessException("This sample belongs to a laboratory section you are not assigned to.");
         }
 
         var codes = (request.TestCodes ?? Array.Empty<string>())
             .Where(c => !string.IsNullOrWhiteSpace(c)).Select(c => c.Trim()).Distinct(StringComparer.Ordinal).ToList();
         if (codes.Count == 0)
-            throw new InvalidOperationException("Choose at least one test.");
+            throw new BusinessRuleException("Choose at least one test.");
 
         var eligible = await EligibleAsync(sample, ct);
         var chosen = new List<RetestEligibleTestDto>();
         foreach (var code in codes)
             chosen.Add(eligible.FirstOrDefault(e => e.TestCode == code && mine.Contains(e.SectionId))
-                ?? throw new InvalidOperationException($"Test {code} is not available for this sample."));
+                ?? throw new BusinessRuleException($"Test {code} is not available for this sample."));
 
         // Signs first - a failed verification creates nothing (the signature,
         // the orders and the audit event commit in the single save below).

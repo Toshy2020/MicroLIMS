@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.DTOs.DocumentControl;
 using MicroLIMS.Application.Services;
@@ -199,7 +200,7 @@ public class DocumentControlElectronicSignatureUnitTests
             Password: null
         );
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             approvalService.ExecuteApprovalDecisionAsync(task.Id, request, approver.Id));
 
         Assert.Contains("Password re-authentication is required", ex.Message);
@@ -281,7 +282,7 @@ public class DocumentControlElectronicSignatureUnitTests
         await approvalService.ExecuteApprovalDecisionAsync(task.Id, request, approver.Id);
 
         // Attempt second approval on the completed task
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             approvalService.ExecuteApprovalDecisionAsync(task.Id, request, approver.Id));
 
         Assert.Contains("Cannot execute decision on approval task in status 'Approved'", ex.Message);
@@ -412,7 +413,7 @@ public class DocumentControlElectronicSignatureUnitTests
             Password: CorrectPassword
         );
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             approvalService.ExecuteApprovalDecisionAsync(task.Id, request, approver.Id));
 
         Assert.Contains("Status must be 'AwaitingApproval'", ex.Message);
@@ -435,7 +436,7 @@ public class DocumentControlElectronicSignatureUnitTests
             Password: CorrectPassword
         );
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             approvalService.ExecuteApprovalDecisionAsync(task.Id, request, approver.Id));
 
         Assert.Contains("An active Controlled PDF file is required", ex.Message);

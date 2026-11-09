@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 namespace MicroLIMS.Application.Helpers;
 
 public static class StandardComparisonCalculator
@@ -17,29 +18,29 @@ public static class StandardComparisonCalculator
         {
             // Titration (SOP STM-PC-013 6.9.2.5): Response = (EP_test - EP_blank) / (EP_std - EP_blank)
             if (blankTitre.Value < 0m)
-                throw new InvalidOperationException("Blank titre must not be negative.");
+                throw new BusinessRuleException("Blank titre must not be negative.");
             if (responseTest <= blankTitre.Value)
-                throw new InvalidOperationException("Sample titre must be greater than the blank titre.");
+                throw new BusinessRuleException("Sample titre must be greater than the blank titre.");
             if (responseStd <= blankTitre.Value)
-                throw new InvalidOperationException("Standard titre must be greater than the blank titre.");
+                throw new BusinessRuleException("Standard titre must be greater than the blank titre.");
         }
 
         if (responseTest <= 0m)
-            throw new InvalidOperationException("Test response must be greater than zero.");
+            throw new BusinessRuleException("Test response must be greater than zero.");
         if (responseStd <= 0m)
-            throw new InvalidOperationException("Standard response must be greater than zero.");
+            throw new BusinessRuleException("Standard response must be greater than zero.");
         if (actWtStd <= 0m)
-            throw new InvalidOperationException("Standard actual weight must be greater than zero.");
+            throw new BusinessRuleException("Standard actual weight must be greater than zero.");
         if (thWtStd <= 0m)
-            throw new InvalidOperationException("Standard theoretical weight must be greater than zero.");
+            throw new BusinessRuleException("Standard theoretical weight must be greater than zero.");
         if (thWtTest <= 0m)
-            throw new InvalidOperationException("Sample theoretical weight must be greater than zero.");
+            throw new BusinessRuleException("Sample theoretical weight must be greater than zero.");
         if (actWtTest <= 0m)
-            throw new InvalidOperationException("Sample actual weight must be greater than zero.");
+            throw new BusinessRuleException("Sample actual weight must be greater than zero.");
         if (moisturePercent < 0m || moisturePercent >= 100m)
-            throw new InvalidOperationException("Standard moisture percent must be between 0 and 100 (exclusive).");
+            throw new BusinessRuleException("Standard moisture percent must be between 0 and 100 (exclusive).");
         if (purityPercent <= 0m)
-            throw new InvalidOperationException("Standard purity percent must be greater than zero.");
+            throw new BusinessRuleException("Standard purity percent must be greater than zero.");
 
         // % Assay (of label claim) =
         //     (Response_test / Response_std)      [titration: (EP_test - EP_blank) / (EP_std - EP_blank)]

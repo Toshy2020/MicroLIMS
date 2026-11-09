@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.DTOs;
 using MicroLIMS.Application.Services;
@@ -104,10 +105,10 @@ public class PhyschemAreaWorkspacePostgresTests
         var s = await ArrangeAsync(db);
         var service = TestServiceFactory.TestingWorkspace(db);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.GetActiveSamplesAsync(new TestingWorkspaceFilterDto { LabSectionId = s.Fp.Id }, s.BothUserId));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => service.GetActiveSamplesAsync(new TestingWorkspaceFilterDto { LabSectionId = s.Fp.Id }, s.BothUserId));
         Assert.Equal("area is required for the Physicochemical Laboratory workspace.", ex.Message);
-        await Assert.ThrowsAsync<InvalidOperationException>(() => service.GetWorkloadCountsAsync(s.BothUserId, s.Fp.Id));
-        await Assert.ThrowsAsync<InvalidOperationException>(() => service.GetActiveSamplesAsync(new TestingWorkspaceFilterDto { LabSectionId = s.Fp.Id, Area = "x" }, s.BothUserId));
+        await Assert.ThrowsAsync<BusinessRuleException>(() => service.GetWorkloadCountsAsync(s.BothUserId, s.Fp.Id));
+        await Assert.ThrowsAsync<BusinessRuleException>(() => service.GetActiveSamplesAsync(new TestingWorkspaceFilterDto { LabSectionId = s.Fp.Id, Area = "x" }, s.BothUserId));
 
         // Microbiology: no area needed, behaviour unchanged (admin user passes the scope check).
         var admin = await service.GetActiveSamplesAsync(new TestingWorkspaceFilterDto { LabSectionId = s.Micro.Id, Search = s.Prefix });
@@ -131,10 +132,10 @@ public class PhyschemAreaWorkspacePostgresTests
             new[] { new UserOrgMembershipDto(s.Fp.DepartmentId, s.Fp.Id, PhyschemArea.Both) }, "test", _fixture.SeededUserId);
         Assert.Equal(PhyschemArea.Both, Assert.Single(saved).PhyschemArea);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => org.ReplaceMembershipsAsync(s.BothUserId,
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => org.ReplaceMembershipsAsync(s.BothUserId,
             new[] { new UserOrgMembershipDto(s.Micro.DepartmentId, s.Micro.Id, PhyschemArea.RawPackaging) }, "test", _fixture.SeededUserId));
         Assert.Equal("An area can only be set on a Physicochemical Laboratory membership.", ex.Message);
-        await Assert.ThrowsAsync<InvalidOperationException>(() => org.ReplaceMembershipsAsync(s.BothUserId,
+        await Assert.ThrowsAsync<BusinessRuleException>(() => org.ReplaceMembershipsAsync(s.BothUserId,
             new[] { new UserOrgMembershipDto(s.Fp.DepartmentId, null, PhyschemArea.RawPackaging) }, "test", _fixture.SeededUserId));
     }
 

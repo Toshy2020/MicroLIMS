@@ -78,7 +78,7 @@ public class ReferenceOrganismService
         var strainNumber = ValidateAndNormalize(r, out var normalizedCode);
         var sectionId = await _scope.ResolveSectionForCreateAsync(currentUserId, r.OwnerSectionId, ct, SectionAccess.Configure);
         var organism = await _db.Organisms.FirstOrDefaultAsync(o => o.Id == r.OrganismId, ct)
-            ?? throw new InvalidOperationException($"Organism {r.OrganismId} not found.");
+            ?? throw new BusinessRuleException($"Organism {r.OrganismId} not found.");
 
         await EnsureUniqueAsync(normalizedCode, r.CultureCollection, strainNumber, excludeId: null, ct);
 
@@ -112,16 +112,16 @@ public class ReferenceOrganismService
         if (hasStock)
         {
             if (normalizedCode != strain.Code)
-                throw new InvalidOperationException("This reference organism has stock; change its code with a reason and an electronic signature.");
+                throw new BusinessRuleException("This reference organism has stock; change its code with a reason and an electronic signature.");
             if (r.OrganismId != strain.OrganismId || r.CultureCollection != strain.CultureCollection
                 || !string.Equals(strainNumber, strain.StrainNumber, StringComparison.Ordinal))
-                throw new InvalidOperationException("This reference organism has stock lots; its organism, culture collection and strain number can't change. Deactivate it and add the correct strain.");
+                throw new BusinessRuleException("This reference organism has stock lots; its organism, culture collection and strain number can't change. Deactivate it and add the correct strain.");
         }
 
         var organism = r.OrganismId == strain.OrganismId
             ? strain.Organism ?? await _db.Organisms.FirstAsync(o => o.Id == strain.OrganismId, ct)
             : await _db.Organisms.FirstOrDefaultAsync(o => o.Id == r.OrganismId, ct)
-                ?? throw new InvalidOperationException($"Organism {r.OrganismId} not found.");
+                ?? throw new BusinessRuleException($"Organism {r.OrganismId} not found.");
 
         await EnsureUniqueAsync(normalizedCode, r.CultureCollection, strainNumber, excludeId: id, ct);
 
@@ -146,19 +146,19 @@ public class ReferenceOrganismService
         int id, string newCode, string reason, string password, int currentUserId, string? ipAddress, CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(reason))
-            throw new InvalidOperationException("A reason for the code change is required.");
+            throw new BusinessRuleException("A reason for the code change is required.");
         var trimmedReason = reason.Trim();
 
-        if (string.IsNullOrWhiteSpace(newCode)) throw new InvalidOperationException("Code is required.");
+        if (string.IsNullOrWhiteSpace(newCode)) throw new BusinessRuleException("Code is required.");
         var normalizedCode = newCode.Trim().ToUpper();
 
         var strain = await LoadWithAccessAsync(id, currentUserId, ct);
 
         if (normalizedCode == strain.Code)
-            throw new InvalidOperationException("The new code must be different from the current code.");
+            throw new BusinessRuleException("The new code must be different from the current code.");
         EnsurePrefix(normalizedCode);
         if (await _db.ReferenceOrganisms.AnyAsync(e => e.Code == normalizedCode && e.Id != id, ct))
-            throw new InvalidOperationException($"Reference organism code \"{normalizedCode}\" already exists.");
+            throw new BusinessRuleException($"Reference organism code \"{normalizedCode}\" already exists.");
 
         var oldCode = strain.Code;
 
@@ -206,9 +206,9 @@ public class ReferenceOrganismService
     public async Task<ReferenceOrganism> ResolveForLotAsync(int id, bool allowInactive, CancellationToken ct = default)
     {
         var strain = await _db.ReferenceOrganisms.Include(r => r.Organism).FirstOrDefaultAsync(r => r.Id == id, ct)
-            ?? throw new InvalidOperationException($"Reference organism {id} not found.");
+            ?? throw new BusinessRuleException($"Reference organism {id} not found.");
         if (!strain.IsActive && !allowInactive)
-            throw new InvalidOperationException($"Reference organism \"{strain.Code}\" ({ReferenceOrganismNaming.NameOf(strain)}) is inactive.");
+            throw new BusinessRuleException($"Reference organism \"{strain.Code}\" ({ReferenceOrganismNaming.NameOf(strain)}) is inactive.");
         return strain;
     }
 
@@ -223,7 +223,7 @@ public class ReferenceOrganismService
 
         var scope = await _scope.GetConfigurableSectionIdsAsync(currentUserId, ct);
         if (scope != null && !scope.Contains(strain.OwnerSectionId))
-            throw new InvalidOperationException("Only the owner lab of a reference organism can change it.");
+            throw new BusinessRuleException("Only the owner lab of a reference organism can change it.");
 
         return strain;
     }
@@ -231,7 +231,7 @@ public class ReferenceOrganismService
     private async Task EnsureUniqueAsync(string code, CultureCollection collection, string? strainNumber, int? excludeId, CancellationToken ct)
     {
         if (await _db.ReferenceOrganisms.AnyAsync(e => e.Code == code && e.Id != excludeId, ct))
-            throw new InvalidOperationException($"Reference organism code \"{code}\" already exists.");
+            throw new BusinessRuleException($"Reference organism code \"{code}\" already exists.");
 
         if (strainNumber != null)
         {
@@ -239,21 +239,21 @@ public class ReferenceOrganismService
             var clash = await _db.ReferenceOrganisms.FirstOrDefaultAsync(
                 e => e.CultureCollection == collection && e.StrainNumber != null && e.StrainNumber.ToUpper() == upper && e.Id != excludeId, ct);
             if (clash != null)
-                throw new InvalidOperationException($"{collection} {strainNumber} is already listed as {clash.Code}.");
+                throw new BusinessRuleException($"{collection} {strainNumber} is already listed as {clash.Code}.");
         }
     }
 
     private static string? ValidateAndNormalize(SaveReferenceOrganismRequest r, out string normalizedCode)
     {
-        if (string.IsNullOrWhiteSpace(r.Code)) throw new InvalidOperationException("Code is required.");
+        if (string.IsNullOrWhiteSpace(r.Code)) throw new BusinessRuleException("Code is required.");
         normalizedCode = r.Code.Trim().ToUpper();
         EnsurePrefix(normalizedCode);
-        if (!Enum.IsDefined(r.CultureCollection)) throw new InvalidOperationException("Choose the culture collection.");
+        if (!Enum.IsDefined(r.CultureCollection)) throw new BusinessRuleException("Choose the culture collection.");
 
         var strainNumber = string.IsNullOrWhiteSpace(r.StrainNumber) ? null : r.StrainNumber.Trim();
         if (strainNumber == null && r.CultureCollection != CultureCollection.Other)
-            throw new InvalidOperationException("Strain number is required unless the culture collection is Other.");
-        if (strainNumber is { Length: > 50 }) throw new InvalidOperationException("Strain number can be at most 50 characters.");
+            throw new BusinessRuleException("Strain number is required unless the culture collection is Other.");
+        if (strainNumber is { Length: > 50 }) throw new BusinessRuleException("Strain number can be at most 50 characters.");
         return strainNumber;
     }
 
@@ -261,7 +261,7 @@ public class ReferenceOrganismService
     {
         var prefix = ReferenceOrganismNaming.CodePrefix;
         if (!normalizedCode.StartsWith(prefix, StringComparison.Ordinal) || normalizedCode.Length == prefix.Length)
-            throw new InvalidOperationException($"Reference organism codes must start with \"{prefix}\".");
-        if (normalizedCode.Length > 50) throw new InvalidOperationException("Code can be at most 50 characters.");
+            throw new BusinessRuleException($"Reference organism codes must start with \"{prefix}\".");
+        if (normalizedCode.Length > 50) throw new BusinessRuleException("Code can be at most 50 characters.");
     }
 }

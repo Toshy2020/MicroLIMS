@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Persistence.Helpers;
 using MicroLIMS.Application.Interfaces;
@@ -95,14 +96,14 @@ public class MediaCryovialSectionScopeTests
         var microLot = await db.Media.Include(m => m.Material).FirstAsync(m => m.Id == w.MicroLot.Id);
 
         SectionMediaRule.EnsureLot(microLot, w.Micro);
-        var ex = Assert.Throws<InvalidOperationException>(() => SectionMediaRule.EnsureLot(microLot, w.Fp));
+        var ex = Assert.Throws<BusinessRuleException>(() => SectionMediaRule.EnsureLot(microLot, w.Fp));
         Assert.Contains("TSA/1/26", ex.Message);
 
         await SectionMediaRule.EnsureLotsAsync(db, new[] { w.MicroLot.Id }, w.Micro);
-        await Assert.ThrowsAsync<InvalidOperationException>(() => SectionMediaRule.EnsureLotsAsync(db, new[] { w.MicroLot.Id, w.FpLot.Id }, w.Micro));
+        await Assert.ThrowsAsync<BusinessRuleException>(() => SectionMediaRule.EnsureLotsAsync(db, new[] { w.MicroLot.Id, w.FpLot.Id }, w.Micro));
 
         await SectionMediaRule.EnsureMaterialsAsync(db, new[] { w.MicroMaterial.Id }, w.Micro);
-        var materialEx = await Assert.ThrowsAsync<InvalidOperationException>(() => SectionMediaRule.EnsureMaterialsAsync(db, new[] { w.FpMaterial.Id }, w.Micro));
+        var materialEx = await Assert.ThrowsAsync<BusinessRuleException>(() => SectionMediaRule.EnsureMaterialsAsync(db, new[] { w.FpMaterial.Id }, w.Micro));
         Assert.Contains("FP TSA", materialEx.Message);
     }
 
@@ -159,11 +160,11 @@ public class MediaCryovialSectionScopeTests
             new UserOrgMembership { UserId = bothLabs.Id, DepartmentId = db.DocumentSections.Single(x => x.Id == w.Fp).DepartmentId, SectionId = w.Fp });
         await db.SaveChangesAsync();
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => engine.ThawAndSelectVialAsync(w.MicroChallenge.Id, w.FpVial.Id, bothLabs.Id));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => engine.ThawAndSelectVialAsync(w.MicroChallenge.Id, w.FpVial.Id, bothLabs.Id));
         Assert.Contains("another laboratory section", ex.Message);
         Assert.Empty(db.ThawEvents); // the refused pick never cost a vial
 
-        var diskEx = await Assert.ThrowsAsync<InvalidOperationException>(() => engine.SelectLyophilizedDiskAsync(w.MicroChallenge.Id, w.FpMaterial.Id, bothLabs.Id));
+        var diskEx = await Assert.ThrowsAsync<BusinessRuleException>(() => engine.SelectLyophilizedDiskAsync(w.MicroChallenge.Id, w.FpMaterial.Id, bothLabs.Id));
         Assert.Contains("another laboratory section", diskEx.Message);
         Assert.Equal(10, (await db.Materials.AsNoTracking().FirstAsync(m => m.Id == w.FpMaterial.Id)).QuantityRemaining);
     }

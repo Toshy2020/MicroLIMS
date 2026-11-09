@@ -107,11 +107,11 @@ public class InstrumentAgentServiceTests
     public async Task Register_rejects_non_hplc_equipment_missing_equipment_and_bad_timezone()
     {
         var w = NewWorld();
-        await Assert.ThrowsAsync<InvalidOperationException>(() => w.Service.RegisterAsync(w.Incubator.Id, "x", "Africa/Cairo", w.Admin.Id, default));
+        await Assert.ThrowsAsync<BusinessRuleException>(() => w.Service.RegisterAsync(w.Incubator.Id, "x", "Africa/Cairo", w.Admin.Id, default));
         await Assert.ThrowsAsync<NotFoundException>(() => w.Service.RegisterAsync(9999, "x", "Africa/Cairo", w.Admin.Id, default));
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => w.Service.RegisterAsync(w.Hplc.Id, "x", "Mars/Olympus", w.Admin.Id, default));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => w.Service.RegisterAsync(w.Hplc.Id, "x", "Mars/Olympus", w.Admin.Id, default));
         Assert.Contains("time zone", ex.Message, StringComparison.OrdinalIgnoreCase);
-        await Assert.ThrowsAsync<InvalidOperationException>(() => w.Service.RegisterAsync(w.Hplc.Id, "  ", "Africa/Cairo", w.Admin.Id, default));
+        await Assert.ThrowsAsync<BusinessRuleException>(() => w.Service.RegisterAsync(w.Hplc.Id, "  ", "Africa/Cairo", w.Admin.Id, default));
         Assert.Empty(w.Db.InstrumentAgents);
         Assert.Empty(w.Audit.Events);
     }
@@ -141,7 +141,7 @@ public class InstrumentAgentServiceTests
     {
         var w = NewWorld();
         var (first, _) = await w.Service.RegisterAsync(w.Hplc.Id, "a", "Africa/Cairo", w.Admin.Id, default);
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => w.Service.RegisterAsync(w.Hplc.Id, "b", "Africa/Cairo", w.Admin.Id, default));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => w.Service.RegisterAsync(w.Hplc.Id, "b", "Africa/Cairo", w.Admin.Id, default));
         Assert.Contains(first.Code, ex.Message);
 
         await w.Service.RevokeAsync(first.Id, "decommissioned", w.Admin.Id, default);
@@ -161,11 +161,11 @@ public class InstrumentAgentServiceTests
         Assert.Equal(50, first.Code.Length);
 
         await w.Service.RevokeAsync(first.Id, "decommissioned", w.Admin.Id, default);
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => w.Service.RegisterAsync(w.Hplc.Id, "b", "Africa/Cairo", w.Admin.Id, default));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => w.Service.RegisterAsync(w.Hplc.Id, "b", "Africa/Cairo", w.Admin.Id, default));
         Assert.Contains("too long", ex.Message);
         Assert.Contains("52", ex.Message);
 
-        var ex2 = await Assert.ThrowsAsync<InvalidOperationException>(() => w.Service.RegisterAsync(w.OtherSectionHplc.Id, "c", "Africa/Cairo", w.Admin.Id, default));
+        var ex2 = await Assert.ThrowsAsync<BusinessRuleException>(() => w.Service.RegisterAsync(w.OtherSectionHplc.Id, "c", "Africa/Cairo", w.Admin.Id, default));
         Assert.Contains("too long", ex2.Message);
         Assert.False(await w.Db.InstrumentAgents.AnyAsync(a => a.EquipmentId == w.OtherSectionHplc.Id));
     }
@@ -191,7 +191,7 @@ public class InstrumentAgentServiceTests
         var w = NewWorld();
         var (agent, key) = await w.Service.RegisterAsync(w.Hplc.Id, "a", "Africa/Cairo", w.Admin.Id, default);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => w.Service.RevokeAsync(agent.Id, "  ", w.Admin.Id, default));
+        await Assert.ThrowsAsync<BusinessRuleException>(() => w.Service.RevokeAsync(agent.Id, "  ", w.Admin.Id, default));
         Assert.True((await w.Db.InstrumentAgents.SingleAsync()).IsActive);
 
         await w.Service.RevokeAsync(agent.Id, "PC stolen", w.Admin.Id, default);
@@ -206,8 +206,8 @@ public class InstrumentAgentServiceTests
         Assert.Equal(("INSTRUMENT_AGENT_REVOKED", AuditActionCategory.Security, "PC stolen"), (ev.Code, ev.Category, ev.Reason));
 
         // A revoked agent can neither rotate nor be revoked again.
-        await Assert.ThrowsAsync<InvalidOperationException>(() => w.Service.RotateKeyAsync(agent.Id, w.Admin.Id, default));
-        await Assert.ThrowsAsync<InvalidOperationException>(() => w.Service.RevokeAsync(agent.Id, "again", w.Admin.Id, default));
+        await Assert.ThrowsAsync<BusinessRuleException>(() => w.Service.RotateKeyAsync(agent.Id, w.Admin.Id, default));
+        await Assert.ThrowsAsync<BusinessRuleException>(() => w.Service.RevokeAsync(agent.Id, "again", w.Admin.Id, default));
     }
 
     [Fact]

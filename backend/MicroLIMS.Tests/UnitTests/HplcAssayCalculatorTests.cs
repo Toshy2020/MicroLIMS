@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using MicroLIMS.Application.Helpers;
 using MicroLIMS.Domain.Enums;
 using Xunit;
@@ -79,7 +80,7 @@ public class HplcAssayCalculatorTests
     {
         var std = new AssayStandard(1000m, 50.5m, 99.5m, 0.5m);
 
-        var ex = Assert.Throws<InvalidOperationException>(() =>
+        var ex = Assert.Throws<BusinessRuleException>(() =>
             HplcAssayCalculator.Calculate(1, "Ascorbic Acid", 50m, 200m, std, Array.Empty<AssayReplicateInput>()));
         Assert.Equal("At least one replicate is required.", ex.Message);
     }

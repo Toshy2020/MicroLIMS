@@ -181,16 +181,16 @@ public class SupplierStatedAttributeService
     private static (string Name, string StatedValue) ValidateNameAndValue(string? name, string? statedValue)
     {
         if (string.IsNullOrWhiteSpace(name))
-            throw new InvalidOperationException("Name is required.");
+            throw new BusinessRuleException("Name is required.");
         var trimmedName = name.Trim();
         if (trimmedName.Length > 200)
-            throw new InvalidOperationException("Name must be 200 characters or fewer.");
+            throw new BusinessRuleException("Name must be 200 characters or fewer.");
 
         if (string.IsNullOrWhiteSpace(statedValue))
-            throw new InvalidOperationException("Stated value is required.");
+            throw new BusinessRuleException("Stated value is required.");
         var trimmedValue = statedValue.Trim();
         if (trimmedValue.Length > 500)
-            throw new InvalidOperationException("Stated value must be 500 characters or fewer.");
+            throw new BusinessRuleException("Stated value must be 500 characters or fewer.");
 
         return (trimmedName, trimmedValue);
     }
@@ -208,7 +208,7 @@ public class SupplierStatedAttributeService
 
             var match = itemGrades.FirstOrDefault(g => string.Equals(g, normalized, StringComparison.OrdinalIgnoreCase));
             if (match is null)
-                throw new InvalidOperationException($"Grade {normalized} has no specification for this item.");
+                throw new BusinessRuleException($"Grade {normalized} has no specification for this item.");
 
             return match;
         }

@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.DTOs.Responses;
 using MicroLIMS.Application.Helpers;
@@ -366,7 +367,7 @@ public partial class HplcRunServiceTests
         await db.SaveChangesAsync();
         var service = TestServiceFactory.HplcRun(db, clock: clock);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.StartRunAsync(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => service.StartRunAsync(
             new StartHplcRunRequest(incubator.Id, s.Method.Id, s.Column.Id, new List<HplcMobilePhaseAssignmentInput> { new("A", s.MobilePhasePrep.Id) }),
             s.UserId));
 
@@ -382,7 +383,7 @@ public partial class HplcRunServiceTests
         var service = TestServiceFactory.HplcRun(db, clock: clock);
         await service.StartRunAsync(StartRequest(s), s.UserId);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.StartRunAsync(StartRequest(s), s.UserId));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => service.StartRunAsync(StartRequest(s), s.UserId));
 
         Assert.Contains("already has an open run", ex.Message);
     }
@@ -398,7 +399,7 @@ public partial class HplcRunServiceTests
         await db.SaveChangesAsync();
         var service = TestServiceFactory.HplcRun(db, clock: clock);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.StartRunAsync(StartRequest(s), s.UserId));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => service.StartRunAsync(StartRequest(s), s.UserId));
 
         Assert.Contains("Calibration overdue", ex.Message);
     }
@@ -412,7 +413,7 @@ public partial class HplcRunServiceTests
         await TestServiceFactory.HplcMethod(db).SetActiveAsync(s.Method.Id, false, "retired", s.UserId);
         var service = TestServiceFactory.HplcRun(db, clock: clock);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.StartRunAsync(StartRequest(s), s.UserId));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => service.StartRunAsync(StartRequest(s), s.UserId));
 
         Assert.Contains("inactive", ex.Message);
     }
@@ -428,7 +429,7 @@ public partial class HplcRunServiceTests
         await db.SaveChangesAsync();
         var service = TestServiceFactory.HplcRun(db, clock: clock);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.StartRunAsync(StartRequest(s), s.UserId));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => service.StartRunAsync(StartRequest(s), s.UserId));
 
         Assert.Contains("inactive", ex.Message);
     }
@@ -443,7 +444,7 @@ public partial class HplcRunServiceTests
         var incompatibleColumn = await AddColumnAsync(db, s.Section.Id, otherEquipment, "COL-02");
         var service = TestServiceFactory.HplcRun(db, clock: clock);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.StartRunAsync(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => service.StartRunAsync(
             new StartHplcRunRequest(s.Equipment.Id, s.Method.Id, incompatibleColumn.Id, new List<HplcMobilePhaseAssignmentInput> { new("A", s.MobilePhasePrep.Id) }),
             s.UserId));
 
@@ -458,7 +459,7 @@ public partial class HplcRunServiceTests
         var s = await SeedScenarioAsync(db, clock);
         var service = TestServiceFactory.HplcRun(db, clock: clock);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.StartRunAsync(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => service.StartRunAsync(
             new StartHplcRunRequest(s.Equipment.Id, s.Method.Id, s.Column.Id, new List<HplcMobilePhaseAssignmentInput>()),
             s.UserId));
 
@@ -481,7 +482,7 @@ public partial class HplcRunServiceTests
         var completedDiluent = await diluentPrepService.CompleteAsync(diluentPrep.Id, new CompletePreparationRequest(Password, null), s.UserId, null);
         var service = TestServiceFactory.HplcRun(db, clock: clock);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.StartRunAsync(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => service.StartRunAsync(
             new StartHplcRunRequest(s.Equipment.Id, s.Method.Id, s.Column.Id, new List<HplcMobilePhaseAssignmentInput> { new("A", completedDiluent.Id) }),
             s.UserId));
 
@@ -501,7 +502,7 @@ public partial class HplcRunServiceTests
         var otherPrep = await PrepareMobilePhaseAsync(db, clock, s.UserId, s.MobilePhase, otherMethod, reagentLot2);
         var service = TestServiceFactory.HplcRun(db, clock: clock);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.StartRunAsync(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => service.StartRunAsync(
             new StartHplcRunRequest(s.Equipment.Id, s.Method.Id, s.Column.Id, new List<HplcMobilePhaseAssignmentInput> { new("A", otherPrep.Id) }),
             s.UserId));
 
@@ -517,7 +518,7 @@ public partial class HplcRunServiceTests
         fake.SetUtcNow(SepFirst.AddDays(30)); // past the 7-day shelf life
         var service = TestServiceFactory.HplcRun(db, clock: clock);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.StartRunAsync(StartRequest(s), s.UserId));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => service.StartRunAsync(StartRequest(s), s.UserId));
 
         Assert.Contains("not currently prepared", ex.Message);
     }
@@ -580,7 +581,7 @@ public partial class HplcRunServiceTests
         var run = await service.StartRunAsync(StartRequest(s), s.UserId);
         var analyteId = run.Sst!.Analytes[0].Id;
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.SaveSstAsync(run.Id,
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => service.SaveSstAsync(run.Id,
             new SaveSstRequest(new List<SaveSstAnalyteInput> { new(analyteId, expiredLot.Id, 50m, new List<decimal> { 1000m, 1001m, 1002m }, null, null, null, null, null, null, null) }),
             s.UserId));
 
@@ -598,7 +599,7 @@ public partial class HplcRunServiceTests
         var run = await service.StartRunAsync(StartRequest(s), s.UserId);
         var analyteId = run.Sst!.Analytes[0].Id;
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.SaveSstAsync(run.Id,
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => service.SaveSstAsync(run.Id,
             new SaveSstRequest(new List<SaveSstAnalyteInput> { new(analyteId, lotNoMoisture.Id, 50m, new List<decimal> { 1000m, 1001m, 1002m }, null, null, null, null, null, null, null) }),
             s.UserId));
 
@@ -616,7 +617,7 @@ public partial class HplcRunServiceTests
         var run = await service.StartRunAsync(StartRequest(s), s.UserId);
         var analyteId = run.Sst!.Analytes[0].Id;
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.SaveSstAsync(run.Id,
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => service.SaveSstAsync(run.Id,
             new SaveSstRequest(new List<SaveSstAnalyteInput> { new(analyteId, lot.Id, 0m, new List<decimal> { 1000m, 1001m, 1002m }, null, null, null, null, null, null, null) }),
             s.UserId));
 
@@ -660,7 +661,7 @@ public partial class HplcRunServiceTests
         await service.UploadEvidenceAsync(run.Id, null, HplcEvidenceContext.Sst, HplcEvidenceKind.StandardReport, "report.pdf", "application/pdf", PdfBytes(), s.UserId);
         await service.ConfirmSstAsync(run.Id, new ConfirmSstRequest(Password, null), s.UserId, null);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.SaveSstAsync(run.Id,
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => service.SaveSstAsync(run.Id,
             new SaveSstRequest(new List<SaveSstAnalyteInput> { new(analyteId, lot.Id, 50m, new List<decimal> { 1000m, 1000m, 1000m }, null, null, null, null, null, null, null) }),
             s.UserId));
 
@@ -680,7 +681,7 @@ public partial class HplcRunServiceTests
         var service = TestServiceFactory.HplcRun(db, clock: clock);
         var run = await service.StartRunAsync(StartRequest(s), s.UserId);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.UploadEvidenceAsync(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => service.UploadEvidenceAsync(
             run.Id, null, HplcEvidenceContext.Sst, HplcEvidenceKind.StandardReport, "report.exe", "application/x-msdownload", new byte[] { 1, 2, 3 }, s.UserId));
 
         Assert.Contains("not supported", ex.Message);
@@ -696,7 +697,7 @@ public partial class HplcRunServiceTests
         var run = await service.StartRunAsync(StartRequest(s), s.UserId);
         var oversized = new byte[26_214_401];
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.UploadEvidenceAsync(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => service.UploadEvidenceAsync(
             run.Id, null, HplcEvidenceContext.Sst, HplcEvidenceKind.StandardReport, "report.pdf", "application/pdf", oversized, s.UserId));
 
         Assert.Contains("maximum allowed size", ex.Message);
@@ -756,7 +757,7 @@ public partial class HplcRunServiceTests
         await service.SaveSstAsync(run.Id, new SaveSstRequest(new List<SaveSstAnalyteInput> {
             new(analyteId, lot.Id, 50m, new List<decimal> { 1000m, 1000m, 1000m }, null, null, null, null, null, null, null) }), s.UserId);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(
             () => service.ConfirmSstAsync(run.Id, new ConfirmSstRequest(Password, null), s.UserId, null));
 
         Assert.Contains("standard report", ex.Message);
@@ -780,7 +781,7 @@ public partial class HplcRunServiceTests
 
         Assert.False(saved.CanConfirmSst);
         Assert.Contains("injection #2", saved.CanConfirmSstReason);
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(
             () => service.ConfirmSstAsync(run.Id, new ConfirmSstRequest(Password, null), s.UserId, null));
         Assert.Contains("injection #2", ex.Message);
         Assert.Equal(HplcSstStatus.Pending, (await service.GetRunAsync(run.Id, s.UserId)).Sst!.Status);
@@ -805,7 +806,7 @@ public partial class HplcRunServiceTests
         // The mobile phase preparation (7-day shelf life) expires after selection but before confirmation.
         fake.SetUtcNow(SepFirst.AddDays(10));
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(
             () => service.ConfirmSstAsync(run.Id, new ConfirmSstRequest(Password, null), s.UserId, null));
 
         Assert.Contains("expired since it was selected", ex.Message);
@@ -891,7 +892,7 @@ public partial class HplcRunServiceTests
         var service = TestServiceFactory.HplcRun(db, clock: clock);
         var run = await service.StartRunAsync(StartRequest(s), s.UserId);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => service.AbandonRunAsync(run.Id, "", s.UserId));
+        await Assert.ThrowsAsync<BusinessRuleException>(() => service.AbandonRunAsync(run.Id, "", s.UserId));
 
         var abandoned = await service.AbandonRunAsync(run.Id, "Instrument malfunction.", s.UserId);
         Assert.Equal(HplcRunStatus.Abandoned, abandoned.Status);
@@ -909,7 +910,7 @@ public partial class HplcRunServiceTests
         var run = await service.StartRunAsync(StartRequest(s), s.UserId);
         await service.AbandonRunAsync(run.Id, "First reason", s.UserId);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.AbandonRunAsync(run.Id, "Second reason", s.UserId));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => service.AbandonRunAsync(run.Id, "Second reason", s.UserId));
 
         Assert.Contains("closed", ex.Message);
     }

@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Helpers;
 using MicroLIMS.Application.Services;
@@ -394,7 +395,7 @@ public class DisintegrationWorkflowEngineTests
             UnitMinutes: new List<decimal?> { 15m, 16m, 14m, 18m, 20m, 22m, 19m, 17m, 16m, 15m, 14m, 18m },
             Password: "Password123!");
 
-        var ex1 = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex1 = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             engine.RecordDisintegrationStageAsync(order.Id, stagePayload, analyst.Id));
         Assert.Contains("No active disintegration entry found", ex1.Message);
 
@@ -413,7 +414,7 @@ public class DisintegrationWorkflowEngineTests
         await engine.RecordDisintegrationResultAsync(order.Id, s1PassPayload, analyst.Id);
 
         // Try stage 2 now -> order already finalized
-        var ex2 = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex2 = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             engine.RecordDisintegrationStageAsync(order.Id, stagePayload, analyst.Id));
         Assert.Contains("already at Ready", ex2.Message);
     }
@@ -437,7 +438,7 @@ public class DisintegrationWorkflowEngineTests
             UnitMinutes: new List<decimal?> { 12m, 14m, 15m, 13m, 16m },
             Password: "Password123!");
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             engine.RecordDisintegrationResultAsync(order.Id, badS1Payload, analyst.Id));
         Assert.Contains("Stage 1 disintegration requires exactly 6 units", ex.Message);
     }

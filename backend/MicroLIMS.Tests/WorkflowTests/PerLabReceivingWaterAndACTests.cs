@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.DTOs;
 using MicroLIMS.Application.Helpers;
@@ -257,7 +258,7 @@ public class PerLabReceivingWaterAndACTests
             PreviousProductBatchNumber: "BATCH-A",
             LabSectionId: seed.Micro.Id));
 
-        var exA = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var exA = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             acEngine.PrepareAsync(microSample.Id, new List<int> { fpConfig.Id }, seed.MicroUser.Id));
         Assert.Equal("Part test TOC belongs to another laboratory.", exA.Message);
 
@@ -278,7 +279,7 @@ public class PerLabReceivingWaterAndACTests
             PreviousProductItemId: fpItem.Id,
             Techniques: new() { "UV" }));
 
-        var exB = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var exB = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             acEngine.PrepareAsync(fpSample.Id, new List<int> { microConfig.Id }, seed.FpFpUser.Id));
         Assert.Equal("Part test TAMC belongs to another laboratory.", exB.Message);
     }
@@ -385,7 +386,7 @@ public class PerLabReceivingWaterAndACTests
             ReceivedByUserId: seed.MicroUser.Id,
             LabSectionId: seed.Micro.Id));
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             engine.PrepareAsync(sample.Id, new List<int> { point.Id }, seed.MicroUser.Id, "RoomTemperature"));
         Assert.Equal("None of the selected sampling points has Microbiology Laboratory tests assigned.", ex.Message);
     }

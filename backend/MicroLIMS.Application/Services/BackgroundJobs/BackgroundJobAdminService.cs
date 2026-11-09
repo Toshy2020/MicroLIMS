@@ -133,7 +133,7 @@ public sealed class BackgroundJobAdminService : IBackgroundJobAdminService
                 $"{job.Name} changes GxP state and runs on its schedule only; it cannot be started manually.", null);
 
         var work = _work.FirstOrDefault(w => string.Equals(w.JobName, job.Name, StringComparison.OrdinalIgnoreCase))
-            ?? throw new InvalidOperationException($"{job.Name} has no runnable implementation.");
+            ?? throw new BusinessRuleException($"{job.Name} has no runnable implementation.");
 
         if (_recorder.IsRunning(job.Name))
             return new ManualJobRunResult(ManualJobRunStatus.AlreadyRunning,

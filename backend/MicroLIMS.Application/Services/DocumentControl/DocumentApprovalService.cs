@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using MicroLIMS.Application.Helpers;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.DTOs.DocumentControl;
@@ -69,7 +70,7 @@ public class DocumentApprovalService : IDocumentApprovalService
         // Precondition 1: Revision must be in AwaitingApproval status
         if (revision.RevisionStatus != DocumentRevisionStatus.AwaitingApproval)
         {
-            throw new InvalidOperationException(
+            throw new BusinessRuleException(
                 $"Cannot create an approval task for revision in status '{revision.RevisionStatus}'. Status must be '{DocumentRevisionStatus.AwaitingApproval}'.");
         }
 
@@ -77,7 +78,7 @@ public class DocumentApprovalService : IDocumentApprovalService
         var completedReview = revision.ReviewTasks.FirstOrDefault(t => t.Status == ReviewTaskStatus.Completed);
         if (completedReview == null)
         {
-            throw new InvalidOperationException(
+            throw new BusinessRuleException(
                 "Cannot create an approval task: Revision has not completed technical review.");
         }
 
@@ -85,7 +86,7 @@ public class DocumentApprovalService : IDocumentApprovalService
         var existingPending = revision.ApprovalTasks.FirstOrDefault(t => t.Status == DocumentApprovalTaskStatus.Pending);
         if (existingPending != null)
         {
-            throw new InvalidOperationException(
+            throw new BusinessRuleException(
                 $"An active approval task (ID: {existingPending.Id}) is already pending for this revision.");
         }
 
@@ -100,7 +101,7 @@ public class DocumentApprovalService : IDocumentApprovalService
             .FirstOrDefaultAsync(u => u.Id == request.ApproverUserId);
 
         if (approver == null || !approver.IsActive)
-            throw new InvalidOperationException($"Target approver user {request.ApproverUserId} is invalid or inactive.");
+            throw new BusinessRuleException($"Target approver user {request.ApproverUserId} is invalid or inactive.");
 
         // Approver role eligibility: Reviewer or SectionHead. A System Administrator
         // controls the system, never approves GxP data (21 CFR Part 11 §11.10(d)(g)).
@@ -108,12 +109,12 @@ public class DocumentApprovalService : IDocumentApprovalService
             (approver.Role.Type != RoleType.Reviewer &&
              approver.Role.Type != RoleType.SectionHead))
         {
-            throw new InvalidOperationException($"User '{approver.FullName}' with role '{approver.Role?.Name ?? "None"}' is not eligible to be assigned as an approver.");
+            throw new BusinessRuleException($"User '{approver.FullName}' with role '{approver.Role?.Name ?? "None"}' is not eligible to be assigned as an approver.");
         }
 
         // ...and the role must hold Documents.Approve, or the approver could never act on the task.
         if (!await _auth.CanExecuteApprovalAsync(request.ApproverUserId))
-            throw new InvalidOperationException($"User '{approver.FullName}' with role '{approver.Role?.Name ?? "None"}' is not eligible to be assigned as an approver: the role does not hold the Documents.Approve permission.");
+            throw new BusinessRuleException($"User '{approver.FullName}' with role '{approver.Role?.Name ?? "None"}' is not eligible to be assigned as an approver: the role does not hold the Documents.Approve permission.");
 
         // HARD SEGREGATION OF DUTIES RULE (DC-URS-078, DC-URS-164..169)
         // Author != Approver, Reviewer != Approver. SystemAdministrator is NOT exempt!
@@ -409,7 +410,7 @@ public class DocumentApprovalService : IDocumentApprovalService
             throw new KeyNotFoundException($"Document approval task {approvalTaskId} not found.");
 
         if (task.Status != DocumentApprovalTaskStatus.Pending)
-            throw new InvalidOperationException($"Cannot execute decision on approval task in status '{task.Status}'.");
+            throw new BusinessRuleException($"Cannot execute decision on approval task in status '{task.Status}'.");
 
         var revision = task.DocumentRevision;
 
@@ -538,14 +539,14 @@ public class DocumentApprovalService : IDocumentApprovalService
         // An approval decision strictly requires authenticated password re-entry.
         if (string.IsNullOrWhiteSpace(request.Password))
         {
-            throw new InvalidOperationException("Password re-authentication is required to apply an electronic signature for approval (21 CFR Part 11).");
+            throw new BusinessRuleException("Password re-authentication is required to apply an electronic signature for approval (21 CFR Part 11).");
         }
 
         // Verify readiness strictly server-side
         var readiness = EvaluateReadiness(task, userId);
         if (!readiness.IsReady)
         {
-            throw new InvalidOperationException(
+            throw new BusinessRuleException(
                 "Cannot approve document revision: Prerequisites not met. Errors: " + string.Join("; ", readiness.ValidationErrors));
         }
 
@@ -554,7 +555,7 @@ public class DocumentApprovalService : IDocumentApprovalService
             .AnyAsync(s => s.EntityType == "DocumentRevision" && s.EntityId == revision.Id && s.MeaningOfSignature == SignatureMeaning.Approved);
         if (existingSig)
         {
-            throw new InvalidOperationException($"An electronic signature for approval has already been applied to revision {revision.RevisionNumber}.");
+            throw new BusinessRuleException($"An electronic signature for approval has already been applied to revision {revision.RevisionNumber}.");
         }
 
         // Execute 21 CFR Part 11 Electronic Signature ceremony via qualified IElectronicSignatureService

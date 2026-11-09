@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Services;
 using MicroLIMS.Domain.Entities;
@@ -132,7 +133,7 @@ public partial class HplcMethodServiceTests
         var req = Req(diluent.Id, new List<HplcMobilePhaseInput> { new("A", mp.Id, null) }, new List<HplcAnalyteInput> { AnalyteInput(standard.Id) });
         await service.CreateAsync(req, userId);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.CreateAsync(req, userId));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => service.CreateAsync(req, userId));
         Assert.Contains("already exists", ex.Message);
     }
 
@@ -146,7 +147,7 @@ public partial class HplcMethodServiceTests
 
         var req = Req(diluent.Id, new List<HplcMobilePhaseInput> { new("A", mp.Id, null) }, new List<HplcAnalyteInput>());
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.CreateAsync(req, userId));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => service.CreateAsync(req, userId));
         Assert.Contains("analyte", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -160,7 +161,7 @@ public partial class HplcMethodServiceTests
 
         var req = Req(diluent.Id, new List<HplcMobilePhaseInput>(), new List<HplcAnalyteInput> { AnalyteInput(standard.Id) });
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.CreateAsync(req, userId));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => service.CreateAsync(req, userId));
         Assert.Contains("mobile phase", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -176,7 +177,7 @@ public partial class HplcMethodServiceTests
         var req = Req(diluent.Id, new List<HplcMobilePhaseInput> { new("A", mp.Id, null) },
             new List<HplcAnalyteInput> { AnalyteInput(standard.Id, "Same"), AnalyteInput(standard2.Id, "same") });
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.CreateAsync(req, userId));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => service.CreateAsync(req, userId));
         Assert.Contains("more than once", ex.Message);
     }
 
@@ -191,7 +192,7 @@ public partial class HplcMethodServiceTests
 
         var req = Req(diluent.Id, new List<HplcMobilePhaseInput> { new("A", mp.Id, null) }, new List<HplcAnalyteInput> { AnalyteInput(reagent.Id) });
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.CreateAsync(req, userId));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => service.CreateAsync(req, userId));
         Assert.Contains("reference standard", ex.Message);
     }
 
@@ -206,7 +207,7 @@ public partial class HplcMethodServiceTests
         var analyte = new HplcAnalyteInput(null, "A1", 254m, standard.Id, 0m, 50m, 5);
         var req = Req(diluent.Id, new List<HplcMobilePhaseInput> { new("A", mp.Id, null) }, new List<HplcAnalyteInput> { analyte });
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.CreateAsync(req, userId));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => service.CreateAsync(req, userId));
         Assert.Contains("Theoretical weight", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -221,7 +222,7 @@ public partial class HplcMethodServiceTests
         var analyte = new HplcAnalyteInput(null, "A1", 254m, standard.Id, 50m, 50m, 5, StandardDilution: 0m);
         var req = Req(diluent.Id, new List<HplcMobilePhaseInput> { new("A", mp.Id, null) }, new List<HplcAnalyteInput> { analyte });
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.CreateAsync(req, userId));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => service.CreateAsync(req, userId));
         Assert.Contains("Standard dilution", ex.Message);
     }
 
@@ -251,7 +252,7 @@ public partial class HplcMethodServiceTests
         var analyte = new HplcAnalyteInput(null, "A1", 254m, standard.Id, 50m, 50m, 0);
         var req = Req(diluent.Id, new List<HplcMobilePhaseInput> { new("A", mp.Id, null) }, new List<HplcAnalyteInput> { analyte });
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.CreateAsync(req, userId));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => service.CreateAsync(req, userId));
         Assert.Contains("Standard injections", ex.Message);
     }
 
@@ -265,7 +266,7 @@ public partial class HplcMethodServiceTests
 
         var req = Req(diluent.Id, new List<HplcMobilePhaseInput> { new("E", mp.Id, null) }, new List<HplcAnalyteInput> { AnalyteInput(standard.Id) });
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.CreateAsync(req, userId));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => service.CreateAsync(req, userId));
         Assert.Contains("A, B, C or D", ex.Message);
     }
 
@@ -280,7 +281,7 @@ public partial class HplcMethodServiceTests
 
         var req = Req(diluent.Id, new List<HplcMobilePhaseInput> { new("A", mp.Id, null), new("A", mp2.Id, null) }, new List<HplcAnalyteInput> { AnalyteInput(standard.Id) });
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.CreateAsync(req, userId));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => service.CreateAsync(req, userId));
         Assert.Contains("used more than once", ex.Message);
     }
 
@@ -294,7 +295,7 @@ public partial class HplcMethodServiceTests
 
         var req = Req(diluent.Id, new List<HplcMobilePhaseInput> { new("A", diluent.Id, null) }, new List<HplcAnalyteInput> { AnalyteInput(standard.Id) });
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.CreateAsync(req, userId));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => service.CreateAsync(req, userId));
         Assert.Contains("MobilePhase", ex.Message);
     }
 
@@ -308,7 +309,7 @@ public partial class HplcMethodServiceTests
 
         var req = Req(mp.Id, new List<HplcMobilePhaseInput> { new("A", mp.Id, null) }, new List<HplcAnalyteInput> { AnalyteInput(standard.Id) });
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.CreateAsync(req, userId));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => service.CreateAsync(req, userId));
         Assert.Contains("type Diluent", ex.Message);
     }
 
@@ -323,7 +324,7 @@ public partial class HplcMethodServiceTests
         var req = Req(diluent.Id, new List<HplcMobilePhaseInput> { new("A", mp.Id, null) }, new List<HplcAnalyteInput> { AnalyteInput(standard.Id) },
             elutionMode: ElutionMode.Gradient);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.CreateAsync(req, userId));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => service.CreateAsync(req, userId));
         Assert.Contains("at least 2 steps", ex.Message);
     }
 
@@ -339,7 +340,7 @@ public partial class HplcMethodServiceTests
         var req = Req(diluent.Id, new List<HplcMobilePhaseInput> { new("A", mp.Id, null) }, new List<HplcAnalyteInput> { AnalyteInput(standard.Id) },
             elutionMode: ElutionMode.Isocratic, gradientSteps: steps);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.CreateAsync(req, userId));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => service.CreateAsync(req, userId));
         Assert.Contains("must not have gradient steps", ex.Message);
     }
 
@@ -360,7 +361,7 @@ public partial class HplcMethodServiceTests
         var req = Req(diluent.Id, new List<HplcMobilePhaseInput> { new("A", mp.Id, null), new("B", mp2.Id, null) },
             new List<HplcAnalyteInput> { AnalyteInput(standard.Id) }, elutionMode: ElutionMode.Gradient, gradientSteps: steps);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.CreateAsync(req, userId));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => service.CreateAsync(req, userId));
         Assert.Contains("must equal 100", ex.Message);
     }
 
@@ -376,7 +377,7 @@ public partial class HplcMethodServiceTests
         var req = Req(diluent.Id, new List<HplcMobilePhaseInput> { new("A", mp.Id, 60m), new("B", mp2.Id, 30m) },
             new List<HplcAnalyteInput> { AnalyteInput(standard.Id) });
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.CreateAsync(req, userId));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => service.CreateAsync(req, userId));
         Assert.Contains("sum to 100", ex.Message);
     }
 
@@ -391,7 +392,7 @@ public partial class HplcMethodServiceTests
         var req = Req(diluent.Id, new List<HplcMobilePhaseInput> { new("A", mp.Id, null) }, new List<HplcAnalyteInput> { AnalyteInput(standard.Id) });
         var created = await service.CreateAsync(req, userId);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.UpdateAsync(created.Id, req, userId));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => service.UpdateAsync(created.Id, req, userId));
         Assert.Contains("reason", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -454,7 +455,7 @@ public partial class HplcMethodServiceTests
         var updateReq = Req(diluent.Id, new List<HplcMobilePhaseInput> { new("A", mp.Id, null) },
             new List<HplcAnalyteInput> { AnalyteInput(standard2.Id, "Analyte 2") }, reason: "Swap analyte");
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.UpdateAsync(created.Id, updateReq, userId));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => service.UpdateAsync(created.Id, updateReq, userId));
         Assert.Contains("used by specifications", ex.Message);
     }
 
@@ -494,7 +495,7 @@ public partial class HplcMethodServiceTests
         var req = Req(diluent.Id, new List<HplcMobilePhaseInput> { new("A", mp.Id, null) }, new List<HplcAnalyteInput> { AnalyteInput(standard.Id) });
         var created = await service.CreateAsync(req, userId);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.SetActiveAsync(created.Id, false, "", userId));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => service.SetActiveAsync(created.Id, false, "", userId));
         Assert.Contains("reason", ex.Message, StringComparison.OrdinalIgnoreCase);
 
         var deactivated = await service.SetActiveAsync(created.Id, false, "No longer used", userId);
@@ -524,7 +525,7 @@ public partial class HplcMethodServiceTests
         var standard2 = await AddEntryAsync(db, section.Id, "STD-02");
         var updateReq = Req(diluent.Id, new List<HplcMobilePhaseInput> { new("A", mp.Id, null) },
             new List<HplcAnalyteInput> { AnalyteInput(standard2.Id, "Analyte 2") }, reason: "Swap analyte");
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.UpdateAsync(created.Id, updateReq, userId));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => service.UpdateAsync(created.Id, updateReq, userId));
         Assert.Contains("working standard qualifications", ex.Message);
     }
 }

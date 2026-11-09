@@ -135,7 +135,7 @@ public class MaterialCategoryService
 
         var hasEntries = await _db.MaterialMasterEntries.AnyAsync(e => e.MaterialCategoryId == id, ct);
         if (prefix != category.CodePrefix && hasEntries)
-            throw new InvalidOperationException("This category has master entries; its code prefix can't change.");
+            throw new BusinessRuleException("This category has master entries; its code prefix can't change.");
         await EnsureUniqueAsync(name, prefix, id, ct);
         var sectionIds = await ResolveSectionsAsync(r.SectionIds, ct);
 
@@ -196,9 +196,9 @@ public class MaterialCategoryService
     private static string RequireReason(SaveMaterialCategoryRequest r)
     {
         if (string.IsNullOrWhiteSpace(r.Reason))
-            throw new InvalidOperationException("A reason for the change is required.");
+            throw new BusinessRuleException("A reason for the change is required.");
         if (string.IsNullOrEmpty(r.Password))
-            throw new InvalidOperationException("Your password is required to sign the change.");
+            throw new BusinessRuleException("Your password is required to sign the change.");
         return r.Reason.Trim();
     }
 
@@ -207,20 +207,20 @@ public class MaterialCategoryService
     private static (string Name, string Prefix, string? Storage) Validate(SaveMaterialCategoryRequest r, string? currentPrefix)
     {
         var name = r.Name?.Trim() ?? string.Empty;
-        if (name.Length == 0) throw new InvalidOperationException("Name is required.");
-        if (name.Length > 100) throw new InvalidOperationException("Name can be at most 100 characters.");
+        if (name.Length == 0) throw new BusinessRuleException("Name is required.");
+        if (name.Length > 100) throw new BusinessRuleException("Name can be at most 100 characters.");
 
         var prefix = r.CodePrefix?.Trim().ToUpperInvariant() ?? string.Empty;
         if (prefix != currentPrefix)
         {
             if (!PrefixPattern.IsMatch(prefix))
-                throw new InvalidOperationException("The code prefix must be 2 to 5 letters (A-Z), without a dash.");
+                throw new BusinessRuleException("The code prefix must be 2 to 5 letters (A-Z), without a dash.");
             if (ReservedPrefixes.Contains(prefix))
-                throw new InvalidOperationException($"The prefix \"{prefix}-\" belongs to another material group; choose a different one.");
+                throw new BusinessRuleException($"The prefix \"{prefix}-\" belongs to another material group; choose a different one.");
         }
 
         var storage = string.IsNullOrWhiteSpace(r.DefaultStorageCondition) ? null : r.DefaultStorageCondition.Trim();
-        if (storage is { Length: > 100 }) throw new InvalidOperationException("Storage condition can be at most 100 characters.");
+        if (storage is { Length: > 100 }) throw new BusinessRuleException("Storage condition can be at most 100 characters.");
         return (name, prefix, storage);
     }
 
@@ -228,9 +228,9 @@ public class MaterialCategoryService
     {
         var lower = name.ToLower();
         if (await _db.MaterialCategories.AnyAsync(c => c.Id != exceptId && c.Name.ToLower() == lower, ct))
-            throw new InvalidOperationException($"A material category named \"{name}\" already exists.");
+            throw new BusinessRuleException($"A material category named \"{name}\" already exists.");
         if (await _db.MaterialCategories.AnyAsync(c => c.Id != exceptId && c.CodePrefix == prefix, ct))
-            throw new InvalidOperationException($"The code prefix \"{prefix}\" is already used by another category.");
+            throw new BusinessRuleException($"The code prefix \"{prefix}\" is already used by another category.");
     }
 
     private async Task<HashSet<int>> ResolveSectionsAsync(IReadOnlyList<int>? requested, CancellationToken ct)
@@ -239,7 +239,7 @@ public class MaterialCategoryService
         if (ids.Count == 0) return ids;
         var found = await _db.DocumentSections.Where(s => ids.Contains(s.Id) && s.IsActive).Select(s => s.Id).ToListAsync(ct);
         if (found.Count != ids.Count)
-            throw new InvalidOperationException("One or more of the selected sections do not exist or are inactive.");
+            throw new BusinessRuleException("One or more of the selected sections do not exist or are inactive.");
         return ids;
     }
 

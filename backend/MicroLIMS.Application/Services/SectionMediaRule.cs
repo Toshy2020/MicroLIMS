@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Application.Abstractions.Persistence;
@@ -13,9 +14,9 @@ public static class SectionMediaRule
     public static void EnsureLot(Media lot, int sectionId)
     {
         var lotSection = lot.Material?.SectionId
-            ?? throw new InvalidOperationException($"Media lot \"{lot.LotNumber}\" has no source material loaded.");
+            ?? throw new BusinessRuleException($"Media lot \"{lot.LotNumber}\" has no source material loaded.");
         if (lotSection != sectionId)
-            throw new InvalidOperationException(
+            throw new BusinessRuleException(
                 $"Media lot \"{lot.LotNumber}\" was prepared from another laboratory section's material and cannot be used for this test.");
     }
 
@@ -33,7 +34,7 @@ public static class SectionMediaRule
             .Select(m => m.MaterialName)
             .ToListAsync(ct);
         if (foreign.Count > 0)
-            throw new InvalidOperationException(
+            throw new BusinessRuleException(
                 $"{string.Join(", ", foreign.Select(n => $"\"{n}\""))} belongs to another laboratory section and cannot be used for this test.");
     }
 
@@ -45,7 +46,7 @@ public static class SectionMediaRule
             .Select(m => m.LotNumber)
             .ToListAsync(ct);
         if (foreign.Count > 0)
-            throw new InvalidOperationException(
+            throw new BusinessRuleException(
                 $"Media lot {string.Join(", ", foreign.Select(n => $"\"{n}\""))} was prepared from another laboratory section's material and cannot be used for this test.");
     }
 }

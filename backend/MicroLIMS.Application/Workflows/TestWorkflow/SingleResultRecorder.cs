@@ -31,10 +31,10 @@ public sealed class SingleResultRecorder : TestWorkflowSupport
             testOrderId, payload.AnalysedAt, payload.EquipmentId, suppliedSpecIds, payload.Password, WorkflowType.Measurement, userId);
 
         if (!definition.ReplicateCount.HasValue || definition.ReplicateCount.Value < 1 || definition.ReplicateCount.Value > 30)
-            throw new InvalidOperationException("Test definition does not have a valid replicate count (1-30).");
+            throw new BusinessRuleException("Test definition does not have a valid replicate count (1-30).");
 
         if (!definition.EvaluationBasis.HasValue)
-            throw new InvalidOperationException("Test definition does not have an evaluation basis configured.");
+            throw new BusinessRuleException("Test definition does not have an evaluation basis configured.");
 
         int replicateCount = definition.ReplicateCount.Value;
         var evaluationBasis = definition.EvaluationBasis.Value;
@@ -44,7 +44,7 @@ public sealed class SingleResultRecorder : TestWorkflowSupport
         foreach (var param in payload.Parameters)
         {
             if (param.Readings == null || param.Readings.Count != replicateCount)
-                throw new InvalidOperationException($"Each parameter must have exactly {replicateCount} readings.");
+                throw new BusinessRuleException($"Each parameter must have exactly {replicateCount} readings.");
         }
 
         var parameterResults = new List<ParameterResult>();
@@ -116,10 +116,10 @@ public sealed class SingleResultRecorder : TestWorkflowSupport
             testOrderId, payload.AnalysedAt, payload.EquipmentId, suppliedSpecIds, payload.Password, WorkflowType.Gravimetric, userId);
 
         if (definition.EquationType is not (EquationType.GravimetricLoss or EquationType.GravimetricResidue))
-            throw new InvalidOperationException("Test definition equation type must be GravimetricLoss or GravimetricResidue.");
+            throw new BusinessRuleException("Test definition equation type must be GravimetricLoss or GravimetricResidue.");
 
         if (!definition.ReplicateCount.HasValue || definition.ReplicateCount.Value < 1 || definition.ReplicateCount.Value > 30)
-            throw new InvalidOperationException("Test definition does not have a valid replicate count (1-30).");
+            throw new BusinessRuleException("Test definition does not have a valid replicate count (1-30).");
 
         int replicateCount = definition.ReplicateCount.Value;
         bool usesTare = definition.UsesTare ?? false;
@@ -129,14 +129,14 @@ public sealed class SingleResultRecorder : TestWorkflowSupport
         foreach (var param in payload.Parameters)
         {
             if (param.Replicates == null || param.Replicates.Count != replicateCount)
-                throw new InvalidOperationException($"Each parameter must have exactly {replicateCount} replicates.");
+                throw new BusinessRuleException($"Each parameter must have exactly {replicateCount} replicates.");
 
             foreach (var rep in param.Replicates)
             {
                 if (usesTare && !rep.Container.HasValue)
-                    throw new InvalidOperationException("Container weight is required when tare is used.");
+                    throw new BusinessRuleException("Container weight is required when tare is used.");
                 if (!usesTare && rep.Container.HasValue)
-                    throw new InvalidOperationException("Container weight must be null when tare is not used.");
+                    throw new BusinessRuleException("Container weight must be null when tare is not used.");
             }
         }
 
@@ -150,27 +150,27 @@ public sealed class SingleResultRecorder : TestWorkflowSupport
         if (configuredLabels.Length > 0)
         {
             if (payload.Conditions == null)
-                throw new InvalidOperationException("Conditions are required.");
+                throw new BusinessRuleException("Conditions are required.");
 
             if (payload.Conditions.Count != configuredLabels.Length)
-                throw new InvalidOperationException($"Expected {configuredLabels.Length} condition fields, but received {payload.Conditions.Count}.");
+                throw new BusinessRuleException($"Expected {configuredLabels.Length} condition fields, but received {payload.Conditions.Count}.");
 
             foreach (var label in configuredLabels)
             {
                 if (!payload.Conditions.TryGetValue(label, out var val) || string.IsNullOrWhiteSpace(val))
-                    throw new InvalidOperationException($"Condition field \"{label}\" is required.");
+                    throw new BusinessRuleException($"Condition field \"{label}\" is required.");
             }
 
             foreach (var key in payload.Conditions.Keys)
             {
                 if (!configuredLabels.Contains(key))
-                    throw new InvalidOperationException($"Unexpected condition field \"{key}\".");
+                    throw new BusinessRuleException($"Unexpected condition field \"{key}\".");
             }
         }
         else
         {
             if (payload.Conditions != null && payload.Conditions.Count > 0)
-                throw new InvalidOperationException("No condition fields are configured for this test.");
+                throw new BusinessRuleException("No condition fields are configured for this test.");
         }
 
         string? conditionsJson = payload.Conditions != null && payload.Conditions.Count > 0
@@ -273,12 +273,12 @@ public sealed class SingleResultRecorder : TestWorkflowSupport
             testOrderId, payload.AnalysedAt, payload.EquipmentId, suppliedSpecIds, payload.Password, WorkflowType.Qualitative, userId);
 
         if (definition.EquationType != EquationType.Qualitative)
-            throw new InvalidOperationException("Test definition equation type must be Qualitative.");
+            throw new BusinessRuleException("Test definition equation type must be Qualitative.");
 
         foreach (var spec in specById.Values)
         {
             if (spec.LimitType is not (LimitType.Qualitative or LimitType.PresenceAbsence))
-                throw new InvalidOperationException($"Specification \"{spec.ParameterName}\" must have limit type Qualitative or PresenceAbsence, but was {spec.LimitType}.");
+                throw new BusinessRuleException($"Specification \"{spec.ParameterName}\" must have limit type Qualitative or PresenceAbsence, but was {spec.LimitType}.");
         }
 
         ArgumentNullException.ThrowIfNull(payload.Parameters);
@@ -287,36 +287,36 @@ public sealed class SingleResultRecorder : TestWorkflowSupport
         var containerCount = payload.ContainerCount ?? 0;
 
         if (!perContainer && (payload.ContainerCount != null || payload.Parameters.Any(p => p.Containers is { Count: > 0 })))
-            throw new InvalidOperationException("This test is not recorded per container.");
+            throw new BusinessRuleException("This test is not recorded per container.");
 
         if (perContainer && containerCount is < 1 or > 200)
-            throw new InvalidOperationException("Enter the number of containers received (1 to 200).");
+            throw new BusinessRuleException("Enter the number of containers received (1 to 200).");
 
         foreach (var param in payload.Parameters)
         {
             if (param.Observation != null && param.Observation.Length > 500)
-                throw new InvalidOperationException("Observation cannot exceed 500 characters.");
+                throw new BusinessRuleException("Observation cannot exceed 500 characters.");
 
             if (perContainer)
             {
                 // The conclusion is derived from the containers; the parameter-level Conforms is ignored.
                 if (param.Containers == null
                     || !param.Containers.Select(c => c.Index).Order().SequenceEqual(Enumerable.Range(1, containerCount)))
-                    throw new InvalidOperationException($"Record a result for each container 1 to {containerCount}.");
+                    throw new BusinessRuleException($"Record a result for each container 1 to {containerCount}.");
 
                 foreach (var c in param.Containers)
                 {
                     if (!c.Conforms && string.IsNullOrWhiteSpace(c.Observation))
-                        throw new InvalidOperationException($"Describe what container {c.Index} shows.");
+                        throw new BusinessRuleException($"Describe what container {c.Index} shows.");
 
                     if (c.Observation != null && c.Observation.Length > 500)
-                        throw new InvalidOperationException("Observation cannot exceed 500 characters.");
+                        throw new BusinessRuleException("Observation cannot exceed 500 characters.");
                 }
                 continue;
             }
 
             if (!param.Conforms && string.IsNullOrWhiteSpace(param.Observation))
-                throw new InvalidOperationException("An observation is required when result does not conform.");
+                throw new BusinessRuleException("An observation is required when result does not conform.");
         }
 
         var parameterResults = new List<ParameterResult>();

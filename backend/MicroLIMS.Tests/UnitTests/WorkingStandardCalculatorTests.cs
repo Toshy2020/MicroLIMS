@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using MicroLIMS.Application.Helpers;
 using Xunit;
 
@@ -60,6 +61,6 @@ public class WorkingStandardCalculatorTests
     [InlineData("-0.1")]
     [InlineData("100")]
     public void DriedBasisPotency_MoistureOutOfRange_Throws(string mc) =>
-        Assert.Throws<InvalidOperationException>(() =>
+        Assert.Throws<BusinessRuleException>(() =>
             WorkingStandardCalculator.DriedBasisPotency(99m, decimal.Parse(mc, System.Globalization.CultureInfo.InvariantCulture)));
 }

@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.API.Controllers;
@@ -279,7 +280,7 @@ public class ReturnToAnalystTests
 
         var reviewService = TestServiceFactory.SampleReview(db);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             reviewService.ReturnToAnalystAsync(order.Id, reviewerId: 99, "Try again"));
 
         Assert.Contains("only supported for Count Test and result-entry (analysis) workflows", ex.Message);
@@ -311,7 +312,7 @@ public class ReturnToAnalystTests
 
         var reviewService = TestServiceFactory.SampleReview(db);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             reviewService.ReturnToAnalystAsync(order.Id, reviewerId: 99, "Premature return"));
 
         Assert.Contains("Only test orders in ResultEntered status can be returned", ex.Message);
@@ -704,7 +705,7 @@ public class ReturnToAnalystTests
         await db.SaveChangesAsync();
 
         var reviewService = TestServiceFactory.SampleReview(db);
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             reviewService.ReturnToAnalystAsync(order.Id, reviewer.Id, "Need recount"));
 
         Assert.Equal("Cannot return a test to the analyst after the sample has been reviewed. Use Reject or Retest at approval instead.", ex.Message);
@@ -721,7 +722,7 @@ public class ReturnToAnalystTests
         await db.SaveChangesAsync();
 
         var reviewService = TestServiceFactory.SampleReview(db);
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             reviewService.ReturnToAnalystAsync(order.Id, reviewer.Id, "Need recount"));
 
         Assert.Equal("Cannot return a test to the analyst after the sample has been reviewed. Use Reject or Retest at approval instead.", ex.Message);

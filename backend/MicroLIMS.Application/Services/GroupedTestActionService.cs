@@ -441,14 +441,14 @@ public class GroupedTestActionService
         {
             if (!request.MediaLotId.HasValue || request.MediaLotId.Value <= 0)
             {
-                throw new InvalidOperationException("Media lot must be selected for this workflow transition.");
+                throw new BusinessRuleException("Media lot must be selected for this workflow transition.");
             }
 
             media = await _db.Media.Include(m => m.Material)
                 .FirstOrDefaultAsync(m => m.Id == request.MediaLotId.Value, ct);
             if (media == null)
             {
-                throw new InvalidOperationException($"Media lot {request.MediaLotId.Value} was not found.");
+                throw new BusinessRuleException($"Media lot {request.MediaLotId.Value} was not found.");
             }
             BatchSelectMediaRules.EnsureMediaLotUsable(media, _time.GetUtcNow().UtcDateTime);
         }
@@ -720,7 +720,7 @@ public class GroupedTestActionService
             .Include(t => t.Steps).ThenInclude(s => s.StepMedia).ThenInclude(m => m.IncubationCondition)
             .Include(t => t.Steps).ThenInclude(s => s.IncubationStages)
             .FirstOrDefaultAsync(t => t.Code == order.TestCode, ct)
-            ?? throw new InvalidOperationException($"Test definition \"{order.TestCode}\" not found.");
+            ?? throw new BusinessRuleException($"Test definition \"{order.TestCode}\" not found.");
         return (order, definition);
     }
 }

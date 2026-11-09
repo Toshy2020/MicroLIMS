@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Workflows;
 using MicroLIMS.Domain.Entities;
@@ -130,7 +131,7 @@ public class BiochemicalPredecessorTests
         // so this also exercises RequireOrderNotFinalized's rejection -
         // there is no scenario where a non-conforming plate leaves the
         // biochemical step reachable.
-        await Assert.ThrowsAsync<InvalidOperationException>(
+        await Assert.ThrowsAsync<BusinessRuleException>(
             () => engine.SubmitBiochemicalAsync(order.Id, "Oxidase", "Oxidase positive.", null, true, AnalystId));
     }
 
@@ -157,7 +158,7 @@ public class BiochemicalPredecessorTests
 
         var engine = TestServiceFactory.TestWorkflow(db);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(
             () => engine.SubmitBiochemicalAsync(order.Id, "Gram Stain", "Gram negative.", null, true, AnalystId));
         Assert.Contains("no preceding selective or confirmatory plating step", ex.Message);
     }

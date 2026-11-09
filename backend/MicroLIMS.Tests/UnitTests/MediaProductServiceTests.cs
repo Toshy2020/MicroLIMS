@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Application.Services;
@@ -50,7 +51,7 @@ public class MediaProductServiceTests
         await using var db = NewDb();
         var service = TestServiceFactory.MediaProduct(db);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(
             () => service.CreateAsync("Test Product", invalidCode));
         Assert.Contains("code must be 2-10 characters", ex.Message);
     }
@@ -78,7 +79,7 @@ public class MediaProductServiceTests
         var service = TestServiceFactory.MediaProduct(db);
         await service.CreateAsync("Tryptic Soy Agar", "TSA");
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(
             () => service.CreateAsync("tryptic soy agar", "TSA2"));
         Assert.Contains("already exists", ex.Message);
     }
@@ -90,7 +91,7 @@ public class MediaProductServiceTests
         var service = TestServiceFactory.MediaProduct(db);
         await service.CreateAsync("Tryptic Soy Agar", "TSA");
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(
             () => service.CreateAsync("Another TSA", "tsa"));
         Assert.Contains("already exists", ex.Message);
     }
@@ -155,7 +156,7 @@ public class MediaProductServiceTests
         });
         await db.SaveChangesAsync();
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(
             () => service.DeleteAsync(product.Id));
         Assert.Contains("referenced by 1 media configuration(s)", ex.Message);
         Assert.True(await db.MediaProducts.AnyAsync(p => p.Id == product.Id));
@@ -183,7 +184,7 @@ public class MediaProductServiceTests
         });
         await db.SaveChangesAsync();
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(
             () => service.DeleteAsync(product.Id));
         Assert.Contains("referenced by 0 media configuration(s) and 1 material batch(es)", ex.Message);
         Assert.True(await db.MediaProducts.AnyAsync(p => p.Id == product.Id));
@@ -266,7 +267,7 @@ public class MediaProductServiceTests
         });
         await db.SaveChangesAsync();
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(
             () => service.DeleteAsync(product.Id));
         Assert.Contains("used by 1 Test Master step medium/media", ex.Message);
         Assert.True(await db.MediaProducts.AnyAsync(p => p.Id == product.Id));
@@ -286,7 +287,7 @@ public class MediaProductServiceTests
         });
         await db.SaveChangesAsync();
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.DeleteAsync(product.Id));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => service.DeleteAsync(product.Id));
         Assert.Contains("diluent or neutralizer of 1 Item preparation configuration", ex.Message);
         Assert.True(await db.MediaProducts.AnyAsync(p => p.Id == product.Id));
     }
@@ -299,7 +300,7 @@ public class MediaProductServiceTests
         var service = TestServiceFactory.MediaProduct(db);
         var product = await service.CreateAsync("TSA", "TSA");
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(
             () => service.ChangeCodeAsync(product.Id, "TSAX", "   ", Password, user.Id, "127.0.0.1"));
         Assert.Contains("reason for the code change is required", ex.Message);
     }
@@ -312,7 +313,7 @@ public class MediaProductServiceTests
         var service = TestServiceFactory.MediaProduct(db);
         var product = await service.CreateAsync("TSA", "TSA");
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(
             () => service.ChangeCodeAsync(product.Id, "TSA", "Reason for change", Password, user.Id, "127.0.0.1"));
         Assert.Contains("new code must be different", ex.Message);
     }
@@ -326,7 +327,7 @@ public class MediaProductServiceTests
         var productA = await service.CreateAsync("TSA", "TSA");
         await service.CreateAsync("R2A", "R2A");
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(
             () => service.ChangeCodeAsync(productA.Id, "r2a", "Reason for change", Password, user.Id, "127.0.0.1"));
         Assert.Contains("already exists", ex.Message);
     }

@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using System.Text.Json;
 using DocumentFormat.OpenXml.Packaging;
 using Microsoft.EntityFrameworkCore;
@@ -97,7 +98,7 @@ public class ControlChartReportServiceTests
     {
         var (db, userId) = await SeedAsync();
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        await Assert.ThrowsAsync<BusinessRuleException>(() =>
             NewService(db).GenerateAsync(Request(ControlChartReportFormat.Pdf, Section(image: image)), userId));
         Assert.Empty(db.DataExportLogs);
     }
@@ -108,10 +109,10 @@ public class ControlChartReportServiceTests
         var (db, userId) = await SeedAsync();
         var service = NewService(db);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => service.GenerateAsync(Request(ControlChartReportFormat.Pdf), userId));
-        await Assert.ThrowsAsync<InvalidOperationException>(() => service.GenerateAsync(
+        await Assert.ThrowsAsync<BusinessRuleException>(() => service.GenerateAsync(Request(ControlChartReportFormat.Pdf), userId));
+        await Assert.ThrowsAsync<BusinessRuleException>(() => service.GenerateAsync(
             Request(ControlChartReportFormat.Pdf, Enumerable.Range(0, ControlChartReportService.MaxSections + 1).Select(_ => Section()).ToArray()), userId));
-        await Assert.ThrowsAsync<InvalidOperationException>(() => service.GenerateAsync(
+        await Assert.ThrowsAsync<BusinessRuleException>(() => service.GenerateAsync(
             Request(ControlChartReportFormat.Pdf, Section()) with { Title = " " }, userId));
     }
 }

@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Services;
@@ -94,7 +95,7 @@ public class TitrationRegressionTests
         Assert.False(opt.Usable);
         Assert.Equal("This titrant preparation has not been standardized.", opt.BlockReason);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        await Assert.ThrowsAsync<BusinessRuleException>(() =>
             Record(db, s, TitrationRecorderTests.Payload(s)));
     }
 

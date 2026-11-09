@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.DTOs;
 using MicroLIMS.Application.Workflows;
@@ -328,7 +329,7 @@ public class GroupedTestActionTests
             IncubatorEquipmentId: incubator.Id
         );
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        await Assert.ThrowsAsync<BusinessRuleException>(() =>
             service.ExecuteBatchSelectMediaAsync(request, 5, RoleType.Analyst));
     }
 

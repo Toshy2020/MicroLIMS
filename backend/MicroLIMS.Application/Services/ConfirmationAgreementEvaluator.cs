@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 
@@ -18,7 +19,7 @@ public class ConfirmationAgreementEvaluator
     {
         if (platesForLocation.Count != requiredMediaCount)
         {
-            throw new InvalidOperationException(
+            throw new BusinessRuleException(
                 $"Expected {requiredMediaCount} confirmatory plate observation(s); got {platesForLocation.Count}.");
         }
 

@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using System.Globalization;
 using MicroLIMS.Persistence.Helpers;
 using Microsoft.EntityFrameworkCore;
@@ -84,9 +85,9 @@ public class ReferenceOrganismTests
         Assert.Equal("Escherichia coli ATCC 8739", created.Name);
         Assert.Equal(w.Micro.Id, created.OwnerSectionId);
         Assert.True(created.IsActive);
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.CreateAsync(Strain(ecoli.Id, "RG-002", number: "1"), w.UserId));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => service.CreateAsync(Strain(ecoli.Id, "RG-002", number: "1"), w.UserId));
         Assert.Contains("ORG-", ex.Message);
-        await Assert.ThrowsAsync<InvalidOperationException>(() => service.CreateAsync(Strain(ecoli.Id, "ORG-", number: "1"), w.UserId));
+        await Assert.ThrowsAsync<BusinessRuleException>(() => service.CreateAsync(Strain(ecoli.Id, "ORG-", number: "1"), w.UserId));
     }
 
     [Fact]
@@ -96,7 +97,7 @@ public class ReferenceOrganismTests
         var candida = await AddOrganismAsync(w.Db, "Candida albicans");
         var service = TestServiceFactory.ReferenceOrganism(w.Db);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => service.CreateAsync(Strain(candida.Id, "ORG-001", CultureCollection.NCTC, " "), w.UserId));
+        await Assert.ThrowsAsync<BusinessRuleException>(() => service.CreateAsync(Strain(candida.Id, "ORG-001", CultureCollection.NCTC, " "), w.UserId));
         var inHouse = await service.CreateAsync(Strain(candida.Id, "ORG-002", CultureCollection.Other, null), w.UserId);
 
         Assert.Null(inHouse.StrainNumber);
@@ -112,9 +113,9 @@ public class ReferenceOrganismTests
         var service = TestServiceFactory.ReferenceOrganism(w.Db);
         await service.CreateAsync(Strain(ecoli.Id, "ORG-001", CultureCollection.ATCC, "8739"), w.UserId);
 
-        var code = await Assert.ThrowsAsync<InvalidOperationException>(() => service.CreateAsync(Strain(staph.Id, "org-001", CultureCollection.ATCC, "6538"), w.UserId));
+        var code = await Assert.ThrowsAsync<BusinessRuleException>(() => service.CreateAsync(Strain(staph.Id, "org-001", CultureCollection.ATCC, "6538"), w.UserId));
         Assert.Contains("already exists", code.Message);
-        var strain = await Assert.ThrowsAsync<InvalidOperationException>(() => service.CreateAsync(Strain(staph.Id, "ORG-002", CultureCollection.ATCC, "8739"), w.UserId));
+        var strain = await Assert.ThrowsAsync<BusinessRuleException>(() => service.CreateAsync(Strain(staph.Id, "ORG-002", CultureCollection.ATCC, "8739"), w.UserId));
         Assert.Contains("ATCC 8739 is already listed as ORG-001", strain.Message);
 
         var nctc = await service.CreateAsync(Strain(ecoli.Id, "ORG-003", CultureCollection.NCTC, "8739"), w.UserId);
@@ -129,10 +130,10 @@ public class ReferenceOrganismTests
         var service = TestServiceFactory.ReferenceOrganism(w.Db);
         var strain = await service.CreateAsync(Strain(ecoli.Id), w.UserId);
 
-        var update = await Assert.ThrowsAsync<InvalidOperationException>(() => service.UpdateAsync(strain.Id, Strain(ecoli.Id, number: "1"), w.OtherLabUserId));
+        var update = await Assert.ThrowsAsync<BusinessRuleException>(() => service.UpdateAsync(strain.Id, Strain(ecoli.Id, number: "1"), w.OtherLabUserId));
         Assert.Contains("owner lab", update.Message);
-        await Assert.ThrowsAsync<InvalidOperationException>(() => service.SetActiveAsync(strain.Id, false, w.OtherLabUserId));
-        await Assert.ThrowsAsync<InvalidOperationException>(() => service.ChangeCodeAsync(strain.Id, "ORG-009", "Reason", Password, w.OtherLabUserId, null));
+        await Assert.ThrowsAsync<BusinessRuleException>(() => service.SetActiveAsync(strain.Id, false, w.OtherLabUserId));
+        await Assert.ThrowsAsync<BusinessRuleException>(() => service.ChangeCodeAsync(strain.Id, "ORG-009", "Reason", Password, w.OtherLabUserId, null));
 
         var seenByOther = Assert.Single(await service.GetAllAsync(w.OtherLabUserId));
         var seenByOwner = Assert.Single(await service.GetAllAsync(w.UserId));
@@ -172,15 +173,15 @@ public class ReferenceOrganismTests
         var strain = await service.CreateAsync(Strain(ecoli.Id), w.UserId);
         var lot = await new MaterialService(w.Db, new UserSectionScopeService(w.Db), new DatabaseSequenceHelper(w.Db)).CreateAsync(Receive(strain.Id), w.UserId);
 
-        var code = await Assert.ThrowsAsync<InvalidOperationException>(() => service.UpdateAsync(strain.Id, Strain(ecoli.Id, "ORG-002"), w.UserId));
+        var code = await Assert.ThrowsAsync<BusinessRuleException>(() => service.UpdateAsync(strain.Id, Strain(ecoli.Id, "ORG-002"), w.UserId));
         Assert.Contains("electronic signature", code.Message);
-        await Assert.ThrowsAsync<InvalidOperationException>(() => service.UpdateAsync(strain.Id, Strain(staph.Id), w.UserId));
-        await Assert.ThrowsAsync<InvalidOperationException>(() => service.UpdateAsync(strain.Id, Strain(ecoli.Id, number: "9999"), w.UserId));
+        await Assert.ThrowsAsync<BusinessRuleException>(() => service.UpdateAsync(strain.Id, Strain(staph.Id), w.UserId));
+        await Assert.ThrowsAsync<BusinessRuleException>(() => service.UpdateAsync(strain.Id, Strain(ecoli.Id, number: "9999"), w.UserId));
 
         await Assert.ThrowsAsync<SignatureVerificationException>(() => service.ChangeCodeAsync(strain.Id, "ORG-002", "Renumbering", "WrongPassword!", w.UserId, null));
         Assert.Equal("ORG-001", (await w.Db.ReferenceOrganisms.SingleAsync()).Code);
-        await Assert.ThrowsAsync<InvalidOperationException>(() => service.ChangeCodeAsync(strain.Id, "ORG-002", " ", Password, w.UserId, null));
-        await Assert.ThrowsAsync<InvalidOperationException>(() => service.ChangeCodeAsync(strain.Id, "RG-002", "Renumbering", Password, w.UserId, null));
+        await Assert.ThrowsAsync<BusinessRuleException>(() => service.ChangeCodeAsync(strain.Id, "ORG-002", " ", Password, w.UserId, null));
+        await Assert.ThrowsAsync<BusinessRuleException>(() => service.ChangeCodeAsync(strain.Id, "RG-002", "Renumbering", Password, w.UserId, null));
 
         var changed = await service.ChangeCodeAsync(strain.Id, " org-002 ", "Renumbering", Password, w.UserId, "10.0.0.1");
 
@@ -222,16 +223,16 @@ public class ReferenceOrganismTests
         var strain = await strains.CreateAsync(Strain(ecoli.Id), w.UserId);
         var materials = new MaterialService(w.Db, new UserSectionScopeService(w.Db), new DatabaseSequenceHelper(w.Db));
 
-        var none = await Assert.ThrowsAsync<InvalidOperationException>(() => materials.CreateAsync(Receive(null, organismId: ecoli.Id, atcc: "8739"), w.UserId));
+        var none = await Assert.ThrowsAsync<BusinessRuleException>(() => materials.CreateAsync(Receive(null, organismId: ecoli.Id, atcc: "8739"), w.UserId));
         Assert.Contains("reference organism", none.Message);
-        var mismatch = await Assert.ThrowsAsync<InvalidOperationException>(() => materials.CreateAsync(Receive(strain.Id, organismId: staph.Id), w.UserId));
+        var mismatch = await Assert.ThrowsAsync<BusinessRuleException>(() => materials.CreateAsync(Receive(strain.Id, organismId: staph.Id), w.UserId));
         Assert.Contains("does not match", mismatch.Message);
-        await Assert.ThrowsAsync<InvalidOperationException>(() => materials.CreateAsync(Receive(9999), w.UserId));
-        var wrongType = await Assert.ThrowsAsync<InvalidOperationException>(() => materials.CreateAsync(Receive(strain.Id, type: MaterialType.Chemical), w.UserId));
+        await Assert.ThrowsAsync<BusinessRuleException>(() => materials.CreateAsync(Receive(9999), w.UserId));
+        var wrongType = await Assert.ThrowsAsync<BusinessRuleException>(() => materials.CreateAsync(Receive(strain.Id, type: MaterialType.Chemical), w.UserId));
         Assert.Contains("only be chosen for lyophilized", wrongType.Message);
 
         await strains.SetActiveAsync(strain.Id, false, w.UserId);
-        var inactive = await Assert.ThrowsAsync<InvalidOperationException>(() => materials.CreateAsync(Receive(strain.Id), w.UserId));
+        var inactive = await Assert.ThrowsAsync<BusinessRuleException>(() => materials.CreateAsync(Receive(strain.Id), w.UserId));
         Assert.Contains("inactive", inactive.Message);
         Assert.Empty(await w.Db.Materials.ToListAsync());
     }
@@ -365,9 +366,9 @@ public class ReferenceOrganismTests
         await TestServiceFactory.ReferenceOrganism(w.Db).CreateAsync(Strain(withStrain.Id), w.UserId);
         var service = new OrganismMasterDataService(w.Db);
 
-        var step = await Assert.ThrowsAsync<InvalidOperationException>(() => service.DeleteOrganismAsync(targeted.Id));
+        var step = await Assert.ThrowsAsync<BusinessRuleException>(() => service.DeleteOrganismAsync(targeted.Id));
         Assert.Contains("Test Master target organism steps: 1", step.Message);
-        var strain = await Assert.ThrowsAsync<InvalidOperationException>(() => service.DeleteOrganismAsync(withStrain.Id));
+        var strain = await Assert.ThrowsAsync<BusinessRuleException>(() => service.DeleteOrganismAsync(withStrain.Id));
         Assert.Contains("Reference organisms: 1", strain.Message);
         await service.DeleteOrganismAsync(free.Id);
         Assert.Equal(2, await w.Db.Organisms.CountAsync());
@@ -381,9 +382,9 @@ public class ReferenceOrganismTests
         var other = await AddOrganismAsync(w.Db, "Staphylococcus aureus", "6538");
         var service = new OrganismMasterDataService(w.Db);
 
-        var create = await Assert.ThrowsAsync<InvalidOperationException>(() => service.CreateOrganismAsync(new CreateOrganismRequest("Klebsiella", " 8739 ", null, null)));
+        var create = await Assert.ThrowsAsync<BusinessRuleException>(() => service.CreateOrganismAsync(new CreateOrganismRequest("Klebsiella", " 8739 ", null, null)));
         Assert.Contains("already used by organism \"Escherichia coli\"", create.Message);
-        var update = await Assert.ThrowsAsync<InvalidOperationException>(() => service.UpdateOrganismAsync(other.Id, new UpdateOrganismRequest("Staphylococcus aureus", "8739", null, null)));
+        var update = await Assert.ThrowsAsync<BusinessRuleException>(() => service.UpdateOrganismAsync(other.Id, new UpdateOrganismRequest("Staphylococcus aureus", "8739", null, null)));
         Assert.Contains("already used", update.Message);
         await service.UpdateOrganismAsync(other.Id, new UpdateOrganismRequest("Staphylococcus aureus", "6538", "Staph", null)); // its own number is fine
     }
@@ -411,12 +412,12 @@ public class ReferenceOrganismTests
 
         Assert.False(off.IsActive);
         Assert.False((await products.GetAllAsync()).Single(p => p.Code == "TSA").IsActive);
-        var lot = await Assert.ThrowsAsync<InvalidOperationException>(() => materials.CreateAsync(Powder(tsa.Id, "B-2"), w.UserId));
+        var lot = await Assert.ThrowsAsync<BusinessRuleException>(() => materials.CreateAsync(Powder(tsa.Id, "B-2"), w.UserId));
         Assert.Contains("inactive", lot.Message);
         var condition = MediaProductTestData.Condition(sda);
         w.Db.MediaIncubationConditions.Add(condition);
         await w.Db.SaveChangesAsync();
-        var config = await Assert.ThrowsAsync<InvalidOperationException>(() => new MediaMasterDataService(w.Db).CreateMediaConfigurationAsync(
+        var config = await Assert.ThrowsAsync<BusinessRuleException>(() => new MediaMasterDataService(w.Db).CreateMediaConfigurationAsync(
             new CreateMediaConfigurationRequest(sda.Id, EvaluationType.GrowthPromotion, condition.Id, 50, 200, null)));
         Assert.Contains("inactive", config.Message);
 

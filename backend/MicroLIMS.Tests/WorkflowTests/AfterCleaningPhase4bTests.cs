@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.DTOs;
@@ -220,47 +221,47 @@ public class AfterCleaningPhase4bTests
 
         // 1. CleaningResidue requires FinishedProduct ProductItemId
         var reqNoItem = CreateMethodRequest(s, "M-NO-ITEM", productItemId: null);
-        var ex1 = await Assert.ThrowsAsync<InvalidOperationException>(() => svc.CreateAsync(reqNoItem, s.User.Id));
+        var ex1 = await Assert.ThrowsAsync<BusinessRuleException>(() => svc.CreateAsync(reqNoItem, s.User.Id));
         Assert.Contains("finished product item is required", ex1.Message);
 
         // 2. Reject RawMaterial item
         var reqRmItem = CreateMethodRequest(s, "M-RM-ITEM", productItemId: s.RawMaterial.Id);
-        var ex2 = await Assert.ThrowsAsync<InvalidOperationException>(() => svc.CreateAsync(reqRmItem, s.User.Id));
+        var ex2 = await Assert.ThrowsAsync<BusinessRuleException>(() => svc.CreateAsync(reqRmItem, s.User.Id));
         Assert.Contains("Finished Product item", ex2.Message);
 
         // 3. Extraction volume (SampleSolutionVolumeMl) must be > 0
         var reqNoVol = CreateMethodRequest(s, "M-NO-VOL", productItemId: s.FinishedProduct1.Id, sampleSolutionVolumeMl: 0m);
-        var ex3 = await Assert.ThrowsAsync<InvalidOperationException>(() => svc.CreateAsync(reqNoVol, s.User.Id));
+        var ex3 = await Assert.ThrowsAsync<BusinessRuleException>(() => svc.CreateAsync(reqNoVol, s.User.Id));
         Assert.Contains("Sample extraction volume (mL) must be greater than zero", ex3.Message);
 
         // 4. Each analyte requires StandardConcentrationUgPerMl > 0
         var reqNoStdConc = CreateMethodRequest(s, "M-NO-STD", productItemId: s.FinishedProduct1.Id, standardConc: 0m);
-        var ex4 = await Assert.ThrowsAsync<InvalidOperationException>(() => svc.CreateAsync(reqNoStdConc, s.User.Id));
+        var ex4 = await Assert.ThrowsAsync<BusinessRuleException>(() => svc.CreateAsync(reqNoStdConc, s.User.Id));
         Assert.Contains("standard concentration (µg/mL) is required", ex4.Message);
 
         // 5. Each analyte requires MacoLimit > 0
         var reqNoMaco = CreateMethodRequest(s, "M-NO-MACO", productItemId: s.FinishedProduct1.Id, macoLimit: 0m);
-        var ex5 = await Assert.ThrowsAsync<InvalidOperationException>(() => svc.CreateAsync(reqNoMaco, s.User.Id));
+        var ex5 = await Assert.ThrowsAsync<BusinessRuleException>(() => svc.CreateAsync(reqNoMaco, s.User.Id));
         Assert.Contains("MACO limit must be greater than zero", ex5.Message);
 
         // 6. Each analyte requires MacoUnit
         var reqNoUnit = CreateMethodRequest(s, "M-NO-UNIT", productItemId: s.FinishedProduct1.Id, macoUnit: null);
-        var ex6 = await Assert.ThrowsAsync<InvalidOperationException>(() => svc.CreateAsync(reqNoUnit, s.User.Id));
+        var ex6 = await Assert.ThrowsAsync<BusinessRuleException>(() => svc.CreateAsync(reqNoUnit, s.User.Id));
         Assert.Contains("MACO unit is required", ex6.Message);
 
         // 7. When UgPerCm2, SwabAreaCm2 must be > 0
         var reqNoArea = CreateMethodRequest(s, "M-NO-AREA", productItemId: s.FinishedProduct1.Id, macoUnit: MacoUnit.UgPerCm2, swabAreaCm2: 0m);
-        var ex7 = await Assert.ThrowsAsync<InvalidOperationException>(() => svc.CreateAsync(reqNoArea, s.User.Id));
+        var ex7 = await Assert.ThrowsAsync<BusinessRuleException>(() => svc.CreateAsync(reqNoArea, s.User.Id));
         Assert.Contains("Swabbed area (cm²) must be greater than zero", ex7.Message);
 
         // 8. GC rejects CleaningResidue
         var reqGc = CreateMethodRequest(s, "M-GC-CR", productItemId: s.FinishedProduct1.Id, technique: HplcTechnique.Gc);
-        var ex8 = await Assert.ThrowsAsync<InvalidOperationException>(() => svc.CreateAsync(reqGc, s.User.Id));
+        var ex8 = await Assert.ThrowsAsync<BusinessRuleException>(() => svc.CreateAsync(reqGc, s.User.Id));
         Assert.Contains("Cleaning residue is available for HPLC methods only", ex8.Message);
 
         // 9. Other modes reject cleaning residue fields
         var reqAssayWithCr = CreateMethodRequest(s, "M-ASSAY-CR", productItemId: s.FinishedProduct1.Id, resultMode: HplcResultMode.Assay, theoreticalWeightStdMg: 50m, theoreticalWeightTestMg: 50m);
-        var ex9 = await Assert.ThrowsAsync<InvalidOperationException>(() => svc.CreateAsync(reqAssayWithCr, s.User.Id));
+        var ex9 = await Assert.ThrowsAsync<BusinessRuleException>(() => svc.CreateAsync(reqAssayWithCr, s.User.Id));
         Assert.Contains("Cleaning residue settings belong to cleaning residue methods only", ex9.Message);
 
         // 10. Valid CleaningResidue method succeeds
@@ -289,7 +290,7 @@ public class AfterCleaningPhase4bTests
         await db.SaveChangesAsync();
 
         var inputNegative = new IcpTestElementInput(null, "Fe", 10m, CleaningLimitPpm: -1m);
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             IcpTestDefinitionRules.ApplyAsync(db, entity, true, IcpTestMode.Assay, IcpSampleForm.Solid, 1m, null, new() { inputNegative }));
         Assert.Contains("cleaning limit (ppm) cannot be negative", ex.Message);
 
@@ -397,7 +398,7 @@ public class AfterCleaningPhase4bTests
             Techniques: new() { "HPLC" });
         var wrongSample = await engine.ReceiveAsync(receiveReqWrong);
 
-        var exRefusal = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var exRefusal = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             engine.PrepareAsync(wrongSample.Id, new List<int> { configHplcPart1.Id }, s.User.Id));
         Assert.Equal($"No cleaning HPLC method for {s.FinishedProduct2.Name} on test HPLC_AC.", exRefusal.Message);
 

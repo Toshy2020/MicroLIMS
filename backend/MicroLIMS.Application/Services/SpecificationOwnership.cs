@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Application.Abstractions.Persistence;
@@ -22,7 +23,7 @@ public static class SpecificationOwnership
             .FirstOrDefaultAsync(t => t.Code == testCode);
 
         if (testDef is null)
-            throw new InvalidOperationException($"Test code '{testCode}' is not in the Test Master.");
+            throw new BusinessRuleException($"Test code '{testCode}' is not in the Test Master.");
 
         if (scopeIds is not null && !scopeIds.Contains(testDef.SectionId))
         {

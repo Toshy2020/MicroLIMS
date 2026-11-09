@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 namespace MicroLIMS.Application.Helpers;
 
 // Every administrative change to a user or role carries the administrator's
@@ -11,9 +12,9 @@ public static class AdminActionReason
     {
         var trimmed = reason?.Trim();
         if (string.IsNullOrEmpty(trimmed))
-            throw new InvalidOperationException($"A reason is required to {action}.");
+            throw new BusinessRuleException($"A reason is required to {action}.");
         if (trimmed.Length > MaxLength)
-            throw new InvalidOperationException($"The reason must be {MaxLength} characters or fewer.");
+            throw new BusinessRuleException($"The reason must be {MaxLength} characters or fewer.");
         return trimmed;
     }
 }

@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Abstractions.Persistence;
 
@@ -25,7 +26,7 @@ public sealed class MasterDataWorkbookRunner
     public async Task<(WorkbookReport Report, List<CreatedRecord> Created)> RunAsync(IReadOnlyList<WorkbookSheet> sheets, int userId)
     {
         var tx = _db.Database.CurrentTransaction
-            ?? throw new InvalidOperationException("The workbook load must run inside a transaction.");
+            ?? throw new BusinessRuleException("The workbook load must run inside a transaction.");
         var errors = new List<WorkbookRowError>();
         var summaries = new List<WorkbookSheetSummary>();
         var created = new List<CreatedRecord>();

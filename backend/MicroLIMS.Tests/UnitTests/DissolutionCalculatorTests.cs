@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using MicroLIMS.Application.Helpers;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
@@ -238,16 +239,16 @@ public class DissolutionCalculatorTests
     [Fact]
     public void CalculateCs_MoistureOutOfRange_Throws()
     {
-        Assert.Throws<InvalidOperationException>(() => DissolutionCalculator.CalculateCs(50m, 99.5m, 100m, 2500m));
-        Assert.Throws<InvalidOperationException>(() => DissolutionCalculator.CalculateCs(50m, 99.5m, -1m, 2500m));
+        Assert.Throws<BusinessRuleException>(() => DissolutionCalculator.CalculateCs(50m, 99.5m, 100m, 2500m));
+        Assert.Throws<BusinessRuleException>(() => DissolutionCalculator.CalculateCs(50m, 99.5m, -1m, 2500m));
     }
 
     [Fact]
     public void CalculateCs_ZeroOrNegative_ThrowsInvalidOperationException()
     {
-        Assert.Throws<InvalidOperationException>(() => DissolutionCalculator.CalculateCs(0m, 100m, 0m, 100m));
-        Assert.Throws<InvalidOperationException>(() => DissolutionCalculator.CalculateCs(50m, 0m, 0m, 100m));
-        Assert.Throws<InvalidOperationException>(() => DissolutionCalculator.CalculateCs(50m, 100m, 0m, 0m));
+        Assert.Throws<BusinessRuleException>(() => DissolutionCalculator.CalculateCs(0m, 100m, 0m, 100m));
+        Assert.Throws<BusinessRuleException>(() => DissolutionCalculator.CalculateCs(50m, 0m, 0m, 100m));
+        Assert.Throws<BusinessRuleException>(() => DissolutionCalculator.CalculateCs(50m, 100m, 0m, 0m));
     }
 
     [Fact]
@@ -263,10 +264,10 @@ public class DissolutionCalculatorTests
     public void DissolutionStageEvaluator_InvalidUnitCounts_ThrowsInvalidOperationException()
     {
         var five = new List<decimal> { 85m, 85m, 85m, 85m, 85m };
-        Assert.Throws<InvalidOperationException>(() => DissolutionStageEvaluator.Evaluate(five, 80m));
+        Assert.Throws<BusinessRuleException>(() => DissolutionStageEvaluator.Evaluate(five, 80m));
 
         var seven = new List<decimal> { 85m, 85m, 85m, 85m, 85m, 85m, 85m };
-        Assert.Throws<InvalidOperationException>(() => DissolutionStageEvaluator.Evaluate(seven, 80m));
+        Assert.Throws<BusinessRuleException>(() => DissolutionStageEvaluator.Evaluate(seven, 80m));
     }
 
     [Fact]

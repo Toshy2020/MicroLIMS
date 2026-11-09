@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Application.Services;
@@ -140,7 +141,7 @@ public partial class HplcRunServiceTests
         await using var db = NewDb();
         var t = await ArrangeSubmittableAsync(db, report: false);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => SubmitAsync(db, t));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => SubmitAsync(db, t));
 
         Assert.Contains("sample report", ex.Message);
         Assert.Empty(db.TestAnalyses);
@@ -153,7 +154,7 @@ public partial class HplcRunServiceTests
         await using var db = NewDb();
         var t = await ArrangeSubmittableAsync(db, replicates: 3, responses: new[] { 1000m, 1000m });
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => SubmitAsync(db, t));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => SubmitAsync(db, t));
 
         Assert.Contains("Expected exactly 3 replicates", ex.Message);
         Assert.Contains("2 entered", ex.Message);
@@ -166,7 +167,7 @@ public partial class HplcRunServiceTests
         await using var db = NewDb();
         var t = await ArrangeSubmittableAsync(db, assaySpec: false);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => SubmitAsync(db, t));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => SubmitAsync(db, t));
 
         Assert.Equal("No assay specification for Vitamin C on this item.", ex.Message);
     }
@@ -191,7 +192,7 @@ public partial class HplcRunServiceTests
         var t = await ArrangeSubmittableAsync(db);
         await SubmitAsync(db, t);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => SubmitAsync(db, t));
+        await Assert.ThrowsAsync<BusinessRuleException>(() => SubmitAsync(db, t));
     }
 
     [Fact]
@@ -205,7 +206,7 @@ public partial class HplcRunServiceTests
 
         Assert.False(entry.Editable);
         Assert.True(entry.Submitted);
-        await Assert.ThrowsAsync<InvalidOperationException>(() => t.Service.SaveReplicatesAsync(
+        await Assert.ThrowsAsync<BusinessRuleException>(() => t.Service.SaveReplicatesAsync(
             t.RunSampleId, Replicates(t.Fixture.Analyte.Id, (50m, 1000m), (50m, 1000m)), t.Scenario.UserId));
     }
 
@@ -262,7 +263,7 @@ public partial class HplcRunServiceTests
         await using var db = NewDb();
         var t = await ArrangeSubmittableAsync(db);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => t.Service.CompleteRunAsync(t.Run.Id, t.Scenario.UserId));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => t.Service.CompleteRunAsync(t.Run.Id, t.Scenario.UserId));
 
         Assert.Contains("have not been sent for review", ex.Message);
     }
@@ -279,7 +280,7 @@ public partial class HplcRunServiceTests
         Assert.Equal(HplcRunStatus.Completed, run.Status);
         Assert.NotNull(run.ClosedAt);
         Assert.True(Assert.Single(run.Samples).Submitted);
-        await Assert.ThrowsAsync<InvalidOperationException>(() => t.Service.CompleteRunAsync(t.Run.Id, t.Scenario.UserId));
+        await Assert.ThrowsAsync<BusinessRuleException>(() => t.Service.CompleteRunAsync(t.Run.Id, t.Scenario.UserId));
     }
 
     [Fact]
@@ -328,13 +329,13 @@ public partial class HplcRunServiceTests
         var row = await db.HplcRunSamples.SingleAsync();
         row.Status = HplcRunSampleStatus.Removed;
         await db.SaveChangesAsync();
-        var noRun = await Assert.ThrowsAsync<InvalidOperationException>(Approve);
+        var noRun = await Assert.ThrowsAsync<BusinessRuleException>(Approve);
         Assert.Contains("lacks an HPLC run with a passed system suitability", noRun.Message);
 
         row.Status = HplcRunSampleStatus.Assigned;
         (await db.HplcSstRecords.SingleAsync()).Status = HplcSstStatus.Failed;
         await db.SaveChangesAsync();
-        var failed = await Assert.ThrowsAsync<InvalidOperationException>(Approve);
+        var failed = await Assert.ThrowsAsync<BusinessRuleException>(Approve);
         Assert.Contains("lacks an HPLC run with a passed system suitability", failed.Message);
 
         (await db.HplcSstRecords.SingleAsync()).Status = HplcSstStatus.Passed;

@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Persistence.Helpers;
 using MicroLIMS.Application.Services;
@@ -11,11 +12,11 @@ namespace MicroLIMS.Tests.UnitTests;
 public class PrimaryStandardMaterialTests
 {
     [Fact] public void Purity_IsRequired_ForPrimaryStandard() =>
-        Assert.Throws<InvalidOperationException>(() => MaterialService.ValidatePurity(MaterialType.PrimaryStandard, null));
+        Assert.Throws<BusinessRuleException>(() => MaterialService.ValidatePurity(MaterialType.PrimaryStandard, null));
     [Fact] public void Purity_IsAccepted_ForPrimaryStandard() =>
         MaterialService.ValidatePurity(MaterialType.PrimaryStandard, 99.95m);
     [Fact] public void Purity_StillRejected_ForChemical() =>
-        Assert.Throws<InvalidOperationException>(() => MaterialService.ValidatePurity(MaterialType.Chemical, 99m));
+        Assert.Throws<BusinessRuleException>(() => MaterialService.ValidatePurity(MaterialType.Chemical, 99m));
     [Fact] public void PrimaryStandard_NeedsMasterEntry() =>
         Assert.True(MaterialService.RequiresMasterEntry(MaterialType.PrimaryStandard));
     [Fact] public void Physicochemical_Offers_PrimaryStandard_NotMicroTypes()
@@ -55,7 +56,7 @@ public class PrimaryStandardMaterialTests
         var req = new SaveMaterialRequest(MaterialType.PrimaryStandard, "x", "Merck", "LOT-1",
             DateTime.UtcNow, DateTime.UtcNow.AddYears(1), null, "Shelf", 10m, MaterialUnit.Gram, null, null, null,
             MaterialMasterEntryId: entry.Id, Purity: 99.9m);
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => svc.CreateAsync(req, user.Id));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => svc.CreateAsync(req, user.Id));
         Assert.Contains("is a ReferenceStandard, not a PrimaryStandard", ex.Message);
     }
 }

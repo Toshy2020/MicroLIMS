@@ -11,9 +11,32 @@ namespace MicroLIMS.Application.Workflows;
 // transition is captured in WorkflowHistory (gap analysis #3, #9 review).
 public static class WorkflowStateMachine
 {
+    // A test order in one of these states is closed: its record is final and
+    // no bench, review or navigation step may move it again. The same set
+    // SectionClosureService leaves alone. Reopening one would silently turn
+    // an Approved test back into ResultEntered.
+    private static readonly ApprovalStatus[] ClosedStatuses =
+    {
+        ApprovalStatus.Approved,
+        ApprovalStatus.Rejected,
+        ApprovalStatus.Voided,
+        ApprovalStatus.Cancelled
+    };
+
     public static async Task<WorkflowStep> TransitionAsync(
         IMicroLimsDbContext db, TestOrder order, WorkflowStep toStep, int performedByUserId, string? note = null)
     {
+        if (!Enum.IsDefined(toStep))
+            throw new ArgumentOutOfRangeException(nameof(toStep), toStep, "Unknown workflow step.");
+
+        if (order.IsSuperseded)
+            throw new BusinessRuleException(
+                $"Test {order.TestCode} has been replaced by a retest; its workflow can no longer change.");
+
+        if (ClosedStatuses.Contains(order.Status))
+            throw new BusinessRuleException(
+                $"Test {order.TestCode} is {order.Status}; its workflow can no longer change.");
+
         var fromStep = order.CurrentStep;
 
         db.WorkflowHistories.Add(new WorkflowHistory
@@ -38,7 +61,7 @@ public static class WorkflowStateMachine
             WorkflowStep.Ready => ApprovalStatus.ResultEntered,
             WorkflowStep.Reviewed => ApprovalStatus.Reviewed,
             WorkflowStep.Approved => ApprovalStatus.Approved,
-            _ => order.Status
+            _ => throw new ArgumentOutOfRangeException(nameof(toStep), toStep, "Unknown workflow step.")
         };
 
         await db.SaveChangesAsync();

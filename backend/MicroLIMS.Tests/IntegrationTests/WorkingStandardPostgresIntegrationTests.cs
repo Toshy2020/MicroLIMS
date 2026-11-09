@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using MicroLIMS.Application.DTOs.Responses;
@@ -53,7 +54,7 @@ public class WorkingStandardPostgresIntegrationTests
         var serviceA = TestServiceFactory.WorkingStandard(dbA);
         interceptor.OtherId = seed.QualificationIds[1];
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(
             () => serviceA.ApproveAsync(seed.QualificationIds[0], new WorkingStandardSignRequest(Password, null), seed.UserId, null));
         Assert.Contains("Another approval took that working standard code at the same moment - sign again.", ex.Message);
 

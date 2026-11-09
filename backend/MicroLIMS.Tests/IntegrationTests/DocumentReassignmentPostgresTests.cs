@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.DTOs.DocumentControl;
 using MicroLIMS.Application.Services;
@@ -141,7 +142,7 @@ public class DocumentReassignmentPostgresTests
         Assert.Equal(2, impact.OpenWork); // the in-review revision and the in-progress periodic review
         var sectionImpact = await config.GetSectionImpactAsync(section.Id, actor.Id);
         Assert.Equal((1, 1), (sectionImpact.ActiveDocuments, sectionImpact.ActiveMemberships));
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        await Assert.ThrowsAsync<BusinessRuleException>(() =>
             config.UpdateSectionAsync(section.Id, new UpdateDocumentSectionRequest(section.Name, false, "closing"), actor.Id));
     }
 }

@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using MicroLIMS.Application.DTOs;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -102,7 +103,7 @@ public class MeasurementMasterDataValidationTests
             ReplicateCount: 3,
             EvaluationBasis: MeasurementEvaluationBasis.Mean);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.TestDefinition.CreateTestDefinition(req));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => controller.TestDefinition.CreateTestDefinition(req));
         Assert.Contains("Workflow type must be Measurement when equation type is Measurement.", ex.Message);
     }
 
@@ -122,17 +123,17 @@ public class MeasurementMasterDataValidationTests
             ReplicateCount: null,
             EvaluationBasis: MeasurementEvaluationBasis.Mean);
 
-        var ex1 = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.TestDefinition.CreateTestDefinition(req1));
+        var ex1 = await Assert.ThrowsAsync<BusinessRuleException>(() => controller.TestDefinition.CreateTestDefinition(req1));
         Assert.Contains("Replicate count must be between 1 and 30", ex1.Message);
 
         // ReplicateCount = 0
         var req2 = req1 with { ReplicateCount = 0 };
-        var ex2 = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.TestDefinition.CreateTestDefinition(req2));
+        var ex2 = await Assert.ThrowsAsync<BusinessRuleException>(() => controller.TestDefinition.CreateTestDefinition(req2));
         Assert.Contains("Replicate count must be between 1 and 30", ex2.Message);
 
         // ReplicateCount = 31
         var req3 = req1 with { ReplicateCount = 31 };
-        var ex3 = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.TestDefinition.CreateTestDefinition(req3));
+        var ex3 = await Assert.ThrowsAsync<BusinessRuleException>(() => controller.TestDefinition.CreateTestDefinition(req3));
         Assert.Contains("Replicate count must be between 1 and 30", ex3.Message);
     }
 
@@ -151,7 +152,7 @@ public class MeasurementMasterDataValidationTests
             ReplicateCount: 3,
             EvaluationBasis: null);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.TestDefinition.CreateTestDefinition(req));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => controller.TestDefinition.CreateTestDefinition(req));
         Assert.Contains("Evaluation basis is required when equation type is Measurement.", ex.Message);
     }
 
@@ -168,7 +169,7 @@ public class MeasurementMasterDataValidationTests
             WorkflowType: WorkflowType.Measurement,
             EquationType: EquationType.None);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.TestDefinition.CreateTestDefinition(req));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => controller.TestDefinition.CreateTestDefinition(req));
         Assert.Contains("Equation type must be Measurement when workflow type is Measurement.", ex.Message);
     }
 
@@ -185,7 +186,7 @@ public class MeasurementMasterDataValidationTests
             SectionId: fpSec.Id,
             WorkflowType: WorkflowType.Observation,
             EquationType: EquationType.GravimetricLoss);
-        var ex1 = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.TestDefinition.CreateTestDefinition(req1));
+        var ex1 = await Assert.ThrowsAsync<BusinessRuleException>(() => controller.TestDefinition.CreateTestDefinition(req1));
         Assert.Contains("Workflow type must be Gravimetric", ex1.Message);
 
         // Workflow Gravimetric requires GravimetricLoss or GravimetricResidue
@@ -195,7 +196,7 @@ public class MeasurementMasterDataValidationTests
             SectionId: fpSec.Id,
             WorkflowType: WorkflowType.Gravimetric,
             EquationType: EquationType.None);
-        var ex2 = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.TestDefinition.CreateTestDefinition(req2));
+        var ex2 = await Assert.ThrowsAsync<BusinessRuleException>(() => controller.TestDefinition.CreateTestDefinition(req2));
         Assert.Contains("Equation type must be GravimetricLoss or GravimetricResidue", ex2.Message);
     }
 
@@ -212,7 +213,7 @@ public class MeasurementMasterDataValidationTests
             SectionId: fpSec.Id,
             WorkflowType: WorkflowType.Observation,
             EquationType: EquationType.Qualitative);
-        var ex1 = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.TestDefinition.CreateTestDefinition(req1));
+        var ex1 = await Assert.ThrowsAsync<BusinessRuleException>(() => controller.TestDefinition.CreateTestDefinition(req1));
         Assert.Contains("Workflow type must be Qualitative when equation type is Qualitative.", ex1.Message);
 
         // Workflow Qualitative requires Qualitative equation
@@ -222,7 +223,7 @@ public class MeasurementMasterDataValidationTests
             SectionId: fpSec.Id,
             WorkflowType: WorkflowType.Qualitative,
             EquationType: EquationType.None);
-        var ex2 = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.TestDefinition.CreateTestDefinition(req2));
+        var ex2 = await Assert.ThrowsAsync<BusinessRuleException>(() => controller.TestDefinition.CreateTestDefinition(req2));
         Assert.Contains("Equation type must be Qualitative when workflow type is Qualitative.", ex2.Message);
     }
 
@@ -261,7 +262,7 @@ public class MeasurementMasterDataValidationTests
             ConfirmatoryMediaCount: null,
             PhenotypicTestType: null);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.TestWorkflowStep.CreateTestWorkflowStep(testDef.Id, stepReq));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => controller.TestWorkflowStep.CreateTestWorkflowStep(testDef.Id, stepReq));
         Assert.Contains("Measurement tests have no workflow steps.", ex.Message);
     }
 }

@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Application.DTOs;
@@ -49,7 +50,7 @@ public class NotApplicableTestService
         var sampleTest = await _db.SampleTests
             .FirstOrDefaultAsync(st => st.ItemId == r.ItemId && st.TestCode == r.TestCode);
         if (sampleTest is null)
-            throw new InvalidOperationException($"Test '{r.TestCode}' is not assigned to item {r.ItemId}.");
+            throw new BusinessRuleException($"Test '{r.TestCode}' is not assigned to item {r.ItemId}.");
 
         var normalizedGrade = SpecificationService.NormalizeGrade(r.Grade);
         if (normalizedGrade != null)
@@ -62,7 +63,7 @@ public class NotApplicableTestService
 
             var matchingGrade = itemGrades.FirstOrDefault(g => string.Equals(g, normalizedGrade, StringComparison.OrdinalIgnoreCase));
             if (matchingGrade is null)
-                throw new InvalidOperationException($"Grade '{normalizedGrade}' is not one of the item's specification grades.");
+                throw new BusinessRuleException($"Grade '{normalizedGrade}' is not one of the item's specification grades.");
             normalizedGrade = matchingGrade;
         }
 
@@ -74,17 +75,17 @@ public class NotApplicableTestService
             x.Grade == normalizedGrade &&
             x.Status != NotApplicableStatus.Withdrawn);
         if (exists)
-            throw new InvalidOperationException(
+            throw new BusinessRuleException(
                 $"A non-withdrawn not-applicable record already exists for item {r.ItemId}, test '{r.TestCode}'{(normalizedGrade != null ? $" and grade '{normalizedGrade}'" : "")}.");
 
         if (string.IsNullOrWhiteSpace(r.Justification))
-            throw new InvalidOperationException("Justification is required.");
+            throw new BusinessRuleException("Justification is required.");
         if (string.IsNullOrWhiteSpace(r.Criticality))
-            throw new InvalidOperationException("Criticality is required.");
+            throw new BusinessRuleException("Criticality is required.");
         if (string.IsNullOrWhiteSpace(r.ImmediateAction))
-            throw new InvalidOperationException("Immediate action is required.");
+            throw new BusinessRuleException("Immediate action is required.");
         if (string.IsNullOrWhiteSpace(r.LongTermAction))
-            throw new InvalidOperationException("Long-term action is required.");
+            throw new BusinessRuleException("Long-term action is required.");
 
         var entity = new NotApplicableTest
         {
@@ -125,10 +126,10 @@ public class NotApplicableTestService
         var entity = await _db.NotApplicableTests
             .Include(x => x.HeadSignature)
             .FirstOrDefaultAsync(x => x.Id == id)
-            ?? throw new InvalidOperationException($"Not-applicable test record {id} not found.");
+            ?? throw new BusinessRuleException($"Not-applicable test record {id} not found.");
 
         if (entity.Status != NotApplicableStatus.Draft)
-            throw new InvalidOperationException("Only draft records can be approved by the Section Head.");
+            throw new BusinessRuleException("Only draft records can be approved by the Section Head.");
 
         var signature = await _signatures.SignAsync(
             userId,
@@ -165,10 +166,10 @@ public class NotApplicableTestService
             .Include(x => x.HeadSignature)
             .Include(x => x.FinalSignature)
             .FirstOrDefaultAsync(x => x.Id == id)
-            ?? throw new InvalidOperationException($"Not-applicable test record {id} not found.");
+            ?? throw new BusinessRuleException($"Not-applicable test record {id} not found.");
 
         if (entity.Status != NotApplicableStatus.HeadApproved)
-            throw new InvalidOperationException("Only a Section Head approved record can be given final approval.");
+            throw new BusinessRuleException("Only a Section Head approved record can be given final approval.");
 
         var headSignerUserId = entity.HeadSignature?.UserId
             ?? (entity.HeadSignatureId.HasValue
@@ -176,10 +177,10 @@ public class NotApplicableTestService
                 : (int?)null);
 
         if (headSignerUserId is null or 0)
-            throw new InvalidOperationException("The Section Head approval could not be verified.");
+            throw new BusinessRuleException("The Section Head approval could not be verified.");
 
         if (headSignerUserId == userId)
-            throw new InvalidOperationException("The QC Manager approval must come from a different person than the Section Head approval.");
+            throw new BusinessRuleException("The QC Manager approval must come from a different person than the Section Head approval.");
 
         await EnsureNotMoistureSupplierAsync(entity.ItemId, entity.TestCode, entity.Grade);
 
@@ -218,13 +219,13 @@ public class NotApplicableTestService
             .Include(x => x.HeadSignature)
             .Include(x => x.FinalSignature)
             .FirstOrDefaultAsync(x => x.Id == id)
-            ?? throw new InvalidOperationException($"Not-applicable test record {id} not found.");
+            ?? throw new BusinessRuleException($"Not-applicable test record {id} not found.");
 
         if (entity.Status == NotApplicableStatus.Withdrawn)
-            throw new InvalidOperationException("The record is already withdrawn.");
+            throw new BusinessRuleException("The record is already withdrawn.");
 
         if (string.IsNullOrWhiteSpace(reason))
-            throw new InvalidOperationException("Reason is required.");
+            throw new BusinessRuleException("Reason is required.");
 
         var signature = await _signatures.SignAsync(
             userId,
@@ -301,7 +302,7 @@ public class NotApplicableTestService
     {
         var role = await _db.TestDefinitions.Where(td => td.Code == testCode).Select(td => td.MoistureRole).FirstOrDefaultAsync();
         if (await SpecNeedsRoleAsync(_db, itemId, role, grade))
-            throw new InvalidOperationException(
+            throw new BusinessRuleException(
                 $"{await ResolveDisplayNameAsync(itemId, testCode)} supplies the moisture for a dried/anhydrous assay of this item; it cannot be declared not applicable.");
     }
 
@@ -322,7 +323,7 @@ public class NotApplicableTestService
                                     && (grade == null || n.Grade == null || n.Grade.ToLower() == grade.ToLower())
                               select td.DisplayName).FirstOrDefaultAsync(ct);
         if (testName != null)
-            throw new InvalidOperationException(DeclaredMessage(testName, await ItemNameAsync(db, itemId, ct)));
+            throw new BusinessRuleException(DeclaredMessage(testName, await ItemNameAsync(db, itemId, ct)));
     }
 
     // Moisture-role change: refuse giving a test a role while a live record on it leaves a dried/anhydrous spec without it.
@@ -334,7 +335,7 @@ public class NotApplicableTestService
             .Select(n => new { n.ItemId, n.Grade }).ToListAsync(ct);
         foreach (var r in records)
             if (await SpecNeedsRoleAsync(db, r.ItemId, newRole, r.Grade))
-                throw new InvalidOperationException(DeclaredMessage(testName, await ItemNameAsync(db, r.ItemId, ct)));
+                throw new BusinessRuleException(DeclaredMessage(testName, await ItemNameAsync(db, r.ItemId, ct)));
     }
 
     private static async Task<string> ItemNameAsync(IMicroLimsDbContext db, int itemId, CancellationToken ct) =>

@@ -125,7 +125,7 @@ public class MediaConfigurationMasterDataTests
         var controller = CreateController(db);
         var req = new CreateMediaConfigurationRequest(9999, EvaluationType.GrowthPromotion, 1, null, null, null);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.Media.CreateMediaConfiguration(req));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => controller.Media.CreateMediaConfiguration(req));
         Assert.Contains("Media product with ID 9999 not found", ex.Message);
     }
 
@@ -137,7 +137,7 @@ public class MediaConfigurationMasterDataTests
         var controller = CreateController(db);
         var req = new CreateMediaConfigurationRequest(product.Id, EvaluationType.GrowthPromotion, 9999, null, null, null);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.Media.CreateMediaConfiguration(req));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => controller.Media.CreateMediaConfiguration(req));
         Assert.Equal("Incubation condition 9999 not found.", ex.Message);
         Assert.False(await db.MediaConfigurations.AnyAsync());
     }
@@ -152,7 +152,7 @@ public class MediaConfigurationMasterDataTests
         var controller = CreateController(db);
         var req = new CreateMediaConfigurationRequest(product.Id, EvaluationType.GrowthPromotion, otherCondition.Id, null, null, null);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.Media.CreateMediaConfiguration(req));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => controller.Media.CreateMediaConfiguration(req));
         Assert.Contains("belongs to a different media product", ex.Message);
         Assert.False(await db.MediaConfigurations.AnyAsync());
     }
@@ -169,7 +169,7 @@ public class MediaConfigurationMasterDataTests
         var controller = CreateController(db);
         var req = new CreateMediaConfigurationRequest(product.Id, EvaluationType.GrowthPromotion, otherCondition.Id, null, null, null);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.Media.CreateMediaConfiguration(req));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => controller.Media.CreateMediaConfiguration(req));
         Assert.Contains("already has an evaluation configuration", ex.Message);
         Assert.Single(await db.MediaConfigurations.ToListAsync());
     }
@@ -193,7 +193,7 @@ public class MediaConfigurationMasterDataTests
             }
         );
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => controller.Media.CreateMediaConfiguration(req));
+        await Assert.ThrowsAsync<BusinessRuleException>(() => controller.Media.CreateMediaConfiguration(req));
     }
 
     [Fact]
@@ -263,7 +263,7 @@ public class MediaConfigurationMasterDataTests
         var controller = CreateController(db);
         var req = new UpdateMediaConfigurationRequest(product2.Id, EvaluationType.GrowthPromotion, condition2.Id, null, null, null);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.Media.UpdateMediaConfiguration(config.Id, req));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => controller.Media.UpdateMediaConfiguration(config.Id, req));
         Assert.Contains("can't be moved to another media product", ex.Message);
 
         var reloaded = await db.MediaConfigurations.AsNoTracking().SingleAsync(m => m.Id == config.Id);
@@ -282,7 +282,7 @@ public class MediaConfigurationMasterDataTests
         var controller = CreateController(db);
         var req = new UpdateMediaConfigurationRequest(product.Id, EvaluationType.GrowthPromotion, 9999, 80.0m, 150.0m, null);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.Media.UpdateMediaConfiguration(config.Id, req));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => controller.Media.UpdateMediaConfiguration(config.Id, req));
         Assert.Equal("Incubation condition 9999 not found.", ex.Message);
 
         var reloaded = await db.MediaConfigurations.AsNoTracking().SingleAsync(m => m.Id == config.Id);
@@ -303,7 +303,7 @@ public class MediaConfigurationMasterDataTests
         var controller = CreateController(db);
         var req = new UpdateMediaConfigurationRequest(product.Id, EvaluationType.GrowthPromotion, otherCondition.Id, null, null, null);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.Media.UpdateMediaConfiguration(config.Id, req));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => controller.Media.UpdateMediaConfiguration(config.Id, req));
         Assert.Contains("belongs to a different media product", ex.Message);
 
         var reloaded = await db.MediaConfigurations.AsNoTracking().SingleAsync(m => m.Id == config.Id);

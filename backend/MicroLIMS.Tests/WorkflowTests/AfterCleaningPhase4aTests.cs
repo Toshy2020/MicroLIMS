@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.DTOs;
 using MicroLIMS.Application.Helpers;
@@ -87,11 +88,11 @@ public class AfterCleaningPhase4aTests
         var norm2 = CleaningTechniques.Normalize(new[] { "HPLC", "UV" });
         Assert.Equal("UV,HPLC", norm2);
 
-        var ex = Assert.Throws<InvalidOperationException>(() => CleaningTechniques.Normalize(new[] { "GC" }));
+        var ex = Assert.Throws<BusinessRuleException>(() => CleaningTechniques.Normalize(new[] { "GC" }));
         Assert.Contains("Invalid cleaning technique 'GC'", ex.Message);
 
-        Assert.Throws<InvalidOperationException>(() => CleaningTechniques.Normalize(Array.Empty<string>()));
-        Assert.Throws<InvalidOperationException>(() => CleaningTechniques.Normalize((string[]?)null));
+        Assert.Throws<BusinessRuleException>(() => CleaningTechniques.Normalize(Array.Empty<string>()));
+        Assert.Throws<BusinessRuleException>(() => CleaningTechniques.Normalize((string[]?)null));
     }
 
     [Fact]
@@ -115,7 +116,7 @@ public class AfterCleaningPhase4aTests
             PreviousProductItemId: null,
             Techniques: new() { "UV" });
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => engine.ReceiveAsync(req));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => engine.ReceiveAsync(req));
         Assert.Contains("Previous product item is required", ex.Message);
     }
 
@@ -139,11 +140,11 @@ public class AfterCleaningPhase4aTests
             PreviousProductItemId: s.FinishedProductItem.Id,
             Techniques: null);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => engine.ReceiveAsync(req));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => engine.ReceiveAsync(req));
         Assert.Contains("At least one cleaning technique is required", ex.Message);
 
         var reqEmpty = req with { Techniques = new List<string>() };
-        var exEmpty = await Assert.ThrowsAsync<InvalidOperationException>(() => engine.ReceiveAsync(reqEmpty));
+        var exEmpty = await Assert.ThrowsAsync<BusinessRuleException>(() => engine.ReceiveAsync(reqEmpty));
         Assert.Contains("At least one cleaning technique is required", exEmpty.Message);
     }
 
@@ -167,7 +168,7 @@ public class AfterCleaningPhase4aTests
             PreviousProductItemId: s.FinishedProductItem.Id,
             Techniques: new() { "UV", "INVALID_TECH" });
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => engine.ReceiveAsync(req));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => engine.ReceiveAsync(req));
         Assert.Contains("Invalid cleaning technique 'INVALID_TECH'", ex.Message);
     }
 
@@ -191,7 +192,7 @@ public class AfterCleaningPhase4aTests
             PreviousProductItemId: s.RawMaterialItem.Id,
             Techniques: new() { "UV" });
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => engine.ReceiveAsync(req));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => engine.ReceiveAsync(req));
         Assert.Contains("is not a Finished Product", ex.Message);
     }
 
@@ -215,7 +216,7 @@ public class AfterCleaningPhase4aTests
             PreviousProductItemId: s.InactiveItem.Id,
             Techniques: new() { "UV" });
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => engine.ReceiveAsync(req));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => engine.ReceiveAsync(req));
         Assert.Contains("is inactive and cannot be selected", ex.Message);
     }
 
@@ -341,12 +342,12 @@ public class AfterCleaningPhase4aTests
             Techniques: new() { "UV" }));
 
         // Attempting to prepare HPLC test should be refused
-        var exHplc = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var exHplc = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             engine.PrepareAsync(sample.Id, new List<int> { hplcConfig.Id }, s.FpUser.Id));
         Assert.Equal("Part test HPLC-CLEAN is HPLC, which was not chosen at receipt.", exHplc.Message);
 
         // Attempting to prepare ICP test should be refused
-        var exIcp = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var exIcp = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             engine.PrepareAsync(sample.Id, new List<int> { icpConfig.Id }, s.FpUser.Id));
         Assert.Equal("Part test ICP-CLEAN is ICP, which was not chosen at receipt.", exIcp.Message);
 

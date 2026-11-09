@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Helpers;
@@ -91,7 +92,7 @@ public class UvRecorderTests
         TestServiceFactory.TestWorkflow(db).RecordUvResultAsync(c.Order.Id, p, c.S.UserId, "127.0.0.1");
 
     private static async Task<InvalidOperationException> Refused(MicroLimsDbContext db, UvCase c, UvPayload p) =>
-        await Assert.ThrowsAsync<InvalidOperationException>(() => Record(db, c, p));
+        await Assert.ThrowsAsync<BusinessRuleException>(() => Record(db, c, p));
 
     private static Action<Specification> Dried => sp => sp.ResultBasis = ResultBasis.PercentDriedBasis;
 
@@ -761,7 +762,7 @@ public class UvSpecificationRuleTests
         using var _ = db;
         await new SpecificationService(db).ValidateAsync(Spec(item));
         await new SpecificationService(db).ValidateAsync(Spec(item, basis: null));
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(
             () => new SpecificationService(db).ValidateAsync(Spec(item, basis: ResultBasis.PercentDriedBasis)));
         Assert.Contains("Assign a loss on drying test", ex.Message);
 
@@ -776,9 +777,9 @@ public class UvSpecificationRuleTests
         var (db, item) = await SetupAsync(UvCalculationMode.AbsorbanceLimit);
         using var _ = db;
         await new SpecificationService(db).ValidateAsync(Spec(item, LimitType.Qualitative, null));
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => new SpecificationService(db).ValidateAsync(Spec(item)));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => new SpecificationService(db).ValidateAsync(Spec(item)));
         Assert.Contains("Qualitative", ex.Message);
-        var ex2 = await Assert.ThrowsAsync<InvalidOperationException>(
+        var ex2 = await Assert.ThrowsAsync<BusinessRuleException>(
             () => new SpecificationService(db).ValidateAsync(Spec(item, LimitType.Qualitative, ResultBasis.PercentAsIs)));
         Assert.Contains("Result basis is not used", ex2.Message);
     }
@@ -789,12 +790,12 @@ public class UvSpecificationRuleTests
         var (db, item) = await SetupAsync(UvCalculationMode.SpecificAbsorbanceValue);
         using var _ = db;
         var svc = new SpecificationService(db);
-        await Assert.ThrowsAsync<InvalidOperationException>(() => svc.ValidateAsync(Spec(item, LimitType.Qualitative, null)));
+        await Assert.ThrowsAsync<BusinessRuleException>(() => svc.ValidateAsync(Spec(item, LimitType.Qualitative, null)));
         var claim = Spec(item); claim.LabelClaim = 100m; claim.LabelClaimUnit = "mg";
-        await Assert.ThrowsAsync<InvalidOperationException>(() => svc.ValidateAsync(claim));
+        await Assert.ThrowsAsync<BusinessRuleException>(() => svc.ValidateAsync(claim));
         var analyte = Spec(item); analyte.HplcMethodAnalyteId = 1;
-        await Assert.ThrowsAsync<InvalidOperationException>(() => svc.ValidateAsync(analyte));
+        await Assert.ThrowsAsync<BusinessRuleException>(() => svc.ValidateAsync(analyte));
         var labelClaimBasis = Spec(item, basis: ResultBasis.PercentLabelClaim);
-        await Assert.ThrowsAsync<InvalidOperationException>(() => svc.ValidateAsync(labelClaimBasis));
+        await Assert.ThrowsAsync<BusinessRuleException>(() => svc.ValidateAsync(labelClaimBasis));
     }
 }

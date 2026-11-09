@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using MicroLIMS.Application.Helpers;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Abstractions.Persistence;
@@ -46,7 +47,7 @@ public class AnalystWorkloadService
     public async Task<KpiQuery> BuildQueryAsync(int userId, bool canViewTeam, DateOnly from, DateOnly to, string? category,
         string? location, string? testCode, int? analystId, CancellationToken ct = default)
     {
-        if (to < from) throw new InvalidOperationException("The end date must not be before the start date.");
+        if (to < from) throw new BusinessRuleException("The end date must not be before the start date.");
         // Same blank handling as S2's KpiDashboardService.BuildQueryAsync: "" and whitespace mean "not set".
         static string? Blank(string? s) => string.IsNullOrWhiteSpace(s) ? null : s.Trim();
         category = Blank(category); location = Blank(location); testCode = Blank(testCode);

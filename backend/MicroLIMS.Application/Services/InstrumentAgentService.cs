@@ -43,13 +43,13 @@ public class InstrumentAgentService
     private async Task<(InstrumentAgentDto Agent, string PlainKey)> RegisterCoreAsync(
         int equipmentId, string name, string timeZoneId, int adminUserId, CancellationToken ct)
     {
-        if (string.IsNullOrWhiteSpace(name)) throw new InvalidOperationException("Agent name is required.");
+        if (string.IsNullOrWhiteSpace(name)) throw new BusinessRuleException("Agent name is required.");
         RequireKnownTimeZone(timeZoneId);
 
         var equipment = await _db.Equipment.AsNoTracking().FirstOrDefaultAsync(e => e.Id == equipmentId, ct)
             ?? throw new NotFoundException($"Equipment {equipmentId} not found.");
         if (equipment.Type != EquipmentType.Hplc)
-            throw new InvalidOperationException($"Equipment {equipment.Code} is not an HPLC; an agent can only be bound to an HPLC.");
+            throw new BusinessRuleException($"Equipment {equipment.Code} is not an HPLC; an agent can only be bound to an HPLC.");
         await _scope.EnsureEquipmentAccessAsync(adminUserId, equipmentId, ct);
 
         var existing = await _db.InstrumentAgents.AsNoTracking()
@@ -58,12 +58,12 @@ public class InstrumentAgentService
             .ToListAsync(ct);
         var active = existing.FirstOrDefault(a => a.IsActive);
         if (active is not null)
-            throw new InvalidOperationException($"Equipment {equipment.Code} already has an active agent ({active.Code}). Rotate its key or revoke it first.");
+            throw new BusinessRuleException($"Equipment {equipment.Code} already has an active agent ({active.Code}). Rotate its key or revoke it first.");
 
         // A revoked agent keeps its code (deactivate, never delete), so a replacement gets the next suffix.
         var code = existing.Count == 0 ? $"AGT-{equipment.Code}" : $"AGT-{equipment.Code}-{existing.Count + 1}";
         if (code.Length > MaxCodeLength)
-            throw new InvalidOperationException($"Equipment code {equipment.Code} is too long for an agent code ({code.Length} characters, the limit is {MaxCodeLength}). Shorten the equipment code first.");
+            throw new BusinessRuleException($"Equipment code {equipment.Code} is too long for an agent code ({code.Length} characters, the limit is {MaxCodeLength}). Shorten the equipment code first.");
         var (plainKey, keyPrefix) = NewKey(code);
 
         var agent = new InstrumentAgent
@@ -106,7 +106,7 @@ public class InstrumentAgentService
 
     private async Task RevokeCoreAsync(int agentId, string reason, int adminUserId, CancellationToken ct)
     {
-        if (string.IsNullOrWhiteSpace(reason)) throw new InvalidOperationException("A reason is required to revoke an agent.");
+        if (string.IsNullOrWhiteSpace(reason)) throw new BusinessRuleException("A reason is required to revoke an agent.");
         var agent = await LoadActiveAsync(agentId, adminUserId, ct);
         agent.IsActive = false;
         agent.RevokedAt = _clock.UtcNow.UtcDateTime;
@@ -122,7 +122,7 @@ public class InstrumentAgentService
         var agent = await _db.InstrumentAgents.FirstOrDefaultAsync(a => a.Id == agentId, ct)
             ?? throw new NotFoundException($"Instrument agent {agentId} not found.");
         await _scope.EnsureEquipmentAccessAsync(adminUserId, agent.EquipmentId, ct);
-        if (!agent.IsActive) throw new InvalidOperationException($"Agent {agent.Code} is revoked.");
+        if (!agent.IsActive) throw new BusinessRuleException($"Agent {agent.Code} is revoked.");
         return agent;
     }
 
@@ -139,7 +139,7 @@ public class InstrumentAgentService
         try { TimeZoneInfo.FindSystemTimeZoneById(timeZoneId ?? string.Empty); }
         catch (Exception ex) when (ex is TimeZoneNotFoundException or InvalidTimeZoneException or ArgumentException)
         {
-            throw new InvalidOperationException($"Unknown time zone '{timeZoneId}'. Use an IANA id such as Africa/Cairo.");
+            throw new BusinessRuleException($"Unknown time zone '{timeZoneId}'. Use an IANA id such as Africa/Cairo.");
         }
     }
 

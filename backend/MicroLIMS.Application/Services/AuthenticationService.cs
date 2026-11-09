@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using MicroLIMS.Application.Services.SystemSettings;
 using MicroLIMS.Application.Helpers;
 using Microsoft.EntityFrameworkCore;
@@ -217,12 +218,20 @@ public class AuthenticationService : IAuthenticationService
     // same call, so the token's pv claim describes the codes it carries.
     // Login and refresh both go through here; AccessTokenRevalidator holds
     // every later request to the pv this stamps.
+    //
+    // Fails closed: an account whose role could not be loaded gets no token,
+    // never a guessed one. This used to fall back to an "Analyst" role claim,
+    // which would hand [Authorize(Roles = "Analyst")] endpoints to an account
+    // nobody granted that role. The throw rolls back the surrounding unit of
+    // work, so the login is not recorded as a success either.
     private async Task<string> IssueAccessTokenAsync(User user)
     {
-        var permissionCodes = user.Role is not null ? await _permissionService.GetPermissionCodesForRoleAsync(user.Role.Id) : new List<string>();
+        var role = user.Role
+            ?? throw new UnauthorizedAccessException("This account has no role assigned. Contact your System Administrator.");
+        var permissionCodes = await _permissionService.GetPermissionCodesForRoleAsync(role.Id);
         return _tokenIssuer(new AccessTokenSubject(
-            user.Id.ToString(), user.Role?.Type.ToString() ?? "Analyst",
-            user.RoleId, user.Role?.PermissionVersion ?? 0, permissionCodes));
+            user.Id.ToString(), role.Type.ToString(),
+            user.RoleId, role.PermissionVersion, permissionCodes));
     }
 
     public async Task<bool> ChangePasswordAsync(int userId, string currentPassword, string newPassword)
@@ -257,7 +266,7 @@ public class AuthenticationService : IAuthenticationService
     public async Task RequestPasswordResetAsync(string username)
     {
         var user = await _db.Users.FirstOrDefaultAsync(u => u.Username == username)
-            ?? throw new InvalidOperationException("If that account exists, a reset link has been sent."); // don't leak existence
+            ?? throw new BusinessRuleException("If that account exists, a reset link has been sent."); // don't leak existence
 
         var rawToken = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
         var expiresAt = _time.GetUtcNow().UtcDateTime.AddMinutes(await _settings.GetIntOrDefaultAsync(SystemSettingKeys.PasswordResetLifetimeMinutes));
@@ -319,7 +328,7 @@ public class AuthenticationService : IAuthenticationService
     {
         var failures = PasswordPolicy.Validate(newPassword, await _settings.GetIntOrDefaultAsync(SystemSettingKeys.PasswordMinimumLength));
         if (failures.Count > 0)
-            throw new InvalidOperationException(string.Join(" ", failures));
+            throw new BusinessRuleException(string.Join(" ", failures));
 
         var historyLimit = await _settings.GetIntOrDefaultAsync(SystemSettingKeys.PasswordHistoryLimit);
         var existingHistory = await _db.PasswordHistories
@@ -328,7 +337,7 @@ public class AuthenticationService : IAuthenticationService
             .ToListAsync();
 
         if (existingHistory.Take(historyLimit).Any(h => BCrypt.Net.BCrypt.Verify(newPassword, h.PasswordHash)))
-            throw new InvalidOperationException($"New password must not match any of your last {historyLimit} passwords.");
+            throw new BusinessRuleException($"New password must not match any of your last {historyLimit} passwords.");
 
         var newHash = BCrypt.Net.BCrypt.HashPassword(newPassword);
         user.PasswordHash = newHash;

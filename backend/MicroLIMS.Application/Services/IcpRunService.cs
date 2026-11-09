@@ -159,15 +159,15 @@ public partial class IcpRunService
             throw new NotFoundException($"Equipment {r.EquipmentId} not found.");
 
         if (equipment.Type != EquipmentType.IcpOes)
-            throw new InvalidOperationException($"\"{equipment.Name}\" is not an ICP-OES instrument.");
+            throw new BusinessRuleException($"\"{equipment.Name}\" is not an ICP-OES instrument.");
 
         var hasOpenRun = await _db.IcpRuns.AnyAsync(run => run.EquipmentId == equipment.Id && run.Status == IcpRunStatus.Open, ct);
         if (hasOpenRun)
-            throw new InvalidOperationException($"\"{equipment.Name}\" already has an open run.");
+            throw new BusinessRuleException($"\"{equipment.Name}\" already has an open run.");
 
         var unavailableReason = await DetermineUnavailableReasonAsync(equipment, ct);
         if (unavailableReason != null)
-            throw new InvalidOperationException(unavailableReason);
+            throw new BusinessRuleException(unavailableReason);
 
         var nowUtc = _clock.UtcNow.UtcDateTime;
         var labLocal = _clock.ToLabLocal(nowUtc);
@@ -210,7 +210,7 @@ public partial class IcpRunService
         await EnsureAccessAsync(run, userId, ct);
 
         if (run.Status != IcpRunStatus.Open)
-            throw new InvalidOperationException("The run is closed.");
+            throw new BusinessRuleException("The run is closed.");
 
         var trimmedReason = ValidateReason(reason);
 
@@ -251,10 +251,10 @@ public partial class IcpRunService
     private static string ValidateReason(string? reason)
     {
         if (string.IsNullOrWhiteSpace(reason))
-            throw new InvalidOperationException("A reason is required.");
+            throw new BusinessRuleException("A reason is required.");
         var trimmed = reason.Trim();
         if (trimmed.Length > 500)
-            throw new InvalidOperationException("Reason cannot exceed 500 characters.");
+            throw new BusinessRuleException("Reason cannot exceed 500 characters.");
         return trimmed;
     }
 

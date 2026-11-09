@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Application.Services;
@@ -140,7 +141,7 @@ public class IcpRunServiceTests
         s.Db.Equipment.Add(hplc);
         await s.Db.SaveChangesAsync();
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             s.Service.StartRunAsync(new StartIcpRunRequest(hplc.Id), s.UserId));
         Assert.Equal("\"HPLC 01\" is not an ICP-OES instrument.", ex.Message);
     }
@@ -151,7 +152,7 @@ public class IcpRunServiceTests
         var s = await SeedAsync();
         await StartAsync(s);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => StartAsync(s));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => StartAsync(s));
         Assert.Equal("\"ICP-OES 01\" already has an open run.", ex.Message);
     }
 
@@ -216,7 +217,7 @@ public class IcpRunServiceTests
         var s = await SeedAsync();
         var run = await StartAsync(s);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             s.Service.SaveCalibrationAsync(run.Id, Save(s.CalLot.Id, ("Zn", 0.9995m), ("ZN", 0.9996m)), s.UserId));
         Assert.Equal("Element \"Zn\" is listed more than once.", ex.Message);
     }
@@ -227,7 +228,7 @@ public class IcpRunServiceTests
         var s = await SeedAsync();
         var run = await StartAsync(s);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             s.Service.SaveCalibrationAsync(run.Id, Save(s.CalLot.Id, ("Zn1", 0.9995m)), s.UserId));
         Assert.Equal("Element symbol must be 1-3 letters.", ex.Message);
     }
@@ -238,7 +239,7 @@ public class IcpRunServiceTests
         var s = await SeedAsync();
         var run = await StartAsync(s);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             s.Service.SaveCalibrationAsync(run.Id, Save(s.CalLot.Id, ("Zn", 1.2m)), s.UserId));
         Assert.Equal("Zn: r must be between 0 and 1.", ex.Message);
     }
@@ -264,7 +265,7 @@ public class IcpRunServiceTests
         var chemical = await AddLotAsync(s.Db, s.Section.Id, "CHEM", "LOT-C", MaterialType.Chemical);
         var run = await StartAsync(s);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             s.Service.SaveCalibrationAsync(run.Id, Save(chemical.Id), s.UserId));
         Assert.Equal("The calibration standard must be a usable reference standard lot of this laboratory.", ex.Message);
     }
@@ -276,7 +277,7 @@ public class IcpRunServiceTests
         var run = await StartAsync(s);
         await s.Service.SaveCalibrationAsync(run.Id, Save(s.CalLot.Id), s.UserId);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             s.Service.ConfirmCalibrationAsync(run.Id, new ConfirmIcpCalibrationRequest(Password, null), s.UserId, null));
         Assert.Equal("Upload the Syngistix calibration report (the calibration curve) before confirming.", ex.Message);
     }
@@ -288,7 +289,7 @@ public class IcpRunServiceTests
         var run = await StartAsync(s);
         await UploadCalibrationReportAsync(s, run.Id);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             s.Service.ConfirmCalibrationAsync(run.Id, new ConfirmIcpCalibrationRequest(Password, null), s.UserId, null));
         Assert.Equal("Choose the calibration standard lot.", ex.Message);
     }
@@ -301,7 +302,7 @@ public class IcpRunServiceTests
         await s.Service.SaveCalibrationAsync(run.Id, Save(s.CalLot.Id, Array.Empty<(string, decimal?)>()), s.UserId);
         await UploadCalibrationReportAsync(s, run.Id);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             s.Service.ConfirmCalibrationAsync(run.Id, new ConfirmIcpCalibrationRequest(Password, null), s.UserId, null));
         Assert.Equal("Add the elements calibrated on this run, with their r.", ex.Message);
     }
@@ -314,7 +315,7 @@ public class IcpRunServiceTests
         await s.Service.SaveCalibrationAsync(run.Id, Save(s.CalLot.Id, znR: 0.9980m, caR: 0.9970m), s.UserId);
         await UploadCalibrationReportAsync(s, run.Id);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             s.Service.ConfirmCalibrationAsync(run.Id, new ConfirmIcpCalibrationRequest(Password, null), s.UserId, null));
         Assert.Equal("No element passes the calibration check (r), so the instrument is not ready for testing.", ex.Message);
     }
@@ -336,7 +337,7 @@ public class IcpRunServiceTests
         Assert.Single(s.Db.ElectronicSignatures.Where(x => x.EntityType == nameof(IcpCalibration)));
         Assert.False(confirmed.Calibration.Elements.Single(e => e.Symbol == "Zn").Passed);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             s.Service.SaveCalibrationAsync(run.Id, Save(s.CalLot.Id), s.UserId));
         Assert.Equal("The calibration has already been confirmed.", ex.Message);
     }
@@ -365,7 +366,7 @@ public class IcpRunServiceTests
         s.CalLot.ExpiryDate = DateTime.UtcNow.AddDays(-400);
         await s.Db.SaveChangesAsync();
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             s.Service.ConfirmCalibrationAsync(run.Id, new ConfirmIcpCalibrationRequest(Password, null), s.UserId, null));
         Assert.Equal("The calibration standard must be a usable reference standard lot of this laboratory.", ex.Message);
         Assert.Equal(IcpCalibrationStatus.Pending, (await s.Service.GetRunAsync(run.Id, s.UserId)).Calibration.Status);
@@ -377,7 +378,7 @@ public class IcpRunServiceTests
         var s = await SeedAsync();
         var run = await StartAsync(s);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => s.Service.AbandonRunAsync(run.Id, "  ", s.UserId));
+        await Assert.ThrowsAsync<BusinessRuleException>(() => s.Service.AbandonRunAsync(run.Id, "  ", s.UserId));
         var abandoned = await s.Service.AbandonRunAsync(run.Id, "Torch failure", s.UserId);
 
         Assert.Equal(IcpRunStatus.Abandoned, abandoned.Status);
@@ -410,12 +411,12 @@ public class IcpRunServiceTests
         var s = await SeedAsync();
         var run = await StartAsync(s);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             s.Service.UploadEvidenceAsync(run.Id, null, IcpEvidenceContext.Calibration, IcpEvidenceKind.SampleReport,
                 "x.pdf", "application/pdf", new MemoryStream(PdfBytes()), s.UserId));
         Assert.Equal("SampleReport evidence can't be attached to the Calibration context.", ex.Message);
 
-        var ex2 = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex2 = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             s.Service.UploadEvidenceAsync(run.Id, null, IcpEvidenceContext.Sample, IcpEvidenceKind.SampleReport,
                 "x.pdf", "application/pdf", new MemoryStream(PdfBytes()), s.UserId));
         Assert.Equal("Choose the sample this evidence belongs to.", ex2.Message);

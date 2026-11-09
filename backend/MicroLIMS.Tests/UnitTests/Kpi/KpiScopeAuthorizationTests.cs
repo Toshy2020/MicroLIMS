@@ -146,7 +146,7 @@ public class KpiScopeAuthorizationTests
     {
         await using var db = NewDb();
         var svc = Service(db, _ => null, new FakeKpi("a", 1));
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             svc.GetDashboardAsync(1, true, DateOnly.Parse(from), DateOnly.Parse(to), null, null, null, null));
         Assert.Contains("start date", ex.Message);
     }
@@ -156,7 +156,7 @@ public class KpiScopeAuthorizationTests
     {
         await using var db = NewDb();
         var svc = Service(db, _ => null, new FakeKpi("a", 1));
-        await Assert.ThrowsAsync<InvalidOperationException>(() => svc.GetDashboardAsync(1, true, default, default, null, null, null, null));
+        await Assert.ThrowsAsync<BusinessRuleException>(() => svc.GetDashboardAsync(1, true, default, default, null, null, null, null));
     }
 
     [Fact]
@@ -165,7 +165,7 @@ public class KpiScopeAuthorizationTests
         await using var db = NewDb();
         var kpi = new FakeKpi("a", 1);
         var svc = Service(db, _ => null, kpi);
-        await Assert.ThrowsAsync<InvalidOperationException>(() => svc.GetDashboardAsync(1, true, From, To, "Nonsense", null, null, null));
+        await Assert.ThrowsAsync<BusinessRuleException>(() => svc.GetDashboardAsync(1, true, From, To, "Nonsense", null, null, null));
         await svc.GetDashboardAsync(1, true, From, To, "water", null, null, null);
         Assert.Equal("water", kpi.Seen.Single().Category);   // KPIs parse it with ParseCategory (case-insensitive)
     }

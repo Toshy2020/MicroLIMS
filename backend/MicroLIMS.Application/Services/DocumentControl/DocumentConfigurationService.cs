@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using MicroLIMS.Application.Helpers;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.DTOs.DocumentControl;
@@ -67,7 +68,7 @@ public class DocumentConfigurationService : IDocumentConfigurationService
 
         var trimmedCode = request.Code.Trim().ToUpperInvariant();
         if (await _db.DocumentTypes.AnyAsync(t => t.Code == trimmedCode))
-            throw new InvalidOperationException($"Document Type Code '{trimmedCode}' already exists.");
+            throw new BusinessRuleException($"Document Type Code '{trimmedCode}' already exists.");
 
         var docType = new DocumentType
         {
@@ -191,7 +192,7 @@ public class DocumentConfigurationService : IDocumentConfigurationService
 
         var trimmedCode = request.Code.Trim().ToUpperInvariant();
         if (await _db.DocumentDepartments.AnyAsync(d => d.Code == trimmedCode))
-            throw new InvalidOperationException($"Department Code '{trimmedCode}' already exists.");
+            throw new BusinessRuleException($"Department Code '{trimmedCode}' already exists.");
 
         var dept = new DocumentDepartment
         {
@@ -313,7 +314,7 @@ public class DocumentConfigurationService : IDocumentConfigurationService
 
         var trimmedName = request.Name.Trim();
         if (await _db.DocumentSections.AnyAsync(s => s.DepartmentId == request.DepartmentId && s.Name.ToLower() == trimmedName.ToLower()))
-            throw new InvalidOperationException($"Section '{trimmedName}' already exists under department '{dept.Name}'.");
+            throw new BusinessRuleException($"Section '{trimmedName}' already exists under department '{dept.Name}'.");
 
         var section = new DocumentSection
         {
@@ -446,7 +447,7 @@ public class DocumentConfigurationService : IDocumentConfigurationService
     private static void RequireDeactivationConfirmation(string kind, string name, OrganizationImpactDto impact, bool confirmed)
     {
         if (!impact.HasReferences || confirmed) return;
-        throw new InvalidOperationException(
+        throw new BusinessRuleException(
             $"The {kind} '{name}' still has {impact.ActiveDocuments} active document(s), {impact.ActiveMemberships} active member(s) and {impact.OpenWork} open work item(s). " +
             "Deactivating it does not delete or move them. Confirm the deactivation to proceed.");
     }

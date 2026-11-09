@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Application.Abstractions.Persistence;
@@ -16,11 +17,11 @@ public static class ReceiptLabGuard
     {
         var ids = requested?.Distinct().ToList() ?? new List<int>();
         if (ids.Count == 0)
-            throw new InvalidOperationException("Choose at least one laboratory to receive the sample for.");
+            throw new BusinessRuleException("Choose at least one laboratory to receive the sample for.");
 
         var known = await db.DocumentSections.Where(s => ids.Contains(s.Id) && s.IsActive).Select(s => s.Id).ToListAsync();
         if (known.Count != ids.Count)
-            throw new InvalidOperationException("One or more selected laboratories do not exist.");
+            throw new BusinessRuleException("One or more selected laboratories do not exist.");
 
         if (!canReceiveForAnyLab)
         {

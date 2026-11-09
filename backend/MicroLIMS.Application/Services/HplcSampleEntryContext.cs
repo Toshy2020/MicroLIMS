@@ -146,7 +146,7 @@ public sealed class HplcSampleEntryContext
         HplcResultMode.ResidualSolvents => HplcResidualSolventEvaluator.Evaluate(BuildResidualSolventInputs()),
         HplcResultMode.RelatedSubstances => CalculateRelatedSubstances().Select(r => r.Row).ToList(),
         HplcResultMode.CleaningResidue => CleaningResidueCalculator.Evaluate(BuildCleaningResidueInputs()),
-        _ => throw new InvalidOperationException($"Unsupported result mode {Snapshot.ResultMode}."),
+        _ => throw new BusinessRuleException($"Unsupported result mode {Snapshot.ResultMode}."),
     };
 
     public List<HplcCleaningResidueInput> BuildCleaningResidueInputs()
@@ -263,7 +263,7 @@ public sealed class HplcSampleEntryContext
             ?? throw new NotFoundException($"Run sample {runSampleId} not found.");
 
         if (runSample.TestOrderId is not int testOrderId)
-            throw new InvalidOperationException("This run sample is a working standard qualification - open it from its qualification entry.");
+            throw new BusinessRuleException("This run sample is a working standard qualification - open it from its qualification entry.");
 
         var run = await db.HplcRuns
             .Include(r => r.Sst).ThenInclude(s => s!.Analytes)
@@ -277,7 +277,7 @@ public sealed class HplcSampleEntryContext
 
         var definition = await db.TestDefinitions.FirstAsync(t => t.Code == order.TestCode, ct);
         var snapshot = JsonSerializer.Deserialize<HplcMethodResponse>(run.MethodSnapshotJson, JsonOptions)
-            ?? throw new InvalidOperationException("The run's method snapshot could not be read.");
+            ?? throw new BusinessRuleException("The run's method snapshot could not be read.");
 
         List<Specification> specs;
         if (order.Sample?.ItemId is int itemId)

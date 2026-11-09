@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.DTOs;
 using MicroLIMS.Application.Interfaces;
@@ -242,18 +243,18 @@ public class SampleTestSelectionPostgresTests
         await using var db = w.Db;
         var service = TestServiceFactory.SampleTestSelection(db);
 
-        var empty = await Assert.ThrowsAsync<InvalidOperationException>(() => service.SelectAsync(w.Sample.Id, Choose(Password), w.Head.Id, null));
+        var empty = await Assert.ThrowsAsync<BusinessRuleException>(() => service.SelectAsync(w.Sample.Id, Choose(Password), w.Head.Id, null));
         Assert.Equal("Choose at least one test.", empty.Message);
 
         // USP-only test on a BP sample; an FP test for a Microbiology-only receipt.
-        var gradeMismatch = await Assert.ThrowsAsync<InvalidOperationException>(() => service.SelectAsync(w.Sample.Id, Choose(Password, w.Lod, w.UspOnly), w.Head.Id, null));
+        var gradeMismatch = await Assert.ThrowsAsync<BusinessRuleException>(() => service.SelectAsync(w.Sample.Id, Choose(Password, w.Lod, w.UspOnly), w.Head.Id, null));
         Assert.Equal($"Test {w.UspOnly} is not available for this sample.", gradeMismatch.Message);
-        var otherLab = await Assert.ThrowsAsync<InvalidOperationException>(() => service.SelectAsync(w.Sample.Id, Choose(Password, w.FpTest), w.Head.Id, null));
+        var otherLab = await Assert.ThrowsAsync<BusinessRuleException>(() => service.SelectAsync(w.Sample.Id, Choose(Password, w.FpTest), w.Head.Id, null));
         Assert.Equal($"Test {w.FpTest} is not available for this sample.", otherLab.Message);
         Assert.Empty(await db.TestOrders.Where(t => t.SampleId == w.Sample.Id).ToListAsync());
 
         await service.SelectAsync(w.Sample.Id, Choose(Password, w.Lod), w.Head.Id, null);
-        var again = await Assert.ThrowsAsync<InvalidOperationException>(() => service.SelectAsync(w.Sample.Id, Choose(Password, w.Assay), w.Head.Id, null));
+        var again = await Assert.ThrowsAsync<BusinessRuleException>(() => service.SelectAsync(w.Sample.Id, Choose(Password, w.Assay), w.Head.Id, null));
         Assert.Equal("Tests for this sample have already been selected.", again.Message);
         Assert.Single(await db.TestOrders.Where(t => t.SampleId == w.Sample.Id).ToListAsync());
     }
@@ -267,7 +268,7 @@ public class SampleTestSelectionPostgresTests
         Assert.Equal(new[] { w.MicroId, w.FpId }.OrderBy(i => i).Select(i => i.ToString()), w.Sample.PendingTargetSectionIds!.Split(','));
 
         // Microbiology's head may not choose the Physicochemical test.
-        var notMine = await Assert.ThrowsAsync<InvalidOperationException>(() => service.SelectAsync(w.Sample.Id, Choose(Password, w.FpTest), w.Head.Id, null));
+        var notMine = await Assert.ThrowsAsync<BusinessRuleException>(() => service.SelectAsync(w.Sample.Id, Choose(Password, w.FpTest), w.Head.Id, null));
         Assert.Equal($"Test {w.FpTest} is not available for this sample.", notMine.Message);
 
         // The dialog data: both labs' tests, only the user's own selectable.
@@ -305,7 +306,7 @@ public class SampleTestSelectionPostgresTests
         }
 
         // Head A has nothing left to choose; head B still can.
-        var again = await Assert.ThrowsAsync<InvalidOperationException>(() => service.SelectAsync(w.Sample.Id, Choose(Password, w.Assay), w.Head.Id, null));
+        var again = await Assert.ThrowsAsync<BusinessRuleException>(() => service.SelectAsync(w.Sample.Id, Choose(Password, w.Assay), w.Head.Id, null));
         Assert.Equal("Tests for this sample have already been selected.", again.Message);
 
         await service.SelectAsync(w.Sample.Id, Choose(Password, w.FpTest), w.OutsideHead.Id, null);
@@ -320,7 +321,7 @@ public class SampleTestSelectionPostgresTests
 
         foreach (var user in new[] { w.Head.Id, w.OutsideHead.Id })
         {
-            var second = await Assert.ThrowsAsync<InvalidOperationException>(() => service.SelectAsync(w.Sample.Id, Choose(Password, w.Lod), user, null));
+            var second = await Assert.ThrowsAsync<BusinessRuleException>(() => service.SelectAsync(w.Sample.Id, Choose(Password, w.Lod), user, null));
             Assert.Equal("Tests for this sample have already been selected.", second.Message);
         }
 
@@ -391,7 +392,7 @@ public class SampleTestSelectionPostgresTests
         w.Sample.Status = SampleStatus.Voided;
         await db.SaveChangesAsync();
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             TestServiceFactory.SampleTestSelection(db).SelectAsync(w.Sample.Id, Choose(Password, w.Lod), w.Head.Id, null));
 
         Assert.Equal("This sample is closed; tests can no longer be selected.", ex.Message);

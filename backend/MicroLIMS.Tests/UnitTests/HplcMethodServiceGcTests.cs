@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Services;
 using MicroLIMS.Domain.Entities;
@@ -65,7 +66,7 @@ public partial class HplcMethodServiceTests
             new() { new(null, "Vitamin E", null, standard.Id, 50m, 50m, 5) }, mode: HplcResultMode.Assay, abbreviation: "VE-GC"), userId);
         Assert.Equal(HplcResultMode.Assay, ok.ResultMode);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.CreateAsync(GcReq(diluent.Id,
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => service.CreateAsync(GcReq(diluent.Id,
             new() { new(null, "Vitamin E", null, standard.Id, 50m, 50m, 5, StandardConcentrationUgPerMl: 10m) },
             mode: HplcResultMode.Assay, abbreviation: "VE-GC2"), userId));
         Assert.Equal("Standard concentration and sample solution volume are only used for residual solvents.", ex.Message);
@@ -107,7 +108,7 @@ public partial class HplcMethodServiceTests
             _ => throw new ArgumentOutOfRangeException(nameof(field)),
         };
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.CreateAsync(req, userId));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => service.CreateAsync(req, userId));
         Assert.Equal(message, ex.Message);
     }
 
@@ -120,13 +121,13 @@ public partial class HplcMethodServiceTests
         var service = TestServiceFactory.HplcMethod(db);
         var hplc = Req(diluent.Id, new() { new("A", mp.Id, null) }, new() { AnalyteInput(standard.Id) });
 
-        var gcField = await Assert.ThrowsAsync<InvalidOperationException>(() => service.CreateAsync(hplc with { CarrierGas = CarrierGas.Helium }, userId));
+        var gcField = await Assert.ThrowsAsync<BusinessRuleException>(() => service.CreateAsync(hplc with { CarrierGas = CarrierGas.Helium }, userId));
         Assert.Equal("GC settings are not used on an HPLC method.", gcField.Message);
 
-        var mode = await Assert.ThrowsAsync<InvalidOperationException>(() => service.CreateAsync(hplc with { ResultMode = HplcResultMode.ResidualSolvents }, userId));
+        var mode = await Assert.ThrowsAsync<BusinessRuleException>(() => service.CreateAsync(hplc with { ResultMode = HplcResultMode.ResidualSolvents }, userId));
         Assert.Equal("Residual solvents mode is only available for GC methods.", mode.Message);
 
-        var detector = await Assert.ThrowsAsync<InvalidOperationException>(() => service.CreateAsync(hplc with { DetectorType = HplcDetectorType.Fid }, userId));
+        var detector = await Assert.ThrowsAsync<BusinessRuleException>(() => service.CreateAsync(hplc with { DetectorType = HplcDetectorType.Fid }, userId));
         Assert.Equal("Detector Fid is not an HPLC detector.", detector.Message);
     }
 
@@ -141,7 +142,7 @@ public partial class HplcMethodServiceTests
 
         var assay = GcReq(diluent.Id, new() { new(created.Analytes[0].Id, "Methanol", null, standard.Id, 50m, 50m, 6) },
             mode: HplcResultMode.Assay, reason: "switch");
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.UpdateAsync(created.Id, assay, userId));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => service.UpdateAsync(created.Id, assay, userId));
         Assert.Equal("The technique and result mode can't be changed after the method is created.", ex.Message);
     }
 
@@ -208,7 +209,7 @@ public partial class HplcMethodServiceTests
         var service = TestServiceFactory.HplcMethod(db);
         var hplc = Req(diluent.Id, new() { new("A", mp.Id, null) }, new() { AnalyteInput(standard.Id) with { StandardConcentrationUgPerMl = 10m } });
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.CreateAsync(hplc, userId));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => service.CreateAsync(hplc, userId));
         Assert.Equal("GC settings are not used on an HPLC method.", ex.Message);
     }
 }

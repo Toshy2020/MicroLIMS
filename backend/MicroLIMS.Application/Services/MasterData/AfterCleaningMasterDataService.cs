@@ -64,11 +64,11 @@ public class AfterCleaningMasterDataService
 
         var partCount = await _db.MachineParts.CountAsync(p => p.MachineId == id);
         if (partCount > 0)
-            throw new InvalidOperationException($"Cannot delete '{machine.Name}' - it still has {partCount} part(s). Delete those first.");
+            throw new BusinessRuleException($"Cannot delete '{machine.Name}' - it still has {partCount} part(s). Delete those first.");
 
         var sampleCount = await _db.Samples.CountAsync(s => s.MachineId == id);
         if (sampleCount > 0)
-            throw new InvalidOperationException($"Cannot delete '{machine.Name}' - it has been used to receive {sampleCount} sample(s).");
+            throw new BusinessRuleException($"Cannot delete '{machine.Name}' - it has been used to receive {sampleCount} sample(s).");
 
         _db.Machines.Remove(machine);
         await _db.SaveChangesAsync();
@@ -105,7 +105,7 @@ public class AfterCleaningMasterDataService
 
         var configCount = await _db.MachinePartConfigurations.CountAsync(c => c.MachinePartId == id);
         if (configCount > 0)
-            throw new InvalidOperationException($"Cannot delete '{part.Name}' - it still has {configCount} test configuration(s). Delete those first.");
+            throw new BusinessRuleException($"Cannot delete '{part.Name}' - it still has {configCount} test configuration(s). Delete those first.");
 
         _db.MachineParts.Remove(part);
         await _db.SaveChangesAsync();
@@ -123,7 +123,7 @@ public class AfterCleaningMasterDataService
         var duplicate = await _db.MachinePartConfigurations.AnyAsync(c =>
             c.MachinePartId == machinePartId && c.TestType == testType && c.TestCode == testCode && c.Id != exceptId);
         if (duplicate)
-            throw new InvalidOperationException($"{testCode} ({testType}) is already configured for this part.");
+            throw new BusinessRuleException($"{testCode} ({testType}) is already configured for this part.");
     }
 
     // HPLC and ICP part tests take the limit from the cleaning method (MACO) or the ICP test (ppm).
@@ -132,7 +132,7 @@ public class AfterCleaningMasterDataService
         if (limitType == null) return;
         var workflowType = await _db.TestDefinitions.Where(d => d.Code == testCode).Select(d => (WorkflowType?)d.WorkflowType).FirstOrDefaultAsync();
         if (workflowType is WorkflowType.HplcMethodAssay or WorkflowType.IcpMethodAssay)
-            throw new InvalidOperationException($"{testCode} takes its limit from the {(workflowType == WorkflowType.HplcMethodAssay ? "cleaning HPLC method" : "ICP test")}; leave the part limit empty.");
+            throw new BusinessRuleException($"{testCode} takes its limit from the {(workflowType == WorkflowType.HplcMethodAssay ? "cleaning HPLC method" : "ICP test")}; leave the part limit empty.");
     }
 
     public async Task<MachinePartConfigurationResponse> CreateMachinePartConfigurationAsync(int currentUserId, CreateMachinePartConfigRequest request)
@@ -204,7 +204,7 @@ public class AfterCleaningMasterDataService
 
         var usedBy = await _db.SampleLocations.CountAsync(l => l.MachinePartConfigurationId == id);
         if (usedBy > 0)
-            throw new InvalidOperationException(
+            throw new BusinessRuleException(
                 $"{entity.TestCode} has already been tested on this part ({usedBy} sample location(s)), so it cannot be removed.");
         _db.MachinePartConfigurations.Remove(entity);
         await _db.SaveChangesAsync();

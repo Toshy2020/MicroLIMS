@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -165,7 +166,7 @@ public class BackgroundJobRunTests
     {
         var (db, _, _, admin) = Create();
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => admin.RunManuallyAsync(Housekeeping, 1, reason));
+        await Assert.ThrowsAsync<BusinessRuleException>(() => admin.RunManuallyAsync(Housekeeping, 1, reason));
         Assert.Empty(db.BackgroundJobRuns);
     }
 

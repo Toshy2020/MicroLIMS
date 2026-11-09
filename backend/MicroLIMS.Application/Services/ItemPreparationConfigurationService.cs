@@ -104,10 +104,10 @@ public class ItemPreparationConfigurationService
     public async Task<ItemPreparationConfigurationDto> ApproveAsync(int itemId, int userId)
     {
         var config = await _db.ItemPreparationConfigurations.FirstOrDefaultAsync(c => c.ItemId == itemId)
-            ?? throw new InvalidOperationException($"Item {itemId} has no preparation configuration to approve.");
+            ?? throw new BusinessRuleException($"Item {itemId} has no preparation configuration to approve.");
 
         if (config.ApprovalStatus == ApprovalGateStatus.Approved)
-            throw new InvalidOperationException("This preparation configuration is already approved.");
+            throw new BusinessRuleException("This preparation configuration is already approved.");
 
         config.ApprovalStatus = ApprovalGateStatus.Approved;
         config.ApprovedByUserId = userId;

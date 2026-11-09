@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using MicroLIMS.Domain.Enums;
 
 namespace MicroLIMS.Application.Helpers;
@@ -11,15 +12,15 @@ public static class TitrationEngine
         decimal titrantVolumeMl, decimal blankMl, decimal equivalenceMgPerMl)
     {
         if (standardWeightMg <= 0m)
-            throw new InvalidOperationException("Standard weight must be greater than zero.");
+            throw new BusinessRuleException("Standard weight must be greater than zero.");
         if (purityPercent <= 0m || purityPercent > 100m)
-            throw new InvalidOperationException("Purity must be greater than 0 and at most 100.");
+            throw new BusinessRuleException("Purity must be greater than 0 and at most 100.");
         if (equivalenceMgPerMl <= 0m)
-            throw new InvalidOperationException("Equivalence must be greater than zero.");
+            throw new BusinessRuleException("Equivalence must be greater than zero.");
         if (blankMl < 0m)
-            throw new InvalidOperationException("Blank must not be negative.");
+            throw new BusinessRuleException("Blank must not be negative.");
         if (titrantVolumeMl - blankMl <= 0m)
-            throw new InvalidOperationException("Titrant volume must be greater than the blank.");
+            throw new BusinessRuleException("Titrant volume must be greater than the blank.");
 
         decimal netVolumeMl = titrantVolumeMl - blankMl;
 
@@ -30,17 +31,17 @@ public static class TitrationEngine
         decimal referenceNominalStrength, decimal titrantVolumeMl, decimal blankMl, decimal nominalStrength)
     {
         if (referenceVolumeMl <= 0m)
-            throw new InvalidOperationException("Reference volume must be greater than zero.");
+            throw new BusinessRuleException("Reference volume must be greater than zero.");
         if (referenceFactor <= 0m)
-            throw new InvalidOperationException("Reference factor must be greater than zero.");
+            throw new BusinessRuleException("Reference factor must be greater than zero.");
         if (referenceNominalStrength <= 0m)
-            throw new InvalidOperationException("Reference strength must be greater than zero.");
+            throw new BusinessRuleException("Reference strength must be greater than zero.");
         if (nominalStrength <= 0m)
-            throw new InvalidOperationException("Titrant strength must be greater than zero.");
+            throw new BusinessRuleException("Titrant strength must be greater than zero.");
         if (blankMl < 0m)
-            throw new InvalidOperationException("Blank must not be negative.");
+            throw new BusinessRuleException("Blank must not be negative.");
         if (titrantVolumeMl - blankMl <= 0m)
-            throw new InvalidOperationException("Titrant volume must be greater than the blank.");
+            throw new BusinessRuleException("Titrant volume must be greater than the blank.");
 
         decimal netVolumeMl = titrantVolumeMl - blankMl;
 
@@ -50,7 +51,7 @@ public static class TitrationEngine
     public static FactorEvaluation Evaluate(IReadOnlyList<decimal> factors, decimal factorMin, decimal factorMax, decimal maxRsdPercent)
     {
         if (factors == null || factors.Count == 0)
-            throw new InvalidOperationException("At least one replicate is required.");
+            throw new BusinessRuleException("At least one replicate is required.");
 
         decimal mean = factors.Average();
         decimal? rsdPercent = null;
@@ -105,7 +106,7 @@ public static class TitrationEngine
     {
         decimal net = residual ? blankMl - volumeMl : volumeMl - blankMl;
         if (net <= 0m)
-            throw new InvalidOperationException(residual
+            throw new BusinessRuleException(residual
                 ? "The blank volume must be greater than the sample titrant volume."
                 : "The titrant volume must be greater than the blank volume.");
         return net;
@@ -132,7 +133,7 @@ public static class TitrationEngine
         RequirePositive(equivalencyFactor, "Equivalency factor");
         decimal mEq = excessVolumeMl * excessStrength * excessFactor - backVolumeMl * backStrength * backFactor;
         if (mEq <= 0m)
-            throw new InvalidOperationException("The back-titrated amount exceeds the excess titrant added.");
+            throw new BusinessRuleException("The back-titrated amount exceeds the excess titrant added.");
         return mEq * equivalencyFactor;
     }
 
@@ -142,9 +143,9 @@ public static class TitrationEngine
         RequirePositive(standardWeightMg, "Standard weight");
         RequirePositive(standardNetVolumeMl, "Standard net titre");
         if (purityPercent <= 0m || purityPercent > 100m)
-            throw new InvalidOperationException("Standard purity must be greater than 0 and at most 100.");
+            throw new BusinessRuleException("Standard purity must be greater than 0 and at most 100.");
         if (moisturePercent < 0m || moisturePercent >= 100m)
-            throw new InvalidOperationException("Standard moisture must be at least 0 and below 100.");
+            throw new BusinessRuleException("Standard moisture must be at least 0 and below 100.");
         return standardWeightMg * purityPercent / 100m * (100m - moisturePercent) / 100m / standardNetVolumeMl;
     }
 
@@ -167,20 +168,20 @@ public static class TitrationEngine
             case ResultBasis.PercentDriedBasis:
             case ResultBasis.PercentAnhydrousBasis:
                 if (!lossPercent.HasValue || lossPercent < 0m || lossPercent >= 100m)
-                    throw new InvalidOperationException("Loss on drying / water % (0 to below 100) is required for a dried or anhydrous basis.");
+                    throw new BusinessRuleException("Loss on drying / water % (0 to below 100) is required for a dried or anhydrous basis.");
                 return pct * 100m / (100m - lossPercent.Value);
             case ResultBasis.PercentLabelClaim:
                 if (!averageUnitWeightMg.HasValue || averageUnitWeightMg <= 0m)
-                    throw new InvalidOperationException("Average unit weight is required for this result basis.");
+                    throw new BusinessRuleException("Average unit weight is required for this result basis.");
                 if (!labelClaimMg.HasValue || labelClaimMg <= 0m)
-                    throw new InvalidOperationException("Label claim is required for this result basis.");
+                    throw new BusinessRuleException("Label claim is required for this result basis.");
                 return mg / sampleWeightMg * averageUnitWeightMg.Value / labelClaimMg.Value * 100m;
             case ResultBasis.MgPerUnit:
                 if (!averageUnitWeightMg.HasValue || averageUnitWeightMg <= 0m)
-                    throw new InvalidOperationException("Average unit weight is required for this result basis.");
+                    throw new BusinessRuleException("Average unit weight is required for this result basis.");
                 return mg / sampleWeightMg * averageUnitWeightMg.Value;
             default:
-                throw new InvalidOperationException($"Result basis {basis} is not supported for titration.");
+                throw new BusinessRuleException($"Result basis {basis} is not supported for titration.");
         }
     }
 
@@ -188,7 +189,7 @@ public static class TitrationEngine
     public static SeriesSummary Summarize(IReadOnlyList<decimal> results, decimal? maxRsdPercent)
     {
         if (results == null || results.Count == 0)
-            throw new InvalidOperationException("At least one replicate is required.");
+            throw new BusinessRuleException("At least one replicate is required.");
         decimal mean = results.Average();
         decimal? rsd = null;
         if (results.Count >= 2 && mean != 0m)
@@ -201,6 +202,6 @@ public static class TitrationEngine
 
     private static void RequirePositive(decimal v, string what)
     {
-        if (v <= 0m) throw new InvalidOperationException($"{what} must be greater than zero.");
+        if (v <= 0m) throw new BusinessRuleException($"{what} must be greater than zero.");
     }
 }

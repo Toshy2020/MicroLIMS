@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using System.Reflection;
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
@@ -98,7 +99,7 @@ public class ItemMassAssignmentTests
     {
         await using var db = NewDb();
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => new ItemService(db).CreateAsync(
+        await Assert.ThrowsAsync<BusinessRuleException>(() => new ItemService(db).CreateAsync(
             new ItemSaveRequest("Water point", "W-1", SampleCategory.Water, null, null)));
     }
 
@@ -115,10 +116,10 @@ public class ItemMassAssignmentTests
         var bad = new ItemSaveRequest("Glycerin", "RM-1", SampleCategory.RawMaterial, null, null,
             (decimal?)min, (decimal?)retestMin, unit);
 
-        Assert.Equal(message, (await Assert.ThrowsAsync<InvalidOperationException>(() => service.CreateAsync(bad))).Message);
+        Assert.Equal(message, (await Assert.ThrowsAsync<BusinessRuleException>(() => service.CreateAsync(bad))).Message);
 
         var item = await service.CreateAsync(bad with { MinSampleQuantity = null, MinRetestSampleQuantity = null, MinSampleQuantityUnit = null });
-        Assert.Equal(message, (await Assert.ThrowsAsync<InvalidOperationException>(() => service.UpdateAsync(item.Id, bad))).Message);
+        Assert.Equal(message, (await Assert.ThrowsAsync<BusinessRuleException>(() => service.UpdateAsync(item.Id, bad))).Message);
     }
 
     [Fact]

@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Services;
 using MicroLIMS.Domain.Entities;
@@ -84,7 +85,7 @@ public class MaterialConsumptionTests
             LoadType: "agar", Temperature: 121m, CycleTime: 15, CycleNumber: 1,
             Ph: 7.2m, ExpiryDate: DateTime.UtcNow.AddMonths(1), UserId: 1);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => service.PrepareAsync(request));
+        await Assert.ThrowsAsync<BusinessRuleException>(() => service.PrepareAsync(request));
 
         Assert.Empty(await db.Media.ToListAsync());
         var reloaded = await db.Materials.FindAsync(material.Id);
@@ -104,7 +105,7 @@ public class MaterialConsumptionTests
             LoadType: "agar", Temperature: 121m, CycleTime: 15, CycleNumber: 1,
             Ph: 7.2m, ExpiryDate: DateTime.UtcNow.AddMonths(1), UserId: 1);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => service.PrepareAsync(request));
+        await Assert.ThrowsAsync<BusinessRuleException>(() => service.PrepareAsync(request));
 
         Assert.Empty(await db.Media.ToListAsync());
         var reloaded = await db.Materials.FindAsync(material.Id);
@@ -202,7 +203,7 @@ public class MaterialConsumptionTests
             StorageCondition: "Freezer -15 to -25", PhysicalCheckConfirmed: true, PhysicalCheckText: "OK",
             Panel: OnePanelRow(media, incubator), DiscsUsed: 3, UserId: 1);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => service.PrepareCryovialsAsync(request));
+        await Assert.ThrowsAsync<BusinessRuleException>(() => service.PrepareCryovialsAsync(request));
 
         Assert.Empty(await db.Cryovials.ToListAsync());
         var reloaded = await db.Materials.FindAsync(material.Id);
@@ -222,7 +223,7 @@ public class MaterialConsumptionTests
             StorageCondition: "Freezer -15 to -25", PhysicalCheckConfirmed: true, PhysicalCheckText: "OK",
             Panel: OnePanelRow(media, incubator), DiscsUsed: 2, UserId: 1);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => service.PrepareCryovialsAsync(request));
+        await Assert.ThrowsAsync<BusinessRuleException>(() => service.PrepareCryovialsAsync(request));
 
         Assert.Empty(await db.Cryovials.ToListAsync());
         var reloaded = await db.Materials.FindAsync(material.Id);
@@ -243,7 +244,7 @@ public class MaterialConsumptionTests
             StorageCondition: "Freezer -15 to -25", PhysicalCheckConfirmed: false, PhysicalCheckText: "Discrepancy noted",
             Panel: OnePanelRow(media, incubator), DiscsUsed: 1, UserId: 1);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.PrepareCryovialsAsync(request));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => service.PrepareCryovialsAsync(request));
         Assert.Contains("Physical check confirmation against the organism reference description is required", ex.Message);
 
         Assert.Empty(await db.Cryovials.ToListAsync());

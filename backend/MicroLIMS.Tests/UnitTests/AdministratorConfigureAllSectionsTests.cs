@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.DTOs;
 using MicroLIMS.Application.Interfaces;
@@ -75,9 +76,9 @@ public class AdministratorConfigureAllSectionsTests
         Assert.Equal(w.Fp.Id, await scope.ResolveSectionForCreateAsync(w.Admin.Id, w.Fp.Id, access: SectionAccess.Configure));
         Assert.Equal(w.Micro.Id, await scope.ResolveSectionForCreateAsync(w.Admin.Id, w.Micro.Id, access: SectionAccess.Configure));
         // Without a requested section the administrator must choose one.
-        await Assert.ThrowsAsync<InvalidOperationException>(() => scope.ResolveSectionForCreateAsync(w.Admin.Id, null, access: SectionAccess.Configure));
+        await Assert.ThrowsAsync<BusinessRuleException>(() => scope.ResolveSectionForCreateAsync(w.Admin.Id, null, access: SectionAccess.Configure));
         // The same call with Write access (a GxP create) is still membership.
-        await Assert.ThrowsAsync<InvalidOperationException>(() => scope.ResolveSectionForCreateAsync(w.Admin.Id, w.Fp.Id));
+        await Assert.ThrowsAsync<BusinessRuleException>(() => scope.ResolveSectionForCreateAsync(w.Admin.Id, w.Fp.Id));
 
         // Specifications belong to the section of their test: allowed in either section.
         await SpecificationOwnership.EnsureCanEditAsync(w.Db, scope, w.Admin.Id, w.FpTest.Code);
@@ -108,7 +109,7 @@ public class AdministratorConfigureAllSectionsTests
         await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
             TestMaster(w.Db).UpdateTestDefinitionAsync(w.Head.Id, w.FpTest.Id, new UpdateTestDefinitionRequest(w.FpTest.Code, "nope")));
         await Assert.ThrowsAsync<UnauthorizedAccessException>(() => SpecificationOwnership.EnsureCanEditAsync(w.Db, scope, w.Head.Id, w.FpTest.Code));
-        await Assert.ThrowsAsync<InvalidOperationException>(() => scope.ResolveSectionForCreateAsync(w.Head.Id, w.Fp.Id, access: SectionAccess.Configure));
+        await Assert.ThrowsAsync<BusinessRuleException>(() => scope.ResolveSectionForCreateAsync(w.Head.Id, w.Fp.Id, access: SectionAccess.Configure));
 
         // ...and still works inside its own section.
         await SpecificationOwnership.EnsureCanEditAsync(w.Db, scope, w.Head.Id, w.MicroTest.Code);

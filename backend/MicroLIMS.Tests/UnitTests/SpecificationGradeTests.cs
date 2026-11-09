@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Services;
 using MicroLIMS.Domain.Entities;
@@ -22,7 +23,7 @@ public class SpecificationGradeTests
     [Fact]
     public void NormalizeGrade_RejectsMoreThan20Characters()
     {
-        var ex = Assert.Throws<InvalidOperationException>(() => SpecificationService.NormalizeGrade(new string('x', 21)));
+        var ex = Assert.Throws<BusinessRuleException>(() => SpecificationService.NormalizeGrade(new string('x', 21)));
         Assert.Equal("Grade must be 20 characters or fewer.", ex.Message);
     }
 
@@ -49,7 +50,7 @@ public class SpecificationGradeTests
         db.Specifications.Add(Spec("BP"));
         await db.SaveChangesAsync();
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.ValidateAsync(Spec("bp")));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => service.ValidateAsync(Spec("bp")));
         Assert.Equal("A specification for this parameter and grade already exists.", ex.Message);
     }
 
@@ -73,7 +74,7 @@ public class SpecificationGradeTests
         db.Specifications.Add(Spec(null));
         await db.SaveChangesAsync();
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.ValidateAsync(Spec(null)));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => service.ValidateAsync(Spec(null)));
         Assert.Contains("already exists for test 'ID'", ex.Message);
     }
 

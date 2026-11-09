@@ -43,7 +43,7 @@ public class ChromatographyColumnService
     {
         var d = value?.Trim().ToUpperInvariant();
         if (string.IsNullOrEmpty(d)) return null;
-        if (d.Length > 10) throw new InvalidOperationException("USP designation cannot exceed 10 characters.");
+        if (d.Length > 10) throw new BusinessRuleException("USP designation cannot exceed 10 characters.");
         return d;
     }
 
@@ -88,16 +88,16 @@ public class ChromatographyColumnService
     public async Task<ChromatographyColumnResponse> CreateAsync(CreateChromatographyColumnRequest request, int currentUserId, CancellationToken ct = default)
     {
         if (string.IsNullOrWhiteSpace(request.Code))
-            throw new InvalidOperationException("Column code is required.");
+            throw new BusinessRuleException("Column code is required.");
         if (string.IsNullOrWhiteSpace(request.Name))
-            throw new InvalidOperationException("Column name is required.");
+            throw new BusinessRuleException("Column name is required.");
 
         var normalizedCode = request.Code.Trim().ToUpper();
         if (await _db.ChromatographyColumns.AnyAsync(c => c.Code == normalizedCode, ct))
-            throw new InvalidOperationException($"Column code \"{normalizedCode}\" already exists.");
+            throw new BusinessRuleException($"Column code \"{normalizedCode}\" already exists.");
 
         if (request.SerialNumber != null && request.SerialNumber.Length > 100)
-            throw new InvalidOperationException("Serial number cannot exceed 100 characters.");
+            throw new BusinessRuleException("Serial number cannot exceed 100 characters.");
 
         var sectionId = await _scope.ResolveSectionForCreateAsync(currentUserId, request.SectionId, ct);
 
@@ -110,14 +110,14 @@ public class ChromatographyColumnService
                 .ToListAsync(ct);
 
             if (compatibleEquipment.Count != distinctIds.Count)
-                throw new InvalidOperationException("One or more specified compatible equipment items do not exist.");
+                throw new BusinessRuleException("One or more specified compatible equipment items do not exist.");
 
             foreach (var eq in compatibleEquipment)
             {
                 if (eq.Type != EquipmentType.Hplc && eq.Type != EquipmentType.Gc)
-                    throw new InvalidOperationException($"Equipment \"{eq.Code}\" is not an HPLC or GC instrument. Only chromatography equipment can be linked to a column.");
+                    throw new BusinessRuleException($"Equipment \"{eq.Code}\" is not an HPLC or GC instrument. Only chromatography equipment can be linked to a column.");
                 if (eq.SectionId != sectionId)
-                    throw new InvalidOperationException($"Equipment \"{eq.Code}\" belongs to another section. Compatible equipment must belong to the same laboratory section as the column.");
+                    throw new BusinessRuleException($"Equipment \"{eq.Code}\" belongs to another section. Compatible equipment must belong to the same laboratory section as the column.");
             }
         }
 
@@ -156,16 +156,16 @@ public class ChromatographyColumnService
         RecordVersion.EnsureCurrent(_db, column);
 
         if (string.IsNullOrWhiteSpace(request.Code))
-            throw new InvalidOperationException("Column code is required.");
+            throw new BusinessRuleException("Column code is required.");
         if (string.IsNullOrWhiteSpace(request.Name))
-            throw new InvalidOperationException("Column name is required.");
+            throw new BusinessRuleException("Column name is required.");
 
         var normalizedCode = request.Code.Trim().ToUpper();
         if (await _db.ChromatographyColumns.AnyAsync(c => c.Code == normalizedCode && c.Id != id, ct))
-            throw new InvalidOperationException($"Column code \"{normalizedCode}\" already exists.");
+            throw new BusinessRuleException($"Column code \"{normalizedCode}\" already exists.");
 
         if (request.SerialNumber != null && request.SerialNumber.Length > 100)
-            throw new InvalidOperationException("Serial number cannot exceed 100 characters.");
+            throw new BusinessRuleException("Serial number cannot exceed 100 characters.");
 
         if (request.SectionId.HasValue && request.SectionId.Value != column.SectionId)
         {
@@ -180,14 +180,14 @@ public class ChromatographyColumnService
                 .ToListAsync(ct);
 
             if (compatibleEquipment.Count != distinctIds.Count)
-                throw new InvalidOperationException("One or more specified compatible equipment items do not exist.");
+                throw new BusinessRuleException("One or more specified compatible equipment items do not exist.");
 
             foreach (var eq in compatibleEquipment)
             {
                 if (eq.Type != EquipmentType.Hplc && eq.Type != EquipmentType.Gc)
-                    throw new InvalidOperationException($"Equipment \"{eq.Code}\" is not an HPLC or GC instrument. Only chromatography equipment can be linked to a column.");
+                    throw new BusinessRuleException($"Equipment \"{eq.Code}\" is not an HPLC or GC instrument. Only chromatography equipment can be linked to a column.");
                 if (eq.SectionId != column.SectionId)
-                    throw new InvalidOperationException($"Equipment \"{eq.Code}\" belongs to another section. Compatible equipment must belong to the same laboratory section as the column.");
+                    throw new BusinessRuleException($"Equipment \"{eq.Code}\" belongs to another section. Compatible equipment must belong to the same laboratory section as the column.");
             }
 
             column.CompatibleEquipment.Clear();

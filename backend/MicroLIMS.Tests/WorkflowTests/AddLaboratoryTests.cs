@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Services;
 using MicroLIMS.Domain.Entities;
@@ -149,7 +150,7 @@ public class AddLaboratoryTests
         sample.SectionSignoffs.Add(new SampleSectionSignoff { SampleId = sample.Id, SectionId = fp.Id, Status = SectionSignoffStatus.Rejected });
         await db.SaveChangesAsync();
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(
             () => TestServiceFactory.AddLaboratory(db).AddAsync(sample.Id, micro.Id, userId, Password, "Micro tests also required", null));
         Assert.Contains("cannot be added to a rejected, voided or cancelled sample", ex.Message);
     }
@@ -160,7 +161,7 @@ public class AddLaboratoryTests
         var (db, item, micro, fp, userId) = await SeedAsync();
         var sample = await SeedFpOnlySampleAsync(db, item, fp);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(
             () => TestServiceFactory.AddLaboratory(db).AddAsync(sample.Id, fp.Id, userId, Password, "Already testing", null));
         Assert.Contains("already testing the sample", ex.Message);
     }
@@ -186,7 +187,7 @@ public class AddLaboratoryTests
 
         var sample = await SeedFpOnlySampleAsync(db, item, fp);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(
             () => TestServiceFactory.AddLaboratory(db).AddAsync(sample.Id, micro.Id, user.Id, Password, "Add micro", null));
         Assert.Contains("has no tests for Microbiology Laboratory", ex.Message);
     }

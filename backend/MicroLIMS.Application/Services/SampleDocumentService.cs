@@ -65,7 +65,7 @@ public class SampleDocumentService
         UnitOfWork.RunAsync(_db, async () =>
         {
             if (type == SampleDocumentType.ExternalLabReport)
-                throw new InvalidOperationException("An external lab report is uploaded from its outsourced test.");
+                throw new BusinessRuleException("An external lab report is uploaded from its outsourced test.");
             await EnsureAccessAsync(sampleId, userId, ct);
             return await StoreAsync(sampleId, fileName, contentType, content, type, null, userId, ct);
         });
@@ -79,7 +79,7 @@ public class SampleDocumentService
                 .Select(t => new { t.SampleId, t.OutsourcedToLab }).FirstOrDefaultAsync(ct)
                 ?? throw new NotFoundException($"Test order {testOrderId} not found.");
             if (order.OutsourcedToLab == null)
-                throw new InvalidOperationException($"Test order {testOrderId} is not an outsourced test.");
+                throw new BusinessRuleException($"Test order {testOrderId} is not an outsourced test.");
             await _scope.EnsureTestOrderAccessAsync(userId, testOrderId, ct);
             return await StoreAsync(order.SampleId, fileName, contentType, content, SampleDocumentType.ExternalLabReport, testOrderId, userId, ct);
         });
@@ -91,7 +91,7 @@ public class SampleDocumentService
 
         var error = _validator.Validate(fileName, contentType, content.Length, content.Take(16).ToArray());
         if (error != null)
-            throw new InvalidOperationException(error);
+            throw new BusinessRuleException(error);
 
         _db.CurrentUserId = userId;
         var ext = Path.GetExtension(fileName).ToLowerInvariant();
@@ -162,13 +162,13 @@ public class SampleDocumentService
         catch (Exception ex)
         {
             _logger.LogError(ex, "File read failed for SampleDocument {Id} (key: {Key}).", document.Id, document.StorageKey);
-            throw new InvalidOperationException("The document file could not be retrieved.");
+            throw new BusinessRuleException("The document file could not be retrieved.");
         }
 
         if (!string.Equals(Convert.ToHexString(SHA256.HashData(content)), document.ContentSha256, StringComparison.OrdinalIgnoreCase))
         {
             _logger.LogError("INTEGRITY FAILURE: SampleDocument {Id} (sample {SampleId}) does not match its stored hash.", document.Id, document.SampleId);
-            throw new InvalidOperationException("Document integrity check failed. The file may have been altered. Please contact your System Administrator.");
+            throw new BusinessRuleException("Document integrity check failed. The file may have been altered. Please contact your System Administrator.");
         }
         return (ToDto(document), content);
     }
@@ -186,13 +186,13 @@ public class SampleDocumentService
         await EnsureSampleOpenAsync(document.SampleId, ct);
 
         if (string.IsNullOrWhiteSpace(reason))
-            throw new InvalidOperationException("A void reason is required.");
+            throw new BusinessRuleException("A void reason is required.");
         if (document.Status == SampleDocumentStatus.Voided)
-            throw new InvalidOperationException("This document is already voided.");
+            throw new BusinessRuleException("This document is already voided.");
         // a recorded result cites its external report: the test is returned first, so the evidence is never voided under a signed result
         if (document.DocumentType == SampleDocumentType.ExternalLabReport
             && await _db.TestAnalyses.AnyAsync(a => a.TestOrderId == document.TestOrderId && a.IsActive, ct))
-            throw new InvalidOperationException("This external report supports a recorded result; return the test before voiding it.");
+            throw new BusinessRuleException("This external report supports a recorded result; return the test before voiding it.");
 
         _db.CurrentUserId = userId;
         document.Status = SampleDocumentStatus.Voided;
@@ -222,7 +222,7 @@ public class SampleDocumentService
     {
         var status = await _db.Samples.AsNoTracking().Where(s => s.Id == sampleId).Select(s => s.Status).FirstAsync(ct);
         if (status is SampleStatus.Voided or SampleStatus.Cancelled)
-            throw new InvalidOperationException("This sample is voided; its documents can no longer be changed.");
+            throw new BusinessRuleException("This sample is voided; its documents can no longer be changed.");
     }
 
     // Strips the path and every control character and double quote (header / log injection).

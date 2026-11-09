@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using System.Security.Cryptography;
 using System.Text;
 using Microsoft.EntityFrameworkCore;
@@ -439,7 +440,7 @@ public class DocumentControlPostgresIntegrationTests
         storage.Files[fileInDb!.StorageKey] = Encoding.UTF8.GetBytes("%PDF-1.7 TAMPERED BIT FLIP");
 
         // Retrieval must detect integrity failure and record security audit log in Postgres
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(async () =>
         {
             await fileService.GetFileContentAsync(uploaded.Id, _fixture.SeededControllerUserId);
         });

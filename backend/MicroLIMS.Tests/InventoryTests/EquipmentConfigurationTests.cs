@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Services;
 using MicroLIMS.Domain.Entities;
@@ -193,7 +194,7 @@ public class EquipmentConfigurationTests
         var service = new EquipmentConfigurationService(db);
 
         // 1. Missing reason throws
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        await Assert.ThrowsAsync<BusinessRuleException>(() =>
             service.UpdateIncubatorSetPointAsync(1, new UpdateIncubatorSetPointRequest(32.5m, ""), 1));
 
         // 2. Valid update succeeds
@@ -225,7 +226,7 @@ public class EquipmentConfigurationTests
 
         var service = new EquipmentConfigurationService(db);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        await Assert.ThrowsAsync<BusinessRuleException>(() =>
             service.UpdateIncubatorSetPointAsync(2, new UpdateIncubatorSetPointRequest(121.0m, "Attempt invalid setpoint"), 1));
     }
 

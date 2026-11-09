@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using System.Text.Json;
 using MicroLIMS.Application.Helpers;
 using MicroLIMS.Domain.Entities;
@@ -98,7 +99,7 @@ public class GravimetricCalculatorTests
         };
         var spec = CreateNmtSpec(5.0m);
 
-        var ex = Assert.Throws<InvalidOperationException>(() => GravimetricCalculator.Calculate(replicates, mode, spec));
+        var ex = Assert.Throws<BusinessRuleException>(() => GravimetricCalculator.Calculate(replicates, mode, spec));
         Assert.Contains("Final weight (W2) cannot be greater than initial weight (W1)", ex.Message);
     }
 
@@ -114,7 +115,7 @@ public class GravimetricCalculatorTests
         };
         var spec = CreateNmtSpec(5.0m);
 
-        var exZero = Assert.Throws<InvalidOperationException>(() => GravimetricCalculator.Calculate(zeroReplicates, mode, spec));
+        var exZero = Assert.Throws<BusinessRuleException>(() => GravimetricCalculator.Calculate(zeroReplicates, mode, spec));
         Assert.Contains("Initial sample weight (W1) must be greater than zero", exZero.Message);
 
         // Initial < Container -> W1 < 0
@@ -122,7 +123,7 @@ public class GravimetricCalculatorTests
         {
             new(Container: 10.0m, Initial: 9.5m, Final: 9.0m)
         };
-        var exNeg = Assert.Throws<InvalidOperationException>(() => GravimetricCalculator.Calculate(negReplicates, mode, spec));
+        var exNeg = Assert.Throws<BusinessRuleException>(() => GravimetricCalculator.Calculate(negReplicates, mode, spec));
         Assert.Contains("Initial sample weight (W1) must be greater than zero", exNeg.Message);
     }
 
@@ -136,7 +137,7 @@ public class GravimetricCalculatorTests
         };
         var spec = CreateNmtSpec(5.0m);
 
-        var ex = Assert.Throws<InvalidOperationException>(() => GravimetricCalculator.Calculate(replicates, EquationType.GravimetricLoss, spec));
+        var ex = Assert.Throws<BusinessRuleException>(() => GravimetricCalculator.Calculate(replicates, EquationType.GravimetricLoss, spec));
         Assert.Contains("Final weight (W2) cannot be negative", ex.Message);
     }
 

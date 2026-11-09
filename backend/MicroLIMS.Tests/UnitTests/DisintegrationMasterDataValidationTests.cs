@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using MicroLIMS.Application.DTOs;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -104,7 +105,7 @@ public class DisintegrationMasterDataValidationTests
             EquationType: EquationType.None,
             RequiresSystemSuitability: false);
 
-        var ex1 = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.TestDefinition.CreateTestDefinition(req1));
+        var ex1 = await Assert.ThrowsAsync<BusinessRuleException>(() => controller.TestDefinition.CreateTestDefinition(req1));
         Assert.Contains("Equation type must be Disintegration", ex1.Message);
 
         // Equation Disintegration but Workflow Observation -> fails
@@ -116,7 +117,7 @@ public class DisintegrationMasterDataValidationTests
             EquationType: EquationType.Disintegration,
             RequiresSystemSuitability: false);
 
-        var ex2 = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.TestDefinition.CreateTestDefinition(req2));
+        var ex2 = await Assert.ThrowsAsync<BusinessRuleException>(() => controller.TestDefinition.CreateTestDefinition(req2));
         Assert.Contains("Workflow type must be Disintegration", ex2.Message);
     }
 
@@ -134,7 +135,7 @@ public class DisintegrationMasterDataValidationTests
             EquationType: EquationType.Disintegration,
             RequiresSystemSuitability: true);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.TestDefinition.CreateTestDefinition(req));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => controller.TestDefinition.CreateTestDefinition(req));
         Assert.Contains("must not require system suitability", ex.Message);
     }
 
@@ -180,7 +181,7 @@ public class DisintegrationMasterDataValidationTests
             RequiresSystemSuitability: false,
             DisintegrationStage1Units: 0);
 
-        var ex1 = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.TestDefinition.CreateTestDefinition(req1));
+        var ex1 = await Assert.ThrowsAsync<BusinessRuleException>(() => controller.TestDefinition.CreateTestDefinition(req1));
         Assert.Contains("stage units must be greater than or equal to 1", ex1.Message);
 
         // MaxStage1Failures >= Stage1Units
@@ -194,7 +195,7 @@ public class DisintegrationMasterDataValidationTests
             DisintegrationStage1Units: 6,
             DisintegrationMaxStage1Failures: 6);
 
-        var ex2 = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.TestDefinition.CreateTestDefinition(req2));
+        var ex2 = await Assert.ThrowsAsync<BusinessRuleException>(() => controller.TestDefinition.CreateTestDefinition(req2));
         Assert.Contains("maximum Stage 1 failures must be between", ex2.Message);
 
         // MinPassTotal > Stage1Units + Stage2Units
@@ -209,7 +210,7 @@ public class DisintegrationMasterDataValidationTests
             DisintegrationStage2Units: 12,
             DisintegrationMinPassTotal: 19);
 
-        var ex3 = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.TestDefinition.CreateTestDefinition(req3));
+        var ex3 = await Assert.ThrowsAsync<BusinessRuleException>(() => controller.TestDefinition.CreateTestDefinition(req3));
         Assert.Contains("minimum pass total must be between", ex3.Message);
     }
 
@@ -247,7 +248,7 @@ public class DisintegrationMasterDataValidationTests
             ConfirmatoryMediaCount: null,
             PhenotypicTestType: null);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.TestWorkflowStep.CreateTestWorkflowStep(testDef.Id, stepReq));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => controller.TestWorkflowStep.CreateTestWorkflowStep(testDef.Id, stepReq));
         Assert.Contains("no workflow steps", ex.Message);
     }
 
@@ -276,7 +277,7 @@ public class DisintegrationMasterDataValidationTests
             DisplayName: "Disintegration Upd",
             EquationType: EquationType.None);
 
-        var ex1 = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.TestDefinition.UpdateTestDefinition(testDef.Id, req1));
+        var ex1 = await Assert.ThrowsAsync<BusinessRuleException>(() => controller.TestDefinition.UpdateTestDefinition(testDef.Id, req1));
         Assert.Contains("Equation type must be Disintegration", ex1.Message);
 
         // SST set to true
@@ -285,7 +286,7 @@ public class DisintegrationMasterDataValidationTests
             DisplayName: "Disintegration Upd",
             RequiresSystemSuitability: true);
 
-        var ex2 = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.TestDefinition.UpdateTestDefinition(testDef.Id, req2));
+        var ex2 = await Assert.ThrowsAsync<BusinessRuleException>(() => controller.TestDefinition.UpdateTestDefinition(testDef.Id, req2));
         Assert.Contains("must not require system suitability", ex2.Message);
     }
 
@@ -318,7 +319,7 @@ public class DisintegrationMasterDataValidationTests
             UpperLimit = null,
             Unit = "min"
         };
-        var exNoUpper = Assert.Throws<InvalidOperationException>(() => specService.Validate(specNoUpper));
+        var exNoUpper = Assert.Throws<BusinessRuleException>(() => specService.Validate(specNoUpper));
         Assert.Contains("Upper limit (time in minutes) must be greater than zero", exNoUpper.Message);
 
         // UpperLimit <= 0
@@ -329,7 +330,7 @@ public class DisintegrationMasterDataValidationTests
             UpperLimit = 0m,
             Unit = "min"
         };
-        var exZeroUpper = Assert.Throws<InvalidOperationException>(() => specService.Validate(specZeroUpper));
+        var exZeroUpper = Assert.Throws<BusinessRuleException>(() => specService.Validate(specZeroUpper));
         Assert.Contains("Upper limit (time in minutes) must be greater than zero", exZeroUpper.Message);
 
         // Wrong Unit
@@ -340,7 +341,7 @@ public class DisintegrationMasterDataValidationTests
             UpperLimit = 30m,
             Unit = "sec"
         };
-        var exWrongUnit = Assert.Throws<InvalidOperationException>(() => specService.Validate(specWrongUnit));
+        var exWrongUnit = Assert.Throws<BusinessRuleException>(() => specService.Validate(specWrongUnit));
         Assert.Contains("Unit must be \"min\"", exWrongUnit.Message);
 
         // LabelClaim present -> rejected
@@ -352,7 +353,7 @@ public class DisintegrationMasterDataValidationTests
             Unit = "min",
             LabelClaim = 10m
         };
-        var exWithLc = Assert.Throws<InvalidOperationException>(() => specService.Validate(specWithLc));
+        var exWithLc = Assert.Throws<BusinessRuleException>(() => specService.Validate(specWithLc));
         Assert.Contains("Label claim is not allowed", exWithLc.Message);
 
         // Valid
@@ -397,7 +398,7 @@ public class DisintegrationMasterDataValidationTests
             Unit = "min"
         };
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => specService.ValidateAsync(spec));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => specService.ValidateAsync(spec));
         Assert.Contains("only allowed for Disintegration tests", ex.Message);
     }
 
@@ -435,7 +436,7 @@ public class DisintegrationMasterDataValidationTests
             Unit = "min"
         };
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => specService.ValidateAsync(spec));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => specService.ValidateAsync(spec));
         Assert.Contains("Only DisintegrationTime specifications are allowed for Disintegration tests", ex.Message);
     }
 
@@ -484,7 +485,7 @@ public class DisintegrationMasterDataValidationTests
             Unit = "min"
         };
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => specService.ValidateAsync(secondSpec));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => specService.ValidateAsync(secondSpec));
         Assert.Contains("Only one specification is allowed for Disintegration test", ex.Message);
     }
 
@@ -521,7 +522,7 @@ public class DisintegrationMasterDataValidationTests
             Unit = "min",
             ResultBasis = ResultBasis.PercentLabelClaim
         };
-        var exBadRb = await Assert.ThrowsAsync<InvalidOperationException>(() => specService.ValidateAsync(specBadRb));
+        var exBadRb = await Assert.ThrowsAsync<BusinessRuleException>(() => specService.ValidateAsync(specBadRb));
         Assert.Contains("Result basis is not used for this test type", exBadRb.Message);
     }
 
@@ -533,7 +534,7 @@ public class DisintegrationMasterDataValidationTests
             LimitType = LimitType.DisintegrationTime,
             UpperLimit = 30m
         };
-        var ex = Assert.Throws<InvalidOperationException>(() => SpecificationEvaluator.Evaluate(spec, 25m));
+        var ex = Assert.Throws<BusinessRuleException>(() => SpecificationEvaluator.Evaluate(spec, 25m));
         Assert.Contains("is not numeric and cannot be evaluated against a numeric value", ex.Message);
     }
 }

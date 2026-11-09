@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.DTOs;
 using MicroLIMS.Application.Services.MasterData;
@@ -38,7 +39,7 @@ public class RoomTestTypeValidationTests
     public async Task NewTestTypes_RequireAUnit(string testType, string? unit)
     {
         await using var db = NewDb();
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             new EnvironmentalMonitoringMasterDataService(db).CreateRoomTestConfigurationAsync(Create(testType, unit)));
 
         Assert.Contains("Unit is required", ex.Message);
@@ -60,7 +61,7 @@ public class RoomTestTypeValidationTests
     public async Task UnknownTestType_IsRefused()
     {
         await using var db = NewDb();
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        await Assert.ThrowsAsync<BusinessRuleException>(() =>
             new EnvironmentalMonitoringMasterDataService(db).CreateRoomTestConfigurationAsync(Create("Swab", "CFU/swab")));
     }
 
@@ -71,7 +72,7 @@ public class RoomTestTypeValidationTests
         var service = new EnvironmentalMonitoringMasterDataService(db);
         var saved = await service.CreateRoomTestConfigurationAsync(Create(RoomTestTypes.PassiveAirSample, null));
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        await Assert.ThrowsAsync<BusinessRuleException>(() =>
             service.UpdateRoomTestConfigurationAsync(saved.Id,
                 new UpdateRoomTestConfigRequest(RoomTestTypes.Drains, "TAMC", "1", "3", "5", Unit: null)));
     }

@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using System.Globalization;
 using System.Text.RegularExpressions;
 using Microsoft.EntityFrameworkCore;
@@ -52,13 +53,13 @@ public class ProductWorkflowEngine : IProductWorkflowEngine
         var item = await _db.Items
             .Include(i => i.AssignedTests)
             .FirstOrDefaultAsync(i => i.Id == request.ItemId)
-            ?? throw new InvalidOperationException($"Item {request.ItemId} not found or not configured.");
+            ?? throw new BusinessRuleException($"Item {request.ItemId} not found or not configured.");
 
         if (!item.IsActive)
-            throw new InvalidOperationException($"Item '{item.Name}' is frozen and cannot be used to receive new samples.");
+            throw new BusinessRuleException($"Item '{item.Name}' is frozen and cannot be used to receive new samples.");
 
         if (item.AssignedTests.Count == 0)
-            throw new InvalidOperationException(
+            throw new BusinessRuleException(
                 $"Item '{item.Name}' has no assigned tests. Configuration must be completed " +
                 "by the Section Head before samples can be received.");
 
@@ -69,13 +70,13 @@ public class ProductWorkflowEngine : IProductWorkflowEngine
         if (item.Category == SampleCategory.FinishedProduct)
         {
             if (string.IsNullOrWhiteSpace(request.ProductionStage))
-                throw new InvalidOperationException("Production stage is required for a Finished Product sample.");
+                throw new BusinessRuleException("Production stage is required for a Finished Product sample.");
             var stageName = request.ProductionStage.Trim();
             productionStageId = await _db.ProductionStages
                 .Where(p => p.Name.ToLower() == stageName.ToLower())
                 .Select(p => (int?)p.Id)
                 .FirstOrDefaultAsync()
-                ?? throw new InvalidOperationException($"Production stage '{stageName}' is not a known stage.");
+                ?? throw new BusinessRuleException($"Production stage '{stageName}' is not a known stage.");
         }
 
         var itemSpecs = await _db.Specifications.AsNoTracking().Where(s => s.ItemId == item.Id).ToListAsync();
@@ -115,9 +116,9 @@ public class ProductWorkflowEngine : IProductWorkflowEngine
         if (assigned.Count == 0)
         {
             if (grade is not null)
-                throw new InvalidOperationException($"Grade {grade} applies to none of the tests assigned to '{item.Name}'.");
+                throw new BusinessRuleException($"Grade {grade} applies to none of the tests assigned to '{item.Name}'.");
             if (item.AssignedTests.Count > 0)
-                throw new InvalidOperationException($"Every test assigned to '{item.Name}' is declared not applicable; there is nothing to test.");
+                throw new BusinessRuleException($"Every test assigned to '{item.Name}' is declared not applicable; there is nothing to test.");
         }
         if (request.TargetSectionIds is { } targets)
         {
@@ -127,7 +128,7 @@ public class ProductWorkflowEngine : IProductWorkflowEngine
                 {
                     var name = await _db.DocumentSections.Where(s => s.Id == sectionId).Select(s => s.Name).FirstOrDefaultAsync()
                         ?? $"section {sectionId}";
-                    throw new InvalidOperationException($"Item '{item.Name}' has no tests for {name}.");
+                    throw new BusinessRuleException($"Item '{item.Name}' has no tests for {name}.");
                 }
             }
             assigned = assigned.Where(t => targets.Contains(testSections[t.TestCode])).ToList();
@@ -355,13 +356,13 @@ public class ProductWorkflowEngine : IProductWorkflowEngine
         var itemGrades = itemSpecs.Where(s => s.Grade != null).Select(s => s.Grade!).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
         if (itemGrades.Count == 0)
         {
-            if (requestedGrade != null) throw new InvalidOperationException($"Grade {requestedGrade} has no specification for this item.");
+            if (requestedGrade != null) throw new BusinessRuleException($"Grade {requestedGrade} has no specification for this item.");
             return null;
         }
         if (requestedGrade == null)
-            throw new InvalidOperationException("Choose the grade stated on the supplier's CoA.");
+            throw new BusinessRuleException("Choose the grade stated on the supplier's CoA.");
         return itemGrades.FirstOrDefault(g => string.Equals(g, requestedGrade, StringComparison.OrdinalIgnoreCase))
-            ?? throw new InvalidOperationException($"Grade {requestedGrade} has no specification for this item.");
+            ?? throw new BusinessRuleException($"Grade {requestedGrade} has no specification for this item.");
     }
 
     public async Task<WorkflowStep> AdvanceAsync(int testOrderId, int performedByUserId, string? note = null)
@@ -414,7 +415,7 @@ public class ProductWorkflowEngine : IProductWorkflowEngine
         }
 
         var errors = await ValidateAsync(testOrderId);
-        if (errors.Count > 0) throw new InvalidOperationException(string.Join(" ", errors));
+        if (errors.Count > 0) throw new BusinessRuleException(string.Join(" ", errors));
 
         var next = order.CurrentStep switch
         {

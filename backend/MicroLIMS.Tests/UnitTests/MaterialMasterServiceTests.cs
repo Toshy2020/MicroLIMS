@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Application.Services;
@@ -115,7 +116,7 @@ public class MaterialMasterServiceTests
 
         await service.CreateAsync(Req(code: "RG-NAOH-01"), userId);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(
             () => service.CreateAsync(Req(code: "rg-naoh-01", name: "Another"), userId));
         Assert.Contains("already exists", ex.Message);
     }
@@ -130,7 +131,7 @@ public class MaterialMasterServiceTests
 
         await service.CreateAsync(Req(code: "RG-NAOH-01"), userId);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(
             () => service.CreateAsync(Req(code: "RG-NAOH-01", name: "Another"), otherUserId));
         Assert.Contains("Material master entry code \"RG-NAOH-01\" already exists.", ex.Message);
     }
@@ -146,7 +147,7 @@ public class MaterialMasterServiceTests
         var (_, userId) = await SeedAsync(db);
         var service = TestServiceFactory.MaterialMaster(db);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(
             () => service.CreateAsync(Req(code: code, category: category), userId));
         Assert.Equal(expected, ex.Message);
     }
@@ -166,7 +167,7 @@ public class MaterialMasterServiceTests
         var renamed = await service.UpdateAsync(legacy.Id, Req(code: "NAOH-01", name: "Sodium Hydroxide Pellets"), userId);
         Assert.Equal("NAOH-01", renamed.Code);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => service.UpdateAsync(legacy.Id, Req(code: "NAOH-02"), userId));
+        await Assert.ThrowsAsync<BusinessRuleException>(() => service.UpdateAsync(legacy.Id, Req(code: "NAOH-02"), userId));
         var recoded = await service.UpdateAsync(legacy.Id, Req(code: "rg-naoh-02"), userId);
         Assert.Equal("RG-NAOH-02", recoded.Code);
     }
@@ -206,10 +207,10 @@ public class MaterialMasterServiceTests
         var service = TestServiceFactory.MaterialMaster(db);
         var entry = await service.CreateAsync(Req(), userId);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.UpdateAsync(entry.Id, Req(name: "Hijacked"), otherUserId));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => service.UpdateAsync(entry.Id, Req(name: "Hijacked"), otherUserId));
         Assert.Contains("owner lab", ex.Message);
-        await Assert.ThrowsAsync<InvalidOperationException>(() => service.SetActiveAsync(entry.Id, false, otherUserId));
-        await Assert.ThrowsAsync<InvalidOperationException>(
+        await Assert.ThrowsAsync<BusinessRuleException>(() => service.SetActiveAsync(entry.Id, false, otherUserId));
+        await Assert.ThrowsAsync<BusinessRuleException>(
             () => service.ChangeCodeAsync(entry.Id, "RG-NEW", "Reason", Password, otherUserId, null));
 
         Assert.Equal("Sodium Hydroxide", (await db.MaterialMasterEntries.SingleAsync()).Name);
@@ -224,7 +225,7 @@ public class MaterialMasterServiceTests
         var entry = await service.CreateAsync(Req(), userId);
         await AddLotAsync(db, section.Id, entry.Id, entry.Name, entry.Code);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.UpdateAsync(entry.Id, Req(code: "RG-OTHER"), userId));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => service.UpdateAsync(entry.Id, Req(code: "RG-OTHER"), userId));
         Assert.Equal("This entry has stock; change its code with a reason and an electronic signature.", ex.Message);
         Assert.Equal("RG-NAOH-01", (await db.MaterialMasterEntries.SingleAsync()).Code);
     }
@@ -281,13 +282,13 @@ public class MaterialMasterServiceTests
         var entry = await service.CreateAsync(Req(), userId);
         await service.CreateAsync(Req(code: "RG-TAKEN", name: "Taken"), otherUserId);
 
-        var noReason = await Assert.ThrowsAsync<InvalidOperationException>(() => service.ChangeCodeAsync(entry.Id, "RG-NEW", " ", Password, userId, null));
+        var noReason = await Assert.ThrowsAsync<BusinessRuleException>(() => service.ChangeCodeAsync(entry.Id, "RG-NEW", " ", Password, userId, null));
         Assert.Contains("reason", noReason.Message);
-        var badPrefix = await Assert.ThrowsAsync<InvalidOperationException>(() => service.ChangeCodeAsync(entry.Id, "IND-NEW", "Reason", Password, userId, null));
+        var badPrefix = await Assert.ThrowsAsync<BusinessRuleException>(() => service.ChangeCodeAsync(entry.Id, "IND-NEW", "Reason", Password, userId, null));
         Assert.Contains("must start with \"RG-\"", badPrefix.Message);
-        var taken = await Assert.ThrowsAsync<InvalidOperationException>(() => service.ChangeCodeAsync(entry.Id, "rg-taken", "Reason", Password, userId, null));
+        var taken = await Assert.ThrowsAsync<BusinessRuleException>(() => service.ChangeCodeAsync(entry.Id, "rg-taken", "Reason", Password, userId, null));
         Assert.Contains("already exists", taken.Message);
-        var same = await Assert.ThrowsAsync<InvalidOperationException>(() => service.ChangeCodeAsync(entry.Id, "RG-NAOH-01", "Reason", Password, userId, null));
+        var same = await Assert.ThrowsAsync<BusinessRuleException>(() => service.ChangeCodeAsync(entry.Id, "RG-NAOH-01", "Reason", Password, userId, null));
         Assert.Contains("must be different", same.Message);
     }
 
@@ -298,7 +299,7 @@ public class MaterialMasterServiceTests
         var (_, userId) = await SeedAsync(db);
         var service = TestServiceFactory.MaterialMaster(db);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(
             () => service.CreateAsync(Req(category: MaterialMasterCategory.Reagent, solvent: "Ethanol"), userId));
         Assert.Contains("Indicator fields", ex.Message);
     }
@@ -310,7 +311,7 @@ public class MaterialMasterServiceTests
         var (_, userId) = await SeedAsync(db);
         var service = TestServiceFactory.MaterialMaster(db);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(
             () => service.CreateAsync(Req(category: MaterialMasterCategory.Indicator, transitionRangeFrom: 10, transitionRangeTo: 8), userId));
         Assert.Contains("Transition range", ex.Message);
     }
@@ -340,7 +341,7 @@ public class MaterialMasterServiceTests
         });
         await db.SaveChangesAsync();
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(
             () => service.UpdateAsync(entry.Id, Req(code: "RG-NAOH-01", category: MaterialMasterCategory.Indicator, solvent: "Water"), userId));
         Assert.Contains("linked stock lots", ex.Message);
 

@@ -78,3 +78,6 @@ workbook_copy.xlsx
 /backups/
 *.dump
 *.backup
+
+# Local per-developer Claude settings (may contain secrets)
+.claude/settings.local.json

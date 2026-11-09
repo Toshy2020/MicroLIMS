@@ -24,7 +24,7 @@ public class PeriodicReviewController : ControllerBase
         var idClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         if (int.TryParse(idClaim, out var id))
             return id;
-        return 1; // Default fallback for integration tests
+        throw new UnauthorizedAccessException("Authenticated user identity could not be determined.");
     }
 
     [HttpGet("tasks")]

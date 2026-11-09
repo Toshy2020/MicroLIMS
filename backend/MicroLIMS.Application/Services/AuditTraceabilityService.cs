@@ -22,10 +22,12 @@ public record AuditTraceabilityResult(
 public class AuditTraceabilityService
 {
     private readonly IMicroLimsDbContext _db;
+    private readonly TimeProvider _time;
 
-    public AuditTraceabilityService(IMicroLimsDbContext db)
+    public AuditTraceabilityService(IMicroLimsDbContext db, TimeProvider? timeProvider = null)
     {
         _db = db;
+        _time = timeProvider ?? TimeProvider.System;
     }
 
     public async Task<AuditTraceabilityResult?> GetTraceabilityAsync(int auditLogId)
@@ -456,7 +458,7 @@ public class AuditTraceabilityService
                 "Material",
                 media.Material.BatchNumber,
                 media.Material.MaterialName,
-                media.Material.Status.ToString(),
+                media.Material.StatusAt(_time.GetUtcNow().UtcDateTime).ToString(),
                 $"Source powder/material: {media.Material.MaterialName}",
                 media.Material.Id,
                 "materials",
@@ -510,7 +512,7 @@ public class AuditTraceabilityService
                 "Material",
                 material.BatchNumber,
                 $"{material.MaterialName} (Lot: {material.BatchNumber})",
-                material.Status.ToString(),
+                material.StatusAt(_time.GetUtcNow().UtcDateTime).ToString(),
                 $"Type: {material.MaterialType}, Qty remaining: {material.QuantityRemaining} {material.Unit}",
                 material.Id,
                 "materials",

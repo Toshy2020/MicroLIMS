@@ -122,6 +122,7 @@ export interface IcpRunSampleSummaryDto {
   batchNumber?: string | null;
   productName?: string | null;
   testCode: string;
+  subjectName?: string | null;
 }
 
 export interface IcpRunDto {
@@ -167,6 +168,7 @@ export interface EligibleTestDto {
   testCode: string;
   receivedAt: string;
   stageName?: string | null;
+  subjectName?: string | null;
 }
 
 export interface IcpConcentrationInput {
@@ -227,6 +229,7 @@ export interface IcpSampleEntryDto {
   productName?: string | null;
   testCode: string;
   stageName?: string | null;
+  subjectName?: string | null;
   status: IcpRunSampleStatus;
   mode: IcpTestMode;
   sampleForm?: IcpSampleForm | null;

@@ -58,7 +58,9 @@ export function hplcErrorTab(key: string, technique: HplcTechnique = "Hplc"): nu
     key === "form.analytes" ||
     key.startsWith("impurities.") ||
     key === "referenceSolutionPercent" ||
-    key === "disregardLimitPercent"
+    key === "disregardLimitPercent" ||
+    key === "sampleSolutionVolumeMl" ||
+    key === "swabAreaCm2"
   ) {
     return HPLC_TAB_ANALYTES;
   }
@@ -77,9 +79,29 @@ export function validateHplcMethodForm(
   const isGc = form.technique === "Gc";
   const isResidual = isGc && form.resultMode === "ResidualSolvents";
   const isRelatedSubstances = !isGc && form.resultMode === "RelatedSubstances";
+  const isCleaningResidue = !isGc && form.resultMode === "CleaningResidue";
 
   if (isGc && form.resultMode === "RelatedSubstances") {
     add("resultMode", "Related substances is available for HPLC methods only.");
+  }
+
+  if (isGc && form.resultMode === "CleaningResidue") {
+    add("resultMode", "Cleaning residue is available for HPLC methods only.");
+  }
+
+  if (isCleaningResidue) {
+    if (!form.productItemId) {
+      add("productItemId", "A finished product item is required for a cleaning-residue method.");
+    }
+    const vol = Number(form.sampleSolutionVolumeMl);
+    if (!form.sampleSolutionVolumeMl || isNaN(vol) || vol <= 0) {
+      add("sampleSolutionVolumeMl", "Extraction volume (mL) must be greater than zero.");
+    }
+    const usesCm2 = form.analytes.some((a) => a.macoUnit === "UgPerCm2");
+    const swabArea = Number(form.swabAreaCm2);
+    if (usesCm2 && (!form.swabAreaCm2 || isNaN(swabArea) || swabArea <= 0)) {
+      add("swabAreaCm2", "Swabbed area (cm²) must be greater than zero when an analyte uses µg/cm².");
+    }
   }
 
   if (form.resultMode !== "RelatedSubstances") {
@@ -435,6 +457,18 @@ export function validateHplcMethodForm(
       ) {
         add(key("theoreticalWeightStdMg"), "Theoretical weights are not used in a related-substances method.");
         add(key("theoreticalWeightTestMg"), "Theoretical weights are not used in a related-substances method.");
+      }
+    } else if (isCleaningResidue) {
+      const stdConc = Number(a.standardConcentrationUgPerMl);
+      if (!a.standardConcentrationUgPerMl || isNaN(stdConc) || stdConc <= 0) {
+        add(key("standardConcentrationUgPerMl"), `Analyte "${aName}" Standard Concentration (µg/mL) must be greater than zero.`);
+      }
+      const maco = Number(a.macoLimit);
+      if (!a.macoLimit || isNaN(maco) || maco <= 0) {
+        add(key("macoLimit"), `Analyte "${aName}" MACO limit must be greater than zero.`);
+      }
+      if (!a.macoUnit) {
+        add(key("macoUnit"), `Analyte "${aName}" MACO unit is required.`);
       }
     } else {
       const twStd = Number(a.theoreticalWeightStdMg);

@@ -12,6 +12,7 @@ public class TestDefinitionIcpElementConfiguration : IEntityTypeConfiguration<Te
 
         builder.Property(e => e.Symbol).IsRequired().HasMaxLength(10);
         builder.Property(e => e.TargetPpm).HasPrecision(18, 6);
+        builder.Property(e => e.CleaningLimitPpm).HasPrecision(18, 6);
 
         builder.HasIndex(e => new { e.TestDefinitionId, e.Symbol }).IsUnique();
     }

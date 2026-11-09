@@ -521,7 +521,7 @@ export function PrimaryObservationMatrixPanel({ session, onUpdated, onNext }: Pr
                 {/* Dynamic Test Columns */}
                 {session.assignedTests.map((t) => {
                   const isLocked = !t.isResultEntryAllowed;
-                  const confMediaCount = t.confirmatoryMediaCount ?? (t.testCode.toUpperCase().includes("SALMONELLA") ? 2 : 1);
+                  const confMediaCount = t.confirmatoryMediaCount ?? 1; // from Test Master; never by organism (CLAUDE.md Rule 3.2)
                   const isQuant = t.workflowType.toLowerCase().includes("count") ||
                                   t.testCode.toLowerCase().includes("tamc") ||
                                   t.testCode.toLowerCase().includes("tymc");

@@ -3820,6 +3820,9 @@ namespace MicroLIMS.Persistence.Migrations
                     b.Property<decimal?>("ParticleSizeUm")
                         .HasColumnType("decimal(10,3)");
 
+                    b.Property<int?>("ProductItemId")
+                        .HasColumnType("integer");
+
                     b.Property<decimal?>("ReferenceSolutionPercent")
                         .HasColumnType("decimal(10,4)");
 
@@ -3838,6 +3841,9 @@ namespace MicroLIMS.Persistence.Migrations
                     b.Property<decimal?>("SplitRatio")
                         .HasColumnType("decimal(10,3)");
 
+                    b.Property<decimal?>("SwabAreaCm2")
+                        .HasColumnType("decimal(10,3)");
+
                     b.Property<int>("Technique")
                         .HasColumnType("integer");
 
@@ -3850,6 +3856,8 @@ namespace MicroLIMS.Persistence.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("DiluentSolutionId");
+
+                    b.HasIndex("ProductItemId");
 
                     b.HasIndex("SectionId", "Abbreviation")
                         .IsUnique();
@@ -3869,6 +3877,12 @@ namespace MicroLIMS.Persistence.Migrations
                         .HasColumnType("integer");
 
                     b.Property<int>("HplcMethodId")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal?>("MacoLimit")
+                        .HasColumnType("decimal(12,4)");
+
+                    b.Property<int?>("MacoUnit")
                         .HasColumnType("integer");
 
                     b.Property<string>("Name")
@@ -5847,12 +5861,28 @@ namespace MicroLIMS.Persistence.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<string>("ExpectedResultText")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
                     b.Property<bool>("IsActive")
                         .HasColumnType("boolean")
                         .HasDefaultValue(true);
 
                     b.Property<bool>("IsPathogenTest")
                         .HasColumnType("boolean");
+
+                    b.Property<int?>("LimitType")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("LowerInclusive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<decimal?>("LowerLimit")
+                        .HasPrecision(18, 6)
+                        .HasColumnType("numeric(18,6)");
 
                     b.Property<int>("MachinePartId")
                         .HasColumnType("integer");
@@ -5872,6 +5902,15 @@ namespace MicroLIMS.Persistence.Migrations
                     b.Property<string>("Unit")
                         .IsRequired()
                         .HasColumnType("text");
+
+                    b.Property<bool>("UpperInclusive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<decimal?>("UpperLimit")
+                        .HasPrecision(18, 6)
+                        .HasColumnType("numeric(18,6)");
 
                     b.Property<uint>("Version")
                         .IsConcurrencyToken()
@@ -7161,6 +7200,9 @@ namespace MicroLIMS.Persistence.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
 
+                    b.Property<int?>("LabSectionId")
+                        .HasColumnType("integer");
+
                     b.Property<int?>("MachineId")
                         .HasColumnType("integer");
 
@@ -7209,6 +7251,8 @@ namespace MicroLIMS.Persistence.Migrations
 
                     b.HasIndex("CreatedByRevisionId");
 
+                    b.HasIndex("LabSectionId");
+
                     b.HasIndex("MachineId");
 
                     b.HasIndex("RetiredByRevisionId");
@@ -7221,11 +7265,11 @@ namespace MicroLIMS.Persistence.Migrations
 
                     b.HasIndex("WindowStart");
 
-                    b.HasIndex("TargetType", "WaterSamplingPointId", "RoomId", "MachineId", "PeriodKey", "Sequence")
+                    b.HasIndex("TargetType", "WaterSamplingPointId", "RoomId", "MachineId", "LabSectionId", "PeriodKey", "Sequence")
                         .IsUnique()
                         .HasDatabaseName("IX_MonitoringOccurrences_Target_Period");
 
-                    NpgsqlIndexBuilderExtensions.AreNullsDistinct(b.HasIndex("TargetType", "WaterSamplingPointId", "RoomId", "MachineId", "PeriodKey", "Sequence"), false);
+                    NpgsqlIndexBuilderExtensions.AreNullsDistinct(b.HasIndex("TargetType", "WaterSamplingPointId", "RoomId", "MachineId", "LabSectionId", "PeriodKey", "Sequence"), false);
 
                     b.ToTable("MonitoringOccurrences", t =>
                         {
@@ -7780,7 +7824,7 @@ namespace MicroLIMS.Persistence.Migrations
                         .HasMaxLength(1000)
                         .HasColumnType("character varying(1000)");
 
-                    b.Property<int>("SpecificationId")
+                    b.Property<int?>("SpecificationId")
                         .HasColumnType("integer");
 
                     b.Property<int?>("StageReached")
@@ -9091,6 +9135,10 @@ namespace MicroLIMS.Persistence.Migrations
                     b.Property<string>("CertificateRemarks")
                         .HasColumnType("text");
 
+                    b.Property<string>("CleaningTechniques")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
                     b.Property<string>("ControlNumber")
                         .IsRequired()
                         .HasMaxLength(50)
@@ -9107,6 +9155,9 @@ namespace MicroLIMS.Persistence.Migrations
                         .HasColumnType("character varying(20)");
 
                     b.Property<int?>("ItemId")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("LabSectionId")
                         .HasColumnType("integer");
 
                     b.Property<int?>("MachineId")
@@ -9132,6 +9183,9 @@ namespace MicroLIMS.Persistence.Migrations
                     b.Property<string>("PreviousProductBatchNumber")
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
+
+                    b.Property<int?>("PreviousProductItemId")
+                        .HasColumnType("integer");
 
                     b.Property<string>("PreviousProductName")
                         .HasMaxLength(200)
@@ -9217,11 +9271,15 @@ namespace MicroLIMS.Persistence.Migrations
 
                     b.HasIndex("ItemId");
 
+                    b.HasIndex("LabSectionId");
+
                     b.HasIndex("MachineId");
 
                     b.HasIndex("OosGroupCode");
 
                     b.HasIndex("OriginSampleId");
+
+                    b.HasIndex("PreviousProductItemId");
 
                     b.HasIndex("ProductionStageId");
 
@@ -9691,6 +9749,22 @@ namespace MicroLIMS.Persistence.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<string>("ExpectedResultText")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<int?>("LimitType")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("LowerInclusive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<decimal?>("LowerLimit")
+                        .HasPrecision(18, 6)
+                        .HasColumnType("numeric(18,6)");
+
                     b.Property<string>("SpecLimit")
                         .IsRequired()
                         .HasColumnType("text");
@@ -9702,6 +9776,15 @@ namespace MicroLIMS.Persistence.Migrations
                     b.Property<string>("Unit")
                         .IsRequired()
                         .HasColumnType("text");
+
+                    b.Property<bool>("UpperInclusive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<decimal?>("UpperLimit")
+                        .HasPrecision(18, 6)
+                        .HasColumnType("numeric(18,6)");
 
                     b.Property<uint>("Version")
                         .IsConcurrencyToken()
@@ -10618,6 +10701,9 @@ namespace MicroLIMS.Persistence.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
+                    b.Property<int?>("CoaDisplayOrder")
+                        .HasColumnType("integer");
+
                     b.Property<string>("Code")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -10882,6 +10968,10 @@ namespace MicroLIMS.Persistence.Migrations
                         .HasColumnType("integer");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<decimal?>("CleaningLimitPpm")
+                        .HasPrecision(18, 6)
+                        .HasColumnType("numeric(18,6)");
 
                     b.Property<int>("DisplayOrder")
                         .HasColumnType("integer");
@@ -11544,6 +11634,51 @@ namespace MicroLIMS.Persistence.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("WaterDepartments");
+                });
+
+            modelBuilder.Entity("MicroLIMS.Domain.Entities.WaterPointLabFrequency", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int?>("FrequencyAnchorMonth")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("FrequencyInterval")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("FrequencyType")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("FrequencyWeekOfMonth")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("SamplingWeekday")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("SectionId")
+                        .HasColumnType("integer");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.Property<int>("WaterSamplingPointId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SectionId");
+
+                    b.HasIndex("WaterSamplingPointId", "SectionId")
+                        .IsUnique();
+
+                    b.ToTable("WaterPointLabFrequencies");
                 });
 
             modelBuilder.Entity("MicroLIMS.Domain.Entities.WaterSamplingPoint", b =>
@@ -13328,6 +13463,11 @@ namespace MicroLIMS.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("MicroLIMS.Domain.Entities.Item", "ProductItem")
+                        .WithMany()
+                        .HasForeignKey("ProductItemId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("MicroLIMS.Domain.Entities.DocumentSection", "Section")
                         .WithMany()
                         .HasForeignKey("SectionId")
@@ -13335,6 +13475,8 @@ namespace MicroLIMS.Persistence.Migrations
                         .IsRequired();
 
                     b.Navigation("DiluentSolution");
+
+                    b.Navigation("ProductItem");
 
                     b.Navigation("Section");
                 });
@@ -14384,12 +14526,19 @@ namespace MicroLIMS.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("MicroLIMS.Domain.Entities.DocumentSection", "LabSection")
+                        .WithMany()
+                        .HasForeignKey("LabSectionId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("MicroLIMS.Domain.Entities.MonitoringPlanRevision", "RetiredByRevision")
                         .WithMany()
                         .HasForeignKey("RetiredByRevisionId")
                         .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("CreatedByRevision");
+
+                    b.Navigation("LabSection");
 
                     b.Navigation("RetiredByRevision");
                 });
@@ -14487,8 +14636,7 @@ namespace MicroLIMS.Persistence.Migrations
                     b.HasOne("MicroLIMS.Domain.Entities.Specification", "Specification")
                         .WithMany()
                         .HasForeignKey("SpecificationId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("MicroLIMS.Domain.Entities.TestAnalysis", "TestAnalysis")
                         .WithMany("ParameterResults")
@@ -14866,6 +15014,11 @@ namespace MicroLIMS.Persistence.Migrations
                         .HasForeignKey("ItemId")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.HasOne("MicroLIMS.Domain.Entities.DocumentSection", "LabSection")
+                        .WithMany()
+                        .HasForeignKey("LabSectionId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("MicroLIMS.Domain.Entities.Machine", "Machine")
                         .WithMany()
                         .HasForeignKey("MachineId")
@@ -14874,6 +15027,11 @@ namespace MicroLIMS.Persistence.Migrations
                     b.HasOne("MicroLIMS.Domain.Entities.Sample", "OriginSample")
                         .WithMany()
                         .HasForeignKey("OriginSampleId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("MicroLIMS.Domain.Entities.Item", "PreviousProductItem")
+                        .WithMany()
+                        .HasForeignKey("PreviousProductItemId")
                         .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("MicroLIMS.Domain.Entities.ProductionStage", "ProductionStageRef")
@@ -14913,9 +15071,13 @@ namespace MicroLIMS.Persistence.Migrations
 
                     b.Navigation("Item");
 
+                    b.Navigation("LabSection");
+
                     b.Navigation("Machine");
 
                     b.Navigation("OriginSample");
+
+                    b.Navigation("PreviousProductItem");
 
                     b.Navigation("ProductionStageRef");
 
@@ -15702,6 +15864,25 @@ namespace MicroLIMS.Persistence.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("MicroLIMS.Domain.Entities.WaterPointLabFrequency", b =>
+                {
+                    b.HasOne("MicroLIMS.Domain.Entities.DocumentSection", "Section")
+                        .WithMany()
+                        .HasForeignKey("SectionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("MicroLIMS.Domain.Entities.WaterSamplingPoint", "WaterSamplingPoint")
+                        .WithMany("LabFrequencies")
+                        .HasForeignKey("WaterSamplingPointId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Section");
+
+                    b.Navigation("WaterSamplingPoint");
+                });
+
             modelBuilder.Entity("MicroLIMS.Domain.Entities.WaterSamplingPoint", b =>
                 {
                     b.HasOne("MicroLIMS.Domain.Entities.WaterDepartment", "WaterDepartment")
@@ -16193,6 +16374,11 @@ namespace MicroLIMS.Persistence.Migrations
             modelBuilder.Entity("MicroLIMS.Domain.Entities.WaterDepartment", b =>
                 {
                     b.Navigation("SamplingPoints");
+                });
+
+            modelBuilder.Entity("MicroLIMS.Domain.Entities.WaterSamplingPoint", b =>
+                {
+                    b.Navigation("LabFrequencies");
                 });
 
             modelBuilder.Entity("MicroLIMS.Domain.Entities.WorkflowStepResult", b =>

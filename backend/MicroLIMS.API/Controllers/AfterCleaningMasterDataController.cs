@@ -28,6 +28,8 @@ public class AfterCleaningMasterDataController : ControllerBase
         _service = service;
     }
 
+    private int CurrentUserId => int.TryParse(User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value, out var uid) ? uid : 0;
+
     // ---- Machines & Parts (After Cleaning) ----
     [HttpGet("machines")]
     public async Task<IActionResult> GetMachines() =>
@@ -71,15 +73,15 @@ public class AfterCleaningMasterDataController : ControllerBase
     [Authorize(Policy = PermissionConstants.MasterDataManage)]
     [HttpPost("machine-part-configurations")]
     public async Task<IActionResult> CreateMachinePartConfiguration(CreateMachinePartConfigRequest request) =>
-        Ok(ApiResponse<object>.Ok(await _service.CreateMachinePartConfigurationAsync(request)));
+        Ok(ApiResponse<object>.Ok(await _service.CreateMachinePartConfigurationAsync(CurrentUserId, request)));
 
     [Authorize(Policy = PermissionConstants.MasterDataManage)]
     [HttpPut("machine-part-configurations/{id}")]
     public async Task<IActionResult> UpdateMachinePartConfiguration(int id, UpdateMachinePartConfigRequest request) =>
-        Ok(ApiResponse<object>.Ok(await _service.UpdateMachinePartConfigurationAsync(id, request)));
+        Ok(ApiResponse<object>.Ok(await _service.UpdateMachinePartConfigurationAsync(CurrentUserId, id, request)));
 
     [Authorize(Policy = PermissionConstants.MasterDataManage)]
     [HttpDelete("machine-part-configurations/{id}")]
     public async Task<IActionResult> DeleteMachinePartConfiguration(int id) =>
-        Ok(ApiResponse<object>.Ok(await _service.DeleteMachinePartConfigurationAsync(id)));
+        Ok(ApiResponse<object>.Ok(await _service.DeleteMachinePartConfigurationAsync(CurrentUserId, id)));
 }

@@ -6,7 +6,7 @@ using MicroLIMS.Domain.Enums;
 namespace MicroLIMS.Application.Services.MasterData;
 
 // Id is null for a new element; an existing one is kept by Id so item specifications stay linked.
-public record IcpTestElementInput(int? Id, string Symbol, decimal? TargetPpm);
+public record IcpTestElementInput(int? Id, string Symbol, decimal? TargetPpm, decimal? CleaningLimitPpm = null);
 
 // What an ICP test defines in the Test Master: reporting mode, the sample basis for the assay formula and
 // the elements (with target ppm in assay mode). Validates the effective values and applies them to the entity.
@@ -56,7 +56,7 @@ public static class IcpTestDefinitionRules
         entity.IcpSpecificGravity = effectiveGravity;
 
         var inputs = elements ?? entity.IcpElements.OrderBy(e => e.DisplayOrder)
-            .Select(e => new IcpTestElementInput(e.Id, e.Symbol, e.TargetPpm)).ToList();
+            .Select(e => new IcpTestElementInput(e.Id, e.Symbol, e.TargetPpm, e.CleaningLimitPpm)).ToList();
         if (inputs.Count == 0)
             throw new InvalidOperationException("At least one element is required.");
 
@@ -75,6 +75,9 @@ public static class IcpTestDefinitionRules
             }
             else if (input.TargetPpm.HasValue)
                 throw new InvalidOperationException($"{symbol}: impurity tests are judged against the item specification; no target is used.");
+
+            if (input.CleaningLimitPpm is < 0m)
+                throw new InvalidOperationException($"{symbol}: cleaning limit (ppm) cannot be negative.");
 
             if (input.Id.HasValue)
             {
@@ -103,10 +106,10 @@ public static class IcpTestDefinitionRules
                 if (!string.Equals(kept.Symbol, symbol, StringComparison.Ordinal)
                     && await db.Specifications.AnyAsync(s => s.IcpTestElementId == kept.Id))
                     throw new InvalidOperationException($"Element \"{kept.Symbol}\" is used by specifications; its symbol can't be changed.");
-                kept.Symbol = symbol; kept.TargetPpm = input.TargetPpm; kept.DisplayOrder = i;
+                kept.Symbol = symbol; kept.TargetPpm = input.TargetPpm; kept.CleaningLimitPpm = input.CleaningLimitPpm; kept.DisplayOrder = i;
             }
             else
-                entity.IcpElements.Add(new TestDefinitionIcpElement { Symbol = symbol, TargetPpm = input.TargetPpm, DisplayOrder = i });
+                entity.IcpElements.Add(new TestDefinitionIcpElement { Symbol = symbol, TargetPpm = input.TargetPpm, CleaningLimitPpm = input.CleaningLimitPpm, DisplayOrder = i });
         }
     }
 

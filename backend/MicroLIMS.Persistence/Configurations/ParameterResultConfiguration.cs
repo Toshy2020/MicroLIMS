@@ -33,6 +33,7 @@ public class ParameterResultConfiguration : IEntityTypeConfiguration<ParameterRe
         builder.HasOne(r => r.Specification)
             .WithMany()
             .HasForeignKey(r => r.SpecificationId)
+            .IsRequired(false)
             .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasIndex(r => new { r.TestOrderId, r.IsActive });

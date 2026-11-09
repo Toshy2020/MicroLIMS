@@ -154,8 +154,7 @@ public class DiscussionService
         int page = 1,
         int pageSize = 20)
     {
-        if (page < 1) page = 1;
-        if (pageSize < 1 || pageSize > 100) pageSize = 20;
+        (page, pageSize) = Paging.Normalize(page, pageSize, defaultPageSize: 20);
 
         var query = _db.DiscussionPosts
             .Where(p => !p.IsDeleted)

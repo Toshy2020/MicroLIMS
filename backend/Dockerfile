@@ -5,7 +5,10 @@
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 
-# Copy project files for dependency layer caching
+# Copy project files for dependency layer caching. The shared build
+# settings and central package versions must be present before restore,
+# or every project restores with no target framework and no versions.
+COPY Directory.Build.props Directory.Packages.props ./
 COPY MicroLIMS.Shared/MicroLIMS.Shared.csproj MicroLIMS.Shared/
 COPY MicroLIMS.Domain/MicroLIMS.Domain.csproj MicroLIMS.Domain/
 COPY MicroLIMS.Application/MicroLIMS.Application.csproj MicroLIMS.Application/

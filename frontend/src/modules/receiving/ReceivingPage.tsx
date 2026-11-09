@@ -18,6 +18,7 @@ import { SelectRetestTestsDialog } from "./dialogs/SelectRetestTestsDialog";
 import { SampleSummaryDialog } from "../testingWorkspace/SampleSummaryDialog";
 import { useAuth } from "../../contexts/AuthContext";
 import { PERMISSIONS } from "../../routes/routes";
+import { fetchAllPages } from "../../services/fetchAllPages";
 
 // The main Receiving area only offers these three item-based categories
 // (design.md §3.1) - Water/EM/After Cleaning are received from inside
@@ -48,12 +49,13 @@ export function ReceivingPage() {
   const loadRecords = useCallback(async () => {
     setLoading(true);
     try {
-      // One paged call per category (the workspace list API filters to a
-      // single category at a time) merged into one register.
+      // Every page of every category (the workspace list API filters to a
+      // single category at a time and caps a page at 100) merged into one register.
       const pages = await Promise.all(
-        RECEIVING_CATEGORY_NAMES.map((category) => ReceiveService.getRecordsPaged({ category, pageSize: 200 }))
+        RECEIVING_CATEGORY_NAMES.map((category) =>
+          fetchAllPages((page, pageSize) => ReceiveService.getRecordsPaged({ category, page, pageSize })))
       );
-      const merged = pages.flatMap((p) => p.items);
+      const merged = pages.flat();
       merged.sort((a, b) => new Date(b.receivedAt).getTime() - new Date(a.receivedAt).getTime());
       setSamples(merged);
     } catch {

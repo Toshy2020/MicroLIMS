@@ -7,6 +7,7 @@ interface TestCodePickerProps {
   label?: string;
   size?: "small" | "medium";
   sx?: any;
+  editableCodes?: Set<string>;
 }
 
 type Option = TestDefinitionOption | { inputValue: string; isNew: true };
@@ -18,17 +19,22 @@ const filter = createFilterOptions<Option>();
 // offers "Add <code> to Test Master" - selecting it creates the
 // TestDefinition immediately and picks it, so nothing here ever
 // silently free-types an ungoverned string.
-export function TestCodePicker({ value, onChange, label = "Test", size = "small", sx }: TestCodePickerProps) {
+export function TestCodePicker({ value, onChange, label = "Test", size = "small", sx, editableCodes }: TestCodePickerProps) {
   const { options, activeOptions, addNew } = useTestDefinitions();
   // Looked up against the full list (not just activeOptions) so a value
   // already assigned to a since-frozen test still displays correctly.
   const selected = options.find((o) => o.code === value) ?? null;
 
+  // If editableCodes is passed, only offer options inside the set.
+  const availableOptions = editableCodes
+    ? activeOptions.filter((o) => editableCodes.has(o.code))
+    : activeOptions;
+
   return (
     <Autocomplete<Option, false, false, false>
       size={size}
       sx={sx}
-      options={activeOptions}
+      options={availableOptions}
       value={selected}
       getOptionLabel={(o) => (typeof o === "string" ? o : "inputValue" in o ? o.inputValue : `${o.code}: ${o.displayName}`)}
       filterOptions={(opts, params) => {
@@ -38,7 +44,7 @@ export function TestCodePicker({ value, onChange, label = "Test", size = "small"
         // show a misleading "Add ... to Test Master" for something that
         // already exists.
         const exists = options.some((o) => o.code.toLowerCase() === params.inputValue.toLowerCase());
-        if (params.inputValue !== "" && !exists) {
+        if (!editableCodes && params.inputValue !== "" && !exists) {
           filtered.push({ inputValue: params.inputValue, isNew: true });
         }
         return filtered;

@@ -3,7 +3,8 @@ import type { ApiResponse } from "./EquipmentConfigurationService";
 
 export type ElutionMode = "Isocratic" | "Gradient";
 export type HplcTechnique = "Hplc" | "Gc";
-export type HplcResultMode = "Assay" | "ResidualSolvents" | "RelatedSubstances";
+export type HplcResultMode = "Assay" | "ResidualSolvents" | "RelatedSubstances" | "CleaningResidue";
+export type MacoUnit = "UgPerSwab" | "UgPerCm2";
 export type CarrierGas = "Helium" | "Nitrogen" | "Hydrogen";
 export type HplcDetectorType =
   | "UV"
@@ -69,6 +70,8 @@ export interface HplcAnalyteInput {
   sstMinSignalToNoise?: number | null;
   sstMinPeakToValley?: number | null;
   standardConcentrationUgPerMl?: number | null;
+  macoLimit?: number | null;
+  macoUnit?: MacoUnit | null;
 }
 
 export interface SaveHplcMethodRequest {
@@ -111,6 +114,8 @@ export interface SaveHplcMethodRequest {
   disregardLimitPercent?: number | null;
   impurities?: HplcImpurityInput[];
   internalStandardName?: string | null;
+  productItemId?: number | null;
+  swabAreaCm2?: number | null;
 }
 
 export interface HplcMethodListItem {
@@ -169,6 +174,8 @@ export interface HplcMethodAnalyteResponse {
   sstMinSignalToNoise?: number | null;
   sstMinPeakToValley?: number | null;
   standardConcentrationUgPerMl?: number | null;
+  macoLimit?: number | null;
+  macoUnit?: MacoUnit | null;
 }
 
 export interface HplcMethodResponse {
@@ -219,6 +226,9 @@ export interface HplcMethodResponse {
   disregardLimitPercent?: number | null;
   impurities?: HplcMethodImpurityResponse[];
   internalStandardName?: string | null;
+  productItemId?: number | null;
+  productItemName?: string | null;
+  swabAreaCm2?: number | null;
 }
 
 export interface HplcMethodHistoryEntry {

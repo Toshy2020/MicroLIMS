@@ -1,3 +1,4 @@
+using MicroLIMS.Application.Helpers;
 using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Abstractions.Persistence;
@@ -155,8 +156,7 @@ public static class KpiScope
 
     public static KpiRecordPageDto Page(string key, IReadOnlyList<KpiRecordDto> all, int page, int pageSize)
     {
-        page = Math.Max(page, 1);
-        pageSize = Math.Clamp(pageSize, 1, 200);
+        (page, pageSize) = Paging.Normalize(page, pageSize, defaultPageSize: 50);
         return new KpiRecordPageDto(key, page, pageSize, all.Count, all.Skip((page - 1) * pageSize).Take(pageSize).ToList());
     }
 

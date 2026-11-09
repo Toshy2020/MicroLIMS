@@ -9,7 +9,7 @@ public static class PhyschemAreas
     public const string SectionCode = "FP";
 
     public static WorkspaceArea OfCategory(SampleCategory c) =>
-        c is SampleCategory.RawMaterial or SampleCategory.PackagingMaterial ? WorkspaceArea.RmPm : WorkspaceArea.Fp;
+        c is SampleCategory.RawMaterial or SampleCategory.PackagingMaterial or SampleCategory.Water ? WorkspaceArea.RmPm : WorkspaceArea.Fp;
 
     public static bool Includes(PhyschemArea? testArea, WorkspaceArea area) => testArea switch
     {
@@ -20,8 +20,8 @@ public static class PhyschemAreas
     };
 
     public static IReadOnlyList<SampleCategory> CategoriesOf(WorkspaceArea a) => a == WorkspaceArea.RmPm
-        ? new[] { SampleCategory.RawMaterial, SampleCategory.PackagingMaterial }
-        : Enum.GetValues<SampleCategory>().Where(c => c is not (SampleCategory.RawMaterial or SampleCategory.PackagingMaterial)).ToArray();
+        ? new[] { SampleCategory.RawMaterial, SampleCategory.PackagingMaterial, SampleCategory.Water }
+        : Enum.GetValues<SampleCategory>().Where(c => c is not (SampleCategory.RawMaterial or SampleCategory.PackagingMaterial or SampleCategory.Water)).ToArray();
 
     public static WorkspaceArea? Parse(string? s) => s?.ToLowerInvariant() switch
     {

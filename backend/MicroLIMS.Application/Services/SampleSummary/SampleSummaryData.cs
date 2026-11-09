@@ -9,7 +9,7 @@ public sealed record SampleSectionRow(string Code, string Name);
 public sealed class ActiveParameterResultRow
 {
     public int Id { get; set; }
-    public int SpecificationId { get; set; }
+    public int? SpecificationId { get; set; }
     public string ParameterName { get; set; } = string.Empty;
     public decimal? ReportedValue { get; set; }
     public string ReportedDisplay { get; set; } = string.Empty;

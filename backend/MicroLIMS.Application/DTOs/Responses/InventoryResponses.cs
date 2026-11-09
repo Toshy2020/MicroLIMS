@@ -104,7 +104,8 @@ public class MaterialResponse
     public StockStatus Status { get; init; }
     public bool IsUsable { get; init; }
 
-    public static MaterialResponse From(Material e) => new()
+    // nowUtc: from the caller's injected clock, for the time-dependent fields (CLAUDE.md Rule 5.6).
+    public static MaterialResponse From(Material e, DateTime nowUtc) => new()
     {
         Id = e.Id,
         Version = e.Version,
@@ -148,8 +149,8 @@ public class MaterialResponse
         CreatedAt = e.CreatedAt,
         LastModifiedByUserId = e.LastModifiedByUserId,
         LastModifiedAt = e.LastModifiedAt,
-        Status = e.Status,
-        IsUsable = e.IsUsable,
+        Status = e.StatusAt(nowUtc),
+        IsUsable = e.IsUsableAt(nowUtc),
     };
 }
 
@@ -180,7 +181,8 @@ public class EquipmentInventoryResponse
     public IntervalUnit? PmIntervalUnit { get; init; }
     public DateOnly? LastPmOn { get; init; }
 
-    public static EquipmentInventoryResponse From(EquipmentInventory e) => new()
+    // nowUtc: from the caller's injected clock, for the time-dependent fields (CLAUDE.md Rule 5.6).
+    public static EquipmentInventoryResponse From(EquipmentInventory e, DateTime nowUtc) => new()
     {
         Id = e.Id,
         Version = e.Version,
@@ -198,7 +200,7 @@ public class EquipmentInventoryResponse
         CreatedAt = e.CreatedAt,
         LastModifiedByUserId = e.LastModifiedByUserId,
         LastModifiedAt = e.LastModifiedAt,
-        IsCalibrationOverdue = e.IsCalibrationOverdue,
+        IsCalibrationOverdue = e.IsCalibrationOverdueAt(nowUtc),
         CalibrationIntervalValue = e.CalibrationIntervalValue,
         CalibrationIntervalUnit = e.CalibrationIntervalUnit,
         LastCalibratedOn = e.LastCalibratedOn,

@@ -111,15 +111,15 @@ export interface WorkspaceLab {
 }
 
 // Microbiology keeps all six categories it has today.
-// For Physicochemical: area fp gives ["product"], area rmpm gives ["rm", "pm"].
-function getAllowedCategories(lab: WorkspaceLab): SampleCategoryKey[] {
+// For Physicochemical: area fp gives ["product", "ac"], area rmpm gives ["rm", "pm", "water"].
+export function getAllowedCategories(lab: WorkspaceLab): SampleCategoryKey[] {
   if (lab.code === "MICRO") {
     return ["product", "rm", "pm", "water", "em", "ac"];
   }
   if (lab.area === "rmpm") {
-    return ["rm", "pm"];
+    return ["rm", "pm", "water"];
   }
-  return ["product"];
+  return ["product", "ac"];
 }
 
 interface Props {
@@ -1067,7 +1067,7 @@ export function ReceivingTestingWorkspacePage({ lab }: Props) {
         onClose={() => setNewSampleDialogOpen(false)}
         onSuccess={handleReceiveSuccess}
         allowedCategories={getAllowedCategories(lab)}
-        labMode={{ kind: "fixed", sectionId: lab.sectionId }}
+        labMode={{ kind: "fixed", sectionId: lab.sectionId, code: lab.code }}
       />
 
       {/* 2. Signed Sample Details Correction Dialog */}
@@ -1122,6 +1122,7 @@ export function ReceivingTestingWorkspacePage({ lab }: Props) {
           departmentId: preparingSample.departmentId,
           machineId: preparingSample.machineId,
           waterDepartmentId: preparingSample.waterDepartmentId,
+          labSectionId: preparingSample.labSectionId,
           assignedAnalystIds: Array.from(new Set((preparingSample.assignedTests ?? [])
             .map((t) => t.assignedAnalystId)
             .filter((id): id is number => id != null))),

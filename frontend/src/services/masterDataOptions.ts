@@ -151,6 +151,7 @@ export interface CreateTestDefinitionPayload extends TitrationDefinitionFields {
   physchemArea?: PhyschemArea | null;
   perContainer?: boolean;
   moistureRole?: MoistureRole;
+  coaDisplayOrder?: number | null;
   uvCalculationMode?: UvCalculationMode | null;
   uvSpecificAbsorbance?: number | null;
   uvTotalVolumeMl?: number | null;
@@ -204,6 +205,7 @@ export interface UpdateTestDefinitionPayload extends TitrationDefinitionFields {
   physchemArea?: PhyschemArea | null;
   perContainer?: boolean;
   moistureRole?: MoistureRole;
+  coaDisplayOrder?: number | null;
   changeReason?: string | null;
   uvCalculationMode?: UvCalculationMode | null;
   uvSpecificAbsorbance?: number | null;
@@ -285,6 +287,8 @@ export const masterDataOptions = {
   getEquationTypes: (): Promise<EquationTypeDto[]> =>
     apiClient.get("/masterdata/equation-types").then((r) => r.data.data || []),
   getTestDefinitions: () => apiClient.get("/masterdata/test-definitions").then((r) => r.data.data),
+  getEditableTestCodes: (): Promise<string[]> =>
+    apiClient.get("/masterdata/test-definitions/editable-codes").then((r) => r.data.data || []),
   createTestDefinition: (codeOrPayload: string | CreateTestDefinitionPayload, displayName?: string, sectionId?: number | null) => {
     const payload = typeof codeOrPayload === "string"
       ? { code: codeOrPayload, displayName: displayName ?? codeOrPayload, ...(sectionId != null ? { sectionId } : {}) }

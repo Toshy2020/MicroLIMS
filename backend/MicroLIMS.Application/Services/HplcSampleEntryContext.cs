@@ -36,6 +36,7 @@ public sealed class HplcSampleEntryContext
     public ProductionStageRole? StageRole => Replicates.StageRole;
     public bool IsResidualSolvents => Snapshot.ResultMode == HplcResultMode.ResidualSolvents;
     public bool IsRelatedSubstances => Snapshot.ResultMode == HplcResultMode.RelatedSubstances;
+    public bool IsCleaningResidue => Snapshot.ResultMode == HplcResultMode.CleaningResidue;
     public string? StageName => Sample.ProductionStageRef?.Name ?? Sample.ProductionStage;
 
     // Editable while the run is open, or - after a submitted result was
@@ -75,7 +76,30 @@ public sealed class HplcSampleEntryContext
             return $"Expected exactly {required} replicates{forStage}, but {entered} entered.";
         }
 
+        if (Sample.Category == SampleCategory.AfterCleaning && Snapshot.ResultMode != HplcResultMode.CleaningResidue)
+            return "Use a cleaning-residue method for after-cleaning samples.";
+
         if (IsRelatedSubstances) return RelatedSubstancesEntryProblem();
+
+        if (IsCleaningResidue)
+        {
+            foreach (var analyte in Snapshot.Analytes)
+            {
+                foreach (var rep in RunSample.Replicates.OrderBy(r => r.ReplicateNo))
+                {
+                    if (!rep.Responses.Any(x => x.HplcMethodAnalyteId == analyte.Id && x.Response >= 0))
+                        return $"Replicate {rep.ReplicateNo}: a response for {analyte.Name} is required.";
+                }
+
+                var sstRow = Run.Sst!.Analytes.FirstOrDefault(a => a.HplcMethodAnalyteId == analyte.Id);
+                if (sstRow?.MeanResponse is null or <= 0)
+                    return $"{analyte.Name}: the system suitability standard values are incomplete.";
+
+                if (!Specs.Any(s => s.HplcMethodAnalyteId == analyte.Id))
+                    return $"No cleaning-residue specification for {analyte.Name}.";
+            }
+            return null;
+        }
 
         if (Snapshot.ResultMode == HplcResultMode.Assay && MoistureRole != MoistureRole.None)
         {
@@ -121,8 +145,34 @@ public sealed class HplcSampleEntryContext
         HplcResultMode.Assay => HplcSampleAssayEvaluator.Evaluate(BuildAnalyteInputs(moisturePercentOverride), StageRole),
         HplcResultMode.ResidualSolvents => HplcResidualSolventEvaluator.Evaluate(BuildResidualSolventInputs()),
         HplcResultMode.RelatedSubstances => CalculateRelatedSubstances().Select(r => r.Row).ToList(),
+        HplcResultMode.CleaningResidue => CleaningResidueCalculator.Evaluate(BuildCleaningResidueInputs()),
         _ => throw new InvalidOperationException($"Unsupported result mode {Snapshot.ResultMode}."),
     };
+
+    public List<HplcCleaningResidueInput> BuildCleaningResidueInputs()
+    {
+        var inputs = new List<HplcCleaningResidueInput>();
+        foreach (var analyte in Snapshot.Analytes.OrderBy(a => a.DisplayOrder))
+        {
+            var sstRow = Run.Sst!.Analytes.First(a => a.HplcMethodAnalyteId == analyte.Id);
+            var reps = RunSample.Replicates.OrderBy(r => r.ReplicateNo)
+                .Select(r => new CleaningResidueReplicateInput(r.ReplicateNo,
+                    r.Responses.First(x => x.HplcMethodAnalyteId == analyte.Id).Response))
+                .ToList();
+            inputs.Add(new HplcCleaningResidueInput(
+                analyte.Id,
+                analyte.Name,
+                analyte.StandardConcentrationUgPerMl!.Value,
+                Snapshot.SampleSolutionVolumeMl!.Value,
+                Snapshot.SwabAreaCm2,
+                analyte.MacoLimit!.Value,
+                analyte.MacoUnit!.Value,
+                sstRow.MeanResponse!.Value,
+                reps,
+                Specs.First(s => s.HplcMethodAnalyteId == analyte.Id)));
+        }
+        return inputs;
+    }
 
     // Related substances: the principal analyte's "response" is the reference solution's principal-peak area;
     // the sample weight is not used. Build/Calculate are only called when EntryProblem is null.
@@ -229,9 +279,27 @@ public sealed class HplcSampleEntryContext
         var snapshot = JsonSerializer.Deserialize<HplcMethodResponse>(run.MethodSnapshotJson, JsonOptions)
             ?? throw new InvalidOperationException("The run's method snapshot could not be read.");
 
-        var specs = order.Sample?.ItemId is int itemId
-            ? (await SpecificationLookup.ForSampleAsync(db, order.SampleId, itemId, order.TestCode, ct)).Where(s => s.HplcMethodAnalyteId != null).ToList()
-            : new List<Specification>();
+        List<Specification> specs;
+        if (order.Sample?.ItemId is int itemId)
+        {
+            specs = (await SpecificationLookup.ForSampleAsync(db, order.SampleId, itemId, order.TestCode, ct)).Where(s => s.HplcMethodAnalyteId != null).ToList();
+        }
+        else if (order.Sample?.Category == SampleCategory.AfterCleaning)
+        {
+            specs = snapshot.Analytes.Select(analyte => new Specification
+            {
+                Id = 0,
+                HplcMethodAnalyteId = analyte.Id,
+                LimitType = LimitType.NotMoreThan,
+                UpperLimit = analyte.MacoLimit,
+                Unit = analyte.MacoUnit.HasValue ? CleaningResidueCalculator.UnitText(analyte.MacoUnit.Value) : string.Empty,
+                ParameterName = analyte.Name,
+            }).ToList();
+        }
+        else
+        {
+            specs = new List<Specification>();
+        }
 
         var submitted = await db.TestAnalyses.AnyAsync(a => a.TestOrderId == order.Id && a.IsActive, ct);
         var returned = !submitted && await db.TestReturnEvents.AnyAsync(e => e.TestOrderId == order.Id, ct);

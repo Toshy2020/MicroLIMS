@@ -141,7 +141,7 @@ public class ElectronicSignatureTests
 
         var reloaded = await db.Users.FirstAsync(u => u.Id == user.Id);
         Assert.Equal(0, reloaded.FailedLoginAttempts);
-        Assert.False(reloaded.IsLocked);
+        Assert.False(reloaded.IsLockedAt(DateTime.UtcNow));
         Assert.Null(reloaded.LockedUntil);
     }
 
@@ -171,7 +171,7 @@ public class ElectronicSignatureTests
 
         var reloaded = await db.Users.AsNoTracking().FirstAsync(u => u.Id == user.Id);
         Assert.Equal(0, reloaded.FailedLoginAttempts);
-        Assert.False(reloaded.IsLocked);
+        Assert.False(reloaded.IsLockedAt(DateTime.UtcNow));
     }
 
     [Fact]

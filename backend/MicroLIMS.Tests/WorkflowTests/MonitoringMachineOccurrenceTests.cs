@@ -60,8 +60,9 @@ public class MonitoringMachineOccurrenceTests
         await w.Db.SaveChangesAsync();
 
         var status = new OccurrenceStatusService(w.Db, clock);
-        w.Occurrences = new MonitoringOccurrenceService(w.Db, clock, status, new ElectronicSignatureService(w.Db));
-        w.Links = new MonitoringLinkService(w.Db, clock, status);
+        var scope = new UserSectionScopeService(w.Db);
+        w.Occurrences = new MonitoringOccurrenceService(w.Db, clock, status, new ElectronicSignatureService(w.Db), scope);
+        w.Links = new MonitoringLinkService(w.Db, clock, status, scope);
         return w;
     }
 
@@ -131,7 +132,7 @@ public class MonitoringMachineOccurrenceTests
         var created = await w.Occurrences.CreateManualAsync(
             new CreateManualOccurrenceRequest(w.Machine.Id, new DateOnly(2026, 10, 28), null, "Cleaned after batch change"), w.Head.Id);
 
-        var detail = await w.Occurrences.GetDetailAsync(created.Id);
+        var detail = await w.Occurrences.GetDetailAsync(w.Head.Id, created.Id);
         var item = Assert.Single(detail.Items);
         Assert.Equal(ItemProgress.None, item.Progress);
         Assert.Contains("Machine", item.Label);
@@ -148,7 +149,7 @@ public class MonitoringMachineOccurrenceTests
             new CreateManualOccurrenceRequest(w.Machine.Id, new DateOnly(2026, 10, 28), new List<int> { w.Nozzle.Id }, null), w.Head.Id);
 
         Assert.Equal(1, created.ItemsTotal);
-        var item = Assert.Single((await w.Occurrences.GetDetailAsync(created.Id)).Items);
+        var item = Assert.Single((await w.Occurrences.GetDetailAsync(w.Head.Id, created.Id)).Items);
         Assert.Contains("Nozzle", item.Label);
     }
 
@@ -159,12 +160,12 @@ public class MonitoringMachineOccurrenceTests
     {
         var w = await BuildAsync();
         var o = await MachineOccurrenceAsync(w);
-        Assert.Equal(OccurrenceStatus.DueToday, (await w.Occurrences.GetDetailAsync(o.Id)).Summary.Status);
+        Assert.Equal(OccurrenceStatus.DueToday, (await w.Occurrences.GetDetailAsync(w.Head.Id, o.Id)).Summary.Status);
 
         // Only the nozzle was cleaned this time.
         await SessionAsync(w, o, w.Nozzle, ApprovalStatus.Approved, WorkflowStep.Approved);
 
-        var summary = (await w.Occurrences.GetDetailAsync(o.Id)).Summary;
+        var summary = (await w.Occurrences.GetDetailAsync(w.Head.Id, o.Id)).Summary;
         Assert.Equal(OccurrenceStatus.Performed, summary.Status);
         Assert.Equal(1, summary.ItemsPerformed);
     }
@@ -177,7 +178,7 @@ public class MonitoringMachineOccurrenceTests
         await SessionAsync(w, o, w.Nozzle, ApprovalStatus.Approved, WorkflowStep.Approved);
         await SessionAsync(w, o, w.Needle, ApprovalStatus.Pending, WorkflowStep.Incubating);
 
-        var detail = await w.Occurrences.GetDetailAsync(o.Id);
+        var detail = await w.Occurrences.GetDetailAsync(w.Head.Id, o.Id);
 
         Assert.Equal(OccurrenceStatus.InTesting, detail.Summary.Status);
         Assert.Contains("AC-", detail.Items.Single().SampleReference);
@@ -191,7 +192,7 @@ public class MonitoringMachineOccurrenceTests
         await SessionAsync(w, o, w.Nozzle, ApprovalStatus.Approved, WorkflowStep.Approved);
         await SessionAsync(w, o, w.Needle, ApprovalStatus.Approved, WorkflowStep.Approved, ResultStatus.ActionLimitExceeded);
 
-        Assert.Equal(OccurrenceStatus.PerformedExcursion, (await w.Occurrences.GetDetailAsync(o.Id)).Summary.Status);
+        Assert.Equal(OccurrenceStatus.PerformedExcursion, (await w.Occurrences.GetDetailAsync(w.Head.Id, o.Id)).Summary.Status);
     }
 
     [Fact]
@@ -201,7 +202,7 @@ public class MonitoringMachineOccurrenceTests
         var o = await MachineOccurrenceAsync(w, w.Nozzle, w.Needle);
         await SessionAsync(w, o, w.Nozzle, ApprovalStatus.Approved, WorkflowStep.Approved);
 
-        var summary = (await w.Occurrences.GetDetailAsync(o.Id)).Summary;
+        var summary = (await w.Occurrences.GetDetailAsync(w.Head.Id, o.Id)).Summary;
 
         Assert.Equal(OccurrenceStatus.PartlyPerformed, summary.Status);
         Assert.Equal(1, summary.ItemsPerformed);

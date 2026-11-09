@@ -176,6 +176,7 @@ public class TestDefinitionResponse
     public PhyschemArea? PhyschemArea { get; init; }
     public bool PerContainer { get; init; }
     public MoistureRole MoistureRole { get; init; }
+    public int? CoaDisplayOrder { get; init; }
     public WorkflowType WorkflowType { get; init; }
     public bool IsActive { get; init; }
     public EquationType EquationType { get; init; }
@@ -250,6 +251,7 @@ public class TestDefinitionResponse
         PhyschemArea = e.PhyschemArea,
         PerContainer = e.PerContainer,
         MoistureRole = e.MoistureRole,
+        CoaDisplayOrder = e.CoaDisplayOrder,
         WorkflowType = e.WorkflowType,
         IsActive = e.IsActive,
         EquationType = e.EquationType,
@@ -289,7 +291,7 @@ public class TestDefinitionResponse
         IcpSampleForm = e.IcpSampleForm,
         IcpTheoreticalAmount = e.IcpTheoreticalAmount,
         IcpSpecificGravity = e.IcpSpecificGravity,
-        IcpElements = e.IcpElements.OrderBy(x => x.DisplayOrder).Select(x => new IcpTestElementResponse(x.Id, x.DisplayOrder, x.Symbol, x.TargetPpm)).ToList(),
+        IcpElements = e.IcpElements.OrderBy(x => x.DisplayOrder).Select(x => new IcpTestElementResponse(x.Id, x.DisplayOrder, x.Symbol, x.TargetPpm, x.CleaningLimitPpm)).ToList(),
         TitrationType = e.TitrationType,
         TitrationNonAqueous = e.TitrationNonAqueous,
         TitrationMode = e.TitrationMode,
@@ -453,4 +455,4 @@ public class MediaIncubationConditionResponse
     };
 }
 
-public record IcpTestElementResponse(int Id, int DisplayOrder, string Symbol, decimal? TargetPpm);
+public record IcpTestElementResponse(int Id, int DisplayOrder, string Symbol, decimal? TargetPpm, decimal? CleaningLimitPpm = null);

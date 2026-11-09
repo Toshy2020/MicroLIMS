@@ -25,9 +25,7 @@ public class TestingWorkspaceService : ITestWorkspaceService
 
     public async Task<PagedResult<SampleDto>> GetActiveSamplesAsync(TestingWorkspaceFilterDto filter, int? currentUserId = null)
     {
-        int page = filter.Page <= 0 ? 1 : filter.Page;
-        // Default 50, hard server-side max 200: caller cannot request unbounded data
-        int pageSize = filter.PageSize <= 0 ? 50 : Math.Min(filter.PageSize, 200);
+        var (page, pageSize) = Paging.Normalize(filter.Page, filter.PageSize, defaultPageSize: 50);
 
         var scope = currentUserId.HasValue
             ? await _scope.GetReadableSectionIdsAsync(currentUserId.Value)
@@ -490,8 +488,9 @@ public class TestingWorkspaceService : ITestWorkspaceService
         {
             var hasInScopeNonSuperseded = sample.TestOrders.Any(t => !t.IsSuperseded && scope.Contains(t.SectionId))
                 || (labSectionId == null && SampleSectionRollup.PendingSectionIds(sample).Any(scope.Contains));
-            if (!hasInScopeNonSuperseded
-                && !(SampleWorkflowQueues.IsAwaitingPreparationWithoutTests(sample) && await IncludesPreparingLabAsync(scope)))
+            var awaitingPrepInScope = SampleWorkflowQueues.IsAwaitingPreparationWithoutTests(sample)
+                && (sample.LabSectionId != null ? scope.Contains(sample.LabSectionId.Value) : await IncludesPreparingLabAsync(scope));
+            if (!hasInScopeNonSuperseded && !awaitingPrepInScope)
                 return null;
         }
 
@@ -610,6 +609,7 @@ public class TestingWorkspaceService : ITestWorkspaceService
             DepartmentId = s.DepartmentId,
             MachineId = s.MachineId,
             WaterDepartmentId = s.WaterDepartmentId,
+            LabSectionId = s.LabSectionId,
             ProductionStage = s.ProductionStage,
             CauseOfTesting = s.CauseOfTesting?.Name ?? string.Empty,
             CauseOfTestingId = s.CauseOfTestingId,
@@ -649,6 +649,10 @@ public class TestingWorkspaceService : ITestWorkspaceService
             AssignedTests = assignedTests,
             PreviousProductName = s.Category == SampleCategory.AfterCleaning ? s.PreviousProductName : null,
             PreviousProductBatchNumber = s.Category == SampleCategory.AfterCleaning ? (s.PreviousProductBatchNumber ?? s.BatchNumber) : null,
+            PreviousProductItemId = s.Category == SampleCategory.AfterCleaning ? s.PreviousProductItemId : null,
+            CleaningTechniques = s.Category == SampleCategory.AfterCleaning && !string.IsNullOrWhiteSpace(s.CleaningTechniques)
+                ? s.CleaningTechniques.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                : null,
             OriginSampleId = s.OriginSampleId,
             OriginReferenceNumber = s.OriginSample?.ReferenceNumber,
             OosGroupCode = s.OosGroupCode,

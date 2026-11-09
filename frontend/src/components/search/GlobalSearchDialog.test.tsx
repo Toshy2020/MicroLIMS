@@ -1,5 +1,6 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent, waitFor, cleanup } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { PinnedLightTheme } from "../../theme/PinnedLightTheme";
 import { GlobalSearchDialog } from "./GlobalSearchDialog";
@@ -104,11 +105,9 @@ describe("GlobalSearchDialog", () => {
       </MemoryRouter>
     );
 
-    const samplesChip = screen.getByRole("button", { name: "Samples" });
-    fireEvent.click(samplesChip);
-
-    const input = screen.getByPlaceholderText(/search microlims/i);
-    fireEvent.change(input, { target: { value: "WATER" } });
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: "Samples" }));
+    await user.type(screen.getByPlaceholderText(/search microlims/i), "WATER");
 
     await waitFor(() => {
       expect(globalSearchApi.search).toHaveBeenCalledWith("WATER", "Samples", 15, expect.any(AbortSignal));

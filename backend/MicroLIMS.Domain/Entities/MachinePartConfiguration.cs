@@ -1,3 +1,5 @@
+using MicroLIMS.Domain.Enums;
+
 namespace MicroLIMS.Domain.Entities;
 
 public class MachinePartConfiguration : IVersionedEntity
@@ -16,4 +18,11 @@ public class MachinePartConfiguration : IVersionedEntity
     public string SpecLimit { get; set; } = string.Empty;
     public string Unit { get; set; } = string.Empty;
     public bool IsPathogenTest { get; set; } // true for E.coli/P.aeruginosa/Salmonella-type entries, false for Swab/Rinse TAMC
+
+    public LimitType? LimitType { get; set; }
+    public decimal? LowerLimit { get; set; }
+    public decimal? UpperLimit { get; set; }
+    public bool LowerInclusive { get; set; } = true;
+    public bool UpperInclusive { get; set; } = true;
+    public string? ExpectedResultText { get; set; }
 }

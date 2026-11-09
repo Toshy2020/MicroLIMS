@@ -20,6 +20,7 @@ import { exportResultsPdf } from "../utils/exportPdf";
 import { useAuth } from "../../../contexts/AuthContext";
 import { ResultRecordItem, ResultRecordSearchParams, ResultRecordSearchResponse, SampleCategory } from "../types/reportingTypes";
 import { DataTable, Column } from "../../../components/DataTable";
+import { fetchAllPages } from "../../../services/fetchAllPages";
 
 const ROWS_PER_PAGE_OPTIONS = [10, 25, 50, 100];
 
@@ -106,7 +107,7 @@ export function ReportResultsTable({
   const [exportError, setExportError] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
 
-  const items = results?.items ?? [];
+  const items = useMemo(() => results?.items ?? [], [results]);
   const totalCount = results?.totalCount ?? 0;
   const page = appliedParams.page ?? 1;
   const pageSize = appliedParams.pageSize ?? 25;
@@ -214,8 +215,9 @@ export function ReportResultsTable({
     if (selectAllMatching) {
       setExporting(true);
       try {
-        const res = await ReportingService.searchResults({ ...appliedParams, page: 1, pageSize: 200 });
-        exportResultsPdf(res.items, {
+        // Every matching result, page by page - not just the first page.
+        const allMatching = await fetchAllPages((page, pageSize) => ReportingService.searchResults({ ...appliedParams, page, pageSize }));
+        exportResultsPdf(allMatching, {
           title: "Laboratory Results Export (All Matching)",
           criteriaSummary: summarizeFilters(appliedParams),
           generatedBy: fullName || "Authorized User",

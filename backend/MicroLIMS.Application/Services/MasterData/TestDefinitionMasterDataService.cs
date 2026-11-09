@@ -35,6 +35,9 @@ public class TestDefinitionMasterDataService
     public async Task<List<TestDefinitionResponse>> GetTestDefinitionsAsync() =>
         (await _db.TestDefinitions.AsNoTracking().Include(t => t.Section).Include(t => t.UvStandardEntry).Include(t => t.IcpElements).OrderBy(t => t.Code).ToListAsync()).Select(TestDefinitionResponse.From).ToList();
 
+    public Task<string[]> GetEditableCodesAsync(int currentUserId, CancellationToken ct = default) =>
+        TestCodeOwnership.GetEditableCodesOrAllActiveAsync(_db, _scope, currentUserId, ct);
+
     public async Task<TestDefinitionResponse> CreateTestDefinitionAsync(int currentUserId, CreateTestDefinitionRequest request)
     {
         if (await _db.TestDefinitions.AnyAsync(t => t.Code == request.Code))
@@ -352,6 +355,7 @@ public class TestDefinitionMasterDataService
             WorkflowType = request.WorkflowType,
             PerContainer = request.PerContainer ?? false,
             MoistureRole = request.MoistureRole ?? MoistureRole.None,
+            CoaDisplayOrder = CoaDisplayOrderRule.ForCreate(request.CoaDisplayOrder),
             EquationType = request.EquationType,
             RequiresSystemSuitability = request.RequiresSystemSuitability,
             MethodAbbreviation = methodAbbr,
@@ -818,6 +822,7 @@ public class TestDefinitionMasterDataService
         else if (effectiveWorkflowType == WorkflowType.WeightVariation && !entity.WvCapsuleS2MaxOutside.HasValue) entity.WvCapsuleS2MaxOutside = 6;
         if (request.PerContainer.HasValue) entity.PerContainer = request.PerContainer.Value;
         if (request.MoistureRole.HasValue) entity.MoistureRole = request.MoistureRole.Value;
+        if (request.CoaDisplayOrder.HasValue) entity.CoaDisplayOrder = CoaDisplayOrderRule.ForUpdate(request.CoaDisplayOrder.Value);
         if (request.HplcMethodId.HasValue) entity.HplcMethodId = request.HplcMethodId;
         if (request.TitrationType.HasValue) entity.TitrationType = request.TitrationType;
         if (request.TitrationNonAqueous.HasValue) entity.TitrationNonAqueous = request.TitrationNonAqueous;

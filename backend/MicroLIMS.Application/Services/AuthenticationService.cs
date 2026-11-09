@@ -95,7 +95,7 @@ public class AuthenticationService : IAuthenticationService
         // to refuse as a wrong password does.
         var passwordMatches = PasswordMatches(password, user.PasswordHash);
 
-        if (user.IsLocked)
+        if (user.IsLockedAt(_time.GetUtcNow().UtcDateTime))
         {
             _securityAudit.Record(new SecurityEventRequest(
                 SecurityEventCodes.LoginFailedAccountLocked, SecurityEventOutcome.Failure,
@@ -168,7 +168,7 @@ public class AuthenticationService : IAuthenticationService
         var stored = await _db.RefreshTokens.Include(r => r.User).ThenInclude(u => u!.Role)
             .FirstOrDefaultAsync(r => r.TokenHash == hash);
 
-        if (stored is null || !stored.IsActive)
+        if (stored is null || !stored.IsActiveAt(_time.GetUtcNow().UtcDateTime))
         {
             // The token value itself is never recorded - only that a
             // refresh was attempted with one that is not usable.
@@ -187,7 +187,7 @@ public class AuthenticationService : IAuthenticationService
         // message deliberately matches the invalid-token one above so a
         // caller holding a stolen token cannot probe account state.
         var user = stored.User;
-        if (user is null || !user.IsActive || user.IsLocked)
+        if (user is null || !user.IsActive || user.IsLockedAt(_time.GetUtcNow().UtcDateTime))
         {
             _securityAudit.Record(new SecurityEventRequest(
                 SecurityEventCodes.RefreshRejectedAccountBlocked, SecurityEventOutcome.Failure,
@@ -286,7 +286,7 @@ public class AuthenticationService : IAuthenticationService
     {
         var hash = Hash(resetToken);
         var record = await _db.PasswordResetTokens.Include(t => t.User).FirstOrDefaultAsync(t => t.TokenHash == hash);
-        if (record is null || !record.IsValid) return false;
+        if (record is null || !record.IsValidAt(_time.GetUtcNow().UtcDateTime)) return false;
 
         await ValidateAndApplyNewPasswordAsync(record.User!, newPassword);
         record.UsedAt = _time.GetUtcNow().UtcDateTime;

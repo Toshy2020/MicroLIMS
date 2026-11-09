@@ -130,6 +130,11 @@ public class TestOrderSummaryDetailDto
     public int TestOrderId { get; set; }
     public int SectionId { get; set; }
     public string SectionName { get; set; } = string.Empty;
+    // Section code and the test's configured workflow type and CoA order
+    // drive the Certificate of Analysis row order (CoaTestOrdering).
+    public string SectionCode { get; set; } = string.Empty;
+    public WorkflowType? WorkflowType { get; set; }
+    public int? CoaDisplayOrder { get; set; }
     public string TestCode { get; set; } = string.Empty;
     public string TestDisplayName { get; set; } = string.Empty;
     // Set only when this row was pulled in from a different Sample - the
@@ -262,7 +267,7 @@ public class AnalysisDetailDto
 public class ParameterResultDetailDto
 {
     public int Id { get; set; }
-    public int SpecificationId { get; set; }
+    public int? SpecificationId { get; set; }
     public string ParameterName { get; set; } = string.Empty;
     public decimal? ReportedValue { get; set; }
     public string ReportedDisplay { get; set; } = string.Empty;

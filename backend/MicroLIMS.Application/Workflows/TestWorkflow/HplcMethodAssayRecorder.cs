@@ -42,6 +42,7 @@ public sealed class HplcMethodAssayRecorder : TestWorkflowSupport
         var rows = c.IsRelatedSubstances ? relatedSubstances.Select(r => r.Row).ToList() : c.EvaluateRows(moisture?.Percent);
         var inputs = c.Snapshot.ResultMode == HplcResultMode.Assay ? c.BuildAnalyteInputs(moisture?.Percent) : new List<HplcAssayAnalyteInput>();
         var rsInputs = c.IsResidualSolvents ? c.BuildResidualSolventInputs() : new List<HplcResidualSolventInput>();
+        var crInputs = c.IsCleaningResidue ? c.BuildCleaningResidueInputs() : new List<HplcCleaningResidueInput>();
         var individual = HplcAssayCalculator.IsIndividualBasis(c.StageRole);
         var sst = c.Run.Sst!;
 
@@ -84,6 +85,37 @@ public sealed class HplcMethodAssayRecorder : TestWorkflowSupport
                     }),
                     reportedValue = row.Value,
                     notDetected = HplcResidualSolventEvaluator.IsNotDetected(rs),
+                    runCode = c.Run.Code,
+                    sstCode = sst.Code,
+                    hplcMethodId = c.Run.HplcMethodId,
+                    hplcRunId = c.Run.Id,
+                    hplcRunSampleId = c.RunSample.Id,
+                }, JsonOptions);
+            }
+            else if (c.IsCleaningResidue)
+            {
+                var cr = crInputs.First(i => i.AnalyteId == row.AnalyteId);
+                calculationJson = JsonSerializer.Serialize(new
+                {
+                    analyte = cr.Name,
+                    hplcMethodAnalyteId = cr.AnalyteId,
+                    quantity = "CleaningResidue",
+                    basis = "Mean",
+                    standardConcentrationUgPerMl = cr.StandardConcentrationUgPerMl,
+                    sampleSolutionVolumeMl = cr.SampleSolutionVolumeMl,
+                    swabAreaCm2 = cr.SwabAreaCm2,
+                    macoLimit = cr.MacoLimit,
+                    macoUnit = cr.MacoUnit.ToString(),
+                    standardMeanResponse = cr.StandardMeanResponse,
+                    replicates = row.Readings.Select(r => new
+                    {
+                        replicateNo = r.ReplicateNo,
+                        response = r.Response,
+                        value = r.AssayPercent,
+                        display = CleaningResidueCalculator.FormatValue(r.AssayPercent, cr.MacoUnit),
+                    }),
+                    reportedValue = row.Value,
+                    notDetected = CleaningResidueCalculator.IsNotDetected(cr),
                     runCode = c.Run.Code,
                     sstCode = sst.Code,
                     hplcMethodId = c.Run.HplcMethodId,
@@ -176,7 +208,7 @@ public sealed class HplcMethodAssayRecorder : TestWorkflowSupport
             var parameterResult = new ParameterResult
             {
                 TestOrderId = order.Id,
-                SpecificationId = row.Spec.Id,
+                SpecificationId = row.Spec.Id == 0 ? null : row.Spec.Id,
                 ParameterName = row.AnalyteName,
                 ReportedValue = row.Value,
                 ReportedDisplay = row.Display,

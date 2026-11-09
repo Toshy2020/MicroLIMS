@@ -1,3 +1,4 @@
+using MicroLIMS.Application.Helpers;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -97,7 +98,7 @@ public class KpiDashboardControllerTests
         var result = Assert.IsType<OkObjectResult>(await controller.GetRecords("cap", From, To, null, null, null, null, 2, 5000, default));
         Assert.NotNull(result.Value);
         Assert.Equal(2, kpi.Page);
-        Assert.Equal(200, kpi.PageSize);                 // capped by the service
+        Assert.Equal(Paging.MaxPageSize, kpi.PageSize);  // capped by the service
         Assert.Equal(5, kpi.Seen!.ViewerUserId);
     }
 }

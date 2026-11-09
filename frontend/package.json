@@ -8,6 +8,8 @@
     "build": "tsc -b && vite build",
     "preview": "vite preview",
     "lint": "eslint .",
+    "debt:check": "node scripts/test-debt.mjs",
+    "debt:update": "node scripts/test-debt.mjs --update",
     "test": "vitest run"
   },
   "dependencies": {

@@ -466,7 +466,7 @@ public class UserService
         return ToDto(user);
     }
 
-    private static UserDto ToDto(User u) => new(
+    private UserDto ToDto(User u) => new(
         u.Id,
         u.FullName,
         u.Username,
@@ -475,7 +475,7 @@ public class UserService
         u.RoleId,
         u.Role is null ? null : new RoleDto(u.Role.Id, u.Role.Name, u.Role.Type.ToString()),
         u.IsActive,
-        u.IsLocked,
+        u.IsLockedAt(_time.GetUtcNow().UtcDateTime),
         u.LockedUntil,
         u.MustChangePassword,
         u.CreatedAt,

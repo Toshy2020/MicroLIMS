@@ -68,6 +68,8 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
   const [changeReasonError, setChangeReasonError] = useState<string | null>(null);
   const [code, setCode] = useState("");
   const [displayName, setDisplayName] = useState("");
+  // Certificate of Analysis position inside the test's group; "" = none.
+  const [coaDisplayOrder, setCoaDisplayOrder] = useState<string>("");
   const [sectionId, setSectionId] = useState<number | "">("");
   const [workflowType, setWorkflowType] = useState<string>(defaultWorkflowType);
   const [equationType, setEquationType] = useState<string>(isFp ? "HplcMethodAssay" : "None");
@@ -148,6 +150,7 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
     setEditingTest(null);
     setCode("");
     setDisplayName("");
+    setCoaDisplayOrder("");
     setSectionId(mySections.length === 1 ? mySections[0].sectionId : "");
     setEditingSectionId(null);
     setWorkflowType(defaultWorkflowType);
@@ -201,6 +204,7 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
     setEditingTest(t);
     setCode(t.code);
     setDisplayName(t.displayName);
+    setCoaDisplayOrder(t.coaDisplayOrder != null ? String(t.coaDisplayOrder) : "");
     setSectionId(t.sectionId ?? (mySections.length === 1 ? mySections[0].sectionId : ""));
     setEditingSectionId(t.sectionId ?? null);
     setWorkflowType(t.workflowType || defaultWorkflowType);
@@ -274,6 +278,12 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
       setDialogError("Laboratory section is required.");
       return;
     }
+    const trimmedCoaOrder = coaDisplayOrder.trim();
+    if (trimmedCoaOrder !== "" && !/^[1-9]\d{0,3}$/.test(trimmedCoaOrder)) {
+      setDialogError("CoA order must be a whole number from 1 to 9999, or empty.");
+      return;
+    }
+    const coaOrderValue = trimmedCoaOrder === "" ? null : Number(trimmedCoaOrder);
 
     const chosenSectionId = Number(sectionId);
     const isDissolution = workflowType === "Dissolution";
@@ -523,6 +533,8 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
 
       if (editingId) {
         const payload: UpdateTestDefinitionPayload = {
+          // 0 clears a previously set order on the server.
+          coaDisplayOrder: coaOrderValue ?? 0,
           code: trimmedCode,
           displayName: trimmedDisplayName,
           sectionId: chosenSectionId,
@@ -576,6 +588,7 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
         setMessage({ text: `Test "${trimmedCode}" updated.`, ok: true });
       } else {
         const payload: CreateTestDefinitionPayload = {
+          coaDisplayOrder: coaOrderValue,
           perContainer: isQualitative ? perContainer : false,
           moistureRole: (isGravimetric && equationType === "GravimetricLoss")
             ? (moistureRole === "LossOnDrying" ? "LossOnDrying" : "None")
@@ -842,6 +855,16 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
               onChange={(e) => setDisplayName(e.target.value)}
               required
               sx={{ flex: 1.5, minWidth: 240 }}
+            />
+            <TextField
+              size="small"
+              label="CoA order"
+              placeholder="e.g. 1"
+              value={coaDisplayOrder}
+              onChange={(e) => setCoaDisplayOrder(e.target.value)}
+              helperText="Position on the Certificate of Analysis within its group"
+              slotProps={{ htmlInput: { inputMode: "numeric" } }}
+              sx={{ width: 170 }}
             />
           </Stack>
 

@@ -34,11 +34,14 @@ public class HplcMethodConfiguration : IEntityTypeConfiguration<HplcMethod>
         builder.Property(e => e.SampleSolutionVolumeMl).HasColumnType("decimal(10,3)");
         builder.Property(e => e.ReferenceSolutionPercent).HasColumnType("decimal(10,4)");
         builder.Property(e => e.DisregardLimitPercent).HasColumnType("decimal(10,4)");
+        builder.Property(e => e.SwabAreaCm2).HasColumnType("decimal(10,3)");
 
         builder.HasIndex(e => new { e.SectionId, e.Abbreviation }).IsUnique();
+        builder.HasIndex(e => e.ProductItemId);
 
         builder.HasOne(e => e.Section).WithMany().HasForeignKey(e => e.SectionId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne(e => e.DiluentSolution).WithMany().HasForeignKey(e => e.DiluentSolutionId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne(e => e.ProductItem).WithMany().HasForeignKey(e => e.ProductItemId).OnDelete(DeleteBehavior.Restrict);
 
         builder.HasMany(e => e.MobilePhases).WithOne(c => c.HplcMethod).HasForeignKey(c => c.HplcMethodId).OnDelete(DeleteBehavior.Cascade);
         builder.HasMany(e => e.GradientSteps).WithOne(c => c.HplcMethod).HasForeignKey(c => c.HplcMethodId).OnDelete(DeleteBehavior.Cascade);
@@ -106,6 +109,7 @@ public class HplcMethodAnalyteConfiguration : IEntityTypeConfiguration<HplcMetho
         builder.Property(e => e.SstMinPeakToValley).HasColumnType("decimal(10,3)");
         builder.Property(e => e.StandardDilution).HasColumnType("decimal(12,4)");
         builder.Property(e => e.StandardConcentrationUgPerMl).HasColumnType("decimal(12,4)");
+        builder.Property(e => e.MacoLimit).HasColumnType("decimal(12,4)");
 
         builder.HasIndex(e => new { e.HplcMethodId, e.Name }).IsUnique();
 

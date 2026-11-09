@@ -8,6 +8,7 @@ export interface IcpElementRow {
   id?: number;            // set for an element that already exists, so item specifications stay linked
   symbol: string;
   targetPpm: string;      // assay only
+  cleaningLimitPpm?: string; // optional cleaning limit (ppm)
 }
 
 export interface IcpTestForm {
@@ -23,6 +24,7 @@ export interface IcpTestElementDto {
   displayOrder: number;
   symbol: string;
   targetPpm?: number | null;
+  cleaningLimitPpm?: number | null;
 }
 
 export interface IcpTestDefinitionFields {
@@ -38,7 +40,7 @@ export interface IcpTestPayloadFields {
   icpSampleForm: IcpSampleForm | null;
   icpTheoreticalAmount: number | null;
   icpSpecificGravity: number | null;
-  icpElements: { id: number | null; symbol: string; targetPpm: number | null }[];
+  icpElements: { id: number | null; symbol: string; targetPpm: number | null; cleaningLimitPpm: number | null }[];
 }
 
 export const createInitialIcpForm = (): IcpTestForm => ({
@@ -46,7 +48,7 @@ export const createInitialIcpForm = (): IcpTestForm => ({
   sampleForm: "Solid",
   theoreticalAmount: "",
   specificGravity: "",
-  elements: [{ symbol: "", targetPpm: "" }]
+  elements: [{ symbol: "", targetPpm: "", cleaningLimitPpm: "" }]
 });
 
 export function icpFormFromDefinition(t: IcpTestDefinitionFields): IcpTestForm {
@@ -54,7 +56,12 @@ export function icpFormFromDefinition(t: IcpTestDefinitionFields): IcpTestForm {
   const elements = (t.icpElements ?? [])
     .slice()
     .sort((a, b) => a.displayOrder - b.displayOrder)
-    .map((e) => ({ id: e.id, symbol: e.symbol, targetPpm: e.targetPpm != null ? String(e.targetPpm) : "" }));
+    .map((e) => ({
+      id: e.id,
+      symbol: e.symbol,
+      targetPpm: e.targetPpm != null ? String(e.targetPpm) : "",
+      cleaningLimitPpm: e.cleaningLimitPpm != null ? String(e.cleaningLimitPpm) : ""
+    }));
   return {
     mode: t.icpMode ?? initial.mode,
     sampleForm: t.icpSampleForm ?? initial.sampleForm,
@@ -64,7 +71,8 @@ export function icpFormFromDefinition(t: IcpTestDefinitionFields): IcpTestForm {
   };
 }
 
-const num = (text: string): number | null => {
+const num = (text?: string | null): number | null => {
+  if (!text) return null;
   const t = text.trim();
   if (t === "") return null;
   const n = Number(t);
@@ -82,7 +90,12 @@ export function icpPayloadFields(form: IcpTestForm): IcpTestPayloadFields {
     icpSpecificGravity: liquid ? num(form.specificGravity) : null,
     icpElements: form.elements
       .filter((e) => e.symbol.trim() !== "")
-      .map((e) => ({ id: e.id ?? null, symbol: e.symbol.trim(), targetPpm: assay ? num(e.targetPpm) : null }))
+      .map((e) => ({
+        id: e.id ?? null,
+        symbol: e.symbol.trim(),
+        targetPpm: assay ? num(e.targetPpm) : null,
+        cleaningLimitPpm: num(e.cleaningLimitPpm)
+      }))
   };
 }
 

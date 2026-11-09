@@ -8,7 +8,8 @@ import {
   FormHelperText,
   Chip,
   Typography,
-  Stack
+  Stack,
+  Autocomplete
 } from "@mui/material";
 import { HplcTechnique, HplcResultMode } from "../services/HplcMethodService";
 import { LaboratorySection } from "../../../../services/laboratorySectionService";
@@ -26,6 +27,10 @@ export interface HplcGeneralSectionProps {
   sectionId: number | "";
   internalStandardName?: string;
   onInternalStandardNameChange?: (val: string) => void;
+  productItemId?: number | "";
+  productItemName?: string;
+  onProductItemIdChange?: (val: number | "") => void;
+  finishedProductItems?: Array<{ id: number; name: string }>;
   errors: HplcMethodErrors;
   editingId: number | null;
   mySections: LaboratorySection[];
@@ -46,6 +51,10 @@ export function HplcGeneralSection({
   sectionId,
   internalStandardName = "",
   onInternalStandardNameChange,
+  productItemId = "",
+  productItemName = "",
+  onProductItemIdChange,
+  finishedProductItems = [],
   errors,
   editingId,
   mySections,
@@ -123,10 +132,22 @@ export function HplcGeneralSection({
                 Result Mode:
               </Typography>
               <Chip
-                label={resultMode === "RelatedSubstances" ? "Related Substances" : "Assay"}
+                label={
+                  resultMode === "RelatedSubstances"
+                    ? "Related Substances"
+                    : resultMode === "CleaningResidue"
+                    ? "Cleaning residue"
+                    : "Assay"
+                }
                 size="small"
                 variant="outlined"
-                color={resultMode === "RelatedSubstances" ? "warning" : "default"}
+                color={
+                  resultMode === "RelatedSubstances"
+                    ? "warning"
+                    : resultMode === "CleaningResidue"
+                    ? "info"
+                    : "default"
+                }
                 sx={{ fontWeight: 600 }}
               />
             </Stack>
@@ -141,6 +162,7 @@ export function HplcGeneralSection({
               >
                 <MenuItem value="Assay">Assay</MenuItem>
                 <MenuItem value="RelatedSubstances">Related Substances</MenuItem>
+                <MenuItem value="CleaningResidue">Cleaning residue</MenuItem>
               </Select>
             </FormControl>
           )
@@ -157,6 +179,40 @@ export function HplcGeneralSection({
             error={Boolean(errors.internalStandardName)}
             helperText={errors.internalStandardName ?? (isEditing ? "Fixed after creation" : "Optional")}
             sx={{ minWidth: 220 }}
+          />
+        )}
+
+        {!isGc && resultMode === "CleaningResidue" && (
+          <Autocomplete
+            size="small"
+            sx={{ minWidth: 260, flex: 1 }}
+            options={finishedProductItems}
+            getOptionLabel={(o) => (typeof o === "string" ? o : o.name ?? "")}
+            value={
+              finishedProductItems.find((i) => i.id === productItemId) ??
+              (productItemId ? { id: Number(productItemId), name: productItemName || `Product #${productItemId}` } : null)
+            }
+            onChange={(_, val) => {
+              onProductItemIdChange?.(val ? val.id : "");
+            }}
+            isOptionEqualToValue={(a, b) => a.id === b.id}
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                label="Finished Product *"
+                placeholder="Select Finished Product"
+                required
+                error={Boolean(errors.productItemId)}
+                helperText={errors.productItemId ?? "Finished product being cleaned"}
+                slotProps={{
+                  ...params.slotProps,
+                  htmlInput: {
+                    ...params.slotProps?.htmlInput,
+                    "aria-label": "Finished Product"
+                  }
+                }}
+              />
+            )}
           />
         )}
       </Stack>

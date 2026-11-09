@@ -643,8 +643,7 @@ public class TrainingAssignmentService : ITrainingAssignmentService
 
         var totalCount = await query.CountAsync(cancellationToken);
 
-        var page = Math.Max(1, filter.Page);
-        var pageSize = Math.Clamp(filter.PageSize, 1, 200);
+        var (page, pageSize) = Paging.Normalize(filter.Page, filter.PageSize, defaultPageSize: 50);
 
         var items = await query
             .OrderByDescending(a => a.DueDateUtc)

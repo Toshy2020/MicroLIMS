@@ -1,3 +1,4 @@
+using MicroLIMS.Application.Helpers;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.DTOs;
 using MicroLIMS.Domain.Entities;
@@ -23,9 +24,7 @@ public class SampleTrackingService
 
     public async Task<PagedResult<SampleTrackingRowDto>> GetTrackingAsync(SampleTrackingFilterDto filter)
     {
-        int page = filter.Page <= 0 ? 1 : filter.Page;
-        // Default 50, hard server-side max 200 - same cap as TestingWorkspaceService.
-        int pageSize = filter.PageSize <= 0 ? 50 : Math.Min(filter.PageSize, 200);
+        var (page, pageSize) = Paging.Normalize(filter.Page, filter.PageSize, defaultPageSize: 50);
 
         var sections = await _db.DocumentSections.AsNoTracking()
             .Select(s => new { s.Id, s.Code, s.Name })

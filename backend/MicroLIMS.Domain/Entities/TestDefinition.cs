@@ -31,6 +31,12 @@ public class TestDefinition : IVersionedEntity
 
     public WorkflowType WorkflowType { get; set; } = WorkflowType.Observation;
 
+    // Position of the test on the one-row-per-test Certificate of Analysis
+    // (Product, Raw Material, Packaging) inside its group, set by the Section
+    // Head. The group itself comes from the section and workflow type (see
+    // CoaTestOrdering); null sorts after numbered tests, by display name.
+    public int? CoaDisplayOrder { get; set; }
+
     // Qualitative tests only: one result per sample container instead of one per sample.
     public bool PerContainer { get; set; }
 

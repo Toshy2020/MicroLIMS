@@ -14,7 +14,7 @@ namespace MicroLIMS.Application.Services;
 
 public record EligibleTestDto(
     int TestOrderId, string SampleNumber, string? BatchNumber, string? ProductName, string TestCode,
-    DateTime ReceivedAt, string? StageName);
+    DateTime ReceivedAt, string? StageName, string? SubjectName = null);
 
 public record HplcReplicateResponseInput(int HplcMethodAnalyteId, decimal Response);
 // A peak of a related-substances chromatogram: a method impurity, or (no impurity) an unspecified peak.
@@ -44,7 +44,8 @@ public record HplcSampleEntryDto(
     // From the run's method snapshot (what the server validates against), not the live method.
     HplcResultMode ResultMode = HplcResultMode.Assay, string? InternalStandardName = null,
     List<HplcMethodImpurityResponse>? Impurities = null, HplcPrincipalAnalyteDto? PrincipalAnalyte = null,
-    decimal? ReferenceSolutionPercent = null, decimal? DisregardLimitPercent = null);
+    decimal? ReferenceSolutionPercent = null, decimal? DisregardLimitPercent = null,
+    string? SubjectName = null);
 
 public record HplcPrincipalAnalyteDto(int Id, string Name);
 
@@ -73,9 +74,22 @@ public partial class HplcRunService
         }
 
         var orders = await query.OrderBy(o => o.Sample!.ReceivedAt).ThenBy(o => o.Id).ToListAsync(ct);
-        return orders.Select(o => new EligibleTestDto(
-            o.Id, o.Sample!.ReferenceNumber, o.Sample.BatchNumber, o.Sample.Item?.Name, o.TestCode,
-            o.Sample.ReceivedAt, o.Sample.ProductionStageRef?.Name ?? o.Sample.ProductionStage)).ToList();
+        var orderIds = orders.Select(o => o.Id).ToList();
+        var locations = orderIds.Count == 0 ? new List<SampleLocation>() : await _db.SampleLocations.AsNoTracking()
+            .Include(l => l.Sample).ThenInclude(s => s!.Machine)
+            .Include(l => l.MachinePartConfiguration).ThenInclude(c => c!.MachinePart).ThenInclude(p => p!.Machine)
+            .Where(l => orderIds.Contains(l.TestOrderId))
+            .ToListAsync(ct);
+        var locationsByOrder = locations.GroupBy(l => l.TestOrderId).ToDictionary(g => g.Key, g => g.ToList());
+
+        return orders.Select(o =>
+        {
+            locationsByOrder.TryGetValue(o.Id, out var locs);
+            return new EligibleTestDto(
+                o.Id, o.Sample!.ReferenceNumber, o.Sample.BatchNumber, o.Sample.Item?.Name, o.TestCode,
+                o.Sample.ReceivedAt, o.Sample.ProductionStageRef?.Name ?? o.Sample.ProductionStage,
+                SubjectNameHelper.FormatSingleLocationSubject(locs));
+        }).ToList();
     }
 
     // Test orders that can be assigned to this run: the method's assay tests in
@@ -214,7 +228,8 @@ public partial class HplcRunService
             if (hasIs && input.InternalStandardResponse is null or <= 0)
                 throw new InvalidOperationException($"Replicate {i + 1}: the internal standard response is required.");
             // A related-substances sample is not weighed: its calculation uses no sample weight.
-            if (!context.IsRelatedSubstances)
+            // Cleaning-residue swabs are also not weighed.
+            if (!context.IsRelatedSubstances && !context.IsCleaningResidue)
             {
                 if (input.ActualWeightMg <= 0)
                     throw new InvalidOperationException($"Replicate {i + 1}: the sample weight must be greater than zero.");
@@ -240,7 +255,8 @@ public partial class HplcRunService
                             throw new InvalidOperationException($"Replicate {i + 1}: the response for {analyte.Name} must be greater than zero.");
                         break;
                     case HplcResultMode.ResidualSolvents:
-                        // A solvent that is not detected gives a zero response.
+                    case HplcResultMode.CleaningResidue:
+                        // A solvent or cleaning residue that is not detected gives a zero response.
                         if (matches[0].Response < 0)
                             throw new InvalidOperationException($"Replicate {i + 1}: the response for {analyte.Name} must be zero or more.");
                         break;
@@ -380,7 +396,7 @@ public partial class HplcRunService
             preview = rows.Select(row => new HplcPreviewResultDto(
                 row.AnalyteId, row.AnalyteName,
                 row.Basis == ResultBasis.Ppm ? "Residual solvent (ppm)" : row.Basis == ResultBasis.MgPerUnit ? "Amount per unit"
-                    : c.IsRelatedSubstances ? "Related substance (%)" : "Assay %", row.ReplicateNo,
+                    : c.IsCleaningResidue ? "Cleaning residue" : c.IsRelatedSubstances ? "Related substance (%)" : "Assay %", row.ReplicateNo,
                 row.Value, row.Display, row.Unit, row.Status,
                 !string.IsNullOrWhiteSpace(row.Spec.SpecLimit) ? row.Spec.SpecLimit : SpecificationService.BuildCanonicalSpecLimit(row.Spec))).ToList();
         }
@@ -399,6 +415,13 @@ public partial class HplcRunService
         var weights = c.Snapshot.Analytes.OrderBy(a => a.DisplayOrder)
             .Select(a => new HplcMethodWeightDto(a.Id, a.Name, a.TheoreticalWeightStdMg, a.TheoreticalWeightTestMg)).ToList();
 
+        var orderLocations = await _db.SampleLocations.AsNoTracking()
+            .Include(l => l.Sample).ThenInclude(s => s!.Machine)
+            .Include(l => l.MachinePartConfiguration).ThenInclude(c => c!.MachinePart).ThenInclude(p => p!.Machine)
+            .Where(l => l.TestOrderId == c.Order.Id)
+            .ToListAsync(ct);
+        var subjectName = SubjectNameHelper.FormatSingleLocationSubject(orderLocations);
+
         var editableReason = c.EditableProblem();
         return new HplcSampleEntryDto(
             c.RunSample.Id, c.Run.Id, c.Run.Code, c.Run.Sst?.Code ?? string.Empty, c.Run.Sst?.Status ?? HplcSstStatus.Pending,
@@ -411,7 +434,8 @@ public partial class HplcRunService
             string.IsNullOrWhiteSpace(c.Snapshot.InternalStandardName) ? null : c.Snapshot.InternalStandardName,
             c.Snapshot.Impurities.OrderBy(i => i.DisplayOrder).ToList(),
             c.Snapshot.Analytes.Count == 1 ? new HplcPrincipalAnalyteDto(c.Snapshot.Analytes[0].Id, c.Snapshot.Analytes[0].Name) : null,
-            c.Snapshot.ReferenceSolutionPercent, c.Snapshot.DisregardLimitPercent);
+            c.Snapshot.ReferenceSolutionPercent, c.Snapshot.DisregardLimitPercent,
+            subjectName);
     }
 
     // What HplcMethodAssayRecorder stored; Quantity and replicate number come
@@ -461,6 +485,13 @@ public partial class HplcRunService
         var quals = await _db.WorkingStandardQualifications.AsNoTracking()
             .Where(q => qualIds.Contains(q.Id)).ToDictionaryAsync(q => q.Id, ct);
 
+        var locations = orderIds.Count == 0 ? new List<SampleLocation>() : await _db.SampleLocations.AsNoTracking()
+            .Include(l => l.Sample).ThenInclude(s => s!.Machine)
+            .Include(l => l.MachinePartConfiguration).ThenInclude(c => c!.MachinePart).ThenInclude(p => p!.Machine)
+            .Where(l => orderIds.Contains(l.TestOrderId))
+            .ToListAsync(ct);
+        var locationsByOrder = locations.GroupBy(l => l.TestOrderId).ToDictionary(g => g.Key, g => g.ToList());
+
         return run.Samples.OrderBy(s => s.Id).Select(s =>
         {
             if (s.WorkingStandardQualificationId is int qId && quals.TryGetValue(qId, out var q))
@@ -470,10 +501,12 @@ public partial class HplcRunService
 
             TestOrder? o = null;
             if (s.TestOrderId is int id) orders.TryGetValue(id, out o);
+            locationsByOrder.TryGetValue(s.TestOrderId ?? 0, out var locs);
             return new HplcRunSampleSummaryDto(
                 s.Id, s.TestOrderId, s.Status, o?.Sample?.ReferenceNumber ?? string.Empty, o?.Sample?.BatchNumber,
                 o?.Sample?.Item?.Name, o?.TestCode ?? string.Empty, s.TestOrderId is int tid && submitted.Contains(tid),
-                o != null && dissolutionCodes.Contains(o.TestCode), s.WorkingStandardQualificationId);
+                o != null && dissolutionCodes.Contains(o.TestCode), s.WorkingStandardQualificationId,
+                SubjectNameHelper.FormatSingleLocationSubject(locs));
         }).ToList();
     }
 }

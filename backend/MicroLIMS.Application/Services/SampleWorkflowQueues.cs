@@ -47,8 +47,8 @@ public static class SampleWorkflowQueues
     /// <summary>
     /// A received location-based sample that has no test orders yet. It belongs
     /// to no section through its tests, so a section filter alone would hide it
-    /// from the very workspace that has to prepare it. The query form is the
-    /// second half of <see cref="VisibleInSections"/>.
+    /// from the workspace that has to prepare it (its receiving lab, or Microbiology
+    /// for legacy samples). The query form is the second half of <see cref="VisibleInSections"/>.
     /// </summary>
     public static bool IsAwaitingPreparationWithoutTests(Sample s) =>
         TestsCreatedAtPreparationCategories.Contains(s.Category)
@@ -70,13 +70,18 @@ public static class SampleWorkflowQueues
                 && (s.TestOrders.Any(t => !t.IsSuperseded
                         && sectionIds.Contains(t.SectionId)
                         && t.Section!.Code != MicroLIMS.Application.Workflows.PreparationRules.NoPreparationSectionCode)
-                    || (TestsCreatedAtPreparationCategories.Contains(s.Category) && !s.TestOrders.Any(t => !t.IsSuperseded)));
+                    || (TestsCreatedAtPreparationCategories.Contains(s.Category)
+                        && !s.TestOrders.Any(t => !t.IsSuperseded)
+                        && (s.LabSectionId != null ? sectionIds.Contains(s.LabSectionId.Value) : includesPreparingLab)));
         }
         return s => s.PreparationStatus == SamplePreparationStatus.NeedsPreparation
             && !ClosedSampleStatuses.Contains(s.Status)
-            && s.TestOrders.Any(t => !t.IsSuperseded
-                && sectionIds.Contains(t.SectionId)
-                && t.Section!.Code != MicroLIMS.Application.Workflows.PreparationRules.NoPreparationSectionCode);
+            && (s.TestOrders.Any(t => !t.IsSuperseded
+                    && sectionIds.Contains(t.SectionId)
+                    && t.Section!.Code != MicroLIMS.Application.Workflows.PreparationRules.NoPreparationSectionCode)
+                || (TestsCreatedAtPreparationCategories.Contains(s.Category)
+                    && !s.TestOrders.Any(t => !t.IsSuperseded)
+                    && (s.LabSectionId != null ? sectionIds.Contains(s.LabSectionId.Value) : includesPreparingLab)));
     }
 
     public static Expression<Func<Sample, bool>> HasTestInSections(IReadOnlyCollection<int> sectionIds) =>
@@ -90,11 +95,11 @@ public static class SampleWorkflowQueues
     /// </summary>
     public static Expression<Func<Sample, bool>> VisibleInSections(IReadOnlyCollection<int> sectionIds, bool includesPreparingLab)
     {
-        if (!includesPreparingLab) return HasTestInSections(sectionIds);
         return s => s.TestOrders.Any(t => !t.IsSuperseded && sectionIds.Contains(t.SectionId))
             || (TestsCreatedAtPreparationCategories.Contains(s.Category)
                 && s.PreparationStatus == SamplePreparationStatus.NeedsPreparation
-                && !s.TestOrders.Any(t => !t.IsSuperseded));
+                && !s.TestOrders.Any(t => !t.IsSuperseded)
+                && (s.LabSectionId != null ? sectionIds.Contains(s.LabSectionId.Value) : includesPreparingLab));
     }
 
     /// <summary>

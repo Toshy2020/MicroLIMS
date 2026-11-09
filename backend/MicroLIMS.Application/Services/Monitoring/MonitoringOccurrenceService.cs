@@ -12,7 +12,8 @@ namespace MicroLIMS.Application.Services.Monitoring;
 public record OccurrenceSummaryResponse(
     int Id, uint Version, MonitoringCategory Category, string Target, string? Group, string PeriodKey,
     DateOnly? TargetDate, DateOnly WindowStart, DateOnly WindowEnd, DateOnly OriginalWindowEnd,
-    OccurrenceStatus Status, bool Late, int ItemsTotal, int ItemsPerformed, bool Manual);
+    OccurrenceStatus Status, bool Late, int ItemsTotal, int ItemsPerformed, bool Manual,
+    int? LabSectionId = null, string? LabSectionCode = null);
 
 public record OccurrenceItemResponse(int ItemId, string Label, ItemProgress Progress, string? SampleReference);
 
@@ -22,7 +23,8 @@ public record OccurrenceEventResponse(
 
 public record OccurrenceDetailResponse(
     OccurrenceSummaryResponse Summary, string FrequencySnapshot, DateOnly? OriginalTargetDate,
-    List<OccurrenceItemResponse> Items, List<OccurrenceEventResponse> Events);
+    List<OccurrenceItemResponse> Items, List<OccurrenceEventResponse> Events,
+    int? LabSectionId = null, string? LabSectionCode = null);
 
 public record MonthSummaryResponse(int Month, int Total, int Performed, int InProgress, int Overdue, int Upcoming, int Skipped);
 
@@ -40,8 +42,9 @@ public enum ManualWindowKind
 }
 
 public record CreateManualOccurrenceRequest(
-    int MachineId, DateOnly TargetDate, List<int>? MachinePartConfigurationIds, string? Reason,
-    ManualWindowKind Kind = ManualWindowKind.Day);
+    int? MachineId = null, DateOnly TargetDate = default, List<int>? MachinePartConfigurationIds = null, string? Reason = null,
+    ManualWindowKind Kind = ManualWindowKind.Day,
+    int? WaterSamplingPointId = null, int? LabSectionId = null);
 
 // A skip is signed once, by a Section Head. A window change is signed by the
 // person making it and by a second person who holds the approve permission.
@@ -62,45 +65,69 @@ public class MonitoringOccurrenceService
     private readonly ILabClock _clock;
     private readonly OccurrenceStatusService _status;
     private readonly IElectronicSignatureService _signatures;
+    private readonly IUserSectionScopeService _scope;
 
     public MonitoringOccurrenceService(
-        IMicroLimsDbContext db, ILabClock clock, OccurrenceStatusService status, IElectronicSignatureService signatures)
+        IMicroLimsDbContext db, ILabClock clock, OccurrenceStatusService status, IElectronicSignatureService signatures,
+        IUserSectionScopeService scope)
     {
         _db = db;
         _clock = clock;
         _status = status;
         _signatures = signatures;
+        _scope = scope;
     }
 
     // ---- reading ----
 
     // Occurrences whose window touches the range, for the calendar grids.
     public async Task<List<OccurrenceSummaryResponse>> GetCalendarAsync(
-        DateOnly from, DateOnly to, MonitoringCategory? category, bool includeRetired)
+        int userId, DateOnly from, DateOnly to, MonitoringCategory? category, bool includeRetired, int? labSectionId = null)
     {
         if (to < from) throw new BusinessRuleException("The end of the range is before its start.");
         if (to.DayNumber - from.DayNumber > MaxCalendarDays) throw new BusinessRuleException($"Choose a range of at most {MaxCalendarDays} days.");
 
+        var readable = await _scope.GetReadableSectionIdsAsync(userId);
         var query = LiveQuery().Where(o => o.WindowEnd >= from && o.WindowStart <= to);
         if (category.HasValue) query = query.Where(o => o.Category == category.Value);
         if (!includeRetired) query = query.Where(o => o.RetiredByRevisionId == null);
 
-        var occurrences = await query.Include(o => o.Items).AsNoTracking()
+        if (readable is not null)
+        {
+            query = query.Where(o => o.Category != MonitoringCategory.Water || (o.LabSectionId != null && readable.Contains(o.LabSectionId.Value)));
+        }
+        if (labSectionId.HasValue)
+        {
+            query = query.Where(o => o.LabSectionId == labSectionId.Value);
+        }
+
+        var occurrences = await query.Include(o => o.Items).Include(o => o.LabSection).AsNoTracking()
             .OrderBy(o => o.WindowStart).ThenBy(o => o.Id).ToListAsync();
         return await SummariesAsync(occurrences);
     }
 
     // Month totals for the year view. An occurrence belongs to the month of
     // its target date, or of the end of its window when it has none.
-    public async Task<YearSummaryResponse> GetYearSummaryAsync(int year, MonitoringCategory? category)
+    public async Task<YearSummaryResponse> GetYearSummaryAsync(int userId, int year, MonitoringCategory? category, int? labSectionId = null)
     {
         if (year is < 2000 or > 2100) throw new BusinessRuleException("Choose a plan year between 2000 and 2100.");
         var first = new DateOnly(year, 1, 1);
         var last = new DateOnly(year, 12, 31);
 
+        var readable = await _scope.GetReadableSectionIdsAsync(userId);
         var query = LiveQuery().Where(o => o.RetiredByRevisionId == null && o.WindowEnd >= first && o.WindowStart <= last);
         if (category.HasValue) query = query.Where(o => o.Category == category.Value);
-        var occurrences = await query.Include(o => o.Items).AsNoTracking().ToListAsync();
+
+        if (readable is not null)
+        {
+            query = query.Where(o => o.Category != MonitoringCategory.Water || (o.LabSectionId != null && readable.Contains(o.LabSectionId.Value)));
+        }
+        if (labSectionId.HasValue)
+        {
+            query = query.Where(o => o.LabSectionId == labSectionId.Value);
+        }
+
+        var occurrences = await query.Include(o => o.Items).Include(o => o.LabSection).AsNoTracking().ToListAsync();
         var details = await _status.ComputeAsync(occurrences);
 
         var months = Enumerable.Range(1, 12).Select(m => new int[5]).ToArray();
@@ -129,18 +156,29 @@ public class MonitoringOccurrenceService
     }
 
     // What is still to do this lab month, plus anything overdue.
-    public async Task<DueResponse> GetDueAsync(MonitoringCategory? category)
+    public async Task<DueResponse> GetDueAsync(int userId, MonitoringCategory? category, int? labSectionId = null)
     {
         var today = _clock.LabToday;
         var monthEnd = new DateOnly(today.Year, today.Month, 1).AddMonths(1).AddDays(-1);
         var settings = await _db.MonitoringSettings.AsNoTracking().FirstOrDefaultAsync() ?? new MonitoringSettings();
 
+        var readable = await _scope.GetReadableSectionIdsAsync(userId);
         var query = LiveQuery().Where(o => o.RetiredByRevisionId == null
             && o.ExceptionState == OccurrenceExceptionState.None
             && o.WindowEnd >= new DateOnly(today.Year - 1, 1, 1)
             && o.WindowStart <= monthEnd);
         if (category.HasValue) query = query.Where(o => o.Category == category.Value);
-        var occurrences = await query.Include(o => o.Items).AsNoTracking().ToListAsync();
+
+        if (readable is not null)
+        {
+            query = query.Where(o => o.Category != MonitoringCategory.Water || (o.LabSectionId != null && readable.Contains(o.LabSectionId.Value)));
+        }
+        if (labSectionId.HasValue)
+        {
+            query = query.Where(o => o.LabSectionId == labSectionId.Value);
+        }
+
+        var occurrences = await query.Include(o => o.Items).Include(o => o.LabSection).AsNoTracking().ToListAsync();
 
         var details = await _status.ComputeAsync(occurrences);
         // A missed occurrence whose deviation has been closed has been dealt with; it is not work to do.
@@ -157,11 +195,18 @@ public class MonitoringOccurrenceService
             await SummariesAsync(open, details));
     }
 
-    public async Task<OccurrenceDetailResponse> GetDetailAsync(int id)
+    public async Task<OccurrenceDetailResponse> GetDetailAsync(int userId, int id)
     {
-        var occurrence = await _db.MonitoringOccurrences.AsNoTracking().Include(o => o.Items)
+        var occurrence = await _db.MonitoringOccurrences.AsNoTracking().Include(o => o.Items).Include(o => o.LabSection)
             .FirstOrDefaultAsync(o => o.Id == id)
             ?? throw new NotFoundException($"Monitoring occurrence {id} not found.");
+
+        if (occurrence.Category == MonitoringCategory.Water)
+        {
+            var readable = await _scope.GetReadableSectionIdsAsync(userId);
+            if (readable is not null && (!occurrence.LabSectionId.HasValue || !readable.Contains(occurrence.LabSectionId.Value)))
+                throw new NotFoundException($"Monitoring occurrence {id} not found.");
+        }
 
         var details = await _status.ComputeAsync(new[] { occurrence });
         var summary = (await SummariesAsync(new List<MonitoringOccurrence> { occurrence }, details)).Single();
@@ -187,7 +232,7 @@ public class MonitoringOccurrenceService
             e.PerformedAt, e.ElectronicSignatureId.HasValue,
             e.SecondElectronicSignatureId is int sid ? secondSigners.GetValueOrDefault(sid) : null)).ToList();
 
-        return new OccurrenceDetailResponse(summary, occurrence.FrequencySnapshot, occurrence.OriginalTargetDate, items, history);
+        return new OccurrenceDetailResponse(summary, occurrence.FrequencySnapshot, occurrence.OriginalTargetDate, items, history, occurrence.LabSectionId, occurrence.LabSection?.Code);
     }
 
     // ---- manual After Cleaning entries ----
@@ -198,109 +243,216 @@ public class MonitoringOccurrenceService
     public async Task<OccurrenceSummaryResponse> CreateManualAsync(CreateManualOccurrenceRequest request, int userId)
     {
         var settings = await _db.MonitoringSettings.AsNoTracking().FirstOrDefaultAsync() ?? new MonitoringSettings();
-        var machine = await _db.Machines.AsNoTracking().FirstOrDefaultAsync(m => m.Id == request.MachineId)
-            ?? throw new NotFoundException($"Machine {request.MachineId} not found.");
-        if (!machine.IsActive) throw new BusinessRuleException($"Machine '{machine.Name}' is inactive.");
 
-        // The occurrence is for the machine itself: whichever parts are cleaned and sampled at the
-        // session fulfil it. Naming parts is optional and only for entries that must cover exactly those.
-        var partIds = (request.MachinePartConfigurationIds ?? new List<int>()).Distinct().ToList();
-        var configs = new List<MachinePartConfiguration>();
-        if (partIds.Count > 0)
+        if (request.WaterSamplingPointId.HasValue)
         {
-            configs = await _db.MachinePartConfigurations.AsNoTracking().Include(c => c.MachinePart)
-                .Where(c => partIds.Contains(c.Id)).ToListAsync();
-            var missing = partIds.Except(configs.Select(c => c.Id)).ToList();
-            if (missing.Count > 0) throw new NotFoundException($"Machine part configuration(s) not found: {string.Join(", ", missing)}.");
-            var wrong = configs.Where(c => c.MachinePart?.MachineId != machine.Id).ToList();
-            if (wrong.Count > 0) throw new BusinessRuleException($"Part(s) {string.Join(", ", wrong.Select(c => c.MachinePart?.Name))} do not belong to machine '{machine.Name}'.");
-            var inactive = configs.Where(c => !c.IsActive || c.MachinePart?.IsActive == false).ToList();
-            if (inactive.Count > 0) throw new BusinessRuleException($"Part(s) {string.Join(", ", inactive.Select(c => c.MachinePart?.Name))} are inactive.");
+            if (request.LabSectionId is null)
+                throw new BusinessRuleException("Lab section is required for water occurrences.");
+
+            var point = await _db.WaterSamplingPoints.AsNoTracking().FirstOrDefaultAsync(p => p.Id == request.WaterSamplingPointId.Value)
+                ?? throw new NotFoundException($"Water sampling point {request.WaterSamplingPointId.Value} not found.");
+            if (!point.IsActive) throw new BusinessRuleException($"Water sampling point '{point.Code}' is inactive.");
+
+            var section = await _db.DocumentSections.AsNoTracking().FirstOrDefaultAsync(s => s.Id == request.LabSectionId.Value)
+                ?? throw new NotFoundException($"Section {request.LabSectionId.Value} not found.");
+
+            var testCodes = await _db.TestDefinitions.AsNoTracking()
+                .Where(t => point.AssignedTestCodes.Contains(t.Code) && t.SectionId == request.LabSectionId.Value)
+                .Select(t => t.Code)
+                .ToListAsync();
+            var items = testCodes.Select(c => new MonitoringOccurrenceItem { TestCode = c }).ToList();
+
+            var today = _clock.LabToday;
+            var date = request.TargetDate;
+            var nonWorking = await NonWorkingDatesAsync(date.AddDays(-45), date.AddDays(75));
+            DateOnly? targetDate;
+            DateOnly windowStart, windowEnd;
+            string period, snapshot, described;
+            switch (request.Kind)
+            {
+                case ManualWindowKind.Week:
+                    var labWeekStart = PlanWindowCalculator.WeekStart(date, settings.LabWeekStartDay);
+                    (windowStart, windowEnd) = PlanWindowCalculator.TrimToWorkingDays(
+                        labWeekStart, labWeekStart.AddDays(6), settings.WorkingWeekdays, nonWorking);
+                    targetDate = null;
+                    period = $"manual-W{labWeekStart:yyyyMMdd}";
+                    snapshot = "Manual entry, any day in the week";
+                    described = $"the week {windowStart:yyyy-MM-dd} to {windowEnd:yyyy-MM-dd}";
+                    break;
+                case ManualWindowKind.Month:
+                    (windowStart, windowEnd) = PlanWindowCalculator.TrimToWorkingDays(
+                        new DateOnly(date.Year, date.Month, 1),
+                        new DateOnly(date.Year, date.Month, DateTime.DaysInMonth(date.Year, date.Month)),
+                        settings.WorkingWeekdays, nonWorking);
+                    targetDate = null;
+                    period = $"manual-M{date:yyyyMM}";
+                    snapshot = "Manual entry, any day in the month";
+                    described = date.ToString("MMMM yyyy", System.Globalization.CultureInfo.InvariantCulture);
+                    break;
+                default:
+                    if (!PlanWindowCalculator.IsWorkingDay(date, settings.WorkingWeekdays, nonWorking))
+                        throw new BusinessRuleException($"{date:yyyy-MM-dd} is not a working day. Choose a working day.");
+                    windowStart = PlanWindowCalculator.AddWorkingDays(date, -settings.WaterEarlyToleranceDays, settings.WorkingWeekdays, nonWorking);
+                    windowEnd = PlanWindowCalculator.AddWorkingDays(date, settings.WaterLateToleranceDays, settings.WorkingWeekdays, nonWorking);
+                    targetDate = date;
+                    period = $"manual-{date:yyyyMMdd}";
+                    snapshot = "Manual entry";
+                    described = date.ToString("yyyy-MM-dd");
+                    break;
+            }
+            if ((targetDate ?? windowEnd) < today) throw new BusinessRuleException(
+                request.Kind == ManualWindowKind.Day ? "The target date cannot be in the past." : "The week or month has already ended.");
+
+            var planYear = (targetDate ?? windowEnd).Year;
+            var revision = await _db.MonitoringPlanRevisions
+                .FirstOrDefaultAsync(r => r.Year == planYear && r.Status == PlanRevisionStatus.Approved)
+                ?? throw new BusinessRuleException($"There is no approved monitoring plan for {planYear}. Approve the plan before adding entries.");
+
+            var sequence = (await _db.MonitoringOccurrences.Where(o => o.TargetType == MonitoringTargetType.WaterSamplingPoint
+                    && o.WaterSamplingPointId == point.Id && o.LabSectionId == request.LabSectionId && o.PeriodKey == period)
+                .Select(o => (int?)o.Sequence).MaxAsync() ?? 0) + 1;
+
+            var occurrence = new MonitoringOccurrence
+            {
+                CreatedByRevisionId = revision.Id,
+                Category = MonitoringCategory.Water,
+                TargetType = MonitoringTargetType.WaterSamplingPoint,
+                WaterSamplingPointId = point.Id,
+                LabSectionId = request.LabSectionId,
+                PeriodKey = period,
+                Sequence = sequence,
+                FrequencySnapshot = snapshot,
+                TargetDate = targetDate,
+                OriginalTargetDate = targetDate,
+                WindowStart = windowStart,
+                WindowEnd = windowEnd,
+                OriginalWindowEnd = windowEnd,
+                Items = items
+            };
+            _db.MonitoringOccurrenceEvents.Add(new MonitoringOccurrenceEvent
+            {
+                MonitoringOccurrence = occurrence,
+                EventType = OccurrenceEventType.Created,
+                NewValue = $"Manual entry for {described}",
+                Reason = string.IsNullOrWhiteSpace(request.Reason) ? null : request.Reason.Trim(),
+                PerformedByUserId = userId,
+                PerformedAt = _clock.UtcNow.UtcDateTime
+            });
+            _db.MonitoringOccurrences.Add(occurrence);
+            await _db.SaveChangesAsync();
+
+            var created = await _db.MonitoringOccurrences.AsNoTracking().Include(o => o.Items).Include(o => o.LabSection).FirstAsync(o => o.Id == occurrence.Id);
+            return (await SummariesAsync(new List<MonitoringOccurrence> { created })).Single();
         }
 
-        var today = _clock.LabToday;
-        var date = request.TargetDate;
-        var nonWorking = await NonWorkingDatesAsync(date.AddDays(-45), date.AddDays(75));
-        DateOnly? targetDate;
-        DateOnly windowStart, windowEnd;
-        string period, snapshot, described;
-        switch (request.Kind)
+        if (request.MachineId.HasValue)
         {
-            case ManualWindowKind.Week:
-                var labWeekStart = PlanWindowCalculator.WeekStart(date, settings.LabWeekStartDay);
-                (windowStart, windowEnd) = PlanWindowCalculator.TrimToWorkingDays(
-                    labWeekStart, labWeekStart.AddDays(6), settings.WorkingWeekdays, nonWorking);
-                targetDate = null;
-                period = $"manual-W{labWeekStart:yyyyMMdd}";
-                snapshot = "Manual entry, any day in the week";
-                described = $"the week {windowStart:yyyy-MM-dd} to {windowEnd:yyyy-MM-dd}";
-                break;
-            case ManualWindowKind.Month:
-                (windowStart, windowEnd) = PlanWindowCalculator.TrimToWorkingDays(
-                    new DateOnly(date.Year, date.Month, 1),
-                    new DateOnly(date.Year, date.Month, DateTime.DaysInMonth(date.Year, date.Month)),
-                    settings.WorkingWeekdays, nonWorking);
-                targetDate = null;
-                period = $"manual-M{date:yyyyMM}";
-                snapshot = "Manual entry, any day in the month";
-                described = date.ToString("MMMM yyyy", System.Globalization.CultureInfo.InvariantCulture);
-                break;
-            default:
-                if (!PlanWindowCalculator.IsWorkingDay(date, settings.WorkingWeekdays, nonWorking))
-                    throw new BusinessRuleException($"{date:yyyy-MM-dd} is not a working day. Choose a working day.");
-                windowStart = PlanWindowCalculator.AddWorkingDays(date, -settings.AcEarlyToleranceDays, settings.WorkingWeekdays, nonWorking);
-                windowEnd = PlanWindowCalculator.AddWorkingDays(date, settings.AcLateToleranceDays, settings.WorkingWeekdays, nonWorking);
-                targetDate = date;
-                period = $"manual-{date:yyyyMMdd}";
-                snapshot = "Manual entry";
-                described = date.ToString("yyyy-MM-dd");
-                break;
+            var machine = await _db.Machines.AsNoTracking().FirstOrDefaultAsync(m => m.Id == request.MachineId.Value)
+                ?? throw new NotFoundException($"Machine {request.MachineId.Value} not found.");
+            if (!machine.IsActive) throw new BusinessRuleException($"Machine '{machine.Name}' is inactive.");
+
+            // The occurrence is for the machine itself: whichever parts are cleaned and sampled at the
+            // session fulfil it. Naming parts is optional and only for entries that must cover exactly those.
+            var partIds = (request.MachinePartConfigurationIds ?? new List<int>()).Distinct().ToList();
+            var configs = new List<MachinePartConfiguration>();
+            if (partIds.Count > 0)
+            {
+                configs = await _db.MachinePartConfigurations.AsNoTracking().Include(c => c.MachinePart)
+                    .Where(c => partIds.Contains(c.Id)).ToListAsync();
+                var missing = partIds.Except(configs.Select(c => c.Id)).ToList();
+                if (missing.Count > 0) throw new NotFoundException($"Machine part configuration(s) not found: {string.Join(", ", missing)}.");
+                var wrong = configs.Where(c => c.MachinePart?.MachineId != machine.Id).ToList();
+                if (wrong.Count > 0) throw new BusinessRuleException($"Part(s) {string.Join(", ", wrong.Select(c => c.MachinePart?.Name))} do not belong to machine '{machine.Name}'.");
+                var inactive = configs.Where(c => !c.IsActive || c.MachinePart?.IsActive == false).ToList();
+                if (inactive.Count > 0) throw new BusinessRuleException($"Part(s) {string.Join(", ", inactive.Select(c => c.MachinePart?.Name))} are inactive.");
+            }
+
+            var today = _clock.LabToday;
+            var date = request.TargetDate;
+            var nonWorking = await NonWorkingDatesAsync(date.AddDays(-45), date.AddDays(75));
+            DateOnly? targetDate;
+            DateOnly windowStart, windowEnd;
+            string period, snapshot, described;
+            switch (request.Kind)
+            {
+                case ManualWindowKind.Week:
+                    var labWeekStart = PlanWindowCalculator.WeekStart(date, settings.LabWeekStartDay);
+                    (windowStart, windowEnd) = PlanWindowCalculator.TrimToWorkingDays(
+                        labWeekStart, labWeekStart.AddDays(6), settings.WorkingWeekdays, nonWorking);
+                    targetDate = null;
+                    period = $"manual-W{labWeekStart:yyyyMMdd}";
+                    snapshot = "Manual entry, any day in the week";
+                    described = $"the week {windowStart:yyyy-MM-dd} to {windowEnd:yyyy-MM-dd}";
+                    break;
+                case ManualWindowKind.Month:
+                    (windowStart, windowEnd) = PlanWindowCalculator.TrimToWorkingDays(
+                        new DateOnly(date.Year, date.Month, 1),
+                        new DateOnly(date.Year, date.Month, DateTime.DaysInMonth(date.Year, date.Month)),
+                        settings.WorkingWeekdays, nonWorking);
+                    targetDate = null;
+                    period = $"manual-M{date:yyyyMM}";
+                    snapshot = "Manual entry, any day in the month";
+                    described = date.ToString("MMMM yyyy", System.Globalization.CultureInfo.InvariantCulture);
+                    break;
+                default:
+                    if (!PlanWindowCalculator.IsWorkingDay(date, settings.WorkingWeekdays, nonWorking))
+                        throw new BusinessRuleException($"{date:yyyy-MM-dd} is not a working day. Choose a working day.");
+                    windowStart = PlanWindowCalculator.AddWorkingDays(date, -settings.AcEarlyToleranceDays, settings.WorkingWeekdays, nonWorking);
+                    windowEnd = PlanWindowCalculator.AddWorkingDays(date, settings.AcLateToleranceDays, settings.WorkingWeekdays, nonWorking);
+                    targetDate = date;
+                    period = $"manual-{date:yyyyMMdd}";
+                    snapshot = "Manual entry";
+                    described = date.ToString("yyyy-MM-dd");
+                    break;
+            }
+            if ((targetDate ?? windowEnd) < today) throw new BusinessRuleException(
+                request.Kind == ManualWindowKind.Day ? "The target date cannot be in the past." : "The week or month has already ended.");
+
+            var planYear = (targetDate ?? windowEnd).Year;
+            var revision = await _db.MonitoringPlanRevisions
+                .FirstOrDefaultAsync(r => r.Year == planYear && r.Status == PlanRevisionStatus.Approved)
+                ?? throw new BusinessRuleException($"There is no approved monitoring plan for {planYear}. Approve the plan before adding entries.");
+
+            var sequence = (await _db.MonitoringOccurrences.Where(o => o.TargetType == MonitoringTargetType.Machine
+                    && o.MachineId == machine.Id && o.PeriodKey == period)
+                .Select(o => (int?)o.Sequence).MaxAsync() ?? 0) + 1;
+
+            var occurrence = new MonitoringOccurrence
+            {
+                CreatedByRevisionId = revision.Id,
+                Category = MonitoringCategory.AfterCleaning,
+                TargetType = MonitoringTargetType.Machine,
+                MachineId = machine.Id,
+                PeriodKey = period,
+                Sequence = sequence,
+                FrequencySnapshot = snapshot,
+                TargetDate = targetDate,
+                OriginalTargetDate = targetDate,
+                WindowStart = windowStart,
+                WindowEnd = windowEnd,
+                OriginalWindowEnd = windowEnd,
+                // No parts named: one item for the machine itself.
+                Items = configs.Count == 0
+                    ? new List<MonitoringOccurrenceItem> { new() }
+                    : configs.Select(c => new MonitoringOccurrenceItem { MachinePartConfigurationId = c.Id }).ToList()
+            };
+            _db.MonitoringOccurrenceEvents.Add(new MonitoringOccurrenceEvent
+            {
+                MonitoringOccurrence = occurrence,
+                EventType = OccurrenceEventType.Created,
+                NewValue = $"Manual entry for {described}",
+                Reason = string.IsNullOrWhiteSpace(request.Reason) ? null : request.Reason.Trim(),
+                PerformedByUserId = userId,
+                PerformedAt = _clock.UtcNow.UtcDateTime
+            });
+            _db.MonitoringOccurrences.Add(occurrence);
+            await _db.SaveChangesAsync();
+
+            var created = await _db.MonitoringOccurrences.AsNoTracking().Include(o => o.Items).Include(o => o.LabSection).FirstAsync(o => o.Id == occurrence.Id);
+            return (await SummariesAsync(new List<MonitoringOccurrence> { created })).Single();
         }
-        if ((targetDate ?? windowEnd) < today) throw new BusinessRuleException(
-            request.Kind == ManualWindowKind.Day ? "The target date cannot be in the past." : "The week or month has already ended.");
 
-        var planYear = (targetDate ?? windowEnd).Year;
-        var revision = await _db.MonitoringPlanRevisions
-            .FirstOrDefaultAsync(r => r.Year == planYear && r.Status == PlanRevisionStatus.Approved)
-            ?? throw new BusinessRuleException($"There is no approved monitoring plan for {planYear}. Approve the plan before adding entries.");
-
-        var sequence = (await _db.MonitoringOccurrences.Where(o => o.TargetType == MonitoringTargetType.Machine
-                && o.MachineId == machine.Id && o.PeriodKey == period)
-            .Select(o => (int?)o.Sequence).MaxAsync() ?? 0) + 1;
-
-        var occurrence = new MonitoringOccurrence
-        {
-            CreatedByRevisionId = revision.Id,
-            Category = MonitoringCategory.AfterCleaning,
-            TargetType = MonitoringTargetType.Machine,
-            MachineId = machine.Id,
-            PeriodKey = period,
-            Sequence = sequence,
-            FrequencySnapshot = snapshot,
-            TargetDate = targetDate,
-            OriginalTargetDate = targetDate,
-            WindowStart = windowStart,
-            WindowEnd = windowEnd,
-            OriginalWindowEnd = windowEnd,
-            // No parts named: one item for the machine itself.
-            Items = configs.Count == 0
-                ? new List<MonitoringOccurrenceItem> { new() }
-                : configs.Select(c => new MonitoringOccurrenceItem { MachinePartConfigurationId = c.Id }).ToList()
-        };
-        _db.MonitoringOccurrenceEvents.Add(new MonitoringOccurrenceEvent
-        {
-            MonitoringOccurrence = occurrence,
-            EventType = OccurrenceEventType.Created,
-            NewValue = $"Manual entry for {described}",
-            Reason = string.IsNullOrWhiteSpace(request.Reason) ? null : request.Reason.Trim(),
-            PerformedByUserId = userId,
-            PerformedAt = _clock.UtcNow.UtcDateTime
-        });
-        _db.MonitoringOccurrences.Add(occurrence);
-        await _db.SaveChangesAsync();
-
-        var created = await _db.MonitoringOccurrences.AsNoTracking().Include(o => o.Items).FirstAsync(o => o.Id == occurrence.Id);
-        return (await SummariesAsync(new List<MonitoringOccurrence> { created })).Single();
+        throw new BusinessRuleException("Either MachineId or WaterSamplingPointId must be provided.");
     }
 
     // ---- skip and window change ----
@@ -443,7 +595,7 @@ public class MonitoringOccurrenceService
 
     private async Task<OccurrenceSummaryResponse> SummaryOfAsync(int id)
     {
-        var occurrence = await _db.MonitoringOccurrences.AsNoTracking().Include(o => o.Items).FirstAsync(o => o.Id == id);
+        var occurrence = await _db.MonitoringOccurrences.AsNoTracking().Include(o => o.Items).Include(o => o.LabSection).FirstAsync(o => o.Id == id);
         return (await SummariesAsync(new List<MonitoringOccurrence> { occurrence })).Single();
     }
 
@@ -455,14 +607,21 @@ public class MonitoringOccurrenceService
         var targets = await OccurrenceNameResolver.TargetNamesAsync(_db, occurrences);
         var groups = await OccurrenceNameResolver.GroupNamesAsync(_db, occurrences);
 
+        var sectionIds = occurrences.Where(o => o.LabSectionId.HasValue).Select(o => o.LabSectionId!.Value).Distinct().ToList();
+        var sectionCodes = sectionIds.Count == 0
+            ? new Dictionary<int, string>()
+            : await _db.DocumentSections.AsNoTracking().Where(s => sectionIds.Contains(s.Id)).ToDictionaryAsync(s => s.Id, s => s.Code);
+
         return occurrences.Select(o =>
         {
             var key = OccurrenceNameResolver.TargetKey(o);
             var r = details[o.Id].Result;
+            var secCode = o.LabSection?.Code ?? (o.LabSectionId.HasValue ? sectionCodes.GetValueOrDefault(o.LabSectionId.Value) : null);
             return new OccurrenceSummaryResponse(
                 o.Id, o.Version, o.Category, targets.GetValueOrDefault(key, "?"), groups.GetValueOrDefault(key),
                 o.PeriodKey, o.TargetDate, o.WindowStart, o.WindowEnd, o.OriginalWindowEnd,
-                r.Status, r.Late, r.ItemsTotal, r.ItemsPerformed, o.PeriodKey.StartsWith("manual-", StringComparison.Ordinal));
+                r.Status, r.Late, r.ItemsTotal, r.ItemsPerformed, o.PeriodKey.StartsWith("manual-", StringComparison.Ordinal),
+                o.LabSectionId, secCode);
         }).ToList();
     }
 }

@@ -1,8 +1,10 @@
 import { describe, expect, it, vi, afterEach, beforeEach } from "vitest";
-import { render, screen, fireEvent, waitFor, cleanup, within } from "@testing-library/react";
+import { render, screen, waitFor, cleanup, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { TestMasterPage } from "./TestMasterPage";
 import { PinnedLightTheme } from "../../../theme/PinnedLightTheme";
 import * as laboratorySectionService from "../../../services/laboratorySectionService";
+import { masterDataOptions } from "../../../services/masterDataOptions";
 import type { TestDefinitionOption } from "../../../hooks/useTestDefinitions";
 
 const mockTestDefinitions: TestDefinitionOption[] = [
@@ -46,18 +48,22 @@ const mockTestDefinitions: TestDefinitionOption[] = [
   }
 ];
 
-const mockAddNew = vi.fn();
-const mockUpdate = vi.fn();
-
-vi.mock("../../../hooks/useTestDefinitions", () => ({
-  useTestDefinitions: () => ({
-    options: mockTestDefinitions,
-    addNew: mockAddNew,
-    update: mockUpdate,
-    setActive: vi.fn(),
-    reload: vi.fn()
-  })
-}));
+// Only the HTTP service layer is mocked; the real useTestDefinitions hook,
+// page and dialog run (CLAUDE.md Rule 4.5).
+vi.mock("../../../services/masterDataOptions", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../../../services/masterDataOptions")>();
+  return {
+    ...actual,
+    masterDataOptions: {
+      ...actual.masterDataOptions,
+      getTestDefinitions: vi.fn(),
+      createTestDefinition: vi.fn(),
+      updateTestDefinition: vi.fn(),
+      getTestWorkflowSteps: vi.fn().mockResolvedValue([]),
+      getOrganisms: vi.fn().mockResolvedValue([])
+    }
+  };
+});
 
 vi.mock("../../../services/laboratorySectionService", () => ({
   getSections: vi.fn(),
@@ -87,9 +93,11 @@ describe("TestMasterPage flag visibility and interaction", () => {
     vi.mocked(laboratorySectionService.getMySections).mockResolvedValue([
       { sectionId: 1, sectionCode: "FP", sectionName: "Finished Product" }
     ] as never);
+    vi.mocked(masterDataOptions.getTestDefinitions).mockResolvedValue(mockTestDefinitions);
   });
 
   it("shows 'Recorded per container' only for Qualitative and 'Moisture role' only for GravimetricLoss / KF Titration", async () => {
+    const user = userEvent.setup();
     render(
       <PinnedLightTheme>
         <TestMasterPage lab="fp" area="fp" />
@@ -102,16 +110,16 @@ describe("TestMasterPage flag visibility and interaction", () => {
     });
 
     // Open Add Test dialog
-    fireEvent.click(screen.getByRole("button", { name: /Add Test/i }));
+    await user.click(screen.getByRole("button", { name: /Add Test/i }));
 
     const dialog = screen.getByRole("dialog");
     expect(dialog).toBeTruthy();
 
     // 1. Switch to Qualitative workflow
     const wfSelect = within(dialog).getByLabelText("Workflow Type");
-    fireEvent.mouseDown(wfSelect);
+    await user.click(wfSelect);
     const qualOption = await screen.findByRole("option", { name: /Qualitative/i });
-    fireEvent.click(qualOption);
+    await user.click(qualOption);
 
     // "Recorded per container" switch must be visible
     expect(within(dialog).getByLabelText(/Recorded per container/i)).toBeTruthy();
@@ -119,9 +127,9 @@ describe("TestMasterPage flag visibility and interaction", () => {
     expect(within(dialog).queryByLabelText(/^Moisture role/i)).toBeNull();
 
     // 2. Switch to Gravimetric workflow (defaults equationType to GravimetricLoss)
-    fireEvent.mouseDown(within(dialog).getByLabelText("Workflow Type"));
+    await user.click(within(dialog).getByLabelText("Workflow Type"));
     const gravOption = await screen.findByRole("option", { name: /Gravimetric/i });
-    fireEvent.click(gravOption);
+    await user.click(gravOption);
 
     // "Recorded per container" switch must be gone
     expect(within(dialog).queryByLabelText(/Recorded per container/i)).toBeNull();
@@ -130,31 +138,32 @@ describe("TestMasterPage flag visibility and interaction", () => {
 
     // 3. Change Equation Type to GravimetricResidue -> Moisture role must NOT be visible
     const eqSelect = within(dialog).getByLabelText("Equation Type");
-    fireEvent.mouseDown(eqSelect);
+    await user.click(eqSelect);
     const residueOption = await screen.findByRole("option", { name: /Ash \/ Gravimetric residue/i });
-    fireEvent.click(residueOption);
+    await user.click(residueOption);
 
     expect(within(dialog).queryByLabelText(/^Moisture role/i)).toBeNull();
 
     // 4. Switch to Titration workflow
-    fireEvent.mouseDown(within(dialog).getByLabelText("Workflow Type"));
+    await user.click(within(dialog).getByLabelText("Workflow Type"));
     const titOption = await screen.findByRole("option", { name: /Titration/i });
-    fireEvent.click(titOption);
+    await user.click(titOption);
 
     // Titration type defaults to AcidBase -> Moisture role must NOT be visible
     expect(within(dialog).queryByLabelText(/^Moisture role/i)).toBeNull();
 
     // Change Titration type to KarlFischer
     const titTypeSelect = within(dialog).getByLabelText(/Titration type/i);
-    fireEvent.mouseDown(titTypeSelect);
+    await user.click(titTypeSelect);
     const kfOption = await screen.findByRole("option", { name: /Karl Fischer/i });
-    fireEvent.click(kfOption);
+    await user.click(kfOption);
 
     // Moisture role select must now be visible in KF titration section
     expect(within(dialog).getByLabelText(/^Moisture role/i)).toBeTruthy();
   });
 
   it("changing moistureRole on an existing titration test displays the reason for change field", async () => {
+    const user = userEvent.setup();
     render(
       <PinnedLightTheme>
         <TestMasterPage lab="fp" area="fp" />
@@ -168,10 +177,10 @@ describe("TestMasterPage flag visibility and interaction", () => {
 
     // Open row actions menu for TIT-KF (id: 3, 3rd row)
     const actionButtons = screen.getAllByRole("button", { name: /Row actions/i });
-    fireEvent.click(actionButtons[2]);
+    await user.click(actionButtons[2]);
 
     const editMenuItem = await screen.findByRole("menuitem", { name: "Edit" });
-    fireEvent.click(editMenuItem);
+    await user.click(editMenuItem);
 
     const dialog = screen.getByRole("dialog");
     expect(dialog).toBeTruthy();
@@ -181,15 +190,16 @@ describe("TestMasterPage flag visibility and interaction", () => {
 
     // Change moisture role from None to Water
     const moistureSelect = within(dialog).getByLabelText(/^Moisture role/i);
-    fireEvent.mouseDown(moistureSelect);
+    await user.click(moistureSelect);
     const waterOption = await screen.findByRole("option", { name: "Water" });
-    fireEvent.click(waterOption);
+    await user.click(waterOption);
 
     // Reason for Change field must now appear because moistureRole changed on existing titration test
     expect(within(dialog).getByLabelText(/Reason for Change/i)).toBeTruthy();
   });
 
   it("resets perContainer when leaving Qualitative and resets moistureRole when changing to residue", async () => {
+    const user = userEvent.setup();
     render(
       <PinnedLightTheme>
         <TestMasterPage lab="fp" area="fp" />
@@ -200,44 +210,44 @@ describe("TestMasterPage flag visibility and interaction", () => {
       expect(screen.getByRole("button", { name: /Add Test/i })).toBeTruthy();
     });
 
-    fireEvent.click(screen.getByRole("button", { name: /Add Test/i }));
+    await user.click(screen.getByRole("button", { name: /Add Test/i }));
     const dialog = screen.getByRole("dialog");
 
     // 1. Switch to Qualitative and turn on perContainer
     const wfSelect = within(dialog).getByLabelText("Workflow Type");
-    fireEvent.mouseDown(wfSelect);
-    fireEvent.click(await screen.findByRole("option", { name: /Qualitative/i }));
+    await user.click(wfSelect);
+    await user.click(await screen.findByRole("option", { name: /Qualitative/i }));
 
     const perContainerSwitch = within(dialog).getByRole("switch", { name: /Recorded per container/i });
     expect((perContainerSwitch as HTMLInputElement).checked).toBe(false);
-    fireEvent.click(perContainerSwitch);
+    await user.click(perContainerSwitch);
     expect((perContainerSwitch as HTMLInputElement).checked).toBe(true);
 
     // 2. Switch away from Qualitative to Gravimetric -> switches back to Qualitative must show perContainer was reset to false
-    fireEvent.mouseDown(within(dialog).getByLabelText("Workflow Type"));
-    fireEvent.click(await screen.findByRole("option", { name: /Gravimetric/i }));
+    await user.click(within(dialog).getByLabelText("Workflow Type"));
+    await user.click(await screen.findByRole("option", { name: /Gravimetric/i }));
 
     // In Gravimetric, set moistureRole to Loss on drying
     const moistureSelect = within(dialog).getByLabelText(/^Moisture role/i);
-    fireEvent.mouseDown(moistureSelect);
-    fireEvent.click(await screen.findByRole("option", { name: /Loss on drying/i }));
+    await user.click(moistureSelect);
+    await user.click(await screen.findByRole("option", { name: /Loss on drying/i }));
 
     // Change equation to Residue -> moistureRole resets to None
     const eqSelect = within(dialog).getByLabelText("Equation Type");
-    fireEvent.mouseDown(eqSelect);
-    fireEvent.click(await screen.findByRole("option", { name: /Ash \/ Gravimetric residue/i }));
+    await user.click(eqSelect);
+    await user.click(await screen.findByRole("option", { name: /Ash \/ Gravimetric residue/i }));
 
     // Change back to Loss on drying equation
-    fireEvent.mouseDown(within(dialog).getByLabelText("Equation Type"));
-    fireEvent.click(await screen.findByRole("option", { name: /Loss on drying \/ Gravimetric loss/i }));
+    await user.click(within(dialog).getByLabelText("Equation Type"));
+    await user.click(await screen.findByRole("option", { name: /Loss on drying \/ Gravimetric loss/i }));
 
     // Moisture role select reappears and its value was reset to None
     const recheckedMoisture = within(dialog).getByLabelText(/^Moisture role/i);
     expect(recheckedMoisture.textContent).toContain("None");
 
     // Switch back to Qualitative -> perContainer should be false
-    fireEvent.mouseDown(within(dialog).getByLabelText("Workflow Type"));
-    fireEvent.click(await screen.findByRole("option", { name: /Qualitative/i }));
+    await user.click(within(dialog).getByLabelText("Workflow Type"));
+    await user.click(await screen.findByRole("option", { name: /Qualitative/i }));
     const recheckedSwitch = within(dialog).getByRole("switch", { name: /Recorded per container/i });
     expect((recheckedSwitch as HTMLInputElement).checked).toBe(false);
   });

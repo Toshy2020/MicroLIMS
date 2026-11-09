@@ -106,8 +106,7 @@ public sealed class BackgroundJobAdminService : IBackgroundJobAdminService
         string jobName, int page, int pageSize, CancellationToken cancellationToken = default)
     {
         var job = BackgroundJobCatalog.Find(jobName) ?? throw new NotFoundException("Background job not found.");
-        page = Math.Max(1, page);
-        pageSize = Math.Clamp(pageSize, 1, 100);
+        (page, pageSize) = Paging.Normalize(page, pageSize, defaultPageSize: 25);
 
         var query = _db.BackgroundJobRuns.AsNoTracking().Where(r => r.JobName == job.Name);
         var total = await query.CountAsync(cancellationToken);

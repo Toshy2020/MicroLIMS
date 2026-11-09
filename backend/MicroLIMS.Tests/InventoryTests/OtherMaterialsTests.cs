@@ -421,7 +421,7 @@ public class OtherMaterialsTests
         Assert.Equal(ApprovalGateStatus.Approved, released!.ApprovalStatus);
         Assert.Equal(w.ReleaserId, released.ApprovedByUserId);
         Assert.NotNull(released.ApprovedAt);
-        Assert.True(released.IsUsable);
+        Assert.True(released.IsUsableAt(DateTime.UtcNow));
         var signature = await w.Db.ElectronicSignatures.SingleAsync();
         Assert.Equal(SignatureMeaning.Approved, signature.MeaningOfSignature);
         Assert.Equal(ReviewEntityTypes.Material, signature.EntityType);
@@ -446,7 +446,7 @@ public class OtherMaterialsTests
 
         var rejected = await w.Db.Materials.FindAsync(lot.Id);
         Assert.Equal(ApprovalGateStatus.Rejected, rejected!.ApprovalStatus);
-        Assert.False(rejected.IsUsable);
+        Assert.False(rejected.IsUsableAt(DateTime.UtcNow));
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => lots.ConsumeAsync(lot.Id, MaterialType.Other, 1m, w.ReceiverId));
         Assert.Contains("was rejected", ex.Message);
     }

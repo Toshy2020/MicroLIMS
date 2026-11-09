@@ -22,4 +22,5 @@ public class WaterSamplingPoint : IVersionedEntity, IHasFrequency
 
     public int? WaterDepartmentId { get; set; }
     public WaterDepartment? WaterDepartment { get; set; }
+    public List<WaterPointLabFrequency> LabFrequencies { get; set; } = new();
 }

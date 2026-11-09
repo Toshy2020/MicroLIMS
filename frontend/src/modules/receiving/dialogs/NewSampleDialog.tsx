@@ -38,6 +38,10 @@ const sampledAtIso = (row: ReceiveRowItem) => (row.sampledAt ? new Date(row.samp
 const createEmptyRow = (defaultValues?: Partial<ReceiveRowItem>): ReceiveRowItem => ({
   id: Math.random().toString(36).substring(2, 9),
   itemId: defaultValues?.itemId ?? "",
+  previousProductItemId: defaultValues?.previousProductItemId ?? null,
+  previousProductName: defaultValues?.previousProductName ?? "",
+  previousProductBatchNumber: defaultValues?.previousProductBatchNumber ?? "",
+  techniques: defaultValues?.techniques ?? [],
   productionStage: defaultValues?.productionStage ?? "",
   waterSamplingPointId: defaultValues?.waterSamplingPointId ?? "",
   departmentId: defaultValues?.departmentId ?? "",
@@ -116,12 +120,16 @@ export function NewSampleDialog({ open, onClose, onSuccess, allowedCategories, l
     }
   }, [open]);
 
-  // Load items when item-based category is selected
+  // Load items when item-based category is selected or AC is selected
   useEffect(() => {
     if (category) {
       const catDef = RECEIVING_CATEGORIES.find((c) => c.key === category);
       if (catDef?.apiCategory) {
         masterDataOptions.getItems(catDef.apiCategory).then((items) =>
+          setMasterData((prev) => ({ ...prev, items }))
+        );
+      } else if (category === "ac") {
+        masterDataOptions.getItems("FinishedProduct").then((items) =>
           setMasterData((prev) => ({ ...prev, items }))
         );
       }
@@ -160,7 +168,8 @@ export function NewSampleDialog({ open, onClose, onSuccess, allowedCategories, l
       const lastRow = prev[prev.length - 1];
       const newRow = createEmptyRow({
         sampledBy: lastRow?.sampledBy || "",
-        causeOfTestingId: lastRow?.causeOfTestingId || ""
+        causeOfTestingId: lastRow?.causeOfTestingId || "",
+        techniques: lastRow?.techniques ? [...lastRow.techniques] : []
       });
       return [...prev, newRow];
     });
@@ -207,9 +216,21 @@ export function NewSampleDialog({ open, onClose, onSuccess, allowedCategories, l
           isValid = false;
         }
       } else if (category === "ac") {
-        if (!row.previousProductName || row.previousProductName.trim() === "") {
-          errors.previousProductName = "Previous Product is required";
-          isValid = false;
+        const isPhyschem = labMode.kind === "fixed" && labMode.code !== "MICRO";
+        if (isPhyschem) {
+          if (!row.previousProductItemId) {
+            errors.previousProductItemId = "Previous Product is required";
+            isValid = false;
+          }
+          if (!row.techniques || row.techniques.length === 0) {
+            errors.techniques = "At least one technique is required";
+            isValid = false;
+          }
+        } else {
+          if ((!row.previousProductName || row.previousProductName.trim() === "") && !row.previousProductItemId) {
+            errors.previousProductName = "Previous Product is required";
+            isValid = false;
+          }
         }
         if (!row.previousProductBatchNumber || row.previousProductBatchNumber.trim() === "") {
           errors.previousProductBatchNumber = "Previous Product Batch No. is required";
@@ -299,7 +320,8 @@ export function NewSampleDialog({ open, onClose, onSuccess, allowedCategories, l
             sampleQuantity: row.sampleQuantity || "",
             sampledBy: row.sampledBy || "",
             controlNumber: row.controlNumber || "",
-            sampledAt: sampledAtIso(row)
+            sampledAt: sampledAtIso(row),
+            labSectionId: labMode.kind === "fixed" ? labMode.sectionId : undefined
           });
         } else if (category === "em") {
           await ReceiveService.receiveEM({
@@ -310,14 +332,18 @@ export function NewSampleDialog({ open, onClose, onSuccess, allowedCategories, l
             sampledAt: sampledAtIso(row)
           });
         } else if (category === "ac") {
+          const isPhyschem = labMode.kind === "fixed" && labMode.code !== "MICRO";
           await ReceiveService.receiveAfterCleaning({
             machineId: Number(row.machineId),
             causeOfTestingId: Number(row.causeOfTestingId),
             sampledBy: row.sampledBy || "",
             controlNumber: row.controlNumber || "",
-            previousProductName: String(row.previousProductName || "").trim(),
+            previousProductName: row.previousProductName ? String(row.previousProductName).trim() : null,
             previousProductBatchNumber: String(row.previousProductBatchNumber || "").trim(),
-            sampledAt: sampledAtIso(row)
+            sampledAt: sampledAtIso(row),
+            labSectionId: labMode.kind === "fixed" ? labMode.sectionId : undefined,
+            previousProductItemId: row.previousProductItemId ? Number(row.previousProductItemId) : null,
+            techniques: isPhyschem && row.techniques ? row.techniques : null
           });
         }
       }

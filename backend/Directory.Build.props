@@ -1,0 +1,9 @@
+<Project>
+  <!-- Build settings shared by every backend project (CLAUDE.md Rule 5.1).
+       A project only states what is specific to it. -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+</Project>

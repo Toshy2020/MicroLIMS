@@ -38,6 +38,10 @@ public static class SampleSummarySectionsBuilder
                 ClosedAt = canView ? signoff?.ClosedAt : null,
                 CloseReason = canView ? signoff?.CloseReason : null
             };
-        }).ToList();
+        })
+        // Physicochemical before Microbiology (then any other section), as on
+        // the Certificate of Analysis; ties keep section id order.
+        .OrderBy(s => CoaTestOrdering.LaboratoryRank(s.SectionCode))
+        .ToList();
     }
 }

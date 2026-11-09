@@ -27,12 +27,16 @@ public class MonitoringLinkService
     private readonly IMicroLimsDbContext _db;
     private readonly ILabClock _clock;
     private readonly OccurrenceStatusService _status;
+    private readonly IUserSectionScopeService _scope;
 
-    public MonitoringLinkService(IMicroLimsDbContext db, ILabClock clock, OccurrenceStatusService status)
+    public MonitoringLinkService(
+        IMicroLimsDbContext db, ILabClock clock, OccurrenceStatusService status,
+        IUserSectionScopeService scope)
     {
         _db = db;
         _clock = clock;
         _status = status;
+        _scope = scope;
     }
 
     public static MonitoringCategory? CategoryOf(SampleCategory category) => category switch
@@ -114,7 +118,7 @@ public class MonitoringLinkService
                 return all.Where(o => o.RoomId != null && rooms.Contains(o.RoomId.Value));
             case MonitoringCategory.Water:
                 var points = _db.WaterSamplingPoints.Where(p => p.WaterDepartmentId == sample.WaterDepartmentId).Select(p => p.Id);
-                return all.Where(o => o.WaterSamplingPointId != null && points.Contains(o.WaterSamplingPointId.Value));
+                return all.Where(o => o.WaterSamplingPointId != null && points.Contains(o.WaterSamplingPointId.Value) && o.LabSectionId == sample.LabSectionId);
             default:
                 return all.Where(o => o.MachineId == sample.MachineId);
         }

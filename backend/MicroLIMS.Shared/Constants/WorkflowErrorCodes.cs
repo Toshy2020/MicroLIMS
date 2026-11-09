@@ -27,6 +27,11 @@ public static class WorkflowErrorCodes
     // apart from "incubating, go and read it".
     public const string ConfirmatorySetupAlreadySubmitted = "CONFIRMATORY_SETUP_ALREADY_SUBMITTED";
 
+    // The pathogen test has no ConfirmatoryPlating step in Test Master, so
+    // the number of confirmatory media is unknown. Blocks instead of
+    // guessing the count from the test code or organism name.
+    public const string ConfirmatoryStepNotConfigured = "CONFIRMATORY_STEP_NOT_CONFIGURED";
+
     public const string MediaNotInPermittedList = "MEDIA_NOT_IN_PERMITTED_LIST";
     public const string NoMediaSelected = "NO_MEDIA_SELECTED";
     public const string IncompleteConfirmatorySetup = "INCOMPLETE_CONFIRMATORY_SETUP";

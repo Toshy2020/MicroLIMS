@@ -30,6 +30,7 @@ export interface HplcMethodDialogProps {
   solutions: SolutionMaster[];
   materialMasters: MaterialMasterEntry[];
   mySections: LaboratorySection[];
+  finishedProducts?: Array<{ id: number; name: string }>;
   onClose: () => void;
   onSuccess: () => void;
 }
@@ -40,6 +41,7 @@ export function HplcMethodDialog({
   solutions,
   materialMasters,
   mySections,
+  finishedProducts: propFinishedProducts,
   onClose,
   onSuccess
 }: HplcMethodDialogProps) {
@@ -67,6 +69,7 @@ export function HplcMethodDialog({
     availableDiluents,
     availableMobilePhases,
     availableReferenceStandards,
+    finishedProducts,
     handleInitiateSave,
     handleConfirmEditWithReason
   } = useHplcMethodDialogState({
@@ -75,6 +78,7 @@ export function HplcMethodDialog({
     solutions,
     materialMasters,
     mySections,
+    finishedProducts: propFinishedProducts,
     onClose,
     onSuccess
   });
@@ -169,6 +173,10 @@ export function HplcMethodDialog({
                 onSectionIdChange={(val) => updateField("sectionId", val)}
                 internalStandardName={form.internalStandardName}
                 onInternalStandardNameChange={(val) => updateField("internalStandardName", val)}
+                productItemId={form.productItemId}
+                productItemName={form.productItemName}
+                onProductItemIdChange={(val) => updateField("productItemId", val)}
+                finishedProductItems={finishedProducts}
               />
 
               {isGc ? (
@@ -304,14 +312,15 @@ export function HplcMethodDialog({
                     }}
                     onAddAnalyte={() => {
                       const isResidual = form.resultMode === "ResidualSolvents";
+                      const isCleaning = form.resultMode === "CleaningResidue";
                       updateField("analytes", [
                         ...form.analytes,
                         {
                           name: "",
                           wavelengthNm: "",
                           standardEntryId: "",
-                          theoreticalWeightStdMg: isResidual ? "0" : "50",
-                          theoreticalWeightTestMg: isResidual ? "0" : "50",
+                          theoreticalWeightStdMg: isResidual || isCleaning ? "0" : "50",
+                          theoreticalWeightTestMg: isResidual || isCleaning ? "0" : "50",
                           standardDilution: "",
                           standardInjections: "5",
                           sstMaxRsdPercent: "2.0",
@@ -321,7 +330,9 @@ export function HplcMethodDialog({
                           sstMinRetentionFactor: "",
                           sstMinSignalToNoise: "",
                           sstMinPeakToValley: "",
-                          standardConcentrationUgPerMl: isResidual ? "100" : ""
+                          standardConcentrationUgPerMl: isResidual ? "100" : isCleaning ? "10" : "",
+                          macoLimit: isCleaning ? "50" : "",
+                          macoUnit: isCleaning ? "UgPerSwab" : ""
                         }
                       ]);
                     }}
@@ -376,6 +387,10 @@ export function HplcMethodDialog({
                   <HplcAnalytesSection
                     technique="Hplc"
                     resultMode={form.resultMode}
+                    sampleSolutionVolumeMl={form.sampleSolutionVolumeMl}
+                    onSampleSolutionVolumeMlChange={(val) => updateField("sampleSolutionVolumeMl", val)}
+                    swabAreaCm2={form.swabAreaCm2}
+                    onSwabAreaCm2Change={(val) => updateField("swabAreaCm2", val)}
                     analytes={form.analytes}
                     availableStandards={availableReferenceStandards}
                     errors={errors}
@@ -385,14 +400,16 @@ export function HplcMethodDialog({
                       updateField("analytes", next);
                     }}
                     onAddAnalyte={() => {
+                      const isResidual = form.resultMode === "ResidualSolvents";
+                      const isCleaningResidue = form.resultMode === "CleaningResidue";
                       updateField("analytes", [
                         ...form.analytes,
                         {
                           name: "",
                           wavelengthNm: "254",
                           standardEntryId: "",
-                          theoreticalWeightStdMg: "50",
-                          theoreticalWeightTestMg: "50",
+                          theoreticalWeightStdMg: isResidual || isCleaningResidue ? "0" : "50",
+                          theoreticalWeightTestMg: isResidual || isCleaningResidue ? "0" : "50",
                           standardDilution: "",
                           standardInjections: "5",
                           sstMaxRsdPercent: "2.0",
@@ -402,7 +419,9 @@ export function HplcMethodDialog({
                           sstMinRetentionFactor: "",
                           sstMinSignalToNoise: "",
                           sstMinPeakToValley: "",
-                          standardConcentrationUgPerMl: ""
+                          standardConcentrationUgPerMl: isCleaningResidue ? "10" : "",
+                          macoLimit: "",
+                          macoUnit: isCleaningResidue ? "UgPerSwab" : ""
                         }
                       ]);
                     }}

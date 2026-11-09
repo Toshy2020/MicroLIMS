@@ -37,12 +37,13 @@ public class CryovialResponse
     public List<IdentityConfirmationEntryResponse> IdentityConfirmations { get; init; } = new();
     public List<ThawEventResponse> ThawHistory { get; init; } = new();
 
-    public static CryovialResponse From(Cryovial e) => new()
+    // nowUtc: from the caller's injected clock, for the time-dependent fields (CLAUDE.md Rule 5.6).
+    public static CryovialResponse From(Cryovial e, DateTime nowUtc) => new()
     {
         Id = e.Id,
         Code = e.Code,
         MaterialId = e.MaterialId,
-        Material = e.Material is null ? null : MaterialResponse.From(e.Material),
+        Material = e.Material is null ? null : MaterialResponse.From(e.Material, nowUtc),
         OrganismId = e.OrganismId,
         Organism = e.Organism is null ? null : OrganismResponse.From(e.Organism),
         OrganismNameSnapshot = e.OrganismNameSnapshot,
@@ -151,11 +152,12 @@ public class MediaResponse
     public bool IsReleasedForUse { get; init; }
     public List<MediaAdditiveResponse> Additives { get; init; } = new();
 
-    public static MediaResponse From(Media e) => new()
+    // nowUtc: from the caller's injected clock, for the time-dependent fields (CLAUDE.md Rule 5.6).
+    public static MediaResponse From(Media e, DateTime nowUtc) => new()
     {
         Id = e.Id,
         MaterialId = e.MaterialId,
-        Material = e.Material is null ? null : MaterialResponse.From(e.Material),
+        Material = e.Material is null ? null : MaterialResponse.From(e.Material, nowUtc),
         LotNumber = e.LotNumber,
         ManufacturerLot = e.ManufacturerLot,
         ManufacturerName = e.ManufacturerName,
@@ -206,18 +208,19 @@ public class MediaEvaluationResponse
     public int? CompletedByUserId { get; init; }
     public List<MediaEvaluationChallengeResponse> Challenges { get; init; } = new();
 
-    public static MediaEvaluationResponse From(MediaEvaluation e) => new()
+    // nowUtc: from the caller's injected clock, for the time-dependent fields (CLAUDE.md Rule 5.6).
+    public static MediaEvaluationResponse From(MediaEvaluation e, DateTime nowUtc) => new()
     {
         Id = e.Id,
         MediaId = e.MediaId,
-        Media = e.Media is null ? null : MediaResponse.From(e.Media),
+        Media = e.Media is null ? null : MediaResponse.From(e.Media, nowUtc),
         EvaluationType = e.EvaluationType,
         Status = e.Status,
         Outcome = e.Outcome,
         AssignedAt = e.AssignedAt,
         CompletedAt = e.CompletedAt,
         CompletedByUserId = e.CompletedByUserId,
-        Challenges = e.Challenges.Select(MediaEvaluationChallengeResponse.From).ToList(),
+        Challenges = e.Challenges.Select(c => MediaEvaluationChallengeResponse.From(c, nowUtc)).ToList(),
     };
 }
 
@@ -251,27 +254,28 @@ public class MediaEvaluationChallengeResponse
     public DateTime? ReadAt { get; init; }
     public int? ReadByUserId { get; init; }
 
-    public static MediaEvaluationChallengeResponse From(MediaEvaluationChallenge e) => new()
+    // nowUtc: from the caller's injected clock, for the time-dependent fields (CLAUDE.md Rule 5.6).
+    public static MediaEvaluationChallengeResponse From(MediaEvaluationChallenge e, DateTime nowUtc) => new()
     {
         Id = e.Id,
         MediaEvaluationId = e.MediaEvaluationId,
         OrganismId = e.OrganismId,
         Organism = e.Organism is null ? null : OrganismResponse.From(e.Organism),
         CryovialId = e.CryovialId,
-        Cryovial = e.Cryovial is null ? null : CryovialResponse.From(e.Cryovial),
+        Cryovial = e.Cryovial is null ? null : CryovialResponse.From(e.Cryovial, nowUtc),
         ThawEventId = e.ThawEventId,
         ThawEvent = e.ThawEvent is null ? null : ThawEventResponse.From(e.ThawEvent),
         LyophilizedDiskId = e.LyophilizedDiskId,
-        LyophilizedDisk = e.LyophilizedDisk is null ? null : MaterialResponse.From(e.LyophilizedDisk),
+        LyophilizedDisk = e.LyophilizedDisk is null ? null : MaterialResponse.From(e.LyophilizedDisk, nowUtc),
         ChallengeRole = e.ChallengeRole,
         InitialInoculum = e.InitialInoculum,
         IncubationId = e.IncubationId,
-        Incubation = e.Incubation is null ? null : IncubationResponse.From(e.Incubation),
+        Incubation = e.Incubation is null ? null : IncubationResponse.From(e.Incubation, nowUtc),
         OldMediaCount = e.OldMediaCount,
         NewMediaCount = e.NewMediaCount,
         RecoveryPercent = e.RecoveryPercent,
         ReferenceMediaId = e.ReferenceMediaId,
-        ReferenceMedia = e.ReferenceMedia is null ? null : MediaResponse.From(e.ReferenceMedia),
+        ReferenceMedia = e.ReferenceMedia is null ? null : MediaResponse.From(e.ReferenceMedia, nowUtc),
         ReferenceMediaLabel = e.ReferenceMediaLabel,
         GrowthObserved = e.GrowthObserved,
         ObservedDescription = e.ObservedDescription,
@@ -310,7 +314,8 @@ public class IncubationResponse
     public DateTime? MinimumDurationOverriddenAt { get; init; }
     public bool IsIncubationComplete { get; init; }
 
-    public static IncubationResponse From(Incubation e) => new()
+    // nowUtc: from the caller's injected clock, for the time-dependent fields (CLAUDE.md Rule 5.6).
+    public static IncubationResponse From(Incubation e, DateTime nowUtc) => new()
     {
         Id = e.Id,
         TestOrderId = e.TestOrderId,
@@ -321,7 +326,7 @@ public class IncubationResponse
         CompletedByUserId = e.CompletedByUserId,
         Outcome = e.Outcome,
         MediaId = e.MediaId,
-        Media = e.Media is null ? null : MediaResponse.From(e.Media),
+        Media = e.Media is null ? null : MediaResponse.From(e.Media, nowUtc),
         IncubatorEquipmentId = e.IncubatorEquipmentId,
         IncubatorEquipment = e.IncubatorEquipment is null ? null : EquipmentResponse.From(e.IncubatorEquipment),
         Temperature = e.Temperature,
@@ -335,7 +340,7 @@ public class IncubationResponse
         StageNumber = e.StageNumber,
         MinimumDurationOverriddenByUserId = e.MinimumDurationOverriddenByUserId,
         MinimumDurationOverriddenAt = e.MinimumDurationOverriddenAt,
-        IsIncubationComplete = e.IsIncubationComplete,
+        IsIncubationComplete = e.IsIncubationCompleteAt(nowUtc),
     };
 }
 

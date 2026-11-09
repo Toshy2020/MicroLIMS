@@ -28,9 +28,11 @@ public static class IcpSampleEvaluator
             // Callers gate on IcpSampleEntryContext.EntryProblem, which rejects unlinked or foreign-element specs.
             var element = definition.IcpElements.FirstOrDefault(e => e.Id == spec.IcpTestElementId)
                 ?? throw new InvalidOperationException($"Specification \"{spec.ParameterName}\" is not linked to an element of this test.");
-            var unit = mode == IcpTestMode.Assay ? "%" : "ppm";
+            var isPpm = spec.Unit == "ppm" || mode == IcpTestMode.Impurity;
+            var effectiveMode = isPpm ? IcpTestMode.Impurity : IcpTestMode.Assay;
+            var unit = isPpm ? "ppm" : "%";
 
-            IcpSampleRow Problem(string text) => new(spec, element.Id, element.Symbol, mode, null, string.Empty, unit, null, text);
+            IcpSampleRow Problem(string text) => new(spec, element.Id, element.Symbol, effectiveMode, null, string.Empty, unit, null, text);
 
             var state = states.FirstOrDefault(s => s.IcpTestElementId == element.Id);
             if (state is { Valid: false })
@@ -41,7 +43,7 @@ public static class IcpSampleEvaluator
                 { rows.Add(Problem($"{element.Symbol}: enter the result from the instrument report.")); continue; }
 
             decimal value;
-            if (mode == IcpTestMode.Assay)
+            if (!isPpm)
             {
                 if (actualWeightG is not > 0m)
                     { rows.Add(Problem("Enter the actual weight of the sample.")); continue; }
@@ -55,7 +57,7 @@ public static class IcpSampleEvaluator
                 value = conc.ResultPpm;
 
             var judged = SpecificationEvaluator.Evaluate(spec, value);
-            rows.Add(new IcpSampleRow(spec, element.Id, element.Symbol, mode, value, Format(value, mode), unit, judged, null));
+            rows.Add(new IcpSampleRow(spec, element.Id, element.Symbol, effectiveMode, value, Format(value, effectiveMode), unit, judged, null));
         }
         return rows;
     }

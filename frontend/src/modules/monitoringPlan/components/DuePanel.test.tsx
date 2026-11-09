@@ -42,4 +42,36 @@ describe("DuePanel", () => {
     fireEvent.click(screen.getByText("15 Jan"));
     expect(onPick).toHaveBeenCalledWith(due.items[1]);
   });
+
+  it("renders a lab chip for water occurrences with labSectionCode", () => {
+    const dueWithLab: DueResult = {
+      today: "2026-10-22",
+      warningDayOfMonth: 20,
+      showWarning: false,
+      items: [
+        {
+          ...occ(10, "SP 100", "2026-10-29", "Upcoming"),
+          category: "Water",
+          labSectionId: 1,
+          labSectionCode: "MICRO"
+        },
+        {
+          ...occ(11, "Room 101", "2026-10-29", "Upcoming"),
+          category: "EnvironmentalMonitoring",
+          labSectionId: null,
+          labSectionCode: null
+        }
+      ]
+    };
+
+    render(
+      <ThemeProvider theme={lightTheme}>
+        <DuePanel due={dueWithLab} onPick={vi.fn()} />
+      </ThemeProvider>
+    );
+
+    expect(screen.getByText("MICRO")).toBeTruthy();
+    expect(screen.getByText("SP 100")).toBeTruthy();
+    expect(screen.getByText("Room 101")).toBeTruthy();
+  });
 });

@@ -32,6 +32,8 @@ export interface HplcAnalytesSectionProps {
   resultMode?: HplcResultMode;
   sampleSolutionVolumeMl?: string | number;
   onSampleSolutionVolumeMlChange?: (val: string) => void;
+  swabAreaCm2?: string | number;
+  onSwabAreaCm2Change?: (val: string) => void;
   analytes: AnalyteRowState[];
   availableStandards: MaterialMasterEntry[];
   errors: HplcMethodErrors;
@@ -46,6 +48,8 @@ export function HplcAnalytesSection({
   resultMode = "Assay",
   sampleSolutionVolumeMl = "",
   onSampleSolutionVolumeMlChange,
+  swabAreaCm2 = "",
+  onSwabAreaCm2Change,
   analytes,
   availableStandards,
   errors,
@@ -57,6 +61,7 @@ export function HplcAnalytesSection({
   const isGc = technique === "Gc";
   const isResidual = isGc && resultMode === "ResidualSolvents";
   const isRelatedSubstances = !isGc && resultMode === "RelatedSubstances";
+  const isCleaningResidue = !isGc && resultMode === "CleaningResidue";
   const [expandedSstIndices, setExpandedSstIndices] = useState<Record<number, boolean>>({});
 
   const toggleSstExpand = (index: number) => {
@@ -72,6 +77,8 @@ export function HplcAnalytesSection({
               ? "Principal Peak & System Suitability Criteria"
               : isResidual
               ? "Residual Solvents Analytes & SST Acceptance Criteria (USP <467>)"
+              : isCleaningResidue
+              ? "Cleaning Residue Analytes & SST Acceptance Criteria"
               : "Method Analytes & System Suitability Criteria"}
           </Typography>
           <Typography variant="caption" sx={{ color: "text.secondary" }}>
@@ -79,6 +86,8 @@ export function HplcAnalytesSection({
               ? "Define the principal peak, detection wavelength, reference standard, standard injections, and SST criteria."
               : isResidual
               ? "Specify reference standards, calibration standard concentrations (µg/mL), injections, and SST limits for volatile solvent impurities."
+              : isCleaningResidue
+              ? "Specify reference standards, standard concentrations (µg/mL), MACO limits and units, injections, and SST limits for residue testing."
               : isGc
               ? "Define active analytes, reference standards, theoretical weights, and SST criteria."
               : "Define active analytes, detection wavelengths, reference standards, theoretical weights, and SST criteria."}
@@ -130,6 +139,58 @@ export function HplcAnalytesSection({
             slotProps={{ htmlInput: { min: 0.01, step: "any" } }}
             sx={{ maxWidth: 320 }}
           />
+        </Box>
+      )}
+
+      {/* Cleaning Residue method-level extraction volume and swabbed area */}
+      {isCleaningResidue && (
+        <Box
+          sx={{
+            p: 2,
+            mb: 2,
+            bgcolor: "action.hover",
+            borderRadius: 1.5,
+            border: "1px solid",
+            borderColor: "divider"
+          }}
+        >
+          <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 0.5 }}>
+            Cleaning Residue Parameters
+          </Typography>
+          <Typography variant="caption" sx={{ color: "text.secondary", display: "block", mb: 1.5 }}>
+            Extraction volume and swabbed area used to desorb swabs and calculate residue carryover.
+          </Typography>
+          <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
+            <TextField
+              size="small"
+              label="Extraction volume (mL) *"
+              type="number"
+              value={sampleSolutionVolumeMl}
+              onChange={(e) => onSampleSolutionVolumeMlChange?.(e.target.value)}
+              required
+              placeholder="e.g. 10.0"
+              error={Boolean(errors["sampleSolutionVolumeMl"])}
+              helperText={
+                errors["sampleSolutionVolumeMl"] ?? "Extraction solvent volume in mL"
+              }
+              slotProps={{ htmlInput: { min: 0.01, step: "any" } }}
+              sx={{ maxWidth: 320 }}
+            />
+            <TextField
+              size="small"
+              label="Swabbed area (cm²)"
+              type="number"
+              value={swabAreaCm2}
+              onChange={(e) => onSwabAreaCm2Change?.(e.target.value)}
+              placeholder="e.g. 25.0"
+              error={Boolean(errors["swabAreaCm2"])}
+              helperText={
+                errors["swabAreaCm2"] ?? "Required if any analyte uses µg/cm²"
+              }
+              slotProps={{ htmlInput: { min: 0.01, step: "any" } }}
+              sx={{ maxWidth: 320 }}
+            />
+          </Stack>
         </Box>
       )}
 
@@ -330,6 +391,73 @@ export function HplcAnalytesSection({
                     slotProps={{ htmlInput: { min: 0.0001, step: "any" } }}
                     fullWidth
                   />
+                  <TextField
+                    size="small"
+                    label="Standard Injections *"
+                    type="number"
+                    value={a.standardInjections}
+                    onChange={(e) => onAnalyteChange(idx, "standardInjections", e.target.value)}
+                    required
+                    error={Boolean(err("standardInjections"))}
+                    helperText={err("standardInjections") ?? "e.g. 5 or 6 replicate injections"}
+                    slotProps={{ htmlInput: { min: 1, step: 1 } }}
+                    fullWidth
+                  />
+                </Box>
+              ) : isCleaningResidue ? (
+                // Cleaning Residue mode: Standard concentration, MACO limit + unit, and Standard Injections
+                <Box
+                  sx={{
+                    display: "grid",
+                    gridTemplateColumns: { xs: "1fr", sm: "1.2fr 1fr 1fr 1fr" },
+                    gap: 2,
+                    mb: 1.5
+                  }}
+                >
+                  <TextField
+                    size="small"
+                    label="Standard Concentration (µg/mL) *"
+                    type="number"
+                    value={a.standardConcentrationUgPerMl}
+                    onChange={(e) =>
+                      onAnalyteChange(idx, "standardConcentrationUgPerMl", e.target.value)
+                    }
+                    required
+                    placeholder="e.g. 10.0"
+                    error={Boolean(err("standardConcentrationUgPerMl"))}
+                    helperText={
+                      err("standardConcentrationUgPerMl") ??
+                      "Standard concentration in µg/mL (C_std)"
+                    }
+                    slotProps={{ htmlInput: { min: 0.0001, step: "any" } }}
+                    fullWidth
+                  />
+                  <TextField
+                    size="small"
+                    label="MACO Limit *"
+                    type="number"
+                    value={a.macoLimit}
+                    onChange={(e) => onAnalyteChange(idx, "macoLimit", e.target.value)}
+                    required
+                    placeholder="e.g. 10.0"
+                    error={Boolean(err("macoLimit"))}
+                    helperText={err("macoLimit") ?? "Maximum allowable carryover"}
+                    slotProps={{ htmlInput: { min: 0.0001, step: "any" } }}
+                    fullWidth
+                  />
+                  <FormControl size="small" fullWidth required error={Boolean(err("macoUnit"))}>
+                    <InputLabel id={`analyte-maco-unit-label-${idx}`}>MACO Unit *</InputLabel>
+                    <Select
+                      labelId={`analyte-maco-unit-label-${idx}`}
+                      label="MACO Unit *"
+                      value={a.macoUnit || "UgPerSwab"}
+                      onChange={(e) => onAnalyteChange(idx, "macoUnit", e.target.value)}
+                    >
+                      <MenuItem value="UgPerSwab">µg/swab</MenuItem>
+                      <MenuItem value="UgPerCm2">µg/cm²</MenuItem>
+                    </Select>
+                    {err("macoUnit") && <FormHelperText>{err("macoUnit")}</FormHelperText>}
+                  </FormControl>
                   <TextField
                     size="small"
                     label="Standard Injections *"

@@ -12,7 +12,7 @@ const assay = (over: Partial<IcpTestForm> = {}): IcpTestForm => ({
   sampleForm: "Solid",
   theoreticalAmount: "0.5",
   specificGravity: "",
-  elements: [{ symbol: "Zn", targetPpm: "10" }],
+  elements: [{ symbol: "Zn", targetPpm: "10", cleaningLimitPpm: "" }],
   ...over
 });
 
@@ -21,26 +21,26 @@ describe("icpTestConfig", () => {
     const f = createInitialIcpForm();
     expect(f.mode).toBe("Assay");
     expect(f.sampleForm).toBe("Solid");
-    expect(f.elements).toEqual([{ symbol: "", targetPpm: "" }]);
+    expect(f.elements).toEqual([{ symbol: "", targetPpm: "", cleaningLimitPpm: "" }]);
   });
 
-  it("loads a stored definition, ordered, keeping element ids", () => {
+  it("loads a stored definition, ordered, keeping element ids and cleaning limits", () => {
     const f = icpFormFromDefinition({
       icpMode: "Assay",
       icpSampleForm: "Liquid",
       icpTheoreticalAmount: 10,
       icpSpecificGravity: 1.2,
       icpElements: [
-        { id: 9, displayOrder: 1, symbol: "Ca", targetPpm: 20 },
-        { id: 8, displayOrder: 0, symbol: "Zn", targetPpm: 10 }
+        { id: 9, displayOrder: 1, symbol: "Ca", targetPpm: 20, cleaningLimitPpm: 5.5 },
+        { id: 8, displayOrder: 0, symbol: "Zn", targetPpm: 10, cleaningLimitPpm: null }
       ]
     });
     expect(f.sampleForm).toBe("Liquid");
     expect(f.theoreticalAmount).toBe("10");
     expect(f.specificGravity).toBe("1.2");
     expect(f.elements).toEqual([
-      { id: 8, symbol: "Zn", targetPpm: "10" },
-      { id: 9, symbol: "Ca", targetPpm: "20" }
+      { id: 8, symbol: "Zn", targetPpm: "10", cleaningLimitPpm: "" },
+      { id: 9, symbol: "Ca", targetPpm: "20", cleaningLimitPpm: "5.5" }
     ]);
   });
 
@@ -56,7 +56,7 @@ describe("icpTestConfig", () => {
         icpSampleForm: "Solid",
         icpTheoreticalAmount: 0.5,
         icpSpecificGravity: null,
-        icpElements: [{ id: null, symbol: "Zn", targetPpm: 10 }]
+        icpElements: [{ id: null, symbol: "Zn", targetPpm: 10, cleaningLimitPpm: null }]
       });
     });
 
@@ -76,10 +76,27 @@ describe("icpTestConfig", () => {
         icpTheoreticalAmount: null,
         icpSpecificGravity: null,
         icpElements: [
-          { id: 4, symbol: "Pb", targetPpm: null },
-          { id: null, symbol: "As", targetPpm: null }
+          { id: 4, symbol: "Pb", targetPpm: null, cleaningLimitPpm: null },
+          { id: null, symbol: "As", targetPpm: null, cleaningLimitPpm: null }
         ]
       });
+    });
+
+    it("maps cleaningLimitPpm to number or null when empty", () => {
+      const p = icpPayloadFields(
+        assay({
+          elements: [
+            { symbol: "Zn", targetPpm: "10", cleaningLimitPpm: "2.5" },
+            { symbol: "Cu", targetPpm: "5", cleaningLimitPpm: "" },
+            { symbol: "Ni", targetPpm: "3", cleaningLimitPpm: "   " }
+          ]
+        })
+      );
+      expect(p.icpElements).toEqual([
+        { id: null, symbol: "Zn", targetPpm: 10, cleaningLimitPpm: 2.5 },
+        { id: null, symbol: "Cu", targetPpm: 5, cleaningLimitPpm: null },
+        { id: null, symbol: "Ni", targetPpm: 3, cleaningLimitPpm: null }
+      ]);
     });
 
     it("drops blank element rows", () => {

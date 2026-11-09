@@ -168,8 +168,8 @@ If the answer is **No**, your test is tautological and must be rewritten before 
 ## 5. .NET 10 Backend, Security & Concurrency Standards (`backend/`)
 
 1. **SDK & Compiler Strictness:**
-   - All backend projects target `net10.0` (verified in `*.csproj`) with `<Nullable>enable</Nullable>` and `<ImplicitUsings>enable</ImplicitUsings>`.
-   - Centralize common build properties in `backend/Directory.Build.props` and package versions in `backend/Directory.Packages.props`. *(Not yet introduced — see `claude-md-adoption-plan.md` Phase 1. Until then, versions live in each `.csproj`; keep a package at the same version in every project that references it.)*
+   - All backend projects target `net10.0` with `<Nullable>enable</Nullable>` and `<ImplicitUsings>enable</ImplicitUsings>`, set once in `backend/Directory.Build.props`. A `.csproj` states only what is specific to it.
+   - Package versions are managed centrally in `backend/Directory.Packages.props` (`ManagePackageVersionsCentrally`). A `.csproj` references a package **without** a `Version`; add or bump versions only in `Directory.Packages.props`. The `backend/Dockerfile` copies both props files before `dotnet restore`; keep it that way.
    - Never suppress nullable compiler warnings with `!` (null-forgiving operator) in production code unless guarded by an explicit prior check.
    - **Exception — EF Core entity declarations:** The conventional `= null!;` initializer on required reference navigation properties and EF-materialized non-nullable properties in `MicroLIMS.Domain` / `MicroLIMS.Persistence` entity classes is permitted. Do not "fix" these by making them nullable or adding constructors unless the task requires it. The exception covers declarations only, never dereferences in logic.
 2. **Resource- & Section-Scoped Authorization (Anti-IDOR):**

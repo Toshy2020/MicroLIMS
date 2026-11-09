@@ -78,7 +78,7 @@ jobs:
         uses: actions/cache@v6
         with:
           path: ~/.nuget/packages
-          key: nuget-${{ runner.os }}-${{ hashFiles('backend/**/*.csproj') }}
+          key: nuget-${{ runner.os }}-${{ hashFiles('backend/**/*.csproj', 'backend/Directory.Packages.props', 'backend/Directory.Build.props') }}
           restore-keys: nuget-${{ runner.os }}-
 
       - name: Restore
@@ -174,7 +174,7 @@ jobs:
         uses: actions/cache@v6
         with:
           path: ~/.nuget/packages
-          key: nuget-${{ runner.os }}-${{ hashFiles('backend/**/*.csproj') }}
+          key: nuget-${{ runner.os }}-${{ hashFiles('backend/**/*.csproj', 'backend/Directory.Packages.props', 'backend/Directory.Build.props') }}
           restore-keys: nuget-${{ runner.os }}-
 
       - name: Install dotnet-ef

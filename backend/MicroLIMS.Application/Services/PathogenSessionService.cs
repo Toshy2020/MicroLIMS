@@ -309,8 +309,7 @@ public class PathogenSessionService
             var toIncubations = incubations.Where(i => i.TestOrderId == to.Id).ToList();
             var toStepResults = stepResults.Where(w => w.TestOrderId == to.Id).ToList();
 
-            var confirmatoryStep = steps.FirstOrDefault(s => s.StepType == StepType.ConfirmatoryPlating);
-            var confirmatoryMediaCount = confirmatoryStep?.ConfirmatoryMediaCount ?? (def?.Code.Contains("SALMONELLA", StringComparison.OrdinalIgnoreCase) == true ? 2 : 1);
+            var confirmatoryMediaCount = RequiredConfirmatoryMediaCount(def);
 
             var ownTsbComplete = ownTsbByOrder.TryGetValue(to.Id, out var ownTsb) && ownTsb.IsComplete;
 
@@ -714,8 +713,7 @@ public class PathogenSessionService
                 ?? $"Location #{o.SampleLocationId}";
 
             testDefs.TryGetValue(o.TestOrder?.TestCode ?? "", out var testDef);
-            var confStep = testDef?.Steps.FirstOrDefault(s => s.StepType == StepType.ConfirmatoryPlating);
-            var reqCount = confStep?.ConfirmatoryMediaCount ?? (o.TestOrder?.TestCode.Contains("SALMONELLA", StringComparison.OrdinalIgnoreCase) == true ? 2 : 1);
+            var reqCount = RequiredConfirmatoryMediaCount(testDef);
 
             return new EligibleLocationForConfirmationDto(
                 LocationId: o.SampleLocationId,
@@ -850,6 +848,17 @@ public class PathogenSessionService
         primaryObservations[(sampleLocationId, testOrderId)] = entity;
     }
 
+    private static TestWorkflowStep? ConfirmatoryStepOf(TestDefinition? def) =>
+        def?.Steps.FirstOrDefault(s => s.StepType == StepType.ConfirmatoryPlating);
+
+    // Confirmatory media required by the test's configured ConfirmatoryPlating
+    // step. Every pathogen is treated the same (CLAUDE.md Rule 3.2): the test
+    // code or organism never changes the number. With no confirmatory step
+    // configured the entity default (1) is reported for display, and
+    // StartSharedConfirmatorySetupAsync refuses to start a confirmation.
+    private static int RequiredConfirmatoryMediaCount(TestDefinition? def) =>
+        ConfirmatoryStepOf(def)?.ConfirmatoryMediaCount ?? new TestWorkflowStep().ConfirmatoryMediaCount;
+
     public async Task<PathogenTestingSessionDto> StartSharedConfirmatorySetupAsync(
         int sampleId,
         BatchConfirmatorySetupRequest request,
@@ -873,8 +882,14 @@ public class PathogenSessionService
                     .ThenInclude(m => m.IncubationCondition)
             .FirstOrDefaultAsync(d => d.Code == testOrder.TestCode, cancellationToken);
 
-        var confirmatoryStep = testDef?.Steps.FirstOrDefault(s => s.StepType == StepType.ConfirmatoryPlating);
-        var requiredMediaCount = confirmatoryStep?.ConfirmatoryMediaCount ?? (testOrder.TestCode.Contains("SALMONELLA", StringComparison.OrdinalIgnoreCase) ? 2 : 1);
+        // The count of confirmatory media comes only from the configured
+        // ConfirmatoryPlating step (CLAUDE.md Rule 3.2): without one, block
+        // rather than guess it from the test code or organism.
+        var confirmatoryStep = ConfirmatoryStepOf(testDef)
+            ?? throw new WorkflowStepException(
+                WorkflowErrorCodes.ConfirmatoryStepNotConfigured,
+                $"Test \"{testOrder.TestCode}\" has no confirmatory plating step in Test Master.");
+        var requiredMediaCount = confirmatoryStep.ConfirmatoryMediaCount;
 
         if (request.MediaMaterialIds.Count != requiredMediaCount)
         {
@@ -896,9 +911,6 @@ public class PathogenSessionService
                     $"Location #{locId} does not have a GrowthConforming or GrowthNonConforming primary observation and cannot proceed to confirmation.");
             }
         }
-
-        if (confirmatoryStep == null)
-            throw new InvalidOperationException($"Test \"{testOrder.TestCode}\" has no confirmatory plating step in Test Master.");
 
         // Laboratory Configuration equipment (carries the set point), never
         // the EquipmentInventories asset register.
@@ -1081,8 +1093,7 @@ public class PathogenSessionService
         foreach (var primaryObs in primaryObsList)
         {
             testDefs.TryGetValue(primaryObs.TestOrder?.TestCode ?? "", out var testDef);
-            var confStep = testDef?.Steps.FirstOrDefault(s => s.StepType == StepType.ConfirmatoryPlating);
-            var reqCount = confStep?.ConfirmatoryMediaCount ?? (primaryObs.TestOrder?.TestCode.Contains("SALMONELLA", StringComparison.OrdinalIgnoreCase) == true ? 2 : 1);
+            var reqCount = RequiredConfirmatoryMediaCount(testDef);
 
             var plates = primaryObs.ConfirmatoryPlateObservations
                 .GroupBy(p => (p.MaterialId, p.MediumIndex))

@@ -321,6 +321,9 @@ public record CreateTestDefinitionRequest(
     public decimal? IcpTheoreticalAmount { get; init; }
     public decimal? IcpSpecificGravity { get; init; }
     public List<MicroLIMS.Application.Services.MasterData.IcpTestElementInput>? IcpElements { get; init; }
+
+    // Certificate of Analysis position inside the test's group (1-9999); null = none.
+    public int? CoaDisplayOrder { get; init; }
 }
 // SectionId: move the test to another laboratory section (null = keep). Test
 // orders already created keep the section they were created with.
@@ -401,6 +404,10 @@ public record UpdateTestDefinitionRequest(
 
     // Required (5-500 chars) when a titration setting changes; see TitrationDefinitionRules.Snapshot.
     public string? ChangeReason { get; init; }
+
+    // Certificate of Analysis position inside the test's group: null keeps the
+    // current value, 0 clears it, 1-9999 sets it.
+    public int? CoaDisplayOrder { get; init; }
 }
 public record UpdateWorkflowTypeRequest(WorkflowType WorkflowType);
 

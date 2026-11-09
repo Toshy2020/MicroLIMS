@@ -10701,6 +10701,9 @@ namespace MicroLIMS.Persistence.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
+                    b.Property<int?>("CoaDisplayOrder")
+                        .HasColumnType("integer");
+
                     b.Property<string>("Code")
                         .IsRequired()
                         .HasMaxLength(100)

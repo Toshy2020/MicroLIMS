@@ -66,6 +66,7 @@ export interface TestDefinitionOption extends TitrationDefinitionFields {
   physchemArea?: PhyschemArea | null;
   perContainer?: boolean;
   moistureRole?: MoistureRole;
+  coaDisplayOrder?: number | null;
   uvCalculationMode?: UvCalculationMode | null;
   uvSpecificAbsorbance?: number | null;
   uvTotalVolumeMl?: number | null;

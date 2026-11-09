@@ -158,7 +158,7 @@ export function BatchConfirmatoryPlatingPanel({ session, onNext, onBack, onUpdat
           testCode: loc.testCode,
           testDisplayName: loc.testDisplayName,
           testOrderId: loc.testOrderId,
-          requiredMediaCount: loc.requiredConfirmatoryMediaCount || (loc.testCode.toUpperCase().includes("SALMONELLA") ? 2 : 1),
+          requiredMediaCount: loc.requiredConfirmatoryMediaCount || 1, // from Test Master; never by organism (CLAUDE.md Rule 3.2)
           locations: []
         });
       }

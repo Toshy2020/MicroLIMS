@@ -52,13 +52,12 @@ export function ConfirmationDialog({
         )}
       </DialogContent>
       <DialogActions>
-        <Button onClick={onCancel} disabled={loading} autoFocus={destructive}>{cancelText}</Button>
+        <Button onClick={onCancel} disabled={loading} autoFocus>{cancelText}</Button>
         <Button
           onClick={onConfirm}
           variant="contained"
           color={destructive ? "error" : "primary"}
           disabled={loading}
-          autoFocus={!destructive}
           startIcon={loading ? <CircularProgress size={16} color="inherit" /> : undefined}
         >
           {confirmText}

@@ -5,6 +5,13 @@ import {
   Typography,
   Stack,
   Button,
+  IconButton,
+  Menu,
+  MenuItem,
+  ListItemIcon,
+  ListItemText,
+  Divider,
+  Tooltip,
   useTheme
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
@@ -14,6 +21,7 @@ import ScienceOutlinedIcon from "@mui/icons-material/ScienceOutlined";
 import WarningAmberOutlinedIcon from "@mui/icons-material/WarningAmberOutlined";
 import BlockOutlinedIcon from "@mui/icons-material/BlockOutlined";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
+import MoreVertIcon from "@mui/icons-material/MoreVert";
 import { SampleCard as SampleCardType, TestOrderSummary } from "./types/workspaceTypes";
 import { CategoryBadge } from "../../components/StatusBadge";
 import { SampleLifecycleBadge } from "./SampleLifecycleBadge";
@@ -53,6 +61,7 @@ export function SelectedSampleTestingPanel({
   const { permissions } = useAuth();
   const theme = useTheme();
   const [openPathogenWorkflow, setOpenPathogenWorkflow] = React.useState(false);
+  const [actionsMenuAnchor, setActionsMenuAnchor] = React.useState<HTMLElement | null>(null);
   const needsPreparation = sample.preparationStatus === "NeedsPreparation";
   // Pathogen tests are the ones with a TSB / broth-enrichment step; a sample
   // without one (e.g. Finished Product chemistry tests) has no pathogen workflow.
@@ -61,10 +70,67 @@ export function SelectedSampleTestingPanel({
   const isWater = sample.category === "Water";
   // Mirrors SampleController: Analysts cannot correct or void (the backend enforces it).
   const canManageSample = permissions.includes(PERMISSIONS.SAMPLES_CORRECT);
+  const completedTestsCount = sample.assignedTests.filter(
+    (t) => t.status === "Approved" || t.status === "Completed" || t.status === "Reviewed"
+  ).length;
 
-  const handleOpenReport = () => {
-    window.open(`/samples/${sample.sampleId}/report`, "_blank");
-  };
+  const assignedAnalystDisplay =
+    sample.assignedAnalystName ||
+    sample.assignedTests.find((t) => t.assignedAnalystName)?.assignedAnalystName ||
+    "Unassigned";
+  const batchDisplay =
+    (sample.category === "AfterCleaning" ? sample.previousProductBatchNumber || sample.batchNumber : sample.batchNumber) || "—";
+  const receivedAtDisplay = new Date(sample.receivedAt).toLocaleString("en-GB", {
+    day: "2-digit",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit"
+  });
+  const contextLabel =
+    sample.category === "FinishedProduct"
+      ? "STAGE"
+      : isWater
+      ? "SAMPLING POINT"
+      : sample.category === "AfterCleaning"
+      ? "PREV PRODUCT"
+      : "MFG DATE";
+  const contextValue =
+    sample.category === "FinishedProduct"
+      ? sample.productionStage || "—"
+      : isWater
+      ? (sample.waterSamplingPointCode ? `${sample.waterSamplingPointCode}, ${sample.waterSamplingPointLocation || ""}` : "—")
+      : sample.category === "AfterCleaning"
+      ? sample.previousProductName || "—"
+      : formatDate(sample.mfgDate);
+  const storageOrExpLabel =
+    isWater || sample.storageCondition
+      ? "STORAGE"
+      : isProductLike
+      ? "EXP DATE"
+      : "CATEGORY";
+  const storageOrExpValue =
+    isWater
+      ? (sample.storageCondition === "Refrigerator" ? `Fridge (${sample.storageTimeHours ?? "?"}h)` : sample.storageCondition || "Ambient")
+      : isProductLike
+      ? formatDate(sample.expDate)
+      : sample.storageCondition || sample.category;
+
+  const metaCells: { label: string; value: string; color?: string; fontWeight?: number }[] = [
+    { label: "ASSIGNED TO", value: assignedAnalystDisplay, color: theme.palette.primary.main, fontWeight: 700 },
+    {
+      label: "PREP STATUS",
+      value: sample.preparationStatus || "—",
+      color: needsPreparation ? theme.custom.status.action.text : theme.custom.status.notDetected.text
+    },
+    { label: "CAUSE OF TESTING", value: sample.causeOfTesting || "—" },
+    { label: "BATCH NUMBER", value: batchDisplay },
+    { label: "CONTROL NUMBER", value: sample.controlNumber || "—" },
+    { label: "RECEIVED AT", value: receivedAtDisplay },
+    { label: "SAMPLED BY", value: sample.sampledBy || "—" },
+    { label: "SAMPLE QTY", value: sample.sampleQuantity || "—" },
+    { label: contextLabel, value: contextValue },
+    { label: storageOrExpLabel, value: storageOrExpValue }
+  ];
 
   return (
     <Paper
@@ -75,11 +141,9 @@ export function SelectedSampleTestingPanel({
         borderColor: "divider",
         borderRadius: 2,
         bgcolor: "background.paper",
-        height: "100%",
         display: "flex",
         flexDirection: "column",
-        gap: 1.25,
-        overflowY: "auto"
+        gap: 1.25
       }}
     >
       {/* 1. Unified Top Header Bar */}
@@ -99,117 +163,21 @@ export function SelectedSampleTestingPanel({
           </Typography>
         </Box>
 
-        {/* Right: Action Buttons (height: ~25px, padding: 2px 8px, font-size: 0.75rem) */}
+        {/* Right: Primary & Secondary Actions with Secondary/Destructive Overflow Menu */}
         <Box sx={{ display: "flex", alignItems: "center", gap: 0.75, flexShrink: 0, flexWrap: "wrap" }}>
-          <Button
-            size="small"
-            variant="outlined"
-            startIcon={<DescriptionOutlinedIcon sx={{ fontSize: 13 }} />}
-            onClick={() => onLifecycleBadgeClick(sample.sampleId)}
-            sx={{
-              height: 25,
-              px: 1,
-              py: 0.25,
-              fontSize: "0.75rem",
-              fontWeight: 600,
-              textTransform: "none",
-              minWidth: "auto",
-              borderColor: theme.custom.status.purple.border,
-              color: theme.palette.primary.main,
-              bgcolor: theme.custom.status.purple.bg,
-              "&:hover": { bgcolor: theme.custom.status.purple.border, borderColor: theme.palette.primary.main }
-            }}
-          >
-            Sample Summary
-          </Button>
-
-          <Button
-            size="small"
-            variant="outlined"
-            startIcon={<HistoryOutlinedIcon sx={{ fontSize: 13 }} />}
-            onClick={() => onViewAuditHistory(sample.sampleId)}
-            sx={{
-              height: 25,
-              px: 1,
-              py: 0.25,
-              fontSize: "0.75rem",
-              fontWeight: 600,
-              textTransform: "none",
-              minWidth: "auto",
-              borderColor: "divider",
-              color: "text.secondary",
-              bgcolor: "background.paper",
-              "&:hover": { bgcolor: "background.default" }
-            }}
-          >
-            Audit History
-          </Button>
-
-          {canManageSample && onEdit && (
-            <Button
-              size="small"
-              variant="outlined"
-              startIcon={<EditOutlinedIcon sx={{ fontSize: 13 }} />}
-              onClick={() => onEdit(sample)}
-              disabled={!sample.canEditDetails}
-              title={sample.canEditDetails ? "Correct sample details (signed)" : "Locked: the sample has been submitted for review"}
-              sx={{
-                height: 25,
-                px: 1,
-                py: 0.25,
-                fontSize: "0.75rem",
-                fontWeight: 600,
-                textTransform: "none",
-                minWidth: "auto",
-                borderColor: "divider",
-                color: "text.secondary",
-                bgcolor: "background.paper",
-                "&:hover": { bgcolor: "background.default" }
-              }}
-            >
-              Edit Details
-            </Button>
-          )}
-
-          {canManageSample && sample.status !== "Voided" && (
-            <Button
-              size="small"
-              variant="outlined"
-              color="error"
-              startIcon={<BlockOutlinedIcon sx={{ fontSize: 13 }} />}
-              onClick={() => (onVoid ? onVoid(sample) : onLifecycleBadgeClick(sample.sampleId))}
-              sx={{
-                height: 25,
-                px: 1,
-                py: 0.25,
-                fontSize: "0.75rem",
-                fontWeight: 600,
-                textTransform: "none",
-                minWidth: "auto",
-                borderColor: theme.custom.status.detected.border,
-                color: theme.custom.status.detected.text,
-                bgcolor: theme.custom.status.detected.bg,
-                "&:hover": { bgcolor: theme.custom.status.detected.border, borderColor: theme.custom.status.detected.text }
-              }}
-            >
-              Void Sample
-            </Button>
-          )}
-
           {needsPreparation && (
             <Button
               size="small"
               variant="contained"
-              startIcon={<ScienceOutlinedIcon sx={{ fontSize: 13 }} />}
+              startIcon={<ScienceOutlinedIcon sx={{ fontSize: 15 }} />}
               onClick={() => onNeedsPreparationClick(sample)}
               sx={{
-                height: 25,
-                px: 1,
-                py: 0.25,
+                minHeight: 32,
+                px: 1.25,
+                py: 0.5,
                 fontSize: "0.75rem",
                 fontWeight: 700,
                 textTransform: "none",
-                minWidth: "auto",
                 bgcolor: theme.custom.status.action.text,
                 color: "common.white",
                 "&:hover": { bgcolor: theme.custom.status.action.text, opacity: 0.85 }
@@ -222,16 +190,127 @@ export function SelectedSampleTestingPanel({
           <Button
             size="small"
             variant="outlined"
-            onClick={onClose}
-            startIcon={<CloseIcon sx={{ fontSize: 13 }} />}
+            startIcon={<DescriptionOutlinedIcon sx={{ fontSize: 15 }} />}
+            onClick={() => onLifecycleBadgeClick(sample.sampleId)}
             sx={{
-              height: 25,
-              px: 1,
-              py: 0.25,
+              minHeight: 32,
+              px: 1.25,
+              py: 0.5,
               fontSize: "0.75rem",
               fontWeight: 600,
               textTransform: "none",
-              minWidth: "auto",
+              borderColor: "divider",
+              color: "text.primary",
+              bgcolor: "background.paper",
+              "&:hover": { bgcolor: "background.default", borderColor: "primary.main" }
+            }}
+          >
+            Sample Summary
+          </Button>
+
+          <Tooltip title="More sample actions">
+            <IconButton
+              size="small"
+              aria-label="More sample actions"
+              aria-controls={actionsMenuAnchor ? "selected-sample-actions-menu" : undefined}
+              aria-haspopup="true"
+              aria-expanded={Boolean(actionsMenuAnchor)}
+              onClick={(e) => setActionsMenuAnchor(e.currentTarget)}
+              sx={{
+                width: 32,
+                height: 32,
+                border: "1px solid",
+                borderColor: "divider",
+                borderRadius: 1.5,
+                color: "text.secondary",
+                "&:hover": { bgcolor: "background.default", color: "text.primary" }
+              }}
+            >
+              <MoreVertIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+
+          <Menu
+            id="selected-sample-actions-menu"
+            anchorEl={actionsMenuAnchor}
+            open={Boolean(actionsMenuAnchor)}
+            onClose={() => setActionsMenuAnchor(null)}
+            anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+            transformOrigin={{ vertical: "top", horizontal: "right" }}
+            slotProps={{ paper: { sx: { minWidth: 190, mt: 0.5 } } }}
+          >
+            <MenuItem
+              onClick={() => {
+                setActionsMenuAnchor(null);
+                onViewAuditHistory(sample.sampleId);
+              }}
+            >
+              <ListItemIcon>
+                <HistoryOutlinedIcon fontSize="small" />
+              </ListItemIcon>
+              <ListItemText primary="Audit History" slotProps={{ primary: { sx: { fontSize: 13 } } }} />
+            </MenuItem>
+
+            {canManageSample && onEdit && (
+              <MenuItem
+                disabled={!sample.canEditDetails}
+                title={sample.canEditDetails ? "Correct sample details (signed)" : "Locked: the sample has been submitted for review"}
+                onClick={() => {
+                  setActionsMenuAnchor(null);
+                  onEdit(sample);
+                }}
+              >
+                <ListItemIcon>
+                  <EditOutlinedIcon fontSize="small" />
+                </ListItemIcon>
+                <ListItemText
+                  primary="Edit Details"
+                  secondary={!sample.canEditDetails ? "Locked under review" : undefined}
+                  slotProps={{
+                    primary: { sx: { fontSize: 13 } },
+                    secondary: { sx: { fontSize: 11 } }
+                  }}
+                />
+              </MenuItem>
+            )}
+
+            {canManageSample && sample.status !== "Voided" && <Divider />}
+
+            {canManageSample && sample.status !== "Voided" && (
+              <MenuItem
+                onClick={() => {
+                  setActionsMenuAnchor(null);
+                  if (onVoid) {
+                    onVoid(sample);
+                  } else {
+                    onLifecycleBadgeClick(sample.sampleId);
+                  }
+                }}
+                sx={{ color: "error.main" }}
+              >
+                <ListItemIcon sx={{ color: "error.main" }}>
+                  <BlockOutlinedIcon fontSize="small" />
+                </ListItemIcon>
+                <ListItemText
+                  primary="Void Sample..."
+                  slotProps={{ primary: { sx: { fontSize: 13, fontWeight: 600 } } }}
+                />
+              </MenuItem>
+            )}
+          </Menu>
+
+          <Button
+            size="small"
+            variant="outlined"
+            onClick={onClose}
+            startIcon={<CloseIcon sx={{ fontSize: 15 }} />}
+            sx={{
+              minHeight: 32,
+              px: 1.25,
+              py: 0.5,
+              fontSize: "0.75rem",
+              fontWeight: 600,
+              textTransform: "none",
               borderColor: "divider",
               color: "text.secondary",
               whiteSpace: "nowrap",
@@ -243,7 +322,7 @@ export function SelectedSampleTestingPanel({
         </Box>
       </Box>
 
-      {/* 2. Compact 5-Column Metadata Grid */}
+      {/* 2. Compact 5-Column Metadata Grid with Full-Value Tooltips */}
       <Box
         className="meta-grid"
         sx={{
@@ -255,130 +334,37 @@ export function SelectedSampleTestingPanel({
           bgcolor: "background.default"
         }}
       >
-        {/* 1. ASSIGNED TO */}
-        <Box sx={{ minWidth: 0 }}>
-          <Typography sx={{ fontSize: "0.75rem", lineHeight: 1.1, textTransform: "uppercase", color: "text.secondary", fontWeight: 600, letterSpacing: "0.03em", mb: 0.25 }}>
-            ASSIGNED TO
-          </Typography>
-          <Typography sx={{ fontSize: "0.75rem", fontWeight: 700, color: theme.palette.primary.main, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-            {sample.assignedAnalystName || sample.assignedTests.find((t) => t.assignedAnalystName)?.assignedAnalystName || "Unassigned"}
-          </Typography>
-        </Box>
-
-        {/* 2. PREPARATION STATUS */}
-        <Box sx={{ minWidth: 0 }}>
-          <Typography sx={{ fontSize: "0.75rem", lineHeight: 1.1, textTransform: "uppercase", color: "text.secondary", fontWeight: 600, letterSpacing: "0.03em", mb: 0.25 }}>
-            PREP STATUS
-          </Typography>
-          <Typography sx={{ fontSize: "0.75rem", fontWeight: 600, color: needsPreparation ? theme.custom.status.action.text : theme.custom.status.notDetected.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-            {sample.preparationStatus || "—"}
-          </Typography>
-        </Box>
-
-        {/* 3. CAUSE OF TESTING */}
-        <Box sx={{ minWidth: 0 }}>
-          <Typography sx={{ fontSize: "0.75rem", lineHeight: 1.1, textTransform: "uppercase", color: "text.secondary", fontWeight: 600, letterSpacing: "0.03em", mb: 0.25 }}>
-            CAUSE OF TESTING
-          </Typography>
-          <Typography sx={{ fontSize: "0.75rem", fontWeight: 600, color: "text.primary", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-            {sample.causeOfTesting || "—"}
-          </Typography>
-        </Box>
-
-        {/* 4. BATCH NUMBER */}
-        <Box sx={{ minWidth: 0 }}>
-          <Typography sx={{ fontSize: "0.75rem", lineHeight: 1.1, textTransform: "uppercase", color: "text.secondary", fontWeight: 600, letterSpacing: "0.03em", mb: 0.25 }}>
-            BATCH NUMBER
-          </Typography>
-          <Typography sx={{ fontSize: "0.75rem", fontWeight: 600, color: "text.primary", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-            {(sample.category === "AfterCleaning" ? sample.previousProductBatchNumber || sample.batchNumber : sample.batchNumber) || "—"}
-          </Typography>
-        </Box>
-
-        {/* 5. CONTROL NUMBER */}
-        <Box sx={{ minWidth: 0 }}>
-          <Typography sx={{ fontSize: "0.75rem", lineHeight: 1.1, textTransform: "uppercase", color: "text.secondary", fontWeight: 600, letterSpacing: "0.03em", mb: 0.25 }}>
-            CONTROL NUMBER
-          </Typography>
-          <Typography sx={{ fontSize: "0.75rem", fontWeight: 600, color: "text.primary", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-            {sample.controlNumber || "—"}
-          </Typography>
-        </Box>
-
-        {/* 6. RECEIVED AT */}
-        <Box sx={{ minWidth: 0 }}>
-          <Typography sx={{ fontSize: "0.75rem", lineHeight: 1.1, textTransform: "uppercase", color: "text.secondary", fontWeight: 600, letterSpacing: "0.03em", mb: 0.25 }}>
-            RECEIVED AT
-          </Typography>
-          <Typography sx={{ fontSize: "0.75rem", fontWeight: 600, color: "text.primary", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-            {new Date(sample.receivedAt).toLocaleString("en-GB", {
-              day: "2-digit",
-              month: "short",
-              hour: "2-digit",
-              minute: "2-digit"
-            })}
-          </Typography>
-        </Box>
-
-        {/* 7. SAMPLED BY */}
-        <Box sx={{ minWidth: 0 }}>
-          <Typography sx={{ fontSize: "0.75rem", lineHeight: 1.1, textTransform: "uppercase", color: "text.secondary", fontWeight: 600, letterSpacing: "0.03em", mb: 0.25 }}>
-            SAMPLED BY
-          </Typography>
-          <Typography sx={{ fontSize: "0.75rem", fontWeight: 600, color: "text.primary", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-            {sample.sampledBy || "—"}
-          </Typography>
-        </Box>
-
-        {/* 8. SAMPLE QUANTITY */}
-        <Box sx={{ minWidth: 0 }}>
-          <Typography sx={{ fontSize: "0.75rem", lineHeight: 1.1, textTransform: "uppercase", color: "text.secondary", fontWeight: 600, letterSpacing: "0.03em", mb: 0.25 }}>
-            SAMPLE QTY
-          </Typography>
-          <Typography sx={{ fontSize: "0.75rem", fontWeight: 600, color: "text.primary", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-            {sample.sampleQuantity || "—"}
-          </Typography>
-        </Box>
-
-        {/* 9. CATEGORY-SPECIFIC CONTEXT (Stage / Sampling Point / Prev Product) */}
-        <Box sx={{ minWidth: 0 }}>
-          <Typography sx={{ fontSize: "0.75rem", lineHeight: 1.1, textTransform: "uppercase", color: "text.secondary", fontWeight: 600, letterSpacing: "0.03em", mb: 0.25 }}>
-            {sample.category === "FinishedProduct"
-              ? "STAGE"
-              : isWater
-              ? "SAMPLING POINT"
-              : sample.category === "AfterCleaning"
-              ? "PREV PRODUCT"
-              : "MFG DATE"}
-          </Typography>
-          <Typography sx={{ fontSize: "0.75rem", fontWeight: 600, color: "text.primary", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-            {sample.category === "FinishedProduct"
-              ? sample.productionStage || "—"
-              : isWater
-              ? (sample.waterSamplingPointCode ? `${sample.waterSamplingPointCode}, ${sample.waterSamplingPointLocation || ""}` : "—")
-              : sample.category === "AfterCleaning"
-              ? sample.previousProductName || "—"
-              : formatDate(sample.mfgDate)}
-          </Typography>
-        </Box>
-
-        {/* 10. EXP DATE / STORAGE CONDITION */}
-        <Box sx={{ minWidth: 0 }}>
-          <Typography sx={{ fontSize: "0.75rem", lineHeight: 1.1, textTransform: "uppercase", color: "text.secondary", fontWeight: 600, letterSpacing: "0.03em", mb: 0.25 }}>
-            {isWater || sample.storageCondition
-              ? "STORAGE"
-              : isProductLike
-              ? "EXP DATE"
-              : "CATEGORY"}
-          </Typography>
-          <Typography sx={{ fontSize: "0.75rem", fontWeight: 600, color: "text.primary", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-            {isWater
-              ? (sample.storageCondition === "Refrigerator" ? `Fridge (${sample.storageTimeHours ?? "?"}h)` : sample.storageCondition || "Ambient")
-              : isProductLike
-              ? formatDate(sample.expDate)
-              : sample.storageCondition || sample.category}
-          </Typography>
-        </Box>
+        {metaCells.map((cell) => (
+          <Box key={cell.label} sx={{ minWidth: 0 }}>
+            <Typography
+              sx={{
+                fontSize: "0.75rem",
+                lineHeight: 1.1,
+                textTransform: "uppercase",
+                color: "text.secondary",
+                fontWeight: 600,
+                letterSpacing: "0.03em",
+                mb: 0.25
+              }}
+            >
+              {cell.label}
+            </Typography>
+            <Tooltip title={cell.value !== "—" ? cell.value : ""} placement="top" arrow disableInteractive>
+              <Typography
+                sx={{
+                  fontSize: "0.75rem",
+                  fontWeight: cell.fontWeight ?? 600,
+                  color: cell.color ?? "text.primary",
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis"
+                }}
+              >
+                {cell.value}
+              </Typography>
+            </Tooltip>
+          </Box>
+        ))}
       </Box>
 
       {/* Item Controlled Documents Card */}
@@ -394,7 +380,9 @@ export function SelectedSampleTestingPanel({
               Assigned Tests ({sample.assignedTests.length})
             </Typography>
             <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
-              Test Master configured laboratory workflows
+              {sample.assignedTests.length > 0
+                ? `${completedTestsCount} of ${sample.assignedTests.length} test workflows completed · Select a test card to record or review results`
+                : "No laboratory test workflows assigned"}
             </Typography>
           </Box>
 

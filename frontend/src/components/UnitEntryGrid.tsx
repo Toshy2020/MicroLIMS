@@ -167,6 +167,7 @@ export function UnitEntryGrid({
                         slotProps={{
                           htmlInput: {
                             "aria-label": ariaLabel,
+                            "aria-description": col.unit ? `Unit: ${col.unit}` : undefined,
                             readOnly: isReadOnly,
                             inputMode: isReadOnly ? undefined : inputMode
                           }

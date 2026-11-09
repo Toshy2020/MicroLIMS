@@ -52,7 +52,7 @@ export function FloatingDialog({ open, title, onClose, children, actions, maxWid
         paper: paperSx ? { sx: paperSx } : undefined
       }}
     >
-      <DialogTitle sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", ...titleSx }}>
+      <DialogTitle component="div" sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", ...titleSx }}>
         {title}
         <Tooltip title="Close">
           <IconButton

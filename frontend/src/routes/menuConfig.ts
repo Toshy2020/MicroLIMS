@@ -85,9 +85,10 @@ export interface MenuContext {
 
 // Menu Items
 const dashboardItem: MenuItem = { label: "Dashboard", path: "/dashboard", description: "Your work and the laboratory's queues at a glance.", icon: SpaceDashboardOutlinedIcon, group: "OVERVIEW" };
-const reportsItem: MenuItem = { label: "Reports", path: "/reports", description: "Laboratory KPIs, trends and exportable reports.", icon: DescriptionOutlinedIcon, group: "REPORTS" };
-const oosTrackingItem: MenuItem = { label: "OOS Tracking", path: "/oos-tracking", description: "Out-of-specification investigations and their status.", icon: ReportProblemOutlinedIcon, group: "AUDIT & COMPLIANCE", permission: PERMISSIONS.OOS_MANAGE };
-const monitoringPlanItem: MenuItem = { label: "Monitoring Plan", path: "/monitoring-plan", description: "Annual plan of water, environmental and after-cleaning monitoring.", icon: CalendarMonthOutlinedIcon, group: "REPORTS", permission: PERMISSIONS.MONITORING_PLAN_VIEW };
+const QUALITY_COMPLIANCE_GROUP = "QUALITY & COMPLIANCE";
+const reportsItem: MenuItem = { label: "Reports", path: "/reports", description: "Laboratory KPIs, trends and exportable reports.", icon: DescriptionOutlinedIcon, group: QUALITY_COMPLIANCE_GROUP };
+const oosTrackingItem: MenuItem = { label: "OOS Tracking", path: "/oos-tracking", description: "Out-of-specification investigations and their status.", icon: ReportProblemOutlinedIcon, group: QUALITY_COMPLIANCE_GROUP, permission: PERMISSIONS.OOS_MANAGE };
+const monitoringPlanItem: MenuItem = { label: "Monitoring Plan", path: "/monitoring-plan", description: "Annual plan of water, environmental and after-cleaning monitoring.", icon: CalendarMonthOutlinedIcon, group: QUALITY_COMPLIANCE_GROUP, permission: PERMISSIONS.MONITORING_PLAN_VIEW };
 
 // Receiving area: the main receiving desk and the cross-lab tracking board,
 // gated on privileges rather than role or lab membership - any lab may
@@ -132,7 +133,7 @@ function documentControlItem(role: Role | null, permissions: string[]): MenuItem
     path: "/sections/document-control",
     counterSource: "document-control",
     icon: DescriptionOutlinedIcon,
-    group: "DOCUMENT CONTROL",
+    group: QUALITY_COMPLIANCE_GROUP,
     children: [
       { label: "Dashboard", path: "/document-control", icon: DashboardOutlinedIcon, description: "Overview of documents due for review, approval and training." },
       { label: "My Reading List", path: "/document-control/my-reading-list", icon: MenuBookOutlinedIcon, counterKey: "reading-list", description: "SOPs and documents you must read and acknowledge." },
@@ -286,7 +287,8 @@ export function getGroupedMenu({ role, permissions, labCodes, physchemAreas }: M
   }
   items.push(
     itemsItem, masterTestingMaterialsItem, receivingConfigItem, masterDataWorkbookItem, waterItem, afterCleaningItem,
-    documentControlItem(role, permissions), ...adminItems, reportsItem, monitoringPlanItem, oosTrackingItem
+    documentControlItem(role, permissions), reportsItem, monitoringPlanItem, oosTrackingItem,
+    ...adminItems
   );
   return groupItems(visibleItems(items, permissions));
 }

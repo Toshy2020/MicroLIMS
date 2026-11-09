@@ -130,7 +130,7 @@ export function SampleFilterBar({
             value={viewMode}
             exclusive
             size="small"
-            onChange={(_, v) => v && onViewModeChange(v)}
+            onChange={(_, v) => onViewModeChange(v ?? viewMode)}
             aria-label="Register display mode"
             sx={{ flexShrink: 0 }}
           >

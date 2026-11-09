@@ -56,17 +56,19 @@ export const monospaceFontFamily =
 //   caption   metadata, helper text     overline  sidebar group labels, KPI labels
 // Two weights carry hierarchy (600 for headings/labels, 400 for text); 700 is
 // reserved for the page title and numeric KPI values.
+// Optical scaling: tighter tracking on display/headings (-0.02em to -0.01em),
+// positive tracking on small captions/overlines (+0.01em to +0.08em).
 const typography: ThemeOptions["typography"] = {
-  fontFamily: "'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
-  h4: { fontSize: "1.5rem", fontWeight: 600, lineHeight: 1.3 },
-  h5: { fontSize: "1.375rem", fontWeight: 700, lineHeight: 1.3 },
-  h6: { fontSize: "1.0625rem", fontWeight: 600, lineHeight: 1.4 },
-  subtitle1: { fontSize: "0.9375rem", fontWeight: 600, lineHeight: 1.45 },
+  fontFamily: "'Inter', 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
+  h4: { fontSize: "1.5rem", fontWeight: 600, lineHeight: 1.25, letterSpacing: "-0.02em" },
+  h5: { fontSize: "1.375rem", fontWeight: 700, lineHeight: 1.28, letterSpacing: "-0.015em" },
+  h6: { fontSize: "1.0625rem", fontWeight: 600, lineHeight: 1.35, letterSpacing: "-0.01em" },
+  subtitle1: { fontSize: "0.9375rem", fontWeight: 600, lineHeight: 1.45, letterSpacing: "-0.005em" },
   subtitle2: { fontSize: "0.8125rem", fontWeight: 600, lineHeight: 1.45 },
-  body2: { fontSize: "0.875rem", lineHeight: 1.5 },
-  caption: { fontSize: "0.75rem", lineHeight: 1.45 },
+  body2: { fontSize: "0.875rem", lineHeight: 1.55 },
+  caption: { fontSize: "0.75rem", lineHeight: 1.45, letterSpacing: "0.01em" },
   overline: { fontSize: "0.75rem", fontWeight: 600, letterSpacing: "0.08em", lineHeight: 1.6 },
-  button: { textTransform: "none", fontWeight: 600 }
+  button: { textTransform: "none", fontWeight: 600, letterSpacing: "-0.005em" }
 };
 
 export const baseThemeOptions: ThemeOptions = {
@@ -141,6 +143,7 @@ export const baseThemeOptions: ThemeOptions = {
       }
     },
     MuiDialogTitle: {
+      defaultProps: { component: "div" },
       styleOverrides: { root: { fontSize: "1.0625rem", fontWeight: 600, lineHeight: 1.4 } }
     },
     MuiDialogActions: {
@@ -211,12 +214,13 @@ export const lightThemeOptions: ThemeOptions = {
         // the correct light palette colors MUI itself is applying.
         root: {
           borderRadius: 8,
-          boxShadow: "0 1px 2px rgba(20,30,45,0.06), 0 1px 1px rgba(20,30,45,0.04)",
+          // Colored shadow technique: cool slate-tinted multi-layer elevation
+          boxShadow: "0 1px 3px rgba(31, 35, 53, 0.05), 0 1px 2px rgba(31, 35, 53, 0.03)",
           colorScheme: "light",
           // Floating surfaces (menus, popovers, dialogs) need real elevation
           // to separate from the page they cover; cards stay nearly flat.
           "&.MuiPopover-paper, &.MuiDialog-paper": {
-            boxShadow: "0 8px 24px rgba(20,30,45,0.14), 0 2px 6px rgba(20,30,45,0.08)"
+            boxShadow: "0 12px 28px -4px rgba(31, 35, 53, 0.14), 0 4px 10px -2px rgba(31, 35, 53, 0.07)"
           }
         }
       }

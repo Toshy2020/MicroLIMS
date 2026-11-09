@@ -71,7 +71,7 @@ export function AuditHistoryDialog({
       title={
         <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
           <HistoryIcon sx={{ color: theme.palette.primary.main }} />
-          <Typography variant="h6" sx={{ fontWeight: 700, color: theme.palette.primary.main }}>
+          <Typography component="span" variant="h6" sx={{ fontWeight: 700, color: theme.palette.primary.main }}>
             Audit History · {friendlyEntity} #{entityId}
           </Typography>
         </Box>

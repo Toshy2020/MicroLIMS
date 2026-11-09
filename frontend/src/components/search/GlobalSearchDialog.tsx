@@ -4,6 +4,7 @@ import {
   Dialog, DialogContent, Box, InputBase, Typography, Chip, CircularProgress,
   List, ListItemButton, ListItemText, Divider, IconButton
 } from "@mui/material";
+import { visuallyHidden } from "@mui/utils";
 import SearchIcon from "@mui/icons-material/Search";
 import ClearIcon from "@mui/icons-material/Clear";
 import HistoryIcon from "@mui/icons-material/History";
@@ -15,6 +16,8 @@ interface GlobalSearchDialogProps {
   open: boolean;
   onClose: () => void;
 }
+
+const SEARCH_CATEGORIES = ["All", "Samples", "Orders", "Materials", "Equipment", "Documents"] as const;
 
 export function GlobalSearchDialog({ open, onClose }: GlobalSearchDialogProps) {
   const navigate = useNavigate();
@@ -55,7 +58,8 @@ export function GlobalSearchDialog({ open, onClose }: GlobalSearchDialogProps) {
     const timer = setTimeout(async () => {
       try {
         const cat = activeCategory === "All" ? undefined : activeCategory;
-        const res = await globalSearchApi.search(query, cat, 5, controller.signal);
+        const limit = activeCategory === "All" ? 5 : 15;
+        const res = await globalSearchApi.search(query, cat, limit, controller.signal);
         setResults(res);
         setSelectedIndex(0);
       } catch (err: unknown) {
@@ -119,6 +123,12 @@ export function GlobalSearchDialog({ open, onClose }: GlobalSearchDialogProps) {
           value={query}
           onChange={e => setQuery(e.target.value)}
           onKeyDown={handleKeyDown}
+          inputProps={{
+            "aria-label": "Search MicroLIMS across samples, orders, materials, equipment, and documents",
+            role: "combobox",
+            "aria-expanded": Boolean(results && flatItems.length > 0),
+            "aria-autocomplete": "list"
+          }}
           sx={{ fontSize: 16 }}
         />
         {loading && <CircularProgress size={20} />}
@@ -129,6 +139,49 @@ export function GlobalSearchDialog({ open, onClose }: GlobalSearchDialogProps) {
         )}
       </Box>
 
+      {/* Category Filter Facets */}
+      <Box
+        role="group"
+        aria-label="Filter search results by category"
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          gap: 0.75,
+          px: 2.5,
+          py: 1,
+          borderBottom: 1,
+          borderColor: "divider",
+          bgcolor: "background.default",
+          overflowX: "auto"
+        }}
+      >
+        {SEARCH_CATEGORIES.map((category) => {
+          const selected = activeCategory === category;
+          return (
+            <Chip
+              key={category}
+              label={category}
+              size="small"
+              clickable
+              color={selected ? "primary" : "default"}
+              variant={selected ? "filled" : "outlined"}
+              aria-pressed={selected}
+              onClick={() => setActiveCategory(category)}
+              sx={{ fontWeight: selected ? 700 : 500, fontSize: 12 }}
+            />
+          );
+        })}
+      </Box>
+
+      {/* Screen reader live announcements for search status */}
+      <Box sx={visuallyHidden} aria-live="polite" aria-atomic="true">
+        {loading
+          ? "Searching..."
+          : results && query.trim().length >= 2
+          ? `${flatItems.length} results found for ${query}`
+          : ""}
+      </Box>
+
       <DialogContent sx={{ p: 2 }}>
         {query.trim().length < 2 && recentSearches.length > 0 && (
           <Box sx={{ mb: 2 }}>
@@ -136,7 +189,14 @@ export function GlobalSearchDialog({ open, onClose }: GlobalSearchDialogProps) {
               <Typography variant="caption" color="text.secondary" sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
                 <HistoryIcon sx={{ fontSize: 14 }} /> RECENT SEARCHES
               </Typography>
-              <Typography variant="caption" color="primary" sx={{ cursor: "pointer" }} onClick={clearSearches}>
+              <Typography
+                component="button"
+                type="button"
+                variant="caption"
+                color="primary"
+                sx={{ cursor: "pointer", bgcolor: "transparent", border: 0, p: 0 }}
+                onClick={clearSearches}
+              >
                 Clear
               </Typography>
             </Box>

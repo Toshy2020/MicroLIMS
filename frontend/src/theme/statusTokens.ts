@@ -20,7 +20,7 @@ export const statusTonesByMode: Record<"light" | "dark", Record<StatusTone, Stat
     detected:     { bg: "#FCEAEA", text: "#A21C1C", border: "#E8B9B9" },
     notDetected:  { bg: "#E8F5EC", text: "#1F7A3D", border: "#B7E0C4" },
     inconclusive: { bg: "#FFF4E0", text: "#92620A", border: "#F0D397" },
-    pending:      { bg: "#EEF1F4", text: "#5A6472", border: "#D6DBE1" },
+    pending:      { bg: "#EEF1F4", text: "#5A6472", border: "#C4CDD5" },
     action:       { bg: "#FCEADD", text: "#9A4A0A", border: "#EFC49A" },
     info:         { bg: "#E6EEFB", text: "#1D4E96", border: "#B9CFEF" },
     purple:       { bg: "#F3E8FB", text: "#6B21A8", border: "#DCC0EF" },

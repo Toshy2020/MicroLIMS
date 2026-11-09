@@ -177,6 +177,16 @@ export function Sidebar({ mobileOpen, onMobileClose, collapsed, onToggleCollapse
                     onMouseLeave={() => {
                       if (effectiveCollapsed && hasChildren) scheduleFlyoutClose();
                     }}
+                    onKeyDown={(e) => {
+                      if (!effectiveCollapsed || !hasChildren) return;
+                      if (e.key === "Escape" && flyoutOpen) {
+                        e.preventDefault();
+                        setFlyoutItem(null);
+                      } else if (e.key === "ArrowRight") {
+                        e.preventDefault();
+                        openFlyout(item.label, e.currentTarget);
+                      }
+                    }}
                     sx={{
                       minHeight: 40,
                       px: effectiveCollapsed ? 2.25 : 2,
@@ -299,6 +309,14 @@ export function Sidebar({ mobileOpen, onMobileClose, collapsed, onToggleCollapse
                           <Paper
                             onMouseEnter={cancelFlyoutClose}
                             onMouseLeave={scheduleFlyoutClose}
+                            onKeyDown={(e) => {
+                              if (e.key === "Escape") {
+                                e.stopPropagation();
+                                const anchor = flyoutItem?.anchorEl;
+                                setFlyoutItem(null);
+                                anchor?.focus();
+                              }
+                            }}
                             sx={{ minWidth: 210, py: 0.5 }}
                           >
                             <Typography
@@ -311,7 +329,7 @@ export function Sidebar({ mobileOpen, onMobileClose, collapsed, onToggleCollapse
                               {item.label}
                             </Typography>
                             <Divider sx={{ mb: 0.5 }} />
-                            <MenuList dense>
+                            <MenuList dense autoFocusItem={flyoutOpen}>
                               {item.children!.map((child) => {
                                 const childActive = isLinkActive(child);
                                 const ChildIcon = child.icon;

@@ -119,12 +119,25 @@ export function SampleStatusKpiCards({ counts, activeKey, onSelect, onClear, all
             textAlign: "left",
             borderBottom: "3px solid",
             borderColor: active ? "primary.main" : "transparent",
+            borderRight: "1px solid",
+            borderRightColor: "divider",
+            "&:last-of-type": { borderRight: "none" },
             bgcolor: active ? theme.custom.status.purple.bg : "transparent",
+            transition: "background-color 150ms cubic-bezier(0.4, 0, 0.2, 1), border-color 150ms cubic-bezier(0.4, 0, 0.2, 1)",
             "&:hover": { bgcolor: active ? theme.custom.status.purple.bg : "action.hover" },
             "&.Mui-focusVisible": { outline: `2px solid ${theme.palette.primary.main}`, outlineOffset: -2 }
           }}
         >
-          <Typography sx={{ fontSize: 22, fontWeight: 700, lineHeight: 1.1, fontVariantNumeric: "tabular-nums", color: count === 0 ? "text.disabled" : toneText ?? "text.primary" }}>
+          <Typography
+            sx={{
+              fontSize: 22,
+              fontWeight: 700,
+              lineHeight: 1.1,
+              letterSpacing: "-0.02em",
+              fontVariantNumeric: "tabular-nums",
+              color: count === 0 ? "text.disabled" : toneText ?? "text.primary"
+            }}
+          >
             {count ?? <Box component="span" aria-hidden="true" sx={{ visibility: "hidden" }}>0</Box>}
           </Typography>
           <Typography sx={{ fontSize: 12, whiteSpace: "nowrap", color: active ? "text.primary" : "text.secondary", fontWeight: active ? 600 : 400 }}>

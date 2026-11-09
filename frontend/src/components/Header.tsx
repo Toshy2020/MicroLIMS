@@ -18,7 +18,7 @@ import SearchIcon from "@mui/icons-material/Search";
 import { apiClient } from "../services/apiClient";
 import { useThemeMode } from "../theme/ThemeModeContext";
 import { useAuth } from "../contexts/AuthContext";
-import { formatRoleFallback, userInitials } from "../utils/userDisplay";
+import { formatRoleFallback, formatRoleName, userInitials } from "../utils/userDisplay";
 import { GlobalSearchDialog } from "./search/GlobalSearchDialog";
 import { useGlobalSearchShortcut } from "../hooks/useGlobalSearchShortcut";
 import WarningAmberOutlinedIcon from "@mui/icons-material/WarningAmberOutlined";
@@ -69,14 +69,6 @@ interface HeaderProps {
   // Lab membership, for the job-title fallback ("Microbiology Analyst").
   labCodes: string[];
 }
-
-// Labels for the base role type, used only until the session knows the
-// role's own name (a session stored before role names were sent).
-const ROLE_LABELS: Record<string, string> = {
-  SectionHead: "Section Head",
-  QcManager: "QC Manager",
-  SystemAdministrator: "System Administrator"
-};
 
 export function Header({ onToggleSidebar, sidebarCollapsed, labCodes }: HeaderProps) {
   const { mode, toggleMode } = useThemeMode();
@@ -354,7 +346,14 @@ export function Header({ onToggleSidebar, sidebarCollapsed, labCodes }: HeaderPr
                   : <InfoOutlinedIcon fontSize="small" sx={{ color: "info.main", mt: 0.25 }} titleAccess="Information" />}
                 <ListItemText
                   sx={{ m: 0 }}
-                  primary={n.message}
+                  primary={
+                    <>
+                      <Box component="span" sx={visuallyHidden}>
+                        {warning ? "Warning: " : "Information: "}
+                      </Box>
+                      {n.message}
+                    </>
+                  }
                   secondary={new Date(n.timestamp).toLocaleString()}
                   slotProps={{
                     primary: { sx: { fontWeight: n.isRead ? 400 : 700, fontSize: 13 } },
@@ -427,7 +426,7 @@ export function Header({ onToggleSidebar, sidebarCollapsed, labCodes }: HeaderPr
             <Typography sx={{ fontSize: 12.5, color: "text.secondary" }}>{displayTitle}</Typography>
             <Box component="dl" sx={{ m: 0, mt: 0.75, display: "grid", gridTemplateColumns: "auto 1fr", columnGap: 1, fontSize: 12, color: "text.secondary", "& dd": { m: 0, color: "text.primary" } }}>
               {username && (<><dt>User ID</dt><dd>{username}</dd></>)}
-              {(roleName || role) && (<><dt>Role</dt><dd>{roleName?.trim() || (role ? ROLE_LABELS[role] ?? role : "")}</dd></>)}
+              {(roleName || role) && (<><dt>Role</dt><dd>{formatRoleName(role, roleName)}</dd></>)}
             </Box>
           </Box>
           <Divider />

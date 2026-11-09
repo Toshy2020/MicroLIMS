@@ -126,7 +126,12 @@ export function AnalystDashboardPage() {
       {/* Tier 2: Action Required by Analyst */}
       <ActionRequiredPanel tasks={tasks} loading={tasksLoading} />
 
-      {/* Tier 3: Attention Required & (Microbiology) Incubation Monitoring */}
+      {/* Tier 3: My Active Work Table (Elevated above secondary monitoring panels) */}
+      <Box sx={{ mb: 2 }}>
+        {todaysWork ? <TodaysWorkTable items={todaysWork} /> : <TableSkeleton rows={4} cols={5} />}
+      </Box>
+
+      {/* Tier 4: Attention Required & (Microbiology) Incubation Monitoring */}
       <Grid container spacing={2} sx={{ mb: 2 }}>
         <Grid
           size={{
@@ -145,11 +150,6 @@ export function AnalystDashboardPage() {
           </Grid>
         )}
       </Grid>
-
-      {/* Tier 4: My Active Work Table */}
-      <Box sx={{ mb: 2 }}>
-        {todaysWork ? <TodaysWorkTable items={todaysWork} /> : <TableSkeleton rows={4} cols={5} />}
-      </Box>
 
       {/* Tier 5: Daily Throughput & Operational Metrics */}
       <Grid container spacing={2} sx={{ mb: 2 }}>

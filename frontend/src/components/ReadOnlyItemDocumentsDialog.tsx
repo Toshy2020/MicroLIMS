@@ -96,7 +96,7 @@ export function ReadOnlyItemDocumentsDialog({
       titleSx={{ pb: 1 }}
       title={
         <Box>
-          <Typography variant="h6" sx={{ fontWeight: 700, fontSize: 16 }}>
+          <Typography component="span" variant="h6" sx={{ fontWeight: 700, fontSize: 16 }}>
             Controlled Item Documents
           </Typography>
           <Stack

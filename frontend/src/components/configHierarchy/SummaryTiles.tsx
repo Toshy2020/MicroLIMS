@@ -71,7 +71,18 @@ export function SummaryTiles({ tiles }: { tiles: SummaryTile[] }) {
               )}
             </Box>
             <Box sx={{ display: "flex", alignItems: "baseline", gap: 0.75 }}>
-              <Typography sx={{ fontSize: 24, fontWeight: 700, lineHeight: 1.1, color: valueColor }}>{tile.value}</Typography>
+              <Typography
+                sx={{
+                  fontSize: 24,
+                  fontWeight: 700,
+                  lineHeight: 1.1,
+                  letterSpacing: "-0.02em",
+                  fontVariantNumeric: "tabular-nums",
+                  color: valueColor
+                }}
+              >
+                {tile.value}
+              </Typography>
               {tile.caption && <Typography sx={{ fontSize: 12, color: "text.secondary" }}>{tile.caption}</Typography>}
               {active && <Typography sx={{ fontSize: 12, fontWeight: 600, color: activeTokens.text }}>Filtering</Typography>}
             </Box>
@@ -99,8 +110,15 @@ export function SummaryTiles({ tiles }: { tiles: SummaryTile[] }) {
         const interactiveSx = {
           ...sx,
           cursor: "pointer",
-          transition: theme.transitions.create(["border-color", "box-shadow"], { duration: 150 }),
-          "&:hover": { borderColor: activeTokens.border, boxShadow: theme.shadows[2] },
+          transition: theme.transitions.create(["border-color", "box-shadow", "transform"], {
+            duration: 180,
+            easing: "cubic-bezier(0.4, 0, 0.2, 1)"
+          }),
+          "&:hover": {
+            borderColor: activeTokens.border,
+            boxShadow: "0 4px 12px rgba(31, 35, 53, 0.08)",
+            transform: "translateY(-1px)"
+          },
           // .text, not .border: the border token is too pale for a 3:1 focus ring.
           "&.Mui-focusVisible": { outline: `2px solid ${activeTokens.text}`, outlineOffset: 2 }
         };

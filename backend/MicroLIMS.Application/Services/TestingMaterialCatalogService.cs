@@ -14,11 +14,13 @@ public class TestingMaterialCatalogService
 {
     private readonly IMicroLimsDbContext _db;
     private readonly IUserSectionScopeService _scope;
+    private readonly TimeProvider _time;
 
-    public TestingMaterialCatalogService(IMicroLimsDbContext db, IUserSectionScopeService scope)
+    public TestingMaterialCatalogService(IMicroLimsDbContext db, IUserSectionScopeService scope, TimeProvider? timeProvider = null)
     {
         _db = db;
         _scope = scope;
+        _time = timeProvider ?? TimeProvider.System;
     }
 
     // group: one of TestingMaterialGroups (null = all). search matches code or name. sectionId
@@ -85,7 +87,7 @@ public class TestingMaterialCatalogService
                 .OrderBy(m => m.Code).ToListAsync(ct);
             foreach (var m in lots)
             {
-                var active = m.Status == StockStatus.InStock;
+                var active = m.StatusAt(_time.GetUtcNow().UtcDateTime) == StockStatus.InStock;
                 if (activeOnly && !active) continue;
                 if (!Matches(m.Code!, m.MaterialName)) continue;
                 rows.Add(new(TestingMaterialGroups.Standards, m.Id, TestingMaterialSourceTypes.WorkingStandard, m.Code!, m.MaterialName,

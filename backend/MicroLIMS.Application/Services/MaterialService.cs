@@ -159,7 +159,7 @@ public class MaterialService
             query = query.Where(m => scope.Contains(m.SectionId));
         }
         if (type.HasValue) query = query.Where(m => m.MaterialType == type.Value);
-        return (await query.OrderBy(m => m.MaterialType).ThenBy(m => m.MaterialName).ToListAsync()).Select(MaterialResponse.From).ToList();
+        return (await query.OrderBy(m => m.MaterialType).ThenBy(m => m.MaterialName).ToListAsync()).Select(m => MaterialResponse.From(m, _time.GetUtcNow().UtcDateTime)).ToList();
     }
 
     // Print/view list per Mohamed's spec: excludes Expired and Depleted rows.
@@ -280,7 +280,7 @@ public class MaterialService
         };
         _db.Materials.Add(entity);
         await _db.SaveChangesAsync();
-        return MaterialResponse.From(entity);
+        return MaterialResponse.From(entity, _time.GetUtcNow().UtcDateTime);
     }
 
     private static string? NormalizeStorage(string? value)
@@ -506,7 +506,7 @@ public class MaterialService
         query = query.Where(m => m.QuantityRemaining > 0 && (!m.ExpiryDate.HasValue || m.ExpiryDate.Value.Date >= today)
             && (m.ApprovalStatus == null || m.ApprovalStatus == ApprovalGateStatus.Approved));
 
-        return (await query.OrderBy(m => m.MaterialName).ThenBy(m => m.BatchNumber).ToListAsync()).Select(MaterialResponse.From).ToList();
+        return (await query.OrderBy(m => m.MaterialName).ThenBy(m => m.BatchNumber).ToListAsync()).Select(m => MaterialResponse.From(m, _time.GetUtcNow().UtcDateTime)).ToList();
     }
 
     // Consumption guard + decrement, called from MediaPreparationService.

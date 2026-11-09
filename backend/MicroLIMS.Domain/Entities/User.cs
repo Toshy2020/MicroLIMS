@@ -24,7 +24,8 @@ public class User : IVersionedEntity
     // Account locking (gap analysis "Missing Security").
     public int FailedLoginAttempts { get; set; }
     public DateTime? LockedUntil { get; set; }
-    public bool IsLocked => LockedUntil is not null && LockedUntil > DateTime.UtcNow;
+    // Takes the current time from the caller's injected clock (CLAUDE.md Rule 5.6).
+    public bool IsLockedAt(DateTime nowUtc) => LockedUntil is not null && LockedUntil > nowUtc;
 
     // Password policy + login tracking.
     public DateTime? PasswordChangedAt { get; set; }

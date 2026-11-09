@@ -51,6 +51,6 @@ public class EquipmentInventory : IVersionedEntity
     public int? LastModifiedByUserId { get; set; }
     public DateTime LastModifiedAt { get; set; } = DateTime.UtcNow;
 
-    // Not mapped - purely a display convenience for the list/print view.
-    public bool IsCalibrationOverdue => CalibrationDueDate.HasValue && CalibrationDueDate.Value.Date < DateTime.UtcNow.Date;
+    // Display convenience for the list/print view. Takes the current time from the caller's injected clock (CLAUDE.md Rule 5.6).
+    public bool IsCalibrationOverdueAt(DateTime nowUtc) => CalibrationDueDate.HasValue && CalibrationDueDate.Value.Date < nowUtc.Date;
 }

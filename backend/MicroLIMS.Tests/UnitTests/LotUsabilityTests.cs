@@ -43,7 +43,7 @@ public class LotUsabilityTests
 
         Assert.False(result.Usable);
         Assert.Equal(reason, result.Reason);
-        Assert.False(lot.IsUsable);
+        Assert.False(lot.IsUsableAt(DateTime.UtcNow));
     }
 
     [Fact]

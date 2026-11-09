@@ -14,24 +14,29 @@ namespace MicroLIMS.Tests.WorkflowTests;
 // cannot override it.
 public class IncubationLockTests
 {
+    // The caller supplies "now" from its injected clock (CLAUDE.md Rule 5.6),
+    // so the window edges are tested exactly.
+    private static readonly DateTime WindowEnd = new(2026, 11, 9, 8, 0, 0, DateTimeKind.Utc);
+
     [Fact]
     public void IsIncubationComplete_IsFalse_BeforeTheWindowEnds()
     {
-        var incubation = new Incubation { IncubationEndUtc = DateTime.UtcNow.AddHours(4) };
-        Assert.False(incubation.IsIncubationComplete);
+        var incubation = new Incubation { IncubationEndUtc = WindowEnd };
+        Assert.False(incubation.IsIncubationCompleteAt(WindowEnd.AddSeconds(-1)));
     }
 
     [Fact]
-    public void IsIncubationComplete_IsTrue_AfterTheWindowEnds()
+    public void IsIncubationComplete_IsTrue_AtAndAfterTheWindowEnds()
     {
-        var incubation = new Incubation { IncubationEndUtc = DateTime.UtcNow.AddSeconds(-1) };
-        Assert.True(incubation.IsIncubationComplete);
+        var incubation = new Incubation { IncubationEndUtc = WindowEnd };
+        Assert.True(incubation.IsIncubationCompleteAt(WindowEnd));
+        Assert.True(incubation.IsIncubationCompleteAt(WindowEnd.AddSeconds(1)));
     }
 
     [Fact]
     public void IsIncubationComplete_IsFalse_WhenNoWindowIsSet()
     {
-        Assert.False(new Incubation().IsIncubationComplete);
+        Assert.False(new Incubation().IsIncubationCompleteAt(WindowEnd));
     }
 
     [Fact]

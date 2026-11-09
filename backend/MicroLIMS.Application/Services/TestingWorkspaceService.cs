@@ -25,9 +25,7 @@ public class TestingWorkspaceService : ITestWorkspaceService
 
     public async Task<PagedResult<SampleDto>> GetActiveSamplesAsync(TestingWorkspaceFilterDto filter, int? currentUserId = null)
     {
-        int page = filter.Page <= 0 ? 1 : filter.Page;
-        // Default 50, hard server-side max 200: caller cannot request unbounded data
-        int pageSize = filter.PageSize <= 0 ? 50 : Math.Min(filter.PageSize, 200);
+        var (page, pageSize) = Paging.Normalize(filter.Page, filter.PageSize, defaultPageSize: 50);
 
         var scope = currentUserId.HasValue
             ? await _scope.GetReadableSectionIdsAsync(currentUserId.Value)

@@ -1,3 +1,4 @@
+using MicroLIMS.Application.Helpers;
 using System.Text;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.DTOs.DocumentControl;
@@ -37,8 +38,7 @@ public class DocumentAuditService : IDocumentAuditService
         var query = BuildAuditQuery(filter);
 
         var totalCount = await query.CountAsync();
-        var page = Math.Max(1, filter.Page);
-        var pageSize = Math.Clamp(filter.PageSize, 1, 100);
+        var (page, pageSize) = Paging.Normalize(filter.Page, filter.PageSize, defaultPageSize: 50);
 
         var logs = await query
             .OrderByDescending(a => a.Timestamp)

@@ -1,3 +1,4 @@
+using MicroLIMS.Application.Helpers;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Application.Interfaces;
@@ -264,8 +265,7 @@ public class AnalystWorkloadService
     // The tests behind the row figures, so any number can be traced to records. Same scope and D8 rules as GetAsync.
     public async Task<KpiRecordPageDto> GetTestsAsync(KpiQuery q, int page, int pageSize, CancellationToken ct)
     {
-        page = Math.Max(1, page);
-        pageSize = pageSize <= 0 ? 50 : Math.Min(pageSize, 200);
+        (page, pageSize) = Paging.Normalize(page, pageSize, defaultPageSize: 50);
         var data = await LoadAsync(q, EffectiveAnalystId(q), ct);
 
         var ids = data.Delivered.Select(d => d.AnalystId)

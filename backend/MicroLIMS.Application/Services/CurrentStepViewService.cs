@@ -139,7 +139,7 @@ public class CurrentStepViewService
         var isMinLockActive = openIncubation != null && minReadyAtUtc.HasValue && _time.GetUtcNow().UtcDateTime < minReadyAtUtc.Value && !openIncubation.MinimumDurationOverriddenByUserId.HasValue;
         var incubationLock = openIncubation?.IncubationEndUtc is null ? null : new
         {
-            isLocked = windowNotConfigured || isMinLockActive || !openIncubation.IsIncubationComplete,
+            isLocked = windowNotConfigured || isMinLockActive || !openIncubation.IsIncubationCompleteAt(_time.GetUtcNow().UtcDateTime),
             windowNotConfigured,
             incubationEndUtc = openIncubation.IncubationEndUtc,
             remainingSeconds = Math.Max(0, (long)Math.Ceiling((openIncubation.IncubationEndUtc.Value - _time.GetUtcNow().UtcDateTime).TotalSeconds)),
@@ -241,7 +241,7 @@ public class CurrentStepViewService
                 minReadyAt = tsbMinReady,
                 remainingMinimumSeconds = tsbRemMinSec,
                 minimumDurationOverridden = tsbOverridden,
-                isLocked = tsbWindow is null || (tsbMinReady.HasValue && _time.GetUtcNow().UtcDateTime < tsbMinReady.Value && !tsbOverridden) || !inc.IsIncubationComplete,
+                isLocked = tsbWindow is null || (tsbMinReady.HasValue && _time.GetUtcNow().UtcDateTime < tsbMinReady.Value && !tsbOverridden) || !inc.IsIncubationCompleteAt(_time.GetUtcNow().UtcDateTime),
                 windowNotConfigured = tsbWindow is null,
                 startedByUserName = startedUser ?? "Analyst",
                 isCompleted = inc.CompletedAt.HasValue

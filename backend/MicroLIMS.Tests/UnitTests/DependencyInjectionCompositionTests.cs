@@ -51,4 +51,36 @@ public class DependencyInjectionCompositionTests
 
         Assert.Same(concrete, abstraction);
     }
+
+    // The container must build MicroLimsDbContext with the registered
+    // TimeProvider, so audit rows use the application clock (CLAUDE.md
+    // Rule 3.3.2) rather than the context's System fallback.
+    [Fact]
+    public async Task TheContainerContext_StampsAuditRowsWithTheRegisteredClock()
+    {
+        var fixedNow = new DateTimeOffset(2031, 3, 4, 5, 6, 7, TimeSpan.Zero);
+        var builder = WebApplication.CreateBuilder();
+        builder.Services.AddSingleton(new JwtSettings(new string('k', 64), "issuer", "audience", TimeSpan.FromMinutes(15)));
+        var store = Guid.NewGuid().ToString();
+        builder.Services.AddMicroLimsDbContext(o => o.UseInMemoryDatabase(store));
+        builder.Services.AddApplicationServices(builder.Configuration);
+        // Registered last, so it is the TimeProvider the container resolves.
+        builder.Services.AddSingleton<TimeProvider>(new MicroLIMS.Tests.Fixtures.FixedTimeProvider(fixedNow));
+        var provider = builder.Build().Services;
+
+        using (var scope = provider.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<MicroLimsDbContext>();
+            db.CurrentUserId = 1;
+            db.Organisms.Add(new MicroLIMS.Domain.Entities.Organism { ScientificName = "DI clock organism" });
+            await db.SaveChangesAsync();
+        }
+
+        using (var scope = provider.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<MicroLimsDbContext>();
+            var audit = await db.AuditLogs.AsNoTracking().SingleAsync(a => a.EntityName == "Organism" && a.Action == "Create");
+            Assert.Equal(fixedNow.UtcDateTime, audit.Timestamp);
+        }
+    }
 }

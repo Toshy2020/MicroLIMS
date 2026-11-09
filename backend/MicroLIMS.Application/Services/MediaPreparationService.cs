@@ -50,7 +50,7 @@ public class MediaPreparationService
     }
 
     public Task<MediaResponse> PrepareAsync(PrepareMediaRequest request) =>
-        UnitOfWork.RunAsync(_db, async () => MediaResponse.From(await PrepareCoreAsync(request)));
+        UnitOfWork.RunAsync(_db, async () => MediaResponse.From(await PrepareCoreAsync(request), _time.GetUtcNow().UtcDateTime));
 
     private async Task<Media> PrepareCoreAsync(PrepareMediaRequest request)
     {
@@ -247,7 +247,7 @@ public class MediaPreparationService
     public async Task<List<MediaResponse>> GetAllAsync(IReadOnlyCollection<int>? sectionIds = null) =>
         (await _db.Media.Include(m => m.Material).Include(m => m.Additives)
             .Where(m => sectionIds == null || sectionIds.Contains(m.Material!.SectionId))
-            .OrderByDescending(m => m.Id).ToListAsync()).Select(MediaResponse.From).ToList();
+            .OrderByDescending(m => m.Id).ToListAsync()).Select(m => MediaResponse.From(m, _time.GetUtcNow().UtcDateTime)).ToList();
 
     // includeExpired: the reference-lot lookup for a new GrowthPromotion
     // evaluation (MediaEvaluationController) wants any lot that was ever
@@ -262,7 +262,7 @@ public class MediaPreparationService
         if (!includeExpired) query = query.Where(m => m.Status == MediaStatus.Active && m.ExpiryDate > _time.GetUtcNow().UtcDateTime);
         if (materialId.HasValue) query = query.Where(m => m.MaterialId == materialId.Value);
         if (excludeId.HasValue) query = query.Where(m => m.Id != excludeId.Value);
-        return (await query.OrderByDescending(m => m.Id).ToListAsync()).Select(MediaResponse.From).ToList();
+        return (await query.OrderByDescending(m => m.Id).ToListAsync()).Select(m => MediaResponse.From(m, _time.GetUtcNow().UtcDateTime)).ToList();
     }
 
     public async Task MarkOutOfStockAsync(int mediaId, int userId, string? comment = null)

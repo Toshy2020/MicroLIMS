@@ -17,7 +17,7 @@ by decision of the project owner; `.claude/commands/` (`/delegate`, `/research`,
 |---|---|---|---|
 | G1 | §3.3.0 regulated-entity marker (`IRegulatedEntity` / `[Regulated]`) | None. Instead **everything is audited by default** in `MicroLimsDbContext.SaveChangesAsync`, with an explicit opt-out list `AuditCaptureExcludedTypes` (each entry justified) and `[AuditRedacted]` for secrets | **Rewrite the rule to describe the real mechanism** (Phase 0). Do *not* build an opt-in marker — opt-out is safer (a new entity cannot be forgotten). |
 | G2 | §5.1 `backend/Directory.Build.props` + `Directory.Packages.props` | Absent; 26 `PackageReference` versions spread across 5 `.csproj` | Build it (Phase 1) |
-| G3 | §5.4 "`EnableRetryOnFailure` is active" | **Not enabled** (`Program.cs:30` is plain `UseNpgsql`). 8 `BeginTransaction` call sites are not wrapped in an execution strategy | Make rule conditional now (Phase 0); decide on enabling (Phase 4) |
+| G3 | §5.4 "`EnableRetryOnFailure` is active" | **Not enabled** (`Program.cs:30` is plain `UseNpgsql`). 8 `BeginTransaction` call sites are not wrapped in an execution strategy | Rule made conditional (Phase 0); **decided: stays off** (Phase 4) |
 | G4 | §7.4 post-migration test asserts triggers exist via `pg_trigger` | **Done:** `AppendOnlyTriggerCatalogPostgresTests` (13 tables, shape + enabled + reverse check, with a rollback self-check) | — |
 | G5 | §5.4 pagination `Math.Clamp(pageSize, 1, 100)` | 28 `pageSize` parameters; ~8 clamp, some use `Math.Min` only, KPI/Reporting/Discussion paths unverified | Audit + architecture test (Phase 2) |
 | G6 | §2 Postgres command uses `Database=microlims_test` | Fixture expects a **maintenance** DB and creates `microlims_test_<32hex>` itself (as CI does with `Database=postgres`) | Fix the command (Phase 0) |
@@ -108,7 +108,8 @@ No big-bang rewrite. Instead:
 
 ## Phase 4 — Execution strategy decision (optional, medium–high risk)
 
-Decision for the owner. **Recommendation: keep retry disabled** for now — the
+**Decided (2026-11-09): keep retry disabled.** The owner confirmed this
+recommendation; CLAUDE.md §5.4 records it as the current state. The
 system is a single-database deployment, transient-failure retries are not a
 stated requirement, and enabling it touches every transaction in regulated
 workflows. If later required:
@@ -138,6 +139,28 @@ workflows. If later required:
   `TestMasterCoaOrder.test.tsx`.
 - Open: the Water / EM / After Cleaning matrix still puts the TAMC column first
   by test code (`CertificateOfAnalysisBuilder.BuildMatrix`).
+
+- Clock discipline (Rule 3.3.2 / 5.6): the audit timestamp now comes from
+  `MicroLimsDbContext`'s injected `TimeProvider` (was `DateTime.UtcNow`); the six
+  Domain time-based decisions (`Incubation`, `Material` status/usable,
+  `EquipmentInventory` calibration overdue, `User` lock, refresh/reset tokens)
+  take `nowUtc` from the caller's clock; `ClockUsageTests` now also covers
+  Persistence and Domain (104 legacy property defaults capped by a ratchet).
+  API/Infrastructure clock reads (file names, PDF "generated" stamps, health,
+  JWT issue time) are outside Rule 5.6's scope and unchanged.
+
+- Phase 2 pagination (G5) done: every list endpoint goes through
+  `Paging.Normalize` (cap 100; 8 services were at 200), guarded by
+  `PagingUsageTests`; the Receiving register and "export all matching" PDF
+  page through with `fetchAllPages` instead of relying on one 200-row page.
+- Phase 1 (G2) done: `backend/Directory.Build.props` and
+  `backend/Directory.Packages.props`; Dockerfile and CI cache updated;
+  resolved package graph verified identical.
+- Phase 3 (G9) done: `npm run debt:check` ratchet in CI with
+  `frontend/test-debt-baseline.json`. `TestMasterPage.test.tsx` migrated
+  (29 `fireEvent` calls and the `useTestDefinitions` hook stub removed).
+  Next candidates: `pages/Reports.test.tsx` (7 tab stubs, the example named
+  in Rule 4.5), then the largest `fireEvent` files the script lists.
 
 ## Order & effort
 

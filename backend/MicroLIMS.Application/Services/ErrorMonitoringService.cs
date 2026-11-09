@@ -1,3 +1,4 @@
+using MicroLIMS.Application.Helpers;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.DTOs;
 using MicroLIMS.Application.Interfaces;
@@ -10,7 +11,6 @@ namespace MicroLIMS.Application.Services;
 
 public class ErrorMonitoringService : IErrorMonitoringService
 {
-    private const int MaxPageSize = 200;
 
     // Export is bounded: this is a triage aid, not a data warehouse
     // extract, and the table is deliberately prunable operational noise.
@@ -28,8 +28,7 @@ public class ErrorMonitoringService : IErrorMonitoringService
     public async Task<IncidentListResult> SearchAsync(
         IncidentQuery query, CancellationToken cancellationToken = default)
     {
-        var page = query.Page < 1 ? 1 : query.Page;
-        var pageSize = query.PageSize < 1 ? 25 : Math.Min(query.PageSize, MaxPageSize);
+        var (page, pageSize) = Paging.Normalize(query.Page, query.PageSize, defaultPageSize: 25);
 
         var filtered = ApplyFilters(query);
 

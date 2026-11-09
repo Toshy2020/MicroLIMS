@@ -1,3 +1,4 @@
+using MicroLIMS.Application.Helpers;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Services.Kpi;
 using MicroLIMS.Domain.Entities;
@@ -170,14 +171,14 @@ public class KpiScopeAuthorizationTests
     }
 
     [Fact]
-    public async Task Records_PageStartsAtOne_AndSizeIsCappedAt200()
+    public async Task Records_PageStartsAtOne_AndSizeIsCappedAtTheMaximum()
     {
         await using var db = NewDb();
         var kpi = new FakeKpi("a", 1);
         var svc = Service(db, _ => null, kpi);
         var page = await svc.GetRecordsAsync("a", 1, true, From, To, null, null, null, null, 0, 5000);
         Assert.Equal(1, page.Page);
-        Assert.Equal(200, page.PageSize);
+        Assert.Equal(Paging.MaxPageSize, page.PageSize);
         var def = await svc.GetRecordsAsync("a", 1, true, From, To, null, null, null, null, 2, 0);
         Assert.Equal(50, def.PageSize);
     }

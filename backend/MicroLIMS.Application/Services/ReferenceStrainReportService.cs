@@ -18,8 +18,7 @@ public class ReferenceStrainReportService
 
     public async Task<ReferenceStrainSearchResult> SearchAsync(ReferenceStrainSearchRequest request, IReadOnlyCollection<int>? sectionIds = null)
     {
-        var pageSize = Math.Clamp(request.PageSize <= 0 ? 25 : request.PageSize, 1, 200);
-        var page = request.Page <= 0 ? 1 : request.Page;
+        var (page, pageSize) = Paging.Normalize(request.Page, request.PageSize, defaultPageSize: 25);
 
         var baseQuery = BuildFilteredQuery(request, sectionIds);
         var totalCount = await baseQuery.CountAsync();

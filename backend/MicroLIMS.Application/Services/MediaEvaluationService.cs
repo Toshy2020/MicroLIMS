@@ -29,7 +29,7 @@ public class MediaEvaluationService
         var query = _db.MediaEvaluations.Include(e => e.Media!).ThenInclude(m => m.Material).AsQueryable();
         if (sectionIds != null) query = query.Where(e => sectionIds.Contains(e.Media!.Material!.SectionId));
         if (status.HasValue) query = query.Where(e => e.Status == status.Value);
-        return (await query.OrderByDescending(e => e.Id).ToListAsync()).Select(MediaEvaluationResponse.From).ToList();
+        return (await query.OrderByDescending(e => e.Id).ToListAsync()).Select(e => MediaEvaluationResponse.From(e, _time.GetUtcNow().UtcDateTime)).ToList();
     }
 
     public async Task<MediaEvaluationResponse> GetByIdAsync(int id) =>
@@ -42,7 +42,7 @@ public class MediaEvaluationService
             .Include(e => e.Challenges).ThenInclude(c => c.ReferenceMedia)
             .Include(e => e.Challenges).ThenInclude(c => c.LyophilizedDisk)
             .FirstOrDefaultAsync(e => e.Id == id)
-        ?? throw new NotFoundException($"Media evaluation {id} not found."));
+        ?? throw new NotFoundException($"Media evaluation {id} not found."), _time.GetUtcNow().UtcDateTime);
 
     // Every vial thawed in the last 24 hours (and not destroyed) out of an
     // approved, unexpired batch of the challenge's organism in the
@@ -101,8 +101,8 @@ public class MediaEvaluationService
         _engine.SelectLyophilizedDiskAsync(challengeId, materialId, userId);
 
     public async Task<IncubationResponse> RecordIncubationAsync(int challengeId, int incubatorEquipmentId, int userId) =>
-        IncubationResponse.From(await _engine.RecordIncubationAsync(challengeId, incubatorEquipmentId, userId));
+        IncubationResponse.From(await _engine.RecordIncubationAsync(challengeId, incubatorEquipmentId, userId), _time.GetUtcNow().UtcDateTime);
 
     public async Task<MediaEvaluationChallengeResponse> RecordResultAsync(RecordResultRequest request) =>
-        MediaEvaluationChallengeResponse.From(await _engine.RecordResultAsync(request));
+        MediaEvaluationChallengeResponse.From(await _engine.RecordResultAsync(request), _time.GetUtcNow().UtcDateTime);
 }

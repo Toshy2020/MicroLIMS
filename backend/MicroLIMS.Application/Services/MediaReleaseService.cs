@@ -50,7 +50,7 @@ public class MediaReleaseService
             .Where(m => sectionIds == null || sectionIds.Contains(m.Material!.SectionId))
             .Where(m => qualifiedMediaIds.Contains(m.Id) && m.ApprovalStatus == ApprovalGateStatus.PendingReview)
             .OrderByDescending(m => m.Id)
-            .ToListAsync()).Select(MediaResponse.From).ToList();
+            .ToListAsync()).Select(m => MediaResponse.From(m, _time.GetUtcNow().UtcDateTime)).ToList();
     }
 
     public Task DecideAsync(int mediaId, int sectionHeadUserId, string password, bool approved, string? comment, string? ipAddress) =>

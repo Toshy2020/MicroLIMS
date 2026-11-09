@@ -31,6 +31,5 @@ public class IncubationConfiguration : IEntityTypeConfiguration<Incubation>
         // a normal, non-transfer window" invariant for historical data.
         builder.Property(i => i.StageNumber).HasDefaultValue(1);
 
-        builder.Ignore(i => i.IsIncubationComplete);
     }
 }

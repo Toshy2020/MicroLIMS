@@ -66,6 +66,15 @@ public class PostgresTestFixture : IAsyncLifetime
         return new MicroLimsDbContext(builder.Options);
     }
 
+    // A context whose audit rows are stamped by the given clock.
+    public MicroLimsDbContext CreateDbContext(TimeProvider clock)
+    {
+        if (_testConnectionString is null)
+            throw new InvalidOperationException(PostgresTestConfiguration.SkipReason);
+
+        return new MicroLimsDbContext(new DbContextOptionsBuilder<MicroLimsDbContext>().UseNpgsql(_testConnectionString).Options, clock);
+    }
+
     public IDatabaseSequenceHelper CreateSequenceHelper(MicroLimsDbContext db)
     {
         return new DatabaseSequenceHelper(db);

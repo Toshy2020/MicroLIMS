@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using MicroLIMS.Application.Helpers;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.DTOs.DocumentControl;
@@ -60,7 +61,7 @@ public class DocumentReviewService : IDocumentReviewService
             throw new KeyNotFoundException($"Document revision {revisionId} not found.");
 
         if (revision.RevisionStatus != DocumentRevisionStatus.Draft)
-            throw new InvalidOperationException($"Cannot submit revision for technical review in status {revision.RevisionStatus}. Status must be Draft.");
+            throw new BusinessRuleException($"Cannot submit revision for technical review in status {revision.RevisionStatus}. Status must be Draft.");
 
         // Release 1d (DC-URS-1D-001, DC-FRS-1D-001): Working source must be an editable Word document (.docx or .doc)
         var activeSourceFile = revision.Files.FirstOrDefault(f => f.FileRole == FileRole.SourceFile && f.IsActive);
@@ -70,7 +71,7 @@ public class DocumentReviewService : IDocumentReviewService
             var hasActivePdf = revision.Files.Any(f => f.FileRole == FileRole.ControlledPdf && f.IsActive);
             if (!hasActivePdf)
             {
-                throw new InvalidOperationException("Cannot submit revision for technical review without an active editable Word source file (.docx or .doc).");
+                throw new BusinessRuleException("Cannot submit revision for technical review without an active editable Word source file (.docx or .doc).");
             }
         }
 
@@ -80,7 +81,7 @@ public class DocumentReviewService : IDocumentReviewService
         {
             if (impact == null || !impact.IsComplete)
             {
-                throw new InvalidOperationException("A multi-category Revision Impact Assessment must be completed before submitting for technical review.");
+                throw new BusinessRuleException("A multi-category Revision Impact Assessment must be completed before submitting for technical review.");
             }
         }
 
@@ -93,7 +94,7 @@ public class DocumentReviewService : IDocumentReviewService
 
         if (unaddressedOriginatingItems.Count > 0)
         {
-            throw new InvalidOperationException($"Cannot submit revision for review: {unaddressedOriginatingItems.Count} originating review finding(s) remain unaddressed.");
+            throw new BusinessRuleException($"Cannot submit revision for review: {unaddressedOriginatingItems.Count} originating review finding(s) remain unaddressed.");
         }
 
         // Authorization check: User must be Document Owner, assigned Author, or SectionHead
@@ -112,16 +113,16 @@ public class DocumentReviewService : IDocumentReviewService
         // Target reviewer must exist and be active
         var (reviewerActive, reviewerRole) = await GetUserRoleAsync(request.ReviewerUserId);
         if (!reviewerActive || reviewerRole == null)
-            throw new InvalidOperationException("Assigned reviewer is not an active user in the system.");
+            throw new BusinessRuleException("Assigned reviewer is not an active user in the system.");
 
         // ...and their role must hold Documents.Review (a reviewer without it could never act on the task).
         if (!await _auth.CanPerformTechnicalReviewAsync(request.ReviewerUserId))
-            throw new InvalidOperationException("The selected reviewer's role does not hold the Documents.Review permission.");
+            throw new BusinessRuleException("The selected reviewer's role does not hold the Documents.Review permission.");
 
         // Check for any existing active review tasks
         var hasActiveTask = revision.ReviewTasks.Any(t => t.Status == ReviewTaskStatus.Pending || t.Status == ReviewTaskStatus.InProgress);
         if (hasActiveTask)
-            throw new InvalidOperationException("A technical review task is already active for this revision.");
+            throw new BusinessRuleException("A technical review task is already active for this revision.");
 
         // Release 1d: Calculate sequential review cycle number
         var previousMaxCycle = revision.ReviewTasks.Select(t => (int?)t.ReviewCycleNumber).Max() ?? 0;
@@ -282,7 +283,7 @@ public class DocumentReviewService : IDocumentReviewService
             throw new KeyNotFoundException($"Document review task {reviewTaskId} not found.");
 
         if (task.Status != ReviewTaskStatus.Pending && task.Status != ReviewTaskStatus.InProgress)
-            throw new InvalidOperationException($"Cannot add review findings to a review task in status {task.Status}.");
+            throw new BusinessRuleException($"Cannot add review findings to a review task in status {task.Status}.");
 
         // Hard Segregation of Duties: Author cannot add reviewer findings
         if (userId == task.DocumentRevision.CreatedByUserId)
@@ -374,7 +375,7 @@ public class DocumentReviewService : IDocumentReviewService
             throw new KeyNotFoundException($"Review finding {findingId} not found.");
 
         if (finding.Status != ReviewFindingStatus.Open && finding.Status != ReviewFindingStatus.AuthorResponded)
-            throw new InvalidOperationException($"Cannot respond to finding in status {finding.Status}. Status must be Open or AuthorResponded.");
+            throw new BusinessRuleException($"Cannot respond to finding in status {finding.Status}. Status must be Open or AuthorResponded.");
 
         // Author, Owner, or assigned Author can respond
         var canEdit = await _auth.CanEditDraftMetadataAsync(finding.DocumentReviewTask.DocumentRevision.DocumentMasterId, userId);
@@ -515,7 +516,7 @@ public class DocumentReviewService : IDocumentReviewService
         // nobody had verified - while still counting toward the gate that
         // releases the technical review.
         if (finding.Status != ReviewFindingStatus.ReviewerVerified)
-            throw new InvalidOperationException(
+            throw new BusinessRuleException(
                 $"A review finding can only be resolved once it has been verified by the reviewer. " +
                 $"Current status is {finding.Status}; it must be {ReviewFindingStatus.ReviewerVerified} " +
                 $"(the author responds, the reviewer verifies, then the finding is resolved).");
@@ -561,7 +562,7 @@ public class DocumentReviewService : IDocumentReviewService
             throw new KeyNotFoundException($"Document review task {reviewTaskId} not found.");
 
         if (task.Status != ReviewTaskStatus.Pending && task.Status != ReviewTaskStatus.InProgress)
-            throw new InvalidOperationException($"Cannot make a decision on review task in status {task.Status}.");
+            throw new BusinessRuleException($"Cannot make a decision on review task in status {task.Status}.");
 
         // Hard Segregation of Duties: Author cannot decide/complete review of own revision (DC-URS-164, DC-URS-165)
         if (userId == task.DocumentRevision.CreatedByUserId)
@@ -591,7 +592,7 @@ public class DocumentReviewService : IDocumentReviewService
 
             if (unresolvedMandatoryFindings.Any())
             {
-                throw new InvalidOperationException(
+                throw new BusinessRuleException(
                     $"Cannot complete technical review while {unresolvedMandatoryFindings.Count} mandatory review finding(s) remain unresolved.");
             }
 
@@ -665,7 +666,7 @@ public class DocumentReviewService : IDocumentReviewService
         }
         else
         {
-            throw new InvalidOperationException("Invalid review decision.");
+            throw new BusinessRuleException("Invalid review decision.");
         }
 
         return await GetReviewTaskByIdAsync(task.Id, userId);

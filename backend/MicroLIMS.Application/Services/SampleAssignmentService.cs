@@ -45,7 +45,7 @@ public class SampleAssignmentService
 
         var open = sample.TestOrders.Where(t => IsOpen(t) && InScope(actingScope, t.SectionId)).ToList();
         if (open.Count == 0)
-            throw new InvalidOperationException("This sample has no open tests you can assign.");
+            throw new BusinessRuleException("This sample has no open tests you can assign.");
 
         var targets = open;
         if (analystUserId is int assigneeId)
@@ -66,9 +66,9 @@ public class SampleAssignmentService
     public async Task<SampleDto> AssignTestsAsync(int sampleId, IReadOnlyList<TestAnalystAssignment> assignments, int actingUserId, string? reason = null)
     {
         if (assignments.Count == 0)
-            throw new InvalidOperationException("Choose at least one test to assign.");
+            throw new BusinessRuleException("Choose at least one test to assign.");
         if (assignments.Select(a => a.TestOrderId).Distinct().Count() != assignments.Count)
-            throw new InvalidOperationException("Each test can be listed only once.");
+            throw new BusinessRuleException("Each test can be listed only once.");
 
         var sample = await LoadSampleAsync(sampleId);
         var actingScope = await _scope.GetMemberSectionIdsAsync(actingUserId);
@@ -81,7 +81,7 @@ public class SampleAssignmentService
                 ?? throw new NotFoundException($"Test {assignment.TestOrderId} is not on sample {sample.ReferenceNumber}.");
 
             if (!IsOpen(order))
-                throw new InvalidOperationException($"{order.TestCode} is closed - its analyst can no longer be changed.");
+                throw new BusinessRuleException($"{order.TestCode} is closed - its analyst can no longer be changed.");
             if (!InScope(actingScope, order.SectionId))
                 throw new UnauthorizedAccessException("This test belongs to a laboratory section you are not assigned to.");
 

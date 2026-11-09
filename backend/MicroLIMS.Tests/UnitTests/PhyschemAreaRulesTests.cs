@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.DTOs;
 using MicroLIMS.Application.Services;
@@ -65,7 +66,7 @@ public class PhyschemAreaRulesTests
     {
         using var db = NewDb();
         var (fp, _, userId) = await SeedAsync(db);
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => TestSvc(db).CreateTestDefinitionAsync(userId, Create("T1", fp.Id, null)));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => TestSvc(db).CreateTestDefinitionAsync(userId, Create("T1", fp.Id, null)));
         Assert.Equal("Choose the area of this test (FP, RM & PM or Both).", ex.Message);
     }
 
@@ -96,7 +97,7 @@ public class PhyschemAreaRulesTests
         var (fp, _, userId) = await SeedAsync(db);
         await TestSvc(db).CreateTestDefinitionAsync(userId, Create("T-RM", fp.Id, PhyschemArea.RawPackaging));
         var item = await AddItemAsync(db, "FP-1", SampleCategory.FinishedProduct, "T-RM");
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => TestServiceFactory.Specification(db).ValidateAsync(Spec(item, "T-RM")));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => TestServiceFactory.Specification(db).ValidateAsync(Spec(item, "T-RM")));
         Assert.Equal("Test T-RM is not used for finished products - it belongs to RM & PM.", ex.Message);
     }
 
@@ -107,7 +108,7 @@ public class PhyschemAreaRulesTests
         var (fp, _, userId) = await SeedAsync(db);
         await TestSvc(db).CreateTestDefinitionAsync(userId, Create("T-FP", fp.Id, PhyschemArea.FinishedProduct));
         var item = await AddItemAsync(db, "RM-1", SampleCategory.RawMaterial, "T-FP");
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => TestServiceFactory.Specification(db).ValidateAsync(Spec(item, "T-FP")));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => TestServiceFactory.Specification(db).ValidateAsync(Spec(item, "T-FP")));
         Assert.Equal("Test T-FP is not used for raw and packaging materials - it belongs to FP.", ex.Message);
     }
 
@@ -136,12 +137,12 @@ public class PhyschemAreaRulesTests
         db.Specifications.Add(Spec(fpItem, "T-BOTH"));
         await db.SaveChangesAsync();
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => TestSvc(db).UpdateTestDefinitionAsync(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => TestSvc(db).UpdateTestDefinitionAsync(
             userId, test.Id, new UpdateTestDefinitionRequest(Code: "T-BOTH", DisplayName: "T-BOTH", PhyschemArea: PhyschemArea.FinishedProduct)));
         Assert.Equal("Items RM-CITRIC still have specifications on this test for RM & PM - remove them first.", ex.Message);
 
         // The mirror: FP items still have specs, so narrowing to RM & PM is refused too.
-        ex = await Assert.ThrowsAsync<InvalidOperationException>(() => TestSvc(db).UpdateTestDefinitionAsync(
+        ex = await Assert.ThrowsAsync<BusinessRuleException>(() => TestSvc(db).UpdateTestDefinitionAsync(
             userId, test.Id, new UpdateTestDefinitionRequest(Code: "T-BOTH", DisplayName: "T-BOTH", PhyschemArea: PhyschemArea.RawPackaging)));
         Assert.Equal("Items FP-1 still have specifications on this test for FP - remove them first.", ex.Message);
     }

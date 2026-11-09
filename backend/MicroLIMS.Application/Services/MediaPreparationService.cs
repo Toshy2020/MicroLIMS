@@ -55,7 +55,7 @@ public class MediaPreparationService
     private async Task<Media> PrepareCoreAsync(PrepareMediaRequest request)
     {
         var autoclave = await _db.Equipment.FirstOrDefaultAsync(e => e.Id == request.AutoclaveEquipmentId && e.Type == EquipmentType.Autoclave)
-            ?? throw new InvalidOperationException("Selected equipment is not a valid autoclave.");
+            ?? throw new BusinessRuleException("Selected equipment is not a valid autoclave.");
 
         // Guards + decrements the Material row in memory - not saved
         // until the SaveChangesAsync below, so a failure here leaves
@@ -65,7 +65,7 @@ public class MediaPreparationService
         var material = await _materialService.ConsumeAsync(request.MaterialId, MaterialType.DehydratedMedia, request.TotalWeight, request.UserId);
 
         if (material.MediaProductId is null)
-            throw new InvalidOperationException(
+            throw new BusinessRuleException(
                 $"Batch {material.BatchNumber} of {material.MaterialName} isn't linked to a configured media product - edit it in Inventory > Materials Stock and choose the product before preparing.");
 
         // Optional additives (D11: none never blocks). Validated and stock-deducted in memory
@@ -73,7 +73,7 @@ public class MediaPreparationService
         var additives = await BuildAdditivesAsync(request.Additives, material.SectionId, request.UserId);
 
         var product = await _db.MediaProducts.FirstOrDefaultAsync(p => p.Id == material.MediaProductId.Value)
-            ?? throw new InvalidOperationException($"Media product with ID {material.MediaProductId.Value} not found.");
+            ?? throw new BusinessRuleException($"Media product with ID {material.MediaProductId.Value} not found.");
 
         // Exactly one MediaConfiguration exists per product (unique on
         // MediaProductId), carrying its EvaluationType and challenge organisms.
@@ -82,7 +82,7 @@ public class MediaPreparationService
             .Where(c => c.MediaProductId == product.Id)
             .OrderBy(c => c.Id)
             .FirstOrDefaultAsync()
-            ?? throw new InvalidOperationException($"No Media Configuration exists yet for \"{product.Name}\" - configure it in Laboratory Configuration before preparing a lot.");
+            ?? throw new BusinessRuleException($"No Media Configuration exists yet for \"{product.Name}\" - configure it in Laboratory Configuration before preparing a lot.");
 
         var lotPrefix = product.Code;
 
@@ -139,7 +139,7 @@ public class MediaPreparationService
         {
             media.LotNumber = await PreparedLotNumber.NextAsync(_db.Media.Select(m => m.LotNumber), lotPrefix, _time.GetUtcNow().UtcDateTime);
             if (!await _db.TrySaveChangesAsync(UniqueIndexNames.MediaLotNumber))
-                throw new InvalidOperationException(
+                throw new BusinessRuleException(
                     $"Lot number {media.LotNumber} was taken by another preparation at the same moment. Nothing was saved - submit the preparation again.");
         }
 
@@ -159,29 +159,29 @@ public class MediaPreparationService
         {
             order++;
             if (input.Quantity <= 0)
-                throw new InvalidOperationException($"Additive {order}: quantity must be greater than zero.");
+                throw new BusinessRuleException($"Additive {order}: quantity must be greater than zero.");
             var unit = input.Unit?.Trim();
             if (string.IsNullOrEmpty(unit))
-                throw new InvalidOperationException($"Additive {order}: unit is required.");
+                throw new BusinessRuleException($"Additive {order}: unit is required.");
             if (unit.Length > 20)
-                throw new InvalidOperationException($"Additive {order}: unit cannot exceed 20 characters.");
+                throw new BusinessRuleException($"Additive {order}: unit cannot exceed 20 characters.");
 
             if (input.Kind == MediaAdditiveKind.StockLot)
             {
                 if (!input.MaterialId.HasValue)
-                    throw new InvalidOperationException($"Additive {order}: choose the stock lot.");
+                    throw new BusinessRuleException($"Additive {order}: choose the stock lot.");
                 if (input.SolutionPreparationId.HasValue)
-                    throw new InvalidOperationException($"Additive {order}: a stock lot additive cannot also name a prepared solution.");
+                    throw new BusinessRuleException($"Additive {order}: a stock lot additive cannot also name a prepared solution.");
                 if (!seen.Add((input.Kind, input.MaterialId.Value)))
-                    throw new InvalidOperationException($"Additive {order}: the same stock lot is listed more than once.");
+                    throw new BusinessRuleException($"Additive {order}: the same stock lot is listed more than once.");
 
                 var lot = await _db.Materials.FirstOrDefaultAsync(m => m.Id == input.MaterialId.Value)
                     ?? throw new NotFoundException($"Material {input.MaterialId.Value} not found.");
                 if (lot.MaterialType is MaterialType.DehydratedMedia or MaterialType.LyophilizedMicroorganism)
-                    throw new InvalidOperationException(
+                    throw new BusinessRuleException(
                         $"{lot.MaterialName} (batch {lot.BatchNumber}) is a {lot.MaterialType} lot and cannot be added as an additive.");
                 if (lot.SectionId != sectionId)
-                    throw new InvalidOperationException(
+                    throw new BusinessRuleException(
                         $"{lot.MaterialName} (batch {lot.BatchNumber}) belongs to another laboratory section than the media being prepared.");
 
                 // Same guards as the dehydrated media: expiry, release, COA, enough stock.
@@ -201,11 +201,11 @@ public class MediaPreparationService
             else
             {
                 if (!input.SolutionPreparationId.HasValue)
-                    throw new InvalidOperationException($"Additive {order}: choose the prepared solution.");
+                    throw new BusinessRuleException($"Additive {order}: choose the prepared solution.");
                 if (input.MaterialId.HasValue)
-                    throw new InvalidOperationException($"Additive {order}: a prepared solution additive cannot also name a stock lot.");
+                    throw new BusinessRuleException($"Additive {order}: a prepared solution additive cannot also name a stock lot.");
                 if (!seen.Add((input.Kind, input.SolutionPreparationId.Value)))
-                    throw new InvalidOperationException($"Additive {order}: the same prepared solution is listed more than once.");
+                    throw new BusinessRuleException($"Additive {order}: the same prepared solution is listed more than once.");
 
                 var prep = await _db.SolutionPreparations.Include(p => p.SolutionMaster)
                     .FirstOrDefaultAsync(p => p.Id == input.SolutionPreparationId.Value)
@@ -213,16 +213,16 @@ public class MediaPreparationService
                 var label = prep.Code ?? $"#{prep.Id}";
 
                 if (prep.SectionId != sectionId)
-                    throw new InvalidOperationException($"Preparation {label} belongs to another laboratory section than the media being prepared.");
+                    throw new BusinessRuleException($"Preparation {label} belongs to another laboratory section than the media being prepared.");
                 var status = SolutionPreparationResponse.EffectiveStatusOf(prep, now);
                 if (status == SolutionPreparationStatus.Expired)
-                    throw new InvalidOperationException($"Preparation {label} expired on {prep.ExpiresAt:yyyy-MM-dd}.");
+                    throw new BusinessRuleException($"Preparation {label} expired on {prep.ExpiresAt:yyyy-MM-dd}.");
                 if (status != SolutionPreparationStatus.Prepared)
-                    throw new InvalidOperationException($"Preparation {label} is {status} and cannot be used.");
+                    throw new BusinessRuleException($"Preparation {label} is {status} and cannot be used.");
                 if (prep.ApprovalStatus == ApprovalGateStatus.PendingReview)
-                    throw new InvalidOperationException($"Preparation {label} is awaiting release.");
+                    throw new BusinessRuleException($"Preparation {label} is awaiting release.");
                 if (prep.ApprovalStatus == ApprovalGateStatus.Rejected)
-                    throw new InvalidOperationException($"Preparation {label} was rejected.");
+                    throw new BusinessRuleException($"Preparation {label} was rejected.");
 
                 // Recorded only - picking the bottle is enough, nothing is deducted.
                 result.Add(new MediaAdditive
@@ -272,7 +272,7 @@ public class MediaPreparationService
 
         if (!media.IsReleasedForUse || media.Status != MediaStatus.Active)
         {
-            throw new InvalidOperationException($"Media lot {media.LotNumber} is not currently released for use and cannot be marked Out of Stock.");
+            throw new BusinessRuleException($"Media lot {media.LotNumber} is not currently released for use and cannot be marked Out of Stock.");
         }
 
         media.Status = MediaStatus.OutOfStock;

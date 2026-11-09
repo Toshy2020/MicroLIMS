@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using System.Globalization;
 using System.Text.Json;
 using MicroLIMS.Application.Helpers;
@@ -141,11 +142,11 @@ public class StandardComparisonCalculatorTests
     [Fact]
     public void MoistureCorrection_InvalidMoisture_ThrowsInvalidOperationException()
     {
-        Assert.Throws<InvalidOperationException>(() =>
+        Assert.Throws<BusinessRuleException>(() =>
             StandardComparisonCalculator.CalculatePreparationAssay(
                 1000m, 1000m, 50m, 50m, 100m, 100m, moisturePercent: -1m, purityPercent: 100m));
 
-        Assert.Throws<InvalidOperationException>(() =>
+        Assert.Throws<BusinessRuleException>(() =>
             StandardComparisonCalculator.CalculatePreparationAssay(
                 1000m, 1000m, 50m, 50m, 100m, 100m, moisturePercent: 100m, purityPercent: 100m));
     }

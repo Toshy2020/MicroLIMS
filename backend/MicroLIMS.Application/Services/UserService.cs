@@ -78,7 +78,7 @@ public class UserService
             null or "" or "active" => true,
             "inactive" => false,
             "all" => null,
-            _ => throw new InvalidOperationException("Status must be 'active', 'inactive' or 'all'.")
+            _ => throw new BusinessRuleException("Status must be 'active', 'inactive' or 'all'.")
         };
         var query = _db.Users.Include(u => u.Role).AsQueryable();
         if (wantActive.HasValue) query = query.Where(u => u.IsActive == wantActive.Value);
@@ -97,7 +97,7 @@ public class UserService
     public async Task<List<UserDirectoryDto>> GetDirectoryAsync(string? requiredPermission = null)
     {
         if (!string.IsNullOrWhiteSpace(requiredPermission) && !DirectoryPermissionFilters.Contains(requiredPermission))
-            throw new InvalidOperationException($"Directory cannot be filtered by permission '{requiredPermission}'.");
+            throw new BusinessRuleException($"Directory cannot be filtered by permission '{requiredPermission}'.");
 
         var query = _db.Users.Include(u => u.Role).Where(u => u.IsActive);
         if (!string.IsNullOrWhiteSpace(requiredPermission))
@@ -140,18 +140,18 @@ public class UserService
     {
         var trimmedReason = AdminActionReason.Require(reason, "create a user");
         if (string.IsNullOrWhiteSpace(user.Username))
-            throw new InvalidOperationException("Username is required.");
+            throw new BusinessRuleException("Username is required.");
         if (string.IsNullOrWhiteSpace(user.FullName))
-            throw new InvalidOperationException("Full Name is required.");
+            throw new BusinessRuleException("Full Name is required.");
 
         var passwordFailures = PasswordPolicy.Validate(plainPassword, await _settings.GetIntOrDefaultAsync(SystemSettingKeys.PasswordMinimumLength));
         if (passwordFailures.Count > 0)
-            throw new InvalidOperationException(string.Join(" ", passwordFailures));
+            throw new BusinessRuleException(string.Join(" ", passwordFailures));
 
         if (await _db.Users.AnyAsync(u => u.Username == user.Username))
-            throw new InvalidOperationException($"Username '{user.Username}' is already taken.");
+            throw new BusinessRuleException($"Username '{user.Username}' is already taken.");
         if (!await _db.Roles.AnyAsync(r => r.Id == user.RoleId))
-            throw new InvalidOperationException("Selected role does not exist.");
+            throw new BusinessRuleException("Selected role does not exist.");
 
         user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(plainPassword);
         user.MustChangePassword = true;
@@ -171,12 +171,12 @@ public class UserService
         RecordVersion.EnsureCurrent(_db, user);
 
         if (string.IsNullOrWhiteSpace(fullName))
-            throw new InvalidOperationException("Full Name is required.");
+            throw new BusinessRuleException("Full Name is required.");
         if (string.IsNullOrWhiteSpace(username))
-            throw new InvalidOperationException("Username is required.");
+            throw new BusinessRuleException("Username is required.");
 
         if (user.Username != username && await _db.Users.AnyAsync(u => u.Username == username && u.Id != targetUserId))
-            throw new InvalidOperationException($"Username '{username}' is already taken.");
+            throw new BusinessRuleException($"Username '{username}' is already taken.");
 
         _db.CurrentReason = trimmedReason;
         var prevData = new { user.FullName, user.Username, user.Email, user.JobTitle };
@@ -211,13 +211,13 @@ public class UserService
         var reason = AdminActionReason.Require(rawReason, "change a user's role");
 
         if (actingUserId == targetUserId)
-            throw new InvalidOperationException("System Administrators cannot modify their own role.");
+            throw new BusinessRuleException("System Administrators cannot modify their own role.");
 
         var user = await _db.Users.Include(u => u.Role).FirstOrDefaultAsync(u => u.Id == targetUserId)
             ?? throw new NotFoundException($"User {targetUserId} not found.");
 
         var newRole = await _db.Roles.FirstOrDefaultAsync(r => r.Id == newRoleId)
-            ?? throw new InvalidOperationException("Selected role does not exist.");
+            ?? throw new BusinessRuleException("Selected role does not exist.");
 
         // Self-changes are blocked above, but two administrators could still
         // demote each other until nobody is left.
@@ -267,7 +267,7 @@ public class UserService
         reason = AdminActionReason.Require(reason, isActive ? "enable a user account" : "disable a user account");
 
         if (!isActive && actingUserId == targetUserId)
-            throw new InvalidOperationException("System Administrators cannot disable their own account.");
+            throw new BusinessRuleException("System Administrators cannot disable their own account.");
 
         var user = await _db.Users.Include(u => u.Role).FirstOrDefaultAsync(u => u.Id == targetUserId)
             ?? throw new NotFoundException($"User {targetUserId} not found.");

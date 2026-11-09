@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using MicroLIMS.Application.Interfaces;
@@ -107,7 +108,7 @@ public class UserManagementSecurityTests
         db.Users.Add(admin);
         await db.SaveChangesAsync();
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             userService.ChangeRoleAsync(admin.Id, 4, "Self demotion attempt", actingUserId: admin.Id, password: "pw"));
 
         Assert.Contains("cannot modify their own role", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -122,7 +123,7 @@ public class UserManagementSecurityTests
         db.Users.Add(admin);
         await db.SaveChangesAsync();
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             userService.SetStatusAsync(admin.Id, false, "Self disable attempt", actingUserId: admin.Id));
 
         Assert.Contains("cannot disable their own account", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -235,7 +236,7 @@ public class UserManagementSecurityTests
         db.PasswordHistories.Add(new PasswordHistory { UserId = user.Id, PasswordHash = initialHash });
         await db.SaveChangesAsync();
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(async () =>
         {
             var rawToken = Convert.ToBase64String(System.Security.Cryptography.RandomNumberGenerator.GetBytes(32));
             var tokenHash = System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(rawToken));
@@ -401,7 +402,7 @@ public class UserManagementSecurityTests
         var (userService, _, _) = CreateServices(db);
         var onlyAdmin = await AddAdminAsync(db, 1);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             userService.ChangeRoleAsync(onlyAdmin.Id, 4, "Demotion", actingUserId: 2, password: "pw"));
 
         Assert.Contains("Users.Manage", ex.Message);
@@ -430,7 +431,7 @@ public class UserManagementSecurityTests
         var first = await AddAdminAsync(db, 1);
         await AddAdminAsync(db, 2, isActive: false);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        await Assert.ThrowsAsync<BusinessRuleException>(() =>
             userService.ChangeRoleAsync(first.Id, 4, "Demotion", actingUserId: 3, password: "pw"));
 
         Assert.Equal(1, (await db.Users.AsNoTracking().FirstAsync(u => u.Id == first.Id)).RoleId);
@@ -443,7 +444,7 @@ public class UserManagementSecurityTests
         var (userService, _, _) = CreateServices(db);
         var onlyAdmin = await AddAdminAsync(db, 1);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             userService.SetStatusAsync(onlyAdmin.Id, false, "Leaving", actingUserId: 2));
 
         Assert.Contains("Users.Manage", ex.Message);
@@ -459,7 +460,7 @@ public class UserManagementSecurityTests
         var first = await AddAdminAsync(db, 1);
         await AddAdminAsync(db, 2, isActive: false);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        await Assert.ThrowsAsync<BusinessRuleException>(() =>
             userService.SetStatusAsync(first.Id, false, "Leaving", actingUserId: 3));
     }
 

@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Services;
 using MicroLIMS.Application.Workflows;
@@ -267,7 +268,7 @@ public class ResultProjectionTests
 
         var query = new ReportingQueryService(db);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             query.GetTrendAsync("PATHOGEN_ECOLI", "Item A", null, null));
         Assert.Contains("qualitative", ex.Message);
     }

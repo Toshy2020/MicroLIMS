@@ -111,11 +111,11 @@ public partial class IcpRunService
         await EnsureAccessAsync(run, userId, ct);
 
         var blocked = AssignBlockReason(run);
-        if (blocked != null) throw new InvalidOperationException(blocked);
+        if (blocked != null) throw new BusinessRuleException(blocked);
 
         var ids = (r.TestOrderIds ?? new List<int>()).Distinct().ToList();
         if (ids.Count == 0)
-            throw new InvalidOperationException("Select at least one test.");
+            throw new BusinessRuleException("Select at least one test.");
 
         var eligible = await EligibleOrdersQuery(run.SectionId).Where(o => ids.Contains(o.Id)).Select(o => o.Id).ToListAsync(ct);
         foreach (var id in ids.Where(id => !eligible.Contains(id)))
@@ -123,7 +123,7 @@ public partial class IcpRunService
             var busyRun = await _db.IcpRunSamples
                 .Where(s => s.TestOrderId == id && s.Status == IcpRunSampleStatus.Assigned && s.IcpRun!.Status != IcpRunStatus.Abandoned)
                 .Select(s => s.IcpRun!.Code).FirstOrDefaultAsync(ct);
-            throw new InvalidOperationException(busyRun != null
+            throw new BusinessRuleException(busyRun != null
                 ? $"Test order {id} is already assigned to run {busyRun}."
                 : $"Test order {id} is not eligible for this run.");
         }
@@ -152,14 +152,14 @@ public partial class IcpRunService
         // A returned sample on a completed run must be removable, or its order stays busy forever.
         // The active-analysis check below keeps submitted samples in place.
         if (run.Status is not (IcpRunStatus.Open or IcpRunStatus.Completed))
-            throw new InvalidOperationException("The run is closed.");
+            throw new BusinessRuleException("The run is closed.");
 
         var sample = run.Samples.FirstOrDefault(s => s.Id == runSampleId)
             ?? throw new NotFoundException($"Sample {runSampleId} not found on this run.");
         if (sample.Status != IcpRunSampleStatus.Assigned)
-            throw new InvalidOperationException("This sample was already removed from the run.");
+            throw new BusinessRuleException("This sample was already removed from the run.");
         if (await _db.TestAnalyses.AnyAsync(a => a.TestOrderId == sample.TestOrderId && a.IsActive, ct))
-            throw new InvalidOperationException("A result has already been sent for review for this sample.");
+            throw new BusinessRuleException("A result has already been sent for review for this sample.");
 
         var trimmedReason = ValidateReason(reason);
         sample.Status = IcpRunSampleStatus.Removed;
@@ -187,24 +187,24 @@ public partial class IcpRunService
 
         var problem = context.EditableProblem() ?? context.CalibrationProblem();
         if (problem != null)
-            throw new InvalidOperationException(problem);
+            throw new BusinessRuleException(problem);
 
         var needed = context.NeededElements;
         if (needed.Count == 0)
-            throw new InvalidOperationException("No specification is configured for this test on this item.");
+            throw new BusinessRuleException("No specification is configured for this test on this item.");
         if (context.NeedsWeight && r.ActualWeightG is not > 0m)
-            throw new InvalidOperationException("Enter the actual weight of the sample (g).");
+            throw new BusinessRuleException("Enter the actual weight of the sample (g).");
         if (!context.NeedsWeight && r.ActualWeightG.HasValue)
-            throw new InvalidOperationException("The actual weight is only used for assay tests.");
+            throw new BusinessRuleException("The actual weight is only used for assay tests.");
 
         var inputs = r.Concentrations ?? new List<IcpConcentrationInput>();
         var neededIds = needed.Select(e => e.Id).ToList();
         if (inputs.Any(c => !neededIds.Contains(c.IcpTestElementId)))
-            throw new InvalidOperationException("A result belongs to an element that is not needed by this test.");
+            throw new BusinessRuleException("A result belongs to an element that is not needed by this test.");
         foreach (var el in needed.Where(e => inputs.Count(c => c.IcpTestElementId == e.Id) != 1))
-            throw new InvalidOperationException($"Exactly one result for {el.Symbol} is required.");
+            throw new BusinessRuleException($"Exactly one result for {el.Symbol} is required.");
         if (inputs.Any(c => c.ResultPpm < 0m))
-            throw new InvalidOperationException("A result cannot be negative.");
+            throw new BusinessRuleException("A result cannot be negative.");
 
         var sample = context.RunSample;
         sample.ActualWeightG = r.ActualWeightG;
@@ -228,7 +228,7 @@ public partial class IcpRunService
         await EnsureAccessAsync(run, userId, ct);
 
         if (run.Status != IcpRunStatus.Open)
-            throw new InvalidOperationException("The run is closed.");
+            throw new BusinessRuleException("The run is closed.");
 
         var orderIds = run.Samples.Where(s => s.Status == IcpRunSampleStatus.Assigned).Select(s => s.TestOrderId).ToList();
         var submitted = await _db.TestAnalyses
@@ -236,7 +236,7 @@ public partial class IcpRunService
             .Select(a => a.TestOrderId).Distinct().ToListAsync(ct);
         var pending = orderIds.Count(id => !submitted.Contains(id));
         if (pending > 0)
-            throw new InvalidOperationException($"{pending} assigned sample(s) have not been sent for review. Submit or remove them first.");
+            throw new BusinessRuleException($"{pending} assigned sample(s) have not been sent for review. Submit or remove them first.");
 
         run.Status = IcpRunStatus.Completed;
         run.ClosedAt = _clock.UtcNow.UtcDateTime;

@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.DTOs;
 using MicroLIMS.Application.Helpers;
@@ -297,7 +298,7 @@ public class TestingWorkspaceService : ITestWorkspaceService
         if (code != PhyschemAreas.SectionCode) return null;
 
         var parsed = PhyschemAreas.Parse(area)
-            ?? throw new InvalidOperationException("area is required for the Physicochemical Laboratory workspace.");
+            ?? throw new BusinessRuleException("area is required for the Physicochemical Laboratory workspace.");
         if (userId.HasValue && !(await _scope.GetPhyschemAreasAsync(userId.Value, access: SectionAccess.Read)).Contains(parsed))
             throw new UnauthorizedAccessException("You do not have access to this Physicochemical Laboratory area.");
         return PhyschemAreas.CategoriesOf(parsed);

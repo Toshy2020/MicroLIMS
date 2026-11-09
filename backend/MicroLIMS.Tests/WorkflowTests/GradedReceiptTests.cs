@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Services;
 using MicroLIMS.Application.Workflows;
@@ -86,7 +87,7 @@ public class GradedReceiptTests
         await using var db = NewDb();
         var item = await SeedItemAsync(db);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => Engine(db).ReceiveAsync(Request(item.Id, null)));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => Engine(db).ReceiveAsync(Request(item.Id, null)));
         Assert.Equal("Choose the grade stated on the supplier's CoA.", ex.Message);
     }
 
@@ -96,7 +97,7 @@ public class GradedReceiptTests
         await using var db = NewDb();
         var item = await SeedItemAsync(db);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => Engine(db).ReceiveAsync(Request(item.Id, "EP")));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => Engine(db).ReceiveAsync(Request(item.Id, "EP")));
         Assert.Equal("Grade EP has no specification for this item.", ex.Message);
     }
 
@@ -187,7 +188,7 @@ public class GradedReceiptTests
         order.Status = ApprovalStatus.InProgress;
         await db.SaveChangesAsync();
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             service.CorrectAsync(sample.Id, AsStored(sample, "USP"), "Too late", Password, signer.Id, null));
         Assert.Contains("still pending", ex.Message);
         Assert.Equal("BP", (await db.Samples.AsNoTracking().FirstAsync(s => s.Id == sample.Id)).Grade);
@@ -254,7 +255,7 @@ public class GradedReceiptTests
         });
         Assert.Equal(2, sample.TestOrders.Count);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             TestServiceFactory.SampleCorrection(db).CorrectAsync(sample.Id, AsStored(sample, "BP"), "CoA says BP", Password, signer.Id, null));
 
         Assert.Equal("This grade leaves Physicochemical Laboratory with no tests; void the sample and receive it again.", ex.Message);
@@ -298,7 +299,7 @@ public class GradedReceiptTests
         await using var _ = db;
         var other = await AddItemAsync(db, "RM-OTHER", "BP", "USP");
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             service.CorrectAsync(sample.Id, AsStored(sample, null) with { ItemId = other.Id }, "Wrong item", Password, signer.Id, null));
 
         Assert.Equal("Choose the grade stated on the supplier's CoA.", ex.Message);

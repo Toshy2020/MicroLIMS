@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using MicroLIMS.Application.Helpers;
 using MicroLIMS.Domain.Enums;
 using Xunit;
@@ -47,7 +48,7 @@ public class PhyschemAreasTests
     public void Parse_EmptyIsNull(string? s) => Assert.Null(PhyschemAreas.Parse(s));
 
     [Fact]
-    public void Parse_UnknownThrows() => Assert.Throws<InvalidOperationException>(() => PhyschemAreas.Parse("x"));
+    public void Parse_UnknownThrows() => Assert.Throws<BusinessRuleException>(() => PhyschemAreas.Parse("x"));
 
     [Fact]
     public void Grants_NullMeansBoth()

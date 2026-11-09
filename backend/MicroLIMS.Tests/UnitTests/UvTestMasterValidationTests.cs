@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using MicroLIMS.API.Controllers;
 using MicroLIMS.Application.DTOs;
 using MicroLIMS.Application.DTOs.Responses;
@@ -212,7 +213,7 @@ public class UvTestMasterValidationTests
             UvCalculationMode: null,
             PhyschemArea: PhyschemArea.Both);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.TestDefinition.CreateTestDefinition(req));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => controller.TestDefinition.CreateTestDefinition(req));
         Assert.Equal("A UV test needs a calculation mode.", ex.Message);
     }
 
@@ -232,7 +233,7 @@ public class UvTestMasterValidationTests
             UvCalculationMode: (UvCalculationMode)9,
             PhyschemArea: PhyschemArea.Both);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.TestDefinition.CreateTestDefinition(req));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => controller.TestDefinition.CreateTestDefinition(req));
         Assert.Equal("Unknown UV calculation mode.", ex.Message);
 
         var created = Assert.IsType<TestDefinitionResponse>(
@@ -240,7 +241,7 @@ public class UvTestMasterValidationTests
                 Assert.IsType<OkObjectResult>(await controller.TestDefinition.CreateTestDefinition(
                     req with { Code = "UV-GOODMODE", UvCalculationMode = UvCalculationMode.AbsorbanceLimit })).Value).Data);
 
-        var exUpd = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.TestDefinition.UpdateTestDefinition(
+        var exUpd = await Assert.ThrowsAsync<BusinessRuleException>(() => controller.TestDefinition.UpdateTestDefinition(
             created.Id, new UpdateTestDefinitionRequest(Code: "UV-GOODMODE", DisplayName: "UV with bad mode", UvCalculationMode: (UvCalculationMode)9)));
         Assert.Equal("Unknown UV calculation mode.", exUpd.Message);
     }
@@ -264,22 +265,22 @@ public class UvTestMasterValidationTests
             UvTotalVolumeMl: 5000m,
             PhyschemArea: PhyschemArea.Both);
 
-        var exNoAbs = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.TestDefinition.CreateTestDefinition(reqNoAbs));
+        var exNoAbs = await Assert.ThrowsAsync<BusinessRuleException>(() => controller.TestDefinition.CreateTestDefinition(reqNoAbs));
         Assert.Equal("This UV mode needs a specific absorbance above 0.", exNoAbs.Message);
 
         // Specific absorbance <= 0
         var reqZeroAbs = reqNoAbs with { UvSpecificAbsorbance = 0m };
-        var exZeroAbs = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.TestDefinition.CreateTestDefinition(reqZeroAbs));
+        var exZeroAbs = await Assert.ThrowsAsync<BusinessRuleException>(() => controller.TestDefinition.CreateTestDefinition(reqZeroAbs));
         Assert.Equal("This UV mode needs a specific absorbance above 0.", exZeroAbs.Message);
 
         // Missing total volume
         var reqNoVol = reqNoAbs with { UvSpecificAbsorbance = 328m, UvTotalVolumeMl = null };
-        var exNoVol = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.TestDefinition.CreateTestDefinition(reqNoVol));
+        var exNoVol = await Assert.ThrowsAsync<BusinessRuleException>(() => controller.TestDefinition.CreateTestDefinition(reqNoVol));
         Assert.Equal("This UV mode needs a total volume above 0.", exNoVol.Message);
 
         // Total volume <= 0
         var reqZeroVol = reqNoAbs with { UvSpecificAbsorbance = 328m, UvTotalVolumeMl = 0m };
-        var exZeroVol = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.TestDefinition.CreateTestDefinition(reqZeroVol));
+        var exZeroVol = await Assert.ThrowsAsync<BusinessRuleException>(() => controller.TestDefinition.CreateTestDefinition(reqZeroVol));
         Assert.Equal("This UV mode needs a total volume above 0.", exZeroVol.Message);
     }
 
@@ -301,12 +302,12 @@ public class UvTestMasterValidationTests
             UvTotalVolumeMl: null,
             PhyschemArea: PhyschemArea.Both);
 
-        var exNoVol = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.TestDefinition.CreateTestDefinition(reqNoVol));
+        var exNoVol = await Assert.ThrowsAsync<BusinessRuleException>(() => controller.TestDefinition.CreateTestDefinition(reqNoVol));
         Assert.Equal("This UV mode needs a total volume above 0.", exNoVol.Message);
 
         // Total volume <= 0
         var reqZeroVol = reqNoVol with { UvTotalVolumeMl = 0m };
-        var exZeroVol = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.TestDefinition.CreateTestDefinition(reqZeroVol));
+        var exZeroVol = await Assert.ThrowsAsync<BusinessRuleException>(() => controller.TestDefinition.CreateTestDefinition(reqZeroVol));
         Assert.Equal("This UV mode needs a total volume above 0.", exZeroVol.Message);
     }
 
@@ -329,17 +330,17 @@ public class UvTestMasterValidationTests
             UvStandardVolumeMl: 100m,
             PhyschemArea: PhyschemArea.Both);
 
-        var exNoTotalVol = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.TestDefinition.CreateTestDefinition(reqNoTotalVol));
+        var exNoTotalVol = await Assert.ThrowsAsync<BusinessRuleException>(() => controller.TestDefinition.CreateTestDefinition(reqNoTotalVol));
         Assert.Equal("This UV mode needs a total volume above 0.", exNoTotalVol.Message);
 
         // Missing standard volume
         var reqNoStdVol = reqNoTotalVol with { UvTotalVolumeMl = 100m, UvStandardVolumeMl = null };
-        var exNoStdVol = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.TestDefinition.CreateTestDefinition(reqNoStdVol));
+        var exNoStdVol = await Assert.ThrowsAsync<BusinessRuleException>(() => controller.TestDefinition.CreateTestDefinition(reqNoStdVol));
         Assert.Equal("A UV test against a standard needs a standard volume above 0.", exNoStdVol.Message);
 
         // Standard volume <= 0
         var reqZeroStdVol = reqNoTotalVol with { UvTotalVolumeMl = 100m, UvStandardVolumeMl = 0m };
-        var exZeroStdVol = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.TestDefinition.CreateTestDefinition(reqZeroStdVol));
+        var exZeroStdVol = await Assert.ThrowsAsync<BusinessRuleException>(() => controller.TestDefinition.CreateTestDefinition(reqZeroStdVol));
         Assert.Equal("A UV test against a standard needs a standard volume above 0.", exZeroStdVol.Message);
     }
 
@@ -360,7 +361,7 @@ public class UvTestMasterValidationTests
             UvCalculationMode: UvCalculationMode.AbsorbanceLimit,
             PhyschemArea: PhyschemArea.Both);
 
-        var exMode = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.TestDefinition.CreateTestDefinition(reqGravMode));
+        var exMode = await Assert.ThrowsAsync<BusinessRuleException>(() => controller.TestDefinition.CreateTestDefinition(reqGravMode));
         Assert.Equal("UV fields are only allowed for UV spectrophotometry tests.", exMode.Message);
 
         // Gravimetric test with UV total volume
@@ -374,7 +375,7 @@ public class UvTestMasterValidationTests
             UvTotalVolumeMl: 100m,
             PhyschemArea: PhyschemArea.Both);
 
-        var exVol = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.TestDefinition.CreateTestDefinition(reqGravVol));
+        var exVol = await Assert.ThrowsAsync<BusinessRuleException>(() => controller.TestDefinition.CreateTestDefinition(reqGravVol));
         Assert.Equal("UV fields are only allowed for UV spectrophotometry tests.", exVol.Message);
     }
 
@@ -395,15 +396,15 @@ public class UvTestMasterValidationTests
             PhyschemArea: PhyschemArea.Both);
 
         // null ReplicateCount
-        var exNull = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.TestDefinition.CreateTestDefinition(reqBase));
+        var exNull = await Assert.ThrowsAsync<BusinessRuleException>(() => controller.TestDefinition.CreateTestDefinition(reqBase));
         Assert.Contains("Replicate count must be between 1 and 30", exNull.Message);
 
         // 0 ReplicateCount
-        var exZero = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.TestDefinition.CreateTestDefinition(reqBase with { ReplicateCount = 0 }));
+        var exZero = await Assert.ThrowsAsync<BusinessRuleException>(() => controller.TestDefinition.CreateTestDefinition(reqBase with { ReplicateCount = 0 }));
         Assert.Contains("Replicate count must be between 1 and 30", exZero.Message);
 
         // 31 ReplicateCount
-        var ex31 = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.TestDefinition.CreateTestDefinition(reqBase with { ReplicateCount = 31 }));
+        var ex31 = await Assert.ThrowsAsync<BusinessRuleException>(() => controller.TestDefinition.CreateTestDefinition(reqBase with { ReplicateCount = 31 }));
         Assert.Contains("Replicate count must be between 1 and 30", ex31.Message);
     }
 
@@ -424,7 +425,7 @@ public class UvTestMasterValidationTests
             UvCalculationMode: UvCalculationMode.AbsorbanceLimit,
             PhyschemArea: PhyschemArea.Both);
 
-        var ex1 = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.TestDefinition.CreateTestDefinition(reqUvWithQual));
+        var ex1 = await Assert.ThrowsAsync<BusinessRuleException>(() => controller.TestDefinition.CreateTestDefinition(reqUvWithQual));
         Assert.Equal("Equation type must be UvSpectrophotometry when workflow type is UvSpectrophotometry.", ex1.Message);
 
         // WorkflowType Qualitative with EquationType UV
@@ -437,7 +438,7 @@ public class UvTestMasterValidationTests
             ReplicateCount: 1,
             PhyschemArea: PhyschemArea.Both);
 
-        var ex2 = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.TestDefinition.CreateTestDefinition(reqQualWithUv));
+        var ex2 = await Assert.ThrowsAsync<BusinessRuleException>(() => controller.TestDefinition.CreateTestDefinition(reqQualWithUv));
         Assert.Equal("Workflow type must be UvSpectrophotometry when equation type is UvSpectrophotometry.", ex2.Message);
     }
 
@@ -467,7 +468,7 @@ public class UvTestMasterValidationTests
             DisplayName: "UV Update Test",
             UvCalculationMode: UvCalculationMode.SpecificAbsorbanceAssay);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.TestDefinition.UpdateTestDefinition(created.Id, updateInvalid));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => controller.TestDefinition.UpdateTestDefinition(created.Id, updateInvalid));
         Assert.Equal("This UV mode needs a specific absorbance above 0.", ex.Message);
 
         // Update with valid constants succeeds
@@ -499,15 +500,15 @@ public class UvTestMasterValidationTests
         using var db = NewDb();
         var (fpSec, _, controller) = SetupController(db);
 
-        var none = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.TestDefinition.CreateTestDefinition(StdReq(fpSec.Id, "UV-NOENTRY", null)));
+        var none = await Assert.ThrowsAsync<BusinessRuleException>(() => controller.TestDefinition.CreateTestDefinition(StdReq(fpSec.Id, "UV-NOENTRY", null)));
         Assert.Equal("The standard material is required for an assay against standard.", none.Message);
 
-        var missing = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.TestDefinition.CreateTestDefinition(StdReq(fpSec.Id, "UV-GHOST", 99999)));
+        var missing = await Assert.ThrowsAsync<BusinessRuleException>(() => controller.TestDefinition.CreateTestDefinition(StdReq(fpSec.Id, "UV-GHOST", 99999)));
         Assert.Equal("Standard material master entry not found.", missing.Message);
 
         var other = db.DocumentSections.Add(new DocumentSection { Name = "Other lab", Code = "OTH", DepartmentId = fpSec.DepartmentId, IsActive = true }).Entity;
         db.SaveChanges();
-        var foreign = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.TestDefinition.CreateTestDefinition(StdReq(fpSec.Id, "UV-FOREIGN", StdEntry(db, other.Id).Id)));
+        var foreign = await Assert.ThrowsAsync<BusinessRuleException>(() => controller.TestDefinition.CreateTestDefinition(StdReq(fpSec.Id, "UV-FOREIGN", StdEntry(db, other.Id).Id)));
         Assert.Equal("The standard material belongs to another laboratory.", foreign.Message);
 
         var entry = StdEntry(db, fpSec.Id);

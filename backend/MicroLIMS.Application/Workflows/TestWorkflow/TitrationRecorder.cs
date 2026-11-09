@@ -62,78 +62,78 @@ public sealed class TitrationRecorder : TestWorkflowSupport
 
         // ---- request shape ----
         if (p.Replicates == null || p.Replicates.Count != cfg.ReplicateCount)
-            throw new InvalidOperationException($"Exactly {cfg.ReplicateCount} replicate(s) are required.");
+            throw new BusinessRuleException($"Exactly {cfg.ReplicateCount} replicate(s) are required.");
         for (int i = 0; i < p.Replicates.Count; i++)
         {
-            if (p.Replicates[i].SampleWeightMg <= 0m) throw new InvalidOperationException($"Replicate {i + 1}: sample weight must be greater than zero.");
-            if (p.Replicates[i].TitrantVolumeMl <= 0m) throw new InvalidOperationException($"Replicate {i + 1}: titrant volume must be greater than zero.");
+            if (p.Replicates[i].SampleWeightMg <= 0m) throw new BusinessRuleException($"Replicate {i + 1}: sample weight must be greater than zero.");
+            if (p.Replicates[i].TitrantVolumeMl <= 0m) throw new BusinessRuleException($"Replicate {i + 1}: titrant volume must be greater than zero.");
         }
 
         if (cfg.BlankRequired)
         {
-            if (!p.BlankVolumeMl.HasValue) throw new InvalidOperationException("A blank volume is required for this test.");
-            if (p.BlankVolumeMl.Value < 0m) throw new InvalidOperationException("Blank volume must not be negative.");
+            if (!p.BlankVolumeMl.HasValue) throw new BusinessRuleException("A blank volume is required for this test.");
+            if (p.BlankVolumeMl.Value < 0m) throw new BusinessRuleException("Blank volume must not be negative.");
         }
         else if (p.BlankVolumeMl.HasValue)
-            throw new InvalidOperationException("This test does not use a blank.");
+            throw new BusinessRuleException("This test does not use a blank.");
         decimal blank = p.BlankVolumeMl ?? 0m;
 
         if (cfg.TempCorrection)
         {
-            if (!p.TitrationTemperatureC.HasValue) throw new InvalidOperationException("The titration temperature is required for temperature correction.");
+            if (!p.TitrationTemperatureC.HasValue) throw new BusinessRuleException("The titration temperature is required for temperature correction.");
         }
         else if (p.TitrationTemperatureC.HasValue)
-            throw new InvalidOperationException("This test does not use temperature correction.");
+            throw new BusinessRuleException("This test does not use temperature correction.");
 
         var specs = specById.Values.OrderBy(s => s.DisplayOrder).ThenBy(s => s.Id).ToList();
         foreach (var s in specs)
         {
             if (s.ResultBasis is not (ResultBasis.PercentAsIs or ResultBasis.PercentDriedBasis or ResultBasis.PercentAnhydrousBasis
                 or ResultBasis.PercentLabelClaim or ResultBasis.MgPerUnit))
-                throw new InvalidOperationException($"Specification '{s.ParameterName}' has no valid titration result basis.");
+                throw new BusinessRuleException($"Specification '{s.ParameterName}' has no valid titration result basis.");
         }
         var moistureRole = SampleMoistureResolver.NeededRole(specs.Select(s => s.ResultBasis));
         bool needUnitWt = specs.Any(s => NeedUnitWeight.Contains(s.ResultBasis!.Value));
         // Moisture comes from the sample's own LOD / Karl Fischer result, never from the client.
         if (p.LossOnDryingPercent.HasValue)
-            throw new InvalidOperationException("The loss on drying / water value is read from the sample's own result.");
+            throw new BusinessRuleException("The loss on drying / water value is read from the sample's own result.");
         SampleMoisture? moisture = null;
         if (moistureRole != MoistureRole.None)
             moisture = await new SampleMoistureResolver(_db).ResolveLockedAsync(order.SampleId, moistureRole)
-                ?? throw new InvalidOperationException(SampleMoistureResolver.MissingMessage(moistureRole));
+                ?? throw new BusinessRuleException(SampleMoistureResolver.MissingMessage(moistureRole));
         if (needUnitWt)
         {
             if (!p.AverageUnitWeightMg.HasValue || p.AverageUnitWeightMg <= 0m)
-                throw new InvalidOperationException("The average unit weight (mg) is required for a label claim or mg per unit basis.");
+                throw new BusinessRuleException("The average unit weight (mg) is required for a label claim or mg per unit basis.");
         }
         else if (p.AverageUnitWeightMg.HasValue)
-            throw new InvalidOperationException("The average unit weight is only used with a label claim or mg per unit basis.");
+            throw new BusinessRuleException("The average unit weight is only used with a label claim or mg per unit basis.");
 
         // ---- equipment type (the FP section check is in ValidateTestAnalysisOrderAsync) ----
         if (p.EquipmentId.HasValue)
         {
             var type = await _db.Equipment.Where(e => e.Id == p.EquipmentId.Value).Select(e => e.Type).FirstAsync();
             if (type is not (EquipmentType.Titrator or EquipmentType.KarlFischer or EquipmentType.Other))
-                throw new InvalidOperationException("The selected equipment is not a titrator.");
+                throw new BusinessRuleException("The selected equipment is not a titrator.");
         }
 
         // ---- titrant preparations ----
         var (titrantPrep, titrantOpt, titrantSnap) = await LoadPreparationAsync(
             p.TitrantPreparationId, cfg.TitrantMasterId, t.SectionId, cfg, cfg.TempCorrection, nowUtc, "Titrant");
         if (!titrantSnap.NominalStrength.HasValue || titrantSnap.NominalStrength <= 0m)
-            throw new InvalidOperationException("The titrant preparation has no nominal strength recorded.");
+            throw new BusinessRuleException("The titrant preparation has no nominal strength recorded.");
         decimal n = titrantSnap.NominalStrength.Value;
-        decimal f = titrantOpt.Factor ?? throw new InvalidOperationException("The titrant has no current factor.");
+        decimal f = titrantOpt.Factor ?? throw new BusinessRuleException("The titrant has no current factor.");
 
         (SolutionPreparation Prep, TitrantPreparationOption Opt, SolutionMasterResponse Snap)? excess = null;
         if (residual)
         {
-            if (!p.ExcessPreparationId.HasValue) throw new InvalidOperationException("The excess titrant preparation is required for residual titration.");
+            if (!p.ExcessPreparationId.HasValue) throw new BusinessRuleException("The excess titrant preparation is required for residual titration.");
             excess = await LoadPreparationAsync(p.ExcessPreparationId.Value, t.TitrationExcessSolutionMasterId!.Value,
                 t.SectionId, cfg, false, nowUtc, "Excess titrant");
         }
         else if (p.ExcessPreparationId.HasValue)
-            throw new InvalidOperationException("An excess titrant is only used in residual titration.");
+            throw new BusinessRuleException("An excess titrant is only used in residual titration.");
 
         // ---- due-titrant acknowledgement ----
         var titrantWarnings = WarningsOf(titrantOpt, excess?.Opt);
@@ -142,17 +142,17 @@ public sealed class TitrationRecorder : TestWorkflowSupport
         if (titrantWarnings.Count > 0)
         {
             if (p.DueTitrantAcknowledged != true)
-                throw new InvalidOperationException("The titrant is due for standardization - acknowledge it and give a justification to continue.");
+                throw new BusinessRuleException("The titrant is due for standardization - acknowledge it and give a justification to continue.");
             ackJustification = p.DueTitrantJustification?.Trim();
             if (string.IsNullOrEmpty(ackJustification) || ackJustification.Length < 10 || ackJustification.Length > 500)
-                throw new InvalidOperationException("The justification must be 10 to 500 characters.");
+                throw new BusinessRuleException("The justification must be 10 to 500 characters.");
             // Both passed the Prepared check, so both have their code.
             var codes = new List<string> { titrantPrep.Code! };
             if (excess != null && excess.Value.Opt.Warning != null) codes.Add(excess.Value.Prep.Code!);
             ack = new { justification = ackJustification, titrantCodes = codes, acknowledgedAt = nowUtc };
         }
         else if (p.DueTitrantAcknowledged == true || !string.IsNullOrWhiteSpace(p.DueTitrantJustification))
-            throw new InvalidOperationException("No titrant warning to acknowledge.");
+            throw new BusinessRuleException("No titrant warning to acknowledge.");
 
         // ---- standards (relative) ----
         List<(decimal W, decimal Purity, decimal Moisture, decimal Titre)> stdRows = new();
@@ -161,36 +161,36 @@ public sealed class TitrationRecorder : TestWorkflowSupport
         if (relative)
         {
             if (p.Standards == null || p.Standards.Count < 1 || p.Standards.Count > 3)
-                throw new InvalidOperationException("One to three standard titrations are required for the relative calculation.");
+                throw new BusinessRuleException("One to three standard titrations are required for the relative calculation.");
             if (p.Standards.Select(s => s.MaterialId).Distinct().Count() != 1)
-                throw new InvalidOperationException("All standard titrations must use the same standard lot.");
+                throw new BusinessRuleException("All standard titrations must use the same standard lot.");
             foreach (var s in p.Standards)
             {
-                if (s.WeightMg <= 0m) throw new InvalidOperationException("Standard weight must be greater than zero.");
-                if (s.TitreMl <= 0m) throw new InvalidOperationException("Standard titre must be greater than zero.");
+                if (s.WeightMg <= 0m) throw new BusinessRuleException("Standard weight must be greater than zero.");
+                if (s.TitreMl <= 0m) throw new BusinessRuleException("Standard titre must be greater than zero.");
             }
             deductLot = await _db.Materials.FirstOrDefaultAsync(m => m.Id == p.Standards[0].MaterialId)
-                ?? throw new InvalidOperationException("Standard material not found.");
+                ?? throw new BusinessRuleException("Standard material not found.");
             if (deductLot.SectionId != t.SectionId)
-                throw new InvalidOperationException("The standard lot belongs to another laboratory.");
+                throw new BusinessRuleException("The standard lot belongs to another laboratory.");
             if (deductLot.MaterialType is not (MaterialType.ReferenceStandard or MaterialType.WorkingStandard))
-                throw new InvalidOperationException("The standard lot must be a reference standard or an approved working standard.");
+                throw new BusinessRuleException("The standard lot must be a reference standard or an approved working standard.");
             if (!deductLot.Purity.HasValue)
-                throw new InvalidOperationException($"Standard lot {deductLot.LotLabel} has no purity recorded.");
+                throw new BusinessRuleException($"Standard lot {deductLot.LotLabel} has no purity recorded.");
             decimal totalMg = p.Standards.Sum(s => s.WeightMg);
             deductQuantity = deductLot.Unit switch
             {
                 MaterialUnit.Gram => totalMg / 1000m,
                 MaterialUnit.Kilogram => totalMg / 1_000_000m,
-                _ => throw new InvalidOperationException($"Lot {deductLot.LotLabel} is stocked in {deductLot.Unit}; a standard weight in mg cannot be deducted from it."),
+                _ => throw new BusinessRuleException($"Lot {deductLot.LotLabel} is stocked in {deductLot.Unit}; a standard weight in mg cannot be deducted from it."),
             };
             var check = LotUsability.Check(deductLot, cfg.StandardEntryId!.Value, deductQuantity, today);
-            if (!check.Usable) throw new InvalidOperationException($"Standard lot {deductLot.LotLabel}: {check.Reason}");
+            if (!check.Usable) throw new BusinessRuleException($"Standard lot {deductLot.LotLabel}: {check.Reason}");
             foreach (var s in p.Standards)
                 stdRows.Add((s.WeightMg, deductLot.Purity.Value, deductLot.MoisturePercent ?? 0m, s.TitreMl));
         }
         else if (p.Standards is { Count: > 0 })
-            throw new InvalidOperationException("Standard titrations are only used with the relative calculation.");
+            throw new BusinessRuleException("Standard titrations are only used with the relative calculation.");
 
         // ---- calculation ----
         decimal? tStd = cfg.TempCorrection ? titrantOpt.StandardizationTemperatureC : null;
@@ -234,7 +234,7 @@ public sealed class TitrationRecorder : TestWorkflowSupport
                 corrected.Add(vC);
                 mgs.Add(MgFor(vC));
             }
-            catch (InvalidOperationException ex) { throw new InvalidOperationException($"Replicate {i + 1}: {ex.Message}"); }
+            catch (InvalidOperationException ex) { throw new BusinessRuleException($"Replicate {i + 1}: {ex.Message}"); }
         }
 
         var warnings = new List<string>();
@@ -255,7 +255,7 @@ public sealed class TitrationRecorder : TestWorkflowSupport
                     values.Add(TitrationEngine.ApplyBasis(mgs[i], p.Replicates[i].SampleWeightMg, spec.ResultBasis.Value,
                         moisture?.Percent, p.AverageUnitWeightMg, labelClaim));
                 }
-                catch (InvalidOperationException ex) { throw new InvalidOperationException($"{spec.ParameterName}: {ex.Message}"); }
+                catch (InvalidOperationException ex) { throw new BusinessRuleException($"{spec.ParameterName}: {ex.Message}"); }
             }
 
             var summary = TitrationEngine.Summarize(values, t.TitrationMaxRsdPercent);
@@ -367,21 +367,21 @@ public sealed class TitrationRecorder : TestWorkflowSupport
         int preparationId, int expectedMasterId, int sectionId, TitrationConfig cfg, bool requireTemperature, DateTime nowUtc, string what)
     {
         var prep = await _db.SolutionPreparations.FirstOrDefaultAsync(x => x.Id == preparationId)
-            ?? throw new InvalidOperationException($"{what} preparation not found.");
+            ?? throw new BusinessRuleException($"{what} preparation not found.");
         if (prep.SectionId != sectionId)
-            throw new InvalidOperationException($"{what} preparation belongs to another laboratory.");
+            throw new BusinessRuleException($"{what} preparation belongs to another laboratory.");
         if (prep.SolutionMasterId != expectedMasterId)
-            throw new InvalidOperationException($"{what} preparation is not of the solution configured on this test.");
+            throw new BusinessRuleException($"{what} preparation is not of the solution configured on this test.");
         if (SolutionPreparationResponse.EffectiveStatusOf(prep, nowUtc) != SolutionPreparationStatus.Prepared)
-            throw new InvalidOperationException($"{what} preparation {prep.Code} is expired or discarded.");
+            throw new BusinessRuleException($"{what} preparation {prep.Code} is expired or discarded.");
 
         var records = await _db.TitrantStandardizations.AsNoTracking().Where(x => x.SolutionPreparationId == prep.Id).ToListAsync();
         var opt = TitrationTitrants.Evaluate(prep, records, cfg.Calculation, requireTemperature, nowUtc, _clock.ToLabLocal, _clock.LabToday);
         if (!opt.Usable)
-            throw new InvalidOperationException($"{what} preparation {prep.Code}: {opt.BlockReason}");
+            throw new BusinessRuleException($"{what} preparation {prep.Code}: {opt.BlockReason}");
 
         var snap = JsonSerializer.Deserialize<SolutionMasterResponse>(prep.RecipeSnapshotJson, SnapshotJson.Options)
-            ?? throw new InvalidOperationException($"{what} preparation's recipe snapshot could not be read.");
+            ?? throw new BusinessRuleException($"{what} preparation's recipe snapshot could not be read.");
         return (prep, opt, snap);
     }
 }

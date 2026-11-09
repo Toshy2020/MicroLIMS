@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using MicroLIMS.Application.DTOs;
 using System.Globalization;
 using Microsoft.AspNetCore.Mvc;
@@ -183,7 +184,7 @@ public class UniversalSpecificationsTests
     public void SpecificationEvaluator_NonNumericTypes_ThrowsInvalidOperationException(LimitType limitType)
     {
         var spec = new Specification { LimitType = limitType };
-        Assert.Throws<InvalidOperationException>(() => SpecificationEvaluator.Evaluate(spec, 50m));
+        Assert.Throws<BusinessRuleException>(() => SpecificationEvaluator.Evaluate(spec, 50m));
     }
 
     // 3. Canonical text per type
@@ -270,7 +271,7 @@ public class UniversalSpecificationsTests
             LowerLimit = 110m,
             UpperLimit = 90m
         };
-        var ex1 = await Assert.ThrowsAsync<InvalidOperationException>(() => service.ValidateAsync(invalidRange));
+        var ex1 = await Assert.ThrowsAsync<BusinessRuleException>(() => service.ValidateAsync(invalidRange));
         Assert.Contains("Lower limit cannot be greater than upper limit", ex1.Message);
 
         // Missing fields (Range missing upper)
@@ -283,7 +284,7 @@ public class UniversalSpecificationsTests
             LowerLimit = 90m,
             UpperLimit = null
         };
-        var ex2 = await Assert.ThrowsAsync<InvalidOperationException>(() => service.ValidateAsync(missingUpper));
+        var ex2 = await Assert.ThrowsAsync<BusinessRuleException>(() => service.ValidateAsync(missingUpper));
         Assert.Contains("Lower limit and upper limit are required", ex2.Message);
 
         // Tolerance <= 0
@@ -297,7 +298,7 @@ public class UniversalSpecificationsTests
             Tolerance = 0m,
             ToleranceMode = ToleranceMode.Absolute
         };
-        var ex3 = await Assert.ThrowsAsync<InvalidOperationException>(() => service.ValidateAsync(invalidTol));
+        var ex3 = await Assert.ThrowsAsync<BusinessRuleException>(() => service.ValidateAsync(invalidTol));
         Assert.Contains("Tolerance must be greater than zero", ex3.Message);
 
         // DilutionFactor on non-CountTiered
@@ -311,7 +312,7 @@ public class UniversalSpecificationsTests
             UpperLimit = 110m,
             DilutionFactor = 10m
         };
-        var ex4 = await Assert.ThrowsAsync<InvalidOperationException>(() => service.ValidateAsync(dfOnRange));
+        var ex4 = await Assert.ThrowsAsync<BusinessRuleException>(() => service.ValidateAsync(dfOnRange));
         Assert.Contains("Dilution factor is only allowed for Count-Tiered", ex4.Message);
 
         // Duplicate parameter name
@@ -324,7 +325,7 @@ public class UniversalSpecificationsTests
             LowerLimit = 90m,
             UpperLimit = 110m
         };
-        var ex5 = await Assert.ThrowsAsync<InvalidOperationException>(() => service.ValidateAsync(duplicateParam));
+        var ex5 = await Assert.ThrowsAsync<BusinessRuleException>(() => service.ValidateAsync(duplicateParam));
         Assert.Contains("already exists", ex5.Message);
 
         // Test not assigned to item
@@ -336,7 +337,7 @@ public class UniversalSpecificationsTests
             LimitType = LimitType.CountTiered,
             SpecLimit = "100"
         };
-        var ex6 = await Assert.ThrowsAsync<InvalidOperationException>(() => service.ValidateAsync(unassignedTest));
+        var ex6 = await Assert.ThrowsAsync<BusinessRuleException>(() => service.ValidateAsync(unassignedTest));
         Assert.Contains("is not assigned to item", ex6.Message);
     }
 

@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 namespace MicroLIMS.Application.Services.MasterData;
 
 // Validates the Test Master "CoA order" (TestDefinition.CoaDisplayOrder).
@@ -14,7 +15,7 @@ public static class CoaDisplayOrderRule
     private static int Validate(int value, bool allowClear)
     {
         if (value < 1 || value > Max)
-            throw new InvalidOperationException(allowClear
+            throw new BusinessRuleException(allowClear
                 ? $"CoA order must be between 1 and {Max}, or 0 to clear it."
                 : $"CoA order must be between 1 and {Max}.");
         return value;

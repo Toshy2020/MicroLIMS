@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -473,7 +474,7 @@ public class DocumentControlEscalationUnitTests
         var record = await db.DocumentEscalationRecords.FirstAsync(e => e.EscalationLevel == DocumentEscalationLevel.Due);
 
         // 1. Missing reason throws
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        await Assert.ThrowsAsync<BusinessRuleException>(() =>
             service.ResolveEscalationAsync(new ResolveEscalationRequest(record.Id, ""), admin.Id));
 
         // 2. Valid resolution succeeds

@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.DTOs.DocumentControl;
 using MicroLIMS.Application.Interfaces;
@@ -316,7 +317,7 @@ public class DocumentReassignmentTests
     {
         foreach (var reason in new string?[] { null, "", "   " })
         {
-            var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => ReassignAsync(ReassignmentItemTypes.Custodian, _m1.Id, _candA, _headA, reason));
+            var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => ReassignAsync(ReassignmentItemTypes.Custodian, _m1.Id, _candA, _headA, reason));
             Assert.Contains("reason", ex.Message, StringComparison.OrdinalIgnoreCase);
         }
         Assert.Equal(_gone.Id, (await _db.DocumentMasters.FindAsync(_m1.Id))!.DocumentOwnerUserId);
@@ -326,14 +327,14 @@ public class DocumentReassignmentTests
     [Fact]
     public async Task Reassign_RefusesAnInactiveTarget()
     {
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => ReassignAsync(ReassignmentItemTypes.Custodian, _m1.Id, _goneRev, _headA));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => ReassignAsync(ReassignmentItemTypes.Custodian, _m1.Id, _goneRev, _headA));
         Assert.Contains("inactive", ex.Message);
     }
 
     [Fact]
     public async Task Reassign_RefusesAUserWhoIsNotAMemberOfTheDocumentsDepartment()
     {
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => ReassignAsync(ReassignmentItemTypes.ReviewTask, _reviewTask.Id, _outsider, _headA));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => ReassignAsync(ReassignmentItemTypes.ReviewTask, _reviewTask.Id, _outsider, _headA));
         Assert.Contains("not a member", ex.Message);
         Assert.Equal(_goneRev.Id, (await _db.DocumentReviewTasks.FindAsync(_reviewTask.Id))!.AssignedReviewerUserId);
     }
@@ -357,7 +358,7 @@ public class DocumentReassignmentTests
             _ => _m1.Id
         };
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => ReassignAsync(type, id, _candA, _headA));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => ReassignAsync(type, id, _candA, _headA));
         Assert.Contains(code, ex.Message);
     }
 
@@ -388,14 +389,14 @@ public class DocumentReassignmentTests
     {
         _goneRev.IsActive = true;
         await _db.SaveChangesAsync();
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => ReassignAsync(ReassignmentItemTypes.ReviewTask, _reviewTask.Id, _revA, _headA));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => ReassignAsync(ReassignmentItemTypes.ReviewTask, _reviewTask.Id, _revA, _headA));
         Assert.Contains("active user", ex.Message);
     }
 
     [Fact]
     public async Task Reassign_RejectsAnUnknownItemType()
     {
-        await Assert.ThrowsAsync<InvalidOperationException>(() => _svc.ReassignAsync(new ReassignRequest("Bogus", 1, _candA.Id, "r"), _headA.Id));
+        await Assert.ThrowsAsync<BusinessRuleException>(() => _svc.ReassignAsync(new ReassignRequest("Bogus", 1, _candA.Id, "r"), _headA.Id));
     }
 
     // ---- a valid hand-over ------------------------------------------------------------------------

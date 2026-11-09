@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
@@ -306,7 +307,7 @@ public class WorkflowProfileServicePostgresTests
 
         await using (var again = _fixture.CreateDbContext())
         {
-            var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+            var ex = await Assert.ThrowsAsync<BusinessRuleException>(
                 () => TestServiceFactory.WorkflowProfile(again).SignDraftAsync(draftId, request, user.Id, null));
             Assert.Contains("already Effective", ex.Message);
         }

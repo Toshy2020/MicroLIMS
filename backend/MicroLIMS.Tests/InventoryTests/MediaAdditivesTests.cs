@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Services;
 using MicroLIMS.Domain.Entities;
@@ -174,7 +175,7 @@ public class MediaAdditivesTests
         })
         {
             // A stock lot ahead of the bad solution proves the whole preparation rolls back.
-            var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
                 f.Service.PrepareAsync(Request(f, Stock(lot), Solution(prep))));
             Assert.Contains(text, ex.Message, StringComparison.OrdinalIgnoreCase);
         }
@@ -201,10 +202,10 @@ public class MediaAdditivesTests
         var small = await AddAdditiveLotAsync(f, qty: 2);
         await f.Db.SaveChangesAsync();
 
-        Assert.Contains("another laboratory section", (await Assert.ThrowsAsync<InvalidOperationException>(() => f.Service.PrepareAsync(Request(f, Stock(foreign))))).Message);
-        Assert.Contains("cannot be added as an additive", (await Assert.ThrowsAsync<InvalidOperationException>(() => f.Service.PrepareAsync(Request(f, Stock(dehydrated))))).Message);
-        Assert.Contains("expired", (await Assert.ThrowsAsync<InvalidOperationException>(() => f.Service.PrepareAsync(Request(f, Stock(expired))))).Message, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("Insufficient stock", (await Assert.ThrowsAsync<InvalidOperationException>(() => f.Service.PrepareAsync(Request(f, Stock(small, 5m))))).Message);
+        Assert.Contains("another laboratory section", (await Assert.ThrowsAsync<BusinessRuleException>(() => f.Service.PrepareAsync(Request(f, Stock(foreign))))).Message);
+        Assert.Contains("cannot be added as an additive", (await Assert.ThrowsAsync<BusinessRuleException>(() => f.Service.PrepareAsync(Request(f, Stock(dehydrated))))).Message);
+        Assert.Contains("expired", (await Assert.ThrowsAsync<BusinessRuleException>(() => f.Service.PrepareAsync(Request(f, Stock(expired))))).Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Insufficient stock", (await Assert.ThrowsAsync<BusinessRuleException>(() => f.Service.PrepareAsync(Request(f, Stock(small, 5m))))).Message);
 
         await using var check = new MicroLimsDbContext(new DbContextOptionsBuilder<MicroLimsDbContext>().UseInMemoryDatabase(f.DbName).Options);
         Assert.Empty(await check.Media.ToListAsync());
@@ -218,14 +219,14 @@ public class MediaAdditivesTests
         var lot = await AddAdditiveLotAsync(f);
         var prep = await AddPreparationAsync(f);
 
-        Assert.Contains("quantity", (await Assert.ThrowsAsync<InvalidOperationException>(() => f.Service.PrepareAsync(Request(f, Stock(lot, 0m))))).Message);
-        Assert.Contains("quantity", (await Assert.ThrowsAsync<InvalidOperationException>(() => f.Service.PrepareAsync(Request(f, Solution(prep, -1m))))).Message);
-        Assert.Contains("unit is required", (await Assert.ThrowsAsync<InvalidOperationException>(() => f.Service.PrepareAsync(Request(f, Stock(lot, 1m, " "))))).Message);
-        Assert.Contains("unit is required", (await Assert.ThrowsAsync<InvalidOperationException>(() => f.Service.PrepareAsync(Request(f, Solution(prep, 1m, null))))).Message);
-        Assert.Contains("20 characters", (await Assert.ThrowsAsync<InvalidOperationException>(() => f.Service.PrepareAsync(Request(f, Solution(prep, 1m, new string('x', 21)))))).Message);
-        Assert.Contains("more than once", (await Assert.ThrowsAsync<InvalidOperationException>(() => f.Service.PrepareAsync(Request(f, Stock(lot), Stock(lot))))).Message);
-        Assert.Contains("more than once", (await Assert.ThrowsAsync<InvalidOperationException>(() => f.Service.PrepareAsync(Request(f, Solution(prep), Solution(prep))))).Message);
-        Assert.Contains("choose the stock lot", (await Assert.ThrowsAsync<InvalidOperationException>(() => f.Service.PrepareAsync(Request(f, new MediaAdditiveInput(MediaAdditiveKind.StockLot, null, null, 1m, "mL"))))).Message);
+        Assert.Contains("quantity", (await Assert.ThrowsAsync<BusinessRuleException>(() => f.Service.PrepareAsync(Request(f, Stock(lot, 0m))))).Message);
+        Assert.Contains("quantity", (await Assert.ThrowsAsync<BusinessRuleException>(() => f.Service.PrepareAsync(Request(f, Solution(prep, -1m))))).Message);
+        Assert.Contains("unit is required", (await Assert.ThrowsAsync<BusinessRuleException>(() => f.Service.PrepareAsync(Request(f, Stock(lot, 1m, " "))))).Message);
+        Assert.Contains("unit is required", (await Assert.ThrowsAsync<BusinessRuleException>(() => f.Service.PrepareAsync(Request(f, Solution(prep, 1m, null))))).Message);
+        Assert.Contains("20 characters", (await Assert.ThrowsAsync<BusinessRuleException>(() => f.Service.PrepareAsync(Request(f, Solution(prep, 1m, new string('x', 21)))))).Message);
+        Assert.Contains("more than once", (await Assert.ThrowsAsync<BusinessRuleException>(() => f.Service.PrepareAsync(Request(f, Stock(lot), Stock(lot))))).Message);
+        Assert.Contains("more than once", (await Assert.ThrowsAsync<BusinessRuleException>(() => f.Service.PrepareAsync(Request(f, Solution(prep), Solution(prep))))).Message);
+        Assert.Contains("choose the stock lot", (await Assert.ThrowsAsync<BusinessRuleException>(() => f.Service.PrepareAsync(Request(f, new MediaAdditiveInput(MediaAdditiveKind.StockLot, null, null, 1m, "mL"))))).Message);
 
         Assert.Empty(await f.Db.Media.ToListAsync());
     }

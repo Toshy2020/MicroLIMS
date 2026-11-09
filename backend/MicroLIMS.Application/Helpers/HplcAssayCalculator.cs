@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using MicroLIMS.Domain.Enums;
 
 namespace MicroLIMS.Application.Helpers;
@@ -26,7 +27,7 @@ public static class HplcAssayCalculator
         ArgumentNullException.ThrowIfNull(std);
         ArgumentNullException.ThrowIfNull(reps);
         if (reps.Count == 0)
-            throw new InvalidOperationException("At least one replicate is required.");
+            throw new BusinessRuleException("At least one replicate is required.");
 
         var results = new List<AssayReplicateResult>();
         foreach (var rep in reps)
@@ -56,7 +57,7 @@ public static class HplcAssayCalculator
         if (basis is ResultBasis.PercentDriedBasis or ResultBasis.PercentAnhydrousBasis)
         {
             if (!moisturePercent.HasValue || moisturePercent < 0m || moisturePercent >= 100m)
-                throw new InvalidOperationException("Loss on drying / water % (0 to below 100) is required for a dried or anhydrous basis.");
+                throw new BusinessRuleException("Loss on drying / water % (0 to below 100) is required for a dried or anhydrous basis.");
             return Math.Round(assayPercent * 100m / (100m - moisturePercent.Value), 2, MidpointRounding.AwayFromZero);
         }
         return assayPercent;

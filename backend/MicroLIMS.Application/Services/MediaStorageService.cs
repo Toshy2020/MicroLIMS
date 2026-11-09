@@ -45,24 +45,24 @@ public class MediaStorageService
     private async Task<MediaStorageEntryResponse> AddStorageEntryCoreAsync(int mediaId, int userId, AddMediaStorageEntryRequest request)
     {
         if (request == null)
-            throw new InvalidOperationException("Request payload is required.");
+            throw new BusinessRuleException("Request payload is required.");
 
         if (!Enum.TryParse<MediaStorageForm>(request.Form, true, out var form))
-            throw new InvalidOperationException($"Invalid media storage form '{request.Form}'. Valid values are Plates, AgarBottles, BrothBottles, Tubes.");
+            throw new BusinessRuleException($"Invalid media storage form '{request.Form}'. Valid values are Plates, AgarBottles, BrothBottles, Tubes.");
 
         if (request.Quantity <= 0)
-            throw new InvalidOperationException("Quantity must be greater than zero.");
+            throw new BusinessRuleException("Quantity must be greater than zero.");
 
         var hasEquipment = request.EquipmentId.HasValue;
         var hasLocationText = !string.IsNullOrWhiteSpace(request.LocationText);
         if ((hasEquipment && hasLocationText) || (!hasEquipment && !hasLocationText))
-            throw new InvalidOperationException("Exactly one of EquipmentId or LocationText must be provided.");
+            throw new BusinessRuleException("Exactly one of EquipmentId or LocationText must be provided.");
 
         var media = await _db.Media.FirstOrDefaultAsync(m => m.Id == mediaId)
             ?? throw new NotFoundException($"Media lot {mediaId} not found.");
 
         if (!media.IsReleasedForUse || media.Status != MediaStatus.Active)
-            throw new InvalidOperationException($"Media lot {media.LotNumber} is not currently released for use and active.");
+            throw new BusinessRuleException($"Media lot {media.LotNumber} is not currently released for use and active.");
 
         EquipmentInventory? equipment = null;
         string? normalizedLocationText = null;
@@ -74,7 +74,7 @@ public class MediaStorageService
                 ?? throw new NotFoundException($"Equipment {request.EquipmentId!.Value} not found.");
 
             if (equipment.Status != EquipmentOperationalStatus.InService)
-                throw new InvalidOperationException($"Equipment {equipment.Code} is not currently in service.");
+                throw new BusinessRuleException($"Equipment {equipment.Code} is not currently in service.");
 
             locationDisplay = $"{equipment.InstrumentType}, {equipment.ManufacturerName} ({equipment.Code})";
         }
@@ -138,24 +138,24 @@ public class MediaStorageService
     private async Task<MediaStorageEntryResponse> MoveStorageEntryCoreAsync(int mediaId, int entryId, int userId, MoveMediaStorageEntryRequest request)
     {
         if (request == null)
-            throw new InvalidOperationException("Request payload is required.");
+            throw new BusinessRuleException("Request payload is required.");
 
         if (string.IsNullOrWhiteSpace(request.Reason))
-            throw new InvalidOperationException("A reason is required to move media storage.");
+            throw new BusinessRuleException("A reason is required to move media storage.");
 
         if (request.Quantity <= 0)
-            throw new InvalidOperationException("Quantity must be greater than zero.");
+            throw new BusinessRuleException("Quantity must be greater than zero.");
 
         var hasEquipment = request.EquipmentId.HasValue;
         var hasLocationText = !string.IsNullOrWhiteSpace(request.LocationText);
         if ((hasEquipment && hasLocationText) || (!hasEquipment && !hasLocationText))
-            throw new InvalidOperationException("Exactly one of EquipmentId or LocationText must be provided.");
+            throw new BusinessRuleException("Exactly one of EquipmentId or LocationText must be provided.");
 
         var media = await _db.Media.FirstOrDefaultAsync(m => m.Id == mediaId)
             ?? throw new NotFoundException($"Media lot {mediaId} not found.");
 
         if (!media.IsReleasedForUse || media.Status != MediaStatus.Active)
-            throw new InvalidOperationException($"Media lot {media.LotNumber} is not currently released for use and active.");
+            throw new BusinessRuleException($"Media lot {media.LotNumber} is not currently released for use and active.");
 
         var sourceEntry = await _db.MediaStorageEntries
             .Include(e => e.Equipment)
@@ -163,7 +163,7 @@ public class MediaStorageService
             ?? throw new NotFoundException($"Media storage entry {entryId} not found for media lot {mediaId}.");
 
         if (request.Quantity > sourceEntry.Quantity)
-            throw new InvalidOperationException($"Cannot move {request.Quantity} units; only {sourceEntry.Quantity} available in entry {entryId}.");
+            throw new BusinessRuleException($"Cannot move {request.Quantity} units; only {sourceEntry.Quantity} available in entry {entryId}.");
 
         EquipmentInventory? targetEquipment = null;
         string? normalizedTargetLocationText = null;
@@ -175,7 +175,7 @@ public class MediaStorageService
                 ?? throw new NotFoundException($"Equipment {request.EquipmentId!.Value} not found.");
 
             if (targetEquipment.Status != EquipmentOperationalStatus.InService)
-                throw new InvalidOperationException($"Equipment {targetEquipment.Code} is not currently in service.");
+                throw new BusinessRuleException($"Equipment {targetEquipment.Code} is not currently in service.");
 
             toDisplay = $"{targetEquipment.InstrumentType}, {targetEquipment.ManufacturerName} ({targetEquipment.Code})";
         }
@@ -190,7 +190,7 @@ public class MediaStorageService
             : sourceEntry.LocationText ?? "Unknown";
 
         if (sourceEntry.EquipmentId == request.EquipmentId && sourceEntry.LocationText == normalizedTargetLocationText)
-            throw new InvalidOperationException("Destination storage location must be different from the source storage location.");
+            throw new BusinessRuleException("Destination storage location must be different from the source storage location.");
 
         var now = _time.GetUtcNow().UtcDateTime;
 

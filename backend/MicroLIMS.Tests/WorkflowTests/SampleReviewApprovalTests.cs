@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Services;
 using MicroLIMS.Application.Workflows;
@@ -128,7 +129,7 @@ public class SampleReviewApprovalTests
         await CompleteTestAsync(db, order, media, analystId: 1);
 
         var reviewService = NewReviewService(db);
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             reviewService.CompleteReviewAsync(sample.Id, reviewerUserId: 1, Password, null, null));
         Assert.Contains("cannot review a sample you tested", ex.Message);
     }
@@ -146,7 +147,7 @@ public class SampleReviewApprovalTests
         await reviewService.CompleteReviewAsync(sample.Id, reviewerUserId: 2, Password, null, null);
 
         var approvalService = NewApprovalService(db);
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             approvalService.DecideAsync(sample.Id, sectionHeadUserId: 2, Password, ApprovalDecision.Approve, null, null));
         Assert.Contains("cannot approve a sample you reviewed", ex.Message);
     }
@@ -167,7 +168,7 @@ public class SampleReviewApprovalTests
         involveSectionHead(db, sample, order);
         await db.SaveChangesAsync();
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             NewApprovalService(db).DecideAsync(sample.Id, sectionHeadUserId: 3, Password, ApprovalDecision.Approve, null, null));
         Assert.Equal("You cannot approve a sample you tested.", ex.Message);
     }
@@ -251,7 +252,7 @@ public class SampleReviewApprovalTests
         await db.SaveChangesAsync();
         MicroLIMS.Tests.UnitTests.HplcDissolutionStandardTests.SeedRun(db, order.Id, runStatus: HplcRunStatus.Abandoned);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             NewApprovalService(db).DecideAsync(sample.Id, sectionHeadUserId: 3, Password, ApprovalDecision.Approve, null, null));
 
         Assert.Contains("lacks an HPLC run with a passed system suitability", ex.Message);
@@ -432,7 +433,7 @@ public class SampleReviewApprovalTests
         var (sample, _, _) = await SeedTwoTestSampleUnderApprovalAsync(db, analystId: 1, reviewedByUserId: 2);
 
         var approvalService = NewApprovalService(db);
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             approvalService.DecideAsync(sample.Id, sectionHeadUserId: 3, Password, ApprovalDecision.RetestRetainedSample, null, null));
         Assert.Contains("At least one test must be selected", ex.Message);
     }
@@ -488,7 +489,7 @@ public class SampleReviewApprovalTests
         var (sample, tamc, _) = await SeedTwoTestSampleUnderApprovalAsync(db, analystId: 1, reviewedByUserId: 2);
 
         var approvalService = NewApprovalService(db);
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             approvalService.DecideAsync(sample.Id, sectionHeadUserId: 3, Password, ApprovalDecision.NewSampleRequest,
                 null, null, selectedTestOrderIds: new List<int> { tamc.Id }, newSampleAnalystOneId: 4, newSampleAnalystTwoId: 4));
         Assert.Contains("two different analysts", ex.Message);
@@ -506,7 +507,7 @@ public class SampleReviewApprovalTests
         var (sample, tamc, _) = await SeedTwoTestSampleUnderApprovalAsync(db, analystId: 1, reviewedByUserId: 2);
 
         var approvalService = NewApprovalService(db);
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             approvalService.DecideAsync(sample.Id, sectionHeadUserId: 3, Password, ApprovalDecision.NewSampleRequest,
                 null, null, selectedTestOrderIds: new List<int> { tamc.Id }, newSampleAnalystOneId: 1, newSampleAnalystTwoId: 5));
         Assert.Contains("may be the analyst who tested the original sample", ex.Message);
@@ -545,7 +546,7 @@ public class SampleReviewApprovalTests
         var (sample, tamc, _) = await SeedTwoTestSampleUnderApprovalAsync(db, analystId: 1, reviewedByUserId: 2);
 
         var approvalService = NewApprovalService(db);
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             approvalService.DecideAsync(sample.Id, sectionHeadUserId: 3, Password, ApprovalDecision.NewSampleRequest,
                 null, null, selectedTestOrderIds: new List<int> { tamc.Id }, newSampleAnalystOneId: 4, newSampleAnalystTwoId: 7));
         Assert.Contains("a Section Head can only assign themselves", ex.Message);
@@ -562,7 +563,7 @@ public class SampleReviewApprovalTests
         var (sample, _, _) = await SeedTwoTestSampleUnderApprovalAsync(db, analystId: 1, reviewedByUserId: 2);
 
         var approvalService = NewApprovalService(db);
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             approvalService.DecideAsync(sample.Id, sectionHeadUserId: 3, Password, ApprovalDecision.RetestRetainedSample,
                 null, null, selectedTestOrderIds: new List<int> { 999999 }));
         Assert.Contains("do not belong to this sample", ex.Message);
@@ -627,7 +628,7 @@ public class SampleReviewApprovalTests
         await db.SaveChangesAsync();
 
         var reviewService = NewReviewService(db);
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             reviewService.CompleteReviewAsync(sample.Id, reviewerUserId: 2, Password, null, null));
         Assert.Contains("not in Ready step", ex.Message);
 
@@ -693,7 +694,7 @@ public class SampleReviewApprovalTests
         db.TestAnalyses.Add(new TestAnalysis { TestOrderId = order.Id, AnalysisType = WorkflowType.Dissolution, EnteredByUserId = 1, IsActive = true });
         await db.SaveChangesAsync();
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             NewApprovalService(db).DecideAsync(sample.Id, sectionHeadUserId: 3, Password, ApprovalDecision.Approve, null, null));
 
         Assert.Contains("only HPLC workspace tests (assay, dissolution) can supply one", ex.Message);

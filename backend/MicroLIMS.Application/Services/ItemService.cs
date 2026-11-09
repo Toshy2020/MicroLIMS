@@ -49,7 +49,7 @@ public class ItemService
         EnsureMinimumQuantity(request);
 
         if (await _db.Items.AnyAsync(i => i.Code == request.Code))
-            throw new InvalidOperationException($"An item with code '{request.Code}' already exists.");
+            throw new BusinessRuleException($"An item with code '{request.Code}' already exists.");
 
         var item = new Item
         {
@@ -84,7 +84,7 @@ public class ItemService
         RecordVersion.EnsureCurrent(_db, item);
 
         if (await _db.Items.AnyAsync(i => i.Code == update.Code && i.Id != id))
-            throw new InvalidOperationException($"An item with code '{update.Code}' already exists.");
+            throw new BusinessRuleException($"An item with code '{update.Code}' already exists.");
 
         item.Name = update.Name;
         item.Code = update.Code;
@@ -103,16 +103,16 @@ public class ItemService
     private static void EnsureMinimumQuantity(ItemSaveRequest r)
     {
         if (r.MinSampleQuantity <= 0 || r.MinRetestSampleQuantity <= 0)
-            throw new InvalidOperationException("Minimum sample quantity must be greater than zero.");
+            throw new BusinessRuleException("Minimum sample quantity must be greater than zero.");
         if ((r.MinSampleQuantity != null || r.MinRetestSampleQuantity != null) && string.IsNullOrWhiteSpace(r.MinSampleQuantityUnit))
-            throw new InvalidOperationException("Enter the unit for the minimum sample quantity.");
+            throw new BusinessRuleException("Enter the unit for the minimum sample quantity.");
     }
 
     private static void EnsureAllowedCategory(SampleCategory category)
     {
         if (!AllowedItemCategories.Contains(category))
         {
-            throw new InvalidOperationException(
+            throw new BusinessRuleException(
                 "Items can only be configured for Product, Raw Material, or " +
                 "Packaging Material categories. Water, Environmental Monitoring, " +
                 "After Cleaning, and GPT are managed via their dedicated " +
@@ -148,13 +148,13 @@ public class ItemService
 
         var sampleCount = await _db.Samples.CountAsync(s => s.ItemId == id);
         if (sampleCount > 0)
-            throw new InvalidOperationException(
+            throw new BusinessRuleException(
                 $"Cannot delete '{item.Name}' - it has been used to receive {sampleCount} sample(s). Freeze it instead to stop new samples without losing history.");
 
         // NotApplicableTest.ItemId is Restrict too; the signed records must survive, so refuse.
         var naCount = await _db.NotApplicableTests.CountAsync(n => n.ItemId == id);
         if (naCount > 0)
-            throw new InvalidOperationException(
+            throw new BusinessRuleException(
                 $"Cannot delete '{item.Name}' - it has {naCount} not-applicable record(s). Freeze it instead to keep that history.");
 
         _db.Items.Remove(item);

@@ -52,22 +52,22 @@ public class SolutionPreparationReleaseService
 
         var now = _clock.UtcNow.UtcDateTime;
         if (SolutionPreparationResponse.EffectiveStatusOf(prep, now) != SolutionPreparationStatus.Prepared)
-            throw new InvalidOperationException("This preparation is closed.");
+            throw new BusinessRuleException("This preparation is closed.");
 
         var label = prep.Code ?? $"#{prep.Id}";
         if (prep.ApprovalStatus is null)
-            throw new InvalidOperationException($"Preparation {label} does not need a release.");
+            throw new BusinessRuleException($"Preparation {label} does not need a release.");
         if (prep.ApprovalStatus != ApprovalGateStatus.PendingReview)
-            throw new InvalidOperationException($"Preparation {label} has already been decided ({prep.ApprovalStatus}).");
+            throw new BusinessRuleException($"Preparation {label} has already been decided ({prep.ApprovalStatus}).");
 
         var comment = string.IsNullOrWhiteSpace(r.Comment) ? null : r.Comment.Trim();
         if (!r.Approved && comment is null)
-            throw new InvalidOperationException("A comment is required when rejecting a preparation.");
+            throw new BusinessRuleException("A comment is required when rejecting a preparation.");
         if (comment is { Length: > 500 })
-            throw new InvalidOperationException("Comment cannot exceed 500 characters.");
+            throw new BusinessRuleException("Comment cannot exceed 500 characters.");
 
         if (await _segregationOfDuties.DidUserPrepareSolutionAsync(id, userId))
-            throw new InvalidOperationException("You cannot release a preparation you prepared.");
+            throw new BusinessRuleException("You cannot release a preparation you prepared.");
 
         // Signs first - a wrong password throws and nothing below is written (the
         // signature, the event and the state change commit in one SaveChangesAsync).

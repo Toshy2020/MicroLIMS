@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using MicroLIMS.Application.Helpers;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -213,7 +214,7 @@ public class MessageService
     private async Task<ConversationSummaryDto> CreateConversationCoreAsync(CreateConversationRequest request, int creatorUserId)
     {
         if (string.IsNullOrWhiteSpace(request.InitialMessage))
-            throw new InvalidOperationException("Initial message is required.");
+            throw new BusinessRuleException("Initial message is required.");
 
         var allParticipantIds = request.ParticipantUserIds ?? new List<int>();
         if (!allParticipantIds.Contains(creatorUserId))
@@ -224,12 +225,12 @@ public class MessageService
         allParticipantIds = allParticipantIds.Distinct().ToList();
 
         if (allParticipantIds.Count < 2)
-            throw new InvalidOperationException("A conversation must have at least one other participant.");
+            throw new BusinessRuleException("A conversation must have at least one other participant.");
 
         // Inactive users cannot be added to (or start) a conversation.
         var inactiveCount = await _db.Users.CountAsync(u => allParticipantIds.Contains(u.Id) && !u.IsActive);
         if (inactiveCount > 0)
-            throw new InvalidOperationException("Inactive users cannot be added to a conversation.");
+            throw new BusinessRuleException("Inactive users cannot be added to a conversation.");
 
         // For 1-on-1 conversations, check if one already exists between these 2 users
         if (!request.IsGroup && allParticipantIds.Count == 2)
@@ -335,7 +336,7 @@ public class MessageService
     private async Task<DirectMessageDto> SendMessageCoreAsync(int conversationId, SendMessageRequest request, int senderUserId)
     {
         if (string.IsNullOrWhiteSpace(request.Content))
-            throw new InvalidOperationException("Message content cannot be empty.");
+            throw new BusinessRuleException("Message content cannot be empty.");
 
         var conversation = await _db.Conversations
             .Include(c => c.Participants)

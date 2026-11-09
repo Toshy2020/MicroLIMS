@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Persistence.Helpers;
 using MicroLIMS.Application.Services;
@@ -162,7 +163,7 @@ public class MediaReleaseTests
         await SeedUser(db, PreparerId);
         var media = await PrepareAndEvaluateAsync(db, conform: true);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             NewReleaseService(db).DecideAsync(media.Id, PreparerId, Password, approved: true, comment: null, ipAddress: null));
         Assert.Contains("cannot approve a media lot you prepared", ex.Message);
 
@@ -178,7 +179,7 @@ public class MediaReleaseTests
         await SeedUser(db, SectionHeadId);
         var media = await PrepareAndEvaluateAsync(db, conform: false);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             NewReleaseService(db).DecideAsync(media.Id, SectionHeadId, Password, approved: true, comment: null, ipAddress: null));
         Assert.Contains("did not conform", ex.Message);
 
@@ -211,7 +212,7 @@ public class MediaReleaseTests
 
         await service.DecideAsync(media.Id, SectionHeadId, Password, approved: true, comment: null, ipAddress: null);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             service.DecideAsync(media.Id, SectionHeadId, Password, approved: true, comment: null, ipAddress: null));
         Assert.Contains("already been decided", ex.Message);
     }
@@ -262,7 +263,7 @@ public class MediaReleaseTests
         var media = await PrepareAndEvaluateAsync(db, conform: true);
 
         var prepService = TestServiceFactory.MediaPreparation(db);
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             prepService.MarkOutOfStockAsync(media.Id, SectionHeadId, null));
         Assert.Contains("not currently released for use", ex.Message);
     }

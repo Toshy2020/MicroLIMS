@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Services;
 using MicroLIMS.Application.Workflows;
@@ -39,7 +40,7 @@ public class AfterCleaningReceivingTests
             PreviousProductBatchNumber: "PCT-260824"
         );
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => engine.ReceiveAsync(req));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => engine.ReceiveAsync(req));
         Assert.Contains("Previous Product is required", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -64,7 +65,7 @@ public class AfterCleaningReceivingTests
             PreviousProductBatchNumber: "   "
         );
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => engine.ReceiveAsync(req));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => engine.ReceiveAsync(req));
         Assert.Contains("Previous Product Batch Number is required", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 

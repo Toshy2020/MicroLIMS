@@ -122,7 +122,7 @@ public class StorageLocationChangeTests
         var media = await SeedMediaAsync(db, released: false);
         var service = TestServiceFactory.MediaStorage(db);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             service.AddStorageEntryAsync(media.Id, UserId, new AddMediaStorageEntryRequest(
                 Form: "Plates",
                 Quantity: 40,
@@ -139,7 +139,7 @@ public class StorageLocationChangeTests
         var media = await SeedMediaAsync(db, released: true, status: MediaStatus.OutOfStock);
         var service = TestServiceFactory.MediaStorage(db);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             service.AddStorageEntryAsync(media.Id, UserId, new AddMediaStorageEntryRequest(
                 Form: "Plates",
                 Quantity: 40,
@@ -158,7 +158,7 @@ public class StorageLocationChangeTests
         var service = TestServiceFactory.MediaStorage(db);
 
         // Both provided
-        var ex1 = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex1 = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             service.AddStorageEntryAsync(media.Id, UserId, new AddMediaStorageEntryRequest(
                 Form: "Plates",
                 Quantity: 40,
@@ -167,7 +167,7 @@ public class StorageLocationChangeTests
         Assert.Contains("Exactly one of EquipmentId or LocationText", ex1.Message);
 
         // Neither provided
-        var ex2 = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex2 = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             service.AddStorageEntryAsync(media.Id, UserId, new AddMediaStorageEntryRequest(
                 Form: "Plates",
                 Quantity: 40,
@@ -186,7 +186,7 @@ public class StorageLocationChangeTests
         var service = TestServiceFactory.MediaStorage(db);
 
         // Out of service equipment rejected
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             service.AddStorageEntryAsync(media.Id, UserId, new AddMediaStorageEntryRequest(
                 Form: "Plates",
                 Quantity: 40,
@@ -320,7 +320,7 @@ public class StorageLocationChangeTests
             Quantity: 20,
             EquipmentId: fridge.Id));
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             service.MoveStorageEntryAsync(media.Id, entry.Id, UserId, new MoveMediaStorageEntryRequest(
                 Quantity: 5,
                 LocationText: "Shelf C",
@@ -339,12 +339,12 @@ public class StorageLocationChangeTests
         var service = TestServiceFactory.Cryovial(db);
 
         // Missing reason rejected
-        var exNoReason = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var exNoReason = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             service.MoveStorageAsync(cryovial.Id, UserId, freezer.Id, null, "   "));
         Assert.Contains("reason is required", exNoReason.Message, StringComparison.OrdinalIgnoreCase);
 
         // Exactly-one-of rejected
-        var exBoth = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var exBoth = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             service.MoveStorageAsync(cryovial.Id, UserId, freezer.Id, "Some text", "Reorganizing"));
         Assert.Contains("Exactly one of EquipmentId or LocationText", exBoth.Message);
 
@@ -387,11 +387,11 @@ public class StorageLocationChangeTests
         var freezer = await SeedStorageEquipmentAsync(db);
         var service = TestServiceFactory.Cryovial(db);
 
-        var exUnapproved = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var exUnapproved = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             service.MoveStorageAsync(unapproved.Id, UserId, freezer.Id, null, "Reason"));
         Assert.Contains("not approved", exUnapproved.Message, StringComparison.OrdinalIgnoreCase);
 
-        var exDestroyed = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var exDestroyed = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             service.MoveStorageAsync(destroyed.Id, UserId, freezer.Id, null, "Reason"));
         Assert.Contains("destroyed", exDestroyed.Message, StringComparison.OrdinalIgnoreCase);
     }

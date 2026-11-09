@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using System.Text;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -203,7 +204,7 @@ public class DocumentControlPermissionEnforcementTests
     {
         var (_, revId) = await SeedDraftAsync();
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             _reviewService.SubmitForReviewAsync(revId, new SubmitForReviewRequest { ReviewerUserId = _bare.Id }, _author.Id));
         Assert.Contains("Documents.Review", ex.Message);
 
@@ -290,7 +291,7 @@ public class DocumentControlPermissionEnforcementTests
         await _db.SaveChangesAsync();
         await RevokeAsync(_reviewerRole, PermissionConstants.DocumentsApprove);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             _approvalService.CreateApprovalTaskAsync(revId, new CreateApprovalTaskRequest(_approver.Id), _author.Id));
         Assert.Contains("Documents.Approve", ex.Message);
     }
@@ -334,7 +335,7 @@ public class DocumentControlPermissionEnforcementTests
     {
         var taskId = await SeedPeriodicTaskAsync(_reviewer.Id);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             _periodicService.AssignReviewerAsync(taskId, new AssignPeriodicReviewerRequest(_bare.Id), _controller.Id));
         Assert.Contains("Documents.PeriodicReview", ex.Message);
     }
@@ -349,7 +350,7 @@ public class DocumentControlPermissionEnforcementTests
     {
         var (masterId, _) = await SeedDraftAsync();
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        await Assert.ThrowsAsync<BusinessRuleException>(() =>
             _masterService.AddOrUpdateAssignmentAsync(masterId, new CreateAssignmentRequest(_bare.Id, role), _author.Id));
     }
 
@@ -380,6 +381,6 @@ public class DocumentControlPermissionEnforcementTests
         Assert.DoesNotContain(reviewers, u => u.Id == _author.Id);
         Assert.Contains(reviewers, u => u.Id == _reviewer.Id);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => users.GetDirectoryAsync(PermissionConstants.UsersManage));
+        await Assert.ThrowsAsync<BusinessRuleException>(() => users.GetDirectoryAsync(PermissionConstants.UsersManage));
     }
 }

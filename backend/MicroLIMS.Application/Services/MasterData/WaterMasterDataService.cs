@@ -200,7 +200,7 @@ public class WaterMasterDataService
         var configCount = await _db.SamplingConfigurations.CountAsync(c => c.WaterSamplingPointId == id);
         var locationCount = await _db.SampleLocations.CountAsync(l => l.WaterSamplingPointId == id);
         if (sampleCount > 0 || locationCount > 0 || configCount > 0)
-            throw new InvalidOperationException(
+            throw new BusinessRuleException(
                 $"Cannot delete '{point.Code}' - it is referenced by {sampleCount} sample(s), {locationCount} sample location(s) and {configCount} sampling configuration(s).");
 
         _db.WaterSamplingPoints.Remove(point);
@@ -252,7 +252,7 @@ public class WaterMasterDataService
 
         var pointCount = await _db.WaterSamplingPoints.CountAsync(p => p.WaterDepartmentId == id);
         if (pointCount > 0)
-            throw new InvalidOperationException($"Cannot delete '{dept.Name}' - it still has {pointCount} sample location(s). Delete those first.");
+            throw new BusinessRuleException($"Cannot delete '{dept.Name}' - it still has {pointCount} sample location(s). Delete those first.");
 
         _db.WaterDepartments.Remove(dept);
         await _db.SaveChangesAsync();

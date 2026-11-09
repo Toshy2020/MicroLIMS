@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using MicroLIMS.Application.DTOs.DocumentControl;
@@ -143,7 +144,7 @@ public class DocumentEffectiveDateService : IDocumentEffectiveDateService
 
         if (freshRevision == null)
         {
-            throw new InvalidOperationException($"DocumentRevision {targetRevision.Id} not found in database.");
+            throw new BusinessRuleException($"DocumentRevision {targetRevision.Id} not found in database.");
         }
 
         // Idempotency check: if status has already changed (e.g. concurrent execution or manual intervention), skip harmlessly
@@ -158,12 +159,12 @@ public class DocumentEffectiveDateService : IDocumentEffectiveDateService
         var master = freshRevision.DocumentMaster;
         if (master == null)
         {
-            throw new InvalidOperationException($"DocumentMaster missing for Revision {freshRevision.Id}.");
+            throw new BusinessRuleException($"DocumentMaster missing for Revision {freshRevision.Id}.");
         }
 
         if (master.RecordStatus != DocumentRecordStatus.Active)
         {
-            throw new InvalidOperationException($"Cannot activate Revision {freshRevision.Id} because DocumentMaster {master.Id} is in {master.RecordStatus} status.");
+            throw new BusinessRuleException($"Cannot activate Revision {freshRevision.Id} because DocumentMaster {master.Id} is in {master.RecordStatus} status.");
         }
 
         var effectiveDate = freshRevision.EffectiveDate!.Value;

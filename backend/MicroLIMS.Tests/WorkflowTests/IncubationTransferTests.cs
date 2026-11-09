@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Workflows;
 using MicroLIMS.Domain.Entities;
@@ -252,7 +253,7 @@ public class IncubationTransferTests
         var engine = TestServiceFactory.TestWorkflow(db);
         await engine.SelectMediaAsync(order.Id, "CountIncubation", media.Id, incubatorEquipmentId: 1, userId: 1);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             engine.CloseCurrentIncubationWindowAsync(order.Id, userId: 1));
 
         Assert.Contains("requires incubation transfer", ex.Message);

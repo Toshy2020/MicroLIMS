@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.DTOs;
 using MicroLIMS.Application.Services;
@@ -47,7 +48,7 @@ public class IcpTestMasterTests
         e.Select(x => new IcpTestElementInput(null, x.Symbol, x.Target)).ToList();
 
     private static async Task AssertThrowsAsync(string message, Func<Task> act) =>
-        Assert.Equal(message, (await Assert.ThrowsAsync<InvalidOperationException>(act)).Message);
+        Assert.Equal(message, (await Assert.ThrowsAsync<BusinessRuleException>(act)).Message);
 
     [Fact]
     public async Task Create_Assay_StoresElementsTargetsAndBasis()
@@ -276,7 +277,7 @@ public class IcpTestMasterTests
         await using var db = NewDb();
         var a = await ArrangeSpecAsync(db, IcpTestMode.Assay);
         await a.Svc.CreateSpecificationAsync(a.UserId, Spec(a));
-        await Assert.ThrowsAsync<InvalidOperationException>(() => a.Svc.CreateSpecificationAsync(a.UserId, Spec(a, name: "Zn again")));
+        await Assert.ThrowsAsync<BusinessRuleException>(() => a.Svc.CreateSpecificationAsync(a.UserId, Spec(a, name: "Zn again")));
     }
 
     [Fact]

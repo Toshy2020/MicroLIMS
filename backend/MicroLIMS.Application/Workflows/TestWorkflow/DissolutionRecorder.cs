@@ -26,19 +26,19 @@ public sealed class DissolutionRecorder : TestWorkflowSupport
         int testOrderId, DissolutionPayload payload, int userId, string? ipAddress = null)
     {
         if (payload.MediumVolumeMl <= 0m)
-            throw new InvalidOperationException("Medium volume must be greater than zero.");
+            throw new BusinessRuleException("Medium volume must be greater than zero.");
         if (payload.DilutionFactor.HasValue && payload.DilutionFactor.Value <= 0m)
-            throw new InvalidOperationException("Dilution factor must be greater than zero.");
+            throw new BusinessRuleException("Dilution factor must be greater than zero.");
         if (payload.VesselAreas == null || payload.VesselAreas.Count != 6)
-            throw new InvalidOperationException("Stage 1 dissolution requires exactly 6 vessel areas.");
+            throw new BusinessRuleException("Stage 1 dissolution requires exactly 6 vessel areas.");
         if (payload.VesselAreas.Any(a => a <= 0m))
-            throw new InvalidOperationException("Vessel area must be greater than zero.");
+            throw new BusinessRuleException("Vessel area must be greater than zero.");
 
         var (order, definition, specById, analysedAtUtc) = await ValidateTestAnalysisOrderAsync(
             testOrderId, payload.AnalysedAt, payload.EquipmentId, null, payload.Password, WorkflowType.Dissolution, userId);
 
         var resolved = await HplcDissolutionStandard.ResolveAsync(_db, order.Id);
-        var std = resolved.Standard ?? throw new InvalidOperationException(resolved.Problem);
+        var std = resolved.Standard ?? throw new BusinessRuleException(resolved.Problem);
 
         var configuredLabels = string.IsNullOrWhiteSpace(definition.ConditionFields)
             ? Array.Empty<string>()
@@ -50,27 +50,27 @@ public sealed class DissolutionRecorder : TestWorkflowSupport
         if (configuredLabels.Length > 0)
         {
             if (payload.Conditions == null)
-                throw new InvalidOperationException("Conditions are required.");
+                throw new BusinessRuleException("Conditions are required.");
 
             if (payload.Conditions.Count != configuredLabels.Length)
-                throw new InvalidOperationException($"Expected {configuredLabels.Length} condition fields, but received {payload.Conditions.Count}.");
+                throw new BusinessRuleException($"Expected {configuredLabels.Length} condition fields, but received {payload.Conditions.Count}.");
 
             foreach (var label in configuredLabels)
             {
                 if (!payload.Conditions.TryGetValue(label, out var val) || string.IsNullOrWhiteSpace(val))
-                    throw new InvalidOperationException($"Condition field \"{label}\" is required.");
+                    throw new BusinessRuleException($"Condition field \"{label}\" is required.");
             }
 
             foreach (var key in payload.Conditions.Keys)
             {
                 if (!configuredLabels.Contains(key))
-                    throw new InvalidOperationException($"Unexpected condition field \"{key}\".");
+                    throw new BusinessRuleException($"Unexpected condition field \"{key}\".");
             }
         }
         else
         {
             if (payload.Conditions != null && payload.Conditions.Count > 0)
-                throw new InvalidOperationException("No condition fields are configured for this test.");
+                throw new BusinessRuleException("No condition fields are configured for this test.");
         }
 
         string? conditionsJson = payload.Conditions != null && payload.Conditions.Count > 0
@@ -221,11 +221,11 @@ public sealed class DissolutionRecorder : TestWorkflowSupport
         int testOrderId, DissolutionStagePayload payload, int userId, string? ipAddress = null)
     {
         if (string.IsNullOrWhiteSpace(payload.Password))
-            throw new InvalidOperationException("Password is required to sign the result.");
+            throw new BusinessRuleException("Password is required to sign the result.");
         if (payload.VesselAreas == null || payload.VesselAreas.Count == 0)
-            throw new InvalidOperationException("Vessel areas are required.");
+            throw new BusinessRuleException("Vessel areas are required.");
         if (payload.VesselAreas.Any(a => a <= 0m))
-            throw new InvalidOperationException("Vessel area must be greater than zero.");
+            throw new BusinessRuleException("Vessel area must be greater than zero.");
 
         var order = await _db.TestOrders
             .Include(t => t.Results)
@@ -236,14 +236,14 @@ public sealed class DissolutionRecorder : TestWorkflowSupport
         RequireOrderNotFinalized(order);
 
         if (order.IsSuperseded)
-            throw new InvalidOperationException("Cannot record result for a superseded test order.");
+            throw new BusinessRuleException("Cannot record result for a superseded test order.");
 
         var definition = await _db.TestDefinitions
             .FirstOrDefaultAsync(t => t.Code == order.TestCode)
-            ?? throw new InvalidOperationException($"Test definition \"{order.TestCode}\" not found.");
+            ?? throw new BusinessRuleException($"Test definition \"{order.TestCode}\" not found.");
 
         if (definition.WorkflowType != WorkflowType.Dissolution)
-            throw new InvalidOperationException($"Test order {testOrderId} is not a Dissolution workflow.");
+            throw new BusinessRuleException($"Test order {testOrderId} is not a Dissolution workflow.");
 
         await _sectionScope.EnsureTestOrderAccessAsync(userId, testOrderId);
 
@@ -251,38 +251,38 @@ public sealed class DissolutionRecorder : TestWorkflowSupport
             .Include(e => e.ParameterResults)
                 .ThenInclude(pr => pr.Readings)
             .FirstOrDefaultAsync(e => e.TestOrderId == testOrderId && e.IsActive)
-            ?? throw new InvalidOperationException("No active dissolution entry found for this test order.");
+            ?? throw new BusinessRuleException("No active dissolution entry found for this test order.");
 
         var paramResult = entry.ParameterResults.FirstOrDefault(pr => pr.IsActive)
-            ?? throw new InvalidOperationException("No active dissolution parameter result found.");
+            ?? throw new BusinessRuleException("No active dissolution parameter result found.");
 
         if (paramResult.ComparisonStatus != ResultStatus.NextStageRequired)
-            throw new InvalidOperationException("Active dissolution analysis does not require a next stage.");
+            throw new BusinessRuleException("Active dissolution analysis does not require a next stage.");
 
         int existingVesselCount = paramResult.Readings.Count;
         int nextStage;
         if (existingVesselCount == 6)
         {
             if (payload.VesselAreas.Count != 6)
-                throw new InvalidOperationException("Stage 2 dissolution requires exactly 6 vessel areas.");
+                throw new BusinessRuleException("Stage 2 dissolution requires exactly 6 vessel areas.");
             nextStage = 2;
         }
         else if (existingVesselCount == 12)
         {
             if (payload.VesselAreas.Count != 12)
-                throw new InvalidOperationException("Stage 3 dissolution requires exactly 12 vessel areas.");
+                throw new BusinessRuleException("Stage 3 dissolution requires exactly 12 vessel areas.");
             nextStage = 3;
         }
         else
         {
-            throw new InvalidOperationException($"Invalid existing vessel count ({existingVesselCount}) for next stage.");
+            throw new BusinessRuleException($"Invalid existing vessel count ({existingVesselCount}) for next stage.");
         }
 
         if (string.IsNullOrWhiteSpace(paramResult.CalculationJson))
-            throw new InvalidOperationException("Active dissolution parameter result lacks calculation data.");
+            throw new BusinessRuleException("Active dissolution parameter result lacks calculation data.");
 
         var prevCalc = JsonSerializer.Deserialize<DissolutionCalculationData>(paramResult.CalculationJson, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase })
-            ?? throw new InvalidOperationException("Failed to deserialize dissolution calculation data.");
+            ?? throw new BusinessRuleException("Failed to deserialize dissolution calculation data.");
 
         var allVesselInputs = new List<(int Stage, int VesselIndex, decimal Area)>();
         foreach (var r in paramResult.Readings.OrderBy(r => r.Index))

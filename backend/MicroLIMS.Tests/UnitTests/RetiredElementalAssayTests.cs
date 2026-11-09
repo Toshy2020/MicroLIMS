@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.DTOs;
 using MicroLIMS.Application.Services;
@@ -31,7 +32,7 @@ public class RetiredElementalAssayTests
     }
 
     private static async Task AssertRetiredAsync(Func<Task> act) =>
-        Assert.Equal(Retired, (await Assert.ThrowsAsync<InvalidOperationException>(act)).Message);
+        Assert.Equal(Retired, (await Assert.ThrowsAsync<BusinessRuleException>(act)).Message);
 
     [Fact]
     public async Task CreateTest_ElementalAssay_Refused()

@@ -111,11 +111,11 @@ public class SampleReviewService
         foreach (var order in currentOrders)
         {
             if (await _segregationOfDuties.DidUserPerformTestAsync(order.Id, reviewerUserId))
-                throw new InvalidOperationException("You cannot review a sample you tested.");
+                throw new BusinessRuleException("You cannot review a sample you tested.");
         }
 
         if (currentOrders.Any(t => t.CurrentStep != WorkflowStep.Ready))
-            throw new InvalidOperationException("Cannot complete review: one or more tests are not in Ready step.");
+            throw new BusinessRuleException("Cannot complete review: one or more tests are not in Ready step.");
 
         // Checked before anything is signed or written.
         var retentionUnitCanonical = await ValidateRetentionAsync(sample, section, retentionQuantity, retentionUnit);
@@ -186,15 +186,15 @@ public class SampleReviewService
         if (!required)
         {
             if (quantity is not null || !string.IsNullOrWhiteSpace(unit))
-                throw new InvalidOperationException("Retention quantity is recorded only at the physicochemical review of a raw material.");
+                throw new BusinessRuleException("Retention quantity is recorded only at the physicochemical review of a raw material.");
             return null;
         }
 
-        if (quantity is null) throw new InvalidOperationException("Enter the retention quantity kept for this raw material.");
-        if (quantity <= 0) throw new InvalidOperationException("Retention quantity must be greater than zero.");
-        if (quantity >= 1_000_000m) throw new InvalidOperationException("Retention quantity must be less than 1,000,000.");
+        if (quantity is null) throw new BusinessRuleException("Enter the retention quantity kept for this raw material.");
+        if (quantity <= 0) throw new BusinessRuleException("Retention quantity must be greater than zero.");
+        if (quantity >= 1_000_000m) throw new BusinessRuleException("Retention quantity must be less than 1,000,000.");
         return RetentionUnits.FirstOrDefault(u => string.Equals(u, unit?.Trim(), StringComparison.OrdinalIgnoreCase))
-            ?? throw new InvalidOperationException("Retention unit must be g, mg, kg, mL or L.");
+            ?? throw new BusinessRuleException("Retention unit must be g, mg, kg, mL or L.");
     }
 
     public Task<TestReturnEventResponse> ReturnToAnalystAsync(int testOrderId, int reviewerId, string? reason) =>
@@ -219,17 +219,17 @@ public class SampleReviewService
             or SampleStatus.Voided
             || sectionStatus is not (SectionSignoffStatus.InTesting or SectionSignoffStatus.UnderReview)))
         {
-            throw new InvalidOperationException("Cannot return a test to the analyst after the sample has been reviewed. Use Reject or Retest at approval instead.");
+            throw new BusinessRuleException("Cannot return a test to the analyst after the sample has been reviewed. Use Reject or Retest at approval instead.");
         }
 
         if (order.Status != ApprovalStatus.ResultEntered)
-            throw new InvalidOperationException($"Cannot return a test order in {order.Status} status. Only test orders in ResultEntered status can be returned to the analyst.");
+            throw new BusinessRuleException($"Cannot return a test order in {order.Status} status. Only test orders in ResultEntered status can be returned to the analyst.");
 
         var definition = await _db.TestDefinitions.FirstOrDefaultAsync(d => d.Code == order.TestCode)
-            ?? throw new InvalidOperationException($"Test definition \"{order.TestCode}\" not found.");
+            ?? throw new BusinessRuleException($"Test definition \"{order.TestCode}\" not found.");
 
         if (definition.WorkflowType != WorkflowType.CountTest && !AnalysisWorkflows.UsesTestAnalysis(definition.WorkflowType))
-            throw new InvalidOperationException($"Return to Analyst is only supported for Count Test and result-entry (analysis) workflows. \"{order.TestCode}\" is a {definition.WorkflowType} workflow.");
+            throw new BusinessRuleException($"Return to Analyst is only supported for Count Test and result-entry (analysis) workflows. \"{order.TestCode}\" is a {definition.WorkflowType} workflow.");
 
         // A moisture (LOD / water) result is read by the dried / anhydrous assays of the same sample:
         // returning it returns every assay that used it, in the same unit of work. Found first - the
@@ -246,7 +246,7 @@ public class SampleReviewService
                 var dependentSection = sample is null ? SectionSignoffStatus.InTesting : SampleSectionRollup.StatusOf(sample, dependent.SectionId);
                 if (dependent.Status != ApprovalStatus.ResultEntered
                     || dependentSection is not (SectionSignoffStatus.InTesting or SectionSignoffStatus.UnderReview))
-                    throw new InvalidOperationException($"Cannot return {order.TestCode}: assay {dependent.TestCode} has already been reviewed.");
+                    throw new BusinessRuleException($"Cannot return {order.TestCode}: assay {dependent.TestCode} has already been reviewed.");
             }
         }
 

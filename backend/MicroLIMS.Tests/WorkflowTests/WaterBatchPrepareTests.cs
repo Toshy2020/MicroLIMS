@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
@@ -103,7 +104,7 @@ public class WaterBatchPrepareTests
         var engine = new MicroLIMS.Application.Workflows.WaterWorkflowEngine(db, new MicroLIMS.Application.Services.ReferenceNumberGenerator(db));
         var sample = await engine.ReceiveAsync(new MicroLIMS.Application.Workflows.WaterReceiveRequest(deptA.Id, 0, "500ml", "Analyst", "CTRL-4", 1));
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => engine.PrepareAsync(sample.Id, new List<int> { pointInB.Id }, 1, "RoomTemperature"));
+        await Assert.ThrowsAsync<BusinessRuleException>(() => engine.PrepareAsync(sample.Id, new List<int> { pointInB.Id }, 1, "RoomTemperature"));
     }
 
     [Fact]
@@ -117,7 +118,7 @@ public class WaterBatchPrepareTests
         var engine = new MicroLIMS.Application.Workflows.WaterWorkflowEngine(db, new MicroLIMS.Application.Services.ReferenceNumberGenerator(db));
         var sample = await engine.ReceiveAsync(new MicroLIMS.Application.Workflows.WaterReceiveRequest(department.Id, 0, "500ml", "Analyst", "CTRL-5", 1));
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => engine.PrepareAsync(sample.Id, new List<int>(), 1));
+        await Assert.ThrowsAsync<BusinessRuleException>(() => engine.PrepareAsync(sample.Id, new List<int>(), 1));
     }
 
     // Storage condition is captured alongside the location selection - it
@@ -160,7 +161,7 @@ public class WaterBatchPrepareTests
         var engine = new MicroLIMS.Application.Workflows.WaterWorkflowEngine(db, new MicroLIMS.Application.Services.ReferenceNumberGenerator(db));
         var sample = await engine.ReceiveAsync(new MicroLIMS.Application.Workflows.WaterReceiveRequest(department.Id, 0, "500ml", "Analyst", "CTRL-7", 1));
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(
             () => engine.PrepareAsync(sample.Id, new List<int> { point.Id }, 1));
         Assert.Contains("Storage condition is required", ex.Message);
     }
@@ -182,7 +183,7 @@ public class WaterBatchPrepareTests
         var engine = new MicroLIMS.Application.Workflows.WaterWorkflowEngine(db, new MicroLIMS.Application.Services.ReferenceNumberGenerator(db));
         var sample = await engine.ReceiveAsync(new MicroLIMS.Application.Workflows.WaterReceiveRequest(department.Id, 0, "500ml", "Analyst", "CTRL-8", 1));
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(
             () => engine.PrepareAsync(sample.Id, new List<int> { point.Id }, 1, "Refrigerator"));
         Assert.Contains("Storage time is required", ex.Message);
     }

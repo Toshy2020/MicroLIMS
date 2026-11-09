@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using System.Text;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -600,7 +601,7 @@ public class DocumentControlLifecycleEndToEndPostgresIntegrationTests
         var rev1 = await db.DocumentRevisions.FirstAsync(r => r.DocumentMasterId == master.Id);
 
         // 1. Author cannot be designated as Reviewer
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        await Assert.ThrowsAsync<BusinessRuleException>(() =>
             harness.ReviewService.SubmitForReviewAsync(rev1.Id, new SubmitForReviewRequest
             {
                 ReviewerUserId = users.Author.Id, // Violation!
@@ -609,7 +610,7 @@ public class DocumentControlLifecycleEndToEndPostgresIntegrationTests
         );
 
         // 2. Author cannot submit approval task nominating themselves as Approver
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        await Assert.ThrowsAsync<BusinessRuleException>(() =>
             harness.ApprovalService.CreateApprovalTaskAsync(rev1.Id, new CreateApprovalTaskRequest(
                 ApproverUserId: users.Author.Id, // Violation!
                 TargetEffectiveDate: DateTime.UtcNow.AddDays(7),
@@ -652,7 +653,7 @@ public class DocumentControlLifecycleEndToEndPostgresIntegrationTests
         var controllerRev = await db.DocumentRevisions.FirstAsync(r => r.DocumentMasterId == controllerMaster.Id);
 
         // The Document Controller attempting to create an approval task nominating themselves as Approver
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        await Assert.ThrowsAsync<BusinessRuleException>(() =>
             harness.ApprovalService.CreateApprovalTaskAsync(controllerRev.Id, new CreateApprovalTaskRequest(
                 ApproverUserId: users.Approver.Id,
                 TargetEffectiveDate: DateTime.UtcNow.AddDays(7),

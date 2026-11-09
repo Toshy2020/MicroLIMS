@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.DTOs;
 using MicroLIMS.Application.Services;
@@ -93,7 +94,7 @@ public class BiologicalWasteDestructionTests
         w.Clock.Advance(TimeSpan.FromHours(23));
 
         Assert.Empty((await Service(w).GetEligibleAsync(null)).ThawedVials);
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => Service(w).RecordAsync(Request(w, thaws: new() { thaw.Id }), w.User.Id, null));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => Service(w).RecordAsync(Request(w, thaws: new() { thaw.Id }), w.User.Id, null));
         Assert.Contains("24-hour use window", ex.Message);
         Assert.Empty(w.Db.BiologicalWasteDestructions);
     }
@@ -125,7 +126,7 @@ public class BiologicalWasteDestructionTests
         Assert.Equal(record.Id, signature.EntityId);
 
         Assert.Empty((await Service(w).GetEligibleAsync(null)).ThawedVials);
-        var again = await Assert.ThrowsAsync<InvalidOperationException>(() => Service(w).RecordAsync(Request(w, thaws: new() { first.Id }), w.User.Id, null));
+        var again = await Assert.ThrowsAsync<BusinessRuleException>(() => Service(w).RecordAsync(Request(w, thaws: new() { first.Id }), w.User.Id, null));
         Assert.Contains("already been destroyed", again.Message);
     }
 
@@ -156,7 +157,7 @@ public class BiologicalWasteDestructionTests
     public async Task UnthawedVials_OfABatchStillInUse_CannotBeDestroyed()
     {
         var w = await SeedAsync();
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => Service(w).RecordAsync(Request(w, batches: new() { w.Batch.Id }), w.User.Id, null));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => Service(w).RecordAsync(Request(w, batches: new() { w.Batch.Id }), w.User.Id, null));
         Assert.Contains("has not been withdrawn", ex.Message);
     }
 
@@ -178,7 +179,7 @@ public class BiologicalWasteDestructionTests
     {
         var w = await SeedAsync();
 
-        var bad = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var bad = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             Service(w).RecordAsync(Request(w, others: new() { new(" ", 1, "bag") }), w.User.Id, null));
         Assert.Contains("description", bad.Message);
 
@@ -198,7 +199,7 @@ public class BiologicalWasteDestructionTests
         w.Db.AutoclavePrograms.Add(foreign);
         await w.Db.SaveChangesAsync();
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             Service(w).RecordAsync(Request(w, others: new() { new("Plates", 1, "bag") }, programId: foreign.Id), w.User.Id, null));
         Assert.Contains("does not belong to autoclave", ex.Message);
     }

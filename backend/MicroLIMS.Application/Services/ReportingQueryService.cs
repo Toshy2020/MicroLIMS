@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using MicroLIMS.Application.Helpers;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Domain.Entities;
@@ -235,16 +236,16 @@ public class ReportingQueryService
 
     public async Task<TrendResult> GetTrendAsync(string testCode, string subjectName, DateTime? fromDate, DateTime? toDate, IReadOnlyCollection<int>? sectionIds = null)
     {
-        if (string.IsNullOrWhiteSpace(testCode)) throw new InvalidOperationException("testCode is required.");
-        if (string.IsNullOrWhiteSpace(subjectName)) throw new InvalidOperationException("subjectName is required.");
+        if (string.IsNullOrWhiteSpace(testCode)) throw new BusinessRuleException("testCode is required.");
+        if (string.IsNullOrWhiteSpace(subjectName)) throw new BusinessRuleException("subjectName is required.");
 
         var testDefinition = await _db.TestDefinitions.FirstOrDefaultAsync(t => t.Code == testCode)
-            ?? throw new InvalidOperationException($"Test code \"{testCode}\" is not configured in Test Master.");
+            ?? throw new BusinessRuleException($"Test code \"{testCode}\" is not configured in Test Master.");
 
         // Enforced here, server-side, rather than left to the UI to avoid
         // requesting it - a trend chart over Detected/Absent has no meaning.
         if (testDefinition.WorkflowType != WorkflowType.CountTest)
-            throw new InvalidOperationException($"Trending is only available for numeric results. {testCode} produces qualitative results.");
+            throw new BusinessRuleException($"Trending is only available for numeric results. {testCode} produces qualitative results.");
 
         var query = Records(sectionIds).Where(r => r.TestCode == testCode && r.SubjectName == subjectName);
         if (fromDate is not null) query = query.Where(r => r.ResultEnteredAt >= fromDate);
@@ -436,10 +437,10 @@ public class ReportingQueryService
     // single shared query, not a per-product/per-location fetch.
     public async Task<CompareResult> GetCompareBySubjectAsync(string testCode, SampleCategory category, DateTime? fromDate, DateTime? toDate, IReadOnlyCollection<int>? sectionIds = null)
     {
-        if (string.IsNullOrWhiteSpace(testCode)) throw new InvalidOperationException("testCode is required.");
+        if (string.IsNullOrWhiteSpace(testCode)) throw new BusinessRuleException("testCode is required.");
 
         var testDefinition = await _db.TestDefinitions.FirstOrDefaultAsync(t => t.Code == testCode)
-            ?? throw new InvalidOperationException($"Test code \"{testCode}\" is not configured in Test Master.");
+            ?? throw new BusinessRuleException($"Test code \"{testCode}\" is not configured in Test Master.");
         var isNumeric = testDefinition.WorkflowType == WorkflowType.CountTest;
 
         var query = Records(sectionIds).Where(r => r.TestCode == testCode && r.Category == category);

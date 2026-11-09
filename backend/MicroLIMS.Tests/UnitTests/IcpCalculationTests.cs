@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using MicroLIMS.Application.Helpers;
 using MicroLIMS.Application.Services;
 using MicroLIMS.Domain.Entities;
@@ -29,7 +30,7 @@ public class IcpCalculationTests
     [InlineData(10, 0.5, 0)]    // actual weight
     public void Assay_RejectsZeroDenominatorsAndAmounts(double target, double theoretical, double actual)
     {
-        Assert.Throws<InvalidOperationException>(() =>
+        Assert.Throws<BusinessRuleException>(() =>
             IcpContentCalculator.AssayPercent(1m, (decimal)target, (decimal)theoretical, null, (decimal)actual));
     }
 
@@ -116,7 +117,7 @@ public class IcpCalculationTests
     {
         var spec = Spec();
         spec.IcpTestElementId = 99;
-        Assert.Throws<InvalidOperationException>(() =>
+        Assert.Throws<BusinessRuleException>(() =>
             IcpSampleEvaluator.Evaluate(Definition(IcpTestMode.Assay), Valid(), new[] { spec }, Conc(10m), 0.5m));
     }
 }

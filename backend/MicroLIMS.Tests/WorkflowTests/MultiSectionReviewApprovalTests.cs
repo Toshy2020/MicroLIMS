@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.DTOs;
 using MicroLIMS.Application.Services;
@@ -220,7 +221,7 @@ public class MultiSectionReviewApprovalTests
         await using var db = NewDb();
         var w = await SeedRawMaterialForReviewAsync(db);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             TestServiceFactory.SampleReview(db).CompleteReviewAsync(w.Sample.Id, w.ReviewerFp, Password, null, null));
 
         Assert.Equal("Enter the retention quantity kept for this raw material.", ex.Message);
@@ -239,7 +240,7 @@ public class MultiSectionReviewApprovalTests
         await using var db = NewDb();
         var w = await SeedRawMaterialForReviewAsync(db);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             TestServiceFactory.SampleReview(db).CompleteReviewAsync(w.Sample.Id, w.ReviewerFp, Password, null, null,
                 retentionQuantity: quantity, retentionUnit: unit));
 
@@ -275,7 +276,7 @@ public class MultiSectionReviewApprovalTests
         (await db.DocumentSections.FirstAsync(s => s.Id == w.Fp)).Code = "fp";
         await db.SaveChangesAsync();
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             TestServiceFactory.SampleReview(db).CompleteReviewAsync(w.Sample.Id, w.ReviewerFp, Password, null, null));
         Assert.Equal("Enter the retention quantity kept for this raw material.", ex.Message);
     }
@@ -303,7 +304,7 @@ public class MultiSectionReviewApprovalTests
         await using var db = NewDb();
         var w = await SeedRawMaterialForReviewAsync(db);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             TestServiceFactory.SampleReview(db).CompleteReviewAsync(w.Sample.Id, w.ReviewerMicro, Password, null, null,
                 retentionQuantity: 50m, retentionUnit: "g"));
 
@@ -324,7 +325,7 @@ public class MultiSectionReviewApprovalTests
         await review.AutoSubmitForReviewIfReadyAsync(w.Sample.Id, 1);
         await db.SaveChangesAsync();
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             review.CompleteReviewAsync(w.Sample.Id, w.ReviewerFp, Password, null, null, retentionQuantity: 50m, retentionUnit: "g"));
         Assert.Equal("Retention quantity is recorded only at the physicochemical review of a raw material.", ex.Message);
 
@@ -652,7 +653,7 @@ public class MultiSectionReviewApprovalTests
         var qc = (await db.DocumentSections.FirstAsync(s => s.Id == w.Micro)).DepartmentId;
 
         // A section must belong to the department it is listed under.
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        await Assert.ThrowsAsync<BusinessRuleException>(() =>
             org.ReplaceMembershipsAsync(w.ReviewerMicro, new[] { new UserOrgMembershipDto(qc + 999, w.Micro) }, "test", w.Admin));
 
         var result = await org.ReplaceMembershipsAsync(w.ReviewerMicro, new[] { new UserOrgMembershipDto(qc, w.Fp) }, "test", w.Admin);

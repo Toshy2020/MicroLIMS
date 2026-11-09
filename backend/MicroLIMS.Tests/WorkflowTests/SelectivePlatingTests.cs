@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.API.Controllers;
@@ -67,7 +68,7 @@ public class SelectivePlatingTests
         var (orderId, _, _, engine, db) = await ReadyForPlatingAsync();
         await using var _ = db;
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             engine.SubmitSelectivePlatingObservationAsync(orderId, "Selective Plating", GrowthObservation.GrowthConforming, null, userId: 4));
 
         Assert.Contains("No active incubation found", ex.Message);

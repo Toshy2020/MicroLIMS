@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.DTOs.Responses;
 using MicroLIMS.Application.Helpers;
@@ -95,7 +96,7 @@ public class WorkingStandardSignOffTests
     {
         var c = await NewCtxAsync();
         var q = await AddAssayedAsync(c);
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => c.Svc.ReviewAsync(q.Id, Sign(), c.A, null));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => c.Svc.ReviewAsync(q.Id, Sign(), c.A, null));
         Assert.Equal("The analyst who submitted the qualification cannot review it.", ex.Message);
     }
 
@@ -104,7 +105,7 @@ public class WorkingStandardSignOffTests
     {
         var c = await NewCtxAsync();
         var q = await AddAssayedAsync(c, passed: false);
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => c.Svc.ReviewAsync(q.Id, Sign(), c.R, null));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => c.Svc.ReviewAsync(q.Id, Sign(), c.R, null));
         Assert.Equal("A failed qualification can only be rejected.", ex.Message);
     }
 
@@ -114,7 +115,7 @@ public class WorkingStandardSignOffTests
         var c = await NewCtxAsync();
         var q = await AddAssayedAsync(c);
         await c.Svc.ReviewAsync(q.Id, Sign(), c.R, null);
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => c.Svc.ApproveAsync(q.Id, Sign(), c.R, null));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => c.Svc.ApproveAsync(q.Id, Sign(), c.R, null));
         Assert.Equal("The reviewer cannot also approve the qualification.", ex.Message);
     }
 
@@ -218,7 +219,7 @@ public class WorkingStandardSignOffTests
     {
         var c = await NewCtxAsync();
         var q = await AddAssayedAsync(c, passed: false);
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(
             () => c.Svc.RejectAtReviewAsync(q.Id, new WorkingStandardReasonRequest(Password, "RSD too high"), c.A, null));
         Assert.Equal("The analyst who submitted the qualification cannot reject it at review.", ex.Message);
         Assert.Equal(WorkingStandardQualificationStatus.Assayed, (await ReloadAsync(c, q.Id)).Status);
@@ -230,7 +231,7 @@ public class WorkingStandardSignOffTests
         var c = await NewCtxAsync();
         var q = await AddAssayedAsync(c);
         await c.Svc.ReviewAsync(q.Id, Sign(), c.R, null);
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(
             () => c.Svc.RejectAtApprovalAsync(q.Id, new WorkingStandardReasonRequest(Password, "no"), c.R, null));
         Assert.Equal("The reviewer cannot also reject the qualification at approval.", ex.Message);
     }
@@ -243,13 +244,13 @@ public class WorkingStandardSignOffTests
         await AddAbandonedRunSampleAsync(c, q);
         const string msg = "The run that carried this assay was abandoned - reject the qualification.";
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => c.Svc.ReviewAsync(q.Id, Sign(), c.R, null));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => c.Svc.ReviewAsync(q.Id, Sign(), c.R, null));
         Assert.Equal(msg, ex.Message);
 
         q.Status = WorkingStandardQualificationStatus.Reviewed;
         q.ReviewedByUserId = c.R;
         await c.Db.SaveChangesAsync();
-        ex = await Assert.ThrowsAsync<InvalidOperationException>(() => c.Svc.ApproveAsync(q.Id, Sign(), c.P, null));
+        ex = await Assert.ThrowsAsync<BusinessRuleException>(() => c.Svc.ApproveAsync(q.Id, Sign(), c.P, null));
         Assert.Equal(msg, ex.Message);
 
         await c.Svc.RejectAtApprovalAsync(q.Id, new WorkingStandardReasonRequest(Password, "Run abandoned"), c.P, null);
@@ -282,10 +283,10 @@ public class WorkingStandardSignOffTests
     {
         var c = await NewCtxAsync();
         var q = await AddAssayedAsync(c);
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(
             () => c.Svc.ReturnAsync(q.Id, new WorkingStandardReturnRequest(new string('x', 501)), c.R));
         Assert.Equal("The reason must be 500 characters or fewer.", ex.Message);
-        ex = await Assert.ThrowsAsync<InvalidOperationException>(
+        ex = await Assert.ThrowsAsync<BusinessRuleException>(
             () => c.Svc.ReturnAsync(q.Id, new WorkingStandardReturnRequest("  "), c.R));
         Assert.Equal("Enter a reason.", ex.Message);
     }

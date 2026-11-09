@@ -38,17 +38,17 @@ public static class AnalystAssignmentRules
             ?? throw new NotFoundException($"User {assigneeId} not found.");
 
         if (!user.IsActive)
-            throw new InvalidOperationException($"User '{user.FullName}' is not active.");
+            throw new BusinessRuleException($"User '{user.FullName}' is not active.");
         if (user.LockedUntil > nowUtc)
-            throw new InvalidOperationException($"User '{user.FullName}' is locked out.");
+            throw new BusinessRuleException($"User '{user.FullName}' is locked out.");
 
         var role = user.Role?.Type;
         if (role is null || !AssignableRoles.Contains(role.Value))
-            throw new InvalidOperationException(
+            throw new BusinessRuleException(
                 $"'{user.FullName}' cannot be assigned tests - only Analysts, Reviewers and Section Heads can.");
 
         if (role == RoleType.SectionHead && assigneeId != actingUserId)
-            throw new InvalidOperationException(
+            throw new BusinessRuleException(
                 $"'{user.FullName}' is a Section Head - a Section Head can only assign themselves.");
 
         var memberOf = await scope.GetMemberSectionIdsAsync(assigneeId);
@@ -57,7 +57,7 @@ public static class AnalystAssignmentRules
         {
             var names = await db.DocumentSections.Where(s => missing.Contains(s.Id)).Select(s => s.Name).ToListAsync();
             var sections = names.Count > 0 ? string.Join(", ", names) : "the test's";
-            throw new InvalidOperationException(
+            throw new BusinessRuleException(
                 $"'{user.FullName}' is not a member of the {sections} laboratory section{(names.Count > 1 ? "s" : "")}.");
         }
 

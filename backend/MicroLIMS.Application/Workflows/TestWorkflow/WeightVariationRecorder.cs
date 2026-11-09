@@ -27,14 +27,14 @@ public sealed class WeightVariationRecorder : TestWorkflowSupport
         int testOrderId, WeightVariationPayload payload, int userId, string? ipAddress = null)
     {
         if (payload.Units == null)
-            throw new InvalidOperationException("Units are required.");
+            throw new BusinessRuleException("Units are required.");
 
         var (order, definition, specById, analysedAtUtc) = await ValidateTestAnalysisOrderAsync(
             testOrderId, payload.AnalysedAt, payload.EquipmentId, null, payload.Password, WorkflowType.WeightVariation, userId);
 
         var spec = specById.Values.First();
         if (!spec.DosageForm.HasValue)
-            throw new InvalidOperationException("Specification dosage form is not configured.");
+            throw new BusinessRuleException("Specification dosage form is not configured.");
 
         var config = new WeightVariationConfig(
             UnitCount: definition.WvUnitCount ?? 20,
@@ -52,7 +52,7 @@ public sealed class WeightVariationRecorder : TestWorkflowSupport
             CapsuleS2MaxOutside: definition.WvCapsuleS2MaxOutside ?? 6);
 
         if (payload.Units.Count != config.UnitCount)
-            throw new InvalidOperationException($"Stage 1 weight variation requires exactly {config.UnitCount} units.");
+            throw new BusinessRuleException($"Stage 1 weight variation requires exactly {config.UnitCount} units.");
 
         var configuredLabels = string.IsNullOrWhiteSpace(definition.ConditionFields)
             ? Array.Empty<string>()
@@ -64,27 +64,27 @@ public sealed class WeightVariationRecorder : TestWorkflowSupport
         if (configuredLabels.Length > 0)
         {
             if (payload.Conditions == null)
-                throw new InvalidOperationException("Conditions are required.");
+                throw new BusinessRuleException("Conditions are required.");
 
             if (payload.Conditions.Count != configuredLabels.Length)
-                throw new InvalidOperationException($"Expected {configuredLabels.Length} condition fields, but received {payload.Conditions.Count}.");
+                throw new BusinessRuleException($"Expected {configuredLabels.Length} condition fields, but received {payload.Conditions.Count}.");
 
             foreach (var label in configuredLabels)
             {
                 if (!payload.Conditions.TryGetValue(label, out var val) || string.IsNullOrWhiteSpace(val))
-                    throw new InvalidOperationException($"Condition field \"{label}\" is required.");
+                    throw new BusinessRuleException($"Condition field \"{label}\" is required.");
             }
 
             foreach (var key in payload.Conditions.Keys)
             {
                 if (!configuredLabels.Contains(key))
-                    throw new InvalidOperationException($"Unexpected condition field \"{key}\".");
+                    throw new BusinessRuleException($"Unexpected condition field \"{key}\".");
             }
         }
         else
         {
             if (payload.Conditions != null && payload.Conditions.Count > 0)
-                throw new InvalidOperationException("No condition fields are configured for this test.");
+                throw new BusinessRuleException("No condition fields are configured for this test.");
         }
 
         string? conditionsJson = payload.Conditions != null && payload.Conditions.Count > 0
@@ -266,9 +266,9 @@ public sealed class WeightVariationRecorder : TestWorkflowSupport
         int testOrderId, WeightVariationStagePayload payload, int userId, string? ipAddress = null)
     {
         if (string.IsNullOrWhiteSpace(payload.Password))
-            throw new InvalidOperationException("Password is required to sign the result.");
+            throw new BusinessRuleException("Password is required to sign the result.");
         if (payload.Units == null || payload.Units.Count == 0)
-            throw new InvalidOperationException("Units are required.");
+            throw new BusinessRuleException("Units are required.");
 
         var order = await _db.TestOrders
             .Include(t => t.Results)
@@ -279,14 +279,14 @@ public sealed class WeightVariationRecorder : TestWorkflowSupport
         RequireOrderNotFinalized(order);
 
         if (order.IsSuperseded)
-            throw new InvalidOperationException("Cannot record result for a superseded test order.");
+            throw new BusinessRuleException("Cannot record result for a superseded test order.");
 
         var definition = await _db.TestDefinitions
             .FirstOrDefaultAsync(t => t.Code == order.TestCode)
-            ?? throw new InvalidOperationException($"Test definition \"{order.TestCode}\" not found.");
+            ?? throw new BusinessRuleException($"Test definition \"{order.TestCode}\" not found.");
 
         if (definition.WorkflowType != WorkflowType.WeightVariation)
-            throw new InvalidOperationException($"Test order {testOrderId} is not a WeightVariation workflow.");
+            throw new BusinessRuleException($"Test order {testOrderId} is not a WeightVariation workflow.");
 
         await _sectionScope.EnsureTestOrderAccessAsync(userId, testOrderId);
 
@@ -294,24 +294,24 @@ public sealed class WeightVariationRecorder : TestWorkflowSupport
             .Include(e => e.ParameterResults)
                 .ThenInclude(pr => pr.Readings)
             .FirstOrDefaultAsync(e => e.TestOrderId == testOrderId && e.IsActive)
-            ?? throw new InvalidOperationException("No active weight variation entry found for this test order.");
+            ?? throw new BusinessRuleException("No active weight variation entry found for this test order.");
 
         var paramResult = entry.ParameterResults.FirstOrDefault(pr => pr.IsActive)
-            ?? throw new InvalidOperationException("No active weight variation parameter result found.");
+            ?? throw new BusinessRuleException("No active weight variation parameter result found.");
 
         if (paramResult.ComparisonStatus != ResultStatus.NextStageRequired)
-            throw new InvalidOperationException("Active weight variation analysis does not require a next stage.");
+            throw new BusinessRuleException("Active weight variation analysis does not require a next stage.");
 
         if (string.IsNullOrWhiteSpace(paramResult.CalculationJson))
-            throw new InvalidOperationException("Active weight variation parameter result lacks calculation data.");
+            throw new BusinessRuleException("Active weight variation parameter result lacks calculation data.");
 
         var prevCalc = JsonSerializer.Deserialize<WeightVariationCalculationData>(
             paramResult.CalculationJson,
             new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase })
-            ?? throw new InvalidOperationException("Failed to deserialize weight variation calculation data.");
+            ?? throw new BusinessRuleException("Failed to deserialize weight variation calculation data.");
 
         if (prevCalc.DosageForm == DosageForm.Tablet)
-            throw new InvalidOperationException("Tablets do not support Stage 2 evaluation.");
+            throw new BusinessRuleException("Tablets do not support Stage 2 evaluation.");
 
         // Stage 2 is judged by the criteria and dosage form snapshotted at stage 1
         var config = new WeightVariationConfig(
@@ -331,10 +331,10 @@ public sealed class WeightVariationRecorder : TestWorkflowSupport
 
         int existingUnitCount = paramResult.Readings.Count;
         if (existingUnitCount != config.UnitCount)
-            throw new InvalidOperationException($"Invalid existing unit count ({existingUnitCount}) for next stage.");
+            throw new BusinessRuleException($"Invalid existing unit count ({existingUnitCount}) for next stage.");
 
         if (payload.Units.Count != config.CapsuleS2ExtraUnits)
-            throw new InvalidOperationException($"Stage 2 weight variation requires exactly {config.CapsuleS2ExtraUnits} units.");
+            throw new BusinessRuleException($"Stage 2 weight variation requires exactly {config.CapsuleS2ExtraUnits} units.");
 
         var allUnits = new List<WeightVariationUnitInput>();
         foreach (var r in paramResult.Readings.OrderBy(r => r.Index))

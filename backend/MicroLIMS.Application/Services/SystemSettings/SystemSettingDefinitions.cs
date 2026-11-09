@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using System.Globalization;
 using MicroLIMS.Domain.Enums;
 
@@ -67,29 +68,29 @@ public sealed record SystemSettingDefinition(
         if (Type == SystemSettingValueType.EmailList)
             return EmailAddressList.Normalize(Key, text, (int)(Max ?? EmailAddressList.DefaultMaxAddresses));
         if (string.IsNullOrEmpty(text))
-            throw new InvalidOperationException($"A value is required for '{Key}'.");
+            throw new BusinessRuleException($"A value is required for '{Key}'.");
 
         switch (Type)
         {
             case SystemSettingValueType.Integer:
                 if (!long.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out var number))
-                    throw new InvalidOperationException($"'{Key}' must be a whole number.");
+                    throw new BusinessRuleException($"'{Key}' must be a whole number.");
                 if (Min is { } min && number < min)
-                    throw new InvalidOperationException($"'{Key}' must be at least {min}{UnitSuffix()}.");
+                    throw new BusinessRuleException($"'{Key}' must be at least {min}{UnitSuffix()}.");
                 if (Max is { } max && number > max)
-                    throw new InvalidOperationException($"'{Key}' must be at most {max}{UnitSuffix()}.");
+                    throw new BusinessRuleException($"'{Key}' must be at most {max}{UnitSuffix()}.");
                 return number.ToString(CultureInfo.InvariantCulture);
 
             case SystemSettingValueType.Boolean:
                 if (bool.TryParse(text, out var flag))
                     return flag ? "true" : "false";
-                throw new InvalidOperationException($"'{Key}' must be true or false.");
+                throw new BusinessRuleException($"'{Key}' must be true or false.");
 
             default:
                 if (AllowedValues is { Count: > 0 } && !AllowedValues.Contains(text, StringComparer.Ordinal))
-                    throw new InvalidOperationException($"'{Key}' must be one of: {string.Join(", ", AllowedValues)}.");
+                    throw new BusinessRuleException($"'{Key}' must be one of: {string.Join(", ", AllowedValues)}.");
                 if (text.Length > 500)
-                    throw new InvalidOperationException($"'{Key}' must be 500 characters or fewer.");
+                    throw new BusinessRuleException($"'{Key}' must be 500 characters or fewer.");
                 return text;
         }
     }

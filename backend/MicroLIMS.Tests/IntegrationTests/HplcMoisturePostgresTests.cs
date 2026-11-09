@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.DTOs.Responses;
@@ -409,7 +410,7 @@ public class HplcMoisturePostgresTests
 
         // Submit checks
         var workflow = TestServiceFactory.TestWorkflow(db);
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(
             () => workflow.SubmitHplcMethodAssayAsync(s.RunSample.Id, Password, "ok", s.UserId, "127.0.0.1"));
         Assert.Contains("Record the sample's loss on drying result", ex.Message);
     }
@@ -591,7 +592,7 @@ public class HplcMoisturePostgresTests
         Assert.False(entry.CanSubmit);
         Assert.Equal("Record the sample's water content (Karl Fischer) result before this assay.", entry.CanSubmitReason);
         Assert.Equal(MoistureRole.Water, entry.MoistureRole);
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             TestServiceFactory.TestWorkflow(db).SubmitHplcMethodAssayAsync(s.RunSample.Id, Password, "ok", s.UserId, "127.0.0.1"));
         Assert.Contains("water content (Karl Fischer)", ex.Message);
 

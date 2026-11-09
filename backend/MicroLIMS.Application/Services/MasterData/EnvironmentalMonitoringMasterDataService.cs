@@ -66,7 +66,7 @@ public class EnvironmentalMonitoringMasterDataService
 
         var roomCount = await _db.Rooms.CountAsync(r => r.DepartmentId == id);
         if (roomCount > 0)
-            throw new InvalidOperationException($"Cannot delete '{dept.Name}' - it still has {roomCount} room(s). Delete those rooms first.");
+            throw new BusinessRuleException($"Cannot delete '{dept.Name}' - it still has {roomCount} room(s). Delete those rooms first.");
 
         _db.Departments.Remove(dept);
         await _db.SaveChangesAsync();
@@ -157,11 +157,11 @@ public class EnvironmentalMonitoringMasterDataService
 
         var configCount = await _db.RoomTestConfigurations.CountAsync(c => c.RoomId == id);
         if (configCount > 0)
-            throw new InvalidOperationException($"Cannot delete '{room.Name}' - it still has {configCount} test configuration(s). Delete those first.");
+            throw new BusinessRuleException($"Cannot delete '{room.Name}' - it still has {configCount} test configuration(s). Delete those first.");
 
         var monitoringCount = await _db.RoomMonitorings.CountAsync(m => m.RoomId == id);
         if (monitoringCount > 0)
-            throw new InvalidOperationException($"Cannot delete '{room.Name}' - it has {monitoringCount} monitoring record(s) in its history.");
+            throw new BusinessRuleException($"Cannot delete '{room.Name}' - it has {monitoringCount} monitoring record(s) in its history.");
 
         _db.Rooms.Remove(room);
         await _db.SaveChangesAsync();
@@ -176,10 +176,10 @@ public class EnvironmentalMonitoringMasterDataService
     private static void ValidateRoomTestConfiguration(string testType, string? unit)
     {
         if (!RoomTestTypes.IsKnown(testType))
-            throw new InvalidOperationException(
+            throw new BusinessRuleException(
                 $"Unknown test type '{testType}'. Allowed: {string.Join(", ", RoomTestTypes.All)}.");
         if (RoomTestTypes.UsesConfiguredUnit(testType) && string.IsNullOrWhiteSpace(unit))
-            throw new InvalidOperationException($"Unit is required for {testType} test configurations.");
+            throw new BusinessRuleException($"Unit is required for {testType} test configurations.");
     }
 
     public async Task<RoomTestConfigurationResponse> CreateRoomTestConfigurationAsync(CreateRoomTestConfigRequest request)
@@ -222,7 +222,7 @@ public class EnvironmentalMonitoringMasterDataService
 
         var locationCount = await _db.SampleLocations.CountAsync(l => l.RoomTestConfigurationId == id);
         if (locationCount > 0)
-            throw new InvalidOperationException(
+            throw new BusinessRuleException(
                 $"Cannot delete this room test configuration - it is referenced by {locationCount} sample location(s).");
 
         _db.RoomTestConfigurations.Remove(entity);

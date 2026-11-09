@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using MicroLIMS.Application.DTOs;
 using System;
 using System.Collections.Generic;
@@ -100,7 +101,7 @@ public class TestMasterStepMediaConditionTests
 
         var request = CreateRequest(product.Id, null);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             controller.TestWorkflowStep.CreateTestWorkflowStep(testDefinition.Id, request));
 
         Assert.Contains("Choose an incubation condition for medium 'Tryptic Soy Agar'", ex.Message);
@@ -119,7 +120,7 @@ public class TestMasterStepMediaConditionTests
         product.IsActive = false;
         await db.SaveChangesAsync();
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             controller.TestWorkflowStep.CreateTestWorkflowStep(testDefinition.Id, CreateRequest(product.Id, condition.Id)));
 
         Assert.Contains("'Tryptic Soy Agar' is inactive", ex.Message);
@@ -137,7 +138,7 @@ public class TestMasterStepMediaConditionTests
 
         var request = CreateRequest(product.Id, 9999);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             controller.TestWorkflowStep.CreateTestWorkflowStep(testDefinition.Id, request));
 
         Assert.Equal("Incubation condition 9999 not found.", ex.Message);
@@ -158,7 +159,7 @@ public class TestMasterStepMediaConditionTests
 
         var request = CreateRequest(product.Id, condition.Id);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             controller.TestWorkflowStep.CreateTestWorkflowStep(testDefinition.Id, request));
 
         Assert.Contains("belongs to a different media product", ex.Message);
@@ -174,7 +175,7 @@ public class TestMasterStepMediaConditionTests
 
         var request = CreateRequest(9999, null);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             controller.TestWorkflowStep.CreateTestWorkflowStep(testDefinition.Id, request));
 
         Assert.Equal("Media product 9999 not found.", ex.Message);
@@ -239,7 +240,7 @@ public class TestMasterStepMediaConditionTests
         var stepId = (await db.TestWorkflowSteps.SingleAsync()).Id;
 
         var updateRequest = CreateUpdateRequest(product.Id, null);
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             controller.TestWorkflowStep.UpdateTestWorkflowStep(stepId, updateRequest));
 
         Assert.Contains("Choose an incubation condition", ex.Message);
@@ -274,7 +275,7 @@ public class TestMasterStepMediaConditionTests
         // Saving the step again with the product it already has is fine.
         Assert.IsType<OkObjectResult>(await controller.TestWorkflowStep.UpdateTestWorkflowStep(stepId, CreateUpdateRequest(product.Id, condition.Id)));
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             controller.TestWorkflowStep.UpdateTestWorkflowStep(stepId, CreateUpdateRequest(other.Id, otherCondition.Id)));
         Assert.Contains("'R2A Agar' is inactive", ex.Message);
 
@@ -296,7 +297,7 @@ public class TestMasterStepMediaConditionTests
             StepMedia = new List<StepMediaRequest> { new(product.Id, false, 1, condition.Id), new(product.Id, false, 2, condition.Id) }
         };
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             controller.TestWorkflowStep.CreateTestWorkflowStep(testDefinition.Id, request));
 
         Assert.Contains("more than once", ex.Message);

@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 ﻿using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Domain.Entities;
@@ -17,23 +18,23 @@ public static class TitrationDefinitionRules
         if (t.WorkflowType != WorkflowType.Titration)
         {
             if (t.EquationType == EquationType.Titration)
-                throw new InvalidOperationException("Equation type Titration is only allowed for the Titration workflow.");
+                throw new BusinessRuleException("Equation type Titration is only allowed for the Titration workflow.");
             Clear(t);
             return;
         }
 
         if (t.EquationType != EquationType.Titration)
-            throw new InvalidOperationException("Equation type must be Titration when workflow type is Titration.");
+            throw new BusinessRuleException("Equation type must be Titration when workflow type is Titration.");
         if (!t.ReplicateCount.HasValue || t.ReplicateCount.Value < 1 || t.ReplicateCount.Value > 10)
-            throw new InvalidOperationException("Replicate count must be between 1 and 10 for titration tests.");
+            throw new BusinessRuleException("Replicate count must be between 1 and 10 for titration tests.");
         if (t.RequiresSystemSuitability)
-            throw new InvalidOperationException("Titration tests must not require system suitability.");
+            throw new BusinessRuleException("Titration tests must not require system suitability.");
 
-        if (!t.TitrationType.HasValue) throw new InvalidOperationException("Titration type is required.");
-        if (!t.TitrationMode.HasValue) throw new InvalidOperationException("Titration mode (direct or residual) is required.");
-        if (!t.TitrationCalculation.HasValue) throw new InvalidOperationException("Titration calculation method is required.");
-        if (!t.TitrationEndpoint.HasValue) throw new InvalidOperationException("Titration endpoint is required.");
-        if (!t.TitrantSolutionMasterId.HasValue) throw new InvalidOperationException("Titrant is required.");
+        if (!t.TitrationType.HasValue) throw new BusinessRuleException("Titration type is required.");
+        if (!t.TitrationMode.HasValue) throw new BusinessRuleException("Titration mode (direct or residual) is required.");
+        if (!t.TitrationCalculation.HasValue) throw new BusinessRuleException("Titration calculation method is required.");
+        if (!t.TitrationEndpoint.HasValue) throw new BusinessRuleException("Titration endpoint is required.");
+        if (!t.TitrantSolutionMasterId.HasValue) throw new BusinessRuleException("Titrant is required.");
 
         var type = t.TitrationType.Value;
         var mode = t.TitrationMode.Value;
@@ -41,27 +42,27 @@ public static class TitrationDefinitionRules
         bool kf = type == TitrationType.KarlFischer;
 
         var titrant = await db.SolutionMasters.AsNoTracking().FirstOrDefaultAsync(m => m.Id == t.TitrantSolutionMasterId.Value)
-            ?? throw new InvalidOperationException("Titrant solution master not found.");
+            ?? throw new BusinessRuleException("Titrant solution master not found.");
         RequireTitrant(titrant, t.SectionId, "Titrant");
         if (!titrant.NominalStrength.HasValue || titrant.NominalStrength <= 0 || !titrant.StrengthUnit.HasValue)
-            throw new InvalidOperationException("Titrant has no nominal strength configured.");
+            throw new BusinessRuleException("Titrant has no nominal strength configured.");
         if (kf != (titrant.StrengthUnit == TitrantStrengthUnit.MgWaterPerMl))
-            throw new InvalidOperationException(kf
+            throw new BusinessRuleException(kf
                 ? "Karl Fischer tests need a titrant whose strength unit is mg water per mL."
                 : "A titrant with strength unit mg water per mL can only be used for Karl Fischer tests.");
 
         if (kf && (calc != TitrationCalculation.UspFactor || mode != TitrationMode.Direct))
-            throw new InvalidOperationException("Karl Fischer tests support only the USP factor calculation in direct mode.");
+            throw new BusinessRuleException("Karl Fischer tests support only the USP factor calculation in direct mode.");
 
         if (t.TitrationNonAqueous == true && type != TitrationType.AcidBase)
-            throw new InvalidOperationException("Non-aqueous titration only applies to acid-base titrations.");
+            throw new BusinessRuleException("Non-aqueous titration only applies to acid-base titrations.");
         t.TitrationNonAqueous = type == TitrationType.AcidBase ? (t.TitrationNonAqueous ?? false) : null;
 
         // F: only the USP factor form of a non-KF test uses it.
         if (calc == TitrationCalculation.UspFactor && !kf)
         {
             if (!t.TitrationEquivalencyFactor.HasValue || t.TitrationEquivalencyFactor <= 0)
-                throw new InvalidOperationException("Equivalency factor (mg per mEq/mmol) must be greater than zero.");
+                throw new BusinessRuleException("Equivalency factor (mg per mEq/mmol) must be greater than zero.");
         }
         else t.TitrationEquivalencyFactor = null;
 
@@ -69,16 +70,16 @@ public static class TitrationDefinitionRules
 
         if (mode == TitrationMode.Residual)
         {
-            if (kf) throw new InvalidOperationException("Karl Fischer tests cannot use residual mode.");
+            if (kf) throw new BusinessRuleException("Karl Fischer tests cannot use residual mode.");
             if (!t.TitrationExcessSolutionMasterId.HasValue)
-                throw new InvalidOperationException("Residual titration needs the excess titrant.");
+                throw new BusinessRuleException("Residual titration needs the excess titrant.");
             var excess = await db.SolutionMasters.AsNoTracking().FirstOrDefaultAsync(m => m.Id == t.TitrationExcessSolutionMasterId.Value)
-                ?? throw new InvalidOperationException("Excess titrant solution master not found.");
+                ?? throw new BusinessRuleException("Excess titrant solution master not found.");
             RequireTitrant(excess, t.SectionId, "Excess titrant");
             if (!excess.NominalStrength.HasValue || excess.NominalStrength <= 0 || excess.StrengthUnit != titrant.StrengthUnit)
-                throw new InvalidOperationException("The excess titrant must have a nominal strength and the same strength unit as the titrant.");
+                throw new BusinessRuleException("The excess titrant must have a nominal strength and the same strength unit as the titrant.");
             if (!t.TitrationExcessVolumeMl.HasValue || t.TitrationExcessVolumeMl <= 0)
-                throw new InvalidOperationException("Excess titrant volume must be greater than zero.");
+                throw new BusinessRuleException("Excess titrant volume must be greater than zero.");
         }
         else
         {
@@ -89,11 +90,11 @@ public static class TitrationDefinitionRules
         if (calc == TitrationCalculation.Relative)
         {
             if (!t.TitrationStandardEntryId.HasValue)
-                throw new InvalidOperationException("The reference standard is required for the relative calculation.");
+                throw new BusinessRuleException("The reference standard is required for the relative calculation.");
             var entry = await db.MaterialMasterEntries.AsNoTracking().FirstOrDefaultAsync(e => e.Id == t.TitrationStandardEntryId.Value)
-                ?? throw new InvalidOperationException("Reference standard master entry not found.");
+                ?? throw new BusinessRuleException("Reference standard master entry not found.");
             if (mode != TitrationMode.Direct)
-                throw new InvalidOperationException("The relative calculation supports direct mode only.");
+                throw new BusinessRuleException("The relative calculation supports direct mode only.");
         }
         else
         {
@@ -101,18 +102,18 @@ public static class TitrationDefinitionRules
         }
 
         if (t.TitrationMaxRsdPercent.HasValue && t.TitrationMaxRsdPercent <= 0)
-            throw new InvalidOperationException("Maximum RSD must be greater than zero when set.");
+            throw new BusinessRuleException("Maximum RSD must be greater than zero when set.");
 
         // Visual endpoint: the indicator is an Indicator entry of Reagents &
         // Reference Standards; its name is copied for display and the record.
         if (t.TitrationEndpoint == TitrationEndpoint.Visual)
         {
             if (!t.TitrationIndicatorEntryId.HasValue)
-                throw new InvalidOperationException("Indicator is required for a visual endpoint.");
+                throw new BusinessRuleException("Indicator is required for a visual endpoint.");
             var indicator = await db.MaterialMasterEntries.AsNoTracking().FirstOrDefaultAsync(e => e.Id == t.TitrationIndicatorEntryId.Value)
-                ?? throw new InvalidOperationException("Indicator master entry not found.");
+                ?? throw new BusinessRuleException("Indicator master entry not found.");
             if (indicator.Category != MaterialMasterCategory.Indicator)
-                throw new InvalidOperationException("The indicator must be an Indicator entry in Reagents & Reference Standards.");
+                throw new BusinessRuleException("The indicator must be an Indicator entry in Reagents & Reference Standards.");
             t.TitrationIndicator = indicator.Name;
         }
         else
@@ -124,10 +125,10 @@ public static class TitrationDefinitionRules
         if (t.TitrationTempCorrection == true)
         {
             if (type != TitrationType.AcidBase || t.TitrationNonAqueous != true)
-                throw new InvalidOperationException("Temperature correction only applies to non-aqueous acid-base titrations.");
+                throw new BusinessRuleException("Temperature correction only applies to non-aqueous acid-base titrations.");
             t.TitrationExpansionCoefficient ??= DefaultExpansionCoefficient;
             if (t.TitrationExpansionCoefficient <= 0)
-                throw new InvalidOperationException("Expansion coefficient must be greater than zero.");
+                throw new BusinessRuleException("Expansion coefficient must be greater than zero.");
         }
         else
         {
@@ -138,8 +139,8 @@ public static class TitrationDefinitionRules
 
     private static void RequireTitrant(SolutionMaster m, int sectionId, string what)
     {
-        if (m.Type != SolutionType.Titrant) throw new InvalidOperationException($"{what} must be a titrant solution master.");
-        if (m.SectionId != sectionId) throw new InvalidOperationException($"{what} belongs to another laboratory.");
+        if (m.Type != SolutionType.Titrant) throw new BusinessRuleException($"{what} must be a titrant solution master.");
+        if (m.SectionId != sectionId) throw new BusinessRuleException($"{what} belongs to another laboratory.");
     }
 
     // Every titration setting, for the before/after comparison and audit of a reason-for-change edit.

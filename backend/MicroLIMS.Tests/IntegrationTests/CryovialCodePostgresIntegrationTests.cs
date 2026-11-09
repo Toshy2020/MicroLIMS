@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using System.Globalization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
@@ -76,7 +77,7 @@ public class CryovialCodePostgresIntegrationTests
         var seed = await SeedAsync(code);
         await using var db = _fixture.CreateDbContext(new TakeCodeBeforeSave(this, seed, times: 2));
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(
             () => TestServiceFactory.Cryovial(db).PrepareCryovialsAsync(Request(seed)));
 
         Assert.Contains($"{code}/02/{Yy}", ex.Message);

@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Application.Services;
@@ -195,7 +196,7 @@ public partial class HplcRunServiceTests
         run = await service.AssignSamplesAsync(run.Id, new List<int> { order.Id }, g.UserId);
         var analyteId = (await db.HplcMethodAnalytes.FirstAsync(a => a.HplcMethodId == g.Method.Id)).Id;
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             service.SaveReplicatesAsync(run.Samples.Single().Id, Replicates(analyteId, (400m, -1m), (400m, 1000m)), g.UserId));
         Assert.Equal("Replicate 1: the response for Methanol must be zero or more.", ex.Message);
     }

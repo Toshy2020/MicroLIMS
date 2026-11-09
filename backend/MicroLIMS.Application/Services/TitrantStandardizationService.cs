@@ -59,23 +59,23 @@ public class TitrantStandardizationService
         await EnsureAccessAsync(prep, userId, ct);
 
         if (prep.Type != SolutionType.Titrant)
-            throw new InvalidOperationException("Only titrant preparations can be standardized.");
+            throw new BusinessRuleException("Only titrant preparations can be standardized.");
 
         var nowUtc = _clock.UtcNow.UtcDateTime;
         if (SolutionPreparationResponse.EffectiveStatusOf(prep, nowUtc) != SolutionPreparationStatus.Prepared)
-            throw new InvalidOperationException("This preparation is expired or discarded and cannot be standardized.");
+            throw new BusinessRuleException("This preparation is expired or discarded and cannot be standardized.");
 
         var snapshot = JsonSerializer.Deserialize<SolutionMasterResponse>(prep.RecipeSnapshotJson, JsonOptions)
-            ?? throw new InvalidOperationException("The preparation's recipe snapshot could not be read.");
+            ?? throw new BusinessRuleException("The preparation's recipe snapshot could not be read.");
 
         if (!snapshot.StandardizationMode.HasValue || !snapshot.NominalStrength.HasValue || !snapshot.StrengthUnit.HasValue
             || !snapshot.ReplicateCount.HasValue || !snapshot.FactorMin.HasValue || !snapshot.FactorMax.HasValue || !snapshot.MaxRsdPercent.HasValue)
-            throw new InvalidOperationException("This titrant is not configured for standardization.");
+            throw new BusinessRuleException("This titrant is not configured for standardization.");
 
         var mode = snapshot.StandardizationMode.Value;
 
         if (r.Replicates == null || r.Replicates.Count != snapshot.ReplicateCount.Value)
-            throw new InvalidOperationException($"Exactly {snapshot.ReplicateCount.Value} replicate(s) are required.");
+            throw new BusinessRuleException($"Exactly {snapshot.ReplicateCount.Value} replicate(s) are required.");
 
         var today = _clock.LabToday;
         var replicateEntities = new List<TitrantStandardizationReplicate>();
@@ -87,19 +87,19 @@ public class TitrantStandardizationService
             var replicateNo = i + 1;
 
             if (input.TitrantVolumeMl <= 0)
-                throw new InvalidOperationException($"Replicate {replicateNo}: titrant volume must be greater than zero.");
+                throw new BusinessRuleException($"Replicate {replicateNo}: titrant volume must be greater than zero.");
 
             decimal blank;
             if (snapshot.BlankRequired)
             {
                 if (!input.BlankMl.HasValue)
-                    throw new InvalidOperationException($"Replicate {replicateNo}: a blank is required.");
+                    throw new BusinessRuleException($"Replicate {replicateNo}: a blank is required.");
                 blank = input.BlankMl.Value;
             }
             else
             {
                 if (input.BlankMl.HasValue)
-                    throw new InvalidOperationException($"Replicate {replicateNo}: this titrant does not use a blank.");
+                    throw new BusinessRuleException($"Replicate {replicateNo}: this titrant does not use a blank.");
                 blank = 0m;
             }
 
@@ -111,25 +111,25 @@ public class TitrantStandardizationService
             if (mode == StandardizationMode.PrimaryStandard)
             {
                 if (input.ReferencePreparationId.HasValue || input.ReferenceVolumeMl.HasValue)
-                    throw new InvalidOperationException($"Replicate {replicateNo}: reference fields do not apply to primary-standard standardization.");
+                    throw new BusinessRuleException($"Replicate {replicateNo}: reference fields do not apply to primary-standard standardization.");
                 if (!input.StandardMaterialId.HasValue || !input.StandardWeightMg.HasValue)
-                    throw new InvalidOperationException($"Replicate {replicateNo}: a standard lot and weight are required.");
+                    throw new BusinessRuleException($"Replicate {replicateNo}: a standard lot and weight are required.");
                 if (!snapshot.StandardEntryId.HasValue || !snapshot.EquivalenceMgPerMl.HasValue)
-                    throw new InvalidOperationException("This titrant has no primary standard configured.");
+                    throw new BusinessRuleException("This titrant has no primary standard configured.");
 
                 lot = await _db.Materials.FirstOrDefaultAsync(m => m.Id == input.StandardMaterialId.Value, ct)
-                    ?? throw new InvalidOperationException($"Replicate {replicateNo}: standard material not found.");
+                    ?? throw new BusinessRuleException($"Replicate {replicateNo}: standard material not found.");
 
                 if (lot.SectionId != prep.SectionId)
-                    throw new InvalidOperationException($"Replicate {replicateNo}: standard lot belongs to another laboratory.");
+                    throw new BusinessRuleException($"Replicate {replicateNo}: standard lot belongs to another laboratory.");
 
                 var check = LotUsability.Check(lot, snapshot.StandardEntryId.Value, null, today);
                 if (!check.Usable)
-                    throw new InvalidOperationException($"Replicate {replicateNo}: standard lot (batch {lot.BatchNumber}): {check.Reason}");
+                    throw new BusinessRuleException($"Replicate {replicateNo}: standard lot (batch {lot.BatchNumber}): {check.Reason}");
                 if (lot.MaterialType != MaterialType.PrimaryStandard)
-                    throw new InvalidOperationException($"Replicate {replicateNo}: standard lot (batch {lot.BatchNumber}) is not a primary standard.");
+                    throw new BusinessRuleException($"Replicate {replicateNo}: standard lot (batch {lot.BatchNumber}) is not a primary standard.");
                 if (!lot.Purity.HasValue)
-                    throw new InvalidOperationException($"Replicate {replicateNo}: standard lot (batch {lot.BatchNumber}) has no purity - enter it in Materials Stock before standardizing.");
+                    throw new BusinessRuleException($"Replicate {replicateNo}: standard lot (batch {lot.BatchNumber}) has no purity - enter it in Materials Stock before standardizing.");
 
                 try
                 {
@@ -138,37 +138,37 @@ public class TitrantStandardizationService
                 }
                 catch (InvalidOperationException ex)
                 {
-                    throw new InvalidOperationException($"Replicate {replicateNo}: {ex.Message}");
+                    throw new BusinessRuleException($"Replicate {replicateNo}: {ex.Message}");
                 }
             }
             else
             {
                 if (input.StandardMaterialId.HasValue || input.StandardWeightMg.HasValue)
-                    throw new InvalidOperationException($"Replicate {replicateNo}: standard-lot fields do not apply to standardization against a volumetric solution.");
+                    throw new BusinessRuleException($"Replicate {replicateNo}: standard-lot fields do not apply to standardization against a volumetric solution.");
                 if (!input.ReferencePreparationId.HasValue || !input.ReferenceVolumeMl.HasValue)
-                    throw new InvalidOperationException($"Replicate {replicateNo}: a reference preparation and volume are required.");
+                    throw new BusinessRuleException($"Replicate {replicateNo}: a reference preparation and volume are required.");
                 if (!snapshot.ReferenceSolutionId.HasValue)
-                    throw new InvalidOperationException("This titrant has no reference solution configured.");
+                    throw new BusinessRuleException("This titrant has no reference solution configured.");
 
                 refPrep = await _db.SolutionPreparations.FirstOrDefaultAsync(p => p.Id == input.ReferencePreparationId.Value, ct)
-                    ?? throw new InvalidOperationException($"Replicate {replicateNo}: reference preparation not found.");
+                    ?? throw new BusinessRuleException($"Replicate {replicateNo}: reference preparation not found.");
 
                 if (refPrep.SectionId != prep.SectionId)
-                    throw new InvalidOperationException($"Replicate {replicateNo}: reference preparation belongs to another laboratory.");
+                    throw new BusinessRuleException($"Replicate {replicateNo}: reference preparation belongs to another laboratory.");
 
                 if (refPrep.SolutionMasterId != snapshot.ReferenceSolutionId.Value)
-                    throw new InvalidOperationException($"Replicate {replicateNo}: reference preparation is not of this titrant's configured reference solution.");
+                    throw new BusinessRuleException($"Replicate {replicateNo}: reference preparation is not of this titrant's configured reference solution.");
 
                 if (SolutionPreparationResponse.EffectiveStatusOf(refPrep, nowUtc) != SolutionPreparationStatus.Prepared)
-                    throw new InvalidOperationException($"Replicate {replicateNo}: reference preparation is expired or discarded.");
+                    throw new BusinessRuleException($"Replicate {replicateNo}: reference preparation is expired or discarded.");
 
                 var refSnapshot = JsonSerializer.Deserialize<SolutionMasterResponse>(refPrep.RecipeSnapshotJson, JsonOptions)
-                    ?? throw new InvalidOperationException($"Replicate {replicateNo}: reference preparation's recipe snapshot could not be read.");
+                    ?? throw new BusinessRuleException($"Replicate {replicateNo}: reference preparation's recipe snapshot could not be read.");
 
                 if (!refSnapshot.StrengthUnit.HasValue || refSnapshot.StrengthUnit.Value != snapshot.StrengthUnit.Value)
-                    throw new InvalidOperationException($"Replicate {replicateNo}: reference titrant's strength unit does not match.");
+                    throw new BusinessRuleException($"Replicate {replicateNo}: reference titrant's strength unit does not match.");
                 if (!refSnapshot.NominalStrength.HasValue)
-                    throw new InvalidOperationException($"Replicate {replicateNo}: reference titrant has no nominal strength configured.");
+                    throw new BusinessRuleException($"Replicate {replicateNo}: reference titrant has no nominal strength configured.");
 
                 var refRecords = await _db.TitrantStandardizations.AsNoTracking()
                     .Where(x => x.SolutionPreparationId == refPrep.Id)
@@ -180,7 +180,7 @@ public class TitrantStandardizationService
                 var refAcceptable = refCurrent.State == "Valid" || (refCurrent.State == "BeforeEachUse" && refStandardizedSameDay);
 
                 if (!refAcceptable || !refCurrent.Factor.HasValue)
-                    throw new InvalidOperationException($"Replicate {replicateNo}: reference preparation's standardization is expired, failed or missing.");
+                    throw new BusinessRuleException($"Replicate {replicateNo}: reference preparation's standardization is expired, failed or missing.");
 
                 refFactorSnapshot = refCurrent.Factor.Value;
 
@@ -192,7 +192,7 @@ public class TitrantStandardizationService
                 }
                 catch (InvalidOperationException ex)
                 {
-                    throw new InvalidOperationException($"Replicate {replicateNo}: {ex.Message}");
+                    throw new BusinessRuleException($"Replicate {replicateNo}: {ex.Message}");
                 }
             }
 
@@ -225,17 +225,17 @@ public class TitrantStandardizationService
             {
                 MaterialUnit.Gram => mg / 1000m,
                 MaterialUnit.Kilogram => mg / 1_000_000m,
-                _ => throw new InvalidOperationException(
+                _ => throw new BusinessRuleException(
                     $"Lot {lot.LotLabel} is stocked in {lot.Unit}; a standard weight in mg cannot be deducted from it."),
             };
             var check = LotUsability.Check(lot, snapshot.StandardEntryId!.Value, quantity, today);
             if (!check.Usable)
-                throw new InvalidOperationException($"Standard lot {lot.LotLabel}: {check.Reason}");
+                throw new BusinessRuleException($"Standard lot {lot.LotLabel}: {check.Reason}");
             deductions.Add((lot, quantity));
         }
 
         if (r.TemperatureC.HasValue && (r.TemperatureC < -20m || r.TemperatureC > 60m))
-            throw new InvalidOperationException("Temperature must be between -20 and 60 C.");
+            throw new BusinessRuleException("Temperature must be between -20 and 60 C.");
 
         var evaluation = TitrationEngine.Evaluate(factors, snapshot.FactorMin.Value, snapshot.FactorMax.Value, snapshot.MaxRsdPercent.Value);
 
@@ -340,7 +340,7 @@ public class TitrantStandardizationService
         await EnsureAccessAsync(prep, userId, ct, SectionAccess.Read);
 
         var snapshot = JsonSerializer.Deserialize<SolutionMasterResponse>(prep.RecipeSnapshotJson, JsonOptions)
-            ?? throw new InvalidOperationException("The preparation's recipe snapshot could not be read.");
+            ?? throw new BusinessRuleException("The preparation's recipe snapshot could not be read.");
 
         if (!snapshot.StandardEntryId.HasValue)
             return new List<LotOption>();
@@ -365,7 +365,7 @@ public class TitrantStandardizationService
         await EnsureAccessAsync(prep, userId, ct, SectionAccess.Read);
 
         var snapshot = JsonSerializer.Deserialize<SolutionMasterResponse>(prep.RecipeSnapshotJson, JsonOptions)
-            ?? throw new InvalidOperationException("The preparation's recipe snapshot could not be read.");
+            ?? throw new BusinessRuleException("The preparation's recipe snapshot could not be read.");
 
         if (!snapshot.ReferenceSolutionId.HasValue)
             return new List<SolutionPreparationListItem>();

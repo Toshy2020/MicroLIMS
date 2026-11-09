@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Workflows;
 using MicroLIMS.Domain.Entities;
@@ -68,7 +69,7 @@ public class PathogenChainInvariantTests
         var (order, media, incubator, engine, db) = await NewChainAsync();
         await using var _ = db;
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => engine.SubmitSelectivePlatingAsync(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => engine.SubmitSelectivePlatingAsync(
             order.Id, "Selective Plating", media.SelectivePlatingLotId, incubator.Id,
             Start, End, GrowthObservation.GrowthConforming, AnalystId));
 
@@ -83,7 +84,7 @@ public class PathogenChainInvariantTests
         await using var _ = db;
         await BothBrothStepsAsync(engine, order, media, incubator);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => engine.SubmitConfirmatorySetupAsync(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => engine.SubmitConfirmatorySetupAsync(
             order.Id, "Confirmatory Plating", BothMedia(media, incubator.Id), Start, End, AnalystId));
 
         Assert.Contains("Selective Plating", ex.Message);
@@ -99,7 +100,7 @@ public class PathogenChainInvariantTests
 
         await engine.SubmitBrothAsync(order.Id, "Broth Enrichment", media.BrothLotId, incubator.Id, Start, End, "Turbid.", AnalystId);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => engine.SubmitBrothAsync(
+        await Assert.ThrowsAsync<BusinessRuleException>(() => engine.SubmitBrothAsync(
             order.Id, "Broth Enrichment", media.BrothLotId, incubator.Id, Start, End, "Turbid again.", AnalystId));
 
         Assert.Single(await db.WorkflowStepResults.Where(r => r.StepName == "Broth Enrichment").ToListAsync());
@@ -121,7 +122,7 @@ public class PathogenChainInvariantTests
         var finalized = await db.TestOrders.SingleAsync(t => t.Id == order.Id);
         Assert.Equal(WorkflowStep.Ready, finalized.CurrentStep);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => engine.SubmitSelectivePlatingAsync(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => engine.SubmitSelectivePlatingAsync(
             order.Id, "Selective Plating", media.SelectivePlatingLotId, incubator.Id,
             Start, End, GrowthObservation.GrowthConforming, AnalystId));
 
@@ -216,7 +217,7 @@ public class PathogenChainInvariantTests
         Assert.Equal(ConfirmatoryResult.Inconclusive, only.ConfirmatoryResult);
 
         // And the inconclusive run still cannot be talked into a decision.
-        await Assert.ThrowsAsync<InvalidOperationException>(
+        await Assert.ThrowsAsync<BusinessRuleException>(
             () => engine.RecordAnalystDecisionAsync(order.Id, AnalystDecision.SubmitAsDetected, AnalystId));
     }
 
@@ -311,7 +312,7 @@ public class PathogenChainInvariantTests
 
         await engine.RecordAnalystDecisionAsync(order.Id, AnalystDecision.SubmitAsDetected, AnalystId);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(
+        await Assert.ThrowsAsync<BusinessRuleException>(
             () => engine.RecordAnalystDecisionAsync(order.Id, AnalystDecision.SubmitAsDetected, AnalystId));
 
         Assert.Single(await db.Results.Where(r => r.TestOrderId == order.Id).ToListAsync());
@@ -401,7 +402,7 @@ public class PathogenChainInvariantTests
         step.TargetOrganismId = null;
         await db.SaveChangesAsync();
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => engine.SubmitSelectivePlatingAsync(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => engine.SubmitSelectivePlatingAsync(
             order.Id, "Selective Plating", media.SelectivePlatingLotId, incubator.Id,
             Start, End, GrowthObservation.GrowthConforming, AnalystId));
 
@@ -420,7 +421,7 @@ public class PathogenChainInvariantTests
             await db.TestWorkflowStepMedias.Where(m => m.TestWorkflowStepId == step.Id).ToListAsync());
         await db.SaveChangesAsync();
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => engine.SubmitBrothAsync(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => engine.SubmitBrothAsync(
             order.Id, "Broth Enrichment", media.BrothLotId, incubator.Id, Start, End, null, AnalystId));
 
         Assert.Contains("Test Master", ex.Message);

@@ -84,7 +84,7 @@ public class PreparationMaterialService
     {
         var what = RoleName(role);
         if (choice?.Source is not PreparationMaterialSource source)
-            throw new InvalidOperationException(
+            throw new BusinessRuleException(
                 $"Choose where the {what} comes from: a media product, a solution recipe or a material entry"
                 + (role == PreparationMaterialRole.Neutralizer ? ", or contained in the medium." : "."));
 
@@ -92,7 +92,7 @@ public class PreparationMaterialService
         void OnlyOne(bool media, bool solution, bool entry)
         {
             if ((!media && choice.MediaProductId.HasValue) || (!solution && choice.SolutionMasterId.HasValue) || (!entry && choice.MaterialMasterEntryId.HasValue))
-                throw new InvalidOperationException($"The {what} source is {source}: set only the {SourceIdName(source)}.");
+                throw new BusinessRuleException($"The {what} source is {source}: set only the {SourceIdName(source)}.");
         }
 
         switch (source)
@@ -101,24 +101,24 @@ public class PreparationMaterialService
             {
                 OnlyOne(true, false, false);
                 if (choice.MediaProductId is not int id)
-                    throw new InvalidOperationException($"Choose the media product for the {what}.");
+                    throw new BusinessRuleException($"Choose the media product for the {what}.");
                 var product = await _db.MediaProducts.AsNoTracking().FirstOrDefaultAsync(p => p.Id == id)
-                    ?? throw new InvalidOperationException($"Media product {id} not found.");
+                    ?? throw new BusinessRuleException($"Media product {id} not found.");
                 if (!product.IsActive)
-                    throw new InvalidOperationException($"Media product '{product.Name}' is inactive and can't be chosen as the {what}.");
+                    throw new BusinessRuleException($"Media product '{product.Name}' is inactive and can't be chosen as the {what}.");
                 return new(new(source, MediaProductId: product.Id), product.Name);
             }
             case PreparationMaterialSource.SolutionRecipe:
             {
                 OnlyOne(false, true, false);
                 if (choice.SolutionMasterId is not int id)
-                    throw new InvalidOperationException($"Choose the solution recipe for the {what}.");
+                    throw new BusinessRuleException($"Choose the solution recipe for the {what}.");
                 var master = await _db.SolutionMasters.AsNoTracking().FirstOrDefaultAsync(m => m.Id == id)
-                    ?? throw new InvalidOperationException($"Solution recipe {id} not found.");
+                    ?? throw new BusinessRuleException($"Solution recipe {id} not found.");
                 if (!master.IsActive)
-                    throw new InvalidOperationException($"Solution recipe '{master.Name}' is inactive and can't be chosen as the {what}.");
+                    throw new BusinessRuleException($"Solution recipe '{master.Name}' is inactive and can't be chosen as the {what}.");
                 if (!master.Type.IsGeneral())
-                    throw new InvalidOperationException(
+                    throw new BusinessRuleException(
                         $"Solution recipe '{master.Name}' is a {master.Type} recipe; choose a Diluent, Reagent or Neutralizer recipe.");
                 return new(new(source, SolutionMasterId: master.Id), master.Name);
             }
@@ -126,20 +126,20 @@ public class PreparationMaterialService
             {
                 OnlyOne(false, false, true);
                 if (choice.MaterialMasterEntryId is not int id)
-                    throw new InvalidOperationException($"Choose the material entry for the {what}.");
+                    throw new BusinessRuleException($"Choose the material entry for the {what}.");
                 var entry = await _db.MaterialMasterEntries.AsNoTracking().FirstOrDefaultAsync(e => e.Id == id)
-                    ?? throw new InvalidOperationException($"Material entry {id} not found.");
+                    ?? throw new BusinessRuleException($"Material entry {id} not found.");
                 if (!entry.IsActive)
-                    throw new InvalidOperationException($"Material entry '{entry.Name}' is inactive and can't be chosen as the {what}.");
+                    throw new BusinessRuleException($"Material entry '{entry.Name}' is inactive and can't be chosen as the {what}.");
                 return new(new(source, MaterialMasterEntryId: entry.Id), entry.Name);
             }
             case PreparationMaterialSource.ContainedInMedium:
                 if (role != PreparationMaterialRole.Neutralizer)
-                    throw new InvalidOperationException("Only the neutralizer can be contained in the medium; choose the diluent's source.");
+                    throw new BusinessRuleException("Only the neutralizer can be contained in the medium; choose the diluent's source.");
                 OnlyOne(false, false, false);
                 return new(new(source), ContainedInMediumName);
             default:
-                throw new InvalidOperationException($"Unknown {what} source.");
+                throw new BusinessRuleException($"Unknown {what} source.");
         }
     }
 
@@ -162,7 +162,7 @@ public class PreparationMaterialService
         if (configured.Source is null)
         {
             if (lotId.HasValue)
-                throw new InvalidOperationException(
+                throw new BusinessRuleException(
                     $"The {what} of this item is not linked to a master record yet, so no {what} lot can be recorded.");
             return null;
         }
@@ -170,12 +170,12 @@ public class PreparationMaterialService
         if (configured.Source == PreparationMaterialSource.ContainedInMedium)
         {
             if (lotId.HasValue)
-                throw new InvalidOperationException($"The {what} is contained in the medium; no {what} lot is picked.");
+                throw new BusinessRuleException($"The {what} is contained in the medium; no {what} lot is picked.");
             return null;
         }
 
         if (lotId is not int id)
-            throw new InvalidOperationException($"Pick the {what} lot used.");
+            throw new BusinessRuleException($"Pick the {what} lot used.");
 
         var readable = await _scope.GetReadableSectionIdsAsync(userId, ct);
         var now = _time.GetUtcNow().UtcDateTime;
@@ -186,30 +186,30 @@ public class PreparationMaterialService
             case PreparationMaterialSource.MediaProduct:
             {
                 var media = await _db.Media.Include(m => m.Material).FirstOrDefaultAsync(m => m.Id == id, ct)
-                    ?? throw new InvalidOperationException($"Media lot {id} not found.");
+                    ?? throw new BusinessRuleException($"Media lot {id} not found.");
                 RequireReadable(readable, media.Material!.SectionId, $"Media lot {media.LotNumber}");
                 var productName = await _db.MediaProducts.AsNoTracking()
                     .Where(p => p.Id == configured.MediaProductId).Select(p => p.Name).FirstOrDefaultAsync(ct) ?? "the configured media product";
                 var check = CheckMedia(media, configured.MediaProductId, productName, now);
-                if (!check.Usable) throw new InvalidOperationException(check.Reason);
+                if (!check.Usable) throw new BusinessRuleException(check.Reason);
                 return new(source, media.Id, null, null, Truncate(media.LotNumber));
             }
             case PreparationMaterialSource.SolutionRecipe:
             {
                 var prep = await _db.SolutionPreparations.Include(p => p.SolutionMaster).FirstOrDefaultAsync(p => p.Id == id, ct)
-                    ?? throw new InvalidOperationException($"Solution preparation {id} not found.");
+                    ?? throw new BusinessRuleException($"Solution preparation {id} not found.");
                 RequireReadable(readable, prep.SectionId, $"Preparation {LabelOf(prep)}");
                 var check = CheckSolution(prep, configured.SolutionMasterId, now);
-                if (!check.Usable) throw new InvalidOperationException(check.Reason);
+                if (!check.Usable) throw new BusinessRuleException(check.Reason);
                 return new(source, null, prep.Id, null, Truncate(LabelOf(prep)));
             }
             default:
             {
                 var lot = await _db.Materials.FirstOrDefaultAsync(m => m.Id == id, ct)
-                    ?? throw new InvalidOperationException($"Stock lot {id} not found.");
+                    ?? throw new BusinessRuleException($"Stock lot {id} not found.");
                 RequireReadable(readable, lot.SectionId, $"Stock lot {LabelOf(lot)}");
                 var check = CheckMaterial(lot, configured.MaterialMasterEntryId, now);
-                if (!check.Usable) throw new InvalidOperationException(check.Reason);
+                if (!check.Usable) throw new BusinessRuleException(check.Reason);
                 return new(source, null, null, lot.Id, Truncate(LabelOf(lot)));
             }
         }
@@ -248,7 +248,7 @@ public class PreparationMaterialService
     private static void RequireReadable(IReadOnlyList<int>? readable, int sectionId, string what)
     {
         if (readable is not null && !readable.Contains(sectionId))
-            throw new InvalidOperationException($"{what} belongs to a laboratory section you can't access.");
+            throw new BusinessRuleException($"{what} belongs to a laboratory section you can't access.");
     }
 
     // ---- Lot rules, shared by validation and the options list -------------------
@@ -390,7 +390,7 @@ public class PreparationMaterialService
     {
         var given = new[] { mediaId, solutionPreparationId, materialId }.Count(v => v.HasValue);
         if (given != 1)
-            throw new InvalidOperationException("Give exactly one of mediaId, solutionPreparationId or materialId.");
+            throw new BusinessRuleException("Give exactly one of mediaId, solutionPreparationId or materialId.");
 
         var readable = (await _scope.GetReadableSectionIdsAsync(userId, ct))?.ToList();
 

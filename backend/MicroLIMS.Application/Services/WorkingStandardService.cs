@@ -153,7 +153,7 @@ public partial class WorkingStandardService
         if (r.Kind == WorkingStandardQualificationKind.Requalification)
         {
             if (!r.WorkingStandardMaterialId.HasValue)
-                throw new InvalidOperationException("Choose the working standard lot to requalify.");
+                throw new BusinessRuleException("Choose the working standard lot to requalify.");
             var lot = await _db.Materials.FirstOrDefaultAsync(m => m.Id == r.WorkingStandardMaterialId.Value && m.MaterialType == MaterialType.WorkingStandard, ct)
                 ?? throw new NotFoundException("Working standard lot not found.");
             await EnsureSectionAsync(lot.SectionId, userId, ct, "Working standard lot not found.");
@@ -163,11 +163,11 @@ public partial class WorkingStandardService
                 .Select(x => new { x.Code, x.Status }).ToListAsync(ct);
             var openCode = openCodes.FirstOrDefault(x => IsOpen(x.Status))?.Code;
             if (openCode != null)
-                throw new InvalidOperationException($"Lot {lot.Code} already has an open qualification ({openCode}).");
+                throw new BusinessRuleException($"Lot {lot.Code} already has an open qualification ({openCode}).");
             if (!lot.MaterialMasterEntryId.HasValue)
-                throw new InvalidOperationException("The lot has no master entry.");
+                throw new BusinessRuleException("The lot has no master entry.");
             if (r.QuantityGrams.HasValue || !string.IsNullOrWhiteSpace(r.Location))
-                throw new InvalidOperationException("Quantity and location belong to the lot for a requalification.");
+                throw new BusinessRuleException("Quantity and location belong to the lot for a requalification.");
 
             q.SectionId = lot.SectionId;
             q.WorkingStandardMaterialId = lot.Id;
@@ -178,23 +178,23 @@ public partial class WorkingStandardService
         else
         {
             if (!r.MaterialMasterEntryId.HasValue)
-                throw new InvalidOperationException("Choose the reference standard master entry.");
+                throw new BusinessRuleException("Choose the reference standard master entry.");
             var entry = await _db.MaterialMasterEntries.FirstOrDefaultAsync(e => e.Id == r.MaterialMasterEntryId.Value, ct)
                 ?? throw new NotFoundException("Master entry not found.");
             if (entry.Category != MaterialMasterCategory.ReferenceStandard)
-                throw new InvalidOperationException($"Master entry \"{entry.Name}\" is not a reference standard.");
+                throw new BusinessRuleException($"Master entry \"{entry.Name}\" is not a reference standard.");
             if (!entry.IsActive)
-                throw new InvalidOperationException($"Master entry \"{entry.Name}\" is inactive.");
+                throw new BusinessRuleException($"Master entry \"{entry.Name}\" is inactive.");
 
             var hasName = !string.IsNullOrWhiteSpace(r.SourceMaterialName) || !string.IsNullOrWhiteSpace(r.SourceBatchNumber);
             if (r.SourceSampleId.HasValue && hasName)
-                throw new InvalidOperationException("Choose a received raw material sample or enter the material name and batch, not both.");
+                throw new BusinessRuleException("Choose a received raw material sample or enter the material name and batch, not both.");
             if (r.SourceSampleId.HasValue)
             {
                 var eligible = (await GetEligibleSourceSamplesAsync(null, userId, ct)).FirstOrDefault(s => s.SampleId == r.SourceSampleId.Value)
-                    ?? throw new InvalidOperationException("That sample has no approved assay result.");
+                    ?? throw new BusinessRuleException("That sample has no approved assay result.");
                 if (string.IsNullOrWhiteSpace(eligible.MaterialName))
-                    throw new InvalidOperationException("That sample has no item name.");
+                    throw new BusinessRuleException("That sample has no item name.");
                 q.SourceSampleId = eligible.SampleId;
                 q.SourceMaterialName = eligible.MaterialName;
                 q.SourceBatchNumber = eligible.BatchNumber ?? string.Empty;
@@ -202,15 +202,15 @@ public partial class WorkingStandardService
             else
             {
                 if (string.IsNullOrWhiteSpace(r.SourceMaterialName) || string.IsNullOrWhiteSpace(r.SourceBatchNumber))
-                    throw new InvalidOperationException("Choose either a received raw material sample or enter the material name and batch.");
+                    throw new BusinessRuleException("Choose either a received raw material sample or enter the material name and batch.");
                 q.SourceMaterialName = r.SourceMaterialName.Trim();
                 q.SourceBatchNumber = r.SourceBatchNumber.Trim();
             }
 
             if (r.QuantityGrams is not > 0)
-                throw new InvalidOperationException("Enter the quantity in grams.");
+                throw new BusinessRuleException("Enter the quantity in grams.");
             if (string.IsNullOrWhiteSpace(r.Location))
-                throw new InvalidOperationException("Enter the storage location.");
+                throw new BusinessRuleException("Enter the storage location.");
 
             // The master entry is app-wide; the qualification (a GxP record) belongs to the analyst's own lab.
             var writeScope = await _scope.GetSectionIdsAsync(userId, SectionAccess.Write, ct);
@@ -234,7 +234,7 @@ public partial class WorkingStandardService
             saved = await _db.TrySaveChangesAsync(UniqueIndexNames.WorkingStandardQualificationCode);
         }
         if (!saved)
-            throw new InvalidOperationException("Could not allocate a qualification code - try again.");
+            throw new BusinessRuleException("Could not allocate a qualification code - try again.");
 
         return await GetAsync(q.Id, userId, ct);
     }
@@ -243,19 +243,19 @@ public partial class WorkingStandardService
     {
         var q = await LoadAsync(id, userId, ct);
         if (q.Status != WorkingStandardQualificationStatus.Draft)
-            throw new InvalidOperationException("Only a draft qualification can be edited.");
+            throw new BusinessRuleException("Only a draft qualification can be edited.");
 
         if (q.Kind == WorkingStandardQualificationKind.Requalification)
         {
             if (r.QuantityGrams.HasValue || !string.IsNullOrWhiteSpace(r.Location))
-                throw new InvalidOperationException("Quantity and location belong to the lot for a requalification.");
+                throw new BusinessRuleException("Quantity and location belong to the lot for a requalification.");
         }
         else
         {
             if (r.QuantityGrams is not > 0)
-                throw new InvalidOperationException("Enter the quantity in grams.");
+                throw new BusinessRuleException("Enter the quantity in grams.");
             if (string.IsNullOrWhiteSpace(r.Location))
-                throw new InvalidOperationException("Enter the storage location.");
+                throw new BusinessRuleException("Enter the storage location.");
             q.QuantityGrams = r.QuantityGrams;
             q.Location = r.Location.Trim();
         }
@@ -274,7 +274,7 @@ public partial class WorkingStandardService
     {
         var q = await LoadAsync(id, userId, ct);
         if (q.Status != WorkingStandardQualificationStatus.Draft)
-            throw new InvalidOperationException("Documents can only be attached to a draft qualification.");
+            throw new BusinessRuleException("Documents can only be attached to a draft qualification.");
         ValidateFile(fileName, contentType, content);
 
         var doc = new WorkingStandardDocument
@@ -336,21 +336,21 @@ public partial class WorkingStandardService
     private static decimal? ValidateMoisture(decimal? moisture)
     {
         if (moisture is < 0 or >= 100)
-            throw new InvalidOperationException("Moisture must be at least 0 and below 100 %.");
+            throw new BusinessRuleException("Moisture must be at least 0 and below 100 %.");
         return moisture;
     }
 
     private static void ValidateFile(string fileName, string contentType, byte[] content)
     {
         if (content == null || content.Length == 0)
-            throw new InvalidOperationException("The uploaded file is empty.");
+            throw new BusinessRuleException("The uploaded file is empty.");
         if (content.Length > MaxDocumentBytes)
-            throw new InvalidOperationException($"File exceeds the maximum allowed size of {MaxDocumentBytes / 1024 / 1024} MB.");
+            throw new BusinessRuleException($"File exceeds the maximum allowed size of {MaxDocumentBytes / 1024 / 1024} MB.");
         if (string.IsNullOrWhiteSpace(fileName))
-            throw new InvalidOperationException("A file name is required.");
+            throw new BusinessRuleException("A file name is required.");
         var normalized = NormalizeContentType(contentType);
         if (!AllowedContentTypes.Contains(normalized))
-            throw new InvalidOperationException($"File type \"{normalized}\" is not supported. Allowed types: PDF, PNG, JPEG.");
+            throw new BusinessRuleException($"File type \"{normalized}\" is not supported. Allowed types: PDF, PNG, JPEG.");
     }
 
     private static string NormalizeContentType(string contentType) => contentType.Split(';')[0].Trim().ToLowerInvariant();

@@ -108,7 +108,7 @@ public class MaterialMasterService
         EnsurePrefix(normalizedCode, r.Category, materialCategory);
 
         if (await _db.MaterialMasterEntries.AnyAsync(e => e.Code == normalizedCode, ct))
-            throw new InvalidOperationException($"Material master entry code \"{normalizedCode}\" already exists.");
+            throw new BusinessRuleException($"Material master entry code \"{normalizedCode}\" already exists.");
 
         var entry = new MaterialMasterEntry
         {
@@ -151,10 +151,10 @@ public class MaterialMasterService
         var hasStock = await _db.Materials.AnyAsync(m => m.MaterialMasterEntryId == id, ct);
 
         if (r.Category != entry.Category && hasStock)
-            throw new InvalidOperationException("This entry has linked stock lots; its category can't change.");
+            throw new BusinessRuleException("This entry has linked stock lots; its category can't change.");
         var categoryChanged = r.MaterialCategoryId != entry.MaterialCategoryId;
         if (categoryChanged && hasStock)
-            throw new InvalidOperationException("This entry has linked stock lots; its material category can't change.");
+            throw new BusinessRuleException("This entry has linked stock lots; its material category can't change.");
 
         // The category is checked against the owner lab only when it is being set or changed,
         // so an entry whose category was later deactivated or narrowed can still be renamed.
@@ -171,10 +171,10 @@ public class MaterialMasterService
         if (normalizedCode != entry.Code || categoryChanged)
         {
             if (normalizedCode != entry.Code && hasStock)
-                throw new InvalidOperationException("This entry has stock; change its code with a reason and an electronic signature.");
+                throw new BusinessRuleException("This entry has stock; change its code with a reason and an electronic signature.");
             EnsurePrefix(normalizedCode, r.Category, materialCategory);
             if (await _db.MaterialMasterEntries.AnyAsync(e => e.Code == normalizedCode && e.Id != id, ct))
-                throw new InvalidOperationException($"Material master entry code \"{normalizedCode}\" already exists.");
+                throw new BusinessRuleException($"Material master entry code \"{normalizedCode}\" already exists.");
         }
 
         entry.Code = normalizedCode;
@@ -207,22 +207,22 @@ public class MaterialMasterService
         int id, string newCode, string reason, string password, int currentUserId, string? ipAddress, CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(reason))
-            throw new InvalidOperationException("A reason for the code change is required.");
+            throw new BusinessRuleException("A reason for the code change is required.");
         var trimmedReason = reason.Trim();
 
-        if (string.IsNullOrWhiteSpace(newCode)) throw new InvalidOperationException("Code is required.");
+        if (string.IsNullOrWhiteSpace(newCode)) throw new BusinessRuleException("Code is required.");
         var normalizedCode = newCode.Trim().ToUpper();
 
         var entry = await LoadWithAccessAsync(id, currentUserId, ct);
 
         if (normalizedCode == entry.Code)
-            throw new InvalidOperationException("The new code must be different from the current code.");
+            throw new BusinessRuleException("The new code must be different from the current code.");
         var entryCategory = entry.MaterialCategoryId.HasValue
             ? await _db.MaterialCategories.FirstOrDefaultAsync(c => c.Id == entry.MaterialCategoryId.Value, ct)
             : null;
         EnsurePrefix(normalizedCode, entry.Category, entryCategory);
         if (await _db.MaterialMasterEntries.AnyAsync(e => e.Code == normalizedCode && e.Id != id, ct))
-            throw new InvalidOperationException($"Material master entry code \"{normalizedCode}\" already exists.");
+            throw new BusinessRuleException($"Material master entry code \"{normalizedCode}\" already exists.");
 
         var oldCode = entry.Code;
 
@@ -273,7 +273,7 @@ public class MaterialMasterService
 
         var scope = await _scope.GetConfigurableSectionIdsAsync(currentUserId, ct);
         if (scope != null && !scope.Contains(entry.SectionId))
-            throw new InvalidOperationException("Only the owner lab of a material master entry can change it.");
+            throw new BusinessRuleException("Only the owner lab of a material master entry can change it.");
 
         return entry;
     }
@@ -288,18 +288,18 @@ public class MaterialMasterService
         if (r.Category != MaterialMasterCategory.Other)
         {
             if (r.MaterialCategoryId.HasValue)
-                throw new InvalidOperationException("A material category is only allowed for Other materials.");
+                throw new BusinessRuleException("A material category is only allowed for Other materials.");
             return null;
         }
 
         if (!r.MaterialCategoryId.HasValue)
-            throw new InvalidOperationException("Choose the material category for this Other material.");
+            throw new BusinessRuleException("Choose the material category for this Other material.");
         var category = await _db.MaterialCategories.Include(c => c.Sections).FirstOrDefaultAsync(c => c.Id == r.MaterialCategoryId.Value, ct)
-            ?? throw new InvalidOperationException($"Material category {r.MaterialCategoryId.Value} not found.");
+            ?? throw new BusinessRuleException($"Material category {r.MaterialCategoryId.Value} not found.");
         if (!category.IsActive)
-            throw new InvalidOperationException($"Material category \"{category.Name}\" is inactive.");
+            throw new BusinessRuleException($"Material category \"{category.Name}\" is inactive.");
         if (category.Sections.Count > 0 && category.Sections.All(s => s.SectionId != ownerSectionId))
-            throw new InvalidOperationException($"Material category \"{category.Name}\" is not available to the owner lab of this entry.");
+            throw new BusinessRuleException($"Material category \"{category.Name}\" is not available to the owner lab of this entry.");
         return category;
     }
 
@@ -307,7 +307,7 @@ public class MaterialMasterService
     {
         var prefix = materialCategory != null ? PrefixFor(materialCategory) : PrefixFor(category);
         if (!normalizedCode.StartsWith(prefix, StringComparison.Ordinal) || normalizedCode.Length == prefix.Length)
-            throw new InvalidOperationException($"{materialCategory?.Name ?? CategoryLabel(category)} codes must start with \"{prefix}\".");
+            throw new BusinessRuleException($"{materialCategory?.Name ?? CategoryLabel(category)} codes must start with \"{prefix}\".");
     }
 
     private static string CategoryLabel(MaterialMasterCategory category) => category switch
@@ -319,13 +319,13 @@ public class MaterialMasterService
 
     private static void Validate(SaveMaterialMasterEntryRequest r)
     {
-        if (string.IsNullOrWhiteSpace(r.Code)) throw new InvalidOperationException("Code is required.");
-        if (string.IsNullOrWhiteSpace(r.Name)) throw new InvalidOperationException("Name is required.");
+        if (string.IsNullOrWhiteSpace(r.Code)) throw new BusinessRuleException("Code is required.");
+        if (string.IsNullOrWhiteSpace(r.Name)) throw new BusinessRuleException("Name is required.");
         var hasIndicatorFields = r.WorkingConcentration != null || r.Solvent != null || r.TransitionRangeFrom != null
             || r.TransitionRangeTo != null || r.ColourChange != null || r.IndicatorUse != null;
         if (hasIndicatorFields && r.Category != MaterialMasterCategory.Indicator)
-            throw new InvalidOperationException("Indicator fields are only allowed for indicators.");
+            throw new BusinessRuleException("Indicator fields are only allowed for indicators.");
         if (r.TransitionRangeFrom > r.TransitionRangeTo)
-            throw new InvalidOperationException("Transition range 'from' must not be above 'to'.");
+            throw new BusinessRuleException("Transition range 'from' must not be above 'to'.");
     }
 }

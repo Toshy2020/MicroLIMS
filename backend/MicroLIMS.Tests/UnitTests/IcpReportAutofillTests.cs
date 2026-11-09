@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using MicroLIMS.Application.Services;
 using MicroLIMS.Application.Services.InstrumentImport;
 using MicroLIMS.Domain.Entities;
@@ -143,7 +144,7 @@ public class IcpReportAutofillTests
             Solution("blank", "Zn 213.857", "Ca 317.933").Concat(Solution("FP-7777 Top", "Zn 213.857 9.5 mg/L", "Ca 317.933 19 mg/L")).ToArray()));
         var a = await ArrangeAsync(reader, "FP-7777");
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             a.Svc.GetReportValuesAsync(a.RunSampleId, 0, a.F.S.UserId));
         Assert.Equal("That solution is not a sample reading in the report.", ex.Message);
     }
@@ -154,7 +155,7 @@ public class IcpReportAutofillTests
         var reader = new FakeReader(Report());
         var a = await ArrangeAsync(reader, "FP-7777", uploadReport: false);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => a.Svc.GetReportValuesAsync(a.RunSampleId, null, a.F.S.UserId));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => a.Svc.GetReportValuesAsync(a.RunSampleId, null, a.F.S.UserId));
         Assert.Equal("Upload the sample result report first.", ex.Message);
         Assert.Equal(0, reader.Calls);
     }
@@ -163,7 +164,7 @@ public class IcpReportAutofillTests
     public async Task WithoutAReportReader_Throws()
     {
         var a = await ArrangeAsync(null, "FP-7777");
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => a.Svc.GetReportValuesAsync(a.RunSampleId, null, a.F.S.UserId));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => a.Svc.GetReportValuesAsync(a.RunSampleId, null, a.F.S.UserId));
         Assert.Equal("Reading instrument reports is not available.", ex.Message);
     }
 

@@ -34,7 +34,7 @@ public class SectionClosureService
     private async Task CloseTestingCoreAsync(int sampleId, int sectionId, int sectionHeadUserId, string password, string reason, string? ipAddress)
     {
         if (string.IsNullOrWhiteSpace(reason))
-            throw new InvalidOperationException("A reason is required to close testing.");
+            throw new BusinessRuleException("A reason is required to close testing.");
 
         var sample = await _db.Samples.Include(s => s.TestOrders).Include(s => s.SectionSignoffs)
             .FirstOrDefaultAsync(s => s.Id == sampleId)
@@ -44,18 +44,18 @@ public class SectionClosureService
         if (userScope is not null && !userScope.Contains(sectionId))
             throw new UnauthorizedAccessException("This test belongs to a laboratory section you are not assigned to.");
         if (!SampleSectionRollup.SectionIds(sample).Contains(sectionId))
-            throw new InvalidOperationException("This sample has no tests in the selected laboratory section.");
+            throw new BusinessRuleException("This sample has no tests in the selected laboratory section.");
 
         var otherRejected = SampleSectionRollup.SectionIds(sample)
             .Any(id => id != sectionId && SampleSectionRollup.StatusOf(sample, id) == SectionSignoffStatus.Rejected);
         if (!otherRejected)
-            throw new InvalidOperationException("Testing can be closed only after another laboratory rejected the sample.");
+            throw new BusinessRuleException("Testing can be closed only after another laboratory rejected the sample.");
 
         var status = SampleSectionRollup.StatusOf(sample, sectionId);
         if (status == SectionSignoffStatus.Cancelled)
-            throw new InvalidOperationException("This laboratory's testing is already closed.");
+            throw new BusinessRuleException("This laboratory's testing is already closed.");
         if (!SampleSectionRollup.IsOpen(status))
-            throw new InvalidOperationException("This laboratory has no open tests on the sample.");
+            throw new BusinessRuleException("This laboratory has no open tests on the sample.");
 
         SampleSectionRollup.FreezeOpenSections(sample);
 

@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using MicroLIMS.Application.DTOs;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -104,7 +105,7 @@ public class DissolutionMasterDataValidationTests
             EquationType: EquationType.None,
             RequiresSystemSuitability: true, MethodAbbreviation: "DIS", SstMaxRsdPercent: 2.0m);
 
-        var ex1 = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.TestDefinition.CreateTestDefinition(req1));
+        var ex1 = await Assert.ThrowsAsync<BusinessRuleException>(() => controller.TestDefinition.CreateTestDefinition(req1));
         Assert.Contains("Equation type must be Dissolution", ex1.Message);
 
         // Equation Dissolution but Workflow None/Observation -> fails
@@ -116,7 +117,7 @@ public class DissolutionMasterDataValidationTests
             EquationType: EquationType.Dissolution,
             RequiresSystemSuitability: true, MethodAbbreviation: "DIS", SstMaxRsdPercent: 2.0m);
 
-        var ex2 = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.TestDefinition.CreateTestDefinition(req2));
+        var ex2 = await Assert.ThrowsAsync<BusinessRuleException>(() => controller.TestDefinition.CreateTestDefinition(req2));
         Assert.Contains("Workflow type must be Dissolution", ex2.Message);
     }
 
@@ -134,7 +135,7 @@ public class DissolutionMasterDataValidationTests
             EquationType: EquationType.Dissolution,
             RequiresSystemSuitability: false);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.TestDefinition.CreateTestDefinition(req));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => controller.TestDefinition.CreateTestDefinition(req));
         Assert.Contains("must require system suitability", ex.Message);
     }
 
@@ -179,7 +180,7 @@ public class DissolutionMasterDataValidationTests
             RequiresSystemSuitability: true, MethodAbbreviation: "DIS", SstMaxRsdPercent: 2.0m,
             DissolutionS1Offset: -1m);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.TestDefinition.CreateTestDefinition(req));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => controller.TestDefinition.CreateTestDefinition(req));
         Assert.Contains("offsets must be greater than or equal to zero", ex.Message);
     }
 
@@ -217,7 +218,7 @@ public class DissolutionMasterDataValidationTests
             ConfirmatoryMediaCount: null,
             PhenotypicTestType: null);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.TestWorkflowStep.CreateTestWorkflowStep(testDef.Id, stepReq));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => controller.TestWorkflowStep.CreateTestWorkflowStep(testDef.Id, stepReq));
         Assert.Contains("no workflow steps", ex.Message);
     }
 
@@ -249,7 +250,7 @@ public class DissolutionMasterDataValidationTests
             LabelClaim = 20m,
             LabelClaimUnit = "mg"
         };
-        var exNoQ = Assert.Throws<InvalidOperationException>(() => specService.Validate(specNoQ));
+        var exNoQ = Assert.Throws<BusinessRuleException>(() => specService.Validate(specNoQ));
         Assert.Contains("Lower limit (Q) must be between 0 and 100", exNoQ.Message);
 
         // Q > 100
@@ -261,7 +262,7 @@ public class DissolutionMasterDataValidationTests
             LabelClaim = 20m,
             LabelClaimUnit = "mg"
         };
-        var exHighQ = Assert.Throws<InvalidOperationException>(() => specService.Validate(specHighQ));
+        var exHighQ = Assert.Throws<BusinessRuleException>(() => specService.Validate(specHighQ));
         Assert.Contains("Lower limit (Q) must be between 0 and 100", exHighQ.Message);
 
         // Missing LabelClaim
@@ -273,7 +274,7 @@ public class DissolutionMasterDataValidationTests
             LabelClaim = null,
             LabelClaimUnit = "mg"
         };
-        var exNoLc = Assert.Throws<InvalidOperationException>(() => specService.Validate(specNoLc));
+        var exNoLc = Assert.Throws<BusinessRuleException>(() => specService.Validate(specNoLc));
         Assert.Contains("Label claim must be greater than zero", exNoLc.Message);
 
         // Invalid LabelClaimUnit
@@ -285,7 +286,7 @@ public class DissolutionMasterDataValidationTests
             LabelClaim = 20m,
             LabelClaimUnit = "g"
         };
-        var exBadUnit = Assert.Throws<InvalidOperationException>(() => specService.Validate(specBadUnit));
+        var exBadUnit = Assert.Throws<BusinessRuleException>(() => specService.Validate(specBadUnit));
         Assert.Contains("Label claim unit must be \"mg\"", exBadUnit.Message);
 
         // Valid
@@ -332,7 +333,7 @@ public class DissolutionMasterDataValidationTests
             LabelClaimUnit = "mg"
         };
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => specService.ValidateAsync(spec));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => specService.ValidateAsync(spec));
         Assert.Contains("only allowed for Dissolution tests", ex.Message);
     }
 
@@ -383,7 +384,7 @@ public class DissolutionMasterDataValidationTests
             LabelClaimUnit = "mg"
         };
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => specService.ValidateAsync(secondSpec));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => specService.ValidateAsync(secondSpec));
         Assert.Contains("Only one specification is allowed for Dissolution test", ex.Message);
     }
 
@@ -401,7 +402,7 @@ public class DissolutionMasterDataValidationTests
             EquationType: EquationType.None,
             RequiresSystemSuitability: true, MethodAbbreviation: "OBS");
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.TestDefinition.CreateTestDefinition(req));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => controller.TestDefinition.CreateTestDefinition(req));
         Assert.Contains("Only HPLC method assay and dissolution tests can require system suitability.", ex.Message);
     }
 

@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Services;
 using MicroLIMS.Domain.Entities;
@@ -130,7 +131,7 @@ public class SamplePreparationTests
         await db.SaveChangesAsync();
 
         var service = TestServiceFactory.SamplePreparation(db);
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(async () => await service.PrepareAsync(await PreparationTestData.ManualRequestAsync(db, sample.Id, 10m, 20, Password)));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(async () => await service.PrepareAsync(await PreparationTestData.ManualRequestAsync(db, sample.Id, 10m, 20, Password)));
 
         Assert.Contains("Analyst X", ex.Message);
         Assert.Contains("Only the assigned analyst may perform sample preparation", ex.Message);

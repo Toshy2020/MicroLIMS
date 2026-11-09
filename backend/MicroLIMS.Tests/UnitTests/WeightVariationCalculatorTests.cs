@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using MicroLIMS.Application.Helpers;
 using MicroLIMS.Domain.Enums;
 using Xunit;
@@ -368,7 +369,7 @@ public class WeightVariationCalculatorTests
         var unitsEqual = new List<WeightVariationUnitInput>();
         for (int i = 0; i < 19; i++) unitsEqual.Add(Cap(600m, 200m));
         unitsEqual.Add(Cap(200m, 200m));
-        var exEqual = Assert.Throws<InvalidOperationException>(() =>
+        var exEqual = Assert.Throws<BusinessRuleException>(() =>
             WeightVariationEvaluator.Evaluate(DosageForm.HardCapsule, unitsEqual));
         Assert.Contains("Shell weight must be less than gross weight", exEqual.Message);
 
@@ -376,7 +377,7 @@ public class WeightVariationCalculatorTests
         var unitsZeroShell = new List<WeightVariationUnitInput>();
         for (int i = 0; i < 19; i++) unitsZeroShell.Add(Cap(600m, 200m));
         unitsZeroShell.Add(Cap(600m, 0m));
-        var exZero = Assert.Throws<InvalidOperationException>(() =>
+        var exZero = Assert.Throws<BusinessRuleException>(() =>
             WeightVariationEvaluator.Evaluate(DosageForm.HardCapsule, unitsZeroShell));
         Assert.Contains("Shell weight must be greater than zero", exZero.Message);
 
@@ -384,7 +385,7 @@ public class WeightVariationCalculatorTests
         var unitsZeroTab = new List<WeightVariationUnitInput>();
         for (int i = 0; i < 19; i++) unitsZeroTab.Add(Tab(500m));
         unitsZeroTab.Add(Tab(0m));
-        var exZeroTab = Assert.Throws<InvalidOperationException>(() =>
+        var exZeroTab = Assert.Throws<BusinessRuleException>(() =>
             WeightVariationEvaluator.Evaluate(DosageForm.Tablet, unitsZeroTab));
         Assert.Contains("Tablet unit weight must be greater than zero", exZeroTab.Message);
 
@@ -392,7 +393,7 @@ public class WeightVariationCalculatorTests
         var unitsTabGross = new List<WeightVariationUnitInput>();
         for (int i = 0; i < 19; i++) unitsTabGross.Add(Tab(500m));
         unitsTabGross.Add(new WeightVariationUnitInput(WeightMg: 500m, GrossMg: 600m));
-        var exTabGross = Assert.Throws<InvalidOperationException>(() =>
+        var exTabGross = Assert.Throws<BusinessRuleException>(() =>
             WeightVariationEvaluator.Evaluate(DosageForm.Tablet, unitsTabGross));
         Assert.Contains("Tablet units must only contain WeightMg", exTabGross.Message);
 
@@ -400,7 +401,7 @@ public class WeightVariationCalculatorTests
         var unitsCapWeight = new List<WeightVariationUnitInput>();
         for (int i = 0; i < 19; i++) unitsCapWeight.Add(Cap(600m, 200m));
         unitsCapWeight.Add(new WeightVariationUnitInput(WeightMg: 400m, GrossMg: 600m, ShellMg: 200m));
-        var exCapWeight = Assert.Throws<InvalidOperationException>(() =>
+        var exCapWeight = Assert.Throws<BusinessRuleException>(() =>
             WeightVariationEvaluator.Evaluate(DosageForm.HardCapsule, unitsCapWeight));
         Assert.Contains("Capsule units must only contain GrossMg and ShellMg", exCapWeight.Message);
     }
@@ -414,7 +415,7 @@ public class WeightVariationCalculatorTests
     public void WrongUnitCounts_Rejected(int count)
     {
         var units = Enumerable.Range(0, count).Select(_ => Cap(600m, 200m)).ToList();
-        var ex = Assert.Throws<InvalidOperationException>(() =>
+        var ex = Assert.Throws<BusinessRuleException>(() =>
             WeightVariationEvaluator.Evaluate(DosageForm.HardCapsule, units));
         Assert.Contains("requires 20 (Stage 1) or 60 (Stage 2) units", ex.Message);
     }
@@ -423,7 +424,7 @@ public class WeightVariationCalculatorTests
     public void Tablet_Stage2Count_Rejected()
     {
         var units = Enumerable.Range(0, 60).Select(_ => Tab(500m)).ToList();
-        var ex = Assert.Throws<InvalidOperationException>(() =>
+        var ex = Assert.Throws<BusinessRuleException>(() =>
             WeightVariationEvaluator.Evaluate(DosageForm.Tablet, units));
         Assert.Contains("Tablets do not support Stage 2 evaluation", ex.Message);
     }
@@ -434,23 +435,23 @@ public class WeightVariationCalculatorTests
         var units = Enumerable.Range(0, 20).Select(_ => Tab(500m)).ToList();
 
         // UnitCount < 1
-        Assert.Throws<InvalidOperationException>(() =>
+        Assert.Throws<BusinessRuleException>(() =>
             WeightVariationEvaluator.Evaluate(DosageForm.Tablet, units, new WeightVariationConfig(UnitCount: 0)));
 
         // TabletBand1MaxMg >= TabletBand2MaxMg
-        Assert.Throws<InvalidOperationException>(() =>
+        Assert.Throws<BusinessRuleException>(() =>
             WeightVariationEvaluator.Evaluate(DosageForm.Tablet, units, new WeightVariationConfig(TabletBand1MaxMg: 350m, TabletBand2MaxMg: 324m)));
 
         // CapsuleInnerPercent >= CapsuleOuterPercent
-        Assert.Throws<InvalidOperationException>(() =>
+        Assert.Throws<BusinessRuleException>(() =>
             WeightVariationEvaluator.Evaluate(DosageForm.Tablet, units, new WeightVariationConfig(CapsuleInnerPercent: 25m, CapsuleOuterPercent: 25m)));
 
         // CapsuleS1MaxOutside >= CapsuleS1MaxForRetest
-        Assert.Throws<InvalidOperationException>(() =>
+        Assert.Throws<BusinessRuleException>(() =>
             WeightVariationEvaluator.Evaluate(DosageForm.Tablet, units, new WeightVariationConfig(CapsuleS1MaxOutside: 6, CapsuleS1MaxForRetest: 6)));
 
         // CapsuleS2MaxOutside >= total units (60)
-        Assert.Throws<InvalidOperationException>(() =>
+        Assert.Throws<BusinessRuleException>(() =>
             WeightVariationEvaluator.Evaluate(DosageForm.Tablet, units, new WeightVariationConfig(CapsuleS2MaxOutside: 60)));
     }
 }

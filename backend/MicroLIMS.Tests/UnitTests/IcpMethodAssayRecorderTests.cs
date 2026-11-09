@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Services;
@@ -108,7 +109,7 @@ public class IcpMethodAssayRecorderTests
         f.S.Db.IcpCalibrations.Single().ConfirmedAt = SepFirst.UtcDateTime.AddDays(-30);
         await f.S.Db.SaveChangesAsync();
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => SubmitAsync(f, rsId));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => SubmitAsync(f, rsId));
 
         Assert.StartsWith("Calibration expired at", ex.Message);
         Assert.Empty(f.S.Db.TestAnalyses);
@@ -118,7 +119,7 @@ public class IcpMethodAssayRecorderTests
     public async Task Submit_WithoutSampleReport_Throws()
     {
         var (f, _, rsId) = await EnteredAsync(report: false);
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => SubmitAsync(f, rsId));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => SubmitAsync(f, rsId));
         Assert.Equal("Upload the sample result report before sending for review.", ex.Message);
     }
 
@@ -127,7 +128,7 @@ public class IcpMethodAssayRecorderTests
     {
         var (f, run, rsId) = await AssignedAsync();
         await UploadReportAsync(f, run.Id, rsId);
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => SubmitAsync(f, rsId));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => SubmitAsync(f, rsId));
         Assert.Equal("Enter the actual weight of the sample.", ex.Message);
     }
 
@@ -143,7 +144,7 @@ public class IcpMethodAssayRecorderTests
         await SaveAsync(f, rsId, 0.5m, (f.ZnId, 10m));
         await UploadReportAsync(f, run.Id, rsId);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => SubmitAsync(f, rsId));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => SubmitAsync(f, rsId));
 
         Assert.StartsWith("Zn is not valid on this run: Failed calibration", ex.Message);
         Assert.Empty(s.Db.TestAnalyses);
@@ -166,7 +167,7 @@ public class IcpMethodAssayRecorderTests
     {
         var (f, _, rsId) = await EnteredAsync();
         await SubmitAsync(f, rsId);
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => SubmitAsync(f, rsId));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => SubmitAsync(f, rsId));
         Assert.Equal("The result has already been sent for review.", ex.Message);
     }
 

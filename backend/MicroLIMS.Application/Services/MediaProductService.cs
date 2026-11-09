@@ -135,7 +135,7 @@ public class MediaProductService
         int id, string newCode, string reason, string password, int userId, string? ipAddress)
     {
         if (string.IsNullOrWhiteSpace(reason))
-            throw new InvalidOperationException("A reason for the code change is required.");
+            throw new BusinessRuleException("A reason for the code change is required.");
         var trimmedReason = reason.Trim();
 
         var trimmedCode = ValidateCode(newCode);
@@ -144,7 +144,7 @@ public class MediaProductService
             ?? throw new NotFoundException($"Media product with ID {id} not found.");
 
         if (string.Equals(product.Code, trimmedCode, StringComparison.Ordinal))
-            throw new InvalidOperationException("The new code must be different from the current code.");
+            throw new BusinessRuleException("The new code must be different from the current code.");
 
         await EnsureUniqueCodeAsync(trimmedCode, id);
 
@@ -189,7 +189,7 @@ public class MediaProductService
 
         if (configCount > 0 || batchCount > 0)
         {
-            throw new InvalidOperationException(
+            throw new BusinessRuleException(
                 $"Cannot delete media product '{product.Name}' because it is referenced by {configCount} media configuration(s) and {batchCount} material batch(es).");
         }
 
@@ -199,7 +199,7 @@ public class MediaProductService
 
         if (stepMediaCount > 0)
         {
-            throw new InvalidOperationException(
+            throw new BusinessRuleException(
                 $"Cannot delete media product '{product.Name}' because it is used by {stepMediaCount} Test Master step medium/media.");
         }
 
@@ -207,7 +207,7 @@ public class MediaProductService
             .CountAsync(c => c.DiluentMediaProductId == id || c.NeutralizerMediaProductId == id);
         if (preparationCount > 0)
         {
-            throw new InvalidOperationException(
+            throw new BusinessRuleException(
                 $"Cannot delete media product '{product.Name}' because it is the diluent or neutralizer of {preparationCount} Item preparation configuration(s).");
         }
 
@@ -223,20 +223,20 @@ public class MediaProductService
     private static string ValidateName(string name)
     {
         if (string.IsNullOrWhiteSpace(name))
-            throw new InvalidOperationException("Media product name is required.");
+            throw new BusinessRuleException("Media product name is required.");
         var trimmed = name.Trim();
         if (trimmed.Length > 200)
-            throw new InvalidOperationException("Media product name cannot exceed 200 characters.");
+            throw new BusinessRuleException("Media product name cannot exceed 200 characters.");
         return trimmed;
     }
 
     private static string ValidateCode(string code)
     {
         if (string.IsNullOrWhiteSpace(code))
-            throw new InvalidOperationException("Media product code is required.");
+            throw new BusinessRuleException("Media product code is required.");
         var trimmed = code.Trim();
         if (!CodeRegex.IsMatch(trimmed))
-            throw new InvalidOperationException(
+            throw new BusinessRuleException(
                 "Media product code must be 2-10 characters, start with an alphanumeric character, and contain only letters, digits, '.', or '-'.");
         return trimmed;
     }
@@ -248,7 +248,7 @@ public class MediaProductService
             .FirstOrDefaultAsync(p => (excludeId == null || p.Id != excludeId.Value) && p.Name.ToLower() == lower);
 
         if (clashing != null)
-            throw new InvalidOperationException($"A media product named '{clashing.Name}' already exists.");
+            throw new BusinessRuleException($"A media product named '{clashing.Name}' already exists.");
     }
 
     private async Task EnsureUniqueCodeAsync(string trimmedCode, int? excludeId = null)
@@ -258,6 +258,6 @@ public class MediaProductService
             .FirstOrDefaultAsync(p => (excludeId == null || p.Id != excludeId.Value) && p.Code.ToLower() == lower);
 
         if (clashing != null)
-            throw new InvalidOperationException($"A media product with code '{clashing.Code}' already exists ('{clashing.Name}').");
+            throw new BusinessRuleException($"A media product with code '{clashing.Code}' already exists ('{clashing.Name}').");
     }
 }

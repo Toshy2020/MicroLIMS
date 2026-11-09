@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using MicroLIMS.Application.Helpers;
 using System.Security.Cryptography;
 using System.Text;
@@ -130,7 +131,7 @@ public class DocumentFileService : IDocumentFileService
         // Rule DC-URS-024, DC-URS-025: Files can only be uploaded/replaced in Draft state
         if (revision.RevisionStatus != DocumentRevisionStatus.Draft)
         {
-            throw new InvalidOperationException($"Files can only be added or replaced on revisions in Draft state. Current status is {revision.RevisionStatus}.");
+            throw new BusinessRuleException($"Files can only be added or replaced on revisions in Draft state. Current status is {revision.RevisionStatus}.");
         }
 
         var sha256 = Convert.ToHexString(SHA256.HashData(content));
@@ -332,7 +333,7 @@ public class DocumentFileService : IDocumentFileService
                 string.Equals(downloadSetting.SettingValue, "false", StringComparison.OrdinalIgnoreCase) &&
                 !isPrivileged)
             {
-                throw new InvalidOperationException("Controlled copy download is currently disabled by administrative policy.");
+                throw new BusinessRuleException("Controlled copy download is currently disabled by administrative policy.");
             }
         }
 
@@ -366,7 +367,7 @@ public class DocumentFileService : IDocumentFileService
         }
         catch (Exception ex)
         {
-            throw new InvalidOperationException($"The document file could not be read from storage: {ex.Message}");
+            throw new BusinessRuleException($"The document file could not be read from storage: {ex.Message}");
         }
 
         // SHA-256 Cryptographic Integrity Verification (DC-URS-198, DC-URS-199, DC-URS-200)
@@ -389,7 +390,7 @@ public class DocumentFileService : IDocumentFileService
                 },
                 entityId: file.Id.ToString());
 
-            throw new InvalidOperationException("Document integrity check failed. The file may have been altered or corrupted. Delivery has been blocked.");
+            throw new BusinessRuleException("Document integrity check failed. The file may have been altered or corrupted. Delivery has been blocked.");
         }
 
         // Log successful access

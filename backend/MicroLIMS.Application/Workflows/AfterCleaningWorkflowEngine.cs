@@ -53,13 +53,13 @@ public class AfterCleaningWorkflowEngine : IAfterCleaningWorkflowEngine
     public async Task<Sample> ReceiveAsync(AfterCleaningReceiveRequest request)
     {
         var machine = await _db.Machines.FirstOrDefaultAsync(m => m.Id == request.MachineId)
-            ?? throw new InvalidOperationException($"Machine {request.MachineId} not found.");
+            ?? throw new BusinessRuleException($"Machine {request.MachineId} not found.");
         if (!machine.IsActive)
-            throw new InvalidOperationException($"Machine '{machine.Name}' is inactive and cannot receive samples.");
+            throw new BusinessRuleException($"Machine '{machine.Name}' is inactive and cannot receive samples.");
 
         if (string.IsNullOrWhiteSpace(request.PreviousProductBatchNumber))
         {
-            throw new InvalidOperationException("Previous Product Batch Number is required for After Cleaning receiving.");
+            throw new BusinessRuleException("Previous Product Batch Number is required for After Cleaning receiving.");
         }
 
         int? labSectionId;
@@ -106,11 +106,11 @@ public class AfterCleaningWorkflowEngine : IAfterCleaningWorkflowEngine
         if (request.PreviousProductItemId.HasValue)
         {
             var item = await _db.Items.FirstOrDefaultAsync(i => i.Id == request.PreviousProductItemId.Value)
-                ?? throw new InvalidOperationException($"Item {request.PreviousProductItemId.Value} not found.");
+                ?? throw new BusinessRuleException($"Item {request.PreviousProductItemId.Value} not found.");
             if (!item.IsActive)
-                throw new InvalidOperationException($"Item '{item.Name}' is inactive and cannot be selected.");
+                throw new BusinessRuleException($"Item '{item.Name}' is inactive and cannot be selected.");
             if (item.Category != SampleCategory.FinishedProduct)
-                throw new InvalidOperationException($"Item '{item.Name}' is not a Finished Product.");
+                throw new BusinessRuleException($"Item '{item.Name}' is not a Finished Product.");
 
             previousProductItemId = item.Id;
             previousProductName = item.Name;
@@ -120,11 +120,11 @@ public class AfterCleaningWorkflowEngine : IAfterCleaningWorkflowEngine
         {
             if (!request.PreviousProductItemId.HasValue)
             {
-                throw new InvalidOperationException("Previous product item is required for Physicochemical after-cleaning receiving.");
+                throw new BusinessRuleException("Previous product item is required for Physicochemical after-cleaning receiving.");
             }
             if (request.Techniques == null || !request.Techniques.Any(t => !string.IsNullOrWhiteSpace(t)))
             {
-                throw new InvalidOperationException("At least one cleaning technique is required.");
+                throw new BusinessRuleException("At least one cleaning technique is required.");
             }
             cleaningTechniques = CleaningTechniques.Normalize(request.Techniques);
         }
@@ -135,7 +135,7 @@ public class AfterCleaningWorkflowEngine : IAfterCleaningWorkflowEngine
             {
                 if (string.IsNullOrWhiteSpace(request.PreviousProductName))
                 {
-                    throw new InvalidOperationException("Previous Product is required for After Cleaning receiving.");
+                    throw new BusinessRuleException("Previous Product is required for After Cleaning receiving.");
                 }
                 previousProductName = request.PreviousProductName.Trim();
             }
@@ -163,7 +163,7 @@ public class AfterCleaningWorkflowEngine : IAfterCleaningWorkflowEngine
         };
 
         if (sample.SampledAt > sample.ReceivedAt)
-            throw new InvalidOperationException("The sampling time cannot be after the time of receipt.");
+            throw new BusinessRuleException("The sampling time cannot be after the time of receipt.");
 
         _db.Samples.Add(sample);
 
@@ -175,7 +175,7 @@ public class AfterCleaningWorkflowEngine : IAfterCleaningWorkflowEngine
         {
             sample.ReferenceNumber = await _refNumbers.GenerateAsync(SampleCategory.AfterCleaning);
             if (!await _db.TrySaveChangesAsync(UniqueIndexNames.SampleReferenceNumber))
-                throw new InvalidOperationException(
+                throw new BusinessRuleException(
                     $"Reference number {sample.ReferenceNumber} was taken by another receipt at the same moment. Nothing was saved - receive the sample again.");
         }
 
@@ -197,10 +197,10 @@ public class AfterCleaningWorkflowEngine : IAfterCleaningWorkflowEngine
             ?? throw new NotFoundException($"Sample {sampleId} not found.");
 
         if (sample.PreparationStatus != SamplePreparationStatus.NeedsPreparation)
-            throw new InvalidOperationException("This sample has already been prepared.");
+            throw new BusinessRuleException("This sample has already been prepared.");
 
         if (machinePartConfigurationIds.Count == 0)
-            throw new InvalidOperationException("At least one machine part must be selected.");
+            throw new BusinessRuleException("At least one machine part must be selected.");
 
         var configs = await _db.MachinePartConfigurations
             .Include(c => c.MachinePart)
@@ -209,16 +209,16 @@ public class AfterCleaningWorkflowEngine : IAfterCleaningWorkflowEngine
 
         var missing = machinePartConfigurationIds.Except(configs.Select(c => c.Id)).ToList();
         if (missing.Count > 0)
-            throw new InvalidOperationException($"Machine part configuration(s) not found: {string.Join(", ", missing)}.");
+            throw new BusinessRuleException($"Machine part configuration(s) not found: {string.Join(", ", missing)}.");
 
         var inactive = configs.Where(c => !c.IsActive || c.MachinePart?.IsActive == false).ToList();
         if (inactive.Count > 0)
-            throw new InvalidOperationException(
+            throw new BusinessRuleException(
                 $"Part(s) {string.Join(", ", inactive.Select(c => c.MachinePart?.Name))} are inactive and cannot be prepared.");
 
         var wrongMachine = configs.Where(c => c.MachinePart?.MachineId != sample.MachineId).ToList();
         if (wrongMachine.Count > 0)
-            throw new InvalidOperationException(
+            throw new BusinessRuleException(
                 $"Part(s) {string.Join(", ", wrongMachine.Select(c => c.MachinePart?.Name))} do not belong to this sample's machine.");
 
         var microSection = await _db.DocumentSections
@@ -244,7 +244,7 @@ public class AfterCleaningWorkflowEngine : IAfterCleaningWorkflowEngine
         {
             if (!allowedCodes.Contains(config.TestCode))
             {
-                throw new InvalidOperationException($"Part test {config.TestCode} belongs to another laboratory.");
+                throw new BusinessRuleException($"Part test {config.TestCode} belongs to another laboratory.");
             }
         }
 
@@ -263,7 +263,7 @@ public class AfterCleaningWorkflowEngine : IAfterCleaningWorkflowEngine
                     var technique = CleaningTechniques.Of(testDef.WorkflowType);
                     if (!chosenTechniques.Contains(technique))
                     {
-                        throw new InvalidOperationException($"Part test {config.TestCode} is {technique}, which was not chosen at receipt.");
+                        throw new BusinessRuleException($"Part test {config.TestCode} is {technique}, which was not chosen at receipt.");
                     }
 
                     if (testDef.WorkflowType == WorkflowType.HplcMethodAssay)
@@ -274,7 +274,7 @@ public class AfterCleaningWorkflowEngine : IAfterCleaningWorkflowEngine
                             var productName = sample.PreviousProductItem?.Name
                                 ?? (await _db.Items.Where(i => i.Id == sample.PreviousProductItemId).Select(i => i.Name).FirstOrDefaultAsync())
                                 ?? "the previous product";
-                            throw new InvalidOperationException($"No cleaning HPLC method for {productName} on test {testDef.Code}.");
+                            throw new BusinessRuleException($"No cleaning HPLC method for {productName} on test {testDef.Code}.");
                         }
                     }
                 }
@@ -338,7 +338,7 @@ public class AfterCleaningWorkflowEngine : IAfterCleaningWorkflowEngine
         if (monitoringOccurrenceIds is { Count: > 0 })
         {
             if (_monitoring is null)
-                throw new InvalidOperationException("Monitoring plan linking is not available.");
+                throw new BusinessRuleException("Monitoring plan linking is not available.");
             await _monitoring.LinkAsync(sample, monitoringOccurrenceIds, userId);
         }
 
@@ -351,7 +351,7 @@ public class AfterCleaningWorkflowEngine : IAfterCleaningWorkflowEngine
     {
         var order = await WorkflowStateMachine.LoadOrThrowAsync(_db, testOrderId);
         var errors = await ValidateAsync(testOrderId);
-        if (errors.Count > 0) throw new InvalidOperationException(string.Join(" ", errors));
+        if (errors.Count > 0) throw new BusinessRuleException(string.Join(" ", errors));
 
         var next = order.CurrentStep switch
         {

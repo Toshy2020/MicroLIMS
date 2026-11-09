@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Services;
 using MicroLIMS.Domain.Entities;
@@ -113,7 +114,7 @@ public class IcpRunSampleTests
         var f = await SeedFixtureAsync(s);
         var order = await AddOrderAsync(f);
         var run = await StartAsync(s);
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => s.Service.AssignSamplesAsync(run.Id, new AssignIcpSamplesRequest(new List<int> { order.Id }, Password, null), s.UserId, null));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => s.Service.AssignSamplesAsync(run.Id, new AssignIcpSamplesRequest(new List<int> { order.Id }, Password, null), s.UserId, null));
         Assert.Equal("Confirm the calibration before assigning samples.", ex.Message);
     }
 
@@ -169,7 +170,7 @@ public class IcpRunSampleTests
         await s.Db.SaveChangesAsync();
         var run = await ConfirmedRunAsync(s);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => s.Service.AssignSamplesAsync(run.Id, new AssignIcpSamplesRequest(new List<int> { order.Id }, Password, null), s.UserId, null));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => s.Service.AssignSamplesAsync(run.Id, new AssignIcpSamplesRequest(new List<int> { order.Id }, Password, null), s.UserId, null));
         Assert.Equal($"Test order {order.Id} is not eligible for this run.", ex.Message);
     }
 
@@ -193,7 +194,7 @@ public class IcpRunSampleTests
     public async Task Remove_RequiresReason_AndAllowsReassigning()
     {
         var (f, run, rsId) = await AssignedAsync();
-        await Assert.ThrowsAsync<InvalidOperationException>(() => f.S.Service.RemoveSampleAsync(run.Id, rsId, " ", f.S.UserId));
+        await Assert.ThrowsAsync<BusinessRuleException>(() => f.S.Service.RemoveSampleAsync(run.Id, rsId, " ", f.S.UserId));
 
         var after = await f.S.Service.RemoveSampleAsync(run.Id, rsId, "Wrong sample", f.S.UserId);
 
@@ -206,7 +207,7 @@ public class IcpRunSampleTests
     public async Task CompleteRun_WithUnsubmittedSample_Throws_ThenRemovedCompletes()
     {
         var (f, run, rsId) = await AssignedAsync();
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => f.S.Service.CompleteRunAsync(run.Id, f.S.UserId));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => f.S.Service.CompleteRunAsync(run.Id, f.S.UserId));
         Assert.Equal("1 assigned sample(s) have not been sent for review. Submit or remove them first.", ex.Message);
 
         await f.S.Service.RemoveSampleAsync(run.Id, rsId, "Not tested", f.S.UserId);
@@ -218,7 +219,7 @@ public class IcpRunSampleTests
     public async Task SaveEntry_AssayWithoutWeight_Throws()
     {
         var (f, _, rsId) = await AssignedAsync();
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => SaveAsync(f, rsId, null, (f.ZnId, 10m)));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => SaveAsync(f, rsId, null, (f.ZnId, 10m)));
         Assert.Equal("Enter the actual weight of the sample (g).", ex.Message);
     }
 
@@ -226,7 +227,7 @@ public class IcpRunSampleTests
     public async Task SaveEntry_MissingElementResult_Throws()
     {
         var (f, _, rsId) = await AssignedAsync(withCalcium: true);
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => SaveAsync(f, rsId, 0.5m, (f.ZnId, 10m)));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => SaveAsync(f, rsId, 0.5m, (f.ZnId, 10m)));
         Assert.Equal("Exactly one result for Ca is required.", ex.Message);
     }
 
@@ -234,7 +235,7 @@ public class IcpRunSampleTests
     public async Task SaveEntry_ElementNotNeededByTheTest_Throws()
     {
         var (f, _, rsId) = await AssignedAsync(); // only Zn has a specification
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => SaveAsync(f, rsId, 0.5m, (f.ZnId, 10m), (f.CaId, 10m)));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => SaveAsync(f, rsId, 0.5m, (f.ZnId, 10m), (f.CaId, 10m)));
         Assert.Equal("A result belongs to an element that is not needed by this test.", ex.Message);
     }
 
@@ -242,7 +243,7 @@ public class IcpRunSampleTests
     public async Task SaveEntry_NegativeResult_Throws()
     {
         var (f, _, rsId) = await AssignedAsync();
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => SaveAsync(f, rsId, 0.5m, (f.ZnId, -1m)));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => SaveAsync(f, rsId, 0.5m, (f.ZnId, -1m)));
         Assert.Equal("A result cannot be negative.", ex.Message);
     }
 
@@ -250,7 +251,7 @@ public class IcpRunSampleTests
     public async Task SaveEntry_ImpurityWithWeight_Throws()
     {
         var (f, _, rsId) = await AssignedAsync(IcpTestMode.Impurity);
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => SaveAsync(f, rsId, 0.5m, (f.ZnId, 1m)));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => SaveAsync(f, rsId, 0.5m, (f.ZnId, 1m)));
         Assert.Equal("The actual weight is only used for assay tests.", ex.Message);
     }
 
@@ -261,7 +262,7 @@ public class IcpRunSampleTests
         f.S.Db.IcpCalibrations.Single().ConfirmedAt = SepFirst.UtcDateTime.AddDays(-30);
         await f.S.Db.SaveChangesAsync();
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => SaveAsync(f, rsId, 0.5m, (f.ZnId, 10m)));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => SaveAsync(f, rsId, 0.5m, (f.ZnId, 10m)));
         Assert.StartsWith("Calibration expired at", ex.Message);
     }
 
@@ -395,7 +396,7 @@ public class IcpRunSampleTests
         await IcpMethodAssayRecorderTests.UploadReportAsync(f, run.Id, rsId);
         await IcpMethodAssayRecorderTests.SubmitAsync(f, rsId);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => f.S.Service.RemoveSampleAsync(run.Id, rsId, "oops", f.S.UserId));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => f.S.Service.RemoveSampleAsync(run.Id, rsId, "oops", f.S.UserId));
         Assert.Equal("A result has already been sent for review for this sample.", ex.Message);
     }
 

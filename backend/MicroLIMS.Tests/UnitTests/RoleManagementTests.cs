@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -75,7 +76,7 @@ public class RoleManagementTests
         var db = CreateDbContext();
         var service = CreateService(db);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => service.CreateAsync("  ", null, RoleType.Analyst, "Test reason"));
+        await Assert.ThrowsAsync<BusinessRuleException>(() => service.CreateAsync("  ", null, RoleType.Analyst, "Test reason"));
     }
 
     [Fact]
@@ -138,7 +139,7 @@ public class RoleManagementTests
         var db = CreateDbContext();
         var service = CreateService(db);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.DeleteAsync(2, "Test reason", 1, "pw")); // Section Head
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => service.DeleteAsync(2, "Test reason", 1, "pw")); // Section Head
         Assert.Contains("system role", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -151,7 +152,7 @@ public class RoleManagementTests
         db.Users.Add(new User { FullName = "Holder", Username = "holder1", RoleId = created.Id });
         await db.SaveChangesAsync();
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.DeleteAsync(created.Id, "Test reason", 1, "pw"));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => service.DeleteAsync(created.Id, "Test reason", 1, "pw"));
         Assert.Contains("assigned to", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -195,7 +196,7 @@ public class RoleManagementTests
         var service = CreateService(db);
         var created = await service.CreateAsync("Custom Role", null, RoleType.Analyst, "Test reason");
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             service.UpdatePermissionsAsync(created.Id, new List<string> { "NotARealCode" }, actingUserId: 1, "Test reason", "pw"));
         Assert.Contains("Unknown permission code", ex.Message);
     }
@@ -329,9 +330,9 @@ public class RoleManagementTests
         var service = CreateService(db);
         var actor = await AddActingUserAsync(db, roleId: 3);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        await Assert.ThrowsAsync<BusinessRuleException>(() =>
             service.UpdatePermissionsAsync(1, AllCodesExcept(PermissionConstants.RolesManage), actor.Id, "Test reason", "pw"));
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        await Assert.ThrowsAsync<BusinessRuleException>(() =>
             service.UpdatePermissionsAsync(4, new List<string> { "No.Such.Code" }, actor.Id, "Test reason", "pw"));
 
         Assert.Equal(1, await PermissionVersionOf(db, 1));
@@ -405,7 +406,7 @@ public class RoleManagementTests
         var actor = await AddActingUserAsync(db);
         var auditCountBefore = await db.AuditLogs.CountAsync(a => a.Action == "ROLE_PERMISSIONS_UPDATED");
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             service.UpdatePermissionsAsync(1, AllCodesExcept(permissionCode), actor.Id, "Test reason", "pw"));
 
         Assert.Contains(permissionCode, ex.Message);
@@ -437,7 +438,7 @@ public class RoleManagementTests
         var actor = await AddActingUserAsync(db);
         await AddCustomAdministratorAsync(db, isActive: false);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             service.UpdatePermissionsAsync(1, AllCodesExcept(PermissionConstants.UsersManage), actor.Id, "Test reason", "pw"));
 
         Assert.Contains(PermissionConstants.UsersManage, ex.Message);
@@ -466,7 +467,7 @@ public class RoleManagementTests
         var created = await service.CreateAsync("Own Role", null, RoleType.Analyst, "Test reason");
         var actor = await AddActingUserAsync(db, roleId: created.Id);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             service.UpdatePermissionsAsync(created.Id, new List<string> { PermissionConstants.AuditView }, actor.Id, "Test reason", "pw"));
 
         Assert.Equal("You cannot change the permissions of your own role.", ex.Message);
@@ -676,7 +677,7 @@ public class RoleManagementTests
         var service = CreateService(db);
         var created = await service.CreateAsync("QC Trainee", null, RoleType.Analyst, "Test reason");
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             service.UpdatePermissionsAsync(created.Id, new List<string> { PermissionConstants.AuditView, hidden }, actingUserId: 1, "Test reason", "pw"));
         Assert.Contains(hidden, ex.Message);
     }

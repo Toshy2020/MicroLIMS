@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using MicroLIMS.Application.DTOs.DocumentControl;
@@ -378,11 +379,11 @@ public class DocumentControlPeriodicReviewUnitTests
         ), reviewer.Id);
 
         // Act & Assert - Attempting to add note after completion
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        await Assert.ThrowsAsync<BusinessRuleException>(() =>
             service.AddFindingAsync(taskId, new CreatePeriodicReviewFindingRequest(1, "1", "Late note"), reviewer.Id));
 
         // Act & Assert - Attempting to recomplete
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        await Assert.ThrowsAsync<BusinessRuleException>(() =>
             service.CompleteReviewAsync(taskId, new CompletePeriodicReviewRequest(
                 Outcome: PeriodicReviewOutcome.RevisionRequired,
                 ReviewSummary: "Attempting to change outcome"

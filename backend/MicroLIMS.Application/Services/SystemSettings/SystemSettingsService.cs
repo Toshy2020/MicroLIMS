@@ -109,7 +109,7 @@ public class SystemSettingsService : ISystemSettingsService
             _configuration);
 
         if (string.Equals(previousValue, newValue, StringComparison.Ordinal))
-            throw new InvalidOperationException($"'{key}' already has the value {newValue}. Nothing was changed.");
+            throw new BusinessRuleException($"'{key}' already has the value {newValue}. Nothing was changed.");
 
         _db.CurrentUserId = actingUserId;
         _db.CurrentReason = reason;

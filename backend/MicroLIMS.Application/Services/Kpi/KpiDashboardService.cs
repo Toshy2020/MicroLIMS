@@ -95,9 +95,9 @@ public class KpiDashboardService
     private static void ValidateDates(DateOnly from, DateOnly to)
     {
         if (from == default || to == default)
-            throw new InvalidOperationException("A start date and an end date are required.");
+            throw new BusinessRuleException("A start date and an end date are required.");
         if (from > to)
-            throw new InvalidOperationException("The start date must not be after the end date.");
+            throw new BusinessRuleException("The start date must not be after the end date.");
     }
 
     private async Task<KpiQuery> BuildQueryAsync(int userId, bool canViewTeam, DateOnly from, DateOnly to,

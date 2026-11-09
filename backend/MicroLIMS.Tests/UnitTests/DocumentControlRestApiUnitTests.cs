@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using System;
 using System.Collections.Generic;
 using System.Security.Claims;
@@ -287,7 +288,7 @@ public class DocumentControlRestApiUnitTests
         );
 
         // The controller no longer maps this itself; ExceptionMiddleware turns it into a 400.
-        await Assert.ThrowsAsync<InvalidOperationException>(
+        await Assert.ThrowsAsync<BusinessRuleException>(
             () => ackController.SubmitAcknowledgement(assignment1.Id, request));
     }
 

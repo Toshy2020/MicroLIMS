@@ -46,10 +46,10 @@ public class TestStageReplicateMasterDataService
             throw new UnauthorizedAccessException("This test belongs to a laboratory section you are not assigned to.");
 
         if (request.SampleReplicates < 1)
-            throw new InvalidOperationException("Sample replicates must be at least 1.");
+            throw new BusinessRuleException("Sample replicates must be at least 1.");
 
         if (await _db.TestDefinitionStageReplicates.AnyAsync(r => r.TestDefinitionId == id && r.Role == request.Role))
-            throw new InvalidOperationException($"Stage replicate configuration for role {request.Role} already exists for this test definition.");
+            throw new BusinessRuleException($"Stage replicate configuration for role {request.Role} already exists for this test definition.");
 
         var entity = new TestDefinitionStageReplicate
         {
@@ -79,7 +79,7 @@ public class TestStageReplicateMasterDataService
         if (request.SampleReplicates.HasValue)
         {
             if (request.SampleReplicates.Value < 1)
-                throw new InvalidOperationException("Sample replicates must be at least 1.");
+                throw new BusinessRuleException("Sample replicates must be at least 1.");
             replicate.SampleReplicates = request.SampleReplicates.Value;
         }
 

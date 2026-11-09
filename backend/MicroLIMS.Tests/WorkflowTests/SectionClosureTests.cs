@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Services;
 using MicroLIMS.Domain.Entities;
@@ -116,7 +117,7 @@ public class SectionClosureTests
     {
         await using var db = NewDb();
         var w = await SeedAsync(db, fpReady: false);
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             TestServiceFactory.SectionClosure(db).CloseTestingAsync(w.Sample.Id, w.Fp, w.HeadFp, Password, "x", null));
         Assert.Contains("only after another laboratory rejected", ex.Message);
     }
@@ -130,7 +131,7 @@ public class SectionClosureTests
 
         await TestServiceFactory.SectionClosure(db).CloseTestingAsync(w.Sample.Id, w.Fp, w.HeadFp, Password, "Sample rejected by Microbiology Laboratory", null);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             TestServiceFactory.SectionClosure(db).CloseTestingAsync(w.Sample.Id, w.Fp, w.HeadFp, Password, "Sample rejected by Microbiology Laboratory", null));
         Assert.Contains("already closed", ex.Message);
     }
@@ -162,7 +163,7 @@ public class SectionClosureTests
         await approval.DecideAsync(w.Sample.Id, w.HeadFp, Password, ApprovalDecision.Approve, null, null);
         await approval.DecideAsync(w.Sample.Id, w.HeadMicro, Password, ApprovalDecision.Reject, null, null);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             TestServiceFactory.SectionClosure(db).CloseTestingAsync(w.Sample.Id, w.Fp, w.HeadFp, Password, "x", null));
         Assert.Contains("has no open tests", ex.Message);
     }
@@ -174,7 +175,7 @@ public class SectionClosureTests
         var w = await SeedAsync(db, fpReady: false);
         await RejectMicroAsync(db, w);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             TestServiceFactory.SectionClosure(db).CloseTestingAsync(w.Sample.Id, w.Fp, w.HeadFp, Password, "   ", null));
         Assert.Contains("A reason is required", ex.Message);
     }

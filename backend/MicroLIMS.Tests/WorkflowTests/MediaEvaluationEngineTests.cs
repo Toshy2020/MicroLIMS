@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Persistence.Helpers;
 using MicroLIMS.Application.Services;
@@ -184,7 +185,7 @@ public class MediaEvaluationEngineTests
         Assert.Equal(MediaEvaluationStatus.InProgress, afterIncubation!.Status);
 
         // Incubation period hasn't elapsed yet - reading is refused.
-        await Assert.ThrowsAsync<InvalidOperationException>(() => engine.RecordResultAsync(new RecordResultRequest(
+        await Assert.ThrowsAsync<BusinessRuleException>(() => engine.RecordResultAsync(new RecordResultRequest(
             challenge.Id, UserId: 1, OldMediaCount: 100, NewMediaCount: 95,
             ReferenceMediaId: null, ReferenceMediaLabel: "Prior lot TSA/03/26",
             GrowthObserved: null, ObservedDescription: null, ManualConform: null, IsTurbid: null)));
@@ -258,7 +259,7 @@ public class MediaEvaluationEngineTests
         await engine.ThawAndSelectVialAsync(challenge.Id, cryovial.Id, userId: 1);
         await RecordAndFastForwardIncubation(db, engine, challenge.Id);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => engine.RecordResultAsync(new RecordResultRequest(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => engine.RecordResultAsync(new RecordResultRequest(
             challenge.Id, UserId: 1, OldMediaCount: 0, NewMediaCount: 5,
             ReferenceMediaId: null, ReferenceMediaLabel: "Prior lot TSA/03/26",
             GrowthObserved: null, ObservedDescription: null, ManualConform: null, IsTurbid: null)));
@@ -304,7 +305,7 @@ public class MediaEvaluationEngineTests
         await engine.ThawAndSelectVialAsync(challenge.Id, cryovial.Id, userId: 1);
         await RecordAndFastForwardIncubation(db, engine, challenge.Id);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => engine.RecordResultAsync(new RecordResultRequest(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => engine.RecordResultAsync(new RecordResultRequest(
             challenge.Id, UserId: 1, OldMediaCount: 100, NewMediaCount: 95,
             ReferenceMediaId: null, ReferenceMediaLabel: null,
             GrowthObserved: null, ObservedDescription: null, ManualConform: null, IsTurbid: null)));
@@ -327,7 +328,7 @@ public class MediaEvaluationEngineTests
         await engine.ThawAndSelectVialAsync(challenge.Id, cryovial.Id, userId: 1);
         await RecordAndFastForwardIncubation(db, engine, challenge.Id);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => engine.RecordResultAsync(new RecordResultRequest(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => engine.RecordResultAsync(new RecordResultRequest(
             challenge.Id, UserId: 1, OldMediaCount: 100, NewMediaCount: 95,
             ReferenceMediaId: priorMedia.Id, ReferenceMediaLabel: "Prior lot TSA/03/26",
             GrowthObserved: null, ObservedDescription: null, ManualConform: null, IsTurbid: null)));
@@ -344,7 +345,7 @@ public class MediaEvaluationEngineTests
         var challenge = evaluation.Challenges[0];
 
         var engine = new MediaEvaluationEngine(db, new MaterialService(db, new UserSectionScopeService(db), new DatabaseSequenceHelper(db)), new UserSectionScopeService(db));
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => engine.RecordResultAsync(new RecordResultRequest(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => engine.RecordResultAsync(new RecordResultRequest(
             challenge.Id, UserId: 1, OldMediaCount: 100, NewMediaCount: 95,
             ReferenceMediaId: null, ReferenceMediaLabel: "Prior lot TSA/03/26",
             GrowthObserved: null, ObservedDescription: null, ManualConform: null, IsTurbid: null)));
@@ -364,7 +365,7 @@ public class MediaEvaluationEngineTests
         // Incubation just started - incubation duration (24h) has not elapsed.
         await engine.RecordIncubationAsync(challenge.Id, incubatorEquipmentId: 1, userId: 1);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => engine.RecordResultAsync(new RecordResultRequest(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => engine.RecordResultAsync(new RecordResultRequest(
             challenge.Id, UserId: 1, OldMediaCount: 100, NewMediaCount: 95,
             ReferenceMediaId: null, ReferenceMediaLabel: "Prior lot TSA/03/26",
             GrowthObserved: null, ObservedDescription: null, ManualConform: null, IsTurbid: null)));
@@ -488,7 +489,7 @@ public class MediaEvaluationEngineTests
         var cryovial = await SeedApprovedCryovial(db, "Staphylococcus aureus");
 
         var engine = new MediaEvaluationEngine(db, new MaterialService(db, new UserSectionScopeService(db), new DatabaseSequenceHelper(db)), new UserSectionScopeService(db));
-        await Assert.ThrowsAsync<InvalidOperationException>(() => engine.ThawAndSelectVialAsync(challenge.Id, cryovial.Id, userId: 1));
+        await Assert.ThrowsAsync<BusinessRuleException>(() => engine.ThawAndSelectVialAsync(challenge.Id, cryovial.Id, userId: 1));
     }
 
     [Fact]
@@ -504,7 +505,7 @@ public class MediaEvaluationEngineTests
         await db.SaveChangesAsync();
 
         var engine = new MediaEvaluationEngine(db, new MaterialService(db, new UserSectionScopeService(db), new DatabaseSequenceHelper(db)), new UserSectionScopeService(db));
-        await Assert.ThrowsAsync<InvalidOperationException>(() => engine.ThawAndSelectVialAsync(challenge.Id, cryovial.Id, userId: 1));
+        await Assert.ThrowsAsync<BusinessRuleException>(() => engine.ThawAndSelectVialAsync(challenge.Id, cryovial.Id, userId: 1));
     }
 
     private static async Task<Material> SeedLyophilizedDiskMaterial(MicroLimsDbContext db, string organismName, DateTime? expiryDate = null, decimal quantityRemaining = 5)
@@ -653,7 +654,7 @@ public class MediaEvaluationEngineTests
             new List<MediaConfigurationChallenge> { new() { OrganismId = ecoliId } });
         var cryovial = await SeedApprovedCryovial(db, "Staphylococcus aureus");
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => NewEngine(db).ThawAndSelectVialAsync(evaluation.Challenges[0].Id, cryovial.Id, userId: 1));
+        await Assert.ThrowsAsync<BusinessRuleException>(() => NewEngine(db).ThawAndSelectVialAsync(evaluation.Challenges[0].Id, cryovial.Id, userId: 1));
 
         Assert.Empty(db.ThawEvents);
         Assert.Equal(5, (await db.Cryovials.AsNoTracking().SingleAsync(c => c.Id == cryovial.Id)).VialsRemaining);
@@ -670,7 +671,7 @@ public class MediaEvaluationEngineTests
         cryovial.VialsRemaining = 0;
         await db.SaveChangesAsync();
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => NewEngine(db).ThawAndSelectVialAsync(evaluation.Challenges[0].Id, cryovial.Id, userId: 1));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => NewEngine(db).ThawAndSelectVialAsync(evaluation.Challenges[0].Id, cryovial.Id, userId: 1));
         Assert.Contains("No vials remaining", ex.Message);
     }
 
@@ -688,7 +689,7 @@ public class MediaEvaluationEngineTests
         var engine = NewEngine(db);
         var thaw = await engine.ThawAndSelectVialAsync(ecoliChallenge.Id, cryovial.Id, userId: 1);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => engine.SelectThawedVialAsync(saureusChallenge.Id, thaw.Id, userId: 1));
+        await Assert.ThrowsAsync<BusinessRuleException>(() => engine.SelectThawedVialAsync(saureusChallenge.Id, thaw.Id, userId: 1));
     }
 
     [Fact]
@@ -704,7 +705,7 @@ public class MediaEvaluationEngineTests
         cryovial.ExpiryDate = DateTime.UtcNow.AddDays(-1);
         await db.SaveChangesAsync();
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => engine.SelectThawedVialAsync(evaluation.Challenges[1].Id, thaw.Id, userId: 1));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => engine.SelectThawedVialAsync(evaluation.Challenges[1].Id, thaw.Id, userId: 1));
         Assert.Contains("expired", ex.Message);
     }
 
@@ -732,7 +733,7 @@ public class MediaEvaluationEngineTests
 
         clock.Now = clock.Now.AddHours(2);
         Assert.Empty(await service.GetThawedVialOptionsAsync(evaluation.Challenges[1].Id));
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => engine.SelectThawedVialAsync(evaluation.Challenges[1].Id, thaw.Id, userId: 1));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => engine.SelectThawedVialAsync(evaluation.Challenges[1].Id, thaw.Id, userId: 1));
         Assert.Contains("due for destruction", ex.Message);
     }
 
@@ -749,7 +750,7 @@ public class MediaEvaluationEngineTests
         await TestServiceFactory.Cryovial(db).DestroyAsync(cryovial.Id);
 
         Assert.Empty(await new MediaEvaluationService(db, engine).GetThawedVialOptionsAsync(evaluation.Challenges[1].Id));
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => engine.SelectThawedVialAsync(evaluation.Challenges[1].Id, thaw.Id, userId: 1));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => engine.SelectThawedVialAsync(evaluation.Challenges[1].Id, thaw.Id, userId: 1));
         Assert.Contains("withdrawn", ex.Message);
     }
 
@@ -828,7 +829,7 @@ public class MediaEvaluationEngineTests
         var disk = await SeedLyophilizedDiskMaterial(db, "Staphylococcus aureus");
 
         var engine = new MediaEvaluationEngine(db, new MaterialService(db, new UserSectionScopeService(db), new DatabaseSequenceHelper(db)), new UserSectionScopeService(db));
-        await Assert.ThrowsAsync<InvalidOperationException>(() => engine.SelectLyophilizedDiskAsync(challenge.Id, disk.Id, userId: 1));
+        await Assert.ThrowsAsync<BusinessRuleException>(() => engine.SelectLyophilizedDiskAsync(challenge.Id, disk.Id, userId: 1));
     }
 
     [Fact]
@@ -842,7 +843,7 @@ public class MediaEvaluationEngineTests
         var disk = await SeedLyophilizedDiskMaterial(db, "E. coli", expiryDate: DateTime.UtcNow.AddDays(-1));
 
         var engine = new MediaEvaluationEngine(db, new MaterialService(db, new UserSectionScopeService(db), new DatabaseSequenceHelper(db)), new UserSectionScopeService(db));
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => engine.SelectLyophilizedDiskAsync(challenge.Id, disk.Id, userId: 1));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => engine.SelectLyophilizedDiskAsync(challenge.Id, disk.Id, userId: 1));
         Assert.Contains("expired", ex.Message);
     }
 
@@ -857,7 +858,7 @@ public class MediaEvaluationEngineTests
         var disk = await SeedLyophilizedDiskMaterial(db, "E. coli", quantityRemaining: 0);
 
         var engine = new MediaEvaluationEngine(db, new MaterialService(db, new UserSectionScopeService(db), new DatabaseSequenceHelper(db)), new UserSectionScopeService(db));
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => engine.SelectLyophilizedDiskAsync(challenge.Id, disk.Id, userId: 1));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => engine.SelectLyophilizedDiskAsync(challenge.Id, disk.Id, userId: 1));
         Assert.Contains("no quantity remaining", ex.Message);
     }
 
@@ -880,6 +881,6 @@ public class MediaEvaluationEngineTests
         await db.SaveChangesAsync();
 
         var engine = new MediaEvaluationEngine(db, new MaterialService(db, new UserSectionScopeService(db), new DatabaseSequenceHelper(db)), new UserSectionScopeService(db));
-        await Assert.ThrowsAsync<InvalidOperationException>(() => engine.SelectLyophilizedDiskAsync(challenge.Id, material.Id, userId: 1));
+        await Assert.ThrowsAsync<BusinessRuleException>(() => engine.SelectLyophilizedDiskAsync(challenge.Id, material.Id, userId: 1));
     }
 }

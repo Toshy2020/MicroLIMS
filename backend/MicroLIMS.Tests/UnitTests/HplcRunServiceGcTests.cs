@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.DTOs.Responses;
@@ -80,7 +81,7 @@ public partial class HplcRunServiceTests
         var hplc = await AddHplcEquipmentAsync(db, g.Section.Id);
         var service = TestServiceFactory.HplcRun(db, clock: clock);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             service.StartRunAsync(new StartHplcRunRequest(hplc.Id, g.Method.Id, g.Column.Id, new()), g.UserId));
         Assert.Equal("\"HPLC HPLC-01\" is not a GC instrument; method RS-01 needs one.", ex.Message);
     }
@@ -96,7 +97,7 @@ public partial class HplcRunServiceTests
         await db.SaveChangesAsync();
         var service = TestServiceFactory.HplcRun(db, clock: clock);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             service.StartRunAsync(StartRequest(s) with { EquipmentId = gc.Id }, s.UserId));
         Assert.Equal("\"GC GC-09\" is not a HPLC instrument; method VIT-C needs one.", ex.Message);
     }

@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Persistence.Helpers;
 using MicroLIMS.Application.Services;
@@ -45,7 +46,7 @@ public class MaterialReceivingMediaProductTests
         var service = new MaterialService(db, new UserSectionScopeService(db), new DatabaseSequenceHelper(db));
         var req = CreateRequest(MaterialType.DehydratedMedia, "TSA", "TSA", mediaProductId: null);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.CreateAsync(req, 1));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => service.CreateAsync(req, 1));
         Assert.Contains("Choose the configured media product for this dehydrated media", ex.Message);
     }
 
@@ -162,7 +163,7 @@ public class MaterialReceivingMediaProductTests
         var updateReq = CreateRequest(
             MaterialType.DehydratedMedia, "TSA 2", "TSA2", mediaProductId: product2.Id);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(
             () => service.UpdateAsync(material.Id, updateReq, 1));
         Assert.Contains("its media product can't be changed", ex.Message);
     }

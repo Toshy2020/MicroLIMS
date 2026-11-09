@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.API.Controllers;
@@ -121,9 +122,9 @@ public class SampleCorrectionTests
 
         // A Finished Product sample needs a known stage: blank or unknown is refused.
         var current = await db.Samples.AsNoTracking().FirstAsync(s => s.Id == sample.Id);
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        await Assert.ThrowsAsync<BusinessRuleException>(() =>
             service.CorrectAsync(sample.Id, AsStored(current) with { ProductionStage = null }, "No stage after all", Password, signer.Id, null));
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        await Assert.ThrowsAsync<BusinessRuleException>(() =>
             service.CorrectAsync(sample.Id, AsStored(current) with { ProductionStage = "Typo" }, "Wrong stage", Password, signer.Id, null));
         Assert.Equal(fp.Id, (await db.Samples.AsNoTracking().FirstAsync(s => s.Id == sample.Id)).ProductionStageId);
     }
@@ -228,7 +229,7 @@ public class SampleCorrectionTests
         sample.Status = status;
         await db.SaveChangesAsync();
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             TestServiceFactory.SampleCorrection(db).CorrectAsync(
                 sample.Id, AsStored(sample) with { BatchNumber = "NEW-BATCH" }, "Late correction", Password, signer.Id, null));
 
@@ -261,11 +262,11 @@ public class SampleCorrectionTests
         var (sample, signer, _) = await SeedProductAsync(db);
         var service = TestServiceFactory.SampleCorrection(db);
 
-        var noReason = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var noReason = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             service.CorrectAsync(sample.Id, AsStored(sample) with { BatchNumber = "NEW-BATCH" }, "   ", Password, signer.Id, null));
         Assert.Equal("A reason for the correction is required.", noReason.Message);
 
-        var noChanges = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var noChanges = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             service.CorrectAsync(sample.Id, AsStored(sample), "Checking", Password, signer.Id, null));
         Assert.Equal("No changes were made.", noChanges.Message);
 
@@ -279,7 +280,7 @@ public class SampleCorrectionTests
         var (sample, signer, _) = await SeedProductAsync(db);
         var retest = await SeedCauseAsync(db, "Retest");
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             TestServiceFactory.SampleCorrection(db).CorrectAsync(
                 sample.Id, AsStored(sample) with { CauseOfTestingId = retest.Id }, "Is a retest", Password, signer.Id, null));
 
@@ -341,7 +342,7 @@ public class SampleCorrectionTests
         db.Incubations.Add(new Incubation { TestOrderId = sample.TestOrders.First().Id, StepName = "CountIncubation" });
         await db.SaveChangesAsync();
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             TestServiceFactory.SampleCorrection(db).CorrectAsync(
                 sample.Id, AsStored(sample) with { ItemId = ibuprofen.Id }, "Wrong product", Password, signer.Id, null));
 
@@ -359,7 +360,7 @@ public class SampleCorrectionTests
         var (sample, signer, _) = await SeedProductAsync(db);
         var rawMaterial = await SeedItemAsync(db, "Lactose", SampleCategory.RawMaterial, "TAMC");
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             TestServiceFactory.SampleCorrection(db).CorrectAsync(
                 sample.Id, AsStored(sample) with { ItemId = rawMaterial.Id }, "Wrong item", Password, signer.Id, null));
 
@@ -377,7 +378,7 @@ public class SampleCorrectionTests
         sample.OriginSampleId = origin.Id;
         var ibuprofen = await SeedItemAsync(db, "Ibuprofen 400", SampleCategory.FinishedProduct, "TAMC");
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             TestServiceFactory.SampleCorrection(db).CorrectAsync(
                 sample.Id, AsStored(sample) with { ItemId = ibuprofen.Id }, "Wrong product", Password, signer.Id, null));
 
@@ -492,7 +493,7 @@ public class SampleCorrectionTests
         await db.SaveChangesAsync();
         var service = TestServiceFactory.SampleCorrection(db);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             service.CorrectAsync(sample.Id, AsStored(sample) with { StorageCondition = "Refrigerator" }, "Was refrigerated", Password, signer.Id, null));
         Assert.Contains("Storage time is required", ex.Message);
 
@@ -583,7 +584,7 @@ public class SampleCorrectionTests
         var service = TestServiceFactory.SampleCorrection(db);
         await service.VoidAsync(sample.Id, "Duplicate registration", Password, signer.Id, null);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             service.VoidAsync(sample.Id, "Again", Password, signer.Id, null));
 
         Assert.Equal("Sample is already voided.", ex.Message);

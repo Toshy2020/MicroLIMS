@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.DTOs;
 using MicroLIMS.Application.Interfaces;
@@ -111,7 +112,7 @@ public class NotApplicableTestServiceTests
 
         var request = MakeCreateRequest(item.Id, "UNASSIGNED_TEST");
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.CreateAsync(user.Id, request));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => service.CreateAsync(user.Id, request));
         Assert.Contains("UNASSIGNED_TEST", ex.Message);
     }
 
@@ -134,7 +135,7 @@ public class NotApplicableTestServiceTests
         var service = CreateService(db);
         var request = MakeCreateRequest(item.Id, "TAMC", grade: "USP");
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.CreateAsync(user.Id, request));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => service.CreateAsync(user.Id, request));
         Assert.Contains("USP", ex.Message);
     }
 
@@ -149,7 +150,7 @@ public class NotApplicableTestServiceTests
 
         var created = await service.CreateAsync(head.Id, MakeCreateRequest(item.Id, "TAMC"));
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             service.FinalApproveAsync(qc.Id, created.Id, Password, "Approval comment"));
         Assert.Contains("Head", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -165,7 +166,7 @@ public class NotApplicableTestServiceTests
         var created = await service.CreateAsync(dualUser.Id, MakeCreateRequest(item.Id, "TAMC"));
         await service.HeadApproveAsync(dualUser.Id, created.Id, Password, "Head approval");
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             service.FinalApproveAsync(dualUser.Id, created.Id, Password, "QC approval"));
         Assert.Equal("The QC Manager approval must come from a different person than the Section Head approval.", ex.Message);
     }
@@ -486,7 +487,7 @@ public class NotApplicableTestServiceTests
         entity.HeadSignature = null;
         await db.SaveChangesAsync();
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(
             () => service.FinalApproveAsync(qc.Id, created.Id, Password, "QC approval"));
 
         Assert.Equal("The Section Head approval could not be verified.", ex.Message);
@@ -506,7 +507,7 @@ public class NotApplicableTestServiceTests
         await service.HeadApproveAsync(head.Id, record.Id, Password, "Head signed");
         await service.FinalApproveAsync(qc.Id, record.Id, Password, "QC signed");
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => engine.ReceiveAsync(new ItemBasedReceiveRequest(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => engine.ReceiveAsync(new ItemBasedReceiveRequest(
             item.Id, routine.Id, "100 g", "Sampler", "LOT-1", "CTRL-1",
             DateTime.UtcNow, DateTime.UtcNow.AddYears(1), null, head.Id, Grade: null)));
 
@@ -521,7 +522,7 @@ public class NotApplicableTestServiceTests
         var (item, _, routine, _) = SeedItemWithTests(db);
         var engine = new ProductWorkflowEngine(db, new ReferenceNumberGenerator(db));
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => engine.ReceiveAsync(new ItemBasedReceiveRequest(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => engine.ReceiveAsync(new ItemBasedReceiveRequest(
             item.Id, routine.Id, "100 g", "Sampler", "LOT-EMPTY", "CTRL-EMPTY",
             DateTime.UtcNow, DateTime.UtcNow.AddYears(1), null, head.Id, Grade: null)));
 
@@ -539,7 +540,7 @@ public class NotApplicableTestServiceTests
         var created = await service.CreateAsync(head.Id, MakeCreateRequest(item.Id, "TAMC"));
         await service.HeadApproveAsync(head.Id, created.Id, Password, "First approval");
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(
             () => service.HeadApproveAsync(head.Id, created.Id, Password, "Second approval"));
 
         Assert.Equal("Only draft records can be approved by the Section Head.", ex.Message);
@@ -555,7 +556,7 @@ public class NotApplicableTestServiceTests
 
         await service.CreateAsync(head.Id, MakeCreateRequest(item.Id, "TAMC"));
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(
             () => service.CreateAsync(head.Id, MakeCreateRequest(item.Id, "TAMC")));
 
         Assert.Equal($"A non-withdrawn not-applicable record already exists for item {item.Id}, test 'TAMC'.", ex.Message);
@@ -596,7 +597,7 @@ public class NotApplicableTestServiceTests
         SeedMoistureSupplier(db, item, role, basis, "BP");
         var service = CreateService(db);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.CreateAsync(head.Id, MakeCreateRequest(item.Id, "MOIST")));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => service.CreateAsync(head.Id, MakeCreateRequest(item.Id, "MOIST")));
         Assert.Equal("MOIST Name supplies the moisture for a dried/anhydrous assay of this item; it cannot be declared not applicable.", ex.Message);
         Assert.Empty(db.NotApplicableTests);
     }
@@ -628,7 +629,7 @@ public class NotApplicableTestServiceTests
         await service.HeadApproveAsync(head.Id, created.Id, Password, null);
         SeedMoistureSupplier(db, item, MoistureRole.LossOnDrying, ResultBasis.PercentDriedBasis);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.FinalApproveAsync(qc.Id, created.Id, Password, null));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => service.FinalApproveAsync(qc.Id, created.Id, Password, null));
         Assert.Contains("supplies the moisture", ex.Message);
         Assert.Equal(NotApplicableStatus.HeadApproved, db.NotApplicableTests.Single().Status);
     }
@@ -642,7 +643,7 @@ public class NotApplicableTestServiceTests
         await CreateService(db).CreateAsync(head.Id, MakeCreateRequest(item.Id, "TAMC"));
         var items = new ItemService(db);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => items.DeleteAsync(item.Id));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => items.DeleteAsync(item.Id));
         Assert.Contains("not-applicable", ex.Message);
         Assert.Contains("Freeze", ex.Message);
         Assert.Single(db.Items);
@@ -675,7 +676,7 @@ public class NotApplicableTestServiceTests
         db.TestDefinitions.First(t => t.Code == "MOIST").MoistureRole = role;
         SeedNotApplicable(db, item, "MOIST", NotApplicableStatus.Approved);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => new SpecificationService(db).ValidateAsync(DriedAssaySpec(item, basis)));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => new SpecificationService(db).ValidateAsync(DriedAssaySpec(item, basis)));
         Assert.Equal(NotApplicableMoistureMessage(item), ex.Message);
     }
 
@@ -692,7 +693,7 @@ public class NotApplicableTestServiceTests
 
         await service.ValidateAsync(DriedAssaySpec(item, ResultBasis.PercentDriedBasis, "BP"));
         await service.ValidateAsync(DriedAssaySpec(item, ResultBasis.PercentAsIs, "USP"));
-        await Assert.ThrowsAsync<InvalidOperationException>(() => service.ValidateAsync(DriedAssaySpec(item, ResultBasis.PercentDriedBasis, "usp")));
+        await Assert.ThrowsAsync<BusinessRuleException>(() => service.ValidateAsync(DriedAssaySpec(item, ResultBasis.PercentDriedBasis, "usp")));
     }
 
     private static (Microsoft.EntityFrameworkCore.DbContext Unused, MicroLIMS.Application.Services.MasterData.TestDefinitionMasterDataService Svc, TestDefinition Moist, User Admin, Item Item)
@@ -723,7 +724,7 @@ public class NotApplicableTestServiceTests
         using var db = NewDb();
         var (_, svc, moist, admin, item) = SeedRoleChange(db, NotApplicableStatus.HeadApproved);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => svc.UpdateTestDefinitionAsync(admin.Id, moist.Id,
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => svc.UpdateTestDefinitionAsync(admin.Id, moist.Id,
             new UpdateTestDefinitionRequest(moist.Code, moist.DisplayName, MoistureRole: MoistureRole.LossOnDrying) { ChangeReason = "Now the LOD" }));
         Assert.Equal(NotApplicableMoistureMessage(item), ex.Message);
     }

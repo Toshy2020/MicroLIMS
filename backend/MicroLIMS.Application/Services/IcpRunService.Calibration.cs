@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Helpers;
 using MicroLIMS.Application.Services.MasterData;
@@ -39,10 +40,10 @@ public partial class IcpRunService
     {
         const string message = "The calibration standard must be a usable reference standard lot of this laboratory.";
         var lot = await _db.Materials.FirstOrDefaultAsync(m => m.Id == materialId, ct)
-            ?? throw new InvalidOperationException(message);
+            ?? throw new BusinessRuleException(message);
         if (lot.MaterialType != MaterialType.ReferenceStandard || lot.SectionId != sectionId
             || !LotUsability.Check(lot, lot.MaterialMasterEntryId ?? 0, null, _clock.LabToday).Usable)
-            throw new InvalidOperationException(message);
+            throw new BusinessRuleException(message);
         return lot;
     }
 
@@ -53,10 +54,10 @@ public partial class IcpRunService
         await EnsureAccessAsync(run, userId, ct);
 
         if (run.Status != IcpRunStatus.Open)
-            throw new InvalidOperationException("The run is closed.");
+            throw new BusinessRuleException("The run is closed.");
         var cal = run.Calibration;
         if (cal == null || cal.Status != IcpCalibrationStatus.Pending)
-            throw new InvalidOperationException("The calibration has already been confirmed.");
+            throw new BusinessRuleException("The calibration has already been confirmed.");
 
         // Validate everything before mutating anything.
         Material? calLot = null;
@@ -69,9 +70,9 @@ public partial class IcpRunService
         {
             var symbol = IcpTestDefinitionRules.NormalizeSymbol(input.Symbol);
             if (!seen.Add(symbol))
-                throw new InvalidOperationException($"Element \"{symbol}\" is listed more than once.");
+                throw new BusinessRuleException($"Element \"{symbol}\" is listed more than once.");
             if (input.CorrelationR is < 0m or > 1m)
-                throw new InvalidOperationException($"{symbol}: r must be between 0 and 1.");
+                throw new BusinessRuleException($"{symbol}: r must be between 0 and 1.");
             // numeric(8,6): round before judging so save-time and confirm-time verdicts match what is stored.
             inputs.Add((symbol, input.CorrelationR is decimal r6 ? Math.Round(r6, 6, MidpointRounding.AwayFromZero) : null));
         }
@@ -106,7 +107,7 @@ public partial class IcpRunService
         await EnsureAccessAsync(run, userId, ct);
 
         var blocked = ConfirmBlockReason(run);
-        if (blocked != null) throw new InvalidOperationException(blocked);
+        if (blocked != null) throw new BusinessRuleException(blocked);
         var cal = run.Calibration!;
 
         // The lot was checked at save; it may have expired or run out since.

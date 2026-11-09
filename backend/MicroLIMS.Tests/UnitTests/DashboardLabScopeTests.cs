@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Services;
 using MicroLIMS.Domain.Entities;
@@ -95,7 +96,7 @@ public class DashboardLabScopeTests
         var resolver = Resolver(f.Db);
 
         await Assert.ThrowsAsync<UnauthorizedAccessException>(() => resolver.ResolveAsync(f.MicroAnalyst.Id, "FP"));
-        await Assert.ThrowsAsync<InvalidOperationException>(() => resolver.ResolveAsync(f.DualAnalyst.Id, "CHEM"));
+        await Assert.ThrowsAsync<BusinessRuleException>(() => resolver.ResolveAsync(f.DualAnalyst.Id, "CHEM"));
     }
 
     [Fact]

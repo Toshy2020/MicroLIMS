@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using System.Globalization;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
@@ -73,10 +74,10 @@ public class ControlChartReportService
     public async Task<GeneratedReport> GenerateAsync(ControlChartReportRequest r, int userId, IReadOnlyCollection<int>? sectionIds = null, CancellationToken ct = default)
     {
         var title = r.Title?.Trim();
-        if (string.IsNullOrWhiteSpace(title)) throw new InvalidOperationException("A report title is required.");
-        if (title.Length > 200) throw new InvalidOperationException("The report title must be 200 characters or fewer.");
-        if (r.Sections is null || r.Sections.Count == 0) throw new InvalidOperationException("Add at least one chart to the report.");
-        if (r.Sections.Count > MaxSections) throw new InvalidOperationException($"A report can hold at most {MaxSections} charts.");
+        if (string.IsNullOrWhiteSpace(title)) throw new BusinessRuleException("A report title is required.");
+        if (title.Length > 200) throw new BusinessRuleException("The report title must be 200 characters or fewer.");
+        if (r.Sections is null || r.Sections.Count == 0) throw new BusinessRuleException("Add at least one chart to the report.");
+        if (r.Sections.Count > MaxSections) throw new BusinessRuleException($"A report can hold at most {MaxSections} charts.");
 
         var images = r.Sections.Select((s, i) => DecodeImage(s.ImagePng, i + 1)).ToList();
 
@@ -153,17 +154,17 @@ public class ControlChartReportService
 
     private static byte[] DecodeImage(string? base64, int index)
     {
-        if (string.IsNullOrWhiteSpace(base64)) throw new InvalidOperationException($"Chart {index} has no image.");
+        if (string.IsNullOrWhiteSpace(base64)) throw new BusinessRuleException($"Chart {index} has no image.");
         var comma = base64.IndexOf(',');
         if (base64.StartsWith("data:", StringComparison.Ordinal) && comma > 0) base64 = base64[(comma + 1)..];
 
         byte[] bytes;
         try { bytes = Convert.FromBase64String(base64); }
-        catch (FormatException) { throw new InvalidOperationException($"Chart {index} image is not valid base64."); }
+        catch (FormatException) { throw new BusinessRuleException($"Chart {index} image is not valid base64."); }
 
-        if (bytes.Length > MaxImageBytes) throw new InvalidOperationException($"Chart {index} image is larger than {MaxImageBytes / (1024 * 1024)} MB.");
-        if (!PngHeader.TryReadSize(bytes, out var w, out var h)) throw new InvalidOperationException($"Chart {index} image is not a PNG.");
-        if (w > MaxImagePixels || h > MaxImagePixels) throw new InvalidOperationException($"Chart {index} image is larger than {MaxImagePixels} × {MaxImagePixels} pixels.");
+        if (bytes.Length > MaxImageBytes) throw new BusinessRuleException($"Chart {index} image is larger than {MaxImageBytes / (1024 * 1024)} MB.");
+        if (!PngHeader.TryReadSize(bytes, out var w, out var h)) throw new BusinessRuleException($"Chart {index} image is not a PNG.");
+        if (w > MaxImagePixels || h > MaxImagePixels) throw new BusinessRuleException($"Chart {index} image is larger than {MaxImagePixels} × {MaxImagePixels} pixels.");
         return bytes;
     }
 

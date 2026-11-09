@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
@@ -119,7 +120,7 @@ public class IntegrationsService : IIntegrationsService
         var why = AdminActionReason.Require(reason, "send a test email");
         var address = to?.Trim().ToLowerInvariant();
         if (!EmailAddressList.IsValidAddress(address))
-            throw new InvalidOperationException("Enter a valid email address to send the test to.");
+            throw new BusinessRuleException("Enter a valid email address to send the test to.");
         _throttle.Enter(ThrottleEmail);
 
         var subject = $"[MicroLIMS] TEST email - {_alertOptions.EnvironmentName}";
@@ -136,7 +137,7 @@ public class IntegrationsService : IIntegrationsService
         var why = AdminActionReason.Require(reason, "send a test alert");
         var recipients = await CriticalAlertRecipients.ResolveAsync(_settings, _alertOptions, cancellationToken);
         if (recipients.Count == 0)
-            throw new InvalidOperationException($"No critical-alert recipients are configured. Set {SystemSettingKeys.AlertsCriticalRecipients} first.");
+            throw new BusinessRuleException($"No critical-alert recipients are configured. Set {SystemSettingKeys.AlertsCriticalRecipients} first.");
         _throttle.Enter(ThrottleAlert);
 
         var subject = $"[MicroLIMS] TEST ALERT - {_alertOptions.EnvironmentName}";
@@ -178,7 +179,7 @@ public class IntegrationsService : IIntegrationsService
             {
                 var read = await _storage.ReadAsync(key!);
                 if (!read.AsSpan().SequenceEqual(payload))
-                    throw new InvalidOperationException("The bytes read back differ from the bytes written.");
+                    throw new BusinessRuleException("The bytes read back differ from the bytes written.");
             });
 
             if (_storage is IStorageDiagnostics diagnostics)

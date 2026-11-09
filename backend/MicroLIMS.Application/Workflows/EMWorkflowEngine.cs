@@ -42,9 +42,9 @@ public class EMWorkflowEngine : IEMWorkflowEngine
     public async Task<Sample> ReceiveAsync(EMReceiveRequest request)
     {
         var department = await _db.Departments.FirstOrDefaultAsync(d => d.Id == request.DepartmentId)
-            ?? throw new InvalidOperationException($"Department {request.DepartmentId} not found.");
+            ?? throw new BusinessRuleException($"Department {request.DepartmentId} not found.");
         if (!department.IsActive)
-            throw new InvalidOperationException($"Department '{department.Name}' is inactive and cannot receive samples.");
+            throw new BusinessRuleException($"Department '{department.Name}' is inactive and cannot receive samples.");
 
         var sample = new Sample
         {
@@ -61,7 +61,7 @@ public class EMWorkflowEngine : IEMWorkflowEngine
         };
 
         if (sample.SampledAt > sample.ReceivedAt)
-            throw new InvalidOperationException("The sampling time cannot be after the time of receipt.");
+            throw new BusinessRuleException("The sampling time cannot be after the time of receipt.");
 
         _db.Samples.Add(sample);
 
@@ -73,7 +73,7 @@ public class EMWorkflowEngine : IEMWorkflowEngine
         {
             sample.ReferenceNumber = await _refNumbers.GenerateAsync(SampleCategory.EnvironmentalMonitoring);
             if (!await _db.TrySaveChangesAsync(UniqueIndexNames.SampleReferenceNumber))
-                throw new InvalidOperationException(
+                throw new BusinessRuleException(
                     $"Reference number {sample.ReferenceNumber} was taken by another receipt at the same moment. Nothing was saved - receive the sample again.");
         }
 
@@ -91,10 +91,10 @@ public class EMWorkflowEngine : IEMWorkflowEngine
             ?? throw new NotFoundException($"Sample {sampleId} not found.");
 
         if (sample.PreparationStatus != SamplePreparationStatus.NeedsPreparation)
-            throw new InvalidOperationException("This sample has already been prepared.");
+            throw new BusinessRuleException("This sample has already been prepared.");
 
         if (roomTestConfigurationIds.Count == 0)
-            throw new InvalidOperationException("At least one room must be selected.");
+            throw new BusinessRuleException("At least one room must be selected.");
 
         var configs = await _db.RoomTestConfigurations
             .Include(c => c.Room)
@@ -103,16 +103,16 @@ public class EMWorkflowEngine : IEMWorkflowEngine
 
         var missing = roomTestConfigurationIds.Except(configs.Select(c => c.Id)).ToList();
         if (missing.Count > 0)
-            throw new InvalidOperationException($"Room test configuration(s) not found: {string.Join(", ", missing)}.");
+            throw new BusinessRuleException($"Room test configuration(s) not found: {string.Join(", ", missing)}.");
 
         var inactive = configs.Where(c => !c.IsActive || c.Room?.IsActive == false).ToList();
         if (inactive.Count > 0)
-            throw new InvalidOperationException(
+            throw new BusinessRuleException(
                 $"Room(s) {string.Join(", ", inactive.Select(c => c.Room?.Name))} are inactive and cannot be prepared.");
 
         var wrongDepartment = configs.Where(c => c.Room?.DepartmentId != sample.DepartmentId).ToList();
         if (wrongDepartment.Count > 0)
-            throw new InvalidOperationException(
+            throw new BusinessRuleException(
                 $"Room(s) {string.Join(", ", wrongDepartment.Select(c => c.Room?.Name))} do not belong to this sample's department.");
 
         // One TestOrder per distinct TestCode across every selected room -
@@ -148,7 +148,7 @@ public class EMWorkflowEngine : IEMWorkflowEngine
         if (monitoringOccurrenceIds is { Count: > 0 })
         {
             if (_monitoring is null)
-                throw new InvalidOperationException("Monitoring plan linking is not available.");
+                throw new BusinessRuleException("Monitoring plan linking is not available.");
             await _monitoring.LinkAsync(sample, monitoringOccurrenceIds, userId);
         }
 
@@ -161,7 +161,7 @@ public class EMWorkflowEngine : IEMWorkflowEngine
     {
         var order = await WorkflowStateMachine.LoadOrThrowAsync(_db, testOrderId);
         var errors = await ValidateAsync(testOrderId);
-        if (errors.Count > 0) throw new InvalidOperationException(string.Join(" ", errors));
+        if (errors.Count > 0) throw new BusinessRuleException(string.Join(" ", errors));
 
         var next = order.CurrentStep switch
         {

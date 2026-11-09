@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using MicroLIMS.Domain.Enums;
 
 namespace MicroLIMS.Application.Helpers;
@@ -21,7 +22,7 @@ public static class CleaningTechniques
     public static string Normalize(IEnumerable<string>? techniques)
     {
         if (techniques == null)
-            throw new InvalidOperationException("At least one cleaning technique is required.");
+            throw new BusinessRuleException("At least one cleaning technique is required.");
 
         var set = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var raw in techniques)
@@ -29,12 +30,12 @@ public static class CleaningTechniques
             if (string.IsNullOrWhiteSpace(raw)) continue;
             var trimmed = raw.Trim();
             var match = Allowed.FirstOrDefault(a => string.Equals(a, trimmed, StringComparison.OrdinalIgnoreCase))
-                ?? throw new InvalidOperationException($"Invalid cleaning technique '{trimmed}'. Allowed techniques are UV, HPLC, ICP.");
+                ?? throw new BusinessRuleException($"Invalid cleaning technique '{trimmed}'. Allowed techniques are UV, HPLC, ICP.");
             set.Add(match);
         }
 
         if (set.Count == 0)
-            throw new InvalidOperationException("At least one cleaning technique is required.");
+            throw new BusinessRuleException("At least one cleaning technique is required.");
 
         return string.Join(",", Allowed.Where(set.Contains));
     }

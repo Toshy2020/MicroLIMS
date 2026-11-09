@@ -48,29 +48,29 @@ public class EquipmentMasterDataService
     public async Task<EquipmentResponse> CreateEquipmentAsync(int currentUserId, CreateEquipmentRequest request)
     {
         if (string.IsNullOrWhiteSpace(request.Name))
-            throw new InvalidOperationException("Name is required.");
+            throw new BusinessRuleException("Name is required.");
         if (string.IsNullOrWhiteSpace(request.Code))
-            throw new InvalidOperationException("Code is required.");
+            throw new BusinessRuleException("Code is required.");
         if (await _db.Equipment.AnyAsync(e => e.Code == request.Code.Trim()))
-            throw new InvalidOperationException($"Equipment code \"{request.Code}\" already exists.");
+            throw new BusinessRuleException($"Equipment code \"{request.Code}\" already exists.");
 
         if (!string.IsNullOrWhiteSpace(request.Vendor) && request.Vendor.Length > 100)
-            throw new InvalidOperationException("Vendor cannot exceed 100 characters.");
+            throw new BusinessRuleException("Vendor cannot exceed 100 characters.");
 
         if (request.Type == EquipmentType.Hplc)
         {
             if (!request.CdsSoftware.HasValue)
-                throw new InvalidOperationException("CDS Software is required for HPLC equipment.");
+                throw new BusinessRuleException("CDS Software is required for HPLC equipment.");
         }
         else if (request.Type == EquipmentType.IcpOes)
         {
             if (!request.CdsSoftware.HasValue)
-                throw new InvalidOperationException("CDS Software is required for ICP-OES equipment.");
+                throw new BusinessRuleException("CDS Software is required for ICP-OES equipment.");
         }
         else
         {
             if (request.CdsSoftware.HasValue)
-                throw new InvalidOperationException("CDS Software is only allowed for HPLC and ICP-OES equipment.");
+                throw new BusinessRuleException("CDS Software is only allowed for HPLC and ICP-OES equipment.");
         }
 
         var sectionId = await _scope.ResolveSectionForCreateAsync(currentUserId, request.SectionId);
@@ -103,29 +103,29 @@ public class EquipmentMasterDataService
         RecordVersion.EnsureCurrent(_db, entity);
 
         if (string.IsNullOrWhiteSpace(request.Name))
-            throw new InvalidOperationException("Name is required.");
+            throw new BusinessRuleException("Name is required.");
         if (string.IsNullOrWhiteSpace(request.Code))
-            throw new InvalidOperationException("Code is required.");
+            throw new BusinessRuleException("Code is required.");
         if (await _db.Equipment.AnyAsync(e => e.Code == request.Code.Trim() && e.Id != id))
-            throw new InvalidOperationException($"Equipment code \"{request.Code}\" already exists.");
+            throw new BusinessRuleException($"Equipment code \"{request.Code}\" already exists.");
 
         if (!string.IsNullOrWhiteSpace(request.Vendor) && request.Vendor.Length > 100)
-            throw new InvalidOperationException("Vendor cannot exceed 100 characters.");
+            throw new BusinessRuleException("Vendor cannot exceed 100 characters.");
 
         if (request.Type == EquipmentType.Hplc)
         {
             if (!request.CdsSoftware.HasValue)
-                throw new InvalidOperationException("CDS Software is required for HPLC equipment.");
+                throw new BusinessRuleException("CDS Software is required for HPLC equipment.");
         }
         else if (request.Type == EquipmentType.IcpOes)
         {
             if (!request.CdsSoftware.HasValue)
-                throw new InvalidOperationException("CDS Software is required for ICP-OES equipment.");
+                throw new BusinessRuleException("CDS Software is required for ICP-OES equipment.");
         }
         else
         {
             if (request.CdsSoftware.HasValue)
-                throw new InvalidOperationException("CDS Software is only allowed for HPLC and ICP-OES equipment.");
+                throw new BusinessRuleException("CDS Software is only allowed for HPLC and ICP-OES equipment.");
         }
 
         if (request.SectionId.HasValue && request.SectionId.Value != entity.SectionId)

@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using MicroLIMS.Application.DTOs;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -104,7 +105,7 @@ public class WeightVariationMasterDataValidationTests
             EquationType: EquationType.None,
             RequiresSystemSuitability: false);
 
-        var ex1 = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.TestDefinition.CreateTestDefinition(req1));
+        var ex1 = await Assert.ThrowsAsync<BusinessRuleException>(() => controller.TestDefinition.CreateTestDefinition(req1));
         Assert.Contains("Equation type must be WeightVariation", ex1.Message);
 
         // Equation WeightVariation but Workflow Observation -> fails
@@ -116,7 +117,7 @@ public class WeightVariationMasterDataValidationTests
             EquationType: EquationType.WeightVariation,
             RequiresSystemSuitability: false);
 
-        var ex2 = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.TestDefinition.CreateTestDefinition(req2));
+        var ex2 = await Assert.ThrowsAsync<BusinessRuleException>(() => controller.TestDefinition.CreateTestDefinition(req2));
         Assert.Contains("Workflow type must be WeightVariation", ex2.Message);
     }
 
@@ -134,7 +135,7 @@ public class WeightVariationMasterDataValidationTests
             EquationType: EquationType.WeightVariation,
             RequiresSystemSuitability: true);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.TestDefinition.CreateTestDefinition(req));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => controller.TestDefinition.CreateTestDefinition(req));
         Assert.Contains("must not require system suitability", ex.Message);
     }
 
@@ -189,7 +190,7 @@ public class WeightVariationMasterDataValidationTests
             RequiresSystemSuitability: false,
             WvUnitCount: 0);
 
-        var ex1 = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.TestDefinition.CreateTestDefinition(req1));
+        var ex1 = await Assert.ThrowsAsync<BusinessRuleException>(() => controller.TestDefinition.CreateTestDefinition(req1));
         Assert.Contains("must be greater than or equal to 1", ex1.Message);
 
         // Band1MaxMg >= Band2MaxMg
@@ -203,7 +204,7 @@ public class WeightVariationMasterDataValidationTests
             WvTabletBand1MaxMg: 350m,
             WvTabletBand2MaxMg: 324m);
 
-        var ex2 = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.TestDefinition.CreateTestDefinition(req2));
+        var ex2 = await Assert.ThrowsAsync<BusinessRuleException>(() => controller.TestDefinition.CreateTestDefinition(req2));
         Assert.Contains("Tablet Band 1 Max Mg must be less than Band 2 Max Mg", ex2.Message);
 
         // CapsuleInnerPercent >= CapsuleOuterPercent
@@ -217,7 +218,7 @@ public class WeightVariationMasterDataValidationTests
             WvCapsuleInnerPercent: 25m,
             WvCapsuleOuterPercent: 25m);
 
-        var ex3 = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.TestDefinition.CreateTestDefinition(req3));
+        var ex3 = await Assert.ThrowsAsync<BusinessRuleException>(() => controller.TestDefinition.CreateTestDefinition(req3));
         Assert.Contains("capsule inner percentage must be less than outer percentage", ex3.Message);
 
         // CapsuleS1MaxOutside >= CapsuleS1MaxForRetest
@@ -231,7 +232,7 @@ public class WeightVariationMasterDataValidationTests
             WvCapsuleS1MaxOutside: 6,
             WvCapsuleS1MaxForRetest: 6);
 
-        var ex4 = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.TestDefinition.CreateTestDefinition(req4));
+        var ex4 = await Assert.ThrowsAsync<BusinessRuleException>(() => controller.TestDefinition.CreateTestDefinition(req4));
         Assert.Contains("Stage 1 max outside must be less than Stage 1 max for retest", ex4.Message);
 
         // CapsuleS2MaxOutside >= unit count + extra units (20 + 40 = 60)
@@ -246,7 +247,7 @@ public class WeightVariationMasterDataValidationTests
             WvCapsuleS2ExtraUnits: 40,
             WvCapsuleS2MaxOutside: 60);
 
-        var ex5 = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.TestDefinition.CreateTestDefinition(req5));
+        var ex5 = await Assert.ThrowsAsync<BusinessRuleException>(() => controller.TestDefinition.CreateTestDefinition(req5));
         Assert.Contains("Stage 2 max outside must be less than total units (60)", ex5.Message);
     }
 
@@ -284,7 +285,7 @@ public class WeightVariationMasterDataValidationTests
             ConfirmatoryMediaCount: null,
             PhenotypicTestType: null);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.TestWorkflowStep.CreateTestWorkflowStep(testDef.Id, stepReq));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => controller.TestWorkflowStep.CreateTestWorkflowStep(testDef.Id, stepReq));
         Assert.Contains("no workflow steps", ex.Message);
     }
 
@@ -313,7 +314,7 @@ public class WeightVariationMasterDataValidationTests
             DisplayName: "WV Upd",
             EquationType: EquationType.None);
 
-        var ex1 = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.TestDefinition.UpdateTestDefinition(testDef.Id, req1));
+        var ex1 = await Assert.ThrowsAsync<BusinessRuleException>(() => controller.TestDefinition.UpdateTestDefinition(testDef.Id, req1));
         Assert.Contains("Equation type must be WeightVariation", ex1.Message);
 
         // SST set to true
@@ -322,7 +323,7 @@ public class WeightVariationMasterDataValidationTests
             DisplayName: "WV Upd",
             RequiresSystemSuitability: true);
 
-        var ex2 = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.TestDefinition.UpdateTestDefinition(testDef.Id, req2));
+        var ex2 = await Assert.ThrowsAsync<BusinessRuleException>(() => controller.TestDefinition.UpdateTestDefinition(testDef.Id, req2));
         Assert.Contains("must not require system suitability", ex2.Message);
     }
 
@@ -369,7 +370,7 @@ public class WeightVariationMasterDataValidationTests
             Unit = "mg",
             DosageForm = null
         };
-        var exNoForm = Assert.Throws<InvalidOperationException>(() => specService.Validate(specNoForm));
+        var exNoForm = Assert.Throws<BusinessRuleException>(() => specService.Validate(specNoForm));
         Assert.Contains("Dosage form is required for WeightVariation specifications", exNoForm.Message);
 
         // Wrong Unit
@@ -380,7 +381,7 @@ public class WeightVariationMasterDataValidationTests
             Unit = "g",
             DosageForm = DosageForm.Tablet
         };
-        var exWrongUnit = Assert.Throws<InvalidOperationException>(() => specService.Validate(specWrongUnit));
+        var exWrongUnit = Assert.Throws<BusinessRuleException>(() => specService.Validate(specWrongUnit));
         Assert.Contains("Unit must be \"mg\"", exWrongUnit.Message);
 
         // LowerLimit present
@@ -392,7 +393,7 @@ public class WeightVariationMasterDataValidationTests
             DosageForm = DosageForm.Tablet,
             LowerLimit = 100m
         };
-        var exLower = Assert.Throws<InvalidOperationException>(() => specService.Validate(specLower));
+        var exLower = Assert.Throws<BusinessRuleException>(() => specService.Validate(specLower));
         Assert.Contains("Limits are not allowed for WeightVariation specifications", exLower.Message);
 
         // UpperLimit present
@@ -404,7 +405,7 @@ public class WeightVariationMasterDataValidationTests
             DosageForm = DosageForm.Tablet,
             UpperLimit = 100m
         };
-        var exUpper = Assert.Throws<InvalidOperationException>(() => specService.Validate(specUpper));
+        var exUpper = Assert.Throws<BusinessRuleException>(() => specService.Validate(specUpper));
         Assert.Contains("Limits are not allowed for WeightVariation specifications", exUpper.Message);
 
         // LabelClaim present
@@ -416,7 +417,7 @@ public class WeightVariationMasterDataValidationTests
             DosageForm = DosageForm.Tablet,
             LabelClaim = 100m
         };
-        var exLc = Assert.Throws<InvalidOperationException>(() => specService.Validate(specLc));
+        var exLc = Assert.Throws<BusinessRuleException>(() => specService.Validate(specLc));
         Assert.Contains("Label claim is not allowed", exLc.Message);
 
         // DosageForm present on non-WeightVariation spec
@@ -429,7 +430,7 @@ public class WeightVariationMasterDataValidationTests
             Unit = "%",
             DosageForm = DosageForm.Tablet
         };
-        var exNonWv = Assert.Throws<InvalidOperationException>(() => specService.Validate(specNonWvForm));
+        var exNonWv = Assert.Throws<BusinessRuleException>(() => specService.Validate(specNonWvForm));
         Assert.Contains("Dosage form is only allowed for WeightVariation specifications", exNonWv.Message);
 
         // Valid
@@ -474,7 +475,7 @@ public class WeightVariationMasterDataValidationTests
             Unit = "mg"
         };
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => specService.ValidateAsync(spec));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => specService.ValidateAsync(spec));
         Assert.Contains("only allowed for WeightVariation tests", ex.Message);
     }
 
@@ -511,7 +512,7 @@ public class WeightVariationMasterDataValidationTests
             Unit = "mg"
         };
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => specService.ValidateAsync(spec));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => specService.ValidateAsync(spec));
         Assert.Contains("Only WeightVariation specifications are allowed for WeightVariation tests", ex.Message);
     }
 
@@ -559,7 +560,7 @@ public class WeightVariationMasterDataValidationTests
             Unit = "mg"
         };
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => specService.ValidateAsync(spec2));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => specService.ValidateAsync(spec2));
         Assert.Contains("Only one specification is allowed for WeightVariation test", ex.Message);
     }
 

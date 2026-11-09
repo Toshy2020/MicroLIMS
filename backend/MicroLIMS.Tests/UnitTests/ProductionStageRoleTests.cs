@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using MicroLIMS.Application.DTOs;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -155,9 +156,9 @@ public class ProductionStageRoleTests
         var item = await SeedFpItemAsync(db);
 
         var engine = new ProductWorkflowEngine(db, new ReferenceNumberGenerator(db));
-        await Assert.ThrowsAsync<InvalidOperationException>(() => engine.ReceiveAsync(new ItemBasedReceiveRequest(
+        await Assert.ThrowsAsync<BusinessRuleException>(() => engine.ReceiveAsync(new ItemBasedReceiveRequest(
             item.Id, 1, "10 units", "Analyst", "LOT-1", "CTRL-1", DateTime.UtcNow, DateTime.UtcNow.AddYears(1), "Some Renamed Stage", 1)));
-        await Assert.ThrowsAsync<InvalidOperationException>(() => engine.ReceiveAsync(new ItemBasedReceiveRequest(
+        await Assert.ThrowsAsync<BusinessRuleException>(() => engine.ReceiveAsync(new ItemBasedReceiveRequest(
             item.Id, 1, "10 units", "Analyst", "LOT-1", "CTRL-1", DateTime.UtcNow, DateTime.UtcNow.AddYears(1), "  ", 1)));
         Assert.Empty(db.Samples);
     }

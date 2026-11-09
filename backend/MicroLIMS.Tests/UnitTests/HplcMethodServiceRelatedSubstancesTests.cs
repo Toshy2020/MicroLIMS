@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Services;
 using MicroLIMS.Domain.Entities;
@@ -101,7 +102,7 @@ public class HplcMethodServiceRelatedSubstancesTests
             _ => throw new ArgumentOutOfRangeException(nameof(field)),
         };
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.CreateAsync(req, userId));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => service.CreateAsync(req, userId));
         Assert.Equal(message, ex.Message);
     }
 
@@ -124,7 +125,7 @@ public class HplcMethodServiceRelatedSubstancesTests
             _ => assay with { DisregardLimitPercent = 0.05m },
         };
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.CreateAsync(req, userId));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => service.CreateAsync(req, userId));
         Assert.Equal("Impurities and reference-solution values belong to related-substances methods only.", ex.Message);
     }
 
@@ -177,7 +178,7 @@ public class HplcMethodServiceRelatedSubstancesTests
 
         var assay = Base.Req(diluent.Id, new() { new("A", mp.Id, null) },
             new() { new(analyteId, "Principal", 254m, standard.Id, 50m, 50m, 5) }, reason: "switch");
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.UpdateAsync(created.Id, assay, userId));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => service.UpdateAsync(created.Id, assay, userId));
         Assert.Equal("The technique and result mode can't be changed after the method is created.", ex.Message);
     }
 
@@ -198,7 +199,7 @@ public class HplcMethodServiceRelatedSubstancesTests
             ? new List<HplcImpurityInput> { new(d.Id, "Impurity D", 0.15m, 0.7m), new(999999, "Impurity X", 0.5m, null) }
             : new List<HplcImpurityInput> { new(d.Id, "Impurity D", 0.15m, 0.7m), new(d.Id, "Impurity E", 0.5m, null) };
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             service.UpdateAsync(created.Id, RsReq(diluent.Id, mp.Id, standard.Id, reason: "edit", analytes: principal, impurities: impurities), userId));
         Assert.Equal(message, ex.Message);
         Assert.Equal(2, await db.HplcMethodImpurities.CountAsync(i => i.HplcMethodId == created.Id));
@@ -217,7 +218,7 @@ public class HplcMethodServiceRelatedSubstancesTests
         await db.SaveChangesAsync();
         var principal = new List<HplcAnalyteInput> { new(created.Analytes[0].Id, "Principal", 230m, standard.Id, 0m, 0m, 5) };
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.UpdateAsync(created.Id,
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => service.UpdateAsync(created.Id,
             RsReq(diluent.Id, mp.Id, standard.Id, reason: "drop", analytes: principal, impurities: new() { new(null, "Impurity Q", 0.5m, null) }), userId));
 
         Assert.Equal("Impurity Impurity D has recorded peaks and cannot be removed.", ex.Message);
@@ -246,7 +247,7 @@ public class HplcMethodServiceRelatedSubstancesTests
 
         if (refused)
         {
-            var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.UpdateAsync(created.Id, request, userId));
+            var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => service.UpdateAsync(created.Id, request, userId));
             Assert.Equal("Impurity Impurity D is used by an open HPLC run and cannot be removed.", ex.Message);
             Assert.True(await db.HplcMethodImpurities.AnyAsync(i => i.Id == d.Id));
         }

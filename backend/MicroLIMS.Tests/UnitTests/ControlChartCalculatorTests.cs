@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using MicroLIMS.Application.Services.Spc;
 using Xunit;
 
@@ -102,7 +103,7 @@ public class ControlChartCalculatorTests
     [InlineData(3, 2)]
     public void InvalidSettings_AreRefused(int movingRangeLength, double actionK)
     {
-        Assert.Throws<InvalidOperationException>(() => ControlChartCalculator.Compute(
+        Assert.Throws<BusinessRuleException>(() => ControlChartCalculator.Compute(
             new double[] { 1, 2 }, new ControlChartSettings(AlertK: 2.5, ActionK: actionK, MovingRangeLength: movingRangeLength)));
     }
 

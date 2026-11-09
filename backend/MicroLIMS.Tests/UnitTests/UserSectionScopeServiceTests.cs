@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Application.Services;
@@ -248,7 +249,7 @@ public class UserSectionScopeServiceTests
         await db.SaveChangesAsync();
 
         var service = new UserSectionScopeService(db);
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(
             () => service.ResolveSectionForCreateAsync(user.Id, requestedSectionId: null));
 
         Assert.Equal("Choose a laboratory section - you belong to more than one.", ex.Message);
@@ -277,7 +278,7 @@ public class UserSectionScopeServiceTests
         await db.SaveChangesAsync();
 
         var service = new UserSectionScopeService(db);
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(
             () => service.ResolveSectionForCreateAsync(user.Id, requestedSectionId: sec2.Id));
 
         Assert.Equal("You are not a member of the selected laboratory section.", ex.Message);
@@ -305,7 +306,7 @@ public class UserSectionScopeServiceTests
         await db.SaveChangesAsync();
 
         var service = new UserSectionScopeService(db);
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(
             () => service.ResolveSectionForCreateAsync(user.Id, requestedSectionId: inactiveSec.Id));
 
         Assert.Equal("Selected laboratory section was not found or is inactive.", ex.Message);
@@ -326,11 +327,11 @@ public class UserSectionScopeServiceTests
         var service = new UserSectionScopeService(db);
 
         // Holding Sections.ViewAll does not let the administrator create records in a section.
-        var notMember = await Assert.ThrowsAsync<InvalidOperationException>(
+        var notMember = await Assert.ThrowsAsync<BusinessRuleException>(
             () => service.ResolveSectionForCreateAsync(admin.Id, requestedSectionId: sec.Id));
         Assert.Equal("You are not a member of the selected laboratory section.", notMember.Message);
 
-        var notAssigned = await Assert.ThrowsAsync<InvalidOperationException>(
+        var notAssigned = await Assert.ThrowsAsync<BusinessRuleException>(
             () => service.ResolveSectionForCreateAsync(admin.Id, requestedSectionId: null));
         Assert.Equal("Your account is not assigned to any laboratory section. Ask an administrator to assign one.", notAssigned.Message);
     }
@@ -346,7 +347,7 @@ public class UserSectionScopeServiceTests
         await db.SaveChangesAsync();
 
         var service = new UserSectionScopeService(db);
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(
             () => service.ResolveSectionForCreateAsync(user.Id, requestedSectionId: null));
 
         Assert.Equal("Your account is not assigned to any laboratory section. Ask an administrator to assign one.", ex.Message);
@@ -393,7 +394,7 @@ public class UserSectionScopeServiceTests
         db.TestDefinitions.Add(new TestDefinition { Code = "TAMC", DisplayName = "TAMC", SectionId = sec.Id });
         await db.SaveChangesAsync();
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(
             () => TestSectionLookup.ResolveAsync(db, new[] { "TAMC", "UNKNOWN_CODE" }));
 
         Assert.Contains("'UNKNOWN_CODE'", ex.Message);

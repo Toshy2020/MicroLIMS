@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Services;
 using MicroLIMS.Application.Workflows;
@@ -518,7 +519,7 @@ public class PathogenSessionServiceTests
         await db.SaveChangesAsync();
 
         var service = new PathogenSessionService(db);
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        await Assert.ThrowsAsync<BusinessRuleException>(() =>
             service.StartSharedTsbAsync(sampleId, new StartSharedTsbRequest(20, 50, DateTime.UtcNow), 5));
         Assert.False(await db.Incubations.AnyAsync());
     }

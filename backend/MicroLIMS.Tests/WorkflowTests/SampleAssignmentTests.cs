@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.DTOs;
 using MicroLIMS.Application.Services;
@@ -113,7 +114,7 @@ public class SampleAssignmentTests
         w.Assay.Status = ApprovalStatus.Approved;
         await db.SaveChangesAsync();
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             NewService(db).AssignAnalystAsync(w.Sample.Id, AnalystFp, actingUserId: BothHead));
 
         Assert.Contains("not a member of the Microbiology Laboratory laboratory section", ex.Message);
@@ -184,9 +185,9 @@ public class SampleAssignmentTests
         var w = await SeedAsync(db);
         var service = NewService(db);
 
-        var perTest = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var perTest = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             service.AssignTestsAsync(w.Sample.Id, new[] { new TestAnalystAssignment(w.Tamc.Id, HeadMicro) }, actingUserId));
-        var wholeSample = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var wholeSample = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             service.AssignAnalystAsync(w.Sample.Id, HeadMicro, actingUserId));
 
         Assert.Contains("a Section Head can only assign themselves", perTest.Message);
@@ -200,7 +201,7 @@ public class SampleAssignmentTests
         await using var db = NewDb();
         var w = await SeedAsync(db);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             NewService(db).AssignTestsAsync(w.Sample.Id, new[] { new TestAnalystAssignment(w.Tamc.Id, AnalystFp) }, actingUserId: BothHead));
 
         Assert.Contains("not a member of the Microbiology Laboratory laboratory section", ex.Message);
@@ -212,7 +213,7 @@ public class SampleAssignmentTests
         await using var db = NewDb();
         var w = await SeedAsync(db);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             NewService(db).AssignTestsAsync(w.Sample.Id, new[] { new TestAnalystAssignment(w.Tamc.Id, Admin) }, actingUserId: BothHead));
 
         Assert.Contains("only Analysts, Reviewers and Section Heads", ex.Message);
@@ -224,7 +225,7 @@ public class SampleAssignmentTests
         await using var db = NewDb();
         var w = await SeedAsync(db);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             NewService(db).AssignTestsAsync(w.Sample.Id, new[] { new TestAnalystAssignment(w.ApprovedEc.Id, AnalystMicro) }, actingUserId: HeadMicro));
 
         Assert.Contains("closed", ex.Message);
@@ -248,7 +249,7 @@ public class SampleAssignmentTests
         await using var db = NewDb();
         var w = await SeedAsync(db);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        await Assert.ThrowsAsync<BusinessRuleException>(() =>
             NewService(db).AssignTestsAsync(w.Sample.Id, new[]
             {
                 new TestAnalystAssignment(w.Tamc.Id, AnalystMicro),
@@ -294,7 +295,7 @@ public class SampleAssignmentTests
         Assert.All(options.Tests, t => Assert.False(t.CanAssign));
         Assert.Empty(options.Users);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => service.AssignAnalystAsync(w.Sample.Id, AnalystMicro, actingUserId: Admin));
+        await Assert.ThrowsAsync<BusinessRuleException>(() => service.AssignAnalystAsync(w.Sample.Id, AnalystMicro, actingUserId: Admin));
         await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
             service.AssignTestsAsync(w.Sample.Id, new[] { new TestAnalystAssignment(w.Tamc.Id, AnalystMicro) }, actingUserId: Admin));
         Assert.Null(w.Tamc.AssignedAnalystId);

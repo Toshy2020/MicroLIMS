@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 ﻿using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.DTOs;
 using MicroLIMS.Application.Services;
@@ -32,7 +33,7 @@ public class TitrationTestMasterReasonTests
     {
         var (db, s, svc) = Setup();
         using var _ = db;
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => svc.UpdateTestDefinitionAsync(s.UserId, s.Test.Id, Update(s, factor: 88.07m)));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => svc.UpdateTestDefinitionAsync(s.UserId, s.Test.Id, Update(s, factor: 88.07m)));
         Assert.Equal("A reason for change is required when titration settings change.", ex.Message);
     }
 
@@ -68,7 +69,7 @@ public class TitrationTestMasterReasonTests
         UpdateTestDefinitionRequest Req(string? reason) =>
             new(lod.Code, lod.DisplayName, MoistureRole: MoistureRole.LossOnDrying) { ChangeReason = reason };
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => svc.UpdateTestDefinitionAsync(s.UserId, lod.Id, Req(null)));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => svc.UpdateTestDefinitionAsync(s.UserId, lod.Id, Req(null)));
         db.ChangeTracker.Clear(); // the refused call left its edit on the tracked entity; each real request has a fresh context
         Assert.Equal(MoistureRole.None, (await db.TestDefinitions.AsNoTracking().SingleAsync(t => t.Id == lod.Id)).MoistureRole);
         Assert.Equal(MoistureRole.None, (await db.TestDefinitions.AsNoTracking().SingleAsync(t => t.Id == lod.Id)).MoistureRole);
@@ -89,7 +90,7 @@ public class TitrationTestMasterReasonTests
     {
         var (db, s, svc) = Setup();
         using var _ = db;
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             svc.UpdateTestDefinitionAsync(s.UserId, s.Test.Id, Update(s) with { PhyschemArea = PhyschemArea.FinishedProduct }));
         Assert.Equal("A reason for change is required when titration settings change.", ex.Message);
     }

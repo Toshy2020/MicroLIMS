@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using System.Text.Json;
 using MicroLIMS.Application.Helpers;
 using MicroLIMS.Application.Services;
@@ -26,7 +27,7 @@ public sealed class HplcMethodAssayRecorder : TestWorkflowSupport
 
         var problem = c.SubmitProblem();
         if (problem != null)
-            throw new InvalidOperationException(problem);
+            throw new BusinessRuleException(problem);
 
         var (order, _, _, analysedAtUtc) = await ValidateTestAnalysisOrderAsync(
             c.Order.Id, _clock.UtcNow.UtcDateTime, null, null, password, WorkflowType.HplcMethodAssay, userId);
@@ -35,7 +36,7 @@ public sealed class HplcMethodAssayRecorder : TestWorkflowSupport
         if (c.Snapshot.ResultMode == HplcResultMode.Assay && c.MoistureRole != MoistureRole.None)
         {
             moisture = await new SampleMoistureResolver(_db).ResolveLockedAsync(c.Order.SampleId, c.MoistureRole)
-                ?? throw new InvalidOperationException(SampleMoistureResolver.MissingMessage(c.MoistureRole));
+                ?? throw new BusinessRuleException(SampleMoistureResolver.MissingMessage(c.MoistureRole));
         }
 
         var relatedSubstances = c.IsRelatedSubstances ? c.CalculateRelatedSubstances() : new List<RsRowResult>();

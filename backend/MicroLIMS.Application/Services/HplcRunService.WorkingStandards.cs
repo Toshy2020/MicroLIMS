@@ -72,16 +72,16 @@ public partial class HplcRunService
         await EnsureAccessAsync(run, userId, ct);
 
         if (run.Status != HplcRunStatus.Open)
-            throw new InvalidOperationException("The run is closed.");
+            throw new BusinessRuleException("The run is closed.");
         if (run.Sst?.Status != HplcSstStatus.Passed)
-            throw new InvalidOperationException("Sample assignment is locked until system suitability passes.");
+            throw new BusinessRuleException("Sample assignment is locked until system suitability passes.");
         if (SstUsedWorkingStandard(run))
-            throw new InvalidOperationException(
+            throw new BusinessRuleException(
                 "A working standard can only be qualified against a primary reference standard - this run's system suitability used a working standard.");
 
         var ids = (qualificationIds ?? new List<int>()).Distinct().ToList();
         if (ids.Count == 0)
-            throw new InvalidOperationException("Select at least one qualification.");
+            throw new BusinessRuleException("Select at least one qualification.");
 
         var eligible = await EligibleQualificationsAsync(run, ids, ct);
         foreach (var id in ids.Where(id => eligible.All(e => e.Q.Id != id)))
@@ -90,7 +90,7 @@ public partial class HplcRunService
             var busyRun = await _db.HplcRunSamples
                 .Where(s => s.WorkingStandardQualificationId == id && s.Status == HplcRunSampleStatus.Assigned && s.HplcRun!.Status != HplcRunStatus.Abandoned)
                 .Select(s => s.HplcRun!.Code).FirstOrDefaultAsync(ct);
-            throw new InvalidOperationException(busyRun != null
+            throw new BusinessRuleException(busyRun != null
                 ? $"Qualification {code} is already assigned to run {busyRun}."
                 : $"Qualification {code} is not eligible for this run.");
         }
@@ -126,27 +126,27 @@ public partial class HplcRunService
 
         var problem = QualificationEditableProblem(c.Run, c.RunSample, c.Q);
         if (problem != null)
-            throw new InvalidOperationException(problem);
+            throw new BusinessRuleException(problem);
 
         var inputs = r.Replicates ?? new List<HplcReplicateInput>();
         var hasIs = !string.IsNullOrWhiteSpace(c.Snapshot.InternalStandardName);
         if (!hasIs && inputs.Any(x => x.InternalStandardResponse.HasValue))
-            throw new InvalidOperationException("This method has no internal standard.");
+            throw new BusinessRuleException("This method has no internal standard.");
         if (inputs.Any(x => x.Peaks is { Count: > 0 }))
-            throw new InvalidOperationException("Peaks are not used for working-standard qualification.");
+            throw new BusinessRuleException("Peaks are not used for working-standard qualification.");
 
         for (var i = 0; i < inputs.Count; i++)
         {
             if (inputs[i].ActualWeightMg <= 0)
-                throw new InvalidOperationException($"Replicate {i + 1}: the sample weight must be greater than zero.");
+                throw new BusinessRuleException($"Replicate {i + 1}: the sample weight must be greater than zero.");
             if (hasIs && inputs[i].InternalStandardResponse is null or <= 0)
-                throw new InvalidOperationException($"Replicate {i + 1}: the internal standard response is required.");
+                throw new BusinessRuleException($"Replicate {i + 1}: the internal standard response is required.");
             var responses = inputs[i].Responses ?? new List<HplcReplicateResponseInput>();
             var matches = responses.Where(x => x.HplcMethodAnalyteId == c.Analyte.Id).ToList();
             if (matches.Count != 1 || responses.Count != 1)
-                throw new InvalidOperationException($"Replicate {i + 1}: exactly one response for {c.Analyte.Name} is required.");
+                throw new BusinessRuleException($"Replicate {i + 1}: exactly one response for {c.Analyte.Name} is required.");
             if (matches[0].Response <= 0)
-                throw new InvalidOperationException($"Replicate {i + 1}: the response for {c.Analyte.Name} must be greater than zero.");
+                throw new BusinessRuleException($"Replicate {i + 1}: the response for {c.Analyte.Name} must be greater than zero.");
         }
 
         await ReplaceReplicatesAsync(c.RunSample, inputs, ct);
@@ -160,7 +160,7 @@ public partial class HplcRunService
 
         var problem = QualificationSubmitProblem(c);
         if (problem != null)
-            throw new InvalidOperationException(problem);
+            throw new BusinessRuleException(problem);
 
         // Pure calculation first, then sign (a failed password saves its own
         // audit row), then mutate - same order as ConfirmSstAsync.
@@ -193,7 +193,7 @@ public partial class HplcRunService
 
     private HplcMethodResponse ReadSnapshot(HplcRun run) =>
         JsonSerializer.Deserialize<HplcMethodResponse>(run.MethodSnapshotJson, JsonOptions)
-            ?? throw new InvalidOperationException("The run's method snapshot could not be read.");
+            ?? throw new BusinessRuleException("The run's method snapshot could not be read.");
 
     private async Task<QualificationSampleContext> LoadQualificationSampleAsync(int runSampleId, CancellationToken ct)
     {
@@ -201,12 +201,12 @@ public partial class HplcRunService
             .FirstOrDefaultAsync(s => s.Id == runSampleId, ct)
             ?? throw new NotFoundException($"Run sample {runSampleId} not found.");
         if (runSample.WorkingStandardQualificationId is not int qId)
-            throw new InvalidOperationException("This run sample is a test order - open it from the sample entry.");
+            throw new BusinessRuleException("This run sample is a test order - open it from the sample entry.");
         var run = await LoadRunAsync(runSample.HplcRunId, ct);
         var q = await _db.WorkingStandardQualifications.Include(x => x.Documents).FirstAsync(x => x.Id == qId, ct);
         var snapshot = ReadSnapshot(run);
         var analyte = snapshot.Analytes.FirstOrDefault(a => a.Id == q.HplcMethodAnalyteId)
-            ?? throw new InvalidOperationException("This qualification is no longer measured on this run's method analyte.");
+            ?? throw new BusinessRuleException("This qualification is no longer measured on this run's method analyte.");
         return new QualificationSampleContext(run, runSample, q, snapshot, analyte);
     }
 

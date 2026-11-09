@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.DTOs.Responses;
 using MicroLIMS.Application.Services;
@@ -155,7 +156,7 @@ public class TestingMaterialCatalogTests
         Assert.Equal(new[] { "PS-001" }, (await service.GetAsync(w.OwnerId, search: "ps-0")).Select(r => r.Code));
         Assert.Equal(new[] { "ORG-001" }, (await service.GetAsync(w.OwnerId, group: TestingMaterialGroups.ReferenceOrganisms, search: "8739")).Select(r => r.Code));
         Assert.Empty(await service.GetAsync(w.OwnerId, search: "nothing like this"));
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.GetAsync(w.OwnerId, group: "Nonsense"));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => service.GetAsync(w.OwnerId, group: "Nonsense"));
         Assert.Contains("Unknown group", ex.Message);
     }
 

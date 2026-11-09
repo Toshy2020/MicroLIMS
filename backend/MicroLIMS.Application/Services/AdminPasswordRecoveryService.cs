@@ -53,16 +53,16 @@ public class AdminPasswordRecoveryService
     public async Task<CreateRecoveryResultDto> CreateRecoveryRequestAsync(int targetUserId, string reason, int actingUserId)
     {
         if (actingUserId == targetUserId)
-            throw new InvalidOperationException("System Administrators cannot initiate admin-assisted password recovery for their own account.");
+            throw new BusinessRuleException("System Administrators cannot initiate admin-assisted password recovery for their own account.");
 
         if (string.IsNullOrWhiteSpace(reason))
-            throw new InvalidOperationException("A reason is required for administrator-assisted password recovery.");
+            throw new BusinessRuleException("A reason is required for administrator-assisted password recovery.");
 
         var user = await _db.Users.FirstOrDefaultAsync(u => u.Id == targetUserId)
             ?? throw new NotFoundException($"User {targetUserId} not found.");
 
         if (!user.IsActive)
-            throw new InvalidOperationException("Cannot initiate password recovery for a disabled user account. Please enable the account first.");
+            throw new BusinessRuleException("Cannot initiate password recovery for a disabled user account. Please enable the account first.");
 
         // Invalidate any existing active recovery codes for this user
         var activeRequests = await _db.AdminPasswordRecoveries
@@ -111,18 +111,18 @@ public class AdminPasswordRecoveryService
     public async Task ConfirmRecoveryAsync(string username, string recoveryCode, string newPassword)
     {
         if (string.IsNullOrWhiteSpace(username))
-            throw new InvalidOperationException("Username is required.");
+            throw new BusinessRuleException("Username is required.");
         if (string.IsNullOrWhiteSpace(recoveryCode))
-            throw new InvalidOperationException("Recovery code is required.");
+            throw new BusinessRuleException("Recovery code is required.");
 
         // This endpoint is anonymous: an unknown username, a disabled account
         // and a wrong code must all look the same to the caller, or it becomes
         // a way to discover usernames and account state.
         var user = await _db.Users.FirstOrDefaultAsync(u => u.Username == username)
-            ?? throw new InvalidOperationException(InvalidRecoveryCodeMessage);
+            ?? throw new BusinessRuleException(InvalidRecoveryCodeMessage);
 
         if (!user.IsActive)
-            throw new InvalidOperationException(InvalidRecoveryCodeMessage);
+            throw new BusinessRuleException(InvalidRecoveryCodeMessage);
 
         var incomingHash = HashRecoveryCode(recoveryCode);
 
@@ -144,7 +144,7 @@ public class AdminPasswordRecoveryService
                 Timestamp = _time.GetUtcNow().UtcDateTime
             });
             await _db.SaveChangesAsync();
-            throw new InvalidOperationException(InvalidRecoveryCodeMessage);
+            throw new BusinessRuleException(InvalidRecoveryCodeMessage);
         }
 
         if (_time.GetUtcNow().UtcDateTime > recovery.ExpiresAt)
@@ -161,7 +161,7 @@ public class AdminPasswordRecoveryService
                 Timestamp = _time.GetUtcNow().UtcDateTime
             });
             await _db.SaveChangesAsync();
-            throw new InvalidOperationException("Recovery code has expired. Please request a new recovery code.");
+            throw new BusinessRuleException("Recovery code has expired. Please request a new recovery code.");
         }
 
         if (!string.Equals(recovery.CodeHash, incomingHash, StringComparison.OrdinalIgnoreCase))
@@ -194,7 +194,7 @@ public class AdminPasswordRecoveryService
             }
 
             await _db.SaveChangesAsync();
-            throw new InvalidOperationException(recovery.FailedAttempts >= 5
+            throw new BusinessRuleException(recovery.FailedAttempts >= 5
                 ? "Maximum failed recovery attempts exceeded. Recovery code invalidated."
                 : "Invalid recovery code.");
         }
@@ -202,7 +202,7 @@ public class AdminPasswordRecoveryService
         // Code matches - Validate Password Policy
         var failures = PasswordPolicy.Validate(newPassword, await _settings.GetIntOrDefaultAsync(SystemSettingKeys.PasswordMinimumLength));
         if (failures.Count > 0)
-            throw new InvalidOperationException(string.Join(" ", failures));
+            throw new BusinessRuleException(string.Join(" ", failures));
 
         // Validate Password History (last 5 passwords)
         var historyHashes = await _db.PasswordHistories
@@ -215,7 +215,7 @@ public class AdminPasswordRecoveryService
         foreach (var oldHash in historyHashes)
         {
             if (BCrypt.Net.BCrypt.Verify(newPassword, oldHash))
-                throw new InvalidOperationException("New password must not match any of your last 5 passwords.");
+                throw new BusinessRuleException("New password must not match any of your last 5 passwords.");
         }
 
         var newHash = BCrypt.Net.BCrypt.HashPassword(newPassword);

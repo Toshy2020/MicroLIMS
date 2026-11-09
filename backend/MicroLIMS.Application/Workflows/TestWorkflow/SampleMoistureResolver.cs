@@ -51,7 +51,7 @@ public sealed class SampleMoistureResolver
     {
         var list = bases.ToList();
         bool dried = list.Contains(ResultBasis.PercentDriedBasis), anhydrous = list.Contains(ResultBasis.PercentAnhydrousBasis);
-        if (dried && anhydrous) throw new InvalidOperationException($"One {test} cannot report on both dried and anhydrous basis.");
+        if (dried && anhydrous) throw new BusinessRuleException($"One {test} cannot report on both dried and anhydrous basis.");
         return dried ? MoistureRole.LossOnDrying : anhydrous ? MoistureRole.Water : MoistureRole.None;
     }
 
@@ -75,7 +75,7 @@ public sealed class SampleMoistureResolver
             ? "The loss on drying test must report one numeric result."
             : "The water test must report one numeric result.";
         if (results.Count != 1 || results[0].ReportedValue is not decimal percent || percent < 0m || percent >= 100m)
-            throw new InvalidOperationException(refusal);
+            throw new BusinessRuleException(refusal);
         return new SampleMoisture(percent, results[0].TestOrderId, results[0].Id, results[0].TestCode, role);
     }
 
@@ -97,7 +97,7 @@ public sealed class SampleMoistureResolver
         var m = await ResolveAsync(order.SampleId, role);
         if (m == null) return null;
         // the value comes from another test order, possibly in another laboratory section
-        await (_scope ?? throw new InvalidOperationException("Section scope is not available.")).EnsureTestOrderAccessAsync(userId, m.TestOrderId, ct);
+        await (_scope ?? throw new BusinessRuleException("Section scope is not available.")).EnsureTestOrderAccessAsync(userId, m.TestOrderId, ct);
         return new SampleMoistureView(role, m.Percent, m.TestCode);
     }
 }

@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.DTOs;
 using MicroLIMS.Application.Services;
@@ -136,9 +137,9 @@ public class PreparationMaterialTraceabilityTests
         var c = await SetUpAsync();
         var tsb = await PreparationTestData.ProductAsync(c.Db);
 
-        var d = await Assert.ThrowsAsync<InvalidOperationException>(() => Save(c, null, PreparationTestData.ContainedInMedium));
+        var d = await Assert.ThrowsAsync<BusinessRuleException>(() => Save(c, null, PreparationTestData.ContainedInMedium));
         Assert.Contains("diluent", d.Message);
-        var n = await Assert.ThrowsAsync<InvalidOperationException>(() => Save(c, PreparationTestData.MediaChoice(tsb), new PreparationMaterialChoice(null)));
+        var n = await Assert.ThrowsAsync<BusinessRuleException>(() => Save(c, PreparationTestData.MediaChoice(tsb), new PreparationMaterialChoice(null)));
         Assert.Contains("neutralizer", n.Message);
         Assert.Empty(c.Db.ItemPreparationConfigurations);
     }
@@ -147,7 +148,7 @@ public class PreparationMaterialTraceabilityTests
     public async Task Upsert_ContainedInMedium_IsForTheNeutralizerOnly()
     {
         var c = await SetUpAsync();
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             Save(c, PreparationTestData.ContainedInMedium, PreparationTestData.ContainedInMedium));
         Assert.Contains("neutralizer", ex.Message);
     }
@@ -159,14 +160,14 @@ public class PreparationMaterialTraceabilityTests
         var tsb = await PreparationTestData.ProductAsync(c.Db);
         var recipe = await PreparationTestData.RecipeAsync(c.Db);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        await Assert.ThrowsAsync<BusinessRuleException>(() =>
             Save(c, new PreparationMaterialChoice(PreparationMaterialSource.MediaProduct), PreparationTestData.ContainedInMedium));
         // The ids of another source must stay empty.
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        await Assert.ThrowsAsync<BusinessRuleException>(() =>
             Save(c, new PreparationMaterialChoice(PreparationMaterialSource.MediaProduct, MediaProductId: tsb.Id, SolutionMasterId: recipe.Id), PreparationTestData.ContainedInMedium));
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        await Assert.ThrowsAsync<BusinessRuleException>(() =>
             Save(c, PreparationTestData.MediaChoice(tsb), new PreparationMaterialChoice(PreparationMaterialSource.ContainedInMedium, MediaProductId: tsb.Id)));
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        await Assert.ThrowsAsync<BusinessRuleException>(() =>
             Save(c, new PreparationMaterialChoice(PreparationMaterialSource.MediaProduct, MediaProductId: 9999), PreparationTestData.ContainedInMedium));
     }
 
@@ -188,11 +189,11 @@ public class PreparationMaterialTraceabilityTests
             PreparationTestData.EntryChoice(inactiveEntry)
         })
         {
-            var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => Save(c, choice, PreparationTestData.ContainedInMedium));
+            var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => Save(c, choice, PreparationTestData.ContainedInMedium));
             Assert.Contains("inactive", ex.Message);
         }
         // The neutralizer role is checked the same way.
-        await Assert.ThrowsAsync<InvalidOperationException>(() => Save(c, PreparationTestData.MediaChoice(active), PreparationTestData.MediaChoice(inactiveProduct)));
+        await Assert.ThrowsAsync<BusinessRuleException>(() => Save(c, PreparationTestData.MediaChoice(active), PreparationTestData.MediaChoice(inactiveProduct)));
     }
 
     [Fact]
@@ -204,7 +205,7 @@ public class PreparationMaterialTraceabilityTests
 
         foreach (var recipe in new[] { mobilePhase, titrant })
         {
-            var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
                 Save(c, PreparationTestData.SolutionChoice(recipe), PreparationTestData.ContainedInMedium));
             Assert.Contains("Diluent, Reagent or Neutralizer", ex.Message);
         }
@@ -323,7 +324,7 @@ public class PreparationMaterialTraceabilityTests
     private static async Task<InvalidOperationException> ConfirmFails(Ctx c, int? diluentLot, int? neutralizerLot = null, int user = Analyst)
     {
         var sample = await NewSampleAsync(c, "F-" + Guid.NewGuid().ToString("N")[..6]);
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             c.Service.ConfirmFromConfigurationAsync(Confirm(sample, diluentLot, neutralizerLot, user)));
         Assert.Empty(await c.Db.SamplePreparations.ToListAsync());
         Assert.Empty(await c.Db.ElectronicSignatures.ToListAsync());
@@ -443,7 +444,7 @@ public class PreparationMaterialTraceabilityTests
         await c.Db.SaveChangesAsync();
         await AddConfigAsync(c, null, null, legacyItem);
         var sample = await NewSampleAsync(c, "L-1", legacyItem);
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             c.Service.ConfirmFromConfigurationAsync(Confirm(sample, media.Id)));
         Assert.Contains("not linked to a master record", ex.Message);
     }
@@ -475,9 +476,9 @@ public class PreparationMaterialTraceabilityTests
             sample.Id, 10m, "PourPlate", null, null, "free text", "free text", Analyst, Password,
             d, PreparationTestData.ContainedInMedium, DiluentLotId: dLot);
 
-        var noSource = await Assert.ThrowsAsync<InvalidOperationException>(() => c.Service.PrepareAsync(Req(null, null)));
+        var noSource = await Assert.ThrowsAsync<BusinessRuleException>(() => c.Service.PrepareAsync(Req(null, null)));
         Assert.Contains("Choose where the diluent comes from", noSource.Message);
-        var noLot = await Assert.ThrowsAsync<InvalidOperationException>(() => c.Service.PrepareAsync(Req(PreparationTestData.MediaChoice(tsb), null)));
+        var noLot = await Assert.ThrowsAsync<BusinessRuleException>(() => c.Service.PrepareAsync(Req(PreparationTestData.MediaChoice(tsb), null)));
         Assert.Equal("Pick the diluent lot used.", noLot.Message);
 
         var prep = await c.Service.PrepareAsync(Req(PreparationTestData.MediaChoice(tsb), lot.Id));
@@ -530,10 +531,10 @@ public class PreparationMaterialTraceabilityTests
         var config = await AddConfigAsync(c, PreparationTestData.MediaChoice(tsb), PreparationTestData.ContainedInMedium);
         var samples = new List<int> { (await NewSampleAsync(c, "G-4")).Id, (await NewSampleAsync(c, "G-5")).Id };
 
-        var bad = await Assert.ThrowsAsync<InvalidOperationException>(() => c.Service.ConfirmBatchFromConfigurationAsync(
+        var bad = await Assert.ThrowsAsync<BusinessRuleException>(() => c.Service.ConfirmBatchFromConfigurationAsync(
             new BatchConfirmPreparationRequest(samples, config.Id, Password, unreleased.Id, null), Analyst));
         Assert.Contains("not released for use", bad.Message);
-        var missing = await Assert.ThrowsAsync<InvalidOperationException>(() => c.Service.ConfirmBatchFromConfigurationAsync(
+        var missing = await Assert.ThrowsAsync<BusinessRuleException>(() => c.Service.ConfirmBatchFromConfigurationAsync(
             new BatchConfirmPreparationRequest(samples, config.Id, Password), Analyst));
         Assert.Equal("Pick the diluent lot used.", missing.Message);
 
@@ -680,8 +681,8 @@ public class PreparationMaterialTraceabilityTests
         var byStock = Assert.Single(await c.Materials.GetWhereUsedAsync(null, null, stock.Id, Analyst));
         Assert.Equal("Neutralizer", byStock.Role);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => c.Materials.GetWhereUsedAsync(null, null, null, Analyst));
-        await Assert.ThrowsAsync<InvalidOperationException>(() => c.Materials.GetWhereUsedAsync(1, solution.Id, null, Analyst));
+        await Assert.ThrowsAsync<BusinessRuleException>(() => c.Materials.GetWhereUsedAsync(null, null, null, Analyst));
+        await Assert.ThrowsAsync<BusinessRuleException>(() => c.Materials.GetWhereUsedAsync(1, solution.Id, null, Analyst));
         await Assert.ThrowsAsync<UnauthorizedAccessException>(async () =>
         {
             var tsb = await PreparationTestData.ProductAsync(c.Db);

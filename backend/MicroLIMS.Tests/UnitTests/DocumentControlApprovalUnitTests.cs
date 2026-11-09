@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.DTOs.DocumentControl;
 using MicroLIMS.Application.Interfaces.DocumentControl;
@@ -173,7 +174,7 @@ public class DocumentControlApprovalUnitTests
         revision.RevisionStatus = DocumentRevisionStatus.Draft;
         await db.SaveChangesAsync();
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             approvalService.CreateApprovalTaskAsync(revision.Id, new CreateApprovalTaskRequest(approver.Id), author.Id));
 
         Assert.Contains("Status must be 'AwaitingApproval'", ex.Message);
@@ -190,7 +191,7 @@ public class DocumentControlApprovalUnitTests
         db.DocumentReviewTasks.RemoveRange(reviews);
         await db.SaveChangesAsync();
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             approvalService.CreateApprovalTaskAsync(revision.Id, new CreateApprovalTaskRequest(approver.Id), author.Id));
 
         Assert.Contains("Revision has not completed technical review", ex.Message);
@@ -204,7 +205,7 @@ public class DocumentControlApprovalUnitTests
 
         await approvalService.CreateApprovalTaskAsync(revision.Id, new CreateApprovalTaskRequest(approver.Id), author.Id);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             approvalService.CreateApprovalTaskAsync(revision.Id, new CreateApprovalTaskRequest(approver.Id), author.Id));
 
         Assert.Contains("already pending", ex.Message);
@@ -217,7 +218,7 @@ public class DocumentControlApprovalUnitTests
             await CreateSeededContextWithApprovalReadyRevisionAsync();
 
         // Author has Analyst role (not Reviewer, SectionHead, or Admin)
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             approvalService.CreateApprovalTaskAsync(revision.Id, new CreateApprovalTaskRequest(author.Id), controller.Id));
 
         Assert.Contains("is not eligible to be assigned as an approver", ex.Message);
@@ -277,7 +278,7 @@ public class DocumentControlApprovalUnitTests
         var (db, _, controller, _, _, admin, _, revision, approvalService, _) =
             await CreateSeededContextWithApprovalReadyRevisionAsync();
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             approvalService.CreateApprovalTaskAsync(revision.Id, new CreateApprovalTaskRequest(admin.Id), controller.Id));
 
         Assert.Contains("not eligible to be assigned as an approver", ex.Message);

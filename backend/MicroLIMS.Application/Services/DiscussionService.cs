@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using MicroLIMS.Application.Helpers;
 using System.Security.Cryptography;
 using Microsoft.EntityFrameworkCore;
@@ -293,15 +294,15 @@ public class DiscussionService
         int authorUserId)
     {
         if (string.IsNullOrWhiteSpace(request.Title))
-            throw new InvalidOperationException("Title is required.");
+            throw new BusinessRuleException("Title is required.");
         if (string.IsNullOrWhiteSpace(request.Content))
-            throw new InvalidOperationException("Content is required.");
+            throw new BusinessRuleException("Content is required.");
 
         // Checked before the post exists, so a rejected attachment leaves no
         // half-created post behind.
         if (attachments is { Count: > 0 }
             && DiscussionAttachmentPolicy.Validate(attachments.Select(a => (a.FileName, a.Data)).ToList()) is { } attachmentProblem)
-            throw new InvalidOperationException(attachmentProblem);
+            throw new BusinessRuleException(attachmentProblem);
 
         var post = new DiscussionPost
         {
@@ -372,9 +373,9 @@ public class DiscussionService
             throw new UnauthorizedAccessException("You are not authorized to edit this discussion post.");
 
         if (string.IsNullOrWhiteSpace(request.Title))
-            throw new InvalidOperationException("Title is required.");
+            throw new BusinessRuleException("Title is required.");
         if (string.IsNullOrWhiteSpace(request.Content))
-            throw new InvalidOperationException("Content is required.");
+            throw new BusinessRuleException("Content is required.");
 
         // Preserve previous version in DiscussionPostVersion before updating
         var versionSnapshot = new DiscussionPostVersion
@@ -469,7 +470,7 @@ public class DiscussionService
         {
             _logger.LogError("Checksum mismatch for attachment {Id}. Expected {Exp}, calculated {Calc}",
                 attachment.Id, attachment.ContentSha256, calculatedHash);
-            throw new InvalidOperationException("File integrity verification failed.");
+            throw new BusinessRuleException("File integrity verification failed.");
         }
 
         return (data, attachment.ContentType, attachment.OriginalFileName);
@@ -483,7 +484,7 @@ public class DiscussionService
     private async Task<DiscussionCommentDto> AddCommentCoreAsync(int postId, CreateDiscussionCommentRequest request, int authorUserId)
     {
         if (string.IsNullOrWhiteSpace(request.Content))
-            throw new InvalidOperationException("Comment content cannot be empty.");
+            throw new BusinessRuleException("Comment content cannot be empty.");
 
         var post = await _db.DiscussionPosts
             .FirstOrDefaultAsync(p => p.Id == postId && !p.IsDeleted)
@@ -538,7 +539,7 @@ public class DiscussionService
             throw new UnauthorizedAccessException("You are not authorized to edit this comment.");
 
         if (string.IsNullOrWhiteSpace(request.Content))
-            throw new InvalidOperationException("Comment content cannot be empty.");
+            throw new BusinessRuleException("Comment content cannot be empty.");
 
         comment.Content = request.Content.Trim();
         comment.IsEdited = true;

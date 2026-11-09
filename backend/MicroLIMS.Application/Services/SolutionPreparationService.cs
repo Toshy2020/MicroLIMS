@@ -90,30 +90,30 @@ public class SolutionPreparationService
             throw new NotFoundException($"Solution master {r.SolutionMasterId} not found.");
 
         if (!solution.IsActive)
-            throw new InvalidOperationException($"Solution \"{solution.Name}\" is inactive.");
+            throw new BusinessRuleException($"Solution \"{solution.Name}\" is inactive.");
 
         HplcMethod? method = null;
         if (solution.Type == SolutionType.MobilePhase)
         {
             if (!r.HplcMethodId.HasValue)
-                throw new InvalidOperationException("An HPLC method is required to start a mobile phase preparation.");
+                throw new BusinessRuleException("An HPLC method is required to start a mobile phase preparation.");
 
             method = await _db.HplcMethods.Include(m => m.MobilePhases)
                 .FirstOrDefaultAsync(m => m.Id == r.HplcMethodId.Value, ct)
                 ?? throw new NotFoundException($"HPLC method {r.HplcMethodId} not found.");
 
             if (method.SectionId != solution.SectionId)
-                throw new InvalidOperationException("The HPLC method belongs to another laboratory.");
+                throw new BusinessRuleException("The HPLC method belongs to another laboratory.");
 
             if (!method.IsActive)
-                throw new InvalidOperationException($"HPLC method \"{method.Name}\" is inactive.");
+                throw new BusinessRuleException($"HPLC method \"{method.Name}\" is inactive.");
 
             if (!method.MobilePhases.Any(mp => mp.SolutionMasterId == solution.Id))
-                throw new InvalidOperationException("That method does not use this mobile phase.");
+                throw new BusinessRuleException("That method does not use this mobile phase.");
         }
         else if (r.HplcMethodId.HasValue)
         {
-            throw new InvalidOperationException("An HPLC method only applies to mobile phase preparations.");
+            throw new BusinessRuleException("An HPLC method only applies to mobile phase preparations.");
         }
 
         var snapshotJson = JsonSerializer.Serialize(SolutionMasterResponse.From(solution), JsonOptions);
@@ -171,7 +171,7 @@ public class SolutionPreparationService
         await EnsureAccessAsync(prep, userId, ct);
 
         if (prep.Status != SolutionPreparationStatus.InProgress)
-            throw new InvalidOperationException("This preparation is closed.");
+            throw new BusinessRuleException("This preparation is closed.");
 
         var today = _clock.LabToday;
         var now = _clock.UtcNow.UtcDateTime;
@@ -180,19 +180,19 @@ public class SolutionPreparationService
         foreach (var input in r.Components)
         {
             var component = prep.Components.FirstOrDefault(c => c.Id == input.ComponentId)
-                ?? throw new InvalidOperationException($"Component {input.ComponentId} does not belong to this preparation.");
+                ?? throw new BusinessRuleException($"Component {input.ComponentId} does not belong to this preparation.");
 
             if (component.Kind == SolutionComponentKind.Text)
             {
                 if (input.MaterialId.HasValue || input.SourcePreparationId.HasValue || input.QuantityUsed.HasValue)
-                    throw new InvalidOperationException("A text line has nothing to pick.");
+                    throw new BusinessRuleException("A text line has nothing to pick.");
                 continue;
             }
 
             if (component.Kind == SolutionComponentKind.PreparedSolution)
             {
                 if (input.MaterialId.HasValue)
-                    throw new InvalidOperationException($"{component.EntryName} is a prepared solution: pick a prepared bottle, not a stock lot.");
+                    throw new BusinessRuleException($"{component.EntryName} is a prepared solution: pick a prepared bottle, not a stock lot.");
 
                 if (!input.SourcePreparationId.HasValue)
                 {
@@ -202,14 +202,14 @@ public class SolutionPreparationService
                 }
 
                 if (input.QuantityUsed.HasValue && input.QuantityUsed.Value <= 0)
-                    throw new InvalidOperationException($"Quantity used for \"{component.EntryName}\" must be greater than zero.");
+                    throw new BusinessRuleException($"Quantity used for \"{component.EntryName}\" must be greater than zero.");
 
                 var source = await _db.SolutionPreparations.AsNoTracking().FirstOrDefaultAsync(p => p.Id == input.SourcePreparationId.Value, ct)
                     ?? throw new NotFoundException($"Solution preparation {input.SourcePreparationId} not found.");
 
                 var sourceCheck = CheckSource(source, component, prep.SectionId, now);
                 if (!sourceCheck.Usable)
-                    throw new InvalidOperationException($"{component.EntryName} (preparation {source.Code}): {sourceCheck.Reason}");
+                    throw new BusinessRuleException($"{component.EntryName} (preparation {source.Code}): {sourceCheck.Reason}");
 
                 component.SourcePreparationId = source.Id;
                 component.QuantityUsed = input.QuantityUsed;
@@ -217,7 +217,7 @@ public class SolutionPreparationService
             }
 
             if (input.SourcePreparationId.HasValue)
-                throw new InvalidOperationException($"{component.EntryName} is a stock material: pick a lot, not a prepared bottle.");
+                throw new BusinessRuleException($"{component.EntryName} is a stock material: pick a lot, not a prepared bottle.");
 
             if (!input.MaterialId.HasValue)
             {
@@ -227,27 +227,27 @@ public class SolutionPreparationService
             }
 
             if (input.QuantityUsed.HasValue && input.QuantityUsed.Value <= 0)
-                throw new InvalidOperationException($"Quantity used for \"{component.EntryName}\" must be greater than zero.");
+                throw new BusinessRuleException($"Quantity used for \"{component.EntryName}\" must be greater than zero.");
 
             var lot = await _db.Materials.FirstOrDefaultAsync(m => m.Id == input.MaterialId.Value, ct)
                 ?? throw new NotFoundException($"Material {input.MaterialId} not found.");
 
             if (lot.SectionId != prep.SectionId)
-                throw new InvalidOperationException($"Lot \"{lot.LotLabel}\" belongs to another laboratory.");
+                throw new BusinessRuleException($"Lot \"{lot.LotLabel}\" belongs to another laboratory.");
 
             var check = LotUsability.Check(lot, component.MaterialMasterEntryId!.Value, input.QuantityUsed, today);
             if (!check.Usable)
-                throw new InvalidOperationException($"{component.EntryName} (lot {lot.LotLabel}): {check.Reason}");
+                throw new BusinessRuleException($"{component.EntryName} (lot {lot.LotLabel}): {check.Reason}");
 
             component.MaterialId = lot.Id;
             component.QuantityUsed = input.QuantityUsed;
         }
 
         if (r.FinalVolumeMl.HasValue && r.FinalVolumeMl.Value <= 0)
-            throw new InvalidOperationException("Final volume must be greater than zero.");
+            throw new BusinessRuleException("Final volume must be greater than zero.");
 
         if (r.MeasuredPh.HasValue && (r.MeasuredPh.Value < 0 || r.MeasuredPh.Value > 14))
-            throw new InvalidOperationException("Measured pH must be between 0 and 14.");
+            throw new BusinessRuleException("Measured pH must be between 0 and 14.");
 
         prep.FinalVolumeMl = r.FinalVolumeMl;
         prep.MeasuredPh = r.MeasuredPh;
@@ -269,7 +269,7 @@ public class SolutionPreparationService
             ?? throw new NotFoundException($"Component {componentId} not found on this preparation.");
 
         if (component.Kind != SolutionComponentKind.Material)
-            throw new InvalidOperationException($"{component.EntryName} is not a stock material.");
+            throw new BusinessRuleException($"{component.EntryName} is not a stock material.");
 
         var today = _clock.LabToday;
         var lots = await _db.Materials.AsNoTracking()
@@ -296,7 +296,7 @@ public class SolutionPreparationService
             ?? throw new NotFoundException($"Component {componentId} not found on this preparation.");
 
         if (component.Kind != SolutionComponentKind.PreparedSolution)
-            throw new InvalidOperationException($"{component.EntryName} is not a prepared solution.");
+            throw new BusinessRuleException($"{component.EntryName} is not a prepared solution.");
 
         var now = _clock.UtcNow.UtcDateTime;
         var candidates = await _db.SolutionPreparations.AsNoTracking()
@@ -325,29 +325,29 @@ public class SolutionPreparationService
         await EnsureAccessAsync(prep, userId, ct);
 
         if (prep.Status != SolutionPreparationStatus.InProgress)
-            throw new InvalidOperationException("This preparation is closed.");
+            throw new BusinessRuleException("This preparation is closed.");
 
         if (prep.Components.Any(c => c.Kind == SolutionComponentKind.Material && (!c.MaterialId.HasValue || !c.QuantityUsed.HasValue)))
-            throw new InvalidOperationException("Every component needs a lot and a quantity before completion.");
+            throw new BusinessRuleException("Every component needs a lot and a quantity before completion.");
 
         if (prep.Components.Any(c => c.Kind == SolutionComponentKind.PreparedSolution && !c.SourcePreparationId.HasValue))
-            throw new InvalidOperationException("Every prepared solution component needs a prepared bottle before completion.");
+            throw new BusinessRuleException("Every prepared solution component needs a prepared bottle before completion.");
 
         if (!prep.FinalVolumeMl.HasValue)
-            throw new InvalidOperationException("Final volume is required before completion.");
+            throw new BusinessRuleException("Final volume is required before completion.");
 
         var snapshot = ReadSnapshot(prep);
 
         if (snapshot.PhTarget.HasValue)
         {
             if (!prep.MeasuredPh.HasValue)
-                throw new InvalidOperationException("Measured pH is required before completion.");
+                throw new BusinessRuleException("Measured pH is required before completion.");
 
             if (snapshot.PhTolerance.HasValue)
             {
                 var diff = Math.Abs(prep.MeasuredPh.Value - snapshot.PhTarget.Value);
                 if (diff > snapshot.PhTolerance.Value)
-                    throw new InvalidOperationException(
+                    throw new BusinessRuleException(
                         $"Measured pH {prep.MeasuredPh.Value} is outside {snapshot.PhTarget.Value} ± {snapshot.PhTolerance.Value}.");
             }
         }
@@ -359,11 +359,11 @@ public class SolutionPreparationService
         foreach (var component in prep.Components.Where(c => c.Kind == SolutionComponentKind.Material))
         {
             var lot = await _db.Materials.FirstOrDefaultAsync(m => m.Id == component.MaterialId!.Value, ct)
-                ?? throw new InvalidOperationException($"{component.EntryName}: the selected lot no longer exists.");
+                ?? throw new BusinessRuleException($"{component.EntryName}: the selected lot no longer exists.");
 
             var check = LotUsability.Check(lot, component.MaterialMasterEntryId!.Value, component.QuantityUsed, today);
             if (!check.Usable)
-                throw new InvalidOperationException($"{component.EntryName} (lot {lot.LotLabel}): {check.Reason}");
+                throw new BusinessRuleException($"{component.EntryName} (lot {lot.LotLabel}): {check.Reason}");
 
             picks.Add((component, lot));
         }
@@ -374,11 +374,11 @@ public class SolutionPreparationService
         foreach (var component in prep.Components.Where(c => c.Kind == SolutionComponentKind.PreparedSolution))
         {
             var source = await _db.SolutionPreparations.AsNoTracking().FirstOrDefaultAsync(p => p.Id == component.SourcePreparationId!.Value, ct)
-                ?? throw new InvalidOperationException($"{component.EntryName}: the selected preparation no longer exists.");
+                ?? throw new BusinessRuleException($"{component.EntryName}: the selected preparation no longer exists.");
 
             var check = CheckSource(source, component, prep.SectionId, nowCheck);
             if (!check.Usable)
-                throw new InvalidOperationException($"{component.EntryName} (preparation {source.Code}): {check.Reason}");
+                throw new BusinessRuleException($"{component.EntryName} (preparation {source.Code}): {check.Reason}");
         }
 
         // Signs first - see the method comment. Only after this succeeds
@@ -416,7 +416,7 @@ public class SolutionPreparationService
 
         _db.CurrentUserId = userId;
         if (!await _db.TrySaveChangesAsync(UniqueIndexNames.SolutionPreparationCode))
-            throw new InvalidOperationException("Another preparation took that code at the same moment - sign again.");
+            throw new BusinessRuleException("Another preparation took that code at the same moment - sign again.");
 
         return await GetByIdAsync(id, userId, ct);
     }
@@ -427,7 +427,7 @@ public class SolutionPreparationService
         await EnsureAccessAsync(prep, userId, ct);
 
         if (prep.Status != SolutionPreparationStatus.InProgress)
-            throw new InvalidOperationException("This preparation is closed.");
+            throw new BusinessRuleException("This preparation is closed.");
 
         var trimmedReason = ValidateReason(reason);
         var now = _clock.UtcNow.UtcDateTime;
@@ -455,7 +455,7 @@ public class SolutionPreparationService
 
         var now = _clock.UtcNow.UtcDateTime;
         if (SolutionPreparationResponse.EffectiveStatusOf(prep, now) != SolutionPreparationStatus.Prepared)
-            throw new InvalidOperationException("This preparation is closed.");
+            throw new BusinessRuleException("This preparation is closed.");
 
         var trimmedReason = ValidateReason(reason);
 
@@ -564,7 +564,7 @@ public class SolutionPreparationService
 
     private static SolutionMasterResponse ReadSnapshot(SolutionPreparation prep) =>
         JsonSerializer.Deserialize<SolutionMasterResponse>(prep.RecipeSnapshotJson, JsonOptions)
-            ?? throw new InvalidOperationException("The preparation's recipe snapshot could not be read.");
+            ?? throw new BusinessRuleException("The preparation's recipe snapshot could not be read.");
 
     // A prepared bottle may stand in for a PreparedSolution line when it is a Prepared,
     // unexpired preparation of the line's source recipe in the same laboratory, and is
@@ -601,7 +601,7 @@ public class SolutionPreparationService
         if (!snapshot.SterilizationRequired)
         {
             if (HasSterilizationFields(r))
-                throw new InvalidOperationException("This solution does not require sterilization; the autoclave record must be empty.");
+                throw new BusinessRuleException("This solution does not require sterilization; the autoclave record must be empty.");
 
             prep.AutoclaveEquipmentId = null;
             prep.AutoclaveProgram = null;
@@ -614,15 +614,15 @@ public class SolutionPreparationService
 
         var program = string.IsNullOrWhiteSpace(r.AutoclaveProgram) ? null : r.AutoclaveProgram.Trim();
         var loadType = string.IsNullOrWhiteSpace(r.LoadType) ? null : r.LoadType.Trim();
-        if (program is { Length: > 100 }) throw new InvalidOperationException("Autoclave program cannot exceed 100 characters.");
-        if (loadType is { Length: > 100 }) throw new InvalidOperationException("Load type cannot exceed 100 characters.");
-        if (r.AutoclaveTemperature is <= 0) throw new InvalidOperationException("Autoclave temperature must be greater than zero.");
-        if (r.AutoclaveCycleTime is <= 0) throw new InvalidOperationException("Autoclave cycle time must be greater than zero.");
-        if (r.AutoclaveCycleNumber is <= 0) throw new InvalidOperationException("Autoclave cycle number must be greater than zero.");
+        if (program is { Length: > 100 }) throw new BusinessRuleException("Autoclave program cannot exceed 100 characters.");
+        if (loadType is { Length: > 100 }) throw new BusinessRuleException("Load type cannot exceed 100 characters.");
+        if (r.AutoclaveTemperature is <= 0) throw new BusinessRuleException("Autoclave temperature must be greater than zero.");
+        if (r.AutoclaveCycleTime is <= 0) throw new BusinessRuleException("Autoclave cycle time must be greater than zero.");
+        if (r.AutoclaveCycleNumber is <= 0) throw new BusinessRuleException("Autoclave cycle number must be greater than zero.");
 
         if (r.AutoclaveEquipmentId.HasValue
             && !await _db.Equipment.AnyAsync(e => e.Id == r.AutoclaveEquipmentId.Value && e.Type == EquipmentType.Autoclave, ct))
-            throw new InvalidOperationException("Selected equipment is not a valid autoclave.");
+            throw new BusinessRuleException("Selected equipment is not a valid autoclave.");
 
         prep.AutoclaveEquipmentId = r.AutoclaveEquipmentId;
         prep.AutoclaveProgram = program;
@@ -639,14 +639,14 @@ public class SolutionPreparationService
 
         if (!prep.AutoclaveEquipmentId.HasValue || string.IsNullOrWhiteSpace(prep.AutoclaveProgram) || string.IsNullOrWhiteSpace(prep.LoadType)
             || !prep.AutoclaveTemperature.HasValue || !prep.AutoclaveCycleTime.HasValue || !prep.AutoclaveCycleNumber.HasValue)
-            throw new InvalidOperationException("The autoclave record (equipment, program, load type, temperature, cycle time and cycle number) is required before completion.");
+            throw new BusinessRuleException("The autoclave record (equipment, program, load type, temperature, cycle time and cycle number) is required before completion.");
 
         if (!await _db.Equipment.AnyAsync(e => e.Id == prep.AutoclaveEquipmentId.Value && e.Type == EquipmentType.Autoclave, ct))
-            throw new InvalidOperationException("Selected equipment is not a valid autoclave.");
+            throw new BusinessRuleException("Selected equipment is not a valid autoclave.");
 
-        if (prep.AutoclaveTemperature.Value <= 0) throw new InvalidOperationException("Autoclave temperature must be greater than zero.");
-        if (prep.AutoclaveCycleTime.Value <= 0) throw new InvalidOperationException("Autoclave cycle time must be greater than zero.");
-        if (prep.AutoclaveCycleNumber.Value <= 0) throw new InvalidOperationException("Autoclave cycle number must be greater than zero.");
+        if (prep.AutoclaveTemperature.Value <= 0) throw new BusinessRuleException("Autoclave temperature must be greater than zero.");
+        if (prep.AutoclaveCycleTime.Value <= 0) throw new BusinessRuleException("Autoclave cycle time must be greater than zero.");
+        if (prep.AutoclaveCycleNumber.Value <= 0) throw new BusinessRuleException("Autoclave cycle number must be greater than zero.");
     }
 
     private static DateTime ShelfLifeExpiry(DateTime preparedAtUtc, int shelfLifeValue, ShelfLifeUnit unit) =>
@@ -655,10 +655,10 @@ public class SolutionPreparationService
     private static string ValidateReason(string? reason)
     {
         if (string.IsNullOrWhiteSpace(reason))
-            throw new InvalidOperationException("A reason is required.");
+            throw new BusinessRuleException("A reason is required.");
         var trimmed = reason.Trim();
         if (trimmed.Length > 500)
-            throw new InvalidOperationException("Reason cannot exceed 500 characters.");
+            throw new BusinessRuleException("Reason cannot exceed 500 characters.");
         return trimmed;
     }
 

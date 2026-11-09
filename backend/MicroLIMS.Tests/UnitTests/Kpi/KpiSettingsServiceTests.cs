@@ -76,7 +76,7 @@ public class KpiSettingsServiceTests
         await using var db = NewDb();
         await SeedBaselineAsync(db);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        await Assert.ThrowsAsync<BusinessRuleException>(() =>
             TestServiceFactory.KpiSettings(db, Clock()).UpdateAsync(1, new((decimal)hours, mask, horizon, reason), Sam));
         Assert.Empty(db.KpiSettings);
     }

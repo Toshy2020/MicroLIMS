@@ -26,28 +26,28 @@ public sealed class IncubationStepRecorder : TestWorkflowSupport
     {
         var (order, definition) = await LoadWithTemplateAsync(testOrderId);
         var step = definition.Steps.FirstOrDefault(s => s.StepName == stepName)
-            ?? throw new InvalidOperationException($"Step \"{stepName}\" is not part of the workflow template for \"{order.TestCode}\".");
+            ?? throw new BusinessRuleException($"Step \"{stepName}\" is not part of the workflow template for \"{order.TestCode}\".");
 
         var currentStep = await FindFirstIncompleteStepAsync(testOrderId, definition);
         if (currentStep is null)
-            throw new InvalidOperationException($"All workflow steps for \"{order.TestCode}\" are already complete.");
+            throw new BusinessRuleException($"All workflow steps for \"{order.TestCode}\" are already complete.");
 
         await CheckPredecessorStepsReadyAsync(order, definition, step);
 
         if (currentStep.StepName != stepName)
-            throw new InvalidOperationException($"Workflow order violation: step \"{currentStep.StepName}\" must be completed before \"{stepName}\".");
+            throw new BusinessRuleException($"Workflow order violation: step \"{currentStep.StepName}\" must be completed before \"{stepName}\".");
 
         await RequireSamplePreparedAsync(testOrderId, order.SampleId, stepName, userId, order.CurrentStep);
 
         var alreadyOpen = await _db.Incubations.AnyAsync(i => i.TestOrderId == testOrderId && i.StepName == stepName && i.CompletedAt == null);
         if (alreadyOpen)
-            throw new InvalidOperationException($"Media has already been selected for step \"{stepName}\" - awaiting its result.");
+            throw new BusinessRuleException($"Media has already been selected for step \"{stepName}\" - awaiting its result.");
 
         var media = await _db.Media.Include(m => m.Material).FirstOrDefaultAsync(m => m.Id == mediaLotId)
             ?? throw new NotFoundException($"Media lot {mediaLotId} not found.");
 
         if (!media.IsReleasedForUse || media.Status == MediaStatus.OutOfStock || media.Status == MediaStatus.QuarantineFailed)
-            throw new InvalidOperationException($"Media lot \"{media.LotNumber}\" is not released for use, out of stock, or rejected.");
+            throw new BusinessRuleException($"Media lot \"{media.LotNumber}\" is not released for use, out of stock, or rejected.");
         SectionMediaRule.EnsureLot(media, order.SectionId);
 
         var stepMedia = await _db.TestWorkflowStepMedias
@@ -57,7 +57,7 @@ public sealed class IncubationStepRecorder : TestWorkflowSupport
             .ToListAsync();
 
         if (step.StepType is StepType.BrothEnrichment or StepType.SelectiveBroth && stepMedia.Count == 0)
-            throw new InvalidOperationException($"Step \"{stepName}\" has no media configured in Test Master.");
+            throw new BusinessRuleException($"Step \"{stepName}\" has no media configured in Test Master.");
 
         // The step template IS the approved specification for this test -
         // this is the product-level check that class-matching alone never
@@ -66,7 +66,7 @@ public sealed class IncubationStepRecorder : TestWorkflowSupport
         // every step type that reaches this method, not just broth ones.
         var permitted = stepMedia.Any(sm => StepMediumMatcher.Matches(sm, media.Material?.MediaProductId));
         if (!permitted)
-            throw new InvalidOperationException(
+            throw new BusinessRuleException(
                 $"This step requires a different medium. The selected lot is {media.Material?.MaterialName ?? "unknown"}.");
 
         // Temperature eligibility was already enforced server-side for
@@ -160,19 +160,19 @@ public sealed class IncubationStepRecorder : TestWorkflowSupport
     {
         var (order, definition) = await LoadWithTemplateAsync(testOrderId);
         var step = definition.Steps.FirstOrDefault(s => s.StepName == stepName)
-            ?? throw new InvalidOperationException($"Step \"{stepName}\" is not part of the workflow template for \"{order.TestCode}\".");
+            ?? throw new BusinessRuleException($"Step \"{stepName}\" is not part of the workflow template for \"{order.TestCode}\".");
 
         if (step.StepType != StepType.PlateCount || !step.RequiresIncubationTransfer)
-            throw new InvalidOperationException($"Step \"{stepName}\" does not use a two-stage incubation transfer.");
+            throw new BusinessRuleException($"Step \"{stepName}\" does not use a two-stage incubation transfer.");
 
         var openIncubation = await _db.Incubations
             .Where(i => i.TestOrderId == testOrderId && i.StepName == stepName && i.CompletedAt == null)
             .OrderByDescending(i => i.StartedAt)
             .FirstOrDefaultAsync()
-            ?? throw new InvalidOperationException($"Media must be selected for step \"{stepName}\" before stage 2 incubation can start.");
+            ?? throw new BusinessRuleException($"Media must be selected for step \"{stepName}\" before stage 2 incubation can start.");
 
         if (openIncubation.StageNumber != 1)
-            throw new InvalidOperationException($"Stage 2 incubation has already been started for step \"{stepName}\".");
+            throw new BusinessRuleException($"Stage 2 incubation has already been started for step \"{stepName}\".");
 
         var stage1Medium = await ResolveSelectedStepMediumAsync(step.Id, openIncubation.MediaId!.Value);
         var stage1Window = IncubationWindowResolver.Require(stage1Medium, stepName);
@@ -184,11 +184,11 @@ public sealed class IncubationStepRecorder : TestWorkflowSupport
 
         var stage2Config = await _db.TestWorkflowStepIncubationStages
             .FirstOrDefaultAsync(s => s.TestWorkflowStepId == step.Id && s.StageNumber == 2)
-            ?? throw new InvalidOperationException($"Step \"{stepName}\" has no stage 2 configuration.");
+            ?? throw new BusinessRuleException($"Step \"{stepName}\" has no stage 2 configuration.");
 
         var startedAt = _clock.UtcNow.UtcDateTime;
         if (startedAt < openIncubation.StartedAt)
-            throw new InvalidOperationException($"Stage 2 start time ({startedAt:yyyy-MM-dd HH:mm} UTC) cannot precede Stage 1 start time ({openIncubation.StartedAt:yyyy-MM-dd HH:mm} UTC).");
+            throw new BusinessRuleException($"Stage 2 start time ({startedAt:yyyy-MM-dd HH:mm} UTC) cannot precede Stage 1 start time ({openIncubation.StartedAt:yyyy-MM-dd HH:mm} UTC).");
 
         var endUtc = startedAt.AddHours(stage2Config.IncubationMaxHours);
         RequireValidIncubationWindow(stepName, stage2Config.IncubationMinHours, startedAt, endUtc);
@@ -228,14 +228,14 @@ public sealed class IncubationStepRecorder : TestWorkflowSupport
     {
         var (order, definition) = await LoadWithTemplateAsync(testOrderId);
         var step = definition.Steps.FirstOrDefault(s => s.StepName == stepName)
-            ?? throw new InvalidOperationException($"Step \"{stepName}\" is not part of the workflow template for \"{order.TestCode}\".");
+            ?? throw new BusinessRuleException($"Step \"{stepName}\" is not part of the workflow template for \"{order.TestCode}\".");
 
         // EM/After Cleaning batch orders carry per-location results on
         // SampleLocation - the single-value/single-observation path here
         // would silently bypass that, corrupting the batch model. Use
         // RecordBatchResultsAsync/RecordBatchPathogenResultsAsync instead.
         if (await _db.SampleLocations.AnyAsync(l => l.TestOrderId == testOrderId))
-            throw new InvalidOperationException("EM/After Cleaning results must be submitted via the batch results endpoint.");
+            throw new BusinessRuleException("EM/After Cleaning results must be submitted via the batch results endpoint.");
 
         // This path's ObservationPayload branch below stages a Result but
         // never writes a WorkflowStepResult row - only the dedicated
@@ -246,7 +246,7 @@ public sealed class IncubationStepRecorder : TestWorkflowSupport
         // steps only, so reject the mismatch here with a clear pointer to
         // the real entry points instead of letting it fail downstream.
         if (step.StepType != StepType.PlateCount)
-            throw new InvalidOperationException(
+            throw new BusinessRuleException(
                 $"Step \"{stepName}\" is a pathogen workflow step - use the dedicated pathogen endpoints " +
                 "(submit-broth, submit-selective-plating, submit-confirmatory-setup, etc.), not record-result.");
 
@@ -254,7 +254,7 @@ public sealed class IncubationStepRecorder : TestWorkflowSupport
             .Where(i => i.TestOrderId == testOrderId && i.StepName == stepName && i.CompletedAt == null)
             .OrderByDescending(i => i.StartedAt)
             .FirstOrDefaultAsync()
-            ?? throw new InvalidOperationException($"Media must be selected for step \"{stepName}\" before a result can be recorded.");
+            ?? throw new BusinessRuleException($"Media must be selected for step \"{stepName}\" before a result can be recorded.");
 
         // Two-stage incubation transfer: the count cannot be recorded off
         // the stage 1 window at all, and not off stage 2 until its window
@@ -278,18 +278,18 @@ public sealed class IncubationStepRecorder : TestWorkflowSupport
         {
             case CountTestPayload countPayload:
                 if (definition.WorkflowType != WorkflowType.CountTest)
-                    throw new InvalidOperationException($"\"{order.TestCode}\" is not a Count Test workflow.");
+                    throw new BusinessRuleException($"\"{order.TestCode}\" is not a Count Test workflow.");
                 (outcomeSummary, average, calculatedResult, status, countTestReading) = await RecordCountTestAsync(order, step, countPayload, userId);
                 break;
 
             case ObservationPayload obsPayload:
                 if (definition.WorkflowType == WorkflowType.CountTest)
-                    throw new InvalidOperationException($"Step \"{stepName}\" does not accept a simple growth observation.");
+                    throw new BusinessRuleException($"Step \"{stepName}\" does not accept a simple growth observation.");
                 outcomeSummary = await RecordObservationAsync(testOrderId, step, obsPayload, userId, openIncubation.MediaId);
                 break;
 
             default:
-                throw new InvalidOperationException("Unrecognized result payload.");
+                throw new BusinessRuleException("Unrecognized result payload.");
         }
 
         openIncubation.CompletedAt = _clock.UtcNow.UtcDateTime;
@@ -365,10 +365,10 @@ public sealed class IncubationStepRecorder : TestWorkflowSupport
             .Where(i => i.TestOrderId == testOrderId && i.CompletedAt == null)
             .OrderByDescending(i => i.StartedAt)
             .FirstOrDefaultAsync()
-            ?? throw new InvalidOperationException("No incubation window is currently open.");
+            ?? throw new BusinessRuleException("No incubation window is currently open.");
 
         var step = definition.Steps.FirstOrDefault(s => s.StepName == openIncubation.StepName)
-            ?? throw new InvalidOperationException($"Step \"{openIncubation.StepName}\" is not part of the workflow template for \"{definition.Code}\".");
+            ?? throw new BusinessRuleException($"Step \"{openIncubation.StepName}\" is not part of the workflow template for \"{definition.Code}\".");
 
         var stepMedium = await ResolveSelectedStepMediumAsync(step.Id, openIncubation.MediaId!.Value);
 
@@ -381,7 +381,7 @@ public sealed class IncubationStepRecorder : TestWorkflowSupport
         if (incubation.MinimumDurationOverriddenByUserId.HasValue) return;
         var minReadyAt = window.MinReadyAt(incubation.StartedAt);
         if (_clock.UtcNow.UtcDateTime < minReadyAt)
-            throw new InvalidOperationException(
+            throw new BusinessRuleException(
                 $"This incubation window needs at least {window.MinHours} hours - not ready until {minReadyAt:yyyy-MM-dd HH:mm} UTC.");
     }
 
@@ -411,10 +411,10 @@ public sealed class IncubationStepRecorder : TestWorkflowSupport
         var (incubation, step, stepMedium) = await LoadOpenBatchWindowAsync(testOrderId, definition);
 
         if (step.RequiresIncubationTransfer)
-            throw new InvalidOperationException("This step requires incubation transfer - start stage 2 incubation instead of advancing window.");
+            throw new BusinessRuleException("This step requires incubation transfer - start stage 2 incubation instead of advancing window.");
 
         if (step.IsFinalStep || (step.StepOrder == definition.Steps.Max(s => s.StepOrder) && !step.RequiresIncubationTransfer))
-            throw new InvalidOperationException("This is the final incubation window - record results instead of advancing.");
+            throw new BusinessRuleException("This is the final incubation window - record results instead of advancing.");
 
         RequireMinimumDurationElapsed(incubation, stepMedium);
 
@@ -434,7 +434,7 @@ public sealed class IncubationStepRecorder : TestWorkflowSupport
             .Where(i => i.TestOrderId == testOrderId && i.CompletedAt == null)
             .OrderByDescending(i => i.StartedAt)
             .FirstOrDefaultAsync()
-            ?? throw new InvalidOperationException("No incubation window is currently open.");
+            ?? throw new BusinessRuleException("No incubation window is currently open.");
 
         incubation.MinimumDurationOverriddenByUserId = userId;
         incubation.MinimumDurationOverriddenAt = _clock.UtcNow.UtcDateTime;
@@ -449,12 +449,12 @@ public sealed class IncubationStepRecorder : TestWorkflowSupport
     {
         var (order, definition) = await LoadWithTemplateAsync(testOrderId);
         if (order.CurrentStep != WorkflowStep.Incubating)
-            throw new InvalidOperationException("Media must be selected for this test before batch results can be recorded.");
+            throw new BusinessRuleException("Media must be selected for this test before batch results can be recorded.");
 
         var (openIncubation, step, stepMedium) = await LoadOpenBatchWindowAsync(testOrderId, definition);
         var isFinalIncubation = step.IsFinalStep || step.RequiresIncubationTransfer || (step.StepOrder == definition.Steps.Max(s => s.StepOrder));
         if (!isFinalIncubation)
-            throw new InvalidOperationException($"\"{step.StepName}\" is not the final incubation window yet - close it and start the next window first.");
+            throw new BusinessRuleException($"\"{step.StepName}\" is not the final incubation window yet - close it and start the next window first.");
 
         if (step.RequiresIncubationTransfer)
         {
@@ -471,16 +471,16 @@ public sealed class IncubationStepRecorder : TestWorkflowSupport
 
         var sampleLocations = await GetLocationsAsync(testOrderId);
         if (sampleLocations.Count == 0)
-            throw new InvalidOperationException("No locations are assigned to this test order.");
+            throw new BusinessRuleException("No locations are assigned to this test order.");
 
         var submitted = locations.ToDictionary(l => l.SampleLocationId);
         var missing = sampleLocations.Where(l => !submitted.ContainsKey(l.Id)).ToList();
         if (missing.Count > 0)
-            throw new InvalidOperationException($"Results are missing for: {string.Join(", ", missing.Select(LocationName))}.");
+            throw new BusinessRuleException($"Results are missing for: {string.Join(", ", missing.Select(LocationName))}.");
 
         var emptyReadings = sampleLocations.Where(l => submitted[l.Id].Readings.Count == 0).ToList();
         if (emptyReadings.Count > 0)
-            throw new InvalidOperationException($"At least one plate reading is required for: {string.Join(", ", emptyReadings.Select(LocationName))}.");
+            throw new BusinessRuleException($"At least one plate reading is required for: {string.Join(", ", emptyReadings.Select(LocationName))}.");
 
         var worstStatus = ResultStatus.WithinLimits;
         var conformCount = 0;
@@ -560,12 +560,12 @@ public sealed class IncubationStepRecorder : TestWorkflowSupport
     {
         var (order, definition) = await LoadWithTemplateAsync(testOrderId);
         if (order.CurrentStep != WorkflowStep.Incubating)
-            throw new InvalidOperationException("Media must be selected for this test before batch results can be recorded.");
+            throw new BusinessRuleException("Media must be selected for this test before batch results can be recorded.");
 
         var (openIncubation, step, stepMedium) = await LoadOpenBatchWindowAsync(testOrderId, definition);
         var isFinalIncubation = step.IsFinalStep || step.RequiresIncubationTransfer || (step.StepOrder == definition.Steps.Max(s => s.StepOrder));
         if (!isFinalIncubation)
-            throw new InvalidOperationException($"\"{step.StepName}\" is not the final incubation window yet - close it and start the next window first.");
+            throw new BusinessRuleException($"\"{step.StepName}\" is not the final incubation window yet - close it and start the next window first.");
 
         if (step.RequiresIncubationTransfer)
         {
@@ -582,16 +582,16 @@ public sealed class IncubationStepRecorder : TestWorkflowSupport
 
         var sampleLocations = await GetLocationsAsync(testOrderId);
         if (sampleLocations.Count == 0)
-            throw new InvalidOperationException("No locations are assigned to this test order.");
+            throw new BusinessRuleException("No locations are assigned to this test order.");
 
         var submitted = locations.ToDictionary(l => l.SampleLocationId);
         var missing = sampleLocations.Where(l => !submitted.ContainsKey(l.Id)).ToList();
         if (missing.Count > 0)
-            throw new InvalidOperationException($"Results are missing for: {string.Join(", ", missing.Select(LocationName))}.");
+            throw new BusinessRuleException($"Results are missing for: {string.Join(", ", missing.Select(LocationName))}.");
 
         var emptyReadings = sampleLocations.Where(l => submitted[l.Id].Readings.Count == 0).ToList();
         if (emptyReadings.Count > 0)
-            throw new InvalidOperationException($"At least one plate reading is required for: {string.Join(", ", emptyReadings.Select(LocationName))}.");
+            throw new BusinessRuleException($"At least one plate reading is required for: {string.Join(", ", emptyReadings.Select(LocationName))}.");
 
         var worstStatus = ResultStatus.WithinLimits;
         var conformCount = 0;
@@ -664,27 +664,27 @@ public sealed class IncubationStepRecorder : TestWorkflowSupport
     {
         var (order, definition) = await LoadWithTemplateAsync(testOrderId);
         if (order.CurrentStep != WorkflowStep.Incubating)
-            throw new InvalidOperationException("Media must be selected for this test before batch results can be recorded.");
+            throw new BusinessRuleException("Media must be selected for this test before batch results can be recorded.");
 
         var (openIncubation, step, stepMedium) = await LoadOpenBatchWindowAsync(testOrderId, definition);
         if (!step.IsFinalStep)
-            throw new InvalidOperationException($"\"{step.StepName}\" is not the final incubation window yet - close it and start the next window first.");
+            throw new BusinessRuleException($"\"{step.StepName}\" is not the final incubation window yet - close it and start the next window first.");
 
         RequireMinimumDurationElapsed(openIncubation, stepMedium);
 
         var sampleLocations = await GetLocationsAsync(testOrderId);
         if (sampleLocations.Count == 0)
-            throw new InvalidOperationException("No locations are assigned to this test order.");
+            throw new BusinessRuleException("No locations are assigned to this test order.");
 
         var detectedCount = 0;
 
         if (observations is null || observations.Count == 0)
-            throw new InvalidOperationException($"Step \"{step.StepName}\" requires a growth observation for every location.");
+            throw new BusinessRuleException($"Step \"{step.StepName}\" requires a growth observation for every location.");
 
         var submitted = observations.ToDictionary(o => o.SampleLocationId);
         var missing = sampleLocations.Where(l => !submitted.ContainsKey(l.Id)).ToList();
         if (missing.Count > 0)
-            throw new InvalidOperationException($"Results are missing for: {string.Join(", ", missing.Select(LocationName))}.");
+            throw new BusinessRuleException($"Results are missing for: {string.Join(", ", missing.Select(LocationName))}.");
 
         foreach (var location in sampleLocations)
         {
@@ -746,7 +746,7 @@ public sealed class IncubationStepRecorder : TestWorkflowSupport
         { MachinePartConfiguration.TestType: "Swab" } => "CFU/25 cm2",
         { MachinePartConfiguration.TestType: "Rinse" } => "CFU/mL",
         { WaterSamplingPointId: not null } => "CFU/mL",
-        _ => throw new InvalidOperationException(
+        _ => throw new BusinessRuleException(
             $"No unit mapping for SampleLocation {location.Id} " +
             $"(RoomTestConfiguration.TestType={location.RoomTestConfiguration?.TestType ?? "-"}, " +
             $"MachinePartConfiguration.TestType={location.MachinePartConfiguration?.TestType ?? "-"}). " +
@@ -765,7 +765,7 @@ public sealed class IncubationStepRecorder : TestWorkflowSupport
     private async Task<(string reported, decimal? average, decimal? calculated, ResultStatus status, CountTestReading reading)> RecordCountTestAsync(TestOrder order, TestWorkflowStep step, CountTestPayload payload, int userId)
     {
         if (payload.RawPlateReadings.Count == 0)
-            throw new InvalidOperationException("At least one plate reading is required to calculate an average.");
+            throw new BusinessRuleException("At least one plate reading is required to calculate an average.");
 
         var sample = await _db.Samples
             .FirstOrDefaultAsync(s => s.Id == order.SampleId)

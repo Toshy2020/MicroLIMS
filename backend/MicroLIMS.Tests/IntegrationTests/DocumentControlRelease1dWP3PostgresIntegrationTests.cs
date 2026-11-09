@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using System.Security.Cryptography;
 using System.Text;
 using Microsoft.AspNetCore.Authorization;
@@ -618,7 +619,7 @@ public class DocumentControlRelease1dWP3PostgresIntegrationTests
 
         // Corrupt v1 storage to verify tamper detection
         await storage.SaveAsync(dbV1.StorageKey, Encoding.UTF8.GetBytes("Tampered malicious bytes"));
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             fileService.GetFileContentAsync(v1.Id, author.Id, isDownload: true));
         Assert.Contains("integrity check failed", ex.Message);
 

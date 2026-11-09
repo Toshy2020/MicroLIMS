@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Helpers;
 using MicroLIMS.Application.Services;
@@ -125,7 +126,7 @@ public class StepMediumProductMatchingTests
         var engine = TestServiceFactory.TestWorkflow(db);
 
         // Media lot XldLotId is XLD Agar, but step is "Broth Enrichment" which requires TSB
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(
             () => engine.SelectMediaAsync(order.Id, "Broth Enrichment", media.XldLotId, incubator.Id, userId: 4));
         Assert.Contains("This step requires a different medium", ex.Message);
     }
@@ -143,7 +144,7 @@ public class StepMediumProductMatchingTests
             row.MediaProductId = null;
         await db.SaveChangesAsync();
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(
             () => engine.SelectMediaAsync(order.Id, "Broth Enrichment", media.BrothLotId, incubator.Id, userId: 4));
         Assert.Contains("This step requires a different medium", ex.Message);
     }

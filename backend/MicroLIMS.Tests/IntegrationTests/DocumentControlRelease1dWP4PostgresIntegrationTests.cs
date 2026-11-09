@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using System.Text;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.DTOs.DocumentControl;
@@ -219,7 +220,7 @@ public class DocumentControlRelease1dWP4PostgresIntegrationTests
         Assert.Equal(ReviewTaskStatus.Pending, task2.Status);
 
         // 8. Reviewer attempts to complete review while Finding 1 (from Cycle 1) is still AuthorResponded (not Resolved)
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             reviewService.DecideReviewAsync(task2.Id, new ReviewDecisionRequest
             {
                 Decision = ReviewDecision.CompleteReview,

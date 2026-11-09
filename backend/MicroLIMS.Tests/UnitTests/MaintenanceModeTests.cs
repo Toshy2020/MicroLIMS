@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using System.Reflection;
 using System.Security.Claims;
 using System.Text.Json;
@@ -203,7 +204,7 @@ public class MaintenanceModeTests
             rig.Service.UpdateAsync(SystemSettingKeys.MaintenanceMode, "true", Reason, 1, null, null));
         await Assert.ThrowsAnyAsync<Exception>(() =>
             rig.Service.UpdateAsync(SystemSettingKeys.MaintenanceMode, "true", Reason, 1, "wrong-password", null));
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        await Assert.ThrowsAsync<BusinessRuleException>(() =>
             rig.Service.UpdateAsync(SystemSettingKeys.MaintenanceMode, "true", "  ", 1, AdminPassword, null));
         Assert.False(await rig.Reader.GetBoolAsync(SystemSettingKeys.MaintenanceMode));
         Assert.Empty(rig.Db.SecurityAuditEvents);
@@ -239,7 +240,7 @@ public class MaintenanceModeTests
         var rig = CreateRig();
         await rig.Service.UpdateAsync(SystemSettingKeys.AnnouncementBanner, "Planned downtime Friday", Reason, 1, null, null);
         await rig.Service.UpdateAsync(SystemSettingKeys.AnnouncementSeverity, "warning", Reason, 1, null, null);
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        await Assert.ThrowsAsync<BusinessRuleException>(() =>
             rig.Service.UpdateAsync(SystemSettingKeys.AnnouncementSeverity, "critical", Reason, 1, null, null));
         Assert.Empty(rig.Db.SecurityAuditEvents);
 

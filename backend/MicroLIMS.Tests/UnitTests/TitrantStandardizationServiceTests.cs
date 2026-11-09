@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Application.Services;
@@ -277,7 +278,7 @@ public class TitrantStandardizationServiceTests
         var lot = await db.Materials.AsNoTracking().FirstAsync(m => m.MaterialMasterEntryId == s.StandardEntry.Id);
         var service = TestServiceFactory.TitrantStandardization(db);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.StandardizeAsync(prep.Id,
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => service.StandardizeAsync(prep.Id,
             new StandardizeRequest(new List<StandardizationReplicateInput> { new(lot.Id, 200m, null, null, 0.05m, 0.05m) }, Password, null),
             s.UserId, null));
 
@@ -297,7 +298,7 @@ public class TitrantStandardizationServiceTests
         var prep = await PrepareTitrantAsync(db, s.Section, s.UserId, titrant, s.SolventEntry);
         var service = TestServiceFactory.TitrantStandardization(db);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.StandardizeAsync(prep.Id,
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => service.StandardizeAsync(prep.Id,
             new StandardizeRequest(new List<StandardizationReplicateInput> { new(null, null, refPrep.Id, 25.00m, 24.90m, null) }, Password, null),
             s.UserId, null));
 
@@ -316,7 +317,7 @@ public class TitrantStandardizationServiceTests
         var lot = await db.Materials.AsNoTracking().FirstAsync(m => m.MaterialMasterEntryId == s.StandardEntry.Id);
         var service = TestServiceFactory.TitrantStandardization(db);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.StandardizeAsync(prep.Id,
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => service.StandardizeAsync(prep.Id,
             new StandardizeRequest(new List<StandardizationReplicateInput> { new(lot.Id, 204.2m, null, null, 10m, null) }, Password, null),
             s.UserId, null));
 
@@ -366,7 +367,7 @@ public class TitrantStandardizationServiceTests
         // Titrant's shelf life is 7 days - jump well past it.
         fake.SetUtcNow(SepFirst.AddDays(10));
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.StandardizeAsync(prep.Id,
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => service.StandardizeAsync(prep.Id,
             new StandardizeRequest(new List<StandardizationReplicateInput> { new(lot.Id, 204.2m, null, null, 10m, null) }, Password, null),
             s.UserId, null));
 
@@ -457,7 +458,7 @@ public class TitrantStandardizationServiceTests
         await using var db = NewDb();
         var (service, prepId, lotId, userId) = await ArrangePrimaryLotAsync(db, l => l.Purity = null);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.StandardizeAsync(prepId,
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => service.StandardizeAsync(prepId,
             new StandardizeRequest(new List<StandardizationReplicateInput> { new(lotId, 510.6m, null, null, 25.00m, null) }, Password, null), userId, null));
         Assert.Equal("Replicate 1: standard lot (batch B1) has no purity - enter it in Materials Stock before standardizing.", ex.Message);
     }
@@ -468,7 +469,7 @@ public class TitrantStandardizationServiceTests
         await using var db = NewDb();
         var (service, prepId, lotId, userId) = await ArrangePrimaryLotAsync(db, l => l.MaterialType = MaterialType.Chemical);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.StandardizeAsync(prepId,
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => service.StandardizeAsync(prepId,
             new StandardizeRequest(new List<StandardizationReplicateInput> { new(lotId, 510.6m, null, null, 25.00m, null) }, Password, null), userId, null));
         Assert.Equal("Replicate 1: standard lot (batch B1) is not a primary standard.", ex.Message);
     }
@@ -557,7 +558,7 @@ public class TitrantStandardizationServiceTests
     {
         await using var db = NewDb();
         var (svc, prepId, lotId, uid) = await ArrangeStockAsync(db, 0.5m);
-        await Assert.ThrowsAsync<InvalidOperationException>(() => svc.StandardizeAsync(prepId, ThreeReplicates(lotId), uid, null));
+        await Assert.ThrowsAsync<BusinessRuleException>(() => svc.StandardizeAsync(prepId, ThreeReplicates(lotId), uid, null));
         Assert.Equal(0.5m, (await db.Materials.AsNoTracking().FirstAsync(m => m.Id == lotId)).QuantityRemaining);
         Assert.Equal(0, await db.ElectronicSignatures.CountAsync(x => x.MeaningOfSignature == SignatureMeaning.TitrantStandardized));
     }

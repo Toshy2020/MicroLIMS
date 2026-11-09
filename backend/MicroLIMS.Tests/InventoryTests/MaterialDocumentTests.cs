@@ -111,7 +111,7 @@ public class MaterialDocumentTests
         var content = new byte[] { 0x01, 0x02, 0x03, 0x04 };
 
         var req = new UploadMaterialDocumentRequest(MaterialDocumentType.Other, $"file{ext}", mime, content);
-        await Assert.ThrowsAsync<InvalidOperationException>(() => service.UploadAsync(material.Id, req, 1));
+        await Assert.ThrowsAsync<BusinessRuleException>(() => service.UploadAsync(material.Id, req, 1));
     }
 
     [Fact]
@@ -123,7 +123,7 @@ public class MaterialDocumentTests
 
         // .pdf extension but image/jpeg MIME
         var req = new UploadMaterialDocumentRequest(MaterialDocumentType.COA, "test.pdf", "image/jpeg", MakePdf());
-        await Assert.ThrowsAsync<InvalidOperationException>(() => service.UploadAsync(material.Id, req, 1));
+        await Assert.ThrowsAsync<BusinessRuleException>(() => service.UploadAsync(material.Id, req, 1));
     }
 
     [Fact]
@@ -136,7 +136,7 @@ public class MaterialDocumentTests
         // Correct extension and MIME but wrong magic bytes (JPEG header for a .pdf file)
         var notPdf = new byte[] { 0xFF, 0xD8, 0xFF, 0xE0, 0x00, 0x10, 0x4A, 0x46 }; // JPEG SOI
         var req = new UploadMaterialDocumentRequest(MaterialDocumentType.COA, "COA.pdf", "application/pdf", notPdf);
-        await Assert.ThrowsAsync<InvalidOperationException>(() => service.UploadAsync(material.Id, req, 1));
+        await Assert.ThrowsAsync<BusinessRuleException>(() => service.UploadAsync(material.Id, req, 1));
     }
 
     [Fact]
@@ -150,7 +150,7 @@ public class MaterialDocumentTests
 
         var req = new UploadMaterialDocumentRequest(MaterialDocumentType.COA, "COA.pdf", "application/pdf", MakePdf());
         // MakePdf() is 8 bytes; limit is 4 bytes → should be rejected
-        await Assert.ThrowsAsync<InvalidOperationException>(() => service.UploadAsync(material.Id, req, 1));
+        await Assert.ThrowsAsync<BusinessRuleException>(() => service.UploadAsync(material.Id, req, 1));
     }
 
     // ---- SHA-256 Integrity ----
@@ -185,7 +185,7 @@ public class MaterialDocumentTests
         var record = await db.MaterialDocuments.FindAsync(doc.Id);
         storage.Files[record!.StorageKey] = new byte[] { 0x00, 0x00, 0x00, 0x00 };
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        await Assert.ThrowsAsync<BusinessRuleException>(() =>
             service.GetContentAsync(doc.Id, material.Id, 1));
     }
 
@@ -258,7 +258,7 @@ public class MaterialDocumentTests
         var doc = await service.UploadAsync(material.Id, PdfUploadRequest(), 1);
         var req = new SupersedeMaterialDocumentRequest("NewCOA.pdf", "application/pdf", MakePdf(), "   ");
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        await Assert.ThrowsAsync<BusinessRuleException>(() =>
             service.SupersedeAsync(doc.Id, material.Id, req, 2));
     }
 
@@ -272,7 +272,7 @@ public class MaterialDocumentTests
         var service = BuildService(db);
 
         var doc = await service.UploadAsync(material.Id, PdfUploadRequest(), 1);
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        await Assert.ThrowsAsync<BusinessRuleException>(() =>
             service.VoidAsync(doc.Id, material.Id, new VoidMaterialDocumentRequest("  "), 2));
     }
 
@@ -318,7 +318,7 @@ public class MaterialDocumentTests
         var material = await SeedMaterial(db, MaterialType.DehydratedMedia);
         var materialService = new MaterialService(db, new UserSectionScopeService(db), new DatabaseSequenceHelper(db));
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        await Assert.ThrowsAsync<BusinessRuleException>(() =>
             materialService.ConsumeAsync(material.Id, MaterialType.DehydratedMedia, 10m, 1));
     }
 
@@ -331,7 +331,7 @@ public class MaterialDocumentTests
         await db.SaveChangesAsync();
         var materialService = new MaterialService(db, new UserSectionScopeService(db), new DatabaseSequenceHelper(db));
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        await Assert.ThrowsAsync<BusinessRuleException>(() =>
             materialService.ConsumeAsync(material.Id, MaterialType.LyophilizedMicroorganism, 1m, 1));
     }
 
@@ -342,7 +342,7 @@ public class MaterialDocumentTests
         var material = await SeedMaterial(db, MaterialType.Supplement);
         var materialService = new MaterialService(db, new UserSectionScopeService(db), new DatabaseSequenceHelper(db));
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        await Assert.ThrowsAsync<BusinessRuleException>(() =>
             materialService.ConsumeAsync(material.Id, MaterialType.Supplement, 5m, 1));
     }
 
@@ -387,7 +387,7 @@ public class MaterialDocumentTests
         await db.SaveChangesAsync();
         var materialService = new MaterialService(db, new UserSectionScopeService(db), new DatabaseSequenceHelper(db));
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        await Assert.ThrowsAsync<BusinessRuleException>(() =>
             materialService.ConsumeAsync(material.Id, MaterialType.DehydratedMedia, 10m, 1));
     }
 
@@ -428,7 +428,7 @@ public class MaterialDocumentTests
         var material = await SeedMaterial(db, MaterialType.Chemical, expiry: DateTime.UtcNow.AddDays(-1));
         var materialService = new MaterialService(db, new UserSectionScopeService(db), new DatabaseSequenceHelper(db));
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        await Assert.ThrowsAsync<BusinessRuleException>(() =>
             materialService.ConsumeAsync(material.Id, MaterialType.Chemical, 5m, 1));
     }
 

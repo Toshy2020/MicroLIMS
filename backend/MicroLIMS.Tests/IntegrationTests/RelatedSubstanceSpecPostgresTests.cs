@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.DTOs;
 using MicroLIMS.Application.Services;
@@ -57,9 +58,9 @@ public class RelatedSubstanceSpecPostgresTests
         await svc.CreateSpecificationAsync(userId, Row(RelatedSubstanceRow.UnspecifiedEach, 0.10m));
         await svc.CreateSpecificationAsync(userId, Row(RelatedSubstanceRow.Named, 0.15m, method.Impurities[0].Id));
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => svc.CreateSpecificationAsync(userId, Row(RelatedSubstanceRow.Total, 0.6m)));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => svc.CreateSpecificationAsync(userId, Row(RelatedSubstanceRow.Total, 0.6m)));
         Assert.Equal("A total impurities row already exists for this test, stage and grade.", ex.Message);
-        var named = await Assert.ThrowsAsync<InvalidOperationException>(() => svc.CreateSpecificationAsync(userId, Row(RelatedSubstanceRow.Named, 0.2m, method.Impurities[0].Id)));
+        var named = await Assert.ThrowsAsync<BusinessRuleException>(() => svc.CreateSpecificationAsync(userId, Row(RelatedSubstanceRow.Named, 0.2m, method.Impurities[0].Id)));
         Assert.Equal("A named impurity 'Impurity D' row already exists for this test, stage and grade.", named.Message);
 
         await using var check = _fixture.CreateDbContext();

@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using System.Text;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.DTOs.DocumentControl;
@@ -159,7 +160,7 @@ public class DocumentControlRelease1dWP4UnitTests
     {
         var (_, reviewService, _, authorId, reviewerId, _, revId) = await SetupHarnessAsync();
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             reviewService.SubmitForReviewAsync(revId, new SubmitForReviewRequest
             {
                 ReviewerUserId = reviewerId,
@@ -396,7 +397,7 @@ public class DocumentControlRelease1dWP4UnitTests
         }, authorId);
 
         // Reviewer attempts to complete review in Cycle 2 WITHOUT resolving finding 1 from Cycle 1
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             reviewService.DecideReviewAsync(task2.Id, new ReviewDecisionRequest
             {
                 Decision = ReviewDecision.CompleteReview,

@@ -42,14 +42,14 @@ public class MaterialReleaseService
         RecordVersion.EnsureCurrent(_db, material);
 
         if (material.ApprovalStatus is null)
-            throw new InvalidOperationException($"Lot {material.BatchNumber} does not need a release.");
+            throw new BusinessRuleException($"Lot {material.BatchNumber} does not need a release.");
         if (material.ApprovalStatus != ApprovalGateStatus.PendingReview)
-            throw new InvalidOperationException($"Lot {material.BatchNumber} has already been decided ({material.ApprovalStatus}).");
+            throw new BusinessRuleException($"Lot {material.BatchNumber} has already been decided ({material.ApprovalStatus}).");
         if (!approved && string.IsNullOrWhiteSpace(comment))
-            throw new InvalidOperationException("A comment is required when rejecting a lot.");
+            throw new BusinessRuleException("A comment is required when rejecting a lot.");
 
         if (await _segregationOfDuties.DidUserReceiveMaterialAsync(materialId, userId))
-            throw new InvalidOperationException("You cannot release a lot you received.");
+            throw new BusinessRuleException("You cannot release a lot you received.");
 
         // Signs first - a wrong password throws and nothing below is written (the
         // signature, the event and the state change commit in one SaveChangesAsync).

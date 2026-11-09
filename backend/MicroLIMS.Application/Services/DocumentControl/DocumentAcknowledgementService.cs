@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -126,7 +127,7 @@ public class DocumentAcknowledgementService : IDocumentAcknowledgementService
         // 1. Explicit conscious acknowledgement requirement (DC-URS-189, DC-URS-190)
         if (!request.ConfirmedLegalStatement)
         {
-            throw new InvalidOperationException(
+            throw new BusinessRuleException(
                 "Explicit confirmation of the legal acknowledgement statement is required. Reading or viewing alone does not constitute legal acknowledgement.");
         }
 
@@ -181,20 +182,20 @@ public class DocumentAcknowledgementService : IDocumentAcknowledgementService
                     entityId: assignment.Id.ToString(),
                     cancellationToken: cancellationToken);
 
-                throw new InvalidOperationException(
+                throw new BusinessRuleException(
                     $"Revision mismatch: Assignment is for Revision ID {assignment.DocumentRevisionId}, but Revision ID {request.DocumentRevisionId} was submitted.");
             }
 
             // 5. Document Master and Revision state validation
             if (master.RecordStatus != DocumentRecordStatus.Active)
             {
-                throw new InvalidOperationException(
+                throw new BusinessRuleException(
                     $"Cannot acknowledge assignment because Document {master.CompanyDocumentCode} is in {master.RecordStatus} status.");
             }
 
             if (revision.RevisionStatus != DocumentRevisionStatus.Effective)
             {
-                throw new InvalidOperationException(
+                throw new BusinessRuleException(
                     $"Cannot acknowledge assignment because Revision {revision.RevisionNumber} is in {revision.RevisionStatus} state (must be Effective).");
             }
 
@@ -239,13 +240,13 @@ public class DocumentAcknowledgementService : IDocumentAcknowledgementService
 
             if (assignment.Status == TrainingAssignmentStatus.SupersededIncomplete)
             {
-                throw new InvalidOperationException(
+                throw new BusinessRuleException(
                     "Cannot acknowledge an assignment that has been terminally closed as SupersededIncomplete.");
             }
 
             if (assignment.Status == TrainingAssignmentStatus.Cancelled)
             {
-                throw new InvalidOperationException(
+                throw new BusinessRuleException(
                     "Cannot acknowledge an assignment that has been terminally closed as Cancelled due to document obsolescence.");
             }
 
@@ -254,7 +255,7 @@ public class DocumentAcknowledgementService : IDocumentAcknowledgementService
                 && assignment.Status != TrainingAssignmentStatus.Reading
                 && assignment.Status != TrainingAssignmentStatus.Overdue)
             {
-                throw new InvalidOperationException(
+                throw new BusinessRuleException(
                     $"Assignment is in an invalid state for acknowledgement: {assignment.Status}.");
             }
 
@@ -398,7 +399,7 @@ public class DocumentAcknowledgementService : IDocumentAcknowledgementService
             throw new UnauthorizedAccessException("You cannot record reading progress for another user's assignment.");
 
         if (assignment.DocumentRevisionId != request.DocumentRevisionId)
-            throw new InvalidOperationException("Revision ID does not match assigned revision ID.");
+            throw new BusinessRuleException("Revision ID does not match assigned revision ID.");
 
         var nowUtc = utcNowOverride ?? _time.GetUtcNow().UtcDateTime;
 

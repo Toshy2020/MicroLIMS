@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Workflows;
 using MicroLIMS.Domain.Entities;
@@ -73,7 +74,7 @@ public class BiochemicalReviewTests
         var (order, _, _) = await PathogenTestData.SeedFiveStageOrderAsync(db);
         var engine = TestServiceFactory.TestWorkflow(db);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(
+        await Assert.ThrowsAsync<BusinessRuleException>(
             () => engine.RecordAnalystDecisionAsync(order.Id, AnalystDecision.SubmitAsDetected, AnalystId));
     }
 
@@ -169,7 +170,7 @@ public class BiochemicalReviewTests
         await engine.RecordAnalystDecisionAsync(orderId, AnalystDecision.SubmitAsDetected, AnalystId);
         var resultId = (await db.WorkflowStepResults.SingleAsync(r => r.StepName == "Confirmatory Plating")).Id;
 
-        await Assert.ThrowsAsync<InvalidOperationException>(
+        await Assert.ThrowsAsync<BusinessRuleException>(
             () => engine.RecordBiochemicalReviewDecisionAsync(resultId, approve: false, "  ", ReviewerId));
     }
 
@@ -193,7 +194,7 @@ public class BiochemicalReviewTests
 
         var platingResult = await db.WorkflowStepResults.SingleAsync(r => r.StepType == StepType.SelectivePlating);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(
             () => engine.RecordBiochemicalReviewDecisionAsync(platingResult.Id, approve: false, "Do it properly.", ReviewerId));
         Assert.Contains("SelectivePlating", ex.Message);
 
@@ -214,7 +215,7 @@ public class BiochemicalReviewTests
         var confirmatory = await db.WorkflowStepResults.SingleAsync(r => r.StepName == "Confirmatory Plating");
         Assert.False(confirmatory.SkippedBiochemical);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(
+        await Assert.ThrowsAsync<BusinessRuleException>(
             () => engine.RecordBiochemicalReviewDecisionAsync(confirmatory.Id, approve: false, "Not convinced.", ReviewerId));
 
         var reloaded = await db.TestOrders.SingleAsync(t => t.Id == orderId);

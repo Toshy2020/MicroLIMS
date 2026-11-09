@@ -100,7 +100,7 @@ public class WorkflowProfileService
         var draft = await _db.WorkflowProfileVersions.FirstOrDefaultAsync(v => v.Id == id, ct)
             ?? throw new NotFoundException($"Workflow profile version {id} was not found.");
         if (draft.Status != WorkflowProfileStatus.Draft)
-            throw new InvalidOperationException("This version is already Effective and cannot be signed again.");
+            throw new BusinessRuleException("This version is already Effective and cannot be signed again.");
         RecordVersion.EnsureCurrent(_db, draft);
 
         var (type, code, reason) = await ValidateAsync(
@@ -139,13 +139,13 @@ public class WorkflowProfileService
         WorkflowType requestedType, string? testCode, decimal? units, decimal? target, string? reason, CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(reason))
-            throw new InvalidOperationException("A reason for the change is required.");
+            throw new BusinessRuleException("A reason for the change is required.");
         var trimmedReason = reason.Trim();
         if (trimmedReason.Length > 500)
-            throw new InvalidOperationException("The reason must be 500 characters or fewer.");
+            throw new BusinessRuleException("The reason must be 500 characters or fewer.");
 
         if (units is null && target is null)
-            throw new InvalidOperationException("Enter work units, a target, or both.");
+            throw new BusinessRuleException("Enter work units, a target, or both.");
         CheckValue("Work units", units, MaxWorkUnits);
         CheckValue("Target analyst days", target, MaxTargetDays);
 
@@ -154,12 +154,12 @@ public class WorkflowProfileService
         if (code is not null)
         {
             var definition = await _db.TestDefinitions.AsNoTracking().FirstOrDefaultAsync(t => t.Code == code, ct)
-                ?? throw new InvalidOperationException($"Test '{code}' does not exist in the test master.");
+                ?? throw new BusinessRuleException($"Test '{code}' does not exist in the test master.");
             type = definition.WorkflowType; // the definition decides, not the request
         }
 
         if (!LiveTypes.Contains(type))
-            throw new InvalidOperationException($"Workflow type {type} is retired and cannot carry a profile.");
+            throw new BusinessRuleException($"Workflow type {type} is retired and cannot carry a profile.");
 
         return (type, code, trimmedReason);
     }
@@ -268,10 +268,10 @@ public class WorkflowProfileService
     private static void CheckValue(string label, decimal? value, decimal max)
     {
         if (value is null) return;
-        if (value <= 0) throw new InvalidOperationException($"{label} must be greater than 0.");
-        if (value > max) throw new InvalidOperationException($"{label} must not exceed {max.ToString(CultureInfo.InvariantCulture)}.");
+        if (value <= 0) throw new BusinessRuleException($"{label} must be greater than 0.");
+        if (value > max) throw new BusinessRuleException($"{label} must not exceed {max.ToString(CultureInfo.InvariantCulture)}.");
         if (decimal.Round(value.Value, 2) != value.Value)
-            throw new InvalidOperationException($"{label} allows at most 2 decimal places.");
+            throw new BusinessRuleException($"{label} allows at most 2 decimal places.");
     }
 
     private async Task EnsureEffectiveFromAsync(WorkflowType type, string? code, DateOnly effectiveFrom, CancellationToken ct)
@@ -285,7 +285,7 @@ public class WorkflowProfileService
         var scopeHasEffective = await _db.WorkflowProfileVersions.AnyAsync(
             v => v.Status == WorkflowProfileStatus.Effective && v.WorkflowType == type && v.TestCode == code, ct);
         if (scopeHasEffective)
-            throw new InvalidOperationException(
+            throw new BusinessRuleException(
                 $"The effective date cannot be in the past ({effectiveFrom:yyyy-MM-dd}). Only the first version of a profile may be back-dated; " +
                 $"add this version with an effective date of {today:yyyy-MM-dd} or later.");
     }

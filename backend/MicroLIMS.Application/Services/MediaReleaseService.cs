@@ -62,10 +62,10 @@ public class MediaReleaseService
             ?? throw new NotFoundException($"Media lot {mediaId} not found.");
 
         if (media.ApprovalStatus != ApprovalGateStatus.PendingReview)
-            throw new InvalidOperationException($"Media lot {media.LotNumber} has already been decided ({media.ApprovalStatus}).");
+            throw new BusinessRuleException($"Media lot {media.LotNumber} has already been decided ({media.ApprovalStatus}).");
 
         var evaluation = await _db.MediaEvaluations.FirstOrDefaultAsync(e => e.MediaId == mediaId)
-            ?? throw new InvalidOperationException($"Media lot {media.LotNumber} has no evaluation record.");
+            ?? throw new BusinessRuleException($"Media lot {media.LotNumber} has no evaluation record.");
 
         // Approving a lot whose evaluation hasn't finished (or failed)
         // would put unqualified media into routine testing - the whole
@@ -73,13 +73,13 @@ public class MediaReleaseService
         if (approved)
         {
             if (evaluation.Status != MediaEvaluationStatus.Completed)
-                throw new InvalidOperationException($"Media lot {media.LotNumber}'s evaluation is not complete yet.");
+                throw new BusinessRuleException($"Media lot {media.LotNumber}'s evaluation is not complete yet.");
             if (evaluation.Outcome != EvaluationOutcome.Conform)
-                throw new InvalidOperationException($"Media lot {media.LotNumber}'s evaluation did not conform - it cannot be released.");
+                throw new BusinessRuleException($"Media lot {media.LotNumber}'s evaluation did not conform - it cannot be released.");
         }
 
         if (await _segregationOfDuties.DidUserPrepareOrEvaluateMediaAsync(mediaId, sectionHeadUserId))
-            throw new InvalidOperationException("You cannot approve a media lot you prepared or evaluated.");
+            throw new BusinessRuleException("You cannot approve a media lot you prepared or evaluated.");
 
         // Signs first - if password verification fails, nothing below is
         // written (the signature, the event, and the state change below

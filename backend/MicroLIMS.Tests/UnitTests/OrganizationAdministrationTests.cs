@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.DTOs.DocumentControl;
 using MicroLIMS.Application.Interfaces.DocumentControl;
@@ -103,7 +104,7 @@ public class OrganizationAdministrationTests
 
     private static async Task AssertReasonRequired(Func<Task> act)
     {
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(act);
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(act);
         Assert.Contains("reason", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -189,7 +190,7 @@ public class OrganizationAdministrationTests
         await AddDocumentAsync();
         await AddMembershipAsync(_member);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             _config.UpdateDepartmentAsync(_deptId, new UpdateDocumentDepartmentRequest("Quality Control", false, "Closing down"), _admin.Id));
         Assert.Contains("1 active document(s), 1 active member(s) and 1 open work item(s)", ex.Message);
         Assert.True((await _db.DocumentDepartments.AsNoTracking().SingleAsync()).IsActive);
@@ -205,7 +206,7 @@ public class OrganizationAdministrationTests
     public async Task Deactivating_ASectionInUse_NeedsConfirmation()
     {
         await AddDocumentAsync();
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             _config.UpdateSectionAsync(_sectionId, new UpdateDocumentSectionRequest("Micro", false, "No longer used"), _admin.Id));
         Assert.Contains("section", ex.Message);
         Assert.Contains("1 active document(s)", ex.Message);
@@ -249,7 +250,7 @@ public class OrganizationAdministrationTests
         Assert.Equal("A better title", updated.Title);
 
         // Changing the custodian TO an inactive user is still refused; hand-over targets are checked by the reassignment rules.
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => _master.UpdateDraftMetadataAsync(doc.Id,
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => _master.UpdateDraftMetadataAsync(doc.Id,
             new UpdateDocumentMasterDraftRequest("SOP-1", "A better title", _typeId, _deptId, _sectionId, _inactiveMember.Id, DocumentConfidentiality.Internal), editor.Id));
         Assert.Contains("inactive", ex.Message);
     }

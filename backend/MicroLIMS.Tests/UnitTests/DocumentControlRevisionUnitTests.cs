@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.DTOs.DocumentControl;
 using MicroLIMS.Application.Interfaces;
@@ -293,7 +294,7 @@ public class DocumentControlRevisionUnitTests
         await revisionService.CreateRevisionFromEffectiveAsync(master.Id, validReq, author.Id);
 
         // Attempt second draft while first is in draft
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             revisionService.CreateRevisionFromEffectiveAsync(master.Id, validReq, author.Id));
 
         Assert.Contains("Cannot create a new revision while another revision is currently in draft", ex.Message);
@@ -358,7 +359,7 @@ public class DocumentControlRevisionUnitTests
         Assert.Equal("Increased homogenizer speed to 2000 RPM for 60 seconds.", retained.DescriptionOfChange);
 
         // Removing it twice is rejected rather than silently re-applied.
-        await Assert.ThrowsAsync<InvalidOperationException>(
+        await Assert.ThrowsAsync<BusinessRuleException>(
             () => revisionService.DeactivateChangeItemAsync(item.Id, author.Id));
 
         // 5. Verify audit logs
@@ -517,7 +518,7 @@ public class DocumentControlRevisionUnitTests
         await db.SaveChangesAsync();
 
         // Attempt review submission without impact assessment
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             reviewService.SubmitForReviewAsync(draft.Id, new SubmitForReviewRequest
             {
                 ReviewerUserId = reviewer.Id
@@ -586,7 +587,7 @@ public class DocumentControlRevisionUnitTests
         await db.SaveChangesAsync();
 
         // Attempt review submission
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             reviewService.SubmitForReviewAsync(draft.Id, new SubmitForReviewRequest
             {
                 ReviewerUserId = reviewer.Id

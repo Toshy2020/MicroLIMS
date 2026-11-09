@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Application.Services;
@@ -85,7 +86,7 @@ public class OtherMaterialsTests
         var w = await SeedAsync();
         var service = TestServiceFactory.MaterialCategory(w.Db);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => service.CreateAsync(CategoryRequest(reason: " "), w.ReleaserId, null));
+        await Assert.ThrowsAsync<BusinessRuleException>(() => service.CreateAsync(CategoryRequest(reason: " "), w.ReleaserId, null));
         await Assert.ThrowsAsync<SignatureVerificationException>(() => service.CreateAsync(CategoryRequest(password: "wrong"), w.ReleaserId, null));
         Assert.Empty(await w.Db.ElectronicSignatures.ToListAsync());
 
@@ -110,10 +111,10 @@ public class OtherMaterialsTests
         await service.CreateAsync(CategoryRequest(), w.ReleaserId, null);
 
         foreach (var bad in new[] { "F", "FLTRAA", "F-T", "F1T", "RG", "ind" })
-            await Assert.ThrowsAsync<InvalidOperationException>(() => service.CreateAsync(CategoryRequest(name: "Other " + bad, prefix: bad), w.ReleaserId, null));
-        await Assert.ThrowsAsync<InvalidOperationException>(() => service.CreateAsync(CategoryRequest(name: "filter membrane", prefix: "FMB"), w.ReleaserId, null)); // name
-        await Assert.ThrowsAsync<InvalidOperationException>(() => service.CreateAsync(CategoryRequest(name: "Another", prefix: "flt"), w.ReleaserId, null)); // prefix
-        await Assert.ThrowsAsync<InvalidOperationException>(() => service.CreateAsync(CategoryRequest(name: "Bad section", prefix: "BSE", sections: new[] { 9999 }), w.ReleaserId, null));
+            await Assert.ThrowsAsync<BusinessRuleException>(() => service.CreateAsync(CategoryRequest(name: "Other " + bad, prefix: bad), w.ReleaserId, null));
+        await Assert.ThrowsAsync<BusinessRuleException>(() => service.CreateAsync(CategoryRequest(name: "filter membrane", prefix: "FMB"), w.ReleaserId, null)); // name
+        await Assert.ThrowsAsync<BusinessRuleException>(() => service.CreateAsync(CategoryRequest(name: "Another", prefix: "flt"), w.ReleaserId, null)); // prefix
+        await Assert.ThrowsAsync<BusinessRuleException>(() => service.CreateAsync(CategoryRequest(name: "Bad section", prefix: "BSE", sections: new[] { 9999 }), w.ReleaserId, null));
     }
 
     [Fact]
@@ -134,7 +135,7 @@ public class OtherMaterialsTests
 
         var category = await w.Db.MaterialCategories.SingleAsync();
         await OtherMaterialTestData.CreateEntryAsync(w.Db, category, "Nylon 0.45", "FIL-001", w.Micro.Id);
-        var frozen = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var frozen = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             service.UpdateAsync(created.Id, CategoryRequest(prefix: "FLT", coa: true, approval: true, sections: new[] { w.Micro.Id }), w.ReleaserId, null));
         Assert.Contains("prefix", frozen.Message);
         // The rules (not the prefix) can still change, and the sections can be cleared (= every section).
@@ -177,11 +178,11 @@ public class OtherMaterialsTests
         Assert.Equal("SUP-001", ok.Code);
         Assert.Equal("Supplement", ok.MaterialCategoryName);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => service.CreateAsync(Req("RG-001", MaterialMasterCategory.Other, category.Id), w.ReceiverId)); // wrong prefix
-        await Assert.ThrowsAsync<InvalidOperationException>(() => service.CreateAsync(Req("SUP-002", MaterialMasterCategory.Other, null), w.ReceiverId)); // category required
-        await Assert.ThrowsAsync<InvalidOperationException>(() => service.CreateAsync(Req("RG-002", MaterialMasterCategory.Reagent, category.Id), w.ReceiverId)); // only for Other
-        await Assert.ThrowsAsync<InvalidOperationException>(() => service.CreateAsync(Req("RET-001", MaterialMasterCategory.Other, inactive.Id), w.ReceiverId)); // inactive
-        await Assert.ThrowsAsync<InvalidOperationException>(() => service.CreateAsync(Req("PHY-001", MaterialMasterCategory.Other, fpOnly.Id), w.ReceiverId)); // owner lab not offered
+        await Assert.ThrowsAsync<BusinessRuleException>(() => service.CreateAsync(Req("RG-001", MaterialMasterCategory.Other, category.Id), w.ReceiverId)); // wrong prefix
+        await Assert.ThrowsAsync<BusinessRuleException>(() => service.CreateAsync(Req("SUP-002", MaterialMasterCategory.Other, null), w.ReceiverId)); // category required
+        await Assert.ThrowsAsync<BusinessRuleException>(() => service.CreateAsync(Req("RG-002", MaterialMasterCategory.Reagent, category.Id), w.ReceiverId)); // only for Other
+        await Assert.ThrowsAsync<BusinessRuleException>(() => service.CreateAsync(Req("RET-001", MaterialMasterCategory.Other, inactive.Id), w.ReceiverId)); // inactive
+        await Assert.ThrowsAsync<BusinessRuleException>(() => service.CreateAsync(Req("PHY-001", MaterialMasterCategory.Other, fpOnly.Id), w.ReceiverId)); // owner lab not offered
     }
 
     [Fact]
@@ -197,10 +198,10 @@ public class OtherMaterialsTests
         // Before stock the category may move, with a code that fits the new prefix.
         var moved = await master.UpdateAsync(entry.Id, new("KIT-001", "Egg Yolk", MaterialMasterCategory.Other, null, null, MaterialUnit.Milliliter, null, MaterialCategoryId: b.Id), w.ReceiverId);
         Assert.Equal(b.Id, moved.MaterialCategoryId);
-        await Assert.ThrowsAsync<InvalidOperationException>(() => master.UpdateAsync(entry.Id, new("KIT-001", "Egg Yolk", MaterialMasterCategory.Other, null, null, MaterialUnit.Milliliter, null, MaterialCategoryId: a.Id), w.ReceiverId)); // old code, new prefix needed
+        await Assert.ThrowsAsync<BusinessRuleException>(() => master.UpdateAsync(entry.Id, new("KIT-001", "Egg Yolk", MaterialMasterCategory.Other, null, null, MaterialUnit.Milliliter, null, MaterialCategoryId: a.Id), w.ReceiverId)); // old code, new prefix needed
 
         await lots.CreateAsync(Receive(entry.Id, NextYear), w.ReceiverId);
-        var stocked = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var stocked = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             master.UpdateAsync(entry.Id, new("SUP-001", "Egg Yolk", MaterialMasterCategory.Other, null, null, MaterialUnit.Milliliter, null, MaterialCategoryId: a.Id), w.ReceiverId));
         Assert.Contains("can't change", stocked.Message);
     }
@@ -217,7 +218,7 @@ public class OtherMaterialsTests
 
         foreach (var type in MaterialTypeRules.LegacyNamedTypes)
         {
-            var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => lots.CreateAsync(Receive(entry.Id, NextYear, type: type), w.ReceiverId));
+            var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => lots.CreateAsync(Receive(entry.Id, NextYear, type: type), w.ReceiverId));
             Assert.Equal("Receive this as an Other material: choose its master entry.", ex.Message);
         }
         Assert.Empty(await w.Db.Materials.ToListAsync());
@@ -265,13 +266,13 @@ public class OtherMaterialsTests
         var lots = TestServiceFactory.Material(w.Db);
 
         var noEntry = new SaveMaterialRequest(MaterialType.Other, "Free text", "Merck", "B1", DateTime.UtcNow, NextYear, null, "L", 1m, null, null, null, null);
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => lots.CreateAsync(noEntry, w.ReceiverId));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => lots.CreateAsync(noEntry, w.ReceiverId));
         Assert.Contains("master entry", ex.Message);
-        await Assert.ThrowsAsync<InvalidOperationException>(() => lots.CreateAsync(Receive(inactiveEntry.Id, NextYear), w.ReceiverId));
-        await Assert.ThrowsAsync<InvalidOperationException>(() => lots.CreateAsync(Receive(inRetired.Id, NextYear), w.ReceiverId));
-        await Assert.ThrowsAsync<InvalidOperationException>(() => lots.CreateAsync(Receive(reagent.Id, NextYear), w.ReceiverId)); // not an Other entry
-        await Assert.ThrowsAsync<InvalidOperationException>(() => lots.CreateAsync(Receive(good.Id, NextYear, customType: "Whatever"), w.ReceiverId));
-        await Assert.ThrowsAsync<InvalidOperationException>(() => lots.CreateAsync(Receive(good.Id, NextYear), w.FpUserId)); // category not offered to FP
+        await Assert.ThrowsAsync<BusinessRuleException>(() => lots.CreateAsync(Receive(inactiveEntry.Id, NextYear), w.ReceiverId));
+        await Assert.ThrowsAsync<BusinessRuleException>(() => lots.CreateAsync(Receive(inRetired.Id, NextYear), w.ReceiverId));
+        await Assert.ThrowsAsync<BusinessRuleException>(() => lots.CreateAsync(Receive(reagent.Id, NextYear), w.ReceiverId)); // not an Other entry
+        await Assert.ThrowsAsync<BusinessRuleException>(() => lots.CreateAsync(Receive(good.Id, NextYear, customType: "Whatever"), w.ReceiverId));
+        await Assert.ThrowsAsync<BusinessRuleException>(() => lots.CreateAsync(Receive(good.Id, NextYear), w.FpUserId)); // category not offered to FP
 
         Assert.NotNull(await lots.CreateAsync(Receive(good.Id, NextYear), w.ReceiverId));
     }
@@ -286,7 +287,7 @@ public class OtherMaterialsTests
         var e2 = await OtherMaterialTestData.CreateEntryAsync(w.Db, noExpiry, "Gloves", "DSP-001", w.Micro.Id);
         var lots = TestServiceFactory.Material(w.Db);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => lots.CreateAsync(Receive(e1.Id, null), w.ReceiverId));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => lots.CreateAsync(Receive(e1.Id, null), w.ReceiverId));
         Assert.Contains("expiry", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Null((await lots.CreateAsync(Receive(e2.Id, null), w.ReceiverId)).ExpiryDate);
     }
@@ -331,12 +332,12 @@ public class OtherMaterialsTests
         var lotA = await lots.CreateAsync(Receive(e1.Id, NextYear), w.ReceiverId);
         var lotB = await lots.CreateAsync(Receive(e2.Id, NextYear), w.ReceiverId);
 
-        var blocked = await Assert.ThrowsAsync<InvalidOperationException>(() => lots.ConsumeAsync(lotA.Id, MaterialType.Other, 1m, w.ReceiverId));
+        var blocked = await Assert.ThrowsAsync<BusinessRuleException>(() => lots.ConsumeAsync(lotA.Id, MaterialType.Other, 1m, w.ReceiverId));
         Assert.Contains("Certificate of Analysis", blocked.Message);
         await lots.ConsumeAsync(lotB.Id, MaterialType.Other, 1m, w.ReceiverId); // a category without the rule is not blocked
 
         await AddCoaAsync(w.Db, lotA.Id, MaterialDocumentStatus.Superseded);
-        await Assert.ThrowsAsync<InvalidOperationException>(() => lots.ConsumeAsync(lotA.Id, MaterialType.Other, 1m, w.ReceiverId));
+        await Assert.ThrowsAsync<BusinessRuleException>(() => lots.ConsumeAsync(lotA.Id, MaterialType.Other, 1m, w.ReceiverId));
         await AddCoaAsync(w.Db, lotA.Id);
         await lots.ConsumeAsync(lotA.Id, MaterialType.Other, 1m, w.ReceiverId);
         Assert.Equal(9m, (await w.Db.Materials.FindAsync(lotA.Id))!.QuantityRemaining);
@@ -371,7 +372,7 @@ public class OtherMaterialsTests
         w.Db.Materials.Add(legacy);
         await w.Db.SaveChangesAsync();
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => TestServiceFactory.Material(w.Db).ConsumeAsync(legacy.Id, MaterialType.Supplement, 1m, w.ReceiverId));
+        await Assert.ThrowsAsync<BusinessRuleException>(() => TestServiceFactory.Material(w.Db).ConsumeAsync(legacy.Id, MaterialType.Supplement, 1m, w.ReceiverId));
     }
 
     [Fact]
@@ -390,7 +391,7 @@ public class OtherMaterialsTests
         var expired = await w.Db.Materials.FindAsync(lot.Id);
         expired!.ExpiryDate = DateTime.UtcNow.AddDays(-1);
         await w.Db.SaveChangesAsync();
-        await Assert.ThrowsAsync<InvalidOperationException>(() => lots.ConsumeAsync(lot.Id, MaterialType.Other, 1m, w.ReceiverId));
+        await Assert.ThrowsAsync<BusinessRuleException>(() => lots.ConsumeAsync(lot.Id, MaterialType.Other, 1m, w.ReceiverId));
     }
 
     [Fact]
@@ -405,11 +406,11 @@ public class OtherMaterialsTests
 
         Assert.Equal(ApprovalGateStatus.PendingReview, lot.ApprovalStatus);
         Assert.False(lot.IsUsable);
-        var held = await Assert.ThrowsAsync<InvalidOperationException>(() => lots.ConsumeAsync(lot.Id, MaterialType.Other, 1m, w.ReceiverId));
+        var held = await Assert.ThrowsAsync<BusinessRuleException>(() => lots.ConsumeAsync(lot.Id, MaterialType.Other, 1m, w.ReceiverId));
         Assert.Contains("awaiting release", held.Message);
 
         // The receiver cannot release their own lot; nothing is signed or changed.
-        var sod = await Assert.ThrowsAsync<InvalidOperationException>(() => release.DecideAsync(lot.Id, w.ReceiverId, Password, true, null, null));
+        var sod = await Assert.ThrowsAsync<BusinessRuleException>(() => release.DecideAsync(lot.Id, w.ReceiverId, Password, true, null, null));
         Assert.Contains("received", sod.Message);
         Assert.Empty(await w.Db.ElectronicSignatures.ToListAsync());
 
@@ -428,7 +429,7 @@ public class OtherMaterialsTests
         Assert.Single(await w.Db.ReviewWorkflowEvents.Where(e => e.EntityType == ReviewEntityTypes.Material && e.EntityId == lot.Id).ToListAsync());
 
         await lots.ConsumeAsync(lot.Id, MaterialType.Other, 1m, w.ReceiverId);
-        await Assert.ThrowsAsync<InvalidOperationException>(() => release.DecideAsync(lot.Id, w.ReleaserId, Password, true, null, null)); // already decided
+        await Assert.ThrowsAsync<BusinessRuleException>(() => release.DecideAsync(lot.Id, w.ReleaserId, Password, true, null, null)); // already decided
     }
 
     [Fact]
@@ -441,13 +442,13 @@ public class OtherMaterialsTests
         var release = TestServiceFactory.MaterialRelease(w.Db);
         var lot = await lots.CreateAsync(Receive(entry.Id, NextYear), w.ReceiverId);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => release.DecideAsync(lot.Id, w.ReleaserId, Password, false, " ", null));
+        await Assert.ThrowsAsync<BusinessRuleException>(() => release.DecideAsync(lot.Id, w.ReleaserId, Password, false, " ", null));
         await release.DecideAsync(lot.Id, w.ReleaserId, Password, false, "Damaged packaging", null);
 
         var rejected = await w.Db.Materials.FindAsync(lot.Id);
         Assert.Equal(ApprovalGateStatus.Rejected, rejected!.ApprovalStatus);
         Assert.False(rejected.IsUsableAt(DateTime.UtcNow));
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => lots.ConsumeAsync(lot.Id, MaterialType.Other, 1m, w.ReceiverId));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => lots.ConsumeAsync(lot.Id, MaterialType.Other, 1m, w.ReceiverId));
         Assert.Contains("was rejected", ex.Message);
     }
 
@@ -466,7 +467,7 @@ public class OtherMaterialsTests
 
         await Assert.ThrowsAnyAsync<Exception>(() => release.DecideAsync(gatedLot.Id, w.FpUserId, Password, true, null, null)); // other lab
         Assert.Equal(ApprovalGateStatus.PendingReview, (await w.Db.Materials.FindAsync(gatedLot.Id))!.ApprovalStatus);
-        var noGate = await Assert.ThrowsAsync<InvalidOperationException>(() => release.DecideAsync(plainLot.Id, w.ReleaserId, Password, true, null, null));
+        var noGate = await Assert.ThrowsAsync<BusinessRuleException>(() => release.DecideAsync(plainLot.Id, w.ReleaserId, Password, true, null, null));
         Assert.Contains("does not need a release", noGate.Message);
     }
 

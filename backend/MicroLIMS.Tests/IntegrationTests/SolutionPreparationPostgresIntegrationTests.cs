@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using System.Globalization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
@@ -51,7 +52,7 @@ public class SolutionPreparationPostgresIntegrationTests
 
         interceptor.OtherPrepId = prepB.Id;
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(
             () => serviceA.CompleteAsync(prepA.Id, new CompletePreparationRequest(Password, null), seed.UserId, null));
 
         Assert.Contains("Another preparation took that code", ex.Message);

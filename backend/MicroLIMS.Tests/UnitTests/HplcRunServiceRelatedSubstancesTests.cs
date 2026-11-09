@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.DTOs.Responses;
@@ -291,11 +292,11 @@ public partial class HplcRunServiceTests
         db.HplcMethodImpurities.Add(foreign);
         await db.SaveChangesAsync();
 
-        var negative = await Assert.ThrowsAsync<InvalidOperationException>(() => f.Service.SaveReplicatesAsync(
+        var negative = await Assert.ThrowsAsync<BusinessRuleException>(() => f.Service.SaveReplicatesAsync(
             f.RunSampleId, RsReplicates(f, 10000m, new HplcReplicatePeakInput(f.ImpurityD.Id, null, -1m)), f.S.UserId));
         Assert.Equal("Peak areas cannot be negative.", negative.Message);
 
-        var other = await Assert.ThrowsAsync<InvalidOperationException>(() => f.Service.SaveReplicatesAsync(
+        var other = await Assert.ThrowsAsync<BusinessRuleException>(() => f.Service.SaveReplicatesAsync(
             f.RunSampleId, RsReplicates(f, 10000m, new HplcReplicatePeakInput(foreign.Id, null, 100m)), f.S.UserId));
         Assert.Equal("The impurity does not belong to this method.", other.Message);
         Assert.Equal(0, await db.HplcReplicatePeaks.CountAsync());
@@ -407,7 +408,7 @@ public partial class HplcRunServiceTests
         var (_, clock) = NewClock(SepFirst);
         var f = await ArrangeRelatedSubstancesAsync(db, clock);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             f.Service.SaveReplicatesAsync(f.RunSampleId, RsReplicates(f, -500m, SildenafilPeaks(f)), f.S.UserId));
         Assert.Equal("Replicate 1: the reference solution area must be zero or more.", ex.Message);
     }
@@ -424,7 +425,7 @@ public partial class HplcRunServiceTests
             new(-1m, new List<HplcReplicateResponseInput> { new(f.Analyte.Id, 10000m) }, SildenafilPeaks(f).ToList())
         });
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             f.Service.SaveReplicatesAsync(f.RunSampleId, req, f.S.UserId));
         Assert.Equal("The sample weight cannot be negative.", ex.Message);
     }
@@ -436,7 +437,7 @@ public partial class HplcRunServiceTests
         var (_, clock) = NewClock(SepFirst);
         var f = await ArrangeRelatedSubstancesAsync(db, clock);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             f.Service.SaveReplicatesAsync(f.RunSampleId, RsReplicates(f, 10000m, new HplcReplicatePeakInput(f.ImpurityD.Id, null, 1_000_000_000_001m)), f.S.UserId));
         Assert.Equal("Peak area is too large.", ex.Message);
     }
@@ -452,7 +453,7 @@ public partial class HplcRunServiceTests
             .Select(i => new HplcReplicatePeakInput(null, (decimal)i, 100m))
             .ToArray();
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             f.Service.SaveReplicatesAsync(f.RunSampleId, RsReplicates(f, 10000m, fiftyOnePeaks), f.S.UserId));
         Assert.Equal("At most 50 peaks per replicate.", ex.Message);
     }

@@ -142,7 +142,7 @@ public class EquipmentStatusAndDocumentTests
             eq.Code, eq.Location, eq.CalibrationDueDate, EquipmentOperationalStatus.OutOfService,
             StatusChangeComment: null, SectionId: eq.SectionId);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.UpdateAsync(eq.Id, request, 1));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => service.UpdateAsync(eq.Id, request, 1));
         Assert.Contains("comment explaining the reason for changing the operational status is required", ex.Message);
     }
 
@@ -158,7 +158,7 @@ public class EquipmentStatusAndDocumentTests
             eq.Code, eq.Location, eq.CalibrationDueDate, EquipmentOperationalStatus.Retired,
             StatusChangeComment: "    \t  \n  ", SectionId: eq.SectionId);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.UpdateAsync(eq.Id, request, 1));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => service.UpdateAsync(eq.Id, request, 1));
         Assert.Contains("comment explaining the reason for changing the operational status is required", ex.Message);
     }
 
@@ -241,7 +241,7 @@ public class EquipmentStatusAndDocumentTests
         var eq = await SeedEquipment(db);
         var docService = BuildDocService(db);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             docService.UploadAsync(eq.Id, new UploadEquipmentDocumentRequest(
                 EquipmentDocumentType.CalibrationCertificate,
                 "malicious.exe",
@@ -292,7 +292,7 @@ public class EquipmentStatusAndDocumentTests
         // Tamper with the underlying storage directly
         await storage.SaveAsync($"equipment-documents/{eq.Id}/{doc.Id}.pdf", new byte[] { 0x00, 0x00, 0x00, 0x00 });
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             docService.GetContentAsync(doc.Id, eq.Id, 1));
 
         Assert.Contains("integrity check failed", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -339,7 +339,7 @@ public class EquipmentStatusAndDocumentTests
             "application/pdf",
             MakePdf()), 1);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        await Assert.ThrowsAsync<BusinessRuleException>(() =>
             docService.SupersedeAsync(doc1.Id, eq.Id, new SupersedeEquipmentDocumentRequest(
                 "Cert-v2.pdf",
                 "application/pdf",
@@ -403,7 +403,7 @@ public class EquipmentStatusAndDocumentTests
             EquipmentOperationalStatus.InService,
             SectionId: existing.SectionId);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             service.CreateAsync(reqDup, 1));
         Assert.Equal($"Instrument {existing.Code} already has serial number sn-10023 from memmert.", ex.Message);
 
@@ -493,7 +493,7 @@ public class EquipmentStatusAndDocumentTests
             eq2.Status,
             SectionId: eq2.SectionId);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             service.UpdateAsync(eq2.Id, reqDup, 1));
         Assert.Equal($"Instrument {eq1.Code} already has serial number SN-10023 from Memmert.", ex.Message);
 

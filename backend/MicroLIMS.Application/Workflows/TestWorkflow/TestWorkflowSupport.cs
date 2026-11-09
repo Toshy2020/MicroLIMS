@@ -62,10 +62,10 @@ public class TestWorkflowSupport
     protected static TestDefinition RequireTemplate(TestOrder order, TestDefinition? definition)
     {
         if (definition is null)
-            throw new InvalidOperationException($"Test code \"{order.TestCode}\" has no workflow template configured in Test Master.");
+            throw new BusinessRuleException($"Test code \"{order.TestCode}\" has no workflow template configured in Test Master.");
 
         if (definition.Steps.Count == 0 && !AnalysisWorkflows.UsesTestAnalysis(definition.WorkflowType))
-            throw new InvalidOperationException($"Test code \"{order.TestCode}\" has no workflow steps configured yet - add them in Test Master.");
+            throw new BusinessRuleException($"Test code \"{order.TestCode}\" has no workflow steps configured yet - add them in Test Master.");
 
         return definition;
     }
@@ -267,7 +267,7 @@ public class TestWorkflowSupport
             var isDone = IsStepDone(facts, definition.WorkflowType, pred);
             if (!isDone)
             {
-                throw new InvalidOperationException($"Workflow order violation: step \"{pred.StepName}\" must be completed before \"{targetStep.StepName}\".");
+                throw new BusinessRuleException($"Workflow order violation: step \"{pred.StepName}\" must be completed before \"{targetStep.StepName}\".");
             }
         }
     }
@@ -560,9 +560,9 @@ public class TestWorkflowSupport
         bool outsourced = false)
     {
         if (string.IsNullOrWhiteSpace(password))
-            throw new InvalidOperationException("Password is required to sign the result.");
+            throw new BusinessRuleException("Password is required to sign the result.");
         if (expectedWorkflowType != WorkflowType.Dissolution && expectedWorkflowType != WorkflowType.Disintegration && expectedWorkflowType != WorkflowType.WeightVariation && expectedWorkflowType != WorkflowType.HplcMethodAssay && expectedWorkflowType != WorkflowType.IcpMethodAssay && (suppliedSpecIds == null || suppliedSpecIds.Count == 0))
-            throw new InvalidOperationException("At least one parameter result is required.");
+            throw new BusinessRuleException("At least one parameter result is required.");
 
         var nowUtc = _clock.UtcNow.UtcDateTime;
         var analysedAtUtc = analysedAt.Kind switch
@@ -573,7 +573,7 @@ public class TestWorkflowSupport
         };
 
         if (analysedAtUtc > nowUtc.AddMinutes(5))
-            throw new InvalidOperationException("Analysis time cannot be in the future.");
+            throw new BusinessRuleException("Analysis time cannot be in the future.");
 
         var order = await _db.TestOrders
             .Include(t => t.Results)
@@ -585,24 +585,24 @@ public class TestWorkflowSupport
 
         // An outsourced test takes only its external lab result, and every other test only its own recorder.
         if (outsourced && order.OutsourcedToLab == null)
-            throw new InvalidOperationException("This test has not been outsourced.");
+            throw new BusinessRuleException("This test has not been outsourced.");
         if (!outsourced && order.OutsourcedToLab != null)
-            throw new InvalidOperationException($"This test was outsourced to {order.OutsourcedToLab}. Record its result from the external lab report.");
+            throw new BusinessRuleException($"This test was outsourced to {order.OutsourcedToLab}. Record its result from the external lab report.");
 
         if (order.IsSuperseded)
-            throw new InvalidOperationException("Cannot record result for a superseded test order.");
+            throw new BusinessRuleException("Cannot record result for a superseded test order.");
 
         var definition = await _db.TestDefinitions
             .FirstOrDefaultAsync(t => t.Code == order.TestCode)
-            ?? throw new InvalidOperationException($"Test definition \"{order.TestCode}\" not found.");
+            ?? throw new BusinessRuleException($"Test definition \"{order.TestCode}\" not found.");
 
         if (definition.WorkflowType != expectedWorkflowType)
-            throw new InvalidOperationException($"Test order {testOrderId} is not a {expectedWorkflowType} workflow.");
+            throw new BusinessRuleException($"Test order {testOrderId} is not a {expectedWorkflowType} workflow.");
 
         await _sectionScope.EnsureTestOrderAccessAsync(userId, testOrderId);
 
         if (await _db.TestAnalyses.AnyAsync(e => e.TestOrderId == testOrderId && e.IsActive))
-            throw new InvalidOperationException($"An active {AnalysisWorkflows.GetDisplayName(expectedWorkflowType)} entry already exists for this test order.");
+            throw new BusinessRuleException($"An active {AnalysisWorkflows.GetDisplayName(expectedWorkflowType)} entry already exists for this test order.");
 
         if (equipmentId.HasValue)
         {
@@ -614,13 +614,13 @@ public class TestWorkflowSupport
             var inventoryEquip = await _db.EquipmentInventories
                 .FirstOrDefaultAsync(i => i.Code == equip.Code);
             if (inventoryEquip != null && inventoryEquip.Status != EquipmentOperationalStatus.InService)
-                throw new InvalidOperationException($"Equipment \"{equip.Name}\" is not active.");
+                throw new BusinessRuleException($"Equipment \"{equip.Name}\" is not active.");
 
             var equipSectionCode = equip.Section?.Code
                 ?? (await _db.DocumentSections.Where(s => s.Id == equip.SectionId).Select(s => s.Code).FirstOrDefaultAsync());
 
             if (!string.Equals(equipSectionCode, "FP", StringComparison.OrdinalIgnoreCase))
-                throw new InvalidOperationException($"Equipment \"{equip.Name}\" is not in the Finished Product (FP) section.");
+                throw new BusinessRuleException($"Equipment \"{equip.Name}\" is not in the Finished Product (FP) section.");
         }
 
         if (order.Sample?.ItemId is null)
@@ -630,7 +630,7 @@ public class TestWorkflowSupport
             {
                 return (order, definition, new Dictionary<int, Specification>(), analysedAtUtc);
             }
-            throw new InvalidOperationException("Test order sample must be linked to an item with specifications.");
+            throw new BusinessRuleException("Test order sample must be linked to an item with specifications.");
         }
 
         var itemId = order.Sample.ItemId.Value;
@@ -642,41 +642,41 @@ public class TestWorkflowSupport
             .ToListAsync();
 
         if (specs.Count == 0)
-            throw new InvalidOperationException("No specifications configured for this test and item.");
+            throw new BusinessRuleException("No specifications configured for this test and item.");
 
         if (expectedWorkflowType == WorkflowType.Dissolution)
         {
             if (specs.Count != 1 || specs[0].LimitType != LimitType.DissolutionQ)
-                throw new InvalidOperationException("Dissolution tests require exactly one DissolutionQ specification.");
+                throw new BusinessRuleException("Dissolution tests require exactly one DissolutionQ specification.");
         }
         else if (expectedWorkflowType == WorkflowType.Disintegration)
         {
             if (specs.Count != 1 || specs[0].LimitType != LimitType.DisintegrationTime)
-                throw new InvalidOperationException("Disintegration tests require exactly one DisintegrationTime specification.");
+                throw new BusinessRuleException("Disintegration tests require exactly one DisintegrationTime specification.");
         }
         else if (expectedWorkflowType == WorkflowType.WeightVariation)
         {
             if (specs.Count != 1 || specs[0].LimitType != LimitType.WeightVariation)
-                throw new InvalidOperationException("Weight variation tests require exactly one WeightVariation specification.");
+                throw new BusinessRuleException("Weight variation tests require exactly one WeightVariation specification.");
         }
         else if (expectedWorkflowType == WorkflowType.HplcMethodAssay)
         {
             if (specs.Any(s => !s.HplcMethodAnalyteId.HasValue))
-                throw new InvalidOperationException("Every specification for an HPLC method assay must be linked to a method analyte.");
+                throw new BusinessRuleException("Every specification for an HPLC method assay must be linked to a method analyte.");
         }
         else if (expectedWorkflowType == WorkflowType.IcpMethodAssay)
         {
             if (specs.Any(s => !s.IcpTestElementId.HasValue))
-                throw new InvalidOperationException("Every specification for an ICP method assay must be linked to a test element.");
+                throw new BusinessRuleException("Every specification for an ICP method assay must be linked to a test element.");
         }
         else
         {
             if (suppliedSpecIds == null || suppliedSpecIds.Count != specs.Count)
-                throw new InvalidOperationException($"Expected {specs.Count} parameter results matching specifications, but received {suppliedSpecIds?.Count ?? 0}.");
+                throw new BusinessRuleException($"Expected {specs.Count} parameter results matching specifications, but received {suppliedSpecIds?.Count ?? 0}.");
 
             var specIds = specs.Select(s => s.Id).ToHashSet();
             if (suppliedSpecIds.Distinct().Count() != suppliedSpecIds.Count || !specIds.SetEquals(suppliedSpecIds))
-                throw new InvalidOperationException("Every specification for this test must be supplied exactly once.");
+                throw new BusinessRuleException("Every specification for this test must be supplied exactly once.");
         }
 
         return (order, definition, specs.ToDictionary(s => s.Id), analysedAtUtc);
@@ -778,7 +778,7 @@ public class TestWorkflowSupport
     protected static void RequireOrderNotFinalized(TestOrder order)
     {
         if (order.CurrentStep is WorkflowStep.Ready or WorkflowStep.Reviewed or WorkflowStep.Approved)
-            throw new InvalidOperationException(
+            throw new BusinessRuleException(
                 $"Test order {order.Id} is already at {order.CurrentStep} - its workflow can no longer be submitted against.");
     }
 

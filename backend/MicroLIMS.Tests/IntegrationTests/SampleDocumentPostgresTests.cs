@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using MicroLIMS.Application.Abstractions.Storage;
@@ -108,7 +109,7 @@ public class SampleDocumentPostgresTests
         await using var db = w.Db;
         var storage = new InMemoryFileStorageService();
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => Service(db, storage).UploadAsync(
+        await Assert.ThrowsAsync<BusinessRuleException>(() => Service(db, storage).UploadAsync(
             w.Sample.Id, "run.exe", "application/octet-stream", Pdf, SampleDocumentType.SupplierCoa, w.MicroHead.Id));
 
         Assert.Empty(storage.Files);
@@ -138,7 +139,7 @@ public class SampleDocumentPostgresTests
         var service = Service(db, storage);
         var dto = await service.UploadAsync(w.Sample.Id, "CoA.pdf", "application/pdf", Pdf, SampleDocumentType.SupplierCoa, w.MicroHead.Id);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => service.VoidAsync(dto.Id, "  ", w.MicroHead.Id));
+        await Assert.ThrowsAsync<BusinessRuleException>(() => service.VoidAsync(dto.Id, "  ", w.MicroHead.Id));
 
         var voided = await service.VoidAsync(dto.Id, "Wrong supplier", w.MicroHead.Id);
         Assert.Equal(SampleDocumentStatus.Voided, voided.Status);
@@ -154,7 +155,7 @@ public class SampleDocumentPostgresTests
         Assert.Equal("Wrong supplier", audit.Reason);
         Assert.Equal(w.MicroHead.Id, audit.UserId);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => service.VoidAsync(dto.Id, "again", w.MicroHead.Id));
+        await Assert.ThrowsAsync<BusinessRuleException>(() => service.VoidAsync(dto.Id, "again", w.MicroHead.Id));
     }
 
     [PostgresFact]
@@ -189,10 +190,10 @@ public class SampleDocumentPostgresTests
             w.Sample.Status = status;
             await db.SaveChangesAsync();
 
-            var upload = await Assert.ThrowsAsync<InvalidOperationException>(() => service.UploadAsync(
+            var upload = await Assert.ThrowsAsync<BusinessRuleException>(() => service.UploadAsync(
                 w.Sample.Id, "x.pdf", "application/pdf", Pdf, SampleDocumentType.Other, w.MicroHead.Id));
             Assert.Equal("This sample is voided; its documents can no longer be changed.", upload.Message);
-            await Assert.ThrowsAsync<InvalidOperationException>(() => service.VoidAsync(dto.Id, "late", w.MicroHead.Id));
+            await Assert.ThrowsAsync<BusinessRuleException>(() => service.VoidAsync(dto.Id, "late", w.MicroHead.Id));
             Assert.Equal(SampleDocumentStatus.Current, Assert.Single(await service.ListAsync(w.Sample.Id, w.MicroHead.Id)).Status);
         }
     }

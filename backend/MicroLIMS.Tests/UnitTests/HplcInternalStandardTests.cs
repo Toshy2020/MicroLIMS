@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.DTOs.Responses;
@@ -264,18 +265,18 @@ public class HplcInternalStandardTests
 
         // 1. Refuses IS on GC technique
         var gcReq = CreateMethodRequest(ctx, "GC-IS", "Benzoic acid", technique: HplcTechnique.Gc);
-        var exGc = await Assert.ThrowsAsync<InvalidOperationException>(() => service.CreateAsync(gcReq, ctx.UserId));
+        var exGc = await Assert.ThrowsAsync<BusinessRuleException>(() => service.CreateAsync(gcReq, ctx.UserId));
         Assert.Equal("An internal standard applies to HPLC assay methods only.", exGc.Message);
 
         // 2. Refuses IS on Related Substances
         var rsReq = CreateMethodRequest(ctx, "RS-IS", "Benzoic acid", resultMode: HplcResultMode.RelatedSubstances);
-        var exRs = await Assert.ThrowsAsync<InvalidOperationException>(() => service.CreateAsync(rsReq, ctx.UserId));
+        var exRs = await Assert.ThrowsAsync<BusinessRuleException>(() => service.CreateAsync(rsReq, ctx.UserId));
         Assert.Equal("An internal standard applies to HPLC assay methods only.", exRs.Message);
 
         // 3. Name length > 100 chars refused
         var longName = new string('X', 101);
         var longReq = CreateMethodRequest(ctx, "LONG-IS", longName);
-        var exLong = await Assert.ThrowsAsync<InvalidOperationException>(() => service.CreateAsync(longReq, ctx.UserId));
+        var exLong = await Assert.ThrowsAsync<BusinessRuleException>(() => service.CreateAsync(longReq, ctx.UserId));
         Assert.Equal("Internal standard name cannot exceed 100 characters.", exLong.Message);
 
         // 4. Success on HPLC Assay, trimmed
@@ -288,24 +289,24 @@ public class HplcInternalStandardTests
 
         // 5. Update: changing internal standard is refused
         var updateWithChangedIs = CreateMethodRequest(ctx, "HPLC-IS", "Other IS", reason: "Change IS");
-        var exUpdate = await Assert.ThrowsAsync<InvalidOperationException>(() => service.UpdateAsync(created.Id, updateWithChangedIs, ctx.UserId));
+        var exUpdate = await Assert.ThrowsAsync<BusinessRuleException>(() => service.UpdateAsync(created.Id, updateWithChangedIs, ctx.UserId));
         Assert.Equal("The internal standard can't be changed after the method is created.", exUpdate.Message);
 
         // Update removing IS is refused
         var updateWithNullIs = CreateMethodRequest(ctx, "HPLC-IS", null, reason: "Remove IS");
-        var exNull = await Assert.ThrowsAsync<InvalidOperationException>(() => service.UpdateAsync(created.Id, updateWithNullIs, ctx.UserId));
+        var exNull = await Assert.ThrowsAsync<BusinessRuleException>(() => service.UpdateAsync(created.Id, updateWithNullIs, ctx.UserId));
         Assert.Equal("The internal standard can't be changed after the method is created.", exNull.Message);
 
         // Method created without IS cannot gain IS on update
         var withoutIsReq = CreateMethodRequest(ctx, "NO-IS", null);
         var createdWithoutIs = await service.CreateAsync(withoutIsReq, ctx.UserId);
         var updateAddIs = CreateMethodRequest(ctx, "NO-IS", "Benzoic acid", reason: "Add IS");
-        var exAdd = await Assert.ThrowsAsync<InvalidOperationException>(() => service.UpdateAsync(createdWithoutIs.Id, updateAddIs, ctx.UserId));
+        var exAdd = await Assert.ThrowsAsync<BusinessRuleException>(() => service.UpdateAsync(createdWithoutIs.Id, updateAddIs, ctx.UserId));
         Assert.Equal("The internal standard can't be changed after the method is created.", exAdd.Message);
 
         // Minor 4.3: On update of non-HPLC Assay method, mode validator runs before fixed check
         var rsDto = await service.CreateAsync(CreateMethodRequest(ctx, "RS-MTH", null, resultMode: HplcResultMode.RelatedSubstances), ctx.UserId);
-        var exUpdateRs = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var exUpdateRs = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             service.UpdateAsync(rsDto.Id, CreateMethodRequest(ctx, "RS-MTH", "Benzoic acid", resultMode: HplcResultMode.RelatedSubstances, reason: "Change IS"), ctx.UserId));
         Assert.Equal("An internal standard applies to HPLC assay methods only.", exUpdateRs.Message);
     }
@@ -558,7 +559,7 @@ public class HplcInternalStandardTests
         var sstAnalyteId = run.Sst!.Analytes[0].Id;
 
         // 1. IS responses missing at SST → "{analyte}: enter an internal standard response (above zero) for every injection."
-        var exMissing = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var exMissing = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             runSvc.SaveSstAsync(run.Id, new SaveSstRequest(new List<SaveSstAnalyteInput>
             {
                 new(sstAnalyteId, stdLot.Id, 50m, new List<decimal> { 50000m, 50000m, 50000m }, null, null, null, null, null, null, null,
@@ -567,7 +568,7 @@ public class HplcInternalStandardTests
         Assert.Equal($"{analyte.Name}: enter an internal standard response (above zero) for every injection.", exMissing.Message);
 
         // 2. IS responses wrong length at SST
-        var exWrongLength = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var exWrongLength = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             runSvc.SaveSstAsync(run.Id, new SaveSstRequest(new List<SaveSstAnalyteInput>
             {
                 new(sstAnalyteId, stdLot.Id, 50m, new List<decimal> { 50000m, 50000m, 50000m }, null, null, null, null, null, null, null,
@@ -576,7 +577,7 @@ public class HplcInternalStandardTests
         Assert.Equal($"{analyte.Name}: enter an internal standard response (above zero) for every injection.", exWrongLength.Message);
 
         // 3. IS response <= 0 at SST
-        var exZero = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var exZero = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             runSvc.SaveSstAsync(run.Id, new SaveSstRequest(new List<SaveSstAnalyteInput>
             {
                 new(sstAnalyteId, stdLot.Id, 50m, new List<decimal> { 50000m, 50000m, 50000m }, null, null, null, null, null, null, null,
@@ -637,14 +638,14 @@ public class HplcInternalStandardTests
         var runSample = await db.HplcRunSamples.FirstAsync(s => s.HplcRunId == run.Id && s.TestOrderId == order.Id);
 
         // 4. Replicate IS missing or <= 0 refused at save time
-        var exNullRep = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var exNullRep = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             runSvc.SaveReplicatesAsync(runSample.Id, new SaveReplicatesRequest(new List<HplcReplicateInput>
             {
                 new(100m, new List<HplcReplicateResponseInput> { new(analyte.Id, 49000m) }, null, InternalStandardResponse: null)
             }), ctx.UserId));
         Assert.Equal("Replicate 1: the internal standard response is required.", exNullRep.Message);
 
-        var exZeroRep = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var exZeroRep = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             runSvc.SaveReplicatesAsync(runSample.Id, new SaveReplicatesRequest(new List<HplcReplicateInput>
             {
                 new(100m, new List<HplcReplicateResponseInput> { new(analyte.Id, 49000m) }, null, InternalStandardResponse: 0m)
@@ -663,7 +664,7 @@ public class HplcInternalStandardTests
         var noIsSstAnalyteId = noIsRun.Sst!.Analytes[0].Id;
 
         // Send IS responses at SST
-        var exNoIsSst = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var exNoIsSst = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             runSvc.SaveSstAsync(noIsRun.Id, new SaveSstRequest(new List<SaveSstAnalyteInput>
             {
                 new(noIsSstAnalyteId, stdLot.Id, 50m, new List<decimal> { 50000m, 50000m, 50000m }, null, null, null, null, null, null, null,
@@ -706,7 +707,7 @@ public class HplcInternalStandardTests
         await runSvc.AssignSamplesAsync(noIsRun.Id, new List<int> { order2.Id }, ctx.UserId);
         var noIsRunSample = await db.HplcRunSamples.FirstAsync(s => s.HplcRunId == noIsRun.Id && s.TestOrderId == order2.Id);
 
-        var exNoIsRep = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var exNoIsRep = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             runSvc.SaveReplicatesAsync(noIsRunSample.Id, new SaveReplicatesRequest(new List<HplcReplicateInput>
             {
                 new(100m, new List<HplcReplicateResponseInput> { new(noIsMethod.Analytes[0].Id, 49000m) }, null, InternalStandardResponse: 100000m)
@@ -725,25 +726,25 @@ public class HplcInternalStandardTests
         Assert.Equal(0.5m, HplcResponse.Effective(50000m, 100000m, hasInternalStandard: true));
 
         // IS method refuses null or <= 0
-        var exNull = Assert.Throws<InvalidOperationException>(() =>
+        var exNull = Assert.Throws<BusinessRuleException>(() =>
             HplcResponse.Effective(50000m, null, hasInternalStandard: true));
         Assert.NotNull(exNull.Message);
 
-        var exZero = Assert.Throws<InvalidOperationException>(() =>
+        var exZero = Assert.Throws<BusinessRuleException>(() =>
             HplcResponse.Effective(50000m, 0m, hasInternalStandard: true));
         Assert.NotNull(exZero.Message);
 
-        var exNeg = Assert.Throws<InvalidOperationException>(() =>
+        var exNeg = Assert.Throws<BusinessRuleException>(() =>
             HplcResponse.Effective(50000m, -1m, hasInternalStandard: true));
         Assert.NotNull(exNeg.Message);
 
         // Helper for SST throws exact SST message
-        var exSst = Assert.Throws<InvalidOperationException>(() =>
+        var exSst = Assert.Throws<BusinessRuleException>(() =>
             HplcResponse.ForSst("Analyte 1", 50000m, null, hasInternalStandard: true));
         Assert.Equal("Analyte 1: enter an internal standard response (above zero) for every injection.", exSst.Message);
 
         // Helper for Replicate throws exact Replicate message
-        var exRep = Assert.Throws<InvalidOperationException>(() =>
+        var exRep = Assert.Throws<BusinessRuleException>(() =>
             HplcResponse.ForReplicate(2, 50000m, 0m, hasInternalStandard: true));
         Assert.Equal("Replicate 2: the internal standard response is required.", exRep.Message);
     }
@@ -780,7 +781,7 @@ public class HplcInternalStandardTests
         await runSvc.UploadEvidenceAsync(run.Id, null, HplcEvidenceContext.Sst, HplcEvidenceKind.StandardReport,
             "report.pdf", "application/pdf", reportContent, ctx.UserId);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             runSvc.ConfirmSstAsync(run.Id, new ConfirmSstRequest(Password, null), ctx.UserId, null));
         Assert.Contains("internal standard", ex.Message);
     }

@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using MicroLIMS.Application.Helpers;
 using MicroLIMS.Domain.Enums;
 using Xunit;
@@ -17,8 +18,8 @@ public class SolutionPreparationCodeTests
     [Fact]
     public void Head_MobilePhase_WithoutAbbreviation_Throws()
     {
-        Assert.Throws<InvalidOperationException>(() => SolutionPreparationCode.Head(SolutionType.MobilePhase, null));
-        Assert.Throws<InvalidOperationException>(() => SolutionPreparationCode.Head(SolutionType.MobilePhase, "  "));
+        Assert.Throws<BusinessRuleException>(() => SolutionPreparationCode.Head(SolutionType.MobilePhase, null));
+        Assert.Throws<BusinessRuleException>(() => SolutionPreparationCode.Head(SolutionType.MobilePhase, "  "));
     }
 
     [Fact]

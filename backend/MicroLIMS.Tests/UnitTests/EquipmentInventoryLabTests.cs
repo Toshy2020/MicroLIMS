@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Services;
 using MicroLIMS.Domain.Entities;
@@ -121,7 +122,7 @@ public class EquipmentInventoryLabTests
 
         var request = BuildRequest("INC-NEW-01", sectionId: null);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.CreateAsync(request, microUser.Id));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => service.CreateAsync(request, microUser.Id));
         Assert.Equal("Choose the laboratory this asset belongs to.", ex.Message);
     }
 
@@ -239,7 +240,7 @@ public class EquipmentInventoryLabTests
 
         var request = BuildRequest(asset.Code, sectionId: null);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.UpdateAsync(asset.Id, request, microUser.Id));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => service.UpdateAsync(asset.Id, request, microUser.Id));
         Assert.Equal("Choose the laboratory this asset belongs to.", ex.Message);
     }
 

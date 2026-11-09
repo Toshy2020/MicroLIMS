@@ -115,7 +115,7 @@ public class EquipmentDocumentService
         var firstBytes = request.Content.Take(16).ToArray();
         var error = _validator.Validate(request.OriginalFileName, request.DeclaredContentType, request.Content.Length, firstBytes);
         if (error != null)
-            throw new InvalidOperationException(error);
+            throw new BusinessRuleException(error);
 
         var ext = Path.GetExtension(request.OriginalFileName).ToLowerInvariant();
         var sha256 = Convert.ToHexString(SHA256.HashData(request.Content));
@@ -174,7 +174,7 @@ public class EquipmentDocumentService
         catch (Exception ex)
         {
             _logger.LogError(ex, "File read failed for EquipmentDocument {Id} (key: {Key}).", document.Id, document.StorageKey);
-            throw new InvalidOperationException("The document file could not be retrieved.");
+            throw new BusinessRuleException("The document file could not be retrieved.");
         }
 
         // Integrity verification.
@@ -185,7 +185,7 @@ public class EquipmentDocumentService
                 "INTEGRITY FAILURE: EquipmentDocument {Id} (equipment {EquipmentId}) stored hash {Stored} does not match computed hash {Computed}.",
                 document.Id, document.EquipmentInventoryId, document.ContentSha256, computedHash);
             await RecordAccessAsync(document.Id, equipmentId, requestingUserId, EquipmentDocumentAccessAction.Download);
-            throw new InvalidOperationException("Document integrity check failed. The file may have been altered. Please contact your System Administrator.");
+            throw new BusinessRuleException("Document integrity check failed. The file may have been altered. Please contact your System Administrator.");
         }
 
         await RecordAccessAsync(document.Id, equipmentId, requestingUserId, EquipmentDocumentAccessAction.Download);
@@ -206,19 +206,19 @@ public class EquipmentDocumentService
     private async Task<EquipmentDocumentDto> SupersedeCoreAsync(int documentId, int equipmentId, SupersedeEquipmentDocumentRequest request, int actingUserId)
     {
         if (string.IsNullOrWhiteSpace(request.Reason))
-            throw new InvalidOperationException("A supersession reason is required.");
+            throw new BusinessRuleException("A supersession reason is required.");
 
         var old = await _db.EquipmentDocuments
             .FirstOrDefaultAsync(d => d.Id == documentId && d.EquipmentInventoryId == equipmentId)
             ?? throw new NotFoundException($"Document {documentId} not found for equipment {equipmentId}.");
 
         if (old.Status == MaterialDocumentStatus.Voided)
-            throw new InvalidOperationException("A voided document cannot be superseded. Upload a new document instead.");
+            throw new BusinessRuleException("A voided document cannot be superseded. Upload a new document instead.");
 
         var firstBytes = request.Content.Take(16).ToArray();
         var error = _validator.Validate(request.OriginalFileName, request.DeclaredContentType, request.Content.Length, firstBytes);
         if (error != null)
-            throw new InvalidOperationException(error);
+            throw new BusinessRuleException(error);
 
         var ext = Path.GetExtension(request.OriginalFileName).ToLowerInvariant();
         var sha256 = Convert.ToHexString(SHA256.HashData(request.Content));
@@ -279,14 +279,14 @@ public class EquipmentDocumentService
     public async Task<EquipmentDocumentDto> VoidAsync(int documentId, int equipmentId, VoidEquipmentDocumentRequest request, int actingUserId)
     {
         if (string.IsNullOrWhiteSpace(request.Reason))
-            throw new InvalidOperationException("A void reason is required.");
+            throw new BusinessRuleException("A void reason is required.");
 
         var document = await _db.EquipmentDocuments
             .FirstOrDefaultAsync(d => d.Id == documentId && d.EquipmentInventoryId == equipmentId)
             ?? throw new NotFoundException($"Document {documentId} not found for equipment {equipmentId}.");
 
         if (document.Status == MaterialDocumentStatus.Voided)
-            throw new InvalidOperationException("This document is already voided.");
+            throw new BusinessRuleException("This document is already voided.");
 
         document.Status = MaterialDocumentStatus.Voided;
         document.VoidedAt = _time.GetUtcNow().UtcDateTime;

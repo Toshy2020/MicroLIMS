@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -251,7 +252,7 @@ public class TestCodeOwnershipTests
         var f = Seed(db);
         var scope = new UserSectionScopeService(db);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(
             () => TestCodeOwnership.EnsureCanEditAsync(db, scope, f.MicroHead.Id, "NOPE", "Point"));
         Assert.Equal("Test code 'NOPE' is not in the Test Master.", ex.Message);
     }

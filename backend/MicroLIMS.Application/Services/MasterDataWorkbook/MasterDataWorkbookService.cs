@@ -130,7 +130,7 @@ public class MasterDataWorkbookService
     {
         fileName = Path.GetFileName(fileName);
         if (fileName.Length > MaxFileNameLength)
-            throw new InvalidOperationException($"The file name is longer than {MaxFileNameLength} characters. Rename the file and try again.");
+            throw new BusinessRuleException($"The file name is longer than {MaxFileNameLength} characters. Rename the file and try again.");
         CheckCommentLength(comment);
         var sheets = ReadSheets(file);
         try
@@ -198,9 +198,9 @@ public class MasterDataWorkbookService
             var import = await _db.MasterDataImports.Include(i => i.Records).FirstOrDefaultAsync(i => i.Id == id)
                 ?? throw new NotFoundException($"Master data import {id} not found.");
             if (import.Status != MasterDataImportStatus.Loaded)
-                throw new InvalidOperationException("This load has already been verified.");
+                throw new BusinessRuleException("This load has already been verified.");
             if (import.ImportedByUserId == userId)
-                throw new InvalidOperationException("The person who loaded the workbook cannot verify it. Ask a second person.");
+                throw new BusinessRuleException("The person who loaded the workbook cannot verify it. Ask a second person.");
 
             // The verifier must be able to see what they verify: material
             // master entries belong to lab sections. Checked before signing.
@@ -215,7 +215,7 @@ public class MasterDataWorkbookService
                     .Select(r => r.OwnerSection!.Code).Distinct().ToListAsync());
                 outside = outside.Distinct().OrderBy(c => c).ToList();
                 if (outside.Count > 0)
-                    throw new InvalidOperationException(
+                    throw new BusinessRuleException(
                         $"This load added material master entries or reference organisms to lab section(s) you are not a member of: {string.Join(", ", outside)}. Ask a Section Head of that section to verify it.");
             }
 
@@ -273,22 +273,22 @@ public class MasterDataWorkbookService
     private static void CheckCommentLength(string? comment)
     {
         if (comment?.Trim().Length > MaxCommentLength)
-            throw new InvalidOperationException($"The comment is longer than {MaxCommentLength} characters. Shorten it and sign again.");
+            throw new BusinessRuleException($"The comment is longer than {MaxCommentLength} characters. Shorten it and sign again.");
     }
 
     internal IReadOnlyList<WorkbookSheet> ReadSheets(byte[] file)
     {
         if (file.Length == 0)
-            throw new InvalidOperationException("The file is empty.");
+            throw new BusinessRuleException("The file is empty.");
         if (file.Length > MaxFileBytes)
-            throw new InvalidOperationException($"The file is larger than {MaxFileBytes / (1024 * 1024)} MB. Split it into several workbooks.");
+            throw new BusinessRuleException($"The file is larger than {MaxFileBytes / (1024 * 1024)} MB. Split it into several workbooks.");
         try
         {
             return _format.Read(new MemoryStream(file));
         }
         catch (WorkbookFormatException e)
         {
-            throw new InvalidOperationException(e.Message);
+            throw new BusinessRuleException(e.Message);
         }
     }
 }

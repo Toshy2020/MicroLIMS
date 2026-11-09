@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Services;
 using MicroLIMS.Application.Workflows;
@@ -99,7 +100,7 @@ public class LabTargetedReceiptTests
 
         var engine = new ProductWorkflowEngine(db, new ReferenceNumberGenerator(db));
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(
             () => engine.ReceiveAsync(Request(item.Id, new[] { micro.Id })));
         Assert.Contains("has no tests for Microbiology Laboratory", ex.Message);
     }
@@ -124,7 +125,7 @@ public class LabTargetedReceiptTests
         var (db, _, _, _) = await SeedAsync();
         var scope = new UserSectionScopeService(db);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(
             () => ReceiptLabGuard.ResolveTargetsAsync(db, scope, 1, canReceiveForAnyLab: false, requested: Array.Empty<int>()));
         Assert.Equal("Choose at least one laboratory to receive the sample for.", ex.Message);
     }

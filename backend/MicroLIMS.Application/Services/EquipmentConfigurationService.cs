@@ -157,7 +157,7 @@ public class EquipmentConfigurationService
         // The inventory register predates sections and only holds
         // Microbiology equipment, so a linked master lands in MICRO.
         var sectionId = await _db.DocumentSections.Where(s => s.Code == "MICRO").Select(s => (int?)s.Id).FirstOrDefaultAsync()
-            ?? throw new InvalidOperationException("The Microbiology laboratory section (code MICRO) is missing.");
+            ?? throw new BusinessRuleException("The Microbiology laboratory section (code MICRO) is missing.");
 
         var master = new Equipment
         {
@@ -178,13 +178,13 @@ public class EquipmentConfigurationService
     public async Task<EquipmentResponse> UpdateIncubatorSetPointAsync(int equipmentId, UpdateIncubatorSetPointRequest r, int userId)
     {
         if (string.IsNullOrWhiteSpace(r.Reason))
-            throw new InvalidOperationException("A reason explaining the change to the set point temperature is required.");
+            throw new BusinessRuleException("A reason explaining the change to the set point temperature is required.");
 
         var equipment = await _db.Equipment.FirstOrDefaultAsync(e => e.Id == equipmentId)
             ?? throw new NotFoundException($"Equipment {equipmentId} not found.");
 
         if (equipment.Type != EquipmentType.Incubator)
-            throw new InvalidOperationException($"Equipment {equipment.Code} is not an incubator.");
+            throw new BusinessRuleException($"Equipment {equipment.Code} is not an incubator.");
 
         decimal prevSetPoint = equipment.SetPointTemperature ?? 0m;
         equipment.SetPointTemperature = r.NewSetPoint;
@@ -259,13 +259,13 @@ public class EquipmentConfigurationService
     public async Task<AutoclaveProgramDto> SaveAutoclaveProgramAsync(SaveAutoclaveProgramRequest r, int userId)
     {
         var equipment = await _db.Equipment.FirstOrDefaultAsync(e => e.Id == r.EquipmentId && e.Type == EquipmentType.Autoclave)
-            ?? throw new InvalidOperationException($"Autoclave equipment {r.EquipmentId} not found.");
+            ?? throw new BusinessRuleException($"Autoclave equipment {r.EquipmentId} not found.");
 
         if (r.Id == null || r.Id == 0)
         {
             // Create
             if (await _db.AutoclavePrograms.AnyAsync(p => p.EquipmentId == r.EquipmentId && p.ProgramCode == r.ProgramCode))
-                throw new InvalidOperationException($"Program code \"{r.ProgramCode}\" already exists on autoclave {equipment.Code}.");
+                throw new BusinessRuleException($"Program code \"{r.ProgramCode}\" already exists on autoclave {equipment.Code}.");
 
             var program = new AutoclaveProgram
             {
@@ -316,11 +316,11 @@ public class EquipmentConfigurationService
         {
             // Update
             var program = await _db.AutoclavePrograms.FirstOrDefaultAsync(p => p.Id == r.Id.Value)
-                ?? throw new InvalidOperationException($"Autoclave program {r.Id.Value} not found.");
+                ?? throw new BusinessRuleException($"Autoclave program {r.Id.Value} not found.");
             RecordVersion.EnsureCurrent(_db, program);
 
             if (r.ProgramCode != program.ProgramCode && await _db.AutoclavePrograms.AnyAsync(p => p.EquipmentId == r.EquipmentId && p.ProgramCode == r.ProgramCode))
-                throw new InvalidOperationException($"Program code \"{r.ProgramCode}\" already exists on autoclave {equipment.Code}.");
+                throw new BusinessRuleException($"Program code \"{r.ProgramCode}\" already exists on autoclave {equipment.Code}.");
 
             var history = new AutoclaveProgramHistory
             {

@@ -123,13 +123,13 @@ public partial class HplcRunService
         await EnsureAccessAsync(run, userId, ct);
 
         if (run.Status != HplcRunStatus.Open)
-            throw new InvalidOperationException("The run is closed.");
+            throw new BusinessRuleException("The run is closed.");
         if (run.Sst?.Status != HplcSstStatus.Passed)
-            throw new InvalidOperationException("Sample assignment is locked until system suitability passes.");
+            throw new BusinessRuleException("Sample assignment is locked until system suitability passes.");
 
         var ids = (testOrderIds ?? new List<int>()).Distinct().ToList();
         if (ids.Count == 0)
-            throw new InvalidOperationException("Select at least one test.");
+            throw new BusinessRuleException("Select at least one test.");
 
         var eligible = await EligibleOrdersQuery(run).Where(o => ids.Contains(o.Id)).Select(o => o.Id).ToListAsync(ct);
         foreach (var id in ids.Where(id => !eligible.Contains(id)))
@@ -137,7 +137,7 @@ public partial class HplcRunService
             var busyRun = await _db.HplcRunSamples
                 .Where(s => s.TestOrderId == id && s.Status == HplcRunSampleStatus.Assigned && s.HplcRun!.Status != HplcRunStatus.Abandoned)
                 .Select(s => s.HplcRun!.Code).FirstOrDefaultAsync(ct);
-            throw new InvalidOperationException(busyRun != null
+            throw new BusinessRuleException(busyRun != null
                 ? $"Test order {id} is already assigned to run {busyRun}."
                 : $"Test order {id} is not eligible for this run.");
         }
@@ -149,13 +149,13 @@ public partial class HplcRunService
         {
             var snapshot = JsonSerializer.Deserialize<HplcMethodResponse>(run.MethodSnapshotJson, JsonOptions)!;
             if (snapshot.ResultMode != HplcResultMode.Assay)
-                throw new InvalidOperationException("Dissolution needs an HPLC assay method.");
+                throw new BusinessRuleException("Dissolution needs an HPLC assay method.");
             if (!string.IsNullOrWhiteSpace(snapshot.InternalStandardName))
-                throw new InvalidOperationException("Dissolution does not support internal-standard methods.");
+                throw new BusinessRuleException("Dissolution does not support internal-standard methods.");
             if (snapshot.Analytes.Count != 1)
-                throw new InvalidOperationException("Dissolution needs an HPLC method with exactly one analyte.");
+                throw new BusinessRuleException("Dissolution needs an HPLC method with exactly one analyte.");
             if (snapshot.Analytes[0].StandardDilution is not > 0m)
-                throw new InvalidOperationException($"Method {snapshot.Abbreviation} needs a standard dilution before dissolution samples can be assigned.");
+                throw new BusinessRuleException($"Method {snapshot.Abbreviation} needs a standard dilution before dissolution samples can be assigned.");
         }
 
         var nowUtc = _clock.UtcNow.UtcDateTime;
@@ -172,20 +172,20 @@ public partial class HplcRunService
         await EnsureAccessAsync(run, userId, ct);
 
         if (run.Status != HplcRunStatus.Open)
-            throw new InvalidOperationException("The run is closed.");
+            throw new BusinessRuleException("The run is closed.");
 
         var sample = run.Samples.FirstOrDefault(s => s.Id == runSampleId)
             ?? throw new NotFoundException($"Sample {runSampleId} not found on this run.");
         if (sample.Status != HplcRunSampleStatus.Assigned)
-            throw new InvalidOperationException("This sample was already removed from the run.");
+            throw new BusinessRuleException("This sample was already removed from the run.");
         if (sample.WorkingStandardQualificationId != null)
         {
             if (!await _db.WorkingStandardQualifications.AnyAsync(
                     q => q.Id == sample.WorkingStandardQualificationId && q.Status == WorkingStandardQualificationStatus.Draft, ct))
-                throw new InvalidOperationException("The qualification has already been submitted.");
+                throw new BusinessRuleException("The qualification has already been submitted.");
         }
         else if (await _db.TestAnalyses.AnyAsync(a => a.TestOrderId == sample.TestOrderId && a.IsActive, ct))
-            throw new InvalidOperationException("A result has already been sent for review for this sample.");
+            throw new BusinessRuleException("A result has already been sent for review for this sample.");
 
         var trimmedReason = ValidateReason(reason);
         sample.Status = HplcRunSampleStatus.Removed;
@@ -213,60 +213,60 @@ public partial class HplcRunService
 
         var problem = context.EditableProblem();
         if (problem != null)
-            throw new InvalidOperationException(problem);
+            throw new BusinessRuleException(problem);
         if (await IsDissolutionOrderAsync(context.Order.Id, ct))
-            throw new InvalidOperationException("Dissolution results are entered on the Testing page, not as replicates.");
+            throw new BusinessRuleException("Dissolution results are entered on the Testing page, not as replicates.");
 
         var inputs = r.Replicates ?? new List<HplcReplicateInput>();
         var hasIs = !string.IsNullOrWhiteSpace(context.Snapshot.InternalStandardName);
         if (!hasIs && inputs.Any(x => x.InternalStandardResponse.HasValue))
-            throw new InvalidOperationException("This method has no internal standard.");
+            throw new BusinessRuleException("This method has no internal standard.");
         var analyteIds = context.Snapshot.Analytes.Select(a => a.Id).ToList();
         for (var i = 0; i < inputs.Count; i++)
         {
             var input = inputs[i];
             if (hasIs && input.InternalStandardResponse is null or <= 0)
-                throw new InvalidOperationException($"Replicate {i + 1}: the internal standard response is required.");
+                throw new BusinessRuleException($"Replicate {i + 1}: the internal standard response is required.");
             // A related-substances sample is not weighed: its calculation uses no sample weight.
             // Cleaning-residue swabs are also not weighed.
             if (!context.IsRelatedSubstances && !context.IsCleaningResidue)
             {
                 if (input.ActualWeightMg <= 0)
-                    throw new InvalidOperationException($"Replicate {i + 1}: the sample weight must be greater than zero.");
+                    throw new BusinessRuleException($"Replicate {i + 1}: the sample weight must be greater than zero.");
             }
             else if (input.ActualWeightMg < 0)
             {
-                throw new InvalidOperationException("The sample weight cannot be negative.");
+                throw new BusinessRuleException("The sample weight cannot be negative.");
             }
             ValidatePeaks(context, input.Peaks);
 
             var responses = input.Responses ?? new List<HplcReplicateResponseInput>();
             if (responses.Any(x => !analyteIds.Contains(x.HplcMethodAnalyteId)))
-                throw new InvalidOperationException($"Replicate {i + 1}: a response belongs to an analyte that is not in the method.");
+                throw new BusinessRuleException($"Replicate {i + 1}: a response belongs to an analyte that is not in the method.");
             foreach (var analyte in context.Snapshot.Analytes)
             {
                 var matches = responses.Where(x => x.HplcMethodAnalyteId == analyte.Id).ToList();
                 if (matches.Count != 1)
-                    throw new InvalidOperationException($"Replicate {i + 1}: exactly one response for {analyte.Name} is required.");
+                    throw new BusinessRuleException($"Replicate {i + 1}: exactly one response for {analyte.Name} is required.");
                 switch (context.Snapshot.ResultMode)
                 {
                     case HplcResultMode.Assay:
                         if (matches[0].Response <= 0)
-                            throw new InvalidOperationException($"Replicate {i + 1}: the response for {analyte.Name} must be greater than zero.");
+                            throw new BusinessRuleException($"Replicate {i + 1}: the response for {analyte.Name} must be greater than zero.");
                         break;
                     case HplcResultMode.ResidualSolvents:
                     case HplcResultMode.CleaningResidue:
                         // A solvent or cleaning residue that is not detected gives a zero response.
                         if (matches[0].Response < 0)
-                            throw new InvalidOperationException($"Replicate {i + 1}: the response for {analyte.Name} must be zero or more.");
+                            throw new BusinessRuleException($"Replicate {i + 1}: the response for {analyte.Name} must be zero or more.");
                         break;
                     case HplcResultMode.RelatedSubstances:
                         // The response is the reference solution's principal-peak area; a missing (zero) one is reported by the entry problem.
                         if (matches[0].Response < 0)
-                            throw new InvalidOperationException($"Replicate {i + 1}: the reference solution area must be zero or more.");
+                            throw new BusinessRuleException($"Replicate {i + 1}: the reference solution area must be zero or more.");
                         break;
                     default:
-                        throw new InvalidOperationException($"Unsupported result mode {context.Snapshot.ResultMode}.");
+                        throw new BusinessRuleException($"Unsupported result mode {context.Snapshot.ResultMode}.");
                 }
             }
         }
@@ -281,20 +281,20 @@ public partial class HplcRunService
     {
         if (peaks == null || peaks.Count == 0) return;
         if (!context.IsRelatedSubstances)
-            throw new InvalidOperationException("Peaks are entered for related-substances methods only.");
+            throw new BusinessRuleException("Peaks are entered for related-substances methods only.");
         if (peaks.Count > 50)
-            throw new InvalidOperationException("At most 50 peaks per replicate.");
+            throw new BusinessRuleException("At most 50 peaks per replicate.");
         var impurityIds = context.Snapshot.Impurities.Select(i => i.Id).ToHashSet();
         foreach (var peak in peaks)
         {
             if (peak.Area < 0m)
-                throw new InvalidOperationException("Peak areas cannot be negative.");
+                throw new BusinessRuleException("Peak areas cannot be negative.");
             if (peak.Area > 1_000_000_000_000m)
-                throw new InvalidOperationException("Peak area is too large.");
+                throw new BusinessRuleException("Peak area is too large.");
             if (peak.HplcMethodImpurityId is int impurityId && !impurityIds.Contains(impurityId))
-                throw new InvalidOperationException("The impurity does not belong to this method.");
+                throw new BusinessRuleException("The impurity does not belong to this method.");
             if (peak.RelativeRetention is <= 0m or > 100m)
-                throw new InvalidOperationException("The relative retention must be greater than zero and at most 100.");
+                throw new BusinessRuleException("The relative retention must be greater than zero and at most 100.");
         }
     }
 
@@ -342,7 +342,7 @@ public partial class HplcRunService
         await EnsureAccessAsync(run, userId, ct);
 
         if (run.Status != HplcRunStatus.Open)
-            throw new InvalidOperationException("The run is closed.");
+            throw new BusinessRuleException("The run is closed.");
 
         var assigned = run.Samples.Where(s => s.Status == HplcRunSampleStatus.Assigned).ToList();
         var orderIds = assigned.Where(s => s.TestOrderId != null).Select(s => s.TestOrderId!.Value).ToList();
@@ -352,7 +352,7 @@ public partial class HplcRunService
             + await _db.WorkingStandardQualifications.CountAsync(
                 q => draftQualificationIds.Contains(q.Id) && q.Status == WorkingStandardQualificationStatus.Draft, ct);
         if (pending > 0)
-            throw new InvalidOperationException($"{pending} assigned sample(s) have not been sent for review. Submit or remove them first.");
+            throw new BusinessRuleException($"{pending} assigned sample(s) have not been sent for review. Submit or remove them first.");
 
         run.Status = HplcRunStatus.Completed;
         run.ClosedAt = _clock.UtcNow.UtcDateTime;

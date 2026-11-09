@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using MicroLIMS.Application.DTOs.DocumentControl;
@@ -420,7 +421,7 @@ public class DocumentControlTrainingAssignmentEngineUnitTests
             AssignmentType: AssignmentType.Reading
         );
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        await Assert.ThrowsAsync<BusinessRuleException>(() =>
             service.AssignToUsersAsync(request, actingUserId: admin.Id));
     }
 

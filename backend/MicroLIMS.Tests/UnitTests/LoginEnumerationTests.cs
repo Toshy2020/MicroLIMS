@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using System.Diagnostics;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -149,7 +150,7 @@ public class LoginEnumerationTests
         var recovery = new AdminPasswordRecoveryService(db);
 
         async Task<string> Message(string username) =>
-            (await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            (await Assert.ThrowsAsync<BusinessRuleException>(() =>
                 recovery.ConfirmRecoveryAsync(username, "WRONG-CODE-123", "New-Password-9!"))).Message;
 
         var messages = new[] { await Message("no-such-user"), await Message("disabled"), await Message("active") };

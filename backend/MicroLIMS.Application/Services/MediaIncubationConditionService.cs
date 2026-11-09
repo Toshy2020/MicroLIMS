@@ -71,7 +71,7 @@ public class MediaIncubationConditionService
 
         if (exists)
         {
-            throw new InvalidOperationException(
+            throw new BusinessRuleException(
                 $"'{product.Name}' already has an incubation condition of {minH}–{maxH} h at {tMin}–{tMax} °C.");
         }
 
@@ -116,7 +116,7 @@ public class MediaIncubationConditionService
                 ?? (await _db.MediaProducts.Where(p => p.Id == condition.MediaProductId).Select(p => p.Name).FirstOrDefaultAsync())
                 ?? string.Empty;
 
-            throw new InvalidOperationException(
+            throw new BusinessRuleException(
                 $"'{productName}' already has an incubation condition of {minH}–{maxH} h at {tMin}–{tMax} °C.");
         }
 
@@ -143,13 +143,13 @@ public class MediaIncubationConditionService
     private static void ValidateRange(int minH, int maxH, decimal tMin, decimal tMax)
     {
         if (minH <= 0)
-            throw new InvalidOperationException("Incubation min hours must be greater than zero.");
+            throw new BusinessRuleException("Incubation min hours must be greater than zero.");
         if (maxH < minH)
-            throw new InvalidOperationException("Incubation max hours cannot be less than min hours.");
+            throw new BusinessRuleException("Incubation max hours cannot be less than min hours.");
         // Strictly below, matching WorkflowTemplateValidator rule 5 for the
         // step media that copy these values.
         if (tMin >= tMax)
-            throw new InvalidOperationException("Temperature min must be below temperature max.");
+            throw new BusinessRuleException("Temperature min must be below temperature max.");
     }
 
     private async Task EnsureNotLockedAsync(int id)
@@ -159,7 +159,7 @@ public class MediaIncubationConditionService
 
         if (configCount > 0 || stepMediaCount > 0)
         {
-            throw new InvalidOperationException(
+            throw new BusinessRuleException(
                 $"This incubation condition is used by {configCount} evaluation configuration(s) and {stepMediaCount} Test Master step medium/media, so it can't be changed or deleted. Add a new condition instead.");
         }
     }

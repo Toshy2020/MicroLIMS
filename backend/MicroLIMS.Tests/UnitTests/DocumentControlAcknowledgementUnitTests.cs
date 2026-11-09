@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -260,7 +261,7 @@ public class DocumentControlAcknowledgementUnitTests
             ConfirmedLegalStatement: false // Unchecked
         );
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             service.AcknowledgeAssignmentAsync(request, actingUserId: analyst1.Id));
 
         Assert.Contains("Explicit confirmation of the legal acknowledgement statement is required", ex.Message);
@@ -317,7 +318,7 @@ public class DocumentControlAcknowledgementUnitTests
             ConfirmedLegalStatement: true
         );
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             service.AcknowledgeAssignmentAsync(request, actingUserId: analyst1.Id));
 
         Assert.Contains("Revision mismatch", ex.Message);
@@ -344,7 +345,7 @@ public class DocumentControlAcknowledgementUnitTests
             ConfirmedLegalStatement: true
         );
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             service.AcknowledgeAssignmentAsync(request, actingUserId: analyst1.Id));
 
         Assert.Contains("terminally closed as SupersededIncomplete", ex.Message);
@@ -366,7 +367,7 @@ public class DocumentControlAcknowledgementUnitTests
             ConfirmedLegalStatement: true
         );
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             service.AcknowledgeAssignmentAsync(request, actingUserId: analyst1.Id));
 
         Assert.Contains("terminally closed as Cancelled", ex.Message);
@@ -387,7 +388,7 @@ public class DocumentControlAcknowledgementUnitTests
             ConfirmedLegalStatement: true
         );
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             service.AcknowledgeAssignmentAsync(request, actingUserId: analyst1.Id));
 
         Assert.Contains("Void", ex.Message);
@@ -408,7 +409,7 @@ public class DocumentControlAcknowledgementUnitTests
             ConfirmedLegalStatement: true
         );
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             service.AcknowledgeAssignmentAsync(request, actingUserId: analyst1.Id));
 
         Assert.Contains("Draft", ex.Message);

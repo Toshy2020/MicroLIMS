@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Persistence.Helpers;
 using MicroLIMS.Application.Services;
@@ -82,7 +83,7 @@ public class MaterialCustomTypeTests
         });
         await db.SaveChangesAsync();
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => svc.CreateAsync(Req(MaterialType.Other, "  HPLC   Solvent "), fpUserId));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => svc.CreateAsync(Req(MaterialType.Other, "  HPLC   Solvent "), fpUserId));
         Assert.Contains("no longer accepted", ex.Message);
         Assert.Equal(new[] { "HPLC Solvent" }, (await svc.GetTypeOptionsAsync(fpUserId, null)).Custom);
         Assert.Empty((await svc.GetTypeOptionsAsync(microUserId, null)).Custom);
@@ -94,10 +95,10 @@ public class MaterialCustomTypeTests
         await using var db = NewDb();
         var (svc, _, fpUserId, _) = Seed(db);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => svc.CreateAsync(Req(MaterialType.AntibioticDisc), fpUserId));
-        await Assert.ThrowsAsync<InvalidOperationException>(() => svc.CreateAsync(Req(MaterialType.Chemical, "Solvent"), fpUserId));
-        await Assert.ThrowsAsync<InvalidOperationException>(() => svc.CreateAsync(Req(MaterialType.Other, "reference standard"), fpUserId));
-        await Assert.ThrowsAsync<InvalidOperationException>(() => svc.CreateAsync(Req(MaterialType.Other, new string('x', 101)), fpUserId));
+        await Assert.ThrowsAsync<BusinessRuleException>(() => svc.CreateAsync(Req(MaterialType.AntibioticDisc), fpUserId));
+        await Assert.ThrowsAsync<BusinessRuleException>(() => svc.CreateAsync(Req(MaterialType.Chemical, "Solvent"), fpUserId));
+        await Assert.ThrowsAsync<BusinessRuleException>(() => svc.CreateAsync(Req(MaterialType.Other, "reference standard"), fpUserId));
+        await Assert.ThrowsAsync<BusinessRuleException>(() => svc.CreateAsync(Req(MaterialType.Other, new string('x', 101)), fpUserId));
     }
 
     [Fact]
@@ -115,11 +116,11 @@ public class MaterialCustomTypeTests
         await db.SaveChangesAsync();
 
         await svc.UpdateAsync(legacy.Id, Req(MaterialType.Supplement), fpUserId);
-        await Assert.ThrowsAsync<InvalidOperationException>(() => svc.UpdateAsync(legacy.Id, Req(MaterialType.AntibioticDisc), fpUserId));
+        await Assert.ThrowsAsync<BusinessRuleException>(() => svc.UpdateAsync(legacy.Id, Req(MaterialType.AntibioticDisc), fpUserId));
 
         // No new free-text type, and Other needs a master entry.
-        await Assert.ThrowsAsync<InvalidOperationException>(() => svc.UpdateAsync(legacy.Id, Req(MaterialType.Other, "Glassware"), fpUserId));
-        await Assert.ThrowsAsync<InvalidOperationException>(() => svc.UpdateAsync(legacy.Id, Req(MaterialType.Other), fpUserId));
+        await Assert.ThrowsAsync<BusinessRuleException>(() => svc.UpdateAsync(legacy.Id, Req(MaterialType.Other, "Glassware"), fpUserId));
+        await Assert.ThrowsAsync<BusinessRuleException>(() => svc.UpdateAsync(legacy.Id, Req(MaterialType.Other), fpUserId));
         await svc.UpdateAsync(legacy.Id, Req(MaterialType.Chemical), fpUserId);
         Assert.Null((await db.Materials.FindAsync(legacy.Id))!.CustomType);
     }
@@ -141,6 +142,6 @@ public class MaterialCustomTypeTests
         await svc.UpdateAsync(legacy.Id, Req(MaterialType.Other, "glassware"), fpUserId);
         await svc.UpdateAsync(legacy.Id, Req(MaterialType.Other), fpUserId);
         Assert.Equal("Glassware", (await db.Materials.FindAsync(legacy.Id))!.CustomType);
-        await Assert.ThrowsAsync<InvalidOperationException>(() => svc.UpdateAsync(legacy.Id, Req(MaterialType.Other, "Something else"), fpUserId));
+        await Assert.ThrowsAsync<BusinessRuleException>(() => svc.UpdateAsync(legacy.Id, Req(MaterialType.Other, "Something else"), fpUserId));
     }
 }

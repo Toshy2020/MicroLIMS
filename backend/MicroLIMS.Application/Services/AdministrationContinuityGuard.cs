@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Shared.Constants;
@@ -57,7 +58,7 @@ public class AdministrationContinuityGuard
     {
         var missing = await FindMissingPermissionAfterAsync(change);
         if (missing is not null)
-            throw new InvalidOperationException(
+            throw new BusinessRuleException(
                 $"This change is not allowed: no active user would be left with the '{missing}' permission. " +
                 "Make sure another active user holds a role with that permission first.");
     }

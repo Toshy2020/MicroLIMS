@@ -85,7 +85,7 @@ public class RoleService
     {
         var reason = AdminActionReason.Require(rawReason, "create a role");
         if (string.IsNullOrWhiteSpace(name))
-            throw new InvalidOperationException("Role name is required.");
+            throw new BusinessRuleException("Role name is required.");
 
         // A new role copies its base system role's grants (below); refuse
         // before anything is saved if that copy would mix administration with GxP.
@@ -123,7 +123,7 @@ public class RoleService
     {
         var trimmedReason = AdminActionReason.Require(reason, "change a role");
         if (string.IsNullOrWhiteSpace(name))
-            throw new InvalidOperationException("Role name is required.");
+            throw new BusinessRuleException("Role name is required.");
 
         var role = await _db.Roles.FirstOrDefaultAsync(r => r.Id == id)
             ?? throw new NotFoundException($"Role {id} not found.");
@@ -150,11 +150,11 @@ public class RoleService
             ?? throw new NotFoundException($"Role {id} not found.");
 
         if (role.IsSystemRole)
-            throw new InvalidOperationException("System roles cannot be deleted.");
+            throw new BusinessRuleException("System roles cannot be deleted.");
 
         var inUseCount = await _db.Users.CountAsync(u => u.RoleId == id);
         if (inUseCount > 0)
-            throw new InvalidOperationException($"Role '{role.Name}' is currently assigned to {inUseCount} user(s) and cannot be deleted.");
+            throw new BusinessRuleException($"Role '{role.Name}' is currently assigned to {inUseCount} user(s) and cannot be deleted.");
 
         _db.CurrentUserId = actingUserId;
         _db.CurrentReason = reason;
@@ -183,16 +183,16 @@ public class RoleService
             .Select(u => (int?)u.RoleId)
             .FirstOrDefaultAsync();
         if (actingUserRoleId == id)
-            throw new InvalidOperationException("You cannot change the permissions of your own role.");
+            throw new BusinessRuleException("You cannot change the permissions of your own role.");
 
         var hiddenRequested = permissionCodes.Where(PermissionConstants.Hidden.Contains).Distinct().ToList();
         if (hiddenRequested.Count > 0)
-            throw new InvalidOperationException($"Permission code(s) not available for assignment: {string.Join(", ", hiddenRequested)}.");
+            throw new BusinessRuleException($"Permission code(s) not available for assignment: {string.Join(", ", hiddenRequested)}.");
 
         var validCodes = await _db.Permissions.Select(p => p.Code).ToListAsync();
         var unknown = permissionCodes.Except(validCodes).ToList();
         if (unknown.Count > 0)
-            throw new InvalidOperationException($"Unknown permission code(s): {string.Join(", ", unknown)}.");
+            throw new BusinessRuleException($"Unknown permission code(s): {string.Join(", ", unknown)}.");
 
         // Checked before the first grant/revoke, which each save on their own.
         // A save that removes the conflicts of an already-violating role passes.

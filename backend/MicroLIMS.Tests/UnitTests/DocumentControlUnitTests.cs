@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 ﻿using System.Security.Cryptography;
 using System.Text;
 using Microsoft.EntityFrameworkCore;
@@ -162,7 +163,7 @@ public class DocumentControlUnitTests
             DocumentOwnerUserId: _authorUserId
         );
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(async () =>
         {
             await _masterService.RegisterDocumentMasterAsync(request2, _authorUserId);
         });
@@ -234,7 +235,7 @@ public class DocumentControlUnitTests
             Confidentiality: DocumentConfidentiality.Internal
         );
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(async () =>
         {
             await _masterService.UpdateDraftMetadataAsync(registered.Id, updateRequest, _authorUserId);
         });
@@ -439,7 +440,7 @@ public class DocumentControlUnitTests
         var savedFile = await _db.RevisionFiles.FindAsync(fileDto.Id);
         _storage.Files[savedFile!.StorageKey] = tamperedBytes;
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(async () =>
         {
             await _fileService.GetFileContentAsync(fileDto.Id, _authorUserId);
         });

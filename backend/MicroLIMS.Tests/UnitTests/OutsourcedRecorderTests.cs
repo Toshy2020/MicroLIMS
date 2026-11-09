@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.API.Controllers;
 using MicroLIMS.Application.DTOs;
@@ -190,7 +191,7 @@ public class OutsourcedRecorderTests
         db.SaveChanges();
 
         var engine = TestServiceFactory.TestWorkflow(db);
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             engine.OutsourceTestAsync(microOrder.Id, new OutsourceTestPayload("Eurofins", "Outsourcing test", Password), sc.SectionHead.Id));
         Assert.Equal("Only physicochemical tests can be outsourced.", ex.Message);
     }
@@ -238,7 +239,7 @@ public class OutsourcedRecorderTests
             new List<OutsourcedParameterInput> { new(sc.PhyschemSpec.Id, 99.5m, null, null) },
             Password);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             engine.RecordOutsourcedResultAsync(sc.PhyschemOrder.Id, payload, sc.Analyst.Id));
         Assert.Contains("outsourced", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -261,7 +262,7 @@ public class OutsourcedRecorderTests
             new List<OutsourcedParameterInput> { new(sc.PhyschemSpec.Id, 99.5m, null, null) },
             Password);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        await Assert.ThrowsAsync<BusinessRuleException>(() =>
             engine.RecordOutsourcedResultAsync(sc.PhyschemOrder.Id, payload, sc.Analyst.Id));
     }
 
@@ -284,7 +285,7 @@ public class OutsourcedRecorderTests
             new List<OutsourcedParameterInput> { new(sc.PhyschemSpec.Id, 99.5m, null, null) },
             Password);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             engine.RecordOutsourcedResultAsync(sc.PhyschemOrder.Id, payload, sc.Analyst.Id));
         Assert.Contains("voided", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -320,7 +321,7 @@ public class OutsourcedRecorderTests
             new List<OutsourcedParameterInput> { new(sc.PhyschemSpec.Id, 99.5m, null, null) },
             Password);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        await Assert.ThrowsAsync<BusinessRuleException>(() =>
             engine.RecordOutsourcedResultAsync(sc.PhyschemOrder.Id, payload, sc.Analyst.Id));
     }
 
@@ -460,7 +461,7 @@ public class OutsourcedRecorderTests
         // before the LOD is recorded the dried assay is refused
         var uvPayload = new UvPayload(DateTime.UtcNow, spectrophotometer.Id, null, null, null,
             new List<UvParameterInput> { new(uvSpec.Id, 444m, null, new List<UvReplicateInput> { new(0.1m, 0.49m) }) }, Password, "uv");
-        var refused = await Assert.ThrowsAsync<InvalidOperationException>(() => engine.RecordUvResultAsync(uvOrder.Id, uvPayload, s.UserId));
+        var refused = await Assert.ThrowsAsync<BusinessRuleException>(() => engine.RecordUvResultAsync(uvOrder.Id, uvPayload, s.UserId));
         Assert.Equal(SampleMoistureResolver.MissingMessage(MoistureRole.LossOnDrying), refused.Message);
 
         var lod = await engine.RecordOutsourcedResultAsync(lodOrder.Id, new RecordOutsourcedResultPayload(
@@ -522,7 +523,7 @@ public class OutsourcedRecorderTests
         var (payload, spec, order) = QualitativeCase(db, sc, false, "  ");
         var engine = TestServiceFactory.TestWorkflow(db);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => engine.RecordOutsourcedResultAsync(order.Id, payload, sc.Analyst.Id));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => engine.RecordOutsourcedResultAsync(order.Id, payload, sc.Analyst.Id));
         Assert.Equal("An observation is required when result does not conform.", ex.Message);
 
         var withObservation = payload with { Parameters = new() { new(spec.Id, null, false, "Yellow") } };
@@ -541,8 +542,8 @@ public class OutsourcedRecorderTests
         var (payload, spec, order) = QualitativeCase(db, sc, null, "Clear");
         var engine = TestServiceFactory.TestWorkflow(db);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => engine.RecordOutsourcedResultAsync(order.Id, payload, sc.Analyst.Id));
-        await Assert.ThrowsAsync<InvalidOperationException>(() => engine.RecordOutsourcedResultAsync(
+        await Assert.ThrowsAsync<BusinessRuleException>(() => engine.RecordOutsourcedResultAsync(order.Id, payload, sc.Analyst.Id));
+        await Assert.ThrowsAsync<BusinessRuleException>(() => engine.RecordOutsourcedResultAsync(
             order.Id, payload with { Parameters = new() { new(spec.Id, 1m, true, null) } }, sc.Analyst.Id));
     }
 
@@ -554,7 +555,7 @@ public class OutsourcedRecorderTests
         sc.PhyschemOrder.OutsourcedToLab = "Acme Analytical";
         var report = AddExternalReport(db, sc.Sample.Id, sc.PhyschemOrder.Id, sc.Analyst.Id);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => TestServiceFactory.TestWorkflow(db).RecordOutsourcedResultAsync(
+        await Assert.ThrowsAsync<BusinessRuleException>(() => TestServiceFactory.TestWorkflow(db).RecordOutsourcedResultAsync(
             sc.PhyschemOrder.Id, new RecordOutsourcedResultPayload(DateTime.UtcNow, "EXT-N", report.Id,
                 new List<OutsourcedParameterInput> { new(sc.PhyschemSpec.Id, 99m, true, null) }, Password), sc.Analyst.Id));
     }
@@ -594,7 +595,7 @@ public class OutsourcedRecorderTests
         });
         db.SaveChanges();
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => TestServiceFactory.TestWorkflow(db).OutsourceTestAsync(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => TestServiceFactory.TestWorkflow(db).OutsourceTestAsync(
             sc.PhyschemOrder.Id, new OutsourceTestPayload("Acme Analytical", "Reason", Password), sc.SectionHead.Id));
         Assert.Contains("cannot be reported from an external lab", ex.Message);
         Assert.Null((await db.TestOrders.FindAsync(sc.PhyschemOrder.Id))!.OutsourcedToLab);
@@ -614,7 +615,7 @@ public class OutsourcedRecorderTests
         });
         db.SaveChanges();
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => TestServiceFactory.TestWorkflow(db).OutsourceTestAsync(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => TestServiceFactory.TestWorkflow(db).OutsourceTestAsync(
             sc.PhyschemOrder.Id, new OutsourceTestPayload("Acme Analytical", "Reason", Password), sc.SectionHead.Id));
         Assert.Equal("This test already has an in-house result; it cannot be outsourced.", ex.Message);
     }
@@ -630,7 +631,7 @@ public class OutsourcedRecorderTests
         sc.PhyschemSpec.UpperLimit = 200m;
         var report = AddExternalReport(db, sc.Sample.Id, sc.PhyschemOrder.Id, sc.Analyst.Id);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => TestServiceFactory.TestWorkflow(db).RecordOutsourcedResultAsync(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => TestServiceFactory.TestWorkflow(db).RecordOutsourcedResultAsync(
             sc.PhyschemOrder.Id, new RecordOutsourcedResultPayload(DateTime.UtcNow, "EXT-LOD", report.Id,
                 new List<OutsourcedParameterInput> { new(sc.PhyschemSpec.Id, 120m, null, null) }, Password), sc.Analyst.Id));
         Assert.Contains("loss on drying", ex.Message);
@@ -647,7 +648,7 @@ public class OutsourcedRecorderTests
         // an ordinary recorder is refused for an outsourced test before it looks at anything else
         var uv = new UvPayload(DateTime.UtcNow, 1, null, null, null,
             new List<UvParameterInput> { new(sc.PhyschemSpec.Id, 444m, null, new List<UvReplicateInput> { new(0.1m, 0.49m) }) }, Password, null);
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             TestServiceFactory.TestWorkflow(db).RecordUvResultAsync(sc.PhyschemOrder.Id, uv, sc.Analyst.Id));
         Assert.Contains("outsourced to Acme Analytical", ex.Message);
     }
@@ -660,7 +661,7 @@ public class OutsourcedRecorderTests
         var engine = TestServiceFactory.TestWorkflow(db);
         await engine.OutsourceTestAsync(sc.PhyschemOrder.Id, new OutsourceTestPayload("Acme Analytical", "No HPLC capacity", Password), sc.SectionHead.Id);
 
-        var again = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var again = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             engine.OutsourceTestAsync(sc.PhyschemOrder.Id, new OutsourceTestPayload("Other Lab", "Again", Password), sc.SectionHead.Id));
         Assert.Contains("already outsourced to Acme Analytical", again.Message);
         Assert.Single(db.ElectronicSignatures.Where(x => x.MeaningOfSignature == SignatureMeaning.TestOutsourced));
@@ -695,10 +696,10 @@ public class OutsourcedRecorderTests
         var service = DocumentService(db, new InMemoryFileStorageService());
 
         // the general upload never takes an external lab report
-        await Assert.ThrowsAsync<InvalidOperationException>(() => service.UploadAsync(
+        await Assert.ThrowsAsync<BusinessRuleException>(() => service.UploadAsync(
             sc.Sample.Id, "r.pdf", "application/pdf", Pdf, SampleDocumentType.ExternalLabReport, sc.SectionHead.Id));
         // not outsourced yet
-        await Assert.ThrowsAsync<InvalidOperationException>(() => service.UploadExternalReportAsync(
+        await Assert.ThrowsAsync<BusinessRuleException>(() => service.UploadExternalReportAsync(
             sc.PhyschemOrder.Id, "r.pdf", "application/pdf", Pdf, sc.SectionHead.Id));
 
         sc.PhyschemOrder.OutsourcedToLab = "Acme Analytical";
@@ -722,7 +723,7 @@ public class OutsourcedRecorderTests
         await TestServiceFactory.TestWorkflow(db).RecordOutsourcedResultAsync(sc.PhyschemOrder.Id, new RecordOutsourcedResultPayload(
             DateTime.UtcNow, "EXT-V", report.Id, new List<OutsourcedParameterInput> { new(sc.PhyschemSpec.Id, 99m, null, null) }, Password), sc.Analyst.Id);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.VoidAsync(report.Id, "Wrong file", sc.SectionHead.Id));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => service.VoidAsync(report.Id, "Wrong file", sc.SectionHead.Id));
         Assert.Equal("This external report supports a recorded result; return the test before voiding it.", ex.Message);
         Assert.Equal(SampleDocumentStatus.Current, (await db.SampleDocuments.FindAsync(report.Id))!.Status);
 

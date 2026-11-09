@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.DTOs.Responses;
 using MicroLIMS.Application.Interfaces;
@@ -141,7 +142,7 @@ public class WorkingStandardServiceTests
         var svc = TestServiceFactory.WorkingStandard(db, clock: NewClock(SepFirst));
         var req = Manual(entry.Id) with { SourceSampleId = 5 };
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => svc.CreateAsync(req, uid));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => svc.CreateAsync(req, uid));
         Assert.Equal("Choose a received raw material sample or enter the material name and batch, not both.", ex.Message);
     }
 
@@ -153,7 +154,7 @@ public class WorkingStandardServiceTests
         var entry = await AddEntryAsync(db, section.Id, "RGT-01");
         var svc = TestServiceFactory.WorkingStandard(db, clock: NewClock(SepFirst));
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => svc.CreateAsync(Manual(entry.Id), uid));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => svc.CreateAsync(Manual(entry.Id), uid));
         Assert.Equal("Master entry \"RGT-01\" is not a reference standard.", ex.Message);
     }
 
@@ -167,7 +168,7 @@ public class WorkingStandardServiceTests
         var svc = TestServiceFactory.WorkingStandard(db, clock: NewClock(SepFirst));
         var req = new CreateQualificationRequest(WorkingStandardQualificationKind.Initial, null, entry.Id, sample.Id, null, null, 10m, "Fridge 2", null);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => svc.CreateAsync(req, uid));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => svc.CreateAsync(req, uid));
         Assert.Equal("That sample has no approved assay result.", ex.Message);
     }
 
@@ -200,7 +201,7 @@ public class WorkingStandardServiceTests
         var req = new CreateQualificationRequest(WorkingStandardQualificationKind.Requalification, lot.Id, null, null, null, null, null, null, 0.4m);
 
         var first = await svc.CreateAsync(req, uid);
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => svc.CreateAsync(req, uid));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => svc.CreateAsync(req, uid));
         Assert.Equal($"Lot WS-01/10/2026 already has an open qualification ({first.Code}).", ex.Message);
     }
 
@@ -346,7 +347,7 @@ public class WorkingStandardServiceTests
         var lot = await AddLotAsync(db, section.Id, entry, "WS-01/10/2026", DateTime.UtcNow.AddYears(1));
         var svc = TestServiceFactory.WorkingStandard(db, clock: NewClock(SepFirst));
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => svc.CreateAsync(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => svc.CreateAsync(
             new CreateQualificationRequest(WorkingStandardQualificationKind.Requalification, lot.Id, null, null, null, null, 5m, "X", null), uid));
         Assert.Equal("Quantity and location belong to the lot for a requalification.", ex.Message);
     }
@@ -362,7 +363,7 @@ public class WorkingStandardServiceTests
         await db.SaveChangesAsync();
         var svc = TestServiceFactory.WorkingStandard(db, clock: NewClock(SepFirst));
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => svc.CreateAsync(
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => svc.CreateAsync(
             new CreateQualificationRequest(WorkingStandardQualificationKind.Initial, null, entry.Id, sample.Id, null, null, 10m, "F", null), uid));
         Assert.Equal("That sample has no item name.", ex.Message);
     }
@@ -383,7 +384,7 @@ public class WorkingStandardServiceTests
             await db.SaveChangesAsync();
             Assert.Empty(await svc.GetEligibleSourceSamplesAsync(null, uid));
             var req = new CreateQualificationRequest(WorkingStandardQualificationKind.Initial, null, entry.Id, sample.Id, null, null, 10m, "Fridge 2", null);
-            await Assert.ThrowsAsync<InvalidOperationException>(() => svc.CreateAsync(req, uid));
+            await Assert.ThrowsAsync<BusinessRuleException>(() => svc.CreateAsync(req, uid));
         }
     }
 

@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using MicroLIMS.Application.Interfaces;
@@ -61,7 +62,7 @@ public class AdminReasonAndSignatureTests
 
     private static async Task AssertRefusedForReason(Func<Task> action)
     {
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(action);
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(action);
         Assert.Contains("reason", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 

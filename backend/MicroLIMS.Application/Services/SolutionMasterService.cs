@@ -103,7 +103,7 @@ public class SolutionMasterService
 
         var trimmedName = r.Name.Trim();
         if (await _db.SolutionMasters.AnyAsync(s => s.SectionId == sectionId && s.Name == trimmedName, ct))
-            throw new InvalidOperationException($"A solution named \"{trimmedName}\" already exists.");
+            throw new BusinessRuleException($"A solution named \"{trimmedName}\" already exists.");
 
         var solution = new SolutionMaster
         {
@@ -147,7 +147,7 @@ public class SolutionMasterService
 
         var trimmedName = r.Name.Trim();
         if (await _db.SolutionMasters.AnyAsync(s => s.SectionId == solution.SectionId && s.Name == trimmedName && s.Id != id, ct))
-            throw new InvalidOperationException($"A solution named \"{trimmedName}\" already exists.");
+            throw new BusinessRuleException($"A solution named \"{trimmedName}\" already exists.");
 
         var flagChanges = new List<AuditFieldChange>();
         if (solution.SterilizationRequired != r.SterilizationRequired)
@@ -217,10 +217,10 @@ public class SolutionMasterService
     private static string ValidateReason(string? reason)
     {
         if (string.IsNullOrWhiteSpace(reason))
-            throw new InvalidOperationException("A reason is required.");
+            throw new BusinessRuleException("A reason is required.");
         var trimmed = reason.Trim();
         if (trimmed.Length > 500)
-            throw new InvalidOperationException("Reason cannot exceed 500 characters.");
+            throw new BusinessRuleException("Reason cannot exceed 500 characters.");
         return trimmed;
     }
 
@@ -277,17 +277,17 @@ public class SolutionMasterService
         SaveSolutionMasterRequest r, int sectionId, int? selfId,
         IReadOnlySet<int> alreadyUsedEntryIds, IReadOnlySet<int> alreadyUsedSourceIds, CancellationToken ct)
     {
-        if (string.IsNullOrWhiteSpace(r.Name)) throw new InvalidOperationException("Name is required.");
-        if (r.ShelfLifeValue <= 0) throw new InvalidOperationException("Shelf life must be greater than zero.");
-        if (r.FinalVolumeMl <= 0) throw new InvalidOperationException("Final volume must be greater than zero.");
-        if (string.IsNullOrWhiteSpace(r.StorageCondition)) throw new InvalidOperationException("Storage condition is required.");
-        if (string.IsNullOrWhiteSpace(r.Instructions)) throw new InvalidOperationException("Instructions are required.");
+        if (string.IsNullOrWhiteSpace(r.Name)) throw new BusinessRuleException("Name is required.");
+        if (r.ShelfLifeValue <= 0) throw new BusinessRuleException("Shelf life must be greater than zero.");
+        if (r.FinalVolumeMl <= 0) throw new BusinessRuleException("Final volume must be greater than zero.");
+        if (string.IsNullOrWhiteSpace(r.StorageCondition)) throw new BusinessRuleException("Storage condition is required.");
+        if (string.IsNullOrWhiteSpace(r.Instructions)) throw new BusinessRuleException("Instructions are required.");
 
         if (!r.Type.IsGeneral() && (r.SterilizationRequired || r.ReleaseRequired))
-            throw new InvalidOperationException("Sterilization and release settings are only allowed for diluents, reagents and neutralizers.");
+            throw new BusinessRuleException("Sterilization and release settings are only allowed for diluents, reagents and neutralizers.");
 
         if (r.Components.Count < 1 || r.Components.All(c => c.Kind == SolutionComponentKind.Text))
-            throw new InvalidOperationException("At least one component is required.");
+            throw new BusinessRuleException("At least one component is required.");
 
         foreach (var c in r.Components)
         {
@@ -295,36 +295,36 @@ public class SolutionMasterService
             {
                 case SolutionComponentKind.Material:
                     if (!c.MaterialMasterEntryId.HasValue)
-                        throw new InvalidOperationException("A material component needs a material master entry.");
+                        throw new BusinessRuleException("A material component needs a material master entry.");
                     if (c.SourceSolutionMasterId.HasValue || c.Text != null)
-                        throw new InvalidOperationException("A material component cannot carry a source solution or text.");
+                        throw new BusinessRuleException("A material component cannot carry a source solution or text.");
                     RequireQuantity(c);
                     break;
                 case SolutionComponentKind.PreparedSolution:
                     if (!r.Type.IsGeneral())
-                        throw new InvalidOperationException("Prepared solution components are only allowed for diluents, reagents and neutralizers.");
+                        throw new BusinessRuleException("Prepared solution components are only allowed for diluents, reagents and neutralizers.");
                     if (!c.SourceSolutionMasterId.HasValue)
-                        throw new InvalidOperationException("A prepared solution component needs a source solution.");
+                        throw new BusinessRuleException("A prepared solution component needs a source solution.");
                     if (c.MaterialMasterEntryId.HasValue || c.Text != null)
-                        throw new InvalidOperationException("A prepared solution component cannot carry a material entry or text.");
+                        throw new BusinessRuleException("A prepared solution component cannot carry a material entry or text.");
                     RequireQuantity(c);
                     break;
                 case SolutionComponentKind.Text:
                     if (string.IsNullOrWhiteSpace(c.Text))
-                        throw new InvalidOperationException("Text is required for a text line.");
+                        throw new BusinessRuleException("Text is required for a text line.");
                     if (c.Text.Trim().Length > 200)
-                        throw new InvalidOperationException("A text line cannot exceed 200 characters.");
+                        throw new BusinessRuleException("A text line cannot exceed 200 characters.");
                     if (c.MaterialMasterEntryId.HasValue || c.SourceSolutionMasterId.HasValue || c.Quantity.HasValue || c.Unit.HasValue)
-                        throw new InvalidOperationException("A text line cannot carry a material entry, source solution, quantity or unit.");
+                        throw new BusinessRuleException("A text line cannot carry a material entry, source solution, quantity or unit.");
                     break;
                 default:
-                    throw new InvalidOperationException($"Unknown component kind '{c.Kind}'.");
+                    throw new BusinessRuleException($"Unknown component kind '{c.Kind}'.");
             }
         }
 
         var componentEntryIds = r.Components.Where(c => c.Kind == SolutionComponentKind.Material).Select(c => c.MaterialMasterEntryId!.Value).ToList();
         if (componentEntryIds.Distinct().Count() != componentEntryIds.Count)
-            throw new InvalidOperationException("The same component entry cannot be listed twice.");
+            throw new BusinessRuleException("The same component entry cannot be listed twice.");
 
         var entries = await _db.MaterialMasterEntries
             .Where(e => componentEntryIds.Contains(e.Id))
@@ -333,22 +333,22 @@ public class SolutionMasterService
         foreach (var entryId in componentEntryIds)
         {
             if (!entries.TryGetValue(entryId, out var entry))
-                throw new InvalidOperationException($"Material master entry {entryId} not found.");
+                throw new BusinessRuleException($"Material master entry {entryId} not found.");
             if (!entry.IsActive && !alreadyUsedEntryIds.Contains(entryId))
-                throw new InvalidOperationException($"Component entry \"{entry.Code}\" is inactive.");
+                throw new BusinessRuleException($"Component entry \"{entry.Code}\" is inactive.");
         }
 
         await ValidateSourcesAsync(r, sectionId, selfId, alreadyUsedSourceIds, ct);
 
         var hasPhFields = r.PhTolerance.HasValue || r.PhAdjustingEntryId.HasValue;
         if (hasPhFields && !r.PhTarget.HasValue)
-            throw new InvalidOperationException("A pH target is required when pH tolerance or an adjusting reagent is set.");
+            throw new BusinessRuleException("A pH target is required when pH tolerance or an adjusting reagent is set.");
 
         if (r.PhTarget.HasValue && (r.PhTarget.Value < 0 || r.PhTarget.Value > 14))
-            throw new InvalidOperationException("pH target must be between 0 and 14.");
+            throw new BusinessRuleException("pH target must be between 0 and 14.");
 
         if (r.PhTolerance.HasValue && r.PhTolerance.Value <= 0)
-            throw new InvalidOperationException("pH tolerance must be greater than zero.");
+            throw new BusinessRuleException("pH tolerance must be greater than zero.");
     }
 
     private async Task ValidateTitrantAsync(SaveSolutionMasterRequest r, int sectionId, int? selfId, CancellationToken ct)
@@ -361,70 +361,70 @@ public class SolutionMasterService
         if (r.Type != SolutionType.Titrant)
         {
             if (hasTitrantFields)
-                throw new InvalidOperationException("Standardization settings are only allowed for titrants.");
+                throw new BusinessRuleException("Standardization settings are only allowed for titrants.");
             return;
         }
 
         if (!r.NominalStrength.HasValue || r.NominalStrength.Value <= 0 || !r.StrengthUnit.HasValue)
-            throw new InvalidOperationException("Nominal strength and its unit are required for titrants.");
+            throw new BusinessRuleException("Nominal strength and its unit are required for titrants.");
 
         if (!r.StandardizationMode.HasValue)
-            throw new InvalidOperationException("A standardization mode is required for titrants.");
+            throw new BusinessRuleException("A standardization mode is required for titrants.");
 
         if (!r.ReplicateCount.HasValue || r.ReplicateCount.Value < 1)
-            throw new InvalidOperationException("Replicate count must be at least 1.");
+            throw new BusinessRuleException("Replicate count must be at least 1.");
 
         if (!r.FactorMin.HasValue || !r.FactorMax.HasValue || r.FactorMin.Value <= 0 || r.FactorMax.Value <= 0 || r.FactorMin.Value > r.FactorMax.Value)
-            throw new InvalidOperationException("Factor min and max must both be greater than zero, with min not above max.");
+            throw new BusinessRuleException("Factor min and max must both be greater than zero, with min not above max.");
 
         if (!r.MaxRsdPercent.HasValue || r.MaxRsdPercent.Value <= 0)
-            throw new InvalidOperationException("Max RSD % must be greater than zero.");
+            throw new BusinessRuleException("Max RSD % must be greater than zero.");
 
         if (!r.ValidityDays.HasValue || r.ValidityDays.Value < 0)
-            throw new InvalidOperationException("Validity days must be zero or more.");
+            throw new BusinessRuleException("Validity days must be zero or more.");
 
         if (r.StandardizationMode == StandardizationMode.PrimaryStandard)
         {
             if (r.ReferenceSolutionId.HasValue)
-                throw new InvalidOperationException("Reference solution is only used in 'against volumetric solution' mode.");
+                throw new BusinessRuleException("Reference solution is only used in 'against volumetric solution' mode.");
 
             if (!r.StandardEntryId.HasValue)
-                throw new InvalidOperationException("A standard entry is required for primary standard mode.");
+                throw new BusinessRuleException("A standard entry is required for primary standard mode.");
 
             if (!r.EquivalenceMgPerMl.HasValue || r.EquivalenceMgPerMl.Value <= 0)
-                throw new InvalidOperationException("Equivalence (mg/mL) must be greater than zero.");
+                throw new BusinessRuleException("Equivalence (mg/mL) must be greater than zero.");
 
             var standard = await _db.MaterialMasterEntries.FirstOrDefaultAsync(e => e.Id == r.StandardEntryId.Value, ct)
-                ?? throw new InvalidOperationException("Standard entry not found.");
+                ?? throw new BusinessRuleException("Standard entry not found.");
 
             if (standard.Category != MaterialMasterCategory.PrimaryStandard)
-                throw new InvalidOperationException("The primary standard must be a Primary Standard entry in Reagents & Standards.");
+                throw new BusinessRuleException("The primary standard must be a Primary Standard entry in Reagents & Standards.");
         }
         else
         {
             if (r.StandardEntryId.HasValue || r.EquivalenceMgPerMl.HasValue)
-                throw new InvalidOperationException("Standard entry and equivalence are only used in primary standard mode.");
+                throw new BusinessRuleException("Standard entry and equivalence are only used in primary standard mode.");
 
             if (!r.ReferenceSolutionId.HasValue)
-                throw new InvalidOperationException("A reference titrant solution is required.");
+                throw new BusinessRuleException("A reference titrant solution is required.");
 
             if (selfId.HasValue && r.ReferenceSolutionId.Value == selfId.Value)
-                throw new InvalidOperationException("A titrant cannot reference itself.");
+                throw new BusinessRuleException("A titrant cannot reference itself.");
 
             var reference = await _db.SolutionMasters.FirstOrDefaultAsync(s => s.Id == r.ReferenceSolutionId.Value, ct)
-                ?? throw new InvalidOperationException("Reference solution not found.");
+                ?? throw new BusinessRuleException("Reference solution not found.");
 
             if (reference.SectionId != sectionId || reference.Type != SolutionType.Titrant || !reference.IsActive)
-                throw new InvalidOperationException("The reference solution must be an active titrant in this laboratory.");
+                throw new BusinessRuleException("The reference solution must be an active titrant in this laboratory.");
         }
     }
 
     private static void RequireQuantity(SolutionComponentInput c)
     {
         if (!c.Quantity.HasValue || c.Quantity.Value <= 0)
-            throw new InvalidOperationException("Component quantity must be greater than zero.");
+            throw new BusinessRuleException("Component quantity must be greater than zero.");
         if (!c.Unit.HasValue)
-            throw new InvalidOperationException("Component unit is required.");
+            throw new BusinessRuleException("Component unit is required.");
     }
 
     // Prepared-solution lines: the source must be an active recipe of this
@@ -437,20 +437,20 @@ public class SolutionMasterService
         if (sourceIds.Count == 0) return;
 
         if (sourceIds.Distinct().Count() != sourceIds.Count)
-            throw new InvalidOperationException("The same source solution cannot be listed twice.");
+            throw new BusinessRuleException("The same source solution cannot be listed twice.");
 
         if (selfId.HasValue && sourceIds.Contains(selfId.Value))
-            throw new InvalidOperationException("A solution cannot use itself as a component.");
+            throw new BusinessRuleException("A solution cannot use itself as a component.");
 
         var sources = await _db.SolutionMasters.Where(s => sourceIds.Contains(s.Id)).ToDictionaryAsync(s => s.Id, ct);
         foreach (var sourceId in sourceIds)
         {
             if (!sources.TryGetValue(sourceId, out var source))
-                throw new InvalidOperationException($"Source solution {sourceId} not found.");
+                throw new BusinessRuleException($"Source solution {sourceId} not found.");
             if (source.SectionId != sectionId)
-                throw new InvalidOperationException($"Source solution \"{source.Name}\" belongs to another laboratory.");
+                throw new BusinessRuleException($"Source solution \"{source.Name}\" belongs to another laboratory.");
             if (!source.IsActive && !alreadyUsedSourceIds.Contains(sourceId))
-                throw new InvalidOperationException($"Source solution \"{source.Name}\" is inactive.");
+                throw new BusinessRuleException($"Source solution \"{source.Name}\" is inactive.");
         }
 
         if (!selfId.HasValue) return;   // a recipe that does not exist yet cannot be reached from another
@@ -468,7 +468,7 @@ public class SolutionMasterService
             var node = stack.Pop();
             if (!seen.Add(node) || !graph.TryGetValue(node, out var next)) continue;
             if (next.Contains(selfId.Value))
-                throw new InvalidOperationException("This would create a circular reference between solutions.");
+                throw new BusinessRuleException("This would create a circular reference between solutions.");
             foreach (var n in next) stack.Push(n);
         }
     }

@@ -75,14 +75,14 @@ public class SampleCorrectionService
         int sampleId, SampleCorrectionRequest request, string reason, string password, int actingUserId, string? ipAddress)
     {
         if (string.IsNullOrWhiteSpace(reason))
-            throw new InvalidOperationException("A reason for the correction is required.");
+            throw new BusinessRuleException("A reason for the correction is required.");
         var trimmedReason = reason.Trim();
 
         var sample = await LoadSampleAsync(sampleId);
         RecordVersion.EnsureCurrent(_db, sample);
 
         if (!IsCorrectable(sample.Status))
-            throw new InvalidOperationException(
+            throw new BusinessRuleException(
                 "Sample details can only be corrected until the sample is submitted for review - this record is locked.");
 
         var changes = new List<AuditFieldChange>();
@@ -99,7 +99,7 @@ public class SampleCorrectionService
         var isItemBased = ItemBasedCategories.Contains(category);
         var structural = await ResolveItemOrLocationChangeAsync(sample, request);
         if (sample.AwaitingTestSelection && (structural is not null || request.CauseOfTestingId != sample.CauseOfTestingId))
-            throw new InvalidOperationException(
+            throw new BusinessRuleException(
                 "The item and cause of testing cannot change while the tests are still to be chosen. Void the sample and receive it again.");
         GradeContext? gradeContext = null;
         GradeOrderPlan? gradePlan = null;
@@ -112,10 +112,10 @@ public class SampleCorrectionService
         if (request.CauseOfTestingId != sample.CauseOfTestingId)
         {
             var newCause = await _db.CausesOfTesting.FirstOrDefaultAsync(c => c.Id == request.CauseOfTestingId)
-                ?? throw new InvalidOperationException("The selected cause of testing does not exist.");
+                ?? throw new BusinessRuleException("The selected cause of testing does not exist.");
             // "Retest" is assigned by the system to OOS retest samples only.
             if (IsRetest(sample.CauseOfTesting) || IsRetest(newCause))
-                throw new InvalidOperationException(
+                throw new BusinessRuleException(
                     "The \"Retest\" cause of testing is assigned by the system to retest samples and cannot be set or changed here.");
             changes.Add(new AuditFieldChange("Cause of Testing", sample.CauseOfTesting?.Name, newCause.Name));
             applies.Add(() =>
@@ -131,7 +131,7 @@ public class SampleCorrectionService
             var mfg = AsDate(request.MfgDate);
             var exp = AsDate(request.ExpDate);
             if (mfg is not null && exp is not null && exp < mfg)
-                throw new InvalidOperationException("The expiry date cannot be before the manufacturing date.");
+                throw new BusinessRuleException("The expiry date cannot be before the manufacturing date.");
 
             Track("Batch Number", Optional(sample.BatchNumber), batch, v => v, v => sample.BatchNumber = v);
             Track("Mfg Date", AsDate(sample.MfgDate), mfg, FormatDate, v => sample.MfgDate = v);
@@ -156,7 +156,7 @@ public class SampleCorrectionService
                     if (structural is null && !sample.AwaitingTestSelection)
                     {
                         if (sample.TestOrders.Any(o => o.Status != ApprovalStatus.Pending))
-                            throw new InvalidOperationException(
+                            throw new BusinessRuleException(
                                 "The grade can only be corrected while every test is still pending. Void the sample and receive it again.");
                         gradePlan = await PlanGradeOrdersAsync(sample, gradeContext);
                     }
@@ -173,7 +173,7 @@ public class SampleCorrectionService
                     .Where(p => p.Name.ToLower() == stageName.ToLower())
                     .Select(p => (int?)p.Id)
                     .FirstOrDefaultAsync()
-                    ?? throw new InvalidOperationException($"Production stage '{stageName}' is not a known stage.");
+                    ?? throw new BusinessRuleException($"Production stage '{stageName}' is not a known stage.");
                 Track("Production Stage", Optional(sample.ProductionStage), stageName, v => v, v =>
                 {
                     sample.ProductionStage = v;
@@ -190,16 +190,16 @@ public class SampleCorrectionService
             if (sample.StorageCondition is not null && structural is null)
             {
                 var condition = Optional(request.StorageCondition)
-                    ?? throw new InvalidOperationException("Storage condition is required for a prepared water sample.");
+                    ?? throw new BusinessRuleException("Storage condition is required for a prepared water sample.");
                 if (condition is not ("Refrigerator" or "RoomTemperature"))
-                    throw new InvalidOperationException("Storage condition must be Refrigerator or RoomTemperature.");
+                    throw new BusinessRuleException("Storage condition must be Refrigerator or RoomTemperature.");
                 int? hours = null;
                 if (condition == "Refrigerator")
                 {
                     hours = request.StorageTimeHours
-                        ?? throw new InvalidOperationException("Storage time is required when a water sample was refrigerated.");
+                        ?? throw new BusinessRuleException("Storage time is required when a water sample was refrigerated.");
                     if (hours < 0)
-                        throw new InvalidOperationException("Storage time cannot be negative.");
+                        throw new BusinessRuleException("Storage time cannot be negative.");
                 }
 
                 Track("Storage Condition", sample.StorageCondition, condition, v => v, v => sample.StorageCondition = v);
@@ -222,7 +222,7 @@ public class SampleCorrectionService
         if (structural is not null)
         {
             if (sample.OriginSampleId is not null)
-                throw new InvalidOperationException(
+                throw new BusinessRuleException(
                     "A retest sample must test the same item or location as its original sample, so it cannot be changed.");
             await EnsureNoTestWorkAsync(sample);
 
@@ -245,7 +245,7 @@ public class SampleCorrectionService
             changes.AddRange(gradePlan.Changes);
 
         if (changes.Count == 0)
-            throw new InvalidOperationException("No changes were made.");
+            throw new BusinessRuleException("No changes were made.");
 
         // Signs first - a failed verification writes nothing about the sample
         // (the signature, the changes and the audit event commit together in
@@ -290,13 +290,13 @@ public class SampleCorrectionService
     private async Task<SampleDto> VoidCoreAsync(int sampleId, string reason, string password, int actingUserId, string? ipAddress)
     {
         if (string.IsNullOrWhiteSpace(reason))
-            throw new InvalidOperationException("A reason for voiding is required.");
+            throw new BusinessRuleException("A reason for voiding is required.");
         var trimmedReason = reason.Trim();
 
         var sample = await LoadSampleAsync(sampleId);
 
         if (sample.Status == SampleStatus.Voided)
-            throw new InvalidOperationException("Sample is already voided.");
+            throw new BusinessRuleException("Sample is already voided.");
 
         // Signs first - a failed verification voids nothing.
         _db.CurrentUserId = actingUserId;
@@ -353,14 +353,14 @@ public class SampleCorrectionService
                 when request.ItemId is int itemId && itemId != sample.ItemId:
             {
                 var item = await _db.Items.Include(i => i.AssignedTests).FirstOrDefaultAsync(i => i.Id == itemId)
-                    ?? throw new InvalidOperationException("The selected item does not exist.");
+                    ?? throw new BusinessRuleException("The selected item does not exist.");
                 // The reference number encodes the category, so the item must stay in it.
                 if (item.Category != sample.Category)
-                    throw new InvalidOperationException("The new item must belong to the same category as the sample.");
+                    throw new BusinessRuleException("The new item must belong to the same category as the sample.");
                 if (!item.IsActive)
-                    throw new InvalidOperationException($"Item '{item.Name}' is frozen and cannot be used.");
+                    throw new BusinessRuleException($"Item '{item.Name}' is frozen and cannot be used.");
                 if (item.AssignedTests.Count == 0)
-                    throw new InvalidOperationException($"Item '{item.Name}' has no assigned tests.");
+                    throw new BusinessRuleException($"Item '{item.Name}' has no assigned tests.");
                 return new ItemOrLocationChange("Item", sample.Item?.Name, item.Name, item, () =>
                 {
                     sample.ItemId = item.Id;
@@ -370,7 +370,7 @@ public class SampleCorrectionService
             case SampleCategory.Water when request.WaterDepartmentId is int waterDepartmentId && waterDepartmentId != sample.WaterDepartmentId:
             {
                 var department = await _db.WaterDepartments.FirstOrDefaultAsync(d => d.Id == waterDepartmentId)
-                    ?? throw new InvalidOperationException("The selected water department does not exist.");
+                    ?? throw new BusinessRuleException("The selected water department does not exist.");
                 var previous = sample.WaterDepartmentId is int previousId
                     ? await _db.WaterDepartments.Where(d => d.Id == previousId).Select(d => d.Name).FirstOrDefaultAsync()
                     : null;
@@ -379,7 +379,7 @@ public class SampleCorrectionService
             case SampleCategory.EnvironmentalMonitoring when request.DepartmentId is int departmentId && departmentId != sample.DepartmentId:
             {
                 var department = await _db.Departments.FirstOrDefaultAsync(d => d.Id == departmentId)
-                    ?? throw new InvalidOperationException("The selected department does not exist.");
+                    ?? throw new BusinessRuleException("The selected department does not exist.");
                 return new ItemOrLocationChange("Department", sample.Department?.Name, department.Name, null, () =>
                 {
                     sample.DepartmentId = department.Id;
@@ -389,7 +389,7 @@ public class SampleCorrectionService
             case SampleCategory.AfterCleaning when request.MachineId is int machineId && machineId != sample.MachineId:
             {
                 var machine = await _db.Machines.FirstOrDefaultAsync(m => m.Id == machineId)
-                    ?? throw new InvalidOperationException("The selected machine does not exist.");
+                    ?? throw new BusinessRuleException("The selected machine does not exist.");
                 return new ItemOrLocationChange("Machine", sample.Machine?.Name, machine.Name, null, () =>
                 {
                     sample.MachineId = machine.Id;
@@ -422,7 +422,7 @@ public class SampleCorrectionService
             || await _db.SampleLocations.AnyAsync(l => l.SampleId == sample.Id && l.EnteredAt != null);
 
         if (workStarted)
-            throw new InvalidOperationException(
+            throw new BusinessRuleException(
                 "Testing has already started for this sample, so its item or location can no longer change. Void the sample and receive it again.");
     }
 
@@ -523,7 +523,7 @@ public class SampleCorrectionService
         if (emptiedLab is int emptied)
         {
             var labName = await _db.DocumentSections.Where(d => d.Id == emptied).Select(d => d.Name).FirstOrDefaultAsync() ?? $"section {emptied}";
-            throw new InvalidOperationException($"This grade leaves {labName} with no tests; void the sample and receive it again.");
+            throw new BusinessRuleException($"This grade leaves {labName} with no tests; void the sample and receive it again.");
         }
 
         var changes = new List<AuditFieldChange>();
@@ -610,7 +610,7 @@ public class SampleCorrectionService
         ?? throw new NotFoundException($"Sample {sampleId} not found.");
 
     private static string Required(string? value, string label) =>
-        string.IsNullOrWhiteSpace(value) ? throw new InvalidOperationException($"{label} is required.") : value.Trim();
+        string.IsNullOrWhiteSpace(value) ? throw new BusinessRuleException($"{label} is required.") : value.Trim();
 
     private static string? Optional(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 

@@ -122,8 +122,8 @@ public class ResultProjectionService
             .FirstOrDefaultAsync(r => r.Id == countTestReadingId)
             ?? throw new NotFoundException($"CountTestReading {countTestReadingId} not found.");
 
-        var order = reading.TestOrder ?? throw new InvalidOperationException($"CountTestReading {countTestReadingId} has no TestOrder.");
-        var sample = order.Sample ?? throw new InvalidOperationException($"TestOrder {order.Id} has no Sample - cannot project CountTestReading {countTestReadingId}.");
+        var order = reading.TestOrder ?? throw new BusinessRuleException($"CountTestReading {countTestReadingId} has no TestOrder.");
+        var sample = order.Sample ?? throw new BusinessRuleException($"TestOrder {order.Id} has no Sample - cannot project CountTestReading {countTestReadingId}.");
 
         var testDefinition = await _db.TestDefinitions.FirstOrDefaultAsync(t => t.Code == order.TestCode);
         var enteredBy = await _db.Users.FirstOrDefaultAsync(u => u.Id == reading.EnteredByUserId);
@@ -181,10 +181,10 @@ public class ResultProjectionService
             .FirstOrDefaultAsync(r => r.Id == parameterResultId)
             ?? throw new NotFoundException($"ParameterResult {parameterResultId} not found.");
 
-        var order = paramResult.TestOrder ?? throw new InvalidOperationException($"ParameterResult {parameterResultId} has no TestOrder.");
-        var sample = order.Sample ?? throw new InvalidOperationException($"TestOrder {order.Id} has no Sample - cannot project ParameterResult {parameterResultId}.");
+        var order = paramResult.TestOrder ?? throw new BusinessRuleException($"ParameterResult {parameterResultId} has no TestOrder.");
+        var sample = order.Sample ?? throw new BusinessRuleException($"TestOrder {order.Id} has no Sample - cannot project ParameterResult {parameterResultId}.");
         var analysis = paramResult.TestAnalysis ?? await _db.TestAnalyses.FirstOrDefaultAsync(e => e.Id == paramResult.TestAnalysisId)
-            ?? throw new InvalidOperationException($"ParameterResult {parameterResultId} has no TestAnalysis.");
+            ?? throw new BusinessRuleException($"ParameterResult {parameterResultId} has no TestAnalysis.");
 
         var testDefinition = await _db.TestDefinitions.FirstOrDefaultAsync(t => t.Code == order.TestCode);
         var enteredBy = await _db.Users.FirstOrDefaultAsync(u => u.Id == analysis.EnteredByUserId);
@@ -235,16 +235,16 @@ public class ResultProjectionService
             .Include(o => o.Sample!).ThenInclude(s => s.WaterSamplingPoint)
             .FirstOrDefaultAsync(o => o.Id == testOrderId)
             ?? throw new NotFoundException($"TestOrder {testOrderId} not found.");
-        var sample = order.Sample ?? throw new InvalidOperationException($"TestOrder {testOrderId} has no Sample.");
+        var sample = order.Sample ?? throw new BusinessRuleException($"TestOrder {testOrderId} has no Sample.");
 
         var testDefinition = await _db.TestDefinitions.FirstOrDefaultAsync(t => t.Code == order.TestCode)
-            ?? throw new InvalidOperationException($"Test code \"{order.TestCode}\" has no workflow template configured.");
+            ?? throw new BusinessRuleException($"Test code \"{order.TestCode}\" has no workflow template configured.");
 
         var finalResult = await _db.WorkflowStepResults
             .Where(r => r.TestOrderId == testOrderId)
             .OrderByDescending(r => r.Id)
             .FirstOrDefaultAsync()
-            ?? throw new InvalidOperationException($"TestOrder {testOrderId} has no workflow step result recorded yet.");
+            ?? throw new BusinessRuleException($"TestOrder {testOrderId} has no workflow step result recorded yet.");
 
         // SkippedBiochemical/BiochemicalResultText are the only fields a
         // concluding WorkflowStepResult can carry that represent a
@@ -321,10 +321,10 @@ public class ResultProjectionService
             ?? throw new NotFoundException($"SampleLocation {sampleLocationId} not found.");
 
         if (location.Status is null)
-            throw new InvalidOperationException($"SampleLocation {sampleLocationId} has no result recorded yet.");
+            throw new BusinessRuleException($"SampleLocation {sampleLocationId} has no result recorded yet.");
 
-        var sample = location.Sample ?? throw new InvalidOperationException($"SampleLocation {sampleLocationId} has no Sample.");
-        var order = location.TestOrder ?? throw new InvalidOperationException($"SampleLocation {sampleLocationId} has no TestOrder.");
+        var sample = location.Sample ?? throw new BusinessRuleException($"SampleLocation {sampleLocationId} has no Sample.");
+        var order = location.TestOrder ?? throw new BusinessRuleException($"SampleLocation {sampleLocationId} has no TestOrder.");
 
         var testDefinition = await _db.TestDefinitions.FirstOrDefaultAsync(t => t.Code == order.TestCode);
         var enteredBy = location.EnteredByUserId is int enteredByUserId

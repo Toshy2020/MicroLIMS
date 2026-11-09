@@ -260,7 +260,7 @@ public class CalendarEventService
         var firstBytes = request.Content.Take(16).ToArray();
         var error = _validator.Validate(request.OriginalFileName, request.DeclaredContentType, request.Content.Length, firstBytes);
         if (error != null)
-            throw new InvalidOperationException(error);
+            throw new BusinessRuleException(error);
 
         var ext = Path.GetExtension(request.OriginalFileName).ToLowerInvariant();
         var sha256 = Convert.ToHexString(SHA256.HashData(request.Content));
@@ -331,7 +331,7 @@ public class CalendarEventService
         catch (Exception ex)
         {
             _logger.LogError(ex, "File read failed for CalendarEventDocument {Id} (key: {Key}).", doc.Id, doc.StorageKey);
-            throw new InvalidOperationException("The document file could not be retrieved.");
+            throw new BusinessRuleException("The document file could not be retrieved.");
         }
 
         var computedHash = Convert.ToHexString(SHA256.HashData(content));
@@ -340,7 +340,7 @@ public class CalendarEventService
             _logger.LogError(
                 "INTEGRITY FAILURE: CalendarEventDocument {Id} stored hash {Stored} does not match computed hash {Computed}.",
                 doc.Id, doc.ContentSha256, computedHash);
-            throw new InvalidOperationException("Document integrity check failed. The file may have been altered. Please contact your System Administrator.");
+            throw new BusinessRuleException("Document integrity check failed. The file may have been altered. Please contact your System Administrator.");
         }
 
         var meta = new DocumentSummary(

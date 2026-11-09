@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using MicroLIMS.Application.Services.Kpi;
 using MicroLIMS.Tests.Fixtures;
 using Xunit;
@@ -53,7 +54,7 @@ public class KpiRegistryTests
     {
         using var db = NewDb();
         var one = new SampleTatKpi(db);
-        Assert.Throws<InvalidOperationException>(() => new KpiRegistry(new IKpi[] { one, new SampleTatKpi(db) }));
+        Assert.Throws<BusinessRuleException>(() => new KpiRegistry(new IKpi[] { one, new SampleTatKpi(db) }));
         Assert.Same(one, new KpiRegistry(new IKpi[] { one }).Find("SAMPLE-TAT"));
         Assert.Null(new KpiRegistry(new IKpi[] { one }).Find("nope"));
     }

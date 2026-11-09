@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using MicroLIMS.Application.Helpers;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.DTOs.DocumentControl;
@@ -64,36 +65,36 @@ public class DocumentMasterService : IDocumentMasterService
 
         // 2. Validate Foreign Keys
         var docType = await _db.DocumentTypes.FindAsync(request.DocumentTypeId)
-            ?? throw new InvalidOperationException($"Document Type {request.DocumentTypeId} not found.");
+            ?? throw new BusinessRuleException($"Document Type {request.DocumentTypeId} not found.");
         if (!docType.IsActive)
-            throw new InvalidOperationException($"Document Type '{docType.Name}' is deactivated.");
+            throw new BusinessRuleException($"Document Type '{docType.Name}' is deactivated.");
 
         var dept = await _db.DocumentDepartments.FindAsync(request.DepartmentId)
-            ?? throw new InvalidOperationException($"Department {request.DepartmentId} not found.");
+            ?? throw new BusinessRuleException($"Department {request.DepartmentId} not found.");
         if (!dept.IsActive)
-            throw new InvalidOperationException($"Department '{dept.Name}' is deactivated.");
+            throw new BusinessRuleException($"Department '{dept.Name}' is deactivated.");
 
         var section = await _db.DocumentSections.FindAsync(request.SectionId)
-            ?? throw new InvalidOperationException($"Section {request.SectionId} not found.");
+            ?? throw new BusinessRuleException($"Section {request.SectionId} not found.");
         if (!section.IsActive)
-            throw new InvalidOperationException($"Section '{section.Name}' is deactivated.");
+            throw new BusinessRuleException($"Section '{section.Name}' is deactivated.");
 
         if (section.DepartmentId != dept.Id)
-            throw new InvalidOperationException($"Section '{section.Name}' does not belong to department '{dept.Name}'.");
+            throw new BusinessRuleException($"Section '{section.Name}' does not belong to department '{dept.Name}'.");
 
         var sectionIds = await ResolveSectionIdsAsync(request.SectionId, request.SectionIds, dept);
 
         var ownerUser = await _db.Users.FindAsync(request.DocumentOwnerUserId)
-            ?? throw new InvalidOperationException($"Owner user {request.DocumentOwnerUserId} not found.");
+            ?? throw new BusinessRuleException($"Owner user {request.DocumentOwnerUserId} not found.");
         if (!ownerUser.IsActive)
-            throw new InvalidOperationException($"Owner user '{ownerUser.FullName}' is inactive.");
+            throw new BusinessRuleException($"Owner user '{ownerUser.FullName}' is inactive.");
 
         // 3. Uniqueness of CompanyDocumentCode among Active documents
         var codeExists = await _db.DocumentMasters
             .AnyAsync(d => d.RecordStatus == DocumentRecordStatus.Active &&
                            d.CompanyDocumentCode.ToLower() == trimmedCode.ToLower());
         if (codeExists)
-            throw new InvalidOperationException($"A document with Company Document Code '{trimmedCode}' already exists and is active.");
+            throw new BusinessRuleException($"A document with Company Document Code '{trimmedCode}' already exists and is active.");
 
         // 4. Generate MicroLimsDocumentId
         var seqVal = await _sequenceHelper.GetNextSequenceValueAsync("document_number_seq");
@@ -391,12 +392,12 @@ public class DocumentMasterService : IDocumentMasterService
         RecordVersion.EnsureCurrent(_db, master);
 
         if (master.RecordStatus == DocumentRecordStatus.Void)
-            throw new InvalidOperationException("A voided document cannot be edited.");
+            throw new BusinessRuleException("A voided document cannot be edited.");
 
         // In Release 1a, master metadata can only be directly edited if the document has never held an effective revision
         if (master.CurrentEffectiveRevisionId.HasValue || master.Revisions.Any(r => r.RevisionStatus == DocumentRevisionStatus.Effective || r.RevisionStatus == DocumentRevisionStatus.Superseded))
         {
-            throw new InvalidOperationException("Metadata for an effective document cannot be edited directly. Create a new revision instead.");
+            throw new BusinessRuleException("Metadata for an effective document cannot be edited directly. Create a new revision instead.");
         }
 
         var trimmedCode = request.CompanyDocumentCode.Trim();
@@ -410,36 +411,36 @@ public class DocumentMasterService : IDocumentMasterService
                                d.RecordStatus == DocumentRecordStatus.Active &&
                                d.CompanyDocumentCode.ToLower() == trimmedCode.ToLower());
             if (codeExists)
-                throw new InvalidOperationException($"Company Document Code '{trimmedCode}' is already in use by another active document.");
+                throw new BusinessRuleException($"Company Document Code '{trimmedCode}' is already in use by another active document.");
         }
 
         var docType = await _db.DocumentTypes.FindAsync(request.DocumentTypeId)
-            ?? throw new InvalidOperationException($"Document Type {request.DocumentTypeId} not found.");
+            ?? throw new BusinessRuleException($"Document Type {request.DocumentTypeId} not found.");
         if (!docType.IsActive)
-            throw new InvalidOperationException($"Document Type '{docType.Name}' is deactivated.");
+            throw new BusinessRuleException($"Document Type '{docType.Name}' is deactivated.");
 
         var dept = await _db.DocumentDepartments.FindAsync(request.DepartmentId)
-            ?? throw new InvalidOperationException($"Department {request.DepartmentId} not found.");
+            ?? throw new BusinessRuleException($"Department {request.DepartmentId} not found.");
         if (!dept.IsActive)
-            throw new InvalidOperationException($"Department '{dept.Name}' is deactivated.");
+            throw new BusinessRuleException($"Department '{dept.Name}' is deactivated.");
 
         var section = await _db.DocumentSections.FindAsync(request.SectionId)
-            ?? throw new InvalidOperationException($"Section {request.SectionId} not found.");
+            ?? throw new BusinessRuleException($"Section {request.SectionId} not found.");
         if (!section.IsActive)
-            throw new InvalidOperationException($"Section '{section.Name}' is deactivated.");
+            throw new BusinessRuleException($"Section '{section.Name}' is deactivated.");
 
         if (section.DepartmentId != dept.Id)
-            throw new InvalidOperationException($"Section '{section.Name}' does not belong to department '{dept.Name}'.");
+            throw new BusinessRuleException($"Section '{section.Name}' does not belong to department '{dept.Name}'.");
 
         var newSectionIds = await ResolveSectionIdsAsync(request.SectionId, request.SectionIds, dept);
 
         var ownerUser = await _db.Users.FindAsync(request.DocumentOwnerUserId)
-            ?? throw new InvalidOperationException($"Owner user {request.DocumentOwnerUserId} not found.");
+            ?? throw new BusinessRuleException($"Owner user {request.DocumentOwnerUserId} not found.");
         // The custodian may not be changed TO an inactive user. A document whose current custodian has been
         // deactivated stays editable with that custodian unchanged: hand the custodianship over through the
         // reassignment queue (Document Control > Needs reassignment), which also works for an effective document.
         if (!ownerUser.IsActive && ownerUser.Id != master.DocumentOwnerUserId)
-            throw new InvalidOperationException($"Owner user '{ownerUser.FullName}' is inactive.");
+            throw new BusinessRuleException($"Owner user '{ownerUser.FullName}' is inactive.");
 
         var changes = new List<AuditFieldChange>();
         if (master.CompanyDocumentCode != trimmedCode)
@@ -552,11 +553,11 @@ public class DocumentMasterService : IDocumentMasterService
             ?? throw new KeyNotFoundException($"Document Master {id} not found.");
 
         if (master.RecordStatus == DocumentRecordStatus.Void)
-            throw new InvalidOperationException("Document Master is already voided.");
+            throw new BusinessRuleException("Document Master is already voided.");
 
         if (master.CurrentEffectiveRevisionId.HasValue || master.Revisions.Any(r => r.RevisionStatus == DocumentRevisionStatus.Effective || r.RevisionStatus == DocumentRevisionStatus.Superseded))
         {
-            throw new InvalidOperationException("A Document Master that has held an effective revision cannot be voided. It must be retired through obsolescence.");
+            throw new BusinessRuleException("A Document Master that has held an effective revision cannot be voided. It must be retired through obsolescence.");
         }
 
         var trimmedReason = request.Reason.Trim();
@@ -608,7 +609,7 @@ public class DocumentMasterService : IDocumentMasterService
             ?? throw new KeyNotFoundException($"Document Revision {revisionId} not found.");
 
         if (revision.RevisionStatus != DocumentRevisionStatus.Draft)
-            throw new InvalidOperationException($"Only revisions in Draft state can be cancelled. Current status is {revision.RevisionStatus}.");
+            throw new BusinessRuleException($"Only revisions in Draft state can be cancelled. Current status is {revision.RevisionStatus}.");
 
         var trimmedReason = request.Reason.Trim();
         var previousStatus = revision.RevisionStatus.ToString();
@@ -659,12 +660,12 @@ public class DocumentMasterService : IDocumentMasterService
             ?? throw new KeyNotFoundException($"Document Master {documentMasterId} not found.");
 
         if (master.RecordStatus == DocumentRecordStatus.Void)
-            throw new InvalidOperationException("Cannot add assignments to a voided document.");
+            throw new BusinessRuleException("Cannot add assignments to a voided document.");
 
         var targetUser = await _db.Users.FindAsync(request.UserId)
-            ?? throw new InvalidOperationException($"User {request.UserId} not found.");
+            ?? throw new BusinessRuleException($"User {request.UserId} not found.");
         if (!targetUser.IsActive)
-            throw new InvalidOperationException($"User '{targetUser.FullName}' is inactive.");
+            throw new BusinessRuleException($"User '{targetUser.FullName}' is inactive.");
 
         // The assignee's role must hold the code the assigned function needs.
         var requiredCode = request.AssignmentRole switch
@@ -675,7 +676,7 @@ public class DocumentMasterService : IDocumentMasterService
             _ => null
         };
         if (requiredCode != null && !await _authService.HoldsPermissionAsync(request.UserId, requiredCode))
-            throw new InvalidOperationException($"User '{targetUser.FullName}' cannot be assigned as {request.AssignmentRole}: their role does not hold the {requiredCode} permission.");
+            throw new BusinessRuleException($"User '{targetUser.FullName}' cannot be assigned as {request.AssignmentRole}: their role does not hold the {requiredCode} permission.");
 
         var existing = await _db.DocumentMasterAssignments
             .FirstOrDefaultAsync(a => a.DocumentMasterId == documentMasterId &&
@@ -782,11 +783,11 @@ public class DocumentMasterService : IDocumentMasterService
         foreach (var id in ids.Skip(1))
         {
             var sec = found.FirstOrDefault(x => x.Id == id)
-                ?? throw new InvalidOperationException($"Section {id} not found.");
+                ?? throw new BusinessRuleException($"Section {id} not found.");
             if (!sec.IsActive)
-                throw new InvalidOperationException($"Section '{sec.Name}' is deactivated.");
+                throw new BusinessRuleException($"Section '{sec.Name}' is deactivated.");
             if (sec.DepartmentId != dept.Id)
-                throw new InvalidOperationException($"Section '{sec.Name}' does not belong to department '{dept.Name}'.");
+                throw new BusinessRuleException($"Section '{sec.Name}' does not belong to department '{dept.Name}'.");
         }
         return ids;
     }

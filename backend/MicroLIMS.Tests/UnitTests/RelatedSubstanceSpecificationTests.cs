@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.DTOs;
 using MicroLIMS.Application.Services;
@@ -62,7 +63,7 @@ public class RelatedSubstanceSpecificationTests
             ProductionStageRole: stage, Grade: grade);
 
     private static async Task AssertThrowsAsync(string message, Func<Task> act) =>
-        Assert.Equal(message, (await Assert.ThrowsAsync<InvalidOperationException>(act)).Message);
+        Assert.Equal(message, (await Assert.ThrowsAsync<BusinessRuleException>(act)).Message);
 
     [Fact]
     public async Task RelatedSubstancesSpec_ValidRows_Save()
@@ -128,7 +129,7 @@ public class RelatedSubstanceSpecificationTests
         await a.Svc.CreateSpecificationAsync(a.UserId, first);
 
         var second = first with { ParameterName = "Renamed row" };
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => a.Svc.CreateSpecificationAsync(a.UserId, second));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => a.Svc.CreateSpecificationAsync(a.UserId, second));
         Assert.Equal(message, ex.Message);
 
         // A different kind, or another stage, is not a duplicate.

@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.DTOs.DocumentControl;
 using MicroLIMS.Application.Services;
@@ -73,7 +74,7 @@ public class DocumentMasterSectionsPostgresIntegrationTests
         await db.SaveChangesAsync();
         var foreign = await AddSectionAsync(db, otherDept.Id);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             svc.RegisterDocumentMasterAsync(Register($"MS-{Guid.NewGuid():N}"[..15], new List<int> { foreign.Id }), _fixture.SeededControllerUserId));
         Assert.Contains("does not belong to department", ex.Message);
     }

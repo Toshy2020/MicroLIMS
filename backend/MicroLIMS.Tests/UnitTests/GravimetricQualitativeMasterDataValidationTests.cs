@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Exceptions;
 using MicroLIMS.Application.DTOs;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -104,17 +105,17 @@ public class GravimetricQualitativeMasterDataValidationTests
             EquationType: EquationType.GravimetricLoss,
             ReplicateCount: null);
 
-        var exNull = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.TestDefinition.CreateTestDefinition(reqNull));
+        var exNull = await Assert.ThrowsAsync<BusinessRuleException>(() => controller.TestDefinition.CreateTestDefinition(reqNull));
         Assert.Contains("Replicate count must be between 1 and 30", exNull.Message);
 
         // ReplicateCount = 0
         var reqZero = reqNull with { ReplicateCount = 0 };
-        var exZero = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.TestDefinition.CreateTestDefinition(reqZero));
+        var exZero = await Assert.ThrowsAsync<BusinessRuleException>(() => controller.TestDefinition.CreateTestDefinition(reqZero));
         Assert.Contains("Replicate count must be between 1 and 30", exZero.Message);
 
         // ReplicateCount = 31
         var req31 = reqNull with { ReplicateCount = 31 };
-        var ex31 = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.TestDefinition.CreateTestDefinition(req31));
+        var ex31 = await Assert.ThrowsAsync<BusinessRuleException>(() => controller.TestDefinition.CreateTestDefinition(req31));
         Assert.Contains("Replicate count must be between 1 and 30", ex31.Message);
     }
 
@@ -184,7 +185,7 @@ public class GravimetricQualitativeMasterDataValidationTests
             ReplicateCount: 1,
             ConditionFields: longConditions);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.TestDefinition.CreateTestDefinition(req));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => controller.TestDefinition.CreateTestDefinition(req));
         Assert.Contains("Condition fields cannot exceed 500 characters", ex.Message);
     }
 
@@ -224,7 +225,7 @@ public class GravimetricQualitativeMasterDataValidationTests
             ConfirmatoryMediaCount: null,
             PhenotypicTestType: null);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.TestWorkflowStep.CreateTestWorkflowStep(testDef.Id, stepReq));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => controller.TestWorkflowStep.CreateTestWorkflowStep(testDef.Id, stepReq));
         Assert.Contains($"{wf} tests have no workflow steps", ex.Message);
     }
 
@@ -243,7 +244,7 @@ public class GravimetricQualitativeMasterDataValidationTests
             ReplicateCount: 1,
             PerContainer: true);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.TestDefinition.CreateTestDefinition(req));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => controller.TestDefinition.CreateTestDefinition(req));
         Assert.Contains("Per-container results are only available for qualitative tests.", ex.Message);
     }
 
@@ -286,7 +287,7 @@ public class GravimetricQualitativeMasterDataValidationTests
             WorkflowType: WorkflowType.Titration,
             MoistureRole: MoistureRole.LossOnDrying);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.TestDefinition.CreateTestDefinition(req));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => controller.TestDefinition.CreateTestDefinition(req));
         Assert.Contains("Loss on drying role needs a gravimetric loss test.", ex.Message);
     }
 
@@ -304,7 +305,7 @@ public class GravimetricQualitativeMasterDataValidationTests
             TitrationType: TitrationType.AcidBase,
             MoistureRole: MoistureRole.Water);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.TestDefinition.CreateTestDefinition(req));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => controller.TestDefinition.CreateTestDefinition(req));
         Assert.Contains("Water role needs a Karl Fischer titration test.", ex.Message);
     }
 
@@ -343,7 +344,7 @@ public class GravimetricQualitativeMasterDataValidationTests
             ReplicateCount: 1,
             MoistureRole: MoistureRole.LossOnDrying);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => controller.TestDefinition.CreateTestDefinition(req));
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => controller.TestDefinition.CreateTestDefinition(req));
         Assert.Contains("Loss on drying role needs a gravimetric loss test.", ex.Message);
     }
 }

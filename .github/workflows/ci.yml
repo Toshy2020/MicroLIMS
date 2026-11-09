@@ -238,6 +238,13 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      # CLAUDE.md Rules 4.5 / 4.6 / 6.1: legacy fireEvent calls, vi.mock of
+      # project components/hooks, and `any` are pinned in
+      # test-debt-baseline.json. Fails if any count rises; lower the baseline
+      # with `npm run debt:update` after migrating files.
+      - name: Test and typing debt ratchet
+        run: npm run debt:check
+
       - name: TypeScript
         run: npx tsc -b
 

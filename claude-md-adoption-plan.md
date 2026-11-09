@@ -148,6 +148,19 @@ workflows. If later required:
   API/Infrastructure clock reads (file names, PDF "generated" stamps, health,
   JWT issue time) are outside Rule 5.6's scope and unchanged.
 
+- Phase 2 pagination (G5) done: every list endpoint goes through
+  `Paging.Normalize` (cap 100; 8 services were at 200), guarded by
+  `PagingUsageTests`; the Receiving register and "export all matching" PDF
+  page through with `fetchAllPages` instead of relying on one 200-row page.
+- Phase 1 (G2) done: `backend/Directory.Build.props` and
+  `backend/Directory.Packages.props`; Dockerfile and CI cache updated;
+  resolved package graph verified identical.
+- Phase 3 (G9) done: `npm run debt:check` ratchet in CI with
+  `frontend/test-debt-baseline.json`. `TestMasterPage.test.tsx` migrated
+  (29 `fireEvent` calls and the `useTestDefinitions` hook stub removed).
+  Next candidates: `pages/Reports.test.tsx` (7 tab stubs, the example named
+  in Rule 4.5), then the largest `fireEvent` files the script lists.
+
 ## Order & effort
 
 | Phase | PRs | Effort | Risk | Depends on |

@@ -19,6 +19,13 @@ import unusedImports from "eslint-plugin-unused-imports";
 export default tseslint.config(
   { ignores: ["dist/**", "coverage/**", "*.config.js", "*.config.ts"] },
 
+  // Node build scripts (scripts/*.mjs, e.g. the test-debt ratchet) run in
+  // Node, not the browser: give them Node globals. Same rules otherwise.
+  {
+    files: ["scripts/**/*.mjs"],
+    languageOptions: { ecmaVersion: 2022, sourceType: "module", globals: { ...globals.node } }
+  },
+
   js.configs.recommended,
   tseslint.configs.recommended,
 

@@ -120,7 +120,7 @@ Never invent, guess, or simplify a microbiological or analytical rule. If a form
 
 AI agents frequently write "theater tests" designed to pass quickly rather than catch real defects. **Any test that violates the following 7 rules is considered a broken build:**
 
-> **Scope for existing tests:** These rules bind every **new or modified** test. The suite predates them (many tests use `UseInMemoryDatabase`, `fireEvent`, or `vi.mock`). Do not mass-rewrite legacy tests as a side effect of another task; bring a test file into compliance when you change it, and never add new violations.
+> **Scope for existing tests:** These rules bind every **new or modified** test. The suite predates them (many tests use `UseInMemoryDatabase`, `fireEvent`, or `vi.mock`). Do not mass-rewrite legacy tests as a side effect of another task; bring a test file into compliance when you change it, and never add new violations. On the frontend this is enforced by `npm run debt:check` (CI step "Test and typing debt ratchet"): `fireEvent` calls, `vi.mock()` of project components/hooks/contexts (anything other than a `services/` module, `apiClient`, or a package), and `any` are counted against `frontend/test-debt-baseline.json`, and the build fails if any count rises. After migrating files, run `npm run debt:update` to lower the baseline; it can never be raised.
 
 ### Rule 4.1 — Ban Shared `DbContext` Instances Across Arrange / Act / Assert
 Never reuse the same `MicroLimsDbContext` instance to seed data (`Arrange`), execute a service (`Act`), and query results (`Assert`). Reusing a single `DbContext` reads from EF Core's in-memory change tracker and passes even if `.SaveChangesAsync()` was never called.

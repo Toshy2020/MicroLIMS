@@ -93,12 +93,12 @@ public class EquipmentInventoryService
     public async Task<List<EquipmentInventoryResponse>> GetAllAsync(IReadOnlyList<int>? scope) =>
         (await _db.EquipmentInventories
             .Where(e => scope == null || (e.SectionId != null && scope.Contains(e.SectionId.Value)))
-            .OrderBy(e => e.InstrumentType).ThenBy(e => e.Code).ToListAsync()).Select(EquipmentInventoryResponse.From).ToList();
+            .OrderBy(e => e.InstrumentType).ThenBy(e => e.Code).ToListAsync()).Select(e => EquipmentInventoryResponse.From(e, _time.GetUtcNow().UtcDateTime)).ToList();
 
     public async Task<EquipmentInventoryResponse?> GetByIdAsync(int id, int userId)
     {
         await _scope.EnsureEquipmentInventoryAccessAsync(userId, id, access: SectionAccess.Read);
-        return (await _db.EquipmentInventories.FirstOrDefaultAsync(e => e.Id == id)) is { } found ? EquipmentInventoryResponse.From(found) : null;
+        return (await _db.EquipmentInventories.FirstOrDefaultAsync(e => e.Id == id)) is { } found ? EquipmentInventoryResponse.From(found, _time.GetUtcNow().UtcDateTime) : null;
     }
 
     public async Task<List<EquipmentInventoryResponse>> GetForPrintAsync(IReadOnlyList<int>? scope) =>
@@ -106,7 +106,7 @@ public class EquipmentInventoryService
             .Where(e => e.Status == EquipmentOperationalStatus.InService)
             .Where(e => scope == null || (e.SectionId != null && scope.Contains(e.SectionId.Value)))
             .OrderBy(e => e.InstrumentType).ThenBy(e => e.Code)
-            .ToListAsync()).Select(EquipmentInventoryResponse.From).ToList();
+            .ToListAsync()).Select(e => EquipmentInventoryResponse.From(e, _time.GetUtcNow().UtcDateTime)).ToList();
 
     // Missing -> the caller forgot to choose a lab (a data problem, same
     // family as "Code is required"). Out-of-scope -> the caller tried to
@@ -186,7 +186,7 @@ public class EquipmentInventoryService
         };
         _db.EquipmentInventories.Add(entity);
         await _db.SaveChangesAsync();
-        return EquipmentInventoryResponse.From(entity);
+        return EquipmentInventoryResponse.From(entity, _time.GetUtcNow().UtcDateTime);
     }
 
     public async Task UpdateAsync(int id, SaveEquipmentInventoryRequest r, int currentUserId)

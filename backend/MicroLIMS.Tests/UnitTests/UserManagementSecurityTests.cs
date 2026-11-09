@@ -169,7 +169,7 @@ public class UserManagementSecurityTests
         db.Users.Add(user);
         await db.SaveChangesAsync();
 
-        Assert.True(user.IsLocked);
+        Assert.True(user.IsLockedAt(DateTime.UtcNow));
 
         var updated = await userService.UnlockUserAsync(user.Id, "Unlocked by admin request", actingUserId: 1);
 

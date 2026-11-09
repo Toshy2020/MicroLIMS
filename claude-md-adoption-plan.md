@@ -139,6 +139,15 @@ workflows. If later required:
 - Open: the Water / EM / After Cleaning matrix still puts the TAMC column first
   by test code (`CertificateOfAnalysisBuilder.BuildMatrix`).
 
+- Clock discipline (Rule 3.3.2 / 5.6): the audit timestamp now comes from
+  `MicroLimsDbContext`'s injected `TimeProvider` (was `DateTime.UtcNow`); the six
+  Domain time-based decisions (`Incubation`, `Material` status/usable,
+  `EquipmentInventory` calibration overdue, `User` lock, refresh/reset tokens)
+  take `nowUtc` from the caller's clock; `ClockUsageTests` now also covers
+  Persistence and Domain (104 legacy property defaults capped by a ratchet).
+  API/Infrastructure clock reads (file names, PDF "generated" stamps, health,
+  JWT issue time) are outside Rule 5.6's scope and unchanged.
+
 ## Order & effort
 
 | Phase | PRs | Effort | Risk | Depends on |

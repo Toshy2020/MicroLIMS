@@ -51,8 +51,6 @@ public class MaterialConfiguration : IEntityTypeConfiguration<Material>
 
         builder.HasIndex(m => m.SectionId);
 
-        builder.Ignore(m => m.Status);
-        builder.Ignore(m => m.IsUsable);
         builder.Ignore(m => m.IsAwaitingRelease);
         builder.Ignore(m => m.IsRejected);
         builder.Ignore(m => m.LotLabel);

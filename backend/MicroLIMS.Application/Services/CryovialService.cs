@@ -46,10 +46,10 @@ public class CryovialService
     public async Task<List<CryovialResponse>> GetAllAsync(IReadOnlyCollection<int>? sectionIds = null) =>
         (await _db.Cryovials.Include(c => c.Material).Include(c => c.Organism).Include(c => c.ReferenceOrganism).Include(c => c.IdentityConfirmations)
             .Where(c => sectionIds == null || sectionIds.Contains(c.Material!.SectionId))
-            .OrderByDescending(c => c.Id).ToListAsync()).Select(CryovialResponse.From).ToList();
+            .OrderByDescending(c => c.Id).ToListAsync()).Select(c => CryovialResponse.From(c, _time.GetUtcNow().UtcDateTime)).ToList();
 
     public Task<CryovialResponse> PrepareCryovialsAsync(PrepareCryovialsRequest request) =>
-        UnitOfWork.RunAsync(_db, async () => CryovialResponse.From(await PrepareCryovialsCoreAsync(request)));
+        UnitOfWork.RunAsync(_db, async () => CryovialResponse.From(await PrepareCryovialsCoreAsync(request), _time.GetUtcNow().UtcDateTime));
 
     private async Task<Cryovial> PrepareCryovialsCoreAsync(PrepareCryovialsRequest request)
     {
@@ -140,7 +140,7 @@ public class CryovialService
     // the only thing standing between an unverified batch and every media
     // evaluation that will later challenge organisms from it.
     public Task<CryovialResponse> ApproveAsync(int cryovialId, bool approved, int userId, string password, string? comment, string? ipAddress) =>
-        UnitOfWork.RunAsync(_db, async () => CryovialResponse.From(await ApproveCoreAsync(cryovialId, approved, userId, password, comment, ipAddress)));
+        UnitOfWork.RunAsync(_db, async () => CryovialResponse.From(await ApproveCoreAsync(cryovialId, approved, userId, password, comment, ipAddress), _time.GetUtcNow().UtcDateTime));
 
     private async Task<Cryovial> ApproveCoreAsync(int cryovialId, bool approved, int userId, string password, string? comment, string? ipAddress)
     {
@@ -270,6 +270,6 @@ public class CryovialService
         _db.CurrentUserId = userId;
         await _db.SaveChangesAsync();
 
-        return CryovialResponse.From(cryovial);
+        return CryovialResponse.From(cryovial, _time.GetUtcNow().UtcDateTime);
     }
 }

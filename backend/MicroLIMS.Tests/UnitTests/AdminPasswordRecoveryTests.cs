@@ -306,7 +306,7 @@ public class AdminPasswordRecoveryTests
         await service.ConfirmRecoveryAsync("locked2", request.RecoveryCode, "UnlockedP@ss123!");
 
         var updatedUser = await db.Users.FirstAsync(u => u.Id == 2);
-        Assert.False(updatedUser.IsLocked);
+        Assert.False(updatedUser.IsLockedAt(DateTime.UtcNow));
         Assert.Equal(0, updatedUser.FailedLoginAttempts);
         Assert.Null(updatedUser.LockedUntil);
     }

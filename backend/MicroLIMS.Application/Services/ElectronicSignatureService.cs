@@ -67,7 +67,7 @@ public class ElectronicSignatureService : IElectronicSignatureService
         // Same generic failure for "no such user", "inactive", "locked",
         // and "wrong password" - a signature failure must not leak which
         // of those it was, same reasoning as the login endpoint.
-        if (user is null || !user.IsActive || user.IsLocked || !BCrypt.Net.BCrypt.Verify(password, user.PasswordHash))
+        if (user is null || !user.IsActive || user.IsLockedAt(_time.GetUtcNow().UtcDateTime) || !BCrypt.Net.BCrypt.Verify(password, user.PasswordHash))
         {
             // Deliberately NOT touching FailedLoginAttempts/LockedUntil -
             // a mistyped signature must not lock someone out of the whole

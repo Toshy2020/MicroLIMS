@@ -28,7 +28,16 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext, IMicr
     public uint? ExpectedVersion { get; set; }
     public string? CurrentReason { get; set; }
 
+    // Stamps every audit row (CLAUDE.md Rule 3.3.2 / 5.6): the application's
+    // injected TimeProvider, never the static system clock, so audit time and
+    // every time-dependent rule share one clock that tests can control.
+    private readonly TimeProvider _clock = TimeProvider.System;
+
     public MicroLimsDbContext(DbContextOptions<MicroLimsDbContext> options) : base(options) { }
+
+    // The DI container picks this constructor (TimeProvider is registered as a
+    // singleton), so production audit rows use the application clock.
+    public MicroLimsDbContext(DbContextOptions<MicroLimsDbContext> options, TimeProvider clock) : base(options) => _clock = clock;
 
     public DbSet<User> Users => Set<User>();
     public DbSet<Role> Roles => Set<Role>();
@@ -653,7 +662,7 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext, IMicr
             UserId = bySystem ? null : CurrentUserId ?? 0,
             ActorType = bySystem ? Domain.Enums.ActorType.System : null,
             SystemProcessName = byAgent ? $"InstrumentAgent:{CurrentAgentCode}" : byProcess ? CurrentSystemProcessName : null,
-            Timestamp = DateTime.UtcNow,
+            Timestamp = _clock.GetUtcNow().UtcDateTime,
             Reason = CurrentReason,
             BatchNumber = GetPropertyAsString(entry, "BatchNumber"),
             ControlNumber = GetPropertyAsString(entry, "ControlNumber"),

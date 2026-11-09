@@ -255,7 +255,7 @@ public class SmtpConfigurationTests
         // Assert: Reset token was persisted in DB
         var tokenRecord = await db.PasswordResetTokens.FirstOrDefaultAsync(t => t.UserId == user.Id);
         Assert.NotNull(tokenRecord);
-        Assert.True(tokenRecord.IsValid);
+        Assert.True(tokenRecord.IsValidAt(DateTime.UtcNow));
 
         // Assert: Email was dispatched via the IEmailSender
         Assert.Single(spySender.Sent);

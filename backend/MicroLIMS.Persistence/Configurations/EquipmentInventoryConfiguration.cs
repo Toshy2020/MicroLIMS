@@ -24,6 +24,5 @@ public class EquipmentInventoryConfiguration : IEntityTypeConfiguration<Equipmen
 
         builder.HasIndex(e => e.SectionId);
 
-        builder.Ignore(e => e.IsCalibrationOverdue);
     }
 }

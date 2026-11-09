@@ -99,14 +99,15 @@ public class Material : IVersionedEntity
     // Not mapped - computed from live data so it can never drift from
     // the truth. The print view (MaterialService.GetForPrintAsync)
     // excludes Expired and Depleted.
-    public StockStatus Status =>
-        ExpiryDate.HasValue && ExpiryDate.Value.Date < DateTime.UtcNow.Date ? StockStatus.Expired :
+    // Takes the current time from the caller's injected clock (CLAUDE.md Rule 5.6).
+    public StockStatus StatusAt(DateTime nowUtc) =>
+        ExpiryDate.HasValue && ExpiryDate.Value.Date < nowUtc.Date ? StockStatus.Expired :
         QuantityRemaining <= 0 ? StockStatus.Depleted :
         StockStatus.InStock;
 
     // Used by MediaPreparationService's consumption guard before any
     // mutation - same shape as EquipmentGuard-style checks elsewhere.
-    public bool IsUsable => Status == StockStatus.InStock && !IsAwaitingRelease && !IsRejected;
+    public bool IsUsableAt(DateTime nowUtc) => StatusAt(nowUtc) == StockStatus.InStock && !IsAwaitingRelease && !IsRejected;
 
     public bool IsAwaitingRelease => ApprovalStatus == ApprovalGateStatus.PendingReview;
     public bool IsRejected => ApprovalStatus == ApprovalGateStatus.Rejected;

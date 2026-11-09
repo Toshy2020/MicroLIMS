@@ -45,6 +45,7 @@ public class TestWorkflowEngine : ITestWorkflowEngine
     private readonly OutsourcedRecorder _outsourcedRecorder;
     private readonly PathogenConfirmationRecorder _pathogenConfirmationRecorder;
     private readonly LocationResultRecorder _locationResultRecorder;
+    private readonly ILabClock _clock;
 
     public TestWorkflowEngine(
         IMicroLimsDbContext db, SampleReviewService sampleReviewService, ResultProjectionService resultProjection,
@@ -60,6 +61,7 @@ public class TestWorkflowEngine : ITestWorkflowEngine
             signatureService ?? new ElectronicSignatureService(db),
             sectionScope ?? new UserSectionScopeService(db),
             clock ?? LabClock.Default);
+        _clock = clock ?? LabClock.Default;
         _support = new TestWorkflowSupport(deps);
         _testStepNavigator = new TestStepNavigator(deps);
         _incubationStepRecorder = new IncubationStepRecorder(deps);
@@ -92,7 +94,7 @@ public class TestWorkflowEngine : ITestWorkflowEngine
         _testStepNavigator.GetCurrentStepDetailsForOrdersAsync(testOrderIds);
 
     public async Task<IncubationResponse> SelectMediaAsync(int testOrderId, string stepName, int mediaLotId, int incubatorEquipmentId, int userId) =>
-        IncubationResponse.From(await _incubationStepRecorder.SelectMediaAsync(testOrderId, stepName, mediaLotId, incubatorEquipmentId, userId));
+        IncubationResponse.From(await _incubationStepRecorder.SelectMediaAsync(testOrderId, stepName, mediaLotId, incubatorEquipmentId, userId), _clock.UtcNow.UtcDateTime);
 
     public Task<List<SiblingPathogenOrderDto>> GetSiblingPathogenOrdersAsync(int testOrderId, CancellationToken ct = default) =>
         _testStepNavigator.GetSiblingPathogenOrdersAsync(testOrderId, ct);
@@ -105,7 +107,7 @@ public class TestWorkflowEngine : ITestWorkflowEngine
         _support.PropagateSharedTsbToSiblingOrdersAsync(testOrderId, incubationId, userId, ct);
 
     public async Task<IncubationResponse> StartStage2IncubationAsync(int testOrderId, string stepName, int incubatorEquipmentId, int userId) =>
-        IncubationResponse.From(await _incubationStepRecorder.StartStage2IncubationAsync(testOrderId, stepName, incubatorEquipmentId, userId));
+        IncubationResponse.From(await _incubationStepRecorder.StartStage2IncubationAsync(testOrderId, stepName, incubatorEquipmentId, userId), _clock.UtcNow.UtcDateTime);
 
     public Task<TestWorkflowResult> RecordResultAsync(int testOrderId, string stepName, ResultPayload payload, int userId) =>
         _incubationStepRecorder.RecordResultAsync(testOrderId, stepName, payload, userId);
@@ -114,10 +116,10 @@ public class TestWorkflowEngine : ITestWorkflowEngine
         (await _incubationStepRecorder.GetLocationsAsync(testOrderId)).Select(TestOrderLocationResponse.From).ToList();
 
     public async Task<IncubationResponse> CloseCurrentIncubationWindowAsync(int testOrderId, int userId) =>
-        IncubationResponse.From(await _incubationStepRecorder.CloseCurrentIncubationWindowAsync(testOrderId, userId));
+        IncubationResponse.From(await _incubationStepRecorder.CloseCurrentIncubationWindowAsync(testOrderId, userId), _clock.UtcNow.UtcDateTime);
 
     public async Task<IncubationResponse> OverrideMinimumDurationAsync(int testOrderId, int userId) =>
-        IncubationResponse.From(await _incubationStepRecorder.OverrideMinimumDurationAsync(testOrderId, userId));
+        IncubationResponse.From(await _incubationStepRecorder.OverrideMinimumDurationAsync(testOrderId, userId), _clock.UtcNow.UtcDateTime);
 
     public Task<TestWorkflowResult> RecordBatchResultsAsync(int testOrderId, List<BatchLocationReadings> locations, int userId) =>
         _incubationStepRecorder.RecordBatchResultsAsync(testOrderId, locations, userId);
@@ -203,7 +205,7 @@ public class TestWorkflowEngine : ITestWorkflowEngine
 
     public async Task<IncubationResponse> StartSelectivePlatingIncubationAsync(
         int testOrderId, string stepName, int mediaLotId, int equipmentId, DateTime? incubationStartUtc, int userId) =>
-        IncubationResponse.From(await _pathogenConfirmationRecorder.StartSelectivePlatingIncubationAsync(testOrderId, stepName, mediaLotId, equipmentId, incubationStartUtc, userId));
+        IncubationResponse.From(await _pathogenConfirmationRecorder.StartSelectivePlatingIncubationAsync(testOrderId, stepName, mediaLotId, equipmentId, incubationStartUtc, userId), _clock.UtcNow.UtcDateTime);
 
     public Task<StepResultDto> SubmitSelectivePlatingObservationAsync(
         int testOrderId, string stepName, GrowthObservation observation, string? observedAppearanceNote, int userId) =>

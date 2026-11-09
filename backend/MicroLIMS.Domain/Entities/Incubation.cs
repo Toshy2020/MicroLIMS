@@ -67,7 +67,7 @@ public class Incubation
     public int? MinimumDurationOverriddenByUserId { get; set; }
     public DateTime? MinimumDurationOverriddenAt { get; set; }
 
-    [NotMapped]
-    public bool IsIncubationComplete =>
-        IncubationEndUtc.HasValue && DateTime.UtcNow >= IncubationEndUtc.Value;
+    // Whether the declared window has elapsed at nowUtc. Takes the current time from the caller's injected clock (CLAUDE.md Rule 5.6).
+    public bool IsIncubationCompleteAt(DateTime nowUtc) =>
+        IncubationEndUtc.HasValue && nowUtc >= IncubationEndUtc.Value;
 }

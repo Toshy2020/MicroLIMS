@@ -13,5 +13,6 @@ public class PasswordResetToken
     public DateTime? UsedAt { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
-    public bool IsValid => UsedAt is null && ExpiresAt > DateTime.UtcNow;
+    // Takes the current time from the caller's injected clock (CLAUDE.md Rule 5.6).
+    public bool IsValidAt(DateTime nowUtc) => UsedAt is null && ExpiresAt > nowUtc;
 }

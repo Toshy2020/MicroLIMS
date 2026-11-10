@@ -1,7 +1,7 @@
 # B2 — Multi-Factor Authentication: Design Specification
 
 **Roadmap package:** B2 (`improvement-roadmap.md`)
-**Status:** Draft for user review
+**Status:** Approved by the user 2026-11-10
 **Date:** 2026-11-10
 
 ## 1. Purpose
@@ -122,7 +122,7 @@ Known limit, stated openly: the administrator sees the seed while typing it. The
 
 1. **Recovery code:** entered at the challenge instead of the code. Single use. The user sees how many remain and is told by email that one was used.
 2. **Administrator reset:** `POST /api/admin/users/{id}/mfa/reset` `{ reason }`, permission `Users.Manage`, **rejected by the backend when the target is the caller**. It revokes the credential, recovery codes, trusted devices and all sessions, sets `MfaRequiredSince` to now (a fresh grace period is **not** given: the user enrols at next login), and emails the user.
-3. **Only administrator locked out:** see open item 9.1.
+3. **Every administrator locked out:** see item 9.1.
 
 ### 5.8 Screens
 
@@ -137,7 +137,7 @@ All screens follow CLAUDE.md sections 6, 8 and 9.
 
 ### 5.9 Audit trail
 
-Explicit events through `AuditEventService`, each with user, UTC time, IP and correlation id, and never a secret:
+Login-time events go through the existing `ISecurityAuditService` (the same trail as `AUTH_LOGIN_*` events); the administrator reset also writes an `AuditLogs` row with its reason in the same transaction. No event carries a secret. Events:
 `MFA_ENROLMENT_STARTED`, `MFA_ENROLLED`, `MFA_TOKEN_ASSIGNED`, `MFA_VERIFIED`, `MFA_FAILED`, `MFA_RECOVERY_CODE_USED`, `MFA_RECOVERY_CODES_REGENERATED`, `MFA_REMOVED_BY_USER`, `MFA_RESET_BY_ADMIN` (with reason and target), `TRUSTED_DEVICE_ADDED`, `TRUSTED_DEVICE_REVOKED`. Setting changes are audited by `SystemSettingsService` as today.
 
 ## 6. Error handling
@@ -171,8 +171,8 @@ Rollout: ship with policy `Optional`, let administrators enrol first, then switc
 
 ## 9. Open items
 
-1. **Sole administrator locked out.** If the only System Administrator loses the factor and the recovery codes, nobody inside the application may reset it. Proposal: require at least two System Administrators before the policy can be turned on, and extend the existing offline admin-recovery procedure (`AdminPasswordRecovery`) to clear MFA as well. The exact mechanics are checked against that code when the plan is written.
+1. **Sole administrator locked out (decided 2026-11-10).** A required policy cannot be switched on until two active System Administrators have set up a second factor; one can then reset the other. The existing admin password recovery is issued by another administrator inside the application (it is not an offline procedure) and stays password-only: it does not clear the second factor. If every administrator is locked out at once, recovery is a database intervention under the site's change control, described in the SOP; no application back door is built.
 2. **Hardware token model** and how its seeds are delivered (decides 30 or 60 s and the SOP wording).
-3. **Approval to exclude `MfaChallenge`** from automatic audit capture (5.3).
+3. `MfaChallenge` is excluded from automatic audit capture — **approved by the user 2026-11-10**.
 4. **Who holds the encryption key** and where it is backed up. Losing the key means every user must re-enrol.
 5. **SOP:** enrolment, lost device, seed custody, time synchronisation, key rotation.

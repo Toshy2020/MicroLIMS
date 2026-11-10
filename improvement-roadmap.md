@@ -100,6 +100,8 @@ Phases 0, 1 and 2 can run in parallel if more than one person is available. Phas
 4. Electronic signatures stay as they are: user ID plus password at signing (Rule 3.3.5). MFA strengthens the session, it does not replace the signature components.
 5. Lost-device recovery flow with Segregation of Duties: the administrator who resets MFA is recorded and the user is told.
 
+**Spec:** `docs/superpowers/specs/2026-11-10-multi-factor-authentication-design.md`. **Plan:** `docs/superpowers/plans/2026-11-10-multi-factor-authentication.md`.
+
 **Done when.** Enrolment, login challenge, recovery and admin reset all work, each with an audit row, and `AuditCredentialRedactionTests` covers the new secrets.
 
 ### B3. Single sign-on (OIDC / LDAP) — Size M

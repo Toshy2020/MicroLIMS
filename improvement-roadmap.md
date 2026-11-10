@@ -134,6 +134,8 @@ Phases 0, 1 and 2 can run in parallel if more than one person is available. Phas
 
 ### C2. Bench and tablet mode — Size L
 
+**Spec:** `docs/superpowers/specs/2026-11-10-bench-tablet-mode-design.md`. **Plan:** `docs/superpowers/plans/2026-11-10-bench-tablet-mode.md`. Decision D-7 is closed: unsaved draft on the tablet, recorded only when the server accepts it.
+
 **Current state.** Only six files use `useMediaQuery`. There is no service worker or web app manifest.
 
 **Scope.**

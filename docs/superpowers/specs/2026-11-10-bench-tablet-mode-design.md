@@ -1,7 +1,7 @@
 # C2 — Bench and Tablet Mode: Design Specification
 
 **Roadmap package:** C2 (`improvement-roadmap.md`)
-**Status:** Draft for user review
+**Status:** Approved by the user 2026-11-10 (late-save note and 24-hour retention confirmed)
 **Date:** 2026-11-10
 
 ## 1. Purpose
@@ -93,6 +93,7 @@ No workflow step, field or validation is added or removed.
 - Connection state comes from failed requests and a light check of the existing health endpoint every 15 seconds, not from the browser's online flag alone.
 - When the connection returns: "Connection restored. You have 2 unsaved entries." Nothing is sent automatically. The analyst opens each draft, sees the values, and presses Save. The server validates it exactly like a normal entry.
 - If the record changed meanwhile (version mismatch) or the step is no longer open, the server rejects it as today; the draft stays, marked "Could not be saved: the record has changed", and the analyst can copy the values or discard.
+- **A draft never holds a password or signature.** Forms that sign at the same time as saving (for example the qualitative result) store only the result fields; the password is typed again at save.
 - Drafts belong to the user who typed them. Another user on the same tablet cannot open or see their values; they see only "Another user has unsaved entries on this tablet".
 - The header shows a draft counter. Signing out with drafts asks for confirmation and keeps them for that user.
 - Drafts are deleted when saved, discarded, or older than `bench.draftRetentionHours` (default 24, 1–72). An expired draft is removed at the next start and the user is told.
@@ -151,7 +152,5 @@ Bench mode keeps WCAG 2.2 AA: target size, visible focus, contrast in both theme
 
 ## 9. Open items
 
-1. **Confirm the draft-timing note** (5.4): store the device's draft start time as additional audit information when a save was delayed more than 5 minutes.
-2. **Draft retention:** 24 hours proposed.
-3. **Tablet model and browser** (Safari on iPad or Chrome on Android), which decides wake-lock and install behaviour to test.
-4. **Tablet management:** the SOP should require lab-owned, locked-down tablets, since drafts sit on the device until saved.
+1. **Tablet model and browser** (Safari on iPad or Chrome on Android), which decides wake-lock and install behaviour to test.
+2. **Tablet management:** the SOP should require lab-owned, locked-down tablets, since drafts sit on the device until saved.

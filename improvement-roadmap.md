@@ -73,11 +73,12 @@ Phases 0, 1 and 2 can run in parallel if more than one person is available. Phas
 **Current state.** No barcode, label or print-audit code exists. `barcode-labels-recon-report.md` already contains the full recon and names the gaps G1–G14. This package implements that report.
 
 **Scope, in order.**
-1. **Fix the identifiers first** (recon G1–G3, G5):
-   - Give each Material stock lot an immutable, system-generated, unique label ID.
-   - Make `Equipment.Code` unique in the database and not editable after first use.
-   - Decide which of the two equipment registers the physical label refers to.
+1. **Fix the identifiers first** (recon G2, G3, G5). Recon gap G1 is already closed: stock lots carry the unique, immutable `Material.StockId`.
+   - The equipment sticker carries the asset register code, which is frozen once a label is printed.
+   - Link each workflow equipment record to its asset so an incubator can be selected by scan.
    - Set a maximum length for cryovial codes.
+
+   Full design: `docs/superpowers/specs/2026-11-10-barcode-labels-scanning-design.md`.
 2. **Label rendering.** Extend `PdfCanvas` with a configurable page size and a 2D symbol (Data Matrix or QR) that encodes `TYPE:CODE`. The code is also printed as text. Label templates per object type are configuration, not code.
 3. **Label audit.** `LABEL_PRINTED` and `LABEL_REPRINTED` events. A reprint needs a reason and its own permission, increments a counter, and prints "REPRINT n" on the label (G13).
 4. **Scan lookup.** A backend endpoint that takes `TYPE:CODE` or a bare code, does an exact match, and applies the existing section-scope rules (G8). Fix the Enter-versus-debounce race in `GlobalSearchDialog` (G7) and handle scanner input when an Arabic keyboard layout is active (G6).

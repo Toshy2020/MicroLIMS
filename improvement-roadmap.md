@@ -106,6 +106,8 @@ Phases 0, 1 and 2 can run in parallel if more than one person is available. Phas
 
 ### B3. Single sign-on (OIDC / LDAP) — Size M
 
+**Spec:** `docs/superpowers/specs/2026-11-10-single-sign-on-design.md`. **Plan:** `docs/superpowers/plans/2026-11-10-single-sign-on.md`. Decision D-4 is closed: separate MicroLIMS signing password.
+
 **Scope.**
 1. OpenID Connect login against the company identity provider (Microsoft Entra ID or similar), mapped to an existing MicroLIMS user. Roles and section assignments stay in MicroLIMS so Access Review keeps working.
 2. Optional LDAP bind for sites without an OIDC provider.

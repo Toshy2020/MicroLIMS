@@ -1,7 +1,7 @@
 # B3 — Single Sign-On (OpenID Connect and Active Directory): Design Specification
 
 **Roadmap package:** B3 (`improvement-roadmap.md`)
-**Status:** Draft for user review
+**Status:** Approved by the user 2026-11-10 (12-hour session cap accepted)
 **Date:** 2026-11-10
 **Depends on:** B2 (second factor) for emergency accounts and for the Active Directory path.
 

@@ -82,7 +82,7 @@ Rules:
 
 ### 5.2 Identifier changes
 
-1. **Cryovial code length.** Add a maximum length to `Cryovial.Code`. The value is chosen in the implementation plan from the longest code in existing data, with room to spare; the migration must not truncate any existing row.
+1. **Cryovial code length.** Add a maximum length to `Cryovial.Code`. The maximum is 250 characters. No existing code can be longer, because a code is at most a 200-character material name plus a short suffix, so the migration truncates nothing.
 2. **Equipment code freeze.** `EquipmentInventoryService` refuses a change to `Code` once any label has been printed for that asset. The error names the reason. Before the first print the code stays editable.
 3. **Equipment link.** `Equipment` gains an optional `EquipmentInventoryId`. The Section Head sets it on the equipment master-data page. One asset links to at most one workflow record (unique filtered index). A workflow record without a link cannot be selected by scan; picking from the list still works.
 
@@ -119,13 +119,13 @@ Fields printed by the fixed templates:
 - `ILabelRenderer` is an Application interface. Its Infrastructure implementation draws with `PdfCanvas`.
 - `PdfCanvas` takes its page size as a parameter. Existing A4 callers keep their behaviour.
 - Barcodes are drawn as filled rectangles, so they are vector and sharp at any printer resolution.
-- **ZXing.Net** computes the module pattern for both Code 128 and Data Matrix. It is used for nothing else. It is added in `Directory.Packages.props` and gets a qualification record under `documents/Validation/`.
+- **ZXing.Net** (Apache-2.0) computes the module pattern for both Code 128 and Data Matrix. It is used for nothing else. It is added in `Directory.Packages.props` and gets a qualification record under `documents/Validation/`.
 - The renderer refuses a payload that does not fit the configured label size at a readable module size, and says so. It never shrinks a barcode below the minimum.
 - Minimum module size and quiet zone are constants in the renderer, with their source cited in a comment.
 
 ### 5.5 Printing and its record
 
-**Endpoint.** `POST /api/labels/print` with `{ entityType, entityId, copies, reason? }` returns the PDF.
+**Endpoint.** `POST /api/labels/print` with `{ items: [{ entityType, entityId, copies }], reason? }` returns one PDF. All items succeed or none do.
 
 **Flow.**
 1. Check the permission and the record's section scope.
@@ -138,13 +138,22 @@ Rendering happens after the database work, never inside a transaction.
 **Permissions.**
 - First print: the permission that allows creating that record (`Samples.Receive` or `Samples.ReceiveOwnLab`, `Media.Prepare`, `Solutions.Prepare`, `Cryovials.Manage`, `Materials.Manage`, `Equipment.Manage`).
 - Reprint: `Labels.Reprint`, seeded to Section Heads, and a reason of at least 10 characters.
-- Copies are clamped to 1–50 by the server.
+- The number of labels per record is 1–50, enforced by the server (see "Number of labels" below).
 
 **Print log.** A new `LabelPrintLog` entity records each print: label type, record ID, the code printed, format version, copies, print number, whether it is a reprint, reason, user, and UTC time from the injected clock.
 
 - The print number is 1 for the first print and increases by one per reprint. A unique index on (label type, record ID, print number) stops two simultaneous requests taking the same number; the loser gets a conflict and retries.
 - The table is append-only: a PostgreSQL trigger rejects `UPDATE`, `DELETE` and `TRUNCATE`. It is added to `AppendOnlyTriggerCatalogPostgresTests.ProtectedTables` and gets its own rejection test.
 - Each insert is captured by the automatic audit trail. In addition, an explicit event `LABEL_PRINTED` or `LABEL_REPRINTED` is written through `AuditEventService` in the same transaction, so prints appear in Audit Search by sample.
+
+**Number of labels.** Every print, first or reprint, goes through a print dialog with a required "Number of labels" field.
+
+- The field is pre-filled with the default from the record type's `LabelFormat`, and the user can change it before printing.
+- When several records are printed together (for example the samples from one receipt), the dialog lists them with one number field per record, plus a "Set all to" shortcut.
+- The server accepts 1–50 per record and rejects anything else with a field error; it does not silently change the number.
+- The PDF contains exactly that many labels for the record, one label per page.
+- The number is stored in the print log row and in the audit event.
+- Printing more labels for a record later is a reprint, with the reprint rules.
 
 **What the log proves.** It proves that the system produced a label PDF for that user. It cannot prove the paper came out of the printer, because the browser's print dialog can be cancelled. The label SOP must state this.
 
@@ -160,7 +169,7 @@ The PDF opens in a new window for printing, which avoids the application's globa
 **Endpoint.** `GET /api/scan/resolve?value=…` returns:
 
 ```
-{ entityType, id, code, displayName, status, usable, blockedReason, navigationTarget }
+{ outcome, layoutCorrected, match: { entityType, id, code, displayName, status, usable, blockedReason, navigationTarget, linkedEquipmentId }, candidates, hint }
 ```
 
 **Matching.**
@@ -223,7 +232,7 @@ Pickers that get a `ScanField`, in this order:
 
 The HPLC column step is not included, because columns are not labelled in this package.
 
-**Camera.** `ScanField` and the Ctrl+K dialog have a camera button on devices with a camera. It uses the browser's `BarcodeDetector` where available and one qualified decoder library elsewhere. The library is chosen in the implementation plan after checking licence and maintenance status. The camera needs HTTPS and the user's permission; if either is missing, the button explains why and typing or a handheld scanner still works.
+**Camera.** `ScanField` and the Ctrl+K dialog have a camera button on devices with a camera. It uses the browser's `BarcodeDetector` where available and the `barcode-detector` package (MIT) elsewhere, loaded only when needed. The camera needs HTTPS and the user's permission; if either is missing, the button explains why and typing or a handheld scanner still works.
 
 ### 5.10 Accessibility and UI rules
 
@@ -270,7 +279,8 @@ All errors reach the user through `sonner` toasts or inline helper text.
 - Usability rules per record type, with "now" passed in.
 
 **Rendering**
-- Encode each payload, render the PDF, rasterise it, decode it, and compare with the input. This runs for both symbologies and for both layouts.
+- Encode each payload, paint the module pattern into an image, decode it, and compare with the input, for both symbologies. The project has no PDF rasteriser and adding one is not justified, so the PDF itself is checked a second way: its drawn rectangles must match the module pattern at the minimum module size.
+- Page count, page size and printed text are read back from the PDF.
 - The renderer refuses an oversized payload.
 
 **PostgreSQL integration (`[PostgresFact]`, zero skipped)**

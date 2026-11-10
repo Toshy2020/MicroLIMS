@@ -1,7 +1,7 @@
 # C1 — "My Work": Design Specification
 
 **Roadmap package:** C1 (`improvement-roadmap.md`)
-**Status:** Draft for user review
+**Status:** Approved by the user 2026-11-10, including the take / release rules
 **Date:** 2026-11-10
 
 ## 1. Purpose
@@ -103,9 +103,9 @@ The 7-day look-ahead is one setting, `myWork.lookAheadDays` (default 7, 1–30).
 | `Later` | Due within the look-ahead |
 | `None` | No due time and not overdue |
 
-**Question for you (9.1):** how long may a plate wait after it becomes ready before it counts as overdue to read? This is a laboratory rule; I did not find it in `documents/`. Until you answer, the setting has no default and reading tasks are never marked overdue.
+**Question for you (9.1):** how long may a plate wait after it becomes ready before it counts as overdue to read? This is a laboratory rule; I did not find it in `documents/`. Until you answer, the setting ships as 0 (off) and reading tasks are never marked overdue.
 
-"End of the local day" needs the laboratory's time zone; C1 adds the setting `system.timeZone` (IANA name) if none exists. All times are shown with the zone.
+"End of the local day" uses the existing laboratory time zone (`LabClock`, configuration `Lab:TimeZoneId`). All times are shown with the zone.
 
 ### 5.5 Taking an unassigned test (new rule — please confirm)
 
@@ -178,7 +178,6 @@ Each source runs independently. If one fails, the others are returned and its ke
 
 ## 9. Open items
 
-1. **Reading overdue time** (5.4): how many hours after "ready" is a reading overdue? Per test or one value?
-2. **Confirm the take / release rules** (5.5), especially: on by default, and release only before anything is recorded.
-3. **Equipment tasks:** are they owned by a person or by the section? The spec assumes the section; checked against the code when the plan is written.
-4. **Laboratory time zone** value for "today".
+1. **Reading overdue time** (5.4): not answered yet; ships switched off.
+2. **Equipment tasks** have no owner in the data, and equipment is linked to a document section, not a laboratory section. They are shown to every user who may record equipment work. A per-person list needs an owner field first.
+3. **Deep links:** no route exists today for one test step, review or approval (they open as dialogs). The plan adds query parameters to the workspace pages so a My Work row can open the dialog directly.

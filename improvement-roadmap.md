@@ -120,6 +120,8 @@ Phases 0, 1 and 2 can run in parallel if more than one person is available. Phas
 
 ### C1. "My Work" — one screen for today's tasks — Size M
 
+**Spec:** `docs/superpowers/specs/2026-11-10-my-work-design.md`. **Plan:** `docs/superpowers/plans/2026-11-10-my-work.md`.
+
 **Current state.** Role dashboards exist (`AnalystDashboardPage`, `ReviewerDashboardPage`, `SectionHeadDashboardPage`) with a `TodaysWorkTable` and an attention panel. The work is still spread across the dashboard, the workspaces, Document Control, equipment and media pages.
 
 **Scope.**

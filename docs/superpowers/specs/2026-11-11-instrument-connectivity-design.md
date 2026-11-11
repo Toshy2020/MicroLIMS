@@ -1,7 +1,7 @@
 # E1 — Instrument Connectivity: Design Specification
 
 **Roadmap package:** E1 (`improvement-roadmap.md`)
-**Status:** Draft for user review
+**Status:** Approved by the user 2026-11-11
 **Date:** 2026-11-11
 **Builds on:** the ChemStation ingest plan (`docs/superpowers/plans/2026-10-16-chemstation-ingest.md`) and its review (`docs/reviews/chemstation-integration-review.md`).
 
@@ -41,8 +41,8 @@ Values from balances, pH meters and chromatography / ICP systems arrive in Micro
 - Every value that comes from an instrument is first stored as an **instrument reading**: instrument (equipment record), kind (weight, pH, chromatography result, ICP result), value as text exactly as sent, unit, stability flag where the instrument sends one, the instrument's own time where sent, the time received, the route (browser or agent and which agent), the raw message, and a hash of the raw message.
 - Readings are never edited or deleted.
 - A field that accepts an instrument value receives either:
-  - a **reading** chosen by the analyst: the server checks the reading exists, belongs to an instrument of the right type in the analyst's laboratory, is stable (weights), is recent (a setting per kind, empty = no limit), has not already been used for another value, and that the instrument's calibration is current. It then copies the value with a link to the reading; or
-  - a **typed value with a reason** (at least 10 characters), marked "manually entered".
+  - a **reading** chosen by the analyst: the server checks the reading exists, belongs to an instrument of the right type in the analyst's laboratory, is stable (weights), has not already been used for another value, and that the instrument's calibration is current. It then copies the value with a link to the reading; or
+  - a **typed value with a reason** (at least 10 characters), marked "manually entered". For a weight or pH on a connected field, the analyst still selects the balance or meter used, so the checks of 5.7 apply to typed values too.
 - Every stored value carries its source: **Instrument** (with reading, instrument and route) or **Manual** (with reason). Values recorded before this package show "Source not recorded".
 - **Units:** a reading in g for a field in mg (or the reverse) is converted by exact decimal scaling; any other unit mismatch is refused. The number of decimals the instrument sent is kept; nothing is rounded on capture.
 - The review screen and the sample report show the source of every captured or typed value, and the reviewer's list shows a count of manually entered values per test.
@@ -89,11 +89,24 @@ A field is connected for a laboratory when at least one instrument of the right 
 - **Other systems (Empower, Chromeleon, OpenLab) and ICP:** structured export files read by a configured format into **pending instrument data**. The analyst adopts it onto the open HPLC or ICP run: the system proposes the match by the configured identifier, the analyst confirms each row, and the adopted values are recorded through the existing run entry with source "Instrument" and a link to the file and its hash. Nothing is accepted automatically.
 - The existing OCR import remains for reports that have no structured export, and its values are marked "Instrument (read from report image)" so the reviewer can see the lower confidence.
 
-### 5.7 Permissions
+### 5.7 Balance checks and minimum weight
+
+- **Daily check, configurable per balance:** on or off; the check weights (nominal value and unit) and the acceptance limit for each (absolute or percent), entered by the Section Head for that balance. Nothing is pre-filled.
+- When on, the first use of the balance each laboratory day needs a recorded check: each check weight is weighed (reading from the balance, or typed with a reason), and the server compares it with the configured limit. The check is signed by the analyst. A failed check blocks the balance for the day and notifies the Section Head; a new check can be recorded.
+- **Minimum weight, per balance:** optional value entered by the Section Head. Any weight from that balance below it, captured or typed, is refused.
+- Configuration changes are audited; the check results are kept with the balance's record.
+
+### 5.8 Matching instrument rows to samples
+
+- An export row is proposed for a sample when its sample name contains the sample's reference number, or its batch field equals the sample's batch number. A test order number in the row, when present, narrows the match to that test order.
+- Because batch numbers are not unique, a match is a proposal; the analyst confirms each row before it is adopted.
+
+### 5.9 Permissions
 
 | Permission | Holders | Allows |
 |---|---|---|
 | `Instruments.Configure` | System Administrator | Register agents and instruments, keys, formats |
+| `Instruments.ManageChecks` | Section Head | Balance check weights, limits and minimum weight |
 | `Instruments.Read` | Analyst, Section Head, Reviewer | See readings and pending instrument data of their laboratory |
 | existing result permissions | as today | Use readings and adopt pending data in their own work |
 
@@ -104,7 +117,9 @@ Formats and registrations are system configuration and are audited; a format cha
 | Situation | Behaviour |
 |---|---|
 | Unstable weight | Not usable; "Wait for a stable reading." |
-| Reading too old, already used, wrong instrument type, other laboratory | Refused with the reason |
+| Reading already used, wrong instrument type, other laboratory | Refused with the reason |
+| Balance not checked today (when its daily check is on) or check failed | Refused: "Balance {code} has no passed check today." |
+| Weight below the balance's minimum weight | Refused: "{value} is below the minimum weight of {min} for balance {code}." |
 | Instrument calibration not current | Refused; typing with a reason remains possible and is flagged |
 | Message the format cannot read | Stored as an unreadable reading with the raw message; the analyst is told; not usable |
 | Unit not convertible | Refused |
@@ -129,10 +144,10 @@ Formats and registrations are system configuration and are audited; a format cha
 6. ChemStation phases 3–5 once its open questions are answered.
 7. Documents: requirements, instrument setup guide, SOP note on typed values.
 
-## 9. Questions for you
+## 9. Decisions recorded 2026-11-11
 
-1. **Balance checks.** Do you record a daily balance check (test weights) that should block a balance which has not passed today's check? If yes, I add it; I will not invent the limits.
-2. **Minimum weight.** Should the system refuse a weight below the balance's minimum weight (USP <41>), with the minimum entered per balance? Only if your SOP requires it.
-3. **Reading age.** How old may a weight or pH reading be when it is used (for example 10 minutes)? Empty means no limit.
-4. **Browser route.** Are you comfortable accepting browser-captured readings as "instrument" values, given the browser is under the user's control? The alternative is to allow only the agent for regulated values.
-5. **Identifier for chromatography rows.** The ChemStation review needs a naming convention to match injections to samples (for example the test order number in the sample name). Is that acceptable for all systems?
+1. Daily balance checks are configurable per balance (on/off, check weights, limits); no limits are pre-filled.
+2. A minimum weight per balance is enforced when entered.
+3. No age limit on readings.
+4. Browser-captured readings count as instrument values; the route is recorded.
+5. Rows are matched by sample name (reference number) or batch number; a test order number is optional and narrows the match. The analyst confirms every match.

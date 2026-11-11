@@ -322,6 +322,7 @@ Phases 0, 1 and 2 can run in parallel if more than one person is available. Phas
 5. Agent health on the Integrations page.
 
 **Design spec:** `docs/superpowers/specs/2026-11-11-instrument-connectivity-design.md`
+**Implementation plan:** `docs/superpowers/plans/2026-11-11-instrument-connectivity.md`
 
 ### E2. ERP integration — Size L
 

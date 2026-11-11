@@ -152,4 +152,4 @@ The count dialog's in-browser "count × dilution" preview is replaced by a serve
 - Confirmed by the user: all five configuration screens; pre-filled lots must be confirmed before Save; limits of 100 samples per receipt and 500 rows per paste.
 - An Excel workbook import for master data already exists, with a separate password-confirmed verification step. It stays as it is and remains the route for large initial loads; paste is for everyday additions.
 - Sample numbers are generated today by counting existing samples, with no lock. The plan makes this safe before batch receiving is added.
-- Open: whether the supplier certificate must be attached before registration for any category (today it is optional).
+- Decided (user, 2026-11-11): the supplier certificate stays optional for every category. It is chosen in the sample's row and attached to the sample that row creates, straight after the batch is saved; it can also be attached later from the sample.

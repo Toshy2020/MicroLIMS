@@ -102,7 +102,7 @@ The keypad writes into whichever `NumericEntryField` has focus through a small f
 
 ### Task 4: Draft store, connection status, draft hook
 
-**Files:** Create `draftStore.ts`, `useBenchDraft.ts`, `useConnectionStatus.ts`, `ConnectionBanner.tsx`, `DraftsMenu.tsx`, `DraftRestoreNotice.tsx`; Modify `frontend/package.json`, `frontend/src/setupTests.ts` (`import "fake-indexeddb/auto"`), `Header.tsx` (drafts counter), `MainLayout.tsx` (banner), `apiClient.ts` (export `isNetworkError(e: unknown): boolean` built on the existing `!error.response` branch, L136); backend `SystemSettingDefinitions.cs` (`bench.draftRetentionHours`) exposed through the existing client-settings endpoint; Tests beside each file
+**Files:** Create `draftStore.ts`, `useBenchDraft.ts`, `useConnectionStatus.ts`, `ConnectionBanner.tsx`, `DraftsMenu.tsx`, `DraftRestoreNotice.tsx`; Modify `frontend/package.json`, `frontend/src/setupTests.ts` (`import "fake-indexeddb/auto"`), `Header.tsx` (drafts counter), `MainLayout.tsx` (banner), `apiClient.ts` (export `isNetworkError(e: unknown): boolean` built on the existing `!error.response` branch, L136); backend `SystemSettingDefinitions.cs` (`bench.draftRetentionHours`) exposed through a new authenticated endpoint `GET api/client-settings` (returns `{ benchDraftRetentionHours, features: string[] }`; no such endpoint exists today, this task creates it); Tests beside each file
 
 **Interfaces — Produces:**
 ```ts

@@ -160,6 +160,8 @@ Phases 0, 1 and 2 can run in parallel if more than one person is available. Phas
 
 ### C4. Faster data entry — Size M
 
+**Spec:** `docs/superpowers/specs/2026-11-11-faster-data-entry-design.md`. **Plan:** `docs/superpowers/plans/2026-11-11-faster-data-entry.md`. Server-side drafts were dropped: device drafts from C2 are used instead.
+
 **Scope.**
 1. Keyboard navigation in entry grids: Enter and arrow keys move between cells, Tab order follows the reading order.
 2. Server-side drafts with autosave for long forms, shown as "Draft saved hh:mm". A draft is not a result and is not reviewable.

@@ -1,7 +1,7 @@
 # C4 — Faster Data Entry: Design Specification
 
 **Roadmap package:** C4 (`improvement-roadmap.md`)
-**Status:** Draft for user review
+**Status:** Approved by the user 2026-11-11
 **Date:** 2026-11-11
 **Builds on:** C2 (device drafts, `NumericEntryField`).
 
@@ -74,7 +74,7 @@ Applied to: receiving grid, EM / water / pathogen location grids, the observatio
 ### 5.4 "My last choice"
 
 - New endpoint `GET /api/entry-defaults` returns, for a given step, what **this user** last chose and whether it is still valid now.
-- Covered: incubator, balance and autoclave for the same step and equipment type; media lot for the **same medium**; solution lot for the same solution; "sampled by" and "cause of testing" at receiving for the same category.
+- Covered: incubator and autoclave for the same step (no balance: the data does not record which balance was used) and equipment type; media lot for the **same medium**; solution lot for the same solution; "sampled by" and "cause of testing" at receiving for the same category.
 - The server offers a value only when it passes the same check the save will apply (equipment in valid calibration / qualification status; lot released and within expiry; value active). Otherwise the field is empty.
 - No new table: the value is read from the user's own latest records.
 - A pre-filled value is marked "From your last entry" and the field is outlined until the user confirms or changes it. For **lots**, Save stays disabled until each pre-filled lot is confirmed with one tap or replaced by a scan (B1). This is deliberate: the risk is accepting yesterday's lot by habit.
@@ -91,12 +91,12 @@ Paste never writes directly. It always opens a preview:
 4. Accepted values fill the grid as if typed; saving goes through the normal validation.
 
 - **Receiving grid:** columns are matched by position to the visible text and date columns (batch, control number, quantity, manufacturing and expiry date, sampled at). Choice columns (item, cause, department) are not pasted; they use Ctrl+D.
-- **EM and water location grids:** pasting **two columns, location code and count**. Counts are matched to rows **by location code, not by position**, so a missing or reordered line cannot shift every result by one. Unknown codes, duplicate codes and non-whole numbers block acceptance. A single column of counts is refused with an explanation.
+- **EM and water location grids:** pasting **two columns, location name and count** (the grids identify a location by its name; they carry no separate code). Counts are matched to rows **by location name, not by position**, so a missing or reordered line cannot shift every result by one. Unknown names, duplicate names and non-whole numbers block acceptance. If two locations in the session share a name, paste is refused for that session. A single column of counts is refused with an explanation.
 - Limit 500 rows per paste.
 
-### 5.6 Paste in configuration (needs your list, 9.1)
+### 5.6 Paste in configuration
 
-You asked for bulk entry in the configuration areas. I propose the same preview-then-fill paste on the configuration screens where rows are added one at a time:
+Confirmed by the user: all five screens below get the same preview-then-fill paste.
 
 | Screen | Pasted columns |
 |---|---|
@@ -147,9 +147,9 @@ The count dialog's in-browser "count × dilution" preview is replaced by a serve
 7. Configuration paste, one screen at a time.
 8. Documents: requirements, user guide, SOP note on pasted data and confirming pre-filled lots.
 
-## 9. Open items
+## 9. Notes
 
-1. **Which configuration screens** get paste first (5.6): confirm or change my list.
-2. **Batch size:** 100 samples per receipt and 500 rows per paste.
-3. **Pre-filled lots must be confirmed before Save** (5.4): confirm you want this extra tap.
-4. Whether the supplier certificate must be attached **before** registration for any category (today it is optional).
+- Confirmed by the user: all five configuration screens; pre-filled lots must be confirmed before Save; limits of 100 samples per receipt and 500 rows per paste.
+- An Excel workbook import for master data already exists, with a separate password-confirmed verification step. It stays as it is and remains the route for large initial loads; paste is for everyday additions.
+- Sample numbers are generated today by counting existing samples, with no lock. The plan makes this safe before batch receiving is added.
+- Open: whether the supplier certificate must be attached before registration for any category (today it is optional).

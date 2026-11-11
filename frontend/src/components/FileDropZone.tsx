@@ -1,4 +1,4 @@
-import { useRef, useState, DragEvent } from "react";
+import { useRef, useState, useId, DragEvent } from "react";
 import { Box, Button, Typography } from "@mui/material";
 import CloudUploadOutlinedIcon from "@mui/icons-material/CloudUploadOutlined";
 import InsertDriveFileOutlinedIcon from "@mui/icons-material/InsertDriveFileOutlined";
@@ -26,6 +26,7 @@ function formatBytes(bytes: number): string {
 // signature and size; this only tells the user the rules up front.
 export function FileDropZone({ file, onFile, accept, formatsHint, note, disabled }: FileDropZoneProps) {
   const inputRef = useRef<HTMLInputElement>(null);
+  const inputId = useId();
   const [dragOver, setDragOver] = useState(false);
 
   const handleDrop = (e: DragEvent<HTMLElement>) => {
@@ -54,9 +55,11 @@ export function FileDropZone({ file, onFile, accept, formatsHint, note, disabled
     >
       <input
         ref={inputRef}
+        id={inputId}
         type="file"
         accept={accept}
-        hidden
+        aria-label={`Upload file. Accepted formats: ${formatsHint}`}
+        style={{ display: "none" }}
         onChange={(e) => { onFile(e.target.files?.[0] ?? null); e.target.value = ""; }}
       />
       {file ? (

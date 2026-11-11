@@ -99,7 +99,7 @@ describe("Test Master CoA order", () => {
     const user = userEvent.setup();
     renderPage();
 
-    await user.click((await screen.findAllByRole("button", { name: "Row actions" }))[0]);
+    await user.click((await screen.findAllByRole("button", { name: /^Row actions for / }))[0]);
     await user.click(await screen.findByRole("menuitem", { name: "Edit" }));
     const dialog = screen.getByRole("dialog");
     const field = within(dialog).getByLabelText(/^CoA order/i) as HTMLInputElement;

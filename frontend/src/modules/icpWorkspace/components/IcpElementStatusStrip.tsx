@@ -46,8 +46,8 @@ export function IcpElementStatusStrip({ elements = [] }: IcpElementStatusStripPr
                 sx={{
                   fontWeight: 600,
                   fontSize: 12,
-                  borderColor: theme.palette.success.light,
-                  backgroundColor: theme.palette.mode === "dark" ? "rgba(46, 125, 50, 0.15)" : "#e8f5e9"
+                  borderColor: theme.custom.status.notDetected.border,
+                  backgroundColor: theme.custom.status.notDetected.bg
                 }}
               />
             );
@@ -66,8 +66,8 @@ export function IcpElementStatusStrip({ elements = [] }: IcpElementStatusStripPr
                   fontWeight: 600,
                   fontSize: 12,
                   maxWidth: { xs: 260, sm: 380 },
-                  borderColor: theme.palette.error.light,
-                  backgroundColor: theme.palette.mode === "dark" ? "rgba(211, 47, 47, 0.15)" : "#ffebee",
+                  borderColor: theme.custom.status.detected.border,
+                  backgroundColor: theme.custom.status.detected.bg,
                   "& .MuiChip-label": {
                     overflow: "hidden",
                     textOverflow: "ellipsis",

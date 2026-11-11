@@ -284,4 +284,20 @@ describe("Microbiology solutions menu entries", () => {
     expect(findNavTrail(groups, "/preparation", "?lab=MICRO")?.parent?.label).toBe("Microbiology Laboratory");
     expect(findNavTrail(groups, "/preparation", "")?.parent?.label).toBe("Physicochemical Laboratory");
   });
+
+  it("consolidates Document Control, Reports, Monitoring Plan and OOS Tracking under QUALITY & COMPLIANCE", () => {
+    const groups = getGroupedMenu({
+      role: "SectionHead",
+      permissions: [PERMISSIONS.OOS_MANAGE, PERMISSIONS.MONITORING_PLAN_VIEW],
+      labCodes: []
+    });
+    const qualityGroup = groups.find((g) => g.groupName === "QUALITY & COMPLIANCE");
+    expect(qualityGroup).toBeDefined();
+    expect(qualityGroup?.items.map((i) => i.label)).toEqual([
+      "Document Control",
+      "Reports",
+      "Monitoring Plan",
+      "OOS Tracking"
+    ]);
+  });
 });

@@ -652,7 +652,10 @@ export function ReceivingTestingWorkspacePage({ lab }: Props) {
         display: "flex",
         flexDirection: "column",
         gap: 1.5,
-        flexShrink: 0
+        flexShrink: 0,
+        position: { md: "sticky" },
+        top: { md: 0 },
+        alignSelf: "flex-start"
       }}
     >
       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -842,7 +845,12 @@ export function ReceivingTestingWorkspacePage({ lab }: Props) {
         onResetFilters={handleResetFilters}
         hasActiveFilters={hasActiveFilters}
         viewMode={viewMode}
-        onViewModeChange={setViewMode}
+        onViewModeChange={(mode) => {
+          setViewMode(mode);
+          if (selectedSampleId !== null) {
+            handleDeselectSample();
+          }
+        }}
         onExport={() => exportSamplesToCsv(displayRecords)}
       />
 
@@ -871,8 +879,7 @@ export function ReceivingTestingWorkspacePage({ lab }: Props) {
             display: "flex",
             flexDirection: { xs: "column", md: "row" },
             gap: 2,
-            alignItems: "stretch",
-            minHeight: "calc(100vh - 280px)"
+            alignItems: "flex-start"
           }}
         >
           {/* Left Panel: Compact Sample Register with Checkboxes */}
@@ -889,8 +896,7 @@ export function ReceivingTestingWorkspacePage({ lab }: Props) {
               flex: 1,
               minWidth: 0,
               display: "flex",
-              flexDirection: "column",
-              maxHeight: { xs: "auto", md: "calc(100vh - 290px)" }
+              flexDirection: "column"
             }}
           >
             <GroupedActionsPanel
@@ -928,8 +934,7 @@ export function ReceivingTestingWorkspacePage({ lab }: Props) {
             display: "flex",
             flexDirection: { xs: "column", md: "row" },
             gap: 2,
-            alignItems: "stretch",
-            minHeight: "calc(100vh - 280px)"
+            alignItems: "flex-start"
           }}
         >
           {/* Left Panel: Compact Sample Register */}
@@ -941,8 +946,7 @@ export function ReceivingTestingWorkspacePage({ lab }: Props) {
               flex: 1,
               minWidth: 0,
               display: "flex",
-              flexDirection: "column",
-              maxHeight: { xs: "auto", md: "calc(100vh - 290px)" }
+              flexDirection: "column"
             }}
           >
             <SelectedSampleTestingPanel

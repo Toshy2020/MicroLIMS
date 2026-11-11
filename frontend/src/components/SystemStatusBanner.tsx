@@ -5,7 +5,7 @@ import { useSystemStatus } from "../contexts/SystemStatusContext";
 // Presentational: also used by the Settings page to preview an announcement.
 export function AnnouncementAlert({ text, severity }: { text: string; severity: "info" | "warning" }) {
   return (
-    <Alert severity={severity} variant="filled" square role="status" aria-label="Announcement" sx={{ borderRadius: 0, width: "100%" }}>
+    <Alert severity={severity} variant="filled" square role="status" aria-live="polite" aria-label="Announcement" sx={{ borderRadius: 0, width: "100%" }}>
       {text}
     </Alert>
   );

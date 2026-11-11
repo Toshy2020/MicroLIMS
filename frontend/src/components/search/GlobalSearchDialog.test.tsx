@@ -1,5 +1,6 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent, waitFor, cleanup } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { PinnedLightTheme } from "../../theme/PinnedLightTheme";
 import { GlobalSearchDialog } from "./GlobalSearchDialog";
@@ -86,5 +87,30 @@ describe("GlobalSearchDialog", () => {
 
     expect(screen.getByText("PARACETAMOL")).toBeTruthy();
     expect(screen.getByText("BATCH-99")).toBeTruthy();
+  });
+
+  it("renders category filter chips and scopes search when a category is selected", async () => {
+    vi.mocked(globalSearchApi.search).mockResolvedValue({
+      query: "WATER",
+      totalMatches: 0,
+      executionTimeMs: 5,
+      categories: []
+    });
+
+    render(
+      <MemoryRouter>
+        <PinnedLightTheme>
+          <GlobalSearchDialog open={true} onClose={vi.fn()} />
+        </PinnedLightTheme>
+      </MemoryRouter>
+    );
+
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: "Samples" }));
+    await user.type(screen.getByPlaceholderText(/search microlims/i), "WATER");
+
+    await waitFor(() => {
+      expect(globalSearchApi.search).toHaveBeenCalledWith("WATER", "Samples", 15, expect.any(AbortSignal));
+    });
   });
 });

@@ -55,24 +55,60 @@ interface OverviewTabProps {
 }
 
 function KpiCard({ data }: { data: OverviewKpiCardData }) {
+  const theme = useTheme();
   const isUp = data.deltaDirection === "up";
   const isError = data.variant === "error";
   const isWarning = data.variant === "warning";
 
-  let deltaColor = isUp ? brandColors.ok : brandColors.err;
-  if (isError) deltaColor = brandColors.err;
-  if (isWarning) deltaColor = brandColors.badgePM;
+  let deltaColor = isUp ? theme.custom.status.notDetected.text : theme.custom.status.detected.text;
+  if (isError) deltaColor = theme.custom.status.detected.text;
+  if (isWarning) deltaColor = theme.custom.status.inconclusive.text;
 
   const content = (
-    <Paper sx={{ p: 2, height: "100%", display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
+    <Paper
+      elevation={0}
+      sx={{
+        p: 2,
+        height: "100%",
+        border: "1px solid",
+        borderColor: "divider",
+        borderRadius: 2,
+        display: "flex",
+        flexDirection: "column",
+        justifyContent: "space-between",
+        transition: "border-color 150ms cubic-bezier(0.4, 0, 0.2, 1), box-shadow 150ms cubic-bezier(0.4, 0, 0.2, 1)",
+        "&:hover": {
+          borderColor: "primary.main",
+          boxShadow: "0 4px 12px rgba(31, 35, 53, 0.06)"
+        }
+      }}
+    >
       <Typography sx={{ fontSize: 12.5, fontWeight: 600, color: "text.secondary" }}>
         {data.title}
       </Typography>
-      <Typography sx={{ fontSize: 26, fontWeight: 800, color: isError ? brandColors.err : brandColors.sectionTitle, my: 0.5 }}>
+      <Typography
+        sx={{
+          fontSize: 26,
+          fontWeight: 700,
+          letterSpacing: "-0.02em",
+          fontVariantNumeric: "tabular-nums",
+          color: isError ? theme.custom.status.detected.text : "text.primary",
+          my: 0.5
+        }}
+      >
         {data.value}
       </Typography>
       <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, flexWrap: "wrap" }}>
-        <Box sx={{ display: "flex", alignItems: "center", color: deltaColor, fontSize: 12, fontWeight: 700 }}>
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            color: deltaColor,
+            fontSize: 12,
+            fontWeight: 700,
+            fontVariantNumeric: "tabular-nums"
+          }}
+        >
           {isUp ? <ArrowUpwardIcon sx={{ fontSize: 13 }} /> : <ArrowDownwardIcon sx={{ fontSize: 13 }} />}
           {Math.abs(data.deltaPercent)}%
         </Box>
@@ -517,6 +553,10 @@ export function OverviewTab({ fromDate, toDate, onNavigateTab, canViewKpi = fals
           </Paper>
         </Grid>
       </Grid>
+
+      <Typography variant="caption" sx={{ display: "block", color: "text.secondary", mt: 2 }}>
+        Source: MicroLIMS GMP Result Records & Test Orders · Figures reflect the selected reporting window.
+      </Typography>
     </Box>
   );
 }

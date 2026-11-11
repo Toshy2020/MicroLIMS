@@ -5,6 +5,7 @@ import { SectionTitle } from "../components/SectionTitle";
 import { DialogBodySkeleton } from "../components/DialogBodySkeleton";
 import { authenticationService } from "../modules/authentication/services/authenticationService";
 import { CurrentUserInfo } from "../modules/authentication/types/authTypes";
+import { formatRoleName } from "../utils/userDisplay";
 
 function Field({ label, value }: { label: string; value: string }) {
   return (
@@ -35,7 +36,7 @@ export function ProfilePage() {
       <Paper component="dl" sx={{ p: 2.5, maxWidth: 440, m: 0 }}>
         <Field label="Full Name" value={info.fullName} />
         <Field label="User ID" value={info.username} />
-        <Field label="Role" value={info.role} />
+        <Field label="Role" value={formatRoleName(info.role, info.roleName)} />
         <Field label="Last Login" value={info.lastLoginAt ? new Date(info.lastLoginAt).toLocaleString() : "Never"} />
         <Field label="Password Last Changed" value={info.passwordChangedAt ? new Date(info.passwordChangedAt).toLocaleString() : "Never"} />
       </Paper>

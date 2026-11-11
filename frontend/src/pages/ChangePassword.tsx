@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Box, TextField, Button, Typography, Alert, Paper, List, ListItem, ListItemIcon, ListItemText, CircularProgress } from "@mui/material";
+import { visuallyHidden } from "@mui/utils";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import CancelIcon from "@mui/icons-material/Cancel";
 import RemoveIcon from "@mui/icons-material/Remove";
@@ -90,12 +91,13 @@ export function ChangePasswordPage() {
 
             <Box>
               <Typography sx={{ fontSize: 12, color: "text.secondary", mb: 0.5 }}>Password must contain:</Typography>
-              <List dense disablePadding>
+              <List dense disablePadding aria-label="Password policy requirements" aria-live="polite">
                 {POLICY_RULES.map((rule) => {
                   const met = rule.test(newPassword);
                   // A dash until there is something to judge, rather than a
                   // hollow circle that reads as an unselected radio button.
                   const state = met ? "met" : newPasswordBlurred && newPassword ? "failed" : "pending";
+                  const statusDesc = state === "met" ? "Satisfied" : state === "failed" ? "Requirement not met" : "Not met yet";
                   return (
                     <ListItem key={rule.label} disableGutters disablePadding>
                       <ListItemIcon sx={{ minWidth: 28 }}>
@@ -103,9 +105,17 @@ export function ChangePasswordPage() {
                         {state === "failed" && <CancelIcon fontSize="small" color="error" titleAccess="Not met" />}
                         {state === "pending" && <RemoveIcon fontSize="small" sx={{ color: "text.disabled" }} titleAccess="Not met yet" />}
                       </ListItemIcon>
-                      <ListItemText primary={rule.label} slotProps={{
-                        primary: { sx: { fontSize: 13, color: state === "failed" ? "error.main" : met ? "text.primary" : "text.secondary" } }
-                      }} />
+                      <ListItemText
+                        primary={
+                          <>
+                            {rule.label}
+                            <Box component="span" sx={visuallyHidden}>: {statusDesc}</Box>
+                          </>
+                        }
+                        slotProps={{
+                          primary: { sx: { fontSize: 13, color: state === "failed" ? "error.main" : met ? "text.primary" : "text.secondary" } }
+                        }}
+                      />
                     </ListItem>
                   );
                 })}

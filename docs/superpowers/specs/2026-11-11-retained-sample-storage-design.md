@@ -1,7 +1,7 @@
 # F3 — Retained Sample Storage and Chain of Custody: Design Specification
 
 **Roadmap package:** F3 (`improvement-roadmap.md`)
-**Status:** Draft for user review
+**Status:** Approved by the user 2026-11-11
 **Date:** 2026-11-11
 **Uses:** B1 (labels and scanning), B4 (QA role), D1 (retests from the retained sample).
 
@@ -21,7 +21,6 @@ Know where every retained sample is, who moved it and when, how much is left, wh
 ## 3. Out of scope
 
 - Test samples in the laboratory (not tracked in storage).
-- Positions inside a box (grid). See question 1.
 - Temperature monitoring of storage units.
 - Cryovials and media, which keep their own storage records.
 
@@ -39,6 +38,7 @@ Know where every retained sample is, who moved it and when, how much is left, wh
 
 - A tree with up to four levels: **room → unit → shelf → box**. Each place uses only the levels it needs (for example a room with boxes on a bench, or a fridge with shelves and no boxes). A retained sample can be stored at any level.
 - A unit that is a fridge or freezer is linked to its equipment record; storing in, or moving into, a unit whose equipment is out of service is refused.
+- A box may optionally have a **position grid** (rows and columns, for example A–H by 1–12), chosen when the box is set up; in such a box a retained sample is stored at a position, and two samples cannot share one.
 - Each location has a code, a name, an optional storage condition (for example "2–8 °C") and a label with a barcode (B1).
 - Locations are maintained by the Section Head; a location holding samples cannot be removed, only deactivated after it is empty.
 
@@ -46,7 +46,7 @@ Know where every retained sample is, who moved it and when, how much is left, wh
 
 - A **retained sample** record: the sample, item, batch, quantity and unit, quantity remaining, container count, storage condition required, location, retention end date, status (In storage, Out, Disposal requested, Disposed).
 - It is created:
-  - automatically when the retained quantity is recorded at review (today's raw-material rule), and
+  - automatically when the retained quantity is recorded at review. The retained quantity becomes **required for finished product, raw material and packaging material samples** (today only raw materials reviewed by the physicochemical laboratory). It is recorded at the review of the physicochemical section; for a sample with no physicochemical tests, at its first section review. See question 1 of section 9, and
   - by the laboratory for any other sample ("Register retained portion"), with quantity and location.
 - Each retained sample gets its own label (B1).
 
@@ -112,7 +112,11 @@ When a D1 retest plan uses the retained sample, the analyst records the withdraw
 5. Disposal requests and QA approval.
 6. Documents; SOP template note.
 
-## 9. Questions for you
+## 9. Decisions recorded 2026-11-11
 
-1. **Levels.** I read "offer the four" as room, unit, shelf and box, each optional per place. Do you also want positions inside a box (a grid such as A1–H12)?
-2. **Retained samples of other categories.** Today only raw materials reviewed by the physicochemical laboratory record a retained quantity. Should finished products (or others) require one too, or is manual registration enough?
+1. Four levels offered (room, unit, shelf, box), each optional per place; a box may optionally have a position grid.
+2. A retained quantity is required for finished product, raw material and packaging material samples.
+
+## 10. Question
+
+1. **Where the retained quantity is recorded.** Today it is entered at the physicochemical section's review. I kept that, and for samples without physicochemical tests I placed it at the first section review. Would you rather record it at receipt, when the retained portion is physically separated?

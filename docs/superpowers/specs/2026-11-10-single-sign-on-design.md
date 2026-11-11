@@ -161,3 +161,5 @@ A MicroLIMS session must not outlive the company account for long.
 3. Optional Microsoft Graph check for disabled Entra accounts (needs an extra directory permission) to shorten the 12-hour window.
 4. Whether the provider's multi-factor claim should be required (`RequireMfaClaim`).
 5. SOP texts, including the rule that the signing password differs from the company password.
+
+**Audit-capture decision (user, 2026-11-11):** approved — `SsoPendingRequest` and `SsoExchangeCode` are kept out of automatic audit capture, each added to `AuditCaptureExcludedTypes` with a justification comment. Sign-in outcomes stay recorded by the security audit service.

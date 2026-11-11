@@ -20,7 +20,7 @@
 - Permission codes: `Erp.Configure`, `Erp.Monitor`, `Erp.ApproveCorrection` (QA, joins B4's QA-only set).
 - New `SignatureMeaning`: `ErpCorrectionApproved`, appended.
 - Items created from SAP: `IsActive = false`; never touch specifications or assigned tests.
-- New entities under automatic audit capture except message payload tables — ask the user before excluding (open item; default: captured).
+- `IntegrationInboxMessage` and `IntegrationOutboxMessage` are added to `AuditCaptureExcludedTypes` with the comment `// integration message log; business effects audited by their services` (approved by the user 2026-11-11). All other new entities stay under automatic capture.
 
 ## Review Focus
 
@@ -93,4 +93,4 @@
 
 - [ ] **Step 1:** `documents/Interfaces/SAP-QM-Interface-Specification.md`: every message with fields, types, examples (JSON and XML), transports, idempotency, retry, error codes — for the SAP team.
 - [ ] **Step 2:** Requirements (A1 area `ERP`), risk rows, tags; SOP note on manual SAP correction.
-- [ ] **Step 3:** Full verification per `CLAUDE.md`; report counts; ask the user about the audit-capture question for message payloads and the archive-before-commit finding if found.
+- [ ] **Step 3:** Full verification per `CLAUDE.md`; report counts; report the archive-before-commit finding if found.

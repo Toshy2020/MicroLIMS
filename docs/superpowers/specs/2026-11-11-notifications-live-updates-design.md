@@ -165,3 +165,5 @@ A rule belongs to one section and says:
 2. **Mail server** details and sender address for the site.
 3. Mandatory types and escalation rules are configured by Section Head and QC Manager (user decision).
 4. Approval needed before building: treat the email queue and the escalation firing log as operational logs outside automatic audit capture (rule changes themselves are always audited).
+
+**Audit-capture decision (user, 2026-11-11):** approved — `EmailOutbox` and `EscalationEvent` are kept out of automatic audit capture, each added to `AuditCaptureExcludedTypes` with a justification comment. Escalation rule changes stay audited.

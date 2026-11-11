@@ -116,3 +116,5 @@ A small server store for interface state, `UserUiState` (user, key, value up to 
 2. **Recording which SOP revision was effective when a test was performed** was agreed as a good idea. It is a traceability change to test records, so it is added to the roadmap as its own package (D5) and is not built in C6.
 3. Approval needed before building: treat the per-user interface state (tour seen, last release note) as preference data outside automatic audit capture.
 4. Wording of the tours, hints and first release notes is drafted during implementation for your review.
+
+**Audit-capture decision (user, 2026-11-11):** approved — `UserUiState` are kept out of automatic audit capture, each added to `AuditCaptureExcludedTypes` with a justification comment. It holds no laboratory data.

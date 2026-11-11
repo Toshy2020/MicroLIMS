@@ -13,6 +13,7 @@
 ## Global Constraints
 
 - `CLAUDE.md` binds every task (separate contexts + `AsNoTracking`; `[PostgresFact]` executed, 0 skipped; `userEvent`; real components; mock only `services/`; no `any`; WCAG 2.2 AA; design tokens).
+- `UserUiState` is added to `AuditCaptureExcludedTypes` with the comment `// per-user interface preferences; no laboratory data (approved 2026-11-11)`.
 - Help is guidance. Every help surface shows, exactly: "Guidance only. Your approved SOPs take precedence."
 - Markdown is rendered with raw HTML **disabled**. No `dangerouslySetInnerHTML` anywhere in this package.
 - Hint, tour and release-note text never states a limit, formula or workflow rule that is not already shown by the configured data on that screen.

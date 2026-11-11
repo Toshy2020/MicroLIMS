@@ -140,3 +140,5 @@ Neutral messages, JSON for REST and XML or CSV for files, each with a message id
 
 1. The SAP team must confirm the usage decision codes, inspection characteristics and plant codes for the mapping.
 2. Which middleware (if any) sits between SAP and MicroLIMS; it decides REST or files per direction.
+
+**Audit-capture decision (user, 2026-11-11):** approved — `IntegrationInboxMessage` and `IntegrationOutboxMessage` (message contents) are kept out of automatic audit capture, each added to `AuditCaptureExcludedTypes` with a justification comment. The business changes they cause (expected samples, items, held messages, QA approvals) stay audited; message status changes are visible on the monitoring page.

@@ -97,3 +97,5 @@ The queue shows each section's number of exceptions and the groups present, next
 ## 9. Open item
 
 1. The "near expiry" number of days is a setting, off until the Section Head sets it.
+
+**Audit-capture decision (user, 2026-11-11):** approved — `ReviewExceptionTick` (working ticks before signing) are kept out of automatic audit capture, each added to `AuditCaptureExcludedTypes` with a justification comment. The signed `ReviewExceptionRecord` list stays under audit and is bound to the review signature.

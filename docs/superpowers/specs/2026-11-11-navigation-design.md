@@ -95,3 +95,5 @@ Get users to their usual places in one click, show where they are on deep pages,
 
 1. Approval needed before building: treat the recently-opened list as convenience data outside automatic audit capture (it is not an access log).
 2. The exact wording of each reason sentence, drafted during implementation for your review.
+
+**Audit-capture decision (user, 2026-11-11):** approved — `RecentRecord` are kept out of automatic audit capture, each added to `AuditCaptureExcludedTypes` with a justification comment. It is not an access log; document access logs are unchanged.

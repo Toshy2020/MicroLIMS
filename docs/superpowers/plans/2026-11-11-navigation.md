@@ -15,6 +15,7 @@
 ## Global Constraints
 
 - `CLAUDE.md` binds every task (separate contexts + `AsNoTracking`; `[PostgresFact]` executed, 0 skipped; `userEvent`; real components; mock only `services/`; no `any`; WCAG 2.2 AA; design tokens).
+- `RecentRecord` is added to `AuditCaptureExcludedTypes` with the comment `// convenience list, not an access log (approved 2026-11-11)`.
 - Limits: 15 favourites; 20 recents per user; sidebar shows 5 recents.
 - State keys: `nav.favourites` (JSON array), `nav.lastLab`, `nav.tab.<pageKey>`. Total favourites JSON must fit the 2 KB value limit (labels are not stored; they are resolved from the menu and the views list at render).
 - No behaviour of any guarded action changes. For every covered action, the availability reason must be string-equal to the message of the exception thrown when the action is attempted in the same state.

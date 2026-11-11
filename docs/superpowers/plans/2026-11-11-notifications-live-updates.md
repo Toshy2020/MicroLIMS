@@ -23,7 +23,7 @@
 - Settings: `notifications.retentionDays` 90 (30–365); `notifications.digestHourLocal` 7 (0–23, an Integer because no time-of-day setting type exists); `notifications.lookAheadDays` 7 (1–30).
 - Fixed values: worker interval 5 minutes; outbox attempts 5 with delays 1, 5, 15, 60, 240 minutes; bell shows 10; centre page size 25.
 - Existing `NotificationLog` rows must remain readable; new columns are nullable or defaulted.
-- One migration, `AddNotificationCentre`. `NotificationLog` stays in `AuditCaptureExcludedTypes` (it already is, L581). `EmailOutbox` and `EscalationEvent` are proposed for the same list as operational logs; **this needs the user's approval before Task 3 and Task 6 start**; without it they are audited normally. `EscalationRule`, `LabWorkingHours`, `UserNotificationPreference` and `MandatoryNotificationType` are audited by default.
+- One migration, `AddNotificationCentre`. `NotificationLog` stays in `AuditCaptureExcludedTypes` (it already is, L581). `EmailOutbox` and `EscalationEvent` are added to the same list as operational logs, each with a justification comment (approved by the user 2026-11-11). `EscalationRule`, `LabWorkingHours`, `UserNotificationPreference` and `MandatoryNotificationType` are audited by default.
 
 ## Review Focus
 

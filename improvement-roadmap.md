@@ -46,6 +46,9 @@ Phases 0, 1 and 2 can run in parallel if more than one person is available. Phas
 
 **Done when.** Every existing module has URS and FS entries with unique IDs, and an owner in QA has reviewed them.
 
+**Design spec:** `docs/superpowers/specs/2026-11-11-specification-set-design.md`
+**Implementation plan:** `docs/superpowers/plans/2026-11-11-specification-set.md`
+
 ### A2. Requirements traceability matrix and validation pack — Size M
 
 **Goal.** Show, for every requirement, which test proves it.

@@ -1,7 +1,7 @@
 # C8 — Navigation: Design Specification
 
 **Roadmap package:** C8 (`improvement-roadmap.md`)
-**Status:** Draft for user review
+**Status:** Approved by the user 2026-11-11
 **Date:** 2026-11-11
 **Builds on:** C6 (per-user interface state), C3 (saved views), C1 (typed record targets).
 

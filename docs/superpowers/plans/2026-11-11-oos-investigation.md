@@ -42,7 +42,7 @@
 | `Domain/Enums/OosEnums.cs` | Enums below |
 | `Persistence/Configurations/OosInvestigationConfiguration.cs` | Mapping, indexes |
 | `Application/Services/Oos/TestOrderOutcomeService.cs` | Shared "does this order fail" reading |
-| `Application/Services/Oos/OosInvestigationService.cs` | Open, Phase I, Phase II, conclude, reopen, waive |
+| `Application/Services/Oos/OosInvestigationService.cs` | Open, Phase I, Phase II, conclude, reopen |
 | `Application/Services/Oos/OosRetestPlanService.cs` | Plan, sign, amend, create retest samples |
 | `Application/Services/Oos/OosGate.cs` | Approval / certificate checks |
 | `Application/Services/Oos/OosTemplateService.cs` | Templates, categories |

@@ -392,6 +392,9 @@ Phases 0, 1 and 2 can run in parallel if more than one person is available. Phas
 
 **Scope.** A report builder over a fixed set of safe, section-scoped datasets; choose columns, filters, grouping and a chart; save and share; schedule by email; every export recorded in `DataExportLog`.
 
+**Design spec:** `docs/superpowers/specs/2026-11-11-self-service-reports-design.md`
+**Implementation plan:** `docs/superpowers/plans/2026-11-11-self-service-reports.md`
+
 ### F6. Review by exception — Size M
 
 **Scope.** The reviewer screen highlights only what needs attention: manual overrides, edited values, audit-trail entries with reasons, out-of-window incubations, expired or near-expiry materials, alert-level results. Everything else is collapsed but one click away. The backend computes the exception list.

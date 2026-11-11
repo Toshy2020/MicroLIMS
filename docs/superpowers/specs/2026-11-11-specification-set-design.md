@@ -1,7 +1,7 @@
 # A1 — Specification Set in `documents/`: Design Specification
 
 **Roadmap package:** A1 (`improvement-roadmap.md`)
-**Status:** Draft for user review
+**Status:** Approved by the user 2026-11-11
 **Date:** 2026-11-11
 **Kind:** Writing package. No product code changes, except a small document check in CI.
 

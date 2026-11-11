@@ -84,7 +84,7 @@ A CAPA can be raised from a deviation, a complaint, an OOS investigation, an aud
 - When on: saving a change to a specification, a test definition or its workflow steps asks for a change control number. The server accepts it only if that record is "Approved for implementation", belongs to the same laboratory or the whole site, and **lists the item, test or specification being changed**. Otherwise the save is refused with the reason.
 - The change is then linked to the change control and appears in its timeline with the audit entry of what changed.
 - A change control cannot be closed while it lists a record that has not been changed, unless QA records why at closure.
-- Creating new master data (a new item or test) follows the same rule when the setting is on.
+- Creating a new test or specification follows the same rule when the setting is on. **Items are not covered in this release:** an item belongs to no laboratory in the data model, so a per-laboratory rule cannot apply to it.
 - The reason required by package C7 is filled from the change control title and can be extended.
 
 ### 5.6 Links to laboratory records

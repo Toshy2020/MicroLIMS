@@ -1,7 +1,7 @@
 # A2 — Traceability Matrix and Validation Pack: Design Specification
 
 **Roadmap package:** A2 (`improvement-roadmap.md`)
-**Status:** Draft for user review
+**Status:** Approved by the user 2026-11-11
 **Date:** 2026-11-11
 **Depends on:** A1 (URS and FS with IDs).
 

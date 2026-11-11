@@ -1,7 +1,7 @@
 # A3 — User Manual, SOP Templates and Screenshots: Design Specification
 
 **Roadmap package:** A3 (`improvement-roadmap.md`)
-**Status:** Draft for user review
+**Status:** Approved by the user 2026-11-11
 **Date:** 2026-11-11
 **Related:** A1 (requirement IDs), C6 (in-app help reads the manual).
 

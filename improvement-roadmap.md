@@ -125,6 +125,16 @@ Phases 0, 1 and 2 can run in parallel if more than one person is available. Phas
 
 ---
 
+### B4. Quality Assurance (QA) role — Size M
+
+**Goal.** Add a QA role that is independent of the laboratory, so quality decisions are not taken by the people who produce the results.
+
+**Current state.** The system roles are System Administrator, Section Head, Reviewer, Analyst and QC Manager. There is no QA role; QC Manager is the highest laboratory role. Requested by the user on 2026-11-11.
+
+**Scope.** A QA system role with its own permissions; which decisions move to or are shared with QA (to be agreed in the design); separation rules between QA, the laboratory and system administration; manual and SOP template updates. Packages D1 and D2 (investigations, CAPA, deviations) build on this role.
+
+---
+
 ## 4. Phase 2 — Daily experience (UI/UX)
 
 ### C1. "My Work" — one screen for today's tasks — Size M

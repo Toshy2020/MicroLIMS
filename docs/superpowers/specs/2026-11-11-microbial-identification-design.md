@@ -60,13 +60,21 @@ Each isolate has one or more identification attempts. Each attempt: method, resu
 
 | Source | When | Required |
 |---|---|---|
-| Pathogen test (product) | At the biochemical / identification step, for each colony examined | At least one isolate with a final identity before the step can be submitted |
+| Pathogen test (product) | **Inside the existing biochemical (identification) step** of the pathogen workflow | The step itself is the identification: it cannot be submitted without at least one recorded identification (5.3.1) |
 | EM | A location reading at alert or action level | The number of isolates set per room configuration (at least one) |
 | Water | A sampling point reading at alert or action level | As for EM, per sampling point configuration |
 | EM flora library | Every colony, for rooms where "identify all colonies" is switched on | Per room setting; off by default |
 
 - Which readings count as alert or action level is decided by the existing evaluation; nothing new.
-- A section of a sample cannot be **approved** while a required identification is open (see question 1).
+- For EM and water, a section of a sample cannot be **approved** while a required identification is open (see question 1).
+
+#### 5.3.1 Pathogen tests: identification in the biochemical step
+
+- No new step and no separate gate is added. The existing biochemical step of the pathogen workflow becomes the place where identification is recorded (decided by the user 2026-11-11).
+- The step form offers the methods: **VITEK 2**, **manual kit**, and **Gram and simple tests** (the simple tests listed are those already configured on the step). The analyst records one identification per colony examined; each colony is an isolate created by the step.
+- VITEK 2 results waiting for the step's isolates are shown inside the step for the analyst to accept or choose (5.2).
+- The step's existing outcome (Detected / Not Detected) is submitted together with the identifications, subject to the consistency rules of 5.4. The step's free-text result field stays and is filled with a readable summary of the identifications, which the analyst can extend.
+- Because review requires all steps completed, a pathogen test cannot reach review or approval with its identification missing; no extra approval gate is needed.
 
 ### 5.4 Consistency with the pathogen decision
 
@@ -82,7 +90,7 @@ Each isolate has one or more identification attempts. Each attempt: method, resu
 
 ### 5.6 Screens
 
-- On pathogen, EM and water result screens: "Isolates" panel — add isolate, record identification by method, see VITEK 2 results waiting for the isolate, accept or choose, final identity.
+- On the pathogen biochemical step (5.3.1), and on EM and water result screens: an "Isolates" panel — add isolate, record identification by method, see VITEK 2 results waiting for the isolate, accept or choose, final identity.
 - VITEK 2 results arrive as pending instrument data (E1) and are matched to isolates by isolate number entered on the instrument; the analyst confirms the match.
 - Section Head: unmapped names, low-confidence confirmations, thresholds per method.
 - The sample report and certificate show identified organisms for pathogen tests where the certificate shows the test; EM and water reports list isolates and identities per location.
@@ -119,7 +127,7 @@ Recording isolates and identifications uses the existing result-recording permis
 
 ## 9. Questions for you
 
-1. **Approval gate.** May a sample section be approved while a required identification is still open? I assumed **no**.
+1. **Approval gate (EM and water).** For pathogen tests this is settled: identification is recorded inside the biochemical step. For EM and water: may a section be approved while a required identification is still open? I assumed **no**.
 2. **Pathogen consistency.** Refuse "Not Detected" when an isolate is identified as the target organism, and require a reason for "Detected" when all isolates are other organisms. Agreed?
 3. **VITEK 2 export.** Please provide two or three sample export files (or the LIS output description) from your VITEK 2 software; the format is configured from them.
 4. **EM flora library.** Switched on per room, off by default. Agreed?

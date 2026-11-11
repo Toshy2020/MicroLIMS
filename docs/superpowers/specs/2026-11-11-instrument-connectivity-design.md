@@ -151,3 +151,5 @@ Formats and registrations are system configuration and are audited; a format cha
 3. No age limit on readings.
 4. Browser-captured readings count as instrument values; the route is recorded.
 5. Rows are matched by sample name (reference number) or batch number; a test order number is optional and narrows the match. The analyst confirms every match.
+
+**Decision CONF-003 (user, 2026-11-11):** equipment with no calibration due date counts as in calibration (the rule used for incubators today). `EquipmentCalibration.IsCurrent` keeps that behaviour.

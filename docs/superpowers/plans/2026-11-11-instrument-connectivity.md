@@ -140,3 +140,5 @@ These corrections come from reviewing all plans together against the code. Where
 3. Name migrations `AddInstrumentFormats` (Task 1), `AddInstrumentReadings` (Task 2), `AddCapturedValueProvenance` (Tasks 4–5).
 
 **Translation (build order 2.7):** if F4 Task 4 is merged when this package is built, every new screen uses translation keys and every new refusal carries a message code.
+
+**Decision CONF-003 (user, 2026-11-11):** equipment with no calibration due date counts as in calibration (the rule used for incubators today). `EquipmentCalibration.IsCurrent` keeps that behaviour.

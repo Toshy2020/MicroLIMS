@@ -186,3 +186,5 @@ From the independent review of the build order. These win over the text above an
 2. D3 does not depend on E1: Task 5 extracts `EquipmentCalibration.IsCurrent`; E1 reuses it if D3 is first.
 
 **Translation (build order 2.7):** if F4 Task 4 is merged when this package is built, every new screen uses translation keys and every new refusal carries a message code.
+
+**Decision CONF-003 (user, 2026-11-11):** equipment with no calibration due date counts as in calibration (the rule used for incubators today). `EquipmentCalibration.IsCurrent` keeps that behaviour.

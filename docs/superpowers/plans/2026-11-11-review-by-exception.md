@@ -92,3 +92,5 @@ From the independent review of the build order. These win over the text above an
 1. **`ReviewExceptionTick` stays under automatic audit capture** (user decision 2026-11-11, following CLAUDE.md Rule 3.3: reviews may not be excluded without an equivalent record in the same save). Remove the exclusion in Task 3. Unticking does not delete: it sets `UntickedAtUtc` on the row, so the comment and both times remain.
 
 **Translation (build order 2.7):** if F4 Task 4 is merged when this package is built, every new screen uses translation keys and every new refusal carries a message code.
+
+**Exception kind added (user decision 2026-11-11):** `NoSpecification` in the Results and history group — a result recorded with status "Limits not configured" (accepted as a pass). The approval screen shows the same flag per test.

@@ -169,3 +169,5 @@ Sites (all under `backend/MicroLIMS.Application/`): `Workflows/TestWorkflow/Incu
 These corrections come from reviewing all plans together against the code. Where they differ from the text above, they win. Shared names are defined once in `docs/superpowers/plans/2026-11-11-build-order.md` (section "Programme conventions").
 
 1. Add these conflicts found in the whole-programme review to `Conflicts.md` in Task 2: grade matching differs between services (case-insensitive, lower-casing, exact); limit comparison is implemented in several places (`SpecLimitParser`, `SpecificationService`, `PathogenSessionService`, `SpecificationEvaluator`); spec lookups bypass `SpecificationLookup` in five services; conformance is decided privately in `SampleApprovalService` and separately in `ReportDocumentMapper`.
+
+**Decision CONF-003 (user, 2026-11-11):** equipment with no calibration due date counts as in calibration (the rule used for incubators today). `EquipmentCalibration.IsCurrent` keeps that behaviour.

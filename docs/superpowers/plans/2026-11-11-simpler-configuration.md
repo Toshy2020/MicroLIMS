@@ -215,3 +215,5 @@ These corrections come from reviewing all plans together against the code. Where
 From the independent review of the build order. These win over the text above and over the earlier corrections section where they differ.
 
 1. Before Task 3, read every result-entry path and record whether a missing specification is treated as a pass anywhere; report each case to the user as a finding (spec risk 4) rather than deciding it.
+
+**Decision (user, 2026-11-11): a result with no applicable specification is treated as a pass, with a visible flag.** Task 3 makes this explicit and consistent: every result-entry path that finds no specification records the result with status "Limits not configured" (existing `ResultStatus.LimitsNotConfigured`), counts it as conforming for the decision, and the sample's review and approval screens show the flag "No specification — accepted as pass" per test. A specification retired while a sample is in testing still stops result entry with a clear message (spec 5.3); the pass rule applies only where no specification exists at all.

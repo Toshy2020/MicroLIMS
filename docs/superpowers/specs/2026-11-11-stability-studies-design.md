@@ -154,3 +154,5 @@ A protocol is written by the Section Head of the stability laboratory and contai
 3. Units are counted, not tracked individually.
 4. The reminder lead time is a per-laboratory setting in working days; empty means pulls appear when the window opens.
 5. Late pulls are not allowed. A missed pull opens a deviation automatically.
+
+**Decision CONF-003 (user, 2026-11-11):** equipment with no calibration due date counts as in calibration (the rule used for incubators today). `EquipmentCalibration.IsCurrent` keeps that behaviour.

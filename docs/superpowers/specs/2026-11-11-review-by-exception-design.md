@@ -99,3 +99,5 @@ The queue shows each section's number of exceptions and the groups present, next
 1. The "near expiry" number of days is a setting, off until the Section Head sets it.
 
 **Audit-capture decision (user, 2026-11-11, revised):** ticks stay under automatic audit capture, as CLAUDE.md Rule 3.3 requires for reviews; unticking keeps the row with its time.
+
+**Exception kind added (user decision 2026-11-11):** `NoSpecification` in the Results and history group — a result recorded with status "Limits not configured" (accepted as a pass). The approval screen shows the same flag per test.

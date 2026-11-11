@@ -105,9 +105,9 @@ Throughout: A1 → A2 (grows with each release) ; A3 after R2 (screenshots) and 
 | B1 | Printer model, label sizes, scanner model, label SOP |
 | B3 | Identity provider details (OIDC) or directory details (LDAP) |
 | D1, D2 | Checklists can ship empty; nothing blocking |
-| D3 (chambers), E1 (balances and pH meters) | Decision on conflict CONF-003: does a missing calibration due date count as "in calibration"? Needed before either starts using the rule |
+| D3 (chambers), E1 (balances and pH meters) | **Decided 2026-11-11:** a missing calibration due date counts as in calibration (CONF-003) |
 | C4 Task 4 | Whether a supplier certificate may be attached before the sample is registered (C4 spec §9) |
-| C7 Task 3 | Findings on whether any result-entry path treats a missing specification as a pass (reported, then decided by you) |
+| C7 Task 3 | **Decided 2026-11-11:** a result with no specification is accepted as a pass, and is flagged to the reviewer (F6 exception) and on the approval screen |
 | E1 step 6 | ChemStation open questions and sample exports |
 | E2 | SAP codes: usage decision codes, inspection characteristics, plant codes; middleware choice |
 | E4 Task 5 | VITEK 2 sample export files |

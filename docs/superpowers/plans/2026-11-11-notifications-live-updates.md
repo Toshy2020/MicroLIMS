@@ -264,3 +264,12 @@ The signal carries the actor id only; the banner text is "This record was change
 - Mail server address, sender and a delivery test to real mailboxes.
 - Hosting confirms WebSocket support end to end (the fallback covers its absence).
 - The laboratory enters its working hours, non-working dates and escalation rules.
+
+## Cross-plan corrections (whole-programme review, 2026-11-11)
+
+These corrections come from reviewing all plans together against the code. Where they differ from the text above, they win. Shared names are defined once in `docs/superpowers/plans/2026-11-11-build-order.md` (section "Programme conventions").
+
+1. Task 8 publishes the `mywork` live signal whenever a My Work source changes for a user (assignment, take/release, review submission, incubation ready) through `IMicroLimsDbContext.QueueSignal`.
+2. Escalation with no recipient notifies holders of `Users.Manage` (the System Administrator role).
+3. Task 9's mapped notification types: ReviewWaiting, ApprovalWaiting, ReturnedToAnalyst, IncubationReady, DocumentTaskDue, Escalation.
+4. Audit capture for `EmailOutbox` and `EscalationEvent` is approved (user, 2026-11-11).

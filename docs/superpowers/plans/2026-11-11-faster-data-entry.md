@@ -226,3 +226,11 @@ The existing master-data workbook (`api/masterdata/workbook`: staged Excel impor
 
 - **Incubator selection checks only the temperature range at save time**, not the equipment's calibration or qualification status (`TestWorkflowSupport.RequireEligibleIncubatorAsync`, L818). `CLAUDE.md` Rule 3.2 expects equipment used in testing to be in valid status. This plan does not offer such equipment as a default, but it does not change the save rule. Raise with the user as a separate decision.
 - The notification email for an expired media lot is sent to `{username}@microlims.local`, not to the user's email address (`DashboardNotificationService.cs` L266). Handled in package C5.
+
+## Cross-plan corrections (whole-programme review, 2026-11-11)
+
+These corrections come from reviewing all plans together against the code. Where they differ from the text above, they win. Shared names are defined once in `docs/superpowers/plans/2026-11-11-build-order.md` (section "Programme conventions").
+
+1. Task 2: `ReferenceNumberGenerator.GenerateAsync` always runs inside a transaction — when called without one it wraps itself in `UnitOfWork.RunAsync` (which joins an existing transaction), so the advisory lock always applies.
+2. Task 5: `useBenchDraft` uses an explicit allow-list of the receiving fields (not a deny-list).
+3. Configuration paste covers six screens (the plan's list); the spec's 'five' is corrected to six.

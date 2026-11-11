@@ -416,6 +416,8 @@ Phases 0, 1 and 2 can run in parallel if more than one person is available. Phas
 
 ---
 
+**Build order:** `docs/superpowers/plans/2026-11-11-build-order.md` — release sequence, dependencies, shared conventions and the risks found in the whole-programme review.
+
 ## 9. Decisions needed from you
 
 | ID | Decision | Blocks |

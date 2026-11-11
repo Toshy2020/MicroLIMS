@@ -229,3 +229,10 @@ A page whose table carries behaviour `RegisterTable` cannot express without a ne
 - [ ] **Step 3:** Run the app: build a filtered view on the sample register, save it, share it as a Section Head, open the link as an analyst in another section (sees own rows only), bulk-assign with one row that must be refused, export and open the CSV in a spreadsheet, scroll a 5,000-row list. Keyboard-only pass on one register. Report what was and was not exercised.
 - [ ] **Step 4:** `documents/` requirements and user-guide page; roadmap links.
 - [ ] **Step 5:** Commit `docs(tables): requirements, guide, roadmap links`.
+
+## Cross-plan corrections (whole-programme review, 2026-11-11)
+
+These corrections come from reviewing all plans together against the code. Where they differ from the text above, they win. Shared names are defined once in `docs/superpowers/plans/2026-11-11-build-order.md` (section "Programme conventions").
+
+1. Prerequisite: C2 Task 4 (`api/client-settings`) and C2 Task 2 (`theme.custom.bench`). Delete the 'create it here if C2 is not merged' branch.
+2. Task 3: the table registry used by the backend is generated as JSON (`frontend/src/tables/tableRegistry.json`) and read by both the frontend module and the backend test, instead of the backend parsing a `.ts` file.

@@ -118,3 +118,11 @@
 - [ ] **Step 1:** `BusinessRules.md` section on competency. If A1–A3 exist: URS / FS entries (areas ADM, MIC, PHY), risk rows and tags, manual and role-guide tasks, SOP template note (training and qualification). Otherwise list as follow-ups.
 - [ ] **Step 2:** Full verification per `CLAUDE.md` section 2 with PostgreSQL; exact counts; `has-pending-model-changes`; frontend checks.
 - [ ] **Step 3:** Report to the user: gate ships off in every laboratory; how to enter qualifications and switch it on.
+
+## Cross-plan corrections (whole-programme review, 2026-11-11)
+
+These corrections come from reviewing all plans together against the code. Where they differ from the text above, they win. Shared names are defined once in `docs/superpowers/plans/2026-11-11-build-order.md` (section "Programme conventions").
+
+1. **Recording points: the scope check for incubation and pathogen recording is in the API (`TestWorkflowController`), not in `IncubationStepRecorder`, `PathogenConfirmationRecorder` or `TestWorkflowEngine`.** The guard must therefore be called in every public recording method of those three classes as well. The architecture test is renamed `RecordingPointCoverageTests` (owned by this plan) and checks an explicit list of recorder classes and methods, not only methods that call `EnsureTestOrderAccessAsync`.
+2. `SopResolution.Status` values map to D5's `SopCaptureStatus` as: Effective → Captured, NoSopNumber → NoSopNumber, NotFound → NotFound, NoEffectiveRevision → NoEffectiveRevision.
+3. `AnalystAssignmentRules.EnsureAssignableAsync` gains the new parameters with defaults so D1's existing calls compile; D1's retest-plan path passes the test order ids.

@@ -147,3 +147,11 @@ Behaviour: `get` returns null while loading or when `failed`; then the child but
 - [ ] **Step 3:** Run the app as an analyst and as a Section Head: add and reorder favourites, open records and see them in recents, switch laboratory and tabs and sign in again on another browser, follow crumbs on three deep pages, read the reason on each gated action. Keyboard-only and screen-reader pass of the sidebar and one gated action. Report what was and was not exercised.
 - [ ] **Step 4:** List every reason sentence in the PR for the user's wording review. `documents/` requirements; roadmap links.
 - [ ] **Step 5:** Commit `docs(nav): requirements, roadmap links`.
+
+## Cross-plan corrections (whole-programme review, 2026-11-11)
+
+These corrections come from reviewing all plans together against the code. Where they differ from the text above, they win. Shared names are defined once in `docs/superpowers/plans/2026-11-11-build-order.md` (section "Programme conventions").
+
+1. Task 5: the generic text 'Your role does not include this action.' is used only where the action has no refusal message today; existing messages are returned unchanged.
+2. Audit capture for `RecentRecord` is approved (user, 2026-11-11).
+3. Tab state keys use `nav.tab.{pageKey}` with `pageKey` matching `^[a-z0-9-]{1,40}$` (hyphens allowed).

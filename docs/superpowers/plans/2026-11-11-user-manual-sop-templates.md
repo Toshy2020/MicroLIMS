@@ -171,3 +171,12 @@ Read before writing (facts come only from these):
 - [ ] **Step 1:** Update `documents/README.md` (manual, pictures, templates with status Draft / Template) and the stub READMEs.
 - [ ] **Step 2:** Run `node --test scripts/docs`, `check-documents.mjs documents`, `build-manual.mjs --check`, `tools/screenshots` unit tests; frontend and backend suites are not affected (no product code changed) — state that they were not run, or run them and report counts.
 - [ ] **Step 3:** Report to the user: pictures taken out of 123 and the not-capturable list with reasons; chapter corrections made; steps still marked for reviewers; every `[SITE TO DEFINE]` item per template; the three open items of the spec.
+
+## Cross-plan corrections (whole-programme review, 2026-11-11)
+
+These corrections come from reviewing all plans together against the code. Where they differ from the text above, they win. Shared names are defined once in `docs/superpowers/plans/2026-11-11-build-order.md` (section "Programme conventions").
+
+1. Role guides: add `qa.md` when B4 is built and `rd-manager.md` when D3 is built; the Global Constraint's five role names become seven at that point.
+2. Task 3 `run.sh` interface includes the flag `--data-only` (stop after demo data) used in Task 4 Step 5.
+3. Task 8 reads the lock duration and maximum failed attempts from the defaults in `SystemSettingDefinitions` (keys `LockoutDurationMinutes`, `LockoutMaxFailedAttempts`), not from the `AuthenticationService` constants, because the settings are what the system uses at run time.
+4. B1's label screenshots are captured by this tool as entries in `shots.json`, not written by B1 directly.

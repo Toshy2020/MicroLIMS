@@ -86,3 +86,11 @@
 
 - [ ] **Step 1:** Update `docs/superpowers/specs/2026-11-11-microbial-identification-design.md` and its plan: out of trend = flag from F1's rules (not `RoomMonitoring.IsOutOfTrend`). `BusinessRules.md` EM section; A1 entries if present; manual chapter.
 - [ ] **Step 2:** Full verification per `CLAUDE.md`; report counts.
+
+## Cross-plan corrections (whole-programme review, 2026-11-11)
+
+These corrections come from reviewing all plans together against the code. Where they differ from the text above, they win. Shared names are defined once in `docs/superpowers/plans/2026-11-11-build-order.md` (section "Programme conventions").
+
+1. Firings open reviews through D1's `OpenExcursionForReadingsAsync(roomId, sampleLocationIds, sourceRef = "trend:{ruleVersionId}:{roomId}", userId: null, ct)`.
+2. E4's plan already reads `SampleLocationTrendFlag`; Task 7 only verifies it.
+3. Migration names: `AddEmGradesAndFloorPlans` (Task 1), `AddEmTrendRules` (Task 4).

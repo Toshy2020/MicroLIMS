@@ -77,3 +77,10 @@ Superseded orders contribute only `TestReturnEvent` history.
 - [ ] **Step 1:** When E1, D4, F2 exist: `ValuesSource` adds typed values on connected fields (`ValueProvenance.Source == Manual` with reason); `ResultsHistorySource` adds `CompetencyOverride` rows and `EvidencePhoto.AddedLater` rows. Tests per kind.
 - [ ] **Step 2:** `BusinessRules.md` review section; A1 entries if present; manual update for the review chapter.
 - [ ] **Step 3:** Full verification per `CLAUDE.md`; report counts.
+
+## Cross-plan corrections (whole-programme review, 2026-11-11)
+
+These corrections come from reviewing all plans together against the code. Where they differ from the text above, they win. Shared names are defined once in `docs/superpowers/plans/2026-11-11-build-order.md` (section "Programme conventions").
+
+1. `CompleteReviewCoreAsync` is also changed by D1 (opening investigations), D4 (separation for overrides), F3 (retained-sample registration) and C5/C8. The build order fixes the sequence; this plan's check runs **before** signing and its record write runs **after** the existing writes, in the same save.
+2. Migration `AddReviewExceptions`.

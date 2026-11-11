@@ -200,3 +200,12 @@ Edit mode keeps the existing separate endpoints (test update; step add/update/re
 - [ ] **Step 3:** Run the app: create an item from an existing one, copy specifications, create a test from an existing one and check its preview, edit a specification with an open sample (reason asked) and without (not asked), delete an unused specification, delete a used one (retired), reinstate it. Keyboard-only pass on one wizard. Report what was and was not exercised.
 - [ ] **Step 4:** `documents/` requirements; note for guide chapters 31 and 32 (listed for the guide owner, not edited here if the guide is under separate control); SOP note on change reasons and retirement. Roadmap links.
 - [ ] **Step 5:** Commit `docs(config): requirements, roadmap links`.
+
+## Cross-plan corrections (whole-programme review, 2026-11-11)
+
+These corrections come from reviewing all plans together against the code. Where they differ from the text above, they win. Shared names are defined once in `docs/superpowers/plans/2026-11-11-build-order.md` (section "Programme conventions").
+
+1. Prerequisites (were undeclared): C2 Tasks 3–4 (`useBenchDraft`) and C4 Task 3 (`FieldError`, `FieldValidationException`).
+2. Task 2: the wizard draft uses an explicit allow-list of the wizard's form fields.
+3. Unfreeze of a test also requires a reason (same rule as freeze).
+4. The test file `SpecificationParameterDialog.rs.test.tsx` is named `SpecificationParameterDialog.retired.test.tsx`.

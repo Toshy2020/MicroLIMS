@@ -203,3 +203,11 @@ Enums: `OosInvestigationKind { Oos, Excursion }`; `OosInvestigationStatus { Phas
 - [ ] **Step 2:** If A1–A3 documents exist: URS/FS entries (area OOS, REV, RPT), risk rows and tags, manual chapter 18 and 20 updates, role guides. Otherwise list as follow-ups.
 - [ ] **Step 3:** Full verification per `CLAUDE.md` section 2 with PostgreSQL; exact pass / fail / skip counts; `has-pending-model-changes`; frontend lint, types, tests, debt check, build.
 - [ ] **Step 4:** Report to the user: the manual scenarios of spec section 7 to perform; that templates ship empty and must be filled before go-live.
+
+## Cross-plan corrections (whole-programme review, 2026-11-11)
+
+These corrections come from reviewing all plans together against the code. Where they differ from the text above, they win. Shared names are defined once in `docs/superpowers/plans/2026-11-11-build-order.md` (section "Programme conventions").
+
+1. Advisory-lock keys come from one class `backend/MicroLIMS.Application/Helpers/AdvisoryLockKeys.cs` created in Task 2 (`OosNumber = 7_301_001`); later packages add their constants there.
+2. Task 9 also provides `OpenExcursionForReadingsAsync(int roomId, IReadOnlyList<int> sampleLocationIds, string sourceRef, int? userId, CancellationToken ct)` for package F1 (system-opened excursion reviews for EM readings; joins an open review with the same `sourceRef` and room).
+3. Cause categories (`OosCauseCategory`) are the shared cause list for D1 and D2.

@@ -57,3 +57,9 @@
 
 - [ ] **Step 1:** Full backend suite with PostgreSQL and frontend checks per `CLAUDE.md` section 2; exact counts.
 - [ ] **Step 2:** If A1 exists: FS entries (areas RPT, MDM) and tags. Update `BusinessRules.md` (Rule 3.1 note).
+
+## Cross-plan corrections (whole-programme review, 2026-11-11)
+
+These corrections come from reviewing all plans together against the code. Where they differ from the text above, they win. Shared names are defined once in `docs/superpowers/plans/2026-11-11-build-order.md` (section "Programme conventions").
+
+1. Build after D4: reuse `ItemSopResolver` and extend D4's `RecordingPointCoverageTests` (do not create a second architecture test). The capture is called in the same methods D4 lists, including `IncubationStepRecorder`, `PathogenConfirmationRecorder` and `TestWorkflowEngine` public recording methods.

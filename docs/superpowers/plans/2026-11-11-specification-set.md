@@ -163,3 +163,9 @@ Sites (all under `backend/MicroLIMS.Application/`): `Workflows/TestWorkflow/Incu
 - [ ] **Step 2:** Replace the six stub READMEs' text where it no longer matches; update `README.md` line on `documents/`.
 - [ ] **Step 3:** Run `node --test scripts/docs` and `node scripts/docs/check-documents.mjs documents`; report exact counts. Report honestly that no statement was verified by running the system and that no pharmacopoeia reference is confirmed.
 - [ ] **Step 4:** Hand the open `CONF` list and the three open items of the spec (QA names, site numbering, editions) to the user. Commit `docs: specification set index and close-out`.
+
+## Cross-plan corrections (whole-programme review, 2026-11-11)
+
+These corrections come from reviewing all plans together against the code. Where they differ from the text above, they win. Shared names are defined once in `docs/superpowers/plans/2026-11-11-build-order.md` (section "Programme conventions").
+
+1. Add these conflicts found in the whole-programme review to `Conflicts.md` in Task 2: grade matching differs between services (case-insensitive, lower-casing, exact); limit comparison is implemented in several places (`SpecLimitParser`, `SpecificationService`, `PathogenSessionService`, `SpecificationEvaluator`); spec lookups bypass `SpecificationLookup` in five services; conformance is decided privately in `SampleApprovalService` and separately in `ReportDocumentMapper`.

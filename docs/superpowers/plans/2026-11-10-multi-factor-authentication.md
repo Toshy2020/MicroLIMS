@@ -351,3 +351,11 @@ The device token lives in `localStorage` key `microlims_device_token`; it is **n
 - Encryption key generated, stored and backed up under the key-custody SOP.
 - QA approval of the SOP and of the ZXing.Net qualification record (shared with B1).
 - Rollout order: `Optional` → two administrators enrolled → `RequiredForRoles`.
+
+## Cross-plan corrections (whole-programme review, 2026-11-11)
+
+These corrections come from reviewing all plans together against the code. Where they differ from the text above, they win. Shared names are defined once in `docs/superpowers/plans/2026-11-11-build-order.md` (section "Programme conventions").
+
+1. Task 6 adds `ZXing.Net` to `backend/Directory.Packages.props` and the Infrastructure `.csproj` when it is not already there (B1 not merged).
+2. Task 5's `MfaController` endpoint list includes `GET api/auth/mfa/options` (implemented in Task 9).
+3. The MFA policy applies to local and LDAP sign-in. OIDC sign-in relies on the identity provider's own second factor (B3). Emergency accounts (B3) always require the second factor, whatever the policy says; B3 implements that override.

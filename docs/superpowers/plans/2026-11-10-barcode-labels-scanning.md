@@ -730,3 +730,12 @@ LabelFormatsPage: shows field errors for out-of-range sizes returned by the serv
 2. Readback of all six label types with the handheld scanners and with a tablet camera.
 3. A scan with the Arabic keyboard layout active on a real workstation.
 4. QA approval of the label SOP and of the two library qualification records.
+
+## Cross-plan corrections (whole-programme review, 2026-11-11)
+
+These corrections come from reviewing all plans together against the code. Where they differ from the text above, they win. Shared names are defined once in `docs/superpowers/plans/2026-11-11-build-order.md` (section "Programme conventions").
+
+1. Task 9 Files: add `backend/MicroLIMS.Application/Services/GlobalSearchService.cs` (target builders are extracted from it).
+2. Task 15 Step 5: label screenshots are added as entries to A3's `documents/Screenshots/shots.json` and captured by its tool; if A3 is not built, store them under `docs/superpowers/reports/labels/` instead of `documents/Screenshots`.
+3. Task 15 Step 6 (requirements documents) applies only if A1 is built; otherwise list as follow-ups.
+4. Equipment labels are for the asset register (`EquipmentInventory`); pickers that select workflow `Equipment` resolve the scanned asset through `Equipment.EquipmentInventoryId` (added in this plan). Name the entity type `EquipmentAsset` in `LabelEntityType` to avoid confusion.

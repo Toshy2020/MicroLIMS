@@ -77,3 +77,10 @@ For each module:
 - [ ] **Step 1:** Extend A3's screenshot tool with a language option; capture the main screens in Arabic; inspect for mirroring and truncation; fix.
 - [ ] **Step 2:** Deliver `frontend/src/locales/glossary.json` as the terminology reference; A1 entries if present; manual note on language choice and English-only printed records.
 - [ ] **Step 3:** Full verification (backend and frontend per `CLAUDE.md`); report the remaining counts of the two ratchets.
+
+## Cross-plan corrections (whole-programme review, 2026-11-11)
+
+These corrections come from reviewing all plans together against the code. Where they differ from the text above, they win. Shared names are defined once in `docs/superpowers/plans/2026-11-11-build-order.md` (section "Programme conventions").
+
+1. Task 3's module list also includes every module added by packages built before F4 (identification, emAnalytics, photos, retention, report builder, review exceptions, quality, stability, competency, OOS investigation).
+2. From the moment F4 Task 4 is merged, every new `BusinessRuleException` / `NotFoundException` in any package carries a message code, and every new screen uses translation keys (the ratchets enforce it).

@@ -168,3 +168,12 @@ Enums: `StabilityStudyType { LongTerm, Intermediate, Accelerated, Ongoing, Other
 - [ ] **Step 1:** `BusinessRules.md`: stability section (limits fixed in protocol, windows, no late pulls, missed-pull deviation, R&D Manager approval). If A1–A3 exist: URS / FS area `STB`, risk rows and tags, manual chapter, R&D Manager role guide, SOP template note. Otherwise list as follow-ups.
 - [ ] **Step 2:** Full verification per `CLAUDE.md` section 2 with PostgreSQL; exact counts; `has-pending-model-changes`; frontend checks.
 - [ ] **Step 3:** Report to the user: the manual scenario of spec section 7; that chamber calibration follows today's incubator rule (a missing due date counts as current — A1 conflict CONF-003); that the stability laboratory section seeded today sits under the R&D department.
+
+## Cross-plan corrections (whole-programme review, 2026-11-11)
+
+These corrections come from reviewing all plans together against the code. Where they differ from the text above, they win. Shared names are defined once in `docs/superpowers/plans/2026-11-11-build-order.md` (section "Programme conventions").
+
+1. Task 7: remove the change to D2's `RaisedByUserId` (D2 now creates it nullable).
+2. **Global query filter risk:** this is the first `HasQueryFilter` in the codebase. Before Task 2, list every `Specifications` query in Application and API (including master-data screens, workbook export and `ItemService`) and add a test per reader proving protocol rows stay invisible; workbook export must exclude them.
+3. `EquipmentCalibration.IsCurrent(Equipment equipment, DateTime nowUtc)` is the shared signature (E1 uses the same).
+4. Numbering uses `AdvisoryLockKeys.StabilityProtocol`.

@@ -88,3 +88,12 @@
 - [ ] **Step 1:** Failing tests (`userEvent`, `services/` mocked): key shown once and then masked; scope editor prevents quality scopes for customer accounts; webhook secret shown once; access log filters and export; customer field saved on receipt.
 - [ ] **Step 2:** FAIL → implement → full checks PASS. Commit `feat(ui): public API administration and customers`.
 - [ ] **Step 3:** Full verification per `CLAUDE.md`; report counts.
+
+## Cross-plan corrections (whole-programme review, 2026-11-11)
+
+These corrections come from reviewing all plans together against the code. Where they differ from the text above, they win. Shared names are defined once in `docs/superpowers/plans/2026-11-11-build-order.md` (section "Programme conventions").
+
+1. Service accounts are E2's `IntegrationClient` with `Kind = ServiceAccount` plus `ServiceAccountScope` rows; there is no separate `ServiceAccount` table or `ApiKey` scheme. Header `X-Api-Key` (E2's `ClientKey` scheme).
+2. Webhooks use E2's shared outbox with `Channel = Webhook`, `OrderingKey = subscription id`; the 24-hour pause is a webhook rule applied by the transport, independent of the ERP 'Failed after N attempts' rule.
+3. Use `PostDecisionCorrectionGate` from E2 (do not create it here).
+4. Grant rows: `Api.Manage` → System Administrator; `Api.ViewAccessLog` → System Administrator and QA; `Customers.Manage` → Section Head and System Administrator. Migration `AddPublicApi`.

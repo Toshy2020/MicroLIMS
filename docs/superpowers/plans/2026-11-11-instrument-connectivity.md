@@ -130,3 +130,11 @@
 - [ ] **Step 1:** ChemStation plan: mark its Phase 1–2 as built, Phase 5 superseded by this plan's Task 7 (keep its open questions Q8–Q11 for the ChemStation folder settings), Phases 3–4 to run after its Phase 0 answers using this plan's formats and adoption.
 - [ ] **Step 2:** `documents/` (if A1 exists): FS entries, risk rows, tags; instrument setup guide (`documents/UserManual/reference/` new chapter: registering an agent, installing it, formats, balance checks); SOP template note on typed values and balance checks.
 - [ ] **Step 3:** Full verification per `CLAUDE.md` section 2 with PostgreSQL; agent tests on Windows CI; frontend checks. Report exact counts and that the hosting plan must not sleep for production use.
+
+## Cross-plan corrections (whole-programme review, 2026-11-11)
+
+These corrections come from reviewing all plans together against the code. Where they differ from the text above, they win. Shared names are defined once in `docs/superpowers/plans/2026-11-11-build-order.md` (section "Programme conventions").
+
+1. `EquipmentType.Balance`, `PhMeter`, `IcpOes` and `Gc` already exist; no enum append.
+2. Use `EquipmentCalibration.IsCurrent(Equipment equipment, DateTime nowUtc)` (same signature as D3); the null-due-date rule is open conflict CONF-003 and is not decided here.
+3. Name migrations `AddInstrumentFormats` (Task 1), `AddInstrumentReadings` (Task 2), `AddCapturedValueProvenance` (Tasks 4–5).

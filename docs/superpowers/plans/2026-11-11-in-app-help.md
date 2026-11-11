@@ -158,3 +158,11 @@ Shown once after login when `__APP_VERSION__` is greater than the stored value a
 - [ ] **Step 3:** Run the app as each role: tour, help on five pages, search, a hint, the items panel on a test, Open SOP from a product test and absence on a water test, What's new. Screen-reader and keyboard pass on the panel and tour. Report what was and was not exercised.
 - [ ] **Step 4:** List in the PR every guide chapter the map found thin or out of date (not fixed here). `documents/` requirements and an SOP note: in-app help is guidance; approved SOPs govern. Roadmap links.
 - [ ] **Step 5:** Commit `docs(help): requirements, roadmap links`.
+
+## Cross-plan corrections (whole-programme review, 2026-11-11)
+
+These corrections come from reviewing all plans together against the code. Where they differ from the text above, they win. Shared names are defined once in `docs/superpowers/plans/2026-11-11-build-order.md` (section "Programme conventions").
+
+1. The `/my-work` chapter mapping and tour steps apply when C1 is built; otherwise the tour starts at the dashboard.
+2. Audit capture for `UserUiState` is approved (user, 2026-11-11); Task 1 no longer waits for approval.
+3. Task 5's 'no read access' state is a separate `SopLinkState.NoAccess` value alongside `SopStatus`.

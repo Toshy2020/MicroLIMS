@@ -83,3 +83,11 @@ Samples and turnaround (one row per sample × section; TAT fields from extracted
 - [ ] **Step 1:** Failing tests (`userEvent`, `services/` mocked): build and preview; unit-mixing refusal message shown; save, share (button absent without permission), copy; schedule editor; export buttons call the server; snapshot page.
 - [ ] **Step 2:** FAIL → implement → full checks PASS. Commit `feat(ui): report builder`.
 - [ ] **Step 3:** Full verification per `CLAUDE.md`; report counts.
+
+## Cross-plan corrections (whole-programme review, 2026-11-11)
+
+These corrections come from reviewing all plans together against the code. Where they differ from the text above, they win. Shared names are defined once in `docs/superpowers/plans/2026-11-11-build-order.md` (section "Programme conventions").
+
+1. `IReportDataset<TRow>` is generic; `Query` returns `IQueryable<TRow>`; the compiler is `ReportQueryCompiler.Compile<TRow>`.
+2. Snapshots store `RowsJson` where every row includes its `SectionId` (and `CustomerId` when present), so rows can be filtered by the reader's current access when the snapshot is opened.
+3. Migration `AddReportBuilder`.

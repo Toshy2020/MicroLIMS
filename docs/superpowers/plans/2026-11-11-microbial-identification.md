@@ -85,3 +85,11 @@
 - [ ] **Step 1:** Failing tests (`userEvent`, `services/` mocked): biochemical step shows the three methods and cannot be submitted without an identification; pending VITEK 2 result shown inside the step; add isolate, record kit and simple tests, accept proposed, choose below threshold, Section Head confirm, unmapped queue, open-identification list, biochemical submit refusal text.
 - [ ] **Step 2:** FAIL → implement → full checks PASS. Commit `feat(ui): isolates and identification`.
 - [ ] **Step 3:** Full verification per `CLAUDE.md`; report counts and that Task 5 waits for VITEK 2 sample files if not provided.
+
+## Cross-plan corrections (whole-programme review, 2026-11-11)
+
+These corrections come from reviewing all plans together against the code. Where they differ from the text above, they win. Shared names are defined once in `docs/superpowers/plans/2026-11-11-build-order.md` (section "Programme conventions").
+
+1. **Attempt records:** the facts of an attempt (method, reported name, confidence, raw hash, detail rows) are immutable; `Status`, `AnalystChoice`, `ChoiceReason` and the confirmation fields may change only forward (Pending → Proposed / AwaitingConfirmation / HeldUnmapped → Accepted / Rejected), enforced by a trigger that rejects any other update and every delete. `Isolate.FinalAttemptId` and the void fields may be set by the service; nothing else on an isolate changes.
+2. The post-decision gate is E2's `PostDecisionCorrectionGate`.
+3. Numbering uses `AdvisoryLockKeys.Isolate`. Migration `AddMicrobialIdentification`.

@@ -268,3 +268,12 @@ Rules: in `OpenIdConnect` mode `RefreshCoreAsync` refuses a refresh for a `Direc
 - Sign-in, leaver and outage tests against the real directory, recorded for validation.
 - Emergency accounts created, second factor enrolled, credentials held under the SOP.
 - QA approval of the SOP.
+
+## Cross-plan corrections (whole-programme review, 2026-11-11)
+
+These corrections come from reviewing all plans together against the code. Where they differ from the text above, they win. Shared names are defined once in `docs/superpowers/plans/2026-11-11-build-order.md` (section "Programme conventions").
+
+1. Migrations: `AddSingleSignOn` and, if Task 6 needs it, `AddRefreshTokenSessionStart` (two migrations are allowed).
+2. Audit capture for `SsoPendingRequest` and `SsoExchangeCode` is approved (user, 2026-11-11): add both to `AuditCaptureExcludedTypes` with the comment given in Global Constraints.
+3. Security event codes: add `SessionCapReached` and `RefreshRejected` to the 11 codes listed, so Task 6's reason codes exist.
+4. Emergency accounts always require the B2 second factor, even when the MFA policy is off; OIDC sign-in never asks for a MicroLIMS second factor; LDAP sign-in follows the B2 policy.

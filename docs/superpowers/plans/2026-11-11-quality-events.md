@@ -202,3 +202,11 @@ Enums: `QualityRecordType { Deviation, Capa, ChangeControl, Complaint }`; `Quali
 - [ ] **Step 1:** `BusinessRules.md`: new section for quality records (paths, separation rules, gate). If A1–A3 exist: URS / FS area `QLT`, risk rows and tags, manual chapter, QA and Section Head role-guide tasks, four SOP templates (deviation, CAPA, change control, complaint handling). Otherwise list as follow-ups.
 - [ ] **Step 2:** Full verification per `CLAUDE.md` section 2 with PostgreSQL; exact counts; `has-pending-model-changes`; frontend lint, types, tests, debt check, build.
 - [ ] **Step 3:** Report to the user: the three manual scenarios of spec section 7; the security fix of Task 8; that items are not covered by the gate; that due rules and checklists ship empty.
+
+## Cross-plan corrections (whole-programme review, 2026-11-11)
+
+These corrections come from reviewing all plans together against the code. Where they differ from the text above, they win. Shared names are defined once in `docs/superpowers/plans/2026-11-11-build-order.md` (section "Programme conventions").
+
+1. Task 1: `QualityRecord.RaisedByUserId` is **nullable** from the start, with `RaisedBySystemProcess?`; the separation rule treats a null raiser as 'System' (no person is excluded by it). D3 no longer changes this.
+2. Root-cause categories reuse D1's `OosCauseCategory` (shared list); no separate table.
+3. Numbering uses `AdvisoryLockKeys.QualityDeviation`, `QualityCapa`, `QualityChangeControl`, `QualityComplaint`.

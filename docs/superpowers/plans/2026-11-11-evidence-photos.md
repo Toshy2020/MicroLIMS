@@ -76,3 +76,12 @@
 - [ ] **Step 1:** Sample report option "Include photos" adds `ImageBlock`s (display copy transcoded to PNG via SkiaSharp, caption = test, step, caption, author, time). Test: PDF contains the images and captions; certificate unchanged.
 - [ ] **Step 2:** `BusinessRules.md` note; A1 entries if present; manual section.
 - [ ] **Step 3:** Full verification per `CLAUDE.md`; report counts. Commit `feat(photos): report appendix`.
+
+## Cross-plan corrections (whole-programme review, 2026-11-11)
+
+These corrections come from reviewing all plans together against the code. Where they differ from the text above, they win. Shared names are defined once in `docs/superpowers/plans/2026-11-11-build-order.md` (section "Programme conventions").
+
+1. Storage key is `evidence-photos/{yyyy}/{guid}/{sha256}{ext}` with a new GUID (the row id does not exist before the insert).
+2. Task 1 entity includes `PendingTargetKey?`. The check constraint is: exactly one reading link **or** a `PendingTargetKey`. The trigger allows one update that sets a reading link and clears `PendingTargetKey` (binding), plus the void columns once; nothing else.
+3. `MediaEvaluationPhotoSetting` is edited with `MasterData.Manage`.
+4. Migration `AddEvidencePhotos`.

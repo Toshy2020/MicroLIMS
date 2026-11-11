@@ -135,3 +135,11 @@ For each area:
 - [ ] **Step 2:** Run all `scripts/docs` checks and the builder in `--check` mode.
 - [ ] **Step 3:** Update `documents/README.md` with the Validation documents and their status.
 - [ ] **Step 4:** Report to the user: totals by status and risk class; the High gaps list; that risk scores are proposals; that no OQ, IQ or PQ has been executed; and ask when to switch on `highRiskGapsBlock`.
+
+## Cross-plan corrections (whole-programme review, 2026-11-11)
+
+These corrections come from reviewing all plans together against the code. Where they differ from the text above, they win. Shared names are defined once in `docs/superpowers/plans/2026-11-11-build-order.md` (section "Programme conventions").
+
+1. Tags may name FS IDs **and** the existing Document Control IDs (`DC-URS-nnn`, `FS-1a-nnn` … `FS-1d-nnn`); the Global Constraint saying "FS IDs only" applies to the new areas only.
+2. `documents/Validation/Templates/OQ-test-case.md` is created in Task 5 (first use), not Task 11.
+3. Task 2 Step 2 writes the tags file to `backend/TestResults/requirement-tags.json`, not `/tmp`.

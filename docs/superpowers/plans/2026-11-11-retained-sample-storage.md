@@ -80,3 +80,10 @@
 
 - [ ] **Step 1:** Failing tests for each screen's main flow and refusal messages. **Step 2:** FAIL → implement → full checks PASS. Commit `feat(ui): retained sample storage and disposal`.
 - [ ] **Step 3:** `BusinessRules.md` retention section; A1 entries if present; SOP template note (retention and disposal). Full verification per `CLAUDE.md`; report counts.
+
+## Cross-plan corrections (whole-programme review, 2026-11-11)
+
+These corrections come from reviewing all plans together against the code. Where they differ from the text above, they win. Shared names are defined once in `docs/superpowers/plans/2026-11-11-build-order.md` (section "Programme conventions").
+
+1. The receiving change is in `ItemBasedReceiveRequest` / `ProductWorkflowEngine.ReceiveAsync` (`backend/MicroLIMS.Application/Workflows/ProductWorkflowEngine.cs`), the receiving DTO in `SampleController`, and the receiving form (`NewSampleDialog.tsx`, `MultiSampleEntryGrid.tsx`).
+2. Numbering uses `AdvisoryLockKeys.RetainedSample` and `DisposalRequest`. Migration `AddRetainedSampleStorage`.

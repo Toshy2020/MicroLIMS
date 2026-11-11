@@ -78,3 +78,10 @@
 - [ ] **Step 2:** Frontend: lint, types, tests, debt check, build; report results.
 - [ ] **Step 3:** In `docs/superpowers/plans/2026-11-11-quality-events.md`, mark D2 Task 8 as done by G5 (D2 Task 9 depends on it).
 - [ ] **Step 4:** Pull request text states it is a security fix, lists the seven endpoints, and says the behaviour for users acting on their own laboratory is unchanged.
+
+## Cross-plan corrections (whole-programme review, 2026-11-11)
+
+These corrections come from reviewing all plans together against the code. Where they differ from the text above, they win. Shared names are defined once in `docs/superpowers/plans/2026-11-11-build-order.md` (section "Programme conventions").
+
+1. `UpdateWorkflowTypeAsync` lives in `TestWorkflowStepMasterDataService`.
+2. The shared helper is a private method in each service calling `IUserSectionScopeService.GetConfigurableSectionIdsAsync`, copied from `UpdateTestDefinitionAsync`; if both services need it, put it in `backend/MicroLIMS.Application/Services/MasterData/TestConfigurationScope.cs` (internal static).

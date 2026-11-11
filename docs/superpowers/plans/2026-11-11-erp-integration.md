@@ -94,3 +94,13 @@
 - [ ] **Step 1:** `documents/Interfaces/SAP-QM-Interface-Specification.md`: every message with fields, types, examples (JSON and XML), transports, idempotency, retry, error codes — for the SAP team.
 - [ ] **Step 2:** Requirements (A1 area `ERP`), risk rows, tags; SOP note on manual SAP correction.
 - [ ] **Step 3:** Full verification per `CLAUDE.md`; report counts; report the archive-before-commit finding if found.
+
+## Cross-plan corrections (whole-programme review, 2026-11-11)
+
+These corrections come from reviewing all plans together against the code. Where they differ from the text above, they win. Shared names are defined once in `docs/superpowers/plans/2026-11-11-build-order.md` (section "Programme conventions").
+
+1. **Outbox is shared with E3.** `IntegrationOutboxMessage` gets `Channel` (`Erp`=1, `Webhook`=2) and `OrderingKey` (inspection lot number for ERP, subscription id for webhooks); `InspectionLotNumber` and `SampleId` become nullable. Ordering is per `OrderingKey`. The worker is named `IntegrationOutboxWorker`; transports are chosen by channel.
+2. **One machine-client model shared with E3.** `IntegrationClient` gets `Kind` (`Erp`=1, `ServiceAccount`=2). One key scheme `ClientKey`, header `X-Api-Key`, key prefix `lims_client_`. E3 adds scopes to the same entity.
+3. The correction gate is named `PostDecisionCorrectionGate` (not `ErpCorrectionGate`) because E3 and E4 reuse it for customer and identification changes.
+4. Name migrations `AddIntegrationMessaging` (Task 1), `AddErpMappingAndExpectedSamples` (Task 2).
+5. Audit capture for the two message tables is approved (user, 2026-11-11).

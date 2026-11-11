@@ -215,3 +215,11 @@ Before changing L129: check the backend validator for `MatrixCellInput.numericVa
 - Each screen group on the real tablet model with gloves.
 - A real Wi-Fi drop during a count entry; review of the resulting audit entry by QA.
 - Install to the home screen on the chosen tablet and one update cycle.
+
+## Cross-plan corrections (whole-programme review, 2026-11-11)
+
+These corrections come from reviewing all plans together against the code. Where they differ from the text above, they win. Shared names are defined once in `docs/superpowers/plans/2026-11-11-build-order.md` (section "Programme conventions").
+
+1. This plan owns `GET api/client-settings`; C3 and others only add fields to it.
+2. `/health` already exists (`HealthCheckExtensions.cs`); the connection status hook calls it.
+3. Draft rule (programme-wide): every `useBenchDraft` call passes an explicit **allow-list** of fields.

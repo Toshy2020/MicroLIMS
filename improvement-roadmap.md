@@ -171,6 +171,8 @@ Phases 0, 1 and 2 can run in parallel if more than one person is available. Phas
 
 ### C5. Notification centre and real-time updates — Size M
 
+**Spec:** `docs/superpowers/specs/2026-11-11-notifications-live-updates-design.md`. **Plan:** `docs/superpowers/plans/2026-11-11-notifications-live-updates.md`.
+
 **Current state.** `NotificationLog` and `DashboardNotificationService` exist, and the header has a notification button. Updates come from polling; there is no SignalR.
 
 **Scope.**

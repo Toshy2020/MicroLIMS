@@ -1,7 +1,7 @@
 # C5 — Notification Centre and Live Updates: Design Specification
 
 **Roadmap package:** C5 (`improvement-roadmap.md`)
-**Status:** Draft for user review
+**Status:** Approved by the user 2026-11-11
 **Date:** 2026-11-11
 
 ## 1. Purpose
@@ -23,7 +23,6 @@ Tell the right person about waiting, overdue and expiring items even when they a
 - "Who else is viewing this record".
 - Rebuilding Messages or Discussions (only their timers change).
 - Escalation time limits themselves: the laboratory enters them; none is built in.
-- Working-hours calendars (escalation counts clock hours; see 9.2).
 
 ## 4. Current state (from code, not run)
 
@@ -103,7 +102,7 @@ A rule belongs to one section and says:
 | Part | Values |
 |---|---|
 | Trigger | Review waiting; approval waiting; returned test not corrected; incubation ready and not read; sample received and testing not started; document task past its due date |
-| After | A number of hours, entered by the Section Head |
+| After | A number of **working hours**, entered by the Section Head |
 | Tell | A role in that section (Section Head, QC Manager, Reviewer) |
 | How | In-app and email |
 
@@ -111,6 +110,7 @@ A rule belongs to one section and says:
 - A rule is never edited in place: a change retires the old rule and creates a new one, so it is always possible to see which rule was in force when an escalation fired. All changes are audited.
 - The job checks rules every 5 minutes. A rule fires **once** per record; the firing is stored (`EscalationEvent`: rule, record, time, recipients) and shown on the record's history.
 - When the cause is resolved the escalation notification is marked resolved.
+- **Working hours** (user decision): time is counted only inside the laboratory's working hours. A weekly schedule (working days with start and end time, in the laboratory time zone) is set on a new page; public holidays and shutdowns come from the existing non-working dates list. A rule cannot be created until the weekly schedule is set.
 - **No rule exists until someone creates one.** No time limit is built in.
 - Escalation tells people; it changes no status and blocks nothing.
 
@@ -161,7 +161,7 @@ A rule belongs to one section and says:
 
 ## 9. Open items
 
-1. **Escalation time limits** per trigger and section: entered by the laboratory after delivery.
-2. **Clock hours or working hours** for escalation. The spec uses clock hours; working-hours calendars would be a later addition.
-3. **Mail server** details and sender address for the site.
-4. Whether **Reviewer** should also be allowed to configure mandatory types (the spec gives this to Section Head and QC Manager).
+1. **Escalation time limits, working hours and non-working dates:** entered by the laboratory after delivery.
+2. **Mail server** details and sender address for the site.
+3. Mandatory types and escalation rules are configured by Section Head and QC Manager (user decision).
+4. Approval needed before building: treat the email queue and the escalation firing log as operational logs outside automatic audit capture (rule changes themselves are always audited).

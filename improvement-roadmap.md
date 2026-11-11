@@ -370,6 +370,9 @@ Phases 0, 1 and 2 can run in parallel if more than one person is available. Phas
 
 **Scope.** Storage locations (room → fridge → shelf → box); custody transfer events by scan; retained-sample register with retention period; disposal with approval and audit row.
 
+**Design spec:** `docs/superpowers/specs/2026-11-11-retained-sample-storage-design.md`
+**Implementation plan:** `docs/superpowers/plans/2026-11-11-retained-sample-storage.md`
+
 ### F4. Arabic and RTL — Size L
 
 **Current state.** No i18n library; all text is in the components.

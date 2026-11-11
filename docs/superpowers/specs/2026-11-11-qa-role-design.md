@@ -55,18 +55,19 @@ Not chosen, so not built: a QA final release step after sample approval, and QA 
 | Perform and sign audit trail reviews and access reviews (new) | |
 
 - New permissions: `Audit.Review` (perform and sign an audit trail review) and `Access.Review.Sign` (decide and sign an access review).
+- Document review and approval are counted today among the laboratory approval permissions that may not be mixed with administration. For QA they are allowed; every other laboratory execution or approval permission is forbidden.
 - `Sections.ViewAll` is granted to QA. It gives reading only; writing still needs membership, which QA does not have.
 - **Independence rule, enforced on the server:** a role of type QA, or any role holding `Audit.Review` or `Access.Review.Sign`, is refused any laboratory execution or approval permission and any administration permission. The check is added to the existing rule that already separates administration from the laboratory, so it applies to custom roles and to every later change.
 - The rule is also checked at start-up against the stored grants: a violation is logged as a security event and reported in the access review, never silently repaired.
 
 ### 5.3 Reading across sections
 
-Granting `Sections.ViewAll` only works where a screen asks the shared scope service. Any read path that looks at membership directly would show QA nothing. All read paths are listed and the ones that bypass the scope service are moved to it. No write path changes.
+Granting `Sections.ViewAll` only works where a screen asks the shared scope service. Any read path that looks at membership directly would show QA nothing. All read paths are listed and the ones that bypass the scope service are moved to it. No write path changes. The audit trail search is already not limited by section.
 
 ### 5.4 Controlled documents
 
 - QA can be assigned as reviewer or approver of a document, and can approve with an electronic signature, like a Reviewer today.
-- The role-name checks in Document Control are replaced by permission checks with the same result for existing roles, plus QA. Section Head override powers are **not** given to QA.
+- Document Control lets only a Reviewer or Section Head be an approver, by role name. QA is added to that rule. The Section Head override powers are **not** given to QA. Documents are already readable without section membership.
 - The existing rule stays: the author of a revision cannot approve it.
 - Whether a document type **must** have a QA approver is a setting per document type, off by default, switched on by the site.
 
@@ -83,9 +84,10 @@ A record that the audit trail was reviewed:
 
 ### 5.6 Access review
 
-- The existing access review stays where it is for preparation by the administrator.
-- The **decision and signature** move to QA: for each user, QA confirms the access is right or marks it for change, then signs the review. The administrator carries out the changes; the administrator cannot sign the review of the accounts they administer.
-- Until a site has a QA user, the current behaviour remains, so nothing is blocked on the day of upgrade.
+- The access review already exists: a fixed snapshot of users and access, findings, and an electronic signature. Today the System Administrator does all of it.
+- The administrator still generates the review. **Recording findings and signing move to QA.** The administrator carries out the requested changes.
+- Until a site has an active QA user, the administrator can still sign as today, so nothing is blocked on the day of upgrade. From the moment one exists, an administrator's signature is refused.
+- The existing rule stays: a person named in a finding cannot sign.
 
 ### 5.7 Screens
 

@@ -1,7 +1,7 @@
 # D5 — SOP Revision on the Test Record: Design Specification
 
 **Roadmap package:** D5 (`improvement-roadmap.md`)
-**Status:** Approved by the user 2026-11-11
+**Status:** Draft for user review (decisions in section 2 confirmed 2026-11-11)
 **Date:** 2026-11-11
 **Related:** C6 (Open SOP), D4 (competency gate uses the same SOP resolution).
 

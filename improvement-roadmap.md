@@ -356,6 +356,9 @@ Phases 0, 1 and 2 can run in parallel if more than one person is available. Phas
 
 **Scope.** Floor-plan view per room with sampling points and colour plus icon status (never colour alone); isolate tracking from a plate to an identified organism; flora library and trending per room, grade and season; excursion handling linked to D1 and D2; adverse-trend rules. The trend rules come from your EM SOP.
 
+**Design spec:** `docs/superpowers/specs/2026-11-11-em-analytics-design.md`
+**Implementation plan:** `docs/superpowers/plans/2026-11-11-em-analytics.md`
+
 ### F2. Plate and evidence photos — Size M
 
 **Scope.** Attach a photo to a plate reading from a tablet camera; stored through the existing file storage with a SHA-256 hash, capture time and user; shown beside the result at review; never editable. Automated colony counting is out of scope until you decide otherwise.

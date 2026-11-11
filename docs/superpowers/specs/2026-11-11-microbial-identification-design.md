@@ -64,7 +64,7 @@ Each isolate has one or more identification attempts. Each attempt: method, resu
 | EM | A plate whose location reading is out of specification (action limit or specification exceeded) or flagged out of trend | One identified isolate per such plate |
 | Water | A plate whose sampling-point reading is out of specification or flagged out of trend | One identified isolate per such plate |
 
-- Which readings are out of specification or out of trend is decided by the existing evaluation and the existing out-of-trend flag; nothing new. A reading at alert level only does not require identification.
+- Which readings are out of specification is decided by the existing evaluation. **Out of trend** is the flag set by package F1's adverse-trend rules (the code has no working out-of-trend flag today); until F1 is built, only out-of-specification plates require identification. A reading at alert level only does not require identification.
 - **Identification is separate from approval** (decided by the user 2026-11-11): approving a sample against its specifications is not blocked by an open identification. Open identifications are listed for the laboratory (My Work and a register) until completed.
 
 #### 5.3.1 Pathogen tests: identification in the biochemical step

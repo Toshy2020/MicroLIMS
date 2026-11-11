@@ -641,3 +641,282 @@ describe("TestMasterPage - workflow steps after adding, duplicate and deep link"
     expect(masterDataOptions.getTestWorkflowSteps).not.toHaveBeenCalled();
   });
 });
+
+describe("TestMasterPage - method acceptance fields are required, never defaulted on save", () => {
+  type User = ReturnType<typeof userEvent.setup>;
+
+  const dissolutionDefaults = {
+    dissolutionS1Offset: 5,
+    dissolutionS2MinOffset: 15,
+    dissolutionS3MinOffset: 25,
+    dissolutionS3MaxBelowS2Min: 2
+  };
+  const disintegrationDefaults = {
+    disintegrationStage1Units: 6,
+    disintegrationStage2Units: 12,
+    disintegrationMaxStage1Failures: 2,
+    disintegrationMinPassTotal: 16
+  };
+  const weightVariationDefaults = {
+    wvUnitCount: 20,
+    wvTabletBand1MaxMg: 130,
+    wvTabletBand1Percent: 10,
+    wvTabletBand2MaxMg: 324,
+    wvTabletBand2Percent: 7.5,
+    wvTabletBand3Percent: 5,
+    wvTabletMaxOutside: 2,
+    wvCapsuleInnerPercent: 10,
+    wvCapsuleOuterPercent: 25,
+    wvCapsuleS1MaxOutside: 2,
+    wvCapsuleS1MaxForRetest: 6,
+    wvCapsuleS2ExtraUnits: 40,
+    wvCapsuleS2MaxOutside: 6
+  };
+
+  const storedDissolution: TestDefinitionOption = {
+    id: 50,
+    code: "DISS-01",
+    displayName: "Dissolution Test",
+    sectionId: 1,
+    workflowType: "Dissolution",
+    equationType: "Dissolution",
+    methodAbbreviation: "DISS-A",
+    isActive: true,
+    physchemArea: "FinishedProduct",
+    dissolutionS1Offset: 6,
+    dissolutionS2MinOffset: 16,
+    dissolutionS3MinOffset: 26,
+    dissolutionS3MaxBelowS2Min: 3
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(laboratorySectionService.getSections).mockResolvedValue([
+      { sectionId: 1, sectionCode: "FP", sectionName: "Finished Product" }
+    ] as never);
+    vi.mocked(laboratorySectionService.getMySections).mockResolvedValue([
+      { sectionId: 1, sectionCode: "FP", sectionName: "Finished Product" }
+    ] as never);
+    vi.mocked(masterDataOptions.getTestDefinitions).mockResolvedValue([]);
+    vi.mocked(masterDataOptions.createTestDefinition).mockResolvedValue({ ...storedDissolution, id: 60 } as never);
+    vi.mocked(masterDataOptions.updateTestDefinition).mockResolvedValue(storedDissolution as never);
+  });
+
+  async function openAddDialogFor(user: User, workflowOption: RegExp) {
+    renderInRouter(<TestMasterPage lab="fp" area="fp" />);
+    await user.click(await screen.findByRole("button", { name: /Add Test/i }));
+    const dialog = await screen.findByRole("dialog");
+    await waitFor(() => {
+      expect(within(dialog).getByRole("combobox", { name: "Section" }).textContent).toContain("Finished Product");
+    });
+    await user.click(within(dialog).getByLabelText("Workflow Type"));
+    await user.click(await screen.findByRole("option", { name: workflowOption }));
+    await user.type(within(dialog).getByLabelText(/^Code/), "NEW-METHOD");
+    await user.type(within(dialog).getByLabelText(/^Display Name/), "New Method Test");
+    return dialog;
+  }
+
+  async function openAddDissolution(user: User) {
+    const dialog = await openAddDialogFor(user, /^Dissolution/);
+    await user.type(within(dialog).getByPlaceholderText("e.g. VIT-C"), "DISS-A");
+    return dialog;
+  }
+
+  const submitAdd = (user: User, dialog: HTMLElement) =>
+    user.click(within(dialog).getByRole("button", { name: /^Add Test$/ }));
+
+  const numberField = (dialog: HTMLElement, label: RegExp) => within(dialog).getByLabelText(label) as HTMLInputElement;
+
+  it("rejects a cleared dissolution offset, names the field and sends nothing", async () => {
+    const user = userEvent.setup();
+    const dialog = await openAddDissolution(user);
+
+    await user.clear(numberField(dialog, /^S2: no unit/));
+    await submitAdd(user, dialog);
+
+    expect(await within(dialog).findByText('Dissolution: "S2: no unit < Q −" is required.')).toBeTruthy();
+    expect(masterDataOptions.createTestDefinition).not.toHaveBeenCalled();
+    expect(screen.getByRole("dialog")).toBeTruthy();
+  });
+
+  it("saves the dissolution offsets exactly as shown once the cleared field is typed back", async () => {
+    const user = userEvent.setup();
+    const dialog = await openAddDissolution(user);
+
+    const s2 = numberField(dialog, /^S2: no unit/);
+    await user.clear(s2);
+    await submitAdd(user, dialog);
+    expect(await within(dialog).findByText(/is required\./)).toBeTruthy();
+
+    await user.type(s2, "15");
+    await submitAdd(user, dialog);
+
+    await waitFor(() => {
+      expect(masterDataOptions.createTestDefinition).toHaveBeenCalledTimes(1);
+    });
+    const payload = vi.mocked(masterDataOptions.createTestDefinition).mock.calls[0][0];
+    expect(payload).toMatchObject({
+      workflowType: "Dissolution",
+      methodAbbreviation: "DISS-A",
+      ...dissolutionDefaults,
+      disintegrationStage1Units: null,
+      wvUnitCount: null
+    });
+  });
+
+  it("sends the value the user changed, not the prefill", async () => {
+    const user = userEvent.setup();
+    const dialog = await openAddDissolution(user);
+
+    const s1 = numberField(dialog, /^S1: each unit/);
+    await user.clear(s1);
+    await user.type(s1, "7");
+    await submitAdd(user, dialog);
+
+    await waitFor(() => {
+      expect(masterDataOptions.createTestDefinition).toHaveBeenCalledTimes(1);
+    });
+    const payload = vi.mocked(masterDataOptions.createTestDefinition).mock.calls[0][0];
+    expect(payload).toMatchObject({ ...dissolutionDefaults, dissolutionS1Offset: 7 });
+  });
+
+  it("treats text a number field cannot hold as blank", async () => {
+    const user = userEvent.setup();
+    const dialog = await openAddDissolution(user);
+
+    // A type="number" input refuses letters, so the field stays empty and is reported as required.
+    const s3 = numberField(dialog, /^S3: no unit/);
+    await user.clear(s3);
+    await user.type(s3, "abc");
+    expect(s3.value).toBe("");
+    await submitAdd(user, dialog);
+
+    expect(await within(dialog).findByText('Dissolution: "S3: no unit < Q −" is required.')).toBeTruthy();
+    expect(masterDataOptions.createTestDefinition).not.toHaveBeenCalled();
+  });
+
+  it("keeps the dissolution range check for a negative offset", async () => {
+    const user = userEvent.setup();
+    const dialog = await openAddDissolution(user);
+
+    const s1 = numberField(dialog, /^S1: each unit/);
+    await user.clear(s1);
+    await user.type(s1, "-3");
+    await submitAdd(user, dialog);
+
+    expect(await within(dialog).findByText("Dissolution stage offsets must be greater than or equal to zero.")).toBeTruthy();
+    expect(masterDataOptions.createTestDefinition).not.toHaveBeenCalled();
+  });
+
+  it("rejects a cleared disintegration field, then saves all four values once filled", async () => {
+    const user = userEvent.setup();
+    const dialog = await openAddDialogFor(user, /^Disintegration/);
+
+    const units = numberField(dialog, /^Stage 1 Units/);
+    await user.clear(units);
+    await submitAdd(user, dialog);
+
+    expect(await within(dialog).findByText('Disintegration: "Stage 1 Units" is required.')).toBeTruthy();
+    expect(masterDataOptions.createTestDefinition).not.toHaveBeenCalled();
+    expect(screen.getByRole("dialog")).toBeTruthy();
+
+    await user.type(units, "6");
+    await submitAdd(user, dialog);
+
+    await waitFor(() => {
+      expect(masterDataOptions.createTestDefinition).toHaveBeenCalledTimes(1);
+    });
+    const payload = vi.mocked(masterDataOptions.createTestDefinition).mock.calls[0][0];
+    expect(payload).toMatchObject({
+      workflowType: "Disintegration",
+      ...disintegrationDefaults,
+      dissolutionS1Offset: null,
+      wvUnitCount: null
+    });
+  });
+
+  it("rejects a cleared weight variation field, then saves all thirteen values once filled", async () => {
+    const user = userEvent.setup();
+    const dialog = await openAddDialogFor(user, /^Weight Variation/);
+
+    const band3 = numberField(dialog, /^Band 3 Deviation/);
+    await user.clear(band3);
+    await submitAdd(user, dialog);
+
+    expect(await within(dialog).findByText('Weight variation: "Band 3 Deviation (%)" is required.')).toBeTruthy();
+    expect(masterDataOptions.createTestDefinition).not.toHaveBeenCalled();
+    expect(screen.getByRole("dialog")).toBeTruthy();
+
+    await user.type(band3, "5");
+    await submitAdd(user, dialog);
+
+    await waitFor(() => {
+      expect(masterDataOptions.createTestDefinition).toHaveBeenCalledTimes(1);
+    });
+    const payload = vi.mocked(masterDataOptions.createTestDefinition).mock.calls[0][0];
+    expect(payload).toMatchObject({
+      workflowType: "WeightVariation",
+      ...weightVariationDefaults,
+      dissolutionS1Offset: null,
+      disintegrationStage1Units: null
+    });
+  });
+
+  it("names the first blank weight variation field in on-screen order", async () => {
+    const user = userEvent.setup();
+    const dialog = await openAddDialogFor(user, /^Weight Variation/);
+
+    await user.clear(numberField(dialog, /^Stage 2 Max Outside/));
+    await user.clear(numberField(dialog, /^Band 1 Max \(mg\)/));
+    await submitAdd(user, dialog);
+
+    expect(await within(dialog).findByText('Weight variation: "Band 1 Max (mg)" is required.')).toBeTruthy();
+    expect(masterDataOptions.createTestDefinition).not.toHaveBeenCalled();
+  });
+
+  it("keeps the weight variation consistency check", async () => {
+    const user = userEvent.setup();
+    const dialog = await openAddDialogFor(user, /^Weight Variation/);
+
+    const band1 = numberField(dialog, /^Band 1 Max \(mg\)/);
+    await user.clear(band1);
+    await user.type(band1, "400");
+    await submitAdd(user, dialog);
+
+    expect(await within(dialog).findByText("Weight variation Tablet Band 1 Max Mg must be less than Band 2 Max Mg.")).toBeTruthy();
+    expect(masterDataOptions.createTestDefinition).not.toHaveBeenCalled();
+  });
+
+  it("editing a stored dissolution test: a cleared field is rejected and nothing is updated", async () => {
+    vi.mocked(masterDataOptions.getTestDefinitions).mockResolvedValue([storedDissolution]);
+    const user = userEvent.setup();
+    renderInRouter(<TestMasterPage lab="fp" area="fp" />);
+
+    await user.click((await screen.findAllByRole("button", { name: "Row actions" }))[0]);
+    await user.click(await screen.findByRole("menuitem", { name: "Edit" }));
+    const dialog = await screen.findByRole("dialog");
+    expect(numberField(dialog, /^S1: each unit/).value).toBe("6");
+
+    await user.clear(numberField(dialog, /^S3: max units/));
+    await user.click(within(dialog).getByRole("button", { name: "Save Changes" }));
+
+    expect(await within(dialog).findByText('Dissolution: "S3: max units < Q − S2 value" is required.')).toBeTruthy();
+    expect(masterDataOptions.updateTestDefinition).not.toHaveBeenCalled();
+    expect(screen.getByRole("dialog")).toBeTruthy();
+
+    await user.type(numberField(dialog, /^S3: max units/), "3");
+    await user.click(within(dialog).getByRole("button", { name: "Save Changes" }));
+
+    await waitFor(() => {
+      expect(masterDataOptions.updateTestDefinition).toHaveBeenCalledTimes(1);
+    });
+    const [id, payload] = vi.mocked(masterDataOptions.updateTestDefinition).mock.calls[0];
+    expect(id).toBe(50);
+    expect(payload).toMatchObject({
+      dissolutionS1Offset: 6,
+      dissolutionS2MinOffset: 16,
+      dissolutionS3MinOffset: 26,
+      dissolutionS3MaxBelowS2Min: 3
+    });
+  });
+});

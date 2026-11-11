@@ -278,6 +278,9 @@ Phases 0, 1 and 2 can run in parallel if more than one person is available. Phas
 5. Results by time point in tables and charts. Statistical shelf-life evaluation only if you confirm the method (D-5).
 6. Stability summary report with signatures.
 
+**Decision D-5 closed 2026-11-11:** ICH conditions as an editable list; pull windows per protocol; no statistical evaluation; limits fixed in the protocol.
+**Design spec:** `docs/superpowers/specs/2026-11-11-stability-studies-design.md`
+
 ### D4. Analyst competency gate — Size M
 
 **Current state.** Document Control has a training matrix and role curricula. Nothing in test execution checks it.

@@ -184,6 +184,8 @@ Phases 0, 1 and 2 can run in parallel if more than one person is available. Phas
 
 ### C6. In-app help and onboarding — Size M
 
+**Spec:** `docs/superpowers/specs/2026-11-11-in-app-help-design.md`. **Plan:** `docs/superpowers/plans/2026-11-11-in-app-help.md`.
+
 **Current state.** No help or onboarding code exists.
 
 **Scope.** A first-login tour per role; a Help panel on each page with text from the user manual (A3); field-level hints on complex forms; a link from each test to its controlled SOP in Document Control; a "What's new" note after each release; a keyboard-shortcut sheet.
@@ -256,6 +258,13 @@ Phases 0, 1 and 2 can run in parallel if more than one person is available. Phas
 ---
 
 ## 6. Phase 4 — Integration
+
+
+### D5. SOP revision on the test record — Size S
+
+**Added 2026-11-11 (user decision during C6).** When a test is performed, store which revision of the item's SOP was effective at that moment, so the record shows the method version actually in force (Rule 3.1). Today the SOP link is live: `Item.SopNumber` is matched to Document Control when someone looks, and nothing is stored on the test order.
+
+**Scope.** Capture the document and revision at the first recorded step of a test; show it on the test, the review screen and the certificate where required; never change it afterwards; no effect on tests already recorded.
 
 ### E1. Instrument connectivity — Size L
 

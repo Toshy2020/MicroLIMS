@@ -1,7 +1,7 @@
 # C6 — In-App Help and Onboarding: Design Specification
 
 **Roadmap package:** C6 (`improvement-roadmap.md`)
-**Status:** Draft for user review
+**Status:** Approved by the user 2026-11-11
 **Date:** 2026-11-11
 
 ## 1. Purpose
@@ -13,11 +13,9 @@ Put the right help next to the work: the guide chapter for the page in front of 
 | # | Decision | Answer |
 |---|---|---|
 | 1 | Help text source | The existing user guide, shipped with each release |
-| 2 | Test → SOP link | Made in the Test Master (see my reading below) |
+| 2 | Test → SOP | A test is used by many items and each item has its own SOP. The Test Master shows the items assigned to the test in a side list; each leads to that item's documents |
 | 3 | Onboarding | A short, skippable tour per role |
 | 4 | What's new | Release notes shipped with the version, shown once |
-
-**My reading of answer 2 (please confirm, 9.1):** in the Test Master, the Section Head links a test to a controlled document from Document Control, and analysts get an "Open SOP" button on that test.
 
 ## 3. Out of scope
 
@@ -36,6 +34,7 @@ Put the right help next to the work: the guide chapter for the page in front of 
 - `TestDefinition` has a method abbreviation but no link to a controlled document.
 - Nothing remembers per-user interface state on the server (first login leads only to the change-password step).
 - No markdown renderer is installed.
+- Items carry an SOP number matched by code to Document Control (`ItemStmService`) and have a Documents tab with uploaded files. Tests have no document link, and no screen lists which items use a test.
 
 ## 5. Design
 
@@ -56,14 +55,14 @@ Put the right help next to the work: the guide chapter for the page in front of 
 - First release covers the forms users find hardest: specification parameters, Test Master (workflow steps, dilution, CoA order), sample receiving, count entry, media preparation, escalation rules. Each hint is one to three sentences and may link to the guide section.
 - Hints explain what a field means and where its value is used. They never state a limit, formula or rule that is not already in the approved configuration or documents.
 
-### 5.3 Test → SOP link
+### 5.3 Items using a test, and their SOPs
 
-- `TestDefinition` gains an optional link to a controlled document (the document, not a fixed revision).
-- In the Test Master the Section Head picks it with a document search limited to effective documents. The change follows the Test Master's normal versioning and audit.
-- In the test workflow dialog an "Open SOP" button opens the document's **current effective revision** in the Document Control viewer.
-- Access follows Document Control: a user who may not read the document sees the button disabled with the reason.
-- If the linked document has no effective revision (withdrawn, or under revision with none effective) the button says so, and the Test Master row shows a warning to the Section Head.
-- The link is informative. It takes no part in result evaluation and does not change historical records.
+SOPs already belong to **items**, not tests: each item has an SOP number that the system matches to a controlled document in Document Control, and a Documents tab holding its uploaded SOP and verification report. Nothing new is linked.
+
+- **Test Master:** the details view of a test gains a side list, "Items using this test", with search and paging. Each row shows the item, its SOP number and whether that number is found in Document Control, with two links: "Item documents" (the item's Documents tab) and "Open SOP" (the controlled document).
+- An item is listed when the test is in its specifications or is assigned automatically at receipt, and is not marked not applicable for it.
+- **Test dialog:** when the sample has an item (product, raw material, packaging), an "Open SOP" button opens that item's SOP. If the item has no SOP number, or the number is not in Document Control, or there is no effective revision, or the user may not read it, the button says which. Samples without an item (water, environmental monitoring, after cleaning) have no button.
+- Access follows Document Control. The feature is informative and changes no record.
 
 ### 5.4 First-login tour
 
@@ -111,9 +110,9 @@ A small server store for interface state, `UserUiState` (user, key, value up to 
 6. What's new.
 7. Documents: requirements; a short SOP note that in-app help is guidance and the approved SOPs govern.
 
-## 9. Open items
+## 9. Notes and open items
 
-1. **Confirm my reading** of the Test → SOP link (section 2).
-2. The guide is descriptive text in `documentation/`, not an approved document. If your quality system requires the in-app help to be an approved, controlled text, it must first be reviewed and issued through Document Control (roadmap package A3); C6 can ship before or after that.
-3. Should the system **record which SOP revision was effective** when a test was performed? This is not in C6; it would be a traceability addition for you to decide.
-4. Wording of the tours and first release notes: drafted during implementation for your review.
+1. Confirmed by the user: showing the existing guide as guidance, with the fixed label, is acceptable.
+2. **Recording which SOP revision was effective when a test was performed** was agreed as a good idea. It is a traceability change to test records, so it is added to the roadmap as its own package (D5) and is not built in C6.
+3. Approval needed before building: treat the per-user interface state (tour seen, last release note) as preference data outside automatic audit capture.
+4. Wording of the tours, hints and first release notes is drafted during implementation for your review.

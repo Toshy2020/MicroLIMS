@@ -1,7 +1,7 @@
 # E3 — Public API and Webhooks: Design Specification
 
 **Roadmap package:** E3 (`improvement-roadmap.md`)
-**Status:** Draft for user review
+**Status:** Approved by the user 2026-11-11
 **Date:** 2026-11-11
 **Builds on:** E2 (integration clients, outbox and delivery worker).
 
@@ -113,8 +113,8 @@ Let in-house systems, reporting tools and customers read approved laboratory inf
 5. Webhooks.
 6. Documents: API guide for consumers, requirements, SOP note on granting external access.
 
-## 9. Questions for you
+## 9. Decisions recorded 2026-11-11
 
-1. **Customers.** The system has no customer today. Adding a customer to the sample at receipt is required for customer access. Agreed?
-2. **Customer on the certificate.** Off by default, switchable. Agreed?
-3. **Access log retention:** 2 years by default. Agreed?
+1. A customer list and an optional customer on each sample at receipt are added.
+2. The customer is not printed on the certificate unless the setting is switched on.
+3. The access log is kept for 2 years by default.

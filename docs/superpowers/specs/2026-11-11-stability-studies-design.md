@@ -3,7 +3,7 @@
 **Roadmap package:** D3 (`improvement-roadmap.md`)
 **Status:** Approved by the user 2026-11-11
 **Date:** 2026-11-11
-**Depends on:** B4 (role pattern). **Related:** C1 (My Work), C5 (notifications), D1 (OOS), D2 (deviations).
+**Depends on:** B4 (role pattern), D2 (deviations for missed pulls and excursions). **Related:** C1 (My Work), C5 (notifications), D1 (OOS), D2 (deviations).
 
 ## 1. Purpose
 

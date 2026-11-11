@@ -1,7 +1,7 @@
 # E2 — ERP (SAP QM) Integration: Design Specification
 
 **Roadmap package:** E2 (`improvement-roadmap.md`)
-**Status:** Draft for user review
+**Status:** Approved by the user 2026-11-11
 **Date:** 2026-11-11
 
 ## 1. Purpose

@@ -1,7 +1,7 @@
 # C3 — Smarter Tables: Design Specification
 
 **Roadmap package:** C3 (`improvement-roadmap.md`)
-**Status:** Draft for user review
+**Status:** Approved by the user 2026-11-11
 **Date:** 2026-11-11
 
 ## 1. Purpose
@@ -17,7 +17,7 @@ Give the main list pages one consistent table: saved views, column choice, filte
 | 3 | Bulk actions | Export selected rows; assign analyst; print labels (B1); and the bulk work that already exists in the microbiology workspace (media selection and incubation) |
 | 4 | Export | New permission, given to Section Head, Reviewer and QC Manager; every export audited |
 
-**My reading of the last part of answer 3 (please confirm, 9.1):** the microbiology workspace already has grouped actions for selecting media and starting incubation for several tests. You want these to keep working and to be driven by the same new row selection, not rebuilt or changed in their rules.
+Confirmed by the user: the microbiology workspace's existing grouped actions for media selection and incubation keep their rules and are driven by the new row selection.
 
 ## 3. Out of scope
 
@@ -61,7 +61,7 @@ A table's state is: filters, search text, sort, page size, visible columns and t
 - "Save view" stores the current state under a name. "Views" lists My views and Shared views; picking one applies it.
 - A user can mark one view per table as their default; it is applied when they open the page without filters in the link.
 - Limits: 20 personal views per table per user; names up to 60 characters, unique per owner and table.
-- **Shared views:** a user with the new permission `TableViews.Share` (seeded to Section Head) can publish a view to one of their sections. Members of that section see it under Shared views, read-only; they can "Save a copy". Only the owner or another holder of the permission in that section can change or remove it.
+- **Shared views:** a user with the new permission `TableViews.Share` (seeded to Section Head and QC Manager) can publish a view to one of their sections. Members of that section see it under Shared views, read-only; they can "Save a copy". Only the owner or another holder of the permission in that section can change or remove it.
 - A view stores settings only, never rows.
 - If a view names a column or filter that no longer exists, the rest is applied and a notice says what was skipped.
 - Stored on the server (`TableView`: owner, table key, name, scope, section, state as versioned JSON up to 8 KB; `UserTableDefault`: user, table key, view). Changes are audited by default like any other record.
@@ -146,8 +146,9 @@ Sortable headers announce their state; the column menu, views menu and action ba
 6. Move the hand-built registers, one page per change, busiest first: sample register, workspaces, equipment, media, cryovials, items, document library, OOS tracking, receiving register.
 7. Documents: requirements and user guide.
 
-## 9. Open items
+## 9. Notes from the code read
 
-1. **Confirm my reading** of the microbiology workspace bulk work (section 2).
-2. **Bulk assign limit** of 200 rows and **export limit** of 5,000 rows: adjust if your volumes differ.
-3. Whether QC Manager should also be able to share views (the spec gives this to Section Head only).
+- Both workspaces are one page (`ReceivingTestingWorkspacePage`) that renders the sample register table, which already has row selection feeding `GroupedActionsPanel`. The plan swaps that selection for the shared one; the grouped actions are untouched.
+- The sample register has expandable rows, so the shared table gains expandable rows.
+- Exports are logged in the existing `DataExportLog` table, like the Reports exports.
+- Limits confirmed: 200 rows for bulk assign, 5,000 rows for export.

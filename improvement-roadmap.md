@@ -146,6 +146,8 @@ Phases 0, 1 and 2 can run in parallel if more than one person is available. Phas
 
 ### C3. Smarter tables — Size M
 
+**Spec:** `docs/superpowers/specs/2026-11-11-smarter-tables-design.md`. **Plan:** `docs/superpowers/plans/2026-11-11-smarter-tables.md`.
+
 **Current state.** `DataTable` and `RegisterTable` are shared. There are no saved views, no column chooser and no row virtualization.
 
 **Scope.** Add to the shared primitives so every page benefits:

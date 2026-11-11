@@ -384,6 +384,10 @@ Phases 0, 1 and 2 can run in parallel if more than one person is available. Phas
 4. Printed CoA and signed-record language is a regulatory decision (D-9).
 5. Backend validation messages return codes that the frontend translates.
 
+**Decision D-9 closed 2026-11-11:** certificates, reports and signed records are printed in English only.
+**Design spec:** `docs/superpowers/specs/2026-11-11-arabic-rtl-design.md`
+**Implementation plan:** `docs/superpowers/plans/2026-11-11-arabic-rtl.md`
+
 ### F5. Self-service reports — Size L
 
 **Scope.** A report builder over a fixed set of safe, section-scoped datasets; choose columns, filters, grouping and a chart; save and share; schedule by email; every export recorded in `DataExportLog`.

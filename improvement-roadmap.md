@@ -399,6 +399,9 @@ Phases 0, 1 and 2 can run in parallel if more than one person is available. Phas
 
 **Scope.** The reviewer screen highlights only what needs attention: manual overrides, edited values, audit-trail entries with reasons, out-of-window incubations, expired or near-expiry materials, alert-level results. Everything else is collapsed but one click away. The backend computes the exception list.
 
+**Design spec:** `docs/superpowers/specs/2026-11-11-review-by-exception-design.md`
+**Implementation plan:** `docs/superpowers/plans/2026-11-11-review-by-exception.md`
+
 ---
 
 ## 8. Continuous — Engineering health

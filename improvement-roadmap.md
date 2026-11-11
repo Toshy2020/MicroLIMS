@@ -307,6 +307,9 @@ Phases 0, 1 and 2 can run in parallel if more than one person is available. Phas
 
 **Scope.** Capture the document and revision at the first recorded step of a test; show it on the test, the review screen and the certificate where required; never change it afterwards; no effect on tests already recorded.
 
+**Design spec:** `docs/superpowers/specs/2026-11-11-sop-revision-on-test-design.md`
+**Implementation plan:** `docs/superpowers/plans/2026-11-11-sop-revision-on-test.md`
+
 ### E1. Instrument connectivity — Size L
 
 **Current state.** `InstrumentAgent` pushes HPLC data from ChemStation with a hashed API key. `InstrumentImport` reads report text, with Tesseract OCR as a fallback.

@@ -141,6 +141,8 @@ Enums: `QualityRecordType { Deviation, Capa, ChangeControl, Complaint }`; `Quali
 
 ### Task 8: Section and version checks on master-data writes (pre-gate hardening)
 
+> **Moved to package G5** (`docs/superpowers/plans/2026-11-11-masterdata-write-scope-fix.md`), to be done early. If G5 is already merged, skip this task; otherwise implement G5 here. The text below is kept for reference.
+
 **Files:** `MasterData/TestWorkflowStepMasterDataService.cs` (constructor takes only the context; add `IUserSectionScopeService` and a user id parameter to each method), `TestDefinitionMasterDataService.cs` (`FreezeTestDefinitionAsync(int id)` L956, `UnfreezeTestDefinitionAsync(int id)` L965), their controllers; Test `IntegrationTests/MasterDataWriteScopePostgresTests.cs`
 
 **Why:** these writes have no laboratory check today: a holder of `MasterData.Manage` can change steps or freeze a test of another laboratory. The gate in Task 9 needs the laboratory of every write, so this is fixed first and reported to the user as a security fix.

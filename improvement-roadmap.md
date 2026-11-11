@@ -369,6 +369,7 @@ Phases 0, 1 and 2 can run in parallel if more than one person is available. Phas
 | G2 | Test and typing debt | `test-debt-baseline.json`: 668 `fireEvent`, 129 project mocks, 340 `any` in source | Lower the ratchet in every package; never raise it |
 | G3 | Query performance | `slow-query-audit-findings.md`: 46 findings, some open (N+1 in `TestWorkflowController`, uncapped lists) | Close the open findings; add EF command logging in a non-production environment and measure the four key flows |
 | G4 | Operations | Backup script and deploy script exist | Scheduled restore test with a signed record; documented RPO/RTO; PostgreSQL 16 versus 18 difference between agent sessions and CI removed |
+| G5 | Laboratory scope on test configuration writes (security fix, Size S, do early) | Workflow-step changes and test freeze / unfreeze have no laboratory check; five of them have no overwrite check | Refused across laboratories and on stale versions. Spec `docs/superpowers/specs/2026-11-11-masterdata-write-scope-fix-design.md`, plan `docs/superpowers/plans/2026-11-11-masterdata-write-scope-fix.md` |
 
 ---
 

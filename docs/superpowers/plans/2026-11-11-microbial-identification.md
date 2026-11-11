@@ -2,9 +2,9 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Isolates with identification attempts (VITEK 2, manual kit, Gram and simple tests), organism mapping and confidence thresholds, required isolates per source with an approval gate, pathogen consistency checks, and a controlled organism list.
+**Goal:** Isolates with identification attempts (VITEK 2, manual kit, Gram and simple tests), organism mapping and confidence thresholds, required isolates per source with an open-identification list (no approval gate), pathogen consistency checks, and a controlled organism list.
 
-**Architecture:** `Isolate` (polymorphic source by typed nullable FKs), `IdentificationAttempt` with per-method detail, `OrganismNameMapping`, `IdentificationThreshold`; an `IdentificationRequirementService` used by the approval gate and the pathogen biochemical recorder; VITEK 2 files arrive through E1's agent and export-format path as pending instrument data.
+**Architecture:** `Isolate` (polymorphic source by typed nullable FKs), `IdentificationAttempt` with per-method detail, `OrganismNameMapping`, `IdentificationThreshold`; an `IdentificationRequirementService` used by the pathogen biochemical recorder and the open-identification list; VITEK 2 files arrive through E1's agent and export-format path as pending instrument data.
 
 **Tech Stack:** .NET 10, EF Core 10, PostgreSQL, xUnit `[PostgresFact]`; React 19, TypeScript, Vitest.
 
@@ -22,7 +22,7 @@
 
 ## Review Focus
 
-1. Required-isolate count changes in room configuration after readings exist → requirement uses the configuration snapshot at reading time → `Requirement_uses_configuration_at_reading_time` (Task 4).
+1. A reading corrected from OOS to within limits after an isolate was required → requirement disappears but the isolate and identification stay on record → `Corrected_reading_keeps_isolate_history` (Task 4).
 2. A voided isolate still satisfies the requirement → `Voided_isolate_does_not_count` (Task 4).
 3. Final identity changes after the section is approved → refused without the post-decision correction gate → `Identity_change_after_approval_refused` (Task 3).
 4. Same VITEK 2 file adopted onto two isolates → `Vitek_result_adopted_once` (Task 5).
@@ -34,7 +34,6 @@
 |---|---|
 | `Domain/Entities/Identification/*.cs` | `Isolate`, `IdentificationAttempt`, `KitIdentification`, `VitekIdentification`, `SimpleTestResult`, `OrganismNameMapping`, `IdentificationThreshold` |
 | `Domain/Entities/Organism.cs` (modify) | `Genus?` |
-| `Domain/Entities/Room.cs`, water sampling point config (modify) | `IsolatesRequiredAtExcursion` (int, default 1), `IdentifyAllColonies` (bool, rooms only) |
 | `Application/Services/Identification/*.cs` | `IsolateService`, `IdentificationService`, `OrganismMappingService`, `IdentificationRequirementService`, `VitekImportService` |
 | `API/Controllers/IdentificationController.cs` | Endpoints |
 | `frontend/src/modules/identification/*`, `components/OrganismPicker.tsx` (modify) | Screens |
@@ -65,12 +64,12 @@
 - [ ] **Step 1:** Failing tests: unmapped held and released after mapping; above threshold proposed and accepted; below threshold and no-threshold paths need Section Head signature; analyst cannot confirm own choice; new accepted attempt replaces final identity, history kept; `Identity_change_after_approval_refused`.
 - [ ] **Step 2:** FAIL → implement → PASS. Commit `feat(identification): mapping, confidence and final identity`.
 
-### Task 4: Requirements, approval gate, pathogen consistency
+### Task 4: Requirements, open-identification list, pathogen consistency
 
-**Interfaces:** `IdentificationRequirementService.GetOpenAsync(int sampleId, int sectionId, ct)` → list of `{ source, requiredCount, identifiedCount }`: pathogen tests: identification is recorded **inside** the existing biochemical step — `SubmitBiochemicalAsync` (`PathogenConfirmationRecorder.cs:653`) gains `IReadOnlyList<int> isolateIds` (isolates created on that `WorkflowStepResult`), refuses when none has a final identity, and fills `BiochemicalResultText` with a readable summary when the analyst left it empty; no approval gate for pathogen tests (review already requires completed steps); EM / water readings with status Alert/Action/OOS need `IsolatesRequiredAtExcursion` (snapshot stored on the reading when the reading is recorded) isolates with final identity; rooms with `IdentifyAllColonies` need one isolate per counted colony up to the count recorded (confirm with the user if counts are large — see spec question 4). Approval gate (EM and water sources only) in `SampleApprovalService.DecideCoreAsync` with the other pre-conditions: open requirement → `"Identification is required for {source}."`. Consistency in `SubmitBiochemicalAsync`: any isolate of the step with accepted `OrganismId == step.TargetOrganismId` and `organismDetected == false` → refuse; `organismDetected == true` with all accepted isolates ≠ target → reason required.
+**Interfaces:** `IdentificationRequirementService.GetOpenAsync(int sampleId, int sectionId, ct)` → list of `{ source, requiredCount, identifiedCount }`: pathogen tests: identification is recorded **inside** the existing biochemical step — `SubmitBiochemicalAsync` (`PathogenConfirmationRecorder.cs:653`) gains `IReadOnlyList<int> isolateIds` (isolates created on that `WorkflowStepResult`), refuses when none has a final identity, and fills `BiochemicalResultText` with a readable summary when the analyst left it empty; no approval gate for pathogen tests (review already requires completed steps); EM / water: each plate whose reading has `ResultStatus` `ActionLimitExceeded` or `OutOfSpecification`, or whose existing out-of-trend flag is set (`RoomMonitoring.IsOutOfTrend` for EM; read the water entities for the equivalent flag and use it if present, otherwise report that water OOT is not flagged today), needs exactly one isolate with a final identity; `AlertLimitExceeded` alone needs none. **No approval gate:** `SampleApprovalService` is not changed. `ListOpenAsync(sectionIds, ct)` feeds My Work (task type `"Identification"`) and an open-identification register. Consistency in `SubmitBiochemicalAsync`: any isolate of the step with accepted `OrganismId == step.TargetOrganismId` and `organismDetected == false` → refuse; `organismDetected == true` with all accepted isolates ≠ target → reason required.
 
-- [ ] **Step 1:** Failing tests: each requirement source; `Requirement_uses_configuration_at_reading_time`; `Voided_isolate_does_not_count`; approval refused with the message and allowed once identified; biochemical submit refused without isolate; consistency rules with generated organisms; architecture `OrganismLiteralTests` still green.
-- [ ] **Step 2:** FAIL → implement → PASS; pathogen and EM suites pass. Commit `feat(identification): requirements, approval gate and pathogen consistency`.
+- [ ] **Step 1:** Failing tests: each requirement source; `Alert_only_reading_needs_no_identification`; `Oos_and_oot_plate_need_one_identification`; `Voided_isolate_does_not_count`; `Approval_not_blocked_by_open_identification`; open list and My Work entries; biochemical submit refused without isolate; consistency rules with generated organisms; architecture `OrganismLiteralTests` still green.
+- [ ] **Step 2:** FAIL → implement → PASS; pathogen and EM suites pass. Commit `feat(identification): requirements, open list and pathogen consistency`.
 
 ### Task 5: VITEK 2 import
 
@@ -83,6 +82,6 @@
 
 **Files:** `modules/identification/IsolatesPanel.tsx` (embedded in `frontend/src/modules/testingWorkspace/pathogenSteps/BiochemicalTestPanel.tsx` with the method choice VITEK 2 / manual kit / simple tests, and in EM/water result screens), `IdentificationDialog.tsx` (method forms), `PendingVitekPanel.tsx`, `SectionHeadQueuesPage.tsx` (unmapped names, confirmations, thresholds), room and sampling-point configuration fields; report mappers (pathogen tests' identified organisms; EM/water isolates per location); tests; documents (BusinessRules, A1 entries, manual chapter, SOP note).
 
-- [ ] **Step 1:** Failing tests (`userEvent`, `services/` mocked): biochemical step shows the three methods and cannot be submitted without an identification; pending VITEK 2 result shown inside the step; add isolate, record kit and simple tests, accept proposed, choose below threshold, Section Head confirm, unmapped queue, approval blocked message, biochemical submit refusal text.
+- [ ] **Step 1:** Failing tests (`userEvent`, `services/` mocked): biochemical step shows the three methods and cannot be submitted without an identification; pending VITEK 2 result shown inside the step; add isolate, record kit and simple tests, accept proposed, choose below threshold, Section Head confirm, unmapped queue, open-identification list, biochemical submit refusal text.
 - [ ] **Step 2:** FAIL → implement → full checks PASS. Commit `feat(ui): isolates and identification`.
 - [ ] **Step 3:** Full verification per `CLAUDE.md`; report counts and that Task 5 waits for VITEK 2 sample files if not provided.

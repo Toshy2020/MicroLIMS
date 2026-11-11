@@ -1,7 +1,7 @@
 # E4 — Microbial Identification: Design Specification
 
 **Roadmap package:** E4 (`improvement-roadmap.md`)
-**Status:** Draft for user review
+**Status:** Approved by the user 2026-11-11
 **Date:** 2026-11-11
 **Builds on:** E1 (agent and formats). **Feeds:** F1 (environmental monitoring analytics uses the isolates and identities recorded here).
 
@@ -14,7 +14,7 @@ Record which organism was actually found: each picked colony becomes an isolate,
 | # | Decision | Answer |
 |---|---|---|
 | 1 | Methods | VITEK 2 (biochemical cards); manual kits; Gram stain and simple tests |
-| 2 | Isolates recorded | Pathogen tests on product; EM above alert or action level; water above alert or action level; all EM colonies for a flora library |
+| 2 | Isolates recorded | Pathogen tests on product (inside the biochemical step); EM and water plates whose reading is out of specification or out of trend — one identification per plate. No flora library of all colonies |
 | 3 | Confidence | Threshold per system and method, set by the Section Head; below it the analyst chooses and the Section Head confirms. Nothing pre-filled |
 | 4 | Organism list | Only Section Heads add organisms. Unknown names from a system are held until mapped |
 
@@ -61,12 +61,11 @@ Each isolate has one or more identification attempts. Each attempt: method, resu
 | Source | When | Required |
 |---|---|---|
 | Pathogen test (product) | **Inside the existing biochemical (identification) step** of the pathogen workflow | The step itself is the identification: it cannot be submitted without at least one recorded identification (5.3.1) |
-| EM | A location reading at alert or action level | The number of isolates set per room configuration (at least one) |
-| Water | A sampling point reading at alert or action level | As for EM, per sampling point configuration |
-| EM flora library | Every colony, for rooms where "identify all colonies" is switched on | Per room setting; off by default |
+| EM | A plate whose location reading is out of specification (action limit or specification exceeded) or flagged out of trend | One identified isolate per such plate |
+| Water | A plate whose sampling-point reading is out of specification or flagged out of trend | One identified isolate per such plate |
 
-- Which readings count as alert or action level is decided by the existing evaluation; nothing new.
-- For EM and water, a section of a sample cannot be **approved** while a required identification is open (see question 1).
+- Which readings are out of specification or out of trend is decided by the existing evaluation and the existing out-of-trend flag; nothing new. A reading at alert level only does not require identification.
+- **Identification is separate from approval** (decided by the user 2026-11-11): approving a sample against its specifications is not blocked by an open identification. Open identifications are listed for the laboratory (My Work and a register) until completed.
 
 #### 5.3.1 Pathogen tests: identification in the biochemical step
 
@@ -105,7 +104,7 @@ Recording isolates and identifications uses the existing result-recording permis
 |---|---|
 | Unmapped organism name | Attempt held; Section Head task created |
 | Confidence below threshold or no threshold | Analyst must choose; Section Head confirms |
-| Approval with open required identification | Refused, naming the isolate or reading |
+| Open required identification | Listed for the laboratory; approval not blocked |
 | "Not Detected" with an isolate identified as the target | Refused |
 | VITEK 2 result with an unknown isolate number | Kept as pending instrument data; listed for matching |
 | Analyst tries to add an organism | Not offered; refused on the server |
@@ -121,13 +120,14 @@ Recording isolates and identifications uses the existing result-recording permis
 1. Organism list control and genus field.
 2. Isolates and manual identifications (kits, Gram and simple tests).
 3. Mapping and confidence thresholds.
-4. Required isolates per source; approval gate; pathogen consistency.
+4. Required isolates per source; open-identification list; pathogen consistency.
 5. VITEK 2 through the agent with a configured format.
 6. Reports; documents.
 
-## 9. Questions for you
+## 9. Decisions recorded 2026-11-11
 
-1. **Approval gate (EM and water).** For pathogen tests this is settled: identification is recorded inside the biochemical step. For EM and water: may a section be approved while a required identification is still open? I assumed **no**.
-2. **Pathogen consistency.** Refuse "Not Detected" when an isolate is identified as the target organism, and require a reason for "Detected" when all isolates are other organisms. Agreed?
-3. **VITEK 2 export.** Please provide two or three sample export files (or the LIS output description) from your VITEK 2 software; the format is configured from them.
-4. **EM flora library.** Switched on per room, off by default. Agreed?
+1. Pathogen identification is recorded inside the existing biochemical step, with VITEK 2 offered there.
+2. EM and water identification is separate from approval; it never blocks approving a sample against its specifications.
+3. Consistency with the pathogen outcome as in 5.4 is agreed.
+4. VITEK 2 sample export files are not available yet; the VITEK 2 import waits for them, and VITEK 2 results are typed with a reason until then.
+5. Only plates with an out-of-specification or out-of-trend reading need identification, one per plate. No flora library.

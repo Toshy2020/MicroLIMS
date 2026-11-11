@@ -345,6 +345,9 @@ Phases 0, 1 and 2 can run in parallel if more than one person is available. Phas
 
 **Scope.** Import identification results from systems such as MALDI-TOF or VITEK into the existing organism master, linked to the isolate (F1). Formats and confidence rules come from the instrument and your SOP.
 
+**Design spec:** `docs/superpowers/specs/2026-11-11-microbial-identification-design.md`
+**Implementation plan:** `docs/superpowers/plans/2026-11-11-microbial-identification.md`
+
 ---
 
 ## 7. Phase 5 — Reach and depth

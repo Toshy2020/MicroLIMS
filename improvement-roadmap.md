@@ -133,6 +133,9 @@ Phases 0, 1 and 2 can run in parallel if more than one person is available. Phas
 
 **Scope.** A QA system role with its own permissions; which decisions move to or are shared with QA (to be agreed in the design); separation rules between QA, the laboratory and system administration; manual and SOP template updates. Packages D1 and D2 (investigations, CAPA, deviations) build on this role.
 
+**Design spec:** `docs/superpowers/specs/2026-11-11-qa-role-design.md`
+**Implementation plan:** `docs/superpowers/plans/2026-11-11-qa-role.md`
+
 ---
 
 ## 4. Phase 2 — Daily experience (UI/UX)

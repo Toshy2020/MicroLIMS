@@ -1,7 +1,7 @@
 # D2 — Deviation, CAPA, Change Control and Complaint: Design Specification
 
 **Roadmap package:** D2 (`improvement-roadmap.md`)
-**Status:** Draft for user review
+**Status:** Approved by the user 2026-11-11
 **Date:** 2026-11-11
 **Depends on:** B4 (QA role). **Related:** D1 (OOS investigation), C5 (notifications), C7 (reasons on configuration changes).
 
@@ -174,11 +174,11 @@ Reports by type, classification, cause category, laboratory, product, source (OO
 7. Reports and trending.
 8. Documents: requirements, manual chapters, SOP templates for deviation, CAPA, change control and complaint handling.
 
-## 9. Questions for you
+## 9. Decisions recorded 2026-11-11
 
-1. **Deviation closure and CAPA.** I let a deviation close once its CAPA plan is approved, and the CAPA then runs on its own. Or must the deviation stay open until the CAPA is finished?
-2. **Who may raise a deviation.** I allowed every laboratory role, including analysts. Agreed?
-3. **Classification names:** Minor / Major / Critical. Agreed?
-4. **Section Head who is also the owner.** I require a second Section Head or the QC Manager to sign the laboratory conclusion. Agreed, or is QA's approval enough?
-5. **Complaint fields.** Are source, date received, external reference, product, lot and text enough?
-6. **Due times** in working days per type and classification — you can give them now or set them later in the system.
+1. A deviation can close once its required CAPA plan is approved; the CAPA then runs on its own.
+2. Every laboratory role, including analysts, may raise a deviation.
+3. Classifications: Minor, Major, Critical.
+4. When the Section Head is also the owner, a second Section Head or the QC Manager signs the laboratory conclusion. QA's approval does not replace that signature. (My reading of "no need for QA"; to be corrected if wrong.)
+5. Complaint fields: source, date received, external reference, product, lot, text.
+6. Due times are in working days, set later in the system; empty until then.

@@ -46,7 +46,7 @@ Know where every retained sample is, who moved it and when, how much is left, wh
 
 - A **retained sample** record: the sample, item, batch, quantity and unit, quantity remaining, container count, storage condition required, location, retention end date, status (In storage, Out, Disposal requested, Disposed).
 - It is created:
-  - automatically when the retained quantity is recorded at review. The retained quantity becomes **required for finished product, raw material and packaging material samples** (today only raw materials reviewed by the physicochemical laboratory). It is recorded at the review of the physicochemical section; for a sample with no physicochemical tests, at its first section review. See question 1 of section 9, and
+  - automatically when the retained quantity is recorded at review. The retained quantity becomes **required for finished product, raw material and packaging material samples** (today only raw materials reviewed by the physicochemical laboratory). It can be entered **at receipt** (optional there); if it was not entered at receipt, it is required at the review of the physicochemical section, or, for a sample with no physicochemical tests, at its first section review. Either way it is entered once; a later change before any withdrawal needs a reason. And
   - by the laboratory for any other sample ("Register retained portion"), with quantity and location.
 - Each retained sample gets its own label (B1).
 
@@ -117,6 +117,4 @@ When a D1 retest plan uses the retained sample, the analyst records the withdraw
 1. Four levels offered (room, unit, shelf, box), each optional per place; a box may optionally have a position grid.
 2. A retained quantity is required for finished product, raw material and packaging material samples.
 
-## 10. Question
-
-1. **Where the retained quantity is recorded.** Today it is entered at the physicochemical section's review. I kept that, and for samples without physicochemical tests I placed it at the first section review. Would you rather record it at receipt, when the retained portion is physically separated?
+3. The retained quantity is optional at receipt; when not entered there, it is required at review (decided 2026-11-11).

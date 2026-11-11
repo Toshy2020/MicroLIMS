@@ -205,6 +205,8 @@ Phases 0, 1 and 2 can run in parallel if more than one person is available. Phas
 
 ### C8. Navigation — Size S
 
+**Spec:** `docs/superpowers/specs/2026-11-11-navigation-design.md`. **Plan:** `docs/superpowers/plans/2026-11-11-navigation.md`.
+
 **Scope.** Favourites and "recently opened" in the sidebar and in the Ctrl+K dialog; a consistent "why is this locked" message component used by every gated action; breadcrumbs on all deep pages; remember the last selected laboratory and tab.
 
 ---

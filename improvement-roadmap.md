@@ -328,6 +328,10 @@ Phases 0, 1 and 2 can run in parallel if more than one person is available. Phas
 
 **Scope.** Inbound: materials, batches and inspection lots create samples for receiving. Outbound: usage decision (released or rejected) and CoA. An outbox table written inside the business transaction, delivered by a worker after commit (Rule 5.4: no external calls inside a transaction). Replay-safe messages, a monitoring screen, and manual retry. Start with file or REST exchange; add a SAP QM connector only if needed (D-8).
 
+**Decision D-8 closed 2026-11-11:** SAP QM; neutral messages with a configurable mapping over REST or files; no direct SAP connector.
+**Design spec:** `docs/superpowers/specs/2026-11-11-erp-integration-design.md`
+**Implementation plan:** `docs/superpowers/plans/2026-11-11-erp-integration.md`
+
 ### E3. Public API and webhooks — Size M
 
 **Current state.** Swagger is enabled. There are no API keys for external clients and no webhooks.

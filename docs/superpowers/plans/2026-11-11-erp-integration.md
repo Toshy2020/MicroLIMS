@@ -104,3 +104,13 @@ These corrections come from reviewing all plans together against the code. Where
 3. The correction gate is named `PostDecisionCorrectionGate` (not `ErpCorrectionGate`) because E3 and E4 reuse it for customer and identification changes.
 4. Name migrations `AddIntegrationMessaging` (Task 1), `AddErpMappingAndExpectedSamples` (Task 2).
 5. Audit capture for the two message tables is approved (user, 2026-11-11).
+
+## Review corrections (independent review, 2026-11-11)
+
+From the independent review of the build order. These win over the text above and over the earlier corrections section where they differ.
+
+1. Keys: Task 1 creates `IntegrationClientKey { Id; ClientId; KeyHash; KeyPrefix; CreatedAtUtc; ExpiresAtUtc?; RevokedAtUtc?; ValidUntilUtc? }` from the start (several keys per client, rotation with overlap); `IntegrationClient` has no key column. The authentication handler adds a `client_kind` claim; ERP endpoints require `client_kind = Erp`, public API endpoints require `ServiceAccount`, so an ERP key cannot call the public API and the reverse.
+2. `PostDecisionCorrectionGate.EnsureAllowedAsync(int sampleId, PostDecisionChangeKind kind, PostDecisionApproval? approval, CancellationToken ct)`; `PostDecisionChangeKind { ResultCorrection, Reopen, Void, CustomerChange, IdentificationChange }`. It applies **only to SAP-linked samples** (user decision 2026-11-11): QA approval (`ErpCorrectionApproved`, `Erp.ApproveCorrection`), messages held, manual task. For other samples it returns at once and the caller's normal rules apply.
+3. Final-decision hook: E2 registers an `IFinalDecisionHook` (build order 2.4). When the certificate (`ArchivedRecord?`) is null, the usage decision and results are written as usual and the certificate message is written `Held` with an alert to QA and the administrator.
+
+**Translation (build order 2.7):** if F4 Task 4 is merged when this package is built, every new screen uses translation keys and every new refusal carries a message code.

@@ -93,3 +93,11 @@ These corrections come from reviewing all plans together against the code. Where
 1. **Attempt records:** the facts of an attempt (method, reported name, confidence, raw hash, detail rows) are immutable; `Status`, `AnalystChoice`, `ChoiceReason` and the confirmation fields may change only forward (Pending → Proposed / AwaitingConfirmation / HeldUnmapped → Accepted / Rejected), enforced by a trigger that rejects any other update and every delete. `Isolate.FinalAttemptId` and the void fields may be set by the service; nothing else on an isolate changes.
 2. The post-decision gate is E2's `PostDecisionCorrectionGate`.
 3. Numbering uses `AdvisoryLockKeys.Isolate`. Migration `AddMicrobialIdentification`.
+
+## Review corrections (independent review, 2026-11-11)
+
+From the independent review of the build order. These win over the text above and over the earlier corrections section where they differ.
+
+1. Changing a final identity after the source section is approved needs a Section Head signature and reason; for SAP-linked samples it also passes E2's `PostDecisionCorrectionGate` (user decision 2026-11-11: QA approval only for SAP-linked samples).
+
+**Translation (build order 2.7):** if F4 Task 4 is merged when this package is built, every new screen uses translation keys and every new refusal carries a message code.

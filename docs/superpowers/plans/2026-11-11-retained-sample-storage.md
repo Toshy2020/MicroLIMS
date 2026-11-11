@@ -87,3 +87,5 @@ These corrections come from reviewing all plans together against the code. Where
 
 1. The receiving change is in `ItemBasedReceiveRequest` / `ProductWorkflowEngine.ReceiveAsync` (`backend/MicroLIMS.Application/Workflows/ProductWorkflowEngine.cs`), the receiving DTO in `SampleController`, and the receiving form (`NewSampleDialog.tsx`, `MultiSampleEntryGrid.tsx`).
 2. Numbering uses `AdvisoryLockKeys.RetainedSample` and `DisposalRequest`. Migration `AddRetainedSampleStorage`.
+
+**Translation (build order 2.7):** if F4 Task 4 is merged when this package is built, every new screen uses translation keys and every new refusal carries a message code.

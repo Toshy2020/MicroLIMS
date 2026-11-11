@@ -166,3 +166,9 @@ These corrections come from reviewing all plans together against the code. Where
 1. The `/my-work` chapter mapping and tour steps apply when C1 is built; otherwise the tour starts at the dashboard.
 2. Audit capture for `UserUiState` is approved (user, 2026-11-11); Task 1 no longer waits for approval.
 3. Task 5's 'no read access' state is a separate `SopLinkState.NoAccess` value alongside `SopStatus`.
+
+## Review corrections (independent review, 2026-11-11)
+
+From the independent review of the build order. These win over the text above and over the earlier corrections section where they differ.
+
+1. Task 6 (tours) is built after C1, since its steps target `/my-work`.

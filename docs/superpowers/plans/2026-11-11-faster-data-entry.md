@@ -234,3 +234,10 @@ These corrections come from reviewing all plans together against the code. Where
 1. Task 2: `ReferenceNumberGenerator.GenerateAsync` always runs inside a transaction — when called without one it wraps itself in `UnitOfWork.RunAsync` (which joins an existing transaction), so the advisory lock always applies.
 2. Task 5: `useBenchDraft` uses an explicit allow-list of the receiving fields (not a deny-list).
 3. Configuration paste covers six screens (the plan's list); the spec's 'five' is corrected to six.
+
+## Review corrections (independent review, 2026-11-11)
+
+From the independent review of the build order. These win over the text above and over the earlier corrections section where they differ.
+
+1. **Sample number lock (replaces the earlier correction):** the advisory lock must cover generating the number **and** inserting the sample. `ProductWorkflowEngine.ReceiveAsync` and the number-generating paths in `EMWorkflowEngine`, `WaterWorkflowEngine` and `AfterCleaningWorkflowEngine` wrap generate-plus-insert in `UnitOfWork.RunAsync`. `ReferenceNumberGenerator.GenerateAsync` throws `InvalidOperationException` when the provider is relational and there is no current transaction. The lock key is `AdvisoryLockKeys.SampleNumber` (not `hashtext(...)`).
+2. Open items to resolve before Task 3/8: the line placeholder `L…` in Task 3 and the elided `…` fields of `CountCalculationInput` in Task 8 are filled from the code when the task starts; certificate-before-registration (spec §9) is asked of the user before Task 4.

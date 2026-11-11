@@ -273,3 +273,9 @@ These corrections come from reviewing all plans together against the code. Where
 2. Escalation with no recipient notifies holders of `Users.Manage` (the System Administrator role).
 3. Task 9's mapped notification types: ReviewWaiting, ApprovalWaiting, ReturnedToAnalyst, IncubationReady, DocumentTaskDue, Escalation.
 4. Audit capture for `EmailOutbox` and `EscalationEvent` is approved (user, 2026-11-11).
+
+## Review corrections (independent review, 2026-11-11)
+
+From the independent review of the build order. These win over the text above and over the earlier corrections section where they differ.
+
+1. Build after C1 (Task 8 edits C1's `useMyWork`). Task 2 precedes C8 Task 5.

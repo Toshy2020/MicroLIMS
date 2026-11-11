@@ -209,3 +209,9 @@ These corrections come from reviewing all plans together against the code. Where
 2. Task 2: the wizard draft uses an explicit allow-list of the wizard's form fields.
 3. Unfreeze of a test also requires a reason (same rule as freeze).
 4. The test file `SpecificationParameterDialog.rs.test.tsx` is named `SpecificationParameterDialog.retired.test.tsx`.
+
+## Review corrections (independent review, 2026-11-11)
+
+From the independent review of the build order. These win over the text above and over the earlier corrections section where they differ.
+
+1. Before Task 3, read every result-entry path and record whether a missing specification is treated as a pass anywhere; report each case to the user as a finding (spec risk 4) rather than deciding it.

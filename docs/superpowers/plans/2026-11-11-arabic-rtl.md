@@ -84,3 +84,9 @@ These corrections come from reviewing all plans together against the code. Where
 
 1. Task 3's module list also includes every module added by packages built before F4 (identification, emAnalytics, photos, retention, report builder, review exceptions, quality, stability, competency, OOS investigation).
 2. From the moment F4 Task 4 is merged, every new `BusinessRuleException` / `NotFoundException` in any package carries a message code, and every new screen uses translation keys (the ratchets enforce it).
+
+## Review corrections (independent review, 2026-11-11)
+
+From the independent review of the build order. These win over the text above and over the earlier corrections section where they differ.
+
+1. Remove the earlier correction 1 (the 'built before F4' module list). Build position: after C6 Task 1 (interface state), C1 (`PartialOutageBanner`) and C3 (which removes `DataTable`); Tasks 1, 2 and 4 are built together in release R2, Tasks 3 and 5 continue as a stream. The rule 'new screens use keys, new refusals carry codes' starts when Task 4 merges; every later plan's corrections repeat it.

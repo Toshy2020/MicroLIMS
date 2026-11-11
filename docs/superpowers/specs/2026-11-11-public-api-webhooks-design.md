@@ -118,3 +118,5 @@ Let in-house systems, reporting tools and customers read approved laboratory inf
 1. A customer list and an optional customer on each sample at receipt are added.
 2. The customer is not printed on the certificate unless the setting is switched on.
 3. The access log is kept for 2 years by default.
+
+**Audit-capture decision (user, 2026-11-11):** the API access log (`ApiAccessLogEntry`) is kept out of automatic audit capture; it is itself a log.

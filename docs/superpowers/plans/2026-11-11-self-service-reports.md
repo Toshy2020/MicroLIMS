@@ -91,3 +91,5 @@ These corrections come from reviewing all plans together against the code. Where
 1. `IReportDataset<TRow>` is generic; `Query` returns `IQueryable<TRow>`; the compiler is `ReportQueryCompiler.Compile<TRow>`.
 2. Snapshots store `RowsJson` where every row includes its `SectionId` (and `CustomerId` when present), so rows can be filtered by the reader's current access when the snapshot is opened.
 3. Migration `AddReportBuilder`.
+
+**Translation (build order 2.7):** if F4 Task 4 is merged when this package is built, every new screen uses translation keys and every new refusal carries a message code.

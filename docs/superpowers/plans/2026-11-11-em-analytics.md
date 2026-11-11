@@ -94,3 +94,11 @@ These corrections come from reviewing all plans together against the code. Where
 1. Firings open reviews through D1's `OpenExcursionForReadingsAsync(roomId, sampleLocationIds, sourceRef = "trend:{ruleVersionId}:{roomId}", userId: null, ct)`.
 2. E4's plan already reads `SampleLocationTrendFlag`; Task 7 only verifies it.
 3. Migration names: `AddEmGradesAndFloorPlans` (Task 1), `AddEmTrendRules` (Task 4).
+
+## Review corrections (independent review, 2026-11-11)
+
+From the independent review of the build order. These win over the text above and over the earlier corrections section where they differ.
+
+1. **Trend evaluation is not done inside the approval** (user decision 2026-11-11): F1's final-decision hook writes an `EmTrendEvaluationRequest { SampleId; RequestedAtUtc; Attempts; LastError?; DoneAtUtc? }` row in the same save; `EmTrendNightlyWorker` (renamed `EmTrendWorker`, runs every 5 minutes and nightly) processes requests and retries; after 5 failures the Section Head is notified. A failing evaluation never rolls back an approval.
+
+**Translation (build order 2.7):** if F4 Task 4 is merged when this package is built, every new screen uses translation keys and every new refusal carries a message code.

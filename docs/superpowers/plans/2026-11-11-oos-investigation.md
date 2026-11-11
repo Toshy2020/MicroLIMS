@@ -211,3 +211,11 @@ These corrections come from reviewing all plans together against the code. Where
 1. Advisory-lock keys come from one class `backend/MicroLIMS.Application/Helpers/AdvisoryLockKeys.cs` created in Task 2 (`OosNumber = 7_301_001`); later packages add their constants there.
 2. Task 9 also provides `OpenExcursionForReadingsAsync(int roomId, IReadOnlyList<int> sampleLocationIds, string sourceRef, int? userId, CancellationToken ct)` for package F1 (system-opened excursion reviews for EM readings; joins an open review with the same `sourceRef` and room).
 3. Cause categories (`OosCauseCategory`) are the shared cause list for D1 and D2.
+
+## Review corrections (independent review, 2026-11-11)
+
+From the independent review of the build order. These win over the text above and over the earlier corrections section where they differ.
+
+1. Task 6 extracts `FinalizeClosedSampleAsync(Sample sample, string archiveLabel, int userId, CancellationToken ct)` from `SampleApprovalService.FinalizeIfClosedAsync` (L529-540) and makes **both** closing paths call it: the approval path and `PropagateOosOutcomeAsync`'s legacy path (L603-641), which today archives and closes the origin sample by itself. Later packages' final-decision hooks run there (build order 2.4). Test `Origin_closed_by_retest_runs_the_same_finalisation`.
+
+**Translation (build order 2.7):** if F4 Task 4 is merged when this package is built, every new screen uses translation keys and every new refusal carries a message code.

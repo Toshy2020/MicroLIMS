@@ -126,3 +126,13 @@ These corrections come from reviewing all plans together against the code. Where
 1. **Recording points: the scope check for incubation and pathogen recording is in the API (`TestWorkflowController`), not in `IncubationStepRecorder`, `PathogenConfirmationRecorder` or `TestWorkflowEngine`.** The guard must therefore be called in every public recording method of those three classes as well. The architecture test is renamed `RecordingPointCoverageTests` (owned by this plan) and checks an explicit list of recorder classes and methods, not only methods that call `EnsureTestOrderAccessAsync`.
 2. `SopResolution.Status` values map to D5's `SopCaptureStatus` as: Effective → Captured, NoSopNumber → NoSopNumber, NotFound → NotFound, NoEffectiveRevision → NoEffectiveRevision.
 3. `AnalystAssignmentRules.EnsureAssignableAsync` gains the new parameters with defaults so D1's existing calls compile; D1's retest-plan path passes the test order ids.
+
+## Review corrections (independent review, 2026-11-11)
+
+From the independent review of the build order. These win over the text above and over the earlier corrections section where they differ.
+
+1. **Add the pathogen session path.** `PathogenSessionService` writes results directly (`SavePrimaryObservationsAsync` ~L731, `SaveBatchConfirmatoryPlateReadingsAsync` ~L995, `SaveResultMatrixAsync` ~L1129, `CompleteSessionAsync` ~L1220), with scope checked per sample in `PathogenSessionController`. Each of these calls `EvaluateManyAsync` for the affected test orders; refused orders are skipped with the reason (batch behaviour). Split `PathogenSessionService.cs` (1,415 lines, near the 1,500-line limit of `SourceFileSizeTests`) before adding code.
+2. `RecordingPointCoverageTests` is a rule, not a list: it fails for any public method in `Application/Workflows` or `Application/Services` that adds or updates a result entity (`ParameterResult`, `CountTestReading`, `WorkflowStepResult`, `PathogenObservation`, `ConfirmatoryPlateObservation`, `LocationPathogenObservation`, `SampleLocation` results, `TestAnalysis`, `Result`) without calling `ICompetencyGuard`, unless the method is on a named exemption list with a reason.
+3. Call the guard in the recorders only, not again in `TestWorkflowEngine` (its batch callers in `GroupedTestActionService` ~L589-673 must skip refused orders, not throw).
+
+**Translation (build order 2.7):** if F4 Task 4 is merged when this package is built, every new screen uses translation keys and every new refusal carries a message code.

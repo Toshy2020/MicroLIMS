@@ -177,3 +177,12 @@ These corrections come from reviewing all plans together against the code. Where
 2. **Global query filter risk:** this is the first `HasQueryFilter` in the codebase. Before Task 2, list every `Specifications` query in Application and API (including master-data screens, workbook export and `ItemService`) and add a test per reader proving protocol rows stay invisible; workbook export must exclude them.
 3. `EquipmentCalibration.IsCurrent(Equipment equipment, DateTime nowUtc)` is the shared signature (E1 uses the same).
 4. Numbering uses `AdvisoryLockKeys.StabilityProtocol`.
+
+## Review corrections (independent review, 2026-11-11)
+
+From the independent review of the build order. These win over the text above and over the earlier corrections section where they differ.
+
+1. **Replace the global query filter with an explicit predicate.** A global filter would also hide protocol rows behind required navigations (`SpecificationStage.Specification`, `ParameterResult.Specification`), which EF then drops or nulls. Instead: an extension `IQueryable<Specification>.Routine()` = `Where(s => s.StabilityLimitSetId == null)` used by every routine reader, and an architecture test that fails on any `Specifications` query in Application or API outside `SpecificationLookup` and the stability services that does not call `Routine()` or the limit-set branch.
+2. D3 does not depend on E1: Task 5 extracts `EquipmentCalibration.IsCurrent`; E1 reuses it if D3 is first.
+
+**Translation (build order 2.7):** if F4 Task 4 is merged when this package is built, every new screen uses translation keys and every new refusal carries a message code.

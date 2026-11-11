@@ -138,3 +138,5 @@ These corrections come from reviewing all plans together against the code. Where
 1. `EquipmentType.Balance`, `PhMeter`, `IcpOes` and `Gc` already exist; no enum append.
 2. Use `EquipmentCalibration.IsCurrent(Equipment equipment, DateTime nowUtc)` (same signature as D3); the null-due-date rule is open conflict CONF-003 and is not decided here.
 3. Name migrations `AddInstrumentFormats` (Task 1), `AddInstrumentReadings` (Task 2), `AddCapturedValueProvenance` (Tasks 4–5).
+
+**Translation (build order 2.7):** if F4 Task 4 is merged when this package is built, every new screen uses translation keys and every new refusal carries a message code.

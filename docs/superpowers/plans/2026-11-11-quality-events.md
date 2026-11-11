@@ -210,3 +210,11 @@ These corrections come from reviewing all plans together against the code. Where
 1. Task 1: `QualityRecord.RaisedByUserId` is **nullable** from the start, with `RaisedBySystemProcess?`; the separation rule treats a null raiser as 'System' (no person is excluded by it). D3 no longer changes this.
 2. Root-cause categories reuse D1's `OosCauseCategory` (shared list); no separate table.
 3. Numbering uses `AdvisoryLockKeys.QualityDeviation`, `QualityCapa`, `QualityChangeControl`, `QualityComplaint`.
+
+## Review corrections (independent review, 2026-11-11)
+
+From the independent review of the build order. These win over the text above and over the earlier corrections section where they differ.
+
+1. Task 7's migration is named `AddComplaintCauseOfTesting`.
+
+**Translation (build order 2.7):** if F4 Task 4 is merged when this package is built, every new screen uses translation keys and every new refusal carries a message code.

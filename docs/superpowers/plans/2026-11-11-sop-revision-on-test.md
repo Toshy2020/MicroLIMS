@@ -63,3 +63,11 @@
 These corrections come from reviewing all plans together against the code. Where they differ from the text above, they win. Shared names are defined once in `docs/superpowers/plans/2026-11-11-build-order.md` (section "Programme conventions").
 
 1. Build after D4: reuse `ItemSopResolver` and extend D4's `RecordingPointCoverageTests` (do not create a second architecture test). The capture is called in the same methods D4 lists, including `IncubationStepRecorder`, `PathogenConfirmationRecorder` and `TestWorkflowEngine` public recording methods.
+
+## Review corrections (independent review, 2026-11-11)
+
+From the independent review of the build order. These win over the text above and over the earlier corrections section where they differ.
+
+1. Capture is also called in the `PathogenSessionService` recording methods listed in D4's review corrections, and the shared coverage rule applies to it.
+
+**Translation (build order 2.7):** if F4 Task 4 is merged when this package is built, every new screen uses translation keys and every new refusal carries a message code.

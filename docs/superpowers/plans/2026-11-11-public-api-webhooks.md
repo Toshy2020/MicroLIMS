@@ -97,3 +97,13 @@ These corrections come from reviewing all plans together against the code. Where
 2. Webhooks use E2's shared outbox with `Channel = Webhook`, `OrderingKey = subscription id`; the 24-hour pause is a webhook rule applied by the transport, independent of the ERP 'Failed after N attempts' rule.
 3. Use `PostDecisionCorrectionGate` from E2 (do not create it here).
 4. Grant rows: `Api.Manage` → System Administrator; `Api.ViewAccessLog` → System Administrator and QA; `Customers.Manage` → Section Head and System Administrator. Migration `AddPublicApi`.
+
+## Review corrections (independent review, 2026-11-11)
+
+From the independent review of the build order. These win over the text above and over the earlier corrections section where they differ.
+
+1. Accounts: keys are E2's `IntegrationClientKey` rows (several per account, overlap rotation, expiry). E3's account field is named `AccountType (Internal|Customer)` with `CustomerId?` and `RequestsPerMinute?`, stored on `IntegrationClient` (separate from `Kind`).
+2. **`ApiAccessLogEntry` is kept out of automatic audit capture** (user decision 2026-11-11); account, key, scope and webhook configuration stay audited.
+3. Customer changes after approval: normal rules (Section Head, reason); only SAP-linked samples also pass E2's `PostDecisionCorrectionGate`.
+
+**Translation (build order 2.7):** if F4 Task 4 is merged when this package is built, every new screen uses translation keys and every new refusal carries a message code.

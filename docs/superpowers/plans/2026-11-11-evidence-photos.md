@@ -85,3 +85,11 @@ These corrections come from reviewing all plans together against the code. Where
 2. Task 1 entity includes `PendingTargetKey?`. The check constraint is: exactly one reading link **or** a `PendingTargetKey`. The trigger allows one update that sets a reading link and clears `PendingTargetKey` (binding), plus the void columns once; nothing else.
 3. `MediaEvaluationPhotoSetting` is edited with `MasterData.Manage`.
 4. Migration `AddEvidencePhotos`.
+
+## Review corrections (independent review, 2026-11-11)
+
+From the independent review of the build order. These win over the text above and over the earlier corrections section where they differ.
+
+1. The photo requirement also applies to the pathogen session screen's recording methods (`PathogenSessionService`, see D4 review corrections); photos there attach to the same `WorkflowStepResult` / plate observations.
+
+**Translation (build order 2.7):** if F4 Task 4 is merged when this package is built, every new screen uses translation keys and every new refusal carries a message code.

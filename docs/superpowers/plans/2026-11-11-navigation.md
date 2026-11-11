@@ -155,3 +155,9 @@ These corrections come from reviewing all plans together against the code. Where
 1. Task 5: the generic text 'Your role does not include this action.' is used only where the action has no refusal message today; existing messages are returned unchanged.
 2. Audit capture for `RecentRecord` is approved (user, 2026-11-11).
 3. Tab state keys use `nav.tab.{pageKey}` with `pageKey` matching `^[a-z0-9-]{1,40}$` (hyphens allowed).
+
+## Review corrections (independent review, 2026-11-11)
+
+From the independent review of the build order. These win over the text above and over the earlier corrections section where they differ.
+
+1. Programme convention: every pre-signing check added by later packages (D1, D4, E2, F3, F6) is implemented as an `ActionCheck`, so `api/actions/...` and the action itself always agree. Build C8 Task 5 after C5 Task 2 (both change `SampleReviewService.CompleteReviewAsync` around L97-147).

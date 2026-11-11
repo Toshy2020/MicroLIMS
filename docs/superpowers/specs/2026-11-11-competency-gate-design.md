@@ -1,7 +1,7 @@
 # D4 — Analyst Competency Gate: Design Specification
 
 **Roadmap package:** D4 (`improvement-roadmap.md`)
-**Status:** Draft for user review
+**Status:** Approved by the user 2026-11-11
 **Date:** 2026-11-11
 
 ## 1. Purpose
@@ -122,9 +122,9 @@ Roadmap decision D-6 is closed by 4.
 6. Reminders and analyst view.
 7. Documents.
 
-## 9. Questions for you
+## 9. Decisions recorded 2026-11-11
 
-1. **Gate off by default per laboratory**, switched on after qualifications are entered. Agreed?
-2. **Grace for a new SOP revision:** allowed until the reading assignment's due date. Agreed, or blocked from the day the revision becomes effective?
-3. **No SOP found:** allowed with a visible "SOP not checked". Agreed, or should it block?
-4. **Reviewers and Section Heads who record results** are checked like analysts. Agreed?
+1. The gate is off by default per laboratory and switched on after qualifications are entered, with an impact preview.
+2. After a new SOP revision, an analyst who read the previous one may continue until the new reading assignment's due date.
+3. When no SOP can be resolved, the work is allowed and "SOP not checked" is shown and audited.
+4. Reviewers and Section Heads who record results are checked like analysts.

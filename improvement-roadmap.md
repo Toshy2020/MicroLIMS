@@ -192,6 +192,8 @@ Phases 0, 1 and 2 can run in parallel if more than one person is available. Phas
 
 ### C7. Simplify configuration screens — Size L
 
+**Spec:** `docs/superpowers/specs/2026-11-11-simpler-configuration-design.md`. **Plan:** `docs/superpowers/plans/2026-11-11-simpler-configuration.md`.
+
 **Current state.** The largest components are configuration dialogs: `SpecificationParameterDialog.tsx` (1,908 lines), `TestMasterPage.tsx` (1,621), `EquipmentPage.tsx` (1,609), `AddMaterialDialog.tsx` (1,262).
 
 **Scope.**

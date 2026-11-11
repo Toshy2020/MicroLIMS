@@ -1,7 +1,7 @@
 # C7 — Simpler Configuration Screens: Design Specification
 
 **Roadmap package:** C7 (`improvement-roadmap.md`)
-**Status:** Draft for user review
+**Status:** Approved by the user 2026-11-11
 **Date:** 2026-11-11
 
 ## 1. Purpose
@@ -13,13 +13,13 @@ Make the four largest configuration screens easier and safer: guided steps with 
 | # | Decision | Answer |
 |---|---|---|
 | 1 | Changing a specification while samples are open | Warn, require a reason; the new limits apply to open samples (as today) |
-| 2 | Delete / freeze | A reason is always required; deletion stays allowed |
+| 2 | Delete / freeze | A reason is always required. A specification that recorded results refer to is **retired**, not deleted; an unused one may be deleted |
 | 3 | Copy from existing | Specifications from one item to another; a test with its workflow steps; an item; equipment |
 | 4 | Order | Specification, Test Master, Equipment, Add Material |
 
 ## 3. Out of scope
 
-- Specification versions with effective dates (each sample tied to the version in force at receipt). This would be its own package; see 9.2.
+- Specification versions with effective dates. Decided by the user: limits stay those in force when the result is entered.
 - An approval step for configuration changes.
 - Other configuration screens.
 - Any change to what is configured: no field, limit type or workflow option is added or removed.
@@ -78,7 +78,9 @@ Counts link to the matching filtered list. "Open" means not yet approved, reject
 ### 5.3 Impact and reason
 
 - **Edit:** when the change affects open work (the where-used "open" count is above zero), Review shows "This change affects 7 open samples. Results not yet entered will use the new values." and a **reason is required**. With no open work, no reason is asked.
-- **Delete (specification) and freeze (test, item):** the where-used panel is shown first and a **reason is always required**. Deletion remains allowed, as decided.
+- **Delete (specification) and freeze (test, item):** the where-used panel is shown first and a **reason is always required**.
+- **Retire instead of delete:** a specification that any recorded result refers to cannot be deleted. It is retired: kept, marked retired, hidden from new work, and it can be reinstated with a reason. A specification never used may be deleted.
+- A sample still in testing when its specification is retired is stopped with a clear message at result entry; it is never evaluated without limits.
 - The reason is stored in the audit entry of the change.
 - Results already recorded are never touched: they keep the limits copied when they were entered.
 - The server enforces the reason; the screen cannot skip it.
@@ -128,8 +130,8 @@ A read-only view of the test as the analyst will meet it: the step chain in orde
 6. Item copy.
 7. Documents: requirements, guide chapter 31 and 32 updates, SOP note on change reasons.
 
-## 9. Open items
+## 9. Decisions recorded 2026-11-11
 
-1. **Deleting a specification that results refer to.** You chose to keep deletion allowed. The recorded results keep their copied limits, but they lose the link back to the specification row. The screen will say this before the delete. Tell me if you would rather retire than delete in that one case.
-2. **Specification versions with effective dates** would let each sample keep the limits in force when it was received, instead of open samples following the latest change. If you want it, I add it to the roadmap as its own package.
-3. Wording of the impact message and the minimum length of a reason (proposed: 10 characters).
+1. A used specification is retired, not deleted.
+2. No specification versioning: the limits in force when the result is entered apply, as today.
+3. A reason is at least 10 characters.

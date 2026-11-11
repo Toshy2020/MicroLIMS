@@ -363,6 +363,9 @@ Phases 0, 1 and 2 can run in parallel if more than one person is available. Phas
 
 **Scope.** Attach a photo to a plate reading from a tablet camera; stored through the existing file storage with a SHA-256 hash, capture time and user; shown beside the result at review; never editable. Automated colony counting is out of scope until you decide otherwise.
 
+**Design spec:** `docs/superpowers/specs/2026-11-11-evidence-photos-design.md`
+**Implementation plan:** `docs/superpowers/plans/2026-11-11-evidence-photos.md`
+
 ### F3. Sample storage and chain of custody — Size M
 
 **Scope.** Storage locations (room → fridge → shelf → box); custody transfer events by scan; retained-sample register with retention period; disposal with approval and audit row.

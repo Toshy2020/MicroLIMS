@@ -1,7 +1,7 @@
 # D1 — Structured OOS / OOT Investigation: Design Specification
 
 **Roadmap package:** D1 (`improvement-roadmap.md`)
-**Status:** Draft for user review
+**Status:** Approved by the user 2026-11-11
 **Date:** 2026-11-11
 **Related:** B4 (QA role), C5 (notifications), D2 (deviations and CAPA).
 
@@ -14,7 +14,7 @@ Replace the uploaded investigation file with a structured, signed investigation 
 | # | Decision | Answer |
 |---|---|---|
 | 1 | Phases | Phase I laboratory investigation; if no laboratory error is found, Phase II full investigation; then conclusion |
-| 2 | Opening | Automatically on every out-of-specification result. The sample cannot be approved, rejected or certified until the investigation is concluded |
+| 2 | Opening | Automatically on every out-of-specification result, when the reviewer confirms it. The sample cannot be approved, rejected or certified until the investigation is concluded |
 | 3 | Closure | The Section Head closes it. QA is informed and can open a deviation |
 | 4 | Retest | A retest plan is approved before any retest. Retesting without a concluded Phase I is refused |
 
@@ -49,9 +49,9 @@ Replace the uploaded investigation file with a structured, signed investigation 
 
 ### 5.2 Opening
 
-- The investigation opens in the same transaction as the result that fails its specification. "Fails" is decided by the existing evaluation (out of specification, or a pathogen detected where the specification requires absence); no new rule is added.
+- The investigation opens when the **reviewer completes the review** of a test whose result fails its specification, in the same transaction as the review. "Fails" is decided by the existing evaluation (out of specification, or a pathogen detected where the specification requires absence); no new rule is added.
 - A further failing result on the same sample and section is added to the open investigation.
-- If the result is later corrected to a passing value, the investigation **stays open** and must be concluded; the correction is evidence, not an exit.
+- A result corrected before review (with its reason, as today) is reviewed as corrected; the correction and the original value are in the audit trail and are shown to the reviewer. Once an investigation is open, a later correction does not close it; it must be concluded.
 - The analyst, the Section Head and QA are notified.
 - From that moment the section of the sample cannot be approved or rejected, and no certificate can be issued for the sample. Review of the other tests continues.
 
@@ -134,7 +134,7 @@ A report of investigations by product, test, analyst, instrument, cause category
 
 | Situation | Behaviour |
 |---|---|
-| Opening the investigation fails | The result is not saved either; the analyst sees the error |
+| Opening the investigation fails | The review is not saved either; the reviewer sees the error |
 | Approval, rejection or certificate attempted while open | Refused: "OOS investigation OOS-… is open." |
 | Approve attempted after "OOS confirmed" | Refused: "A confirmed out-of-specification result cannot be approved." |
 | Retest requested without a signed plan | Refused |
@@ -159,12 +159,12 @@ A report of investigations by product, test, analyst, instrument, cause category
 7. Register, investigation report, trending.
 8. Upgrade handling; documents.
 
-## 9. Questions that need your procedure (not guessed)
+## 9. Decisions recorded 2026-11-11
 
-1. **Checklist items** for Phase I and Phase II, for microbiology and for physicochemical. I can ship empty templates for the Section Head to fill, or you give me your lists.
-2. **Cause categories** (for example analyst error, equipment, method, sample, media, environment, no cause found). Your list, please.
-3. **How retest results are judged.** Is it enough that the plan states the rule in words and the Section Head concludes, or must the system calculate (for example all retests must pass; or an average)? I have assumed the first.
-4. **Microbiology.** Does your SOP allow invalidating a microbiological OOS only with a proven laboratory error? If it has other limits on retesting, tell me and I add them as rules.
-5. **Does an open QA deviation request block the conclusion?** I assumed no.
-6. **Opening moment.** I open the investigation when the failing result is recorded, before review. If your SOP opens it only after the reviewer confirms the result, say so.
-7. **Due dates** in working days for Phase I and for the whole investigation.
+1. Checklist templates ship empty; the Section Head fills them per laboratory. An investigation cannot be assessed while its laboratory's template is empty.
+2. Cause categories shipped as editable defaults: Analyst error, Equipment, Method, Sample, Media or reagent, Environment, No cause found. "No cause found" is fixed and cannot be removed.
+3. The retest plan states the judging rule in words; the Section Head concludes. The system does not calculate the outcome.
+4. No extra rules for microbiology.
+5. An open QA deviation request does not block the conclusion.
+6. The investigation opens when the reviewer confirms the failing result.
+7. Due dates are settings in working days, per laboratory, set by the site.

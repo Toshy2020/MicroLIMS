@@ -126,7 +126,7 @@ A report of investigations by product, test, analyst, instrument, cause category
 ### 5.13 Upgrade
 
 - The rules apply to results recorded after the upgrade. Existing OOS groups are shown as "legacy" and keep their uploaded documents.
-- Samples that already have a failing result and are not yet approved at upgrade are listed for the Section Head, who opens an investigation for each or records why not, with a signature.
+- The system is still under development, so no special handling is built for samples that already have a failing result at upgrade (decided by the user 2026-11-11). Such a section cannot be approved until an investigation is opened for it by the Section Head.
 - The signature meaning of the old "new sample" decision is corrected for new records only; old signatures are untouched.
 - The two unusable approval decisions are removed from the screen and the description in `BusinessRules.md` is corrected.
 
@@ -168,3 +168,4 @@ A report of investigations by product, test, analyst, instrument, cause category
 5. An open QA deviation request does not block the conclusion.
 6. The investigation opens when the reviewer confirms the failing result.
 7. Due dates are settings in working days, per laboratory, set by the site.
+8. No upgrade waiver. An analyst reads only investigations that include a test they performed.

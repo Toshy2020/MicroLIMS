@@ -248,6 +248,7 @@ Phases 0, 1 and 2 can run in parallel if more than one person is available. Phas
 6. Trending of OOS by product, test, analyst, instrument and root cause.
 
 **Design spec:** `docs/superpowers/specs/2026-11-11-oos-investigation-design.md`
+**Implementation plan:** `docs/superpowers/plans/2026-11-11-oos-investigation.md`
 
 ### D2. CAPA, Deviation and Change Control — Size XL
 

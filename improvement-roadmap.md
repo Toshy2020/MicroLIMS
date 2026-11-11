@@ -247,6 +247,8 @@ Phases 0, 1 and 2 can run in parallel if more than one person is available. Phas
 5. OOT and alert/action-level excursions use the same engine with a lighter template.
 6. Trending of OOS by product, test, analyst, instrument and root cause.
 
+**Design spec:** `docs/superpowers/specs/2026-11-11-oos-investigation-design.md`
+
 ### D2. CAPA, Deviation and Change Control — Size XL
 
 **Current state.** No CAPA, change control or complaint module. Monitoring deviations exist for the Monitoring Plan only.

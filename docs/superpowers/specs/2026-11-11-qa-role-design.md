@@ -1,7 +1,7 @@
 # B4 — Quality Assurance (QA) Role: Design Specification
 
 **Roadmap package:** B4 (`improvement-roadmap.md`)
-**Status:** Draft for user review
+**Status:** Approved by the user 2026-11-11
 **Date:** 2026-11-11
 
 ## 1. Purpose

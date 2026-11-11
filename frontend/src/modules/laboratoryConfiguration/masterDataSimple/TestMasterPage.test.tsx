@@ -513,7 +513,7 @@ describe("TestMasterPage - workflow steps after adding, duplicate and deep link"
     const user = userEvent.setup();
     renderInRouter(<TestMasterPage lab="fp" area="fp" />);
 
-    await user.click((await screen.findAllByRole("button", { name: "Row actions" }))[0]);
+    await user.click((await screen.findAllByRole("button", { name: /Row actions/i }))[0]);
     await user.click(await screen.findByRole("menuitem", { name: "Duplicate" }));
 
     const dialog = await screen.findByRole("dialog");
@@ -558,7 +558,7 @@ describe("TestMasterPage - workflow steps after adding, duplicate and deep link"
     const user = userEvent.setup();
     renderInRouter(<TestMasterPage lab="fp" area="fp" />);
 
-    await user.click((await screen.findAllByRole("button", { name: "Row actions" }))[0]);
+    await user.click((await screen.findAllByRole("button", { name: /Row actions/i }))[0]);
     await user.click(await screen.findByRole("menuitem", { name: "Duplicate" }));
     const dialog = await screen.findByRole("dialog");
     await user.click(within(dialog).getByRole("button", { name: "Cancel" }));
@@ -585,7 +585,7 @@ describe("TestMasterPage - workflow steps after adding, duplicate and deep link"
     const user = userEvent.setup();
     renderInRouter(<TestMasterPage lab="fp" area="fp" />);
 
-    await user.click((await screen.findAllByRole("button", { name: "Row actions" }))[0]);
+    await user.click((await screen.findAllByRole("button", { name: /Row actions/i }))[0]);
     await user.click(await screen.findByRole("menuitem", { name: "Duplicate" }));
     const dialog = await screen.findByRole("dialog");
     await user.type(within(dialog).getByLabelText(/^Code/), "GRAV-DUP");
@@ -892,7 +892,7 @@ describe("TestMasterPage - method acceptance fields are required, never defaulte
     const user = userEvent.setup();
     renderInRouter(<TestMasterPage lab="fp" area="fp" />);
 
-    await user.click((await screen.findAllByRole("button", { name: "Row actions" }))[0]);
+    await user.click((await screen.findAllByRole("button", { name: /Row actions/i }))[0]);
     await user.click(await screen.findByRole("menuitem", { name: "Edit" }));
     const dialog = await screen.findByRole("dialog");
     expect(numberField(dialog, /^S1: each unit/).value).toBe("6");

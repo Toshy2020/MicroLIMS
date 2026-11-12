@@ -278,6 +278,9 @@ public class RoleService
         SegregationOfDutiesRules.AdministrationCodes.OrderBy(c => c, StringComparer.Ordinal).ToList(),
         SegregationOfDutiesRules.GxpExecutionAndApprovalCodes.OrderBy(c => c, StringComparer.Ordinal).ToList());
 
+    public static List<string> GetQaForbiddenCodes() =>
+        SegregationOfDutiesRules.QaForbiddenCodes.OrderBy(c => c, StringComparer.Ordinal).ToList();
+
     public async Task<List<RoleResponse>> GetAllAsync()
     {
         var roles = await _db.Roles.AsNoTracking().ToListAsync();

@@ -21,6 +21,8 @@ const MODULE_ORDER = [
   "TestWorkflow", "Cryovials", "Materials", "Equipment", "Items", "MasterData"
 ];
 
+const QA_FORBIDDEN_REASON = "Not available to a Quality Assurance role";
+
 interface PermissionMatrixProps {
   permissions: PermissionRecord[];
   checkedCodes: Set<string>;
@@ -28,6 +30,9 @@ interface PermissionMatrixProps {
   // When given, a box that would put administration and GxP codes in one
   // role is disabled. The server enforces the same rule on save.
   sodRules?: SodRules | null;
+  // Codes disallowed for a Quality Assurance role; shown disabled and
+  // unchecked with the reason exposed to assistive tech.
+  qaForbiddenCodes?: ReadonlySet<string>;
 }
 
 // The checked code that `code` may not be combined with, if any.
@@ -39,7 +44,7 @@ function conflictingCode(code: string, checkedCodes: Set<string>, rules: SodRule
   return opposite.find((c) => checkedCodes.has(c));
 }
 
-export function PermissionMatrix({ permissions, checkedCodes, onToggle, sodRules }: PermissionMatrixProps) {
+export function PermissionMatrix({ permissions, checkedCodes, onToggle, sodRules, qaForbiddenCodes }: PermissionMatrixProps) {
   const groups = new Map<string, PermissionRecord[]>();
   for (const p of permissions) {
     const mod = moduleOf(p.code);
@@ -61,8 +66,12 @@ export function PermissionMatrix({ permissions, checkedCodes, onToggle, sodRules
           </Typography>
           <Stack spacing={0.5}>
             {groups.get(mod)!.map((p) => {
+              const isQaForbidden = Boolean(qaForbiddenCodes?.has(p.code));
               // A checked box stays enabled so a role that already conflicts can be fixed.
-              const blockedBy = checkedCodes.has(p.code) ? undefined : conflictingCode(p.code, checkedCodes, sodRules);
+              const blockedBy = isQaForbidden || checkedCodes.has(p.code)
+                ? undefined
+                : conflictingCode(p.code, checkedCodes, sodRules);
+              const reasonId = isQaForbidden ? `qa-forbidden-${p.code.replace(/[^a-zA-Z0-9_-]/g, "-")}` : undefined;
               return (
               <Box key={p.code} sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 1.5, py: 0.25 }}>
                 <Tooltip title={blockedBy ? `Cannot be combined with ${blockedBy}: a role may not hold both system administration and GxP execution or approval.` : ""}>
@@ -70,12 +79,16 @@ export function PermissionMatrix({ permissions, checkedCodes, onToggle, sodRules
                   <Box component="span" sx={{ flex: 1 }}>
                     <FormControlLabel
                       sx={{ m: 0, width: "100%" }}
-                      disabled={!!blockedBy}
+                      disabled={isQaForbidden || !!blockedBy}
                       control={
                         <Checkbox
                           size="small"
-                          checked={checkedCodes.has(p.code)}
-                          onChange={(e) => onToggle(p.code, e.target.checked)}
+                          checked={!isQaForbidden && checkedCodes.has(p.code)}
+                          onChange={(e) => {
+                            if (isQaForbidden) return;
+                            onToggle(p.code, e.target.checked);
+                          }}
+                          slotProps={reasonId ? { input: { "aria-describedby": reasonId } } : undefined}
                         />
                       }
                       label={
@@ -85,6 +98,11 @@ export function PermissionMatrix({ permissions, checkedCodes, onToggle, sodRules
                         </Box>
                       }
                     />
+                    {isQaForbidden && (
+                      <Typography id={reasonId} sx={{ fontSize: 12, color: "text.secondary", pl: 3.5 }}>
+                        {QA_FORBIDDEN_REASON}
+                      </Typography>
+                    )}
                   </Box>
                 </Tooltip>
                 <Tooltip

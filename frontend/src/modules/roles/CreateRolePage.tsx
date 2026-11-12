@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Paper, TextField, Button, Stack, Typography, Alert, Box, Stepper, Step, StepLabel,
@@ -12,8 +12,9 @@ import { PermissionMatrix } from "./components/PermissionMatrix";
 import { useLoadFailures } from "../../hooks/useLoadFailures";
 import { Role as RoleType } from "../../contexts/AuthContext";
 import { LoadFailuresAlert } from "../../components/LoadErrorAlert";
+import { formatRoleName } from "../../utils/userDisplay";
 
-const BASE_TYPES: RoleType[] = ["SystemAdministrator", "SectionHead", "Reviewer", "Analyst"];
+const BASE_TYPES: RoleType[] = ["SystemAdministrator", "SectionHead", "Reviewer", "Analyst", "QcManager", "Qa"];
 const STEPS = ["Name", "Base Type", "Permissions", "Review"];
 
 export function CreateRolePage() {
@@ -30,6 +31,7 @@ export function CreateRolePage() {
   const [cloneFromRoleId, setCloneFromRoleId] = useState<number | "">("");
 
   const [sodRules, setSodRules] = useState<SodRules | null>(null);
+  const [qaForbiddenCodes, setQaForbiddenCodes] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [reason, setReason] = useState("");
@@ -40,10 +42,36 @@ export function CreateRolePage() {
   const { failed: failedLists, fail } = useLoadFailures();
 
   useEffect(() => {
+    const controller = new AbortController();
     RoleService.getAll().then(setExistingRoles).catch(fail("the existing roles"));
     RoleService.getAllPermissions().then(setAllPermissions).catch(fail("the permission list"));
     RoleService.getSodRules().then(setSodRules).catch(fail("the segregation-of-duties rules"));
+    RoleService.getQaForbiddenCodes(controller.signal)
+      .then((codes) => { if (!controller.signal.aborted) setQaForbiddenCodes(codes); })
+      .catch(() => { if (!controller.signal.aborted) fail("the QA-restricted permissions")(); });
+    return () => controller.abort();
   }, [fail]);
+
+  const qaForbiddenSet = useMemo(
+    () => (baseType === "Qa" ? new Set(qaForbiddenCodes) : undefined),
+    [baseType, qaForbiddenCodes]
+  );
+
+  // Strip any forbidden permission if the QA forbidden list finishes loading after Qa was chosen.
+  useEffect(() => {
+    if (!qaForbiddenSet || qaForbiddenSet.size === 0) return;
+    setCheckedCodes((prev) => {
+      const hasForbidden = Array.from(prev).some((c) => qaForbiddenSet.has(c));
+      if (!hasForbidden) return prev;
+      return new Set(Array.from(prev).filter((c) => !qaForbiddenSet.has(c)));
+    });
+  }, [qaForbiddenSet]);
+
+  const withoutQaForbidden = (codes: string[], type: RoleType): string[] => {
+    if (type !== "Qa" || qaForbiddenCodes.length === 0) return codes;
+    const forbidden = new Set(qaForbiddenCodes);
+    return codes.filter((c) => !forbidden.has(c));
+  };
 
   // Default-check the selected base type's current grants whenever it
   // changes, fetched live rather than hardcoded so this never drifts
@@ -53,7 +81,7 @@ export function CreateRolePage() {
     if (!baseRole) return;
     try {
       const detail = await RoleService.getById(baseRole.id);
-      setCheckedCodes(new Set(detail.permissionCodes));
+      setCheckedCodes(new Set(withoutQaForbidden(detail.permissionCodes, type)));
     } catch {
       // Leave whatever was selected before - not worth blocking the wizard over.
     }
@@ -62,6 +90,10 @@ export function CreateRolePage() {
   const handleBaseTypeChange = (type: RoleType) => {
     setBaseType(type);
     setCloneFromRoleId("");
+    if (type === "Qa" && qaForbiddenCodes.length > 0) {
+      const forbidden = new Set(qaForbiddenCodes);
+      setCheckedCodes((prev) => new Set(Array.from(prev).filter((c) => !forbidden.has(c))));
+    }
     applyBaseTypeDefaults(type);
   };
 
@@ -69,13 +101,14 @@ export function CreateRolePage() {
     setCloneFromRoleId(roleId);
     try {
       const detail = await RoleService.getById(roleId);
-      setCheckedCodes(new Set(detail.permissionCodes));
+      setCheckedCodes(new Set(withoutQaForbidden(detail.permissionCodes, baseType)));
     } catch {
       // Leave the matrix as-is on failure.
     }
   };
 
   const handleToggle = (code: string, checked: boolean) => {
+    if (qaForbiddenSet?.has(code)) return;
     setCheckedCodes((prev) => {
       const next = new Set(prev);
       if (checked) next.add(code); else next.delete(code);
@@ -108,7 +141,8 @@ export function CreateRolePage() {
         id = created.id;
         setCreatedId(id);
       }
-      await RoleService.updatePermissions(id, Array.from(checkedCodes), reason.trim(), password);
+      const codesToSave = withoutQaForbidden(Array.from(checkedCodes), baseType);
+      await RoleService.updatePermissions(id, codesToSave, reason.trim(), password);
       setSigning(false);
       navigate(`/roles/${id}`);
     } finally {
@@ -142,13 +176,13 @@ export function CreateRolePage() {
       {step === 1 && (
         <Paper sx={{ p: 2.5 }}>
           <Alert severity="info" sx={{ mb: 2.5 }}>
-            New roles are currently based on one of the 4 built-in types for compatibility with parts of the system
+            New roles are currently based on one of the built-in types for compatibility with parts of the system
             not yet migrated to the new permission model. Permissions marked "Enforced" in the next step apply fully;
-            everything else follows <strong>{baseType}</strong>'s existing behavior.
+            everything else follows <strong>{formatRoleName(baseType)}</strong>'s existing behavior.
           </Alert>
           <RadioGroup value={baseType} onChange={(e) => handleBaseTypeChange(e.target.value as RoleType)}>
             {BASE_TYPES.map((t) => (
-              <FormControlLabel key={t} value={t} control={<Radio />} label={t} />
+              <FormControlLabel key={t} value={t} control={<Radio />} label={formatRoleName(t)} />
             ))}
           </RadioGroup>
         </Paper>
@@ -158,7 +192,7 @@ export function CreateRolePage() {
         <>
           <Paper sx={{ p: 2.5, mb: 2 }}>
             <Typography sx={{ fontSize: 13, fontWeight: 600, mb: 1 }}>
-              Starting point: {baseType}'s current permissions (edit freely below)
+              Starting point: {formatRoleName(baseType)}'s current permissions (edit freely below)
             </Typography>
             <Stack direction="row" spacing={1.5} sx={{
               alignItems: "center"
@@ -177,7 +211,13 @@ export function CreateRolePage() {
               </Select>
             </Stack>
           </Paper>
-          <PermissionMatrix permissions={allPermissions} checkedCodes={checkedCodes} onToggle={handleToggle} sodRules={sodRules} />
+          <PermissionMatrix
+            permissions={allPermissions}
+            checkedCodes={checkedCodes}
+            onToggle={handleToggle}
+            sodRules={sodRules}
+            qaForbiddenCodes={qaForbiddenSet}
+          />
         </>
       )}
 
@@ -196,7 +236,7 @@ export function CreateRolePage() {
             )}
             <Box>
               <Typography sx={{ fontSize: 12, color: "text.secondary", textTransform: "uppercase" }}>Base Type</Typography>
-              <Typography sx={{ fontSize: 14 }}>{baseType}</Typography>
+              <Typography sx={{ fontSize: 14 }}>{formatRoleName(baseType)}</Typography>
             </Box>
             <Divider />
             <Box>

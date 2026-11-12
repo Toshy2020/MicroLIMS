@@ -89,6 +89,9 @@ public class RoleController : ControllerBase
     [HttpGet("sod-rules")]
     public IActionResult GetSodRules() => Ok(ApiResponse<SodRulesDto>.Ok(RoleService.GetSodRules()));
 
+    [HttpGet("qa-forbidden-codes")]
+    public IActionResult GetQaForbiddenCodes() => Ok(ApiResponse<List<string>>.Ok(RoleService.GetQaForbiddenCodes()));
+
     [HttpGet("/api/permissions")]
     public async Task<IActionResult> GetAllPermissions() => Ok(ApiResponse<List<PermissionDto>>.Ok(await _roleService.GetAllPermissionsAsync()));
 }

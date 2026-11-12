@@ -628,6 +628,22 @@ public class RoleManagementTests
         Assert.Contains(PermissionConstants.DocumentsApprove, body.Data.GxpExecutionAndApprovalCodes);
     }
 
+    [Fact]
+    public void QaForbiddenCodes_endpoint_returns_the_rule_set_sorted()
+    {
+        var controller = CreateController(CreateDbContext(), 1);
+
+        var ok = Assert.IsType<OkObjectResult>(controller.GetQaForbiddenCodes());
+
+        var body = Assert.IsType<MicroLIMS.Shared.Responses.ApiResponse<List<string>>>(ok.Value);
+        var codes = body.Data!;
+        var expected = SegregationOfDutiesRules.QaForbiddenCodes.OrderBy(c => c, StringComparer.Ordinal).ToList();
+        Assert.Equal(expected.ToHashSet(StringComparer.Ordinal), codes.ToHashSet(StringComparer.Ordinal));
+        Assert.Equal(expected, codes);
+        Assert.DoesNotContain(PermissionConstants.DocumentsReview, codes);
+        Assert.DoesNotContain(PermissionConstants.DocumentsApprove, codes);
+    }
+
     // Discussions.View/Create and Messages.Use are declared and granted but no
     // feature checks them: hidden from the Roles API, grants kept in the database.
     [Fact]

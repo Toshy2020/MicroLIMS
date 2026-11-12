@@ -504,6 +504,7 @@ RoleController.Delete(Int32, DeleteRoleRequest): SystemAdministrator
 RoleController.GetAll(): SystemAdministrator
 RoleController.GetAllPermissions(): SystemAdministrator
 RoleController.GetById(Int32): SystemAdministrator
+RoleController.GetQaForbiddenCodes(): SystemAdministrator
 RoleController.GetSodRules(): SystemAdministrator
 RoleController.Update(Int32, UpdateRoleRequest): SystemAdministrator
 RoleController.UpdatePermissions(Int32, UpdateRolePermissionsRequest): SystemAdministrator

@@ -206,6 +206,8 @@ public static class ServiceCollectionExtensions
         services.AddScoped<EquipmentInventoryService>();
         services.AddScoped<EquipmentConfigurationService>();
         services.AddScoped<ChromatographyColumnService>();
+        services.AddScoped<MicroLIMS.Application.Labels.ILabelDataSource, MicroLIMS.Application.Labels.LabelDataSource>();
+        services.AddScoped<MicroLIMS.Application.Labels.ILabelFormatService, MicroLIMS.Application.Labels.LabelFormatService>();
         services.AddSingleton(TimeProvider.System);
         services.AddSingleton<ILabClock>(sp => new LabClock(
             sp.GetRequiredService<TimeProvider>(),

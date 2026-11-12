@@ -101,6 +101,9 @@ public class EquipmentInventoryService
         return (await _db.EquipmentInventories.FirstOrDefaultAsync(e => e.Id == id)) is { } found ? EquipmentInventoryResponse.From(found, _time.GetUtcNow().UtcDateTime) : null;
     }
 
+    public static bool IsInService(EquipmentOperationalStatus status) =>
+        status == EquipmentOperationalStatus.InService;
+
     public async Task<List<EquipmentInventoryResponse>> GetForPrintAsync(IReadOnlyList<int>? scope) =>
         (await _db.EquipmentInventories
             .Where(e => e.Status == EquipmentOperationalStatus.InService)

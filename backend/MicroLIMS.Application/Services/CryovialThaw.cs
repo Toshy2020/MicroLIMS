@@ -21,10 +21,31 @@ public static class CryovialThaw
     // gone this long without being destroyed.
     public static readonly TimeSpan DestructionReminderAfter = TimeSpan.FromHours(48);
 
+    public readonly record struct CryovialUsabilityCheck(
+        bool IsApproved,
+        bool IsDestroyed,
+        bool IsExpired,
+        int VialsRemaining)
+    {
+        public bool IsUsable => IsApproved && !IsDestroyed && !IsExpired && VialsRemaining > 0;
+    }
+
+    public static CryovialUsabilityCheck EvaluateUsability(
+        ApprovalGateStatus approvalStatus,
+        bool isDestroyed,
+        DateTime expiryUtc,
+        int vialsRemaining,
+        DateTime utcNow) =>
+        new(
+            approvalStatus == ApprovalGateStatus.Approved,
+            isDestroyed,
+            expiryUtc.Date < utcNow.Date,
+            vialsRemaining);
+
     public static ThawEvent Record(IMicroLimsDbContext db, Cryovial cryovial, int userId, string? notes, DateTime utcNow)
     {
-        EnsureUsable(cryovial, utcNow);
-        if (cryovial.VialsRemaining <= 0)
+        var check = EnsureUsableCore(cryovial, utcNow);
+        if (check.VialsRemaining <= 0)
             throw new BusinessRuleException($"No vials remaining in batch {cryovial.Code}.");
 
         cryovial.VialsRemaining--;
@@ -51,13 +72,25 @@ public static class CryovialThaw
 
     // Approved, not destroyed/withdrawn, not expired - required both to
     // thaw a vial and to use an already-thawed vial from the batch.
-    public static void EnsureUsable(Cryovial cryovial, DateTime utcNow)
+    public static void EnsureUsable(Cryovial cryovial, DateTime utcNow) =>
+        EnsureUsableCore(cryovial, utcNow);
+
+    private static CryovialUsabilityCheck EnsureUsableCore(Cryovial cryovial, DateTime utcNow)
     {
-        if (cryovial.ApprovalStatus != ApprovalGateStatus.Approved)
+        var check = EvaluateUsability(
+            cryovial.ApprovalStatus,
+            cryovial.IsDestroyed,
+            cryovial.ExpiryDate,
+            cryovial.VialsRemaining,
+            utcNow);
+
+        if (!check.IsApproved)
             throw new BusinessRuleException($"Cryovial batch {cryovial.Code} is not approved for use.");
-        if (cryovial.IsDestroyed)
+        if (check.IsDestroyed)
             throw new BusinessRuleException($"Cryovial batch {cryovial.Code} has been withdrawn for destruction and cannot be used.");
-        if (cryovial.ExpiryDate.Date < utcNow.Date)
+        if (check.IsExpired)
             throw new BusinessRuleException($"Cryovial batch {cryovial.Code} is expired and cannot be used.");
+
+        return check;
     }
 }

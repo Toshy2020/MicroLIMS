@@ -18,13 +18,19 @@ public static class BatchSelectMediaRules
         }
     }
 
+    public static bool IsMediaExpiredAt(DateTime expiryUtc, DateTime nowUtc) => expiryUtc <= nowUtc;
+
+    // Exactly the statuses the selection gate has always refused; do not widen it here.
+    public static bool IsMediaStatusBlocked(MediaStatus status) =>
+        status is MediaStatus.OutOfStock or MediaStatus.QuarantineFailed;
+
     public static void EnsureMediaLotUsable(Media media, DateTime now)
     {
-        if (!media.IsReleasedForUse || media.Status == MediaStatus.OutOfStock || media.Status == MediaStatus.QuarantineFailed)
+        if (!media.IsReleasedForUse || IsMediaStatusBlocked(media.Status))
         {
             throw new BusinessRuleException($"Media lot \"{media.LotNumber}\" is not released for use, out of stock, or rejected.");
         }
-        if (media.ExpiryDate <= now)
+        if (IsMediaExpiredAt(media.ExpiryDate, now))
         {
             throw new BusinessRuleException($"Media lot \"{media.LotNumber}\" is expired (expired on {media.ExpiryDate:yyyy-MM-dd}).");
         }

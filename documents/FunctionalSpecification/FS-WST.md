@@ -57,6 +57,7 @@
 **Satisfies:** URS-WST-003
 **Function:** Qualification calculation, as coded. Each replicate's assay percent is the HPLC assay formula of FS-INS-007 (`HplcAssayCalculator.Calculate`) for the single qualified analyte, using the SST mean response, the actual standard weight, purity and moisture from the SST, the method's theoretical weights, and the effective response (divided by the internal standard response if the method has one). The mean is the average of the replicate assay percents. The RSD is the sample standard deviation (n minus 1; square root by Newton iteration rounded to 10 decimals) divided by the mean times 100; it is empty with fewer than 2 replicates and 0 when the mean is 0. The potency is the mean times 100 divided by (100 minus the qualification's moisture percent), rounded to 3 decimals (moisture from 0 to below 100). The qualification passes when the replicate count equals 6 and, if an RSD exists, the RSD rounded to 2 decimals is not above 2.0; otherwise the reasons are stored. No limit is applied to the potency or to the mean. The numbers 6 and 2.0 are written in the code (CONF-099).
 **Code:** `backend/MicroLIMS.Application/Helpers/WorkingStandardCalculator.cs` — `Evaluate`, `DriedBasisPotency`, `PassesRsd`, `WorkingStandardRules`
+**Calculations:** CALC-057, CALC-058, CALC-059
 **Verified by:** reading (not run)
 **Conflicts:** CONF-099
 

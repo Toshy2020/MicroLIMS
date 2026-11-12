@@ -129,3 +129,96 @@ test("existing_dc_ids_still_resolve", () => {
     .map((id) => `${id} (used in ${codeIds.get(id)})`);
   assert.deepEqual(unresolved, [], `Document Control IDs with no home under documents/DocumentControl/:\n${unresolved.join("\n")}`);
 });
+
+// --- Calculation register (Task 9) ---
+const registerPath = path.join(repoRoot, "documents", "DesignSpecification", "CalculationRegister.md");
+const applicationDir = path.join(repoRoot, "backend", "MicroLIMS.Application");
+
+// Paths are relative to backend/MicroLIMS.Application/.
+const CALCULATION_SITES = [
+  "Workflows/TestWorkflow/IncubationStepRecorder.cs",
+  "Workflows/WaterWorkflowEngine.cs",
+  "Services/SpecLimitParser.cs",
+  "Services/SpecificationEvaluator.cs",
+  "Workflows/TestWorkflow/TitrationRecorder.cs",
+  "Helpers/TitrationEngine.cs",
+  "Workflows/TestWorkflow/OutsourcedRecorder.cs",
+  "Workflows/TestWorkflow/UvRecorder.cs",
+  "Helpers/HplcAssayCalculator.cs",
+  "Helpers/HplcSampleAssayEvaluator.cs",
+  "Helpers/HplcSstEvaluator.cs",
+  "Helpers/RelatedSubstancesEvaluator.cs",
+  "Helpers/CleaningResidueCalculator.cs",
+  "Helpers/StandardComparisonCalculator.cs",
+  "Helpers/DissolutionCalculator.cs",
+  "Helpers/DisintegrationStageEvaluator.cs",
+  "Helpers/MeasurementCalculator.cs",
+  "Helpers/WorkingStandardCalculator.cs",
+  "Services/Spc/ControlChartCalculator.cs",
+  "Services/Monitoring/OccurrenceStatus.cs",
+  "Workflows/MediaEvaluationEngine.cs",
+  "Services/ReportDocumentMapper.cs",
+];
+
+// Sites that are not yet in the register. Must stay empty when Task 9 is complete.
+const NOT_YET_REGISTERED = [];
+
+const splitCells = (line) =>
+  line
+    .trim()
+    .replace(/^\|/, "")
+    .replace(/\|$/, "")
+    .split(/(?<!\\)\|/)
+    .map((c) => c.trim());
+
+function readRegister() {
+  const lines = fs.readFileSync(registerPath, "utf8").split(/\r?\n/);
+  const whereCells = [];
+  const notCalc = [];
+  let inNotCalc = false;
+  for (const line of lines) {
+    if (/^#{1,6}\s/.test(line)) {
+      inNotCalc = /^#{1,6}\s+Not a laboratory calculation\s*$/.test(line);
+      continue;
+    }
+    if (/^\|\s*CALC-\d{3}\s*\|/.test(line)) whereCells.push(splitCells(line)[4] ?? "");
+    else if (inNotCalc && line.startsWith("|")) {
+      const cells = splitCells(line);
+      if (/\.cs$/.test(cells[0])) notCalc.push({ file: cells[0], reason: cells[1] ?? "" });
+    }
+  }
+  return { whereCells, notCalc };
+}
+
+test("every_calculation_site_is_registered", () => {
+  const { whereCells } = readRegister();
+  const missing = CALCULATION_SITES.filter(
+    (site) => !NOT_YET_REGISTERED.includes(site) && !whereCells.some((w) => w.includes(site)),
+  );
+  assert.deepEqual(missing, [], `Calculation sites with no CALC row:\n${missing.join("\n")}`);
+});
+
+test("no_unlisted_rounding_site", () => {
+  const { whereCells, notCalc } = readRegister();
+  const found = [];
+  const walk = (dir) => {
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      const full = path.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        if (!["bin", "obj"].includes(entry.name)) walk(full);
+      } else if (entry.isFile() && entry.name.endsWith(".cs")) {
+        const text = fs.readFileSync(full, "utf8");
+        if (text.includes("Math.Round(") || text.includes("MidpointRounding")) {
+          found.push(path.relative(applicationDir, full).split(path.sep).join("/"));
+        }
+      }
+    }
+  };
+  walk(applicationDir);
+  assert.ok(found.length > 0, "expected to find rounding sites under backend/MicroLIMS.Application");
+
+  const unlisted = found.filter(
+    (f) => !whereCells.some((w) => w.includes(f)) && !notCalc.some((n) => n.file === f && n.reason.length > 0),
+  );
+  assert.deepEqual(unlisted, [], `Rounding sites neither registered nor listed as not a laboratory calculation:\n${unlisted.join("\n")}`);
+});

@@ -58,6 +58,7 @@
 **Satisfies:** URS-WAT-006
 **Function:** Water batch readings, specific points only (the full rule is FS-MIC-008). Endpoint `POST api/testworkflow/{id}/water-batch-readings`, recorded by `IncubationStepRecorder.RecordWaterBatchReadingsCoreAsync` in one transaction. For each sampling-point location the readings are averaged directly; there is no dilution factor and no TNTC handling. The limits are taken from the location's own sampling configuration (alert, action and specification texts) and compared as in FS-WAT-004. The reported result is the average rounded to a whole number with `MidpointRounding.AwayFromZero`; the full-precision average is stored in the location's calculated result and CFU result. There is no "<" rule for a low count (CONF-011). The unit is the configured unit or, if none, "CFU/mL" for a water sampling point location. The three limit texts are copied onto the location at entry. Permission and section scope are those of FS-MIC-001. The order, the minimum incubation hours and the closing of the window are as in FS-MIC-008.
 **Code:** `backend/MicroLIMS.Application/Workflows/TestWorkflow/IncubationStepRecorder.cs` — `RecordWaterBatchReadingsCoreAsync`, `DeriveBatchLocationUnit`
+**Calculations:** CALC-006
 **Verified by:** reading (not run)
 **Conflicts:** CONF-010, CONF-011
 
@@ -65,6 +66,7 @@
 **Satisfies:** URS-WAT-007
 **Function:** Single-point calculation (`POST api/water/calculate`). The endpoint needs only a logged-in user (no permission policy), then calls `EnsureTestOrderAccessAsync` (write scope). Inputs: test order ID, a list of decimal readings. `WaterWorkflowEngine.CalculateAndCompareAsync` refuses an empty list. It refuses if the test order has any sample location, which is the case for every order created by FS-WAT-003. For an order without locations it reads the sampling configuration for the order's test code and the sample's `WaterSamplingPointId`; in Application and API code no place was found that sets `Sample.WaterSamplingPointId`, and `ReceiveAsync` (FS-WAT-001) does not. With no point, the limits are all empty and the status is LimitsNotConfigured. The average is the arithmetic mean of the readings, not rounded. A `Result` row is added with the readings joined by commas and the text "average (status)" where the average is formatted with at most two decimals (`0.##`, using the current culture of the process); the entered-by user is not set on the row. The order is moved to Ready by `WorkflowStateMachine.TransitionAsync` for the order's assigned analyst (or user 0 when none). The method does not check the order's current step, so any step except a closed or superseded one is moved to Ready. `AutoSubmitForReviewIfReadyAsync` is not called. No explicit transaction is used; the result is added and saved by the state machine call. Readings are not checked for being whole numbers or non-negative.
 **Code:** `backend/MicroLIMS.Application/Workflows/WaterWorkflowEngine.cs` — `CalculateAndCompareAsync`
+**Calculations:** CALC-011
 **Verified by:** reading (not run)
 **Conflicts:** CONF-064
 

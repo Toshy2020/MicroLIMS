@@ -816,3 +816,30 @@ Locations for CONF-001 to CONF-008 were added on 2026-11-12 from the area worker
 - **Question:** Is `{username}@microlims.local` the intended recipient, or should the user's stored e-mail address be used? Should the email be sent only after the notification rows are saved?
 - **Decision:** Not decided.
 - **Date:** Not applicable
+
+### CONF-180
+- **Area:** INS
+- **Status:** Open
+- **What the code does:** Relative standard deviation (RSD) gates are applied in different ways. Preparation RSD, system suitability RSD and the titration factor and series RSD compare the unrounded RSD with the maximum using `>` (a value equal to the maximum passes). Location: `backend/MicroLIMS.Application/Helpers/StandardComparisonCalculator.cs` — `CalculatePreparationRsd`; `HplcSstEvaluator.cs` — `Evaluate`; `TitrationEngine.cs` — `Evaluate`, `Summarize`. The working standard qualification rounds the RSD to 2 decimals with `MidpointRounding.AwayFromZero` and then tests `<=` 2.0. Location: `backend/MicroLIMS.Application/Helpers/WorkingStandardCalculator.cs` — `PassesRsd`. The measurement calculator stores the RSD rounded to 10 decimals and gates nothing. Location: `MeasurementCalculator.cs` — `Calculate`. The titration series RSD divides by the absolute value of the mean (`TitrationEngine.Summarize`); the other methods divide by the mean as signed. The same sample-standard-deviation formula (n minus 1) is written out separately in five methods that were read (standard comparison, working standard, measurement, and two in the titration engine).
+- **What the other source says:** No approved specification line in `documents/` was found on how an RSD is rounded or compared. CONF-099 asks the rounding question for the working standard only.
+- **Question:** Should every RSD gate compare the same value (rounded to the same number of decimals, or unrounded) with the same operator, and should one shared routine compute it?
+- **Decision:** Not decided.
+- **Date:** Not applicable
+
+### CONF-181
+- **Area:** PHY
+- **Status:** Open
+- **What the code does:** The number of decimals of a reported value, and the rounding of a dried-basis conversion, differ by result type. Reported decimals: titration uses the larger of 2 and the decimals of lower limit, upper limit, target and tolerance; UV and outsourced numeric results use the larger of 2 and the decimals of lower and upper limit only; the gravimetric display uses the larger of 2 and the decimals of target, tolerance and both limits; the measurement display uses the decimals of the readings as typed and of the same four fields, with no minimum; the HPLC assay text uses 1 decimal; related substances 2; cleaning residue 2; residual solvent 1; ICP 1 (percent) and 4 (ppm); dissolution 0. The dried-basis conversion `x * 100 / (100 minus moisture)` is rounded to 2 decimals inside the HPLC conversion (which the UV recorder also uses, and then rounds again), is not rounded in titration, and is rounded to 3 decimals for working standard potency. Location: `backend/MicroLIMS.Application/Workflows/TestWorkflow/TitrationRecorder.cs` — `RecordCoreAsync`; `UvRecorder.cs` — `RecordCoreAsync`; `OutsourcedRecorder.cs` — `RecordCoreAsync`; `backend/MicroLIMS.Application/Helpers/GravimetricCalculator.cs` — `FormatReportedDisplay`; `MeasurementCalculator.cs` — `FormatReportedDisplay`; `HplcAssayCalculator.cs` — `ApplyBasis`; `TitrationEngine.cs` — `ApplyBasis`; `WorkingStandardCalculator.cs` — `DriedBasisPotency`.
+- **What the other source says:** No approved specification line in `documents/` was found on reported precision or on the precision of a dried-basis conversion. CONF-091 and CONF-095 ask whether the value is compared before or after rounding; this entry is about the precision itself.
+- **Question:** Which precision applies to each result type, should it come from the specification or test configuration for all of them, and should a dried-basis conversion be rounded the same way everywhere?
+- **Decision:** Not decided.
+- **Date:** Not applicable
+
+### CONF-182
+- **Area:** RPT
+- **Status:** Open
+- **What the code does:** The control chart statistics use numbers written in the code that the Section Head cannot configure: the bias constants D2, D3 and D4 for moving-range spans 2 to 10, the run lengths and sigma multiples of the eight special-cause rules, the factors 6 and 3 of the capability indices, the 1e-9 tolerance of whole-number rounding, and the report wording thresholds 1.33 ("capable") and 1.0 ("marginal"). Only the span, method, k values, percentiles, rounding mode, minimum points and the list of enabled rules are settings. Location: `backend/MicroLIMS.Application/Services/Spc/ControlChartCalculator.cs` — `Compute`, `EvaluateRules`, `Capability`, `Round`; `backend/MicroLIMS.Application/Services/Spc/ControlChartReportService.cs` — `Rating`.
+- **What the other source says:** `documents/URS/URS-RPT.md` URS-RPT-008 (requirement on computing control chart limits, rule flags and capability on the server) does not give these numbers. No approved specification line was found for them. `CLAUDE.md` Principle 1 says item-specific limits come from configuration; whether statistical constants count as such is not stated.
+- **Question:** Are these statistical constants and the capability thresholds approved site rules, and which of them, if any, should be configurable?
+- **Decision:** Not decided.
+- **Date:** Not applicable

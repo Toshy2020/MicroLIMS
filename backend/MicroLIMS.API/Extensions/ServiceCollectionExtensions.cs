@@ -15,10 +15,12 @@ using MicroLIMS.Infrastructure.Email;
 using MicroLIMS.Application.Services.InstrumentImport;
 using MicroLIMS.Infrastructure.InstrumentImport;
 using MicroLIMS.Application.Abstractions.Email;
+using MicroLIMS.Application.Abstractions.Security;
 using MicroLIMS.Infrastructure.Notifications;
 using MicroLIMS.Application.Abstractions.Notifications;
 using MicroLIMS.Infrastructure.Pdf;
 using MicroLIMS.Application.Abstractions.Pdf;
+using MicroLIMS.Infrastructure.Security;
 using MicroLIMS.Infrastructure.Storage;
 using MicroLIMS.Application.Abstractions.Storage;
 using MicroLIMS.Infrastructure.Word;
@@ -281,6 +283,8 @@ public static class ServiceCollectionExtensions
         var smtpOptions = SmtpConfiguration.Resolve(config);
         services.AddSingleton(smtpOptions);
         services.Configure<SmtpOptions>(config.GetSection(SmtpOptions.SectionName));
+        services.Configure<MfaOptions>(config.GetSection(MfaOptions.SectionName));
+        services.AddSingleton<ISecretProtector, AesGcmSecretProtector>();
         services.AddSingleton<MicroLIMS.Application.Abstractions.Email.ISmtpStatusProvider>(sp => new SmtpStatusProvider(sp.GetRequiredService<SmtpOptions>()));
         services.AddSingleton<MicroLIMS.Application.Services.Integrations.EmailDeliveryTracker>();
         services.AddScoped<IEmailSender>(sp => new MicroLIMS.Application.Services.Integrations.TrackingEmailSender(

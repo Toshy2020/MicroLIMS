@@ -51,6 +51,7 @@ public class SignatureMeaningPinTests
             ("NotApplicableWithdrawn", 35),
             ("TestOutsourced", 36),
             ("SampleAssignedToRun", 37),
+            ("AuditTrailReviewed", 38),
         };
 
         var actual = Enum.GetValues<SignatureMeaning>()

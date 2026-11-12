@@ -43,6 +43,8 @@ public class AppendOnlyTriggerCatalogPostgresTests
         ["AccessReviews"] = Update | Delete,
         // Findings may not even be inserted once their review is signed.
         ["AccessReviewFindings"] = Insert | Update | Delete,
+        ["AuditTrailReviews"] = Update | Delete,
+        ["AuditTrailReviewFindings"] = Update | Delete,
         ["LabelPrintLogs"] = Update | Delete,
     };
 

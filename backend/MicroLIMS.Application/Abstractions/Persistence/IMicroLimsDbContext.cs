@@ -213,6 +213,8 @@ public interface IMicroLimsDbContext
     DbSet<SystemSettingVersion> SystemSettingVersions { get; }
     DbSet<AccessReview> AccessReviews { get; }
     DbSet<AccessReviewFinding> AccessReviewFindings { get; }
+    DbSet<AuditTrailReview> AuditTrailReviews { get; }
+    DbSet<AuditTrailReviewFinding> AuditTrailReviewFindings { get; }
     DbSet<DocumentReviewTask> DocumentReviewTasks { get; }
     DbSet<DocumentReviewFinding> DocumentReviewFindings { get; }
     DbSet<RevisionChangeItem> RevisionChangeItems { get; }

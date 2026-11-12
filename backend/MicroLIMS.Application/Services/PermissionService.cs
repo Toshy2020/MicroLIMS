@@ -23,6 +23,21 @@ public class PermissionService
             .AnyAsync(rp => rp.RoleId == roleId && rp.Permission!.Code == permissionCode);
     }
 
+    public async Task<bool> UserHasPermissionAsync(int userId, string permissionCode, CancellationToken ct = default)
+    {
+        return await (
+            from u in _db.Users.AsNoTracking()
+            join rp in _db.RolePermissions.AsNoTracking() on u.RoleId equals rp.RoleId
+            where u.Id == userId
+                  && u.IsActive
+                  && u.Role != null
+                  && u.Role.IsActive
+                  && rp.Permission != null
+                  && rp.Permission.Code == permissionCode
+            select rp.Id
+        ).AnyAsync(ct);
+    }
+
     public async Task<List<string>> GetPermissionCodesForRoleAsync(int roleId)
     {
         return await _db.RolePermissions

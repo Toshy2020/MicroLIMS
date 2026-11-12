@@ -140,6 +140,8 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext, IMicr
     public DbSet<SystemSettingVersion> SystemSettingVersions => Set<SystemSettingVersion>();
     public DbSet<AccessReview> AccessReviews => Set<AccessReview>();
     public DbSet<AccessReviewFinding> AccessReviewFindings => Set<AccessReviewFinding>();
+    public DbSet<AuditTrailReview> AuditTrailReviews => Set<AuditTrailReview>();
+    public DbSet<AuditTrailReviewFinding> AuditTrailReviewFindings => Set<AuditTrailReviewFinding>();
     public DbSet<AnalystAvailability> AnalystAvailabilities => Set<AnalystAvailability>();
 
     // Media Configuration

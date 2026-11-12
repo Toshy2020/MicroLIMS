@@ -476,6 +476,143 @@ namespace MicroLIMS.Persistence.Migrations
                     b.ToTable("AuditLogs", (string)null);
                 });
 
+            modelBuilder.Entity("MicroLIMS.Domain.Entities.AuditTrailReview", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Conclusion")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<int>("CutoffAuditLogId")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("ElectronicSignatureId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("EntryCount")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("Outcome")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("PeriodFromUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("PeriodToUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ScopeEntityName")
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.Property<int>("ScopeKind")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("ScopeRecordId")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<DateTime?>("SignedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("StartedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("StartedByUserId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ElectronicSignatureId");
+
+                    b.HasIndex("StartedAtUtc");
+
+                    b.HasIndex("StartedByUserId");
+
+                    b.HasIndex("Status");
+
+                    b.ToTable("AuditTrailReviews", (string)null);
+                });
+
+            modelBuilder.Entity("MicroLIMS.Domain.Entities.AuditTrailReviewFinding", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("AuditLogId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("ClosedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("ClosedByUserId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("ClosedComment")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<string>("Note")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<DateTime>("RecordedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("RecordedByUserId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("ReviewId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<uint>("xmin")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AuditLogId");
+
+                    b.HasIndex("ClosedByUserId");
+
+                    b.HasIndex("RecordedByUserId");
+
+                    b.HasIndex("Status");
+
+                    b.HasIndex("ReviewId", "AuditLogId")
+                        .IsUnique();
+
+                    b.ToTable("AuditTrailReviewFindings", (string)null);
+                });
+
             modelBuilder.Entity("MicroLIMS.Domain.Entities.AutoclaveProgram", b =>
                 {
                     b.Property<int>("Id")
@@ -12487,6 +12624,50 @@ namespace MicroLIMS.Persistence.Migrations
                     b.Navigation("AuditLog");
                 });
 
+            modelBuilder.Entity("MicroLIMS.Domain.Entities.AuditTrailReview", b =>
+                {
+                    b.HasOne("MicroLIMS.Domain.Entities.ElectronicSignature", "ElectronicSignature")
+                        .WithMany()
+                        .HasForeignKey("ElectronicSignatureId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("MicroLIMS.Domain.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("StartedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("ElectronicSignature");
+                });
+
+            modelBuilder.Entity("MicroLIMS.Domain.Entities.AuditTrailReviewFinding", b =>
+                {
+                    b.HasOne("MicroLIMS.Domain.Entities.AuditLog", null)
+                        .WithMany()
+                        .HasForeignKey("AuditLogId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("MicroLIMS.Domain.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("ClosedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("MicroLIMS.Domain.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("RecordedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("MicroLIMS.Domain.Entities.AuditTrailReview", "Review")
+                        .WithMany("Findings")
+                        .HasForeignKey("ReviewId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Review");
+                });
+
             modelBuilder.Entity("MicroLIMS.Domain.Entities.AutoclaveProgram", b =>
                 {
                     b.HasOne("MicroLIMS.Domain.Entities.Equipment", "Equipment")
@@ -16172,6 +16353,11 @@ namespace MicroLIMS.Persistence.Migrations
             modelBuilder.Entity("MicroLIMS.Domain.Entities.AuditLog", b =>
                 {
                     b.Navigation("Changes");
+                });
+
+            modelBuilder.Entity("MicroLIMS.Domain.Entities.AuditTrailReview", b =>
+                {
+                    b.Navigation("Findings");
                 });
 
             modelBuilder.Entity("MicroLIMS.Domain.Entities.AutoclaveProgram", b =>

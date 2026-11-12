@@ -88,7 +88,7 @@ export function WorkflowStepsSection({ test, workflowTypes, onWorkflowTypeChange
   const changeWorkflowType = async (workflowType: string) => {
     setError(null);
     try {
-      await masterDataOptions.updateWorkflowType(test.id, workflowType);
+      await masterDataOptions.updateWorkflowType(test.id, workflowType, test.version);
       onWorkflowTypeChanged();
     } catch (e: unknown) {
       const err = e as { response?: { data?: { message?: string } } };
@@ -220,7 +220,8 @@ export function WorkflowStepsSection({ test, workflowTypes, onWorkflowTypeChange
   const move = async (stepId: number, direction: "up" | "down") => {
     setError(null);
     try {
-      await masterDataOptions.moveTestWorkflowStep(stepId, direction);
+      // Move returns no version, so the reload is what gives the next action the server's current version.
+      await masterDataOptions.moveTestWorkflowStep(stepId, direction, steps.find((s) => s.id === stepId)?.version);
       await loadSteps();
     } catch (e: unknown) {
       const err = e as { response?: { data?: { message?: string } } };
@@ -231,7 +232,7 @@ export function WorkflowStepsSection({ test, workflowTypes, onWorkflowTypeChange
   const remove = async (stepId: number) => {
     setError(null);
     try {
-      await masterDataOptions.deleteTestWorkflowStep(stepId);
+      await masterDataOptions.deleteTestWorkflowStep(stepId, steps.find((s) => s.id === stepId)?.version);
       await loadSteps();
     } catch (e: unknown) {
       const err = e as { response?: { data?: { message?: string } } };

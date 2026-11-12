@@ -8,30 +8,30 @@ Each of the 24 areas has one URS and one FS. Both are drafts. The files are not 
 
 | Area | URS file | FS file | Version | Status |
 |---|---|---|---|---|
-| RCV | `URS/URS-RCV.md` | `FunctionalSpecification/FS-RCV.md` | 0.1 | Not started |
-| MIC | `URS/URS-MIC.md` | `FunctionalSpecification/FS-MIC.md` | 0.1 | Not started |
-| PAT | `URS/URS-PAT.md` | `FunctionalSpecification/FS-PAT.md` | 0.1 | Not started |
-| WAT | `URS/URS-WAT.md` | `FunctionalSpecification/FS-WAT.md` | 0.1 | Not started |
-| ENV | `URS/URS-ENV.md` | `FunctionalSpecification/FS-ENV.md` | 0.1 | Not started |
-| ACL | `URS/URS-ACL.md` | `FunctionalSpecification/FS-ACL.md` | 0.1 | Not started |
-| PHY | `URS/URS-PHY.md` | `FunctionalSpecification/FS-PHY.md` | 0.1 | Not started |
-| INS | `URS/URS-INS.md` | `FunctionalSpecification/FS-INS.md` | 0.1 | Not started |
-| MED | `URS/URS-MED.md` | `FunctionalSpecification/FS-MED.md` | 0.1 | Not started |
-| SOL | `URS/URS-SOL.md` | `FunctionalSpecification/FS-SOL.md` | 0.1 | Not started |
-| CRY | `URS/URS-CRY.md` | `FunctionalSpecification/FS-CRY.md` | 0.1 | Not started |
-| WST | `URS/URS-WST.md` | `FunctionalSpecification/FS-WST.md` | 0.1 | Not started |
-| INV | `URS/URS-INV.md` | `FunctionalSpecification/FS-INV.md` | 0.1 | Not started |
-| EQP | `URS/URS-EQP.md` | `FunctionalSpecification/FS-EQP.md` | 0.1 | Not started |
-| OOS | `URS/URS-OOS.md` | `FunctionalSpecification/FS-OOS.md` | 0.1 | Not started |
-| MON | `URS/URS-MON.md` | `FunctionalSpecification/FS-MON.md` | 0.1 | Not started |
-| REV | `URS/URS-REV.md` | `FunctionalSpecification/FS-REV.md` | 0.1 | Not started |
-| SIG | `URS/URS-SIG.md` | `FunctionalSpecification/FS-SIG.md` | 0.1 | Not started |
-| AUD | `URS/URS-AUD.md` | `FunctionalSpecification/FS-AUD.md` | 0.1 | Not started |
-| RPT | `URS/URS-RPT.md` | `FunctionalSpecification/FS-RPT.md` | 0.1 | Not started |
-| MDM | `URS/URS-MDM.md` | `FunctionalSpecification/FS-MDM.md` | 0.1 | Not started |
-| NTF | `URS/URS-NTF.md` | `FunctionalSpecification/FS-NTF.md` | 0.1 | Not started |
-| ADM | `URS/URS-ADM.md` | `FunctionalSpecification/FS-ADM.md` | 0.1 | Not started |
-| SEC | `URS/URS-SEC.md` | `FunctionalSpecification/FS-SEC.md` | 0.1 | Not started |
+| RCV | `URS/URS-RCV.md` | `FunctionalSpecification/FS-RCV.md` | 0.1 | Draft 0.1 |
+| MIC | `URS/URS-MIC.md` | `FunctionalSpecification/FS-MIC.md` | 0.1 | Draft 0.1 |
+| PAT | `URS/URS-PAT.md` | `FunctionalSpecification/FS-PAT.md` | 0.1 | Draft 0.1 |
+| WAT | `URS/URS-WAT.md` | `FunctionalSpecification/FS-WAT.md` | 0.1 | Draft 0.1 |
+| ENV | `URS/URS-ENV.md` | `FunctionalSpecification/FS-ENV.md` | 0.1 | Draft 0.1 |
+| ACL | `URS/URS-ACL.md` | `FunctionalSpecification/FS-ACL.md` | 0.1 | Draft 0.1 |
+| PHY | `URS/URS-PHY.md` | `FunctionalSpecification/FS-PHY.md` | 0.1 | Draft 0.1 |
+| INS | `URS/URS-INS.md` | `FunctionalSpecification/FS-INS.md` | 0.1 | Draft 0.1 |
+| MED | `URS/URS-MED.md` | `FunctionalSpecification/FS-MED.md` | 0.1 | Draft 0.1 |
+| SOL | `URS/URS-SOL.md` | `FunctionalSpecification/FS-SOL.md` | 0.1 | Draft 0.1 |
+| CRY | `URS/URS-CRY.md` | `FunctionalSpecification/FS-CRY.md` | 0.1 | Draft 0.1 |
+| WST | `URS/URS-WST.md` | `FunctionalSpecification/FS-WST.md` | 0.1 | Draft 0.1 |
+| INV | `URS/URS-INV.md` | `FunctionalSpecification/FS-INV.md` | 0.1 | Draft 0.1 |
+| EQP | `URS/URS-EQP.md` | `FunctionalSpecification/FS-EQP.md` | 0.1 | Draft 0.1 |
+| OOS | `URS/URS-OOS.md` | `FunctionalSpecification/FS-OOS.md` | 0.1 | Draft 0.1 |
+| MON | `URS/URS-MON.md` | `FunctionalSpecification/FS-MON.md` | 0.1 | Draft 0.1 |
+| REV | `URS/URS-REV.md` | `FunctionalSpecification/FS-REV.md` | 0.1 | Draft 0.1 |
+| SIG | `URS/URS-SIG.md` | `FunctionalSpecification/FS-SIG.md` | 0.1 | Draft 0.1 |
+| AUD | `URS/URS-AUD.md` | `FunctionalSpecification/FS-AUD.md` | 0.1 | Draft 0.1 |
+| RPT | `URS/URS-RPT.md` | `FunctionalSpecification/FS-RPT.md` | 0.1 | Draft 0.1 |
+| MDM | `URS/URS-MDM.md` | `FunctionalSpecification/FS-MDM.md` | 0.1 | Draft 0.1 |
+| NTF | `URS/URS-NTF.md` | `FunctionalSpecification/FS-NTF.md` | 0.1 | Draft 0.1 |
+| ADM | `URS/URS-ADM.md` | `FunctionalSpecification/FS-ADM.md` | 0.1 | Draft 0.1 |
+| SEC | `URS/URS-SEC.md` | `FunctionalSpecification/FS-SEC.md` | 0.1 | Draft 0.1 |
 
 ## Other documents
 

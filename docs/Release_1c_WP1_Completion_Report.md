@@ -132,7 +132,7 @@ To prevent orphaning controlled GxP training records, all new user-referencing c
 
 ### 7. Requirements Traceability Matrix (RTM) Status
 
-- [`docs/Release_1c_Requirements_Traceability_Matrix.md`](file:///E:/MicroLIMS/MicroLIMS/docs/Release_1c_Requirements_Traceability_Matrix.md) has been updated to Version 1.1.
+- [`documents/DocumentControl/Release_1c_Requirements_Traceability_Matrix.md`](file:///E:/MicroLIMS/MicroLIMS/documents/DocumentControl/Release_1c_Requirements_Traceability_Matrix.md) has been updated to Version 1.1.
 - All **35 requirements** (`DC-URS-080`..`091`, `DC-URS-111`..`122`, `DC-URS-170`..`176`, `DC-URS-189`..`192`) have their entity and schema foundations mapped.
 - In strict adherence to validation governance, requirements remain categorized as **`PLANNED`** until their functional service layers, APIs, and UIs are implemented in later work packages.
 

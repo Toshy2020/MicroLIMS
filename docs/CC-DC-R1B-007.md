@@ -57,7 +57,7 @@ Work Package 7 (WP7) delivers the user-facing interface completion for the Relea
 - `frontend/src/modules/documentControl/components/TechnicalReviewDrawer.tsx` (Enhanced)
 - `frontend/src/modules/documentControl/components/ApprovalWorkspaceDialog.tsx` (Enhanced)
 - `frontend/src/modules/documentControl/pages/DocumentDetailPage.tsx` (Enhanced)
-- `docs/Release_1b_Requirements_Traceability_Matrix.md` (RTM status update)
+- `documents/DocumentControl/Release_1b_Requirements_Traceability_Matrix.md` (RTM status update)
 
 ---
 

@@ -94,13 +94,13 @@ Implementation is partitioned into 9 controlled, phase-gated work packages:
 
 All 8 planning deliverables + summary have been authored and placed under version control:
 1. Baseline Analysis: [`docs/Release_1b_Baseline_Analysis.md`](file:///E:/MicroLIMS/MicroLIMS/docs/Release_1b_Baseline_Analysis.md)
-2. Functional Specification: [`docs/ML-DC-FRS-1B-001.md`](file:///E:/MicroLIMS/MicroLIMS/docs/ML-DC-FRS-1B-001.md)
-3. Risk Impact Assessment: [`docs/Release_1b_Risk_Impact_Assessment.md`](file:///E:/MicroLIMS/MicroLIMS/docs/Release_1b_Risk_Impact_Assessment.md)
-4. Requirements Traceability Matrix: [`docs/Release_1b_Requirements_Traceability_Matrix.md`](file:///E:/MicroLIMS/MicroLIMS/docs/Release_1b_Requirements_Traceability_Matrix.md)
+2. Functional Specification: [`documents/DocumentControl/ML-DC-FRS-1B-001.md`](file:///E:/MicroLIMS/MicroLIMS/documents/DocumentControl/ML-DC-FRS-1B-001.md)
+3. Risk Impact Assessment: [`documents/DocumentControl/Release_1b_Risk_Impact_Assessment.md`](file:///E:/MicroLIMS/MicroLIMS/documents/DocumentControl/Release_1b_Risk_Impact_Assessment.md)
+4. Requirements Traceability Matrix: [`documents/DocumentControl/Release_1b_Requirements_Traceability_Matrix.md`](file:///E:/MicroLIMS/MicroLIMS/documents/DocumentControl/Release_1b_Requirements_Traceability_Matrix.md)
 5. Implementation Plan: [`docs/Release_1b_Implementation_Plan.md`](file:///E:/MicroLIMS/MicroLIMS/docs/Release_1b_Implementation_Plan.md)
 6. Test Strategy: [`docs/Release_1b_Test_Strategy.md`](file:///E:/MicroLIMS/MicroLIMS/docs/Release_1b_Test_Strategy.md)
-7. OQ/UAT Plan: [`docs/Release_1b_OQ_UAT_Plan.md`](file:///E:/MicroLIMS/MicroLIMS/docs/Release_1b_OQ_UAT_Plan.md)
-8. Validation Strategy: [`docs/Release_1b_Validation_Strategy.md`](file:///E:/MicroLIMS/MicroLIMS/docs/Release_1b_Validation_Strategy.md)
+7. OQ/UAT Plan: [`documents/DocumentControl/Release_1b_OQ_UAT_Plan.md`](file:///E:/MicroLIMS/MicroLIMS/documents/DocumentControl/Release_1b_OQ_UAT_Plan.md)
+8. Validation Strategy: [`documents/DocumentControl/Release_1b_Validation_Strategy.md`](file:///E:/MicroLIMS/MicroLIMS/documents/DocumentControl/Release_1b_Validation_Strategy.md)
 9. Readiness Summary: [`docs/Release_1b_Readiness_Summary.md`](file:///E:/MicroLIMS/MicroLIMS/docs/Release_1b_Readiness_Summary.md)
 
 ---

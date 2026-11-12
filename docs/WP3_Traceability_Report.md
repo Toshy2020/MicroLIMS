@@ -11,7 +11,7 @@
 
 ## 1. Overview
 
-This Traceability Matrix confirms 100% bidirectional coverage of the Release 1a Frontend user interface requirements against the authoritative Functional Requirements Specification (`docs/ML-DC-FRS-1A-001.md`), User Requirements Specification (URS v1.1), and implemented React/TypeScript components in `frontend/src/modules/documentControl/`.
+This Traceability Matrix confirms 100% bidirectional coverage of the Release 1a Frontend user interface requirements against the authoritative Functional Requirements Specification (`documents/DocumentControl/ML-DC-FRS-1A-001.md`), User Requirements Specification (URS v1.1), and implemented React/TypeScript components in `frontend/src/modules/documentControl/`.
 
 ---
 

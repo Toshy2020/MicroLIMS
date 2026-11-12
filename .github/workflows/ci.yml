@@ -254,3 +254,27 @@ jobs:
 
       - name: Build
         run: npm run build
+
+  # ---------------------------------------------------------------------
+  # Specification documents: IDs, cross-references, headers and code
+  # locations in documents/. Node built-ins only, no install step.
+  # ---------------------------------------------------------------------
+  documents:
+    name: Document checks
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+
+      - name: Checker tests
+        # Node 22 treats a bare directory argument as a module path, so the
+        # test files are named by glob.
+        run: node --test scripts/docs/*.test.mjs
+
+      - name: Check documents
+        run: node scripts/docs/check-documents.mjs documents

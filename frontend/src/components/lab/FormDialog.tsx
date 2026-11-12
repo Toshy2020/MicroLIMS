@@ -1,6 +1,6 @@
 import { useId } from "react";
 import { Alert, Box, Button, CircularProgress, DialogProps } from "@mui/material";
-import type { FormEvent, ReactNode } from "react";
+import type { FormEvent, KeyboardEvent, ReactNode } from "react";
 import { FloatingDialog } from "../FloatingDialog";
 
 interface FormDialogProps {
@@ -29,6 +29,15 @@ export function FormDialog({ open, title, onClose, onSubmit, submitLabel, submit
     if (!submitting) void onSubmit();
   };
 
+  // Enter in a search-and-pick field (Autocomplete) picks or searches; it must
+  // not save the whole form. The field handles the key first, so by the time
+  // it bubbles here only the browser's implicit submit is left to cancel.
+  const handleKeyDown = (e: KeyboardEvent<HTMLElement>) => {
+    if (e.key !== "Enter") return;
+    const target = e.target as HTMLElement;
+    if (target.tagName === "INPUT" && target.getAttribute("role") === "combobox") e.preventDefault();
+  };
+
   return (
     <FloatingDialog
       open={open}
@@ -50,9 +59,13 @@ export function FormDialog({ open, title, onClose, onSubmit, submitLabel, submit
         </>
       }
     >
-      <Box component="form" id={formId} onSubmit={handleSubmit} noValidate sx={{ display: "flex", flexDirection: "column", gap: 2, pt: 1 }}>
+      <Box component="form" id={formId} onSubmit={handleSubmit} onKeyDown={handleKeyDown} noValidate sx={{ display: "flex", flexDirection: "column", gap: 2, pt: 1 }}>
         {error && <Alert severity="error">{error}</Alert>}
         {children}
+        {/* The form's default button, so Enter submits whatever fields it holds.
+            It mirrors the footer button's disabled state: Enter must not save
+            when that button could not. */}
+        <button type="submit" hidden tabIndex={-1} aria-hidden="true" disabled={submitting || submitDisabled} />
       </Box>
     </FloatingDialog>
   );

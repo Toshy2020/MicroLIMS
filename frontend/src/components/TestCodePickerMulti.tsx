@@ -1,24 +1,21 @@
-import { Autocomplete, TextField, Chip, createFilterOptions, Tooltip } from "@mui/material";
+import { Autocomplete, TextField, Chip, Tooltip, type SxProps, type Theme } from "@mui/material";
 import { useTestDefinitions, TestDefinitionOption } from "../hooks/useTestDefinitions";
 
 interface TestCodePickerMultiProps {
   value: string[];
   onChange: (codes: string[]) => void;
   label?: string;
-  sx?: any;
+  sx?: SxProps<Theme>;
   editableCodes?: Set<string>;
 }
 
-type Option = TestDefinitionOption | { inputValue: string; isNew: true };
-
-const filter = createFilterOptions<Option>();
-
 // Multi-select version of TestCodePicker - for screens that assign
 // several tests at once (an Item's AssignedTests, a WaterSamplingPoint's
-// AssignedTestCodes). Same Test Master source, same inline "add new"
-// support.
+// AssignedTestCodes). Same Test Master source; it only chooses existing
+// tests (tests are created on the Test Master page). Not freeSolo, so typed
+// text can never be emitted as a code.
 export function TestCodePickerMulti({ value, onChange, label = "Assigned Tests", sx, editableCodes }: TestCodePickerMultiProps) {
-  const { options, activeOptions, addNew } = useTestDefinitions();
+  const { options, activeOptions } = useTestDefinitions();
   // Looked up against the full list (not just activeOptions) so tests
   // already assigned before being frozen still render as tags.
   const selected = options.filter((o) => value.includes(o.code));
@@ -29,34 +26,17 @@ export function TestCodePickerMulti({ value, onChange, label = "Assigned Tests",
     : activeOptions;
 
   return (
-    <Autocomplete<Option, true, false, false>
+    <Autocomplete<TestDefinitionOption, true, false, false>
       multiple
       size="small"
       sx={sx}
       options={availableOptions}
       value={selected}
-      getOptionLabel={(o) => (typeof o === "string" ? o : "inputValue" in o ? o.inputValue : `${o.code}: ${o.displayName}`)}
-      filterOptions={(opts, params) => {
-        const filtered = filter(opts, params);
-        // Checked against the full Test Master so a frozen-but-existing
-        // code doesn't show a misleading "Add ... to Test Master".
-        const exists = options.some((o) => o.code.toLowerCase() === params.inputValue.toLowerCase());
-        if (!editableCodes && params.inputValue !== "" && !exists) {
-          filtered.push({ inputValue: params.inputValue, isNew: true });
-        }
-        return filtered;
-      }}
-      onChange={async (_e, newValue) => {
-        const codes: string[] = [];
-        for (const item of newValue) {
-          if (typeof item === "string") { codes.push(item); continue; }
-          if ("isNew" in item) {
-            const created = await addNew(item.inputValue, item.inputValue);
-            codes.push(created.code);
-          } else {
-            codes.push(item.code);
-          }
-        }
+      noOptionsText="No such test. Add it in Test Master first."
+      getOptionLabel={(o) => `${o.code}: ${o.displayName}`}
+      isOptionEqualToValue={(o, v) => o.code === v.code}
+      onChange={(_e, newValue) => {
+        const codes = newValue.map((item) => item.code);
         // Preserve locked codes from other labs that cannot be removed
         if (editableCodes) {
           for (const code of value) {
@@ -68,16 +48,15 @@ export function TestCodePickerMulti({ value, onChange, label = "Assigned Tests",
         onChange(codes);
       }}
       renderOption={(props, option) => (
-        <li {...props} key={"code" in option ? option.code : option.inputValue}>
-          {"isNew" in option ? `+ Add "${option.inputValue}" to Test Master` : `${option.code}: ${option.displayName}`}
+        <li {...props} key={option.code}>
+          {`${option.code}: ${option.displayName}`}
         </li>
       )}
       renderValue={(tagValue, getItemProps) =>
         tagValue.map((option, index) => {
-          if (!("code" in option)) return null;
           const isLocked = editableCodes ? !editableCodes.has(option.code) : false;
           if (isLocked) {
-            const { onDelete, ...chipProps } = getItemProps({ index });
+            const { onDelete: _onDelete, ...chipProps } = getItemProps({ index });
             const sectionName = option.section?.name || "Owned by another laboratory";
             return (
               <Tooltip title={sectionName} key={option.code}>

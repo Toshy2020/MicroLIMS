@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import { ThemeProvider } from "@mui/material";
+import { MemoryRouter } from "react-router-dom";
 import { lightTheme } from "../../../theme";
 import { ItemsPage } from "./ItemsPage";
 
@@ -22,7 +23,7 @@ vi.mock("./services/ItemDocumentService", () => ({
   ItemDocumentService: { getDocumentsForItem: vi.fn().mockResolvedValue([]) },
 }));
 
-const renderPage = () => render(<ThemeProvider theme={lightTheme}><ItemsPage /></ThemeProvider>);
+const renderPage = () => render(<MemoryRouter><ThemeProvider theme={lightTheme}><ItemsPage /></ThemeProvider></MemoryRouter>);
 
 describe("ItemsPage", () => {
   it("shows no create, edit, freeze or delete control to a user who can only give the final approval", async () => {

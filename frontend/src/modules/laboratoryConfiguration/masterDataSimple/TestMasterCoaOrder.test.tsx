@@ -1,6 +1,7 @@
 import { describe, expect, it, vi, afterEach, beforeEach } from "vitest";
 import { render, screen, waitFor, cleanup, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { MemoryRouter } from "react-router-dom";
 import { TestMasterPage } from "./TestMasterPage";
 import { PinnedLightTheme } from "../../../theme/PinnedLightTheme";
 import * as laboratorySectionService from "../../../services/laboratorySectionService";
@@ -57,7 +58,9 @@ const salmonella: TestDefinitionOption = {
 function renderPage() {
   return render(
     <PinnedLightTheme>
-      <TestMasterPage lab="micro" />
+      <MemoryRouter>
+        <TestMasterPage lab="micro" />
+      </MemoryRouter>
     </PinnedLightTheme>
   );
 }

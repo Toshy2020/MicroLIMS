@@ -357,7 +357,8 @@ public class RoleManagementTests
     // they save the administration side of it without the GxP codes.
     private static List<string> AllCodesExcept(string code) =>
         PermissionConstants.All
-            .Where(c => c != code && !PermissionConstants.Hidden.Contains(c) && !SegregationOfDutiesRules.GxpExecutionAndApprovalCodes.Contains(c))
+            .Where(c => c != code && !PermissionConstants.Hidden.Contains(c) && !SegregationOfDutiesRules.GxpExecutionAndApprovalCodes.Contains(c)
+                && !SegregationOfDutiesRules.QaOnlyCodes.Contains(c)) // QA-only codes never sit beside administration codes
             .ToList();
 
     // A non-system role holding both administration permissions, with one

@@ -123,7 +123,11 @@ internal static class QaScopeTestSeed
             Email = $"qa_{uid.ToLowerInvariant()}@test.local",
             RoleId = qaRole.Id,
             PasswordHash = pwHash,
-            IsActive = true
+            IsActive = true,
+            // The fixture database is shared. An active, unlocked holder of Access.Review.Sign
+            // switches access review signing over to QA for every later test, so this reader is
+            // kept locked: section scope does not look at the lock, the signer rule does.
+            LockedUntil = new DateTime(2999, 1, 1, 0, 0, 0, DateTimeKind.Utc)
         };
         var analystA = new User
         {

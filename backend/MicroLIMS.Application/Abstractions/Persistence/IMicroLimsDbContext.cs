@@ -231,6 +231,8 @@ public interface IMicroLimsDbContext
     DbSet<NotApplicableTest> NotApplicableTests { get; }
     DbSet<BackgroundJobRun> BackgroundJobRuns { get; }
     DbSet<BackupRun> BackupRuns { get; }
+    DbSet<LabelPrintLog> LabelPrintLogs { get; }
+    DbSet<LabelFormat> LabelFormats { get; }
 
     DbSet<TEntity> Set<TEntity>() where TEntity : class;
     DatabaseFacade Database { get; }

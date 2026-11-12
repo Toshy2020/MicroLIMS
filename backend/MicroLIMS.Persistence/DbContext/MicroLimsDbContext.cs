@@ -265,6 +265,8 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext, IMicr
     public DbSet<NotApplicableTest> NotApplicableTests => Set<NotApplicableTest>();
     public DbSet<BackgroundJobRun> BackgroundJobRuns => Set<BackgroundJobRun>();
     public DbSet<BackupRun> BackupRuns => Set<BackupRun>();
+    public DbSet<LabelPrintLog> LabelPrintLogs => Set<LabelPrintLog>();
+    public DbSet<LabelFormat> LabelFormats => Set<LabelFormat>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

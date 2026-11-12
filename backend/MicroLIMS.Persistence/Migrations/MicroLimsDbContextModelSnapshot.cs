@@ -1421,7 +1421,8 @@ namespace MicroLIMS.Persistence.Migrations
 
                     b.Property<string>("Code")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasMaxLength(250)
+                        .HasColumnType("character varying(250)");
 
                     b.Property<DateTime>("ExpiryDate")
                         .HasColumnType("timestamp with time zone");
@@ -3083,6 +3084,9 @@ namespace MicroLIMS.Persistence.Migrations
                     b.Property<string>("ConnectionSettings")
                         .HasColumnType("jsonb");
 
+                    b.Property<int?>("EquipmentInventoryId")
+                        .HasColumnType("integer");
+
                     b.Property<string>("Location")
                         .HasColumnType("text");
 
@@ -3112,6 +3116,10 @@ namespace MicroLIMS.Persistence.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("Code");
+
+                    b.HasIndex("EquipmentInventoryId")
+                        .IsUnique()
+                        .HasFilter("\"EquipmentInventoryId\" IS NOT NULL");
 
                     b.HasIndex("SectionId");
 
@@ -5693,6 +5701,119 @@ namespace MicroLIMS.Persistence.Migrations
                         .IsUnique();
 
                     b.ToTable("LabCalendarDates");
+                });
+
+            modelBuilder.Entity("MicroLIMS.Domain.Entities.LabelFormat", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("DefaultCopies")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("EntityType")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("HeightMm")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("numeric(5,2)");
+
+                    b.Property<int>("Layout")
+                        .HasColumnType("integer");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.Property<decimal>("WidthMm")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("numeric(5,2)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EntityType")
+                        .IsUnique();
+
+                    b.ToTable("LabelFormats", t =>
+                        {
+                            t.HasCheckConstraint("CK_LabelFormats_DefaultCopies", "\"DefaultCopies\" BETWEEN 1 AND 50");
+
+                            t.HasCheckConstraint("CK_LabelFormats_HeightMm", "\"HeightMm\" BETWEEN 10 AND 150");
+
+                            t.HasCheckConstraint("CK_LabelFormats_WidthMm", "\"WidthMm\" BETWEEN 10 AND 150");
+                        });
+                });
+
+            modelBuilder.Entity("MicroLIMS.Domain.Entities.LabelPrintLog", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<Guid>("BatchId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(250)
+                        .HasColumnType("character varying(250)");
+
+                    b.Property<int>("Copies")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("EntityId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("EntityType")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("IsReprint")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("LabelFormatId")
+                        .HasColumnType("integer");
+
+                    b.Property<long>("LabelFormatVersion")
+                        .HasColumnType("bigint");
+
+                    b.Property<int>("PrintNumber")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("PrintedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("PrintedByUserId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Reason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<uint>("xmin")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BatchId");
+
+                    b.HasIndex("LabelFormatId");
+
+                    b.HasIndex("PrintedByUserId");
+
+                    b.HasIndex("EntityType", "EntityId", "PrintNumber")
+                        .IsUnique();
+
+                    b.ToTable("LabelPrintLogs");
                 });
 
             modelBuilder.Entity("MicroLIMS.Domain.Entities.LocationPathogenObservation", b =>
@@ -13283,11 +13404,18 @@ namespace MicroLIMS.Persistence.Migrations
 
             modelBuilder.Entity("MicroLIMS.Domain.Entities.Equipment", b =>
                 {
+                    b.HasOne("MicroLIMS.Domain.Entities.EquipmentInventory", "EquipmentInventory")
+                        .WithMany()
+                        .HasForeignKey("EquipmentInventoryId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("MicroLIMS.Domain.Entities.DocumentSection", "Section")
                         .WithMany()
                         .HasForeignKey("SectionId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.Navigation("EquipmentInventory");
 
                     b.Navigation("Section");
                 });
@@ -14085,6 +14213,21 @@ namespace MicroLIMS.Persistence.Migrations
                         .IsRequired();
 
                     b.Navigation("Section");
+                });
+
+            modelBuilder.Entity("MicroLIMS.Domain.Entities.LabelPrintLog", b =>
+                {
+                    b.HasOne("MicroLIMS.Domain.Entities.LabelFormat", null)
+                        .WithMany()
+                        .HasForeignKey("LabelFormatId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("MicroLIMS.Domain.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("PrintedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("MicroLIMS.Domain.Entities.LocationPathogenObservation", b =>

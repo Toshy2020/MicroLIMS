@@ -10,5 +10,6 @@ public enum AuditActionCategory
     Configuration = 6,
     Security = 7,
     ImportExport = 8,
-    Other = 9
+    Other = 9,
+    Labelling = 10
 }

@@ -19,7 +19,15 @@ public class EquipmentConfiguration : IEntityTypeConfiguration<Equipment>
             .HasForeignKey(e => e.SectionId)
             .OnDelete(DeleteBehavior.Restrict);
 
+        builder.HasOne(e => e.EquipmentInventory)
+            .WithMany()
+            .HasForeignKey(e => e.EquipmentInventoryId)
+            .OnDelete(DeleteBehavior.Restrict);
+
         builder.HasIndex(e => e.SectionId);
         builder.HasIndex(e => e.Code);
+        builder.HasIndex(e => e.EquipmentInventoryId)
+            .IsUnique()
+            .HasFilter("\"EquipmentInventoryId\" IS NOT NULL");
     }
 }

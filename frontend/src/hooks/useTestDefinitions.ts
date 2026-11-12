@@ -121,8 +121,9 @@ export function useTestDefinitions() {
   };
 
   const setActive = async (id: number, isActive: boolean) => {
-    if (isActive) await masterDataOptions.unfreezeTestDefinition(id);
-    else await masterDataOptions.freezeTestDefinition(id);
+    const version = options.find((o) => o.id === id)?.version;
+    if (isActive) await masterDataOptions.unfreezeTestDefinition(id, version);
+    else await masterDataOptions.freezeTestDefinition(id, version);
     await reload();
   };
 

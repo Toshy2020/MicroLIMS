@@ -142,6 +142,7 @@ Enums: `QualityRecordType { Deviation, Capa, ChangeControl, Complaint }`; `Quali
 ### Task 8: Section and version checks on master-data writes (pre-gate hardening)
 
 > **Moved to package G5** (`docs/superpowers/plans/2026-11-11-masterdata-write-scope-fix.md`), to be done early. If G5 is already merged, skip this task; otherwise implement G5 here. The text below is kept for reference.
+> **Done by G5 on 2026-11-12** (commit 9ed6ced): skip this task.
 
 **Files:** `MasterData/TestWorkflowStepMasterDataService.cs` (constructor takes only the context; add `IUserSectionScopeService` and a user id parameter to each method), `TestDefinitionMasterDataService.cs` (`FreezeTestDefinitionAsync(int id)` L956, `UnfreezeTestDefinitionAsync(int id)` L965), their controllers; Test `IntegrationTests/MasterDataWriteScopePostgresTests.cs`
 

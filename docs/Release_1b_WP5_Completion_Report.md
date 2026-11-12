@@ -91,7 +91,7 @@ To uphold ACID guarantees and prevent data corruption:
 | `backend/MicroLIMS.API/Extensions/ServiceCollectionExtensions.cs` | Modified | Registered `IDocumentEffectiveDateService` (Scoped) and `DocumentEffectiveDateWorker` (HostedService). |
 | `backend/MicroLIMS.Tests/UnitTests/DocumentEffectiveDateWorkerUnitTests.cs` | Created | 11 comprehensive unit tests covering all WP5 domain logic and edge cases. |
 | `backend/MicroLIMS.Tests/IntegrationTests/DocumentEffectiveDateWorkerPostgresIntegrationTests.cs` | Created | 3 PostgreSQL integration tests validating live database transaction execution, audit persistence, and recovery. |
-| `docs/Release_1b_Requirements_Traceability_Matrix.md` | Modified | Updated `DC-URS-177`, `178`, `180`, `181`, `182`, `183` status from `PLANNED` to `IMPLEMENTED`. |
+| `documents/DocumentControl/Release_1b_Requirements_Traceability_Matrix.md` | Modified | Updated `DC-URS-177`, `178`, `180`, `181`, `182`, `183` status from `PLANNED` to `IMPLEMENTED`. |
 | `docs/Release_1b_WP5_Completion_Report.md` | Created | Formal GAMP 5 completion report for WP5. |
 
 ---

@@ -40,7 +40,7 @@ The validation of Release 1a followed a sequential, phase-gated Clean Architectu
 ## 2. Requirements & Risk Traceability Reconciliation
 
 ### 2.1 Baseline Requirements Accounting (203 Requirements)
-As documented in the Requirements Traceability Matrix ([`ML-DC-RTM-1A-001`](file:///E:/MicroLIMS/MicroLIMS/docs/Release_1a_Requirements_Traceability_Matrix.md)), all 203 requirements from URS v1.1 are systematically reconciled:
+As documented in the Requirements Traceability Matrix ([`ML-DC-RTM-1A-001`](file:///E:/MicroLIMS/MicroLIMS/documents/DocumentControl/Release_1a_Requirements_Traceability_Matrix.md)), all 203 requirements from URS v1.1 are systematically reconciled:
 
 ```mermaid
 pie title URS v1.1 (203 Requirements) Scope Distribution
@@ -111,9 +111,9 @@ All qualification evidence, code repositories, migration scripts, and documentat
 ### 4.1 Documentation & Validation Reports
 | Document Title | Document ID | File Path | Status |
 |---|---|---|:---:|
-| **Release 1a Functional Requirements Specification (FRS)** | `ML-DC-FRS-1A-001` | [`docs/ML-DC-FRS-1A-001.md`](file:///E:/MicroLIMS/MicroLIMS/docs/ML-DC-FRS-1A-001.md) | Approved Baseline |
-| **Release 1a Requirements Traceability Matrix (RTM)** | `ML-DC-RTM-1A-001` | [`docs/Release_1a_Requirements_Traceability_Matrix.md`](file:///E:/MicroLIMS/MicroLIMS/docs/Release_1a_Requirements_Traceability_Matrix.md) | Approved Baseline |
-| **Release 1a Operational Qualification & UAT Protocol** | `ML-DC-WP4-OQ-UAT-001` | [`docs/WP4_Release_1a_OQ_UAT_Protocol.md`](file:///E:/MicroLIMS/MicroLIMS/docs/WP4_Release_1a_OQ_UAT_Protocol.md) | Approved Baseline |
+| **Release 1a Functional Requirements Specification (FRS)** | `ML-DC-FRS-1A-001` | [`documents/DocumentControl/ML-DC-FRS-1A-001.md`](file:///E:/MicroLIMS/MicroLIMS/documents/DocumentControl/ML-DC-FRS-1A-001.md) | Approved Baseline |
+| **Release 1a Requirements Traceability Matrix (RTM)** | `ML-DC-RTM-1A-001` | [`documents/DocumentControl/Release_1a_Requirements_Traceability_Matrix.md`](file:///E:/MicroLIMS/MicroLIMS/documents/DocumentControl/Release_1a_Requirements_Traceability_Matrix.md) | Approved Baseline |
+| **Release 1a Operational Qualification & UAT Protocol** | `ML-DC-WP4-OQ-UAT-001` | [`documents/DocumentControl/WP4_Release_1a_OQ_UAT_Protocol.md`](file:///E:/MicroLIMS/MicroLIMS/documents/DocumentControl/WP4_Release_1a_OQ_UAT_Protocol.md) | Approved Baseline |
 | **WP1 Completion Report (Persistence Foundation)** | `ML-DC-WP1-CR-001` | [`docs/WP1_Completion_Report.md`](file:///E:/MicroLIMS/MicroLIMS/docs/WP1_Completion_Report.md) | Approved |
 | **WP2 Completion Report (Application / API Layer)** | `ML-DC-WP2-CR-001` | [`docs/WP2_Completion_Report.md`](file:///E:/MicroLIMS/MicroLIMS/docs/WP2_Completion_Report.md) | Approved |
 | **WP2 Traceability Report** | `ML-DC-WP2-TR-001` | [`docs/WP2_Traceability_Report.md`](file:///E:/MicroLIMS/MicroLIMS/docs/WP2_Traceability_Report.md) | Approved |

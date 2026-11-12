@@ -16,16 +16,20 @@ namespace MicroLIMS.Application.Services.MasterData;
 public class TestWorkflowStepMasterDataService
 {
     private readonly IMicroLimsDbContext _db;
+    private readonly IUserSectionScopeService _scope;
 
-    public TestWorkflowStepMasterDataService(IMicroLimsDbContext db)
+    public TestWorkflowStepMasterDataService(IMicroLimsDbContext db, IUserSectionScopeService scope)
     {
         _db = db;
+        _scope = scope;
     }
 
-    public async Task<TestDefinitionResponse> UpdateWorkflowTypeAsync(int id, UpdateWorkflowTypeRequest request)
+    public async Task<TestDefinitionResponse> UpdateWorkflowTypeAsync(int currentUserId, int id, UpdateWorkflowTypeRequest request, CancellationToken cancellationToken = default)
     {
-        var entity = await _db.TestDefinitions.FirstOrDefaultAsync(t => t.Id == id)
+        var entity = await _db.TestDefinitions.FirstOrDefaultAsync(t => t.Id == id, cancellationToken)
             ?? throw new NotFoundException($"Test {id} not found.");
+        await TestConfigurationScope.EnsureCanConfigureAsync(_scope, currentUserId, entity.SectionId, cancellationToken);
+        RecordVersion.EnsureCurrent(_db, entity);
         // Only the step-driven workflows (CountTest <-> Observation) can be
         // switched here; every other workflow is set by the test type and
         // paired with its equation in TestDefinitionMasterDataService.
@@ -38,7 +42,7 @@ public class TestWorkflowStepMasterDataService
         if (!StepDriven(entity.WorkflowType) || !StepDriven(request.WorkflowType) || dedicatedEquation)
             throw new BusinessRuleException("The workflow type of this test is set by its test type; change it in the test settings.");
         entity.WorkflowType = request.WorkflowType;
-        await _db.SaveChangesAsync();
+        await _db.SaveChangesAsync(cancellationToken);
         return TestDefinitionResponse.From(entity);
     }
 
@@ -75,17 +79,18 @@ public class TestWorkflowStepMasterDataService
             })
             .ToListAsync();
 
-    public async Task<object> CreateTestWorkflowStepAsync(int id, CreateTestWorkflowStepRequest request)
+    public async Task<object> CreateTestWorkflowStepAsync(int currentUserId, int id, CreateTestWorkflowStepRequest request, CancellationToken cancellationToken = default)
     {
-        var test = await _db.TestDefinitions.FirstOrDefaultAsync(t => t.Id == id)
+        var test = await _db.TestDefinitions.FirstOrDefaultAsync(t => t.Id == id, cancellationToken)
             ?? throw new NotFoundException($"Test {id} not found.");
+        await TestConfigurationScope.EnsureCanConfigureAsync(_scope, currentUserId, test.SectionId, cancellationToken);
         if (AnalysisWorkflows.UsesTestAnalysis(test.WorkflowType))
             throw new BusinessRuleException($"{test.WorkflowType} tests have no workflow steps.");
 
         var nextOrder = 1 + await _db.TestWorkflowSteps.Where(s => s.TestDefinitionId == id)
-            .Select(s => (int?)s.StepOrder).MaxAsync() ?? 1;
+            .Select(s => (int?)s.StepOrder).MaxAsync(cancellationToken) ?? 1;
 
-        var stepMedias = await BuildStepMediaAsync(request.StepMedia);
+        var stepMedias = await BuildStepMediaAsync(request.StepMedia, cancellationToken: cancellationToken);
         var firstMedia = stepMedias.OrderBy(m => m.DisplayOrder).FirstOrDefault();
         var tempMin = request.TemperatureMin > 0 ? request.TemperatureMin : (firstMedia?.TempMin ?? 0);
         var tempMax = request.TemperatureMax > 0 ? request.TemperatureMax : (firstMedia?.TempMax ?? 0);
@@ -113,11 +118,11 @@ public class TestWorkflowStepMasterDataService
             PhenotypicTestType = t, DisplayOrder = i
         }));
 
-        await ValidateStepRulesAsync(id, excludeStepId: null, entity);
+        await ValidateStepRulesAsync(id, excludeStepId: null, entity, cancellationToken);
 
         _db.TestWorkflowSteps.Add(entity);
-        await _db.SaveChangesAsync();
-        await ValidateContiguousStepOrderAsync(id);
+        await _db.SaveChangesAsync(cancellationToken);
+        await ValidateContiguousStepOrderAsync(id, cancellationToken);
         return new { entity.Id, entity.StepOrder, entity.StepName };
     }
 
@@ -125,15 +130,16 @@ public class TestWorkflowStepMasterDataService
     // TestOrder - unlike delete, it can't corrupt anything, since a
     // completed Incubation row already has its own copied-at-the-time
     // Temperature/Duration and isn't affected retroactively.
-    public async Task<object> UpdateTestWorkflowStepAsync(int stepId, UpdateTestWorkflowStepRequest request)
+    public async Task<object> UpdateTestWorkflowStepAsync(int currentUserId, int stepId, UpdateTestWorkflowStepRequest request, CancellationToken cancellationToken = default)
     {
-        var step = await _db.TestWorkflowSteps.Include(s => s.StepMedia).Include(s => s.IncubationStages).Include(s => s.PhenotypicTests)
-            .FirstOrDefaultAsync(s => s.Id == stepId)
+        var step = await _db.TestWorkflowSteps.Include(s => s.TestDefinition).Include(s => s.StepMedia).Include(s => s.IncubationStages).Include(s => s.PhenotypicTests)
+            .FirstOrDefaultAsync(s => s.Id == stepId, cancellationToken)
             ?? throw new NotFoundException($"Workflow step {stepId} not found.");
+        await EnsureCanConfigureStepAsync(currentUserId, step, cancellationToken);
         RecordVersion.EnsureCurrent(_db, step);
 
         var rebuiltStepMedia = await BuildStepMediaAsync(
-            request.StepMedia, step.StepMedia.Where(m => m.MediaProductId != null).Select(m => m.MediaProductId!.Value).ToHashSet());
+            request.StepMedia, step.StepMedia.Where(m => m.MediaProductId != null).Select(m => m.MediaProductId!.Value).ToHashSet(), cancellationToken);
         var firstMedia = rebuiltStepMedia.OrderBy(m => m.DisplayOrder).FirstOrDefault();
         var tempMin = request.TemperatureMin > 0 ? request.TemperatureMin : (firstMedia?.TempMin ?? 0);
         var tempMax = request.TemperatureMax > 0 ? request.TemperatureMax : (firstMedia?.TempMax ?? 0);
@@ -183,8 +189,8 @@ public class TestWorkflowStepMasterDataService
             }));
         }
 
-        await ValidateStepRulesAsync(step.TestDefinitionId, excludeStepId: stepId, step);
-        await _db.SaveChangesAsync();
+        await ValidateStepRulesAsync(step.TestDefinitionId, excludeStepId: stepId, step, cancellationToken);
+        await _db.SaveChangesAsync(cancellationToken);
 
         return new { step.Id, step.StepOrder, step.StepName };
     }
@@ -197,16 +203,20 @@ public class TestWorkflowStepMasterDataService
     // (TestDefinitionId, StepOrder) index makes EF's change tracker
     // throw "circular dependency detected" since it can't find a safe
     // statement order for a direct swap against that index.
-    public Task<object> MoveTestWorkflowStepAsync(int stepId, MoveTestWorkflowStepRequest request) =>
-        UnitOfWork.RunAsync(_db, () => MoveTestWorkflowStepCoreAsync(stepId, request));
+    public Task<object> MoveTestWorkflowStepAsync(int currentUserId, int stepId, MoveTestWorkflowStepRequest request, CancellationToken cancellationToken = default) =>
+        UnitOfWork.RunAsync(_db, () => MoveTestWorkflowStepCoreAsync(currentUserId, stepId, request, cancellationToken));
 
-    private async Task<object> MoveTestWorkflowStepCoreAsync(int stepId, MoveTestWorkflowStepRequest request)
+    private async Task<object> MoveTestWorkflowStepCoreAsync(int currentUserId, int stepId, MoveTestWorkflowStepRequest request, CancellationToken cancellationToken)
     {
-        var step = await _db.TestWorkflowSteps.FirstOrDefaultAsync(s => s.Id == stepId)
+        var step = await _db.TestWorkflowSteps.Include(s => s.TestDefinition).FirstOrDefaultAsync(s => s.Id == stepId, cancellationToken)
             ?? throw new NotFoundException($"Workflow step {stepId} not found.");
+        // Scope and the moved step's version are checked before the neighbour is even loaded,
+        // so nothing tracked has been changed when either refusal is thrown.
+        await EnsureCanConfigureStepAsync(currentUserId, step, cancellationToken);
+        RecordVersion.EnsureCurrent(_db, step);
 
         var neighborOrder = request.Direction == "up" ? step.StepOrder - 1 : step.StepOrder + 1;
-        var neighbor = await _db.TestWorkflowSteps.FirstOrDefaultAsync(s => s.TestDefinitionId == step.TestDefinitionId && s.StepOrder == neighborOrder);
+        var neighbor = await _db.TestWorkflowSteps.FirstOrDefaultAsync(s => s.TestDefinitionId == step.TestDefinitionId && s.StepOrder == neighborOrder, cancellationToken);
         if (neighbor is null)
             throw new BusinessRuleException("This step is already at that end of the sequence.");
 
@@ -214,12 +224,12 @@ public class TestWorkflowStepMasterDataService
         var neighborStepOrder = neighbor.StepOrder;
 
         step.StepOrder = -1; // StepOrder is always >= 1, so this never collides
-        await _db.SaveChangesAsync();
+        await _db.SaveChangesAsync(cancellationToken);
 
         neighbor.StepOrder = stepOrder;
         step.StepOrder = neighborStepOrder;
-        await _db.SaveChangesAsync();
-        await ValidateContiguousStepOrderAsync(step.TestDefinitionId);
+        await _db.SaveChangesAsync(cancellationToken);
+        await ValidateContiguousStepOrderAsync(step.TestDefinitionId, cancellationToken);
 
         return new { };
     }
@@ -227,13 +237,15 @@ public class TestWorkflowStepMasterDataService
     // Blocked if any real TestOrder for this test code has already used
     // this step (an Incubation row referencing it exists) - same
     // "guard with a clear message" pattern as ItemService.DeleteAsync.
-    public async Task<object> DeleteTestWorkflowStepAsync(int stepId)
+    public async Task<object> DeleteTestWorkflowStepAsync(int currentUserId, int stepId, CancellationToken cancellationToken = default)
     {
-        var step = await _db.TestWorkflowSteps.Include(s => s.TestDefinition).FirstOrDefaultAsync(s => s.Id == stepId)
+        var step = await _db.TestWorkflowSteps.Include(s => s.TestDefinition).FirstOrDefaultAsync(s => s.Id == stepId, cancellationToken)
             ?? throw new NotFoundException($"Workflow step {stepId} not found.");
+        await EnsureCanConfigureStepAsync(currentUserId, step, cancellationToken);
+        RecordVersion.EnsureCurrent(_db, step);
 
         var inUse = await _db.Incubations.Include(i => i.TestOrder)
-            .AnyAsync(i => i.StepName == step.StepName && i.TestOrder!.TestCode == step.TestDefinition!.Code);
+            .AnyAsync(i => i.StepName == step.StepName && i.TestOrder!.TestCode == step.TestDefinition!.Code, cancellationToken);
         if (inUse)
             throw new BusinessRuleException($"Cannot delete step \"{step.StepName}\" - it has already been used by a test order.");
 
@@ -244,13 +256,19 @@ public class TestWorkflowStepMasterDataService
         var laterSteps = await _db.TestWorkflowSteps
             .Where(s => s.TestDefinitionId == step.TestDefinitionId && s.StepOrder > step.StepOrder)
             .OrderBy(s => s.StepOrder)
-            .ToListAsync();
+            .ToListAsync(cancellationToken);
         foreach (var laterStep in laterSteps)
             laterStep.StepOrder -= 1;
 
-        await _db.SaveChangesAsync();
+        await _db.SaveChangesAsync(cancellationToken);
         return new { };
     }
+
+    // A step belongs to the laboratory of its test.
+    private Task EnsureCanConfigureStepAsync(int currentUserId, TestWorkflowStep step, CancellationToken cancellationToken) =>
+        step.TestDefinition is { } test
+            ? TestConfigurationScope.EnsureCanConfigureAsync(_scope, currentUserId, test.SectionId, cancellationToken)
+            : throw new NotFoundException($"Test {step.TestDefinitionId} not found.");
 
     // TempMin/Max and IncubationMinHours/MaxHours are copied from the chosen
     // MediaIncubationCondition at save time - single source of truth,
@@ -259,16 +277,16 @@ public class TestWorkflowStepMasterDataService
     // product can't be newly chosen; one already on the step being edited
     // (alreadyOnStep) keeps working so an untouched row can be saved again.
     private async Task<List<TestWorkflowStepMedia>> BuildStepMediaAsync(
-        List<StepMediaRequest> requests, IReadOnlySet<int>? alreadyOnStep = null)
+        List<StepMediaRequest> requests, IReadOnlySet<int>? alreadyOnStep = null, CancellationToken cancellationToken = default)
     {
         var productIds = requests.Select(m => m.MediaProductId).Distinct().ToList();
-        var products = await _db.MediaProducts.Where(p => productIds.Contains(p.Id)).ToDictionaryAsync(p => p.Id);
+        var products = await _db.MediaProducts.Where(p => productIds.Contains(p.Id)).ToDictionaryAsync(p => p.Id, cancellationToken);
 
         var conditionIds = requests.Where(m => m.MediaIncubationConditionId.HasValue)
             .Select(m => m.MediaIncubationConditionId!.Value)
             .Distinct()
             .ToList();
-        var conditions = await _db.MediaIncubationConditions.Where(c => conditionIds.Contains(c.Id)).ToDictionaryAsync(c => c.Id);
+        var conditions = await _db.MediaIncubationConditions.Where(c => conditionIds.Contains(c.Id)).ToDictionaryAsync(c => c.Id, cancellationToken);
 
         var result = new List<TestWorkflowStepMedia>();
         foreach (var m in requests)
@@ -306,7 +324,7 @@ public class TestWorkflowStepMasterDataService
 
     // Structural rules come from WorkflowTemplateValidator; this adds the
     // one rule that spans the whole template rather than a single step.
-    private async Task ValidateStepRulesAsync(int testDefinitionId, int? excludeStepId, TestWorkflowStep candidate)
+    private async Task ValidateStepRulesAsync(int testDefinitionId, int? excludeStepId, TestWorkflowStep candidate, CancellationToken cancellationToken)
     {
         var errors = WorkflowTemplateValidator.Validate(candidate);
         if (errors.Count > 0)
@@ -316,7 +334,7 @@ public class TestWorkflowStepMasterDataService
         if (candidate.IsFinalStep)
         {
             var otherFinalExists = await _db.TestWorkflowSteps
-                .AnyAsync(s => s.TestDefinitionId == testDefinitionId && s.IsFinalStep && s.Id != (excludeStepId ?? -1));
+                .AnyAsync(s => s.TestDefinitionId == testDefinitionId && s.IsFinalStep && s.Id != (excludeStepId ?? -1), cancellationToken);
             if (otherFinalExists)
                 throw new BusinessRuleException("Only one step per test can be marked as the final step.");
         }
@@ -326,10 +344,10 @@ public class TestWorkflowStepMasterDataService
     // Create always appends and Move always swaps two adjacent orders,
     // both of which preserve contiguity by construction, but this makes
     // that invariant an enforced, checked fact rather than an assumption.
-    private async Task ValidateContiguousStepOrderAsync(int testDefinitionId)
+    private async Task ValidateContiguousStepOrderAsync(int testDefinitionId, CancellationToken cancellationToken)
     {
         var orders = await _db.TestWorkflowSteps.Where(s => s.TestDefinitionId == testDefinitionId)
-            .OrderBy(s => s.StepOrder).Select(s => s.StepOrder).ToListAsync();
+            .OrderBy(s => s.StepOrder).Select(s => s.StepOrder).ToListAsync(cancellationToken);
         for (var i = 0; i < orders.Count; i++)
         {
             if (orders[i] != i + 1)

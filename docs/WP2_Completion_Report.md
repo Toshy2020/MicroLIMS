@@ -23,7 +23,7 @@ Implementation was governed strictly by the following authoritative baseline:
 2. MicroLIMS Document Control URS v1.0
 3. MicroLIMS Document Control URS Amendment v1.1 (`DC-URS-001` through `DC-URS-203`)
 4. MicroLIMS Document Control Risk Assessment
-5. Release 1a Functional Requirements Specification v1.0 (`docs/ML-DC-FRS-1A-001.md`)
+5. Release 1a Functional Requirements Specification v1.0 (`documents/DocumentControl/ML-DC-FRS-1A-001.md`)
 6. WP1 Completion Report (`docs/WP1_Completion_Report.md`)
 7. Document Control Integration Report (`docs/DocumentControl_Integration_Report.md`)
 
@@ -32,7 +32,7 @@ Implementation was governed strictly by the following authoritative baseline:
 ## 3. WP2 Deliverables Inventory
 
 ### 3.1 Controlled Functional Requirements Specification (FRS)
-- **Document:** `docs/ML-DC-FRS-1A-001.md`
+- **Document:** `documents/DocumentControl/ML-DC-FRS-1A-001.md`
 - **Title:** *MicroLIMS Document Control Functional Requirements Specification Release 1a Version 1.0*
 - **Scope:** Defines 68 Release 1a requirements mapped directly to `DC-URS-001` through `DC-URS-200`, covering functional behavior, authorization rules, validation criteria, semantic audit expectations, error handling, and verification methods.
 

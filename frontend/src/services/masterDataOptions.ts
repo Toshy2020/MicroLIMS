@@ -301,12 +301,12 @@ export const masterDataOptions = {
       : codeOrPayload;
     return apiClient.put(`/masterdata/test-definitions/${id}`, payload, ifMatch(version)).then((r) => r.data.data);
   },
-  freezeTestDefinition: (id: number) =>
-    apiClient.put(`/masterdata/test-definitions/${id}/freeze`).then((r) => r.data.data),
-  unfreezeTestDefinition: (id: number) =>
-    apiClient.put(`/masterdata/test-definitions/${id}/unfreeze`).then((r) => r.data.data),
-  updateWorkflowType: (testDefinitionId: number, workflowType: string) =>
-    apiClient.put(`/masterdata/test-definitions/${testDefinitionId}/workflow-type`, { workflowType }).then((r) => r.data.data),
+  freezeTestDefinition: (id: number, version?: number) =>
+    apiClient.put(`/masterdata/test-definitions/${id}/freeze`, undefined, ifMatch(version)).then((r) => r.data.data),
+  unfreezeTestDefinition: (id: number, version?: number) =>
+    apiClient.put(`/masterdata/test-definitions/${id}/unfreeze`, undefined, ifMatch(version)).then((r) => r.data.data),
+  updateWorkflowType: (testDefinitionId: number, workflowType: string, version?: number) =>
+    apiClient.put(`/masterdata/test-definitions/${testDefinitionId}/workflow-type`, { workflowType }, ifMatch(version)).then((r) => r.data.data),
   getTestWorkflowSteps: (testDefinitionId: number) =>
     apiClient.get(`/masterdata/test-definitions/${testDefinitionId}/steps`).then((r) => r.data.data),
   getTestDefinitionStageReplicates: (testDefinitionId: number): Promise<TestDefinitionStageReplicateDto[]> =>
@@ -323,9 +323,10 @@ export const masterDataOptions = {
     apiClient.post(`/masterdata/test-definitions/${testDefinitionId}/steps`, payload).then((r) => r.data.data),
   updateTestWorkflowStep: (stepId: number, payload: TestWorkflowStepPayload, version?: number) =>
     apiClient.put(`/masterdata/test-definitions/steps/${stepId}`, payload, ifMatch(version)).then((r) => r.data.data),
-  moveTestWorkflowStep: (stepId: number, direction: "up" | "down") =>
-    apiClient.put(`/masterdata/test-definitions/steps/${stepId}/move`, { direction }).then((r) => r.data.data),
-  deleteTestWorkflowStep: (stepId: number) => apiClient.delete(`/masterdata/test-definitions/steps/${stepId}`)
+  moveTestWorkflowStep: (stepId: number, direction: "up" | "down", version?: number) =>
+    apiClient.put(`/masterdata/test-definitions/steps/${stepId}/move`, { direction }, ifMatch(version)).then((r) => r.data.data),
+  deleteTestWorkflowStep: (stepId: number, version?: number) =>
+    apiClient.delete(`/masterdata/test-definitions/steps/${stepId}`, ifMatch(version))
 };
 
 // "18–24 h at 35–37 °C" - how an incubation condition is shown everywhere.

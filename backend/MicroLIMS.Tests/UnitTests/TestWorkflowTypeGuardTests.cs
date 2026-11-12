@@ -14,7 +14,7 @@ public class TestWorkflowTypeGuardTests
 {
     private const string Msg = "The workflow type of this test is set by its test type; change it in the test settings.";
 
-    private static async Task<(MicroLimsDbContext db, TestWorkflowStepMasterDataService svc, int id)> SeedAsync(
+    private static async Task<(MicroLimsDbContext db, TestWorkflowStepMasterDataService svc, int id, int userId)> SeedAsync(
         WorkflowType workflow, EquationType equation)
     {
         var db = new MicroLimsDbContext(new DbContextOptionsBuilder<MicroLimsDbContext>()
@@ -26,24 +26,31 @@ public class TestWorkflowTypeGuardTests
             WorkflowType = workflow, EquationType = equation
         };
         db.TestDefinitions.Add(test);
+        // The acting user is a member of the test's laboratory section.
+        var role = new Role { Name = "Section Head", Type = RoleType.SectionHead, IsActive = true };
+        db.Roles.Add(role);
         await db.SaveChangesAsync();
-        return (db, new TestWorkflowStepMasterDataService(db), test.Id);
+        var user = new User { Username = "head_" + Guid.NewGuid().ToString("N")[..6], FullName = "Head", RoleId = role.Id, IsActive = true };
+        db.Users.Add(user);
+        await db.SaveChangesAsync();
+        TestServiceFactory.AssignUserToMicroSection(db, user.Id);
+        return (db, new TestWorkflowStepMasterDataService(db, new UserSectionScopeService(db)), test.Id, user.Id);
     }
 
     [Fact]
     public async Task UpdateWorkflowType_CountTestToObservation_Works()
     {
-        var (db, svc, id) = await SeedAsync(WorkflowType.CountTest, EquationType.None);
-        await svc.UpdateWorkflowTypeAsync(id, new UpdateWorkflowTypeRequest(WorkflowType.Observation));
+        var (db, svc, id, userId) = await SeedAsync(WorkflowType.CountTest, EquationType.None);
+        await svc.UpdateWorkflowTypeAsync(userId, id, new UpdateWorkflowTypeRequest(WorkflowType.Observation));
         Assert.Equal(WorkflowType.Observation, db.TestDefinitions.Single(t => t.Id == id).WorkflowType);
     }
 
     [Fact]
     public async Task UpdateWorkflowType_EquationBoundTest_Throws()
     {
-        var (db, svc, id) = await SeedAsync(WorkflowType.HplcMethodAssay, EquationType.HplcMethodAssay);
+        var (db, svc, id, userId) = await SeedAsync(WorkflowType.HplcMethodAssay, EquationType.HplcMethodAssay);
         var ex = await Assert.ThrowsAsync<BusinessRuleException>(
-            () => svc.UpdateWorkflowTypeAsync(id, new UpdateWorkflowTypeRequest(WorkflowType.ElementalAssay)));
+            () => svc.UpdateWorkflowTypeAsync(userId, id, new UpdateWorkflowTypeRequest(WorkflowType.ElementalAssay)));
         Assert.Equal(Msg, ex.Message);
         Assert.Equal(WorkflowType.HplcMethodAssay, db.TestDefinitions.Single(t => t.Id == id).WorkflowType);
     }
@@ -51,9 +58,9 @@ public class TestWorkflowTypeGuardTests
     [Fact]
     public async Task UpdateWorkflowType_ToNonStepWorkflow_Throws()
     {
-        var (db, svc, id) = await SeedAsync(WorkflowType.CountTest, EquationType.None);
+        var (db, svc, id, userId) = await SeedAsync(WorkflowType.CountTest, EquationType.None);
         var ex = await Assert.ThrowsAsync<BusinessRuleException>(
-            () => svc.UpdateWorkflowTypeAsync(id, new UpdateWorkflowTypeRequest(WorkflowType.ElementalAssay)));
+            () => svc.UpdateWorkflowTypeAsync(userId, id, new UpdateWorkflowTypeRequest(WorkflowType.ElementalAssay)));
         Assert.Equal(Msg, ex.Message);
         Assert.Equal(WorkflowType.CountTest, db.TestDefinitions.Single(t => t.Id == id).WorkflowType);
     }

@@ -186,7 +186,7 @@ dist/assets/index-Nn82FGr2.js  2,449.23 kB │ gzip: 627.48 kB
 
 ### 6. Traceability Matrix Update (`ML-DC-RTM-1B-001`)
 
-In `docs/Release_1b_Requirements_Traceability_Matrix.md`, the following requirements have officially transitioned:
+In `documents/DocumentControl/Release_1b_Requirements_Traceability_Matrix.md`, the following requirements have officially transitioned:
 - **`DC-URS-076`**: `PLANNED` $\longrightarrow$ **`IMPLEMENTED`**
 - **`DC-URS-077`**: `PLANNED` $\longrightarrow$ **`IMPLEMENTED`**
 

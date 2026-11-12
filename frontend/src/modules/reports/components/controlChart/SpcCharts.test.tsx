@@ -94,7 +94,9 @@ describe("SpcChart tooltip", () => {
       const tooltipText = () => container.querySelector(".recharts-tooltip-wrapper")?.textContent ?? "";
       await waitFor(() => expect(tooltipText()).toMatch(/FP\d+/));
       expect(tooltipText()).toContain(referenceNumber);
+      // The reported value already carries its unit; the tooltip must not add it again.
       expect(tooltipText()).toContain(`Result: ${POINTS[index].reportedValue}`);
+      expect(tooltipText()).not.toMatch(/cfu\/g\s+cfu\/g/i);
     }
   );
 });

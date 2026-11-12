@@ -4,6 +4,7 @@ import { StatusBadge, CategoryBadge } from "../../../components/StatusBadge";
 import { useState } from "react";
 import { AuditHistoryDialog } from "../../../components/AuditHistoryDialog";
 import { FloatingDialog } from "../../../components/FloatingDialog";
+import { withUnit } from "../../../utils/reportedValue";
 
 interface RecordDetailDialogProps {
   open: boolean;
@@ -136,7 +137,7 @@ export function RecordDetailDialog({ open, onClose, record }: RecordDetailDialog
               }}>
               <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Reported Result Value</Typography>
               <Typography sx={{ fontSize: 16, fontWeight: 700, color: theme.palette.primary.main }}>
-                {record.reportedValue} {record.unit ?? ""}
+                {withUnit(record.reportedValue, record.unit)}
               </Typography>
             </Grid>
 

@@ -22,6 +22,7 @@ import { RecordDetailDialog } from "../RecordDetailDialog";
 import { CompareDialog } from "../CompareDialog";
 import { captureChartsAsPng, downloadCsv } from "../../utils/chartExport";
 import { PinnedLightTheme } from "../../../../theme/PinnedLightTheme";
+import { serverMessage } from "../../../../utils/errorMessage";
 import { toDateInputValue } from "../../utils/dateRange";
 import { QualitativeEventItem, ResultRecordItem, SampleCategory, TestCodeOption } from "../../types/reportingTypes";
 import {
@@ -37,6 +38,9 @@ import { ReportBuilderDrawer } from "./ReportBuilderDrawer";
 const CAPTURE_WIDTH = 960;
 
 type View = "chart" | "review" | "events";
+
+// The thrown error's own message when it has one, else the caller's fallback.
+const failureMessage = (e: unknown, fallback: string): string => (e instanceof Error && e.message ? e.message : fallback);
 
 const DEFAULT_OPTIONS: SpcChartOptions = {
   showLowerLimits: false, showConfiguredLimits: true, showRuleNumbers: true, showValueLabels: true
@@ -258,7 +262,7 @@ export function ControlChartTab() {
           fromDate: c.fromDate ? `${c.fromDate}T00:00:00.000Z` : undefined, toDate: c.toDate ? `${c.toDate}T23:59:59.999Z` : undefined
         }).then((r) => { if (!cancelled) setEvents(r.events); });
     request
-      .catch((e: any) => { if (!cancelled) setError(e?.response?.data?.message ?? "The analysis could not be loaded."); })
+      .catch((e: unknown) => { if (!cancelled) setError(serverMessage(e) ?? "The analysis could not be loaded."); })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
   }, [query, reloadKey]);
@@ -350,8 +354,8 @@ export function ControlChartTab() {
       a.href = url;
       a.download = `${criteria.testCode}_${criteria.subjectName}_${chartKind}.png`.replace(/\s+/g, "_");
       a.click();
-    } catch (e: any) {
-      toast.error(e?.message ?? "Could not capture the chart.");
+    } catch (e: unknown) {
+      toast.error(failureMessage(e, "Could not capture the chart."));
     }
   };
 
@@ -361,8 +365,8 @@ export function ControlChartTab() {
       const image = await captureChart(chart, chartKind);
       setReportItems([...persistedReportItems, newItem(chart, chartKind, image, chartSource.criteria, chartSource.settings)]);
       toast.success(`Added ${chart.subjectName} to the report.`);
-    } catch (e: any) {
-      toast.error(e?.message ?? "Could not capture the chart.");
+    } catch (e: unknown) {
+      toast.error(failureMessage(e, "Could not capture the chart."));
     }
   };
 
@@ -382,8 +386,8 @@ export function ControlChartTab() {
         setBatch({ done: added.length, total: subjects.length });
       }
       toast.success(`Added ${added.length} chart(s) to the report.`);
-    } catch (e: any) {
-      toast.error(e?.response?.data?.message ?? e?.message ?? "Some charts could not be added.");
+    } catch (e: unknown) {
+      toast.error(serverMessage(e) ?? failureMessage(e, "Some charts could not be added."));
     } finally {
       if (added.length) setReportItems([...persistedReportItems, ...added]);
       setBatch(null);

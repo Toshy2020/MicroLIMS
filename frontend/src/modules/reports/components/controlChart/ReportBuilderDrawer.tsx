@@ -19,16 +19,18 @@ interface ReportBuilderDrawerProps {
 }
 
 // An error from a blob request arrives as a Blob, not parsed JSON.
-export async function errorMessage(e: any): Promise<string> {
-  const data = e?.response?.data;
+export async function errorMessage(e: unknown): Promise<string> {
+  const fallback = "The report could not be generated.";
+  const data = (e as { response?: { data?: unknown } } | null)?.response?.data;
   if (data instanceof Blob) {
     try {
-      return JSON.parse(await data.text())?.message ?? "The report could not be generated.";
+      const body: unknown = JSON.parse(await data.text());
+      return (body as { message?: string } | null)?.message ?? fallback;
     } catch {
-      return "The report could not be generated.";
+      return fallback;
     }
   }
-  return data?.message ?? e?.message ?? "The report could not be generated.";
+  return (data as { message?: string } | undefined)?.message ?? (e instanceof Error ? e.message : undefined) ?? fallback;
 }
 
 // The charts queued for one combined report: retitle, reorder or remove

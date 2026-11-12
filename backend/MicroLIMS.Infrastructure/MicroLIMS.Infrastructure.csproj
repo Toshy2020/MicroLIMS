@@ -6,6 +6,7 @@
     <PackageReference Include="PdfPig" />
     <PackageReference Include="SkiaSharp" />
     <PackageReference Include="SkiaSharp.NativeAssets.Linux.NoDependencies" />
+    <PackageReference Include="ZXing.Net" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\MicroLIMS.Application\MicroLIMS.Application.csproj" />

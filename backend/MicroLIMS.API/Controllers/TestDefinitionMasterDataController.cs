@@ -28,6 +28,9 @@ public class TestDefinitionMasterDataController : ControllerBase
         _service = service;
     }
 
+    // Null-safe so the controller can be exercised without an HTTP context.
+    private CancellationToken Ct => HttpContext?.RequestAborted ?? CancellationToken.None;
+
     private int CurrentUserId => int.TryParse(User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value, out var uid) ? uid : 0;
 
     // ---- Test Master ----
@@ -52,12 +55,12 @@ public class TestDefinitionMasterDataController : ControllerBase
     [Authorize(Policy = PermissionConstants.MasterDataManage)]
     [HttpPut("test-definitions/{id}/freeze")]
     public async Task<IActionResult> FreezeTestDefinition(int id) =>
-        Ok(ApiResponse<object>.Ok(await _service.FreezeTestDefinitionAsync(id)));
+        Ok(ApiResponse<object>.Ok(await _service.FreezeTestDefinitionAsync(CurrentUserId, id, Ct)));
 
     [Authorize(Policy = PermissionConstants.MasterDataManage)]
     [HttpPut("test-definitions/{id}/unfreeze")]
     public async Task<IActionResult> UnfreezeTestDefinition(int id) =>
-        Ok(ApiResponse<object>.Ok(await _service.UnfreezeTestDefinitionAsync(id)));
+        Ok(ApiResponse<object>.Ok(await _service.UnfreezeTestDefinitionAsync(CurrentUserId, id, Ct)));
 
     // ---- Equation Types (REQ-FP-030/042) ----
     [HttpGet("equation-types")]

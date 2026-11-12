@@ -441,9 +441,7 @@ public class TestDefinitionMasterDataService
 
         // Only a member of the test's section may change it, and only into a
         // section they belong to.
-        var scope = await _scope.GetConfigurableSectionIdsAsync(currentUserId);
-        if (scope is not null && !scope.Contains(entity.SectionId))
-            throw new UnauthorizedAccessException("This test belongs to a laboratory section you are not assigned to.");
+        await TestConfigurationScope.EnsureCanConfigureAsync(_scope, currentUserId, entity.SectionId);
         if (request.SectionId.HasValue && request.SectionId.Value != entity.SectionId)
             entity.SectionId = await _scope.ResolveSectionForCreateAsync(currentUserId, request.SectionId, access: SectionAccess.Configure);
 
@@ -953,21 +951,25 @@ public class TestDefinitionMasterDataService
         entity.PhyschemArea = requested;
     }
 
-    public async Task<TestDefinitionResponse> FreezeTestDefinitionAsync(int id)
+    public async Task<TestDefinitionResponse> FreezeTestDefinitionAsync(int currentUserId, int id, CancellationToken cancellationToken = default)
     {
-        var entity = await _db.TestDefinitions.Include(t => t.IcpElements).FirstOrDefaultAsync(t => t.Id == id)
+        var entity = await _db.TestDefinitions.Include(t => t.IcpElements).FirstOrDefaultAsync(t => t.Id == id, cancellationToken)
             ?? throw new NotFoundException($"Test {id} not found.");
+        await TestConfigurationScope.EnsureCanConfigureAsync(_scope, currentUserId, entity.SectionId, cancellationToken);
+        RecordVersion.EnsureCurrent(_db, entity);
         entity.IsActive = false;
-        await _db.SaveChangesAsync();
+        await _db.SaveChangesAsync(cancellationToken);
         return TestDefinitionResponse.From(entity);
     }
 
-    public async Task<TestDefinitionResponse> UnfreezeTestDefinitionAsync(int id)
+    public async Task<TestDefinitionResponse> UnfreezeTestDefinitionAsync(int currentUserId, int id, CancellationToken cancellationToken = default)
     {
-        var entity = await _db.TestDefinitions.Include(t => t.IcpElements).FirstOrDefaultAsync(t => t.Id == id)
+        var entity = await _db.TestDefinitions.Include(t => t.IcpElements).FirstOrDefaultAsync(t => t.Id == id, cancellationToken)
             ?? throw new NotFoundException($"Test {id} not found.");
+        await TestConfigurationScope.EnsureCanConfigureAsync(_scope, currentUserId, entity.SectionId, cancellationToken);
+        RecordVersion.EnsureCurrent(_db, entity);
         entity.IsActive = true;
-        await _db.SaveChangesAsync();
+        await _db.SaveChangesAsync(cancellationToken);
         return TestDefinitionResponse.From(entity);
     }
 

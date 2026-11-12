@@ -1,7 +1,32 @@
 import { describe, expect, it } from "vitest";
-import { formatRoleFallback } from "./userDisplay";
+import { formatRoleFallback, formatRoleName } from "./userDisplay";
+
+describe("formatRoleName", () => {
+  it("formats Qa as Quality Assurance", () => {
+    expect(formatRoleName("Qa")).toBe("Quality Assurance");
+    expect(formatRoleName("Qa", "QA")).toBe("Quality Assurance");
+    expect(formatRoleName(null, "QA")).toBe("Quality Assurance");
+    expect(formatRoleName("Qa", "Senior QA Auditor")).toBe("Senior QA Auditor");
+  });
+
+  it("keeps existing role labels unchanged", () => {
+    expect(formatRoleName("Analyst")).toBe("Analyst");
+    expect(formatRoleName("Reviewer")).toBe("Reviewer");
+    expect(formatRoleName("SectionHead")).toBe("Section Head");
+    expect(formatRoleName("QcManager")).toBe("QC Manager");
+    expect(formatRoleName("SystemAdministrator")).toBe("System Administrator");
+    expect(formatRoleName("Analyst", "Custom Analyst")).toBe("Custom Analyst");
+    expect(formatRoleName("Analyst", "constructor")).toBe("constructor");
+  });
+});
 
 describe("formatRoleFallback", () => {
+  it("formats Qa as Quality Assurance", () => {
+    expect(formatRoleFallback("Qa", [])).toBe("Quality Assurance");
+    expect(formatRoleFallback("Qa", ["MICRO"], "QA")).toBe("Quality Assurance");
+    expect(formatRoleFallback("Qa", ["MICRO"], "Senior QA Auditor")).toBe("Senior QA Auditor");
+  });
+
   it("names the QC Manager role", () => {
     expect(formatRoleFallback("QcManager", [])).toBe("QC Manager");
   });

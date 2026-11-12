@@ -64,5 +64,8 @@ export const RoleService = {
   },
   async getSodRules(): Promise<SodRules> {
     return (await apiClient.get("/roles/sod-rules")).data.data;
+  },
+  async getQaForbiddenCodes(signal?: AbortSignal): Promise<string[]> {
+    return (await apiClient.get("/roles/qa-forbidden-codes", signal ? { signal } : undefined)).data.data;
   }
 };

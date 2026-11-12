@@ -3,7 +3,7 @@
 // exactly one.
 //
 // roleName is the role's own name (Role.Name), which an administrator can
-// rename or create. It is shown as it is, except for the five built-in names,
+// rename or create. It is shown as it is, except for the built-in names,
 // which keep the laboratory-prefixed wording. `role` is the base type the
 // token carries; it only decides the label when no name is known yet (a
 // session stored before role names were sent).
@@ -12,22 +12,25 @@ const BUILT_IN_ROLE_NAME_TYPES = new Map<string, string>([
   ["Section Head", "SectionHead"],
   ["Reviewer", "Reviewer"],
   ["System Administrator", "SystemAdministrator"],
-  ["QC Manager", "QcManager"]
+  ["QC Manager", "QcManager"],
+  ["QA", "Qa"]
 ]);
 
-const ROLE_LABELS: Record<string, string> = {
-  Analyst: "Analyst",
-  Reviewer: "Reviewer",
-  SectionHead: "Section Head",
-  QcManager: "QC Manager",
-  SystemAdministrator: "System Administrator"
-};
+const ROLE_LABELS = new Map<string, string>([
+  ["Analyst", "Analyst"],
+  ["Reviewer", "Reviewer"],
+  ["SectionHead", "Section Head"],
+  ["QcManager", "QC Manager"],
+  ["Qa", "Quality Assurance"],
+  ["QA", "Quality Assurance"],
+  ["SystemAdministrator", "System Administrator"]
+]);
 
 export function formatRoleName(role: string | null | undefined, roleName?: string | null): string {
   const custom = roleName?.trim();
-  if (custom) return custom;
+  if (custom) return ROLE_LABELS.get(custom) ?? custom;
   if (!role) return "";
-  return ROLE_LABELS[role] ?? role;
+  return ROLE_LABELS.get(role) ?? role;
 }
 
 export function formatRoleFallback(role: string | null, labCodes: string[], roleName?: string | null): string {
@@ -46,6 +49,7 @@ export function formatRoleFallback(role: string | null, labCodes: string[], role
     case "Reviewer": return "Quality Reviewer";
     case "SystemAdministrator": return "System Administrator";
     case "QcManager": return "QC Manager";
+    case "Qa": return "Quality Assurance";
     default: return baseType;
   }
 }

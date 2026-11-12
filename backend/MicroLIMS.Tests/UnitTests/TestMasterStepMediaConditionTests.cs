@@ -27,14 +27,34 @@ public class TestMasterStepMediaConditionTests
         return db;
     }
 
-    private static MasterDataControllers CreateController(MicroLimsDbContext db) =>
-        new(
+    // Step writes are laboratory-scoped, so the requests run as a Section Head of the micro laboratory.
+    private static MasterDataControllers CreateController(MicroLimsDbContext db)
+    {
+        var role = db.Roles.FirstOrDefault(r => r.Type == RoleType.SectionHead)
+            ?? db.Roles.Add(new Role { Name = "Section Head", Type = RoleType.SectionHead, IsActive = true }).Entity;
+        db.SaveChanges();
+        var head = new User { Username = "head_" + Guid.NewGuid().ToString("N")[..6], FullName = "Micro Head", RoleId = role.Id, IsActive = true };
+        db.Users.Add(head);
+        db.SaveChanges();
+        TestServiceFactory.AssignUserToMicroSection(db, head.Id);
+
+        var controllers = new MasterDataControllers(
             db,
             new EquipmentConfigurationService(db),
             TestServiceFactory.MediaProduct(db),
             TestServiceFactory.MediaIncubationCondition(db),
             new UserSectionScopeService(db),
             new ChromatographyColumnService(db, new UserSectionScopeService(db)));
+        controllers.ControllerContext = new Microsoft.AspNetCore.Mvc.ControllerContext
+        {
+            HttpContext = new Microsoft.AspNetCore.Http.DefaultHttpContext
+            {
+                User = new System.Security.Claims.ClaimsPrincipal(new System.Security.Claims.ClaimsIdentity(
+                    new[] { new System.Security.Claims.Claim(System.Security.Claims.ClaimTypes.NameIdentifier, head.Id.ToString()) }, "test"))
+            }
+        };
+        return controllers;
+    }
 
     private static async Task<TestDefinition> SeedTestDefinitionAsync(MicroLimsDbContext db)
     {

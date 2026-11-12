@@ -1,0 +1,84 @@
+# FS-RPT Functional Specification
+
+| Field | Value |
+|---|---|
+| Document number | FS-RPT |
+| Title | Reporting, Certificate of Analysis and trending functional specification |
+| Version | 0.1 |
+| Status | Draft |
+| Author | Claude (AI agent), draft from code |
+| Reviewer | To be assigned by QA |
+| Approver | To be assigned by QA |
+| Effective date | Set when Approved |
+
+## Change history
+
+| Version | Date | Author | Change |
+|---|---|---|---|
+| 0.1 | 2026-11-12 | Claude (AI agent), draft from code | First draft, written from the code as built. |
+
+## Scope and reading notes
+
+- This document covers `ReportingController`, `ReportingQueryService`, `DataExportAuditService`, `CertificateOfAnalysisBuilder`, `CoaTestOrdering`, `ReportDocumentMapper`, `Spc/ControlChartCalculator` and the control chart controller. The Media/GPT and reference-strain report services (`MediaGptReportService`, `ReferenceStrainReportService`), `ControlChartReportService`, `ReportingAdminController` and the PDF rendering were not read.
+- Every statement was written from the code files named in each entry. Nothing was run. Pharmacopoeia chapters are pointers only (to be confirmed by QA).
+- Permissions and scope. `ReportingController` and `ControlChartController` carry `[Authorize]` only: every signed-in user may call the read endpoints. The report data is limited to the sections the user may read (`GetReadableSectionIdsAsync`; null for `Sections.ViewAll`). The only action with a permission policy is `apply-limits` (`MasterData.Manage`).
+- Audit. The reporting reads write nothing. The exports write a data export log row (FS-RPT-003). The report mapper and the certificate builder are pure: they make no database calls.
+- Conformance is decided in more than one place: `ResultConformanceRules` and `TestOrderConformance` (used by the certificate builder), `ConformingStatuses` in `ReportDocumentMapper`, and a private rule in `SampleApprovalService`. This is the subject of CONF-008; the report-side location is FS-RPT-006.
+
+## Functions
+
+### FS-RPT-001
+**Satisfies:** URS-RPT-001, URS-RPT-002
+**Function:** Result search and read. `GET api/reporting/results` takes search text, category, test code, result level, sample status, approval status, date range, subject name, result kind, page, page size, sort column and direction. The page size is normalised by `Paging.Normalize`: a size of zero or less becomes 25, and a larger size is cut to 100; page is at least 1. The data is the `ResultRecords` projection limited to the user's sections through each record's test order. Sorting is by a fixed list of columns; any other name sorts by the result-entered time. `GET api/reporting/results/{id}` returns the record only if it is inside the user's sections, else not-found. `GET filter-options` returns the categories, test codes, subject names and units that occur in the user's records. `GET overview` returns counts by category (with whole-number percentages, `Math.Round` default midpoint rule), the ten most used tests, the seven most used locations and the five newest results, for an optional date range. `GET completed-by-month` clamps the months to 1 to 60 and counts approved test orders per month against the same month of the year before. The queries do not use `AsNoTracking`. No permission other than a signed-in user is required.
+**Code:** `backend/MicroLIMS.API/Controllers/ReportingController.cs` — `GetResults`, `GetById`, `GetOverview`; `backend/MicroLIMS.Application/Services/ReportingQueryService.cs` — `SearchAsync`, `GetByIdAsync`, `GetFilterOptionsAsync`, `GetOverviewAggregateAsync`, `GetCompletedByMonthAsync`
+**Verified by:** reading (not run)
+**Conflicts:** CONF-163
+
+### FS-RPT-002
+**Satisfies:** URS-RPT-003
+**Function:** Trend, qualitative events and comparison. Trend needs a test code and a subject name; the test must exist in the Test Master and its workflow type must be CountTest, else the method refuses (qualitative tests are not trended). Points are the user's records for that test and subject in the date range, oldest first. A point flagged below the detection limit is replaced, for the statistics only, by half of its detection limit (`DetectionLimit / 2`); other points use the numeric value. The statistics are the count, the latest value, the mean, the sample standard deviation (divisor n minus 1; returned as 0 for fewer than two points), the minimum, the maximum and the number of imputed points. The stored values are not changed. Compare takes a test code and a category and groups the records by subject: for a CountTest it gives the mean of the imputed values rounded to 2 decimals with `Math.Round` (default midpoint rule), and a compliance percent equal to within-limit results divided by results whose level is not LimitsNotConfigured, times 100, rounded to 1 decimal; for other tests it gives the percent detected (reported value "Detected") and a compliance percent equal to the share of reported values "Not Detected" or "Absent". Alert or action counts and out-of-specification counts come from the stored result level. Qualitative events returns the records of kind Qualitative with reported value "Detected", newest first. The whole record lists are loaded into memory before the statistics are computed. The detection-limit rule and the compliance rule are not configured by the Section Head.
+**Code:** `backend/MicroLIMS.Application/Services/ReportingQueryService.cs` — `GetTrendAsync`, `GetCompareBySubjectAsync`, `GetQualitativeEventsAsync`, `Impute`, `StandardDeviation`
+**Calculations:** CALC-078, CALC-079, CALC-080
+**Verified by:** reading (not run)
+**Conflicts:** CONF-160, CONF-163
+
+### FS-RPT-003
+**Satisfies:** URS-RPT-004
+**Function:** CSV export of results, media/GPT results and reference-strain results. The filter is the same as the search, without paging. `GetForExportAsync` counts the matching rows; if the count is above the cap of 10,000 (`MaxExportRows` in the controller) it returns nothing and the controller throws `InvalidOperationException` with a message that asks the user to narrow the filter (mapped to HTTP 400 per the controller comment); no partial file is written. Otherwise the CSV is built and then `DataExportAuditService.LogExportAsync` writes one `DataExportLog` row: user ID, user full name, the UTC time from the injected clock, the filter as JSON, the row count and the export type ("ResultRecordsCsv", "MediaGptCsv" or "ReferenceStrainsCsv"). The log is written in its own `SaveChangesAsync` after the file content was built and before it is returned; the row is audited by automatic capture too. Any signed-in user may export what they may read. The media/GPT and reference-strain services behind the other two exports were not read.
+**Code:** `backend/MicroLIMS.API/Controllers/ReportingController.cs` — `ExportResults`, `ExportMediaGpt`, `ExportReferenceStrains`; `backend/MicroLIMS.Application/Services/ReportingQueryService.cs` — `GetForExportAsync`; `backend/MicroLIMS.Application/Services/DataExportAuditService.cs` — `LogExportAsync`
+**Verified by:** reading (not run)
+
+### FS-RPT-004
+**Satisfies:** URS-RPT-005
+**Function:** Certificate of Analysis builder. Input: the sample summary with its test orders (and supporting rows). Superseded test orders are left out. Each result gets one of four outcomes from `ResultConformanceRules.FromStatus`: no status is NoResult; WithinLimits or Absent is Conforms; LimitsNotConfigured is LimitsNotConfigured; every other status is DoesNotConform. A detection result conforms when the organism is not detected; a bare result value conforms unless it is blank (NoResult) or equals "Detected" (compared without regard to case). A test's overall standing is DoesNotConform if any result fails, else LimitsNotConfigured, else NoResult, else Conforms (`TestOrderConformance.Overall`). Only a result that conforms is certified. Tests with locations (water, environmental monitoring, after-cleaning) go to a matrix of locations by tests; the column for a test code that appears twice (an OOS retest) is the test order with a non-conforming location, else the first; the matrix puts any test whose code starts with "TAMC" (compared in upper case) first and keeps the rest in the order given. All other tests go to one row per test, ordered by `CoaTestOrdering` (FS-RPT-005); a test with analysis parameters gives one row per parameter; rows are de-duplicated by test code, keeping the first row that does not conform. The overall result complies only when every row conforms. The conclusion text is chosen from fixed sentences: complies, does not comply with the exceptions named, or "Cannot certify because ..." for missing results or missing limits. A rejected sample states "Rejected" and the rejecting laboratories instead. A viewer with a section list never receives supporting rows of other sections. Quantitative cell values are printed without trailing zeros (format `0.############################`); no rounding is applied. The analyst name and time on a row come from the stored result entries.
+**Code:** `backend/MicroLIMS.Application/Services/CertificateOfAnalysisBuilder.cs` — `Build`, `BuildScope`, `BuildMatrix`, `BuildSimpleRows`, `SimpleConclusionText`; `backend/MicroLIMS.Application/Helpers/ResultConformance.cs` — `ResultConformanceRules`; `backend/MicroLIMS.Application/Helpers/TestOrderConformance.cs` — `Overall`
+**Verified by:** reading (not run)
+**Conflicts:** CONF-156
+
+### FS-RPT-005
+**Satisfies:** URS-RPT-006
+**Function:** Row order of the one-row-per-test Certificate of Analysis, as coded in `CoaTestOrdering.Order`. Sort keys in this order: (1) laboratory rank from the test's section code: "FP" (Physicochemical) is 0, "MICRO" (Microbiology) is 1, any other code or none is 2; (2) group rank from the configured workflow type: Qualitative 0; HplcMethodAssay, Titration, IcpMethodAssay, UvSpectrophotometry and the retired assay types (HplcAssay, ElementalAssay, HplcMultiAnalyte, StandardComparison) 1; Measurement, Gravimetric, Dissolution, Disintegration and WeightVariation 2; CountTest 3; Observation 4; any other value 5; (3) the Test Master CoA order (`CoaDisplayOrder`), tests without one last; (4) display name, ignoring case; (5) test code. The order does not read a test code or name. This matches the order described in `CLAUDE.md` Rule 3.2, with the pathogen group represented by the workflow type Observation. The method is used by `BuildSimpleRows` only; the matrix path does not use it (FS-RPT-004). The CoA order itself is set in the Test Master (FS-MDM-009, FS-MDM-010).
+**Code:** `backend/MicroLIMS.Application/Services/CoaTestOrdering.cs` — `Order`, `LaboratoryRank`, `GroupRank`
+**Verified by:** reading (not run)
+
+### FS-RPT-006
+**Satisfies:** URS-RPT-007
+**Function:** Archived sample report document. `ReportDocumentMapper.ForSample` turns the sample summary into report blocks: identity, dates and personnel, preparation, a results matrix (test by location), one card per test with readings tables, supporting records, the lifecycle timeline, and a block of electronic signatures. Each signature shows the printed name, user name, role, the signing time, the meaning text and the comment, as supplied in the summary; the mapper does not build or check a signature. Date and time text is produced by `Dt` with the pattern "dd-MMM-yyyy HH:mm", which carries no time zone mark. Conformance in this mapper: the results matrix counts a location as conforming when its status is empty or WithinLimits or Absent (`ConformingStatuses`), so a location with no recorded status counts as conforming here; this differs from the certificate rule, where no status is NoResult. The per-test footer and tone use `TestOrderConformance.Overall` (the certificate rule). An analysis card says "Out of limits" when any parameter has a status other than WithinLimits or Absent, so a parameter with no limits configured is shown as out of limits. Counts of colonies in readings tables are shown by `Cfu`, which rounds the average and calculated result to a whole number with `MidpointRounding.AwayFromZero` for display only; the reported result is printed as stored. The mapper also builds media and cryovial reports (`ForMedia`, `ForCryovial`); those were not read. This is the report-side location named by CONF-008.
+**Code:** `backend/MicroLIMS.Application/Services/ReportDocumentMapper.cs` — `ForSample`, `ToResultsMatrix`, `ToTestCard`, `ToAnalysisCard`, `ToSignatureBlock`, `Cfu`, `Dt`, `ConformingStatuses`
+**Calculations:** CALC-076, CALC-077
+**Verified by:** reading (not run)
+**Conflicts:** CONF-008, CONF-157, CONF-158, CONF-159
+
+### FS-RPT-007
+**Satisfies:** URS-RPT-008
+**Function:** Control chart calculation. `ControlChartCalculator.Compute` takes a series of values in date order, settings and optional specification limits, and returns on the server: count, mean, median, minimum, maximum, sample standard deviation (n minus 1), the within-subgroup sigma (mean moving range divided by the constant d2 for the span, spans 2 to 10, constants written in the code), proposed alert and action limits, the moving-range chart limits (D3 and D4 constants), rule flags, capability indices, a histogram and a box summary. Settings are validated: moving range length 2 to 10; for the percentile method both percentiles 0 to 100 and alert not above action; for the sigma methods the multipliers above zero and alert not above action; minimum points not negative; rule numbers 1 to 8. Proposed limits: by percentile (linear interpolation, inclusive method) or mean plus k times sigma (k for alert and for action are settings; sigma is the standard deviation or the within sigma). The limits are rounded by a setting: up to a whole number (upper limits ceiling, lower limits floor, with a 1e-9 tolerance), 1 or 2 decimals, or 4 decimals, the decimal modes with `MidpointRounding.AwayFromZero`. Lower limits are floored at zero when every value is zero or more. The eight rules are those described in the code text (for example one point beyond the action limit, nine in a row on one side of the mean, six rising or falling, fourteen alternating, two of three beyond 2 sigma, four of five beyond 1 sigma, fifteen within 1 sigma, eight beyond 1 sigma). Capability: Cp, Cpk from the within sigma and Pp, Ppk from the overall standard deviation; with only an upper limit Cp and Pp are not defined and Cpk is Cpu; the observed share outside counts every charted result; the expected share uses a normal curve (an erf approximation written in the code). The values are proposals; this calculator changes no data. The window of points used for the limits (`inCalculation`) is chosen by the caller.
+**Code:** `backend/MicroLIMS.Application/Services/Spc/ControlChartCalculator.cs` — `Compute`, `Validate`, `ProposeLimits`, `Round`, `EvaluateRules`, `Capability`
+**Calculations:** CALC-065, CALC-066, CALC-067, CALC-068, CALC-069
+**Verified by:** reading (not run)
+
+### FS-RPT-008
+**Satisfies:** URS-RPT-001, URS-RPT-009
+**Function:** Applying proposed control chart limits (`POST api/reporting/control-chart/apply-limits`). Permission: `MasterData.Manage`. Runs in one transaction. Rules: the category must be Environmental Monitoring or Water; at least one location; no configuration listed twice; a written reason is required; a password is required; the settings are validated; the test must be a numeric (CountTest) test. For each item: alert and action limits must not be negative and alert must not be above action; the configuration (room test configuration or water sampling configuration) is loaded and must be for the test (an inactive room configuration is refused); the item's version must equal the row's version, else `DbUpdateConcurrencyException` (a stale-form check that does not depend on the `If-Match` header); the location name must match; the action limit must not be above the maximum parsed from the configuration's specification limit. The user's password is verified by `IElectronicSignatureService.SignAsync` with the meaning "MasterDataChanged" and a comment that holds the statistics, the previous and new limits and whether the user overrode the proposal, before the limits are changed. The limits are then written and an explicit audit event (category Configuration, with reason and the field changes) is recorded in the same transaction. No check is made here of the laboratory section of the test or location against the user's configurable scope; the read scope is used only to load the series. The water and after-cleaning master-data methods that change the same limits check test ownership (FS-MDM-020, FS-MDM-022).
+**Code:** `backend/MicroLIMS.Application/Services/Spc/ControlChartService.cs` — `ApplyLimitsAsync`, `ApplyLimitsCoreAsync`; `backend/MicroLIMS.API/Controllers/ControlChartController.cs` — `ApplyLimits`
+**Verified by:** reading (not run)
+**Conflicts:** CONF-164

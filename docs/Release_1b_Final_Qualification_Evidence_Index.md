@@ -16,12 +16,12 @@ This master index aggregates all formal planning, design, implementation, verifi
 | Artifact ID | Document Title & Path | Document Identifier | Stage & Scope | Validation Status |
 |:---|:---|:---|:---|:---:|
 | **EVD-PLN-01** | `docs/Release_1b_Baseline_Analysis.md` | `ML-DC-R1B-BASE-001` | Planning Baseline Analysis | `BASELINED` |
-| **EVD-PLN-02** | `docs/ML-DC-FRS-1B-001.md` | `ML-DC-FRS-1B-001` | Functional Specification (Release 1b) | `APPROVED` |
-| **EVD-PLN-03** | `docs/Release_1b_Risk_Impact_Assessment.md` | `ML-DC-R1B-RA-001` | ICH Q9 Risk Impact Assessment | `APPROVED` |
+| **EVD-PLN-02** | `documents/DocumentControl/ML-DC-FRS-1B-001.md` | `ML-DC-FRS-1B-001` | Functional Specification (Release 1b) | `APPROVED` |
+| **EVD-PLN-03** | `documents/DocumentControl/Release_1b_Risk_Impact_Assessment.md` | `ML-DC-R1B-RA-001` | ICH Q9 Risk Impact Assessment | `APPROVED` |
 | **EVD-PLN-04** | `docs/Release_1b_Implementation_Plan.md` | `ML-DC-R1B-IMP-001` | Controlled Implementation Plan (WP1–WP9) | `APPROVED` |
 | **EVD-PLN-05** | `docs/Release_1b_Test_Strategy.md` | `ML-DC-R1B-TST-001` | Verification & Test Strategy | `APPROVED` |
-| **EVD-PLN-06** | `docs/Release_1b_OQ_UAT_Plan.md` | `ML-DC-R1B-OQ-UAT-PLAN-001` | Formal OQ & UAT Protocol Plan | `APPROVED` |
-| **EVD-PLN-07** | `docs/Release_1b_Validation_Strategy.md` | `ML-DC-R1B-VAL-001` | GAMP 5 Validation Strategy | `APPROVED` |
+| **EVD-PLN-06** | `documents/DocumentControl/Release_1b_OQ_UAT_Plan.md` | `ML-DC-R1B-OQ-UAT-PLAN-001` | Formal OQ & UAT Protocol Plan | `APPROVED` |
+| **EVD-PLN-07** | `documents/DocumentControl/Release_1b_Validation_Strategy.md` | `ML-DC-R1B-VAL-001` | GAMP 5 Validation Strategy | `APPROVED` |
 | **EVD-PLN-08** | `docs/Release_1b_Readiness_Summary.md` | `ML-DC-R1B-RDY-001` | Planning Package Readiness Summary | `APPROVED` |
 | **EVD-IMP-01** | `docs/Release_1b_WP1_Completion_Report.md` | `ML-DC-WP1-RPT-001` | WP1 Technical Review Foundation Report | `VERIFIED` |
 | **EVD-IMP-02** | `docs/Release_1b_WP2_Completion_Report.md` | `ML-DC-WP2-RPT-001` | WP2 Revision Management Report | `VERIFIED` |
@@ -37,11 +37,11 @@ This master index aggregates all formal planning, design, implementation, verifi
 | **EVD-INT-05** | `docs/Release_1b_WP8_Evidence_Index.md` | `ML-DC-WP8-EVD-001` | WP8 Evidence Index Record | `VERIFIED` |
 | **EVD-INT-06** | `docs/Release_1b_WP8_Integration_Verification_Report.md` | `ML-DC-WP8-RPT-001` | WP8 Integration Verification Report | `VERIFIED` |
 | **EVD-QAL-01** | `docs/Release_1b_WP9_Qualification_Baseline.md` | `ML-DC-WP9-BASE-001` | WP9 Pre-Qualification Frozen Baseline | `FROZEN` |
-| **EVD-QAL-02** | `docs/Release_1b_OQ_Execution_Report.md` | `ML-DC-WP9-OQ-001` | Formal Operational Qualification Report (28/28 Pass) | `QUALIFIED` |
+| **EVD-QAL-02** | `documents/DocumentControl/Release_1b_OQ_Execution_Report.md` | `ML-DC-WP9-OQ-001` | Formal Operational Qualification Report (28/28 Pass) | `QUALIFIED` |
 | **EVD-QAL-03** | `docs/Release_1b_UAT_Execution_Report.md` | `ML-DC-WP9-UAT-001` | Formal User Acceptance Testing Report (8/8 Pass) | `ACCEPTED` |
 | **EVD-QAL-04** | `docs/Release_1b_WP9_Deviation_Defect_Log.md` | `ML-DC-WP9-DEV-001` | Qualification Deviation & Defect Log (0 open) | `CLOSED` |
-| **EVD-QAL-05** | `docs/Release_1b_Risk_Reconciliation_Report.md` | `ML-DC-WP9-RSK-001` | ICH Q9 Risk Assessment Reconciliation | `RECONCILED` |
-| **EVD-QAL-06** | `docs/Release_1b_Requirements_Traceability_Matrix.md` | `ML-DC-RTM-1B-001` | Formally Qualified RTM (43/43 Qualified) | `QUALIFIED` |
+| **EVD-QAL-05** | `documents/DocumentControl/Release_1b_Risk_Reconciliation_Report.md` | `ML-DC-WP9-RSK-001` | ICH Q9 Risk Assessment Reconciliation | `RECONCILED` |
+| **EVD-QAL-06** | `documents/DocumentControl/Release_1b_Requirements_Traceability_Matrix.md` | `ML-DC-RTM-1B-001` | Formally Qualified RTM (43/43 Qualified) | `QUALIFIED` |
 | **EVD-QAL-07** | `docs/Release_1b_Validation_Summary_Report.md` | `ML-DC-R1B-VSR-001` | Release 1b Validation Summary Report | `APPROVED` |
 | **EVD-QAL-08** | `docs/Release_1b_Release_Readiness_Assessment.md` | `ML-DC-R1B-RDY-002` | Release Readiness Assessment | `READY` |
 | **EVD-QAL-09** | `docs/Release_1b_Validation_Closure_Record.md` | `ML-DC-R1B-CLS-001` | Formal Validation Closure Record | `CLOSED` |

@@ -23,6 +23,11 @@ public class TestWorkflowStepMasterDataController : ControllerBase
 {
     private readonly TestWorkflowStepMasterDataService _service;
 
+    // Null-safe so the controller can be exercised without an HTTP context.
+    private CancellationToken Ct => HttpContext?.RequestAborted ?? CancellationToken.None;
+
+    private int CurrentUserId => int.TryParse(User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value, out var uid) ? uid : 0;
+
     public TestWorkflowStepMasterDataController(TestWorkflowStepMasterDataService service)
     {
         _service = service;
@@ -34,7 +39,7 @@ public class TestWorkflowStepMasterDataController : ControllerBase
     [Authorize(Policy = PermissionConstants.MasterDataManage)]
     [HttpPut("test-definitions/{id}/workflow-type")]
     public async Task<IActionResult> UpdateWorkflowType(int id, UpdateWorkflowTypeRequest request) =>
-        Ok(ApiResponse<object>.Ok(await _service.UpdateWorkflowTypeAsync(id, request)));
+        Ok(ApiResponse<object>.Ok(await _service.UpdateWorkflowTypeAsync(CurrentUserId, id, request, Ct)));
 
     [HttpGet("test-definitions/{id}/steps")]
     public async Task<IActionResult> GetTestWorkflowSteps(int id) =>
@@ -43,20 +48,20 @@ public class TestWorkflowStepMasterDataController : ControllerBase
     [Authorize(Policy = PermissionConstants.MasterDataManage)]
     [HttpPost("test-definitions/{id}/steps")]
     public async Task<IActionResult> CreateTestWorkflowStep(int id, CreateTestWorkflowStepRequest request) =>
-        Ok(ApiResponse<object>.Ok(await _service.CreateTestWorkflowStepAsync(id, request)));
+        Ok(ApiResponse<object>.Ok(await _service.CreateTestWorkflowStepAsync(CurrentUserId, id, request, Ct)));
 
     [Authorize(Policy = PermissionConstants.MasterDataManage)]
     [HttpPut("test-definitions/steps/{stepId}")]
     public async Task<IActionResult> UpdateTestWorkflowStep(int stepId, UpdateTestWorkflowStepRequest request) =>
-        Ok(ApiResponse<object>.Ok(await _service.UpdateTestWorkflowStepAsync(stepId, request)));
+        Ok(ApiResponse<object>.Ok(await _service.UpdateTestWorkflowStepAsync(CurrentUserId, stepId, request, Ct)));
 
     [Authorize(Policy = PermissionConstants.MasterDataManage)]
     [HttpPut("test-definitions/steps/{stepId}/move")]
     public async Task<IActionResult> MoveTestWorkflowStep(int stepId, MoveTestWorkflowStepRequest request) =>
-        Ok(ApiResponse<object>.Ok(await _service.MoveTestWorkflowStepAsync(stepId, request)));
+        Ok(ApiResponse<object>.Ok(await _service.MoveTestWorkflowStepAsync(CurrentUserId, stepId, request, Ct)));
 
     [Authorize(Policy = PermissionConstants.MasterDataManage)]
     [HttpDelete("test-definitions/steps/{stepId}")]
     public async Task<IActionResult> DeleteTestWorkflowStep(int stepId) =>
-        Ok(ApiResponse<object>.Ok(await _service.DeleteTestWorkflowStepAsync(stepId)));
+        Ok(ApiResponse<object>.Ok(await _service.DeleteTestWorkflowStepAsync(CurrentUserId, stepId, Ct)));
 }

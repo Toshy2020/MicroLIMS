@@ -176,7 +176,7 @@ In accordance with the project governance instruction, the following controlled 
 
 ## 9. Updated Traceability Status
 
-The following requirements are formally updated in [`ML-DC-RTM-1B-001`](file:///E:/MicroLIMS/MicroLIMS/docs/Release_1b_Requirements_Traceability_Matrix.md):
+The following requirements are formally updated in [`ML-DC-RTM-1B-001`](file:///E:/MicroLIMS/MicroLIMS/documents/DocumentControl/Release_1b_Requirements_Traceability_Matrix.md):
 
 | Requirement ID | Requirement Description | Status | Verification Evidence |
 |---|---|:---:|---|

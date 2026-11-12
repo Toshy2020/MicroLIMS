@@ -12,7 +12,7 @@ MicroLIMS/
 ├── backend/       # ASP.NET Core, Clean Architecture (API/Application/Domain/Infrastructure/Persistence/Shared/Tests)
 ├── frontend/       # React + TypeScript + Material UI
 ├── database/       # ERD, backups, raw SQL, seed data
-├── documents/      # URS, Functional/Design Specs, Validation, SOPs, User Manual, Screenshots
+├── documents/      # URS, FS, calculation register, conflicts list, Document Control, Validation, SOPs, User Manual, Screenshots
 ├── scripts/        # backup, restore, migration, deployment scripts
 └── README.md
 ```

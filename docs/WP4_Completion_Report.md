@@ -20,7 +20,7 @@ Key Verification Outcomes:
 - **Real Database Integration Suite:** 19 deep PostgreSQL integration tests executed in `microlims_doccontrol_wp1_test`, verifying database sequences, trigger-enforced audit immutability, transactional file replacement, draft lifecycle guards, and self-auditing CSV export.
 - **Frontend Production Verification:** Complete production build verification (`tsc -b && vite build`) executed in **31.18 seconds with 0 TypeScript diagnostics and 0 build errors**.
 - **Defect Resolution:** Two defects (DEF-DC-001 and DEF-DC-002) discovered during integration verification were systematically resolved, regression tested, and verified under real PostgreSQL runtime.
-- **OQ / UAT Qualification:** 21 Operational Qualification test cases and 8 microbiological laboratory User Acceptance Testing scenarios documented and verified in `docs/WP4_Release_1a_OQ_UAT_Protocol.md`.
+- **OQ / UAT Qualification:** 21 Operational Qualification test cases and 8 microbiological laboratory User Acceptance Testing scenarios documented and verified in `documents/DocumentControl/WP4_Release_1a_OQ_UAT_Protocol.md`.
 - **Release 1a Readiness:** Release 1a meets all defined acceptance criteria and is ready for operational release.
 
 ---
@@ -118,7 +118,7 @@ During WP4 integration verification, 2 defects were identified, recorded, correc
 
 ## 5. Qualification Summary (OQ / UAT)
 
-As detailed in `docs/WP4_Release_1a_OQ_UAT_Protocol.md`, formal qualification testing demonstrated complete conformance:
+As detailed in `documents/DocumentControl/WP4_Release_1a_OQ_UAT_Protocol.md`, formal qualification testing demonstrated complete conformance:
 
 ### 5.1 Operational Qualification (OQ) Summary
 - **OQ-01 through OQ-21:** All 21 OQ test cases passed with 100% compliance.

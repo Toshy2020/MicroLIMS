@@ -42,10 +42,10 @@
 16. `backend/MicroLIMS.Tests/UnitTests/DocumentControlRelease1dDomainUnitTests.cs`
 17. `docs/Release_1d_ADR_Document_Lifecycle.md`
 18. `docs/Release_1d_Change_Control.md`
-19. `docs/Release_1d_Delta_FRS.md`
-20. `docs/Release_1d_Delta_URS.md`
+19. `documents/DocumentControl/Release_1d_Delta_FRS.md`
+20. `documents/DocumentControl/Release_1d_Delta_URS.md`
 21. `docs/Release_1d_Implementation_Plan.md`
-22. `docs/Release_1d_RTM_Delta.md`
+22. `documents/DocumentControl/Release_1d_RTM_Delta.md`
 
 ---
 

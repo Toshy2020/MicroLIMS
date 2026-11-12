@@ -1,4 +1,5 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Box, Button, Alert, Grid, Typography, Stack } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import { PageHeader } from "../../../components/PageHeader";
@@ -8,14 +9,58 @@ import { useHasPermission } from "../../../contexts/AuthContext";
 import { PERMISSIONS } from "../../../routes/routes";
 import { ItemFilterBar } from "./components/ItemFilterBar";
 import { AddItemDialog } from "./components/AddItemDialog";
-import { ItemWorkspace } from "./components/ItemWorkspace";
+import { ItemWorkspace, parseItemWorkspaceTab, type ItemWorkspaceTab } from "./components/ItemWorkspace";
 import { UnmappedPreparationConfigurations } from "./components/UnmappedPreparationConfigurations";
+
+type ApiErrorShape = { response?: { data?: { message?: string } } };
+
+function apiErrorMessage(e: unknown, fallback: string): string {
+  return (e as ApiErrorShape | null | undefined)?.response?.data?.message ?? fallback;
+}
 
 export function ItemsPage() {
   // The QC Manager reaches this page to approve not-applicable tests; creating and changing items needs Items.Manage.
   const canManage = useHasPermission(PERMISSIONS.ITEMS_MANAGE);
   const [items, setItems] = useState<Item[]>([]);
-  const [selectedItemId, setSelectedItemId] = useState<number | null>(null);
+  // The selected item and the workspace tab live in the URL (?item=<id>&tab=<slug>) so a refresh, Back or a shared link restores them.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const itemParam = searchParams.get("item");
+  const selectedItemId = useMemo(() => {
+    const id = itemParam === null ? NaN : Number(itemParam);
+    return Number.isInteger(id) && id > 0 ? id : null;
+  }, [itemParam]);
+  const activeTab = parseItemWorkspaceTab(searchParams.get("tab"));
+
+  const setSelectedItemId = useCallback(
+    (id: number | null) => {
+      setSearchParams((prev) => {
+        const next = new URLSearchParams(prev);
+        if (id === null) {
+          next.delete("item");
+          next.delete("tab");
+        } else {
+          next.set("item", String(id));
+        }
+        return next;
+      });
+    },
+    [setSearchParams]
+  );
+
+  const handleTabChange = useCallback(
+    (tab: ItemWorkspaceTab) => {
+      setSearchParams(
+        (prev) => {
+          const next = new URLSearchParams(prev);
+          if (tab === "overview") next.delete("tab");
+          else next.set("tab", tab);
+          return next;
+        },
+        { replace: true }
+      );
+    },
+    [setSearchParams]
+  );
   const [editingItem, setEditingItem] = useState<Item | null>(null);
   const [addDialogOpen, setAddDialogOpen] = useState(false);
 
@@ -39,8 +84,8 @@ export function ItemsPage() {
         setItems(data);
         setLoadError(null);
       })
-      .catch((e: any) => {
-        setLoadError(e?.response?.data?.message ?? "Could not load items.");
+      .catch((e: unknown) => {
+        setLoadError(apiErrorMessage(e, "Could not load items."));
       })
       .finally(() => setLoading(false));
   };
@@ -107,6 +152,23 @@ export function ItemsPage() {
     return items.find((i) => i.id === selectedItemId) || null;
   }, [items, selectedItemId]);
 
+  // A link to an item that is not in the loaded list (deleted, mistyped) shows the plain list and drops the parameter.
+  // Only once loading has finished successfully, so a deep link survives the initial fetch and a failed load.
+  useEffect(() => {
+    if (loading || loadError !== null || selectedItemId === null) return;
+    if (!items.some((i) => i.id === selectedItemId)) {
+      setSearchParams(
+        (prev) => {
+          const next = new URLSearchParams(prev);
+          next.delete("item");
+          next.delete("tab");
+          return next;
+        },
+        { replace: true }
+      );
+    }
+  }, [loading, loadError, items, selectedItemId, setSearchParams]);
+
   const handleResetFilters = () => {
     setSearchQuery("");
     setCategoryFilter("ALL");
@@ -165,8 +227,8 @@ export function ItemsPage() {
         setSelectedItemId(null);
       }
       loadItems();
-    } catch (e: any) {
-      setMessage({ text: e?.response?.data?.message ?? "Could not delete item.", ok: false });
+    } catch (e: unknown) {
+      setMessage({ text: apiErrorMessage(e, "Could not delete item."), ok: false });
     }
   };
 
@@ -181,8 +243,8 @@ export function ItemsPage() {
         setMessage({ text: `Item "${item.name}" unfrozen.`, ok: true });
       }
       loadItems();
-    } catch (e: any) {
-      setMessage({ text: e?.response?.data?.message ?? "Could not update item status.", ok: false });
+    } catch (e: unknown) {
+      setMessage({ text: apiErrorMessage(e, "Could not update item status."), ok: false });
     }
   };
 
@@ -300,6 +362,8 @@ export function ItemsPage() {
               item={selectedItem}
               onClose={() => setSelectedItemId(null)}
               onItemUpdated={loadItems}
+              activeTab={activeTab}
+              onTabChange={handleTabChange}
             />
           </Grid>
         </Grid>

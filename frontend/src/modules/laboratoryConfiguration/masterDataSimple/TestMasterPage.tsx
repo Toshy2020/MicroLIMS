@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { TextField, Button, Stack, Alert, Select, MenuItem, Box, Typography, FormControlLabel, Chip, Tooltip, FormControl, InputLabel, FormHelperText, Switch } from "@mui/material";
 import { getMySections, getSections, LaboratorySection } from "../../../services/laboratorySectionService";
 import AddIcon from "@mui/icons-material/Add";
-import { LabPage, FilterBar, RegisterTable, RegisterColumn } from "../../../components/lab";
+import { LabPage, FilterBar, FormDialog, RegisterTable, RegisterColumn } from "../../../components/lab";
 import { monospaceFontFamily } from "../../../theme/palette";
 import { StatusBadge } from "../../../components/StatusBadge";
 import { LoadErrorAlert, LoadFailuresAlert } from "../../../components/LoadErrorAlert";
@@ -27,16 +28,92 @@ import type { UvCalculationMode } from "../../../services/masterDataOptions";
 // The Test Master - one canonical Code/DisplayName per test, referenced
 // everywhere a TestCode is assigned (Items, Water Sampling Points, Room
 // Test Configurations, Machine Part Configurations) via TestCodePicker/
-// TestCodePickerMulti. Those pickers can also add a new test inline,
-// but this page is the place to see the whole list and add one
-// deliberately (e.g. before configuring several items that will all
-// need it).
+// TestCodePickerMulti. Those pickers only choose existing tests; this
+// page is the only place a test is created, so every test gets its
+// section and workflow type.
 //
 // Freezing a test hides it from those pickers' dropdown for *new*
 // selections without touching anything that already references its
 // Code - see useTestDefinitions.activeOptions.
+// Query parameter naming the test whose "Details & Workflow Steps" dialog is open.
+const OPEN_TEST_PARAM = "test";
+
+// What the Add Test form OPENS with for the Dissolution, Disintegration and
+// Weight Variation acceptance fields. These numbers are only a starting point:
+// they are shown in the form, the user can edit or clear them, and they are
+// NEVER applied on save. Saving rejects a blank field, and the saved values
+// always come from what the user entered.
+const PREFILL_METHOD_FIELDS = {
+  dissolutionS1Offset: "5",
+  dissolutionS2MinOffset: "15",
+  dissolutionS3MinOffset: "25",
+  dissolutionS3MaxBelowS2Min: "2",
+  disintegrationStage1Units: "6",
+  disintegrationStage2Units: "12",
+  disintegrationMaxStage1Failures: "2",
+  disintegrationMinPassTotal: "16",
+  wvUnitCount: "20",
+  wvTabletBand1MaxMg: "130",
+  wvTabletBand1Percent: "10",
+  wvTabletBand2MaxMg: "324",
+  wvTabletBand2Percent: "7.5",
+  wvTabletBand3Percent: "5",
+  wvTabletMaxOutside: "2",
+  wvCapsuleInnerPercent: "10",
+  wvCapsuleOuterPercent: "25",
+  wvCapsuleS1MaxOutside: "2",
+  wvCapsuleS1MaxForRetest: "6",
+  wvCapsuleS2ExtraUnits: "40",
+  wvCapsuleS2MaxOutside: "6"
+} as const;
+
+type MethodGroupKey = keyof typeof PREFILL_METHOD_FIELDS;
+
+// Sent as null for every workflow type that does not own these fields.
+const NO_METHOD_GROUP_FIELDS: Record<MethodGroupKey, null> = {
+  dissolutionS1Offset: null,
+  dissolutionS2MinOffset: null,
+  dissolutionS3MinOffset: null,
+  dissolutionS3MaxBelowS2Min: null,
+  disintegrationStage1Units: null,
+  disintegrationStage2Units: null,
+  disintegrationMaxStage1Failures: null,
+  disintegrationMinPassTotal: null,
+  wvUnitCount: null,
+  wvTabletBand1MaxMg: null,
+  wvTabletBand1Percent: null,
+  wvTabletBand2MaxMg: null,
+  wvTabletBand2Percent: null,
+  wvTabletBand3Percent: null,
+  wvTabletMaxOutside: null,
+  wvCapsuleInnerPercent: null,
+  wvCapsuleOuterPercent: null,
+  wvCapsuleS1MaxOutside: null,
+  wvCapsuleS1MaxForRetest: null,
+  wvCapsuleS2ExtraUnits: null,
+  wvCapsuleS2MaxOutside: null
+};
+
+// Reads the numeric fields of one method-configuration group. A blank field is
+// reported first (the first one in on-screen order), then a non-numeric one;
+// nothing is ever substituted for a missing value.
+function readRequiredNumbers(
+  group: string,
+  fields: ReadonlyArray<readonly [label: string, text: string]>
+): { error: string } | { values: number[] } {
+  const blank = fields.find(([, text]) => text.trim() === "");
+  if (blank) return { error: `${group}: "${blank[0]}" is required.` };
+  const values: number[] = [];
+  for (const [label, text] of fields) {
+    const n = Number(text);
+    if (!Number.isFinite(n)) return { error: `${group}: "${label}" must be a number.` };
+    values.push(n);
+  }
+  return { values };
+}
+
 export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; area?: PageArea }) {
-  const { options: allOptions, addNew, update, setActive, reload } = useTestDefinitions();
+  const { options: allOptions, loading: definitionsLoading, addNew, update, setActive, reload } = useTestDefinitions();
   const isFp = lab === "fp";
   const workflowTypes = WORKFLOW_TYPES_BY_LAB[lab];
   const defaultWorkflowType: string = isFp ? "HplcMethodAssay" : "Observation";
@@ -102,29 +179,29 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
   const [uvStandardVolumeMl, setUvStandardVolumeMl] = useState<string>("");
   const [uvStandardEntryId, setUvStandardEntryId] = useState<number | "">("");
 
-  const [dissolutionS1Offset, setDissolutionS1Offset] = useState<string>("5");
-  const [dissolutionS2MinOffset, setDissolutionS2MinOffset] = useState<string>("15");
-  const [dissolutionS3MinOffset, setDissolutionS3MinOffset] = useState<string>("25");
-  const [dissolutionS3MaxBelowS2Min, setDissolutionS3MaxBelowS2Min] = useState<string>("2");
+  const [dissolutionS1Offset, setDissolutionS1Offset] = useState<string>(PREFILL_METHOD_FIELDS.dissolutionS1Offset);
+  const [dissolutionS2MinOffset, setDissolutionS2MinOffset] = useState<string>(PREFILL_METHOD_FIELDS.dissolutionS2MinOffset);
+  const [dissolutionS3MinOffset, setDissolutionS3MinOffset] = useState<string>(PREFILL_METHOD_FIELDS.dissolutionS3MinOffset);
+  const [dissolutionS3MaxBelowS2Min, setDissolutionS3MaxBelowS2Min] = useState<string>(PREFILL_METHOD_FIELDS.dissolutionS3MaxBelowS2Min);
 
-  const [disintegrationStage1Units, setDisintegrationStage1Units] = useState<string>("6");
-  const [disintegrationStage2Units, setDisintegrationStage2Units] = useState<string>("12");
-  const [disintegrationMaxStage1Failures, setDisintegrationMaxStage1Failures] = useState<string>("2");
-  const [disintegrationMinPassTotal, setDisintegrationMinPassTotal] = useState<string>("16");
+  const [disintegrationStage1Units, setDisintegrationStage1Units] = useState<string>(PREFILL_METHOD_FIELDS.disintegrationStage1Units);
+  const [disintegrationStage2Units, setDisintegrationStage2Units] = useState<string>(PREFILL_METHOD_FIELDS.disintegrationStage2Units);
+  const [disintegrationMaxStage1Failures, setDisintegrationMaxStage1Failures] = useState<string>(PREFILL_METHOD_FIELDS.disintegrationMaxStage1Failures);
+  const [disintegrationMinPassTotal, setDisintegrationMinPassTotal] = useState<string>(PREFILL_METHOD_FIELDS.disintegrationMinPassTotal);
 
-  const [wvUnitCount, setWvUnitCount] = useState<string>("20");
-  const [wvTabletBand1MaxMg, setWvTabletBand1MaxMg] = useState<string>("130");
-  const [wvTabletBand1Percent, setWvTabletBand1Percent] = useState<string>("10");
-  const [wvTabletBand2MaxMg, setWvTabletBand2MaxMg] = useState<string>("324");
-  const [wvTabletBand2Percent, setWvTabletBand2Percent] = useState<string>("7.5");
-  const [wvTabletBand3Percent, setWvTabletBand3Percent] = useState<string>("5");
-  const [wvTabletMaxOutside, setWvTabletMaxOutside] = useState<string>("2");
-  const [wvCapsuleInnerPercent, setWvCapsuleInnerPercent] = useState<string>("10");
-  const [wvCapsuleOuterPercent, setWvCapsuleOuterPercent] = useState<string>("25");
-  const [wvCapsuleS1MaxOutside, setWvCapsuleS1MaxOutside] = useState<string>("2");
-  const [wvCapsuleS1MaxForRetest, setWvCapsuleS1MaxForRetest] = useState<string>("6");
-  const [wvCapsuleS2ExtraUnits, setWvCapsuleS2ExtraUnits] = useState<string>("40");
-  const [wvCapsuleS2MaxOutside, setWvCapsuleS2MaxOutside] = useState<string>("6");
+  const [wvUnitCount, setWvUnitCount] = useState<string>(PREFILL_METHOD_FIELDS.wvUnitCount);
+  const [wvTabletBand1MaxMg, setWvTabletBand1MaxMg] = useState<string>(PREFILL_METHOD_FIELDS.wvTabletBand1MaxMg);
+  const [wvTabletBand1Percent, setWvTabletBand1Percent] = useState<string>(PREFILL_METHOD_FIELDS.wvTabletBand1Percent);
+  const [wvTabletBand2MaxMg, setWvTabletBand2MaxMg] = useState<string>(PREFILL_METHOD_FIELDS.wvTabletBand2MaxMg);
+  const [wvTabletBand2Percent, setWvTabletBand2Percent] = useState<string>(PREFILL_METHOD_FIELDS.wvTabletBand2Percent);
+  const [wvTabletBand3Percent, setWvTabletBand3Percent] = useState<string>(PREFILL_METHOD_FIELDS.wvTabletBand3Percent);
+  const [wvTabletMaxOutside, setWvTabletMaxOutside] = useState<string>(PREFILL_METHOD_FIELDS.wvTabletMaxOutside);
+  const [wvCapsuleInnerPercent, setWvCapsuleInnerPercent] = useState<string>(PREFILL_METHOD_FIELDS.wvCapsuleInnerPercent);
+  const [wvCapsuleOuterPercent, setWvCapsuleOuterPercent] = useState<string>(PREFILL_METHOD_FIELDS.wvCapsuleOuterPercent);
+  const [wvCapsuleS1MaxOutside, setWvCapsuleS1MaxOutside] = useState<string>(PREFILL_METHOD_FIELDS.wvCapsuleS1MaxOutside);
+  const [wvCapsuleS1MaxForRetest, setWvCapsuleS1MaxForRetest] = useState<string>(PREFILL_METHOD_FIELDS.wvCapsuleS1MaxForRetest);
+  const [wvCapsuleS2ExtraUnits, setWvCapsuleS2ExtraUnits] = useState<string>(PREFILL_METHOD_FIELDS.wvCapsuleS2ExtraUnits);
+  const [wvCapsuleS2MaxOutside, setWvCapsuleS2MaxOutside] = useState<string>(PREFILL_METHOD_FIELDS.wvCapsuleS2MaxOutside);
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogError, setDialogError] = useState<string | null>(null);
@@ -136,7 +213,24 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
   const [allMySections, setMySections] = useState<LaboratorySection[]>([]);
   const mySections = allMySections.filter((s) => sectionsState === "loaded" && inLab(s.sectionId));
   const [message, setMessage] = useState<{ text: string; ok: boolean } | null>(null);
-  const [expandedId, setExpandedId] = useState<number | null>(null);
+  // Code of the test the open Add dialog was copied from (null for a plain add or an edit).
+  const [duplicateOfCode, setDuplicateOfCode] = useState<string | null>(null);
+  // The test whose details dialog is open lives in the URL (?test=<id>), so the
+  // address can be bookmarked or shared and survives a reload.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const testParam = searchParams.get(OPEN_TEST_PARAM);
+  const expandedId = testParam !== null && /^\d+$/.test(testParam) ? Number(testParam) : null;
+  const setExpandedId = (id: number | null) => {
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        if (id === null) next.delete(OPEN_TEST_PARAM);
+        else next.set(OPEN_TEST_PARAM, String(id));
+        return next;
+      },
+      { replace: true }
+    );
+  };
   const [search, setSearch] = useState("");
 
   useEffect(() => {
@@ -145,7 +239,24 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
       .catch(failDialogList("your laboratory sections"));
   }, [failDialogList]);
 
+  // A ?test=<id> that names nothing on this page (wrong lab, deleted, mistyped) is
+  // ignored silently and dropped from the address once the lists have loaded.
+  const listsLoaded = sectionsState === "loaded" && !definitionsLoading;
+  const testParamMatches = expandedId !== null && options.some((t) => t.id === expandedId);
+  useEffect(() => {
+    if (!listsLoaded || testParam === null || testParamMatches) return;
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        next.delete(OPEN_TEST_PARAM);
+        return next;
+      },
+      { replace: true }
+    );
+  }, [listsLoaded, testParam, testParamMatches, setSearchParams]);
+
   const openCreateDialog = () => {
+    setDuplicateOfCode(null);
     setEditingId(null);
     setEditingTest(null);
     setCode("");
@@ -166,27 +277,27 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
     setPerContainer(false);
     setMoistureRole("None");
     setTitration(createInitialTitrationForm());
-    setDissolutionS1Offset("5");
-    setDissolutionS2MinOffset("15");
-    setDissolutionS3MinOffset("25");
-    setDissolutionS3MaxBelowS2Min("2");
-    setDisintegrationStage1Units("6");
-    setDisintegrationStage2Units("12");
-    setDisintegrationMaxStage1Failures("2");
-    setDisintegrationMinPassTotal("16");
-    setWvUnitCount("20");
-    setWvTabletBand1MaxMg("130");
-    setWvTabletBand1Percent("10");
-    setWvTabletBand2MaxMg("324");
-    setWvTabletBand2Percent("7.5");
-    setWvTabletBand3Percent("5");
-    setWvTabletMaxOutside("2");
-    setWvCapsuleInnerPercent("10");
-    setWvCapsuleOuterPercent("25");
-    setWvCapsuleS1MaxOutside("2");
-    setWvCapsuleS1MaxForRetest("6");
-    setWvCapsuleS2ExtraUnits("40");
-    setWvCapsuleS2MaxOutside("6");
+    setDissolutionS1Offset(PREFILL_METHOD_FIELDS.dissolutionS1Offset);
+    setDissolutionS2MinOffset(PREFILL_METHOD_FIELDS.dissolutionS2MinOffset);
+    setDissolutionS3MinOffset(PREFILL_METHOD_FIELDS.dissolutionS3MinOffset);
+    setDissolutionS3MaxBelowS2Min(PREFILL_METHOD_FIELDS.dissolutionS3MaxBelowS2Min);
+    setDisintegrationStage1Units(PREFILL_METHOD_FIELDS.disintegrationStage1Units);
+    setDisintegrationStage2Units(PREFILL_METHOD_FIELDS.disintegrationStage2Units);
+    setDisintegrationMaxStage1Failures(PREFILL_METHOD_FIELDS.disintegrationMaxStage1Failures);
+    setDisintegrationMinPassTotal(PREFILL_METHOD_FIELDS.disintegrationMinPassTotal);
+    setWvUnitCount(PREFILL_METHOD_FIELDS.wvUnitCount);
+    setWvTabletBand1MaxMg(PREFILL_METHOD_FIELDS.wvTabletBand1MaxMg);
+    setWvTabletBand1Percent(PREFILL_METHOD_FIELDS.wvTabletBand1Percent);
+    setWvTabletBand2MaxMg(PREFILL_METHOD_FIELDS.wvTabletBand2MaxMg);
+    setWvTabletBand2Percent(PREFILL_METHOD_FIELDS.wvTabletBand2Percent);
+    setWvTabletBand3Percent(PREFILL_METHOD_FIELDS.wvTabletBand3Percent);
+    setWvTabletMaxOutside(PREFILL_METHOD_FIELDS.wvTabletMaxOutside);
+    setWvCapsuleInnerPercent(PREFILL_METHOD_FIELDS.wvCapsuleInnerPercent);
+    setWvCapsuleOuterPercent(PREFILL_METHOD_FIELDS.wvCapsuleOuterPercent);
+    setWvCapsuleS1MaxOutside(PREFILL_METHOD_FIELDS.wvCapsuleS1MaxOutside);
+    setWvCapsuleS1MaxForRetest(PREFILL_METHOD_FIELDS.wvCapsuleS1MaxForRetest);
+    setWvCapsuleS2ExtraUnits(PREFILL_METHOD_FIELDS.wvCapsuleS2ExtraUnits);
+    setWvCapsuleS2MaxOutside(PREFILL_METHOD_FIELDS.wvCapsuleS2MaxOutside);
     setUvCalculationMode("");
     setUvSpecificAbsorbance("");
     setUvTotalVolumeMl("");
@@ -199,14 +310,13 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
     setDialogOpen(true);
   };
 
-  const startEdit = (t: TestDefinitionOption) => {
-    setEditingId(t.id);
-    setEditingTest(t);
+  // Fills every form field from a saved test. Shared by Edit and Duplicate so the
+  // two cannot drift apart; the callers decide what else to set.
+  const fillFormFromTest = (t: TestDefinitionOption) => {
     setCode(t.code);
     setDisplayName(t.displayName);
     setCoaDisplayOrder(t.coaDisplayOrder != null ? String(t.coaDisplayOrder) : "");
     setSectionId(t.sectionId ?? (mySections.length === 1 ? mySections[0].sectionId : ""));
-    setEditingSectionId(t.sectionId ?? null);
     setWorkflowType(t.workflowType || defaultWorkflowType);
     setEquationType(t.equationType || (t.workflowType === "HplcMethodAssay" ? "HplcMethodAssay" : t.workflowType === "IcpMethodAssay" ? "IcpMethodAssay" : t.workflowType === "Measurement" ? "Measurement" : t.workflowType === "Gravimetric" ? "GravimetricLoss" : t.workflowType === "Qualitative" ? "Qualitative" : t.workflowType === "Dissolution" ? "Dissolution" : t.workflowType === "Disintegration" ? "Disintegration" : t.workflowType === "WeightVariation" ? "WeightVariation" : t.workflowType === "Titration" ? "Titration" : t.workflowType === "UvSpectrophotometry" ? "UvSpectrophotometry" : "None"));
     setRequiresSystemSuitability((t.workflowType === "Dissolution" || t.workflowType === "HplcMethodAssay") ? true : (t.workflowType === "Disintegration" || t.workflowType === "WeightVariation" || t.workflowType === "IcpMethodAssay" || t.workflowType === "UvSpectrophotometry") ? false : !!t.requiresSystemSuitability);
@@ -225,27 +335,27 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
     setUvTotalVolumeMl(t.uvTotalVolumeMl != null ? String(t.uvTotalVolumeMl) : "");
     setUvStandardVolumeMl(t.uvStandardVolumeMl != null ? String(t.uvStandardVolumeMl) : "");
     setUvStandardEntryId(t.uvStandardEntryId ?? "");
-    setDissolutionS1Offset(t.dissolutionS1Offset != null ? String(t.dissolutionS1Offset) : "5");
-    setDissolutionS2MinOffset(t.dissolutionS2MinOffset != null ? String(t.dissolutionS2MinOffset) : "15");
-    setDissolutionS3MinOffset(t.dissolutionS3MinOffset != null ? String(t.dissolutionS3MinOffset) : "25");
-    setDissolutionS3MaxBelowS2Min(t.dissolutionS3MaxBelowS2Min != null ? String(t.dissolutionS3MaxBelowS2Min) : "2");
-    setDisintegrationStage1Units(t.disintegrationStage1Units != null ? String(t.disintegrationStage1Units) : "6");
-    setDisintegrationStage2Units(t.disintegrationStage2Units != null ? String(t.disintegrationStage2Units) : "12");
-    setDisintegrationMaxStage1Failures(t.disintegrationMaxStage1Failures != null ? String(t.disintegrationMaxStage1Failures) : "2");
-    setDisintegrationMinPassTotal(t.disintegrationMinPassTotal != null ? String(t.disintegrationMinPassTotal) : "16");
-    setWvUnitCount(t.wvUnitCount != null ? String(t.wvUnitCount) : "20");
-    setWvTabletBand1MaxMg(t.wvTabletBand1MaxMg != null ? String(t.wvTabletBand1MaxMg) : "130");
-    setWvTabletBand1Percent(t.wvTabletBand1Percent != null ? String(t.wvTabletBand1Percent) : "10");
-    setWvTabletBand2MaxMg(t.wvTabletBand2MaxMg != null ? String(t.wvTabletBand2MaxMg) : "324");
-    setWvTabletBand2Percent(t.wvTabletBand2Percent != null ? String(t.wvTabletBand2Percent) : "7.5");
-    setWvTabletBand3Percent(t.wvTabletBand3Percent != null ? String(t.wvTabletBand3Percent) : "5");
-    setWvTabletMaxOutside(t.wvTabletMaxOutside != null ? String(t.wvTabletMaxOutside) : "2");
-    setWvCapsuleInnerPercent(t.wvCapsuleInnerPercent != null ? String(t.wvCapsuleInnerPercent) : "10");
-    setWvCapsuleOuterPercent(t.wvCapsuleOuterPercent != null ? String(t.wvCapsuleOuterPercent) : "25");
-    setWvCapsuleS1MaxOutside(t.wvCapsuleS1MaxOutside != null ? String(t.wvCapsuleS1MaxOutside) : "2");
-    setWvCapsuleS1MaxForRetest(t.wvCapsuleS1MaxForRetest != null ? String(t.wvCapsuleS1MaxForRetest) : "6");
-    setWvCapsuleS2ExtraUnits(t.wvCapsuleS2ExtraUnits != null ? String(t.wvCapsuleS2ExtraUnits) : "40");
-    setWvCapsuleS2MaxOutside(t.wvCapsuleS2MaxOutside != null ? String(t.wvCapsuleS2MaxOutside) : "6");
+    setDissolutionS1Offset(t.dissolutionS1Offset != null ? String(t.dissolutionS1Offset) : PREFILL_METHOD_FIELDS.dissolutionS1Offset);
+    setDissolutionS2MinOffset(t.dissolutionS2MinOffset != null ? String(t.dissolutionS2MinOffset) : PREFILL_METHOD_FIELDS.dissolutionS2MinOffset);
+    setDissolutionS3MinOffset(t.dissolutionS3MinOffset != null ? String(t.dissolutionS3MinOffset) : PREFILL_METHOD_FIELDS.dissolutionS3MinOffset);
+    setDissolutionS3MaxBelowS2Min(t.dissolutionS3MaxBelowS2Min != null ? String(t.dissolutionS3MaxBelowS2Min) : PREFILL_METHOD_FIELDS.dissolutionS3MaxBelowS2Min);
+    setDisintegrationStage1Units(t.disintegrationStage1Units != null ? String(t.disintegrationStage1Units) : PREFILL_METHOD_FIELDS.disintegrationStage1Units);
+    setDisintegrationStage2Units(t.disintegrationStage2Units != null ? String(t.disintegrationStage2Units) : PREFILL_METHOD_FIELDS.disintegrationStage2Units);
+    setDisintegrationMaxStage1Failures(t.disintegrationMaxStage1Failures != null ? String(t.disintegrationMaxStage1Failures) : PREFILL_METHOD_FIELDS.disintegrationMaxStage1Failures);
+    setDisintegrationMinPassTotal(t.disintegrationMinPassTotal != null ? String(t.disintegrationMinPassTotal) : PREFILL_METHOD_FIELDS.disintegrationMinPassTotal);
+    setWvUnitCount(t.wvUnitCount != null ? String(t.wvUnitCount) : PREFILL_METHOD_FIELDS.wvUnitCount);
+    setWvTabletBand1MaxMg(t.wvTabletBand1MaxMg != null ? String(t.wvTabletBand1MaxMg) : PREFILL_METHOD_FIELDS.wvTabletBand1MaxMg);
+    setWvTabletBand1Percent(t.wvTabletBand1Percent != null ? String(t.wvTabletBand1Percent) : PREFILL_METHOD_FIELDS.wvTabletBand1Percent);
+    setWvTabletBand2MaxMg(t.wvTabletBand2MaxMg != null ? String(t.wvTabletBand2MaxMg) : PREFILL_METHOD_FIELDS.wvTabletBand2MaxMg);
+    setWvTabletBand2Percent(t.wvTabletBand2Percent != null ? String(t.wvTabletBand2Percent) : PREFILL_METHOD_FIELDS.wvTabletBand2Percent);
+    setWvTabletBand3Percent(t.wvTabletBand3Percent != null ? String(t.wvTabletBand3Percent) : PREFILL_METHOD_FIELDS.wvTabletBand3Percent);
+    setWvTabletMaxOutside(t.wvTabletMaxOutside != null ? String(t.wvTabletMaxOutside) : PREFILL_METHOD_FIELDS.wvTabletMaxOutside);
+    setWvCapsuleInnerPercent(t.wvCapsuleInnerPercent != null ? String(t.wvCapsuleInnerPercent) : PREFILL_METHOD_FIELDS.wvCapsuleInnerPercent);
+    setWvCapsuleOuterPercent(t.wvCapsuleOuterPercent != null ? String(t.wvCapsuleOuterPercent) : PREFILL_METHOD_FIELDS.wvCapsuleOuterPercent);
+    setWvCapsuleS1MaxOutside(t.wvCapsuleS1MaxOutside != null ? String(t.wvCapsuleS1MaxOutside) : PREFILL_METHOD_FIELDS.wvCapsuleS1MaxOutside);
+    setWvCapsuleS1MaxForRetest(t.wvCapsuleS1MaxForRetest != null ? String(t.wvCapsuleS1MaxForRetest) : PREFILL_METHOD_FIELDS.wvCapsuleS1MaxForRetest);
+    setWvCapsuleS2ExtraUnits(t.wvCapsuleS2ExtraUnits != null ? String(t.wvCapsuleS2ExtraUnits) : PREFILL_METHOD_FIELDS.wvCapsuleS2ExtraUnits);
+    setWvCapsuleS2MaxOutside(t.wvCapsuleS2MaxOutside != null ? String(t.wvCapsuleS2MaxOutside) : PREFILL_METHOD_FIELDS.wvCapsuleS2MaxOutside);
     setPhyschemArea(t.physchemArea ?? (area ? defaultAreaFor(area) : null));
     setChangeReason("");
     setChangeReasonError(null);
@@ -253,7 +363,35 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
     setDialogOpen(true);
   };
 
+  const startEdit = (t: TestDefinitionOption) => {
+    setEditingId(t.id);
+    setEditingTest(t);
+    setEditingSectionId(t.sectionId ?? null);
+    setDuplicateOfCode(null);
+    fillFormFromTest(t);
+  };
+
+  // Opens the ADD dialog prefilled from an existing test. Nothing is saved until
+  // the user presses "Add Test", so the server validates it like any new test.
+  const startDuplicate = (t: TestDefinitionOption) => {
+    setEditingId(null);
+    setEditingTest(null);
+    setEditingSectionId(null);
+    setDuplicateOfCode(t.code);
+    fillFormFromTest(t);
+    setCode("");
+    setDisplayName(`${t.displayName} (copy)`);
+    setCoaDisplayOrder("");
+    // A section the user cannot work in is not offered by the picker.
+    if (t.sectionId == null || !mySections.some((s) => s.sectionId === t.sectionId)) {
+      setSectionId(mySections.length === 1 ? mySections[0].sectionId : "");
+    }
+    // The copy gets its own elements; keeping the source ids would point it at the original's.
+    setIcp((form) => ({ ...form, elements: form.elements.map((e) => ({ ...e, id: undefined })) }));
+  };
+
   const closeDialog = () => {
+    setDuplicateOfCode(null);
     setDialogOpen(false);
     setEditingId(null);
     setEditingTest(null);
@@ -300,13 +438,21 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
       }
     }
 
+    let dissolutionFields: Pick<CreateTestDefinitionPayload, "dissolutionS1Offset" | "dissolutionS2MinOffset" | "dissolutionS3MinOffset" | "dissolutionS3MaxBelowS2Min"> = {};
     if (isDissolution) {
-      const s1 = dissolutionS1Offset.trim() !== "" ? Number(dissolutionS1Offset) : 5;
-      const s2 = dissolutionS2MinOffset.trim() !== "" ? Number(dissolutionS2MinOffset) : 15;
-      const s3 = dissolutionS3MinOffset.trim() !== "" ? Number(dissolutionS3MinOffset) : 25;
-      const maxBelow = dissolutionS3MaxBelowS2Min.trim() !== "" ? Number(dissolutionS3MaxBelowS2Min) : 2;
+      const read = readRequiredNumbers("Dissolution", [
+        ["S1: each unit ≥ Q +", dissolutionS1Offset],
+        ["S2: no unit < Q −", dissolutionS2MinOffset],
+        ["S3: no unit < Q −", dissolutionS3MinOffset],
+        ["S3: max units < Q − S2 value", dissolutionS3MaxBelowS2Min]
+      ]);
+      if ("error" in read) {
+        setDialogError(read.error);
+        return;
+      }
+      const [s1, s2, s3, maxBelow] = read.values;
 
-      if (isNaN(s1) || s1 < 0 || isNaN(s2) || s2 < 0 || isNaN(s3) || s3 < 0 || isNaN(maxBelow) || maxBelow < 0) {
+      if (s1 < 0 || s2 < 0 || s3 < 0 || maxBelow < 0) {
         setDialogError("Dissolution stage offsets must be greater than or equal to zero.");
         return;
       }
@@ -314,26 +460,40 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
         setDialogError("Condition fields cannot exceed 500 characters.");
         return;
       }
+      dissolutionFields = {
+        dissolutionS1Offset: s1,
+        dissolutionS2MinOffset: s2,
+        dissolutionS3MinOffset: s3,
+        dissolutionS3MaxBelowS2Min: maxBelow
+      };
     }
 
     const isDisintegration = workflowType === "Disintegration";
     const isWeightVariation = workflowType === "WeightVariation";
 
+    let disintegrationFields: Pick<CreateTestDefinitionPayload, "disintegrationStage1Units" | "disintegrationStage2Units" | "disintegrationMaxStage1Failures" | "disintegrationMinPassTotal"> = {};
     if (isDisintegration) {
-      const s1 = disintegrationStage1Units.trim() !== "" ? Number(disintegrationStage1Units) : 6;
-      const s2 = disintegrationStage2Units.trim() !== "" ? Number(disintegrationStage2Units) : 12;
-      const maxFail = disintegrationMaxStage1Failures.trim() !== "" ? Number(disintegrationMaxStage1Failures) : 2;
-      const minPass = disintegrationMinPassTotal.trim() !== "" ? Number(disintegrationMinPassTotal) : 16;
+      const read = readRequiredNumbers("Disintegration", [
+        ["Stage 1 Units", disintegrationStage1Units],
+        ["Stage 2 Units", disintegrationStage2Units],
+        ["Max S1 Failures", disintegrationMaxStage1Failures],
+        ["Min Pass Total", disintegrationMinPassTotal]
+      ]);
+      if ("error" in read) {
+        setDialogError(read.error);
+        return;
+      }
+      const [s1, s2, maxFail, minPass] = read.values;
 
-      if (isNaN(s1) || s1 < 1 || isNaN(s2) || s2 < 1) {
+      if (s1 < 1 || s2 < 1) {
         setDialogError("Disintegration stage units must be greater than or equal to 1.");
         return;
       }
-      if (isNaN(maxFail) || maxFail < 0 || maxFail >= s1) {
+      if (maxFail < 0 || maxFail >= s1) {
         setDialogError(`Disintegration maximum Stage 1 failures must be between 0 and ${s1 - 1}.`);
         return;
       }
-      if (isNaN(minPass) || minPass < 1 || minPass > (s1 + s2)) {
+      if (minPass < 1 || minPass > (s1 + s2)) {
         setDialogError(`Disintegration minimum pass total must be between 1 and ${s1 + s2}.`);
         return;
       }
@@ -341,37 +501,50 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
         setDialogError("Condition fields cannot exceed 500 characters.");
         return;
       }
+      disintegrationFields = {
+        disintegrationStage1Units: s1,
+        disintegrationStage2Units: s2,
+        disintegrationMaxStage1Failures: maxFail,
+        disintegrationMinPassTotal: minPass
+      };
     }
 
+    let weightVariationFields: Pick<CreateTestDefinitionPayload, "wvUnitCount" | "wvTabletBand1MaxMg" | "wvTabletBand1Percent" | "wvTabletBand2MaxMg" | "wvTabletBand2Percent" | "wvTabletBand3Percent" | "wvTabletMaxOutside" | "wvCapsuleInnerPercent" | "wvCapsuleOuterPercent" | "wvCapsuleS1MaxOutside" | "wvCapsuleS1MaxForRetest" | "wvCapsuleS2ExtraUnits" | "wvCapsuleS2MaxOutside"> = {};
     if (isWeightVariation) {
-      const uCount = wvUnitCount.trim() !== "" ? Number(wvUnitCount) : 20;
-      const b1Mg = wvTabletBand1MaxMg.trim() !== "" ? Number(wvTabletBand1MaxMg) : 130;
-      const b1Pct = wvTabletBand1Percent.trim() !== "" ? Number(wvTabletBand1Percent) : 10;
-      const b2Mg = wvTabletBand2MaxMg.trim() !== "" ? Number(wvTabletBand2MaxMg) : 324;
-      const b2Pct = wvTabletBand2Percent.trim() !== "" ? Number(wvTabletBand2Percent) : 7.5;
-      const b3Pct = wvTabletBand3Percent.trim() !== "" ? Number(wvTabletBand3Percent) : 5;
-      const tabMaxOut = wvTabletMaxOutside.trim() !== "" ? Number(wvTabletMaxOutside) : 2;
+      const read = readRequiredNumbers("Weight variation", [
+        ["Unit Count (Stage 1)", wvUnitCount],
+        ["Band 1 Max (mg)", wvTabletBand1MaxMg],
+        ["Band 1 Deviation (%)", wvTabletBand1Percent],
+        ["Band 2 Max (mg)", wvTabletBand2MaxMg],
+        ["Band 2 Deviation (%)", wvTabletBand2Percent],
+        ["Band 3 Deviation (%)", wvTabletBand3Percent],
+        ["Max Outside Count", wvTabletMaxOutside],
+        ["Inner Limit (%)", wvCapsuleInnerPercent],
+        ["Outer Limit (%)", wvCapsuleOuterPercent],
+        ["Stage 1 Max Outside", wvCapsuleS1MaxOutside],
+        ["Stage 1 Max For Retest", wvCapsuleS1MaxForRetest],
+        ["Stage 2 Extra Units", wvCapsuleS2ExtraUnits],
+        ["Stage 2 Max Outside", wvCapsuleS2MaxOutside]
+      ]);
+      if ("error" in read) {
+        setDialogError(read.error);
+        return;
+      }
+      const [uCount, b1Mg, b1Pct, b2Mg, b2Pct, b3Pct, tabMaxOut, capInner, capOuter, capS1Out, capS1Retest, capS2Extra, capS2Out] = read.values;
 
-      const capInner = wvCapsuleInnerPercent.trim() !== "" ? Number(wvCapsuleInnerPercent) : 10;
-      const capOuter = wvCapsuleOuterPercent.trim() !== "" ? Number(wvCapsuleOuterPercent) : 25;
-      const capS1Out = wvCapsuleS1MaxOutside.trim() !== "" ? Number(wvCapsuleS1MaxOutside) : 2;
-      const capS1Retest = wvCapsuleS1MaxForRetest.trim() !== "" ? Number(wvCapsuleS1MaxForRetest) : 6;
-      const capS2Extra = wvCapsuleS2ExtraUnits.trim() !== "" ? Number(wvCapsuleS2ExtraUnits) : 40;
-      const capS2Out = wvCapsuleS2MaxOutside.trim() !== "" ? Number(wvCapsuleS2MaxOutside) : 6;
-
-      if (isNaN(uCount) || uCount < 1 || isNaN(capS2Extra) || capS2Extra < 1) {
+      if (uCount < 1 || capS2Extra < 1) {
         setDialogError("Weight variation unit count and extra units must be greater than or equal to 1.");
         return;
       }
-      if (isNaN(tabMaxOut) || tabMaxOut < 0 || isNaN(capS1Out) || capS1Out < 0 || isNaN(capS2Out) || capS2Out < 0) {
+      if (tabMaxOut < 0 || capS1Out < 0 || capS2Out < 0) {
         setDialogError("Weight variation maximum outside counts must be greater than or equal to 0.");
         return;
       }
-      if (isNaN(b1Mg) || b1Mg <= 0 || isNaN(b2Mg) || b2Mg <= 0) {
+      if (b1Mg <= 0 || b2Mg <= 0) {
         setDialogError("Weight variation tablet band weight limits must be greater than zero.");
         return;
       }
-      if (isNaN(b1Pct) || b1Pct <= 0 || isNaN(b2Pct) || b2Pct <= 0 || isNaN(b3Pct) || b3Pct <= 0 || isNaN(capInner) || capInner <= 0 || isNaN(capOuter) || capOuter <= 0) {
+      if (b1Pct <= 0 || b2Pct <= 0 || b3Pct <= 0 || capInner <= 0 || capOuter <= 0) {
         setDialogError("Weight variation percentages must be greater than zero.");
         return;
       }
@@ -395,6 +568,21 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
         setDialogError("Condition fields cannot exceed 500 characters.");
         return;
       }
+      weightVariationFields = {
+        wvUnitCount: uCount,
+        wvTabletBand1MaxMg: b1Mg,
+        wvTabletBand1Percent: b1Pct,
+        wvTabletBand2MaxMg: b2Mg,
+        wvTabletBand2Percent: b2Pct,
+        wvTabletBand3Percent: b3Pct,
+        wvTabletMaxOutside: tabMaxOut,
+        wvCapsuleInnerPercent: capInner,
+        wvCapsuleOuterPercent: capOuter,
+        wvCapsuleS1MaxOutside: capS1Out,
+        wvCapsuleS1MaxForRetest: capS1Retest,
+        wvCapsuleS2ExtraUnits: capS2Extra,
+        wvCapsuleS2MaxOutside: capS2Out
+      };
     }
 
     const isMeasurement = workflowType === "Measurement";
@@ -507,6 +695,15 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
       }
     }
 
+    // Every key is null unless that workflow type is being saved; the values
+    // are the ones validated above, from the user's entry.
+    const methodGroupFields: Pick<CreateTestDefinitionPayload, MethodGroupKey> = {
+      ...NO_METHOD_GROUP_FIELDS,
+      ...dissolutionFields,
+      ...disintegrationFields,
+      ...weightVariationFields
+    };
+
     setSaving(true);
     try {
       const resolvedEquationType = isHplcMethodAssay
@@ -546,27 +743,7 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
           evaluationBasis: isMeasurement ? evaluationBasis : null,
           conditionFields: (isGravimetric || isDissolution || isDisintegration || isWeightVariation) ? (conditionFields.trim() || null) : null,
           usesTare: isGravimetric ? usesTare : null,
-          dissolutionS1Offset: isDissolution ? (dissolutionS1Offset.trim() !== "" ? Number(dissolutionS1Offset) : 5) : null,
-          dissolutionS2MinOffset: isDissolution ? (dissolutionS2MinOffset.trim() !== "" ? Number(dissolutionS2MinOffset) : 15) : null,
-          dissolutionS3MinOffset: isDissolution ? (dissolutionS3MinOffset.trim() !== "" ? Number(dissolutionS3MinOffset) : 25) : null,
-          dissolutionS3MaxBelowS2Min: isDissolution ? (dissolutionS3MaxBelowS2Min.trim() !== "" ? Number(dissolutionS3MaxBelowS2Min) : 2) : null,
-          disintegrationStage1Units: isDisintegration ? (disintegrationStage1Units.trim() !== "" ? Number(disintegrationStage1Units) : 6) : null,
-          disintegrationStage2Units: isDisintegration ? (disintegrationStage2Units.trim() !== "" ? Number(disintegrationStage2Units) : 12) : null,
-          disintegrationMaxStage1Failures: isDisintegration ? (disintegrationMaxStage1Failures.trim() !== "" ? Number(disintegrationMaxStage1Failures) : 2) : null,
-          disintegrationMinPassTotal: isDisintegration ? (disintegrationMinPassTotal.trim() !== "" ? Number(disintegrationMinPassTotal) : 16) : null,
-          wvUnitCount: isWeightVariation ? (wvUnitCount.trim() !== "" ? Number(wvUnitCount) : 20) : null,
-          wvTabletBand1MaxMg: isWeightVariation ? (wvTabletBand1MaxMg.trim() !== "" ? Number(wvTabletBand1MaxMg) : 130) : null,
-          wvTabletBand1Percent: isWeightVariation ? (wvTabletBand1Percent.trim() !== "" ? Number(wvTabletBand1Percent) : 10) : null,
-          wvTabletBand2MaxMg: isWeightVariation ? (wvTabletBand2MaxMg.trim() !== "" ? Number(wvTabletBand2MaxMg) : 324) : null,
-          wvTabletBand2Percent: isWeightVariation ? (wvTabletBand2Percent.trim() !== "" ? Number(wvTabletBand2Percent) : 7.5) : null,
-          wvTabletBand3Percent: isWeightVariation ? (wvTabletBand3Percent.trim() !== "" ? Number(wvTabletBand3Percent) : 5) : null,
-          wvTabletMaxOutside: isWeightVariation ? (wvTabletMaxOutside.trim() !== "" ? Number(wvTabletMaxOutside) : 2) : null,
-          wvCapsuleInnerPercent: isWeightVariation ? (wvCapsuleInnerPercent.trim() !== "" ? Number(wvCapsuleInnerPercent) : 10) : null,
-          wvCapsuleOuterPercent: isWeightVariation ? (wvCapsuleOuterPercent.trim() !== "" ? Number(wvCapsuleOuterPercent) : 25) : null,
-          wvCapsuleS1MaxOutside: isWeightVariation ? (wvCapsuleS1MaxOutside.trim() !== "" ? Number(wvCapsuleS1MaxOutside) : 2) : null,
-          wvCapsuleS1MaxForRetest: isWeightVariation ? (wvCapsuleS1MaxForRetest.trim() !== "" ? Number(wvCapsuleS1MaxForRetest) : 6) : null,
-          wvCapsuleS2ExtraUnits: isWeightVariation ? (wvCapsuleS2ExtraUnits.trim() !== "" ? Number(wvCapsuleS2ExtraUnits) : 40) : null,
-          wvCapsuleS2MaxOutside: isWeightVariation ? (wvCapsuleS2MaxOutside.trim() !== "" ? Number(wvCapsuleS2MaxOutside) : 6) : null,
+          ...methodGroupFields,
           ...titrationPayloadFields(titration, isTitration),
           physchemArea: isFp ? physchemArea ?? defaultAreaFor(area ?? "fp") : null,
           changeReason: reasonCheck.payload,
@@ -606,27 +783,7 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
           evaluationBasis: isMeasurement ? evaluationBasis : null,
           conditionFields: (isGravimetric || isDissolution || isDisintegration || isWeightVariation) ? (conditionFields.trim() || null) : null,
           usesTare: isGravimetric ? usesTare : null,
-          dissolutionS1Offset: isDissolution ? (dissolutionS1Offset.trim() !== "" ? Number(dissolutionS1Offset) : 5) : null,
-          dissolutionS2MinOffset: isDissolution ? (dissolutionS2MinOffset.trim() !== "" ? Number(dissolutionS2MinOffset) : 15) : null,
-          dissolutionS3MinOffset: isDissolution ? (dissolutionS3MinOffset.trim() !== "" ? Number(dissolutionS3MinOffset) : 25) : null,
-          dissolutionS3MaxBelowS2Min: isDissolution ? (dissolutionS3MaxBelowS2Min.trim() !== "" ? Number(dissolutionS3MaxBelowS2Min) : 2) : null,
-          disintegrationStage1Units: isDisintegration ? (disintegrationStage1Units.trim() !== "" ? Number(disintegrationStage1Units) : 6) : null,
-          disintegrationStage2Units: isDisintegration ? (disintegrationStage2Units.trim() !== "" ? Number(disintegrationStage2Units) : 12) : null,
-          disintegrationMaxStage1Failures: isDisintegration ? (disintegrationMaxStage1Failures.trim() !== "" ? Number(disintegrationMaxStage1Failures) : 2) : null,
-          disintegrationMinPassTotal: isDisintegration ? (disintegrationMinPassTotal.trim() !== "" ? Number(disintegrationMinPassTotal) : 16) : null,
-          wvUnitCount: isWeightVariation ? (wvUnitCount.trim() !== "" ? Number(wvUnitCount) : 20) : null,
-          wvTabletBand1MaxMg: isWeightVariation ? (wvTabletBand1MaxMg.trim() !== "" ? Number(wvTabletBand1MaxMg) : 130) : null,
-          wvTabletBand1Percent: isWeightVariation ? (wvTabletBand1Percent.trim() !== "" ? Number(wvTabletBand1Percent) : 10) : null,
-          wvTabletBand2MaxMg: isWeightVariation ? (wvTabletBand2MaxMg.trim() !== "" ? Number(wvTabletBand2MaxMg) : 324) : null,
-          wvTabletBand2Percent: isWeightVariation ? (wvTabletBand2Percent.trim() !== "" ? Number(wvTabletBand2Percent) : 7.5) : null,
-          wvTabletBand3Percent: isWeightVariation ? (wvTabletBand3Percent.trim() !== "" ? Number(wvTabletBand3Percent) : 5) : null,
-          wvTabletMaxOutside: isWeightVariation ? (wvTabletMaxOutside.trim() !== "" ? Number(wvTabletMaxOutside) : 2) : null,
-          wvCapsuleInnerPercent: isWeightVariation ? (wvCapsuleInnerPercent.trim() !== "" ? Number(wvCapsuleInnerPercent) : 10) : null,
-          wvCapsuleOuterPercent: isWeightVariation ? (wvCapsuleOuterPercent.trim() !== "" ? Number(wvCapsuleOuterPercent) : 25) : null,
-          wvCapsuleS1MaxOutside: isWeightVariation ? (wvCapsuleS1MaxOutside.trim() !== "" ? Number(wvCapsuleS1MaxOutside) : 2) : null,
-          wvCapsuleS1MaxForRetest: isWeightVariation ? (wvCapsuleS1MaxForRetest.trim() !== "" ? Number(wvCapsuleS1MaxForRetest) : 6) : null,
-          wvCapsuleS2ExtraUnits: isWeightVariation ? (wvCapsuleS2ExtraUnits.trim() !== "" ? Number(wvCapsuleS2ExtraUnits) : 40) : null,
-          wvCapsuleS2MaxOutside: isWeightVariation ? (wvCapsuleS2MaxOutside.trim() !== "" ? Number(wvCapsuleS2MaxOutside) : 6) : null,
+          ...methodGroupFields,
           ...titrationPayloadFields(titration, isTitration),
           physchemArea: isFp ? physchemArea ?? defaultAreaFor(area ?? "fp") : null,
           hplcMethodId: (isHplcMethodAssay || workflowType === "Dissolution") && hplcMethodId !== "" ? Number(hplcMethodId) : null,
@@ -637,8 +794,10 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
           uvStandardVolumeMl: isUv && uvCalculationMode === "StandardComparison" && uvStandardVolumeMl !== "" ? Number(uvStandardVolumeMl) : null,
           uvStandardEntryId: isUv && uvCalculationMode === "StandardComparison" && uvStandardEntryId !== "" ? uvStandardEntryId : null
         };
-        await addNew(payload);
+        const created = await addNew(payload);
         setMessage({ text: `Test "${trimmedCode}" added to the Test Master.`, ok: true });
+        // A new microbiology test has no workflow steps yet: open them straight away.
+        if (!isFp && created?.id != null) setExpandedId(created.id);
       }
       closeDialog();
     } catch (e: unknown) {
@@ -796,6 +955,7 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
           rowActions={(t) => [
             { label: "Details & Workflow Steps", onClick: () => setExpandedId(t.id) },
             { label: "Edit", onClick: () => startEdit(t) },
+            { label: "Duplicate", onClick: () => startDuplicate(t) },
             { label: t.isActive ? "Freeze" : "Unfreeze", onClick: () => { void toggleFreeze(t); }, danger: t.isActive }
           ]}
           empty={{
@@ -817,26 +977,20 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
         )}
       </FloatingDialog>
 
-      <FloatingDialog
+      {/* A form, so Enter in any field saves the test. */}
+      <FormDialog
         open={dialogOpen}
-        title={editingId ? "Edit Test" : "Add Test"}
+        title={editingId ? "Edit Test" : duplicateOfCode !== null ? `Add Test (copy of ${duplicateOfCode})` : "Add Test"}
         onClose={closeDialog}
+        onSubmit={save}
+        submitLabel={editingId ? "Save Changes" : "Add Test"}
+        submitting={saving}
+        error={dialogError}
         maxWidth="md"
-        actions={
-          <>
-            <Button onClick={closeDialog} variant="outlined" disabled={saving}>
-              Cancel
-            </Button>
-            <Button variant="contained" onClick={save} disabled={saving}>
-              {saving ? "Saving…" : editingId ? "Save Changes" : "Add Test"}
-            </Button>
-          </>
-        }
       >
-        <LoadFailuresAlert failed={dialogListFailures} retryHint="Reload the page to try again." sx={{ mb: 2 }} />
-        {dialogError && <Alert severity="error" sx={{ mb: 2 }}>{dialogError}</Alert>}
+        <LoadFailuresAlert failed={dialogListFailures} retryHint="Reload the page to try again." />
 
-        <Stack spacing={2} sx={{ pt: 1 }}>
+        <Stack spacing={2}>
           <Stack useFlexGap direction="row" spacing={2} sx={{ flexWrap: "wrap", alignItems: "center" }}>
             <TextField
               size="small"
@@ -1615,7 +1769,7 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
             )
           )}
         </Stack>
-      </FloatingDialog>
+      </FormDialog>
     </>
   );
 }

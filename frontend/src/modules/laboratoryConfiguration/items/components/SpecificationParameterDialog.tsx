@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import {
   Dialog,
   DialogTitle,
@@ -166,21 +166,34 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
   // Memoized: the form-reset effect below depends on this list, so a fresh
   // array on every render would reset the form on every render (an endless
   // render loop that wipes the "Add Specification Parameter" form).
-  const selectableAssignedTests = useMemo(
+  const ownLabAssignedTests = useMemo(
     () =>
-      isTestDisabled
-        ? assignedTests
-        : assignedTests.filter((t) => {
-            const def = testDefs[t.testCode];
-            const sectionId = def?.sectionId;
-            // Physicochemical tests are tagged with an area; FP items use "fp", RM/PM items "rmpm".
-            return (
-              areaIncludes(def?.physchemArea, areaOfItemCategory(item.category)) &&
-              (sectionId == null || myLabSectionIds.size === 0 || myLabSectionIds.has(sectionId))
-            );
-          }),
-    [isTestDisabled, assignedTests, testDefs, myLabSectionIds, item.category]
+      assignedTests.filter((t) => {
+        const def = testDefs[t.testCode];
+        const sectionId = def?.sectionId;
+        // Physicochemical tests are tagged with an area; FP items use "fp", RM/PM items "rmpm".
+        return (
+          areaIncludes(def?.physchemArea, areaOfItemCategory(item.category)) &&
+          (sectionId == null || myLabSectionIds.size === 0 || myLabSectionIds.has(sectionId))
+        );
+      }),
+    [assignedTests, testDefs, myLabSectionIds, item.category]
   );
+  const selectableAssignedTests = isTestDisabled ? assignedTests : ownLabAssignedTests;
+
+  // "Save and add next": after a save the dialog stays open on this test
+  // instead of the one it was opened for. Cleared when the dialog closes.
+  const [continuedTestCode, setContinuedTestCode] = useState<string | null>(null);
+  // The continued test whose blank form is already on screen. The reset effect
+  // below re-runs whenever the item or its specifications reload (which a save
+  // triggers, more than once); without this it would wipe what the user has
+  // started typing for the next test.
+  const shownContinuedTestCode = useRef<string | null>(null);
+  useEffect(() => {
+    if (open) return;
+    setContinuedTestCode(null);
+    shownContinuedTestCode.current = null;
+  }, [open]);
   const [resultBasis, setResultBasis] = useState<ResultBasis | "">("MgPerKg");
   const [labelClaim, setLabelClaim] = useState("");
   const [labelClaimUnit, setLabelClaimUnit] = useState("");
@@ -333,6 +346,8 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
 
   useEffect(() => {
     if (!open) return;
+    if (continuedTestCode && shownContinuedTestCode.current === continuedTestCode) return;
+    shownContinuedTestCode.current = continuedTestCode;
 
     setError(null);
     setSaving(false);
@@ -414,7 +429,7 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
         setStages([{ stageNumber: 1, stageLabel: "Stage 1", acceptanceCriteriaText: "" }]);
       }
     } else {
-      const initialCode = preselectedTestCode || selectableAssignedTests[0]?.testCode || "";
+      const initialCode = continuedTestCode || preselectedTestCode || selectableAssignedTests[0]?.testCode || "";
       setTestCode(initialCode);
 
       const match = assignedTests.find((t) => t.testCode === initialCode);
@@ -491,7 +506,15 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
         { stageNumber: 3, stageLabel: "Stage 3 (S1+S2+S3, n=24)", acceptanceCriteriaText: "" }
       ]);
     }
-  }, [open, editingSpec, preselectedTestCode, item, workflowTypeByCode, assignedTests, testDefs, existingSpecs, selectableAssignedTests]);
+  }, [open, editingSpec, preselectedTestCode, continuedTestCode, item, workflowTypeByCode, assignedTests, testDefs, existingSpecs, selectableAssignedTests]);
+
+  // The next of this laboratory's assigned tests that has no specification yet,
+  // in the item's own test order. Offered as "Save and add next".
+  const nextTestWithoutSpec = useMemo(() => {
+    if (isEditing) return null;
+    const specified = new Set(existingSpecs.map((s) => s.testCode));
+    return ownLabAssignedTests.find((t) => t.testCode !== testCode && !specified.has(t.testCode)) ?? null;
+  }, [isEditing, existingSpecs, ownLabAssignedTests, testCode]);
 
   const handleTestChange = (newCode: string) => {
     setTestCode(newCode);
@@ -609,7 +632,7 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
     );
   };
 
-  const handleSave = async () => {
+  const handleSave = async (thenNext = false) => {
     if (!testCode) {
       setError("Assigned Test is required.");
       return;
@@ -873,7 +896,11 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
         if (r.id != null) await SpecificationService.remove(r.id);
       }
       onSuccess();
-      onClose();
+      if (thenNext && nextTestWithoutSpec) {
+        setContinuedTestCode(nextTestWithoutSpec.testCode);
+      } else {
+        onClose();
+      }
     } catch (err: unknown) {
       // Some grades may already be saved; show the list as it is now.
       if (wrote) onSuccess();
@@ -1893,9 +1920,19 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
         <Button onClick={onClose} disabled={saving} color="inherit">
           Cancel
         </Button>
+        {nextTestWithoutSpec && (
+          <Button
+            variant="outlined"
+            onClick={() => { void handleSave(true); }}
+            disabled={saving || !testCode}
+            sx={{ fontWeight: 700, textTransform: "none" }}
+          >
+            Save and add next: {nextTestWithoutSpec.displayName || nextTestWithoutSpec.testCode}
+          </Button>
+        )}
         <Button
           variant="contained"
-          onClick={handleSave}
+          onClick={() => { void handleSave(); }}
           disabled={saving || !testCode}
           startIcon={saving ? <CircularProgress size={16} color="inherit" /> : undefined}
           sx={{ minWidth: 100, fontWeight: 700, textTransform: "none" }}

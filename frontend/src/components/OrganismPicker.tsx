@@ -1,4 +1,4 @@
-import { Autocomplete, TextField, createFilterOptions } from "@mui/material";
+import { Autocomplete, TextField, type SxProps, type Theme } from "@mui/material";
 import { useOrganisms, OrganismOption } from "../hooks/useOrganisms";
 
 interface OrganismPickerProps {
@@ -7,53 +7,34 @@ interface OrganismPickerProps {
   label?: string;
   size?: "small" | "medium";
   disabled?: boolean;
-  sx?: any;
+  sx?: SxProps<Theme>;
 }
-
-type Option = OrganismOption | { inputValue: string; isNew: true };
-
-const filter = createFilterOptions<Option>();
 
 const optionLabel = (o: OrganismOption) => (o.atccNumber ? `${o.scientificName} (ATCC: ${o.atccNumber})` : o.scientificName);
 
 // Single Organism picker sourced from the canonical Organism master list
-// (GET /masterdata/organisms). Typing a scientific name that doesn't
-// exist yet offers "Add <name> to Organism list" - selecting it creates
-// the Organism immediately and picks it, mirroring TestCodePicker.tsx's
-// freeSolo pattern so analysts are never blocked by missing master data.
+// (GET /masterdata/organisms). It only chooses existing organisms; a new
+// organism is added on the Organisms page (Master Testing Materials), where
+// its culture collection and strain details are recorded. Not freeSolo, so
+// typed text can never be emitted as an organism.
 export function OrganismPicker({ value, onChange, label = "Organism", size = "small", disabled = false, sx }: OrganismPickerProps) {
-  const { options, addNew } = useOrganisms();
+  const { options } = useOrganisms();
   const selected = options.find((o) => o.id === value) ?? null;
 
   return (
-    <Autocomplete<Option, false, false, false>
+    <Autocomplete<OrganismOption, false, false, false>
       size={size}
       disabled={disabled}
       sx={sx}
       options={options}
       value={selected}
-      getOptionLabel={(o) => (typeof o === "string" ? o : "inputValue" in o ? o.inputValue : optionLabel(o))}
-      isOptionEqualToValue={(o, v) => "id" in o && "id" in v && o.id === v.id}
-      filterOptions={(opts, params) => {
-        const filtered = filter(opts, params);
-        const exists = options.some((o) => o.scientificName.toLowerCase() === params.inputValue.toLowerCase());
-        if (params.inputValue !== "" && !exists) {
-          filtered.push({ inputValue: params.inputValue, isNew: true });
-        }
-        return filtered;
-      }}
-      onChange={async (_e, newValue) => {
-        if (!newValue) { onChange(null); return; }
-        if (typeof newValue !== "string" && "isNew" in newValue) {
-          const created = await addNew(newValue.inputValue);
-          onChange(created.id);
-        } else if (typeof newValue !== "string") {
-          onChange(newValue.id);
-        }
-      }}
+      noOptionsText="No such organism. Add it in Master Testing Materials first."
+      getOptionLabel={optionLabel}
+      isOptionEqualToValue={(o, v) => o.id === v.id}
+      onChange={(_e, newValue) => onChange(newValue ? newValue.id : null)}
       renderOption={(props, option) => (
-        <li {...props} key={"id" in option ? option.id : option.inputValue}>
-          {"isNew" in option ? `+ Add "${option.inputValue}" to Organism list` : optionLabel(option)}
+        <li {...props} key={option.id}>
+          {optionLabel(option)}
         </li>
       )}
       renderInput={(params) => <TextField {...params} label={label} placeholder="e.g. Escherichia coli" />}

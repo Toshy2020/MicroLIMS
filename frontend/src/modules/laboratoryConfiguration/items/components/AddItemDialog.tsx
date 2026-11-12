@@ -1,19 +1,17 @@
 import { useState, useEffect, useRef } from "react";
 import {
-  Button,
   TextField,
   Select,
   MenuItem,
   Stack,
   Box,
   Typography,
-  Alert,
   Autocomplete,
   AutocompleteInputChangeReason,
 } from "@mui/material";
 import { TestCodePickerMulti } from "../../../../components/TestCodePickerMulti";
 import { Item } from "../services/ItemService";
-import { FloatingDialog } from "../../../../components/FloatingDialog";
+import { FormDialog } from "../../../../components/lab";
 import { documentControlService } from "../../../documentControl/services/documentControlService";
 import type { DocumentMasterSummaryDto } from "../../../documentControl/types/documentControlTypes";
 
@@ -194,26 +192,18 @@ export function AddItemDialog({ open, itemToEdit, onClose, onSave }: AddItemDial
   };
 
   return (
-    <FloatingDialog
+    // A form, so Enter in a text field saves the item.
+    <FormDialog
       open={open}
       onClose={onClose}
+      onSubmit={handleSubmit}
       maxWidth="sm"
-      titleSx={{ fontWeight: 700, fontSize: 16 }}
       title={itemToEdit ? `Edit Item: ${itemToEdit.name}` : "Add New Item"}
-      actions={
-        <>
-          <Button onClick={onClose} disabled={saving} color="inherit">
-            Cancel
-          </Button>
-          <Button variant="contained" onClick={handleSubmit} disabled={saving}>
-            {saving ? "Saving..." : itemToEdit ? "Save Changes" : "Save Item"}
-          </Button>
-        </>
-      }
+      submitLabel={itemToEdit ? "Save Changes" : "Save Item"}
+      submitting={saving}
+      error={error}
     >
-      <Stack spacing={2} sx={{ mt: 0.5 }}>
-        {error && <Alert severity="error">{error}</Alert>}
-
+      <Stack spacing={2}>
         <TextField
           size="small"
           label="Item Name"
@@ -322,6 +312,6 @@ export function AddItemDialog({ open, itemToEdit, onClose, onSave }: AddItemDial
           <TestCodePickerMulti value={testCodes} onChange={setTestCodes} label="Assigned Tests" />
         </Box>
       </Stack>
-    </FloatingDialog>
+    </FormDialog>
   );
 }

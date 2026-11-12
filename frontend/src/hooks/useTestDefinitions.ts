@@ -97,9 +97,8 @@ export function useTestDefinitions() {
 
   useEffect(() => { reload(); }, []);
 
-  // Adds a brand-new test to the Test Master (used when the analyst
-  // types a code that doesn't exist yet) and returns it so the caller
-  // can select it immediately.
+  // Adds a brand-new test to the Test Master (from the Test Master page's
+  // Add Test dialog) and returns it so the caller can open it immediately.
   const addNew = async (
     codeOrPayload: string | CreateTestDefinitionPayload,
     displayName?: string,

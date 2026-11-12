@@ -150,6 +150,16 @@ export function SpcChart({ kind, result, options, height = 360, width, onPointCl
   const margin = { top: 16, right: showLabel ? 92 : 24, left: 8, bottom: 8 };
   const yLabel = { value: result.unit ?? "", angle: -90, position: "insideLeft" as const, fontSize: 12, fill: c.muted };
   const axisTick = { fontSize: 11, fill: c.muted };
+  // Several samples are tested on one day, so the date label is not unique.
+  // Recharts resolves a hovered point's tooltip row by the axis value, which for
+  // a repeated date is the first sample of that day. Key the axis by the row's
+  // unique index and show the date through the tick formatter instead.
+  const xAxisProps = {
+    dataKey: "index",
+    tick: axisTick,
+    minTickGap: 16,
+    tickFormatter: (value: unknown) => rows[Number(value)]?.label ?? ""
+  };
 
   if (rows.length === 0) {
     return (
@@ -184,7 +194,7 @@ export function SpcChart({ kind, result, options, height = 360, width, onPointCl
         <ChartFrame height={height} width={width}>
           <ComposedChart data={rows} margin={margin}>
             <CartesianGrid vertical={false} stroke={c.grid} />
-            <XAxis dataKey="label" tick={axisTick} minTickGap={16} />
+            <XAxis {...xAxisProps} />
             <YAxis tick={axisTick} label={yLabel} />
             {tooltip}
             {legend}
@@ -201,7 +211,7 @@ export function SpcChart({ kind, result, options, height = 360, width, onPointCl
         <ChartFrame height={height} width={width}>
           <ComposedChart data={rows} margin={margin}>
             <CartesianGrid vertical={false} stroke={c.grid} />
-            <XAxis dataKey="label" tick={axisTick} minTickGap={16} />
+            <XAxis {...xAxisProps} />
             <YAxis tick={axisTick} label={{ ...yLabel, value: "Moving range" }} />
             {tooltip}
             {legend}
@@ -221,7 +231,7 @@ export function SpcChart({ kind, result, options, height = 360, width, onPointCl
         <ChartFrame height={height} width={width}>
           <ComposedChart data={rows} margin={margin}>
             <CartesianGrid vertical={false} stroke={c.grid} />
-            <XAxis dataKey="label" tick={axisTick} minTickGap={16} />
+            <XAxis {...xAxisProps} />
             <YAxis tick={axisTick} label={yLabel} domain={[0, "auto"]} />
             {tooltip}
             {legend}
@@ -244,7 +254,7 @@ export function SpcChart({ kind, result, options, height = 360, width, onPointCl
         <ChartFrame height={height} width={width}>
           <ComposedChart data={rows} margin={margin}>
             <CartesianGrid vertical={false} stroke={c.grid} />
-            <XAxis dataKey="label" tick={axisTick} minTickGap={16} />
+            <XAxis {...xAxisProps} />
             <YAxis tick={axisTick} label={yLabel} domain={[0, "auto"]} />
             {tooltip}
             {legend}

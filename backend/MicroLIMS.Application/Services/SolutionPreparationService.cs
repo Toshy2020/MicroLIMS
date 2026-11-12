@@ -562,8 +562,28 @@ public class SolutionPreparationService
         return due.Count;
     }
 
+    public readonly record struct SolutionUsabilityCheck(
+        SolutionPreparationStatus EffectiveStatus,
+        ApprovalGateStatus? ApprovalStatus)
+    {
+        public bool IsUsable =>
+            EffectiveStatus == SolutionPreparationStatus.Prepared
+            && ApprovalStatus is null or ApprovalGateStatus.Approved;
+    }
+
+    public static SolutionUsabilityCheck EvaluateUsability(SolutionPreparation source, DateTime nowUtc) =>
+        new(SolutionPreparationResponse.EffectiveStatusOf(source, nowUtc), source.ApprovalStatus);
+
+    public static SolutionMasterResponse? TryReadSnapshot(string? recipeSnapshotJson)
+    {
+        if (string.IsNullOrWhiteSpace(recipeSnapshotJson))
+            return null;
+
+        return JsonSerializer.Deserialize<SolutionMasterResponse>(recipeSnapshotJson, JsonOptions);
+    }
+
     private static SolutionMasterResponse ReadSnapshot(SolutionPreparation prep) =>
-        JsonSerializer.Deserialize<SolutionMasterResponse>(prep.RecipeSnapshotJson, JsonOptions)
+        TryReadSnapshot(prep.RecipeSnapshotJson)
             ?? throw new BusinessRuleException("The preparation's recipe snapshot could not be read.");
 
     // A prepared bottle may stand in for a PreparedSolution line when it is a Prepared,
@@ -576,15 +596,15 @@ public class SolutionPreparationService
         if (source.SolutionMasterId != component.SourceSolutionMasterId)
             return new(false, $"Preparation is not a preparation of {component.EntryName}.");
 
-        var status = SolutionPreparationResponse.EffectiveStatusOf(source, nowUtc);
-        if (status == SolutionPreparationStatus.Expired)
+        var usability = EvaluateUsability(source, nowUtc);
+        if (usability.EffectiveStatus == SolutionPreparationStatus.Expired)
             return new(false, $"Expired on {source.ExpiresAt:yyyy-MM-dd}.");
-        if (status != SolutionPreparationStatus.Prepared)
-            return new(false, $"Preparation is {status}.");
+        if (usability.EffectiveStatus != SolutionPreparationStatus.Prepared)
+            return new(false, $"Preparation is {usability.EffectiveStatus}.");
 
-        if (source.ApprovalStatus == ApprovalGateStatus.PendingReview)
+        if (usability.ApprovalStatus == ApprovalGateStatus.PendingReview)
             return new(false, "Preparation is awaiting release.");
-        if (source.ApprovalStatus == ApprovalGateStatus.Rejected)
+        if (usability.ApprovalStatus == ApprovalGateStatus.Rejected)
             return new(false, "Preparation was rejected.");
 
         return new(true, null);

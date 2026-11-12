@@ -4,7 +4,7 @@ This folder holds the user requirements (URS), functional specifications (FS), t
 
 ## Areas
 
-Each of the 24 areas has one URS and one FS. Both are drafts. The files are not written yet; the paths show where they will go.
+Each of the 24 areas has one URS and one FS. Both are drafts.
 
 | Area | URS file | FS file | Version | Status |
 |---|---|---|---|---|
@@ -40,6 +40,63 @@ Each of the 24 areas has one URS and one FS. Both are drafts. The files are not 
 | Calculation register | `DesignSpecification/CalculationRegister.md` | Draft |
 | Conflicts list | `Conflicts.md` | Draft |
 | Document Control set (Releases 1a to 1d) | `DocumentControl/` (see `DocumentControl/README.md`) | Moved, unchanged |
+
+## Counts (2026-11-12)
+
+- URS entries: 240
+- FS entries: 247
+- Calculation register rows (CALC): 83
+- Conflicts (CONF) entries: 93. Open: 92. Decided: 1.
+
+| Area | URS entries | FS entries |
+|---|---|---|
+| RCV | 12 | 12 |
+| MIC | 12 | 11 |
+| PAT | 12 | 13 |
+| WAT | 8 | 7 |
+| ENV | 5 | 4 |
+| ACL | 8 | 7 |
+| PHY | 15 | 16 |
+| INS | 16 | 16 |
+| MED | 12 | 12 |
+| SOL | 9 | 8 |
+| CRY | 10 | 11 |
+| WST | 8 | 7 |
+| INV | 10 | 11 |
+| EQP | 12 | 14 |
+| OOS | 2 | 2 |
+| MON | 13 | 11 |
+| REV | 12 | 10 |
+| SIG | 4 | 5 |
+| AUD | 8 | 10 |
+| RPT | 9 | 8 |
+| MDM | 16 | 25 |
+| NTF | 5 | 5 |
+| ADM | 10 | 10 |
+| SEC | 12 | 12 |
+| **Total** | **240** | **247** |
+
+## Status of this set
+
+- Every document is a Draft.
+- An AI agent wrote these documents by reading the code.
+- No statement has been verified by running the system.
+- No pharmacopoeia or regulation reference is confirmed. Where a reference appears, it is marked "to be confirmed by QA".
+- Only QA can set a document to Approved.
+- The open conflicts are questions for the laboratory. They are not decisions.
+
+## How to sign a document
+
+1. Open the rendered document in the browser.
+2. Print it and save the print as a PDF.
+3. QA signs the PDF.
+4. The signed copy is stored in Document Control.
+
+## Open items for the site
+
+1. Who is the QA reviewer and approver named in the document headers?
+2. The document numbering your site uses (for example `ML-URS-001`), if it must follow an existing scheme.
+3. The editions of USP, Ph. Eur. and BP in force at your site.
 
 ## Templates and checks
 

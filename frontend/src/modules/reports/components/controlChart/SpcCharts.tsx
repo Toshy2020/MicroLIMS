@@ -1,10 +1,11 @@
 import { cloneElement, useMemo } from "react";
 import { Box, Paper, Typography, useTheme } from "@mui/material";
 import {
-  Area, Bar, CartesianGrid, Cell, ComposedChart, Legend, Line, ReferenceLine, ResponsiveContainer,
-  Tooltip as RechartsTooltip, XAxis, YAxis
+  Area, Bar, BarRectangleItem, BarShapeProps, CartesianGrid, Cell, ComposedChart, DotItemDotProps, Legend, Line,
+  ReferenceLine, ResponsiveContainer, Tooltip as RechartsTooltip, TooltipContentProps, XAxis, YAxis
 } from "recharts";
-import { ChartKind, ControlChartPoint, ControlChartResult, MonthlyBox } from "../../types/controlChartTypes";
+import { withUnit } from "../../../../utils/reportedValue";
+import { ChartKind, ControlChartPoint, ControlChartResult, HistogramBin, MonthlyBox } from "../../types/controlChartTypes";
 
 // Draws the server-computed control chart, capability and distribution
 // results. No statistic is derived here - every limit, σ, moving range,
@@ -86,14 +87,16 @@ function limitLine(y: number | null | undefined, color: string, text: string, op
   );
 }
 
-function PointTooltip({ active, payload, unit, mrMode }: any) {
+// Recharts injects the tooltip's own props (active, payload, ...) into an
+// element passed as `content`; `unit` and `mrMode` are the ones we pass.
+function PointTooltip({ active, payload, unit, mrMode }: Partial<TooltipContentProps> & { unit: string | null; mrMode: boolean }) {
   if (!active || !payload?.length) return null;
   const p = payload[0].payload as Row;
   return (
     <Paper sx={{ p: 1.25, fontSize: 12 }}>
       <Typography sx={{ fontWeight: 700, fontSize: 12 }}>{dateLabel(p.date)} · {p.referenceNumber}</Typography>
       <Typography sx={{ fontSize: 12 }}>
-        Result: <strong>{p.reportedValue}</strong> {unit ?? ""}{p.isImputed ? ` (plotted at ${fmt(p.value)})` : ""}
+        Result: <strong>{withUnit(p.reportedValue, unit)}</strong>{p.isImputed ? ` (plotted at ${fmt(p.value)})` : ""}
       </Typography>
       {mrMode && <Typography sx={{ fontSize: 12 }}>Moving range: <strong>{fmt(p.movingRange)}</strong></Typography>}
       <Typography sx={{ fontSize: 12 }}>Level: {p.resultLevel}</Typography>
@@ -107,13 +110,14 @@ function PointTooltip({ active, payload, unit, mrMode }: any) {
 
 // Minitab convention: a failing point is a red square with its test number.
 function makeDot(c: Colors, opts: SpcChartOptions, onClick?: (p: ControlChartPoint) => void, valueKey: "value" | "movingRange" = "value") {
-  return (props: any) => {
-    const { cx, cy, payload } = props;
-    if (cx == null || cy == null || payload?.[valueKey] == null) return <g key={props.key} />;
+  return (props: DotItemDotProps) => {
+    const { cx, cy, key } = props;
+    const payload = props.payload as Row | undefined;
+    if (cx == null || cy == null || payload?.[valueKey] == null) return <g key={key} />;
     const flagged = valueKey === "value" && payload.rules.length > 0;
     const faded = !payload.inCalculation;
     return (
-      <g key={props.key} style={{ cursor: onClick ? "pointer" : undefined }} onClick={() => onClick?.(payload)}>
+      <g key={key} style={{ cursor: onClick ? "pointer" : undefined }} onClick={() => onClick?.(payload)}>
         {flagged ? (
           <rect x={cx - 4.5} y={cy - 4.5} width={9} height={9} fill={c.flagged} stroke={c.paper} strokeWidth={1} />
         ) : (
@@ -150,6 +154,16 @@ export function SpcChart({ kind, result, options, height = 360, width, onPointCl
   const margin = { top: 16, right: showLabel ? 92 : 24, left: 8, bottom: 8 };
   const yLabel = { value: result.unit ?? "", angle: -90, position: "insideLeft" as const, fontSize: 12, fill: c.muted };
   const axisTick = { fontSize: 11, fill: c.muted };
+  // Several samples are tested on one day, so the date label is not unique.
+  // Recharts resolves a hovered point's tooltip row by the axis value, which for
+  // a repeated date is the first sample of that day. Key the axis by the row's
+  // unique index and show the date through the tick formatter instead.
+  const xAxisProps = {
+    dataKey: "index",
+    tick: axisTick,
+    minTickGap: 16,
+    tickFormatter: (value: unknown) => rows[Number(value)]?.label ?? ""
+  };
 
   if (rows.length === 0) {
     return (
@@ -184,7 +198,7 @@ export function SpcChart({ kind, result, options, height = 360, width, onPointCl
         <ChartFrame height={height} width={width}>
           <ComposedChart data={rows} margin={margin}>
             <CartesianGrid vertical={false} stroke={c.grid} />
-            <XAxis dataKey="label" tick={axisTick} minTickGap={16} />
+            <XAxis {...xAxisProps} />
             <YAxis tick={axisTick} label={yLabel} />
             {tooltip}
             {legend}
@@ -201,7 +215,7 @@ export function SpcChart({ kind, result, options, height = 360, width, onPointCl
         <ChartFrame height={height} width={width}>
           <ComposedChart data={rows} margin={margin}>
             <CartesianGrid vertical={false} stroke={c.grid} />
-            <XAxis dataKey="label" tick={axisTick} minTickGap={16} />
+            <XAxis {...xAxisProps} />
             <YAxis tick={axisTick} label={{ ...yLabel, value: "Moving range" }} />
             {tooltip}
             {legend}
@@ -221,7 +235,7 @@ export function SpcChart({ kind, result, options, height = 360, width, onPointCl
         <ChartFrame height={height} width={width}>
           <ComposedChart data={rows} margin={margin}>
             <CartesianGrid vertical={false} stroke={c.grid} />
-            <XAxis dataKey="label" tick={axisTick} minTickGap={16} />
+            <XAxis {...xAxisProps} />
             <YAxis tick={axisTick} label={yLabel} domain={[0, "auto"]} />
             {tooltip}
             {legend}
@@ -244,13 +258,13 @@ export function SpcChart({ kind, result, options, height = 360, width, onPointCl
         <ChartFrame height={height} width={width}>
           <ComposedChart data={rows} margin={margin}>
             <CartesianGrid vertical={false} stroke={c.grid} />
-            <XAxis dataKey="label" tick={axisTick} minTickGap={16} />
+            <XAxis {...xAxisProps} />
             <YAxis tick={axisTick} label={yLabel} domain={[0, "auto"]} />
             {tooltip}
             {legend}
             {limitLine(stats.mean, c.mean, "Mean", { showLabel })}
             {configuredLines}
-            <Bar dataKey="value" name="Result" isAnimationActive={false} onClick={(d: any) => onPointClick?.(d?.payload ?? d)}>
+            <Bar dataKey="value" name="Result" isAnimationActive={false} onClick={(d: BarRectangleItem) => onPointClick?.(d.payload as ControlChartPoint)}>
               {rows.map((r) => (
                 <Cell key={r.recordId} fill={r.flagged ? c.flagged : c.level[r.resultLevel] ?? c.result} cursor={onPointClick ? "pointer" : undefined} />
               ))}
@@ -294,9 +308,9 @@ function HistogramChart({ result, colors: c, height, width, showLabel }: { resul
             tickFormatter={(v) => fmt(v, 1)} label={{ value: result.unit ?? "", position: "insideBottom", offset: -2, fontSize: 12, fill: c.muted }} />
           <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: c.muted }} label={{ value: "Frequency", angle: -90, position: "insideLeft", fontSize: 12, fill: c.muted }} />
           <RechartsTooltip
-            content={({ active, payload }: any) => {
+            content={({ active, payload }: TooltipContentProps) => {
               if (!active || !payload?.length) return null;
-              const b = payload[0].payload;
+              const b = payload[0].payload as HistogramBin & { range: string };
               return (
                 <Paper sx={{ p: 1.25, fontSize: 12 }}>
                   <Typography sx={{ fontSize: 12, fontWeight: 700 }}>{b.range}</Typography>
@@ -325,9 +339,9 @@ function MonthlyBoxPlot({ result, colors: c, height, width, options }: { result:
   const data = result.monthly.map((m) => ({ ...m, span: [m.box.min, m.box.max] as [number, number] }));
   const showLabel = options.showValueLabels;
 
-  const shape = (props: any) => {
-    const { x, y, width, height: h, payload } = props as { x: number; y: number; width: number; height: number; payload: MonthlyBox };
-    const b = payload.box;
+  const shape = (props: BarShapeProps) => {
+    const { x, y, width, height: h } = props;
+    const b = (props.payload as MonthlyBox).box;
     const range = b.max - b.min;
     const py = (v: number) => (range === 0 ? y : y + (h * (b.max - v)) / range);
     const cx = x + width / 2;
@@ -354,7 +368,7 @@ function MonthlyBoxPlot({ result, colors: c, height, width, options }: { result:
           <XAxis dataKey="month" tick={{ fontSize: 11, fill: c.muted }} />
           <YAxis tick={{ fontSize: 11, fill: c.muted }} domain={[0, "auto"]} label={{ value: result.unit ?? "", angle: -90, position: "insideLeft", fontSize: 12, fill: c.muted }} />
           <RechartsTooltip
-            content={({ active, payload }: any) => {
+            content={({ active, payload }: TooltipContentProps) => {
               if (!active || !payload?.length) return null;
               const m = payload[0].payload as MonthlyBox;
               return (
@@ -386,7 +400,7 @@ function MonthlySummaryChart({ result, colors: c, height, width, options }: { re
           <CartesianGrid vertical={false} stroke={c.grid} />
           <XAxis dataKey="month" tick={{ fontSize: 11, fill: c.muted }} />
           <YAxis tick={{ fontSize: 11, fill: c.muted }} domain={[0, "auto"]} label={{ value: result.unit ?? "", angle: -90, position: "insideLeft", fontSize: 12, fill: c.muted }} />
-          <RechartsTooltip formatter={(v: any) => fmt(Number(v))} />
+          <RechartsTooltip formatter={(v) => fmt(Number(v))} />
           <Legend verticalAlign="top" height={28} wrapperStyle={{ fontSize: 12 }} />
           <Bar dataKey="mean" name="Monthly mean" fill={c.result} fillOpacity={0.75} isAnimationActive={false} />
           <Line type="monotone" dataKey="max" name="Monthly maximum" stroke={c.action} strokeWidth={2} isAnimationActive={false} />

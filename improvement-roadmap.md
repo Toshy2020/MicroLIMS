@@ -1,0 +1,456 @@
+# MicroLIMS v2 — Improvement Roadmap
+
+**Date:** 2026-11-10
+**Status:** Proposal for discussion. Nothing in this document is approved or frozen.
+**Basis:** A code review of `backend/` and `frontend/` and the plan and recon files at the repository root. The application was not run, so UI/UX items come from reading the code, not from watching users. Comparisons with commercial LIMS products come from general knowledge of them, not from a fresh product survey.
+
+---
+
+## 1. How to read this plan
+
+- The work is split into **six phases**. Each phase can ship on its own.
+- Each work package has an ID (for example `B1`), a goal, the current state in the code, the scope, the main regulated risks, and a "done when" list.
+- **Size** is a rough relative estimate for one experienced developer working with the existing patterns: **S** = up to 1 week, **M** = 2–3 weeks, **L** = 4–8 weeks, **XL** = more than 8 weeks. These are estimates, not commitments. They do not include formal validation (IQ/OQ/PQ) execution time.
+- Every package that touches persistence, audit trail, e-signatures or workflow state must follow `CLAUDE.md`: an explicit migration, PostgreSQL integration tests with zero skipped, the GMP triad (state, audit row, negative cases), and server-side enforcement.
+- **Section 9 lists the decisions that only you (or the approved specifications) can make.** Several packages cannot start until those are answered, because `CLAUDE.md` Rule 3.2 and Rule 7.2 forbid guessing a laboratory or workflow rule.
+
+### Phase overview
+
+| Phase | Theme | Packages | Why this order |
+|---|---|---|---|
+| 0 | Compliance foundation | A1–A3 | Closes the biggest inspection gap. Every later phase needs a URS to trace to. |
+| 1 | Identification and access | B1–B3 | Barcodes remove the largest source of manual error. MFA and SSO are expected by auditors and IT. |
+| 2 | Daily experience | C1–C8 | Makes the existing features faster and easier before new modules add more screens. |
+| 3 | Quality modules | D1–D4 | The largest functional gaps against commercial LIMS products. |
+| 4 | Integration | E1–E4 | Depends on stable identifiers (Phase 1) and stable modules (Phase 3). |
+| 5 | Reach and depth | F1–F6 | Valuable, but nothing else depends on it. |
+| Continuous | Engineering health | G1–G4 | Runs alongside every phase. |
+
+Phases 0, 1 and 2 can run in parallel if more than one person is available. Phase 0 is mostly writing, not coding.
+
+---
+
+## 2. Phase 0 — Compliance foundation
+
+### A1. Fill the specification set in `documents/` — Size L (writing)
+
+**Goal.** Make `documents/` the real source of truth that `CLAUDE.md` says it is.
+
+**Current state.** `documents/URS`, `FunctionalSpecification`, `SOP`, `Validation`, `UserManual` and `Screenshots` each hold only a README of about 200 bytes. Only `DesignSpecification/BusinessRules.md` and `WorkflowDiagrams.md` have content. Detailed validation records exist for Document Control only, under `docs/` (Release 1a–1c), and `docs/` is declared non-authoritative.
+
+**Scope.**
+1. Write a URS per area, with numbered requirements: Receiving, Microbiology testing (count tests, pathogens), Water, EM, After Cleaning, Physicochemical (FP, RM/PM), HPLC/GC/ICP, Media, Solutions, Cryovials, Working Standards, Inventory, OOS, Monitoring Plan, Reporting, Administration, Security.
+2. Write the FS for each area from the code that exists today, so the specification matches the system.
+3. Move or link the Document Control URS/FS from `docs/` so there is one place to look.
+4. Record every formula, rounding rule, countable range and limit comparison that the backend applies, with its pharmacopoeial or SOP reference. Where the code and the laboratory's SOP disagree, list the conflict; do not silently pick one.
+
+**Done when.** Every existing module has URS and FS entries with unique IDs, and an owner in QA has reviewed them.
+
+**Design spec:** `docs/superpowers/specs/2026-11-11-specification-set-design.md`
+**Implementation plan:** `docs/superpowers/plans/2026-11-11-specification-set.md`
+
+### A2. Requirements traceability matrix and validation pack — Size M
+
+**Goal.** Show, for every requirement, which test proves it.
+
+**Scope.**
+1. A traceability matrix: URS ID → FS ID → automated test name(s) → OQ script (where manual evidence is needed).
+2. A risk assessment per area (GAMP 5 style: severity, probability, detectability) to decide which requirements need manual OQ on top of automated tests.
+3. A Validation Master Plan, and IQ/OQ/PQ protocol templates based on the ones already written for Document Control.
+4. A CI job that fails when a test named in the matrix no longer exists.
+
+**Done when.** The matrix covers all high-risk requirements and CI checks it.
+
+**Design spec:** `docs/superpowers/specs/2026-11-11-traceability-validation-pack-design.md`
+**Implementation plan:** `docs/superpowers/plans/2026-11-11-traceability-validation-pack.md`
+
+### A3. User manual, SOP templates and screenshots — Size M
+
+**Scope.** A task-based user manual per role (Analyst, Reviewer, Section Head, QA, System Administrator); SOP templates for system use, account management, backup and restore, periodic review and incident handling; screenshots generated by a Playwright script so they can be refreshed after UI changes. The manual content is reused by the in-app help in package C6.
+
+**Design spec:** `docs/superpowers/specs/2026-11-11-user-manual-sop-templates-design.md`
+**Implementation plan:** `docs/superpowers/plans/2026-11-11-user-manual-sop-templates.md`
+
+---
+
+## 3. Phase 1 — Identification and access
+
+### B1. Barcode / QR labels and scanning — Size L
+
+**Goal.** Print a label for every physical object and open or select a record by scanning it.
+
+**Current state.** No barcode, label or print-audit code exists. `barcode-labels-recon-report.md` already contains the full recon and names the gaps G1–G14. This package implements that report.
+
+**Scope, in order.**
+1. **Fix the identifiers first** (recon G2, G3, G5). Recon gap G1 is already closed: stock lots carry the unique, immutable `Material.StockId`.
+   - The equipment sticker carries the asset register code, which is frozen once a label is printed.
+   - Link each workflow equipment record to its asset so an incubator can be selected by scan.
+   - Set a maximum length for cryovial codes.
+
+   Full design: `docs/superpowers/specs/2026-11-10-barcode-labels-scanning-design.md`.
+2. **Label rendering.** Extend `PdfCanvas` with a configurable page size and a 2D symbol (Data Matrix or QR) that encodes `TYPE:CODE`. The code is also printed as text. Label templates per object type are configuration, not code.
+3. **Label audit.** `LABEL_PRINTED` and `LABEL_REPRINTED` events. A reprint needs a reason and its own permission, increments a counter, and prints "REPRINT n" on the label (G13).
+4. **Scan lookup.** A backend endpoint that takes `TYPE:CODE` or a bare code, does an exact match, and applies the existing section-scope rules (G8). Fix the Enter-versus-debounce race in `GlobalSearchDialog` (G7) and handle scanner input when an Arabic keyboard layout is active (G6).
+5. **Scan to select.** In test execution, media, solution, equipment and cryovial pickers accept a scan. The backend still re-checks GPT/sterility status, expiry and calibration; the scan only replaces the manual choice.
+6. **Print after receipt.** The receipt endpoint returns the created IDs so a "Print labels" step follows registration (G14).
+
+**Regulated risks.** A label is a snapshot; the scan must always show live status (G12). Duplicate labels must be controlled (G13).
+
+**Done when.** A sample can be registered, labelled, and opened by scan; a media lot can be selected by scan during a test; every print and reprint has an audit row; PostgreSQL tests cover uniqueness, immutability and reprint permission.
+
+### B2. Multi-factor authentication — Size M
+
+**Current state.** No TOTP or MFA code exists. Login is username and password with lockout, password history and session revocation.
+
+**Scope.**
+1. TOTP enrolment with QR code, recovery codes, and admin reset with a reason.
+2. The TOTP secret and recovery codes carry `[AuditRedacted]`.
+3. A system setting: MFA off, optional, required for chosen roles, or required for all.
+4. Electronic signatures stay as they are: user ID plus password at signing (Rule 3.3.5). MFA strengthens the session, it does not replace the signature components.
+5. Lost-device recovery flow with Segregation of Duties: the administrator who resets MFA is recorded and the user is told.
+
+**Spec:** `docs/superpowers/specs/2026-11-10-multi-factor-authentication-design.md`. **Plan:** `docs/superpowers/plans/2026-11-10-multi-factor-authentication.md`.
+
+**Done when.** Enrolment, login challenge, recovery and admin reset all work, each with an audit row, and `AuditCredentialRedactionTests` covers the new secrets.
+
+### B3. Single sign-on (OIDC / LDAP) — Size M
+
+**Spec:** `docs/superpowers/specs/2026-11-10-single-sign-on-design.md`. **Plan:** `docs/superpowers/plans/2026-11-10-single-sign-on.md`. Decision D-4 is closed: separate MicroLIMS signing password.
+
+**Scope.**
+1. OpenID Connect login against the company identity provider (Microsoft Entra ID or similar), mapped to an existing MicroLIMS user. Roles and section assignments stay in MicroLIMS so Access Review keeps working.
+2. Optional LDAP bind for sites without an OIDC provider.
+3. A documented approach for e-signatures under SSO (see decision D-4): the signature must still verify both components at signing time.
+4. Automatic deactivation when the directory account is disabled.
+
+---
+
+### B4. Quality Assurance (QA) role — Size M
+
+**Goal.** Add a QA role that is independent of the laboratory, so quality decisions are not taken by the people who produce the results.
+
+**Current state.** The system roles are System Administrator, Section Head, Reviewer, Analyst and QC Manager. There is no QA role; QC Manager is the highest laboratory role. Requested by the user on 2026-11-11.
+
+**Scope.** A QA system role with its own permissions; which decisions move to or are shared with QA (to be agreed in the design); separation rules between QA, the laboratory and system administration; manual and SOP template updates. Packages D1 and D2 (investigations, CAPA, deviations) build on this role.
+
+**Design spec:** `docs/superpowers/specs/2026-11-11-qa-role-design.md`
+**Implementation plan:** `docs/superpowers/plans/2026-11-11-qa-role.md`
+
+---
+
+## 4. Phase 2 — Daily experience (UI/UX)
+
+### C1. "My Work" — one screen for today's tasks — Size M
+
+**Spec:** `docs/superpowers/specs/2026-11-10-my-work-design.md`. **Plan:** `docs/superpowers/plans/2026-11-10-my-work.md`.
+
+**Current state.** Role dashboards exist (`AnalystDashboardPage`, `ReviewerDashboardPage`, `SectionHeadDashboardPage`) with a `TodaysWorkTable` and an attention panel. The work is still spread across the dashboard, the workspaces, Document Control, equipment and media pages.
+
+**Scope.**
+1. One backend endpoint returns every task for the signed-in user, grouped by urgency: ready to read now, incubation ending today, awaiting my review, awaiting my approval, returned to me, documents to read, equipment tasks due, solutions and media expiring.
+2. Each row opens the exact step, not the list page.
+3. Due time and overdue state come from the backend clock.
+4. The existing dashboards keep their KPIs; the task list becomes the first thing an analyst sees.
+
+**Done when.** An analyst can finish a normal day without using the sidebar.
+
+### C2. Bench and tablet mode — Size L
+
+**Spec:** `docs/superpowers/specs/2026-11-10-bench-tablet-mode-design.md`. **Plan:** `docs/superpowers/plans/2026-11-10-bench-tablet-mode.md`. Decision D-7 is closed: unsaved draft on the tablet, recorded only when the server accepts it.
+
+**Current state.** Only six files use `useMediaQuery`. There is no service worker or web app manifest.
+
+**Scope.**
+1. Responsive layouts for the screens used at the bench: count reading, pathogen observation, EM and water location grids, media preparation, solution preparation.
+2. Touch targets of at least 44 px, numeric keypads for count entry, large Save and Next buttons.
+3. Installable web app (manifest and service worker) that caches the application shell.
+4. **Connection loss:** entries are kept locally as an unsaved draft and the user is clearly told they are not yet recorded. The record is created, time-stamped and audited only when the server accepts it. See decision D-7 before going further than this.
+
+### C3. Smarter tables — Size M
+
+**Spec:** `docs/superpowers/specs/2026-11-11-smarter-tables-design.md`. **Plan:** `docs/superpowers/plans/2026-11-11-smarter-tables.md`.
+
+**Current state.** `DataTable` and `RegisterTable` are shared. There are no saved views, no column chooser and no row virtualization.
+
+**Scope.** Add to the shared primitives so every page benefits:
+1. Saved views per user (filters, sort, visible columns), stored on the server.
+2. Column show/hide and reorder.
+3. Filters kept in the URL so a view can be shared and the Back button works.
+4. Bulk selection with bulk actions where the backend allows them (print labels, assign analyst, export).
+5. Virtualized rows for long lists.
+6. Density switch (comfortable / compact).
+
+### C4. Faster data entry — Size M
+
+**Spec:** `docs/superpowers/specs/2026-11-11-faster-data-entry-design.md`. **Plan:** `docs/superpowers/plans/2026-11-11-faster-data-entry.md`. Server-side drafts were dropped: device drafts from C2 are used instead.
+
+**Scope.**
+1. Keyboard navigation in entry grids: Enter and arrow keys move between cells, Tab order follows the reading order.
+2. Server-side drafts with autosave for long forms, shown as "Draft saved hh:mm". A draft is not a result and is not reviewable.
+3. "Same as previous row" and paste from a spreadsheet for multi-row grids.
+4. Defaults from the user's last choice (incubator, sampler, balance) where the backend confirms the choice is still valid.
+5. Inline validation messages next to the field, announced with `aria-live`.
+
+### C5. Notification centre and real-time updates — Size M
+
+**Spec:** `docs/superpowers/specs/2026-11-11-notifications-live-updates-design.md`. **Plan:** `docs/superpowers/plans/2026-11-11-notifications-live-updates.md`.
+
+**Current state.** `NotificationLog` and `DashboardNotificationService` exist, and the header has a notification button. Updates come from polling; there is no SignalR.
+
+**Scope.**
+1. One notification centre: unread and read, filter by type, click to open the record.
+2. Per-user preferences: in-app, email, daily digest.
+3. Escalation rules set by the Section Head (for example "review waiting more than N hours → notify Section Head").
+4. SignalR for live updates of counters, queues and incubation-ready events, replacing the polling timers.
+5. "Someone else changed this record" banner when a record a user has open is updated.
+
+### C6. In-app help and onboarding — Size M
+
+**Spec:** `docs/superpowers/specs/2026-11-11-in-app-help-design.md`. **Plan:** `docs/superpowers/plans/2026-11-11-in-app-help.md`.
+
+**Current state.** No help or onboarding code exists.
+
+**Scope.** A first-login tour per role; a Help panel on each page with text from the user manual (A3); field-level hints on complex forms; a link from each test to its controlled SOP in Document Control; a "What's new" note after each release; a keyboard-shortcut sheet.
+
+### C7. Simplify configuration screens — Size L
+
+**Spec:** `docs/superpowers/specs/2026-11-11-simpler-configuration-design.md`. **Plan:** `docs/superpowers/plans/2026-11-11-simpler-configuration.md`.
+
+**Current state.** The largest components are configuration dialogs: `SpecificationParameterDialog.tsx` (1,908 lines), `TestMasterPage.tsx` (1,621), `EquipmentPage.tsx` (1,609), `AddMaterialDialog.tsx` (1,262).
+
+**Scope.**
+1. Turn each into a step-by-step wizard with a summary and preview before saving.
+2. "Copy from existing" for tests, specifications and items.
+3. A "where used" panel and an impact warning before a master-data change.
+4. A read-only "what will the analyst see" preview of a configured workflow.
+5. Split the files into smaller components while doing this (ties to G1).
+
+### C8. Navigation — Size S
+
+**Spec:** `docs/superpowers/specs/2026-11-11-navigation-design.md`. **Plan:** `docs/superpowers/plans/2026-11-11-navigation.md`.
+
+**Scope.** Favourites and "recently opened" in the sidebar and in the Ctrl+K dialog; a consistent "why is this locked" message component used by every gated action; breadcrumbs on all deep pages; remember the last selected laboratory and tab.
+
+---
+
+## 5. Phase 3 — Quality modules
+
+### D1. Structured OOS / OOT investigation — Size L
+
+**Current state.** OOS Tracking lists OOS groups, links retests, and stores investigation documents (`OosInvestigationDocument`). The investigation itself is an uploaded file, not a structured record.
+
+**Scope.**
+1. A structured investigation record with phases, checklist, hypothesis, root-cause category, conclusion and due dates. **The phase model must come from your OOS SOP** (decision D-2).
+2. Separate paths for microbiology and physicochemical results, driven by configuration.
+3. Retest and resample remain new linked records; original results are never changed (Rule 3.1).
+4. E-signatures at phase closure and final closure, with Segregation of Duties against the original analyst.
+5. OOT and alert/action-level excursions use the same engine with a lighter template.
+6. Trending of OOS by product, test, analyst, instrument and root cause.
+
+**Design spec:** `docs/superpowers/specs/2026-11-11-oos-investigation-design.md`
+**Implementation plan:** `docs/superpowers/plans/2026-11-11-oos-investigation.md`
+
+### D2. CAPA, Deviation and Change Control — Size XL
+
+**Current state.** No CAPA, change control or complaint module. Monitoring deviations exist for the Monitoring Plan only.
+
+**Scope.**
+1. One generic "quality event" engine with configurable types (Deviation, CAPA, Change Control), each with its own states, required fields, approvers and e-signatures.
+2. Links to source records: OOS investigation, EM excursion, equipment failure, document revision.
+3. Effectiveness checks with due dates.
+4. Master-data changes (specification, test, workflow) can require an approved Change Control before they become effective.
+
+**Alternative.** If the site already runs a QMS product, integrate with it (E3) and build only the links. See decision D-3.
+
+**Decision D-3 closed 2026-11-11:** no existing QMS; built in MicroLIMS, with complaints added.
+**Design spec:** `docs/superpowers/specs/2026-11-11-quality-events-design.md`
+**Implementation plan:** `docs/superpowers/plans/2026-11-11-quality-events.md`
+
+### D3. Stability study management — Size XL
+
+**Current state.** No stability module. Stability appears only as a cause-of-testing value and a production stage.
+
+**Scope.**
+1. Study protocol: product, batches, storage conditions, time points, tests per time point, pack and orientation.
+2. Pull schedule with reminders, and a pull window per time point. **Window rules and conditions come from your stability SOP** (decision D-5).
+3. Chamber inventory: what is stored where, quantity left, chamber linked to equipment qualification status.
+4. A pull creates a normal sample that runs through the existing workflow, bound to the specification version in force for the study.
+5. Results by time point in tables and charts. Statistical shelf-life evaluation only if you confirm the method (D-5).
+6. Stability summary report with signatures.
+
+**Decision D-5 closed 2026-11-11:** ICH conditions as an editable list; pull windows per protocol; no statistical evaluation; limits fixed in the protocol.
+**Design spec:** `docs/superpowers/specs/2026-11-11-stability-studies-design.md`
+**Implementation plan:** `docs/superpowers/plans/2026-11-11-stability-studies.md`
+
+### D4. Analyst competency gate — Size M
+
+**Current state.** Document Control has a training matrix and role curricula. Nothing in test execution checks it.
+
+**Scope.**
+1. Link each test (or method) to the documents and qualifications an analyst must hold.
+2. The backend refuses assignment or result entry when the analyst is not qualified or the qualification has expired, with a clear reason shown in the UI.
+3. Requalification intervals and reminders.
+4. A Section Head override with reason and e-signature, if you want one (D-6).
+
+**Decision D-6 closed 2026-11-11:** override allowed for one test order, with reason and signature.
+**Design spec:** `docs/superpowers/specs/2026-11-11-competency-gate-design.md`
+**Implementation plan:** `docs/superpowers/plans/2026-11-11-competency-gate.md`
+
+---
+
+## 6. Phase 4 — Integration
+
+
+### D5. SOP revision on the test record — Size S
+
+**Added 2026-11-11 (user decision during C6).** When a test is performed, store which revision of the item's SOP was effective at that moment, so the record shows the method version actually in force (Rule 3.1). Today the SOP link is live: `Item.SopNumber` is matched to Document Control when someone looks, and nothing is stored on the test order.
+
+**Scope.** Capture the document and revision at the first recorded step of a test; show it on the test, the review screen and the certificate where required; never change it afterwards; no effect on tests already recorded.
+
+**Design spec:** `docs/superpowers/specs/2026-11-11-sop-revision-on-test-design.md`
+**Implementation plan:** `docs/superpowers/plans/2026-11-11-sop-revision-on-test.md`
+
+### E1. Instrument connectivity — Size L
+
+**Current state.** `InstrumentAgent` pushes HPLC data from ChemStation with a hashed API key. `InstrumentImport` reads report text, with Tesseract OCR as a fallback.
+
+**Scope.**
+1. Balances and pH meters through the same edge-agent pattern (serial or network), so weights and readings arrive with instrument ID and timestamp instead of being typed.
+2. More chromatography data systems (Empower, Chromeleon, OpenLab) through structured export files rather than OCR.
+3. A generic parser configuration so a new instrument format is added by configuration.
+4. Every captured value is marked as instrument-captured or manually entered, and a manual override needs a reason.
+5. Agent health on the Integrations page.
+
+**Design spec:** `docs/superpowers/specs/2026-11-11-instrument-connectivity-design.md`
+**Implementation plan:** `docs/superpowers/plans/2026-11-11-instrument-connectivity.md`
+
+### E2. ERP integration — Size L
+
+**Scope.** Inbound: materials, batches and inspection lots create samples for receiving. Outbound: usage decision (released or rejected) and CoA. An outbox table written inside the business transaction, delivered by a worker after commit (Rule 5.4: no external calls inside a transaction). Replay-safe messages, a monitoring screen, and manual retry. Start with file or REST exchange; add a SAP QM connector only if needed (D-8).
+
+**Decision D-8 closed 2026-11-11:** SAP QM; neutral messages with a configurable mapping over REST or files; no direct SAP connector.
+**Design spec:** `docs/superpowers/specs/2026-11-11-erp-integration-design.md`
+**Implementation plan:** `docs/superpowers/plans/2026-11-11-erp-integration.md`
+
+### E3. Public API and webhooks — Size M
+
+**Current state.** Swagger is enabled. There are no API keys for external clients and no webhooks.
+
+**Scope.** Versioned read API for samples, results and CoA; service accounts with scoped keys (hashed, `[AuditRedacted]`); webhooks for sample approved, OOS opened, and document effective; rate limits per key; an access log.
+
+**Design spec:** `docs/superpowers/specs/2026-11-11-public-api-webhooks-design.md`
+**Implementation plan:** `docs/superpowers/plans/2026-11-11-public-api-webhooks.md`
+
+### E4. Microbial identification systems — Size M
+
+**Scope.** Import identification results from systems such as MALDI-TOF or VITEK into the existing organism master, linked to the isolate (F1). Formats and confidence rules come from the instrument and your SOP.
+
+**Design spec:** `docs/superpowers/specs/2026-11-11-microbial-identification-design.md`
+**Implementation plan:** `docs/superpowers/plans/2026-11-11-microbial-identification.md`
+
+---
+
+## 7. Phase 5 — Reach and depth
+
+### F1. Environmental monitoring analytics — Size L
+
+**Scope.** Floor-plan view per room with sampling points and colour plus icon status (never colour alone); isolate tracking from a plate to an identified organism; flora library and trending per room, grade and season; excursion handling linked to D1 and D2; adverse-trend rules. The trend rules come from your EM SOP.
+
+**Design spec:** `docs/superpowers/specs/2026-11-11-em-analytics-design.md`
+**Implementation plan:** `docs/superpowers/plans/2026-11-11-em-analytics.md`
+
+### F2. Plate and evidence photos — Size M
+
+**Scope.** Attach a photo to a plate reading from a tablet camera; stored through the existing file storage with a SHA-256 hash, capture time and user; shown beside the result at review; never editable. Automated colony counting is out of scope until you decide otherwise.
+
+**Design spec:** `docs/superpowers/specs/2026-11-11-evidence-photos-design.md`
+**Implementation plan:** `docs/superpowers/plans/2026-11-11-evidence-photos.md`
+
+### F3. Sample storage and chain of custody — Size M
+
+**Scope.** Storage locations (room → fridge → shelf → box); custody transfer events by scan; retained-sample register with retention period; disposal with approval and audit row.
+
+**Design spec:** `docs/superpowers/specs/2026-11-11-retained-sample-storage-design.md`
+**Implementation plan:** `docs/superpowers/plans/2026-11-11-retained-sample-storage.md`
+
+### F4. Arabic and RTL — Size L
+
+**Current state.** No i18n library; all text is in the components.
+
+**Scope.**
+1. Add an i18n library and extract strings module by module, behind a lint rule that blocks new hard-coded strings.
+2. RTL layout with MUI direction support and logical CSS properties.
+3. Identifiers, numbers and codes stay left-to-right and in Latin digits.
+4. Printed CoA and signed-record language is a regulatory decision (D-9).
+5. Backend validation messages return codes that the frontend translates.
+
+**Decision D-9 closed 2026-11-11:** certificates, reports and signed records are printed in English only.
+**Design spec:** `docs/superpowers/specs/2026-11-11-arabic-rtl-design.md`
+**Implementation plan:** `docs/superpowers/plans/2026-11-11-arabic-rtl.md`
+
+### F5. Self-service reports — Size L
+
+**Scope.** A report builder over a fixed set of safe, section-scoped datasets; choose columns, filters, grouping and a chart; save and share; schedule by email; every export recorded in `DataExportLog`.
+
+**Design spec:** `docs/superpowers/specs/2026-11-11-self-service-reports-design.md`
+**Implementation plan:** `docs/superpowers/plans/2026-11-11-self-service-reports.md`
+
+### F6. Review by exception — Size M
+
+**Scope.** The reviewer screen highlights only what needs attention: manual overrides, edited values, audit-trail entries with reasons, out-of-window incubations, expired or near-expiry materials, alert-level results. Everything else is collapsed but one click away. The backend computes the exception list.
+
+**Design spec:** `docs/superpowers/specs/2026-11-11-review-by-exception-design.md`
+**Implementation plan:** `docs/superpowers/plans/2026-11-11-review-by-exception.md`
+
+---
+
+## 8. Continuous — Engineering health
+
+| ID | Work | Current state | Target |
+|---|---|---|---|
+| G1 | Split oversized components | 20+ files above 800 lines | No new file above 500 lines; split a large file whenever a package touches it |
+| G2 | Test and typing debt | `test-debt-baseline.json`: 668 `fireEvent`, 129 project mocks, 340 `any` in source | Lower the ratchet in every package; never raise it |
+| G3 | Query performance | `slow-query-audit-findings.md`: 46 findings, some open (N+1 in `TestWorkflowController`, uncapped lists) | Close the open findings; add EF command logging in a non-production environment and measure the four key flows |
+| G4 | Operations | Backup script and deploy script exist | Scheduled restore test with a signed record; documented RPO/RTO; PostgreSQL 16 versus 18 difference between agent sessions and CI removed |
+| G5 | Laboratory scope on test configuration writes (security fix, Size S, do early) | Workflow-step changes and test freeze / unfreeze have no laboratory check; five of them have no overwrite check | Refused across laboratories and on stale versions. Spec `docs/superpowers/specs/2026-11-11-masterdata-write-scope-fix-design.md`, plan `docs/superpowers/plans/2026-11-11-masterdata-write-scope-fix.md` |
+
+---
+
+**Build order:** `docs/superpowers/plans/2026-11-11-build-order.md` — release sequence, dependencies, shared conventions and the risks found in the whole-programme review.
+
+## 9. Decisions needed from you
+
+| ID | Decision | Blocks |
+|---|---|---|
+| D-1 | Who owns and approves the URS/FS (QA, Section Heads)? | A1, A2 |
+| D-2 | Your OOS SOP: phases, time limits, who approves each phase, retest rules for microbiology and for physicochemical | D1 |
+| D-3 | Build CAPA and Change Control inside MicroLIMS, or integrate with an existing QMS? | D2 |
+| D-4 | E-signature under SSO: keep a separate MicroLIMS signing password, or re-authenticate against the identity provider at signing? | B3 |
+| D-5 | Stability SOP: conditions, time points, pull windows, and whether statistical shelf-life evaluation is wanted | D3 |
+| D-6 | Competency gate: is a Section Head override allowed? | D4 |
+| D-7 | Offline at the bench: is "draft only until the server accepts it" enough, or is true offline recording required? | C2 |
+| D-8 | ERP product and interface style (file, REST, SAP QM) | E2 |
+| D-9 | Language of printed CoA and signed records | F4 |
+| D-10 | Label stock sizes, printer models, and Data Matrix versus QR | B1 |
+| D-11 | Which instruments to connect first (balances, pH meters, which CDS) | E1 |
+| D-12 | Is this a single-site system, or should multi-site / multi-tenant be planned? | E2, E3, architecture |
+
+---
+
+## 10. Suggested first steps
+
+1. Answer D-1, D-10 and D-12.
+2. Start A1 (specifications) and B1 step 1 (fix identifiers) together; neither depends on the other.
+3. Pick C1 ("My Work") as the first UX package, because it changes daily use the most for the least risk.
+4. Review this plan again after Phase 1 and re-order Phases 3–5 against what users ask for.
+
+## 11. How to measure progress
+
+| Measure | Source | Direction |
+|---|---|---|
+| Median time from sample receipt to approval | Existing KPI data | Down |
+| Manual corrections per 100 results (audit rows with a correction reason) | `AuditLogs` | Down |
+| Share of media, equipment and material selections made by scan | Label audit events | Up |
+| Clicks from login to first result entry | Usability test with 5 analysts | Down |
+| Requirements with a linked passing test | Traceability matrix | Up to 100% of high-risk items |
+| Open findings in the slow-query audit | `slow-query-audit-findings.md` | Down to zero |

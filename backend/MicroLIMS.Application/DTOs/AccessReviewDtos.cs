@@ -52,7 +52,8 @@ public record AccessReviewSummaryDto(
     string? ReviewerName,
     DateTime? SignedAt,
     int FindingCount,
-    AccessReviewSummary Summary);
+    AccessReviewSummary Summary,
+    bool CanDecide = false);
 
 public record AccessReviewFindingDto(
     int Id,
@@ -82,7 +83,8 @@ public record AccessReviewDetailDto(
     // False if the stored snapshot no longer hashes to SnapshotSha256 (tampering).
     bool SnapshotIntact,
     AccessReviewSnapshot Snapshot,
-    IReadOnlyList<AccessReviewFindingDto> Findings);
+    IReadOnlyList<AccessReviewFindingDto> Findings,
+    bool CanDecide = false);
 
 public record GenerateAccessReviewRequest(string? PeriodLabel, string? Reason);
 

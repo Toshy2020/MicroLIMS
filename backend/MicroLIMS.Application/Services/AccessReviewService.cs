@@ -60,10 +60,10 @@ public class AccessReviewService : IAccessReviewService
 
     // ---- generate -----------------------------------------------------------
 
-    public Task<AccessReviewDetailDto> GenerateAsync(string? periodLabel, string? reason, int actingUserId) =>
-        UnitOfWork.RunAsync(_db, () => GenerateCoreAsync(periodLabel, reason, actingUserId));
+    public Task<AccessReviewDetailDto> GenerateAsync(string? periodLabel, string? reason, int actingUserId, CancellationToken cancellationToken = default) =>
+        UnitOfWork.RunAsync(_db, () => GenerateCoreAsync(periodLabel, reason, actingUserId, cancellationToken));
 
-    private async Task<AccessReviewDetailDto> GenerateCoreAsync(string? rawLabel, string? rawReason, int actingUserId)
+    private async Task<AccessReviewDetailDto> GenerateCoreAsync(string? rawLabel, string? rawReason, int actingUserId, CancellationToken ct)
     {
         var reason = AdminActionReason.Require(rawReason, "generate an access review");
         var now = _time.GetUtcNow().UtcDateTime;
@@ -72,7 +72,7 @@ public class AccessReviewService : IAccessReviewService
         if (label.Length > 100) throw new BusinessRuleException("The period label must be 100 characters or fewer.");
 
         var dormantDays = await _settings.GetIntOrDefaultAsync(SystemSettingKeys.AccessReviewDormantDays);
-        var snapshot = await BuildSnapshotAsync(label, dormantDays, now);
+        var snapshot = await BuildSnapshotAsync(label, dormantDays, now, ct);
         var json = JsonSerializer.Serialize(snapshot, JsonOptions);
 
         _db.CurrentUserId = actingUserId;
@@ -87,25 +87,25 @@ public class AccessReviewService : IAccessReviewService
             Status = AccessReviewStatus.Draft
         };
         _db.AccessReviews.Add(review);
-        await _db.SaveChangesAsync();
+        await _db.SaveChangesAsync(ct);
 
         _db.AuditLogs.Add(Audit(review.Id, "ACCESS_REVIEW_GENERATED", "AccessReviewGenerated", AuditActionCategory.Security,
             null,
             JsonSerializer.Serialize(new { review.Id, review.PeriodLabel, review.SnapshotSha256, dormantDays, snapshot.Summary, Reason = reason }),
             reason, actingUserId, now));
-        await _db.SaveChangesAsync();
+        await _db.SaveChangesAsync(ct);
 
-        return await GetAsync(review.Id);
+        return await GetAsync(review.Id, actingUserId, ct);
     }
 
     // The report: one entry per account, active or not.
-    internal async Task<AccessReviewSnapshot> BuildSnapshotAsync(string label, int dormantDays, DateTime now)
+    internal async Task<AccessReviewSnapshot> BuildSnapshotAsync(string label, int dormantDays, DateTime now, CancellationToken ct = default)
     {
-        var users = await _db.Users.AsNoTracking().Include(u => u.Role).OrderBy(u => u.Username).ToListAsync();
+        var users = await _db.Users.AsNoTracking().Include(u => u.Role).OrderBy(u => u.Username).ToListAsync(ct);
 
         var grants = await _db.RolePermissions.AsNoTracking()
             .Select(rp => new { rp.RoleId, rp.Permission!.Code })
-            .ToListAsync();
+            .ToListAsync(ct);
         var codesByRole = grants.GroupBy(g => g.RoleId)
             .ToDictionary(g => g.Key, g => g.Select(x => x.Code).Distinct().OrderBy(c => c, StringComparer.Ordinal).ToList());
 
@@ -115,7 +115,7 @@ public class AccessReviewService : IAccessReviewService
                 m.UserId, m.DepartmentId, DepartmentName = m.Department.Name,
                 m.SectionId, SectionName = m.Section != null ? m.Section.Name : null, m.PhyschemArea
             })
-            .ToListAsync();
+            .ToListAsync(ct);
         var membershipsByUser = memberships.GroupBy(m => m.UserId).ToDictionary(g => g.Key,
             g => g.OrderBy(m => m.DepartmentName, StringComparer.Ordinal).ThenBy(m => m.SectionName, StringComparer.Ordinal)
                   .Select(m => new AccessReviewMembership(m.DepartmentId, m.DepartmentName, m.SectionId, m.SectionName, m.PhyschemArea?.ToString()))
@@ -125,7 +125,7 @@ public class AccessReviewService : IAccessReviewService
             .Where(l => l.Success && l.UserId != null)
             .GroupBy(l => l.UserId!.Value)
             .Select(g => new { UserId = g.Key, Last = g.Max(l => l.Timestamp) })
-            .ToListAsync();
+            .ToListAsync(ct);
         var lastLogin = logins.ToDictionary(l => l.UserId, l => l.Last);
 
         var since = now.AddMonths(-StatusHistoryMonths);
@@ -133,7 +133,7 @@ public class AccessReviewService : IAccessReviewService
             .Where(a => a.EntityName == nameof(User) && StatusActions.Contains(a.Action) && a.Timestamp >= since)
             .OrderBy(a => a.Timestamp).ThenBy(a => a.Id)
             .Select(a => new { a.EntityId, a.Action, a.Timestamp, a.UserId, a.Reason, a.NewValue })
-            .ToListAsync();
+            .ToListAsync(ct);
         var historyByUser = auditRows
             .Select(a => new { Ok = int.TryParse(a.EntityId, out var id), Id = id, Row = a })
             .Where(x => x.Ok)
@@ -172,8 +172,15 @@ public class AccessReviewService : IAccessReviewService
 
     // ---- read ---------------------------------------------------------------
 
-    public async Task<IReadOnlyList<AccessReviewSummaryDto>> ListAsync(CancellationToken cancellationToken = default)
+    public Task<IReadOnlyList<AccessReviewSummaryDto>> ListAsync(CancellationToken cancellationToken = default) =>
+        ListCoreAsync(null, cancellationToken);
+
+    public Task<IReadOnlyList<AccessReviewSummaryDto>> ListAsync(int actingUserId, CancellationToken cancellationToken = default) =>
+        ListCoreAsync(actingUserId, cancellationToken);
+
+    private async Task<IReadOnlyList<AccessReviewSummaryDto>> ListCoreAsync(int? actingUserId, CancellationToken cancellationToken)
     {
+        var canDecide = actingUserId is int uid && await MayDecideAsync(uid, cancellationToken);
         var reviews = await _db.AccessReviews.AsNoTracking()
             .OrderByDescending(r => r.GeneratedAt).ThenByDescending(r => r.Id)
             .ToListAsync(cancellationToken);
@@ -186,10 +193,17 @@ public class AccessReviewService : IAccessReviewService
             r.Id, r.GeneratedAt, r.GeneratedByUserId, names.GetValueOrDefault(r.GeneratedByUserId),
             r.PeriodLabel, r.Status.ToString(), r.ReviewerUserId,
             r.ReviewerUserId is { } rid ? names.GetValueOrDefault(rid) : null,
-            r.SignedAt, counts.GetValueOrDefault(r.Id), Deserialize(r.SnapshotJson).Summary)).ToList();
+            r.SignedAt, counts.GetValueOrDefault(r.Id), Deserialize(r.SnapshotJson).Summary,
+            canDecide)).ToList();
     }
 
-    public async Task<AccessReviewDetailDto> GetAsync(int id, CancellationToken cancellationToken = default)
+    public Task<AccessReviewDetailDto> GetAsync(int id, CancellationToken cancellationToken = default) =>
+        GetCoreAsync(id, null, cancellationToken);
+
+    public Task<AccessReviewDetailDto> GetAsync(int id, int actingUserId, CancellationToken cancellationToken = default) =>
+        GetCoreAsync(id, actingUserId, cancellationToken);
+
+    private async Task<AccessReviewDetailDto> GetCoreAsync(int id, int? actingUserId, CancellationToken cancellationToken)
     {
         var review = await _db.AccessReviews.AsNoTracking().FirstOrDefaultAsync(r => r.Id == id, cancellationToken)
             ?? throw new NotFoundException($"Access review {id} not found.");
@@ -198,6 +212,7 @@ public class AccessReviewService : IAccessReviewService
         var snapshot = Deserialize(review.SnapshotJson);
         var names = await NamesAsync(new[] { (int?)review.GeneratedByUserId, review.ReviewerUserId }, cancellationToken);
         var usernames = snapshot.Users.ToDictionary(u => u.UserId, u => u.Username);
+        var canDecide = actingUserId is int uid && await MayDecideAsync(uid, cancellationToken);
 
         return new AccessReviewDetailDto(
             review.Id, review.GeneratedAt, review.GeneratedByUserId, names.GetValueOrDefault(review.GeneratedByUserId),
@@ -205,20 +220,55 @@ public class AccessReviewService : IAccessReviewService
             review.ReviewerUserId is { } rid ? names.GetValueOrDefault(rid) : null,
             review.SignedAt, review.ElectronicSignatureId, review.Conclusion,
             review.SnapshotSha256, string.Equals(Sha256(review.SnapshotJson), review.SnapshotSha256, StringComparison.Ordinal),
-            snapshot, findings.Select(f => ToDto(f, usernames)).ToList());
+            snapshot, findings.Select(f => ToDto(f, usernames)).ToList(),
+            canDecide);
+    }
+
+    public async Task<bool> MayDecideAsync(int actingUserId, CancellationToken ct = default)
+    {
+        var now = _time.GetUtcNow().UtcDateTime;
+        var qaExists = await (
+            from u in _db.Users.AsNoTracking()
+            join r in _db.Roles.AsNoTracking() on u.RoleId equals r.Id
+            join rp in _db.RolePermissions.AsNoTracking() on r.Id equals rp.RoleId
+            join p in _db.Permissions.AsNoTracking() on rp.PermissionId equals p.Id
+            where u.IsActive
+                  && (u.LockedUntil == null || u.LockedUntil <= now)
+                  && r.IsActive
+                  && p.Code == PermissionConstants.AccessReviewSign
+            select u.Id
+        ).AnyAsync(ct);
+
+        if (!qaExists)
+        {
+            return true;
+        }
+
+        return await (
+            from u in _db.Users.AsNoTracking()
+            join r in _db.Roles.AsNoTracking() on u.RoleId equals r.Id
+            join rp in _db.RolePermissions.AsNoTracking() on r.Id equals rp.RoleId
+            join p in _db.Permissions.AsNoTracking() on rp.PermissionId equals p.Id
+            where u.Id == actingUserId
+                  && r.IsActive
+                  && p.Code == PermissionConstants.AccessReviewSign
+            select u.Id
+        ).AnyAsync(ct);
     }
 
     // ---- findings -----------------------------------------------------------
 
-    public Task<AccessReviewFindingDto> AddFindingAsync(int reviewId, SaveAccessReviewFindingRequest request, int actingUserId) =>
-        UnitOfWork.RunAsync(_db, () => SaveFindingAsync(reviewId, null, request, actingUserId));
+    public Task<AccessReviewFindingDto> AddFindingAsync(int reviewId, SaveAccessReviewFindingRequest request, int actingUserId, CancellationToken cancellationToken = default) =>
+        UnitOfWork.RunAsync(_db, () => SaveFindingAsync(reviewId, null, request, actingUserId, cancellationToken));
 
-    public Task<AccessReviewFindingDto> UpdateFindingAsync(int reviewId, int findingId, SaveAccessReviewFindingRequest request, int actingUserId) =>
-        UnitOfWork.RunAsync(_db, () => SaveFindingAsync(reviewId, findingId, request, actingUserId));
+    public Task<AccessReviewFindingDto> UpdateFindingAsync(int reviewId, int findingId, SaveAccessReviewFindingRequest request, int actingUserId, CancellationToken cancellationToken = default) =>
+        UnitOfWork.RunAsync(_db, () => SaveFindingAsync(reviewId, findingId, request, actingUserId, cancellationToken));
 
-    private async Task<AccessReviewFindingDto> SaveFindingAsync(int reviewId, int? findingId, SaveAccessReviewFindingRequest request, int actingUserId)
+    private async Task<AccessReviewFindingDto> SaveFindingAsync(int reviewId, int? findingId, SaveAccessReviewFindingRequest request, int actingUserId, CancellationToken ct)
     {
-        var review = await _db.AccessReviews.FirstOrDefaultAsync(r => r.Id == reviewId)
+        await EnsureMayDecideAsync(actingUserId, ct);
+
+        var review = await _db.AccessReviews.FirstOrDefaultAsync(r => r.Id == reviewId, ct)
             ?? throw new NotFoundException($"Access review {reviewId} not found.");
         EnsureDraft(review);
 
@@ -250,7 +300,7 @@ public class AccessReviewService : IAccessReviewService
         }
         else
         {
-            finding = await _db.AccessReviewFindings.FirstOrDefaultAsync(f => f.Id == findingId && f.ReviewId == reviewId)
+            finding = await _db.AccessReviewFindings.FirstOrDefaultAsync(f => f.Id == findingId && f.ReviewId == reviewId, ct)
                 ?? throw new NotFoundException($"Finding {findingId} not found.");
             if (finding.UserId != request.UserId)
                 throw new BusinessRuleException("A finding cannot be moved to another account; record a new finding.");
@@ -265,26 +315,28 @@ public class AccessReviewService : IAccessReviewService
         finding.Note = note;
 
         _db.CurrentUserId = actingUserId;
-        await _db.SaveChangesAsync();
+        await _db.SaveChangesAsync(ct);
 
         _db.AuditLogs.Add(Audit(reviewId, findingId is null ? "ACCESS_REVIEW_FINDING_ADDED" : "ACCESS_REVIEW_FINDING_UPDATED",
             findingId is null ? "AccessReviewFindingAdded" : "AccessReviewFindingUpdated", AuditActionCategory.Security,
             previous,
             JsonSerializer.Serialize(new { FindingId = finding.Id, finding.UserId, subject.Username, finding.Kind, finding.Detail, Action = action.ToString(), finding.Note }),
             null, actingUserId, now));
-        await _db.SaveChangesAsync();
+        await _db.SaveChangesAsync(ct);
 
         return ToDto(finding, snapshot.Users.ToDictionary(u => u.UserId, u => u.Username));
     }
 
     // ---- sign ---------------------------------------------------------------
 
-    public Task<AccessReviewDetailDto> SignAsync(int reviewId, string? password, string? conclusion, int actingUserId, string? ipAddress) =>
-        UnitOfWork.RunAsync(_db, () => SignCoreAsync(reviewId, password, conclusion, actingUserId, ipAddress));
+    public Task<AccessReviewDetailDto> SignAsync(int reviewId, string? password, string? conclusion, int actingUserId, string? ipAddress, CancellationToken cancellationToken = default) =>
+        UnitOfWork.RunAsync(_db, () => SignCoreAsync(reviewId, password, conclusion, actingUserId, ipAddress, cancellationToken));
 
-    private async Task<AccessReviewDetailDto> SignCoreAsync(int reviewId, string? password, string? rawConclusion, int actingUserId, string? ipAddress)
+    private async Task<AccessReviewDetailDto> SignCoreAsync(int reviewId, string? password, string? rawConclusion, int actingUserId, string? ipAddress, CancellationToken ct)
     {
-        var review = await _db.AccessReviews.FirstOrDefaultAsync(r => r.Id == reviewId)
+        await EnsureMayDecideAsync(actingUserId, ct);
+
+        var review = await _db.AccessReviews.FirstOrDefaultAsync(r => r.Id == reviewId, ct)
             ?? throw new NotFoundException($"Access review {reviewId} not found.");
         EnsureDraft(review);
 
@@ -297,7 +349,7 @@ public class AccessReviewService : IAccessReviewService
 
         // A review about the signer's own access cannot be signed by the signer.
         var snapshot = Deserialize(review.SnapshotJson);
-        var ownFinding = await _db.AccessReviewFindings.AnyAsync(f => f.ReviewId == reviewId && f.UserId == actingUserId);
+        var ownFinding = await _db.AccessReviewFindings.AnyAsync(f => f.ReviewId == reviewId && f.UserId == actingUserId, ct);
         var ownEntry = snapshot.Users.FirstOrDefault(u => u.UserId == actingUserId);
         var ownFlagged = ownEntry is not null && (ownEntry.Dormant || ownEntry.NeverLoggedIn || ownEntry.SodConflicts.Count > 0);
         if (ownFinding || ownFlagged)
@@ -317,23 +369,23 @@ public class AccessReviewService : IAccessReviewService
         review.SignedAt = now;
         review.ElectronicSignature = signature;
         review.Conclusion = conclusion;
-        await _db.SaveChangesAsync();
+        await _db.SaveChangesAsync(ct);
 
-        var findingCount = await _db.AccessReviewFindings.CountAsync(f => f.ReviewId == reviewId);
+        var findingCount = await _db.AccessReviewFindings.CountAsync(f => f.ReviewId == reviewId, ct);
         _db.AuditLogs.Add(Audit(review.Id, "ACCESS_REVIEW_SIGNED", "AccessReviewSigned", AuditActionCategory.Approval,
             JsonSerializer.Serialize(new { Status = nameof(AccessReviewStatus.Draft) }),
             JsonSerializer.Serialize(new { Status = nameof(AccessReviewStatus.Signed), review.SnapshotSha256, SignatureId = signature.Id, FindingCount = findingCount, Conclusion = conclusion }),
             null, actingUserId, now));
-        await _db.SaveChangesAsync();
+        await _db.SaveChangesAsync(ct);
 
-        return await GetAsync(review.Id);
+        return await GetAsync(review.Id, actingUserId, ct);
     }
 
     // ---- export -------------------------------------------------------------
 
-    public async Task<AccessReviewExportResult> ExportCsvAsync(int reviewId, int actingUserId)
+    public async Task<AccessReviewExportResult> ExportCsvAsync(int reviewId, int actingUserId, CancellationToken cancellationToken = default)
     {
-        var detail = await GetAsync(reviewId);
+        var detail = await GetAsync(reviewId, actingUserId, cancellationToken);
         var findingsByUser = detail.Findings.GroupBy(f => f.UserId).ToDictionary(g => g.Key, g => g.ToList());
 
         var sb = new StringBuilder();
@@ -369,7 +421,7 @@ public class AccessReviewService : IAccessReviewService
             null,
             JsonSerializer.Serialize(new { Format = "csv", detail.Status, detail.SnapshotSha256, Rows = detail.Snapshot.Users.Count }),
             null, actingUserId, now));
-        await _db.SaveChangesAsync();
+        await _db.SaveChangesAsync(cancellationToken);
 
         var bytes = new UTF8Encoding(encoderShouldEmitUTF8Identifier: true).GetPreamble()
             .Concat(Encoding.UTF8.GetBytes(sb.ToString())).ToArray();
@@ -377,6 +429,12 @@ public class AccessReviewService : IAccessReviewService
     }
 
     // ---- helpers ------------------------------------------------------------
+
+    private async Task EnsureMayDecideAsync(int actingUserId, CancellationToken ct)
+    {
+        if (!await MayDecideAsync(actingUserId, ct))
+            throw new BusinessRuleException("Access reviews are decided and signed by Quality Assurance.");
+    }
 
     private static void EnsureDraft(AccessReview review)
     {

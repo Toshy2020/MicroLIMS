@@ -1,10 +1,10 @@
-AdminAccessReviewsController.AddFinding(Int32, SaveAccessReviewFindingRequest): SystemAdministrator,Qa
-AdminAccessReviewsController.Export(Int32): SystemAdministrator,Qa
-AdminAccessReviewsController.Generate(GenerateAccessReviewRequest): SystemAdministrator,Qa
+AdminAccessReviewsController.AddFinding(Int32, SaveAccessReviewFindingRequest, CancellationToken): SystemAdministrator,Qa
+AdminAccessReviewsController.Export(Int32, CancellationToken): SystemAdministrator,Qa
+AdminAccessReviewsController.Generate(GenerateAccessReviewRequest, CancellationToken): SystemAdministrator,Qa
 AdminAccessReviewsController.Get(Int32, CancellationToken): SystemAdministrator,Qa
 AdminAccessReviewsController.List(CancellationToken): SystemAdministrator,Qa
-AdminAccessReviewsController.Sign(Int32, SignAccessReviewRequest): SystemAdministrator,Qa
-AdminAccessReviewsController.UpdateFinding(Int32, Int32, SaveAccessReviewFindingRequest): SystemAdministrator,Qa
+AdminAccessReviewsController.Sign(Int32, SignAccessReviewRequest, CancellationToken): SystemAdministrator,Qa
+AdminAccessReviewsController.UpdateFinding(Int32, Int32, SaveAccessReviewFindingRequest, CancellationToken): SystemAdministrator,Qa
 AdminIntegrationsController.InstrumentAgents(CancellationToken): SystemAdministrator
 AdminIntegrationsController.Smtp(): SystemAdministrator
 AdminIntegrationsController.Storage(): SystemAdministrator

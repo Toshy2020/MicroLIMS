@@ -6,5 +6,6 @@ public enum RoleType
     SectionHead,
     Reviewer,
     Analyst,
-    QcManager
+    QcManager,
+    Qa = 5
 }

@@ -31,7 +31,8 @@ public static class DbSeeder
                 new Role { Type = RoleType.SectionHead, Name = "Section Head", IsSystemRole = true, IsActive = true },
                 new Role { Type = RoleType.Reviewer, Name = "Reviewer", IsSystemRole = true, IsActive = true },
                 new Role { Type = RoleType.Analyst, Name = "Analyst", IsSystemRole = true, IsActive = true },
-                new Role { Type = RoleType.QcManager, Name = "QC Manager", IsSystemRole = true, IsActive = true }
+                new Role { Type = RoleType.QcManager, Name = "QC Manager", IsSystemRole = true, IsActive = true },
+                new Role { Type = RoleType.Qa, Name = "QA", IsSystemRole = true, IsActive = true }
             );
             db.SaveChanges();
         }
@@ -485,6 +486,8 @@ public static class DbSeeder
             (PermissionConstants.SystemViewSecurityAudit, "View the security audit trail (authentication, session and account security events)."),
             (PermissionConstants.SystemConfigureSettings, "Change system operating settings (security thresholds, retention, worker limits) in the admin Settings registry."),
             (PermissionConstants.AccessReview, "Generate, record findings on and sign the periodic access review (who holds which access)."),
+            (PermissionConstants.AuditReview, "Perform and sign an audit trail review."),
+            (PermissionConstants.AccessReviewSign, "Decide and sign a user access review (Quality Assurance)."),
             (PermissionConstants.DocumentsRegister, "Register a new controlled Document Master."),
             (PermissionConstants.DocumentsDraftEdit, "Edit draft metadata and controlled files, and cancel a draft revision."),
             (PermissionConstants.DocumentsRevisionCreate, "Create a new revision from the current effective revision."),
@@ -635,6 +638,7 @@ public static class DbSeeder
             var reviewerReadOnly = grants.First(g => g.Role == RoleType.Reviewer).Codes
                 .Where(c => c.EndsWith(".View", StringComparison.OrdinalIgnoreCase) || c.EndsWith(".Read", StringComparison.OrdinalIgnoreCase));
             grants = grants.Append((RoleType.QcManager, reviewerReadOnly.Append(PermissionConstants.NotApplicableTestsFinalApprove).ToArray())).ToArray();
+            grants = grants.Append((RoleType.Qa, PermissionConstants.QaGrants.ToArray())).ToArray();
 
             foreach (var (roleType, codes) in grants)
             {

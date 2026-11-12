@@ -97,6 +97,10 @@ public class RoleService
         var baseConflicts = SegregationOfDutiesRules.FindConflicts(baseCodes);
         if (baseConflicts.Count > 0)
             throw new SegregationOfDutiesViolationException(baseConflicts);
+        // A role based on QA inherits its limits; refuse if the base grants already break them.
+        var baseQaConflicts = SegregationOfDutiesRules.FindQaConflicts(baseType == RoleType.Qa, baseCodes);
+        if (baseQaConflicts.Count > 0)
+            throw new BusinessRuleException(SegregationOfDutiesRules.DescribeQaConflicts(baseQaConflicts));
 
         _db.CurrentReason = reason;
         var role = new Role { Name = name, Description = description, Type = baseType, IsSystemRole = false, IsActive = true };
@@ -204,6 +208,13 @@ public class RoleService
         // Hidden grants are not part of the edit: they stay exactly as they are.
         var preservedHidden = allCurrentCodes.Where(PermissionConstants.Hidden.Contains).ToList();
         var currentCodes = Visible(allCurrentCodes);
+
+        // Quality Assurance independence: a QA-type role, or any role given a QA-only code, may
+        // hold no laboratory, administration or configuration code. Hidden grants count, since
+        // they stay on the role. Refused before the signature and before any grant is saved.
+        var qaConflicts = SegregationOfDutiesRules.FindQaConflicts(role.Type == RoleType.Qa, permissionCodes.Concat(preservedHidden));
+        if (qaConflicts.Count > 0)
+            throw new BusinessRuleException(SegregationOfDutiesRules.DescribeQaConflicts(qaConflicts));
 
         await _continuityGuard.EnsureAdministrableAfterAsync(AdministrationChange.RolePermissionsReplaced(id, permissionCodes.Concat(preservedHidden).ToList()));
 

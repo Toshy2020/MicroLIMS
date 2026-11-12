@@ -42,6 +42,40 @@ public static class SegregationOfDutiesRules
         return administration.SelectMany(a => gxp.Select(g => (a, g))).ToList();
     }
 
+    // Quality Assurance independence (B4): the quality unit reads everything and decides on
+    // controlled documents, audit trail reviews and access reviews, and does nothing else.
+    // A role of type QA, or any role holding a QA-only code, may hold no laboratory execution
+    // or approval code (document review and approval excepted), no administration code and no
+    // configuration code.
+    public static readonly IReadOnlySet<string> QaOnlyCodes = new HashSet<string>
+    {
+        PermissionConstants.AuditReview,
+        PermissionConstants.AccessReviewSign
+    };
+
+    public static readonly IReadOnlySet<string> QaForbiddenCodes = AdministrationCodes
+        .Concat(GxpExecutionAndApprovalCodes.Where(c => c != PermissionConstants.DocumentsReview && c != PermissionConstants.DocumentsApprove))
+        .Concat(new[]
+        {
+            PermissionConstants.SectionsConfigureAll, PermissionConstants.SystemConfigureSettings,
+            PermissionConstants.MasterDataManage, PermissionConstants.ItemsManage,
+            PermissionConstants.DocumentsConfigManage, PermissionConstants.KpiConfigureProfiles,
+            PermissionConstants.SignaturesManage, PermissionConstants.SystemManageJobs
+        })
+        .ToHashSet();
+
+    // The forbidden codes held, ordinal sorted, when the role is of type QA or holds a QA-only
+    // code; otherwise empty. isQaRoleType is passed by the caller because RoleType lives in Domain.
+    public static List<string> FindQaConflicts(bool isQaRoleType, IEnumerable<string> codes)
+    {
+        var held = codes.ToHashSet();
+        if (!isQaRoleType && !held.Overlaps(QaOnlyCodes)) return [];
+        return held.Where(QaForbiddenCodes.Contains).OrderBy(c => c, StringComparer.Ordinal).ToList();
+    }
+
+    public static string DescribeQaConflicts(IReadOnlyCollection<string> conflicts) =>
+        $"A Quality Assurance role cannot hold: {string.Join(", ", conflicts)}.";
+
     // "Users.Manage + Samples.Approve", the form shown to users.
     public static string Describe((string Administration, string Gxp) conflict) =>
         $"{conflict.Administration} + {conflict.Gxp}";

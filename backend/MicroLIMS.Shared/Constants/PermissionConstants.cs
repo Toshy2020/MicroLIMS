@@ -155,6 +155,10 @@ public static class PermissionConstants
     // Periodically review who holds which access (EU GMP Annex 11 s.12, 21 CFR 11.10(d)(g)): generate the access-review report, record findings, sign it. Deliberately NOT in a segregation-of-duties set, and held by the System Administrator only because it is read-and-attest, never GxP work.
     public const string AccessReview = "Access.Review";
 
+    // Quality Assurance (RoleType.Qa): perform and sign periodic audit trail reviews, and decide and sign user access reviews. Never granted to SystemAdministrator.
+    public const string AuditReview = "Audit.Review";
+    public const string AccessReviewSign = "Access.Review.Sign";
+
     public static readonly IReadOnlyList<string> All = new[]
     {
         UsersManage, RolesManage, AuditView, ReportingAdmin,
@@ -178,7 +182,8 @@ public static class PermissionConstants
         EquipmentPlanManage, EquipmentPlanApprove, EquipmentWorkRecord, CalendarEventManage,
         NotApplicableTestsManage, NotApplicableTestsFinalApprove, TestsOutsource,
         SamplesPrepare,
-        SectionsViewAll, SectionsConfigureAll, SystemManageJobs, AccessReview
+        SectionsViewAll, SectionsConfigureAll, SystemManageJobs, AccessReview,
+        AuditReview, AccessReviewSign
     };
 
     // What the built-in System Administrator role holds. Segregation of duties
@@ -200,6 +205,18 @@ public static class PermissionConstants
         SectionsViewAll, SectionsConfigureAll, SystemManageJobs, AccessReview
     };
 
+    // Default grants for the built-in Quality Assurance role (RoleType.Qa):
+    // QC Manager view/read baseline minus tests.not-applicable.final-approve,
+    // plus cross-section read, audit/security review, access review, dashboards/KPIs,
+    // messaging, and Document Control review/approval/training matrix.
+    public static readonly IReadOnlyList<string> QaGrants = new[]
+    {
+        DiscussionsView, MonitoringPlanView, AuditView, AuditReview, AccessReview, AccessReviewSign,
+        SectionsViewAll, SamplesTrackAll, DashboardsLabOverview, DashboardsReview,
+        KpiView, KpiViewTeam, MessagesUse, SystemViewSecurityAudit,
+        DocumentsReview, DocumentsApprove, DocumentsPeriodicReview, DocumentsTrainingViewMatrix
+    };
+
     // The codes some endpoint or service actually checks. The rest are
     // declared for the Roles screen but not yet enforced anywhere; the
     // screen shows which is which (Permission.IsEnforced).
@@ -218,7 +235,8 @@ public static class PermissionConstants
         EquipmentPlanManage, EquipmentPlanApprove, EquipmentWorkRecord, CalendarEventManage,
         NotApplicableTestsManage, NotApplicableTestsFinalApprove, TestsOutsource,
         SamplesPrepare,
-        SectionsViewAll, SectionsConfigureAll, SystemManageJobs, AccessReview
+        SectionsViewAll, SectionsConfigureAll, SystemManageJobs, AccessReview,
+        AuditReview, AccessReviewSign
     };
 
     // Declared and granted, but no feature checks them yet. Kept in the

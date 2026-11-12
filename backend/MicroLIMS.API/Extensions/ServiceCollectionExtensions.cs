@@ -310,6 +310,7 @@ public static class ServiceCollectionExtensions
             sp.GetRequiredService<JwtSettings>().AccessTokenLifetime,
             sp.GetRequiredService<ISecurityAuditService>()));
         services.AddScoped<IAccessReviewService, MicroLIMS.Application.Services.AccessReviewService>();
+        services.AddScoped<IAuditTrailReviewService, MicroLIMS.Application.Services.AuditTrailReviewService>();
         services.AddScoped<IDatabaseStatsQuery, DatabaseStatsQuery>();
         services.AddScoped<IDatabaseOverviewService, DatabaseOverviewService>();
 

@@ -159,6 +159,10 @@ public static class PermissionConstants
     public const string AuditReview = "Audit.Review";
     public const string AccessReviewSign = "Access.Review.Sign";
 
+    // Barcode labels and scanning (B1).
+    public const string LabelsReprint = "Labels.Reprint";
+    public const string LabelsConfigure = "Labels.Configure";
+
     public static readonly IReadOnlyList<string> All = new[]
     {
         UsersManage, RolesManage, AuditView, ReportingAdmin,
@@ -183,7 +187,8 @@ public static class PermissionConstants
         NotApplicableTestsManage, NotApplicableTestsFinalApprove, TestsOutsource,
         SamplesPrepare,
         SectionsViewAll, SectionsConfigureAll, SystemManageJobs, AccessReview,
-        AuditReview, AccessReviewSign
+        AuditReview, AccessReviewSign,
+        LabelsReprint, LabelsConfigure
     };
 
     // What the built-in System Administrator role holds. Segregation of duties

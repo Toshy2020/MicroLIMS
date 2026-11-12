@@ -213,6 +213,8 @@ public interface IMicroLimsDbContext
     DbSet<SystemSettingVersion> SystemSettingVersions { get; }
     DbSet<AccessReview> AccessReviews { get; }
     DbSet<AccessReviewFinding> AccessReviewFindings { get; }
+    DbSet<AuditTrailReview> AuditTrailReviews { get; }
+    DbSet<AuditTrailReviewFinding> AuditTrailReviewFindings { get; }
     DbSet<DocumentReviewTask> DocumentReviewTasks { get; }
     DbSet<DocumentReviewFinding> DocumentReviewFindings { get; }
     DbSet<RevisionChangeItem> RevisionChangeItems { get; }
@@ -231,6 +233,8 @@ public interface IMicroLimsDbContext
     DbSet<NotApplicableTest> NotApplicableTests { get; }
     DbSet<BackgroundJobRun> BackgroundJobRuns { get; }
     DbSet<BackupRun> BackupRuns { get; }
+    DbSet<LabelPrintLog> LabelPrintLogs { get; }
+    DbSet<LabelFormat> LabelFormats { get; }
 
     DbSet<TEntity> Set<TEntity>() where TEntity : class;
     DatabaseFacade Database { get; }

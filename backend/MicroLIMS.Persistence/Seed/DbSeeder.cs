@@ -530,6 +530,8 @@ public static class DbSeeder
             (PermissionConstants.SectionsViewAll, "View every laboratory section's records read-only."),
             (PermissionConstants.SectionsConfigureAll, "Configure master data and settings for every laboratory section."),
             (PermissionConstants.SystemManageJobs, "View background job status and run history; run housekeeping jobs manually."),
+            (PermissionConstants.LabelsReprint, "Reprint barcode labels with a documented reason."),
+            (PermissionConstants.LabelsConfigure, "Configure barcode label sizes, layouts and default copy counts."),
         };
 
         // Metadata (Description, IsEnforced) of rows that already exist is
@@ -595,7 +597,8 @@ public static class DbSeeder
                     PermissionConstants.MonitoringPlanView, PermissionConstants.MonitoringPlanManage, PermissionConstants.MonitoringPlanApprove,
                     PermissionConstants.EquipmentPlanManage, PermissionConstants.EquipmentPlanApprove, PermissionConstants.EquipmentWorkRecord, PermissionConstants.CalendarEventManage,
                     PermissionConstants.NotApplicableTestsManage, PermissionConstants.TestsOutsource,
-                    PermissionConstants.SamplesPrepare
+                    PermissionConstants.SamplesPrepare,
+                    PermissionConstants.LabelsReprint, PermissionConstants.LabelsConfigure
                 }),
                 (RoleType.Reviewer, new[]
                 {

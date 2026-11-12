@@ -140,6 +140,8 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext, IMicr
     public DbSet<SystemSettingVersion> SystemSettingVersions => Set<SystemSettingVersion>();
     public DbSet<AccessReview> AccessReviews => Set<AccessReview>();
     public DbSet<AccessReviewFinding> AccessReviewFindings => Set<AccessReviewFinding>();
+    public DbSet<AuditTrailReview> AuditTrailReviews => Set<AuditTrailReview>();
+    public DbSet<AuditTrailReviewFinding> AuditTrailReviewFindings => Set<AuditTrailReviewFinding>();
     public DbSet<AnalystAvailability> AnalystAvailabilities => Set<AnalystAvailability>();
 
     // Media Configuration
@@ -265,6 +267,8 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext, IMicr
     public DbSet<NotApplicableTest> NotApplicableTests => Set<NotApplicableTest>();
     public DbSet<BackgroundJobRun> BackgroundJobRuns => Set<BackgroundJobRun>();
     public DbSet<BackupRun> BackupRuns => Set<BackupRun>();
+    public DbSet<LabelPrintLog> LabelPrintLogs => Set<LabelPrintLog>();
+    public DbSet<LabelFormat> LabelFormats => Set<LabelFormat>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

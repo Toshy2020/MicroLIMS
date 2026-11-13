@@ -423,6 +423,7 @@ MfaController.EnrolStart(MfaPasswordRequest, CancellationToken): SystemAdministr
 MfaController.EnrolTokenConfirm(MfaTokenConfirmRequest, CancellationToken): anonymous
 MfaController.EnrolTokenStart(MfaTokenRequest, CancellationToken): anonymous
 MfaController.ForgetTrustedDevice(Int32, CancellationToken): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+MfaController.Options(CancellationToken): anonymous
 MfaController.RegenerateRecoveryCodes(MfaPasswordAndCodeRequest, CancellationToken): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 MfaController.RemoveFactor(MfaPasswordAndCodeRequest, CancellationToken): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 MfaController.Status(CancellationToken): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa

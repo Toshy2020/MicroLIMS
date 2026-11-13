@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.RateLimiting;
 using MicroLIMS.API.Extensions;
 using MicroLIMS.Application.DTOs;
 using MicroLIMS.Application.Interfaces;
+using MicroLIMS.Application.Services.Mfa;
 using MicroLIMS.Shared.Responses;
 
 namespace MicroLIMS.API.Controllers;
@@ -14,10 +15,21 @@ namespace MicroLIMS.API.Controllers;
 public class MfaController : ControllerBase
 {
     private readonly IMfaService _mfaService;
+    private readonly MfaPolicyService _policyService;
 
-    public MfaController(IMfaService mfaService)
+    public MfaController(IMfaService mfaService, MfaPolicyService policyService)
     {
         _mfaService = mfaService;
+        _policyService = policyService;
+    }
+
+    [HttpGet("options")]
+    [AllowAnonymous]
+    [EnableRateLimiting(RateLimitingPolicies.Authentication)]
+    public async Task<IActionResult> Options(CancellationToken ct)
+    {
+        var trustedDeviceHours = await _policyService.GetTrustedDeviceHoursAsync(ct);
+        return Ok(ApiResponse<object>.Ok(new { trustedDeviceHours }));
     }
 
     [HttpPost("verify")]

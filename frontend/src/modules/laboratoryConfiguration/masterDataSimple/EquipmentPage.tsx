@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import {
+  Autocomplete,
   Paper,
   TextField,
   Button,
@@ -41,11 +42,14 @@ import { Link } from "react-router-dom";
 import {
   EquipmentConfigurationService,
   ConfiguredEquipmentSummary,
+  CreateEquipmentRequest,
+  UpdateEquipmentRequest,
   IncubatorSetPointHistory,
   AutoclaveProgram,
   AutoclaveProgramHistory
 } from "./services/EquipmentConfigurationService";
 import { EquipmentInventoryService } from "../../inventory/equipment/services/EquipmentInventoryService";
+import type { EquipmentItem } from "../../inventory/equipment/types/equipmentTypes";
 import { useLaboratorySections } from "../../../hooks/useLaboratorySections";
 import { getMySections, LaboratorySection } from "../../../services/laboratorySectionService";
 import { clickable } from "../../../utils/clickable";
@@ -138,7 +142,7 @@ export function EquipmentPage() {
   const { sectionName } = useLaboratorySections();
   const [activeTab, setActiveTab] = useState(0);
   const [summaryList, setSummaryList] = useState<ConfiguredEquipmentSummary[]>([]);
-  const [inventoryList, setInventoryList] = useState<any[]>([]);
+  const [inventoryList, setInventoryList] = useState<EquipmentItem[]>([]);
   const [allPrograms, setAllPrograms] = useState<AutoclaveProgram[]>([]);
   const [selectedEqId, setSelectedEqId] = useState<number | null>(null);
 
@@ -157,7 +161,8 @@ export function EquipmentPage() {
     cdsSoftware: "",
     connectionSettings: "",
     setPointTemperature: "",
-    calibrationDueDate: ""
+    calibrationDueDate: "",
+    equipmentInventoryId: null as number | null
   });
   const [mySections, setMySections] = useState<LaboratorySection[]>([]);
   const [selectedSectionId, setSelectedSectionId] = useState<number | "">("");
@@ -187,16 +192,20 @@ export function EquipmentPage() {
   const [dialogError, setDialogError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
-  const loadData = async () => {
+  const loadData = async (signal?: AbortSignal) => {
     setLoading(true);
     setPageError(null);
     try {
       const [summaryData, masterData, invData, progData] = await Promise.all([
         EquipmentConfigurationService.getConfiguredSummary(),
         EquipmentConfigurationService.getEquipmentList(),
-        EquipmentInventoryService.getAll(),
+        EquipmentInventoryService.getAll(signal),
         EquipmentConfigurationService.getAutoclavePrograms()
       ]);
+
+      if (signal?.aborted) {
+        return;
+      }
 
       const normalizedSummary = Array.isArray(summaryData) ? [...summaryData] : [];
       const masterList = Array.isArray(masterData) ? masterData : [];
@@ -215,6 +224,7 @@ export function EquipmentPage() {
           existing.sectionId = m.sectionId ?? existing.sectionId ?? null;
           existing.section = m.section ?? existing.section ?? null;
           existing.location = existing.location || m.location || null;
+          existing.equipmentInventoryId = m.equipmentInventoryId ?? existing.equipmentInventoryId ?? null;
           summaryMap.set(m.id, existing);
         } else {
           summaryMap.set(m.id, {
@@ -225,7 +235,7 @@ export function EquipmentPage() {
             location: m.location ?? null,
             setPointTemperature: m.setPointTemperature ?? null,
             calibrationDueDate: m.calibrationDueDate ?? null,
-            equipmentInventoryId: null,
+            equipmentInventoryId: m.equipmentInventoryId ?? null,
             inventoryStatus: "InService",
             inventoryLocation: m.location ?? null,
             configuredProgramCount: 0,
@@ -248,19 +258,27 @@ export function EquipmentPage() {
       if (mergedList.length > 0 && selectedEqId === null) {
         setSelectedEqId(mergedList[0].id);
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
+      if (signal?.aborted) {
+        return;
+      }
       console.error("Failed to load laboratory equipment configuration:", err);
-      setPageError(err?.message || "Could not load laboratory equipment configuration.");
+      const message = err instanceof Error ? err.message : undefined;
+      setPageError(message || "Could not load laboratory equipment configuration.");
       setSummaryList([]);
       setInventoryList([]);
       setAllPrograms([]);
     } finally {
-      setLoading(false);
+      if (!signal?.aborted) {
+        setLoading(false);
+      }
     }
   };
 
   useEffect(() => {
-    loadData();
+    const controller = new AbortController();
+    void loadData(controller.signal);
+    return () => controller.abort();
   }, []);
 
   const safeSummaryList = Array.isArray(summaryList) ? summaryList : [];
@@ -409,7 +427,7 @@ export function EquipmentPage() {
   // needs a type and a laboratory section, so
   // "Configure for Lab" opens the equipment form pre-filled from inventory
   // instead of guessing those.
-  const handleConfigureInventoryEquipment = async (inv: any) => {
+  const handleConfigureInventoryEquipment = async (inv: EquipmentItem) => {
     const text = `${inv.instrumentType ?? ""}`.toLowerCase();
     const guessedType =
       text.includes("incubator") ? "Incubator"
@@ -422,7 +440,8 @@ export function EquipmentPage() {
       type: guessedType,
       location: inv.location ?? "",
       vendor: inv.manufacturerName ?? "",
-      calibrationDueDate: inv.calibrationDueDate ? String(inv.calibrationDueDate).slice(0, 10) : ""
+      calibrationDueDate: inv.calibrationDueDate ? String(inv.calibrationDueDate).slice(0, 10) : "",
+      equipmentInventoryId: inv.id
     });
     setInventoryDialogOpen(false);
   };
@@ -439,6 +458,7 @@ export function EquipmentPage() {
       connectionSettings: "",
       setPointTemperature: "",
       calibrationDueDate: "",
+      equipmentInventoryId: null,
       ...prefill
     });
     setDialogEquipmentError(null);
@@ -469,7 +489,8 @@ export function EquipmentPage() {
       cdsSoftware: eq.cdsSoftware ? String(eq.cdsSoftware) : "",
       connectionSettings: eq.connectionSettings || "",
       setPointTemperature: eq.setPointTemperature != null ? String(eq.setPointTemperature) : "",
-      calibrationDueDate: eq.calibrationDueDate ? eq.calibrationDueDate.slice(0, 10) : ""
+      calibrationDueDate: eq.calibrationDueDate ? eq.calibrationDueDate.slice(0, 10) : "",
+      equipmentInventoryId: eq.equipmentInventoryId ?? null
     });
     setSelectedSectionId(eq.sectionId ?? "");
     setDialogEquipmentError(null);
@@ -495,7 +516,7 @@ export function EquipmentPage() {
     setSaving(true);
     setDialogEquipmentError(null);
     try {
-      const payload: any = {
+      const payload: CreateEquipmentRequest | UpdateEquipmentRequest = {
         name: equipmentForm.name.trim(),
         code: equipmentForm.code.trim(),
         type: equipmentForm.type,
@@ -505,6 +526,7 @@ export function EquipmentPage() {
         connectionSettings: equipmentForm.connectionSettings.trim() || null,
         setPointTemperature: equipmentForm.setPointTemperature !== "" ? Number(equipmentForm.setPointTemperature) : null,
         calibrationDueDate: equipmentForm.calibrationDueDate || null,
+        equipmentInventoryId: equipmentForm.equipmentInventoryId ?? null,
         ...(!isEditingEquipment && mySections.length > 1 && selectedSectionId !== "" ? { sectionId: Number(selectedSectionId) } : {})
       };
 
@@ -557,7 +579,7 @@ export function EquipmentPage() {
           subtitle="Configure equipment used by this laboratory, set points, and autoclave programs."
         />
         <Stack direction="row" spacing={1}>
-          <IconButton aria-label="Refresh data" onClick={loadData} title="Refresh data">
+          <IconButton aria-label="Refresh data" onClick={() => void loadData()} title="Refresh data">
             <RefreshIcon />
           </IconButton>
           <Button
@@ -1296,6 +1318,25 @@ export function EquipmentPage() {
             value={equipmentForm.location}
             onChange={(e) => setEquipmentForm({ ...equipmentForm, location: e.target.value })}
             fullWidth
+          />
+          <Autocomplete
+            options={inventoryList}
+            value={inventoryList.find((item) => item.id === equipmentForm.equipmentInventoryId) ?? null}
+            onChange={(_event, newValue) =>
+              setEquipmentForm({ ...equipmentForm, equipmentInventoryId: newValue ? newValue.id : null })
+            }
+            getOptionLabel={(option) => `${option.code} — ${option.instrumentType}`}
+            isOptionEqualToValue={(option, value) => option.id === value.id}
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                label="Asset register entry"
+                placeholder="Select an asset register entry"
+                fullWidth
+              />
+            )}
+            clearOnEscape
+            sx={{ "& .MuiAutocomplete-clearIndicator": { visibility: "visible" } }}
           />
 
           <TextField

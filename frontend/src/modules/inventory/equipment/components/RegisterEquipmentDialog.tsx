@@ -208,6 +208,8 @@ export function RegisterEquipmentDialog({
           placeholder="e.g. INC-F-ML-F-01-003"
           value={form.code}
           onChange={(e) => setForm({ ...form, code: e.target.value })}
+          slotProps={{ input: { readOnly: Boolean(editingItem?.codeLocked) } }}
+          helperText={editingItem?.codeLocked ? "Locked: a label has been printed" : undefined}
         />
 
         <TextField

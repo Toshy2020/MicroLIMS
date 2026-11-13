@@ -45,13 +45,38 @@ public class EquipmentMasterDataService
         return EquipmentResponse.From(eq);
     }
 
-    public async Task<EquipmentResponse> CreateEquipmentAsync(int currentUserId, CreateEquipmentRequest request)
+    private async Task ValidateEquipmentInventoryLinkAsync(
+        int currentUserId,
+        int? equipmentInventoryId,
+        int? excludeEquipmentId,
+        CancellationToken cancellationToken)
+    {
+        if (!equipmentInventoryId.HasValue)
+            return;
+
+        var assetId = equipmentInventoryId.Value;
+        await _scope.EnsureEquipmentInventoryAccessAsync(currentUserId, assetId, cancellationToken, SectionAccess.Read);
+
+        var assetExists = await _db.EquipmentInventories
+            .AsNoTracking()
+            .AnyAsync(a => a.Id == assetId, cancellationToken);
+        if (!assetExists)
+            throw new NotFoundException($"Equipment inventory asset {assetId} not found.");
+
+        var alreadyLinked = await _db.Equipment
+            .AsNoTracking()
+            .AnyAsync(e => e.EquipmentInventoryId == assetId && (excludeEquipmentId == null || e.Id != excludeEquipmentId.Value), cancellationToken);
+        if (alreadyLinked)
+            throw new BusinessRuleException("This asset is already linked to another instrument.");
+    }
+
+    public async Task<EquipmentResponse> CreateEquipmentAsync(int currentUserId, CreateEquipmentRequest request, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(request.Name))
             throw new BusinessRuleException("Name is required.");
         if (string.IsNullOrWhiteSpace(request.Code))
             throw new BusinessRuleException("Code is required.");
-        if (await _db.Equipment.AnyAsync(e => e.Code == request.Code.Trim()))
+        if (await _db.Equipment.AnyAsync(e => e.Code == request.Code.Trim(), cancellationToken))
             throw new BusinessRuleException($"Equipment code \"{request.Code}\" already exists.");
 
         if (!string.IsNullOrWhiteSpace(request.Vendor) && request.Vendor.Length > 100)
@@ -73,7 +98,8 @@ public class EquipmentMasterDataService
                 throw new BusinessRuleException("CDS Software is only allowed for HPLC and ICP-OES equipment.");
         }
 
-        var sectionId = await _scope.ResolveSectionForCreateAsync(currentUserId, request.SectionId);
+        var sectionId = await _scope.ResolveSectionForCreateAsync(currentUserId, request.SectionId, cancellationToken);
+        await ValidateEquipmentInventoryLinkAsync(currentUserId, request.EquipmentInventoryId, excludeEquipmentId: null, cancellationToken);
 
         var entity = new Equipment
         {
@@ -86,18 +112,19 @@ public class EquipmentMasterDataService
             Vendor = request.Vendor?.Trim(),
             CdsSoftware = request.CdsSoftware,
             ConnectionSettings = request.ConnectionSettings,
-            SectionId = sectionId
+            SectionId = sectionId,
+            EquipmentInventoryId = request.EquipmentInventoryId
         };
         _db.Equipment.Add(entity);
-        await _db.SaveChangesAsync();
+        await _db.SaveChangesAsync(cancellationToken);
         return EquipmentResponse.From(entity);
     }
 
-    public async Task<EquipmentResponse> UpdateEquipmentAsync(int currentUserId, int id, UpdateEquipmentRequest request)
+    public async Task<EquipmentResponse> UpdateEquipmentAsync(int currentUserId, int id, UpdateEquipmentRequest request, CancellationToken cancellationToken = default)
     {
-        await _scope.EnsureEquipmentAccessAsync(currentUserId, id);
+        await _scope.EnsureEquipmentAccessAsync(currentUserId, id, cancellationToken);
 
-        var entity = await _db.Equipment.FirstOrDefaultAsync(e => e.Id == id)
+        var entity = await _db.Equipment.FirstOrDefaultAsync(e => e.Id == id, cancellationToken)
             ?? throw new NotFoundException($"Equipment {id} not found.");
 
         RecordVersion.EnsureCurrent(_db, entity);
@@ -106,7 +133,7 @@ public class EquipmentMasterDataService
             throw new BusinessRuleException("Name is required.");
         if (string.IsNullOrWhiteSpace(request.Code))
             throw new BusinessRuleException("Code is required.");
-        if (await _db.Equipment.AnyAsync(e => e.Code == request.Code.Trim() && e.Id != id))
+        if (await _db.Equipment.AnyAsync(e => e.Code == request.Code.Trim() && e.Id != id, cancellationToken))
             throw new BusinessRuleException($"Equipment code \"{request.Code}\" already exists.");
 
         if (!string.IsNullOrWhiteSpace(request.Vendor) && request.Vendor.Length > 100)
@@ -130,8 +157,10 @@ public class EquipmentMasterDataService
 
         if (request.SectionId.HasValue && request.SectionId.Value != entity.SectionId)
         {
-            entity.SectionId = await _scope.ResolveSectionForCreateAsync(currentUserId, request.SectionId);
+            entity.SectionId = await _scope.ResolveSectionForCreateAsync(currentUserId, request.SectionId, cancellationToken);
         }
+
+        await ValidateEquipmentInventoryLinkAsync(currentUserId, request.EquipmentInventoryId, excludeEquipmentId: id, cancellationToken);
 
         entity.Name = request.Name.Trim();
         entity.Code = request.Code.Trim();
@@ -142,8 +171,9 @@ public class EquipmentMasterDataService
         entity.Vendor = request.Vendor?.Trim();
         entity.CdsSoftware = request.CdsSoftware;
         entity.ConnectionSettings = request.ConnectionSettings;
+        entity.EquipmentInventoryId = request.EquipmentInventoryId;
 
-        await _db.SaveChangesAsync();
+        await _db.SaveChangesAsync(cancellationToken);
         return EquipmentResponse.From(entity);
     }
 }

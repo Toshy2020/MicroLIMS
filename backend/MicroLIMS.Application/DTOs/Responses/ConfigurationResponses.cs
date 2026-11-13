@@ -39,6 +39,7 @@ public class EquipmentResponse
     public DateTime? CalibrationDueDate { get; init; }
     public int SectionId { get; init; }
     public DocumentSectionResponse? Section { get; init; }
+    public int? EquipmentInventoryId { get; init; }
     public string? Vendor { get; init; }
     public CdsSoftware? CdsSoftware { get; init; }
     public string? ConnectionSettings { get; init; }
@@ -56,6 +57,7 @@ public class EquipmentResponse
         CalibrationDueDate = e.CalibrationDueDate,
         SectionId = e.SectionId,
         Section = e.Section is null ? null : DocumentSectionResponse.From(e.Section),
+        EquipmentInventoryId = e.EquipmentInventoryId,
         Vendor = e.Vendor,
         CdsSoftware = e.CdsSoftware,
         ConnectionSettings = e.ConnectionSettings,

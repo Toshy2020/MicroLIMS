@@ -1,18 +1,30 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
+import { AuthProvider, type SignInMethod } from "../contexts/AuthContext";
 import { ChangePasswordPage } from "./ChangePassword";
 
-vi.mock("../contexts/AuthContext", () => ({ useAuth: () => ({ refresh: vi.fn() }) }));
 vi.mock("../modules/authentication/services/authenticationService", () => ({
-  authenticationService: { changePassword: vi.fn() }
+  authenticationService: { changePassword: vi.fn(), me: vi.fn() }
 }));
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  localStorage.clear();
+});
 
-function renderPage() {
-  render(<MemoryRouter><ChangePasswordPage /></MemoryRouter>);
-  return screen.getByLabelText(/^New Password/);
+function renderPage(signInMethod: SignInMethod = "Local") {
+  localStorage.setItem("microlims_sign_in_method", signInMethod);
+  render(
+    <AuthProvider>
+      <MemoryRouter>
+        <ChangePasswordPage />
+      </MemoryRouter>
+    </AuthProvider>
+  );
+  return signInMethod === "Directory"
+    ? screen.getByLabelText(/^New Signing Password/)
+    : screen.getByLabelText(/^New Password/);
 }
 
 describe("ChangePasswordPage policy checklist", () => {
@@ -34,5 +46,14 @@ describe("ChangePasswordPage policy checklist", () => {
     fireEvent.change(input, { target: { value: "abcdefgh" } });
     fireEvent.blur(input);
     expect(screen.getAllByTitle("Not met")).toHaveLength(3);
+  });
+
+  it("uses signing password wording for a directory user", () => {
+    renderPage("Directory");
+    expect(screen.getByRole("heading", { name: "Change Signing Password" })).toBeTruthy();
+    expect(screen.getByLabelText(/^Current Signing Password/)).toBeTruthy();
+    expect(screen.getByLabelText(/^New Signing Password/)).toBeTruthy();
+    expect(screen.getByLabelText(/^Confirm New Signing Password/)).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Change Signing Password" })).toBeTruthy();
   });
 });

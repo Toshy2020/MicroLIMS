@@ -25,6 +25,8 @@ export async function completeSignInSession(
     fullName: me.fullName,
     jobTitle: me.jobTitle ?? null,
     userId: me.userId,
-    mustChangePassword: Boolean(result.mustChangePassword)
+    mustChangePassword: Boolean(result.mustChangePassword),
+    signingPasswordRequired: Boolean(result.signingPasswordRequired),
+    signInMethod: me.signInMethod ?? "Local"
   });
 }

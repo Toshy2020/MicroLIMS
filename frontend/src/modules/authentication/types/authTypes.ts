@@ -1,11 +1,14 @@
 export type Role = "SystemAdministrator" | "SectionHead" | "Reviewer" | "Analyst" | "QcManager" | "Qa";
 
+export type SignInMethod = "Local" | "Directory";
+
 export interface LoginResult {
   token?: string;
   refreshToken?: string;
   role?: Role;
   permissions?: string[];
   mustChangePassword?: boolean;
+  signingPasswordRequired?: boolean;
   // The role's display name (Role.Name); `role` above is its base type.
   roleName?: string | null;
   mfaRequired?: boolean;
@@ -27,4 +30,6 @@ export interface CurrentUserInfo {
   lastLoginAt: string | null;
   passwordChangedAt: string | null;
   mustChangePassword: boolean;
+  signInMethod?: SignInMethod;
+  signingPasswordSet?: boolean;
 }

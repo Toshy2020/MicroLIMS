@@ -42,7 +42,8 @@ export function SignatureDialog({
   open, meaningStatement, showComment = false, commentLabel = "Comment (optional)", comment, onCommentChange, commentRequired = false,
   requireSecondSigner = false, secondSignerHint, onCancel, onConfirm
 }: SignatureDialogProps) {
-  const { fullName, username, role, roleName } = useAuth();
+  const { fullName, username, role, roleName, signInMethod } = useAuth();
+  const isDirectoryUser = signInMethod === "Directory";
   const [password, setPassword] = useState("");
   const [secondUsername, setSecondUsername] = useState("");
   const [secondPassword, setSecondPassword] = useState("");
@@ -100,9 +101,15 @@ export function SignatureDialog({
           <TextField label={commentLabel} multiline rows={2} value={comment ?? ""} onChange={(e) => onCommentChange?.(e.target.value)} />
         )}
         <TextField
-          label="Password" type="password" value={password}
+          label={isDirectoryUser ? "Signing password" : "Password"}
+          type="password"
+          value={password}
           onChange={(e) => setPassword(e.target.value)}
-          autoFocus required
+          helperText={
+            isDirectoryUser ? "This is your MicroLIMS signing password, not your company password." : undefined
+          }
+          autoFocus
+          required
           onKeyDown={(e) => { if (e.key === "Enter" && complete && !submitting) handleConfirm(); }}
         />
         {requireSecondSigner && (

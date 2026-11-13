@@ -15,6 +15,7 @@ const APP_ROUTES = {
   DASHBOARD: "/dashboard",
   PROFILE: "/profile",
   CHANGE_PASSWORD: "/change-password",
+  SET_SIGNING_PASSWORD: "/set-signing-password",
   REPORTS: "/reports",
 
   // Core Laboratory Workflows

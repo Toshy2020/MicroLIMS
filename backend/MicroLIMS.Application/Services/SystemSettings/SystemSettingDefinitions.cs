@@ -166,7 +166,7 @@ public static class SystemSettingDefinitions
         new(SystemSettingKeys.MfaPolicy, SecurityCategory, SystemSettingValueType.String, "RequiredForRoles",
             "Who must sign in with a second factor: Off, Optional, RequiredForRoles, or RequiredForAll.",
             AllowedValues: new[] { "Off", "Optional", "RequiredForRoles", "RequiredForAll" }, IsGxpRelevant: true),
-        new(SystemSettingKeys.MfaRequiredRoles, SecurityCategory, SystemSettingValueType.String, "SystemAdministrator,SectionHead,QcManager",
+        new(SystemSettingKeys.MfaRequiredRoles, SecurityCategory, SystemSettingValueType.String, "SystemAdministrator,SectionHead,QcManager,Qa",
             "Comma-separated role types that require a second factor when the policy is RequiredForRoles.",
             IsGxpRelevant: true),
         new(SystemSettingKeys.MfaTrustedDeviceHours, SecurityCategory, SystemSettingValueType.Integer, "12",

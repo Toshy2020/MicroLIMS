@@ -589,6 +589,8 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext, IMicr
         typeof(BackupRun), // operational backup status, written by backup.sh; not a GxP record
         typeof(RefreshToken), // session state; recorded in the Security Audit Trail instead
         typeof(MfaChallenge), // short-lived login state; every outcome is recorded by MfaService as an explicit security event
+        typeof(SsoPendingRequest), // short-lived sign-in state; outcomes are recorded as explicit security events
+        typeof(SsoExchangeCode), // short-lived sign-in state; outcomes are recorded as explicit security events
         typeof(NotificationLog), // derived reminders and read state; not a GxP record
         typeof(InstrumentIngestPayload), // append-only by DB trigger; hashes carried by the explicit ingest audit event
         typeof(SecurityAuditEvent), // security evidence, not a GxP record; also prevents recursive audit

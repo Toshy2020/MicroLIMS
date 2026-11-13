@@ -250,4 +250,33 @@ describe("ProfilePage Security section", () => {
     expect(await screen.findByText("Authenticator app")).toBeTruthy();
     expect(mfaService.getStatus).toHaveBeenCalledTimes(2);
   });
+
+  it("shows the server's refusal as visible text when an assigned hardware token blocks self-enrolment", async () => {
+    const user = userEvent.setup();
+    const refusal =
+      "A hardware token has been assigned to you; activate it, or ask an administrator to reset your two-factor setup, before setting up an authenticator app.";
+    vi.mocked(authenticationService.me).mockResolvedValue(sampleUser);
+    vi.mocked(mfaService.getStatus).mockResolvedValue({
+      enrolled: false,
+      type: null,
+      confirmedAt: null,
+      recoveryCodesRemaining: 0,
+      required: false,
+      enrolmentDueAt: null,
+      trustedDevices: []
+    });
+    vi.mocked(mfaService.startEnrolment).mockRejectedValue({
+      response: { status: 400, data: { message: refusal } }
+    });
+
+    renderPage();
+
+    await user.click(await screen.findByRole("button", { name: "Set up" }));
+    await user.type(screen.getByLabelText("Password"), "Pass#123");
+    await user.click(screen.getByRole("button", { name: "Continue" }));
+
+    const alert = await screen.findByRole("alert");
+    expect(alert.textContent).toContain(refusal);
+    expect(screen.queryByAltText("QR code to add MicroLIMS to your authenticator app")).toBeNull();
+  });
 });

@@ -37,10 +37,16 @@ import { tableHeadSx } from "../../../../theme";
 import { FloatingDialog } from "../../../../components/FloatingDialog";
 import { DateField } from "../../../../components/DateField";
 
+export interface CreatedCryovialRef {
+  id: number;
+  code: string;
+  organismName?: string;
+}
+
 interface PrepareCryovialBatchDialogProps {
   open: boolean;
   onClose: () => void;
-  onSuccess: (message: string) => void;
+  onSuccess: (message: string, created?: CreatedCryovialRef) => void;
 }
 
 const emptyRow = (): PanelRow => ({
@@ -162,7 +168,15 @@ export function PrepareCryovialBatchDialog({
 
       const result = await CryovialService.prepare(payload);
       const code = result?.code ? ` (${result.code})` : "";
-      onSuccess(`Cryovial batch prepared successfully${code}.`);
+      const created: CreatedCryovialRef | undefined =
+        result && typeof result.id === "number" && typeof result.code === "string" && result.code.trim().length > 0
+          ? {
+              id: result.id,
+              code: result.code,
+              organismName: result.organismNameSnapshot || result.organism?.scientificName
+            }
+          : undefined;
+      onSuccess(`Cryovial batch prepared successfully${code}.`, created);
       onClose();
     } catch (e: any) {
       setError(e?.response?.data?.message ?? "Could not prepare cryovial batch.");

@@ -16,6 +16,8 @@ import { MoveCryovialStorageDialog } from "./components/MoveCryovialStorageDialo
 import { ApprovedCryovialListPage } from "../../inventory/approvedLists/ApprovedCryovialListPage";
 import { useAuth } from "../../../contexts/AuthContext";
 import { PERMISSIONS } from "../../../routes/routes";
+import { PrintLabelsDialog } from "../../../components/labels/PrintLabelsDialog";
+import { usePostCreateLabelPrint } from "../../../components/labels/usePostCreateLabelPrint";
 
 const INITIAL_FILTERS: CryovialFilterState = {
   search: "",
@@ -42,6 +44,7 @@ export function CryovialsPage() {
   const [moveItem, setMoveItem] = useState<CryovialItem | null>(null);
   const [pendingDecision, setPendingDecision] = useState<{ cryovial: CryovialItem; approved: boolean } | null>(null);
   const [decisionComment, setDecisionComment] = useState("");
+  const postCreatePrint = usePostCreateLabelPrint();
 
   const loadData = async () => {
     try {
@@ -232,11 +235,27 @@ export function CryovialsPage() {
       <PrepareCryovialBatchDialog
         open={isPrepareOpen}
         onClose={() => setIsPrepareOpen(false)}
-        onSuccess={() => {
+        onSuccess={(_msg, created) => {
           setIsPrepareOpen(false);
           setMessage({ text: "Cryovial batch prepared successfully. Awaiting Section Head approval.", ok: true });
           loadData();
+          if (created) {
+            postCreatePrint.offerPrint([
+              {
+                entityType: "Cryovial",
+                entityId: created.id,
+                code: created.code,
+                displayName: created.organismName || created.code
+              }
+            ]);
+          }
         }}
+      />
+
+      <PrintLabelsDialog
+        open={postCreatePrint.dialogOpen}
+        targets={postCreatePrint.targets}
+        onClose={postCreatePrint.closeDialog}
       />
 
       {/* Thaw Confirmation Dialog */}

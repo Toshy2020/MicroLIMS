@@ -238,7 +238,7 @@ public class AuthenticationService : IAuthenticationService
             SecurityEventCodes.RefreshTokenIssued, SecurityEventOutcome.Success,
             ActorUserId: user.Id, TargetUserId: user.Id, TargetUsername: user.Username));
 
-        var refreshToken = await IssueRefreshTokenAsync(user.Id, ip, userAgent, usedNow: false, mfaVerified: mfaVerified);
+        var refreshToken = await IssueRefreshTokenAsync(user.Id, ip, userAgent, usedNow: false, mfaVerified: mfaVerified, sessionStartedAt: _time.GetUtcNow().UtcDateTime);
         var signingPasswordRequired = user.SignInMethod == SignInMethod.Directory && user.SigningPasswordSetAt is null;
 
         return new LoginOutcome(
@@ -319,6 +319,33 @@ public class AuthenticationService : IAuthenticationService
             return new LoginOutcome(false, null, null, "Refresh token is invalid or expired.");
         }
 
+        // Company sign-in sessions end at a fixed age. In OpenID Connect mode the provider
+        // never tells MicroLIMS an account was disabled, so the only control is to send the
+        // user back to the provider regularly. Emergency accounts and local users are never
+        // capped; in Active Directory mode the leaver worker checks the directory instead.
+        var nowForCap = _time.GetUtcNow().UtcDateTime;
+        // A row from before the cap existed has no start: its own creation time is the
+        // earliest the session can have begun, and it is carried forward so the cap bites.
+        var sessionStartedAt = stored.SessionStartedAt ?? stored.CreatedAt;
+        if (user.SignInMethod == SignInMethod.Directory
+            && !user.IsEmergencyAccount
+            && await _ssoMode.GetModeAsync() == SsoMode.OpenIdConnect)
+        {
+            var maxHours = Math.Clamp(await _settings.GetIntOrDefaultAsync(SystemSettingKeys.SsoSessionMaxHours), 1, 24);
+            if (nowForCap - sessionStartedAt > TimeSpan.FromHours(maxHours))
+            {
+                // This session only: other sessions carry their own start and are capped on their own.
+                stored.RevokedAt = nowForCap;
+                _securityAudit.Record(new SecurityEventRequest(
+                    SecurityEventCodes.RefreshRejectedInvalidToken, SecurityEventOutcome.Failure,
+                    TargetUserId: user.Id, TargetUsername: user.Username,
+                    Reason: "session_cap",
+                    Metadata: $"{{\"sessionMaxHours\":{maxHours}}}"));
+                await _db.SaveChangesAsync();
+                return new LoginOutcome(false, null, null, "Refresh token is invalid or expired.");
+            }
+        }
+
         // Rotate: revoke the used token and issue a new one. One event,
         // not three - the caller performed a single meaningful action.
         stored.LastUsedAt = _time.GetUtcNow().UtcDateTime;
@@ -327,7 +354,7 @@ public class AuthenticationService : IAuthenticationService
             SecurityEventCodes.RefreshTokenRotated, SecurityEventOutcome.Success,
             ActorUserId: user.Id, TargetUserId: user.Id, TargetUsername: user.Username));
 
-        var newRefreshToken = await IssueRefreshTokenAsync(stored.UserId, ipAddress, userAgent, usedNow: true, mfaVerified: stored.MfaVerified);
+        var newRefreshToken = await IssueRefreshTokenAsync(stored.UserId, ipAddress, userAgent, usedNow: true, mfaVerified: stored.MfaVerified, sessionStartedAt: sessionStartedAt);
         await _db.SaveChangesAsync();
 
         var token = await IssueAccessTokenAsync(user);
@@ -587,7 +614,7 @@ public class AuthenticationService : IAuthenticationService
         return value.Length <= max ? value : value[..max];
     }
 
-    private async Task<string> IssueRefreshTokenAsync(int userId, string? ipAddress = null, string? userAgent = null, bool usedNow = false, bool mfaVerified = false)
+    private async Task<string> IssueRefreshTokenAsync(int userId, string? ipAddress = null, string? userAgent = null, bool usedNow = false, bool mfaVerified = false, DateTime? sessionStartedAt = null)
     {
         var rawToken = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
         _db.RefreshTokens.Add(new RefreshToken
@@ -598,7 +625,8 @@ public class AuthenticationService : IAuthenticationService
             CreatedIp = Truncate(ipAddress, RefreshToken.MaxIpLength),
             UserAgent = Truncate(userAgent, RefreshToken.MaxUserAgentLength),
             LastUsedAt = usedNow ? _time.GetUtcNow().UtcDateTime : null,
-            MfaVerified = mfaVerified
+            MfaVerified = mfaVerified,
+            SessionStartedAt = sessionStartedAt
         });
         await _db.SaveChangesAsync();
         return rawToken;

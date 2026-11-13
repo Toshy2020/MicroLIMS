@@ -8587,6 +8587,9 @@ namespace MicroLIMS.Persistence.Migrations
                     b.Property<DateTime?>("RevokedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<DateTime?>("SessionStartedAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<string>("TokenHash")
                         .IsRequired()
                         .HasColumnType("text");

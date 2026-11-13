@@ -207,6 +207,11 @@ public sealed class LdapSignInService : IDirectoryPasswordSignIn
                 Reason: match.Failure == MatchFailure.SubjectMismatch
                     ? "Directory subject ID does not match the bound user."
                     : "Directory identity could not be matched."));
+            // A different person now holds this company username: the administrator must see it.
+            // (A wrong password never gets here; it is not a directory refusal.)
+            if (match.Failure == MatchFailure.SubjectMismatch)
+                await DirectoryAccountActions.MarkSignInRefusedAsync(
+                    _db, user, nowUtc, "LdapSignIn", "Directory subject ID does not match the bound user", ct);
             await auth.RecordLoginAsync(user.Id, user.Username, false, $"Directory match failed ({match.Failure})", ipAddress);
             return Refused();
         }
@@ -238,18 +243,8 @@ public sealed class LdapSignInService : IDirectoryPasswordSignIn
         _db.CurrentReason = "Account disabled in the company directory";
         try
         {
-            user.IsActive = false;
-            user.DirectorySignInRefusedAt = nowUtc;
-            var revoked = await auth.RevokeAllRefreshTokensAsync(user.Id);
-
-            _securityAudit.Record(new SecurityEventRequest(
-                SecurityEventCodes.UserDeactivatedByDirectory,
-                SecurityEventOutcome.Success,
-                ActorIsSystem: true,
-                TargetUserId: user.Id,
-                TargetUsername: user.Username,
-                Reason: "Account disabled in the company directory.",
-                Metadata: $"{{\"revokedSessionCount\":{revoked}}}"));
+            await DirectoryAccountActions.DeactivateAsync(
+                user, nowUtc, auth, _securityAudit, "Account disabled in the company directory.");
             await _db.SaveChangesAsync(ct);
         }
         finally

@@ -174,6 +174,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<MicroLIMS.API.BackgroundServices.SessionTokenCleanupWorker>();
         services.AddHostedService(sp => sp.GetRequiredService<MicroLIMS.API.BackgroundServices.SessionTokenCleanupWorker>());
         services.AddSingleton<MicroLIMS.Application.Services.BackgroundJobs.IBackgroundJobWork>(sp => sp.GetRequiredService<MicroLIMS.API.BackgroundServices.SessionTokenCleanupWorker>());
+        services.AddHostedService<MicroLIMS.API.BackgroundServices.DirectoryLeaverWorker>();
         services.AddSingleton<MicroLIMS.API.BackgroundServices.CriticalAlertWorker>();
         services.AddHostedService(sp => sp.GetRequiredService<MicroLIMS.API.BackgroundServices.CriticalAlertWorker>());
         services.AddSingleton<MicroLIMS.API.BackgroundServices.SolutionPreparationExpiryWorker>();
@@ -338,6 +339,7 @@ public static class ServiceCollectionExtensions
             () => sp.GetRequiredService<MicroLIMS.Application.Services.AuthenticationService>());
         services.AddScoped<MicroLIMS.Application.Abstractions.Sso.IDirectoryPasswordSignIn, MicroLIMS.Application.Services.Sso.LdapSignInService>();
         services.AddScoped<MicroLIMS.Application.Services.Sso.SsoAdminService>();
+        services.AddScoped<MicroLIMS.Application.Services.Sso.DirectoryLeaverService>();
         services.AddScoped<IMfaService, MicroLIMS.Application.Services.Mfa.MfaService>();
         services.AddScoped<IMfaAdminService, MicroLIMS.Application.Services.Mfa.MfaAdminService>();
         services.AddScoped<IAuditTrailReviewService, MicroLIMS.Application.Services.AuditTrailReviewService>();

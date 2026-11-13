@@ -221,6 +221,7 @@ public class LdapSignInPostgresTests
         var user = await assertDb.Users.AsNoTracking().SingleAsync(u => u.Id == s.User.Id);
         Assert.Equal(1, user.FailedLoginAttempts);
         Assert.Null(user.LockedUntil);
+        Assert.Null(user.DirectorySignInRefusedAt); // a wrong password is not a directory refusal
         Assert.True(await assertDb.SecurityAuditEvents.AsNoTracking()
             .AnyAsync(e => e.TargetUserId == s.User.Id && e.EventCode == SecurityEventCodes.LoginFailedBadCredentials));
         var history = await assertDb.LoginHistories.AsNoTracking().SingleAsync(h => h.UserId == s.User.Id);
@@ -330,6 +331,12 @@ public class LdapSignInPostgresTests
         Assert.True(await assertDb.SecurityAuditEvents.AsNoTracking()
             .AnyAsync(e => e.TargetUserId == s.User.Id && e.EventCode == SecurityEventCodes.SsoLoginFailedSubjectMismatch));
         Assert.False(await assertDb.RefreshTokens.AsNoTracking().AnyAsync(r => r.UserId == s.User.Id));
+        Assert.Equal(BaseUtc.UtcDateTime, user.DirectorySignInRefusedAt);
+        var audit = await assertDb.AuditLogs.AsNoTracking()
+            .Where(a => a.EntityName == nameof(User) && a.EntityId == s.User.Id.ToString() && a.Reason == "Directory subject ID does not match the bound user")
+            .SingleAsync();
+        Assert.Equal("LdapSignIn", audit.SystemProcessName);
+        Assert.Null(audit.UserId);
     }
 
     [PostgresFact]

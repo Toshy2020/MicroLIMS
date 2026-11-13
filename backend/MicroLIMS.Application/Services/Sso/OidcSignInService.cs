@@ -187,6 +187,10 @@ public sealed class OidcSignInService
                 return BuildFailureRedirect(frontendBaseUrl);
 
             case MatchFailure.SubjectMismatch:
+                // A different person now holds this company username: the administrator must see it.
+                if (match.User is not null)
+                    await DirectoryAccountActions.MarkSignInRefusedAsync(
+                        _db, match.User, nowUtc, "OidcSignIn", "Directory subject ID does not match the bound user", ct);
                 await RecordFailureAsync(
                     SecurityEventCodes.SsoLoginFailedSubjectMismatch,
                     targetUserId: match.User?.Id,

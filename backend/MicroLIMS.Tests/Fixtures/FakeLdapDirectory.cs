@@ -12,6 +12,22 @@ public sealed class FakeLdapDirectory : ILdapDirectory
     public List<string> FindCalls { get; } = new();
     public int TestCalls { get; private set; }
     public Exception? ToThrow { get; set; }
+
+    // FindManyBySubject: each call's subject ids, in order; throws when a call asks for any id in ThrowWhenAskedFor.
+    public List<IReadOnlyCollection<string>> FindManyCalls { get; } = new();
+    public HashSet<string> ThrowWhenAskedFor { get; } = new(StringComparer.Ordinal);
+
+    // When true an id the fake has no account for is omitted from the answer (the directory could not have
+    // issued it) instead of mapping to null (the account is gone). Lets a test share a database with others.
+    public bool UnknownIdsAreOmitted { get; set; }
+
+    public FakeLdapDirectory WithMissingSubject(string subjectId)
+    {
+        _missing.Add(subjectId);
+        return this;
+    }
+
+    private readonly HashSet<string> _missing = new(StringComparer.Ordinal);
     public Exception? TestThrows { get; set; }
 
     public FakeLdapDirectory WithAccount(string username, string password, string subjectId, bool disabled = false)
@@ -37,11 +53,18 @@ public sealed class FakeLdapDirectory : ILdapDirectory
 
     public Task<IReadOnlyDictionary<string, LdapEntry?>> FindManyBySubjectAsync(IReadOnlyCollection<string> subjectIds, CancellationToken ct = default)
     {
+        FindManyCalls.Add(subjectIds.ToList());
         if (ToThrow is not null) throw ToThrow;
+        if (subjectIds.Any(ThrowWhenAskedFor.Contains))
+            throw new DirectoryUnavailableException("Fake directory stopped answering.");
         var bySubject = _accounts.Values.ToDictionary(v => v.Entry.SubjectId, v => (LdapEntry?)v.Entry);
-        IReadOnlyDictionary<string, LdapEntry?> result = subjectIds.ToDictionary(
-            id => id, id => bySubject.TryGetValue(id, out var e) ? e : null);
-        return Task.FromResult(result);
+        var result = new Dictionary<string, LdapEntry?>(StringComparer.Ordinal);
+        foreach (var id in subjectIds)
+        {
+            if (bySubject.TryGetValue(id, out var e)) result[id] = e;
+            else if (!UnknownIdsAreOmitted || _missing.Contains(id)) result[id] = null;
+        }
+        return Task.FromResult<IReadOnlyDictionary<string, LdapEntry?>>(result);
     }
 
     public Task TestAsync(CancellationToken ct = default)

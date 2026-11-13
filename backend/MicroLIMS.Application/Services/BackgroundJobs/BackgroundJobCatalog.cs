@@ -68,7 +68,12 @@ public static class BackgroundJobCatalog
             "EquipmentOverdueWorker", BackgroundJobClassification.Gxp,
             "Takes instruments with overdue calibration or maintenance out of service.",
             "Every 60 minutes (EquipmentOverdue:IntervalMinutes)",
-            "Changes equipment status, which gates whether an instrument may be used for GxP work.")
+            "Changes equipment status, which gates whether an instrument may be used for GxP work."),
+        new BackgroundJobDefinition(
+            "DirectoryLeaverWorker", BackgroundJobClassification.Gxp,
+            "In Active Directory mode, deactivates users the company directory reports disabled or removed and ends their sessions.",
+            "Every 60 minutes",
+            "Deactivates user accounts, revokes sessions and emails System Administrators; account status is a regulated security record, so it runs on its schedule only. Changes nothing when the directory cannot be reached.")
     };
 
     public static BackgroundJobDefinition? Find(string? name) =>

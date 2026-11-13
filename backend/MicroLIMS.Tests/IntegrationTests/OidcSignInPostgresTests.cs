@@ -326,6 +326,17 @@ public class OidcSignInPostgresTests
         var evt = await assertDb.SecurityAuditEvents.AsNoTracking()
             .FirstOrDefaultAsync(e => e.TargetUserId == user.Id && e.EventCode == SecurityEventCodes.SsoLoginFailedSubjectMismatch);
         Assert.NotNull(evt);
+
+        // The administrator sees "sign-in refused" for the linked user, with a system-attributed audit row.
+        var persisted = await assertDb.Users.AsNoTracking().SingleAsync(u => u.Id == user.Id);
+        Assert.Equal(BaseUtc.UtcDateTime, persisted.DirectorySignInRefusedAt);
+        Assert.Equal("sub-bound-original", persisted.DirectorySubjectId);
+        var audit = await assertDb.AuditLogs.AsNoTracking()
+            .Where(a => a.EntityName == nameof(User) && a.EntityId == user.Id.ToString() && a.Reason == "Directory subject ID does not match the bound user")
+            .SingleAsync();
+        Assert.Equal("OidcSignIn", audit.SystemProcessName);
+        Assert.Null(audit.UserId);
+        Assert.Equal("Update", audit.Action);
     }
 
     [PostgresFact]

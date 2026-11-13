@@ -20,6 +20,8 @@ public static class SystemSettingKeys
     public const string MfaRequiredRoles = "security.mfa.requiredRoles";
     public const string MfaTrustedDeviceHours = "security.mfa.trustedDeviceHours";
     public const string MfaEnrolmentGraceDays = "security.mfa.enrolmentGraceDays";
+    public const string SsoMode = "security.sso.mode";
+    public const string SsoSessionMaxHours = "security.sso.sessionMaxHours";
 
     public const string ErrorLogLowSeverityDays = "retention.errorLog.lowSeverityDays";
     public const string ErrorLogHighSeverityDays = "retention.errorLog.highSeverityDays";
@@ -173,6 +175,12 @@ public static class SystemSettingDefinitions
         new(SystemSettingKeys.MfaEnrolmentGraceDays, SecurityCategory, SystemSettingValueType.Integer, "7",
             "Days a newly required user may still sign in before second-factor enrolment becomes mandatory; 0 requires enrolment immediately.",
             "days", 0, 30, IsGxpRelevant: true),
+        new(SystemSettingKeys.SsoMode, SecurityCategory, SystemSettingValueType.String, "Off",
+            "Single sign-on mode: Off, OpenIdConnect, or ActiveDirectory.",
+            AllowedValues: new[] { "Off", "OpenIdConnect", "ActiveDirectory" }, IsGxpRelevant: true),
+        new(SystemSettingKeys.SsoSessionMaxHours, SecurityCategory, SystemSettingValueType.Integer, "12",
+            "Maximum hours a directory sign-in session may stay active before requiring a fresh sign-in with the company provider.",
+            "hours", 1, 24, IsGxpRelevant: true),
 
         new(SystemSettingKeys.ErrorLogLowSeverityDays, RetentionCategory, SystemSettingValueType.Integer, "180",
             "How long Info and Warning incidents are kept in the technical error log before they are pruned.",

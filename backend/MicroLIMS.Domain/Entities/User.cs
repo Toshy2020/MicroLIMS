@@ -1,4 +1,5 @@
 using MicroLIMS.Domain.Attributes;
+using MicroLIMS.Domain.Enums;
 
 namespace MicroLIMS.Domain.Entities;
 
@@ -32,4 +33,18 @@ public class User : IVersionedEntity
     public bool MustChangePassword { get; set; } = false;
     public DateTime? LastLoginAt { get; set; }
     public DateTime? MfaRequiredSince { get; set; }
+
+    // Single Sign-On linking + emergency access.
+    public SignInMethod SignInMethod { get; set; } = SignInMethod.Local;
+    public string? DirectoryUsername { get; set; }
+    public string? DirectorySubjectId { get; set; }
+    public bool IsEmergencyAccount { get; set; }
+    public DateTime? SigningPasswordSetAt { get; set; }
+    public DateTime? DirectorySignInRefusedAt { get; set; }
+
+    /// <summary>
+    /// Normalizes a company directory username for case-insensitive matching and unique storage.
+    /// </summary>
+    public static string? NormalizeDirectoryUsername(string? value) =>
+        string.IsNullOrWhiteSpace(value) ? null : value.Trim().ToLowerInvariant();
 }

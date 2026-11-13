@@ -44,6 +44,19 @@ public static class SecurityEventCodes
     public const string TrustedDeviceAdded = "AUTH_TRUSTED_DEVICE_ADDED";
     public const string TrustedDeviceRevoked = "AUTH_TRUSTED_DEVICE_REVOKED";
 
+    // ---- Single sign-on ----
+    public const string SsoLoginSuccess = "AUTH_SSO_LOGIN_SUCCESS";
+    public const string SsoLoginFailedNotLinked = "AUTH_SSO_LOGIN_FAILED_NOT_LINKED";
+    public const string SsoLoginFailedTokenInvalid = "AUTH_SSO_LOGIN_FAILED_TOKEN_INVALID";
+    public const string SsoLoginFailedSubjectMismatch = "AUTH_SSO_LOGIN_FAILED_SUBJECT_MISMATCH";
+    public const string SsoLoginFailedMfaClaimMissing = "AUTH_SSO_LOGIN_FAILED_MFA_CLAIM_MISSING";
+    public const string DirectoryUnavailable = "AUTH_DIRECTORY_UNAVAILABLE";
+    public const string EmergencyLogin = "AUTH_EMERGENCY_LOGIN";
+    public const string LocalLoginRefusedSsoOn = "AUTH_LOCAL_LOGIN_REFUSED_SSO_ON";
+    public const string UserDirectoryLinked = "USER_DIRECTORY_LINKED";
+    public const string UserDirectoryRelinked = "USER_DIRECTORY_RELINKED";
+    public const string UserDeactivatedByDirectory = "USER_DEACTIVATED_BY_DIRECTORY";
+
     // ---- Account state ----
     public const string AccountDisabled = "AUTH_ACCOUNT_DISABLED";
     public const string AccountEnabled = "AUTH_ACCOUNT_ENABLED";

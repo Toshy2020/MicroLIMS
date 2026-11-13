@@ -597,6 +597,10 @@ SpecificationMasterDataController.DeleteSpecification(Int32): SystemAdministrato
 SpecificationMasterDataController.GetSpecifications(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 SpecificationMasterDataController.GetSpecificationsForTestOrder(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 SpecificationMasterDataController.UpdateSpecification(Int32, UpdateSpecificationRequest): SystemAdministrator,SectionHead
+SsoController.Callback(String, String, String, CancellationToken): anonymous
+SsoController.Exchange(SsoExchangeRequest, CancellationToken): anonymous
+SsoController.GetMode(CancellationToken): anonymous
+SsoController.Start(CancellationToken): anonymous
 SupplierStatedAttributeController.Create(Int32, SupplierStatedAttributeRequest): SystemAdministrator,SectionHead
 SupplierStatedAttributeController.Delete(Int32): SystemAdministrator,SectionHead
 SupplierStatedAttributeController.ListForItem(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa

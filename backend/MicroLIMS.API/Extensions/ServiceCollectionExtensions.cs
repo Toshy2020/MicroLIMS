@@ -324,8 +324,13 @@ public static class ServiceCollectionExtensions
             sp.GetService<MicroLIMS.Application.Services.Sso.SsoModeService>()));
         services.AddScoped<IAccessReviewService, MicroLIMS.Application.Services.AccessReviewService>();
         services.AddScoped<MicroLIMS.Application.Services.Mfa.MfaPolicyService>();
-        services.AddSingleton<MicroLIMS.Application.Abstractions.Sso.ISsoConfigurationFingerprint, MicroLIMS.Application.Services.Sso.DefaultSsoConfigurationFingerprint>();
+        var ssoOptions = new MicroLIMS.Application.Services.Sso.SsoOptions();
+        config.GetSection(MicroLIMS.Application.Services.Sso.SsoOptions.SectionName).Bind(ssoOptions);
+        services.AddSingleton(ssoOptions);
+        services.AddSingleton<MicroLIMS.Application.Abstractions.Sso.ISsoConfigurationFingerprint, MicroLIMS.Application.Services.Sso.SsoConfigurationFingerprint>();
         services.AddScoped<MicroLIMS.Application.Services.Sso.SsoModeService>();
+        services.AddHttpClient<MicroLIMS.Application.Abstractions.Sso.IOidcProviderClient, MicroLIMS.Infrastructure.Sso.OidcProviderClient>();
+        services.AddScoped<MicroLIMS.Application.Services.Sso.OidcSignInService>();
         services.AddScoped<IMfaService, MicroLIMS.Application.Services.Mfa.MfaService>();
         services.AddScoped<IMfaAdminService, MicroLIMS.Application.Services.Mfa.MfaAdminService>();
         services.AddScoped<IAuditTrailReviewService, MicroLIMS.Application.Services.AuditTrailReviewService>();

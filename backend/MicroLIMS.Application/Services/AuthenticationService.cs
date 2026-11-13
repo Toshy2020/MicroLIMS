@@ -199,13 +199,13 @@ public class AuthenticationService : IAuthenticationService
         }
     }
 
-    public async Task<LoginOutcome> CompleteLoginAsync(User user, string? ip, string? userAgent, bool mfaVerified)
+    public async Task<LoginOutcome> CompleteLoginAsync(User user, string? ip, string? userAgent, bool mfaVerified, string? loginHistoryMethod = null)
     {
         user.FailedLoginAttempts = 0;
         user.LockedUntil = null;
         user.LastLoginAt = _time.GetUtcNow().UtcDateTime;
         await _db.SaveChangesAsync();
-        await RecordLoginAsync(user.Id, user.Username, true, null, ip);
+        await RecordLoginAsync(user.Id, user.Username, true, null, ip, loginHistoryMethod);
 
         var token = await IssueAccessTokenAsync(user);
 
@@ -583,7 +583,7 @@ public class AuthenticationService : IAuthenticationService
         return rawToken;
     }
 
-    internal async Task RecordLoginAsync(int? userId, string username, bool success, string? reason, string? ipAddress)
+    internal async Task RecordLoginAsync(int? userId, string username, bool success, string? reason, string? ipAddress, string? method = null)
     {
         _db.LoginHistories.Add(new LoginHistory
         {
@@ -591,7 +591,8 @@ public class AuthenticationService : IAuthenticationService
             Username = username,
             Success = success,
             FailureReason = reason,
-            IpAddress = ipAddress
+            IpAddress = ipAddress,
+            Method = method
         });
         await _db.SaveChangesAsync();
     }

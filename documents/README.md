@@ -41,15 +41,16 @@ Each of the 24 areas has one URS and one FS. Both are drafts.
 | Conflicts list | `Conflicts.md` | Draft |
 | SOP draft outline (Label printing and handling) | `SOP/SOP-Label-Printing-And-Handling.md` | Draft outline |
 | SOP draft outline (Multi-factor authentication) | `SOP/SOP-Multi-Factor-Authentication.md` | Draft outline |
+| SOP draft outline (Company sign-in, single sign-on) | `SOP/SOP-Single-Sign-On.md` | Draft outline |
 | User Manual role guide (QA) | `UserManual/roles/qa.md` | Draft |
 | Document Control set (Releases 1a to 1d) | `DocumentControl/` (see `DocumentControl/README.md`) | Moved, unchanged |
 
 ## Counts (2026-11-13)
 
-- URS entries: 262
-- FS entries: 271
+- URS entries: 271
+- FS entries: 286
 - Calculation register rows (CALC): 83
-- Conflicts (CONF) entries: 101. Open: 100. Decided: 1.
+- Conflicts (CONF) entries: 108. Open: 107. Decided: 1.
 
 | Area | URS entries | FS entries |
 |---|---|---|
@@ -76,8 +77,8 @@ Each of the 24 areas has one URS and one FS. Both are drafts.
 | MDM | 24 | 35 |
 | NTF | 5 | 5 |
 | ADM | 12 | 12 |
-| SEC | 22 | 22 |
-| **Total** | **262** | **271** |
+| SEC | 31 | 37 |
+| **Total** | **271** | **286** |
 
 ## Status of this set
 

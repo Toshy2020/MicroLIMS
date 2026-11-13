@@ -915,3 +915,66 @@ Locations for CONF-001 to CONF-008 were added on 2026-11-12 from the area worker
 - **Question:** Should `StartEnrolmentCoreAsync` block or require an administrator reset when a `Pending` `HardwareToken` is already assigned to the user?
 - **Decision:** Not decided.
 - **Date:** Not applicable
+
+### CONF-191
+- **Area:** SEC
+- **Status:** Open
+- **What the code does:** `OidcSignInService.HandleCallbackAsync` refuses any user whose `SignInMethod` is `Local`, and any emergency account, with `AUTH_SSO_LOGIN_FAILED_NOT_LINKED`. A `Local` user that carries a company username therefore cannot sign in with the company account. The bulk link import (`SsoAdminService.ImportLinksAsync`) sets the company username and does not change `SignInMethod`, so an imported user whose method is still `Local` is refused until its method is changed to company sign-in. Location: `backend/MicroLIMS.Application/Services/Sso/OidcSignInService.cs` (sign-in method check in `HandleCallbackAsync`); `backend/MicroLIMS.Application/Services/Sso/SsoAdminService.cs` (`ImportLinksAsync`).
+- **What the other source says:** Design specification `docs/superpowers/specs/2026-11-10-single-sign-on-design.md` Section 5.2 defines `SignInMethod` and `DirectoryUsername` but does not say whether a `Local` account with a company username may use company sign-in. Section 5.5 treats "directory user" as an account moved to company sign-in.
+- **Question:** Should only accounts with sign-in method company sign-in be allowed to use the company account (as built), or should a `Local` account that carries a company username also be allowed? Should the bulk import set the sign-in method to company sign-in for the rows it links?
+- **Decision:** Not decided.
+- **Date:** Not applicable
+
+### CONF-192
+- **Area:** SEC
+- **Status:** Open
+- **What the code does:** `SsoModeService.RecordConnectionTestPassedAsync` and `RecordConnectionTestFailedAsync` store each connection-test result as a security event with the code `SSO_CONNECTION_TEST_PASSED` or `SSO_CONNECTION_TEST_FAILED` (`backend/MicroLIMS.Shared/Constants/SecurityEventCodes.cs`). The switch-on guard uses the most recent of these for the mode, if its configuration fingerprint (`SsoConfigurationFingerprint.cs`) still matches the current settings. Location: `backend/MicroLIMS.Application/Services/Sso/SsoModeService.cs`.
+- **What the other source says:** Design specification `docs/superpowers/specs/2026-11-10-single-sign-on-design.md` Section 5.9 lists the company sign-in event codes and does not include these two codes. Section 5.8 requires only a Test connection action on the administration page.
+- **Question:** Should these two codes be accepted as security events, with Section 5.9 updated to list them, or should connection-test results be recorded in another way?
+- **Decision:** Not decided.
+- **Date:** Not applicable
+
+### CONF-193
+- **Area:** SEC
+- **Status:** Open
+- **What the code does:** `MicroLimsDbContext.AuditCaptureExcludedTypes` does not contain `SsoPendingRequest` or `SsoExchangeCode`. Every insert and update of these rows therefore writes an `AuditLogs` row, with their sensitive fields masked by `[AuditRedacted]`. Location: `backend/MicroLIMS.Persistence/DbContext/MicroLimsDbContext.cs` (`AuditCaptureExcludedTypes`); `backend/MicroLIMS.Domain/Entities/SsoPendingRequest.cs`; `backend/MicroLIMS.Domain/Entities/SsoExchangeCode.cs`.
+- **What the other source says:** Design specification Section 9 records "Audit-capture decision (user, 2026-11-11): approved", which keeps both types out of automatic audit capture, each with a justification comment. Plan `docs/superpowers/plans/2026-11-10-single-sign-on.md`, cross-plan correction 2, repeats the approval. The approval has not been applied in code.
+- **Question:** Should the 2026-11-11 approval be applied (add both types to `AuditCaptureExcludedTypes` with the justification comment, leaving sign-in outcomes in the security audit), or should both types stay in the audit trail as built?
+- **Decision:** Not decided.
+- **Date:** Not applicable
+
+### CONF-194
+- **Area:** SEC
+- **Status:** Open
+- **What the code does:** `SsoAdminService.ImportLinksAsync` calls `AdminActionReason.Require` and refuses a bulk link import without a reason. The import dialog (`frontend/src/modules/admin/ImportDirectoryLinksDialog.tsx`) does not enable Import until the reason is entered. One reason applies to every row of the import. Each linked user is also audited individually (`USER_SSO_LINK_UPDATED` audit row and `USER_DIRECTORY_LINKED` security event).
+- **What the other source says:** Design specification Section 5.8 requires a CSV import of `username, companyUsername` with a preview and per-row errors. It does not require a reason for the import.
+- **Question:** Should each bulk import keep one reason for all of its rows (as built), or should each row carry its own reason?
+- **Decision:** Not decided.
+- **Date:** Not applicable
+
+### CONF-195
+- **Area:** SEC
+- **Status:** Open
+- **What the code does:** When the mode is `Off` and the Company sign-in page does not request a provider, `SsoAdminService.ResolveTargetMode` treats `OpenIdConnect` as the target. The switch-on blockers, the last passed test time and Test connection therefore refer to OpenID Connect. Location: `backend/MicroLIMS.Application/Services/Sso/SsoAdminService.cs` (`ResolveTargetMode`); `frontend/src/modules/admin/CompanySignInPage.tsx`.
+- **What the other source says:** Design specification Section 5.1 defines the three modes and Section 5.8 the administration page. Neither says which provider the page tests or configures while the mode is `Off`. Section 9, item 1, leaves open which mode the first site uses.
+- **Question:** While the mode is `Off`, should the page ask the administrator which provider to test and prepare, or should OpenID Connect stay the default until Active Directory sign-in is built?
+- **Decision:** Not decided.
+- **Date:** Not applicable
+
+### CONF-196
+- **Area:** SEC
+- **Status:** Open
+- **What the code does:** When a user is created with emergency status requested, `UserService` calls `EnsureEmergencyEligibleAsync` before the user exists (identifier `0`). That check requires an active second factor, which a new user cannot have, so creation with emergency status is refused with "An emergency account must have an active second factor." An emergency flag can be set only on an existing user who already has an active second factor. Location: `backend/MicroLIMS.Application/Services/UserService.cs` (`EnsureEmergencyEligibleAsync`).
+- **What the other source says:** Design specification Section 5.6 requires that emergency accounts hold the System Administrator role and a second factor and that at most three exist. It does not say how the first emergency account is created.
+- **Question:** Is the order required by the code intended (create the account, enrol its second factor, then mark it as an emergency account), or should the create form allow emergency status once a second factor exists?
+- **Decision:** Not decided.
+- **Date:** Not applicable
+
+### CONF-197
+- **Area:** SEC
+- **Status:** Open
+- **What the code does:** Changing a user's company username through the user form (`UserService.ApplySsoLinkChange`) changes `DirectoryUsername` and leaves `DirectorySubjectId` unchanged. Only the re-link method (`UserService.RelinkDirectoryAsync`) clears `DirectorySubjectId`. Sign-in first matches on the stored subject id (`DirectoryUserMatcher.Match`), so after a company username change the same company account still signs in as the same MicroLIMS user. Location: `backend/MicroLIMS.Application/Services/UserService.cs`; `backend/MicroLIMS.Application/Services/Sso/DirectoryUserMatcher.cs`.
+- **What the other source says:** Design specification Section 5.2 says the stored subject id can be cleared only by an administrator with the reason "Re-link", and that renaming a directory account does not break the link. The specification does not say what a change of the MicroLIMS company username does.
+- **Question:** Should changing a user's company username clear the stored subject id, so that the next company sign-in binds again to the account with the new username, or should the stored link be kept as built?
+- **Decision:** Not decided.
+- **Date:** Not applicable

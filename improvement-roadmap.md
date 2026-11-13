@@ -129,7 +129,9 @@ Phases 0, 1 and 2 can run in parallel if more than one person is available. Phas
 
 ### B3. Single sign-on (OIDC / LDAP) — Size M
 
-**Spec:** `docs/superpowers/specs/2026-11-10-single-sign-on-design.md`. **Plan:** `docs/superpowers/plans/2026-11-10-single-sign-on.md`. Decision D-4 is closed: separate MicroLIMS signing password.
+**Spec:** `docs/superpowers/specs/2026-11-10-single-sign-on-design.md`. **Plan:** `docs/superpowers/plans/2026-11-10-single-sign-on.md`. **Documents:** draft requirements `URS-SEC-023` to `URS-SEC-031`, draft functional specifications `FS-SEC-023` to `FS-SEC-037` (`FS-SEC-035` to `FS-SEC-037` planned, not yet implemented), conflicts `CONF-191` to `CONF-197`, and SOP draft outline `documents/SOP/SOP-Single-Sign-On.md`.
+
+**Decision D-4 closed 2026-11-10:** separate MicroLIMS signing password.
 
 **Scope.**
 1. OpenID Connect login against the company identity provider (Microsoft Entra ID or similar), mapped to an existing MicroLIMS user. Roles and section assignments stay in MicroLIMS so Access Review keeps working.
@@ -443,7 +445,7 @@ Phases 0, 1 and 2 can run in parallel if more than one person is available. Phas
 | D-1 | Who owns and approves the URS/FS (QA, Section Heads)? | A1, A2 |
 | D-2 | Your OOS SOP: phases, time limits, who approves each phase, retest rules for microbiology and for physicochemical | D1 |
 | D-3 | Build CAPA and Change Control inside MicroLIMS, or integrate with an existing QMS? | D2 |
-| D-4 | E-signature under SSO: keep a separate MicroLIMS signing password, or re-authenticate against the identity provider at signing? | B3 |
+| D-4 | E-signature under SSO: keep a separate MicroLIMS signing password, or re-authenticate against the identity provider at signing? **Closed 2026-11-10: separate MicroLIMS signing password.** | B3 |
 | D-5 | Stability SOP: conditions, time points, pull windows, and whether statistical shelf-life evaluation is wanted | D3 |
 | D-6 | Competency gate: is a Section Head override allowed? | D4 |
 | D-7 | Offline at the bench: is "draft only until the server accepts it" enough, or is true offline recording required? | C2 |

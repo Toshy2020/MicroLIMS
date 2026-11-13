@@ -870,3 +870,21 @@ Locations for CONF-001 to CONF-008 were added on 2026-11-12 from the area worker
 - **Question:** What exact width, height, and layout values match the site's physical label stock and printer DPI for each of the six record types, and should `LabelFormatService` also reject dimensions that cannot render any valid barcode?
 - **Decision:** Not decided.
 - **Date:** Not applicable
+
+### CONF-186
+- **Area:** AUD
+- **Status:** Open
+- **What the code does:** `AuditReviewScopeKind` supports only `All` (`0`), `EntityName` (`2`), and `Record` (`3`). Value `1` (`Section`) is unused and reserved because `AuditLog` carries no section column. Location: `backend/MicroLIMS.Domain/Enums/AuditTrailReviewEnums.cs` — `AuditReviewScopeKind`; `backend/MicroLIMS.Application/Services/AuditTrailReviewService.cs` — `BuildScopeQuery`.
+- **What the other source says:** Design specification `docs/superpowers/specs/2026-11-11-qa-role-design.md` Section 5.5 lists a section scope option ("all, a section, a record type, or one sample or batch").
+- **Question:** Is omitting per-section audit trail review scope accepted (because `AuditLog` has no section column), or should section attribution be added to `AuditLog` in a future release?
+- **Decision:** Not decided.
+- **Date:** Not applicable
+
+### CONF-187
+- **Area:** AUD
+- **Status:** Open
+- **What the code does:** `QaDashboardPage` displays three summary tiles (`Audit trail reviews in progress`, `Open findings`, `Documents waiting for my approval`), with no "next review due" calculation and no configurable "review every N days" frequency per scope. Location: `frontend/src/modules/dashboard/QaDashboardPage.tsx`.
+- **What the other source says:** Design specification `docs/superpowers/specs/2026-11-11-qa-role-design.md` Section 5.5 ("The dashboard shows QA when the next review is due, from a 'review every N days' setting per scope (blank until the site sets it)") and Section 9 item 1.
+- **Question:** Should a configurable review-frequency setting and overdue indicator be added to the QA dashboard, or is manual periodic review scheduling by SOP sufficient for Release 1?
+- **Decision:** Not decided.
+- **Date:** Not applicable

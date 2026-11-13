@@ -77,6 +77,8 @@ Phases 0, 1 and 2 can run in parallel if more than one person is available. Phas
 
 ### B1. Barcode / QR labels and scanning — Size L
 
+**Status:** Implemented on branch `r1/b4-qa-role`, not released.
+
 **Goal.** Print a label for every physical object and open or select a record by scanning it.
 
 **Current state.** No barcode, label or print-audit code exists. `barcode-labels-recon-report.md` already contains the full recon and names the gaps G1–G14. This package implements that report.
@@ -97,6 +99,12 @@ Phases 0, 1 and 2 can run in parallel if more than one person is available. Phas
 **Regulated risks.** A label is a snapshot; the scan must always show live status (G12). Duplicate labels must be controlled (G13).
 
 **Done when.** A sample can be registered, labelled, and opened by scan; a media lot can be selected by scan during a test; every print and reprint has an audit row; PostgreSQL tests cover uniqueness, immutability and reprint permission.
+
+**Open manual gates (need the laboratory before release):**
+1. Test print on the chosen thermal printer and label stock at 100% scale; adjust sizes on the Label Formats page.
+2. Readback of all six label types with the handheld scanners and with a tablet camera.
+3. A scan with the Arabic keyboard layout active on a real workstation.
+4. QA approval of the label SOP and of the two library qualification records (`ZXing.Net` and `barcode-detector`).
 
 ### B2. Multi-factor authentication — Size M
 
@@ -127,6 +135,8 @@ Phases 0, 1 and 2 can run in parallel if more than one person is available. Phas
 
 ### B4. Quality Assurance (QA) role — Size M
 
+**Status:** Implemented on branch `r1/b4-qa-role`, not released.
+
 **Goal.** Add a QA role that is independent of the laboratory, so quality decisions are not taken by the people who produce the results.
 
 **Current state.** The system roles are System Administrator, Section Head, Reviewer, Analyst and QC Manager. There is no QA role; QC Manager is the highest laboratory role. Requested by the user on 2026-11-11.
@@ -135,6 +145,8 @@ Phases 0, 1 and 2 can run in parallel if more than one person is available. Phas
 
 **Design spec:** `docs/superpowers/specs/2026-11-11-qa-role-design.md`
 **Implementation plan:** `docs/superpowers/plans/2026-11-11-qa-role.md`
+
+**Open manual check before release:** Sign in as a QA user and open each laboratory action by direct link to verify read-only/refusal behaviour in the live UI.
 
 ---
 

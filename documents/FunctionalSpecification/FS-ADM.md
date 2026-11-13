@@ -4,7 +4,7 @@
 |---|---|
 | Document number | FS-ADM |
 | Title | System administration functional specification |
-| Version | 0.1 |
+| Version | 0.2 |
 | Status | Draft |
 | Author | Claude (AI agent), draft from code |
 | Reviewer | To be assigned by QA |
@@ -16,6 +16,7 @@
 | Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1 | 2026-11-12 | Claude (AI agent), draft from code | First draft, written from the code as built. |
+| 0.2 | 2026-11-13 | AI coding agent, draft from code | Added QA dashboard navigation and controlled-document QA approver requirement (FS-ADM-011, FS-ADM-012). |
 
 ## Scope and reading notes
 
@@ -91,4 +92,17 @@
 **Satisfies:** URS-ADM-003, URS-ADM-004, URS-ADM-007
 **Function:** Administration continuity rule (`AdministrationContinuityGuard`). Used by the role change (FS-ADM-003), the disable (FS-ADM-004) and the permission change (FS-ADM-007). It loads the active users and the roles that hold `Users.Manage` and `Roles.Manage`, applies the proposed change to that picture without touching the change tracker, and checks that for each of the two permissions at least one active user would still hold it. If not, it refuses with a message naming the permission. Locked users count as holders. The role delete (FS-ADM-006) is protected differently (a role in use cannot be deleted). Deleting a user does not exist as an endpoint in the files read.
 **Code:** `backend/MicroLIMS.Application/Services/AdministrationContinuityGuard.cs` — `EnsureAdministrableAfterAsync`, `FindMissingPermissionAfterAsync`
+**Verified by:** reading (not run)
+
+### FS-ADM-011
+**Satisfies:** URS-ADM-011
+**Function:** QA dashboard routing and permission-filtered menu (`DashboardPage`, `QaDashboardPage`, `menuConfig`). When `role === "Qa"`, `DashboardPage` renders `QaDashboardPage` ("Quality Assurance Command Center") without waiting for laboratory dashboard data. `QaDashboardPage` queries `auditTrailReviewService.list(1, 100)` and `documentApprovalService.getApprovalTasks({ approverUserId: userId, status: "Pending" })` to populate three tiles (`Audit trail reviews in progress`, `Open findings`, `Documents waiting for my approval`), showing `PartialOutageBanner` if either call fails. Sidebar items in `menuConfig` are filtered by user permissions (`visibleItems`), exposing `Audit Trail`, `Audit Trail Reviews`, `Access Review`, and `Document Control` screens according to grants.
+**Code:** `frontend/src/modules/dashboard/DashboardPage.tsx`; `frontend/src/modules/dashboard/QaDashboardPage.tsx`; `frontend/src/routes/menuConfig.ts` — `visibleItems`, `getGroupedMenu`
+**Verified by:** reading (not run)
+**Conflicts:** CONF-187
+
+### FS-ADM-012
+**Satisfies:** URS-ADM-012
+**Function:** Controlled-document QA approver eligibility and per-type QA approval requirement (Document Control area; see `documents/DocumentControl/` for Release 1a–1d specs). `DocumentApprovalService` allows approvers whose role type is `Reviewer`, `SectionHead`, or `Qa` and who hold `Documents.Approve`, keeping author/reviewer segregation of duties intact and granting QA no Section Head override powers. `DocumentConfigurationService.UpdateDocumentTypeCoreAsync` persists `DocumentType.RequiresQaApprover` (default `false`, audited). When `RequiresQaApprover` is true, `DocumentApprovalService` and `DocumentEffectiveDateService` require at least one assigned QA approver (and approved QA decision before becoming effective), throwing if missing. `DocumentConfigurationPage` exposes the `RequiresQaApprover` toggle per document type.
+**Code:** `backend/MicroLIMS.Application/Services/DocumentControl/DocumentApprovalService.cs` — `EnsureQaApproverRequirement`; `backend/MicroLIMS.Application/Services/DocumentControl/DocumentEffectiveDateService.cs`; `backend/MicroLIMS.Application/Services/DocumentControl/DocumentConfigurationService.cs` — `UpdateDocumentTypeCoreAsync`; `frontend/src/modules/documentControl/pages/DocumentConfigurationPage.tsx`
 **Verified by:** reading (not run)

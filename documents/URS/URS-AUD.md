@@ -4,7 +4,7 @@
 |---|---|
 | Document number | URS-AUD |
 | Title | Audit trail user requirements |
-| Version | 0.1 |
+| Version | 0.2 |
 | Status | Draft |
 | Author | Claude (AI agent), draft from code |
 | Reviewer | To be assigned by QA |
@@ -16,6 +16,7 @@
 | Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1 | 2026-11-12 | Claude (AI agent), draft from code | First draft, written from the code as built. |
+| 0.2 | 2026-11-13 | AI coding agent, draft from code | Added periodic audit trail review and review immutability requirements (URS-AUD-009, URS-AUD-010). |
 
 ## Requirements
 
@@ -67,4 +68,16 @@ Each requirement below is a need that the code as built serves. Gaps found in th
 **Requirement:** The system shall keep a separate security audit trail of sign-in, session and account events and sign-in history, and shall show them only to users holding a separate security-audit permission.
 **GxP:** Yes
 **Serves:** 21 CFR 11.10(d), 11.10(e); EU GMP Annex 11 clause 12 (to be confirmed by QA)
+**Status:** Active
+
+### URS-AUD-009
+**Requirement:** The system shall let an authorised user (`Audit.Review`) start a periodic audit trail review with a title, past period, and scope (`All`, `EntityName`, or `Record`) fixed at start by cut-off audit ID and entry count, view paged entries (`Audit.View`) and the count of newer entries outside the cut-off, record and close findings, export a review PDF, and complete the review by the starter's own electronic signature (`AuditTrailReviewed`).
+**GxP:** Yes
+**Serves:** 21 CFR 11.10(e), 11.50, 11.200(a); EU GMP Annex 11 clauses 9, 14 (to be confirmed by QA)
+**Status:** Active
+
+### URS-AUD-010
+**Requirement:** The system shall prevent signed audit trail reviews from being changed or deleted and prevent audit trail review findings from being deleted or edited beyond a single Open-to-Closed transition, enforced in both the application and PostgreSQL database triggers.
+**GxP:** Yes
+**Serves:** 21 CFR 11.10(e); EU GMP Annex 11 clause 9 (to be confirmed by QA)
 **Status:** Active

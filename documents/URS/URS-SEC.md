@@ -4,7 +4,7 @@
 |---|---|
 | Document number | URS-SEC |
 | Title | Authentication and session security user requirements |
-| Version | 0.1 |
+| Version | 0.2 |
 | Status | Draft |
 | Author | Claude (AI agent), draft from code |
 | Reviewer | To be assigned by QA |
@@ -16,6 +16,7 @@
 | Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1 | 2026-11-12 | Claude (AI agent), draft from code | First draft, written from the code as built. |
+| 0.2 | 2026-11-13 | AI coding agent, draft from code | Added Quality Assurance role independence, cross-section reading, and access review signing requirements (URS-SEC-013, URS-SEC-014). |
 
 ## Requirements
 
@@ -91,4 +92,16 @@ Each requirement below is a need that the code as built serves. Gaps found in th
 **Requirement:** The system shall limit the number of requests per time window to the sign-in, token refresh, password-reset, recovery-confirm and password-change endpoints.
 **GxP:** No
 **Serves:** 21 CFR 11.300(d) (to be confirmed by QA)
+**Status:** Active
+
+### URS-SEC-013
+**Requirement:** The system shall provide a built-in Quality Assurance system role (`QA`) that reads all laboratory sections without section membership, shall refuse every laboratory write requiring section membership, and shall prevent any Quality Assurance role (or any role holding `Audit.Review` or `Access.Review.Sign`) from holding administration permissions, system/master-data configuration permissions, or laboratory execution/approval permissions other than `Documents.Review` and `Documents.Approve`.
+**GxP:** Yes
+**Serves:** 21 CFR 11.10(d), 11.10(g); EU GMP Annex 11 clause 12 (to be confirmed by QA)
+**Status:** Active
+
+### URS-SEC-014
+**Requirement:** The system shall require `Access.Review.Sign` to record findings on or electronically sign a user access review whenever at least one active, unlocked user holds `Access.Review.Sign`, and shall allow an administrator holding `Access.Review` to decide and sign only while no active, unlocked `Access.Review.Sign` holder exists.
+**GxP:** Yes
+**Serves:** 21 CFR 11.10(d), 11.10(g), 11.200(a); EU GMP Annex 11 clause 12 (to be confirmed by QA)
 **Status:** Active

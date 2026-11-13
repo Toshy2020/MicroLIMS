@@ -4,7 +4,7 @@
 |---|---|
 | Document number | URS-ADM |
 | Title | System administration user requirements |
-| Version | 0.1 |
+| Version | 0.2 |
 | Status | Draft |
 | Author | Claude (AI agent), draft from code |
 | Reviewer | To be assigned by QA |
@@ -16,6 +16,7 @@
 | Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1 | 2026-11-12 | Claude (AI agent), draft from code | First draft, written from the code as built. |
+| 0.2 | 2026-11-13 | AI coding agent, draft from code | Added QA dashboard routing and controlled-document QA approver requirements (URS-ADM-011, URS-ADM-012). |
 
 ## Requirements
 
@@ -79,4 +80,16 @@ Each requirement below is a need that the code as built serves. Gaps found in th
 **Requirement:** The system shall record the acting administrator, the time, the reason, the previous value and the new value of every user, role and setting administration action in the audit trail.
 **GxP:** Yes
 **Serves:** 21 CFR 11.10(e); EU GMP Annex 11 clause 9 (to be confirmed by QA)
+**Status:** Active
+
+### URS-ADM-011
+**Requirement:** The system shall route a signed-in Quality Assurance user to a QA landing dashboard showing audit trail reviews in progress, open findings, and controlled documents awaiting their approval, and shall build sidebar navigation from the user's granted permissions.
+**GxP:** No
+**Serves:** EU GMP Annex 11 clause 12 (to be confirmed by QA)
+**Status:** Active
+
+### URS-ADM-012
+**Requirement:** The system shall allow a Quality Assurance user holding `Documents.Approve` to be assigned and electronically sign as approver of a controlled document (without granting Section Head override powers and preserving the author-cannot-approve rule), and shall let administrators configure per document type whether at least one Quality Assurance approver is required before approval routing and effective activation.
+**GxP:** Yes
+**Serves:** 21 CFR 11.10(d), 11.50, 11.200(a); EU GMP Annex 11 clauses 12, 14 (to be confirmed by QA)
 **Status:** Active

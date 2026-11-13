@@ -4,7 +4,7 @@
 |---|---|
 | Document number | FS-SEC |
 | Title | Authentication and session security functional specification |
-| Version | 0.1 |
+| Version | 0.2 |
 | Status | Draft |
 | Author | Claude (AI agent), draft from code |
 | Reviewer | To be assigned by QA |
@@ -16,6 +16,7 @@
 | Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1 | 2026-11-12 | Claude (AI agent), draft from code | First draft, written from the code as built. |
+| 0.2 | 2026-11-13 | AI coding agent, draft from code | Added Quality Assurance role independence and access review signing split (FS-SEC-013, FS-SEC-014). |
 
 ## Scope and reading notes
 
@@ -101,4 +102,16 @@
 **Satisfies:** URS-SEC-012
 **Function:** Rate limits. Four named policies are defined with fixed windows: `authentication` per client IP (default 20 requests per 60 seconds; used by sign-in, reset request, reset confirm and recovery confirm), `token-refresh` per client IP (default 60 per 60 seconds), `password-change` per signed-in user or the IP if no user (default 5 per 900 seconds), and `agent` per instrument agent (default 120 per 60 seconds). Limits and windows can be overridden by configuration keys under `RateLimiting:`. A refused request gets HTTP 429, a `Retry-After` header and a message. The client IP is the address as resolved after forwarded headers. The partition key is never the host header. Whether the limiter runs after authentication in the pipeline was not checked here.
 **Code:** `backend/MicroLIMS.API/Extensions/RateLimitingExtensions.cs` — `AddMicroLimsRateLimiting`, `ClientIp`, `FixedWindow`; `backend/MicroLIMS.API/Controllers/AuthenticationController.cs` — `Login`
+**Verified by:** reading (not run)
+
+### FS-SEC-013
+**Satisfies:** URS-SEC-013
+**Function:** Quality Assurance system role (`RoleType.Qa = 5`, grants in `PermissionConstants.QaGrants`) and server-enforced independence (`SegregationOfDutiesRules`). `QaGrants` includes `Sections.ViewAll`, read/view permissions across laboratory/reporting/audit/security audit, `Audit.Review`, `Access.Review`, `Access.Review.Sign`, `Documents.Review`, and `Documents.Approve`, with no section membership. `SegregationOfDutiesRules.FindQaConflicts` checks any role of type `RoleType.Qa` or any role holding `QaOnlyCodes` (`Audit.Review`, `Access.Review.Sign`) against `QaForbiddenCodes` (`AdministrationCodes`, `GxpExecutionAndApprovalCodes` except `Documents.Review` and `Documents.Approve`, plus `Sections.ConfigureAll`, `System.ConfigureSettings`, `MasterData.Manage`, `Items.Manage`, `Documents.ConfigManage`, `Kpi.ConfigureProfiles`, `Signatures.Manage`, `System.ManageJobs`). `RoleService.CreateAsync` and `RoleService.UpdatePermissionsAsync` throw `BusinessRuleException` (`"A Quality Assurance role cannot hold: <codes>."`) before saving or signing when any conflict exists; `GET api/roles/qa-forbidden-codes` exposes the forbidden list to `CreateRolePage`.
+**Code:** `backend/MicroLIMS.Domain/Enums/RoleType.cs`; `backend/MicroLIMS.Shared/Constants/PermissionConstants.cs` — `QaGrants`; `backend/MicroLIMS.Shared/Constants/SegregationOfDutiesRules.cs` — `QaOnlyCodes`, `QaForbiddenCodes`, `FindQaConflicts`; `backend/MicroLIMS.Application/Services/RoleService.cs` — `CreateCoreAsync`, `UpdatePermissionsCoreAsync`, `GetQaForbiddenCodes`; `backend/MicroLIMS.API/Controllers/RoleController.cs` — `GetQaForbiddenCodes`
+**Verified by:** reading (not run)
+
+### FS-SEC-014
+**Satisfies:** URS-SEC-014
+**Function:** Access review decision and signature separation (`AdminAccessReviewsController`, `AccessReviewService`). List, detail, generate, and CSV export remain gated by `Access.Review`. `AddFindingAsync`, `UpdateFindingAsync`, and `SignAsync` call `EnsureMayDecideAsync`: if any active, unlocked user's active role holds `Access.Review.Sign`, the acting user must hold `Access.Review.Sign` or `BusinessRuleException("Access reviews are decided and signed by Quality Assurance.")` is thrown; while no active, unlocked `Access.Review.Sign` holder exists, an administrator with `Access.Review` may still record findings and sign. `AccessReviewPage` hides/blocks findings and signing controls when the user cannot decide.
+**Code:** `backend/MicroLIMS.Application/Services/AccessReviewService.cs` — `EnsureMayDecideAsync`, `SaveFindingAsync`, `SignAsync`; `backend/MicroLIMS.API/Controllers/AdminAccessReviewsController.cs`; `frontend/src/modules/admin/AccessReviewPage.tsx`
 **Verified by:** reading (not run)

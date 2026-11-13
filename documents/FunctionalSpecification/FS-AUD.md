@@ -4,7 +4,7 @@
 |---|---|
 | Document number | FS-AUD |
 | Title | Audit trail functional specification |
-| Version | 0.1 |
+| Version | 0.2 |
 | Status | Draft |
 | Author | Claude (AI agent), draft from code |
 | Reviewer | To be assigned by QA |
@@ -16,6 +16,7 @@
 | Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1 | 2026-11-12 | Claude (AI agent), draft from code | First draft, written from the code as built. |
+| 0.2 | 2026-11-13 | AI coding agent, draft from code | Added periodic audit trail review workflow and immutability triggers (FS-AUD-011, FS-AUD-012). |
 
 ## Scope and reading notes
 
@@ -90,4 +91,17 @@
 **Satisfies:** URS-AUD-008
 **Function:** Read the security audit trail. Two endpoints need both `Audit.View` (controller) and `System.ViewSecurityAudit` (action): `GET api/admin/audit/login-history` (filter by user name, `take` limited to 1 to 1000, cursor `beforeId`) and `GET api/admin/audit/security-events` (filter by event code, target user name, from and to time, `take`, cursor). Rows come newest first by ID. The security events include event code, outcome, actor user, whether the actor is the system, target user, correlation text, IP address, request path, source and reason; the user agent is stored but is not returned by this DTO. The writing of these rows is in FS-SEC-010. Both tables are listed as append-only in the trigger catalogue test (see FS-AUD-004). The security events are deliberately not in `AuditLogs`; the excluded-type comment says so.
 **Code:** `backend/MicroLIMS.API/Controllers/AuditController.cs` — `GetLoginHistory`, `GetSecurityEvents`; `backend/MicroLIMS.Application/Services/AuditSearchService.cs` — `GetLoginHistoryPageAsync`, `GetSecurityEventsAsync`
+**Verified by:** reading (not run)
+
+### FS-AUD-011
+**Satisfies:** URS-AUD-009
+**Function:** Periodic audit trail review workflow (`AuditTrailReviewsController`, `AuditTrailReviewService`, `AuditTrailReviewsPage`, `AuditTrailReviewDetailPage`). Read endpoints (`GET /api/audit-trail-reviews`, `GET /{id}`, `GET /{id}/entries`, `GET /{id}/pdf`) require `Audit.View`; PDF export logs through `DataExportAuditService.LogExportAsync` and renders UTC timestamps, scope, cut-off, entry count, findings, and signature block (`"Audit trail review"` from `ReportVocabulary`). Mutating endpoints (`POST /`, `POST /{id}/findings`, `POST /{id}/sign` requiring `If-Match`, `POST /findings/{id}/close`) require `Audit.Review`. `StartAsync` validates `PeriodFromUtc < PeriodToUtc <= now`, captures `CutoffAuditLogId = MAX(AuditLogs.Id)` and `EntryCount`, and fixes scope (`All`, `EntityName`, or `Record`; `Section` is unused — `CONF-186`). `GetAsync` reports `NewerEntriesCount` (`Id > CutoffAuditLogId`). `AddFindingAsync` rejects entries outside the fixed scope, duplicates, or signed reviews. `SignAsync` checks `StartedByUserId == actingUserId`, `RecordVersion.EnsureCurrent`, conclusion (1–2000 chars), and `IElectronicSignatureService.SignAsync` (`SignatureMeaning.AuditTrailReviewed`) in one unit of work.
+**Code:** `backend/MicroLIMS.API/Controllers/AuditTrailReviewsController.cs`; `backend/MicroLIMS.Application/Services/AuditTrailReviewService.cs` — `StartAsync`, `GetEntriesAsync`, `AddFindingAsync`, `SignCoreAsync`, `CloseFindingAsync`; `backend/MicroLIMS.Application/Services/AuditTrailReviewReportBuilder.cs` — `Build`; `backend/MicroLIMS.Domain/Enums/AuditTrailReviewEnums.cs`; `frontend/src/modules/auditReview/AuditTrailReviewsPage.tsx`; `frontend/src/modules/auditReview/AuditTrailReviewDetailPage.tsx`
+**Verified by:** reading (not run)
+**Conflicts:** CONF-186, CONF-187
+
+### FS-AUD-012
+**Satisfies:** URS-AUD-010
+**Function:** Immutability and audit capture for audit trail reviews and findings. Migration `20261112220249_AddAuditTrailReviews` installs PostgreSQL triggers on `AuditTrailReviews` (reject `DELETE` and `TRUNCATE` always; reject `UPDATE` once `Status = 1` (`Signed`)) and `AuditTrailReviewFindings` (reject `DELETE` and `TRUNCATE` always; allow `UPDATE` only once from `Open` to `Closed` on the close fields). Both tables are registered in `AppendOnlyTriggerCatalogPostgresTests.ProtectedTables`, and neither `AuditTrailReview` nor `AuditTrailReviewFinding` is in `MicroLimsDbContext.AuditCaptureExcludedTypes`, so lifecycle saves are captured in `AuditLogs`.
+**Code:** `backend/MicroLIMS.Persistence/Migrations/20261112220249_AddAuditTrailReviews.cs`; `backend/MicroLIMS.Domain/Entities/AuditTrailReview.cs`; `backend/MicroLIMS.Tests/IntegrationTests/AppendOnlyTriggerCatalogPostgresTests.cs` — `ProtectedTables`
 **Verified by:** reading (not run)

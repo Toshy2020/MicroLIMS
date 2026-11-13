@@ -276,7 +276,9 @@ export const PERMISSIONS = {
   NOT_APPLICABLE_TESTS_MANAGE: "tests.not-applicable.manage",
   NOT_APPLICABLE_TESTS_FINAL_APPROVE: "tests.not-applicable.final-approve",
   TESTS_OUTSOURCE: "tests.outsource",
-  SAMPLES_PREPARE: "samples.prepare"
+  SAMPLES_PREPARE: "samples.prepare",
+  LABELS_REPRINT: "Labels.Reprint",
+  LABELS_CONFIGURE: "Labels.Configure"
 } as const;
 
 export type PermissionCode = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];

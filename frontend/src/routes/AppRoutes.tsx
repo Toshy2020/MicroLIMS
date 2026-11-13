@@ -72,6 +72,7 @@ const IcpSampleEntryPage = lazy(() => import("../modules/icpWorkspace/entry/IcpS
 const WorkingStandardsPage = lazy(() => import("../modules/workingStandards/WorkingStandardsPage").then((m) => ({ default: m.WorkingStandardsPage })));
 const QualificationEntryPage = lazy(() => import("../modules/hplcWorkspace/entry/QualificationEntryPage").then((m) => ({ default: m.QualificationEntryPage })));
 const UsersPage = lazy(() => import("../modules/users/UsersPage").then((m) => ({ default: m.UsersPage })));
+const CompanySignInPage = lazy(() => import("../modules/admin/CompanySignInPage").then((m) => ({ default: m.CompanySignInPage })));
 const RolesPage = lazy(() => import("../modules/roles/RolesPage").then((m) => ({ default: m.RolesPage })));
 const RoleDetailPage = lazy(() => import("../modules/roles/RoleDetailPage").then((m) => ({ default: m.RoleDetailPage })));
 const CreateRolePage = lazy(() => import("../modules/roles/CreateRolePage").then((m) => ({ default: m.CreateRolePage })));
@@ -304,6 +305,7 @@ export function AppRoutes() {
               <Route index element={<AdminIndexRedirect />} />
               <Route element={<PermissionRoute code={PERMISSIONS.USERS_MANAGE} />}>
                 <Route path="users" element={<UsersPage />} />
+                <Route path="company-sign-in" element={<CompanySignInPage />} />
               </Route>
               <Route element={<PermissionRoute code={PERMISSIONS.SYSTEM_CONFIGURE_SETTINGS} />}>
                 <Route path="settings" element={<SettingsPage />} />

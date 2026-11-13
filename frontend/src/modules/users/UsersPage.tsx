@@ -21,7 +21,10 @@ import AccountTreeIcon from "@mui/icons-material/AccountTree";
 
 import { PageHeader } from "../../components/PageHeader";
 import { SectionTitle } from "../../components/SectionTitle";
-import { UserService, UserRecord } from "./services/UserService";
+import { UserService, UserRecord, SignInMethod } from "./services/UserService";
+import { SignInFields, LINK_STATE_LABELS } from "./SignInFields";
+import { RelinkDirectoryDialog } from "./dialogs/RelinkDirectoryDialog";
+import LinkIcon from "@mui/icons-material/Link";
 import { RoleService, RoleRecord } from "../roles/services/RoleService";
 import { useAuth } from "../../contexts/AuthContext";
 import { useLoadFailures } from "../../hooks/useLoadFailures";
@@ -50,6 +53,9 @@ export function UsersPage() {
   const [jobTitle, setJobTitle] = useState("");
   const [roleId, setRoleId] = useState("");
   const [createReason, setCreateReason] = useState("");
+  const [signInMethod, setSignInMethod] = useState<SignInMethod>("Local");
+  const [directoryUsername, setDirectoryUsername] = useState("");
+  const [isEmergency, setIsEmergency] = useState(false);
 
   // Dialog state variables
   const [editProfileUser, setEditProfileUser] = useState<UserRecord | null>(null);
@@ -58,6 +64,10 @@ export function UsersPage() {
   const [editEmail, setEditEmail] = useState("");
   const [editJobTitle, setEditJobTitle] = useState("");
   const [editReason, setEditReason] = useState("");
+  const [editMethod, setEditMethod] = useState<SignInMethod>("Local");
+  const [editDirectoryUsername, setEditDirectoryUsername] = useState("");
+  const [editEmergency, setEditEmergency] = useState(false);
+  const [relinkUser, setRelinkUser] = useState<UserRecord | null>(null);
 
   const [roleDialogUser, setRoleDialogUser] = useState<UserRecord | null>(null);
   const [newRoleId, setNewRoleId] = useState<number | "">("");
@@ -104,15 +114,27 @@ export function UsersPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { load(view); }, [view]);
 
+  const isAdministratorRole = (id: number | string) => roles.find((r) => String(r.id) === String(id))?.type === "SystemAdministrator";
+  const createIsDirectory = signInMethod === "Directory";
+
   const handleCreateUser = async () => {
-    if (!fullName || !username || !password || !roleId || !createReason.trim()) {
-      toast.error("Full Name, Username, Password, Role, and a Reason are required.");
+    if (!fullName || !username || (!createIsDirectory && !password) || !roleId || !createReason.trim()) {
+      toast.error(createIsDirectory ? "Full Name, Username, Role, and a Reason are required." : "Full Name, Username, Password, Role, and a Reason are required.");
+      return;
+    }
+    if (createIsDirectory && !directoryUsername.trim()) {
+      toast.error("A company username is required for company login.");
       return;
     }
     try {
-      await UserService.create(fullName, username, password, Number(roleId), createReason.trim(), email, jobTitle);
+      await UserService.create(fullName, username, createIsDirectory ? "" : password, Number(roleId), createReason.trim(), email, jobTitle, {
+        signInMethod,
+        directoryUsername: createIsDirectory ? directoryUsername.trim() : null,
+        isEmergencyAccount: isEmergency && isAdministratorRole(roleId)
+      });
       toast.success(`User "${username}" created successfully.`);
       setFullName(""); setUsername(""); setPassword(""); setEmail(""); setJobTitle(""); setRoleId(""); setCreateReason("");
+      setSignInMethod("Local"); setDirectoryUsername(""); setIsEmergency(false);
       load();
     } catch (e: any) {
       toast.error(e?.response?.data?.message ?? "Could not create user.");
@@ -127,6 +149,9 @@ export function UsersPage() {
     setEditEmail(u.email ?? "");
     setEditJobTitle(u.jobTitle ?? "");
     setEditReason("");
+    setEditMethod(u.signInMethod ?? "Local");
+    setEditDirectoryUsername(u.directoryUsername ?? "");
+    setEditEmergency(Boolean(u.isEmergencyAccount));
   };
 
   const handleSaveProfile = async () => {
@@ -135,8 +160,20 @@ export function UsersPage() {
       toast.error("A reason is required to change a user's profile.");
       return;
     }
+    if (editProfileUser.signInMethod && editMethod === "Directory" && !editDirectoryUsername.trim()) {
+      toast.error("A company username is required for company login.");
+      return;
+    }
     try {
-      await UserService.updateProfile(editProfileUser.id, editFullName, editUsername, editEmail || null, editJobTitle || null, editReason.trim(), editProfileUser.version);
+      if (editProfileUser.signInMethod) {
+        await UserService.updateProfile(editProfileUser.id, editFullName, editUsername, editEmail || null, editJobTitle || null, editReason.trim(), editProfileUser.version, {
+          signInMethod: editMethod,
+          directoryUsername: editMethod === "Directory" ? editDirectoryUsername.trim() : null,
+          isEmergencyAccount: editEmergency && isAdministratorRole(editProfileUser.roleId)
+        });
+      } else {
+        await UserService.updateProfile(editProfileUser.id, editFullName, editUsername, editEmail || null, editJobTitle || null, editReason.trim(), editProfileUser.version);
+      }
       toast.success(`Profile updated for ${editUsername}.`);
       setEditProfileUser(null);
       load();
@@ -354,16 +391,18 @@ export function UsersPage() {
             onChange={(e) => setJobTitle(e.target.value)}
             fullWidth
           />
-          <TextField
-            size="small"
-            label="Password"
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            helperText="Min 8 chars"
-            required
-            fullWidth
-          />
+          {!createIsDirectory && (
+            <TextField
+              size="small"
+              label="Password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              helperText="Min 8 chars"
+              required
+              fullWidth
+            />
+          )}
           <Select
             size="small"
             displayEmpty
@@ -383,6 +422,16 @@ export function UsersPage() {
             helperText="Why this account is needed"
             required
             fullWidth
+          />
+          <SignInFields
+            idPrefix="create"
+            method={signInMethod}
+            onMethodChange={setSignInMethod}
+            directoryUsername={directoryUsername}
+            onDirectoryUsernameChange={setDirectoryUsername}
+            emergency={isEmergency}
+            onEmergencyChange={setIsEmergency}
+            roleIsAdministrator={isAdministratorRole(roleId)}
           />
           <Button
             type="submit"
@@ -407,6 +456,7 @@ export function UsersPage() {
               <TableCell>User</TableCell>
               <TableCell>Email</TableCell>
               <TableCell>Role</TableCell>
+              <TableCell>Sign-in</TableCell>
               <TableCell>Status</TableCell>
               <TableCell>Security / Password</TableCell>
               <TableCell>Second factor</TableCell>
@@ -431,6 +481,13 @@ export function UsersPage() {
                   </TableCell>
                   <TableCell>
                     <MetaBadge label={u.role?.name ?? "No role"} />
+                  </TableCell>
+                  <TableCell>
+                    <Typography sx={{ fontSize: 13 }}>{u.signInMethod === "Directory" ? "Company login" : "Laboratory login"}</Typography>
+                    {u.signInMethod === "Directory" && (
+                      <Typography sx={{ fontSize: 12, color: "text.secondary" }}>{u.linkState ? (LINK_STATE_LABELS[u.linkState] ?? u.linkState) : "Link state unknown"}</Typography>
+                    )}
+                    {u.isEmergencyAccount && <Box sx={{ mt: 0.5 }}><ToneBadge tone="action" label="Emergency account" /></Box>}
                   </TableCell>
                   <TableCell>
                     {u.isActive ? (
@@ -525,6 +582,14 @@ export function UsersPage() {
                         <IconButton size="small" color="info" onClick={() => openForcePwdDialog(u)}><SecurityIcon fontSize="small" /></IconButton>
                       </Tooltip>
 
+                      {u.signInMethod === "Directory" && (
+                        <Tooltip title="Re-link company account">
+                          <IconButton aria-label={`Re-link company account for ${u.username}`} size="small" color="warning" onClick={() => setRelinkUser(u)}>
+                            <LinkIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                      )}
+
                       {!isSelf && (
                         <>
                           <Tooltip title="Reset second factor">
@@ -577,6 +642,18 @@ export function UsersPage() {
           <TextField label="Username" size="small" value={editUsername} onChange={(e) => setEditUsername(e.target.value)} fullWidth />
           <TextField label="Email" size="small" type="email" value={editEmail} onChange={(e) => setEditEmail(e.target.value)} fullWidth helperText="Required for email password resets" />
           <TextField label="Job Title" size="small" value={editJobTitle} onChange={(e) => setEditJobTitle(e.target.value)} fullWidth />
+          {editProfileUser?.signInMethod && (
+            <SignInFields
+              idPrefix="edit"
+              method={editMethod}
+              onMethodChange={setEditMethod}
+              directoryUsername={editDirectoryUsername}
+              onDirectoryUsernameChange={setEditDirectoryUsername}
+              emergency={editEmergency}
+              onEmergencyChange={setEditEmergency}
+              roleIsAdministrator={isAdministratorRole(editProfileUser.roleId)}
+            />
+          )}
           <TextField label="Reason for Change" size="small" multiline rows={2} value={editReason} onChange={(e) => setEditReason(e.target.value)} required fullWidth placeholder="Mandatory administrative justification" />
         </Stack>
       </FloatingDialog>
@@ -814,6 +891,13 @@ export function UsersPage() {
         onClose={() => setSessionsUser(null)}
         user={sessionsUser}
         onRevoked={(msg) => toast.success(msg)}
+      />
+
+      <RelinkDirectoryDialog
+        open={Boolean(relinkUser)}
+        onClose={() => setRelinkUser(null)}
+        user={relinkUser}
+        onRelinked={() => load()}
       />
 
       <ResetMfaDialog

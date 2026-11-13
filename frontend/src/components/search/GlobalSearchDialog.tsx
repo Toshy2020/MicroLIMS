@@ -9,11 +9,13 @@ import SearchIcon from "@mui/icons-material/Search";
 import ClearIcon from "@mui/icons-material/Clear";
 import HistoryIcon from "@mui/icons-material/History";
 import ArrowForwardIosIcon from "@mui/icons-material/ArrowForwardIos";
+import PhotoCameraOutlinedIcon from "@mui/icons-material/PhotoCameraOutlined";
 import axios from "axios";
 import { toast } from "sonner";
 import { globalSearchApi, GlobalSearchResultDto, GlobalSearchItemDto } from "../../api/globalSearchApi";
 import { type ScanMatch } from "../../services/labelService";
 import { getErrorMessage } from "../../utils/errorMessage";
+import { CameraScanDialog } from "../labels/CameraScanDialog";
 import { ENTITY_TYPE_LABELS } from "../labels/entityTypeLabels";
 import { useScanResolve } from "../labels/useScanResolve";
 import { useRecentSearches } from "./useRecentSearches";
@@ -66,11 +68,14 @@ export function GlobalSearchDialog({ open, onClose }: GlobalSearchDialogProps) {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [selectionMoved, setSelectionMoved] = useState(false);
   const [scanHint, setScanHint] = useState<string | null>(null);
+  const [cameraOpen, setCameraOpen] = useState(false);
   const { recentSearches, addSearch, clearSearches } = useRecentSearches();
   const { resolve, pending: resolvePending } = useScanResolve();
+  const hasCamera = typeof navigator !== "undefined" && typeof navigator.mediaDevices?.getUserMedia === "function";
 
   const abortControllerRef = useRef<AbortController | null>(null);
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const suppressDebounceQueryRef = useRef<string | null>(null);
   const openRef = useRef(open);
   openRef.current = open;
   const queryRef = useRef(query);
@@ -126,6 +131,7 @@ export function GlobalSearchDialog({ open, onClose }: GlobalSearchDialogProps) {
       setSelectedIndex(0);
       setSelectionMoved(false);
       setScanHint(null);
+      setCameraOpen(false);
       setActiveCategory("All");
     }
   }, [open, cancelPendingSearch]);
@@ -134,6 +140,11 @@ export function GlobalSearchDialog({ open, onClose }: GlobalSearchDialogProps) {
     if (!open || query.trim().length < 2) {
       cancelPendingSearch();
       setResults(null);
+      return;
+    }
+
+    if (suppressDebounceQueryRef.current === query) {
+      suppressDebounceQueryRef.current = null;
       return;
     }
 
@@ -233,6 +244,13 @@ export function GlobalSearchDialog({ open, onClose }: GlobalSearchDialogProps) {
     }
   };
 
+  const handleCameraDetected = (detectedCode: string) => {
+    suppressDebounceQueryRef.current = detectedCode;
+    queryRef.current = detectedCode;
+    updateQuery(detectedCode);
+    void handleScanEnter(detectedCode);
+  };
+
   return (
     <Dialog
       open={open}
@@ -269,6 +287,11 @@ export function GlobalSearchDialog({ open, onClose }: GlobalSearchDialogProps) {
           sx={{ fontSize: 16 }}
         />
         {isSearching && <CircularProgress size={20} />}
+        {hasCamera && (
+          <IconButton size="small" onClick={() => setCameraOpen(true)} aria-label="Scan with camera">
+            <PhotoCameraOutlinedIcon fontSize="small" />
+          </IconButton>
+        )}
         {query && !isSearching && (
           <IconButton size="small" onClick={() => updateQuery("")} aria-label="Clear search input">
             <ClearIcon fontSize="small" />
@@ -396,6 +419,13 @@ export function GlobalSearchDialog({ open, onClose }: GlobalSearchDialogProps) {
           </List>
         )}
       </DialogContent>
+      {hasCamera && (
+        <CameraScanDialog
+          open={cameraOpen}
+          onClose={() => setCameraOpen(false)}
+          onDetected={handleCameraDetected}
+        />
+      )}
     </Dialog>
   );
 }

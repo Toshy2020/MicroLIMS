@@ -435,4 +435,64 @@ describe("GlobalSearchDialog", () => {
     });
     expect(onClose).not.toHaveBeenCalled();
   });
+
+  it("camera-detected code opens the record", async () => {
+    const originalMediaDevices = Object.getOwnPropertyDescriptor(navigator, "mediaDevices");
+    const originalBarcodeDetector = Object.getOwnPropertyDescriptor(window, "BarcodeDetector");
+    const originalIsSecureContext = Object.getOwnPropertyDescriptor(window, "isSecureContext");
+
+    const stop = vi.fn();
+    // jsdom has no camera or navigator.mediaDevices implementation.
+    Object.defineProperty(navigator, "mediaDevices", {
+      configurable: true,
+      value: {
+        getUserMedia: vi.fn().mockResolvedValue({ getTracks: () => [{ stop }] })
+      }
+    });
+    Object.defineProperty(window, "isSecureContext", { configurable: true, value: true });
+    // jsdom has no BarcodeDetector API.
+    Object.defineProperty(window, "BarcodeDetector", {
+      configurable: true,
+      writable: true,
+      value: class {
+        static getSupportedFormats = vi.fn().mockResolvedValue(["data_matrix", "code_128"]);
+        detect = vi.fn().mockResolvedValue([{ rawValue: "S:S-2026-001" }]);
+      }
+    });
+    vi.spyOn(HTMLMediaElement.prototype, "play").mockImplementation(() => Promise.resolve());
+
+    try {
+      vi.mocked(labelService.resolveScan).mockResolvedValueOnce(
+        makeResolveResponse({
+          outcome: "Found",
+          match: makeMatch({ id: 101, code: "S-2026-001", navigationTarget: "/receiving-testing?sampleId=101" })
+        })
+      );
+
+      const user = userEvent.setup();
+      const { onClose } = renderDialog();
+
+      await user.click(screen.getByRole("button", { name: "Scan with camera" }));
+
+      await waitFor(() => {
+        expect(labelService.resolveScan).toHaveBeenCalledWith("S:S-2026-001", expect.any(AbortSignal));
+        expect(onClose).toHaveBeenCalledTimes(1);
+        expect(screen.getByTestId("location-probe").textContent).toBe("/receiving-testing?sampleId=101");
+      });
+    } finally {
+      if (originalMediaDevices) {
+        Object.defineProperty(navigator, "mediaDevices", originalMediaDevices);
+      } else {
+        delete (navigator as unknown as Record<string, unknown>).mediaDevices;
+      }
+      if (originalBarcodeDetector) {
+        Object.defineProperty(window, "BarcodeDetector", originalBarcodeDetector);
+      } else {
+        delete (window as unknown as Record<string, unknown>).BarcodeDetector;
+      }
+      if (originalIsSecureContext) {
+        Object.defineProperty(window, "isSecureContext", originalIsSecureContext);
+      }
+    }
+  });
 });

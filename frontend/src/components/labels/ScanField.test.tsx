@@ -475,4 +475,98 @@ describe("ScanField", () => {
     expect((screen.getByLabelText("Scan media lot") as HTMLInputElement).disabled).toBe(true);
     expect((screen.getByRole("button", { name: "Scan" }) as HTMLButtonElement).disabled).toBe(true);
   });
+
+  it("camera button is hidden without getUserMedia", () => {
+    const originalMediaDevices = Object.getOwnPropertyDescriptor(navigator, "mediaDevices");
+    // jsdom has no camera; verify the button stays hidden when getUserMedia is absent.
+    Object.defineProperty(navigator, "mediaDevices", {
+      configurable: true,
+      value: undefined
+    });
+
+    try {
+      renderScanField();
+      expect(screen.queryByRole("button", { name: "Scan with camera" })).toBeNull();
+    } finally {
+      if (originalMediaDevices) {
+        Object.defineProperty(navigator, "mediaDevices", originalMediaDevices);
+      } else {
+        delete (navigator as unknown as Record<string, unknown>).mediaDevices;
+      }
+    }
+  });
+
+  it("a camera-detected code goes through the same checks", async () => {
+    const originalMediaDevices = Object.getOwnPropertyDescriptor(navigator, "mediaDevices");
+    const originalBarcodeDetector = Object.getOwnPropertyDescriptor(window, "BarcodeDetector");
+    const originalIsSecureContext = Object.getOwnPropertyDescriptor(window, "isSecureContext");
+
+    let currentCode = "MED:ML-OFFERED";
+    const stop = vi.fn();
+    // jsdom has no camera or navigator.mediaDevices implementation.
+    Object.defineProperty(navigator, "mediaDevices", {
+      configurable: true,
+      value: {
+        getUserMedia: vi.fn().mockResolvedValue({ getTracks: () => [{ stop }] })
+      }
+    });
+    Object.defineProperty(window, "isSecureContext", { configurable: true, value: true });
+    // jsdom has no BarcodeDetector API.
+    Object.defineProperty(window, "BarcodeDetector", {
+      configurable: true,
+      writable: true,
+      value: class {
+        static getSupportedFormats = vi.fn().mockResolvedValue(["data_matrix", "code_128"]);
+        detect = vi.fn().mockImplementation(async () => [{ rawValue: currentCode }]);
+      }
+    });
+    vi.spyOn(HTMLMediaElement.prototype, "play").mockImplementation(() => Promise.resolve());
+
+    try {
+      vi.mocked(labelService.resolveScan)
+        .mockResolvedValueOnce(
+          makeResolveResponse({
+            match: makeMatch({ id: 10, code: "ML-OFFERED" })
+          })
+        )
+        .mockResolvedValueOnce(
+          makeResolveResponse({
+            match: makeMatch({ id: 99, code: "ML-OTHER" })
+          })
+        );
+
+      const user = userEvent.setup();
+      const { onSelect } = renderScanField({ offeredIds: [10] });
+
+      await user.click(screen.getByRole("button", { name: "Scan with camera" }));
+
+      await waitFor(() => {
+        expect(onSelect).toHaveBeenCalledWith(10);
+        expect(screen.getByRole("status").textContent).toContain("Selected ML-OFFERED");
+        expect(screen.queryByRole("dialog")).toBeNull();
+      });
+
+      currentCode = "MED:ML-OTHER";
+      await user.click(screen.getByRole("button", { name: "Scan with camera" }));
+
+      await waitFor(() => {
+        expect(screen.getByRole("alert").textContent).toContain("ML-OTHER is not available for this step.");
+      });
+      expect(onSelect).toHaveBeenCalledTimes(1);
+    } finally {
+      if (originalMediaDevices) {
+        Object.defineProperty(navigator, "mediaDevices", originalMediaDevices);
+      } else {
+        delete (navigator as unknown as Record<string, unknown>).mediaDevices;
+      }
+      if (originalBarcodeDetector) {
+        Object.defineProperty(window, "BarcodeDetector", originalBarcodeDetector);
+      } else {
+        delete (window as unknown as Record<string, unknown>).BarcodeDetector;
+      }
+      if (originalIsSecureContext) {
+        Object.defineProperty(window, "isSecureContext", originalIsSecureContext);
+      }
+    }
+  });
 });

@@ -14,6 +14,7 @@ import { SelectStep } from "./wizard/SelectStep";
 import { LotsStep } from "./wizard/LotsStep";
 import { ReviewStep } from "./wizard/ReviewStep";
 import { SolutionPreparationService } from "./services/SolutionPreparationService";
+import type { LabelTarget } from "../../services/labelService";
 import { toast } from "sonner";
 import type {
   SolutionType,
@@ -132,7 +133,16 @@ export function PreparationWizardPage() {
     });
     setSignOpen(false);
     toast.success(`Preparation completed successfully. Code: ${res.code ?? "—"}`);
-    navigate(`/preparation/${res.id}`);
+    const offerPrintTarget: LabelTarget | undefined =
+      res.id > 0 && res.code && res.code.trim().length > 0
+        ? {
+            entityType: "SolutionPreparation",
+            entityId: res.id,
+            code: res.code,
+            displayName: res.solutionMasterName || res.code
+          }
+        : undefined;
+    navigate(`/preparation/${res.id}`, offerPrintTarget ? { state: { offerPrintTarget } } : undefined);
   };
 
   if (loading) {

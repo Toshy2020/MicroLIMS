@@ -1,5 +1,5 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import {
   Box, Paper, Typography, Button, Alert, CircularProgress, Divider, Chip
 } from "@mui/material";
@@ -25,14 +25,26 @@ import { solutionTypeLabel } from "./types";
 import { SolutionPreparationService } from "./services/SolutionPreparationService";
 import { formatLabDate, formatLabDateTime } from "../../utils/formatDate";
 import type { SolutionPreparationResponse, RecipeSnapshot } from "./types";
+import type { LabelTarget } from "../../services/labelService";
+import { PrintLabelButton } from "../../components/labels/PrintLabelButton";
+import { PrintLabelsDialog } from "../../components/labels/PrintLabelsDialog";
+import { usePostCreateLabelPrint } from "../../components/labels/usePostCreateLabelPrint";
 import { toast } from "sonner";
 
 export function PreparationRecordPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const { permissions } = useAuth();
   const canRelease = permissions.includes(PERMISSIONS.SOLUTIONS_RELEASE);
   const [releaseOpen, setReleaseOpen] = useState(false);
+  const {
+    dialogOpen: postCreateDialogOpen,
+    targets: postCreateTargets,
+    offerPrint,
+    closeDialog: closePostCreateDialog
+  } = usePostCreateLabelPrint();
+  const consumedOfferRef = useRef<string | null>(null);
 
   const [preparation, setPreparation] = useState<SolutionPreparationResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -77,6 +89,17 @@ export function PreparationRecordPage() {
     }
   }, [id, loadPreparation]);
 
+  useEffect(() => {
+    const state = location.state as { offerPrintTarget?: LabelTarget } | null;
+    const target = state?.offerPrintTarget;
+    if (!target) return;
+    const key = `${target.entityType}:${target.entityId}:${target.code}`;
+    if (consumedOfferRef.current === key) return;
+    consumedOfferRef.current = key;
+    offerPrint([target]);
+    navigate(`${location.pathname}${location.search}`, { replace: true, state: null });
+  }, [location.state, location.pathname, location.search, navigate, offerPrint]);
+
   const recipe = useMemo<RecipeSnapshot | null>(() => {
     if (!preparation?.recipeSnapshotJson) return null;
     try {
@@ -119,24 +142,38 @@ export function PreparationRecordPage() {
     }
   };
 
+  const postCreateDialog = (
+    <PrintLabelsDialog
+      open={postCreateDialogOpen}
+      targets={postCreateTargets}
+      onClose={closePostCreateDialog}
+    />
+  );
+
   if (loading) {
     return (
-      <Box sx={{ p: 4, display: "flex", justifyContent: "center", alignItems: "center" }}>
-        <CircularProgress />
-      </Box>
+      <>
+        <Box sx={{ p: 4, display: "flex", justifyContent: "center", alignItems: "center" }}>
+          <CircularProgress />
+        </Box>
+        {postCreateDialog}
+      </>
     );
   }
 
   if (error || !preparation) {
     return (
-      <Box sx={{ p: 3 }}>
-        <Alert severity="error" sx={{ mb: 2 }}>
-          {error ?? "Preparation not found."}
-        </Alert>
-        <Button startIcon={<ArrowBackIcon />} onClick={() => navigate("/preparation")}>
-          Back to List
-        </Button>
-      </Box>
+      <>
+        <Box sx={{ p: 3 }}>
+          <Alert severity="error" sx={{ mb: 2 }}>
+            {error ?? "Preparation not found."}
+          </Alert>
+          <Button startIcon={<ArrowBackIcon />} onClick={() => navigate("/preparation")}>
+            Back to List
+          </Button>
+        </Box>
+        {postCreateDialog}
+      </>
     );
   }
 
@@ -153,8 +190,16 @@ export function PreparationRecordPage() {
         title={preparation.code || preparation.solutionMasterName}
         subtitle={`${solutionTypeLabel(preparation.type)} · Recipe: ${preparation.solutionMasterName}${preparation.hplcMethodAbbreviation ? ` · Method: ${preparation.hplcMethodAbbreviation}` : ""}`}
       >
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, flexWrap: "wrap" }}>
           <PreparationStatusBadge status={preparation.effectiveStatus} size="medium" />
+          <PrintLabelButton
+            target={{
+              entityType: "SolutionPreparation",
+              entityId: preparation.id,
+              code: preparation.code ?? "",
+              displayName: preparation.solutionMasterName || preparation.code || "Solution Preparation"
+            }}
+          />
           <Button
             variant="outlined"
             size="small"
@@ -421,6 +466,8 @@ export function PreparationRecordPage() {
           onSuccess={handleSuccess}
         />
       )}
+
+      {postCreateDialog}
     </Box>
   );
 }

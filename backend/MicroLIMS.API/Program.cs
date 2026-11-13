@@ -196,6 +196,10 @@ using (var startupScope = app.Services.CreateScope())
     var policyService = startupScope.ServiceProvider.GetRequiredService<MfaPolicyService>();
     var secretProtector = startupScope.ServiceProvider.GetRequiredService<ISecretProtector>();
     await MfaStartupValidator.EnsureValidAsync(startupDb, policyService, secretProtector);
+
+    var ssoModeService = startupScope.ServiceProvider.GetRequiredService<MicroLIMS.Application.Services.Sso.SsoModeService>();
+    var ssoOptions = startupScope.ServiceProvider.GetRequiredService<MicroLIMS.Application.Services.Sso.SsoOptions>();
+    await SsoStartupValidator.EnsureValidAsync(ssoModeService, ssoOptions);
 }
 
 app.UseCors("Frontend");

@@ -22,11 +22,11 @@
 
 - **All users:** Protect their authenticator device or hardware token and single-use recovery codes; never share codes or leave unlocked trusted browsers unattended.
 - **System Administrators (`Users.Manage`):** Verify user identity before performing an MFA reset or assigning a hardware token, maintain encryption keys and NTP time synchronisation, and follow the two-administrator rule before enabling required MFA.
-- **Quality Assurance (QA):** Approve this SOP, define site-specific periods and required roles (including whether `Qa` is in `security.mfa.requiredRoles`), and review security audit events.
+- **Quality Assurance (QA):** Approve this SOP, define site-specific periods and required roles, and review security audit events.
 
 ## 3. Enrolment and grace period
 
-- **Policy and roles:** Configured in System Settings (`security.mfa.policy`: `Off`, `Optional`, `RequiredForRoles` default, `RequiredForAll`; `security.mfa.requiredRoles`: default `SystemAdministrator,SectionHead,QcManager`; `security.mfa.enrolmentGraceDays`: default `7` days, allowed `0..30`).
+- **Policy and roles:** Configured in System Settings (`security.mfa.policy`: `Off`, `Optional`, `RequiredForRoles` default, `RequiredForAll`; `security.mfa.requiredRoles`: default `SystemAdministrator,SectionHead,QcManager,Qa`; `security.mfa.enrolmentGraceDays`: default `7` days, allowed `0..30`).
 - **Site-specific policy settings:** `[SITE TO COMPLETE: approved policy, required roles, and grace period in days]`.
 - **Two-administrator guard:** Switching `security.mfa.policy` from non-required to required is blocked unless at least `2` active System Administrators already have an active second factor.
 - **Authenticator app enrolment:** Scan the QR code (or enter the Base32 key manually) in an approved authenticator app (`MicroLIMS` issuer, `30`-second step, `6` digits) and confirm with a live code. Record or print the `10` single-use recovery codes (`XXXXX-XXXXX`) shown once at completion and store them securely offline (never on the same phone/computer).
@@ -75,7 +75,7 @@
 - **Encryption key required before API startup (`CONF-188`):** Because `security.mfa.policy` defaults to `"RequiredForRoles"`, `MfaStartupValidator` will refuse to start the API (`InvalidOperationException`) after upgrading unless `Mfa:ActiveKeyId` and `Mfa:EncryptionKeys:<id>` (base64 `32`-byte key) are configured before starting the service.
 - **Database migration:** Apply migration `20261113013140_AddMultiFactorAuthentication` (creates `UserMfaCredentials`, `MfaRecoveryCodes`, `MfaChallenges`, `TrustedDevices`, and `Users.MfaRequiredSince` / `RefreshTokens.MfaVerified`).
 - **SMTP notifications:** Ensure `Smtp:` configuration is active so recovery-code usage alerts and admin MFA reset notifications are delivered.
-- **Open implementation gaps before release (`CONF-188` to `CONF-190`):** Review whether `Qa` should be added to `security.mfa.requiredRoles` and whether `StartEnrolmentCoreAsync` should block overwriting a `Pending` hardware token.
+- **Decided 2026-11-13 (`CONF-189`, `CONF-190`):** `Qa` is in the default required roles; a user cannot replace an administrator-assigned hardware token that is still pending by setting up an authenticator app (ask an administrator to reset instead). `CONF-188` (upgrade with the default policy) remains open.
 
 ## 11. Review and approval
 

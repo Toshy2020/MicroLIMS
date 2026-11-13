@@ -900,21 +900,21 @@ Locations for CONF-001 to CONF-008 were added on 2026-11-12 from the area worker
 
 ### CONF-189
 - **Area:** SEC
-- **Status:** Open
-- **What the code does:** `SystemSettingDefinitions` sets the default value of `security.mfa.requiredRoles` to `"SystemAdministrator,SectionHead,QcManager"`, which does not include the `Qa` (`Quality Assurance`) role introduced in B4. Location: `backend/MicroLIMS.Application/Services/SystemSettingDefinitions.cs` (`security.mfa.requiredRoles`).
+- **Status:** Decided
+- **What the code does:** As first recorded: `SystemSettingDefinitions` sets the default value of `security.mfa.requiredRoles` to `"SystemAdministrator,SectionHead,QcManager"`, which does not include the `Qa` (`Quality Assurance`) role introduced in B4. Location: `backend/MicroLIMS.Application/Services/SystemSettingDefinitions.cs` (`security.mfa.requiredRoles`). Changed 2026-11-13 (commit `0be29e45`): the default is now `"SystemAdministrator,SectionHead,QcManager,Qa"`. The default applies only where no saved value exists; sites that saved the setting keep their value.
 - **What the other source says:** Design specification `docs/superpowers/specs/2026-11-10-multi-factor-authentication-design.md` Section 5.3 lists `SystemAdministrator`, `SectionHead`, and `QcManager` as the default required roles (authored before B4 added `Qa` with `Audit.Review`, `Access.Review.Sign`, `Documents.Review`, and `Documents.Approve`).
 - **Question:** Should `Qa` be added to the default value of `security.mfa.requiredRoles` (or configured per site in System Settings)?
-- **Decision:** Not decided.
-- **Date:** Not applicable
+- **Decision:** Decided by the user 2026-11-13: add `Qa` to the default required roles.
+- **Date:** 2026-11-13
 
 ### CONF-190
 - **Area:** SEC
-- **Status:** Open
-- **What the code does:** `MfaService.StartEnrolmentCoreAsync` checks only for an `Active` credential and then deletes all `Pending` `UserMfaCredential` rows for the user before creating a `Pending` `AuthenticatorApp` credential, without checking whether the pending row is an administrator-assigned `HardwareToken`. A signed-in user (for example during the enrolment grace period) can overwrite and delete an admin-assigned `Pending` hardware token by starting self-enrolment (`POST api/auth/mfa/enrol/start`). Location: `backend/MicroLIMS.Application/Services/Mfa/MfaService.cs` — `StartEnrolmentCoreAsync` (lines 679–695).
+- **Status:** Decided
+- **What the code does:** As first recorded: `MfaService.StartEnrolmentCoreAsync` checks only for an `Active` credential and then deletes all `Pending` `UserMfaCredential` rows for the user before creating a `Pending` `AuthenticatorApp` credential, without checking whether the pending row is an administrator-assigned `HardwareToken`. A signed-in user (for example during the enrolment grace period) can overwrite and delete an admin-assigned `Pending` hardware token by starting self-enrolment (`POST api/auth/mfa/enrol/start`). Location: `backend/MicroLIMS.Application/Services/Mfa/MfaService.cs` — `StartEnrolmentCoreAsync` (lines 679–695). Changed 2026-11-13 (commit `0be29e45`): `StartEnrolmentCoreAsync` refuses self-enrolment while a `Pending` `HardwareToken` exists, keeps the token, shows "A hardware token has been assigned to you; activate it, or ask an administrator to reset your two-factor setup, before setting up an authenticator app." and records `MFA_FAILED`. A user's own pending authenticator app is still replaced; an administrator reset still works.
 - **What the other source says:** Design specification `docs/superpowers/specs/2026-11-10-multi-factor-authentication-design.md` Section 5.7 describes administrator hardware token assignment followed by user confirmation on first sign-in.
 - **Question:** Should `StartEnrolmentCoreAsync` block or require an administrator reset when a `Pending` `HardwareToken` is already assigned to the user?
-- **Decision:** Not decided.
-- **Date:** Not applicable
+- **Decision:** Decided by the user 2026-11-13: block self-enrolment while an administrator-assigned hardware token is pending.
+- **Date:** 2026-11-13
 
 ### CONF-191
 - **Area:** SEC
@@ -936,12 +936,12 @@ Locations for CONF-001 to CONF-008 were added on 2026-11-12 from the area worker
 
 ### CONF-193
 - **Area:** SEC
-- **Status:** Open
-- **What the code does:** `MicroLimsDbContext.AuditCaptureExcludedTypes` does not contain `SsoPendingRequest` or `SsoExchangeCode`. Every insert and update of these rows therefore writes an `AuditLogs` row, with their sensitive fields masked by `[AuditRedacted]`. Location: `backend/MicroLIMS.Persistence/DbContext/MicroLimsDbContext.cs` (`AuditCaptureExcludedTypes`); `backend/MicroLIMS.Domain/Entities/SsoPendingRequest.cs`; `backend/MicroLIMS.Domain/Entities/SsoExchangeCode.cs`.
+- **Status:** Decided
+- **What the code does:** As first recorded: `MicroLimsDbContext.AuditCaptureExcludedTypes` does not contain `SsoPendingRequest` or `SsoExchangeCode`. Every insert and update of these rows therefore writes an `AuditLogs` row, with their sensitive fields masked by `[AuditRedacted]`. Location: `backend/MicroLIMS.Persistence/DbContext/MicroLimsDbContext.cs` (`AuditCaptureExcludedTypes`); `backend/MicroLIMS.Domain/Entities/SsoPendingRequest.cs`; `backend/MicroLIMS.Domain/Entities/SsoExchangeCode.cs`. Changed 2026-11-13 (commit `0be29e45`): both types are now in `AuditCaptureExcludedTypes` with the comment "short-lived sign-in state; outcomes are recorded as explicit security events"; sign-in outcomes are still written as security events.
 - **What the other source says:** Design specification Section 9 records "Audit-capture decision (user, 2026-11-11): approved", which keeps both types out of automatic audit capture, each with a justification comment. Plan `docs/superpowers/plans/2026-11-10-single-sign-on.md`, cross-plan correction 2, repeats the approval. The approval has not been applied in code.
 - **Question:** Should the 2026-11-11 approval be applied (add both types to `AuditCaptureExcludedTypes` with the justification comment, leaving sign-in outcomes in the security audit), or should both types stay in the audit trail as built?
-- **Decision:** Not decided.
-- **Date:** Not applicable
+- **Decision:** Approved by the user 2026-11-11 and confirmed 2026-11-13: exclude both types from automatic audit capture.
+- **Date:** 2026-11-13
 
 ### CONF-194
 - **Area:** SEC

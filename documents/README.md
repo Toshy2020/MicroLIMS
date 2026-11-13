@@ -50,7 +50,7 @@ Each of the 24 areas has one URS and one FS. Both are drafts.
 - URS entries: 271
 - FS entries: 286
 - Calculation register rows (CALC): 83
-- Conflicts (CONF) entries: 108. Open: 106. Decided: 2.
+- Conflicts (CONF) entries: 108. Open: 103. Decided: 5.
 
 | Area | URS entries | FS entries |
 |---|---|---|

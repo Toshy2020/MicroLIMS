@@ -140,7 +140,7 @@ public class UserService
         return await ToDtoAsync(user);
     }
 
-    public async Task<UserDto> CreateAsync(User user, string plainPassword, string? reason)
+    public async Task<UserDto> CreateAsync(User user, string? plainPassword, string? reason)
     {
         var trimmedReason = AdminActionReason.Require(reason, "create a user");
         if (string.IsNullOrWhiteSpace(user.Username))
@@ -148,17 +148,32 @@ public class UserService
         if (string.IsNullOrWhiteSpace(user.FullName))
             throw new BusinessRuleException("Full Name is required.");
 
-        var passwordFailures = PasswordPolicy.Validate(plainPassword, await _settings.GetIntOrDefaultAsync(SystemSettingKeys.PasswordMinimumLength));
-        if (passwordFailures.Count > 0)
-            throw new BusinessRuleException(string.Join(" ", passwordFailures));
+        if (user.SignInMethod != SignInMethod.Directory)
+        {
+            var passwordFailures = PasswordPolicy.Validate(plainPassword ?? string.Empty, await _settings.GetIntOrDefaultAsync(SystemSettingKeys.PasswordMinimumLength));
+            if (passwordFailures.Count > 0)
+                throw new BusinessRuleException(string.Join(" ", passwordFailures));
+        }
 
         if (await _db.Users.AnyAsync(u => u.Username == user.Username))
             throw new BusinessRuleException($"Username '{user.Username}' is already taken.");
         if (!await _db.Roles.AnyAsync(r => r.Id == user.RoleId))
             throw new BusinessRuleException("Selected role does not exist.");
 
-        user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(plainPassword);
-        user.MustChangePassword = true;
+        if (user.SignInMethod == SignInMethod.Directory)
+        {
+            var unusableSecret = Convert.ToBase64String(System.Security.Cryptography.RandomNumberGenerator.GetBytes(32));
+            user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(unusableSecret);
+            user.MustChangePassword = false;
+            user.SigningPasswordSetAt = null;
+            user.DirectoryUsername = User.NormalizeDirectoryUsername(user.DirectoryUsername);
+        }
+        else
+        {
+            user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(plainPassword!);
+            user.MustChangePassword = true;
+        }
+
         _db.CurrentReason = trimmedReason;
         _db.Users.Add(user);
         await _db.SaveChangesAsync();
@@ -551,6 +566,14 @@ public class UserService
         var prevDirectoryUsername = user.DirectoryUsername;
         user.SignInMethod = signInMethod;
         user.DirectoryUsername = normalizedDirectoryUsername;
+
+        if (prevMethod == SignInMethod.Local
+            && signInMethod == SignInMethod.Directory
+            && user.SigningPasswordSetAt is null
+            && !string.IsNullOrWhiteSpace(user.PasswordHash))
+        {
+            user.SigningPasswordSetAt = _time.GetUtcNow().UtcDateTime;
+        }
 
         if (normalizedDirectoryUsername is not null
             && !string.Equals(prevDirectoryUsername, normalizedDirectoryUsername, StringComparison.Ordinal))

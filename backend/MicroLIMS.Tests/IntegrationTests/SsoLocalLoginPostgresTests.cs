@@ -791,4 +791,73 @@ public class SsoLocalLoginPostgresTests
             Assert.Contains(SsoModeService.BlockerConnectionTestRequired, ex.Message);
         });
     }
+
+    [PostgresFact]
+    public async Task EmergencyLogin_ThroughForcedEnrolment_RecordsEvent_EmailsAdministrators()
+    {
+        await ScratchPostgresDatabase.RunAsync(async cs =>
+        {
+            var clock = new FakeTimeProvider(BaseUtc);
+            User emergencyAdmin;
+            User otherActiveAdmin;
+            User inactiveAdmin;
+
+            await using (var arrangeDb = ScratchPostgresDatabase.NewContext(cs))
+            {
+                await arrangeDb.Database.MigrateAsync();
+                (emergencyAdmin, _) = await SeedUserAsync(
+                    arrangeDb, RoleType.SystemAdministrator, SignInMethod.Local, withActiveMfa: false, isEmergency: true, email: "emerg-enrol@corp.test");
+                (otherActiveAdmin, _) = await SeedUserAsync(
+                    arrangeDb, RoleType.SystemAdministrator, SignInMethod.Directory, email: "admin2-enrol@corp.test", directoryUsername: "admin2-enrol@corp.test");
+                (inactiveAdmin, _) = await SeedUserAsync(
+                    arrangeDb, RoleType.SystemAdministrator, SignInMethod.Local, email: "inactive-enrol@corp.test", isActive: false);
+            }
+
+            var emailSender = new RecordingEmailSender();
+            var settings = new StubSystemSettingsReader().WithSsoMode("OpenIdConnect").WithMfaPolicy("RequiredForAll");
+
+            LoginOutcome step1;
+            await using (var actDb1 = ScratchPostgresDatabase.NewContext(cs))
+            {
+                var (auth, _, _, _) = CreateServices(actDb1, clock, settings, emailSender);
+                step1 = await auth.LoginAsync(emergencyAdmin.Username, Password, "127.0.0.1", "TestAgent");
+            }
+
+            Assert.True(step1.Success);
+            Assert.True(step1.MfaEnrolmentRequired);
+            Assert.NotNull(step1.MfaToken);
+            Assert.Null(step1.Token);
+
+            EnrolmentStart started;
+            await using (var actDb2 = ScratchPostgresDatabase.NewContext(cs))
+            {
+                var (_, mfa, _, _) = CreateServices(actDb2, clock, settings, emailSender);
+                started = await mfa.StartEnrolmentWithTokenAsync(step1.MfaToken!);
+            }
+
+            var secret = Totp.FromBase32(started.ManualKey);
+            var code = Totp.Generate(secret, Totp.StepAt(clock.GetUtcNow().UtcDateTime, 30));
+
+            EnrolmentResult step3;
+            await using (var actDb3 = ScratchPostgresDatabase.NewContext(cs))
+            {
+                var (_, mfa, _, _) = CreateServices(actDb3, clock, settings, emailSender);
+                step3 = await mfa.ConfirmEnrolmentWithTokenAsync(step1.MfaToken!, code, "127.0.0.1", "TestAgent");
+            }
+
+            Assert.NotNull(step3.Login);
+            Assert.True(step3.Login!.Success);
+            Assert.NotNull(step3.Login.Token);
+            Assert.NotNull(step3.Login.RefreshToken);
+
+            await using var assertDb = ScratchPostgresDatabase.NewContext(cs);
+            Assert.True(await assertDb.SecurityAuditEvents.AsNoTracking()
+                .AnyAsync(e => e.TargetUserId == emergencyAdmin.Id && e.EventCode == SecurityEventCodes.EmergencyLogin && e.Outcome == SecurityEventOutcome.Success));
+
+            var recipients = emailSender.Sent.Select(s => s.To).ToHashSet(StringComparer.OrdinalIgnoreCase);
+            Assert.Contains(emergencyAdmin.Email!, recipients);
+            Assert.Contains(otherActiveAdmin.Email!, recipients);
+            Assert.DoesNotContain(inactiveAdmin.Email!, recipients);
+        });
+    }
 }

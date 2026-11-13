@@ -199,7 +199,7 @@ public class AuthenticationService : IAuthenticationService
         }
     }
 
-    internal async Task<LoginOutcome> CompleteLoginAsync(User user, string? ip, string? userAgent, bool mfaVerified)
+    public async Task<LoginOutcome> CompleteLoginAsync(User user, string? ip, string? userAgent, bool mfaVerified)
     {
         user.FailedLoginAttempts = 0;
         user.LockedUntil = null;
@@ -218,8 +218,16 @@ public class AuthenticationService : IAuthenticationService
             ActorUserId: user.Id, TargetUserId: user.Id, TargetUsername: user.Username));
 
         var refreshToken = await IssueRefreshTokenAsync(user.Id, ip, userAgent, usedNow: false, mfaVerified: mfaVerified);
+        var signingPasswordRequired = user.SignInMethod == SignInMethod.Directory && user.SigningPasswordSetAt is null;
 
-        return new LoginOutcome(true, token, refreshToken, null, user.MustChangePassword, user.Role?.Name);
+        return new LoginOutcome(
+            true,
+            token,
+            refreshToken,
+            null,
+            user.MustChangePassword,
+            user.Role?.Name,
+            SigningPasswordRequired: signingPasswordRequired);
     }
 
     internal async Task ApplyFailedLoginAttemptAndLockoutAsync(User user, string failureEventCode, CancellationToken ct = default)
@@ -339,6 +347,7 @@ public class AuthenticationService : IAuthenticationService
         }
 
         await ValidateAndApplyNewPasswordAsync(user, newPassword);
+        user.SigningPasswordSetAt = _time.GetUtcNow().UtcDateTime;
         await MfaService.RevokeTrustedDevicesCoreAsync(_db, _time, _securityAudit, user.Id, revokedByUserId: user.Id);
 
         // Self-service change: actor and target are the same person.
@@ -348,6 +357,35 @@ public class AuthenticationService : IAuthenticationService
 
         await _db.SaveChangesAsync();
         return true;
+    }
+
+    public async Task SetInitialSigningPasswordAsync(int userId, string newPassword, CancellationToken ct = default)
+    {
+        var user = await _db.Users.FirstOrDefaultAsync(u => u.Id == userId, ct)
+            ?? throw new NotFoundException($"User {userId} not found.");
+
+        if (user.SignInMethod != SignInMethod.Directory)
+            throw new BusinessRuleException("Only directory accounts can set an initial signing password.");
+
+        if (user.SigningPasswordSetAt is not null)
+            throw new BusinessRuleException("A signing password has already been set. Use change password instead.");
+
+        await ValidateAndApplyNewPasswordAsync(user, newPassword, revokeExistingSessions: false);
+
+        var nowUtc = _time.GetUtcNow().UtcDateTime;
+        user.SigningPasswordSetAt = nowUtc;
+        _db.CurrentUserId = userId;
+        _db.CurrentReason = "Initial signing password set.";
+
+        _securityAudit.Record(new SecurityEventRequest(
+            SecurityEventCodes.PasswordChanged,
+            SecurityEventOutcome.Success,
+            ActorUserId: userId,
+            TargetUserId: user.Id,
+            TargetUsername: user.Username,
+            Reason: "Initial signing password set."));
+
+        await _db.SaveChangesAsync(ct);
     }
 
     // Delivers the raw (unhashed) reset token to the user's email - never
@@ -408,16 +446,25 @@ public class AuthenticationService : IAuthenticationService
     {
         var user = await _db.Users.Include(u => u.Role).FirstOrDefaultAsync(u => u.Id == userId);
         if (user is null) return null;
-        return new CurrentUserInfo(user.Id, user.Username, user.FullName, user.Role?.Type.ToString() ?? "Analyst",
-            user.JobTitle, user.LastLoginAt, user.PasswordChangedAt, user.MustChangePassword, user.Role?.Name ?? string.Empty);
+        return new CurrentUserInfo(
+            user.Id,
+            user.Username,
+            user.FullName,
+            user.Role?.Type.ToString() ?? "Analyst",
+            user.JobTitle,
+            user.LastLoginAt,
+            user.PasswordChangedAt,
+            user.MustChangePassword,
+            user.Role?.Name ?? string.Empty,
+            user.SignInMethod.ToString(),
+            user.SigningPasswordSetAt is not null);
     }
 
-    // Shared by ChangePasswordAsync and ConfirmPasswordResetAsync: enforces
-    // the password policy, rejects reuse of the last N hashes, then applies
+    // Shared by ChangePasswordAsync, SetInitialSigningPasswordAsync, and ConfirmPasswordResetAsync:
+    // enforces the password policy, rejects reuse of the last N hashes, then applies
     // the new hash and records/prunes history. Caller is responsible for
-    // SaveChangesAsync so it can be combined with its own changes (e.g.
-    // marking a reset token used) in one transaction.
-    private async Task ValidateAndApplyNewPasswordAsync(User user, string newPassword)
+    // SaveChangesAsync so it can be combined with its own changes in one transaction.
+    private async Task ValidateAndApplyNewPasswordAsync(User user, string newPassword, bool revokeExistingSessions = true)
     {
         var failures = PasswordPolicy.Validate(newPassword, await _settings.GetIntOrDefaultAsync(SystemSettingKeys.PasswordMinimumLength));
         if (failures.Count > 0)
@@ -434,25 +481,29 @@ public class AuthenticationService : IAuthenticationService
 
         var newHash = BCrypt.Net.BCrypt.HashPassword(newPassword);
         user.PasswordHash = newHash;
-        user.PasswordChangedAt = _time.GetUtcNow().UtcDateTime;
+        if (revokeExistingSessions)
+            user.PasswordChangedAt = _time.GetUtcNow().UtcDateTime;
         user.MustChangePassword = false;
 
         _db.PasswordHistories.Add(new PasswordHistory { UserId = user.Id, PasswordHash = newHash });
         if (existingHistory.Count >= historyLimit)
             _db.PasswordHistories.RemoveRange(existingHistory.Skip(historyLimit - 1));
 
-        // Changing or resetting the password ends every existing session:
-        // whoever knew the old password must not keep a refresh token that
-        // still mints access tokens. Both callers save, so this commits in
-        // the same transaction as the new hash.
-        var revoked = await RevokeAllRefreshTokensAsync(user.Id);
-        if (revoked > 0)
+        if (revokeExistingSessions)
         {
-            _securityAudit.Record(new SecurityEventRequest(
-                SecurityEventCodes.SessionRevoked, SecurityEventOutcome.Success,
-                TargetUserId: user.Id, TargetUsername: user.Username,
-                Reason: "All sessions ended because the password changed.",
-                Metadata: $"{{\"revokedSessionCount\":{revoked}}}"));
+            // Changing or resetting the password ends every existing session:
+            // whoever knew the old password must not keep a refresh token that
+            // still mints access tokens. Both callers save, so this commits in
+            // the same transaction as the new hash.
+            var revoked = await RevokeAllRefreshTokensAsync(user.Id);
+            if (revoked > 0)
+            {
+                _securityAudit.Record(new SecurityEventRequest(
+                    SecurityEventCodes.SessionRevoked, SecurityEventOutcome.Success,
+                    TargetUserId: user.Id, TargetUsername: user.Username,
+                    Reason: "All sessions ended because the password changed.",
+                    Metadata: $"{{\"revokedSessionCount\":{revoked}}}"));
+            }
         }
     }
 

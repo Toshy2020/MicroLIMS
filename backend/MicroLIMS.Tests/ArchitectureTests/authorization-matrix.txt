@@ -61,6 +61,7 @@ AuthenticationController.Logout(LogoutRequest): SystemAdministrator,SectionHead,
 AuthenticationController.Me(): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 AuthenticationController.Refresh(RefreshRequest): anonymous
 AuthenticationController.RequestPasswordReset(RequestPasswordResetRequest): anonymous
+AuthenticationController.SetInitialSigningPassword(SetInitialSigningPasswordRequest, CancellationToken): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 BiologicalWasteDestructionController.GetAll(): SectionHead,Reviewer,Analyst
 BiologicalWasteDestructionController.GetById(Int32): SectionHead,Reviewer,Analyst
 BiologicalWasteDestructionController.GetEligible(): SectionHead,Reviewer,Analyst

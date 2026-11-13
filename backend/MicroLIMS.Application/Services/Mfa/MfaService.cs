@@ -264,27 +264,7 @@ public sealed class MfaService : IMfaService
             }
 
             if (isEmergencyLogin)
-            {
-                _securityAudit.Record(new SecurityEventRequest(
-                    SecurityEventCodes.EmergencyLogin,
-                    SecurityEventOutcome.Success,
-                    ActorUserId: user.Id,
-                    TargetUserId: user.Id,
-                    TargetUsername: user.Username,
-                    Reason: $"Emergency administrator sign-in while SSO mode is {currentSsoMode}."));
-
-                emergencyNotifyUsername = user.Username;
-                emergencyNotifyEmails = await _db.Users
-                    .AsNoTracking()
-                    .Where(u => u.IsActive
-                                && u.Role != null
-                                && u.Role.Type == RoleType.SystemAdministrator
-                                && u.Email != null
-                                && u.Email != "")
-                    .Select(u => u.Email!)
-                    .Distinct()
-                    .ToListAsync(ct);
-            }
+                (emergencyNotifyUsername, emergencyNotifyEmails) = await RecordEmergencyLoginAndCollectRecipientsAsync(user, currentSsoMode, ct);
 
             var outcome = await _authService.CompleteLoginAsync(user, ip, userAgent, mfaVerified: true);
 
@@ -332,24 +312,7 @@ public sealed class MfaService : IMfaService
             }
         }
 
-        if (emergencyNotifyEmails is { Count: > 0 })
-        {
-            var subject = "MicroLIMS: Emergency administrator sign-in";
-            var body = $"Emergency administrator account '{emergencyNotifyUsername}' signed in while single sign-on is enabled.";
-            foreach (var adminEmail in emergencyNotifyEmails)
-            {
-                if (string.IsNullOrWhiteSpace(adminEmail))
-                    continue;
-                try
-                {
-                    await _emailSender.SendAsync(adminEmail, subject, body);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogWarning(ex, "Failed to send emergency login notification email to {Recipient}.", adminEmail);
-                }
-            }
-        }
+        await SendEmergencyLoginNotificationsAsync(emergencyNotifyUsername, emergencyNotifyEmails);
 
         return result;
     }
@@ -429,6 +392,9 @@ public sealed class MfaService : IMfaService
         CancellationToken ct = default)
     {
         var (_, tx) = await BeginOwnedTransactionAsync(ct);
+        string? emergencyNotifyUsername = null;
+        List<string>? emergencyNotifyEmails = null;
+        EnrolmentResult result;
         try
         {
             var nowUtc = _time.GetUtcNow().UtcDateTime;
@@ -453,17 +419,74 @@ public sealed class MfaService : IMfaService
             }
 
             challenge.ConsumedAt = nowUtc;
+
+            var currentSsoMode = _ssoMode is null ? SsoMode.Off : await _ssoMode.GetModeAsync(ct);
+            if (user.IsEmergencyAccount && currentSsoMode != SsoMode.Off)
+                (emergencyNotifyUsername, emergencyNotifyEmails) = await RecordEmergencyLoginAndCollectRecipientsAsync(user, currentSsoMode, ct);
+
             var login = await _authService.CompleteLoginAsync(user, ip, userAgent, mfaVerified: true);
 
             if (tx is not null)
                 await tx.CommitAsync(ct);
 
-            return new EnrolmentResult(recoveryCodes, login with { RecoveryCodesRemaining = recoveryCodes.Count });
+            result = new EnrolmentResult(recoveryCodes, login with { RecoveryCodesRemaining = recoveryCodes.Count });
         }
         finally
         {
             if (tx is not null)
                 await tx.DisposeAsync();
+        }
+
+        await SendEmergencyLoginNotificationsAsync(emergencyNotifyUsername, emergencyNotifyEmails);
+        return result;
+    }
+
+    private async Task<(string Username, List<string> Emails)> RecordEmergencyLoginAndCollectRecipientsAsync(
+        User user,
+        SsoMode currentSsoMode,
+        CancellationToken ct)
+    {
+        _securityAudit.Record(new SecurityEventRequest(
+            SecurityEventCodes.EmergencyLogin,
+            SecurityEventOutcome.Success,
+            ActorUserId: user.Id,
+            TargetUserId: user.Id,
+            TargetUsername: user.Username,
+            Reason: $"Emergency administrator sign-in while SSO mode is {currentSsoMode}."));
+
+        var emails = await _db.Users
+            .AsNoTracking()
+            .Where(u => u.IsActive
+                        && u.Role != null
+                        && u.Role.Type == RoleType.SystemAdministrator
+                        && u.Email != null
+                        && u.Email != "")
+            .Select(u => u.Email!)
+            .Distinct()
+            .ToListAsync(ct);
+
+        return (user.Username, emails);
+    }
+
+    private async Task SendEmergencyLoginNotificationsAsync(string? username, List<string>? emails)
+    {
+        if (emails is not { Count: > 0 })
+            return;
+
+        var subject = "MicroLIMS: Emergency administrator sign-in";
+        var body = $"Emergency administrator account '{username}' signed in while single sign-on is enabled.";
+        foreach (var adminEmail in emails)
+        {
+            if (string.IsNullOrWhiteSpace(adminEmail))
+                continue;
+            try
+            {
+                await _emailSender.SendAsync(adminEmail, subject, body);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to send emergency login notification email to {Recipient}.", adminEmail);
+            }
         }
     }
 

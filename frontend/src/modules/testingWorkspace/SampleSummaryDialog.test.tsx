@@ -1,11 +1,12 @@
 import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
-import { render, screen, cleanup, fireEvent, waitFor } from "@testing-library/react";
+import { render, screen, cleanup, fireEvent, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { PinnedLightTheme } from "../../theme/PinnedLightTheme";
 import { SampleSummaryDialog } from "./SampleSummaryDialog";
 import type { SampleSummary } from "./types/sampleSummaryTypes";
 import { PERMISSIONS } from "../../routes/routes";
+import { labelService } from "../../services/labelService";
 
 const mockGetSummary = vi.fn();
 const mockCompleteReview = vi.fn();
@@ -26,9 +27,24 @@ vi.mock("../users/services/UserService", () => ({
   }
 }));
 
+vi.mock("../../services/labelService", () => ({
+  labelService: {
+    getStatus: vi.fn(),
+    print: vi.fn(),
+    getFormats: vi.fn(),
+    updateFormat: vi.fn(),
+    resolveScan: vi.fn()
+  }
+}));
+
 vi.mock("../../contexts/AuthContext", () => ({
   useAuth: () => ({
-    permissions: [PERMISSIONS.SAMPLES_REVIEW, PERMISSIONS.SAMPLES_APPROVE],
+    permissions: [
+      PERMISSIONS.SAMPLES_REVIEW,
+      PERMISSIONS.SAMPLES_APPROVE,
+      PERMISSIONS.SAMPLES_RECEIVE_OWN_LAB,
+      PERMISSIONS.LABELS_REPRINT
+    ],
     fullName: "QC Reviewer",
     username: "qcreviewer",
     role: "Reviewer"
@@ -59,6 +75,8 @@ afterEach(cleanup);
 beforeEach(() => {
   mockGetSummary.mockReset();
   mockCompleteReview.mockReset();
+  vi.mocked(labelService.getStatus).mockReset();
+  vi.mocked(labelService.getStatus).mockResolvedValue([]);
 });
 
 const createSample = (over: Partial<SampleSummary> = {}): SampleSummary => ({
@@ -284,4 +302,38 @@ describe("SampleSummaryDialog review flow", () => {
     expect((submitReviewBtn as HTMLButtonElement).disabled).toBe(true);
     expect(mockCompleteReview).not.toHaveBeenCalled();
   }, 15000);
+
+  it("shows the print label button with the record's code", async () => {
+    const user = userEvent.setup();
+    const sample = createSample();
+    mockGetSummary.mockResolvedValue(sample);
+    vi.mocked(labelService.getStatus).mockResolvedValue([
+      {
+        entityType: "Sample",
+        entityId: 77,
+        canPrint: true,
+        blockedReason: null,
+        printCount: 0,
+        defaultCopies: 1
+      }
+    ]);
+
+    render(
+      <MemoryRouter>
+        <PinnedLightTheme>
+          <SampleSummaryDialog open={true} sampleId={77} onClose={vi.fn()} />
+        </PinnedLightTheme>
+      </MemoryRouter>
+    );
+
+    const printBtn = await screen.findByRole("button", { name: "Print label" });
+    await waitFor(() => {
+      expect((printBtn as HTMLButtonElement).disabled).toBe(false);
+    });
+
+    await user.click(printBtn);
+
+    const printDialog = await screen.findByRole("dialog", { name: "Print labels" });
+    expect(await within(printDialog).findByText("RM0926077")).toBeTruthy();
+  });
 });

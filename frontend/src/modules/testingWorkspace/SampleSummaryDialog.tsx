@@ -26,6 +26,7 @@ import { DECISION_OPTIONS, formatDate, formatSectionStatus, isTestOrderNonPassin
 import { SampleIdentityCard, SamplePreparationCard } from "./sampleSummary/SummaryCards";
 import { TestResultsSection } from "./sampleSummary/TestResultsSection";
 import { ApprovalSignaturesCard } from "./sampleSummary/ApprovalSignaturesCard";
+import { PrintLabelButton } from "../../components/labels/PrintLabelButton";
 
 interface Props {
   open: boolean;
@@ -445,6 +446,14 @@ export function SampleSummaryDialog({ open, sampleId, onClose }: Props) {
                   Open Pathogen Workflow
                 </Button>
                 )}
+                <PrintLabelButton
+                  target={{
+                    entityType: "Sample",
+                    entityId: summary.sampleId,
+                    code: summary.referenceNumber,
+                    displayName: summary.displayName || summary.referenceNumber
+                  }}
+                />
                 <Button
                   component={Link}
                   to={`/samples/${sampleId}/report`}

@@ -16,6 +16,8 @@ import { VoidSampleConfirmationDialog } from "./dialogs/VoidSampleConfirmationDi
 import { AddLaboratoryDialog } from "./dialogs/AddLaboratoryDialog";
 import { SelectRetestTestsDialog } from "./dialogs/SelectRetestTestsDialog";
 import { SampleSummaryDialog } from "../testingWorkspace/SampleSummaryDialog";
+import { PrintLabelsDialog } from "../../components/labels/PrintLabelsDialog";
+import { usePostCreateLabelPrint } from "../../components/labels/usePostCreateLabelPrint";
 import { useAuth } from "../../contexts/AuthContext";
 import { PERMISSIONS } from "../../routes/routes";
 import { fetchAllPages } from "../../services/fetchAllPages";
@@ -45,6 +47,7 @@ export function ReceivingPage() {
   const [summarySampleId, setSummarySampleId] = useState<number | null>(null);
   const [auditSampleId, setAuditSampleId] = useState<number | null>(null);
   const [notification, setNotification] = useState<{ text: string; severity: "success" | "error" } | null>(null);
+  const postCreatePrint = usePostCreateLabelPrint();
 
   const loadRecords = useCallback(async () => {
     setLoading(true);
@@ -76,6 +79,14 @@ export function ReceivingPage() {
       severity: "success"
     });
     loadRecords();
+    postCreatePrint.offerPrint(
+      created.map((sample) => ({
+        entityType: "Sample",
+        entityId: sample.id,
+        code: sample.referenceNumber,
+        displayName: "Sample"
+      }))
+    );
   };
 
   if (samples === null) {
@@ -200,6 +211,12 @@ export function ReceivingPage() {
         entityName="Sample"
         entityId={auditSampleId}
         onClose={() => setAuditSampleId(null)}
+      />
+
+      <PrintLabelsDialog
+        open={postCreatePrint.dialogOpen}
+        targets={postCreatePrint.targets}
+        onClose={postCreatePrint.closeDialog}
       />
 
       <Snackbar

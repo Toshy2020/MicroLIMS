@@ -57,6 +57,8 @@ import { TestWorkflowDialogRouter } from "../testingWorkspace/FloatingDialogs";
 import { SampleSummaryDialog } from "../testingWorkspace/SampleSummaryDialog";
 import { PreparationDialog } from "../testPreparation/PreparationDialog";
 import { VoidSampleConfirmationDialog } from "../receiving/dialogs/VoidSampleConfirmationDialog";
+import { PrintLabelsDialog } from "../../components/labels/PrintLabelsDialog";
+import { usePostCreateLabelPrint } from "../../components/labels/usePostCreateLabelPrint";
 import { toast } from "sonner";
 
 export type WorkspaceDisplayView = "table" | "card" | "kanban";
@@ -284,6 +286,7 @@ export function ReceivingTestingWorkspacePage({ lab }: Props) {
   const [preparingSample, setPreparingSample] = useState<SampleRecord | null>(null);
   const [auditSampleId, setAuditSampleId] = useState<number | null>(null);
   const [voidingSample, setVoidingSample] = useState<SampleRecord | null>(null);
+  const postCreatePrint = usePostCreateLabelPrint();
 
   const processedDeepLinkKeyRef = useRef<string | null>(null);
 
@@ -634,6 +637,14 @@ export function ReceivingTestingWorkspacePage({ lab }: Props) {
       severity: "success"
     });
     loadRecords();
+    postCreatePrint.offerPrint(
+      created.map((sample) => ({
+        entityType: "Sample",
+        entityId: sample.id,
+        code: sample.referenceNumber,
+        displayName: "Sample"
+      }))
+    );
   };
 
   const handleEditSuccess = () => {
@@ -1156,6 +1167,12 @@ export function ReceivingTestingWorkspacePage({ lab }: Props) {
           setVoidingSample(null);
           loadRecords();
         }}
+      />
+
+      <PrintLabelsDialog
+        open={postCreatePrint.dialogOpen}
+        targets={postCreatePrint.targets}
+        onClose={postCreatePrint.closeDialog}
       />
 
       {/* Toast Notification Snackbar */}

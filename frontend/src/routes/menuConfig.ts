@@ -112,6 +112,7 @@ const adminItems: MenuItem[] = [
   { label: "Users", path: "/admin/users", description: "Create accounts, lock or unlock them, reset passwords.", icon: PeopleAltOutlinedIcon, group: ADMIN_GROUP, permission: PERMISSIONS.USERS_MANAGE },
   { label: "Roles", path: "/admin/roles", description: "Roles, permissions and segregation of duties.", icon: AdminPanelSettingsOutlinedIcon, group: ADMIN_GROUP, permission: PERMISSIONS.ROLES_MANAGE },
   { label: "Audit Trail", path: "/admin/audit", description: "Search the audit trail of every record and signature.", icon: ManageSearchOutlinedIcon, group: ADMIN_GROUP, permission: PERMISSIONS.AUDIT_VIEW },
+  { label: "Audit Trail Reviews", path: "/audit-trail-reviews", description: "Periodic signed reviews of the audit trail.", icon: FactCheckOutlinedIcon, group: ADMIN_GROUP, permission: PERMISSIONS.AUDIT_VIEW },
   { label: "Error Log", path: "/admin/error-log", description: "Application errors reported by the system.", icon: BugReportOutlinedIcon, group: ADMIN_GROUP, permission: PERMISSIONS.SYSTEM_VIEW_ERROR_LOG },
   { label: "Settings", path: "/admin/settings", description: "Password, lockout, session, e-signature, retention and monitoring settings.", icon: PolicyOutlinedIcon, group: ADMIN_GROUP, permission: PERMISSIONS.SYSTEM_CONFIGURE_SETTINGS },
   { label: "Organization", path: "/admin/organization", description: "Departments, sections and who belongs to them.", icon: AccountTreeOutlinedIcon, group: ADMIN_GROUP, permission: PERMISSIONS.DOCUMENTS_CONFIG_MANAGE },

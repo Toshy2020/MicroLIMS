@@ -54,7 +54,11 @@ const statusLabelMap: Record<string, string> = {
   BelowSpec: "Below Spec",
   NotSuitable: "Not Suitable",
   DoesNotConform: "Does Not Conform",
-  InUse: "In Use"
+  InUse: "In Use",
+
+  // Audit trail review outcomes.
+  NoFindings: "No Findings",
+  FindingsRecorded: "Findings Recorded"
 };
 
 // Shared color lookup so non-badge UI (e.g. the Result Level segmented

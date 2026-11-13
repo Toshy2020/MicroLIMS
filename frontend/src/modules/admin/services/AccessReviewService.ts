@@ -73,6 +73,7 @@ export interface AccessReviewListItem {
   signedAt: string | null;
   findingCount: number;
   summary: AccessReviewSummary;
+  canDecide: boolean;
 }
 
 export interface AccessReviewFinding {
@@ -104,6 +105,7 @@ export interface AccessReviewDetail {
   snapshotIntact: boolean;
   snapshot: AccessReviewSnapshot;
   findings: AccessReviewFinding[];
+  canDecide: boolean;
 }
 
 export interface SaveFindingRequest {

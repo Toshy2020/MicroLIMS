@@ -76,6 +76,8 @@ const APP_ROUTES = {
 
   // Audit
   AUDIT_SEARCH: "/admin/audit",
+  AUDIT_TRAIL_REVIEWS: "/audit-trail-reviews",
+  AUDIT_TRAIL_REVIEW_DETAIL: (id: number | string) => `/audit-trail-reviews/${id}`,
   ERROR_MONITORING: "/admin/error-log",
   OOS_TRACKING: "/oos-tracking",
 

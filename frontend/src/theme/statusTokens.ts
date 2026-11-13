@@ -155,7 +155,13 @@ const STATUS_TONE: Record<string, StatusTone> = {
   Removed: "pending", RequiresReview: "action",
 
   // Calibration runs withdrawn after the fact.
-  Withdrawn: "inconclusive"
+  Withdrawn: "inconclusive",
+
+  // Audit trail review & finding states.
+  Signed: "notDetected",
+  NoFindings: "notDetected",
+  FindingsRecorded: "action",
+  Closed: "notDetected"
 };
 
 export function statusTone(status: string): StatusTone {

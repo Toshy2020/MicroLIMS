@@ -148,6 +148,7 @@ public class MfaLoginPostgresTests
             NullLogger<MfaService>.Instance,
             policy,
             email,
+            new ZXingQrCodeRenderer(),
             clock);
 
         return (auth, mfa);

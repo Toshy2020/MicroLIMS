@@ -36,7 +36,7 @@ public class AuthenticationService : IAuthenticationService
     // A stored hash BCrypt cannot parse is a password that cannot match -
     // not a server error. Now that locked and disabled accounts are also
     // checked (above), such an account must still get the ordinary refusal.
-    private static bool PasswordMatches(string password, string storedHash)
+    internal static bool PasswordMatches(string password, string storedHash)
     {
         try
         {

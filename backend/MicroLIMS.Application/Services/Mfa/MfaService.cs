@@ -1,6 +1,7 @@
 using System.Security.Cryptography;
 using System.Text;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.Logging;
 using MicroLIMS.Application.Abstractions.Email;
 using MicroLIMS.Application.Abstractions.Persistence;
@@ -10,20 +11,26 @@ using MicroLIMS.Application.Security;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Shared.Constants;
+using MicroLIMS.Shared.Exceptions;
 
 namespace MicroLIMS.Application.Services.Mfa;
 
 /// <summary>
-/// Handles MFA login challenges, TOTP verification, recovery codes, and trusted devices.
+/// Handles MFA login challenges, TOTP verification, self-service enrolment, recovery codes, and trusted devices.
 /// </summary>
 public sealed class MfaService : IMfaService
 {
     public const int ChallengeTokenBytes = 32;
     public const int DeviceTokenBytes = 32;
+    public const int DefaultStepSeconds = 30;
     public const int RecoveryCodeLength = 10;
+    public const int RecoveryCodeSetCount = 10;
     public const int MaxChallengeFailedAttempts = 5;
+    public const string TotpIssuer = "MicroLIMS";
     public static readonly TimeSpan ChallengeLifetime = TimeSpan.FromMinutes(5);
     internal const string VerificationFailedMessage = "The code is not correct.";
+    internal const string PasswordFailedMessage = "The password is not correct.";
+    internal const string EnrolSessionInvalidMessage = "Your enrolment session has expired. Sign in again.";
 
     private readonly IMicroLimsDbContext _db;
     private readonly AuthenticationService _authService;
@@ -32,6 +39,7 @@ public sealed class MfaService : IMfaService
     private readonly ILogger<MfaService> _logger;
     private readonly MfaPolicyService _mfaPolicy;
     private readonly IEmailSender _emailSender;
+    private readonly IQrCodeRenderer _qrCodeRenderer;
     private readonly TimeProvider _time;
 
     public MfaService(
@@ -42,6 +50,7 @@ public sealed class MfaService : IMfaService
         ILogger<MfaService> logger,
         MfaPolicyService mfaPolicy,
         IEmailSender emailSender,
+        IQrCodeRenderer qrCodeRenderer,
         TimeProvider? timeProvider = null)
     {
         _db = db;
@@ -51,6 +60,7 @@ public sealed class MfaService : IMfaService
         _logger = logger;
         _mfaPolicy = mfaPolicy;
         _emailSender = emailSender;
+        _qrCodeRenderer = qrCodeRenderer;
         _time = timeProvider ?? TimeProvider.System;
     }
 
@@ -134,10 +144,7 @@ public sealed class MfaService : IMfaService
         if (hasCode == hasRecoveryCode)
             return Fail();
 
-        var ownsTransaction = _db.Database.IsRelational() && _db.Database.CurrentTransaction is null;
-        await using var tx = ownsTransaction
-            ? await _db.Database.BeginTransactionAsync(ct)
-            : null;
+        var (ownsTransaction, tx) = await BeginOwnedTransactionAsync(ct);
 
         string? recoveryNotifyEmail = null;
         LoginOutcome result;
@@ -164,8 +171,6 @@ public sealed class MfaService : IMfaService
             var user = challenge.User;
             if (user is null || !user.IsActive || user.IsLockedAt(nowUtc))
                 return Fail();
-
-            int? recoveryCodesRemaining = null;
 
             if (hasCode)
             {
@@ -240,6 +245,7 @@ public sealed class MfaService : IMfaService
 
             var outcome = await _authService.CompleteLoginAsync(user, ip, userAgent, mfaVerified: true);
 
+            int? recoveryCodesRemaining = null;
             if (hasRecoveryCode)
             {
                 recoveryCodesRemaining = await _db.MfaRecoveryCodes
@@ -261,8 +267,13 @@ public sealed class MfaService : IMfaService
             await tx!.RollbackAsync(CancellationToken.None);
             return Fail();
         }
+        finally
+        {
+            if (tx is not null)
+                await tx.DisposeAsync();
+        }
 
-        if (recoveryNotifyEmail is not null && !string.IsNullOrWhiteSpace(recoveryNotifyEmail))
+        if (!string.IsNullOrWhiteSpace(recoveryNotifyEmail))
         {
             try
             {
@@ -280,6 +291,477 @@ public sealed class MfaService : IMfaService
         return result;
     }
 
+    public async Task<EnrolmentStart> StartEnrolmentAsync(int userId, CancellationToken ct = default)
+    {
+        var (_, tx) = await BeginOwnedTransactionAsync(ct);
+        try
+        {
+            var nowUtc = _time.GetUtcNow().UtcDateTime;
+            var user = await LoadActiveUserAsync(userId, nowUtc, includeRole: false, ct);
+            var started = await StartEnrolmentCoreAsync(user, nowUtc, ct);
+            await _db.SaveChangesAsync(ct);
+            if (tx is not null)
+                await tx.CommitAsync(ct);
+            return started;
+        }
+        finally
+        {
+            if (tx is not null)
+                await tx.DisposeAsync();
+        }
+    }
+
+    public async Task<EnrolmentStart> StartEnrolmentWithPasswordAsync(int userId, string password, CancellationToken ct = default)
+    {
+        var (_, tx) = await BeginOwnedTransactionAsync(ct);
+        try
+        {
+            var nowUtc = _time.GetUtcNow().UtcDateTime;
+            var user = await LoadAndVerifyPasswordAsync(userId, password, nowUtc, includeRole: false, ct);
+            var started = await StartEnrolmentCoreAsync(user, nowUtc, ct);
+            await _db.SaveChangesAsync(ct);
+            if (tx is not null)
+                await tx.CommitAsync(ct);
+            return started;
+        }
+        finally
+        {
+            if (tx is not null)
+                await tx.DisposeAsync();
+        }
+    }
+
+    public async Task<EnrolmentStart> StartEnrolmentWithTokenAsync(string mfaToken, CancellationToken ct = default)
+    {
+        var (_, tx) = await BeginOwnedTransactionAsync(ct);
+        try
+        {
+            var nowUtc = _time.GetUtcNow().UtcDateTime;
+            var challenge = await LoadValidEnrolChallengeAsync(mfaToken, nowUtc, includeRole: false, ct);
+            var started = await StartEnrolmentCoreAsync(challenge.User!, nowUtc, ct);
+            await _db.SaveChangesAsync(ct);
+            if (tx is not null)
+                await tx.CommitAsync(ct);
+            return started;
+        }
+        finally
+        {
+            if (tx is not null)
+                await tx.DisposeAsync();
+        }
+    }
+
+    public async Task<EnrolmentResult> ConfirmEnrolmentAsync(int userId, string code, CancellationToken ct = default)
+    {
+        var (_, tx) = await BeginOwnedTransactionAsync(ct);
+        try
+        {
+            var nowUtc = _time.GetUtcNow().UtcDateTime;
+            var user = await LoadActiveUserAsync(userId, nowUtc, includeRole: false, ct);
+            var recoveryCodes = await TryConfirmEnrolmentCoreAsync(user, code, nowUtc, ct)
+                ?? throw new BusinessRuleException(VerificationFailedMessage);
+
+            await _db.SaveChangesAsync(ct);
+            if (tx is not null)
+                await tx.CommitAsync(ct);
+
+            return new EnrolmentResult(recoveryCodes, Login: null);
+        }
+        finally
+        {
+            if (tx is not null)
+                await tx.DisposeAsync();
+        }
+    }
+
+    public async Task<EnrolmentResult> ConfirmEnrolmentWithTokenAsync(
+        string mfaToken,
+        string code,
+        string? ip,
+        string? userAgent,
+        CancellationToken ct = default)
+    {
+        var (_, tx) = await BeginOwnedTransactionAsync(ct);
+        try
+        {
+            var nowUtc = _time.GetUtcNow().UtcDateTime;
+            var challenge = await LoadValidEnrolChallengeAsync(mfaToken, nowUtc, includeRole: true, ct);
+            var user = challenge.User!;
+
+            var recoveryCodes = await TryConfirmEnrolmentCoreAsync(user, code, nowUtc, ct);
+            if (recoveryCodes is null)
+            {
+                challenge.FailedAttempts++;
+                _securityAudit.Record(new SecurityEventRequest(
+                    SecurityEventCodes.MfaFailed,
+                    SecurityEventOutcome.Failure,
+                    ActorUserId: user.Id,
+                    TargetUserId: user.Id,
+                    TargetUsername: user.Username));
+                await _db.SaveChangesAsync(ct);
+                if (tx is not null)
+                    await tx.CommitAsync(ct);
+
+                throw new BusinessRuleException(VerificationFailedMessage);
+            }
+
+            challenge.ConsumedAt = nowUtc;
+            var login = await _authService.CompleteLoginAsync(user, ip, userAgent, mfaVerified: true);
+
+            if (tx is not null)
+                await tx.CommitAsync(ct);
+
+            return new EnrolmentResult(recoveryCodes, login with { RecoveryCodesRemaining = recoveryCodes.Count });
+        }
+        finally
+        {
+            if (tx is not null)
+                await tx.DisposeAsync();
+        }
+    }
+
+    public async Task<IReadOnlyList<string>> RegenerateRecoveryCodesAsync(int userId, string password, string code, CancellationToken ct = default)
+    {
+        var (_, tx) = await BeginOwnedTransactionAsync(ct);
+        try
+        {
+            var nowUtc = _time.GetUtcNow().UtcDateTime;
+            var user = await LoadAndVerifyPasswordAsync(userId, password, nowUtc, includeRole: false, ct);
+
+            var credential = await _db.UserMfaCredentials
+                .FirstOrDefaultAsync(c => c.UserId == userId && c.Status == MfaCredentialStatus.Active, ct)
+                ?? throw new BusinessRuleException("Two-factor authentication is not active.");
+
+            var matchedStep = VerifyTotpCodeAgainstCredential(credential, code, nowUtc)
+                ?? throw new BusinessRuleException(VerificationFailedMessage);
+
+            credential.LastAcceptedStep = matchedStep;
+
+            var codes = await ReplaceRecoveryCodesAsync(userId, nowUtc, removeOnlyUnused: false, ct);
+
+            _securityAudit.Record(new SecurityEventRequest(
+                SecurityEventCodes.MfaRecoveryCodesRegenerated,
+                SecurityEventOutcome.Success,
+                ActorUserId: userId,
+                TargetUserId: userId,
+                TargetUsername: user.Username));
+
+            await _db.SaveChangesAsync(ct);
+            if (tx is not null)
+                await tx.CommitAsync(ct);
+
+            return codes;
+        }
+        finally
+        {
+            if (tx is not null)
+                await tx.DisposeAsync();
+        }
+    }
+
+    public async Task RemoveOwnFactorAsync(int userId, string password, string code, CancellationToken ct = default)
+    {
+        var (_, tx) = await BeginOwnedTransactionAsync(ct);
+        try
+        {
+            var nowUtc = _time.GetUtcNow().UtcDateTime;
+            var user = await LoadAndVerifyPasswordAsync(userId, password, nowUtc, includeRole: true, ct);
+
+            var credential = await _db.UserMfaCredentials
+                .FirstOrDefaultAsync(c => c.UserId == userId && c.Status == MfaCredentialStatus.Active, ct)
+                ?? throw new BusinessRuleException("Two-factor authentication is not active.");
+
+            var roleType = user.Role?.Type.ToString() ?? string.Empty;
+            if (await _mfaPolicy.IsRequiredForRoleAsync(roleType, ct))
+                throw new BusinessRuleException("Your role requires two-factor authentication, so you cannot remove it.");
+
+            var matchedStep = VerifyTotpCodeAgainstCredential(credential, code, nowUtc)
+                ?? throw new BusinessRuleException(VerificationFailedMessage);
+
+            credential.LastAcceptedStep = matchedStep;
+            credential.Status = MfaCredentialStatus.Revoked;
+            credential.RevokedAt = nowUtc;
+            credential.RevokedByUserId = userId;
+            credential.RevokeReason = "Removed by user.";
+
+            var unusedCodes = await _db.MfaRecoveryCodes
+                .Where(r => r.UserId == userId && r.UsedAt == null)
+                .ToListAsync(ct);
+            if (unusedCodes.Count > 0)
+                _db.MfaRecoveryCodes.RemoveRange(unusedCodes);
+
+            await RevokeTrustedDevicesAsync(userId, userId, ct);
+
+            _securityAudit.Record(new SecurityEventRequest(
+                SecurityEventCodes.MfaRemovedByUser,
+                SecurityEventOutcome.Success,
+                ActorUserId: userId,
+                TargetUserId: userId,
+                TargetUsername: user.Username));
+
+            await _db.SaveChangesAsync(ct);
+            if (tx is not null)
+                await tx.CommitAsync(ct);
+        }
+        finally
+        {
+            if (tx is not null)
+                await tx.DisposeAsync();
+        }
+    }
+
+    public async Task<MfaStatus> GetStatusAsync(int userId, CancellationToken ct = default)
+    {
+        var user = await _db.Users
+            .AsNoTracking()
+            .Include(u => u.Role)
+            .FirstOrDefaultAsync(u => u.Id == userId, ct)
+            ?? throw new NotFoundException("User not found.");
+
+        var nowUtc = _time.GetUtcNow().UtcDateTime;
+
+        var credential = await _db.UserMfaCredentials
+            .AsNoTracking()
+            .FirstOrDefaultAsync(c => c.UserId == userId && c.Status == MfaCredentialStatus.Active, ct);
+
+        var recoveryCodesRemaining = await _db.MfaRecoveryCodes
+            .AsNoTracking()
+            .CountAsync(r => r.UserId == userId && r.UsedAt == null, ct);
+
+        var roleType = user.Role?.Type.ToString() ?? string.Empty;
+        var required = await _mfaPolicy.IsRequiredForRoleAsync(roleType, ct);
+        var requirement = await _mfaPolicy.EvaluateAsync(roleType, credential is not null, user.MfaRequiredSince, nowUtc, ct);
+
+        var trustedDevices = await _db.TrustedDevices
+            .AsNoTracking()
+            .Where(d => d.UserId == userId && d.RevokedAt == null && d.ExpiresAt > nowUtc)
+            .OrderByDescending(d => d.CreatedAt)
+            .Select(d => new TrustedDeviceInfo(d.Id, d.CreatedAt, d.ExpiresAt, d.CreatedIp, d.UserAgent))
+            .ToListAsync(ct);
+
+        return new MfaStatus(
+            Enrolled: credential is not null,
+            Type: credential?.Type.ToString(),
+            ConfirmedAt: credential?.ConfirmedAt,
+            RecoveryCodesRemaining: recoveryCodesRemaining,
+            Required: required,
+            EnrolmentDueAt: requirement.EnrolmentDueAtUtc,
+            TrustedDevices: trustedDevices);
+    }
+
+    public async Task ForgetOwnTrustedDeviceAsync(int userId, int trustedDeviceId, CancellationToken ct = default)
+    {
+        var (_, tx) = await BeginOwnedTransactionAsync(ct);
+        try
+        {
+            var device = await _db.TrustedDevices
+                .FirstOrDefaultAsync(d => d.Id == trustedDeviceId && d.UserId == userId && d.RevokedAt == null, ct)
+                ?? throw new NotFoundException("Trusted device not found.");
+
+            device.RevokedAt = _time.GetUtcNow().UtcDateTime;
+            device.RevokedByUserId = userId;
+
+            _securityAudit.Record(new SecurityEventRequest(
+                SecurityEventCodes.TrustedDeviceRevoked,
+                SecurityEventOutcome.Success,
+                ActorUserId: userId,
+                TargetUserId: userId,
+                Metadata: $"{{\"revokedCount\":1,\"deviceId\":{device.Id}}}"));
+
+            await _db.SaveChangesAsync(ct);
+            if (tx is not null)
+                await tx.CommitAsync(ct);
+        }
+        finally
+        {
+            if (tx is not null)
+                await tx.DisposeAsync();
+        }
+    }
+
+    private async Task<(bool OwnsTransaction, IDbContextTransaction? Transaction)> BeginOwnedTransactionAsync(CancellationToken ct)
+    {
+        var ownsTransaction = _db.Database.IsRelational() && _db.Database.CurrentTransaction is null;
+        var tx = ownsTransaction
+            ? await _db.Database.BeginTransactionAsync(ct)
+            : null;
+        return (ownsTransaction, tx);
+    }
+
+    private async Task<User> LoadActiveUserAsync(int userId, DateTime nowUtc, bool includeRole, CancellationToken ct)
+    {
+        IQueryable<User> query = _db.Users;
+        if (includeRole)
+            query = query.Include(u => u.Role);
+
+        var user = await query.FirstOrDefaultAsync(u => u.Id == userId, ct);
+        if (user is null || !user.IsActive || user.IsLockedAt(nowUtc))
+            throw new BusinessRuleException("Your account is not available.");
+
+        return user;
+    }
+
+    private async Task<User> LoadAndVerifyPasswordAsync(int userId, string password, DateTime nowUtc, bool includeRole, CancellationToken ct)
+    {
+        IQueryable<User> query = _db.Users;
+        if (includeRole)
+            query = query.Include(u => u.Role);
+
+        var user = await query.FirstOrDefaultAsync(u => u.Id == userId, ct);
+        if (user is null
+            || !user.IsActive
+            || user.IsLockedAt(nowUtc)
+            || string.IsNullOrEmpty(password)
+            || !AuthenticationService.PasswordMatches(password, user.PasswordHash))
+        {
+            throw new BusinessRuleException(PasswordFailedMessage);
+        }
+
+        return user;
+    }
+
+    private async Task<MfaChallenge> LoadValidEnrolChallengeAsync(string mfaToken, DateTime nowUtc, bool includeRole, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(mfaToken))
+            throw new BusinessRuleException(EnrolSessionInvalidMessage);
+
+        var tokenHash = AuthenticationService.Hash(mfaToken);
+        IQueryable<MfaChallenge> query = includeRole
+            ? _db.MfaChallenges.Include(c => c.User).ThenInclude(u => u!.Role)
+            : _db.MfaChallenges.Include(c => c.User);
+
+        var challenge = await query.FirstOrDefaultAsync(c => c.TokenHash == tokenHash, ct);
+        if (challenge is null
+            || challenge.Purpose != MfaChallengePurpose.Enrol
+            || challenge.ConsumedAt is not null
+            || challenge.ExpiresAt <= nowUtc
+            || challenge.FailedAttempts >= MaxChallengeFailedAttempts
+            || challenge.User is null
+            || !challenge.User.IsActive
+            || challenge.User.IsLockedAt(nowUtc))
+        {
+            throw new BusinessRuleException(EnrolSessionInvalidMessage);
+        }
+
+        return challenge;
+    }
+
+    private async Task<EnrolmentStart> StartEnrolmentCoreAsync(User user, DateTime nowUtc, CancellationToken ct)
+    {
+        var hasActive = await _db.UserMfaCredentials
+            .AsNoTracking()
+            .AnyAsync(c => c.UserId == user.Id && c.Status == MfaCredentialStatus.Active, ct);
+        if (hasActive)
+            throw new BusinessRuleException("Two-factor authentication is already active. Remove your existing factor before setting up a new one.");
+
+        var pending = await _db.UserMfaCredentials
+            .Where(c => c.UserId == user.Id && c.Status == MfaCredentialStatus.Pending)
+            .ToListAsync(ct);
+        if (pending.Count > 0)
+        {
+            _db.UserMfaCredentials.RemoveRange(pending);
+            await _db.SaveChangesAsync(ct);
+        }
+
+        var secret = Totp.NewSecret();
+        string manualKey;
+        string protectedSecret;
+        try
+        {
+            manualKey = Totp.ToBase32(secret);
+            protectedSecret = _secretProtector.Protect(secret);
+        }
+        finally
+        {
+            CryptographicOperations.ZeroMemory(secret);
+        }
+
+        _db.UserMfaCredentials.Add(new UserMfaCredential
+        {
+            UserId = user.Id,
+            Type = MfaCredentialType.AuthenticatorApp,
+            SecretProtected = protectedSecret,
+            StepSeconds = DefaultStepSeconds,
+            Status = MfaCredentialStatus.Pending,
+            CreatedAt = nowUtc
+        });
+
+        _securityAudit.Record(new SecurityEventRequest(
+            SecurityEventCodes.MfaEnrolmentStarted,
+            SecurityEventOutcome.Success,
+            ActorUserId: user.Id,
+            TargetUserId: user.Id,
+            TargetUsername: user.Username));
+
+        var otpAuthUri = Totp.OtpAuthUri(TotpIssuer, user.Username, manualKey, DefaultStepSeconds);
+        var qrSvg = _qrCodeRenderer.RenderSvg(otpAuthUri);
+        return new EnrolmentStart(manualKey, otpAuthUri, qrSvg);
+    }
+
+    private async Task<List<string>?> TryConfirmEnrolmentCoreAsync(User user, string code, DateTime nowUtc, CancellationToken ct)
+    {
+        var hasActive = await _db.UserMfaCredentials
+            .AsNoTracking()
+            .AnyAsync(c => c.UserId == user.Id && c.Status == MfaCredentialStatus.Active, ct);
+        if (hasActive)
+            throw new BusinessRuleException("Two-factor authentication is already active.");
+
+        var pending = await _db.UserMfaCredentials
+            .FirstOrDefaultAsync(c => c.UserId == user.Id && c.Status == MfaCredentialStatus.Pending, ct)
+            ?? throw new BusinessRuleException("Start two-factor setup before confirming a code.");
+
+        var matchedStep = VerifyTotpCodeAgainstCredential(pending, code, nowUtc);
+        if (matchedStep is null)
+            return null;
+
+        pending.Status = MfaCredentialStatus.Active;
+        pending.ConfirmedAt = nowUtc;
+        pending.LastAcceptedStep = matchedStep.Value;
+
+        var recoveryCodes = await ReplaceRecoveryCodesAsync(user.Id, nowUtc, removeOnlyUnused: false, ct);
+
+        _securityAudit.Record(new SecurityEventRequest(
+            SecurityEventCodes.MfaEnrolled,
+            SecurityEventOutcome.Success,
+            ActorUserId: user.Id,
+            TargetUserId: user.Id,
+            TargetUsername: user.Username));
+
+        return recoveryCodes;
+    }
+
+    private async Task<List<string>> ReplaceRecoveryCodesAsync(int userId, DateTime nowUtc, bool removeOnlyUnused, CancellationToken ct)
+    {
+        var existing = await _db.MfaRecoveryCodes
+            .Where(r => r.UserId == userId && (!removeOnlyUnused || r.UsedAt == null))
+            .ToListAsync(ct);
+        if (existing.Count > 0)
+        {
+            _db.MfaRecoveryCodes.RemoveRange(existing);
+            await _db.SaveChangesAsync(ct);
+        }
+
+        var codes = new List<string>(RecoveryCodeSetCount);
+        var seenHashes = new HashSet<string>(RecoveryCodeSetCount, StringComparer.Ordinal);
+        while (codes.Count < RecoveryCodeSetCount)
+        {
+            var rawCode = GenerateRecoveryCode();
+            var hash = HashRecoveryCode(rawCode);
+            if (!seenHashes.Add(hash))
+                continue;
+
+            codes.Add(rawCode);
+            _db.MfaRecoveryCodes.Add(new MfaRecoveryCode
+            {
+                UserId = userId,
+                CodeHash = hash,
+                CreatedAt = nowUtc
+            });
+        }
+
+        return codes;
+    }
+
     private async Task<bool> TryVerifyTotpAsync(User user, string code, DateTime nowUtc, CancellationToken ct)
     {
         var credential = await _db.UserMfaCredentials
@@ -288,6 +770,19 @@ public sealed class MfaService : IMfaService
         if (credential is null)
             return false;
 
+        var matchedStep = VerifyTotpCodeAgainstCredential(credential, code, nowUtc);
+        if (matchedStep is null)
+            return false;
+
+        credential.LastAcceptedStep = matchedStep.Value;
+        return true;
+    }
+
+    private long? VerifyTotpCodeAgainstCredential(UserMfaCredential credential, string? code, DateTime nowUtc)
+    {
+        if (string.IsNullOrWhiteSpace(code))
+            return null;
+
         byte[] secret;
         try
         {
@@ -295,25 +790,18 @@ public sealed class MfaService : IMfaService
         }
         catch (SecretProtectionException ex)
         {
-            _logger.LogError(ex, "Failed to unprotect MFA credential {CredentialId} for user {UserId}.", credential.Id, user.Id);
-            return false;
+            _logger.LogError(ex, "Failed to unprotect MFA credential {CredentialId} for user {UserId}.", credential.Id, credential.UserId);
+            return null;
         }
 
-        long? matchedStep;
         try
         {
-            matchedStep = Totp.Verify(secret, code.Trim(), nowUtc, credential.StepSeconds, credential.LastAcceptedStep);
+            return Totp.Verify(secret, code.Trim(), nowUtc, credential.StepSeconds, credential.LastAcceptedStep);
         }
         finally
         {
             CryptographicOperations.ZeroMemory(secret);
         }
-
-        if (matchedStep is null)
-            return false;
-
-        credential.LastAcceptedStep = matchedStep.Value;
-        return true;
     }
 
     private async Task RecordSecondFactorFailureAsync(MfaChallenge challenge, User user, string? ip, CancellationToken ct)

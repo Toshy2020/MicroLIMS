@@ -292,6 +292,7 @@ public static class ServiceCollectionExtensions
         services.Configure<SmtpOptions>(config.GetSection(SmtpOptions.SectionName));
         services.Configure<MfaOptions>(config.GetSection(MfaOptions.SectionName));
         services.AddSingleton<ISecretProtector, AesGcmSecretProtector>();
+        services.AddSingleton<IQrCodeRenderer, ZXingQrCodeRenderer>();
         services.AddSingleton<MicroLIMS.Application.Abstractions.Email.ISmtpStatusProvider>(sp => new SmtpStatusProvider(sp.GetRequiredService<SmtpOptions>()));
         services.AddSingleton<MicroLIMS.Application.Services.Integrations.EmailDeliveryTracker>();
         services.AddScoped<IEmailSender>(sp => new MicroLIMS.Application.Services.Integrations.TrackingEmailSender(

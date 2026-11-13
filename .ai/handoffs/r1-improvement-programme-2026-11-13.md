@@ -1,3 +1,5 @@
+> **SUPERSEDED (2026-11-13) by `.ai/handoffs/r2-start-2026-11-13.md`.** R1 is finished and approved; the Next action and Blockers below are stale (SSO Tasks 5-7/10 done, agy no longer used). Kept for background only.
+
 # Handoff: R1 improvement programme (B4 QA role, B2 MFA, B3 SSO, B1 labels), 2026-11-13
 
 Written at the end of a long session that delegated slices to Antigravity (`agy`, via the

@@ -2,6 +2,7 @@ import { apiClient, ifMatch } from "../../../../services/apiClient";
 import type {
   EquipmentDocument,
   EquipmentDocumentType,
+  EquipmentItem,
   EquipmentStatusHistoryItem
 } from "../types/equipmentTypes";
 
@@ -54,9 +55,12 @@ export interface WhereIsItResultDto {
 }
 
 export const EquipmentInventoryService = {
-  getAll: () => apiClient.get("/inventory/equipment").then((r) => r.data.data),
-  getById: (id: number) => apiClient.get(`/inventory/equipment/${id}`).then((r) => r.data.data),
-  getForPrint: () => apiClient.get("/inventory/equipment/print").then((r) => r.data.data),
+  getAll: (signal?: AbortSignal): Promise<EquipmentItem[]> =>
+    apiClient.get("/inventory/equipment", { signal }).then((r) => r.data.data),
+  getById: (id: number, signal?: AbortSignal): Promise<EquipmentItem> =>
+    apiClient.get(`/inventory/equipment/${id}`, { signal }).then((r) => r.data.data),
+  getForPrint: (signal?: AbortSignal): Promise<EquipmentItem[]> =>
+    apiClient.get("/inventory/equipment/print", { signal }).then((r) => r.data.data),
   getActiveEquipment: (): Promise<ActiveEquipmentDto[]> => apiClient.get("/inventory/equipment/active").then((r) => r.data.data),
   getActiveActivities: (equipmentId: number): Promise<EquipmentActivityDto[]> =>
     apiClient.get(`/inventory/equipment/${equipmentId}/activities`).then((r) => r.data.data),

@@ -90,23 +90,48 @@ public class EquipmentInventoryService
         _scope = scope;
     }
 
-    public async Task<List<EquipmentInventoryResponse>> GetAllAsync(IReadOnlyList<int>? scope) =>
-        (await _db.EquipmentInventories
-            .Where(e => scope == null || (e.SectionId != null && scope.Contains(e.SectionId.Value)))
-            .OrderBy(e => e.InstrumentType).ThenBy(e => e.Code).ToListAsync()).Select(e => EquipmentInventoryResponse.From(e, _time.GetUtcNow().UtcDateTime)).ToList();
-
-    public async Task<EquipmentInventoryResponse?> GetByIdAsync(int id, int userId)
+    private async Task<List<EquipmentInventoryResponse>> ProjectInventoryResponsesAsync(
+        IQueryable<EquipmentInventory> query,
+        CancellationToken ct)
     {
-        await _scope.EnsureEquipmentInventoryAccessAsync(userId, id, access: SectionAccess.Read);
-        return (await _db.EquipmentInventories.FirstOrDefaultAsync(e => e.Id == id)) is { } found ? EquipmentInventoryResponse.From(found, _time.GetUtcNow().UtcDateTime) : null;
+        var nowUtc = _time.GetUtcNow().UtcDateTime;
+        var rows = await query
+            .AsNoTracking()
+            .Select(e => new
+            {
+                Entity = e,
+                CodeLocked = _db.LabelPrintLogs.Any(l =>
+                    l.EntityType == LabelEntityType.EquipmentAsset && l.EntityId == e.Id)
+            })
+            .ToListAsync(ct);
+
+        return rows.Select(x => EquipmentInventoryResponse.From(x.Entity, nowUtc, x.CodeLocked)).ToList();
     }
 
-    public async Task<List<EquipmentInventoryResponse>> GetForPrintAsync(IReadOnlyList<int>? scope) =>
-        (await _db.EquipmentInventories
-            .Where(e => e.Status == EquipmentOperationalStatus.InService)
-            .Where(e => scope == null || (e.SectionId != null && scope.Contains(e.SectionId.Value)))
-            .OrderBy(e => e.InstrumentType).ThenBy(e => e.Code)
-            .ToListAsync()).Select(e => EquipmentInventoryResponse.From(e, _time.GetUtcNow().UtcDateTime)).ToList();
+    public Task<List<EquipmentInventoryResponse>> GetAllAsync(IReadOnlyList<int>? scope, CancellationToken ct = default) =>
+        ProjectInventoryResponsesAsync(
+            _db.EquipmentInventories
+                .Where(e => scope == null || (e.SectionId != null && scope.Contains(e.SectionId.Value)))
+                .OrderBy(e => e.InstrumentType)
+                .ThenBy(e => e.Code),
+            ct);
+
+    public async Task<EquipmentInventoryResponse?> GetByIdAsync(int id, int userId, CancellationToken ct = default)
+    {
+        await _scope.EnsureEquipmentInventoryAccessAsync(userId, id, ct, SectionAccess.Read);
+        return (await ProjectInventoryResponsesAsync(
+            _db.EquipmentInventories.Where(e => e.Id == id),
+            ct)).FirstOrDefault();
+    }
+
+    public Task<List<EquipmentInventoryResponse>> GetForPrintAsync(IReadOnlyList<int>? scope, CancellationToken ct = default) =>
+        ProjectInventoryResponsesAsync(
+            _db.EquipmentInventories
+                .Where(e => e.Status == EquipmentOperationalStatus.InService)
+                .Where(e => scope == null || (e.SectionId != null && scope.Contains(e.SectionId.Value)))
+                .OrderBy(e => e.InstrumentType)
+                .ThenBy(e => e.Code),
+            ct);
 
     // Missing -> the caller forgot to choose a lab (a data problem, same
     // family as "Code is required"). Out-of-scope -> the caller tried to
@@ -159,9 +184,9 @@ public class EquipmentInventoryService
         }
     }
 
-    public async Task<EquipmentInventoryResponse> CreateAsync(SaveEquipmentInventoryRequest r, int currentUserId)
+    public async Task<EquipmentInventoryResponse> CreateAsync(SaveEquipmentInventoryRequest r, int currentUserId, CancellationToken ct = default)
     {
-        if (await _db.EquipmentInventories.AnyAsync(e => e.Code == r.Code))
+        if (await _db.EquipmentInventories.AnyAsync(e => e.Code == r.Code, ct))
             throw new BusinessRuleException($"Equipment code \"{r.Code}\" already exists.");
 
         await EnsureUniqueSerialNumberAsync(excludeId: null, r.SerialNumber, r.ManufacturerName);
@@ -185,20 +210,29 @@ public class EquipmentInventoryService
             LastModifiedAt = _time.GetUtcNow().UtcDateTime
         };
         _db.EquipmentInventories.Add(entity);
-        await _db.SaveChangesAsync();
+        await _db.SaveChangesAsync(ct);
         return EquipmentInventoryResponse.From(entity, _time.GetUtcNow().UtcDateTime);
     }
 
-    public async Task UpdateAsync(int id, SaveEquipmentInventoryRequest r, int currentUserId)
+    public async Task UpdateAsync(int id, SaveEquipmentInventoryRequest r, int currentUserId, CancellationToken ct = default)
     {
-        await _scope.EnsureEquipmentInventoryAccessAsync(currentUserId, id);
+        await _scope.EnsureEquipmentInventoryAccessAsync(currentUserId, id, ct);
 
-        var entity = await _db.EquipmentInventories.FindAsync(id)
+        var entity = await _db.EquipmentInventories.FindAsync([id], ct)
             ?? throw new NotFoundException($"Equipment {id} not found.");
         RecordVersion.EnsureCurrent(_db, entity);
 
-        if (r.Code != entity.Code && await _db.EquipmentInventories.AnyAsync(e => e.Code == r.Code))
-            throw new BusinessRuleException($"Equipment code \"{r.Code}\" already exists.");
+        if (r.Code != entity.Code)
+        {
+            var hasPrintedLabel = await _db.LabelPrintLogs.AnyAsync(
+                l => l.EntityType == LabelEntityType.EquipmentAsset && l.EntityId == id,
+                ct);
+            if (hasPrintedLabel)
+                throw new BusinessRuleException("The code cannot be changed because a label has been printed for this instrument.");
+
+            if (await _db.EquipmentInventories.AnyAsync(e => e.Code == r.Code, ct))
+                throw new BusinessRuleException($"Equipment code \"{r.Code}\" already exists.");
+        }
 
         await EnsureUniqueSerialNumberAsync(excludeId: id, r.SerialNumber, r.ManufacturerName);
 
@@ -237,7 +271,7 @@ public class EquipmentInventoryService
         entity.LastModifiedByUserId = currentUserId;
         entity.LastModifiedAt = _time.GetUtcNow().UtcDateTime;
 
-        await _db.SaveChangesAsync();
+        await _db.SaveChangesAsync(ct);
     }
 
     public async Task<List<EquipmentStatusHistoryDto>> GetStatusHistoryAsync(int equipmentId, int userId)

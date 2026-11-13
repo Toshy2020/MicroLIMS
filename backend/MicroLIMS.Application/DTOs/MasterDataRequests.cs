@@ -206,7 +206,8 @@ public record CreateEquipmentRequest(
     string? Vendor = null,
     CdsSoftware? CdsSoftware = null,
     string? ConnectionSettings = null,
-    int? SectionId = null);
+    int? SectionId = null,
+    int? EquipmentInventoryId = null);
 
 public record UpdateEquipmentRequest(
     string Name,
@@ -218,7 +219,8 @@ public record UpdateEquipmentRequest(
     string? Vendor = null,
     CdsSoftware? CdsSoftware = null,
     string? ConnectionSettings = null,
-    int? SectionId = null);
+    int? SectionId = null,
+    int? EquipmentInventoryId = null);
 public record CreateRoomTestConfigRequest(int RoomId, string TestType, string TestCode, string AlertLimit, string ActionLimit, string SpecLimit, string? Unit = null);
 public record CreateMachinePartConfigRequest(
     int MachinePartId,

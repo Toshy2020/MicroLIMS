@@ -11,9 +11,10 @@ import { SignatureDialog } from "../../components/SignatureDialog";
 import {
   AccessReviewDetail, AccessReviewListItem, AccessReviewService, AccessReviewUserEntry, FINDING_KINDS, FindingAction
 } from "./services/AccessReviewService";
+import { getErrorMessage, serverMessage } from "../../utils/errorMessage";
 
 const formatDate = (iso: string | null) => (iso ? new Date(iso).toLocaleString() : "Never");
-const messageOf = (e: any, fallback: string): string => e?.response?.data?.message ?? fallback;
+const messageOf = (e: unknown, fallback: string): string => serverMessage(e) ?? getErrorMessage(e, fallback);
 
 type StatusFilter = "All" | "Active" | "Inactive";
 
@@ -116,6 +117,7 @@ export function AccessReviewPage() {
   };
 
   const isDraft = detail?.status === "Draft";
+  const canDecide = Boolean(isDraft && detail?.canDecide);
 
   return (
     <>
@@ -176,9 +178,15 @@ export function AccessReviewPage() {
             </Typography>
             <Stack direction="row" spacing={1}>
               <Button variant="outlined" onClick={exportCsv}>Export CSV</Button>
-              {isDraft && <Button variant="contained" onClick={() => setSigning(true)}>Sign review</Button>}
+              {canDecide && <Button variant="contained" onClick={() => setSigning(true)}>Sign review</Button>}
             </Stack>
           </Stack>
+
+          {isDraft && !detail.canDecide && (
+            <Alert severity="info" sx={{ mb: 1 }}>
+              Access reviews are decided and signed by Quality Assurance.
+            </Alert>
+          )}
 
           {!detail.snapshotIntact && (
             <Alert severity="error" sx={{ mb: 1 }}>The stored report no longer matches its checksum. Do not rely on it.</Alert>
@@ -259,7 +267,7 @@ export function AccessReviewPage() {
                       </TableCell>
                       <TableCell align="right">
                         {own.length}
-                        {isDraft && (
+                        {canDecide && (
                           <Button size="small" aria-label={`Add finding for ${u.username}`} onClick={() => openFinding(u)}>Add finding</Button>
                         )}
                       </TableCell>

@@ -210,13 +210,13 @@ describe("menuConfig Administration group", () => {
     expect(adminPaths([PERMISSIONS.USERS_MANAGE])).toEqual(["/admin/users"]);
     expect(adminPaths([PERMISSIONS.SYSTEM_CONFIGURE_SETTINGS])).toEqual(["/admin/settings"]);
     expect(adminPaths([PERMISSIONS.ROLES_MANAGE])).toEqual(["/admin/roles"]);
-    expect(adminPaths([PERMISSIONS.AUDIT_VIEW])).toEqual(["/admin/audit"]);
+    expect(adminPaths([PERMISSIONS.AUDIT_VIEW])).toEqual(["/admin/audit", "/audit-trail-reviews"]);
     expect(adminPaths([PERMISSIONS.SYSTEM_VIEW_ERROR_LOG])).toEqual(["/admin/error-log"]);
   });
 
   it("lists all five pages, in tab order, for a full administrator", () => {
     expect(adminPaths([PERMISSIONS.USERS_MANAGE, PERMISSIONS.ROLES_MANAGE, PERMISSIONS.AUDIT_VIEW, PERMISSIONS.SYSTEM_VIEW_ERROR_LOG, PERMISSIONS.SYSTEM_CONFIGURE_SETTINGS]))
-      .toEqual(["/admin/users", "/admin/roles", "/admin/audit", "/admin/error-log", "/admin/settings"]);
+      .toEqual(["/admin/users", "/admin/roles", "/admin/audit", "/audit-trail-reviews", "/admin/error-log", "/admin/settings"]);
   });
 
   it("no longer scatters admin entries under the old groups or paths", () => {

@@ -72,6 +72,8 @@ const RolesPage = lazy(() => import("../modules/roles/RolesPage").then((m) => ({
 const RoleDetailPage = lazy(() => import("../modules/roles/RoleDetailPage").then((m) => ({ default: m.RoleDetailPage })));
 const CreateRolePage = lazy(() => import("../modules/roles/CreateRolePage").then((m) => ({ default: m.CreateRolePage })));
 const AuditSearchPage = lazy(() => import("../modules/auditSearch/AuditSearchPage").then((m) => ({ default: m.AuditSearchPage })));
+const AuditTrailReviewsPage = lazy(() => import("../modules/auditReview/AuditTrailReviewsPage").then((m) => ({ default: m.AuditTrailReviewsPage })));
+const AuditTrailReviewDetailPage = lazy(() => import("../modules/auditReview/AuditTrailReviewDetailPage").then((m) => ({ default: m.AuditTrailReviewDetailPage })));
 const MonitoringPlanPage = lazy(() => import("../modules/monitoringPlan/MonitoringPlanPage").then((m) => ({ default: m.MonitoringPlanPage })));
 const DatabaseOverviewPage = lazy(() => import("../modules/admin/DatabaseOverviewPage").then((m) => ({ default: m.DatabaseOverviewPage })));
 const ErrorMonitoringPage = lazy(() => import("../modules/errorMonitoring/ErrorMonitoringPage").then((m) => ({ default: m.ErrorMonitoringPage })));
@@ -221,6 +223,10 @@ export function AppRoutes() {
 
             <Route element={<PermissionRoute code={PERMISSIONS.OOS_MANAGE} />}>
               <Route path="/oos-tracking" element={<OosTrackingPage />} />
+            </Route>
+            <Route element={<PermissionRoute code={PERMISSIONS.AUDIT_VIEW} />}>
+              <Route path="/audit-trail-reviews" element={<AuditTrailReviewsPage />} />
+              <Route path="/audit-trail-reviews/:id" element={<AuditTrailReviewDetailPage />} />
             </Route>
             <Route element={<PermissionRoute code={[PERMISSIONS.ITEMS_MANAGE, PERMISSIONS.NOT_APPLICABLE_TESTS_FINAL_APPROVE]} />}>
               <Route path="/laboratory-configuration/items" element={<ItemsPage />} />

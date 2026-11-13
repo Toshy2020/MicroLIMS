@@ -15,8 +15,11 @@ import { MediaEvaluationWorkflowDialog } from "./dialogs/MediaEvaluationWorkflow
 import { MarkOutOfStockDialog } from "./dialogs/MarkOutOfStockDialog";
 import { MediaPreparationService } from "./services/MediaPreparationService";
 import { MediaEvaluationService } from "../mediaEvaluation/services/MediaEvaluationService";
+import type { MediaLot } from "../mediaEvaluation/types/mediaEvaluationTypes";
 import { masterDataOptions } from "../../../services/masterDataOptions";
 import { ApprovedMediaListPage } from "../../inventory/approvedLists/ApprovedMediaListPage";
+import { PrintLabelsDialog } from "../../../components/labels/PrintLabelsDialog";
+import { usePostCreateLabelPrint } from "../../../components/labels/usePostCreateLabelPrint";
 
 export function MediaPage() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -38,6 +41,7 @@ export function MediaPage() {
   const [pendingDecision, setPendingDecision] = useState<{ lot: any; approved: boolean } | null>(null);
   const [outOfStockLot, setOutOfStockLot] = useState<any | null>(null);
   const [message, setMessage] = useState<{ text: string; ok: boolean } | null>(null);
+  const postCreatePrint = usePostCreateLabelPrint();
 
   // Filters & Controls
   const [search, setSearch] = useState("");
@@ -162,8 +166,18 @@ export function MediaPage() {
     }
   };
 
-  const handlePrepSuccess = async (newLot: any) => {
+  const handlePrepSuccess = async (newLot: MediaLot) => {
     setMessage({ text: `Media lot ${newLot?.lotNumber ?? ""} successfully prepared.`, ok: true });
+    if (newLot?.id && newLot?.lotNumber) {
+      postCreatePrint.offerPrint([
+        {
+          entityType: "MediaLot",
+          entityId: newLot.id,
+          code: newLot.lotNumber,
+          displayName: newLot.material?.materialName ?? "Media Lot"
+        }
+      ]);
+    }
     await loadData();
     if (newLot?.id) {
       setSelectedLotId(newLot.id);
@@ -340,6 +354,12 @@ export function MediaPage() {
         entityName="Media"
         entityId={auditLotId}
         onClose={() => setAuditLotId(null)}
+      />
+
+      <PrintLabelsDialog
+        open={postCreatePrint.dialogOpen}
+        targets={postCreatePrint.targets}
+        onClose={postCreatePrint.closeDialog}
       />
 
       {pendingDecision && (

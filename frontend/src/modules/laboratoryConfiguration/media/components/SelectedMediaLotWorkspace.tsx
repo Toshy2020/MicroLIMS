@@ -37,6 +37,7 @@ import { PreparationWhereUsedPanel } from "../../../testPreparation/components/P
 import { tableHeadSx } from "../../../../theme";
 import { useAuth } from "../../../../contexts/AuthContext";
 import { PERMISSIONS } from "../../../../routes/routes";
+import { PrintLabelButton } from "../../../../components/labels/PrintLabelButton";
 
 function formatDateDDMMYY(value: string | number | Date | null | undefined): string {
   if (!value) return "—";
@@ -215,6 +216,15 @@ export function SelectedMediaLotWorkspace({
         >
           Audit History
         </Button>
+
+        <PrintLabelButton
+          target={{
+            entityType: "MediaLot",
+            entityId: lot.id,
+            code: lot.lotNumber ?? "",
+            displayName: lot.material?.materialName || summary?.materialName || lot.lotNumber || "Media Lot"
+          }}
+        />
 
         {lifecycle === "Awaiting Approval" && canRelease && (
           <>

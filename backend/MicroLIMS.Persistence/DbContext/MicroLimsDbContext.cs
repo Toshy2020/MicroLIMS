@@ -53,6 +53,8 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext, IMicr
     public DbSet<MfaRecoveryCode> MfaRecoveryCodes => Set<MfaRecoveryCode>();
     public DbSet<MfaChallenge> MfaChallenges => Set<MfaChallenge>();
     public DbSet<TrustedDevice> TrustedDevices => Set<TrustedDevice>();
+    public DbSet<SsoPendingRequest> SsoPendingRequests => Set<SsoPendingRequest>();
+    public DbSet<SsoExchangeCode> SsoExchangeCodes => Set<SsoExchangeCode>();
     public DbSet<ElectronicSignature> ElectronicSignatures => Set<ElectronicSignature>();
     public DbSet<Item> Items => Set<Item>();
     public DbSet<Specification> Specifications => Set<Specification>();

@@ -15,9 +15,21 @@ public record LoginOutcome(
     DateTime? MfaEnrolmentDueAt = null,
     string? DeviceToken = null,
     int? RecoveryCodesRemaining = null,
-    IReadOnlyList<string>? RecoveryCodes = null);
+    IReadOnlyList<string>? RecoveryCodes = null,
+    bool SigningPasswordRequired = false);
 
-public record CurrentUserInfo(int UserId, string Username, string FullName, string Role, string? JobTitle, DateTime? LastLoginAt, DateTime? PasswordChangedAt, bool MustChangePassword, string RoleName);
+public record CurrentUserInfo(
+    int UserId,
+    string Username,
+    string FullName,
+    string Role,
+    string? JobTitle,
+    DateTime? LastLoginAt,
+    DateTime? PasswordChangedAt,
+    bool MustChangePassword,
+    string RoleName,
+    string SignInMethod = nameof(Domain.Enums.SignInMethod.Local),
+    bool SigningPasswordSet = false);
 
 // What an access token is issued for. RoleId and PermissionVersion are signed
 // into the token so the API can tell, on every request, whether the user's
@@ -45,6 +57,7 @@ public interface IAuthenticationService
     // disabled, locked, password changed). Returns how many were revoked.
     Task<int> RevokeAllRefreshTokensAsync(int userId);
     Task<bool> ChangePasswordAsync(int userId, string currentPassword, string newPassword);
+    Task SetInitialSigningPasswordAsync(int userId, string newPassword, CancellationToken ct = default);
     Task RequestPasswordResetAsync(string username);
     Task<bool> ConfirmPasswordResetAsync(string resetToken, string newPassword);
     Task<CurrentUserInfo?> GetCurrentUserAsync(int userId);

@@ -15,6 +15,7 @@ public record LogoutRequest(string? RefreshToken);
 public record RequestPasswordResetRequest(string Username);
 public record ConfirmPasswordResetRequest(string ResetToken, string NewPassword);
 public record ChangePasswordRequest(string CurrentPassword, string NewPassword);
+public record SetInitialSigningPasswordRequest(string NewPassword);
 public record ConfirmAdminPasswordRecoveryRequest(string Username, string RecoveryCode, string NewPassword);
 
 [ApiController]
@@ -41,7 +42,7 @@ public class AuthenticationController : ControllerBase
         return Ok(ApiResponse<object>.Ok(ToLoginResponse(outcome)));
     }
 
-    internal static object ToLoginResponse(LoginOutcome outcome) => new
+    public static object ToLoginResponse(LoginOutcome outcome) => new
     {
         token = outcome.Token,
         refreshToken = outcome.RefreshToken,
@@ -53,7 +54,8 @@ public class AuthenticationController : ControllerBase
         mfaEnrolmentDueAt = outcome.MfaEnrolmentDueAt,
         deviceToken = outcome.DeviceToken,
         recoveryCodesRemaining = outcome.RecoveryCodesRemaining,
-        recoveryCodes = outcome.RecoveryCodes
+        recoveryCodes = outcome.RecoveryCodes,
+        signingPasswordRequired = outcome.SigningPasswordRequired
     };
 
     [HttpPost("refresh")]
@@ -118,6 +120,16 @@ public class AuthenticationController : ControllerBase
         return success ? Ok(ApiResponse<object>.Ok(new { })) : BadRequest(ApiResponse<object>.Fail("Current password is incorrect."));
     }
 
+    [HttpPost("signing-password")]
+    [Authorize]
+    [EnableRateLimiting(RateLimitingPolicies.PasswordChange)]
+    public async Task<IActionResult> SetInitialSigningPassword(SetInitialSigningPasswordRequest request, CancellationToken ct)
+    {
+        var userId = int.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)!.Value);
+        await _authService.SetInitialSigningPasswordAsync(userId, request.NewPassword, ct);
+        return Ok(ApiResponse<object>.Ok(new { }));
+    }
+
     // The body is optional so an older client that posts nothing still
     // logs out - it just revokes every session instead of the named one.
     [HttpPost("logout")]
@@ -148,7 +160,9 @@ public class AuthenticationController : ControllerBase
             jobTitle = info.JobTitle,
             lastLoginAt = info.LastLoginAt,
             passwordChangedAt = info.PasswordChangedAt,
-            mustChangePassword = info.MustChangePassword
+            mustChangePassword = info.MustChangePassword,
+            signInMethod = info.SignInMethod,
+            signingPasswordSet = info.SigningPasswordSet
         }));
     }
 }

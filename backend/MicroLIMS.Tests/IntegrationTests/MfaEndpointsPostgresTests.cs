@@ -14,6 +14,7 @@ using MicroLIMS.API.Filters;
 using MicroLIMS.API.Json;
 using MicroLIMS.API.Middleware;
 using MicroLIMS.Application.Security;
+using MicroLIMS.Application.Services.SystemSettings;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Infrastructure.Security;
@@ -37,8 +38,9 @@ public class MfaEndpointsPostgresTests
 
     public MfaEndpointsPostgresTests(PostgresTestFixture fixture) => _fixture = fixture;
 
-    private async Task<(WebApplication App, HttpClient Client)> StartHostAsync()
+    private async Task<(WebApplication App, HttpClient Client)> StartHostAsync(string? connectionString = null)
     {
+        var cs = connectionString ?? _fixture.TestConnectionString;
         var builder = WebApplication.CreateBuilder();
         builder.WebHost.UseTestServer();
         builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
@@ -48,12 +50,12 @@ public class MfaEndpointsPostgresTests
             ["Jwt:Audience"] = "MicroLIMS.Client",
             ["Mfa:ActiveKeyId"] = "test-k1",
             ["Mfa:EncryptionKeys:test-k1"] = FixedKeyBase64,
-            ["ConnectionStrings:DefaultConnection"] = _fixture.TestConnectionString
+            ["ConnectionStrings:DefaultConnection"] = cs
         });
 
         var jwtSettings = JwtConfiguration.Resolve(builder.Configuration, builder.Environment);
         builder.Services.AddSingleton(jwtSettings);
-        builder.Services.AddMicroLimsDbContext(opt => opt.UseNpgsql(_fixture.TestConnectionString));
+        builder.Services.AddMicroLimsDbContext(opt => opt.UseNpgsql(cs));
         builder.Services.AddApplicationServices(builder.Configuration);
         builder.Services.AddMicroLimsJwtAuthentication(jwtSettings);
         builder.Services.AddMicroLimsAuthorization();
@@ -599,5 +601,59 @@ public class MfaEndpointsPostgresTests
         Assert.False(await assertDb.UserMfaCredentials.AsNoTracking().AnyAsync(c => c.UserId == userAId));
         Assert.True(await assertDb.UserMfaCredentials.AsNoTracking()
             .AnyAsync(c => c.UserId == userBId && c.Status == MfaCredentialStatus.Pending));
+    }
+
+    [PostgresFact]
+    public async Task Options_Anonymous_ReturnsTrustedDeviceHours()
+    {
+        await ScratchPostgresDatabase.RunAsync(async cs =>
+        {
+            await using (var db = ScratchPostgresDatabase.NewContext(cs))
+            {
+                await db.Database.MigrateAsync();
+                db.SystemSettings.Add(new SystemSetting
+                {
+                    Key = SystemSettingKeys.MfaTrustedDeviceHours,
+                    Value = "0",
+                    ValueType = SystemSettingValueType.Integer,
+                    Category = "Security",
+                    IsGxpRelevant = true,
+                    Description = "Trusted device hours",
+                    CurrentVersion = 1
+                });
+                await db.SaveChangesAsync();
+            }
+
+            var (app, client) = await StartHostAsync(cs);
+            await using var _ = app;
+
+            var zeroResp = await client.GetAsync("/api/auth/mfa/options");
+            Assert.Equal(HttpStatusCode.OK, zeroResp.StatusCode);
+            using (var zeroJson = await ReadJsonAsync(zeroResp))
+            {
+                var data = zeroJson.RootElement.GetProperty("data");
+                var prop = Assert.Single(data.EnumerateObject());
+                Assert.Equal("trustedDeviceHours", prop.Name);
+                Assert.Equal(0, prop.Value.GetInt32());
+            }
+
+            await using (var updateDb = ScratchPostgresDatabase.NewContext(cs))
+            {
+                var setting = await updateDb.SystemSettings.SingleAsync(s => s.Key == SystemSettingKeys.MfaTrustedDeviceHours);
+                setting.Value = "16";
+                await updateDb.SaveChangesAsync();
+            }
+            app.Services.GetRequiredService<SystemSettingsCache>().Invalidate();
+
+            var positiveResp = await client.GetAsync("/api/auth/mfa/options");
+            Assert.Equal(HttpStatusCode.OK, positiveResp.StatusCode);
+            using (var positiveJson = await ReadJsonAsync(positiveResp))
+            {
+                var data = positiveJson.RootElement.GetProperty("data");
+                var prop = Assert.Single(data.EnumerateObject());
+                Assert.Equal("trustedDeviceHours", prop.Name);
+                Assert.Equal(16, prop.Value.GetInt32());
+            }
+        });
     }
 }

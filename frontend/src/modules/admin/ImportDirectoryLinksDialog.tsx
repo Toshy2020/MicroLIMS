@@ -69,10 +69,11 @@ export function ImportDirectoryLinksDialog({ open, onClose, onImported }: Import
   const [error, setError] = useState<string | null>(null);
   const [summary, setSummary] = useState<string | null>(null);
   const [done, setDone] = useState(false);
+  const [reason, setReason] = useState("");
 
   const hasInvalidRows = previewRows.some((r) => r.status !== "Ok");
   const hasOkRows = previewRows.some((r) => r.status === "Ok");
-  const canImport = previewRows.length > 0 && hasOkRows && (!hasInvalidRows || skipInvalidRows) && !importing && !done;
+  const canImport = previewRows.length > 0 && hasOkRows && (!hasInvalidRows || skipInvalidRows) && reason.trim().length > 0 && !importing && !done;
 
   const handleClose = () => {
     setCsvText("");
@@ -82,6 +83,7 @@ export function ImportDirectoryLinksDialog({ open, onClose, onImported }: Import
     setError(null);
     setSummary(null);
     setDone(false);
+    setReason("");
     onClose();
   };
 
@@ -130,7 +132,7 @@ export function ImportDirectoryLinksDialog({ open, onClose, onImported }: Import
     setError(null);
     setImporting(true);
     try {
-      const res = await SsoAdminService.importLinks(parsedRows);
+      const res = await SsoAdminService.importLinks(parsedRows, reason.trim());
       setPreviewRows(res.rows);
       const count = res.applied ?? res.rows.filter((r) => r.status === "Ok").length;
       const skipped = res.rows.length - count;
@@ -189,6 +191,18 @@ export function ImportDirectoryLinksDialog({ open, onClose, onImported }: Import
             setDone(false);
           }}
           placeholder={"username,companyUsername\nj.smith,john.smith"}
+          fullWidth
+        />
+
+        <TextField
+          label="Reason for change"
+          required
+          multiline
+          minRows={2}
+          value={reason}
+          onChange={(e) => setReason(e.target.value)}
+          slotProps={{ htmlInput: { maxLength: 500 } }}
+          helperText={reason.trim() ? " " : "A reason is required before importing (recorded in the audit trail)."}
           fullWidth
         />
 

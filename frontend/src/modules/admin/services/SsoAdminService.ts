@@ -54,7 +54,7 @@ export const SsoAdminService = {
     return (await apiClient.post("/admin/sso/links/preview", { rows })).data.data as DirectoryLinkPreviewResult;
   },
 
-  async importLinks(rows: DirectoryLinkCsvRow[]): Promise<DirectoryLinkPreviewResult> {
-    return (await apiClient.post("/admin/sso/links/import", { rows })).data.data as DirectoryLinkPreviewResult;
+  async importLinks(rows: DirectoryLinkCsvRow[], reason: string): Promise<DirectoryLinkPreviewResult> {
+    return (await apiClient.post("/admin/sso/links/import", { rows, reason })).data.data as DirectoryLinkPreviewResult;
   }
 };

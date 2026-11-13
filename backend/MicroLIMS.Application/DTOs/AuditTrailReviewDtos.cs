@@ -1,14 +1,26 @@
+using System.ComponentModel.DataAnnotations;
 using MicroLIMS.Domain.Enums;
 
 namespace MicroLIMS.Application.DTOs;
 
 public record StartAuditTrailReviewRequest(
-    string Title,
+    [property: Required, StringLength(200, MinimumLength = 1)] string Title,
     DateTime PeriodFromUtc,
     DateTime PeriodToUtc,
     AuditReviewScopeKind ScopeKind,
-    string? EntityName = null,
-    string? RecordId = null);
+    [property: MaxLength(150)] string? EntityName = null,
+    [property: MaxLength(100)] string? RecordId = null);
+
+public record AddAuditTrailReviewFindingRequest(
+    [property: Range(1, int.MaxValue)] int AuditLogId,
+    [property: Required, StringLength(2000, MinimumLength = 1)] string Note);
+
+public record SignAuditTrailReviewRequest(
+    [property: Required] string Password,
+    [property: Required, StringLength(2000, MinimumLength = 1)] string Conclusion);
+
+public record CloseAuditTrailReviewFindingRequest(
+    [property: Required, StringLength(2000, MinimumLength = 1)] string Comment);
 
 public record AuditTrailReviewFindingDto(
     int Id,

@@ -41,6 +41,14 @@ AuditController.GetSecurityEvents(String, String, Nullable`1, Nullable`1, Int32,
 AuditController.GetTraceability(Int32): SystemAdministrator,SectionHead,Qa
 AuditController.GetTraceabilityForEntity(String, String): SystemAdministrator,SectionHead,Qa
 AuditController.Search(AuditSearchRequest): SystemAdministrator,SectionHead,Qa
+AuditTrailReviewsController.AddFinding(Int32, AddAuditTrailReviewFindingRequest, CancellationToken): Qa
+AuditTrailReviewsController.CloseFinding(Int32, CloseAuditTrailReviewFindingRequest, CancellationToken): Qa
+AuditTrailReviewsController.ExportPdf(Int32, CancellationToken): SystemAdministrator,SectionHead,Qa
+AuditTrailReviewsController.Get(Int32, CancellationToken): SystemAdministrator,SectionHead,Qa
+AuditTrailReviewsController.GetEntries(Int32, Int32, Int32, CancellationToken): SystemAdministrator,SectionHead,Qa
+AuditTrailReviewsController.List(Int32, Int32, CancellationToken): SystemAdministrator,SectionHead,Qa
+AuditTrailReviewsController.Sign(Int32, SignAuditTrailReviewRequest, String, CancellationToken): Qa
+AuditTrailReviewsController.Start(StartAuditTrailReviewRequest, CancellationToken): Qa
 AuthenticationController.ChangePassword(ChangePasswordRequest): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 AuthenticationController.ConfirmAdminPasswordRecovery(ConfirmAdminPasswordRecoveryRequest): anonymous
 AuthenticationController.ConfirmPasswordReset(ConfirmPasswordResetRequest): anonymous

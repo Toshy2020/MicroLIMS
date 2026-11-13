@@ -19,26 +19,48 @@ import ScienceOutlinedIcon from "@mui/icons-material/ScienceOutlined";
 import { MediaPreparationService } from "../services/MediaPreparationService";
 import { MaterialService } from "../../../inventory/materials/services/MaterialService";
 import { MaterialItem } from "../../../inventory/materials/types/materialTypes";
-import { EquipmentConfigurationService, AutoclaveProgram } from "../../masterDataSimple/services/EquipmentConfigurationService";
+import {
+  EquipmentConfigurationService,
+  AutoclaveProgram,
+  EquipmentResponse
+} from "../../masterDataSimple/services/EquipmentConfigurationService";
+import type { MediaLot } from "../../mediaEvaluation/types/mediaEvaluationTypes";
 import { masterDataOptions } from "../../../../services/masterDataOptions";
 import { LoadFailuresAlert } from "../../../../components/LoadErrorAlert";
 import { useLoadFailures } from "../../../../hooks/useLoadFailures";
 import { DateField } from "../../../../components/DateField";
+import { ScanField } from "../../../../components/labels/ScanField";
+import { getErrorMessage } from "../../../../utils/errorMessage";
 import { MediaAdditivesSection, UsableSolution } from "../components/MediaAdditivesSection";
 import { AdditiveRow, buildAdditivesPayload, validateAdditives } from "../components/mediaAdditives";
+
+interface MediaPreparationFormState {
+  materialId?: number | "";
+  totalWeight?: string;
+  totalVolume?: string;
+  autoclaveEquipmentId?: number | "";
+  autoclaveProgramId?: number | "";
+  autoclaveProgram?: string;
+  loadType?: string;
+  temperature?: number | "";
+  cycleTime?: number | "";
+  cycleNumber?: string;
+  ph?: string;
+  expiryDate?: string;
+}
 
 interface Props {
   open: boolean;
   onClose: () => void;
-  onSuccess: (newLot: any) => void;
+  onSuccess: (newLot: MediaLot) => void;
 }
 
 export function MediaPreparationDialog({ open, onClose, onSuccess }: Props) {
   const theme = useTheme();
-  const [autoclaves, setAutoclaves] = useState<any[]>([]);
+  const [autoclaves, setAutoclaves] = useState<EquipmentResponse[]>([]);
   const [dehydratedMedia, setDehydratedMedia] = useState<MaterialItem[]>([]);
   const [autoclavePrograms, setAutoclavePrograms] = useState<AutoclaveProgram[]>([]);
-  const [form, setForm] = useState<Record<string, any>>({});
+  const [form, setForm] = useState<MediaPreparationFormState>({});
   const [additives, setAdditives] = useState<AdditiveRow[]>([]);
   const [allStock, setAllStock] = useState<MaterialItem[]>([]);
   const [solutions, setSolutions] = useState<UsableSolution[]>([]);
@@ -81,9 +103,12 @@ export function MediaPreparationDialog({ open, onClose, onSuccess }: Props) {
       (sectionId == null || m.sectionId === sectionId)
   );
 
-  const setField = (k: string, v: any) => setForm((f) => ({ ...f, [k]: v }));
+  const setField = <K extends keyof MediaPreparationFormState>(
+    k: K,
+    v: MediaPreparationFormState[K]
+  ) => setForm((f) => ({ ...f, [k]: v }));
 
-  const handleAutoclaveChange = async (eqId: any) => {
+  const handleAutoclaveChange = async (eqId: number | "") => {
     setField("autoclaveEquipmentId", eqId);
     setField("autoclaveProgramId", "");
     setField("autoclaveProgram", "");
@@ -96,13 +121,13 @@ export function MediaPreparationDialog({ open, onClose, onSuccess }: Props) {
       try {
         const programs = await EquipmentConfigurationService.getAutoclavePrograms(Number(eqId), true);
         setAutoclavePrograms(Array.isArray(programs) ? programs : []);
-      } catch (e) {
+      } catch {
         setAutoclavePrograms([]);
       }
     }
   };
 
-  const handleProgramChange = (progId: any) => {
+  const handleProgramChange = (progId: number | "") => {
     const prog = autoclavePrograms.find((p) => p.id === Number(progId));
     if (prog) {
       setForm((f) => ({
@@ -204,8 +229,8 @@ export function MediaPreparationDialog({ open, onClose, onSuccess }: Props) {
 
       onSuccess(result);
       onClose();
-    } catch (err: any) {
-      setError(err?.response?.data?.message ?? "Could not prepare media lot. Please verify all inputs.");
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, "Could not prepare media lot. Please verify all inputs."));
     } finally {
       setSaving(false);
     }
@@ -241,14 +266,21 @@ export function MediaPreparationDialog({ open, onClose, onSuccess }: Props) {
                 1. PREPARATION DETAILS & INVENTORY STOCK
               </Typography>
 
-              <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 2 }}>
-                <Box>
+              <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 2, alignItems: "start" }}>
+                <Stack spacing={1}>
+                  <ScanField
+                    label="Scan dehydrated media stock lot"
+                    expectedType="MaterialStockLot"
+                    offeredIds={usableStock.map((m) => m.id)}
+                    onSelect={(id) => setField("materialId", id)}
+                    disabled={saving}
+                  />
                   <Select
                     size="small"
                     displayEmpty
                     fullWidth
                     value={form.materialId ?? ""}
-                    onChange={(e) => setField("materialId", e.target.value)}
+                    onChange={(e) => setField("materialId", e.target.value as number | "")}
                     inputProps={{ "aria-label": "Dehydrated Media Stock (Inventory)" }}
                   >
                     <MenuItem value="">
@@ -278,7 +310,7 @@ export function MediaPreparationDialog({ open, onClose, onSuccess }: Props) {
                       Manufacturer: {selectedMaterial.manufacturerName} · Batch: {selectedMaterial.batchNumber}
                     </Typography>
                   )}
-                </Box>
+                </Stack>
 
                 <TextField
                   size="small"
@@ -316,30 +348,44 @@ export function MediaPreparationDialog({ open, onClose, onSuccess }: Props) {
                 Select an autoclave and configured program. Load Type, Temperature, and Cycle Time are automatically set from Laboratory Configuration.
               </Typography>
 
-              <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 2 }}>
-                <Select
-                  size="small"
-                  displayEmpty
-                  value={form.autoclaveEquipmentId ?? ""}
-                  onChange={(e) => handleAutoclaveChange(e.target.value)}
-                  inputProps={{ "aria-label": "Autoclave" }}
-                >
-                  <MenuItem value="">
-                    <em>Select Autoclave *</em>
-                  </MenuItem>
-                  {autoclaves.map((a) => (
-                    <MenuItem key={a.id} value={a.id}>
-                      {a.code}: {a.name}
+              <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 2, alignItems: "start" }}>
+                <Stack spacing={1}>
+                  <ScanField
+                    label="Scan autoclave"
+                    expectedType="EquipmentAsset"
+                    offeredIds={autoclaves.map((a) => a.id)}
+                    onSelect={(id) => {
+                      void handleAutoclaveChange(id);
+                    }}
+                    disabled={saving}
+                  />
+                  <Select
+                    size="small"
+                    displayEmpty
+                    fullWidth
+                    value={form.autoclaveEquipmentId ?? ""}
+                    onChange={(e) => {
+                      void handleAutoclaveChange(e.target.value as number | "");
+                    }}
+                    inputProps={{ "aria-label": "Autoclave" }}
+                  >
+                    <MenuItem value="">
+                      <em>Select Autoclave *</em>
                     </MenuItem>
-                  ))}
-                </Select>
+                    {autoclaves.map((a) => (
+                      <MenuItem key={a.id} value={a.id}>
+                        {a.code}: {a.name}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </Stack>
 
                 <Select
                   size="small"
                   displayEmpty
                   disabled={!form.autoclaveEquipmentId || !Array.isArray(autoclavePrograms) || autoclavePrograms.length === 0}
                   value={form.autoclaveProgramId ?? ""}
-                  onChange={(e) => handleProgramChange(e.target.value)}
+                  onChange={(e) => handleProgramChange(e.target.value as number | "")}
                   inputProps={{ "aria-label": "Autoclave program" }}
                 >
                   <MenuItem value="">

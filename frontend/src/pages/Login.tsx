@@ -10,6 +10,7 @@ import { useAuth } from "../contexts/AuthContext";
 import { completeSignInSession } from "../modules/authentication/completeSignIn";
 import { authenticationService, type LoginResult } from "../modules/authentication/services/authenticationService";
 import { mfaService } from "../modules/authentication/services/mfaService";
+import { ssoService, type SsoMode } from "../modules/authentication/services/ssoService";
 import { MfaCodeField } from "../modules/authentication/components/MfaCodeField";
 import { RecoveryCodesPanel } from "../modules/authentication/components/RecoveryCodesPanel";
 import { monospaceFontFamily } from "../theme/palette";
@@ -105,7 +106,11 @@ export function LoginPage({ now = Date.now }: LoginPageProps) {
   const [challengeStartedAt, setChallengeStartedAt] = useState<number | null>(null);
 
   const [pendingLoginResult, setPendingLoginResult] = useState<LoginResult | null>(null);
+  const [ssoMode, setSsoMode] = useState<SsoMode>("Off");
+  const [ssoModeNotice, setSsoModeNotice] = useState<string | null>(null);
+  const [showEmergencyForm, setShowEmergencyForm] = useState(false);
 
+  const usernameInputRef = useRef<HTMLInputElement>(null);
   const codeInputRef = useRef<HTMLInputElement>(null);
   const recoveryInputRef = useRef<HTMLInputElement>(null);
   const refocusMfaInputRef = useRef(false);
@@ -114,6 +119,33 @@ export function LoginPage({ now = Date.now }: LoginPageProps) {
   useEffect(() => {
     document.title = "Sign in · MicroLIMS";
   }, []);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    ssoService
+      .getMode(controller.signal)
+      .then((mode) => {
+        if (!controller.signal.aborted) {
+          setSsoMode(mode);
+          setSsoModeNotice(null);
+        }
+      })
+      .catch(() => {
+        if (!controller.signal.aborted) {
+          setSsoMode("Off");
+          setSsoModeNotice("Company sign-in status could not be checked. Use your laboratory account below.");
+        }
+      });
+    return () => {
+      controller.abort();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (showEmergencyForm) {
+      usernameInputRef.current?.focus();
+    }
+  }, [showEmergencyForm]);
 
   useEffect(() => {
     if (step !== "mfa") return;
@@ -551,62 +583,98 @@ export function LoginPage({ now = Date.now }: LoginPageProps) {
               </Button>
             </Box>
           ) : (
-            <Box component="form" onSubmit={handleSubmit} sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+            <Stack spacing={2}>
               <Box sx={{ mb: 1 }}>
                 <Typography component="h1" sx={{ fontSize: 24, fontWeight: 700 }}>Sign in</Typography>
-                <Typography sx={{ mt: 0.5, fontSize: 14, color: "text.secondary" }}>Use your laboratory account.</Typography>
+                <Typography sx={{ mt: 0.5, fontSize: 14, color: "text.secondary" }}>
+                  {ssoMode === "OpenIdConnect"
+                    ? "Sign in with your company account."
+                    : ssoMode === "ActiveDirectory"
+                      ? "Use your company account."
+                      : "Use your laboratory account."}
+                </Typography>
               </Box>
-              {error && <Alert severity="error" role="alert">{error}</Alert>}
-              <TextField
-                label="Username"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                autoComplete="username"
-                autoFocus
-                required
-              />
-              <TextField
-                label="Password"
-                type={showPassword ? "text" : "password"}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                autoComplete="current-password"
-                required
-                slotProps={{
-                  input: {
-                    endAdornment: (
-                      <InputAdornment position="end">
-                        <IconButton
-                          aria-label={showPassword ? "Hide password" : "Show password"}
-                          onClick={() => setShowPassword((prev) => !prev)}
-                          edge="end"
-                          size="small"
-                        >
-                          {showPassword ? <VisibilityOff fontSize="small" /> : <Visibility fontSize="small" />}
-                        </IconButton>
-                      </InputAdornment>
-                    )
-                  }
-                }}
-              />
-              <Button
-                type="submit"
-                variant="contained"
-                size="large"
-                disabled={isSubmitting}
-                startIcon={isSubmitting ? <CircularProgress size={18} color="inherit" /> : undefined}
-                sx={{ mt: 0.5 }}
-              >
-                {isSubmitting ? "Signing in…" : "Sign In"}
-              </Button>
-              {/* One way into recovery: the help screen offers both a reset
-                  request and the administrator recovery-code route. */}
-              <Box sx={{ textAlign: "center" }}>
-                <Link component="button" type="button" underline="hover" sx={{ fontSize: 14 }} onClick={() => setForgotMode(true)}>
-                  Need help signing in?
-                </Link>
-              </Box>
-            </Box>
+              {ssoModeNotice && <Alert severity="info">{ssoModeNotice}</Alert>}
+              {ssoMode === "OpenIdConnect" && (
+                <>
+                  <Button
+                    component="a"
+                    href={ssoService.startUrl()}
+                    variant="contained"
+                    size="large"
+                  >
+                    Sign in with your company account
+                  </Button>
+                  {!showEmergencyForm && (
+                    <Box sx={{ textAlign: "center" }}>
+                      <Button
+                        type="button"
+                        variant="text"
+                        size="small"
+                        onClick={() => setShowEmergencyForm(true)}
+                      >
+                        Emergency administrator sign-in
+                      </Button>
+                    </Box>
+                  )}
+                </>
+              )}
+              {(ssoMode !== "OpenIdConnect" || showEmergencyForm) && (
+                <Box component="form" onSubmit={handleSubmit} sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                  {error && <Alert severity="error" role="alert">{error}</Alert>}
+                  <TextField
+                    label={ssoMode === "ActiveDirectory" ? "Company username" : "Username"}
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    inputRef={usernameInputRef}
+                    autoComplete="username"
+                    autoFocus={ssoMode !== "OpenIdConnect"}
+                    required
+                  />
+                  <TextField
+                    label="Password"
+                    type={showPassword ? "text" : "password"}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    autoComplete="current-password"
+                    required
+                    slotProps={{
+                      input: {
+                        endAdornment: (
+                          <InputAdornment position="end">
+                            <IconButton
+                              aria-label={showPassword ? "Hide password" : "Show password"}
+                              onClick={() => setShowPassword((prev) => !prev)}
+                              edge="end"
+                              size="small"
+                            >
+                              {showPassword ? <VisibilityOff fontSize="small" /> : <Visibility fontSize="small" />}
+                            </IconButton>
+                          </InputAdornment>
+                        )
+                      }
+                    }}
+                  />
+                  <Button
+                    type="submit"
+                    variant={ssoMode === "OpenIdConnect" ? "outlined" : "contained"}
+                    size="large"
+                    disabled={isSubmitting}
+                    startIcon={isSubmitting ? <CircularProgress size={18} color="inherit" /> : undefined}
+                    sx={{ mt: 0.5 }}
+                  >
+                    {isSubmitting ? "Signing in…" : "Sign In"}
+                  </Button>
+                  {/* One way into recovery: the help screen offers both a reset
+                      request and the administrator recovery-code route. */}
+                  <Box sx={{ textAlign: "center" }}>
+                    <Link component="button" type="button" underline="hover" sx={{ fontSize: 14 }} onClick={() => setForgotMode(true)}>
+                      Need help signing in?
+                    </Link>
+                  </Box>
+                </Box>
+              )}
+            </Stack>
           )}
           {/* Every attempt, successful or not, is written to LoginHistory
               (AuthenticationService.RecordLoginAsync). */}

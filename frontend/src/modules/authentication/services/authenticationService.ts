@@ -4,7 +4,7 @@ import { readTokenClaims } from "../tokenClaims";
 
 export type { LoginResult };
 
-interface LoginResponseDto {
+export interface LoginResponseDto {
   token?: string | null;
   refreshToken?: string | null;
   mustChangePassword?: boolean;

@@ -8,6 +8,7 @@
 const APP_ROUTES = {
   // Public
   LOGIN: "/login",
+  SSO_COMPLETE: "/sso-complete",
   MFA_ENROL: "/mfa-enrol",
 
   // Core & Authenticated

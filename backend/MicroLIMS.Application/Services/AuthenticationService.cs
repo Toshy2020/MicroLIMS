@@ -9,6 +9,8 @@ using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Application.Abstractions.Email;
 using MicroLIMS.Application.Abstractions.Persistence;
+using MicroLIMS.Application.Abstractions.Sso;
+using MicroLIMS.Application.Services.Sso;
 using MicroLIMS.Shared.Constants;
 using MicroLIMS.Shared.Validation;
 using System.Security.Cryptography;
@@ -63,8 +65,10 @@ public class AuthenticationService : IAuthenticationService
     private readonly TimeProvider _time;
     private readonly ISystemSettingsReader? _settings;
     private readonly MfaPolicyService _mfaPolicy;
+    private readonly SsoModeService _ssoMode;
+    private readonly IDirectoryPasswordSignIn? _directorySignIn;
 
-    public AuthenticationService(IMicroLimsDbContext db, AccessTokenIssuer tokenIssuer, PermissionService permissionService, IEmailSender emailSender, ILogger<AuthenticationService> logger, ISecurityAuditService securityAudit, TimeProvider? timeProvider = null, ISystemSettingsReader? settings = null, MfaPolicyService? mfaPolicy = null)
+    public AuthenticationService(IMicroLimsDbContext db, AccessTokenIssuer tokenIssuer, PermissionService permissionService, IEmailSender emailSender, ILogger<AuthenticationService> logger, ISecurityAuditService securityAudit, TimeProvider? timeProvider = null, ISystemSettingsReader? settings = null, MfaPolicyService? mfaPolicy = null, SsoModeService? ssoMode = null, IDirectoryPasswordSignIn? directorySignIn = null)
     {
         _settings = settings;
         _time = timeProvider ?? TimeProvider.System;
@@ -75,6 +79,8 @@ public class AuthenticationService : IAuthenticationService
         _logger = logger;
         _securityAudit = securityAudit;
         _mfaPolicy = mfaPolicy ?? new MfaPolicyService(settings);
+        _ssoMode = ssoMode ?? new SsoModeService(db, settings, securityAudit);
+        _directorySignIn = directorySignIn;
     }
 
     public Task<LoginOutcome> LoginAsync(string username, string password, string? ipAddress = null, string? userAgent = null, string? deviceToken = null) =>
@@ -97,6 +103,10 @@ public class AuthenticationService : IAuthenticationService
         // Checked for every existing account, whatever its state, before the
         // state is looked at - so locked and disabled accounts take as long
         // to refuse as a wrong password does.
+        var ssoMode = await _ssoMode.GetModeAsync();
+        if (ssoMode == SsoMode.ActiveDirectory && !user.IsEmergencyAccount && _directorySignIn is not null)
+            return await _directorySignIn.SignInAsync(user, password, ipAddress, userAgent, deviceToken);
+
         var passwordMatches = PasswordMatches(password, user.PasswordHash);
 
         var nowUtc = _time.GetUtcNow().UtcDateTime;
@@ -121,6 +131,18 @@ public class AuthenticationService : IAuthenticationService
             return new LoginOutcome(false, null, null, LoginFailedMessage);
         }
 
+        if (!_ssoMode.IsLocalLoginAllowed(ssoMode, user))
+        {
+            _securityAudit.Record(new SecurityEventRequest(
+                SecurityEventCodes.LocalLoginRefusedSsoOn,
+                SecurityEventOutcome.Failure,
+                TargetUserId: user.Id,
+                TargetUsername: user.Username,
+                Reason: $"Local login refused while SSO mode is {ssoMode}."));
+            await RecordLoginAsync(user.Id, username, false, $"Local login refused while SSO mode is {ssoMode}", ipAddress);
+            return new LoginOutcome(false, null, null, LoginFailedMessage);
+        }
+
         var hasVerifiableCredential = await _db.UserMfaCredentials
             .AsNoTracking()
             .AnyAsync(c => c.UserId == user.Id
@@ -129,8 +151,20 @@ public class AuthenticationService : IAuthenticationService
 
         var roleType = user.Role?.Type.ToString() ?? string.Empty;
         var requirement = await _mfaPolicy.EvaluateAsync(roleType, hasVerifiableCredential, user.MfaRequiredSince, nowUtc);
+        var isEmergencyLogin = ssoMode != SsoMode.Off && user.IsEmergencyAccount;
 
-        if (requirement.Kind == MfaLoginRequirement.Verify
+        if (isEmergencyLogin && !hasVerifiableCredential)
+        {
+            var mfaToken = MfaService.CreateChallengeCore(_db, _time, _securityAudit, user.Id, MfaChallengePurpose.Enrol);
+            await _db.SaveChangesAsync();
+            return new LoginOutcome(true, null, null, null, MfaEnrolmentRequired: true, MfaToken: mfaToken);
+        }
+
+        if (isEmergencyLogin && requirement.Kind != MfaLoginRequirement.Verify)
+            requirement = new MfaRequirement(MfaLoginRequirement.Verify, null);
+
+        if (!isEmergencyLogin
+            && requirement.Kind == MfaLoginRequirement.Verify
             && await MfaService.IsTrustedDeviceCoreAsync(_db, _time, _mfaPolicy, user.Id, deviceToken))
         {
             return await CompleteLoginAsync(user, ipAddress, userAgent, mfaVerified: true);

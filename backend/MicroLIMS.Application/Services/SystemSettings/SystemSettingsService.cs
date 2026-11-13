@@ -10,6 +10,8 @@ using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Shared.Exceptions;
 
+using MicroLIMS.Application.Services.Sso;
+
 namespace MicroLIMS.Application.Services.SystemSettings;
 
 // Management side of the settings registry. The panel controls the system,
@@ -31,6 +33,7 @@ public class SystemSettingsService : ISystemSettingsService
     private readonly TimeProvider _time;
     private readonly TimeSpan? _accessTokenLifetime;
     private readonly ISecurityAuditService? _securityAudit;
+    private readonly SsoModeService? _ssoMode;
 
     public SystemSettingsService(
         IMicroLimsDbContext db,
@@ -39,9 +42,11 @@ public class SystemSettingsService : ISystemSettingsService
         IConfiguration? configuration = null,
         TimeProvider? timeProvider = null,
         TimeSpan? accessTokenLifetime = null,
-        ISecurityAuditService? securityAudit = null)
+        ISecurityAuditService? securityAudit = null,
+        SsoModeService? ssoMode = null)
     {
         _securityAudit = securityAudit;
+        _ssoMode = ssoMode;
         _db = db;
         _cache = cache;
         _signatureService = signatureService;
@@ -127,6 +132,23 @@ public class SystemSettingsService : ISystemSettingsService
                 .CountAsync();
             if (enrolledAdminsCount < 2)
                 throw new BusinessRuleException("Two System Administrators must set up a second factor before it can be required.");
+        }
+
+        if (key == SystemSettingKeys.SsoMode)
+        {
+            if (!SsoModeService.TryParseMode(newValue, out var targetMode))
+                throw new BusinessRuleException($"Unsupported SSO mode '{newValue}'.");
+
+            if (targetMode != SsoMode.Off)
+            {
+                var ssoMode = _ssoMode ?? new SsoModeService(
+                    _db,
+                    _reader,
+                    _securityAudit ?? new SecurityAuditService(_db, new SystemSecurityRequestContext(), _time));
+                var blockers = await ssoMode.GetSwitchOnBlockersAsync(actingUserId, targetMode);
+                if (blockers.Count > 0)
+                    throw new BusinessRuleException(string.Join(" ", blockers));
+            }
         }
 
         _db.CurrentUserId = actingUserId;

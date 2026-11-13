@@ -56,6 +56,8 @@ public static class SecurityEventCodes
     public const string UserDirectoryLinked = "USER_DIRECTORY_LINKED";
     public const string UserDirectoryRelinked = "USER_DIRECTORY_RELINKED";
     public const string UserDeactivatedByDirectory = "USER_DEACTIVATED_BY_DIRECTORY";
+    public const string SsoConnectionTestPassed = "SSO_CONNECTION_TEST_PASSED";
+    public const string SsoConnectionTestFailed = "SSO_CONNECTION_TEST_FAILED";
 
     // ---- Account state ----
     public const string AccountDisabled = "AUTH_ACCOUNT_DISABLED";

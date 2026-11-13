@@ -8,6 +8,7 @@ using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Application.Abstractions.Security;
 using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Application.Security;
+using MicroLIMS.Application.Services.Sso;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Shared.Constants;
@@ -41,6 +42,7 @@ public sealed class MfaService : IMfaService
     private readonly IEmailSender _emailSender;
     private readonly IQrCodeRenderer _qrCodeRenderer;
     private readonly TimeProvider _time;
+    private readonly SsoModeService? _ssoMode;
 
     public MfaService(
         IMicroLimsDbContext db,
@@ -51,7 +53,8 @@ public sealed class MfaService : IMfaService
         MfaPolicyService mfaPolicy,
         IEmailSender emailSender,
         IQrCodeRenderer qrCodeRenderer,
-        TimeProvider? timeProvider = null)
+        TimeProvider? timeProvider = null,
+        SsoModeService? ssoMode = null)
     {
         _db = db;
         _authService = authService;
@@ -62,6 +65,7 @@ public sealed class MfaService : IMfaService
         _emailSender = emailSender;
         _qrCodeRenderer = qrCodeRenderer;
         _time = timeProvider ?? TimeProvider.System;
+        _ssoMode = ssoMode;
     }
 
     public async Task<string> CreateChallengeAsync(int userId, MfaChallengePurpose purpose, CancellationToken ct = default)
@@ -156,6 +160,8 @@ public sealed class MfaService : IMfaService
         var (ownsTransaction, tx) = await BeginOwnedTransactionAsync(ct);
 
         string? recoveryNotifyEmail = null;
+        string? emergencyNotifyUsername = null;
+        List<string>? emergencyNotifyEmails = null;
         LoginOutcome result;
 
         try
@@ -228,8 +234,11 @@ public sealed class MfaService : IMfaService
                     TargetUsername: user.Username));
             }
 
+            var currentSsoMode = _ssoMode is null ? SsoMode.Off : await _ssoMode.GetModeAsync(ct);
+            var isEmergencyLogin = user.IsEmergencyAccount && currentSsoMode != SsoMode.Off;
+
             string? deviceToken = null;
-            if (trustDevice)
+            if (!isEmergencyLogin && trustDevice)
             {
                 var trustedHours = await _mfaPolicy.GetTrustedDeviceHoursAsync(ct);
                 if (trustedHours > 0)
@@ -252,6 +261,29 @@ public sealed class MfaService : IMfaService
                         TargetUserId: user.Id,
                         TargetUsername: user.Username));
                 }
+            }
+
+            if (isEmergencyLogin)
+            {
+                _securityAudit.Record(new SecurityEventRequest(
+                    SecurityEventCodes.EmergencyLogin,
+                    SecurityEventOutcome.Success,
+                    ActorUserId: user.Id,
+                    TargetUserId: user.Id,
+                    TargetUsername: user.Username,
+                    Reason: $"Emergency administrator sign-in while SSO mode is {currentSsoMode}."));
+
+                emergencyNotifyUsername = user.Username;
+                emergencyNotifyEmails = await _db.Users
+                    .AsNoTracking()
+                    .Where(u => u.IsActive
+                                && u.Role != null
+                                && u.Role.Type == RoleType.SystemAdministrator
+                                && u.Email != null
+                                && u.Email != "")
+                    .Select(u => u.Email!)
+                    .Distinct()
+                    .ToListAsync(ct);
             }
 
             var outcome = await _authService.CompleteLoginAsync(user, ip, userAgent, mfaVerified: true);
@@ -297,6 +329,25 @@ public sealed class MfaService : IMfaService
             catch (Exception ex)
             {
                 _logger.LogWarning(ex, "Failed to send MFA recovery code usage email notification.");
+            }
+        }
+
+        if (emergencyNotifyEmails is { Count: > 0 })
+        {
+            var subject = "MicroLIMS: Emergency administrator sign-in";
+            var body = $"Emergency administrator account '{emergencyNotifyUsername}' signed in while single sign-on is enabled.";
+            foreach (var adminEmail in emergencyNotifyEmails)
+            {
+                if (string.IsNullOrWhiteSpace(adminEmail))
+                    continue;
+                try
+                {
+                    await _emailSender.SendAsync(adminEmail, subject, body);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to send emergency login notification email to {Recipient}.", adminEmail);
+                }
             }
         }
 

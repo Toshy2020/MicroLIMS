@@ -470,6 +470,119 @@ public class UserService
         return await ToDtoAsync(user);
     }
 
+    public Task<UserDto> SetEmergencyAccountAsync(int targetUserId, bool isEmergencyAccount, string? reason, int actingUserId) =>
+        UnitOfWork.RunAsync(_db, () => SetEmergencyAccountCoreAsync(targetUserId, isEmergencyAccount, reason, actingUserId));
+
+    private async Task<UserDto> SetEmergencyAccountCoreAsync(int targetUserId, bool isEmergencyAccount, string? reason, int actingUserId)
+    {
+        var trimmedReason = AdminActionReason.Require(
+            reason,
+            isEmergencyAccount ? "mark an account as an emergency administrator" : "remove emergency administrator status");
+
+        var user = await _db.Users.Include(u => u.Role).FirstOrDefaultAsync(u => u.Id == targetUserId)
+            ?? throw new NotFoundException($"User {targetUserId} not found.");
+
+        if (isEmergencyAccount)
+        {
+            if (user.Role?.Type != RoleType.SystemAdministrator)
+                throw new BusinessRuleException("Only a System Administrator account can be marked as an emergency account.");
+
+            if (user.SignInMethod != SignInMethod.Local)
+                throw new BusinessRuleException("Emergency accounts must use Local sign-in.");
+
+            var hasActiveMfa = await _db.UserMfaCredentials
+                .AsNoTracking()
+                .AnyAsync(c => c.UserId == targetUserId && c.Status == MfaCredentialStatus.Active);
+            if (!hasActiveMfa)
+                throw new BusinessRuleException("An emergency account must have an active second factor.");
+
+            var otherEmergencyCount = await _db.Users
+                .AsNoTracking()
+                .CountAsync(u => u.Id != targetUserId && u.IsEmergencyAccount);
+            if (otherEmergencyCount >= 3)
+                throw new BusinessRuleException("At most 3 emergency administrator accounts may be configured.");
+        }
+
+        _db.CurrentUserId = actingUserId > 0 ? actingUserId : null;
+        _db.CurrentReason = trimmedReason;
+        var prevEmergency = user.IsEmergencyAccount;
+        user.IsEmergencyAccount = isEmergencyAccount;
+
+        _db.AuditLogs.Add(new AuditLog
+        {
+            EntityName = nameof(User),
+            EntityId = targetUserId.ToString(),
+            Action = "USER_EMERGENCY_ACCOUNT_CHANGED",
+            PreviousValue = JsonSerializer.Serialize(new { IsEmergencyAccount = prevEmergency }),
+            NewValue = JsonSerializer.Serialize(new { IsEmergencyAccount = isEmergencyAccount, Reason = trimmedReason }),
+            Reason = trimmedReason,
+            UserId = actingUserId,
+            Timestamp = _time.GetUtcNow().UtcDateTime
+        });
+
+        await _db.SaveChangesAsync();
+        return await ToDtoAsync(user);
+    }
+
+    public Task<UserDto> UpdateSsoLinkAsync(int targetUserId, SignInMethod signInMethod, string? directoryUsername, string? reason, int actingUserId) =>
+        UnitOfWork.RunAsync(_db, () => UpdateSsoLinkCoreAsync(targetUserId, signInMethod, directoryUsername, reason, actingUserId));
+
+    private async Task<UserDto> UpdateSsoLinkCoreAsync(int targetUserId, SignInMethod signInMethod, string? directoryUsername, string? reason, int actingUserId)
+    {
+        var trimmedReason = AdminActionReason.Require(reason, "update a user's sign-in method");
+
+        var user = await _db.Users.Include(u => u.Role).FirstOrDefaultAsync(u => u.Id == targetUserId)
+            ?? throw new NotFoundException($"User {targetUserId} not found.");
+
+        var normalizedDirectoryUsername = User.NormalizeDirectoryUsername(directoryUsername);
+        if (user.IsEmergencyAccount && signInMethod != SignInMethod.Local)
+            throw new BusinessRuleException("Emergency accounts must use Local sign-in.");
+
+        if (normalizedDirectoryUsername is not null
+            && await _db.Users.AsNoTracking().AnyAsync(u => u.Id != targetUserId && u.DirectoryUsername == normalizedDirectoryUsername))
+        {
+            throw new BusinessRuleException($"Directory username '{normalizedDirectoryUsername}' is already linked to another user.");
+        }
+
+        _db.CurrentUserId = actingUserId > 0 ? actingUserId : null;
+        _db.CurrentReason = trimmedReason;
+
+        var prevMethod = user.SignInMethod;
+        var prevDirectoryUsername = user.DirectoryUsername;
+        user.SignInMethod = signInMethod;
+        user.DirectoryUsername = normalizedDirectoryUsername;
+
+        if (normalizedDirectoryUsername is not null
+            && !string.Equals(prevDirectoryUsername, normalizedDirectoryUsername, StringComparison.Ordinal))
+        {
+            var eventCode = prevDirectoryUsername is null
+                ? SecurityEventCodes.UserDirectoryLinked
+                : SecurityEventCodes.UserDirectoryRelinked;
+            _securityAudit.Record(new SecurityEventRequest(
+                eventCode,
+                SecurityEventOutcome.Success,
+                ActorUserId: actingUserId > 0 ? actingUserId : null,
+                TargetUserId: targetUserId,
+                TargetUsername: user.Username,
+                Reason: trimmedReason));
+        }
+
+        _db.AuditLogs.Add(new AuditLog
+        {
+            EntityName = nameof(User),
+            EntityId = targetUserId.ToString(),
+            Action = "USER_SSO_LINK_UPDATED",
+            PreviousValue = JsonSerializer.Serialize(new { SignInMethod = prevMethod.ToString(), DirectoryUsername = prevDirectoryUsername }),
+            NewValue = JsonSerializer.Serialize(new { SignInMethod = signInMethod.ToString(), DirectoryUsername = normalizedDirectoryUsername, Reason = trimmedReason }),
+            Reason = trimmedReason,
+            UserId = actingUserId,
+            Timestamp = _time.GetUtcNow().UtcDateTime
+        });
+
+        await _db.SaveChangesAsync();
+        return await ToDtoAsync(user);
+    }
+
     private async Task<List<UserDto>> ToDtosAsync(IReadOnlyList<User> users)
     {
         if (users.Count == 0)

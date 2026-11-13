@@ -2,6 +2,7 @@ using System.Diagnostics;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Application.DTOs.Search;
+using MicroLIMS.Application.Helpers;
 using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
@@ -180,7 +181,7 @@ public class GlobalSearchService : IGlobalSearchService
                     matchedField,
                     matchedVal,
                     GetBadgeColor(s.Status.ToString()),
-                    $"/receiving-testing?sampleId={s.Id}",
+                    RecordNavigationTargets.Sample(s.Id),
                     new Dictionary<string, string>
                     {
                         ["Category"] = s.Category.ToString(),
@@ -225,7 +226,7 @@ public class GlobalSearchService : IGlobalSearchService
                 t.TestCode.Contains(rawQuery, StringComparison.OrdinalIgnoreCase) ? "TestCode" : "Sample",
                 t.TestCode,
                 GetBadgeColor(t.Status.ToString()),
-                $"/receiving-testing?sampleId={t.SampleId}&testOrderId={t.Id}",
+                RecordNavigationTargets.TestOrder(t.SampleId, t.Id),
                 new Dictionary<string, string>
                 {
                     ["SampleId"] = t.SampleId.ToString(),
@@ -274,7 +275,7 @@ public class GlobalSearchService : IGlobalSearchService
                 m.StockId != null && m.StockId.Contains(rawQuery, StringComparison.OrdinalIgnoreCase) ? m.StockId
                     : m.BatchNumber.Contains(rawQuery, StringComparison.OrdinalIgnoreCase) ? m.BatchNumber : m.MaterialName,
                 "primary",
-                "/inventory/materials",
+                RecordNavigationTargets.Material(),
                 new Dictionary<string, string>
                 {
                     ["MaterialType"] = m.MaterialType.ToString(),
@@ -315,7 +316,7 @@ public class GlobalSearchService : IGlobalSearchService
                 e.Code.Contains(rawQuery, StringComparison.OrdinalIgnoreCase) ? "Code" : "InstrumentType",
                 e.Code,
                 GetBadgeColor(e.Status.ToString()),
-                "/inventory/equipment",
+                RecordNavigationTargets.EquipmentAsset(),
                 new Dictionary<string, string>
                 {
                     ["Code"] = e.Code,
@@ -361,7 +362,7 @@ public class GlobalSearchService : IGlobalSearchService
                     m.LotNumber.Contains(rawQuery, StringComparison.OrdinalIgnoreCase) ? "LotNumber" : "MaterialName",
                     m.LotNumber,
                     GetBadgeColor(m.Status.ToString()),
-                    "/laboratory-configuration/media",
+                    RecordNavigationTargets.MediaLot(),
                     new Dictionary<string, string>
                     {
                         ["LotNumber"] = m.LotNumber,
@@ -404,7 +405,7 @@ public class GlobalSearchService : IGlobalSearchService
                 d.CompanyDocumentCode.Contains(rawQuery, StringComparison.OrdinalIgnoreCase) ? "CompanyDocumentCode" : "Title",
                 d.CompanyDocumentCode,
                 "info",
-                $"/document-control/documents/{d.Id}",
+                RecordNavigationTargets.Document(d.Id),
                 new Dictionary<string, string>
                 {
                     ["CompanyDocumentCode"] = d.CompanyDocumentCode,
@@ -449,7 +450,7 @@ public class GlobalSearchService : IGlobalSearchService
                     sp.Code != null && sp.Code.Contains(rawQuery, StringComparison.OrdinalIgnoreCase) ? "Code" : "Name",
                     codeDisplay,
                     GetBadgeColor(sp.Status.ToString()),
-                    $"/preparation/{sp.Id}",
+                    RecordNavigationTargets.SolutionPreparation(sp.Id),
                     new Dictionary<string, string>
                     {
                         ["Code"] = codeDisplay,
@@ -485,7 +486,7 @@ public class GlobalSearchService : IGlobalSearchService
                 i.Code.Contains(rawQuery, StringComparison.OrdinalIgnoreCase) ? "Code" : "Name",
                 i.Code,
                 "success",
-                "/laboratory-configuration/items",
+                RecordNavigationTargets.Item(),
                 new Dictionary<string, string>
                 {
                     ["Code"] = i.Code,

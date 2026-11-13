@@ -26,6 +26,8 @@ import WarningAmberOutlinedIcon from "@mui/icons-material/WarningAmberOutlined";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import { visuallyHidden } from "@mui/utils";
 import { HelpMenu } from "../modules/help/HelpMenu";
+import { ConfirmationDialog } from "./ConfirmationDialog";
+import SwitchAccountIcon from "@mui/icons-material/SwitchAccount";
 
 interface NotificationDto {
   id: number | null;
@@ -70,9 +72,11 @@ interface HeaderProps {
   sidebarCollapsed?: boolean;
   // Lab membership, for the job-title fallback ("Microbiology Analyst").
   labCodes: string[];
+  // Unsaved on-tablet drafts; the bench drafts feature supplies the real count.
+  unsavedDraftCount?: number;
 }
 
-export function Header({ onToggleSidebar, sidebarCollapsed, labCodes }: HeaderProps) {
+export function Header({ onToggleSidebar, sidebarCollapsed, labCodes, unsavedDraftCount = 0 }: HeaderProps) {
   const { mode, toggleMode } = useThemeMode();
   const { benchMode, setBenchMode } = useBenchMode();
   const theme = useTheme();
@@ -112,6 +116,15 @@ export function Header({ onToggleSidebar, sidebarCollapsed, labCodes }: HeaderPr
     setProfileAnchor(null);
     logout();
     navigate("/login");
+  };
+
+  const [switchUserConfirmOpen, setSwitchUserConfirmOpen] = useState(false);
+  const handleSwitchUser = () => {
+    if (unsavedDraftCount > 0) {
+      setSwitchUserConfirmOpen(true);
+      return;
+    }
+    handleSignOut();
   };
 
   const unreadCount = notifications.filter((n) => !n.isRead).length;
@@ -266,6 +279,16 @@ export function Header({ onToggleSidebar, sidebarCollapsed, labCodes }: HeaderPr
             }}
           />
         </Tooltip>
+        {benchMode && (
+          <Button
+            color="inherit"
+            startIcon={<SwitchAccountIcon />}
+            onClick={handleSwitchUser}
+            sx={{ whiteSpace: "nowrap" }}
+          >
+            Switch user
+          </Button>
+        )}
         <HelpMenu />
         <Tooltip title="Notifications">
           <IconButton
@@ -474,6 +497,18 @@ export function Header({ onToggleSidebar, sidebarCollapsed, labCodes }: HeaderPr
         </Menu>
       </Box>
       <GlobalSearchDialog open={searchOpen} onClose={() => setSearchOpen(false)} />
+      <ConfirmationDialog
+        open={switchUserConfirmOpen}
+        title="Switch user"
+        destructive
+        confirmText="Switch user"
+        message={`You have ${unsavedDraftCount} unsaved ${unsavedDraftCount === 1 ? "entry" : "entries"} on this tablet. They stay on this tablet for the signed-in user and are not saved to MicroLIMS. Switch user anyway?`}
+        onCancel={() => setSwitchUserConfirmOpen(false)}
+        onConfirm={() => {
+          setSwitchUserConfirmOpen(false);
+          handleSignOut();
+        }}
+      />
     </Box>
   );
 }

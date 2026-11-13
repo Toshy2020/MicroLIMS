@@ -101,10 +101,19 @@ public sealed class MfaService : IMfaService
                 ct);
     }
 
-    public async Task<int> RevokeTrustedDevicesAsync(int userId, int? revokedByUserId, CancellationToken ct = default)
+    public Task<int> RevokeTrustedDevicesAsync(int userId, int? revokedByUserId, CancellationToken ct = default) =>
+        RevokeTrustedDevicesCoreAsync(_db, _time, _securityAudit, userId, revokedByUserId, ct);
+
+    internal static async Task<int> RevokeTrustedDevicesCoreAsync(
+        IMicroLimsDbContext db,
+        TimeProvider time,
+        ISecurityAuditService? securityAudit,
+        int userId,
+        int? revokedByUserId,
+        CancellationToken ct = default)
     {
-        var nowUtc = _time.GetUtcNow().UtcDateTime;
-        var liveDevices = await _db.TrustedDevices
+        var nowUtc = time.GetUtcNow().UtcDateTime;
+        var liveDevices = await db.TrustedDevices
             .Where(d => d.UserId == userId && d.RevokedAt == null && d.ExpiresAt > nowUtc)
             .ToListAsync(ct);
 
@@ -117,7 +126,7 @@ public sealed class MfaService : IMfaService
             device.RevokedByUserId = revokedByUserId;
         }
 
-        _securityAudit.Record(new SecurityEventRequest(
+        securityAudit?.Record(new SecurityEventRequest(
             SecurityEventCodes.TrustedDeviceRevoked,
             SecurityEventOutcome.Success,
             ActorUserId: revokedByUserId,

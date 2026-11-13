@@ -305,6 +305,7 @@ public class AuthenticationService : IAuthenticationService
         }
 
         await ValidateAndApplyNewPasswordAsync(user, newPassword);
+        await MfaService.RevokeTrustedDevicesCoreAsync(_db, _time, _securityAudit, user.Id, revokedByUserId: user.Id);
 
         // Self-service change: actor and target are the same person.
         _securityAudit.Record(new SecurityEventRequest(
@@ -356,6 +357,7 @@ public class AuthenticationService : IAuthenticationService
 
         await ValidateAndApplyNewPasswordAsync(record.User!, newPassword);
         record.UsedAt = _time.GetUtcNow().UtcDateTime;
+        await MfaService.RevokeTrustedDevicesCoreAsync(_db, _time, _securityAudit, record.User!.Id, revokedByUserId: null);
 
         // Reset is performed by whoever held the reset token, so there is
         // no authenticated actor - only the account it was applied to.

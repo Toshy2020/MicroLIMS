@@ -215,4 +215,63 @@ public class MfaPolicyServiceTests
         await service.GetTrustedDeviceHoursAsync(cts.Token);
         Assert.Equal(cts.Token, reader.LastCancellationToken);
     }
+
+    [Theory]
+    [InlineData("Off", "SystemAdministrator", false, false, 7, -10, MfaUserState.NotRequired)]
+    [InlineData("Off", "SystemAdministrator", true, false, 7, -10, MfaUserState.Enrolled)]
+    [InlineData("Off", "Analyst", false, true, 7, null, MfaUserState.TokenPendingConfirmation)]
+    [InlineData("Optional", "SystemAdministrator", false, false, 7, -10, MfaUserState.NotRequired)]
+    [InlineData("Optional", "Analyst", true, false, 7, null, MfaUserState.Enrolled)]
+    [InlineData("Optional", "Analyst", false, true, 7, null, MfaUserState.TokenPendingConfirmation)]
+    [InlineData("RequiredForRoles", "Analyst", false, false, 7, null, MfaUserState.NotRequired)]
+    [InlineData("RequiredForRoles", "SectionHead", true, false, 7, -20, MfaUserState.Enrolled)]
+    [InlineData("RequiredForRoles", "SectionHead", false, true, 7, -20, MfaUserState.TokenPendingConfirmation)]
+    [InlineData("RequiredForRoles", "SectionHead", false, false, 7, null, MfaUserState.DueByDate)]
+    [InlineData("RequiredForRoles", "SectionHead", false, false, 7, -6, MfaUserState.DueByDate)]
+    [InlineData("RequiredForRoles", "SectionHead", false, false, 7, -7, MfaUserState.Overdue)]
+    [InlineData("RequiredForRoles", "SectionHead", false, false, 0, null, MfaUserState.Overdue)]
+    [InlineData("RequiredForAll", "Analyst", false, false, 7, -8, MfaUserState.Overdue)]
+    public async Task GetUserStateAsync_ComputesAllFiveStatesAndGraceBoundaries(
+        string policy,
+        string roleType,
+        bool hasActiveCredential,
+        bool hasPendingHardwareToken,
+        int graceDays,
+        int? requiredSinceDaysOffset,
+        MfaUserState expected)
+    {
+        var reader = new StubSystemSettingsReader()
+            .WithPolicy(policy)
+            .WithGraceDays(graceDays);
+        var service = new MfaPolicyService(reader);
+        DateTime? requiredSince = requiredSinceDaysOffset.HasValue
+            ? NowUtc.AddDays(requiredSinceDaysOffset.Value)
+            : null;
+
+        var state = await service.GetUserStateAsync(
+            roleType,
+            hasActiveCredential,
+            hasPendingHardwareToken,
+            requiredSince,
+            NowUtc);
+
+        Assert.Equal(expected, state);
+    }
+
+    [Fact]
+    public async Task GetUserStateAsync_BoundaryBeforeAndAtExactGraceEnd_MatchesEvaluateAsync()
+    {
+        var reader = new StubSystemSettingsReader()
+            .WithPolicy("RequiredForRoles")
+            .WithGraceDays(7);
+        var service = new MfaPolicyService(reader);
+        var requiredSince = NowUtc.AddDays(-7);
+
+        var justBeforeEnd = NowUtc.AddTicks(-1);
+        Assert.Equal(MfaLoginRequirement.EnrolWithinGrace, (await service.EvaluateAsync("SectionHead", false, requiredSince, justBeforeEnd)).Kind);
+        Assert.Equal(MfaUserState.DueByDate, await service.GetUserStateAsync("SectionHead", false, false, requiredSince, justBeforeEnd));
+
+        Assert.Equal(MfaLoginRequirement.EnrolNow, (await service.EvaluateAsync("SectionHead", false, requiredSince, NowUtc)).Kind);
+        Assert.Equal(MfaUserState.Overdue, await service.GetUserStateAsync("SectionHead", false, false, requiredSince, NowUtc));
+    }
 }

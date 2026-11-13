@@ -31,7 +31,8 @@ public record AccessReviewUserEntry(
     bool Dormant,
     int? DaysSinceLastActivity,
     IReadOnlyList<AccessReviewStatusChange> StatusHistory,
-    IReadOnlyList<string> SodConflicts);
+    IReadOnlyList<string> SodConflicts,
+    string MfaState = "");
 
 public record AccessReviewPermission(string Code, bool Hidden);
 

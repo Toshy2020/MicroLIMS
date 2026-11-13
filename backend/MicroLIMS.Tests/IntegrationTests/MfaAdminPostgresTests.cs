@@ -88,13 +88,17 @@ public class MfaAdminPostgresTests
         };
 
         public Task<int> GetIntAsync(string key, CancellationToken cancellationToken = default) =>
-            Task.FromResult(_ints[key]);
+            Task.FromResult(_ints.TryGetValue(key, out var val)
+                ? val
+                : int.Parse(SystemSettingDefinitions.Get(key).Default, System.Globalization.CultureInfo.InvariantCulture));
 
         public Task<bool> GetBoolAsync(string key, CancellationToken cancellationToken = default) =>
             throw new NotSupportedException($"Unexpected bool setting read: {key}");
 
         public Task<string> GetStringAsync(string key, CancellationToken cancellationToken = default) =>
-            Task.FromResult(_strings[key]);
+            Task.FromResult(_strings.TryGetValue(key, out var val)
+                ? val
+                : SystemSettingDefinitions.Get(key).Default);
     }
 
     private static ISecretProtector CreateProtector() => new AesGcmSecretProtector(new MfaOptions
@@ -677,5 +681,358 @@ public class MfaAdminPostgresTests
         var (_, _, admin, _) = CreateServices(actDb, clock);
         await Assert.ThrowsAsync<NotFoundException>(() =>
             admin.RevokeTrustedDeviceAsync(userBId, deviceId, adminId));
+    }
+
+    private static async Task<(int AdminId, int TargetAdminId)> SeedScratchAdminsAsync(
+        MicroLimsDbContext db,
+        ISecretProtector protector,
+        int enrolledCount,
+        bool secondAdminActive = true,
+        string initialPolicy = "Optional")
+    {
+        await db.Database.MigrateAsync();
+        db.Roles.Add(new Role { Type = RoleType.SystemAdministrator, Name = "System Administrator", IsSystemRole = true });
+        await db.SaveChangesAsync();
+        var adminRoleId = await db.Roles.Where(r => r.Type == RoleType.SystemAdministrator).Select(r => r.Id).SingleAsync();
+
+        var admin1 = new User
+        {
+            FullName = "Admin One",
+            Username = "admin_one",
+            Email = "admin1@example.test",
+            PasswordHash = TestPasswords.Hash(Password),
+            RoleId = adminRoleId,
+            IsActive = true,
+            CreatedAt = BaseUtc.UtcDateTime
+        };
+        var admin2 = new User
+        {
+            FullName = "Admin Two",
+            Username = "admin_two",
+            Email = "admin2@example.test",
+            PasswordHash = TestPasswords.Hash(Password),
+            RoleId = adminRoleId,
+            IsActive = secondAdminActive,
+            CreatedAt = BaseUtc.UtcDateTime
+        };
+        db.Users.AddRange(admin1, admin2);
+        db.SystemSettings.Add(new SystemSetting
+        {
+            Key = SystemSettingKeys.MfaPolicy,
+            Value = initialPolicy,
+            ValueType = SystemSettingValueType.String,
+            Category = "Security",
+            IsGxpRelevant = true,
+            Description = "MFA policy",
+            CurrentVersion = 1
+        });
+        await db.SaveChangesAsync();
+
+        if (enrolledCount >= 1)
+        {
+            db.UserMfaCredentials.Add(new UserMfaCredential
+            {
+                UserId = admin1.Id,
+                Type = MfaCredentialType.AuthenticatorApp,
+                SecretProtected = protector.Protect(Totp.NewSecret()),
+                StepSeconds = 30,
+                Status = MfaCredentialStatus.Active,
+                CreatedAt = BaseUtc.UtcDateTime,
+                ConfirmedAt = BaseUtc.UtcDateTime
+            });
+        }
+
+        if (enrolledCount >= 2)
+        {
+            db.UserMfaCredentials.Add(new UserMfaCredential
+            {
+                UserId = admin2.Id,
+                Type = MfaCredentialType.AuthenticatorApp,
+                SecretProtected = protector.Protect(Totp.NewSecret()),
+                StepSeconds = 30,
+                Status = MfaCredentialStatus.Active,
+                CreatedAt = BaseUtc.UtcDateTime,
+                ConfirmedAt = BaseUtc.UtcDateTime
+            });
+        }
+
+        await db.SaveChangesAsync();
+        return (admin1.Id, admin2.Id);
+    }
+
+    private static SystemSettingsService CreateSettingsService(MicroLimsDbContext db, TimeProvider clock)
+    {
+        var cache = new SystemSettingsCache();
+        var reader = new SystemSettingsReader(db, cache, null, clock);
+        var signatures = new ElectronicSignatureService(db, clock, reader);
+        var audit = new SecurityAuditService(db, new SystemSecurityRequestContext(), clock);
+        return new SystemSettingsService(db, cache, signatures, null, clock, null, audit);
+    }
+
+    [PostgresFact]
+    public async Task PolicyChangeToRequired_WithOneEnrolledAdministrator_IsRefused()
+    {
+        await ScratchPostgresDatabase.RunAsync(async cs =>
+        {
+            var clock = new FakeTimeProvider(BaseUtc);
+            var protector = CreateProtector();
+            int admin1Id;
+            await using (var arrangeDb = ScratchPostgresDatabase.NewContext(cs))
+            {
+                (admin1Id, _) = await SeedScratchAdminsAsync(arrangeDb, protector, enrolledCount: 1, initialPolicy: "Optional");
+            }
+
+            await using (var actDb = ScratchPostgresDatabase.NewContext(cs))
+            {
+                var settings = CreateSettingsService(actDb, clock);
+                var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
+                    settings.UpdateAsync(SystemSettingKeys.MfaPolicy, "RequiredForRoles", "Require MFA", admin1Id, Password, "127.0.0.1"));
+                Assert.Equal("Two System Administrators must set up a second factor before it can be required.", ex.Message);
+            }
+
+            await using var assertDb = ScratchPostgresDatabase.NewContext(cs);
+            var row = await assertDb.SystemSettings.AsNoTracking().SingleAsync(s => s.Key == SystemSettingKeys.MfaPolicy);
+            Assert.Equal("Optional", row.Value);
+            Assert.False(await assertDb.AuditLogs.AsNoTracking().AnyAsync(a => a.Action == "SYSTEM_SETTING_CHANGED"));
+        });
+    }
+
+    [PostgresFact]
+    public async Task PolicyChangeToRequired_WithTwo_Succeeds()
+    {
+        await ScratchPostgresDatabase.RunAsync(async cs =>
+        {
+            var clock = new FakeTimeProvider(BaseUtc);
+            var protector = CreateProtector();
+            int admin1Id;
+            await using (var arrangeDb = ScratchPostgresDatabase.NewContext(cs))
+            {
+                (admin1Id, _) = await SeedScratchAdminsAsync(arrangeDb, protector, enrolledCount: 2, initialPolicy: "Optional");
+            }
+
+            await using (var actDb = ScratchPostgresDatabase.NewContext(cs))
+            {
+                var settings = CreateSettingsService(actDb, clock);
+                var updated = await settings.UpdateAsync(SystemSettingKeys.MfaPolicy, "RequiredForRoles", "Rollout", admin1Id, Password, "127.0.0.1");
+                Assert.Equal("RequiredForRoles", updated.Value);
+            }
+
+            await using var assertDb = ScratchPostgresDatabase.NewContext(cs);
+            var row = await assertDb.SystemSettings.AsNoTracking().SingleAsync(s => s.Key == SystemSettingKeys.MfaPolicy);
+            Assert.Equal("RequiredForRoles", row.Value);
+        });
+    }
+
+    [PostgresFact]
+    public async Task PolicyChangeToRequired_DisabledSecondAdministrator_IsRefused()
+    {
+        await ScratchPostgresDatabase.RunAsync(async cs =>
+        {
+            var clock = new FakeTimeProvider(BaseUtc);
+            var protector = CreateProtector();
+            int admin1Id;
+            await using (var arrangeDb = ScratchPostgresDatabase.NewContext(cs))
+            {
+                (admin1Id, _) = await SeedScratchAdminsAsync(arrangeDb, protector, enrolledCount: 2, secondAdminActive: false, initialPolicy: "Off");
+            }
+
+            await using (var actDb = ScratchPostgresDatabase.NewContext(cs))
+            {
+                var settings = CreateSettingsService(actDb, clock);
+                var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
+                    settings.UpdateAsync(SystemSettingKeys.MfaPolicy, "RequiredForAll", "Require all", admin1Id, Password, "127.0.0.1"));
+                Assert.Equal("Two System Administrators must set up a second factor before it can be required.", ex.Message);
+            }
+        });
+    }
+
+    [PostgresFact]
+    public async Task PolicyChangeBetweenRequiredValues_IsNotBlocked()
+    {
+        await ScratchPostgresDatabase.RunAsync(async cs =>
+        {
+            var clock = new FakeTimeProvider(BaseUtc);
+            var protector = CreateProtector();
+            int admin1Id;
+            await using (var arrangeDb = ScratchPostgresDatabase.NewContext(cs))
+            {
+                (admin1Id, _) = await SeedScratchAdminsAsync(arrangeDb, protector, enrolledCount: 1, initialPolicy: "RequiredForRoles");
+            }
+
+            await using (var actDb = ScratchPostgresDatabase.NewContext(cs))
+            {
+                var settings = CreateSettingsService(actDb, clock);
+                var updated = await settings.UpdateAsync(SystemSettingKeys.MfaPolicy, "RequiredForAll", "Tighten policy", admin1Id, Password, "127.0.0.1");
+                Assert.Equal("RequiredForAll", updated.Value);
+            }
+        });
+    }
+
+    [PostgresFact]
+    public async Task UserList_ReportsMfaState_ForEachOfTheFiveStates()
+    {
+        var clock = new FakeTimeProvider(BaseUtc);
+        var (notReqId, _) = await SeedUserAsync(RoleType.Analyst);
+        var (enrolledId, _, _) = await SeedEnrolledUserAsync(RoleType.SectionHead);
+        var (dueId, _) = await SeedUserAsync(RoleType.SectionHead, mfaRequiredSince: BaseUtc.UtcDateTime.AddDays(-2));
+        var (overdueId, _) = await SeedUserAsync(RoleType.SectionHead, mfaRequiredSince: BaseUtc.UtcDateTime.AddDays(-10));
+        var (pendingId, _) = await SeedUserAsync(RoleType.Analyst);
+        var (adminId, _) = await SeedUserAsync(RoleType.SystemAdministrator);
+
+        await using (var assignDb = _fixture.CreateDbContext())
+        {
+            var (_, _, admin, _) = CreateServices(assignDb, clock);
+            await admin.AssignHardwareTokenAsync(pendingId, "SN-LIST-1", Totp.ToBase32(Totp.NewSecret()), false, 30, "Bench fob", adminId);
+        }
+
+        await using var queryDb = _fixture.CreateDbContext();
+        var settings = new StubSystemSettingsReader();
+        var (auth, _, _, _) = CreateServices(queryDb, clock, settings);
+        var audit = new SecurityAuditService(queryDb, new SystemSecurityRequestContext(), clock);
+        var userService = new UserService(queryDb, auth, audit, clock, settings: settings);
+        var all = await userService.GetAllAsync("all");
+
+        Assert.Equal(nameof(MfaUserState.NotRequired), all.Single(u => u.Id == notReqId).MfaState);
+        Assert.Equal(nameof(MfaUserState.Enrolled), all.Single(u => u.Id == enrolledId).MfaState);
+        Assert.Equal(nameof(MfaUserState.DueByDate), all.Single(u => u.Id == dueId).MfaState);
+        Assert.Equal(nameof(MfaUserState.Overdue), all.Single(u => u.Id == overdueId).MfaState);
+        Assert.Equal(nameof(MfaUserState.TokenPendingConfirmation), all.Single(u => u.Id == pendingId).MfaState);
+    }
+
+    [PostgresFact]
+    public async Task AccessReview_UserEntry_IncludesMfaState()
+    {
+        var clock = new FakeTimeProvider(BaseUtc);
+        var (enrolledId, _, _) = await SeedEnrolledUserAsync(RoleType.SectionHead);
+        var (overdueId, _) = await SeedUserAsync(RoleType.SectionHead, mfaRequiredSince: BaseUtc.UtcDateTime.AddDays(-10));
+        var (adminId, _) = await SeedUserAsync(RoleType.SystemAdministrator);
+
+        await using var actDb = _fixture.CreateDbContext();
+        var settings = new StubSystemSettingsReader();
+        var signatures = new ElectronicSignatureService(actDb, clock, settings);
+        var reviewService = new AccessReviewService(actDb, signatures, settings, clock);
+        var detail = await reviewService.GenerateAsync("Q4 Review", "Quarterly access review", adminId);
+
+        Assert.Equal(nameof(MfaUserState.Enrolled), detail.Snapshot.Users.Single(u => u.UserId == enrolledId).MfaState);
+        Assert.Equal(nameof(MfaUserState.Overdue), detail.Snapshot.Users.Single(u => u.UserId == overdueId).MfaState);
+    }
+
+    [PostgresFact]
+    public async Task AccessReview_OldSnapshotWithoutMfaState_StillLoads()
+    {
+        var (adminId, _) = await SeedUserAsync(RoleType.SystemAdministrator);
+        var legacyPayload = new
+        {
+            reportVersion = 1,
+            generatedAt = BaseUtc.UtcDateTime,
+            periodLabel = "Legacy Snapshot",
+            dormantDays = 90,
+            statusHistoryMonths = 12,
+            summary = new
+            {
+                totalUsers = 1,
+                activeUsers = 1,
+                inactiveUsers = 0,
+                dormantUsers = 0,
+                neverLoggedInUsers = 0,
+                sodConflictUsers = 0
+            },
+            users = new[]
+            {
+                new
+                {
+                    userId = adminId,
+                    username = "legacy_user",
+                    fullName = "Legacy User",
+                    isActive = true,
+                    deactivatedAt = (DateTime?)null,
+                    roleId = 1,
+                    roleName = "Analyst",
+                    roleType = "Analyst",
+                    permissions = Array.Empty<object>(),
+                    sections = Array.Empty<object>(),
+                    lastSuccessfulLogin = (DateTime?)BaseUtc.UtcDateTime.AddDays(-1),
+                    neverLoggedIn = false,
+                    dormant = false,
+                    daysSinceLastActivity = (int?)1,
+                    statusHistory = Array.Empty<object>(),
+                    sodConflicts = Array.Empty<string>()
+                }
+            }
+        };
+
+        var json = JsonSerializer.Serialize(legacyPayload, new JsonSerializerOptions(JsonSerializerDefaults.Web));
+        var sha = Convert.ToHexString(SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(json))).ToLowerInvariant();
+
+        int reviewId;
+        await using (var arrangeDb = _fixture.CreateDbContext())
+        {
+            var review = new AccessReview
+            {
+                GeneratedAt = BaseUtc.UtcDateTime,
+                GeneratedByUserId = adminId,
+                PeriodLabel = "Legacy Snapshot",
+                SnapshotJson = json,
+                SnapshotSha256 = sha,
+                Status = AccessReviewStatus.Signed,
+                ReviewerUserId = adminId,
+                SignedAt = BaseUtc.UtcDateTime,
+                Conclusion = "Approved"
+            };
+            arrangeDb.AccessReviews.Add(review);
+            await arrangeDb.SaveChangesAsync();
+            reviewId = review.Id;
+        }
+
+        await using var actDb = _fixture.CreateDbContext();
+        var clock = new FakeTimeProvider(BaseUtc);
+        var settings = new StubSystemSettingsReader();
+        var reviewService = new AccessReviewService(actDb, new ElectronicSignatureService(actDb, clock, settings), settings, clock);
+        var loaded = await reviewService.GetAsync(reviewId);
+
+        Assert.True(loaded.SnapshotIntact);
+        Assert.Single(loaded.Snapshot.Users);
+        Assert.Equal("legacy_user", loaded.Snapshot.Users[0].Username);
+    }
+
+    [PostgresFact]
+    public async Task AdminSessions_ReportMfaVerified()
+    {
+        var (_, adminUsername) = await SeedUserAsync(RoleType.SystemAdministrator);
+        var (mfaUserId, mfaUsername, secret) = await SeedEnrolledUserAsync(RoleType.SectionHead);
+        var (plainUserId, plainUsername) = await SeedUserAsync(RoleType.Analyst);
+        var clock = new FakeTimeProvider(BaseUtc);
+
+        await using (var loginDb = _fixture.CreateDbContext())
+        {
+            var (auth, mfa, _, _) = CreateServices(loginDb, clock);
+            var step1 = await auth.LoginAsync(mfaUsername, Password, "10.0.0.10", "MFA-Browser");
+            var code = Totp.Generate(secret, Totp.StepAt(clock.GetUtcNow().UtcDateTime, 30));
+            var step2 = await mfa.VerifyAsync(step1.MfaToken!, code, null, false, "10.0.0.10", "MFA-Browser");
+            Assert.True(step2.Success);
+
+            var plainLogin = await auth.LoginAsync(plainUsername, Password, "10.0.0.11", "Plain-Browser");
+            Assert.True(plainLogin.Success);
+        }
+
+        var (app, client) = await StartHostAsync();
+        await using var _ = app;
+        var adminLogin = await client.PostAsJsonAsync("/api/auth/login", new { username = adminUsername, password = Password });
+        using var adminJson = JsonDocument.Parse(await adminLogin.Content.ReadAsStringAsync());
+        var adminToken = adminJson.RootElement.GetProperty("data").GetProperty("token").GetString();
+
+        using var reqMfa = new HttpRequestMessage(HttpMethod.Get, $"/api/admin/users/{mfaUserId}/sessions");
+        reqMfa.Headers.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
+        var respMfa = await client.SendAsync(reqMfa);
+        Assert.Equal(HttpStatusCode.OK, respMfa.StatusCode);
+        using var jsonMfa = JsonDocument.Parse(await respMfa.Content.ReadAsStringAsync());
+        Assert.True(jsonMfa.RootElement.GetProperty("data")[0].GetProperty("mfaVerified").GetBoolean());
+
+        using var reqPlain = new HttpRequestMessage(HttpMethod.Get, $"/api/admin/users/{plainUserId}/sessions");
+        reqPlain.Headers.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
+        var respPlain = await client.SendAsync(reqPlain);
+        Assert.Equal(HttpStatusCode.OK, respPlain.StatusCode);
+        using var jsonPlain = JsonDocument.Parse(await respPlain.Content.ReadAsStringAsync());
+        Assert.False(jsonPlain.RootElement.GetProperty("data")[0].GetProperty("mfaVerified").GetBoolean());
     }
 }

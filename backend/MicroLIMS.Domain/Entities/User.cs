@@ -31,4 +31,5 @@ public class User : IVersionedEntity
     public DateTime? PasswordChangedAt { get; set; }
     public bool MustChangePassword { get; set; } = false;
     public DateTime? LastLoginAt { get; set; }
+    public DateTime? MfaRequiredSince { get; set; }
 }

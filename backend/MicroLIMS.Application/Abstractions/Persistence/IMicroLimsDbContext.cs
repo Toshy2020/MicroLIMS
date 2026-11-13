@@ -42,6 +42,10 @@ public interface IMicroLimsDbContext
     DbSet<PasswordResetToken> PasswordResetTokens { get; }
     DbSet<PasswordHistory> PasswordHistories { get; }
     DbSet<AdminPasswordRecovery> AdminPasswordRecoveries { get; }
+    DbSet<UserMfaCredential> UserMfaCredentials { get; }
+    DbSet<MfaRecoveryCode> MfaRecoveryCodes { get; }
+    DbSet<MfaChallenge> MfaChallenges { get; }
+    DbSet<TrustedDevice> TrustedDevices { get; }
     DbSet<ElectronicSignature> ElectronicSignatures { get; }
     DbSet<Item> Items { get; }
     DbSet<Specification> Specifications { get; }

@@ -191,7 +191,9 @@ public sealed class OidcProviderClient : IOidcProviderClient
                 "ID token is missing required 'mfa' value in 'amr' claim.");
         }
 
-        return new DirectoryIdentity(subject, username.Trim(), mfaSatisfied);
+        // A "sub" is only unique within its issuer, so the stored permanent id is the validated
+        // issuer joined to it: the same "sub" from a different issuer is a different person.
+        return new DirectoryIdentity($"{config.Issuer}|{subject}", username.Trim(), mfaSatisfied);
     }
 
     // Throws when the provider cannot be reached or its metadata is incomplete.

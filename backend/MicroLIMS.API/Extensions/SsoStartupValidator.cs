@@ -4,7 +4,8 @@ namespace MicroLIMS.API.Extensions;
 
 /// <summary>
 /// Fails startup before the host serves requests when <c>security.sso.mode</c> is
-/// <see cref="SsoMode.OpenIdConnect"/> and any required <c>Sso:Oidc</c> setting is missing.
+/// <see cref="SsoMode.OpenIdConnect"/> and any required <c>Sso:Oidc</c> setting is missing, or is
+/// <see cref="SsoMode.ActiveDirectory"/> and the <c>Sso:Ldap</c> settings are missing or describe a plain connection.
 /// </summary>
 public static class SsoStartupValidator
 {
@@ -14,6 +15,15 @@ public static class SsoStartupValidator
         CancellationToken ct = default)
     {
         var mode = await ssoMode.GetModeAsync(ct);
+        if (mode == SsoMode.ActiveDirectory)
+        {
+            var problems = options.Ldap.Validate();
+            if (problems.Count > 0)
+                throw new InvalidOperationException(
+                    $"Invalid SSO configuration when 'security.sso.mode' is ActiveDirectory: {string.Join(" ", problems)}");
+            return;
+        }
+
         if (mode != SsoMode.OpenIdConnect)
             return;
 

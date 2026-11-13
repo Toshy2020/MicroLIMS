@@ -147,7 +147,7 @@ public class OidcTokenValidationTests
 
         var identity = await client.RedeemAsync("auth-code", "verifier", ExpectedNonce, "https://app.test/callback");
 
-        Assert.Equal("sub-42", identity.SubjectId);
+        Assert.Equal($"{Authority}|sub-42", identity.SubjectId);
         Assert.Equal("alice", identity.Username);
         Assert.True(identity.MfaSatisfied);
     }
@@ -242,7 +242,7 @@ public class OidcTokenValidationTests
                 expires: BaseUtc.UtcDateTime.AddSeconds(-90)));
 
         var identity = await ninetySecExpiredClient.RedeemAsync("auth-code", "verifier", ExpectedNonce, "https://app.test/callback");
-        Assert.Equal("sub-42", identity.SubjectId);
+        Assert.Equal($"{Authority}|sub-42", identity.SubjectId);
     }
 
     [Fact]

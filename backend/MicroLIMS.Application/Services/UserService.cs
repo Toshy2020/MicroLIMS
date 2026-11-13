@@ -677,8 +677,22 @@ public class UserService
 
         var prevMethod = user.SignInMethod;
         var prevDirectoryUsername = user.DirectoryUsername;
+        var prevSubjectId = user.DirectorySubjectId;
         user.SignInMethod = signInMethod;
         user.DirectoryUsername = normalizedDirectoryUsername;
+
+        // The permanent company id belongs to the company account the previous
+        // username named. The sign-in matcher lets a stored id win over the
+        // username, so keeping it would let that previous account go on signing
+        // in as this user. A first-time link (no previous username) has nothing
+        // to forget.
+        var usernameChanged = prevDirectoryUsername is not null
+            && !string.Equals(prevDirectoryUsername, normalizedDirectoryUsername, StringComparison.Ordinal);
+        if (usernameChanged)
+        {
+            user.DirectorySubjectId = null;
+            user.DirectorySignInRefusedAt = null;
+        }
 
         if (prevMethod == SignInMethod.Local
             && signInMethod == SignInMethod.Directory
@@ -708,8 +722,8 @@ public class UserService
             EntityName = nameof(User),
             EntityId = user.Id.ToString(),
             Action = "USER_SSO_LINK_UPDATED",
-            PreviousValue = JsonSerializer.Serialize(new { SignInMethod = prevMethod.ToString(), DirectoryUsername = prevDirectoryUsername }),
-            NewValue = JsonSerializer.Serialize(new { SignInMethod = signInMethod.ToString(), DirectoryUsername = normalizedDirectoryUsername, Reason = reason }),
+            PreviousValue = JsonSerializer.Serialize(new { SignInMethod = prevMethod.ToString(), DirectoryUsername = prevDirectoryUsername, DirectorySubjectId = prevSubjectId }),
+            NewValue = JsonSerializer.Serialize(new { SignInMethod = signInMethod.ToString(), DirectoryUsername = normalizedDirectoryUsername, DirectorySubjectId = user.DirectorySubjectId, Reason = reason }),
             Reason = reason,
             UserId = actingUserId,
             Timestamp = _time.GetUtcNow().UtcDateTime

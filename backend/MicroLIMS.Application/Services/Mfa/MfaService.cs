@@ -266,7 +266,7 @@ public sealed class MfaService : IMfaService
             if (isEmergencyLogin)
                 (emergencyNotifyUsername, emergencyNotifyEmails) = await RecordEmergencyLoginAndCollectRecipientsAsync(user, currentSsoMode, ct);
 
-            var outcome = await _authService.CompleteLoginAsync(user, ip, userAgent, mfaVerified: true);
+            var outcome = await _authService.CompleteLoginAsync(user, ip, userAgent, mfaVerified: true, AuthenticationService.LoginMethodFor(currentSsoMode, user));
 
             int? recoveryCodesRemaining = null;
             if (hasRecoveryCode)
@@ -424,7 +424,7 @@ public sealed class MfaService : IMfaService
             if (user.IsEmergencyAccount && currentSsoMode != SsoMode.Off)
                 (emergencyNotifyUsername, emergencyNotifyEmails) = await RecordEmergencyLoginAndCollectRecipientsAsync(user, currentSsoMode, ct);
 
-            var login = await _authService.CompleteLoginAsync(user, ip, userAgent, mfaVerified: true);
+            var login = await _authService.CompleteLoginAsync(user, ip, userAgent, mfaVerified: true, AuthenticationService.LoginMethodFor(currentSsoMode, user));
 
             if (tx is not null)
                 await tx.CommitAsync(ct);

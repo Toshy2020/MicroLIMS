@@ -35,6 +35,14 @@ public class AuthenticationService : IAuthenticationService
     // real reason is in the security audit trail and login history.)
     internal const string LoginFailedMessage = "Invalid username or password.";
 
+    // LoginHistory.Method for a sign-in verified by the company directory.
+    internal const string LdapLoginMethod = "Ldap";
+
+    // A non-emergency user signing in while Active Directory mode is on was verified by
+    // the directory, including after the second factor. Local sign-ins record no method.
+    internal static string? LoginMethodFor(SsoMode mode, User user) =>
+        mode == SsoMode.ActiveDirectory && !user.IsEmergencyAccount ? LdapLoginMethod : null;
+
     // A stored hash BCrypt cannot parse is a password that cannot match -
     // not a server error. Now that locked and disabled accounts are also
     // checked (above), such an account must still get the ordinary refusal.
@@ -90,6 +98,14 @@ public class AuthenticationService : IAuthenticationService
     {
         var user = await _db.Users.Include(u => u.Role).FirstOrDefaultAsync(u => u.Username == username);
 
+        // In Active Directory mode the form is shared and the name typed is the
+        // company username. Only an emergency account (looked up by its MicroLIMS
+        // username) keeps the local path; everyone else goes to the directory,
+        // whether or not a MicroLIMS user with that exact username exists.
+        var ssoMode = await _ssoMode.GetModeAsync();
+        if (ssoMode == SsoMode.ActiveDirectory && _directorySignIn is not null && user is not { IsEmergencyAccount: true })
+            return await _directorySignIn.SignInAsync(username, password, ipAddress, userAgent, deviceToken);
+
         if (user is null)
         {
             _securityAudit.Record(new SecurityEventRequest(
@@ -103,10 +119,6 @@ public class AuthenticationService : IAuthenticationService
         // Checked for every existing account, whatever its state, before the
         // state is looked at - so locked and disabled accounts take as long
         // to refuse as a wrong password does.
-        var ssoMode = await _ssoMode.GetModeAsync();
-        if (ssoMode == SsoMode.ActiveDirectory && !user.IsEmergencyAccount && _directorySignIn is not null)
-            return await _directorySignIn.SignInAsync(user, password, ipAddress, userAgent, deviceToken);
-
         var passwordMatches = PasswordMatches(password, user.PasswordHash);
 
         var nowUtc = _time.GetUtcNow().UtcDateTime;
@@ -143,6 +155,15 @@ public class AuthenticationService : IAuthenticationService
             return new LoginOutcome(false, null, null, LoginFailedMessage);
         }
 
+        return await ContinueAfterPrimaryAuthenticationAsync(user, ssoMode, ipAddress, userAgent, deviceToken, loginHistoryMethod: null);
+    }
+
+    // Everything after the first factor has been verified (a MicroLIMS password, or the
+    // company directory's): the second-factor requirement, trusted computer, then login.
+    internal async Task<LoginOutcome> ContinueAfterPrimaryAuthenticationAsync(
+        User user, SsoMode ssoMode, string? ipAddress, string? userAgent, string? deviceToken, string? loginHistoryMethod)
+    {
+        var nowUtc = _time.GetUtcNow().UtcDateTime;
         var hasVerifiableCredential = await _db.UserMfaCredentials
             .AsNoTracking()
             .AnyAsync(c => c.UserId == user.Id
@@ -167,7 +188,7 @@ public class AuthenticationService : IAuthenticationService
             && requirement.Kind == MfaLoginRequirement.Verify
             && await MfaService.IsTrustedDeviceCoreAsync(_db, _time, _mfaPolicy, user.Id, deviceToken))
         {
-            return await CompleteLoginAsync(user, ipAddress, userAgent, mfaVerified: true);
+            return await CompleteLoginAsync(user, ipAddress, userAgent, mfaVerified: true, loginHistoryMethod);
         }
 
         switch (requirement.Kind)
@@ -189,13 +210,13 @@ public class AuthenticationService : IAuthenticationService
             case MfaLoginRequirement.EnrolWithinGrace:
             {
                 user.MfaRequiredSince ??= nowUtc;
-                var outcome = await CompleteLoginAsync(user, ipAddress, userAgent, mfaVerified: false);
+                var outcome = await CompleteLoginAsync(user, ipAddress, userAgent, mfaVerified: false, loginHistoryMethod);
                 return outcome with { MfaEnrolmentDueAt = requirement.EnrolmentDueAtUtc };
             }
 
             case MfaLoginRequirement.None:
             default:
-                return await CompleteLoginAsync(user, ipAddress, userAgent, mfaVerified: false);
+                return await CompleteLoginAsync(user, ipAddress, userAgent, mfaVerified: false, loginHistoryMethod);
         }
     }
 

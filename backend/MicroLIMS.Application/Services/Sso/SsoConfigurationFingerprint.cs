@@ -20,6 +20,8 @@ public sealed class SsoConfigurationFingerprint : ISsoConfigurationFingerprint
 
     public string GetFingerprint(SsoMode mode)
     {
+        if (mode == SsoMode.ActiveDirectory)
+            return GetLdapFingerprint();
         if (mode != SsoMode.OpenIdConnect)
             return Unconfigured;
 
@@ -41,6 +43,29 @@ public sealed class SsoConfigurationFingerprint : ISsoConfigurationFingerprint
             usernameClaim,
             oidc.RequireMfaClaim ? "1" : "0",
             (oidc.RedirectUri ?? string.Empty).Trim());
+
+        return Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(canonical)));
+    }
+
+    private string GetLdapFingerprint()
+    {
+        var ldap = _options.Ldap;
+        if (string.IsNullOrWhiteSpace(ldap.Host) && string.IsNullOrWhiteSpace(ldap.BaseDn))
+            return Unconfigured;
+
+        // Never include BindPassword in the fingerprint: it is a secret and should not
+        // appear in or derive stored audit metadata. Everything else that changes which
+        // directory is contacted, how, or which account is searched is covered.
+        var canonical = string.Join(
+            '\n',
+            "ldap",
+            (ldap.Host ?? string.Empty).Trim().ToLowerInvariant(),
+            ldap.Port.ToString(System.Globalization.CultureInfo.InvariantCulture),
+            ldap.EffectiveUseLdaps ? "ldaps" : "starttls",
+            (ldap.BaseDn ?? string.Empty).Trim(),
+            (ldap.BindDn ?? string.Empty).Trim(),
+            (ldap.UsernameAttribute ?? string.Empty).Trim(),
+            (ldap.SubjectAttribute ?? string.Empty).Trim());
 
         return Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(canonical)));
     }

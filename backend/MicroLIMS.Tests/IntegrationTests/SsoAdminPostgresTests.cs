@@ -47,7 +47,9 @@ public class SsoAdminPostgresTests
 
     private static readonly string[] ExpectedConfigurationKeys =
     {
-        "oidc.authority", "oidc.clientId", "oidc.usernameClaim", "oidc.requireMfaClaim", "oidc.redirectUri", "oidc.clientSecretConfigured"
+        "oidc.authority", "oidc.clientId", "oidc.usernameClaim", "oidc.requireMfaClaim", "oidc.redirectUri", "oidc.clientSecretConfigured",
+        "ldap.host", "ldap.port", "ldap.transport", "ldap.baseDn", "ldap.bindDn", "ldap.usernameAttribute", "ldap.subjectAttribute",
+        "ldap.timeoutSeconds", "ldap.serviceAccountPasswordConfigured"
     };
 
     private readonly PostgresTestFixture _fixture;
@@ -112,8 +114,19 @@ public class SsoAdminPostgresTests
         }
     }
 
-    private static SsoOptions NewOptions(string? clientSecret = null) => new()
+    private static SsoOptions NewOptions(string? clientSecret = null, string? bindPassword = null) => new()
     {
+        Ldap = new LdapOptions
+        {
+            Host = "dc.corp.example.test",
+            Port = 636,
+            BaseDn = "DC=corp,DC=example,DC=test",
+            BindDn = "CN=svc-microlims,OU=Service,DC=corp,DC=example,DC=test",
+            BindPassword = bindPassword,
+            UsernameAttribute = "sAMAccountName",
+            SubjectAttribute = "objectGUID",
+            TimeoutSeconds = 10
+        },
         Oidc = new OidcOptions
         {
             // A unique authority gives each test its own configuration fingerprint,
@@ -128,7 +141,7 @@ public class SsoAdminPostgresTests
     };
 
     private static (SsoAdminService Admin, UserService Users) CreateServices(
-        MicroLimsDbContext db, SsoOptions? options = null, IOidcProviderClient? oidc = null)
+        MicroLimsDbContext db, SsoOptions? options = null, IOidcProviderClient? oidc = null, ILdapDirectory? ldap = null)
     {
         var clock = new FakeTimeProvider(BaseUtc);
         var effectiveOptions = options ?? NewOptions();
@@ -140,7 +153,7 @@ public class SsoAdminPostgresTests
             new EmailSender("", 587, "", "", "no-reply@microlims.local", false),
             NullLogger<AuthenticationService>.Instance, audit, clock, null, null, ssoMode);
         var users = new UserService(db, auth, audit, clock, signatureService: new ElectronicSignatureService(db, clock));
-        var admin = new SsoAdminService(db, ssoMode, effectiveOptions, oidc ?? new FakeOidcProviderClient(), users, clock);
+        var admin = new SsoAdminService(db, ssoMode, effectiveOptions, oidc ?? new FakeOidcProviderClient(), ldap ?? new FakeLdapDirectory(), users, clock);
         return (admin, users);
     }
 
@@ -179,6 +192,12 @@ public class SsoAdminPostgresTests
         return user;
     }
 
+    private async Task<uint> VersionOfAsync(int userId)
+    {
+        await using var readDb = _fixture.CreateDbContext();
+        return (await readDb.Users.AsNoTracking().SingleAsync(u => u.Id == userId)).Version;
+    }
+
     private static string Company(string label) => $"{label}.{Guid.NewGuid():N}@corp.test";
 
     // ---- GET api/admin/sso -------------------------------------------------
@@ -187,7 +206,8 @@ public class SsoAdminPostgresTests
     public async Task GetSso_NeverReturnsClientSecretOrBindPassword()
     {
         var secret = $"Sup3r-Secret-{Guid.NewGuid():N}";
-        var options = NewOptions(secret);
+        var bindPassword = $"Bind-Pw-{Guid.NewGuid():N}";
+        var options = NewOptions(secret, bindPassword);
         var admin = await SeedUserAsync(RoleType.SystemAdministrator);
         var unlinked = await SeedUserAsync();
         var linked = await SeedUserAsync(directoryUsername: Company("linked"));
@@ -203,12 +223,17 @@ public class SsoAdminPostgresTests
 
         var json = JsonSerializer.Serialize(overview, ApiJsonOptionsForTests());
         Assert.DoesNotContain(secret, json, StringComparison.Ordinal);
-        Assert.DoesNotContain("password", json, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain(bindPassword, json, StringComparison.Ordinal);
+        // Only the "...Configured" flag may mention a password.
+        Assert.DoesNotContain("password", json.Replace("serviceAccountPasswordConfigured", string.Empty), StringComparison.OrdinalIgnoreCase);
 
         // Only the allow-listed keys, and the secret appears only as "configured".
         Assert.Equal(ExpectedConfigurationKeys.OrderBy(k => k, StringComparer.Ordinal),
             overview.Configuration.Keys.OrderBy(k => k, StringComparer.Ordinal));
         Assert.Equal(true, overview.Configuration["oidc.clientSecretConfigured"]);
+        Assert.Equal(true, overview.Configuration["ldap.serviceAccountPasswordConfigured"]);
+        Assert.Equal("dc.corp.example.test", overview.Configuration["ldap.host"]);
+        Assert.Equal("LDAPS", overview.Configuration["ldap.transport"]);
         Assert.Equal(options.Oidc.Authority, overview.Configuration["oidc.authority"]);
         Assert.Equal(true, overview.Configuration["oidc.requireMfaClaim"]);
 
@@ -276,22 +301,86 @@ public class SsoAdminPostgresTests
     }
 
     [PostgresFact]
-    public async Task Test_ActiveDirectoryOrOff_Refused_NothingRecorded()
+    public async Task Test_Off_Refused_NothingRecorded()
     {
         var admin = await SeedUserAsync(RoleType.SystemAdministrator);
         var oidc = new FakeOidcProviderClient();
+        var ldap = new FakeLdapDirectory();
 
         await using (var actDb = _fixture.CreateDbContext())
         {
-            var (service, _) = CreateServices(actDb, oidc: oidc);
-            var ad = await Assert.ThrowsAsync<BusinessRuleException>(() => service.TestConnectionAsync(admin.Id, SsoMode.ActiveDirectory));
-            Assert.Contains("Active Directory", ad.Message);
+            var (service, _) = CreateServices(actDb, oidc: oidc, ldap: ldap);
             await Assert.ThrowsAsync<BusinessRuleException>(() => service.TestConnectionAsync(admin.Id, SsoMode.Off));
         }
 
         Assert.Equal(0, oidc.TestCalls);
+        Assert.Equal(0, ldap.TestCalls);
         await using var assertDb = _fixture.CreateDbContext();
         Assert.False(await assertDb.SecurityAuditEvents.AsNoTracking().AnyAsync(e => e.ActorUserId == admin.Id));
+    }
+
+    [PostgresFact]
+    public async Task Test_ActiveDirectory_Success_UsesTheDirectoryOnly_RecordsTimestamp()
+    {
+        var options = NewOptions(bindPassword: "unused-bind-pw");
+        var admin = await SeedUserAsync(RoleType.SystemAdministrator);
+        var oidc = new FakeOidcProviderClient();
+        var ldap = new FakeLdapDirectory();
+
+        SsoTestResultDto result;
+        await using (var actDb = _fixture.CreateDbContext())
+        {
+            var (service, _) = CreateServices(actDb, options, oidc, ldap);
+            result = await service.TestConnectionAsync(admin.Id, SsoMode.ActiveDirectory);
+        }
+
+        Assert.True(result.Passed);
+        Assert.Equal(1, ldap.TestCalls);
+        Assert.Equal(0, oidc.TestCalls);
+
+        await using var assertDb = _fixture.CreateDbContext();
+        var evt = await assertDb.SecurityAuditEvents.AsNoTracking()
+            .Where(e => e.ActorUserId == admin.Id && e.EventCode == SecurityEventCodes.SsoConnectionTestPassed)
+            .SingleAsync();
+        Assert.Contains("ActiveDirectory", evt.Metadata);
+        Assert.DoesNotContain("unused-bind-pw", evt.Metadata ?? string.Empty, StringComparison.Ordinal);
+
+        var (service2, _) = CreateServices(assertDb, options);
+        var overview = await service2.GetOverviewAsync(admin.Id, SsoMode.ActiveDirectory);
+        Assert.Equal(result.TestedAt, overview.LastTestPassedAt);
+    }
+
+    [PostgresFact]
+    public async Task Test_ActiveDirectory_Failure_ScrubsBindPassword_RecordsFailureOnly()
+    {
+        var bindPassword = $"Leaky-Bind-{Guid.NewGuid():N}";
+        var options = NewOptions(bindPassword: bindPassword);
+        var admin = await SeedUserAsync(RoleType.SystemAdministrator);
+        var ldap = new FakeLdapDirectory
+        {
+            TestThrows = new DirectoryUnavailableException($"The service account could not bind: bad credentials {bindPassword}")
+        };
+
+        BusinessRuleException error;
+        await using (var actDb = _fixture.CreateDbContext())
+        {
+            var (service, _) = CreateServices(actDb, options, ldap: ldap);
+            error = await Assert.ThrowsAsync<BusinessRuleException>(() => service.TestConnectionAsync(admin.Id, SsoMode.ActiveDirectory));
+        }
+
+        Assert.StartsWith("The connection test failed:", error.Message);
+        Assert.Contains("service account could not bind", error.Message);
+        Assert.DoesNotContain(bindPassword, error.Message, StringComparison.Ordinal);
+
+        await using var assertDb = _fixture.CreateDbContext();
+        var evt = await assertDb.SecurityAuditEvents.AsNoTracking()
+            .Where(e => e.ActorUserId == admin.Id && e.EventCode == SecurityEventCodes.SsoConnectionTestFailed)
+            .SingleAsync();
+        Assert.Equal(SecurityEventOutcome.Failure, evt.Outcome);
+        Assert.DoesNotContain(bindPassword, evt.Reason ?? string.Empty, StringComparison.Ordinal);
+        Assert.DoesNotContain(bindPassword, evt.Metadata ?? string.Empty, StringComparison.Ordinal);
+        Assert.False(await assertDb.SecurityAuditEvents.AsNoTracking()
+            .AnyAsync(e => e.ActorUserId == admin.Id && e.EventCode == SecurityEventCodes.SsoConnectionTestPassed));
     }
 
     [PostgresFact]
@@ -562,6 +651,117 @@ public class SsoAdminPostgresTests
     }
 
     // ---- directory re-link -------------------------------------------------
+
+    // ---- Part A: changing a company username forgets the old company identity ----
+
+    [PostgresFact]
+    public async Task Update_ChangeCompanyUsername_ClearsStoredSubject_Audited()
+    {
+        var admin = await SeedUserAsync(RoleType.SystemAdministrator);
+        var oldCompany = Company("old");
+        var newCompany = Company("new");
+        var oldSubject = $"sub-{Guid.NewGuid():N}";
+        var target = await SeedUserAsync(RoleType.Analyst, SignInMethod.Directory, oldCompany, oldSubject,
+            refusedAt: BaseUtc.UtcDateTime.AddDays(-1));
+        uint version;
+        await using (var readDb = _fixture.CreateDbContext())
+            version = (await readDb.Users.AsNoTracking().SingleAsync(u => u.Id == target.Id)).Version;
+
+        await using (var actDb = _fixture.CreateDbContext())
+        {
+            var (_, users) = CreateServices(actDb);
+            actDb.ExpectedVersion = version;
+            await users.UpdateProfileAsync(target.Id, target.FullName, target.Username, target.Email, null, admin.Id,
+                "Company renamed the account", new UserSignInChange(SignInMethod.Directory, newCompany, false));
+        }
+
+        await using var assertDb = _fixture.CreateDbContext();
+        var persisted = await assertDb.Users.AsNoTracking().SingleAsync(u => u.Id == target.Id);
+        Assert.Equal(newCompany, persisted.DirectoryUsername);
+        Assert.Null(persisted.DirectorySubjectId);
+        Assert.Null(persisted.DirectorySignInRefusedAt);
+
+        var audit = await assertDb.AuditLogs.AsNoTracking()
+            .SingleAsync(a => a.EntityName == nameof(User) && a.EntityId == target.Id.ToString() && a.Action == "USER_SSO_LINK_UPDATED");
+        Assert.Equal(admin.Id, audit.UserId);
+        Assert.Contains(oldSubject, audit.PreviousValue);
+        Assert.Contains(oldCompany, audit.PreviousValue);
+        Assert.Contains("\"DirectorySubjectId\":null", audit.NewValue);
+        Assert.Contains(newCompany, audit.NewValue);
+
+        var evt = await assertDb.SecurityAuditEvents.AsNoTracking().SingleAsync(e => e.TargetUserId == target.Id);
+        Assert.Equal(SecurityEventCodes.UserDirectoryRelinked, evt.EventCode);
+        Assert.Equal(admin.Id, evt.ActorUserId);
+    }
+
+    [PostgresFact]
+    public async Task Update_RemoveCompanyUsername_ClearsStoredSubject_Audited()
+    {
+        var admin = await SeedUserAsync(RoleType.SystemAdministrator);
+        var oldSubject = $"sub-{Guid.NewGuid():N}";
+        var target = await SeedUserAsync(RoleType.Analyst, SignInMethod.Local, Company("remove"), oldSubject,
+            refusedAt: BaseUtc.UtcDateTime.AddDays(-1));
+
+        await using (var actDb = _fixture.CreateDbContext())
+        {
+            var (_, users) = CreateServices(actDb);
+            await users.UpdateSsoLinkAsync(target.Id, SignInMethod.Local, null, "Unlink the company account", admin.Id);
+        }
+
+        await using var assertDb = _fixture.CreateDbContext();
+        var persisted = await assertDb.Users.AsNoTracking().SingleAsync(u => u.Id == target.Id);
+        Assert.Null(persisted.DirectoryUsername);
+        Assert.Null(persisted.DirectorySubjectId);
+        Assert.Null(persisted.DirectorySignInRefusedAt);
+        var audit = await assertDb.AuditLogs.AsNoTracking()
+            .SingleAsync(a => a.EntityName == nameof(User) && a.EntityId == target.Id.ToString() && a.Action == "USER_SSO_LINK_UPDATED");
+        Assert.Contains(oldSubject, audit.PreviousValue);
+        Assert.Contains("\"DirectorySubjectId\":null", audit.NewValue);
+    }
+
+    [PostgresFact]
+    public async Task Update_SameCompanyUsername_KeepsStoredSubject()
+    {
+        var admin = await SeedUserAsync(RoleType.SystemAdministrator);
+        var company = Company("same");
+        var subject = $"sub-{Guid.NewGuid():N}";
+        var target = await SeedUserAsync(RoleType.Analyst, SignInMethod.Directory, company, subject);
+
+        await using (var actDb = _fixture.CreateDbContext())
+        {
+            var (_, users) = CreateServices(actDb);
+            actDb.ExpectedVersion = await VersionOfAsync(target.Id);
+            await users.UpdateProfileAsync(target.Id, target.FullName, target.Username, target.Email, null, admin.Id,
+                "Re-save a different name", new UserSignInChange(SignInMethod.Directory, company.ToUpperInvariant(), false));
+        }
+
+        await using var assertDb = _fixture.CreateDbContext();
+        var persisted = await assertDb.Users.AsNoTracking().SingleAsync(u => u.Id == target.Id);
+        Assert.Equal(subject, persisted.DirectorySubjectId);
+    }
+
+    [PostgresFact]
+    public async Task Import_FirstLink_LeavesSubjectNull()
+    {
+        var admin = await SeedUserAsync(RoleType.SystemAdministrator);
+        var target = await SeedUserAsync();
+        var company = Company("first");
+
+        await using (var actDb = _fixture.CreateDbContext())
+        {
+            var (service, _) = CreateServices(actDb);
+            await service.ImportLinksAsync(new List<DirectoryLinkRowRequest> { new(target.Username, company) }, Reason, admin.Id);
+        }
+
+        await using var assertDb = _fixture.CreateDbContext();
+        var persisted = await assertDb.Users.AsNoTracking().SingleAsync(u => u.Id == target.Id);
+        Assert.Equal(company, persisted.DirectoryUsername);
+        Assert.Null(persisted.DirectorySubjectId);
+        var audit = await assertDb.AuditLogs.AsNoTracking()
+            .SingleAsync(a => a.EntityName == nameof(User) && a.EntityId == target.Id.ToString() && a.Action == "USER_SSO_LINK_UPDATED");
+        Assert.Contains("\"DirectorySubjectId\":null", audit.PreviousValue);
+        Assert.Contains("\"DirectorySubjectId\":null", audit.NewValue);
+    }
 
     [PostgresFact]
     public async Task Relink_RequiresReason_ClearsSubject_Audited()

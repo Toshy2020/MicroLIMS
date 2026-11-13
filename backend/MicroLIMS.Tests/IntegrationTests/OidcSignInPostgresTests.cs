@@ -329,6 +329,72 @@ public class OidcSignInPostgresTests
     }
 
     [PostgresFact]
+    public async Task Callback_SameSubFromDifferentIssuer_Refused_SubjectMismatch()
+    {
+        var clock = new MutableTimeProvider(BaseUtc);
+        var dirUser = $"dir_{Guid.NewGuid():N}"[..16];
+        var user = await SeedUserAsync("oidc_issuer", directoryUsername: dirUser, directorySubjectId: "https://idp-a.example.test|sub-1");
+        var fakeClient = new FakeOidcProviderClient
+        {
+            IdentityToReturn = new DirectoryIdentity("https://idp-b.example.test|sub-1", dirUser, MfaSatisfied: true)
+        };
+
+        var redirect = await RunCallbackAsync(clock, fakeClient);
+
+        Assert.Equal("signin_failed", ExtractFragmentParam(redirect, "error"));
+        await using var assertDb = _fixture.CreateDbContext();
+        Assert.True(await assertDb.SecurityAuditEvents.AsNoTracking()
+            .AnyAsync(e => e.TargetUserId == user.Id && e.EventCode == SecurityEventCodes.SsoLoginFailedSubjectMismatch));
+        var persisted = await assertDb.Users.AsNoTracking().SingleAsync(u => u.Id == user.Id);
+        Assert.Equal("https://idp-a.example.test|sub-1", persisted.DirectorySubjectId);
+        Assert.False(await assertDb.SsoExchangeCodes.AsNoTracking().AnyAsync(c => c.UserId == user.Id));
+    }
+
+    [PostgresFact]
+    public async Task Callback_AfterCompanyUsernameChange_PreviousCompanyAccountNoLongerSignsIn()
+    {
+        var clock = new MutableTimeProvider(BaseUtc);
+        var oldName = $"old_{Guid.NewGuid():N}"[..16];
+        var newName = $"new_{Guid.NewGuid():N}"[..16];
+        var oldSubject = $"https://idp.example.test|sub-{Guid.NewGuid():N}";
+        var user = await SeedUserAsync("oidc_rename", directoryUsername: oldName, directorySubjectId: oldSubject);
+        int adminId;
+        await using (var seedDb = _fixture.CreateDbContext())
+        {
+            var role = await seedDb.Roles.FirstAsync(r => r.Type == RoleType.SystemAdministrator);
+            var admin = new User
+            {
+                Username = $"oidc_adm_{Guid.NewGuid():N}"[..20], FullName = "Admin", Email = "adm@example.test",
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword("StrongPass1!"), RoleId = role.Id, IsActive = true
+            };
+            seedDb.Users.Add(admin);
+            await seedDb.SaveChangesAsync();
+            adminId = admin.Id;
+        }
+
+        // The previous holder of the old company username still has a valid sign-in at the provider.
+        var fakeClient = new FakeOidcProviderClient { IdentityToReturn = new DirectoryIdentity(oldSubject, oldName, MfaSatisfied: true) };
+        await using (var renameDb = _fixture.CreateDbContext())
+        {
+            var audit = new SecurityAuditService(renameDb, new SystemSecurityRequestContext(), clock);
+            var (_, _, auth) = CreateServices(renameDb, clock, fakeClient);
+            var users = new UserService(renameDb, auth, audit, clock, signatureService: new ElectronicSignatureService(renameDb, clock));
+            await users.UpdateSsoLinkAsync(user.Id, SignInMethod.Directory, newName, "Company renamed the account", adminId);
+        }
+
+        var redirect = await RunCallbackAsync(clock, fakeClient);
+        Assert.Equal("signin_failed", ExtractFragmentParam(redirect, "error"));
+
+        await using var assertDb = _fixture.CreateDbContext();
+        var persisted = await assertDb.Users.AsNoTracking().SingleAsync(u => u.Id == user.Id);
+        Assert.Equal(newName, persisted.DirectoryUsername);
+        Assert.Null(persisted.DirectorySubjectId);
+        Assert.False(await assertDb.SsoExchangeCodes.AsNoTracking().AnyAsync(c => c.UserId == user.Id));
+        Assert.True(await assertDb.SecurityAuditEvents.AsNoTracking()
+            .AnyAsync(e => e.EventCode == SecurityEventCodes.SsoLoginFailedNotLinked && e.TargetUsername == oldName));
+    }
+
+    [PostgresFact]
     public async Task Callback_ExpiredPendingRequest_Refuses()
     {
         var clock = new MutableTimeProvider(BaseUtc);

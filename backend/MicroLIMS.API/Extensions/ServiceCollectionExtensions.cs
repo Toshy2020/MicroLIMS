@@ -331,6 +331,12 @@ public static class ServiceCollectionExtensions
         services.AddScoped<MicroLIMS.Application.Services.Sso.SsoModeService>();
         services.AddHttpClient<MicroLIMS.Application.Abstractions.Sso.IOidcProviderClient, MicroLIMS.Infrastructure.Sso.OidcProviderClient>();
         services.AddScoped<MicroLIMS.Application.Services.Sso.OidcSignInService>();
+        services.AddSingleton<MicroLIMS.Application.Abstractions.Sso.ILdapDirectory, MicroLIMS.Infrastructure.Sso.LdapDirectory>();
+        // The login form (AuthenticationService) hands Active Directory sign-ins to LdapSignInService, which
+        // finishes through AuthenticationService again; the factory breaks the construction cycle.
+        services.AddScoped<System.Func<MicroLIMS.Application.Services.AuthenticationService>>(sp =>
+            () => sp.GetRequiredService<MicroLIMS.Application.Services.AuthenticationService>());
+        services.AddScoped<MicroLIMS.Application.Abstractions.Sso.IDirectoryPasswordSignIn, MicroLIMS.Application.Services.Sso.LdapSignInService>();
         services.AddScoped<MicroLIMS.Application.Services.Sso.SsoAdminService>();
         services.AddScoped<IMfaService, MicroLIMS.Application.Services.Mfa.MfaService>();
         services.AddScoped<IMfaAdminService, MicroLIMS.Application.Services.Mfa.MfaAdminService>();

@@ -1,0 +1,13 @@
+dn: uid=alice,dc=example,dc=org
+objectClass: inetOrgPerson
+uid: alice
+cn: Alice Example
+sn: Example
+userPassword: Alice-Pass-1!
+
+dn: uid=bob,dc=example,dc=org
+objectClass: inetOrgPerson
+uid: bob
+cn: Bob Example
+sn: Example
+userPassword: Bob-Pass-1!

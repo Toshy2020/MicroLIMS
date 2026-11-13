@@ -47,6 +47,7 @@ public sealed class SsoAdminService
     private readonly SsoModeService _ssoMode;
     private readonly SsoOptions _options;
     private readonly IOidcProviderClient _oidc;
+    private readonly ILdapDirectory _ldap;
     private readonly UserService _users;
     private readonly TimeProvider _time;
 
@@ -55,6 +56,7 @@ public sealed class SsoAdminService
         SsoModeService ssoMode,
         SsoOptions options,
         IOidcProviderClient oidc,
+        ILdapDirectory ldap,
         UserService users,
         TimeProvider? timeProvider = null)
     {
@@ -62,13 +64,14 @@ public sealed class SsoAdminService
         _ssoMode = ssoMode;
         _options = options;
         _oidc = oidc;
+        _ldap = ldap;
         _users = users;
         _time = timeProvider ?? TimeProvider.System;
     }
 
     // The mode that blockers, the last passed test and the connection test refer to:
     // the one asked for, else the current mode, else OpenID Connect (the only
-    // provider installed until Active Directory sign-in arrives).
+    // provider installed first).
     public static SsoMode ResolveTargetMode(SsoMode current, SsoMode? requested) =>
         requested ?? (current == SsoMode.Off ? SsoMode.OpenIdConnect : current);
 
@@ -95,6 +98,7 @@ public sealed class SsoAdminService
     private IReadOnlyDictionary<string, object?> BuildConfiguration()
     {
         var oidc = _options.Oidc;
+        var ldap = _options.Ldap;
         return new Dictionary<string, object?>(StringComparer.Ordinal)
         {
             ["oidc.authority"] = Blank(oidc.Authority),
@@ -102,7 +106,16 @@ public sealed class SsoAdminService
             ["oidc.usernameClaim"] = string.IsNullOrWhiteSpace(oidc.UsernameClaim) ? OidcOptions.DefaultUsernameClaim : oidc.UsernameClaim.Trim(),
             ["oidc.requireMfaClaim"] = oidc.RequireMfaClaim,
             ["oidc.redirectUri"] = Blank(oidc.RedirectUri),
-            ["oidc.clientSecretConfigured"] = !string.IsNullOrWhiteSpace(oidc.ClientSecret)
+            ["oidc.clientSecretConfigured"] = !string.IsNullOrWhiteSpace(oidc.ClientSecret),
+            ["ldap.host"] = Blank(ldap.Host),
+            ["ldap.port"] = ldap.Port,
+            ["ldap.transport"] = ldap.EffectiveUseLdaps ? "LDAPS" : "StartTLS",
+            ["ldap.baseDn"] = Blank(ldap.BaseDn),
+            ["ldap.bindDn"] = Blank(ldap.BindDn),
+            ["ldap.usernameAttribute"] = string.IsNullOrWhiteSpace(ldap.UsernameAttribute) ? LdapOptions.DefaultUsernameAttribute : ldap.UsernameAttribute.Trim(),
+            ["ldap.subjectAttribute"] = string.IsNullOrWhiteSpace(ldap.SubjectAttribute) ? LdapOptions.DefaultSubjectAttribute : ldap.SubjectAttribute.Trim(),
+            ["ldap.timeoutSeconds"] = ldap.TimeoutSeconds,
+            ["ldap.serviceAccountPasswordConfigured"] = !string.IsNullOrWhiteSpace(ldap.BindPassword)
         };
 
         static string? Blank(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
@@ -113,12 +126,13 @@ public sealed class SsoAdminService
         var target = ResolveTargetMode(await _ssoMode.GetModeAsync(ct), requestedMode);
         if (target == SsoMode.Off)
             throw new BusinessRuleException("Choose OpenID Connect or Active Directory to test a connection.");
-        if (target == SsoMode.ActiveDirectory)
-            throw new BusinessRuleException("The Active Directory connection test is not available until Active Directory sign-in is installed.");
 
         try
         {
-            await _oidc.TestAsync(ct);
+            if (target == SsoMode.ActiveDirectory)
+                await _ldap.TestAsync(ct);
+            else
+                await _oidc.TestAsync(ct);
         }
         catch (Exception ex) when (!ct.IsCancellationRequested)
         {
@@ -126,7 +140,7 @@ public sealed class SsoAdminService
             // Saved on its own (no transaction is open here), so the failure
             // record stays even though the request ends in an error.
             await _ssoMode.RecordConnectionTestFailedAsync(target, $"{ex.GetType().Name}: {reason}", actingUserId, ct);
-            throw new BusinessRuleException($"The connection test failed: {AdminReadable(ex, reason)}");
+            throw new BusinessRuleException($"The connection test failed: {AdminReadable(ex, reason, target)}");
         }
 
         await _ssoMode.RecordConnectionTestPassedAsync(target, actingUserId, ct);
@@ -134,8 +148,10 @@ public sealed class SsoAdminService
         return new SsoTestResultDto(true, testedAt);
     }
 
-    private static string AdminReadable(Exception ex, string reason) => ex switch
+    private static string AdminReadable(Exception ex, string reason, SsoMode target) => ex switch
     {
+        DirectoryUnavailableException => $"the company directory could not be used ({reason})",
+        InvalidOperationException when target == SsoMode.ActiveDirectory => reason,
         HttpRequestException => $"the identity provider could not be reached ({reason})",
         TaskCanceledException => "the identity provider did not answer in time",
         OidcValidationException => reason,
@@ -143,14 +159,16 @@ public sealed class SsoAdminService
         _ => $"the identity provider's configuration could not be read ({reason})"
     };
 
-    // A provider message must never carry the client secret back to the page or
-    // into the security event.
+    // A provider or directory message must never carry the client secret or the
+    // service account password back to the page or into the security event.
     private string Scrub(string? message)
     {
         var text = string.IsNullOrWhiteSpace(message) ? "no detail was given" : message.Trim();
-        var secret = _options.Oidc.ClientSecret;
-        if (!string.IsNullOrEmpty(secret))
-            text = text.Replace(secret, SecretMask, StringComparison.Ordinal);
+        foreach (var secret in new[] { _options.Oidc.ClientSecret, _options.Ldap.BindPassword })
+        {
+            if (!string.IsNullOrEmpty(secret))
+                text = text.Replace(secret, SecretMask, StringComparison.Ordinal);
+        }
         return text.Length > MaxReportedReasonLength ? text[..MaxReportedReasonLength] + "..." : text;
     }
 

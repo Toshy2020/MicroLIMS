@@ -7,6 +7,7 @@ import { Sidebar } from "../components/Sidebar";
 import { AppBreadcrumbs } from "../components/AppBreadcrumbs";
 import { AppErrorBoundary } from "../components/AppErrorBoundary";
 import { useAuth } from "../contexts/AuthContext";
+import { useBenchMode } from "../theme/BenchModeContext";
 import { useIdleTimeout } from "../hooks/useIdleTimeout";
 import { useMyLabs } from "../hooks/useMyLabs";
 import { useMenuGroups } from "../hooks/useMenuGroups";
@@ -36,7 +37,9 @@ export function MainLayout() {
   );
 
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [collapsed, setCollapsed] = useState(() => localStorage.getItem("microlims_sidebar_collapsed") === "true");
+  // Bench mode starts with the sidebar closed (icon rail) to leave the width to the entry form.
+  const { benchMode } = useBenchMode();
+  const [collapsed, setCollapsed] = useState(() => benchMode || localStorage.getItem("microlims_sidebar_collapsed") === "true");
   const [mfaStatus, setMfaStatus] = useState<MfaStatus | null>(null);
 
   useEffect(() => {

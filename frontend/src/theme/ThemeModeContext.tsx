@@ -2,6 +2,7 @@ import { createContext, ReactNode, useContext, useEffect, useMemo, useState } fr
 import { ThemeProvider, CssBaseline } from "@mui/material";
 import { Toaster } from "sonner";
 import { getTheme } from "./index";
+import { useBenchMode } from "./BenchModeContext";
 
 export type ThemeMode = "light" | "dark";
 
@@ -42,6 +43,7 @@ function initialMode(): ThemeMode {
 // ThemeProvider themselves.
 export function ThemeModeProvider({ children }: { children: ReactNode }) {
   const [mode, setMode] = useState<ThemeMode>(initialMode);
+  const { benchMode } = useBenchMode();
 
   useEffect(() => {
     try {
@@ -56,7 +58,7 @@ export function ThemeModeProvider({ children }: { children: ReactNode }) {
     [mode]
   );
 
-  const theme = useMemo(() => getTheme(mode), [mode]);
+  const theme = useMemo(() => getTheme(mode, benchMode), [mode, benchMode]);
 
   return (
     <ThemeModeContext.Provider value={value}>

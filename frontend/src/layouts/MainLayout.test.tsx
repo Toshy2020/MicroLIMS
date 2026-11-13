@@ -3,6 +3,7 @@ import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { Link, MemoryRouter, Route, Routes } from "react-router-dom";
 import { ThemeModeProvider } from "../theme/ThemeModeContext";
+import { BenchModeProvider } from "../theme/BenchModeContext";
 import { AuthProvider } from "../contexts/AuthContext";
 import { mfaService } from "../modules/authentication/services/mfaService";
 import { laboratorySectionService } from "../services/laboratorySectionService";
@@ -44,6 +45,7 @@ function seedSession() {
 function renderLayout() {
   seedSession();
   return render(
+    <BenchModeProvider>
     <ThemeModeProvider>
       <AuthProvider>
         <MemoryRouter initialEntries={["/dashboard"]}>
@@ -64,6 +66,7 @@ function renderLayout() {
         </MemoryRouter>
       </AuthProvider>
     </ThemeModeProvider>
+    </BenchModeProvider>
   );
 }
 
@@ -124,5 +127,24 @@ describe("MainLayout MFA grace banner", () => {
     await waitFor(() => expect(mfaService.getStatus).toHaveBeenCalledTimes(1));
     expect(screen.getByText(/Dashboard Outlet/)).toBeTruthy();
     expect(screen.queryByRole("link", { name: /Set up second factor/i })).toBeNull();
+  });
+});
+
+describe("MainLayout sidebar in bench mode", () => {
+  it("starts expanded normally and closed (icon rail) in bench mode", async () => {
+    vi.mocked(mfaService.getStatus).mockResolvedValue({
+      enrolled: true, type: "AuthenticatorApp", confirmedAt: null,
+      recoveryCodesRemaining: 0, required: false, enrolmentDueAt: null, trustedDevices: []
+    });
+
+    const normal = renderLayout();
+    expect(screen.getAllByRole("button", { name: "Collapse sidebar" }).length).toBeGreaterThan(0);
+    expect(screen.queryByRole("button", { name: "Expand sidebar" })).toBeNull();
+    normal.unmount();
+
+    localStorage.setItem("microlims_bench_mode", "on");
+    renderLayout();
+    expect(screen.getAllByRole("button", { name: "Expand sidebar" }).length).toBeGreaterThan(0);
+    expect(screen.queryByRole("button", { name: "Collapse sidebar" })).toBeNull();
   });
 });

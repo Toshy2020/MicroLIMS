@@ -11,6 +11,8 @@ export interface CustomThemeTokens {
   chartPalette: string[];
   chartSequential: string[];
   chrome: ChromeTokens;
+  // True under the bench (shared tablet) theme. The only flag components may read.
+  bench: boolean;
 }
 
 declare module "@mui/material/styles" {

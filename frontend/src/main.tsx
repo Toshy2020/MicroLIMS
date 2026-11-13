@@ -3,6 +3,7 @@ import ReactDOM from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 import App from "./App";
 import { ThemeModeProvider } from "./theme/ThemeModeContext";
+import { BenchModeProvider } from "./theme/BenchModeContext";
 import { SystemStatusProvider } from "./contexts/SystemStatusContext";
 import { AuthProvider } from "./contexts/AuthContext";
 import { AppErrorBoundary } from "./components/AppErrorBoundary";
@@ -19,6 +20,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
         AuthProvider is exactly the kind that used to white-screen the app,
         and a boundary nested inside them could not catch it. */}
     <AppErrorBoundary>
+      <BenchModeProvider>
       <ThemeModeProvider>
         <BrowserRouter>
           <SystemStatusProvider>
@@ -28,6 +30,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
           </SystemStatusProvider>
         </BrowserRouter>
       </ThemeModeProvider>
+      </BenchModeProvider>
     </AppErrorBoundary>
   </React.StrictMode>
 );

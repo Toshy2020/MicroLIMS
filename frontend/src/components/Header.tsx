@@ -17,6 +17,7 @@ import LogoutIcon from "@mui/icons-material/Logout";
 import SearchIcon from "@mui/icons-material/Search";
 import { apiClient } from "../services/apiClient";
 import { useThemeMode } from "../theme/ThemeModeContext";
+import { useBenchMode } from "../theme/BenchModeContext";
 import { useAuth } from "../contexts/AuthContext";
 import { formatRoleFallback, formatRoleName, userInitials } from "../utils/userDisplay";
 import { GlobalSearchDialog } from "./search/GlobalSearchDialog";
@@ -72,6 +73,7 @@ interface HeaderProps {
 
 export function Header({ onToggleSidebar, sidebarCollapsed, labCodes }: HeaderProps) {
   const { mode, toggleMode } = useThemeMode();
+  const { benchMode, setBenchMode } = useBenchMode();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
   const showIdentityText = useMediaQuery(theme.breakpoints.up("sm"));
@@ -234,6 +236,18 @@ export function Header({ onToggleSidebar, sidebarCollapsed, labCodes }: HeaderPr
           >
             <SearchIcon />
           </IconButton>
+        </Tooltip>
+        <Tooltip title="Bench mode: larger touch targets for tablets (this device only)">
+          <Switch
+            checked={benchMode}
+            onChange={(_, checked) => setBenchMode(checked)}
+            sx={{
+              "& .MuiSwitch-track": { backgroundColor: theme.custom.chrome.topbarSwitchTrack, opacity: 1 },
+              "& .MuiSwitch-thumb": { backgroundColor: "common.white", boxShadow: "0 1px 2px rgba(0,0,0,0.3)" },
+              "& .Mui-checked+.MuiSwitch-track": { backgroundColor: `${theme.custom.chrome.topbarSwitchTrack} !important`, opacity: 1 }
+            }}
+            slotProps={{ input: { "aria-label": "Bench mode" } }}
+          />
         </Tooltip>
         <Tooltip title={mode === "dark" ? "Switch to light mode" : "Switch to dark mode"}>
           <Switch

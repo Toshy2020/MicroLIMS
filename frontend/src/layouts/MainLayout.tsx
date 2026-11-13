@@ -17,9 +17,10 @@ import { accountPageTrail, findNavTrail } from "../routes/navigation";
 const MAIN_CONTENT_ID = "main-content";
 
 const CHANGE_PASSWORD_PATH = "/change-password";
+const SET_SIGNING_PASSWORD_PATH = "/set-signing-password";
 
 export function MainLayout() {
-  const { logout, mustChangePassword } = useAuth();
+  const { logout, mustChangePassword, signingPasswordRequired } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const theme = useTheme();
@@ -83,6 +84,9 @@ export function MainLayout() {
   // anywhere else until the forced change is done.
   if (mustChangePassword && location.pathname !== CHANGE_PASSWORD_PATH) {
     return <Navigate to={CHANGE_PASSWORD_PATH} replace />;
+  }
+  if (signingPasswordRequired && location.pathname !== SET_SIGNING_PASSWORD_PATH) {
+    return <Navigate to={SET_SIGNING_PASSWORD_PATH} replace />;
   }
 
   return (

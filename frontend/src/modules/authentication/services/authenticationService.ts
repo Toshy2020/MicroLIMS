@@ -1,5 +1,5 @@
 import { apiClient } from "../../../services/apiClient";
-import { CurrentUserInfo, LoginResult } from "../types/authTypes";
+import { CurrentUserInfo, LoginResult, SignInMethod } from "../types/authTypes";
 import { readTokenClaims } from "../tokenClaims";
 
 export type { LoginResult };
@@ -8,6 +8,7 @@ interface LoginResponseDto {
   token?: string | null;
   refreshToken?: string | null;
   mustChangePassword?: boolean;
+  signingPasswordRequired?: boolean;
   roleName?: string | null;
   mfaRequired?: boolean;
   mfaEnrolmentRequired?: boolean;
@@ -18,9 +19,15 @@ interface LoginResponseDto {
   recoveryCodes?: string[] | null;
 }
 
+interface MeResponseDto extends Omit<CurrentUserInfo, "signInMethod" | "signingPasswordSet"> {
+  signInMethod?: SignInMethod | null;
+  signingPasswordSet?: boolean | null;
+}
+
 export function parseLoginResponse(data: LoginResponseDto): LoginResult {
   const result: LoginResult = {
     mustChangePassword: data.mustChangePassword ?? false,
+    signingPasswordRequired: data.signingPasswordRequired ?? false,
     roleName: data.roleName ?? null,
     mfaRequired: data.mfaRequired ?? false,
     mfaEnrolmentRequired: data.mfaEnrolmentRequired ?? false,
@@ -70,8 +77,17 @@ export const authenticationService = {
     return (await apiClient.post("/auth/change-password", { currentPassword, newPassword })).data.data;
   },
 
+  async setSigningPassword(newPassword: string) {
+    return (await apiClient.post("/auth/signing-password", { newPassword })).data.data;
+  },
+
   async me(): Promise<CurrentUserInfo> {
     const res = await apiClient.get("/auth/me");
-    return res.data.data as CurrentUserInfo;
+    const dto = res.data.data as MeResponseDto;
+    return {
+      ...dto,
+      signInMethod: dto.signInMethod ?? "Local",
+      signingPasswordSet: dto.signingPasswordSet ?? false
+    };
   }
 };

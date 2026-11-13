@@ -21,6 +21,7 @@ const SectionPage = lazy(() => import("../pages/Section").then((m) => ({ default
 const NotFoundPage = lazy(() => import("../pages/NotFound").then((m) => ({ default: m.NotFoundPage })));
 const ProfilePage = lazy(() => import("../pages/Profile").then((m) => ({ default: m.ProfilePage })));
 const ChangePasswordPage = lazy(() => import("../pages/ChangePassword").then((m) => ({ default: m.ChangePasswordPage })));
+const SetSigningPasswordPage = lazy(() => import("../pages/SetSigningPassword").then((m) => ({ default: m.SetSigningPasswordPage })));
 const ReportsPage = lazy(() => import("../pages/Reports").then((m) => ({ default: m.ReportsPage })));
 const DiscussionsFeedPage = lazy(() => import("../modules/discussions/DiscussionsFeedPage").then((m) => ({ default: m.DiscussionsFeedPage })));
 const DiscussionDetailPage = lazy(() => import("../modules/discussions/DiscussionDetailPage").then((m) => ({ default: m.DiscussionDetailPage })));
@@ -125,6 +126,7 @@ export function AppRoutes() {
             <Route path="/dashboard" element={<DashboardPage />} />
             <Route path="/profile" element={<ProfilePage />} />
             <Route path="/change-password" element={<ChangePasswordPage />} />
+            <Route path="/set-signing-password" element={<SetSigningPasswordPage />} />
             <Route path="/discussions" element={<DiscussionsFeedPage />} />
             <Route path="/discussions/:id" element={<DiscussionDetailPage />} />
             <Route path="/messages" element={<MessagesPage />} />

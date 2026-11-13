@@ -12,8 +12,9 @@ import ArrowForwardIosIcon from "@mui/icons-material/ArrowForwardIos";
 import axios from "axios";
 import { toast } from "sonner";
 import { globalSearchApi, GlobalSearchResultDto, GlobalSearchItemDto } from "../../api/globalSearchApi";
-import { type LabelEntityType, type ScanMatch } from "../../services/labelService";
+import { type ScanMatch } from "../../services/labelService";
 import { getErrorMessage } from "../../utils/errorMessage";
+import { ENTITY_TYPE_LABELS } from "../labels/entityTypeLabels";
 import { useScanResolve } from "../labels/useScanResolve";
 import { useRecentSearches } from "./useRecentSearches";
 
@@ -23,15 +24,6 @@ interface GlobalSearchDialogProps {
 }
 
 const SEARCH_CATEGORIES = ["All", "Samples", "Orders", "Materials", "Equipment", "Documents"] as const;
-
-const ENTITY_TYPE_LABELS: Record<LabelEntityType, string> = {
-  Sample: "Sample",
-  MediaLot: "Media lot",
-  SolutionPreparation: "Solution preparation",
-  Cryovial: "Cryovial",
-  MaterialStockLot: "Material stock lot",
-  EquipmentAsset: "Equipment"
-};
 
 function isAbortError(err: unknown): boolean {
   return (

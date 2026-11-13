@@ -38,7 +38,7 @@ describe("AdminLayout", () => {
   it("shows Settings to System.ConfigureSettings and marks the current tab selected", () => {
     auth.permissions = ["Users.Manage", "System.ConfigureSettings"];
     renderAt("/admin/users");
-    expect(screen.getAllByRole("tab").map((t) => t.textContent)).toEqual(["Users", "Settings", "Integrations"]);
+    expect(screen.getAllByRole("tab").map((t) => t.textContent)).toEqual(["Users", "Company sign-in", "Settings", "Integrations"]);
     expect(screen.getByRole("tab", { name: "Users" }).getAttribute("aria-selected")).toBe("true");
   });
 
@@ -50,7 +50,7 @@ describe("AdminLayout", () => {
     cleanup();
     auth.permissions = ["Users.Manage", "Documents.Reassign"]; // the Section Head's code does not open the admin tab
     renderAt("/admin/users");
-    expect(screen.getAllByRole("tab").map((t) => t.textContent)).toEqual(["Users"]);
+    expect(screen.getAllByRole("tab").map((t) => t.textContent)).toEqual(["Users", "Company sign-in"]);
   });
 
   it("/admin lands on the first permitted tab", () => {

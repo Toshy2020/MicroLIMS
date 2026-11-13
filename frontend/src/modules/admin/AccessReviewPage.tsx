@@ -245,6 +245,11 @@ export function AccessReviewPage() {
                       <TableCell>
                         <Typography variant="body2" sx={{ fontWeight: 600 }}>{u.username}</Typography>
                         <Typography variant="caption" color="text.secondary">{u.fullName}</Typography>
+                        {u.signInMethod && (
+                          <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>
+                            {u.signInMethod === "Directory" ? "Company login" : "Laboratory login"}{u.isEmergencyAccount ? ", emergency account" : ""}
+                          </Typography>
+                        )}
                       </TableCell>
                       <TableCell>{u.isActive ? "Active" : `Inactive${u.deactivatedAt ? ` since ${formatDate(u.deactivatedAt)}` : ""}`}</TableCell>
                       <TableCell>{u.roleName} <Typography variant="caption" color="text.secondary" component="span">({u.roleType})</Typography></TableCell>

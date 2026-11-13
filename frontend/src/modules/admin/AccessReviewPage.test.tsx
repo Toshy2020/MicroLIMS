@@ -207,4 +207,19 @@ describe("AccessReviewPage", () => {
     const table = screen.getByRole("table", { name: "Accounts in the report" });
     expect(within(table).getByText("Not recorded")).toBeTruthy();
   });
+
+  it("Access review line shows the sign-in method and the emergency flag", async () => {
+    await openReview(detail({
+      snapshot: {
+        reportVersion: 1, generatedAt: "2026-10-28T09:00:00Z", periodLabel: "2026 Q4", dormantDays: 90, statusHistoryMonths: 12, summary,
+        users: [
+          user({ userId: 1, username: "admin", fullName: "Ada Admin", signInMethod: "Directory", isEmergencyAccount: true }),
+          user({ userId: 2, username: "dormant", fullName: "Dora Dormant", signInMethod: "Local" })
+        ]
+      }
+    }));
+    const table = screen.getByRole("table", { name: "Accounts in the report" });
+    expect(within(table).getByText("Company login, emergency account")).toBeTruthy();
+    expect(within(table).getByText("Laboratory login")).toBeTruthy();
+  });
 });

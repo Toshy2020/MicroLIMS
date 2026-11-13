@@ -1,7 +1,16 @@
 import { apiClient, ifMatch } from "../../../services/apiClient";
 import type { TrustedDeviceInfo } from "../../authentication/services/mfaService";
+import type { SignInMethod } from "../../authentication/types/authTypes";
 
-export type { TrustedDeviceInfo };
+export type { TrustedDeviceInfo, SignInMethod };
+
+export type DirectoryLinkState = "NotLinked" | "LinkedNeverSignedIn" | "Linked" | "SignInRefused";
+
+export interface CreateUserSsoOptions {
+  signInMethod?: SignInMethod;
+  directoryUsername?: string | null;
+  isEmergencyAccount?: boolean;
+}
 
 export interface AssignHardwareTokenPayload {
   serialNumber: string;
@@ -29,6 +38,10 @@ export interface UserRecord {
   lastLoginAt: string | null;
   passwordChangedAt: string | null;
   mfaState?: string;
+  signInMethod?: SignInMethod;
+  linkState?: DirectoryLinkState;
+  directoryUsername?: string | null;
+  isEmergencyAccount?: boolean;
 }
 
 export interface UserSession {
@@ -72,12 +85,35 @@ export const UserService = {
     return (await apiClient.get(`/users/${id}`)).data.data;
   },
   // reason is required by the server for every administrative change.
-  async create(fullName: string, username: string, password: string, roleId: number, reason: string, email?: string, jobTitle?: string) {
-    return (await apiClient.post("/users", { fullName, username, password, roleId, email: email || null, jobTitle: jobTitle || null, reason })).data.data;
+  async create(
+    fullName: string,
+    username: string,
+    password: string,
+    roleId: number,
+    reason: string,
+    email?: string,
+    jobTitle?: string,
+    sso?: CreateUserSsoOptions
+  ) {
+    return (
+      await apiClient.post("/users", {
+        fullName,
+        username,
+        password,
+        roleId,
+        email: email || null,
+        jobTitle: jobTitle || null,
+        reason,
+        ...(sso ? sso : {})
+      })
+    ).data.data;
+  },
+  async relinkDirectory(id: number, reason: string): Promise<void> {
+    await apiClient.post(`/admin/users/${id}/directory-relink`, { reason });
   },
   // jobTitle is required so every caller states it: the backend treats a missing value as "clear it".
-  async updateProfile(id: number, fullName: string, username: string, email: string | null, jobTitle: string | null, reason: string, version?: number) {
-    return (await apiClient.put(`/users/${id}`, { fullName, username, email, jobTitle: jobTitle || null, reason }, ifMatch(version))).data.data;
+  async updateProfile(id: number, fullName: string, username: string, email: string | null, jobTitle: string | null, reason: string, version?: number, sso?: CreateUserSsoOptions) {
+    return (await apiClient.put(`/users/${id}`, { fullName, username, email, jobTitle: jobTitle || null, reason, ...(sso ?? {}) }, ifMatch(version))).data.data;
   },
   // Electronically signed: password is the administrator's own, re-verified by the server.
   async changeRole(id: number, roleId: number, reason: string, password: string) {

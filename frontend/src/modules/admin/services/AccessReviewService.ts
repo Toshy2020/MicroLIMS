@@ -36,6 +36,8 @@ export interface AccessReviewUserEntry {
   statusHistory: AccessReviewStatusChange[];
   sodConflicts: string[];
   mfaState?: string;
+  signInMethod?: "Local" | "Directory";
+  isEmergencyAccount?: boolean;
 }
 
 export interface AccessReviewSummary {

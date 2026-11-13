@@ -12,7 +12,8 @@ vi.mock("./services/UserService", () => ({
     getAll: vi.fn(), create: vi.fn(), updateProfile: vi.fn(), changeRole: vi.fn(), setStatus: vi.fn(),
     unlock: vi.fn(), initiatePasswordReset: vi.fn(), adminPasswordRecovery: vi.fn(),
     forcePasswordChange: vi.fn(), resetMfa: vi.fn(), assignHardwareToken: vi.fn(),
-    getSessions: vi.fn(), revokeSessions: vi.fn(), getTrustedDevices: vi.fn(), revokeTrustedDevice: vi.fn()
+    getSessions: vi.fn(), revokeSessions: vi.fn(), getTrustedDevices: vi.fn(), revokeTrustedDevice: vi.fn(),
+    relinkDirectory: vi.fn()
   }
 }));
 vi.mock("../roles/services/RoleService", () => ({ RoleService: { getAll: vi.fn() } }));
@@ -33,7 +34,8 @@ beforeEach(() => {
   vi.mocked(UserService.getAll).mockResolvedValue([target]);
   vi.mocked(RoleService.getAll).mockResolvedValue([
     { id: 3, name: "Reviewer", description: null, type: "Reviewer", isSystemRole: true, isActive: true },
-    { id: 4, name: "Analyst", description: null, type: "Analyst", isSystemRole: true, isActive: true }
+    { id: 4, name: "Analyst", description: null, type: "Analyst", isSystemRole: true, isActive: true },
+    { id: 1, name: "System Administrator", description: null, type: "SystemAdministrator", isSystemRole: true, isActive: true }
   ]);
   vi.mocked(UserService.changeRole).mockResolvedValue({});
   vi.mocked(UserService.unlock).mockResolvedValue({});
@@ -216,5 +218,89 @@ describe("UsersPage reasons and signatures", () => {
     await user.type(within(dialog).getByLabelText(/Reason/), "Replaced phone");
     await user.click(within(dialog).getByRole("button", { name: "Reset second factor" }));
     await waitFor(() => expect(UserService.resetMfa).toHaveBeenCalledWith(2, "Replaced phone"));
+  });
+
+  it("user form: choosing \"Company login\" requires a company username; \"Emergency account\" is disabled with its reason for non-administrators", async () => {
+    const user = userEvent.setup();
+    vi.mocked(UserService.create).mockResolvedValue({});
+    renderPage();
+    await screen.findByText("Jane Analyst");
+
+    await user.type(screen.getByLabelText(/^Full Name/), "New Person");
+    await user.type(screen.getByLabelText(/^Username/), "newperson");
+    await user.type(screen.getByLabelText(/^Reason/), "New starter");
+    await user.click(screen.getAllByRole("combobox")[0]);
+    await user.click(await screen.findByRole("option", { name: "Analyst" }));
+
+    // Non-administrator: the checkbox is disabled and says why.
+    const emergency = screen.getByRole("checkbox", { name: "Emergency account" }) as HTMLInputElement;
+    expect(emergency.disabled).toBe(true);
+    expect(screen.getByText("Only available when the role is System Administrator.")).toBeTruthy();
+
+    // Company login needs no password but needs a company username.
+    await user.click(screen.getByRole("combobox", { name: /Sign-in method/ }));
+    await user.click(await screen.findByRole("option", { name: "Company login" }));
+    expect(screen.queryByLabelText(/^Password/)).toBeNull();
+    expect((screen.getByLabelText(/^Company username/) as HTMLInputElement).required).toBe(true);
+    await user.click(screen.getByRole("button", { name: "Create User" }));
+    expect(UserService.create).not.toHaveBeenCalled();
+
+    await user.type(screen.getByLabelText(/^Company username/), "new.person");
+    await user.click(screen.getByRole("button", { name: "Create User" }));
+    await waitFor(() => expect(UserService.create).toHaveBeenCalledWith(
+      "New Person", "newperson", "", 4, "New starter", "", "",
+      { signInMethod: "Directory", directoryUsername: "new.person", isEmergencyAccount: false }));
+  });
+
+  it("user form: Emergency account is enabled when the selected role is System Administrator", async () => {
+    const user = userEvent.setup();
+    renderPage();
+    await screen.findByText("Jane Analyst");
+    await user.click(screen.getAllByRole("combobox")[0]);
+    await user.click(await screen.findByRole("option", { name: "System Administrator" }));
+    const emergency = screen.getByRole("checkbox", { name: "Emergency account" }) as HTMLInputElement;
+    expect(emergency.disabled).toBe(false);
+    await user.click(emergency);
+    expect(emergency.checked).toBe(true);
+  });
+
+  it("Users table shows the sign-in method and link state as text", async () => {
+    vi.mocked(UserService.getAll).mockResolvedValue([
+      { ...target, id: 20, username: "u_local", fullName: "User Local", signInMethod: "Local" },
+      { ...target, id: 21, username: "u_nl", fullName: "User NotLinked", signInMethod: "Directory", linkState: "NotLinked" },
+      { ...target, id: 22, username: "u_ns", fullName: "User NeverSigned", signInMethod: "Directory", linkState: "LinkedNeverSignedIn" },
+      { ...target, id: 23, username: "u_l", fullName: "User Linked", signInMethod: "Directory", linkState: "Linked", isEmergencyAccount: true },
+      { ...target, id: 24, username: "u_ref", fullName: "User Refused", signInMethod: "Directory", linkState: "SignInRefused" }
+    ]);
+    renderPage();
+    await screen.findByText("User Linked");
+    const row = (name: string) => screen.getByText(name).closest("tr")!;
+    expect(within(row("User Local")).getByText("Laboratory login")).toBeTruthy();
+    expect(within(row("User NotLinked")).getByText("Not linked")).toBeTruthy();
+    expect(within(row("User NeverSigned")).getByText("Linked, never signed in")).toBeTruthy();
+    expect(within(row("User Linked")).getByText("Linked")).toBeTruthy();
+    expect(within(row("User Linked")).getByText("Emergency account")).toBeTruthy();
+    expect(within(row("User Refused")).getByText("Sign-in refused")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Re-link company account for u_local" })).toBeNull();
+  });
+
+  it("Re-link requires a reason", async () => {
+    const user = userEvent.setup();
+    vi.mocked(UserService.relinkDirectory).mockResolvedValue();
+    vi.mocked(UserService.getAll).mockResolvedValue([
+      { ...target, id: 21, username: "u_nl", fullName: "User Linked", signInMethod: "Directory", linkState: "Linked" }
+    ]);
+    renderPage();
+    await user.click(await screen.findByRole("button", { name: "Re-link company account for u_nl" }));
+    const dialog = await screen.findByRole("dialog");
+
+    expect(document.activeElement).toBe(within(dialog).getByRole("button", { name: "Cancel" }));
+    const relink = within(dialog).getByRole("button", { name: "Re-link" }) as HTMLButtonElement;
+    expect(relink.disabled).toBe(true);
+    expect(UserService.relinkDirectory).not.toHaveBeenCalled();
+
+    await user.type(within(dialog).getByLabelText(/^Reason/), "Company username changed");
+    await user.click(relink);
+    await waitFor(() => expect(UserService.relinkDirectory).toHaveBeenCalledWith(21, "Company username changed"));
   });
 });

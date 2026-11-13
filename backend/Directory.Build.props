@@ -6,4 +6,11 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
+
+  <!-- Release version: pass -p:MicroLimsVersion=x.y.z to a build or publish. -->
+  <PropertyGroup>
+    <MicroLimsVersion Condition="'$(MicroLimsVersion)' == ''">0.1.0</MicroLimsVersion>
+    <Version>$(MicroLimsVersion)</Version>
+    <InformationalVersion>$(MicroLimsVersion)</InformationalVersion>
+  </PropertyGroup>
 </Project>

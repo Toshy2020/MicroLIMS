@@ -612,6 +612,7 @@ SupplierStatedAttributeController.ListForItem(Int32): SystemAdministrator,Sectio
 SupplierStatedAttributeController.Update(Int32, SupplierStatedAttributeRequest): SystemAdministrator,SectionHead
 SystemController.ReportClientError(ClientErrorReportRequest, CancellationToken): anonymous
 SystemStatusController.Get(CancellationToken): anonymous
+SystemVersionController.Get(): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 TestDefinitionMasterDataController.CreateTestDefinition(CreateTestDefinitionRequest): SystemAdministrator,SectionHead
 TestDefinitionMasterDataController.FreezeTestDefinition(Int32): SystemAdministrator,SectionHead
 TestDefinitionMasterDataController.GetEditableCodes(): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
@@ -687,6 +688,9 @@ UserController.Unlock(Int32, UnlockUserRequest): SystemAdministrator
 UserController.UpdateEmail(Int32, UpdateEmailRequest): SystemAdministrator
 UserController.UpdateProfile(Int32, UpdateProfileRequest): SystemAdministrator
 UserDirectoryController.GetDirectory(String): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+UserUiStateController.GetAll(CancellationToken): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+UserUiStateController.Remove(String, CancellationToken): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+UserUiStateController.Set(String, SetUiStateRequest, CancellationToken): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 WaterController.Calculate(CalculateWaterRequest): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 WaterController.DailyReport(DateTime): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 WaterController.Prepare(PrepareWaterRequest): SectionHead,Reviewer,Analyst

@@ -25,6 +25,7 @@ import { useGlobalSearchShortcut } from "../hooks/useGlobalSearchShortcut";
 import WarningAmberOutlinedIcon from "@mui/icons-material/WarningAmberOutlined";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import { visuallyHidden } from "@mui/utils";
+import { HelpMenu } from "../modules/help/HelpMenu";
 
 interface NotificationDto {
   id: number | null;
@@ -265,6 +266,7 @@ export function Header({ onToggleSidebar, sidebarCollapsed, labCodes }: HeaderPr
             }}
           />
         </Tooltip>
+        <HelpMenu />
         <Tooltip title="Notifications">
           <IconButton
             onClick={(e) => setBellAnchor(e.currentTarget)}

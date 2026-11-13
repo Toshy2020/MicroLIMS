@@ -39,14 +39,15 @@ Each of the 24 areas has one URS and one FS. Both are drafts.
 |---|---|---|
 | Calculation register | `DesignSpecification/CalculationRegister.md` | Draft |
 | Conflicts list | `Conflicts.md` | Draft |
+| SOP draft outline (Label printing and handling) | `SOP/SOP-Label-Printing-And-Handling.md` | Draft outline |
 | Document Control set (Releases 1a to 1d) | `DocumentControl/` (see `DocumentControl/README.md`) | Moved, unchanged |
 
-## Counts (2026-11-12)
+## Counts (2026-11-13)
 
-- URS entries: 240
-- FS entries: 247
+- URS entries: 248
+- FS entries: 257
 - Calculation register rows (CALC): 83
-- Conflicts (CONF) entries: 93. Open: 92. Decided: 1.
+- Conflicts (CONF) entries: 96. Open: 95. Decided: 1.
 
 | Area | URS entries | FS entries |
 |---|---|---|
@@ -70,11 +71,11 @@ Each of the 24 areas has one URS and one FS. Both are drafts.
 | SIG | 4 | 5 |
 | AUD | 8 | 10 |
 | RPT | 9 | 8 |
-| MDM | 16 | 25 |
+| MDM | 24 | 35 |
 | NTF | 5 | 5 |
 | ADM | 10 | 10 |
 | SEC | 12 | 12 |
-| **Total** | **240** | **247** |
+| **Total** | **248** | **257** |
 
 ## Status of this set
 

@@ -4,7 +4,7 @@
 |---|---|
 | Document number | FS-MDM |
 | Title | Master data functional specification |
-| Version | 0.1 |
+| Version | 0.2 |
 | Status | Draft |
 | Author | Claude (AI agent), draft from code |
 | Reviewer | To be assigned by QA |
@@ -16,6 +16,7 @@
 | Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1 | 2026-11-12 | Claude (AI agent), draft from code | First draft, written from the code as built. |
+| 0.2 | 2026-11-13 | AI coding agent, draft from code | Added barcode labels and scanning functions (FS-MDM-026 to FS-MDM-035). |
 
 ## Scope and reading notes
 
@@ -190,3 +191,69 @@
 **Code:** `backend/MicroLIMS.Application/Services/MasterData/TestDefinitionMasterDataService.cs` — `CreateTestDefinitionAsync`, `UpdateTestDefinitionCoreAsync`, `ValidatePerContainerAndMoistureRole`, `NormalizeUvStandardEntryAsync`; `backend/MicroLIMS.Application/Services/MasterData/TitrationDefinitionRules.cs` — `NormalizeAndValidateAsync`; `backend/MicroLIMS.Application/Services/MasterData/IcpTestDefinitionRules.cs` — `ApplyAsync`
 **Verified by:** reading (not run)
 **Conflicts:** CONF-152
+
+## Barcode labels and scanning
+
+### FS-MDM-026
+**Satisfies:** URS-MDM-017
+**Function:** Fixed barcode payload prefixes, symbologies, and uncoded-record gating across the six `LabelEntityType` values (`Sample` -> `S`, `Code128`; `EquipmentAsset` -> `EQ`, `Code128`; `MediaLot` -> `MED`, `DataMatrix`; `SolutionPreparation` -> `SP`, `DataMatrix`; `Cryovial` -> `CRY`, `DataMatrix`; `MaterialStockLot` -> `MAT`, `DataMatrix`). `LabelPayload.Build` formats `<PREFIX>:<code>`, and `LabelPayload.TryParsePrefix` splits case-insensitively on the first `:` when the remainder is non-whitespace. `LabelDataSource` leaves `Content` null for records with no assigned code yet (for example, uncoded stock lots), preventing printing until a code exists. Seeded default `LabelFormats` rows set `50 x 25` mm (`Standard`, 1 copy) for `Sample`, `SolutionPreparation`, `MaterialStockLot`, and `EquipmentAsset`; `40 x 20` mm (`Standard`, 1 copy) for `MediaLot`; and `25 x 10` mm (`Small`, 1 copy) for `Cryovial`.
+**Code:** `backend/MicroLIMS.Application/Labels/LabelPayload.cs` — `PrefixOf`, `SymbologyOf`, `Build`, `TryParsePrefix`; `backend/MicroLIMS.Application/Labels/LabelDataSource.cs` — `FindByIdAsync`, `FindMaterialByIdAsync`; `backend/MicroLIMS.Persistence/Migrations/20261112212330_AddLabelPrinting.cs`
+**Verified by:** reading (not run)
+**Conflicts:** CONF-185
+
+### FS-MDM-027
+**Satisfies:** URS-MDM-018
+**Function:** Label status lookup and PDF printing (`POST api/labels/status`, `POST api/labels/print`), plus frontend print button, shared print dialog, and post-create offer hook. `LabelPrintService` limits each request to 1–100 items and 1–50 copies per item. First prints require the record's creation permission (`Samples.Receive` or `Samples.ReceiveOwnLab` for `Sample`; `Media.Prepare` for `MediaLot`; `Solutions.Prepare` for `SolutionPreparation`; `Cryovials.Manage` for `Cryovial`; `Materials.Manage` for `MaterialStockLot`; `Equipment.Manage` for `EquipmentAsset`). Rendering runs before writing database rows so failed PDF generation writes no log or audit entry. On the frontend, `PrintLabelButton` displays on the six record detail views (`SampleSummaryDialog`, `SelectedMediaLotWorkspace`, `PreparationRecordPage`, `CryovialReportPage`, `MaterialLotDetailsDialog`, `EquipmentDetailsDialog`), disabling uncoded or unauthorized targets with a tooltip; `usePostCreateLabelPrint` opens `PrintLabelsDialog` after creation on `ReceivingPage`, `ReceivingTestingWorkspacePage`, `MediaPage`, `PreparationRecordPage`, `CryovialsPage`, and `MaterialsPage`; and `PrintLabelsDialog` renders an inline blob link fallback if the browser blocks the PDF pop-up window.
+**Code:** `backend/MicroLIMS.Application/Labels/LabelPrintService.cs` — `GetStatusAsync`, `PrintAsync`; `backend/MicroLIMS.API/Controllers/LabelController.cs` — `GetStatus`, `Print`; `frontend/src/components/labels/PrintLabelButton.tsx`; `frontend/src/components/labels/PrintLabelsDialog.tsx`; `frontend/src/components/labels/usePostCreateLabelPrint.ts`
+**Verified by:** reading (not run)
+
+### FS-MDM-028
+**Satisfies:** URS-MDM-018
+**Function:** Server-side PDF barcode generation via `LabelPdfRenderer`, `ZXingBarcodeEncoder`, and `PdfCanvas`. Each page uses the exact configured `WidthMm x HeightMm` label size with `1.5` mm margins, `0.8` mm gap, and `0.25` mm minimum module width. `ZXingBarcodeEncoder` encodes `Code128` and square `DataMatrix` (`SymbolShapeHint.FORCE_SQUARE`) with quiet zones stripped and re-added precisely by `LabelPdfRenderer` (`10` modules on each end for `Code128`, bar height clamped to `2.0..8.0` mm at 30% of content height; `1` module on all four sides for `DataMatrix`). `DrawTextBlock` always prints the bold record code (ellipsized if needed), followed by optional fields (`StandardFields` or `SmallFields`, dropped from the bottom when vertical space runs out), bold `REPRINT <n>` when `PrintNumber > 1`, and `Printed dd/MM/yyyy`. Throws `LabelDoesNotFitException` if the barcode, quiet zones, or mandatory text do not fit inside the printable area.
+**Code:** `backend/MicroLIMS.Infrastructure/Labels/LabelPdfRenderer.cs` — `Prepare`, `DrawLabel`, `DrawTextBlock`; `backend/MicroLIMS.Infrastructure/Labels/ZXingBarcodeEncoder.cs` — `EncodeCode128`, `EncodeDataMatrix`
+**Verified by:** reading (not run)
+**Conflicts:** CONF-185
+
+### FS-MDM-029
+**Satisfies:** URS-MDM-019
+**Function:** Reprint gating, reason requirement, and sequential print numbering. In `LabelPrintService.PrintAsync`, any item with existing `LabelPrintLogs` rows (`initialCounts > 0`) is treated as a reprint: the request must hold `Labels.Reprint` (`PermissionConstants.LabelsReprint`, seeded to `RoleType.SectionHead`) and a non-whitespace trimmed reason between 10 and 500 characters; holding `Labels.Reprint` alone is sufficient for reprinting without also holding the record's creation permission. `PrintNumber` increments sequentially per `(EntityType, EntityId)` and retries once if `IX_LabelPrintLogs_EntityType_EntityId_PrintNumber` raises a concurrent unique-index collision. `PrintLabelButton` and `PrintLabelsDialog` switch their labels and submit text to "Reprint" when `printCount > 0`.
+**Code:** `backend/MicroLIMS.Application/Labels/LabelPrintService.cs` — `PrintAsync`, `LoadPrintCountsAsync`; `backend/MicroLIMS.Persistence/Seed/DbSeeder.cs`; `frontend/src/components/labels/PrintLabelButton.tsx`; `frontend/src/components/labels/PrintLabelsDialog.tsx`
+**Verified by:** reading (not run)
+
+### FS-MDM-030
+**Satisfies:** URS-MDM-020
+**Function:** Append-only print log and audit event recording, and scope of evidence. Each printed record appends one `LabelPrintLog` row (`EntityType`, `EntityId`, `Code`, `PrintNumber`, `IsReprint`, `Copies`, `LabelFormatId`, `LabelFormatVersion`, `Reason`, `PrintedByUserId`, UTC `PrintedAt`, `BatchId`) and one explicit `LABEL_PRINTED` or `LABEL_REPRINTED` audit event (`AuditActionCategory.Labelling`) with field changes `Code`, `Copies`, `PrintNumber`, `LabelFormatVersion` (and `sampleId` when applicable) inside the same transaction. Migration `20261112212330_AddLabelPrinting` installs PostgreSQL triggers blocking `UPDATE`, `DELETE`, and `TRUNCATE` on `LabelPrintLogs`. What the print log proves: which user generated a label PDF, when, for which record and code, the print sequence number, requested copies, format ID/version, batch ID, and reprint reason. What the print log does not prove: whether the PDF reached a physical printer, how many physical labels were actually printed or affixed to containers, or whether printed barcodes pass handheld or camera readback.
+**Code:** `backend/MicroLIMS.Application/Labels/LabelPrintService.cs` — `PrintAsync`; `backend/MicroLIMS.Domain/Entities/LabelPrintLog.cs`; `backend/MicroLIMS.Persistence/Configurations/LabelPrintLogConfiguration.cs`; `backend/MicroLIMS.Persistence/Migrations/20261112212330_AddLabelPrinting.cs`
+**Verified by:** reading (not run)
+
+### FS-MDM-031
+**Satisfies:** URS-MDM-021
+**Function:** Label format management (`GET api/labels/formats`, `PUT api/labels/formats/{id}`). `LabelController.UpdateFormat` requires policy `Labels.Configure` and `If-Match` version checking via `RecordVersion.EnsureCurrent`. `LabelFormatService.UpdateAsync` validates `WidthMm` and `HeightMm` in `10..150` mm, `DefaultCopies` in `1..50`, and `Enum.IsDefined(request.Layout)` (`Standard` or `Small`), matching database check constraints in `LabelFormatConfiguration`. Because `LabelFormat` is not in `MicroLimsDbContext.AuditCaptureExcludedTypes`, format edits are audited automatically by EF save capture with no separate change reason or electronic signature required. `LabelFormatsPage` exposes the register and edit dialog at `/laboratory-configuration/label-formats`, gated by `Labels.Configure`. `LabelFormatService` does not pre-check whether small configured dimensions (for example `10 x 10` mm) can fit rendered barcodes.
+**Code:** `backend/MicroLIMS.API/Controllers/LabelController.cs` — `GetFormats`, `UpdateFormat`; `backend/MicroLIMS.Application/Labels/LabelFormatService.cs` — `GetAllAsync`, `UpdateAsync`; `backend/MicroLIMS.Persistence/Configurations/LabelFormatConfiguration.cs`; `backend/MicroLIMS.Persistence/DbContext/MicroLimsDbContext.cs` — `AuditCaptureExcludedTypes`; `frontend/src/modules/laboratoryConfiguration/labelFormats/LabelFormatsPage.tsx`; `frontend/src/routes/AppRoutes.tsx`
+**Verified by:** reading (not run)
+**Conflicts:** CONF-185
+
+### FS-MDM-032
+**Satisfies:** URS-MDM-021
+**Function:** Workflow equipment linkage and inventory code freeze after printing. `Equipment.EquipmentInventoryId` provides a unique one-to-one link validated by `EquipmentMasterDataService.ValidateEquipmentInventoryLinkAsync`, which `LabelDataSource.FindEquipmentByIdAsync` exposes as `LinkedEquipmentId` for scan-to-select workflows. `EquipmentInventoryService` sets `CodeLocked` to true whenever `LabelPrintLogs` contains a row for `LabelEntityType.EquipmentAsset` and that asset ID, and rejects `Code` changes in `UpdateAsync` with a `BusinessRuleException`. `CryovialConfiguration` sets `Code` max length to 250 characters to align with `LabelPrintLog.Code`.
+**Code:** `backend/MicroLIMS.Application/Services/EquipmentInventoryService.cs` — `ProjectInventoryResponsesAsync`, `UpdateAsync`; `backend/MicroLIMS.Application/Services/MasterData/EquipmentMasterDataService.cs` — `ValidateEquipmentInventoryLinkAsync`; `backend/MicroLIMS.Application/Labels/LabelDataSource.cs` — `FindEquipmentByIdAsync`; `backend/MicroLIMS.Persistence/Configurations/CryovialConfiguration.cs`
+**Verified by:** reading (not run)
+
+### FS-MDM-033
+**Satisfies:** URS-MDM-022
+**Function:** Server scan resolution (`GET api/scan/resolve`) and Arabic keyboard normalization (`ScanInputNormalizer`, `ScanResolveService`). `ScanInputNormalizer.Normalize` trims leading and trailing whitespace and control characters (preserving internal spaces), converts `\u0644\u0627` to `'b'`, maps unshifted Arabic 101 characters (`ArabicToLatin`) and Arabic-Indic digits `\u0660-\u0669` to Latin/ASCII digits, and flags `LayoutCorrected = true` when any Arabic character is mapped. Code limitation: `':'` and `'-'` emit ASCII on Windows Arabic 101 (`kbda1.dll`) without triggering `LayoutCorrected`, shifted Arabic symbols are not mapped, and scans with internal spaces fail exact match. `ScanResolveService.ResolveAsync` rejects empty or `> 300` character inputs, strips an optional case-insensitive prefix (`TryParsePrefix`), queries only records readable by the current user (`LabelDataSource.FindByCodeAsync`), evaluates `LabelUsability` (including `IsAwaitingRelease` and `IsRejected` for `MaterialStockLot` — `CONF-184`), and returns `Found`, `NotFound` (with an Arabic layout hint if `LayoutCorrected`), or `Ambiguous`. `ScanController.Resolve` has no per-endpoint rate limiter yet (`CONF-183`).
+**Code:** `backend/MicroLIMS.API/Controllers/ScanController.cs` — `Resolve`; `backend/MicroLIMS.Application/Labels/ScanResolveService.cs` — `ResolveAsync`; `backend/MicroLIMS.Application/Labels/ScanInputNormalizer.cs` — `Normalize`; `backend/MicroLIMS.Application/Labels/LabelDataSource.cs` — `FindByCodeAsync`, `FindMaterialByIdAsync`; `backend/MicroLIMS.Application/Labels/LabelUsability.cs` — `StockLot`, `Equipment`
+**Verified by:** reading (not run)
+**Conflicts:** CONF-183, CONF-184
+
+### FS-MDM-034
+**Satisfies:** URS-MDM-023
+**Function:** Scan-to-open navigation in `GlobalSearchDialog` and scan-to-select validation in `ScanField` across the five workflow pickers. In `GlobalSearchDialog`, pressing Enter on a query of at least 2 characters (or receiving a camera detection) calls `useScanResolve`: a `Found` outcome navigates directly to `match.navigationTarget` (and shows a conversion toast if `layoutCorrected`), `Ambiguous` displays the candidate list, and `NotFound` or network error falls back to global text search. `ScanField` clears the input immediately on submit, aborts superseded resolve calls via `useScanResolve`, and calls `onSelect` only when `outcome === "Found"`, `match.entityType === expectedType`, `match.usable === true`, `match.linkedEquipmentId !== null` (when `expectedType === "EquipmentAsset"`), and the target ID is in `offeredIds`; otherwise it keeps selection unchanged and renders an error alert. `ScanField` is wired into `StepLayout` (media lot and incubator), `WizardMobilePhasesStep` (mobile-phase solution preparations), `ComponentLotPicker` (usable stock lots only), `MediaPreparationDialog` (usable dehydrated media stock lots and autoclaves), and `ChallengeOrganismSourcePicker` (lyophilized disks and thawable cryovial batches).
+**Code:** `frontend/src/components/labels/ScanField.tsx`; `frontend/src/components/labels/useScanResolve.ts`; `frontend/src/components/search/GlobalSearchDialog.tsx` — `handleScanEnter`, `handleCameraDetected`; `frontend/src/modules/testingWorkspace/pathogenSteps/StepLayout.tsx`; `frontend/src/modules/hplcWorkspace/run/WizardMobilePhasesStep.tsx`; `frontend/src/modules/solutionPreparation/components/ComponentLotPicker.tsx`; `frontend/src/modules/laboratoryConfiguration/media/dialogs/MediaPreparationDialog.tsx`; `frontend/src/modules/laboratoryConfiguration/mediaEvaluation/components/ChallengeOrganismSourcePicker.tsx`
+**Verified by:** reading (not run)
+
+### FS-MDM-035
+**Satisfies:** URS-MDM-024
+**Function:** Browser camera scanning via `CameraScanDialog`. Requires `window.isSecureContext` (HTTPS) and `navigator.mediaDevices.getUserMedia` (`facingMode: "environment"`); `ScanField` and `GlobalSearchDialog` hide the camera button when `getUserMedia` is unavailable. `createDetector` checks native `window.BarcodeDetector.getSupportedFormats()` for both `"data_matrix"` and `"code_128"`, and otherwise dynamically imports `barcode-detector/ponyfill` (`3.2.3`) with `zxing-wasm/reader/zxing_reader.wasm?url` configured via `prepareZXingModule({ overrides: { locateFile } })` so the WebAssembly binary is served from the local build rather than an external CDN. `CameraScanDialog` scans video frames in a `requestAnimationFrame` loop, passes the first non-empty `rawValue` to `onDetected`, stops all media tracks, and closes immediately.
+**Code:** `frontend/src/components/labels/CameraScanDialog.tsx` — `createDetector`, `CameraScanDialog`; `frontend/src/components/labels/ScanField.tsx`; `frontend/src/components/search/GlobalSearchDialog.tsx`
+**Verified by:** reading (not run)

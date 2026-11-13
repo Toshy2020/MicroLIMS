@@ -843,3 +843,30 @@ Locations for CONF-001 to CONF-008 were added on 2026-11-12 from the area worker
 - **Question:** Are these statistical constants and the capability thresholds approved site rules, and which of them, if any, should be configurable?
 - **Decision:** Not decided.
 - **Date:** Not applicable
+
+### CONF-183
+- **Area:** MDM
+- **Status:** Open
+- **What the code does:** `GET api/scan/resolve` requires an authenticated user (`[Authorize]`) and has no per-user `[EnableRateLimiting]` attribute or rate limiter. A comment in the controller notes that the only existing per-user policy (`PasswordChange`, 5 requests per 15 minutes) would block normal scanning and a dedicated limit needs an approved threshold first. Location: `backend/MicroLIMS.API/Controllers/ScanController.cs` — `Resolve`.
+- **What the other source says:** Design specification `docs/superpowers/specs/2026-11-10-barcode-labels-scanning-design.md` Section 5.6 ("Scan lookup"): "The endpoint is partitioned by authenticated user, like the other limits."
+- **Question:** What per-user request rate limit and window should be approved and configured for `GET api/scan/resolve`?
+- **Decision:** Not decided.
+- **Date:** Not applicable
+
+### CONF-184
+- **Area:** MDM
+- **Status:** Open
+- **What the code does:** For `MaterialStockLot`, scan usability (`LabelUsability.StockLot`) refuses a lot not only when expired or depleted, but also when `IsAwaitingRelease` is true or `IsRejected` is true. Location: `backend/MicroLIMS.Application/Labels/LabelDataSource.cs` — `FindMaterialByIdAsync`; `backend/MicroLIMS.Application/Labels/LabelUsability.cs` — `StockLot`.
+- **What the other source says:** Design specification `docs/superpowers/specs/2026-11-10-barcode-labels-scanning-design.md` Section 5.6 usability table for `MaterialStockLot` lists only "Not expired and not depleted".
+- **Question:** Is blocking unreleased (`IsAwaitingRelease`) and rejected (`IsRejected`) stock lots during barcode scan resolution the intended GMP rule, or should any workflow permit scanning unreleased lots?
+- **Decision:** Not decided.
+- **Date:** Not applicable
+
+### CONF-185
+- **Area:** MDM
+- **Status:** Open
+- **What the code does:** `LabelFormatService.UpdateAsync` and the `LabelFormats` table check constraints allow saving any width and height between 10 and 150 mm without testing whether a barcode and mandatory text fit. At print time, `LabelPdfRenderer.Prepare` throws `LabelDoesNotFitException` if the encoded barcode, quiet zones, 1.5 mm margins, 0.8 mm gap, bold code line, and print-date footer do not fit inside the configured page size. Seeded defaults (50 x 25 mm for most types, 40 x 20 mm for media lots, 25 x 10 mm Small for cryovials) are placeholder values not yet verified against site printer DPI and physical label stock. Location: `backend/MicroLIMS.Application/Labels/LabelFormatService.cs` — `UpdateAsync`; `backend/MicroLIMS.Infrastructure/Labels/LabelPdfRenderer.cs` — `Prepare`; `backend/MicroLIMS.Persistence/Migrations/20261112212330_AddLabelPrinting.cs`.
+- **What the other source says:** Design specification `docs/superpowers/specs/2026-11-10-barcode-labels-scanning-design.md` Section 5.8 sets dimensions to 10–150 mm and Section 10 leaves final per-type stock dimensions open pending site printer and label-stock confirmation.
+- **Question:** What exact width, height, and layout values match the site's physical label stock and printer DPI for each of the six record types, and should `LabelFormatService` also reject dimensions that cannot render any valid barcode?
+- **Decision:** Not decided.
+- **Date:** Not applicable

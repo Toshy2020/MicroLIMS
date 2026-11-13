@@ -1,19 +1,23 @@
 import { useRef, useState } from "react";
+import PhotoCameraOutlinedIcon from "@mui/icons-material/PhotoCameraOutlined";
 import QrCodeScannerOutlinedIcon from "@mui/icons-material/QrCodeScannerOutlined";
 import {
   Alert,
   Box,
   Button,
   CircularProgress,
+  IconButton,
   InputAdornment,
   Stack,
-  TextField
+  TextField,
+  Tooltip
 } from "@mui/material";
 import axios from "axios";
 import type { LabelEntityType, ScanResolveResponse } from "../../services/labelService";
 import { monospaceFontFamily } from "../../theme/palette";
 import type { StatusTone } from "../../theme/statusTokens";
 import { getErrorMessage } from "../../utils/errorMessage";
+import { CameraScanDialog } from "./CameraScanDialog";
 import { ENTITY_TYPE_LABELS } from "./entityTypeLabels";
 import { useScanResolve } from "./useScanResolve";
 
@@ -145,9 +149,11 @@ export function ScanField({
   disabled = false
 }: ScanFieldProps) {
   const [value, setValue] = useState("");
+  const [cameraOpen, setCameraOpen] = useState(false);
   const [feedback, setFeedback] = useState<ScanFeedback | null>(null);
   const { resolve, pending } = useScanResolve();
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const hasCamera = typeof navigator !== "undefined" && typeof navigator.mediaDevices?.getUserMedia === "function";
 
   const offeredIdsRef = useRef(offeredIds);
   offeredIdsRef.current = offeredIds;
@@ -156,14 +162,16 @@ export function ScanField({
   const expectedTypeRef = useRef(expectedType);
   expectedTypeRef.current = expectedType;
 
-  const submitScan = async () => {
-    const rawValue = value;
+  const submitScan = async (overrideValue?: string) => {
+    const rawValue = overrideValue ?? value;
     if (disabled || !rawValue.trim()) {
       return;
     }
 
     setValue("");
-    inputRef.current?.focus();
+    if (overrideValue === undefined) {
+      inputRef.current?.focus();
+    }
 
     try {
       const response = await resolve(rawValue);
@@ -251,7 +259,29 @@ export function ScanField({
         >
           Scan
         </Button>
+        {hasCamera && (
+          <Tooltip title="Scan with camera">
+            <span>
+              <IconButton
+                type="button"
+                size="small"
+                aria-label="Scan with camera"
+                disabled={disabled}
+                onClick={() => setCameraOpen(true)}
+              >
+                <PhotoCameraOutlinedIcon fontSize="small" />
+              </IconButton>
+            </span>
+          </Tooltip>
+        )}
       </Stack>
+      {hasCamera && (
+        <CameraScanDialog
+          open={cameraOpen}
+          onClose={() => setCameraOpen(false)}
+          onDetected={(code) => void submitScan(code)}
+        />
+      )}
       {feedback && (
         <Alert
           severity={feedback.severity}

@@ -20,6 +20,7 @@
     "@mui/utils": "^9.4.0",
     "@mui/x-date-pickers": "^9.17.0",
     "axios": "^1.21.1",
+    "barcode-detector": "3.2.3",
     "dayjs": "^1.11.23",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",

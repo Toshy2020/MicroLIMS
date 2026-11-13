@@ -183,6 +183,25 @@ public class MfaPolicyServiceTests
     }
 
     [Theory]
+    [InlineData("SystemAdministrator")]
+    [InlineData("SectionHead")]
+    [InlineData("QcManager")]
+    [InlineData("Qa")]
+    public async Task DefaultRequiredRoles_RequireMfa_ForPrivilegedRolesIncludingQa(string roleType)
+    {
+        var defaults = SystemSettingDefinitions.Get(SystemSettingKeys.MfaRequiredRoles).Default;
+        Assert.Contains(nameof(MicroLIMS.Domain.Enums.RoleType.Qa), defaults.Split(','));
+
+        var reader = new StubSystemSettingsReader()
+            .WithPolicy("RequiredForRoles")
+            .WithRequiredRoles(defaults);
+        var service = new MfaPolicyService(reader);
+
+        Assert.True(await service.IsRequiredForRoleAsync(roleType));
+        Assert.False(await service.IsRequiredForRoleAsync("Analyst"));
+    }
+
+    [Theory]
     [InlineData(0)]
     [InlineData(12)]
     [InlineData(24)]

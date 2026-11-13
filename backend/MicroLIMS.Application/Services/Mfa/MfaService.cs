@@ -31,6 +31,7 @@ public sealed class MfaService : IMfaService
     public static readonly TimeSpan ChallengeLifetime = TimeSpan.FromMinutes(5);
     internal const string VerificationFailedMessage = "The code is not correct.";
     internal const string PasswordFailedMessage = "The password is not correct.";
+    internal const string HardwareTokenPendingMessage = "A hardware token has been assigned to you; activate it, or ask an administrator to reset your two-factor setup, before setting up an authenticator app.";
     internal const string EnrolSessionInvalidMessage = "Your enrolment session has expired. Sign in again.";
 
     private readonly IMicroLimsDbContext _db;
@@ -324,7 +325,7 @@ public sealed class MfaService : IMfaService
         {
             var nowUtc = _time.GetUtcNow().UtcDateTime;
             var user = await LoadAndVerifyPasswordAsync(userId, password, nowUtc, includeRole: false, tx, ct);
-            var started = await StartEnrolmentCoreAsync(user, nowUtc, ct);
+            var started = await StartEnrolmentCoreAsync(user, nowUtc, tx, ct);
             await _db.SaveChangesAsync(ct);
             if (tx is not null)
                 await tx.CommitAsync(ct);
@@ -344,7 +345,7 @@ public sealed class MfaService : IMfaService
         {
             var nowUtc = _time.GetUtcNow().UtcDateTime;
             var challenge = await LoadValidEnrolChallengeAsync(mfaToken, nowUtc, includeRole: false, ct);
-            var started = await StartEnrolmentCoreAsync(challenge.User!, nowUtc, ct);
+            var started = await StartEnrolmentCoreAsync(challenge.User!, nowUtc, tx, ct);
             await _db.SaveChangesAsync(ct);
             if (tx is not null)
                 await tx.CommitAsync(ct);
@@ -750,7 +751,7 @@ public sealed class MfaService : IMfaService
         return challenge;
     }
 
-    private async Task<EnrolmentStart> StartEnrolmentCoreAsync(User user, DateTime nowUtc, CancellationToken ct)
+    private async Task<EnrolmentStart> StartEnrolmentCoreAsync(User user, DateTime nowUtc, IDbContextTransaction? tx, CancellationToken ct)
     {
         var hasActive = await _db.UserMfaCredentials
             .AsNoTracking()
@@ -761,6 +762,14 @@ public sealed class MfaService : IMfaService
         var pending = await _db.UserMfaCredentials
             .Where(c => c.UserId == user.Id && c.Status == MfaCredentialStatus.Pending)
             .ToListAsync(ct);
+        if (pending.Any(c => c.Type == MfaCredentialType.HardwareToken))
+        {
+            // An administrator assigned this token; self-enrolment must not silently delete it.
+            await RecordAuthenticatedMfaFailureAndCommitAsync(
+                user.Id, user, "Self-enrolment refused: an administrator-assigned hardware token is pending.", tx, ct);
+            throw new BusinessRuleException(HardwareTokenPendingMessage);
+        }
+
         if (pending.Count > 0)
         {
             _db.UserMfaCredentials.RemoveRange(pending);

@@ -529,6 +529,57 @@ public class OidcSignInPostgresTests
     }
 
     [PostgresFact]
+    public async Task SignInState_IsNotAutoAudited_WhileSecurityEventsAreWritten()
+    {
+        var clock = new MutableTimeProvider(BaseUtc);
+        var dirUser = $"dir_{Guid.NewGuid():N}"[..16];
+        var subjectId = $"sub-{Guid.NewGuid():N}";
+        var user = await SeedUserAsync("oidc_noaudit", directoryUsername: dirUser, directorySubjectId: subjectId);
+        var unknownDirUser = $"nobody_{Guid.NewGuid():N}"[..16];
+        var okClient = new FakeOidcProviderClient { IdentityToReturn = new DirectoryIdentity(subjectId, dirUser, MfaSatisfied: true) };
+        var badClient = new FakeOidcProviderClient { IdentityToReturn = new DirectoryIdentity($"sub-{Guid.NewGuid():N}", unknownDirUser, MfaSatisfied: true) };
+
+        async Task<Uri> StartAndCallbackAsync(FakeOidcProviderClient client)
+        {
+            Uri startUri;
+            await using (var startDb = _fixture.CreateDbContext())
+            {
+                var (oidc, _, _) = CreateServices(startDb, clock, client);
+                startUri = await oidc.StartAsync(CallbackUri);
+            }
+            var state = HttpUtility.ParseQueryString(startUri.Query)["state"]!;
+            await using var cbDb = _fixture.CreateDbContext();
+            var (cbOidc, _, _) = CreateServices(cbDb, clock, client);
+            return await cbOidc.HandleCallbackAsync(state, "idp-code", null, CallbackUri, FrontendOrigin, "127.0.0.1");
+        }
+
+        var okRedirect = await StartAndCallbackAsync(okClient);
+        var rawCode = ExtractFragmentParam(okRedirect, "code");
+        await using (var exDb = _fixture.CreateDbContext())
+        {
+            var (oidc, _, _) = CreateServices(exDb, clock, okClient);
+            Assert.True((await oidc.ExchangeAsync(rawCode, "127.0.0.1", "TestAgent")).Success);
+        }
+        var badRedirect = await StartAndCallbackAsync(badClient);
+        Assert.Equal("signin_failed", ExtractFragmentParam(badRedirect, "error"));
+
+        await using var assertDb = _fixture.CreateDbContext();
+        // The state rows really were written and the exchange code really was issued ...
+        Assert.True(await assertDb.SsoPendingRequests.AsNoTracking().AnyAsync());
+        Assert.True(await assertDb.SsoExchangeCodes.AsNoTracking().AnyAsync(c => c.UserId == user.Id));
+        // ... but neither reached AuditLogs.
+        var audited = await assertDb.AuditLogs.AsNoTracking()
+            .Where(a => a.EntityName == nameof(SsoPendingRequest) || a.EntityName == nameof(SsoExchangeCode))
+            .CountAsync();
+        Assert.Equal(0, audited);
+        // The outcomes are still recorded as security events.
+        Assert.True(await assertDb.SecurityAuditEvents.AsNoTracking()
+            .AnyAsync(e => e.TargetUserId == user.Id && e.EventCode == SecurityEventCodes.SsoLoginSuccess));
+        Assert.True(await assertDb.SecurityAuditEvents.AsNoTracking()
+            .AnyAsync(e => e.EventCode == SecurityEventCodes.SsoLoginFailedNotLinked && e.TargetUsername == unknownDirUser));
+    }
+
+    [PostgresFact]
     public async Task Exchange_SameCodeTwice_SecondFails()
     {
         var clock = new MutableTimeProvider(BaseUtc);

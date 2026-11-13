@@ -167,7 +167,7 @@ public class SsoSchemaPostgresTests
     }
 
     [PostgresFact]
-    public async Task SsoPendingRequestAndExchangeCode_AuditRows_AreRedacted()
+    public async Task SsoPendingRequestAndExchangeCode_AreNotAutoAudited_AndSecretsNeverReachAuditLogs()
     {
         var roleId = await GetRoleIdAsync();
         var now = DateTime.UtcNow;
@@ -207,19 +207,16 @@ public class SsoSchemaPostgresTests
             exchangeId = exchange.Id;
         }
 
+        // CONF-193: both types are excluded from automatic audit capture; sign-in outcomes are
+        // recorded as explicit security events. The secrets must still never reach AuditLogs.
         await using var assertDb = _fixture.CreateDbContext();
-        var pendingAudit = await assertDb.AuditLogs.AsNoTracking()
-            .SingleAsync(a => a.EntityName == nameof(SsoPendingRequest) && a.EntityId == pendingId.ToString() && a.Action == "Create");
-        Assert.Contains("\"StateHash\":\"[REDACTED]\"", pendingAudit.NewValue);
-        Assert.Contains("\"CodeVerifier\":\"[REDACTED]\"", pendingAudit.NewValue);
-        Assert.Contains("\"Nonce\":\"nonce-value-123\"", pendingAudit.NewValue);
-        Assert.DoesNotContain(stateHashSecret, pendingAudit.NewValue);
-        Assert.DoesNotContain(verifierSecret, pendingAudit.NewValue);
-
-        var exchangeAudit = await assertDb.AuditLogs.AsNoTracking()
-            .SingleAsync(a => a.EntityName == nameof(SsoExchangeCode) && a.EntityId == exchangeId.ToString() && a.Action == "Create");
-        Assert.Contains("\"CodeHash\":\"[REDACTED]\"", exchangeAudit.NewValue);
-        Assert.DoesNotContain(codeHashSecret, exchangeAudit.NewValue);
+        Assert.True(await assertDb.SsoPendingRequests.AsNoTracking().AnyAsync(p => p.Id == pendingId));
+        Assert.True(await assertDb.SsoExchangeCodes.AsNoTracking().AnyAsync(c => c.Id == exchangeId));
+        Assert.False(await assertDb.AuditLogs.AsNoTracking()
+            .AnyAsync(a => a.EntityName == nameof(SsoPendingRequest) || a.EntityName == nameof(SsoExchangeCode)));
+        Assert.False(await assertDb.AuditLogs.AsNoTracking()
+            .AnyAsync(a => (a.NewValue != null && (a.NewValue.Contains(stateHashSecret) || a.NewValue.Contains(verifierSecret) || a.NewValue.Contains(codeHashSecret)))
+                           || (a.PreviousValue != null && (a.PreviousValue.Contains(stateHashSecret) || a.PreviousValue.Contains(verifierSecret) || a.PreviousValue.Contains(codeHashSecret)))));
     }
 
     [PostgresFact]

@@ -1035,4 +1035,105 @@ public class MfaAdminPostgresTests
         using var jsonPlain = JsonDocument.Parse(await respPlain.Content.ReadAsStringAsync());
         Assert.False(jsonPlain.RootElement.GetProperty("data")[0].GetProperty("mfaVerified").GetBoolean());
     }
+
+    private async Task<(int UserId, int AdminId)> SeedUserWithAssignedTokenAsync(FakeTimeProvider clock)
+    {
+        var (adminId, _) = await SeedUserAsync(RoleType.SystemAdministrator);
+        var (userId, _) = await SeedUserAsync(RoleType.Analyst);
+        await using var assignDb = _fixture.CreateDbContext();
+        var (_, _, admin, _) = CreateServices(assignDb, clock);
+        await admin.AssignHardwareTokenAsync(userId, "SN-GATE-1", Totp.ToBase32(Totp.NewSecret()), seedIsHex: false, 30, "Issued fob", adminId);
+        return (userId, adminId);
+    }
+
+    [PostgresFact]
+    public async Task StartEnrolment_WithPendingAdminHardwareToken_Refused_TokenKept()
+    {
+        var clock = new FakeTimeProvider(BaseUtc);
+        var (userId, _) = await SeedUserWithAssignedTokenAsync(clock);
+
+        await using (var actDb = _fixture.CreateDbContext())
+        {
+            var (_, mfa, _, _) = CreateServices(actDb, clock);
+            var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => mfa.StartEnrolmentWithPasswordAsync(userId, Password));
+            Assert.Contains("activate it, or ask an administrator", ex.Message);
+        }
+
+        await using var assertDb = _fixture.CreateDbContext();
+        var cred = await assertDb.UserMfaCredentials.AsNoTracking().SingleAsync(c => c.UserId == userId);
+        Assert.Equal(MfaCredentialType.HardwareToken, cred.Type);
+        Assert.Equal(MfaCredentialStatus.Pending, cred.Status);
+        Assert.Equal("SN-GATE-1", cred.SerialNumber);
+
+        var evt = await assertDb.SecurityAuditEvents.AsNoTracking()
+            .SingleAsync(e => e.EventCode == SecurityEventCodes.MfaFailed && e.TargetUserId == userId);
+        Assert.Equal(userId, evt.ActorUserId);
+        Assert.Equal(SecurityEventOutcome.Failure, evt.Outcome);
+        Assert.Contains("hardware token", evt.Reason);
+        Assert.False(await assertDb.SecurityAuditEvents.AsNoTracking()
+            .AnyAsync(e => e.EventCode == SecurityEventCodes.MfaEnrolmentStarted && e.TargetUserId == userId));
+    }
+
+    [PostgresFact]
+    public async Task StartEnrolment_WithOwnPendingApp_ReplacesIt()
+    {
+        var (userId, _) = await SeedUserAsync(RoleType.Analyst);
+        var clock = new FakeTimeProvider(BaseUtc);
+
+        await using (var firstDb = _fixture.CreateDbContext())
+        {
+            var (_, mfa, _, _) = CreateServices(firstDb, clock);
+            await mfa.StartEnrolmentWithPasswordAsync(userId, Password);
+        }
+
+        int firstId;
+        await using (var midDb = _fixture.CreateDbContext())
+            firstId = (await midDb.UserMfaCredentials.AsNoTracking().SingleAsync(c => c.UserId == userId)).Id;
+
+        await using (var actDb = _fixture.CreateDbContext())
+        {
+            var (_, mfa, _, _) = CreateServices(actDb, clock);
+            await mfa.StartEnrolmentWithPasswordAsync(userId, Password);
+        }
+
+        await using var assertDb = _fixture.CreateDbContext();
+        var cred = await assertDb.UserMfaCredentials.AsNoTracking().SingleAsync(c => c.UserId == userId);
+        Assert.NotEqual(firstId, cred.Id);
+        Assert.Equal(MfaCredentialType.AuthenticatorApp, cred.Type);
+        Assert.Equal(MfaCredentialStatus.Pending, cred.Status);
+        Assert.Equal(2, await assertDb.SecurityAuditEvents.AsNoTracking()
+            .CountAsync(e => e.EventCode == SecurityEventCodes.MfaEnrolmentStarted && e.TargetUserId == userId));
+    }
+
+    [PostgresFact]
+    public async Task AdminReset_WithPendingHardwareToken_StillWorks()
+    {
+        var clock = new FakeTimeProvider(BaseUtc);
+        var (userId, adminId) = await SeedUserWithAssignedTokenAsync(clock);
+
+        await using (var actDb = _fixture.CreateDbContext())
+        {
+            var (_, _, admin, _) = CreateServices(actDb, clock);
+            await admin.ResetAsync(userId, "Fob lost before activation", adminId);
+        }
+
+        await using (var enrolDb = _fixture.CreateDbContext())
+        {
+            var (_, mfa, _, _) = CreateServices(enrolDb, clock);
+            await mfa.StartEnrolmentWithPasswordAsync(userId, Password);
+        }
+
+        await using var assertDb = _fixture.CreateDbContext();
+        var creds = await assertDb.UserMfaCredentials.AsNoTracking().Where(c => c.UserId == userId).ToListAsync();
+        var token = Assert.Single(creds, c => c.Type == MfaCredentialType.HardwareToken);
+        Assert.Equal(MfaCredentialStatus.Revoked, token.Status);
+        Assert.Equal(adminId, token.RevokedByUserId);
+        Assert.Single(creds, c => c.Type == MfaCredentialType.AuthenticatorApp && c.Status == MfaCredentialStatus.Pending);
+
+        var evt = await assertDb.SecurityAuditEvents.AsNoTracking()
+            .SingleAsync(e => e.EventCode == SecurityEventCodes.MfaResetByAdmin && e.TargetUserId == userId);
+        Assert.Equal(adminId, evt.ActorUserId);
+        Assert.True(await assertDb.AuditLogs.AsNoTracking()
+            .AnyAsync(a => a.Action == "MFA_RESET_BY_ADMIN" && a.EntityId == userId.ToString() && a.UserId == adminId));
+    }
 }

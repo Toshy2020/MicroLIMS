@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
@@ -6,6 +6,7 @@ import { PinnedLightTheme } from "../theme/PinnedLightTheme";
 import { AuthProvider } from "../contexts/AuthContext";
 import { authenticationService } from "../modules/authentication/services/authenticationService";
 import { mfaService } from "../modules/authentication/services/mfaService";
+import { ssoService } from "../modules/authentication/services/ssoService";
 import { LoginPage } from "./Login";
 
 vi.mock("../modules/authentication/services/authenticationService", () => ({
@@ -22,6 +23,19 @@ vi.mock("../modules/authentication/services/mfaService", () => ({
     getOptions: vi.fn()
   }
 }));
+
+vi.mock("../modules/authentication/services/ssoService", () => ({
+  ssoService: {
+    getMode: vi.fn(),
+    startUrl: vi.fn(),
+    exchange: vi.fn()
+  }
+}));
+
+beforeEach(() => {
+  vi.mocked(ssoService.getMode).mockResolvedValue("Off");
+  vi.mocked(ssoService.startUrl).mockReturnValue("http://localhost:5000/api/auth/sso/start");
+});
 
 function EnrolProbe() {
   const location = useLocation();
@@ -548,5 +562,53 @@ describe("LoginPage", () => {
 
     await waitFor(() => expect(screen.getByRole("heading", { level: 1, name: "Sign in" })).toBeTruthy());
     expect((screen.getByLabelText(/^Password/) as HTMLInputElement).value).toBe("");
+  });
+});
+
+describe("LoginPage SSO modes", () => {
+  it("mode Off shows the form unchanged", async () => {
+    vi.mocked(ssoService.getMode).mockResolvedValue("Off");
+    renderPage();
+
+    await waitFor(() => expect(ssoService.getMode).toHaveBeenCalledTimes(1));
+    expect(screen.getByLabelText(/^Username/)).toBeTruthy();
+    expect(screen.getByLabelText(/^Password/)).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Sign In" })).toBeTruthy();
+    expect(screen.queryByRole("link", { name: "Sign in with your company account" })).toBeNull();
+  });
+
+  it('mode OpenIdConnect shows "Sign in with your company account" as a link to the start endpoint and hides the form behind "Emergency administrator sign-in"', async () => {
+    const user = userEvent.setup();
+    vi.mocked(ssoService.getMode).mockResolvedValue("OpenIdConnect");
+    renderPage();
+
+    const ssoLink = await screen.findByRole("link", { name: "Sign in with your company account" });
+    expect(ssoLink.getAttribute("href")).toBe("http://localhost:5000/api/auth/sso/start");
+    expect(screen.queryByLabelText(/^Username/)).toBeNull();
+
+    const emergencyButton = screen.getByRole("button", { name: "Emergency administrator sign-in" });
+    await user.click(emergencyButton);
+
+    const usernameField = await screen.findByLabelText(/^Username/);
+    expect(usernameField).toBeTruthy();
+    expect(document.activeElement).toBe(usernameField);
+  });
+
+  it('mode ActiveDirectory labels the field "Company username"', async () => {
+    vi.mocked(ssoService.getMode).mockResolvedValue("ActiveDirectory");
+    renderPage();
+
+    expect(await screen.findByLabelText(/^Company username/)).toBeTruthy();
+    expect(screen.getByLabelText(/^Password/)).toBeTruthy();
+  });
+
+  it("mode request fails → the local form is shown with a notice", async () => {
+    vi.mocked(ssoService.getMode).mockRejectedValue(new Error("network error"));
+    renderPage();
+
+    expect(await screen.findByText("Company sign-in status could not be checked. Use your laboratory account below.")).toBeTruthy();
+    expect(screen.getByLabelText(/^Username/)).toBeTruthy();
+    expect(screen.getByLabelText(/^Password/)).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Sign In" })).toBeTruthy();
   });
 });

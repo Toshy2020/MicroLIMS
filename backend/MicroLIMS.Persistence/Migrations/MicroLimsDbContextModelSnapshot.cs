@@ -12223,6 +12223,34 @@ namespace MicroLIMS.Persistence.Migrations
                     b.ToTable("UserOrgMemberships", (string)null);
                 });
 
+            modelBuilder.Entity("MicroLIMS.Domain.Entities.UserUiState", b =>
+                {
+                    b.Property<int>("UserId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Key")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Value")
+                        .IsRequired()
+                        .HasMaxLength(2048)
+                        .HasColumnType("character varying(2048)");
+
+                    b.Property<uint>("xmin")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("UserId", "Key");
+
+                    b.ToTable("UserUiStates", (string)null);
+                });
+
             modelBuilder.Entity("MicroLIMS.Domain.Entities.WaterDepartment", b =>
                 {
                     b.Property<int>("Id")
@@ -16616,6 +16644,17 @@ namespace MicroLIMS.Persistence.Migrations
                     b.Navigation("Department");
 
                     b.Navigation("Section");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("MicroLIMS.Domain.Entities.UserUiState", b =>
+                {
+                    b.HasOne("MicroLIMS.Domain.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
 
                     b.Navigation("User");
                 });

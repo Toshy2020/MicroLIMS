@@ -16,6 +16,7 @@ import {
   Stack,
   Chip
 } from "@mui/material";
+import { ScanField } from "../../../components/labels/ScanField";
 import { formatLabDate } from "../../../utils/formatDate";
 import type { SolutionPreparationComponentResponse, LotOption } from "../types";
 
@@ -86,39 +87,48 @@ export function ComponentLotPicker({
             </Alert>
           ) : null}
 
-          <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "3fr 2fr" }, gap: 2 }}>
-            <FormControl fullWidth size="small" disabled={disabled || loadingLots || lotOptions.length === 0}>
-              <InputLabel id={`lot-select-label-${component.id}`}>Select Lot *</InputLabel>
-              <Select
-                labelId={`lot-select-label-${component.id}`}
-                id={`lot-select-${component.id}`}
-                value={selectedMaterialId ?? ""}
-                label="Select Lot *"
-                onChange={(e) => {
-                  const val = e.target.value;
-                  onSelectLot(val ? Number(val) : null);
-                }}
-              >
-                <MenuItem value="">
-                  <em>(Choose stock lot)</em>
-                </MenuItem>
-                {lotOptions.map((lot) => {
-                  const expText = lot.expiryDate ? ` · Exp: ${formatLabDate(lot.expiryDate)}` : "";
-                  const blockedText = !lot.usable ? ` [Blocked: ${lot.reason ?? "Not usable"}]` : "";
-                  return (
-                    <MenuItem key={lot.materialId} value={lot.materialId} disabled={!lot.usable}>
-                      {lot.batchNumber}, {lot.quantityRemaining} {lot.unit} remaining{expText}{blockedText}
-                    </MenuItem>
-                  );
-                })}
-              </Select>
-              {selectedLot && (
-                <FormHelperText sx={{ fontSize: 12 }}>
-                  Available in lot: {selectedLot.quantityRemaining} {selectedLot.unit}
-                  {selectedLot.expiryDate && ` · Expires ${formatLabDate(selectedLot.expiryDate)}`}
-                </FormHelperText>
-              )}
-            </FormControl>
+          <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "3fr 2fr" }, gap: 2, alignItems: "start" }}>
+            <Stack spacing={1}>
+              <ScanField
+                label={`Scan stock lot for ${component.entryName}`}
+                expectedType="MaterialStockLot"
+                offeredIds={lotOptions.filter((l) => l.usable).map((l) => l.materialId)}
+                onSelect={(id) => onSelectLot(id)}
+                disabled={disabled || loadingLots}
+              />
+              <FormControl fullWidth size="small" disabled={disabled || loadingLots || lotOptions.length === 0}>
+                <InputLabel id={`lot-select-label-${component.id}`}>Select Lot *</InputLabel>
+                <Select
+                  labelId={`lot-select-label-${component.id}`}
+                  id={`lot-select-${component.id}`}
+                  value={selectedMaterialId ?? ""}
+                  label="Select Lot *"
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    onSelectLot(val ? Number(val) : null);
+                  }}
+                >
+                  <MenuItem value="">
+                    <em>(Choose stock lot)</em>
+                  </MenuItem>
+                  {lotOptions.map((lot) => {
+                    const expText = lot.expiryDate ? ` · Exp: ${formatLabDate(lot.expiryDate)}` : "";
+                    const blockedText = !lot.usable ? ` [Blocked: ${lot.reason ?? "Not usable"}]` : "";
+                    return (
+                      <MenuItem key={lot.materialId} value={lot.materialId} disabled={!lot.usable}>
+                        {lot.batchNumber}, {lot.quantityRemaining} {lot.unit} remaining{expText}{blockedText}
+                      </MenuItem>
+                    );
+                  })}
+                </Select>
+                {selectedLot && (
+                  <FormHelperText sx={{ fontSize: 12 }}>
+                    Available in lot: {selectedLot.quantityRemaining} {selectedLot.unit}
+                    {selectedLot.expiryDate && ` · Expires ${formatLabDate(selectedLot.expiryDate)}`}
+                  </FormHelperText>
+                )}
+              </FormControl>
+            </Stack>
 
             <TextField
               size="small"

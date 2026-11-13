@@ -1,6 +1,7 @@
-import { useMemo, useState } from "react";
-import { Outlet, useNavigate, useLocation, Navigate } from "react-router-dom";
-import { Box, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Button, useMediaQuery, useTheme } from "@mui/material";
+import { useEffect, useMemo, useState } from "react";
+import { Outlet, useNavigate, useLocation, Navigate, Link as RouterLink } from "react-router-dom";
+import { Box, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Button, Typography, useMediaQuery, useTheme } from "@mui/material";
+import WarningAmberRoundedIcon from "@mui/icons-material/WarningAmberRounded";
 import { Header } from "../components/Header";
 import { Sidebar } from "../components/Sidebar";
 import { AppBreadcrumbs } from "../components/AppBreadcrumbs";
@@ -9,6 +10,8 @@ import { useAuth } from "../contexts/AuthContext";
 import { useIdleTimeout } from "../hooks/useIdleTimeout";
 import { useMyLabs } from "../hooks/useMyLabs";
 import { useMenuGroups } from "../hooks/useMenuGroups";
+import { mfaService, type MfaStatus } from "../modules/authentication/services/mfaService";
+import { formatDateTimeWithTimeZone } from "../utils/formatDate";
 import { accountPageTrail, findNavTrail } from "../routes/navigation";
 
 const MAIN_CONTENT_ID = "main-content";
@@ -33,6 +36,22 @@ export function MainLayout() {
 
   const [mobileOpen, setMobileOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(() => localStorage.getItem("microlims_sidebar_collapsed") === "true");
+  const [mfaStatus, setMfaStatus] = useState<MfaStatus | null>(null);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    mfaService
+      .getStatus(controller.signal)
+      .then((data) => {
+        if (!controller.signal.aborted) setMfaStatus(data);
+      })
+      .catch(() => {
+        // Grace banner is best-effort; never block layout on status failure.
+      });
+    return () => {
+      controller.abort();
+    };
+  }, []);
 
   const handleToggleCollapse = () => {
     setCollapsed((prev) => {
@@ -146,6 +165,35 @@ export function MainLayout() {
           }}
         >
           <Box sx={{ maxWidth: 1600, mx: "auto" }}>
+            {mfaStatus?.required && !mfaStatus.enrolled && mfaStatus.enrolmentDueAt && (
+              <Box
+                role="status"
+                sx={{
+                  mb: 2,
+                  px: 2,
+                  py: 1.25,
+                  borderRadius: 1,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  flexWrap: "wrap",
+                  gap: 1.5,
+                  bgcolor: theme.custom.status.inconclusive.bg,
+                  color: theme.custom.status.inconclusive.text,
+                  border: `1px solid ${theme.custom.status.inconclusive.border}`
+                }}
+              >
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                  <WarningAmberRoundedIcon fontSize="small" aria-hidden />
+                  <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                    Second-factor setup required by {formatDateTimeWithTimeZone(mfaStatus.enrolmentDueAt)}.
+                  </Typography>
+                </Box>
+                <Button component={RouterLink} to="/mfa-enrol" size="small" variant="outlined" color="inherit">
+                  Set up second factor
+                </Button>
+              </Box>
+            )}
             <AppBreadcrumbs trail={activeTrail} groups={groups} />
             <AppErrorBoundary inline key={location.pathname}>
               <Outlet />

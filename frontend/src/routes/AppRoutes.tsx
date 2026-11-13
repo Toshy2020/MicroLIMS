@@ -14,6 +14,7 @@ import { LEGACY_ADMIN_REDIRECTS, LegacyPathRedirect } from "./legacyAdminRedirec
 // user actually lands on) instead of every module in the app - see the
 // bundle-size analysis in docs/superpowers if this changes again.
 const LoginPage = lazy(() => import("../pages/Login").then((m) => ({ default: m.LoginPage })));
+const MfaEnrolmentPage = lazy(() => import("../pages/MfaEnrolment").then((m) => ({ default: m.MfaEnrolmentPage })));
 const AdminPasswordRecovery = lazy(() => import("../pages/AdminPasswordRecovery").then((m) => ({ default: m.AdminPasswordRecovery })));
 const DashboardPage = lazy(() => import("../modules/dashboard/DashboardPage").then((m) => ({ default: m.DashboardPage })));
 const SectionPage = lazy(() => import("../pages/Section").then((m) => ({ default: m.SectionPage })));
@@ -109,6 +110,9 @@ export function AppRoutes() {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/admin-recovery" element={<AdminPasswordRecovery />} />
         </Route>
+
+        {/* Reachable both before full sign-in (forced enrolment via router state) and when signed in. */}
+        <Route path="/mfa-enrol" element={<MfaEnrolmentPage />} />
 
         <Route element={<AuthenticatedRoutes />}>
           <Route path="/samples/:id/report" element={<SampleReportPage />} />

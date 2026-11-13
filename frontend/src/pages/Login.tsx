@@ -7,9 +7,11 @@ import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
 import { useNavigate, Link as RouterLink } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
+import { completeSignInSession } from "../modules/authentication/completeSignIn";
 import { authenticationService, type LoginResult } from "../modules/authentication/services/authenticationService";
 import { mfaService } from "../modules/authentication/services/mfaService";
 import { MfaCodeField } from "../modules/authentication/components/MfaCodeField";
+import { RecoveryCodesPanel } from "../modules/authentication/components/RecoveryCodesPanel";
 import { monospaceFontFamily } from "../theme/palette";
 import { LoginBrandArt } from "./LoginBrandArt";
 
@@ -103,7 +105,6 @@ export function LoginPage({ now = Date.now }: LoginPageProps) {
   const [challengeStartedAt, setChallengeStartedAt] = useState<number | null>(null);
 
   const [pendingLoginResult, setPendingLoginResult] = useState<LoginResult | null>(null);
-  const [savedCodesConfirmed, setSavedCodesConfirmed] = useState(false);
 
   const codeInputRef = useRef<HTMLInputElement>(null);
   const recoveryInputRef = useRef<HTMLInputElement>(null);
@@ -143,7 +144,6 @@ export function LoginPage({ now = Date.now }: LoginPageProps) {
     setFailedAttempts(0);
     setChallengeStartedAt(null);
     setPendingLoginResult(null);
-    setSavedCodesConfirmed(false);
   }, []);
 
   const resetToPasswordStep = useCallback(
@@ -176,23 +176,7 @@ export function LoginPage({ now = Date.now }: LoginPageProps) {
   }, [step, isSubmitting, useRecoveryCode, mfaError]);
 
   const completeSignIn = async (result: LoginResult) => {
-    if (!result.token || !result.refreshToken || !result.role) {
-      throw new Error("Incomplete authentication response.");
-    }
-    localStorage.setItem("microlims_token", result.token);
-    const me = await authenticationService.me();
-    login({
-      token: result.token,
-      refreshToken: result.refreshToken,
-      username,
-      role: result.role,
-      roleName: result.roleName ?? me.roleName ?? null,
-      permissions: result.permissions ?? [],
-      fullName: me.fullName,
-      jobTitle: me.jobTitle ?? null,
-      userId: me.userId,
-      mustChangePassword: Boolean(result.mustChangePassword)
-    });
+    await completeSignInSession(result, login, username);
     navigate("/dashboard");
   };
 
@@ -266,7 +250,6 @@ export function LoginPage({ now = Date.now }: LoginPageProps) {
 
       if (result.recoveryCodes && result.recoveryCodes.length > 0) {
         setPendingLoginResult(result);
-        setSavedCodesConfirmed(false);
         setStep("recoveryCodes");
         setStepAnnouncement("Hardware token confirmed. Save your recovery codes before continuing.");
         return;
@@ -539,53 +522,12 @@ export function LoginPage({ now = Date.now }: LoginPageProps) {
               </Stack>
             </Box>
           ) : step === "recoveryCodes" && pendingLoginResult?.recoveryCodes ? (
-            <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-              <Box>
-                <Typography component="h1" sx={{ fontSize: 24, fontWeight: 700 }}>
-                  Save your recovery codes
-                </Typography>
-                <Typography sx={{ mt: 0.5, fontSize: 14, color: "text.secondary" }}>
-                  These codes are shown once. Store them safely in case you lose your token.
-                </Typography>
-              </Box>
-              <Box
-                sx={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-                  gap: 1,
-                  p: 2,
-                  borderRadius: 1,
-                  border: 1,
-                  borderColor: "divider",
-                  bgcolor: "background.default"
-                }}
-              >
-                {pendingLoginResult.recoveryCodes.map((rc) => (
-                  <Typography key={rc} sx={{ fontFamily: monospaceFontFamily, fontSize: 14, fontWeight: 600 }}>
-                    {rc}
-                  </Typography>
-                ))}
-              </Box>
-              <FormControlLabel
-                control={
-                  <Checkbox
-                    checked={savedCodesConfirmed}
-                    onChange={(e) => setSavedCodesConfirmed(e.target.checked)}
-                    disabled={isSubmitting}
-                  />
-                }
-                label="I have saved these codes"
-              />
-              <Button
-                type="button"
-                variant="contained"
-                size="large"
-                disabled={!savedCodesConfirmed || isSubmitting}
-                onClick={handlePendingContinue}
-              >
-                {isSubmitting ? "Signing in…" : "Continue"}
-              </Button>
-            </Box>
+            <RecoveryCodesPanel
+              codes={pendingLoginResult.recoveryCodes}
+              onDone={() => void handlePendingContinue()}
+              submitting={isSubmitting}
+              introText="These codes are shown once. Store them safely in case you lose your token."
+            />
           ) : step === "recoveryWarning" && pendingLoginResult ? (
             <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
               <Typography component="h1" sx={{ fontSize: 24, fontWeight: 700 }}>

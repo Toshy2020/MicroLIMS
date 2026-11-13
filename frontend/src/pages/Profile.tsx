@@ -4,6 +4,7 @@ import { PageHeader } from "../components/PageHeader";
 import { SectionTitle } from "../components/SectionTitle";
 import { DialogBodySkeleton } from "../components/DialogBodySkeleton";
 import { authenticationService } from "../modules/authentication/services/authenticationService";
+import { ProfileSecuritySection } from "../modules/authentication/components/ProfileSecuritySection";
 import { CurrentUserInfo } from "../modules/authentication/types/authTypes";
 import { formatRoleName } from "../utils/userDisplay";
 
@@ -40,6 +41,7 @@ export function ProfilePage() {
         <Field label="Last Login" value={info.lastLoginAt ? new Date(info.lastLoginAt).toLocaleString() : "Never"} />
         <Field label="Password Last Changed" value={info.passwordChangedAt ? new Date(info.passwordChangedAt).toLocaleString() : "Never"} />
       </Paper>
+      <ProfileSecuritySection />
     </>
   );
 }

@@ -25,7 +25,7 @@ public sealed class ReportTextReader(TesseractOcr ocr) : IReportTextReader
         var problems = new List<string>();
         foreach (var page in pages)
         {
-            var image = page.GetImages().OrderByDescending(i => i.Bounds.Width * i.Bounds.Height).FirstOrDefault()
+            var image = page.GetImages().OrderByDescending(i => i.BoundingBox.Width * i.BoundingBox.Height).FirstOrDefault()
                 ?? throw new InvalidOperationException($"'{fileName}' page {page.Number} has neither text nor an image to read.");
             var bytes = image.TryGetPng(out var png) ? png : image.RawBytes.ToArray();
             var text = await ocr.ReadPageAsync(bytes, ct);

@@ -181,7 +181,7 @@ public class PlanWindowCalculatorTests
         Assert.DoesNotContain(periods, p => p.TargetDate!.Value.DayOfWeek is DayOfWeek.Friday or DayOfWeek.Saturday);
         Assert.All(periods, p => { Assert.Equal(p.TargetDate, p.WindowStart); Assert.Equal(p.TargetDate, p.WindowEnd); });
         Assert.Equal(periods.Count, periods.Select(p => p.PeriodKey).Distinct().Count());
-        Assert.False(periods.Any(p => p.MovedForNonWorkingDate));
+        Assert.DoesNotContain(periods, p => p.MovedForNonWorkingDate);
     }
 
     [Theory]

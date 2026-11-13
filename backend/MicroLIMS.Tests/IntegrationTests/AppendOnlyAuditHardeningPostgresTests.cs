@@ -40,8 +40,10 @@ public class AppendOnlyAuditHardeningPostgresTests
         {
             await using var db = _fixture.CreateDbContext();
 
+            // Identifier, not a data value: cannot be a SQL parameter. Built from the fixed, test-controlled table list.
+            string sql = $"TRUNCATE TABLE \"{table}\" CASCADE";
             var ex = await Assert.ThrowsAsync<PostgresException>(() =>
-                db.Database.ExecuteSqlRawAsync($"TRUNCATE TABLE \"{table}\" CASCADE"));
+                db.Database.ExecuteSqlRawAsync(sql));
 
             Assert.Contains("append-only", ex.Message, StringComparison.OrdinalIgnoreCase);
             Assert.Contains("TRUNCATE", ex.Message);

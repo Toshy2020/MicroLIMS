@@ -181,6 +181,6 @@ public class NegativeEntityIdCorrectionScriptPostgresTests
 
         // And the database still refuses to edit the audit trail.
         await Assert.ThrowsAnyAsync<Exception>(() =>
-            db.Database.ExecuteSqlRawAsync($"UPDATE \"AuditLogs\" SET \"EntityId\" = '1' WHERE \"Id\" = {created.Id}"));
+            db.Database.ExecuteSqlAsync($"UPDATE \"AuditLogs\" SET \"EntityId\" = '1' WHERE \"Id\" = {created.Id}"));
     }
 }

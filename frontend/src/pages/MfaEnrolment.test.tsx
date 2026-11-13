@@ -8,6 +8,14 @@ import { authenticationService } from "../modules/authentication/services/authen
 import { mfaService } from "../modules/authentication/services/mfaService";
 import { MfaEnrolmentPage } from "./MfaEnrolment";
 
+const toastError = vi.fn();
+vi.mock("sonner", () => ({
+  toast: {
+    success: vi.fn(),
+    error: (...args: unknown[]) => toastError(...args)
+  }
+}));
+
 vi.mock("../modules/authentication/services/authenticationService", () => ({
   authenticationService: {
     me: vi.fn()
@@ -170,5 +178,33 @@ describe("MfaEnrolmentPage", () => {
     await user.click(screen.getByRole("button", { name: "Continue" }));
 
     await waitFor(() => expect(screen.getByText("Profile")).toBeTruthy());
+  });
+
+  it("shows an error and returns to login when the final sign-in fails", async () => {
+    const user = userEvent.setup();
+    vi.mocked(mfaService.startEnrolmentWithToken).mockResolvedValue(sampleStart);
+    vi.mocked(mfaService.confirmEnrolmentWithToken).mockResolvedValue({
+      recoveryCodes: ["REC-1111"],
+      login: {
+        token: "enrol-access-tok",
+        refreshToken: "enrol-refresh-tok",
+        role: "QcManager",
+        permissions: [],
+        mustChangePassword: false
+      }
+    });
+    vi.mocked(authenticationService.me).mockRejectedValue(new Error("network failure"));
+
+    renderEnrol({ mfaToken: "enrol-tok-err" });
+
+    await user.type(await screen.findByLabelText("6-digit code"), "654321");
+    await user.click(screen.getByRole("button", { name: "Confirm" }));
+
+    await waitFor(() => expect(screen.getByText("REC-1111")).toBeTruthy());
+    await user.click(screen.getByRole("checkbox", { name: "I have saved these codes" }));
+    await user.click(screen.getByRole("button", { name: "Continue" }));
+
+    await waitFor(() => expect(screen.getByText("Login Page")).toBeTruthy());
+    expect(toastError).toHaveBeenCalled();
   });
 });

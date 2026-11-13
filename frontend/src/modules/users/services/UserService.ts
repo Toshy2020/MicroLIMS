@@ -1,4 +1,15 @@
 import { apiClient, ifMatch } from "../../../services/apiClient";
+import type { TrustedDeviceInfo } from "../../authentication/services/mfaService";
+
+export type { TrustedDeviceInfo };
+
+export interface AssignHardwareTokenPayload {
+  serialNumber: string;
+  seed: string;
+  seedFormat: "base32" | "hex";
+  stepSeconds: 30 | 60;
+  reason: string;
+}
 
 export interface UserRecord {
   id: number;
@@ -17,6 +28,7 @@ export interface UserRecord {
   createdAt: string;
   lastLoginAt: string | null;
   passwordChangedAt: string | null;
+  mfaState?: string;
 }
 
 export interface UserSession {
@@ -26,6 +38,7 @@ export interface UserSession {
   userAgent: string | null;
   lastUsedAt: string | null;
   expiresAt: string;
+  mfaVerified?: boolean;
 }
 
 export const UserService = {
@@ -34,6 +47,18 @@ export const UserService = {
   },
   async revokeSessions(id: number, reason: string): Promise<{ revokedCount: number }> {
     return (await apiClient.post(`/admin/users/${id}/sessions/revoke`, { reason })).data.data;
+  },
+  async resetMfa(id: number, reason: string): Promise<void> {
+    await apiClient.post(`/admin/users/${id}/mfa/reset`, { reason });
+  },
+  async assignHardwareToken(id: number, payload: AssignHardwareTokenPayload): Promise<void> {
+    await apiClient.post(`/admin/users/${id}/mfa/hardware-token`, payload);
+  },
+  async getTrustedDevices(id: number, signal?: AbortSignal): Promise<TrustedDeviceInfo[]> {
+    return (await apiClient.get(`/admin/users/${id}/trusted-devices`, { signal })).data.data;
+  },
+  async revokeTrustedDevice(id: number, deviceId: number): Promise<void> {
+    await apiClient.delete(`/admin/users/${id}/trusted-devices/${deviceId}`);
   },
   // status: "active" (default) or "inactive". "all" is only for screens that
   // resolve a stored user id to a name (historical attribution); never feed it to a picker.

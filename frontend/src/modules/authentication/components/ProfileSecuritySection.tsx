@@ -23,29 +23,12 @@ import { SectionTitle } from "../../../components/SectionTitle";
 import { EmptyState } from "../../../components/lab/EmptyState";
 import { FormDialog } from "../../../components/lab/FormDialog";
 import { getErrorMessage, serverMessage } from "../../../utils/errorMessage";
+import { describeUserAgent } from "../../../utils/describeUserAgent";
 import { formatDateTimeWithTimeZone } from "../../../utils/formatDate";
 import { mfaService, type MfaStatus, type TrustedDeviceInfo } from "../services/mfaService";
 import { AuthenticatedEnrolmentFlow } from "./EnrolmentSteps";
 import { MfaCodeField } from "./MfaCodeField";
 import { RecoveryCodesPanel } from "./RecoveryCodesPanel";
-
-function describeUserAgent(ua: string | null | undefined): string {
-  if (!ua || !ua.trim()) return "Unknown browser";
-  const browser =
-    /Edg\//i.test(ua) ? "Edge"
-      : /Chrome\//i.test(ua) ? "Chrome"
-        : /Firefox\//i.test(ua) ? "Firefox"
-          : /Safari\//i.test(ua) ? "Safari"
-            : "Browser";
-  const os =
-    /Windows/i.test(ua) ? "Windows"
-      : /Mac OS X|Macintosh/i.test(ua) ? "macOS"
-        : /Linux/i.test(ua) ? "Linux"
-          : /Android/i.test(ua) ? "Android"
-            : /iPhone|iPad/i.test(ua) ? "iOS"
-              : null;
-  return os ? `${browser} on ${os}` : browser;
-}
 
 function factorTypeLabel(type: string | null | undefined): string {
   if (type === "HardwareToken") return "Hardware token";

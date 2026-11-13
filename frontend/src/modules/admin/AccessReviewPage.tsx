@@ -12,6 +12,7 @@ import {
   AccessReviewDetail, AccessReviewListItem, AccessReviewService, AccessReviewUserEntry, FINDING_KINDS, FindingAction
 } from "./services/AccessReviewService";
 import { getErrorMessage, serverMessage } from "../../utils/errorMessage";
+import { formatAccessReviewMfaState } from "../../utils/mfaStateDisplay";
 
 const formatDate = (iso: string | null) => (iso ? new Date(iso).toLocaleString() : "Never");
 const messageOf = (e: unknown, fallback: string): string => serverMessage(e) ?? getErrorMessage(e, fallback);
@@ -227,6 +228,7 @@ export function AccessReviewPage() {
                   <TableCell>Account</TableCell>
                   <TableCell>Status</TableCell>
                   <TableCell>Role</TableCell>
+                  <TableCell>Second factor</TableCell>
                   <TableCell>Permissions</TableCell>
                   <TableCell>Sections</TableCell>
                   <TableCell>Last sign-in</TableCell>
@@ -246,6 +248,7 @@ export function AccessReviewPage() {
                       </TableCell>
                       <TableCell>{u.isActive ? "Active" : `Inactive${u.deactivatedAt ? ` since ${formatDate(u.deactivatedAt)}` : ""}`}</TableCell>
                       <TableCell>{u.roleName} <Typography variant="caption" color="text.secondary" component="span">({u.roleType})</Typography></TableCell>
+                      <TableCell>{formatAccessReviewMfaState(u.mfaState)}</TableCell>
                       <TableCell sx={{ maxWidth: 280 }}>
                         <Typography variant="caption">
                           {u.permissions.map((p) => (p.hidden ? `${p.code} (hidden)` : p.code)).join(", ") || "None"}

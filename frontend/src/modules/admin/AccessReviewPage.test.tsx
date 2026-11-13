@@ -168,4 +168,43 @@ describe("AccessReviewPage", () => {
     expect(screen.queryByRole("button", { name: "Sign review" })).toBeNull();
     expect(screen.queryByRole("button", { name: /Add finding/i })).toBeNull();
   });
+
+  it("Access review line shows the second-factor state", async () => {
+    const userWithMfa = detail({
+      snapshot: {
+        reportVersion: 1,
+        generatedAt: "2026-10-28T09:00:00Z",
+        periodLabel: "2026 Q4",
+        dormantDays: 90,
+        statusHistoryMonths: 12,
+        summary,
+        users: [
+          user({ userId: 1, username: "admin", fullName: "Ada Admin", mfaState: "Enrolled" }),
+          user({ userId: 2, username: "dormant", fullName: "Dora Dormant", mfaState: "Overdue" })
+        ]
+      }
+    });
+    await openReview(userWithMfa);
+    const table = screen.getByRole("table", { name: "Accounts in the report" });
+    expect(within(table).getByText("Second factor")).toBeTruthy();
+    expect(within(table).getByText("Set up")).toBeTruthy();
+    expect(within(table).getByText("Overdue")).toBeTruthy();
+  });
+
+  it("Access review line shows \"Not recorded\" for reviews stored before this field existed", async () => {
+    const legacyDetail = detail({
+      snapshot: {
+        reportVersion: 1,
+        generatedAt: "2026-10-28T09:00:00Z",
+        periodLabel: "2026 Q4",
+        dormantDays: 90,
+        statusHistoryMonths: 12,
+        summary,
+        users: [user({ userId: 1, username: "admin", fullName: "Ada Admin", mfaState: "" })]
+      }
+    });
+    await openReview(legacyDetail);
+    const table = screen.getByRole("table", { name: "Accounts in the report" });
+    expect(within(table).getByText("Not recorded")).toBeTruthy();
+  });
 });

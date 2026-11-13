@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
 import { lightTheme } from "../../theme";
 import { UsersPage } from "./UsersPage";
@@ -10,7 +11,8 @@ vi.mock("./services/UserService", () => ({
   UserService: {
     getAll: vi.fn(), create: vi.fn(), updateProfile: vi.fn(), changeRole: vi.fn(), setStatus: vi.fn(),
     unlock: vi.fn(), initiatePasswordReset: vi.fn(), adminPasswordRecovery: vi.fn(),
-    forcePasswordChange: vi.fn()
+    forcePasswordChange: vi.fn(), resetMfa: vi.fn(), assignHardwareToken: vi.fn(),
+    getSessions: vi.fn(), revokeSessions: vi.fn(), getTrustedDevices: vi.fn(), revokeTrustedDevice: vi.fn()
   }
 }));
 vi.mock("../roles/services/RoleService", () => ({ RoleService: { getAll: vi.fn() } }));
@@ -38,6 +40,8 @@ beforeEach(() => {
   vi.mocked(UserService.setStatus).mockResolvedValue({});
   vi.mocked(UserService.forcePasswordChange).mockResolvedValue({});
   vi.mocked(UserService.updateProfile).mockResolvedValue({});
+  vi.mocked(UserService.resetMfa).mockResolvedValue();
+  vi.mocked(UserService.assignHardwareToken).mockResolvedValue();
 });
 afterEach(() => { cleanup(); vi.clearAllMocks(); });
 
@@ -166,5 +170,51 @@ describe("UsersPage reasons and signatures", () => {
     fireEvent.change(within(dialog).getByLabelText(/Reason for Enabling/), { target: { value: "Returned from leave" } });
     fireEvent.click(within(dialog).getByRole("button", { name: "Reactivate Account" }));
     await waitFor(() => expect(UserService.setStatus).toHaveBeenCalledWith(3, true, "Returned from leave"));
+  });
+
+  it("Users table shows the second-factor state as text for each state", async () => {
+    vi.mocked(UserService.getAll).mockResolvedValue([
+      { ...target, id: 10, username: "u_notreq", fullName: "User NotReq", mfaState: "NotRequired" },
+      { ...target, id: 11, username: "u_enrolled", fullName: "User Enrolled", mfaState: "Enrolled" },
+      { ...target, id: 12, username: "u_due", fullName: "User Due", mfaState: "DueByDate" },
+      { ...target, id: 13, username: "u_overdue", fullName: "User Overdue", mfaState: "Overdue" },
+      { ...target, id: 14, username: "u_pending", fullName: "User Pending", mfaState: "TokenPendingConfirmation" },
+      { ...target, id: 15, username: "u_unknown", fullName: "User Unknown" }
+    ]);
+
+    renderPage();
+
+    expect(await screen.findByText("Second factor")).toBeTruthy();
+    expect(screen.getByText("Not required")).toBeTruthy();
+    expect(screen.getByText("Set up")).toBeTruthy();
+    expect(screen.getByText("Due — not set up yet")).toBeTruthy();
+    expect(screen.getByText("Overdue")).toBeTruthy();
+    expect(screen.getByText("Token awaiting first use")).toBeTruthy();
+    const unknownRow = screen.getByText("User Unknown").closest("tr")!;
+    expect(within(unknownRow).getByText("—")).toBeTruthy();
+  });
+
+  it("Reset is not offered on the signed-in administrator's own row", async () => {
+    const user = userEvent.setup();
+    vi.mocked(UserService.getAll).mockResolvedValue([
+      { ...target, id: 1, username: "admin", fullName: "Admin One", mfaState: "Enrolled" },
+      { ...target, id: 2, username: "janalyst", fullName: "Jane Analyst", mfaState: "Enrolled" }
+    ]);
+    vi.mocked(UserService.resetMfa).mockResolvedValue();
+
+    renderPage();
+    await screen.findByText("Jane Analyst");
+
+    expect(screen.queryByRole("button", { name: /Reset second factor for admin/i })).toBeNull();
+    expect(screen.queryByRole("button", { name: /Assign hardware token for admin/i })).toBeNull();
+
+    const otherReset = screen.getByRole("button", { name: "Reset second factor for janalyst" });
+    expect(screen.getByRole("button", { name: "Assign hardware token for janalyst" })).toBeTruthy();
+
+    await user.click(otherReset);
+    const dialog = await screen.findByRole("alertdialog");
+    await user.type(within(dialog).getByLabelText(/Reason/), "Replaced phone");
+    await user.click(within(dialog).getByRole("button", { name: "Reset second factor" }));
+    await waitFor(() => expect(UserService.resetMfa).toHaveBeenCalledWith(2, "Replaced phone"));
   });
 });

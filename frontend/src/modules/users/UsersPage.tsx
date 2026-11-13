@@ -27,9 +27,14 @@ import { useAuth } from "../../contexts/AuthContext";
 import { useLoadFailures } from "../../hooks/useLoadFailures";
 import { UserSectionsDialog } from "./dialogs/UserSectionsDialog";
 import { UserSessionsDialog } from "./dialogs/UserSessionsDialog";
+import { ResetMfaDialog } from "./dialogs/ResetMfaDialog";
+import { AssignHardwareTokenDialog } from "./dialogs/AssignHardwareTokenDialog";
 import DevicesIcon from "@mui/icons-material/Devices";
+import PhonelinkEraseIcon from "@mui/icons-material/PhonelinkErase";
+import HardwareIcon from "@mui/icons-material/Memory";
 import { LoadFailuresAlert } from "../../components/LoadErrorAlert";
 import { MetaBadge, ToneBadge } from "../../components/StatusBadge";
+import { getMfaStateDisplay } from "../../utils/mfaStateDisplay";
 
 export function UsersPage() {
   const theme = useTheme();
@@ -83,6 +88,8 @@ export function UsersPage() {
 
   const [sectionsUser, setSectionsUser] = useState<UserRecord | null>(null);
   const [sessionsUser, setSessionsUser] = useState<UserRecord | null>(null);
+  const [resetMfaUser, setResetMfaUser] = useState<UserRecord | null>(null);
+  const [assignTokenUser, setAssignTokenUser] = useState<UserRecord | null>(null);
 
   // A failed load used to leave the user table (or the role picker) empty
   // with no explanation.
@@ -402,6 +409,7 @@ export function UsersPage() {
               <TableCell>Role</TableCell>
               <TableCell>Status</TableCell>
               <TableCell>Security / Password</TableCell>
+              <TableCell>Second factor</TableCell>
               <TableCell>Last Login</TableCell>
               <TableCell align="right">Actions</TableCell>
             </TableRow>
@@ -409,6 +417,7 @@ export function UsersPage() {
           <TableBody>
             {users.map((u) => {
               const isSelf = u.id === currentUserId;
+              const mfaDisplay = getMfaStateDisplay(u.mfaState);
               return (
                 <TableRow key={u.id} hover>
                   <TableCell>
@@ -436,6 +445,13 @@ export function UsersPage() {
                       {u.mustChangePassword && <Box><ToneBadge tone="info" label="Must Change Password" /></Box>}
                       {!u.isLocked && !u.mustChangePassword && <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Normal</Typography>}
                     </Stack>
+                  </TableCell>
+                  <TableCell>
+                    {mfaDisplay ? (
+                      <ToneBadge tone={mfaDisplay.tone} label={mfaDisplay.label} />
+                    ) : (
+                      <Typography component="span" sx={{ fontSize: 12, color: "text.secondary" }}>—</Typography>
+                    )}
                   </TableCell>
                   <TableCell>
                     <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
@@ -508,6 +524,31 @@ export function UsersPage() {
                       <Tooltip title="Force Password Change at Next Login">
                         <IconButton size="small" color="info" onClick={() => openForcePwdDialog(u)}><SecurityIcon fontSize="small" /></IconButton>
                       </Tooltip>
+
+                      {!isSelf && (
+                        <>
+                          <Tooltip title="Reset second factor">
+                            <IconButton
+                              aria-label={`Reset second factor for ${u.username}`}
+                              size="small"
+                              color="error"
+                              onClick={() => setResetMfaUser(u)}
+                            >
+                              <PhonelinkEraseIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                          <Tooltip title="Assign hardware token">
+                            <IconButton
+                              aria-label={`Assign hardware token for ${u.username}`}
+                              size="small"
+                              color="primary"
+                              onClick={() => setAssignTokenUser(u)}
+                            >
+                              <HardwareIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                        </>
+                      )}
                     </Stack>
                     )}
                   </TableCell>
@@ -773,6 +814,20 @@ export function UsersPage() {
         onClose={() => setSessionsUser(null)}
         user={sessionsUser}
         onRevoked={(msg) => toast.success(msg)}
+      />
+
+      <ResetMfaDialog
+        open={Boolean(resetMfaUser)}
+        onClose={() => setResetMfaUser(null)}
+        user={resetMfaUser}
+        onReset={() => load()}
+      />
+
+      <AssignHardwareTokenDialog
+        open={Boolean(assignTokenUser)}
+        onClose={() => setAssignTokenUser(null)}
+        user={assignTokenUser}
+        onAssigned={() => load()}
       />
     </>
   );

@@ -35,6 +35,7 @@ export interface AccessReviewUserEntry {
   daysSinceLastActivity: number | null;
   statusHistory: AccessReviewStatusChange[];
   sodConflicts: string[];
+  mfaState?: string;
 }
 
 export interface AccessReviewSummary {

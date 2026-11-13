@@ -335,6 +335,10 @@ KpiWorkloadController.GetWorkloadTests(DateOnly, DateOnly, String, String, Strin
 KpiWorkloadController.ListAvailability(Nullable`1, Nullable`1, Nullable`1): SystemAdministrator,SectionHead,Qa
 KpiWorkloadController.UpdateAvailability(Int32, SaveAvailabilityRequest): SystemAdministrator,SectionHead
 KpiWorkloadController.UpdateSettings(Int32, UpdateKpiSettingsRequest): SystemAdministrator,SectionHead
+LabelController.GetFormats(CancellationToken): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+LabelController.Print(PrintLabelsRequest, CancellationToken): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+LabelController.Status(LabelStatusRequest, CancellationToken): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+LabelController.UpdateFormat(Int32, UpdateLabelFormatRequest, String, CancellationToken): SectionHead
 LaboratoryOrganizationController.GetMemberships(Int32): SystemAdministrator
 LaboratoryOrganizationController.GetMySections(): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 LaboratoryOrganizationController.GetSections(): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa

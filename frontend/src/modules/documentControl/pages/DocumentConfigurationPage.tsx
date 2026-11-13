@@ -25,6 +25,9 @@ import {
   CircularProgress,
   IconButton,
   Tooltip,
+  FormControl,
+  FormControlLabel,
+  FormHelperText,
   useTheme
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
@@ -36,6 +39,7 @@ import { PageHeader } from "../../../components/PageHeader";
 import { tableHeadSx } from "../../../theme";
 import { useAuth } from "../../../contexts/AuthContext";
 import { PERMISSIONS } from "../../../routes/routes";
+import { getErrorMessage, serverMessage } from "../../../utils/errorMessage";
 import { documentControlService } from "../services/documentControlService";
 import type {
   DocumentTypeDto,
@@ -63,7 +67,7 @@ export function DocumentConfigurationPage() {
   // Dialog states
   const [typeDialogOpen, setTypeDialogOpen] = useState(false);
   const [editingType, setEditingType] = useState<DocumentTypeDto | null>(null);
-  const [typeForm, setTypeForm] = useState({ code: "", name: "", cycle: 24, isActive: true });
+  const [typeForm, setTypeForm] = useState({ code: "", name: "", cycle: 24, isActive: true, requiresQaApprover: false });
 
   const [numberingForm, setNumberingForm] = useState({ prefix: "DOC-", format: "0000000", isEnabled: true });
   const [savingNumbering, setSavingNumbering] = useState(false);
@@ -91,8 +95,8 @@ export function DocumentConfigurationPage() {
         isEnabled: nRes.isEnabled
       });
       setSettings(sRes);
-    } catch (err: any) {
-      setError(err.response?.data?.message || err.message || "Failed to load configuration.");
+    } catch (err: unknown) {
+      setError(serverMessage(err) ?? getErrorMessage(err, "Failed to load configuration."));
     } finally {
       setLoading(false);
     }
@@ -120,20 +124,22 @@ export function DocumentConfigurationPage() {
         await documentControlService.updateType(editingType.id, {
           name: typeForm.name,
           defaultReviewCycleMonths: Number(typeForm.cycle),
-          isActive: typeForm.isActive
+          isActive: typeForm.isActive,
+          requiresQaApprover: typeForm.requiresQaApprover
         }, editingType.version);
       } else {
         await documentControlService.createType({
           code: typeForm.code,
           name: typeForm.name,
-          defaultReviewCycleMonths: Number(typeForm.cycle)
+          defaultReviewCycleMonths: Number(typeForm.cycle),
+          requiresQaApprover: typeForm.requiresQaApprover
         });
       }
       setTypeDialogOpen(false);
       loadAll();
       toast.success("Document Type saved successfully.");
-    } catch (err: any) {
-      toast.error("Failed to save Document Type: " + (err.response?.data?.message || err.message));
+    } catch (err: unknown) {
+      toast.error("Failed to save Document Type: " + (serverMessage(err) ?? getErrorMessage(err, "Unknown error.")));
     }
   };
 
@@ -148,8 +154,8 @@ export function DocumentConfigurationPage() {
       });
       setNumbering(updated);
       toast.success("Numbering configuration updated successfully.");
-    } catch (err: any) {
-      toast.error("Failed to update numbering: " + (err.response?.data?.message || err.message));
+    } catch (err: unknown) {
+      toast.error("Failed to update numbering: " + (serverMessage(err) ?? getErrorMessage(err, "Unknown error.")));
     } finally {
       setSavingNumbering(false);
     }
@@ -163,8 +169,8 @@ export function DocumentConfigurationPage() {
       setSettingDialogOpen(false);
       loadAll();
       toast.success("Setting updated successfully.");
-    } catch (err: any) {
-      toast.error("Failed to update setting: " + (err.response?.data?.message || err.message));
+    } catch (err: unknown) {
+      toast.error("Failed to update setting: " + (serverMessage(err) ?? getErrorMessage(err, "Unknown error.")));
     }
   };
 
@@ -210,7 +216,7 @@ export function DocumentConfigurationPage() {
                     startIcon={<AddIcon />}
                     onClick={() => {
                       setEditingType(null);
-                      setTypeForm({ code: "", name: "", cycle: 24, isActive: true });
+                      setTypeForm({ code: "", name: "", cycle: 24, isActive: true, requiresQaApprover: false });
                       setTypeDialogOpen(true);
                     }}
                   >
@@ -225,6 +231,7 @@ export function DocumentConfigurationPage() {
                         <TableCell sx={{ fontWeight: 700 }}>Code</TableCell>
                         <TableCell sx={{ fontWeight: 700 }}>Name</TableCell>
                         <TableCell sx={{ fontWeight: 700 }}>Default Review Cycle</TableCell>
+                        <TableCell sx={{ fontWeight: 700 }}>QA Approver</TableCell>
                         <TableCell sx={{ fontWeight: 700 }}>Status</TableCell>
                         <TableCell sx={{ fontWeight: 700, textAlign: "right" }}>Actions</TableCell>
                       </TableRow>
@@ -235,6 +242,15 @@ export function DocumentConfigurationPage() {
                           <TableCell sx={{ fontWeight: 700 }}>{t.code}</TableCell>
                           <TableCell>{t.name}</TableCell>
                           <TableCell>{t.defaultReviewCycleMonths} Months</TableCell>
+                          <TableCell>
+                            {t.requiresQaApprover ? (
+                              <Chip label="Required" size="small" color="primary" variant="outlined" sx={compactChipSx} />
+                            ) : (
+                              <Typography variant="body2" color="text.secondary">
+                                Not required
+                              </Typography>
+                            )}
+                          </TableCell>
                           <TableCell>
                             {t.isActive ? (
                               <Chip label="ACTIVE" size="small" color="success" sx={compactChipSx} />
@@ -248,7 +264,13 @@ export function DocumentConfigurationPage() {
                                 size="small"
                                 onClick={() => {
                                   setEditingType(t);
-                                  setTypeForm({ code: t.code, name: t.name, cycle: t.defaultReviewCycleMonths, isActive: t.isActive });
+                                  setTypeForm({
+                                    code: t.code,
+                                    name: t.name,
+                                    cycle: t.defaultReviewCycleMonths,
+                                    isActive: t.isActive,
+                                    requiresQaApprover: Boolean(t.requiresQaApprover)
+                                  });
                                   setTypeDialogOpen(true);
                                 }}
                               >
@@ -433,6 +455,20 @@ export function DocumentConfigurationPage() {
             value={typeForm.cycle}
             onChange={(e) => setTypeForm({ ...typeForm, cycle: Number(e.target.value) })}
           />
+          <FormControl component="fieldset" variant="standard">
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={typeForm.requiresQaApprover}
+                  onChange={(e) => setTypeForm({ ...typeForm, requiresQaApprover: e.target.checked })}
+                />
+              }
+              label="Requires a Quality Assurance approver"
+            />
+            <FormHelperText>
+              When on, a revision of this type can only be approved by a Quality Assurance user.
+            </FormHelperText>
+          </FormControl>
           {editingType && (
             <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
               <Typography variant="body2">Active Status</Typography>

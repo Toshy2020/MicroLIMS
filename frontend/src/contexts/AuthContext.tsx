@@ -129,6 +129,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const clearLocalState = () => {
+    // Device trust (microlims_device_token) is intentionally kept across logout
+    // and idle timeout; it is cleared only when the server ignores it at login.
     localStorage.removeItem("microlims_token");
     localStorage.removeItem("microlims_refresh_token");
     localStorage.removeItem("microlims_username");

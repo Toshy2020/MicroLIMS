@@ -2,14 +2,51 @@ import { apiClient } from "../../../services/apiClient";
 import { CurrentUserInfo, LoginResult } from "../types/authTypes";
 import { readTokenClaims } from "../tokenClaims";
 
+export type { LoginResult };
+
+interface LoginResponseDto {
+  token?: string | null;
+  refreshToken?: string | null;
+  mustChangePassword?: boolean;
+  roleName?: string | null;
+  mfaRequired?: boolean;
+  mfaEnrolmentRequired?: boolean;
+  mfaToken?: string | null;
+  mfaEnrolmentDueAt?: string | null;
+  deviceToken?: string | null;
+  recoveryCodesRemaining?: number | null;
+  recoveryCodes?: string[] | null;
+}
+
+export function parseLoginResponse(data: LoginResponseDto): LoginResult {
+  const result: LoginResult = {
+    mustChangePassword: data.mustChangePassword ?? false,
+    roleName: data.roleName ?? null,
+    mfaRequired: data.mfaRequired ?? false,
+    mfaEnrolmentRequired: data.mfaEnrolmentRequired ?? false,
+    mfaToken: data.mfaToken ?? undefined,
+    mfaEnrolmentDueAt: data.mfaEnrolmentDueAt ?? undefined,
+    deviceToken: data.deviceToken ?? undefined,
+    recoveryCodesRemaining: data.recoveryCodesRemaining ?? undefined,
+    recoveryCodes: data.recoveryCodes ?? undefined
+  };
+
+  if (data.token) {
+    const { role, permissions } = readTokenClaims(data.token);
+    result.token = data.token;
+    result.refreshToken = data.refreshToken ?? undefined;
+    result.role = role ?? undefined;
+    result.permissions = permissions;
+  }
+
+  return result;
+}
+
 export const authenticationService = {
-  async login(username: string, password: string): Promise<LoginResult> {
-    const res = await apiClient.post("/auth/login", { username, password });
-    const { token, refreshToken, mustChangePassword, roleName } = res.data.data as {
-      token: string; refreshToken: string; mustChangePassword: boolean; roleName?: string | null;
-    };
-    const { role, permissions } = readTokenClaims(token);
-    return { token, refreshToken, role: role!, permissions, mustChangePassword, roleName };
+  async login(username: string, password: string, deviceToken?: string): Promise<LoginResult> {
+    const body = deviceToken ? { username, password, deviceToken } : { username, password };
+    const res = await apiClient.post("/auth/login", body);
+    return parseLoginResponse(res.data.data as LoginResponseDto);
   },
 
   async refresh(refreshToken: string) {

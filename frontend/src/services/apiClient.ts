@@ -184,7 +184,11 @@ apiClient.interceptors.response.use(
     if (handleMaintenanceRefusal(error)) return Promise.reject(error);
 
     const config = error.config as RetryableRequestConfig | undefined;
-    const isAuthEndpoint = config?.url?.includes("/auth/refresh") || config?.url?.includes("/auth/login");
+    const isAuthEndpoint =
+      config?.url?.includes("/auth/refresh") ||
+      config?.url?.includes("/auth/login") ||
+      config?.url?.includes("/auth/mfa/verify") ||
+      config?.url?.includes("/auth/mfa/enrol/token/");
 
     if (error.response?.status !== 401 || !config || config._retry || isAuthEndpoint) {
       humanizeError(error);

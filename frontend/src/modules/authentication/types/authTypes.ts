@@ -1,13 +1,20 @@
 export type Role = "SystemAdministrator" | "SectionHead" | "Reviewer" | "Analyst" | "QcManager" | "Qa";
 
 export interface LoginResult {
-  token: string;
-  refreshToken: string;
-  role: Role;
-  permissions: string[];
-  mustChangePassword: boolean;
+  token?: string;
+  refreshToken?: string;
+  role?: Role;
+  permissions?: string[];
+  mustChangePassword?: boolean;
   // The role's display name (Role.Name); `role` above is its base type.
   roleName?: string | null;
+  mfaRequired?: boolean;
+  mfaEnrolmentRequired?: boolean;
+  mfaToken?: string;
+  mfaEnrolmentDueAt?: string;
+  deviceToken?: string;
+  recoveryCodesRemaining?: number;
+  recoveryCodes?: string[];
 }
 
 export interface CurrentUserInfo {

@@ -212,7 +212,8 @@ public record DocumentTypeDto(
     string Code,
     string Name,
     int DefaultReviewCycleMonths,
-    bool IsActive
+    bool IsActive,
+    bool RequiresQaApprover = false
 )
 {
     // The record's row version, sent back as If-Match with an edit.
@@ -222,13 +223,15 @@ public record DocumentTypeDto(
 public record CreateDocumentTypeRequest(
     string Code,
     string Name,
-    int DefaultReviewCycleMonths
+    int DefaultReviewCycleMonths,
+    bool RequiresQaApprover = false
 );
 
 public record UpdateDocumentTypeRequest(
     string Name,
     int DefaultReviewCycleMonths,
-    bool IsActive
+    bool IsActive,
+    bool RequiresQaApprover = false
 );
 
 public record DocumentDepartmentDto(

@@ -167,6 +167,32 @@ public class DocumentEffectiveDateService : IDocumentEffectiveDateService
             throw new BusinessRuleException($"Cannot activate Revision {freshRevision.Id} because DocumentMaster {master.Id} is in {master.RecordStatus} status.");
         }
 
+        // Query DocumentType separately so a missing/corrupt DocumentType does not inner-join away the revision.
+        var requiresQaApprover = await _db.DocumentTypes
+            .AsNoTracking()
+            .Where(t => t.Id == master.DocumentTypeId)
+            .Select(t => t.RequiresQaApprover)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (requiresQaApprover)
+        {
+            var approvalTasks = await _db.DocumentApprovalTasks
+                .AsNoTracking()
+                .Where(t => t.DocumentRevisionId == freshRevision.Id)
+                .Select(t => new
+                {
+                    AssignedApproverRole = t.AssignedApproverUser.Role != null ? (RoleType?)t.AssignedApproverUser.Role.Type : null,
+                    DecisionActorRole = t.DecisionByUser != null && t.DecisionByUser.Role != null ? (RoleType?)t.DecisionByUser.Role.Type : null,
+                    t.Status
+                })
+                .ToListAsync(cancellationToken);
+
+            DocumentApprovalService.EnsureQaApproverRequirement(
+                requiresQaApprover: true,
+                requireApproved: true,
+                approvalTasks.Select(t => (t.AssignedApproverRole, t.DecisionActorRole, t.Status)));
+        }
+
         var effectiveDate = freshRevision.EffectiveDate!.Value;
         bool isDelayedExecution = (nowUtc - effectiveDate).TotalHours >= 1.0;
 

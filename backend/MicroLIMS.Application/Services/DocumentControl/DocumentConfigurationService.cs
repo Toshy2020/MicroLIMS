@@ -46,7 +46,7 @@ public class DocumentConfigurationService : IDocumentConfigurationService
 
         return await query
             .OrderBy(t => t.Name)
-            .Select(t => new DocumentTypeDto(t.Id, t.Code, t.Name, t.DefaultReviewCycleMonths, t.IsActive) { Version = t.Version })
+            .Select(t => new DocumentTypeDto(t.Id, t.Code, t.Name, t.DefaultReviewCycleMonths, t.IsActive, t.RequiresQaApprover) { Version = t.Version })
             .ToListAsync();
     }
 
@@ -75,7 +75,8 @@ public class DocumentConfigurationService : IDocumentConfigurationService
             Code = trimmedCode,
             Name = request.Name.Trim(),
             DefaultReviewCycleMonths = request.DefaultReviewCycleMonths,
-            IsActive = true
+            IsActive = true,
+            RequiresQaApprover = request.RequiresQaApprover
         };
 
         _db.DocumentTypes.Add(docType);
@@ -86,7 +87,8 @@ public class DocumentConfigurationService : IDocumentConfigurationService
         {
             new("Code", null, docType.Code),
             new("Name", null, docType.Name),
-            new("DefaultReviewCycleMonths", null, docType.DefaultReviewCycleMonths.ToString())
+            new("DefaultReviewCycleMonths", null, docType.DefaultReviewCycleMonths.ToString()),
+            new("RequiresQaApprover", null, docType.RequiresQaApprover.ToString())
         };
 
         await _auditEventService.RecordUserEventAsync(
@@ -96,7 +98,7 @@ public class DocumentConfigurationService : IDocumentConfigurationService
             changes: changes,
             entityId: docType.Id.ToString());
 
-        return new DocumentTypeDto(docType.Id, docType.Code, docType.Name, docType.DefaultReviewCycleMonths, docType.IsActive) { Version = docType.Version };
+        return new DocumentTypeDto(docType.Id, docType.Code, docType.Name, docType.DefaultReviewCycleMonths, docType.IsActive, docType.RequiresQaApprover) { Version = docType.Version };
     }
 
     public Task<DocumentTypeDto> UpdateDocumentTypeAsync(int id, UpdateDocumentTypeRequest request, int userId) =>
@@ -136,6 +138,12 @@ public class DocumentConfigurationService : IDocumentConfigurationService
             docType.IsActive = request.IsActive;
         }
 
+        if (docType.RequiresQaApprover != request.RequiresQaApprover)
+        {
+            changes.Add(new("RequiresQaApprover", docType.RequiresQaApprover.ToString(), request.RequiresQaApprover.ToString()));
+            docType.RequiresQaApprover = request.RequiresQaApprover;
+        }
+
         _db.CurrentUserId = userId;
         await _db.SaveChangesAsync();
 
@@ -149,7 +157,7 @@ public class DocumentConfigurationService : IDocumentConfigurationService
                 entityId: docType.Id.ToString());
         }
 
-        return new DocumentTypeDto(docType.Id, docType.Code, docType.Name, docType.DefaultReviewCycleMonths, docType.IsActive) { Version = docType.Version };
+        return new DocumentTypeDto(docType.Id, docType.Code, docType.Name, docType.DefaultReviewCycleMonths, docType.IsActive, docType.RequiresQaApprover) { Version = docType.Version };
     }
 
     // ---- Departments & Sections ----

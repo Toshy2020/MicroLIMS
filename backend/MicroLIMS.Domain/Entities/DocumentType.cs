@@ -8,4 +8,5 @@ public class DocumentType : IVersionedEntity
     public string Name { get; set; } = string.Empty;
     public int DefaultReviewCycleMonths { get; set; }
     public bool IsActive { get; set; } = true;
+    public bool RequiresQaApprover { get; set; } = false;
 }

@@ -17,6 +17,11 @@ AdminJobsController.Runs(String, Int32, Int32, CancellationToken): SystemAdminis
 AdminSettingsController.GetAll(CancellationToken): SystemAdministrator
 AdminSettingsController.History(String, CancellationToken): SystemAdministrator
 AdminSettingsController.Update(String, UpdateSystemSettingRequest): SystemAdministrator
+AdminSsoController.Get(String, CancellationToken): SystemAdministrator
+AdminSsoController.ImportLinks(DirectoryLinkImportRequest, CancellationToken): SystemAdministrator
+AdminSsoController.PreviewLinks(DirectoryLinkImportRequest, CancellationToken): SystemAdministrator
+AdminSsoController.Test(String, CancellationToken): SystemAdministrator
+AdminUserDirectoryController.Relink(Int32, DirectoryRelinkRequest, CancellationToken): SystemAdministrator
 AdminUserMfaController.AssignHardwareToken(Int32, AssignHardwareTokenRequest, CancellationToken): SystemAdministrator
 AdminUserMfaController.ListTrustedDevices(Int32, CancellationToken): SystemAdministrator
 AdminUserMfaController.Reset(Int32, AdminResetMfaRequest, CancellationToken): SystemAdministrator

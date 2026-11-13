@@ -173,7 +173,9 @@ public class AccessReviewService : IAccessReviewService
                 last, neverLoggedIn, dormant, days < 0 ? 0 : days,
                 historyByUser.GetValueOrDefault(u.Id) ?? new List<AccessReviewStatusChange>(),
                 conflicts,
-                mfaState));
+                mfaState,
+                u.SignInMethod.ToString(),
+                u.IsEmergencyAccount));
         }
 
         var summary = new AccessReviewSummary(

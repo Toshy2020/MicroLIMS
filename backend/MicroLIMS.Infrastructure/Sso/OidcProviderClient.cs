@@ -25,7 +25,6 @@ public sealed class OidcProviderClient : IOidcProviderClient
 
     private readonly SsoOptions _options;
     private readonly HttpClient _httpClient;
-    private readonly SsoModeService? _ssoMode;
     private readonly TimeProvider _time;
     private readonly ILogger<OidcProviderClient> _logger;
     private readonly JwtSecurityTokenHandler _tokenHandler;
@@ -36,13 +35,11 @@ public sealed class OidcProviderClient : IOidcProviderClient
     public OidcProviderClient(
         SsoOptions options,
         HttpClient httpClient,
-        SsoModeService? ssoMode = null,
         TimeProvider? timeProvider = null,
         ILogger<OidcProviderClient>? logger = null)
     {
         _options = options;
         _httpClient = httpClient;
-        _ssoMode = ssoMode;
         _time = timeProvider ?? TimeProvider.System;
         _logger = logger ?? NullLogger<OidcProviderClient>.Instance;
         _tokenHandler = new JwtSecurityTokenHandler
@@ -197,6 +194,9 @@ public sealed class OidcProviderClient : IOidcProviderClient
         return new DirectoryIdentity(subject, username.Trim(), mfaSatisfied);
     }
 
+    // Throws when the provider cannot be reached or its metadata is incomplete.
+    // The result is recorded by the caller (SsoAdminService), which knows the
+    // acting administrator.
     public async Task TestAsync(CancellationToken ct = default)
     {
         try
@@ -209,15 +209,10 @@ public sealed class OidcProviderClient : IOidcProviderClient
                 throw new InvalidOperationException(
                     "OIDC discovery metadata is incomplete (missing authorization_endpoint, token_endpoint, or signing keys).");
             }
-
-            if (_ssoMode is not null)
-                await _ssoMode.RecordConnectionTestPassedAsync(SsoMode.OpenIdConnect, ct);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             _logger.LogWarning(ex, "OIDC connection test failed.");
-            if (_ssoMode is not null)
-                await _ssoMode.RecordConnectionTestFailedAsync(SsoMode.OpenIdConnect, ex.Message, ct);
             throw;
         }
     }

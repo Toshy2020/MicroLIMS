@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MicroLIMS.Application.Services;
 using MicroLIMS.Domain.Entities;
+using MicroLIMS.Domain.Enums;
 using MicroLIMS.Shared.Constants;
 using MicroLIMS.Shared.Responses;
 
@@ -12,8 +13,13 @@ namespace MicroLIMS.API.Controllers;
 // missing one reaches the service and is refused with the same 400 message
 // as a blank one (AdminActionReason). Role change is also
 // electronically signed: Password is the administrator's own, re-verified.
-public record CreateUserRequest(string FullName, string Username, string Password, int RoleId, string? Email = null, string? JobTitle = null, string? Reason = null);
-public record UpdateProfileRequest(string FullName, string Username, string? Email, string? JobTitle = null, string? Reason = null);
+// Sign-in fields (all optional): SignInMethod "Local" | "Directory"; a Directory
+// user is created without a password. A null field on an edit leaves it as it is;
+// an empty DirectoryUsername clears it. Password may be empty for a Directory user.
+public record CreateUserRequest(string FullName, string Username, string? Password, int RoleId, string? Email = null, string? JobTitle = null, string? Reason = null,
+    SignInMethod? SignInMethod = null, string? DirectoryUsername = null, bool? IsEmergencyAccount = null);
+public record UpdateProfileRequest(string FullName, string Username, string? Email, string? JobTitle = null, string? Reason = null,
+    SignInMethod? SignInMethod = null, string? DirectoryUsername = null, bool? IsEmergencyAccount = null);
 public record ChangeRoleRequest(int RoleId, string? Reason = null, string? Password = null);
 public record SetStatusRequest(bool IsActive, string? Reason = null);
 public record UnlockUserRequest(string? Reason = null);
@@ -63,8 +69,14 @@ public class UserController : ControllerBase
     [Authorize(Policy = PermissionConstants.UsersManage)]
     public async Task<IActionResult> Create(CreateUserRequest request)
     {
-        var user = new User { FullName = request.FullName, Username = request.Username, RoleId = request.RoleId, Email = request.Email, JobTitle = request.JobTitle };
-        var created = await _userService.CreateAsync(user, request.Password, request.Reason);
+        var user = new User
+        {
+            FullName = request.FullName, Username = request.Username, RoleId = request.RoleId, Email = request.Email, JobTitle = request.JobTitle,
+            SignInMethod = request.SignInMethod ?? SignInMethod.Local,
+            DirectoryUsername = request.DirectoryUsername
+        };
+        var created = await _userService.CreateAsync(user, request.Password, request.Reason,
+            request.IsEmergencyAccount == true, CurrentUserId, HttpContext.RequestAborted);
         return Ok(ApiResponse<object>.Ok(created));
     }
 
@@ -72,7 +84,11 @@ public class UserController : ControllerBase
     [Authorize(Policy = PermissionConstants.UsersManage)]
     public async Task<IActionResult> UpdateProfile(int id, UpdateProfileRequest request)
     {
-        var updated = await _userService.UpdateProfileAsync(id, request.FullName, request.Username, request.Email, request.JobTitle, CurrentUserId, request.Reason);
+        var signIn = request.SignInMethod is null && request.DirectoryUsername is null && request.IsEmergencyAccount is null
+            ? null
+            : new UserSignInChange(request.SignInMethod, request.DirectoryUsername, request.IsEmergencyAccount);
+        var updated = await _userService.UpdateProfileAsync(id, request.FullName, request.Username, request.Email, request.JobTitle, CurrentUserId, request.Reason,
+            signIn, HttpContext.RequestAborted);
         return Ok(ApiResponse<object>.Ok(updated));
     }
 

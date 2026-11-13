@@ -32,7 +32,10 @@ public record AccessReviewUserEntry(
     int? DaysSinceLastActivity,
     IReadOnlyList<AccessReviewStatusChange> StatusHistory,
     IReadOnlyList<string> SodConflicts,
-    string MfaState = "");
+    string MfaState = "",
+    // Absent from reports generated before single sign-on: read as Local / not emergency.
+    string SignInMethod = "Local",
+    bool IsEmergencyAccount = false);
 
 public record AccessReviewPermission(string Code, bool Hidden);
 

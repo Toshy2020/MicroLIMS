@@ -331,6 +331,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<MicroLIMS.Application.Services.Sso.SsoModeService>();
         services.AddHttpClient<MicroLIMS.Application.Abstractions.Sso.IOidcProviderClient, MicroLIMS.Infrastructure.Sso.OidcProviderClient>();
         services.AddScoped<MicroLIMS.Application.Services.Sso.OidcSignInService>();
+        services.AddScoped<MicroLIMS.Application.Services.Sso.SsoAdminService>();
         services.AddScoped<IMfaService, MicroLIMS.Application.Services.Mfa.MfaService>();
         services.AddScoped<IMfaAdminService, MicroLIMS.Application.Services.Mfa.MfaAdminService>();
         services.AddScoped<IAuditTrailReviewService, MicroLIMS.Application.Services.AuditTrailReviewService>();

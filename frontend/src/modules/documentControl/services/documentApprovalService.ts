@@ -38,12 +38,15 @@ export const documentApprovalService = {
     return res.data.data;
   },
 
-  getApprovalTasks: async (params?: {
-    revisionId?: number;
-    approverUserId?: number;
-    status?: DocumentApprovalTaskStatus;
-  }): Promise<DocumentApprovalTaskDto[]> => {
-    const res = await apiClient.get(`/document-control/approvals`, { params });
+  getApprovalTasks: async (
+    params?: {
+      revisionId?: number;
+      approverUserId?: number;
+      status?: DocumentApprovalTaskStatus;
+    },
+    signal?: AbortSignal
+  ): Promise<DocumentApprovalTaskDto[]> => {
+    const res = await apiClient.get(`/document-control/approvals`, { params, signal });
     return res.data.data;
   },
 

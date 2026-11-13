@@ -9,6 +9,7 @@ import { AnalystDashboardPage } from "./AnalystDashboardPage";
 import { ReviewerDashboardPage } from "./ReviewerDashboardPage";
 import { SectionHeadDashboardPage } from "./SectionHeadDashboardPage";
 import { AdminDashboardPage } from "./AdminDashboardPage";
+import { QaDashboardPage } from "./QaDashboardPage";
 import { DashboardLabCode, DashboardLabProvider, LAB_LABELS, makeDashboardLab } from "./DashboardLabContext";
 
 // Microbiology first, the same order the workspace redirect uses.
@@ -33,7 +34,7 @@ export function DashboardPage() {
   // permission, not role name, so the redirect never targets a page the user cannot open.
   if (canFinalApprove && readsNoDashboard) return <Navigate to="/laboratory-configuration/items" replace />;
 
-  if (loading) return <WorkspaceSkeleton tiles={4} rows={5} />;
+  if (loading && role !== "Qa") return <WorkspaceSkeleton tiles={4} rows={5} />;
 
   const selectLab = (next: DashboardLabCode) =>
     setParams((p) => {
@@ -48,7 +49,8 @@ export function DashboardPage() {
     role === "Analyst" ? AnalystDashboardPage
       : role === "Reviewer" ? ReviewerDashboardPage
         : role === "SystemAdministrator" ? AdminDashboardPage
-          : SectionHeadDashboardPage;
+          : role === "Qa" ? QaDashboardPage
+            : SectionHeadDashboardPage;
 
   return (
     <DashboardLabProvider value={lab}>

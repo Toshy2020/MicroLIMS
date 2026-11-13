@@ -208,6 +208,9 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ChromatographyColumnService>();
         services.AddScoped<MicroLIMS.Application.Labels.ILabelDataSource, MicroLIMS.Application.Labels.LabelDataSource>();
         services.AddScoped<MicroLIMS.Application.Labels.ILabelFormatService, MicroLIMS.Application.Labels.LabelFormatService>();
+        services.AddScoped<MicroLIMS.Application.Labels.ILabelPrintService, MicroLIMS.Application.Labels.LabelPrintService>();
+        services.AddSingleton<IBarcodeEncoder, MicroLIMS.Infrastructure.Labels.ZXingBarcodeEncoder>();
+        services.AddSingleton<ILabelRenderer, MicroLIMS.Infrastructure.Labels.LabelPdfRenderer>();
         services.AddSingleton(TimeProvider.System);
         services.AddSingleton<ILabClock>(sp => new LabClock(
             sp.GetRequiredService<TimeProvider>(),

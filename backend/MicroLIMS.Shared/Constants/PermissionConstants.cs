@@ -241,7 +241,8 @@ public static class PermissionConstants
         NotApplicableTestsManage, NotApplicableTestsFinalApprove, TestsOutsource,
         SamplesPrepare,
         SectionsViewAll, SectionsConfigureAll, SystemManageJobs, AccessReview,
-        AuditReview, AccessReviewSign
+        AuditReview, AccessReviewSign,
+        LabelsReprint, LabelsConfigure
     };
 
     // Declared and granted, but no feature checks them yet. Kept in the

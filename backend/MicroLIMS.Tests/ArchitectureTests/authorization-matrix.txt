@@ -414,6 +414,7 @@ MessageController.GetMessages(Int32, Int32): SystemAdministrator,SectionHead,Rev
 MessageController.GetTotalUnreadCount(): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 MessageController.MarkAsRead(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 MessageController.SendMessage(Int32, SendMessageRequest): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+MfaController.Verify(MfaVerifyRequest, CancellationToken): anonymous
 MonitoringDeviationsController.Close(CloseDeviationsRequest): SectionHead
 MonitoringDeviationsController.List(Nullable`1, Nullable`1): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 MonitoringDeviationsController.Scan(): SectionHead

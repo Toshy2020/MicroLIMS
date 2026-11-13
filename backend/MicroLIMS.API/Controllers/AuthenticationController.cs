@@ -9,7 +9,7 @@ using MicroLIMS.Shared.Responses;
 
 namespace MicroLIMS.API.Controllers;
 
-public record LoginRequest(string Username, string Password);
+public record LoginRequest(string Username, string Password, string? DeviceToken = null);
 public record RefreshRequest(string RefreshToken);
 public record LogoutRequest(string? RefreshToken);
 public record RequestPasswordResetRequest(string Username);
@@ -36,10 +36,24 @@ public class AuthenticationController : ControllerBase
     public async Task<IActionResult> Login(LoginRequest request)
     {
         var ip = HttpContext.Connection.RemoteIpAddress?.ToString();
-        var outcome = await _authService.LoginAsync(request.Username, request.Password, ip, Request.Headers.UserAgent.ToString());
+        var outcome = await _authService.LoginAsync(request.Username, request.Password, ip, Request.Headers.UserAgent.ToString(), request.DeviceToken);
         if (!outcome.Success) return Unauthorized(ApiResponse<object>.Fail(outcome.FailureReason ?? "Login failed."));
-        return Ok(ApiResponse<object>.Ok(new { token = outcome.Token, refreshToken = outcome.RefreshToken, mustChangePassword = outcome.MustChangePassword, roleName = outcome.RoleName }));
+        return Ok(ApiResponse<object>.Ok(ToLoginResponse(outcome)));
     }
+
+    internal static object ToLoginResponse(LoginOutcome outcome) => new
+    {
+        token = outcome.Token,
+        refreshToken = outcome.RefreshToken,
+        mustChangePassword = outcome.MustChangePassword,
+        roleName = outcome.RoleName,
+        mfaRequired = outcome.MfaRequired,
+        mfaEnrolmentRequired = outcome.MfaEnrolmentRequired,
+        mfaToken = outcome.MfaToken,
+        mfaEnrolmentDueAt = outcome.MfaEnrolmentDueAt,
+        deviceToken = outcome.DeviceToken,
+        recoveryCodesRemaining = outcome.RecoveryCodesRemaining
+    };
 
     [HttpPost("refresh")]
     [AllowAnonymous]

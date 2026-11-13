@@ -76,6 +76,12 @@ public class MfaLoginPostgresTests
             return this;
         }
 
+        public StubSystemSettingsReader WithTrustedDeviceHours(int hours)
+        {
+            _ints[SystemSettingKeys.MfaTrustedDeviceHours] = hours;
+            return this;
+        }
+
         public Task<int> GetIntAsync(string key, CancellationToken cancellationToken = default) =>
             Task.FromResult(_ints[key]);
 
@@ -95,16 +101,32 @@ public class MfaLoginPostgresTests
         }
     });
 
+    private sealed class RecordingEmailSender : IEmailSender
+    {
+        public List<(string To, string Subject, string Body)> Sent { get; } = new();
+        public Exception? ExceptionToThrow { get; init; }
+
+        public Task SendAsync(string to, string subject, string body)
+        {
+            if (ExceptionToThrow is not null)
+                throw ExceptionToThrow;
+
+            Sent.Add((to, subject, body));
+            return Task.CompletedTask;
+        }
+    }
+
     private static (AuthenticationService Auth, MfaService Mfa) CreateServices(
         MicroLimsDbContext db,
         TimeProvider clock,
         ISystemSettingsReader? settings = null,
-        ISecretProtector? protector = null)
+        ISecretProtector? protector = null,
+        IEmailSender? emailSender = null)
     {
         var effectiveSettings = settings ?? new StubSystemSettingsReader();
         var policy = new MfaPolicyService(effectiveSettings);
         var audit = new SecurityAuditService(db, new SystemSecurityRequestContext(), clock);
-        IEmailSender email = new EmailSender("", 587, "", "", "no-reply@microlims.local", false);
+        var email = emailSender ?? new EmailSender("", 587, "", "", "no-reply@microlims.local", false);
         AccessTokenIssuer issuer = s => $"jwt-{s.UserId}-{Guid.NewGuid():N}";
 
         var auth = new AuthenticationService(
@@ -124,6 +146,8 @@ public class MfaLoginPostgresTests
             protector ?? CreateProtector(),
             audit,
             NullLogger<MfaService>.Instance,
+            policy,
+            email,
             clock);
 
         return (auth, mfa);
@@ -154,6 +178,7 @@ public class MfaLoginPostgresTests
         {
             FullName = $"MFA User {tag[..8]}",
             Username = username,
+            Email = $"{username}@example.test",
             PasswordHash = TestPasswords.Hash(Password),
             RoleId = roleId,
             IsActive = true,
@@ -675,10 +700,27 @@ public class MfaLoginPostgresTests
         Assert.Equal(1, await assertDb.RefreshTokens.AsNoTracking().CountAsync(r => r.UserId == userId));
     }
 
-    [PostgresFact]
-    public async Task Verify_RecoveryCodeWithoutCode_FailsWithGenericMessage_AndStubsReturnPartBDefaults()
+    private async Task<List<string>> SeedRecoveryCodesAsync(int userId, params string[] rawCodes)
     {
-        var (userId, username, _) = await SeedUserWithCredentialAsync();
+        var codes = new List<string>(rawCodes);
+        await using var arrangeDb = _fixture.CreateDbContext();
+        foreach (var rawCode in codes)
+        {
+            arrangeDb.MfaRecoveryCodes.Add(new MfaRecoveryCode
+            {
+                UserId = userId,
+                CodeHash = AdminPasswordRecoveryService.HashRecoveryCode(rawCode),
+                CreatedAt = BaseUtc.UtcDateTime
+            });
+        }
+        await arrangeDb.SaveChangesAsync();
+        return codes;
+    }
+
+    [PostgresFact]
+    public async Task Verify_TrustDevice_ReturnsDeviceToken_StoresOnlyHash_ExpiresAfterConfiguredHours()
+    {
+        var (userId, username, secret) = await SeedUserWithCredentialAsync();
         var clock = new FakeTimeProvider(BaseUtc);
 
         LoginOutcome login;
@@ -688,13 +730,506 @@ public class MfaLoginPostgresTests
             login = await auth.LoginAsync(username, Password);
         }
 
-        await using var actDb2 = _fixture.CreateDbContext(clock);
-        var (_, mfa) = CreateServices(actDb2, clock);
-        var verify = await mfa.VerifyAsync(login.MfaToken!, null, "ABCDE-FGHIJ", false, null, null);
+        LoginOutcome verify;
+        await using (var actDb2 = _fixture.CreateDbContext(clock))
+        {
+            var (_, mfa) = CreateServices(actDb2, clock);
+            var code = CurrentCode(secret, BaseUtc.UtcDateTime);
+            verify = await mfa.VerifyAsync(login.MfaToken!, code, null, trustDevice: true, "10.0.0.5", "TestBrowser/1.0");
+        }
 
-        Assert.False(verify.Success);
-        Assert.Equal(GenericMfaFailure, verify.FailureReason);
-        Assert.False(await mfa.IsTrustedDeviceAsync(userId, "some-device-token"));
-        Assert.Equal(0, await mfa.RevokeTrustedDevicesAsync(userId, userId));
+        Assert.True(verify.Success);
+        Assert.NotNull(verify.Token);
+        Assert.NotNull(verify.RefreshToken);
+        Assert.NotNull(verify.DeviceToken);
+        Assert.NotEmpty(verify.DeviceToken);
+
+        await using var assertDb = _fixture.CreateDbContext();
+        var device = await assertDb.TrustedDevices.AsNoTracking().SingleAsync(d => d.UserId == userId);
+        Assert.NotEqual(verify.DeviceToken, device.TokenHash);
+        Assert.Equal(Sha256Hex(verify.DeviceToken!), device.TokenHash);
+        Assert.Equal(BaseUtc.UtcDateTime.AddHours(12), device.ExpiresAt);
+        Assert.Null(device.RevokedAt);
+        Assert.Equal("10.0.0.5", device.CreatedIp);
+        Assert.Equal("TestBrowser/1.0", device.UserAgent);
+
+        Assert.True(await assertDb.SecurityAuditEvents.AsNoTracking()
+            .AnyAsync(e => e.TargetUserId == userId
+                        && e.EventCode == SecurityEventCodes.TrustedDeviceAdded
+                        && e.Outcome == SecurityEventOutcome.Success));
+    }
+
+    [PostgresFact]
+    public async Task Login_WithValidDeviceToken_SkipsChallenge()
+    {
+        var (userId, username, secret) = await SeedUserWithCredentialAsync();
+        var clock = new FakeTimeProvider(BaseUtc);
+
+        LoginOutcome initialLogin;
+        await using (var actDb1 = _fixture.CreateDbContext(clock))
+        {
+            var (auth, _) = CreateServices(actDb1, clock);
+            initialLogin = await auth.LoginAsync(username, Password);
+        }
+
+        LoginOutcome verify;
+        await using (var actDb2 = _fixture.CreateDbContext(clock))
+        {
+            var (_, mfa) = CreateServices(actDb2, clock);
+            var code = CurrentCode(secret, BaseUtc.UtcDateTime);
+            verify = await mfa.VerifyAsync(initialLogin.MfaToken!, code, null, trustDevice: true, "10.0.0.5", "TestBrowser/1.0");
+        }
+
+        clock.Advance(TimeSpan.FromHours(2));
+
+        LoginOutcome trustedLogin;
+        await using (var actDb3 = _fixture.CreateDbContext(clock))
+        {
+            var (auth, _) = CreateServices(actDb3, clock);
+            trustedLogin = await auth.LoginAsync(username, Password, deviceToken: verify.DeviceToken);
+        }
+
+        Assert.True(trustedLogin.Success);
+        Assert.NotNull(trustedLogin.Token);
+        Assert.NotNull(trustedLogin.RefreshToken);
+        Assert.False(trustedLogin.MfaRequired);
+        Assert.False(trustedLogin.MfaEnrolmentRequired);
+        Assert.Null(trustedLogin.MfaToken);
+
+        await using var assertDb = _fixture.CreateDbContext();
+        Assert.Equal(1, await assertDb.MfaChallenges.AsNoTracking().CountAsync(c => c.UserId == userId));
+        var tokens = await assertDb.RefreshTokens.AsNoTracking()
+            .Where(r => r.UserId == userId)
+            .OrderBy(r => r.Id)
+            .ToListAsync();
+        Assert.Equal(2, tokens.Count);
+        Assert.True(tokens[1].MfaVerified);
+    }
+
+    [PostgresFact]
+    public async Task Login_WithExpiredDeviceToken_AsksCode()
+    {
+        var (_, username, secret) = await SeedUserWithCredentialAsync();
+        var clock = new FakeTimeProvider(BaseUtc);
+
+        LoginOutcome initialLogin;
+        await using (var actDb1 = _fixture.CreateDbContext(clock))
+        {
+            var (auth, _) = CreateServices(actDb1, clock);
+            initialLogin = await auth.LoginAsync(username, Password);
+        }
+
+        LoginOutcome verify;
+        await using (var actDb2 = _fixture.CreateDbContext(clock))
+        {
+            var (_, mfa) = CreateServices(actDb2, clock);
+            verify = await mfa.VerifyAsync(initialLogin.MfaToken!, CurrentCode(secret, BaseUtc.UtcDateTime), null, trustDevice: true, null, null);
+        }
+
+        clock.Advance(TimeSpan.FromHours(12).Add(TimeSpan.FromSeconds(1)));
+
+        LoginOutcome login;
+        await using (var actDb3 = _fixture.CreateDbContext(clock))
+        {
+            var (auth, _) = CreateServices(actDb3, clock);
+            login = await auth.LoginAsync(username, Password, deviceToken: verify.DeviceToken);
+        }
+
+        Assert.True(login.Success);
+        Assert.True(login.MfaRequired);
+        Assert.NotNull(login.MfaToken);
+        Assert.Null(login.Token);
+        Assert.Null(login.RefreshToken);
+    }
+
+    [PostgresFact]
+    public async Task Login_WithRevokedDeviceToken_AsksCode()
+    {
+        var (userId, username, secret) = await SeedUserWithCredentialAsync();
+        var clock = new FakeTimeProvider(BaseUtc);
+
+        LoginOutcome initialLogin;
+        await using (var actDb1 = _fixture.CreateDbContext(clock))
+        {
+            var (auth, _) = CreateServices(actDb1, clock);
+            initialLogin = await auth.LoginAsync(username, Password);
+        }
+
+        LoginOutcome verify;
+        await using (var actDb2 = _fixture.CreateDbContext(clock))
+        {
+            var (_, mfa) = CreateServices(actDb2, clock);
+            verify = await mfa.VerifyAsync(initialLogin.MfaToken!, CurrentCode(secret, BaseUtc.UtcDateTime), null, trustDevice: true, null, null);
+        }
+
+        await using (var actDb3 = _fixture.CreateDbContext(clock))
+        {
+            var (_, mfa) = CreateServices(actDb3, clock);
+            var revoked = await mfa.RevokeTrustedDevicesAsync(userId, userId);
+            Assert.Equal(1, revoked);
+            await actDb3.SaveChangesAsync();
+        }
+
+        LoginOutcome login;
+        await using (var actDb4 = _fixture.CreateDbContext(clock))
+        {
+            var (auth, _) = CreateServices(actDb4, clock);
+            login = await auth.LoginAsync(username, Password, deviceToken: verify.DeviceToken);
+        }
+
+        Assert.True(login.Success);
+        Assert.True(login.MfaRequired);
+        Assert.NotNull(login.MfaToken);
+        Assert.Null(login.Token);
+        Assert.Null(login.RefreshToken);
+    }
+
+    [PostgresFact]
+    public async Task Login_WithAnotherUsersDeviceToken_AsksCode()
+    {
+        var (_, usernameA, secretA) = await SeedUserWithCredentialAsync();
+        var (_, usernameB, _) = await SeedUserWithCredentialAsync();
+        var clock = new FakeTimeProvider(BaseUtc);
+
+        LoginOutcome loginA;
+        await using (var actDb1 = _fixture.CreateDbContext(clock))
+        {
+            var (auth, _) = CreateServices(actDb1, clock);
+            loginA = await auth.LoginAsync(usernameA, Password);
+        }
+
+        LoginOutcome verifyA;
+        await using (var actDb2 = _fixture.CreateDbContext(clock))
+        {
+            var (_, mfa) = CreateServices(actDb2, clock);
+            verifyA = await mfa.VerifyAsync(loginA.MfaToken!, CurrentCode(secretA, BaseUtc.UtcDateTime), null, trustDevice: true, null, null);
+        }
+
+        LoginOutcome loginB;
+        await using (var actDb3 = _fixture.CreateDbContext(clock))
+        {
+            var (auth, _) = CreateServices(actDb3, clock);
+            loginB = await auth.LoginAsync(usernameB, Password, deviceToken: verifyA.DeviceToken);
+        }
+
+        Assert.True(loginB.Success);
+        Assert.True(loginB.MfaRequired);
+        Assert.NotNull(loginB.MfaToken);
+        Assert.Null(loginB.Token);
+        Assert.Null(loginB.RefreshToken);
+    }
+
+    [PostgresFact]
+    public async Task TrustedDeviceHoursZero_NeverIssuesDeviceToken_AndIgnoresExistingOnes()
+    {
+        var (userId, username, secret) = await SeedUserWithCredentialAsync();
+        var clock = new FakeTimeProvider(BaseUtc);
+        var zeroHoursSettings = new StubSystemSettingsReader().WithTrustedDeviceHours(0);
+
+        LoginOutcome login1;
+        await using (var actDb1 = _fixture.CreateDbContext(clock))
+        {
+            var (auth, _) = CreateServices(actDb1, clock, zeroHoursSettings);
+            login1 = await auth.LoginAsync(username, Password);
+        }
+
+        LoginOutcome verify;
+        await using (var actDb2 = _fixture.CreateDbContext(clock))
+        {
+            var (_, mfa) = CreateServices(actDb2, clock, zeroHoursSettings);
+            verify = await mfa.VerifyAsync(login1.MfaToken!, CurrentCode(secret, BaseUtc.UtcDateTime), null, trustDevice: true, null, null);
+        }
+
+        Assert.True(verify.Success);
+        Assert.Null(verify.DeviceToken);
+
+        await using (var assertDb1 = _fixture.CreateDbContext())
+        {
+            Assert.False(await assertDb1.TrustedDevices.AsNoTracking().AnyAsync(d => d.UserId == userId));
+        }
+
+        const string existingRawToken = "preexisting-device-token-value";
+        await using (var arrangeDb = _fixture.CreateDbContext(clock))
+        {
+            arrangeDb.TrustedDevices.Add(new TrustedDevice
+            {
+                UserId = userId,
+                TokenHash = Sha256Hex(existingRawToken),
+                CreatedAt = BaseUtc.UtcDateTime,
+                ExpiresAt = BaseUtc.UtcDateTime.AddHours(12)
+            });
+            await arrangeDb.SaveChangesAsync();
+        }
+
+        LoginOutcome login2;
+        await using (var actDb3 = _fixture.CreateDbContext(clock))
+        {
+            var (auth, mfa) = CreateServices(actDb3, clock, zeroHoursSettings);
+            Assert.False(await mfa.IsTrustedDeviceAsync(userId, existingRawToken));
+            login2 = await auth.LoginAsync(username, Password, deviceToken: existingRawToken);
+        }
+
+        Assert.True(login2.Success);
+        Assert.True(login2.MfaRequired);
+        Assert.NotNull(login2.MfaToken);
+        Assert.Null(login2.Token);
+        Assert.Null(login2.RefreshToken);
+    }
+
+    [PostgresFact]
+    public async Task Verify_RecoveryCode_Succeeds_MarksUsed_ReturnsRemainingCount()
+    {
+        var (userId, username, _) = await SeedUserWithCredentialAsync();
+        var clock = new FakeTimeProvider(BaseUtc);
+        var codes = await SeedRecoveryCodesAsync(userId, "23456-789AB", "CDEFG-HJKLM");
+        var normalizedInput = codes[0].Replace("-", "").ToLowerInvariant();
+
+        LoginOutcome login;
+        await using (var actDb1 = _fixture.CreateDbContext(clock))
+        {
+            var (auth, _) = CreateServices(actDb1, clock);
+            login = await auth.LoginAsync(username, Password);
+        }
+
+        var emails = new RecordingEmailSender();
+        LoginOutcome verify;
+        await using (var actDb2 = _fixture.CreateDbContext(clock))
+        {
+            var (_, mfa) = CreateServices(actDb2, clock, emailSender: emails);
+            verify = await mfa.VerifyAsync(login.MfaToken!, null, normalizedInput, false, "10.0.0.9", "TestAgent/1.0");
+        }
+
+        Assert.True(verify.Success);
+        Assert.NotNull(verify.Token);
+        Assert.NotNull(verify.RefreshToken);
+        Assert.Equal(1, verify.RecoveryCodesRemaining);
+        Assert.Single(emails.Sent);
+        Assert.Equal($"{username}@example.test", emails.Sent[0].To);
+        Assert.DoesNotContain(codes[0], emails.Sent[0].Body, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain(normalizedInput, emails.Sent[0].Body, StringComparison.OrdinalIgnoreCase);
+
+        await using var assertDb = _fixture.CreateDbContext();
+        var usedHash = AdminPasswordRecoveryService.HashRecoveryCode(codes[0]);
+        var unusedHash = AdminPasswordRecoveryService.HashRecoveryCode(codes[1]);
+        var usedRow = await assertDb.MfaRecoveryCodes.AsNoTracking().SingleAsync(r => r.UserId == userId && r.CodeHash == usedHash);
+        var unusedRow = await assertDb.MfaRecoveryCodes.AsNoTracking().SingleAsync(r => r.UserId == userId && r.CodeHash == unusedHash);
+        Assert.Equal(BaseUtc.UtcDateTime, usedRow.UsedAt);
+        Assert.Null(unusedRow.UsedAt);
+
+        var challenge = await assertDb.MfaChallenges.AsNoTracking().SingleAsync(c => c.UserId == userId);
+        Assert.Equal(BaseUtc.UtcDateTime, challenge.ConsumedAt);
+
+        var refreshToken = await assertDb.RefreshTokens.AsNoTracking().SingleAsync(r => r.UserId == userId);
+        Assert.True(refreshToken.MfaVerified);
+
+        Assert.True(await assertDb.SecurityAuditEvents.AsNoTracking()
+            .AnyAsync(e => e.TargetUserId == userId
+                        && e.EventCode == SecurityEventCodes.MfaRecoveryCodeUsed
+                        && e.Outcome == SecurityEventOutcome.Success));
+    }
+
+    [PostgresFact]
+    public async Task Verify_RecoveryCodeTwice_SecondFails()
+    {
+        var (userId, username, _) = await SeedUserWithCredentialAsync();
+        var clock = new FakeTimeProvider(BaseUtc);
+        var codes = await SeedRecoveryCodesAsync(userId, "23456-789AB", "CDEFG-HJKLM");
+
+        LoginOutcome login1;
+        await using (var actDb1 = _fixture.CreateDbContext(clock))
+        {
+            var (auth, _) = CreateServices(actDb1, clock);
+            login1 = await auth.LoginAsync(username, Password);
+        }
+
+        LoginOutcome firstVerify;
+        await using (var actDb2 = _fixture.CreateDbContext(clock))
+        {
+            var (_, mfa) = CreateServices(actDb2, clock, emailSender: new RecordingEmailSender { ExceptionToThrow = new InvalidOperationException("SMTP offline") });
+            firstVerify = await mfa.VerifyAsync(login1.MfaToken!, null, codes[0], false, null, null);
+        }
+        Assert.True(firstVerify.Success);
+
+        LoginOutcome login2;
+        await using (var actDb3 = _fixture.CreateDbContext(clock))
+        {
+            var (auth, _) = CreateServices(actDb3, clock);
+            login2 = await auth.LoginAsync(username, Password);
+        }
+
+        LoginOutcome secondVerify;
+        await using (var actDb4 = _fixture.CreateDbContext(clock))
+        {
+            var (_, mfa) = CreateServices(actDb4, clock);
+            secondVerify = await mfa.VerifyAsync(login2.MfaToken!, null, codes[0], false, null, null);
+        }
+
+        Assert.False(secondVerify.Success);
+        Assert.Null(secondVerify.Token);
+        Assert.Null(secondVerify.RefreshToken);
+        Assert.Equal(GenericMfaFailure, secondVerify.FailureReason);
+
+        await using var assertDb = _fixture.CreateDbContext();
+        Assert.Equal(1, await assertDb.RefreshTokens.AsNoTracking().CountAsync(r => r.UserId == userId));
+    }
+
+    [PostgresFact]
+    public async Task Verify_WrongRecoveryCode_CountsAsFailedAttempt()
+    {
+        var (userId, username, _) = await SeedUserWithCredentialAsync();
+        var clock = new FakeTimeProvider(BaseUtc);
+        var codes = await SeedRecoveryCodesAsync(userId, "23456-789AB");
+
+        LoginOutcome login;
+        await using (var actDb1 = _fixture.CreateDbContext(clock))
+        {
+            var (auth, _) = CreateServices(actDb1, clock);
+            login = await auth.LoginAsync(username, Password);
+        }
+
+        for (var i = 0; i < 5; i++)
+        {
+            await using var actDb = _fixture.CreateDbContext(clock);
+            var (_, mfa) = CreateServices(actDb, clock);
+            var failed = await mfa.VerifyAsync(login.MfaToken!, null, "ZZZZZ-ZZZZZ", false, "10.0.0.1", null);
+            Assert.False(failed.Success);
+            Assert.Equal(GenericMfaFailure, failed.FailureReason);
+        }
+
+        await using (var actDb6 = _fixture.CreateDbContext(clock))
+        {
+            var (_, mfa) = CreateServices(actDb6, clock);
+            var blocked = await mfa.VerifyAsync(login.MfaToken!, null, codes[0], false, "10.0.0.1", null);
+            Assert.False(blocked.Success);
+            Assert.Equal(GenericMfaFailure, blocked.FailureReason);
+        }
+
+        await using var assertDb = _fixture.CreateDbContext();
+        var user = await assertDb.Users.AsNoTracking().SingleAsync(u => u.Id == userId);
+        Assert.Equal(5, user.FailedLoginAttempts);
+        Assert.NotNull(user.LockedUntil);
+
+        var challenge = await assertDb.MfaChallenges.AsNoTracking().SingleAsync(c => c.UserId == userId);
+        Assert.Equal(5, challenge.FailedAttempts);
+        Assert.Null(challenge.ConsumedAt);
+        Assert.Equal(5, await assertDb.SecurityAuditEvents.AsNoTracking()
+            .CountAsync(e => e.TargetUserId == userId && e.EventCode == SecurityEventCodes.MfaFailed));
+    }
+
+    [PostgresFact]
+    public async Task Verify_WrongCode_WritesFailedLoginHistoryRow()
+    {
+        var (userId, username, secret) = await SeedUserWithCredentialAsync();
+        var clock = new FakeTimeProvider(BaseUtc);
+        var wrongCode = DifferentCode(secret, BaseUtc.UtcDateTime);
+
+        LoginOutcome login;
+        await using (var actDb1 = _fixture.CreateDbContext(clock))
+        {
+            var (auth, _) = CreateServices(actDb1, clock);
+            login = await auth.LoginAsync(username, Password);
+        }
+
+        await using (var actDb2 = _fixture.CreateDbContext(clock))
+        {
+            var (_, mfa) = CreateServices(actDb2, clock);
+            var verify = await mfa.VerifyAsync(login.MfaToken!, wrongCode, null, false, "10.0.0.8", null);
+            Assert.False(verify.Success);
+            Assert.Equal(GenericMfaFailure, verify.FailureReason);
+        }
+
+        await using var assertDb = _fixture.CreateDbContext();
+        var history = await assertDb.LoginHistories.AsNoTracking()
+            .SingleAsync(h => h.UserId == userId && !h.Success);
+        Assert.Equal(username, history.Username);
+        Assert.Equal("Wrong second factor", history.FailureReason);
+        Assert.Equal("10.0.0.8", history.IpAddress);
+    }
+
+    [PostgresFact]
+    public async Task RevokeTrustedDevices_MarksAllRevoked_WithoutSaving_CallerCommits()
+    {
+        var (userId, _, _) = await SeedUserWithCredentialAsync();
+        var (otherUserId, _, _) = await SeedUserWithCredentialAsync();
+        var clock = new FakeTimeProvider(BaseUtc);
+        var alreadyRevokedAt = BaseUtc.UtcDateTime.AddHours(-2);
+
+        await using (var arrangeDb = _fixture.CreateDbContext(clock))
+        {
+            arrangeDb.TrustedDevices.AddRange(
+                new TrustedDevice
+                {
+                    UserId = userId,
+                    TokenHash = Sha256Hex($"live1-{Guid.NewGuid()}"),
+                    CreatedAt = BaseUtc.UtcDateTime.AddHours(-1),
+                    ExpiresAt = BaseUtc.UtcDateTime.AddHours(11)
+                },
+                new TrustedDevice
+                {
+                    UserId = userId,
+                    TokenHash = Sha256Hex($"live2-{Guid.NewGuid()}"),
+                    CreatedAt = BaseUtc.UtcDateTime.AddHours(-1),
+                    ExpiresAt = BaseUtc.UtcDateTime.AddHours(11)
+                },
+                new TrustedDevice
+                {
+                    UserId = userId,
+                    TokenHash = Sha256Hex($"revoked-{Guid.NewGuid()}"),
+                    CreatedAt = BaseUtc.UtcDateTime.AddHours(-3),
+                    ExpiresAt = BaseUtc.UtcDateTime.AddHours(9),
+                    RevokedAt = alreadyRevokedAt,
+                    RevokedByUserId = userId
+                },
+                new TrustedDevice
+                {
+                    UserId = userId,
+                    TokenHash = Sha256Hex($"expired-{Guid.NewGuid()}"),
+                    CreatedAt = BaseUtc.UtcDateTime.AddHours(-20),
+                    ExpiresAt = BaseUtc.UtcDateTime.AddHours(-1)
+                },
+                new TrustedDevice
+                {
+                    UserId = otherUserId,
+                    TokenHash = Sha256Hex($"other-{Guid.NewGuid()}"),
+                    CreatedAt = BaseUtc.UtcDateTime.AddHours(-1),
+                    ExpiresAt = BaseUtc.UtcDateTime.AddHours(11)
+                });
+            await arrangeDb.SaveChangesAsync();
+        }
+
+        await using (var actDb = _fixture.CreateDbContext(clock))
+        {
+            var (_, mfa) = CreateServices(actDb, clock);
+            var revokedCount = await mfa.RevokeTrustedDevicesAsync(userId, userId);
+            Assert.Equal(2, revokedCount);
+
+            await using (var assertBeforeSaveDb = _fixture.CreateDbContext())
+            {
+                var unrevokedLiveCount = await assertBeforeSaveDb.TrustedDevices.AsNoTracking()
+                    .CountAsync(d => d.UserId == userId && d.RevokedAt == null && d.ExpiresAt > BaseUtc.UtcDateTime);
+                Assert.Equal(2, unrevokedLiveCount);
+                Assert.False(await assertBeforeSaveDb.SecurityAuditEvents.AsNoTracking()
+                    .AnyAsync(e => e.TargetUserId == userId && e.EventCode == SecurityEventCodes.TrustedDeviceRevoked));
+            }
+
+            await actDb.SaveChangesAsync();
+        }
+
+        await using var assertAfterSaveDb = _fixture.CreateDbContext();
+        var userDevices = await assertAfterSaveDb.TrustedDevices.AsNoTracking()
+            .Where(d => d.UserId == userId)
+            .ToListAsync();
+        Assert.Equal(2, userDevices.Count(d => d.RevokedAt == BaseUtc.UtcDateTime && d.RevokedByUserId == userId));
+        Assert.Single(userDevices, d => d.RevokedAt == alreadyRevokedAt);
+        Assert.Single(userDevices, d => d.RevokedAt == null && d.ExpiresAt <= BaseUtc.UtcDateTime);
+
+        var otherDevice = await assertAfterSaveDb.TrustedDevices.AsNoTracking().SingleAsync(d => d.UserId == otherUserId);
+        Assert.Null(otherDevice.RevokedAt);
+
+        Assert.True(await assertAfterSaveDb.SecurityAuditEvents.AsNoTracking()
+            .AnyAsync(e => e.TargetUserId == userId
+                        && e.ActorUserId == userId
+                        && e.EventCode == SecurityEventCodes.TrustedDeviceRevoked
+                        && e.Outcome == SecurityEventOutcome.Success));
     }
 }

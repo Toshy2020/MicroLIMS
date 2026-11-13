@@ -16,7 +16,7 @@ public record CreateRecoveryResultDto(string RecoveryCode, DateTime ExpiresAt);
 
 public class AdminPasswordRecoveryService
 {
-    private const string AllowedChars = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ"; // 32 unambiguous chars
+    internal const string AllowedChars = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ"; // 32 unambiguous chars
     private readonly IMicroLimsDbContext _db;
     private readonly TimeProvider _time;
 

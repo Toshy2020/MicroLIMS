@@ -1,6 +1,8 @@
 using System.Security.Cryptography;
+using System.Text;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using MicroLIMS.Application.Abstractions.Email;
 using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Application.Abstractions.Security;
 using MicroLIMS.Application.Interfaces;
@@ -12,11 +14,13 @@ using MicroLIMS.Shared.Constants;
 namespace MicroLIMS.Application.Services.Mfa;
 
 /// <summary>
-/// Handles MFA login challenges and TOTP verification.
+/// Handles MFA login challenges, TOTP verification, recovery codes, and trusted devices.
 /// </summary>
 public sealed class MfaService : IMfaService
 {
     public const int ChallengeTokenBytes = 32;
+    public const int DeviceTokenBytes = 32;
+    public const int RecoveryCodeLength = 10;
     public const int MaxChallengeFailedAttempts = 5;
     public static readonly TimeSpan ChallengeLifetime = TimeSpan.FromMinutes(5);
     internal const string VerificationFailedMessage = "The code is not correct.";
@@ -26,6 +30,8 @@ public sealed class MfaService : IMfaService
     private readonly ISecretProtector _secretProtector;
     private readonly ISecurityAuditService _securityAudit;
     private readonly ILogger<MfaService> _logger;
+    private readonly MfaPolicyService _mfaPolicy;
+    private readonly IEmailSender _emailSender;
     private readonly TimeProvider _time;
 
     public MfaService(
@@ -34,6 +40,8 @@ public sealed class MfaService : IMfaService
         ISecretProtector secretProtector,
         ISecurityAuditService securityAudit,
         ILogger<MfaService> logger,
+        MfaPolicyService mfaPolicy,
+        IEmailSender emailSender,
         TimeProvider? timeProvider = null)
     {
         _db = db;
@@ -41,6 +49,8 @@ public sealed class MfaService : IMfaService
         _secretProtector = secretProtector;
         _securityAudit = securityAudit;
         _logger = logger;
+        _mfaPolicy = mfaPolicy;
+        _emailSender = emailSender;
         _time = timeProvider ?? TimeProvider.System;
     }
 
@@ -51,11 +61,61 @@ public sealed class MfaService : IMfaService
         return rawToken;
     }
 
-    public Task<bool> IsTrustedDeviceAsync(int userId, string? deviceToken, CancellationToken ct = default)
-        => Task.FromResult(false); // Part B
+    public Task<bool> IsTrustedDeviceAsync(int userId, string? deviceToken, CancellationToken ct = default) =>
+        IsTrustedDeviceCoreAsync(_db, _time, _mfaPolicy, userId, deviceToken, ct);
 
-    public Task<int> RevokeTrustedDevicesAsync(int userId, int? revokedByUserId, CancellationToken ct = default)
-        => Task.FromResult(0); // Part B
+    internal static async Task<bool> IsTrustedDeviceCoreAsync(
+        IMicroLimsDbContext db,
+        TimeProvider time,
+        MfaPolicyService mfaPolicy,
+        int userId,
+        string? deviceToken,
+        CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(deviceToken))
+            return false;
+
+        if (await mfaPolicy.GetTrustedDeviceHoursAsync(ct) <= 0)
+            return false;
+
+        var nowUtc = time.GetUtcNow().UtcDateTime;
+        var tokenHash = AuthenticationService.Hash(deviceToken);
+
+        return await db.TrustedDevices
+            .AsNoTracking()
+            .AnyAsync(
+                d => d.UserId == userId
+                  && d.TokenHash == tokenHash
+                  && d.RevokedAt == null
+                  && d.ExpiresAt > nowUtc,
+                ct);
+    }
+
+    public async Task<int> RevokeTrustedDevicesAsync(int userId, int? revokedByUserId, CancellationToken ct = default)
+    {
+        var nowUtc = _time.GetUtcNow().UtcDateTime;
+        var liveDevices = await _db.TrustedDevices
+            .Where(d => d.UserId == userId && d.RevokedAt == null && d.ExpiresAt > nowUtc)
+            .ToListAsync(ct);
+
+        if (liveDevices.Count == 0)
+            return 0;
+
+        foreach (var device in liveDevices)
+        {
+            device.RevokedAt = nowUtc;
+            device.RevokedByUserId = revokedByUserId;
+        }
+
+        _securityAudit.Record(new SecurityEventRequest(
+            SecurityEventCodes.TrustedDeviceRevoked,
+            SecurityEventOutcome.Success,
+            ActorUserId: revokedByUserId,
+            TargetUserId: userId,
+            Metadata: $"{{\"revokedCount\":{liveDevices.Count}}}"));
+
+        return liveDevices.Count;
+    }
 
     public async Task<LoginOutcome> VerifyAsync(
         string mfaToken,
@@ -69,18 +129,18 @@ public sealed class MfaService : IMfaService
         if (string.IsNullOrWhiteSpace(mfaToken))
             return Fail();
 
-        if (string.IsNullOrWhiteSpace(code))
-        {
-            if (!string.IsNullOrWhiteSpace(recoveryCode))
-                return Fail(); // Part B
-
+        var hasCode = !string.IsNullOrWhiteSpace(code);
+        var hasRecoveryCode = !string.IsNullOrWhiteSpace(recoveryCode);
+        if (hasCode == hasRecoveryCode)
             return Fail();
-        }
 
         var ownsTransaction = _db.Database.IsRelational() && _db.Database.CurrentTransaction is null;
         await using var tx = ownsTransaction
             ? await _db.Database.BeginTransactionAsync(ct)
             : null;
+
+        string? recoveryNotifyEmail = null;
+        LoginOutcome result;
 
         try
         {
@@ -105,68 +165,179 @@ public sealed class MfaService : IMfaService
             if (user is null || !user.IsActive || user.IsLockedAt(nowUtc))
                 return Fail();
 
-            var credential = await _db.UserMfaCredentials
-                .FirstOrDefaultAsync(c => c.UserId == user.Id && c.Status == MfaCredentialStatus.Active, ct);
+            int? recoveryCodesRemaining = null;
 
-            if (credential is null)
-                return Fail();
-
-            byte[] secret;
-            try
+            if (hasCode)
             {
-                secret = _secretProtector.Unprotect(credential.SecretProtected);
+                var verified = await TryVerifyTotpAsync(user, code!, nowUtc, ct);
+                if (!verified)
+                {
+                    await RecordSecondFactorFailureAsync(challenge, user, ip, ct);
+                    if (tx is not null)
+                        await tx.CommitAsync(ct);
+                    return Fail();
+                }
+
+                challenge.ConsumedAt = nowUtc;
+                _securityAudit.Record(new SecurityEventRequest(
+                    SecurityEventCodes.MfaVerified,
+                    SecurityEventOutcome.Success,
+                    ActorUserId: user.Id,
+                    TargetUserId: user.Id,
+                    TargetUsername: user.Username));
             }
-            catch (SecretProtectionException ex)
+            else
             {
-                _logger.LogError(ex, "Failed to unprotect MFA credential {CredentialId} for user {UserId}.", credential.Id, user.Id);
-                return Fail();
+                var recoveryHash = HashRecoveryCode(recoveryCode!);
+                var matchedCode = await _db.MfaRecoveryCodes
+                    .FirstOrDefaultAsync(r => r.UserId == user.Id && r.CodeHash == recoveryHash && r.UsedAt == null, ct);
+
+                if (matchedCode is null)
+                {
+                    await RecordSecondFactorFailureAsync(challenge, user, ip, ct);
+                    if (tx is not null)
+                        await tx.CommitAsync(ct);
+                    return Fail();
+                }
+
+                matchedCode.UsedAt = nowUtc;
+                challenge.ConsumedAt = nowUtc;
+                recoveryNotifyEmail = user.Email;
+
+                _securityAudit.Record(new SecurityEventRequest(
+                    SecurityEventCodes.MfaRecoveryCodeUsed,
+                    SecurityEventOutcome.Success,
+                    ActorUserId: user.Id,
+                    TargetUserId: user.Id,
+                    TargetUsername: user.Username));
             }
 
-            long? matchedStep;
-            try
+            string? deviceToken = null;
+            if (trustDevice)
             {
-                matchedStep = Totp.Verify(secret, code.Trim(), nowUtc, credential.StepSeconds, credential.LastAcceptedStep);
+                var trustedHours = await _mfaPolicy.GetTrustedDeviceHoursAsync(ct);
+                if (trustedHours > 0)
+                {
+                    deviceToken = Convert.ToBase64String(RandomNumberGenerator.GetBytes(DeviceTokenBytes));
+                    _db.TrustedDevices.Add(new TrustedDevice
+                    {
+                        UserId = user.Id,
+                        TokenHash = AuthenticationService.Hash(deviceToken),
+                        CreatedAt = nowUtc,
+                        ExpiresAt = nowUtc.AddHours(trustedHours),
+                        CreatedIp = AuthenticationService.Truncate(ip, RefreshToken.MaxIpLength),
+                        UserAgent = AuthenticationService.Truncate(userAgent, RefreshToken.MaxUserAgentLength)
+                    });
+
+                    _securityAudit.Record(new SecurityEventRequest(
+                        SecurityEventCodes.TrustedDeviceAdded,
+                        SecurityEventOutcome.Success,
+                        ActorUserId: user.Id,
+                        TargetUserId: user.Id,
+                        TargetUsername: user.Username));
+                }
             }
-            finally
-            {
-                CryptographicOperations.ZeroMemory(secret);
-            }
-
-            if (matchedStep is null)
-            {
-                challenge.FailedAttempts++;
-                await _authService.ApplyFailedLoginAttemptAndLockoutAsync(user, SecurityEventCodes.MfaFailed, ct);
-                await _db.SaveChangesAsync(ct);
-
-                if (tx is not null)
-                    await tx.CommitAsync(ct);
-
-                return Fail();
-            }
-
-            credential.LastAcceptedStep = matchedStep.Value;
-            challenge.ConsumedAt = nowUtc;
-
-            _securityAudit.Record(new SecurityEventRequest(
-                SecurityEventCodes.MfaVerified,
-                SecurityEventOutcome.Success,
-                ActorUserId: user.Id,
-                TargetUserId: user.Id,
-                TargetUsername: user.Username));
 
             var outcome = await _authService.CompleteLoginAsync(user, ip, userAgent, mfaVerified: true);
+
+            if (hasRecoveryCode)
+            {
+                recoveryCodesRemaining = await _db.MfaRecoveryCodes
+                    .AsNoTracking()
+                    .CountAsync(r => r.UserId == user.Id && r.UsedAt == null, ct);
+            }
 
             if (tx is not null)
                 await tx.CommitAsync(ct);
 
-            return outcome;
+            result = outcome with
+            {
+                DeviceToken = deviceToken,
+                RecoveryCodesRemaining = recoveryCodesRemaining
+            };
         }
         catch (DbUpdateConcurrencyException) when (ownsTransaction)
         {
             await tx!.RollbackAsync(CancellationToken.None);
             return Fail();
         }
+
+        if (recoveryNotifyEmail is not null && !string.IsNullOrWhiteSpace(recoveryNotifyEmail))
+        {
+            try
+            {
+                await _emailSender.SendAsync(
+                    recoveryNotifyEmail,
+                    "MicroLIMS: MFA recovery code used",
+                    "A multi-factor authentication recovery code was used to sign in to your MicroLIMS account. If this was not you, contact an administrator immediately.");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to send MFA recovery code usage email notification.");
+            }
+        }
+
+        return result;
     }
+
+    private async Task<bool> TryVerifyTotpAsync(User user, string code, DateTime nowUtc, CancellationToken ct)
+    {
+        var credential = await _db.UserMfaCredentials
+            .FirstOrDefaultAsync(c => c.UserId == user.Id && c.Status == MfaCredentialStatus.Active, ct);
+
+        if (credential is null)
+            return false;
+
+        byte[] secret;
+        try
+        {
+            secret = _secretProtector.Unprotect(credential.SecretProtected);
+        }
+        catch (SecretProtectionException ex)
+        {
+            _logger.LogError(ex, "Failed to unprotect MFA credential {CredentialId} for user {UserId}.", credential.Id, user.Id);
+            return false;
+        }
+
+        long? matchedStep;
+        try
+        {
+            matchedStep = Totp.Verify(secret, code.Trim(), nowUtc, credential.StepSeconds, credential.LastAcceptedStep);
+        }
+        finally
+        {
+            CryptographicOperations.ZeroMemory(secret);
+        }
+
+        if (matchedStep is null)
+            return false;
+
+        credential.LastAcceptedStep = matchedStep.Value;
+        return true;
+    }
+
+    private async Task RecordSecondFactorFailureAsync(MfaChallenge challenge, User user, string? ip, CancellationToken ct)
+    {
+        challenge.FailedAttempts++;
+        await _authService.ApplyFailedLoginAttemptAndLockoutAsync(user, SecurityEventCodes.MfaFailed, ct);
+        await _authService.RecordLoginAsync(user.Id, user.Username, false, "Wrong second factor", ip);
+    }
+
+    internal static string GenerateRecoveryCode()
+    {
+        var bytes = RandomNumberGenerator.GetBytes(RecoveryCodeLength);
+        var sb = new StringBuilder(RecoveryCodeLength + 1);
+        for (var i = 0; i < RecoveryCodeLength; i++)
+        {
+            if (i == 5)
+                sb.Append('-');
+            sb.Append(AdminPasswordRecoveryService.AllowedChars[bytes[i] % AdminPasswordRecoveryService.AllowedChars.Length]);
+        }
+        return sb.ToString();
+    }
+
+    internal static string HashRecoveryCode(string code) =>
+        AdminPasswordRecoveryService.HashRecoveryCode(code);
 
     internal static string CreateChallengeCore(
         IMicroLimsDbContext db,

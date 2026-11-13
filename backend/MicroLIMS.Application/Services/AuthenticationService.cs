@@ -121,15 +121,18 @@ public class AuthenticationService : IAuthenticationService
             return new LoginOutcome(false, null, null, LoginFailedMessage);
         }
 
-        // Part B: check deviceToken via IsTrustedDeviceAsync before issuing MFA challenge.
-        _ = deviceToken;
-
         var hasActiveCredential = await _db.UserMfaCredentials
             .AsNoTracking()
             .AnyAsync(c => c.UserId == user.Id && c.Status == MfaCredentialStatus.Active);
 
         var roleType = user.Role?.Type.ToString() ?? string.Empty;
         var requirement = await _mfaPolicy.EvaluateAsync(roleType, hasActiveCredential, user.MfaRequiredSince, nowUtc);
+
+        if (requirement.Kind == MfaLoginRequirement.Verify
+            && await MfaService.IsTrustedDeviceCoreAsync(_db, _time, _mfaPolicy, user.Id, deviceToken))
+        {
+            return await CompleteLoginAsync(user, ipAddress, userAgent, mfaVerified: true);
+        }
 
         switch (requirement.Kind)
         {
@@ -467,7 +470,7 @@ public class AuthenticationService : IAuthenticationService
         return active.Count;
     }
 
-    private static string? Truncate(string? value, int max)
+    internal static string? Truncate(string? value, int max)
     {
         if (string.IsNullOrWhiteSpace(value)) return null;
         value = value.Trim();
@@ -491,7 +494,7 @@ public class AuthenticationService : IAuthenticationService
         return rawToken;
     }
 
-    private async Task RecordLoginAsync(int? userId, string username, bool success, string? reason, string? ipAddress)
+    internal async Task RecordLoginAsync(int? userId, string username, bool success, string? reason, string? ipAddress)
     {
         _db.LoginHistories.Add(new LoginHistory
         {

@@ -15,6 +15,7 @@ import {
 } from "@mui/material";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
+import { ScanField } from "../../../components/labels/ScanField";
 import type { HplcMethodResponse } from "../../laboratoryConfiguration/masterDataSimple/services/HplcMethodService";
 import type { SolutionPreparationListItem } from "../../solutionPreparation/types";
 
@@ -89,6 +90,16 @@ export function WizardMobilePhasesStep({
               >
                 Prepare New
               </Button>
+            </Box>
+
+            <Box sx={{ mb: 1.5 }}>
+              <ScanField
+                label={`Scan mobile phase (Channel ${mp.channel})`}
+                expectedType="SolutionPreparation"
+                offeredIds={preps.map((p) => p.id)}
+                onSelect={(id) => onSelectPreparation(mp.channel, id)}
+                disabled={loadingPreps}
+              />
             </Box>
 
             {preps.length === 0 ? (

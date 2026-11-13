@@ -1,6 +1,7 @@
 import { ReactNode, useState } from "react";
-import { Alert, Box, Collapse, FormControlLabel, Link, MenuItem, Radio, RadioGroup, TextField, Typography, useTheme } from "@mui/material";
+import { Alert, Box, Collapse, FormControlLabel, Link, MenuItem, Radio, RadioGroup, Stack, TextField, Typography, useTheme } from "@mui/material";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
+import { ScanField } from "../../../components/labels/ScanField";
 
 // Shared building blocks for the pathogen step panels, so every step reads
 // the same way: label/value rows for recorded details and an action bar
@@ -122,21 +123,30 @@ export function MediaLotIncubatorFields({
   const lotCount = lots.length;
   return (
     <>
-      <TextField
-        select fullWidth required disabled={disabled}
-        id={`${idPrefix}-media-lot`}
-        label="Media lot"
-        value={mediaLotId}
-        onChange={(e) => onLotChange(Number(e.target.value))}
-        helperText={mediaLotId ? "Released and within expiry" : lotCount === 0 ? "No released lots of this medium are available" : `${lotCount} released lot${lotCount === 1 ? "" : "s"} available`}
-        error={!disabled && lotCount === 0}
-        slotProps={{ inputLabel: { shrink: true }, select: { displayEmpty: true } }}
-      >
-        <MenuItem value="" disabled><Box component="span" sx={{ color: "text.secondary" }}>Select a released lot</Box></MenuItem>
-        {lots.map((l) => (
-          <MenuItem key={l.id} value={l.id}>{l.lotNumber} · expires {new Date(l.expiryDate).toLocaleDateString()}</MenuItem>
-        ))}
-      </TextField>
+      <Stack spacing={1}>
+        <ScanField
+          label="Scan media lot"
+          expectedType="MediaLot"
+          offeredIds={lots.map((l) => l.id)}
+          onSelect={onLotChange}
+          disabled={disabled}
+        />
+        <TextField
+          select fullWidth required disabled={disabled}
+          id={`${idPrefix}-media-lot`}
+          label="Media lot"
+          value={mediaLotId}
+          onChange={(e) => onLotChange(Number(e.target.value))}
+          helperText={mediaLotId ? "Released and within expiry" : lotCount === 0 ? "No released lots of this medium are available" : `${lotCount} released lot${lotCount === 1 ? "" : "s"} available`}
+          error={!disabled && lotCount === 0}
+          slotProps={{ inputLabel: { shrink: true }, select: { displayEmpty: true } }}
+        >
+          <MenuItem value="" disabled><Box component="span" sx={{ color: "text.secondary" }}>Select a released lot</Box></MenuItem>
+          {lots.map((l) => (
+            <MenuItem key={l.id} value={l.id}>{l.lotNumber} · expires {new Date(l.expiryDate).toLocaleDateString()}</MenuItem>
+          ))}
+        </TextField>
+      </Stack>
       <IncubatorField
         id={`${idPrefix}-incubator`}
         incubators={incubators}
@@ -164,19 +174,28 @@ export function IncubatorField({
   label?: string;
 }) {
   return (
-    <TextField
-      select fullWidth required disabled={disabled}
-      id={id}
-      label={label}
-      value={value}
-      onChange={(e) => onChange(Number(e.target.value))}
-      helperText={incubators.length === 0 ? `No incubators are set within ${tempMin}–${tempMax} °C` : `Only incubators set within ${tempMin}–${tempMax} °C are listed`}
-      error={!disabled && incubators.length === 0}
-      slotProps={{ inputLabel: { shrink: true }, select: { displayEmpty: true } }}
-    >
-      <MenuItem value="" disabled><Box component="span" sx={{ color: "text.secondary" }}>Select an incubator</Box></MenuItem>
-      {incubators.map((i) => <MenuItem key={i.id} value={i.id}>{i.code} · {i.name} · set {i.setTemperature} °C</MenuItem>)}
-    </TextField>
+    <Stack spacing={1}>
+      <ScanField
+        label={label === "Incubator" ? "Scan incubator" : `Scan ${label.toLowerCase()}`}
+        expectedType="EquipmentAsset"
+        offeredIds={incubators.map((i) => i.id)}
+        onSelect={onChange}
+        disabled={disabled}
+      />
+      <TextField
+        select fullWidth required disabled={disabled}
+        id={id}
+        label={label}
+        value={value}
+        onChange={(e) => onChange(Number(e.target.value))}
+        helperText={incubators.length === 0 ? `No incubators are set within ${tempMin}–${tempMax} °C` : `Only incubators set within ${tempMin}–${tempMax} °C are listed`}
+        error={!disabled && incubators.length === 0}
+        slotProps={{ inputLabel: { shrink: true }, select: { displayEmpty: true } }}
+      >
+        <MenuItem value="" disabled><Box component="span" sx={{ color: "text.secondary" }}>Select an incubator</Box></MenuItem>
+        {incubators.map((i) => <MenuItem key={i.id} value={i.id}>{i.code} · {i.name} · set {i.setTemperature} °C</MenuItem>)}
+      </TextField>
+    </Stack>
   );
 }
 

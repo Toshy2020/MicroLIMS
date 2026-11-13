@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useSyncExternalStore } from "react";
+import { isAxiosError } from "axios";
 import { uiStateService, type UiStateMap } from "../services/uiStateService";
 
 // Per-user interface preferences kept on the server, with a localStorage
@@ -55,6 +56,11 @@ function writeLocal(key: string, value: string | null): boolean {
   } catch {
     return false;
   }
+}
+
+// The server answered (4xx/5xx): the store is reachable and said no.
+function isServerRefusal(err: unknown): boolean {
+  return isAxiosError(err) && err.response !== undefined;
 }
 
 function load() {
@@ -128,30 +134,40 @@ export function useUiState(key: string): UiStateHandle {
   }, []);
 
   const loaded = snap.status === "ready" || snap.status === "failed";
-  const value = snap.status === "ready" ? (snap.map[key] ?? null) : snap.status === "failed" ? readLocal(key) : null;
+  // A value known in memory (from the server or a later write) wins; the local
+  // copy is read only for keys the server never gave us.
+  const value = !loaded ? null : key in snap.map ? snap.map[key] : snap.status === "failed" ? readLocal(key) : null;
 
   const set = useCallback(async (next: string) => {
     try {
       await uiStateService.set(key, next);
-      // Not loaded yet, or running on the local copy: the next load shows the saved value.
-      if (snapshot.status === "ready") emit({ status: "ready", map: { ...snapshot.map, [key]: next } });
+      if (snapshot.status === "failed") writeLocal(key, next);
+      if (snapshot.status === "ready" || snapshot.status === "failed")
+        emit({ status: snapshot.status, map: { ...snapshot.map, [key]: next } });
     } catch (err) {
-      if (!writeLocal(key, next)) throw err;
-      emit({ status: "failed", map: snapshot.map });
+      // A refusal from the server (bad key, too many keys) is an error for the
+      // caller; only an unreachable server falls back to this browser's copy.
+      if (isServerRefusal(err) || !writeLocal(key, next)) throw err;
+      if (snapshot.status === "ready" || snapshot.status === "failed")
+        emit({ status: "failed", map: { ...snapshot.map, [key]: next } });
     }
   }, [key]);
 
   const remove = useCallback(async () => {
+    const withoutKey = () => {
+      const rest = { ...snapshot.map };
+      delete rest[key];
+      return rest;
+    };
     try {
       await uiStateService.remove(key);
-      if (snapshot.status === "ready") {
-        const rest = { ...snapshot.map };
-        delete rest[key];
-        emit({ status: "ready", map: rest });
-      }
+      if (snapshot.status === "failed") writeLocal(key, null);
+      if (snapshot.status === "ready" || snapshot.status === "failed")
+        emit({ status: snapshot.status, map: withoutKey() });
     } catch (err) {
-      if (!writeLocal(key, null)) throw err;
-      emit({ status: "failed", map: snapshot.map });
+      if (isServerRefusal(err) || !writeLocal(key, null)) throw err;
+      if (snapshot.status === "ready" || snapshot.status === "failed")
+        emit({ status: "failed", map: withoutKey() });
     }
   }, [key]);
 

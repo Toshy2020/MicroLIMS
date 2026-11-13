@@ -1,6 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { useState } from "react";
+import { AxiosError, AxiosHeaders } from "axios";
 import { resetUiStateCache, useUiState } from "./useUiState";
 
 const service = vi.hoisted(() => ({ getAll: vi.fn(), set: vi.fn(), remove: vi.fn() }));
@@ -82,6 +84,50 @@ describe("useUiState", () => {
     await user.click(screen.getByRole("button", { name: "remove whatsnew.seen" }));
     await waitFor(() => expect(screen.getByLabelText("value of whatsnew.seen").textContent).toBe("none"));
     expect(service.remove).toHaveBeenCalledWith("whatsnew.seen");
+  });
+
+  it("keeps the other server values when one write falls back to localStorage", async () => {
+    const user = userEvent.setup();
+    service.getAll.mockResolvedValue({ "a.one": "1", "b.two": "2" });
+    service.set.mockRejectedValue(new Error("offline"));
+    render(<><Probe stateKey="a.one" /><Probe stateKey="b.two" /></>);
+    await waitFor(() => expect(screen.getByLabelText("value of b.two").textContent).toBe("2"));
+
+    await user.click(screen.getByRole("button", { name: "set b.two" }));
+
+    await waitFor(() => expect(screen.getByLabelText("value of b.two").textContent).toBe("done"));
+    expect(localStorage.getItem("microlims.uiState.7.b.two")).toBe("done");
+    // The server value of the other key is still shown, not lost to the fallback.
+    expect(screen.getByLabelText("value of a.one").textContent).toBe("1");
+  });
+
+  it("rejects a refusal from the server instead of hiding it in localStorage", async () => {
+    const user = userEvent.setup();
+    service.getAll.mockResolvedValue({ "b.two": "2" });
+    const refusal = new AxiosError("Bad request", "ERR_BAD_REQUEST", undefined, undefined, {
+      status: 400, statusText: "Bad Request", data: { message: "The key must start with a lowercase letter" },
+      headers: {}, config: { headers: new AxiosHeaders() }
+    });
+    service.set.mockRejectedValue(refusal);
+    function SetProbe() {
+      const { value, set } = useUiState("b.two");
+      const [error, setError] = useState("");
+      return (
+        <div>
+          <output aria-label="value">{value ?? "none"}</output>
+          <output aria-label="error">{error}</output>
+          <button type="button" onClick={() => set("done").catch((e: unknown) => setError(e === refusal ? "refused" : "other"))}>set</button>
+        </div>
+      );
+    }
+    render(<SetProbe />);
+    await waitFor(() => expect(screen.getByLabelText("value").textContent).toBe("2"));
+
+    await user.click(screen.getByRole("button", { name: "set" }));
+
+    await waitFor(() => expect(screen.getByLabelText("error").textContent).toBe("refused"));
+    expect(screen.getByLabelText("value").textContent).toBe("2");
+    expect(localStorage.getItem("microlims.uiState.7.b.two")).toBeNull();
   });
 
   it("does not show one user's local values to another user", async () => {

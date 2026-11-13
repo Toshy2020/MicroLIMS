@@ -32,26 +32,28 @@ public class DocumentControlQaApproverPostgresTests
 
     private static async Task<Role> EnsureQaRoleWithGrantsAsync(MicroLimsDbContext db)
     {
-        var qaRole = await db.Roles.FirstOrDefaultAsync(r => r.Type == RoleType.Qa);
-        if (qaRole is null)
+        // Always its own role: the fixture database is shared, and adding users to a QA role
+        // another test created (with Access.Review.Sign) would turn them into access review signers.
+        var qaRole = new Role
         {
-            qaRole = new Role
-            {
-                Type = RoleType.Qa,
-                Name = "QA",
-                IsSystemRole = true,
-                IsActive = true
-            };
-            db.Roles.Add(qaRole);
-            await db.SaveChangesAsync();
-        }
+            Type = RoleType.Qa,
+            Name = $"QA-doc-{Guid.NewGuid():N}",
+            IsSystemRole = false,
+            IsActive = true
+        };
+        db.Roles.Add(qaRole);
+        await db.SaveChangesAsync();
 
         var existingCodes = await db.RolePermissions
             .Where(rp => rp.RoleId == qaRole.Id)
             .Select(rp => rp.Permission!.Code)
             .ToListAsync();
 
-        var missingCodes = PermissionConstants.QaGrants.Except(existingCodes, StringComparer.Ordinal).ToList();
+        // Access.Review.Sign is left out on purpose: the fixture database is shared, and an active
+        // holder of that code switches access review signing over to QA for every later test.
+        var missingCodes = PermissionConstants.QaGrants
+            .Where(c => c != PermissionConstants.AccessReviewSign)
+            .Except(existingCodes, StringComparer.Ordinal).ToList();
         if (missingCodes.Count > 0)
         {
             var permissions = await db.Permissions

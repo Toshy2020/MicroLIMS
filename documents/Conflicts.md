@@ -972,9 +972,9 @@ Locations for CONF-001 to CONF-008 were added on 2026-11-12 from the area worker
 
 ### CONF-197
 - **Area:** SEC
-- **Status:** Open
-- **What the code does:** Changing a user's company username through the user form (`UserService.ApplySsoLinkChange`) changes `DirectoryUsername` and leaves `DirectorySubjectId` unchanged. Only the re-link method (`UserService.RelinkDirectoryAsync`) clears `DirectorySubjectId`. Sign-in first matches on the stored subject id (`DirectoryUserMatcher.Match`), so after a company username change the same company account still signs in as the same MicroLIMS user. Location: `backend/MicroLIMS.Application/Services/UserService.cs`; `backend/MicroLIMS.Application/Services/Sso/DirectoryUserMatcher.cs`.
+- **Status:** Decided
+- **What the code does:** As first recorded: changing a user's company username through the user form (`UserService.ApplySsoLinkChange`) changes `DirectoryUsername` and leaves `DirectorySubjectId` unchanged. Only the re-link method (`UserService.RelinkDirectoryAsync`) clears `DirectorySubjectId`. Sign-in first matches on the stored subject id (`DirectoryUserMatcher.Match`), so after a company username change the same company account still signs in as the same MicroLIMS user. Changed 2026-11-13 (commit `d0a799da`): `UserService.ApplySsoLinkChange` now clears `DirectorySubjectId` and `DirectorySignInRefusedAt` when an existing company username is changed or removed, and records the cleared value in the `USER_SSO_LINK_UPDATED` audit row; a first-time link clears nothing. Location: `backend/MicroLIMS.Application/Services/UserService.cs`; `backend/MicroLIMS.Application/Services/Sso/DirectoryUserMatcher.cs`.
 - **What the other source says:** Design specification Section 5.2 says the stored subject id can be cleared only by an administrator with the reason "Re-link", and that renaming a directory account does not break the link. The specification does not say what a change of the MicroLIMS company username does.
 - **Question:** Should changing a user's company username clear the stored subject id, so that the next company sign-in binds again to the account with the new username, or should the stored link be kept as built?
-- **Decision:** Not decided.
-- **Date:** Not applicable
+- **Decision:** Decided by the user 2026-11-13: changing the company username clears the stored subject id; the next company sign-in binds again.
+- **Date:** 2026-11-13

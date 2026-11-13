@@ -108,7 +108,13 @@ Phases 0, 1 and 2 can run in parallel if more than one person is available. Phas
 
 ### B2. Multi-factor authentication — Size M
 
-**Current state.** No TOTP or MFA code exists. Login is username and password with lockout, password history and session revocation.
+**Current state.** Implemented on branch `r1/b4-qa-role`, not released. TOTP enrolment (authenticator app QR/manual key and admin-assigned hardware tokens), AES-256-GCM secret encryption with key rotation (`AesGcmSecretProtector`) and startup validation (`MfaStartupValidator`), configurable policy (`Off`, `Optional`, `RequiredForRoles`, `RequiredForAll`), `10` single-use recovery codes, trusted browsers, admin MFA reset with reason, and `[AuditRedacted]` / `SecurityAuditEvent` logging are in place. Draft requirements (`URS-SEC-015` to `URS-SEC-022`, `FS-SEC-015` to `FS-SEC-022`), conflicts (`CONF-188` to `CONF-190`), and SOP/upgrade outline (`documents/SOP/SOP-Multi-Factor-Authentication.md`) are written.
+
+**Open manual checks before release.**
+1. Live trial with a real authenticator app and a real physical hardware token (`30` s and `60` s step).
+2. End-to-end verification of SMTP e-mail notifications (recovery-code used alert and admin MFA reset alert).
+3. Server configuration of `Mfa:ActiveKeyId` and `Mfa:EncryptionKeys` (before API startup under default `RequiredForRoles` policy) and NTP clock-sync check.
+4. QA approval of `SOP-Multi-Factor-Authentication.md` and resolution of open conflicts (`CONF-188` to `CONF-190`).
 
 **Scope.**
 1. TOTP enrolment with QR code, recovery codes, and admin reset with a reason.
@@ -119,7 +125,7 @@ Phases 0, 1 and 2 can run in parallel if more than one person is available. Phas
 
 **Spec:** `docs/superpowers/specs/2026-11-10-multi-factor-authentication-design.md`. **Plan:** `docs/superpowers/plans/2026-11-10-multi-factor-authentication.md`.
 
-**Done when.** Enrolment, login challenge, recovery and admin reset all work, each with an audit row, and `AuditCredentialRedactionTests` covers the new secrets.
+**Done when.** Enrolment, login challenge, recovery and admin reset all work, each with an audit row, and `AuditCredentialRedactionTests` covers the new secrets (plus open manual checks and QA approval above).
 
 ### B3. Single sign-on (OIDC / LDAP) — Size M
 

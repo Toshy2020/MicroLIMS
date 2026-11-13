@@ -888,3 +888,30 @@ Locations for CONF-001 to CONF-008 were added on 2026-11-12 from the area worker
 - **Question:** Should a configurable review-frequency setting and overdue indicator be added to the QA dashboard, or is manual periodic review scheduling by SOP sufficient for Release 1?
 - **Decision:** Not decided.
 - **Date:** Not applicable
+
+### CONF-188
+- **Area:** SEC
+- **Status:** Open
+- **What the code does:** `SystemSettingDefinitions` sets the default value of `security.mfa.policy` to `"RequiredForRoles"` (`SystemAdministrator,SectionHead,QcManager`), not `"Off"`. `MfaStartupValidator.EnsureValidAsync` throws `InvalidOperationException` and prevents the API from starting when `!protector.IsConfigured` (`Mfa:ActiveKeyId` and `Mfa:EncryptionKeys` missing) and `security.mfa.policy != MfaPolicy.Off`. Location: `backend/MicroLIMS.Application/Services/SystemSettingDefinitions.cs`; `backend/MicroLIMS.API/Extensions/MfaStartupValidator.cs` — `EnsureValidAsync`.
+- **What the other source says:** Design specification `docs/superpowers/specs/2026-11-10-multi-factor-authentication-design.md` Section 5.2 requires startup refusal when an encryption key is missing and MFA is enabled, and an upgraded installation without `Mfa:ActiveKeyId` / `Mfa:EncryptionKeys` configured will therefore fail to start immediately upon upgrade.
+- **Question:** Should `security.mfa.policy` default to `"Off"` until keys are configured and administrators enrol, or is failing startup on upgrade without `Mfa:EncryptionKeys` the intended fail-safe deployment gate?
+- **Decision:** Not decided.
+- **Date:** Not applicable
+
+### CONF-189
+- **Area:** SEC
+- **Status:** Open
+- **What the code does:** `SystemSettingDefinitions` sets the default value of `security.mfa.requiredRoles` to `"SystemAdministrator,SectionHead,QcManager"`, which does not include the `Qa` (`Quality Assurance`) role introduced in B4. Location: `backend/MicroLIMS.Application/Services/SystemSettingDefinitions.cs` (`security.mfa.requiredRoles`).
+- **What the other source says:** Design specification `docs/superpowers/specs/2026-11-10-multi-factor-authentication-design.md` Section 5.3 lists `SystemAdministrator`, `SectionHead`, and `QcManager` as the default required roles (authored before B4 added `Qa` with `Audit.Review`, `Access.Review.Sign`, `Documents.Review`, and `Documents.Approve`).
+- **Question:** Should `Qa` be added to the default value of `security.mfa.requiredRoles` (or configured per site in System Settings)?
+- **Decision:** Not decided.
+- **Date:** Not applicable
+
+### CONF-190
+- **Area:** SEC
+- **Status:** Open
+- **What the code does:** `MfaService.StartEnrolmentCoreAsync` checks only for an `Active` credential and then deletes all `Pending` `UserMfaCredential` rows for the user before creating a `Pending` `AuthenticatorApp` credential, without checking whether the pending row is an administrator-assigned `HardwareToken`. A signed-in user (for example during the enrolment grace period) can overwrite and delete an admin-assigned `Pending` hardware token by starting self-enrolment (`POST api/auth/mfa/enrol/start`). Location: `backend/MicroLIMS.Application/Services/Mfa/MfaService.cs` — `StartEnrolmentCoreAsync` (lines 679–695).
+- **What the other source says:** Design specification `docs/superpowers/specs/2026-11-10-multi-factor-authentication-design.md` Section 5.7 describes administrator hardware token assignment followed by user confirmation on first sign-in.
+- **Question:** Should `StartEnrolmentCoreAsync` block or require an administrator reset when a `Pending` `HardwareToken` is already assigned to the user?
+- **Decision:** Not decided.
+- **Date:** Not applicable

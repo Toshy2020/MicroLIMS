@@ -4,7 +4,7 @@
 |---|---|
 | Document number | FS-SEC |
 | Title | Authentication and session security functional specification |
-| Version | 0.2 |
+| Version | 0.3 |
 | Status | Draft |
 | Author | Claude (AI agent), draft from code |
 | Reviewer | To be assigned by QA |
@@ -17,6 +17,7 @@
 |---|---|---|---|
 | 0.1 | 2026-11-12 | Claude (AI agent), draft from code | First draft, written from the code as built. |
 | 0.2 | 2026-11-13 | AI coding agent, draft from code | Added Quality Assurance role independence and access review signing split (FS-SEC-013, FS-SEC-014). |
+| 0.3 | 2026-11-13 | AI coding agent, draft from code | Added multi-factor authentication functional specifications (FS-SEC-015 to FS-SEC-022). |
 
 ## Scope and reading notes
 
@@ -114,4 +115,55 @@
 **Satisfies:** URS-SEC-014
 **Function:** Access review decision and signature separation (`AdminAccessReviewsController`, `AccessReviewService`). List, detail, generate, and CSV export remain gated by `Access.Review`. `AddFindingAsync`, `UpdateFindingAsync`, and `SignAsync` call `EnsureMayDecideAsync`: if any active, unlocked user's active role holds `Access.Review.Sign`, the acting user must hold `Access.Review.Sign` or `BusinessRuleException("Access reviews are decided and signed by Quality Assurance.")` is thrown; while no active, unlocked `Access.Review.Sign` holder exists, an administrator with `Access.Review` may still record findings and sign. `AccessReviewPage` hides/blocks findings and signing controls when the user cannot decide.
 **Code:** `backend/MicroLIMS.Application/Services/AccessReviewService.cs` — `EnsureMayDecideAsync`, `SaveFindingAsync`, `SignAsync`; `backend/MicroLIMS.API/Controllers/AdminAccessReviewsController.cs`; `frontend/src/modules/admin/AccessReviewPage.tsx`
+**Verified by:** reading (not run)
+
+### FS-SEC-015
+**Satisfies:** URS-SEC-015
+**Function:** RFC 6238 TOTP generation and verification (`Totp`). Generates 20-byte random secrets (`SecretLengthBytes = 20`) and `otpauth://` URIs with issuer `"MicroLIMS"` and QR SVG output (`IQrCodeRenderer`) for authenticator app enrolment (`DefaultStepSeconds = 30`); hardware tokens support `30` or `60` second steps. `Totp.Verify` computes 6-digit HMAC-SHA1 codes (`modulo 1_000_000`) across time-step offsets `delta = -1..+1` in fixed time and rejects any matched step `<= credential.LastAcceptedStep` for replay protection.
+**Code:** `backend/MicroLIMS.Application/Security/Totp.cs` — `NewSecret`, `OtpAuthUri`, `Verify`; `backend/MicroLIMS.Application/Services/Mfa/MfaService.cs` — `VerifyTotpCodeAgainstCredential`
+**Verified by:** reading (not run)
+
+### FS-SEC-016
+**Satisfies:** URS-SEC-016
+**Function:** Secret encryption, key rotation, and startup validation (`AesGcmSecretProtector`, `MfaStartupValidator`). Secrets are encrypted with AES-256-GCM (`32`-byte key, `12`-byte nonce, `16`-byte tag) into `{keyId}:{base64Nonce}:{base64Ciphertext}:{base64Tag}` using `keyId` as UTF-8 associated data; `Mfa:EncryptionKeys` and `Mfa:ActiveKeyId` support multiple keys for decryption during key rotation. Plaintext secret buffers are cleared in `finally` blocks via `CryptographicOperations.ZeroMemory`. `MfaStartupValidator.EnsureValidAsync` throws `InvalidOperationException` at API startup if `!protector.IsConfigured` while `security.mfa.policy != MfaPolicy.Off` or any `Active`/`Pending` `UserMfaCredential` exists.
+**Code:** `backend/MicroLIMS.Infrastructure/Security/AesGcmSecretProtector.cs` — `Protect`, `Unprotect`; `backend/MicroLIMS.API/Extensions/MfaStartupValidator.cs` — `EnsureValidAsync`
+**Verified by:** reading (not run)
+**Conflicts:** CONF-188
+
+### FS-SEC-017
+**Satisfies:** URS-SEC-017
+**Function:** MFA policy, grace period, and two-admin activation guard (`SystemSettingDefinitions`, `MfaPolicyService`, `SystemSettingsService`). Settings: `security.mfa.policy` (default `"RequiredForRoles"`, values `Off`, `Optional`, `RequiredForRoles`, `RequiredForAll`, `IsGxpRelevant: true`), `security.mfa.requiredRoles` (default `"SystemAdministrator,SectionHead,QcManager"`), `security.mfa.enrolmentGraceDays` (default `"7"`, range `0..30`), and `security.mfa.trustedDeviceHours` (default `"12"`, range `0..24`). `MfaPolicyService.EvaluateAsync` returns `None`, `Verify`, `EnrolWithinGrace`, or `EnrolNow`; `GetUserStateAsync` returns `NotRequired`, `Enrolled`, `TokenPendingConfirmation`, `DueByDate`, or `Overdue`. Switching `security.mfa.policy` from non-required to required (`RequiredForRoles` or `RequiredForAll`) fails with `BusinessRuleException` unless at least two active `SystemAdministrator` users hold an `Active` `UserMfaCredential`.
+**Code:** `backend/MicroLIMS.Application/Services/Mfa/MfaPolicyService.cs` — `EvaluateAsync`, `GetUserStateAsync`; `backend/MicroLIMS.Application/Services/SystemSettingDefinitions.cs`; `backend/MicroLIMS.Application/Services/SystemSettingsService.cs`
+**Verified by:** reading (not run)
+**Conflicts:** CONF-189
+
+### FS-SEC-018
+**Satisfies:** URS-SEC-018
+**Function:** MFA sign-in challenge, forced enrolment, and self-service management (`AuthenticationService`, `MfaService`, `MfaController`, `Login.tsx`, `MfaEnrolment.tsx`, `ProfileSecuritySection`). Password login creates a 32-byte random `MfaChallenge` (stored as SHA-256 hash, 5-minute expiry, max 5 failed attempts) when `Verify` or `EnrolNow` applies; `EnrolWithinGrace` records `User.MfaRequiredSince` and signs in with `MfaVerified = false`. `POST api/auth/mfa/verify` (`[AllowAnonymous]`, `Authentication` rate limit, `Cache-Control: no-store`) verifies either `code` or `recoveryCode` (activating a `Pending` hardware token on first valid code) and completes login with `MfaVerified = true`. `POST api/auth/mfa/enrol/token/start` and `enrol/token/confirm` complete forced enrolment. Signed-in users call `GET api/auth/mfa/status`, `POST api/auth/mfa/enrol/start` (password + `PasswordChange` rate limit), `POST api/auth/mfa/enrol/confirm`, and `DELETE api/auth/mfa` (blocked if role requires MFA).
+**Code:** `backend/MicroLIMS.API/Controllers/MfaController.cs`; `backend/MicroLIMS.Application/Services/Mfa/MfaService.cs` — `VerifyAsync`, `StartEnrolmentWithPasswordAsync`, `StartEnrolmentWithTokenAsync`, `ConfirmEnrolmentAsync`, `ConfirmEnrolmentWithTokenAsync`, `RemoveOwnFactorAsync`, `GetStatusAsync`; `backend/MicroLIMS.Application/Services/AuthenticationService.cs` — `LoginAsync`; `frontend/src/pages/Login.tsx`; `frontend/src/pages/MfaEnrolment.tsx`
+**Verified by:** reading (not run)
+**Conflicts:** CONF-190
+
+### FS-SEC-019
+**Satisfies:** URS-SEC-019
+**Function:** Recovery code generation, single-use redemption, and regeneration (`MfaService`, `MfaRecoveryCode`). Enrolment confirmation (or first verified login with a pending hardware token) creates `10` random `XXXXX-XXXXX` codes stored only as SHA-256 hashes in `MfaRecoveryCodes`. Redeeming a code at `POST api/auth/mfa/verify` marks `UsedAt`, sends an alert e-mail via `IEmailSender`, and returns `RecoveryCodesRemaining` so `Login.tsx` warns when `<= 2` codes remain. `POST api/auth/mfa/recovery-codes` (authenticated, password + TOTP code, `PasswordChange` rate limit, `Cache-Control: no-store`) replaces all recovery codes with 10 new ones and logs `MfaRecoveryCodesRegenerated`.
+**Code:** `backend/MicroLIMS.Application/Services/Mfa/MfaService.cs` — `ReplaceRecoveryCodesAsync`, `RegenerateRecoveryCodesAsync`, `GenerateRecoveryCode`; `backend/MicroLIMS.API/Controllers/MfaController.cs` — `RegenerateRecoveryCodes`
+**Verified by:** reading (not run)
+
+### FS-SEC-020
+**Satisfies:** URS-SEC-020
+**Function:** Trusted computers and automatic revocation (`MfaService`, `MfaAdminService`, `AuthenticationService`, `AdminPasswordRecoveryService`). When `trustDevice` is true during `VerifyAsync` and `security.mfa.trustedDeviceHours > 0` (`1..24`), a 32-byte random `deviceToken` is issued and its SHA-256 hash is stored in `TrustedDevices` for `trustedDeviceHours` hours; subsequent password logins presenting that token bypass the MFA challenge while unrevoked and unexpired. `RevokeTrustedDevicesCoreAsync` revokes all active trusted devices on password change, self-service password reset, admin password recovery, user factor removal, and admin MFA reset. Users can revoke individual devices via `DELETE api/auth/mfa/trusted-devices/{id}`; administrators can list and revoke them via `GET/DELETE api/admin/users/{id}/trusted-devices`.
+**Code:** `backend/MicroLIMS.Application/Services/Mfa/MfaService.cs` — `IsTrustedDeviceCoreAsync`, `ForgetOwnTrustedDeviceAsync`, `RevokeTrustedDevicesCoreAsync`; `backend/MicroLIMS.Application/Services/Mfa/MfaAdminService.cs` — `ListTrustedDevicesAsync`, `RevokeTrustedDeviceAsync`; `backend/MicroLIMS.Application/Services/AuthenticationService.cs`; `backend/MicroLIMS.Application/Services/AdminPasswordRecoveryService.cs`
+**Verified by:** reading (not run)
+
+### FS-SEC-021
+**Satisfies:** URS-SEC-021
+**Function:** Administrator MFA reset and hardware token assignment (`AdminUserMfaController`, `MfaAdminService`, `ResetMfaDialog`, `AssignHardwareTokenDialog`, `UserSessionsDialog`). Gated by `Users.Manage`: `POST api/admin/users/{id}/mfa/reset` blocks self-reset, requires a reason (`<= 500` chars), revokes `Active`/`Pending` credentials, deletes unused recovery codes, revokes trusted devices and refresh tokens, backdates `MfaRequiredSince` by `enrolmentGraceDays` (granting no new grace period), writes `AuditLogs` (`"MFA_RESET_BY_ADMIN"`) and `SecurityAudit` (`MfaResetByAdmin`), and e-mails the user. `POST api/admin/users/{id}/mfa/hardware-token` blocks self-assignment, disabled accounts, and users with an `Active` factor, replaces any `Pending` factor, encrypts Base32 or Hex seeds (`stepSeconds` `30` or `60`), stores `Status = Pending`, and writes `AuditLogs` (`"MFA_TOKEN_ASSIGNED"`) and `SecurityAudit` (`MfaTokenAssigned`). Active sessions expose `mfaVerified` in `AdminUserSessionsController`.
+**Code:** `backend/MicroLIMS.API/Controllers/AdminUserMfaController.cs`; `backend/MicroLIMS.Application/Services/Mfa/MfaAdminService.cs` — `ResetAsync`, `AssignHardwareTokenAsync`; `backend/MicroLIMS.API/Controllers/AdminUserSessionsController.cs`; `frontend/src/modules/users/dialogs/ResetMfaDialog.tsx`; `frontend/src/modules/users/dialogs/AssignHardwareTokenDialog.tsx`; `frontend/src/modules/users/dialogs/UserSessionsDialog.tsx`
+**Verified by:** reading (not run)
+
+### FS-SEC-022
+**Satisfies:** URS-SEC-022
+**Function:** Signature separation, secret redaction, and failure lockout (`MfaService`, `MicroLimsDbContext`). Electronic signature verification remains user ID + password without MFA changes. `[AuditRedacted]` marks `MfaChallenge`, `MfaRecoveryCode`, `TrustedDevice`, and `UserMfaCredential`; `MfaChallenge` is in `MicroLimsDbContext.AuditCaptureExcludedTypes` while `MfaService` records explicit `SecurityAuditEvent` rows (`MfaChallengeIssued`, `MfaEnrolmentStarted`, `MfaEnrolled`, `MfaFailed`, `MfaRemovedByUser`, `TrustedDeviceRevoked`, etc.). Failed `VerifyAsync` attempts increment `MfaChallenge.FailedAttempts` (max `5`), apply account failed-attempt/lockout counters via `AuthenticationService.ApplyFailedLoginAttemptAndLockoutAsync`, and write `LoginHistories` rows.
+**Code:** `backend/MicroLIMS.Domain/Entities/MfaChallenge.cs`; `backend/MicroLIMS.Domain/Entities/MfaRecoveryCode.cs`; `backend/MicroLIMS.Domain/Entities/TrustedDevice.cs`; `backend/MicroLIMS.Domain/Entities/UserMfaCredential.cs`; `backend/MicroLIMS.Persistence/DbContext/MicroLimsDbContext.cs` — `AuditCaptureExcludedTypes`; `backend/MicroLIMS.Application/Services/Mfa/MfaService.cs` — `RecordSecondFactorFailureAsync`
 **Verified by:** reading (not run)

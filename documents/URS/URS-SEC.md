@@ -4,7 +4,7 @@
 |---|---|
 | Document number | URS-SEC |
 | Title | Authentication and session security user requirements |
-| Version | 0.2 |
+| Version | 0.3 |
 | Status | Draft |
 | Author | Claude (AI agent), draft from code |
 | Reviewer | To be assigned by QA |
@@ -17,6 +17,7 @@
 |---|---|---|---|
 | 0.1 | 2026-11-12 | Claude (AI agent), draft from code | First draft, written from the code as built. |
 | 0.2 | 2026-11-13 | AI coding agent, draft from code | Added Quality Assurance role independence, cross-section reading, and access review signing requirements (URS-SEC-013, URS-SEC-014). |
+| 0.3 | 2026-11-13 | AI coding agent, draft from code | Added multi-factor authentication requirements (URS-SEC-015 to URS-SEC-022). |
 
 ## Requirements
 
@@ -104,4 +105,52 @@ Each requirement below is a need that the code as built serves. Gaps found in th
 **Requirement:** The system shall require `Access.Review.Sign` to record findings on or electronically sign a user access review whenever at least one active, unlocked user holds `Access.Review.Sign`, and shall allow an administrator holding `Access.Review` to decide and sign only while no active, unlocked `Access.Review.Sign` holder exists.
 **GxP:** Yes
 **Serves:** 21 CFR 11.10(d), 11.10(g), 11.200(a); EU GMP Annex 11 clause 12 (to be confirmed by QA)
+**Status:** Active
+
+### URS-SEC-015
+**Requirement:** The system shall support a second sign-in factor using 6-digit RFC 6238 time-based one-time passcodes (TOTP) for authenticator applications and assigned hardware tokens, shall tolerate limited clock drift, and shall reject replayed codes already accepted for the same or earlier time step.
+**GxP:** Yes
+**Serves:** 21 CFR 11.10(d), 11.300(a); EU GMP Annex 11 clause 12 (to be confirmed by QA)
+**Status:** Active
+
+### URS-SEC-016
+**Requirement:** The system shall encrypt stored TOTP secrets and hardware token seeds with authenticated encryption supporting key rotation, shall clear plaintext secrets from memory after use, and shall refuse to start when MFA is enabled or stored credentials exist without a configured encryption key.
+**GxP:** Yes
+**Serves:** 21 CFR 11.10(d), 11.300(b) (to be confirmed by QA)
+**Status:** Active
+
+### URS-SEC-017
+**Requirement:** The system shall provide configurable MFA policy (`Off`, `Optional`, `RequiredForRoles`, `RequiredForAll`), required role list, and enrolment grace period, and shall block switching MFA policy from non-required to required unless at least two active System Administrators have an active second factor.
+**GxP:** Yes
+**Serves:** 21 CFR 11.10(d), 11.300(a); EU GMP Annex 11 clause 12 (to be confirmed by QA)
+**Status:** Active
+
+### URS-SEC-018
+**Requirement:** The system shall issue a short-lived single-use challenge when MFA verification or forced enrolment is required at sign-in, shall allow users to enrol or remove an authenticator app from their profile when not required by role, and shall record whether a session was verified with MFA.
+**GxP:** Yes
+**Serves:** 21 CFR 11.10(d), 11.300(a) (to be confirmed by QA)
+**Status:** Active
+
+### URS-SEC-019
+**Requirement:** The system shall generate a set of single-use recovery codes when MFA enrolment is confirmed, shall store only their cryptographic hashes, shall allow an authenticated user to regenerate them using password and current TOTP code, and shall notify the user by e-mail when a recovery code is used.
+**GxP:** Yes
+**Serves:** 21 CFR 11.300(c); EU GMP Annex 11 clause 12 (to be confirmed by QA)
+**Status:** Active
+
+### URS-SEC-020
+**Requirement:** The system shall allow a user to trust a browser for a configured number of hours after MFA verification, shall allow the user and administrators to revoke trusted computers, and shall automatically revoke all trusted computers on password change, password reset, factor removal, or administrator MFA reset.
+**GxP:** Yes
+**Serves:** 21 CFR 11.10(d), 11.300(b) (to be confirmed by QA)
+**Status:** Active
+
+### URS-SEC-021
+**Requirement:** The system shall allow an administrator holding `Users.Manage` to reset another user's MFA or assign a hardware token with a required documented reason, shall block self-reset and self-assignment, and shall record the action in both the laboratory audit trail and security audit trail.
+**GxP:** Yes
+**Serves:** 21 CFR 11.10(d), 11.10(e), 11.300(c); EU GMP Annex 11 clause 12 (to be confirmed by QA)
+**Status:** Active
+
+### URS-SEC-022
+**Requirement:** The system shall keep electronic signature verification unchanged (user ID and password only), shall mark MFA secret entities as audit-redacted, and shall count failed second-factor attempts toward challenge expiry and account lockout while recording security audit and sign-in history events.
+**GxP:** Yes
+**Serves:** 21 CFR 11.10(d), 11.10(e), 11.200(a), 11.300(d); EU GMP Annex 11 clause 12 (to be confirmed by QA)
 **Status:** Active

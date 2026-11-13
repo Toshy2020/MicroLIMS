@@ -2,7 +2,19 @@ namespace MicroLIMS.Application.Interfaces;
 
 // RoleName is the role's display name (Role.Name), as opposed to the base
 // type carried in the token's role claim.
-public record LoginOutcome(bool Success, string? Token, string? RefreshToken, string? FailureReason, bool MustChangePassword = false, string? RoleName = null);
+public record LoginOutcome(
+    bool Success,
+    string? Token,
+    string? RefreshToken,
+    string? FailureReason,
+    bool MustChangePassword = false,
+    string? RoleName = null,
+    bool MfaRequired = false,
+    bool MfaEnrolmentRequired = false,
+    string? MfaToken = null,
+    DateTime? MfaEnrolmentDueAt = null,
+    string? DeviceToken = null,
+    int? RecoveryCodesRemaining = null);
 
 public record CurrentUserInfo(int UserId, string Username, string FullName, string Role, string? JobTitle, DateTime? LastLoginAt, DateTime? PasswordChangedAt, bool MustChangePassword, string RoleName);
 
@@ -17,7 +29,7 @@ public delegate string AccessTokenIssuer(AccessTokenSubject subject);
 
 public interface IAuthenticationService
 {
-    Task<LoginOutcome> LoginAsync(string username, string password, string? ipAddress = null, string? userAgent = null);
+    Task<LoginOutcome> LoginAsync(string username, string password, string? ipAddress = null, string? userAgent = null, string? deviceToken = null);
     Task<LoginOutcome> RefreshAsync(string refreshToken, string? ipAddress = null, string? userAgent = null);
 
     // Ends the caller's session. When refreshToken identifies one of this

@@ -70,7 +70,8 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ISecurityRequestContext, HttpSecurityRequestContext>();
         services.AddScoped<ISecurityAuditService, SecurityAuditService>();
 
-        services.AddScoped<IAuthenticationService, AuthenticationService>();
+        services.AddScoped<AuthenticationService>();
+        services.AddScoped<IAuthenticationService>(sp => sp.GetRequiredService<AuthenticationService>());
         services.AddScoped<ElectronicSignatureService>();
         services.AddScoped<IElectronicSignatureService>(sp => sp.GetRequiredService<ElectronicSignatureService>());
         services.AddScoped<SegregationOfDutiesGuard>();
@@ -321,6 +322,7 @@ public static class ServiceCollectionExtensions
             sp.GetRequiredService<ISecurityAuditService>()));
         services.AddScoped<IAccessReviewService, MicroLIMS.Application.Services.AccessReviewService>();
         services.AddScoped<MicroLIMS.Application.Services.Mfa.MfaPolicyService>();
+        services.AddScoped<IMfaService, MicroLIMS.Application.Services.Mfa.MfaService>();
         services.AddScoped<IAuditTrailReviewService, MicroLIMS.Application.Services.AuditTrailReviewService>();
         services.AddScoped<IDatabaseStatsQuery, DatabaseStatsQuery>();
         services.AddScoped<IDatabaseOverviewService, DatabaseOverviewService>();

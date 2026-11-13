@@ -55,6 +55,7 @@ const FpInstrumentsPage = lazy(() => import("../modules/laboratoryConfiguration/
 const ChromatographyColumnsPage = lazy(() => import("../modules/laboratoryConfiguration/masterDataSimple/ChromatographyColumnsPage").then((m) => ({ default: m.ChromatographyColumnsPage })));
 const SolutionMasterPage = lazy(() => import("../modules/laboratoryConfiguration/masterDataSimple/SolutionMasterPage").then((m) => ({ default: m.SolutionMasterPage })));
 const HplcMethodsPage = lazy(() => import("../modules/laboratoryConfiguration/masterDataSimple/HplcMethodsPage").then((m) => ({ default: m.HplcMethodsPage })));
+const LabelFormatsPage = lazy(() => import("../modules/laboratoryConfiguration/labelFormats/LabelFormatsPage").then((m) => ({ default: m.LabelFormatsPage })));
 const PreparationListPage = lazy(() => import("../modules/solutionPreparation/PreparationListPage").then((m) => ({ default: m.PreparationListPage })));
 const PreparationWizardPage = lazy(() => import("../modules/solutionPreparation/PreparationWizardPage").then((m) => ({ default: m.PreparationWizardPage })));
 const PreparationRecordPage = lazy(() => import("../modules/solutionPreparation/PreparationRecordPage").then((m) => ({ default: m.PreparationRecordPage })));
@@ -253,6 +254,9 @@ export function AppRoutes() {
               <Route path="/laboratory-configuration/material-master" element={<Navigate to="/laboratory-configuration/master-testing-materials?tab=reagents" replace />} />
               <Route path="/laboratory-configuration/solution-master" element={<SolutionMasterPage />} />
               <Route path="/laboratory-configuration/hplc-methods" element={<HplcMethodsPage />} />
+            </Route>
+            <Route element={<PermissionRoute code={PERMISSIONS.LABELS_CONFIGURE} />}>
+              <Route path="/laboratory-configuration/label-formats" element={<LabelFormatsPage />} />
             </Route>
 
             {/* Document Control Module (Release 1a) */}

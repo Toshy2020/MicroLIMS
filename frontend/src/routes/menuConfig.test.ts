@@ -301,3 +301,28 @@ describe("Microbiology solutions menu entries", () => {
     ]);
   });
 });
+
+describe("Label Formats menu entry", () => {
+  const labItemsFor = (permissions: string[]) =>
+    getGroupedMenu({
+      role: "Analyst",
+      permissions,
+      labCodes: ["MICRO", "FP"],
+      physchemAreas: ["fp", "rmpm"]
+    }).find((g) => g.groupName === "LABORATORIES")?.items ?? [];
+
+  it("is offered under both Microbiology and Physicochemical Configuration only with Labels.Configure", () => {
+    const withLabelPerm = labItemsFor([PERMISSIONS.LABELS_CONFIGURE]);
+    const microConfig = withLabelPerm.find((i) => i.path === "/sections/microbiology-configuration");
+    const physchemConfig = withLabelPerm.find((i) => i.path === "/sections/physicochemical-configuration");
+
+    expect(microConfig?.children?.find((c) => c.path === "/laboratory-configuration/label-formats")?.label).toBe("Label Formats");
+    expect(physchemConfig?.children?.find((c) => c.path === "/laboratory-configuration/label-formats")?.label).toBe("Label Formats");
+
+    const masterDataOnly = labItemsFor([PERMISSIONS.MASTER_DATA_MANAGE]);
+    const microMasterOnly = masterDataOnly.find((i) => i.path === "/sections/microbiology-configuration");
+    const physchemMasterOnly = masterDataOnly.find((i) => i.path === "/sections/physicochemical-configuration");
+    expect(microMasterOnly?.children?.find((c) => c.path === "/laboratory-configuration/label-formats")).toBeUndefined();
+    expect(physchemMasterOnly?.children?.find((c) => c.path === "/laboratory-configuration/label-formats")).toBeUndefined();
+  });
+});

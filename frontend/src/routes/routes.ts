@@ -58,6 +58,7 @@ const APP_ROUTES = {
   SOLUTION_MASTER: "/laboratory-configuration/solution-master",
   HPLC_METHODS: "/laboratory-configuration/hplc-methods",
   FP_INSTRUMENTS: "/laboratory-configuration/fp-instruments",
+  LABEL_FORMATS: "/laboratory-configuration/label-formats",
 
   // Inventory & Stock
   INVENTORY_MATERIALS: "/inventory/materials",

@@ -44,6 +44,7 @@ import WaterDropOutlinedIcon from "@mui/icons-material/WaterDropOutlined";
 import WaterOutlinedIcon from "@mui/icons-material/WaterOutlined";
 import WhatshotOutlinedIcon from "@mui/icons-material/WhatshotOutlined";
 import WorkspacePremiumOutlinedIcon from "@mui/icons-material/WorkspacePremiumOutlined";
+import QrCode2OutlinedIcon from "@mui/icons-material/QrCode2Outlined";
 import { Role } from "../modules/authentication/types/authTypes";
 import { PERMISSIONS } from "./routes";
 import type { CounterSource } from "../services/sectionCountersService";
@@ -170,18 +171,26 @@ const microArea: MenuItem = {
   ]
 };
 
+const labelFormatsMenuItem: MenuItem = {
+  label: "Label Formats",
+  path: "/laboratory-configuration/label-formats",
+  icon: QrCode2OutlinedIcon,
+  permission: PERMISSIONS.LABELS_CONFIGURE,
+  description: "Barcode label dimensions, layouts and default copy counts."
+};
+
 const microConfigArea: MenuItem = {
   label: "Microbiology Configuration",
   description: "Tests, organisms, media and sampling-point master data.",
   path: "/sections/microbiology-configuration",
   icon: BiotechOutlinedIcon,
   group: "LABORATORIES",
-  permission: PERMISSIONS.MASTER_DATA_MANAGE,
   children: [
-    { label: "Test Master", path: "/laboratory-configuration/test-master", icon: ListAltOutlinedIcon, description: "Microbiology test definitions, steps, media and limits." },
-    { label: "Environmental Monitoring", path: "/laboratory-configuration/environmental-monitoring", icon: AirOutlinedIcon, description: "EM locations, sampling methods and alert/action limits." },
-    { label: "Solutions", path: "/laboratory-configuration/solution-master?lab=MICRO", icon: WaterOutlinedIcon, description: "Diluent, reagent and neutralizer recipes." },
-    { label: "Equipment", path: "/laboratory-configuration/equipment", icon: SettingsOutlinedIcon, description: "Equipment types and settings used by microbiology tests." }
+    { label: "Test Master", path: "/laboratory-configuration/test-master", icon: ListAltOutlinedIcon, permission: PERMISSIONS.MASTER_DATA_MANAGE, description: "Microbiology test definitions, steps, media and limits." },
+    { label: "Environmental Monitoring", path: "/laboratory-configuration/environmental-monitoring", icon: AirOutlinedIcon, permission: PERMISSIONS.MASTER_DATA_MANAGE, description: "EM locations, sampling methods and alert/action limits." },
+    { label: "Solutions", path: "/laboratory-configuration/solution-master?lab=MICRO", icon: WaterOutlinedIcon, permission: PERMISSIONS.MASTER_DATA_MANAGE, description: "Diluent, reagent and neutralizer recipes." },
+    { label: "Equipment", path: "/laboratory-configuration/equipment", icon: SettingsOutlinedIcon, permission: PERMISSIONS.MASTER_DATA_MANAGE, description: "Equipment types and settings used by microbiology tests." },
+    labelFormatsMenuItem
   ]
 };
 
@@ -220,15 +229,15 @@ const physchemConfigArea: MenuItem = {
   path: "/sections/physicochemical-configuration",
   icon: MedicationOutlinedIcon,
   group: "LABORATORIES",
-  permission: PERMISSIONS.MASTER_DATA_MANAGE,
   children: [
-    { label: "FP Test Master", path: "/laboratory-configuration/fp-test-master", icon: ListAltOutlinedIcon, description: "Finished product test definitions and specifications." },
-    { label: "RM & PM Test Master", path: "/laboratory-configuration/rm-pm-test-master", icon: FactCheckOutlinedIcon, description: "Raw material and packaging test definitions." },
-    { label: "Equation Types", path: "/laboratory-configuration/equation-types", icon: FunctionsOutlinedIcon, description: "Calculation equations used by physicochemical tests." },
-    { label: "Physicochemical Instruments", path: "/laboratory-configuration/fp-instruments", icon: MemoryOutlinedIcon, description: "Instrument types available to physicochemical tests." },
-    { label: "Chromatography Columns", path: "/laboratory-configuration/columns", icon: ViewColumnOutlinedIcon, description: "Chromatography columns and their usage history." },
-    { label: "Solutions", path: "/laboratory-configuration/solution-master", icon: WaterOutlinedIcon, description: "Solution recipes and standardization rules." },
-    { label: "HPLC Methods", path: "/laboratory-configuration/hplc-methods", icon: BubbleChartOutlinedIcon, description: "HPLC methods: conditions, analytes and suitability criteria." }
+    { label: "FP Test Master", path: "/laboratory-configuration/fp-test-master", icon: ListAltOutlinedIcon, permission: PERMISSIONS.MASTER_DATA_MANAGE, description: "Finished product test definitions and specifications." },
+    { label: "RM & PM Test Master", path: "/laboratory-configuration/rm-pm-test-master", icon: FactCheckOutlinedIcon, permission: PERMISSIONS.MASTER_DATA_MANAGE, description: "Raw material and packaging test definitions." },
+    { label: "Equation Types", path: "/laboratory-configuration/equation-types", icon: FunctionsOutlinedIcon, permission: PERMISSIONS.MASTER_DATA_MANAGE, description: "Calculation equations used by physicochemical tests." },
+    { label: "Physicochemical Instruments", path: "/laboratory-configuration/fp-instruments", icon: MemoryOutlinedIcon, permission: PERMISSIONS.MASTER_DATA_MANAGE, description: "Instrument types available to physicochemical tests." },
+    { label: "Chromatography Columns", path: "/laboratory-configuration/columns", icon: ViewColumnOutlinedIcon, permission: PERMISSIONS.MASTER_DATA_MANAGE, description: "Chromatography columns and their usage history." },
+    { label: "Solutions", path: "/laboratory-configuration/solution-master", icon: WaterOutlinedIcon, permission: PERMISSIONS.MASTER_DATA_MANAGE, description: "Solution recipes and standardization rules." },
+    { label: "HPLC Methods", path: "/laboratory-configuration/hplc-methods", icon: BubbleChartOutlinedIcon, permission: PERMISSIONS.MASTER_DATA_MANAGE, description: "HPLC methods: conditions, analytes and suitability criteria." },
+    labelFormatsMenuItem
   ]
 };
 

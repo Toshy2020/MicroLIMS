@@ -1,14 +1,24 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
-import { cleanup, render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { cleanup, render, screen, fireEvent, waitFor, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material";
 import { lightTheme } from "../../../../theme";
+import { AuthProvider } from "../../../../contexts/AuthContext";
+import { PERMISSIONS } from "../../../../routes/routes";
+import { labelService } from "../../../../services/labelService";
 import { EquipmentDetailsDialog } from "./EquipmentDetailsDialog";
 import { EquipmentInventoryService } from "../services/EquipmentInventoryService";
 import { EquipmentPlanService } from "../services/EquipmentPlanService";
 import type { EquipmentItem } from "../types/equipmentTypes";
 
-vi.mock("../../../../contexts/AuthContext", () => ({
-  useAuth: () => ({ permissions: [], user: { id: 1, fullName: "Alice" } })
+vi.mock("../../../../services/labelService", () => ({
+  labelService: {
+    getStatus: vi.fn(),
+    print: vi.fn(),
+    getFormats: vi.fn(),
+    updateFormat: vi.fn(),
+    resolveScan: vi.fn()
+  }
 }));
 
 vi.mock("../services/EquipmentInventoryService", () => ({
@@ -17,6 +27,12 @@ vi.mock("../services/EquipmentInventoryService", () => ({
     getDocuments: vi.fn().mockResolvedValue([])
   }
 }));
+
+function seedPermissions(permissions: string[]) {
+  const b64 = (obj: object) => btoa(JSON.stringify(obj)).replace(/=+$/, "");
+  const token = `${b64({ alg: "none" })}.${b64({ role: "Analyst", permission: permissions })}.x`;
+  localStorage.setItem("microlims_token", token);
+}
 
 vi.mock("../services/EquipmentPlanService", () => ({
   EquipmentPlanService: {
@@ -44,9 +60,25 @@ vi.mock("../services/EquipmentPlanService", () => ({
   }
 }));
 
+beforeEach(() => {
+  localStorage.clear();
+  seedPermissions([PERMISSIONS.EQUIPMENT_MANAGE, PERMISSIONS.LABELS_REPRINT]);
+  vi.mocked(labelService.getStatus).mockResolvedValue([
+    {
+      entityType: "EquipmentAsset",
+      entityId: 1,
+      canPrint: true,
+      blockedReason: null,
+      printCount: 0,
+      defaultCopies: 1
+    }
+  ]);
+});
+
 afterEach(() => {
   cleanup();
   vi.clearAllMocks();
+  localStorage.clear();
 });
 
 const mockEquipment: EquipmentItem = {
@@ -68,13 +100,15 @@ describe("EquipmentDetailsDialog tabs", () => {
   it("renders Details, Schedule, Logbook, and History tabs and switches between them", async () => {
     render(
       <ThemeProvider theme={lightTheme}>
-        <EquipmentDetailsDialog
-          open={true}
-          equipment={mockEquipment}
-          onClose={vi.fn()}
-          onEditEquipment={vi.fn()}
-          onEquipmentUpdated={vi.fn()}
-        />
+        <AuthProvider>
+          <EquipmentDetailsDialog
+            open={true}
+            equipment={mockEquipment}
+            onClose={vi.fn()}
+            onEditEquipment={vi.fn()}
+            onEquipmentUpdated={vi.fn()}
+          />
+        </AuthProvider>
       </ThemeProvider>
     );
 
@@ -119,13 +153,15 @@ describe("EquipmentDetailsDialog tabs", () => {
     const onEquipmentUpdated = vi.fn();
     const { rerender } = render(
       <ThemeProvider theme={lightTheme}>
-        <EquipmentDetailsDialog
-          open={true}
-          equipment={mockEquipment}
-          onClose={vi.fn()}
-          onEditEquipment={vi.fn()}
-          onEquipmentUpdated={onEquipmentUpdated}
-        />
+        <AuthProvider>
+          <EquipmentDetailsDialog
+            open={true}
+            equipment={mockEquipment}
+            onClose={vi.fn()}
+            onEditEquipment={vi.fn()}
+            onEquipmentUpdated={onEquipmentUpdated}
+          />
+        </AuthProvider>
       </ThemeProvider>
     );
 
@@ -162,18 +198,51 @@ describe("EquipmentDetailsDialog tabs", () => {
 
     rerender(
       <ThemeProvider theme={lightTheme}>
-        <EquipmentDetailsDialog
-          open={true}
-          equipment={reloadedEquipment}
-          onClose={vi.fn()}
-          onEditEquipment={vi.fn()}
-          onEquipmentUpdated={onEquipmentUpdated}
-        />
+        <AuthProvider>
+          <EquipmentDetailsDialog
+            open={true}
+            equipment={reloadedEquipment}
+            onClose={vi.fn()}
+            onEditEquipment={vi.fn()}
+            onEquipmentUpdated={onEquipmentUpdated}
+          />
+        </AuthProvider>
       </ThemeProvider>
     );
 
     // Stays on Schedule tab, not jumping back to Details
     expect(screen.getByText("Calibration & Maintenance Schedule")).toBeTruthy();
     expect(screen.queryByText("Instrument Information")).toBeNull();
+  });
+
+  it("shows the print label button with the record's code", async () => {
+    const user = userEvent.setup();
+    render(
+      <ThemeProvider theme={lightTheme}>
+        <AuthProvider>
+          <EquipmentDetailsDialog
+            open={true}
+            equipment={mockEquipment}
+            onClose={vi.fn()}
+            onEditEquipment={vi.fn()}
+            onEquipmentUpdated={vi.fn()}
+          />
+        </AuthProvider>
+      </ThemeProvider>
+    );
+
+    const printBtn = await screen.findByRole("button", { name: "Print label" });
+    await waitFor(() => {
+      expect(printBtn.hasAttribute("disabled")).toBe(false);
+    });
+
+    await user.click(printBtn);
+
+    const dialog = await screen.findByRole("dialog", { name: "Print labels" });
+    expect(await within(dialog).findByText("EQ-001")).toBeTruthy();
+    expect(labelService.getStatus).toHaveBeenCalledWith(
+      [{ entityType: "EquipmentAsset", entityId: 1 }],
+      expect.any(AbortSignal)
+    );
   });
 });

@@ -36,6 +36,7 @@ import { RecordCalibrationDialog } from "./RecordCalibrationDialog";
 import { MaintenanceLogSection } from "./MaintenanceLogSection";
 import { EquipmentHistoryPrint } from "./EquipmentHistoryPrint";
 import { FloatingDialog } from "../../../../components/FloatingDialog";
+import { PrintLabelButton } from "../../../../components/labels/PrintLabelButton";
 
 interface Props {
   open: boolean;
@@ -132,9 +133,21 @@ export function EquipmentDetailsDialog({
           </Box>
         }
         actions={
-          <Button onClick={onClose} color="inherit">
-            Close
-          </Button>
+          <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
+            <PrintLabelButton
+              target={{
+                entityType: "EquipmentAsset",
+                entityId: equipment.id,
+                code: equipment.code,
+                displayName: equipment.instrumentType
+                  ? `${equipment.code} — ${equipment.instrumentType}`
+                  : equipment.code
+              }}
+            />
+            <Button onClick={onClose} color="inherit">
+              Close
+            </Button>
+          </Stack>
         }
       >
         {message && (

@@ -56,6 +56,7 @@ public class DocumentApprovalService : IDocumentApprovalService
 
         var revision = await _db.DocumentRevisions
             .Include(r => r.DocumentMaster)
+                .ThenInclude(m => m.DocumentType)
             .Include(r => r.Files)
             .Include(r => r.ReviewTasks)
                 .ThenInclude(t => t.Findings)
@@ -103,11 +104,10 @@ public class DocumentApprovalService : IDocumentApprovalService
         if (approver == null || !approver.IsActive)
             throw new BusinessRuleException($"Target approver user {request.ApproverUserId} is invalid or inactive.");
 
-        // Approver role eligibility: Reviewer or SectionHead. A System Administrator
+        // Approver role eligibility: Reviewer, SectionHead, or Qa. A System Administrator
         // controls the system, never approves GxP data (21 CFR Part 11 §11.10(d)(g)).
-        if (approver.Role == null ||
-            (approver.Role.Type != RoleType.Reviewer &&
-             approver.Role.Type != RoleType.SectionHead))
+        if (approver.Role is null ||
+            approver.Role.Type is not (RoleType.Reviewer or RoleType.SectionHead or RoleType.Qa))
         {
             throw new BusinessRuleException($"User '{approver.FullName}' with role '{approver.Role?.Name ?? "None"}' is not eligible to be assigned as an approver.");
         }
@@ -119,6 +119,12 @@ public class DocumentApprovalService : IDocumentApprovalService
         // HARD SEGREGATION OF DUTIES RULE (DC-URS-078, DC-URS-164..169)
         // Author != Approver, Reviewer != Approver. SystemAdministrator is NOT exempt!
         ValidateSegregationOfDuties(revision, request.ApproverUserId);
+
+        EnsureQaApproverRequirement(
+            revision.DocumentMaster.DocumentType?.RequiresQaApprover ?? false,
+            requireApproved: false,
+            Array.Empty<(RoleType?, RoleType?, DocumentApprovalTaskStatus)>(),
+            proposedApproverRole: approver.Role.Type);
 
         var task = new DocumentApprovalTask
         {
@@ -394,6 +400,9 @@ public class DocumentApprovalService : IDocumentApprovalService
                 .ThenInclude(r => r.DocumentMaster)
                     .ThenInclude(m => m.Revisions)
             .Include(t => t.DocumentRevision)
+                .ThenInclude(r => r.DocumentMaster)
+                    .ThenInclude(m => m.DocumentType)
+            .Include(t => t.DocumentRevision)
                 .ThenInclude(r => r.Files)
             .Include(t => t.DocumentRevision)
                 .ThenInclude(r => r.ReviewTasks)
@@ -403,6 +412,7 @@ public class DocumentApprovalService : IDocumentApprovalService
             .Include(t => t.DocumentRevision)
                 .ThenInclude(r => r.ImpactAssessment)
             .Include(t => t.AssignedApproverUser)
+                .ThenInclude(u => u.Role)
             .Include(t => t.AssignedByUser)
             .FirstOrDefaultAsync(t => t.Id == approvalTaskId);
 
@@ -437,7 +447,7 @@ public class DocumentApprovalService : IDocumentApprovalService
             return await DeclineAsync(task, request, userId, actorUser, now);
 
         if (request.Decision == DocumentApprovalDecision.Approve)
-            return await ApproveAsync(task, request, userId, actorUser, now, ipAddress);
+            return await ApproveAsync(task, request, userId, actorUser, actorRole.Value, now, ipAddress);
 
         throw new ArgumentException($"Unsupported approval decision: {request.Decision}", nameof(request.Decision));
     }
@@ -530,7 +540,7 @@ public class DocumentApprovalService : IDocumentApprovalService
     }
 
     private async Task<DocumentApprovalTaskDto> ApproveAsync(
-        DocumentApprovalTask task, ExecuteApprovalDecisionRequest request, int userId, User? actorUser, DateTime now, string? ipAddress)
+        DocumentApprovalTask task, ExecuteApprovalDecisionRequest request, int userId, User? actorUser, RoleType actorRole, DateTime now, string? ipAddress)
     {
         var revision = task.DocumentRevision;
         var master = revision.DocumentMaster;
@@ -541,6 +551,11 @@ public class DocumentApprovalService : IDocumentApprovalService
         {
             throw new BusinessRuleException("Password re-authentication is required to apply an electronic signature for approval (21 CFR Part 11).");
         }
+
+        EnsureQaApproverRequirement(
+            master.DocumentType?.RequiresQaApprover ?? false,
+            requireApproved: true,
+            new[] { (task.AssignedApproverUser.Role?.Type, (RoleType?)actorRole, DocumentApprovalTaskStatus.Approved) });
 
         // Verify readiness strictly server-side
         var readiness = EvaluateReadiness(task, userId);
@@ -655,6 +670,45 @@ public class DocumentApprovalService : IDocumentApprovalService
     }
 
     // ---- Helper Methods ----
+
+    internal const string QaApproverRequiredMessage = "This document type requires approval by Quality Assurance.";
+
+    /// <summary>
+    /// Enforces the per-document-type "QA approver required" setting at workflow transitions.
+    /// Per Rule 3.1, switching <see cref="DocumentType.RequiresQaApprover"/> on never retroactively
+    /// alters revisions already in approval or already effective; this check runs at each
+    /// transition (submitting for approval or becoming effective) that occurs after the switch.
+    /// </summary>
+    internal static void EnsureQaApproverRequirement(
+        bool requiresQaApprover,
+        bool requireApproved,
+        IEnumerable<(RoleType? AssignedApproverRole, RoleType? DecisionActorRole, DocumentApprovalTaskStatus Status)> approvalTasks,
+        RoleType? proposedApproverRole = null)
+    {
+        if (!requiresQaApprover)
+            return;
+
+        if (requireApproved)
+        {
+            var hasQaApproval = approvalTasks.Any(t =>
+                t.Status == DocumentApprovalTaskStatus.Approved &&
+                t.AssignedApproverRole == RoleType.Qa &&
+                t.DecisionActorRole == RoleType.Qa);
+
+            if (!hasQaApproval)
+                throw new BusinessRuleException(QaApproverRequiredMessage);
+
+            return;
+        }
+
+        var hasQaAssignee = proposedApproverRole == RoleType.Qa ||
+            approvalTasks.Any(t =>
+                t.Status == DocumentApprovalTaskStatus.Pending &&
+                t.AssignedApproverRole == RoleType.Qa);
+
+        if (!hasQaAssignee)
+            throw new BusinessRuleException(QaApproverRequiredMessage);
+    }
 
     private static void ValidateSegregationOfDuties(DocumentRevision revision, int approverUserId)
     {

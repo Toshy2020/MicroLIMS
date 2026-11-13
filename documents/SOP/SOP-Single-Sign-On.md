@@ -1,6 +1,6 @@
 # SOP Draft Outline: Company sign-in (single sign-on)
 
-> **Draft outline — not approved.** This is a working draft outline generated from the implemented company sign-in design (`2026-11-13`) for completion, review, and approval by Laboratory Management and Quality Assurance before go-live. Items marked planned are not yet built.
+> **Draft outline — not approved.** This is a working draft outline generated from the implemented company sign-in design (`2026-11-13`) for completion, review, and approval by Laboratory Management and Quality Assurance before go-live. All items described here are built; site values are still to be completed.
 
 | Field | Value |
 |---|---|
@@ -18,13 +18,13 @@
 - Define how laboratory staff sign in with a company account, how company accounts are linked to MicroLIMS users, how emergency administrator accounts are held, how electronic signatures work for company users, how company sign-in is switched on or off, and how leavers and directory outages are handled.
 - Company sign-in changes only how a user proves identity. Roles, laboratory sections and permissions stay in MicroLIMS and are never read from the company directory.
 - Electronic signatures are not changed: every signature still requires user ID and a **MicroLIMS signing password**. The company password is never used for signing.
-- Modes: `Off` (default; local sign-in only), `OpenIdConnect` (built), and `ActiveDirectory` (planned; not yet available for sign-in).
+- Modes: `Off` (default; local sign-in only), `OpenIdConnect` (built), and `ActiveDirectory` (built).
 
 ## 2. Responsibilities
 
 - **All users:** Sign in only with your own company account. Keep your MicroLIMS signing password private. Your signing password must differ from your company password. Report sign-in problems to a System Administrator.
 - **System Administrators (`Users.Manage`):** Link users to company usernames, re-link accounts with a reason (never your own account), maintain emergency accounts and their custody, test the connection, and switch company sign-in on or off. Verify identity before a re-link or an emergency account change `[SITE TO COMPLETE: approved identity verification method]`.
-- **Company IT:** Register the MicroLIMS application with the provider (OpenID Connect) or create the service account (Active Directory, planned), register the callback address, keep the client secret, and disable company accounts of leavers on the day they leave.
+- **Company IT:** Register the MicroLIMS application with the provider (OpenID Connect) or create the service account (Active Directory), register the callback address, keep the client secret, and disable company accounts of leavers on the day they leave.
 - **Quality Assurance (QA):** Approve this SOP, set the site values marked below, and review company sign-in security events.
 
 ## 3. Mode, provider configuration and session cap
@@ -32,7 +32,7 @@
 - **Mode:** System Setting `security.sso.mode`, one value per installation: `Off` (default), `OpenIdConnect`, or `ActiveDirectory`. Changes follow section 7.
 - **Provider configuration (server, not in the database):** `Sso:Oidc:Authority`, `Sso:Oidc:ClientId`, `Sso:Oidc:ClientSecret`, `Sso:Oidc:UsernameClaim` (default `preferred_username`), `Sso:Oidc:RequireMfaClaim` (default off), and `Sso:Oidc:RedirectUri` (the callback address registered with the provider when MicroLIMS runs behind a proxy).
 - **Secret custody:** The client secret is kept outside source control in `[SITE TO COMPLETE: server secret store or vault, and who may read it]`.
-- **Session cap:** System Setting `security.sso.sessionMaxHours`, default `12`, allowed `1` to `24`. Site value: `[SITE TO COMPLETE: approved hours]`. Until the planned session cap is built, this setting does not end sessions. Do not rely on it before that build is verified.
+- **Session cap:** System Setting `security.sso.sessionMaxHours`, default `12`, allowed `1` to `24`. Site value: `[SITE TO COMPLETE: approved hours]`. In OpenID Connect mode a company sign-in session must sign in again once this many hours have passed since sign-in.
 - **Requirement for `RequireMfaClaim`:** `[SITE TO COMPLETE: whether the provider must show multi-factor sign-in; if on, the provider owns the second factor and MicroLIMS does not ask for one]`.
 
 ## 4. Linking users to company accounts
@@ -82,8 +82,8 @@
 ## 9. Leavers and disabled accounts
 
 - **Company account disabled:** Company IT disables the company account on the day the person leaves. The MicroLIMS user is then deactivated by a System Administrator and its active sessions are ended from User Sessions.
-- **Until the planned automatic checks are built:** Deactivation is manual. Do not rely on the session cap (section 3) to end a leaver's access.
-- **Active Directory mode (planned):** A background check runs every `60` minutes against each linked active account. A disabled or missing account is deactivated and its sessions ended automatically, and System Administrators are notified. A failed directory lookup changes nothing.
+- **OpenID Connect mode:** MicroLIMS is not told when a company account is disabled. Deactivate the leaver in MicroLIMS on the leaving day; the session cap (section 3) only limits how long an existing session can last.
+- **Active Directory mode:** A background check runs every `60` minutes against each linked active account. A disabled or missing account is deactivated and its sessions ended automatically, and System Administrators are notified. A failed directory lookup changes nothing.
 - **Reactivation:** Reactivation is always a manual action by a System Administrator, after the person's status is confirmed. A company account being enabled again does not reactivate the MicroLIMS user.
 
 ## 10. Directory or provider outage
@@ -108,7 +108,7 @@
 - **Database migration:** Apply migration `20261113075423_AddSingleSignOn`. It adds the company sign-in fields to users and the tables for the pending sign-in requests and the one-time exchange codes.
 - **Default is off:** The default mode is `Off`. Upgrading does not change how existing users sign in until an administrator switches company sign-in on.
 - **Configuration:** Set the `Sso:Oidc` values (section 3) before the first Test connection. Nothing is required for mode `Off`.
-- **Built after the planned items:** Active Directory sign-in, the session cap enforcement, and the leaver check are planned (FS-SEC-035 to FS-SEC-037). Do not switch on a mode that depends on them until they are built and verified.
+- **Verification before go-live:** Active Directory sign-in, the session cap and the leaver check (FS-SEC-035 to FS-SEC-037) are built and tested against PostgreSQL; the tests against a real directory server run in CI only. Verify them on site before switching on a mode that depends on them.
 - **Open conflicts before go-live:** `CONF-191` (sign-in method for linked accounts), `CONF-192` (connection-test security events), `CONF-193` (pending requests and exchange codes in the audit trail), `CONF-194` (reason for bulk import), `CONF-195` (provider shown when the mode is Off), `CONF-196` (emergency status at creation), and `CONF-197` (company username change and the stored link).
 
 ## 13. Review and approval

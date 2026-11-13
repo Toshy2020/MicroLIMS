@@ -30,6 +30,8 @@ import { MaterialFilterBar, MATERIAL_TYPE_OPTIONS } from "./components/MaterialF
 import { AddMaterialDialog } from "./components/AddMaterialDialog";
 import { MaterialLotDetailsDialog } from "./components/MaterialLotDetailsDialog";
 import { MaterialReleaseDialog } from "./components/MaterialReleaseDialog";
+import { PrintLabelsDialog } from "../../../components/labels/PrintLabelsDialog";
+import { usePostCreateLabelPrint } from "../../../components/labels/usePostCreateLabelPrint";
 
 const MATERIAL_TYPE_LABEL_MAP = new Map<string, string>(
   MATERIAL_TYPE_OPTIONS.map((opt) => [opt.value, opt.label])
@@ -132,6 +134,7 @@ export function MaterialsPage() {
   const [historyFor, setHistoryFor] = useState<number | null>(null);
   const [lotDetailsFor, setLotDetailsFor] = useState<MaterialItem | null>(null);
   const [releaseFor, setReleaseFor] = useState<MaterialItem | null>(null);
+  const postCreatePrint = usePostCreateLabelPrint();
 
   const loadData = async () => {
     try {
@@ -417,11 +420,27 @@ export function MaterialsPage() {
           setIsAddOpen(false);
           setEditingItem(null);
         }}
-        onSuccess={(msg) => {
+        onSuccess={(msg, created) => {
           setMessage({ text: msg, ok: true });
           loadData();
+          if (created?.stockId) {
+            postCreatePrint.offerPrint([
+              {
+                entityType: "MaterialStockLot",
+                entityId: created.id,
+                code: created.stockId,
+                displayName: created.materialName || created.stockId
+              }
+            ]);
+          }
         }}
         editingItem={editingItem}
+      />
+
+      <PrintLabelsDialog
+        open={postCreatePrint.dialogOpen}
+        targets={postCreatePrint.targets}
+        onClose={postCreatePrint.closeDialog}
       />
 
       {/* Lot Details Dialog (documents) */}

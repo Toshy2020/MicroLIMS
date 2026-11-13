@@ -74,10 +74,16 @@ const getMasterCategoryForType = (type: MaterialType): MaterialMasterCategory | 
   }
 };
 
+export interface CreatedMaterialRef {
+  id: number;
+  stockId: string | null;
+  materialName?: string;
+}
+
 interface AddMaterialDialogProps {
   open: boolean;
   onClose: () => void;
-  onSuccess: (message: string) => void;
+  onSuccess: (message: string, created?: CreatedMaterialRef) => void;
   editingItem: MaterialItem | null;
 }
 
@@ -667,8 +673,21 @@ export function AddMaterialDialog({ open, onClose, onSuccess, editingItem }: Add
         await MaterialService.update(editingItem.id, payload, editingItem.version);
         onSuccess("Material stock updated successfully.");
       } else {
-        const created = await MaterialService.create(payload);
-        onSuccess(created?.stockId ? `Material added to stock as ${created.stockId}.` : "Material added to stock successfully.");
+        const created = (await MaterialService.create(payload)) as
+          | { id?: number; stockId?: string | null; materialName?: string }
+          | undefined;
+        const createdRef: CreatedMaterialRef | undefined =
+          created && typeof created.id === "number"
+            ? {
+                id: created.id,
+                stockId: created.stockId ?? null,
+                materialName: created.materialName
+              }
+            : undefined;
+        onSuccess(
+          created?.stockId ? `Material added to stock as ${created.stockId}.` : "Material added to stock successfully.",
+          createdRef
+        );
       }
       onClose();
     } catch (err: unknown) {

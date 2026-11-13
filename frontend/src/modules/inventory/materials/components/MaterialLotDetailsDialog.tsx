@@ -20,6 +20,7 @@ import { MaterialDocumentList } from "./MaterialDocumentList";
 import { UploadMaterialDocumentDialog } from "./UploadMaterialDocumentDialog";
 import { LotPreparationsList } from "./LotPreparationsList";
 import { PreparationWhereUsedPanel } from "../../../testPreparation/components/PreparationWhereUsedPanel";
+import { PrintLabelButton } from "../../../../components/labels/PrintLabelButton";
 
 interface Props {
   open: boolean;
@@ -85,15 +86,24 @@ export function MaterialLotDetailsDialog({ open, material, onClose }: Props) {
         title="Lot Details"
         onClose={onClose}
         actions={
-          <Button
-            id="lot-details-upload-btn"
-            variant="contained"
-            size="small"
-            onClick={() => setUploadOpen(true)}
-            sx={{ ml: 1 }}
-          >
-            Upload Document
-          </Button>
+          <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
+            <PrintLabelButton
+              target={{
+                entityType: "MaterialStockLot",
+                entityId: material.id,
+                code: material.stockId ?? "",
+                displayName: material.materialName || material.stockId || "Stock Lot"
+              }}
+            />
+            <Button
+              id="lot-details-upload-btn"
+              variant="contained"
+              size="small"
+              onClick={() => setUploadOpen(true)}
+            >
+              Upload Document
+            </Button>
+          </Stack>
         }
       >
         {/* ---- Lot Metadata ---- */}

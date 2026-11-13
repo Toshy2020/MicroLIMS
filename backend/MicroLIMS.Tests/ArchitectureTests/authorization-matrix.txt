@@ -551,6 +551,7 @@ SampleSummaryController.GetSummary(Int32, Boolean): SystemAdministrator,SectionH
 SampleSummaryController.GetSummaryPdf(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 SampleSummaryController.GetSummaryWord(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 SampleTrackingController.Get(SampleTrackingFilterDto): SystemAdministrator,SectionHead,Qa
+ScanController.Resolve(String, CancellationToken): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 SectionCountersController.Get(String): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 SectionCountersController.GetDocumentControl(): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 SignaturesController.GetTrail(String, Int32): SystemAdministrator,SectionHead

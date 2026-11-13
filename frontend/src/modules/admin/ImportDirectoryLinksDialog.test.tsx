@@ -65,6 +65,7 @@ describe("ImportDirectoryLinksDialog", () => {
     expect(SsoAdminService.importLinks).not.toHaveBeenCalled();
 
     await user.click(screen.getByRole("checkbox", { name: "Skip invalid rows" }));
+    await user.type(screen.getByLabelText(/Reason for change/), "Quarterly directory sync");
     expect(importButton.disabled).toBe(false);
     await user.click(importButton);
     await waitFor(() => expect(SsoAdminService.importLinks).toHaveBeenCalledTimes(1));
@@ -76,12 +77,51 @@ describe("ImportDirectoryLinksDialog", () => {
     const onImported = renderDialog();
     await previewMixed(user);
     await user.click(screen.getByRole("checkbox", { name: "Skip invalid rows" }));
+    await user.type(screen.getByLabelText(/Reason for change/), "Quarterly directory sync");
     await user.click(screen.getByRole("button", { name: "Import" }));
 
     await waitFor(() => expect(screen.getByRole("status").textContent).toBe("Imported 1 directory link; 1 row skipped."));
     expect(onImported).toHaveBeenCalledTimes(1);
     // Cannot be imported twice.
     expect((screen.getByRole("button", { name: "Import" }) as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it("import: Import stays disabled until a non-blank reason is typed, and the gating text is visible", async () => {
+    const user = userEvent.setup();
+    vi.mocked(SsoAdminService.importLinks).mockResolvedValue({ ...MIXED, applied: 1 });
+    renderDialog();
+    await previewMixed(user);
+    await user.click(screen.getByRole("checkbox", { name: "Skip invalid rows" }));
+
+    const importButton = screen.getByRole("button", { name: "Import" }) as HTMLButtonElement;
+    expect(importButton.disabled).toBe(true);
+    expect(screen.getByText(/A reason is required before importing/)).toBeTruthy();
+
+    await user.type(screen.getByLabelText(/Reason for change/), "   ");
+    expect(importButton.disabled).toBe(true);
+
+    await user.type(screen.getByLabelText(/Reason for change/), "Audit fix");
+    expect(importButton.disabled).toBe(false);
+    expect(screen.queryByText(/A reason is required before importing/)).toBeNull();
+  });
+
+  it("import: importLinks receives the parsed rows and the trimmed reason", async () => {
+    const user = userEvent.setup();
+    vi.mocked(SsoAdminService.importLinks).mockResolvedValue({ ...MIXED, applied: 1 });
+    renderDialog();
+    await previewMixed(user);
+    await user.click(screen.getByRole("checkbox", { name: "Skip invalid rows" }));
+    await user.type(screen.getByLabelText(/Reason for change/), "  Onboarding batch 7  ");
+    await user.click(screen.getByRole("button", { name: "Import" }));
+
+    await waitFor(() => expect(SsoAdminService.importLinks).toHaveBeenCalledTimes(1));
+    expect(SsoAdminService.importLinks).toHaveBeenCalledWith(
+      [
+        { username: "jdoe", companyUsername: "john.doe" },
+        { username: "ghost", companyUsername: "g.host" }
+      ],
+      "Onboarding batch 7"
+    );
   });
 
   it("import: a failed preview shows the server's message", async () => {

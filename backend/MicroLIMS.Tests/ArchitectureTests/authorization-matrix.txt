@@ -17,6 +17,10 @@ AdminJobsController.Runs(String, Int32, Int32, CancellationToken): SystemAdminis
 AdminSettingsController.GetAll(CancellationToken): SystemAdministrator
 AdminSettingsController.History(String, CancellationToken): SystemAdministrator
 AdminSettingsController.Update(String, UpdateSystemSettingRequest): SystemAdministrator
+AdminUserMfaController.AssignHardwareToken(Int32, AssignHardwareTokenRequest, CancellationToken): SystemAdministrator
+AdminUserMfaController.ListTrustedDevices(Int32, CancellationToken): SystemAdministrator
+AdminUserMfaController.Reset(Int32, AdminResetMfaRequest, CancellationToken): SystemAdministrator
+AdminUserMfaController.RevokeTrustedDevice(Int32, Int32, CancellationToken): SystemAdministrator
 AdminUserSessionsController.List(Int32): SystemAdministrator
 AdminUserSessionsController.Revoke(Int32, RevokeUserSessionsRequest): SystemAdministrator
 AfterCleaningController.Prepare(PrepareAfterCleaningRequest): SectionHead,Reviewer,Analyst

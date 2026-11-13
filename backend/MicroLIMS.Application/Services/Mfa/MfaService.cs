@@ -172,9 +172,10 @@ public sealed class MfaService : IMfaService
             if (user is null || !user.IsActive || user.IsLockedAt(nowUtc))
                 return Fail();
 
+            List<string>? activatedRecoveryCodes = null;
             if (hasCode)
             {
-                var verified = await TryVerifyTotpAsync(user, code!, nowUtc, ct);
+                var (verified, recoveryCodes) = await TryVerifyTotpAsync(user, code!, nowUtc, ct);
                 if (!verified)
                 {
                     await RecordSecondFactorFailureAsync(challenge, user, ip, ct);
@@ -183,6 +184,7 @@ public sealed class MfaService : IMfaService
                     return Fail();
                 }
 
+                activatedRecoveryCodes = recoveryCodes;
                 challenge.ConsumedAt = nowUtc;
                 _securityAudit.Record(new SecurityEventRequest(
                     SecurityEventCodes.MfaVerified,
@@ -259,7 +261,8 @@ public sealed class MfaService : IMfaService
             result = outcome with
             {
                 DeviceToken = deviceToken,
-                RecoveryCodesRemaining = recoveryCodesRemaining
+                RecoveryCodesRemaining = recoveryCodesRemaining,
+                RecoveryCodes = activatedRecoveryCodes
             };
         }
         catch (DbUpdateConcurrencyException) when (ownsTransaction)
@@ -780,20 +783,43 @@ public sealed class MfaService : IMfaService
         return codes;
     }
 
-    private async Task<bool> TryVerifyTotpAsync(User user, string code, DateTime nowUtc, CancellationToken ct)
+    private async Task<(bool Verified, List<string>? ActivatedRecoveryCodes)> TryVerifyTotpAsync(
+        User user,
+        string code,
+        DateTime nowUtc,
+        CancellationToken ct)
     {
         var credential = await _db.UserMfaCredentials
-            .FirstOrDefaultAsync(c => c.UserId == user.Id && c.Status == MfaCredentialStatus.Active, ct);
+            .Where(c => c.UserId == user.Id
+                && (c.Status == MfaCredentialStatus.Active
+                    || (c.Status == MfaCredentialStatus.Pending && c.Type == MfaCredentialType.HardwareToken)))
+            .OrderBy(c => c.Status == MfaCredentialStatus.Active ? 0 : 1)
+            .FirstOrDefaultAsync(ct);
 
         if (credential is null)
-            return false;
+            return (false, null);
 
         var matchedStep = VerifyTotpCodeAgainstCredential(credential, code, nowUtc);
         if (matchedStep is null)
-            return false;
+            return (false, null);
 
         credential.LastAcceptedStep = matchedStep.Value;
-        return true;
+
+        if (credential.Status != MfaCredentialStatus.Pending)
+            return (true, null);
+
+        credential.Status = MfaCredentialStatus.Active;
+        credential.ConfirmedAt = nowUtc;
+
+        var recoveryCodes = await ReplaceRecoveryCodesAsync(user.Id, nowUtc, removeOnlyUnused: false, ct);
+        _securityAudit.Record(new SecurityEventRequest(
+            SecurityEventCodes.MfaEnrolled,
+            SecurityEventOutcome.Success,
+            ActorUserId: user.Id,
+            TargetUserId: user.Id,
+            TargetUsername: user.Username));
+
+        return (true, recoveryCodes);
     }
 
     private long? VerifyTotpCodeAgainstCredential(UserMfaCredential credential, string? code, DateTime nowUtc)

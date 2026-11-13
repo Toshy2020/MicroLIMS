@@ -52,7 +52,8 @@ public class AuthenticationController : ControllerBase
         mfaToken = outcome.MfaToken,
         mfaEnrolmentDueAt = outcome.MfaEnrolmentDueAt,
         deviceToken = outcome.DeviceToken,
-        recoveryCodesRemaining = outcome.RecoveryCodesRemaining
+        recoveryCodesRemaining = outcome.RecoveryCodesRemaining,
+        recoveryCodes = outcome.RecoveryCodes
     };
 
     [HttpPost("refresh")]

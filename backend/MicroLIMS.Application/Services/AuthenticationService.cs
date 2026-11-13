@@ -121,12 +121,14 @@ public class AuthenticationService : IAuthenticationService
             return new LoginOutcome(false, null, null, LoginFailedMessage);
         }
 
-        var hasActiveCredential = await _db.UserMfaCredentials
+        var hasVerifiableCredential = await _db.UserMfaCredentials
             .AsNoTracking()
-            .AnyAsync(c => c.UserId == user.Id && c.Status == MfaCredentialStatus.Active);
+            .AnyAsync(c => c.UserId == user.Id
+                && (c.Status == MfaCredentialStatus.Active
+                    || (c.Status == MfaCredentialStatus.Pending && c.Type == MfaCredentialType.HardwareToken)));
 
         var roleType = user.Role?.Type.ToString() ?? string.Empty;
-        var requirement = await _mfaPolicy.EvaluateAsync(roleType, hasActiveCredential, user.MfaRequiredSince, nowUtc);
+        var requirement = await _mfaPolicy.EvaluateAsync(roleType, hasVerifiableCredential, user.MfaRequiredSince, nowUtc);
 
         if (requirement.Kind == MfaLoginRequirement.Verify
             && await MfaService.IsTrustedDeviceCoreAsync(_db, _time, _mfaPolicy, user.Id, deviceToken))

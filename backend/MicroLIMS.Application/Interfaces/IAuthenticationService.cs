@@ -14,7 +14,8 @@ public record LoginOutcome(
     string? MfaToken = null,
     DateTime? MfaEnrolmentDueAt = null,
     string? DeviceToken = null,
-    int? RecoveryCodesRemaining = null);
+    int? RecoveryCodesRemaining = null,
+    IReadOnlyList<string>? RecoveryCodes = null);
 
 public record CurrentUserInfo(int UserId, string Username, string FullName, string Role, string? JobTitle, DateTime? LastLoginAt, DateTime? PasswordChangedAt, bool MustChangePassword, string RoleName);
 

@@ -66,6 +66,9 @@ public sealed class MfaPolicyService
     public Task<int> GetTrustedDeviceHoursAsync(CancellationToken ct = default) =>
         _settings.GetIntOrDefaultAsync(SystemSettingKeys.MfaTrustedDeviceHours, ct);
 
+    public Task<int> GetEnrolmentGraceDaysAsync(CancellationToken ct = default) =>
+        _settings.GetIntOrDefaultAsync(SystemSettingKeys.MfaEnrolmentGraceDays, ct);
+
     private async Task<bool> IsRequiredForRoleAsync(MfaPolicy policy, string roleType, CancellationToken ct)
     {
         switch (policy)

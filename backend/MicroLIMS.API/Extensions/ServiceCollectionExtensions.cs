@@ -324,6 +324,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IAccessReviewService, MicroLIMS.Application.Services.AccessReviewService>();
         services.AddScoped<MicroLIMS.Application.Services.Mfa.MfaPolicyService>();
         services.AddScoped<IMfaService, MicroLIMS.Application.Services.Mfa.MfaService>();
+        services.AddScoped<IMfaAdminService, MicroLIMS.Application.Services.Mfa.MfaAdminService>();
         services.AddScoped<IAuditTrailReviewService, MicroLIMS.Application.Services.AuditTrailReviewService>();
         services.AddScoped<IDatabaseStatsQuery, DatabaseStatsQuery>();
         services.AddScoped<IDatabaseOverviewService, DatabaseOverviewService>();

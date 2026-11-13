@@ -239,4 +239,15 @@ public class TotpTests
             "otpauth://totp/MicroLIMS%20Lab:a%2Bb%40example.com?secret=MZXW6YTBOI&issuer=MicroLIMS%20Lab&algorithm=SHA1&digits=6&period=60",
             uri60);
     }
+
+    [Fact]
+    public void FromHex_DecodesIgnoringSpacesAndCase_AndRejectsInvalidInput()
+    {
+        var expected = new byte[] { 0xDE, 0xAD, 0xBE, 0xEF, 0x01 };
+        Assert.Equal(expected, Totp.FromHex("deadbeef01"));
+        Assert.Equal(expected, Totp.FromHex("DE AD BE EF 01"));
+        Assert.Equal([], Totp.FromHex("   "));
+        Assert.Throws<FormatException>(() => Totp.FromHex("abc"));
+        Assert.Throws<FormatException>(() => Totp.FromHex("zzzz"));
+    }
 }

@@ -51,6 +51,14 @@ describe("MarkdownView", () => {
     expect(screen.queryByRole("heading", { level: 1 })).toBeNull();
   });
 
+  it("renders a guide table (GitHub table syntax) as a table, with html in a cell still as text", () => {
+    const { container } = renderMarkdown("| Role | Can approve |\n|---|---|\n| QA | Yes <script>x()</script> |");
+    expect(screen.getByRole("table")).toBeTruthy();
+    expect(screen.getByRole("columnheader", { name: "Can approve" })).toBeTruthy();
+    expect(screen.getByRole("cell", { name: "QA" })).toBeTruthy();
+    expect(container.querySelector("script")).toBeNull();
+  });
+
   it("a chapter link calls onNavigate; an external link opens safely in a new tab", async () => {
     const user = userEvent.setup();
     const { onNavigate } = renderMarkdown("[OOS](20-oos-tracking.md#raising-an-oos) and [site](https://example.com/x)");

@@ -16,6 +16,7 @@
 ### Transitive Components
 
 - The unified / remark / mdast / hast packages that `react-markdown` depends on (all MIT) are resolved to exact versions in `frontend/package-lock.json`. `rehype-raw` is **not** installed and must not be added: raw HTML in markdown stays disabled.
+- `remark-gfm` `4.0.1` (MIT, exact pinned version, released 2025-02-10) is used as a plugin so the GitHub table syntax used by the guide chapters renders as tables. It adds markdown syntax only (tables, autolinks, strikethrough, task lists) and does not enable raw HTML.
 
 ## Intended Use
 
@@ -36,6 +37,7 @@
   - `does not execute inline html, iframes or javascript: links`
   - `rewrites the image src, keeps alt, and lazy-loads`
   - `shifts headings so the chapter title is an h2`
+  - `renders a guide table (GitHub table syntax) as a table, with html in a cell still as text`
   - `a chapter link calls onNavigate; an external link opens safely in a new tab`
   - `every menuConfig path has a HELP_MAP entry`, `every HELP_MAP chapterId exists in CHAPTERS`, `CHAPTERS has 44 entries numbered 1-44 with titles`
   - `fails and names the chapter and file when a chapter references a missing screenshot`

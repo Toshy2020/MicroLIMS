@@ -2,6 +2,9 @@ import { useMemo } from "react";
 import type { ComponentPropsWithoutRef, ReactNode } from "react";
 import Markdown from "react-markdown";
 import type { Components } from "react-markdown";
+// GitHub table syntax: 12 guide chapters use tables. remark-gfm only adds
+// markdown syntax (tables, autolinks, strikethrough); raw HTML stays disabled.
+import remarkGfm from "remark-gfm";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 
@@ -21,7 +24,9 @@ export function rewriteImageSrc(src: string): string {
   return match ? `/help/screenshots/${match[1]}` : src;
 }
 
-type HeadingTag = "h2" | "h3" | "h4" | "h5" | "h6";
+const REMARK_PLUGINS = [remarkGfm];
+
+type HeadingTag ="h2" | "h3" | "h4" | "h5" | "h6";
 type HeadingVariant = "h5" | "h6" | "subtitle1" | "subtitle2";
 
 // The chapter title (## N. Title) becomes h2 and deeper levels follow, capped
@@ -95,7 +100,7 @@ export function MarkdownView({ markdown, onNavigate }: MarkdownViewProps) {
         "& pre": { overflowX: "auto" }
       }}
     >
-      <Markdown components={components}>{markdown}</Markdown>
+      <Markdown remarkPlugins={REMARK_PLUGINS} components={components}>{markdown}</Markdown>
     </Box>
   );
 }

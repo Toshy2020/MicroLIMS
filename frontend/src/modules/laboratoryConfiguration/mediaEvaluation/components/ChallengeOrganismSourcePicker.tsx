@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Alert, Box, Button, MenuItem, Select, Stack, TextField, Typography } from "@mui/material";
 import { MediaEvaluationService } from "../services/MediaEvaluationService";
+import { ScanField } from "../../../../components/labels/ScanField";
 import { serverMessage } from "../../../../utils/errorMessage";
 import type { MediaEvaluationChallenge, ThawedVialOption } from "../types/mediaEvaluationTypes";
 import type { CryovialItem } from "../../cryovials/types/cryovialTypes";
@@ -35,6 +36,8 @@ export function ChallengeOrganismSourcePicker({ challenge, batches, disks = [], 
   const [thawBatchId, setThawBatchId] = useState<number | "">("");
   const [thawNotes, setThawNotes] = useState("");
   const [busy, setBusy] = useState(false);
+  const onErrorRef = useRef(onError);
+  onErrorRef.current = onError;
 
   const assigned = !!challenge.cryovial || !!challenge.lyophilizedDisk;
 
@@ -44,7 +47,7 @@ export function ChallengeOrganismSourcePicker({ challenge, batches, disks = [], 
       .then(setThawedVials)
       .catch((e) => {
         setThawedVials([]);
-        onError(serverMessage(e) ?? "Could not load thawed vials.");
+        onErrorRef.current(serverMessage(e) ?? "Could not load thawed vials.");
       });
   }, [challenge.id, assigned, refreshKey]);
 
@@ -120,38 +123,49 @@ export function ChallengeOrganismSourcePicker({ challenge, batches, disks = [], 
       )}
 
       {((thawedVials?.length ?? 0) > 0 || disks.length > 0) && (
-        <Stack direction="row" spacing={1} sx={{ alignItems: "center", flexWrap: "wrap", rowGap: 1 }}>
-          <Select
-            size="small"
-            displayEmpty
-            value={selection}
-            onChange={(e) => setSelection(e.target.value)}
-            sx={{ minWidth: 320, maxWidth: "100%" }}
-            inputProps={{ "aria-label": "Thawed vial or disk" }}
-          >
-            <MenuItem value="">
-              <em>Select thawed vial or disk</em>
-            </MenuItem>
-            {(thawedVials ?? []).map((v) => (
-              <MenuItem key={`thaw:${v.thawEventId}`} value={`thaw:${v.thawEventId}`}>
-                {v.cryovialCode}, vial thawed {dt(v.thawedAt)} by {v.thawedByName}
-                {v.usedInMediaLots.length > 0 ? ` (used in ${v.usedInMediaLots.join(", ")})` : ""}
-              </MenuItem>
-            ))}
-            {disks.map((d) => (
-              <MenuItem key={`disk:${d.id}`} value={`disk:${d.id}`}>
-                {d.materialName}, batch {d.batchNumber} ({d.quantityRemaining} left), Lyophilized Disk
-              </MenuItem>
-            ))}
-          </Select>
-          <Button size="small" variant="contained" disabled={!selection || busy} onClick={assign}>
-            Assign
-          </Button>
-          {!showThawForm && thawableBatches.length > 0 && (
-            <Button size="small" variant="text" onClick={() => setThawOpen(true)}>
-              Thaw a new vial
-            </Button>
+        <Stack spacing={1}>
+          {disks.length > 0 && (
+            <ScanField
+              label="Scan lyophilized disk"
+              expectedType="MaterialStockLot"
+              offeredIds={disks.map((d) => d.id)}
+              onSelect={(id) => setSelection(`disk:${id}`)}
+              disabled={busy}
+            />
           )}
+          <Stack direction="row" spacing={1} sx={{ alignItems: "center", flexWrap: "wrap", rowGap: 1 }}>
+            <Select
+              size="small"
+              displayEmpty
+              value={selection}
+              onChange={(e) => setSelection(e.target.value)}
+              sx={{ minWidth: 320, maxWidth: "100%" }}
+              inputProps={{ "aria-label": "Thawed vial or disk" }}
+            >
+              <MenuItem value="">
+                <em>Select thawed vial or disk</em>
+              </MenuItem>
+              {(thawedVials ?? []).map((v) => (
+                <MenuItem key={`thaw:${v.thawEventId}`} value={`thaw:${v.thawEventId}`}>
+                  {v.cryovialCode}, vial thawed {dt(v.thawedAt)} by {v.thawedByName}
+                  {v.usedInMediaLots.length > 0 ? ` (used in ${v.usedInMediaLots.join(", ")})` : ""}
+                </MenuItem>
+              ))}
+              {disks.map((d) => (
+                <MenuItem key={`disk:${d.id}`} value={`disk:${d.id}`}>
+                  {d.materialName}, batch {d.batchNumber} ({d.quantityRemaining} left), Lyophilized Disk
+                </MenuItem>
+              ))}
+            </Select>
+            <Button size="small" variant="contained" disabled={!selection || busy} onClick={assign}>
+              Assign
+            </Button>
+            {!showThawForm && thawableBatches.length > 0 && (
+              <Button size="small" variant="text" onClick={() => setThawOpen(true)}>
+                Thaw a new vial
+              </Button>
+            )}
+          </Stack>
         </Stack>
       )}
 
@@ -165,39 +179,48 @@ export function ChallengeOrganismSourcePicker({ challenge, batches, disks = [], 
             <Typography sx={{ fontSize: 12, fontWeight: 700, color: "text.secondary", mb: 0.5 }}>
               THAW A VIAL
             </Typography>
-            <Stack direction="row" spacing={1} sx={{ alignItems: "center", flexWrap: "wrap", rowGap: 1 }}>
-              <Select
-                size="small"
-                displayEmpty
-                value={thawBatchId}
-                onChange={(e) => setThawBatchId(e.target.value)}
-                sx={{ minWidth: 260, maxWidth: "100%" }}
-                inputProps={{ "aria-label": "Cryovial batch to thaw from" }}
-              >
-                <MenuItem value="">
-                  <em>Cryovial batch</em>
-                </MenuItem>
-                {thawableBatches.map((b) => (
-                  <MenuItem key={b.id} value={b.id}>
-                    {b.code} ({b.vialsRemaining} of {b.numberOfVialsPrepared} vials left)
-                  </MenuItem>
-                ))}
-              </Select>
-              <TextField
-                size="small"
-                label="Notes (optional)"
-                value={thawNotes}
-                onChange={(e) => setThawNotes(e.target.value)}
-                sx={{ minWidth: 200 }}
+            <Stack spacing={1}>
+              <ScanField
+                label="Scan cryovial batch"
+                expectedType="Cryovial"
+                offeredIds={thawableBatches.map((b) => b.id)}
+                onSelect={(id) => setThawBatchId(id)}
+                disabled={busy}
               />
-              <Button size="small" variant="contained" disabled={thawBatchId === "" || busy} onClick={thawAndUse}>
-                Thaw &amp; use
-              </Button>
-              {thawOpen && (
-                <Button size="small" variant="text" onClick={() => setThawOpen(false)}>
-                  Cancel
+              <Stack direction="row" spacing={1} sx={{ alignItems: "center", flexWrap: "wrap", rowGap: 1 }}>
+                <Select
+                  size="small"
+                  displayEmpty
+                  value={thawBatchId}
+                  onChange={(e) => setThawBatchId(e.target.value)}
+                  sx={{ minWidth: 260, maxWidth: "100%" }}
+                  inputProps={{ "aria-label": "Cryovial batch to thaw from" }}
+                >
+                  <MenuItem value="">
+                    <em>Cryovial batch</em>
+                  </MenuItem>
+                  {thawableBatches.map((b) => (
+                    <MenuItem key={b.id} value={b.id}>
+                      {b.code} ({b.vialsRemaining} of {b.numberOfVialsPrepared} vials left)
+                    </MenuItem>
+                  ))}
+                </Select>
+                <TextField
+                  size="small"
+                  label="Notes (optional)"
+                  value={thawNotes}
+                  onChange={(e) => setThawNotes(e.target.value)}
+                  sx={{ minWidth: 200 }}
+                />
+                <Button size="small" variant="contained" disabled={thawBatchId === "" || busy} onClick={thawAndUse}>
+                  Thaw &amp; use
                 </Button>
-              )}
+                {thawOpen && (
+                  <Button size="small" variant="text" onClick={() => setThawOpen(false)}>
+                    Cancel
+                  </Button>
+                )}
+              </Stack>
             </Stack>
           </Box>
         )

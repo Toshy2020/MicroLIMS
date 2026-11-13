@@ -18,7 +18,9 @@ export default defineConfig({
     maxWorkers: 4
   },
   server: {
-    port: process.env.PORT ? Number(process.env.PORT) : 5173
+    port: process.env.PORT ? Number(process.env.PORT) : 5173,
+    // The in-app Help imports the guide chapters (?raw) from ../documentation.
+    fs: { allow: ['.', '../documentation'] }
   },
   build: {
     chunkSizeWarningLimit: 650,

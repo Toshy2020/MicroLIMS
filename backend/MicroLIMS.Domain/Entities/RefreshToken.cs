@@ -20,6 +20,7 @@ public class RefreshToken
     public string? CreatedIp { get; set; }
     public string? UserAgent { get; set; }
     public DateTime? LastUsedAt { get; set; }
+    public bool MfaVerified { get; set; } = false;
 
     // Takes the current time from the caller's injected clock (CLAUDE.md Rule 5.6).
     public bool IsActiveAt(DateTime nowUtc) => RevokedAt is null && ExpiresAt > nowUtc;

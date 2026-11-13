@@ -121,6 +121,98 @@ public class AuditCredentialRedactionTests
         Assert.Contains("\"Username\":\"analyst1\"", row.NewValue);
     }
 
+    [Fact]
+    public async Task MfaCredentialAndRecoveryCodeAndTrustedDevice_RedactSecretFieldsOnCreateAndUpdate()
+    {
+        using var db = CreateDbContext();
+        var user = SeedUser(db);
+        var fixedUtc = new DateTime(2026, 11, 13, 3, 0, 0, DateTimeKind.Utc);
+
+        const string initialSecret = "k1:nonce1:cipher1:tag1";
+        const string rotatedSecret = "k1:nonce2:cipher2:tag2";
+        const string recoveryHash = "sha256-recovery-code-hash-secret";
+        const string deviceHash = "sha256-trusted-device-token-secret";
+        const string revokedDeviceHash = "sha256-trusted-device-token-updated";
+
+        var credential = new UserMfaCredential
+        {
+            UserId = user.Id,
+            Type = MfaCredentialType.HardwareToken,
+            SecretProtected = initialSecret,
+            StepSeconds = 30,
+            SerialNumber = "HW-42",
+            Status = MfaCredentialStatus.Pending,
+            CreatedAt = fixedUtc
+        };
+        var recovery = new MfaRecoveryCode
+        {
+            UserId = user.Id,
+            CodeHash = recoveryHash,
+            CreatedAt = fixedUtc
+        };
+        var device = new TrustedDevice
+        {
+            UserId = user.Id,
+            TokenHash = deviceHash,
+            CreatedAt = fixedUtc,
+            ExpiresAt = fixedUtc.AddHours(12),
+            CreatedIp = "10.0.0.5"
+        };
+
+        db.UserMfaCredentials.Add(credential);
+        db.MfaRecoveryCodes.Add(recovery);
+        db.TrustedDevices.Add(device);
+        await db.SaveChangesAsync();
+
+        credential.SecretProtected = rotatedSecret;
+        credential.Status = MfaCredentialStatus.Active;
+        recovery.UsedAt = fixedUtc.AddMinutes(1);
+        device.TokenHash = revokedDeviceHash;
+        device.RevokedAt = fixedUtc.AddMinutes(2);
+        await db.SaveChangesAsync();
+
+        var credCreate = Assert.Single(await db.AuditLogs
+            .Where(a => a.EntityName == nameof(UserMfaCredential) && a.Action == "Create")
+            .ToListAsync());
+        Assert.Contains("\"SecretProtected\":\"[REDACTED]\"", credCreate.NewValue);
+        Assert.Contains("\"SerialNumber\":\"HW-42\"", credCreate.NewValue);
+        Assert.DoesNotContain(initialSecret, credCreate.NewValue);
+
+        var credUpdate = Assert.Single(await db.AuditLogs
+            .Where(a => a.EntityName == nameof(UserMfaCredential) && a.Action == "Update")
+            .ToListAsync());
+        Assert.Contains("\"SecretProtected\":\"[REDACTED]\"", credUpdate.PreviousValue);
+        Assert.Contains("\"SecretProtected\":\"[REDACTED]\"", credUpdate.NewValue);
+        Assert.DoesNotContain(initialSecret, credUpdate.PreviousValue);
+        Assert.DoesNotContain(rotatedSecret, credUpdate.NewValue);
+
+        var recoveryRows = await db.AuditLogs
+            .Where(a => a.EntityName == nameof(MfaRecoveryCode))
+            .ToListAsync();
+        Assert.Equal(2, recoveryRows.Count);
+        Assert.All(recoveryRows, row =>
+        {
+            Assert.Contains("\"CodeHash\":\"[REDACTED]\"", row.NewValue);
+            Assert.DoesNotContain(recoveryHash, row.PreviousValue ?? string.Empty);
+            Assert.DoesNotContain(recoveryHash, row.NewValue ?? string.Empty);
+        });
+
+        var deviceCreate = Assert.Single(await db.AuditLogs
+            .Where(a => a.EntityName == nameof(TrustedDevice) && a.Action == "Create")
+            .ToListAsync());
+        Assert.Contains("\"TokenHash\":\"[REDACTED]\"", deviceCreate.NewValue);
+        Assert.Contains("\"CreatedIp\":\"10.0.0.5\"", deviceCreate.NewValue);
+        Assert.DoesNotContain(deviceHash, deviceCreate.NewValue);
+
+        var deviceUpdate = Assert.Single(await db.AuditLogs
+            .Where(a => a.EntityName == nameof(TrustedDevice) && a.Action == "Update")
+            .ToListAsync());
+        Assert.Contains("\"TokenHash\":\"[REDACTED]\"", deviceUpdate.PreviousValue);
+        Assert.Contains("\"TokenHash\":\"[REDACTED]\"", deviceUpdate.NewValue);
+        Assert.DoesNotContain(deviceHash, deviceUpdate.PreviousValue);
+        Assert.DoesNotContain(revokedDeviceHash, deviceUpdate.NewValue);
+    }
+
     // ---- Drift protection ----
 
     // String properties that look like credential material but are not, so
@@ -178,6 +270,21 @@ public class AuditCredentialRedactionTests
             (typeof(PasswordResetToken), nameof(PasswordResetToken.TokenHash)),
             (typeof(AdminPasswordRecovery), nameof(AdminPasswordRecovery.CodeHash)),
             (typeof(InstrumentAgent), nameof(InstrumentAgent.KeyHash)),
+        };
+        foreach (var (type, name) in expected)
+            Assert.True(type.GetProperty(name)!.IsDefined(typeof(AuditRedactedAttribute), inherit: true),
+                $"{type.Name}.{name} must be [AuditRedacted].");
+    }
+
+    [Fact]
+    public void MfaSecretProperties_AreMarkedRedacted()
+    {
+        var expected = new (Type, string)[]
+        {
+            (typeof(UserMfaCredential), nameof(UserMfaCredential.SecretProtected)),
+            (typeof(MfaRecoveryCode), nameof(MfaRecoveryCode.CodeHash)),
+            (typeof(MfaChallenge), nameof(MfaChallenge.TokenHash)),
+            (typeof(TrustedDevice), nameof(TrustedDevice.TokenHash)),
         };
         foreach (var (type, name) in expected)
             Assert.True(type.GetProperty(name)!.IsDefined(typeof(AuditRedactedAttribute), inherit: true),

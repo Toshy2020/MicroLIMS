@@ -49,6 +49,10 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext, IMicr
     public DbSet<PasswordResetToken> PasswordResetTokens => Set<PasswordResetToken>();
     public DbSet<PasswordHistory> PasswordHistories => Set<PasswordHistory>();
     public DbSet<AdminPasswordRecovery> AdminPasswordRecoveries => Set<AdminPasswordRecovery>();
+    public DbSet<UserMfaCredential> UserMfaCredentials => Set<UserMfaCredential>();
+    public DbSet<MfaRecoveryCode> MfaRecoveryCodes => Set<MfaRecoveryCode>();
+    public DbSet<MfaChallenge> MfaChallenges => Set<MfaChallenge>();
+    public DbSet<TrustedDevice> TrustedDevices => Set<TrustedDevice>();
     public DbSet<ElectronicSignature> ElectronicSignatures => Set<ElectronicSignature>();
     public DbSet<Item> Items => Set<Item>();
     public DbSet<Specification> Specifications => Set<Specification>();
@@ -582,6 +586,7 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext, IMicr
         typeof(BackgroundJobRun), // operational run log; a row per pass would be noise. Manual triggers are audited as security events
         typeof(BackupRun), // operational backup status, written by backup.sh; not a GxP record
         typeof(RefreshToken), // session state; recorded in the Security Audit Trail instead
+        typeof(MfaChallenge), // short-lived login state; every outcome is recorded by MfaService as an explicit security event
         typeof(NotificationLog), // derived reminders and read state; not a GxP record
         typeof(InstrumentIngestPayload), // append-only by DB trigger; hashes carried by the explicit ingest audit event
         typeof(SecurityAuditEvent), // security evidence, not a GxP record; also prevents recursive audit

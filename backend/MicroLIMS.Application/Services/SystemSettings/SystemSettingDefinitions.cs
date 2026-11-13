@@ -16,6 +16,10 @@ public static class SystemSettingKeys
     public const string PasswordResetLifetimeMinutes = "security.passwordReset.lifetimeMinutes";
     public const string SignatureMaxFailedAttempts = "security.signature.maxFailedAttempts";
     public const string SignatureWindowMinutes = "security.signature.windowMinutes";
+    public const string MfaPolicy = "security.mfa.policy";
+    public const string MfaRequiredRoles = "security.mfa.requiredRoles";
+    public const string MfaTrustedDeviceHours = "security.mfa.trustedDeviceHours";
+    public const string MfaEnrolmentGraceDays = "security.mfa.enrolmentGraceDays";
 
     public const string ErrorLogLowSeverityDays = "retention.errorLog.lowSeverityDays";
     public const string ErrorLogHighSeverityDays = "retention.errorLog.highSeverityDays";
@@ -157,6 +161,18 @@ public static class SystemSettingDefinitions
         new(SystemSettingKeys.SignatureWindowMinutes, SecurityCategory, SystemSettingValueType.Integer, "15",
             "Window in which failed electronic signatures are counted; also how long a throttled signer must wait.",
             "minutes", 1, 1440, IsGxpRelevant: true),
+        new(SystemSettingKeys.MfaPolicy, SecurityCategory, SystemSettingValueType.String, "RequiredForRoles",
+            "Who must sign in with a second factor: Off, Optional, RequiredForRoles, or RequiredForAll.",
+            AllowedValues: new[] { "Off", "Optional", "RequiredForRoles", "RequiredForAll" }, IsGxpRelevant: true),
+        new(SystemSettingKeys.MfaRequiredRoles, SecurityCategory, SystemSettingValueType.String, "SystemAdministrator,SectionHead,QcManager",
+            "Comma-separated role types that require a second factor when the policy is RequiredForRoles.",
+            IsGxpRelevant: true),
+        new(SystemSettingKeys.MfaTrustedDeviceHours, SecurityCategory, SystemSettingValueType.Integer, "12",
+            "How long a trusted computer skips the second-factor prompt; 0 asks at every sign-in.",
+            "hours", 0, 24, IsGxpRelevant: true),
+        new(SystemSettingKeys.MfaEnrolmentGraceDays, SecurityCategory, SystemSettingValueType.Integer, "7",
+            "Days a newly required user may still sign in before second-factor enrolment becomes mandatory; 0 requires enrolment immediately.",
+            "days", 0, 30, IsGxpRelevant: true),
 
         new(SystemSettingKeys.ErrorLogLowSeverityDays, RetentionCategory, SystemSettingValueType.Integer, "180",
             "How long Info and Warning incidents are kept in the technical error log before they are pruned.",

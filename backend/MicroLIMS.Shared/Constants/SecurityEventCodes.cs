@@ -30,6 +30,20 @@ public static class SecurityEventCodes
     public const string PasswordChangeFailed = "AUTH_PASSWORD_CHANGE_FAILED";
     public const string PasswordReset = "AUTH_PASSWORD_RESET";
 
+    // ---- Multi-factor authentication ----
+    public const string MfaEnrolmentStarted = "AUTH_MFA_ENROLMENT_STARTED";
+    public const string MfaEnrolled = "AUTH_MFA_ENROLLED";
+    public const string MfaTokenAssigned = "AUTH_MFA_TOKEN_ASSIGNED";
+    public const string MfaVerified = "AUTH_MFA_VERIFIED";
+    public const string MfaFailed = "AUTH_MFA_FAILED";
+    public const string MfaChallengeIssued = "AUTH_MFA_CHALLENGE_ISSUED";
+    public const string MfaRecoveryCodeUsed = "AUTH_MFA_RECOVERY_CODE_USED";
+    public const string MfaRecoveryCodesRegenerated = "AUTH_MFA_RECOVERY_CODES_REGENERATED";
+    public const string MfaRemovedByUser = "AUTH_MFA_REMOVED_BY_USER";
+    public const string MfaResetByAdmin = "AUTH_MFA_RESET_BY_ADMIN";
+    public const string TrustedDeviceAdded = "AUTH_TRUSTED_DEVICE_ADDED";
+    public const string TrustedDeviceRevoked = "AUTH_TRUSTED_DEVICE_REVOKED";
+
     // ---- Account state ----
     public const string AccountDisabled = "AUTH_ACCOUNT_DISABLED";
     public const string AccountEnabled = "AUTH_ACCOUNT_ENABLED";

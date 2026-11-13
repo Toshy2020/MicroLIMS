@@ -170,7 +170,7 @@ public class MfaEnrolmentPostgresTests
         await using (var actDb = _fixture.CreateDbContext(clock))
         {
             var (_, mfa) = CreateServices(actDb, clock);
-            started = await mfa.StartEnrolmentAsync(userId);
+            started = await mfa.StartEnrolmentWithPasswordAsync(userId, Password);
         }
 
         Assert.False(string.IsNullOrWhiteSpace(started.ManualKey));
@@ -206,14 +206,14 @@ public class MfaEnrolmentPostgresTests
         await using (var actDb1 = _fixture.CreateDbContext(clock))
         {
             var (_, mfa) = CreateServices(actDb1, clock);
-            first = await mfa.StartEnrolmentAsync(userId);
+            first = await mfa.StartEnrolmentWithPasswordAsync(userId, Password);
         }
 
         EnrolmentStart second;
         await using (var actDb2 = _fixture.CreateDbContext(clock))
         {
             var (_, mfa) = CreateServices(actDb2, clock);
-            second = await mfa.StartEnrolmentAsync(userId);
+            second = await mfa.StartEnrolmentWithPasswordAsync(userId, Password);
         }
 
         Assert.NotEqual(first.ManualKey, second.ManualKey);
@@ -237,14 +237,13 @@ public class MfaEnrolmentPostgresTests
         await using (var actDb1 = _fixture.CreateDbContext(clock))
         {
             var (_, mfa) = CreateServices(actDb1, clock);
-            var started = await mfa.StartEnrolmentAsync(userId);
+            var started = await mfa.StartEnrolmentWithPasswordAsync(userId, Password);
             await mfa.ConfirmEnrolmentAsync(userId, CodeFromManualKey(started.ManualKey, BaseUtc.UtcDateTime));
         }
 
         await using (var actDb2 = _fixture.CreateDbContext(clock))
         {
             var (_, mfa) = CreateServices(actDb2, clock);
-            await Assert.ThrowsAsync<BusinessRuleException>(() => mfa.StartEnrolmentAsync(userId));
             await Assert.ThrowsAsync<BusinessRuleException>(() => mfa.StartEnrolmentWithPasswordAsync(userId, Password));
         }
 
@@ -265,7 +264,7 @@ public class MfaEnrolmentPostgresTests
         await using (var actDb1 = _fixture.CreateDbContext(clock))
         {
             var (_, mfa) = CreateServices(actDb1, clock);
-            started = await mfa.StartEnrolmentAsync(userId);
+            started = await mfa.StartEnrolmentWithPasswordAsync(userId, Password);
         }
 
         var code = CodeFromManualKey(started.ManualKey, BaseUtc.UtcDateTime);
@@ -318,7 +317,7 @@ public class MfaEnrolmentPostgresTests
         await using (var actDb1 = _fixture.CreateDbContext(clock))
         {
             var (_, mfa) = CreateServices(actDb1, clock);
-            started = await mfa.StartEnrolmentAsync(userId);
+            started = await mfa.StartEnrolmentWithPasswordAsync(userId, Password);
         }
 
         await using (var actDb2 = _fixture.CreateDbContext(clock))
@@ -485,7 +484,7 @@ public class MfaEnrolmentPostgresTests
         await using (var actDb1 = _fixture.CreateDbContext(clock))
         {
             var (_, mfa) = CreateServices(actDb1, clock);
-            started = await mfa.StartEnrolmentAsync(userId);
+            started = await mfa.StartEnrolmentWithPasswordAsync(userId, Password);
             first = await mfa.ConfirmEnrolmentAsync(userId, CodeFromManualKey(started.ManualKey, clock.GetUtcNow().UtcDateTime));
         }
 
@@ -519,7 +518,7 @@ public class MfaEnrolmentPostgresTests
         await using (var actDb1 = _fixture.CreateDbContext(clock))
         {
             var (_, mfa) = CreateServices(actDb1, clock);
-            started = await mfa.StartEnrolmentAsync(userId);
+            started = await mfa.StartEnrolmentWithPasswordAsync(userId, Password);
             await mfa.ConfirmEnrolmentAsync(userId, CodeFromManualKey(started.ManualKey, clock.GetUtcNow().UtcDateTime));
         }
 
@@ -547,7 +546,7 @@ public class MfaEnrolmentPostgresTests
         await using (var actDb1 = _fixture.CreateDbContext(clock))
         {
             var (_, mfa) = CreateServices(actDb1, clock);
-            started = await mfa.StartEnrolmentAsync(userId);
+            started = await mfa.StartEnrolmentWithPasswordAsync(userId, Password);
             await mfa.ConfirmEnrolmentAsync(userId, CodeFromManualKey(started.ManualKey, clock.GetUtcNow().UtcDateTime));
         }
 
@@ -661,7 +660,7 @@ public class MfaEnrolmentPostgresTests
         await using (var actDb = _fixture.CreateDbContext(clock))
         {
             var (_, mfa) = CreateServices(actDb, clock);
-            started = await mfa.StartEnrolmentAsync(userId);
+            started = await mfa.StartEnrolmentWithPasswordAsync(userId, Password);
             confirmed = await mfa.ConfirmEnrolmentAsync(userId, CodeFromManualKey(started.ManualKey, BaseUtc.UtcDateTime));
         }
 
@@ -697,7 +696,7 @@ public class MfaEnrolmentPostgresTests
         await using (var actDb1 = _fixture.CreateDbContext(clock))
         {
             var (_, mfa) = CreateServices(actDb1, clock);
-            started = await mfa.StartEnrolmentAsync(userId);
+            started = await mfa.StartEnrolmentWithPasswordAsync(userId, Password);
             code = CodeFromManualKey(started.ManualKey, BaseUtc.UtcDateTime);
             await mfa.ConfirmEnrolmentAsync(userId, code);
         }
@@ -727,5 +726,72 @@ public class MfaEnrolmentPostgresTests
             var valid = await mfa.VerifyAsync(login.MfaToken!, nextStepCode, null, false, null, null);
             Assert.True(valid.Success);
         }
+    }
+
+    [PostgresFact]
+    public async Task Start_Authenticated_WrongPassword_RecordsFailureEvent()
+    {
+        var (userId, _) = await SeedUserAsync();
+        var clock = new FakeTimeProvider(BaseUtc);
+
+        await using (var actDb = _fixture.CreateDbContext(clock))
+        {
+            var (_, mfa) = CreateServices(actDb, clock);
+            await Assert.ThrowsAsync<BusinessRuleException>(() =>
+                mfa.StartEnrolmentWithPasswordAsync(userId, "WrongPassword9!"));
+        }
+
+        await using var assertDb = _fixture.CreateDbContext();
+        Assert.False(await assertDb.UserMfaCredentials.AsNoTracking().AnyAsync(c => c.UserId == userId));
+        var failure = await assertDb.SecurityAuditEvents.AsNoTracking()
+            .SingleAsync(e => e.TargetUserId == userId
+                           && e.EventCode == SecurityEventCodes.MfaFailed
+                           && e.Outcome == SecurityEventOutcome.Failure);
+        Assert.Equal(userId, failure.ActorUserId);
+        Assert.Equal("Password verification failed.", failure.Reason);
+    }
+
+    [PostgresFact]
+    public async Task Regenerate_WrongCode_RecordsFailureEvent_AndChangesNothing()
+    {
+        var (userId, _) = await SeedUserAsync();
+        var clock = new FakeTimeProvider(BaseUtc);
+
+        EnrolmentStart started;
+        EnrolmentResult first;
+        await using (var actDb1 = _fixture.CreateDbContext(clock))
+        {
+            var (_, mfa) = CreateServices(actDb1, clock);
+            started = await mfa.StartEnrolmentWithPasswordAsync(userId, Password);
+            first = await mfa.ConfirmEnrolmentAsync(userId, CodeFromManualKey(started.ManualKey, clock.GetUtcNow().UtcDateTime));
+        }
+
+        clock.Advance(TimeSpan.FromSeconds(60));
+        var badCode = WrongCode(started.ManualKey, clock.GetUtcNow().UtcDateTime);
+
+        await using (var actDb2 = _fixture.CreateDbContext(clock))
+        {
+            var (_, mfa) = CreateServices(actDb2, clock);
+            await Assert.ThrowsAsync<BusinessRuleException>(() =>
+                mfa.RegenerateRecoveryCodesAsync(userId, Password, badCode));
+        }
+
+        await using var assertDb = _fixture.CreateDbContext();
+        var storedHashes = await assertDb.MfaRecoveryCodes.AsNoTracking()
+            .Where(r => r.UserId == userId)
+            .Select(r => r.CodeHash)
+            .ToListAsync();
+        Assert.Equal(
+            first.RecoveryCodes.Select(AdminPasswordRecoveryService.HashRecoveryCode).ToHashSet(StringComparer.Ordinal),
+            storedHashes.ToHashSet(StringComparer.Ordinal));
+
+        var failure = await assertDb.SecurityAuditEvents.AsNoTracking()
+            .SingleAsync(e => e.TargetUserId == userId
+                           && e.EventCode == SecurityEventCodes.MfaFailed
+                           && e.Outcome == SecurityEventOutcome.Failure);
+        Assert.Equal(userId, failure.ActorUserId);
+        Assert.Equal("Code verification failed.", failure.Reason);
+        Assert.DoesNotContain(badCode, failure.Reason ?? string.Empty, StringComparison.Ordinal);
+        Assert.DoesNotContain(badCode, failure.Metadata ?? string.Empty, StringComparison.Ordinal);
     }
 }

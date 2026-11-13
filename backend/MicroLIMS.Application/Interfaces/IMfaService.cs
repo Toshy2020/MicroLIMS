@@ -21,7 +21,6 @@ public interface IMfaService
     Task<LoginOutcome> VerifyAsync(string mfaToken, string? code, string? recoveryCode, bool trustDevice, string? ip, string? userAgent, CancellationToken ct = default);
     Task<int> RevokeTrustedDevicesAsync(int userId, int? revokedByUserId, CancellationToken ct = default); // no SaveChanges; caller's unit of work
 
-    Task<EnrolmentStart> StartEnrolmentAsync(int userId, CancellationToken ct = default);
     Task<EnrolmentStart> StartEnrolmentWithPasswordAsync(int userId, string password, CancellationToken ct = default);
     Task<EnrolmentStart> StartEnrolmentWithTokenAsync(string mfaToken, CancellationToken ct = default);
     Task<EnrolmentResult> ConfirmEnrolmentAsync(int userId, string code, CancellationToken ct = default);

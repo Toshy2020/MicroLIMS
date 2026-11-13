@@ -291,33 +291,13 @@ public sealed class MfaService : IMfaService
         return result;
     }
 
-    public async Task<EnrolmentStart> StartEnrolmentAsync(int userId, CancellationToken ct = default)
-    {
-        var (_, tx) = await BeginOwnedTransactionAsync(ct);
-        try
-        {
-            var nowUtc = _time.GetUtcNow().UtcDateTime;
-            var user = await LoadActiveUserAsync(userId, nowUtc, includeRole: false, ct);
-            var started = await StartEnrolmentCoreAsync(user, nowUtc, ct);
-            await _db.SaveChangesAsync(ct);
-            if (tx is not null)
-                await tx.CommitAsync(ct);
-            return started;
-        }
-        finally
-        {
-            if (tx is not null)
-                await tx.DisposeAsync();
-        }
-    }
-
     public async Task<EnrolmentStart> StartEnrolmentWithPasswordAsync(int userId, string password, CancellationToken ct = default)
     {
         var (_, tx) = await BeginOwnedTransactionAsync(ct);
         try
         {
             var nowUtc = _time.GetUtcNow().UtcDateTime;
-            var user = await LoadAndVerifyPasswordAsync(userId, password, nowUtc, includeRole: false, ct);
+            var user = await LoadAndVerifyPasswordAsync(userId, password, nowUtc, includeRole: false, tx, ct);
             var started = await StartEnrolmentCoreAsync(user, nowUtc, ct);
             await _db.SaveChangesAsync(ct);
             if (tx is not null)
@@ -358,8 +338,12 @@ public sealed class MfaService : IMfaService
         {
             var nowUtc = _time.GetUtcNow().UtcDateTime;
             var user = await LoadActiveUserAsync(userId, nowUtc, includeRole: false, ct);
-            var recoveryCodes = await TryConfirmEnrolmentCoreAsync(user, code, nowUtc, ct)
-                ?? throw new BusinessRuleException(VerificationFailedMessage);
+            var recoveryCodes = await TryConfirmEnrolmentCoreAsync(user, code, nowUtc, ct);
+            if (recoveryCodes is null)
+            {
+                await RecordAuthenticatedMfaFailureAndCommitAsync(userId, user, "Code verification failed.", tx, ct);
+                throw new BusinessRuleException(VerificationFailedMessage);
+            }
 
             await _db.SaveChangesAsync(ct);
             if (tx is not null)
@@ -426,16 +410,20 @@ public sealed class MfaService : IMfaService
         try
         {
             var nowUtc = _time.GetUtcNow().UtcDateTime;
-            var user = await LoadAndVerifyPasswordAsync(userId, password, nowUtc, includeRole: false, ct);
+            var user = await LoadAndVerifyPasswordAsync(userId, password, nowUtc, includeRole: false, tx, ct);
 
             var credential = await _db.UserMfaCredentials
                 .FirstOrDefaultAsync(c => c.UserId == userId && c.Status == MfaCredentialStatus.Active, ct)
                 ?? throw new BusinessRuleException("Two-factor authentication is not active.");
 
-            var matchedStep = VerifyTotpCodeAgainstCredential(credential, code, nowUtc)
-                ?? throw new BusinessRuleException(VerificationFailedMessage);
+            var matchedStep = VerifyTotpCodeAgainstCredential(credential, code, nowUtc);
+            if (matchedStep is null)
+            {
+                await RecordAuthenticatedMfaFailureAndCommitAsync(userId, user, "Code verification failed.", tx, ct);
+                throw new BusinessRuleException(VerificationFailedMessage);
+            }
 
-            credential.LastAcceptedStep = matchedStep;
+            credential.LastAcceptedStep = matchedStep.Value;
 
             var codes = await ReplaceRecoveryCodesAsync(userId, nowUtc, removeOnlyUnused: false, ct);
 
@@ -465,7 +453,7 @@ public sealed class MfaService : IMfaService
         try
         {
             var nowUtc = _time.GetUtcNow().UtcDateTime;
-            var user = await LoadAndVerifyPasswordAsync(userId, password, nowUtc, includeRole: true, ct);
+            var user = await LoadAndVerifyPasswordAsync(userId, password, nowUtc, includeRole: true, tx, ct);
 
             var credential = await _db.UserMfaCredentials
                 .FirstOrDefaultAsync(c => c.UserId == userId && c.Status == MfaCredentialStatus.Active, ct)
@@ -475,10 +463,14 @@ public sealed class MfaService : IMfaService
             if (await _mfaPolicy.IsRequiredForRoleAsync(roleType, ct))
                 throw new BusinessRuleException("Your role requires two-factor authentication, so you cannot remove it.");
 
-            var matchedStep = VerifyTotpCodeAgainstCredential(credential, code, nowUtc)
-                ?? throw new BusinessRuleException(VerificationFailedMessage);
+            var matchedStep = VerifyTotpCodeAgainstCredential(credential, code, nowUtc);
+            if (matchedStep is null)
+            {
+                await RecordAuthenticatedMfaFailureAndCommitAsync(userId, user, "Code verification failed.", tx, ct);
+                throw new BusinessRuleException(VerificationFailedMessage);
+            }
 
-            credential.LastAcceptedStep = matchedStep;
+            credential.LastAcceptedStep = matchedStep.Value;
             credential.Status = MfaCredentialStatus.Revoked;
             credential.RevokedAt = nowUtc;
             credential.RevokedByUserId = userId;
@@ -601,7 +593,13 @@ public sealed class MfaService : IMfaService
         return user;
     }
 
-    private async Task<User> LoadAndVerifyPasswordAsync(int userId, string password, DateTime nowUtc, bool includeRole, CancellationToken ct)
+    private async Task<User> LoadAndVerifyPasswordAsync(
+        int userId,
+        string password,
+        DateTime nowUtc,
+        bool includeRole,
+        IDbContextTransaction? tx,
+        CancellationToken ct)
     {
         IQueryable<User> query = _db.Users;
         if (includeRole)
@@ -614,10 +612,30 @@ public sealed class MfaService : IMfaService
             || string.IsNullOrEmpty(password)
             || !AuthenticationService.PasswordMatches(password, user.PasswordHash))
         {
+            await RecordAuthenticatedMfaFailureAndCommitAsync(userId, user, "Password verification failed.", tx, ct);
             throw new BusinessRuleException(PasswordFailedMessage);
         }
 
         return user;
+    }
+
+    private async Task RecordAuthenticatedMfaFailureAndCommitAsync(
+        int userId,
+        User? user,
+        string reason,
+        IDbContextTransaction? tx,
+        CancellationToken ct)
+    {
+        _securityAudit.Record(new SecurityEventRequest(
+            SecurityEventCodes.MfaFailed,
+            SecurityEventOutcome.Failure,
+            ActorUserId: userId,
+            TargetUserId: user?.Id ?? userId,
+            TargetUsername: user?.Username,
+            Reason: reason));
+        await _db.SaveChangesAsync(ct);
+        if (tx is not null)
+            await tx.CommitAsync(ct);
     }
 
     private async Task<MfaChallenge> LoadValidEnrolChallengeAsync(string mfaToken, DateTime nowUtc, bool includeRole, CancellationToken ct)

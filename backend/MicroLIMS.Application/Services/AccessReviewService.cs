@@ -6,6 +6,7 @@ using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Application.DTOs;
 using MicroLIMS.Application.Helpers;
 using MicroLIMS.Application.Interfaces;
+using MicroLIMS.Application.Services.Mfa;
 using MicroLIMS.Application.Services.SystemSettings;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
@@ -44,17 +45,20 @@ public class AccessReviewService : IAccessReviewService
     private readonly IMicroLimsDbContext _db;
     private readonly IElectronicSignatureService _signatureService;
     private readonly ISystemSettingsReader? _settings;
+    private readonly MfaPolicyService _mfaPolicy;
     private readonly TimeProvider _time;
 
     public AccessReviewService(
         IMicroLimsDbContext db,
         IElectronicSignatureService signatureService,
         ISystemSettingsReader? settings = null,
-        TimeProvider? timeProvider = null)
+        TimeProvider? timeProvider = null,
+        MfaPolicyService? mfaPolicy = null)
     {
         _db = db;
         _signatureService = signatureService;
         _settings = settings;
+        _mfaPolicy = mfaPolicy ?? new MfaPolicyService(_settings);
         _time = timeProvider ?? TimeProvider.System;
     }
 
@@ -141,6 +145,12 @@ public class AccessReviewService : IAccessReviewService
             .ToDictionary(g => g.Key, g => g.Select(x =>
                 new AccessReviewStatusChange(x.Row.Timestamp, x.Row.Action, x.Row.UserId, x.Row.Reason, x.Row.NewValue)).ToList());
 
+        var mfaStates = await _mfaPolicy.GetUserStatesAsync(
+            _db,
+            users.Select(u => (u.Id, u.Role?.Type.ToString() ?? string.Empty, u.MfaRequiredSince)),
+            now,
+            ct);
+
         var entries = new List<AccessReviewUserEntry>();
         foreach (var u in users)
         {
@@ -153,6 +163,7 @@ public class AccessReviewService : IAccessReviewService
             var reference = last ?? u.CreatedAt;
             var days = (int)Math.Floor((now - reference).TotalDays);
             var dormant = u.IsActive && days > dormantDays;
+            var mfaState = mfaStates.GetValueOrDefault(u.Id, MfaUserState.NotRequired).ToString();
 
             entries.Add(new AccessReviewUserEntry(
                 u.Id, u.Username, u.FullName, u.IsActive, u.DeactivatedAt,
@@ -161,7 +172,8 @@ public class AccessReviewService : IAccessReviewService
                 membershipsByUser.GetValueOrDefault(u.Id) ?? new List<AccessReviewMembership>(),
                 last, neverLoggedIn, dormant, days < 0 ? 0 : days,
                 historyByUser.GetValueOrDefault(u.Id) ?? new List<AccessReviewStatusChange>(),
-                conflicts));
+                conflicts,
+                mfaState));
         }
 
         var summary = new AccessReviewSummary(

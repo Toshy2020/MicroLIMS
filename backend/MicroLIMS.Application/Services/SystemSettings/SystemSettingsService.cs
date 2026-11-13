@@ -5,6 +5,7 @@ using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Application.DTOs;
 using MicroLIMS.Application.Helpers;
 using MicroLIMS.Application.Interfaces;
+using MicroLIMS.Application.Services.Mfa;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Shared.Exceptions;
@@ -110,6 +111,23 @@ public class SystemSettingsService : ISystemSettingsService
 
         if (string.Equals(previousValue, newValue, StringComparison.Ordinal))
             throw new BusinessRuleException($"'{key}' already has the value {newValue}. Nothing was changed.");
+
+        if (key == SystemSettingKeys.MfaPolicy
+            && !MfaPolicyService.IsRequiredPolicy(MfaPolicyService.ParsePolicy(previousValue))
+            && MfaPolicyService.IsRequiredPolicy(MfaPolicyService.ParsePolicy(newValue)))
+        {
+            var enrolledAdminsCount = await _db.UserMfaCredentials
+                .Where(c => c.Status == MfaCredentialStatus.Active
+                            && c.User != null
+                            && c.User.IsActive
+                            && c.User.Role != null
+                            && c.User.Role.Type == RoleType.SystemAdministrator)
+                .Select(c => c.UserId)
+                .Distinct()
+                .CountAsync();
+            if (enrolledAdminsCount < 2)
+                throw new BusinessRuleException("Two System Administrators must set up a second factor before it can be required.");
+        }
 
         _db.CurrentUserId = actingUserId;
         _db.CurrentReason = reason;

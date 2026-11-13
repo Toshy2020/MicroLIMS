@@ -157,6 +157,28 @@ public static class Totp
         return output;
     }
 
+    public static byte[] FromHex(string text)
+    {
+        ArgumentNullException.ThrowIfNull(text);
+
+        var sb = new StringBuilder(text.Length);
+        foreach (var ch in text)
+        {
+            if (char.IsWhiteSpace(ch))
+                continue;
+
+            sb.Append(ch);
+        }
+
+        if (sb.Length == 0)
+            return [];
+
+        if (sb.Length % 2 != 0)
+            throw new FormatException("Invalid hexadecimal input.");
+
+        return Convert.FromHexString(sb.ToString());
+    }
+
     public static byte[] NewSecret() => RandomNumberGenerator.GetBytes(SecretLengthBytes);
 
     public static string OtpAuthUri(string issuer, string username, string base32Secret, int stepSeconds)

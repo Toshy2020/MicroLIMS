@@ -1,3 +1,4 @@
+using MicroLIMS.Application.Services.Mfa;
 using MicroLIMS.Application.Services.SystemSettings;
 using MicroLIMS.Application.Helpers;
 using MicroLIMS.Shared.Exceptions;
@@ -13,7 +14,7 @@ using MicroLIMS.Shared.Validation;
 namespace MicroLIMS.Application.Services;
 
 // Never carries the token hash.
-public record UserSessionDto(int Id, DateTime CreatedAt, string? CreatedIp, string? UserAgent, DateTime? LastUsedAt, DateTime ExpiresAt);
+public record UserSessionDto(int Id, DateTime CreatedAt, string? CreatedIp, string? UserAgent, DateTime? LastUsedAt, DateTime ExpiresAt, bool MfaVerified = false);
 
 public record RoleDto(int Id, string Name, string Type);
 
@@ -39,7 +40,8 @@ public record UserDto(
     bool MustChangePassword,
     DateTime CreatedAt,
     DateTime? LastLoginAt,
-    DateTime? PasswordChangedAt)
+    DateTime? PasswordChangedAt,
+    string MfaState = nameof(MfaUserState.NotRequired))
 {
     // The record's row version, sent back as If-Match with an edit.
     public uint Version { get; init; }
@@ -55,10 +57,12 @@ public class UserService
     private readonly TimeProvider _time;
 
     private readonly ISystemSettingsReader? _settings;
+    private readonly MfaPolicyService _mfaPolicy;
 
-    public UserService(IMicroLimsDbContext db, IAuthenticationService authService, ISecurityAuditService securityAudit, TimeProvider? timeProvider = null, AdministrationContinuityGuard? continuityGuard = null, IElectronicSignatureService? signatureService = null, ISystemSettingsReader? settings = null)
+    public UserService(IMicroLimsDbContext db, IAuthenticationService authService, ISecurityAuditService securityAudit, TimeProvider? timeProvider = null, AdministrationContinuityGuard? continuityGuard = null, IElectronicSignatureService? signatureService = null, ISystemSettingsReader? settings = null, MfaPolicyService? mfaPolicy = null)
     {
         _settings = settings;
+        _mfaPolicy = mfaPolicy ?? new MfaPolicyService(_settings);
         _time = timeProvider ?? TimeProvider.System;
         _signatureService = signatureService ?? new ElectronicSignatureService(db, _time);
         _continuityGuard = continuityGuard ?? new AdministrationContinuityGuard(db);
@@ -80,10 +84,10 @@ public class UserService
             "all" => null,
             _ => throw new BusinessRuleException("Status must be 'active', 'inactive' or 'all'.")
         };
-        var query = _db.Users.Include(u => u.Role).AsQueryable();
+        var query = _db.Users.AsNoTracking().Include(u => u.Role).AsQueryable();
         if (wantActive.HasValue) query = query.Where(u => u.IsActive == wantActive.Value);
         var users = await query.OrderBy(u => u.Id).ToListAsync();
-        return users.Select(ToDto).ToList();
+        return await ToDtosAsync(users);
     }
 
     // Document Control assignment pickers ask for only the users whose role
@@ -126,14 +130,14 @@ public class UserService
             .OrderBy(u => u.FullName)
             .ToListAsync();
 
-        return users.Select(ToDto).ToList();
+        return await ToDtosAsync(users);
     }
 
     public async Task<UserDto> GetByIdAsync(int id)
     {
-        var user = await _db.Users.Include(u => u.Role).FirstOrDefaultAsync(u => u.Id == id)
+        var user = await _db.Users.AsNoTracking().Include(u => u.Role).FirstOrDefaultAsync(u => u.Id == id)
             ?? throw new NotFoundException($"User {id} not found.");
-        return ToDto(user);
+        return await ToDtoAsync(user);
     }
 
     public async Task<UserDto> CreateAsync(User user, string plainPassword, string? reason)
@@ -160,7 +164,7 @@ public class UserService
         await _db.SaveChangesAsync();
 
         var reloaded = await _db.Users.Include(u => u.Role).FirstAsync(u => u.Id == user.Id);
-        return ToDto(reloaded);
+        return await ToDtoAsync(reloaded);
     }
 
     public async Task<UserDto> UpdateProfileAsync(int targetUserId, string fullName, string username, string? email, string? jobTitle = null, int actingUserId = 0, string? reason = null)
@@ -198,7 +202,7 @@ public class UserService
         });
 
         await _db.SaveChangesAsync();
-        return ToDto(user);
+        return await ToDtoAsync(user);
     }
 
     // Signed (D7): the administrator re-enters their password and the signature
@@ -259,7 +263,7 @@ public class UserService
 
         await _db.SaveChangesAsync();
         var updatedUser = await _db.Users.Include(u => u.Role).FirstAsync(u => u.Id == targetUserId);
-        return ToDto(updatedUser);
+        return await ToDtoAsync(updatedUser);
     }
 
     public async Task<UserDto> SetStatusAsync(int targetUserId, bool isActive, string? reason, int actingUserId)
@@ -313,7 +317,7 @@ public class UserService
         });
 
         await _db.SaveChangesAsync();
-        return ToDto(user);
+        return await ToDtoAsync(user);
     }
 
     public async Task DeactivateAsync(int userId)
@@ -341,7 +345,7 @@ public class UserService
             .AsNoTracking()
             .Where(r => r.UserId == targetUserId && r.RevokedAt == null && r.ExpiresAt > now)
             .OrderByDescending(r => r.LastUsedAt ?? r.CreatedAt)
-            .Select(r => new UserSessionDto(r.Id, r.CreatedAt, r.CreatedIp, r.UserAgent, r.LastUsedAt, r.ExpiresAt))
+            .Select(r => new UserSessionDto(r.Id, r.CreatedAt, r.CreatedIp, r.UserAgent, r.LastUsedAt, r.ExpiresAt, r.MfaVerified))
             .ToListAsync();
     }
 
@@ -410,7 +414,7 @@ public class UserService
         });
 
         await _db.SaveChangesAsync();
-        return ToDto(user);
+        return await ToDtoAsync(user);
     }
 
     public Task InitiatePasswordResetAsync(int targetUserId, string? reason, int actingUserId) =>
@@ -463,10 +467,32 @@ public class UserService
         });
 
         await _db.SaveChangesAsync();
-        return ToDto(user);
+        return await ToDtoAsync(user);
     }
 
-    private UserDto ToDto(User u) => new(
+    private async Task<List<UserDto>> ToDtosAsync(IReadOnlyList<User> users)
+    {
+        if (users.Count == 0)
+            return new List<UserDto>();
+
+        var nowUtc = _time.GetUtcNow().UtcDateTime;
+        var states = await _mfaPolicy.GetUserStatesAsync(
+            _db,
+            users.Select(u => (u.Id, u.Role?.Type.ToString() ?? string.Empty, u.MfaRequiredSince)),
+            nowUtc);
+
+        return users
+            .Select(u => ToDto(u, states.GetValueOrDefault(u.Id, MfaUserState.NotRequired), nowUtc))
+            .ToList();
+    }
+
+    private async Task<UserDto> ToDtoAsync(User user)
+    {
+        var dtos = await ToDtosAsync(new[] { user });
+        return dtos[0];
+    }
+
+    private static UserDto ToDto(User u, MfaUserState mfaState, DateTime nowUtc) => new(
         u.Id,
         u.FullName,
         u.Username,
@@ -475,12 +501,13 @@ public class UserService
         u.RoleId,
         u.Role is null ? null : new RoleDto(u.Role.Id, u.Role.Name, u.Role.Type.ToString()),
         u.IsActive,
-        u.IsLockedAt(_time.GetUtcNow().UtcDateTime),
+        u.IsLockedAt(nowUtc),
         u.LockedUntil,
         u.MustChangePassword,
         u.CreatedAt,
         u.LastLoginAt,
-        u.PasswordChangedAt)
+        u.PasswordChangedAt,
+        mfaState.ToString())
     {
         Version = u.Version
     };

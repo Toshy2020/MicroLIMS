@@ -1,4 +1,5 @@
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Application.Services.Mfa;
 using MicroLIMS.Application.Services.SystemSettings;
 using MicroLIMS.Application.Helpers;
 using Microsoft.EntityFrameworkCore;
@@ -35,7 +36,7 @@ public class AuthenticationService : IAuthenticationService
     // A stored hash BCrypt cannot parse is a password that cannot match -
     // not a server error. Now that locked and disabled accounts are also
     // checked (above), such an account must still get the ordinary refusal.
-    private static bool PasswordMatches(string password, string storedHash)
+    internal static bool PasswordMatches(string password, string storedHash)
     {
         try
         {
@@ -61,8 +62,9 @@ public class AuthenticationService : IAuthenticationService
     private readonly ISecurityAuditService _securityAudit;
     private readonly TimeProvider _time;
     private readonly ISystemSettingsReader? _settings;
+    private readonly MfaPolicyService _mfaPolicy;
 
-    public AuthenticationService(IMicroLimsDbContext db, AccessTokenIssuer tokenIssuer, PermissionService permissionService, IEmailSender emailSender, ILogger<AuthenticationService> logger, ISecurityAuditService securityAudit, TimeProvider? timeProvider = null, ISystemSettingsReader? settings = null)
+    public AuthenticationService(IMicroLimsDbContext db, AccessTokenIssuer tokenIssuer, PermissionService permissionService, IEmailSender emailSender, ILogger<AuthenticationService> logger, ISecurityAuditService securityAudit, TimeProvider? timeProvider = null, ISystemSettingsReader? settings = null, MfaPolicyService? mfaPolicy = null)
     {
         _settings = settings;
         _time = timeProvider ?? TimeProvider.System;
@@ -72,12 +74,13 @@ public class AuthenticationService : IAuthenticationService
         _emailSender = emailSender;
         _logger = logger;
         _securityAudit = securityAudit;
+        _mfaPolicy = mfaPolicy ?? new MfaPolicyService(settings);
     }
 
-    public Task<LoginOutcome> LoginAsync(string username, string password, string? ipAddress = null, string? userAgent = null) =>
-        UnitOfWork.RunAsync(_db, () => LoginCoreAsync(username, password, ipAddress, userAgent));
+    public Task<LoginOutcome> LoginAsync(string username, string password, string? ipAddress = null, string? userAgent = null, string? deviceToken = null) =>
+        UnitOfWork.RunAsync(_db, () => LoginCoreAsync(username, password, ipAddress, userAgent, deviceToken));
 
-    private async Task<LoginOutcome> LoginCoreAsync(string username, string password, string? ipAddress = null, string? userAgent = null)
+    private async Task<LoginOutcome> LoginCoreAsync(string username, string password, string? ipAddress = null, string? userAgent = null, string? deviceToken = null)
     {
         var user = await _db.Users.Include(u => u.Role).FirstOrDefaultAsync(u => u.Username == username);
 
@@ -96,7 +99,8 @@ public class AuthenticationService : IAuthenticationService
         // to refuse as a wrong password does.
         var passwordMatches = PasswordMatches(password, user.PasswordHash);
 
-        if (user.IsLockedAt(_time.GetUtcNow().UtcDateTime))
+        var nowUtc = _time.GetUtcNow().UtcDateTime;
+        if (user.IsLockedAt(nowUtc))
         {
             _securityAudit.Record(new SecurityEventRequest(
                 SecurityEventCodes.LoginFailedAccountLocked, SecurityEventOutcome.Failure,
@@ -107,43 +111,67 @@ public class AuthenticationService : IAuthenticationService
 
         if (!user.IsActive || !passwordMatches)
         {
-            user.FailedLoginAttempts++;
-
-            _securityAudit.Record(new SecurityEventRequest(
+            await ApplyFailedLoginAttemptAndLockoutAsync(
+                user,
                 user.IsActive ? SecurityEventCodes.LoginFailedBadCredentials
-                              : SecurityEventCodes.LoginFailedAccountDisabled,
-                SecurityEventOutcome.Failure,
-                TargetUserId: user.Id, TargetUsername: username));
-
-            var maxFailedAttempts = await _settings.GetIntOrDefaultAsync(SystemSettingKeys.LockoutMaxFailedAttempts);
-            if (user.FailedLoginAttempts >= maxFailedAttempts)
-            {
-                var lockMinutes = await _settings.GetIntOrDefaultAsync(SystemSettingKeys.LockoutDurationMinutes);
-                user.LockedUntil = _time.GetUtcNow().UtcDateTime.AddMinutes(lockMinutes);
-                // Locking the account has to end the sessions it already
-                // has, or the lockout only blocks the login form while an
-                // existing refresh token keeps minting new access tokens.
-                var revoked = await RevokeAllRefreshTokensAsync(user.Id);
-
-                // The system locked the account, not a person - so there is
-                // no actor user, and ActorIsSystem says why it is absent.
-                _securityAudit.Record(new SecurityEventRequest(
-                    SecurityEventCodes.AccountLocked, SecurityEventOutcome.Success,
-                    ActorIsSystem: true, TargetUserId: user.Id, TargetUsername: username,
-                    Reason: $"Automatic lockout after {maxFailedAttempts} failed login attempts.",
-                    Metadata: $"{{\"revokedSessionCount\":{revoked}}}"));
-            }
+                              : SecurityEventCodes.LoginFailedAccountDisabled);
 
             await _db.SaveChangesAsync();
             await RecordLoginAsync(user.Id, username, false, user.IsActive ? "Wrong password" : "Account inactive", ipAddress);
             return new LoginOutcome(false, null, null, LoginFailedMessage);
         }
 
+        var hasVerifiableCredential = await _db.UserMfaCredentials
+            .AsNoTracking()
+            .AnyAsync(c => c.UserId == user.Id
+                && (c.Status == MfaCredentialStatus.Active
+                    || (c.Status == MfaCredentialStatus.Pending && c.Type == MfaCredentialType.HardwareToken)));
+
+        var roleType = user.Role?.Type.ToString() ?? string.Empty;
+        var requirement = await _mfaPolicy.EvaluateAsync(roleType, hasVerifiableCredential, user.MfaRequiredSince, nowUtc);
+
+        if (requirement.Kind == MfaLoginRequirement.Verify
+            && await MfaService.IsTrustedDeviceCoreAsync(_db, _time, _mfaPolicy, user.Id, deviceToken))
+        {
+            return await CompleteLoginAsync(user, ipAddress, userAgent, mfaVerified: true);
+        }
+
+        switch (requirement.Kind)
+        {
+            case MfaLoginRequirement.Verify:
+            {
+                var mfaToken = MfaService.CreateChallengeCore(_db, _time, _securityAudit, user.Id, MfaChallengePurpose.Verify);
+                await _db.SaveChangesAsync();
+                return new LoginOutcome(true, null, null, null, MfaRequired: true, MfaToken: mfaToken);
+            }
+
+            case MfaLoginRequirement.EnrolNow:
+            {
+                var mfaToken = MfaService.CreateChallengeCore(_db, _time, _securityAudit, user.Id, MfaChallengePurpose.Enrol);
+                await _db.SaveChangesAsync();
+                return new LoginOutcome(true, null, null, null, MfaEnrolmentRequired: true, MfaToken: mfaToken);
+            }
+
+            case MfaLoginRequirement.EnrolWithinGrace:
+            {
+                user.MfaRequiredSince ??= nowUtc;
+                var outcome = await CompleteLoginAsync(user, ipAddress, userAgent, mfaVerified: false);
+                return outcome with { MfaEnrolmentDueAt = requirement.EnrolmentDueAtUtc };
+            }
+
+            case MfaLoginRequirement.None:
+            default:
+                return await CompleteLoginAsync(user, ipAddress, userAgent, mfaVerified: false);
+        }
+    }
+
+    internal async Task<LoginOutcome> CompleteLoginAsync(User user, string? ip, string? userAgent, bool mfaVerified)
+    {
         user.FailedLoginAttempts = 0;
         user.LockedUntil = null;
         user.LastLoginAt = _time.GetUtcNow().UtcDateTime;
         await _db.SaveChangesAsync();
-        await RecordLoginAsync(user.Id, username, true, null, ipAddress);
+        await RecordLoginAsync(user.Id, user.Username, true, null, ip);
 
         var token = await IssueAccessTokenAsync(user);
 
@@ -155,9 +183,38 @@ public class AuthenticationService : IAuthenticationService
             SecurityEventCodes.RefreshTokenIssued, SecurityEventOutcome.Success,
             ActorUserId: user.Id, TargetUserId: user.Id, TargetUsername: user.Username));
 
-        var refreshToken = await IssueRefreshTokenAsync(user.Id, ipAddress, userAgent);
+        var refreshToken = await IssueRefreshTokenAsync(user.Id, ip, userAgent, usedNow: false, mfaVerified: mfaVerified);
 
         return new LoginOutcome(true, token, refreshToken, null, user.MustChangePassword, user.Role?.Name);
+    }
+
+    internal async Task ApplyFailedLoginAttemptAndLockoutAsync(User user, string failureEventCode, CancellationToken ct = default)
+    {
+        user.FailedLoginAttempts++;
+
+        _securityAudit.Record(new SecurityEventRequest(
+            failureEventCode,
+            SecurityEventOutcome.Failure,
+            TargetUserId: user.Id, TargetUsername: user.Username));
+
+        var maxFailedAttempts = await _settings.GetIntOrDefaultAsync(SystemSettingKeys.LockoutMaxFailedAttempts, ct);
+        if (user.FailedLoginAttempts >= maxFailedAttempts)
+        {
+            var lockMinutes = await _settings.GetIntOrDefaultAsync(SystemSettingKeys.LockoutDurationMinutes, ct);
+            user.LockedUntil = _time.GetUtcNow().UtcDateTime.AddMinutes(lockMinutes);
+            // Locking the account has to end the sessions it already
+            // has, or the lockout only blocks the login form while an
+            // existing refresh token keeps minting new access tokens.
+            var revoked = await RevokeAllRefreshTokensAsync(user.Id);
+
+            // The system locked the account, not a person - so there is
+            // no actor user, and ActorIsSystem says why it is absent.
+            _securityAudit.Record(new SecurityEventRequest(
+                SecurityEventCodes.AccountLocked, SecurityEventOutcome.Success,
+                ActorIsSystem: true, TargetUserId: user.Id, TargetUsername: user.Username,
+                Reason: $"Automatic lockout after {maxFailedAttempts} failed login attempts.",
+                Metadata: $"{{\"revokedSessionCount\":{revoked}}}"));
+        }
     }
 
     public Task<LoginOutcome> RefreshAsync(string refreshToken, string? ipAddress = null, string? userAgent = null) =>
@@ -207,7 +264,7 @@ public class AuthenticationService : IAuthenticationService
             SecurityEventCodes.RefreshTokenRotated, SecurityEventOutcome.Success,
             ActorUserId: user.Id, TargetUserId: user.Id, TargetUsername: user.Username));
 
-        var newRefreshToken = await IssueRefreshTokenAsync(stored.UserId, ipAddress, userAgent, usedNow: true);
+        var newRefreshToken = await IssueRefreshTokenAsync(stored.UserId, ipAddress, userAgent, usedNow: true, mfaVerified: stored.MfaVerified);
         await _db.SaveChangesAsync();
 
         var token = await IssueAccessTokenAsync(user);
@@ -248,6 +305,7 @@ public class AuthenticationService : IAuthenticationService
         }
 
         await ValidateAndApplyNewPasswordAsync(user, newPassword);
+        await MfaService.RevokeTrustedDevicesCoreAsync(_db, _time, _securityAudit, user.Id, revokedByUserId: user.Id);
 
         // Self-service change: actor and target are the same person.
         _securityAudit.Record(new SecurityEventRequest(
@@ -299,6 +357,7 @@ public class AuthenticationService : IAuthenticationService
 
         await ValidateAndApplyNewPasswordAsync(record.User!, newPassword);
         record.UsedAt = _time.GetUtcNow().UtcDateTime;
+        await MfaService.RevokeTrustedDevicesCoreAsync(_db, _time, _securityAudit, record.User!.Id, revokedByUserId: null);
 
         // Reset is performed by whoever held the reset token, so there is
         // no authenticated actor - only the account it was applied to.
@@ -415,14 +474,14 @@ public class AuthenticationService : IAuthenticationService
         return active.Count;
     }
 
-    private static string? Truncate(string? value, int max)
+    internal static string? Truncate(string? value, int max)
     {
         if (string.IsNullOrWhiteSpace(value)) return null;
         value = value.Trim();
         return value.Length <= max ? value : value[..max];
     }
 
-    private async Task<string> IssueRefreshTokenAsync(int userId, string? ipAddress = null, string? userAgent = null, bool usedNow = false)
+    private async Task<string> IssueRefreshTokenAsync(int userId, string? ipAddress = null, string? userAgent = null, bool usedNow = false, bool mfaVerified = false)
     {
         var rawToken = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
         _db.RefreshTokens.Add(new RefreshToken
@@ -432,13 +491,14 @@ public class AuthenticationService : IAuthenticationService
             ExpiresAt = _time.GetUtcNow().UtcDateTime.AddDays(await _settings.GetIntOrDefaultAsync(SystemSettingKeys.RefreshTokenLifetimeDays)),
             CreatedIp = Truncate(ipAddress, RefreshToken.MaxIpLength),
             UserAgent = Truncate(userAgent, RefreshToken.MaxUserAgentLength),
-            LastUsedAt = usedNow ? _time.GetUtcNow().UtcDateTime : null
+            LastUsedAt = usedNow ? _time.GetUtcNow().UtcDateTime : null,
+            MfaVerified = mfaVerified
         });
         await _db.SaveChangesAsync();
         return rawToken;
     }
 
-    private async Task RecordLoginAsync(int? userId, string username, bool success, string? reason, string? ipAddress)
+    internal async Task RecordLoginAsync(int? userId, string username, bool success, string? reason, string? ipAddress)
     {
         _db.LoginHistories.Add(new LoginHistory
         {
@@ -451,7 +511,7 @@ public class AuthenticationService : IAuthenticationService
         await _db.SaveChangesAsync();
     }
 
-    private static string Hash(string value)
+    internal static string Hash(string value)
     {
         var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(value));
         return Convert.ToHexString(bytes);

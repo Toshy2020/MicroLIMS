@@ -1,5 +1,6 @@
 import { apiClient, ifMatch } from "../../../services/apiClient";
 import {
+  CreatedSampleRef,
   ItemBasedReceiveRequest,
   WaterReceiveRequest,
   EMReceiveRequest,
@@ -12,6 +13,8 @@ import {
   RetestEligibleTest,
   SampleDocument
 } from "../types/receivingTypes";
+
+export type { CreatedSampleRef };
 
 export interface TestingWorkspaceFilter {
   search?: string;
@@ -92,13 +95,13 @@ export const ReceiveService = {
     await apiClient.post(`/samples/${sampleId}/laboratories`, { sectionId, reason, password });
   },
 
-  receiveWater: (r: WaterReceiveRequest) =>
+  receiveWater: (r: WaterReceiveRequest): Promise<SampleRecord> =>
     apiClient.post("/water/receive", r).then((res) => res.data.data),
 
-  receiveEM: (r: EMReceiveRequest) =>
+  receiveEM: (r: EMReceiveRequest): Promise<SampleRecord> =>
     apiClient.post("/em/receive", r).then((res) => res.data.data),
 
-  receiveAfterCleaning: (r: AfterCleaningReceiveRequest) =>
+  receiveAfterCleaning: (r: AfterCleaningReceiveRequest): Promise<SampleRecord> =>
     apiClient.post("/aftercleaning/receive", r).then((res) => res.data.data),
 
   async getRecordsPaged(filter: TestingWorkspaceFilter = {}): Promise<PagedResult<SampleRecord>> {

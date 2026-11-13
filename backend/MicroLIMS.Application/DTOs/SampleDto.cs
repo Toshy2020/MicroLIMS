@@ -39,6 +39,9 @@ public class TestOrderSummaryDto
 public class SampleDto
 {
     public int SampleId { get; set; }
+    // Alias for SampleId so creation/receipt responses expose `id` alongside
+    // `referenceNumber` without renaming `sampleId` for existing callers.
+    public int Id => SampleId;
     // The sample's row version, sent back as If-Match with a correction.
     public uint Version { get; set; }
     public int? ItemId { get; set; }

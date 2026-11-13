@@ -11,7 +11,7 @@ import {
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import CheckIcon from "@mui/icons-material/Check";
-import { ReceiveRowItem, SampleCategoryKey } from "../types/receivingTypes";
+import { CreatedSampleRef, ReceiveRowItem, SampleCategoryKey, SampleRecord } from "../types/receivingTypes";
 import { RECEIVING_CATEGORIES } from "../constants/receivingConstants";
 import { SampleTypeSelector } from "./SampleTypeSelector";
 import { MultiSampleEntryGrid, LabMode } from "./MultiSampleEntryGrid";
@@ -22,7 +22,7 @@ import { FloatingDialog } from "../../../components/FloatingDialog";
 interface Props {
   open: boolean;
   onClose: () => void;
-  onSuccess: (count: number) => void;
+  onSuccess: (created: CreatedSampleRef[]) => void;
   // Which sample categories this dialog instance offers - the main
   // Receiving page limits this to FP/RM/PM; a lab workspace offers its
   // own set including Water/EM/After Cleaning (see RECEIVING_CATEGORIES).
@@ -34,6 +34,11 @@ interface Props {
 
 // The sampling time is optional; the server checks it is not after the receipt.
 const sampledAtIso = (row: ReceiveRowItem) => (row.sampledAt ? new Date(row.sampledAt).toISOString() : null);
+
+const toCreatedSampleRef = (sample: SampleRecord): CreatedSampleRef => ({
+  id: sample.id ?? sample.sampleId,
+  referenceNumber: sample.referenceNumber
+});
 
 const createEmptyRow = (defaultValues?: Partial<ReceiveRowItem>): ReceiveRowItem => ({
   id: Math.random().toString(36).substring(2, 9),
@@ -282,6 +287,7 @@ export function NewSampleDialog({ open, onClose, onSuccess, allowedCategories, l
 
     try {
       const allWarnings: string[] = [];
+      const created: CreatedSampleRef[] = [];
       // Process each row sequentially or in parallel
       for (const row of rows) {
         if (category === "product" || category === "rm" || category === "pm") {
@@ -299,6 +305,7 @@ export function NewSampleDialog({ open, onClose, onSuccess, allowedCategories, l
             targetSectionIds,
             grade: row.gradeOptions?.length ? row.grade || null : null
           });
+          created.push(toCreatedSampleRef(res));
           if (res?.warnings?.length) {
             allWarnings.push(...res.warnings);
           }
@@ -314,7 +321,7 @@ export function NewSampleDialog({ open, onClose, onSuccess, allowedCategories, l
             }
           }
         } else if (category === "water") {
-          await ReceiveService.receiveWater({
+          const res = await ReceiveService.receiveWater({
             waterDepartmentId: Number(row.departmentId),
             causeOfTestingId: Number(row.causeOfTestingId),
             sampleQuantity: row.sampleQuantity || "",
@@ -323,17 +330,19 @@ export function NewSampleDialog({ open, onClose, onSuccess, allowedCategories, l
             sampledAt: sampledAtIso(row),
             labSectionId: labMode.kind === "fixed" ? labMode.sectionId : undefined
           });
+          created.push(toCreatedSampleRef(res));
         } else if (category === "em") {
-          await ReceiveService.receiveEM({
+          const res = await ReceiveService.receiveEM({
             departmentId: Number(row.departmentId),
             causeOfTestingId: Number(row.causeOfTestingId),
             sampledBy: row.sampledBy || "",
             controlNumber: row.controlNumber || "",
             sampledAt: sampledAtIso(row)
           });
+          created.push(toCreatedSampleRef(res));
         } else if (category === "ac") {
           const isPhyschem = labMode.kind === "fixed" && labMode.code !== "MICRO";
-          await ReceiveService.receiveAfterCleaning({
+          const res = await ReceiveService.receiveAfterCleaning({
             machineId: Number(row.machineId),
             causeOfTestingId: Number(row.causeOfTestingId),
             sampledBy: row.sampledBy || "",
@@ -345,6 +354,7 @@ export function NewSampleDialog({ open, onClose, onSuccess, allowedCategories, l
             previousProductItemId: row.previousProductItemId ? Number(row.previousProductItemId) : null,
             techniques: isPhyschem && row.techniques ? row.techniques : null
           });
+          created.push(toCreatedSampleRef(res));
         }
       }
 
@@ -353,7 +363,7 @@ export function NewSampleDialog({ open, onClose, onSuccess, allowedCategories, l
         setWarningSnackbarOpen(true);
       }
 
-      onSuccess(rows.length);
+      onSuccess(created);
       onClose();
     } catch (err: any) {
       const serverMsg =

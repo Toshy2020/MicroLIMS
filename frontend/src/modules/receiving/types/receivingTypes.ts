@@ -52,8 +52,16 @@ export interface TestAnalystAssignment {
   analystUserId: number | null;
 }
 
+// Returned by receipt dialogs to their parent so post-receipt actions know
+// every created sample without re-querying.
+export interface CreatedSampleRef {
+  id: number;
+  referenceNumber: string;
+}
+
 // Mirrors backend SampleDto exactly.
 export interface SampleRecord {
+  id?: number;
   sampleId: number;
   // Row version, sent back as If-Match when this record is edited.
   version?: number;

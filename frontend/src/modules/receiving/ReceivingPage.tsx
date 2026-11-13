@@ -7,7 +7,7 @@ import { PageHeader } from "../../components/PageHeader";
 import { WorkspaceSkeleton } from "../../components/WorkspaceSkeleton";
 import { AuditHistoryDialog } from "../../components/AuditHistoryDialog";
 
-import { SampleRecord } from "./types/receivingTypes";
+import { CreatedSampleRef, SampleRecord } from "./types/receivingTypes";
 import { ReceiveService } from "./services/ReceiveService";
 import { SampleRegisterTable } from "./components/SampleRegisterTable";
 import { NewSampleDialog } from "./dialogs/NewSampleDialog";
@@ -69,7 +69,8 @@ export function ReceivingPage() {
     loadRecords();
   }, [loadRecords]);
 
-  const handleReceiveSuccess = (count: number) => {
+  const handleReceiveSuccess = (created: CreatedSampleRef[]) => {
+    const count = created.length;
     setNotification({
       text: `Successfully received ${count} sample${count > 1 ? "s" : ""}. Test orders generated automatically.`,
       severity: "success"

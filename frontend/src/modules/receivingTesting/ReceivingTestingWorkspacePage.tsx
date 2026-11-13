@@ -31,7 +31,7 @@ import { PERMISSIONS } from "../../routes/routes";
 import { tableHeadSx } from "../../theme";
 
 // Receiving Components & Dialogs
-import { SampleRecord, SampleCategoryKey, TestOrderSummary as ReceivingTestOrderSummary } from "../receiving/types/receivingTypes";
+import { CreatedSampleRef, SampleRecord, SampleCategoryKey, TestOrderSummary as ReceivingTestOrderSummary } from "../receiving/types/receivingTypes";
 import { ReceiveService, TestingWorkspaceFilter, WorkspaceTileCounts } from "../receiving/services/ReceiveService";
 import {
   SampleStatusKpiCards,
@@ -627,7 +627,8 @@ export function ReceivingTestingWorkspacePage({ lab }: Props) {
     setPreparingSample(sample as SampleRecord);
   };
 
-  const handleReceiveSuccess = (count: number) => {
+  const handleReceiveSuccess = (created: CreatedSampleRef[]) => {
+    const count = created.length;
     setNotification({
       text: `Successfully received ${count} sample${count > 1 ? "s" : ""}. Test orders generated automatically.`,
       severity: "success"

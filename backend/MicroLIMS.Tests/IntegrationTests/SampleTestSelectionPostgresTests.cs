@@ -1,8 +1,17 @@
+using System.Security.Claims;
+using System.Text.Json;
+using MicroLIMS.API.Controllers;
+using MicroLIMS.API.Json;
+using MicroLIMS.Shared.Constants;
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Responses;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.DTOs;
 using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Application.Services;
+using MicroLIMS.Application.Validators;
 using MicroLIMS.Application.Workflows;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
@@ -423,5 +432,111 @@ public class SampleTestSelectionPostgresTests
 
         Assert.Null(sample.Grade);
         Assert.Equal(code, Assert.Single(sample.TestOrders).TestCode);
+    }
+
+    [PostgresFact]
+    public async Task Receipt_response_lists_id_and_reference_number_of_each_created_sample()
+    {
+        var uid = Guid.NewGuid().ToString("N")[..8].ToUpperInvariant();
+        int itemId;
+        int microId;
+        int causeId;
+
+        await using (var arrangeDb = _fixture.CreateDbContext())
+        {
+            var micro = await arrangeDb.DocumentSections.FirstAsync(s => s.Code == "MICRO");
+            microId = micro.Id;
+            var code = $"RC{uid}";
+            arrangeDb.TestDefinitions.Add(new TestDefinition { Code = code, DisplayName = code, SectionId = micro.Id, IsActive = true });
+            var item = new Item { Code = $"RM-{uid}", Name = $"Receipt Item {uid}", Category = SampleCategory.RawMaterial, IsActive = true };
+            item.AssignedTests.Add(new SampleTest { TestCode = code, DisplayName = code });
+            arrangeDb.Items.Add(item);
+            await arrangeDb.SaveChangesAsync();
+            arrangeDb.Specifications.Add(Spec(item.Id, code, null));
+            var cause = new CauseOfTesting { Name = $"Routine Receipt {uid}", IsActive = true };
+            arrangeDb.CausesOfTesting.Add(cause);
+            await arrangeDb.SaveChangesAsync();
+
+            itemId = item.Id;
+            causeId = cause.Id;
+        }
+
+        var jsonOptions = new JsonSerializerOptions(JsonSerializerDefaults.Web);
+        ApiJsonOptions.Configure(jsonOptions);
+
+        static (int Id, int SampleId, string ReferenceNumber) ExtractReceipt(IActionResult actionResult, JsonSerializerOptions options)
+        {
+            var ok = Assert.IsType<OkObjectResult>(actionResult);
+            var payload = JsonSerializer.Serialize(ok.Value, options);
+            using var doc = JsonDocument.Parse(payload);
+            var data = doc.RootElement.GetProperty("data");
+            Assert.True(data.TryGetProperty("id", out var idProp), $"Expected 'id' in receipt response JSON: {payload}");
+            Assert.True(data.TryGetProperty("sampleId", out var sampleIdProp), $"Expected 'sampleId' in receipt response JSON: {payload}");
+            Assert.True(data.TryGetProperty("referenceNumber", out var refProp), $"Expected 'referenceNumber' in receipt response JSON: {payload}");
+            return (idProp.GetInt32(), sampleIdProp.GetInt32(), refProp.GetString()!);
+        }
+
+        var responses = new List<(int Id, int SampleId, string ReferenceNumber)>();
+
+        await using (var actDb = _fixture.CreateDbContext())
+        {
+            var scope = new UserSectionScopeService(actDb);
+            var receiving = new ReceivingService(new ProductWorkflowEngine(actDb, new ReferenceNumberGenerator(actDb)), new ReceiveSampleValidator());
+            var controller = new SampleController(
+                receiving,
+                TestServiceFactory.SampleCorrection(actDb),
+                new SampleAssignmentService(actDb, TestServiceFactory.TestingWorkspace(actDb, scope), scope),
+                scope,
+                TestServiceFactory.AddLaboratory(actDb),
+                new ReceiptLabService(actDb, scope),
+                TestServiceFactory.SampleTestSelection(actDb));
+
+            var identity = new ClaimsIdentity(new[]
+            {
+                new Claim(ClaimTypes.NameIdentifier, _fixture.SeededUserId.ToString()),
+                new Claim("permission", PermissionConstants.SamplesReceive),
+                new Claim("permission", PermissionConstants.SamplesReceiveOwnLab)
+            }, "TestAuth");
+            controller.ControllerContext = new ControllerContext
+            {
+                HttpContext = new DefaultHttpContext { User = new ClaimsPrincipal(identity) }
+            };
+
+            // Single sample receipt
+            var singleResult = await controller.Receive(new ReceiveItemBasedSampleRequest(
+                itemId, causeId, "10 g", "Analyst", $"LOT-{uid}-1", $"CTRL-{uid}-1",
+                DateTime.UtcNow, DateTime.UtcNow.AddYears(1), null, new List<int> { microId }));
+            responses.Add(ExtractReceipt(singleResult, jsonOptions));
+
+            // Multi-sample receipt (sequential requests per row)
+            var secondResult = await controller.Receive(new ReceiveItemBasedSampleRequest(
+                itemId, causeId, "10 g", "Analyst", $"LOT-{uid}-2", $"CTRL-{uid}-2",
+                DateTime.UtcNow, DateTime.UtcNow.AddYears(1), null, new List<int> { microId }));
+            responses.Add(ExtractReceipt(secondResult, jsonOptions));
+
+            var thirdResult = await controller.Receive(new ReceiveItemBasedSampleRequest(
+                itemId, causeId, "10 g", "Analyst", $"LOT-{uid}-3", $"CTRL-{uid}-3",
+                DateTime.UtcNow, DateTime.UtcNow.AddYears(1), null, new List<int> { microId }));
+            responses.Add(ExtractReceipt(thirdResult, jsonOptions));
+        }
+
+        await using (var assertDb = _fixture.CreateDbContext())
+        {
+            var ids = responses.Select(r => r.Id).ToList();
+            var rows = await assertDb.Samples.AsNoTracking()
+                .Where(s => ids.Contains(s.Id))
+                .ToDictionaryAsync(s => s.Id);
+
+            Assert.Equal(3, rows.Count);
+            foreach (var r in responses)
+            {
+                Assert.True(r.Id > 0);
+                Assert.Equal(r.Id, r.SampleId);
+                Assert.False(string.IsNullOrWhiteSpace(r.ReferenceNumber));
+                var persisted = rows[r.Id];
+                Assert.Equal(persisted.Id, r.Id);
+                Assert.Equal(persisted.ReferenceNumber, r.ReferenceNumber);
+            }
+        }
     }
 }

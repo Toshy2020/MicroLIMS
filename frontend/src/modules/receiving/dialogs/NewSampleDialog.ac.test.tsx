@@ -1,9 +1,31 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, cleanup, fireEvent, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { PinnedLightTheme } from "../../../theme/PinnedLightTheme";
 import { NewSampleDialog } from "./NewSampleDialog";
 import { ReceiveService } from "../services/ReceiveService";
 import { masterDataOptions } from "../../../services/masterDataOptions";
+import type { SampleRecord } from "../types/receivingTypes";
+
+const sampleRecord = (over: Partial<SampleRecord>): SampleRecord => ({
+  sampleId: 777,
+  referenceNumber: "AC-2026-0001",
+  category: "AfterCleaning",
+  displayName: "Blender 01",
+  departmentId: null,
+  machineId: 10,
+  waterDepartmentId: null,
+  productionStage: null,
+  causeOfTesting: "Routine",
+  batchNumber: null,
+  controlNumber: "",
+  status: "Received",
+  preparationStatus: "NeedsPreparation",
+  receivedAt: "2026-11-13T00:00:00Z",
+  sampledBy: "Analyst",
+  assignedTests: [],
+  ...over
+});
 
 vi.mock("../services/ReceiveService", () => ({
   ReceiveService: {
@@ -36,7 +58,9 @@ afterEach(cleanup);
 describe("NewSampleDialog After Cleaning Receipt", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    (ReceiveService.receiveAfterCleaning as any).mockResolvedValue({ sampleId: 777 });
+    vi.mocked(ReceiveService.receiveAfterCleaning).mockResolvedValue(
+      sampleRecord({ id: 777, sampleId: 777, referenceNumber: "AC-2026-0001" })
+    );
   });
 
   it("in Physchem lab: loads Finished Product items, requires item and techniques, and submits them", async () => {
@@ -125,7 +149,7 @@ describe("NewSampleDialog After Cleaning Receipt", () => {
           labSectionId: 2
         })
       );
-      expect(onSuccess).toHaveBeenCalledWith(1);
+      expect(onSuccess).toHaveBeenCalledWith([{ id: 777, referenceNumber: "AC-2026-0001" }]);
       expect(onClose).toHaveBeenCalled();
     });
   });
@@ -198,7 +222,65 @@ describe("NewSampleDialog After Cleaning Receipt", () => {
           labSectionId: 1
         })
       );
-      expect(onSuccess).toHaveBeenCalledWith(1);
+      expect(onSuccess).toHaveBeenCalledWith([{ id: 777, referenceNumber: "AC-2026-0001" }]);
+    });
+  });
+
+  it("after a successful receipt the parent receives the created samples", async () => {
+    const user = userEvent.setup();
+    const onSuccess = vi.fn();
+    const onClose = vi.fn();
+
+    vi.mocked(masterDataOptions.getItems).mockResolvedValueOnce([
+      { id: 51, name: "Lactose Monohydrate", category: "RawMaterial" }
+    ]);
+    vi.mocked(ReceiveService.receiveItemBased)
+      .mockResolvedValueOnce(sampleRecord({ id: 101, sampleId: 101, referenceNumber: "RM-2026-001", category: "RawMaterial" }))
+      .mockResolvedValueOnce(sampleRecord({ id: 102, sampleId: 102, referenceNumber: "RM-2026-002", category: "RawMaterial" }));
+
+    render(
+      <PinnedLightTheme>
+        <NewSampleDialog
+          open={true}
+          onClose={onClose}
+          onSuccess={onSuccess}
+          allowedCategories={["rm"]}
+          labMode={{ kind: "fixed", sectionId: 1, code: "MICRO" }}
+        />
+      </PinnedLightTheme>
+    );
+
+    await user.click(await screen.findByText("Raw Material"));
+    await user.click(screen.getByRole("button", { name: /Next/i }));
+
+    await screen.findByText("Sampled By");
+
+    // Row 1: select Item, Cause of Testing, Sampled By
+    const row1Combos = screen.getAllByRole("combobox");
+    await user.click(row1Combos[0]);
+    await user.click(await screen.findByRole("option", { name: "Lactose Monohydrate" }));
+
+    await user.click(row1Combos[1]);
+    await user.click(await screen.findByRole("option", { name: "Routine" }));
+
+    await user.type(screen.getByPlaceholderText("Sampled By"), "Alice");
+
+    // Add a second sample row (prefills Cause and Sampled By from Row 1)
+    await user.click(screen.getByRole("button", { name: /Add Another Sample/i }));
+    const allCombos = screen.getAllByRole("combobox");
+    // Row 2's Item combobox is after Row 1's 3 comboboxes (Item, Cause, Sampled By)
+    await user.click(allCombos[3]);
+    await user.click(await screen.findByRole("option", { name: "Lactose Monohydrate" }));
+
+    await user.click(screen.getByRole("button", { name: /Save All Samples/i }));
+
+    await waitFor(() => {
+      expect(ReceiveService.receiveItemBased).toHaveBeenCalledTimes(2);
+      expect(onSuccess).toHaveBeenCalledWith([
+        { id: 101, referenceNumber: "RM-2026-001" },
+        { id: 102, referenceNumber: "RM-2026-002" }
+      ]);
+      expect(onClose).toHaveBeenCalled();
     });
   });
 });

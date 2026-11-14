@@ -89,6 +89,40 @@ describe("LocationResultGridDialog paste", () => {
     expect(reading("Packing Hall C").value).toBe("9");
   });
 
+  it("warns how many entered readings the paste replaces, without blocking, and replaces them on Accept", async () => {
+    const user = userEvent.setup();
+    service.getLocations.mockResolvedValue(LOCATIONS);
+    renderDialog();
+    const first = await screen.findByLabelText("Filling Room A reading 1");
+    await user.type(first, "5");
+    await user.click(screen.getByRole("button", { name: "Add plate reading for Filling Room A" }));
+    await user.type(screen.getByLabelText("Filling Room A reading 2"), "7");
+
+    await user.click(reading("Capping Zone B"));
+    await user.paste("Filling Room A\t3\nCapping Zone B\t6\n");
+    await preview();
+
+    expect(screen.getByRole("status").textContent).toBe(
+      "This will replace 2 readings already entered in 1 row. Check them before accepting."
+    );
+    const replaced = screen.getByRole("list", { name: /readings that will be replaced/i });
+    expect(within(replaced).getByText("Filling Room A (2 readings)")).toBeTruthy();
+    expect(accept().disabled).toBe(false);
+
+    await user.click(accept());
+    expect(reading("Filling Room A").value).toBe("3");
+    expect(screen.queryByLabelText("Filling Room A reading 2")).toBeNull();
+    expect(reading("Capping Zone B").value).toBe("6");
+  });
+
+  it("shows no replace warning when the pasted rows are still empty", async () => {
+    const user = userEvent.setup();
+    await openAndPaste(user, "Filling Room A\t3\n");
+    await preview();
+    expect(screen.queryByText(/This will replace/)).toBeNull();
+    expect(screen.queryByRole("list", { name: /readings that will be replaced/i })).toBeNull();
+  });
+
   it("matches names after trimming and ignoring case", async () => {
     const user = userEvent.setup();
     await openAndPaste(user, "  capping zone b \t4\nFILLING ROOM A\t2\n");

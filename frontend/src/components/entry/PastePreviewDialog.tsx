@@ -1,5 +1,5 @@
 import { useId, useMemo } from "react";
-import { Box, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Typography, useTheme } from "@mui/material";
+import { Alert, Box, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Typography, useTheme } from "@mui/material";
 import { FormDialog } from "../lab/FormDialog";
 
 export interface PasteColumn {
@@ -34,6 +34,9 @@ export interface PastePlan {
   notPasted?: string[];
   // A reason the grid cannot take a paste at all from here.
   refusal?: string;
+  // Values already entered in a grid row that accepting would overwrite (null = nothing there).
+  // Shown as a warning; it does not block the paste.
+  replacing?(target: number): { label: string; count: number } | null;
 }
 
 export interface PasteAcceptedRow {
@@ -121,6 +124,19 @@ export function PastePreviewDialog({ open, plan, cells, onAccept, onCancel }: Pr
   const captionId = useId();
   const analysis = useMemo(() => analyse(plan, cells), [plan, cells]);
   const blocked = analysis.refusal !== null || analysis.problemCount > 0;
+  const replaced = useMemo(() => {
+    if (analysis.refusal !== null || !plan.replacing) return [];
+    const seen = new Set<number>();
+    const list: { label: string; count: number }[] = [];
+    for (const r of analysis.rows) {
+      if (r.target === null || seen.has(r.target)) continue;
+      seen.add(r.target);
+      const existing = plan.replacing(r.target);
+      if (existing && existing.count > 0) list.push(existing);
+    }
+    return list;
+  }, [analysis, plan]);
+  const replacedCount = replaced.reduce((sum, r) => sum + r.count, 0);
 
   const error =
     analysis.refusal ??
@@ -199,6 +215,15 @@ export function PastePreviewDialog({ open, plan, cells, onAccept, onCancel }: Pr
         </Typography>
       )}
 
+      {replaced.length > 0 && (
+        <Alert severity="warning" role="status">
+          {`This will replace ${replacedCount} ${replacedCount === 1 ? "reading" : "readings"} already entered in ${replaced.length} ${replaced.length === 1 ? "row" : "rows"}. Check them before accepting.`}
+        </Alert>
+      )}
+      <ListBlock
+        title="Readings that will be replaced"
+        items={replaced.map((r) => `${r.label} (${r.count} ${r.count === 1 ? "reading" : "readings"})`)}
+      />
       <ListBlock title="Left empty (not in the paste)" items={analysis.unmatched} />
       <ListBlock title="Not pasted (choice columns, choose these by hand)" items={plan.notPasted ?? []} />
     </FormDialog>

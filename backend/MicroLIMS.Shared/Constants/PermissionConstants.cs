@@ -251,7 +251,7 @@ public static class PermissionConstants
         SectionsViewAll, SectionsConfigureAll, SystemManageJobs, AccessReview,
         AuditReview, AccessReviewSign,
         LabelsReprint, LabelsConfigure,
-        TableViewsShare
+        TableViewsShare, DataExport
     };
 
     // Declared and granted, but no feature checks them yet. Kept in the

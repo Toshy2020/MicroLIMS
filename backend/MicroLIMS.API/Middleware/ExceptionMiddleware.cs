@@ -47,6 +47,14 @@ public class ExceptionMiddleware
         {
             await _next(context);
         }
+        catch (FieldValidationException ex)
+        {
+            context.Response.StatusCode = (int)HttpStatusCode.BadRequest;
+            await CaptureAsync(context, ex, ErrorSource.Backend, ErrorSeverity.Warning);
+            var errors = ex.FieldErrors.Select(e => e.Message).ToList();
+            var fieldErrors = ex.FieldErrors.ToList();
+            await WriteResponse(context, ApiResponse<object>.Fail(ex.Message, errors, fieldErrors));
+        }
         catch (BusinessRuleException ex)
         {
             context.Response.StatusCode = (int)HttpStatusCode.BadRequest;

@@ -48,6 +48,11 @@ public class SpecificationMasterDataController : ControllerBase
         Ok(ApiResponse<object>.Ok(await _service.CreateSpecificationAsync(CurrentUserId, request)));
 
     [Authorize(Policy = PermissionConstants.MasterDataManage)]
+    [HttpPost("specifications/batch")]
+    public async Task<IActionResult> CreateSpecificationsBatch(List<CreateSpecificationRequest> request, CancellationToken ct = default) =>
+        Ok(ApiResponse<object>.Ok(await _service.CreateSpecificationsBatchAsync(CurrentUserId, request, ct)));
+
+    [Authorize(Policy = PermissionConstants.MasterDataManage)]
     [HttpPut("specifications/{id}")]
     public async Task<IActionResult> UpdateSpecification(int id, UpdateSpecificationRequest request) =>
         Ok(ApiResponse<object>.Ok(await _service.UpdateSpecificationAsync(CurrentUserId, id, request)));

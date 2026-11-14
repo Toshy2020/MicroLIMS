@@ -83,6 +83,12 @@ export const MaterialMasterService = {
     return res.data?.data;
   },
 
+  createBatch: async (requests: SaveMaterialMasterEntryRequest[]): Promise<MaterialMasterEntry[]> => {
+    const res = await apiClient.post<ApiResponse<MaterialMasterEntry[]>>("/masterdata/material-masters/batch", requests);
+    const data = res.data?.data;
+    return Array.isArray(data) ? data : [];
+  },
+
   update: async (id: number, req: SaveMaterialMasterEntryRequest, version?: number): Promise<MaterialMasterEntry> => {
     const res = await apiClient.put<ApiResponse<MaterialMasterEntry>>(`/masterdata/material-masters/${id}`, req, ifMatch(version));
     return res.data?.data;

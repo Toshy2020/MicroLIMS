@@ -33,6 +33,11 @@ public class SolutionMasterController : ControllerBase
         Ok(ApiResponse<object>.Ok(await _service.CreateAsync(r, CurrentUserId)));
 
     [Authorize(Policy = PermissionConstants.MasterDataManage)]
+    [HttpPost("batch")]
+    public async Task<IActionResult> CreateBatch([FromBody] List<SaveSolutionMasterRequest> requests, CancellationToken ct = default) =>
+        Ok(ApiResponse<object>.Ok(await _service.CreateBatchAsync(requests, CurrentUserId, ct)));
+
+    [Authorize(Policy = PermissionConstants.MasterDataManage)]
     [HttpPut("{id:int}")]
     public async Task<IActionResult> Update(int id, [FromBody] SaveSolutionMasterRequest r) =>
         Ok(ApiResponse<object>.Ok(await _service.UpdateAsync(id, r, CurrentUserId)));

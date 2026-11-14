@@ -8,6 +8,7 @@ using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Shared.Constants;
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Responses;
 
 namespace MicroLIMS.Application.Services.MasterData;
 
@@ -18,12 +19,18 @@ public class SpecificationMasterDataService
     private readonly IMicroLimsDbContext _db;
     private readonly IUserSectionScopeService _scope;
     private readonly SpecificationService _specificationService;
+    private readonly MasterDataBatchService _batch;
 
-    public SpecificationMasterDataService(IMicroLimsDbContext db, IUserSectionScopeService scope, SpecificationService? specificationService = null)
+    public SpecificationMasterDataService(
+        IMicroLimsDbContext db,
+        IUserSectionScopeService scope,
+        SpecificationService? specificationService = null,
+        MasterDataBatchService? batchService = null)
     {
         _db = db;
         _scope = scope;
         _specificationService = specificationService ?? new SpecificationService(db);
+        _batch = batchService ?? new MasterDataBatchService(db);
     }
 
     public async Task<object> GetSpecificationsAsync(int currentUserId, int itemId) =>
@@ -137,6 +144,48 @@ public class SpecificationMasterDataService
         _db.Specifications.Add(spec);
         await _db.SaveChangesAsync();
         return SpecificationResponse.From(spec);
+    }
+
+    public Task<IReadOnlyList<SpecificationResponse>> CreateSpecificationsBatchAsync(
+        int currentUserId,
+        IReadOnlyList<CreateSpecificationRequest>? requests,
+        CancellationToken ct = default) =>
+        _batch.ExecuteAsync(
+            requests,
+            (row, index, token) => ValidateCreateSpecificationRowAsync(currentUserId, row, index, token),
+            row => CreateSpecificationAsync(currentUserId, row),
+            ct: ct);
+
+    private async Task<IReadOnlyList<FieldError>> ValidateCreateSpecificationRowAsync(
+        int currentUserId,
+        CreateSpecificationRequest request,
+        int row,
+        CancellationToken ct)
+    {
+        var errors = new List<FieldError>();
+
+        if (request.ItemId <= 0 || !await _db.Items.AsNoTracking().AnyAsync(i => i.Id == request.ItemId, ct))
+        {
+            errors.Add(new FieldError("itemId", $"Item {request.ItemId} not found.", row));
+        }
+
+        if (string.IsNullOrWhiteSpace(request.TestCode))
+        {
+            errors.Add(new FieldError("testCode", "Test code is required.", row));
+        }
+        else
+        {
+            try
+            {
+                await SpecificationOwnership.EnsureCanEditAsync(_db, _scope, currentUserId, request.TestCode);
+            }
+            catch (Exception ex) when (ex is BusinessRuleException or UnauthorizedAccessException)
+            {
+                errors.Add(new FieldError("testCode", ex.Message, row));
+            }
+        }
+
+        return errors;
     }
 
     public async Task<SpecificationResponse> UpdateSpecificationAsync(int currentUserId, int id, UpdateSpecificationRequest request)

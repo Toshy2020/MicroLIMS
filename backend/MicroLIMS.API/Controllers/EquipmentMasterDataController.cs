@@ -121,6 +121,11 @@ public class EquipmentMasterDataController : ControllerBase
         Ok(ApiResponse<object>.Ok(await _service.CreateEquipmentAsync(CurrentUserId, request)));
 
     [Authorize(Policy = PermissionConstants.MasterDataManage)]
+    [HttpPost("equipment/batch")]
+    public async Task<IActionResult> CreateEquipmentBatch(List<CreateEquipmentRequest> request, CancellationToken ct = default) =>
+        Ok(ApiResponse<object>.Ok(await _service.CreateEquipmentBatchAsync(CurrentUserId, request, ct)));
+
+    [Authorize(Policy = PermissionConstants.MasterDataManage)]
     [HttpPut("equipment/{id:int}")]
     public async Task<IActionResult> UpdateEquipment(int id, UpdateEquipmentRequest request) =>
         Ok(ApiResponse<object>.Ok(await _service.UpdateEquipmentAsync(CurrentUserId, id, request)));

@@ -78,7 +78,7 @@ interface SpecificationParameterDialogProps {
   onSuccess: () => void;
 }
 
-const LIMIT_TYPE_OPTIONS: { value: LimitType; label: string }[] = [
+export const LIMIT_TYPE_OPTIONS: { value: LimitType; label: string }[] = [
   { value: "Range", label: "Range (NLT \u2014 NMT)" },
   { value: "NotMoreThan", label: "NMT (Not More Than)" },
   { value: "NotLessThan", label: "NLT (Not Less Than)" },
@@ -90,6 +90,11 @@ const LIMIT_TYPE_OPTIONS: { value: LimitType; label: string }[] = [
   { value: "DissolutionQ", label: "Dissolution Q" },
   { value: "DisintegrationTime", label: "Disintegration Time" },
   { value: "WeightVariation", label: "Weight Variation (USP \u003C2091\u003E)" }
+];
+
+export const TOLERANCE_MODE_OPTIONS: { value: ToleranceMode; label: string }[] = [
+  { value: "Absolute", label: "Absolute (\u00B1 value)" },
+  { value: "Percent", label: "Percent (\u00B1 %)" }
 ];
 
 export const getDefaultLimitType = (workflowType?: string): LimitType => {
@@ -1566,8 +1571,11 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
                     value={toleranceMode}
                     onChange={(e) => setToleranceMode(e.target.value as ToleranceMode)}
                   >
-                    <MenuItem value="Absolute">Absolute (&plusmn; value)</MenuItem>
-                    <MenuItem value="Percent">Percent (&plusmn; %)</MenuItem>
+                    {TOLERANCE_MODE_OPTIONS.map((opt) => (
+                      <MenuItem key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </MenuItem>
+                    ))}
                   </Select>
                 </FormControl>
               </Box>

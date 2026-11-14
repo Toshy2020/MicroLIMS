@@ -31,6 +31,11 @@ public class MaterialMasterController : ControllerBase
         Ok(ApiResponse<object>.Ok(await _service.CreateAsync(r, CurrentUserId)));
 
     [Authorize(Policy = PermissionConstants.MasterDataManage)]
+    [HttpPost("batch")]
+    public async Task<IActionResult> CreateBatch([FromBody] List<SaveMaterialMasterEntryRequest> requests, CancellationToken ct = default) =>
+        Ok(ApiResponse<object>.Ok(await _service.CreateBatchAsync(requests, CurrentUserId, ct)));
+
+    [Authorize(Policy = PermissionConstants.MasterDataManage)]
     [HttpPut("{id:int}")]
     public async Task<IActionResult> Update(int id, [FromBody] SaveMaterialMasterEntryRequest r) =>
         Ok(ApiResponse<object>.Ok(await _service.UpdateAsync(id, r, CurrentUserId)));

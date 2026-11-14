@@ -17,6 +17,7 @@ vi.mock("../receiving/services/ReceiveService", () => ({
     getRecordsPaged: vi.fn(),
     getWorkloadCounts: vi.fn(),
     getSample: vi.fn(),
+    receiveBatch: vi.fn(),
     receiveAfterCleaning: vi.fn(),
     receiveItemBased: vi.fn(),
     receiveWater: vi.fn(),
@@ -131,6 +132,9 @@ describe("ReceivingTestingWorkspacePage label printing offer", () => {
       overdue: 0,
       mine: 0,
       unassigned: 0
+    });
+    vi.mocked(ReceiveService.receiveBatch).mockResolvedValue({
+      samples: [{ row: 0, sampleId: 612, referenceNumber: "RM-2026-0612" }]
     });
     vi.mocked(ReceiveService.receiveItemBased).mockResolvedValue(createdSample);
     vi.mocked(ReceiveService.itemGrades).mockResolvedValue([]);

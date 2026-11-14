@@ -15,6 +15,7 @@ import { ReceivingPage } from "./ReceivingPage";
 vi.mock("./services/ReceiveService", () => ({
   ReceiveService: {
     getRecordsPaged: vi.fn(),
+    receiveBatch: vi.fn(),
     receiveItemBased: vi.fn(),
     receiveWater: vi.fn(),
     receiveEM: vi.fn(),
@@ -119,6 +120,9 @@ describe("ReceivingPage label printing offer", () => {
       page: 1,
       pageSize: 100,
       totalPages: 0
+    });
+    vi.mocked(ReceiveService.receiveBatch).mockResolvedValue({
+      samples: [{ row: 0, sampleId: 501, referenceNumber: "RM-2026-0501" }]
     });
     vi.mocked(ReceiveService.receiveItemBased).mockResolvedValue(createdSample);
     vi.mocked(ReceiveService.receiptLabs).mockResolvedValue([

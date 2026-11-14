@@ -50,7 +50,12 @@ public class AfterCleaningWorkflowEngine : IAfterCleaningWorkflowEngine
         _monitoring = monitoring;
     }
 
-    public async Task<Sample> ReceiveAsync(AfterCleaningReceiveRequest request)
+    // Generating the reference number and saving the sample run as one
+    // transaction, with the number's lock held (see ReferenceNumberGenerator).
+    public Task<Sample> ReceiveAsync(AfterCleaningReceiveRequest request) =>
+        UnitOfWork.RunAsync(_db, () => ReceiveCoreAsync(request));
+
+    private async Task<Sample> ReceiveCoreAsync(AfterCleaningReceiveRequest request)
     {
         var machine = await _db.Machines.FirstOrDefaultAsync(m => m.Id == request.MachineId)
             ?? throw new BusinessRuleException($"Machine {request.MachineId} not found.");

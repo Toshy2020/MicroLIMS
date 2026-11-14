@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Application.Abstractions.Persistence;
+using MicroLIMS.Application.Helpers;
 using MicroLIMS.Application.Interfaces;
 
 namespace MicroLIMS.Application.Services;
@@ -31,6 +32,14 @@ public class ReferenceNumberGenerator
         _labClock = labClock ?? new LabClock(_time, LabClock.ResolveTimeZone("Africa/Cairo"));
     }
 
+    // The number is "this month's count + 1", so it is only safe if the next
+    // receipt cannot count before this one's sample is committed. On
+    // PostgreSQL the caller therefore must have a transaction open that spans
+    // both this call and the insert of the sample (UnitOfWork.RunAsync); this
+    // takes a transaction-scoped advisory lock, per category and month, that
+    // is released at commit or rollback. Other categories and months do not
+    // wait. Without a transaction the lock would be released at once, so that
+    // is refused. Non-relational providers (unit tests) take no lock.
     public async Task<string> GenerateAsync(SampleCategory category)
     {
         var code = CategoryCodes.TryGetValue(category, out var c) ? c : "SM";
@@ -43,6 +52,8 @@ public class ReferenceNumberGenerator
         var prefix = $"{code}{mm}{yy}";
 
         var labMonthStart = new DateTime(labNow.Year, labNow.Month, 1, 0, 0, 0, DateTimeKind.Unspecified);
+        await LockAsync(prefix);
+
         var monthStart = TimeZoneInfo.ConvertTimeToUtc(labMonthStart, _labClock.LabTimeZone);
         var monthEnd = TimeZoneInfo.ConvertTimeToUtc(labMonthStart.AddMonths(1), _labClock.LabTimeZone);
 
@@ -51,6 +62,19 @@ public class ReferenceNumberGenerator
 
         var sequence = (countThisMonth + 1).ToString("D3");
         return $"{prefix}{sequence}";
+    }
+
+    private async Task LockAsync(string prefix)
+    {
+        if (!_db.Database.IsRelational())
+            return;
+        if (_db.Database.CurrentTransaction is null)
+            throw new InvalidOperationException(
+                "A sample reference number can only be generated inside a database transaction that also saves the sample.");
+
+        var key = $"sample-ref:{prefix}";
+        var seed = AdvisoryLockKeys.SampleNumber;
+        await _db.Database.ExecuteSqlAsync($"SELECT pg_advisory_xact_lock(hashtextextended({key}, {seed}))");
     }
 
     public async Task<string> GenerateOosCodeAsync()

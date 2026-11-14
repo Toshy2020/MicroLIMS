@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Application.Abstractions.Persistence;
+using MicroLIMS.Application.Helpers;
 using MicroLIMS.Application.Services;
 using MicroLIMS.Shared.Constants;
 
@@ -48,7 +49,13 @@ public class ProductWorkflowEngine : IProductWorkflowEngine
         _refNumbers = refNumbers;
     }
 
-    public async Task<Sample> ReceiveAsync(ItemBasedReceiveRequest request)
+    // The reference number is counted from the database, so generating it and
+    // saving the sample run as one transaction with the number's lock held
+    // (see ReferenceNumberGenerator).
+    public Task<Sample> ReceiveAsync(ItemBasedReceiveRequest request) =>
+        UnitOfWork.RunAsync(_db, () => ReceiveCoreAsync(request));
+
+    private async Task<Sample> ReceiveCoreAsync(ItemBasedReceiveRequest request)
     {
         var item = await _db.Items
             .Include(i => i.AssignedTests)
@@ -85,7 +92,7 @@ public class ProductWorkflowEngine : IProductWorkflowEngine
         var sample = new Sample
         {
             Grade = grade,
-            ReferenceNumber = await _refNumbers.GenerateAsync(item.Category),
+            ReferenceNumber = string.Empty, // generated just before the save, to hold the number's lock as briefly as possible
             Category = item.Category,
             ItemId = item.Id,
             ProductionStage = item.Category == SampleCategory.FinishedProduct ? request.ProductionStage : null,
@@ -196,8 +203,20 @@ public class ProductWorkflowEngine : IProductWorkflowEngine
         }
         sample.Warnings = warnings;
 
+        sample.ReferenceNumber = await _refNumbers.GenerateAsync(item.Category);
         _db.Samples.Add(sample);
-        await _db.SaveChangesAsync();
+
+        // The number's lock makes a clash impossible while every receipt goes
+        // through it; the unique index stays as the backstop. A failed save
+        // is rolled back to a savepoint by EF Core, so the one retry is valid
+        // inside the transaction. A second clash in a row is reported.
+        if (!await _db.TrySaveChangesAsync(UniqueIndexNames.SampleReferenceNumber))
+        {
+            sample.ReferenceNumber = await _refNumbers.GenerateAsync(item.Category);
+            if (!await _db.TrySaveChangesAsync(UniqueIndexNames.SampleReferenceNumber))
+                throw new BusinessRuleException(
+                    $"Reference number {sample.ReferenceNumber} was taken by another receipt at the same moment. Nothing was saved - receive the sample again.");
+        }
 
         return sample;
     }

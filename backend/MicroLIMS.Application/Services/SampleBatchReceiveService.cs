@@ -73,6 +73,7 @@ public class SampleBatchReceiveService
                     errors.AddRange(_itemValidator.ValidateFields(ToItemBasedRequest(row, userId, null), i));
                     resolvedItemTargets[i] = await TryResolveItemTargetsAsync(userId, canReceiveForAnyLab, row.TargetSectionIds, i, errors);
                 }
+                AddDuplicateBatchAndControlErrors(rows, errors);
                 break;
             }
             case "Water":
@@ -232,4 +233,60 @@ public class SampleBatchReceiveService
         new(r.MachineId, r.CauseOfTestingId, r.SampledBy, r.ControlNumber,
             userId, r.PreviousProductName, r.PreviousProductBatchNumber,
             r.SampledAt, r.LabSectionId, r.PreviousProductItemId, r.Techniques);
+
+    // User decision (2026-11-14, batch receive only): refuse Product rows in the same batch
+    // that share both BatchNumber and ControlNumber (trimmed, case-insensitive).
+    // Single-sample receive is intentionally unchanged.
+    private static void AddDuplicateBatchAndControlErrors(
+        IReadOnlyList<ReceiveItemBasedSampleRequest> rows,
+        List<FieldError> errors)
+    {
+        var groups = new Dictionary<(string Batch, string Control), List<int>>(
+            TupleOrdinalIgnoreCaseComparer.Instance);
+
+        for (var i = 0; i < rows.Count; i++)
+        {
+            var batch = rows[i].BatchNumber;
+            var control = rows[i].ControlNumber;
+            if (string.IsNullOrWhiteSpace(batch) || string.IsNullOrWhiteSpace(control))
+                continue;
+
+            var key = (batch.Trim(), control.Trim());
+            if (!groups.TryGetValue(key, out var indices))
+            {
+                indices = new List<int>();
+                groups[key] = indices;
+            }
+            indices.Add(i);
+        }
+
+        foreach (var indices in groups.Values)
+        {
+            if (indices.Count < 2)
+                continue;
+
+            foreach (var rowIndex in indices)
+            {
+                var firstOther = indices[0] == rowIndex ? indices[1] : indices[0];
+                errors.Add(new FieldError(
+                    "controlNumber",
+                    $"Same batch and control number as row {firstOther + 1}.",
+                    rowIndex));
+            }
+        }
+    }
+
+    private sealed class TupleOrdinalIgnoreCaseComparer : IEqualityComparer<(string Batch, string Control)>
+    {
+        public static readonly TupleOrdinalIgnoreCaseComparer Instance = new();
+
+        public bool Equals((string Batch, string Control) x, (string Batch, string Control) y) =>
+            StringComparer.OrdinalIgnoreCase.Equals(x.Batch, y.Batch) &&
+            StringComparer.OrdinalIgnoreCase.Equals(x.Control, y.Control);
+
+        public int GetHashCode((string Batch, string Control) obj) =>
+            HashCode.Combine(
+                StringComparer.OrdinalIgnoreCase.GetHashCode(obj.Batch),
+                StringComparer.OrdinalIgnoreCase.GetHashCode(obj.Control));
+    }
 }

@@ -3,9 +3,10 @@ using System.Text.Json;
 
 namespace MicroLIMS.Application.Services.TableViews;
 
-// The keys of the tables that may carry saved views and audited exports. The list is not kept here:
-// it is frontend/src/tables/tableRegistry.json, embedded into this assembly at build, so the frontend
-// and the backend read one file. A key is a name for a table, never a permission to read its rows.
+// The keys of the tables that may carry saved views and audited exports. The canonical list is
+// frontend/src/tables/tableRegistry.json. The Docker build context is backend/ only, so this project embeds
+// its own copy (Services/TableViews/tableRegistry.json); TableKeyRegistryTests fails if the copies differ.
+// A key is a name for a table, never a permission to read its rows.
 public static class TableKeyRegistry
 {
     private const string ResourceName = "tableRegistry.json";
@@ -20,8 +21,7 @@ public static class TableKeyRegistry
     {
         using var stream = typeof(TableKeyRegistry).Assembly.GetManifestResourceStream(ResourceName)
             ?? throw new FileNotFoundException(
-                "The table registry (frontend/src/tables/tableRegistry.json) was not embedded in this build. "
-                + "Build from a checkout that contains the frontend folder.");
+                "The table registry (Services/TableViews/tableRegistry.json) was not embedded in this build.");
         using var doc = JsonDocument.Parse(stream);
         var keys = new HashSet<string>(StringComparer.Ordinal);
         foreach (var table in doc.RootElement.EnumerateArray())

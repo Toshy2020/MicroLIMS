@@ -4,12 +4,15 @@ using Xunit;
 
 namespace MicroLIMS.Tests.UnitTests;
 
-// The backend does not keep its own list of table keys: it embeds frontend/src/tables/tableRegistry.json.
-// These tests read that same file from disk, so a build that embedded a stale or different file fails here.
+// The canonical list is frontend/src/tables/tableRegistry.json. The backend embeds a copy of it (the Docker build
+// context is backend/ only); these tests read the frontend file from disk, so a stale or edited copy fails here.
 public class TableKeyRegistryTests
 {
     private static string RegistryPath([System.Runtime.CompilerServices.CallerFilePath] string thisFile = "") =>
         Path.GetFullPath(Path.Combine(Path.GetDirectoryName(thisFile)!, "..", "..", "..", "frontend", "src", "tables", "tableRegistry.json"));
+
+    private static string BackendCopyPath([System.Runtime.CompilerServices.CallerFilePath] string thisFile = "") =>
+        Path.GetFullPath(Path.Combine(Path.GetDirectoryName(thisFile)!, "..", "..", "MicroLIMS.Application", "Services", "TableViews", "tableRegistry.json"));
 
     private static List<string> FrontendKeys()
     {
@@ -24,6 +27,15 @@ public class TableKeyRegistryTests
 
         Assert.NotEmpty(frontend);
         Assert.Equal(frontend.OrderBy(k => k, StringComparer.Ordinal), TableKeyRegistry.Keys.OrderBy(k => k, StringComparer.Ordinal));
+    }
+
+    [Fact]
+    public void BackendCopy_IsIdenticalToFrontendRegistry()
+    {
+        // Compared after normalising line endings only: any other difference means the copy was not refreshed.
+        static string Read(string path) => File.ReadAllText(path).Replace("\r\n", "\n");
+        Assert.True(Read(BackendCopyPath()) == Read(RegistryPath()),
+            "backend/MicroLIMS.Application/Services/TableViews/tableRegistry.json differs from frontend/src/tables/tableRegistry.json; copy the frontend file over it.");
     }
 
     [Fact]

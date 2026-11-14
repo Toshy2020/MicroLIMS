@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
+import type { ClipboardEvent as ReactClipboardEvent } from "react";
 import {
   Box,
   Typography,
@@ -12,7 +13,9 @@ import {
   Chip,
   Alert,
   CircularProgress,
+  Paper,
   Stack,
+  TextField,
   useTheme,
   TableContainer
 } from "@mui/material";
@@ -20,6 +23,7 @@ import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import AddIcon from "@mui/icons-material/Add";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
+import ContentPasteIcon from "@mui/icons-material/ContentPaste";
 import { Item } from "../services/ItemService";
 import {
   SpecificationService,
@@ -28,11 +32,24 @@ import {
 } from "../../specifications/services/SpecificationService";
 import { collapseGrades, gradesOf, siblingsOf } from "../../specifications/services/gradeGroups";
 import { ConfirmationDialog } from "../../../../components/ConfirmationDialog";
+import { parseClipboardTable } from "../../../../components/entry/parseClipboardTable";
+import { PastePreviewDialog, type PasteAcceptedRow } from "../../../../components/entry/PastePreviewDialog";
+import { PendingBatchList, type PendingBatchColumn } from "../../../../components/entry/PendingBatchList";
+import { useMyLabs } from "../../../../hooks/useMyLabs";
+import { useLaboratorySections } from "../../../../hooks/useLaboratorySections";
 import { tableHeadSx } from "../../../../theme";
+import { monospaceFontFamily } from "../../../../theme/palette";
+import { extractBatchSaveErrors } from "../../../../utils/fieldErrors";
 import { masterDataOptions } from "../../../../services/masterDataOptions";
 import { SpecificationParameterDialog, TestDefinitionSummary } from "./SpecificationParameterDialog";
 import { CopySpecificationsDialog } from "./CopySpecificationsDialog";
-import { formatLimitCell, formatResultBasis } from "./copySpecifications";
+import { formatLimitCell, formatResultBasis, ownLabTestCodes } from "./copySpecifications";
+import {
+  buildItemSpecificationPastePlan,
+  toCreateSpecificationPayload,
+  toPendingItemSpecifications,
+  type PendingItemSpecification
+} from "./itemSpecificationPaste";
 import { HplcMethodService } from "../../masterDataSimple/services/HplcMethodService";
 
 interface ItemSpecificationsSectionProps {
@@ -82,6 +99,66 @@ export const LimitTypeBadge: React.FC<{ type: string; labelOverride?: string }> 
   );
 };
 
+const SPEC_PENDING_COLUMNS: PendingBatchColumn<PendingItemSpecification>[] = [
+  {
+    key: "testCode",
+    label: "Test",
+    sx: { fontFamily: monospaceFontFamily, fontWeight: 600 },
+    render: (r) => r.testCode
+  },
+  { key: "parameterName", label: "Parameter name", render: (r) => r.parameterName || "—" },
+  { key: "limitTypeLabel", label: "Limit type", render: (r) => r.limitTypeLabel },
+  {
+    key: "lowerLimit",
+    label: "Lower limit",
+    sx: { fontVariantNumeric: "tabular-nums" },
+    render: (r) => (r.lowerLimit !== null ? String(r.lowerLimit) : "—")
+  },
+  {
+    key: "upperLimit",
+    label: "Upper limit",
+    sx: { fontVariantNumeric: "tabular-nums" },
+    render: (r) => (r.upperLimit !== null ? String(r.upperLimit) : "—")
+  },
+  {
+    key: "target",
+    label: "Target",
+    sx: { fontVariantNumeric: "tabular-nums" },
+    render: (r) => (r.target !== null ? String(r.target) : "—")
+  },
+  {
+    key: "tolerance",
+    label: "Tolerance",
+    sx: { fontVariantNumeric: "tabular-nums" },
+    render: (r) => (r.tolerance !== null ? String(r.tolerance) : "—")
+  },
+  {
+    key: "toleranceModeLabel",
+    label: "Tolerance mode",
+    render: (r) => r.toleranceModeLabel || "—"
+  },
+  {
+    key: "alertLimit",
+    label: "Alert limit",
+    sx: { fontVariantNumeric: "tabular-nums" },
+    render: (r) => r.alertLimit || "—"
+  },
+  {
+    key: "actionLimit",
+    label: "Action limit",
+    sx: { fontVariantNumeric: "tabular-nums" },
+    render: (r) => r.actionLimit || "—"
+  },
+  {
+    key: "specLimit",
+    label: "Spec limit",
+    sx: { fontVariantNumeric: "tabular-nums" },
+    render: (r) => r.specLimit || "—"
+  },
+  { key: "expectedResultText", label: "Expected result text", render: (r) => r.expectedResultText || "—" },
+  { key: "unit", label: "Unit", render: (r) => r.unit || "—" }
+];
+
 export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps> = ({
   item,
   onSpecsChanged,
@@ -111,6 +188,20 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
   // Delete state
   const [pendingDelete, setPendingDelete] = useState<SpecificationDto | null>(null);
   const [_deleting, setDeleting] = useState(false);
+
+  // Paste batch state
+  const [pasteBarOpen, setPasteBarOpen] = useState(false);
+  const [pastePreviewCells, setPastePreviewCells] = useState<string[][] | null>(null);
+  const [pendingSpecs, setPendingSpecs] = useState<PendingItemSpecification[]>([]);
+  const [savingBatch, setSavingBatch] = useState(false);
+  const [batchError, setBatchError] = useState<string | null>(null);
+
+  const { codes: myLabCodes } = useMyLabs();
+  const { sections } = useLaboratorySections();
+  const myLabSectionIds = useMemo(
+    () => new Set(sections.filter((s) => myLabCodes.includes(s.sectionCode)).map((s) => s.sectionId)),
+    [sections, myLabCodes]
+  );
 
   useEffect(() => {
     masterDataOptions
@@ -181,6 +272,97 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
   }, [item.id, item.specifications, loadSpecs]);
 
   const assignedTests = useMemo(() => item.assignedTests ?? [], [item.assignedTests]);
+
+  const selectableAssignedTests = useMemo(() => {
+    const allowedCodes = ownLabTestCodes(assignedTests, testDefinitionByCode, myLabSectionIds, item.category);
+    return assignedTests.filter((t) => allowedCodes.has(t.testCode));
+  }, [assignedTests, testDefinitionByCode, myLabSectionIds, item.category]);
+
+  const pastePlan = useMemo(
+    () => buildItemSpecificationPastePlan({ assignedTests: selectableAssignedTests }),
+    [selectableAssignedTests]
+  );
+
+  useEffect(() => {
+    setPendingSpecs([]);
+    setBatchError(null);
+    setPastePreviewCells(null);
+    setPasteBarOpen(false);
+  }, [item.id]);
+
+  const anyModalOpen =
+    dialogOpen ||
+    copyOpen ||
+    pendingDelete != null ||
+    pastePreviewCells !== null;
+
+  useEffect(() => {
+    if (anyModalOpen || !pasteBarOpen || readOnly || assignedTests.length === 0) return;
+    const handleDocumentPaste = (e: ClipboardEvent) => {
+      if (e.defaultPrevented) return;
+      const target = e.target as HTMLElement | null;
+      if (
+        target &&
+        (target.tagName === "INPUT" ||
+          target.tagName === "TEXTAREA" ||
+          target.tagName === "SELECT" ||
+          target.isContentEditable)
+      ) {
+        return;
+      }
+      const text = e.clipboardData?.getData("text/plain") ?? "";
+      const table = parseClipboardTable(text);
+      if (table.length === 0) return;
+      e.preventDefault();
+      setPastePreviewCells(table);
+    };
+    document.addEventListener("paste", handleDocumentPaste);
+    return () => document.removeEventListener("paste", handleDocumentPaste);
+  }, [anyModalOpen, pasteBarOpen, readOnly, assignedTests.length]);
+
+  const handlePasteInput = (e: ReactClipboardEvent<HTMLElement>) => {
+    if (!pasteBarOpen || readOnly || assignedTests.length === 0) return;
+    const table = parseClipboardTable(e.clipboardData.getData("text/plain"));
+    if (table.length === 0) return;
+    e.preventDefault();
+    e.stopPropagation();
+    setPastePreviewCells(table);
+  };
+
+  const handleAcceptPaste = (rows: PasteAcceptedRow[]) => {
+    setPendingSpecs(toPendingItemSpecifications(rows, selectableAssignedTests));
+    setBatchError(null);
+    setPastePreviewCells(null);
+    setPasteBarOpen(false);
+  };
+
+  const saveSpecsBatch = async () => {
+    if (pendingSpecs.length === 0) return;
+    setSavingBatch(true);
+    setBatchError(null);
+    try {
+      const payload = pendingSpecs.map((row) => toCreateSpecificationPayload(item.id, row));
+      await SpecificationService.createSpecificationsBatch(payload);
+      const count = pendingSpecs.length;
+      setPendingSpecs([]);
+      setNotice(
+        `Added ${count} specification parameter${count === 1 ? "" : "s"} to ${item.name}.`
+      );
+      await loadSpecs();
+      onSpecsChanged?.();
+    } catch (e: unknown) {
+      const { summary, rowErrors } = extractBatchSaveErrors(
+        e,
+        "Could not save specifications. Nothing was created."
+      );
+      if (rowErrors) {
+        setPendingSpecs((prev) => prev.map((row, idx) => ({ ...row, errors: rowErrors[idx] })));
+      }
+      setBatchError(summary);
+    } finally {
+      setSavingBatch(false);
+    }
+  };
 
   const getTestDisplayName = useCallback(
     (testCode: string) => {
@@ -295,6 +477,22 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
             <Button
               variant="outlined"
               size="small"
+              startIcon={<ContentPasteIcon />}
+              aria-expanded={pasteBarOpen}
+              onClick={() => setPasteBarOpen((v) => !v)}
+              sx={{
+                fontWeight: 700,
+                textTransform: "none",
+                fontSize: 12
+              }}
+            >
+              Paste specifications
+            </Button>
+          )}
+          {assignedTests.length > 0 && !readOnly && (
+            <Button
+              variant="outlined"
+              size="small"
               startIcon={<ContentCopyIcon />}
               onClick={() => setCopyOpen(true)}
               sx={{
@@ -323,6 +521,27 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
           )}
         </Stack>
       </Stack>
+
+      {pasteBarOpen && !readOnly && assignedTests.length > 0 && (
+        <Paper variant="outlined" sx={{ p: 2, mb: 2, borderRadius: 2 }}>
+          <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5} sx={{ alignItems: { sm: "flex-start" } }}>
+            <TextField
+              autoFocus
+              size="small"
+              fullWidth
+              label="Paste specification rows"
+              placeholder="Paste rows copied from a spreadsheet (Test, Parameter name, Limit type, Lower limit, Upper limit, Target, Tolerance, Tolerance mode, Alert limit, Action limit, Spec limit, Expected result text, Unit)"
+              value=""
+              onChange={() => {}}
+              onPaste={handlePasteInput}
+              helperText="Columns in order: Test, Parameter name, Limit type, Lower limit, Upper limit, Target, Tolerance, Tolerance mode, Alert limit, Action limit, Spec limit, Expected result text, Unit. A pasted range includes both limits; use Add Specification Parameter for an exclusive limit. Use Add Specification Parameter for stages, HPLC analytes/impurities, ICP elements, related-substance rows, dosage form, label claim, production stage, or grade."
+            />
+            <Button onClick={() => setPasteBarOpen(false)} sx={{ textTransform: "none", flexShrink: 0 }}>
+              Close
+            </Button>
+          </Stack>
+        </Paper>
+      )}
 
       {/* Colour Legend */}
       <Stack useFlexGap
@@ -362,6 +581,27 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
           {notice}
         </Alert>
       )}
+
+      <PendingBatchList
+        title={`Pending specifications (${pendingSpecs.length})`}
+        subtitle={`Review the ${pendingSpecs.length} specification parameter${pendingSpecs.length === 1 ? "" : "s"} below. Nothing is saved until you click Save.`}
+        ariaLabel="Pending specifications"
+        columns={SPEC_PENDING_COLUMNS}
+        rows={pendingSpecs}
+        getRowKey={(r, i) => `${r.testCode}-${r.parameterName}-${i}`}
+        getRowLabel={(r) => (r.parameterName ? `${r.testCode} (${r.parameterName})` : r.testCode)}
+        saving={savingBatch}
+        error={batchError}
+        onSave={saveSpecsBatch}
+        onDiscard={() => {
+          setPendingSpecs([]);
+          setBatchError(null);
+        }}
+        onRemoveRow={(index) => {
+          setPendingSpecs((prev) => prev.filter((_, i) => i !== index));
+          setBatchError(null);
+        }}
+      />
 
       {assignedTests.length === 0 ? (
         <Alert severity="warning" sx={{ py: 1, fontSize: 13 }}>
@@ -936,6 +1176,16 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
         onConfirm={handleDeleteConfirm}
         destructive
       />
+
+      {pastePreviewCells && (
+        <PastePreviewDialog
+          open
+          plan={pastePlan}
+          cells={pastePreviewCells}
+          onAccept={handleAcceptPaste}
+          onCancel={() => setPastePreviewCells(null)}
+        />
+      )}
     </Box>
   );
 };

@@ -1,0 +1,441 @@
+[
+  {
+    "key": "auditReview.reviewEntries",
+    "title": "Audit Trail Review Entries",
+    "idColumn": "id",
+    "columns": [
+      { "key": "id", "label": "Entry ID", "defaultVisible": true },
+      { "key": "timestamp", "label": "Timestamp", "defaultVisible": true },
+      { "key": "userName", "label": "User", "defaultVisible": true },
+      { "key": "entityName", "label": "Record", "defaultVisible": true },
+      { "key": "action", "label": "Action", "defaultVisible": true },
+      { "key": "reason", "label": "Reason", "defaultVisible": true },
+      { "key": "finding", "label": "Finding", "defaultVisible": true },
+      { "key": "actions", "label": "Actions", "defaultVisible": true }
+    ],
+    "filters": []
+  },
+  {
+    "key": "auditReview.reviews",
+    "title": "Audit Trail Reviews",
+    "idColumn": "title",
+    "columns": [
+      { "key": "title", "label": "Title", "defaultVisible": true },
+      { "key": "scopeKind", "label": "Scope", "defaultVisible": true },
+      { "key": "periodFromUtc", "label": "Period", "defaultVisible": true },
+      { "key": "entryCount", "label": "Entries", "defaultVisible": true },
+      { "key": "findingCount", "label": "Findings", "defaultVisible": true },
+      { "key": "status", "label": "Status", "defaultVisible": true },
+      { "key": "startedAtUtc", "label": "Started / Signed", "defaultVisible": true }
+    ],
+    "filters": []
+  },
+  {
+    "key": "hplc.runHistory",
+    "title": "HPLC / GC Instrument Run History",
+    "idColumn": "code",
+    "columns": [
+      { "key": "code", "label": "Run Code", "defaultVisible": true },
+      { "key": "methodAbbreviation", "label": "Method", "defaultVisible": true },
+      { "key": "analystUserName", "label": "Analyst", "defaultVisible": true },
+      { "key": "startedAt", "label": "Started At", "defaultVisible": true },
+      { "key": "closedAt", "label": "Closed At", "defaultVisible": true },
+      { "key": "status", "label": "Run Status", "defaultVisible": true },
+      { "key": "sstStatus", "label": "SST Status", "defaultVisible": true },
+      { "key": "action", "label": "Action", "defaultVisible": true }
+    ],
+    "filters": []
+  },
+  {
+    "key": "hplc.mobilePhases",
+    "title": "HPLC / GC Mobile Phases",
+    "idColumn": "channel",
+    "columns": [
+      { "key": "channel", "label": "Channel", "defaultVisible": true },
+      { "key": "solutionMasterName", "label": "Solution", "defaultVisible": true },
+      { "key": "solutionPreparationCode", "label": "Preparation Code", "defaultVisible": true },
+      { "key": "expiresAt", "label": "Expiry Date", "defaultVisible": true }
+    ],
+    "filters": []
+  },
+  {
+    "key": "hplc.runSamples",
+    "title": "HPLC / GC Run Assigned Samples",
+    "idColumn": "sampleNumber",
+    "columns": [
+      { "key": "sampleNumber", "label": "Sample Number", "defaultVisible": true },
+      { "key": "batchNumber", "label": "Batch", "defaultVisible": true },
+      { "key": "productName", "label": "Product", "defaultVisible": true },
+      { "key": "testCode", "label": "Test Code", "defaultVisible": true },
+      { "key": "status", "label": "Run Status", "defaultVisible": true },
+      { "key": "submitted", "label": "Submission", "defaultVisible": true },
+      { "key": "actions", "label": "Actions", "defaultVisible": true }
+    ],
+    "filters": []
+  },
+  {
+    "key": "hplc.sstValues",
+    "title": "HPLC / GC System Suitability Values",
+    "idColumn": "analyteName",
+    "columns": [
+      { "key": "analyteName", "label": "Analyte", "defaultVisible": true },
+      { "key": "standardMaterialBatch", "label": "Standard Lot", "defaultVisible": true },
+      { "key": "standardWeightMg", "label": "Std Weight (mg)", "defaultVisible": true },
+      { "key": "meanResponse", "label": "Mean Response", "defaultVisible": true },
+      { "key": "computedRsdPercent", "label": "Computed %RSD", "defaultVisible": true },
+      { "key": "reported", "label": "Reported Criteria Values", "defaultVisible": true },
+      { "key": "passed", "label": "Verdict", "defaultVisible": true }
+    ],
+    "filters": []
+  },
+  {
+    "key": "icp.runHistory",
+    "title": "ICP Instrument Run History",
+    "idColumn": "code",
+    "columns": [
+      { "key": "code", "label": "Run Code", "defaultVisible": true },
+      { "key": "analystUserName", "label": "Analyst", "defaultVisible": true },
+      { "key": "startedAt", "label": "Started At", "defaultVisible": true },
+      { "key": "sampleCount", "label": "Samples", "defaultVisible": true },
+      { "key": "status", "label": "Run Status", "defaultVisible": true },
+      { "key": "calibrationStatus", "label": "Calibration", "defaultVisible": true },
+      { "key": "action", "label": "Action", "defaultVisible": true }
+    ],
+    "filters": []
+  },
+  {
+    "key": "inventory.equipment",
+    "title": "Equipment Inventory",
+    "idColumn": "code",
+    "columns": [
+      { "key": "instrumentType", "label": "Type", "defaultVisible": true },
+      { "key": "manufacturerName", "label": "Manufacturer", "defaultVisible": true },
+      { "key": "serialNumber", "label": "Serial No.", "defaultVisible": true },
+      { "key": "firmwareVersion", "label": "Firmware", "defaultVisible": true },
+      { "key": "code", "label": "Code", "defaultVisible": true },
+      { "key": "location", "label": "Location", "defaultVisible": true },
+      { "key": "calibrationDueDate", "label": "Calibration Due", "defaultVisible": true },
+      { "key": "sectionId", "label": "Laboratory", "defaultVisible": true },
+      { "key": "status", "label": "Status", "defaultVisible": true }
+    ],
+    "filters": ["search", "instrumentType", "status", "location", "calibrationRange"]
+  },
+  {
+    "key": "inventory.equipmentTraceability",
+    "title": "Equipment Traceability Search",
+    "idColumn": "equipmentCode",
+    "columns": [
+      { "key": "equipmentCode", "label": "Equipment", "defaultVisible": true },
+      { "key": "activityType", "label": "Activity", "defaultVisible": true },
+      { "key": "startedOn", "label": "Started On", "defaultVisible": true },
+      { "key": "performedBy", "label": "Started By", "defaultVisible": true },
+      { "key": "completedOn", "label": "Ended On", "defaultVisible": true },
+      { "key": "completedBy", "label": "Ended By", "defaultVisible": true }
+    ],
+    "filters": ["search"]
+  },
+  {
+    "key": "inventory.equipmentActivities",
+    "title": "Active Equipment Activities",
+    "idColumn": "itemCode",
+    "columns": [
+      { "key": "itemName", "label": "Item / Activity", "defaultVisible": true },
+      { "key": "itemCode", "label": "Item Code", "defaultVisible": true },
+      { "key": "activityType", "label": "Activity Type", "defaultVisible": true },
+      { "key": "mediaDescription", "label": "Media / Description", "defaultVisible": true },
+      { "key": "startedOn", "label": "Started On", "defaultVisible": true },
+      { "key": "startedBy", "label": "Started By", "defaultVisible": true },
+      { "key": "expectedCompletion", "label": "Expected Completion", "defaultVisible": true }
+    ],
+    "filters": []
+  },
+  {
+    "key": "inventory.equipmentActivityHistory",
+    "title": "Equipment Activity History",
+    "idColumn": "itemCode",
+    "columns": [
+      { "key": "itemName", "label": "Item / Activity", "defaultVisible": true },
+      { "key": "itemCode", "label": "Item Code", "defaultVisible": true },
+      { "key": "activityType", "label": "Activity Type", "defaultVisible": true },
+      { "key": "mediaDescription", "label": "Media / Description", "defaultVisible": true },
+      { "key": "startedOn", "label": "Started On", "defaultVisible": true },
+      { "key": "startedBy", "label": "Started By", "defaultVisible": true },
+      { "key": "completedOn", "label": "Ended On", "defaultVisible": true },
+      { "key": "completedBy", "label": "Ended By", "defaultVisible": true }
+    ],
+    "filters": ["dateFrom", "dateTo"]
+  },
+  {
+    "key": "inventory.materials",
+    "title": "Materials & Reagents Inventory",
+    "idColumn": "batchNumber",
+    "columns": [
+      { "key": "materialType", "label": "Type", "defaultVisible": true },
+      { "key": "materialName", "label": "Material Name", "defaultVisible": true },
+      { "key": "manufacturerName", "label": "Manufacturer", "defaultVisible": true },
+      { "key": "stockId", "label": "Stock ID", "defaultVisible": true },
+      { "key": "batchNumber", "label": "Batch/Lot No.", "defaultVisible": true },
+      { "key": "receivingDate", "label": "Received", "defaultVisible": true },
+      { "key": "expiryDate", "label": "Expiry", "defaultVisible": true },
+      { "key": "code", "label": "Code", "defaultVisible": true },
+      { "key": "location", "label": "Location", "defaultVisible": true },
+      { "key": "storageCondition", "label": "Storage Condition", "defaultVisible": true },
+      { "key": "quantityReceived", "label": "Qty Received", "defaultVisible": true },
+      { "key": "quantityRemaining", "label": "Qty Remaining", "defaultVisible": true },
+      { "key": "minimumStockLevel", "label": "Min Stock", "defaultVisible": true },
+      { "key": "status", "label": "Status", "defaultVisible": true }
+    ],
+    "filters": ["search", "materialType", "manufacturer", "location", "status", "expiryRange"]
+  },
+  {
+    "key": "labConfig.cryovials",
+    "title": "Cryovial Lots",
+    "idColumn": "code",
+    "columns": [
+      { "key": "code", "label": "Code", "defaultVisible": true },
+      { "key": "organism", "label": "Organism & Source", "defaultVisible": true },
+      { "key": "approvalStatus", "label": "Status", "defaultVisible": true },
+      { "key": "vialsRemaining", "label": "Vials Stock", "defaultVisible": true },
+      { "key": "preparedAt", "label": "Prepared", "defaultVisible": true }
+    ],
+    "filters": []
+  },
+  {
+    "key": "labConfig.labelFormats",
+    "title": "Label Formats",
+    "idColumn": "entityType",
+    "columns": [
+      { "key": "entityType", "label": "Label Type", "defaultVisible": true },
+      { "key": "widthMm", "label": "Width", "defaultVisible": true },
+      { "key": "heightMm", "label": "Height", "defaultVisible": true },
+      { "key": "layout", "label": "Layout", "defaultVisible": true },
+      { "key": "defaultCopies", "label": "Default Labels", "defaultVisible": true },
+      { "key": "actions", "label": "Actions", "defaultVisible": true }
+    ],
+    "filters": []
+  },
+  {
+    "key": "labConfig.chromatographyColumns",
+    "title": "Chromatography Columns",
+    "idColumn": "code",
+    "columns": [
+      { "key": "code", "label": "Code", "defaultVisible": true },
+      { "key": "name", "label": "Column Name", "defaultVisible": true },
+      { "key": "uspDesignation", "label": "USP", "defaultVisible": true },
+      { "key": "serialNumber", "label": "Serial Number", "defaultVisible": true },
+      { "key": "section", "label": "Section", "defaultVisible": true },
+      { "key": "compatibleEquipment", "label": "Compatible Instruments (HPLC / GC)", "defaultVisible": true },
+      { "key": "isActive", "label": "Status", "defaultVisible": true }
+    ],
+    "filters": ["search", "status", "section"]
+  },
+  {
+    "key": "labConfig.equationTypes",
+    "title": "Equation Types",
+    "idColumn": "code",
+    "columns": [
+      { "key": "name", "label": "Type / Name", "defaultVisible": true },
+      { "key": "code", "label": "Code", "defaultVisible": true },
+      { "key": "formulaText", "label": "Formula Text", "defaultVisible": true },
+      { "key": "requiredInputs", "label": "Required Inputs", "defaultVisible": true }
+    ],
+    "filters": ["search"]
+  },
+  {
+    "key": "labConfig.fpInstruments",
+    "title": "Physicochemical Instruments",
+    "idColumn": "code",
+    "columns": [
+      { "key": "code", "label": "Code", "defaultVisible": true },
+      { "key": "name", "label": "Instrument", "defaultVisible": true },
+      { "key": "type", "label": "Type", "defaultVisible": true },
+      { "key": "manufacturer", "label": "Manufacturer", "defaultVisible": true },
+      { "key": "serial", "label": "Serial No.", "defaultVisible": true },
+      { "key": "cdsSoftware", "label": "CDS Software", "defaultVisible": true },
+      { "key": "location", "label": "Location", "defaultVisible": true },
+      { "key": "calibrationDueDate", "label": "Calibration Due", "defaultVisible": true }
+    ],
+    "filters": ["search"]
+  },
+  {
+    "key": "labConfig.materialCategories",
+    "title": "Material Categories",
+    "idColumn": "codePrefix",
+    "columns": [
+      { "key": "codePrefix", "label": "Prefix", "defaultVisible": true },
+      { "key": "name", "label": "Name", "defaultVisible": true },
+      { "key": "defaultUnit", "label": "Default unit", "defaultVisible": true },
+      { "key": "defaultStorageCondition", "label": "Default storage", "defaultVisible": true },
+      { "key": "rules", "label": "Rules", "defaultVisible": true },
+      { "key": "sections", "label": "Sections", "defaultVisible": true },
+      { "key": "isActive", "label": "Status", "defaultVisible": true }
+    ],
+    "filters": []
+  },
+  {
+    "key": "labConfig.materialMaster",
+    "title": "Reagents & Reference Standards",
+    "idColumn": "code",
+    "columns": [
+      { "key": "code", "label": "Code", "defaultVisible": true },
+      { "key": "name", "label": "Name", "defaultVisible": true },
+      { "key": "category", "label": "Category", "defaultVisible": true },
+      { "key": "materialCategory", "label": "Material category", "defaultVisible": true },
+      { "key": "grade", "label": "Grade", "defaultVisible": true },
+      { "key": "source", "label": "Source", "defaultVisible": true },
+      { "key": "baseUnit", "label": "Base Unit", "defaultVisible": true },
+      { "key": "section", "label": "Owner lab", "defaultVisible": true },
+      { "key": "isActive", "label": "Status", "defaultVisible": true }
+    ],
+    "filters": ["search", "category", "status", "section"]
+  },
+  {
+    "key": "labConfig.organisms",
+    "title": "Organisms",
+    "idColumn": "scientificName",
+    "columns": [
+      { "key": "scientificName", "label": "Scientific Name", "defaultVisible": true },
+      { "key": "atccNumber", "label": "ATCC No.", "defaultVisible": true },
+      { "key": "commonName", "label": "Common Name", "defaultVisible": true },
+      { "key": "description", "label": "Description", "defaultVisible": true }
+    ],
+    "filters": ["search"]
+  },
+  {
+    "key": "labConfig.referenceOrganisms",
+    "title": "Reference Organisms",
+    "idColumn": "code",
+    "columns": [
+      { "key": "code", "label": "Code", "defaultVisible": true },
+      { "key": "organismScientificName", "label": "Species", "defaultVisible": true },
+      { "key": "cultureCollection", "label": "Collection", "defaultVisible": true },
+      { "key": "strainNumber", "label": "Strain No.", "defaultVisible": true },
+      { "key": "ownerSectionName", "label": "Owner Lab", "defaultVisible": true },
+      { "key": "isActive", "label": "Status", "defaultVisible": true }
+    ],
+    "filters": ["search"]
+  },
+  {
+    "key": "labConfig.solutionMaster",
+    "title": "Solution Master",
+    "idColumn": "name",
+    "columns": [
+      { "key": "name", "label": "Name", "defaultVisible": true },
+      { "key": "type", "label": "Type", "defaultVisible": true },
+      { "key": "shelfLife", "label": "Shelf Life", "defaultVisible": true },
+      { "key": "finalVolumeMl", "label": "Final Volume", "defaultVisible": true },
+      { "key": "components", "label": "Components", "defaultVisible": true },
+      { "key": "section", "label": "Section", "defaultVisible": true },
+      { "key": "isActive", "label": "Status", "defaultVisible": true }
+    ],
+    "filters": ["search", "type", "status", "section"]
+  },
+  {
+    "key": "labConfig.testMaster",
+    "title": "Test Master",
+    "idColumn": "code",
+    "columns": [
+      { "key": "code", "label": "Code", "defaultVisible": true },
+      { "key": "displayName", "label": "Display Name", "defaultVisible": true },
+      { "key": "section", "label": "Section", "defaultVisible": true },
+      { "key": "isActive", "label": "Status", "defaultVisible": true }
+    ],
+    "filters": ["search"]
+  },
+  {
+    "key": "labConfig.workingStandardCatalog",
+    "title": "Approved Working Standards",
+    "idColumn": "code",
+    "columns": [
+      { "key": "code", "label": "Lot", "defaultVisible": true },
+      { "key": "name", "label": "Name", "defaultVisible": true },
+      { "key": "ownerSectionCode", "label": "Owner lab", "defaultVisible": true },
+      { "key": "isActive", "label": "Stock", "defaultVisible": true }
+    ],
+    "filters": []
+  },
+  {
+    "key": "labConfig.hplcMethods",
+    "title": "HPLC & GC Methods",
+    "idColumn": "abbreviation",
+    "columns": [
+      { "key": "name", "label": "Name", "defaultVisible": true },
+      { "key": "abbreviation", "label": "Abbreviation", "defaultVisible": true },
+      { "key": "technique", "label": "Technique", "defaultVisible": true },
+      { "key": "analyteCount", "label": "Analytes", "defaultVisible": true },
+      { "key": "sectionName", "label": "Section", "defaultVisible": true },
+      { "key": "isActive", "label": "Status", "defaultVisible": true },
+      { "key": "lastModifiedAt", "label": "Last Modified", "defaultVisible": true }
+    ],
+    "filters": ["search", "technique", "status", "section"]
+  },
+  {
+    "key": "labConfig.workbookImports",
+    "title": "Master Data Workbook Loads",
+    "idColumn": "fileName",
+    "columns": [
+      { "key": "importedAt", "label": "Loaded", "defaultVisible": true },
+      { "key": "importedBy", "label": "Loaded by", "defaultVisible": true },
+      { "key": "fileName", "label": "File", "defaultVisible": true },
+      { "key": "sheets", "label": "New records", "defaultVisible": true },
+      { "key": "status", "label": "Status", "defaultVisible": true },
+      { "key": "actions", "label": "", "defaultVisible": true }
+    ],
+    "filters": []
+  },
+  {
+    "key": "labConfig.mediaLots",
+    "title": "Media Lot Register",
+    "idColumn": "lotNumber",
+    "columns": [
+      { "key": "preparedAt", "label": "Prepared On", "defaultVisible": true },
+      { "key": "material", "label": "Dehydrated Material", "defaultVisible": true },
+      { "key": "lotNumber", "label": "Lot Number", "defaultVisible": true },
+      { "key": "expiryDate", "label": "Expiry Date", "defaultVisible": true },
+      { "key": "status", "label": "Status", "defaultVisible": true }
+    ],
+    "filters": []
+  },
+  {
+    "key": "solutionPrep.preparations",
+    "title": "Solution Preparation",
+    "idColumn": "code",
+    "columns": [
+      { "key": "code", "label": "Code", "defaultVisible": true },
+      { "key": "type", "label": "Type", "defaultVisible": true },
+      { "key": "solutionMasterName", "label": "Solution Recipe", "defaultVisible": true },
+      { "key": "hplcMethodAbbreviation", "label": "HPLC Method", "defaultVisible": true },
+      { "key": "effectiveStatus", "label": "Status", "defaultVisible": true },
+      { "key": "preparedAt", "label": "Prepared At", "defaultVisible": true },
+      { "key": "expiresAt", "label": "Expires At", "defaultVisible": true },
+      { "key": "preparedByUserName", "label": "Prepared By", "defaultVisible": true }
+    ],
+    "filters": ["search", "status", "type", "release"]
+  },
+  {
+    "key": "testing.gravimetricWeights",
+    "title": "Recorded Gravimetric Weights",
+    "idColumn": "index",
+    "columns": [
+      { "key": "index", "label": "Replicate", "defaultVisible": true },
+      { "key": "value1", "label": "Container (g)", "defaultVisible": true },
+      { "key": "value2", "label": "Initial (g)", "defaultVisible": true },
+      { "key": "value3", "label": "Final (g)", "defaultVisible": true },
+      { "key": "computedValue", "label": "Loss (%)", "defaultVisible": true }
+    ],
+    "filters": []
+  },
+  {
+    "key": "testing.titrationReadings",
+    "title": "Recorded Titration Readings",
+    "idColumn": "index",
+    "columns": [
+      { "key": "index", "label": "Replicate", "defaultVisible": true },
+      { "key": "value1", "label": "Sample weight (mg)", "defaultVisible": true },
+      { "key": "value2", "label": "Titrant volume (mL)", "defaultVisible": true },
+      { "key": "value3", "label": "Corrected volume (mL)", "defaultVisible": true },
+      { "key": "computedValue", "label": "Result", "defaultVisible": true }
+    ],
+    "filters": []
+  }
+]

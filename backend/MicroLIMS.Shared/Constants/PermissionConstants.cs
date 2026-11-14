@@ -166,6 +166,10 @@ public static class PermissionConstants
     public const string LabelsReprint = "Labels.Reprint";
     public const string LabelsConfigure = "Labels.Configure";
 
+    // Smarter tables (C3): share a saved table view with a laboratory section, and export a table to CSV (audited).
+    public const string TableViewsShare = "TableViews.Share";
+    public const string DataExport = "Data.Export";
+
     public static readonly IReadOnlyList<string> All = new[]
     {
         UsersManage, RolesManage, AuditView, ReportingAdmin,
@@ -191,7 +195,8 @@ public static class PermissionConstants
         SamplesPrepare, TestsSelfAssign,
         SectionsViewAll, SectionsConfigureAll, SystemManageJobs, AccessReview,
         AuditReview, AccessReviewSign,
-        LabelsReprint, LabelsConfigure
+        LabelsReprint, LabelsConfigure,
+        TableViewsShare, DataExport
     };
 
     // What the built-in System Administrator role holds. Segregation of duties
@@ -245,7 +250,8 @@ public static class PermissionConstants
         SamplesPrepare, TestsSelfAssign,
         SectionsViewAll, SectionsConfigureAll, SystemManageJobs, AccessReview,
         AuditReview, AccessReviewSign,
-        LabelsReprint, LabelsConfigure
+        LabelsReprint, LabelsConfigure,
+        TableViewsShare
     };
 
     // Declared and granted, but no feature checks them yet. Kept in the

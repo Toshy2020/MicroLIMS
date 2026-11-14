@@ -8,6 +8,11 @@
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
   </ItemGroup>
   <ItemGroup>
+    <!-- A copy of frontend/src/tables/tableRegistry.json (the canonical list of table keys). The Docker build context is
+         backend/ only, so the backend keeps its own copy; TableKeyRegistryTests fails the build if the two files differ. -->
+    <EmbeddedResource Include="Services/TableViews/tableRegistry.json" LogicalName="tableRegistry.json" />
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="..\MicroLIMS.Domain\MicroLIMS.Domain.csproj" />
     <ProjectReference Include="..\MicroLIMS.Shared\MicroLIMS.Shared.csproj" />
   </ItemGroup>

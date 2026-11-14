@@ -317,6 +317,187 @@ public class SampleBatchReceivePostgresTests
     }
 
     [PostgresFact]
+    public async Task DuplicateBatchAndControlInsideRequest_ReportedOnBothRows()
+    {
+        var suffix = Guid.NewGuid().ToString("N")[..8];
+        var (userId, microId, _, causeId, itemId, _, _) = await SeedProductAndWaterAsync(suffix);
+        var stage = $"Bulk-{suffix}";
+        var dupBatch = $"BDUP-{suffix}";
+        var dupControl = $"CDUP-{suffix}";
+        var otherControl = $"COTHER-{suffix}";
+
+        await using (var actDb = _fixture.CreateDbContext())
+        {
+            var svc = BuildService(actDb);
+            var req = new BatchReceiveRequest(
+                "Product",
+                new[]
+                {
+                    new ReceiveItemBasedSampleRequest(itemId, causeId, "10 g", "Sampler A", dupBatch, dupControl, null, null, stage, new List<int> { microId }),
+                    new ReceiveItemBasedSampleRequest(itemId, causeId, "10 g", "Sampler B", $"BOTHER-{suffix}", otherControl, null, null, stage, new List<int> { microId }),
+                    new ReceiveItemBasedSampleRequest(itemId, causeId, "10 g", "Sampler C", dupBatch, dupControl, null, null, stage, new List<int> { microId })
+                },
+                null, null, null);
+
+            var ex = await Assert.ThrowsAsync<FieldValidationException>(() => svc.ReceiveAsync(req, userId));
+            Assert.Equal("Some rows need correction.", ex.Message);
+            Assert.Equal(2, ex.FieldErrors.Count);
+            Assert.Contains(ex.FieldErrors, e =>
+                e.Row == 0 &&
+                e.Field == "controlNumber" &&
+                e.Message == "Same batch and control number as row 3.");
+            Assert.Contains(ex.FieldErrors, e =>
+                e.Row == 2 &&
+                e.Field == "controlNumber" &&
+                e.Message == "Same batch and control number as row 1.");
+        }
+
+        await using var assertDb = _fixture.CreateDbContext();
+        Assert.False(await assertDb.Samples.AsNoTracking().AnyAsync(s =>
+            s.ControlNumber == dupControl || s.ControlNumber == otherControl));
+        var auditRows = await assertDb.AuditLogs
+            .AsNoTracking()
+            .Where(a => a.EntityName == nameof(Sample) && a.Action == "Create" &&
+                        (a.ControlNumber == dupControl || a.ControlNumber == otherControl))
+            .ToListAsync();
+        Assert.Empty(auditRows);
+    }
+
+    [PostgresFact]
+    public async Task DuplicateIgnoresCaseAndSpaces()
+    {
+        var suffix = Guid.NewGuid().ToString("N")[..8];
+        var (userId, microId, _, causeId, itemId, _, _) = await SeedProductAndWaterAsync(suffix);
+        var stage = $"Bulk-{suffix}";
+
+        await using (var actDb = _fixture.CreateDbContext())
+        {
+            var svc = BuildService(actDb);
+            var req = new BatchReceiveRequest(
+                "Product",
+                new[]
+                {
+                    new ReceiveItemBasedSampleRequest(itemId, causeId, "10 g", "Sampler A", $"b-1-{suffix} ", $" c-1-{suffix}", null, null, stage, new List<int> { microId }),
+                    new ReceiveItemBasedSampleRequest(itemId, causeId, "10 g", "Sampler B", $"B-1-{suffix}", $"C-1-{suffix} ", null, null, stage, new List<int> { microId })
+                },
+                null, null, null);
+
+            var ex = await Assert.ThrowsAsync<FieldValidationException>(() => svc.ReceiveAsync(req, userId));
+            Assert.Equal(2, ex.FieldErrors.Count);
+            Assert.Contains(ex.FieldErrors, e =>
+                e.Row == 0 && e.Field == "controlNumber" && e.Message == "Same batch and control number as row 2.");
+            Assert.Contains(ex.FieldErrors, e =>
+                e.Row == 1 && e.Field == "controlNumber" && e.Message == "Same batch and control number as row 1.");
+        }
+
+        await using var assertDb = _fixture.CreateDbContext();
+        Assert.False(await assertDb.Samples.AsNoTracking().AnyAsync(s =>
+            s.BatchNumber != null && s.BatchNumber.Contains(suffix)));
+    }
+
+    [PostgresFact]
+    public async Task SameBatchDifferentControl_Accepted()
+    {
+        var suffix = Guid.NewGuid().ToString("N")[..8];
+        var (userId, microId, _, causeId, itemId, _, _) = await SeedProductAndWaterAsync(suffix);
+        var stage = $"Bulk-{suffix}";
+        var sharedBatch = $"SBATCH-{suffix}";
+
+        BatchReceiveResult result;
+        await using (var actDb = _fixture.CreateDbContext())
+        {
+            var svc = BuildService(actDb);
+            var req = new BatchReceiveRequest(
+                "Product",
+                new[]
+                {
+                    new ReceiveItemBasedSampleRequest(itemId, causeId, "10 g", "Sampler A", sharedBatch, $"C1-{suffix}", null, null, stage, new List<int> { microId }),
+                    new ReceiveItemBasedSampleRequest(itemId, causeId, "10 g", "Sampler B", sharedBatch, $"C2-{suffix}", null, null, stage, new List<int> { microId })
+                },
+                null, null, null);
+
+            result = await svc.ReceiveAsync(req, userId);
+        }
+
+        Assert.Equal(2, result.Samples.Count);
+
+        await using var assertDb = _fixture.CreateDbContext();
+        var ids = result.Samples.Select(s => s.SampleId).ToList();
+        var persisted = await assertDb.Samples.AsNoTracking().Where(s => ids.Contains(s.Id)).ToListAsync();
+        Assert.Equal(2, persisted.Count);
+    }
+
+    [PostgresFact]
+    public async Task SameControlDifferentBatch_Accepted()
+    {
+        var suffix = Guid.NewGuid().ToString("N")[..8];
+        var (userId, microId, _, causeId, itemId, _, _) = await SeedProductAndWaterAsync(suffix);
+        var stage = $"Bulk-{suffix}";
+        var sharedControl = $"SCTRL-{suffix}";
+
+        BatchReceiveResult result;
+        await using (var actDb = _fixture.CreateDbContext())
+        {
+            var svc = BuildService(actDb);
+            var req = new BatchReceiveRequest(
+                "Product",
+                new[]
+                {
+                    new ReceiveItemBasedSampleRequest(itemId, causeId, "10 g", "Sampler A", $"B1-{suffix}", sharedControl, null, null, stage, new List<int> { microId }),
+                    new ReceiveItemBasedSampleRequest(itemId, causeId, "10 g", "Sampler B", $"B2-{suffix}", sharedControl, null, null, stage, new List<int> { microId })
+                },
+                null, null, null);
+
+            result = await svc.ReceiveAsync(req, userId);
+        }
+
+        Assert.Equal(2, result.Samples.Count);
+
+        await using var assertDb = _fixture.CreateDbContext();
+        var ids = result.Samples.Select(s => s.SampleId).ToList();
+        var persisted = await assertDb.Samples.AsNoTracking().Where(s => ids.Contains(s.Id)).ToListAsync();
+        Assert.Equal(2, persisted.Count);
+    }
+
+    [PostgresFact]
+    public async Task DuplicateAndOtherInvalidRow_AllReportedTogether()
+    {
+        var suffix = Guid.NewGuid().ToString("N")[..8];
+        var (userId, microId, _, causeId, itemId, _, _) = await SeedProductAndWaterAsync(suffix);
+        var stage = $"Bulk-{suffix}";
+        var dupBatch = $"BMix-{suffix}";
+        var dupControl = $"CMix-{suffix}";
+
+        await using (var actDb = _fixture.CreateDbContext())
+        {
+            var svc = BuildService(actDb);
+            var req = new BatchReceiveRequest(
+                "Product",
+                new[]
+                {
+                    new ReceiveItemBasedSampleRequest(itemId, causeId, "10 g", "Sampler A", dupBatch, dupControl, null, null, stage, new List<int> { microId }),
+                    new ReceiveItemBasedSampleRequest(itemId, causeId, "10 g", "", $"BOther-{suffix}", $"COther-{suffix}", null, null, stage, new List<int> { microId }),
+                    new ReceiveItemBasedSampleRequest(itemId, causeId, "10 g", "Sampler C", dupBatch, dupControl, null, null, stage, new List<int> { microId })
+                },
+                null, null, null);
+
+            var ex = await Assert.ThrowsAsync<FieldValidationException>(() => svc.ReceiveAsync(req, userId));
+            Assert.Equal("Some rows need correction.", ex.Message);
+            Assert.Equal(3, ex.FieldErrors.Count);
+            Assert.Contains(ex.FieldErrors, e =>
+                e.Row == 0 && e.Field == "controlNumber" && e.Message == "Same batch and control number as row 3.");
+            Assert.Contains(ex.FieldErrors, e =>
+                e.Row == 1 && e.Field == "sampledBy");
+            Assert.Contains(ex.FieldErrors, e =>
+                e.Row == 2 && e.Field == "controlNumber" && e.Message == "Same batch and control number as row 1.");
+        }
+
+        await using var assertDb = _fixture.CreateDbContext();
+        Assert.False(await assertDb.Samples.AsNoTracking().AnyAsync(s =>
+            s.ControlNumber == dupControl || s.ControlNumber == $"COther-{suffix}"));
+    }
+
+    [PostgresFact]
     public async Task LastRowFailsInsideTheEngine_EverythingRolledBack_NoSamples_NoAuditRows_NumbersNotConsumed()
     {
         var suffix = Guid.NewGuid().ToString("N")[..8];

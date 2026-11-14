@@ -32,6 +32,12 @@ public interface IMicroLimsDbContext
     // for every row the save produces. Set per operation, never from JSON.
     string? CurrentReason { get; set; }
 
+    // Where the change came from, when the request says so (today: the start
+    // time a bench tablet reports for its local draft). The automatic audit
+    // capture copies it into AuditLog.SourceContext for rows that have none.
+    // Set per request by DraftContextMiddleware; never from JSON.
+    string? CurrentSourceContext { get; set; }
+
     DbSet<User> Users { get; }
     DbSet<Role> Roles { get; }
     DbSet<Permission> Permissions { get; }

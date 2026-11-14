@@ -6,8 +6,9 @@ using MicroLIMS.Domain.Entities;
 namespace MicroLIMS.Application.Services.MyWork.Sources;
 
 // Open incubations on my tests (assigned to me, or started by me), split by the one ready-to-read rule
-// (SampleWorkflowQueues.IsIncubationReadyAt). Ready -> "readyToRead"; not ready but expected before the
-// laboratory day ends -> "endingToday". An incubation whose test was returned to me is listed as returned instead.
+// (SampleWorkflowQueues.IsIncubationReadyAt). Ready -> "readyToRead"; not ready and expected before the
+// laboratory day ends -> "endingToday"; not ready and expected after the laboratory day ends up to
+// now + 24 hours -> "next24Hours". An incubation whose test was returned to me is listed as returned instead.
 public sealed class IncubationSource : IMyWorkSource
 {
     private readonly IMicroLimsDbContext _db;
@@ -36,12 +37,25 @@ public sealed class IncubationSource : IMyWorkSource
     private IQueryable<Incubation> Ready(MyWorkContext ctx) =>
         Mine(ctx).Where(SampleWorkflowQueues.IsIncubationReadyAt(ctx.NowUtc));
 
+    private IQueryable<Incubation> NotReadyWithDue(MyWorkContext ctx) =>
+        Mine(ctx)
+            .Where(AnalystQueries.Not(SampleWorkflowQueues.IsIncubationReadyAt(ctx.NowUtc)))
+            .Where(i => (i.ExpectedReadingAt ?? i.IncubationEndUtc) != null);
+
     private IQueryable<Incubation> Ending(MyWorkContext ctx)
     {
         var endOfDay = ctx.EndOfLabDayUtc;
-        return Mine(ctx)
-            .Where(AnalystQueries.Not(SampleWorkflowQueues.IsIncubationReadyAt(ctx.NowUtc)))
-            .Where(i => (i.ExpectedReadingAt ?? i.IncubationEndUtc) != null && (i.ExpectedReadingAt ?? i.IncubationEndUtc) <= endOfDay);
+        return NotReadyWithDue(ctx)
+            .Where(i => (i.ExpectedReadingAt ?? i.IncubationEndUtc) <= endOfDay);
+    }
+
+    private IQueryable<Incubation> Next24Hours(MyWorkContext ctx)
+    {
+        var endOfDay = ctx.EndOfLabDayUtc;
+        var horizon = ctx.NowUtc.AddHours(24);
+        return NotReadyWithDue(ctx)
+            .Where(i => (i.ExpectedReadingAt ?? i.IncubationEndUtc) > endOfDay
+                && (i.ExpectedReadingAt ?? i.IncubationEndUtc) <= horizon);
     }
 
     // Ready incubations that have waited longer than the configured hours (0 = never):
@@ -55,17 +69,18 @@ public sealed class IncubationSource : IMyWorkSource
             || (i.MinimumDurationOverriddenByUserId != null && i.MinimumDurationOverriddenAt != null && i.MinimumDurationOverriddenAt < threshold));
     }
 
-    private async Task<(int Ready, int Overdue, int Ending)> CountsAsync(MyWorkContext ctx, CancellationToken ct)
+    private async Task<(int Ready, int Overdue, int Ending, int Next24)> CountsAsync(MyWorkContext ctx, CancellationToken ct)
     {
         var ready = await Ready(ctx).CountAsync(ct);
         var overdue = ctx.ReadOverdueHours > 0 && ready > 0 ? await ReadyAndOverdue(ctx).CountAsync(ct) : 0;
         var ending = await Ending(ctx).CountAsync(ct);
-        return (ready, overdue, ending);
+        var next24 = await Next24Hours(ctx).CountAsync(ct);
+        return (ready, overdue, ending, next24);
     }
 
     public async Task<MyWorkSourceResult> GetAsync(MyWorkContext ctx, int take, CancellationToken ct)
     {
-        var (ready, _, ending) = await CountsAsync(ctx, ct);
+        var (ready, _, ending, next24) = await CountsAsync(ctx, ct);
         var items = new List<MyWorkItem>();
 
         if (ready > 0)
@@ -86,29 +101,42 @@ public sealed class IncubationSource : IMyWorkSource
                     .ThenBy(i => i.ExpectedReadingAt ?? i.IncubationEndUtc ?? i.MinimumDurationOverriddenAt)
                     .ThenBy(i => i.Id))
                 .Take(take).ToListAsync(ct);
-            items.AddRange(rows.Select(r => ToItem(ctx, r, ready: true)));
+            items.AddRange(rows.Select(r => ToItem(ctx, r, "readyToRead")));
         }
 
         if (ending > 0)
         {
             var rows = await Project(Ending(ctx).OrderBy(i => i.ExpectedReadingAt ?? i.IncubationEndUtc).ThenBy(i => i.Id))
                 .Take(take).ToListAsync(ct);
-            items.AddRange(rows.Select(r => ToItem(ctx, r, ready: false)));
+            items.AddRange(rows.Select(r => ToItem(ctx, r, "endingToday")));
+        }
+
+        if (next24 > 0)
+        {
+            var rows = await Project(Next24Hours(ctx).OrderBy(i => i.ExpectedReadingAt ?? i.IncubationEndUtc).ThenBy(i => i.Id))
+                .Take(take).ToListAsync(ct);
+            items.AddRange(rows.Select(r => ToItem(ctx, r, "next24Hours")));
         }
 
         return new MyWorkSourceResult(items,
-            new Dictionary<string, int> { ["readyToRead"] = ready, ["endingToday"] = ending },
+            new Dictionary<string, int>
+            {
+                ["readyToRead"] = ready,
+                ["endingToday"] = ending,
+                ["next24Hours"] = next24,
+            },
             new Dictionary<string, int>());
     }
 
     public async Task<IReadOnlyDictionary<MyWorkUrgencyLevel, int>> CountAsync(MyWorkContext ctx, CancellationToken ct)
     {
-        var (ready, overdue, ending) = await CountsAsync(ctx, ct);
+        var (ready, overdue, ending, next24) = await CountsAsync(ctx, ct);
         return new Dictionary<MyWorkUrgencyLevel, int>
         {
             [MyWorkUrgencyLevel.Overdue] = overdue,
             [MyWorkUrgencyLevel.Now] = ready - overdue,
             [MyWorkUrgencyLevel.Today] = ending,
+            [MyWorkUrgencyLevel.Later] = next24,
         };
     }
 
@@ -119,8 +147,9 @@ public sealed class IncubationSource : IMyWorkSource
             i.StepName, i.ExpectedReadingAt, i.IncubationEndUtc, i.MinimumDurationOverriddenByUserId, i.MinimumDurationOverriddenAt,
             i.TestOrder.SectionId, i.TestOrder.Section!.Name, i.TestOrder.Section.Code));
 
-    private static MyWorkItem ToItem(MyWorkContext ctx, Row r, bool ready)
+    private static MyWorkItem ToItem(MyWorkContext ctx, Row r, string groupKey)
     {
+        var ready = groupKey == "readyToRead";
         var now = ctx.NowUtc;
         // It became ready at the earliest of the conditions that hold now.
         DateTime? readySince = null;
@@ -136,7 +165,7 @@ public sealed class IncubationSource : IMyWorkSource
         var expected = r.Expected ?? r.End;
         var urgency = MyWorkUrgency.ForReading(ready, readySince, expected, now, ctx.EndOfLabDayUtc, ctx.ReadOverdueHours);
         return new MyWorkItem(
-            $"incubation:{r.Id}", ready ? "readyToRead" : "endingToday", r.SampleRef, $"Read {r.DisplayName ?? r.TestCode}",
+            $"incubation:{r.Id}", groupKey, r.SampleRef, $"Read {r.DisplayName ?? r.TestCode}",
             $"{r.StepName} · {r.SectionName}", expected, urgency, readySince ?? expected ?? now, false, null,
             new MyWorkTarget("incubation-read", SampleId: r.SampleId, TestOrderId: r.TestOrderId, IncubationId: r.Id),
             ready ? new[] { "read" } : Array.Empty<string>(), r.SectionId, r.SectionName, r.Lab);

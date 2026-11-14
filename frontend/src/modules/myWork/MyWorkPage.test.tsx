@@ -136,6 +136,7 @@ function renderPage(initialEntry = "/my-work") {
                 </div>
               }
             />
+            <Route path="/microbiology/workspace" element={<LocationEcho />} />
           </Routes>
         </MemoryRouter>
       </AuthProvider>
@@ -359,5 +360,79 @@ describe("MyWorkPage", () => {
 
     const updatedLink = screen.getByRole("link", { name: /SMP-1001/i });
     expect(document.activeElement).toBe(updatedLink);
+  });
+
+  it("renders next24Hours group with title and count and navigates like endingToday on item click", async () => {
+    const user = userEvent.setup();
+    vi.mocked(myWorkService.get).mockResolvedValue(
+      makeResponse({
+        groups: [
+          {
+            key: "endingToday",
+            title: "Incubation ending today",
+            count: 1,
+            lockedCount: 0,
+            hasMore: false,
+            items: [
+              {
+                key: "incubation:101",
+                groupKey: "endingToday",
+                identifier: "SMP-TODAY",
+                title: "Read Bioburden",
+                dueAtUtc: "2026-11-14T21:30:00Z",
+                urgency: "Today",
+                locked: false,
+                target: { type: "incubation-read", sampleId: 10, testOrderId: 101, incubationId: 201 },
+                actions: [],
+                lab: "MICRO"
+              }
+            ]
+          },
+          {
+            key: "next24Hours",
+            title: "Incubation ending in the next 24 hours",
+            count: 2,
+            lockedCount: 0,
+            hasMore: false,
+            items: [
+              {
+                key: "incubation:102",
+                groupKey: "next24Hours",
+                identifier: "SMP-NEXT24",
+                title: "Read Sterility",
+                dueAtUtc: "2026-11-15T06:00:00Z",
+                urgency: "Later",
+                locked: false,
+                target: { type: "incubation-read", sampleId: 20, testOrderId: 102, incubationId: 202 },
+                actions: [],
+                lab: "MICRO"
+              }
+            ]
+          }
+        ]
+      })
+    );
+
+    renderPage();
+
+    const heading = await screen.findByRole("heading", { name: /Incubation ending in the next 24 hours/i });
+    const section = heading.closest("section");
+    expect(section).not.toBeNull();
+    expect(within(section!).getByText("2")).toBeTruthy();
+
+    const todayLink = screen.getByRole("link", { name: /SMP-TODAY/i });
+    expect(todayLink.getAttribute("href")).toBe(
+      "/microbiology/workspace?sampleId=10&testOrderId=101&open=incubation&incubationId=201"
+    );
+
+    const next24Link = screen.getByRole("link", { name: /SMP-NEXT24/i });
+    expect(next24Link.getAttribute("href")).toBe(
+      "/microbiology/workspace?sampleId=20&testOrderId=102&open=incubation&incubationId=202"
+    );
+
+    await user.click(next24Link);
+    expect(screen.getByTestId("location-echo").textContent).toBe(
+      "/microbiology/workspace?sampleId=20&testOrderId=102&open=incubation&incubationId=202"
+    );
   });
 });

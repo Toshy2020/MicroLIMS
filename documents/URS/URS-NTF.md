@@ -4,7 +4,7 @@
 |---|---|
 | Document number | URS-NTF |
 | Title | Dashboards, notifications and messaging user requirements |
-| Version | 0.2 |
+| Version | 0.3 |
 | Status | Draft |
 | Author | Claude (AI agent), draft from code |
 | Reviewer | To be assigned by QA |
@@ -17,6 +17,7 @@
 |---|---|---|---|
 | 0.1 | 2026-11-12 | Claude (AI agent), draft from code | First draft, written from the code as built. |
 | 0.2 | 2026-11-14 | AI coding agent, draft from code | Added My Work and test self-assignment requirements (URS-NTF-006 to URS-NTF-010). |
+| 0.3 | 2026-11-15 | AI coding agent, draft from code | Added separate 24-hour incubation look-ahead group requirement (URS-NTF-011). |
 
 ## Requirements
 
@@ -78,6 +79,12 @@ Each requirement below is a need that the code as built serves. Gaps found in th
 
 ### URS-NTF-010
 **Requirement:** The system shall land the user on My Work after sign-in (redirecting once per session to the role dashboard when the user has no My Work groups and holds a dashboard permission) and shall display the live total task count and overdue status on the My Work sidebar item when all task sources succeed, hiding the sidebar badge when the summary is zero or incomplete.
+**GxP:** No
+**Serves:** Not applicable
+**Status:** Active
+
+### URS-NTF-011
+**Requirement:** The system shall partition open incubations on active tests assigned to or started by the signed-in user into separate My Work groups for incubations ready to read, incubations not yet ready whose expected or end time is on or before the end of the current laboratory day, and incubations not yet ready whose expected or end time falls after the end of the current laboratory day and within 24 hours from the server clock, placing each incubation in at most one group.
 **GxP:** No
 **Serves:** Not applicable
 **Status:** Active

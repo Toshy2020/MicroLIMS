@@ -100,6 +100,8 @@ public class MyWorkServiceTests
             Result = Result(
                 Item("a", "approval", MyWorkUrgencyLevel.Now, t),
                 Item("b", "readyToRead", MyWorkUrgencyLevel.Now, t),
+                Item("e", "next24Hours", MyWorkUrgencyLevel.Later, t),
+                Item("f", "endingToday", MyWorkUrgencyLevel.Today, t),
                 Item("c", "toPerform", MyWorkUrgencyLevel.Now, t),
                 Item("d", "materials", MyWorkUrgencyLevel.Now, t))
         };
@@ -107,8 +109,17 @@ public class MyWorkServiceTests
 
         var response = await h.Service.GetAsync(h.UserId, null);
 
-        Assert.Equal(new[] { "readyToRead", "toPerform", "approval", "materials" }, response.Groups.Select(g => g.Key));
-        Assert.Equal(new[] { "Ready to read now", "Tests to perform", "Awaiting my approval", "Media, solutions and strains" },
+        Assert.Equal(new[] { "readyToRead", "endingToday", "next24Hours", "toPerform", "approval", "materials" },
+            response.Groups.Select(g => g.Key));
+        Assert.Equal(new[]
+            {
+                "Ready to read now",
+                "Incubation ending today",
+                "Incubation ending in the next 24 hours",
+                "Tests to perform",
+                "Awaiting my approval",
+                "Media, solutions and strains"
+            },
             response.Groups.Select(g => g.Title));
         Assert.Equal("Africa/Cairo", response.TimeZoneId);
         Assert.Equal(FixedNow.UtcDateTime, response.ServerTimeUtc);

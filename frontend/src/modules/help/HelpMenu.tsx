@@ -1,13 +1,13 @@
-import { useRef, useState } from "react";
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { IconButton, ListItemText, Menu, MenuItem, Tooltip } from "@mui/material";
 import HelpOutlineIcon from "@mui/icons-material/HelpOutlined";
 import { AboutDialog } from "./AboutDialog";
+import { useHelpPanel } from "./HelpPanelContext";
 
 // The Help entries other than About are built in later tasks of the help
 // package; until then they are shown as unavailable rather than faked.
 const PENDING_ITEMS = [
-  "Help for this page",
-  "Full guide",
   "Keyboard shortcuts",
   "What's new",
   "Replay tour"
@@ -16,7 +16,8 @@ const PENDING_ITEMS = [
 const MENU_ID = "header-help-menu";
 
 export function HelpMenu() {
-  const buttonRef = useRef<HTMLButtonElement>(null);
+  const { helpButtonRef: buttonRef, openPanel } = useHelpPanel();
+  const navigate = useNavigate();
   const [anchor, setAnchor] = useState<HTMLElement | null>(null);
   const [aboutOpen, setAboutOpen] = useState(false);
 
@@ -45,6 +46,22 @@ export function HelpMenu() {
         anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
         transformOrigin={{ vertical: "top", horizontal: "right" }}
       >
+        <MenuItem
+          onClick={() => {
+            closeMenu();
+            openPanel();
+          }}
+        >
+          <ListItemText primary="Help for this page" />
+        </MenuItem>
+        <MenuItem
+          onClick={() => {
+            closeMenu();
+            navigate("/help");
+          }}
+        >
+          <ListItemText primary="Full guide" />
+        </MenuItem>
         {PENDING_ITEMS.map((label) => (
           <MenuItem key={label} disabled>
             <ListItemText primary={label} secondary="Not available yet" />

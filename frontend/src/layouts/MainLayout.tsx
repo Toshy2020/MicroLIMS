@@ -13,6 +13,8 @@ import { useMyLabs } from "../hooks/useMyLabs";
 import { useMenuGroups } from "../hooks/useMenuGroups";
 import { mfaService, type MfaStatus } from "../modules/authentication/services/mfaService";
 import { formatDateTimeWithTimeZone } from "../utils/formatDate";
+import { HelpPanelProvider } from "../modules/help/HelpPanelContext";
+import { HelpPanelSlot } from "../modules/help/HelpPanelSlot";
 import { accountPageTrail, findNavTrail } from "../routes/navigation";
 
 const MAIN_CONTENT_ID = "main-content";
@@ -93,6 +95,7 @@ export function MainLayout() {
   }
 
   return (
+    <HelpPanelProvider>
     <Box
       sx={{
         // dvh where supported: on mobile browsers 100vh includes the area
@@ -207,6 +210,7 @@ export function MainLayout() {
             </AppErrorBoundary>
           </Box>
         </Box>
+        <HelpPanelSlot />
       </Box>
 
       {/* GMP session-timeout control - not dismissable via escape/backdrop, no "stay logged out" bypass.
@@ -224,5 +228,6 @@ export function MainLayout() {
         </DialogActions>
       </Dialog>
     </Box>
+    </HelpPanelProvider>
   );
 }

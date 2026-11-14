@@ -7,7 +7,8 @@ import { StatusBadge } from "../../../components/StatusBadge";
 import { SectionTitle } from "../../../components/SectionTitle";
 import { DialogBodySkeleton } from "../../../components/DialogBodySkeleton";
 import { useActionableGroups } from "../../testingWorkspace/hooks/useActionableGroups";
-import { DashboardLab, useDashboardLab } from "../DashboardLabContext";
+import { useDashboardLab } from "../DashboardLabContext";
+import { getTaskRoute } from "../../myWork/targetRoutes";
 
 const urgencyLabel: Record<MyTask["urgency"], (task: MyTask) => string> = {
   Overdue: (t) => `Overdue ${Math.round(Math.abs(Date.now() - new Date(t.dueAt).getTime()) / 3_600_000)}h`,
@@ -15,20 +16,6 @@ const urgencyLabel: Record<MyTask["urgency"], (task: MyTask) => string> = {
   DueToday: () => "Due today",
   DueTomorrow: () => "Due tomorrow"
 };
-
-function getTaskRoute(task: MyTask, lab: DashboardLab): string {
-  if (task.taskType === "VialDestruction") {
-    return "/laboratory-configuration/biological-waste";
-  } else if (task.mediaId) {
-    return "/laboratory-configuration/media";
-  } else if (task.sampleId && task.testOrderId) {
-    return lab.workspace(`?sampleId=${task.sampleId}&testOrderId=${task.testOrderId}`);
-  } else if (task.sampleId) {
-    return lab.workspace(`?sampleId=${task.sampleId}`);
-  } else {
-    return lab.workspace("?scope=mine");
-  }
-}
 
 interface ActionRequiredPanelProps {
   tasks: MyTask[] | null;

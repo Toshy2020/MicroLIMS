@@ -81,30 +81,6 @@ const MAX_BULK_ASSIGN = 200;
 
 export type WorkspaceDisplayView = "table" | "card" | "kanban";
 
-function exportSamplesToCsv(samples: SampleRecord[]) {
-  const headers = ["Sample ID", "Reference", "Item / Display Name", "Category", "Batch No", "Control No", "Cause of Testing", "Sampled By", "Received At", "Status"];
-  const rows = samples.map((s) => [
-    s.sampleId,
-    s.referenceNumber,
-    s.displayName,
-    s.category,
-    s.batchNumber ?? "",
-    s.controlNumber,
-    s.causeOfTesting,
-    s.sampledBy ?? "",
-    new Date(s.receivedAt).toLocaleString(),
-    s.status
-  ]);
-  const csv = [headers, ...rows].map((r) => r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\n");
-  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = `receiving-testing-workspace-${new Date().toISOString().slice(0, 10)}.csv`;
-  link.click();
-  URL.revokeObjectURL(url);
-}
-
 export interface WorkspaceLab {
   sectionId: number;
   code: "MICRO" | "FP";
@@ -1136,7 +1112,7 @@ export function ReceivingTestingWorkspacePage({ lab }: Props) {
         </Box>
       )}
 
-      {/* Unified Filter Bar - search, display-mode toggle, and export all live here */}
+      {/* Unified Filter Bar - search and display-mode toggle. Export is the audited table action. */}
       <SampleFilterBar
         search={search}
         onSearchChange={setSearch}
@@ -1159,7 +1135,6 @@ export function ReceivingTestingWorkspacePage({ lab }: Props) {
             handleDeselectSample();
           }
         }}
-        onExport={() => exportSamplesToCsv(displayRecords)}
       />
 
       {/* Selection summary - rendered above the layout branch so it survives

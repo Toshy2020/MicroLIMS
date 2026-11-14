@@ -8,7 +8,6 @@ import ViewModuleIcon from "@mui/icons-material/ViewModule";
 import ViewKanbanIcon from "@mui/icons-material/ViewKanban";
 import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
 import ToggleButton from "@mui/material/ToggleButton";
-import FileDownloadOutlinedIcon from "@mui/icons-material/FileDownloadOutlined";
 import { RECEIVING_CATEGORIES, SAMPLE_STATUS_OPTIONS, TEST_STATUS_OPTIONS } from "../constants/receivingConstants";
 import { DateField } from "../../../components/DateField";
 
@@ -34,7 +33,6 @@ interface Props {
   // used without a view switcher.
   viewMode?: SampleFilterBarViewMode;
   onViewModeChange?: (v: SampleFilterBarViewMode) => void;
-  onExport?: () => void;
 }
 
 export function SampleFilterBar({
@@ -53,8 +51,7 @@ export function SampleFilterBar({
   onResetFilters,
   hasActiveFilters,
   viewMode,
-  onViewModeChange,
-  onExport
+  onViewModeChange
 }: Props) {
   const [filtersAnchor, setFiltersAnchor] = useState<HTMLElement | null>(null);
 
@@ -146,26 +143,6 @@ export function SampleFilterBar({
           </ToggleButtonGroup>
         )}
 
-        {onExport && (
-          <Button
-            size="small"
-            variant="outlined"
-            startIcon={<FileDownloadOutlinedIcon />}
-            onClick={onExport}
-            sx={{
-              height: 40,
-              flexShrink: 0,
-              borderColor: "divider",
-              color: "text.secondary",
-              fontSize: 12,
-              fontWeight: 600,
-              textTransform: "none",
-              whiteSpace: "nowrap"
-            }}
-          >
-            Export CSV
-          </Button>
-        )}
       </Box>
 
       {activeChips.length > 0 && (

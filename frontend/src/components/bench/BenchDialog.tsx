@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { ComponentProps, ReactNode } from "react";
 import { FloatingDialog } from "../FloatingDialog";
 import { ConfirmationDialog } from "../ConfirmationDialog";
 import { useWakeLock } from "../../hooks/useWakeLock";
+import { incrementOpenBenchDialogs } from "../../pwa/benchDialogState";
 import { BenchActionBar } from "./BenchActionBar";
 import { RegistryBenchKeypad } from "./BenchKeypad";
 
@@ -27,6 +28,11 @@ interface BenchDialogProps {
 export function BenchDialog({ open, title, onClose, children, onSave, onSaveAndNext, saving, saveLabel, saveDisabledReason, dirty, maxWidth }: BenchDialogProps) {
   const [confirmingDiscard, setConfirmingDiscard] = useState(false);
   useWakeLock(open);
+
+  useEffect(() => {
+    if (!open) return undefined;
+    return incrementOpenBenchDialogs();
+  }, [open]);
 
   const requestClose = () => {
     if (saving) return;

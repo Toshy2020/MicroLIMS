@@ -8,11 +8,13 @@ import { SystemStatusProvider } from "./contexts/SystemStatusContext";
 import { AuthProvider } from "./contexts/AuthContext";
 import { AppErrorBoundary } from "./components/AppErrorBoundary";
 import { installGlobalErrorHandlers } from "./services/errorReporter";
+import { registerServiceWorker } from "./pwa/registerServiceWorker";
 
 // Catches what React never sees: async callbacks, event handlers and
 // rejected promises. Installed before render so a crash during the very
 // first mount is still reported.
 installGlobalErrorHandlers();
+registerServiceWorker();
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>

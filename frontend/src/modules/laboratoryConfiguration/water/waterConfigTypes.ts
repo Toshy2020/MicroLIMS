@@ -64,6 +64,23 @@ export function pointHealth(point: SamplingPoint, configs: SamplingConfig[], isC
   };
 }
 
+export interface FrequencyRulePayload {
+  type: "Daily" | "Weekly" | "Monthly" | null;
+  interval?: number | null;
+  samplingWeekday?: string | null;
+  anchorMonth?: number | null;
+  weekOfMonth?: number | null;
+}
+
+export interface CreateWaterSamplingPointPayload {
+  code: string;
+  location: string;
+  testingFrequency: string;
+  assignedTestCodes: string[];
+  waterDepartmentId: number | null;
+  frequency?: FrequencyRulePayload | null;
+}
+
 export const needsAttention = (h: PointHealth) => h.noTests || h.missingLimitCodes.length > 0;
 
 export const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;

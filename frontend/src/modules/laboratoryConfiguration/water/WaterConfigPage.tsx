@@ -1,17 +1,31 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Alert, Box, Button, IconButton, Paper, Stack, Tooltip, Typography } from "@mui/material";
+import type { ClipboardEvent as ReactClipboardEvent } from "react";
+import { Alert, Box, Button, IconButton, Paper, Stack, TextField, Tooltip, Typography } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
+import ContentPasteIcon from "@mui/icons-material/ContentPaste";
 import DeleteIcon from "@mui/icons-material/Delete";
 import { PageHeader } from "../../../components/PageHeader";
 import { ConfirmationDialog } from "../../../components/ConfirmationDialog";
 import { ConfigMasterList, MasterListItem, SummaryTiles } from "../../../components/configHierarchy";
+import { parseClipboardTable } from "../../../components/entry/parseClipboardTable";
+import { PastePreviewDialog } from "../../../components/entry/PastePreviewDialog";
+import type { PasteAcceptedRow } from "../../../components/entry/PastePreviewDialog";
 import { useTestDefinitions } from "../../../hooks/useTestDefinitions";
 import { useEditableTestCodes } from "../../../hooks/useEditableTestCodes";
+import { getErrorMessage } from "../../../utils/errorMessage";
+import { errorsByField, errorsByRow } from "../../../utils/fieldErrors";
 import { WaterConfigService } from "./services/WaterConfigService";
 import { WaterLocationList } from "./components/WaterLocationList";
+import { WaterLocationPendingList } from "./components/WaterLocationPendingList";
 import { WaterDepartmentPanel } from "./components/WaterDepartmentPanel";
 import { WaterLocationPanel } from "./components/WaterLocationPanel";
 import { PointHealth, SamplingConfig, SamplingPoint, WaterDept, needsAttention, plural, pointHealth } from "./waterConfigTypes";
+import {
+  buildWaterSamplingPointPastePlan,
+  toCreateWaterSamplingPointPayload,
+  toPendingWaterPoints
+} from "./waterSamplingPointPaste";
+import type { PendingWaterPoint } from "./waterSamplingPointPaste";
 
 type Filter = "all" | "attention";
 
@@ -39,6 +53,11 @@ export function WaterConfigPage() {
   const [pointPanel, setPointPanel] = useState<{ open: boolean; point: SamplingPoint | null }>({ open: false, point: null });
   const [pendingDeleteDept, setPendingDeleteDept] = useState<WaterDept | null>(null);
   const [pendingDeletePoint, setPendingDeletePoint] = useState<SamplingPoint | null>(null);
+  const [pasteBarOpen, setPasteBarOpen] = useState(false);
+  const [pasteCells, setPasteCells] = useState<string[][] | null>(null);
+  const [pendingPoints, setPendingPoints] = useState<PendingWaterPoint[]>([]);
+  const [savingBatch, setSavingBatch] = useState(false);
+  const [batchError, setBatchError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -53,8 +72,8 @@ export function WaterConfigPage() {
       setConfigsByPoint(Object.fromEntries(points.map((p, i) => [p.id, configs[i] ?? []])));
       setLoadError(null);
       setSelectedDeptId((current) => (current != null && depts.some((d) => d.id === current) ? current : depts[0]?.id ?? null));
-    } catch (e: any) {
-      setLoadError(e?.response?.data?.message ?? "Could not load the water configuration.");
+    } catch (e: unknown) {
+      setLoadError(getErrorMessage(e, "Could not load the water configuration."));
     } finally {
       setLoading(false);
     }
@@ -71,6 +90,99 @@ export function WaterConfigPage() {
   const testName = useCallback((code: string) => options.find((o) => o.code === code)?.displayName || code, [options]);
 
   const allPoints = useMemo(() => departments.flatMap((d) => d.samplingPoints ?? []), [departments]);
+  const pastePlan = useMemo(
+    () => buildWaterSamplingPointPastePlan({ departments, existingPoints: allPoints, testOptions: options }),
+    [departments, allPoints, options]
+  );
+
+  const anyModalOpen =
+    deptPanel.open ||
+    pointPanel.open ||
+    pendingDeleteDept !== null ||
+    pendingDeletePoint !== null ||
+    pasteCells !== null;
+
+  useEffect(() => {
+    if (anyModalOpen || departments.length === 0) return;
+    const handleDocumentPaste = (e: ClipboardEvent) => {
+      if (e.defaultPrevented) return;
+      const target = e.target as HTMLElement | null;
+      if (
+        target &&
+        (target.tagName === "INPUT" ||
+          target.tagName === "TEXTAREA" ||
+          target.tagName === "SELECT" ||
+          target.isContentEditable)
+      ) {
+        return;
+      }
+      const text = e.clipboardData?.getData("text/plain") ?? "";
+      const table = parseClipboardTable(text);
+      if (table.length === 0) return;
+      e.preventDefault();
+      setPasteCells(table);
+    };
+    document.addEventListener("paste", handleDocumentPaste);
+    return () => document.removeEventListener("paste", handleDocumentPaste);
+  }, [anyModalOpen, departments.length]);
+
+  const handlePasteInput = (e: ReactClipboardEvent<HTMLElement>) => {
+    const table = parseClipboardTable(e.clipboardData.getData("text/plain"));
+    if (table.length === 0) return;
+    e.preventDefault();
+    e.stopPropagation();
+    setPasteCells(table);
+  };
+
+  const handleAcceptPaste = (rows: PasteAcceptedRow[]) => {
+    setPendingPoints(toPendingWaterPoints(rows, departments, options));
+    setBatchError(null);
+    setPasteCells(null);
+    setPasteBarOpen(false);
+  };
+
+  const handleRemovePendingRow = (index: number) => {
+    setPendingPoints((prev) => prev.filter((_, i) => i !== index));
+    setBatchError(null);
+  };
+
+  const saveBatch = async () => {
+    if (pendingPoints.length === 0) return;
+    setSavingBatch(true);
+    setBatchError(null);
+    try {
+      const payload = pendingPoints.map(toCreateWaterSamplingPointPayload);
+      await WaterConfigService.createSamplingPointsBatch(payload);
+      const count = pendingPoints.length;
+      setPendingPoints([]);
+      setMessage({ text: `${plural(count, "sample location")} added.`, ok: true });
+      await load();
+    } catch (e: unknown) {
+      const rowErrs = errorsByRow(e);
+      const topErrs = errorsByField(e);
+      const failingRowIndices = Object.keys(rowErrs);
+      const totalProblems = failingRowIndices.reduce(
+        (sum, key) => sum + Object.keys(rowErrs[Number(key)]).length,
+        0
+      );
+
+      if (failingRowIndices.length > 0) {
+        setPendingPoints((prev) =>
+          prev.map((row, idx) => ({
+            ...row,
+            errors: rowErrs[idx]
+          }))
+        );
+        const topMsgs = Object.values(topErrs);
+        const summary = `${plural(totalProblems, "problem")} in ${plural(failingRowIndices.length, "row")}. Nothing was created.`;
+        setBatchError(topMsgs.length > 0 ? `${summary} ${topMsgs.join(" ")}` : summary);
+      } else {
+        setBatchError(getErrorMessage(e, "Could not save sample locations. Nothing was created."));
+      }
+    } finally {
+      setSavingBatch(false);
+    }
+  };
   const healthByPoint = useMemo(
     () => Object.fromEntries(allPoints.map((p) => [p.id, pointHealth(p, configsByPoint[p.id] ?? [], isCountTest)])) as Record<number, PointHealth>,
     [allPoints, configsByPoint, isCountTest]
@@ -121,8 +233,8 @@ export function WaterConfigPage() {
       await WaterConfigService.deleteWaterDepartment(d.id);
       setMessage({ text: `"${d.name}" deleted.`, ok: true });
       load();
-    } catch (e: any) {
-      setMessage({ text: e?.response?.data?.message ?? "Could not delete this water system.", ok: false });
+    } catch (e: unknown) {
+      setMessage({ text: getErrorMessage(e, "Could not delete this water system."), ok: false });
     }
   };
 
@@ -133,8 +245,8 @@ export function WaterConfigPage() {
       await WaterConfigService.deleteSamplingPoint(p.id);
       setMessage({ text: `Sample location ${p.code} deleted.`, ok: true });
       load();
-    } catch (e: any) {
-      setMessage({ text: e?.response?.data?.message ?? "Could not delete this sample location.", ok: false });
+    } catch (e: unknown) {
+      setMessage({ text: getErrorMessage(e, "Could not delete this sample location."), ok: false });
     }
   };
 
@@ -145,6 +257,16 @@ export function WaterConfigPage() {
         <Stack direction="row" sx={{ gap: 1.5, flexWrap: "wrap" }}>
           <Button variant="outlined" onClick={() => setDeptPanel({ open: true, dept: null })} sx={{ textTransform: "none", fontWeight: 700, whiteSpace: "nowrap" }}>
             Add water system
+          </Button>
+          <Button
+            variant="outlined"
+            startIcon={<ContentPasteIcon />}
+            disabled={departments.length === 0}
+            aria-expanded={pasteBarOpen}
+            onClick={() => setPasteBarOpen((v) => !v)}
+            sx={{ textTransform: "none", fontWeight: 700, whiteSpace: "nowrap" }}
+          >
+            Paste locations
           </Button>
           <Button
             variant="contained"
@@ -158,6 +280,27 @@ export function WaterConfigPage() {
         </Stack>
       </Stack>
 
+      {pasteBarOpen && (
+        <Paper variant="outlined" sx={{ p: 2, mb: 2, borderRadius: 2 }}>
+          <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5} sx={{ alignItems: { sm: "flex-start" } }}>
+            <TextField
+              autoFocus
+              size="small"
+              fullWidth
+              label="Paste spreadsheet rows"
+              placeholder="Paste rows copied from a spreadsheet (Point code, Water system, Point name, Frequency, Assigned tests)"
+              value=""
+              onChange={() => {}}
+              onPaste={handlePasteInput}
+              helperText="Columns in order: Point code, Water system, Point name, Frequency (optional), Assigned tests (optional, comma-separated)."
+            />
+            <Button onClick={() => setPasteBarOpen(false)} sx={{ textTransform: "none", flexShrink: 0 }}>
+              Close
+            </Button>
+          </Stack>
+        </Paper>
+      )}
+
       {loadError && (
         <Alert severity="error" sx={{ mb: 2 }} action={<Button color="inherit" size="small" onClick={load}>Retry</Button>}>
           {loadError}
@@ -168,6 +311,18 @@ export function WaterConfigPage() {
           {message.text}
         </Alert>
       )}
+
+      <WaterLocationPendingList
+        rows={pendingPoints}
+        saving={savingBatch}
+        error={batchError}
+        onSave={saveBatch}
+        onDiscard={() => {
+          setPendingPoints([]);
+          setBatchError(null);
+        }}
+        onRemoveRow={handleRemovePendingRow}
+      />
 
       <SummaryTiles
         tiles={[
@@ -306,6 +461,16 @@ export function WaterConfigPage() {
         onCancel={() => setPendingDeletePoint(null)}
         onConfirm={() => pendingDeletePoint && deletePoint(pendingDeletePoint)}
       />
+
+      {pasteCells && (
+        <PastePreviewDialog
+          open
+          plan={pastePlan}
+          cells={pasteCells}
+          onAccept={handleAcceptPaste}
+          onCancel={() => setPasteCells(null)}
+        />
+      )}
     </Box>
   );
 }

@@ -31,6 +31,24 @@
     "filters": []
   },
   {
+    "key": "documentControl.library",
+    "title": "Document Library",
+    "idColumn": "companyDocumentCode",
+    "columns": [
+      { "key": "companyDocumentCode", "label": "Company Code", "defaultVisible": true },
+      { "key": "microLimsDocumentId", "label": "MicroLIMS ID", "defaultVisible": true },
+      { "key": "title", "label": "Title", "defaultVisible": true },
+      { "key": "documentTypeCode", "label": "Type", "defaultVisible": true },
+      { "key": "departmentName", "label": "Dept / Section", "defaultVisible": true },
+      { "key": "documentOwnerUserName", "label": "Owner", "defaultVisible": true },
+      { "key": "currentRevisionNumber", "label": "Rev", "defaultVisible": true },
+      { "key": "status", "label": "Status", "defaultVisible": true },
+      { "key": "files", "label": "Files", "defaultVisible": true },
+      { "key": "effectiveDate", "label": "Effective Date", "defaultVisible": true }
+    ],
+    "filters": ["search", "documentTypeId", "departmentId", "revisionStatus", "showVoided", "reviewOverdue"]
+  },
+  {
     "key": "hplc.runHistory",
     "title": "HPLC / GC Instrument Run History",
     "idColumn": "code",

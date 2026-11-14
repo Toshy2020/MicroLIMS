@@ -57,6 +57,7 @@ public class SampleController : ControllerBase
     private readonly ReceiptLabService _receiptLabs;
     private readonly SampleTestSelectionService _testSelection;
     private readonly SampleBatchReceiveService _batchReceive;
+    private readonly SampleBulkAssignmentService? _bulkAssign;
 
     public SampleController(
         IReceivingService receivingService,
@@ -66,7 +67,8 @@ public class SampleController : ControllerBase
         AddLaboratoryService addLaboratory,
         ReceiptLabService receiptLabs,
         SampleTestSelectionService testSelection,
-        SampleBatchReceiveService batchReceive)
+        SampleBatchReceiveService batchReceive,
+        SampleBulkAssignmentService? bulkAssign = null)
     {
         _testSelection = testSelection;
         _receivingService = receivingService;
@@ -76,6 +78,7 @@ public class SampleController : ControllerBase
         _addLaboratory = addLaboratory;
         _receiptLabs = receiptLabs;
         _batchReceive = batchReceive;
+        _bulkAssign = bulkAssign;
     }
 
     private int CurrentUserId => int.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)!.Value);
@@ -141,6 +144,14 @@ public class SampleController : ControllerBase
         await _scopeService.EnsureSampleAccessAsync(CurrentUserId, id);
         var sample = await _assignmentService.AssignAnalystAsync(id, request.AnalystUserId, CurrentUserId, request.Reason);
         return Ok(ApiResponse<object>.Ok(sample));
+    }
+
+    [HttpPost("bulk-assign")]
+    [Authorize(Policy = PermissionConstants.SamplesAssignAnalyst)]
+    public async Task<IActionResult> BulkAssign(BulkAssignRequest request, CancellationToken ct = default)
+    {
+        var result = await _bulkAssign!.AssignAsync(request, CurrentUserId, ct);
+        return Ok(ApiResponse<BulkAssignResult>.Ok(result));
     }
 
     // Each test on the sample, who is on it, and who the caller may put on it.

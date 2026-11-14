@@ -13,6 +13,7 @@ const INTRODUCTION = "01-introduction";
 // are not in the menu (account pages) and bare variants of query-string menu
 // paths are listed after the menu paths.
 export const HELP_MAP: Record<string, HelpTarget> = {
+  "/my-work": { chapterId: "45-my-work" },
   "/dashboard": { chapterId: "08-dashboard" },
   "/receiving": { chapterId: "12-sample-receiving" },
   "/receiving/tracking": { chapterId: "11-sample-management" },

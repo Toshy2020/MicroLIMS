@@ -549,6 +549,7 @@ SampleController.AddLaboratory(Int32, AddLaboratoryRequest): SectionHead
 SampleController.AssignAnalyst(Int32, AssignAnalystRequest): SectionHead
 SampleController.AssignTestAnalysts(Int32, AssignTestAnalystsRequest): SectionHead
 SampleController.AssignmentOptions(Int32): SectionHead
+SampleController.BulkAssign(BulkAssignRequest, CancellationToken): SectionHead
 SampleController.Correct(Int32, CorrectSampleRequest): SectionHead,Reviewer
 SampleController.GetTestSelection(Int32, CancellationToken): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 SampleController.ReceiptLabs(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa

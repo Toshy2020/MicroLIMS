@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
+import type { SxProps, Theme } from "@mui/material";
 import {
   Button,
   FormControl,
@@ -21,6 +22,7 @@ import { ReceiveService } from "../services/ReceiveService";
 import { CategoryBadge } from "../../../components/StatusBadge";
 import { FloatingDialog } from "../../../components/FloatingDialog";
 import { assignedAnalystNames } from "../utils/assignedAnalysts";
+import { getErrorMessage } from "../../../utils/errorMessage";
 
 interface AssignAnalystDialogProps {
   open: boolean;
@@ -29,14 +31,59 @@ interface AssignAnalystDialogProps {
   onAssigned: (updatedSample: SampleRecord) => void;
 }
 
-const UNASSIGNED = "unassigned";
+export const UNASSIGNED = "unassigned";
 
 // Mirrors SampleAssignmentService's closed statuses: these tests keep their analyst.
 const CLOSED_STATUSES = ["Approved", "Rejected", "Voided", "Cancelled"];
 
 const valueOf = (analystId: number | null) => (analystId == null ? UNASSIGNED : String(analystId));
 
-const userLabel = (u: AssignableUser) => `${u.fullName} (${u.roleName})`;
+export const userLabel = (u: AssignableUser) => `${u.fullName} (${u.roleName})`;
+
+export interface AnalystPickerProps {
+  labelId: string;
+  label: string;
+  value: string;
+  users: AssignableUser[];
+  onChange: (value: string) => void;
+  unassignedLabel?: string;
+  disabled?: boolean;
+  sx?: SxProps<Theme>;
+}
+
+export function AnalystPicker({
+  labelId,
+  label,
+  value,
+  users,
+  onChange,
+  unassignedLabel,
+  disabled = false,
+  sx
+}: AnalystPickerProps) {
+  return (
+    <FormControl fullWidth size="small" disabled={disabled} sx={sx}>
+      <InputLabel id={labelId}>{label}</InputLabel>
+      <Select
+        labelId={labelId}
+        label={label}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+      >
+        {unassignedLabel && (
+          <MenuItem value={UNASSIGNED}>
+            <em>{unassignedLabel}</em>
+          </MenuItem>
+        )}
+        {users.map((u) => (
+          <MenuItem key={u.id} value={String(u.id)}>
+            {userLabel(u)}
+          </MenuItem>
+        ))}
+      </Select>
+    </FormControl>
+  );
+}
 
 // Each test on the sample carries its own analyst, so the dialog has one
 // picker per test plus a shortcut that fills every test the chosen person
@@ -65,11 +112,13 @@ export function AssignAnalystDialog({
       const loaded = await ReceiveService.getAssignmentOptions(sample.sampleId);
       setOptions(loaded);
       setSelections(Object.fromEntries(loaded.tests.map((t) => [t.testOrderId, valueOf(t.assignedAnalystId)])));
-    } catch (err: any) {
+    } catch (err: unknown) {
       setOptions(null);
       setError(
-        err?.response?.data?.message ||
-        "Unable to load eligible analysts. Please retry or contact an administrator."
+        getErrorMessage(
+          err,
+          "Unable to load eligible analysts. Please retry or contact an administrator."
+        )
       );
     } finally {
       setLoading(false);
@@ -125,8 +174,8 @@ export function AssignAnalystDialog({
       );
       onAssigned(updated);
       onClose();
-    } catch (err: any) {
-      setError(err?.response?.data?.message || "Failed to assign analyst.");
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, "Failed to assign analyst."));
     } finally {
       setSubmitting(false);
     }
@@ -284,24 +333,15 @@ export function AssignAnalystDialog({
         ) : options && (
           <>
             {assignableTests.length > 1 && (
-              <FormControl fullWidth size="small" sx={{ mb: 1 }}>
-                <InputLabel id="assign-all-tests-label">Assign all tests to</InputLabel>
-                <Select
-                  labelId="assign-all-tests-label"
-                  label="Assign all tests to"
-                  value={allTestsValue}
-                  onChange={(e) => applyToAllTests(e.target.value)}
-                >
-                  <MenuItem value={UNASSIGNED}>
-                    <em>Unassigned (Open for any authorized analyst to prepare)</em>
-                  </MenuItem>
-                  {assignableToAny.map((u) => (
-                    <MenuItem key={u.id} value={String(u.id)}>
-                      {userLabel(u)}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
+              <AnalystPicker
+                labelId="assign-all-tests-label"
+                label="Assign all tests to"
+                value={allTestsValue}
+                users={assignableToAny}
+                onChange={applyToAllTests}
+                unassignedLabel="Unassigned (Open for any authorized analyst to prepare)"
+                sx={{ mb: 1 }}
+              />
             )}
             {assignableTests.length === 0 && (
               <Alert severity="info" sx={{ mb: 1 }}>

@@ -54,6 +54,25 @@ export interface TestAnalystAssignment {
   analystUserId: number | null;
 }
 
+export interface BulkAssignRequest {
+  sampleIds: number[];
+  analystUserId: number;
+  reason?: string | null;
+}
+
+export interface BulkAssignRowResult {
+  sampleId: number;
+  referenceNumber: string;
+  assigned: boolean;
+  refusedReason: string | null;
+}
+
+export interface BulkAssignResult {
+  assignedCount: number;
+  refusedCount: number;
+  rows: BulkAssignRowResult[];
+}
+
 // Returned by receipt dialogs to their parent so post-receipt actions know
 // every created sample without re-querying.
 export interface CreatedSampleRef {

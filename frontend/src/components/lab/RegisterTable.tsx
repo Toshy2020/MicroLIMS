@@ -63,6 +63,7 @@ interface RegisterTableProps<T> {
   tableState?: UseTableState;
   toolbar?: ReactNode;
   selection?: RowSelection<string | number>;
+  isSelectable?: (row: T) => boolean;
   bulkActions?: BulkAction<string | number>[];
   totalMatching?: number;
   loadAllMatching?(): Promise<T[]>;
@@ -102,7 +103,7 @@ function ManagedRegisterTable<T>({
 
 function RegisterTableInner<T>({
   columns, rows, getRowId, onRowClick, rowActions, loading, empty, pageSize = 25, dense = true, defaultSort, rowTone, tableKey, tableState, toolbar,
-  selection, bulkActions, totalMatching, loadAllMatching
+  selection, isSelectable, bulkActions, totalMatching, loadAllMatching
 }: RegisterTableProps<T>) {
   const theme = useTheme();
   const auth = useOptionalAuth();
@@ -245,12 +246,16 @@ function RegisterTableInner<T>({
     [allBulkActions, auth]
   );
 
-  const showSelection = Boolean(selection) && permittedBulkActions.length > 0;
-  const pagedIds = useMemo(() => paged.map((r) => getRowId(r)), [paged, getRowId]);
+  const showSelection =
+    Boolean(selection) && (allBulkActions.length === 0 || permittedBulkActions.length > 0);
+  const selectablePagedIds = useMemo(
+    () => paged.filter((r) => (isSelectable ? isSelectable(r) : true)).map((r) => getRowId(r)),
+    [paged, isSelectable, getRowId]
+  );
   const selectedOnPageCount = showSelection && selection
-    ? pagedIds.filter((id) => selection.isSelected(id)).length
+    ? selectablePagedIds.filter((id) => selection.isSelected(id)).length
     : 0;
-  const allPageSelected = pagedIds.length > 0 && selectedOnPageCount === pagedIds.length;
+  const allPageSelected = selectablePagedIds.length > 0 && selectedOnPageCount === selectablePagedIds.length;
   const somePageSelected = selectedOnPageCount > 0 && !allPageSelected;
   const effectiveTotalMatching = totalMatching ?? rows.length;
 
@@ -386,16 +391,20 @@ function RegisterTableInner<T>({
                   }}
                 >
                   <Box sx={{ display: "flex", alignItems: "flex-start", gap: 1, mb: detailCols.length ? 0.75 : 0 }}>
-                    {showSelection && selection && (
-                      <Checkbox
-                        size="small"
-                        checked={selection.isSelected(getRowId(row))}
-                        onClick={(e) => e.stopPropagation()}
-                        onChange={() => selection.toggle(getRowId(row))}
-                        slotProps={{ input: { "aria-label": `Select row ${getRowId(row)}` } }}
-                        sx={{ p: 0, mr: 0.5 }}
-                      />
-                    )}
+                    {showSelection && selection && (() => {
+                      const selectable = isSelectable ? isSelectable(row) : true;
+                      return (
+                        <Checkbox
+                          size="small"
+                          checked={selectable && selection.isSelected(getRowId(row))}
+                          disabled={!selectable}
+                          onClick={(e) => e.stopPropagation()}
+                          onChange={() => { if (selectable) selection.toggle(getRowId(row)); }}
+                          slotProps={{ input: { "aria-label": `Select row ${getRowId(row)}` } }}
+                          sx={{ p: 0, mr: 0.5 }}
+                        />
+                      );
+                    })()}
                     <Box sx={{ flex: 1, minWidth: 0, fontWeight: 600, fontSize: 15, overflowWrap: "anywhere" }}>
                       {titleCol ? cellText(row, titleCol) : null}
                     </Box>
@@ -481,7 +490,7 @@ function RegisterTableInner<T>({
                     size="small"
                     checked={allPageSelected}
                     indeterminate={somePageSelected}
-                    onChange={() => selection.togglePage(pagedIds)}
+                    onChange={() => selection.togglePage(selectablePagedIds)}
                     slotProps={{ input: { "aria-label": "Select all rows on page" } }}
                   />
                 </TableCell>
@@ -551,16 +560,20 @@ function RegisterTableInner<T>({
                       : null)
                   }}
                 >
-                  {showSelection && selection && (
-                    <TableCell padding="checkbox" onClick={(e) => e.stopPropagation()}>
-                      <Checkbox
-                        size="small"
-                        checked={selection.isSelected(getRowId(row))}
-                        onChange={() => selection.toggle(getRowId(row))}
-                        slotProps={{ input: { "aria-label": `Select row ${getRowId(row)}` } }}
-                      />
-                    </TableCell>
-                  )}
+                  {showSelection && selection && (() => {
+                    const selectable = isSelectable ? isSelectable(row) : true;
+                    return (
+                      <TableCell padding="checkbox" onClick={(e) => e.stopPropagation()}>
+                        <Checkbox
+                          size="small"
+                          checked={selectable && selection.isSelected(getRowId(row))}
+                          disabled={!selectable}
+                          onChange={() => { if (selectable) selection.toggle(getRowId(row)); }}
+                          slotProps={{ input: { "aria-label": `Select row ${getRowId(row)}` } }}
+                        />
+                      </TableCell>
+                    );
+                  })()}
                   {displayedColumns.map((col) => {
                     const content = cellText(row, col);
                     return (

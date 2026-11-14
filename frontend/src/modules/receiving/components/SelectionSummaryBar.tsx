@@ -2,6 +2,7 @@ import { Button, Chip, Paper, Typography, useTheme } from "@mui/material";
 import LayersIcon from "@mui/icons-material/Layers";
 import CloseIcon from "@mui/icons-material/Close";
 import FilterAltOutlinedIcon from "@mui/icons-material/FilterAltOutlined";
+import AssignmentIndIcon from "@mui/icons-material/AssignmentInd";
 
 interface Props {
   selectedCount: number;
@@ -13,6 +14,7 @@ interface Props {
   showingSelectedOnly: boolean;
   onToggleShowSelectedOnly: () => void;
   onClear: () => void;
+  onBulkAssign?: () => void;
 }
 
 // Selection used to be invisible until the second checkbox, at which point
@@ -24,7 +26,8 @@ export function SelectionSummaryBar({
   hiddenCount,
   showingSelectedOnly,
   onToggleShowSelectedOnly,
-  onClear
+  onClear,
+  onBulkAssign
 }: Props) {
   const theme = useTheme();
   if (selectedCount === 0) return null;
@@ -87,6 +90,18 @@ export function SelectionSummaryBar({
           sx={{ height: 26, fontSize: 12, textTransform: "none", fontWeight: 600, borderColor: "divider" }}
         >
           {showingSelectedOnly ? "Back to filters" : "Show selected only"}
+        </Button>
+      )}
+
+      {onBulkAssign && (
+        <Button
+          size="small"
+          variant="contained"
+          startIcon={<AssignmentIndIcon sx={{ fontSize: 16 }} />}
+          onClick={onBulkAssign}
+          sx={{ height: 26, fontSize: 12, textTransform: "none", fontWeight: 600 }}
+        >
+          Assign analyst
         </Button>
       )}
 

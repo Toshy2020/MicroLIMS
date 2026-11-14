@@ -24,3 +24,10 @@ public record SampleAssignmentOptionsDto(
     int SampleId,
     IReadOnlyList<AssignableTestDto> Tests,
     IReadOnlyList<AssignableUserDto> Users);
+
+public sealed record BulkAssignRequest(IReadOnlyList<int> SampleIds, int AnalystUserId, string? Reason);
+
+public sealed record BulkAssignRowResult(int SampleId, string ReferenceNumber, bool Assigned, string? RefusedReason);
+
+public sealed record BulkAssignResult(int AssignedCount, int RefusedCount, IReadOnlyList<BulkAssignRowResult> Rows);
+

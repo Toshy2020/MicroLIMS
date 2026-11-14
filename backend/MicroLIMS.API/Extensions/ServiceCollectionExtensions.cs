@@ -150,6 +150,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<PreparationMaterialService>();
         services.AddScoped<ItemPreparationConfigurationService>();
         services.AddScoped<SampleAssignmentService>();
+        services.AddScoped<SampleBulkAssignmentService>();
         services.AddScoped<SampleCorrectionService>();
         services.AddScoped<MediaPreparationService>();
         services.AddScoped<WaterService>();

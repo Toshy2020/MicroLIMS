@@ -1,15 +1,20 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { MemoryRouter } from "react-router-dom";
+import { AuthProvider } from "../../../contexts/AuthContext";
 import { PinnedLightTheme } from "../../../theme/PinnedLightTheme";
 import { MaterialCategoriesDialog } from "./MaterialCategoriesDialog";
 import { MaterialCategoryService, MaterialCategory } from "./services/MaterialCategoryService";
 
+// The real AuthProvider reads the signed-in user from localStorage; only the HTTP service is mocked.
 let canManage = true;
-vi.mock("../../../contexts/AuthContext", () => ({
-  useHasPermission: () => canManage,
-  useAuth: () => ({ fullName: "Head One", username: "head", role: "SectionHead" })
-}));
+function seedSignedInUser() {
+  localStorage.setItem("microlims_username", "head");
+  localStorage.setItem("microlims_full_name", "Head One");
+  localStorage.setItem("microlims_role", "SectionHead");
+  localStorage.setItem("microlims_permissions", JSON.stringify(canManage ? ["MaterialCategories.Manage"] : []));
+}
 vi.mock("./services/MaterialCategoryService", () => ({
   MaterialCategoryService: { getAll: vi.fn(), create: vi.fn(), update: vi.fn(), setActive: vi.fn() }
 }));
@@ -25,14 +30,21 @@ const category = (over: Partial<MaterialCategory>): MaterialCategory => ({
   isActive: true, sectionIds: [1], hasEntries: false, ...over
 });
 
-const renderDialog = (onChanged = vi.fn()) =>
-  render(
+const renderDialog = (onChanged = vi.fn()) => {
+  seedSignedInUser();
+  return render(
     <PinnedLightTheme>
-      <MaterialCategoriesDialog open sections={sections} onClose={vi.fn()} onChanged={onChanged} />
+      <MemoryRouter>
+        <AuthProvider>
+          <MaterialCategoriesDialog open sections={sections} onClose={vi.fn()} onChanged={onChanged} />
+        </AuthProvider>
+      </MemoryRouter>
     </PinnedLightTheme>
   );
+};
 
 beforeEach(() => {
+  localStorage.clear();
   canManage = true;
   vi.mocked(MaterialCategoryService.getAll).mockResolvedValue([
     category({ id: 1, hasEntries: false }),

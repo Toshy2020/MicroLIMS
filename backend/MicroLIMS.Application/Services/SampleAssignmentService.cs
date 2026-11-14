@@ -41,7 +41,19 @@ public class SampleAssignmentService
     public async Task<SampleDto> AssignAnalystAsync(int sampleId, int? analystUserId, int actingUserId, string? reason = null)
     {
         var sample = await LoadSampleAsync(sampleId);
-        var actingScope = await _scope.GetMemberSectionIdsAsync(actingUserId);
+        var changes = await PrepareSampleAssignmentAsync(sample, analystUserId, actingUserId);
+        await ApplyAsync(sample, changes, actingUserId, reason);
+        return await LoadDtoAsync(sample);
+    }
+
+    internal async Task<List<(TestOrder Order, int? AnalystId)>> PrepareSampleAssignmentAsync(
+        Sample sample,
+        int? analystUserId,
+        int actingUserId,
+        IReadOnlyList<int>? actingScope = null,
+        IReadOnlyList<int>? assigneeScope = null)
+    {
+        actingScope ??= await _scope.GetMemberSectionIdsAsync(actingUserId);
 
         var open = sample.TestOrders.Where(t => IsOpen(t) && InScope(actingScope, t.SectionId)).ToList();
         if (open.Count == 0)
@@ -50,7 +62,7 @@ public class SampleAssignmentService
         var targets = open;
         if (analystUserId is int assigneeId)
         {
-            var memberOf = await _scope.GetMemberSectionIdsAsync(assigneeId);
+            var memberOf = assigneeScope ?? await _scope.GetMemberSectionIdsAsync(assigneeId);
             targets = open.Where(t => InScope(memberOf, t.SectionId)).ToList();
 
             // With no test in the assignee's sections, checking against all
@@ -59,7 +71,7 @@ public class SampleAssignmentService
                 (targets.Count > 0 ? targets : open).Select(t => t.SectionId), _time.GetUtcNow().UtcDateTime);
         }
 
-        return await ApplyAsync(sample, targets.Select(t => (t, analystUserId)).ToList(), actingUserId, reason);
+        return targets.Select(t => (t, analystUserId)).ToList();
     }
 
     // Per test: each listed test gets its own analyst, all in one save.
@@ -91,7 +103,8 @@ public class SampleAssignmentService
             changes.Add((order, assignment.AnalystUserId));
         }
 
-        return await ApplyAsync(sample, changes, actingUserId, reason);
+        await ApplyAsync(sample, changes, actingUserId, reason);
+        return await LoadDtoAsync(sample);
     }
 
     // Everything the Assign Analyst dialog needs: each test, whether the
@@ -168,13 +181,18 @@ public class SampleAssignmentService
 
     // Writes the changed assignments with one GMP audit entry per test, so
     // each entry's previous value is that test's own previous analyst.
-    private async Task<SampleDto> ApplyAsync(Sample sample, IReadOnlyList<(TestOrder Order, int? AnalystId)> changes, int actingUserId, string? reason)
+    internal async Task ApplyAsync(
+        Sample sample,
+        IReadOnlyList<(TestOrder Order, int? AnalystId)> changes,
+        int actingUserId,
+        string? reason,
+        CancellationToken ct = default)
     {
         var changed = changes.Where(c => c.Order.AssignedAnalystId != c.AnalystId).ToList();
 
         var userIds = changed.SelectMany(c => new[] { c.Order.AssignedAnalystId, c.AnalystId })
             .Where(id => id.HasValue).Select(id => id!.Value).Distinct().ToList();
-        var names = await _db.Users.Where(u => userIds.Contains(u.Id)).ToDictionaryAsync(u => u.Id, u => u.FullName);
+        var names = await _db.Users.Where(u => userIds.Contains(u.Id)).ToDictionaryAsync(u => u.Id, u => u.FullName, ct);
         string Display(int? id) => id is int v ? names.GetValueOrDefault(v, $"User #{v}") : "Unassigned";
 
         var timestamp = _time.GetUtcNow().UtcDateTime;
@@ -194,9 +212,12 @@ public class SampleAssignmentService
         }
 
         if (changed.Count > 0)
-            await _db.SaveChangesAsync();
+            await _db.SaveChangesAsync(ct);
+    }
 
+    private async Task<SampleDto> LoadDtoAsync(Sample sample)
+    {
         var updatedSample = await _workspaceService.GetSampleAsync(sample.Id);
-        return updatedSample ?? TestingWorkspaceService.ToDto(sample, nowUtc: timestamp);
+        return updatedSample ?? TestingWorkspaceService.ToDto(sample, nowUtc: _time.GetUtcNow().UtcDateTime);
     }
 }

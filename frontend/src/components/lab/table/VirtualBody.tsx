@@ -6,6 +6,7 @@ import {
   useState,
   type KeyboardEvent,
   type ReactNode,
+  type SyntheticEvent,
 } from "react";
 import { TableBody, TableCell, TableRow, useTheme } from "@mui/material";
 import {
@@ -14,6 +15,7 @@ import {
   type Range,
   type Virtualizer,
 } from "@tanstack/react-virtual";
+import type { SxProps, Theme } from "@mui/material/styles";
 import type { StatusTone } from "../../../theme/statusTokens";
 
 const DEFAULT_VIEWPORT_WIDTH = 800;
@@ -37,8 +39,14 @@ export interface VirtualBodyProps<T> {
     rowId: string | number,
     isExpanded: boolean
   ) => ReactNode;
-  onRowClick?: (row: T) => void;
+  onRowClick?: (row: T, event?: SyntheticEvent<HTMLElement>) => void;
   rowTone?: (row: T) => StatusTone | undefined;
+  rowSx?: (row: T) => SxProps<Theme> | undefined;
+}
+
+function sxList(sx: SxProps<Theme> | undefined): ReadonlyArray<boolean | object> {
+  if (!sx) return [];
+  return Array.isArray(sx) ? (sx as ReadonlyArray<boolean | object>) : [sx as object];
 }
 
 function getElementHeight(element: Element, fallback: number): number {
@@ -96,6 +104,7 @@ export function VirtualBody<T>({
   renderRowCells,
   onRowClick,
   rowTone,
+  rowSx,
 }: VirtualBodyProps<T>) {
   const theme = useTheme();
   const tbodyRef = useRef<HTMLTableSectionElement | null>(null);
@@ -267,7 +276,7 @@ export function VirtualBody<T>({
               aria-rowindex={virtualItem.index + 2}
               hover={!!onRowClick}
               tabIndex={0}
-              onClick={onRowClick ? () => onRowClick(row) : undefined}
+              onClick={onRowClick ? (e) => onRowClick(row, e) : undefined}
               onFocus={(e) => {
                 if (e.target === e.currentTarget) {
                   setFocusedIndex(virtualItem.index);
@@ -284,25 +293,28 @@ export function VirtualBody<T>({
                 }
               }}
               onKeyDown={(e) => handleRowKeyDown(e, virtualItem.index, row)}
-              sx={{
-                cursor: onRowClick ? "pointer" : undefined,
-                "&:focus-visible": {
-                  outline: "2px solid",
-                  outlineColor: "primary.main",
-                  outlineOffset: -2,
+              sx={[
+                {
+                  cursor: onRowClick ? "pointer" : undefined,
+                  "&:focus-visible": {
+                    outline: "2px solid",
+                    outlineColor: "primary.main",
+                    outlineOffset: -2,
+                  },
+                  ...(toneTokens
+                    ? {
+                        bgcolor: toneTokens.bg,
+                        "& > td:first-of-type": {
+                          borderLeft: `3px solid ${toneTokens.border}`,
+                        },
+                        "&.MuiTableRow-hover:hover": {
+                          filter: "brightness(0.97)",
+                        },
+                      }
+                    : null),
                 },
-                ...(toneTokens
-                  ? {
-                      bgcolor: toneTokens.bg,
-                      "& > td:first-of-type": {
-                        borderLeft: `3px solid ${toneTokens.border}`,
-                      },
-                      "&.MuiTableRow-hover:hover": {
-                        filter: "brightness(0.97)",
-                      },
-                    }
-                  : null),
-              }}
+                ...sxList(rowSx?.(row)),
+              ]}
             >
               {renderRowCells(row, rowId, isExpanded)}
             </TableRow>

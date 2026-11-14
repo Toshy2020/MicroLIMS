@@ -471,6 +471,66 @@
     "filters": ["search", "status", "type", "release"]
   },
   {
+    "key": "samples.workspace.micro",
+    "title": "Microbiology Sample Register",
+    "idColumn": "item",
+    "columns": [
+      { "key": "item", "label": "Item / Reference", "defaultVisible": true },
+      { "key": "receivedAt", "label": "Received At", "defaultVisible": false },
+      { "key": "sampleId", "label": "Sample #", "defaultVisible": false },
+      { "key": "category", "label": "Item Type", "defaultVisible": false },
+      { "key": "cause", "label": "Cause", "defaultVisible": false },
+      { "key": "sampledBy", "label": "Sampled By", "defaultVisible": false },
+      { "key": "batchControl", "label": "Batch / Control No.", "defaultVisible": true },
+      { "key": "assignedTo", "label": "Assigned To", "defaultVisible": true },
+      { "key": "sampleStatus", "label": "Sample Status", "defaultVisible": true },
+      { "key": "due", "label": "Due", "defaultVisible": true },
+      { "key": "tests", "label": "Tests", "defaultVisible": true },
+      { "key": "nextAction", "label": "Next Action", "defaultVisible": true }
+    ],
+    "filters": ["category", "sampleStatus", "testStatus", "analystId", "urgency", "fromDate", "toDate", "workload"]
+  },
+  {
+    "key": "samples.workspace.fp",
+    "title": "Physicochemical Sample Register",
+    "idColumn": "item",
+    "columns": [
+      { "key": "item", "label": "Item / Reference", "defaultVisible": true },
+      { "key": "receivedAt", "label": "Received At", "defaultVisible": false },
+      { "key": "sampleId", "label": "Sample #", "defaultVisible": false },
+      { "key": "category", "label": "Item Type", "defaultVisible": false },
+      { "key": "cause", "label": "Cause", "defaultVisible": false },
+      { "key": "sampledBy", "label": "Sampled By", "defaultVisible": false },
+      { "key": "batchControl", "label": "Batch / Control No.", "defaultVisible": true },
+      { "key": "assignedTo", "label": "Assigned To", "defaultVisible": true },
+      { "key": "sampleStatus", "label": "Sample Status", "defaultVisible": true },
+      { "key": "due", "label": "Due", "defaultVisible": true },
+      { "key": "tests", "label": "Tests", "defaultVisible": true },
+      { "key": "nextAction", "label": "Next Action", "defaultVisible": true }
+    ],
+    "filters": ["category", "sampleStatus", "testStatus", "analystId", "urgency", "fromDate", "toDate", "workload"]
+  },
+  {
+    "key": "samples.receiving",
+    "title": "Receiving Sample Register",
+    "idColumn": "item",
+    "columns": [
+      { "key": "item", "label": "Item / Reference", "defaultVisible": true },
+      { "key": "receivedAt", "label": "Received At", "defaultVisible": false },
+      { "key": "sampleId", "label": "Sample #", "defaultVisible": false },
+      { "key": "category", "label": "Item Type", "defaultVisible": false },
+      { "key": "cause", "label": "Cause", "defaultVisible": false },
+      { "key": "sampledBy", "label": "Sampled By", "defaultVisible": false },
+      { "key": "batchControl", "label": "Batch / Control No.", "defaultVisible": true },
+      { "key": "assignedTo", "label": "Assigned To", "defaultVisible": true },
+      { "key": "sampleStatus", "label": "Sample Status", "defaultVisible": true },
+      { "key": "due", "label": "Due", "defaultVisible": true },
+      { "key": "tests", "label": "Tests", "defaultVisible": true },
+      { "key": "nextAction", "label": "Next Action", "defaultVisible": true }
+    ],
+    "filters": []
+  },
+  {
     "key": "testing.gravimetricWeights",
     "title": "Recorded Gravimetric Weights",
     "idColumn": "index",

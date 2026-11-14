@@ -40,6 +40,7 @@ const FILE_TO_TABLE_KEYS: Record<string, string[]> = {
   "/src/modules/reports/components/MediaGptResultsTable.tsx": ["reports.mediaGpt"],
   "/src/modules/reports/components/ReferenceStrainResultsTable.tsx": ["reports.referenceStrains"],
   "/src/modules/reports/components/ReportResultsTable.tsx": ["reports.results"],
+  "/src/modules/receiving/components/SampleRegisterTable.tsx": ["samples.workspace.micro", "samples.workspace.fp", "samples.receiving"],
   "/src/modules/solutionPreparation/PreparationListPage.tsx": ["solutionPrep.preparations"],
   "/src/modules/testingWorkspace/GravimetricPanel.tsx": ["testing.gravimetricWeights"],
   "/src/modules/testingWorkspace/TitrationPanel.tsx": ["testing.titrationReadings"],
@@ -50,7 +51,7 @@ describe("tableRegistry", () => {
     expect(Array.isArray(registryJson)).toBe(true);
     const seenKeys = new Set<string>();
     for (const entry of registryJson as TableDefinition[]) {
-      expect(entry.key).toMatch(/^[a-zA-Z0-9]+\.[a-zA-Z0-9]+$/);
+      expect(entry.key).toMatch(/^[a-zA-Z0-9]+(\.[a-zA-Z0-9]+)+$/);
       expect(seenKeys.has(entry.key)).toBe(false);
       seenKeys.add(entry.key);
 

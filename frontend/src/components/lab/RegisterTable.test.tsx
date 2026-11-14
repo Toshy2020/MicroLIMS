@@ -322,3 +322,108 @@ describe("RegisterTable", () => {
     expect(within(status).getByRole("button", { name: "Reset" })).toBeTruthy();
   });
 });
+
+describe("RegisterTable server pages, trailing cell and selective expand toggles", () => {
+  it("serverPaged: shows the rows it is given, pages by the server total and does not slice them", async () => {
+    const user = userEvent.setup();
+    renderTable(
+      <RegisterTable
+        columns={COLUMNS}
+        rows={makeRows(30)}
+        getRowId={(r) => r.id}
+        empty={{ title: "No rows" }}
+        serverPaged={{ totalCount: 120 }}
+      />
+    );
+    // 30 rows were supplied: more than a client page of 25, and all of them are shown.
+    expect(screen.getAllByText(/^SMP-/)).toHaveLength(30);
+    expect(screen.getByText("1–25 of 120")).toBeTruthy();
+    // "All" is not offered: a server page is capped.
+    await user.click(screen.getByRole("combobox", { name: /rows per page/i }));
+    expect(screen.queryByRole("option", { name: "All" })).toBeNull();
+    await user.keyboard("{Escape}");
+    await user.click(screen.getByRole("button", { name: "Go to next page" }));
+    // The caller supplies the next page; the rows are not cut by a client-side slice.
+    expect(screen.getAllByText(/^SMP-/)).toHaveLength(30);
+    expect(screen.getByText("26–50 of 120")).toBeTruthy();
+  });
+
+  it("serverPaged: offers no column sort, since only one server page is held", () => {
+    renderTable(
+      <RegisterTable
+        columns={COLUMNS}
+        rows={makeRows(5)}
+        getRowId={(r) => r.id}
+        empty={{ title: "No rows" }}
+        serverPaged={{ totalCount: 120 }}
+      />
+    );
+    for (const header of screen.getAllByRole("columnheader")) {
+      expect(within(header).queryByRole("button")).toBeNull();
+    }
+    expect(screen.queryByText("Sort by")).toBeNull();
+  });
+
+  it("trailingCell: adds a labelled last column; the row click reports the event so a caller can ignore controls inside", async () => {
+    const user = userEvent.setup();
+    const onRowClick = vi.fn();
+    const onAction = vi.fn();
+    renderTable(
+      <RegisterTable
+        columns={COLUMNS}
+        rows={makeRows(2)}
+        getRowId={(r) => r.id}
+        empty={{ title: "No rows" }}
+        onRowClick={onRowClick}
+        trailingCell={{ label: "Menu", render: (r) => <button type="button" onClick={() => onAction(r.id)}>Do {r.id}</button> }}
+      />
+    );
+    const headers = screen.getAllByRole("columnheader").map((h) => h.textContent);
+    expect(headers).toEqual(["Code", "Name", "Count", "Menu"]);
+    await user.click(screen.getByRole("button", { name: "Do 2" }));
+    expect(onAction).toHaveBeenCalledWith(2);
+    expect(onRowClick).toHaveBeenCalledTimes(1);
+    const [row, event] = onRowClick.mock.calls[0] as [SampleRow, { target: Element } | undefined];
+    expect(row.id).toBe(2);
+    expect(event?.target.closest("button")?.textContent).toBe("Do 2");
+  });
+
+  it("isExpandable: only flagged rows get a toggle; selectionLabels and pageSelectionIds name and scope the checkboxes", async () => {
+    const user = userEvent.setup();
+    const toggled = vi.fn();
+    const selected = vi.fn();
+    const selection = {
+      selected: new Set<string | number>(),
+      allMatching: false,
+      count: 0,
+      isSelected: () => false,
+      toggle: (id: string | number) => selected(id),
+      togglePage: (ids: Array<string | number>) => selected(ids),
+      selectAllMatching: vi.fn(),
+      clear: vi.fn()
+    };
+    renderTable(
+      <RegisterTable
+        columns={COLUMNS}
+        rows={makeRows(3)}
+        getRowId={(r) => r.id}
+        empty={{ title: "No rows" }}
+        renderExpanded={() => <span>more</span>}
+        expandedIds={new Set()}
+        onToggleExpand={toggled}
+        isExpandable={(r) => r.id === 2}
+        selection={selection}
+        alwaysSelectable
+        selectionLabels={{ row: (r) => `Pick ${r.code}`, page: (n, all) => `${all ? "Unpick" : "Pick"} all ${n}` }}
+        pageSelectionIds={(paged) => [...paged.map((r) => r.id), 99]}
+      />
+    );
+    expect(screen.getAllByRole("button", { name: /^Expand row/ })).toHaveLength(1);
+    await user.click(screen.getByRole("button", { name: "Expand row 2" }));
+    expect(toggled).toHaveBeenCalledWith(2);
+    await user.click(screen.getByRole("checkbox", { name: "Pick SMP-003" }));
+    expect(selected).toHaveBeenLastCalledWith(3);
+    await user.click(screen.getByRole("checkbox", { name: "Pick all 4" }));
+    expect(selected).toHaveBeenLastCalledWith([1, 2, 3, 99]);
+  });
+});

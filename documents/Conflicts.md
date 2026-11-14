@@ -978,3 +978,30 @@ Locations for CONF-001 to CONF-008 were added on 2026-11-12 from the area worker
 - **Question:** Should changing a user's company username clear the stored subject id, so that the next company sign-in binds again to the account with the new username, or should the stored link be kept as built?
 - **Decision:** Decided by the user 2026-11-13: changing the company username clears the stored subject id; the next company sign-in binds again.
 - **Date:** 2026-11-13
+
+### CONF-198
+- **Area:** NTF
+- **Status:** Open
+- **What the code does:** `SystemSettingDefinitions` sets the default value of `myWork.readOverdueHours` (`SystemSettingKeys.MyWorkReadOverdueHours`, range `0` to `168` hours) to `"0"`. In `MyWorkUrgency.ForReading` and `IncubationSource.ReadyAndOverdue`, a value of `0` disables overdue marking for ready-to-read incubations, so open incubations that are ready to read remain at urgency `Now` indefinitely regardless of how long they have waited past their expected reading or end time. Location: `backend/MicroLIMS.Application/Services/SystemSettings/SystemSettingDefinitions.cs` — `All` (`MyWorkReadOverdueHours`); `backend/MicroLIMS.Application/Services/MyWork/MyWorkUrgency.cs` — `ForReading`; `backend/MicroLIMS.Application/Services/MyWork/Sources/IncubationSource.cs` — `ReadyAndOverdue`, `CountsAsync`.
+- **What the other source says:** Design specification `docs/superpowers/specs/2026-11-10-my-work-design.md` Section 5.4 and Section 9 item 1, and implementation plan `docs/superpowers/plans/2026-11-10-my-work.md` ("Open after the plan"), note that the laboratory rule for how long a ready plate may wait before it counts as overdue to read was not found in `documents/`, so `myWork.readOverdueHours` ships as `0` (off) until the laboratory states the rule.
+- **Question:** How many hours after an incubation becomes ready to read should it be marked `Overdue` in My Work, and what default value should `myWork.readOverdueHours` carry once the laboratory confirms the rule?
+- **Decision:** Not decided.
+- **Date:** Not applicable
+
+### CONF-199
+- **Area:** NTF
+- **Status:** Open
+- **What the code does:** `EquipmentSource` applies to every user whose role holds `EquipmentWork.Record` (`PermissionConstants.EquipmentWorkRecord`) and returns all open, non-retired `EquipmentTask` rows (`CompletedOn == null && RetiredByRevisionId == null`) with `DueDate` on or before `labToday.AddDays(ctx.LookAheadDays)`. It does not filter by an assigned owner or by the caller's laboratory sections (`ReadableSectionIds` or `MemberSectionIds`), because `EquipmentTask` and `EquipmentInventory` have no owner user column and `EquipmentInventory.SectionId` references a `DocumentSection` rather than a laboratory section. Location: `backend/MicroLIMS.Application/Services/MyWork/Sources/EquipmentSource.cs` — `AppliesTo`, `Rows`.
+- **What the other source says:** Design specification `docs/superpowers/specs/2026-11-10-my-work-design.md` Section 5.2 (group 10, "Equipment tasks and calibrations due within 7 days or overdue, in my sections") and Section 9 item 2, and implementation plan `docs/superpowers/plans/2026-11-10-my-work.md` ("Open after the plan"), record that equipment tasks have no owner in the data and are linked to a document section rather than a laboratory section, so they are shown to every holder of `EquipmentWork.Record` until an owner field or section rule is defined.
+- **Question:** Should `EquipmentTask` or `EquipmentInventory` gain an assigned owner or laboratory-section filter so My Work lists only the user's own equipment tasks, or should every holder of `EquipmentWork.Record` continue to see all due equipment tasks?
+- **Decision:** Not decided.
+- **Date:** Not applicable
+
+### CONF-200
+- **Area:** NTF
+- **Status:** Open
+- **What the code does:** `IncubationSource.Ending` selects open, non-ready incubations on the caller's active tests only when `(i.ExpectedReadingAt ?? i.IncubationEndUtc) <= ctx.EndOfLabDayUtc` (the end of the current local day in the laboratory time zone, with urgency `Today`). Open incubations whose expected reading or end time falls after the end of the current laboratory day are not returned in `endingToday` or any other My Work group, and `IncubationSource` applies no look-ahead window (`ctx.LookAheadDays` is not used). By contrast, `MyTasksService.GetMyTasksAsync` includes open incubations expected within a 2-day horizon. Location: `backend/MicroLIMS.Application/Services/MyWork/Sources/IncubationSource.cs` — `Ending`; `backend/MicroLIMS.Application/Services/MyTasksService.cs` — `GetMyTasksAsync`.
+- **What the other source says:** Design specification `docs/superpowers/specs/2026-11-10-my-work-design.md` Section 5.2 defines group 3 as "Incubation ending today" (expected reading before local midnight with no look-ahead), while `MyWorkUrgency.ForReading` also defines a `Later` branch for non-ready incubations expected after `endOfLabDayUtc` that `IncubationSource.Ending` never queries.
+- **Question:** Should My Work list only non-ready incubations ending before the end of the current laboratory day (with no look-ahead), or should it also list upcoming incubations within a look-ahead window?
+- **Decision:** Not decided.
+- **Date:** Not applicable

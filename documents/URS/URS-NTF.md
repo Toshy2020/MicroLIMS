@@ -4,7 +4,7 @@
 |---|---|
 | Document number | URS-NTF |
 | Title | Dashboards, notifications and messaging user requirements |
-| Version | 0.1 |
+| Version | 0.2 |
 | Status | Draft |
 | Author | Claude (AI agent), draft from code |
 | Reviewer | To be assigned by QA |
@@ -16,6 +16,7 @@
 | Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1 | 2026-11-12 | Claude (AI agent), draft from code | First draft, written from the code as built. |
+| 0.2 | 2026-11-14 | AI coding agent, draft from code | Added My Work and test self-assignment requirements (URS-NTF-006 to URS-NTF-010). |
 
 ## Requirements
 
@@ -47,6 +48,36 @@ Each requirement below is a need that the code as built serves. Gaps found in th
 
 ### URS-NTF-005
 **Requirement:** The system shall show a Section Head the review and approval queues of the user's sections with the age of each entry, and a short list of items that need attention.
+**GxP:** No
+**Serves:** Not applicable
+**Status:** Active
+
+### URS-NTF-006
+**Requirement:** The system shall provide the signed-in user with a single My Work task list grouped in a fixed display order and sorted within each group by unlocked before locked, then urgency, then oldest first, capped at 50 items per group with an exact actionable count, where each unlocked row identifies its target so the screen opens the exact workspace step, dialog, or record, and shall return the remaining groups and name any failed source when an individual task source fails.
+**GxP:** No
+**Serves:** Not applicable
+**Status:** Active
+
+### URS-NTF-007
+**Requirement:** The system shall compute all My Work due times, overdue states, and the end of the current laboratory day on the server from the laboratory clock and time zone, using one shared incubation ready-to-read rule across My Work, My Tasks, and the workspaces, the 24-hour workflow status-age window, a configurable look-ahead window in days, and a configurable reading-overdue threshold in hours.
+**GxP:** Yes
+**Serves:** 21 CFR 11.10(e); EU GMP Annex 11 clause 4 (to be confirmed by QA)
+**Status:** Active
+
+### URS-NTF-008
+**Requirement:** The system shall limit each My Work source to the signed-in user's own assignments, permissions, and laboratory sections (and to one laboratory when requested), ensuring that cross-section read access never treats another user's assigned work as the caller's, and shall mark sample review, sample approval, and media release entries that the caller performed, reviewed, prepared, or evaluated as locked with the reason, exclude locked entries from actionable counts, and disable opening or acting on them from the list.
+**GxP:** Yes
+**Serves:** 21 CFR 11.10(d), 11.10(g); EU GMP Annex 11 clause 12 (to be confirmed by QA)
+**Status:** Active
+
+### URS-NTF-009
+**Requirement:** When test self-assignment is enabled, the system shall allow an active user who holds the self-assignment permission, belongs to the test's laboratory section, and satisfies analyst assignment eligibility to take an unassigned open non-outsourced test order under optimistic concurrency control, shall allow that user to release the test order back to unassigned only while they remain the assigned analyst, the latest assignment audit record on that test order is their own take action, and they have recorded no sample preparation, incubation, workflow step result, count reading, pathogen observation, test analysis, or result on the sample, and shall record every take and release in the audit trail.
+**GxP:** Yes
+**Serves:** 21 CFR 11.10(d), 11.10(e), 11.10(g); EU GMP Annex 11 clauses 9 and 12 (to be confirmed by QA)
+**Status:** Active
+
+### URS-NTF-010
+**Requirement:** The system shall land the user on My Work after sign-in (redirecting once per session to the role dashboard when the user has no My Work groups and holds a dashboard permission) and shall display the live total task count and overdue status on the My Work sidebar item when all task sources succeed, hiding the sidebar badge when the summary is zero or incomplete.
 **GxP:** No
 **Serves:** Not applicable
 **Status:** Active

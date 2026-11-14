@@ -19,7 +19,11 @@ import { ReportingService } from "../services/ReportingService";
 import { exportResultsPdf } from "../utils/exportPdf";
 import { useAuth } from "../../../contexts/AuthContext";
 import { ResultRecordItem, ResultRecordSearchParams, ResultRecordSearchResponse, SampleCategory } from "../types/reportingTypes";
-import { DataTable, Column } from "../../../components/DataTable";
+import { RegisterTable, type RegisterColumn } from "../../../components/lab/RegisterTable";
+import { buildCsv, downloadCsv } from "../../../components/lab/table/exportCsv";
+import { exportLogService } from "../../../components/lab/table/services/exportLogService";
+import { TABLES } from "../../../components/lab/table/tableRegistry";
+import { useRowSelection } from "../../../components/lab/table/useRowSelection";
 import { fetchAllPages } from "../../../services/fetchAllPages";
 
 const ROWS_PER_PAGE_OPTIONS = [10, 25, 50, 100];
@@ -100,8 +104,19 @@ export function ReportResultsTable({
   const [rowMenu, setRowMenu] = useState<{ anchor: HTMLElement; row: ResultRecordItem } | null>(null);
   const [detailRecord, setDetailRecord] = useState<ResultRecordItem | null>(null);
 
-  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
-  const [selectAllMatching, setSelectAllMatching] = useState(false);
+  const resetKey = JSON.stringify({
+    search: appliedParams.search,
+    category: appliedParams.category,
+    testCode: appliedParams.testCode,
+    resultLevel: appliedParams.resultLevel,
+    sampleStatus: appliedParams.sampleStatus,
+    approvalStatus: appliedParams.approvalStatus,
+    fromDate: appliedParams.fromDate,
+    toDate: appliedParams.toDate,
+    subjectName: appliedParams.subjectName,
+    resultKind: appliedParams.resultKind
+  });
+  const selection = useRowSelection<string | number>(resetKey);
 
   const [exportConfirmOpen, setExportConfirmOpen] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
@@ -112,42 +127,11 @@ export function ReportResultsTable({
   const page = appliedParams.page ?? 1;
   const pageSize = appliedParams.pageSize ?? 25;
 
-  const approvedVisibleIds = useMemo(() => items.filter((r) => r.approvalStatus === "Approved").map((r) => r.id), [items]);
-  const allVisibleSelected = approvedVisibleIds.length > 0 && approvedVisibleIds.every((id) => selectedIds.has(id));
-  const someVisibleSelected = approvedVisibleIds.some((id) => selectedIds.has(id));
-
-  const selectionCount = selectAllMatching ? totalCount : selectedIds.size;
-  const selectedRecords = useMemo(() => items.filter((r) => selectedIds.has(r.id)), [items, selectedIds]);
-
-  const toggleRow = (row: ResultRecordItem) => {
-    if (row.approvalStatus !== "Approved") return;
-    setSelectAllMatching(false);
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(row.id)) next.delete(row.id); else next.add(row.id);
-      return next;
-    });
-  };
-
-  const toggleVisiblePage = () => {
-    setSelectAllMatching(false);
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      if (allVisibleSelected) approvedVisibleIds.forEach((id) => next.delete(id));
-      else approvedVisibleIds.forEach((id) => next.add(id));
-      return next;
-    });
-  };
-
-  const selectAllMatchingRecords = () => {
-    setSelectedIds(new Set());
-    setSelectAllMatching(true);
-  };
-
-  const clearSelection = () => {
-    setSelectedIds(new Set());
-    setSelectAllMatching(false);
-  };
+  const selectionCount = selection.count;
+  const selectedRecords = useMemo(
+    () => items.filter((r) => selection.selected.has(r.id)),
+    [items, selection.selected]
+  );
 
   const runExport = async () => {
     setExportConfirmOpen(false);
@@ -171,9 +155,9 @@ export function ReportResultsTable({
     });
   };
 
-  const handleExportSelectedCsv = () => {
-    if (selectAllMatching) {
-      runExport();
+  const handleExportSelectedCsv = async () => {
+    if (selection.allMatching) {
+      await runExport();
       return;
     }
     if (selectedRecords.length === 0) return;
@@ -182,37 +166,53 @@ export function ReportResultsTable({
       "Reported Value", "Unit", "Result Level", "Alert Limit", "Action Limit", "Spec Limit",
       "Status", "Analyst", "Approved By", "Approval Date"
     ];
+    setExportError(null);
+    let logResult;
+    try {
+      logResult = await exportLogService.log({
+        tableKey: "reports.results",
+        filterJson: JSON.stringify(appliedParams),
+        columns: headers,
+        rowCount: selectedRecords.length,
+        recordIds: selectedRecords.map((r) => String(r.id))
+      });
+    } catch (err) {
+      setExportError(err instanceof Error ? err.message : "Export failed.");
+      return;
+    }
+    const headerRows: string[][] = [
+      ["Exported by", logResult.exportedBy],
+      ["Exported at", `${logResult.serverTimeUtc} (${logResult.timeZoneId})`],
+      ["List", TABLES["reports.results"]?.title ?? "reports.results"],
+      ["Filters", summarizeFilters(appliedParams)],
+      ["Rows", String(selectedRecords.length)],
+      ["Export ID", String(logResult.exportId)]
+    ];
     const rows = selectedRecords.map((r) => [
-      `"${r.resultEnteredAt}"`,
-      `"${r.referenceNumber}"`,
-      `"${r.subjectName}"`,
-      `"${r.subjectDetail ?? ""}"`,
-      `"${r.category}"`,
-      `"${r.testCode}"`,
-      `"${r.testDisplayName || r.testCode}"`,
-      `"${r.reportedValue}"`,
-      `"${r.unit ?? ""}"`,
-      `"${r.resultLevel}"`,
-      `"${r.alertLimit ?? ""}"`,
-      `"${r.actionLimit ?? ""}"`,
-      `"${r.specLimit ?? ""}"`,
-      `"${r.approvalStatus}"`,
-      `"${r.resultEnteredByName ?? ""}"`,
-      `"${r.approvedByName ?? ""}"`,
-      `"${r.approvedAt ?? ""}"`
+      r.resultEnteredAt,
+      r.referenceNumber,
+      r.subjectName,
+      r.subjectDetail ?? "",
+      r.category,
+      r.testCode,
+      r.testDisplayName || r.testCode,
+      r.reportedValue,
+      r.unit ?? "",
+      r.resultLevel,
+      r.alertLimit ?? "",
+      r.actionLimit ?? "",
+      r.specLimit ?? "",
+      r.approvalStatus,
+      r.resultEnteredByName ?? "",
+      r.approvedByName ?? "",
+      r.approvedAt ?? ""
     ]);
-    const csvContent = [headers.join(","), ...rows.map((row) => row.join(","))].join("\n");
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `selected_laboratory_results_${new Date().toISOString().slice(0, 10)}.csv`;
-    link.click();
-    URL.revokeObjectURL(url);
+    const csv = buildCsv(headerRows, headers, rows);
+    downloadCsv(`selected_laboratory_results_${new Date().toISOString().slice(0, 10)}.csv`, csv);
   };
 
   const handleExportSelectedPdf = async () => {
-    if (selectAllMatching) {
+    if (selection.allMatching) {
       setExporting(true);
       try {
         // Every matching result, page by page - not just the first page.
@@ -243,11 +243,11 @@ export function ReportResultsTable({
   const pageEnd = Math.min(page * pageSize, totalCount);
   const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
 
-  // Maps each toggleable ColumnKey to its real DataTable column definition -
+  // Maps each toggleable ColumnKey to its real RegisterTable column definition -
   // visibleColumns (driven by the Columns menu) filters this list before
-  // it's handed to DataTable; the trailing Actions column is appended
+  // it's handed to RegisterTable; the trailing Actions column is appended
   // unconditionally since it isn't part of the toggle set.
-  const columnDefs: { colKey: ColumnKey; column: Column<ResultRecordItem> }[] = [
+  const columnDefs: { colKey: ColumnKey; column: RegisterColumn<ResultRecordItem> }[] = [
     { colKey: "dateTime", column: { key: "resultEnteredAt", label: COLUMN_LABELS.dateTime, render: (row) => {
       const dt = formatDateTime(row.resultEnteredAt);
       return (
@@ -286,7 +286,7 @@ export function ReportResultsTable({
     { colKey: "approvalDate", column: { key: "approvedAt", label: COLUMN_LABELS.approvalDate, render: (row) => row.approvedAt ? formatDate(row.approvedAt) : "—" } }
   ];
 
-  const tableColumns: Column<ResultRecordItem>[] = [
+  const tableColumns: RegisterColumn<ResultRecordItem>[] = [
     ...columnDefs.filter((d) => visibleColumns[d.colKey]).map((d) => d.column),
     {
       key: "id",
@@ -348,16 +348,16 @@ export function ReportResultsTable({
       <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 1.5, flexWrap: "wrap", gap: 1, bgcolor: selectionCount > 0 ? theme.custom.status.purple.bg : "transparent", p: selectionCount > 0 ? 1 : 0, borderRadius: 1 }}>
         <Box sx={{ display: "flex", alignItems: "center", gap: 2, flexWrap: "wrap" }}>
           <Tooltip title="Selects every Approved result matching your current filters, not just the loaded page.">
-            <Link component="button" type="button" onClick={selectAllMatchingRecords} sx={{ fontSize: 13 }} underline="hover">
+            <Link component="button" type="button" onClick={() => selection.selectAllMatching(totalCount)} sx={{ fontSize: 13 }} underline="hover">
               Select All {totalCount} Matching Records
             </Link>
           </Tooltip>
 
           {selectionCount > 0 && (
             <Typography sx={{ fontSize: 13, color: "text.secondary", fontWeight: 600 }}>
-              {selectAllMatching ? `All ${totalCount} selected` : `${selectionCount} selected`}
+              {selection.allMatching ? `All ${totalCount} selected` : `${selectionCount} selected`}
               {" · "}
-              <Link component="button" type="button" onClick={clearSelection} sx={{ fontSize: 13 }} underline="hover">
+              <Link component="button" type="button" onClick={selection.clear} sx={{ fontSize: 13 }} underline="hover">
                 Clear
               </Link>
             </Typography>
@@ -414,18 +414,18 @@ export function ReportResultsTable({
       {!error && (loading || items.length > 0) && (
         <>
           <Box sx={{ opacity: loading ? 0.6 : 1 }}>
-            <DataTable
+            <RegisterTable
               columns={tableColumns}
               rows={items}
               getRowId={(row) => row.id}
-              selection={{
-                isSelected: (row) => selectAllMatching || selectedIds.has(row.id),
-                onToggle: (row) => toggleRow(row),
-                isSelectable: (row) => row.approvalStatus === "Approved",
-                headerChecked: allVisibleSelected,
-                headerIndeterminate: !allVisibleSelected && someVisibleSelected,
-                onToggleAll: toggleVisiblePage
+              loading={loading}
+              empty={{
+                title: "No results found",
+                description: "Try widening the date range or clearing some filters.",
+                action: <Button variant="outlined" onClick={onClearFilters}>Clear Filters</Button>
               }}
+              selection={selection}
+              isSelectable={(row) => row.approvalStatus === "Approved"}
             />
           </Box>
 

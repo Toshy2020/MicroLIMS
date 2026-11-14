@@ -13,7 +13,8 @@ import { ReferenceStrainReportService } from "../services/ReferenceStrainReportS
 import { ReferenceStrainDetailDialog } from "./ReferenceStrainDetailDialog";
 import { exportReferenceStrainPdf } from "../utils/exportReferenceStrainPdf";
 import { useAuth } from "../../../contexts/AuthContext";
-import { DataTable, Column } from "../../../components/DataTable";
+import { RegisterTable, type RegisterColumn } from "../../../components/lab/RegisterTable";
+import { useRowSelection } from "../../../components/lab/table/useRowSelection";
 
 const ROWS_PER_PAGE_OPTIONS = [10, 25, 50, 100];
 
@@ -47,10 +48,19 @@ export function ReferenceStrainResultsTable({
 }: ReferenceStrainResultsTableProps) {
   const theme = useTheme();
   const { fullName } = useAuth();
-  const [selectedIds, setSelectedIds] = useState<number[]>([]);
+  const resetKey = JSON.stringify({
+    search: appliedParams.search,
+    organismId: appliedParams.organismId,
+    approvalStatus: appliedParams.approvalStatus,
+    isDestroyed: appliedParams.isDestroyed,
+    receiptFromDate: appliedParams.receiptFromDate,
+    receiptToDate: appliedParams.receiptToDate,
+    usageFromDate: appliedParams.usageFromDate,
+    usageToDate: appliedParams.usageToDate
+  });
+  const selection = useRowSelection<string | number>(resetKey);
   const [detailBatch, setDetailBatch] = useState<ReferenceStrainDetail | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
-  const [detailLoading, setDetailLoading] = useState(false);
   const [exportingCsv, setExportingCsv] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
 
@@ -60,33 +70,13 @@ export function ReferenceStrainResultsTable({
   const pageSize = results?.pageSize ?? 25;
   const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
 
-  const allSelected = items.length > 0 && items.every((r) => selectedIds.includes(r.id));
-  const someSelected = items.some((r) => selectedIds.includes(r.id)) && !allSelected;
-
-  const handleSelectAll = () => {
-    if (allSelected) {
-      setSelectedIds([]);
-    } else {
-      setSelectedIds(items.map((r) => r.id));
-    }
-  };
-
-  const handleToggleRow = (id: number) => {
-    setSelectedIds((prev) =>
-      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
-    );
-  };
-
   const handleViewDetail = async (id: number) => {
-    setDetailLoading(true);
     try {
       const detail = await ReferenceStrainReportService.getById(id);
       setDetailBatch(detail);
       setDetailOpen(true);
     } catch {
       // Error loading detail
-    } finally {
-      setDetailLoading(false);
     }
   };
 
@@ -95,27 +85,27 @@ export function ReferenceStrainResultsTable({
     setExportError(null);
     try {
       await ReferenceStrainReportService.exportCsv(appliedParams);
-    } catch (err: any) {
-      setExportError(err.message || "Export failed.");
+    } catch (err) {
+      setExportError(err instanceof Error ? err.message : "Export failed.");
     } finally {
       setExportingCsv(false);
     }
   };
 
   const handleExportPdf = () => {
-    const recordsToExport = selectedIds.length > 0
-      ? items.filter((r) => selectedIds.includes(r.id))
+    const recordsToExport = selection.count > 0
+      ? items.filter((r) => selection.isSelected(r.id))
       : items;
 
     exportReferenceStrainPdf(recordsToExport, {
       title: "Reference Microorganism Strains Report",
       criteriaSummary: `Filters: ${appliedParams.search ? `Search: "${appliedParams.search}"` : "All Strains"} • ${appliedParams.approvalStatus || "All Statuses"}`,
       generatedBy: fullName || "Authorized User",
-      isSelection: selectedIds.length > 0
+      isSelection: selection.count > 0
     });
   };
 
-  const columns: Column<ReferenceStrainListItem>[] = [
+  const columns: RegisterColumn<ReferenceStrainListItem>[] = [
     { key: "strainName", label: "Strain / ATCC", render: (r) => (
       <Box>
         <Typography sx={{ fontWeight: 700, fontSize: 12.5, color: theme.palette.primary.main }}>
@@ -235,7 +225,7 @@ export function ReferenceStrainResultsTable({
             disabled={items.length === 0}
             sx={{ fontWeight: 600 }}
           >
-            Print / PDF View {selectedIds.length > 0 ? `(${selectedIds.length})` : ""}
+            Print / PDF View {selection.count > 0 ? `(${selection.count})` : ""}
           </Button>
         </Stack>
       </Box>
@@ -253,29 +243,21 @@ export function ReferenceStrainResultsTable({
       )}
 
       {/* Table */}
-      <DataTable
+      <RegisterTable
         columns={columns}
         rows={items}
         getRowId={(r) => r.id}
-        onRowClick={(r) => handleViewDetail(r.id)}
+        onRowClick={(r) => void handleViewDetail(r.id)}
         loading={loading}
-        emptyMessage={
-          <>
-            <Typography sx={{ color: "text.secondary", fontSize: 13, mb: 1 }}>
-              No reference strain batches matched your filters.
-            </Typography>
+        empty={{
+          title: "No reference strain batches matched your filters.",
+          action: (
             <Button size="small" variant="text" onClick={onClearFilters}>
               Clear Filters
             </Button>
-          </>
-        }
-        selection={{
-          isSelected: (r) => selectedIds.includes(r.id),
-          onToggle: (r) => handleToggleRow(r.id),
-          headerChecked: allSelected,
-          headerIndeterminate: someSelected,
-          onToggleAll: handleSelectAll
+          )
         }}
+        selection={selection}
       />
 
       {/* Pagination Footer */}

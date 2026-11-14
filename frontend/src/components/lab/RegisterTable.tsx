@@ -1,14 +1,23 @@
 import { useEffect, useMemo, useState } from "react";
 import type { KeyboardEvent, MouseEvent, ReactNode } from "react";
 import {
-  Box, IconButton, ListItemText, Menu, MenuItem, Paper, Select, Skeleton, Stack, Table, TableBody, TableCell, TableContainer,
+  Box, Checkbox, IconButton, ListItemText, Menu, MenuItem, Paper, Select, Skeleton, Stack, Table, TableBody, TableCell, TableContainer,
   TableHead, TablePagination, TableRow, TableSortLabel, Typography, useMediaQuery, useTheme
 } from "@mui/material";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
+import { toast } from "sonner";
+import { useOptionalAuth } from "../../contexts/AuthContext";
+import { PERMISSIONS } from "../../routes/routes";
 import { tableHeadSx } from "../../theme";
 import { useBenchMode } from "../../theme/BenchModeContext";
 import type { StatusTone } from "../../theme/statusTokens";
+import { getErrorMessage } from "../../utils/errorMessage";
 import { EmptyState } from "./EmptyState";
+import { BulkActionBar, type BulkAction } from "./table/BulkActionBar";
+import { buildCsv, downloadCsv } from "./table/exportCsv";
+import { exportLogService } from "./table/services/exportLogService";
+import { TABLES } from "./table/tableRegistry";
+import type { RowSelection } from "./table/useRowSelection";
 import { useTableState, type UseTableState } from "./table/useTableState";
 
 export interface RegisterColumn<T> {
@@ -53,10 +62,15 @@ interface RegisterTableProps<T> {
   tableKey?: string;
   tableState?: UseTableState;
   toolbar?: ReactNode;
+  selection?: RowSelection<string | number>;
+  bulkActions?: BulkAction<string | number>[];
+  totalMatching?: number;
+  loadAllMatching?(): Promise<T[]>;
 }
 
 const PAGE_SIZES = [25, 50, 100];
 const SKELETON_ROWS = 5;
+const MAX_EXPORT_ROWS = 5000;
 // Above this many rows on a page the table body scrolls inside a bounded
 // region on desktop, so the column headers stay in view. Shorter pages keep
 // the page itself as the only scroll container (no second scrollbar).
@@ -87,9 +101,11 @@ function ManagedRegisterTable<T>({
 }
 
 function RegisterTableInner<T>({
-  columns, rows, getRowId, onRowClick, rowActions, loading, empty, pageSize = 25, dense = true, defaultSort, rowTone, tableState, toolbar
+  columns, rows, getRowId, onRowClick, rowActions, loading, empty, pageSize = 25, dense = true, defaultSort, rowTone, tableKey, tableState, toolbar,
+  selection, bulkActions, totalMatching, loadAllMatching
 }: RegisterTableProps<T>) {
   const theme = useTheme();
+  const auth = useOptionalAuth();
   const { benchMode } = useBenchMode();
   const isBench = benchMode || Boolean(theme.custom?.bench);
   // Phones get one card per record instead of a table whose columns would be
@@ -143,7 +159,102 @@ function RegisterTableInner<T>({
     ? sorted.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
     : sorted;
   const showPagination = !loading && rows.length > PAGE_SIZES[0];
-  const colSpan = displayedColumns.length + (rowActions ? 1 : 0);
+
+  const allBulkActions = useMemo<BulkAction<string | number>[]>(() => {
+    const base = bulkActions ? [...bulkActions] : [];
+    if (tableKey && !base.some((a) => a.key === "export-csv")) {
+      base.push({
+        key: "export-csv",
+        label: "Export CSV",
+        permission: PERMISSIONS.DATA_EXPORT,
+        run: async () => {
+          if (!selection) return;
+          const selectedCount = selection.allMatching ? (totalMatching ?? rows.length) : selection.selected.size;
+          if (selectedCount > MAX_EXPORT_ROWS) {
+            toast.error("Export is limited to 5,000 rows. Narrow your filters or use the Reports module.");
+            return;
+          }
+          const exportRows = selection.allMatching
+            ? (loadAllMatching ? await loadAllMatching() : rows)
+            : rows.filter((r) => selection.selected.has(getRowId(r)));
+          if (exportRows.length > MAX_EXPORT_ROWS) {
+            toast.error("Export is limited to 5,000 rows. Narrow your filters or use the Reports module.");
+            return;
+          }
+          const visibleKeys = displayedColumns.map((c) => String(c.key));
+          const visibleLabels = displayedColumns.map((c) => c.label);
+          const recordIds = exportRows.map((r) => String(getRowId(r)));
+          const filters = tableState?.state.filters ?? {};
+          const search = tableState?.state.search ?? "";
+          const filterJson = JSON.stringify({ filters, search });
+
+          let logResult;
+          try {
+            logResult = await exportLogService.log({
+              tableKey,
+              filterJson,
+              columns: visibleKeys,
+              rowCount: exportRows.length,
+              recordIds,
+            });
+          } catch (err) {
+            toast.error(getErrorMessage(err, "Failed to log CSV export."));
+            return;
+          }
+
+          const def = TABLES[tableKey];
+          const filterParts = Object.entries(filters)
+            .filter(([, v]) => (Array.isArray(v) ? v.length > 0 : Boolean(v)))
+            .map(([k, v]) => `${k}=${Array.isArray(v) ? v.join("|") : v}`);
+          if (search) filterParts.push(`q=${search}`);
+
+          const headerRows: string[][] = [
+            ["Exported by", logResult.exportedBy],
+            ["Exported at", `${logResult.serverTimeUtc} (${logResult.timeZoneId})`],
+            ["List", def?.title ?? tableKey],
+            ["Filters", filterParts.length > 0 ? filterParts.join("; ") : "None"],
+            ["Rows", String(exportRows.length)],
+            ["Export ID", String(logResult.exportId)],
+          ];
+
+          const dataRows = exportRows.map((row) =>
+            displayedColumns.map((col) => {
+              const raw = (row as Record<string, unknown>)[String(col.key)];
+              if (raw !== undefined && raw !== null) return String(raw);
+              if (col.sortValue) {
+                const sv = col.sortValue(row);
+                return sv !== undefined && sv !== null ? String(sv) : "";
+              }
+              return "";
+            })
+          );
+
+          const csv = buildCsv(headerRows, visibleLabels, dataRows);
+          downloadCsv(`${tableKey}-export-${logResult.exportId}.csv`, csv);
+        },
+      });
+    }
+    return base;
+  }, [bulkActions, tableKey, selection, totalMatching, rows, loadAllMatching, getRowId, displayedColumns, tableState]);
+
+  const permittedBulkActions = useMemo(
+    () =>
+      allBulkActions.filter(
+        (a) => !a.permission || (auth?.permissions.includes(a.permission) ?? false)
+      ),
+    [allBulkActions, auth]
+  );
+
+  const showSelection = Boolean(selection) && permittedBulkActions.length > 0;
+  const pagedIds = useMemo(() => paged.map((r) => getRowId(r)), [paged, getRowId]);
+  const selectedOnPageCount = showSelection && selection
+    ? pagedIds.filter((id) => selection.isSelected(id)).length
+    : 0;
+  const allPageSelected = pagedIds.length > 0 && selectedOnPageCount === pagedIds.length;
+  const somePageSelected = selectedOnPageCount > 0 && !allPageSelected;
+  const effectiveTotalMatching = totalMatching ?? rows.length;
+
+  const colSpan = displayedColumns.length + (rowActions ? 1 : 0) + (showSelection ? 1 : 0);
   const isCompact = tableState ? (!isBench && tableState.state.density === "compact") : dense;
   const tableSize = isCompact ? "small" : "medium";
   const cellPy = tableState ? (isCompact ? 0.5 : 1.5) : (dense ? 0.75 : 1.5);
@@ -202,6 +313,13 @@ function RegisterTableInner<T>({
     return (
       <Paper elevation={0} sx={{ border: "1px solid", borderColor: "divider", borderRadius: 2, overflow: "hidden" }}>
         {toolbar}
+        {showSelection && selection && (
+          <BulkActionBar
+            selection={selection}
+            actions={allBulkActions}
+            totalMatching={effectiveTotalMatching}
+          />
+        )}
         {sortableColumns.length > 0 && rows.length > 1 && (
           <Box sx={{ px: 1.5, py: 1, borderBottom: "1px solid", borderColor: "divider", display: "flex", alignItems: "center", gap: 1 }}>
             <Typography variant="caption" sx={{ color: "text.secondary" }}>Sort by</Typography>
@@ -268,6 +386,16 @@ function RegisterTableInner<T>({
                   }}
                 >
                   <Box sx={{ display: "flex", alignItems: "flex-start", gap: 1, mb: detailCols.length ? 0.75 : 0 }}>
+                    {showSelection && selection && (
+                      <Checkbox
+                        size="small"
+                        checked={selection.isSelected(getRowId(row))}
+                        onClick={(e) => e.stopPropagation()}
+                        onChange={() => selection.toggle(getRowId(row))}
+                        slotProps={{ input: { "aria-label": `Select row ${getRowId(row)}` } }}
+                        sx={{ p: 0, mr: 0.5 }}
+                      />
+                    )}
                     <Box sx={{ flex: 1, minWidth: 0, fontWeight: 600, fontSize: 15, overflowWrap: "anywhere" }}>
                       {titleCol ? cellText(row, titleCol) : null}
                     </Box>
@@ -334,12 +462,30 @@ function RegisterTableInner<T>({
   return (
     <Paper elevation={0} sx={{ border: "1px solid", borderColor: "divider", borderRadius: 2, overflow: "hidden" }}>
       {toolbar}
+      {showSelection && selection && (
+        <BulkActionBar
+          selection={selection}
+          actions={allBulkActions}
+          totalMatching={effectiveTotalMatching}
+        />
+      )}
       {/* stickyHeader needs a bounded scroll region to stick within; only long
           pages get one (see STICKY_HEADER_MIN_ROWS). */}
       <TableContainer sx={boundedBody ? { maxHeight: "calc(100vh - 240px)", minHeight: 320 } : undefined}>
         <Table size={tableSize} stickyHeader>
           <TableHead>
             <TableRow sx={tableHeadSx(theme)}>
+              {showSelection && selection && (
+                <TableCell padding="checkbox">
+                  <Checkbox
+                    size="small"
+                    checked={allPageSelected}
+                    indeterminate={somePageSelected}
+                    onChange={() => selection.togglePage(pagedIds)}
+                    slotProps={{ input: { "aria-label": "Select all rows on page" } }}
+                  />
+                </TableCell>
+              )}
               {displayedColumns.map((col) => {
                 const key = String(col.key);
                 const align = col.align ?? (col.numeric ? "right" : "left");
@@ -368,6 +514,7 @@ function RegisterTableInner<T>({
             {loading ? (
               Array.from({ length: SKELETON_ROWS }).map((_, r) => (
                 <TableRow key={`sk-${r}`}>
+                  {showSelection && <TableCell padding="checkbox" />}
                   {displayedColumns.map((col, c) => (
                     <TableCell key={String(col.key)} align={col.align ?? (col.numeric ? "right" : "left")} sx={{ py: 1.5 }}>
                       <Skeleton variant="text" width={c === 0 ? "75%" : "50%"} height={20} sx={{ ml: col.numeric ? "auto" : 0 }} />
@@ -404,6 +551,16 @@ function RegisterTableInner<T>({
                       : null)
                   }}
                 >
+                  {showSelection && selection && (
+                    <TableCell padding="checkbox" onClick={(e) => e.stopPropagation()}>
+                      <Checkbox
+                        size="small"
+                        checked={selection.isSelected(getRowId(row))}
+                        onChange={() => selection.toggle(getRowId(row))}
+                        slotProps={{ input: { "aria-label": `Select row ${getRowId(row)}` } }}
+                      />
+                    </TableCell>
+                  )}
                   {displayedColumns.map((col) => {
                     const content = cellText(row, col);
                     return (

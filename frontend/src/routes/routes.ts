@@ -285,7 +285,8 @@ export const PERMISSIONS = {
   SAMPLES_PREPARE: "samples.prepare",
   LABELS_REPRINT: "Labels.Reprint",
   LABELS_CONFIGURE: "Labels.Configure",
-  TABLE_VIEWS_SHARE: "TableViews.Share"
+  TABLE_VIEWS_SHARE: "TableViews.Share",
+  DATA_EXPORT: "Data.Export"
 } as const;
 
 export type PermissionCode = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];

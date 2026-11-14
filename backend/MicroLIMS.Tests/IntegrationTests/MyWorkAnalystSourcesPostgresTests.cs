@@ -586,6 +586,28 @@ public class MyWorkAnalystSourcesPostgresTests
     }
 
     [PostgresFact]
+    public async Task MaterialsIPreparedInSectionINoLongerBelongTo_Absent()
+    {
+        int a;
+        Media inMine;
+        await using (var arrange = _fixture.CreateDbContext())
+        {
+            var w = await WorldAsync(arrange);
+            a = (await NewUserAsync(arrange, "prep", false, w.Micro)).Id; // no longer in FP
+            inMine = await NewMediaAsync(arrange, await NewMaterialAsync(arrange, w.Micro), a, Now.AddDays(1));
+            var goneLot = await NewMediaAsync(arrange, await NewMaterialAsync(arrange, w.Fp), a, Now.AddDays(1));
+            var goneEvalLot = await NewMediaAsync(arrange, await NewMaterialAsync(arrange, w.Fp), a, Now.AddDays(60));
+            arrange.MediaEvaluations.Add(new MediaEvaluation { MediaId = goneEvalLot.Id, EvaluationType = EvaluationType.GrowthPromotion, Status = MediaEvaluationStatus.Assigned });
+            await arrange.SaveChangesAsync();
+        }
+
+        var group = Assert.IsType<MyWorkGroup>(Group(await GetAsync(a), "materials"));
+        Assert.Equal($"media:{inMine.Id}", Assert.Single(group.Items).Key);
+        Assert.Equal(1, group.Count);
+        Assert.Equal(1, (await SummaryAsync(a)).Total);
+    }
+
+    [PostgresFact]
     public async Task MediaIPrepared_ExpiringIn7Days_Appears_In8Days_Absent()
     {
         int a, b;

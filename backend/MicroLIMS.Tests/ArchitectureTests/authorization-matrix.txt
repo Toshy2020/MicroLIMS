@@ -553,6 +553,7 @@ SampleController.Correct(Int32, CorrectSampleRequest): SectionHead,Reviewer
 SampleController.GetTestSelection(Int32, CancellationToken): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 SampleController.ReceiptLabs(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 SampleController.Receive(ReceiveItemBasedSampleRequest): SectionHead,Reviewer,Analyst
+SampleController.ReceiveBatch(BatchReceiveRequest, CancellationToken): SectionHead,Reviewer,Analyst
 SampleController.SelectTests(Int32, SelectSampleTestsRequest, CancellationToken): SectionHead,Reviewer
 SampleController.Void(Int32, VoidSampleRequest): SectionHead,Reviewer
 SampleDocumentController.GetContent(Int32, CancellationToken): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa

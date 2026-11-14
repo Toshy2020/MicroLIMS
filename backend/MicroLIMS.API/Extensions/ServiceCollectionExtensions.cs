@@ -123,6 +123,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<CurrentStepViewService>();
         services.AddScoped<TestWorkflowQueryService>();
         services.AddScoped<ReceiptLabService>();
+        services.AddScoped<SampleBatchReceiveService>();
         services.AddScoped<MediaExpiryService>();
         services.AddScoped<KpiService>();
         services.AddScoped<WorkflowProfileService>();

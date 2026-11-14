@@ -109,16 +109,23 @@ public class MyTasksService
                 continue;
             }
 
+            // An open incubation is a task when it can be read now (the one rule shared with My Work and the
+            // incubation overview) or is expected within the look-ahead. A ready one is due since the time
+            // it was expected or ended, never in the future.
             var openIncubation = t.Incubations
-                .Where(i => i.CompletedAt == null && i.ExpectedReadingAt != null)
-                .OrderBy(i => i.ExpectedReadingAt)
+                .Where(i => i.CompletedAt == null)
+                .Select(i => (Incubation: i, DueAt: SampleWorkflowQueues.IsIncubationReadyToRead(i, now)
+                    ? Min(now, i.ExpectedReadingAt ?? i.IncubationEndUtc ?? now)
+                    : i.ExpectedReadingAt))
+                .Where(x => x.DueAt is { } due && due <= horizon)
+                .OrderBy(x => x.DueAt)
                 .FirstOrDefault();
-            if (openIncubation?.ExpectedReadingAt is not { } dueAt || dueAt > horizon) continue;
+            if (openIncubation.DueAt is not { } dueAt) continue;
 
             tasks.Add(new MyTaskDto(
                 TaskType: "Read Test",
                 Title: $"Read {t.TestCode}: {location}",
-                Subtitle: $"{sample.ReferenceNumber} · {t.TestCode} · {openIncubation.StepName}",
+                Subtitle: $"{sample.ReferenceNumber} · {t.TestCode} · {openIncubation.Incubation.StepName}",
                 ReferenceId: sample.ReferenceNumber,
                 DueAt: dueAt,
                 Urgency: ComputeUrgency(dueAt, now),
@@ -190,6 +197,8 @@ public class MyTasksService
 
         return tasks.OrderBy(x => x.DueAt).ToList();
     }
+
+    private static DateTime Min(DateTime a, DateTime b) => a < b ? a : b;
 
     private static string FormatEvaluationType(EvaluationType type) => type switch
     {

@@ -27,3 +27,34 @@ export function makeDraft<T>(overrides: Partial<Draft<T>> & { userId: number; va
     ...overrides
   };
 }
+
+// Every stored draft exactly as IndexedDB holds it, so a test can prove what is (and is not) on the tablet.
+export function rawStoredDrafts(): Promise<unknown[]> {
+  return new Promise((resolve, reject) => {
+    const open = indexedDB.open("microlims-drafts");
+    open.onerror = () => reject(open.error);
+    open.onsuccess = () => {
+      const db = open.result;
+      if (!db.objectStoreNames.contains("drafts")) {
+        db.close();
+        resolve([]);
+        return;
+      }
+      const all = db.transaction("drafts").objectStore("drafts").getAll();
+      all.onerror = () => {
+        db.close();
+        reject(all.error);
+      };
+      all.onsuccess = () => {
+        db.close();
+        resolve(all.result);
+      };
+    };
+  });
+}
+
+// A signed-in analyst, the way AuthProvider reads it from storage.
+export function signInForTest(userId: number): void {
+  localStorage.setItem("microlims_token", "h.e30=.s");
+  localStorage.setItem("microlims_user_id", String(userId));
+}

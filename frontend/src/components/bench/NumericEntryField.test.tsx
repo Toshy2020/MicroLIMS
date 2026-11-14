@@ -29,7 +29,13 @@ describe("parseCount / parseDecimal", () => {
   it("parseDecimal accepts digits with one optional fraction", () => {
     expect(parseDecimal("0.5")).toBe(0.5);
     expect(parseDecimal("12")).toBe(12);
-    for (const bad of ["1.2.3", "-1", ".5", "1.", "1e3", " 1", "x"]) expect(parseDecimal(bad)).toBeNull();
+    for (const bad of ["1.2.3", ".5", "1.", "1e3", " 1", "x"]) expect(parseDecimal(bad)).toBeNull();
+  });
+  it("parseDecimal accepts one leading minus sign and nothing else about the sign", () => {
+    expect(parseDecimal("-20.5")).toBe(-20.5);
+    expect(parseDecimal("-3")).toBe(-3);
+    expect(parseDecimal("-0.25")).toBe(-0.25);
+    for (const bad of ["-", "--1", "1-", "-.5", "- 1", "-1.", "+1", "1.-2", "-1e3"]) expect(parseDecimal(bad)).toBeNull();
   });
 });
 
@@ -57,6 +63,25 @@ describe("NumericEntryField", () => {
     await user.clear(input);
     await user.type(input, "1.2.3");
     expect(screen.getByRole("alert").textContent).toMatch(/number/i);
+  });
+
+  it("decimal accepts a leading minus (-20.5) and counts still reject it", async () => {
+    const user = userEvent.setup();
+    renderWithTheme(<Harness kind="decimal" />, { bench: false });
+    await user.type(screen.getByLabelText("Plate 1"), "-20.5");
+    expect(screen.queryByRole("alert")).toBeNull();
+    expect(screen.getByTestId("value").textContent).toBe("-20.5");
+    cleanup();
+    renderWithTheme(<Harness kind="count" />, { bench: false });
+    await user.type(screen.getByLabelText("Plate 1"), "-20");
+    expect(screen.getByRole("alert").textContent).toMatch(/whole number/i);
+  });
+
+  it("the decimal format message mentions the optional minus sign", async () => {
+    const user = userEvent.setup();
+    renderWithTheme(<Harness kind="decimal" />, { bench: false });
+    await user.type(screen.getByLabelText("Plate 1"), "1.2.3");
+    expect(screen.getByRole("alert").textContent).toBe("Enter a number using digits, at most one decimal point and an optional leading minus sign.");
   });
 
   it("passes the value through as typed, with no rounding or leading-zero trimming", async () => {

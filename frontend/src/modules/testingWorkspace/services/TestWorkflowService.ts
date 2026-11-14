@@ -8,6 +8,12 @@ import {
   RecordUvResultRequest, RecordOutsourcedResultRequest, ExternalReportDocument
 } from "../types/testWorkflowTypes";
 
+// Extra request headers for a save (for example X-Draft-Started-At). Optional on every
+// function that takes it, so existing callers are unchanged.
+export interface RequestHeadersConfig {
+  headers?: Record<string, string>;
+}
+
 export const TestWorkflowService = {
   getCurrentStep: (testOrderId: number): Promise<CurrentStepResponse> =>
     apiClient.get(`/test-workflow/${testOrderId}/current-step`).then((r) => r.data.data),
@@ -34,8 +40,14 @@ export const TestWorkflowService = {
   recordResult: (testOrderId: number, payload: { stepName: string; plateReadings?: number[]; rawPlateReadings?: string[]; dilutionFactor: number }) =>
     apiClient.post(`/test-workflow/${testOrderId}/record-result`, payload).then((r) => r.data.data),
 
-  recordCountResult: (testOrderId: number, payload: { stepName: string; rawPlateReadings: string[]; dilutionFactor: number; dilutionFactorOverrideNote?: string }) =>
-    apiClient.post(`/test-workflow/${testOrderId}/record-result`, payload).then((r) => r.data.data),
+  // `config.headers` carries X-Draft-Started-At for a save made from an old device draft;
+  // it never changes the body.
+  recordCountResult: (
+    testOrderId: number,
+    payload: { stepName: string; rawPlateReadings: string[]; dilutionFactor: number; dilutionFactorOverrideNote?: string },
+    config?: RequestHeadersConfig
+  ) =>
+    apiClient.post(`/test-workflow/${testOrderId}/record-result`, payload, config).then((r) => r.data.data),
 
   // Numeric measurement (pH, density, viscosity, etc.). Signed.
   recordMeasurementResult: (
@@ -118,9 +130,10 @@ export const TestWorkflowService = {
       }[];
       password: string;
       comment?: string | null;
-    }
+    },
+    config?: RequestHeadersConfig
   ) =>
-    apiClient.post(`/test-workflow/${testOrderId}/record-qualitative-result`, payload).then((r) => r.data.data),
+    apiClient.post(`/test-workflow/${testOrderId}/record-qualitative-result`, payload, config).then((r) => r.data.data),
 
   // Dissolution analysis (Stage 1). Signed. Returns TestWorkflowResult.
   recordDissolutionResult: (

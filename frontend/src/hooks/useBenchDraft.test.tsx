@@ -238,4 +238,20 @@ describe("useBenchDraft", () => {
     await wait(600);
     expect(await draftStore.listForUser(7)).toEqual([]);
   });
+
+  it("a form that is discarded, reset and reopened does not save the blank form", async () => {
+    const { result, rerender } = renderDraft({ values: EMPTY });
+    rerender({ values: { ...EMPTY, colonies: "9" } });
+    await waitFor(async () => expect(await storedDraft()).toBeDefined());
+
+    await act(async () => {
+      await result.current.discard();
+    });
+    // The form closes and is reset in the same step, then reopens.
+    rerender({ values: EMPTY, enabled: false });
+    rerender({ values: EMPTY, enabled: true });
+    await wait(700);
+
+    expect(await storedDraft()).toBeUndefined();
+  });
 });

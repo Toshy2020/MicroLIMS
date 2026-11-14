@@ -17,6 +17,13 @@ import {
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutlineOutlined";
 import HighlightOffIcon from "@mui/icons-material/HighlightOff";
 import { SignatureDialog } from "../../components/SignatureDialog";
+import { BenchDialog } from "../../components/bench/BenchDialog";
+import { DraftRestoreNotice } from "../../components/bench/DraftRestoreNotice";
+import { NumericEntryField } from "../../components/bench/NumericEntryField";
+import { useBenchDraft } from "../../hooks/useBenchDraft";
+import { useBenchMode } from "../../theme/BenchModeContext";
+import { toast } from "sonner";
+import { OfflineDraftNotice, classifySaveFailure, draftHeaderArgs, serverMessage, useKeptOffline } from "./benchSave";
 import { TestWorkflowService } from "./services/TestWorkflowService";
 import { SpecificationService, SpecificationDto } from "../laboratoryConfiguration/specifications/services/SpecificationService";
 import { ItemService } from "../laboratoryConfiguration/items/services/ItemService";
@@ -66,6 +73,39 @@ interface QualitativeRowState {
   containers?: QualitativeContainerRowState[];
 }
 
+// The form as the draft sees it. `comment` is the comment signed with the result, so it is
+// in this type only to be kept out of the draft: pickQualitativeDraft is an allow-list and
+// lists every field that may be written to the tablet. The password lives only inside the
+// signature dialog and never reaches this form.
+interface QualitativeFormValues {
+  analysedAt: string;
+  equipmentId: number | "";
+  containerCountInput: string;
+  rows: QualitativeDraftRow[];
+  comment: string;
+}
+
+interface QualitativeDraftRow {
+  specificationId: number;
+  conforms: boolean;
+  observation: string;
+  containers?: QualitativeContainerRowState[];
+}
+
+function pickQualitativeDraft(v: QualitativeFormValues): Partial<QualitativeFormValues> {
+  return {
+    analysedAt: v.analysedAt,
+    equipmentId: v.equipmentId,
+    containerCountInput: v.containerCountInput,
+    rows: v.rows.map((r) => ({
+      specificationId: r.specificationId,
+      conforms: r.conforms,
+      observation: r.observation,
+      containers: (r.containers ?? []).map((c) => ({ index: c.index, conforms: c.conforms, observation: c.observation }))
+    }))
+  };
+}
+
 const getLocalIsoString = (date: Date = new Date()): string => {
   const pad = (n: number) => String(n).padStart(2, "0");
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
@@ -77,7 +117,8 @@ export function QualitativePanel({
   testCode,
   itemId,
   current,
-  onRecorded
+  onRecorded,
+  onClose
 }: Props) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -100,6 +141,10 @@ export function QualitativePanel({
   const [outcome, setOutcome] = useState<{ outcomeSummary?: string; status?: string } | null>(null);
 
   const effectiveTestCode = current.testName || testCode || "";
+
+  const { benchMode } = useBenchMode();
+  const [keptOffline, setKeptOffline] = useKeptOffline();
+  const [benchOpen, setBenchOpen] = useState(true);
 
   useEffect(() => {
     let active = true;
@@ -278,42 +323,103 @@ export function QualitativePanel({
     return isValidContainerCount(Number(containerCountInput));
   }, [containerCountInput]);
 
-  const isFormValid = useMemo(() => {
-    if (rows.length === 0) return false;
-    if (!analysedAt.trim()) return false;
+  // Why the form cannot be signed yet, or null when it can. The conditions are the ones the
+  // Sign button has always used; the text is what a gated bench screen shows.
+  const formProblem = useMemo((): string | null => {
+    if (rows.length === 0) return "There are no parameters to record.";
+    if (!analysedAt.trim()) return "Enter the analysis time.";
 
     // Check analysis time is not more than 5 minutes in the future
     const parsedDate = new Date(analysedAt);
     if (isNaN(parsedDate.getTime()) || parsedDate.getTime() > Date.now() + 5 * 60 * 1000) {
-      return false;
+      return "The analysis time must be a valid time that is not in the future.";
     }
 
     if (isPerContainer) {
       const count = Number(containerCountInput);
-      if (!isValidContainerCount(count)) return false;
+      if (!isValidContainerCount(count)) return "Enter the number of containers received (1 to 200).";
 
       for (const r of rows) {
-        if (!r.containers || r.containers.length !== count) return false;
+        if (!r.containers || r.containers.length !== count) return "Enter the number of containers received (1 to 200).";
         for (const c of r.containers) {
           if (!c.conforms) {
-            if (!c.observation.trim()) return false;
+            if (!c.observation.trim()) return "Describe what each container that does not comply shows.";
           }
-          if (c.observation.length > 500) return false;
+          if (c.observation.length > 500) return "An observation is longer than 500 characters.";
         }
       }
-      return true;
+      return null;
     }
 
     // For every row: if !conforms, observation is required and <= 500 chars
     for (const r of rows) {
       if (!r.conforms) {
-        if (!r.observation.trim()) return false;
+        if (!r.observation.trim()) return "State the non-conformance for each parameter that does not comply.";
       }
-      if (r.observation.length > 500) return false;
+      if (r.observation.length > 500) return "An observation is longer than 500 characters.";
     }
 
-    return true;
+    return null;
   }, [rows, analysedAt, isPerContainer, containerCountInput]);
+  const isFormValid = formProblem === null;
+
+  // Bench mode (a shared touch tablet): the entry is a full-screen form and is kept as a
+  // local draft until the analyst signs. Outside bench mode nothing here changes.
+  const benchPanel = benchMode && !current.allStepsComplete && !outcome;
+  const draft = useBenchDraft<QualitativeFormValues>({
+    formKey: "qualitative",
+    recordKey: `${testOrderId}:${effectiveTestCode}`,
+    recordVersion: null,
+    title: `${displayName} qualitative result`,
+    values: { analysedAt, equipmentId: selectedEquipmentId, containerCountInput, rows, comment },
+    pick: pickQualitativeDraft,
+    enabled: benchPanel && benchOpen && !loading && rows.length > 0
+  });
+
+  const restoreDraft = () => {
+    const saved = draft.acceptRestore();
+    if (!saved) return;
+    if (typeof saved.analysedAt === "string" && saved.analysedAt !== "") setAnalysedAt(saved.analysedAt);
+    if (typeof saved.equipmentId === "number" && fpEquipment.some((e) => e.id === saved.equipmentId)) setSelectedEquipmentId(saved.equipmentId);
+    if (isPerContainer && typeof saved.containerCountInput === "string") {
+      setContainerCountInput(saved.containerCountInput);
+      setContainerCountTouched(true);
+    }
+    const savedRows = Array.isArray(saved.rows) ? saved.rows : [];
+    setRows((prev) =>
+      prev.map((row) => {
+        const found = savedRows.find((x) => x && x.specificationId === row.specificationId);
+        if (!found) return row;
+        const containers = (Array.isArray(found.containers) ? found.containers : [])
+          .filter((c) => typeof c.index === "number" && typeof c.conforms === "boolean")
+          .map((c) => ({ index: c.index, conforms: c.conforms, observation: typeof c.observation === "string" ? c.observation : "" }));
+        containerMemoryRef.current.set(row.specificationId, new Map(containers.map((c) => [c.index, { ...c }])));
+        return {
+          ...row,
+          conforms: typeof found.conforms === "boolean" ? found.conforms : row.conforms,
+          observation: typeof found.observation === "string" ? found.observation : row.observation,
+          containers
+        };
+      })
+    );
+  };
+
+  const benchDirty =
+    comment.trim() !== "" ||
+    containerCountInput !== "" ||
+    rows.some((r) => !r.conforms || r.observation.trim() !== "" || (r.containers ?? []).some((c) => !c.conforms || c.observation.trim() !== ""));
+
+  const closeBench = async () => {
+    // Leaving a form with entries was confirmed as a discard; an offered draft nobody accepted is left alone.
+    if (benchDirty && !draft.restored) await draft.discard();
+    setBenchOpen(false);
+    onClose?.();
+  };
+
+  const keepDraft = () => {
+    toast.info("Draft kept on this tablet. It is not saved to MicroLIMS.");
+    setBenchOpen(false);
+  };
 
   const submit = async (password: string) => {
     setError(null);
@@ -328,7 +434,9 @@ export function QualitativePanel({
         parameters: rows
       });
 
-      const res = await TestWorkflowService.recordQualitativeResult(testOrderId, payload);
+      const res = await TestWorkflowService.recordQualitativeResult(testOrderId, payload, ...draftHeaderArgs(draft.submitHeaders()));
+      await draft.onSubmitted();
+      setKeptOffline(false);
       setSigning(false);
       setOutcome({
         outcomeSummary: res?.outcomeSummary ?? res?.finalResult,
@@ -338,10 +446,20 @@ export function QualitativePanel({
       await onRecorded();
     } catch (err: unknown) {
       setSigning(false);
-      const msg =
-        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ??
-        "Failed to record qualitative result.";
-      setError(msg);
+      if (benchPanel) {
+        const failure = classifySaveFailure(err);
+        if (failure.kind === "network") {
+          // Nothing reached MicroLIMS: the entries stay in the form and in the local draft.
+          setKeptOffline(true);
+          return;
+        }
+        if (failure.kind === "conflict") {
+          await draft.onRejected(failure.message);
+          setError(failure.message);
+          return;
+        }
+      }
+      setError(serverMessage(err) ?? "Failed to record qualitative result.");
     }
   };
 
@@ -378,8 +496,8 @@ export function QualitativePanel({
     );
   }
 
-  return (
-    <Box>
+  const formBody = (
+    <>
       {current.returnInfo && (
         <Alert severity="warning" sx={{ mb: 2 }}>
           {current.returnInfo.reason
@@ -434,7 +552,21 @@ export function QualitativePanel({
               </FormControl>
             </Box>
 
-            {isPerContainer && (
+            {isPerContainer && benchPanel && (
+              <NumericEntryField
+                label="Containers received"
+                value={containerCountInput}
+                onChange={handleContainerCountChange}
+                onNext={handleContainerCountCommit}
+                onBlur={handleContainerCountCommit}
+                kind="count"
+                maxLength={3}
+                required
+                error={(containerCountTouched || containerCountInput !== "") && !isCountValid ? "Enter the number of containers received (1 to 200)." : undefined}
+              />
+            )}
+
+            {isPerContainer && !benchPanel && (
               <TextField
                 size="small"
                 type="number"
@@ -565,7 +697,7 @@ export function QualitativePanel({
                                 aria-label={`Container ${container.index} result`}
                                 value={container.conforms ? "complies" : "non-comply"}
                                 exclusive
-                                size="small"
+                                size={benchPanel ? "large" : "small"}
                                 onChange={(_, val) => {
                                   if (val !== null) {
                                     handleContainerChange(idx, container.index, { conforms: val === "complies" });
@@ -678,7 +810,7 @@ export function QualitativePanel({
                     <ToggleButtonGroup
                       value={row.conforms ? "complies" : "non-comply"}
                       exclusive
-                      size="small"
+                      size={benchPanel ? "large" : "small"}
                       aria-label={`Conformance for ${row.parameterName}`}
                       onChange={(_, val) => {
                         if (val !== null) {
@@ -763,18 +895,46 @@ export function QualitativePanel({
           fullWidth
         />
 
-        {/* Section 4: Action button */}
-        <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
-          <Button
-            variant="contained"
-            disabled={!isFormValid}
-            onClick={() => setSigning(true)}
-            sx={{ minWidth: 140, fontWeight: 700, textTransform: "none" }}
-          >
-            Sign and record result
-          </Button>
-        </Box>
+        {/* Section 4: Action button (on a bench tablet the action bar of the full-screen form) */}
+        {!benchPanel && (
+          <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
+            <Button
+              variant="contained"
+              disabled={!isFormValid}
+              onClick={() => setSigning(true)}
+              sx={{ minWidth: 140, fontWeight: 700, textTransform: "none" }}
+            >
+              Sign and record result
+            </Button>
+          </Box>
+        )}
       </Stack>
+    </>
+  );
+
+  return (
+    <Box>
+      {benchPanel ? (
+        <>
+          <BenchDialog
+            open={benchOpen}
+            title={`Qualitative analysis: ${displayName}`}
+            onClose={() => void closeBench()}
+            onSave={keptOffline ? keepDraft : () => setSigning(true)}
+            saving={false}
+            saveLabel={keptOffline ? "Keep draft" : "Sign and record result"}
+            saveDisabledReason={keptOffline ? undefined : (formProblem ?? undefined)}
+            dirty={benchDirty}
+          >
+            <DraftRestoreNotice startedAt={draft.restoredStartedAt} onRestore={restoreDraft} onDiscard={() => void draft.discard()} />
+            {keptOffline && <OfflineDraftNotice onTryAgain={() => setKeptOffline(false)} />}
+            {formBody}
+          </BenchDialog>
+          {!benchOpen && <Button variant="outlined" onClick={() => setBenchOpen(true)}>Open entry form</Button>}
+        </>
+      ) : (
+        formBody
+      )}
 
       <SignatureDialog
         open={signing}

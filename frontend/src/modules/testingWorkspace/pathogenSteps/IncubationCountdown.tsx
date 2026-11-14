@@ -1,5 +1,6 @@
 import { memo, useEffect, useState } from "react";
-import { Box, Typography } from "@mui/material";
+import { Box, Typography, useTheme } from "@mui/material";
+import { BENCH_COUNTDOWN_RING_SIZE, BENCH_COUNTDOWN_STATE_FONT_SIZE, BENCH_COUNTDOWN_TIME_FONT_SIZE } from "../../../theme/benchTheme";
 
 interface Props {
   // Client timestamp (ms) at which the minimum incubation ends. Built from
@@ -28,6 +29,7 @@ function formatRemaining(ms: number) {
 // not the rest of the dialog. The timer stops at zero and calls onReached
 // once; the server still enforces the window when the step is submitted.
 export const IncubationCountdown = memo(function IncubationCountdown({ deadlineMs, totalHours, nextLabel, onReached }: Props) {
+  const bench = Boolean(useTheme().custom?.bench);
   const [now, setNow] = useState(() => Date.now());
   const remaining = deadlineMs - now;
   const reached = remaining <= 0;
@@ -43,7 +45,7 @@ export const IncubationCountdown = memo(function IncubationCountdown({ deadlineM
 
   const totalMs = totalHours * 3600 * 1000;
   const elapsedFraction = totalMs > 0 ? Math.min(1, Math.max(0, 1 - remaining / totalMs)) : 1;
-  const size = 168;
+  const size = bench ? BENCH_COUNTDOWN_RING_SIZE : 168;
   const stroke = 12;
   const r = (size - stroke) / 2;
   const circumference = 2 * Math.PI * r;
@@ -67,12 +69,12 @@ export const IncubationCountdown = memo(function IncubationCountdown({ deadlineM
         >
           {reached ? (
             <>
-              <Typography sx={{ fontSize: 22, fontWeight: 700, color: (t) => t.custom.status.notDetected.text }}>Ready</Typography>
+              <Typography sx={{ fontSize: bench ? BENCH_COUNTDOWN_STATE_FONT_SIZE : 22, fontWeight: 700, fontVariantNumeric: "tabular-nums", color: (t) => t.custom.status.notDetected.text }}>Ready</Typography>
               <Typography variant="caption" sx={{ color: "text.secondary" }}>00:00:00</Typography>
             </>
           ) : (
             <>
-              <Typography sx={{ fontSize: 26, fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>{formatRemaining(remaining)}</Typography>
+              <Typography sx={{ fontSize: bench ? BENCH_COUNTDOWN_TIME_FONT_SIZE : 26, fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>{formatRemaining(remaining)}</Typography>
               <Typography variant="caption" sx={{ color: "text.secondary" }}>hh:mm:ss</Typography>
             </>
           )}

@@ -1,5 +1,6 @@
 import { useEffect, useState, useMemo, type ReactNode } from "react";
 import { Box, Typography, TextField, Button, Stack, Alert, IconButton, useTheme } from "@mui/material";
+import { toast } from "sonner";
 import AddIcon from "@mui/icons-material/Add";
 import CloseIcon from "@mui/icons-material/Close";
 import EditIcon from "@mui/icons-material/Edit";
@@ -27,7 +28,18 @@ import {
   MediaLotIncubatorFields, IncubatorField
 } from "./pathogenSteps/StepLayout";
 import { IncubationWaitingView } from "./pathogenSteps/IncubationWaitingView";
-import type { IncubatorEquipmentItem } from "../../services/lookupCache";
+import { BenchDialog } from "../../components/bench/BenchDialog";
+import { DraftRestoreNotice } from "../../components/bench/DraftRestoreNotice";
+import { NumericEntryField } from "../../components/bench/NumericEntryField";
+import { useBenchDraft } from "../../hooks/useBenchDraft";
+import { useBenchMode } from "../../theme/BenchModeContext";
+import { OfflineDraftNotice, classifySaveFailure, draftHeaderArgs, serverMessage, useKeptOffline } from "./benchSave";
+import type { IncubatorEquipmentItem, ReleasedMediaItem } from "../../services/lookupCache";
+import type { PreviousStepDetail, TestWorkflowStepDto } from "./types/testWorkflowTypes";
+
+type StepMediaRow = TestWorkflowStepDto["stepMedia"][number];
+type StepStage = NonNullable<TestWorkflowStepDto["incubationStages"]>[number];
+type OpenIncubationRow = PreviousStepDetail & { stageNumber?: number };
 
 // The shared incubator picker's option shape, from the lookup cache's items.
 const incubatorOptions = (items: IncubatorEquipmentItem[]) =>
@@ -35,6 +47,75 @@ const incubatorOptions = (items: IncubatorEquipmentItem[]) =>
 
 const COUNT_STEP_HELP =
   "Plate the sample on the permitted medium and start incubation. Once the minimum incubation has passed, count the colonies on each plate; the result is the average count multiplied by the dilution factor.";
+
+// What a plate-count draft may hold. Only these fields are ever written to the tablet;
+// the count result carries no password, signature or token.
+interface CountDraftValues {
+  readings: string[];
+  dilutionFactor: string;
+  dilutionFactorOverrideNote: string;
+}
+
+const pickCountDraft = (v: CountDraftValues): Partial<CountDraftValues> => ({
+  readings: v.readings,
+  dilutionFactor: v.dilutionFactor,
+  dilutionFactorOverrideNote: v.dilutionFactorOverrideNote
+});
+
+interface BenchPlateRowsProps {
+  readings: string[];
+  isNonNumeric: (value: string) => boolean;
+  onChange: (index: number, value: string) => void;
+  onRemove: (index: number) => void;
+}
+
+// One plate per row for a tablet: a whole-number field filled from the keypad, and
+// buttons for the two non-numeric readings the existing screen already accepts.
+function BenchPlateRows({ readings, isNonNumeric, onChange, onRemove }: BenchPlateRowsProps) {
+  return (
+    <Stack spacing={1}>
+      {readings.map((r, i) => (
+        <Box key={i} sx={{ display: "flex", alignItems: "flex-start", gap: 1, flexWrap: "wrap" }}>
+          <Box sx={{ flex: "1 1 160px", minWidth: 0 }}>
+            {isNonNumeric(r) ? (
+              <TextField
+                label={`Plate ${i + 1}`}
+                value={r}
+                fullWidth
+                helperText="Non-numeric: flagged for reviewer decision"
+                slotProps={{ htmlInput: { readOnly: true } }}
+              />
+            ) : (
+              <NumericEntryField label={`Plate ${i + 1}`} value={r} onChange={(v) => onChange(i, v)} kind="count" />
+            )}
+          </Box>
+          {isNonNumeric(r) ? (
+            <Button variant="outlined" aria-label={`Enter a count for plate ${i + 1}`} onClick={() => onChange(i, "")}>Enter a count</Button>
+          ) : (
+            <>
+              <Button variant="outlined" aria-label={`Mark plate ${i + 1} as TNTC`} onClick={() => onChange(i, "TNTC")}>TNTC</Button>
+              <Button variant="outlined" aria-label={`Mark plate ${i + 1} as uncountable`} onClick={() => onChange(i, "uncountable")}>Uncountable</Button>
+            </>
+          )}
+          <IconButton aria-label={`Remove plate ${i + 1}`} onClick={() => onRemove(i)} disabled={readings.length <= 1}>
+            <CloseIcon fontSize="small" />
+          </IconButton>
+        </Box>
+      ))}
+    </Stack>
+  );
+}
+
+// What the server answers to a recorded count step; only the fields this screen reads.
+interface CountOutcome {
+  allStepsComplete?: boolean;
+  isDefinitive?: boolean;
+  outcomeSummary?: string;
+  average?: number | null;
+  calculatedResult?: number | string | null;
+  status?: string | null;
+  finalResult?: string | null;
+}
 
 interface Props {
   testOrderId: number;
@@ -76,15 +157,15 @@ export function TestWorkflowDialog({ testOrderId, testCode, category, displayNam
   const [mediaId, setMediaId] = useState<number | "">("");
   const [incubatorId, setIncubatorId] = useState<number | "">("");
   const [stage2IncubatorId, setStage2IncubatorId] = useState<number | "">("");
-  const [releasedMedia, setReleasedMedia] = useState<any[]>([]);
-  const [incubators, setIncubators] = useState<any[]>([]);
+  const [releasedMedia, setReleasedMedia] = useState<ReleasedMediaItem[]>([]);
+  const [incubators, setIncubators] = useState<IncubatorEquipmentItem[]>([]);
 
   const [readings, setReadings] = useState<string[]>(["", ""]);
   const [dilutionFactor, setDilutionFactor] = useState("1");
   const [dilutionFactorOverriding, setDilutionFactorOverriding] = useState(false);
   const [dilutionFactorOverrideNote, setDilutionFactorOverrideNote] = useState("");
 
-  const [lastOutcome, setLastOutcome] = useState<any | null>(null);
+  const [lastOutcome, setLastOutcome] = useState<CountOutcome | null>(null);
 
   const load = async () => {
     setError(null);
@@ -100,8 +181,8 @@ export function TestWorkflowDialog({ testOrderId, testCode, category, displayNam
       setDilutionFactorOverriding(false);
       setDilutionFactorOverrideNote("");
       setPhase(data.allStepsComplete ? "all-complete" : data.incubationLock != null ? "awaiting-result" : "select-media");
-    } catch (e: any) {
-      setError(e?.response?.data?.message ?? "Could not load this test's workflow.");
+    } catch (e: unknown) {
+      setError(serverMessage(e) ?? "Could not load this test's workflow.");
     }
   };
 
@@ -117,7 +198,7 @@ export function TestWorkflowDialog({ testOrderId, testCode, category, displayNam
 
   const step = current?.step;
   const isTwoStageTransfer = !!step?.requiresIncubationTransfer;
-  const stage2Config = (step?.incubationStages ?? []).find((x: any) => x.stageNumber === 2);
+  const stage2Config = (step?.incubationStages ?? []).find((x: StepStage) => x.stageNumber === 2);
 
   // Permitted media come directly from the step's own configured
   // StepMedia (Test Master, one media product per row) - the same set TestWorkflowEngine.SelectMediaAsync
@@ -125,12 +206,12 @@ export function TestWorkflowDialog({ testOrderId, testCode, category, displayNam
   // would reject anyway. Replaces the old MediaType-class filter plus a
   // step-name-matching fallback, both of which relied on fields that no
   // longer exist on the step/lot after the Media Configuration Migration.
-  const permittedProductIds = new Set((step?.stepMedia ?? []).map((m: any) => m.mediaProductId));
+  const permittedProductIds = new Set((step?.stepMedia ?? []).map((m: StepMediaRow) => m.mediaProductId));
   const matchingMedia = releasedMedia.filter((m) => m.material?.mediaProductId != null && permittedProductIds.has(m.material.mediaProductId));
-  const permittedMaterialNames = (step?.stepMedia ?? []).map((m: any) => m.mediaProductName).join(" or ");
+  const permittedMaterialNames = (step?.stepMedia ?? []).map((m: StepMediaRow) => m.mediaProductName).join(" or ");
 
   const selectedMediaLot = releasedMedia.find((m) => m.id === mediaId);
-  const selectedStepMedium = (step?.stepMedia ?? []).find((m: any) => selectedMediaLot?.material?.mediaProductId != null && m.mediaProductId === selectedMediaLot.material.mediaProductId);
+  const selectedStepMedium = (step?.stepMedia ?? []).find((m: StepMediaRow) => selectedMediaLot?.material?.mediaProductId != null && m.mediaProductId === selectedMediaLot.material.mediaProductId);
   const activeStage1Medium = selectedStepMedium ?? ((step?.stepMedia?.length === 1) ? step.stepMedia[0] : null);
 
   // The chosen medium's own Test Master window; otherwise the step window the
@@ -158,7 +239,7 @@ export function TestWorkflowDialog({ testOrderId, testCode, category, displayNam
   // one, tagged status: "Incubating"). The open row's own start time comes
   // from there instead.
   const openIncubationRow = step
-    ? (current?.previousSteps ?? []).find((p: any) => p.stepName === step.stepName && p.status === "Incubating")
+    ? (current?.previousSteps ?? []).find((p: OpenIncubationRow) => p.stepName === step.stepName && p.status === "Incubating")
     : null;
 
   const currentStageNumber = current?.incubationLock?.stageNumber ?? openIncubationRow?.stageNumber ?? 1;
@@ -183,8 +264,8 @@ export function TestWorkflowDialog({ testOrderId, testCode, category, displayNam
     try {
       await TestWorkflowService.selectMedia(testOrderId, step.stepName, Number(mediaId), Number(incubatorId));
       await load();
-    } catch (e: any) {
-      setError(e?.response?.data?.message ?? "Could not start incubation for this step.");
+    } catch (e: unknown) {
+      setError(serverMessage(e) ?? "Could not start incubation for this step.");
     }
   };
 
@@ -195,8 +276,8 @@ export function TestWorkflowDialog({ testOrderId, testCode, category, displayNam
       await TestWorkflowService.startStage2Incubation(testOrderId, step.stepName, Number(stage2IncubatorId));
       setStage2IncubatorId("");
       await load();
-    } catch (e: any) {
-      setError(e?.response?.data?.message ?? "Could not start stage 2 incubation.");
+    } catch (e: unknown) {
+      setError(serverMessage(e) ?? "Could not start stage 2 incubation.");
     }
   };
 
@@ -205,8 +286,8 @@ export function TestWorkflowDialog({ testOrderId, testCode, category, displayNam
     try {
       await TestWorkflowService.closeIncubationWindow(testOrderId);
       await load();
-    } catch (e: any) {
-      setError(e?.response?.data?.message ?? "Could not close this incubation window.");
+    } catch (e: unknown) {
+      setError(serverMessage(e) ?? "Could not close this incubation window.");
     }
   };
 
@@ -256,7 +337,68 @@ export function TestWorkflowDialog({ testOrderId, testCode, category, displayNam
     };
   }, [readings, dilutionFactor, cfuUnit]);
 
-  const submitResult = async () => {
+  const countSaveBlockedReason = !isTimeReady
+    ? minReadyAt
+      ? `Results cannot be submitted before ${minReadyAt.toLocaleString()}.`
+      : "This step is not ready for a result yet."
+    : dilutionFactorNotConfigured
+      ? "No Dilution Factor is configured for this test on the item's Specifications tab."
+      : dilutionFactorDiffersFromConfigured && !dilutionFactorOverrideNote.trim()
+        ? "A justification note is required when the entered Dilution Factor differs from the configured value."
+        : undefined;
+
+  // Bench mode (a shared touch tablet): the plate counts are entered in a full-screen form
+  // and kept as a local draft until the analyst presses Save. Outside bench mode nothing
+  // here changes.
+  const { benchMode } = useBenchMode();
+  const benchCount = benchMode && current?.workflowType === "CountTest";
+  const [saving, setSaving] = useState(false);
+  const [keptOffline, setKeptOffline] = useKeptOffline();
+  const draft = useBenchDraft<CountDraftValues>({
+    formKey: "count-reading",
+    recordKey: `${testOrderId}:${step?.stepName ?? ""}`,
+    recordVersion: null,
+    title: `${testCode} plate counts`,
+    values: { readings, dilutionFactor, dilutionFactorOverrideNote },
+    pick: pickCountDraft,
+    enabled: benchCount && phase === "enter-result" && Boolean(step)
+  });
+
+  const restoreDraft = () => {
+    const saved = draft.acceptRestore();
+    if (!saved) return;
+    if (Array.isArray(saved.readings) && saved.readings.length > 0 && saved.readings.every((r) => typeof r === "string")) {
+      setReadings(saved.readings);
+    }
+    // A dilution factor that differs from the configured one is an override again, and
+    // still needs its justification before it can be saved.
+    if (!isDirectCount && typeof saved.dilutionFactor === "string" && saved.dilutionFactor !== String(configuredDilutionFactor ?? "")) {
+      setDilutionFactor(saved.dilutionFactor);
+      setDilutionFactorOverriding(true);
+      if (typeof saved.dilutionFactorOverrideNote === "string") setDilutionFactorOverrideNote(saved.dilutionFactorOverrideNote);
+    }
+  };
+
+  const countEntryDirty = readings.some((r) => r.trim() !== "") || dilutionFactorOverrideNote.trim() !== "";
+
+  const closeCountEntry = async () => {
+    // Leaving a form with entries was confirmed as a discard; an offered draft nobody accepted is left alone.
+    if (countEntryDirty && !draft.restored) await draft.discard();
+    setReadings(["", ""]);
+    setDilutionFactor(isDirectCount ? "1" : configuredDilutionFactor != null ? String(configuredDilutionFactor) : "");
+    setDilutionFactorOverriding(false);
+    setDilutionFactorOverrideNote("");
+    setKeptOffline(false);
+    setError(null);
+    setPhase("awaiting-result");
+  };
+
+  const keepCountDraft = () => {
+    toast.info("Draft kept on this tablet. It is not saved to MicroLIMS.");
+    setPhase("awaiting-result");
+  };
+
+  const submitResult = async (advance = false) => {
     setError(null);
     try {
       if (dilutionFactorNotConfigured) {
@@ -278,15 +420,37 @@ export function TestWorkflowDialog({ testOrderId, testCode, category, displayNam
         dilutionFactorOverrideNote: dilutionFactorDiffersFromConfigured ? dilutionFactorOverrideNote.trim() : undefined
       };
 
-      const result = await TestWorkflowService.recordCountResult(testOrderId, payload);
+      setSaving(true);
+      const result = await TestWorkflowService.recordCountResult(testOrderId, payload, ...draftHeaderArgs(draft.submitHeaders()));
+      await draft.onSubmitted();
+      setKeptOffline(false);
       setLastOutcome(result);
-      if (result.allStepsComplete) {
+      if (advance) {
+        // Save and next: straight on to whatever the server says comes next.
+        toast.success(result.outcomeSummary ? `Recorded: ${result.outcomeSummary}` : "Reading recorded.");
+        await load();
+      } else if (result.allStepsComplete) {
         setPhase("all-complete");
       } else {
         setPhase("step-complete");
       }
-    } catch (e: any) {
-      setError(e?.response?.data?.message ?? "Could not record this result.");
+    } catch (e) {
+      if (!benchCount) {
+        setError(serverMessage(e) ?? "Could not record this result.");
+        return;
+      }
+      const failure = classifySaveFailure(e);
+      if (failure.kind === "network") {
+        // Nothing reached MicroLIMS: the entries stay in the form and in the local draft.
+        setKeptOffline(true);
+      } else if (failure.kind === "conflict") {
+        await draft.onRejected(failure.message);
+        setError(failure.message);
+      } else {
+        setError(failure.message ?? "Could not record this result.");
+      }
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -507,6 +671,134 @@ export function TestWorkflowDialog({ testOrderId, testCode, category, displayNam
     );
   }
 
+  // The count entry fields, shared by the inline form and the bench full-screen form.
+  const countEntryFields = current.workflowType === "CountTest" ? (
+            <>
+              {dilutionFactorNotConfigured ? (
+                <Alert severity="error">
+                  No Dilution Factor is configured for this test on the item's Specifications tab. Ask a Section Head/Admin to configure it before recording a result.
+                </Alert>
+              ) : (
+                <Box sx={{ display: "flex", alignItems: "flex-start", gap: 1 }}>
+                  <TextField
+                    id="count-dilution-factor"
+                    label="Dilution factor"
+                    type="number"
+                    value={dilutionFactor}
+                    onChange={(e) => setDilutionFactor(e.target.value)}
+                    disabled={isDirectCount || !dilutionFactorOverriding}
+                    helperText={
+                      isDirectCount
+                        ? "Direct count: dilution factor fixed at 1"
+                        : dilutionFactorOverriding
+                          ? "Enter multiplier: 10 for 1:10 dilution, 100 for 1:100"
+                          : `Configured value from Specifications${configuredDilutionFactor != null ? ` (${configuredDilutionFactor})` : ""}`
+                    }
+                    sx={{ flex: 1, maxWidth: 320 }}
+                    slotProps={{
+                      inputLabel: { shrink: true },
+                      htmlInput: { step: "1", min: "1", inputMode: "numeric" }
+                    }}
+                  />
+                  {!isDirectCount && !dilutionFactorOverriding && (
+                    <IconButton aria-label="Override dilution factor"
+                      onClick={() => setDilutionFactorOverriding(true)}
+                      title="Override configured Dilution Factor"
+                      sx={{ mt: 0.5 }}
+                    >
+                      <EditIcon fontSize="small" />
+                    </IconButton>
+                  )}
+                  {dilutionFactorOverriding && (
+                    <Button
+                      sx={{ mt: 1 }}
+                      onClick={() => {
+                        setDilutionFactorOverriding(false);
+                        setDilutionFactorOverrideNote("");
+                        setDilutionFactor(configuredDilutionFactor != null ? String(configuredDilutionFactor) : "");
+                      }}
+                    >
+                      Cancel Override
+                    </Button>
+                  )}
+                </Box>
+              )}
+
+              {dilutionFactorDiffersFromConfigured && (
+                <TextField
+                  id="count-dilution-justification"
+                  label="Justification for override"
+                  required
+                  multiline
+                  minRows={2}
+                  value={dilutionFactorOverrideNote}
+                  onChange={(e) => setDilutionFactorOverrideNote(e.target.value)}
+                  error={!dilutionFactorOverrideNote.trim()}
+                  helperText="Required: the entered value differs from what's configured on Specifications. This is captured in the audit trail."
+                  fullWidth
+                />
+              )}
+
+              <Box>
+                <Typography variant="caption" sx={{ display: "block", color: "text.secondary", textTransform: "uppercase", letterSpacing: "0.06em", mb: 1 }}>
+                  Plate counts
+                </Typography>
+                {benchCount ? (
+                  <BenchPlateRows readings={readings} isNonNumeric={isNonNumeric} onChange={updateReading} onRemove={removeReading} />
+                ) : (
+                  <Box sx={{ display: "grid", gap: 1.5, gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" } }}>
+                    {readings.map((r, i) => (
+                      <Box key={i} sx={{ display: "flex", alignItems: "flex-start", gap: 0.5 }}>
+                        <TextField
+                          id={`count-plate-${i + 1}`}
+                          label={`Plate ${i + 1}`}
+                          value={r}
+                          onChange={(e) => updateReading(i, e.target.value)}
+                          placeholder="Colonies or TNTC"
+                          helperText={isNonNumeric(r) ? "Non-numeric: flagged for reviewer decision" : " "}
+                          slotProps={{ inputLabel: { shrink: true }, htmlInput: { inputMode: "numeric" } }}
+                          sx={{
+                            flex: 1,
+                            "& .MuiOutlinedInput-root fieldset": {
+                              borderColor: isNonNumeric(r) ? theme.custom.status.inconclusive.text : undefined
+                            }
+                          }}
+                        />
+                        <IconButton aria-label={`Remove plate ${i + 1}`} onClick={() => removeReading(i)} disabled={readings.length <= 1} sx={{ mt: 0.5 }}>
+                          <CloseIcon fontSize="small" />
+                        </IconButton>
+                      </Box>
+                    ))}
+                  </Box>
+                )}
+                <Button startIcon={<AddIcon />} onClick={addReading} sx={{ mt: 0.5 }}>Add Plate</Button>
+              </Box>
+
+              <Box
+                aria-live="polite"
+                sx={{
+                  p: 2, borderRadius: 2, border: "1px solid",
+                  bgcolor: !liveResult ? "action.hover" : liveResult.isNonNumeric ? theme.custom.status.inconclusive.bg : theme.custom.status.notDetected.bg,
+                  borderColor: !liveResult ? "divider" : liveResult.isNonNumeric ? theme.custom.status.inconclusive.border : theme.custom.status.notDetected.border
+                }}
+              >
+                <Typography variant="caption" sx={{ display: "block", color: "text.secondary", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                  Calculated result
+                </Typography>
+                <Typography sx={{ fontSize: 22, fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>
+                  {liveResult ? liveResult.display : "—"}
+                </Typography>
+                <Typography variant="caption" sx={{ color: liveResult?.isNonNumeric ? theme.custom.status.inconclusive.text : "text.secondary" }}>
+                  {!liveResult
+                    ? "Enter plate counts to see the result."
+                    : liveResult.isNonNumeric
+                      ? "Non-numeric result: the reviewer will decide to accept or retest."
+                      : `Average of the plate counts × dilution factor ${dilutionFactor || 1}.`}
+                </Typography>
+              </Box>
+            </>
+  ) : null;
+
   return (
     <Box>
       <StepChainStrip current={current} />
@@ -517,7 +809,7 @@ export function TestWorkflowDialog({ testOrderId, testCode, category, displayNam
             : "Returned by reviewer for revision"}
         </Alert>
       )}
-      {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+      {error && !(benchCount && phase === "enter-result") && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
       <StepHeading
         title={step.stepName}
@@ -667,130 +959,9 @@ export function TestWorkflowDialog({ testOrderId, testCode, category, displayNam
         />
       )}
 
-      {phase === "enter-result" && (
+      {phase === "enter-result" && !benchCount && (
         <Stack spacing={2}>
-          {current.workflowType === "CountTest" && (
-            <>
-              {dilutionFactorNotConfigured ? (
-                <Alert severity="error">
-                  No Dilution Factor is configured for this test on the item's Specifications tab. Ask a Section Head/Admin to configure it before recording a result.
-                </Alert>
-              ) : (
-                <Box sx={{ display: "flex", alignItems: "flex-start", gap: 1 }}>
-                  <TextField
-                    id="count-dilution-factor"
-                    label="Dilution factor"
-                    type="number"
-                    value={dilutionFactor}
-                    onChange={(e) => setDilutionFactor(e.target.value)}
-                    disabled={isDirectCount || !dilutionFactorOverriding}
-                    helperText={
-                      isDirectCount
-                        ? "Direct count: dilution factor fixed at 1"
-                        : dilutionFactorOverriding
-                          ? "Enter multiplier: 10 for 1:10 dilution, 100 for 1:100"
-                          : `Configured value from Specifications${configuredDilutionFactor != null ? ` (${configuredDilutionFactor})` : ""}`
-                    }
-                    sx={{ flex: 1, maxWidth: 320 }}
-                    slotProps={{
-                      inputLabel: { shrink: true },
-                      htmlInput: { step: "1", min: "1", inputMode: "numeric" }
-                    }}
-                  />
-                  {!isDirectCount && !dilutionFactorOverriding && (
-                    <IconButton aria-label="Override dilution factor"
-                      onClick={() => setDilutionFactorOverriding(true)}
-                      title="Override configured Dilution Factor"
-                      sx={{ mt: 0.5 }}
-                    >
-                      <EditIcon fontSize="small" />
-                    </IconButton>
-                  )}
-                  {dilutionFactorOverriding && (
-                    <Button
-                      sx={{ mt: 1 }}
-                      onClick={() => {
-                        setDilutionFactorOverriding(false);
-                        setDilutionFactorOverrideNote("");
-                        setDilutionFactor(configuredDilutionFactor != null ? String(configuredDilutionFactor) : "");
-                      }}
-                    >
-                      Cancel Override
-                    </Button>
-                  )}
-                </Box>
-              )}
-
-              {dilutionFactorDiffersFromConfigured && (
-                <TextField
-                  id="count-dilution-justification"
-                  label="Justification for override"
-                  required
-                  multiline
-                  minRows={2}
-                  value={dilutionFactorOverrideNote}
-                  onChange={(e) => setDilutionFactorOverrideNote(e.target.value)}
-                  error={!dilutionFactorOverrideNote.trim()}
-                  helperText="Required: the entered value differs from what's configured on Specifications. This is captured in the audit trail."
-                  fullWidth
-                />
-              )}
-
-              <Box>
-                <Typography variant="caption" sx={{ display: "block", color: "text.secondary", textTransform: "uppercase", letterSpacing: "0.06em", mb: 1 }}>
-                  Plate counts
-                </Typography>
-                <Box sx={{ display: "grid", gap: 1.5, gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" } }}>
-                  {readings.map((r, i) => (
-                    <Box key={i} sx={{ display: "flex", alignItems: "flex-start", gap: 0.5 }}>
-                      <TextField
-                        id={`count-plate-${i + 1}`}
-                        label={`Plate ${i + 1}`}
-                        value={r}
-                        onChange={(e) => updateReading(i, e.target.value)}
-                        placeholder="Colonies or TNTC"
-                        helperText={isNonNumeric(r) ? "Non-numeric: flagged for reviewer decision" : " "}
-                        slotProps={{ inputLabel: { shrink: true }, htmlInput: { inputMode: "numeric" } }}
-                        sx={{
-                          flex: 1,
-                          "& .MuiOutlinedInput-root fieldset": {
-                            borderColor: isNonNumeric(r) ? theme.custom.status.inconclusive.text : undefined
-                          }
-                        }}
-                      />
-                      <IconButton aria-label={`Remove plate ${i + 1}`} onClick={() => removeReading(i)} disabled={readings.length <= 1} sx={{ mt: 0.5 }}>
-                        <CloseIcon fontSize="small" />
-                      </IconButton>
-                    </Box>
-                  ))}
-                </Box>
-                <Button startIcon={<AddIcon />} onClick={addReading} sx={{ mt: 0.5 }}>Add Plate</Button>
-              </Box>
-
-              <Box
-                aria-live="polite"
-                sx={{
-                  p: 2, borderRadius: 2, border: "1px solid",
-                  bgcolor: !liveResult ? "action.hover" : liveResult.isNonNumeric ? theme.custom.status.inconclusive.bg : theme.custom.status.notDetected.bg,
-                  borderColor: !liveResult ? "divider" : liveResult.isNonNumeric ? theme.custom.status.inconclusive.border : theme.custom.status.notDetected.border
-                }}
-              >
-                <Typography variant="caption" sx={{ display: "block", color: "text.secondary", textTransform: "uppercase", letterSpacing: "0.06em" }}>
-                  Calculated result
-                </Typography>
-                <Typography sx={{ fontSize: 22, fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>
-                  {liveResult ? liveResult.display : "—"}
-                </Typography>
-                <Typography variant="caption" sx={{ color: liveResult?.isNonNumeric ? theme.custom.status.inconclusive.text : "text.secondary" }}>
-                  {!liveResult
-                    ? "Enter plate counts to see the result."
-                    : liveResult.isNonNumeric
-                      ? "Non-numeric result: the reviewer will decide to accept or retest."
-                      : `Average of the plate counts × dilution factor ${dilutionFactor || 1}.`}
-                </Typography>
-              </Box>
-            </>
-          )}
+          {countEntryFields}
 
           {!isTimeReady && minReadyAt && (
             <Alert severity="warning">Results cannot be submitted before {minReadyAt.toLocaleString()}.</Alert>
@@ -801,12 +972,37 @@ export function TestWorkflowDialog({ testOrderId, testCode, category, displayNam
             <Button
               variant="contained"
               disabled={!isTimeReady || dilutionFactorNotConfigured || (dilutionFactorDiffersFromConfigured && !dilutionFactorOverrideNote.trim())}
-              onClick={submitResult}
+              onClick={() => submitResult()}
             >
               {current.workflowType === "CountTest" ? "Calculate" : "Submit"}
             </Button>
           </StepActionBar>
         </Stack>
+      )}
+
+      {benchCount && (
+        <BenchDialog
+          open={phase === "enter-result"}
+          title={`${testCode} plate counts`}
+          onClose={() => void closeCountEntry()}
+          onSave={keptOffline ? keepCountDraft : () => void submitResult()}
+          onSaveAndNext={keptOffline || step?.isFinalStep ? undefined : () => void submitResult(true)}
+          saving={saving}
+          saveLabel={keptOffline ? "Keep draft" : "Save"}
+          saveDisabledReason={countSaveBlockedReason}
+          dirty={countEntryDirty}
+        >
+          <Stack spacing={2}>
+            <DraftRestoreNotice startedAt={draft.restoredStartedAt} onRestore={restoreDraft} onDiscard={() => void draft.discard()} />
+            {keptOffline && <OfflineDraftNotice onTryAgain={() => setKeptOffline(false)} />}
+            {error && <Alert severity="error">{error}</Alert>}
+          {countEntryFields}
+
+          {!isTimeReady && minReadyAt && (
+            <Alert severity="warning">Results cannot be submitted before {minReadyAt.toLocaleString()}.</Alert>
+          )}
+          </Stack>
+        </BenchDialog>
       )}
 
       {phase === "step-complete" && lastOutcome && (

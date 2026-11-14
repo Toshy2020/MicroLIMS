@@ -4,12 +4,14 @@ import { Box, Button } from "@mui/material";
 import BackspaceOutlinedIcon from "@mui/icons-material/BackspaceOutlined";
 import { useTheme } from "@mui/material/styles";
 import { BENCH_MIN_TARGET, BENCH_TARGET_GAP } from "../../theme/benchTheme";
-import { applyBackspace, applyDigit, applyNext, getActiveField, subscribeActiveField } from "./focusRegistry";
+import { applyBackspace, applyDigit, applyMinus, applyNext, getActiveField, subscribeActiveField } from "./focusRegistry";
 
 export interface BenchKeypadProps {
   onDigit(d: string): void;
   onBackspace(): void;
   onNext(): void;
+  // Shown, with the decimal point, only for decimal fields.
+  onMinus?(): void;
   allowDecimal: boolean;
 }
 
@@ -18,7 +20,7 @@ const keepFocus = (e: SyntheticEvent) => e.preventDefault();
 
 const keySx = { minHeight: BENCH_MIN_TARGET, minWidth: BENCH_MIN_TARGET, fontSize: 20, fontVariantNumeric: "tabular-nums" } as const;
 
-export function BenchKeypad({ onDigit, onBackspace, onNext, allowDecimal }: BenchKeypadProps) {
+export function BenchKeypad({ onDigit, onBackspace, onNext, onMinus, allowDecimal }: BenchKeypadProps) {
   const digit = (d: string, label = d) => (
     <Button key={d} variant="outlined" aria-label={label} onPointerDown={keepFocus} onMouseDown={keepFocus} onClick={() => onDigit(d)} sx={keySx}>
       {d}
@@ -36,6 +38,11 @@ export function BenchKeypad({ onDigit, onBackspace, onNext, allowDecimal }: Benc
       <Button variant="outlined" aria-label="Backspace" onPointerDown={keepFocus} onMouseDown={keepFocus} onClick={onBackspace} sx={keySx}>
         <BackspaceOutlinedIcon aria-hidden />
       </Button>
+      {allowDecimal && onMinus && (
+        <Button variant="outlined" aria-label="Minus sign" onPointerDown={keepFocus} onMouseDown={keepFocus} onClick={onMinus} sx={{ ...keySx, gridColumn: "1 / -1" }}>
+          −
+        </Button>
+      )}
       <Button variant="contained" onPointerDown={keepFocus} onMouseDown={keepFocus} onClick={onNext} sx={{ ...keySx, gridColumn: "1 / -1" }}>
         Next
       </Button>
@@ -49,5 +56,5 @@ export function RegistryBenchKeypad() {
   const theme = useTheme();
   const active = useSyncExternalStore(subscribeActiveField, getActiveField);
   if (!theme.custom?.bench) return null;
-  return <BenchKeypad onDigit={applyDigit} onBackspace={applyBackspace} onNext={applyNext} allowDecimal={active?.kind === "decimal"} />;
+  return <BenchKeypad onDigit={applyDigit} onBackspace={applyBackspace} onNext={applyNext} onMinus={applyMinus} allowDecimal={active?.kind === "decimal"} />;
 }

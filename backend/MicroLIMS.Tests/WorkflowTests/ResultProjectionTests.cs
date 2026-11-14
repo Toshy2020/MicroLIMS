@@ -87,7 +87,7 @@ public class ResultProjectionTests
         var engine = TestServiceFactory.TestWorkflow(db);
         await engine.SelectMediaAsync(order.Id, "CountIncubation", media.Id, incubatorEquipmentId: 1, userId: 1);
 
-        await engine.RecordResultAsync(order.Id, "CountIncubation", new CountTestPayload(new List<decimal> { 0.6m, 0.6m }, 1), userId: 1);
+        await engine.RecordResultAsync(order.Id, "CountIncubation", new CountTestPayload(new List<decimal> { 0, 0, 1, 1, 1 }, 1), userId: 1);
 
         var reading = await db.CountTestReadings.SingleAsync(r => r.TestOrderId == order.Id);
         var record = await db.ResultRecords.SingleAsync(r => r.SourceTable == "CountTestReading" && r.SourceId == reading.Id);
@@ -331,7 +331,7 @@ public class ResultProjectionTests
         var (order, media) = await SeedTamcOrderAsync(db);
         var engine = TestServiceFactory.TestWorkflow(db);
         await engine.SelectMediaAsync(order.Id, "CountIncubation", media.Id, incubatorEquipmentId: 1, userId: 1);
-        await engine.RecordResultAsync(order.Id, "CountIncubation", new CountTestPayload(new List<decimal> { 0.6m, 0.6m }, 1), userId: 1);
+        await engine.RecordResultAsync(order.Id, "CountIncubation", new CountTestPayload(new List<decimal> { 0, 0, 1, 1, 1 }, 1), userId: 1);
 
         var query = new ReportingQueryService(db);
         var trend = await query.GetTrendAsync("TAMC", "WP-01", null, null);

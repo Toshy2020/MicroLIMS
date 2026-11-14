@@ -266,6 +266,31 @@ Machines and machine part test configurations must be configured in master data.
 #### What happens next
 The sample appears in the register. An analyst opens **Prepare Sample** to select the machine parts, which creates the associated test orders.
 
+---
+
+### 12.5 Batch Entry, Keyboard Navigation, and Spreadsheet Paste
+#### Purpose
+Receive up to 100 samples of one category together using keyboard grid navigation, copy-down, spreadsheet paste with preview, and first-row defaults from your last receipt.
+
+#### Who can use it
+Same permissions as single-row sample receiving (§12.1–§12.4). Submitting a batch calls an all-or-nothing batch save behind **Save All Samples**.
+
+#### How to use it
+1. Click **Add Another Sample** (or paste rows from a spreadsheet) inside the **New Sample** grid for up to **100** rows of one category.
+2. When last-choice defaults are enabled, row 1 pre-fills **Sampled by** and an active **Cause of testing** (**From your last entry**) from your own latest sample in the same category. Adding a new row copies **Sampled by**, **Cause of testing**, and selected techniques from the previous row.
+3. Move between cells with **Enter**, arrow keys, and **Tab** / **Shift+Tab**. Press **Ctrl+D** (**Cmd+D** on Mac) to copy a text, date, or choice value down from the cell above. Press **Ctrl+Enter** to save.
+4. To paste from Excel or another spreadsheet, copy multi-cell rows, click inside any text or date cell in the grid, and paste:
+   - MicroLIMS maps pasted columns positionally from that column across text and date fields (**Previous batch number**, **Quantity**, **Sampled by**, **Batch number**, **Sampled at**, **Control number**, **Mfg date**, **Exp date**). Dates accept `DD/MM/YYYY` or `YYYY-MM-DD` (and **Sampled at** expects `HH:mm`).
+   - Choice columns (**Item**, **Laboratories**, **Grade**, **Supplier CoA**, **Previous product**, **Techniques**, **Production stage**, **Department**, **Machine**, **Cause of testing**) are skipped and listed under **Not pasted (choice columns, choose these by hand)**.
+   - Review every row in **Paste preview**. Fix any highlighted date or format errors in your spreadsheet if **Accept** is disabled, then click **Accept** to fill the grid.
+5. Select any remaining choice columns manually and click **Save All Samples**.
+
+> **SOP note:** Pasted data must be checked in the preview before accepting. Accepting **Paste preview** fills the grid only; nothing is saved until you click **Save All Samples**.
+
+#### System behavior and validation
+- **All-or-nothing save**: every row is validated before any sample is created. If any row fails (including laboratory permission or duplicate checks), no sample, reference number, or audit entry is created, a summary lists the problems, and the cursor moves to the first failing cell.
+- **No duplicate batch + control in Product batches**: within a Product, Raw Material, or Packaging Material batch save, two rows cannot share the same non-blank **Batch no.** and **Control no.** (ignoring spaces and case). Matching rows show `"Same batch and control number as row {n}."`.
+
 <!-- Review log (Sonnet): 7 corrections; invented items removed: expiry-date server message on receive, Physicochemical-section Ready rule (now FP section), register banner claim, swab/rinse wording; callouts added: After Cleaning order mismatch (GAP-225) -->
 <!-- Phase 13 (agy): applied F-A05, R-NEW-02 -->
 <!-- Phase 13 review (Sonnet): checked against RECONCILIATION section 2 and frontend strings; no invented items -->

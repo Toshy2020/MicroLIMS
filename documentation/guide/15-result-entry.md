@@ -19,20 +19,22 @@ Requires the *Execute test workflows* permission (by default: Analyst, Reviewer,
 Dialog **{testCode} Workflow** with the subtitle "{ref} · {sample name} · TO #{testOrderId}", at the media selection step:
 - "Requires {names or 'an approved'} media."
 - "Required Temperature (Stage 1): {min}-{max} °C, Incubation Period: {h}-{h} hours"
-- Media dropdown, placeholder "Media Batch ({names} lots only)"; entries read "{lotNumber}, expires {date}".
-- Incubator dropdown, placeholder "Stage 1 Incubator ({min}-{max} °C)"; entries read "{name} ({code}), {setPoint}°C".
+- Media dropdown, placeholder "Media Batch ({names} lots only)"; entries read "{lotNumber}, expires {date}". If last-choice defaults are enabled and your own latest lot for this required medium is still released, in stock, in date, and permitted for your laboratory section, it is pre-filled with **From your last entry** and a **Confirm** button.
+- Incubator dropdown, placeholder "Stage 1 Incubator ({min}-{max} °C)"; entries read "{name} ({code}), {setPoint}°C". Your own latest eligible incubator (active, in service, calibration current, in temperature range, and permitted for your section) may be pre-filled with **From your last entry**.
 - If no incubator fits: "No incubator is set to {min}-{max} °C for this step."
-- Button **Start Incubation**, enabled once both are chosen.
+- Button **Start Incubation**, enabled once both are chosen and any pre-filled media lot has been confirmed (or changed).
 
 [SCREENSHOT SS-151]
 
 #### How to use it
 1. Select the sample and find the test under **Assigned Tests**.
 2. Click **Open Workflow** on the test card.
-3. Choose the media lot.
-4. Choose an incubator whose set point is inside the required range.
+3. Choose or confirm the media lot. If a lot is pre-filled with **From your last entry**, physically inspect the plate or container first, then click **Confirm** (or choose/scan the actual lot used). Saving is blocked ("Confirm the pre-filled lot") until a pre-filled lot is confirmed or changed.
+4. Choose or verify an incubator whose set point is inside the required range.
 5. Click **Start Incubation**.
 6. Check that the dialog shows "Incubation in progress".
+
+> **SOP note:** A pre-filled lot must be checked against the plate or container before confirming. (Last-choice equipment defaults also apply to Stage 2 incubators and to autoclaves in Media Preparation and sterilized Solution Preparation, using only your own latest valid record.)
 
 #### System behavior
 - The test changes from waiting to **Incubating** (In Progress). If the sample was **Received**, it becomes **Under Testing**.
@@ -129,7 +131,7 @@ In the **{testCode} Workflow** dialog at result entry:
 - An override icon ("Override dilution factor") and the button **Cancel Override**.
 - **Justification for override**, required whenever the entered factor differs from the configured one; helper text "Required: the entered value differs from what's configured on Specifications. This is captured in the audit trail."
 - One field **Plate 1**, **Plate 2** ... with the placeholder "Colony count or TNTC", a remove icon ("Remove reading {i}") and the button **Add Plate**.
-- The live text "Calculated result: {display}".
+- A server-calculated preview box labelled **Preview — not recorded** showing the reported value, **Average**, **Calculated** value, and limit **Status** badge as you type (or **Preview unavailable** with "Save will still calculate and record the result." if the preview check cannot complete). Invalid readings are marked on the offending plate field.
 - When TNTC or Uncountable is typed: "Non-numeric result: reviewer will decide accept or retest".
 - Button **Calculate**.
 - After calculating: "Step recorded: {outcome}" with ": Average X, Calculated Y, Status Z". For a result that is not definitive: "{outcome} - this step must be repeated with a fresh media lot." with **Proceed to Next Step** and **Retry This Step**. For the final step: "Final result: {outcome}" and **Done / Close**.
@@ -144,9 +146,11 @@ In the **{testCode} Workflow** dialog at result entry:
    - For Product, Raw Material and Packaging Material, the configured factor is filled in. To use a different factor, click the override icon, enter the new factor and write the **Justification for override**.
 4. In **Plate 1**, enter the colony count (for example 25), or enter TNTC or Uncountable if the colonies cannot be counted.
 5. If more plates were read, click **Add Plate** and enter each count.
-6. Check the **Calculated result** shown.
-7. Click **Calculate**.
+6. Check the **Preview — not recorded** box shown by the server.
+7. Click **Calculate** (or press **Ctrl+Enter**).
 8. Review the average, the calculated result and the status, then click **Done / Close** (or **Proceed to Next Step** / **Retry This Step**).
+
+> **SOP note:** In-app preview values are not records. Viewing the preview saves no reading, result, or audit entry until you click **Calculate**.
 
 #### System behavior
 - Dilution factor:
@@ -229,9 +233,13 @@ Requires the *Execute test workflows* permission (by default: Analyst, Reviewer,
 1. Open the test whose final incubation window is complete.
 2. If an earlier window is still open, click **Advance to Next Incubation Window** after its minimum time, choose fresh media for the next window and let it incubate.
 3. On the final window click **Record Results**.
-4. Enter the plate counts for each location; use **Add Plate** for additional plates.
+4. Enter the plate counts for each location; use **Add Plate** for additional plates. Or copy two columns (**Location** / **Sampling Point** name and count, up to 500 rows) from a spreadsheet and paste into any reading field:
+   - Check every matched location and any flagged problems in **Paste preview** (unknown names, duplicate pasted names, non-whole or negative counts, or single-column pastes disable **Accept**; omitted grid locations are listed under **Left empty (not in the paste)**).
+   - Click **Accept** to fill the grid only (nothing is saved yet).
 5. Check that every location has at least one reading.
 6. Click **Submit Results**.
+
+> **SOP note:** Pasted data must be checked in the preview before accepting. Copy-down (**Ctrl+D**) works on unit entry grids, whereas pathogen location grids, the primary observation matrix, and chromatography replicate tables deliberately omit **Ctrl+D** so each reading is entered individually.
 
 #### System behavior
 - Results are accepted only on the final incubation window, and only after its minimum time (measured from the recorded incubation start).

@@ -58,6 +58,14 @@ To add a room test:
 3. In **2 · Limits**, enter **Alert**, **Action** and **Specification** limits (leave a limit blank if it does not apply) and the **Unit**. The unit is required for Active air sample, Compressed air and Drains.
 4. Click **Add test**. The system shows `Test added to {room}.`
 
+To paste rooms or room tests from a spreadsheet (up to 200 rows at a time):
+1. Click **Paste rooms** (columns: Room name, Department, Grade, Type, Sits in room, Frequency) or **Paste test configurations** (columns: Room, Test type, Test, Alert limit, Action limit, Spec limit, Unit), then paste rows copied from a spreadsheet.
+2. Check every row and problem in **Paste preview**; **Accept** stays disabled while any problem remains.
+3. Click **Accept** to move the rows into the pending review list (nothing is saved yet), then click **Save** to create all rows together in one all-or-nothing batch.
+4. Unlike single-row add, EM configuration paste refuses duplicate room names in the same department and refuses a second active test configuration with the same room, test type, and test code.
+
+> **SOP note:** Pasted data must be checked in the preview before accepting. Use screen paste for up to 200 rows; use the **Master Data Workbook** (§32.3–§32.4) for initial loads needing a second person's password-confirmed verification.
+
 ![SS-232: Add Test (dialog)](../screenshots/ss-232-em-room-test-dialog.png)
 
 To change or remove something, use **Edit department**, the room and test icons, and confirm the deletion question (for example `Remove the {type} / {code} test from {room}?`).

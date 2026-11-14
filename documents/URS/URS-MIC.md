@@ -4,7 +4,7 @@
 |---|---|
 | Document number | URS-MIC |
 | Title | Microbiology enumeration and incubation user requirements |
-| Version | 0.1 |
+| Version | 0.2 |
 | Status | Draft |
 | Author | Claude (AI agent), draft from code |
 | Reviewer | To be assigned by QA |
@@ -16,6 +16,7 @@
 | Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1 | 2026-11-12 | Claude (AI agent), draft from code | First draft, written from the code as built. |
+| 0.2 | 2026-11-14 | AI coding agent, draft from code | Added server count preview, last-choice defaults with lot confirmation, grid navigation rules, and location count paste preview (URS-MIC-013 to URS-MIC-015). |
 
 ## Requirements
 
@@ -91,4 +92,22 @@ Each requirement below is a need that the code as built serves. Gaps found in th
 **Requirement:** The system shall let a user with the supervise permission override the minimum incubation duration of an open incubation, and shall record who did it and when.
 **GxP:** Yes
 **Serves:** 21 CFR 11.10(e) (to be confirmed by QA)
+**Status:** Active
+
+### URS-MIC-013
+**Requirement:** The system shall calculate an uncommitted plate-count preview on the server using the same dilution, average, rounding, TNTC/Uncountable, and limit rules as result recording without storing any reading, result, or audit record or changing test order state, and the user interface shall label the preview as not recorded.
+**GxP:** Yes
+**Serves:** 21 CFR 11.10(e); ALCOA+ original and accurate (to be confirmed by QA)
+**Status:** Active
+
+### URS-MIC-014
+**Requirement:** When last-choice defaults are enabled, the system shall pre-fill incubation media lot and incubator choices (as well as autoclave choices in media and solution preparation) solely from the acting user's own latest records that pass current access, usability, and calibration checks, and shall prevent saving a pre-filled lot until the user explicitly confirms or replaces it.
+**GxP:** Yes
+**Serves:** 21 CFR 11.10(e); prevention of unintended lot misattribution (to be confirmed by QA)
+**Status:** Active
+
+### URS-MIC-015
+**Requirement:** The system shall provide keyboard navigation on count, pathogen location, primary observation, and HPLC replicate entry grids, shall permit `Ctrl+D` copy-down on plate-count unit grids while excluding copy-down on pathogen location, primary observation, and HPLC replicate tables, and shall support two-column (`Name`, `Count`) spreadsheet paste with preview matched by location name on Environmental Monitoring, After Cleaning, and Water location count grids without saving until explicit submission.
+**GxP:** Yes
+**Serves:** Operational usability with deliberate manual entry for observation/replicate readings (to be confirmed by QA)
 **Status:** Active

@@ -4,7 +4,7 @@
 |---|---|
 | Document number | FS-RCV |
 | Title | Sample receiving functional specification |
-| Version | 0.1 |
+| Version | 0.2 |
 | Status | Draft |
 | Author | Claude (AI agent), draft from code |
 | Reviewer | To be assigned by QA |
@@ -16,6 +16,7 @@
 | Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1 | 2026-11-12 | Claude (AI agent), draft from code | First draft, written from the code as built. |
+| 0.2 | 2026-11-14 | AI coding agent, draft from code | Added all-or-nothing batch sample receiving and multi-sample entry grid navigation, paste preview, defaults, and error navigation (FS-RCV-013, FS-RCV-014). |
 
 ## Scope and reading notes
 
@@ -104,4 +105,16 @@
 **Satisfies:** URS-RCV-011
 **Function:** Assignment options (`GET api/samples/{id}/assignment-options`). Permission `Samples.AssignAnalyst`; scope check first. Returns each non-superseded test with its current analyst, whether the acting user can assign it (open and in the acting user's laboratories), and the IDs of eligible users: active, unlocked users of role Analyst or Reviewer, plus the acting user when the acting user is a SectionHead, who are members of the test's laboratory (`AnalystAssignmentRules.Candidates`). The result is read-only and is not audited.
 **Code:** `backend/MicroLIMS.Application/Services/SampleAssignmentService.cs` — `GetAssignmentOptionsAsync`
+**Verified by:** reading (not run)
+
+### FS-RCV-013
+**Satisfies:** URS-RCV-013
+**Function:** All-or-nothing batch sample receiving (`POST api/samples/receive-batch`, policy `Samples.Receive.OwnLab`). `SampleBatchReceiveService.ReceiveAsync` validates that the batch holds 1 to 100 rows of one category, validates every row up front (collecting per-row `FieldError` entries), checks Product batches with `AddDuplicateBatchAndControlErrors` to refuse duplicate `(BatchNumber.Trim(), ControlNumber.Trim())` pairs (case-insensitive) across rows in the same batch (decided 2026-11-14; single-sample receive is unchanged), and then executes the existing single-row receiving service for each row inside `UnitOfWork.RunAsync` so any failure rolls back the entire batch.
+**Code:** `backend/MicroLIMS.Application/Services/SampleBatchReceiveService.cs` — `ReceiveAsync`, `AddDuplicateBatchAndControlErrors`; `backend/MicroLIMS.API/Controllers/SampleController.cs` — `ReceiveBatch`
+**Verified by:** reading (not run)
+
+### FS-RCV-014
+**Satisfies:** URS-RCV-014
+**Function:** Multi-sample receiving grid entry tools in `MultiSampleEntryGrid` and `NewSampleDialog`. `useGridNavigation` handles `Enter`, `ArrowDown`, `ArrowUp`, `ArrowLeft`/`ArrowRight` (at text caret edges), `Tab`/`Shift+Tab`, `Ctrl+D` (`onCopyDown`, copying the value from the previous row into text, date, or choice columns except row 0), `Ctrl+Enter`/`Cmd+Enter` (save), and `Escape`, skipping non-editable cells and ignoring navigation keys when an autocomplete/select popup has `aria-expanded="true"`. Multi-cell clipboard text pasted anywhere in the grid is parsed by `parseClipboardTable` and mapped positionally from the focused column onto text and date columns defined in `receivingPaste` (`previousProductBatchNumber`, `sampleQuantity`, `sampledBy`, `batchNumber`, `sampledAt`, `controlNumber`, `mfgDate`, `expDate`, validated for `DD/MM/YYYY` or `YYYY-MM-DD`, capped at `MAX_RECEIVE_ROWS = 100`), skipping choice columns and listing them under "Not pasted (choice columns, choose these by hand)" in `PastePreviewDialog`. Nothing is saved when clicking **Accept**; the user must still save the dialog (`receive-batch`). SOP note: pasted data must be checked in the preview before accepting. On opening row 0 for a category, `NewSampleDialog` requests `GET api/entry-defaults?context=receiving&category=...` (`EntryDefaultsService.GetAsync`), which pre-fills `sampledBy` and active `causeOfTestingId` from the acting user's latest sample in that category when `entry.lastChoiceDefaults.enabled` is true. Per-row errors returned from validation or `receive-batch` show a summary banner and move focus to the first failing cell.
+**Code:** `frontend/src/components/entry/useGridNavigation.ts`; `frontend/src/components/entry/PastePreviewDialog.tsx`; `frontend/src/components/entry/parseClipboardTable.ts`; `frontend/src/modules/receiving/dialogs/MultiSampleEntryGrid.tsx`; `frontend/src/modules/receiving/dialogs/receivingPaste.ts`; `frontend/src/modules/receiving/dialogs/NewSampleDialog.tsx`; `backend/MicroLIMS.Application/Services/EntryDefaults/EntryDefaultsService.cs`
 **Verified by:** reading (not run)

@@ -4,7 +4,7 @@
 |---|---|
 | Document number | URS-MDM |
 | Title | Master data user requirements |
-| Version | 0.2 |
+| Version | 0.3 |
 | Status | Draft |
 | Author | Claude (AI agent), draft from code |
 | Reviewer | To be assigned by QA |
@@ -17,6 +17,7 @@
 |---|---|---|---|
 | 0.1 | 2026-11-12 | Claude (AI agent), draft from code | First draft, written from the code as built. |
 | 0.2 | 2026-11-13 | AI coding agent, draft from code | Added barcode labels and scanning requirements (URS-MDM-017 to URS-MDM-024). |
+| 0.3 | 2026-11-14 | AI coding agent, draft from code | Added configuration spreadsheet paste with preview and all-or-nothing batch save (URS-MDM-025). |
 
 ## Requirements
 
@@ -166,4 +167,10 @@ Each requirement below is a need that the code as built serves. Gaps found in th
 **Requirement:** Where the browser exposes camera access over a secure context (HTTPS), the system shall provide optional camera scanning for `Data Matrix` and `Code 128` barcodes in global search and inline scan fields using native browser detection when supported or a locally bundled WebAssembly decoder with no external CDN requests at runtime, and shall stop the camera stream immediately on detection or dialog close.
 **GxP:** Yes
 **Serves:** 21 CFR 11.10(a), 11.10(b); EU GMP Annex 11 clauses 4, 11 (to be confirmed by QA)
+**Status:** Active
+
+### URS-MDM-025
+**Requirement:** The system shall allow a user holding the master-data permission to paste up to 200 configuration rows per paste from a spreadsheet into Water sampling points, Environmental Monitoring rooms, Environmental Monitoring room test configurations, plain Item specifications, Master Testing Materials, and microbiology Equipment Master with a blocking preview and an explicit pending review step before saving, and shall persist accepted configuration batches in an all-or-nothing server transaction after validating every row (while excluding Solution Master recipes from configuration paste so components continue to be defined via form or workbook).
+**GxP:** Yes
+**Serves:** 21 CFR 11.10(d), 11.10(e); ALCOA+ accurate and complete (to be confirmed by QA)
 **Status:** Active

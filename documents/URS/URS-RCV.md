@@ -4,7 +4,7 @@
 |---|---|
 | Document number | URS-RCV |
 | Title | Sample receiving user requirements |
-| Version | 0.1 |
+| Version | 0.2 |
 | Status | Draft |
 | Author | Claude (AI agent), draft from code |
 | Reviewer | To be assigned by QA |
@@ -16,6 +16,7 @@
 | Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1 | 2026-11-12 | Claude (AI agent), draft from code | First draft, written from the code as built. |
+| 0.2 | 2026-11-14 | AI coding agent, draft from code | Added batch sample receiving, duplicate batch+control rule, grid navigation/paste, and receiving last-choice defaults (URS-RCV-013, URS-RCV-014). |
 
 ## Requirements
 
@@ -91,4 +92,16 @@ Each requirement is a need that the code as built serves. Gaps found in the code
 **Requirement:** The system shall record every change of analyst assignment with the previous analyst, the new analyst, the acting user, the time and the reason.
 **GxP:** Yes
 **Serves:** 21 CFR 11.10(e); ALCOA+ attributable (to be confirmed by QA)
+**Status:** Active
+
+### URS-RCV-013
+**Requirement:** The system shall allow a permitted receiving user to submit a batch of 1 to 100 sample rows of a single receiving category in one all-or-nothing request, shall report row- and field-specific validation errors across all submitted rows before persisting any record, and shall refuse duplicate batch number and control number pairs within a Product batch receive.
+**GxP:** Yes
+**Serves:** 21 CFR 11.10(e); ALCOA+ accurate and complete (to be confirmed by QA)
+**Status:** Active
+
+### URS-RCV-014
+**Requirement:** The multi-sample receiving grid shall support keyboard cell navigation, copy-down from the row above (`Ctrl+D`), positional spreadsheet paste with a preview that requires user acceptance before populating the grid (and nothing saved until the user saves), and pre-filling `Sampled By` and active `Cause of Testing` on the first row from the acting user's latest receipt when last-choice defaults are enabled.
+**GxP:** No
+**Serves:** Operational usability and entry-error reduction during multi-sample receiving
 **Status:** Active

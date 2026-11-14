@@ -78,4 +78,39 @@ The dialog titled **Electronic Signature**. It always appears in a light appeara
 #### What happens next
 After a successful signature the dialog closes and the action is completed on the page behind it.
 
+---
+
+### 6.5 Keyboard Shortcuts, Grid Entry, Pre-Filled Defaults, and Paste Preview
+#### Purpose
+Move through multi-row grids with the keyboard, copy values down only where safe, review spreadsheet pastes before filling a screen, and confirm pre-filled choices before saving.
+
+#### Keyboard shortcuts
+Open the **Keyboard shortcuts** dialog from **Help** > **Keyboard shortcuts** in the header, or by pressing **?** when your cursor is not inside a text field.
+
+Global shortcuts:
+- **Ctrl+K**: open global search (**Search MicroLIMS**).
+- **?**: open **Keyboard shortcuts** (when not typing in a field).
+
+Data entry grid shortcuts:
+- **Enter** or **Arrow Down**: move to the next row in the same column (ignored while a dropdown list is open; **Shift+Enter** does not move).
+- **Arrow Up**: move to the previous row in the same column (ignored while a dropdown list is open).
+- **Arrow Left** / **Arrow Right**: move to the previous or next column (inside text fields, only when the cursor is at the start or end of the text).
+- **Tab** / **Shift+Tab**: move forward or backward across cells in reading order.
+- **Ctrl+D** (**Cmd+D** on Mac): copy the value from the cell above into the current cell. This works **only** on sample receiving grids and count unit grids. It is deliberately disabled on pathogen location grids, the primary observation matrix, and chromatography replicate tables so each observation or instrument reading is entered deliberately.
+- **Ctrl+Enter** (**Cmd+Enter** on Mac): save the form or dialog.
+- **Escape**: close the dialog or popup.
+
+#### Initial focus and table sorting
+- Standard entry dialogs place the cursor automatically in the first empty required field when opened.
+- Register tables that load one page at a time from the server (such as the Sample Register and Controlled Document Library) do not offer column sorting in their column headers.
+
+#### Pre-filled last choices and spreadsheet paste rules
+- Where last-choice defaults are enabled by your administrator, supported forms pre-fill **From your last entry** using only your own latest valid choice. A pre-filled media lot must be confirmed explicitly before saving.
+- Multi-row paste opens **Paste preview** with any blocking row problems marked. Accepting the preview only fills the screen and does not save anything until you save as usual.
+
+> **SOP notes for laboratory users:**
+> - Pasted data must be checked in the preview before accepting.
+> - A pre-filled lot must be checked against the plate or container before confirming.
+> - In-app preview values are not records.
+
 <!-- Review log (Sonnet): 14 corrections; invented items removed: page addresses and browser storage key names, component and screen ids, example breadcrumb path, "recent attention alerts / sample review requests" list for the bell, "hover restores labels", "recovery prompt" text for page errors, "legal meaning", "tamper-evident", "immutable" log wording, "atomic transaction" wording; callouts added: GAP-027, GAP-010 -->

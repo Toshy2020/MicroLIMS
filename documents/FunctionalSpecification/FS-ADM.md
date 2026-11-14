@@ -4,7 +4,7 @@
 |---|---|
 | Document number | FS-ADM |
 | Title | System administration functional specification |
-| Version | 0.2 |
+| Version | 0.3 |
 | Status | Draft |
 | Author | Claude (AI agent), draft from code |
 | Reviewer | To be assigned by QA |
@@ -17,6 +17,7 @@
 |---|---|---|---|
 | 0.1 | 2026-11-12 | Claude (AI agent), draft from code | First draft, written from the code as built. |
 | 0.2 | 2026-11-13 | AI coding agent, draft from code | Added QA dashboard navigation and controlled-document QA approver requirement (FS-ADM-011, FS-ADM-012). |
+| 0.3 | 2026-11-14 | AI coding agent, draft from code | Added keyboard shortcuts dialog, form initial focus, server-paged table sorting restriction, and `entry.lastChoiceDefaults.enabled` setting (FS-ADM-013). |
 
 ## Scope and reading notes
 
@@ -106,3 +107,10 @@
 **Function:** Controlled-document QA approver eligibility and per-type QA approval requirement (Document Control area; see `documents/DocumentControl/` for Release 1a–1d specs). `DocumentApprovalService` allows approvers whose role type is `Reviewer`, `SectionHead`, or `Qa` and who hold `Documents.Approve`, keeping author/reviewer segregation of duties intact and granting QA no Section Head override powers. `DocumentConfigurationService.UpdateDocumentTypeCoreAsync` persists `DocumentType.RequiresQaApprover` (default `false`, audited). When `RequiresQaApprover` is true, `DocumentApprovalService` and `DocumentEffectiveDateService` require at least one assigned QA approver (and approved QA decision before becoming effective), throwing if missing. `DocumentConfigurationPage` exposes the `RequiresQaApprover` toggle per document type.
 **Code:** `backend/MicroLIMS.Application/Services/DocumentControl/DocumentApprovalService.cs` — `EnsureQaApproverRequirement`; `backend/MicroLIMS.Application/Services/DocumentControl/DocumentEffectiveDateService.cs`; `backend/MicroLIMS.Application/Services/DocumentControl/DocumentConfigurationService.cs` — `UpdateDocumentTypeCoreAsync`; `frontend/src/modules/documentControl/pages/DocumentConfigurationPage.tsx`
 **Verified by:** reading (not run)
+
+### FS-ADM-013
+**Satisfies:** URS-ADM-013
+**Function:** UI keyboard shortcuts dialog (`ShortcutsDialog`, opened from Help menu **Keyboard shortcuts** in `HelpMenu` or pressing `?` when focus is not inside `INPUT`, `TEXTAREA`, `SELECT`, or `contenteditable`), `FormDialog` automatic focus on the first empty required field (`initialFocus = "firstEmptyRequired"` unless overridden or `autoFocus` is present), `RegisterTable` disabling column sort headers and client sorting whenever `serverPaged` is supplied (as in `SampleRegisterTable` and `DocumentLibraryPage`), and boolean system setting `entry.lastChoiceDefaults.enabled` (default `"true"`, in `SystemSettingDefinitions.All`) controlling whether `EntryDefaultsService.GetAsync` returns last-choice defaults.
+**Code:** `frontend/src/components/entry/ShortcutsDialog.tsx`; `frontend/src/modules/help/HelpMenu.tsx`; `frontend/src/components/lab/FormDialog.tsx`; `frontend/src/components/lab/RegisterTable.tsx`; `frontend/src/modules/receiving/components/SampleRegisterTable.tsx`; `frontend/src/modules/documentControl/pages/DocumentLibraryPage.tsx`; `backend/MicroLIMS.Application/Services/SystemSettings/SystemSettingDefinitions.cs`; `backend/MicroLIMS.Application/Services/EntryDefaults/EntryDefaultsService.cs`
+**Verified by:** reading (not run)
+**Conflicts:** CONF-205

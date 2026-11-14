@@ -60,6 +60,13 @@ To add or edit a sample location:
 
 To rename a water system, click **Rename**. To delete a system or location, use the delete icon and confirm the question.
 
+To paste sample locations from a spreadsheet (up to 200 rows at a time; available once at least one water system exists):
+1. Click **Paste locations** and paste rows copied from a spreadsheet (columns: Point code, Water system, Point name, Frequency, Assigned tests).
+2. Check every row and any flagged problem in **Paste preview**, then click **Accept** to place the rows into **Pending water sampling points** (nothing is saved yet).
+3. Click **Save** to create all rows together in one all-or-nothing batch.
+
+> **SOP note:** Pasted data must be checked in the preview before accepting. Use screen paste for a handful up to 200 rows; use the **Master Data Workbook** (§32.3–§32.4) for initial loads needing a second person's password-confirmed verification.
+
 #### System behavior
 - The system saves the location first and then the limit rows. A row is created only if at least one of Alert, Action or Specification is filled. A row is changed only if a value changed. A limit row is never deleted from this panel, even if you remove its test from the location.
 - If a limit row fails, the system reports "The location was saved, but some limits were not. {code}: {message}"

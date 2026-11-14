@@ -897,6 +897,303 @@ public class MasterDataBatchPostgresTests
         Assert.True(perm.IsEnforced);
     }
 
+    [PostgresFact]
+    public async Task SingleRoom_DuplicateNameInDepartment_Refused()
+    {
+        var suffix = Guid.NewGuid().ToString("N")[..8];
+        var (userId, deptId, _, _) = await SeedEmScopeAsync(suffix);
+        var existingName = $"RM-S-EX-{suffix}";
+
+        await using (var arrangeDb = _fixture.CreateDbContext())
+        {
+            arrangeDb.Rooms.Add(new Room
+            {
+                Name = existingName,
+                DepartmentId = deptId,
+                GradeClassification = "B",
+                Kind = RoomKind.Room
+            });
+            await arrangeDb.SaveChangesAsync();
+        }
+
+        var duplicateInput = $"  {existingName.ToLowerInvariant()}  ";
+        await using (var actDb = _fixture.CreateDbContext())
+        {
+            actDb.CurrentUserId = userId;
+            var svc = BuildEmService(actDb);
+            var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
+                svc.CreateRoomAsync(new CreateRoomRequest(duplicateInput, deptId, "B")));
+            Assert.Equal($"Room '{existingName.ToLowerInvariant()}' already exists.", ex.Message);
+        }
+
+        await using var assertDb = _fixture.CreateDbContext();
+        Assert.Equal(1, await assertDb.Rooms.AsNoTracking().CountAsync(r => r.DepartmentId == deptId && r.Name.ToLower() == existingName.ToLower()));
+        Assert.False(await assertDb.AuditLogs.AsNoTracking().AnyAsync(a =>
+            a.EntityName == nameof(Room) && a.Action == "Create" && a.UserId == userId));
+    }
+
+    [PostgresFact]
+    public async Task SingleRoom_SameNameOtherDepartment_Allowed()
+    {
+        var suffix = Guid.NewGuid().ToString("N")[..8];
+        var (userId, _, secondDeptId, _) = await SeedEmScopeAsync(suffix);
+        var sharedName = $"EM-BaseRoom-{suffix}";
+
+        RoomResponse created;
+        await using (var actDb = _fixture.CreateDbContext())
+        {
+            actDb.CurrentUserId = userId;
+            var svc = BuildEmService(actDb);
+            created = await svc.CreateRoomAsync(new CreateRoomRequest(sharedName, secondDeptId, "C"));
+        }
+
+        await using var assertDb = _fixture.CreateDbContext();
+        var persisted = await assertDb.Rooms.AsNoTracking().SingleAsync(r => r.Id == created.Id);
+        Assert.Equal(secondDeptId, persisted.DepartmentId);
+        Assert.Equal(sharedName, persisted.Name);
+        Assert.True(await assertDb.AuditLogs.AsNoTracking().AnyAsync(a =>
+            a.EntityName == nameof(Room) && a.Action == "Create" && a.EntityId == created.Id.ToString() && a.UserId == userId));
+    }
+
+    [PostgresFact]
+    public async Task SingleConfig_DuplicateActive_Refused()
+    {
+        var suffix = Guid.NewGuid().ToString("N")[..8];
+        var (userId, _, _, roomId) = await SeedEmScopeAsync(suffix);
+        var existingCode = $"TC-S-EX-{suffix}";
+
+        await using (var arrangeDb = _fixture.CreateDbContext())
+        {
+            arrangeDb.RoomTestConfigurations.Add(new RoomTestConfiguration
+            {
+                RoomId = roomId,
+                TestType = RoomTestTypes.PassiveAirSample,
+                TestCode = existingCode,
+                AlertLimit = "5",
+                ActionLimit = "10",
+                SpecLimit = "20",
+                Unit = string.Empty,
+                IsActive = true
+            });
+            await arrangeDb.SaveChangesAsync();
+        }
+
+        var duplicateCode = $"  {existingCode.ToLowerInvariant()}  ";
+        await using (var actDb = _fixture.CreateDbContext())
+        {
+            actDb.CurrentUserId = userId;
+            var svc = BuildEmService(actDb);
+            var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
+                svc.CreateRoomTestConfigurationAsync(
+                    new CreateRoomTestConfigRequest(roomId, RoomTestTypes.PassiveAirSample, duplicateCode, "5", "10", "20")));
+            Assert.Equal(
+                $"Test configuration '{existingCode.ToLowerInvariant()}' ({RoomTestTypes.PassiveAirSample}) already exists for room {roomId}.",
+                ex.Message);
+        }
+
+        await using var assertDb = _fixture.CreateDbContext();
+        Assert.Equal(1, await assertDb.RoomTestConfigurations.AsNoTracking().CountAsync(c => c.RoomId == roomId));
+        Assert.False(await assertDb.AuditLogs.AsNoTracking().AnyAsync(a =>
+            a.EntityName == nameof(RoomTestConfiguration) && a.Action == "Create" && a.UserId == userId));
+    }
+
+    [PostgresFact]
+    public async Task SingleConfig_InactiveExisting_Allowed()
+    {
+        var suffix = Guid.NewGuid().ToString("N")[..8];
+        var (userId, _, _, roomId) = await SeedEmScopeAsync(suffix);
+        var code = $"TC-S-OLD-{suffix}";
+
+        await using (var arrangeDb = _fixture.CreateDbContext())
+        {
+            arrangeDb.RoomTestConfigurations.Add(new RoomTestConfiguration
+            {
+                RoomId = roomId,
+                TestType = RoomTestTypes.PassiveAirSample,
+                TestCode = code,
+                AlertLimit = "5",
+                ActionLimit = "10",
+                SpecLimit = "20",
+                Unit = string.Empty,
+                IsActive = false
+            });
+            await arrangeDb.SaveChangesAsync();
+        }
+
+        RoomTestConfigurationResponse created;
+        await using (var actDb = _fixture.CreateDbContext())
+        {
+            actDb.CurrentUserId = userId;
+            var svc = BuildEmService(actDb);
+            created = await svc.CreateRoomTestConfigurationAsync(
+                new CreateRoomTestConfigRequest(roomId, RoomTestTypes.PassiveAirSample, code, "6", "12", "20"));
+        }
+
+        await using var assertDb = _fixture.CreateDbContext();
+        var rows = await assertDb.RoomTestConfigurations.AsNoTracking()
+            .Where(c => c.RoomId == roomId && c.TestCode == code)
+            .OrderBy(c => c.Id)
+            .ToListAsync();
+        Assert.Equal(2, rows.Count);
+        Assert.False(rows[0].IsActive);
+        Assert.True(rows[1].IsActive);
+        Assert.Equal(created.Id, rows[1].Id);
+        Assert.True(await assertDb.AuditLogs.AsNoTracking().AnyAsync(a =>
+            a.EntityName == nameof(RoomTestConfiguration) && a.Action == "Create" && a.EntityId == created.Id.ToString() && a.UserId == userId));
+    }
+
+    [PostgresFact]
+    public async Task UpdateRoom_DuplicateNameInDepartment_Refused_AndSelfUpdateAllowed()
+    {
+        var suffix = Guid.NewGuid().ToString("N")[..8];
+        var (userId, deptId, _, existingRoomId) = await SeedEmScopeAsync(suffix);
+        var existingName = $"EM-BaseRoom-{suffix}";
+        var otherName = $"RM-UPD-{suffix}";
+        int otherRoomId;
+
+        await using (var arrangeDb = _fixture.CreateDbContext())
+        {
+            var other = new Room
+            {
+                Name = otherName,
+                DepartmentId = deptId,
+                GradeClassification = "B",
+                Kind = RoomKind.Room
+            };
+            arrangeDb.Rooms.Add(other);
+            await arrangeDb.SaveChangesAsync();
+            otherRoomId = other.Id;
+        }
+
+        await using (var actDb = _fixture.CreateDbContext())
+        {
+            actDb.CurrentUserId = userId;
+            var svc = BuildEmService(actDb);
+            var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
+                svc.UpdateRoomAsync(otherRoomId, new UpdateRoomRequest($"  {existingName.ToLowerInvariant()}  ", deptId, "B")));
+            Assert.Equal($"Room '{existingName.ToLowerInvariant()}' already exists.", ex.Message);
+        }
+
+        await using (var assertDb = _fixture.CreateDbContext())
+        {
+            var persisted = await assertDb.Rooms.AsNoTracking().SingleAsync(r => r.Id == otherRoomId);
+            Assert.Equal(otherName, persisted.Name);
+            Assert.False(await assertDb.AuditLogs.AsNoTracking().AnyAsync(a =>
+                a.EntityName == nameof(Room) && a.Action == "Update" && a.EntityId == otherRoomId.ToString()));
+        }
+
+        await using (var selfActDb = _fixture.CreateDbContext())
+        {
+            selfActDb.CurrentUserId = userId;
+            var svc = BuildEmService(selfActDb);
+            await svc.UpdateRoomAsync(existingRoomId, new UpdateRoomRequest(existingName, deptId, "A"));
+        }
+
+        await using var finalAssertDb = _fixture.CreateDbContext();
+        var updatedSelf = await finalAssertDb.Rooms.AsNoTracking().SingleAsync(r => r.Id == existingRoomId);
+        Assert.Equal("A", updatedSelf.GradeClassification);
+    }
+
+    [PostgresFact]
+    public async Task UpdateRoomTestConfig_DuplicateActive_Refused_AndSelfUpdateAllowed()
+    {
+        var suffix = Guid.NewGuid().ToString("N")[..8];
+        var (userId, _, _, roomId) = await SeedEmScopeAsync(suffix);
+        var activeCode = $"TC-ACT-{suffix}";
+        var secondCode = $"TC-SEC-{suffix}";
+        int activeId;
+        int inactiveSameId;
+        int secondActiveId;
+
+        await using (var arrangeDb = _fixture.CreateDbContext())
+        {
+            var active = new RoomTestConfiguration
+            {
+                RoomId = roomId,
+                TestType = RoomTestTypes.PassiveAirSample,
+                TestCode = activeCode,
+                AlertLimit = "5",
+                ActionLimit = "10",
+                SpecLimit = "20",
+                Unit = string.Empty,
+                IsActive = true
+            };
+            var inactiveSame = new RoomTestConfiguration
+            {
+                RoomId = roomId,
+                TestType = RoomTestTypes.PassiveAirSample,
+                TestCode = activeCode,
+                AlertLimit = "4",
+                ActionLimit = "8",
+                SpecLimit = "16",
+                Unit = string.Empty,
+                IsActive = false
+            };
+            var secondActive = new RoomTestConfiguration
+            {
+                RoomId = roomId,
+                TestType = RoomTestTypes.PassiveAirSample,
+                TestCode = secondCode,
+                AlertLimit = "5",
+                ActionLimit = "10",
+                SpecLimit = "20",
+                Unit = string.Empty,
+                IsActive = true
+            };
+            arrangeDb.RoomTestConfigurations.AddRange(active, inactiveSame, secondActive);
+            await arrangeDb.SaveChangesAsync();
+            activeId = active.Id;
+            inactiveSameId = inactiveSame.Id;
+            secondActiveId = secondActive.Id;
+        }
+
+        await using (var actDb = _fixture.CreateDbContext())
+        {
+            actDb.CurrentUserId = userId;
+            var svc = BuildEmService(actDb);
+            var reactivateEx = await Assert.ThrowsAsync<BusinessRuleException>(() =>
+                svc.UpdateRoomTestConfigurationAsync(
+                    inactiveSameId,
+                    new UpdateRoomTestConfigRequest(RoomTestTypes.PassiveAirSample, activeCode, "4", "8", "16", IsActive: true)));
+            Assert.Equal(
+                $"Test configuration '{activeCode}' ({RoomTestTypes.PassiveAirSample}) already exists for room {roomId}.",
+                reactivateEx.Message);
+
+            var renameEx = await Assert.ThrowsAsync<BusinessRuleException>(() =>
+                svc.UpdateRoomTestConfigurationAsync(
+                    secondActiveId,
+                    new UpdateRoomTestConfigRequest(RoomTestTypes.PassiveAirSample, $" {activeCode.ToLowerInvariant()} ", "5", "10", "20")));
+            Assert.Equal(
+                $"Test configuration '{activeCode.ToLowerInvariant()}' ({RoomTestTypes.PassiveAirSample}) already exists for room {roomId}.",
+                renameEx.Message);
+        }
+
+        await using (var assertDb = _fixture.CreateDbContext())
+        {
+            var inactiveRow = await assertDb.RoomTestConfigurations.AsNoTracking().SingleAsync(c => c.Id == inactiveSameId);
+            Assert.False(inactiveRow.IsActive);
+            var secondRow = await assertDb.RoomTestConfigurations.AsNoTracking().SingleAsync(c => c.Id == secondActiveId);
+            Assert.Equal(secondCode, secondRow.TestCode);
+            Assert.False(await assertDb.AuditLogs.AsNoTracking().AnyAsync(a =>
+                a.EntityName == nameof(RoomTestConfiguration)
+                && a.Action == "Update"
+                && (a.EntityId == inactiveSameId.ToString() || a.EntityId == secondActiveId.ToString())));
+        }
+
+        await using (var selfActDb = _fixture.CreateDbContext())
+        {
+            selfActDb.CurrentUserId = userId;
+            var svc = BuildEmService(selfActDb);
+            await svc.UpdateRoomTestConfigurationAsync(
+                activeId,
+                new UpdateRoomTestConfigRequest(RoomTestTypes.PassiveAirSample, activeCode, "6", "12", "24", IsActive: true));
+        }
+
+        await using var finalAssertDb = _fixture.CreateDbContext();
+        var updatedSelf = await finalAssertDb.RoomTestConfigurations.AsNoTracking().SingleAsync(c => c.Id == activeId);
+        Assert.Equal("6", updatedSelf.AlertLimit);
+    }
+
     private static SpecificationMasterDataService BuildSpecService(MicroLimsDbContext db) =>
         new(db, new UserSectionScopeService(db), new SpecificationService(db), new MasterDataBatchService(db));
 

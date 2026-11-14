@@ -7,6 +7,7 @@ using MicroLIMS.Application.Interfaces.DocumentControl;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Application.Abstractions.Persistence;
+using MicroLIMS.Application.Services.Notifications;
 
 namespace MicroLIMS.Application.Services.DocumentControl;
 
@@ -17,19 +18,22 @@ public class DocumentApprovalService : IDocumentApprovalService
     private readonly IDocumentAuthorizationService _auth;
     private readonly IElectronicSignatureService _signatureService;
     private readonly TimeProvider _time;
+    private readonly INotificationPublisher _publisher;
 
     public DocumentApprovalService(
         IMicroLimsDbContext db,
         IAuditEventService audit,
         IDocumentAuthorizationService auth,
         IElectronicSignatureService signatureService,
-        TimeProvider? timeProvider = null)
+        TimeProvider? timeProvider = null,
+        INotificationPublisher? publisher = null)
     {
         _time = timeProvider ?? TimeProvider.System;
         _db = db;
         _audit = audit;
         _auth = auth;
         _signatureService = signatureService;
+        _publisher = publisher ?? new NotificationPublisher(db, _time);
     }
 
     private async Task<(bool IsActive, RoleType? RoleType)> GetUserRoleAsync(int userId)
@@ -141,6 +145,16 @@ public class DocumentApprovalService : IDocumentApprovalService
         _db.DocumentApprovalTasks.Add(task);
         _db.CurrentUserId = userId;
         await _db.SaveChangesAsync();
+
+        await _publisher.PublishAsync(new NotificationRequest(
+            Type: "DocumentTask",
+            UserIds: new[] { request.ApproverUserId },
+            Message: $"Document {revision.DocumentMaster.MicroLimsDocumentId} (Rev {revision.RevisionNumber}) was assigned to you for approval.",
+            TargetType: "document-approval",
+            TargetId: task.Id,
+            SectionId: revision.DocumentMaster.SectionId,
+            DedupeKey: $"DocumentTask:approval:{task.Id}",
+            DueAtUtc: request.DueDate));
 
         var assigner = await _db.Users.FindAsync(userId);
 
@@ -472,6 +486,8 @@ public class DocumentApprovalService : IDocumentApprovalService
         // Revert revision status to Draft (DC-URS-075, FS-1b-075)
         revision.RevisionStatus = DocumentRevisionStatus.Draft;
 
+        await _publisher.ResolveAsync($"DocumentTask:approval:{task.Id}");
+
         _db.CurrentUserId = userId;
         await _db.SaveChangesAsync();
 
@@ -516,6 +532,8 @@ public class DocumentApprovalService : IDocumentApprovalService
         revision.CancelledAt = now;
         revision.CancelledByUserId = userId;
         revision.CancelReason = task.DecisionNotes;
+
+        await _publisher.ResolveAsync($"DocumentTask:approval:{task.Id}");
 
         _db.CurrentUserId = userId;
         await _db.SaveChangesAsync();
@@ -624,6 +642,8 @@ public class DocumentApprovalService : IDocumentApprovalService
 
             master.CurrentEffectiveRevisionId = revision.Id;
         }
+
+        await _publisher.ResolveAsync($"DocumentTask:approval:{task.Id}");
 
         _db.CurrentUserId = userId;
         await _db.SaveChangesAsync();

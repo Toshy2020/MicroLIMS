@@ -9,6 +9,7 @@ using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Application.Abstractions.Notifications;
 using MicroLIMS.Application.Abstractions.Persistence;
+using MicroLIMS.Application.Services.Notifications;
 using MicroLIMS.Shared.Constants;
 
 namespace MicroLIMS.Application.Workflows;
@@ -722,6 +723,7 @@ public sealed class PathogenConfirmationRecorder : TestWorkflowSupport
         // (already false) when the predecessor is SelectivePlating.
         precedingResult.RequiresBiochemical = false;
         precedingResult.SkippedBiochemical = false;
+        await _publisher.ResolveAsync($"TestReturned:test:{testOrderId}");
         await _db.SaveChangesAsync();
 
         // Some organisms chain several BiochemicalTest steps off the same
@@ -826,15 +828,17 @@ public sealed class PathogenConfirmationRecorder : TestWorkflowSupport
                 .Select(s => s.ReferenceNumber)
                 .FirstOrDefaultAsync();
             returnMessage = $"Test {order.TestCode} for sample {sampleReference ?? $"#{order.SampleId}"} was returned for biochemical confirmation: {comment!.Trim()}";
-            _db.NotificationLogs.Add(new NotificationLog
-            {
-                UserId = analystId,
-                Type = "TestReturnedForBiochemical",
-                Message = returnMessage,
-                Severity = "warning",
-                SampleId = order.SampleId,
-                TestOrderId = order.Id
-            });
+            await _publisher.PublishAsync(new NotificationRequest(
+                Type: "TestReturnedForBiochemical",
+                UserIds: new[] { analystId },
+                Message: returnMessage,
+                TargetType: "TestOrder",
+                TargetId: order.Id,
+                SectionId: order.SectionId,
+                DedupeKey: $"TestReturned:test:{order.Id}",
+                SampleId: order.SampleId,
+                TestOrderId: order.Id,
+                Severity: "warning"));
         }
 
         await _db.SaveChangesAsync();

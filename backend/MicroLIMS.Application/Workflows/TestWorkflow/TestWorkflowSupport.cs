@@ -9,6 +9,7 @@ using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Application.Abstractions.Notifications;
 using MicroLIMS.Application.Abstractions.Persistence;
+using MicroLIMS.Application.Services.Notifications;
 using MicroLIMS.Shared.Constants;
 
 namespace MicroLIMS.Application.Workflows;
@@ -30,6 +31,7 @@ public class TestWorkflowSupport
     protected readonly IElectronicSignatureService _signatureService;
     protected readonly IUserSectionScopeService _sectionScope;
     protected readonly ILabClock _clock;
+    protected readonly INotificationPublisher _publisher;
 
     public TestWorkflowSupport(TestWorkflowDependencies deps)
     {
@@ -44,6 +46,7 @@ public class TestWorkflowSupport
         _signatureService = deps.SignatureService;
         _sectionScope = deps.SectionScope;
         _clock = deps.Clock;
+        _publisher = deps.Publisher ?? new NotificationPublisher(deps.Db, deps.TimeProvider);
     }
 
     protected async Task<(TestOrder order, TestDefinition definition)> LoadWithTemplateAsync(int testOrderId)
@@ -732,6 +735,7 @@ public class TestWorkflowSupport
 
         _db.TestAnalyses.Add(entry);
         afterSigned?.Invoke(); // runs only once the signature succeeded; saved in the same SaveChanges
+        await _publisher.ResolveAsync($"TestReturned:test:{order.Id}");
 
         ResultStatus overallStatus;
         if (parameterResults.Any(r => r.ComparisonStatus == ResultStatus.OutOfSpecification))
@@ -874,4 +878,6 @@ public sealed record TestWorkflowDependencies(
     INotificationService Notifications,
     IElectronicSignatureService SignatureService,
     IUserSectionScopeService SectionScope,
-    ILabClock Clock);
+    ILabClock Clock,
+    INotificationPublisher? Publisher = null,
+    TimeProvider? TimeProvider = null);

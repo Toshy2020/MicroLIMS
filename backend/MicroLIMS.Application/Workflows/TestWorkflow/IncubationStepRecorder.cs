@@ -930,6 +930,7 @@ public sealed class IncubationStepRecorder : TestWorkflowSupport
         };
 
         _db.CountTestReadings.Add(reading);
+        await _publisher.ResolveAsync($"TestReturned:test:{order.Id}");
 
         _db.Results.Add(new Result
         {

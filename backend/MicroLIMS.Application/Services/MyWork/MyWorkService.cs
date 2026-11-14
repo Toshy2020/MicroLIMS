@@ -86,12 +86,13 @@ public sealed class MyWorkService : IMyWorkService
                 .ThenBy(i => i.Urgency)
                 .ThenBy(i => i.SortAtUtc)
                 .ToList();
-            var count = Math.Max(totals.GetValueOrDefault(key), groupItems.Count);
-            if (count == 0) continue;
+            // Count is what the user can act on: locked items (Segregation of Duties) are listed but never counted.
+            var count = Math.Max(totals.GetValueOrDefault(key), groupItems.Count(i => !i.Locked));
+            var lockedCount = Math.Max(locked.GetValueOrDefault(key), groupItems.Count(i => i.Locked));
+            if (count == 0 && lockedCount == 0) continue;
 
             var shown = groupItems.Take(GroupCap).ToList();
-            var lockedCount = Math.Max(locked.GetValueOrDefault(key), groupItems.Count(i => i.Locked));
-            groups.Add(new MyWorkGroup(key, title, count, lockedCount, shown, HasMore: count > shown.Count));
+            groups.Add(new MyWorkGroup(key, title, count, lockedCount, shown, HasMore: count + lockedCount > shown.Count));
         }
 
         return new MyWorkResponse(ctx.NowUtc, _clock.LabTimeZone.Id, groups, unavailable);

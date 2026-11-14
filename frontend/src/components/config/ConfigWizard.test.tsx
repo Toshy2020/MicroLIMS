@@ -7,7 +7,7 @@ import { Checkbox, FormControlLabel, Stack, TextField } from "@mui/material";
 import { MemoryRouter } from "react-router-dom";
 import { AuthProvider } from "../../contexts/AuthContext";
 import { PinnedLightTheme } from "../../theme/PinnedLightTheme";
-import { resetDraftDb, signInForTest } from "../../services/drafts/draftTestUtils";
+import { rawStoredDrafts, resetDraftDb, signInForTest } from "../../services/drafts/draftTestUtils";
 import type { FieldError } from "../../services/apiTypes";
 import type { UsageSummary } from "../../services/masterDataUsageService";
 import { ConfigWizard, type ConfigWizardProps, type WizardStep } from "./ConfigWizard";
@@ -414,6 +414,10 @@ describe("ConfigWizard", () => {
 
     // Wait for debounced draft write, then unmount (simulates close without discard).
     await new Promise((r) => setTimeout(r, 500));
+    // What is written to the tablet holds only the allow-listed fields.
+    const stored = JSON.stringify(await rawStoredDrafts());
+    expect(stored).toContain("Saved Draft Name");
+    expect(stored).not.toContain("Must NOT persist");
     first.unmount();
 
     renderWizard({ draftKey: "draft-restore-test" });

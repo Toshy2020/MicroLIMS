@@ -1,8 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { ThemeProvider } from "@mui/material/styles";
-import { lightTheme } from "../../../../theme";
+import { AxiosError, type AxiosResponse } from "axios";
+import { MemoryRouter } from "react-router-dom";
+import { AuthProvider } from "../../../../contexts/AuthContext";
+import { renderWithTheme } from "../../../../components/bench/benchTestUtils";
+import { draftStore } from "../../../../services/drafts/draftStore";
+import { makeDraft, rawStoredDrafts, resetDraftDb, signInForTest } from "../../../../services/drafts/draftTestUtils";
 import {
   labelService,
   type ScanMatch,
@@ -17,6 +21,7 @@ import {
 } from "../../masterDataSimple/services/EquipmentConfigurationService";
 import { MediaPreparationService } from "../services/MediaPreparationService";
 import { MediaPreparationDialog } from "./MediaPreparationDialog";
+import { changeDateField } from "../../../../components/DateField.testUtils";
 
 vi.mock("../../../../services/labelService", () => ({
   labelService: {
@@ -115,17 +120,40 @@ function makeResolveResponse(match: Partial<ScanMatch>): ScanResolveResponse {
   };
 }
 
-function renderDialog() {
-  return render(
-    <ThemeProvider theme={lightTheme}>
-      <MediaPreparationDialog open={true} onClose={vi.fn()} onSuccess={vi.fn()} />
-    </ThemeProvider>
+const sampleProgram = {
+  id: 55,
+  equipmentId: 41,
+  autoclaveCode: "AC-01",
+  autoclaveName: "Autoclave Alpha",
+  programCode: "P1",
+  programName: "Liquid Standard",
+  loadType: "Liquid",
+  temperature: 121,
+  cycleTimeMinutes: 15,
+  isActive: true,
+  createdByUserId: 1,
+  createdAt: "2026-01-01T00:00:00Z",
+  lastModifiedByUserId: 1,
+  lastModifiedAt: "2026-01-01T00:00:00Z"
+};
+
+function renderDialog(bench = false) {
+  return renderWithTheme(
+    <AuthProvider>
+      <MemoryRouter>
+        <MediaPreparationDialog open={true} onClose={vi.fn()} onSuccess={vi.fn()} />
+      </MemoryRouter>
+    </AuthProvider>,
+    { bench }
   );
 }
 
 describe("MediaPreparationDialog", () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks();
+    localStorage.clear();
+    await resetDraftDb();
+    signInForTest(7);
     vi.mocked(masterDataOptions.getEquipment).mockResolvedValue(autoclaveOptions);
     vi.mocked(MaterialService.getAll).mockImplementation(async (type?: string) =>
       type === "DehydratedMedia" ? dehydratedMediaItems : []
@@ -136,6 +164,7 @@ describe("MediaPreparationDialog", () => {
 
   afterEach(() => {
     cleanup();
+    localStorage.clear();
   });
 
   it("scanning an offered dehydrated media stock lot selects it", async () => {
@@ -233,5 +262,181 @@ describe("MediaPreparationDialog", () => {
     expect(alert.textContent).toContain("AC-99 is not available for this step.");
     expect(screen.getByRole("combobox", { name: "Autoclave" }).textContent).toContain("Select Autoclave *");
     expect(EquipmentConfigurationService.getAutoclavePrograms).not.toHaveBeenCalled();
+  });
+
+  it("media payload equals the current twelve fields (materialId ... additives)", async () => {
+    const user = userEvent.setup();
+    vi.mocked(EquipmentConfigurationService.getAutoclavePrograms).mockResolvedValue([sampleProgram]);
+    vi.mocked(MediaPreparationService.prepare).mockResolvedValue({ id: 900 } as never);
+
+    renderDialog();
+    await screen.findByRole("combobox", { name: "Dehydrated Media Stock (Inventory)" });
+
+    await user.click(screen.getByRole("combobox", { name: "Dehydrated Media Stock (Inventory)" }));
+    await user.click(await screen.findByRole("option", { name: /Tryptic Soy Agar Powder/ }));
+
+    await user.type(screen.getByLabelText(/^Total Weight/i), "40");
+    await user.type(screen.getByLabelText(/^Total Volume/i), "1000 mL");
+
+    await user.click(screen.getByRole("combobox", { name: "Autoclave" }));
+    await user.click(await screen.findByRole("option", { name: /AC-01: Autoclave Alpha/ }));
+
+    await waitFor(() => {
+      expect(EquipmentConfigurationService.getAutoclavePrograms).toHaveBeenCalledWith(41, true);
+    });
+    await user.click(screen.getByRole("combobox", { name: "Autoclave program" }));
+    await user.click(await screen.findByRole("option", { name: /P1: Liquid Standard/ }));
+
+    await user.type(screen.getByLabelText(/^Cycle Number/i), "3");
+    await user.type(screen.getByLabelText(/^pH/i), "7.3");
+    changeDateField(/Expiry Date/i, "2027-06-30");
+
+    await user.click(screen.getByRole("button", { name: "Save Prepared Lot" }));
+
+    await waitFor(() => expect(MediaPreparationService.prepare).toHaveBeenCalledTimes(1));
+    expect(vi.mocked(MediaPreparationService.prepare).mock.calls[0][0]).toEqual({
+      materialId: 301,
+      totalWeight: 40,
+      totalVolume: "1000 mL",
+      autoclaveEquipmentId: 41,
+      autoclaveProgram: "P1: Liquid Standard",
+      loadType: "Liquid",
+      temperature: 121,
+      cycleTime: 15,
+      cycleNumber: 3,
+      ph: 7.3,
+      expiryDate: "2027-06-30",
+      additives: []
+    });
+  });
+
+  it('numeric fields (weight, pH, temperature, cycle time) use NumericEntryField kind="decimal"; cycle number kind="count"', async () => {
+    renderDialog();
+    const weight = await screen.findByLabelText(/^Total Weight/i);
+    const ph = screen.getByLabelText(/^pH/i);
+    const temp = screen.getByLabelText(/^Temperature/i);
+    const cycleTime = screen.getByLabelText(/^Cycle Time/i);
+    const cycleNumber = screen.getByLabelText(/^Cycle Number/i);
+
+    for (const field of [weight, ph, temp, cycleTime]) {
+      expect(field.hasAttribute("data-numeric-entry")).toBe(true);
+      expect(field.getAttribute("inputmode")).toBe("decimal");
+    }
+    expect(cycleNumber.hasAttribute("data-numeric-entry")).toBe(true);
+    expect(cycleNumber.getAttribute("inputmode")).toBe("numeric");
+  });
+
+  it("sections stack one per screen height in bench mode with a step indicator", async () => {
+    renderDialog(true);
+    const stepper = await screen.findByTestId("media-step-indicator");
+    expect(stepper).toBeTruthy();
+    const sections = document.querySelectorAll("[data-bench-section]");
+    expect(sections.length).toBe(4);
+  });
+
+  it("media draft restores and keeps only allow-listed fields; network error keeps draft; 409 rejects without retry", async () => {
+    const user = userEvent.setup();
+    vi.mocked(EquipmentConfigurationService.getAutoclavePrograms).mockResolvedValue([sampleProgram]);
+    await draftStore.put(
+      makeDraft({
+        userId: 7,
+        formKey: "media-preparation",
+        recordKey: "new",
+        recordVersion: null,
+        values: {
+          materialId: 301,
+          totalWeight: "42.5",
+          totalVolume: "1000 mL",
+          autoclaveEquipmentId: 41,
+          autoclaveProgramId: 55,
+          autoclaveProgram: "P1: Liquid Standard",
+          loadType: "Liquid",
+          temperature: 121,
+          cycleTime: 15,
+          cycleNumber: "4",
+          ph: "7.2",
+          expiryDate: "2027-06-30",
+          additives: [],
+          password: "should-not-be-stored"
+        }
+      })
+    );
+
+    renderDialog(true);
+    const restoreBtn = await screen.findByRole("button", { name: "Restore entry" });
+    await user.click(restoreBtn);
+
+    expect((screen.getByLabelText(/^Total Weight/i) as HTMLInputElement).value).toBe("42.5");
+    expect((screen.getByLabelText(/^Cycle Number/i) as HTMLInputElement).value).toBe("4");
+
+    // Edit weight to trigger debounced draft write with allow-list
+    await user.type(screen.getByLabelText(/^pH/i), "5");
+    await new Promise((r) => setTimeout(r, 500));
+    const stored = (await rawStoredDrafts()) as Array<{ values: Record<string, unknown>; state: string }>;
+    expect(stored.length).toBe(1);
+    expect("password" in stored[0].values).toBe(false);
+
+    // Network error keeps draft and values
+    vi.mocked(MediaPreparationService.prepare).mockRejectedValueOnce(new AxiosError("Network Error", "ERR_NETWORK"));
+    await user.click(screen.getByRole("button", { name: "Save Prepared Lot" }));
+    expect(await screen.findByRole("button", { name: "Try saving again" })).toBeTruthy();
+    expect((screen.getByLabelText(/^Total Weight/i) as HTMLInputElement).value).toBe("42.5");
+    expect(MediaPreparationService.prepare).toHaveBeenCalledTimes(1);
+
+    // 409 conflict marks draft rejected and never auto-retries
+    vi.mocked(MediaPreparationService.prepare).mockRejectedValueOnce(
+      new AxiosError("Conflict", "ERR_BAD_REQUEST", undefined, undefined, {
+        status: 409,
+        statusText: "Conflict",
+        data: { message: "Lot version conflict." },
+        headers: {},
+        config: {}
+      } as AxiosResponse)
+    );
+    await user.click(screen.getByRole("button", { name: "Save Prepared Lot" }));
+    await waitFor(() => expect(screen.getByText("Lot version conflict.")).toBeTruthy());
+    expect(MediaPreparationService.prepare).toHaveBeenCalledTimes(2);
+    const after409 = (await rawStoredDrafts()) as Array<{ state: string; rejectReason?: string }>;
+    expect(after409[0]?.state).toBe("rejected");
+  });
+
+  it("server validation errors appear on the matching field", async () => {
+    const user = userEvent.setup();
+    vi.mocked(EquipmentConfigurationService.getAutoclavePrograms).mockResolvedValue([sampleProgram]);
+    vi.mocked(MediaPreparationService.prepare).mockRejectedValueOnce(
+      new AxiosError("Validation failed", "ERR_BAD_REQUEST", undefined, undefined, {
+        status: 400,
+        statusText: "Bad Request",
+        data: {
+          message: "Validation failed",
+          errors: {
+            totalWeight: ["Weight must be greater than zero."],
+            ph: ["pH is outside allowed range."]
+          }
+        },
+        headers: {},
+        config: {}
+      } as AxiosResponse)
+    );
+
+    renderDialog();
+    await screen.findByRole("combobox", { name: "Dehydrated Media Stock (Inventory)" });
+    await user.click(screen.getByRole("combobox", { name: "Dehydrated Media Stock (Inventory)" }));
+    await user.click(await screen.findByRole("option", { name: /Tryptic Soy Agar Powder/ }));
+    await user.type(screen.getByLabelText(/^Total Weight/i), "40");
+    await user.type(screen.getByLabelText(/^Total Volume/i), "1000 mL");
+    await user.click(screen.getByRole("combobox", { name: "Autoclave" }));
+    await user.click(await screen.findByRole("option", { name: /AC-01: Autoclave Alpha/ }));
+    await waitFor(() => expect(EquipmentConfigurationService.getAutoclavePrograms).toHaveBeenCalledWith(41, true));
+    await user.click(screen.getByRole("combobox", { name: "Autoclave program" }));
+    await user.click(await screen.findByRole("option", { name: /P1: Liquid Standard/ }));
+    await user.type(screen.getByLabelText(/^Cycle Number/i), "1");
+    await user.type(screen.getByLabelText(/^pH/i), "7.3");
+    changeDateField(/Expiry Date/i, "2027-06-30");
+
+    await user.click(screen.getByRole("button", { name: "Save Prepared Lot" }));
+
+    expect(await screen.findByText("Weight must be greater than zero.")).toBeTruthy();
+    expect(screen.getByText("pH is outside allowed range.")).toBeTruthy();
   });
 });

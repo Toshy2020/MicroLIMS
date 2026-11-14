@@ -11,13 +11,16 @@ export interface NumericEntryFieldProps {
   kind: "count" | "decimal"; // count = whole, non-negative; decimal may start with a minus sign
   maxLength?: number; // default 7
   error?: string;
+  helperText?: string;
   disabled?: boolean;
+  readOnly?: boolean;
   required?: boolean;
   unit?: string;
   onNext?(): void;
   onBlur?(): void;
   inputRef?: Ref<HTMLInputElement>;
   "aria-label"?: string;
+  "aria-describedby"?: string;
 }
 
 // Format checks only. Laboratory limits and ranges are enforced by the backend.
@@ -41,13 +44,16 @@ export function NumericEntryField({
   kind,
   maxLength = 7,
   error,
+  helperText,
   disabled,
+  readOnly,
   required,
   unit,
   onNext,
   onBlur,
   inputRef,
-  "aria-label": ariaLabel
+  "aria-label": ariaLabel,
+  "aria-describedby": ariaDescribedBy
 }: NumericEntryFieldProps) {
   const elementRef = useRef<HTMLInputElement | null>(null);
   const latest = useRef({ value, onChange, onNext, kind, maxLength });
@@ -64,7 +70,7 @@ export function NumericEntryField({
   }, []);
 
   const parsed = kind === "count" ? parseCount(value) : parseDecimal(value);
-  const formatError = value !== "" && parsed === null ? FORMAT_MESSAGE[kind] : undefined;
+  const formatError = !readOnly && value !== "" && parsed === null ? FORMAT_MESSAGE[kind] : undefined;
   const message = error ?? formatError;
 
   const setRefs = (node: HTMLInputElement | null) => {
@@ -93,17 +99,20 @@ export function NumericEntryField({
       disabled={disabled}
       required={required}
       error={Boolean(message)}
-      helperText={message}
+      helperText={message ?? helperText}
       fullWidth
       slotProps={{
         htmlInput: {
           inputMode: kind === "count" ? "numeric" : "decimal",
           maxLength,
+          readOnly,
           autoComplete: "off",
           "aria-label": ariaLabel,
+          "aria-describedby": ariaDescribedBy,
           [NUMERIC_FIELD_ATTRIBUTE]: "true",
           ref: setRefs,
           onFocus: (e: React.FocusEvent<HTMLInputElement>) => {
+            if (readOnly) return;
             e.target.select();
             register(e.target);
           },
@@ -118,7 +127,7 @@ export function NumericEntryField({
             }
           }
         },
-        formHelperText: { role: "alert" },
+        formHelperText: message ? { role: "alert" } : undefined,
         input: unit ? { endAdornment: <InputAdornment position="end">{unit}</InputAdornment> } : undefined
       }}
     />

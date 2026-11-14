@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Alert,
   Box,
@@ -8,14 +8,13 @@ import {
   CircularProgress,
   FormControl,
   FormHelperText,
-  InputAdornment,
   InputLabel,
   MenuItem,
   Select,
   Stack,
-  TextField,
   Typography
 } from "@mui/material";
+import { NumericEntryField, parseDecimal } from "../../../components/bench/NumericEntryField";
 import { formatLabDate } from "../../../utils/formatDate";
 import { approvalStatusLabel } from "../releaseState";
 import type { SolutionPreparationComponentResponse, SourcePreparationOption } from "../types";
@@ -50,6 +49,12 @@ export function SourcePreparationPicker({
   );
   const hasUsable = options.some((o) => o.usable);
   const recipeUnit = component.recipeUnit ?? "";
+  const externalText = quantityUsed == null ? "" : String(quantityUsed);
+  const [qtyText, setQtyText] = useState(externalText);
+
+  useEffect(() => {
+    setQtyText((prev) => (parseDecimal(prev) === (quantityUsed ?? null) ? prev : externalText));
+  }, [externalText, quantityUsed]);
 
   return (
     <Card variant="outlined" sx={{ mb: 2 }}>
@@ -130,28 +135,21 @@ export function SourcePreparationPicker({
               )}
             </FormControl>
 
-            <TextField
-              size="small"
-              fullWidth
+            <NumericEntryField
               label="Quantity Used (optional)"
-              type="number"
-              value={quantityUsed ?? ""}
-              onChange={(e) => {
-                const val = e.target.value;
+              kind="decimal"
+              value={qtyText}
+              onChange={(val) => {
+                setQtyText(val);
                 if (val === "") {
                   onChangeQuantity(null);
                 } else {
-                  const parsed = parseFloat(val);
-                  onChangeQuantity(isNaN(parsed) ? null : parsed);
+                  const parsed = parseDecimal(val);
+                  if (parsed !== null) onChangeQuantity(parsed);
                 }
               }}
               disabled={disabled || !selectedPreparationId}
-              slotProps={{
-                input: {
-                  endAdornment: recipeUnit ? <InputAdornment position="end">{recipeUnit}</InputAdornment> : undefined,
-                  inputProps: { min: 0, step: "any" }
-                }
-              }}
+              unit={recipeUnit || undefined}
               helperText="Recorded only; not deducted from the prepared bottle"
             />
           </Box>

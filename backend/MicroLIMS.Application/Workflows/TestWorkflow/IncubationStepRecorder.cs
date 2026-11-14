@@ -10,6 +10,7 @@ using MicroLIMS.Domain.Enums;
 using MicroLIMS.Application.Abstractions.Notifications;
 using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Shared.Constants;
+using MicroLIMS.Shared.Responses;
 
 namespace MicroLIMS.Application.Workflows;
 
@@ -762,12 +763,18 @@ public sealed class IncubationStepRecorder : TestWorkflowSupport
         _ => 0
     };
 
-    private async Task<(string reported, decimal? average, decimal? calculated, ResultStatus status, CountTestReading reading)> RecordCountTestAsync(TestOrder order, TestWorkflowStep step, CountTestPayload payload, int userId)
-    {
-        if (payload.RawPlateReadings.Count == 0)
-            throw new BusinessRuleException("At least one plate reading is required to calculate an average.");
+    // Everything RecordCountTestAsync and the preview load before the
+    // arithmetic: the sample, the dilution factor in force (forced to 1 for
+    // direct-count categories), the configured-DF snapshot with its override
+    // check, and the category's default CFU unit. Throws the same business
+    // errors the save always has. Reads only.
+    private sealed record CountContext(
+        Sample Sample, CountTestPayload Payload, decimal? ConfiguredDilutionFactor, bool DilutionFactorOverridden, string Unit);
 
+    private async Task<CountContext> LoadCountContextAsync(TestOrder order, CountTestPayload payload)
+    {
         var sample = await _db.Samples
+            .AsNoTracking()
             .FirstOrDefaultAsync(s => s.Id == order.SampleId)
             ?? throw new NotFoundException("Sample not found for this test order.");
 
@@ -825,112 +832,112 @@ public sealed class IncubationStepRecorder : TestWorkflowSupport
         // path (RecordBatchResultsAsync), never this method.
         var unit = GetCfuUnit(sample.Category, null);
 
-        bool hasNonNumeric = payload.RawPlateReadings
-            .Any(r => r.Equals("TNTC", StringComparison.OrdinalIgnoreCase) ||
-                      r.Equals("Uncountable", StringComparison.OrdinalIgnoreCase));
+        return new CountContext(sample, payload, configuredDilutionFactor, dilutionFactorOverridden, unit);
+    }
 
-        CountTestReading reading;
-        string reported;
-        decimal? average = null;
-        decimal? calculated = null;
-        ResultStatus status;
-
-        if (hasNonNumeric)
+    // The limits and unit configured for the sample's item or water
+    // sampling point; all null for samples with neither. Only read for
+    // numeric results (TNTC/Uncountable never look them up).
+    private async Task<(string? Alert, string? Action, string? Spec, string? Unit)> LoadCountLimitsAsync(TestOrder order, Sample sample)
+    {
+        if (sample.ItemId is not null)
         {
-            var nonNumericRaw = payload.RawPlateReadings
-                .First(r => !decimal.TryParse(r, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out _))
-                .Trim();
-
-            var nonNumericValue = nonNumericRaw.Equals("TNTC", StringComparison.OrdinalIgnoreCase) ? "TNTC" : "Uncountable";
-
-            status = ResultStatus.RequiresReview;
-            reported = nonNumericValue;
-
-            reading = new CountTestReading
-            {
-                TestOrderId = order.Id,
-                StepName = step.StepName,
-                PlateReadings = string.Join(",", payload.RawPlateReadings),
-                DilutionFactor = payload.DilutionFactor,
-                ConfiguredDilutionFactor = configuredDilutionFactor,
-                DilutionFactorOverridden = dilutionFactorOverridden,
-                DilutionFactorOverrideNote = dilutionFactorOverridden ? payload.DilutionFactorOverrideNote : null,
-                Average = null,
-                CalculatedResult = null,
-                ReportedResult = reported,
-                AlertLimit = null,
-                ActionLimit = null,
-                SpecLimit = null,
-                Status = status,
-                HasNonNumericReading = true,
-                NonNumericValue = nonNumericValue,
-                RequiresReview = true,
-                EnteredByUserId = userId
-            };
+            var spec = await SpecificationLookup.PrimaryAsync(_db, sample.Id, sample.ItemId.Value, order.TestCode);
+            return (spec?.AlertLimit, spec?.ActionLimit, spec?.SpecLimit, spec?.Unit);
         }
-        else
+        if (sample.WaterSamplingPointId is not null)
         {
-            var numericReadings = payload.RawPlateReadings
-                .Select(r => decimal.Parse(r, System.Globalization.CultureInfo.InvariantCulture))
+            var config = await _db.SamplingConfigurations.AsNoTracking().FirstOrDefaultAsync(c => c.TestCode == order.TestCode && c.WaterSamplingPointId == sample.WaterSamplingPointId);
+            return (config?.AlertLimit, config?.ActionLimit, config?.SpecLimit, config?.Unit);
+        }
+        return (null, null, null, null);
+    }
+
+    private async Task<(CountContext Context, CountCalculationResult Calculation, (string? Alert, string? Action, string? Spec, string? Unit) Limits)>
+        LoadAndCalculateCountAsync(TestOrder order, CountTestPayload payload)
+    {
+        var context = await LoadCountContextAsync(order, payload);
+        var limits = CountResultCalculator.HasNonNumericReading(context.Payload.RawPlateReadings)
+            ? (Alert: (string?)null, Action: (string?)null, Spec: (string?)null, Unit: (string?)null)
+            : await LoadCountLimitsAsync(order, context.Sample);
+        var calculation = CountResultCalculator.Calculate(new CountCalculationInput(
+            context.Payload.RawPlateReadings, context.Payload.DilutionFactor, context.Unit,
+            limits.Unit, limits.Alert, limits.Action, limits.Spec));
+        return (context, calculation, limits);
+    }
+
+    // The count a save of these readings would report, calculated by the
+    // same code, with nothing written: no reading, no result, no audit row,
+    // no status change. Applies the same loading and business checks as the
+    // save except those about the open incubation. Invalid readings are
+    // returned as field errors.
+    public async Task<CountCalculationResult> PreviewCountResultAsync(int testOrderId, string stepName, CountTestPayload payload)
+    {
+        var (order, definition) = await LoadWithTemplateAsync(testOrderId);
+        var step = definition.Steps.FirstOrDefault(s => s.StepName == stepName)
+            ?? throw new BusinessRuleException($"Step \"{stepName}\" is not part of the workflow template for \"{order.TestCode}\".");
+        if (step.StepType != StepType.PlateCount)
+            throw new BusinessRuleException($"Step \"{stepName}\" is not a plate-count step.");
+        if (definition.WorkflowType != WorkflowType.CountTest)
+            throw new BusinessRuleException($"\"{order.TestCode}\" is not a Count Test workflow.");
+
+        if (payload.RawPlateReadings.Count == 0)
+            throw new FieldValidationException("At least one plate reading is required to calculate an average.",
+                new[] { new FieldError("rawPlateReadings", "At least one plate reading is required to calculate an average.") });
+
+        // Same rule as the numeric branch of Calculate: without TNTC/Uncountable
+        // every reading must parse as a number.
+        if (!CountResultCalculator.HasNonNumericReading(payload.RawPlateReadings))
+        {
+            var invalid = payload.RawPlateReadings
+                .Select((r, i) => (Reading: r, Index: i))
+                .Where(x => !CountResultCalculator.IsParsable(x.Reading))
+                .Select(x => new FieldError("rawPlateReadings", $"\"{x.Reading}\" is not a number. Enter a count, TNTC or Uncountable.", x.Index))
                 .ToList();
-
-            average = numericReadings.Average();
-            calculated = average.Value * payload.DilutionFactor;
-            var lowerLimit = payload.DilutionFactor;
-
-            string? alertLimit = null, actionLimit = null, specLimit = null, configuredUnit = null;
-            if (sample.ItemId is not null)
-            {
-                var spec = await SpecificationLookup.PrimaryAsync(_db, sample.Id, sample.ItemId.Value, order.TestCode);
-                alertLimit = spec?.AlertLimit; actionLimit = spec?.ActionLimit; specLimit = spec?.SpecLimit;
-                configuredUnit = spec?.Unit;
-            }
-            else if (sample.WaterSamplingPointId is not null)
-            {
-                var config = await _db.SamplingConfigurations.FirstOrDefaultAsync(c => c.TestCode == order.TestCode && c.WaterSamplingPointId == sample.WaterSamplingPointId);
-                alertLimit = config?.AlertLimit; actionLimit = config?.ActionLimit; specLimit = config?.SpecLimit;
-                configuredUnit = config?.Unit;
-            }
-
-            var effectiveUnit = !string.IsNullOrWhiteSpace(configuredUnit)
-                ? (configuredUnit.StartsWith("CFU/", StringComparison.OrdinalIgnoreCase) ? configuredUnit : $"CFU/{configuredUnit}")
-                : unit;
-
-            // A CFU count is a whole-number concept - round to the nearest
-            // integer for the reported display, same as
-            // RecordBatchResultsAsync already does for EM/After Cleaning.
-            // G29 (up to 29 significant digits) could show a long repeating
-            // decimal for readings that don't divide evenly; the
-            // full-precision value is still stored on Average/
-            // CalculatedResult, only the reported display is rounded.
-            reported = calculated.Value < lowerLimit
-                ? $"<{Math.Round(lowerLimit, MidpointRounding.AwayFromZero)} {effectiveUnit}"
-                : $"{Math.Round(calculated.Value, MidpointRounding.AwayFromZero)} {effectiveUnit}";
-
-            (status, _) = Compare(calculated.Value, alertLimit, actionLimit, specLimit);
-
-            reading = new CountTestReading
-            {
-                TestOrderId = order.Id,
-                StepName = step.StepName,
-                PlateReadings = string.Join(",", payload.RawPlateReadings),
-                DilutionFactor = payload.DilutionFactor,
-                ConfiguredDilutionFactor = configuredDilutionFactor,
-                DilutionFactorOverridden = dilutionFactorOverridden,
-                DilutionFactorOverrideNote = dilutionFactorOverridden ? payload.DilutionFactorOverrideNote : null,
-                Average = average,
-                CalculatedResult = calculated,
-                ReportedResult = reported,
-                AlertLimit = alertLimit,
-                ActionLimit = actionLimit,
-                SpecLimit = specLimit,
-                Status = status,
-                HasNonNumericReading = false,
-                NonNumericValue = null,
-                RequiresReview = false,
-                EnteredByUserId = userId
-            };
+            if (invalid.Count > 0)
+                throw new FieldValidationException("One or more plate readings are not valid.", invalid);
         }
+
+        return (await LoadAndCalculateCountAsync(order, payload)).Calculation;
+    }
+
+    private async Task<(string reported, decimal? average, decimal? calculated, ResultStatus status, CountTestReading reading)> RecordCountTestAsync(TestOrder order, TestWorkflowStep step, CountTestPayload payload, int userId)
+    {
+        if (payload.RawPlateReadings.Count == 0)
+            throw new BusinessRuleException("At least one plate reading is required to calculate an average.");
+
+        var (context, calculation, limits) = await LoadAndCalculateCountAsync(order, payload);
+        payload = context.Payload;
+        var configuredDilutionFactor = context.ConfiguredDilutionFactor;
+        var dilutionFactorOverridden = context.DilutionFactorOverridden;
+
+        var reported = calculation.Reported;
+        var average = calculation.Average;
+        var calculated = calculation.Calculated;
+        var status = calculation.Status;
+        var hasNonNumeric = calculation.NonNumericValue is not null;
+
+        var reading = new CountTestReading
+        {
+            TestOrderId = order.Id,
+            StepName = step.StepName,
+            PlateReadings = string.Join(",", payload.RawPlateReadings),
+            DilutionFactor = payload.DilutionFactor,
+            ConfiguredDilutionFactor = configuredDilutionFactor,
+            DilutionFactorOverridden = dilutionFactorOverridden,
+            DilutionFactorOverrideNote = dilutionFactorOverridden ? payload.DilutionFactorOverrideNote : null,
+            Average = average,
+            CalculatedResult = calculated,
+            ReportedResult = reported,
+            AlertLimit = limits.Alert,
+            ActionLimit = limits.Action,
+            SpecLimit = limits.Spec,
+            Status = status,
+            HasNonNumericReading = hasNonNumeric,
+            NonNumericValue = calculation.NonNumericValue,
+            RequiresReview = hasNonNumeric,
+            EnteredByUserId = userId
+        };
 
         _db.CountTestReadings.Add(reading);
 
@@ -938,7 +945,7 @@ public sealed class IncubationStepRecorder : TestWorkflowSupport
         {
             TestOrderId = order.Id,
             RawValue = string.Join(",", payload.RawPlateReadings),
-            InterpretedValue = hasNonNumeric ? $"{reported} ({status})" : $"{reported} ({status})",
+            InterpretedValue = $"{reported} ({status})",
             Type = ResultType.Numeric,
             EnteredByUserId = userId
         });

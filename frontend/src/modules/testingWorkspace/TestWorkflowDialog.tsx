@@ -1,10 +1,13 @@
-import { useEffect, useRef, useState, useMemo, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import axios from "axios";
 import { Box, Typography, TextField, Button, Stack, Alert, IconButton, useTheme } from "@mui/material";
 import { toast } from "sonner";
 import AddIcon from "@mui/icons-material/Add";
 import CloseIcon from "@mui/icons-material/Close";
 import EditIcon from "@mui/icons-material/Edit";
 import { StatusBadge } from "../../components/StatusBadge";
+import { statusTone } from "../../theme/statusTokens";
+import { errorsByRow } from "../../utils/fieldErrors";
 import { lookupCache } from "../../services/lookupCache";
 import { entryDefaultsService } from "../../services/entryDefaultsService";
 import { useLastChoiceDefault } from "../../components/entry/LastChoiceField";
@@ -38,7 +41,7 @@ import { useBenchDraft } from "../../hooks/useBenchDraft";
 import { useBenchMode } from "../../theme/BenchModeContext";
 import { OfflineDraftNotice, classifySaveFailure, draftHeaderArgs, serverMessage, useKeptOffline } from "./benchSave";
 import type { IncubatorEquipmentItem, ReleasedMediaItem } from "../../services/lookupCache";
-import type { PreviousStepDetail, TestWorkflowStepDto } from "./types/testWorkflowTypes";
+import type { CountPreviewResult, PreviousStepDetail, TestWorkflowStepDto } from "./types/testWorkflowTypes";
 
 type StepMediaRow = TestWorkflowStepDto["stepMedia"][number];
 type StepStage = NonNullable<TestWorkflowStepDto["incubationStages"]>[number];
@@ -67,6 +70,7 @@ const pickCountDraft = (v: CountDraftValues): Partial<CountDraftValues> => ({
 
 interface BenchPlateRowsProps {
   readings: string[];
+  errors?: Record<number, string>;
   isNonNumeric: (value: string) => boolean;
   onChange: (index: number, value: string) => void;
   onRemove: (index: number) => void;
@@ -74,7 +78,7 @@ interface BenchPlateRowsProps {
 
 // One plate per row for a tablet: a whole-number field filled from the keypad, and
 // buttons for the two non-numeric readings the existing screen already accepts.
-function BenchPlateRows({ readings, isNonNumeric, onChange, onRemove }: BenchPlateRowsProps) {
+function BenchPlateRows({ readings, errors, isNonNumeric, onChange, onRemove }: BenchPlateRowsProps) {
   return (
     <Stack spacing={1}>
       {readings.map((r, i) => (
@@ -85,11 +89,15 @@ function BenchPlateRows({ readings, isNonNumeric, onChange, onRemove }: BenchPla
                 label={`Plate ${i + 1}`}
                 value={r}
                 fullWidth
-                helperText="Non-numeric: flagged for reviewer decision"
-                slotProps={{ htmlInput: { readOnly: true } }}
+                error={Boolean(errors?.[i])}
+                helperText={errors?.[i] ?? "Non-numeric: flagged for reviewer decision"}
+                slotProps={{
+                  htmlInput: { readOnly: true },
+                  formHelperText: errors?.[i] ? { role: "alert" } : undefined
+                }}
               />
             ) : (
-              <NumericEntryField label={`Plate ${i + 1}`} value={r} onChange={(v) => onChange(i, v)} kind="count" />
+              <NumericEntryField label={`Plate ${i + 1}`} value={r} error={errors?.[i]} onChange={(v) => onChange(i, v)} kind="count" />
             )}
           </Box>
           {isNonNumeric(r) ? (
@@ -118,6 +126,11 @@ interface CountOutcome {
   calculatedResult?: number | string | null;
   status?: string | null;
   finalResult?: string | null;
+}
+
+function isAbortError(err: unknown): boolean {
+  if (axios.isCancel(err)) return true;
+  return typeof err === "object" && err !== null && (err as { name?: unknown }).name === "AbortError";
 }
 
 interface Props {
@@ -180,6 +193,9 @@ function TestWorkflowDialogBody({ testOrderId, testCode, category, displayName, 
   const [dilutionFactor, setDilutionFactor] = useState("1");
   const [dilutionFactorOverriding, setDilutionFactorOverriding] = useState(false);
   const [dilutionFactorOverrideNote, setDilutionFactorOverrideNote] = useState("");
+  const [preview, setPreview] = useState<CountPreviewResult | null>(null);
+  const [previewError, setPreviewError] = useState(false);
+  const [readingErrors, setReadingErrors] = useState<Record<number, string>>({});
 
   const [lastOutcome, setLastOutcome] = useState<CountOutcome | null>(null);
 
@@ -199,6 +215,9 @@ function TestWorkflowDialogBody({ testOrderId, testCode, category, displayName, 
       setDilutionFactor(isDirect ? "1" : configuredDf != null ? String(configuredDf) : "");
       setDilutionFactorOverriding(false);
       setDilutionFactorOverrideNote("");
+      setPreview(null);
+      setPreviewError(false);
+      setReadingErrors({});
       setPhase(data.allStepsComplete ? "all-complete" : data.incubationLock != null ? "awaiting-result" : "select-media");
     } catch (e: unknown) {
       setError(serverMessage(e) ?? "Could not load this test's workflow.");
@@ -406,9 +425,20 @@ function TestWorkflowDialogBody({ testOrderId, testCode, category, displayName, 
     }
   };
 
-  const updateReading = (i: number, value: string) => setReadings((r) => r.map((v, idx) => (idx === i ? value : v)));
+  const updateReading = (i: number, value: string) => {
+    setReadings((r) => r.map((v, idx) => (idx === i ? value : v)));
+    setReadingErrors((prev) => {
+      if (!(i in prev)) return prev;
+      const next = { ...prev };
+      delete next[i];
+      return next;
+    });
+  };
   const addReading = () => setReadings((r) => [...r, ""]);
-  const removeReading = (i: number) => setReadings((r) => (r.length > 1 ? r.filter((_, idx) => idx !== i) : r));
+  const removeReading = (i: number) => {
+    setReadings((r) => (r.length > 1 ? r.filter((_, idx) => idx !== i) : r));
+    setReadingErrors({});
+  };
 
   const isNonNumeric = (val: string) =>
     ["tntc", "uncountable"].includes(val.toLowerCase().trim());
@@ -428,29 +458,79 @@ function TestWorkflowDialogBody({ testOrderId, testCode, category, displayName, 
   const dilutionFactorDiffersFromConfigured =
     isCountTestWorkflow && !isDirectCount && configuredDilutionFactor != null && (parseFloat(dilutionFactor) || 0) !== configuredDilutionFactor;
 
-  const cfuUnit = current?.sampleContext?.cfuUnit ?? "CFU/mL";
+  const stepNameForPreview = step?.stepName ?? null;
 
-  const liveResult = useMemo(() => {
-    const hasNonNumeric = readings.some((r) => isNonNumeric(r));
-    if (hasNonNumeric) {
-      const val = readings.find((r) => isNonNumeric(r))?.toUpperCase();
-      return { display: val, isNonNumeric: true };
+  useEffect(() => {
+    if (phase !== "enter-result" || !isCountTestWorkflow || !stepNameForPreview || dilutionFactorNotConfigured) {
+      return;
     }
-    const numericVals = readings
-      .filter((r) => r.trim() !== "")
-      .map((r) => parseFloat(r))
-      .filter((n) => !isNaN(n));
-    if (numericVals.length === 0) return null;
-    const df = parseFloat(dilutionFactor) || 1;
-    const avg = numericVals.reduce((a, b) => a + b, 0) / numericVals.length;
-    const finalCfu = avg * df;
-    const lowerLimit = df;
-    const formatted = finalCfu % 1 === 0 ? finalCfu.toFixed(0) : finalCfu.toFixed(1);
-    return {
-      display: finalCfu < lowerLimit ? `< ${lowerLimit} ${cfuUnit}` : `${formatted} ${cfuUnit}`,
-      isNonNumeric: false
+
+    const nonEmptyEntries = readings
+      .map((value, index) => ({ value, index }))
+      .filter((entry) => entry.value.trim() !== "");
+
+    if (nonEmptyEntries.length === 0) {
+      setPreview(null);
+      setPreviewError(false);
+      setReadingErrors({});
+      return;
+    }
+
+    const controller = new AbortController();
+    const timer = window.setTimeout(() => {
+      const payload = {
+        stepName: stepNameForPreview,
+        rawPlateReadings: nonEmptyEntries.map((e) => e.value),
+        dilutionFactor: Number(dilutionFactor) || 1,
+        dilutionFactorOverrideNote: dilutionFactorDiffersFromConfigured ? dilutionFactorOverrideNote.trim() : undefined
+      };
+
+      TestWorkflowService.previewCountResult(testOrderId, payload, controller.signal)
+        .then((result) => {
+          if (controller.signal.aborted) return;
+          setPreview(result);
+          setPreviewError(false);
+          setReadingErrors({});
+        })
+        .catch((err: unknown) => {
+          if (controller.signal.aborted || isAbortError(err)) return;
+          const rowErrs = errorsByRow(err);
+          const mappedErrors: Record<number, string> = {};
+          for (const [rowKey, fields] of Object.entries(rowErrs)) {
+            const sentIdx = Number(rowKey);
+            const msg = fields.rawPlateReadings;
+            if (msg) {
+              const targetIdx = nonEmptyEntries[sentIdx]?.index ?? sentIdx;
+              mappedErrors[targetIdx] = msg;
+            }
+          }
+          if (Object.keys(mappedErrors).length > 0) {
+            setPreview(null);
+            setPreviewError(false);
+            setReadingErrors(mappedErrors);
+            return;
+          }
+          setPreview(null);
+          setReadingErrors({});
+          setPreviewError(true);
+        });
+    }, 400);
+
+    return () => {
+      window.clearTimeout(timer);
+      controller.abort();
     };
-  }, [readings, dilutionFactor, cfuUnit]);
+  }, [
+    phase,
+    isCountTestWorkflow,
+    stepNameForPreview,
+    dilutionFactorNotConfigured,
+    readings,
+    dilutionFactor,
+    dilutionFactorDiffersFromConfigured,
+    dilutionFactorOverrideNote,
+    testOrderId
+  ]);
 
   const countSaveBlockedReason = !isTimeReady
     ? minReadyAt
@@ -503,6 +583,9 @@ function TestWorkflowDialogBody({ testOrderId, testCode, category, displayName, 
     setDilutionFactor(isDirectCount ? "1" : configuredDilutionFactor != null ? String(configuredDilutionFactor) : "");
     setDilutionFactorOverriding(false);
     setDilutionFactorOverrideNote("");
+    setPreview(null);
+    setPreviewError(false);
+    setReadingErrors({});
     setKeptOffline(false);
     setError(null);
     setPhase("awaiting-result");
@@ -786,6 +869,8 @@ function TestWorkflowDialogBody({ testOrderId, testCode, category, displayName, 
     );
   }
 
+  const previewTone = preview?.status ? theme.custom.status[statusTone(preview.status)] : null;
+
   // The count entry fields, shared by the inline form and the bench full-screen form.
   const countEntryFields = current.workflowType === "CountTest" ? (
             <>
@@ -859,31 +944,39 @@ function TestWorkflowDialogBody({ testOrderId, testCode, category, displayName, 
                   Plate counts
                 </Typography>
                 {benchCount ? (
-                  <BenchPlateRows readings={readings} isNonNumeric={isNonNumeric} onChange={updateReading} onRemove={removeReading} />
+                  <BenchPlateRows readings={readings} errors={readingErrors} isNonNumeric={isNonNumeric} onChange={updateReading} onRemove={removeReading} />
                 ) : (
                   <Box sx={{ display: "grid", gap: 1.5, gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" } }}>
-                    {readings.map((r, i) => (
-                      <Box key={i} sx={{ display: "flex", alignItems: "flex-start", gap: 0.5 }}>
-                        <TextField
-                          id={`count-plate-${i + 1}`}
-                          label={`Plate ${i + 1}`}
-                          value={r}
-                          onChange={(e) => updateReading(i, e.target.value)}
-                          placeholder="Colonies or TNTC"
-                          helperText={isNonNumeric(r) ? "Non-numeric: flagged for reviewer decision" : " "}
-                          slotProps={{ inputLabel: { shrink: true }, htmlInput: { inputMode: "numeric" } }}
-                          sx={{
-                            flex: 1,
-                            "& .MuiOutlinedInput-root fieldset": {
-                              borderColor: isNonNumeric(r) ? theme.custom.status.inconclusive.text : undefined
-                            }
-                          }}
-                        />
-                        <IconButton aria-label={`Remove plate ${i + 1}`} onClick={() => removeReading(i)} disabled={readings.length <= 1} sx={{ mt: 0.5 }}>
-                          <CloseIcon fontSize="small" />
-                        </IconButton>
-                      </Box>
-                    ))}
+                    {readings.map((r, i) => {
+                      const fieldError = readingErrors[i];
+                      return (
+                        <Box key={i} sx={{ display: "flex", alignItems: "flex-start", gap: 0.5 }}>
+                          <TextField
+                            id={`count-plate-${i + 1}`}
+                            label={`Plate ${i + 1}`}
+                            value={r}
+                            onChange={(e) => updateReading(i, e.target.value)}
+                            placeholder="Colonies or TNTC"
+                            error={Boolean(fieldError)}
+                            helperText={fieldError ?? (isNonNumeric(r) ? "Non-numeric: flagged for reviewer decision" : " ")}
+                            slotProps={{
+                              inputLabel: { shrink: true },
+                              htmlInput: { inputMode: "numeric" },
+                              formHelperText: fieldError ? { role: "alert" } : undefined
+                            }}
+                            sx={{
+                              flex: 1,
+                              "& .MuiOutlinedInput-root fieldset": {
+                                borderColor: !fieldError && isNonNumeric(r) ? theme.custom.status.inconclusive.text : undefined
+                              }
+                            }}
+                          />
+                          <IconButton aria-label={`Remove plate ${i + 1}`} onClick={() => removeReading(i)} disabled={readings.length <= 1} sx={{ mt: 0.5 }}>
+                            <CloseIcon fontSize="small" />
+                          </IconButton>
+                        </Box>
+                      );
+                    })}
                   </Box>
                 )}
                 <Button startIcon={<AddIcon />} onClick={addReading} sx={{ mt: 0.5 }}>Add Plate</Button>
@@ -893,23 +986,54 @@ function TestWorkflowDialogBody({ testOrderId, testCode, category, displayName, 
                 aria-live="polite"
                 sx={{
                   p: 2, borderRadius: 2, border: "1px solid",
-                  bgcolor: !liveResult ? "action.hover" : liveResult.isNonNumeric ? theme.custom.status.inconclusive.bg : theme.custom.status.notDetected.bg,
-                  borderColor: !liveResult ? "divider" : liveResult.isNonNumeric ? theme.custom.status.inconclusive.border : theme.custom.status.notDetected.border
+                  bgcolor: previewTone ? previewTone.bg : "action.hover",
+                  borderColor: previewTone ? previewTone.border : "divider"
                 }}
               >
-                <Typography variant="caption" sx={{ display: "block", color: "text.secondary", textTransform: "uppercase", letterSpacing: "0.06em" }}>
-                  Calculated result
-                </Typography>
-                <Typography sx={{ fontSize: 22, fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>
-                  {liveResult ? liveResult.display : "—"}
-                </Typography>
-                <Typography variant="caption" sx={{ color: liveResult?.isNonNumeric ? theme.custom.status.inconclusive.text : "text.secondary" }}>
-                  {!liveResult
-                    ? "Enter plate counts to see the result."
-                    : liveResult.isNonNumeric
-                      ? "Non-numeric result: the reviewer will decide to accept or retest."
-                      : `Average of the plate counts × dilution factor ${dilutionFactor || 1}.`}
-                </Typography>
+                <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 1, flexWrap: "wrap", mb: 0.5 }}>
+                  <Typography variant="caption" sx={{ color: "text.secondary", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                    Preview — not recorded
+                  </Typography>
+                  {preview?.status && <StatusBadge status={preview.status} />}
+                </Box>
+                {previewError ? (
+                  <>
+                    <Typography sx={{ fontSize: 16, fontWeight: 600, color: "text.secondary" }}>
+                      Preview unavailable
+                    </Typography>
+                    <Typography variant="caption" sx={{ color: "text.secondary" }}>
+                      Save will still calculate and record the result.
+                    </Typography>
+                  </>
+                ) : preview ? (
+                  <>
+                    <Typography sx={{ fontSize: 22, fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>
+                      {preview.reported}
+                    </Typography>
+                    {(preview.average != null || preview.calculated != null) && (
+                      <Typography variant="caption" sx={{ display: "block", color: "text.secondary", fontVariantNumeric: "tabular-nums" }}>
+                        {[
+                          preview.average != null ? `Average: ${preview.average}` : null,
+                          preview.calculated != null ? `Calculated: ${preview.calculated}` : null
+                        ].filter(Boolean).join(" · ")}
+                      </Typography>
+                    )}
+                    {preview.messages.length > 0 && (
+                      <Typography variant="caption" sx={{ display: "block", color: previewTone ? previewTone.text : "text.secondary", mt: 0.5 }}>
+                        {preview.messages.join(" ")}
+                      </Typography>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    <Typography sx={{ fontSize: 22, fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>
+                      —
+                    </Typography>
+                    <Typography variant="caption" sx={{ color: "text.secondary" }}>
+                      Enter plate counts to see the result.
+                    </Typography>
+                  </>
+                )}
               </Box>
             </>
   ) : null;

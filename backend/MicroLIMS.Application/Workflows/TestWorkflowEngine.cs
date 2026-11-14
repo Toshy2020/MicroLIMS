@@ -112,6 +112,9 @@ public class TestWorkflowEngine : ITestWorkflowEngine
     public Task<TestWorkflowResult> RecordResultAsync(int testOrderId, string stepName, ResultPayload payload, int userId) =>
         _incubationStepRecorder.RecordResultAsync(testOrderId, stepName, payload, userId);
 
+    public Task<CountCalculationResult> PreviewCountResultAsync(int testOrderId, string stepName, CountTestPayload payload) =>
+        _incubationStepRecorder.PreviewCountResultAsync(testOrderId, stepName, payload);
+
     public async Task<List<TestOrderLocationResponse>> GetLocationsAsync(int testOrderId) =>
         (await _incubationStepRecorder.GetLocationsAsync(testOrderId)).Select(TestOrderLocationResponse.From).ToList();
 

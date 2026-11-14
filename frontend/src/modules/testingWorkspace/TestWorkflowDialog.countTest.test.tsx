@@ -1,13 +1,18 @@
 import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
 import { render, screen, cleanup, act, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { AxiosError, type AxiosResponse } from "axios";
 import { MemoryRouter } from "react-router-dom";
 import { ThemeProvider } from "@mui/material";
 import { lightTheme } from "../../theme";
 import { AuthProvider } from "../../contexts/AuthContext";
 import { TestWorkflowDialog } from "./TestWorkflowDialog";
 
-const service = vi.hoisted(() => ({ getCurrentStep: vi.fn(), recordCountResult: vi.fn() }));
+const service = vi.hoisted(() => ({
+  getCurrentStep: vi.fn(),
+  recordCountResult: vi.fn(),
+  previewCountResult: vi.fn()
+}));
 vi.mock("./services/TestWorkflowService", () => ({ TestWorkflowService: service }));
 vi.mock("../../services/lookupCache", () => ({
   lookupCache: { getReleasedMedia: vi.fn().mockResolvedValue([]), getIncubators: vi.fn().mockResolvedValue([]) }
@@ -20,6 +25,13 @@ beforeEach(() => {
   localStorage.clear();
   vi.useFakeTimers({ shouldAdvanceTime: true });
   vi.setSystemTime(new Date("2026-10-11T09:00:00Z"));
+  service.previewCountResult.mockResolvedValue({
+    reported: "120 CFU/mL",
+    average: 12,
+    calculated: 120,
+    status: "WithinLimits",
+    messages: []
+  });
 });
 afterEach(() => { cleanup(); vi.useRealTimers(); vi.clearAllMocks(); localStorage.clear(); });
 
@@ -157,6 +169,188 @@ describe("TestWorkflowDialog count test", () => {
         9,
         { stepName: "TAMC", rawPlateReadings: ["7"], dilutionFactor: 100, dilutionFactorOverrideNote: "Sample too concentrated" }
       ]);
+    });
+  });
+
+  describe("server count preview", () => {
+    const fieldValidationError = (fieldErrors: Array<{ field: string; message: string; row?: number | null }>) =>
+      new AxiosError(
+        "Request failed with status code 400",
+        "ERR_BAD_REQUEST",
+        undefined,
+        undefined,
+        {
+          status: 400,
+          statusText: "Bad Request",
+          data: { success: false, message: "One or more plate readings are not valid.", fieldErrors },
+          headers: {},
+          config: {}
+        } as AxiosResponse
+      );
+
+    it('the dialog shows the server\'s reported value labelled "Preview — not recorded"', async () => {
+      const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+      service.getCurrentStep.mockResolvedValue(incubating(0));
+      service.previewCountResult.mockResolvedValue({
+        reported: "120 CFU/mL",
+        average: 12,
+        calculated: 120,
+        status: "WithinLimits",
+        messages: ["Within alert limit"]
+      });
+      renderDialog();
+
+      await user.click(await screen.findByRole("button", { name: "Record Result" }));
+      await user.type(screen.getByLabelText("Plate 1"), "12");
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(400);
+      });
+
+      expect(service.previewCountResult).toHaveBeenCalledWith(
+        9,
+        { stepName: "TAMC", rawPlateReadings: ["12"], dilutionFactor: 10, dilutionFactorOverrideNote: undefined },
+        expect.any(AbortSignal)
+      );
+      expect(await screen.findByText("Preview — not recorded")).toBeTruthy();
+      expect(screen.getByText("120 CFU/mL")).toBeTruthy();
+      expect(screen.getByText(/Average:\s*12/)).toBeTruthy();
+      expect(screen.getByText(/Calculated:\s*120/)).toBeTruthy();
+      expect(screen.getByText("Within Limits")).toBeTruthy();
+      expect(screen.getByText("Within alert limit")).toBeTruthy();
+    });
+
+    it("no arithmetic remains in the component", async () => {
+      const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+      service.getCurrentStep.mockResolvedValue(incubating(0));
+      service.previewCountResult.mockResolvedValue({
+        reported: "999 CFU/g",
+        average: 99.9,
+        calculated: 999,
+        status: "AlertLimitExceeded",
+        messages: []
+      });
+      renderDialog();
+
+      await user.click(await screen.findByRole("button", { name: "Record Result" }));
+      await user.type(screen.getByLabelText("Plate 1"), "12");
+
+      expect(screen.queryByText(/120\s*CFU/)).toBeNull();
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(400);
+      });
+
+      expect(await screen.findByText("999 CFU/g")).toBeTruthy();
+      expect(screen.getByText("Alert Limit Exceeded")).toBeTruthy();
+      expect(screen.queryByText(/120\s*CFU/)).toBeNull();
+    });
+
+    it("typing debounces the preview call (400 ms) and aborts the previous one", async () => {
+      const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+      service.getCurrentStep.mockResolvedValue(incubating(0));
+
+      let resolveFirst: ((value: unknown) => void) | undefined;
+      let resolveSecond: ((value: unknown) => void) | undefined;
+      service.previewCountResult
+        .mockImplementationOnce(() => new Promise((resolve) => { resolveFirst = resolve; }))
+        .mockImplementationOnce(() => new Promise((resolve) => { resolveSecond = resolve; }));
+
+      renderDialog();
+      await user.click(await screen.findByRole("button", { name: "Record Result" }));
+
+      const plate1 = screen.getByLabelText("Plate 1");
+      await user.type(plate1, "1");
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(200);
+      });
+      expect(service.previewCountResult).not.toHaveBeenCalled();
+
+      await user.type(plate1, "2");
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(200);
+      });
+      expect(service.previewCountResult).not.toHaveBeenCalled();
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(200);
+      });
+      expect(service.previewCountResult).toHaveBeenCalledTimes(1);
+      const firstSignal = service.previewCountResult.mock.calls[0][2] as AbortSignal;
+      expect(firstSignal).toBeInstanceOf(AbortSignal);
+      expect(firstSignal.aborted).toBe(false);
+
+      await user.type(screen.getByLabelText("Plate 2"), "5");
+      expect(firstSignal.aborted).toBe(true);
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(400);
+      });
+      expect(service.previewCountResult).toHaveBeenCalledTimes(2);
+      const secondSignal = service.previewCountResult.mock.calls[1][2] as AbortSignal;
+      expect(secondSignal.aborted).toBe(false);
+
+      await act(async () => {
+        resolveSecond?.({ reported: "85 CFU/mL", average: 8.5, calculated: 85, status: "WithinLimits", messages: [] });
+        resolveFirst?.({ reported: "120 CFU/mL", average: 12, calculated: 120, status: "WithinLimits", messages: [] });
+      });
+
+      expect(await screen.findByText("85 CFU/mL")).toBeTruthy();
+      expect(screen.queryByText("120 CFU/mL")).toBeNull();
+    });
+
+    it('preview failure shows "Preview unavailable" and Save still works', async () => {
+      const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+      service.getCurrentStep.mockResolvedValue(incubating(0));
+      service.previewCountResult.mockRejectedValue(new Error("Service unavailable"));
+      service.recordCountResult.mockResolvedValue({
+        allStepsComplete: true,
+        isDefinitive: true,
+        outcomeSummary: "120 CFU/mL",
+        finalResult: "WithinLimits"
+      });
+      renderDialog();
+
+      await user.click(await screen.findByRole("button", { name: "Record Result" }));
+      await user.type(screen.getByLabelText("Plate 1"), "12");
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(400);
+      });
+
+      expect(await screen.findByText("Preview unavailable")).toBeTruthy();
+
+      await user.click(screen.getByRole("button", { name: "Calculate" }));
+      await waitFor(() => expect(service.recordCountResult).toHaveBeenCalledTimes(1));
+      expect(service.recordCountResult.mock.calls[0]).toEqual([
+        9,
+        { stepName: "TAMC", rawPlateReadings: ["12"], dilutionFactor: 10, dilutionFactorOverrideNote: undefined }
+      ]);
+    });
+
+    it("field error from the preview shows on the reading", async () => {
+      const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+      service.getCurrentStep.mockResolvedValue(incubating(0));
+      service.previewCountResult.mockRejectedValue(
+        fieldValidationError([
+          { field: "rawPlateReadings", message: '"abc" is not a number. Enter a count, TNTC or Uncountable.', row: 1 }
+        ])
+      );
+      renderDialog();
+
+      await user.click(await screen.findByRole("button", { name: "Record Result" }));
+      await user.type(screen.getByLabelText("Plate 1"), "12");
+      await user.type(screen.getByLabelText("Plate 2"), "abc");
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(400);
+      });
+
+      const errorText = '"abc" is not a number. Enter a count, TNTC or Uncountable.';
+      expect(await screen.findByText(errorText)).toBeTruthy();
+      expect(screen.getByLabelText("Plate 2").getAttribute("aria-invalid")).toBe("true");
+      expect(screen.getByLabelText("Plate 1").getAttribute("aria-invalid")).not.toBe("true");
+      expect(screen.queryByText("Preview unavailable")).toBeNull();
     });
   });
 });

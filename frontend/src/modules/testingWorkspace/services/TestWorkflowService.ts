@@ -5,7 +5,8 @@ import {
   GrowthObservation, SiblingPathogenOrder,
   ActionableGroupsResponse, BatchSelectMediaRequest, BatchSelectMediaResponse,
   TestWorkflowResult, TitrationContext, RecordTitrationResultRequest, SampleMoistureResult,
-  RecordUvResultRequest, RecordOutsourcedResultRequest, ExternalReportDocument
+  RecordUvResultRequest, RecordOutsourcedResultRequest, ExternalReportDocument,
+  CountResultRequest, CountPreviewResult
 } from "../types/testWorkflowTypes";
 
 // Extra request headers for a save (for example X-Draft-Started-At). Optional on every
@@ -44,10 +45,17 @@ export const TestWorkflowService = {
   // it never changes the body.
   recordCountResult: (
     testOrderId: number,
-    payload: { stepName: string; rawPlateReadings: string[]; dilutionFactor: number; dilutionFactorOverrideNote?: string },
+    payload: CountResultRequest,
     config?: RequestHeadersConfig
   ) =>
     apiClient.post(`/test-workflow/${testOrderId}/record-result`, payload, config).then((r) => r.data.data),
+
+  previewCountResult: (
+    testOrderId: number,
+    request: CountResultRequest,
+    signal?: AbortSignal
+  ): Promise<CountPreviewResult> =>
+    apiClient.post(`/test-workflow/${testOrderId}/preview-count-result`, request, { signal }).then((r) => r.data.data),
 
   // Numeric measurement (pH, density, viscosity, etc.). Signed.
   recordMeasurementResult: (

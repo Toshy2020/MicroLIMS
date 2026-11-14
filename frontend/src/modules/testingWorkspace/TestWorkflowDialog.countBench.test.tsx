@@ -10,7 +10,7 @@ import { draftStore } from "../../services/drafts/draftStore";
 import { rawStoredDrafts, resetDraftDb, signInForTest } from "../../services/drafts/draftTestUtils";
 import { TestWorkflowDialog } from "./TestWorkflowDialog";
 
-const service = vi.hoisted(() => ({ getCurrentStep: vi.fn(), recordCountResult: vi.fn() }));
+const service = vi.hoisted(() => ({ getCurrentStep: vi.fn(), recordCountResult: vi.fn(), previewCountResult: vi.fn() }));
 vi.mock("./services/TestWorkflowService", () => ({ TestWorkflowService: service }));
 vi.mock("../../services/lookupCache", () => ({
   lookupCache: { getReleasedMedia: vi.fn().mockResolvedValue([]), getIncubators: vi.fn().mockResolvedValue([]) }
@@ -31,6 +31,13 @@ beforeEach(async () => {
   signInForTest(7);
   vi.useFakeTimers({ toFake: ["Date"] });
   vi.setSystemTime(NOW);
+  service.previewCountResult.mockResolvedValue({
+    reported: "120 CFU/mL",
+    average: 12,
+    calculated: 120,
+    status: "WithinLimits",
+    messages: []
+  });
 });
 afterEach(() => {
   cleanup();

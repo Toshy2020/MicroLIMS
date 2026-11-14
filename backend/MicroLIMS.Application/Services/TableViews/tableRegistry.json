@@ -397,6 +397,64 @@
     "filters": []
   },
   {
+    "key": "reports.results",
+    "title": "Laboratory Results",
+    "idColumn": "referenceNumber",
+    "columns": [
+      { "key": "resultEnteredAt", "label": "Date/Time", "defaultVisible": true },
+      { "key": "referenceNumber", "label": "Sample/Reference", "defaultVisible": true },
+      { "key": "subjectName", "label": "Item/Location", "defaultVisible": true },
+      { "key": "category", "label": "Type", "defaultVisible": true },
+      { "key": "testCode", "label": "Test", "defaultVisible": true },
+      { "key": "reportedValue", "label": "Result", "defaultVisible": true },
+      { "key": "unit", "label": "Unit", "defaultVisible": true },
+      { "key": "resultLevel", "label": "Result Level", "defaultVisible": true },
+      { "key": "approvalStatus", "label": "Status", "defaultVisible": true },
+      { "key": "approvedByName", "label": "Approved By", "defaultVisible": true },
+      { "key": "approvedAt", "label": "Approval Date", "defaultVisible": true }
+    ],
+    "filters": ["search", "resultKind", "category", "testCode", "resultLevel", "sampleStatus", "approvalStatus", "fromDate", "toDate", "subjectName"]
+  },
+  {
+    "key": "reports.mediaGpt",
+    "title": "Media Preparation & GPT Records",
+    "idColumn": "lotNumber",
+    "columns": [
+      { "key": "lotNumber", "label": "Lot Number", "defaultVisible": true },
+      { "key": "mediaType", "label": "Media Type", "defaultVisible": true },
+      { "key": "preparedAt", "label": "Prep Date", "defaultVisible": true },
+      { "key": "expiryDate", "label": "Expiry Date", "defaultVisible": true },
+      { "key": "evaluationType", "label": "Evaluation", "defaultVisible": true },
+      { "key": "evaluationOutcome", "label": "Outcome", "defaultVisible": true },
+      { "key": "approvalStatus", "label": "Approval Status", "defaultVisible": true },
+      { "key": "preparedByName", "label": "Prepared By", "defaultVisible": true },
+      { "key": "approvedByName", "label": "Approved By", "defaultVisible": true },
+      { "key": "id", "label": "Actions", "defaultVisible": true }
+    ],
+    "filters": ["search", "evaluationType", "mediaType", "outcome", "approvalStatus", "fromDate", "toDate"]
+  },
+  {
+    "key": "reports.referenceStrains",
+    "title": "Reference Strains & Working Culture Batches",
+    "idColumn": "cryovialCode",
+    "columns": [
+      { "key": "strainName", "label": "Strain / ATCC", "defaultVisible": true },
+      { "key": "cryovialCode", "label": "Cryovial Code", "defaultVisible": true },
+      { "key": "manufacturerName", "label": "Manufacturer", "defaultVisible": true },
+      { "key": "receiptDate", "label": "Receipt Date", "defaultVisible": true },
+      { "key": "preparedAt", "label": "Prep Date", "defaultVisible": true },
+      { "key": "expiryDate", "label": "Expiry Date", "defaultVisible": true },
+      { "key": "vialsRemaining", "label": "Vials Remaining", "defaultVisible": true },
+      { "key": "storageCondition", "label": "Storage", "defaultVisible": true },
+      { "key": "approvalStatus", "label": "Approval Status", "defaultVisible": true },
+      { "key": "preparedByName", "label": "Prepared By", "defaultVisible": true },
+      { "key": "approvedByName", "label": "Approved By", "defaultVisible": true },
+      { "key": "directUsageCount", "label": "GPT Usage", "defaultVisible": true },
+      { "key": "id", "label": "Actions", "defaultVisible": true }
+    ],
+    "filters": ["search", "organismId", "approvalStatus", "isDestroyed", "receiptFromDate", "receiptToDate", "usageFromDate", "usageToDate"]
+  },
+  {
     "key": "solutionPrep.preparations",
     "title": "Solution Preparation",
     "idColumn": "code",

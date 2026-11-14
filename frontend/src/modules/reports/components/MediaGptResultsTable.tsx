@@ -13,7 +13,8 @@ import { MediaGptReportService } from "../services/MediaGptReportService";
 import { MediaGptDetailDialog } from "./MediaGptDetailDialog";
 import { exportMediaGptPdf } from "../utils/exportMediaGptPdf";
 import { useAuth } from "../../../contexts/AuthContext";
-import { DataTable, Column } from "../../../components/DataTable";
+import { RegisterTable, type RegisterColumn } from "../../../components/lab/RegisterTable";
+import { useRowSelection } from "../../../components/lab/table/useRowSelection";
 
 const ROWS_PER_PAGE_OPTIONS = [10, 25, 50, 100];
 
@@ -47,10 +48,18 @@ export function MediaGptResultsTable({
 }: MediaGptResultsTableProps) {
   const theme = useTheme();
   const { fullName } = useAuth();
-  const [selectedIds, setSelectedIds] = useState<number[]>([]);
+  const resetKey = JSON.stringify({
+    search: appliedParams.search,
+    mediaType: appliedParams.mediaType,
+    evaluationType: appliedParams.evaluationType,
+    outcome: appliedParams.outcome,
+    approvalStatus: appliedParams.approvalStatus,
+    fromDate: appliedParams.fromDate,
+    toDate: appliedParams.toDate
+  });
+  const selection = useRowSelection<string | number>(resetKey);
   const [detailLot, setDetailLot] = useState<MediaGptDetail | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
-  const [detailLoading, setDetailLoading] = useState(false);
   const [exportingCsv, setExportingCsv] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
 
@@ -60,33 +69,13 @@ export function MediaGptResultsTable({
   const pageSize = results?.pageSize ?? 25;
   const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
 
-  const allSelected = items.length > 0 && items.every((r) => selectedIds.includes(r.id));
-  const someSelected = items.some((r) => selectedIds.includes(r.id)) && !allSelected;
-
-  const handleSelectAll = () => {
-    if (allSelected) {
-      setSelectedIds([]);
-    } else {
-      setSelectedIds(items.map((r) => r.id));
-    }
-  };
-
-  const handleToggleRow = (id: number) => {
-    setSelectedIds((prev) =>
-      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
-    );
-  };
-
   const handleViewDetail = async (id: number) => {
-    setDetailLoading(true);
     try {
       const detail = await MediaGptReportService.getById(id);
       setDetailLot(detail);
       setDetailOpen(true);
     } catch {
       // Error fetching details
-    } finally {
-      setDetailLoading(false);
     }
   };
 
@@ -95,27 +84,27 @@ export function MediaGptResultsTable({
     setExportError(null);
     try {
       await MediaGptReportService.exportCsv(appliedParams);
-    } catch (err: any) {
-      setExportError(err.message || "Export failed.");
+    } catch (err) {
+      setExportError(err instanceof Error ? err.message : "Export failed.");
     } finally {
       setExportingCsv(false);
     }
   };
 
   const handleExportPdf = () => {
-    const recordsToExport = selectedIds.length > 0
-      ? items.filter((r) => selectedIds.includes(r.id))
+    const recordsToExport = selection.count > 0
+      ? items.filter((r) => selection.isSelected(r.id))
       : items;
 
     exportMediaGptPdf(recordsToExport, {
       title: "Media & Growth Promotion Test (GPT) Report",
       criteriaSummary: `Filters: ${appliedParams.mediaType || "All Media Types"} • ${appliedParams.evaluationType || "All Evaluation Types"}`,
       generatedBy: fullName || "Authorized User",
-      isSelection: selectedIds.length > 0
+      isSelection: selection.count > 0
     });
   };
 
-  const columns: Column<MediaGptListItem>[] = [
+  const columns: RegisterColumn<MediaGptListItem>[] = [
     { key: "lotNumber", label: "Lot Number", render: (r) => (
       <Box sx={{ fontWeight: 700, color: theme.palette.primary.main }}>{r.lotNumber}</Box>
     ) },
@@ -220,7 +209,7 @@ export function MediaGptResultsTable({
             disabled={items.length === 0}
             sx={{ fontWeight: 600 }}
           >
-            Print / PDF View {selectedIds.length > 0 ? `(${selectedIds.length})` : ""}
+            Print / PDF View {selection.count > 0 ? `(${selection.count})` : ""}
           </Button>
         </Stack>
       </Box>
@@ -238,29 +227,21 @@ export function MediaGptResultsTable({
       )}
 
       {/* Table */}
-      <DataTable
+      <RegisterTable
         columns={columns}
         rows={items}
         getRowId={(r) => r.id}
-        onRowClick={(r) => handleViewDetail(r.id)}
+        onRowClick={(r) => void handleViewDetail(r.id)}
         loading={loading}
-        emptyMessage={
-          <>
-            <Typography sx={{ color: "text.secondary", fontSize: 13, mb: 1 }}>
-              No media lots matched your filters.
-            </Typography>
+        empty={{
+          title: "No media lots matched your filters.",
+          action: (
             <Button size="small" variant="text" onClick={onClearFilters}>
               Clear Filters
             </Button>
-          </>
-        }
-        selection={{
-          isSelected: (r) => selectedIds.includes(r.id),
-          onToggle: (r) => handleToggleRow(r.id),
-          headerChecked: allSelected,
-          headerIndeterminate: someSelected,
-          onToggleAll: handleSelectAll
+          )
         }}
+        selection={selection}
       />
 
       {/* Pagination Footer */}

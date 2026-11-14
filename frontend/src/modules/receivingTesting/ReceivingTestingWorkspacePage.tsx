@@ -44,6 +44,7 @@ import { SampleRegisterTable } from "../receiving/components/SampleRegisterTable
 import { NewSampleDialog } from "../receiving/dialogs/NewSampleDialog";
 import { EditSampleDetailsDialog } from "../receiving/dialogs/EditSampleDetailsDialog";
 import { AssignAnalystDialog } from "../receiving/dialogs/AssignAnalystDialog";
+import { BulkAssignDialog } from "../receiving/dialogs/BulkAssignDialog";
 import { assignedAnalystNames } from "../receiving/utils/assignedAnalysts";
 
 // Testing Workspace Components & Dialogs
@@ -402,6 +403,7 @@ export function ReceivingTestingWorkspacePage({ lab }: Props) {
   const [newSampleDialogOpen, setNewSampleDialogOpen] = useState(false);
   const [editSample, setEditSample] = useState<SampleRecord | null>(null);
   const [assigningSample, setAssigningSample] = useState<SampleRecord | null>(null);
+  const [bulkAssignOpen, setBulkAssignOpen] = useState(false);
   const [summarySampleId, setSummarySampleId] = useState<number | null>(null);
   const [activeTest, setActiveTest] = useState<WorkspaceTestOrderSummary | null>(null);
   const [activeSampleForTest, setActiveSampleForTest] = useState<WorkspaceSampleCard | null>(null);
@@ -1128,6 +1130,11 @@ export function ReceivingTestingWorkspacePage({ lab }: Props) {
           showingSelectedOnly={showSelectedOnly}
           onToggleShowSelectedOnly={() => setShowSelectedOnly((prev) => !prev)}
           onClear={handleDeselectAllChecked}
+          onBulkAssign={
+            permissions.includes(PERMISSIONS.SAMPLES_ASSIGN_ANALYST)
+              ? () => setBulkAssignOpen(true)
+              : undefined
+          }
         />
       )}
 
@@ -1351,6 +1358,22 @@ export function ReceivingTestingWorkspacePage({ lab }: Props) {
         onAssigned={() => {
           setNotification({ text: "Analyst assignment updated successfully.", severity: "success" });
           loadRecords();
+        }}
+      />
+
+      <BulkAssignDialog
+        open={bulkAssignOpen}
+        sampleIds={Array.from(checkedSampleIds)}
+        onSelectionChange={(remainingIds) => {
+          setCheckedSampleIds(new Set(remainingIds));
+          if (remainingIds.length === 0) {
+            checkedSamplesCache.current.clear();
+            setShowSelectedOnly(false);
+          }
+        }}
+        onClose={() => setBulkAssignOpen(false)}
+        onAssigned={() => {
+          loadRecords(true);
         }}
       />
 

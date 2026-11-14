@@ -16,7 +16,20 @@ import { parseWorkflowError, workflowErrorDisplayMessage } from "../utils/workfl
 import { INCUBATION_WINDOW_NOT_CONFIGURED_MESSAGE } from "../utils/incubationWindow";
 import { FloatingDialog } from "../../../components/FloatingDialog";
 import { DialogBodySkeleton } from "../../../components/DialogBodySkeleton";
+import { DraftRestoreNotice } from "../../../components/bench/DraftRestoreNotice";
+import { useBenchDraft } from "../../../hooks/useBenchDraft";
+import { useBenchMode } from "../../../theme/BenchModeContext";
+import { OfflineDraftNotice, classifySaveFailure, draftHeaderArgs, useKeptOffline } from "../benchSave";
 import { StepActionBar, StepDetailList, IncubationTimeline, FixedMediumRow, MediaLotIncubatorFields } from "./StepLayout";
+
+interface BrothDraftValues {
+  mediaLotId: number | "";
+  equipmentId: number | "";
+}
+
+function pickBrothDraft(v: BrothDraftValues): Partial<BrothDraftValues> {
+  return { mediaLotId: v.mediaLotId, equipmentId: v.equipmentId };
+}
 
 interface Props {
   testOrderId: number;
@@ -33,6 +46,8 @@ interface Props {
 // decision point. No observation field is presented.
 export function BrothStepPanel({ testOrderId, step, current, onSubmitted }: Props) {
   const theme = useTheme();
+  const { benchMode } = useBenchMode();
+  const [keptOffline, setKeptOffline] = useKeptOffline();
   const [medium, setMedium] = useState<PermittedConfirmatoryMediaEntry | null>(null);
   const [incubators, setIncubators] = useState<{ id: number; name: string; code: string; setTemperature: number }[]>([]);
   const [mediaLotId, setMediaLotId] = useState<number | "">("");
@@ -93,13 +108,34 @@ export function BrothStepPanel({ testOrderId, step, current, onSubmitted }: Prop
 
   const isSharedTsbApplied = isBrothEnrichmentStep && Boolean(sharedTsb || isSharedBrothComplete);
 
+  const draft = useBenchDraft<BrothDraftValues>({
+    formKey: "pathogen-broth",
+    recordKey: `${testOrderId}:${step.stepName}`,
+    recordVersion: null,
+    title: `${step.stepName}: #${testOrderId}`,
+    values: { mediaLotId, equipmentId },
+    pick: pickBrothDraft,
+    enabled: benchMode && !loading && Boolean(medium) && !isSharedTsbApplied
+  });
+
+  const restoreDraft = () => {
+    const saved = draft.acceptRestore();
+    if (!saved) return;
+    if (typeof saved.mediaLotId === "number" && medium?.availableLots.some((l) => l.id === saved.mediaLotId)) {
+      setMediaLotId(saved.mediaLotId);
+    }
+    if (typeof saved.equipmentId === "number" && incubators.some((i) => i.id === saved.equipmentId)) {
+      setEquipmentId(saved.equipmentId);
+    }
+  };
+
   const handleProceedSharedTsb = async () => {
     setError(null);
     setSaving(true);
     try {
-      await TestWorkflowService.submitBroth(testOrderId, step.stepName, null);
+      await TestWorkflowService.submitBroth(testOrderId, step.stepName, null, ...draftHeaderArgs(draft.submitHeaders()));
       onSubmitted();
-    } catch (e: any) {
+    } catch (e: unknown) {
       const parsed = parseWorkflowError(e);
       if (parsed.message?.includes("order violation") || parsed.message?.includes("already")) {
         onSubmitted();
@@ -177,11 +213,21 @@ export function BrothStepPanel({ testOrderId, step, current, onSubmitted }: Prop
     setSaving(true);
     try {
       await TestWorkflowService.selectMedia(
-        testOrderId, step.stepName, Number(mediaLotId), Number(equipmentId)
+        testOrderId, step.stepName, Number(mediaLotId), Number(equipmentId), ...draftHeaderArgs(draft.submitHeaders())
       );
+      await draft.onSubmitted();
+      setKeptOffline(false);
       onSubmitted();
     } catch (e) {
-      setError(workflowErrorDisplayMessage(parseWorkflowError(e)));
+      const failure = classifySaveFailure(e);
+      if (failure.kind === "network") {
+        setKeptOffline(true);
+      } else if (failure.kind === "conflict") {
+        await draft.onRejected(failure.message);
+        setError(failure.message);
+      } else {
+        setError(workflowErrorDisplayMessage(parseWorkflowError(e)));
+      }
     } finally {
       setSaving(false);
     }
@@ -239,6 +285,8 @@ export function BrothStepPanel({ testOrderId, step, current, onSubmitted }: Prop
 
   return (
     <Stack spacing={2}>
+      {benchMode && <DraftRestoreNotice startedAt={draft.restoredStartedAt} onRestore={restoreDraft} onDiscard={() => void draft.discard()} />}
+      {benchMode && keptOffline && <OfflineDraftNotice onTryAgain={() => void doStartIncubation()} />}
       {error && <Alert severity="error">{error}</Alert>}
 
       <FixedMediumRow mediaName={medium.mediaName} />

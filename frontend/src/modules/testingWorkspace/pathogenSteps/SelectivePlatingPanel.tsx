@@ -7,11 +7,30 @@ import {
 import { parseWorkflowError, workflowErrorDisplayMessage } from "../utils/workflowErrors";
 import { serverIncubationWindow } from "../utils/incubationWindow";
 import { DialogBodySkeleton } from "../../../components/DialogBodySkeleton";
+import { DraftRestoreNotice } from "../../../components/bench/DraftRestoreNotice";
+import { useBenchDraft } from "../../../hooks/useBenchDraft";
+import { useBenchMode } from "../../../theme/BenchModeContext";
+import { OfflineDraftNotice, classifySaveFailure, draftHeaderArgs, useKeptOffline } from "../benchSave";
 import {
   StepActionBar, StepDetailList, IncubationTimeline, FixedMediumRow, MediaLotIncubatorFields,
   ExpectedAppearanceNote, ObservationOptions
 } from "./StepLayout";
 import { IncubationWaitingView } from "./IncubationWaitingView";
+
+interface SelectivePlatingDraftValues {
+  mediaLotId: number | "";
+  equipmentId: number | "";
+  observation: GrowthObservation | "";
+  appearanceNote: string;
+}
+
+function pickSelectiveSetupDraft(v: SelectivePlatingDraftValues): Partial<SelectivePlatingDraftValues> {
+  return { mediaLotId: v.mediaLotId, equipmentId: v.equipmentId };
+}
+
+function pickSelectiveReadoutDraft(v: SelectivePlatingDraftValues): Partial<SelectivePlatingDraftValues> {
+  return { observation: v.observation, appearanceNote: v.appearanceNote };
+}
 
 const OBSERVATION_OPTIONS: { value: GrowthObservation; title: string; detail: string }[] = [
   { value: "NoGrowth", title: "No growth", detail: "Target absent" },
@@ -27,6 +46,8 @@ interface Props {
 }
 
 export function SelectivePlatingPanel({ testOrderId, step, current, onSubmitted }: Props) {
+  const { benchMode } = useBenchMode();
+  const [keptOffline, setKeptOffline] = useKeptOffline();
   const [medium, setMedium] = useState<PermittedConfirmatoryMediaEntry | null>(null);
   const [incubators, setIncubators] = useState<{ id: number; name: string; code: string; setTemperature: number }[]>([]);
   const [mediaLotId, setMediaLotId] = useState<number | "">("");
@@ -73,6 +94,36 @@ export function SelectivePlatingPanel({ testOrderId, step, current, onSubmitted 
     !(isTimeReady || countdownReady) || windowNotConfigured ? "waiting" :
     "readout";
 
+  const draft = useBenchDraft<SelectivePlatingDraftValues>({
+    formKey: `pathogen-selective-${phase}`,
+    recordKey: `${testOrderId}:${step.stepName}`,
+    recordVersion: null,
+    title: `${step.stepName}: #${testOrderId}`,
+    values: { mediaLotId, equipmentId, observation, appearanceNote },
+    pick: phase === "setup" ? pickSelectiveSetupDraft : pickSelectiveReadoutDraft,
+    enabled: benchMode && !loading && Boolean(medium) && phase !== "waiting"
+  });
+
+  const restoreDraft = () => {
+    const saved = draft.acceptRestore();
+    if (!saved) return;
+    if (phase === "setup") {
+      if (typeof saved.mediaLotId === "number" && medium?.availableLots.some((l) => l.id === saved.mediaLotId)) {
+        setMediaLotId(saved.mediaLotId);
+      }
+      if (typeof saved.equipmentId === "number" && incubators.some((i) => i.id === saved.equipmentId)) {
+        setEquipmentId(saved.equipmentId);
+      }
+    } else if (phase === "readout") {
+      if (saved.observation === "NoGrowth" || saved.observation === "GrowthNonConforming" || saved.observation === "GrowthConforming") {
+        setObservation(saved.observation);
+      }
+      if (typeof saved.appearanceNote === "string") {
+        setAppearanceNote(saved.appearanceNote);
+      }
+    }
+  };
+
   // Phase 1: Start incubation
   const handleStartIncubation = async () => {
     setError(null);
@@ -82,12 +133,29 @@ export function SelectivePlatingPanel({ testOrderId, step, current, onSubmitted 
     }
     setSubmitting(true);
     try {
-      await TestWorkflowService.startSelectivePlatingIncubation(
-        testOrderId, step.stepName, Number(mediaLotId), Number(equipmentId)
-      );
+      const headerArgs = draftHeaderArgs(draft.submitHeaders());
+      if (headerArgs.length > 0) {
+        await TestWorkflowService.startSelectivePlatingIncubation(
+          testOrderId, step.stepName, Number(mediaLotId), Number(equipmentId), undefined, headerArgs[0]
+        );
+      } else {
+        await TestWorkflowService.startSelectivePlatingIncubation(
+          testOrderId, step.stepName, Number(mediaLotId), Number(equipmentId)
+        );
+      }
+      await draft.onSubmitted();
+      setKeptOffline(false);
       onSubmitted();
     } catch (e) {
-      setError(workflowErrorDisplayMessage(parseWorkflowError(e)));
+      const failure = classifySaveFailure(e);
+      if (failure.kind === "network") {
+        setKeptOffline(true);
+      } else if (failure.kind === "conflict") {
+        await draft.onRejected(failure.message);
+        setError(failure.message);
+      } else {
+        setError(workflowErrorDisplayMessage(parseWorkflowError(e)));
+      }
     } finally {
       setSubmitting(false);
     }
@@ -106,11 +174,22 @@ export function SelectivePlatingPanel({ testOrderId, step, current, onSubmitted 
         testOrderId,
         step.stepName,
         observation,
-        appearanceNote.trim() || undefined
+        appearanceNote.trim() || undefined,
+        ...draftHeaderArgs(draft.submitHeaders())
       );
+      await draft.onSubmitted();
+      setKeptOffline(false);
       onSubmitted();
     } catch (e) {
-      setError(workflowErrorDisplayMessage(parseWorkflowError(e)));
+      const failure = classifySaveFailure(e);
+      if (failure.kind === "network") {
+        setKeptOffline(true);
+      } else if (failure.kind === "conflict") {
+        await draft.onRejected(failure.message);
+        setError(failure.message);
+      } else {
+        setError(workflowErrorDisplayMessage(parseWorkflowError(e)));
+      }
     } finally {
       setSubmitting(false);
     }
@@ -122,6 +201,12 @@ export function SelectivePlatingPanel({ testOrderId, step, current, onSubmitted 
 
   return (
     <Stack spacing={2}>
+      {benchMode && phase !== "waiting" && (
+        <DraftRestoreNotice startedAt={draft.restoredStartedAt} onRestore={restoreDraft} onDiscard={() => void draft.discard()} />
+      )}
+      {benchMode && keptOffline && phase !== "waiting" && (
+        <OfflineDraftNotice onTryAgain={() => void (phase === "setup" ? handleStartIncubation() : handleSubmitObservation())} />
+      )}
       {error && <Alert severity="error">{error}</Alert>}
 
       <FixedMediumRow mediaName={medium.mediaName} />

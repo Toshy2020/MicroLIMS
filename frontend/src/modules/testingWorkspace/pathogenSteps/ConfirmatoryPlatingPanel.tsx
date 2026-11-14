@@ -11,11 +11,29 @@ import {
 import { parseWorkflowError, workflowErrorDisplayMessage } from "../utils/workflowErrors";
 import { serverIncubationWindow } from "../utils/incubationWindow";
 import { DialogBodySkeleton } from "../../../components/DialogBodySkeleton";
+import { DraftRestoreNotice } from "../../../components/bench/DraftRestoreNotice";
+import { useBenchDraft } from "../../../hooks/useBenchDraft";
+import { useBenchMode } from "../../../theme/BenchModeContext";
+import { OfflineDraftNotice, classifySaveFailure, draftHeaderArgs, useKeptOffline } from "../benchSave";
 import {
   StepActionBar, IncubationTimeline, FixedMediumRow, MediaLotIncubatorFields,
   ExpectedAppearanceNote, ObservationOptions
 } from "./StepLayout";
 import { IncubationWaitingView } from "./IncubationWaitingView";
+
+interface ConfirmatoryDraftValues {
+  setupSelections: Record<number, { checked: boolean; mediaLotId: number | ""; equipmentId: number | "" }>;
+  observations: Record<number, GrowthObservation | "">;
+  readoutChecked: Record<number, boolean>;
+}
+
+function pickConfirmatorySetupDraft(v: ConfirmatoryDraftValues): Partial<ConfirmatoryDraftValues> {
+  return { setupSelections: v.setupSelections };
+}
+
+function pickConfirmatoryReadoutDraft(v: ConfirmatoryDraftValues): Partial<ConfirmatoryDraftValues> {
+  return { observations: v.observations, readoutChecked: v.readoutChecked };
+}
 
 const OBSERVATION_OPTIONS: { value: GrowthObservation; title: string; detail?: string }[] = [
   { value: "NoGrowth", title: "No growth" },
@@ -52,6 +70,8 @@ interface ReadoutMedium {
 }
 
 export function ConfirmatoryPlatingPanel({ testOrderId, step, current, onSubmitted }: Props) {
+  const { benchMode } = useBenchMode();
+  const [keptOffline, setKeptOffline] = useKeptOffline();
   const [permitted, setPermitted] = useState<PermittedConfirmatoryMediaEntry[]>([]);
   const [organism, setOrganism] = useState<{ id: number; name: string } | null>(null);
   const [loading, setLoading] = useState(true);
@@ -94,6 +114,66 @@ export function ConfirmatoryPlatingPanel({ testOrderId, step, current, onSubmitt
   useEffect(() => {
     setPhase(initialPhase);
   }, [initialPhase]);
+
+  const setupSelections: ConfirmatoryDraftValues["setupSelections"] = {};
+  for (const [idStr, row] of Object.entries(setupRows)) {
+    setupSelections[Number(idStr)] = { checked: row.checked, mediaLotId: row.mediaLotId, equipmentId: row.equipmentId };
+  }
+
+  // Decisions are never drafted: enabled and pick cover only setup and readout.
+  const draft = useBenchDraft<ConfirmatoryDraftValues>({
+    formKey: `pathogen-confirmatory-${phase === "setup" ? "setup" : "readout"}`,
+    recordKey: `${testOrderId}:${step.stepName}`,
+    recordVersion: null,
+    title: `${step.stepName}: #${testOrderId}`,
+    values: { setupSelections, observations, readoutChecked },
+    pick: phase === "setup" ? pickConfirmatorySetupDraft : pickConfirmatoryReadoutDraft,
+    enabled: benchMode && !loading && (phase === "setup" || phase === "readout")
+  });
+
+  const restoreDraft = () => {
+    const saved = draft.acceptRestore();
+    if (!saved) return;
+    if (phase === "setup" && saved.setupSelections) {
+      setSetupRows((prev) => {
+        const next = { ...prev };
+        for (const [idStr, sel] of Object.entries(saved.setupSelections ?? {})) {
+          const id = Number(idStr);
+          if (!next[id] || !sel) continue;
+          next[id] = {
+            ...next[id],
+            checked: typeof sel.checked === "boolean" ? sel.checked : next[id].checked,
+            mediaLotId: typeof sel.mediaLotId === "number" && next[id].entry.availableLots.some((l) => l.id === sel.mediaLotId) ? sel.mediaLotId : "",
+            equipmentId: typeof sel.equipmentId === "number" && next[id].incubators.some((i) => i.id === sel.equipmentId) ? sel.equipmentId : ""
+          };
+        }
+        return next;
+      });
+    } else if (phase === "readout") {
+      if (saved.observations) {
+        setObservations((prev) => {
+          const next = { ...prev };
+          for (const [idStr, obs] of Object.entries(saved.observations ?? {})) {
+            const id = Number(idStr);
+            if (!Number.isNaN(id) && (obs === "NoGrowth" || obs === "GrowthNonConforming" || obs === "GrowthConforming" || obs === "")) {
+              next[id] = obs;
+            }
+          }
+          return next;
+        });
+      }
+      if (saved.readoutChecked) {
+        setReadoutChecked((prev) => {
+          const next = { ...prev };
+          for (const [idStr, chk] of Object.entries(saved.readoutChecked ?? {})) {
+            const id = Number(idStr);
+            if (!Number.isNaN(id) && typeof chk === "boolean") next[id] = chk;
+          }
+          return next;
+        });
+      }
+    }
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -164,7 +244,11 @@ export function ConfirmatoryPlatingPanel({ testOrderId, step, current, onSubmitt
     }));
     setSubmitting(true);
     try {
-      await TestWorkflowService.submitConfirmatorySetup(testOrderId, step.stepName, selections, startUtc, endUtc);
+      await TestWorkflowService.submitConfirmatorySetup(
+        testOrderId, step.stepName, selections, startUtc, endUtc, ...draftHeaderArgs(draft.submitHeaders())
+      );
+      await draft.onSubmitted();
+      setKeptOffline(false);
       setReadoutMedia(checkedRows.map((r) => ({
         stepMediaId: r.entry.stepMediaId, mediaProductId: r.entry.mediaProductId,
         materialId: r.entry.availableLots.find((l) => l.id === Number(r.mediaLotId))!.materialId,
@@ -175,6 +259,16 @@ export function ConfirmatoryPlatingPanel({ testOrderId, step, current, onSubmitt
       setReadoutChecked({});
       onSubmitted();
     } catch (e) {
+      const failure = classifySaveFailure(e);
+      if (failure.kind === "network") {
+        setKeptOffline(true);
+        return;
+      }
+      if (failure.kind === "conflict") {
+        await draft.onRejected(failure.message);
+        setError(failure.message);
+        return;
+      }
       const parsed = parseWorkflowError(e);
       if (parsed.code === "CONFIRMATORY_SETUP_ALREADY_SUBMITTED") {
         onSubmitted();
@@ -205,14 +299,26 @@ export function ConfirmatoryPlatingPanel({ testOrderId, step, current, onSubmitt
     const payload = active.map((m) => ({ materialId: m.materialId, observation: observations[m.materialId] as GrowthObservation }));
     setSubmitting(true);
     try {
-      const outcome = await TestWorkflowService.submitConfirmatoryObservations(testOrderId, step.stepName, payload);
+      const outcome = await TestWorkflowService.submitConfirmatoryObservations(
+        testOrderId, step.stepName, payload, ...draftHeaderArgs(draft.submitHeaders())
+      );
+      await draft.onSubmitted();
+      setKeptOffline(false);
       if (outcome.analystDecisionRequired) {
         setPhase("decision");
       } else {
         onSubmitted();
       }
     } catch (e) {
-      setError(workflowErrorDisplayMessage(parseWorkflowError(e)));
+      const failure = classifySaveFailure(e);
+      if (failure.kind === "network") {
+        setKeptOffline(true);
+      } else if (failure.kind === "conflict") {
+        await draft.onRejected(failure.message);
+        setError(failure.message);
+      } else {
+        setError(workflowErrorDisplayMessage(parseWorkflowError(e)));
+      }
     } finally {
       setSubmitting(false);
     }
@@ -247,6 +353,12 @@ export function ConfirmatoryPlatingPanel({ testOrderId, step, current, onSubmitt
 
   return (
     <Stack spacing={2}>
+      {benchMode && (phase === "setup" || phase === "readout") && (
+        <DraftRestoreNotice startedAt={draft.restoredStartedAt} onRestore={restoreDraft} onDiscard={() => void draft.discard()} />
+      )}
+      {benchMode && keptOffline && (phase === "setup" || phase === "readout") && (
+        <OfflineDraftNotice onTryAgain={() => void (phase === "setup" ? submitSetup() : submitReadout())} />
+      )}
       {error && <Alert severity="error">{error}</Alert>}
       {organism && <FixedMediumRow label="Target organism" mediaName={organism.name} />}
 

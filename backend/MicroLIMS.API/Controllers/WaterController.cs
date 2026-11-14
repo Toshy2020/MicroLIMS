@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using MicroLIMS.Application.DTOs;
 using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Application.Services;
 using MicroLIMS.Application.Workflows;
@@ -8,7 +9,6 @@ using MicroLIMS.Shared.Responses;
 
 namespace MicroLIMS.API.Controllers;
 
-public record ReceiveWaterRequest(int WaterDepartmentId, int CauseOfTestingId, string SampleQuantity, string SampledBy, string ControlNumber, DateTime? SampledAt = null, int? LabSectionId = null);
 public record PrepareWaterRequest(int SampleId, List<int> WaterSamplingPointIds, string? StorageCondition, int? StorageTimeHours, List<int>? MonitoringOccurrenceIds = null);
 public record CalculateWaterRequest(int TestOrderId, List<decimal> Readings);
 

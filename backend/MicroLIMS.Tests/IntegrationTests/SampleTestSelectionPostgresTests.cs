@@ -489,7 +489,12 @@ public class SampleTestSelectionPostgresTests
                 scope,
                 TestServiceFactory.AddLaboratory(actDb),
                 new ReceiptLabService(actDb, scope),
-                TestServiceFactory.SampleTestSelection(actDb));
+                TestServiceFactory.SampleTestSelection(actDb),
+                new SampleBatchReceiveService(actDb, receiving, new ReceiveSampleValidator(), new ReceiptLabService(actDb, scope),
+                    new WaterService(new WaterWorkflowEngine(actDb, new ReferenceNumberGenerator(actDb), scope)),
+                    new EMService(new EMWorkflowEngine(actDb, new ReferenceNumberGenerator(actDb), scope)),
+                    new AfterCleaningService(new AfterCleaningWorkflowEngine(actDb, new ReferenceNumberGenerator(actDb), scope)),
+                    scope));
 
             var identity = new ClaimsIdentity(new[]
             {

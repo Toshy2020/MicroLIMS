@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using MicroLIMS.Application.DTOs;
 using MicroLIMS.Application.Services;
 using MicroLIMS.Application.Workflows;
 using MicroLIMS.Shared.Constants;
@@ -7,7 +8,6 @@ using MicroLIMS.Shared.Responses;
 
 namespace MicroLIMS.API.Controllers;
 
-public record ReceiveEMRequest(int DepartmentId, int CauseOfTestingId, string SampledBy, string ControlNumber, DateTime? SampledAt = null);
 public record PrepareEMRequest(int SampleId, List<int> RoomTestConfigurationIds, List<int>? MonitoringOccurrenceIds = null);
 
 [ApiController]

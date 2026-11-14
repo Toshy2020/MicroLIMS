@@ -23,16 +23,19 @@ interface FloatingDialogProps {
   // Fixed content rendered between the title bar and the scrollable body -
   // e.g. a step indicator that shouldn't scroll away with the content.
   subHeader?: ReactNode;
+  // In bench mode (a shared touch tablet) the dialog takes the whole screen.
+  // Opt-in so existing dialogs keep their size.
+  benchFullScreen?: boolean;
 }
 
 // Every laboratory process opens as a modal/floating page - "No
 // navigation between pages. Analyst focuses only on one task."
-export function FloatingDialog({ open, title, onClose, children, actions, maxWidth = "md", titleSx, paperSx, subHeader }: FloatingDialogProps) {
+export function FloatingDialog({ open, title, onClose, children, actions, maxWidth = "md", titleSx, paperSx, subHeader, benchFullScreen }: FloatingDialogProps) {
   const theme = useTheme();
   // A laboratory task on a phone gets the whole screen: a floating card with
   // margins left too little room for result grids and pushed the actions
   // below the fold.
-  const fullScreen = useMediaQuery(theme.breakpoints.down("sm"));
+  const fullScreen = useMediaQuery(theme.breakpoints.down("sm")) || (Boolean(theme.custom?.bench) && Boolean(benchFullScreen));
   const handleClose = (e?: React.SyntheticEvent | Event | {}) => {
     if (e && "stopPropagation" in e && typeof (e as any).stopPropagation === "function") {
       (e as any).stopPropagation();

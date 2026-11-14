@@ -342,6 +342,8 @@ public static class ServiceCollectionExtensions
         services.AddScoped<MicroLIMS.Application.Services.Sso.DirectoryLeaverService>();
         services.AddScoped<IMfaService, MicroLIMS.Application.Services.Mfa.MfaService>();
         services.AddScoped<IUserUiStateService, MicroLIMS.Application.Services.UserUiStateService>();
+        // My Work: the aggregator runs every registered IMyWorkSource (sources are added task by task).
+        services.AddScoped<MicroLIMS.Application.Services.MyWork.IMyWorkService, MicroLIMS.Application.Services.MyWork.MyWorkService>();
         services.AddScoped<IMfaAdminService, MicroLIMS.Application.Services.Mfa.MfaAdminService>();
         services.AddScoped<IAuditTrailReviewService, MicroLIMS.Application.Services.AuditTrailReviewService>();
         services.AddScoped<IDatabaseStatsQuery, DatabaseStatsQuery>();

@@ -457,6 +457,8 @@ MonitoringSettingsController.GetSettings(): SystemAdministrator,SectionHead,Revi
 MonitoringSettingsController.ImportLegacyFrequencies(): SystemAdministrator,SectionHead
 MonitoringSettingsController.RemoveCalendarDate(Int32): SectionHead
 MonitoringSettingsController.SaveSettings(MonitoringSettingsRequest): SectionHead
+MyWorkController.Get(String, CancellationToken): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+MyWorkController.GetSummary(CancellationToken): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 NotApplicableTestController.Create(Int32, CreateNotApplicableTestRequest): SectionHead
 NotApplicableTestController.FinalApprove(Int32, NotApplicableSignRequest): QcManager
 NotApplicableTestController.HeadApprove(Int32, NotApplicableSignRequest): SectionHead

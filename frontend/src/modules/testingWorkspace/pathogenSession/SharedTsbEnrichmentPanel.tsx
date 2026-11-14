@@ -21,7 +21,7 @@ import { PathogenSessionService } from "../services/PathogenSessionService";
 import { SharedTsbStatusCard } from "./SharedTsbStatusCard";
 import { masterDataOptions } from "../../../services/masterDataOptions";
 import { brandColors } from "../../../theme";
-import { FieldHint, hintDescribedBy } from "../../../components/FieldHint";
+import { FieldHint, describedByWithHint } from "../../../components/FieldHint";
 import { hints } from "../hints";
 
 interface Props {
@@ -244,7 +244,8 @@ export function SharedTsbEnrichmentPanel({ session, onUpdated, onNext }: Props) 
           >
             <Stack direction="row" spacing={0.5} sx={{ alignItems: "flex-start", minWidth: 0 }}>
               <TextField
-                slotProps={{ input: { "aria-describedby": hintDescribedBy("tsb-media-lot") } }}
+                id="tsb-media-lot"
+                slotProps={{ select: { "aria-describedby": describedByWithHint("tsb-media-lot", "tsb-media-lot") } }}
                 select
                 label="TSB Media Lot (GPT Passed & Released) *"
                 value={selectedMediaId}
@@ -264,7 +265,8 @@ export function SharedTsbEnrichmentPanel({ session, onUpdated, onNext }: Props) 
 
             <Stack direction="row" spacing={0.5} sx={{ alignItems: "flex-start", minWidth: 0 }}>
               <TextField
-                slotProps={{ input: { "aria-describedby": hintDescribedBy("tsb-incubator") } }}
+                id="tsb-incubator"
+                slotProps={{ select: { "aria-describedby": describedByWithHint("tsb-incubator", "tsb-incubator") } }}
                 select
                 label="Incubator Equipment (In-Service) *"
                 value={selectedIncubatorId}
@@ -285,6 +287,7 @@ export function SharedTsbEnrichmentPanel({ session, onUpdated, onNext }: Props) 
             {/* Read-Only Controlled Parameters from Test Master */}
             <Stack direction="row" spacing={0.5} sx={{ alignItems: "flex-start", minWidth: 0 }}>
               <TextField
+                id="tsb-required-temperature"
                 label="Required Incubation Temperature *"
                 value={session.sharedTsb.requiredTemperatureRange ?? "Not configured in Test Master"}
                 helperText={session.sharedTsb.windowNotConfigured
@@ -295,7 +298,7 @@ export function SharedTsbEnrichmentPanel({ session, onUpdated, onNext }: Props) 
                 size="small"
                 sx={{ bgcolor: "background.default" }}
                 slotProps={{
-                  input: { readOnly: true, "aria-describedby": hintDescribedBy("tsb-required-temperature") }
+                  input: { readOnly: true, "aria-describedby": describedByWithHint("tsb-required-temperature", "tsb-required-temperature") }
                 }}
               />
               <FieldHint id="tsb-required-temperature" label="Required Incubation Temperature" hint={hints.requiredTemperature} />
@@ -303,6 +306,7 @@ export function SharedTsbEnrichmentPanel({ session, onUpdated, onNext }: Props) 
 
             <Stack direction="row" spacing={0.5} sx={{ alignItems: "flex-start", minWidth: 0 }}>
               <TextField
+                id="tsb-required-time"
                 label="Required Incubation Time *"
                 value={session.sharedTsb.requiredDurationRange ?? "Not configured in Test Master"}
                 helperText="Each test keeps its own duration; the shared tube only starts them together"
@@ -311,7 +315,7 @@ export function SharedTsbEnrichmentPanel({ session, onUpdated, onNext }: Props) 
                 size="small"
                 sx={{ bgcolor: "background.default" }}
                 slotProps={{
-                  input: { readOnly: true, "aria-describedby": hintDescribedBy("tsb-required-time") }
+                  input: { readOnly: true, "aria-describedby": describedByWithHint("tsb-required-time", "tsb-required-time") }
                 }}
               />
               <FieldHint id="tsb-required-time" label="Required Incubation Time" hint={hints.requiredTime} />

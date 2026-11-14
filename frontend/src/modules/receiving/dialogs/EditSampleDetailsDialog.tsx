@@ -18,7 +18,7 @@ import { FloatingDialog } from "../../../components/FloatingDialog";
 import { SignatureDialog } from "../../../components/SignatureDialog";
 import { DateField } from "../../../components/DateField";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
-import { FieldHint, hintDescribedBy } from "../../../components/FieldHint";
+import { FieldHint, describedByWithHint, hintDescribedBy } from "../../../components/FieldHint";
 import { hints } from "../hints";
 
 interface Props {
@@ -542,7 +542,12 @@ export function EditSampleDetailsDialog({ open, sample, onClose, onSuccess }: Pr
 
           <Stack direction="row" spacing={0.5} sx={{ alignItems: "flex-start", minWidth: 0 }}>
             <TextField
-              slotProps={{ input: { "aria-describedby": hintDescribedBy("receiving-reason-for-correction") } }}
+              id="receiving-reason-for-correction"
+              slotProps={{
+                input: {
+                  "aria-describedby": describedByWithHint("receiving-reason-for-correction", "receiving-reason-for-correction")
+                }
+              }}
               label="Reason for Correction"
               required
               multiline

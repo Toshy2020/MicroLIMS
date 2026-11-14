@@ -7,11 +7,11 @@ const RESET = { chapterId: "16-pathogen-testing", heading: "16.7 Supervisor Path
 
 export const hints = {
   tsbMediaLot: {
-    text: "The TSB media lot for the shared enrichment. The label says the lot must have passed Growth Promotion Testing and be released.",
+    text: "The TSB media lot used for the shared enrichment.",
     guide: SHARED_TSB
   },
   incubator: {
-    text: "The incubator that holds the shared TSB during enrichment. The label says it must be in service.",
+    text: "The incubator that holds the shared TSB during enrichment.",
     guide: SHARED_TSB
   },
   requiredTemperature: {
@@ -23,7 +23,7 @@ export const hints = {
     guide: SHARED_TSB
   },
   reasonForReset: {
-    text: "Required. Why the session is reset. A reset permanently deletes the observations, results and incubations of every test, and the reason is written to the audit trail.",
+    text: "Required. Why the session is reset. A reset deletes the observations, results and incubations of every test in the session and returns the tests to their starting step. The reset and its reason are written to the audit trail.",
     guide: RESET
   }
 } satisfies Record<string, Hint>;

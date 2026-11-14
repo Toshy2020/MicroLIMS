@@ -22,7 +22,7 @@ export const hints = {
     guide: ITEM_MASTER
   },
   assignedTests: {
-    text: "Each test chosen here is ordered automatically when a sample of this item is received: one test order is created for each assigned test.",
+    text: "The tests assigned to this item. When a sample of this item is received, a test order is created for each of these tests that applies to the sample; tests declared not applicable are left out.",
     guide: ITEM_MASTER
   }
 } satisfies Record<string, Hint>;

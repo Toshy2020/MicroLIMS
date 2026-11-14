@@ -7,7 +7,7 @@ import { BenchModeProvider, BENCH_MODE_STORAGE_KEY } from "../theme/BenchModeCon
 import { HelpPanelProvider } from "../modules/help/HelpPanelContext";
 import { HelpPanelSlot } from "../modules/help/HelpPanelSlot";
 import { CHAPTERS } from "../modules/help/content/guideLoader";
-import { FieldHint, hintDescribedBy } from "./FieldHint";
+import { FieldHint, describedByWithHint, hintDescribedBy } from "./FieldHint";
 import type { Hint } from "./FieldHint";
 import type { HelpPanelServices } from "../modules/help/HelpPanelContext";
 
@@ -153,6 +153,16 @@ describe("FieldHint", () => {
     expect(input?.getAttribute("aria-describedby")).toBe(hintDescribedBy("item-code"));
     const described = document.getElementById(hintDescribedBy("item-code"));
     expect(described?.textContent).toBe(PLAIN_TEXT);
+  });
+});
+
+describe("describedByWithHint", () => {
+  it("lists the helper text first, then the hint", () => {
+    expect(describedByWithHint("code", "code-field")).toBe("code-field-helper-text code-hint");
+  });
+
+  it("lists only the hint when no helper text is shown", () => {
+    expect(describedByWithHint("code", "code-field", false)).toBe("code-hint");
   });
 });
 

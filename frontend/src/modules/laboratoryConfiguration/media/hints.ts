@@ -12,15 +12,15 @@ export const hints = {
     guide: MEDIA_CONFIG
   },
   incubationMin: {
-    text: "The shortest incubation time of this condition. A condition pairs a time range with a temperature range, and a condition in use cannot be changed.",
+    text: "The shortest incubation time of this condition. A condition pairs a time range with a temperature range, and a condition that is already in use cannot be changed.",
     guide: MEDIA_CONFIG
   },
   totalWeight: {
-    text: "The weight of dehydrated media used to make this lot. The used weight is deducted from the stock lot when you save.",
+    text: "The weight of dehydrated media used to make this lot. The weight is deducted from the selected stock material when the lot is saved.",
     guide: MEDIA_PREPARATION
   },
   ph: {
-    text: "The pH of the prepared lot, typed in by the analyst. The system checks that it is filled in.",
+    text: "The pH of the prepared lot, entered by the analyst. The form needs a value before you can save.",
     guide: MEDIA_PREPARATION
   }
 } satisfies Record<string, Hint>;

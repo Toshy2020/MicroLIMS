@@ -27,6 +27,17 @@ export function hintDescribedBy(id: string): string {
   return `${id}-hint`;
 }
 
+/**
+ * `aria-describedby` for a MUI TextField that carries a hint. A TextField with
+ * `helperText` points its input at `<id>-helper-text`; passing our own
+ * `aria-describedby` replaces that, so the field needs an explicit `id` and
+ * this helper keeps both references (helper or error text first, then the
+ * hint). Pass `hasHelperText: false` when no helper text is rendered.
+ */
+export function describedByWithHint(hintId: string, fieldId: string, hasHelperText = true): string {
+  return hasHelperText ? `${fieldId}-helper-text ${hintDescribedBy(hintId)}` : hintDescribedBy(hintId);
+}
+
 interface FieldHintProps {
   id: string;
   label: string;

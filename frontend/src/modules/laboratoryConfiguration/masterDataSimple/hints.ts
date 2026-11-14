@@ -9,11 +9,11 @@ const EQUIPMENT_CONFIG = {
 
 export const hints = {
   equipmentCode: {
-    text: "The equipment code. It must be unique; the name and code are trimmed when saved.",
+    text: "The equipment code. It must be unique.",
     guide: EQUIPMENT_CONFIG
   },
   laboratorySection: {
-    text: "Asked for only when your account belongs to more than one laboratory section. With one section it is used automatically.",
+    text: "Asked for only when you add equipment and your account belongs to more than one laboratory section. With one section it is used automatically.",
     guide: EQUIPMENT_CONFIG
   },
   reasonForChange: {

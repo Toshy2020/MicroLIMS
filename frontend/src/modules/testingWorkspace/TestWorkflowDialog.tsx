@@ -12,6 +12,7 @@ import { PathogenLocationResultGridDialog } from "./PathogenLocationResultGridDi
 import { WaterLocationResultGridDialog } from "./WaterLocationResultGridDialog";
 import { PathogenStepDialog } from "./PathogenStepDialog";
 import { StepChainStrip } from "./components/StepChainStrip";
+import { OpenSopAction } from "./components/OpenSopAction";
 import { LocationResultsPanel } from "./LocationResultsPanel";
 import { MeasurementPanel } from "./MeasurementPanel";
 import { GravimetricPanel } from "./GravimetricPanel";
@@ -64,7 +65,17 @@ type Phase = "loading" | "select-media" | "awaiting-result" | "transfer-stage-2"
 // samples, which still incubate through this component's phases and
 // only hand off to LocationResultGridDialog/PathogenLocationResultGrid-
 // Dialog for their per-location batch result entry, exactly as today.
-export function TestWorkflowDialog({ testOrderId, testCode, category, displayName, itemId, sampleId, status, outsourcedToLab, onClose }: Props) {
+export function TestWorkflowDialog(props: Props) {
+  // Samples with no item (water, environmental monitoring, after cleaning) get no Open SOP action.
+  return (
+    <>
+      {props.itemId != null && <OpenSopAction itemId={props.itemId} />}
+      <TestWorkflowDialogBody {...props} />
+    </>
+  );
+}
+
+function TestWorkflowDialogBody({ testOrderId, testCode, category, displayName, itemId, sampleId, status, outsourcedToLab, onClose }: Props) {
   const theme = useTheme();
   const isEmOrAfterCleaning = category === "EnvironmentalMonitoring" || category === "AfterCleaning";
   const [phase, setPhase] = useState<Phase>("loading");

@@ -620,6 +620,7 @@ TestDefinitionMasterDataController.CreateTestDefinition(CreateTestDefinitionRequ
 TestDefinitionMasterDataController.FreezeTestDefinition(Int32): SystemAdministrator,SectionHead
 TestDefinitionMasterDataController.GetEditableCodes(): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 TestDefinitionMasterDataController.GetEquationTypes(): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+TestDefinitionMasterDataController.GetItemsForTest(Int32, String, Int32, Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 TestDefinitionMasterDataController.GetTestDefinitions(): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 TestDefinitionMasterDataController.UnfreezeTestDefinition(Int32): SystemAdministrator,SectionHead
 TestDefinitionMasterDataController.UpdateTestDefinition(Int32, UpdateTestDefinitionRequest): SystemAdministrator,SectionHead

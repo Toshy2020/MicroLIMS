@@ -474,9 +474,9 @@ export function useTableState(
 
   const setSort = useCallback(
     (s: TableState["sort"]) => {
-      commitUrl({ ...state, sort: s }, decoded.page, decoded.viewId, false);
+      commitUrl({ ...state, sort: s }, 1, decoded.viewId, false);
     },
-    [state, decoded.page, decoded.viewId, commitUrl]
+    [state, decoded.viewId, commitUrl]
   );
 
   const setPage = useCallback(

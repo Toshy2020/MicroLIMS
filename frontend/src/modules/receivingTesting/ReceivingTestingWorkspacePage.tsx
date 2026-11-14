@@ -72,6 +72,7 @@ import { usePostCreateLabelPrint } from "../../components/labels/usePostCreateLa
 import { toast } from "sonner";
 import {
   LEGACY_FILTER_PARAMS,
+  WORKSPACE_SERVER_SORTABLE_COLUMNS,
   isWhitelistedWorkload,
   legacyDisplayMode,
   readLegacyWorkspaceLink
@@ -420,6 +421,13 @@ export function ReceivingTestingWorkspacePage({ lab }: Props) {
     };
   }, []);
 
+  const activeSort =
+    tableState.state.sort && WORKSPACE_SERVER_SORTABLE_COLUMNS.has(tableState.state.sort.key)
+      ? tableState.state.sort
+      : null;
+  const sortBy = activeSort?.key;
+  const sortDir = activeSort?.direction;
+
   const filterRef = useRef<TestingWorkspaceFilter>({});
   filterRef.current = {
     page,
@@ -434,7 +442,8 @@ export function ReceivingTestingWorkspacePage({ lab }: Props) {
     toDate,
     workloadFilter,
     labSectionId: lab.sectionId,
-    area: lab.area
+    area: lab.area,
+    ...(sortBy && sortDir ? { sortBy, sortDir } : {})
   };
 
   // The workload tile counts don't depend on the filters or page, so filter
@@ -485,7 +494,9 @@ export function ReceivingTestingWorkspacePage({ lab }: Props) {
     analystIdFilter,
     urgencyFilter,
     fromDate,
-    toDate
+    toDate,
+    sortBy,
+    sortDir
   ]);
 
   const handleTestClick = useCallback((test: ReceivingTestOrderSummary | WorkspaceTestOrderSummary, sample: SampleRecord | WorkspaceSampleCard) => {
@@ -1286,6 +1297,9 @@ export function ReceivingTestingWorkspacePage({ lab }: Props) {
               selection={selection}
               bulkActions={bulkActions}
               serverTotal={showSelectedOnly ? displayRecords.length : totalCount}
+              serverSortableColumns={WORKSPACE_SERVER_SORTABLE_COLUMNS}
+              onServerSortChange={tableState.setSort}
+              serverSort={activeSort}
               loadAllMatching={loadAllMatching}
               onSelectSample={handleSelectSample}
               onTestClick={(test, sample) => {

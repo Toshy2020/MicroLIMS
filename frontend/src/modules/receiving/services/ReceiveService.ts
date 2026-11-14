@@ -38,6 +38,8 @@ export interface TestingWorkspaceFilter {
   // 403s a caller who isn't a member of that section.
   labSectionId?: number | null;
   area?: "fp" | "rmpm" | null;
+  sortBy?: string;
+  sortDir?: "asc" | "desc";
 }
 
 export interface PagedResult<T> {
@@ -127,6 +129,8 @@ export const ReceiveService = {
     if (filter.pageSize != null) params.pageSize = filter.pageSize;
     if (filter.labSectionId != null) params.labSectionId = filter.labSectionId;
     if (filter.area) params.area = filter.area;
+    if (filter.sortBy) params.sortBy = filter.sortBy;
+    if (filter.sortDir) params.sortDir = filter.sortDir;
 
     const res = await apiClient.get("/testorders/page", { params });
     return res.data.data;

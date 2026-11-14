@@ -59,6 +59,13 @@ const REVISION_STATUSES: readonly DocumentRevisionStatus[] = [
   "Cancelled"
 ];
 
+const DOCUMENT_LIBRARY_SORTABLE_COLUMNS: ReadonlySet<string> = new Set([
+  "companyDocumentCode",
+  "microLimsDocumentId",
+  "title",
+  "effectiveDate"
+]);
+
 function textFilter(filters: Record<string, string | string[]>, name: string): string {
   const value = filters[name];
   return typeof value === "string" ? value : "";
@@ -95,6 +102,12 @@ export function DocumentLibraryPage() {
   const showOverdueOnly = textFilter(tableState.state.filters, "reviewOverdue") === "true";
   const page = tableState.page;
   const pageSize = tableState.state.pageSize === "all" ? 100 : tableState.state.pageSize;
+  const activeSort =
+    tableState.state.sort && DOCUMENT_LIBRARY_SORTABLE_COLUMNS.has(tableState.state.sort.key)
+      ? tableState.state.sort
+      : null;
+  const sortBy = activeSort?.key;
+  const sortDir = activeSort?.direction;
 
   const parsedTypeId = selectedType !== "" && Number.isFinite(Number(selectedType)) ? Number(selectedType) : undefined;
   const parsedDeptId = selectedDept !== "" && Number.isFinite(Number(selectedDept)) ? Number(selectedDept) : undefined;
@@ -163,6 +176,8 @@ export function DocumentLibraryPage() {
         revisionStatus: parsedStatus,
         includeCancelledAndVoided: includeCancelledVoided,
         isOverdue: showOverdueOnly ? true : undefined,
+        sortBy,
+        sortDir,
         page,
         pageSize
       });
@@ -173,7 +188,7 @@ export function DocumentLibraryPage() {
     } finally {
       setLoading(false);
     }
-  }, [searchTerm, parsedTypeId, parsedDeptId, parsedStatus, includeCancelledVoided, showOverdueOnly, page, pageSize]);
+  }, [searchTerm, parsedTypeId, parsedDeptId, parsedStatus, includeCancelledVoided, showOverdueOnly, sortBy, sortDir, page, pageSize]);
 
   useEffect(() => {
     fetchLibrary();
@@ -219,6 +234,7 @@ export function DocumentLibraryPage() {
         key: "companyDocumentCode",
         label: "Company Code",
         nowrap: true,
+        sortable: true,
         render: (doc) => (
           <Typography
             variant="body2"
@@ -239,6 +255,7 @@ export function DocumentLibraryPage() {
         key: "microLimsDocumentId",
         label: "MicroLIMS ID",
         nowrap: true,
+        sortable: true,
         render: (doc) => (
           <Typography variant="caption" sx={{ fontFamily: monospaceFontFamily }}>
             {doc.microLimsDocumentId}
@@ -248,6 +265,7 @@ export function DocumentLibraryPage() {
       {
         key: "title",
         label: "Title",
+        sortable: true,
         render: (doc) => (
           <Typography
             variant="body2"
@@ -356,6 +374,7 @@ export function DocumentLibraryPage() {
       {
         key: "effectiveDate",
         label: "Effective Date",
+        sortable: true,
         render: (doc) => (
           <Typography variant="caption" sx={{ color: "text.secondary" }}>
             {doc.effectiveDate ? new Date(doc.effectiveDate).toLocaleDateString() : "Pending"}
@@ -525,7 +544,12 @@ export function DocumentLibraryPage() {
         tableState={tableState}
         toolbar={<TableToolbar tableKey={TABLE_KEY} tableState={tableState} showSearch={false} />}
         loading={loading}
-        serverPaged={{ totalCount }}
+        serverPaged={{
+          totalCount,
+          sortableColumns: DOCUMENT_LIBRARY_SORTABLE_COLUMNS,
+          onSortChange: tableState.setSort,
+          sort: activeSort
+        }}
         rowSx={(doc) => (doc.recordStatus === "Void" ? { bgcolor: "action.hover", opacity: 0.75 } : undefined)}
         trailingCell={{
           label: "Actions",

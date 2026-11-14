@@ -257,7 +257,7 @@ describe("ReceivingTestingWorkspacePage on the shared table state", () => {
     localStorage.clear();
   });
 
-  it("filters and page are in the URL and restore on reload (no column sort: the list is server-paged and the server has no sort)", async () => {
+  it("filters and page are in the URL and restore on reload", async () => {
     const user = userEvent.setup();
     const first = renderWorkspace();
     await screen.findByText("Alpha Syrup");
@@ -455,5 +455,41 @@ describe("ReceivingTestingWorkspacePage on the shared table state", () => {
     await screen.findByText("Alpha Syrup");
     await waitFor(() => expect(lastFilter()).toMatchObject({ workloadFilter: "mine", analystId: 5, page: 1 }));
     expect(screen.getByText("Assigned to Me").closest("button")?.getAttribute("aria-pressed")).toBe("true");
+  });
+
+  it("header sort sends sortBy/sortDir with page 1, flips direction, hides sort on excluded columns, and restores from URL", async () => {
+    const user = userEvent.setup();
+    const first = renderWorkspace();
+    await screen.findByText("Alpha Syrup");
+
+    // Excluded / computed columns must not show a sort button.
+    const headers = screen.getAllByRole("columnheader");
+    for (const excludedLabel of ["Assigned To", "Tests", "Next Action"]) {
+      const col = headers.find((h) => h.textContent?.trim() === excludedLabel);
+      expect(col).toBeTruthy();
+      expect(within(col!).queryByRole("button")).toBeNull();
+    }
+
+    // Move to page 2 first to verify clicking a sort header resets page back to 1.
+    await user.click(screen.getAllByRole("button", { name: "Go to next page" })[0]);
+    await waitFor(() => expect(lastFilter()).toMatchObject({ page: 2 }));
+
+    await user.click(screen.getByRole("button", { name: "Batch / Control No." }));
+    await waitFor(() => expect(lastFilter()).toMatchObject({ sortBy: "batchControl", sortDir: "asc", page: 1 }));
+    expect(address().get("sort")).toBe("batchControl:asc");
+
+    await user.click(screen.getByRole("button", { name: "Batch / Control No." }));
+    await waitFor(() => expect(lastFilter()).toMatchObject({ sortBy: "batchControl", sortDir: "desc", page: 1 }));
+    expect(address().get("sort")).toBe("batchControl:desc");
+
+    const url = `/${screen.getByLabelText("Address").textContent}`;
+    first.unmount();
+
+    vi.mocked(ReceiveService.getRecordsPaged).mockClear();
+    renderWorkspace(url);
+    await screen.findByText("Alpha Syrup");
+    await waitFor(() => expect(lastFilter()).toMatchObject({ sortBy: "batchControl", sortDir: "desc" }));
+    const restoredCol = screen.getAllByRole("columnheader").find((h) => h.textContent?.trim() === "Batch / Control No.");
+    expect(restoredCol?.getAttribute("aria-sort")).toBe("descending");
   });
 });

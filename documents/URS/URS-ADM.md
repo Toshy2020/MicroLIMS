@@ -96,7 +96,7 @@ Each requirement below is a need that the code as built serves. Gaps found in th
 **Status:** Active
 
 ### URS-ADM-013
-**Requirement:** The system shall provide a keyboard shortcuts reference dialog accessible from the Help menu or by pressing `?` outside editable inputs, shall place initial focus on the first empty required field when opening standard form dialogs (unless disabled), shall disable column sort controls on server-paged register tables, and shall let administrators enable or disable last-choice entry defaults via system settings.
+**Requirement:** The system shall provide a keyboard shortcuts reference dialog accessible from the Help menu or by pressing `?` outside editable inputs, shall place initial focus on the first empty required field when opening standard form dialogs (unless disabled), shall keep client-side sorting disabled on server-paged register tables while supporting server-side sorting (and header sort controls) on allow-listed persisted columns, and shall let administrators enable or disable last-choice entry defaults via system settings.
 **GxP:** No
 **Serves:** Operational usability and accurate table behaviour under server-side pagination
 **Status:** Active

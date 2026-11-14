@@ -27,7 +27,7 @@ public class DocumentControlController : ControllerBase
     [HttpGet("library")]
     public async Task<IActionResult> GetLibrary([FromQuery] DocumentLibraryFilterRequest filter)
     {
-        var response = await _masterService.GetLibraryAsync(filter, CurrentUserId);
+        var response = await _masterService.GetLibraryAsync(filter, CurrentUserId, HttpContext?.RequestAborted ?? CancellationToken.None);
         return Ok(ApiResponse<DocumentLibraryResponse>.Ok(response));
     }
 

@@ -364,6 +364,44 @@ describe("RegisterTable server pages, trailing cell and selective expand toggles
     expect(screen.queryByText("Sort by")).toBeNull();
   });
 
+  it("serverPaged with server sort handling: shows sort controls only for allow-listed columns and delegates clicks without client sorting", async () => {
+    const user = userEvent.setup();
+    const onSortChange = vi.fn();
+    const rows: SampleRow[] = [
+      { id: 1, code: "SMP-002", name: "Zeta", count: 5 },
+      { id: 2, code: "SMP-001", name: "Alpha", count: 9 }
+    ];
+    renderTable(
+      <RegisterTable
+        columns={COLUMNS}
+        rows={rows}
+        getRowId={(r) => r.id}
+        empty={{ title: "No rows" }}
+        serverPaged={{
+          totalCount: 120,
+          sortableColumns: ["name"],
+          onSortChange
+        }}
+      />
+    );
+
+    const headers = screen.getAllByRole("columnheader");
+    // "Code" is sortable in COLUMNS but omitted from sortableColumns -> no button.
+    expect(within(headers[0]!).queryByRole("button")).toBeNull();
+    // "Count" is not sortable in COLUMNS -> no button.
+    expect(within(headers[2]!).queryByRole("button")).toBeNull();
+    // "Name" is both sortable and in sortableColumns -> has sort button.
+    const nameSortButton = within(headers[1]!).getByRole("button", { name: "Name" });
+
+    await user.click(nameSortButton);
+    expect(onSortChange).toHaveBeenLastCalledWith({ key: "name", direction: "asc" });
+    // Rows stay in server order (no client-side sorting).
+    expect(screen.getAllByText(/^SMP-00/).map((e) => e.textContent)).toEqual(["SMP-002", "SMP-001"]);
+
+    await user.click(within(screen.getAllByRole("columnheader")[1]!).getByRole("button", { name: "Name" }));
+    expect(onSortChange).toHaveBeenLastCalledWith({ key: "name", direction: "desc" });
+  });
+
   it("trailingCell: adds a labelled last column; the row click reports the event so a caller can ignore controls inside", async () => {
     const user = userEvent.setup();
     const onRowClick = vi.fn();

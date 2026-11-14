@@ -1,3 +1,4 @@
+using System.Linq.Expressions;
 using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.DTOs;
@@ -24,7 +25,38 @@ public class TestingWorkspaceService : ITestWorkspaceService
         _scope = scope;
     }
 
-    public async Task<PagedResult<SampleDto>> GetActiveSamplesAsync(TestingWorkspaceFilterDto filter, int? currentUserId = null)
+    private static readonly Expression<Func<Sample, string>> SampleDisplayNameExpression = s =>
+        s.Category == SampleCategory.AfterCleaning
+            ? (s.Machine != null ? s.Machine.Name : string.Empty)
+            : s.Category == SampleCategory.Water
+                ? (s.WaterSamplingPoint != null ? s.WaterSamplingPoint.Code : (s.WaterDepartment != null ? s.WaterDepartment.Name : string.Empty))
+                : s.Category == SampleCategory.EnvironmentalMonitoring
+                    ? (s.Department != null ? s.Department.Name : string.Empty)
+                    : (s.Item != null ? s.Item.Name : string.Empty);
+
+    private static readonly IReadOnlyDictionary<string, Func<IQueryable<Sample>, bool, IOrderedQueryable<Sample>>> SampleSortAllowList =
+        new Dictionary<string, Func<IQueryable<Sample>, bool, IOrderedQueryable<Sample>>>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["item"] = (q, asc) => ServerSort.ApplyOrder(q, SampleDisplayNameExpression, asc, s => s.Id),
+            ["displayName"] = (q, asc) => ServerSort.ApplyOrder(q, SampleDisplayNameExpression, asc, s => s.Id),
+            ["receivedAt"] = (q, asc) => ServerSort.ApplyOrder(q, s => s.ReceivedAt, asc, s => s.Id),
+            ["sampleId"] = (q, asc) => asc ? q.OrderBy(s => s.Id) : q.OrderByDescending(s => s.Id),
+            ["referenceNumber"] = (q, asc) => ServerSort.ApplyOrder(q, s => s.ReferenceNumber, asc, s => s.Id),
+            ["category"] = (q, asc) => ServerSort.ApplyOrder(q, s => s.Category, asc, s => s.Id),
+            ["sampledBy"] = (q, asc) => ServerSort.ApplyOrder(q, s => s.SampledBy, asc, s => s.Id),
+            ["batchControl"] = (q, asc) => ServerSort.ApplyOrder(q, s => s.BatchNumber ?? s.ControlNumber, asc, s => s.Id),
+            ["batchNumber"] = (q, asc) => ServerSort.ApplyOrder(q, s => s.BatchNumber ?? string.Empty, asc, s => s.Id),
+            ["controlNumber"] = (q, asc) => ServerSort.ApplyOrder(q, s => s.ControlNumber, asc, s => s.Id),
+            ["sampleStatus"] = (q, asc) => ServerSort.ApplyOrder(q, s => s.Status, asc, s => s.Id),
+            ["due"] = (q, asc) => ServerSort.ApplyOrderWithGroup(
+                q,
+                s => SampleWorkflowQueues.ClosedSampleStatuses.Contains(s.Status) ? 1 : 0,
+                s => s.ReceivedAt,
+                asc,
+                s => s.Id),
+        };
+
+    public async Task<PagedResult<SampleDto>> GetActiveSamplesAsync(TestingWorkspaceFilterDto filter, int? currentUserId = null, CancellationToken cancellationToken = default)
     {
         var (page, pageSize) = Paging.Normalize(filter.Page, filter.PageSize, defaultPageSize: 50);
 
@@ -246,10 +278,27 @@ public class TestingWorkspaceService : ITestWorkspaceService
             query = query.Where(s => s.ReceivedAt < toUtcInclusiveEnd);
         }
 
-        var totalCount = await query.CountAsync();
+        // Validate sort inputs before executing CountAsync so invalid queries fail fast.
+        IOrderedQueryable<Sample> orderedQuery;
+        if (string.IsNullOrWhiteSpace(filter.SortBy))
+        {
+            if (!string.IsNullOrWhiteSpace(filter.SortDir))
+                ServerSort.ParseAscending(filter.SortDir);
+            orderedQuery = query.OrderByDescending(s => s.ReceivedAt).ThenBy(s => s.Id);
+        }
+        else
+        {
+            var key = filter.SortBy.Trim();
+            if (!SampleSortAllowList.TryGetValue(key, out var applySort))
+                throw new BusinessRuleException($"Unsupported sort column '{filter.SortBy}'.");
 
-        var pagedSamples = await query
-            .OrderByDescending(s => s.ReceivedAt)
+            var ascending = ServerSort.ParseAscending(filter.SortDir);
+            orderedQuery = applySort(query, ascending);
+        }
+
+        var totalCount = await query.CountAsync(cancellationToken);
+
+        var pagedSamples = await orderedQuery
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .Include(s => s.OriginSample)
@@ -261,7 +310,7 @@ public class TestingWorkspaceService : ITestWorkspaceService
             .Include(s => s.CauseOfTesting)
             .Include(s => s.TestOrders)
             .Include(s => s.SectionSignoffs)
-            .ToListAsync();
+            .ToListAsync(cancellationToken);
 
         var dtos = await MapSamplesToDtosAsync(pagedSamples, scope);
 

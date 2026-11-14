@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, useLocation } from "react-router-dom";
 import { PinnedLightTheme } from "../../../theme/PinnedLightTheme";
@@ -231,7 +231,7 @@ describe("DocumentLibraryPage on the shared table state", () => {
     ]);
   });
 
-  it("the toolbar offers saved views, a column chooser, and no column sort on a server-paged list", async () => {
+  it("the toolbar offers saved views, a column chooser, and no active sort initially", async () => {
     const user = userEvent.setup();
     renderPage();
     await ready();
@@ -250,5 +250,61 @@ describe("DocumentLibraryPage on the shared table state", () => {
     await user.click(await screen.findByRole("checkbox", { name: "MicroLIMS ID" }));
     await user.keyboard("{Escape}");
     await waitFor(() => expect(hasHeader("MicroLIMS ID")).toBe(true));
+  });
+
+  it("header sort sends sortBy/sortDir with page 1, flips direction, hides sort on computed columns, and restores from URL", async () => {
+    const user = userEvent.setup();
+    vi.mocked(documentControlService.getLibrary).mockResolvedValue({
+      items: [doc({ id: 10 })],
+      totalCount: 60,
+      page: 1,
+      pageSize: 25,
+      totalPages: 3
+    });
+
+    const first = renderPage("/");
+    await ready();
+
+    // Computed / joined columns offer no sort button.
+    const headers = screen.getAllByRole("columnheader");
+    for (const excludedLabel of ["Type", "Dept / Section", "Owner", "Rev", "Status", "Files"]) {
+      const col = headers.find((h) => h.textContent?.trim() === excludedLabel);
+      expect(col).toBeTruthy();
+      expect(within(col!).queryByRole("button")).toBeNull();
+    }
+
+    // Move to page 2 first to confirm header sort resets back to page 1.
+    await user.click(screen.getByRole("button", { name: "Go to next page" }));
+    await waitFor(() => expect(documentControlService.getLibrary).toHaveBeenLastCalledWith(expect.objectContaining({ page: 2 })));
+
+    await user.click(screen.getByRole("button", { name: "Title" }));
+    await waitFor(() =>
+      expect(documentControlService.getLibrary).toHaveBeenLastCalledWith(
+        expect.objectContaining({ sortBy: "title", sortDir: "asc", page: 1 })
+      )
+    );
+    expect(address().get("sort")).toBe("title:asc");
+
+    await user.click(screen.getByRole("button", { name: "Title" }));
+    await waitFor(() =>
+      expect(documentControlService.getLibrary).toHaveBeenLastCalledWith(
+        expect.objectContaining({ sortBy: "title", sortDir: "desc", page: 1 })
+      )
+    );
+    expect(address().get("sort")).toBe("title:desc");
+
+    const url = `/${screen.getByLabelText("Address").textContent}`;
+    first.unmount();
+
+    vi.mocked(documentControlService.getLibrary).mockClear();
+    renderPage(url);
+    await ready();
+    await waitFor(() =>
+      expect(documentControlService.getLibrary).toHaveBeenLastCalledWith(
+        expect.objectContaining({ sortBy: "title", sortDir: "desc" })
+      )
+    );
+    const titleCol = screen.getAllByRole("columnheader").find((h) => h.textContent?.trim() === "Title");
+    expect(titleCol?.getAttribute("aria-sort")).toBe("descending");
   });
 });

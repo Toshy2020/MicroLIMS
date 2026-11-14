@@ -202,6 +202,7 @@ export interface DocumentLibraryFilterRequest {
   isOverdue?: boolean;
   sortBy?: string;
   sortDescending?: boolean;
+  sortDir?: "asc" | "desc";
   page?: number;
   pageSize?: number;
 }

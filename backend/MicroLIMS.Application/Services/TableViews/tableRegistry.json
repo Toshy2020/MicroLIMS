@@ -574,5 +574,21 @@
       { "key": "status", "label": "Status", "defaultVisible": true }
     ],
     "filters": ["search", "mediaType", "manufacturer", "status", "expiryRange"]
+  },
+  {
+    "key": "inventory.approvedCryovials",
+    "title": "Approved Cryovial List",
+    "idColumn": "code",
+    "columns": [
+      { "key": "code", "label": "Cryovial Code", "defaultVisible": true },
+      { "key": "organism", "label": "Organism", "defaultVisible": true },
+      { "key": "atcc", "label": "ATCC No.", "defaultVisible": true },
+      { "key": "manufacturer", "label": "Manufacturer", "defaultVisible": true },
+      { "key": "storage", "label": "Storage", "defaultVisible": true },
+      { "key": "vials", "label": "Vials Remaining", "defaultVisible": true },
+      { "key": "expiry", "label": "Expiry", "defaultVisible": true },
+      { "key": "status", "label": "Status", "defaultVisible": true }
+    ],
+    "filters": ["search", "organism", "storage", "manufacturer", "status", "expiryRange"]
   }
 ]

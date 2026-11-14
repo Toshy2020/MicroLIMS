@@ -1,4 +1,6 @@
-import type { FrequencyColumns } from "../../../components/configHierarchy";
+import type { FrequencyColumns, FrequencyRulePayload } from "../../../components/configHierarchy";
+
+export type { FrequencyRulePayload };
 
 export interface WaterPointLabFrequency extends FrequencyColumns {
   sectionId: number;
@@ -62,14 +64,6 @@ export function pointHealth(point: SamplingPoint, configs: SamplingConfig[], isC
     noTests: (point.assignedTestCodes ?? []).length === 0,
     missingLimitCodes: countTestsOf(point, isCountTest).filter((code) => !configured.has(code))
   };
-}
-
-export interface FrequencyRulePayload {
-  type: "Daily" | "Weekly" | "Monthly" | null;
-  interval?: number | null;
-  samplingWeekday?: string | null;
-  anchorMonth?: number | null;
-  weekOfMonth?: number | null;
 }
 
 export interface CreateWaterSamplingPointPayload {

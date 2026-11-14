@@ -13,7 +13,7 @@ import type { PasteAcceptedRow } from "../../../components/entry/PastePreviewDia
 import { useTestDefinitions } from "../../../hooks/useTestDefinitions";
 import { useEditableTestCodes } from "../../../hooks/useEditableTestCodes";
 import { getErrorMessage } from "../../../utils/errorMessage";
-import { errorsByField, errorsByRow } from "../../../utils/fieldErrors";
+import { extractBatchSaveErrors } from "../../../utils/fieldErrors";
 import { WaterConfigService } from "./services/WaterConfigService";
 import { WaterLocationList } from "./components/WaterLocationList";
 import { WaterLocationPendingList } from "./components/WaterLocationPendingList";
@@ -158,27 +158,14 @@ export function WaterConfigPage() {
       setMessage({ text: `${plural(count, "sample location")} added.`, ok: true });
       await load();
     } catch (e: unknown) {
-      const rowErrs = errorsByRow(e);
-      const topErrs = errorsByField(e);
-      const failingRowIndices = Object.keys(rowErrs);
-      const totalProblems = failingRowIndices.reduce(
-        (sum, key) => sum + Object.keys(rowErrs[Number(key)]).length,
-        0
+      const { summary, rowErrors } = extractBatchSaveErrors(
+        e,
+        "Could not save sample locations. Nothing was created."
       );
-
-      if (failingRowIndices.length > 0) {
-        setPendingPoints((prev) =>
-          prev.map((row, idx) => ({
-            ...row,
-            errors: rowErrs[idx]
-          }))
-        );
-        const topMsgs = Object.values(topErrs);
-        const summary = `${plural(totalProblems, "problem")} in ${plural(failingRowIndices.length, "row")}. Nothing was created.`;
-        setBatchError(topMsgs.length > 0 ? `${summary} ${topMsgs.join(" ")}` : summary);
-      } else {
-        setBatchError(getErrorMessage(e, "Could not save sample locations. Nothing was created."));
+      if (rowErrors) {
+        setPendingPoints((prev) => prev.map((row, idx) => ({ ...row, errors: rowErrors[idx] })));
       }
+      setBatchError(summary);
     } finally {
       setSavingBatch(false);
     }

@@ -1,6 +1,27 @@
-import type { FrequencyColumns } from "../../../components/configHierarchy";
+import type { FrequencyColumns, FrequencyRulePayload } from "../../../components/configHierarchy";
+
+export type { FrequencyRulePayload };
 
 export type EmRoomKind = "Room" | "LAF";
+
+export interface CreateRoomPayload {
+  name: string;
+  departmentId: number;
+  gradeClassification: string;
+  kind?: EmRoomKind;
+  parentRoomId?: number | null;
+  frequency?: FrequencyRulePayload | null;
+}
+
+export interface CreateRoomTestConfigPayload {
+  roomId: number;
+  testType: string;
+  testCode: string;
+  alertLimit: string;
+  actionLimit: string;
+  specLimit: string;
+  unit?: string | null;
+}
 
 export interface EmRoom extends FrequencyColumns {
   id: number;
@@ -25,6 +46,7 @@ export interface EmDepartment extends FrequencyColumns {
 export interface RoomTestConfig {
   id: number;
   version?: number;
+  isActive?: boolean;
   roomId: number;
   testType: string;
   testCode: string;

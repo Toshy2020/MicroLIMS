@@ -1,4 +1,10 @@
 import { apiClient, ifMatch } from "../../../../services/apiClient";
+import type {
+  CreateRoomPayload,
+  CreateRoomTestConfigPayload,
+  EmRoom,
+  RoomTestConfig
+} from "../emConfigTypes";
 
 export const EMConfigService = {
   getDepartments: () => apiClient.get("/masterdata/departments").then((r) => r.data.data),
@@ -11,6 +17,8 @@ export const EMConfigService = {
   getRooms: () => apiClient.get("/masterdata/rooms").then((r) => r.data.data),
   createRoom: (name: string, departmentId: number, gradeClassification: string, extra?: { kind?: string; parentRoomId?: number | null; frequency?: object }) =>
     apiClient.post("/masterdata/rooms", { name, departmentId, gradeClassification, ...extra }).then((r) => r.data.data),
+  createRoomsBatch: (rooms: CreateRoomPayload[]): Promise<EmRoom[]> =>
+    apiClient.post("/masterdata/rooms/batch", rooms).then((r) => r.data.data),
   updateRoom: (id: number, name: string, departmentId: number, gradeClassification: string, version?: number, extra?: { kind?: string; parentRoomId?: number | null; frequency?: object }) =>
     apiClient.put(`/masterdata/rooms/${id}`, { name, departmentId, gradeClassification, ...extra }, ifMatch(version)).then((r) => r.data.data),
   deleteRoom: (id: number) => apiClient.delete(`/masterdata/rooms/${id}`),
@@ -19,6 +27,8 @@ export const EMConfigService = {
     apiClient.get("/masterdata/room-test-configurations", { params: { roomId } }).then((r) => r.data.data),
   createRoomTestConfiguration: (roomId: number, testType: string, testCode: string, alertLimit: string, actionLimit: string, specLimit: string, unit?: string) =>
     apiClient.post("/masterdata/room-test-configurations", { roomId, testType, testCode, alertLimit, actionLimit, specLimit, unit }).then((r) => r.data.data),
+  createRoomTestConfigurationsBatch: (configs: CreateRoomTestConfigPayload[]): Promise<RoomTestConfig[]> =>
+    apiClient.post("/masterdata/room-test-configurations/batch", configs).then((r) => r.data.data),
   updateRoomTestConfiguration: (id: number, testType: string, testCode: string, alertLimit: string, actionLimit: string, specLimit: string, unit?: string, version?: number) =>
     apiClient.put(`/masterdata/room-test-configurations/${id}`, { testType, testCode, alertLimit, actionLimit, specLimit, unit }, ifMatch(version)).then((r) => r.data.data),
   deleteRoomTestConfiguration: (id: number) => apiClient.delete(`/masterdata/room-test-configurations/${id}`)

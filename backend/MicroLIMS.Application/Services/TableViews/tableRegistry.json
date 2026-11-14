@@ -555,5 +555,24 @@
       { "key": "computedValue", "label": "Result", "defaultVisible": true }
     ],
     "filters": []
+  },
+  {
+    "key": "inventory.approvedMedia",
+    "title": "Approved Media List",
+    "idColumn": "lotNumber",
+    "columns": [
+      { "key": "lotNumber", "label": "Lot Number", "defaultVisible": true },
+      { "key": "mediaType", "label": "Media Type", "defaultVisible": true },
+      { "key": "ph", "label": "pH Result", "defaultVisible": true },
+      { "key": "preparedBy", "label": "Prepared By", "defaultVisible": true },
+      { "key": "volume", "label": "Total Volume", "defaultVisible": true },
+      { "key": "weight", "label": "Total Weight", "defaultVisible": true },
+      { "key": "mfgLot", "label": "Manufacturer Lot", "defaultVisible": true },
+      { "key": "mfgName", "label": "Manufacturer", "defaultVisible": true },
+      { "key": "preparedOn", "label": "Prepared On", "defaultVisible": true },
+      { "key": "expiry", "label": "Expiry", "defaultVisible": true },
+      { "key": "status", "label": "Status", "defaultVisible": true }
+    ],
+    "filters": ["search", "mediaType", "manufacturer", "status", "expiryRange"]
   }
 ]

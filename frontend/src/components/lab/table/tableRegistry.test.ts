@@ -15,6 +15,7 @@ const FILE_TO_TABLE_KEYS: Record<string, string[]> = {
   "/src/modules/hplcWorkspace/samples/SampleAssignmentPanel.tsx": ["hplc.runSamples"],
   "/src/modules/hplcWorkspace/sst/SstValuesTable.tsx": ["hplc.sstValues"],
   "/src/modules/icpWorkspace/history/IcpRunHistoryTable.tsx": ["icp.runHistory"],
+  "/src/modules/inventory/approvedLists/ApprovedMediaListPage.tsx": ["inventory.approvedMedia"],
   "/src/modules/inventory/equipment/EquipmentInventoryPage.tsx": ["inventory.equipment"],
   "/src/modules/inventory/equipment/components/ActiveEquipmentView.tsx": [
     "inventory.equipmentTraceability",

@@ -42,6 +42,11 @@ public static class SystemSettingKeys
     public const string AnnouncementBanner = "System.AnnouncementBanner";
     public const string AnnouncementSeverity = "System.AnnouncementSeverity";
     public const string AccessReviewDormantDays = "AccessReview.DormantDays";
+
+    // My Work (landing page of waiting tasks) and test self-assignment.
+    public const string MyWorkLookAheadDays = "myWork.lookAheadDays";
+    public const string MyWorkReadOverdueHours = "myWork.readOverdueHours";
+    public const string SelfAssignmentEnabled = "workflow.selfAssignment.enabled";
 }
 
 // One setting as defined in code: type, default, bounds, GxP relevance.
@@ -133,6 +138,8 @@ public static class SystemSettingDefinitions
 
     public const string AlertsCategory = "Alerts";
     public const string AccessReviewCategory = "Access Review";
+    public const string MyWorkCategory = "My Work";
+    public const string WorkflowCategory = "Workflow";
 
     // The defaults below are the values that were hard-coded or configured
     // before the registry existed; AuthenticationService and
@@ -227,6 +234,14 @@ public static class SystemSettingDefinitions
         new(SystemSettingKeys.AccessReviewDormantDays, AccessReviewCategory, SystemSettingValueType.Integer, "90",
             "An active account whose last successful sign-in is older than this (or that has never signed in and is older than this) is flagged dormant in the access-review report. A review already generated keeps the value it was generated with.",
             "days", 1, 3650),
+        new(SystemSettingKeys.MyWorkLookAheadDays, MyWorkCategory, SystemSettingValueType.Integer, "7",
+            "How many days ahead My Work lists upcoming work such as expiring documents, due equipment tasks and expiring materials.",
+            "days", 1, 30),
+        new(SystemSettingKeys.MyWorkReadOverdueHours, MyWorkCategory, SystemSettingValueType.Integer, "0",
+            "Hours an incubation may wait after it is ready to read before My Work marks it overdue; 0 switches the overdue marking off.",
+            "hours", 0, 168),
+        new(SystemSettingKeys.SelfAssignmentEnabled, WorkflowCategory, SystemSettingValueType.Boolean, "true",
+            "Whether analysts holding the self-assign permission may take unassigned tests in their own section from My Work. Existing assignments are not changed."),
     };
 
     private static readonly Dictionary<string, SystemSettingDefinition> ByKey =

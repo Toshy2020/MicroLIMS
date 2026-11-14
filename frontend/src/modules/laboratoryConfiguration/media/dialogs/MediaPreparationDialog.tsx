@@ -35,6 +35,8 @@ import { LoadFailuresAlert } from "../../../../components/LoadErrorAlert";
 import { useLoadFailures } from "../../../../hooks/useLoadFailures";
 import { DateField } from "../../../../components/DateField";
 import { ScanField } from "../../../../components/labels/ScanField";
+import { LastChoiceField, useLastChoiceDefault } from "../../../../components/entry/LastChoiceField";
+import { entryDefaultsService } from "../../../../services/entryDefaultsService";
 import { NumericEntryField } from "../../../../components/bench/NumericEntryField";
 import { BenchDialog } from "../../../../components/bench/BenchDialog";
 import { DraftRestoreNotice } from "../../../../components/bench/DraftRestoreNotice";
@@ -156,6 +158,13 @@ export function MediaPreparationDialog({ open, onClose, onSuccess }: Props) {
   const [activeSection, setActiveSection] = useState(0);
   const sectionRefs = useRef<(HTMLDivElement | null)[]>([]);
   const { failed: failedLists, fail, reset: resetFailures } = useLoadFailures();
+  const autoclaveLastChoice = useLastChoiceDefault<number>("equipment");
+
+  const { applyDefault: applyAutoclaveDefault, reset: resetAutoclaveDefault } = autoclaveLastChoice;
+  const [offeredAutoclaveId, setOfferedAutoclaveId] = useState<number | null>(null);
+  const defaultAppliedRef = useRef(false);
+  const formRef = useRef(form);
+  formRef.current = form;
 
   useEffect(() => {
     if (open) {
@@ -166,12 +175,49 @@ export function MediaPreparationDialog({ open, onClose, onSuccess }: Props) {
       setForm({});
       setAdditives([]);
       setAutoclavePrograms([]);
+      setOfferedAutoclaveId(null);
+      defaultAppliedRef.current = false;
+      resetAutoclaveDefault();
       resetFailures();
       masterDataOptions.getEquipment("Autoclave").then(setAutoclaves).catch(fail("autoclaves", () => setAutoclaves([])));
       MaterialService.getAll("DehydratedMedia").then(setDehydratedMedia).catch(fail("dehydrated media stock", () => setDehydratedMedia([])));
       MaterialService.getAll().then(setAllStock).catch(fail("additive stock lots", () => setAllStock([])));
     }
-  }, [open, fail, resetFailures, setKeptOffline]);
+  }, [open, fail, resetFailures, setKeptOffline, resetAutoclaveDefault]);
+
+  // The server offers the user's last autoclave only if it would pass the save-time checks.
+  useEffect(() => {
+    if (!open) return;
+    const controller = new AbortController();
+    entryDefaultsService
+      .get({ context: "mediaPreparation" }, controller.signal)
+      .then((res) => {
+        if (controller.signal.aborted) return;
+        setOfferedAutoclaveId(res.defaults.find((d) => d.field === "autoclaveEquipmentId")?.id ?? null);
+      })
+      .catch(() => {
+        // A missing default is not an error: the field simply stays empty.
+      });
+    return () => controller.abort();
+  }, [open]);
+
+  useEffect(() => {
+    if (offeredAutoclaveId === null) return;
+    if (!autoclaves.some((a) => a.id === offeredAutoclaveId)) return;
+    if (defaultAppliedRef.current || formRef.current.autoclaveEquipmentId) return;
+    defaultAppliedRef.current = true;
+    const controller = new AbortController();
+    setForm((f) => ({ ...f, autoclaveEquipmentId: offeredAutoclaveId }));
+    applyAutoclaveDefault(offeredAutoclaveId);
+    EquipmentConfigurationService.getAutoclavePrograms(offeredAutoclaveId, true)
+      .then((programs) => {
+        if (!controller.signal.aborted) setAutoclavePrograms(Array.isArray(programs) ? programs : []);
+      })
+      .catch(() => {
+        if (!controller.signal.aborted) setAutoclavePrograms([]);
+      });
+    return () => controller.abort();
+  }, [offeredAutoclaveId, autoclaves, applyAutoclaveDefault]);
 
   const usableStock = dehydratedMedia.filter((m) => m.status === "InStock");
   const selectedMaterial = usableStock.find((m) => m.id === form.materialId);
@@ -239,6 +285,7 @@ export function MediaPreparationDialog({ open, onClose, onSuccess }: Props) {
   };
 
   const handleAutoclaveChange = async (eqId: number | "") => {
+    autoclaveLastChoice.notifyValueChanged();
     setField("autoclaveEquipmentId", eqId);
     setField("autoclaveProgramId", "");
     setField("autoclaveProgram", "");
@@ -570,28 +617,30 @@ export function MediaPreparationDialog({ open, onClose, onSuccess }: Props) {
                 }}
                 disabled={saving}
               />
-              <FormControl fullWidth size="small" error={Boolean(fieldErrors.autoclaveEquipmentId)}>
-                <Select
-                  size="small"
-                  displayEmpty
-                  fullWidth
-                  value={form.autoclaveEquipmentId ?? ""}
-                  onChange={(e) => {
-                    void handleAutoclaveChange(e.target.value as number | "");
-                  }}
-                  inputProps={{ "aria-label": "Autoclave" }}
-                >
-                  <MenuItem value="">
-                    <em>Select Autoclave *</em>
-                  </MenuItem>
-                  {autoclaves.map((a) => (
-                    <MenuItem key={a.id} value={a.id}>
-                      {a.code}: {a.name}
+              <LastChoiceField kind="equipment" isDefault={autoclaveLastChoice.isDefault}>
+                <FormControl fullWidth size="small" error={Boolean(fieldErrors.autoclaveEquipmentId)}>
+                  <Select
+                    size="small"
+                    displayEmpty
+                    fullWidth
+                    value={form.autoclaveEquipmentId ?? ""}
+                    onChange={(e) => {
+                      void handleAutoclaveChange(e.target.value as number | "");
+                    }}
+                    inputProps={{ "aria-label": "Autoclave" }}
+                  >
+                    <MenuItem value="">
+                      <em>Select Autoclave *</em>
                     </MenuItem>
-                  ))}
-                </Select>
-                {fieldErrors.autoclaveEquipmentId && <FormHelperText>{fieldErrors.autoclaveEquipmentId}</FormHelperText>}
-              </FormControl>
+                    {autoclaves.map((a) => (
+                      <MenuItem key={a.id} value={a.id}>
+                        {a.code}: {a.name}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                  {fieldErrors.autoclaveEquipmentId && <FormHelperText>{fieldErrors.autoclaveEquipmentId}</FormHelperText>}
+                </FormControl>
+              </LastChoiceField>
             </Stack>
 
             <FormControl fullWidth size="small" error={Boolean(fieldErrors.autoclaveProgram)}>

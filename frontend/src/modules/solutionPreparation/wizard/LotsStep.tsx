@@ -17,6 +17,8 @@ import SaveOutlinedIcon from "@mui/icons-material/SaveOutlined";
 import { ComponentLotPicker } from "../components/ComponentLotPicker";
 import { SourcePreparationPicker } from "../components/SourcePreparationPicker";
 import { AutoclaveSection, type AutoclaveFormState } from "../components/AutoclaveSection";
+import { useLastChoiceDefault } from "../../../components/entry/LastChoiceField";
+import { entryDefaultsService } from "../../../services/entryDefaultsService";
 import { NumericEntryField } from "../../../components/bench/NumericEntryField";
 import { useBenchMode } from "../../../theme/BenchModeContext";
 import { classifySaveFailure } from "../../testingWorkspace/benchSave";
@@ -98,6 +100,7 @@ export function LotsStep({
   });
 
   const needsAutoclave = recipe?.sterilizationRequired === true;
+  const autoclaveLastChoice = useLastChoiceDefault<number>("equipment");
   const [autoclave, setAutoclave] = useState<AutoclaveFormState>(() =>
     restoredDraft?.autoclave ?? {
       equipmentId: preparation.autoclaveEquipmentId ?? "",
@@ -108,6 +111,31 @@ export function LotsStep({
       cycleNumber: preparation.autoclaveCycleNumber ?? ""
     }
   );
+
+  const { applyDefault: applyAutoclaveDefault } = autoclaveLastChoice;
+  const autoclaveRef = useRef(autoclave);
+  autoclaveRef.current = autoclave;
+  const hasSavedAutoclave = preparation.autoclaveEquipmentId != null;
+  const solutionMasterId = preparation.solutionMasterId;
+
+  useEffect(() => {
+    if (!needsAutoclave || hasSavedAutoclave) return;
+    const controller = new AbortController();
+    entryDefaultsService
+      .get({ context: "solutionPreparation", solutionMasterId }, controller.signal)
+      .then((res) => {
+        if (controller.signal.aborted) return;
+        const def = res.defaults.find((d) => d.field === "autoclaveEquipmentId");
+        // Never overwrite something the analyst already chose or a restored draft.
+        if (def?.id == null || autoclaveRef.current.equipmentId !== "") return;
+        setAutoclave({ ...autoclaveRef.current, equipmentId: def.id });
+        applyAutoclaveDefault(def.id);
+      })
+      .catch(() => {
+        // A missing default is not an error: the field simply stays empty.
+      });
+    return () => controller.abort();
+  }, [needsAutoclave, hasSavedAutoclave, solutionMasterId, applyAutoclaveDefault]);
 
   const [finalVolumeText, setFinalVolumeText] = useState<string>(() => {
     if (restoredDraft?.finalVolumeText !== undefined) return restoredDraft.finalVolumeText;
@@ -404,6 +432,8 @@ export function LotsStep({
             <Divider sx={{ my: 2.5 }} />
             <AutoclaveSection
               value={autoclave}
+              equipmentIsDefault={autoclaveLastChoice.isDefault}
+              onEquipmentChangedByUser={autoclaveLastChoice.notifyValueChanged}
               onChange={(next) => {
                 setAutoclave(next);
                 onClearFieldError?.("autoclaveEquipmentId");

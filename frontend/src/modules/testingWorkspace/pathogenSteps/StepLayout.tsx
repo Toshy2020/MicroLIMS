@@ -2,6 +2,7 @@ import { ReactNode, useState } from "react";
 import { Alert, Box, Collapse, FormControlLabel, Link, MenuItem, Radio, RadioGroup, Stack, TextField, Typography, useTheme } from "@mui/material";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import { ScanField } from "../../../components/labels/ScanField";
+import { LastChoiceField } from "../../../components/entry/LastChoiceField";
 import { BENCH_MIN_TARGET } from "../../../theme/benchTheme";
 
 // Shared building blocks for the pathogen step panels, so every step reads
@@ -108,7 +109,8 @@ interface IncubatorOption { id: number; name: string; code: string; setTemperatu
 // Labelled media lot + incubator pickers with helper text, shared by every
 // step that starts an incubation.
 export function MediaLotIncubatorFields({
-  idPrefix, lots, incubators, tempMin, tempMax, mediaLotId, equipmentId, onLotChange, onIncubatorChange, disabled = false
+  idPrefix, lots, incubators, tempMin, tempMax, mediaLotId, equipmentId, onLotChange, onIncubatorChange, disabled = false,
+  lotIsDefault = false, lotConfirmed = true, onConfirmLot, incubatorIsDefault = false
 }: {
   idPrefix: string;
   lots: LotOption[];
@@ -120,6 +122,10 @@ export function MediaLotIncubatorFields({
   onLotChange: (id: number) => void;
   onIncubatorChange: (id: number) => void;
   disabled?: boolean;
+  lotIsDefault?: boolean;
+  lotConfirmed?: boolean;
+  onConfirmLot?: () => void;
+  incubatorIsDefault?: boolean;
 }) {
   const lotCount = lots.length;
   return (
@@ -132,21 +138,28 @@ export function MediaLotIncubatorFields({
           onSelect={onLotChange}
           disabled={disabled}
         />
-        <TextField
-          select fullWidth required disabled={disabled}
-          id={`${idPrefix}-media-lot`}
-          label="Media lot"
-          value={mediaLotId}
-          onChange={(e) => onLotChange(Number(e.target.value))}
-          helperText={mediaLotId ? "Released and within expiry" : lotCount === 0 ? "No released lots of this medium are available" : `${lotCount} released lot${lotCount === 1 ? "" : "s"} available`}
-          error={!disabled && lotCount === 0}
-          slotProps={{ inputLabel: { shrink: true }, select: { displayEmpty: true } }}
+        <LastChoiceField
+          kind="lot"
+          isDefault={lotIsDefault}
+          confirmed={lotConfirmed}
+          onConfirm={onConfirmLot}
         >
-          <MenuItem value="" disabled><Box component="span" sx={{ color: "text.secondary" }}>Select a released lot</Box></MenuItem>
-          {lots.map((l) => (
-            <MenuItem key={l.id} value={l.id}>{l.lotNumber} · expires {new Date(l.expiryDate).toLocaleDateString()}</MenuItem>
-          ))}
-        </TextField>
+          <TextField
+            select fullWidth required disabled={disabled}
+            id={`${idPrefix}-media-lot`}
+            label="Media lot"
+            value={mediaLotId}
+            onChange={(e) => onLotChange(Number(e.target.value))}
+            helperText={mediaLotId ? "Released and within expiry" : lotCount === 0 ? "No released lots of this medium are available" : `${lotCount} released lot${lotCount === 1 ? "" : "s"} available`}
+            error={!disabled && lotCount === 0}
+            slotProps={{ inputLabel: { shrink: true }, select: { displayEmpty: true } }}
+          >
+            <MenuItem value="" disabled><Box component="span" sx={{ color: "text.secondary" }}>Select a released lot</Box></MenuItem>
+            {lots.map((l) => (
+              <MenuItem key={l.id} value={l.id}>{l.lotNumber} · expires {new Date(l.expiryDate).toLocaleDateString()}</MenuItem>
+            ))}
+          </TextField>
+        </LastChoiceField>
       </Stack>
       <IncubatorField
         id={`${idPrefix}-incubator`}
@@ -156,6 +169,7 @@ export function MediaLotIncubatorFields({
         value={equipmentId}
         onChange={onIncubatorChange}
         disabled={disabled}
+        isDefault={incubatorIsDefault}
       />
     </>
   );
@@ -163,7 +177,7 @@ export function MediaLotIncubatorFields({
 
 // Labelled incubator picker listing only incubators set within the range.
 export function IncubatorField({
-  id, incubators, tempMin, tempMax, value, onChange, disabled = false, label = "Incubator"
+  id, incubators, tempMin, tempMax, value, onChange, disabled = false, label = "Incubator", isDefault = false
 }: {
   id: string;
   incubators: IncubatorOption[];
@@ -173,6 +187,7 @@ export function IncubatorField({
   onChange: (id: number) => void;
   disabled?: boolean;
   label?: string;
+  isDefault?: boolean;
 }) {
   return (
     <Stack spacing={1}>
@@ -183,19 +198,21 @@ export function IncubatorField({
         onSelect={onChange}
         disabled={disabled}
       />
-      <TextField
-        select fullWidth required disabled={disabled}
-        id={id}
-        label={label}
-        value={value}
-        onChange={(e) => onChange(Number(e.target.value))}
-        helperText={incubators.length === 0 ? `No incubators are set within ${tempMin}–${tempMax} °C` : `Only incubators set within ${tempMin}–${tempMax} °C are listed`}
-        error={!disabled && incubators.length === 0}
-        slotProps={{ inputLabel: { shrink: true }, select: { displayEmpty: true } }}
-      >
-        <MenuItem value="" disabled><Box component="span" sx={{ color: "text.secondary" }}>Select an incubator</Box></MenuItem>
-        {incubators.map((i) => <MenuItem key={i.id} value={i.id}>{i.code} · {i.name} · set {i.setTemperature} °C</MenuItem>)}
-      </TextField>
+      <LastChoiceField kind="equipment" isDefault={isDefault}>
+        <TextField
+          select fullWidth required disabled={disabled}
+          id={id}
+          label={label}
+          value={value}
+          onChange={(e) => onChange(Number(e.target.value))}
+          helperText={incubators.length === 0 ? `No incubators are set within ${tempMin}–${tempMax} °C` : `Only incubators set within ${tempMin}–${tempMax} °C are listed`}
+          error={!disabled && incubators.length === 0}
+          slotProps={{ inputLabel: { shrink: true }, select: { displayEmpty: true } }}
+        >
+          <MenuItem value="" disabled><Box component="span" sx={{ color: "text.secondary" }}>Select an incubator</Box></MenuItem>
+          {incubators.map((i) => <MenuItem key={i.id} value={i.id}>{i.code} · {i.name} · set {i.setTemperature} °C</MenuItem>)}
+        </TextField>
+      </LastChoiceField>
     </Stack>
   );
 }

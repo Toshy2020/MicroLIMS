@@ -13,6 +13,8 @@ import {
   type ScanResolveResponse
 } from "../../../../services/labelService";
 import { masterDataOptions } from "../../../../services/masterDataOptions";
+import { entryDefaultsService } from "../../../../services/entryDefaultsService";
+import { LAST_CHOICE_CAPTION } from "../../../../components/entry/LastChoiceField";
 import { MaterialService } from "../../../inventory/materials/services/MaterialService";
 import type { MaterialItem } from "../../../inventory/materials/types/materialTypes";
 import {
@@ -31,6 +33,10 @@ vi.mock("../../../../services/labelService", () => ({
     updateFormat: vi.fn(),
     resolveScan: vi.fn()
   }
+}));
+
+vi.mock("../../../../services/entryDefaultsService", () => ({
+  entryDefaultsService: { get: vi.fn() }
 }));
 
 vi.mock("../../../../services/masterDataOptions", () => ({
@@ -154,6 +160,7 @@ describe("MediaPreparationDialog", () => {
     localStorage.clear();
     await resetDraftDb();
     signInForTest(7);
+    vi.mocked(entryDefaultsService.get).mockResolvedValue({ defaults: [] });
     vi.mocked(masterDataOptions.getEquipment).mockResolvedValue(autoclaveOptions);
     vi.mocked(MaterialService.getAll).mockImplementation(async (type?: string) =>
       type === "DehydratedMedia" ? dehydratedMediaItems : []
@@ -165,6 +172,43 @@ describe("MediaPreparationDialog", () => {
   afterEach(() => {
     cleanup();
     localStorage.clear();
+  });
+
+  it("pre-selects the autoclave the server offers, labelled, with its programs loaded", async () => {
+    vi.mocked(entryDefaultsService.get).mockResolvedValue({
+      defaults: [{ field: "autoclaveEquipmentId", id: 41, text: null, label: "AC-01", lastUsedAtUtc: "2026-11-13T08:00:00Z" }]
+    });
+    renderDialog();
+
+    expect(await screen.findByText(LAST_CHOICE_CAPTION)).toBeTruthy();
+    expect(screen.getByRole("combobox", { name: "Autoclave" }).textContent).toContain("AC-01");
+    await waitFor(() => expect(EquipmentConfigurationService.getAutoclavePrograms).toHaveBeenCalledWith(41, true));
+    expect(entryDefaultsService.get).toHaveBeenCalledWith({ context: "mediaPreparation" }, expect.anything());
+  });
+
+  it("removes the caption when the analyst picks a different autoclave value", async () => {
+    const user = userEvent.setup();
+    vi.mocked(entryDefaultsService.get).mockResolvedValue({
+      defaults: [{ field: "autoclaveEquipmentId", id: 41, text: null, label: "AC-01", lastUsedAtUtc: "2026-11-13T08:00:00Z" }]
+    });
+    renderDialog();
+    await screen.findByText(LAST_CHOICE_CAPTION);
+
+    await user.click(screen.getByRole("combobox", { name: "Autoclave" }));
+    await user.click(await screen.findByRole("option", { name: /Select Autoclave/ }));
+
+    await waitFor(() => expect(screen.queryByText(LAST_CHOICE_CAPTION)).toBeNull());
+  });
+
+  it("leaves the autoclave empty when nothing is offered or the offer is not in the list", async () => {
+    vi.mocked(entryDefaultsService.get).mockResolvedValue({
+      defaults: [{ field: "autoclaveEquipmentId", id: 999, text: null, label: "AC-99", lastUsedAtUtc: "2026-11-13T08:00:00Z" }]
+    });
+    renderDialog();
+    await waitFor(() => expect(entryDefaultsService.get).toHaveBeenCalled());
+    await waitFor(() => expect(masterDataOptions.getEquipment).toHaveBeenCalled());
+    expect(screen.queryByText(LAST_CHOICE_CAPTION)).toBeNull();
+    expect(screen.getByRole("combobox", { name: "Autoclave" }).textContent).not.toContain("AC-");
   });
 
   it("scanning an offered dehydrated media stock lot selects it", async () => {

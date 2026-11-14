@@ -24,6 +24,8 @@ import { SampleTypeSelector } from "./SampleTypeSelector";
 import { FocusErrorTarget, LabMode, MAX_RECEIVE_ROWS, MultiSampleEntryGrid } from "./MultiSampleEntryGrid";
 import { ReceiveService } from "../services/ReceiveService";
 import { masterDataOptions } from "../../../services/masterDataOptions";
+import { entryDefaultsService } from "../../../services/entryDefaultsService";
+import { useLastChoiceDefault } from "../../../components/entry/LastChoiceField";
 import { FloatingDialog } from "../../../components/FloatingDialog";
 import { DraftRestoreNotice } from "../../../components/bench/DraftRestoreNotice";
 import { useBenchDraft } from "../../../hooks/useBenchDraft";
@@ -137,6 +139,10 @@ export function NewSampleDialog({ open, onClose, onSuccess, allowedCategories, l
   const [coaErrorByRow, setCoaErrorByRow] = useState<Record<number, string>>({});
   const [retryingCoaRow, setRetryingCoaRow] = useState<number | null>(null);
   const [draftSavedAt, setDraftSavedAt] = useState<Date | null>(null);
+  const causeLastChoice = useLastChoiceDefault<number>("field");
+  const sampledByLastChoice = useLastChoiceDefault<string>("field");
+  const notifyCauseChanged = causeLastChoice.notifyValueChanged;
+  const notifySampledByChanged = sampledByLastChoice.notifyValueChanged;
 
   const currentCategoryDef = RECEIVING_CATEGORIES.find((c) => c.key === category);
 
@@ -230,11 +236,55 @@ export function NewSampleDialog({ open, onClose, onSuccess, allowedCategories, l
     if (!category) return;
     setStep(2);
     setRows([createEmptyRow()]);
+    resetCauseDefault();
+    resetSampledByDefault();
     setErrorMessage(null);
   };
 
+  const rowsRef = useRef(rows);
+  rowsRef.current = rows;
+  const { applyDefault: applyCauseDefault, reset: resetCauseDefault } = causeLastChoice;
+  const { applyDefault: applySampledByDefault, reset: resetSampledByDefault } = sampledByLastChoice;
+
+  // Pre-fill the first row with the server-validated last choice. The values stay editable
+  // and are shown as "From your last entry"; the server decides whether anything is offered.
+  useEffect(() => {
+    if (!open || step !== 2 || !category) return;
+    const controller = new AbortController();
+    entryDefaultsService
+      .get({ context: "receiving", category }, controller.signal)
+      .then((res) => {
+        if (controller.signal.aborted) return;
+        const first = rowsRef.current[0];
+        if (!first) return;
+        const sampledByDef = res.defaults.find((d) => d.field === "sampledBy");
+        const causeDef = res.defaults.find((d) => d.field === "causeOfTestingId");
+        const sampledBy = !first.sampledBy && sampledByDef?.text ? sampledByDef.text : null;
+        const causeId = !first.causeOfTestingId && causeDef?.id != null ? causeDef.id : null;
+        if (sampledBy === null && causeId === null) return;
+        const nextFirst = {
+          ...first,
+          ...(sampledBy !== null ? { sampledBy } : {}),
+          ...(causeId !== null ? { causeOfTestingId: causeId } : {})
+        };
+        const updated = [nextFirst, ...rowsRef.current.slice(1)];
+        setRows(updated);
+        if (draftBaselineRef.current !== null) {
+          draftBaselineRef.current = JSON.stringify(pickReceivingDraft({ rows: updated }));
+        }
+        if (sampledBy !== null) applySampledByDefault(sampledBy);
+        if (causeId !== null) applyCauseDefault(causeId);
+      })
+      .catch(() => {
+        // A missing default is not an error: the fields simply stay empty.
+      });
+    return () => controller.abort();
+  }, [open, step, category, applyCauseDefault, applySampledByDefault]);
+
   const handlePrevStep = () => {
     setStep(1);
+    resetCauseDefault();
+    resetSampledByDefault();
     setErrorMessage(null);
   };
 
@@ -243,6 +293,12 @@ export function NewSampleDialog({ open, onClose, onSuccess, allowedCategories, l
     field: K,
     value: ReceiveRowItem[K]
   ) => {
+    if (index === 0 && field === "causeOfTestingId") {
+      notifyCauseChanged();
+    }
+    if (index === 0 && field === "sampledBy") {
+      notifySampledByChanged();
+    }
     setRows((prev) => {
       const updated = [...prev];
       const row = { ...updated[index], [field]: value };
@@ -254,7 +310,7 @@ export function NewSampleDialog({ open, onClose, onSuccess, allowedCategories, l
       updated[index] = row;
       return updated;
     });
-  }, []);
+  }, [notifyCauseChanged, notifySampledByChanged]);
 
   const handleAddRow = () => {
     setRows((prev) => {
@@ -704,6 +760,10 @@ export function NewSampleDialog({ open, onClose, onSuccess, allowedCategories, l
               retryingCoaRow={retryingCoaRow}
               onRetryCoa={handleRetryCoa}
               receivedByRow={receivedByRow ?? undefined}
+              firstRowDefaults={{
+                causeOfTestingId: causeLastChoice.isDefault,
+                sampledBy: sampledByLastChoice.isDefault
+              }}
             />
           )
         )}

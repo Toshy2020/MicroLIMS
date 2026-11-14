@@ -357,6 +357,7 @@ LaboratoryOrganizationController.GetMemberships(Int32): SystemAdministrator
 LaboratoryOrganizationController.GetMySections(): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 LaboratoryOrganizationController.GetSections(): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 LaboratoryOrganizationController.ReplaceMemberships(Int32, ReplaceUserMembershipsRequest): SystemAdministrator
+MasterDataUsageController.Get(MasterRecordType, Int32, CancellationToken): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 MasterDataWorkbookController.Download(): SystemAdministrator,SectionHead
 MasterDataWorkbookController.GetFile(Int32): SystemAdministrator,SectionHead
 MasterDataWorkbookController.GetImports(): SystemAdministrator,SectionHead

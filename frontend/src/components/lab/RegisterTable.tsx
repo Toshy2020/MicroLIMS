@@ -6,8 +6,10 @@ import {
 } from "@mui/material";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import { tableHeadSx } from "../../theme";
+import { useBenchMode } from "../../theme/BenchModeContext";
 import type { StatusTone } from "../../theme/statusTokens";
 import { EmptyState } from "./EmptyState";
+import { useTableState, type UseTableState } from "./table/useTableState";
 
 export interface RegisterColumn<T> {
   key: keyof T | string;
@@ -48,6 +50,9 @@ interface RegisterTableProps<T> {
   // Tints the row (and marks its first cell with a left border) so GMP warnings
   // such as low stock or overdue calibration stay visible at a glance.
   rowTone?: (row: T) => StatusTone | undefined;
+  tableKey?: string;
+  tableState?: UseTableState;
+  toolbar?: ReactNode;
 }
 
 const PAGE_SIZES = [25, 50, 100];
@@ -66,20 +71,55 @@ function compareValues(a: unknown, b: unknown): number {
   return String(a).localeCompare(String(b), undefined, { numeric: true, sensitivity: "base" });
 }
 
-export function RegisterTable<T>({
-  columns, rows, getRowId, onRowClick, rowActions, loading, empty, pageSize = 25, dense = true, defaultSort, rowTone
+export function RegisterTable<T>(props: RegisterTableProps<T>) {
+  if (props.tableKey && !props.tableState) {
+    return <ManagedRegisterTable {...props} tableKey={props.tableKey} />;
+  }
+  return <RegisterTableInner {...props} />;
+}
+
+function ManagedRegisterTable<T>({
+  tableKey,
+  ...rest
+}: RegisterTableProps<T> & { tableKey: string }) {
+  const tableState = useTableState(tableKey);
+  return <RegisterTableInner {...rest} tableKey={tableKey} tableState={tableState} />;
+}
+
+function RegisterTableInner<T>({
+  columns, rows, getRowId, onRowClick, rowActions, loading, empty, pageSize = 25, dense = true, defaultSort, rowTone, tableState, toolbar
 }: RegisterTableProps<T>) {
   const theme = useTheme();
+  const { benchMode } = useBenchMode();
+  const isBench = benchMode || Boolean(theme.custom?.bench);
   // Phones get one card per record instead of a table whose columns would be
   // cut off or need sideways scrolling to read a single record.
   const isPhone = useMediaQuery(theme.breakpoints.down("sm"));
-  const [sort, setSort] = useState<{ key: string; direction: "asc" | "desc" } | null>(defaultSort ?? null);
-  const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState<number>(pageSize);
+  const [localSort, setLocalSort] = useState<{ key: string; direction: "asc" | "desc" } | null>(defaultSort ?? null);
+  const [localPage, setLocalPage] = useState(0);
+  const [localRowsPerPage, setLocalRowsPerPage] = useState<number>(pageSize);
   const [menu, setMenu] = useState<{ anchor: HTMLElement; row: T } | null>(null);
 
   // Filtering or reloading changes the row set; a stale page could be past the end.
-  useEffect(() => { setPage(0); }, [rows.length]);
+  useEffect(() => {
+    if (!tableState) {
+      setLocalPage(0);
+    }
+  }, [rows.length, tableState]);
+
+  const sort = tableState ? tableState.state.sort : localSort;
+  const page = tableState ? tableState.page - 1 : localPage;
+  const rowsPerPage = tableState
+    ? (tableState.state.pageSize === "all" ? Math.max(rows.length, 1) : tableState.state.pageSize)
+    : localRowsPerPage;
+
+  const displayedColumns = useMemo(() => {
+    if (!tableState) return columns;
+    const byKey = new Map(columns.map((c) => [String(c.key), c]));
+    return tableState.state.columns
+      .map((key) => byKey.get(key))
+      .filter((c): c is RegisterColumn<T> => Boolean(c));
+  }, [columns, tableState]);
 
   const sorted = useMemo(() => {
     if (!sort) return rows;
@@ -98,15 +138,45 @@ export function RegisterTable<T>({
     });
   }, [rows, columns, sort]);
 
-  const paged = sorted.length > PAGE_SIZES[0]
+  const isAllPageSize = tableState?.state.pageSize === "all";
+  const paged = !isAllPageSize && sorted.length > PAGE_SIZES[0]
     ? sorted.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
     : sorted;
   const showPagination = !loading && rows.length > PAGE_SIZES[0];
-  const colSpan = columns.length + (rowActions ? 1 : 0);
-  const cellPy = dense ? 0.75 : 1.5;
+  const colSpan = displayedColumns.length + (rowActions ? 1 : 0);
+  const isCompact = tableState ? (!isBench && tableState.state.density === "compact") : dense;
+  const tableSize = isCompact ? "small" : "medium";
+  const cellPy = tableState ? (isCompact ? 0.5 : 1.5) : (dense ? 0.75 : 1.5);
 
-  const toggleSort = (key: string) =>
-    setSort((s) => (s?.key === key ? (s.direction === "asc" ? { key, direction: "desc" } : null) : { key, direction: "asc" }));
+  const setSort = (next: { key: string; direction: "asc" | "desc" } | null) => {
+    if (tableState) {
+      tableState.setSort(next);
+    } else {
+      setLocalSort(next);
+    }
+  };
+
+  const toggleSort = (key: string) => {
+    const next = sort?.key === key ? (sort.direction === "asc" ? { key, direction: "desc" as const } : null) : { key, direction: "asc" as const };
+    setSort(next);
+  };
+
+  const handlePageChange = (nextZeroBasedPage: number) => {
+    if (tableState) {
+      tableState.setPage(nextZeroBasedPage + 1);
+    } else {
+      setLocalPage(nextZeroBasedPage);
+    }
+  };
+
+  const handleRowsPerPageChange = (nextSize: number) => {
+    if (tableState) {
+      tableState.setPageSize(nextSize as 25 | 50 | 100);
+    } else {
+      setLocalRowsPerPage(nextSize);
+      setLocalPage(0);
+    }
+  };
 
   const handleRowKey = (e: KeyboardEvent<HTMLTableRowElement>, row: T) => {
     if (!onRowClick || e.target !== e.currentTarget) return;
@@ -124,13 +194,14 @@ export function RegisterTable<T>({
   const menuActions = menu && rowActions ? rowActions(menu.row) : [];
   const cellText = (row: T, col: RegisterColumn<T>): ReactNode =>
     col.render ? col.render(row) : String((row as Record<string, unknown>)[String(col.key)] ?? "—");
-  const sortableColumns = columns.filter((c) => c.sortable);
+  const sortableColumns = displayedColumns.filter((c) => c.sortable);
   const boundedBody = !isPhone && paged.length > STICKY_HEADER_MIN_ROWS;
 
   if (isPhone) {
-    const [titleCol, ...detailCols] = columns;
+    const [titleCol, ...detailCols] = displayedColumns;
     return (
       <Paper elevation={0} sx={{ border: "1px solid", borderColor: "divider", borderRadius: 2, overflow: "hidden" }}>
+        {toolbar}
         {sortableColumns.length > 0 && rows.length > 1 && (
           <Box sx={{ px: 1.5, py: 1, borderBottom: "1px solid", borderColor: "divider", display: "flex", alignItems: "center", gap: 1 }}>
             <Typography variant="caption" sx={{ color: "text.secondary" }}>Sort by</Typography>
@@ -229,13 +300,10 @@ export function RegisterTable<T>({
             component="div"
             count={rows.length}
             page={page}
-            onPageChange={(_, p) => setPage(p)}
+            onPageChange={(_, p) => handlePageChange(p)}
             rowsPerPage={rowsPerPage}
             rowsPerPageOptions={PAGE_SIZES}
-            onRowsPerPageChange={(e) => {
-              setRowsPerPage(Number(e.target.value));
-              setPage(0);
-            }}
+            onRowsPerPageChange={(e) => handleRowsPerPageChange(Number(e.target.value))}
           />
         )}
         {renderMenu()}
@@ -265,13 +333,14 @@ export function RegisterTable<T>({
 
   return (
     <Paper elevation={0} sx={{ border: "1px solid", borderColor: "divider", borderRadius: 2, overflow: "hidden" }}>
+      {toolbar}
       {/* stickyHeader needs a bounded scroll region to stick within; only long
           pages get one (see STICKY_HEADER_MIN_ROWS). */}
       <TableContainer sx={boundedBody ? { maxHeight: "calc(100vh - 240px)", minHeight: 320 } : undefined}>
-        <Table size={dense ? "small" : "medium"} stickyHeader>
+        <Table size={tableSize} stickyHeader>
           <TableHead>
             <TableRow sx={tableHeadSx(theme)}>
-              {columns.map((col) => {
+              {displayedColumns.map((col) => {
                 const key = String(col.key);
                 const align = col.align ?? (col.numeric ? "right" : "left");
                 const active = sort?.key === key;
@@ -299,7 +368,7 @@ export function RegisterTable<T>({
             {loading ? (
               Array.from({ length: SKELETON_ROWS }).map((_, r) => (
                 <TableRow key={`sk-${r}`}>
-                  {columns.map((col, c) => (
+                  {displayedColumns.map((col, c) => (
                     <TableCell key={String(col.key)} align={col.align ?? (col.numeric ? "right" : "left")} sx={{ py: 1.5 }}>
                       <Skeleton variant="text" width={c === 0 ? "75%" : "50%"} height={20} sx={{ ml: col.numeric ? "auto" : 0 }} />
                     </TableCell>
@@ -335,7 +404,7 @@ export function RegisterTable<T>({
                       : null)
                   }}
                 >
-                  {columns.map((col) => {
+                  {displayedColumns.map((col) => {
                     const content = cellText(row, col);
                     return (
                       <TableCell
@@ -368,13 +437,10 @@ export function RegisterTable<T>({
           component="div"
           count={rows.length}
           page={page}
-          onPageChange={(_, p) => setPage(p)}
+          onPageChange={(_, p) => handlePageChange(p)}
           rowsPerPage={rowsPerPage}
           rowsPerPageOptions={PAGE_SIZES}
-          onRowsPerPageChange={(e) => {
-            setRowsPerPage(Number(e.target.value));
-            setPage(0);
-          }}
+          onRowsPerPageChange={(e) => handleRowsPerPageChange(Number(e.target.value))}
         />
       )}
       {renderMenu()}

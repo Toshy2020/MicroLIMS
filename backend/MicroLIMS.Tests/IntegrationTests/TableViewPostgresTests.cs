@@ -252,6 +252,110 @@ public class TableViewPostgresTests
         Assert.Equal("Doomed", JsonDocument.Parse(audit.PreviousValue!).RootElement.GetProperty("Name").GetString());
     }
 
+    // User decision 2026-11-15: changing a section view needs the share permission at that moment, the creator included.
+    [PostgresFact]
+    public async Task SectionView_CreatorWhoLostSharePermission_CannotChangeOrDelete()
+    {
+        var org = await CreateOrgAsync();
+        var creator = await CreateUserAsync(Sharer, new[] { org.SectionA });
+        var view = await CreateAsync(creator, "Team view", TableViewScope.Section, org.SectionA);
+
+        await using (var arrangeDb = _fixture.CreateDbContext())
+        {
+            var roleId = await arrangeDb.Users.Where(u => u.Id == creator).Select(u => u.RoleId).SingleAsync();
+            arrangeDb.RolePermissions.RemoveRange(await arrangeDb.RolePermissions.Where(rp => rp.RoleId == roleId).ToListAsync());
+            await arrangeDb.SaveChangesAsync();
+        }
+
+        Assert.False((await ListAsync(creator)).Single(v => v.Id == view.Id).CanEdit);
+        await using (var actDb = _fixture.CreateDbContext())
+        {
+            var service = NewService(actDb, creator);
+            var refused = await Assert.ThrowsAsync<UnauthorizedAccessException>(() => service.UpdateAsync(creator, view.Id, "Renamed", null));
+            Assert.Contains("permission to share table views", refused.Message);
+            await Assert.ThrowsAsync<UnauthorizedAccessException>(() => service.DeleteAsync(creator, view.Id));
+        }
+
+        var row = await LoadAsync(view.Id);
+        Assert.Equal("Team view", row.Name);
+        await using var assertDb = _fixture.CreateDbContext();
+        Assert.False(await assertDb.AuditLogs.AsNoTracking().AnyAsync(a =>
+            a.EntityName == nameof(TableView) && a.EntityId == view.Id.ToString() && (a.Action == "Update" || a.Action == "Delete")));
+    }
+
+    [PostgresFact]
+    public async Task PersonalView_OwnerWithoutSharePermission_CanStillChangeIt()
+    {
+        var owner = await CreateUserAsync(Array.Empty<string>());
+        var view = await CreateAsync(owner, "Mine");
+        Assert.True((await ListAsync(owner)).Single(v => v.Id == view.Id).CanEdit);
+
+        await using (var actDb = _fixture.CreateDbContext())
+            await NewService(actDb, owner).UpdateAsync(owner, view.Id, "Mine v2", null);
+
+        Assert.Equal("Mine v2", (await LoadAsync(view.Id)).Name);
+    }
+
+    // Two saves of the same name at the same moment both pass the name check; the unique index refuses the
+    // second. The interceptor commits a clashing view from another connection just before this save runs.
+    [PostgresFact]
+    public async Task SameNameSavedAtTheSameMoment_SecondGetsPlainMessage_NotServerError()
+    {
+        var user = await CreateUserAsync(Array.Empty<string>());
+        var racer = new ClashingViewInterceptor(_fixture, user, Table, "Race");
+
+        await using (var actDb = _fixture.CreateDbContext(racer))
+        {
+            var refused = await Assert.ThrowsAsync<BusinessRuleException>(() =>
+                NewService(actDb, user).CreateAsync(user, Table, "Race", State, TableViewScope.Personal, null));
+            Assert.Equal("A view named 'Race' already exists here. Choose another name.", refused.Message);
+        }
+
+        Assert.True(racer.Inserted);
+        Assert.Equal(1, await ViewCountAsync(v => v.OwnerUserId == user && v.Name == "Race"));
+        await using var assertDb = _fixture.CreateDbContext();
+        Assert.Equal(1, await assertDb.AuditLogs.AsNoTracking().CountAsync(a =>
+            a.EntityName == nameof(TableView) && a.Action == "Create" && a.UserId == user));
+    }
+
+    private sealed class ClashingViewInterceptor : Microsoft.EntityFrameworkCore.Diagnostics.SaveChangesInterceptor
+    {
+        private readonly PostgresTestFixture _fixture;
+        private readonly int _userId;
+        private readonly string _tableKey;
+        private readonly string _name;
+        public bool Inserted { get; private set; }
+
+        public ClashingViewInterceptor(PostgresTestFixture fixture, int userId, string tableKey, string name)
+        {
+            _fixture = fixture;
+            _userId = userId;
+            _tableKey = tableKey;
+            _name = name;
+        }
+
+        public override async ValueTask<Microsoft.EntityFrameworkCore.Diagnostics.InterceptionResult<int>> SavingChangesAsync(
+            Microsoft.EntityFrameworkCore.Diagnostics.DbContextEventData eventData,
+            Microsoft.EntityFrameworkCore.Diagnostics.InterceptionResult<int> result,
+            CancellationToken cancellationToken = default)
+        {
+            if (!Inserted)
+            {
+                Inserted = true;
+                await using var other = _fixture.CreateDbContext();
+                other.CurrentUserId = _userId;
+                var now = FixedNow.UtcDateTime;
+                other.TableViews.Add(new TableView
+                {
+                    OwnerUserId = _userId, TableKey = _tableKey, Name = _name, Scope = TableViewScope.Personal,
+                    StateJson = State, CreatedAt = now, UpdatedAt = now, UpdatedByUserId = _userId
+                });
+                await other.SaveChangesAsync(cancellationToken);
+            }
+            return result;
+        }
+    }
+
     [PostgresFact]
     public async Task DuplicateNameSameOwnerAndTable_Rejected()
     {

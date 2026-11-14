@@ -223,6 +223,19 @@ describe("ReceivingTestingWorkspacePage filter sent to the server (characterisat
     localStorage.clear();
   });
 
+  it("offers no unaudited filter-bar export; CSV export is only the audited table action on selected rows", async () => {
+    const user = userEvent.setup();
+    seedPermissions([PERMISSIONS.SAMPLES_ASSIGN_ANALYST, PERMISSIONS.DATA_EXPORT]);
+    renderWorkspace();
+    await screen.findByText("Alpha Syrup");
+    expect(screen.queryByRole("button", { name: /export/i })).toBeNull();
+
+    const row = screen.getByText("Alpha Syrup").closest("tr");
+    expect(row).not.toBeNull();
+    await user.click(within(row as HTMLElement).getByRole("checkbox"));
+    expect(await screen.findByRole("button", { name: "Export selected" })).toBeTruthy();
+  });
+
   it("sends the lab scope and the default filter object on first load", async () => {
     renderWorkspace();
     await screen.findByText("Alpha Syrup");

@@ -12,7 +12,7 @@ const auth = {
   roleName: null as string | null,
   logout: vi.fn()
 };
-vi.mock("../contexts/AuthContext", () => ({ useAuth: () => auth }));
+vi.mock("../contexts/AuthContext", () => ({ useAuth: () => auth, useOptionalAuth: () => auth }));
 vi.mock("../theme/ThemeModeContext", () => ({ useThemeMode: () => ({ mode: "light", toggleMode: vi.fn() }) }));
 vi.mock("../services/apiClient", () => ({
   apiClient: { get: vi.fn(() => new Promise(() => {})), post: vi.fn() }

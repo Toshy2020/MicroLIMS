@@ -132,10 +132,19 @@ export function WaterLocationResultGridDialog({ open, testOrderId, testCode, dis
       return { ...m, [locationId]: current.length > 1 ? current.filter((_, idx) => idx !== i) : current };
     });
 
-  const paste = useLocationPaste(rows ? rows.map((r) => ({ name: r.locationName })) : null, "Sampling Point", (rowIndex, count) => {
-    const target = rows?.[rowIndex];
-    if (target) setReadingsByLocation((m) => ({ ...m, [target.id]: [count] }));
-  });
+  const paste = useLocationPaste(
+    rows
+      ? rows.map((r) => ({
+          name: r.locationName,
+          enteredReadings: (readingsByLocation[r.id] ?? []).filter((v) => v.trim() !== "").length
+        }))
+      : null,
+    "Sampling Point",
+    (rowIndex, count) => {
+      const target = rows?.[rowIndex];
+      if (target) setReadingsByLocation((m) => ({ ...m, [target.id]: [count] }));
+    }
+  );
 
   const computed = useMemo(() => {
     if (!rows) return [];

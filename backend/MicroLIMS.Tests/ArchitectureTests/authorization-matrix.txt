@@ -97,13 +97,11 @@ DashboardController.GetCategoryDistribution(String): SystemAdministrator,Section
 DashboardController.GetIncubationOverview(Boolean, String): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 DashboardController.GetKpiDeltas(String): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 DashboardController.GetMonthlyTrend(Int32, String): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
-DashboardController.GetMyTasks(String): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 DashboardController.GetNotifications(String): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 DashboardController.GetRecentActivity(Int32, String): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 DashboardController.GetReviewerDashboard(String): SystemAdministrator,SectionHead,Reviewer,Qa
 DashboardController.GetSectionHeadDashboard(String): SystemAdministrator,SectionHead,Qa
 DashboardController.GetStatusDistribution(String): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
-DashboardController.GetTodaysWork(String): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 DashboardController.MarkAllNotificationsRead(): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 DashboardController.MarkNotificationRead(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 DatabaseOverviewController.Get(CancellationToken): SystemAdministrator

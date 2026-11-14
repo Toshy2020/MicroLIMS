@@ -1,7 +1,7 @@
 import { apiClient } from "../../../services/apiClient";
 import {
   DashboardSummary, KpiDeltas, MonthlyTrendPoint, DistributionSlice,
-  NotificationItem, MyTask, MediaExpiryLot, TodaysWorkItem, IncubationOverviewRow, AnalystMetrics,
+  NotificationItem, MediaExpiryLot, IncubationOverviewRow, AnalystMetrics,
   SectionHeadDashboard, ReviewerDashboard
 } from "../types/dashboard";
 import { DashboardLabCode, labQuery } from "../DashboardLabContext";
@@ -38,12 +38,6 @@ export const DashboardService = {
   },
   async markNotificationRead(id: number): Promise<void> {
     await apiClient.post(`/dashboard/notifications/${id}/read`);
-  },
-  async getMyTasks(lab: Lab = null): Promise<MyTask[]> {
-    return (await apiClient.get(`/dashboard/my-tasks${labQuery(lab)}`)).data.data;
-  },
-  async getTodaysWork(lab: Lab = null): Promise<TodaysWorkItem[]> {
-    return (await apiClient.get(`/dashboard/todays-work${labQuery(lab)}`)).data.data;
   },
   async getIncubationOverview(myIncubationsOnly = false, lab: Lab = null): Promise<IncubationOverviewRow[]> {
     const url = myIncubationsOnly ? "/dashboard/incubation-overview?myIncubationsOnly=true" : "/dashboard/incubation-overview?myIncubationsOnly=false";

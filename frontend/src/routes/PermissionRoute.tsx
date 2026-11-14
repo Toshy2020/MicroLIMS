@@ -9,5 +9,5 @@ import { useHasPermission } from "../contexts/AuthContext";
 // carries its own [Authorize(Policy=...)] (Frozen Principle #3).
 // An array passes when the user holds any one of the codes.
 export function PermissionRoute({ code }: { code: string | string[] }) {
-  return useHasPermission(code) ? <Outlet /> : <Navigate to="/dashboard" replace />;
+  return useHasPermission(code) ? <Outlet /> : <Navigate to="/my-work" replace />;
 }

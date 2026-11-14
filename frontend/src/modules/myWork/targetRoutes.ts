@@ -1,5 +1,3 @@
-import type { DashboardLab } from "../dashboard/DashboardLabContext";
-import type { MyTask } from "../dashboard/types/dashboard";
 import type { MyWorkTarget } from "./myWorkTypes";
 
 function workspaceBase(lab?: string): string {
@@ -115,22 +113,5 @@ export function routeForGroup(groupKey: string, lab?: string): string {
       return "/laboratory-configuration/media";
     default:
       return "/receiving-testing";
-  }
-}
-
-/**
- * Legacy dashboard task route helper shared with ActionRequiredPanel.
- */
-export function getTaskRoute(task: MyTask, lab: DashboardLab): string {
-  if (task.taskType === "VialDestruction") {
-    return "/laboratory-configuration/biological-waste";
-  } else if (task.mediaId) {
-    return "/laboratory-configuration/media";
-  } else if (task.sampleId && task.testOrderId) {
-    return lab.workspace(`?sampleId=${task.sampleId}&testOrderId=${task.testOrderId}`);
-  } else if (task.sampleId) {
-    return lab.workspace(`?sampleId=${task.sampleId}`);
-  } else {
-    return lab.workspace("?scope=mine");
   }
 }

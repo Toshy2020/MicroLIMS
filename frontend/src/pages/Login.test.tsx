@@ -56,6 +56,7 @@ function renderPage() {
         <MemoryRouter initialEntries={["/login"]}>
           <Routes>
             <Route path="/login" element={<LoginPage />} />
+            <Route path="/my-work" element={<div>My Work</div>} />
             <Route path="/dashboard" element={<div>Dashboard</div>} />
             <Route path="/mfa-enrol" element={<EnrolProbe />} />
           </Routes>
@@ -117,7 +118,7 @@ describe("LoginPage", () => {
 
     await submitCredentials(user);
 
-    await waitFor(() => expect(screen.getByText("Dashboard")).toBeTruthy());
+    await waitFor(() => expect(screen.getByText("My Work")).toBeTruthy());
     expect(authenticationService.login).toHaveBeenCalledWith("a.hassan", "Secret#1");
     expect(localStorage.getItem("microlims_token")).toBe("t");
     expect(localStorage.getItem("microlims_refresh_token")).toBe("r");
@@ -186,7 +187,7 @@ describe("LoginPage", () => {
     await user.type(screen.getByLabelText("6-digit code"), "654321");
     await user.click(screen.getByRole("button", { name: "Verify" }));
 
-    await waitFor(() => expect(screen.getByText("Dashboard")).toBeTruthy());
+    await waitFor(() => expect(screen.getByText("My Work")).toBeTruthy());
     expect(mfaService.verify).toHaveBeenCalledWith({
       mfaToken: "challenge-token-1",
       code: "654321",
@@ -222,7 +223,7 @@ describe("LoginPage", () => {
 
     await submitCredentials(user);
 
-    await waitFor(() => expect(screen.getByText("Dashboard")).toBeTruthy());
+    await waitFor(() => expect(screen.getByText("My Work")).toBeTruthy());
     expect(authenticationService.login).toHaveBeenCalledWith("a.hassan", "Secret#1", "trusted-dev-123");
   });
 
@@ -302,7 +303,7 @@ describe("LoginPage", () => {
     await user.type(recoveryField, "ABCD-EFGH");
     await user.click(screen.getByRole("button", { name: "Verify" }));
 
-    await waitFor(() => expect(screen.getByText("Dashboard")).toBeTruthy());
+    await waitFor(() => expect(screen.getByText("My Work")).toBeTruthy());
     expect(mfaService.verify).toHaveBeenCalledWith({
       mfaToken: "challenge-token-1",
       recoveryCode: "ABCD-EFGH",
@@ -344,7 +345,7 @@ describe("LoginPage", () => {
     await user.type(screen.getByLabelText("6-digit code"), "123456");
     await user.click(screen.getByRole("button", { name: "Verify" }));
 
-    await waitFor(() => expect(screen.getByText("Dashboard")).toBeTruthy());
+    await waitFor(() => expect(screen.getByText("My Work")).toBeTruthy());
     expect(mfaService.verify).toHaveBeenCalledWith({
       mfaToken: "challenge-token-1",
       code: "123456",
@@ -480,7 +481,7 @@ describe("LoginPage", () => {
     expect(alert.textContent).toMatch(/recovery code/i);
 
     await user.click(screen.getByRole("button", { name: "Continue" }));
-    await waitFor(() => expect(screen.getByText("Dashboard")).toBeTruthy());
+    await waitFor(() => expect(screen.getByText("My Work")).toBeTruthy());
   });
 
   it("navigates to /mfa-enrol with the token in router state when enrolment is required", async () => {
@@ -542,7 +543,7 @@ describe("LoginPage", () => {
     expect(continueBtn.disabled).toBe(false);
     await user.click(continueBtn);
 
-    await waitFor(() => expect(screen.getByText("Dashboard")).toBeTruthy());
+    await waitFor(() => expect(screen.getByText("My Work")).toBeTruthy());
     expect(localStorage.getItem("microlims_token")).toBe("hw-access");
   });
 

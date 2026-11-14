@@ -45,7 +45,7 @@ function renderEnrol(initialState?: { mfaToken?: string }) {
           <Routes>
             <Route path="/mfa-enrol" element={<MfaEnrolmentPage />} />
             <Route path="/login" element={<div>Login Page</div>} />
-            <Route path="/dashboard" element={<div>Dashboard</div>} />
+            <Route path="/my-work" element={<div>My Work</div>} />
             <Route path="/profile" element={<div>Profile</div>} />
           </Routes>
         </MemoryRouter>
@@ -115,7 +115,7 @@ describe("MfaEnrolmentPage", () => {
     await user.click(screen.getByRole("checkbox", { name: "I have saved these codes" }));
     await user.click(screen.getByRole("button", { name: "Continue" }));
 
-    await waitFor(() => expect(screen.getByText("Dashboard")).toBeTruthy());
+    await waitFor(() => expect(screen.getByText("My Work")).toBeTruthy());
     expect(localStorage.getItem("microlims_token")).toBe("enrol-access-tok");
     expect(localStorage.getItem("microlims_refresh_token")).toBe("enrol-refresh-tok");
   });

@@ -70,6 +70,8 @@ export interface MenuItem {
   // On a page inside such a section: which of those figures its card shows
   // (SectionCardKeys on the server).
   counterKey?: string;
+  // Live badge source rendered beside the label in the sidebar.
+  badge?: "myWork";
 }
 
 export interface MenuGroup {
@@ -85,6 +87,7 @@ export interface MenuContext {
 }
 
 // Menu Items
+const myWorkItem: MenuItem = { label: "My Work", path: "/my-work", description: "Tests, reviews, approvals, and tasks waiting for your action.", icon: ListAltOutlinedIcon, group: "OVERVIEW", badge: "myWork" };
 const dashboardItem: MenuItem = { label: "Dashboard", path: "/dashboard", description: "Your work and the laboratory's queues at a glance.", icon: SpaceDashboardOutlinedIcon, group: "OVERVIEW" };
 const QUALITY_COMPLIANCE_GROUP = "QUALITY & COMPLIANCE";
 const reportsItem: MenuItem = { label: "Reports", path: "/reports", description: "Laboratory KPIs, trends and exportable reports.", icon: DescriptionOutlinedIcon, group: QUALITY_COMPLIANCE_GROUP };
@@ -289,7 +292,7 @@ function groupItems(items: MenuItem[]): MenuGroup[] {
 // laboratory area also needs membership in that lab (useMyLabs), or the
 // Sections.ViewAll permission for the read-only view of every lab.
 export function getGroupedMenu({ role, permissions, labCodes, physchemAreas }: MenuContext): MenuGroup[] {
-  const items: MenuItem[] = [dashboardItem, receiveSampleItem, trackingBoardItem];
+  const items: MenuItem[] = [myWorkItem, dashboardItem, receiveSampleItem, trackingBoardItem];
   if (labCodes.includes("MICRO")) items.push(microArea, microConfigArea);
   if (labCodes.includes("FP")) {
     const areas = physchemAreas ?? ["fp", "rmpm"];

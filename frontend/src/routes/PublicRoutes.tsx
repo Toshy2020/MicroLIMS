@@ -5,5 +5,5 @@ import { useAuth } from "../contexts/AuthContext";
 // token is already present.
 export function PublicRoutes() {
   const { token } = useAuth();
-  return token ? <Navigate to="/dashboard" replace /> : <Outlet />;
+  return token ? <Navigate to="/my-work" replace /> : <Outlet />;
 }

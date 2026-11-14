@@ -129,7 +129,7 @@ export function AppRoutes() {
           <Route path="/cryovials/:id/report" element={<CryovialReportPage />} />
 
           <Route element={<MainLayout />}>
-            <Route path="/" element={<Navigate to="/dashboard" replace />} />
+            <Route path="/" element={<Navigate to="/my-work" replace />} />
             <Route path="/dashboard" element={<DashboardPage />} />
             <Route
               path="/my-work"

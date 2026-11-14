@@ -59,7 +59,7 @@ export function MfaEnrolmentPage() {
     }
     try {
       await completeSignInSession(loginPayload, login);
-      navigate("/dashboard", { replace: true });
+      navigate("/my-work", { replace: true });
     } catch (err: unknown) {
       // The second factor is set up; only the final sign-in step failed.
       toast.error(getErrorMessage(err, "Your second factor is set up, but sign-in could not be completed. Sign in again."));

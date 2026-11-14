@@ -1,10 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
+import { Link, MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import axios, { AxiosHeaders } from "axios";
 import { toast } from "sonner";
 import { PinnedLightTheme } from "../../theme/PinnedLightTheme";
+import { AuthProvider } from "../../contexts/AuthContext";
+import { PERMISSIONS } from "../../routes/routes";
 import { myWorkService } from "./services/myWorkService";
 import type { MyWorkResponse } from "./myWorkTypes";
 import { MyWorkPage } from "./MyWorkPage";
@@ -113,20 +115,30 @@ function makeResponse(over: Partial<MyWorkResponse> = {}): MyWorkResponse {
 function renderPage(initialEntry = "/my-work") {
   return render(
     <PinnedLightTheme>
-      <MemoryRouter initialEntries={[initialEntry]}>
-        <Routes>
-          <Route
-            path="/my-work"
-            element={
-              <>
-                <MyWorkPage />
-                <LocationEcho />
-              </>
-            }
-          />
-          <Route path="/dashboard" element={<div>Dashboard</div>} />
-        </Routes>
-      </MemoryRouter>
+      <AuthProvider>
+        <MemoryRouter initialEntries={[initialEntry]}>
+          <Routes>
+            <Route
+              path="/my-work"
+              element={
+                <>
+                  <MyWorkPage />
+                  <LocationEcho />
+                </>
+              }
+            />
+            <Route
+              path="/dashboard"
+              element={
+                <div>
+                  <div>Dashboard</div>
+                  <Link to="/my-work">Open My Work (0)</Link>
+                </div>
+              }
+            />
+          </Routes>
+        </MemoryRouter>
+      </AuthProvider>
     </PinnedLightTheme>
   );
 }
@@ -135,7 +147,11 @@ beforeEach(() => {
   vi.clearAllMocks();
 });
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  localStorage.clear();
+  sessionStorage.clear();
+});
 
 describe("MyWorkPage", () => {
   it("renders groups in server order with headings and counts and omits empty groups", async () => {
@@ -166,7 +182,7 @@ describe("MyWorkPage", () => {
     expect(screen.getByTestId("my-work-loading")).toBeTruthy();
   });
 
-  it("shows empty state linking to dashboard when no groups exist", async () => {
+  it("shows empty state linking to dashboard when no groups exist and user has no dashboard permission", async () => {
     vi.mocked(myWorkService.get).mockResolvedValue(makeResponse({ groups: [] }));
 
     renderPage();
@@ -176,6 +192,25 @@ describe("MyWorkPage", () => {
     });
     const dashLink = screen.getByRole("link", { name: /dashboard/i });
     expect(dashLink.getAttribute("href")).toBe("/dashboard");
+  });
+
+  it("redirects a user with no groups and a dashboard permission to /dashboard once without looping", async () => {
+    const user = userEvent.setup();
+    localStorage.setItem("microlims_permissions", JSON.stringify([PERMISSIONS.DASHBOARDS_LAB_OVERVIEW]));
+    vi.mocked(myWorkService.get).mockResolvedValue(makeResponse({ groups: [] }));
+
+    renderPage();
+
+    await waitFor(() => {
+      expect(screen.getByText("Dashboard")).toBeTruthy();
+    });
+
+    await user.click(screen.getByRole("link", { name: "Open My Work (0)" }));
+
+    await waitFor(() => {
+      expect(screen.getByText("Nothing waiting for you")).toBeTruthy();
+    });
+    expect(screen.getByTestId("location-echo").textContent).toBe("/my-work");
   });
 
   it("shows error state with Retry button that refetches", async () => {

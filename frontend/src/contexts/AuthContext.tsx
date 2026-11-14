@@ -160,6 +160,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem("microlims_must_change_password");
     localStorage.removeItem("microlims_signing_password_required");
     localStorage.removeItem("microlims_sign_in_method");
+    try {
+      sessionStorage.removeItem("microlims_mywork_empty_redirected");
+    } catch {
+      // Storage may be unavailable in restricted contexts.
+    }
     setToken(null);
     setRefreshToken(null);
     setUsername(null);

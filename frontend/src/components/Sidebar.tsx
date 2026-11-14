@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Drawer, Box, List, ListItemButton, ListItemIcon, ListItemText, Typography,
   Collapse, Tooltip, IconButton, useMediaQuery, useTheme, MenuItem, MenuList, Divider,
@@ -11,9 +11,19 @@ import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import { Link } from "react-router-dom";
 import { MenuGroup, MenuItem as MenuItemType } from "../routes/menuConfig";
 import { NavTrail } from "../routes/navigation";
+import { myWorkService } from "../modules/myWork/services/myWorkService";
+import type { MyWorkSummary } from "../modules/myWork/myWorkTypes";
 
 const EXPANDED_SIDEBAR_WIDTH = 250;
 const COLLAPSED_SIDEBAR_WIDTH = 68;
+const MY_WORK_SUMMARY_INTERVAL_MS = 60_000;
+
+function formatMyWorkAccessibleName(label: string, summary: MyWorkSummary): string {
+  const total = summary.total ?? 0;
+  const totalPart = `${total} ${total === 1 ? "task" : "tasks"}`;
+  const overduePart = summary.overdue && summary.overdue > 0 ? `, ${summary.overdue} overdue` : "";
+  return `${label}, ${totalPart}${overduePart}`;
+}
 
 // How long to keep a flyout open after the pointer leaves it, so moving the
 // mouse from the rail icon into the flyout panel itself doesn't close it
@@ -43,6 +53,43 @@ export function Sidebar({ mobileOpen, onMobileClose, collapsed, onToggleCollapse
   const effectiveCollapsed = collapsed && !isMobile;
 
   const [openSubmenus, setOpenSubmenus] = useState<Record<string, boolean>>({});
+  const [myWorkSummary, setMyWorkSummary] = useState<MyWorkSummary | null>(null);
+  const summaryControllerRef = useRef<AbortController | null>(null);
+  const hasMyWorkBadge = groups.some((g) => g.items.some((item) => item.badge === "myWork"));
+
+  const fetchMyWorkSummary = useCallback(() => {
+    if (!hasMyWorkBadge) return;
+    summaryControllerRef.current?.abort();
+    const controller = new AbortController();
+    summaryControllerRef.current = controller;
+    myWorkService
+      .summary(controller.signal)
+      .then((data) => {
+        if (!controller.signal.aborted) {
+          setMyWorkSummary(data);
+        }
+      })
+      .catch(() => {
+        // Sidebar badge is best-effort; hide on error without blocking navigation.
+      });
+  }, [hasMyWorkBadge]);
+
+  useEffect(() => {
+    if (!hasMyWorkBadge) return;
+    fetchMyWorkSummary();
+    const onFocus = () => fetchMyWorkSummary();
+    window.addEventListener("focus", onFocus);
+    const intervalId = window.setInterval(() => {
+      if (document.visibilityState === "visible") {
+        fetchMyWorkSummary();
+      }
+    }, MY_WORK_SUMMARY_INTERVAL_MS);
+    return () => {
+      summaryControllerRef.current?.abort();
+      window.removeEventListener("focus", onFocus);
+      window.clearInterval(intervalId);
+    };
+  }, [hasMyWorkBadge, fetchMyWorkSummary]);
 
   // Opening a deep link (or navigating from a notification) used to leave
   // the area holding the current page folded shut, so the active highlight
@@ -151,6 +198,15 @@ export function Sidebar({ mobileOpen, onMobileClose, collapsed, onToggleCollapse
                 const hasChildren = Boolean(item.children);
                 const flyoutOpen = effectiveCollapsed && hasChildren && flyoutItem?.label === item.label;
                 const IconComponent = item.icon;
+                const showMyWorkBadge =
+                  item.badge === "myWork" &&
+                  Boolean(myWorkSummary?.complete) &&
+                  myWorkSummary?.total !== null &&
+                  myWorkSummary?.total !== undefined &&
+                  myWorkSummary.total > 0;
+                const myWorkAriaLabel =
+                  showMyWorkBadge && myWorkSummary ? formatMyWorkAccessibleName(item.label, myWorkSummary) : undefined;
+                const badgeTone = (myWorkSummary?.overdue ?? 0) > 0 ? theme.custom.status.detected : theme.custom.status.info;
 
                 const button = (
                   <ListItemButton
@@ -166,7 +222,7 @@ export function Sidebar({ mobileOpen, onMobileClose, collapsed, onToggleCollapse
                           component: Link,
                           to: item.path!,
                           "aria-current": active ? "page" : undefined,
-                          "aria-label": effectiveCollapsed ? item.label : undefined,
+                          "aria-label": myWorkAriaLabel ?? (effectiveCollapsed ? item.label : undefined),
                           onClick: () => {
                             if (isMobile) onMobileClose();
                           }
@@ -226,6 +282,30 @@ export function Sidebar({ mobileOpen, onMobileClose, collapsed, onToggleCollapse
                         }}
                       />
                     )}
+                    {!effectiveCollapsed && showMyWorkBadge && (
+                      <Box
+                        component="span"
+                        data-testid="my-work-badge"
+                        aria-hidden="true"
+                        sx={{
+                          ml: 1,
+                          px: 0.875,
+                          py: 0.125,
+                          borderRadius: 10,
+                          fontSize: 11,
+                          fontWeight: 700,
+                          lineHeight: 1.4,
+                          minWidth: 20,
+                          textAlign: "center",
+                          fontVariantNumeric: "tabular-nums",
+                          bgcolor: badgeTone.bg,
+                          color: badgeTone.text,
+                          border: `1px solid ${badgeTone.border}`
+                        }}
+                      >
+                        {myWorkSummary?.total}
+                      </Box>
+                    )}
                     {!effectiveCollapsed && hasChildren && (
                       isSubOpen ? <ExpandLess sx={{ fontSize: 18 }} /> : <ExpandMore sx={{ fontSize: 18 }} />
                     )}
@@ -235,7 +315,7 @@ export function Sidebar({ mobileOpen, onMobileClose, collapsed, onToggleCollapse
                 return (
                   <Box key={item.label}>
                     {effectiveCollapsed && !hasChildren ? (
-                      <Tooltip title={item.label} placement="right">
+                      <Tooltip title={myWorkAriaLabel ?? item.label} placement="right">
                         {button}
                       </Tooltip>
                     ) : (

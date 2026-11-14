@@ -3,8 +3,10 @@ import type { FocusEvent } from "react";
 import { Alert, Box, Button, InputAdornment, Skeleton, Stack, TextField, Typography } from "@mui/material";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import SearchIcon from "@mui/icons-material/Search";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
+import { useHasPermission } from "../../contexts/AuthContext";
+import { PERMISSIONS } from "../../routes/routes";
 import { ConfirmationDialog } from "../../components/ConfirmationDialog";
 import type { SummaryTile } from "../../components/configHierarchy/SummaryTiles";
 import { EmptyState, KpiStrip, LabPage, PartialOutageBanner } from "../../components/lab";
@@ -21,7 +23,30 @@ const FILTERABLE_URGENCIES: ReadonlySet<string> = new Set<MyWorkUrgency>([
   "Later"
 ]);
 
+const MY_WORK_EMPTY_REDIRECT_KEY = "microlims_mywork_empty_redirected";
+
+function hasRedirectedToDashboard(): boolean {
+  try {
+    return sessionStorage.getItem(MY_WORK_EMPTY_REDIRECT_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function markRedirectedToDashboard(): void {
+  try {
+    sessionStorage.setItem(MY_WORK_EMPTY_REDIRECT_KEY, "1");
+  } catch {
+    // Storage may be unavailable in restricted contexts.
+  }
+}
+
 export function MyWorkPage() {
+  const navigate = useNavigate();
+  const hasDashboardPermission = useHasPermission([
+    PERMISSIONS.DASHBOARDS_LAB_OVERVIEW,
+    PERMISSIONS.DASHBOARDS_REVIEW
+  ]);
   const [searchParams, setSearchParams] = useSearchParams();
   const urgencyParam = searchParams.get("urgency");
   const urgencyFilter: MyWorkUrgency | null =
@@ -186,6 +211,13 @@ export function MyWorkPage() {
   };
 
   const hasNonEmptyServerGroups = (data?.groups ?? []).some((g) => g.items.length > 0);
+
+  useEffect(() => {
+    if (loading || error || data === null || hasNonEmptyServerGroups) return;
+    if (!hasDashboardPermission || hasRedirectedToDashboard()) return;
+    markRedirectedToDashboard();
+    navigate("/dashboard", { replace: true });
+  }, [loading, error, data, hasNonEmptyServerGroups, hasDashboardPermission, navigate]);
 
   return (
     <LabPage

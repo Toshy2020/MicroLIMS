@@ -209,7 +209,7 @@ export function LoginPage({ now = Date.now }: LoginPageProps) {
 
   const completeSignIn = async (result: LoginResult) => {
     await completeSignInSession(result, login, username);
-    navigate("/dashboard");
+    navigate("/my-work");
   };
 
   const handleSubmit = async (e: React.FormEvent) => {

@@ -325,4 +325,160 @@ describe("PrimaryObservationMatrixPanel", () => {
     const stored = (await rawStoredDrafts()) as { state: string }[];
     expect(stored[0].state).toBe("rejected");
   });
+
+  it("Enter moves focus down to the same column in the next row, supports arrows and Ctrl+Enter, ignores Ctrl+D, and skips locked cells", async () => {
+    const user = userEvent.setup();
+    const base = makeSession();
+    const session = makeSession({
+      totalLocations: 2,
+      locations: [
+        base.locations[0],
+        {
+          id: 2,
+          primarySampleLocationId: 601,
+          locationName: "Point B",
+          locationType: "WaterPoint",
+          gradeClassification: null,
+          testLocationMap: { ECOLI: 601, TAMC: 602 }
+        }
+      ],
+      assignedTests: [
+        base.assignedTests[0],
+        {
+          ...base.assignedTests[0],
+          testOrderId: 103,
+          testCode: "SALM",
+          displayName: "Salmonella",
+          isResultEntryAllowed: false,
+          isWorkflowLocked: true,
+          lockReason: "Locked"
+        },
+        base.assignedTests[1]
+      ],
+      totalAssignedTests: 3
+    });
+    sessionService.savePrimaryObservations.mockResolvedValue(session);
+    sessionService.saveResultMatrix.mockResolvedValue(session);
+    sessionService.getEligibleConfirmations.mockResolvedValue([]);
+
+    renderPanel(session, false);
+    expect(await screen.findByText("Point B")).toBeTruthy();
+
+    const comboA = screen.getByLabelText("E. coli observation for Point A").closest(".MuiInputBase-root")!.querySelector<HTMLElement>('[role="combobox"]')!;
+    const comboB = screen.getByLabelText("E. coli observation for Point B").closest(".MuiInputBase-root")!.querySelector<HTMLElement>('[role="combobox"]')!;
+    const tamcA = screen.getByLabelText("TAMC count (CFU) for Point A") as HTMLInputElement;
+    const tamcB = screen.getByLabelText("TAMC count (CFU) for Point B") as HTMLInputElement;
+
+    // Select an observation in Point A E. coli using Space to open the dropdown
+    comboA.focus();
+    expect(document.activeElement).toBe(comboA);
+    await user.keyboard(" ");
+    await user.click(within(await screen.findByRole("listbox")).getByText("No Growth (-)"));
+    expect(document.activeElement).toBe(comboA);
+
+    // Enter moves focus down to Point B E. coli without opening the dropdown
+    await user.keyboard("{Enter}");
+    expect(document.activeElement).toBe(comboB);
+    expect(screen.queryByRole("listbox")).toBeNull();
+
+    // Ctrl+D on row > 0 changes nothing (regulated observations must be entered deliberately)
+    await user.keyboard("{Control>}d{/Control}");
+    expect(comboB.textContent).not.toContain("No Growth (-)");
+
+    // ArrowUp moves back to Point A E. coli; ArrowDown moves down to Point B E. coli
+    await user.keyboard("{ArrowUp}");
+    expect(document.activeElement).toBe(comboA);
+    await user.keyboard("{ArrowDown}");
+    expect(document.activeElement).toBe(comboB);
+
+    // ArrowRight skips locked SALM column and lands on Point B TAMC
+    await user.keyboard("{ArrowRight}");
+    expect(document.activeElement).toBe(tamcB);
+
+    // ArrowLeft skips locked SALM column and lands back on Point B E. coli
+    await user.keyboard("{ArrowLeft}");
+    expect(document.activeElement).toBe(comboB);
+
+    // Enter in TAMC Point A moves down to TAMC Point B
+    await user.click(tamcA);
+    await user.type(tamcA, "15");
+    await user.keyboard("{Enter}");
+    expect(document.activeElement).toBe(tamcB);
+
+    // Ctrl+Enter saves
+    await user.keyboard("{Control>}{Enter}{/Control}");
+    await waitFor(() => expect(sessionService.savePrimaryObservations).toHaveBeenCalledTimes(1));
+  });
+
+  it("the save payload is unchanged when entering values across locations via keyboard navigation", async () => {
+    const user = userEvent.setup();
+    const base = makeSession();
+    const session = makeSession({
+      totalLocations: 2,
+      locations: [
+        base.locations[0],
+        {
+          id: 2,
+          primarySampleLocationId: 601,
+          locationName: "Point B",
+          locationType: "WaterPoint",
+          gradeClassification: null,
+          testLocationMap: { ECOLI: 601, TAMC: 602 }
+        }
+      ]
+    });
+    sessionService.savePrimaryObservations.mockResolvedValue(session);
+    sessionService.saveResultMatrix.mockResolvedValue(session);
+    sessionService.getEligibleConfirmations.mockResolvedValue([]);
+
+    renderPanel(session, false);
+    expect(await screen.findByText("Point B")).toBeTruthy();
+
+    const comboA = screen.getByLabelText("E. coli observation for Point A").closest(".MuiInputBase-root")!.querySelector<HTMLElement>('[role="combobox"]')!;
+    comboA.focus();
+    await user.keyboard(" ");
+    await user.click(within(await screen.findByRole("listbox")).getByText("No Growth (-)"));
+
+    // Move down to Point B E. coli and select No Growth (-) deliberately via keyboard
+    await user.keyboard("{Enter}");
+    await user.keyboard(" ");
+    await user.click(within(await screen.findByRole("listbox")).getByText("No Growth (-)"));
+
+    // Move right to Point B TAMC, type 20, move up to Point A TAMC, type 15, save via Ctrl+Enter
+    await user.keyboard("{ArrowRight}");
+    await user.type(document.activeElement as HTMLElement, "20");
+    await user.keyboard("{ArrowUp}");
+    await user.type(document.activeElement as HTMLElement, "15");
+    await user.keyboard("{Control>}{Enter}{/Control}");
+
+    await waitFor(() => expect(sessionService.savePrimaryObservations).toHaveBeenCalledTimes(1));
+    expect(sessionService.savePrimaryObservations).toHaveBeenCalledWith(42, {
+      observations: [
+        { sampleLocationId: 501, testCode: "ECOLI", observation: GrowthObservation.NoGrowth },
+        { sampleLocationId: 601, testCode: "ECOLI", observation: GrowthObservation.NoGrowth }
+      ]
+    });
+
+    await waitFor(() => expect(sessionService.saveResultMatrix).toHaveBeenCalledTimes(1));
+    expect(sessionService.saveResultMatrix).toHaveBeenCalledWith(42, {
+      cells: [
+        {
+          sampleLocationId: 502,
+          testCode: "TAMC",
+          resultCode: "15",
+          resultDisplay: "15 CFU",
+          numericValue: 15,
+          resultType: "Quantitative"
+        },
+        {
+          sampleLocationId: 602,
+          testCode: "TAMC",
+          resultCode: "20",
+          resultDisplay: "20 CFU",
+          numericValue: 20,
+          resultType: "Quantitative"
+        }
+      ]
+    });
+  });
 });

@@ -344,4 +344,103 @@ describe("useGridNavigation", () => {
     expect(document.activeElement).toBe(r1c0);
     expect(onCopyDown).not.toHaveBeenCalled();
   });
+
+  it("selectOnFocus selects text in the newly focused input", async () => {
+    const user = userEvent.setup();
+    function SelectOnFocusGrid() {
+      const { cellProps } = useGridNavigation({ rows: 2, cols: 1, selectOnFocus: true });
+      return (
+        <PinnedLightTheme>
+          <MemoryRouter>
+            <table>
+              <tbody>
+                <tr><td><input aria-label="R0" defaultValue="123" {...cellProps(0, 0)} /></td></tr>
+                <tr><td><input aria-label="R1" defaultValue="456" {...cellProps(1, 0)} /></td></tr>
+              </tbody>
+            </table>
+          </MemoryRouter>
+        </PinnedLightTheme>
+      );
+    }
+    render(<SelectOnFocusGrid />);
+    const r0 = screen.getByLabelText("R0") as HTMLInputElement;
+    const r1 = screen.getByLabelText("R1") as HTMLInputElement;
+    const spy = vi.spyOn(r1, "select");
+
+    await user.click(r0);
+    await user.keyboard("{Enter}");
+    expect(document.activeElement).toBe(r1);
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(r1.selectionStart).toBe(0);
+    expect(r1.selectionEnd).toBe(3);
+  });
+
+  it("capture intercepts navigation keys before child comboboxes and preserves Space to open and multi-radio vertical arrows", async () => {
+    const user = userEvent.setup();
+    const childKeyDown = vi.fn();
+    function CaptureGrid() {
+      const { cellProps } = useGridNavigation({ rows: 2, cols: 2, capture: true });
+      return (
+        <PinnedLightTheme>
+          <MemoryRouter>
+            <table>
+              <tbody>
+                <tr>
+                  <td {...cellProps(0, 0)}>
+                    <div
+                      role="combobox"
+                      tabIndex={0}
+                      aria-expanded="false"
+                      aria-label="Combo 0,0"
+                      onKeyDown={childKeyDown}
+                    >
+                      Opt
+                    </div>
+                  </td>
+                  <td {...cellProps(0, 1)}>
+                    <div role="radiogroup" aria-label="Group 0,1">
+                      <input type="radio" name="g01" aria-label="Radio A" />
+                      <input type="radio" name="g01" aria-label="Radio B" />
+                    </div>
+                  </td>
+                </tr>
+                <tr>
+                  <td {...cellProps(1, 0)}>
+                    <div role="combobox" tabIndex={0} aria-expanded="false" aria-label="Combo 1,0">
+                      Opt
+                    </div>
+                  </td>
+                  <td {...cellProps(1, 1)}>
+                    <input aria-label="Input 1,1" />
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </MemoryRouter>
+        </PinnedLightTheme>
+      );
+    }
+    render(<CaptureGrid />);
+    const combo0 = screen.getByLabelText("Combo 0,0");
+    const combo1 = screen.getByLabelText("Combo 1,0");
+    const radioA = screen.getByLabelText("Radio A");
+
+    await user.click(combo0);
+    await user.keyboard("{Enter}");
+    expect(document.activeElement).toBe(combo1);
+    // Enter was stopped in capture phase before reaching the closed combobox
+    expect(childKeyDown).not.toHaveBeenCalled();
+
+    // Space is not intercepted so child combobox still receives it
+    await user.click(combo0);
+    await user.keyboard(" ");
+    expect(childKeyDown).toHaveBeenCalledTimes(1);
+
+    // Multi-radio cell keeps ArrowDown for radio selection, while Enter still moves down
+    await user.click(radioA);
+    await user.keyboard("{ArrowDown}");
+    expect(document.activeElement).toBe(screen.getByLabelText("Radio B"));
+    await user.keyboard("{Enter}");
+    expect(document.activeElement).toBe(screen.getByLabelText("Input 1,1"));
+  });
 });

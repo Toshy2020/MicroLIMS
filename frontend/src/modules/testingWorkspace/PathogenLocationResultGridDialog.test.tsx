@@ -265,4 +265,115 @@ describe("PathogenLocationResultGridDialog", () => {
       { headers: { "X-Draft-Started-At": NOW.toISOString() } }
     );
   });
+
+  it("Enter moves focus down to the same column in the next row, supports arrow keys, and ignores Ctrl+D", async () => {
+    const user = userEvent.setup();
+    service.getLocations.mockResolvedValue(LOCATIONS);
+    renderDialog(false);
+
+    const dialog = await screen.findByRole("dialog");
+    const yesRadios = await within(dialog).findAllByRole("radio", { name: "Yes" }) as HTMLInputElement[];
+    const noRadios = within(dialog).getAllByRole("radio", { name: "No" }) as HTMLInputElement[];
+
+    await user.click(yesRadios[0]);
+    expect(yesRadios[0].checked).toBe(true);
+
+    // Enter moves down to row 1 Yes radio without changing its selection
+    await user.keyboard("{Enter}");
+    expect(document.activeElement).toBe(yesRadios[1]);
+    expect(yesRadios[1].checked).toBe(false);
+
+    // ArrowUp moves back up to row 0 Yes radio
+    await user.keyboard("{ArrowUp}");
+    expect(document.activeElement).toBe(yesRadios[0]);
+
+    // ArrowDown moves to row 1 Yes radio
+    await user.keyboard("{ArrowDown}");
+    expect(document.activeElement).toBe(yesRadios[1]);
+
+    // ArrowRight moves to row 1 No radio
+    await user.keyboard("{ArrowRight}");
+    expect(document.activeElement).toBe(noRadios[1]);
+
+    // ArrowLeft moves back to row 1 Yes radio
+    await user.keyboard("{ArrowLeft}");
+    expect(document.activeElement).toBe(yesRadios[1]);
+
+    // Ctrl+D on row > 0 changes nothing (regulated readings must be entered deliberately)
+    await user.keyboard("{Control>}d{/Control}");
+    expect(yesRadios[1].checked).toBe(false);
+    expect(noRadios[1].checked).toBe(false);
+  });
+
+  it("Ctrl+Enter submits nothing while a location is still unanswered", async () => {
+    const user = userEvent.setup();
+    service.getLocations.mockResolvedValue(LOCATIONS);
+    service.recordBatchPathogenResults.mockResolvedValue({ ok: true });
+    renderDialog(false);
+
+    const dialog = await screen.findByRole("dialog");
+    const yesRadios = (await within(dialog).findAllByRole("radio", { name: "Yes" })) as HTMLInputElement[];
+
+    // Only the first of two locations is answered.
+    yesRadios[0].focus();
+    await user.keyboard(" ");
+    expect(yesRadios[0].checked).toBe(true);
+    await user.keyboard("{Control>}{Enter}{/Control}");
+    await user.keyboard("{Enter}");
+    await user.keyboard("{Control>}{Enter}{/Control}");
+
+    expect(service.recordBatchPathogenResults).not.toHaveBeenCalled();
+  });
+
+  it("the save payload is unchanged when entering values via keyboard navigation (standard and bench modes)", async () => {
+    const user = userEvent.setup();
+    service.getLocations.mockResolvedValue(LOCATIONS);
+    service.recordBatchPathogenResults.mockResolvedValue({ ok: true });
+    renderDialog(false);
+
+    const dialog = await screen.findByRole("dialog");
+    const yesRadios = await within(dialog).findAllByRole("radio", { name: "Yes" }) as HTMLInputElement[];
+
+    // Focus row 0 Yes, press Space to select Yes, Enter to move to row 1 Yes, ArrowRight to row 1 No, Space to select No, Ctrl+Enter to save
+    yesRadios[0].focus();
+    await user.keyboard(" ");
+    await user.keyboard("{Enter}");
+    await user.keyboard("{ArrowRight}");
+    await user.keyboard(" ");
+    await user.keyboard("{Control>}{Enter}{/Control}");
+
+    await waitFor(() => expect(service.recordBatchPathogenResults).toHaveBeenCalledTimes(1));
+    expect(service.recordBatchPathogenResults).toHaveBeenCalledWith(77, [
+      { sampleLocationId: 301, growthObserved: true },
+      { sampleLocationId: 302, growthObserved: false }
+    ]);
+
+    cleanup();
+    vi.clearAllMocks();
+    service.getLocations.mockResolvedValue(LOCATIONS);
+    service.recordBatchPathogenResults.mockResolvedValue({ ok: true });
+
+    renderDialog(true);
+    const benchDialog = await screen.findByRole("dialog");
+    const g1 = await within(benchDialog).findByRole("group", { name: "Growth observed for Isolator Port 1" });
+    const g2 = within(benchDialog).getByRole("group", { name: "Growth observed for Transfer Hatch" });
+    const r0Yes = within(g1).getByRole("button", { name: "Yes (Detected)" });
+    const r1Yes = within(g2).getByRole("button", { name: "Yes (Detected)" });
+    const r1No = within(g2).getByRole("button", { name: "No (Absent)" });
+
+    r0Yes.focus();
+    await user.keyboard(" ");
+    await user.keyboard("{Enter}");
+    expect(document.activeElement).toBe(r1Yes);
+    await user.keyboard("{ArrowRight}");
+    expect(document.activeElement).toBe(r1No);
+    await user.keyboard(" ");
+    await user.keyboard("{Control>}{Enter}{/Control}");
+
+    await waitFor(() => expect(service.recordBatchPathogenResults).toHaveBeenCalledTimes(1));
+    expect(service.recordBatchPathogenResults).toHaveBeenCalledWith(77, [
+      { sampleLocationId: 301, growthObserved: true },
+      { sampleLocationId: 302, growthObserved: false }
+    ]);
+  });
 });

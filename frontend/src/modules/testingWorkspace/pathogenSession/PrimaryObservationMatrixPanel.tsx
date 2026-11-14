@@ -38,6 +38,7 @@ import { ConfirmationDialog } from "../../../components/ConfirmationDialog";
 import { DraftRestoreNotice } from "../../../components/bench/DraftRestoreNotice";
 import { NumericEntryField, parseDecimal } from "../../../components/bench/NumericEntryField";
 import { RegistryBenchKeypad } from "../../../components/bench/BenchKeypad";
+import { useGridNavigation } from "../../../components/entry/useGridNavigation";
 import { useBenchDraft } from "../../../hooks/useBenchDraft";
 import { useBenchMode } from "../../../theme/BenchModeContext";
 import { OfflineDraftNotice, classifySaveFailure, draftHeaderArgs, serverMessage, useKeptOffline } from "../benchSave";
@@ -65,6 +66,14 @@ interface PrimaryMatrixDraftValues {
 
 function pickPrimaryMatrixDraft(v: PrimaryMatrixDraftValues): Partial<PrimaryMatrixDraftValues> {
   return { entries: v.entries };
+}
+
+function isQuantitativeTest(test: { workflowType: string; testCode: string }): boolean {
+  return (
+    test.workflowType.toLowerCase().includes("count") ||
+    test.testCode.toLowerCase().includes("tamc") ||
+    test.testCode.toLowerCase().includes("tymc")
+  );
 }
 
 interface Props {
@@ -102,9 +111,7 @@ export function PrimaryObservationMatrixPanel({ session, onUpdated, onNext }: Pr
           (c) => c.sampleLocationId === slocId && c.testCode === test.testCode
         );
 
-        const isQuant = test.workflowType.toLowerCase().includes("count") ||
-                        test.testCode.toLowerCase().includes("tamc") ||
-                        test.testCode.toLowerCase().includes("tymc");
+        const isQuant = isQuantitativeTest(test);
 
         let obs: GrowthObservation | "" = "";
         if (cell?.primaryObservation) {
@@ -222,9 +229,7 @@ export function PrimaryObservationMatrixPanel({ session, onUpdated, onNext }: Pr
           lockedCount++;
           continue;
         }
-        const isQuant = test.workflowType.toLowerCase().includes("count") ||
-                        test.testCode.toLowerCase().includes("tamc") ||
-                        test.testCode.toLowerCase().includes("tymc");
+        const isQuant = isQuantitativeTest(test);
         if (!isQuant) {
           const slocId = loc.testLocationMap[test.testCode] ?? loc.primarySampleLocationId;
           const key = `${slocId}_${test.testCode}`;
@@ -410,12 +415,7 @@ export function PrimaryObservationMatrixPanel({ session, onUpdated, onNext }: Pr
     }
   };
 
-  const hasQuantTests = session.assignedTests.some(
-    (t) =>
-      t.workflowType.toLowerCase().includes("count") ||
-      t.testCode.toLowerCase().includes("tamc") ||
-      t.testCode.toLowerCase().includes("tymc")
-  );
+  const hasQuantTests = session.assignedTests.some(isQuantitativeTest);
   const saveDisabledReason = areAllTestsLocked
     ? "All assigned tests are locked until upstream workflow steps complete."
     : undefined;
@@ -424,6 +424,26 @@ export function PrimaryObservationMatrixPanel({ session, onUpdated, onNext }: Pr
     : completedCount < totalCount
     ? "Complete all cells to proceed."
     : undefined;
+
+  const isTestColumnEditable = (colIdx: number): boolean => {
+    const t = session.assignedTests[colIdx];
+    if (!t || !t.isResultEntryAllowed) return false;
+    const isQuant = isQuantitativeTest(t);
+    const hasRecordedCountResult = t.countResult?.reportedResult != null;
+    return !(isQuant && hasRecordedCountResult);
+  };
+
+  const { cellProps } = useGridNavigation({
+    rows: filteredLocations.length,
+    cols: session.assignedTests.length,
+    capture: true,
+    isEditable: (_r, c) => isTestColumnEditable(c),
+    onSave: () => {
+      if (!saving && !areAllTestsLocked) {
+        void handleSaveObservations();
+      }
+    }
+  });
 
   return (
     <Stack spacing={2.5}>
@@ -623,9 +643,7 @@ export function PrimaryObservationMatrixPanel({ session, onUpdated, onNext }: Pr
               </Stack>
               <Stack spacing={1.5}>
                 {session.assignedTests.map((t) => {
-                  const isQuant = t.workflowType.toLowerCase().includes("count") ||
-                                  t.testCode.toLowerCase().includes("tamc") ||
-                                  t.testCode.toLowerCase().includes("tymc");
+                  const isQuant = isQuantitativeTest(t);
                   const slocId = loc.testLocationMap[t.testCode] ?? loc.primarySampleLocationId;
                   const key = `${slocId}_${t.testCode}`;
                   const val = primaryObservations[key];
@@ -716,9 +734,7 @@ export function PrimaryObservationMatrixPanel({ session, onUpdated, onNext }: Pr
                 {session.assignedTests.map((t) => {
                   const isLocked = !t.isResultEntryAllowed;
                   const confMediaCount = t.confirmatoryMediaCount ?? 1; // from Test Master; never by organism (CLAUDE.md Rule 3.2)
-                  const isQuant = t.workflowType.toLowerCase().includes("count") ||
-                                  t.testCode.toLowerCase().includes("tamc") ||
-                                  t.testCode.toLowerCase().includes("tymc");
+                  const isQuant = isQuantitativeTest(t);
 
                   return (
                     <TableCell
@@ -830,10 +846,8 @@ export function PrimaryObservationMatrixPanel({ session, onUpdated, onNext }: Pr
                   </TableCell>
 
                   {/* Primary Observation Matrix Cells */}
-                  {session.assignedTests.map((t) => {
-                    const isQuant = t.workflowType.toLowerCase().includes("count") ||
-                                    t.testCode.toLowerCase().includes("tamc") ||
-                                    t.testCode.toLowerCase().includes("tymc");
+                  {session.assignedTests.map((t, testIdx) => {
+                    const isQuant = isQuantitativeTest(t);
 
                     const slocId = loc.testLocationMap[t.testCode] ?? loc.primarySampleLocationId;
                     const key = `${slocId}_${t.testCode}`;
@@ -940,6 +954,7 @@ export function PrimaryObservationMatrixPanel({ session, onUpdated, onNext }: Pr
                       <TableCell
                         key={t.testCode}
                         align="center"
+                        {...cellProps(idx, testIdx)}
                         sx={{
                           p: 1,
                           borderRight: "1px solid",

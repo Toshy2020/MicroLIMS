@@ -188,7 +188,7 @@ public class SampleAssignmentService
         string? reason,
         CancellationToken ct = default)
     {
-        var changed = changes.ToList();
+        var changed = changes.Where(c => c.Order.AssignedAnalystId != c.AnalystId).ToList();
 
         var userIds = changed.SelectMany(c => new[] { c.Order.AssignedAnalystId, c.AnalystId })
             .Where(id => id.HasValue).Select(id => id!.Value).Distinct().ToList();

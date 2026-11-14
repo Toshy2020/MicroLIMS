@@ -12,6 +12,8 @@ import {
   ReceiptLabOption,
   SampleAssignmentOptions,
   TestAnalystAssignment,
+  BulkAssignRequest,
+  BulkAssignResult,
   RetestEligibleTest,
   SampleDocument
 } from "../types/receivingTypes";
@@ -174,6 +176,11 @@ export const ReceiveService = {
   // A different analyst per test, saved together in one request.
   async assignTestAnalysts(sampleId: number, assignments: TestAnalystAssignment[], reason?: string): Promise<SampleRecord> {
     const res = await apiClient.put(`/samples/${sampleId}/test-assignments`, { assignments, reason });
+    return res.data.data;
+  },
+
+  async bulkAssign(request: BulkAssignRequest): Promise<BulkAssignResult> {
+    const res = await apiClient.post("/samples/bulk-assign", request);
     return res.data.data;
   },
 

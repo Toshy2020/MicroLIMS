@@ -896,4 +896,474 @@ public class MasterDataBatchPostgresTests
         var perm = await assertDb.Permissions.AsNoTracking().SingleAsync(p => p.Code == PermissionConstants.MasterDataManage);
         Assert.True(perm.IsEnforced);
     }
+
+    private static SpecificationMasterDataService BuildSpecService(MicroLimsDbContext db) =>
+        new(db, new UserSectionScopeService(db), new SpecificationService(db), new MasterDataBatchService(db));
+
+    private async Task<(int HeadUserId, int ItemId, string MicroTestCode, string OtherTestCode, string TitrationCode)> SeedSpecScopeAsync(string suffix)
+    {
+        await using var db = _fixture.CreateDbContext();
+
+        var micro = await db.DocumentSections.FirstAsync(s => s.Code == LaboratoryCodes.Microbiology);
+        var other = await db.DocumentSections.FirstOrDefaultAsync(s => s.Id != micro.Id && s.IsActive);
+        if (other is null)
+        {
+            other = new DocumentSection { Code = $"SP-OTH-{suffix}", Name = $"Other Lab {suffix}", IsActive = true };
+            db.DocumentSections.Add(other);
+            await db.SaveChangesAsync();
+        }
+
+        var role = await db.Roles.FirstAsync(r => r.Type == RoleType.SectionHead);
+        var user = new User
+        {
+            Username = $"sp_batch_head_{suffix}",
+            PasswordHash = "x",
+            FullName = $"Spec Batch Head {suffix}",
+            Email = $"sp_batch_{suffix}@test.local",
+            RoleId = role.Id,
+            IsActive = true
+        };
+        db.Users.Add(user);
+        await db.SaveChangesAsync();
+
+        db.UserOrgMemberships.Add(new UserOrgMembership
+        {
+            UserId = user.Id,
+            DepartmentId = micro.DepartmentId,
+            SectionId = micro.Id
+        });
+
+        var microCode = $"SP-MIC-{suffix}";
+        var otherCode = $"SP-OTH-{suffix}";
+        var titrCode = $"SP-TITR-{suffix}";
+        var lodCode = $"SP-LOD-{suffix}";
+        var kfCode = $"SP-KF-{suffix}";
+
+        db.TestDefinitions.AddRange(
+            new TestDefinition { Code = microCode, DisplayName = $"Micro Spec {suffix}", SectionId = micro.Id, IsActive = true },
+            new TestDefinition { Code = otherCode, DisplayName = $"Other Spec {suffix}", SectionId = other.Id, IsActive = true },
+            new TestDefinition
+            {
+                Code = titrCode,
+                DisplayName = $"Titration Spec {suffix}",
+                SectionId = micro.Id,
+                WorkflowType = WorkflowType.Titration,
+                EquationType = EquationType.Titration,
+                PhyschemArea = PhyschemArea.Both,
+                IsActive = true
+            },
+            new TestDefinition
+            {
+                Code = lodCode,
+                DisplayName = $"LoD {suffix}",
+                SectionId = micro.Id,
+                WorkflowType = WorkflowType.Gravimetric,
+                MoistureRole = MoistureRole.LossOnDrying,
+                IsActive = true
+            },
+            new TestDefinition
+            {
+                Code = kfCode,
+                DisplayName = $"KF {suffix}",
+                SectionId = micro.Id,
+                WorkflowType = WorkflowType.Titration,
+                MoistureRole = MoistureRole.Water,
+                IsActive = true
+            });
+
+        var item = new Item
+        {
+            Code = $"SP-ITEM-{suffix}",
+            Name = $"Spec Item {suffix}",
+            Category = SampleCategory.FinishedProduct,
+            AssignedTests =
+            {
+                new SampleTest { TestCode = microCode, DisplayName = $"Micro Spec {suffix}" },
+                new SampleTest { TestCode = otherCode, DisplayName = $"Other Spec {suffix}" },
+                new SampleTest { TestCode = titrCode, DisplayName = $"Titration Spec {suffix}" },
+                new SampleTest { TestCode = lodCode, DisplayName = $"LoD {suffix}" },
+                new SampleTest { TestCode = kfCode, DisplayName = $"KF {suffix}" }
+            }
+        };
+        db.Items.Add(item);
+
+        await db.SaveChangesAsync();
+        return (user.Id, item.Id, microCode, otherCode, titrCode);
+    }
+
+    [PostgresFact]
+    public async Task Specs_AllValid_CreatesAll_AuditedLikeSingleCreate()
+    {
+        var suffix = Guid.NewGuid().ToString("N")[..8];
+        var (userId, itemId, microCode, _, _) = await SeedSpecScopeAsync(suffix);
+        var fixedNow = new DateTimeOffset(2026, 11, 14, 12, 0, 0, TimeSpan.Zero);
+
+        SpecificationResponse singleResult;
+        await using (var singleDb = _fixture.CreateDbContext(new FixedClock(fixedNow)))
+        {
+            singleDb.CurrentUserId = userId;
+            var svc = BuildSpecService(singleDb);
+            singleResult = await svc.CreateSpecificationAsync(
+                userId,
+                new CreateSpecificationRequest(
+                    ItemId: itemId,
+                    TestCode: microCode,
+                    ParameterName: $"Param-S-{suffix}",
+                    LimitType: LimitType.Range,
+                    LowerLimit: 10m,
+                    UpperLimit: 20m,
+                    Unit: "mg",
+                    Grade: "bp"));
+        }
+
+        IReadOnlyList<SpecificationResponse> batchResults;
+        await using (var actDb = _fixture.CreateDbContext(new FixedClock(fixedNow)))
+        {
+            actDb.CurrentUserId = userId;
+            var svc = BuildSpecService(actDb);
+            batchResults = await svc.CreateSpecificationsBatchAsync(
+                userId,
+                new[]
+                {
+                    new CreateSpecificationRequest(
+                        ItemId: itemId,
+                        TestCode: microCode,
+                        ParameterName: $"Param-B1-{suffix}",
+                        LimitType: LimitType.Range,
+                        LowerLimit: 1m,
+                        UpperLimit: 5m,
+                        Unit: "mg",
+                        Grade: "bp"),
+                    new CreateSpecificationRequest(
+                        ItemId: itemId,
+                        TestCode: microCode,
+                        ParameterName: $"Param-B2-{suffix}",
+                        LimitType: LimitType.NotMoreThan,
+                        UpperLimit: 100m,
+                        Unit: "CFU/g",
+                        ProductionStageRole: ProductionStageRole.Finished)
+                });
+        }
+
+        Assert.Equal(2, batchResults.Count);
+
+        await using var assertDb = _fixture.CreateDbContext();
+        var batchIds = batchResults.Select(r => r.Id).ToList();
+        var persisted = await assertDb.Specifications
+            .AsNoTracking()
+            .Where(s => batchIds.Contains(s.Id))
+            .OrderBy(s => s.Id)
+            .ToListAsync();
+
+        Assert.Equal(2, persisted.Count);
+        Assert.Equal($"Param-B1-{suffix}", persisted[0].ParameterName);
+        Assert.Equal(LimitType.Range, persisted[0].LimitType);
+        Assert.Equal("1-5", persisted[0].SpecLimit);
+        Assert.Equal("BP", persisted[0].Grade);
+        Assert.Null(persisted[0].ProductionStageRole);
+
+        Assert.Equal($"Param-B2-{suffix}", persisted[1].ParameterName);
+        Assert.Equal(LimitType.NotMoreThan, persisted[1].LimitType);
+        Assert.Equal("NMT 100", persisted[1].SpecLimit);
+        Assert.Equal(ProductionStageRole.Finished, persisted[1].ProductionStageRole);
+
+        var singleIdStr = singleResult.Id.ToString();
+        var batchIdStrs = batchIds.Select(id => id.ToString()).ToList();
+
+        var singleAudit = await assertDb.AuditLogs
+            .AsNoTracking()
+            .SingleAsync(a => a.EntityName == nameof(Specification) && a.Action == "Create" && a.EntityId == singleIdStr);
+
+        var batchAudits = await assertDb.AuditLogs
+            .AsNoTracking()
+            .Where(a => a.EntityName == nameof(Specification) && a.Action == "Create" && batchIdStrs.Contains(a.EntityId))
+            .OrderBy(a => a.Id)
+            .ToListAsync();
+
+        Assert.Equal(2, batchAudits.Count);
+
+        var singlePayload = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(singleAudit.NewValue!)!;
+        for (var i = 0; i < batchAudits.Count; i++)
+        {
+            var batchAudit = batchAudits[i];
+            var batchSpec = persisted[i];
+            Assert.Equal(singleAudit.UserId, batchAudit.UserId);
+            Assert.Equal(singleAudit.Action, batchAudit.Action);
+            Assert.Equal(singleAudit.EntityName, batchAudit.EntityName);
+            Assert.Equal(singleAudit.PreviousValue, batchAudit.PreviousValue);
+            Assert.Equal(singleAudit.Timestamp, batchAudit.Timestamp);
+
+            var batchPayload = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(batchAudit.NewValue!)!;
+            Assert.Equal(singlePayload.Keys.OrderBy(k => k), batchPayload.Keys.OrderBy(k => k));
+            Assert.Equal(batchSpec.Id, batchPayload["Id"].GetInt32());
+            Assert.Equal(batchSpec.ItemId, batchPayload["ItemId"].GetInt32());
+            Assert.Equal(batchSpec.TestCode, batchPayload["TestCode"].GetString());
+            Assert.Equal(batchSpec.ParameterName, batchPayload["ParameterName"].GetString());
+            Assert.Equal(batchSpec.SpecLimit, batchPayload["SpecLimit"].GetString());
+            Assert.Equal(batchSpec.Unit, batchPayload["Unit"].GetString());
+        }
+    }
+
+    [PostgresFact]
+    public async Task Specs_OneInvalid_NoneCreated_RowAndMessageReported()
+    {
+        var suffix = Guid.NewGuid().ToString("N")[..8];
+        var (userId, itemId, microCode, _, _) = await SeedSpecScopeAsync(suffix);
+
+        await using (var actDb = _fixture.CreateDbContext())
+        {
+            actDb.CurrentUserId = userId;
+            var svc = BuildSpecService(actDb);
+            var rows = new[]
+            {
+                new CreateSpecificationRequest(itemId, microCode, ParameterName: $"Param-OK-{suffix}", LimitType: LimitType.NotMoreThan, UpperLimit: 10m, Unit: "mg"),
+                new CreateSpecificationRequest(itemId, microCode, ParameterName: $"Param-NoMax-{suffix}", LimitType: LimitType.NotMoreThan, UpperLimit: null, Unit: "mg")
+            };
+
+            var ex = await Assert.ThrowsAsync<FieldValidationException>(() => svc.CreateSpecificationsBatchAsync(userId, rows));
+            var err = Assert.Single(ex.FieldErrors);
+            Assert.Equal(1, err.Row);
+            Assert.Equal("Upper limit is required for Not More Than specifications.", err.Message);
+            Assert.Empty(actDb.ChangeTracker.Entries<Specification>());
+        }
+
+        await using var assertDb = _fixture.CreateDbContext();
+        Assert.False(await assertDb.Specifications.AsNoTracking().AnyAsync(s => s.ItemId == itemId));
+        Assert.False(await assertDb.AuditLogs.AsNoTracking().AnyAsync(a =>
+            a.EntityName == nameof(Specification) && a.Action == "Create" && a.NewValue != null && a.NewValue.Contains($"Param-OK-{suffix}")));
+    }
+
+    [PostgresFact]
+    public async Task Specs_TwoRowsWithUnknownItem_BothReportedBeforeAnyWrite()
+    {
+        var suffix = Guid.NewGuid().ToString("N")[..8];
+        var (userId, itemId, microCode, _, _) = await SeedSpecScopeAsync(suffix);
+
+        await using (var actDb = _fixture.CreateDbContext())
+        {
+            actDb.CurrentUserId = userId;
+            var svc = BuildSpecService(actDb);
+            var rows = new[]
+            {
+                new CreateSpecificationRequest(int.MaxValue - 1, microCode, ParameterName: $"Param-Miss1-{suffix}", LimitType: LimitType.NotMoreThan, UpperLimit: 10m),
+                new CreateSpecificationRequest(itemId, microCode, ParameterName: $"Param-Valid-{suffix}", LimitType: LimitType.NotMoreThan, UpperLimit: 10m),
+                new CreateSpecificationRequest(int.MaxValue - 2, microCode, ParameterName: $"Param-Miss2-{suffix}", LimitType: LimitType.NotMoreThan, UpperLimit: 10m)
+            };
+
+            var ex = await Assert.ThrowsAsync<FieldValidationException>(() => svc.CreateSpecificationsBatchAsync(userId, rows));
+            Assert.Contains(ex.FieldErrors, e => e.Row == 0 && e.Field == "itemId");
+            Assert.Contains(ex.FieldErrors, e => e.Row == 2 && e.Field == "itemId");
+            Assert.DoesNotContain(ex.FieldErrors, e => e.Row == 1);
+        }
+
+        await using var assertDb = _fixture.CreateDbContext();
+        Assert.False(await assertDb.Specifications.AsNoTracking().AnyAsync(s => s.ItemId == itemId));
+    }
+
+    [PostgresFact]
+    public async Task Specs_DuplicateInRequest_LaterRowReported()
+    {
+        var suffix = Guid.NewGuid().ToString("N")[..8];
+        var (userId, itemId, microCode, _, _) = await SeedSpecScopeAsync(suffix);
+        var dupParam = $"Param-Dup-{suffix}";
+
+        await using (var actDb = _fixture.CreateDbContext())
+        {
+            actDb.CurrentUserId = userId;
+            var svc = BuildSpecService(actDb);
+            var rows = new[]
+            {
+                new CreateSpecificationRequest(itemId, microCode, ParameterName: dupParam, LimitType: LimitType.NotMoreThan, UpperLimit: 10m, Grade: "bp"),
+                new CreateSpecificationRequest(itemId, microCode, ParameterName: dupParam, LimitType: LimitType.NotMoreThan, UpperLimit: 15m, Grade: "USP"),
+                new CreateSpecificationRequest(itemId, microCode, ParameterName: dupParam, LimitType: LimitType.NotMoreThan, UpperLimit: 15m, Grade: "BP")
+            };
+
+            var ex = await Assert.ThrowsAsync<FieldValidationException>(() => svc.CreateSpecificationsBatchAsync(userId, rows));
+            var err = Assert.Single(ex.FieldErrors);
+            Assert.Equal(2, err.Row);
+            Assert.Equal("A specification for this parameter and grade already exists.", err.Message);
+            Assert.Empty(actDb.ChangeTracker.Entries<Specification>());
+        }
+
+        await using var assertDb = _fixture.CreateDbContext();
+        Assert.False(await assertDb.Specifications.AsNoTracking().AnyAsync(s => s.ItemId == itemId));
+        Assert.False(await assertDb.AuditLogs.AsNoTracking().AnyAsync(a =>
+            a.EntityName == nameof(Specification) && a.Action == "Create" && a.NewValue != null && a.NewValue.Contains(dupParam)));
+    }
+
+    [PostgresFact]
+    public async Task Specs_Existing_Reported()
+    {
+        var suffix = Guid.NewGuid().ToString("N")[..8];
+        var (userId, itemId, microCode, _, _) = await SeedSpecScopeAsync(suffix);
+        var existingParam = $"Param-Ex-{suffix}";
+
+        await using (var arrangeDb = _fixture.CreateDbContext())
+        {
+            arrangeDb.Specifications.Add(new Specification
+            {
+                ItemId = itemId,
+                TestCode = microCode,
+                ParameterName = existingParam,
+                LimitType = LimitType.NotMoreThan,
+                UpperLimit = 10m,
+                SpecLimit = "NMT 10",
+                Grade = "In-house"
+            });
+            await arrangeDb.SaveChangesAsync();
+        }
+
+        await using (var actDb = _fixture.CreateDbContext())
+        {
+            actDb.CurrentUserId = userId;
+            var svc = BuildSpecService(actDb);
+            var rows = new[]
+            {
+                new CreateSpecificationRequest(itemId, microCode, ParameterName: $"Param-Fresh-{suffix}", LimitType: LimitType.NotMoreThan, UpperLimit: 25m),
+                new CreateSpecificationRequest(itemId, microCode, ParameterName: existingParam, LimitType: LimitType.NotMoreThan, UpperLimit: 15m, Grade: "in-house")
+            };
+
+            var ex = await Assert.ThrowsAsync<FieldValidationException>(() => svc.CreateSpecificationsBatchAsync(userId, rows));
+            var err = Assert.Single(ex.FieldErrors);
+            Assert.Equal(1, err.Row);
+            Assert.Equal("A specification for this parameter and grade already exists.", err.Message);
+            Assert.Empty(actDb.ChangeTracker.Entries<Specification>());
+        }
+
+        await using var assertDb = _fixture.CreateDbContext();
+        Assert.False(await assertDb.Specifications.AsNoTracking().AnyAsync(s => s.ItemId == itemId && s.ParameterName == $"Param-Fresh-{suffix}"));
+        Assert.Equal(1, await assertDb.Specifications.AsNoTracking().CountAsync(s => s.ItemId == itemId));
+    }
+
+    [PostgresFact]
+    public async Task Specs_201Rows_Rejected()
+    {
+        var suffix = Guid.NewGuid().ToString("N")[..8];
+        var (userId, itemId, microCode, _, _) = await SeedSpecScopeAsync(suffix);
+        var rows = Enumerable.Range(0, 201)
+            .Select(i => new CreateSpecificationRequest(
+                itemId,
+                microCode,
+                ParameterName: $"Param-201-{i}-{suffix}",
+                LimitType: LimitType.NotMoreThan,
+                UpperLimit: 100m))
+            .ToList();
+
+        await using (var actDb = _fixture.CreateDbContext())
+        {
+            actDb.CurrentUserId = userId;
+            var svc = BuildSpecService(actDb);
+            await Assert.ThrowsAsync<FieldValidationException>(() => svc.CreateSpecificationsBatchAsync(userId, rows));
+        }
+
+        await using var assertDb = _fixture.CreateDbContext();
+        Assert.False(await assertDb.Specifications.AsNoTracking().AnyAsync(s => s.ItemId == itemId));
+    }
+
+    [PostgresFact]
+    public async Task Specs_SectionICannotConfigure_Rejected()
+    {
+        var suffix = Guid.NewGuid().ToString("N")[..8];
+        var (userId, itemId, microCode, otherCode, _) = await SeedSpecScopeAsync(suffix);
+
+        await using (var actDb = _fixture.CreateDbContext())
+        {
+            actDb.CurrentUserId = userId;
+            var svc = BuildSpecService(actDb);
+            var rows = new[]
+            {
+                new CreateSpecificationRequest(itemId, microCode, ParameterName: $"Param-Own-{suffix}", LimitType: LimitType.NotMoreThan, UpperLimit: 10m),
+                new CreateSpecificationRequest(itemId, otherCode, ParameterName: $"Param-Other-{suffix}", LimitType: LimitType.NotMoreThan, UpperLimit: 10m)
+            };
+
+            var ex = await Assert.ThrowsAsync<FieldValidationException>(() => svc.CreateSpecificationsBatchAsync(userId, rows));
+            var err = Assert.Single(ex.FieldErrors);
+            Assert.Equal(1, err.Row);
+            Assert.Equal("testCode", err.Field);
+        }
+
+        await using var assertDb = _fixture.CreateDbContext();
+        Assert.False(await assertDb.Specifications.AsNoTracking().AnyAsync(s => s.ItemId == itemId));
+    }
+
+    [PostgresFact]
+    public async Task Specs_FailureInsideTransaction_RollsBackEarlierRows()
+    {
+        var suffix = Guid.NewGuid().ToString("N")[..8];
+        var (userId, itemId, _, _, titrationCode) = await SeedSpecScopeAsync(suffix);
+
+        await using (var actDb = _fixture.CreateDbContext())
+        {
+            actDb.CurrentUserId = userId;
+            var svc = BuildSpecService(actDb);
+            // Both rows pass per-row pre-validation and uniqueness checks; row 1 fails inside
+            // the transaction because row 0 already persisted PercentDriedBasis for this titration.
+            var rows = new[]
+            {
+                new CreateSpecificationRequest(
+                    ItemId: itemId,
+                    TestCode: titrationCode,
+                    ParameterName: $"Titr-Dried-{suffix}",
+                    LimitType: LimitType.Range,
+                    LowerLimit: 98m,
+                    UpperLimit: 102m,
+                    Unit: "%",
+                    ResultBasis: ResultBasis.PercentDriedBasis),
+                new CreateSpecificationRequest(
+                    ItemId: itemId,
+                    TestCode: titrationCode,
+                    ParameterName: $"Titr-Anhyd-{suffix}",
+                    LimitType: LimitType.Range,
+                    LowerLimit: 98m,
+                    UpperLimit: 102m,
+                    Unit: "%",
+                    ResultBasis: ResultBasis.PercentAnhydrousBasis)
+            };
+
+            var ex = await Assert.ThrowsAsync<FieldValidationException>(() => svc.CreateSpecificationsBatchAsync(userId, rows));
+            Assert.Contains(ex.FieldErrors, e => e.Row == 1);
+            Assert.Empty(actDb.ChangeTracker.Entries<Specification>());
+        }
+
+        await using var assertDb = _fixture.CreateDbContext();
+        Assert.False(await assertDb.Specifications.AsNoTracking().AnyAsync(s => s.ItemId == itemId));
+        Assert.False(await assertDb.AuditLogs.AsNoTracking().AnyAsync(a =>
+            a.EntityName == nameof(Specification)
+            && a.Action == "Create"
+            && a.NewValue != null
+            && (a.NewValue.Contains($"Titr-Dried-{suffix}") || a.NewValue.Contains($"Titr-Anhyd-{suffix}"))));
+    }
+
+    [PostgresFact]
+    public async Task Specs_WithoutPermission_403()
+    {
+        var method = typeof(SpecificationMasterDataController).GetMethod(
+            nameof(SpecificationMasterDataController.CreateSpecificationsBatch));
+        Assert.NotNull(method);
+
+        var post = method!.GetCustomAttribute<HttpPostAttribute>();
+        Assert.NotNull(post);
+        Assert.Equal("specifications/batch", post!.Template);
+
+        var auth = method.GetCustomAttribute<AuthorizeAttribute>();
+        Assert.NotNull(auth);
+        Assert.Equal(PermissionConstants.MasterDataManage, auth!.Policy);
+        Assert.Null(method.GetCustomAttribute<AllowAnonymousAttribute>());
+
+        var allowed = AuthorizationMatrixTests.AllowedRoles<SpecificationMasterDataController>(
+            nameof(SpecificationMasterDataController.CreateSpecificationsBatch));
+        var singleAllowed = AuthorizationMatrixTests.AllowedRoles<SpecificationMasterDataController>(
+            nameof(SpecificationMasterDataController.CreateSpecification));
+        Assert.NotNull(allowed);
+        Assert.Equal(singleAllowed, allowed);
+        Assert.Contains(RoleType.SystemAdministrator, allowed);
+        Assert.Contains(RoleType.SectionHead, allowed);
+        Assert.DoesNotContain(RoleType.Analyst, allowed);
+        Assert.DoesNotContain(RoleType.Reviewer, allowed);
+        Assert.DoesNotContain(RoleType.Qa, allowed);
+
+        await using var assertDb = _fixture.CreateDbContext();
+        var perm = await assertDb.Permissions.AsNoTracking().SingleAsync(p => p.Code == PermissionConstants.MasterDataManage);
+        Assert.True(perm.IsEnforced);
+    }
 }

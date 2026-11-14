@@ -127,11 +127,22 @@ public class MasterDataBatchService
                 {
                     results.Add(await createSingleAsync(rows[i]));
                 }
-                catch (BusinessRuleException ex) when (ex is not FieldValidationException)
+                catch (FieldValidationException ex)
+                {
+                    var rowErrors = ex.FieldErrors.Count > 0
+                        ? ex.FieldErrors.Select(e => e with { Row = e.Row ?? i }).ToList()
+                        : new List<FieldError> { new(string.Empty, ex.Message, i) };
+                    throw new FieldValidationException(ex.Message, rowErrors);
+                }
+                catch (BusinessRuleException ex)
                 {
                     throw new FieldValidationException(ex.Message, new[] { new FieldError(string.Empty, ex.Message, i) });
                 }
                 catch (UnauthorizedAccessException ex)
+                {
+                    throw new FieldValidationException(ex.Message, new[] { new FieldError(string.Empty, ex.Message, i) });
+                }
+                catch (Exception ex) when (ex is NotFoundException or KeyNotFoundException)
                 {
                     throw new FieldValidationException(ex.Message, new[] { new FieldError(string.Empty, ex.Message, i) });
                 }

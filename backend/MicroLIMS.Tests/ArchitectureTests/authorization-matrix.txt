@@ -605,6 +605,7 @@ SolutionPreparationController.Save(Int32, SavePreparationRequest): SectionHead,A
 SolutionPreparationController.Standardize(Int32, StandardizeRequest): SectionHead,Analyst
 SolutionPreparationController.Start(StartPreparationRequest): SectionHead,Analyst
 SpecificationMasterDataController.CreateSpecification(CreateSpecificationRequest): SystemAdministrator,SectionHead
+SpecificationMasterDataController.CreateSpecificationsBatch(List`1, CancellationToken): SystemAdministrator,SectionHead
 SpecificationMasterDataController.DeleteSpecification(Int32): SystemAdministrator,SectionHead
 SpecificationMasterDataController.GetSpecifications(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 SpecificationMasterDataController.GetSpecificationsForTestOrder(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa

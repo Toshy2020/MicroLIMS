@@ -125,6 +125,7 @@ public class EnvironmentalMonitoringMasterDataService
 
     public async Task<RoomResponse> CreateRoomAsync(CreateRoomRequest request)
     {
+        await EnsureRoomNameUniqueInDepartmentAsync(request.DepartmentId, request.Name);
         var room = new Room { Name = request.Name, DepartmentId = request.DepartmentId, GradeClassification = request.GradeClassification };
         await ApplyKindAsync(room, request.Kind, request.ParentRoomId);
         ApplyFrequency(room, request.Frequency);
@@ -210,8 +211,7 @@ public class EnvironmentalMonitoringMasterDataService
         CancellationToken ct)
     {
         var errors = new List<FieldError>();
-        var comparer = new RoomKeyComparer();
-        var byKey = new Dictionary<(int DepartmentId, string Name), List<int>>(comparer);
+        var byKey = new Dictionary<(int DepartmentId, string Name), List<int>>(RoomKeyComparer.Instance);
 
         for (var i = 0; i < rows.Count; i++)
         {
@@ -238,24 +238,14 @@ public class EnvironmentalMonitoringMasterDataService
 
         if (byKey.Count > 0)
         {
-            var deptIds = byKey.Keys.Select(k => k.DepartmentId).Distinct().ToList();
-            var loweredNames = byKey.Keys.Select(k => k.Name.ToLowerInvariant()).Distinct().ToList();
-            var existingRows = await _db.Rooms
-                .AsNoTracking()
-                .Where(r => deptIds.Contains(r.DepartmentId) && loweredNames.Contains(r.Name.ToLower()))
-                .Select(r => new { r.DepartmentId, r.Name })
-                .ToListAsync(ct);
-
-            var existingSet = new HashSet<(int DepartmentId, string Name)>(
-                existingRows.Select(r => (r.DepartmentId, r.Name.Trim())),
-                comparer);
+            var existingSet = await FindExistingRoomKeysAsync(byKey.Keys, ct: ct);
 
             foreach (var (key, indices) in byKey)
             {
                 if (!existingSet.Contains(key)) continue;
                 foreach (var rowIndex in indices)
                 {
-                    errors.Add(new FieldError("name", $"Room '{key.Name}' already exists.", rowIndex));
+                    errors.Add(new FieldError("name", DuplicateRoomMessage(key.Name), rowIndex));
                 }
             }
         }
@@ -263,11 +253,68 @@ public class EnvironmentalMonitoringMasterDataService
         return errors;
     }
 
+    private static string DuplicateRoomMessage(string trimmedName) =>
+        $"Room '{trimmedName}' already exists.";
+
+    private async Task EnsureRoomNameUniqueInDepartmentAsync(
+        int departmentId,
+        string? name,
+        int? excludeRoomId = null,
+        CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+            return;
+
+        var trimmedName = name.Trim();
+        var existing = await FindExistingRoomKeysAsync([(departmentId, trimmedName)], excludeRoomId, ct);
+        if (existing.Contains((departmentId, trimmedName)))
+            throw new BusinessRuleException(DuplicateRoomMessage(trimmedName));
+    }
+
+    private async Task<HashSet<(int DepartmentId, string Name)>> FindExistingRoomKeysAsync(
+        IEnumerable<(int DepartmentId, string Name)> keys,
+        int? excludeRoomId = null,
+        CancellationToken ct = default)
+    {
+        var keyList = keys
+            .Where(k => !string.IsNullOrWhiteSpace(k.Name))
+            .Select(k => (k.DepartmentId, Name: k.Name.Trim()))
+            .Distinct(RoomKeyComparer.Instance)
+            .ToList();
+
+        if (keyList.Count == 0)
+            return new HashSet<(int DepartmentId, string Name)>(RoomKeyComparer.Instance);
+
+        var deptIds = keyList.Select(k => k.DepartmentId).Distinct().ToList();
+        var loweredNames = keyList.Select(k => k.Name.ToLowerInvariant()).Distinct().ToList();
+
+        var query = _db.Rooms
+            .AsNoTracking()
+            .Where(r => deptIds.Contains(r.DepartmentId) && loweredNames.Contains(r.Name.Trim().ToLower()));
+
+        if (excludeRoomId.HasValue)
+            query = query.Where(r => r.Id != excludeRoomId.Value);
+
+        var existingRows = await query
+            .Select(r => new { r.DepartmentId, r.Name })
+            .ToListAsync(ct);
+
+        return new HashSet<(int DepartmentId, string Name)>(
+            existingRows.Select(r => (r.DepartmentId, r.Name.Trim())),
+            RoomKeyComparer.Instance);
+    }
+
     public async Task<RoomResponse> UpdateRoomAsync(int id, UpdateRoomRequest request)
     {
         var room = await _db.Rooms.FirstOrDefaultAsync(r => r.Id == id)
             ?? throw new NotFoundException($"Room {id} not found.");
         RecordVersion.EnsureCurrent(_db, room);
+
+        var nameOrDeptChanged = room.DepartmentId != request.DepartmentId
+            || !string.Equals(room.Name.Trim(), request.Name.Trim(), StringComparison.OrdinalIgnoreCase);
+        if (nameOrDeptChanged)
+            await EnsureRoomNameUniqueInDepartmentAsync(request.DepartmentId, request.Name, excludeRoomId: id);
+
         if (request.IsActive.HasValue) room.IsActive = request.IsActive.Value;
         room.Name = request.Name;
         room.DepartmentId = request.DepartmentId;
@@ -318,6 +365,7 @@ public class EnvironmentalMonitoringMasterDataService
     public async Task<RoomTestConfigurationResponse> CreateRoomTestConfigurationAsync(CreateRoomTestConfigRequest request)
     {
         ValidateRoomTestConfiguration(request.TestType, request.Unit);
+        await EnsureRoomTestConfigUniqueAsync(request.RoomId, request.TestType, request.TestCode);
         var entity = new RoomTestConfiguration
         {
             RoomId = request.RoomId, TestType = request.TestType, TestCode = request.TestCode,
@@ -396,8 +444,7 @@ public class EnvironmentalMonitoringMasterDataService
         CancellationToken ct)
     {
         var errors = new List<FieldError>();
-        var comparer = new RoomTestConfigKeyComparer();
-        var byKey = new Dictionary<(int RoomId, string TestType, string TestCode), List<int>>(comparer);
+        var byKey = new Dictionary<(int RoomId, string TestType, string TestCode), List<int>>(RoomTestConfigKeyComparer.Instance);
 
         for (var i = 0; i < rows.Count; i++)
         {
@@ -427,18 +474,7 @@ public class EnvironmentalMonitoringMasterDataService
 
         if (byKey.Count > 0)
         {
-            var roomIds = byKey.Keys.Select(k => k.RoomId).Distinct().ToList();
-            var loweredCodes = byKey.Keys.Select(k => k.TestCode.ToLowerInvariant()).Distinct().ToList();
-            var existingRows = await _db.RoomTestConfigurations
-                .AsNoTracking()
-                // An inactive row is history: replacing it with a new active row is allowed.
-                .Where(c => c.IsActive && roomIds.Contains(c.RoomId) && loweredCodes.Contains(c.TestCode.ToLower()))
-                .Select(c => new { c.RoomId, c.TestType, c.TestCode })
-                .ToListAsync(ct);
-
-            var existingSet = new HashSet<(int RoomId, string TestType, string TestCode)>(
-                existingRows.Select(c => (c.RoomId, c.TestType.Trim(), c.TestCode.Trim())),
-                comparer);
+            var existingSet = await FindExistingActiveRoomTestConfigKeysAsync(byKey.Keys, ct: ct);
 
             foreach (var (key, indices) in byKey)
             {
@@ -447,7 +483,7 @@ public class EnvironmentalMonitoringMasterDataService
                 {
                     errors.Add(new FieldError(
                         "testCode",
-                        $"Test configuration '{key.TestCode}' ({key.TestType}) already exists for room {key.RoomId}.",
+                        DuplicateRoomTestConfigMessage(key.RoomId, key.TestType, key.TestCode),
                         rowIndex));
                 }
             }
@@ -456,8 +492,68 @@ public class EnvironmentalMonitoringMasterDataService
         return errors;
     }
 
+    private static string DuplicateRoomTestConfigMessage(int roomId, string trimmedTestType, string trimmedTestCode) =>
+        $"Test configuration '{trimmedTestCode}' ({trimmedTestType}) already exists for room {roomId}.";
+
+    private async Task EnsureRoomTestConfigUniqueAsync(
+        int roomId,
+        string? testType,
+        string? testCode,
+        int? excludeConfigId = null,
+        CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(testType) || string.IsNullOrWhiteSpace(testCode))
+            return;
+
+        var trimmedType = testType.Trim();
+        var trimmedCode = testCode.Trim();
+        var existing = await FindExistingActiveRoomTestConfigKeysAsync([(roomId, trimmedType, trimmedCode)], excludeConfigId, ct);
+        if (existing.Contains((roomId, trimmedType, trimmedCode)))
+            throw new BusinessRuleException(DuplicateRoomTestConfigMessage(roomId, trimmedType, trimmedCode));
+    }
+
+    private async Task<HashSet<(int RoomId, string TestType, string TestCode)>> FindExistingActiveRoomTestConfigKeysAsync(
+        IEnumerable<(int RoomId, string TestType, string TestCode)> keys,
+        int? excludeConfigId = null,
+        CancellationToken ct = default)
+    {
+        var keyList = keys
+            .Where(k => !string.IsNullOrWhiteSpace(k.TestType) && !string.IsNullOrWhiteSpace(k.TestCode))
+            .Select(k => (k.RoomId, TestType: k.TestType.Trim(), TestCode: k.TestCode.Trim()))
+            .Distinct(RoomTestConfigKeyComparer.Instance)
+            .ToList();
+
+        if (keyList.Count == 0)
+            return new HashSet<(int RoomId, string TestType, string TestCode)>(RoomTestConfigKeyComparer.Instance);
+
+        var roomIds = keyList.Select(k => k.RoomId).Distinct().ToList();
+        var loweredTypes = keyList.Select(k => k.TestType.ToLowerInvariant()).Distinct().ToList();
+        var loweredCodes = keyList.Select(k => k.TestCode.ToLowerInvariant()).Distinct().ToList();
+
+        var query = _db.RoomTestConfigurations
+            .AsNoTracking()
+            // An inactive row is history: replacing it with a new active row is allowed.
+            .Where(c => c.IsActive
+                && roomIds.Contains(c.RoomId)
+                && loweredTypes.Contains(c.TestType.Trim().ToLower())
+                && loweredCodes.Contains(c.TestCode.Trim().ToLower()));
+
+        if (excludeConfigId.HasValue)
+            query = query.Where(c => c.Id != excludeConfigId.Value);
+
+        var existingRows = await query
+            .Select(c => new { c.RoomId, c.TestType, c.TestCode })
+            .ToListAsync(ct);
+
+        return new HashSet<(int RoomId, string TestType, string TestCode)>(
+            existingRows.Select(c => (c.RoomId, c.TestType.Trim(), c.TestCode.Trim())),
+            RoomTestConfigKeyComparer.Instance);
+    }
+
     private sealed class RoomKeyComparer : IEqualityComparer<(int DepartmentId, string Name)>
     {
+        public static readonly RoomKeyComparer Instance = new();
+
         public bool Equals((int DepartmentId, string Name) x, (int DepartmentId, string Name) y) =>
             x.DepartmentId == y.DepartmentId && string.Equals(x.Name, y.Name, StringComparison.OrdinalIgnoreCase);
 
@@ -467,6 +563,8 @@ public class EnvironmentalMonitoringMasterDataService
 
     private sealed class RoomTestConfigKeyComparer : IEqualityComparer<(int RoomId, string TestType, string TestCode)>
     {
+        public static readonly RoomTestConfigKeyComparer Instance = new();
+
         public bool Equals((int RoomId, string TestType, string TestCode) x, (int RoomId, string TestType, string TestCode) y) =>
             x.RoomId == y.RoomId
             && string.Equals(x.TestType, y.TestType, StringComparison.OrdinalIgnoreCase)
@@ -484,8 +582,18 @@ public class EnvironmentalMonitoringMasterDataService
         var entity = await _db.RoomTestConfigurations.FirstOrDefaultAsync(c => c.Id == id)
             ?? throw new NotFoundException($"Room test configuration {id} not found.");
         RecordVersion.EnsureCurrent(_db, entity);
-        if (request.IsActive.HasValue) entity.IsActive = request.IsActive.Value;
         ValidateRoomTestConfiguration(request.TestType, request.Unit);
+
+        var wasActive = entity.IsActive;
+        var willBeActive = request.IsActive ?? entity.IsActive;
+        var typeOrCodeChanged =
+            !string.Equals(entity.TestType.Trim(), request.TestType.Trim(), StringComparison.OrdinalIgnoreCase)
+            || !string.Equals(entity.TestCode.Trim(), request.TestCode.Trim(), StringComparison.OrdinalIgnoreCase);
+
+        if (willBeActive && (!wasActive || typeOrCodeChanged))
+            await EnsureRoomTestConfigUniqueAsync(entity.RoomId, request.TestType, request.TestCode, excludeConfigId: id);
+
+        if (request.IsActive.HasValue) entity.IsActive = request.IsActive.Value;
         entity.TestType = request.TestType;
         entity.TestCode = request.TestCode;
         entity.AlertLimit = request.AlertLimit;

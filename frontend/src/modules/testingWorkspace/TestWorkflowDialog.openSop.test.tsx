@@ -1,6 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { MemoryRouter } from "react-router-dom";
+import { AuthProvider } from "../../contexts/AuthContext";
 import { PinnedLightTheme } from "../../theme/PinnedLightTheme";
 import { TestWorkflowDialog } from "./TestWorkflowDialog";
 import { ItemStmService, type ItemStmDto } from "../laboratoryConfiguration/items/services/ItemStmService";
@@ -33,7 +35,12 @@ const stm = (over: Partial<ItemStmDto>): ItemStmDto => ({
 function renderDialog(itemId?: number | null) {
   return render(
     <PinnedLightTheme>
-      <TestWorkflowDialog testOrderId={9} testCode="T1" category="FinishedProduct" displayName="Assay" itemId={itemId} />
+      {/* The dialog keeps bench drafts per signed-in user and route, so it needs both providers. */}
+      <AuthProvider>
+        <MemoryRouter>
+          <TestWorkflowDialog testOrderId={9} testCode="T1" category="FinishedProduct" displayName="Assay" itemId={itemId} />
+        </MemoryRouter>
+      </AuthProvider>
     </PinnedLightTheme>
   );
 }

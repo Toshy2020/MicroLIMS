@@ -222,7 +222,7 @@ describe("WaterLocationResultGridDialog", () => {
     dialog = await screen.findByRole("dialog");
 
     expect(await within(dialog).findByRole("region", { name: "Unsaved entry found" })).toBeTruthy();
-    expect((within(dialog).getByLabelText("WFI Loop Point 1 reading 1") as HTMLInputElement).value).toBe("");
+    expect((await within(dialog).findByLabelText("WFI Loop Point 1 reading 1") as HTMLInputElement).value).toBe("");
     await user.click(within(dialog).getByRole("button", { name: "Restore entry" }));
     expect((within(dialog).getByLabelText("WFI Loop Point 1 reading 1") as HTMLInputElement).value).toBe("7");
     expect((within(dialog).getByLabelText("PW Tank Outlet reading 1") as HTMLInputElement).value).toBe("11");

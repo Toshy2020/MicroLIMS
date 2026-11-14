@@ -170,7 +170,7 @@ describe("PathogenLocationResultGridDialog", () => {
     const first = renderDialog(true);
 
     let dialog = await screen.findByRole("dialog");
-    await user.click(within(within(dialog).getByRole("group", { name: "Growth observed for Isolator Port 1" })).getByRole("button", { name: "Yes (Detected)" }));
+    await user.click(within(await within(dialog).findByRole("group", { name: "Growth observed for Isolator Port 1" })).getByRole("button", { name: "Yes (Detected)" }));
     await user.click(within(within(dialog).getByRole("group", { name: "Growth observed for Transfer Hatch" })).getByRole("button", { name: "No (Absent)" }));
 
     await waitFor(async () => {
@@ -184,7 +184,7 @@ describe("PathogenLocationResultGridDialog", () => {
     dialog = await screen.findByRole("dialog");
 
     expect(await within(dialog).findByRole("region", { name: "Unsaved entry found" })).toBeTruthy();
-    const g1 = within(dialog).getByRole("group", { name: "Growth observed for Isolator Port 1" });
+    const g1 = await within(dialog).findByRole("group", { name: "Growth observed for Isolator Port 1" });
     expect(within(g1).getByRole("button", { name: "Yes (Detected)" }).getAttribute("aria-pressed")).toBe("false");
 
     await user.click(within(dialog).getByRole("button", { name: "Restore entry" }));

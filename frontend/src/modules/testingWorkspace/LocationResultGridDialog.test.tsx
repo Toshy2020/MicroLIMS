@@ -230,7 +230,7 @@ describe("LocationResultGridDialog", () => {
     dialog = await screen.findByRole("dialog");
 
     expect(await within(dialog).findByRole("region", { name: "Unsaved entry found" })).toBeTruthy();
-    expect((within(dialog).getByLabelText("Filling Room A reading 1") as HTMLInputElement).value).toBe("");
+    expect((await within(dialog).findByLabelText("Filling Room A reading 1") as HTMLInputElement).value).toBe("");
     await user.click(within(dialog).getByRole("button", { name: "Restore entry" }));
     expect((within(dialog).getByLabelText("Filling Room A reading 1") as HTMLInputElement).value).toBe("5");
     expect((within(dialog).getByLabelText("Capping Zone B reading 1") as HTMLInputElement).value).toBe("9");

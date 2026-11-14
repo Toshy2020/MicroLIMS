@@ -196,9 +196,10 @@
       { "key": "organism", "label": "Organism & Source", "defaultVisible": true },
       { "key": "approvalStatus", "label": "Status", "defaultVisible": true },
       { "key": "vialsRemaining", "label": "Vials Stock", "defaultVisible": true },
-      { "key": "preparedAt", "label": "Prepared", "defaultVisible": true }
+      { "key": "preparedAt", "label": "Prepared", "defaultVisible": true },
+      { "key": "expiryDate", "label": "Expiry", "defaultVisible": true }
     ],
-    "filters": []
+    "filters": ["search", "organism", "status", "expiryRange"]
   },
   {
     "key": "labConfig.labelFormats",
@@ -394,7 +395,7 @@
       { "key": "expiryDate", "label": "Expiry Date", "defaultVisible": true },
       { "key": "status", "label": "Status", "defaultVisible": true }
     ],
-    "filters": []
+    "filters": ["search", "materialId", "status"]
   },
   {
     "key": "reports.results",

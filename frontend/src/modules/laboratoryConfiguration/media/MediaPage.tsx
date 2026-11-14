@@ -3,6 +3,7 @@ import { Box, Button, Alert, Tabs, Tab } from "@mui/material";
 import { useSearchParams } from "react-router-dom";
 import AddIcon from "@mui/icons-material/Add";
 import { LabPage } from "../../../components/lab";
+import { useTableState } from "../../../components/lab/table/useTableState";
 import { SectionTitle } from "../../../components/SectionTitle";
 import { SignatureDialog } from "../../../components/SignatureDialog";
 import { AuditHistoryDialog } from "../../../components/AuditHistoryDialog";
@@ -21,6 +22,20 @@ import { ApprovedMediaListPage } from "../../inventory/approvedLists/ApprovedMed
 import { PrintLabelsDialog } from "../../../components/labels/PrintLabelsDialog";
 import { usePostCreateLabelPrint } from "../../../components/labels/usePostCreateLabelPrint";
 
+const TABLE_KEY = "labConfig.mediaLots";
+const KPI_STATUSES: readonly MediaKpiFilterKey[] = [
+  "Pending Evaluation",
+  "Awaiting Approval",
+  "Released",
+  "Rejected",
+  "Out of Stock"
+];
+
+function textFilter(filters: Record<string, string | string[]>, name: string): string {
+  const value = filters[name];
+  return typeof value === "string" ? value : "";
+}
+
 export function MediaPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const tab = searchParams.get("tab") === "approved" ? "approved" : "lots";
@@ -29,25 +44,7 @@ export function MediaPage() {
   const [awaitingApprovalIds, setAwaitingApprovalIds] = useState<Set<number>>(new Set());
   const [materials, setMaterials] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
-
-  // Selected Media Lot for Split-Pane Workspace
-  const [selectedLotId, setSelectedLotId] = useState<number | null>(null);
-
-  // Dialogs state
-  const [prepDialogOpen, setPrepDialogOpen] = useState(false);
-  const [evaluationDialogOpen, setEvaluationDialogOpen] = useState(false);
-  const [activeEvaluationId, setActiveEvaluationId] = useState<number | null>(null);
-  const [auditLotId, setAuditLotId] = useState<number | null>(null);
-  const [pendingDecision, setPendingDecision] = useState<{ lot: any; approved: boolean } | null>(null);
-  const [outOfStockLot, setOutOfStockLot] = useState<any | null>(null);
   const [message, setMessage] = useState<{ text: string; ok: boolean } | null>(null);
-  const postCreatePrint = usePostCreateLabelPrint();
-
-  // Filters & Controls
-  const [search, setSearch] = useState("");
-  const [selectedMaterialId, setSelectedMaterialId] = useState("");
-  const [selectedStatus, setSelectedStatus] = useState("");
-  const [activeKpi, setActiveKpi] = useState<MediaKpiFilterKey | null>(null);
 
   const loadData = async () => {
     setLoading(true);
@@ -74,30 +71,108 @@ export function MediaPage() {
     loadData();
   }, []);
 
+  const tabs = (
+    <Tabs
+      value={tab}
+      onChange={(_, v) => setSearchParams(v === "approved" ? { tab: "approved" } : {}, { replace: true })}
+      sx={{ mb: 2, borderBottom: 1, borderColor: "divider" }}
+    >
+      <Tab value="lots" label="Media Lots" />
+      <Tab value="approved" label="Approved Media" />
+    </Tabs>
+  );
+
+  if (tab === "approved") {
+    return (
+      <>
+        {tabs}
+        <ApprovedMediaListPage embedded />
+      </>
+    );
+  }
+
+  return (
+    <>
+      {tabs}
+      <MediaLotsContent
+        lots={lots}
+        evaluations={evaluations}
+        awaitingApprovalIds={awaitingApprovalIds}
+        materials={materials}
+        loading={loading}
+        message={message}
+        onDismissMessage={() => setMessage(null)}
+        onMessage={setMessage}
+        onReload={loadData}
+      />
+    </>
+  );
+}
+
+interface MediaLotsContentProps {
+  lots: MediaLot[];
+  evaluations: unknown[];
+  awaitingApprovalIds: Set<number>;
+  materials: unknown[];
+  loading: boolean;
+  message: { text: string; ok: boolean } | null;
+  onDismissMessage: () => void;
+  onMessage: (msg: { text: string; ok: boolean } | null) => void;
+  onReload: () => Promise<void>;
+}
+
+function MediaLotsContent({
+  lots,
+  evaluations,
+  awaitingApprovalIds,
+  materials,
+  loading,
+  message,
+  onDismissMessage,
+  onMessage,
+  onReload
+}: MediaLotsContentProps) {
+  // Selected Media Lot for Split-Pane Workspace
+  const [selectedLotId, setSelectedLotId] = useState<number | null>(null);
+
+  // Dialogs state
+  const [prepDialogOpen, setPrepDialogOpen] = useState(false);
+  const [evaluationDialogOpen, setEvaluationDialogOpen] = useState(false);
+  const [activeEvaluationId, setActiveEvaluationId] = useState<number | null>(null);
+  const [auditLotId, setAuditLotId] = useState<number | null>(null);
+  const [pendingDecision, setPendingDecision] = useState<{ lot: MediaLot; approved: boolean } | null>(null);
+  const [outOfStockLot, setOutOfStockLot] = useState<MediaLot | null>(null);
+  const postCreatePrint = usePostCreateLabelPrint();
+
+  // Search, material dropdown and status/KPI filter live in the address and in saved views.
+  const tableState = useTableState(TABLE_KEY);
+  const { setFilter, setSearch, applyState } = tableState;
+  const search = tableState.state.search;
+  const selectedMaterialId = textFilter(tableState.state.filters, "materialId");
+  const selectedStatus = textFilter(tableState.state.filters, "status");
+  const activeKpi: MediaKpiFilterKey | null = KPI_STATUSES.find((k) => k === selectedStatus) ?? null;
+
   const handleKpiSelect = (kpi: MediaKpiFilterKey) => {
     if (kpi === "ALL" || activeKpi === kpi) {
-      setActiveKpi(null);
-      setSelectedStatus("");
+      setFilter("status", null);
     } else {
-      setActiveKpi(kpi);
-      setSelectedStatus(kpi);
+      setFilter("status", kpi);
     }
   };
 
   const handleStatusFilterChange = (status: string) => {
-    setSelectedStatus(status);
-    if (status) {
-      setActiveKpi(status as MediaKpiFilterKey);
-    } else {
-      setActiveKpi(null);
-    }
+    setFilter("status", status || null);
+  };
+
+  const handleMaterialChange = (materialId: string) => {
+    setFilter("materialId", materialId || null);
   };
 
   const handleResetFilters = () => {
-    setSearch("");
-    setSelectedMaterialId("");
-    setSelectedStatus("");
-    setActiveKpi(null);
+    applyState(
+      { filters: {}, search: "", sort: tableState.state.sort, pageSize: tableState.state.pageSize },
+      tableState.viewId
+    );
   };
 
   // Filtered lots
@@ -130,7 +205,7 @@ export function MediaPage() {
     return lots.find((l) => l.id === selectedLotId) || null;
   }, [selectedLotId, lots]);
 
-  const handleSelectLot = (lot: any) => {
+  const handleSelectLot = (lot: MediaLot) => {
     setSelectedLotId(lot.id);
   };
 
@@ -155,19 +230,23 @@ export function MediaPage() {
     if (!pendingDecision) return;
     try {
       await MediaPreparationService.decideRelease(pendingDecision.lot.id, password, pendingDecision.approved);
-      setMessage({
+      onMessage({
         text: `Media lot ${pendingDecision.lot.lotNumber} ${pendingDecision.approved ? "released for use" : "rejected"}.`,
         ok: pendingDecision.approved
       });
       setPendingDecision(null);
-      await loadData();
-    } catch (e: any) {
-      setMessage({ text: e?.response?.data?.message ?? "Release decision failed.", ok: false });
+      await onReload();
+    } catch (e: unknown) {
+      const serverMessage =
+        typeof e === "object" && e !== null && "response" in e
+          ? (e as { response?: { data?: { message?: string } } }).response?.data?.message
+          : undefined;
+      onMessage({ text: serverMessage ?? "Release decision failed.", ok: false });
     }
   };
 
   const handlePrepSuccess = async (newLot: MediaLot) => {
-    setMessage({ text: `Media lot ${newLot?.lotNumber ?? ""} successfully prepared.`, ok: true });
+    onMessage({ text: `Media lot ${newLot?.lotNumber ?? ""} successfully prepared.`, ok: true });
     if (newLot?.id && newLot?.lotNumber) {
       postCreatePrint.offerPrint([
         {
@@ -178,7 +257,7 @@ export function MediaPage() {
         }
       ]);
     }
-    await loadData();
+    await onReload();
     if (newLot?.id) {
       setSelectedLotId(newLot.id);
     }
@@ -197,35 +276,16 @@ export function MediaPage() {
       isCompact={compact}
       loading={initialLoading}
       isFiltered={isFiltered}
+      tableKey={TABLE_KEY}
+      tableState={tableState}
       onViewRecord={handleViewRecord}
       onViewAuditHistory={handleViewAuditHistory}
       onRequestReleaseDecision={(lot, approved) => setPendingDecision({ lot, approved })}
     />
   );
 
-  const tabs = (
-    <Tabs
-      value={tab}
-      onChange={(_, v) => setSearchParams(v === "approved" ? { tab: "approved" } : {}, { replace: true })}
-      sx={{ mb: 2, borderBottom: 1, borderColor: "divider" }}
-    >
-      <Tab value="lots" label="Media Lots" />
-      <Tab value="approved" label="Approved Media" />
-    </Tabs>
-  );
-
-  if (tab === "approved") {
-    return (
-      <>
-        {tabs}
-        <ApprovedMediaListPage embedded />
-      </>
-    );
-  }
-
   return (
     <>
-      {tabs}
       <LabPage
         title="Media Preparation & Evaluation"
         subtitle="Prepare media lots and manage their evaluations (GPT, Sterility, Indication/Inhibition, Enrichment Characteristics)."
@@ -248,19 +308,19 @@ export function MediaPage() {
             search={search}
             onSearchChange={setSearch}
             selectedMaterialId={selectedMaterialId}
-            onMaterialChange={setSelectedMaterialId}
+            onMaterialChange={handleMaterialChange}
             selectedStatus={selectedStatus}
             onStatusChange={handleStatusFilterChange}
             materials={materials}
             onResetFilters={handleResetFilters}
             resultCount={visibleLots.length}
-            onRefresh={loadData}
+            onRefresh={onReload}
             refreshing={loading}
           />
         }
       >
         {message && (
-          <Alert severity={message.ok ? "success" : "error"} onClose={() => setMessage(null)}>
+          <Alert severity={message.ok ? "success" : "error"} onClose={onDismissMessage}>
             {message.text}
           </Alert>
         )}
@@ -336,7 +396,7 @@ export function MediaPage() {
           setEvaluationDialogOpen(false);
           setActiveEvaluationId(null);
         }}
-        onUpdated={loadData}
+        onUpdated={onReload}
       />
 
       <MarkOutOfStockDialog
@@ -344,8 +404,8 @@ export function MediaPage() {
         lot={outOfStockLot}
         onClose={() => setOutOfStockLot(null)}
         onSuccess={() => {
-          setMessage({ text: `Media lot ${outOfStockLot?.lotNumber ?? ""} marked Out of Stock.`, ok: true });
-          loadData();
+          onMessage({ text: `Media lot ${outOfStockLot?.lotNumber ?? ""} marked Out of Stock.`, ok: true });
+          onReload();
         }}
       />
 

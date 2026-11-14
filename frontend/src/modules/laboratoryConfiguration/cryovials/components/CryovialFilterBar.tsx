@@ -30,6 +30,7 @@ export function CryovialFilterBar({ items, filters, onFilterChange, onReset, res
   };
 
   const hasActiveFilters = Object.values(filters).some((v) => v !== "");
+  const organismSelectValue = organisms.includes(filters.organism) ? filters.organism : "";
 
   return (
     <FilterBar
@@ -45,7 +46,7 @@ export function CryovialFilterBar({ items, filters, onFilterChange, onReset, res
         <Select
           labelId="cryovial-organism-filter-label"
           label="Organism"
-          value={filters.organism}
+          value={organismSelectValue}
           onChange={(e) => updateField("organism", e.target.value)}
         >
           <MenuItem value="">

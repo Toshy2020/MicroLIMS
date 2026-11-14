@@ -10,6 +10,12 @@ export const BENCH_INPUT_FONT_SIZE = 18;
 // Gap kept between adjacent targets so a fingertip does not hit two.
 export const BENCH_TARGET_GAP = 8;
 
+// The incubation countdown is read from across the bench, so its figures are larger
+// than the 26 px / 22 px used on a desk.
+export const BENCH_COUNTDOWN_TIME_FONT_SIZE = 32;
+export const BENCH_COUNTDOWN_STATE_FONT_SIZE = 28;
+export const BENCH_COUNTDOWN_RING_SIZE = 220;
+
 const target = { minHeight: BENCH_MIN_TARGET, minWidth: BENCH_MIN_TARGET };
 
 export const benchThemeOptions: ThemeOptions = {

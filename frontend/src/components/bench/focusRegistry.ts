@@ -57,6 +57,17 @@ export function applyDigit(digit: string): void {
   field.onChange(next);
 }
 
+// Toggles a leading minus sign on a decimal field. Counts are never negative.
+export function applyMinus(): void {
+  const field = active;
+  if (!field || field.kind !== "decimal") return;
+  const current = field.getValue();
+  const base = allSelected(field.element, current) ? "" : current;
+  const next = base.startsWith("-") ? base.slice(1) : `-${base}`;
+  if (next.length > field.maxLength) return;
+  field.onChange(next);
+}
+
 export function applyBackspace(): void {
   const field = active;
   if (!field) return;

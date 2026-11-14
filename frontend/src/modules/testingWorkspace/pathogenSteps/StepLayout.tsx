@@ -2,6 +2,7 @@ import { ReactNode, useState } from "react";
 import { Alert, Box, Collapse, FormControlLabel, Link, MenuItem, Radio, RadioGroup, Stack, TextField, Typography, useTheme } from "@mui/material";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import { ScanField } from "../../../components/labels/ScanField";
+import { BENCH_MIN_TARGET } from "../../../theme/benchTheme";
 
 // Shared building blocks for the pathogen step panels, so every step reads
 // the same way: label/value rows for recorded details and an action bar
@@ -21,7 +22,7 @@ export function StepActionBar({ children, note }: { children: ReactNode; note?: 
         display: "grid", gap: 0.75
       }}
     >
-      <Box sx={{ display: "flex", gap: 1, justifyContent: "flex-end", flexWrap: "wrap", "& > .MuiButton-contained": { flex: { xs: "1 1 100%", sm: "0 0 auto" }, minHeight: 44 } }}>
+      <Box sx={{ display: "flex", gap: 1, justifyContent: "flex-end", flexWrap: "wrap", "& > .MuiButton-contained": { flex: { xs: "1 1 100%", sm: "0 0 auto" }, minHeight: (t) => (t.custom?.bench ? BENCH_MIN_TARGET : 44) } }}>
         {children}
       </Box>
       {note && (

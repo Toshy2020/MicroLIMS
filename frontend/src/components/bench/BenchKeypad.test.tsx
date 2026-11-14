@@ -25,28 +25,43 @@ function Form({ onNextA }: { onNextA?: () => void }) {
   );
 }
 
+function LimitedDecimal() {
+  const [v, setV] = useState("");
+  return (
+    <>
+      <NumericEntryField label="Reading" value={v} onChange={setV} kind="decimal" maxLength={2} />
+      <RegistryBenchKeypad />
+      <output data-testid="v">{v}</output>
+    </>
+  );
+}
+
 describe("BenchKeypad (props)", () => {
   it("calls the handlers and hides the decimal key unless allowed", async () => {
     const user = userEvent.setup();
     const onDigit = vi.fn();
     const onBackspace = vi.fn();
     const onNext = vi.fn();
+    const onMinus = vi.fn();
     const { rerender } = renderWithTheme(<BenchKeypad onDigit={onDigit} onBackspace={onBackspace} onNext={onNext} allowDecimal={false} />, { bench: true });
     expect(screen.queryByRole("button", { name: "Decimal point" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Minus sign" })).toBeNull();
     await user.click(screen.getByRole("button", { name: "7" }));
     await user.click(screen.getByRole("button", { name: "Backspace" }));
     await user.click(screen.getByRole("button", { name: "Next" }));
     expect(onDigit).toHaveBeenCalledWith("7");
     expect(onBackspace).toHaveBeenCalledTimes(1);
     expect(onNext).toHaveBeenCalledTimes(1);
-    rerender(<BenchKeypad onDigit={onDigit} onBackspace={onBackspace} onNext={onNext} allowDecimal />);
+    rerender(<BenchKeypad onDigit={onDigit} onBackspace={onBackspace} onNext={onNext} onMinus={onMinus} allowDecimal />);
     expect(screen.getByRole("button", { name: "Decimal point" })).toBeTruthy();
+    await user.click(screen.getByRole("button", { name: "Minus sign" }));
+    expect(onMinus).toHaveBeenCalledTimes(1);
   });
 
   it("keys are at least 48 px with 8 px gaps and have accessible names", () => {
-    renderWithTheme(<BenchKeypad onDigit={() => {}} onBackspace={() => {}} onNext={() => {}} allowDecimal />, { bench: true });
+    renderWithTheme(<BenchKeypad onDigit={() => {}} onBackspace={() => {}} onNext={() => {}} onMinus={() => {}} allowDecimal />, { bench: true });
     const keys = screen.getAllByRole("button");
-    expect(keys.length).toBe(13);
+    expect(keys.length).toBe(14);
     for (const key of keys) {
       const style = getComputedStyle(key);
       expect(parseInt(style.minHeight, 10)).toBeGreaterThanOrEqual(48);
@@ -101,6 +116,33 @@ describe("RegistryBenchKeypad", () => {
     await user.click(screen.getByLabelText("Plate B"));
     await user.click(screen.getByRole("button", { name: "Decimal point" }));
     expect(screen.getByTestId("b").textContent).toBe(".");
+  });
+
+  it("offers a Minus sign key only for a decimal field and toggles a leading minus", async () => {
+    const user = userEvent.setup();
+    renderWithTheme(<Form />, { bench: true });
+    await user.click(screen.getByLabelText("Plate A"));
+    expect(screen.queryByRole("button", { name: "Minus sign" })).toBeNull();
+    await user.click(screen.getByLabelText("Plate B"));
+    await user.click(screen.getByRole("button", { name: "2" }));
+    await user.click(screen.getByRole("button", { name: "0" }));
+    await user.click(screen.getByRole("button", { name: "Decimal point" }));
+    await user.click(screen.getByRole("button", { name: "5" }));
+    await user.click(screen.getByRole("button", { name: "Minus sign" }));
+    expect(screen.getByTestId("b").textContent).toBe("-20.5");
+    expect(document.activeElement).toBe(screen.getByLabelText("Plate B"));
+    await user.click(screen.getByRole("button", { name: "Minus sign" }));
+    expect(screen.getByTestId("b").textContent).toBe("20.5");
+  });
+
+  it("the Minus sign key respects the field's maximum length", async () => {
+    const user = userEvent.setup();
+    renderWithTheme(<LimitedDecimal />, { bench: true });
+    await user.click(screen.getByLabelText("Reading"));
+    await user.click(screen.getByRole("button", { name: "1" }));
+    await user.click(screen.getByRole("button", { name: "2" }));
+    await user.click(screen.getByRole("button", { name: "Minus sign" }));
+    expect(screen.getByTestId("v").textContent).toBe("12");
   });
 
   it("is absent outside bench mode", () => {

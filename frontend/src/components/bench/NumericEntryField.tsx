@@ -8,13 +8,14 @@ export interface NumericEntryFieldProps {
   label: string;
   value: string;
   onChange(value: string): void;
-  kind: "count" | "decimal"; // count = whole, non-negative
+  kind: "count" | "decimal"; // count = whole, non-negative; decimal may start with a minus sign
   maxLength?: number; // default 7
   error?: string;
   disabled?: boolean;
   required?: boolean;
   unit?: string;
   onNext?(): void;
+  onBlur?(): void;
   inputRef?: Ref<HTMLInputElement>;
   "aria-label"?: string;
 }
@@ -25,12 +26,12 @@ export function parseCount(text: string): number | null {
 }
 
 export function parseDecimal(text: string): number | null {
-  return /^\d+(\.\d+)?$/.test(text) ? Number(text) : null;
+  return /^-?\d+(\.\d+)?$/.test(text) ? Number(text) : null;
 }
 
 const FORMAT_MESSAGE: Record<"count" | "decimal", string> = {
   count: "Enter a whole number, 0 or more, using digits only.",
-  decimal: "Enter a number using digits and at most one decimal point."
+  decimal: "Enter a number using digits, at most one decimal point and an optional leading minus sign."
 };
 
 export function NumericEntryField({
@@ -44,6 +45,7 @@ export function NumericEntryField({
   required,
   unit,
   onNext,
+  onBlur,
   inputRef,
   "aria-label": ariaLabel
 }: NumericEntryFieldProps) {
@@ -105,7 +107,10 @@ export function NumericEntryField({
             e.target.select();
             register(e.target);
           },
-          onBlur: (e: React.FocusEvent<HTMLInputElement>) => clearActiveField(e.target),
+          onBlur: (e: React.FocusEvent<HTMLInputElement>) => {
+            clearActiveField(e.target);
+            onBlur?.();
+          },
           onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => {
             if (e.key === "Enter" && onNext) {
               e.preventDefault();

@@ -150,6 +150,13 @@ export function useBenchDraft<T>(opts: BenchDraftOptions<T>): BenchDraft<T> {
     if (pending.current) void persist("open");
   }, [persist]);
 
+  // A form that is closed takes its baseline again when it reopens, so a discard followed by a
+  // reset of the form does not look like new entries.
+  useEffect(() => {
+    const s = session.current;
+    if (!active && s) s.baseline = null;
+  }, [active]);
+
   // Save the picked fields shortly after each change; the first value is the baseline.
   useEffect(() => {
     const s = session.current;

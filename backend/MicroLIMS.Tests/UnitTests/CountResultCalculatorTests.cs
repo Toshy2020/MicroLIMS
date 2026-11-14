@@ -1,5 +1,6 @@
 using MicroLIMS.Application.Workflows;
 using MicroLIMS.Domain.Enums;
+using MicroLIMS.Shared.Exceptions;
 using Xunit;
 
 namespace MicroLIMS.Tests.UnitTests;
@@ -7,9 +8,9 @@ namespace MicroLIMS.Tests.UnitTests;
 // The same inputs and expected values as CountResultCharacterisationPostgresTests,
 // run through the pure calculator with no database. Both files must agree: the
 // calculator is what the save path and the preview endpoint share. Values that
-// are open laboratory questions (fractional/negative readings, "1,000", first of
-// TNTC/Uncountable, status on the unrounded value, "<" threshold = DF) are pinned
-// as they are today.
+// reflect laboratory decisions are CONF-201 (digits only, or TNTC/Uncountable),
+// CONF-202 (refuse both TNTC and Uncountable), status on the unrounded value,
+// and "<" threshold = DF.
 public class CountResultCalculatorTests
 {
     private const string Water = "CFU/mL";
@@ -34,18 +35,13 @@ public class CountResultCalculatorTests
         yield return Row("Uncountable", new[] { "Uncountable" }, 1m, Water, null, "10", "50", "100", "Uncountable", null, null, ResultStatus.RequiresReview, "Uncountable");
         yield return Row("tntc lower case", new[] { "tntc" }, 1m, Water, null, null, null, null, "TNTC", null, null, ResultStatus.RequiresReview, "TNTC");
         yield return Row("numbers around TNTC", new[] { "12", "TNTC", "14" }, 1m, Water, null, null, null, null, "TNTC", null, null, ResultStatus.RequiresReview, "TNTC");
-        yield return Row("Uncountable then TNTC", new[] { "Uncountable", "TNTC" }, 1m, Water, null, null, null, null, "Uncountable", null, null, ResultStatus.RequiresReview, "Uncountable");
-        yield return Row("TNTC then Uncountable", new[] { "TNTC", "Uncountable" }, 1m, Water, null, null, null, null, "TNTC", null, null, ResultStatus.RequiresReview, "TNTC");
         // Rounding
         yield return Row("midpoint on even below", new[] { "12", "13" }, 1m, Water, null, null, null, null, "13 CFU/mL", 12.5m, 12.5m, ResultStatus.LimitsNotConfigured);
         yield return Row("midpoint on odd below", new[] { "13", "14" }, 1m, Water, null, null, null, null, "14 CFU/mL", 13.5m, 13.5m, ResultStatus.LimitsNotConfigured);
-        yield return Row("just below midpoint", new[] { "12.4" }, 1m, Water, null, null, null, null, "12 CFU/mL", 12.4m, 12.4m, ResultStatus.LimitsNotConfigured);
-        yield return Row("just above midpoint", new[] { "12.6" }, 1m, Water, null, null, null, null, "13 CFU/mL", 12.6m, 12.6m, ResultStatus.LimitsNotConfigured);
+        yield return Row("just below midpoint", new[] { "12", "12", "12", "13", "13" }, 1m, Water, null, null, null, null, "12 CFU/mL", 12.4m, 12.4m, ResultStatus.LimitsNotConfigured);
+        yield return Row("just above midpoint", new[] { "12", "13", "13", "13", "12" }, 1m, Water, null, null, null, null, "13 CFU/mL", 12.6m, 12.6m, ResultStatus.LimitsNotConfigured);
         yield return Row("midpoint after dilution", new[] { "5" }, 0.5m, "CFU/unit", "g", "", "", "1000", "3 CFU/g", 5m, 2.5m, ResultStatus.WithinLimits);
         yield return Row("repeating average", new[] { "1", "1", "2" }, 10m, "CFU/unit", "g", null, null, "1000", "13 CFU/g", 4m / 3m, 4m / 3m * 10m, ResultStatus.WithinLimits);
-        yield return Row("fractional reading accepted", new[] { "12.5" }, 1m, Water, null, null, null, null, "13 CFU/mL", 12.5m, 12.5m, ResultStatus.LimitsNotConfigured);
-        yield return Row("negative reading accepted", new[] { "-3" }, 1m, Water, null, null, null, null, "<1 CFU/mL", -3m, -3m, ResultStatus.LimitsNotConfigured);
-        yield return Row("thousands separator parsed", new[] { "1,000" }, 1m, Water, null, null, null, null, "1000 CFU/mL", 1000m, 1000m, ResultStatus.LimitsNotConfigured);
         // Below limit
         yield return Row("zero colonies water", new[] { "0" }, 1m, Water, null, "10", "50", "100", "<1 CFU/mL", 0m, 0m, ResultStatus.WithinLimits);
         yield return Row("average below one", new[] { "0", "1" }, 1m, Water, null, null, null, null, "<1 CFU/mL", 0.5m, 0.5m, ResultStatus.LimitsNotConfigured);
@@ -64,7 +60,7 @@ public class CountResultCalculatorTests
         yield return Row("tier alert", new[] { "12" }, 1m, Water, null, "10", "50", "100", "12 CFU/mL", 12m, 12m, ResultStatus.AlertLimitExceeded);
         yield return Row("tier action", new[] { "60" }, 1m, Water, null, "10", "50", "100", "60 CFU/mL", 60m, 60m, ResultStatus.ActionLimitExceeded);
         yield return Row("tier OOS", new[] { "150" }, 1m, Water, null, "10", "50", "100", "150 CFU/mL", 150m, 150m, ResultStatus.OutOfSpecification);
-        yield return Row("status on unrounded value", new[] { "100.4" }, 1m, Water, null, "10", "50", "100", "100 CFU/mL", 100.4m, 100.4m, ResultStatus.OutOfSpecification);
+        yield return Row("status on unrounded value", new[] { "100", "100", "100", "101", "101" }, 1m, Water, null, "10", "50", "100", "100 CFU/mL", 100.4m, 100.4m, ResultStatus.OutOfSpecification);
         yield return Row("product action tier", new[] { "60" }, 10m, "CFU/unit", "g", "NMT 100", "500", "1000", "600 CFU/g", 60m, 600m, ResultStatus.ActionLimitExceeded);
         yield return Row("product OOS tier", new[] { "101" }, 10m, "CFU/unit", "g", "NMT 100", "500", "1000", "1010 CFU/g", 101m, 1010m, ResultStatus.OutOfSpecification);
         yield return Row("blank limits", new[] { "50" }, 10m, "CFU/unit", "g", "", "", "", "500 CFU/g", 50m, 500m, ResultStatus.LimitsNotConfigured);
@@ -89,12 +85,86 @@ public class CountResultCalculatorTests
     }
 
     [Theory]
+    [InlineData("0", "<1 CFU/mL", 0)]
+    [InlineData("007", "7 CFU/mL", 7)]
+    [InlineData("250", "250 CFU/mL", 250)]
+    public void Calculate_DigitsOnlyReading_IsAccepted(string reading, string expectedReported, decimal expectedAverage)
+    {
+        var result = CountResultCalculator.Calculate(new CountCalculationInput(new[] { reading }, 1m, Water));
+
+        Assert.Equal(expectedReported, result.Reported);
+        Assert.Equal(expectedAverage, result.Average);
+        Assert.Equal(expectedAverage, result.Calculated);
+    }
+
+    [Theory]
+    [InlineData("TNTC", "TNTC")]
+    [InlineData("tntc", "TNTC")]
+    [InlineData("Tntc", "TNTC")]
+    [InlineData("Uncountable", "Uncountable")]
+    [InlineData("uncountable", "Uncountable")]
+    [InlineData("UNCOUNTABLE", "Uncountable")]
+    public void Calculate_NonNumericFlagAlone_IsAcceptedCaseInsensitively(string flag, string expectedCanonical)
+    {
+        var result = CountResultCalculator.Calculate(new CountCalculationInput(new[] { "12", flag, "14" }, 1m, Water));
+
+        Assert.Equal(expectedCanonical, result.Reported);
+        Assert.Equal(expectedCanonical, result.NonNumericValue);
+        Assert.Equal(ResultStatus.RequiresReview, result.Status);
+        Assert.Null(result.Average);
+        Assert.Null(result.Calculated);
+    }
+
+    [Theory]
+    [InlineData("1,000")]
+    [InlineData("1.000")]
+    [InlineData("1 000")]
+    [InlineData("+5")]
+    [InlineData("-3")]
+    [InlineData("1e3")]
+    [InlineData(" 12 ")]
+    [InlineData("12.5")]
     [InlineData("abc")]
     [InlineData("TNTC ")]
     [InlineData("N/A")]
-    public void Calculate_UnrecognisedWord_ThrowsFormatException(string word)
+    [InlineData("")]
+    public void Calculate_NonDigitsReading_IsRefused(string reading)
     {
-        Assert.Throws<FormatException>(() =>
-            CountResultCalculator.Calculate(new CountCalculationInput(new[] { word }, 1m, Water)));
+        var ex = Assert.Throws<FieldValidationException>(() =>
+            CountResultCalculator.Calculate(new CountCalculationInput(new[] { reading }, 1m, Water)));
+
+        Assert.Equal(CountResultCalculator.InvalidReadingMessage, ex.Message);
+        var error = Assert.Single(ex.FieldErrors);
+        Assert.Equal("rawPlateReadings", error.Field);
+        Assert.Equal(CountResultCalculator.InvalidReadingMessage, error.Message);
+        Assert.Equal(0, error.Row);
+    }
+
+    [Fact]
+    public void Calculate_InvalidReadingAlongsideTntc_IsStillRefused()
+    {
+        var ex = Assert.Throws<FieldValidationException>(() =>
+            CountResultCalculator.Calculate(new CountCalculationInput(new[] { "TNTC", "1,000" }, 1m, Water)));
+
+        var error = Assert.Single(ex.FieldErrors);
+        Assert.Equal("rawPlateReadings", error.Field);
+        Assert.Equal(CountResultCalculator.InvalidReadingMessage, error.Message);
+        Assert.Equal(1, error.Row);
+    }
+
+    [Theory]
+    [InlineData("TNTC", "Uncountable")]
+    [InlineData("Uncountable", "TNTC")]
+    [InlineData("tntc", "uncountable")]
+    [InlineData("12", "TNTC", "Uncountable")]
+    public void Calculate_TntcAndUncountableTogether_IsRefused(params string[] readings)
+    {
+        var ex = Assert.Throws<FieldValidationException>(() =>
+            CountResultCalculator.Calculate(new CountCalculationInput(readings, 1m, Water)));
+
+        Assert.Equal(CountResultCalculator.BothNonNumericFlagsMessage, ex.Message);
+        var error = Assert.Single(ex.FieldErrors);
+        Assert.Equal("rawPlateReadings", error.Field);
+        Assert.Equal(CountResultCalculator.BothNonNumericFlagsMessage, error.Message);
     }
 }

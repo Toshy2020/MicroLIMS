@@ -36,7 +36,7 @@ import {
 import { IncubationWaitingView } from "./pathogenSteps/IncubationWaitingView";
 import { BenchDialog } from "../../components/bench/BenchDialog";
 import { DraftRestoreNotice } from "../../components/bench/DraftRestoreNotice";
-import { NumericEntryField } from "../../components/bench/NumericEntryField";
+import { NumericEntryField, parseCount } from "../../components/bench/NumericEntryField";
 import { useBenchDraft } from "../../hooks/useBenchDraft";
 import { useBenchMode } from "../../theme/BenchModeContext";
 import { OfflineDraftNotice, classifySaveFailure, draftHeaderArgs, serverMessage, useKeptOffline } from "./benchSave";
@@ -53,6 +53,35 @@ const incubatorOptions = (items: IncubatorEquipmentItem[]) =>
 
 const COUNT_STEP_HELP =
   "Plate the sample on the permitted medium and start incubation. Once the minimum incubation has passed, count the colonies on each plate; the result is the average count multiplied by the dilution factor.";
+
+const INVALID_READING_MESSAGE = "Enter a whole number using digits only, or TNTC or Uncountable.";
+const BOTH_FLAGS_MESSAGE = "A reading set cannot contain both TNTC and Uncountable. Choose one.";
+
+const isTntcFlag = (val: string) => val.toLowerCase() === "tntc";
+const isUncountableFlag = (val: string) => val.toLowerCase() === "uncountable";
+
+function validateCountReadings(readings: string[]): {
+  rowErrors: Record<number, string>;
+  setError: string | null;
+} {
+  const rowErrors: Record<number, string> = {};
+  let hasTntc = false;
+  let hasUncountable = false;
+
+  readings.forEach((value, index) => {
+    if (value.trim() === "") return;
+    if (isTntcFlag(value)) {
+      hasTntc = true;
+    } else if (isUncountableFlag(value)) {
+      hasUncountable = true;
+    } else if (parseCount(value) === null) {
+      rowErrors[index] = INVALID_READING_MESSAGE;
+    }
+  });
+
+  const setError = hasTntc && hasUncountable ? BOTH_FLAGS_MESSAGE : null;
+  return { rowErrors, setError };
+}
 
 // What a plate-count draft may hold. Only these fields are ever written to the tablet;
 // the count result carries no password, signature or token.
@@ -196,6 +225,7 @@ function TestWorkflowDialogBody({ testOrderId, testCode, category, displayName, 
   const [preview, setPreview] = useState<CountPreviewResult | null>(null);
   const [previewError, setPreviewError] = useState(false);
   const [readingErrors, setReadingErrors] = useState<Record<number, string>>({});
+  const [readingSetError, setReadingSetError] = useState<string | null>(null);
 
   const [lastOutcome, setLastOutcome] = useState<CountOutcome | null>(null);
 
@@ -438,10 +468,11 @@ function TestWorkflowDialogBody({ testOrderId, testCode, category, displayName, 
   const removeReading = (i: number) => {
     setReadings((r) => (r.length > 1 ? r.filter((_, idx) => idx !== i) : r));
     setReadingErrors({});
+    setReadingSetError(null);
   };
 
   const isNonNumeric = (val: string) =>
-    ["tntc", "uncountable"].includes(val.toLowerCase().trim());
+    isTntcFlag(val) || isUncountableFlag(val);
 
   const isDirectCount = ["Water", "EnvironmentalMonitoring", "AfterCleaning"]
     .includes(current?.sampleContext?.sampleType ?? "");
@@ -473,8 +504,19 @@ function TestWorkflowDialogBody({ testOrderId, testCode, category, displayName, 
       setPreview(null);
       setPreviewError(false);
       setReadingErrors({});
+      setReadingSetError(null);
       return;
     }
+
+    const { rowErrors, setError: clientSetError } = validateCountReadings(readings);
+    if (Object.keys(rowErrors).length > 0 || clientSetError) {
+      setPreview(null);
+      setPreviewError(false);
+      setReadingErrors(rowErrors);
+      setReadingSetError(clientSetError);
+      return;
+    }
+    setReadingSetError(null);
 
     const controller = new AbortController();
     const timer = window.setTimeout(() => {
@@ -605,6 +647,12 @@ function TestWorkflowDialogBody({ testOrderId, testCode, category, displayName, 
       }
       if (readings.every((r) => r.trim() === "")) {
         setError("Enter at least one plate reading.");
+        return;
+      }
+      const { rowErrors, setError: clientSetError } = validateCountReadings(readings);
+      if (Object.keys(rowErrors).length > 0 || clientSetError) {
+        setReadingErrors(rowErrors);
+        setReadingSetError(clientSetError);
         return;
       }
       if (dilutionFactorDiffersFromConfigured && !dilutionFactorOverrideNote.trim()) {
@@ -980,6 +1028,7 @@ function TestWorkflowDialogBody({ testOrderId, testCode, category, displayName, 
                   </Box>
                 )}
                 <Button startIcon={<AddIcon />} onClick={addReading} sx={{ mt: 0.5 }}>Add Plate</Button>
+                {readingSetError && <Alert severity="error" sx={{ mt: 1 }}>{readingSetError}</Alert>}
               </Box>
 
               <Box

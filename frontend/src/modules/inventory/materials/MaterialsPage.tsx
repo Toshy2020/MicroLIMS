@@ -13,6 +13,8 @@ import { formatLabDate } from "../../../utils/formatDate";
 import { useAuth } from "../../../contexts/AuthContext";
 import { PERMISSIONS } from "../../../routes/routes";
 import { useLaboratorySections } from "../../../hooks/useLaboratorySections";
+import { useTableState } from "../../../components/lab/table/useTableState";
+import { TableToolbar } from "../../../components/lab/table/TableToolbar";
 import { MaterialService } from "./services/MaterialService";
 import {
   MaterialFilterState,
@@ -48,14 +50,14 @@ function getMaterialTypeDisplay(item: { materialType: string; customType?: strin
   return MATERIAL_TYPE_LABEL_MAP.get(item.materialType) ?? item.materialType;
 }
 
-const INITIAL_FILTERS: MaterialFilterState = {
-  search: "",
-  materialType: "",
-  manufacturer: "",
-  location: "",
-  status: "",
-  expiryRange: ""
-};
+const TABLE_KEY = "inventory.materials";
+const KPI_FILTERS: readonly MaterialKpiFilter[] = ["in_stock", "low_stock", "out_of_stock", "expiring_soon"];
+const DROPDOWN_FILTERS = ["materialType", "manufacturer", "location", "status", "expiryRange"] as const;
+
+function textFilter(filters: Record<string, string | string[]>, name: string): string {
+  const value = filters[name];
+  return typeof value === "string" ? value : "";
+}
 
 export function MaterialsPage() {
   const theme = useTheme();
@@ -125,8 +127,24 @@ export function MaterialsPage() {
   }, [labParam, printList, sections, sectionCodeById]);
 
   // Filters & KPI state
-  const [kpiFilter, setKpiFilter] = useState<MaterialKpiFilter>("all");
-  const [filters, setFilters] = useState<MaterialFilterState>(INITIAL_FILTERS);
+  // The search, dropdowns, KPI shortcut, sort and page live in the address and in saved views.
+  const tableState = useTableState(TABLE_KEY);
+  const { setFilter, setSearch, applyState } = tableState;
+  const stateFilters = tableState.state.filters;
+  const stateSearch = tableState.state.search;
+  const kpiParam = textFilter(stateFilters, "kpi");
+  const kpiFilter: MaterialKpiFilter = KPI_FILTERS.find((k) => k === kpiParam) ?? "all";
+  const filters = useMemo<MaterialFilterState>(() => {
+    const text = (name: string) => textFilter(stateFilters, name);
+    return {
+      search: stateSearch,
+      materialType: text("materialType"),
+      manufacturer: text("manufacturer"),
+      location: text("location"),
+      status: text("status"),
+      expiryRange: text("expiryRange")
+    };
+  }, [stateFilters, stateSearch]);
 
   // Dialog states
   const [isAddOpen, setIsAddOpen] = useState(false);
@@ -157,16 +175,24 @@ export function MaterialsPage() {
   }, []);
 
   const handleReset = () => {
-    setKpiFilter("all");
-    setFilters(INITIAL_FILTERS);
+    applyState(
+      { filters: {}, search: "", sort: tableState.state.sort, pageSize: tableState.state.pageSize },
+      tableState.viewId
+    );
   };
 
   const handleKpiSelect = (newKpi: MaterialKpiFilter) => {
-    setKpiFilter(newKpi);
+    setFilter("kpi", newKpi === "all" ? null : newKpi);
   };
 
+  // The filter bar reports one changed field at a time.
   const handleFilterChange = (newFilters: MaterialFilterState) => {
-    setFilters(newFilters);
+    if (newFilters.search !== filters.search) {
+      setSearch(newFilters.search);
+      return;
+    }
+    const changed = DROPDOWN_FILTERS.find((name) => newFilters[name] !== filters[name]);
+    if (changed) setFilter(changed, newFilters[changed]);
   };
 
   // Filtered dataset combining KPI shortcuts + form filters
@@ -395,6 +421,9 @@ export function MaterialsPage() {
             columns={columns}
             rows={filteredItems}
             getRowId={(m) => m.id}
+            tableKey={TABLE_KEY}
+            tableState={tableState}
+            toolbar={<TableToolbar tableKey={TABLE_KEY} tableState={tableState} showSearch={false} />}
             loading={loading || !items}
             onRowClick={(m) => setLotDetailsFor(m)}
             rowTone={(m) => (m.status === "Expired" ? "detected" : isMaterialLowStock(m) ? "inconclusive" : undefined)}

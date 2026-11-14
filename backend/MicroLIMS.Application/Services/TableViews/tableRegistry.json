@@ -185,7 +185,7 @@
       { "key": "minimumStockLevel", "label": "Min Stock", "defaultVisible": true },
       { "key": "status", "label": "Status", "defaultVisible": true }
     ],
-    "filters": ["search", "materialType", "manufacturer", "location", "status", "expiryRange"]
+    "filters": ["search", "materialType", "manufacturer", "location", "status", "expiryRange", "kpi"]
   },
   {
     "key": "labConfig.cryovials",

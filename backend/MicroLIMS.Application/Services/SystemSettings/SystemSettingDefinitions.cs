@@ -49,6 +49,8 @@ public static class SystemSettingKeys
     public const string SelfAssignmentEnabled = "workflow.selfAssignment.enabled";
     // Bench and tablet mode (C2): how long a tablet keeps an analyst's unsaved local drafts.
     public const string BenchDraftRetentionHours = "bench.draftRetentionHours";
+    // Faster data entry (C4): whether entry forms offer the analyst's last valid choice as a default.
+    public const string LastChoiceDefaultsEnabled = "entry.lastChoiceDefaults.enabled";
 }
 
 // One setting as defined in code: type, default, bounds, GxP relevance.
@@ -249,6 +251,9 @@ public static class SystemSettingDefinitions
         new(SystemSettingKeys.BenchDraftRetentionHours, BenchCategory, SystemSettingValueType.Integer, "24",
             "How long a bench tablet keeps an analyst's unsaved entries (local drafts, never records) before they are removed from the tablet. Read by the browser through the client-settings endpoint.",
             "hours", 1, 72),
+        new(SystemSettingKeys.LastChoiceDefaultsEnabled, WorkflowCategory, SystemSettingValueType.Boolean, "true",
+            "Whether entry forms pre-fill the analyst's last valid equipment, media lot, sampled-by or cause of testing choice. A pre-filled media lot still requires confirmation before saving.",
+            IsGxpRelevant: true),
     };
 
     private static readonly Dictionary<string, SystemSettingDefinition> ByKey =

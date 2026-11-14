@@ -379,6 +379,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<MicroLIMS.Application.Services.MyWork.IMyWorkSource, MicroLIMS.Application.Services.MyWork.Sources.DocumentsSource>();
         services.AddScoped<MicroLIMS.Application.Services.MyWork.IMyWorkSource, MicroLIMS.Application.Services.MyWork.Sources.EquipmentSource>();
         services.AddScoped<MicroLIMS.Application.Services.TestSelfAssignmentService>();
+        services.AddScoped<MicroLIMS.Application.Services.EntryDefaults.EntryDefaultsService>();
         services.AddScoped<IMfaAdminService, MicroLIMS.Application.Services.Mfa.MfaAdminService>();
         services.AddScoped<IAuditTrailReviewService, MicroLIMS.Application.Services.AuditTrailReviewService>();
         services.AddScoped<IDatabaseStatsQuery, DatabaseStatsQuery>();

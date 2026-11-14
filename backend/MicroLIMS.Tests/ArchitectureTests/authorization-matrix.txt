@@ -199,6 +199,7 @@ DocumentTrainingMatrixController.GetTrainingMatrixGrid(TrainingMatrixFilterDto):
 DocumentTrainingMatrixController.GetUserCompliance(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 EMController.Prepare(PrepareEMRequest): SectionHead,Reviewer,Analyst
 EMController.Receive(ReceiveEMRequest): SectionHead,Reviewer,Analyst
+EntryDefaultsController.Get(String, Nullable`1, Nullable`1, Nullable`1, Nullable`1, String, CancellationToken): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 EnvironmentalMonitoringMasterDataController.CreateDepartment(CreateDepartmentRequest): SystemAdministrator,SectionHead
 EnvironmentalMonitoringMasterDataController.CreateRoom(CreateRoomRequest): SystemAdministrator,SectionHead
 EnvironmentalMonitoringMasterDataController.CreateRoomTestConfiguration(CreateRoomTestConfigRequest): SystemAdministrator,SectionHead

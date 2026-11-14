@@ -1,29 +1,16 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from "axios";
 import { MAINTENANCE_HEADER, notifyMaintenanceRefusal } from "./maintenanceSignal";
+import { notifyNetworkFailure } from "./connectionSignal";
+import { getApiBaseUrl } from "./apiBaseUrl";
+import { isNetworkError } from "./networkError";
 import { readTokenClaims, TOKEN_REFRESHED_EVENT } from "../modules/authentication/tokenClaims";
 
 // Single axios instance every module service goes through. No business
 // logic here - it only attaches the auth token and handles 401s
 // (Frozen Principle #3 - Frontend never implements laboratory rules).
-function getApiBaseUrl(): string {
-  const envUrl = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL;
-  if (envUrl) {
-    const trimmed = String(envUrl).trim().replace(/\/+$/, "");
-    return trimmed.endsWith("/api") ? trimmed : `${trimmed}/api`;
-  }
-  // When running online in production (Cloudflare Pages, Workers, or custom domain),
-  // always connect to the production Render backend API.
-  if (
-    typeof window !== "undefined" &&
-    window.location.hostname !== "localhost" &&
-    window.location.hostname !== "127.0.0.1"
-  ) {
-    return "https://microlims.onrender.com/api";
-  }
-  return "http://localhost:5000/api";
-}
-
 const baseURL = getApiBaseUrl();
+
+export { isNetworkError };
 
 export const apiClient = axios.create({ baseURL });
 
@@ -180,6 +167,7 @@ apiClient.interceptors.response.use(
   (response) => response,
   async (error: AxiosError) => {
     rememberCorrelationId(error);
+    if (isNetworkError(error)) notifyNetworkFailure();
     await decodeBlobErrorBody(error);
     if (handleMaintenanceRefusal(error)) return Promise.reject(error);
 

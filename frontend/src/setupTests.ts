@@ -1,3 +1,4 @@
+import "fake-indexeddb/auto";
 import { afterEach } from "vitest";
 import { cleanup, configure } from "@testing-library/react";
 

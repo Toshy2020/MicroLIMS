@@ -47,6 +47,8 @@ public static class SystemSettingKeys
     public const string MyWorkLookAheadDays = "myWork.lookAheadDays";
     public const string MyWorkReadOverdueHours = "myWork.readOverdueHours";
     public const string SelfAssignmentEnabled = "workflow.selfAssignment.enabled";
+    // Bench and tablet mode (C2): how long a tablet keeps an analyst's unsaved local drafts.
+    public const string BenchDraftRetentionHours = "bench.draftRetentionHours";
 }
 
 // One setting as defined in code: type, default, bounds, GxP relevance.
@@ -140,6 +142,7 @@ public static class SystemSettingDefinitions
     public const string AccessReviewCategory = "Access Review";
     public const string MyWorkCategory = "My Work";
     public const string WorkflowCategory = "Workflow";
+    public const string BenchCategory = "Bench";
 
     // The defaults below are the values that were hard-coded or configured
     // before the registry existed; AuthenticationService and
@@ -242,6 +245,10 @@ public static class SystemSettingDefinitions
             "hours", 0, 168),
         new(SystemSettingKeys.SelfAssignmentEnabled, WorkflowCategory, SystemSettingValueType.Boolean, "true",
             "Whether analysts holding the self-assign permission may take unassigned tests in their own section from My Work. Existing assignments are not changed."),
+
+        new(SystemSettingKeys.BenchDraftRetentionHours, BenchCategory, SystemSettingValueType.Integer, "24",
+            "How long a bench tablet keeps an analyst's unsaved entries (local drafts, never records) before they are removed from the tablet. Read by the browser through the client-settings endpoint.",
+            "hours", 1, 72),
     };
 
     private static readonly Dictionary<string, SystemSettingDefinition> ByKey =

@@ -6,10 +6,14 @@ import { Header } from "../components/Header";
 import { Sidebar } from "../components/Sidebar";
 import { AppBreadcrumbs } from "../components/AppBreadcrumbs";
 import { AppErrorBoundary } from "../components/AppErrorBoundary";
+import { ConnectionBanner } from "../components/bench/ConnectionBanner";
+import { DraftsMenu } from "../components/bench/DraftsMenu";
 import { useAuth } from "../contexts/AuthContext";
 import { useBenchMode } from "../theme/BenchModeContext";
 import { useIdleTimeout } from "../hooks/useIdleTimeout";
 import { useMyLabs } from "../hooks/useMyLabs";
+import { useDraftOverview } from "../hooks/useDraftOverview";
+import { useConnectionStatus } from "../hooks/useConnectionStatus";
 import { useMenuGroups } from "../hooks/useMenuGroups";
 import { mfaService, type MfaStatus } from "../modules/authentication/services/mfaService";
 import { formatDateTimeWithTimeZone } from "../utils/formatDate";
@@ -41,6 +45,10 @@ export function MainLayout() {
   const [mobileOpen, setMobileOpen] = useState(false);
   // Bench mode starts with the sidebar closed (icon rail) to leave the width to the entry form.
   const { benchMode } = useBenchMode();
+  // Unsaved on-tablet entries and whether the server can be reached; checked
+  // every 15 s while on a bench tablet or while drafts exist.
+  const draftOverview = useDraftOverview();
+  const { online } = useConnectionStatus(benchMode || draftOverview.drafts.length > 0);
   const [collapsed, setCollapsed] = useState(() => benchMode || localStorage.getItem("microlims_sidebar_collapsed") === "true");
   const [mfaStatus, setMfaStatus] = useState<MfaStatus | null>(null);
 
@@ -137,7 +145,14 @@ export function MainLayout() {
         Skip to main content
       </Box>
 
-      <Header onToggleSidebar={handleToggleSidebar} sidebarCollapsed={collapsed} labCodes={labCodes} />
+      <Header
+        onToggleSidebar={handleToggleSidebar}
+        sidebarCollapsed={collapsed}
+        labCodes={labCodes}
+        unsavedDraftCount={draftOverview.drafts.length}
+        draftsMenu={<DraftsMenu overview={draftOverview} />}
+      />
+      <ConnectionBanner online={online} unsavedCount={draftOverview.drafts.length} />
 
       <Box
         component="div"

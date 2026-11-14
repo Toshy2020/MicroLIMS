@@ -124,7 +124,8 @@ export function ReceivingPage() {
 
       <SampleRegisterTable
         samples={samples}
-        columnsStorageKey="microlims.receivingRegister.columns"
+        tableKey="samples.receiving"
+        legacyColumnsKey="microlims.receivingRegister.columns"
         onTestClick={(_test, sample) => setSummarySampleId(sample.sampleId)}
         onViewSummary={(sample) => setSummarySampleId(sample.sampleId)}
         onEdit={canCorrect ? ((sample) => setEditSample(sample)) : undefined}

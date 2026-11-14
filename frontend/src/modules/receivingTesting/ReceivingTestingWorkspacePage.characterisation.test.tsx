@@ -279,10 +279,12 @@ describe("ReceivingTestingWorkspacePage filter sent to the server (characterisat
     await waitForFilter({ ...DEFAULT_FILTER, workloadFilter: "mine" });
   });
 
-  it("pageSize in the URL is clamped to 1..200", async () => {
+  // Deliberate change (smarter-tables Task 9): the table state holds 25, 50 or 100 rows a page and the
+  // server never returns more than 100, so an old ?pageSize= is rounded down to one of those.
+  it("pageSize in the URL is rounded down to a size the table holds (25, 50 or 100)", async () => {
     renderWorkspace("/?pageSize=5000");
     await screen.findByText("Alpha Syrup");
-    await waitForFilter({ ...DEFAULT_FILTER, pageSize: 200 });
+    await waitForFilter({ ...DEFAULT_FILTER, pageSize: 100 });
   });
 
   it("clicking a work-queue tile sets workloadFilter and returns to page 1; clicking it again clears it", async () => {

@@ -6,12 +6,20 @@ import { MemoryRouter } from "react-router-dom";
 import { ThemeProvider } from "@mui/material";
 import { lightTheme } from "../../../theme";
 import { SampleRegisterTable, dueLabel, clearSampleDocCountCache } from "./SampleRegisterTable";
+import { useRowSelection } from "../../../components/lab/table/useRowSelection";
 import type { SampleRecord, TestOrderSummary } from "../types/receivingTypes";
 import { ItemDocumentService } from "../../laboratoryConfiguration/items/services/ItemDocumentService";
 import { ItemStmService } from "../../laboratoryConfiguration/items/services/ItemStmService";
 
 const authState = vi.hoisted(() => ({ permissions: [] as string[], role: null as string | null }));
-vi.mock("../../../contexts/AuthContext", () => ({ useAuth: () => ({ permissions: authState.permissions, role: authState.role }) }));
+vi.mock("../../../contexts/AuthContext", () => ({
+  useAuth: () => ({ permissions: authState.permissions, role: authState.role }),
+  useOptionalAuth: () => ({ permissions: authState.permissions, role: authState.role })
+}));
+// The saved-views service is the network edge of the table state; no views exist in these tests.
+vi.mock("../../../components/lab/table/services/tableViewService", () => ({
+  tableViewService: { list: vi.fn().mockResolvedValue([]), create: vi.fn(), update: vi.fn(), remove: vi.fn(), setDefault: vi.fn() }
+}));
 vi.mock("../../laboratoryConfiguration/items/services/ItemDocumentService", () => ({
   ItemDocumentService: { getDocumentCountForItem: vi.fn().mockResolvedValue(0) }
 }));
@@ -42,14 +50,18 @@ const sample = (over: Partial<SampleRecord>): SampleRecord => ({
 
 const renderTable = (samples: SampleRecord[], onTestClick = vi.fn()) => render(
   <ThemeProvider theme={lightTheme}>
-    <SampleRegisterTable
-      samples={samples}
-      onTestClick={onTestClick}
-      onViewSummary={vi.fn()}
-      onViewReport={vi.fn()}
-      onViewAuditHistory={vi.fn()}
-      onPrepareSample={vi.fn()}
-    />
+    <MemoryRouter>
+      <SampleRegisterTable
+        samples={samples}
+        tableKey="samples.receiving"
+        legacyColumnsKey="microlims.sampleRegister.columns"
+        onTestClick={onTestClick}
+        onViewSummary={vi.fn()}
+        onViewReport={vi.fn()}
+        onViewAuditHistory={vi.fn()}
+        onPrepareSample={vi.fn()}
+      />
+    </MemoryRouter>
   </ThemeProvider>
 );
 
@@ -70,9 +82,9 @@ describe("SampleRegisterTable", () => {
   it("lets the user show a hidden column and remembers the choice", async () => {
     const user = userEvent.setup();
     const { unmount } = renderTable([sample({})]);
-    await user.click(screen.getByRole("button", { name: "Choose visible columns" }));
+    await user.click(screen.getByRole("button", { name: "Columns" }));
     const picker = screen.getByRole("presentation");
-    await user.click(within(picker).getByLabelText("Received At"));
+    await user.click(within(picker).getByRole("checkbox", { name: "Received At" }));
     await user.keyboard("{Escape}");
     expect(screen.getByRole("columnheader", { name: "Received At" })).toBeTruthy();
     expect(screen.queryByText(/#91 · Product · Routine · IPQA · /)).toBeNull();
@@ -116,11 +128,14 @@ describe("SampleRegisterTable row edge", () => {
   it("keeps the red overdue edge on a selected row", () => {
     render(
       <ThemeProvider theme={lightTheme}>
-        <SampleRegisterTable
-          samples={[sample({ dueAt: new Date(Date.now() - 3600e3).toISOString(), isOverdue: true })]}
-          selectedSampleId={91}
-          onTestClick={vi.fn()} onViewSummary={vi.fn()} onViewReport={vi.fn()} onViewAuditHistory={vi.fn()} onPrepareSample={vi.fn()}
-        />
+        <MemoryRouter>
+          <SampleRegisterTable
+            samples={[sample({ dueAt: new Date(Date.now() - 3600e3).toISOString(), isOverdue: true })]}
+            tableKey="samples.receiving"
+            selectedSampleId={91}
+            onTestClick={vi.fn()} onViewSummary={vi.fn()} onViewReport={vi.fn()} onViewAuditHistory={vi.fn()} onPrepareSample={vi.fn()}
+          />
+        </MemoryRouter>
       </ThemeProvider>
     );
     const firstCell = screen.getByText("Osteocare Liquid").closest("td") as HTMLElement;
@@ -199,8 +214,6 @@ const DEFAULT_COLUMN_LABELS = ["Batch / Control No.", "Assigned To", "Sample Sta
 
 type SampleFn = (sample: SampleRecord) => void;
 type TestFn = (test: TestOrderSummary, sample: SampleRecord) => void;
-type CheckFn = (sampleId: number, checked: boolean) => void;
-type CheckManyFn = (sampleIds: number[], checked: boolean) => void;
 
 interface Handlers {
   onSelectSample: Mock<SampleFn>;
@@ -214,40 +227,64 @@ interface Handlers {
   onVoid: Mock<SampleFn>;
   onAddLaboratory: Mock<SampleFn>;
   onSelectTests: Mock<SampleFn>;
-  onToggleCheck: Mock<CheckFn>;
-  onToggleCheckMany: Mock<CheckManyFn>;
 }
 
 const makeHandlers = (): Handlers => ({
   onSelectSample: vi.fn<SampleFn>(), onTestClick: vi.fn<TestFn>(), onViewSummary: vi.fn<SampleFn>(),
   onEdit: vi.fn<SampleFn>(), onViewReport: vi.fn<SampleFn>(), onViewAuditHistory: vi.fn<SampleFn>(),
   onPrepareSample: vi.fn<SampleFn>(), onAssignAnalyst: vi.fn<SampleFn>(), onVoid: vi.fn<SampleFn>(),
-  onAddLaboratory: vi.fn<SampleFn>(), onSelectTests: vi.fn<SampleFn>(), onToggleCheck: vi.fn<CheckFn>(),
-  onToggleCheckMany: vi.fn<CheckManyFn>()
+  onAddLaboratory: vi.fn<SampleFn>(), onSelectTests: vi.fn<SampleFn>()
 });
 
-const renderFull = (samples: SampleRecord[], h: Handlers, columnsStorageKey?: string) => render(
+const renderFull = (samples: SampleRecord[], h: Handlers, legacyColumnsKey = "microlims.sampleRegister.columns") => render(
   <ThemeProvider theme={lightTheme}>
     <MemoryRouter>
-      <SampleRegisterTable samples={samples} columnsStorageKey={columnsStorageKey} {...h} />
+      <SampleRegisterTable samples={samples} tableKey="samples.receiving" legacyColumnsKey={legacyColumnsKey} {...h} />
     </MemoryRouter>
   </ThemeProvider>
 );
 
+// The table's checkboxes feed a real selection; the output shows what it holds.
+function SelectableRegister({ samples, h }: { samples: SampleRecord[]; h: Handlers }) {
+  const selection = useRowSelection<number>("test");
+  return (
+    <>
+      <SampleRegisterTable samples={samples} tableKey="samples.receiving" selection={selection} {...h} />
+      <output aria-label="Selected sample ids">{[...selection.selected].sort((a, b) => a - b).join(",")}</output>
+    </>
+  );
+}
+
+const renderSelectable = (samples: SampleRecord[], h: Handlers) => render(
+  <ThemeProvider theme={lightTheme}>
+    <MemoryRouter>
+      <SelectableRegister samples={samples} h={h} />
+    </MemoryRouter>
+  </ThemeProvider>
+);
+const selectedIds = () => screen.getByLabelText("Selected sample ids").textContent;
+
 const headerTexts = () => screen.getAllByRole("columnheader").map((h) => h.textContent);
 
+const openColumns = async (user: ReturnType<typeof userEvent.setup>) => {
+  await user.click(screen.getByRole("button", { name: "Columns" }));
+  return screen.getByRole("presentation");
+};
+const columnBoxes = (picker: HTMLElement) => within(picker).getAllByRole("checkbox") as HTMLInputElement[];
+
 describe("SampleRegisterTable columns (characterisation)", () => {
-  it("offers exactly the 11 columns, in order, with only the default six ticked", async () => {
+  // The column menu is now the shared one: visible columns first (in their order), then the hidden ones, and the item column is fixed.
+  it("offers all 12 registry columns, the visible seven first and ticked, the other five unticked", async () => {
     const user = userEvent.setup();
     renderFull([sample({})], makeHandlers());
-    await user.click(screen.getByRole("button", { name: "Choose visible columns" }));
-    const picker = screen.getByRole("presentation");
-    const boxes = within(picker).getAllByRole("checkbox") as HTMLInputElement[];
-    expect(boxes).toHaveLength(11);
-    const labels = boxes.map((b) => b.closest("label")?.textContent);
-    expect(labels).toEqual(ALL_COLUMN_LABELS);
-    const ticked = boxes.filter((b) => b.checked).map((b) => b.closest("label")?.textContent);
-    expect(ticked).toEqual(DEFAULT_COLUMN_LABELS);
+    const boxes = columnBoxes(await openColumns(user));
+    expect(boxes).toHaveLength(12);
+    expect(boxes.map((b) => b.getAttribute("aria-label"))).toEqual([
+      "Item / Reference", ...DEFAULT_COLUMN_LABELS,
+      "Received At", "Sample #", "Item Type", "Cause", "Sampled By"
+    ]);
+    expect(boxes.filter((b) => b.checked).map((b) => b.getAttribute("aria-label"))).toEqual(["Item / Reference", ...DEFAULT_COLUMN_LABELS]);
+    expect(boxes[0].disabled).toBe(true);
   });
 
   it("renders the item column, the six default columns and Actions as the header row", () => {
@@ -255,18 +292,17 @@ describe("SampleRegisterTable columns (characterisation)", () => {
     expect(headerTexts()).toEqual(["Item / Reference", ...DEFAULT_COLUMN_LABELS, "Actions"]);
   });
 
-  it("shows all 11 columns once every one is ticked, in the declared order", async () => {
+  it("shows all 11 columns once every one is ticked; each ticked column is added after the existing ones", async () => {
     const user = userEvent.setup();
     renderFull([sample({})], makeHandlers());
-    await user.click(screen.getByRole("button", { name: "Choose visible columns" }));
-    const picker = screen.getByRole("presentation");
+    const picker = await openColumns(user);
     for (const label of ALL_COLUMN_LABELS.filter((l) => !DEFAULT_COLUMN_LABELS.includes(l))) {
-      await user.click(within(picker).getByLabelText(label));
+      await user.click(within(picker).getByRole("checkbox", { name: label }));
     }
     await user.keyboard("{Escape}");
     expect(headerTexts()).toEqual([
-      "Received At", "#", "Item / Reference", "Item Type", "Cause", "Sampled By", "Batch / Control No.",
-      "Assigned To", "Sample Status", "Due", "Tests", "Next Action", "Actions"
+      "Item / Reference", "Batch / Control No.", "Assigned To", "Sample Status", "Due", "Tests", "Next Action",
+      "Received At", "#", "Item Type", "Cause", "Sampled By", "Actions"
     ]);
   });
 
@@ -275,7 +311,7 @@ describe("SampleRegisterTable columns (characterisation)", () => {
     localStorage.setItem("microlims.sampleRegister.columns", JSON.stringify(["receivedAt", "cause", "due:off"]));
     renderFull([sample({})], makeHandlers());
     expect(headerTexts()).toEqual(["Received At", "Item / Reference", "Cause", "Actions"]);
-    await user.click(screen.getByRole("button", { name: "Choose visible columns" }));
+    await openColumns(user);
     await user.click(within(screen.getByRole("presentation")).getByRole("button", { name: "Reset to default" }));
     await user.keyboard("{Escape}");
     expect(headerTexts()).toEqual(["Item / Reference", ...DEFAULT_COLUMN_LABELS, "Actions"]);
@@ -315,14 +351,27 @@ describe("SampleRegisterTable stored column preference (characterisation)", () =
     expect(headerTexts()).toEqual(["#", "Item / Reference", "Actions"]);
   });
 
-  it("writes the choice back under the key it was given, with due:off when Due is hidden", async () => {
+  it("old column preference is migrated once and the old key removed", async () => {
     const user = userEvent.setup();
+    localStorage.setItem("microlims.receivingRegister.columns", JSON.stringify(["sampleId", "tests", "due:off"]));
+    const first = renderFull([sample({})], makeHandlers(), "microlims.receivingRegister.columns");
+    expect(headerTexts()).toEqual(["#", "Item / Reference", "Tests", "Actions"]);
+    expect(localStorage.getItem("microlims.receivingRegister.columns")).toBeNull();
+    expect(JSON.parse(localStorage.getItem("microlims.table.samples.receiving") ?? "null")).toMatchObject({
+      columns: ["sampleId", "item", "tests"]
+    });
+    first.unmount();
+
+    // A later visit reads the new state, not the old key (which is gone) - and a stale old key never overrides it.
+    localStorage.setItem("microlims.receivingRegister.columns", JSON.stringify(["category", "due:off"]));
     renderFull([sample({})], makeHandlers(), "microlims.receivingRegister.columns");
-    await user.click(screen.getByRole("button", { name: "Choose visible columns" }));
-    await user.click(within(screen.getByRole("presentation")).getByLabelText("Due"));
-    expect(JSON.parse(localStorage.getItem("microlims.receivingRegister.columns") ?? "null")).toEqual(
-      ["batchControl", "assignedTo", "sampleStatus", "tests", "nextAction", "due:off"]
-    );
+    expect(headerTexts()).toEqual(["#", "Item / Reference", "Tests", "Actions"]);
+    expect(localStorage.getItem("microlims.receivingRegister.columns")).toBeNull();
+
+    // A choice made now is kept in the new state only.
+    await user.click(screen.getByRole("button", { name: "Columns" }));
+    await user.click(within(screen.getByRole("presentation")).getByRole("checkbox", { name: "Due" }));
+    expect(JSON.parse(localStorage.getItem("microlims.table.samples.receiving") ?? "null").columns).toEqual(["sampleId", "item", "tests", "due"]);
     expect(localStorage.getItem("microlims.sampleRegister.columns")).toBeNull();
   });
 });
@@ -460,14 +509,18 @@ describe("SampleRegisterTable row actions (characterisation)", () => {
     expect(h.onSelectTests).toHaveBeenCalledWith(expect.objectContaining({ sampleId: 91 }));
   });
 
-  it("the row checkbox reports the sample id and the new state; the header checkbox reports every id on the page", async () => {
+  it("the row checkbox selects that sample id and unselects it again; the header checkbox selects every id on the page", async () => {
     const user = userEvent.setup();
-    const h = makeHandlers();
-    renderFull([sample({ sampleId: 91 }), sample({ sampleId: 92, referenceNumber: "FP2", displayName: "Second Item" })], h);
-    await user.click(screen.getByRole("checkbox", { name: "Select Second Item (FP2) for grouped actions" }));
-    expect(h.onToggleCheck).toHaveBeenCalledWith(92, true);
+    renderSelectable([sample({ sampleId: 91 }), sample({ sampleId: 92, referenceNumber: "FP2", displayName: "Second Item" })], makeHandlers());
+    const row = screen.getByRole("checkbox", { name: "Select Second Item (FP2) for grouped actions" }) as HTMLInputElement;
+    await user.click(row);
+    expect(selectedIds()).toBe("92");
+    expect(row.checked).toBe(true);
+    await user.click(row);
+    expect(selectedIds()).toBe("");
     await user.click(screen.getByRole("checkbox", { name: "Select all 2 samples on this page" }));
-    expect(h.onToggleCheckMany).toHaveBeenCalledWith([91, 92], true);
+    expect(selectedIds()).toBe("91,92");
+    expect(screen.getByRole("checkbox", { name: "Deselect all 2 samples on this page" })).toBeTruthy();
   });
 });
 
@@ -536,12 +589,27 @@ describe("SampleRegisterTable retest chain expand and collapse (characterisation
 
   it("select-all counts only the rows on screen: the collapsed retest is not included, the expanded one is", async () => {
     const user = userEvent.setup();
-    const h = makeHandlers();
-    renderFull(family(), h);
+    renderSelectable(family(), makeHandlers());
     await user.click(screen.getByRole("checkbox", { name: "Select all 1 samples on this page" }));
-    expect(h.onToggleCheckMany).toHaveBeenLastCalledWith([91], true);
+    expect(selectedIds()).toBe("91");
+    await user.click(screen.getByRole("checkbox", { name: "Deselect all 1 samples on this page" }));
     await user.click(screen.getByText("1 retest"));
     await user.click(screen.getByRole("checkbox", { name: "Select all 2 samples on this page" }));
-    expect(h.onToggleCheckMany).toHaveBeenLastCalledWith([91, 92], true);
+    expect(selectedIds()).toBe("91,92");
+    // The retest's own checkbox is ticked as well.
+    expect((screen.getByRole("checkbox", { name: "Select Retest Child (FP-RT1) for grouped actions" }) as HTMLInputElement).checked).toBe(true);
   });
+
+  it("the toggle button on a parent row expands and collapses it and keeps its place; rows without retests have none", async () => {
+    const user = userEvent.setup();
+    renderFull([...family(), sample({ sampleId: 93, referenceNumber: "FP3", displayName: "Lonely Item" })], makeHandlers());
+    expect(screen.getAllByRole("button", { name: /^(Expand|Collapse) row/ })).toHaveLength(1);
+    const toggle = screen.getByRole("button", { name: "Expand row 91" });
+    await user.click(toggle);
+    expect(screen.getByText("Retest Child")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Collapse row 91" }).getAttribute("aria-expanded")).toBe("true");
+    await user.click(screen.getByRole("button", { name: "Collapse row 91" }));
+    expect(screen.queryByText("Retest Child")).toBeNull();
+  });
+
 });

@@ -77,19 +77,7 @@ var rawFrontendOrigins = builder.Configuration["Frontend:Origin"]
 var allowedOrigins = rawFrontendOrigins
     .Split(new[] { ',', ';' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
-builder.Services.AddCors(options =>
-{
-    options.AddPolicy("Frontend", policy =>
-        policy.WithOrigins(allowedOrigins)
-              .AllowAnyHeader()
-              .AllowAnyMethod()
-              // AllowAnyHeader covers request headers only. Without this
-              // the browser hides X-Correlation-Id from JS entirely, and
-              // client-side error reports cannot be tied to the backend
-              // error from the same action. Content-Disposition carries
-              // the server's name for a downloaded file (exports, reports).
-              .WithExposedHeaders(MicroLIMS.API.Middleware.CorrelationIdMiddleware.HeaderName, "Content-Disposition", MicroLIMS.API.Middleware.MaintenanceModeMiddleware.HeaderName));
-});
+builder.Services.AddMicroLimsCors(allowedOrigins);
 
 var app = builder.Build();
 

@@ -28,6 +28,10 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext, IMicr
     public uint? ExpectedVersion { get; set; }
     public string? CurrentReason { get; set; }
 
+    // Set by DraftContextMiddleware; copied to AuditLog.SourceContext for the
+    // rows the automatic capture builds. Never changes the audit timestamp.
+    public string? CurrentSourceContext { get; set; }
+
     // Stamps every audit row (CLAUDE.md Rule 3.3.2 / 5.6): the application's
     // injected TimeProvider, never the static system clock, so audit time and
     // every time-dependent rule share one clock that tests can control.
@@ -679,6 +683,7 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext, IMicr
             SystemProcessName = byAgent ? $"InstrumentAgent:{CurrentAgentCode}" : byProcess ? CurrentSystemProcessName : null,
             Timestamp = _clock.GetUtcNow().UtcDateTime,
             Reason = CurrentReason,
+            SourceContext = CurrentSourceContext,
             BatchNumber = GetPropertyAsString(entry, "BatchNumber"),
             ControlNumber = GetPropertyAsString(entry, "ControlNumber"),
             SampleReferenceNumber = GetPropertyAsString(entry, "ReferenceNumber"),

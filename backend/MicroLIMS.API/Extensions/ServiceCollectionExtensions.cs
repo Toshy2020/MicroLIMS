@@ -39,6 +39,28 @@ public static class ServiceCollectionExtensions
     // The DbContext, and the interface the Application layer asks for. Both
     // resolve to the same request-scoped instance, which AuditMiddleware
     // stamps with the current user.
+    // The "Frontend" CORS policy. Extracted from Program.cs so a test can
+    // exercise the real policy (e.g. that a preflight allows X-Draft-Started-At).
+    public static IServiceCollection AddMicroLimsCors(this IServiceCollection services, string[] allowedOrigins)
+    {
+        services.AddCors(options =>
+        {
+            options.AddPolicy("Frontend", policy =>
+                policy.WithOrigins(allowedOrigins)
+                      // AllowAnyHeader already covers the request header
+                      // X-Draft-Started-At (bench tablets); a test pins that.
+                      .AllowAnyHeader()
+                      .AllowAnyMethod()
+                      // AllowAnyHeader covers request headers only. Without this
+                      // the browser hides X-Correlation-Id from JS entirely, and
+                      // client-side error reports cannot be tied to the backend
+                      // error from the same action. Content-Disposition carries
+                      // the server's name for a downloaded file (exports, reports).
+                      .WithExposedHeaders(MicroLIMS.API.Middleware.CorrelationIdMiddleware.HeaderName, "Content-Disposition", MicroLIMS.API.Middleware.MaintenanceModeMiddleware.HeaderName));
+        });
+        return services;
+    }
+
     public static IServiceCollection AddMicroLimsDbContext(this IServiceCollection services, Action<DbContextOptionsBuilder> configure)
     {
         services.AddDbContext<MicroLimsDbContext>(configure);

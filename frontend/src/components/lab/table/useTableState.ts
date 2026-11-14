@@ -1,7 +1,9 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTheme } from "@mui/material/styles";
 import { useSearchParams } from "react-router-dom";
 import { useBenchMode } from "../../../theme/BenchModeContext";
+import { getErrorMessage } from "../../../utils/errorMessage";
+import { tableViewService, type TableViewDto } from "./services/tableViewService";
 import { getTable, type TableDefinition } from "./tableRegistry";
 import {
   decodeState,
@@ -9,6 +11,12 @@ import {
   isOwnedParam,
   type TableState,
 } from "./tableUrlCodec";
+import {
+  isStateEqualToView,
+  parseViewState,
+  sanitizeColumnsForDef,
+  serializeTableState,
+} from "./viewState";
 
 export interface UseTableState {
   state: TableState;
@@ -16,6 +24,12 @@ export interface UseTableState {
   viewId: number | null;
   isDefault: boolean;
   skipped: string[];
+  views: TableViewDto[];
+  viewsLoading: boolean;
+  activeView: TableViewDto | null;
+  isViewModified: boolean;
+  viewsNotice: string | null;
+  dismissViewsNotice: () => void;
   setFilter(name: string, value: string | string[] | null): void;
   setSearch(v: string): void;
   setSort(s: TableState["sort"]): void;
@@ -24,6 +38,9 @@ export interface UseTableState {
   setColumns(c: string[]): void;
   setDensity(d: TableState["density"]): void;
   applyState(s: Partial<TableState>, viewId: number | null): void;
+  applyView(view: TableViewDto): void;
+  saveViewChanges(): Promise<TableViewDto | null>;
+  refreshViews(): Promise<void>;
   reset(): void;
 }
 
@@ -51,36 +68,9 @@ function getDefaultColumns(
   defaults?: Partial<TableState>
 ): string[] {
   if (defaults?.columns && defaults.columns.length > 0) {
-    return sanitizeColumns(def, defaults.columns).columns;
+    return sanitizeColumnsForDef(def, defaults.columns).columns;
   }
   return def.columns.filter((c) => c.defaultVisible).map((c) => c.key);
-}
-
-function sanitizeColumns(
-  def: TableDefinition,
-  raw: string[]
-): { columns: string[]; skipped: string[] } {
-  const known = new Set(def.columns.map((c) => c.key));
-  const seen = new Set<string>();
-  const valid: string[] = [];
-  const skipped: string[] = [];
-
-  for (const key of raw) {
-    if (!known.has(key)) {
-      skipped.push(`column:${key}`);
-      continue;
-    }
-    if (!seen.has(key)) {
-      seen.add(key);
-      valid.push(key);
-    }
-  }
-
-  if (!seen.has(def.idColumn)) {
-    valid.unshift(def.idColumn);
-  }
-
-  return { columns: valid, skipped };
 }
 
 function readStoredPrefs(
@@ -101,7 +91,7 @@ function readStoredPrefs(
       const stringCols = parsed.columns.filter(
         (c): c is string => typeof c === "string"
       );
-      const result = sanitizeColumns(def, stringCols);
+      const result = sanitizeColumnsForDef(def, stringCols);
       columns = result.columns.length > 0 ? result.columns : defaultColumns;
       skipped = result.skipped;
     }
@@ -157,6 +147,13 @@ function sameFilters(
   });
 }
 
+function hasOwnedUrlState(params: URLSearchParams, prefix?: string): boolean {
+  for (const key of params.keys()) {
+    if (isOwnedParam(key, prefix)) return true;
+  }
+  return false;
+}
+
 export function useTableState(
   tableKey: string,
   defaults?: Partial<TableState>,
@@ -179,6 +176,14 @@ export function useTableState(
     readStoredPrefs(tableKey, def, defaultColumns, defaultDensity)
   );
   const [searchParams, setSearchParams] = useSearchParams();
+  const [views, setViews] = useState<TableViewDto[]>([]);
+  const [viewsLoading, setViewsLoading] = useState(true);
+  const [viewsNotice, setViewsNotice] = useState<string | null>(null);
+  const [viewSkipped, setViewSkipped] = useState<string[]>([]);
+
+  const searchParamsRef = useRef(searchParams);
+  searchParamsRef.current = searchParams;
+  const initializedTableRef = useRef<string | null>(null);
 
   const decoded = useMemo(
     () => decodeState(def, searchParams, { prefix }),
@@ -205,8 +210,8 @@ export function useTableState(
   );
 
   const skipped = useMemo(
-    () => [...decoded.skipped, ...prefs.skipped],
-    [decoded.skipped, prefs.skipped]
+    () => Array.from(new Set([...decoded.skipped, ...prefs.skipped, ...viewSkipped])),
+    [decoded.skipped, prefs.skipped, viewSkipped]
   );
 
   const isDefault = useMemo(() => {
@@ -235,6 +240,32 @@ export function useTableState(
   }, [
     decoded.page,
     decoded.viewId,
+    state,
+    defaults,
+    defaultColumns,
+    defaultDensity,
+    isBench,
+  ]);
+
+  const activeView = useMemo(
+    () => views.find((v) => v.id === decoded.viewId) ?? null,
+    [views, decoded.viewId]
+  );
+
+  const isViewModified = useMemo(() => {
+    if (!activeView) return false;
+    return !isStateEqualToView(
+      def,
+      state,
+      activeView.stateJson,
+      defaults,
+      defaultColumns,
+      defaultDensity,
+      isBench
+    );
+  }, [
+    activeView,
+    def,
     state,
     defaults,
     defaultColumns,
@@ -271,6 +302,146 @@ export function useTableState(
     },
     [def, defaults, prefix, setSearchParams]
   );
+
+  const applyPartialState = useCallback(
+    (
+      partial: Partial<TableState>,
+      viewId: number | null,
+      replace = false,
+      extraSkipped: string[] = []
+    ) => {
+      const nextState: TableState = {
+        filters: partial.filters ?? defaults?.filters ?? {},
+        search: partial.search ?? defaults?.search ?? "",
+        sort:
+          partial.sort !== undefined
+            ? partial.sort
+            : (defaults?.sort ?? null),
+        pageSize: partial.pageSize ?? defaults?.pageSize ?? 25,
+        columns: prefs.columns,
+        density: effectiveDensity,
+      };
+
+      let colSkipped: string[] = [];
+      if (partial.columns || partial.density) {
+        let nextCols = prefs.columns;
+        if (partial.columns) {
+          const sanitized = sanitizeColumnsForDef(def, partial.columns);
+          nextCols =
+            sanitized.columns.length > 0 ? sanitized.columns : defaultColumns;
+          colSkipped = sanitized.skipped;
+        }
+        const nextDensity =
+          !isBench &&
+          (partial.density === "compact" || partial.density === "comfortable")
+            ? partial.density
+            : prefs.density;
+
+        setPrefs({
+          columns: nextCols,
+          density: nextDensity,
+          skipped: colSkipped,
+        });
+        writeStoredPrefs(tableKey, nextCols, nextDensity);
+      }
+
+      setViewSkipped(Array.from(new Set([...extraSkipped, ...colSkipped])));
+      commitUrl(nextState, 1, viewId, replace);
+    },
+    [
+      def,
+      defaults,
+      defaultColumns,
+      prefs.columns,
+      prefs.density,
+      effectiveDensity,
+      isBench,
+      tableKey,
+      commitUrl,
+    ]
+  );
+
+  const applyView = useCallback(
+    (view: TableViewDto, replace = false) => {
+      setViewsNotice(null);
+      const parsed = parseViewState(def, view.stateJson);
+      applyPartialState(parsed.state, view.id, replace, parsed.skipped);
+    },
+    [def, applyPartialState]
+  );
+
+  const applyViewRef = useRef(applyView);
+  applyViewRef.current = applyView;
+  const applyPartialRef = useRef(applyPartialState);
+  applyPartialRef.current = applyPartialState;
+
+  useEffect(() => {
+    const controller = new AbortController();
+    setViewsLoading(true);
+
+    tableViewService
+      .list(tableKey, controller.signal)
+      .then((loaded) => {
+        if (controller.signal.aborted) return;
+        setViews(loaded);
+        setViewsLoading(false);
+
+        if (initializedTableRef.current === tableKey) return;
+        initializedTableRef.current = tableKey;
+
+        const currentParams = searchParamsRef.current;
+        const initialDecoded = decodeState(def, currentParams, { prefix });
+
+        if (initialDecoded.viewId !== null) {
+          const matched = loaded.find((v) => v.id === initialDecoded.viewId);
+          if (matched) {
+            applyViewRef.current(matched, true);
+          } else {
+            applyPartialRef.current({}, null, true, []);
+            setViewsNotice(
+              "The requested view was not found or you do not have access to it. Showing default settings."
+            );
+          }
+          return;
+        }
+
+        if (!hasOwnedUrlState(currentParams, prefix)) {
+          const defaultView = loaded.find((v) => v.isDefault);
+          if (defaultView) {
+            applyViewRef.current(defaultView, true);
+          }
+        }
+      })
+      .catch(() => {
+        if (controller.signal.aborted) return;
+        setViewsLoading(false);
+        setViewsNotice("Saved views are unavailable right now.");
+      });
+
+    return () => {
+      controller.abort();
+    };
+  }, [tableKey, def, prefix]);
+
+  const refreshViews = useCallback(async () => {
+    try {
+      const loaded = await tableViewService.list(tableKey);
+      setViews(loaded);
+      setViewsNotice(null);
+    } catch (err) {
+      setViewsNotice(getErrorMessage(err, "Saved views are unavailable right now."));
+    }
+  }, [tableKey]);
+
+  const saveViewChanges = useCallback(async (): Promise<TableViewDto | null> => {
+    if (!activeView || !activeView.canEdit) return null;
+    const updated = await tableViewService.update(activeView.id, {
+      stateJson: serializeTableState(state),
+    });
+    setViews((prev) => prev.map((v) => (v.id === updated.id ? updated : v)));
+    setViewSkipped([]);
+    return updated;
+  }, [activeView, state]);
 
   const setFilter = useCallback(
     (name: string, value: string | string[] | null) => {
@@ -325,7 +496,7 @@ export function useTableState(
 
   const setColumns = useCallback(
     (c: string[]) => {
-      const sanitized = sanitizeColumns(def, c);
+      const sanitized = sanitizeColumnsForDef(def, c);
       const nextCols =
         sanitized.columns.length > 0 ? sanitized.columns : defaultColumns;
       setPrefs((prev) => {
@@ -355,54 +526,9 @@ export function useTableState(
 
   const applyState = useCallback(
     (partial: Partial<TableState>, viewId: number | null) => {
-      const nextState: TableState = {
-        filters: partial.filters ?? defaults?.filters ?? {},
-        search: partial.search ?? defaults?.search ?? "",
-        sort:
-          partial.sort !== undefined
-            ? partial.sort
-            : (defaults?.sort ?? null),
-        pageSize: partial.pageSize ?? defaults?.pageSize ?? 25,
-        columns: prefs.columns,
-        density: effectiveDensity,
-      };
-
-      if (partial.columns || partial.density) {
-        let nextCols = prefs.columns;
-        let nextSkipped: string[] = [];
-        if (partial.columns) {
-          const sanitized = sanitizeColumns(def, partial.columns);
-          nextCols =
-            sanitized.columns.length > 0 ? sanitized.columns : defaultColumns;
-          nextSkipped = sanitized.skipped;
-        }
-        const nextDensity =
-          !isBench &&
-          (partial.density === "compact" || partial.density === "comfortable")
-            ? partial.density
-            : prefs.density;
-
-        setPrefs({
-          columns: nextCols,
-          density: nextDensity,
-          skipped: nextSkipped,
-        });
-        writeStoredPrefs(tableKey, nextCols, nextDensity);
-      }
-
-      commitUrl(nextState, 1, viewId, false);
+      applyPartialState(partial, viewId, false, []);
     },
-    [
-      def,
-      defaults,
-      defaultColumns,
-      prefs.columns,
-      prefs.density,
-      effectiveDensity,
-      isBench,
-      tableKey,
-      commitUrl,
-    ]
+    [applyPartialState]
   );
 
   const reset = useCallback(() => {
@@ -419,6 +545,7 @@ export function useTableState(
       density: defaultDensity,
       skipped: [],
     });
+    setViewSkipped([]);
     try {
       localStorage.removeItem(storageKey(tableKey));
     } catch {
@@ -434,12 +561,22 @@ export function useTableState(
     commitUrl,
   ]);
 
+  const dismissViewsNotice = useCallback(() => {
+    setViewsNotice(null);
+  }, []);
+
   return {
     state,
     page: decoded.page,
     viewId: decoded.viewId,
     isDefault,
     skipped,
+    views,
+    viewsLoading,
+    activeView,
+    isViewModified,
+    viewsNotice,
+    dismissViewsNotice,
     setFilter,
     setSearch,
     setSort,
@@ -448,6 +585,9 @@ export function useTableState(
     setColumns,
     setDensity,
     applyState,
+    applyView: (view: TableViewDto) => applyView(view, false),
+    saveViewChanges,
+    refreshViews,
     reset,
   };
 }

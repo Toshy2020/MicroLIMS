@@ -22,8 +22,8 @@ export async function getSections(): Promise<LaboratorySection[]> {
   return (await apiClient.get("/org/sections")).data.data;
 }
 
-export async function getMySections(): Promise<LaboratorySection[]> {
-  return (await apiClient.get("/org/my-sections")).data.data;
+export async function getMySections(signal?: AbortSignal): Promise<LaboratorySection[]> {
+  return (await apiClient.get("/org/my-sections", { signal })).data.data;
 }
 
 export async function getUserMemberships(userId: number): Promise<UserMembership[]> {

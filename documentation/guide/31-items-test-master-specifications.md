@@ -197,6 +197,9 @@ Define, edit and delete the acceptance limits for the tests assigned to an item.
 6. Fill in the fields of the chosen limit type.
 7. Click **Add Parameter** (or **Save Changes** when editing).
 8. To remove a parameter, use the delete icon and confirm: "Delete specification parameter \"{parameter}\" for \"{item}\"? This cannot be undone."
+9. To paste plain specification rows from a spreadsheet (up to **200** rows), click **Paste specifications**, paste the spreadsheet columns (**Test**, **Parameter name**, **Limit type**, **Lower limit**, **Upper limit**, **Target**, **Tolerance**, **Tolerance mode**, **Alert limit**, **Action limit**, **Spec limit**, **Expected result text**, **Unit**), review **Paste preview**, click **Accept** to fill **Pending specifications**, and click **Save** for an all-or-nothing save. Pasted **Range** rows include both lower and upper limits; use **Add Specification Parameter** for exclusive limits, stages, HPLC analytes/impurities, ICP elements, related-substance rows, dosage form, label claim, production stage, or grade.
+
+> **SOP note:** Pasted data must be checked in the preview before accepting. Use screen paste for up to 200 plain rows; use the **Master Data Workbook** (§32.3–§32.4) for initial bulk loads needing second-person password-confirmed verification.
 
 #### System behavior
 **How results are compared with the limit**

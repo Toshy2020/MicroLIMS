@@ -264,6 +264,8 @@ Requires the *Manage master data* permission (by default: Section Head, System A
 #### System behavior
 - Edits are made in place. The system records an audit event with the reason and the before and after values. No electronic signature or password is requested.
 - A recipe can be deactivated and activated again; an inactive recipe cannot be used to start a preparation.
+- **No spreadsheet paste:** **Solutions Master** intentionally has **no** spreadsheet paste screen because each solution recipe requires its own component rows. Define solutions using **Add Solution** or the **Master Data Workbook** (§32.3–§32.4).
+- When preparing a solution that requires sterilization, the autoclave selector pre-fills **From your last entry** from your own latest eligible preparation when last-choice defaults are enabled.
 
 > **Note for reviewers:** Changes to recipes, methods and ICP methods require a reason and are audited, but are not electronically signed. Whether a signature is required at the site is not defined by the system. (GAP-615)
 

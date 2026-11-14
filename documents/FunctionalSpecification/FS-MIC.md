@@ -4,7 +4,7 @@
 |---|---|
 | Document number | FS-MIC |
 | Title | Microbiology enumeration and incubation functional specification |
-| Version | 0.1 |
+| Version | 0.2 |
 | Status | Draft |
 | Author | Claude (AI agent), draft from code |
 | Reviewer | To be assigned by QA |
@@ -16,6 +16,7 @@
 | Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1 | 2026-11-12 | Claude (AI agent), draft from code | First draft, written from the code as built. |
+| 0.2 | 2026-11-14 | AI coding agent, draft from code | Added server count preview, last-choice defaults with mandatory lot confirmation, and grid navigation/location paste (FS-MIC-012 to FS-MIC-014). |
 
 ## Scope and reading notes
 
@@ -104,3 +105,22 @@
 **Code:** `backend/MicroLIMS.Application/Workflows/TestWorkflow/TestWorkflowSupport.cs` — `CheckPredecessorStepsReadyAsync`, `RequireSamplePreparedAsync`, `FindFirstIncompleteStep`
 **Verified by:** reading (not run)
 **Conflicts:** CONF-026
+
+### FS-MIC-012
+**Satisfies:** URS-MIC-013
+**Function:** Server count preview (`POST api/test-workflow/{testOrderId}/preview-count-result`, policy `TestWorkflow.Execute` and laboratory section scope check). `IncubationStepRecorder.PreviewCountResultAsync` delegates to `LoadAndCalculateCountAsync` and `CountResultCalculator.Calculate` — the exact same dilution, average, rounding, TNTC/Uncountable, and limit-evaluation code used by `RecordCountTestCoreAsync` — and returns `CountPreviewResponse` (`reported`, `average`, `calculatedResult`, `status`, `unit`, `effectiveDilutionFactor`) without writing readings, results, or audit rows and without changing incubation or order status. Invalid non-TNTC/Uncountable readings return `FieldValidationException` on `rawPlateReadings`. `TestWorkflowDialog` debounces preview calls while readings are entered and displays the server result banner `"Preview — not recorded"` (or `"Preview unavailable"` on error) before the user clicks record. SOP note: in-app preview values are not records.
+**Code:** `backend/MicroLIMS.Application/Workflows/TestWorkflow/IncubationStepRecorder.cs` — `PreviewCountResultAsync`, `LoadAndCalculateCountAsync`; `backend/MicroLIMS.Application/Workflows/TestWorkflow/CountResultCalculator.cs` — `Calculate`; `backend/MicroLIMS.API/Controllers/TestWorkflowController.cs` — `PreviewCountResult`; `frontend/src/modules/testingWorkspace/TestWorkflowDialog.tsx`
+**Verified by:** reading (not run)
+**Conflicts:** CONF-201, CONF-202, CONF-203
+
+### FS-MIC-013
+**Satisfies:** URS-MIC-014
+**Function:** Last-choice defaults for workflow incubation and preparation (`GET api/entry-defaults`, `EntryDefaultsService.GetAsync`). When setting `entry.lastChoiceDefaults.enabled` is `"true"`, queries only the caller's own latest saved records without writing anything: for `context=incubation` (`testOrderId`, `stepName`), pre-fills `mediaLotId` (same required media product, verified via `EnsureMediaAccessAsync`, `BatchSelectMediaRules.EnsureMediaLotUsable`, and `SectionMediaRule.EnsureLot`) and `incubatorEquipmentId` (verified via `EnsureEquipmentAccessAsync`, in-service `EquipmentInventory`, calibration not overdue, and `RequireEligibleIncubatorAsync`); for `context=mediaPreparation`, pre-fills `autoclaveEquipmentId` (Autoclave passing access, in-service, and calibration checks); for `context=solutionPreparation` (`solutionMasterId`), pre-fills `autoclaveEquipmentId` from the user's latest preparation for that recipe or any solution preparation. In `LastChoiceField` (`kind="lot"`), pre-filled lots start unconfirmed (`confirmed = false`), display `"From your last entry"` with a **Confirm** button, and block saving with `"Confirm the pre-filled lot"` until confirmed or changed by the user (`TestWorkflowDialog`, `StepLayout`, `MediaPreparationDialog`, `LotsStep`). SOP note: a pre-filled lot must be checked against the plate/container before confirming.
+**Code:** `backend/MicroLIMS.Application/Services/EntryDefaults/EntryDefaultsService.cs` — `GetAsync`, `GetIncubationDefaultsAsync`, `GetMediaPreparationDefaultsAsync`, `GetSolutionPreparationDefaultsAsync`; `backend/MicroLIMS.API/Controllers/EntryDefaultsController.cs`; `frontend/src/components/entry/LastChoiceField.tsx`; `frontend/src/services/entryDefaultsService.ts`; `frontend/src/modules/testingWorkspace/TestWorkflowDialog.tsx`; `frontend/src/modules/testingWorkspace/pathogenSteps/StepLayout.tsx`; `frontend/src/modules/laboratoryConfiguration/media/dialogs/MediaPreparationDialog.tsx`; `frontend/src/modules/solutionPreparation/wizard/LotsStep.tsx`
+**Verified by:** reading (not run)
+
+### FS-MIC-014
+**Satisfies:** URS-MIC-015
+**Function:** Result-entry grid keyboard navigation and location-count spreadsheet paste. `useGridNavigation` is wired into `UnitEntryGrid` (with `Ctrl+D` `onCopyDown` enabled) and into `PathogenLocationResultGridDialog`, `PrimaryObservationMatrixPanel`, and HPLC `ReplicateEntryTable` with `onCopyDown` deliberately omitted so each pathogen, qualitative/observation, and HPLC replicate reading is entered deliberately without copying down. On `LocationResultGridDialog` (EM / After Cleaning) and `WaterLocationResultGridDialog` (Water), `useLocationPaste` intercepts multi-cell clipboard pastes (excluding single-cell pastes), pairs two-column `(Name, Count)` rows via `pasteMatching.matchRowsByName` (trimmed, case-insensitive name match; whole numbers `>= 0` via `parseCount`; up to 500 rows; refused if only 1 column is pasted or if location names in the session are duplicated; unknown names, duplicate pasted names, and invalid counts block acceptance; omitted locations are listed under `"Left empty (not in the paste)"`), and renders `PastePreviewDialog`. Accepting the preview populates grid fields only; nothing is saved until the user clicks **Submit Results**. SOP note: pasted data must be checked in the preview before accepting.
+**Code:** `frontend/src/components/entry/useGridNavigation.ts`; `frontend/src/components/UnitEntryGrid.tsx`; `frontend/src/modules/testingWorkspace/PathogenLocationResultGridDialog.tsx`; `frontend/src/modules/testingWorkspace/pathogenSteps/PrimaryObservationMatrixPanel.tsx`; `frontend/src/modules/hplcWorkspace/entry/ReplicateEntryTable.tsx`; `frontend/src/modules/testingWorkspace/useLocationPaste.tsx`; `frontend/src/components/entry/pasteMatching.ts`; `frontend/src/components/entry/PastePreviewDialog.tsx`; `frontend/src/modules/testingWorkspace/LocationResultGridDialog.tsx`; `frontend/src/modules/testingWorkspace/WaterLocationResultGridDialog.tsx`
+**Verified by:** reading (not run)

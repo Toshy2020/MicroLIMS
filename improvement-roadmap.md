@@ -202,7 +202,7 @@ Phases 0, 1 and 2 can run in parallel if more than one person is available. Phas
 
 ### C4. Faster data entry — Size M
 
-**Spec:** `docs/superpowers/specs/2026-11-11-faster-data-entry-design.md`. **Plan:** `docs/superpowers/plans/2026-11-11-faster-data-entry.md`. Server-side drafts were dropped: device drafts from C2 are used instead.
+**Spec:** `docs/superpowers/specs/2026-11-11-faster-data-entry-design.md`. **Plan:** `docs/superpowers/plans/2026-11-11-faster-data-entry.md`. Server-side drafts were dropped: device drafts from C2 are used instead. **Documents:** draft requirements `URS-RCV-013`, `URS-RCV-014`, `URS-MIC-013` to `URS-MIC-015`, `URS-MDM-025`, `URS-ADM-013`; draft functional specifications `FS-RCV-013`, `FS-RCV-014`, `FS-MIC-012` to `FS-MIC-014`, `FS-MDM-036`, `FS-MDM-037`, `FS-ADM-013`; conflicts `CONF-201` to `CONF-205`; and user-guide sections in `documentation/guide/` (chapters 6, 12, 15, 23, 24, 28, 30, 31, and 32).
 
 **Scope.**
 1. Keyboard navigation in entry grids: Enter and arrow keys move between cells, Tab order follows the reading order.

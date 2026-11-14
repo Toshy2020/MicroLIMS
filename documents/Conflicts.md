@@ -1005,3 +1005,48 @@ Locations for CONF-001 to CONF-008 were added on 2026-11-12 from the area worker
 - **Question:** Should My Work list only non-ready incubations ending before the end of the current laboratory day (with no look-ahead), or should it also list upcoming incubations within a look-ahead window?
 - **Decision:** Not decided.
 - **Date:** Not applicable
+
+### CONF-201
+- **Area:** MIC
+- **Status:** Decided
+- **What the code does:** `CountResultCalculator.IsParsable` (`NumberStyles.Number`, `CultureInfo.InvariantCulture`) and `CountResultCalculator.Calculate` (`decimal.Parse(..., CultureInfo.InvariantCulture)`, which defaults to `NumberStyles.Number`) in `backend/MicroLIMS.Application/Workflows/TestWorkflow/CountResultCalculator.cs` accept thousands separators, so `"1,000"` parses as `1000m` (`"1000 CFU/mL"`). At the same time, recorded `PlateReadings` are stored joined by `","`. Pinned by `CountResultCharacterisationPostgresTests.ThousandsSeparatorReading_IsParsedAsOneThousand` (`backend/MicroLIMS.Tests/IntegrationTests/CountResultCharacterisationPostgresTests.cs`, line 574) and `CountResultCalculatorTests.Calculate_MatchesSavedValues_ForEachCharacterisedCase` (`"thousands separator parsed"`, line 48).
+- **What the other source says:** No specification document defines whether thousands separators are permitted in manual plate count inputs or whether `"1,000"` should be rejected to prevent comma/decimal ambiguity and comma-joined storage ambiguity.
+- **Question:** Should count entry continue accepting a thousands separator such as `"1,000"` as `1000`, or should commas in plate count readings be rejected?
+- **Decision:** Decided by the user 2026-11-15: reject. Plate counts accept digits only; a reading such as `1,000` is refused with a message. Code change pending.
+- **Date:** 2026-11-15
+
+### CONF-202
+- **Area:** MIC
+- **Status:** Decided
+- **What the code does:** When both `TNTC` and `Uncountable` appear in the same plate-reading list for one count test, `CountResultCalculator.Calculate` (`backend/MicroLIMS.Application/Workflows/TestWorkflow/CountResultCalculator.cs`) selects the first non-numeric entry in plate order (`First(r => !decimal.TryParse(..., NumberStyles.Any, CultureInfo.InvariantCulture, out _))`), so whichever flag is entered first wins and the other is dropped from the reported text. Pinned by `CountResultCharacterisationPostgresTests.TntcAndUncountableTogether_FirstEnteredWins` (`backend/MicroLIMS.Tests/IntegrationTests/CountResultCharacterisationPostgresTests.cs`, line 469) and `CountResultCalculatorTests.Calculate_MatchesSavedValues_ForEachCharacterisedCase` (`"Uncountable then TNTC"` / `"TNTC then Uncountable"`, lines 37–38).
+- **What the other source says:** No specification document defines precedence between `TNTC` and `Uncountable` when both are flagged for one reading set, or whether entering both simultaneously should be disallowed.
+- **Question:** When both `TNTC` and `Uncountable` are entered on different plates of the same reading set, should the first entered flag continue to win, should one always take precedence over the other, or should mixed flags be rejected?
+- **Decision:** Decided by the user 2026-11-15: the server refuses a reading set that carries both `TNTC` and `Uncountable` and asks the analyst to choose one. Code change pending.
+- **Date:** 2026-11-15
+
+### CONF-203
+- **Area:** MIC
+- **Status:** Decided
+- **What the code does:** In `IncubationStepRecorder.LoadCountContextAsync` (`backend/MicroLIMS.Application/Workflows/TestWorkflow/IncubationStepRecorder.cs`, line 800), when `!isDirectCount && sample.ItemId is null` (an item-less non-direct sample such as GPT), the configured dilution factor and item specification limit/unit lookup block is bypassed. As a result, the `DilutionFactor` supplied by the client is used as entered with no override note, no limits are checked, and the unit defaults to `"CFU/unit"`. Pinned by `CountResultCharacterisationPostgresTests.ItemlessNonDirectSample_ClientDfUsedAsTyped_NoLimits_DefaultUnit` (`backend/MicroLIMS.Tests/IntegrationTests/CountResultCharacterisationPostgresTests.cs`, line 735) and `CountResultCalculatorTests.Calculate_MatchesSavedValues_ForEachCharacterisedCase` (`"itemless GPT"`, line 31).
+- **What the other source says:** Characterisation tests record this existing behavior; no requirement defines whether item-less non-direct count tests should accept an unvalidated client dilution factor or enforce a configured dilution factor.
+- **Question:** For item-less non-direct samples (such as GPT), should the dilution factor sent by the client continue to be accepted as entered with default `"CFU/unit"` and no limit check, or should a configured dilution factor or validation rule apply?
+- **Decision:** Decided by the user 2026-11-15: keep the current behaviour. Accepted as is; no code change.
+- **Date:** 2026-11-15
+
+### CONF-204
+- **Area:** ENV
+- **Status:** Decided
+- **What the code does:** In `EnvironmentalMonitoringMasterDataService` (`backend/MicroLIMS.Application/Services/MasterData/EnvironmentalMonitoringMasterDataService.cs`), batch paste runs `ValidateRoomsBatchUniquenessAsync` (rejecting duplicate room `Name` within the same `DepartmentId`, case-insensitively, both within the batch and against existing database rooms) and `ValidateRoomTestConfigsBatchUniquenessAsync` (rejecting duplicate `(RoomId, TestType, TestCode)` among active configurations, both within the batch and against active database records). Single-record creation (`CreateRoomAsync` and `CreateRoomTestConfigurationAsync`) does not enforce those checks.
+- **What the other source says:** `MasterDataBatchPostgresTests` (`Rooms_Existing_Reported`, `RoomTestConfigs_Existing_Reported`, `RoomTestConfigs_InactiveExisting_DoesNotBlockANewActiveRow`) verify batch uniqueness rules; single-create forms remain unconstrained.
+- **Question:** Should room name uniqueness per department and single-active-configuration uniqueness per `(Room, TestType, TestCode)` also be enforced on the single-add forms, kept on batch paste only, or relaxed?
+- **Decision:** Decided by the user 2026-11-15: keep both checks on paste and add the same two checks to the single add forms. Existing data is not changed. Code change pending.
+- **Date:** 2026-11-15
+
+### CONF-205
+- **Area:** ADM
+- **Status:** Decided
+- **What the code does:** `RegisterTable` (`frontend/src/components/lab/RegisterTable.tsx`) disables column sorting whenever `serverPaged` is true (`sortableColumns` is forced to `[]`, no `TableSortLabel` is rendered, and client-side sort is skipped), affecting `SampleRegisterTable` (`frontend/src/modules/receiving/components/SampleRegisterTable.tsx`) and `DocumentLibraryPage` (`frontend/src/modules/documentControl/pages/DocumentLibraryPage.tsx`), because only one page is held on the client and server list endpoints have no sort parameter. Pinned by `frontend/src/components/lab/RegisterTable.test.tsx` (`"serverPaged: offers no column sort, since only one server page is held"`).
+- **What the other source says:** No specification document records that column header sorting is disabled on server-paged workspace tables while client-paged tables remain sortable.
+- **Question:** Should server-paged workspace tables (`SampleRegisterTable` and `DocumentLibraryPage`) keep column sorting disabled, or should server-side sorting be added to their list endpoints?
+- **Decision:** Decided by the user 2026-11-15: add server-side sorting (allow-listed column and direction) to the list endpoints and re-enable column sorting on these tables. Code change pending.
+- **Date:** 2026-11-15

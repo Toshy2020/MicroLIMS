@@ -18,6 +18,7 @@ import {
 export interface WhereUsedPanelProps {
   type: MasterRecordType;
   id: number;
+  summary?: UsageSummary;
 }
 
 type LoadState =
@@ -25,12 +26,21 @@ type LoadState =
   | { status: "error"; message: string }
   | { status: "loaded"; summary: UsageSummary };
 
-export function WhereUsedPanel({ type, id }: WhereUsedPanelProps) {
+export function WhereUsedPanel({ type, id, summary: providedSummary }: WhereUsedPanelProps) {
   const theme = useTheme();
   const [retryToken, setRetryToken] = useState(0);
-  const [state, setState] = useState<LoadState>({ status: "loading" });
+  const [state, setState] = useState<LoadState>(() =>
+    providedSummary !== undefined
+      ? { status: "loaded", summary: providedSummary }
+      : { status: "loading" }
+  );
 
   useEffect(() => {
+    if (providedSummary !== undefined) {
+      setState({ status: "loaded", summary: providedSummary });
+      return;
+    }
+
     const controller = new AbortController();
     setState({ status: "loading" });
 
@@ -51,7 +61,7 @@ export function WhereUsedPanel({ type, id }: WhereUsedPanelProps) {
       });
 
     return () => controller.abort();
-  }, [type, id, retryToken]);
+  }, [type, id, retryToken, providedSummary]);
 
   const openTone = theme.custom.status.action;
 

@@ -106,7 +106,7 @@ public sealed class TableViewService
             UpdatedByUserId = userId
         };
         _db.TableViews.Add(view);
-        await _db.SaveChangesAsync(ct);
+        await SaveRefusingNameClashAsync(cleanName, ct);
 
         return (await ListAsync(userId, tableKey, ct)).Single(v => v.Id == view.Id);
     }
@@ -140,7 +140,7 @@ public sealed class TableViewService
 
         view.UpdatedAt = _time.GetUtcNow().UtcDateTime;
         view.UpdatedByUserId = userId;
-        await _db.SaveChangesAsync(ct);
+        await SaveRefusingNameClashAsync(view.Name, ct);
 
         return (await ListAsync(userId, view.TableKey, ct)).Single(v => v.Id == view.Id);
     }
@@ -205,16 +205,47 @@ public sealed class TableViewService
         throw new NotFoundException($"Table view {viewId} was not found.");
     }
 
-    // The view is already visible to the caller. The owner may always change it; so may a holder of the
-    // share permission who belongs to the view's section (visibility already proved membership).
+    // The view is already visible to the caller. A personal view is changed only by its owner. A section view
+    // is changed only by a member of that section (visibility already proved membership) who holds the share
+    // permission at that moment - the creator included (user decision 2026-11-15).
     private async Task EnsureCanEditAsync(int userId, TableView view, CancellationToken ct)
     {
-        if (view.OwnerUserId == userId) return;
-        if (view.Scope == TableViewScope.Section
-            && await _permissions.UserHasPermissionAsync(userId, PermissionConstants.TableViewsShare, ct))
+        if (view.Scope == TableViewScope.Personal)
+        {
+            if (view.OwnerUserId == userId) return;
+        }
+        else if (await _permissions.UserHasPermissionAsync(userId, PermissionConstants.TableViewsShare, ct))
+        {
             return;
-        throw new UnauthorizedAccessException("You can see this view but not change it. Save a copy as your own view instead.");
+        }
+        throw new UnauthorizedAccessException(view.Scope == TableViewScope.Section
+            ? "Changing a view shared with a section needs the permission to share table views. Save a copy as your own view instead."
+            : "You can see this view but not change it. Save a copy as your own view instead.");
     }
+
+    // Two people saving the same name at the same moment both pass the name check; the unique index then
+    // refuses the second save. Report that as the same plain message instead of a server error.
+    private async Task SaveRefusingNameClashAsync(string name, CancellationToken ct)
+    {
+        try
+        {
+            await _db.SaveChangesAsync(ct);
+        }
+        catch (DbUpdateException ex) when (IsNameIndexViolation(ex))
+        {
+            throw new BusinessRuleException($"A view named '{name}' already exists here. Choose another name.");
+        }
+    }
+
+    private static bool IsNameIndexViolation(DbUpdateException ex)
+    {
+        var message = ex.InnerException?.Message ?? ex.Message;
+        return message.Contains(PersonalNameIndex, StringComparison.OrdinalIgnoreCase)
+            || message.Contains(SectionNameIndex, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private const string PersonalNameIndex = "IX_TableViews_Personal_Name";
+    private const string SectionNameIndex = "IX_TableViews_Section_Name";
 
     // ---- validation -------------------------------------------------------------------------------------------------
 
@@ -272,8 +303,9 @@ public sealed class TableViewService
     private static TableViewDto ToDto(ViewRow r, int userId, bool holdsShare, IReadOnlyList<int> memberSections, int? defaultViewId)
     {
         var isMine = r.OwnerUserId == userId;
-        var canEdit = isMine
-            || (r.Scope == TableViewScope.Section && holdsShare && r.SectionId is { } s && memberSections.Contains(s));
+        var canEdit = r.Scope == TableViewScope.Personal
+            ? isMine
+            : holdsShare && r.SectionId is { } s && memberSections.Contains(s);
         return new TableViewDto(r.Id, r.TableKey, r.Name, r.Scope.ToString(), r.SectionId, r.SectionName,
             r.StateJson, isMine, canEdit, defaultViewId == r.Id, r.OwnerName);
     }

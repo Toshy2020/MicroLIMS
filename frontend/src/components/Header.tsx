@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import {
   Box, Typography, IconButton, Badge, Menu, MenuItem, Divider, Avatar, ButtonBase,
@@ -74,9 +74,11 @@ interface HeaderProps {
   labCodes: string[];
   // Unsaved on-tablet drafts; the bench drafts feature supplies the real count.
   unsavedDraftCount?: number;
+  // The unsaved-entries menu (DraftsMenu), rendered next to Switch user.
+  draftsMenu?: ReactNode;
 }
 
-export function Header({ onToggleSidebar, sidebarCollapsed, labCodes, unsavedDraftCount = 0 }: HeaderProps) {
+export function Header({ onToggleSidebar, sidebarCollapsed, labCodes, unsavedDraftCount = 0, draftsMenu }: HeaderProps) {
   const { mode, toggleMode } = useThemeMode();
   const { benchMode, setBenchMode } = useBenchMode();
   const theme = useTheme();
@@ -289,6 +291,7 @@ export function Header({ onToggleSidebar, sidebarCollapsed, labCodes, unsavedDra
             Switch user
           </Button>
         )}
+        {draftsMenu}
         <HelpMenu />
         <Tooltip title="Notifications">
           <IconButton

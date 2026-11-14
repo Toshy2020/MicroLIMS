@@ -77,6 +77,7 @@ CalendarEventsController.GetDocumentContent(Int32): SystemAdministrator,SectionH
 CalendarEventsController.GetEvents(DateOnly, DateOnly): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 CalendarEventsController.Update(Int32, UpdateCalendarEventRequest): SectionHead,Reviewer
 CalendarEventsController.UploadDocument(Int32, IFormFile): SectionHead,Reviewer
+ClientSettingsController.Get(CancellationToken): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 ControlChartController.ApplyLimits(ApplyTrendLimitsRequest): SystemAdministrator,SectionHead
 ControlChartController.GenerateReport(ControlChartReportRequest): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 ControlChartController.GetChart(String, String, Nullable`1, Nullable`1, Nullable`1, Nullable`1, Nullable`1, Boolean, SettingsParameters, CapabilityBasis, Nullable`1, Nullable`1): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa

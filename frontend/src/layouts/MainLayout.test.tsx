@@ -1,10 +1,14 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { Link, MemoryRouter, Route, Routes } from "react-router-dom";
 import { ThemeModeProvider } from "../theme/ThemeModeContext";
 import { BenchModeProvider } from "../theme/BenchModeContext";
 import { AuthProvider } from "../contexts/AuthContext";
+import { notifyNetworkFailure } from "../services/connectionSignal";
+import { draftStore } from "../services/drafts/draftStore";
+import { makeDraft, resetDraftDb } from "../services/drafts/draftTestUtils";
+import { OFFLINE_MESSAGE } from "../components/bench/ConnectionBanner";
 import { mfaService } from "../modules/authentication/services/mfaService";
 import { laboratorySectionService } from "../services/laboratorySectionService";
 import { MainLayout } from "./MainLayout";
@@ -146,5 +150,40 @@ describe("MainLayout sidebar in bench mode", () => {
     renderLayout();
     expect(screen.getAllByRole("button", { name: "Expand sidebar" }).length).toBeGreaterThan(0);
     expect(screen.queryByRole("button", { name: "Collapse sidebar" })).toBeNull();
+  });
+});
+
+describe("MainLayout bench drafts and connection", () => {
+  const status = {
+    enrolled: true, type: "AuthenticatorApp" as const, confirmedAt: null,
+    recoveryCodesRemaining: 0, required: false, enrolmentDueAt: null, trustedDevices: []
+  };
+
+  it("shows the connection banner when a request fails with no answer from the server", async () => {
+    vi.mocked(mfaService.getStatus).mockResolvedValue(status);
+    renderLayout();
+    expect(screen.queryByRole("alert")).toBeNull();
+
+    act(() => notifyNetworkFailure());
+
+    const alert = await screen.findByRole("alert");
+    expect(alert.textContent).toBe(OFFLINE_MESSAGE);
+  });
+
+  it("Switch user warns with the real number of this user's unsaved entries and not those of another user", async () => {
+    const user = userEvent.setup();
+    vi.mocked(mfaService.getStatus).mockResolvedValue(status);
+    await resetDraftDb();
+    localStorage.setItem("microlims_bench_mode", "on");
+    localStorage.setItem("microlims_user_id", "7");
+    await draftStore.put(makeDraft({ userId: 7, recordKey: "a", values: {} }));
+    await draftStore.put(makeDraft({ userId: 7, recordKey: "b", values: {} }));
+    await draftStore.put(makeDraft({ userId: 8, recordKey: "c", values: {} }));
+    renderLayout();
+
+    await screen.findByRole("button", { name: "Unsaved entries on this tablet, 2" });
+    await user.click(screen.getByRole("button", { name: "Switch user" }));
+
+    expect(await screen.findByText(/You have 2 unsaved entries/)).toBeTruthy();
   });
 });

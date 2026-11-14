@@ -21,4 +21,12 @@ public class NotificationLog
     public bool IsRead { get; set; }
     public bool EmailSent { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+    public string? Title { get; set; }
+    public string? TargetType { get; set; }
+    public int? TargetId { get; set; }
+    public int? SectionId { get; set; }
+    public string? DedupeKey { get; set; }
+    public DateTime? ReadAt { get; set; }
+    public DateTime? ResolvedAt { get; set; }
 }

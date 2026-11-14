@@ -45,4 +45,72 @@ public class NotificationAuditExclusionTests
         Assert.True(await db.AuditLogs.AnyAsync(a => a.EntityName == nameof(CauseOfTesting)));
         Assert.False(await db.AuditLogs.AnyAsync(a => a.EntityName == nameof(NotificationLog)));
     }
+
+    [Fact]
+    public async Task SaveChanges_EmailOutboxAndEscalationEvent_WriteNoAuditLog_WhileConfigEntitiesAreAudited()
+    {
+        await using var db = NewDb();
+        var now = new DateTime(2026, 11, 15, 9, 0, 0, DateTimeKind.Utc);
+
+        var rule = new EscalationRule
+        {
+            SectionId = 1,
+            Trigger = MicroLIMS.Domain.Enums.EscalationTrigger.ReviewWaiting,
+            ThresholdWorkingHours = 8m,
+            NotifyRoleType = MicroLIMS.Domain.Enums.RoleType.SectionHead,
+            IsActive = true,
+            CreatedByUserId = 1,
+            CreatedAt = now
+        };
+        db.EscalationRules.Add(rule);
+        await db.SaveChangesAsync();
+
+        db.EmailOutbox.Add(new EmailOutbox
+        {
+            UserId = 1,
+            ToAddress = "user@example.com",
+            Subject = "Alert",
+            Body = "Body",
+            Kind = MicroLIMS.Domain.Enums.EmailOutboxKind.Immediate,
+            CreatedAt = now,
+            NextAttemptAt = now
+        });
+        db.EscalationEvents.Add(new EscalationEvent
+        {
+            EscalationRuleId = rule.Id,
+            RecordType = "Sample",
+            RecordId = 42,
+            FiredAt = now,
+            RecipientUserIds = "[1]",
+            NoRecipient = false
+        });
+        db.LabWorkingHours.Add(new LabWorkingHours
+        {
+            DayOfWeek = DayOfWeek.Sunday,
+            IsWorkingDay = true,
+            StartMinute = 8 * 60,
+            EndMinute = 16 * 60
+        });
+        db.UserNotificationPreferences.Add(new UserNotificationPreference
+        {
+            UserId = 1,
+            Type = "MediaExpiry",
+            EmailMode = MicroLIMS.Domain.Enums.EmailMode.Digest
+        });
+        db.MandatoryNotificationTypes.Add(new MandatoryNotificationType
+        {
+            SectionId = 1,
+            Type = "Escalation",
+            SetByUserId = 1,
+            SetAt = now
+        });
+        await db.SaveChangesAsync();
+
+        Assert.False(await db.AuditLogs.AnyAsync(a => a.EntityName == nameof(EmailOutbox)));
+        Assert.False(await db.AuditLogs.AnyAsync(a => a.EntityName == nameof(EscalationEvent)));
+        Assert.True(await db.AuditLogs.AnyAsync(a => a.EntityName == nameof(EscalationRule)));
+        Assert.True(await db.AuditLogs.AnyAsync(a => a.EntityName == nameof(LabWorkingHours)));
+        Assert.True(await db.AuditLogs.AnyAsync(a => a.EntityName == nameof(UserNotificationPreference)));
+        Assert.True(await db.AuditLogs.AnyAsync(a => a.EntityName == nameof(MandatoryNotificationType)));
+    }
 }

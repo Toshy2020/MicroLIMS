@@ -36,9 +36,10 @@ public class QcManagerRoleTests
         var codes = await CodesOf(db, RoleType.QcManager);
 
         Assert.Contains(PermissionConstants.NotApplicableTestsFinalApprove, codes);
-        // Sharing saved table views and exporting a table to CSV (audited) act on no laboratory record.
+        // Sharing saved table views, exporting a table to CSV (audited), and configuring section notifications act on no laboratory record.
         Assert.Contains(PermissionConstants.TableViewsShare, codes);
         Assert.Contains(PermissionConstants.DataExport, codes);
+        Assert.Contains(PermissionConstants.NotificationsConfigure, codes);
         var acting = codes.Where(c => c != PermissionConstants.NotApplicableTestsFinalApprove
             && new[] { ".manage", ".record", ".sign", ".approve" }.Any(s => c.EndsWith(s, StringComparison.OrdinalIgnoreCase)));
         Assert.Empty(acting);
@@ -46,7 +47,8 @@ public class QcManagerRoleTests
         // Everything else it holds is something Reviewer also holds under a view/read code.
         var reviewerViews = (await CodesOf(db, RoleType.Reviewer)).Where(IsViewOrRead).OrderBy(c => c).ToList();
         Assert.Equal(reviewerViews, codes.Where(c => c != PermissionConstants.NotApplicableTestsFinalApprove
-            && c != PermissionConstants.TableViewsShare && c != PermissionConstants.DataExport).OrderBy(c => c));
+            && c != PermissionConstants.TableViewsShare && c != PermissionConstants.DataExport
+            && c != PermissionConstants.NotificationsConfigure).OrderBy(c => c));
     }
 
     [Fact]

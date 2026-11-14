@@ -131,6 +131,18 @@ describe("HelpPanel", () => {
     expect(await screen.findByRole("region", { name: "Help" })).toBeTruthy();
   });
 
+  it("Escape pressed while working in the page leaves the panel open and focus where it was", async () => {
+    const user = userEvent.setup();
+    renderHelp(makeServices());
+    await openFromMenu(user);
+
+    const notes = screen.getByRole("textbox", { name: "Notes" });
+    await user.click(notes);
+    await user.keyboard("{Escape}");
+    expect(document.activeElement).toBe(notes);
+    expect(screen.getByRole("region", { name: "Help" })).toBeTruthy();
+  });
+
   it("page controls remain clickable while open", async () => {
     const user = userEvent.setup();
     renderHelp(makeServices());

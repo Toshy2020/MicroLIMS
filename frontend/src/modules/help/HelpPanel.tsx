@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import type { KeyboardEvent } from "react";
 import {
   Alert, Box, Button, IconButton, Link, List, ListItemButton, ListItemText, Skeleton, TextField, Typography, useMediaQuery
 } from "@mui/material";
@@ -56,13 +57,14 @@ export function HelpPanel({ services }: { services?: HelpPanelServices }) {
     headingRef.current?.focus();
   }, []);
 
-  useEffect(() => {
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape" && !event.defaultPrevented) closePanel();
-    };
-    document.addEventListener("keydown", onKeyDown);
-    return () => document.removeEventListener("keydown", onKeyDown);
-  }, [closePanel]);
+  // Escape closes only from inside the panel: the page behind stays usable, so
+  // Escape there (closing a list, clearing a field) must not take focus away.
+  const onPanelKeyDown = (event: KeyboardEvent<HTMLElement>) => {
+    if (event.key === "Escape" && !event.defaultPrevented) {
+      event.preventDefault();
+      closePanel();
+    }
+  };
 
   useLayoutEffect(() => {
     const body = bodyRef.current;
@@ -160,6 +162,7 @@ export function HelpPanel({ services }: { services?: HelpPanelServices }) {
       role="region"
       aria-labelledby="help-panel-heading"
       data-motion={reducedMotion ? "none" : "slide"}
+      onKeyDown={onPanelKeyDown}
       sx={(theme) => ({
         position: { xs: "absolute", md: "static" },
         inset: { xs: 0, md: "auto" },

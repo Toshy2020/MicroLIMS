@@ -6,6 +6,7 @@ import { PermissionRoute } from "./PermissionRoute";
 import { PERMISSIONS } from "./routes";
 import { MainLayout } from "../layouts/MainLayout";
 import { LoadingSpinner } from "../components/LoadingSpinner";
+import { AppErrorBoundary } from "../components/AppErrorBoundary";
 import { AdminLayout, AdminIndexRedirect } from "../modules/admin/AdminLayout";
 import { LEGACY_ADMIN_REDIRECTS, LegacyPathRedirect } from "./legacyAdminRedirects";
 
@@ -18,6 +19,7 @@ const SsoCompletePage = lazy(() => import("../pages/SsoComplete").then((m) => ({
 const MfaEnrolmentPage = lazy(() => import("../pages/MfaEnrolment").then((m) => ({ default: m.MfaEnrolmentPage })));
 const AdminPasswordRecovery = lazy(() => import("../pages/AdminPasswordRecovery").then((m) => ({ default: m.AdminPasswordRecovery })));
 const DashboardPage = lazy(() => import("../modules/dashboard/DashboardPage").then((m) => ({ default: m.DashboardPage })));
+const MyWorkPage = lazy(() => import("../modules/myWork/MyWorkPage").then((m) => ({ default: m.MyWorkPage })));
 const SectionPage = lazy(() => import("../pages/Section").then((m) => ({ default: m.SectionPage })));
 const NotFoundPage = lazy(() => import("../pages/NotFound").then((m) => ({ default: m.NotFoundPage })));
 const ProfilePage = lazy(() => import("../pages/Profile").then((m) => ({ default: m.ProfilePage })));
@@ -129,6 +131,16 @@ export function AppRoutes() {
           <Route element={<MainLayout />}>
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
             <Route path="/dashboard" element={<DashboardPage />} />
+            <Route
+              path="/my-work"
+              element={
+                <AppErrorBoundary inline>
+                  <Suspense fallback={<LoadingSpinner />}>
+                    <MyWorkPage />
+                  </Suspense>
+                </AppErrorBoundary>
+              }
+            />
             <Route path="/help" element={<HelpPage />} />
             <Route path="/help/:chapterId" element={<HelpPage />} />
             <Route path="/profile" element={<ProfilePage />} />

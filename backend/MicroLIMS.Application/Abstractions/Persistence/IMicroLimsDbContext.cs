@@ -73,6 +73,12 @@ public interface IMicroLimsDbContext
     DbSet<BiologicalWasteDestruction> BiologicalWasteDestructions { get; }
     DbSet<BiologicalWasteDestructionItem> BiologicalWasteDestructionItems { get; }
     DbSet<NotificationLog> NotificationLogs { get; }
+    DbSet<EmailOutbox> EmailOutbox { get; }
+    DbSet<UserNotificationPreference> UserNotificationPreferences { get; }
+    DbSet<MandatoryNotificationType> MandatoryNotificationTypes { get; }
+    DbSet<EscalationRule> EscalationRules { get; }
+    DbSet<EscalationEvent> EscalationEvents { get; }
+    DbSet<LabWorkingHours> LabWorkingHours { get; }
     DbSet<Sample> Samples { get; }
     DbSet<SampleSectionSignoff> SampleSectionSignoffs { get; }
     DbSet<SampleTest> SampleTests { get; }

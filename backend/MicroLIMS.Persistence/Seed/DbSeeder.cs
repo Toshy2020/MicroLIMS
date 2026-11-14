@@ -535,6 +535,7 @@ public static class DbSeeder
             (PermissionConstants.LabelsConfigure, "Configure barcode label sizes, layouts and default copy counts."),
             (PermissionConstants.TableViewsShare, "Share a saved table view with a laboratory section the user belongs to."),
             (PermissionConstants.DataExport, "Export a table to a CSV file (every export is logged)."),
+            (PermissionConstants.NotificationsConfigure, "Mark notification types as mandatory and configure escalation rules and laboratory working hours for your section."),
         };
 
         // Metadata (Description, IsEnforced) of rows that already exist is
@@ -602,7 +603,8 @@ public static class DbSeeder
                     PermissionConstants.NotApplicableTestsManage, PermissionConstants.TestsOutsource,
                     PermissionConstants.SamplesPrepare,
                     PermissionConstants.LabelsReprint, PermissionConstants.LabelsConfigure,
-                    PermissionConstants.TableViewsShare, PermissionConstants.DataExport
+                    PermissionConstants.TableViewsShare, PermissionConstants.DataExport,
+                    PermissionConstants.NotificationsConfigure
                 }),
                 (RoleType.Reviewer, new[]
                 {
@@ -646,7 +648,8 @@ public static class DbSeeder
             var reviewerReadOnly = grants.First(g => g.Role == RoleType.Reviewer).Codes
                 .Where(c => c.EndsWith(".View", StringComparison.OrdinalIgnoreCase) || c.EndsWith(".Read", StringComparison.OrdinalIgnoreCase));
             grants = grants.Append((RoleType.QcManager, reviewerReadOnly.Append(PermissionConstants.NotApplicableTestsFinalApprove)
-                .Append(PermissionConstants.TableViewsShare).Append(PermissionConstants.DataExport).ToArray())).ToArray();
+                .Append(PermissionConstants.TableViewsShare).Append(PermissionConstants.DataExport)
+                .Append(PermissionConstants.NotificationsConfigure).ToArray())).ToArray();
             grants = grants.Append((RoleType.Qa, PermissionConstants.QaGrants.ToArray())).ToArray();
 
             foreach (var (roleType, codes) in grants)

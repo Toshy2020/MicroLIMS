@@ -51,6 +51,11 @@ public static class SystemSettingKeys
     public const string BenchDraftRetentionHours = "bench.draftRetentionHours";
     // Faster data entry (C4): whether entry forms offer the analyst's last valid choice as a default.
     public const string LastChoiceDefaultsEnabled = "entry.lastChoiceDefaults.enabled";
+
+    // Notification centre and daily digest (C5).
+    public const string NotificationsRetentionDays = "notifications.retentionDays";
+    public const string NotificationsDigestHourLocal = "notifications.digestHourLocal";
+    public const string NotificationsLookAheadDays = "notifications.lookAheadDays";
 }
 
 // One setting as defined in code: type, default, bounds, GxP relevance.
@@ -145,6 +150,7 @@ public static class SystemSettingDefinitions
     public const string MyWorkCategory = "My Work";
     public const string WorkflowCategory = "Workflow";
     public const string BenchCategory = "Bench";
+    public const string NotificationsCategory = "Notifications";
 
     // The defaults below are the values that were hard-coded or configured
     // before the registry existed; AuthenticationService and
@@ -254,6 +260,16 @@ public static class SystemSettingDefinitions
         new(SystemSettingKeys.LastChoiceDefaultsEnabled, WorkflowCategory, SystemSettingValueType.Boolean, "true",
             "Whether entry forms pre-fill the analyst's last valid equipment, media lot, sampled-by or cause of testing choice. A pre-filled media lot still requires confirmation before saving.",
             IsGxpRelevant: true),
+
+        new(SystemSettingKeys.NotificationsRetentionDays, NotificationsCategory, SystemSettingValueType.Integer, "90",
+            "How many days of notifications are kept before the background job removes old rows. Audit logs are untouched.",
+            "days", 30, 365),
+        new(SystemSettingKeys.NotificationsDigestHourLocal, NotificationsCategory, SystemSettingValueType.Integer, "7",
+            "Hour of the day (0-23, laboratory local time) at or after which the daily notification digest email is sent.",
+            "hour", 0, 23),
+        new(SystemSettingKeys.NotificationsLookAheadDays, NotificationsCategory, SystemSettingValueType.Integer, "7",
+            "How many days ahead expiring media, solutions and reference strains generate notifications.",
+            "days", 1, 30),
     };
 
     private static readonly Dictionary<string, SystemSettingDefinition> ByKey =

@@ -78,6 +78,12 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext, IMicr
     public DbSet<BiologicalWasteDestruction> BiologicalWasteDestructions => Set<BiologicalWasteDestruction>();
     public DbSet<BiologicalWasteDestructionItem> BiologicalWasteDestructionItems => Set<BiologicalWasteDestructionItem>();
     public DbSet<NotificationLog> NotificationLogs => Set<NotificationLog>();
+    public DbSet<EmailOutbox> EmailOutbox => Set<EmailOutbox>();
+    public DbSet<UserNotificationPreference> UserNotificationPreferences => Set<UserNotificationPreference>();
+    public DbSet<MandatoryNotificationType> MandatoryNotificationTypes => Set<MandatoryNotificationType>();
+    public DbSet<EscalationRule> EscalationRules => Set<EscalationRule>();
+    public DbSet<EscalationEvent> EscalationEvents => Set<EscalationEvent>();
+    public DbSet<LabWorkingHours> LabWorkingHours => Set<LabWorkingHours>();
     public DbSet<Sample> Samples => Set<Sample>();
     public DbSet<SampleSectionSignoff> SampleSectionSignoffs => Set<SampleSectionSignoff>();
     public DbSet<SampleTest> SampleTests => Set<SampleTest>();
@@ -599,6 +605,8 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext, IMicr
         typeof(SsoPendingRequest), // short-lived sign-in state; outcomes are recorded as explicit security events
         typeof(SsoExchangeCode), // short-lived sign-in state; outcomes are recorded as explicit security events
         typeof(NotificationLog), // derived reminders and read state; not a GxP record
+        typeof(EmailOutbox), // operational send queue; the notification itself is the record (approved 2026-11-11)
+        typeof(EscalationEvent), // fire-once ledger for escalation rules; the rule is audited (approved 2026-11-11)
         typeof(InstrumentIngestPayload), // append-only by DB trigger; hashes carried by the explicit ingest audit event
         typeof(SecurityAuditEvent), // security evidence, not a GxP record; also prevents recursive audit
         typeof(SystemSetting), // audited explicitly (Configuration category, with reason and signature) by SystemSettingsService

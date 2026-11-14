@@ -170,6 +170,9 @@ public static class PermissionConstants
     public const string TableViewsShare = "TableViews.Share";
     public const string DataExport = "Data.Export";
 
+    // Notification centre and escalation (C5): mark notification types mandatory and configure escalation rules and working hours for your section.
+    public const string NotificationsConfigure = "Notifications.Configure";
+
     public static readonly IReadOnlyList<string> All = new[]
     {
         UsersManage, RolesManage, AuditView, ReportingAdmin,
@@ -196,7 +199,8 @@ public static class PermissionConstants
         SectionsViewAll, SectionsConfigureAll, SystemManageJobs, AccessReview,
         AuditReview, AccessReviewSign,
         LabelsReprint, LabelsConfigure,
-        TableViewsShare, DataExport
+        TableViewsShare, DataExport,
+        NotificationsConfigure
     };
 
     // What the built-in System Administrator role holds. Segregation of duties

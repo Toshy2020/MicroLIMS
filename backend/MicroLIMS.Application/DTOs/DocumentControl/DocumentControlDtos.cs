@@ -195,7 +195,8 @@ public record DocumentLibraryFilterRequest(
     int Page = 1,
     int PageSize = 20,
     string? SortBy = null,
-    bool SortDescending = false
+    bool SortDescending = false,
+    string? SortDir = null
 );
 
 public record DocumentLibraryResponse(

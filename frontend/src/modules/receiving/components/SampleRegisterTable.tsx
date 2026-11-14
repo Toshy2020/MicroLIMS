@@ -56,6 +56,9 @@ export interface SampleRegisterTableProps {
   bulkActions?: BulkAction<string | number>[];
   // The samples are one page of a server-paged list with this many rows in total.
   serverTotal?: number;
+  serverSortableColumns?: ReadonlySet<string> | readonly string[];
+  onServerSortChange?: (next: { key: string; direction: "asc" | "desc" } | null) => void;
+  serverSort?: { key: string; direction: "asc" | "desc" } | null;
   loadAllMatching?: () => Promise<SampleRecord[]>;
   onSelectSample?: (sample: SampleRecord) => void;
   onTestClick: (test: TestOrderSummary, sample: SampleRecord) => void;
@@ -222,6 +225,9 @@ function SampleRegisterTableInner({
   selection,
   bulkActions,
   serverTotal,
+  serverSortableColumns,
+  onServerSortChange,
+  serverSort,
   loadAllMatching,
   onSelectSample,
   onTestClick,
@@ -739,9 +745,9 @@ function SampleRegisterTableInner({
     column("item", "Item / Reference", (s) => s.displayName),
     column("receivedAt", "Received At", (s) => new Date(s.receivedAt).getTime()),
     column("sampleId", "#", (s) => s.sampleId),
-    column("category", "Item Type"),
+    column("category", "Item Type", (s) => s.category),
     column("cause", "Cause"),
-    column("sampledBy", "Sampled By"),
+    column("sampledBy", "Sampled By", (s) => s.sampledBy),
     column("batchControl", "Batch / Control No.", (s) => s.batchNumber ?? s.controlNumber),
     column("assignedTo", "Assigned To", (s) => assignedAnalystsLabel(s.assignedTests)),
     column("sampleStatus", "Sample Status", (s) => s.status),
@@ -804,7 +810,16 @@ function SampleRegisterTableInner({
         exportLabel="Export selected"
         totalMatching={serverTotal}
         loadAllMatching={loadAllMatching}
-        serverPaged={serverTotal !== undefined ? { totalCount: serverTotal } : undefined}
+        serverPaged={
+          serverTotal !== undefined
+            ? {
+                totalCount: serverTotal,
+                sortableColumns: serverSortableColumns,
+                onSortChange: onServerSortChange,
+                sort: serverSort
+              }
+            : undefined
+        }
         renderExpanded={hasRetests ? (sample) => (
           <Table size="small" aria-label={`Retests of ${sample.displayName}`}>
             <TableBody>{renderChildren(sample, 1)}</TableBody>

@@ -34,7 +34,7 @@ public class SectionCountersServiceTests
             return Task.FromResult(new WorkspaceTileCountsDto { Overdue = area == "fp" ? 2 : 4, AwaitingReview = 0 });
         }
 
-        public Task<MicroLIMS.Shared.Responses.PagedResult<SampleDto>> GetActiveSamplesAsync(TestingWorkspaceFilterDto filter, int? currentUserId = null) => throw new NotSupportedException();
+        public Task<MicroLIMS.Shared.Responses.PagedResult<SampleDto>> GetActiveSamplesAsync(TestingWorkspaceFilterDto filter, int? currentUserId = null, CancellationToken cancellationToken = default) => throw new NotSupportedException();
         public Task<SampleDto?> GetSampleAsync(int id, int? currentUserId = null, int? labSectionId = null, string? area = null) => throw new NotSupportedException();
     }
 

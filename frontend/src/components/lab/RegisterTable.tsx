@@ -97,7 +97,13 @@ interface RegisterTableProps<T> {
   // (the selection also feeds something outside the table, such as a grouped-actions panel).
   alwaysSelectable?: boolean;
   // The rows are already one page from the server: no client slicing, the pager counts the server total.
-  serverPaged?: { totalCount: number };
+  // When sortableColumns and onSortChange are provided, header sorting delegates to the server.
+  serverPaged?: {
+    totalCount: number;
+    sortableColumns?: ReadonlySet<string> | readonly string[];
+    onSortChange?: (next: { key: string; direction: "asc" | "desc" } | null) => void;
+    sort?: { key: string; direction: "asc" | "desc" } | null;
+  };
 }
 
 const PAGE_SIZES = [25, 50, 100];
@@ -166,7 +172,14 @@ function RegisterTableInner<T>({
     }
   }, [rows.length, tableState]);
 
-  const sort = tableState ? tableState.state.sort : localSort;
+  const serverSortableSet = useMemo(
+    () => (serverPaged?.sortableColumns ? new Set(serverPaged.sortableColumns) : null),
+    [serverPaged?.sortableColumns]
+  );
+  const serverSortEnabled = Boolean(serverPaged?.onSortChange && serverSortableSet);
+  const sort = serverPaged && serverPaged.sort !== undefined
+    ? serverPaged.sort
+    : (tableState ? tableState.state.sort : localSort);
   const page = tableState ? tableState.page - 1 : localPage;
   const requestedAll = tableState ? tableState.state.pageSize === "all" : localRowsPerPage === "all";
   // Phone cards are never windowed, so "all" falls back to the first page size there.
@@ -317,6 +330,13 @@ function RegisterTableInner<T>({
   const cellPy = tableState ? (isCompact ? 0.5 : 1.5) : (dense ? 0.75 : 1.5);
 
   const setSort = (next: { key: string; direction: "asc" | "desc" } | null) => {
+    if (serverPaged?.onSortChange) {
+      serverPaged.onSortChange(next);
+      if (!tableState && serverPaged.sort === undefined) {
+        setLocalSort(next);
+      }
+      return;
+    }
     if (tableState) {
       tableState.setSort(next);
     } else {
@@ -362,7 +382,9 @@ function RegisterTableInner<T>({
   const menuActions = menu && rowActions ? rowActions(menu.row) : [];
   const cellText = (row: T, col: RegisterColumn<T>): ReactNode =>
     col.render ? col.render(row) : String((row as Record<string, unknown>)[String(col.key)] ?? "—");
-  const sortableColumns = serverPaged ? [] : displayedColumns.filter((c) => c.sortable);
+  const isColumnSortable = (col: RegisterColumn<T>): boolean =>
+    Boolean(col.sortable) && (!serverPaged || (serverSortEnabled && Boolean(serverSortableSet?.has(String(col.key)))));
+  const sortableColumns = displayedColumns.filter(isColumnSortable);
   const boundedBody = !isPhone && paged.length > STICKY_HEADER_MIN_ROWS;
 
   // Cells of one desktop row; shared by the plain and the virtualised body.
@@ -614,16 +636,17 @@ function RegisterTableInner<T>({
               {displayedColumns.map((col) => {
                 const key = String(col.key);
                 const align = col.align ?? (col.numeric ? "right" : "left");
-                const active = sort?.key === key;
+                const colSortable = isColumnSortable(col);
+                const active = Boolean(colSortable && sort?.key === key);
                 return (
                   <TableCell
                     key={key}
                     align={align}
                     sx={{ fontWeight: 600, width: col.width, whiteSpace: "nowrap" }}
-                    aria-sort={active ? (sort.direction === "asc" ? "ascending" : "descending") : undefined}
+                    aria-sort={active && sort ? (sort.direction === "asc" ? "ascending" : "descending") : undefined}
                   >
-                    {col.sortable && !serverPaged ? (
-                      <TableSortLabel active={active} direction={active ? sort.direction : "asc"} onClick={() => toggleSort(key)}>
+                    {colSortable ? (
+                      <TableSortLabel active={active} direction={active && sort ? sort.direction : "asc"} onClick={() => toggleSort(key)}>
                         {col.label}
                       </TableSortLabel>
                     ) : (

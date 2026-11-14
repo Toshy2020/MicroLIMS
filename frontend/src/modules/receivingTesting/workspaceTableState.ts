@@ -15,6 +15,17 @@ export const WHITELISTED_WORKLOADS: readonly AllWorkloadFilterKey[] = [
   "approvalOverdue"
 ];
 
+export const WORKSPACE_SERVER_SORTABLE_COLUMNS: ReadonlySet<string> = new Set([
+  "item",
+  "receivedAt",
+  "sampleId",
+  "category",
+  "sampledBy",
+  "batchControl",
+  "sampleStatus",
+  "due"
+]);
+
 export function isWhitelistedWorkload(key: string | null | undefined): key is AllWorkloadFilterKey {
   return key !== null && key !== undefined && (WHITELISTED_WORKLOADS as readonly string[]).includes(key);
 }

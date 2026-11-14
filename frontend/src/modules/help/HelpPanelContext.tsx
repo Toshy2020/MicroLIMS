@@ -23,9 +23,18 @@ export interface HelpPanelServices {
   resolveTarget?: (pathname: string, search: string) => HelpTarget;
 }
 
+// Shown on every help surface (panel, field hints); the wording is fixed.
+export const HELP_GUIDANCE = "Guidance only. Your approved SOPs take precedence.";
+
 interface HelpPanelContextValue {
   open: boolean;
-  openPanel(): void;
+  /**
+   * Opens the panel. With a target it shows that chapter and heading; without
+   * one it shows the chapter for the current page, as the Help menu does.
+   */
+  openPanel(target?: HelpTarget): void;
+  /** The target requested by the last openPanel(target) call, until it closes. */
+  request: { target: HelpTarget; seq: number } | null;
   /** Closes the panel and returns focus to the Help button. */
   closePanel(): void;
   helpButtonRef: RefObject<HTMLButtonElement | null>;
@@ -36,6 +45,7 @@ const NOOP_REF: RefObject<HTMLButtonElement | null> = { current: null };
 const HelpPanelContext = createContext<HelpPanelContextValue>({
   open: false,
   openPanel: () => {},
+  request: null,
   closePanel: () => {},
   helpButtonRef: NOOP_REF
 });
@@ -59,10 +69,15 @@ function isTextEntry(target: EventTarget | null): boolean {
 export function HelpPanelProvider({ children }: { children: ReactNode }) {
   const helpButtonRef = useRef<HTMLButtonElement | null>(null);
   const [open, setOpen] = useState(false);
+  const [request, setRequest] = useState<{ target: HelpTarget; seq: number } | null>(null);
 
-  const openPanel = useCallback(() => setOpen(true), []);
+  const openPanel = useCallback((target?: HelpTarget) => {
+    if (target) setRequest((prev) => ({ target, seq: (prev?.seq ?? 0) + 1 }));
+    setOpen(true);
+  }, []);
   const closePanel = useCallback(() => {
     setOpen(false);
+    setRequest(null);
     helpButtonRef.current?.focus();
   }, []);
 
@@ -78,6 +93,9 @@ export function HelpPanelProvider({ children }: { children: ReactNode }) {
     return () => document.removeEventListener("keydown", onKeyDown);
   }, []);
 
-  const value = useMemo(() => ({ open, openPanel, closePanel, helpButtonRef }), [open, openPanel, closePanel]);
+  const value = useMemo(
+    () => ({ open, openPanel, request, closePanel, helpButtonRef }),
+    [open, openPanel, request, closePanel]
+  );
   return <HelpPanelContext.Provider value={value}>{children}</HelpPanelContext.Provider>;
 }

@@ -10,6 +10,8 @@ import {
   AutocompleteInputChangeReason,
 } from "@mui/material";
 import { TestCodePickerMulti } from "../../../../components/TestCodePickerMulti";
+import { FieldHint, hintDescribedBy } from "../../../../components/FieldHint";
+import { hints } from "../hints";
 import { Item } from "../services/ItemService";
 import { FormDialog } from "../../../../components/lab";
 import { documentControlService } from "../../../documentControl/services/documentControlService";
@@ -221,7 +223,9 @@ export function AddItemDialog({ open, itemToEdit, onClose, onSave }: AddItemDial
             onChange={(e) => setCode(e.target.value)}
             required
             sx={{ flex: 1 }}
+            slotProps={{ input: { "aria-describedby": hintDescribedBy("items-item-code") } }}
           />
+          <FieldHint id="items-item-code" label="the code of this item" hint={hints.itemCode} />
           <Autocomplete<DocumentMasterSummaryDto, false, false, true>
             freeSolo
             size="small"
@@ -262,13 +266,23 @@ export function AddItemDialog({ open, itemToEdit, onClose, onSave }: AddItemDial
             )}
             sx={{ flex: 1 }}
           />
+          <FieldHint id="items-sop-number" label="the item's SOP" hint={hints.sopNumber} />
         </Stack>
 
         <Box>
-          <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 600, display: "block", mb: 0.5 }}>
-            Category
-          </Typography>
-          <Select size="small" value={category} onChange={(e) => setCategory(e.target.value)} fullWidth inputProps={{ "aria-label": "Category" }}>
+          <Stack direction="row" spacing={0.5} sx={{ alignItems: "center", mb: 0.5 }}>
+            <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 600, display: "block" }}>
+              Category
+            </Typography>
+            <FieldHint id="items-category" label="Category" hint={hints.category} />
+          </Stack>
+          <Select
+            size="small"
+            value={category}
+            onChange={(e) => setCategory(e.target.value)}
+            fullWidth
+            inputProps={{ "aria-label": "Category", "aria-describedby": hintDescribedBy("items-category") }}
+          >
             {CATEGORIES.map((c) => (
               <MenuItem key={c.value} value={c.value}>
                 {c.label}
@@ -306,9 +320,12 @@ export function AddItemDialog({ open, itemToEdit, onClose, onSave }: AddItemDial
         )}
 
         <Box>
-          <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 600, display: "block", mb: 0.5 }}>
-            Assigned Tests (Auto-assigned on sample receipt)
-          </Typography>
+          <Stack direction="row" spacing={0.5} sx={{ alignItems: "center", mb: 0.5 }}>
+            <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 600, display: "block" }}>
+              Assigned Tests (Auto-assigned on sample receipt)
+            </Typography>
+            <FieldHint id="items-assigned-tests" label="Assigned Tests" hint={hints.assignedTests} />
+          </Stack>
           <TestCodePickerMulti value={testCodes} onChange={setTestCodes} label="Assigned Tests" />
         </Box>
       </Stack>

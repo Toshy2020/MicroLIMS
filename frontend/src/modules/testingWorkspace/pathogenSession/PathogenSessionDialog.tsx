@@ -32,6 +32,8 @@ import { FloatingDialog } from "../../../components/FloatingDialog";
 import { brandColors } from "../../../theme";
 import { useAuth } from "../../../contexts/AuthContext";
 import { PERMISSIONS } from "../../../routes/routes";
+import { FieldHint, hintDescribedBy } from "../../../components/FieldHint";
+import { hints } from "../hints";
 
 interface Props {
   open: boolean;
@@ -359,16 +361,20 @@ export function PathogenSessionDialog({ open, sampleId, onClose, onSessionUpdate
           <Typography variant="body2" sx={{ mb: 2 }}>
             This will reset all workflow step records, incubations, primary observations, and confirmatory results for Sample <strong>{session?.sampleReferenceNumber}</strong> back to the initial "Not Started" state.
           </Typography>
-          <TextField
-            label="Reason for Reset *"
-            fullWidth
-            size="small"
-            value={resetReason}
-            onChange={(e) => setResetReason(e.target.value)}
-            placeholder="e.g. Test configuration error / Wrong media lot selected / Operational error"
-            multiline
-            rows={2}
-          />
+          <Stack direction="row" spacing={0.5} sx={{ alignItems: "flex-start", minWidth: 0 }}>
+            <TextField
+              slotProps={{ input: { "aria-describedby": hintDescribedBy("pathogen-reason-for-reset") } }}
+              label="Reason for Reset *"
+              fullWidth
+              size="small"
+              value={resetReason}
+              onChange={(e) => setResetReason(e.target.value)}
+              placeholder="e.g. Test configuration error / Wrong media lot selected / Operational error"
+              multiline
+              rows={2}
+            />
+            <FieldHint id="pathogen-reason-for-reset" label="Reason for Reset" hint={hints.reasonForReset} />
+          </Stack>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
           <Button onClick={() => setResetDialogOpen(false)} disabled={resetting}>Cancel</Button>

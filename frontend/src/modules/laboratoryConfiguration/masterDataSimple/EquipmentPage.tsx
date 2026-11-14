@@ -28,6 +28,8 @@ import {
   TableContainer
 } from "@mui/material";
 import EditIcon from "@mui/icons-material/Edit";
+import { FieldHint, hintDescribedBy } from "../../../components/FieldHint";
+import { hints } from "./hints";
 import HistoryIcon from "@mui/icons-material/History";
 import AddIcon from "@mui/icons-material/Add";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
@@ -1227,14 +1229,18 @@ export function EquipmentPage() {
             fullWidth
             required
           />
-          <TextField
-            label="Equipment Code *"
-            placeholder="e.g. HPLC-001"
-            value={equipmentForm.code}
-            onChange={(e) => setEquipmentForm({ ...equipmentForm, code: e.target.value })}
-            fullWidth
-            required
-          />
+          <Stack direction="row" spacing={0.5} sx={{ alignItems: "flex-start" }}>
+            <TextField
+              label="Equipment Code *"
+              placeholder="e.g. HPLC-001"
+              value={equipmentForm.code}
+              onChange={(e) => setEquipmentForm({ ...equipmentForm, code: e.target.value })}
+              fullWidth
+              required
+              slotProps={{ input: { "aria-describedby": hintDescribedBy("equipment-code") } }}
+            />
+            <FieldHint id="equipment-code" label="Equipment Code" hint={hints.equipmentCode} />
+          </Stack>
           <FormControl fullWidth required size="small">
             <InputLabel id="equipment-type-select-label">Equipment Type *</InputLabel>
             <Select
@@ -1291,14 +1297,15 @@ export function EquipmentPage() {
           />
 
           {!isEditingEquipment && mySections.length > 1 && (
-            <FormControl size="small" fullWidth required>
+            <Stack direction="row" spacing={0.5} sx={{ alignItems: "flex-start" }}>
+            <FormControl size="small" fullWidth required sx={{ flex: 1 }}>
               <InputLabel id="equipment-section-label">Laboratory Section *</InputLabel>
               <Select<number | "">
                 labelId="equipment-section-label"
                 label="Laboratory Section *"
                 value={selectedSectionId}
                 onChange={(e) => setSelectedSectionId(e.target.value === "" ? "" : Number(e.target.value))}
-                inputProps={{ "aria-label": "Laboratory Section" }}
+                inputProps={{ "aria-label": "Laboratory Section", "aria-describedby": hintDescribedBy("equipment-section") }}
               >
                 <MenuItem value="">
                   <em>Select Laboratory Section…</em>
@@ -1310,6 +1317,8 @@ export function EquipmentPage() {
                 ))}
               </Select>
             </FormControl>
+              <FieldHint id="equipment-section" label="Laboratory Section" hint={hints.laboratorySection} />
+            </Stack>
           )}
 
           <TextField
@@ -1424,15 +1433,19 @@ export function EquipmentPage() {
               htmlInput: { step: "0.1" }
             }}
           />
-          <TextField
-            label="Reason for Change *"
-            placeholder="e.g. Seasonal adjustment / Routine calibration adjustment"
-            value={setPointReason}
-            onChange={(e) => setSetPointReason(e.target.value)}
-            multiline
-            rows={2}
-            fullWidth
-          />
+          <Stack direction="row" spacing={0.5} sx={{ alignItems: "flex-start" }}>
+            <TextField
+              label="Reason for Change *"
+              placeholder="e.g. Seasonal adjustment / Routine calibration adjustment"
+              value={setPointReason}
+              onChange={(e) => setSetPointReason(e.target.value)}
+              multiline
+              rows={2}
+              fullWidth
+              slotProps={{ input: { "aria-describedby": hintDescribedBy("equipment-reason-for-change") } }}
+            />
+            <FieldHint id="equipment-reason-for-change" label="Reason for Change" hint={hints.reasonForChange} />
+          </Stack>
         </Stack>
       </FloatingDialog>
 

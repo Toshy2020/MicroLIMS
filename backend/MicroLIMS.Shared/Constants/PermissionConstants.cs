@@ -143,6 +143,9 @@ public static class PermissionConstants
     // Sample Preparation writes (prepare, confirm, batch confirm). Every working role holds it; QC Manager (approval-only) does not.
     public const string SamplesPrepare = "samples.prepare";
 
+    // Take an unassigned test in a section the user belongs to (My Work), and release it again while nothing is recorded on it. Granted to the Analyst role; a Section Head assigns instead (Samples.AssignAnalyst).
+    public const string TestsSelfAssign = "Tests.SelfAssign";
+
     // Read every laboratory section's records without being a member. Read-only: writes always follow section membership, for administrators too (UserSectionScopeService).
     public const string SectionsViewAll = "Sections.ViewAll";
 
@@ -185,7 +188,7 @@ public static class PermissionConstants
         MonitoringPlanView, MonitoringPlanManage, MonitoringPlanApprove,
         EquipmentPlanManage, EquipmentPlanApprove, EquipmentWorkRecord, CalendarEventManage,
         NotApplicableTestsManage, NotApplicableTestsFinalApprove, TestsOutsource,
-        SamplesPrepare,
+        SamplesPrepare, TestsSelfAssign,
         SectionsViewAll, SectionsConfigureAll, SystemManageJobs, AccessReview,
         AuditReview, AccessReviewSign,
         LabelsReprint, LabelsConfigure
@@ -239,7 +242,7 @@ public static class PermissionConstants
         MonitoringPlanView, MonitoringPlanManage, MonitoringPlanApprove,
         EquipmentPlanManage, EquipmentPlanApprove, EquipmentWorkRecord, CalendarEventManage,
         NotApplicableTestsManage, NotApplicableTestsFinalApprove, TestsOutsource,
-        SamplesPrepare,
+        SamplesPrepare, TestsSelfAssign,
         SectionsViewAll, SectionsConfigureAll, SystemManageJobs, AccessReview,
         AuditReview, AccessReviewSign,
         LabelsReprint, LabelsConfigure

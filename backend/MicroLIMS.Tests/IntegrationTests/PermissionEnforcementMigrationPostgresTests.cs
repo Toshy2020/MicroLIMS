@@ -46,6 +46,7 @@ public class PermissionEnforcementMigrationPostgresTests
         PermissionConstants.NotApplicableTestsFinalApprove,
         PermissionConstants.TestsOutsource,
         PermissionConstants.SamplesPrepare,
+        PermissionConstants.TestsSelfAssign,
         PermissionConstants.SectionsViewAll,
         PermissionConstants.SectionsConfigureAll,
         PermissionConstants.DocumentsTrainingViewMatrix,

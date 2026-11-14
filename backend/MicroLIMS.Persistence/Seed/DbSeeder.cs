@@ -527,6 +527,7 @@ public static class DbSeeder
             (PermissionConstants.NotApplicableTestsFinalApprove, "Give the final approval of a not-applicable test (QC Manager only)."),
             (PermissionConstants.TestsOutsource, "Outsource a test to an outside laboratory."),
             (PermissionConstants.SamplesPrepare, "Prepare a sample for testing: record, confirm or batch-confirm a sample preparation."),
+            (PermissionConstants.TestsSelfAssign, "Take an unassigned test in your own laboratory section and release it again while nothing is recorded on it."),
             (PermissionConstants.SectionsViewAll, "View every laboratory section's records read-only."),
             (PermissionConstants.SectionsConfigureAll, "Configure master data and settings for every laboratory section."),
             (PermissionConstants.SystemManageJobs, "View background job status and run history; run housekeeping jobs manually."),
@@ -633,7 +634,7 @@ public static class DbSeeder
                     PermissionConstants.MediaPrepare, PermissionConstants.SamplesReceiveOwnLab,
                     PermissionConstants.SolutionsPrepare, PermissionConstants.HplcOperate, PermissionConstants.WorkingStandardsQualify,
                     PermissionConstants.MonitoringPlanView, PermissionConstants.EquipmentWorkRecord,
-                    PermissionConstants.SamplesPrepare
+                    PermissionConstants.SamplesPrepare, PermissionConstants.TestsSelfAssign
                 })
             };
 

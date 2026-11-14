@@ -52,11 +52,14 @@ public sealed class AssignedTestsSource : IMyWorkSource
                     t.Sample.ReceivedAt, t.SectionId, t.Section!.Name, t.Section.Code))
                 .Take(take).ToListAsync(ct);
 
+        // "Release" is offered only where the release endpoint would accept it (same rule, one query for the page).
+        var releasable = await TestReleaseRules.ReleasableAsync(_db, ctx.UserId, rows.Select(r => r.TestOrderId).ToArray(), ct);
+
         var items = rows.Select(r => new MyWorkItem(
             $"test:{r.TestOrderId}", "toPerform", r.SampleRef, $"Perform {r.DisplayName ?? r.TestCode}",
             r.SectionName, null, MyWorkUrgency.ForStatusAge(r.ReceivedAt, ctx.NowUtc), r.ReceivedAt, false, null,
             new MyWorkTarget("test-step", SampleId: r.SampleId, TestOrderId: r.TestOrderId),
-            Array.Empty<string>(), r.SectionId, r.SectionName, r.Lab)).ToList();
+            releasable.Contains(r.TestOrderId) ? new[] { "release" } : Array.Empty<string>(), r.SectionId, r.SectionName, r.Lab)).ToList();
 
         return new MyWorkSourceResult(items, new Dictionary<string, int> { ["toPerform"] = total }, new Dictionary<string, int>());
     }

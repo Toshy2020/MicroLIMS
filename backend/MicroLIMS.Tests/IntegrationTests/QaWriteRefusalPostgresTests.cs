@@ -20,8 +20,8 @@ namespace MicroLIMS.Tests.IntegrationTests;
 
 /// <summary>
 /// Characterisation test for B4 Task 3 write/execution refusal for the QA system role
-/// across all 26 non-document GxP execution and approval permission codes.
-/// Runs all 26 cases independently and collects every failure before failing.
+/// across all 27 non-document GxP execution and approval permission codes.
+/// Runs all 27 cases independently and collects every failure before failing.
 /// Uses real PostgreSQL via PostgresTestFixture with separate DbContexts for
 /// Arrange, Act, and AsNoTracking Assert phases.
 /// </summary>
@@ -38,6 +38,14 @@ public sealed class QaWriteRefusalPostgresTests
         ServiceScopeCheck,
         ControllerWriteScope,
         EndpointPolicyOnly
+    }
+
+    // Self-assignment switched on, so the refusal under test is the permission and section check, not the setting.
+    private sealed class SelfAssignmentOn : ISystemSettingsReader
+    {
+        public Task<int> GetIntAsync(string key, CancellationToken cancellationToken = default) => Task.FromResult(0);
+        public Task<bool> GetBoolAsync(string key, CancellationToken cancellationToken = default) => Task.FromResult(true);
+        public Task<string> GetStringAsync(string key, CancellationToken cancellationToken = default) => Task.FromResult(string.Empty);
     }
 
     private sealed record WriteEndpointDescriptor(
@@ -58,12 +66,12 @@ public sealed class QaWriteRefusalPostgresTests
             .Where(c => c != PermissionConstants.DocumentsReview && c != PermissionConstants.DocumentsApprove)
             .OrderBy(c => c, StringComparer.Ordinal)
             .ToList();
-        Assert.Equal(26, expectedCodes.Count);
+        Assert.Equal(27, expectedCodes.Count);
 
         var descriptors = BuildWriteDescriptors();
         Assert.Equal(expectedCodes, descriptors.Select(d => d.PermissionCode).OrderBy(c => c, StringComparer.Ordinal).ToList());
 
-        // 1) Fresh DB check: QA role does not hold ANY of the 26 GxP execution/approval codes
+        // 1) Fresh DB check: QA role does not hold ANY of the 27 GxP execution/approval codes
         await using (var assertDb = _fixture.CreateDbContext())
         {
             var qaGrantedCodes = await assertDb.RolePermissions.AsNoTracking()
@@ -75,7 +83,7 @@ public sealed class QaWriteRefusalPostgresTests
                 Assert.DoesNotContain(code, qaGrantedCodes);
         }
 
-        // 2) Independent per-code checks: run ALL 26 cases and collect every failure.
+        // 2) Independent per-code checks: run ALL 27 cases and collect every failure.
         var failures = new List<string>();
         foreach (var d in descriptors)
         {
@@ -415,6 +423,23 @@ public sealed class QaWriteRefusalPostgresTests
                 await using var assertDb = _fixture.CreateDbContext();
                 var order = await assertDb.TestOrders.AsNoTracking().SingleAsync(o => o.Id == w.UvOrderAId);
                 Assert.Null(order.OutsourcedToLab);
+                await AssertNoNewAuditLogAsync(w.QaUserId, beforeAuditId);
+            }),
+
+        new(
+            PermissionConstants.TestsSelfAssign,
+            typeof(TestSelfAssignmentController),
+            nameof(TestSelfAssignmentController.Take),
+            "TestSelfAssignmentService.TakeAsync",
+            RefusalMechanism.ServiceScopeCheck,
+            async (actDb, w) =>
+            {
+                var beforeAuditId = await MaxAuditLogIdAsync();
+                var service = new TestSelfAssignmentService(actDb, new UserSectionScopeService(actDb), new SelfAssignmentOn());
+                await Assert.ThrowsAsync<UnauthorizedAccessException>(() => service.TakeAsync(w.OrderAId, w.QaUserId));
+                await using var assertDb = _fixture.CreateDbContext();
+                var order = await assertDb.TestOrders.AsNoTracking().SingleAsync(o => o.Id == w.OrderAId);
+                Assert.NotEqual(w.QaUserId, order.AssignedAnalystId);
                 await AssertNoNewAuditLogAsync(w.QaUserId, beforeAuditId);
             }),
 

@@ -166,28 +166,41 @@ public class TestWorkflowController : ControllerBase
         });
     }
 
+    // record-result serves CountTest (PlateCount) steps
+    private static CountTestPayload BuildCountPayload(RecordTestResultRequest request)
+    {
+        if (request.RawPlateReadings is { Count: > 0 })
+            return new CountTestPayload(request.RawPlateReadings, request.DilutionFactor ?? 1, request.DilutionFactorOverrideNote);
+        if (request.PlateReadings is { Count: > 0 })
+            return new CountTestPayload(request.PlateReadings, request.DilutionFactor ?? 1, request.DilutionFactorOverrideNote);
+        throw new InvalidOperationException("Plate readings are required.");
+    }
+
     [HttpPost("{testOrderId}/record-result")]
     public async Task<IActionResult> RecordResult(int testOrderId, RecordTestResultRequest request)
     {
         await _scopeService.EnsureTestOrderAccessAsync(CurrentUserId, testOrderId);
         return await RunAsync(() =>
         {
-            // record-result serves CountTest (PlateCount) steps
-            CountTestPayload payload;
-            if (request.RawPlateReadings is { Count: > 0 })
-            {
-                payload = new CountTestPayload(request.RawPlateReadings, request.DilutionFactor ?? 1, request.DilutionFactorOverrideNote);
-            }
-            else if (request.PlateReadings is { Count: > 0 })
-            {
-                payload = new CountTestPayload(request.PlateReadings, request.DilutionFactor ?? 1, request.DilutionFactorOverrideNote);
-            }
-            else
-            {
-                throw new InvalidOperationException("Plate readings are required.");
-            }
-
+            var payload = BuildCountPayload(request);
             return _engine.RecordResultAsync(testOrderId, request.StepName, payload, CurrentUserId);
+        });
+    }
+
+    // What record-result would report for these readings, from the same
+    // calculator. Saves nothing; same policy and section scope as record-result.
+    [HttpPost("{testOrderId}/preview-count-result")]
+    public async Task<IActionResult> PreviewCountResult(int testOrderId, RecordTestResultRequest request)
+    {
+        await _scopeService.EnsureTestOrderAccessAsync(CurrentUserId, testOrderId);
+        return await RunAsync(async () =>
+        {
+            var payload = request.RawPlateReadings is { Count: > 0 } || request.PlateReadings is { Count: > 0 }
+                ? BuildCountPayload(request)
+                : throw new FieldValidationException("At least one plate reading is required to calculate an average.",
+                    new[] { new FieldError("rawPlateReadings", "At least one plate reading is required to calculate an average.") });
+            var result = await _engine.PreviewCountResultAsync(testOrderId, request.StepName, payload);
+            return new { reported = result.Reported, average = result.Average, calculated = result.Calculated, status = result.Status, messages = result.Messages };
         });
     }
 

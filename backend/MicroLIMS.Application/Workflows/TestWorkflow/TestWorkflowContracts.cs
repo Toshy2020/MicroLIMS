@@ -257,6 +257,8 @@ public interface ITestWorkflowEngine : IStatefulWorkflowEngine
     Task<IncubationResponse> SelectMediaAsync(int testOrderId, string stepName, int mediaLotId, int incubatorEquipmentId, int userId);
     Task<IncubationResponse> StartStage2IncubationAsync(int testOrderId, string stepName, int incubatorEquipmentId, int userId);
     Task<TestWorkflowResult> RecordResultAsync(int testOrderId, string stepName, ResultPayload payload, int userId);
+    // What a count-test save of these readings would report; writes nothing.
+    Task<CountCalculationResult> PreviewCountResultAsync(int testOrderId, string stepName, CountTestPayload payload);
     Task<TestWorkflowResult> SubmitHplcMethodAssayAsync(int runSampleId, string password, string? comment, int userId, string? ipAddress = null);
     Task<TestWorkflowResult> SubmitIcpMethodAssayAsync(int runSampleId, string password, string? comment, int userId, string? ipAddress = null);
     Task<TestWorkflowResult> RecordMeasurementResultAsync(int testOrderId, MeasurementPayload payload, int userId, string? ipAddress = null);

@@ -1,7 +1,7 @@
 import { AxiosError, AxiosHeaders } from "axios";
 import { describe, expect, it } from "vitest";
 import { getErrorMessage } from "./errorMessage";
-import { errorsByField, errorsByRow, getFieldErrors } from "./fieldErrors";
+import { errorsByField, errorsByRow, extractBatchSaveErrors, getFieldErrors } from "./fieldErrors";
 
 function makeAxiosError(data: unknown, message = "Request failed"): AxiosError {
   return new AxiosError(
@@ -112,5 +112,29 @@ describe("fieldErrors", () => {
     );
 
     expect(getErrorMessage(new Error("boom"), "Fallback")).toBe("Fallback");
+  });
+
+  it("extractBatchSaveErrors summarizes row errors and falls back for non-row errors", () => {
+    const rowErr = makeAxiosError({
+      success: false,
+      message: "Some rows need correction.",
+      fieldErrors: [
+        { field: "name", message: "Duplicate", row: 0 },
+        { field: "grade", message: "Invalid", row: 0 },
+        { field: "name", message: "Exists", row: 2 }
+      ]
+    });
+    expect(extractBatchSaveErrors(rowErr, "Fallback")).toEqual({
+      summary: "3 problems in 2 rows. Nothing was created.",
+      rowErrors: {
+        0: { name: "Duplicate", grade: "Invalid" },
+        2: { name: "Exists" }
+      }
+    });
+
+    expect(extractBatchSaveErrors(new Error("boom"), "Fallback")).toEqual({
+      summary: "Fallback",
+      rowErrors: null
+    });
   });
 });

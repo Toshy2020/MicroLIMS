@@ -1,4 +1,5 @@
 import { apiClient, ifMatch } from "../../../../services/apiClient";
+import type { CreateWaterSamplingPointPayload, SamplingPoint } from "../waterConfigTypes";
 
 // Water configuration - Laboratory Configuration > Water page. Mirrors
 // EMConfigService: Water Departments -> Sample Locations (sampling
@@ -16,6 +17,8 @@ export const WaterConfigService = {
   getSamplingPoints: () => apiClient.get("/masterdata/water-sampling-points").then((r) => r.data.data),
   createSamplingPoint: (code: string, location: string, testingFrequency: string, assignedTestCodes: string[], waterDepartmentId: number, frequency?: object) =>
     apiClient.post("/masterdata/water-sampling-points", { code, location, testingFrequency, assignedTestCodes, waterDepartmentId, frequency }).then((r) => r.data.data),
+  createSamplingPointsBatch: (points: CreateWaterSamplingPointPayload[]): Promise<SamplingPoint[]> =>
+    apiClient.post("/masterdata/water-sampling-points/batch", points).then((r) => r.data.data),
   updateSamplingPoint: (id: number, code: string, location: string, testingFrequency: string, assignedTestCodes: string[], waterDepartmentId: number, version?: number, frequency?: object) =>
     apiClient.put(`/masterdata/water-sampling-points/${id}`, { code, location, testingFrequency, assignedTestCodes, waterDepartmentId, frequency }, ifMatch(version)).then((r) => r.data.data),
   deleteSamplingPoint: (id: number) => apiClient.delete(`/masterdata/water-sampling-points/${id}`),

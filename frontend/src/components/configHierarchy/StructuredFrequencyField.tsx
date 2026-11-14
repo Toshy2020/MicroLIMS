@@ -27,8 +27,16 @@ export const frequencyFrom = (e?: FrequencyColumns | null): FrequencyValue =>
     ? { type: e.frequencyType, interval: e.frequencyInterval ?? 1, weekday: e.samplingWeekday ?? "", anchorMonth: e.frequencyAnchorMonth ?? "", weekOfMonth: e.frequencyWeekOfMonth ?? "" }
     : emptyFrequency;
 
+export interface FrequencyRulePayload {
+  type: "Daily" | "Weekly" | "Monthly" | null;
+  interval?: number | null;
+  samplingWeekday?: string | null;
+  anchorMonth?: number | null;
+  weekOfMonth?: number | null;
+}
+
 // Body for the `frequency` request field. An empty type clears the rule.
-export const frequencyRule = (v: FrequencyValue) =>
+export const frequencyRule = (v: FrequencyValue): FrequencyRulePayload =>
   v.type === ""
     ? { type: null }
     : v.type === "Daily"

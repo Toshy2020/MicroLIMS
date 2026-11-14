@@ -9,6 +9,7 @@ using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Shared.Constants;
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Responses;
 
 namespace MicroLIMS.Application.Services.MasterData;
 
@@ -18,11 +19,13 @@ public class WaterMasterDataService
 {
     private readonly IMicroLimsDbContext _db;
     private readonly IUserSectionScopeService _scope;
+    private readonly MasterDataBatchService _batch;
 
-    public WaterMasterDataService(IMicroLimsDbContext db, IUserSectionScopeService scope)
+    public WaterMasterDataService(IMicroLimsDbContext db, IUserSectionScopeService scope, MasterDataBatchService? batchService = null)
     {
         _db = db;
         _scope = scope;
+        _batch = batchService ?? new MasterDataBatchService(db);
     }
 
     public async Task<List<WaterSamplingPointResponse>> GetWaterSamplingPointsAsync() =>
@@ -117,6 +120,77 @@ public class WaterMasterDataService
             throw new BusinessRuleException(problem);
         FrequencyRules.Apply(target, rule);
     }
+
+    private static List<FieldError> ValidateCreateWaterSamplingPointFields(CreateWaterSamplingPointRequest request, int? row = null)
+    {
+        var errors = new List<FieldError>();
+        if (string.IsNullOrWhiteSpace(request.Code))
+        {
+            errors.Add(new FieldError("code", "Point code is required.", row));
+        }
+
+        // Same rule ApplyFrequency enforces on create, reported per row before anything is written.
+        if (request.Frequency is not null && FrequencyRules.Validate(request.Frequency, weekdayRequired: true) is { } problem)
+        {
+            errors.Add(new FieldError("frequency", problem, row));
+        }
+
+        return errors;
+    }
+
+    private async Task<IReadOnlyList<FieldError>> ValidateCreateWaterSamplingPointAsync(
+        int currentUserId,
+        CreateWaterSamplingPointRequest request,
+        int row,
+        CancellationToken ct)
+    {
+        var errors = ValidateCreateWaterSamplingPointFields(request, row);
+
+        if (request.WaterDepartmentId is int deptId)
+        {
+            var exists = await _db.WaterDepartments.AsNoTracking().AnyAsync(d => d.Id == deptId, ct);
+            if (!exists)
+            {
+                errors.Add(new FieldError("waterDepartmentId", $"Water department {deptId} not found.", row));
+            }
+        }
+
+        if (request.AssignedTestCodes is { Count: > 0 })
+        {
+            try
+            {
+                await TestCodeOwnership.EnsureCanEditAsync(_db, _scope, currentUserId, request.AssignedTestCodes, "Water sampling point", ct);
+            }
+            catch (Exception ex) when (ex is BusinessRuleException or UnauthorizedAccessException)
+            {
+                errors.Add(new FieldError("assignedTestCodes", ex.Message, row));
+            }
+        }
+
+        return errors;
+    }
+
+    public Task<IReadOnlyList<WaterSamplingPointResponse>> CreateWaterSamplingPointsBatchAsync(
+        int currentUserId,
+        IReadOnlyList<CreateWaterSamplingPointRequest>? requests,
+        CancellationToken ct = default) =>
+        _batch.ExecuteAsync(
+            requests,
+            (row, index, token) => ValidateCreateWaterSamplingPointAsync(currentUserId, row, index, token),
+            row => CreateWaterSamplingPointAsync(currentUserId, row),
+            getCode: row => row.Code,
+            codeField: "code",
+            getExistingCodesAsync: async (codes, token) =>
+            {
+                var lowered = codes.Select(c => c.ToLowerInvariant()).ToList();
+                var existing = await _db.WaterSamplingPoints
+                    .AsNoTracking()
+                    .Where(p => lowered.Contains(p.Code.ToLower()))
+                    .Select(p => p.Code)
+                    .ToListAsync(token);
+                return new HashSet<string>(existing.Select(c => c.Trim()), StringComparer.OrdinalIgnoreCase);
+            },
+            ct: ct);
 
     public async Task<WaterSamplingPointResponse> CreateWaterSamplingPointAsync(int currentUserId, CreateWaterSamplingPointRequest request)
     {

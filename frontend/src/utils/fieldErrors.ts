@@ -1,5 +1,6 @@
 import axios from "axios";
 import type { FieldError } from "../services/apiTypes";
+import { getErrorMessage } from "./errorMessage";
 
 function isFieldError(value: unknown): value is FieldError {
   if (typeof value !== "object" || value === null) return false;
@@ -60,4 +61,32 @@ export function errorsByRow(err: unknown): Record<number, Record<string, string>
     }
   }
   return result;
+}
+
+const pluralCount = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
+
+/**
+ * Summarizes an all-or-nothing batch save error into per-row field errors (if present)
+ * and a top-level alert message.
+ */
+export function extractBatchSaveErrors(
+  err: unknown,
+  fallback: string
+): { summary: string; rowErrors: Record<number, Record<string, string>> | null } {
+  const rowErrs = errorsByRow(err);
+  const topErrs = errorsByField(err);
+  const failingRowIndices = Object.keys(rowErrs);
+  if (failingRowIndices.length === 0) {
+    return { summary: getErrorMessage(err, fallback), rowErrors: null };
+  }
+  const totalProblems = failingRowIndices.reduce(
+    (sum, key) => sum + Object.keys(rowErrs[Number(key)]).length,
+    0
+  );
+  const topMsgs = Object.values(topErrs);
+  const summary = `${pluralCount(totalProblems, "problem")} in ${pluralCount(failingRowIndices.length, "row")}. Nothing was created.`;
+  return {
+    summary: topMsgs.length > 0 ? `${summary} ${topMsgs.join(" ")}` : summary,
+    rowErrors: rowErrs
+  };
 }

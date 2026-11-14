@@ -3,6 +3,7 @@ export interface TestOrderSummary {
   sectionId: number;
   testCode: string;
   status: string;
+  workflowState?: string | null;
   workflowStatus?:
     | "Pending"
     | "InProgress"
@@ -15,6 +16,7 @@ export interface TestOrderSummary {
   locationCount: number;
   assignedAnalystId: number | null;
   assignedAnalystName: string | null;
+  skipsPreparation?: boolean;
 }
 
 // Mirrors backend SampleAssignmentOptionsDto: each test on the sample, who

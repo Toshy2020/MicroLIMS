@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { useSearchParams } from "react-router-dom";
 import {
@@ -142,10 +142,132 @@ function notifySampleLoadFailed(sampleId: number) {
   });
 }
 
+type WorkspaceDeepLinkOpen = "step" | "incubation" | "review" | "approval" | "assign";
+
+function isWorkspaceDeepLinkOpen(value: string): value is WorkspaceDeepLinkOpen {
+  return (
+    value === "step" ||
+    value === "incubation" ||
+    value === "review" ||
+    value === "approval" ||
+    value === "assign"
+  );
+}
+
+const CLOSED_SAMPLE_STATUSES = new Set(["Approved", "Rejected", "Voided", "Cancelled"]);
+const POST_STEP_TEST_STATUSES = new Set([
+  "UnderReview",
+  "Reviewed",
+  "Approved",
+  "Rejected",
+  "Voided",
+  "Cancelled",
+  "Superseded",
+  "OnHold",
+  "Completed"
+]);
+const POST_STEP_WORKFLOW_STATES = new Set([
+  "APPROVED",
+  "REVIEWED",
+  "RESULTS_RECORDED",
+  "REJECTED",
+  "VOIDED",
+  "CANCELLED",
+  "SUPERSEDED",
+  "ON_HOLD"
+]);
+
+type DeepLinkEvaluation =
+  | { eligible: true; action: WorkspaceDeepLinkOpen; test?: ReceivingTestOrderSummary }
+  | { eligible: false; reason: string };
+
+function isTestPastStep(test: ReceivingTestOrderSummary): boolean {
+  if (POST_STEP_TEST_STATUSES.has(test.status)) return true;
+  if (test.workflowStatus && POST_STEP_TEST_STATUSES.has(test.workflowStatus)) return true;
+  if (test.workflowState && POST_STEP_WORKFLOW_STATES.has(test.workflowState)) return true;
+  return false;
+}
+
+function evaluateWorkspaceDeepLinkOpen(
+  action: WorkspaceDeepLinkOpen,
+  sample: SampleRecord,
+  testOrderId: number | null,
+  permissions: string[]
+): DeepLinkEvaluation {
+  if (action === "step" || action === "incubation") {
+    const foundTest = testOrderId
+      ? sample.assignedTests?.find((t) => t.testOrderId === testOrderId)
+      : undefined;
+    if (!foundTest) {
+      return { eligible: false, reason: "The requested test order could not be found on this sample." };
+    }
+    if (CLOSED_SAMPLE_STATUSES.has(sample.status) || isTestPastStep(foundTest)) {
+      return {
+        eligible: false,
+        reason:
+          action === "incubation"
+            ? "This test is no longer waiting for an incubation read."
+            : "This test is no longer waiting for this step."
+      };
+    }
+    if (
+      action === "incubation" &&
+      foundTest.status === "Pending" &&
+      (!foundTest.workflowStatus || foundTest.workflowStatus === "Pending")
+    ) {
+      return { eligible: false, reason: "This test is no longer waiting for an incubation read." };
+    }
+    if (sample.preparationStatus === "NeedsPreparation" && !foundTest.skipsPreparation) {
+      return {
+        eligible: false,
+        reason:
+          action === "incubation"
+            ? "This sample must be prepared before performing incubation reads."
+            : "This sample must be prepared before performing test steps."
+      };
+    }
+    return { eligible: true, action, test: foundTest };
+  }
+
+  if (action === "review") {
+    if (!permissions.includes(PERMISSIONS.SAMPLES_REVIEW)) {
+      return { eligible: false, reason: "You do not have permission to review this sample." };
+    }
+    if (sample.status !== "UnderReview") {
+      return { eligible: false, reason: "This sample is no longer waiting for review." };
+    }
+    return { eligible: true, action };
+  }
+
+  if (action === "approval") {
+    if (!permissions.includes(PERMISSIONS.SAMPLES_APPROVE)) {
+      return { eligible: false, reason: "You do not have permission to approve this sample." };
+    }
+    if (sample.status !== "UnderApproval") {
+      return { eligible: false, reason: "This sample is no longer waiting for approval." };
+    }
+    return { eligible: true, action };
+  }
+
+  if (!permissions.includes(PERMISSIONS.SAMPLES_ASSIGN_ANALYST)) {
+    return { eligible: false, reason: "You do not have permission to assign analysts." };
+  }
+  if (CLOSED_SAMPLE_STATUSES.has(sample.status)) {
+    return { eligible: false, reason: "Analysts cannot be assigned to a closed sample." };
+  }
+  if (testOrderId) {
+    const foundTest = sample.assignedTests?.find((t) => t.testOrderId === testOrderId);
+    if (foundTest && CLOSED_SAMPLE_STATUSES.has(foundTest.status)) {
+      return { eligible: false, reason: "This test is closed and can no longer be assigned." };
+    }
+  }
+  return { eligible: true, action };
+}
+
 export function ReceivingTestingWorkspacePage({ lab }: Props) {
   const theme = useTheme();
   const { permissions } = useAuth();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   // Core Data State
   const [records, setRecords] = useState<SampleRecord[] | null>(null);
@@ -289,6 +411,15 @@ export function ReceivingTestingWorkspacePage({ lab }: Props) {
   const postCreatePrint = usePostCreateLabelPrint();
 
   const processedDeepLinkKeyRef = useRef<string | null>(null);
+  const processedOpenKeyRef = useRef<string | null>(null);
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   const filterRef = useRef<TestingWorkspaceFilter>({});
   filterRef.current = {
@@ -356,11 +487,66 @@ export function ReceivingTestingWorkspacePage({ lab }: Props) {
     toDate
   ]);
 
+  const handleTestClick = useCallback((test: ReceivingTestOrderSummary | WorkspaceTestOrderSummary, sample: SampleRecord | WorkspaceSampleCard) => {
+    setActiveTest(test as unknown as WorkspaceTestOrderSummary);
+    setActiveSampleForTest(sample as unknown as WorkspaceSampleCard);
+  }, []);
+
+  const handleViewSummary = useCallback((sample: SampleRecord | WorkspaceSampleCard) => {
+    setSummarySampleId(sample.sampleId);
+  }, []);
+
+  const handleAssignAnalyst = useCallback((sample: SampleRecord) => {
+    setAssigningSample(sample);
+  }, []);
+
+  const clearOpenParams = useCallback(() => {
+    setSearchParams(
+      (prev) => {
+        if (!prev.has("open") && !prev.has("incubationId") && !prev.has("testOrderId")) return prev;
+        const next = new URLSearchParams(prev);
+        next.delete("open");
+        next.delete("incubationId");
+        next.delete("testOrderId");
+        return next;
+      },
+      { replace: true }
+    );
+  }, [setSearchParams]);
+
+  const applyWorkspaceOpenAction = useCallback((
+    action: WorkspaceDeepLinkOpen,
+    sample: SampleRecord,
+    testOrderId: number | null
+  ) => {
+    const result = evaluateWorkspaceDeepLinkOpen(action, sample, testOrderId, permissions);
+    if (!result.eligible) {
+      setNotification({ text: result.reason, severity: "warning" });
+      return;
+    }
+
+    if (result.action === "step" || result.action === "incubation") {
+      if (result.test) {
+        handleTestClick(result.test, sample);
+      }
+      return;
+    }
+
+    if (result.action === "review" || result.action === "approval") {
+      handleViewSummary(sample);
+      return;
+    }
+
+    handleAssignAnalyst(sample);
+  }, [permissions, handleTestClick, handleViewSummary, handleAssignAnalyst]);
+
   // Deep-Link URL Parameter Processing (Strict Backward Compatibility)
   useEffect(() => {
     const paramSampleId = searchParams.get("sampleId");
     const paramTestOrderId = searchParams.get("testOrderId");
     const paramOpenSummary = searchParams.get("openSummary");
+    const paramOpen = searchParams.get("open");
+    const paramIncubationId = searchParams.get("incubationId");
     const paramStatus = searchParams.get("status");
     const paramTestStatus = searchParams.get("testStatus");
     const paramAnalystId = searchParams.get("analystId");
@@ -392,14 +578,81 @@ export function ReceivingTestingWorkspacePage({ lab }: Props) {
       setDebouncedSearch(paramSearch);
     }
 
+    const sId = paramSampleId ? Number(paramSampleId) : null;
+    const tId = paramTestOrderId ? Number(paramTestOrderId) : null;
     const currentDeepLinkKey = `${paramSampleId ?? ""}:${paramTestOrderId ?? ""}:${paramOpenSummary ?? ""}`;
+    const clearedDeepLinkKey = `${paramSampleId ?? ""}::${paramOpenSummary ?? ""}`;
+
+    if (paramOpen !== null) {
+      if (!isWorkspaceDeepLinkOpen(paramOpen)) {
+        processedDeepLinkKeyRef.current = clearedDeepLinkKey;
+        if (sId) setSelectedSampleId(sId);
+        clearOpenParams();
+        return;
+      }
+
+      const openKey = `${paramSampleId ?? ""}:${paramTestOrderId ?? ""}:${paramOpen}:${paramIncubationId ?? ""}`;
+      if (processedOpenKeyRef.current !== openKey) {
+        if (!sId) {
+          if (tId && records === null) {
+            return;
+          }
+          processedOpenKeyRef.current = openKey;
+          processedDeepLinkKeyRef.current = clearedDeepLinkKey;
+          const byTest = tId
+            ? records?.find((sample) => sample.assignedTests?.some((t) => t.testOrderId === tId))
+            : undefined;
+          if (byTest) {
+            setSelectedSampleId(byTest.sampleId);
+            setExtraSelectedSample(byTest);
+            applyWorkspaceOpenAction(paramOpen, byTest, tId);
+          } else {
+            setNotification({ text: "The requested sample could not be found.", severity: "warning" });
+          }
+          clearOpenParams();
+          return;
+        }
+
+        processedOpenKeyRef.current = openKey;
+        processedDeepLinkKeyRef.current = clearedDeepLinkKey;
+        setSelectedSampleId(sId);
+
+        const foundInRecords = records?.find((s) => s.sampleId === sId);
+        const resolvedSample =
+          foundInRecords ?? (extraSelectedSample?.sampleId === sId ? extraSelectedSample : null);
+
+        if (resolvedSample) {
+          setExtraSelectedSample(resolvedSample);
+          applyWorkspaceOpenAction(paramOpen, resolvedSample, tId);
+          clearOpenParams();
+        } else {
+          ReceiveService.getSample(sId, lab.sectionId, lab.area)
+            .then((fetched) => {
+              if (!mountedRef.current) return;
+              if (fetched) {
+                setExtraSelectedSample(fetched);
+                applyWorkspaceOpenAction(paramOpen, fetched, tId);
+              } else {
+                notifySampleLoadFailed(sId);
+              }
+              clearOpenParams();
+            })
+            .catch(() => {
+              if (!mountedRef.current) return;
+              notifySampleLoadFailed(sId);
+              clearOpenParams();
+            });
+        }
+      }
+      return;
+    }
+
+    processedOpenKeyRef.current = null;
+
     if (processedDeepLinkKeyRef.current === currentDeepLinkKey) {
       return;
     }
     processedDeepLinkKeyRef.current = currentDeepLinkKey;
-
-    const sId = paramSampleId ? Number(paramSampleId) : null;
-    const tId = paramTestOrderId ? Number(paramTestOrderId) : null;
 
     if (sId) {
       setSelectedSampleId(sId);
@@ -460,7 +713,16 @@ export function ReceivingTestingWorkspacePage({ lab }: Props) {
         });
       }
     }
-  }, [records, searchParams, search, lab.sectionId, lab.area]);
+  }, [
+    records,
+    extraSelectedSample,
+    searchParams,
+    search,
+    lab.sectionId,
+    lab.area,
+    clearOpenParams,
+    applyWorkspaceOpenAction
+  ]);
 
   // Ensure selectedSampleId always resolves to a full sample even if not on page 1
   useEffect(() => {
@@ -603,15 +865,6 @@ export function ReceivingTestingWorkspacePage({ lab }: Props) {
   const handleDeselectSample = () => {
     setSelectedSampleId(null);
     setExtraSelectedSample(null);
-  };
-
-  const handleTestClick = (test: ReceivingTestOrderSummary | WorkspaceTestOrderSummary, sample: SampleRecord | WorkspaceSampleCard) => {
-    setActiveTest(test as unknown as WorkspaceTestOrderSummary);
-    setActiveSampleForTest(sample as unknown as WorkspaceSampleCard);
-  };
-
-  const handleViewSummary = (sample: SampleRecord | WorkspaceSampleCard) => {
-    setSummarySampleId(sample.sampleId);
   };
 
   const handleEdit = (sample: SampleRecord) => {
@@ -1017,7 +1270,7 @@ export function ReceivingTestingWorkspacePage({ lab }: Props) {
               onViewReport={handleViewReport}
               onViewAuditHistory={handleViewAuditHistory}
               onPrepareSample={handlePrepareSample}
-              onAssignAnalyst={(s) => setAssigningSample(s)}
+              onAssignAnalyst={handleAssignAnalyst}
               onVoid={(sample) => setVoidingSample(sample)}
             />
           )}

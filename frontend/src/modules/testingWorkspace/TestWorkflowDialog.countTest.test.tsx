@@ -333,24 +333,63 @@ describe("TestWorkflowDialog count test", () => {
       service.getCurrentStep.mockResolvedValue(incubating(0));
       service.previewCountResult.mockRejectedValue(
         fieldValidationError([
-          { field: "rawPlateReadings", message: '"abc" is not a number. Enter a count, TNTC or Uncountable.', row: 1 }
+          { field: "rawPlateReadings", message: "Server rejected reading.", row: 1 }
         ])
       );
       renderDialog();
 
       await user.click(await screen.findByRole("button", { name: "Record Result" }));
       await user.type(screen.getByLabelText("Plate 1"), "12");
-      await user.type(screen.getByLabelText("Plate 2"), "abc");
+      await user.type(screen.getByLabelText("Plate 2"), "99");
 
       await act(async () => {
         await vi.advanceTimersByTimeAsync(400);
       });
 
-      const errorText = '"abc" is not a number. Enter a count, TNTC or Uncountable.';
-      expect(await screen.findByText(errorText)).toBeTruthy();
+      expect(await screen.findByText("Server rejected reading.")).toBeTruthy();
       expect(screen.getByLabelText("Plate 2").getAttribute("aria-invalid")).toBe("true");
       expect(screen.getByLabelText("Plate 1").getAttribute("aria-invalid")).not.toBe("true");
       expect(screen.queryByText("Preview unavailable")).toBeNull();
+    });
+
+    it("non-digit reading such as 1,000 shows digits-only message before preview or save", async () => {
+      const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+      service.getCurrentStep.mockResolvedValue(incubating(0));
+      renderDialog();
+
+      await user.click(await screen.findByRole("button", { name: "Record Result" }));
+      await user.type(screen.getByLabelText("Plate 1"), "1,000");
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(400);
+      });
+
+      expect(await screen.findByText("Enter a whole number using digits only, or TNTC or Uncountable.")).toBeTruthy();
+      expect(screen.getByLabelText("Plate 1").getAttribute("aria-invalid")).toBe("true");
+      expect(service.previewCountResult).not.toHaveBeenCalled();
+
+      await user.click(screen.getByRole("button", { name: "Calculate" }));
+      expect(service.recordCountResult).not.toHaveBeenCalled();
+    });
+
+    it("both TNTC and Uncountable in one reading set are refused before preview or save", async () => {
+      const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+      service.getCurrentStep.mockResolvedValue(incubating(0));
+      renderDialog();
+
+      await user.click(await screen.findByRole("button", { name: "Record Result" }));
+      await user.type(screen.getByLabelText("Plate 1"), "TNTC");
+      await user.type(screen.getByLabelText("Plate 2"), "Uncountable");
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(400);
+      });
+
+      expect(await screen.findByText("A reading set cannot contain both TNTC and Uncountable. Choose one.")).toBeTruthy();
+      expect(service.previewCountResult).not.toHaveBeenCalled();
+
+      await user.click(screen.getByRole("button", { name: "Calculate" }));
+      expect(service.recordCountResult).not.toHaveBeenCalled();
     });
   });
 });

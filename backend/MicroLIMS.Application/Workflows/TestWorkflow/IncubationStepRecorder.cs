@@ -857,6 +857,7 @@ public sealed class IncubationStepRecorder : TestWorkflowSupport
         LoadAndCalculateCountAsync(TestOrder order, CountTestPayload payload)
     {
         var context = await LoadCountContextAsync(order, payload);
+        CountResultCalculator.Validate(context.Payload.RawPlateReadings);
         var limits = CountResultCalculator.HasNonNumericReading(context.Payload.RawPlateReadings)
             ? (Alert: (string?)null, Action: (string?)null, Spec: (string?)null, Unit: (string?)null)
             : await LoadCountLimitsAsync(order, context.Sample);
@@ -885,18 +886,7 @@ public sealed class IncubationStepRecorder : TestWorkflowSupport
             throw new FieldValidationException("At least one plate reading is required to calculate an average.",
                 new[] { new FieldError("rawPlateReadings", "At least one plate reading is required to calculate an average.") });
 
-        // Same rule as the numeric branch of Calculate: without TNTC/Uncountable
-        // every reading must parse as a number.
-        if (!CountResultCalculator.HasNonNumericReading(payload.RawPlateReadings))
-        {
-            var invalid = payload.RawPlateReadings
-                .Select((r, i) => (Reading: r, Index: i))
-                .Where(x => !CountResultCalculator.IsParsable(x.Reading))
-                .Select(x => new FieldError("rawPlateReadings", $"\"{x.Reading}\" is not a number. Enter a count, TNTC or Uncountable.", x.Index))
-                .ToList();
-            if (invalid.Count > 0)
-                throw new FieldValidationException("One or more plate readings are not valid.", invalid);
-        }
+        CountResultCalculator.Validate(payload.RawPlateReadings);
 
         return (await LoadAndCalculateCountAsync(order, payload)).Calculation;
     }

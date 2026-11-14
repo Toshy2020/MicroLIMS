@@ -161,11 +161,11 @@ public class CountPreviewPostgresTests
     {
         await PostgresCases.RunAsync(new[]
         {
-            new[] { "12", "13" },      // midpoint: away from zero, not banker's
-            new[] { "100.4" },         // reported "100" but status on the unrounded value
-            new[] { "0", "1" },        // below the limit
+            new[] { "12", "13" },                    // midpoint: away from zero, not banker's
+            new[] { "100", "100", "100", "101", "101" }, // reported "100" but status on the unrounded value (100.4)
+            new[] { "0", "1" },                      // below the limit
             new[] { "12", "TNTC", "14" },
-            new[] { "5", "7", "8" },   // repeating average
+            new[] { "5", "7", "8" },                 // repeating average
         }, async readings =>
         {
             var orderId = await ArrangeIncubatingWaterOrderAsync();
@@ -256,8 +256,11 @@ public class CountPreviewPostgresTests
             var ex = await Assert.ThrowsAsync<FieldValidationException>(() =>
                 controller.PreviewCountResult(orderId, new RecordTestResultRequest(StepName, null, 1m, new List<string> { "12", "abc", "14", "N/A" })));
             Assert.Equal(new[] { 1, 3 }, ex.FieldErrors.Select(e => e.Row!.Value).ToArray());
-            Assert.All(ex.FieldErrors, e => Assert.Equal("rawPlateReadings", e.Field));
-            Assert.Contains("abc", ex.FieldErrors[0].Message);
+            Assert.All(ex.FieldErrors, e =>
+            {
+                Assert.Equal("rawPlateReadings", e.Field);
+                Assert.Equal("Enter a whole number using digits only, or TNTC or Uncountable.", e.Message);
+            });
 
             // No readings at all.
             var empty = await Assert.ThrowsAsync<FieldValidationException>(() =>
@@ -268,5 +271,60 @@ public class CountPreviewPostgresTests
         await using var assertDb = _fixture.CreateDbContext();
         Assert.False(await assertDb.CountTestReadings.AsNoTracking().AnyAsync(r => r.TestOrderId == orderId));
         Assert.Equal(0, await assertDb.AuditLogs.AsNoTracking().CountAsync(a => a.Id > auditBefore));
+    }
+
+    [PostgresFact]
+    public async Task Preview_ThousandsSeparatorAndNonDigits_AreRefused()
+    {
+        await PostgresCases.RunAsync(new[] { "1,000", "1.000", "1 000", "+5", "-3", "1e3", " 12 " }, async reading =>
+        {
+            var orderId = await ArrangeIncubatingWaterOrderAsync();
+            var auditBefore = await MaxAuditIdAsync();
+
+            await using (var actDb = _fixture.CreateDbContext())
+            {
+                var controller = CreateController(actDb, _fixture.SeededUserId, RoleType.Analyst);
+                var ex = await Assert.ThrowsAsync<FieldValidationException>(() =>
+                    controller.PreviewCountResult(orderId, new RecordTestResultRequest(StepName, null, 1m, new List<string> { reading })));
+                Assert.Equal("Enter a whole number using digits only, or TNTC or Uncountable.", ex.Message);
+                var error = Assert.Single(ex.FieldErrors);
+                Assert.Equal("rawPlateReadings", error.Field);
+                Assert.Equal("Enter a whole number using digits only, or TNTC or Uncountable.", error.Message);
+                Assert.Equal(0, error.Row);
+            }
+
+            await using var assertDb = _fixture.CreateDbContext();
+            Assert.False(await assertDb.CountTestReadings.AsNoTracking().AnyAsync(r => r.TestOrderId == orderId));
+            Assert.Equal(0, await assertDb.AuditLogs.AsNoTracking().CountAsync(a => a.Id > auditBefore));
+        });
+    }
+
+    [PostgresFact]
+    public async Task Preview_TntcAndUncountableTogether_IsRefused()
+    {
+        await PostgresCases.RunAsync(new[]
+        {
+            new[] { "TNTC", "Uncountable" },
+            new[] { "Uncountable", "tntc" },
+        }, async readings =>
+        {
+            var orderId = await ArrangeIncubatingWaterOrderAsync();
+            var auditBefore = await MaxAuditIdAsync();
+
+            await using (var actDb = _fixture.CreateDbContext())
+            {
+                var controller = CreateController(actDb, _fixture.SeededUserId, RoleType.Analyst);
+                var ex = await Assert.ThrowsAsync<FieldValidationException>(() =>
+                    controller.PreviewCountResult(orderId, new RecordTestResultRequest(StepName, null, 1m, readings.ToList())));
+                Assert.Equal("A reading set cannot contain both TNTC and Uncountable. Choose one.", ex.Message);
+                var error = Assert.Single(ex.FieldErrors);
+                Assert.Equal("rawPlateReadings", error.Field);
+                Assert.Equal("A reading set cannot contain both TNTC and Uncountable. Choose one.", error.Message);
+            }
+
+            await using var assertDb = _fixture.CreateDbContext();
+            Assert.False(await assertDb.CountTestReadings.AsNoTracking().AnyAsync(r => r.TestOrderId == orderId));
+            Assert.Equal(0, await assertDb.AuditLogs.AsNoTracking().CountAsync(a => a.Id > auditBefore));
+        });
     }
 }

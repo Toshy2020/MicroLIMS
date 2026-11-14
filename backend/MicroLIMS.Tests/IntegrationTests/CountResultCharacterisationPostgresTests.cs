@@ -265,13 +265,21 @@ public class CountResultCharacterisationPostgresTests
         Assert.True(s.Reading.RequiresReview);
     }
 
-    private async Task AssertNothingPersistedAsync(int orderId)
+    private async Task<long> MaxAuditIdAsync()
+    {
+        await using var db = _fixture.CreateDbContext();
+        return await db.AuditLogs.AsNoTracking().Select(a => (long?)a.Id).MaxAsync() ?? 0;
+    }
+
+    private async Task AssertNothingPersistedAsync(int orderId, long? auditBefore = null)
     {
         await using var db = _fixture.CreateDbContext();
         Assert.False(await db.CountTestReadings.AsNoTracking().AnyAsync(r => r.TestOrderId == orderId));
         Assert.False(await db.Results.AsNoTracking().AnyAsync(r => r.TestOrderId == orderId));
         Assert.Null((await db.Incubations.AsNoTracking().SingleAsync(i => i.TestOrderId == orderId)).CompletedAt);
         Assert.Equal(WorkflowStep.Incubating, (await db.TestOrders.AsNoTracking().SingleAsync(t => t.Id == orderId)).CurrentStep);
+        if (auditBefore.HasValue)
+            Assert.Equal(0, await db.AuditLogs.AsNoTracking().CountAsync(a => a.Id > auditBefore.Value));
     }
 
     private static readonly Scn WaterNoLimits = new(SampleCategory.Water);
@@ -464,15 +472,27 @@ public class CountResultCharacterisationPostgresTests
         AssertNonNumeric(s, "TNTC", "12,TNTC,14", 1m, 1m);
     }
 
-    // QUESTION: with both words entered, the first one in plate order wins; the other is silently dropped.
+    // CONF-202: a reading set that contains both TNTC and Uncountable is refused; the analyst must choose one.
     [PostgresFact]
-    public async Task TntcAndUncountableTogether_FirstEnteredWins()
+    public async Task TntcAndUncountableTogether_IsRefused()
     {
-        var first = await RunAsync(WaterNoLimits, new[] { "Uncountable", "TNTC" }, clientDf: 1m);
-        AssertNonNumeric(first, "Uncountable", "Uncountable,TNTC", 1m, 1m);
+        await PostgresCases.RunAsync(new[]
+        {
+            new[] { "Uncountable", "TNTC" },
+            new[] { "TNTC", "Uncountable" },
+        }, async readings =>
+        {
+            var (orderId, step) = await ArrangeAsync(WaterNoLimits);
+            var auditBefore = await MaxAuditIdAsync();
 
-        var second = await RunAsync(WaterNoLimits, new[] { "TNTC", "Uncountable" }, clientDf: 1m);
-        AssertNonNumeric(second, "TNTC", "TNTC,Uncountable", 1m, 1m);
+            var ex = await Assert.ThrowsAsync<FieldValidationException>(() => ActAsync(orderId, step, readings.ToList(), 1m));
+            Assert.Equal("A reading set cannot contain both TNTC and Uncountable. Choose one.", ex.Message);
+            var fieldError = Assert.Single(ex.FieldErrors);
+            Assert.Equal("rawPlateReadings", fieldError.Field);
+            Assert.Equal("A reading set cannot contain both TNTC and Uncountable. Choose one.", fieldError.Message);
+
+            await AssertNothingPersistedAsync(orderId, auditBefore);
+        });
     }
 
     // The non-numeric branch still snapshots the configured DF and the override note.
@@ -484,17 +504,21 @@ public class CountResultCharacterisationPostgresTests
         AssertNonNumeric(s, "TNTC", "TNTC", 100m, 10m, overridden: true, note: "plates overgrown at 1:100");
     }
 
-    // QUESTION: any other non-numeric word (typo, "TNTC " with a trailing space, "N/A") is not
-    // recognised as non-numeric and falls into decimal.Parse, which throws a raw FormatException
-    // (not a BusinessRuleException) - the save fails with an unhandled error rather than a field error.
+    // CONF-201: any other non-numeric word (typo, "TNTC " with a trailing space, "N/A")
+    // is refused with FieldValidationException rather than an unhandled FormatException.
     [PostgresFact]
-    public async Task UnrecognisedWord_ThrowsFormatException_NothingPersisted()
+    public async Task UnrecognisedWord_IsRefused_WithFieldValidationError_NothingPersisted()
     {
         await PostgresCases.RunAsync(new[] { "abc", "TNTC ", "N/A" }, async word =>
         {
             var (orderId, step) = await ArrangeAsync(WaterNoLimits);
-            await Assert.ThrowsAsync<FormatException>(() => ActAsync(orderId, step, new List<string> { word }, 1m));
-            await AssertNothingPersistedAsync(orderId);
+            var auditBefore = await MaxAuditIdAsync();
+
+            var ex = await Assert.ThrowsAsync<FieldValidationException>(() => ActAsync(orderId, step, new List<string> { word }, 1m));
+            Assert.Equal("Enter a whole number using digits only, or TNTC or Uncountable.", ex.Message);
+            Assert.Equal("rawPlateReadings", Assert.Single(ex.FieldErrors).Field);
+
+            await AssertNothingPersistedAsync(orderId, auditBefore);
         });
     }
 
@@ -521,11 +545,11 @@ public class CountResultCharacterisationPostgresTests
     [PostgresFact]
     public async Task Rounding_JustBelowAndJustAboveMidpoint()
     {
-        var below = await RunAsync(WaterNoLimits, new[] { "12.4" }, clientDf: 1m);
-        AssertNumeric(below, "12 CFU/mL", 12.4m, 12.4m, ResultStatus.LimitsNotConfigured, 1m, 1m, "12.4");
+        var below = await RunAsync(WaterNoLimits, new[] { "12", "12", "12", "13", "13" }, clientDf: 1m);
+        AssertNumeric(below, "12 CFU/mL", 12.4m, 12.4m, ResultStatus.LimitsNotConfigured, 1m, 1m, "12,12,12,13,13");
 
-        var above = await RunAsync(WaterNoLimits, new[] { "12.6" }, clientDf: 1m);
-        AssertNumeric(above, "13 CFU/mL", 12.6m, 12.6m, ResultStatus.LimitsNotConfigured, 1m, 1m, "12.6");
+        var above = await RunAsync(WaterNoLimits, new[] { "12", "13", "13", "13", "12" }, clientDf: 1m);
+        AssertNumeric(above, "13 CFU/mL", 12.6m, 12.6m, ResultStatus.LimitsNotConfigured, 1m, 1m, "12,13,13,13,12");
     }
 
     // The midpoint arises from the dilution multiplication, not from the average.
@@ -551,30 +575,45 @@ public class CountResultCharacterisationPostgresTests
         Assert.Equal(ResultStatus.WithinLimits, s.Reading.Status);
     }
 
-    // QUESTION: fractional plate counts are accepted and averaged (a colony count is whole-number).
+    // CONF-201: fractional plate counts contain non-digit characters and are refused.
     [PostgresFact]
-    public async Task FractionalPlateReading_IsAccepted()
+    public async Task FractionalPlateReading_IsRefused()
     {
-        var s = await RunAsync(WaterNoLimits, new[] { "12.5" }, clientDf: 1m);
-        AssertNumeric(s, "13 CFU/mL", 12.5m, 12.5m, ResultStatus.LimitsNotConfigured, 1m, 1m, "12.5");
+        var (orderId, step) = await ArrangeAsync(WaterNoLimits);
+        var auditBefore = await MaxAuditIdAsync();
+
+        var ex = await Assert.ThrowsAsync<FieldValidationException>(() => ActAsync(orderId, step, new List<string> { "12.5" }, 1m));
+        Assert.Equal("Enter a whole number using digits only, or TNTC or Uncountable.", ex.Message);
+        await AssertNothingPersistedAsync(orderId, auditBefore);
     }
 
-    // QUESTION: a negative reading is accepted and produces a "<1" result.
+    // CONF-201: negative plate counts contain non-digit characters and are refused.
     [PostgresFact]
-    public async Task NegativePlateReading_IsAccepted_ReportedBelowOne()
+    public async Task NegativePlateReading_IsRefused()
     {
-        var s = await RunAsync(WaterNoLimits, new[] { "-3" }, clientDf: 1m);
-        AssertNumeric(s, "<1 CFU/mL", -3m, -3m, ResultStatus.LimitsNotConfigured, 1m, 1m, "-3");
+        var (orderId, step) = await ArrangeAsync(WaterNoLimits);
+        var auditBefore = await MaxAuditIdAsync();
+
+        var ex = await Assert.ThrowsAsync<FieldValidationException>(() => ActAsync(orderId, step, new List<string> { "-3" }, 1m));
+        Assert.Equal("Enter a whole number using digits only, or TNTC or Uncountable.", ex.Message);
+        await AssertNothingPersistedAsync(orderId, auditBefore);
     }
 
-    // QUESTION: decimal.Parse default styles accept thousands separators, so "1,000" is read as 1000.
-    // (The controller splits nothing on commas; PlateReadings are stored joined by "," so a stored
-    // "1,000" is also ambiguous with two readings.)
+    // CONF-201: plate count readings accept digits only; thousands separators and other non-digits are refused.
     [PostgresFact]
-    public async Task ThousandsSeparatorReading_IsParsedAsOneThousand()
+    public async Task ThousandsSeparatorReading_IsRefused()
     {
-        var s = await RunAsync(WaterNoLimits, new[] { "1,000" }, clientDf: 1m);
-        AssertNumeric(s, "1000 CFU/mL", 1000m, 1000m, ResultStatus.LimitsNotConfigured, 1m, 1m, "1,000");
+        var (orderId, step) = await ArrangeAsync(WaterNoLimits);
+        var auditBefore = await MaxAuditIdAsync();
+
+        var ex = await Assert.ThrowsAsync<FieldValidationException>(() => ActAsync(orderId, step, new List<string> { "1,000" }, 1m));
+        Assert.Equal("Enter a whole number using digits only, or TNTC or Uncountable.", ex.Message);
+        var fieldError = Assert.Single(ex.FieldErrors);
+        Assert.Equal("rawPlateReadings", fieldError.Field);
+        Assert.Equal("Enter a whole number using digits only, or TNTC or Uncountable.", fieldError.Message);
+        Assert.Equal(0, fieldError.Row);
+
+        await AssertNothingPersistedAsync(orderId, auditBefore);
     }
 
     // ===================================================================
@@ -687,13 +726,13 @@ public class CountResultCharacterisationPostgresTests
         });
     }
 
-    // QUESTION: status compares the UNROUNDED calculated value, so 100.4 is reported "100 CFU/mL"
+    // Status compares the UNROUNDED calculated value, so 100.4 is reported "100 CFU/mL"
     // (a whole number at the limit) but is saved as OutOfSpecification.
     [PostgresFact]
     public async Task Status_UsesUnroundedValue_ReportedRoundsDownToTheLimitButStatusIsOos()
     {
-        var s = await RunAsync(WaterLimits, new[] { "100.4" }, clientDf: 1m);
-        AssertNumeric(s, "100 CFU/mL", 100.4m, 100.4m, ResultStatus.OutOfSpecification, 1m, 1m, "100.4", alert: "10", action: "50", spec: "100");
+        var s = await RunAsync(WaterLimits, new[] { "100", "100", "100", "101", "101" }, clientDf: 1m);
+        AssertNumeric(s, "100 CFU/mL", 100.4m, 100.4m, ResultStatus.OutOfSpecification, 1m, 1m, "100,100,100,101,101", alert: "10", action: "50", spec: "100");
     }
 
     [PostgresFact]

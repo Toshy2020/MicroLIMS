@@ -167,6 +167,22 @@ describe("TestWorkflowDialog count reading in bench mode", () => {
     expect(service.recordCountResult.mock.calls[0][1].rawPlateReadings).toEqual(["9", "TNTC"]);
   });
 
+  it("count: marking one plate TNTC and another uncountable shows the refusal message before save", async () => {
+    const user = userEvent.setup();
+    service.getCurrentStep.mockResolvedValue(incubating(0));
+    renderDialog(true);
+    const dialog = await openEntry(user);
+
+    await user.click(within(dialog).getByRole("button", { name: "Mark plate 1 as TNTC" }));
+    await user.click(within(dialog).getByRole("button", { name: "Mark plate 2 as uncountable" }));
+
+    expect(await within(dialog).findByText("A reading set cannot contain both TNTC and Uncountable. Choose one.")).toBeTruthy();
+    expect(service.previewCountResult).not.toHaveBeenCalled();
+
+    await user.click(within(dialog).getByRole("button", { name: "Save" }));
+    expect(service.recordCountResult).not.toHaveBeenCalled();
+  });
+
   it("count: typed values survive closing and reopening the dialog (draft offered and accepted)", async () => {
     const user = userEvent.setup();
     service.getCurrentStep.mockResolvedValue(incubating(0));

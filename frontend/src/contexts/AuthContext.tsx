@@ -259,6 +259,14 @@ export function useAuth() {
   return ctx;
 }
 
+/**
+ * Optional variant of useAuth for shared UI primitives (such as table toolbars)
+ * that may be rendered in isolated tests without an AuthProvider.
+ */
+export function useOptionalAuth(): AuthState | undefined {
+  return useContext(AuthContext);
+}
+
 // Whether the signed-in user holds a permission code (or any code in an array).
 // Menus, route guards and action buttons check this rather than the role name, so granting or
 // revoking a permission on the Roles screen changes what the user is

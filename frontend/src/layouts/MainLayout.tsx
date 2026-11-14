@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Outlet, useNavigate, useLocation, Navigate, Link as RouterLink } from "react-router-dom";
 import { Box, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Button, Typography, useMediaQuery, useTheme } from "@mui/material";
 import WarningAmberRoundedIcon from "@mui/icons-material/WarningAmberRounded";
@@ -21,6 +21,14 @@ import { HelpPanelProvider, useHelpPanel } from "../modules/help/HelpPanelContex
 import { HelpPanelSlot } from "../modules/help/HelpPanelSlot";
 import { Tour } from "../modules/help/tour/Tour";
 import { TOUR_STEPS, tourStateKey, type RoleType } from "../modules/help/tour/tourSteps";
+import { WhatsNewDialog } from "../modules/help/whatsNew/WhatsNewDialog";
+import {
+  isNewerVersion,
+  itemsForRole,
+  RELEASE_NOTES,
+  WHATS_NEW_STATE_KEY,
+  type ReleaseNote
+} from "../modules/help/whatsNew/releaseNotes";
 import { useUiState } from "../hooks/useUiState";
 import { toast } from "sonner";
 import { accountPageTrail, findNavTrail } from "../routes/navigation";
@@ -35,6 +43,21 @@ function isRoleType(value: string | null): value is RoleType {
   return value !== null && Object.prototype.hasOwnProperty.call(TOUR_STEPS, value);
 }
 
+function isForcedEnrolmentPending(
+  mfaStatus: MfaStatus | null,
+  signingPasswordRequired: boolean,
+  pathname: string
+): boolean {
+  const forcedMfaPending = Boolean(mfaStatus?.required && !mfaStatus.enrolled && !mfaStatus.enrolmentDueAt);
+  return (
+    signingPasswordRequired ||
+    forcedMfaPending ||
+    pathname === CHANGE_PASSWORD_PATH ||
+    pathname === SET_SIGNING_PASSWORD_PATH ||
+    pathname === MFA_ENROL_PATH
+  );
+}
+
 function FirstLoginTour({ mfaStatus }: { mfaStatus: MfaStatus | null }) {
   const { role, mustChangePassword, signingPasswordRequired } = useAuth();
   const { tourReplaySeq } = useHelpPanel();
@@ -46,13 +69,7 @@ function FirstLoginTour({ mfaStatus }: { mfaStatus: MfaStatus | null }) {
   const [dismissedKey, setDismissedKey] = useState<string | null>(null);
   const [handledReplaySeq, setHandledReplaySeq] = useState(0);
 
-  const forcedMfaPending = Boolean(mfaStatus?.required && !mfaStatus.enrolled && !mfaStatus.enrolmentDueAt);
-  const forcedEnrolmentPending =
-    signingPasswordRequired ||
-    forcedMfaPending ||
-    location.pathname === CHANGE_PASSWORD_PATH ||
-    location.pathname === SET_SIGNING_PASSWORD_PATH ||
-    location.pathname === MFA_ENROL_PATH;
+  const forcedEnrolmentPending = isForcedEnrolmentPending(mfaStatus, signingPasswordRequired, location.pathname);
 
   const isReplayActive = tourReplaySeq > handledReplaySeq;
   const shouldAutoStart =
@@ -84,7 +101,87 @@ function FirstLoginTour({ mfaStatus }: { mfaStatus: MfaStatus | null }) {
   );
 }
 
-export function MainLayout() {
+function WhatsNewPrompt({
+  mfaStatus,
+  mfaLoaded,
+  notes = RELEASE_NOTES
+}: {
+  mfaStatus: MfaStatus | null;
+  mfaLoaded: boolean;
+  notes?: readonly ReleaseNote[];
+}) {
+  const { role, mustChangePassword, signingPasswordRequired } = useAuth();
+  const { tourReplaySeq } = useHelpPanel();
+  const location = useLocation();
+
+  const validRole = isRoleType(role) ? role : null;
+  const tourKey = validRole ? tourStateKey(validRole) : "tour.none.v1";
+  const tourState = useUiState(tourKey);
+  const whatsNewState = useUiState(WHATS_NEW_STATE_KEY);
+
+  const [dismissedVersion, setDismissedVersion] = useState<string | null>(null);
+  const [tourBlockedSession, setTourBlockedSession] = useState(false);
+  const autoMarkedVersionRef = useRef<string | null>(null);
+
+  const forcedEnrolmentPending = isForcedEnrolmentPending(mfaStatus, signingPasswordRequired, location.pathname);
+  const blocked =
+    validRole === null ||
+    mustChangePassword ||
+    forcedEnrolmentPending ||
+    !mfaLoaded ||
+    !tourState.loaded ||
+    !whatsNewState.loaded;
+
+  // The first-login tour takes precedence: if the tour key is absent (tour due
+  // to run) or a replay tour was triggered, What's New waits for a later login
+  // and stores nothing in this session.
+  const tourDueNow = !blocked && (tourState.value === null || tourReplaySeq > 0);
+  useEffect(() => {
+    if (tourDueNow && !tourBlockedSession) {
+      setTourBlockedSession(true);
+    }
+  }, [tourDueNow, tourBlockedSession]);
+
+  const tourBlocking = tourBlockedSession || tourDueNow;
+  const latestNote = notes[0];
+  const isNewer = latestNote !== undefined && isNewerVersion(__APP_VERSION__, whatsNewState.value);
+  const visibleItems = useMemo(
+    () => (latestNote && validRole ? itemsForRole(latestNote, validRole) : []),
+    [latestNote, validRole]
+  );
+
+  const shouldStoreSilently = !blocked && !tourBlocking && isNewer && visibleItems.length === 0;
+  useEffect(() => {
+    if (!shouldStoreSilently) return;
+    if (autoMarkedVersionRef.current === __APP_VERSION__) return;
+    autoMarkedVersionRef.current = __APP_VERSION__;
+    whatsNewState.set(__APP_VERSION__).catch(() => {
+      // Best-effort silent acknowledgement when this role has no items in the release note.
+    });
+  }, [shouldStoreSilently, whatsNewState]);
+
+  const shouldShow =
+    !blocked &&
+    !tourBlocking &&
+    isNewer &&
+    visibleItems.length > 0 &&
+    dismissedVersion !== __APP_VERSION__;
+
+  if (!shouldShow || !validRole) {
+    return null;
+  }
+
+  const handleClose = () => {
+    setDismissedVersion(__APP_VERSION__);
+    whatsNewState.set(__APP_VERSION__).catch(() => {
+      toast.error("Could not save your release note state.");
+    });
+  };
+
+  return <WhatsNewDialog open onClose={handleClose} role={validRole} mode="latest" notes={notes} />;
+}
+
+export function MainLayout({ whatsNewNotes }: { whatsNewNotes?: readonly ReleaseNote[] } = {}) {
   const { logout, mustChangePassword, signingPasswordRequired } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -109,16 +206,23 @@ export function MainLayout() {
   const { online } = useConnectionStatus(benchMode || draftOverview.drafts.length > 0);
   const [collapsed, setCollapsed] = useState(() => benchMode || localStorage.getItem("microlims_sidebar_collapsed") === "true");
   const [mfaStatus, setMfaStatus] = useState<MfaStatus | null>(null);
+  const [mfaLoaded, setMfaLoaded] = useState(false);
 
   useEffect(() => {
     const controller = new AbortController();
     mfaService
       .getStatus(controller.signal)
       .then((data) => {
-        if (!controller.signal.aborted) setMfaStatus(data);
+        if (!controller.signal.aborted) {
+          setMfaStatus(data);
+          setMfaLoaded(true);
+        }
       })
       .catch(() => {
         // Grace banner is best-effort; never block layout on status failure.
+        if (!controller.signal.aborted) {
+          setMfaLoaded(true);
+        }
       });
     return () => {
       controller.abort();
@@ -161,7 +265,7 @@ export function MainLayout() {
   }
 
   return (
-    <HelpPanelProvider>
+    <HelpPanelProvider whatsNewNotes={whatsNewNotes}>
     <Box
       sx={{
         // dvh where supported: on mobile browsers 100vh includes the area
@@ -285,6 +389,7 @@ export function MainLayout() {
         </Box>
         <HelpPanelSlot />
         <FirstLoginTour mfaStatus={mfaStatus} />
+        <WhatsNewPrompt mfaStatus={mfaStatus} mfaLoaded={mfaLoaded} notes={whatsNewNotes} />
       </Box>
 
       {/* GMP session-timeout control - not dismissable via escape/backdrop, no "stay logged out" bypass.

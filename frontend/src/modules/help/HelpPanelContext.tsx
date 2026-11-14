@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode, RefObject } from "react";
+import type { ReleaseNote } from "./whatsNew/releaseNotes";
 
 // Replaceable data sources of the help panel and page. Production uses the
 // guide modules; tests inject deterministic ones instead of mocking project
@@ -41,6 +42,8 @@ interface HelpPanelContextValue {
   /** Incremented each time Replay tour is requested from the Help menu. */
   tourReplaySeq: number;
   startTour(): void;
+  /** Optional release notes override supplied by tests; production uses RELEASE_NOTES. */
+  whatsNewNotes?: readonly ReleaseNote[];
 }
 
 const NOOP_REF: RefObject<HTMLButtonElement | null> = { current: null };
@@ -71,7 +74,13 @@ function isTextEntry(target: EventTarget | null): boolean {
   return false;
 }
 
-export function HelpPanelProvider({ children }: { children: ReactNode }) {
+export function HelpPanelProvider({
+  children,
+  whatsNewNotes
+}: {
+  children: ReactNode;
+  whatsNewNotes?: readonly ReleaseNote[];
+}) {
   const helpButtonRef = useRef<HTMLButtonElement | null>(null);
   const [open, setOpen] = useState(false);
   const [request, setRequest] = useState<{ target: HelpTarget; seq: number } | null>(null);
@@ -103,8 +112,8 @@ export function HelpPanelProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const value = useMemo(
-    () => ({ open, openPanel, request, closePanel, helpButtonRef, tourReplaySeq, startTour }),
-    [open, openPanel, request, closePanel, tourReplaySeq, startTour]
+    () => ({ open, openPanel, request, closePanel, helpButtonRef, tourReplaySeq, startTour, whatsNewNotes }),
+    [open, openPanel, request, closePanel, tourReplaySeq, startTour, whatsNewNotes]
   );
   return <HelpPanelContext.Provider value={value}>{children}</HelpPanelContext.Provider>;
 }

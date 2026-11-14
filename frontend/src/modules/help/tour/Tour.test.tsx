@@ -12,6 +12,7 @@ import { resetUiStateCache } from "../../../hooks/useUiState";
 import { PERMISSIONS } from "../../../routes/routes";
 import { Tour } from "./Tour";
 import { TOUR_STEPS, tourStateKey, type RoleType, type TourStep } from "./tourSteps";
+import { WHATS_NEW_STATE_KEY } from "../whatsNew/releaseNotes";
 
 const uiStateMock = vi.hoisted(() => ({
   getAll: vi.fn(),
@@ -269,7 +270,10 @@ describe("First-login tour", () => {
     resetUiStateCache();
 
     // 2. Does NOT start when the key is already present
-    uiStateMock.getAll.mockResolvedValueOnce({ [tourStateKey("Analyst")]: "done" });
+    uiStateMock.getAll.mockResolvedValueOnce({
+      [tourStateKey("Analyst")]: "done",
+      [WHATS_NEW_STATE_KEY]: __APP_VERSION__
+    });
     const second = renderAppLayout({ role: "Analyst", mustChangePassword: false });
     await waitFor(() => expect(uiStateMock.getAll).toHaveBeenCalledTimes(2));
     expect(screen.queryByRole("dialog", { name: firstStepTitle })).toBeNull();
@@ -424,7 +428,10 @@ describe("First-login tour", () => {
 
   it("Replay from Help starts it again without clearing the stored value until it ends", async () => {
     const user = userEvent.setup();
-    uiStateMock.getAll.mockResolvedValueOnce({ [tourStateKey("Analyst")]: "done" });
+    uiStateMock.getAll.mockResolvedValueOnce({
+      [tourStateKey("Analyst")]: "done",
+      [WHATS_NEW_STATE_KEY]: __APP_VERSION__
+    });
 
     renderAppLayout({ role: "Analyst" });
     await waitFor(() => expect(uiStateMock.getAll).toHaveBeenCalledTimes(1));
@@ -529,7 +536,10 @@ describe("First-login tour", () => {
         expect(step.body).not.toMatch(/\d+\s*(cfu|%|°C|hours?|days?)/i);
       }
 
-      uiStateMock.getAll.mockResolvedValueOnce({ [tourStateKey(role)]: "done" });
+      uiStateMock.getAll.mockResolvedValueOnce({
+        [tourStateKey(role)]: "done",
+        [WHATS_NEW_STATE_KEY]: __APP_VERSION__
+      });
       const view = renderAppLayout({ role });
 
       await screen.findByRole("heading", { name: "My Work" });

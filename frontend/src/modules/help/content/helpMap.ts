@@ -13,6 +13,9 @@ const INTRODUCTION = "01-introduction";
 // are not in the menu (account pages) and bare variants of query-string menu
 // paths are listed after the menu paths.
 export const HELP_MAP: Record<string, HelpTarget> = {
+  // No My Work chapter yet: the guide chapter is written in C1 Task 8; until then the page
+  // opens the introduction rather than the dashboard chapter, which describes the panels My Work replaced.
+  "/my-work": { chapterId: INTRODUCTION },
   "/dashboard": { chapterId: "08-dashboard" },
   "/receiving": { chapterId: "12-sample-receiving" },
   "/receiving/tracking": { chapterId: "11-sample-management" },

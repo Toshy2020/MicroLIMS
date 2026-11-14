@@ -267,6 +267,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<DataExportAuditService>();
 
         // Master data (api/masterdata/...)
+        services.AddScoped<MasterDataBatchService>();
         services.AddScoped<WaterMasterDataService>();
         services.AddScoped<EnvironmentalMonitoringMasterDataService>();
         services.AddScoped<MicroLIMS.Application.Services.Monitoring.MonitoringSettingsService>();

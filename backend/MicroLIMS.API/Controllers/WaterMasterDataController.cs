@@ -41,6 +41,11 @@ public class WaterMasterDataController : ControllerBase
         Ok(ApiResponse<object>.Ok(await _service.CreateWaterSamplingPointAsync(CurrentUserId, request)));
 
     [Authorize(Policy = PermissionConstants.MasterDataManage)]
+    [HttpPost("water-sampling-points/batch")]
+    public async Task<IActionResult> CreateWaterSamplingPointsBatch(List<CreateWaterSamplingPointRequest> request, CancellationToken ct = default) =>
+        Ok(ApiResponse<object>.Ok(await _service.CreateWaterSamplingPointsBatchAsync(CurrentUserId, request, ct)));
+
+    [Authorize(Policy = PermissionConstants.MasterDataManage)]
     [HttpPut("water-sampling-points/{id}")]
     public async Task<IActionResult> UpdateWaterSamplingPoint(int id, UpdateWaterSamplingPointRequest request) =>
         Ok(ApiResponse<object>.Ok(await _service.UpdateWaterSamplingPointAsync(CurrentUserId, id, request)));

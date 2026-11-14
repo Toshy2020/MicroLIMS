@@ -344,6 +344,10 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IUserUiStateService, MicroLIMS.Application.Services.UserUiStateService>();
         // My Work: the aggregator runs every registered IMyWorkSource (sources are added task by task).
         services.AddScoped<MicroLIMS.Application.Services.MyWork.IMyWorkService, MicroLIMS.Application.Services.MyWork.MyWorkService>();
+        services.AddScoped<MicroLIMS.Application.Services.MyWork.IMyWorkSource, MicroLIMS.Application.Services.MyWork.Sources.IncubationSource>();
+        services.AddScoped<MicroLIMS.Application.Services.MyWork.IMyWorkSource, MicroLIMS.Application.Services.MyWork.Sources.ReturnedTestsSource>();
+        services.AddScoped<MicroLIMS.Application.Services.MyWork.IMyWorkSource, MicroLIMS.Application.Services.MyWork.Sources.AssignedTestsSource>();
+        services.AddScoped<MicroLIMS.Application.Services.MyWork.IMyWorkSource, MicroLIMS.Application.Services.MyWork.Sources.MaterialsSource>();
         services.AddScoped<IMfaAdminService, MicroLIMS.Application.Services.Mfa.MfaAdminService>();
         services.AddScoped<IAuditTrailReviewService, MicroLIMS.Application.Services.AuditTrailReviewService>();
         services.AddScoped<IDatabaseStatsQuery, DatabaseStatsQuery>();

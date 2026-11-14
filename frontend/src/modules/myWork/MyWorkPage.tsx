@@ -235,10 +235,10 @@ export function MyWorkPage() {
         </Button>
       }
       kpis={
-        <>
+        <Box data-tour="my-work-summary">
           <PartialOutageBanner sources={data?.unavailableSources ?? []} onRetry={reload} />
           <KpiStrip tiles={tiles} loading={loading && !data} />
-        </>
+        </Box>
       }
       filters={
         <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5} sx={{ alignItems: { sm: "center" }, justifyContent: "space-between" }}>
@@ -269,58 +269,60 @@ export function MyWorkPage() {
         </Stack>
       }
     >
-      {loading && !data ? (
-        <Stack spacing={2} data-testid="my-work-loading">
-          <Skeleton variant="rounded" height={120} />
-          <Skeleton variant="rounded" height={120} />
-        </Stack>
-      ) : error && !data ? (
-        <Alert
-          severity="error"
-          action={
-            <Button color="inherit" size="small" onClick={reload} sx={{ textTransform: "none", fontWeight: 600 }}>
-              Retry
-            </Button>
-          }
-        >
-          {getErrorMessage(error, "Could not load your work items.")}
-        </Alert>
-      ) : !hasNonEmptyServerGroups ? (
-        <EmptyState
-          title="Nothing waiting for you"
-          description="All assigned tests, reviews, and tasks are up to date."
-          action={
-            <Button component={Link} to="/dashboard" variant="contained" sx={{ textTransform: "none", fontWeight: 600 }}>
-              Go to Dashboard
-            </Button>
-          }
-        />
-      ) : filteredGroups.length === 0 ? (
-        <EmptyState
-          title="No matching work items"
-          description="No items match the current urgency filter or search."
-          action={
-            <Button variant="outlined" onClick={clearFilters} sx={{ textTransform: "none", fontWeight: 600 }}>
-              Clear filters
-            </Button>
-          }
-        />
-      ) : (
-        <Box ref={listContainerRef} onFocusCapture={handleFocusCapture}>
-          <Stack spacing={2}>
-            {filteredGroups.map((group) => (
-              <MyWorkGroup
-                key={group.key}
-                group={group}
-                timeZoneId={data?.timeZoneId ?? "UTC"}
-                onTake={handleTake}
-                onRelease={handleReleaseClick}
-                busyKey={busyKey}
-              />
-            ))}
+      <Box data-tour="my-work-queue">
+        {loading && !data ? (
+          <Stack spacing={2} data-testid="my-work-loading">
+            <Skeleton variant="rounded" height={120} />
+            <Skeleton variant="rounded" height={120} />
           </Stack>
-        </Box>
-      )}
+        ) : error && !data ? (
+          <Alert
+            severity="error"
+            action={
+              <Button color="inherit" size="small" onClick={reload} sx={{ textTransform: "none", fontWeight: 600 }}>
+                Retry
+              </Button>
+            }
+          >
+            {getErrorMessage(error, "Could not load your work items.")}
+          </Alert>
+        ) : !hasNonEmptyServerGroups ? (
+          <EmptyState
+            title="Nothing waiting for you"
+            description="All assigned tests, reviews, and tasks are up to date."
+            action={
+              <Button component={Link} to="/dashboard" variant="contained" sx={{ textTransform: "none", fontWeight: 600 }}>
+                Go to Dashboard
+              </Button>
+            }
+          />
+        ) : filteredGroups.length === 0 ? (
+          <EmptyState
+            title="No matching work items"
+            description="No items match the current urgency filter or search."
+            action={
+              <Button variant="outlined" onClick={clearFilters} sx={{ textTransform: "none", fontWeight: 600 }}>
+                Clear filters
+              </Button>
+            }
+          />
+        ) : (
+          <Box ref={listContainerRef} onFocusCapture={handleFocusCapture}>
+            <Stack spacing={2}>
+              {filteredGroups.map((group) => (
+                <MyWorkGroup
+                  key={group.key}
+                  group={group}
+                  timeZoneId={data?.timeZoneId ?? "UTC"}
+                  onTake={handleTake}
+                  onRelease={handleReleaseClick}
+                  busyKey={busyKey}
+                />
+              ))}
+            </Stack>
+          </Box>
+        )}
+      </Box>
 
       <ConfirmationDialog
         open={releaseTarget !== null}

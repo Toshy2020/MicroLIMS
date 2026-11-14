@@ -17,14 +17,72 @@ import { useConnectionStatus } from "../hooks/useConnectionStatus";
 import { useMenuGroups } from "../hooks/useMenuGroups";
 import { mfaService, type MfaStatus } from "../modules/authentication/services/mfaService";
 import { formatDateTimeWithTimeZone } from "../utils/formatDate";
-import { HelpPanelProvider } from "../modules/help/HelpPanelContext";
+import { HelpPanelProvider, useHelpPanel } from "../modules/help/HelpPanelContext";
 import { HelpPanelSlot } from "../modules/help/HelpPanelSlot";
+import { Tour } from "../modules/help/tour/Tour";
+import { TOUR_STEPS, tourStateKey, type RoleType } from "../modules/help/tour/tourSteps";
+import { useUiState } from "../hooks/useUiState";
+import { toast } from "sonner";
 import { accountPageTrail, findNavTrail } from "../routes/navigation";
 
 const MAIN_CONTENT_ID = "main-content";
 
 const CHANGE_PASSWORD_PATH = "/change-password";
 const SET_SIGNING_PASSWORD_PATH = "/set-signing-password";
+const MFA_ENROL_PATH = "/mfa-enrol";
+
+function isRoleType(value: string | null): value is RoleType {
+  return value !== null && Object.prototype.hasOwnProperty.call(TOUR_STEPS, value);
+}
+
+function FirstLoginTour({ mfaStatus }: { mfaStatus: MfaStatus | null }) {
+  const { role, mustChangePassword, signingPasswordRequired } = useAuth();
+  const { tourReplaySeq } = useHelpPanel();
+  const location = useLocation();
+  const validRole = isRoleType(role) ? role : null;
+  const tourKey = validRole ? tourStateKey(validRole) : "tour.none.v1";
+  const tourState = useUiState(tourKey);
+
+  const [dismissedKey, setDismissedKey] = useState<string | null>(null);
+  const [handledReplaySeq, setHandledReplaySeq] = useState(0);
+
+  const forcedMfaPending = Boolean(mfaStatus?.required && !mfaStatus.enrolled && !mfaStatus.enrolmentDueAt);
+  const forcedEnrolmentPending =
+    signingPasswordRequired ||
+    forcedMfaPending ||
+    location.pathname === CHANGE_PASSWORD_PATH ||
+    location.pathname === SET_SIGNING_PASSWORD_PATH ||
+    location.pathname === MFA_ENROL_PATH;
+
+  const isReplayActive = tourReplaySeq > handledReplaySeq;
+  const shouldAutoStart =
+    validRole !== null &&
+    !mustChangePassword &&
+    !forcedEnrolmentPending &&
+    tourState.loaded &&
+    tourState.value === null &&
+    dismissedKey !== tourKey;
+
+  if (!validRole || (!shouldAutoStart && !isReplayActive)) {
+    return null;
+  }
+
+  return (
+    <Tour
+      key={isReplayActive ? `replay-${tourReplaySeq}` : `auto-${tourKey}`}
+      steps={TOUR_STEPS[validRole]}
+      onFinish={(result) => {
+        setDismissedKey(tourKey);
+        if (isReplayActive) {
+          setHandledReplaySeq(tourReplaySeq);
+        }
+        tourState.set(result).catch(() => {
+          toast.error("Could not save your tour progress. The tour may appear again.");
+        });
+      }}
+    />
+  );
+}
 
 export function MainLayout() {
   const { logout, mustChangePassword, signingPasswordRequired } = useAuth();
@@ -226,6 +284,7 @@ export function MainLayout() {
           </Box>
         </Box>
         <HelpPanelSlot />
+        <FirstLoginTour mfaStatus={mfaStatus} />
       </Box>
 
       {/* GMP session-timeout control - not dismissable via escape/backdrop, no "stay logged out" bypass.

@@ -38,6 +38,9 @@ interface HelpPanelContextValue {
   /** Closes the panel and returns focus to the Help button. */
   closePanel(): void;
   helpButtonRef: RefObject<HTMLButtonElement | null>;
+  /** Incremented each time Replay tour is requested from the Help menu. */
+  tourReplaySeq: number;
+  startTour(): void;
 }
 
 const NOOP_REF: RefObject<HTMLButtonElement | null> = { current: null };
@@ -47,7 +50,9 @@ const HelpPanelContext = createContext<HelpPanelContextValue>({
   openPanel: () => {},
   request: null,
   closePanel: () => {},
-  helpButtonRef: NOOP_REF
+  helpButtonRef: NOOP_REF,
+  tourReplaySeq: 0,
+  startTour: () => {}
 });
 
 export function useHelpPanel(): HelpPanelContextValue {
@@ -70,6 +75,7 @@ export function HelpPanelProvider({ children }: { children: ReactNode }) {
   const helpButtonRef = useRef<HTMLButtonElement | null>(null);
   const [open, setOpen] = useState(false);
   const [request, setRequest] = useState<{ target: HelpTarget; seq: number } | null>(null);
+  const [tourReplaySeq, setTourReplaySeq] = useState(0);
 
   const openPanel = useCallback((target?: HelpTarget) => {
     if (target) setRequest((prev) => ({ target, seq: (prev?.seq ?? 0) + 1 }));
@@ -79,6 +85,9 @@ export function HelpPanelProvider({ children }: { children: ReactNode }) {
     setOpen(false);
     setRequest(null);
     helpButtonRef.current?.focus();
+  }, []);
+  const startTour = useCallback(() => {
+    setTourReplaySeq((prev) => prev + 1);
   }, []);
 
   // F1 opens help. In a text field a modified F1 is left to the browser.
@@ -94,8 +103,8 @@ export function HelpPanelProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const value = useMemo(
-    () => ({ open, openPanel, request, closePanel, helpButtonRef }),
-    [open, openPanel, request, closePanel]
+    () => ({ open, openPanel, request, closePanel, helpButtonRef, tourReplaySeq, startTour }),
+    [open, openPanel, request, closePanel, tourReplaySeq, startTour]
   );
   return <HelpPanelContext.Provider value={value}>{children}</HelpPanelContext.Provider>;
 }

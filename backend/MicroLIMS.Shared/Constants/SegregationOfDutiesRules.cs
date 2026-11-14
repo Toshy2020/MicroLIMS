@@ -29,7 +29,7 @@ public static class SegregationOfDutiesRules
         PermissionConstants.MonitoringPlanApprove, PermissionConstants.EquipmentPlanApprove, PermissionConstants.EquipmentWorkRecord,
         PermissionConstants.OosManage,
         PermissionConstants.DocumentsReview, PermissionConstants.DocumentsApprove,
-        PermissionConstants.SamplesPrepare, PermissionConstants.TestsOutsource,
+        PermissionConstants.SamplesPrepare, PermissionConstants.TestsOutsource, PermissionConstants.TestsSelfAssign,
         PermissionConstants.NotApplicableTestsManage, PermissionConstants.NotApplicableTestsFinalApprove
     };
 

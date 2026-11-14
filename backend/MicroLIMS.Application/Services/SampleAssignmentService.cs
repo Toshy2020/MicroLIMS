@@ -147,6 +147,25 @@ public class SampleAssignmentService
             .FirstOrDefaultAsync(s => s.Id == sampleId)
         ?? throw new NotFoundException($"Sample {sampleId} not found.");
 
+    // The one audit shape for a change of a test's analyst; Take and Release (TestSelfAssignmentService) write it too.
+    // Added to the same DbContext as the assignment itself, so both commit or neither does.
+    internal static AuditLog BuildAssignmentAudit(Sample sample, TestOrder order, string action, string previousValue, string newValue,
+        int actingUserId, DateTime timestampUtc) => new()
+    {
+        EntityName = "TestOrder",
+        EntityId = order.Id.ToString(),
+        Action = action,
+        PreviousValue = previousValue,
+        NewValue = newValue,
+        UserId = actingUserId,
+        Timestamp = timestampUtc,
+        SampleId = sample.Id,
+        TestOrderId = order.Id,
+        SampleReferenceNumber = sample.ReferenceNumber,
+        BatchNumber = sample.BatchNumber,
+        ControlNumber = sample.ControlNumber
+    };
+
     // Writes the changed assignments with one GMP audit entry per test, so
     // each entry's previous value is that test's own previous analyst.
     private async Task<SampleDto> ApplyAsync(Sample sample, IReadOnlyList<(TestOrder Order, int? AnalystId)> changes, int actingUserId, string? reason)
@@ -168,21 +187,8 @@ public class SampleAssignmentService
                 ? Display(analystId)
                 : $"{Display(analystId)} | Reason: {reason.Trim()}";
 
-            _db.AuditLogs.Add(new AuditLog
-            {
-                EntityName = "TestOrder",
-                EntityId = order.Id.ToString(),
-                Action = action,
-                PreviousValue = $"{order.TestCode}: {Display(order.AssignedAnalystId)}",
-                NewValue = $"{order.TestCode}: {newValue}",
-                UserId = actingUserId,
-                Timestamp = timestamp,
-                SampleId = sample.Id,
-                TestOrderId = order.Id,
-                SampleReferenceNumber = sample.ReferenceNumber,
-                BatchNumber = sample.BatchNumber,
-                ControlNumber = sample.ControlNumber
-            });
+            _db.AuditLogs.Add(BuildAssignmentAudit(sample, order, action,
+                $"{order.TestCode}: {Display(order.AssignedAnalystId)}", $"{order.TestCode}: {newValue}", actingUserId, timestamp));
 
             order.AssignedAnalystId = analystId;
         }

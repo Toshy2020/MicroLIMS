@@ -14,6 +14,12 @@ internal static class AnalystQueries
     public static readonly Expression<Func<TestOrder, bool>> IsActiveTest = t =>
         !t.IsSuperseded && (t.Status == ApprovalStatus.Pending || t.Status == ApprovalStatus.InProgress);
 
+    // Open tests nobody holds: not superseded, not closed, not outsourced.
+    public static IQueryable<TestOrder> UnassignedOpenTests(IMicroLimsDbContext db) =>
+        db.TestOrders.AsNoTracking()
+            .Where(t => t.AssignedAnalystId == null && t.OutsourcedToLab == null)
+            .Where(IsActiveTest);
+
     // A test that was returned to the analyst and has had nothing recorded since (the TestReturnHelper rule,
     // decided in SQL). Mine = the latest return was to me and the test is still assigned to me.
     public static IQueryable<TestReturnEvent> MyPendingReturns(IMicroLimsDbContext db, int userId) =>

@@ -231,10 +231,12 @@ public class RolePermissionSeedDataTests
             PermissionConstants.MonitoringPlanView,
             // Equipment plan: record calibrations and logbook entries.
             PermissionConstants.EquipmentWorkRecord,
-            PermissionConstants.SamplesPrepare
+            PermissionConstants.SamplesPrepare,
+            // Takes an unassigned test in their own sections (My Work).
+            PermissionConstants.TestsSelfAssign
         };
 
-        Assert.Equal(18, codes.Count);
+        Assert.Equal(19, codes.Count);
         Assert.Equal(expected.OrderBy(c => c), codes.OrderBy(c => c));
         Assert.DoesNotContain(PermissionConstants.SamplesReview, codes);
         Assert.DoesNotContain(PermissionConstants.CryovialsApprove, codes);
@@ -259,11 +261,11 @@ public class RolePermissionSeedDataTests
         // The System Administrator holds only PermissionConstants.SystemAdministratorGrants
         // (26 system codes, no lab/GxP codes). The total is the sum of the six per-role
         // sets that the tests above assert literally:
-        //   SystemAdministrator 26 + SectionHead 60 + Reviewer 20 + Analyst 18 + QcManager 3 + Qa 18 = 145.
+        //   SystemAdministrator 26 + SectionHead 60 + Reviewer 20 + Analyst 19 + QcManager 3 + Qa 18 = 146.
         // Update this only when a per-role set above changes.
         var db = CreateSeededDbContext();
         var total = await db.RolePermissions.CountAsync();
-        Assert.Equal(145, total);
+        Assert.Equal(146, total);
     }
 
     [Fact]
@@ -273,7 +275,7 @@ public class RolePermissionSeedDataTests
         DbSeeder.SeedPermissionsAndGrants(db); // second call
 
         Assert.Equal(PermissionConstants.All.Count, await db.Permissions.CountAsync());
-        Assert.Equal(145, await db.RolePermissions.CountAsync()); // see TotalGrantCount_MatchesTheCatalog
+        Assert.Equal(146, await db.RolePermissions.CountAsync()); // see TotalGrantCount_MatchesTheCatalog
     }
 
     [Fact]

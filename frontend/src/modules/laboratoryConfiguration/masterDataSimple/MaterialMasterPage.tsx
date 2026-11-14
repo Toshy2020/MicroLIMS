@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
+import type { ClipboardEvent as ReactClipboardEvent } from "react";
 import {
   Box,
   Paper,
@@ -17,6 +18,7 @@ import {
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import CategoryOutlinedIcon from "@mui/icons-material/CategoryOutlined";
+import ContentPasteIcon from "@mui/icons-material/ContentPaste";
 import Inventory2OutlinedIcon from "@mui/icons-material/Inventory2Outlined";
 import ScienceOutlinedIcon from "@mui/icons-material/ScienceOutlined";
 import ColorLensOutlinedIcon from "@mui/icons-material/ColorLensOutlined";
@@ -25,6 +27,10 @@ import { LabPage, FilterBar, RegisterTable, RegisterColumn, FormDialog } from ".
 import { StatusBadge } from "../../../components/StatusBadge";
 import { monospaceFontFamily } from "../../../theme/palette";
 import { ConfirmationDialog } from "../../../components/ConfirmationDialog";
+import { parseClipboardTable } from "../../../components/entry/parseClipboardTable";
+import { PastePreviewDialog, type PasteAcceptedRow } from "../../../components/entry/PastePreviewDialog";
+import { PendingBatchList, type PendingBatchColumn } from "../../../components/entry/PendingBatchList";
+import { extractBatchSaveErrors } from "../../../utils/fieldErrors";
 import { toast } from "sonner";
 import {
   MaterialMasterService,
@@ -36,11 +42,17 @@ import {
 import { MaterialCategoryService, MaterialCategory } from "./services/MaterialCategoryService";
 import { ChangeMaterialMasterCodeDialog } from "./ChangeMaterialMasterCodeDialog";
 import { MaterialCategoriesDialog } from "./MaterialCategoriesDialog";
+import {
+  buildMaterialMasterPastePlan,
+  toPendingMaterialMasterEntries,
+  toSaveMaterialMasterEntryPayload,
+  type PendingMaterialMasterEntry
+} from "./materialMasterPaste";
 import type { MaterialUnit } from "../../inventory/materials/types/materialTypes";
 import { useLaboratorySections } from "../../../hooks/useLaboratorySections";
 import { getMySections, LaboratorySection } from "../../../services/laboratorySectionService";
 
-const MATERIAL_UNITS: MaterialUnit[] = [
+export const MATERIAL_UNITS: MaterialUnit[] = [
   "Gram",
   "Kilogram",
   "Milliliter",
@@ -53,13 +65,53 @@ const MATERIAL_UNITS: MaterialUnit[] = [
   "Pack"
 ];
 
-const CATEGORY_OPTIONS: Array<{ value: MaterialMasterCategory; label: string }> = [
+export const CATEGORY_OPTIONS: Array<{ value: MaterialMasterCategory; label: string }> = [
   { value: "Reagent", label: "Reagent" },
   { value: "Indicator", label: "Indicator" },
   { value: "ReferenceStandard", label: "Reference Standard" },
   { value: "PrimaryStandard", label: "Primary Standard" },
   { value: "Other", label: "Other material" }
 ];
+
+const PENDING_COLUMN_BY_KEY: Record<string, PendingBatchColumn<PendingMaterialMasterEntry>> = {
+  code: {
+    key: "code",
+    label: "Code",
+    sx: { fontFamily: monospaceFontFamily, fontWeight: 600 },
+    render: (r) => r.code
+  },
+  category: { key: "category", label: "Category", render: (r) => r.categoryLabel },
+  materialCategory: {
+    key: "materialCategory",
+    label: "Material category",
+    render: (r) => r.materialCategoryName || "—"
+  },
+  name: { key: "name", label: "Name", render: (r) => r.name },
+  baseUnit: { key: "baseUnit", label: "Base Unit", render: (r) => r.baseUnit },
+  grade: { key: "grade", label: "Grade", render: (r) => r.grade || "—" },
+  source: { key: "source", label: "Source / Pharmacopoeia", render: (r) => r.source || "—" },
+  section: { key: "section", label: "Owner Lab", render: (r) => r.sectionName || "—" },
+  workingConcentration: {
+    key: "workingConcentration",
+    label: "Working Concentration",
+    render: (r) => r.workingConcentration || "—"
+  },
+  solvent: { key: "solvent", label: "Solvent", render: (r) => r.solvent || "—" },
+  transitionRangeFrom: {
+    key: "transitionRangeFrom",
+    label: "Transition Range (From)",
+    sx: { fontVariantNumeric: "tabular-nums" },
+    render: (r) => (r.transitionRangeFrom !== null ? String(r.transitionRangeFrom) : "—")
+  },
+  transitionRangeTo: {
+    key: "transitionRangeTo",
+    label: "Transition Range (To)",
+    sx: { fontVariantNumeric: "tabular-nums" },
+    render: (r) => (r.transitionRangeTo !== null ? String(r.transitionRangeTo) : "—")
+  },
+  colourChange: { key: "colourChange", label: "Colour Change", render: (r) => r.colourChange || "—" },
+  indicatorUse: { key: "indicatorUse", label: "Indicator Use", render: (r) => r.indicatorUse || "—" }
+};
 
 // Other materials take the prefix of their material category; the rest have a fixed one.
 function codePrefixFor(category: MaterialMasterCategory, materialCategory: MaterialCategory | undefined): string | null {
@@ -127,6 +179,13 @@ export function MaterialMasterPage({ categories, embedded }: MaterialMasterPageP
 
   // Signed code change (entries with stock)
   const [entryToRecode, setEntryToRecode] = useState<MaterialMasterEntry | null>(null);
+
+  // Paste batch state
+  const [pasteBarOpen, setPasteBarOpen] = useState(false);
+  const [pastePreviewCells, setPastePreviewCells] = useState<string[][] | null>(null);
+  const [pendingEntries, setPendingEntries] = useState<PendingMaterialMasterEntry[]>([]);
+  const [savingBatch, setSavingBatch] = useState(false);
+  const [batchError, setBatchError] = useState<string | null>(null);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -404,9 +463,115 @@ export function MaterialMasterPage({ categories, embedded }: MaterialMasterPageP
     }
   };
 
+  const pastePlan = useMemo(
+    () =>
+      buildMaterialMasterPastePlan({
+        entries,
+        categoryOptions,
+        categories,
+        materialCategories,
+        mySections
+      }),
+    [entries, categoryOptions, categories, materialCategories, mySections]
+  );
+
+  const pendingColumns = useMemo(
+    () =>
+      pastePlan.columns
+        .map((c) => PENDING_COLUMN_BY_KEY[c.key])
+        .filter((c): c is PendingBatchColumn<PendingMaterialMasterEntry> => Boolean(c)),
+    [pastePlan.columns]
+  );
+
+  const anyModalOpen =
+    dialogOpen ||
+    categoriesOpen ||
+    Boolean(entryToToggle) ||
+    Boolean(entryToRecode) ||
+    pastePreviewCells !== null;
+
+  useEffect(() => {
+    if (anyModalOpen || !pasteBarOpen) return;
+    const handleDocumentPaste = (e: ClipboardEvent) => {
+      if (e.defaultPrevented) return;
+      const target = e.target as HTMLElement | null;
+      if (
+        target &&
+        (target.tagName === "INPUT" ||
+          target.tagName === "TEXTAREA" ||
+          target.tagName === "SELECT" ||
+          target.isContentEditable)
+      ) {
+        return;
+      }
+      const text = e.clipboardData?.getData("text/plain") ?? "";
+      const table = parseClipboardTable(text);
+      if (table.length === 0) return;
+      e.preventDefault();
+      setPastePreviewCells(table);
+    };
+    document.addEventListener("paste", handleDocumentPaste);
+    return () => document.removeEventListener("paste", handleDocumentPaste);
+  }, [anyModalOpen, pasteBarOpen]);
+
+  const handlePasteInput = (e: ReactClipboardEvent<HTMLElement>) => {
+    if (!pasteBarOpen) return;
+    const table = parseClipboardTable(e.clipboardData.getData("text/plain"));
+    if (table.length === 0) return;
+    e.preventDefault();
+    e.stopPropagation();
+    setPastePreviewCells(table);
+  };
+
+  const handleAcceptPaste = (rows: PasteAcceptedRow[]) => {
+    setPendingEntries(
+      toPendingMaterialMasterEntries(rows, { categoryOptions, materialCategories, mySections })
+    );
+    setBatchError(null);
+    setPastePreviewCells(null);
+    setPasteBarOpen(false);
+  };
+
+  const saveEntriesBatch = async () => {
+    if (pendingEntries.length === 0) return;
+    setSavingBatch(true);
+    setBatchError(null);
+    try {
+      const payload = pendingEntries.map(toSaveMaterialMasterEntryPayload);
+      await MaterialMasterService.createBatch(payload);
+      const count = pendingEntries.length;
+      setPendingEntries([]);
+      toast.success(`Added ${count} material master ${count === 1 ? "entry" : "entries"}.`);
+      await loadData();
+    } catch (e: unknown) {
+      const { summary, rowErrors } = extractBatchSaveErrors(
+        e,
+        "Could not save material master entries. Nothing was created."
+      );
+      if (rowErrors) {
+        setPendingEntries((prev) => prev.map((row, idx) => ({ ...row, errors: rowErrors[idx] })));
+      }
+      setBatchError(summary);
+    } finally {
+      setSavingBatch(false);
+    }
+  };
+
   const addButton = (
     <Button variant="contained" startIcon={<AddIcon />} onClick={handleOpenAdd} sx={{ fontWeight: 600, textTransform: "none" }}>
       Add Entry
+    </Button>
+  );
+
+  const pasteButton = (
+    <Button
+      variant="outlined"
+      startIcon={<ContentPasteIcon />}
+      aria-expanded={pasteBarOpen}
+      onClick={() => setPasteBarOpen((v) => !v)}
+      sx={{ fontWeight: 600, textTransform: "none" }}
+    >
+      Paste entries
     </Button>
   );
 
@@ -417,9 +582,15 @@ export function MaterialMasterPage({ categories, embedded }: MaterialMasterPageP
           Material categories
         </Button>
       )}
+      {pasteButton}
       {addButton}
     </>
   );
+
+  const columnLabels = pastePlan.columns.map((c) => c.label).join(", ");
+  const pasteHelperText = `Columns in order: ${columnLabels}.${
+    mySections.length === 1 ? ` Owner lab is set automatically to ${mySections[0].sectionName}.` : ""
+  } New entries are created active. Use Edit, Change code, or Material categories for existing entries, code changes on stocked entries, or managing material categories.`;
 
   const tableColumns: RegisterColumn<MaterialMasterEntry>[] = [
     {
@@ -562,6 +733,48 @@ export function MaterialMasterPage({ categories, embedded }: MaterialMasterPageP
       }
     >
       {error && <Alert severity="error">{error}</Alert>}
+
+      {pasteBarOpen && (
+        <Paper variant="outlined" sx={{ p: 2, borderRadius: 2 }}>
+          <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5} sx={{ alignItems: { sm: "flex-start" } }}>
+            <TextField
+              autoFocus
+              size="small"
+              fullWidth
+              label="Paste material master rows"
+              placeholder={`Paste rows copied from a spreadsheet (${columnLabels})`}
+              value=""
+              onChange={() => {}}
+              onPaste={handlePasteInput}
+              helperText={pasteHelperText}
+            />
+            <Button onClick={() => setPasteBarOpen(false)} sx={{ textTransform: "none", flexShrink: 0 }}>
+              Close
+            </Button>
+          </Stack>
+        </Paper>
+      )}
+
+      <PendingBatchList
+        title={`Pending material master entries (${pendingEntries.length})`}
+        subtitle={`Review the ${pendingEntries.length} material master ${pendingEntries.length === 1 ? "entry" : "entries"} below. Nothing is saved until you click Save.`}
+        ariaLabel="Pending material master entries"
+        columns={pendingColumns}
+        rows={pendingEntries}
+        getRowKey={(r, i) => `${r.code}-${i}`}
+        getRowLabel={(r) => (r.name ? `${r.code} (${r.name})` : r.code)}
+        saving={savingBatch}
+        error={batchError}
+        onSave={saveEntriesBatch}
+        onDiscard={() => {
+          setPendingEntries([]);
+          setBatchError(null);
+        }}
+        onRemoveRow={(index) => {
+          setPendingEntries((prev) => prev.filter((_, i) => i !== index));
+          setBatchError(null);
+        }}
+      />
 
       <RegisterTable
         columns={tableColumns}
@@ -859,6 +1072,16 @@ export function MaterialMasterPage({ categories, embedded }: MaterialMasterPageP
         onConfirm={handleConfirmToggleActive}
         onCancel={() => setEntryToToggle(null)}
       />
+
+      {pastePreviewCells && (
+        <PastePreviewDialog
+          open
+          plan={pastePlan}
+          cells={pastePreviewCells}
+          onAccept={handleAcceptPaste}
+          onCancel={() => setPastePreviewCells(null)}
+        />
+      )}
     </LabPage>
   );
 }

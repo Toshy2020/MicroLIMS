@@ -38,6 +38,11 @@ public class TestDefinitionMasterDataController : ControllerBase
     public async Task<IActionResult> GetTestDefinitions() =>
         Ok(ApiResponse<object>.Ok(await _service.GetTestDefinitionsAsync()));
 
+    // Items that use the test, paged; any signed-in user who can read the Test Master.
+    [HttpGet("test-definitions/{id:int}/items")]
+    public async Task<IActionResult> GetItemsForTest(int id, [FromQuery] string? search = null, [FromQuery] int page = 1, [FromQuery] int pageSize = 25) =>
+        Ok(ApiResponse<object>.Ok(await _service.GetItemsForTestAsync(id, search, page, pageSize, CurrentUserId, Ct)));
+
     [HttpGet("test-definitions/editable-codes")]
     public async Task<IActionResult> GetEditableCodes() =>
         Ok(ApiResponse<object>.Ok(await _service.GetEditableCodesAsync(CurrentUserId)));

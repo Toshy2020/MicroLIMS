@@ -9,6 +9,7 @@ using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Shared.Constants;
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Responses;
 
 namespace MicroLIMS.Application.Services.MasterData;
 
@@ -949,6 +950,90 @@ public class TestDefinitionMasterDataService
                 throw new BusinessRuleException($"Items {string.Join(", ", items)} still have specifications on this test for {(lost == WorkspaceArea.RmPm ? "RM & PM" : "FP")} - remove them first.");
         }
         entity.PhyschemArea = requested;
+    }
+
+    // Items that use a test: a specification or an automatic assignment on receipt
+    // for the test's code, not declared not applicable for every grade. Items carry
+    // no section of their own, so the reader's scope is the test's laboratory section
+    // (and, in the physicochemical laboratory, the workspace areas the reader may read).
+    // The SOP link is resolved in the same query as the page (ItemStmService rule:
+    // Item.SopNumber against the Active document's company code), never per item.
+    public async Task<PagedResult<TestItemRow>> GetItemsForTestAsync(
+        int testDefinitionId, string? search, int page, int pageSize, int userId, CancellationToken ct = default)
+    {
+        var (number, size) = Paging.Normalize(page, pageSize, 25);
+        var empty = new PagedResult<TestItemRow> { Page = number, PageSize = size, TotalCount = 0 };
+
+        var test = await _db.TestDefinitions.AsNoTracking()
+            .Where(t => t.Id == testDefinitionId)
+            .Select(t => new { t.Code, t.SectionId, SectionCode = t.Section != null ? t.Section.Code : "" })
+            .FirstOrDefaultAsync(ct)
+            ?? throw new NotFoundException($"Test {testDefinitionId} not found.");
+
+        var readable = await _scope.GetReadableSectionIdsAsync(userId, ct);
+        if (readable is not null && !readable.Contains(test.SectionId)) return empty;
+
+        var code = test.Code;
+        var items = _db.Items.AsNoTracking()
+            .Where(i => _db.Specifications.Any(s => s.ItemId == i.Id && s.TestCode == code)
+                     || _db.SampleTests.Any(a => a.ItemId == i.Id && a.TestCode == code))
+            .Where(i => !_db.NotApplicableTests.Any(n => n.ItemId == i.Id && n.TestCode == code
+                     && n.Grade == null && n.Status == NotApplicableStatus.Approved));
+
+        if (test.SectionCode == PhyschemAreas.SectionCode)
+        {
+            var areas = await _scope.GetPhyschemAreasAsync(userId, ct, SectionAccess.Read);
+            if (areas.Count == 0) return empty;
+            var categories = areas.SelectMany(PhyschemAreas.CategoriesOf).Distinct().ToList();
+            items = items.Where(i => categories.Contains(i.Category));
+        }
+
+        var term = search?.Trim().ToLower();
+        if (!string.IsNullOrEmpty(term))
+            items = items.Where(i => i.Code.ToLower().Contains(term) || i.Name.ToLower().Contains(term));
+
+        var total = await items.CountAsync(ct);
+
+        var rows = await items
+            .OrderBy(i => i.Code).ThenBy(i => i.Id)
+            .Skip((number - 1) * size).Take(size)
+            .Select(i => new
+            {
+                i.Id, i.Code, i.Name, i.SopNumber,
+                Master = _db.DocumentMasters
+                    .Where(m => m.RecordStatus == DocumentRecordStatus.Active
+                             && i.SopNumber.Trim() != ""
+                             && m.CompanyDocumentCode.ToUpper() == i.SopNumber.Trim().ToUpper())
+                    .Select(m => new
+                    {
+                        m.Id,
+                        Revision = m.CurrentEffectiveRevision != null
+                                   && m.CurrentEffectiveRevision.RevisionStatus == DocumentRevisionStatus.Effective
+                            ? m.CurrentEffectiveRevision.RevisionNumber
+                            : null
+                    })
+                    .FirstOrDefault(),
+                Uploaded = _db.ItemDocuments.Count(d => d.ItemId == i.Id && d.Status == MaterialDocumentStatus.Current),
+                Auto = _db.SampleTests.Any(a => a.ItemId == i.Id && a.TestCode == code),
+                HasSpec = _db.Specifications.Any(s => s.ItemId == i.Id && s.TestCode == code)
+            })
+            .ToListAsync(ct);
+
+        return new PagedResult<TestItemRow>
+        {
+            Page = number,
+            PageSize = size,
+            TotalCount = total,
+            Items = rows.Select(r =>
+            {
+                var sop = (r.SopNumber ?? string.Empty).Trim();
+                var status = sop.Length == 0 ? TestItemSopStatus.NoNumber
+                    : r.Master is null ? TestItemSopStatus.NotFound
+                    : TestItemSopStatus.Linked;
+                return new TestItemRow(r.Id, r.Code, r.Name, sop.Length == 0 ? null : sop, status,
+                    r.Master?.Id, r.Master?.Revision, r.Uploaded, r.Auto, r.HasSpec);
+            }).ToList()
+        };
     }
 
     public async Task<TestDefinitionResponse> FreezeTestDefinitionAsync(int currentUserId, int id, CancellationToken cancellationToken = default)

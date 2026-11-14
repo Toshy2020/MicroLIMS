@@ -20,6 +20,7 @@ import { TitrationChangeReasonField, hasTitrationSettingsChanged, titrationChang
 import { EQUATION_TYPES, EQUATION_TYPE_LABELS, FP_SECTION_CODE, TestMasterLab, WORKFLOW_TYPES_BY_LAB, WORKFLOW_TYPE_LABELS } from "./testMaster/testMasterConstants";
 import { TestStageReplicatesSection } from "./testMaster/TestStageReplicatesSection";
 import { WorkflowStepsSection } from "./testMaster/WorkflowStepsSection";
+import { TestItemsPanel } from "./TestItemsPanel";
 import { UvTestFields } from "./testMaster/UvTestFields";
 import { IcpTestFields } from "./testMaster/IcpTestFields";
 import { IcpTestForm, createInitialIcpForm, icpFormFromDefinition, icpPayloadFields, validateIcpForm } from "./testMaster/icpTestConfig";
@@ -973,7 +974,10 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
         maxWidth="lg"
       >
         {detailsTest && (
-          <WorkflowStepsSection test={detailsTest} workflowTypes={workflowTypes} onWorkflowTypeChanged={reload} />
+          <Box sx={{ display: "grid", gap: 3, gridTemplateColumns: { xs: "1fr", md: "minmax(0, 3fr) minmax(0, 2fr)" }, alignItems: "start" }}>
+            <WorkflowStepsSection test={detailsTest} workflowTypes={workflowTypes} onWorkflowTypeChanged={reload} />
+            <TestItemsPanel key={detailsTest.id} testId={detailsTest.id} />
+          </Box>
         )}
       </FloatingDialog>
 

@@ -616,6 +616,11 @@ SupplierStatedAttributeController.Update(Int32, SupplierStatedAttributeRequest):
 SystemController.ReportClientError(ClientErrorReportRequest, CancellationToken): anonymous
 SystemStatusController.Get(CancellationToken): anonymous
 SystemVersionController.Get(): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+TableViewsController.Create(CreateTableViewRequest, CancellationToken): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+TableViewsController.Delete(Int32, CancellationToken): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+TableViewsController.List(String, CancellationToken): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+TableViewsController.SetDefault(SetDefaultTableViewRequest, CancellationToken): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+TableViewsController.Update(Int32, UpdateTableViewRequest, CancellationToken): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 TestDefinitionMasterDataController.CreateTestDefinition(CreateTestDefinitionRequest): SystemAdministrator,SectionHead
 TestDefinitionMasterDataController.FreezeTestDefinition(Int32): SystemAdministrator,SectionHead
 TestDefinitionMasterDataController.GetEditableCodes(): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa

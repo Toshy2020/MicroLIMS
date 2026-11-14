@@ -62,7 +62,8 @@ public class PermissionEnforcementMigrationPostgresTests
         PermissionConstants.AuditReview,
         PermissionConstants.AccessReviewSign,
         PermissionConstants.LabelsReprint,
-        PermissionConstants.LabelsConfigure
+        PermissionConstants.LabelsConfigure,
+        PermissionConstants.TableViewsShare
     };
 
     private readonly PostgresTestFixture _fixture;

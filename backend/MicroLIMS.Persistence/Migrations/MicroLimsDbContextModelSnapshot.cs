@@ -11066,6 +11066,72 @@ namespace MicroLIMS.Persistence.Migrations
                     b.ToTable("SystemSettingVersions");
                 });
 
+            modelBuilder.Entity("MicroLIMS.Domain.Entities.TableView", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("character varying(60)");
+
+                    b.Property<int>("OwnerUserId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Scope")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("SectionId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("StateJson")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<string>("TableKey")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("UpdatedByUserId")
+                        .HasColumnType("integer");
+
+                    b.Property<uint>("xmin")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TableKey", "OwnerUserId");
+
+                    b.HasIndex("OwnerUserId", "TableKey", "Name")
+                        .IsUnique()
+                        .HasDatabaseName("IX_TableViews_Personal_Name")
+                        .HasFilter("\"Scope\" = 0");
+
+                    b.HasIndex("SectionId", "TableKey", "Name")
+                        .IsUnique()
+                        .HasDatabaseName("IX_TableViews_Section_Name")
+                        .HasFilter("\"Scope\" = 1");
+
+                    b.ToTable("TableViews", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_TableViews_ScopeSection", "(\"Scope\" = 1) = (\"SectionId\" IS NOT NULL)");
+                        });
+                });
+
             modelBuilder.Entity("MicroLIMS.Domain.Entities.TestAnalysis", b =>
                 {
                     b.Property<int>("Id")
@@ -12221,6 +12287,31 @@ namespace MicroLIMS.Persistence.Migrations
                     NpgsqlIndexBuilderExtensions.AreNullsDistinct(b.HasIndex("UserId", "DepartmentId", "SectionId"), false);
 
                     b.ToTable("UserOrgMemberships", (string)null);
+                });
+
+            modelBuilder.Entity("MicroLIMS.Domain.Entities.UserTableDefault", b =>
+                {
+                    b.Property<int>("UserId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("TableKey")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<int>("TableViewId")
+                        .HasColumnType("integer");
+
+                    b.Property<uint>("xmin")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("UserId", "TableKey");
+
+                    b.HasIndex("TableViewId");
+
+                    b.ToTable("UserTableDefaults", (string)null);
                 });
 
             modelBuilder.Entity("MicroLIMS.Domain.Entities.UserUiState", b =>
@@ -16280,6 +16371,24 @@ namespace MicroLIMS.Persistence.Migrations
                     b.Navigation("Setting");
                 });
 
+            modelBuilder.Entity("MicroLIMS.Domain.Entities.TableView", b =>
+                {
+                    b.HasOne("MicroLIMS.Domain.Entities.User", "Owner")
+                        .WithMany()
+                        .HasForeignKey("OwnerUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("MicroLIMS.Domain.Entities.DocumentSection", "Section")
+                        .WithMany()
+                        .HasForeignKey("SectionId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Owner");
+
+                    b.Navigation("Section");
+                });
+
             modelBuilder.Entity("MicroLIMS.Domain.Entities.TestAnalysis", b =>
                 {
                     b.HasOne("MicroLIMS.Domain.Entities.User", "EnteredByUser")
@@ -16644,6 +16753,25 @@ namespace MicroLIMS.Persistence.Migrations
                     b.Navigation("Department");
 
                     b.Navigation("Section");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("MicroLIMS.Domain.Entities.UserTableDefault", b =>
+                {
+                    b.HasOne("MicroLIMS.Domain.Entities.TableView", "TableView")
+                        .WithMany()
+                        .HasForeignKey("TableViewId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("MicroLIMS.Domain.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("TableView");
 
                     b.Navigation("User");
                 });

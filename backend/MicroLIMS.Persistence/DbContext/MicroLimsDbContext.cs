@@ -57,6 +57,8 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext, IMicr
     public DbSet<MfaRecoveryCode> MfaRecoveryCodes => Set<MfaRecoveryCode>();
     public DbSet<MfaChallenge> MfaChallenges => Set<MfaChallenge>();
     public DbSet<UserUiState> UserUiStates => Set<UserUiState>();
+    public DbSet<TableView> TableViews => Set<TableView>();
+    public DbSet<UserTableDefault> UserTableDefaults => Set<UserTableDefault>();
     public DbSet<TrustedDevice> TrustedDevices => Set<TrustedDevice>();
     public DbSet<SsoPendingRequest> SsoPendingRequests => Set<SsoPendingRequest>();
     public DbSet<SsoExchangeCode> SsoExchangeCodes => Set<SsoExchangeCode>();

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import type { ClipboardEvent } from "react";
 import {
   Box,
   Typography,
@@ -36,6 +37,10 @@ import { tableHeadSx } from "../../../theme";
 import { DateField } from "../../../components/DateField";
 import { LastChoiceField } from "../../../components/entry/LastChoiceField";
 import { useGridNavigation } from "../../../components/entry/useGridNavigation";
+import { parseClipboardTable } from "../../../components/entry/parseClipboardTable";
+import { PastePreviewDialog } from "../../../components/entry/PastePreviewDialog";
+import type { PasteAcceptedRow, PasteColumn, PastePlan } from "../../../components/entry/PastePreviewDialog";
+import { CHOICE_COLUMN_LABELS, PASTEABLE_COLUMNS, isPasteableKey } from "./receivingPaste";
 
 export const MAX_RECEIVE_ROWS = 100;
 
@@ -348,6 +353,56 @@ export function MultiSampleEntryGrid({
     onSave
   });
 
+  // Paste: positional, from the focused cell's column, onto the text and date
+  // columns only. The preview must be accepted before anything reaches the grid.
+  const [pasteRequest, setPasteRequest] = useState<{ cells: string[][]; row: number; col: number } | null>(null);
+
+  const handlePaste = (e: ClipboardEvent<HTMLElement>) => {
+    if (receivedByRow) return;
+    const cell = (e.target as HTMLElement).closest<HTMLElement>("[data-grid-cell]");
+    const position = cell?.dataset.gridCell?.split(":").map(Number);
+    if (!position || position.length !== 2) return;
+    const cells = parseClipboardTable(e.clipboardData.getData("text/plain"));
+    // A single value is an ordinary paste into the focused field.
+    if (cells.length === 0) return;
+    e.preventDefault();
+    setPasteRequest({ cells, row: position[0], col: position[1] });
+  };
+
+  const pastePlan = useMemo<PastePlan | null>(() => {
+    if (!pasteRequest) return null;
+    const fromFocus = columns.map((col, index) => ({ col, index })).filter(({ index }) => index >= pasteRequest.col);
+    const fillable = fromFocus.filter(({ col }) => isPasteableKey(col.key));
+    const width = pasteRequest.cells.reduce((max, r) => Math.max(max, r.length), 0);
+    const used = fillable.slice(0, width);
+    const lastUsedIndex = used.length > 0 ? used[used.length - 1].index : -1;
+    const notPasted = fromFocus
+      .filter(({ col, index }) => index < lastUsedIndex && !isPasteableKey(col.key))
+      .map(({ col }) => CHOICE_COLUMN_LABELS[col.key] ?? col.key);
+    const pasteColumns: PasteColumn[] = [];
+    for (const { col } of fillable) {
+      if (isPasteableKey(col.key)) pasteColumns.push(PASTEABLE_COLUMNS[col.key]);
+    }
+    return {
+      title: "Paste preview",
+      maxRows: MAX_RECEIVE_ROWS - pasteRequest.row,
+      columns: pasteColumns,
+      notPasted
+    };
+  }, [pasteRequest, columns]);
+
+  const acceptPaste = (accepted: PasteAcceptedRow[]) => {
+    if (!pasteRequest) return;
+    const missing = pasteRequest.row + accepted.length - rows.length;
+    for (let i = 0; i < missing; i++) onAddRow();
+    accepted.forEach((r, i) => {
+      for (const [key, value] of Object.entries(r.values)) {
+        if (isPasteableKey(key)) onChangeRow(pasteRequest.row + i, key, value);
+      }
+    });
+    setPasteRequest(null);
+  };
+
   const lastFocusedNonce = useRef<number>(-1);
   useEffect(() => {
     if (!focusErrorTarget || focusErrorTarget.nonce === lastFocusedNonce.current) return;
@@ -415,7 +470,7 @@ export function MultiSampleEntryGrid({
           bgcolor: "background.paper"
         }}
       >
-        <Box sx={{ overflowX: "auto", maxHeight: "55vh" }}>
+        <Box sx={{ overflowX: "auto", maxHeight: "55vh" }} onPaste={handlePaste}>
           <Table size="small" stickyHeader sx={{ minWidth: (showLabColumn ? (showGradeColumn ? 1560 : 1400) : isItemBased || isAC ? (showGradeColumn ? 1360 : 1200) : 780) + (showCoaColumn ? 200 : 0) }}>
             <TableHead>
               <TableRow sx={[tableHeadSx, { "& th": { fontWeight: 700, fontSize: 12, py: 1.25 } }]}>
@@ -1202,12 +1257,24 @@ export function MultiSampleEntryGrid({
         >
           Add Another Sample
         </Button>
+        <Typography variant="caption" color="text.secondary">
+          Tip: copy cells from a spreadsheet and paste into a text or date cell. You will see a preview first; choice columns are left for you to pick.
+        </Typography>
         {atRowLimit && (
           <Typography id={addRowLimitId} sx={{ fontSize: 12, color: "text.secondary" }}>
             Maximum {MAX_RECEIVE_ROWS} rows per batch.
           </Typography>
         )}
       </Box>
+      {pasteRequest && pastePlan && (
+        <PastePreviewDialog
+          open
+          plan={pastePlan}
+          cells={pasteRequest.cells}
+          onAccept={acceptPaste}
+          onCancel={() => setPasteRequest(null)}
+        />
+      )}
     </Box>
   );
 }

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import type { ReactElement } from "react";
 import { Box, Table, TableHead, TableRow, TableCell, TableBody, IconButton, Button, Stack, Alert, Typography } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import CloseIcon from "@mui/icons-material/Close";
@@ -13,6 +14,7 @@ import { useBenchDraft } from "../../hooks/useBenchDraft";
 import { useBenchMode } from "../../theme/BenchModeContext";
 import { OfflineDraftNotice, classifySaveFailure, draftHeaderArgs, serverMessage, useKeptOffline } from "./benchSave";
 import { TestWorkflowService } from "./services/TestWorkflowService";
+import { useLocationPaste } from "./useLocationPaste";
 
 interface LocationRow {
   id: number;
@@ -130,6 +132,11 @@ export function WaterLocationResultGridDialog({ open, testOrderId, testCode, dis
       return { ...m, [locationId]: current.length > 1 ? current.filter((_, idx) => idx !== i) : current };
     });
 
+  const paste = useLocationPaste(rows ? rows.map((r) => ({ name: r.locationName })) : null, "Sampling Point", (rowIndex, count) => {
+    const target = rows?.[rowIndex];
+    if (target) setReadingsByLocation((m) => ({ ...m, [target.id]: [count] }));
+  });
+
   const computed = useMemo(() => {
     if (!rows) return [];
     return rows.map((r) => {
@@ -222,7 +229,10 @@ export function WaterLocationResultGridDialog({ open, testOrderId, testCode, dis
           <Typography variant="body2" aria-live="polite" role="status" sx={{ fontVariantNumeric: "tabular-nums" }}>
             {enteredCount} of {rows.length} entered
           </Typography>
-          <Box sx={{ overflowX: "auto" }}>
+          <Typography variant="caption" color="text.secondary">
+            Tip: copy two columns (name, count) from a spreadsheet and paste into any reading field. You will see a preview first; nothing is saved until you submit.
+          </Typography>
+          <Box sx={{ overflowX: "auto" }} onPaste={paste.onPaste}>
             <Table size={benchMode ? "medium" : "small"}>
               <TableHead>
                 <TableRow>
@@ -303,8 +313,15 @@ export function WaterLocationResultGridDialog({ open, testOrderId, testCode, dis
     </>
   );
 
+  const withPaste = (dialog: ReactElement) => (
+    <>
+      {dialog}
+      {paste.pasteDialog}
+    </>
+  );
+
   if (benchMode) {
-    return (
+    return withPaste(
       <BenchDialog
         open={open}
         title={`${testCode} Results: ${displayName}`}
@@ -321,7 +338,7 @@ export function WaterLocationResultGridDialog({ open, testOrderId, testCode, dis
     );
   }
 
-  return (
+  return withPaste(
     <FloatingDialog open={open} title={`${testCode} Results: ${displayName}`} onClose={onClose}>
       {content}
     </FloatingDialog>

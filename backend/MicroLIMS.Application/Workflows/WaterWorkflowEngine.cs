@@ -54,7 +54,12 @@ public class WaterWorkflowEngine : IWaterWorkflowEngine
         _monitoring = monitoring;
     }
 
-    public async Task<Sample> ReceiveAsync(WaterReceiveRequest request)
+    // Generating the reference number and saving the sample run as one
+    // transaction, with the number's lock held (see ReferenceNumberGenerator).
+    public Task<Sample> ReceiveAsync(WaterReceiveRequest request) =>
+        UnitOfWork.RunAsync(_db, () => ReceiveCoreAsync(request));
+
+    private async Task<Sample> ReceiveCoreAsync(WaterReceiveRequest request)
     {
         var department = await _db.WaterDepartments.FirstOrDefaultAsync(d => d.Id == request.WaterDepartmentId)
             ?? throw new BusinessRuleException($"Water department {request.WaterDepartmentId} not found.");

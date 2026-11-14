@@ -39,7 +39,12 @@ public class EMWorkflowEngine : IEMWorkflowEngine
         _monitoring = monitoring;
     }
 
-    public async Task<Sample> ReceiveAsync(EMReceiveRequest request)
+    // Generating the reference number and saving the sample run as one
+    // transaction, with the number's lock held (see ReferenceNumberGenerator).
+    public Task<Sample> ReceiveAsync(EMReceiveRequest request) =>
+        UnitOfWork.RunAsync(_db, () => ReceiveCoreAsync(request));
+
+    private async Task<Sample> ReceiveCoreAsync(EMReceiveRequest request)
     {
         var department = await _db.Departments.FirstOrDefaultAsync(d => d.Id == request.DepartmentId)
             ?? throw new BusinessRuleException($"Department {request.DepartmentId} not found.");

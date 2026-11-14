@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
 import { render, screen, cleanup, act } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
 import { ThemeProvider } from "@mui/material";
 import { lightTheme } from "../../../theme";
 import { BrothWaitingPanel } from "./BrothWaitingPanel";
@@ -64,9 +65,11 @@ describe("SelectivePlatingPanel countdown", () => {
     const platingStep = { ...step, stepName: "MAR", stepType: "SelectivePlating", incubationMinHours: 1, incubationMaxHours: 2 } as TestWorkflowStepDto;
     const c = { ...current(3600), step: platingStep } as CurrentStepResponse;
     render(
-      <ThemeProvider theme={lightTheme}>
-        <SelectivePlatingPanel testOrderId={7} step={platingStep} current={c} onSubmitted={() => {}} />
-      </ThemeProvider>
+      <MemoryRouter>
+        <ThemeProvider theme={lightTheme}>
+          <SelectivePlatingPanel testOrderId={7} step={platingStep} current={c} onSubmitted={() => {}} />
+        </ThemeProvider>
+      </MemoryRouter>
     );
     await act(async () => { await vi.runOnlyPendingTimersAsync(); });
     expect(screen.getByText("01:00:00")).toBeTruthy();

@@ -29,8 +29,8 @@ export const TestWorkflowService = {
 
   // CountTest only - the pathogen dual-plate fields this used to carry
   // (plate2MediaId, plate1Label, plate2Label) no longer exist server-side.
-  selectMedia: (testOrderId: number, stepName: string, mediaLotId: number, incubatorId: number) =>
-    apiClient.post(`/test-workflow/${testOrderId}/select-media`, { stepName, mediaLotId, incubatorId }).then((r) => r.data.data),
+  selectMedia: (testOrderId: number, stepName: string, mediaLotId: number, incubatorId: number, config?: RequestHeadersConfig) =>
+    apiClient.post(`/test-workflow/${testOrderId}/select-media`, { stepName, mediaLotId, incubatorId }, config).then((r) => r.data.data),
 
   startStage2Incubation: (testOrderId: number, stepName: string, incubatorId: number) =>
     apiClient.post(`/test-workflow/${testOrderId}/start-stage-2-incubation`, { stepName, incubatorId }).then((r) => r.data.data),
@@ -269,25 +269,25 @@ export const TestWorkflowService = {
   // ---- Pathogen five-stage workflow ----
 
   submitBroth: (
-    testOrderId: number, stepName: string, observation: string | null
+    testOrderId: number, stepName: string, observation: string | null, config?: RequestHeadersConfig
   ): Promise<StepResultDto> =>
     apiClient.post(`/test-workflow/${testOrderId}/submit-broth`, {
       stepName, observation
-    }).then((r) => r.data.data),
+    }, config).then((r) => r.data.data),
 
   startSelectivePlatingIncubation: (
-    testOrderId: number, stepName: string, mediaLotId: number, equipmentId: number, incubationStartUtc?: string
+    testOrderId: number, stepName: string, mediaLotId: number, equipmentId: number, incubationStartUtc?: string, config?: RequestHeadersConfig
   ) =>
     apiClient.post(`/test-workflow/${testOrderId}/start-selective-plating-incubation`, {
       stepName, mediaLotId, equipmentId, incubationStartUtc
-    }).then((r) => r.data.data),
+    }, config).then((r) => r.data.data),
 
   submitSelectivePlatingObservation: (
-    testOrderId: number, stepName: string, observation: GrowthObservation, observedAppearanceNote?: string
+    testOrderId: number, stepName: string, observation: GrowthObservation, observedAppearanceNote?: string, config?: RequestHeadersConfig
   ): Promise<StepResultDto> =>
     apiClient.post(`/test-workflow/${testOrderId}/submit-selective-plating-observation`, {
       stepName, observation, observedAppearanceNote
-    }).then((r) => r.data.data),
+    }, config).then((r) => r.data.data),
 
   /** @deprecated Use startSelectivePlatingIncubation followed by submitSelectivePlatingObservation */
   submitSelectivePlating: (
@@ -301,26 +301,26 @@ export const TestWorkflowService = {
   submitConfirmatorySetup: (
     testOrderId: number, stepName: string,
     selections: { stepMediaId: number; mediaLotId: number; equipmentId: number }[],
-    incubationStartUtc: string, incubationEndUtc: string
+    incubationStartUtc: string, incubationEndUtc: string, config?: RequestHeadersConfig
   ): Promise<StepResultDto> =>
     apiClient.post(`/test-workflow/${testOrderId}/submit-confirmatory-setup`, {
       stepName, selections, incubationStartUtc, incubationEndUtc
-    }).then((r) => r.data.data),
+    }, config).then((r) => r.data.data),
 
   submitConfirmatoryObservations: (
     testOrderId: number, stepName: string,
-    observations: { materialId: number; observation: string }[]
+    observations: { materialId: number; observation: string }[], config?: RequestHeadersConfig
   ): Promise<ConfirmatoryOutcomeDto> =>
-    apiClient.post(`/test-workflow/${testOrderId}/submit-confirmatory-observations`, { stepName, observations })
+    apiClient.post(`/test-workflow/${testOrderId}/submit-confirmatory-observations`, { stepName, observations }, config)
       .then((r) => r.data.data),
 
   recordAnalystDecision: (testOrderId: number, decision: AnalystDecision): Promise<StepResultDto> =>
     apiClient.post(`/test-workflow/${testOrderId}/analyst-decision`, { decision }).then((r) => r.data.data),
 
-  submitBiochemical: (testOrderId: number, stepName: string, biochemicalResultText: string, organismDetected: boolean): Promise<StepResultDto> =>
+  submitBiochemical: (testOrderId: number, stepName: string, biochemicalResultText: string, organismDetected: boolean, config?: RequestHeadersConfig): Promise<StepResultDto> =>
     apiClient.post(`/test-workflow/${testOrderId}/submit-biochemical`, {
       stepName, biochemicalResultText, attachmentId: null, organismDetected
-    }).then((r) => r.data.data),
+    }, config).then((r) => r.data.data),
 
   // Reviewer-only. No frontend UI calls this yet (see plan header) - the
   // method exists so a future review screen has something to call.

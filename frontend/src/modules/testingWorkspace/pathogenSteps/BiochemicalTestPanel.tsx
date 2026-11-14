@@ -3,7 +3,21 @@ import { Typography, TextField, Button, Stack, Alert } from "@mui/material";
 import { TestWorkflowService } from "../services/TestWorkflowService";
 import { TestWorkflowStepDto, AnalystDecision } from "../types/testWorkflowTypes";
 import { parseWorkflowError, workflowErrorDisplayMessage } from "../utils/workflowErrors";
+import { DraftRestoreNotice } from "../../../components/bench/DraftRestoreNotice";
+import { useBenchDraft } from "../../../hooks/useBenchDraft";
+import { useBenchMode } from "../../../theme/BenchModeContext";
+import { OfflineDraftNotice, classifySaveFailure, draftHeaderArgs, useKeptOffline } from "../benchSave";
 import { StepActionBar, FixedMediumRow, ObservationOptions } from "./StepLayout";
+
+interface BiochemicalDraftValues {
+  text: string;
+  organismDetected: boolean | null;
+}
+
+// Explicit allow-list: analyst decision / phase is never stored in a draft.
+function pickBiochemicalDraft(v: BiochemicalDraftValues): Partial<BiochemicalDraftValues> {
+  return { text: v.text, organismDetected: v.organismDetected };
+}
 
 type DetectionChoice = "not-detected" | "detected";
 const DETECTION_OPTIONS: { value: DetectionChoice; title: string; detail: string }[] = [
@@ -46,6 +60,8 @@ const PHENOTYPIC_TEST_TYPE_LABELS: Record<string, string> = {
 // recovery is unconditional: stop showing the decision UI and fall
 // through to the biochemical form - never string-match the message.
 export function BiochemicalTestPanel({ testOrderId, step, confirmatoryOutcome, onSubmitted }: Props) {
+  const { benchMode } = useBenchMode();
+  const [keptOffline, setKeptOffline] = useKeptOffline();
   const [phase, setPhase] = useState<Phase>(confirmatoryOutcome === "AllConforming" ? "decision" : "form");
   const [decisionError, setDecisionError] = useState<string | null>(null);
   const [text, setText] = useState("");
@@ -55,6 +71,25 @@ export function BiochemicalTestPanel({ testOrderId, step, confirmatoryOutcome, o
   // text said, which produced a real false-positive pathogen result once
   // this step became reachable after an Inconclusive confirmatory reading.
   const [organismDetected, setOrganismDetected] = useState<boolean | null>(null);
+
+  const draft = useBenchDraft<BiochemicalDraftValues>({
+    formKey: "pathogen-biochemical",
+    recordKey: `${testOrderId}:${step.stepName}`,
+    recordVersion: null,
+    title: `${step.stepName}: #${testOrderId}`,
+    values: { text, organismDetected },
+    pick: pickBiochemicalDraft,
+    enabled: benchMode && phase === "form"
+  });
+
+  const restoreDraft = () => {
+    const saved = draft.acceptRestore();
+    if (!saved) return;
+    if (typeof saved.text === "string") setText(saved.text);
+    if (typeof saved.organismDetected === "boolean" || saved.organismDetected === null) {
+      setOrganismDetected(saved.organismDetected);
+    }
+  };
 
   const decide = async (decision: AnalystDecision) => {
     setDecisionError(null);
@@ -80,10 +115,22 @@ export function BiochemicalTestPanel({ testOrderId, step, confirmatoryOutcome, o
     if (!text.trim()) { setFormError("Enter the biochemical confirmation result."); return; }
     if (organismDetected === null) { setFormError("Select whether the biochemical result indicates the organism was Detected or Not Detected."); return; }
     try {
-      await TestWorkflowService.submitBiochemical(testOrderId, step.stepName, text.trim(), organismDetected);
+      await TestWorkflowService.submitBiochemical(
+        testOrderId, step.stepName, text.trim(), organismDetected, ...draftHeaderArgs(draft.submitHeaders())
+      );
+      await draft.onSubmitted();
+      setKeptOffline(false);
       onSubmitted();
     } catch (e) {
-      setFormError(workflowErrorDisplayMessage(parseWorkflowError(e)));
+      const failure = classifySaveFailure(e);
+      if (failure.kind === "network") {
+        setKeptOffline(true);
+      } else if (failure.kind === "conflict") {
+        await draft.onRejected(failure.message);
+        setFormError(failure.message);
+      } else {
+        setFormError(workflowErrorDisplayMessage(parseWorkflowError(e)));
+      }
     }
   };
 
@@ -115,6 +162,8 @@ export function BiochemicalTestPanel({ testOrderId, step, confirmatoryOutcome, o
 
   return (
     <Stack spacing={2}>
+      {benchMode && <DraftRestoreNotice startedAt={draft.restoredStartedAt} onRestore={restoreDraft} onDiscard={() => void draft.discard()} />}
+      {benchMode && keptOffline && <OfflineDraftNotice onTryAgain={() => void submit()} />}
       {formError && <Alert severity="error">{formError}</Alert>}
       {confirmatoryOutcome === "Inconclusive" && (
         <Alert severity="warning">

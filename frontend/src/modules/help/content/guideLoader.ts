@@ -62,7 +62,8 @@ const TITLES: Record<string, string> = {
   "41": "Integrations",
   "42": "Troubleshooting",
   "43": "Frequently Asked Questions",
-  "44": "Glossary"
+  "44": "Glossary",
+  "45": "My Work"
 };
 
 export const CHAPTERS: GuideChapter[] = Object.keys(loaders)

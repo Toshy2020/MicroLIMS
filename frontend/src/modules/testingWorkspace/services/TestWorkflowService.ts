@@ -234,17 +234,29 @@ export const TestWorkflowService = {
   // Still a single boolean per location - EM/AfterCleaning batch pathogen
   // results never adopted the confirmatory model; there is no dual-plate
   // variant of this endpoint anymore.
-  recordBatchPathogenResults: (testOrderId: number, locations: { sampleLocationId: number; growthObserved: boolean }[]) =>
-    apiClient.post(`/test-workflow/${testOrderId}/batch-pathogen-results`, { locations }).then((r) => r.data.data),
+  recordBatchPathogenResults: (
+    testOrderId: number,
+    locations: { sampleLocationId: number; growthObserved: boolean }[],
+    config?: RequestHeadersConfig
+  ) =>
+    apiClient.post(`/test-workflow/${testOrderId}/batch-pathogen-results`, { locations }, config).then((r) => r.data.data),
 
   // Dilution factor is always 1 server-side (EM/After Cleaning are
   // direct-count categories) - each location submits its own set of raw
   // plate readings, averaged, same shape as recordWaterBatchReadings.
-  recordBatchResults: (testOrderId: number, locations: { sampleLocationId: number; readings: number[] }[]) =>
-    apiClient.post(`/test-workflow/${testOrderId}/batch-results`, { locations }).then((r) => r.data.data),
+  recordBatchResults: (
+    testOrderId: number,
+    locations: { sampleLocationId: number; readings: number[] }[],
+    config?: RequestHeadersConfig
+  ) =>
+    apiClient.post(`/test-workflow/${testOrderId}/batch-results`, { locations }, config).then((r) => r.data.data),
 
-  recordWaterBatchReadings: (testOrderId: number, locations: { sampleLocationId: number; readings: number[] }[]) =>
-    apiClient.post(`/test-workflow/${testOrderId}/water-batch-readings`, { locations }).then((r) => r.data.data),
+  recordWaterBatchReadings: (
+    testOrderId: number,
+    locations: { sampleLocationId: number; readings: number[] }[],
+    config?: RequestHeadersConfig
+  ) =>
+    apiClient.post(`/test-workflow/${testOrderId}/water-batch-readings`, { locations }, config).then((r) => r.data.data),
 
   recordLocationResults: (
     testOrderId: number,

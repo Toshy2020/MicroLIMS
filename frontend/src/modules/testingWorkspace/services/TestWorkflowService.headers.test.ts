@@ -40,4 +40,18 @@ describe("TestWorkflowService request headers", () => {
     expect(vi.mocked(apiClient.post).mock.calls[1].slice(0, 2)).toEqual(["/test-workflow/42/record-qualitative-result", qualitativePayload]);
     expect(vi.mocked(apiClient.post).mock.calls[1][2]).toBeUndefined();
   });
+
+  it("batch location endpoints pass headers through and leave body alone", async () => {
+    const headers = { headers: { "X-Draft-Started-At": "2026-10-11T09:00:00.000Z" } };
+    const readings = [{ sampleLocationId: 101, readings: [2, 4] }];
+    const pathogen = [{ sampleLocationId: 301, growthObserved: true }];
+
+    await TestWorkflowService.recordBatchResults(55, readings, headers);
+    await TestWorkflowService.recordWaterBatchReadings(66, readings, headers);
+    await TestWorkflowService.recordBatchPathogenResults(77, pathogen, headers);
+
+    expect(apiClient.post).toHaveBeenNthCalledWith(1, "/test-workflow/55/batch-results", { locations: readings }, headers);
+    expect(apiClient.post).toHaveBeenNthCalledWith(2, "/test-workflow/66/water-batch-readings", { locations: readings }, headers);
+    expect(apiClient.post).toHaveBeenNthCalledWith(3, "/test-workflow/77/batch-pathogen-results", { locations: pathogen }, headers);
+  });
 });

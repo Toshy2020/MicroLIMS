@@ -7,6 +7,8 @@ import {
   Typography,
 } from "@mui/material";
 import { FloatingDialog } from "../../../../components/FloatingDialog";
+import { FieldHint, hintDescribedBy } from "../../../../components/FieldHint";
+import { hints } from "../hints";
 import { masterDataOptions } from "../../../../services/masterDataOptions";
 import {
   MediaIncubationConditionOption,
@@ -116,17 +118,21 @@ export function MediaIncubationConditionDialog(props: MediaIncubationConditionDi
         {error && <Alert severity="error">{error}</Alert>}
 
         <Stack direction="row" spacing={2}>
-          <TextField
-            label="Incubation Min (h)"
-            type="number"
-            size="small"
-            required
-            fullWidth
-            value={incubationMinHours}
-            onChange={(e) =>
-              setIncubationMinHours(e.target.value === "" ? "" : Number(e.target.value))
-            }
-          />
+          <Stack direction="row" spacing={0.5} sx={{ alignItems: "flex-start", flex: 1 }}>
+            <TextField
+              label="Incubation Min (h)"
+              type="number"
+              size="small"
+              required
+              fullWidth
+              value={incubationMinHours}
+              onChange={(e) =>
+                setIncubationMinHours(e.target.value === "" ? "" : Number(e.target.value))
+              }
+              slotProps={{ input: { "aria-describedby": hintDescribedBy("media-incubation-min") } }}
+            />
+            <FieldHint id="media-incubation-min" label="Incubation Min (h)" hint={hints.incubationMin} />
+          </Stack>
           <TextField
             label="Incubation Max (h)"
             type="number"

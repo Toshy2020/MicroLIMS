@@ -21,6 +21,8 @@ import { PathogenSessionService } from "../services/PathogenSessionService";
 import { SharedTsbStatusCard } from "./SharedTsbStatusCard";
 import { masterDataOptions } from "../../../services/masterDataOptions";
 import { brandColors } from "../../../theme";
+import { FieldHint, describedByWithHint } from "../../../components/FieldHint";
+import { hints } from "../hints";
 
 interface Props {
   session: PathogenTestingSessionDto;
@@ -240,66 +242,84 @@ export function SharedTsbEnrichmentPanel({ session, onUpdated, onNext }: Props) 
               gap: 2.5
             }}
           >
-            <TextField
-              select
-              label="TSB Media Lot (GPT Passed & Released) *"
-              value={selectedMediaId}
-              onChange={(e) => setSelectedMediaId(Number(e.target.value))}
-              helperText="Only active, unexpired, GPT-released lots are permitted"
-              fullWidth
-              size="small"
-            >
-              {mediaLots.map((m: any) => (
-                <MenuItem key={m.id} value={m.id}>
-                  {m.lotNumber}, {m.materialName ?? m.mediaTypeName ?? "Media Lot"} (Exp: {new Date(m.expiryDate).toLocaleDateString()})
-                </MenuItem>
-              ))}
-            </TextField>
+            <Stack direction="row" spacing={0.5} sx={{ alignItems: "flex-start", minWidth: 0 }}>
+              <TextField
+                id="tsb-media-lot"
+                slotProps={{ select: { "aria-describedby": describedByWithHint("tsb-media-lot", "tsb-media-lot") } }}
+                select
+                label="TSB Media Lot (GPT Passed & Released) *"
+                value={selectedMediaId}
+                onChange={(e) => setSelectedMediaId(Number(e.target.value))}
+                helperText="Only active, unexpired, GPT-released lots are permitted"
+                fullWidth
+                size="small"
+              >
+                {mediaLots.map((m: any) => (
+                  <MenuItem key={m.id} value={m.id}>
+                    {m.lotNumber}, {m.materialName ?? m.mediaTypeName ?? "Media Lot"} (Exp: {new Date(m.expiryDate).toLocaleDateString()})
+                  </MenuItem>
+                ))}
+              </TextField>
+              <FieldHint id="tsb-media-lot" label="TSB Media Lot" hint={hints.tsbMediaLot} />
+            </Stack>
 
-            <TextField
-              select
-              label="Incubator Equipment (In-Service) *"
-              value={selectedIncubatorId}
-              onChange={(e) => setSelectedIncubatorId(Number(e.target.value))}
-              helperText="Select an operational, calibrated incubator"
-              fullWidth
-              size="small"
-            >
-              {incubators.map((inc: any) => (
-                <MenuItem key={inc.id} value={inc.id}>
-                  {inc.code}: {inc.name ?? "Incubator"} ({inc.location ?? "Lab"})
-                </MenuItem>
-              ))}
-            </TextField>
+            <Stack direction="row" spacing={0.5} sx={{ alignItems: "flex-start", minWidth: 0 }}>
+              <TextField
+                id="tsb-incubator"
+                slotProps={{ select: { "aria-describedby": describedByWithHint("tsb-incubator", "tsb-incubator") } }}
+                select
+                label="Incubator Equipment (In-Service) *"
+                value={selectedIncubatorId}
+                onChange={(e) => setSelectedIncubatorId(Number(e.target.value))}
+                helperText="Select an operational, calibrated incubator"
+                fullWidth
+                size="small"
+              >
+                {incubators.map((inc: any) => (
+                  <MenuItem key={inc.id} value={inc.id}>
+                    {inc.code}: {inc.name ?? "Incubator"} ({inc.location ?? "Lab"})
+                  </MenuItem>
+                ))}
+              </TextField>
+              <FieldHint id="tsb-incubator" label="Incubator Equipment (In-Service)" hint={hints.incubator} />
+            </Stack>
 
             {/* Read-Only Controlled Parameters from Test Master */}
-            <TextField
-              label="Required Incubation Temperature *"
-              value={session.sharedTsb.requiredTemperatureRange ?? "Not configured in Test Master"}
-              helperText={session.sharedTsb.windowNotConfigured
-                ? "A TSB test's medium has no incubation window in Test Master - a start on that medium is refused until it is set"
-                : "Each test's own TSB medium from the approved Test Master workflow"}
-              error={Boolean(session.sharedTsb.windowNotConfigured)}
-              fullWidth
-              size="small"
-              sx={{ bgcolor: "background.default" }}
-              slotProps={{
-                input: { readOnly: true }
-              }}
-            />
+            <Stack direction="row" spacing={0.5} sx={{ alignItems: "flex-start", minWidth: 0 }}>
+              <TextField
+                id="tsb-required-temperature"
+                label="Required Incubation Temperature *"
+                value={session.sharedTsb.requiredTemperatureRange ?? "Not configured in Test Master"}
+                helperText={session.sharedTsb.windowNotConfigured
+                  ? "A TSB test's medium has no incubation window in Test Master - a start on that medium is refused until it is set"
+                  : "Each test's own TSB medium from the approved Test Master workflow"}
+                error={Boolean(session.sharedTsb.windowNotConfigured)}
+                fullWidth
+                size="small"
+                sx={{ bgcolor: "background.default" }}
+                slotProps={{
+                  input: { readOnly: true, "aria-describedby": describedByWithHint("tsb-required-temperature", "tsb-required-temperature") }
+                }}
+              />
+              <FieldHint id="tsb-required-temperature" label="Required Incubation Temperature" hint={hints.requiredTemperature} />
+            </Stack>
 
-            <TextField
-              label="Required Incubation Time *"
-              value={session.sharedTsb.requiredDurationRange ?? "Not configured in Test Master"}
-              helperText="Each test keeps its own duration; the shared tube only starts them together"
-              error={Boolean(session.sharedTsb.windowNotConfigured)}
-              fullWidth
-              size="small"
-              sx={{ bgcolor: "background.default" }}
-              slotProps={{
-                input: { readOnly: true }
-              }}
-            />
+            <Stack direction="row" spacing={0.5} sx={{ alignItems: "flex-start", minWidth: 0 }}>
+              <TextField
+                id="tsb-required-time"
+                label="Required Incubation Time *"
+                value={session.sharedTsb.requiredDurationRange ?? "Not configured in Test Master"}
+                helperText="Each test keeps its own duration; the shared tube only starts them together"
+                error={Boolean(session.sharedTsb.windowNotConfigured)}
+                fullWidth
+                size="small"
+                sx={{ bgcolor: "background.default" }}
+                slotProps={{
+                  input: { readOnly: true, "aria-describedby": describedByWithHint("tsb-required-time", "tsb-required-time") }
+                }}
+              />
+              <FieldHint id="tsb-required-time" label="Required Incubation Time" hint={hints.requiredTime} />
+            </Stack>
           </Box>
         )}
 

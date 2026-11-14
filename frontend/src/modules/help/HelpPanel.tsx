@@ -10,12 +10,12 @@ import { chapterForPath } from "./content/helpMap";
 import { loadChapterText } from "./content/guideLoader";
 import { searchGuide } from "./content/searchIndex";
 import { MarkdownView } from "./MarkdownView";
-import { useHelpPanel } from "./HelpPanelContext";
+import { HELP_GUIDANCE, useHelpPanel } from "./HelpPanelContext";
 import type { HelpPanelServices, HelpSearchResult, HelpTarget } from "./HelpPanelContext";
 import { scrollToHeading } from "./scrollToHeading";
 import { useChapterText } from "./useChapterText";
 
-export const HELP_GUIDANCE = "Guidance only. Your approved SOPs take precedence.";
+export { HELP_GUIDANCE };
 const PANEL_WIDTH = 420;
 const SEARCH_DELAY_MS = 250;
 
@@ -31,7 +31,7 @@ type SearchState =
   | { status: "error" };
 
 export function HelpPanel({ services }: { services?: HelpPanelServices }) {
-  const { closePanel } = useHelpPanel();
+  const { closePanel, request } = useHelpPanel();
   const location = useLocation();
   const reducedMotion = useMediaQuery("(prefers-reduced-motion: reduce)");
   const loadChapter = services?.loadChapter ?? loadChapterText;
@@ -44,7 +44,9 @@ export function HelpPanel({ services }: { services?: HelpPanelServices }) {
   // What the panel shows: the chapter for the page, until the reader picks
   // another; a route change resets it to the new page's chapter.
   const routeKey = `${location.pathname}${location.search}`;
-  const [target, setTarget] = useState<HelpTarget>(() => resolveTarget(location.pathname, location.search));
+  const [target, setTarget] = useState<HelpTarget>(
+    () => request?.target ?? resolveTarget(location.pathname, location.search)
+  );
   const [shownFor, setShownFor] = useState(routeKey);
   if (routeKey !== shownFor) {
     setShownFor(routeKey);
@@ -56,6 +58,12 @@ export function HelpPanel({ services }: { services?: HelpPanelServices }) {
   useEffect(() => {
     headingRef.current?.focus();
   }, []);
+
+  // A field hint's "Read more" (or any openPanel with a target) shows that
+  // chapter and heading, including when the panel is already open.
+  useEffect(() => {
+    if (request) setTarget(request.target);
+  }, [request]);
 
   // Escape closes only from inside the panel: the page behind stays usable, so
   // Escape there (closing a list, clearing a field) must not take focus away.

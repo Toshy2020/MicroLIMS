@@ -31,6 +31,8 @@ import { useLoadFailures } from "../../../../hooks/useLoadFailures";
 import { DateField } from "../../../../components/DateField";
 import { ScanField } from "../../../../components/labels/ScanField";
 import { getErrorMessage } from "../../../../utils/errorMessage";
+import { FieldHint, hintDescribedBy } from "../../../../components/FieldHint";
+import { hints } from "../hints";
 import { MediaAdditivesSection, UsableSolution } from "../components/MediaAdditivesSection";
 import { AdditiveRow, buildAdditivesPayload, validateAdditives } from "../components/mediaAdditives";
 
@@ -312,14 +314,18 @@ export function MediaPreparationDialog({ open, onClose, onSuccess }: Props) {
                   )}
                 </Stack>
 
-                <TextField
-                  size="small"
-                  label="Total Weight (g) *"
-                  type="number"
-                  placeholder="e.g. 40"
-                  value={form.totalWeight ?? ""}
-                  onChange={(e) => setField("totalWeight", e.target.value)}
-                />
+                <Stack direction="row" spacing={0.5} sx={{ alignItems: "flex-start" }}>
+                  <TextField
+                    size="small"
+                    label="Total Weight (g) *"
+                    type="number"
+                    placeholder="e.g. 40"
+                    value={form.totalWeight ?? ""}
+                    onChange={(e) => setField("totalWeight", e.target.value)}
+                    slotProps={{ input: { "aria-describedby": hintDescribedBy("media-total-weight") } }}
+                  />
+                  <FieldHint id="media-total-weight" label="Total Weight" hint={hints.totalWeight} />
+                </Stack>
 
                 <TextField
                   size="small"
@@ -448,17 +454,21 @@ export function MediaPreparationDialog({ open, onClose, onSuccess }: Props) {
               </Typography>
 
               <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 2 }}>
-                <TextField
-                  size="small"
-                  label="pH (at 25°C) *"
-                  type="number"
-                  placeholder="e.g. 7.30"
-                  value={form.ph ?? ""}
-                  onChange={(e) => setField("ph", e.target.value)}
-                  slotProps={{
-                    htmlInput: { step: "0.01" }
-                  }}
-                />
+                <Stack direction="row" spacing={0.5} sx={{ alignItems: "flex-start" }}>
+                  <TextField
+                    size="small"
+                    label="pH (at 25°C) *"
+                    type="number"
+                    placeholder="e.g. 7.30"
+                    value={form.ph ?? ""}
+                    onChange={(e) => setField("ph", e.target.value)}
+                    slotProps={{
+                      htmlInput: { step: "0.01" },
+                      input: { "aria-describedby": hintDescribedBy("media-ph") }
+                    }}
+                  />
+                  <FieldHint id="media-ph" label="the lot's pH" hint={hints.ph} />
+                </Stack>
 
                 <DateField
                   label="Expiry Date *"

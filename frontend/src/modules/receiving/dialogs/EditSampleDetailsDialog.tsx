@@ -6,6 +6,7 @@ import {
   Button,
   InputAdornment,
   MenuItem,
+  Stack,
   TextField,
   Typography,
   useTheme
@@ -17,6 +18,8 @@ import { FloatingDialog } from "../../../components/FloatingDialog";
 import { SignatureDialog } from "../../../components/SignatureDialog";
 import { DateField } from "../../../components/DateField";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
+import { FieldHint, describedByWithHint, hintDescribedBy } from "../../../components/FieldHint";
+import { hints } from "../hints";
 
 interface Props {
   open: boolean;
@@ -346,15 +349,19 @@ export function EditSampleDetailsDialog({ open, sample, onClose, onSuccess }: Pr
           )}
 
           {isProductLike && (
-            <TextField
-              label="Batch Number"
-              required
-              size="small"
-              fullWidth
-              value={form.batchNumber}
-              onChange={(e) => set("batchNumber", e.target.value)}
-              disabled={!canEdit}
-            />
+            <Stack direction="row" spacing={0.5} sx={{ alignItems: "flex-start", minWidth: 0 }}>
+              <TextField
+                slotProps={{ input: { "aria-describedby": hintDescribedBy("receiving-batch-number") } }}
+                label="Batch Number"
+                required
+                size="small"
+                fullWidth
+                value={form.batchNumber}
+                onChange={(e) => set("batchNumber", e.target.value)}
+                disabled={!canEdit}
+              />
+              <FieldHint id="receiving-batch-number" label="Batch Number" hint={hints.batchNumber} />
+            </Stack>
           )}
 
           {showGrade && (
@@ -383,15 +390,19 @@ export function EditSampleDetailsDialog({ open, sample, onClose, onSuccess }: Pr
             </TextField>
           )}
 
-          <TextField
-            label="Control Number"
-            required
-            size="small"
-            fullWidth
-            value={form.controlNumber}
-            onChange={(e) => set("controlNumber", e.target.value)}
-            disabled={!canEdit}
-          />
+          <Stack direction="row" spacing={0.5} sx={{ alignItems: "flex-start", minWidth: 0 }}>
+            <TextField
+              slotProps={{ input: { "aria-describedby": hintDescribedBy("receiving-control-number") } }}
+              label="Control Number"
+              required
+              size="small"
+              fullWidth
+              value={form.controlNumber}
+              onChange={(e) => set("controlNumber", e.target.value)}
+              disabled={!canEdit}
+            />
+            <FieldHint id="receiving-control-number" label="Control Number" hint={hints.controlNumber} />
+          </Stack>
 
           <TextField
             select
@@ -508,33 +519,48 @@ export function EditSampleDetailsDialog({ open, sample, onClose, onSuccess }: Pr
                 <MenuItem value="Refrigerator">Refrigerator</MenuItem>
               </TextField>
               {form.storageCondition === "Refrigerator" && (
-                <TextField
-                  label="Storage Time (hours)"
-                  type="number"
-                  required
-                  size="small"
-                  fullWidth
-                  value={form.storageTimeHours}
-                  onChange={(e) => set("storageTimeHours", e.target.value)}
-                  disabled={!canEdit}
-                  slotProps={{ htmlInput: { min: 0 } }}
-                />
+                <Stack direction="row" spacing={0.5} sx={{ alignItems: "flex-start", minWidth: 0 }}>
+                  <TextField
+                    label="Storage Time (hours)"
+                    type="number"
+                    required
+                    size="small"
+                    fullWidth
+                    value={form.storageTimeHours}
+                    onChange={(e) => set("storageTimeHours", e.target.value)}
+                    disabled={!canEdit}
+                    slotProps={{
+                      htmlInput: { min: 0 },
+                      input: { "aria-describedby": hintDescribedBy("receiving-storage-time") }
+                    }}
+                  />
+                  <FieldHint id="receiving-storage-time" label="Storage Time (hours)" hint={hints.storageTime} />
+                </Stack>
               )}
             </>
           )}
 
-          <TextField
-            label="Reason for Correction"
-            required
-            multiline
-            rows={2}
-            fullWidth
-            value={reason}
-            onChange={(e) => setReason(e.target.value)}
-            disabled={!canEdit}
-            helperText="Recorded with your electronic signature and in the sample's audit trail."
-            sx={{ gridColumn: "1 / -1" }}
-          />
+          <Stack direction="row" spacing={0.5} sx={{ alignItems: "flex-start", minWidth: 0 }}>
+            <TextField
+              id="receiving-reason-for-correction"
+              slotProps={{
+                input: {
+                  "aria-describedby": describedByWithHint("receiving-reason-for-correction", "receiving-reason-for-correction")
+                }
+              }}
+              label="Reason for Correction"
+              required
+              multiline
+              rows={2}
+              fullWidth
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              disabled={!canEdit}
+              helperText="Recorded with your electronic signature and in the sample's audit trail."
+              sx={{ gridColumn: "1 / -1" }}
+            />
+            <FieldHint id="receiving-reason-for-correction" label="Reason for Correction" hint={hints.reasonForCorrection} />
+          </Stack>
         </Box>
       </FloatingDialog>
 

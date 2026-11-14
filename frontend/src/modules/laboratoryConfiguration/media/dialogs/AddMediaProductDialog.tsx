@@ -3,6 +3,8 @@ import { Button, TextField, Stack, Alert, Typography } from "@mui/material";
 import { FloatingDialog } from "../../../../components/FloatingDialog";
 import { masterDataOptions, MediaProductOption } from "../../../../services/masterDataOptions";
 import { monospaceFontFamily } from "../../../../theme/palette";
+import { FieldHint, describedByWithHint } from "../../../../components/FieldHint";
+import { hints } from "../hints";
 
 interface AddMediaProductDialogProps {
   open: boolean;
@@ -79,6 +81,7 @@ export function AddMediaProductDialog({ open, onClose, onSuccess }: AddMediaProd
           autoFocus
           size="small"
         />
+        <Stack direction="row" spacing={0.5} sx={{ alignItems: "flex-start" }}>
         <TextField
           label="Product Code"
           required
@@ -87,12 +90,17 @@ export function AddMediaProductDialog({ open, onClose, onSuccess }: AddMediaProd
           placeholder="e.g. TSA"
           helperText="2-10 letters, digits, dot or hyphen"
           size="small"
+          fullWidth
+          id="media-product-code"
+          slotProps={{ input: { "aria-describedby": describedByWithHint("media-product-code", "media-product-code") } }}
           onKeyDown={(e) => {
             if (e.key === "Enter" && name.trim() && code.trim() && !submitting) {
               handleAdd();
             }
           }}
         />
+          <FieldHint id="media-product-code" label="Product Code" hint={hints.productCode} />
+        </Stack>
         <Typography variant="body2" sx={{ fontFamily: monospaceFontFamily, color: "text.secondary", fontSize: 13 }}>
           Lots will be numbered {displayCode}/01/{yy}
         </Typography>

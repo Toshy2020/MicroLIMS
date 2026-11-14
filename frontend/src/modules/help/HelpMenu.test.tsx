@@ -39,7 +39,7 @@ describe("HelpMenu", () => {
     expect(labels).toEqual([
       "Help for this page",
       "Full guide",
-      "Keyboard shortcutsNot available yet",
+      "Keyboard shortcuts",
       "What's newNot available yet",
       "Replay tourNot available yet",
       "About"
@@ -47,6 +47,7 @@ describe("HelpMenu", () => {
     expect(button.getAttribute("aria-expanded")).toBe("true");
     // Entries built in later tasks are shown as unavailable, not as working links.
     expect(within(menu).getByRole("menuitem", { name: /Full guide/ }).getAttribute("aria-disabled")).toBeNull();
+    expect(within(menu).getByRole("menuitem", { name: "Keyboard shortcuts" }).getAttribute("aria-disabled")).toBeNull();
     expect(within(menu).getByRole("menuitem", { name: /Replay tour/ }).getAttribute("aria-disabled")).toBe("true");
     expect(within(menu).getByRole("menuitem", { name: "About" }).getAttribute("aria-disabled")).toBeNull();
   });
@@ -113,5 +114,48 @@ describe("HelpMenu", () => {
     const title = within(dialog).getByText("About MicroLIMS");
     expect(title.tagName).toBe("SPAN");
     expect(dialog.querySelectorAll("h1 h1, h1 h2, h1 h3, h2 h1, h2 h2, h2 h3, h2 h4, h2 h5, h2 h6")).toHaveLength(0);
+  });
+
+  it("ShortcutsDialog lists the keys and opens from the help menu and from '?' when no input is focused", async () => {
+    const user = userEvent.setup();
+    render(
+      <PinnedLightTheme>
+        <MemoryRouter>
+          <HelpPanelProvider>
+            <HelpMenu />
+            <input aria-label="Sample input" />
+            <textarea aria-label="Sample notes" />
+            <div contentEditable="true" aria-label="Editable div" />
+          </HelpPanelProvider>
+        </MemoryRouter>
+      </PinnedLightTheme>
+    );
+
+    // 1. Opens from the Help menu
+    await user.click(screen.getByRole("button", { name: "Help" }));
+    await user.click(await screen.findByRole("menuitem", { name: "Keyboard shortcuts" }));
+    const dialog = await screen.findByRole("dialog", { name: "Keyboard shortcuts" });
+    expect(within(dialog).getByText(/Ctrl\+D/)).toBeTruthy();
+    expect(within(dialog).getByText(/Ctrl\+Enter/)).toBeTruthy();
+    await user.click(within(dialog).getByRole("button", { name: "Close" }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+
+    // 2. '?' typed inside an input, textarea, or contenteditable does NOT open it
+    await user.click(screen.getByLabelText("Sample input"));
+    await user.keyboard("?");
+    expect(screen.queryByRole("dialog", { name: "Keyboard shortcuts" })).toBeNull();
+
+    await user.click(screen.getByLabelText("Sample notes"));
+    await user.keyboard("?");
+    expect(screen.queryByRole("dialog", { name: "Keyboard shortcuts" })).toBeNull();
+
+    await user.click(screen.getByLabelText("Editable div"));
+    await user.keyboard("?");
+    expect(screen.queryByRole("dialog", { name: "Keyboard shortcuts" })).toBeNull();
+
+    // 3. '?' when no input is focused opens ShortcutsDialog
+    (document.activeElement as HTMLElement | null)?.blur();
+    await user.keyboard("?");
+    expect(await screen.findByRole("dialog", { name: "Keyboard shortcuts" })).toBeTruthy();
   });
 });

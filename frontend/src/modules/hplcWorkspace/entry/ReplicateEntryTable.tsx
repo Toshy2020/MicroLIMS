@@ -1,5 +1,5 @@
-import { useRef, useState } from "react";
-import type { KeyboardEvent, ReactNode } from "react";
+import { useState } from "react";
+import type { ReactNode } from "react";
 import {
   Box,
   Typography,
@@ -20,6 +20,7 @@ import AddIcon from "@mui/icons-material/Add";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutlined";
 import { tableHeadSx } from "../../../theme";
 import { StatusBadge } from "../../../components/StatusBadge";
+import { useGridNavigation } from "../../../components/entry/useGridNavigation";
 import type { HplcMethodWeightDto, HplcReplicateDto } from "../types";
 
 export interface ReplicateEntryTableProps {
@@ -31,6 +32,7 @@ export interface ReplicateEntryTableProps {
   isResidualSolvents?: boolean;
   hasInternalStandard?: boolean;
   internalStandardName?: string | null;
+  onSave?: () => void;
   // Rendered under the table (the page puts the sticky Save button here).
   footer?: ReactNode;
 }
@@ -74,10 +76,10 @@ export function ReplicateEntryTable({
   isResidualSolvents = false,
   hasInternalStandard = false,
   internalStandardName,
+  onSave,
   footer
 }: ReplicateEntryTableProps) {
   const theme = useTheme();
-  const tableRef = useRef<HTMLDivElement>(null);
   // Per-cell text as typed, so a cleared cell stays empty instead of showing 0.
   const [drafts, setDrafts] = useState<Record<string, string>>({});
 
@@ -149,14 +151,13 @@ export function ReplicateEntryTable({
     onChange(updated);
   };
 
-  // Enter moves to the same column in the next replicate.
-  const handleEnter = (e: KeyboardEvent, col: string, rowIdx: number) => {
-    if (e.key !== "Enter") return;
-    e.preventDefault();
-    const next = tableRef.current?.querySelector<HTMLInputElement>(`input[data-cell="${col}-${rowIdx + 1}"]`);
-    next?.focus();
-    next?.select();
-  };
+  const { cellProps } = useGridNavigation({
+    rows: replicates.length,
+    cols: 1 + methodWeights.length + (hasInternalStandard ? 1 : 0),
+    isEditable: () => !disabled,
+    selectOnFocus: true,
+    onSave
+  });
 
   const helper = (value: number, isResidualResponse = false): string | undefined => {
     if (disabled) return undefined;
@@ -212,7 +213,7 @@ export function ReplicateEntryTable({
         </Button>
       </Box>
 
-      <TableContainer ref={tableRef} sx={{ border: `1px solid ${theme.palette.divider}`, borderRadius: 1 }}>
+      <TableContainer sx={{ border: `1px solid ${theme.palette.divider}`, borderRadius: 1 }}>
         <Table size="small">
           <TableHead sx={tableHeadSx(theme)}>
             <TableRow>
@@ -244,7 +245,10 @@ export function ReplicateEntryTable({
                 </TableCell>
               </TableRow>
             ) : (
-              replicates.map((rep, repIdx) => (
+              replicates.map((rep, repIdx) => {
+                const weightNav = cellProps(repIdx, 0);
+                const isNav = cellProps(repIdx, 1 + methodWeights.length);
+                return (
                 <TableRow key={rep.replicateNo} hover>
                   <TableCell sx={{ fontWeight: 700 }}>#{rep.replicateNo}</TableCell>
                   <TableCell align="right">
@@ -253,7 +257,8 @@ export function ReplicateEntryTable({
                       size="small"
                       value={cellText(weightKey(rep.replicateNo), rep.actualWeightMg)}
                       onChange={(e) => handleWeightChange(repIdx, e.target.value)}
-                      onKeyDown={(e) => handleEnter(e, "w", repIdx)}
+                      onKeyDown={weightNav.onKeyDown}
+                      inputRef={weightNav.ref}
                       placeholder="0.00"
                       disabled={disabled}
                       error={!disabled && !isPositive(rep.actualWeightMg)}
@@ -263,6 +268,7 @@ export function ReplicateEntryTable({
                           min: 0,
                           step: "any",
                           "data-cell": `w-${repIdx}`,
+                          "data-grid-cell": weightNav["data-grid-cell"],
                           "aria-label": isResidualSolvents
                             ? `Replicate ${rep.replicateNo} sample weight (mg)`
                             : `Replicate ${rep.replicateNo} actual weight (mg)`
@@ -272,9 +278,10 @@ export function ReplicateEntryTable({
                       sx={cellSx}
                     />
                   </TableCell>
-                  {methodWeights.map((mw) => {
+                  {methodWeights.map((mw, mwIdx) => {
                     const val =
                       rep.responses.find((r) => r.hplcMethodAnalyteId === mw.hplcMethodAnalyteId)?.response ?? 0;
+                    const respNav = cellProps(repIdx, 1 + mwIdx);
                     return (
                       <TableCell key={mw.hplcMethodAnalyteId} align="right">
                         <TextField
@@ -282,7 +289,8 @@ export function ReplicateEntryTable({
                           size="small"
                           value={cellText(respKey(rep.replicateNo, mw.hplcMethodAnalyteId), val, isResidualSolvents)}
                           onChange={(e) => handleResponseChange(repIdx, mw.hplcMethodAnalyteId, e.target.value)}
-                          onKeyDown={(e) => handleEnter(e, `a${mw.hplcMethodAnalyteId}`, repIdx)}
+                          onKeyDown={respNav.onKeyDown}
+                          inputRef={respNav.ref}
                           placeholder="0.00"
                           disabled={disabled}
                           error={!disabled && (isResidualSolvents ? val < 0 : !isPositive(val))}
@@ -292,6 +300,7 @@ export function ReplicateEntryTable({
                               min: 0,
                               step: "any",
                               "data-cell": `a${mw.hplcMethodAnalyteId}-${repIdx}`,
+                              "data-grid-cell": respNav["data-grid-cell"],
                               "aria-label": hasInternalStandard
                                 ? `Replicate ${rep.replicateNo} Analyte area`
                                 : isResidualSolvents
@@ -311,7 +320,8 @@ export function ReplicateEntryTable({
                         size="small"
                         value={cellText(isKey(rep.replicateNo), rep.internalStandardResponse ?? 0)}
                         onChange={(e) => handleIsResponseChange(repIdx, e.target.value)}
-                        onKeyDown={(e) => handleEnter(e, "is", repIdx)}
+                        onKeyDown={isNav.onKeyDown}
+                        inputRef={isNav.ref}
                         placeholder="0.00"
                         disabled={disabled}
                         error={!disabled && !isPositive(rep.internalStandardResponse)}
@@ -321,6 +331,7 @@ export function ReplicateEntryTable({
                             min: 0,
                             step: "any",
                             "data-cell": `is-${repIdx}`,
+                            "data-grid-cell": isNav["data-grid-cell"],
                             "aria-label": `Replicate ${rep.replicateNo} IS area`
                           }
                         }}
@@ -344,7 +355,8 @@ export function ReplicateEntryTable({
                     </Tooltip>
                   </TableCell>
                 </TableRow>
-              ))
+                );
+              })
             )}
           </TableBody>
         </Table>

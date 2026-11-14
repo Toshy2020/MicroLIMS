@@ -1,7 +1,10 @@
+import { useState } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { PinnedLightTheme } from "../../../theme/PinnedLightTheme";
 import { ReplicateEntryTable, replicatesComplete } from "./ReplicateEntryTable";
+import { buildReplicatePayload } from "./replicatePayload";
 import type { HplcMethodWeightDto, HplcReplicateDto } from "../types";
 
 afterEach(cleanup);
@@ -118,7 +121,8 @@ describe("ReplicateEntryTable", () => {
     expect(screen.queryByLabelText(/is area/i)).toBeNull();
   });
 
-  it("edits the IS area when hasInternalStandard is true", () => {
+  it("edits the IS area when hasInternalStandard is true", async () => {
+    const user = userEvent.setup();
     const handleChange = vi.fn();
     render(
       <PinnedLightTheme>
@@ -141,11 +145,230 @@ describe("ReplicateEntryTable", () => {
 
     expect(screen.getByText("n-Hexane (IS) Area *")).toBeTruthy();
     const isInput = screen.getByLabelText(/replicate 1 is area/i);
-    fireEvent.change(isInput, { target: { value: "3500" } });
+    await user.click(isInput);
+    await user.paste("3500");
 
     expect(handleChange).toHaveBeenCalled();
     const callArg = handleChange.mock.calls[0][0];
     expect(callArg[0].internalStandardResponse).toBe(3500);
+  });
+
+  it("characterises existing Enter key behaviour: moves down to same column, selects target text, stays on last row, and does not submit form", async () => {
+    const user = userEvent.setup();
+    const onFormSubmit = vi.fn();
+    const initialReplicates: HplcReplicateDto[] = [
+      {
+        replicateNo: 1,
+        actualWeightMg: 100.5,
+        responses: [{ hplcMethodAnalyteId: 10, response: 2000 }],
+        internalStandardResponse: 1500
+      },
+      {
+        replicateNo: 2,
+        actualWeightMg: 101.2,
+        responses: [{ hplcMethodAnalyteId: 10, response: 2100 }],
+        internalStandardResponse: 1550
+      }
+    ];
+
+    function Harness() {
+      const [reps, setReps] = useState(initialReplicates);
+      return (
+        <PinnedLightTheme>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              onFormSubmit();
+            }}
+          >
+            <ReplicateEntryTable
+              methodWeights={mockWeights}
+              replicates={reps}
+              onChange={setReps}
+              hasInternalStandard={true}
+            />
+          </form>
+        </PinnedLightTheme>
+      );
+    }
+
+    render(<Harness />);
+
+    const w1 = screen.getByLabelText("Replicate 1 actual weight (mg)") as HTMLInputElement;
+    const w2 = screen.getByLabelText("Replicate 2 actual weight (mg)") as HTMLInputElement;
+    const a1 = screen.getByLabelText("Replicate 1 Analyte area") as HTMLInputElement;
+    const a2 = screen.getByLabelText("Replicate 2 Analyte area") as HTMLInputElement;
+    const is1 = screen.getByLabelText("Replicate 1 IS area") as HTMLInputElement;
+    const is2 = screen.getByLabelText("Replicate 2 IS area") as HTMLInputElement;
+
+    const w2SelectSpy = vi.spyOn(w2, "select");
+    const a2SelectSpy = vi.spyOn(a2, "select");
+    const is2SelectSpy = vi.spyOn(is2, "select");
+
+    await user.click(w1);
+    await user.keyboard("{Enter}");
+    expect(document.activeElement).toBe(w2);
+    expect(w2SelectSpy).toHaveBeenCalledTimes(1);
+    expect(onFormSubmit).not.toHaveBeenCalled();
+
+    // Pressing Enter on the last row stays on the last row and does not submit
+    await user.keyboard("{Enter}");
+    expect(document.activeElement).toBe(w2);
+    expect(onFormSubmit).not.toHaveBeenCalled();
+
+    await user.click(a1);
+    await user.keyboard("{Enter}");
+    expect(document.activeElement).toBe(a2);
+    expect(a2SelectSpy).toHaveBeenCalledTimes(1);
+
+    await user.click(is1);
+    await user.keyboard("{Enter}");
+    expect(document.activeElement).toBe(is2);
+    expect(is2SelectSpy).toHaveBeenCalledTimes(1);
+    expect(onFormSubmit).not.toHaveBeenCalled();
+  });
+
+  it("Enter moves focus down to the same column in the next row, arrows move across grid, Ctrl+D changes nothing, and Ctrl+Enter saves", async () => {
+    const user = userEvent.setup();
+    const onSave = vi.fn();
+    const initialReplicates: HplcReplicateDto[] = [
+      {
+        replicateNo: 1,
+        actualWeightMg: 100.5,
+        responses: [{ hplcMethodAnalyteId: 10, response: 2000 }],
+        internalStandardResponse: 1500
+      },
+      {
+        replicateNo: 2,
+        actualWeightMg: 0,
+        responses: [{ hplcMethodAnalyteId: 10, response: 0 }],
+        internalStandardResponse: 0
+      }
+    ];
+
+    function Harness() {
+      const [reps, setReps] = useState(initialReplicates);
+      return (
+        <PinnedLightTheme>
+          <ReplicateEntryTable
+            methodWeights={mockWeights}
+            replicates={reps}
+            onChange={setReps}
+            hasInternalStandard={true}
+            onSave={() => onSave(reps)}
+          />
+        </PinnedLightTheme>
+      );
+    }
+
+    render(<Harness />);
+
+    const w1 = screen.getByLabelText("Replicate 1 actual weight (mg)") as HTMLInputElement;
+    const w2 = screen.getByLabelText("Replicate 2 actual weight (mg)") as HTMLInputElement;
+    const a1 = screen.getByLabelText("Replicate 1 Analyte area") as HTMLInputElement;
+    const a2 = screen.getByLabelText("Replicate 2 Analyte area") as HTMLInputElement;
+    const is2 = screen.getByLabelText("Replicate 2 IS area") as HTMLInputElement;
+
+    await user.click(w1);
+    await user.keyboard("{Enter}");
+    expect(document.activeElement).toBe(w2);
+
+    await user.keyboard("{ArrowUp}");
+    expect(document.activeElement).toBe(w1);
+
+    await user.keyboard("{ArrowDown}");
+    expect(document.activeElement).toBe(w2);
+
+    await user.keyboard("{ArrowRight}");
+    expect(document.activeElement).toBe(a2);
+
+    await user.keyboard("{ArrowRight}");
+    expect(document.activeElement).toBe(is2);
+
+    await user.keyboard("{ArrowLeft}");
+    expect(document.activeElement).toBe(a2);
+
+    // Ctrl+D on row 0 and row > 0 changes nothing (regulated readings must be entered deliberately)
+    await user.click(a1);
+    await user.keyboard("{Control>}d{/Control}");
+    expect(a1.value).toBe("2000");
+
+    await user.click(a2);
+    await user.keyboard("{Control>}d{/Control}");
+    expect(a2.value).toBe("");
+
+    await user.keyboard("{Control>}{Enter}{/Control}");
+    expect(onSave).toHaveBeenCalledTimes(1);
+  });
+
+  it("the save payload is unchanged when entering values via keyboard navigation", async () => {
+    const user = userEvent.setup();
+    const onSavePayload = vi.fn();
+    const initialReplicates: HplcReplicateDto[] = [
+      {
+        replicateNo: 1,
+        actualWeightMg: 0,
+        responses: [{ hplcMethodAnalyteId: 10, response: 0 }],
+        internalStandardResponse: 0
+      },
+      {
+        replicateNo: 2,
+        actualWeightMg: 0,
+        responses: [{ hplcMethodAnalyteId: 10, response: 0 }],
+        internalStandardResponse: 0
+      }
+    ];
+
+    function Harness() {
+      const [reps, setReps] = useState(initialReplicates);
+      const save = () => onSavePayload(buildReplicatePayload(reps, false, true));
+      return (
+        <PinnedLightTheme>
+          <ReplicateEntryTable
+            methodWeights={mockWeights}
+            replicates={reps}
+            onChange={setReps}
+            hasInternalStandard={true}
+            onSave={save}
+            footer={<button type="button" onClick={save}>Save Replicates</button>}
+          />
+        </PinnedLightTheme>
+      );
+    }
+
+    render(<Harness />);
+
+    const w1 = screen.getByLabelText("Replicate 1 actual weight (mg)");
+    await user.click(w1);
+    await user.type(w1, "100.5");
+    await user.keyboard("{ArrowRight}");
+    await user.type(document.activeElement as HTMLElement, "2000");
+    await user.keyboard("{ArrowRight}");
+    await user.type(document.activeElement as HTMLElement, "1500");
+
+    // Move down to row 2 IS area, type value, then move left and enter remaining values
+    await user.keyboard("{Enter}");
+    await user.type(document.activeElement as HTMLElement, "1500");
+    await user.keyboard("{ArrowLeft}");
+    await user.type(document.activeElement as HTMLElement, "2100");
+    await user.keyboard("{ArrowLeft}");
+    await user.type(document.activeElement as HTMLElement, "101.2");
+
+    await user.click(screen.getByRole("button", { name: "Save Replicates" }));
+
+    expect(onSavePayload).toHaveBeenCalledTimes(1);
+    expect(onSavePayload).toHaveBeenCalledWith([
+      {
+        actualWeightMg: 100.5,
+        responses: [{ hplcMethodAnalyteId: 10, response: 2000 }],
+        internalStandardResponse: 1500
+      },
+      {
+        actualWeightMg: 101.2,
+        responses: [{ hplcMethodAnalyteId: 10, response: 2100 }],
+        internalStandardResponse: 1500
+      }
+    ]);
   });
 
   describe("replicatesComplete", () => {

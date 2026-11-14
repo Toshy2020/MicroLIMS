@@ -9,6 +9,7 @@ import { StatusBadge } from "../../components/StatusBadge";
 import { TableSkeleton } from "../../components/TableSkeleton";
 import { BenchDialog } from "../../components/bench/BenchDialog";
 import { DraftRestoreNotice } from "../../components/bench/DraftRestoreNotice";
+import { useGridNavigation } from "../../components/entry/useGridNavigation";
 import { useBenchDraft } from "../../hooks/useBenchDraft";
 import { useBenchMode } from "../../theme/BenchModeContext";
 import { BENCH_MIN_TARGET } from "../../theme/benchTheme";
@@ -153,6 +154,20 @@ export function PathogenLocationResultGridDialog({ open, testOrderId, testCode, 
     onClose();
   };
 
+  const { cellProps } = useGridNavigation({
+    rows: rows?.length ?? 0,
+    cols: 2,
+    onSave: () => {
+      if (benchMode && keptOffline) {
+        keepDraft();
+        return;
+      }
+      if (allEntered && isTimeReady && !submitting) {
+        void submit();
+      }
+    }
+  });
+
   const submitDisabledReason = !rows
     ? "Loading locations…"
     : !allEntered
@@ -183,8 +198,10 @@ export function PathogenLocationResultGridDialog({ open, testOrderId, testCode, 
                 </TableRow>
               </TableHead>
               <TableBody>
-                {rows.map((r) => {
+                {rows.map((r, rIdx) => {
                   const status = liveStatus(r);
+                  const yesNav = cellProps(rIdx, 0);
+                  const noNav = cellProps(rIdx, 1);
                   return (
                     <TableRow
                       key={r.id}
@@ -197,6 +214,7 @@ export function PathogenLocationResultGridDialog({ open, testOrderId, testCode, 
                         {benchMode ? (
                           <Stack direction="row" spacing={1} role="group" aria-label={`Growth observed for ${r.locationName}`}>
                             <Button
+                              {...yesNav}
                               variant={growth[r.id] === "yes" ? "contained" : "outlined"}
                               aria-pressed={growth[r.id] === "yes"}
                               startIcon={<WarningAmberIcon aria-hidden />}
@@ -218,6 +236,7 @@ export function PathogenLocationResultGridDialog({ open, testOrderId, testCode, 
                               Yes (Detected)
                             </Button>
                             <Button
+                              {...noNav}
                               variant={growth[r.id] === "no" ? "contained" : "outlined"}
                               aria-pressed={growth[r.id] === "no"}
                               startIcon={<CheckCircleOutlineIcon aria-hidden />}
@@ -241,8 +260,16 @@ export function PathogenLocationResultGridDialog({ open, testOrderId, testCode, 
                           </Stack>
                         ) : (
                           <RadioGroup row value={growth[r.id] ?? ""} onChange={(e) => setGrowth((g) => ({ ...g, [r.id]: e.target.value as "yes" | "no" }))}>
-                            <FormControlLabel value="yes" control={<Radio size="small" />} label="Yes" />
-                            <FormControlLabel value="no" control={<Radio size="small" />} label="No" />
+                            <FormControlLabel
+                              value="yes"
+                              control={<Radio size="small" slotProps={{ input: yesNav }} />}
+                              label="Yes"
+                            />
+                            <FormControlLabel
+                              value="no"
+                              control={<Radio size="small" slotProps={{ input: noNav }} />}
+                              label="No"
+                            />
                           </RadioGroup>
                         )}
                       </TableCell>

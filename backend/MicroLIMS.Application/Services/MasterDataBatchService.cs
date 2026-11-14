@@ -28,6 +28,7 @@ public class MasterDataBatchService
         Func<TRequest, string?>? getCode = null,
         string codeField = "code",
         Func<IReadOnlyCollection<string>, CancellationToken, Task<IReadOnlySet<string>>>? getExistingCodesAsync = null,
+        Func<IReadOnlyList<TRequest>, CancellationToken, Task<IReadOnlyList<FieldError>>>? validateBatchAsync = null,
         CancellationToken ct = default)
     {
         if (rows is null || rows.Count == 0)
@@ -98,6 +99,15 @@ public class MasterDataBatchService
                 {
                     errors.Add(new FieldError(codeField, $"Code '{code}' already exists.", rowIndex));
                 }
+            }
+        }
+
+        if (validateBatchAsync is not null)
+        {
+            var batchErrors = await validateBatchAsync(rows, ct);
+            if (batchErrors.Count > 0)
+            {
+                errors.AddRange(batchErrors);
             }
         }
 

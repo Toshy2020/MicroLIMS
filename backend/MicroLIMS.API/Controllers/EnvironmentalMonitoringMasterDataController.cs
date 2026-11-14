@@ -58,6 +58,11 @@ public class EnvironmentalMonitoringMasterDataController : ControllerBase
         Ok(ApiResponse<object>.Ok(await _service.CreateRoomAsync(request)));
 
     [Authorize(Policy = PermissionConstants.MasterDataManage)]
+    [HttpPost("rooms/batch")]
+    public async Task<IActionResult> CreateRoomsBatch(List<CreateRoomRequest> request, CancellationToken ct = default) =>
+        Ok(ApiResponse<object>.Ok(await _service.CreateRoomsBatchAsync(request, ct)));
+
+    [Authorize(Policy = PermissionConstants.MasterDataManage)]
     [HttpPut("rooms/{id}")]
     public async Task<IActionResult> UpdateRoom(int id, UpdateRoomRequest request) =>
         Ok(ApiResponse<object>.Ok(await _service.UpdateRoomAsync(id, request)));
@@ -76,6 +81,11 @@ public class EnvironmentalMonitoringMasterDataController : ControllerBase
     [HttpPost("room-test-configurations")]
     public async Task<IActionResult> CreateRoomTestConfiguration(CreateRoomTestConfigRequest request) =>
         Ok(ApiResponse<object>.Ok(await _service.CreateRoomTestConfigurationAsync(request)));
+
+    [Authorize(Policy = PermissionConstants.MasterDataManage)]
+    [HttpPost("room-test-configurations/batch")]
+    public async Task<IActionResult> CreateRoomTestConfigurationsBatch(List<CreateRoomTestConfigRequest> request, CancellationToken ct = default) =>
+        Ok(ApiResponse<object>.Ok(await _service.CreateRoomTestConfigurationsBatchAsync(request, ct)));
 
     [Authorize(Policy = PermissionConstants.MasterDataManage)]
     [HttpPut("room-test-configurations/{id}")]

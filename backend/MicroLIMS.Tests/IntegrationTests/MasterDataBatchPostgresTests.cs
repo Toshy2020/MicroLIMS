@@ -342,4 +342,558 @@ public class MasterDataBatchPostgresTests
         await using var assertDb = _fixture.CreateDbContext();
         Assert.False(await assertDb.WaterSamplingPoints.AsNoTracking().AnyAsync(p => p.Code == $"SP-OWN-{suffix}" || p.Code == $"SP-OTH-{suffix}"));
     }
+
+    private static EnvironmentalMonitoringMasterDataService BuildEmService(MicroLimsDbContext db) =>
+        new(db, new MasterDataBatchService(db));
+
+    private async Task<(int HeadUserId, int DeptId, int SecondDeptId, int ExistingRoomId)> SeedEmScopeAsync(string suffix)
+    {
+        await using var db = _fixture.CreateDbContext();
+
+        var role = await db.Roles.FirstAsync(r => r.Type == RoleType.SectionHead);
+        var user = new User
+        {
+            Username = $"em_batch_head_{suffix}",
+            PasswordHash = "x",
+            FullName = $"EM Batch Head {suffix}",
+            Email = $"em_batch_{suffix}@test.local",
+            RoleId = role.Id,
+            IsActive = true
+        };
+        db.Users.Add(user);
+
+        var dept = new Department { Name = $"EM-Dept-{suffix}", Class = "Grade B", TestingFrequency = "Daily", IsActive = true };
+        var secondDept = new Department { Name = $"EM-Dept2-{suffix}", Class = "Grade C", TestingFrequency = "Weekly", IsActive = true };
+        db.Departments.AddRange(dept, secondDept);
+        await db.SaveChangesAsync();
+
+        var existingRoom = new Room
+        {
+            Name = $"EM-BaseRoom-{suffix}",
+            DepartmentId = dept.Id,
+            GradeClassification = "B",
+            Kind = RoomKind.Room,
+            IsActive = true
+        };
+        db.Rooms.Add(existingRoom);
+        await db.SaveChangesAsync();
+
+        return (user.Id, dept.Id, secondDept.Id, existingRoom.Id);
+    }
+
+    [PostgresFact]
+    public async Task Rooms_AllValid_CreatesAll_AuditedLikeSingleCreate()
+    {
+        var suffix = Guid.NewGuid().ToString("N")[..8];
+        var (userId, deptId, _, existingRoomId) = await SeedEmScopeAsync(suffix);
+        var fixedNow = new DateTimeOffset(2026, 11, 14, 12, 0, 0, TimeSpan.Zero);
+        var freq = new FrequencyRuleDto(FrequencyType.Weekly, 1, DayOfWeek.Tuesday);
+
+        RoomResponse singleResult;
+        await using (var singleDb = _fixture.CreateDbContext(new FixedClock(fixedNow)))
+        {
+            singleDb.CurrentUserId = userId;
+            var svc = BuildEmService(singleDb);
+            singleResult = await svc.CreateRoomAsync(
+                new CreateRoomRequest($"RM-S-{suffix}", deptId, "B", RoomKind.Room, null, freq));
+        }
+
+        IReadOnlyList<RoomResponse> batchResults;
+        await using (var actDb = _fixture.CreateDbContext(new FixedClock(fixedNow)))
+        {
+            actDb.CurrentUserId = userId;
+            var svc = BuildEmService(actDb);
+            batchResults = await svc.CreateRoomsBatchAsync(
+                new[]
+                {
+                    new CreateRoomRequest($"RM-B1-{suffix}", deptId, "B", RoomKind.Room, null, freq),
+                    new CreateRoomRequest($"RM-B2-{suffix}", deptId, "A", RoomKind.LAF, existingRoomId, freq)
+                });
+        }
+
+        Assert.Equal(2, batchResults.Count);
+
+        await using var assertDb = _fixture.CreateDbContext();
+        var batchIds = batchResults.Select(r => r.Id).ToList();
+        var persisted = await assertDb.Rooms
+            .AsNoTracking()
+            .Where(r => batchIds.Contains(r.Id))
+            .OrderBy(r => r.Id)
+            .ToListAsync();
+
+        Assert.Equal(2, persisted.Count);
+        Assert.Equal($"RM-B1-{suffix}", persisted[0].Name);
+        Assert.Equal(RoomKind.Room, persisted[0].Kind);
+        Assert.Null(persisted[0].ParentRoomId);
+        Assert.Equal($"RM-B2-{suffix}", persisted[1].Name);
+        Assert.Equal(RoomKind.LAF, persisted[1].Kind);
+        Assert.Equal(existingRoomId, persisted[1].ParentRoomId);
+        Assert.Equal(FrequencyType.Weekly, persisted[0].FrequencyType);
+        Assert.Equal(DayOfWeek.Tuesday, persisted[0].SamplingWeekday);
+
+        var singleIdStr = singleResult.Id.ToString();
+        var batchIdStrs = batchIds.Select(id => id.ToString()).ToList();
+
+        var singleAudit = await assertDb.AuditLogs
+            .AsNoTracking()
+            .SingleAsync(a => a.EntityName == nameof(Room) && a.Action == "Create" && a.EntityId == singleIdStr);
+
+        var batchAudits = await assertDb.AuditLogs
+            .AsNoTracking()
+            .Where(a => a.EntityName == nameof(Room) && a.Action == "Create" && batchIdStrs.Contains(a.EntityId))
+            .OrderBy(a => a.Id)
+            .ToListAsync();
+
+        Assert.Equal(2, batchAudits.Count);
+
+        var singlePayload = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(singleAudit.NewValue!)!;
+        for (var i = 0; i < batchAudits.Count; i++)
+        {
+            var batchAudit = batchAudits[i];
+            var batchRoom = persisted[i];
+            Assert.Equal(singleAudit.UserId, batchAudit.UserId);
+            Assert.Equal(singleAudit.Action, batchAudit.Action);
+            Assert.Equal(singleAudit.EntityName, batchAudit.EntityName);
+            Assert.Equal(singleAudit.PreviousValue, batchAudit.PreviousValue);
+            Assert.Equal(singleAudit.Timestamp, batchAudit.Timestamp);
+
+            var batchPayload = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(batchAudit.NewValue!)!;
+            Assert.Equal(singlePayload.Keys.OrderBy(k => k), batchPayload.Keys.OrderBy(k => k));
+            Assert.Equal(batchRoom.Id, batchPayload["Id"].GetInt32());
+            Assert.Equal(batchRoom.Name, batchPayload["Name"].GetString());
+            Assert.Equal(batchRoom.DepartmentId, batchPayload["DepartmentId"].GetInt32());
+            Assert.Equal(batchRoom.GradeClassification, batchPayload["GradeClassification"].GetString());
+            Assert.Equal(batchRoom.IsActive, batchPayload["IsActive"].GetBoolean());
+        }
+    }
+
+    [PostgresFact]
+    public async Task Rooms_OneInvalid_NoneCreated_RowAndFieldReported()
+    {
+        var suffix = Guid.NewGuid().ToString("N")[..8];
+        var (userId, deptId, _, _) = await SeedEmScopeAsync(suffix);
+
+        await using (var actDb = _fixture.CreateDbContext())
+        {
+            actDb.CurrentUserId = userId;
+            var svc = BuildEmService(actDb);
+            var rows = new[]
+            {
+                new CreateRoomRequest($"RM-OK-{suffix}", deptId, "B"),
+                new CreateRoomRequest("   ", deptId, "B"),
+                new CreateRoomRequest($"RM-FREQ-{suffix}", deptId, "C", Frequency: new FrequencyRuleDto(FrequencyType.Daily, Interval: 2)),
+                new CreateRoomRequest($"RM-LAF-{suffix}", deptId, "A", RoomKind.LAF, ParentRoomId: null)
+            };
+
+            var ex = await Assert.ThrowsAsync<FieldValidationException>(() => svc.CreateRoomsBatchAsync(rows));
+            Assert.Contains(ex.FieldErrors, e => e.Row == 1 && e.Field == "name");
+            Assert.Contains(ex.FieldErrors, e => e.Row == 2 && e.Field == "frequency");
+            Assert.Contains(ex.FieldErrors, e => e.Row == 3 && e.Field == "parentRoomId");
+        }
+
+        await using var assertDb = _fixture.CreateDbContext();
+        Assert.False(await assertDb.Rooms.AsNoTracking().AnyAsync(r =>
+            r.Name == $"RM-OK-{suffix}" || r.Name == $"RM-FREQ-{suffix}" || r.Name == $"RM-LAF-{suffix}"));
+    }
+
+    [PostgresFact]
+    public async Task Rooms_DuplicateInRequest_BothRowsReported()
+    {
+        var suffix = Guid.NewGuid().ToString("N")[..8];
+        var (userId, deptId, secondDeptId, _) = await SeedEmScopeAsync(suffix);
+        var dupName = $"RM-DUP-{suffix}";
+
+        await using (var actDb = _fixture.CreateDbContext())
+        {
+            actDb.CurrentUserId = userId;
+            var svc = BuildEmService(actDb);
+            var rows = new[]
+            {
+                new CreateRoomRequest(dupName, deptId, "B"),
+                new CreateRoomRequest($"RM-UNIQ-{suffix}", deptId, "C"),
+                new CreateRoomRequest($"  {dupName.ToLowerInvariant()}  ", deptId, "B"),
+                new CreateRoomRequest(dupName, secondDeptId, "C")
+            };
+
+            var ex = await Assert.ThrowsAsync<FieldValidationException>(() => svc.CreateRoomsBatchAsync(rows));
+            Assert.Contains(ex.FieldErrors, e => e.Row == 0 && e.Field == "name");
+            Assert.Contains(ex.FieldErrors, e => e.Row == 2 && e.Field == "name");
+            Assert.DoesNotContain(ex.FieldErrors, e => e.Row == 1 || e.Row == 3);
+        }
+
+        await using var assertDb = _fixture.CreateDbContext();
+        Assert.False(await assertDb.Rooms.AsNoTracking().AnyAsync(r => r.Name == dupName || r.Name == $"RM-UNIQ-{suffix}"));
+    }
+
+    [PostgresFact]
+    public async Task Rooms_Existing_Reported()
+    {
+        var suffix = Guid.NewGuid().ToString("N")[..8];
+        var (userId, deptId, _, _) = await SeedEmScopeAsync(suffix);
+        var existingName = $"RM-EX-{suffix}";
+
+        await using (var arrangeDb = _fixture.CreateDbContext())
+        {
+            arrangeDb.Rooms.Add(new Room
+            {
+                Name = existingName,
+                DepartmentId = deptId,
+                GradeClassification = "B",
+                Kind = RoomKind.Room
+            });
+            await arrangeDb.SaveChangesAsync();
+        }
+
+        await using (var actDb = _fixture.CreateDbContext())
+        {
+            actDb.CurrentUserId = userId;
+            var svc = BuildEmService(actDb);
+            var rows = new[]
+            {
+                new CreateRoomRequest($"RM-FRESH-{suffix}", deptId, "C"),
+                new CreateRoomRequest(existingName.ToLowerInvariant(), deptId, "B")
+            };
+
+            var ex = await Assert.ThrowsAsync<FieldValidationException>(() => svc.CreateRoomsBatchAsync(rows));
+            var err = Assert.Single(ex.FieldErrors);
+            Assert.Equal(1, err.Row);
+            Assert.Equal("name", err.Field);
+        }
+
+        await using var assertDb = _fixture.CreateDbContext();
+        Assert.False(await assertDb.Rooms.AsNoTracking().AnyAsync(r => r.Name == $"RM-FRESH-{suffix}"));
+        Assert.Equal(1, await assertDb.Rooms.AsNoTracking().CountAsync(r => r.DepartmentId == deptId && r.Name == existingName));
+    }
+
+    [PostgresFact]
+    public async Task Rooms_201Rows_Rejected()
+    {
+        var suffix = Guid.NewGuid().ToString("N")[..8];
+        var (userId, deptId, _, _) = await SeedEmScopeAsync(suffix);
+        var rows = Enumerable.Range(0, 201)
+            .Select(i => new CreateRoomRequest($"RM-201-{i}-{suffix}", deptId, "C"))
+            .ToList();
+
+        await using (var actDb = _fixture.CreateDbContext())
+        {
+            actDb.CurrentUserId = userId;
+            var svc = BuildEmService(actDb);
+            await Assert.ThrowsAsync<FieldValidationException>(() => svc.CreateRoomsBatchAsync(rows));
+        }
+
+        await using var assertDb = _fixture.CreateDbContext();
+        Assert.False(await assertDb.Rooms.AsNoTracking().AnyAsync(r => r.Name.StartsWith("RM-201-") && r.Name.EndsWith(suffix)));
+    }
+
+    [PostgresFact]
+    public async Task Rooms_WithoutPermission_403()
+    {
+        var method = typeof(EnvironmentalMonitoringMasterDataController).GetMethod(nameof(EnvironmentalMonitoringMasterDataController.CreateRoomsBatch));
+        Assert.NotNull(method);
+
+        var post = method!.GetCustomAttribute<HttpPostAttribute>();
+        Assert.NotNull(post);
+        Assert.Equal("rooms/batch", post!.Template);
+
+        var auth = method.GetCustomAttribute<AuthorizeAttribute>();
+        Assert.NotNull(auth);
+        Assert.Equal(PermissionConstants.MasterDataManage, auth!.Policy);
+        Assert.Null(method.GetCustomAttribute<AllowAnonymousAttribute>());
+
+        var allowed = AuthorizationMatrixTests.AllowedRoles<EnvironmentalMonitoringMasterDataController>(
+            nameof(EnvironmentalMonitoringMasterDataController.CreateRoomsBatch));
+        var singleAllowed = AuthorizationMatrixTests.AllowedRoles<EnvironmentalMonitoringMasterDataController>(
+            nameof(EnvironmentalMonitoringMasterDataController.CreateRoom));
+        Assert.NotNull(allowed);
+        Assert.Equal(singleAllowed, allowed);
+        Assert.Contains(RoleType.SystemAdministrator, allowed);
+        Assert.Contains(RoleType.SectionHead, allowed);
+        Assert.DoesNotContain(RoleType.Analyst, allowed);
+        Assert.DoesNotContain(RoleType.Reviewer, allowed);
+        Assert.DoesNotContain(RoleType.Qa, allowed);
+
+        await using var assertDb = _fixture.CreateDbContext();
+        var perm = await assertDb.Permissions.AsNoTracking().SingleAsync(p => p.Code == PermissionConstants.MasterDataManage);
+        Assert.True(perm.IsEnforced);
+    }
+
+    [PostgresFact]
+    public async Task RoomTestConfigs_AllValid_CreatesAll_AuditedLikeSingleCreate()
+    {
+        var suffix = Guid.NewGuid().ToString("N")[..8];
+        var (userId, _, _, roomId) = await SeedEmScopeAsync(suffix);
+        var fixedNow = new DateTimeOffset(2026, 11, 14, 12, 0, 0, TimeSpan.Zero);
+
+        RoomTestConfigurationResponse singleResult;
+        await using (var singleDb = _fixture.CreateDbContext(new FixedClock(fixedNow)))
+        {
+            singleDb.CurrentUserId = userId;
+            var svc = BuildEmService(singleDb);
+            singleResult = await svc.CreateRoomTestConfigurationAsync(
+                new CreateRoomTestConfigRequest(roomId, RoomTestTypes.PassiveAirSample, $"TC-S-{suffix}", "5", "10", "20"));
+        }
+
+        IReadOnlyList<RoomTestConfigurationResponse> batchResults;
+        await using (var actDb = _fixture.CreateDbContext(new FixedClock(fixedNow)))
+        {
+            actDb.CurrentUserId = userId;
+            var svc = BuildEmService(actDb);
+            batchResults = await svc.CreateRoomTestConfigurationsBatchAsync(
+                new[]
+                {
+                    new CreateRoomTestConfigRequest(roomId, RoomTestTypes.PassiveAirSample, $"TC-B-{suffix}", "5", "10", "20"),
+                    new CreateRoomTestConfigRequest(roomId, RoomTestTypes.ActiveAirSample, $"TC-B-{suffix}", "1", "3", "5", " CFU/m3 ")
+                });
+        }
+
+        Assert.Equal(2, batchResults.Count);
+
+        await using var assertDb = _fixture.CreateDbContext();
+        var batchIds = batchResults.Select(r => r.Id).ToList();
+        var persisted = await assertDb.RoomTestConfigurations
+            .AsNoTracking()
+            .Where(c => batchIds.Contains(c.Id))
+            .OrderBy(c => c.Id)
+            .ToListAsync();
+
+        Assert.Equal(2, persisted.Count);
+        Assert.Equal(RoomTestTypes.PassiveAirSample, persisted[0].TestType);
+        Assert.Equal($"TC-B-{suffix}", persisted[0].TestCode);
+        Assert.Equal(string.Empty, persisted[0].Unit);
+        Assert.Equal(RoomTestTypes.ActiveAirSample, persisted[1].TestType);
+        Assert.Equal($"TC-B-{suffix}", persisted[1].TestCode);
+        Assert.Equal("CFU/m3", persisted[1].Unit);
+
+        var singleIdStr = singleResult.Id.ToString();
+        var batchIdStrs = batchIds.Select(id => id.ToString()).ToList();
+
+        var singleAudit = await assertDb.AuditLogs
+            .AsNoTracking()
+            .SingleAsync(a => a.EntityName == nameof(RoomTestConfiguration) && a.Action == "Create" && a.EntityId == singleIdStr);
+
+        var batchAudits = await assertDb.AuditLogs
+            .AsNoTracking()
+            .Where(a => a.EntityName == nameof(RoomTestConfiguration) && a.Action == "Create" && batchIdStrs.Contains(a.EntityId))
+            .OrderBy(a => a.Id)
+            .ToListAsync();
+
+        Assert.Equal(2, batchAudits.Count);
+
+        var singlePayload = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(singleAudit.NewValue!)!;
+        for (var i = 0; i < batchAudits.Count; i++)
+        {
+            var batchAudit = batchAudits[i];
+            var batchConfig = persisted[i];
+            Assert.Equal(singleAudit.UserId, batchAudit.UserId);
+            Assert.Equal(singleAudit.Action, batchAudit.Action);
+            Assert.Equal(singleAudit.EntityName, batchAudit.EntityName);
+            Assert.Equal(singleAudit.PreviousValue, batchAudit.PreviousValue);
+            Assert.Equal(singleAudit.Timestamp, batchAudit.Timestamp);
+
+            var batchPayload = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(batchAudit.NewValue!)!;
+            Assert.Equal(singlePayload.Keys.OrderBy(k => k), batchPayload.Keys.OrderBy(k => k));
+            Assert.Equal(batchConfig.Id, batchPayload["Id"].GetInt32());
+            Assert.Equal(batchConfig.RoomId, batchPayload["RoomId"].GetInt32());
+            Assert.Equal(batchConfig.TestType, batchPayload["TestType"].GetString());
+            Assert.Equal(batchConfig.TestCode, batchPayload["TestCode"].GetString());
+            Assert.Equal(batchConfig.Unit, batchPayload["Unit"].GetString());
+            Assert.Equal(batchConfig.IsActive, batchPayload["IsActive"].GetBoolean());
+        }
+    }
+
+    [PostgresFact]
+    public async Task RoomTestConfigs_OneInvalid_NoneCreated_RowAndFieldReported()
+    {
+        var suffix = Guid.NewGuid().ToString("N")[..8];
+        var (userId, _, _, roomId) = await SeedEmScopeAsync(suffix);
+
+        await using (var actDb = _fixture.CreateDbContext())
+        {
+            actDb.CurrentUserId = userId;
+            var svc = BuildEmService(actDb);
+            var rows = new[]
+            {
+                new CreateRoomTestConfigRequest(roomId, RoomTestTypes.PassiveAirSample, $"TC-OK-{suffix}", "5", "10", "20"),
+                new CreateRoomTestConfigRequest(roomId, "Swab", $"TC-BADTYPE-{suffix}", "1", "2", "5", "CFU/swab"),
+                new CreateRoomTestConfigRequest(roomId, RoomTestTypes.ActiveAirSample, $"TC-NOUNIT-{suffix}", "1", "2", "5", "   "),
+                new CreateRoomTestConfigRequest(-1, RoomTestTypes.PassiveAirSample, $"TC-BADROOM-{suffix}", "1", "2", "5")
+            };
+
+            var ex = await Assert.ThrowsAsync<FieldValidationException>(() => svc.CreateRoomTestConfigurationsBatchAsync(rows));
+            Assert.Contains(ex.FieldErrors, e => e.Row == 1 && e.Field == "testType");
+            Assert.Contains(ex.FieldErrors, e => e.Row == 2 && e.Field == "unit");
+            Assert.Contains(ex.FieldErrors, e => e.Row == 3 && e.Field == "roomId");
+        }
+
+        await using var assertDb = _fixture.CreateDbContext();
+        Assert.False(await assertDb.RoomTestConfigurations.AsNoTracking().AnyAsync(c => c.TestCode.EndsWith(suffix)));
+    }
+
+    [PostgresFact]
+    public async Task RoomTestConfigs_DuplicateInRequest_BothRowsReported()
+    {
+        var suffix = Guid.NewGuid().ToString("N")[..8];
+        var (userId, _, _, roomId) = await SeedEmScopeAsync(suffix);
+        var dupCode = $"TC-DUP-{suffix}";
+
+        await using (var actDb = _fixture.CreateDbContext())
+        {
+            actDb.CurrentUserId = userId;
+            var svc = BuildEmService(actDb);
+            var rows = new[]
+            {
+                new CreateRoomTestConfigRequest(roomId, RoomTestTypes.PassiveAirSample, dupCode, "5", "10", "20"),
+                new CreateRoomTestConfigRequest(roomId, RoomTestTypes.ActiveAirSample, dupCode, "1", "3", "5", "CFU/m3"),
+                new CreateRoomTestConfigRequest(roomId, RoomTestTypes.PassiveAirSample, $"  {dupCode.ToLowerInvariant()}  ", "5", "10", "20")
+            };
+
+            var ex = await Assert.ThrowsAsync<FieldValidationException>(() => svc.CreateRoomTestConfigurationsBatchAsync(rows));
+            Assert.Contains(ex.FieldErrors, e => e.Row == 0 && e.Field == "testCode");
+            Assert.Contains(ex.FieldErrors, e => e.Row == 2 && e.Field == "testCode");
+            Assert.DoesNotContain(ex.FieldErrors, e => e.Row == 1);
+        }
+
+        await using var assertDb = _fixture.CreateDbContext();
+        Assert.False(await assertDb.RoomTestConfigurations.AsNoTracking().AnyAsync(c => c.RoomId == roomId));
+    }
+
+    [PostgresFact]
+    public async Task RoomTestConfigs_Existing_Reported()
+    {
+        var suffix = Guid.NewGuid().ToString("N")[..8];
+        var (userId, _, _, roomId) = await SeedEmScopeAsync(suffix);
+        var existingCode = $"TC-EX-{suffix}";
+
+        await using (var arrangeDb = _fixture.CreateDbContext())
+        {
+            arrangeDb.RoomTestConfigurations.Add(new RoomTestConfiguration
+            {
+                RoomId = roomId,
+                TestType = RoomTestTypes.PassiveAirSample,
+                TestCode = existingCode,
+                AlertLimit = "5",
+                ActionLimit = "10",
+                SpecLimit = "20",
+                Unit = string.Empty
+            });
+            await arrangeDb.SaveChangesAsync();
+        }
+
+        await using (var actDb = _fixture.CreateDbContext())
+        {
+            actDb.CurrentUserId = userId;
+            var svc = BuildEmService(actDb);
+            var rows = new[]
+            {
+                new CreateRoomTestConfigRequest(roomId, RoomTestTypes.PassiveAirSample, $"TC-FRESH-{suffix}", "5", "10", "20"),
+                new CreateRoomTestConfigRequest(roomId, RoomTestTypes.PassiveAirSample, existingCode.ToLowerInvariant(), "5", "10", "20")
+            };
+
+            var ex = await Assert.ThrowsAsync<FieldValidationException>(() => svc.CreateRoomTestConfigurationsBatchAsync(rows));
+            var err = Assert.Single(ex.FieldErrors);
+            Assert.Equal(1, err.Row);
+            Assert.Equal("testCode", err.Field);
+        }
+
+        await using var assertDb = _fixture.CreateDbContext();
+        Assert.False(await assertDb.RoomTestConfigurations.AsNoTracking().AnyAsync(c => c.TestCode == $"TC-FRESH-{suffix}"));
+        Assert.Equal(1, await assertDb.RoomTestConfigurations.AsNoTracking().CountAsync(c => c.RoomId == roomId && c.TestCode == existingCode));
+    }
+
+    [PostgresFact]
+    public async Task RoomTestConfigs_InactiveExisting_DoesNotBlockANewActiveRow()
+    {
+        var suffix = Guid.NewGuid().ToString("N")[..8];
+        var (userId, _, _, roomId) = await SeedEmScopeAsync(suffix);
+        var code = $"TC-OLD-{suffix}";
+
+        await using (var arrangeDb = _fixture.CreateDbContext())
+        {
+            arrangeDb.RoomTestConfigurations.Add(new RoomTestConfiguration
+            {
+                RoomId = roomId,
+                TestType = RoomTestTypes.PassiveAirSample,
+                TestCode = code,
+                AlertLimit = "5",
+                ActionLimit = "10",
+                SpecLimit = "20",
+                Unit = string.Empty,
+                IsActive = false
+            });
+            await arrangeDb.SaveChangesAsync();
+        }
+
+        await using (var actDb = _fixture.CreateDbContext())
+        {
+            actDb.CurrentUserId = userId;
+            var svc = BuildEmService(actDb);
+            await svc.CreateRoomTestConfigurationsBatchAsync(new[]
+            {
+                new CreateRoomTestConfigRequest(roomId, RoomTestTypes.PassiveAirSample, code, "6", "12", "20")
+            });
+        }
+
+        await using var assertDb = _fixture.CreateDbContext();
+        var rows = await assertDb.RoomTestConfigurations.AsNoTracking()
+            .Where(c => c.RoomId == roomId && c.TestCode == code)
+            .OrderBy(c => c.Id)
+            .ToListAsync();
+        Assert.Equal(2, rows.Count);
+        Assert.False(rows[0].IsActive);
+        Assert.True(rows[1].IsActive);
+        Assert.Equal("6", rows[1].AlertLimit);
+    }
+
+    [PostgresFact]
+    public async Task RoomTestConfigs_201Rows_Rejected()
+    {
+        var suffix = Guid.NewGuid().ToString("N")[..8];
+        var (userId, _, _, roomId) = await SeedEmScopeAsync(suffix);
+        var rows = Enumerable.Range(0, 201)
+            .Select(i => new CreateRoomTestConfigRequest(roomId, RoomTestTypes.PassiveAirSample, $"TC-201-{i}-{suffix}", "5", "10", "20"))
+            .ToList();
+
+        await using (var actDb = _fixture.CreateDbContext())
+        {
+            actDb.CurrentUserId = userId;
+            var svc = BuildEmService(actDb);
+            await Assert.ThrowsAsync<FieldValidationException>(() => svc.CreateRoomTestConfigurationsBatchAsync(rows));
+        }
+
+        await using var assertDb = _fixture.CreateDbContext();
+        Assert.False(await assertDb.RoomTestConfigurations.AsNoTracking().AnyAsync(c => c.RoomId == roomId));
+    }
+
+    [PostgresFact]
+    public async Task RoomTestConfigs_WithoutPermission_403()
+    {
+        var method = typeof(EnvironmentalMonitoringMasterDataController).GetMethod(
+            nameof(EnvironmentalMonitoringMasterDataController.CreateRoomTestConfigurationsBatch));
+        Assert.NotNull(method);
+
+        var post = method!.GetCustomAttribute<HttpPostAttribute>();
+        Assert.NotNull(post);
+        Assert.Equal("room-test-configurations/batch", post!.Template);
+
+        var auth = method.GetCustomAttribute<AuthorizeAttribute>();
+        Assert.NotNull(auth);
+        Assert.Equal(PermissionConstants.MasterDataManage, auth!.Policy);
+        Assert.Null(method.GetCustomAttribute<AllowAnonymousAttribute>());
+
+        var allowed = AuthorizationMatrixTests.AllowedRoles<EnvironmentalMonitoringMasterDataController>(
+            nameof(EnvironmentalMonitoringMasterDataController.CreateRoomTestConfigurationsBatch));
+        var singleAllowed = AuthorizationMatrixTests.AllowedRoles<EnvironmentalMonitoringMasterDataController>(
+            nameof(EnvironmentalMonitoringMasterDataController.CreateRoomTestConfiguration));
+        Assert.NotNull(allowed);
+        Assert.Equal(singleAllowed, allowed);
+        Assert.Contains(RoleType.SystemAdministrator, allowed);
+        Assert.Contains(RoleType.SectionHead, allowed);
+        Assert.DoesNotContain(RoleType.Analyst, allowed);
+        Assert.DoesNotContain(RoleType.Reviewer, allowed);
+        Assert.DoesNotContain(RoleType.Qa, allowed);
+
+        await using var assertDb = _fixture.CreateDbContext();
+        var perm = await assertDb.Permissions.AsNoTracking().SingleAsync(p => p.Code == PermissionConstants.MasterDataManage);
+        Assert.True(perm.IsEnforced);
+    }
 }

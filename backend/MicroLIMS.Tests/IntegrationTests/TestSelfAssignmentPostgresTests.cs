@@ -595,6 +595,31 @@ public class TestSelfAssignmentPostgresTests
         }
     }
 
+    [PostgresFact]
+    public async Task Release_LastTakeWasByAnotherUser_Throws()
+    {
+        // No normal path leaves a test assigned to one analyst while the last assignment row is another user's take
+        // (every reassignment writes its own row). The rule still requires the take to be the caller's own; this pins it.
+        User analyst, other;
+        TestOrder order;
+        await using (var arrange = _fixture.CreateDbContext())
+        {
+            var w = await WorldAsync(arrange);
+            analyst = await NewAnalystAsync(arrange, "analyst", w.Micro);
+            other = await NewAnalystAsync(arrange, "other", w.Micro);
+            order = await NewTestAsync(arrange, w, w.Micro, assignedTo: analyst.Id);
+            await AddRowsAsync(arrange, HeadAudit(order, other.Id, "TEST_TAKEN"));
+        }
+
+        await using (var actDb = _fixture.CreateDbContext())
+        {
+            var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => BuildService(actDb).ReleaseAsync(order.Id, analyst.Id));
+            Assert.Equal(CannotRelease, ex.Message);
+        }
+        Assert.Equal(analyst.Id, (await PersistedAsync(order.Id)).AssignedAnalystId);
+        Assert.Empty(await AuditAsync(order.Id, "TEST_RELEASED"));
+    }
+
     private static AuditLog HeadAudit(TestOrder order, int headId, string action) => new()
     {
         EntityName = "TestOrder",

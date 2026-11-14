@@ -303,33 +303,83 @@ public class MyWorkAnalystSourcesPostgresTests
     }
 
     [PostgresFact]
-    public async Task Incubation_Due2330LabTime_IsToday_Due0030NextDay_IsLater()
+    public async Task Incubation_Due2330LabTime_IsToday_Due0030NextDay_IsNext24Hours()
     {
         int a;
-        Incubation today, later;
+        Incubation today, next24;
         await using (var arrange = _fixture.CreateDbContext())
         {
             var w = await WorldAsync(arrange);
             a = (await NewUserAsync(arrange, "mine", false, w.Micro)).Id;
-            // Cairo is UTC+2 in November: 23:30 local = 21:30 UTC (the 14th), 00:30 local on the 15th = 22:30 UTC.
+            // Cairo is UTC+2 in November: 23:30 local = 21:30 UTC (the 14th), 00:30 local on the 15th = 22:30 UTC (10.5h from Now).
             today = await NewIncubationAsync(arrange, await NewTestAsync(arrange, w, a, w.Micro, a), expected: new DateTime(2026, 11, 14, 21, 30, 0, DateTimeKind.Utc));
-            later = await NewIncubationAsync(arrange, await NewTestAsync(arrange, w, a, w.Micro, a), expected: new DateTime(2026, 11, 14, 22, 30, 0, DateTimeKind.Utc));
+            next24 = await NewIncubationAsync(arrange, await NewTestAsync(arrange, w, a, w.Micro, a), expected: new DateTime(2026, 11, 14, 22, 30, 0, DateTimeKind.Utc));
         }
 
         var response = await GetAsync(a);
-        var group = Assert.IsType<MyWorkGroup>(Group(response, "endingToday"));
-        var item = Assert.Single(group.Items);
-        Assert.Equal($"incubation:{today.Id}", item.Key);
-        Assert.Equal(MyWorkUrgencyLevel.Today, item.Urgency);
-        Assert.Equal(1, group.Count);
-        Assert.DoesNotContain($"incubation:{later.Id}", Keys(response));
+        var endingGroup = Assert.IsType<MyWorkGroup>(Group(response, "endingToday"));
+        var endingItem = Assert.Single(endingGroup.Items);
+        Assert.Equal($"incubation:{today.Id}", endingItem.Key);
+        Assert.Equal(MyWorkUrgencyLevel.Today, endingItem.Urgency);
+        Assert.Equal(1, endingGroup.Count);
 
-        // The later one is "Later" by the same context times the source used.
+        var next24Group = Assert.IsType<MyWorkGroup>(Group(response, "next24Hours"));
+        Assert.Equal("Incubation ending in the next 24 hours", next24Group.Title);
+        var next24Item = Assert.Single(next24Group.Items);
+        Assert.Equal($"incubation:{next24.Id}", next24Item.Key);
+        Assert.Equal(MyWorkUrgencyLevel.Later, next24Item.Urgency);
+        Assert.Equal(1, next24Group.Count);
+
+        // The summary agrees: both today and next24Hours count in total.
+        Assert.Equal(2, (await SummaryAsync(a)).Total);
+    }
+
+    [PostgresFact]
+    public async Task Incubation_LabMidnightAnd24HourBoundaries_PartitionedCleanly_AndSectionScoped()
+    {
+        int a;
+        // Cairo is UTC+2 in November; Now = 12:00 UTC (14:00 Cairo) -> EndOfLabDayUtc = 22:00 UTC (00:00 Cairo on Nov 15).
         var endOfLabDayUtc = new DateTime(2026, 11, 14, 22, 0, 0, DateTimeKind.Utc);
-        Assert.Equal(MyWorkUrgencyLevel.Later,
-            MyWorkUrgency.ForReading(false, null, new DateTime(2026, 11, 14, 22, 30, 0, DateTimeKind.Utc), Now, endOfLabDayUtc, 0));
-        // The summary agrees: only the one due today counts.
-        Assert.Equal(1, (await SummaryAsync(a)).Total);
+        Incubation ready, oneMinBeforeMidnight, oneMinAfterMidnight, exactly24h, past24h, otherSection;
+        await using (var arrange = _fixture.CreateDbContext())
+        {
+            var w = await WorldAsync(arrange);
+            a = (await NewUserAsync(arrange, "mine", false, w.Micro)).Id; // member of MICRO only
+            ready = await NewIncubationAsync(arrange, await NewTestAsync(arrange, w, a, w.Micro, a), expected: Now.AddMinutes(-1));
+            oneMinBeforeMidnight = await NewIncubationAsync(arrange, await NewTestAsync(arrange, w, a, w.Micro, a), expected: endOfLabDayUtc.AddMinutes(-1));
+            oneMinAfterMidnight = await NewIncubationAsync(arrange, await NewTestAsync(arrange, w, a, w.Micro, a), expected: endOfLabDayUtc.AddMinutes(1));
+            exactly24h = await NewIncubationAsync(arrange, await NewTestAsync(arrange, w, a, w.Micro, a), expected: Now.AddHours(24));
+            past24h = await NewIncubationAsync(arrange, await NewTestAsync(arrange, w, a, w.Micro, a), expected: Now.AddHours(24).AddMinutes(1));
+            otherSection = await NewIncubationAsync(arrange, await NewTestAsync(arrange, w, a, w.Fp, a), expected: endOfLabDayUtc.AddMinutes(1));
+        }
+
+        var response = await GetAsync(a);
+        Assert.Equal(new[] { "readyToRead", "endingToday", "next24Hours" }, response.Groups.Select(g => g.Key));
+
+        var readyGroup = Group(response, "readyToRead")!;
+        Assert.Equal(new[] { $"incubation:{ready.Id}" }, readyGroup.Items.Select(i => i.Key));
+        Assert.Equal(MyWorkUrgencyLevel.Now, Assert.Single(readyGroup.Items).Urgency);
+        Assert.Equal(1, readyGroup.Count);
+
+        var endingGroup = Group(response, "endingToday")!;
+        Assert.Equal(new[] { $"incubation:{oneMinBeforeMidnight.Id}" }, endingGroup.Items.Select(i => i.Key));
+        Assert.Equal(MyWorkUrgencyLevel.Today, Assert.Single(endingGroup.Items).Urgency);
+        Assert.Equal(1, endingGroup.Count);
+
+        var next24Group = Group(response, "next24Hours")!;
+        Assert.Equal("Incubation ending in the next 24 hours", next24Group.Title);
+        Assert.Equal(new[] { $"incubation:{oneMinAfterMidnight.Id}", $"incubation:{exactly24h.Id}" },
+            next24Group.Items.Select(i => i.Key));
+        Assert.All(next24Group.Items, i => Assert.Equal(MyWorkUrgencyLevel.Later, i.Urgency));
+        Assert.Equal(2, next24Group.Count);
+
+        var allKeys = Keys(response).ToList();
+        Assert.Equal(allKeys.Distinct().Count(), allKeys.Count);
+        Assert.DoesNotContain($"incubation:{past24h.Id}", allKeys);
+        Assert.DoesNotContain($"incubation:{otherSection.Id}", allKeys);
+
+        var summary = await SummaryAsync(a);
+        Assert.Equal(new MyWorkSummary(4, 0, 1, true), summary);
     }
 
     [PostgresFact]

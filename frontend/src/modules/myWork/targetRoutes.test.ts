@@ -80,6 +80,7 @@ describe("routeForGroup", () => {
     expect(routeForGroup("readyToRead")).toBe("/microbiology/workspace?workload=readyToRead");
     expect(routeForGroup("returned")).toBe("/microbiology/workspace?scope=mine");
     expect(routeForGroup("endingToday")).toBe("/microbiology/workspace?scope=mine");
+    expect(routeForGroup("next24Hours")).toBe("/microbiology/workspace?scope=mine");
     expect(routeForGroup("toPerform")).toBe("/microbiology/workspace?scope=mine");
     expect(routeForGroup("review")).toBe("/microbiology/workspace?status=UnderReview");
     expect(routeForGroup("approval")).toBe("/microbiology/workspace?status=UnderApproval");
@@ -97,6 +98,7 @@ describe("workspace query parameter allow-list", () => {
     "readyToRead",
     "returned",
     "endingToday",
+    "next24Hours",
     "toPerform",
     "review",
     "approval",

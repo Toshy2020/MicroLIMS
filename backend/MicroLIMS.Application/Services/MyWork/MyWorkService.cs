@@ -20,6 +20,7 @@ public sealed class MyWorkService : IMyWorkService
         ("readyToRead", "Ready to read now"),
         ("returned", "Returned to me"),
         ("endingToday", "Incubation ending today"),
+        ("next24Hours", "Incubation ending in the next 24 hours"),
         ("toPerform", "Tests to perform"),
         ("review", "Awaiting my review"),
         ("approval", "Awaiting my approval"),

@@ -96,6 +96,7 @@ export function routeForGroup(groupKey: string, lab?: string): string {
       return `${ws}?workload=readyToRead`;
     case "returned":
     case "endingToday":
+    case "next24Hours":
     case "toPerform":
       return `${ws}?scope=mine`;
     case "review":

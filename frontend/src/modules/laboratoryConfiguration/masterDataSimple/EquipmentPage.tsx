@@ -32,6 +32,7 @@ import { FieldHint, hintDescribedBy } from "../../../components/FieldHint";
 import { hints } from "./hints";
 import HistoryIcon from "@mui/icons-material/History";
 import AddIcon from "@mui/icons-material/Add";
+import ContentPasteIcon from "@mui/icons-material/ContentPaste";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import ThermostatIcon from "@mui/icons-material/Thermostat";
 import RefreshIcon from "@mui/icons-material/Refresh";
@@ -56,6 +57,7 @@ import { useLaboratorySections } from "../../../hooks/useLaboratorySections";
 import { getMySections, LaboratorySection } from "../../../services/laboratorySectionService";
 import { clickable } from "../../../utils/clickable";
 import { DateField } from "../../../components/DateField";
+import { EquipmentPasteSection } from "./EquipmentPasteSection";
 
 export const EQUIPMENT_TYPES = [
   { value: "Incubator", label: "Incubator" },
@@ -73,7 +75,7 @@ export const EQUIPMENT_TYPES = [
 // HPLC, ICP-OES, pH meters and balances belong to the Finished Product laboratory
 // and are configured on the FP Instruments page, not here.
 export const FP_ONLY_EQUIPMENT_TYPES = ["Hplc", "PhMeter", "Balance", "IcpOes"];
-const MICRO_EQUIPMENT_TYPES = EQUIPMENT_TYPES.filter((t) => !FP_ONLY_EQUIPMENT_TYPES.includes(t.value));
+export const MICRO_EQUIPMENT_TYPES = EQUIPMENT_TYPES.filter((t) => !FP_ONLY_EQUIPMENT_TYPES.includes(t.value));
 
 export const CDS_SOFTWARE_OPTIONS = [
   { value: "ShimadzuLabSolutions", label: "Shimadzu LabSolutions" },
@@ -188,6 +190,9 @@ export function EquipmentPage() {
   // Select from Inventory Dialog
   const [inventoryDialogOpen, setInventoryDialogOpen] = useState(false);
 
+  // Paste batch state
+  const [pasteBarOpen, setPasteBarOpen] = useState(false);
+
   // General Loading & Error State
   const [loading, setLoading] = useState(true);
   const [pageError, setPageError] = useState<string | null>(null);
@@ -198,11 +203,12 @@ export function EquipmentPage() {
     setLoading(true);
     setPageError(null);
     try {
-      const [summaryData, masterData, invData, progData] = await Promise.all([
+      const [summaryData, masterData, invData, progData, mySecData] = await Promise.all([
         EquipmentConfigurationService.getConfiguredSummary(),
         EquipmentConfigurationService.getEquipmentList(),
         EquipmentInventoryService.getAll(signal),
-        EquipmentConfigurationService.getAutoclavePrograms()
+        EquipmentConfigurationService.getAutoclavePrograms(),
+        getMySections(signal).catch(() => [])
       ]);
 
       if (signal?.aborted) {
@@ -256,6 +262,7 @@ export function EquipmentPage() {
       setSummaryList(mergedList);
       setInventoryList(Array.isArray(invData) ? invData : []);
       setAllPrograms(Array.isArray(progData) ? progData : []);
+      setMySections(Array.isArray(mySecData) ? mySecData : []);
 
       if (mergedList.length > 0 && selectedEqId === null) {
         setSelectedEqId(mergedList[0].id);
@@ -585,6 +592,14 @@ export function EquipmentPage() {
             <RefreshIcon />
           </IconButton>
           <Button
+            variant="outlined"
+            startIcon={<ContentPasteIcon />}
+            aria-expanded={pasteBarOpen}
+            onClick={() => setPasteBarOpen((v) => !v)}
+          >
+            Paste equipment
+          </Button>
+          <Button
             variant="contained"
             startIcon={<AddIcon />}
             onClick={() => handleOpenAddEquipment()}
@@ -606,6 +621,18 @@ export function EquipmentPage() {
           {pageError}
         </Alert>
       )}
+
+      <EquipmentPasteSection
+        pasteBarOpen={pasteBarOpen}
+        onClosePasteBar={() => setPasteBarOpen(false)}
+        modalOpen={equipmentDialogOpen || editSetPointDialogOpen || programDialogOpen || programHistoryDialogOpen || inventoryDialogOpen}
+        existingEquipment={safeSummaryList}
+        mySections={mySections}
+        inventoryList={inventoryList}
+        onCreated={async () => {
+          await loadData();
+        }}
+      />
 
       {loading ? (
         <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", py: 8 }}>

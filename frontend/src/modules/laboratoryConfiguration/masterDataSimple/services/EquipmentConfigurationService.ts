@@ -252,6 +252,12 @@ export const EquipmentConfigurationService = {
     return res.data?.data;
   },
 
+  createEquipmentBatch: async (req: CreateEquipmentRequest[]): Promise<EquipmentResponse[]> => {
+    const res = await apiClient.post<ApiResponse<EquipmentResponse[]>>("/masterdata/equipment/batch", req);
+    const data = res.data?.data;
+    return Array.isArray(data) ? data : [];
+  },
+
   updateEquipment: async (id: number, req: UpdateEquipmentRequest, version?: number): Promise<EquipmentResponse> => {
     const res = await apiClient.put<ApiResponse<EquipmentResponse>>(`/masterdata/equipment/${id}`, req, ifMatch(version));
     return res.data?.data;

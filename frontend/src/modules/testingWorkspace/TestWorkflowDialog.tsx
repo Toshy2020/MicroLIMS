@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo, type ReactNode } from "react";
+import { useEffect, useRef, useState, useMemo, type ReactNode } from "react";
 import { Box, Typography, TextField, Button, Stack, Alert, IconButton, useTheme } from "@mui/material";
 import { toast } from "sonner";
 import AddIcon from "@mui/icons-material/Add";
@@ -6,6 +6,8 @@ import CloseIcon from "@mui/icons-material/Close";
 import EditIcon from "@mui/icons-material/Edit";
 import { StatusBadge } from "../../components/StatusBadge";
 import { lookupCache } from "../../services/lookupCache";
+import { entryDefaultsService } from "../../services/entryDefaultsService";
+import { useLastChoiceDefault } from "../../components/entry/LastChoiceField";
 import { TestWorkflowService } from "./services/TestWorkflowService";
 import { DialogBodySkeleton } from "../../components/DialogBodySkeleton";
 import { LocationResultGridDialog } from "./LocationResultGridDialog";
@@ -170,6 +172,9 @@ function TestWorkflowDialogBody({ testOrderId, testCode, category, displayName, 
   const [stage2IncubatorId, setStage2IncubatorId] = useState<number | "">("");
   const [releasedMedia, setReleasedMedia] = useState<ReleasedMediaItem[]>([]);
   const [incubators, setIncubators] = useState<IncubatorEquipmentItem[]>([]);
+  const lotLastChoice = useLastChoiceDefault<number>("lot");
+  const incubatorLastChoice = useLastChoiceDefault<number>("equipment");
+  const stage2IncubatorLastChoice = useLastChoiceDefault<number>("equipment");
 
   const [readings, setReadings] = useState<string[]>(["", ""]);
   const [dilutionFactor, setDilutionFactor] = useState("1");
@@ -184,6 +189,9 @@ function TestWorkflowDialogBody({ testOrderId, testCode, category, displayName, 
       const data = await TestWorkflowService.getCurrentStep(testOrderId);
       setCurrent(data);
       setMediaId(""); setIncubatorId(""); setStage2IncubatorId("");
+      lotLastChoice.reset();
+      incubatorLastChoice.reset();
+      stage2IncubatorLastChoice.reset();
       const sampleType = data?.sampleContext?.sampleType ?? "";
       const isDirect = ["Water", "EnvironmentalMonitoring", "AfterCleaning"].includes(sampleType);
       const configuredDf = data?.sampleContext?.configuredDilutionFactor;
@@ -199,13 +207,109 @@ function TestWorkflowDialogBody({ testOrderId, testCode, category, displayName, 
 
   useEffect(() => { load(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [testOrderId]);
 
+  const currentRef = useRef(current);
+  currentRef.current = current;
+  const pickedRef = useRef({ mediaId, incubatorId, stage2IncubatorId });
+  pickedRef.current = { mediaId, incubatorId, stage2IncubatorId };
+  const { applyDefault: applyLotDefault } = lotLastChoice;
+  const { applyDefault: applyIncubatorDefault } = incubatorLastChoice;
+  const { applyDefault: applyStage2Default } = stage2IncubatorLastChoice;
+
   useEffect(() => {
     if (phase !== "select-media" && phase !== "transfer-stage-2") return;
+    const controller = new AbortController();
+    const stepRow: TestWorkflowStepDto | null = currentRef.current?.step ?? null;
+    const singleMedium: StepMediaRow | null =
+      stepRow?.stepMedia?.length === 1 ? stepRow.stepMedia[0] : null;
+
+    // The server only offers equipment and lots that would pass the save-time checks.
+    // The picker below lists what is selectable; a default is applied only if it is listed.
+    const loadDefaults = (query: Parameters<typeof entryDefaultsService.get>[0]) =>
+      entryDefaultsService
+        .get(query, controller.signal)
+        .catch(() => ({ defaults: [] as { field: string; id: number | null }[] }));
+
     if (phase === "select-media") {
-      lookupCache.getReleasedMedia().then(setReleasedMedia);
+      Promise.all([
+        lookupCache.getReleasedMedia(),
+        lookupCache.getIncubators(),
+        loadDefaults({
+          context: "incubation",
+          testOrderId,
+          stepMediaId: singleMedium?.id,
+          mediaProductId: singleMedium?.mediaProductId
+        })
+      ]).then(([mediaItems, incItems, defaultsRes]) => {
+        if (controller.signal.aborted) return;
+        setReleasedMedia(mediaItems);
+        setIncubators(incItems);
+
+        const allowedProductIds = new Set((stepRow?.stepMedia ?? []).map((m) => m.mediaProductId));
+        const lotDef = defaultsRes.defaults.find((d) => d.field === "mediaLotId");
+        const matchedLot =
+          lotDef?.id != null
+            ? mediaItems.find(
+                (m) =>
+                  m.id === lotDef.id &&
+                  m.material?.mediaProductId != null &&
+                  allowedProductIds.has(m.material.mediaProductId)
+              )
+            : undefined;
+        if (matchedLot && pickedRef.current.mediaId === "") {
+          setMediaId(matchedLot.id);
+          applyLotDefault(matchedLot.id);
+        }
+
+        const chosenStepMedium =
+          (stepRow?.stepMedia ?? []).find(
+            (m) => matchedLot?.material?.mediaProductId != null && m.mediaProductId === matchedLot.material.mediaProductId
+          ) ?? singleMedium;
+        const minTemp = chosenStepMedium?.tempMin ?? stepRow?.temperatureMin ?? 0;
+        const maxTemp = chosenStepMedium?.tempMax ?? stepRow?.temperatureMax ?? 0;
+        const incDef = defaultsRes.defaults.find((d) => d.field === "incubatorEquipmentId");
+        const matchedInc =
+          incDef?.id != null
+            ? incItems.find(
+                (i) =>
+                  i.id === incDef.id &&
+                  i.setPointTemperature != null &&
+                  i.setPointTemperature >= minTemp &&
+                  i.setPointTemperature <= maxTemp
+              )
+            : undefined;
+        if (matchedInc && pickedRef.current.incubatorId === "") {
+          setIncubatorId(matchedInc.id);
+          applyIncubatorDefault(matchedInc.id);
+        }
+      });
+    } else {
+      const stage2 = (stepRow?.incubationStages ?? []).find((x: StepStage) => x.stageNumber === 2);
+      Promise.all([
+        lookupCache.getIncubators(),
+        loadDefaults({ context: "incubation", testOrderId })
+      ]).then(([incItems, defaultsRes]) => {
+        if (controller.signal.aborted) return;
+        setIncubators(incItems);
+        const incDef = defaultsRes.defaults.find((d) => d.field === "incubatorEquipmentId");
+        const matchedInc =
+          incDef?.id != null && stage2
+            ? incItems.find(
+                (i) =>
+                  i.id === incDef.id &&
+                  i.setPointTemperature != null &&
+                  i.setPointTemperature >= stage2.tempMin &&
+                  i.setPointTemperature <= stage2.tempMax
+              )
+            : undefined;
+        if (matchedInc && pickedRef.current.stage2IncubatorId === "") {
+          setStage2IncubatorId(matchedInc.id);
+          applyStage2Default(matchedInc.id);
+        }
+      });
     }
-    lookupCache.getIncubators().then(setIncubators);
-  }, [phase]);
+
+    return () => controller.abort();
+  }, [phase, testOrderId, applyLotDefault, applyIncubatorDefault, applyStage2Default]);
 
   const step = current?.step;
   const isTwoStageTransfer = !!step?.requiresIncubationTransfer;
@@ -844,8 +948,20 @@ function TestWorkflowDialogBody({ testOrderId, testCode, category, displayName, 
             tempMax={stage1TempMax}
             mediaLotId={mediaId}
             equipmentId={incubatorId}
-            onLotChange={(id) => { setMediaId(id); setIncubatorId(""); }}
-            onIncubatorChange={setIncubatorId}
+            lotIsDefault={lotLastChoice.isDefault}
+            lotConfirmed={lotLastChoice.confirmed}
+            onConfirmLot={lotLastChoice.confirm}
+            incubatorIsDefault={incubatorLastChoice.isDefault}
+            onLotChange={(id) => {
+              setMediaId(id);
+              setIncubatorId("");
+              lotLastChoice.notifyValueChanged();
+              incubatorLastChoice.reset();
+            }}
+            onIncubatorChange={(id) => {
+              setIncubatorId(id);
+              incubatorLastChoice.notifyValueChanged();
+            }}
           />
 
           <IncubationTimeline
@@ -857,11 +973,19 @@ function TestWorkflowDialogBody({ testOrderId, testCode, category, displayName, 
           />
 
           <StepActionBar
-            note={mediaId && incubatorId
-              ? "Start time, media lot and incubator are recorded in the audit trail."
-              : "Select a media lot and an incubator to continue."}
+            note={
+              lotLastChoice.saveBlockedReason
+                ? lotLastChoice.saveBlockedReason
+                : mediaId && incubatorId
+                  ? "Start time, media lot and incubator are recorded in the audit trail."
+                  : "Select a media lot and an incubator to continue."
+            }
           >
-            <Button variant="contained" disabled={!mediaId || !incubatorId} onClick={startIncubation}>
+            <Button
+              variant="contained"
+              disabled={!mediaId || !incubatorId || Boolean(lotLastChoice.saveBlockedReason)}
+              onClick={startIncubation}
+            >
               Start Incubation
             </Button>
           </StepActionBar>
@@ -889,7 +1013,11 @@ function TestWorkflowDialogBody({ testOrderId, testCode, category, displayName, 
             tempMin={stage2Config.tempMin}
             tempMax={stage2Config.tempMax}
             value={stage2IncubatorId}
-            onChange={setStage2IncubatorId}
+            isDefault={stage2IncubatorLastChoice.isDefault}
+            onChange={(id) => {
+              setStage2IncubatorId(id);
+              stage2IncubatorLastChoice.notifyValueChanged();
+            }}
           />
 
           <StepActionBar note={stage2IncubatorId ? undefined : "Select a Stage 2 incubator to continue."}>

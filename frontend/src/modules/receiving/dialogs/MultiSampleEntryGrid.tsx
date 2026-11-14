@@ -34,6 +34,7 @@ import {
 import { ReceiveService } from "../services/ReceiveService";
 import { tableHeadSx } from "../../../theme";
 import { DateField } from "../../../components/DateField";
+import { LastChoiceField } from "../../../components/entry/LastChoiceField";
 import { useGridNavigation } from "../../../components/entry/useGridNavigation";
 
 export const MAX_RECEIVE_ROWS = 100;
@@ -77,6 +78,10 @@ interface Props {
   retryingCoaRow?: number | null;
   onRetryCoa?: (rowIndex: number) => void;
   receivedByRow?: Record<number, BatchReceivedSample>;
+  firstRowDefaults?: {
+    causeOfTestingId?: boolean;
+    sampledBy?: boolean;
+  };
 }
 
 export function MultiSampleEntryGrid({
@@ -92,7 +97,8 @@ export function MultiSampleEntryGrid({
   coaErrorByRow,
   retryingCoaRow,
   onRetryCoa,
-  receivedByRow
+  receivedByRow,
+  firstRowDefaults
 }: Props) {
   const theme = useTheme();
   const isItemBased = category === "product" || category === "rm" || category === "pm";
@@ -966,28 +972,33 @@ export function MultiSampleEntryGrid({
 
                     {/* Cause of Testing */}
                     <TableCell {...cellProps(idx, colIndexByKey.causeOfTestingId)}>
-                      <Select
-                        size="small"
-                        fullWidth
-                        displayEmpty
-                        value={row.causeOfTestingId ?? ""}
-                        error={Boolean(errors.causeOfTestingId)}
-                        onChange={(e) => onChangeRow(idx, "causeOfTestingId", e.target.value as number | "")}
-                        sx={{ fontSize: 12 }}
-                        SelectDisplayProps={{
-                          "aria-describedby": errors.causeOfTestingId ? cellErrorId(idx, "causeOfTestingId") : undefined
-                        }}
-                        inputProps={{ "aria-label": `Sample ${idx + 1} cause of testing` }}
+                      <LastChoiceField
+                        kind="field"
+                        isDefault={Boolean(idx === 0 && firstRowDefaults?.causeOfTestingId)}
                       >
-                        <MenuItem value="">
-                          <em style={{ color: theme.palette.text.secondary }}>Cause of Testing</em>
-                        </MenuItem>
-                        {masterData.causes.map((c) => (
-                          <MenuItem key={c.id} value={c.id}>
-                            {c.name}
+                        <Select
+                          size="small"
+                          fullWidth
+                          displayEmpty
+                          value={row.causeOfTestingId ?? ""}
+                          error={Boolean(errors.causeOfTestingId)}
+                          onChange={(e) => onChangeRow(idx, "causeOfTestingId", e.target.value as number | "")}
+                          sx={{ fontSize: 12 }}
+                          SelectDisplayProps={{
+                            "aria-describedby": errors.causeOfTestingId ? cellErrorId(idx, "causeOfTestingId") : undefined
+                          }}
+                          inputProps={{ "aria-label": `Sample ${idx + 1} cause of testing` }}
+                        >
+                          <MenuItem value="">
+                            <em style={{ color: theme.palette.text.secondary }}>Cause of Testing</em>
                           </MenuItem>
-                        ))}
-                      </Select>
+                          {masterData.causes.map((c) => (
+                            <MenuItem key={c.id} value={c.id}>
+                              {c.name}
+                            </MenuItem>
+                          ))}
+                        </Select>
+                      </LastChoiceField>
                       {renderCellError(idx, "causeOfTestingId", errors.causeOfTestingId)}
                     </TableCell>
 
@@ -1015,29 +1026,38 @@ export function MultiSampleEntryGrid({
 
                     {/* Sampled By */}
                     <TableCell {...cellProps(idx, colIndexByKey.sampledBy)}>
-                      <Autocomplete
-                        freeSolo
-                        size="small"
-                        options={masterData.samplers.map((s) => s.name)}
-                        inputValue={row.sampledBy ?? ""}
-                        onInputChange={(_, v) => onChangeRow(idx, "sampledBy", v)}
-                        renderInput={(params) => (
-                          <TextField
-                            {...params}
-                            placeholder="Sampled By"
-                            error={Boolean(errors.sampledBy)}
-                            slotProps={{
-                              ...params.slotProps,
-                              htmlInput: {
-                                ...params.slotProps.htmlInput,
-                                "aria-label": `Sample ${idx + 1} sampled by`,
-                                "aria-describedby": errors.sampledBy ? cellErrorId(idx, "sampledBy") : undefined,
-                                style: { fontSize: 12 }
-                              }
-                            }}
-                          />
-                        )}
-                      />
+                      <LastChoiceField
+                        kind="field"
+                        isDefault={Boolean(idx === 0 && firstRowDefaults?.sampledBy)}
+                      >
+                        <Autocomplete
+                          freeSolo
+                          size="small"
+                          options={masterData.samplers.map((s) => s.name)}
+                          inputValue={row.sampledBy ?? ""}
+                          onInputChange={(_, v) => {
+                            if (v !== (row.sampledBy ?? "")) {
+                              onChangeRow(idx, "sampledBy", v);
+                            }
+                          }}
+                          renderInput={(params) => (
+                            <TextField
+                              {...params}
+                              placeholder="Sampled By"
+                              error={Boolean(errors.sampledBy)}
+                              slotProps={{
+                                ...params.slotProps,
+                                htmlInput: {
+                                  ...params.slotProps.htmlInput,
+                                  "aria-label": `Sample ${idx + 1} sampled by`,
+                                  "aria-describedby": errors.sampledBy ? cellErrorId(idx, "sampledBy") : undefined,
+                                  style: { fontSize: 12 }
+                                }
+                              }}
+                            />
+                          )}
+                        />
+                      </LastChoiceField>
                       {renderCellError(idx, "sampledBy", errors.sampledBy)}
                     </TableCell>
 

@@ -6,6 +6,7 @@ import {
 } from "../../laboratoryConfiguration/masterDataSimple/services/EquipmentConfigurationService";
 import { masterDataOptions } from "../../../services/masterDataOptions";
 import { ScanField } from "../../../components/labels/ScanField";
+import { LastChoiceField } from "../../../components/entry/LastChoiceField";
 import { NumericEntryField } from "../../../components/bench/NumericEntryField";
 
 // What the analyst records for a recipe that needs sterilization. Program, load type,
@@ -42,9 +43,18 @@ interface Props {
   onChange: (next: AutoclaveFormState) => void;
   disabled?: boolean;
   fieldErrors?: Partial<Record<"autoclaveEquipmentId" | "autoclaveProgram" | "autoclaveCycleNumber", string>>;
+  equipmentIsDefault?: boolean;
+  onEquipmentChangedByUser?: () => void;
 }
 
-export function AutoclaveSection({ value, onChange, disabled = false, fieldErrors }: Props) {
+export function AutoclaveSection({
+  value,
+  onChange,
+  disabled = false,
+  fieldErrors,
+  equipmentIsDefault = false,
+  onEquipmentChangedByUser
+}: Props) {
   const [autoclaves, setAutoclaves] = useState<AutoclaveOption[]>([]);
   const [programs, setPrograms] = useState<AutoclaveProgram[]>([]);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -85,6 +95,7 @@ export function AutoclaveSection({ value, onChange, disabled = false, fieldError
   const selectedProgramId = programs.find((p) => programLabel(p) === value.program)?.id ?? "";
 
   const handleEquipment = (id: number | "") => {
+    onEquipmentChangedByUser?.();
     onChange({ ...EMPTY_AUTOCLAVE, cycleNumber: value.cycleNumber, equipmentId: id });
   };
 
@@ -128,27 +139,29 @@ export function AutoclaveSection({ value, onChange, disabled = false, fieldError
             onSelect={(id) => handleEquipment(id)}
             disabled={disabled}
           />
-          <FormControl fullWidth size="small" error={Boolean(fieldErrors?.autoclaveEquipmentId)}>
-            <Select<number | "">
-              size="small"
-              displayEmpty
-              disabled={disabled}
-              value={value.equipmentId}
-              onChange={(e) => handleEquipment(e.target.value === "" ? "" : Number(e.target.value))}
-              inputProps={{ "aria-label": "Autoclave" }}
-            >
-              <MenuItem value="">
-                <em>Select Autoclave *</em>
-              </MenuItem>
-              {autoclaves.map((a) => (
-                <MenuItem key={a.id} value={a.id}>
-                  {a.code ? `${a.code}: ` : ""}
-                  {a.name}
+          <LastChoiceField kind="equipment" isDefault={equipmentIsDefault}>
+            <FormControl fullWidth size="small" error={Boolean(fieldErrors?.autoclaveEquipmentId)}>
+              <Select<number | "">
+                size="small"
+                displayEmpty
+                disabled={disabled}
+                value={value.equipmentId}
+                onChange={(e) => handleEquipment(e.target.value === "" ? "" : Number(e.target.value))}
+                inputProps={{ "aria-label": "Autoclave" }}
+              >
+                <MenuItem value="">
+                  <em>Select Autoclave *</em>
                 </MenuItem>
-              ))}
-            </Select>
-            {fieldErrors?.autoclaveEquipmentId && <FormHelperText>{fieldErrors.autoclaveEquipmentId}</FormHelperText>}
-          </FormControl>
+                {autoclaves.map((a) => (
+                  <MenuItem key={a.id} value={a.id}>
+                    {a.code ? `${a.code}: ` : ""}
+                    {a.name}
+                  </MenuItem>
+                ))}
+              </Select>
+              {fieldErrors?.autoclaveEquipmentId && <FormHelperText>{fieldErrors.autoclaveEquipmentId}</FormHelperText>}
+            </FormControl>
+          </LastChoiceField>
         </Stack>
 
         <FormControl fullWidth size="small" error={Boolean(fieldErrors?.autoclaveProgram)}>

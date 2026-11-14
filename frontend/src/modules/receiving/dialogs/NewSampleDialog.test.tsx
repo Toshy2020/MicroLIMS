@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { AxiosError, AxiosHeaders } from "axios";
 import { MemoryRouter } from "react-router-dom";
@@ -7,6 +7,8 @@ import { AuthProvider } from "../../../contexts/AuthContext";
 import { PinnedLightTheme } from "../../../theme/PinnedLightTheme";
 import { resetDraftDb, rawStoredDrafts } from "../../../services/drafts/draftTestUtils";
 import { masterDataOptions } from "../../../services/masterDataOptions";
+import { entryDefaultsService } from "../../../services/entryDefaultsService";
+import { LAST_CHOICE_CAPTION } from "../../../components/entry/LastChoiceField";
 import { ReceiveService } from "../services/ReceiveService";
 import type { SampleRecord } from "../types/receivingTypes";
 import { NewSampleDialog } from "./NewSampleDialog";
@@ -22,6 +24,10 @@ vi.mock("../services/ReceiveService", () => ({
     itemGrades: vi.fn(),
     uploadSampleDocument: vi.fn()
   }
+}));
+
+vi.mock("../../../services/entryDefaultsService", () => ({
+  entryDefaultsService: { get: vi.fn() }
 }));
 
 vi.mock("../../../services/masterDataOptions", () => ({
@@ -94,6 +100,7 @@ describe("NewSampleDialog — characterisation per category", () => {
     localStorage.setItem("microlims_token", "h.e30=.s");
     localStorage.setItem("microlims_user_id", "7");
 
+    vi.mocked(entryDefaultsService.get).mockResolvedValue({ defaults: [] });
     vi.mocked(masterDataOptions.getCausesOfTesting).mockResolvedValue([
       { id: 1, name: "Routine" }
     ] as never);
@@ -451,6 +458,7 @@ describe("NewSampleDialog — batch receive, cell errors, CoA retry, draft", () 
     localStorage.setItem("microlims_token", "h.e30=.s");
     localStorage.setItem("microlims_user_id", "7");
 
+    vi.mocked(entryDefaultsService.get).mockResolvedValue({ defaults: [] });
     vi.mocked(masterDataOptions.getCausesOfTesting).mockResolvedValue([
       { id: 1, name: "Routine" }
     ] as never);
@@ -642,6 +650,70 @@ describe("NewSampleDialog — batch receive, cell errors, CoA retry, draft", () 
       expect(onSuccess).toHaveBeenCalledWith([{ id: 301, referenceNumber: "RM-2611-001" }]);
       expect(onClose).toHaveBeenCalled();
     });
+  });
+
+  it("pre-fills sampled by and cause on row 1 from the server's last choice, labelled and editable", async () => {
+    const user = userEvent.setup();
+    vi.mocked(entryDefaultsService.get).mockResolvedValue({
+      defaults: [
+        { field: "sampledBy", id: null, text: "Analyst Alice", label: "Analyst Alice", lastUsedAtUtc: "2026-11-13T08:00:00Z" },
+        { field: "causeOfTestingId", id: 1, text: null, label: "Routine", lastUsedAtUtc: "2026-11-13T08:00:00Z" }
+      ]
+    });
+    renderDialog({ allowedCategories: ["ac"], labMode: { kind: "fixed", sectionId: 2, code: "FP" } });
+
+    await user.click(await screen.findByText("After Cleaning"));
+    await user.click(screen.getByRole("button", { name: /Next/i }));
+
+    await waitFor(() => {
+      expect((screen.getByPlaceholderText("Sampled By") as HTMLInputElement).value).toBe("Analyst Alice");
+    });
+    expect(screen.getByLabelText("Sample 1 cause of testing").textContent).toContain("Routine");
+    expect(screen.getAllByText(LAST_CHOICE_CAPTION)).toHaveLength(2);
+    expect(entryDefaultsService.get).toHaveBeenCalledWith(
+      expect.objectContaining({ context: "receiving" }),
+      expect.anything()
+    );
+
+    await user.clear(screen.getByPlaceholderText("Sampled By"));
+    await user.type(screen.getByPlaceholderText("Sampled By"), "Bob");
+    expect(screen.getAllByText(LAST_CHOICE_CAPTION)).toHaveLength(1);
+  });
+
+  it("never overwrites a value the user typed before the server's last choice arrives", async () => {
+    const user = userEvent.setup();
+    let resolveDefaults: (value: Awaited<ReturnType<typeof entryDefaultsService.get>>) => void = () => {};
+    vi.mocked(entryDefaultsService.get).mockReturnValue(
+      new Promise((resolve) => { resolveDefaults = resolve; })
+    );
+    renderDialog({ allowedCategories: ["ac"], labMode: { kind: "fixed", sectionId: 2, code: "FP" } });
+
+    await user.click(await screen.findByText("After Cleaning"));
+    await user.click(screen.getByRole("button", { name: /Next/i }));
+    await waitFor(() => expect(entryDefaultsService.get).toHaveBeenCalled());
+    await user.type(screen.getByPlaceholderText("Sampled By"), "Bob");
+
+    await act(async () => {
+      resolveDefaults({
+        defaults: [{ field: "sampledBy", id: null, text: "Analyst Alice", label: "Analyst Alice", lastUsedAtUtc: "2026-11-13T08:00:00Z" }]
+      });
+    });
+
+    expect((screen.getByPlaceholderText("Sampled By") as HTMLInputElement).value).toBe("Bob");
+    expect(screen.queryByText(LAST_CHOICE_CAPTION)).toBeNull();
+  });
+
+  it("leaves the receiving fields empty when the server offers nothing or the request fails", async () => {
+    const user = userEvent.setup();
+    vi.mocked(entryDefaultsService.get).mockRejectedValue(new Error("down"));
+    renderDialog({ allowedCategories: ["ac"], labMode: { kind: "fixed", sectionId: 2, code: "FP" } });
+
+    await user.click(await screen.findByText("After Cleaning"));
+    await user.click(screen.getByRole("button", { name: /Next/i }));
+
+    await waitFor(() => expect(entryDefaultsService.get).toHaveBeenCalled());
+    expect((screen.getByPlaceholderText("Sampled By") as HTMLInputElement).value).toBe("");
+    expect(screen.queryByText(LAST_CHOICE_CAPTION)).toBeNull();
   });
 
   it("Add row still copies sampledBy, cause and techniques", async () => {

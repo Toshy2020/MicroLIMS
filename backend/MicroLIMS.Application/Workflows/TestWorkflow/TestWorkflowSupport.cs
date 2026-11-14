@@ -815,9 +815,16 @@ public class TestWorkflowSupport
                 "That medium is not on this step's permitted list.");
     }
 
-    protected async Task RequireEligibleIncubatorAsync(int stepMediaId, int equipmentId)
+    protected Task RequireEligibleIncubatorAsync(int stepMediaId, int equipmentId) =>
+        RequireEligibleIncubatorAsync(_incubatorEligibility, stepMediaId, equipmentId);
+
+    public static async Task RequireEligibleIncubatorAsync(
+        IncubatorEligibilityService incubatorEligibility,
+        int stepMediaId,
+        int equipmentId,
+        CancellationToken ct = default)
     {
-        if (!await _incubatorEligibility.IsWithinRangeAsync(stepMediaId, equipmentId))
+        if (!await incubatorEligibility.IsWithinRangeAsync(stepMediaId, equipmentId, ct))
             throw new WorkflowStepException(WorkflowErrorCodes.IncubatorTempOutOfRange,
                 "The selected incubator's set point is outside this medium's temperature range.");
     }

@@ -188,6 +188,7 @@ public sealed class DisintegrationRecorder : TestWorkflowSupport
         };
 
         _db.TestAnalyses.Add(entry);
+        await _publisher.ResolveAsync($"TestReturned:test:{order.Id}");
         await _db.SaveChangesAsync();
 
         var outcomeSummary = $"{paramResult.ParameterName}: {paramResult.ReportedDisplay}";

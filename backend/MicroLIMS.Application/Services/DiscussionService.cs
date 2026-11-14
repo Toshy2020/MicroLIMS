@@ -8,6 +8,7 @@ using MicroLIMS.Domain.Enums;
 using MicroLIMS.Application.Abstractions.Notifications;
 using MicroLIMS.Application.Abstractions.Storage;
 using MicroLIMS.Application.Abstractions.Persistence;
+using MicroLIMS.Application.Services.Notifications;
 using MicroLIMS.Shared.Responses;
 
 namespace MicroLIMS.Application.Services;
@@ -117,19 +118,22 @@ public class DiscussionService
     private readonly INotificationService _notificationService;
     private readonly ILogger<DiscussionService> _logger;
     private readonly TimeProvider _time;
+    private readonly INotificationPublisher _publisher;
 
     public DiscussionService(
         IMicroLimsDbContext db,
         IFileStorageService storage,
         INotificationService notificationService,
         ILogger<DiscussionService> logger,
-        TimeProvider? timeProvider = null)
+        TimeProvider? timeProvider = null,
+        INotificationPublisher? publisher = null)
     {
         _time = timeProvider ?? TimeProvider.System;
         _db = db;
         _storage = storage;
         _notificationService = notificationService;
         _logger = logger;
+        _publisher = publisher ?? new NotificationPublisher(db, _time);
     }
 
     public static string GetCategoryDisplayName(DiscussionCategory category) => category switch
@@ -602,16 +606,14 @@ public class DiscussionService
             foreach (var userId in participantUserIds)
             {
                 var message = $"Discussion '{post.Title}' was updated by {editorName}.";
-                var notif = new NotificationLog
-                {
-                    UserId = userId,
-                    Type = "DiscussionPostUpdated",
-                    Message = message,
-                    Severity = "info",
-                    IsRead = false,
-                    CreatedAt = _time.GetUtcNow().UtcDateTime
-                };
-                _db.NotificationLogs.Add(notif);
+                await _publisher.PublishAsync(new NotificationRequest(
+                    Type: "DiscussionPostUpdated",
+                    UserIds: new[] { userId },
+                    Message: message,
+                    TargetType: "DiscussionPost",
+                    TargetId: post.Id,
+                    SectionId: null,
+                    DedupeKey: null));
                 await _notificationService.NotifyAsync(userId, message);
             }
 
@@ -655,16 +657,14 @@ public class DiscussionService
                     ? $"{commenterName} commented on your discussion: '{post.Title}'."
                     : $"{commenterName} also commented on discussion: '{post.Title}'.";
 
-                var notif = new NotificationLog
-                {
-                    UserId = userId,
-                    Type = "DiscussionComment",
-                    Message = message,
-                    Severity = "info",
-                    IsRead = false,
-                    CreatedAt = _time.GetUtcNow().UtcDateTime
-                };
-                _db.NotificationLogs.Add(notif);
+                await _publisher.PublishAsync(new NotificationRequest(
+                    Type: "DiscussionComment",
+                    UserIds: new[] { userId },
+                    Message: message,
+                    TargetType: "DiscussionPost",
+                    TargetId: post.Id,
+                    SectionId: null,
+                    DedupeKey: null));
                 await _notificationService.NotifyAsync(userId, message);
             }
 

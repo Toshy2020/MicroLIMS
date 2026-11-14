@@ -10,6 +10,7 @@ using MicroLIMS.Domain.Enums;
 using MicroLIMS.Application.Abstractions.Notifications;
 using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Application.DTOs.Responses;
+using MicroLIMS.Application.Services.Notifications;
 using MicroLIMS.Shared.Constants;
 
 namespace MicroLIMS.Application.Workflows;
@@ -53,14 +54,18 @@ public class TestWorkflowEngine : ITestWorkflowEngine
         SegregationOfDutiesGuard sodGuard, ReviewGateService reviewGate, INotificationService notifications,
         IElectronicSignatureService? signatureService = null,
         IUserSectionScopeService? sectionScope = null,
-        ILabClock? clock = null)
+        ILabClock? clock = null,
+        INotificationPublisher? publisher = null,
+        TimeProvider? timeProvider = null)
     {
         var deps = new TestWorkflowDependencies(
             db, sampleReviewService, resultProjection, incubatorEligibility, appearanceSnapshot,
             sodGuard, reviewGate, notifications,
             signatureService ?? new ElectronicSignatureService(db),
             sectionScope ?? new UserSectionScopeService(db),
-            clock ?? LabClock.Default);
+            clock ?? LabClock.Default,
+            publisher,
+            timeProvider);
         _clock = clock ?? LabClock.Default;
         _support = new TestWorkflowSupport(deps);
         _testStepNavigator = new TestStepNavigator(deps);

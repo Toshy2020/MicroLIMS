@@ -6,6 +6,7 @@ using MicroLIMS.Application.Workflows;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Application.Abstractions.Persistence;
+using MicroLIMS.Application.Services.Notifications;
 
 namespace MicroLIMS.Application.Services;
 
@@ -28,11 +29,13 @@ public class SampleApprovalService
     private readonly IUserSectionScopeService _scope;
     private readonly SegregationOfDutiesGuard _segregationOfDuties;
     private readonly TimeProvider _time;
+    private readonly INotificationPublisher _publisher;
 
     public SampleApprovalService(IMicroLimsDbContext db, ReviewGateService reviewGate,
         SampleSummaryService summary, RecordArchiveService archive, ResultProjectionService resultProjection,
         ReferenceNumberGenerator refNumbers, IUserSectionScopeService scope,
-        SegregationOfDutiesGuard segregationOfDuties, TimeProvider? timeProvider = null)
+        SegregationOfDutiesGuard segregationOfDuties, TimeProvider? timeProvider = null,
+        INotificationPublisher? publisher = null)
     {
         _time = timeProvider ?? TimeProvider.System;
         _scope = scope;
@@ -43,6 +46,7 @@ public class SampleApprovalService
         _archive = archive;
         _resultProjection = resultProjection;
         _refNumbers = refNumbers;
+        _publisher = publisher ?? new NotificationPublisher(db, _time);
     }
 
     // Copies the physical/identity attributes of a sample onto a fresh OOS
@@ -509,6 +513,8 @@ public class SampleApprovalService
         if (sample.Status == SampleStatus.RetestRequested)
             sample.ApprovalDecision = sample.SectionSignoffs
                 .First(s => s.Status == SectionSignoffStatus.RetestRequested).ApprovalDecision;
+
+        await _publisher.ResolveAsync($"ApprovalWaiting:sample:{sampleId}:section:{section}");
 
         await _db.SaveChangesAsync();
 

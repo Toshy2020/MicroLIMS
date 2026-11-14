@@ -5,6 +5,7 @@ using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Application.Abstractions.Persistence;
+using MicroLIMS.Application.Services.Notifications;
 
 namespace MicroLIMS.Application.Services;
 
@@ -18,13 +19,15 @@ public class SampleAssignmentService
     private readonly ITestWorkspaceService _workspaceService;
     private readonly IUserSectionScopeService _scope;
     private readonly TimeProvider _time;
+    private readonly INotificationPublisher _publisher;
 
-    public SampleAssignmentService(IMicroLimsDbContext db, ITestWorkspaceService workspaceService, IUserSectionScopeService scope, TimeProvider? timeProvider = null)
+    public SampleAssignmentService(IMicroLimsDbContext db, ITestWorkspaceService workspaceService, IUserSectionScopeService scope, TimeProvider? timeProvider = null, INotificationPublisher? publisher = null)
     {
         _time = timeProvider ?? TimeProvider.System;
         _db = db;
         _workspaceService = workspaceService;
         _scope = scope;
+        _publisher = publisher ?? new NotificationPublisher(db, _time);
     }
 
     private static readonly ApprovalStatus[] ClosedStatuses =
@@ -198,7 +201,8 @@ public class SampleAssignmentService
         var timestamp = _time.GetUtcNow().UtcDateTime;
         foreach (var (order, analystId) in changed)
         {
-            var action = order.AssignedAnalystId == null
+            var previousAnalystId = order.AssignedAnalystId;
+            var action = previousAnalystId == null
                 ? "AssignedAnalyst"
                 : (analystId == null ? "UnassignedAnalyst" : "ReassignedAnalyst");
             var newValue = string.IsNullOrWhiteSpace(reason)
@@ -206,9 +210,28 @@ public class SampleAssignmentService
                 : $"{Display(analystId)} | Reason: {reason.Trim()}";
 
             _db.AuditLogs.Add(BuildAssignmentAudit(sample, order, action,
-                $"{order.TestCode}: {Display(order.AssignedAnalystId)}", $"{order.TestCode}: {newValue}", actingUserId, timestamp));
+                $"{order.TestCode}: {Display(previousAnalystId)}", $"{order.TestCode}: {newValue}", actingUserId, timestamp));
 
             order.AssignedAnalystId = analystId;
+
+            if (previousAnalystId is int prevId && prevId != analystId)
+            {
+                await _publisher.ResolveAsync($"TestAssigned:test:{order.Id}:user:{prevId}", ct);
+            }
+
+            if (analystId is int assigneeId && assigneeId != actingUserId)
+            {
+                await _publisher.PublishAsync(new NotificationRequest(
+                    Type: "TestAssigned",
+                    UserIds: new[] { assigneeId },
+                    Message: $"Test {order.TestCode} for sample {sample.ReferenceNumber} was assigned to you.",
+                    TargetType: "test-step",
+                    TargetId: order.Id,
+                    SectionId: order.SectionId,
+                    DedupeKey: $"TestAssigned:test:{order.Id}:user:{assigneeId}",
+                    SampleId: sample.Id,
+                    TestOrderId: order.Id), ct);
+            }
         }
 
         if (changed.Count > 0)

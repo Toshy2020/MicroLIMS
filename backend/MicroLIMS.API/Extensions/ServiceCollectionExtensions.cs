@@ -6,6 +6,7 @@ using Amazon.S3;
 using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Application.Interfaces.DocumentControl;
 using MicroLIMS.Application.Services;
+using MicroLIMS.Application.Services.Notifications;
 using MicroLIMS.Application.Services.Kpi;
 using MicroLIMS.Application.Services.DocumentControl;
 using MicroLIMS.Application.Validators;
@@ -115,6 +116,8 @@ public static class ServiceCollectionExtensions
         services.AddScoped<DashboardService>();
         services.AddSingleton(new NotificationRecomputeThrottle(TimeSpan.FromMinutes(5)));
         services.AddScoped<DashboardNotificationService>();
+        services.AddScoped<INotificationPublisher, NotificationPublisher>();
+        services.AddScoped<NotificationRecipients>();
         services.AddScoped<RecentActivityService>();
         services.AddScoped<MyTasksService>();
         services.AddScoped<DashboardLabScopeService>();

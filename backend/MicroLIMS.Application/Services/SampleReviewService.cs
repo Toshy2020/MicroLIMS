@@ -6,6 +6,7 @@ using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Application.DTOs.Responses;
+using MicroLIMS.Application.Services.Notifications;
 using MicroLIMS.Application.Workflows;
 
 namespace MicroLIMS.Application.Services;
@@ -23,10 +24,14 @@ public class SampleReviewService
     private readonly IUserSectionScopeService _scope;
     private readonly IAuditEventService _audit;
     private readonly TimeProvider _time;
+    private readonly INotificationPublisher _publisher;
+    private readonly NotificationRecipients _recipients;
 
     public SampleReviewService(IMicroLimsDbContext db, SegregationOfDutiesGuard segregationOfDuties, ReviewGateService reviewGate,
         IUserSectionScopeService scope, IAuditEventService audit,
-        TimeProvider? timeProvider = null)
+        TimeProvider? timeProvider = null,
+        INotificationPublisher? publisher = null,
+        NotificationRecipients? recipients = null)
     {
         _time = timeProvider ?? TimeProvider.System;
         _db = db;
@@ -34,6 +39,8 @@ public class SampleReviewService
         _reviewGate = reviewGate;
         _scope = scope;
         _audit = audit;
+        _publisher = publisher ?? new NotificationPublisher(db, _time);
+        _recipients = recipients ?? new NotificationRecipients(db, segregationOfDuties);
     }
 
     private Task<Sample?> LoadAsync(int sampleId) =>
@@ -89,6 +96,21 @@ public class SampleReviewService
                 ReviewEntityTypes.Sample, sampleId, triggeredByUserId,
                 ReviewWorkflowEventType.SubmittedForReview,
                 "All tests completed - automatically submitted for review", sectionId: sectionId);
+
+            var orderIds = SampleSectionRollup.CurrentOrders(sample, sectionId).Select(o => o.Id).ToList();
+            var reviewers = await _recipients.ReviewersAsync(sectionId, orderIds);
+            if (reviewers.Count > 0)
+            {
+                await _publisher.PublishAsync(new NotificationRequest(
+                    Type: "ReviewWaiting",
+                    UserIds: reviewers,
+                    Message: $"Sample {sample.ReferenceNumber} is awaiting review.",
+                    TargetType: "sample-review",
+                    TargetId: sampleId,
+                    SectionId: sectionId,
+                    DedupeKey: $"ReviewWaiting:sample:{sampleId}:section:{sectionId}",
+                    SampleId: sampleId));
+            }
         }
 
         SampleSectionRollup.Apply(sample);
@@ -172,6 +194,26 @@ public class SampleReviewService
         }
 
         SampleSectionRollup.Apply(sample);
+
+        await _publisher.ResolveAsync($"ReviewWaiting:sample:{sampleId}:section:{section}");
+
+        var orderIds = currentOrders.Select(o => o.Id).ToList();
+        var approvers = (await _recipients.ApproversAsync(section, orderIds))
+            .Where(id => id != reviewerUserId)
+            .ToList();
+        if (approvers.Count > 0)
+        {
+            await _publisher.PublishAsync(new NotificationRequest(
+                Type: "ApprovalWaiting",
+                UserIds: approvers,
+                Message: $"Sample {sample.ReferenceNumber} has been reviewed and is awaiting approval.",
+                TargetType: "sample-approval",
+                TargetId: sampleId,
+                SectionId: section,
+                DedupeKey: $"ApprovalWaiting:sample:{sampleId}:section:{section}",
+                SampleId: sampleId));
+        }
+
         await _db.SaveChangesAsync();
     }
 
@@ -354,6 +396,7 @@ public class SampleReviewService
         {
             SampleSectionRollup.GetOrAdd(sample, order.SectionId).Status = SectionSignoffStatus.InTesting;
             SampleSectionRollup.Apply(sample);
+            await _publisher.ResolveAsync($"ReviewWaiting:sample:{sample.Id}:section:{order.SectionId}");
         }
 
         // 4. Revert TestOrder state back to Incubating/Running (keeps AssignedAnalystId unchanged)
@@ -378,6 +421,25 @@ public class SampleReviewService
         };
 
         _db.TestReturnEvents.Add(returnEvent);
+
+        if (order.AssignedAnalystId is int assignedAnalystId)
+        {
+            var sampleRef = sample?.ReferenceNumber ?? $"#{order.SampleId}";
+            var returnMessage = string.IsNullOrWhiteSpace(reason)
+                ? $"Test {order.TestCode} for sample {sampleRef} was returned for revision."
+                : $"Test {order.TestCode} for sample {sampleRef} was returned for revision: {reason.Trim()}";
+
+            await _publisher.PublishAsync(new NotificationRequest(
+                Type: "TestReturned",
+                UserIds: new[] { assignedAnalystId },
+                Message: returnMessage,
+                TargetType: "test-step",
+                TargetId: testOrderId,
+                SectionId: order.SectionId,
+                DedupeKey: $"TestReturned:test:{testOrderId}",
+                SampleId: order.SampleId,
+                TestOrderId: testOrderId));
+        }
 
         return returnEvent;
     }

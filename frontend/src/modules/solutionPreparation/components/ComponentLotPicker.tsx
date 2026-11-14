@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Box,
   Card,
@@ -8,8 +8,6 @@ import {
   InputLabel,
   Select,
   MenuItem,
-  TextField,
-  InputAdornment,
   FormHelperText,
   Alert,
   CircularProgress,
@@ -17,6 +15,7 @@ import {
   Chip
 } from "@mui/material";
 import { ScanField } from "../../../components/labels/ScanField";
+import { NumericEntryField, parseDecimal } from "../../../components/bench/NumericEntryField";
 import { formatLabDate } from "../../../utils/formatDate";
 import type { SolutionPreparationComponentResponse, LotOption } from "../types";
 
@@ -48,6 +47,12 @@ export function ComponentLotPicker({
 
   const unitDisplay = selectedLot?.unit ?? component.lotUnit ?? "";
   const hasUsableLots = lotOptions.some((l) => l.usable);
+  const externalText = quantityUsed == null ? "" : String(quantityUsed);
+  const [qtyText, setQtyText] = useState(externalText);
+
+  useEffect(() => {
+    setQtyText((prev) => (parseDecimal(prev) === (quantityUsed ?? null) ? prev : externalText));
+  }, [externalText, quantityUsed]);
 
   return (
     <Card variant="outlined" sx={{ mb: 2 }}>
@@ -130,30 +135,21 @@ export function ComponentLotPicker({
               </FormControl>
             </Stack>
 
-            <TextField
-              size="small"
-              fullWidth
+            <NumericEntryField
               label="Quantity Used"
-              type="number"
-              value={quantityUsed ?? ""}
-              onChange={(e) => {
-                const val = e.target.value;
+              kind="decimal"
+              value={qtyText}
+              onChange={(val) => {
+                setQtyText(val);
                 if (val === "") {
                   onChangeQuantity(null);
                 } else {
-                  const parsed = parseFloat(val);
-                  onChangeQuantity(isNaN(parsed) ? null : parsed);
+                  const parsed = parseDecimal(val);
+                  if (parsed !== null) onChangeQuantity(parsed);
                 }
               }}
               disabled={disabled || !selectedMaterialId}
-              slotProps={{
-                input: {
-                  endAdornment: unitDisplay ? (
-                    <InputAdornment position="end">{unitDisplay}</InputAdornment>
-                  ) : undefined,
-                  inputProps: { min: 0, step: "any" }
-                }
-              }}
+              unit={unitDisplay || undefined}
               helperText={`Entered in lot's unit (${unitDisplay || "unit"})`}
             />
           </Box>

@@ -1,8 +1,26 @@
+import type { AxiosRequestConfig } from "axios";
 import { apiClient } from "../../../../services/apiClient";
+import type { AdditivePayload } from "../components/mediaAdditives";
+
+export interface PrepareMediaRequest {
+  materialId: number;
+  totalWeight: number;
+  totalVolume: string;
+  autoclaveEquipmentId: number;
+  autoclaveProgram: string;
+  loadType: string;
+  temperature: number;
+  cycleTime: number;
+  cycleNumber: number;
+  ph: number;
+  expiryDate: string;
+  additives: AdditivePayload[];
+}
 
 export const MediaPreparationService = {
   getAll: () => apiClient.get("/media").then((r) => r.data.data),
-  prepare: (payload: any) => apiClient.post("/media", payload).then((r) => r.data.data),
+  prepare: (payload: PrepareMediaRequest, config?: AxiosRequestConfig) =>
+    apiClient.post("/media", payload, config).then((r) => r.data.data),
 
   // Prepared solutions (Diluent / Reagent / Neutralizer) that can be picked as a media additive.
   getUsableSolutions: (sectionId?: number) =>

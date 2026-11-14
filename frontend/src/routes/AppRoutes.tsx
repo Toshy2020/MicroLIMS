@@ -100,6 +100,8 @@ const ReassignmentsPage = lazy(() => import("../modules/documentControl/pages/Re
 const JobsPage = lazy(() => import("../modules/admin/JobsPage").then((m) => ({ default: m.JobsPage })));
 const DocumentAuditPage = lazy(() => import("../modules/documentControl/pages/DocumentAuditPage").then((m) => ({ default: m.DocumentAuditPage })));
 
+const HelpPage = lazy(() => import("../modules/help/HelpPage").then((m) => ({ default: m.HelpPage })));
+
 function LegacyRedirect({ to }: { to: string }) {
   const location = useLocation();
   return <Navigate to={`${to}${location.search}`} replace />;
@@ -127,6 +129,8 @@ export function AppRoutes() {
           <Route element={<MainLayout />}>
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
             <Route path="/dashboard" element={<DashboardPage />} />
+            <Route path="/help" element={<HelpPage />} />
+            <Route path="/help/:chapterId" element={<HelpPage />} />
             <Route path="/profile" element={<ProfilePage />} />
             <Route path="/change-password" element={<ChangePasswordPage />} />
             <Route path="/set-signing-password" element={<SetSigningPasswordPage />} />

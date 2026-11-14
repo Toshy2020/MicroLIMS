@@ -1,7 +1,9 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { MemoryRouter } from "react-router-dom";
 import { PinnedLightTheme } from "../../theme/PinnedLightTheme";
+import { HelpPanelProvider } from "./HelpPanelContext";
 import { HelpMenu } from "./HelpMenu";
 
 const versionService = vi.hoisted(() => ({ get: vi.fn() }));
@@ -14,7 +16,11 @@ afterEach(() => {
 function renderMenu() {
   return render(
     <PinnedLightTheme>
-      <HelpMenu />
+      <MemoryRouter>
+        <HelpPanelProvider>
+          <HelpMenu />
+        </HelpPanelProvider>
+      </MemoryRouter>
     </PinnedLightTheme>
   );
 }
@@ -31,8 +37,8 @@ describe("HelpMenu", () => {
     const menu = await screen.findByRole("menu");
     const labels = within(menu).getAllByRole("menuitem").map((item) => item.textContent ?? "");
     expect(labels).toEqual([
-      "Help for this pageNot available yet",
-      "Full guideNot available yet",
+      "Help for this page",
+      "Full guide",
       "Keyboard shortcutsNot available yet",
       "What's newNot available yet",
       "Replay tourNot available yet",
@@ -40,7 +46,8 @@ describe("HelpMenu", () => {
     ]);
     expect(button.getAttribute("aria-expanded")).toBe("true");
     // Entries built in later tasks are shown as unavailable, not as working links.
-    expect(within(menu).getByRole("menuitem", { name: /Full guide/ }).getAttribute("aria-disabled")).toBe("true");
+    expect(within(menu).getByRole("menuitem", { name: /Full guide/ }).getAttribute("aria-disabled")).toBeNull();
+    expect(within(menu).getByRole("menuitem", { name: /Replay tour/ }).getAttribute("aria-disabled")).toBe("true");
     expect(within(menu).getByRole("menuitem", { name: "About" }).getAttribute("aria-disabled")).toBeNull();
   });
 

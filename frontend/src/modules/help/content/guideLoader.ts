@@ -73,6 +73,12 @@ export const CHAPTERS: GuideChapter[] = Object.keys(loaders)
   })
   .sort((a, b) => a.number - b.number);
 
+export async function loadChapterText(chapterId: string): Promise<string> {
+  const chapter = CHAPTERS.find((c) => c.id === chapterId);
+  if (!chapter) throw new Error(`Unknown guide chapter ${chapterId}`);
+  return chapter.load();
+}
+
 export function chapterTitleFromMarkdown(markdown: string): string | null {
   const match = /^##\s+\d+\.\s+(.+)$/m.exec(markdown);
   return match ? match[1].trim() : null;

@@ -38,6 +38,7 @@ export function MediaLotFilterBar({
   refreshing
 }: Props) {
   const hasActiveFilters = Boolean(search || selectedMaterialId || selectedStatus);
+  const materialSelectValue = materials.some((m) => String(m.id) === selectedMaterialId) ? selectedMaterialId : "";
 
   return (
     <FilterBar
@@ -51,7 +52,7 @@ export function MediaLotFilterBar({
       <Select
         size="small"
         displayEmpty
-        value={selectedMaterialId}
+        value={materialSelectValue}
         onChange={(e) => onMaterialChange(e.target.value)}
         sx={{ minWidth: 180 }}
         inputProps={{ "aria-label": "Material" }}

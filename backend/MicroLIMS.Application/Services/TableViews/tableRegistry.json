@@ -118,7 +118,7 @@
       { "key": "sectionId", "label": "Laboratory", "defaultVisible": true },
       { "key": "status", "label": "Status", "defaultVisible": true }
     ],
-    "filters": ["search", "instrumentType", "status", "location", "calibrationRange"]
+    "filters": ["search", "instrumentType", "status", "location", "calibrationRange", "kpi"]
   },
   {
     "key": "inventory.equipmentTraceability",
@@ -185,7 +185,7 @@
       { "key": "minimumStockLevel", "label": "Min Stock", "defaultVisible": true },
       { "key": "status", "label": "Status", "defaultVisible": true }
     ],
-    "filters": ["search", "materialType", "manufacturer", "location", "status", "expiryRange"]
+    "filters": ["search", "materialType", "manufacturer", "location", "status", "expiryRange", "kpi"]
   },
   {
     "key": "labConfig.cryovials",
@@ -196,9 +196,10 @@
       { "key": "organism", "label": "Organism & Source", "defaultVisible": true },
       { "key": "approvalStatus", "label": "Status", "defaultVisible": true },
       { "key": "vialsRemaining", "label": "Vials Stock", "defaultVisible": true },
-      { "key": "preparedAt", "label": "Prepared", "defaultVisible": true }
+      { "key": "preparedAt", "label": "Prepared", "defaultVisible": true },
+      { "key": "expiryDate", "label": "Expiry", "defaultVisible": true }
     ],
-    "filters": []
+    "filters": ["search", "organism", "status", "expiryRange"]
   },
   {
     "key": "labConfig.labelFormats",
@@ -394,7 +395,7 @@
       { "key": "expiryDate", "label": "Expiry Date", "defaultVisible": true },
       { "key": "status", "label": "Status", "defaultVisible": true }
     ],
-    "filters": []
+    "filters": ["search", "materialId", "status"]
   },
   {
     "key": "reports.results",
@@ -555,5 +556,40 @@
       { "key": "computedValue", "label": "Result", "defaultVisible": true }
     ],
     "filters": []
+  },
+  {
+    "key": "inventory.approvedMedia",
+    "title": "Approved Media List",
+    "idColumn": "lotNumber",
+    "columns": [
+      { "key": "lotNumber", "label": "Lot Number", "defaultVisible": true },
+      { "key": "mediaType", "label": "Media Type", "defaultVisible": true },
+      { "key": "ph", "label": "pH Result", "defaultVisible": true },
+      { "key": "preparedBy", "label": "Prepared By", "defaultVisible": true },
+      { "key": "volume", "label": "Total Volume", "defaultVisible": true },
+      { "key": "weight", "label": "Total Weight", "defaultVisible": true },
+      { "key": "mfgLot", "label": "Manufacturer Lot", "defaultVisible": true },
+      { "key": "mfgName", "label": "Manufacturer", "defaultVisible": true },
+      { "key": "preparedOn", "label": "Prepared On", "defaultVisible": true },
+      { "key": "expiry", "label": "Expiry", "defaultVisible": true },
+      { "key": "status", "label": "Status", "defaultVisible": true }
+    ],
+    "filters": ["search", "mediaType", "manufacturer", "status", "expiryRange"]
+  },
+  {
+    "key": "inventory.approvedCryovials",
+    "title": "Approved Cryovial List",
+    "idColumn": "code",
+    "columns": [
+      { "key": "code", "label": "Cryovial Code", "defaultVisible": true },
+      { "key": "organism", "label": "Organism", "defaultVisible": true },
+      { "key": "atcc", "label": "ATCC No.", "defaultVisible": true },
+      { "key": "manufacturer", "label": "Manufacturer", "defaultVisible": true },
+      { "key": "storage", "label": "Storage", "defaultVisible": true },
+      { "key": "vials", "label": "Vials Remaining", "defaultVisible": true },
+      { "key": "expiry", "label": "Expiry", "defaultVisible": true },
+      { "key": "status", "label": "Status", "defaultVisible": true }
+    ],
+    "filters": ["search", "organism", "storage", "manufacturer", "status", "expiryRange"]
   }
 ]

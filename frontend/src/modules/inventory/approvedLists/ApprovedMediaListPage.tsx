@@ -3,13 +3,6 @@ import {
   Paper,
   Box,
   Grid,
-  Table,
-  TableHead,
-  TableRow,
-  TableCell,
-  TableBody,
-  TableContainer,
-  TablePagination,
   TextField,
   Select,
   MenuItem,
@@ -20,17 +13,11 @@ import {
   Typography,
   Tooltip,
   Alert,
-  Popover,
-  FormGroup,
-  FormControlLabel,
-  Checkbox,
   useTheme
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 import RotateLeftIcon from "@mui/icons-material/RotateLeft";
-import ViewColumnIcon from "@mui/icons-material/ViewColumn";
 import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
-import FilterAltOffIcon from "@mui/icons-material/FilterAltOff";
 import ScienceOutlinedIcon from "@mui/icons-material/ScienceOutlined";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutlined";
 import WarningAmberOutlinedIcon from "@mui/icons-material/WarningAmberOutlined";
@@ -41,7 +28,10 @@ import { SectionTitle } from "../../../components/SectionTitle";
 import { StatusBadge } from "../../../components/StatusBadge";
 import { PrintButton } from "../../../components/PrintButton";
 import { PrintableTable } from "../../../components/PrintableTable";
-import { TableSkeleton } from "../../../components/TableSkeleton";
+import { RegisterTable } from "../../../components/lab";
+import type { RegisterColumn } from "../../../components/lab";
+import { TableToolbar } from "../../../components/lab/table/TableToolbar";
+import { useTableState } from "../../../components/lab/table/useTableState";
 import { formatLabDate } from "../../../utils/formatDate";
 import { masterDataOptions, mediaClassLabel } from "../../../services/masterDataOptions";
 import { UserService, UserRecord } from "../../users/services/UserService";
@@ -64,43 +54,12 @@ interface ApprovedMediaFilterState {
   expiryRange: string; // "" | "expiring_30" | "expiring_60" | "valid"
 }
 
-const INITIAL_FILTERS: ApprovedMediaFilterState = {
-  search: "",
-  mediaType: "",
-  manufacturer: "",
-  status: "",
-  expiryRange: ""
-};
+const TABLE_KEY = "inventory.approvedMedia";
 
-type ColumnKey =
-  | "mediaType"
-  | "ph"
-  | "preparedBy"
-  | "volume"
-  | "weight"
-  | "mfgLot"
-  | "mfgName"
-  | "preparedOn"
-  | "expiry"
-  | "status";
-
-interface ColumnConfig {
-  key: ColumnKey;
-  label: string;
+function textFilter(filters: Record<string, string | string[]>, name: string): string {
+  const value = filters[name];
+  return typeof value === "string" ? value : "";
 }
-
-const TOGGLEABLE_COLUMNS: ColumnConfig[] = [
-  { key: "mediaType", label: "Media Type" },
-  { key: "ph", label: "pH Result" },
-  { key: "preparedBy", label: "Prepared By" },
-  { key: "volume", label: "Total Volume" },
-  { key: "weight", label: "Total Weight" },
-  { key: "mfgLot", label: "Manufacturer Lot" },
-  { key: "mfgName", label: "Manufacturer" },
-  { key: "preparedOn", label: "Prepared On" },
-  { key: "expiry", label: "Expiry" },
-  { key: "status", label: "Status" }
-];
 
 function isExpiringSoon(expiryDateStr: string | null, daysThreshold: number = 30): boolean {
   if (!expiryDateStr) return false;
@@ -121,27 +80,18 @@ export function ApprovedMediaListPage({ embedded = false }: { embedded?: boolean
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Filters & Pagination states
-  const [filters, setFilters] = useState<ApprovedMediaFilterState>(INITIAL_FILTERS);
-  const [page, setPage] = useState<number>(0);
-  const [rowsPerPage, setRowsPerPage] = useState<number>(25);
-
-  // Column visibility
-  const [visibleColumns, setVisibleColumns] = useState<Set<ColumnKey>>(
-    new Set([
-      "mediaType",
-      "ph",
-      "preparedBy",
-      "volume",
-      "weight",
-      "mfgLot",
-      "mfgName",
-      "preparedOn",
-      "expiry",
-      "status"
-    ])
-  );
-  const [columnsAnchor, setColumnsAnchor] = useState<HTMLElement | null>(null);
+  // The search, dropdowns and page live in the address and in saved views; the columns in the column chooser.
+  const tableState = useTableState(TABLE_KEY);
+  const { setFilter, setSearch, applyState } = tableState;
+  const stateFilters = tableState.state.filters;
+  const stateSearch = tableState.state.search;
+  const filters = useMemo<ApprovedMediaFilterState>(() => ({
+    search: stateSearch,
+    mediaType: textFilter(stateFilters, "mediaType"),
+    manufacturer: textFilter(stateFilters, "manufacturer"),
+    status: textFilter(stateFilters, "status"),
+    expiryRange: textFilter(stateFilters, "expiryRange")
+  }), [stateFilters, stateSearch]);
 
   const loadData = async () => {
     try {
@@ -194,23 +144,18 @@ export function ApprovedMediaListPage({ embedded = false }: { embedded?: boolean
   }, [media]);
 
   const handleFilterChange = (field: keyof ApprovedMediaFilterState, value: string) => {
-    setFilters((prev) => ({ ...prev, [field]: value }));
-    setPage(0);
+    if (field === "search") {
+      setSearch(value);
+    } else {
+      setFilter(field, value);
+    }
   };
 
   const handleReset = () => {
-    setFilters(INITIAL_FILTERS);
-    setPage(0);
-  };
-
-  const toggleColumn = (key: ColumnKey) => {
-    const next = new Set(visibleColumns);
-    if (next.has(key)) {
-      next.delete(key);
-    } else {
-      next.add(key);
-    }
-    setVisibleColumns(next);
+    applyState(
+      { filters: {}, search: "", sort: tableState.state.sort, pageSize: tableState.state.pageSize },
+      tableState.viewId
+    );
   };
 
   // Filtered dataset combining text search and compact dropdown filters
@@ -276,11 +221,6 @@ export function ApprovedMediaListPage({ embedded = false }: { embedded?: boolean
       filters.expiryRange
   );
 
-  // Pagination calculation
-  const paginatedMedia = useMemo(() => {
-    return filteredMedia.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
-  }, [filteredMedia, page, rowsPerPage]);
-
   // Real KPI calculations from loaded released media dataset
   const kpiData = useMemo(() => {
     const totalCount = media.length;
@@ -329,6 +269,123 @@ export function ApprovedMediaListPage({ embedded = false }: { embedded?: boolean
     if (m.preparedByUserId && userMap[m.preparedByUserId]) return userMap[m.preparedByUserId];
     return m.preparedByUserId ? `User #${m.preparedByUserId}` : "—";
   };
+
+  const columns: RegisterColumn<ReleasedMediaRow>[] = [
+    {
+      key: "lotNumber",
+      label: "Lot Number",
+      render: (m) => (
+        <>
+          <Typography
+            sx={{ fontSize: 13, fontWeight: 700, fontFamily: "monospace", color: theme.palette.primary.main }}
+          >
+            {m.lotNumber}
+          </Typography>
+          {m.material?.batchNumber && (
+            <Typography sx={{ fontSize: 12, color: "text.secondary" }} noWrap>
+              Batch: {m.material.batchNumber}
+            </Typography>
+          )}
+        </>
+      )
+    },
+    {
+      key: "mediaType",
+      label: "Media Type",
+      render: (m) => (
+        <>
+          <Typography sx={{ fontSize: 13, fontWeight: 600, color: "text.primary" }}>
+            {m.material?.materialName ?? mediaClassLabel(m.mediaType?.class) ?? "—"}
+          </Typography>
+          {m.material?.materialName && m.mediaType?.class && (
+            <Typography sx={{ fontSize: 12, color: "text.secondary" }} noWrap>
+              {mediaClassLabel(m.mediaType?.class)}
+            </Typography>
+          )}
+        </>
+      )
+    },
+    {
+      key: "ph",
+      label: "pH Result",
+      render: (m) => (
+        <Typography sx={{ fontSize: 12, fontWeight: 700, fontFamily: "monospace", color: "text.primary" }}>
+          {m.ph != null ? Number(m.ph).toFixed(2) : "—"}
+        </Typography>
+      )
+    },
+    {
+      key: "preparedBy",
+      label: "Prepared By",
+      render: (m) => <Typography sx={{ fontSize: 12, color: "text.primary" }}>{getPreparedByName(m)}</Typography>
+    },
+    {
+      key: "volume",
+      label: "Total Volume",
+      render: (m) => <Typography sx={{ fontSize: 12, color: "text.primary" }}>{m.totalVolume || "—"}</Typography>
+    },
+    {
+      key: "weight",
+      label: "Total Weight",
+      render: (m) => (
+        <Typography sx={{ fontSize: 12, color: "text.primary" }}>
+          {m.totalWeight != null ? `${m.totalWeight} g` : "—"}
+        </Typography>
+      )
+    },
+    {
+      key: "mfgLot",
+      label: "Manufacturer Lot",
+      render: (m) => (
+        <Typography sx={{ fontSize: 12, color: "text.primary", fontFamily: "monospace" }}>
+          {m.manufacturerLot || "—"}
+        </Typography>
+      )
+    },
+    {
+      key: "mfgName",
+      label: "Manufacturer",
+      render: (m) => (
+        <Typography sx={{ fontSize: 12, color: "text.primary" }}>
+          {m.manufacturerName || m.material?.manufacturerName || "—"}
+        </Typography>
+      )
+    },
+    {
+      key: "preparedOn",
+      label: "Prepared On",
+      render: (m) => <Typography sx={{ fontSize: 12, color: "text.primary" }}>{formatLabDate(m.preparedAt)}</Typography>
+    },
+    {
+      key: "expiry",
+      label: "Expiry",
+      render: (m) => {
+        const expiring = isExpiringSoon(m.expiryDate, 30);
+        return (
+          <>
+            <Typography
+              sx={{ fontSize: 12, fontWeight: expiring ? 700 : 500, color: expiring ? action.text : "text.primary" }}
+            >
+              {formatLabDate(m.expiryDate)}
+            </Typography>
+            {expiring && (
+              <Typography sx={{ fontSize: 12, color: action.text, fontWeight: 600 }}>Expiring soon</Typography>
+            )}
+          </>
+        );
+      }
+    },
+    {
+      key: "status",
+      label: "Status",
+      render: (m) => (
+        <StatusBadge
+          status={m.status === "OutOfStock" ? "OutOfStock" : "Released"}
+          label={m.status === "OutOfStock" ? "Out of Stock" : "Released"}
+        />
+      )
+    }
+  ];
 
   // Printable table columns
   const printColumns = [
@@ -610,448 +667,62 @@ export function ApprovedMediaListPage({ embedded = false }: { embedded?: boolean
           </Box>
 
           <Box sx={{ display: "flex", alignItems: "center", gap: 1.25 }}>
-            {/* Columns Customizer */}
-            <Button
-              size="small"
-              variant="outlined"
-              startIcon={<ViewColumnIcon fontSize="small" />}
-              onClick={(e) => setColumnsAnchor(e.currentTarget)}
-              sx={{
-                borderColor: "divider",
-                color: "text.secondary",
-                fontSize: 12,
-                "&:hover": { bgcolor: "background.default" }
-              }}
-            >
-              Columns
-            </Button>
-            <Popover
-              open={Boolean(columnsAnchor)}
-              anchorEl={columnsAnchor}
-              onClose={() => setColumnsAnchor(null)}
-              anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
-              transformOrigin={{ vertical: "top", horizontal: "right" }}
-            >
-              <Box sx={{ p: 2, minWidth: 200 }}>
-                <Typography sx={{ fontSize: 12, fontWeight: 700, mb: 1, color: "text.secondary" }}>
-                  Visible Columns
-                </Typography>
-                <FormGroup>
-                  {TOGGLEABLE_COLUMNS.map((col) => (
-                    <FormControlLabel
-                      key={col.key}
-                      label={<Typography sx={{ fontSize: 13 }}>{col.label}</Typography>}
-                      control={
-                        <Checkbox
-                          size="small"
-                          checked={visibleColumns.has(col.key)}
-                          onChange={() => toggleColumn(col.key)}
-                        />
-                      }
-                    />
-                  ))}
-                </FormGroup>
-              </Box>
-            </Popover>
-
             {/* Preserved Print Button */}
             <PrintButton />
           </Box>
         </Box>
 
-        {/* Dense Register Table Card */}
-        <Paper
-          elevation={0}
-          sx={{
-            width: "100%",
-            overflow: "hidden",
-            border: "1px solid",
-            borderColor: "divider",
-            borderRadius: 1.5,
-            bgcolor: "background.paper"
+        <RegisterTable
+          columns={columns}
+          rows={filteredMedia}
+          getRowId={(m) => m.id}
+          tableKey={TABLE_KEY}
+          tableState={tableState}
+          toolbar={<TableToolbar tableKey={TABLE_KEY} tableState={tableState} showSearch={false} />}
+          loading={loading}
+          trailingCell={{
+            label: "Actions",
+            render: (m) => (
+              <Tooltip title="View media lot report record">
+                <Button
+                  component={Link}
+                  to={`/media/${m.id}/report`}
+                  target="_blank"
+                  rel="noopener"
+                  size="small"
+                  variant="outlined"
+                  startIcon={<DescriptionOutlinedIcon fontSize="small" />}
+                  sx={{
+                    px: 1,
+                    py: 0.25,
+                    fontSize: 12,
+                    borderColor: "divider",
+                    color: "text.secondary",
+                    "&:hover": { bgcolor: "background.default" }
+                  }}
+                >
+                  Record
+                </Button>
+              </Tooltip>
+            )
           }}
-        >
-          {loading ? (
-            <TableSkeleton rows={8} cols={8} hasContainer={false} />
-          ) : (
-            <>
-              <TableContainer sx={{ maxHeight: "calc(100vh - 360px)", minHeight: 300 }}>
-                <Table size="small" stickyHeader>
-                  <TableHead>
-                    <TableRow>
-                      <TableCell
-                        sx={{
-                          fontWeight: 700,
-                          fontSize: 12,
-                          bgcolor: "background.default",
-                          color: "text.secondary"
-                        }}
-                      >
-                        Lot Number
-                      </TableCell>
-                      {visibleColumns.has("mediaType") && (
-                        <TableCell
-                          sx={{
-                            fontWeight: 700,
-                            fontSize: 12,
-                            bgcolor: "background.default",
-                            color: "text.secondary"
-                          }}
-                        >
-                          Media Type
-                        </TableCell>
-                      )}
-                      {visibleColumns.has("ph") && (
-                        <TableCell
-                          sx={{
-                            fontWeight: 700,
-                            fontSize: 12,
-                            bgcolor: "background.default",
-                            color: "text.secondary"
-                          }}
-                        >
-                          pH Result
-                        </TableCell>
-                      )}
-                      {visibleColumns.has("preparedBy") && (
-                        <TableCell
-                          sx={{
-                            fontWeight: 700,
-                            fontSize: 12,
-                            bgcolor: "background.default",
-                            color: "text.secondary"
-                          }}
-                        >
-                          Prepared By
-                        </TableCell>
-                      )}
-                      {visibleColumns.has("volume") && (
-                        <TableCell
-                          sx={{
-                            fontWeight: 700,
-                            fontSize: 12,
-                            bgcolor: "background.default",
-                            color: "text.secondary"
-                          }}
-                        >
-                          Total Volume
-                        </TableCell>
-                      )}
-                      {visibleColumns.has("weight") && (
-                        <TableCell
-                          sx={{
-                            fontWeight: 700,
-                            fontSize: 12,
-                            bgcolor: "background.default",
-                            color: "text.secondary"
-                          }}
-                        >
-                          Total Weight
-                        </TableCell>
-                      )}
-                      {visibleColumns.has("mfgLot") && (
-                        <TableCell
-                          sx={{
-                            fontWeight: 700,
-                            fontSize: 12,
-                            bgcolor: "background.default",
-                            color: "text.secondary"
-                          }}
-                        >
-                          Manufacturer Lot
-                        </TableCell>
-                      )}
-                      {visibleColumns.has("mfgName") && (
-                        <TableCell
-                          sx={{
-                            fontWeight: 700,
-                            fontSize: 12,
-                            bgcolor: "background.default",
-                            color: "text.secondary"
-                          }}
-                        >
-                          Manufacturer
-                        </TableCell>
-                      )}
-                      {visibleColumns.has("preparedOn") && (
-                        <TableCell
-                          sx={{
-                            fontWeight: 700,
-                            fontSize: 12,
-                            bgcolor: "background.default",
-                            color: "text.secondary"
-                          }}
-                        >
-                          Prepared On
-                        </TableCell>
-                      )}
-                      {visibleColumns.has("expiry") && (
-                        <TableCell
-                          sx={{
-                            fontWeight: 700,
-                            fontSize: 12,
-                            bgcolor: "background.default",
-                            color: "text.secondary"
-                          }}
-                        >
-                          Expiry
-                        </TableCell>
-                      )}
-                      {visibleColumns.has("status") && (
-                        <TableCell
-                          sx={{
-                            fontWeight: 700,
-                            fontSize: 12,
-                            bgcolor: "background.default",
-                            color: "text.secondary"
-                          }}
-                        >
-                          Status
-                        </TableCell>
-                      )}
-                      <TableCell
-                        align="right"
-                        sx={{
-                          fontWeight: 700,
-                          fontSize: 12,
-                          bgcolor: "background.default",
-                          color: "text.secondary"
-                        }}
-                      >
-                        Actions
-                      </TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {paginatedMedia.length === 0 ? (
-                      <TableRow>
-                        <TableCell
-                          colSpan={2 + visibleColumns.size}
-                          align="center"
-                          sx={{ py: 6 }}
-                        >
-                          <Box
-                            sx={{
-                              display: "flex",
-                              flexDirection: "column",
-                              alignItems: "center",
-                              gap: 1.5
-                            }}
-                          >
-                            <FilterAltOffIcon sx={{ fontSize: 36, color: "text.secondary", opacity: 0.6 }} />
-                            <Typography sx={{ color: "text.secondary", fontSize: 14 }}>
-                              {hasActiveFilters
-                                ? "No approved media lots match the selected filters."
-                                : "No approved media lots currently available in inventory."}
-                            </Typography>
-                            {hasActiveFilters && (
-                              <Button
-                                size="small"
-                                variant="outlined"
-                                onClick={handleReset}
-                                startIcon={<RotateLeftIcon fontSize="small" />}
-                                sx={{ borderColor: "divider", color: "text.secondary", mt: 0.5 }}
-                              >
-                                Reset Filters
-                              </Button>
-                            )}
-                          </Box>
-                        </TableCell>
-                      </TableRow>
-                    ) : (
-                      paginatedMedia.map((m) => {
-                        const expiring = isExpiringSoon(m.expiryDate, 30);
-                        const mfg = m.manufacturerName || m.material?.manufacturerName || "—";
-                        const prepBy = getPreparedByName(m);
-
-                        return (
-                          <TableRow
-                            key={m.id}
-                            hover
-                            sx={{
-                              "&:nth-of-type(even)": { bgcolor: "background.default" }
-                            }}
-                          >
-                            {/* Lot Number */}
-                            <TableCell sx={{ py: 1.25 }}>
-                              <Typography
-                                sx={{
-                                  fontSize: 13,
-                                  fontWeight: 700,
-                                  fontFamily: "monospace",
-                                  color: theme.palette.primary.main
-                                }}
-                              >
-                                {m.lotNumber}
-                              </Typography>
-                              {m.material?.batchNumber && (
-                                <Typography sx={{ fontSize: 12, color: "text.secondary" }} noWrap>
-                                  Batch: {m.material.batchNumber}
-                                </Typography>
-                              )}
-                            </TableCell>
-
-                            {/* Media Type */}
-                            {visibleColumns.has("mediaType") && (
-                              <TableCell sx={{ py: 1.25 }}>
-                                <Typography sx={{ fontSize: 13, fontWeight: 600, color: "text.primary" }}>
-                                  {m.material?.materialName ?? mediaClassLabel(m.mediaType?.class) ?? "—"}
-                                </Typography>
-                                {m.material?.materialName && m.mediaType?.class && (
-                                  <Typography sx={{ fontSize: 12, color: "text.secondary" }} noWrap>
-                                    {mediaClassLabel(m.mediaType?.class)}
-                                  </Typography>
-                                )}
-                              </TableCell>
-                            )}
-
-                            {/* pH Result */}
-                            {visibleColumns.has("ph") && (
-                              <TableCell sx={{ py: 1.25 }}>
-                                <Typography
-                                  sx={{
-                                    fontSize: 12,
-                                    fontWeight: 700,
-                                    fontFamily: "monospace",
-                                    color: "text.primary"
-                                  }}
-                                >
-                                  {m.ph != null ? Number(m.ph).toFixed(2) : "—"}
-                                </Typography>
-                              </TableCell>
-                            )}
-
-                            {/* Prepared By */}
-                            {visibleColumns.has("preparedBy") && (
-                              <TableCell sx={{ py: 1.25 }}>
-                                <Typography sx={{ fontSize: 12, color: "text.primary" }}>
-                                  {prepBy}
-                                </Typography>
-                              </TableCell>
-                            )}
-
-                            {/* Total Volume */}
-                            {visibleColumns.has("volume") && (
-                              <TableCell sx={{ py: 1.25 }}>
-                                <Typography sx={{ fontSize: 12, color: "text.primary" }}>
-                                  {m.totalVolume || "—"}
-                                </Typography>
-                              </TableCell>
-                            )}
-
-                            {/* Total Weight */}
-                            {visibleColumns.has("weight") && (
-                              <TableCell sx={{ py: 1.25 }}>
-                                <Typography sx={{ fontSize: 12, color: "text.primary" }}>
-                                  {m.totalWeight != null ? `${m.totalWeight} g` : "—"}
-                                </Typography>
-                              </TableCell>
-                            )}
-
-                            {/* Manufacturer Lot */}
-                            {visibleColumns.has("mfgLot") && (
-                              <TableCell sx={{ py: 1.25 }}>
-                                <Typography sx={{ fontSize: 12, color: "text.primary", fontFamily: "monospace" }}>
-                                  {m.manufacturerLot || "—"}
-                                </Typography>
-                              </TableCell>
-                            )}
-
-                            {/* Manufacturer */}
-                            {visibleColumns.has("mfgName") && (
-                              <TableCell sx={{ py: 1.25 }}>
-                                <Typography sx={{ fontSize: 12, color: "text.primary" }}>
-                                  {mfg}
-                                </Typography>
-                              </TableCell>
-                            )}
-
-                            {/* Prepared On */}
-                            {visibleColumns.has("preparedOn") && (
-                              <TableCell sx={{ py: 1.25 }}>
-                                <Typography sx={{ fontSize: 12, color: "text.primary" }}>
-                                  {formatLabDate(m.preparedAt)}
-                                </Typography>
-                              </TableCell>
-                            )}
-
-                            {/* Expiry */}
-                            {visibleColumns.has("expiry") && (
-                              <TableCell sx={{ py: 1.25 }}>
-                                <Typography
-                                  sx={{
-                                    fontSize: 12,
-                                    fontWeight: expiring ? 700 : 500,
-                                    color: expiring ? action.text : "text.primary"
-                                  }}
-                                >
-                                  {formatLabDate(m.expiryDate)}
-                                </Typography>
-                                {expiring && (
-                                  <Typography sx={{ fontSize: 12, color: action.text, fontWeight: 600 }}>
-                                    Expiring soon
-                                  </Typography>
-                                )}
-                              </TableCell>
-                            )}
-
-                            {/* Status */}
-                            {visibleColumns.has("status") && (
-                              <TableCell sx={{ py: 1.25 }}>
-                                <StatusBadge
-                                  status={m.status === "OutOfStock" ? "OutOfStock" : "Released"}
-                                  label={m.status === "OutOfStock" ? "Out of Stock" : "Released"}
-                                />
-                              </TableCell>
-                            )}
-
-                            {/* Actions */}
-                            <TableCell align="right" sx={{ py: 1.25 }}>
-                              <Tooltip title="View media lot report record">
-                                <Button
-                                  component={Link}
-                                  to={`/media/${m.id}/report`}
-                                  target="_blank"
-                                  rel="noopener"
-                                  size="small"
-                                  variant="outlined"
-                                  startIcon={<DescriptionOutlinedIcon fontSize="small" />}
-                                  sx={{
-                                    px: 1,
-                                    py: 0.25,
-                                    fontSize: 12,
-                                    borderColor: "divider",
-                                    color: "text.secondary",
-                                    "&:hover": { bgcolor: "background.default" }
-                                  }}
-                                >
-                                  Record
-                                </Button>
-                              </Tooltip>
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })
-                    )}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-
-              <TablePagination
-                rowsPerPageOptions={[10, 25, 50, 100]}
-                component="div"
-                count={filteredMedia.length}
-                rowsPerPage={rowsPerPage}
-                page={page}
-                onPageChange={(_, newPage) => setPage(newPage)}
-                onRowsPerPageChange={(e) => {
-                  setRowsPerPage(parseInt(e.target.value, 10));
-                  setPage(0);
-                }}
-              />
-            </>
-          )}
-        </Paper>
+          empty={{
+            title: hasActiveFilters
+              ? "No approved media lots match the selected filters."
+              : "No approved media lots currently available in inventory.",
+            action: hasActiveFilters ? (
+              <Button
+                size="small"
+                variant="outlined"
+                onClick={handleReset}
+                startIcon={<RotateLeftIcon fontSize="small" />}
+                sx={{ borderColor: "divider", color: "text.secondary", mt: 0.5 }}
+              >
+                Reset Filters
+              </Button>
+            ) : undefined
+          }}
+        />
       </Box>
 
       {/* Printable version rendered only in print dialog */}

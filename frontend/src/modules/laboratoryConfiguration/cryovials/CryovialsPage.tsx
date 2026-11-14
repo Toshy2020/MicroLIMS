@@ -4,6 +4,7 @@ import { useSearchParams } from "react-router-dom";
 import AddIcon from "@mui/icons-material/Add";
 import { SignatureDialog } from "../../../components/SignatureDialog";
 import { LabPage } from "../../../components/lab";
+import { useTableState } from "../../../components/lab/table/useTableState";
 import { CryovialService } from "./services/CryovialService";
 import { CryovialItem, CryovialFilterState } from "./types/cryovialTypes";
 import { CryovialKpiCards } from "./components/CryovialKpiCards";
@@ -19,32 +20,20 @@ import { PERMISSIONS } from "../../../routes/routes";
 import { PrintLabelsDialog } from "../../../components/labels/PrintLabelsDialog";
 import { usePostCreateLabelPrint } from "../../../components/labels/usePostCreateLabelPrint";
 
-const INITIAL_FILTERS: CryovialFilterState = {
-  search: "",
-  status: "",
-  organism: "",
-  expiryRange: ""
-};
+const TABLE_KEY = "labConfig.cryovials";
+const DROPDOWN_FILTERS = ["organism", "status", "expiryRange"] as const;
+
+function textFilter(filters: Record<string, string | string[]>, name: string): string {
+  const value = filters[name];
+  return typeof value === "string" ? value : "";
+}
 
 export function CryovialsPage() {
-  const { permissions } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const tab = searchParams.get("tab") === "approved" ? "approved" : "register";
   const [cryovials, setCryovials] = useState<CryovialItem[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState<{ text: string; ok: boolean } | null>(null);
-
-  // Filters state
-  const [filters, setFilters] = useState<CryovialFilterState>(INITIAL_FILTERS);
-
-  // Dialog states
-  const [isPrepareOpen, setIsPrepareOpen] = useState(false);
-  const [thawItem, setThawItem] = useState<CryovialItem | null>(null);
-  const [destroyItem, setDestroyItem] = useState<CryovialItem | null>(null);
-  const [moveItem, setMoveItem] = useState<CryovialItem | null>(null);
-  const [pendingDecision, setPendingDecision] = useState<{ cryovial: CryovialItem; approved: boolean } | null>(null);
-  const [decisionComment, setDecisionComment] = useState("");
-  const postCreatePrint = usePostCreateLabelPrint();
 
   const loadData = async () => {
     try {
@@ -62,12 +51,99 @@ export function CryovialsPage() {
     loadData();
   }, []);
 
+  const tabs = (
+    <Tabs
+      value={tab}
+      onChange={(_, v) => setSearchParams(v === "approved" ? { tab: "approved" } : {}, { replace: true })}
+      sx={{ mb: 2, borderBottom: 1, borderColor: "divider" }}
+    >
+      <Tab value="register" label="Cryovials" />
+      <Tab value="approved" label="Approved Cryovials" />
+    </Tabs>
+  );
+
+  if (tab === "approved") {
+    return (
+      <>
+        {tabs}
+        <ApprovedCryovialListPage embedded />
+      </>
+    );
+  }
+
+  return (
+    <>
+      {tabs}
+      <CryovialsRegisterContent
+        cryovials={cryovials}
+        loading={loading}
+        message={message}
+        onDismissMessage={() => setMessage(null)}
+        onMessage={setMessage}
+        onReload={loadData}
+      />
+    </>
+  );
+}
+
+interface CryovialsRegisterContentProps {
+  cryovials: CryovialItem[] | null;
+  loading: boolean;
+  message: { text: string; ok: boolean } | null;
+  onDismissMessage: () => void;
+  onMessage: (msg: { text: string; ok: boolean } | null) => void;
+  onReload: () => Promise<void>;
+}
+
+function CryovialsRegisterContent({
+  cryovials,
+  loading,
+  message,
+  onDismissMessage,
+  onMessage,
+  onReload
+}: CryovialsRegisterContentProps) {
+  const { permissions } = useAuth();
+
+  // Search, dropdowns, sort and page live in the address and in saved views; columns in the column chooser.
+  const tableState = useTableState(TABLE_KEY);
+  const { setFilter, setSearch, applyState } = tableState;
+  const stateFilters = tableState.state.filters;
+  const stateSearch = tableState.state.search;
+  const filters = useMemo<CryovialFilterState>(
+    () => ({
+      search: stateSearch,
+      status: textFilter(stateFilters, "status"),
+      organism: textFilter(stateFilters, "organism"),
+      expiryRange: textFilter(stateFilters, "expiryRange")
+    }),
+    [stateFilters, stateSearch]
+  );
+
+  // Dialog states
+  const [isPrepareOpen, setIsPrepareOpen] = useState(false);
+  const [thawItem, setThawItem] = useState<CryovialItem | null>(null);
+  const [destroyItem, setDestroyItem] = useState<CryovialItem | null>(null);
+  const [moveItem, setMoveItem] = useState<CryovialItem | null>(null);
+  const [pendingDecision, setPendingDecision] = useState<{ cryovial: CryovialItem; approved: boolean } | null>(null);
+  const [decisionComment, setDecisionComment] = useState("");
+  const postCreatePrint = usePostCreateLabelPrint();
+
   const handleReset = () => {
-    setFilters(INITIAL_FILTERS);
+    applyState(
+      { filters: {}, search: "", sort: tableState.state.sort, pageSize: tableState.state.pageSize },
+      tableState.viewId
+    );
   };
 
+  // The filter bar reports one changed field at a time.
   const handleFilterChange = (newFilters: CryovialFilterState) => {
-    setFilters(newFilters);
+    if (newFilters.search !== filters.search) {
+      setSearch(newFilters.search);
+      return;
+    }
+    const changed = DROPDOWN_FILTERS.find((name) => newFilters[name] !== filters[name]);
+    if (changed) setFilter(changed, newFilters[changed]);
   };
 
   // Filtered dataset driven by form filters
@@ -137,7 +213,7 @@ export function CryovialsPage() {
   const confirmDecision = async (password: string) => {
     if (!pendingDecision) return;
     await CryovialService.approve(pendingDecision.cryovial.id, pendingDecision.approved, password, decisionComment);
-    setMessage({
+    onMessage({
       text: `Cryovial batch ${pendingDecision.cryovial.code} has been ${
         pendingDecision.approved ? "Approved" : "Rejected"
       }.`,
@@ -145,53 +221,32 @@ export function CryovialsPage() {
     });
     setPendingDecision(null);
     setDecisionComment("");
-    loadData();
+    onReload();
   };
 
   const handleThawConfirm = async (reason: string) => {
     if (!thawItem) return;
     await CryovialService.thawVial(thawItem.id, reason);
-    setMessage({ text: `Vial from ${thawItem.code} successfully thawed and logged.`, ok: true });
+    onMessage({ text: `Vial from ${thawItem.code} successfully thawed and logged.`, ok: true });
     setThawItem(null);
-    loadData();
+    onReload();
   };
 
   const handleDestroyConfirm = async () => {
     if (!destroyItem) return;
     await CryovialService.destroy(destroyItem.id);
-    setMessage({
+    onMessage({
       text: `Batch ${destroyItem.code} has been decommissioned and destroyed.`,
       ok: true
     });
     setDestroyItem(null);
-    loadData();
+    onReload();
   };
 
   const isFiltered = Object.values(filters).some((v) => v !== "");
 
-  const tabs = (
-    <Tabs
-      value={tab}
-      onChange={(_, v) => setSearchParams(v === "approved" ? { tab: "approved" } : {}, { replace: true })}
-      sx={{ mb: 2, borderBottom: 1, borderColor: "divider" }}
-    >
-      <Tab value="register" label="Cryovials" />
-      <Tab value="approved" label="Approved Cryovials" />
-    </Tabs>
-  );
-
-  if (tab === "approved") {
-    return (
-      <>
-        {tabs}
-        <ApprovedCryovialListPage embedded />
-      </>
-    );
-  }
-
   return (
     <>
-      {tabs}
       <LabPage
         title="Cryovials"
         subtitle="Prepare working cryovial batches from an approved lyophilized microorganism material."
@@ -208,13 +263,13 @@ export function CryovialsPage() {
             onFilterChange={handleFilterChange}
             onReset={handleReset}
             resultCount={filteredCryovials.length}
-            onRefresh={loadData}
+            onRefresh={onReload}
             refreshing={loading}
           />
         }
       >
         {message && (
-          <Alert severity={message.ok ? "success" : "error"} onClose={() => setMessage(null)}>
+          <Alert severity={message.ok ? "success" : "error"} onClose={onDismissMessage}>
             {message.text}
           </Alert>
         )}
@@ -223,6 +278,8 @@ export function CryovialsPage() {
           items={filteredCryovials}
           loading={loading}
           isFiltered={isFiltered}
+          tableKey={TABLE_KEY}
+          tableState={tableState}
           onApproveClick={handleApproveClick}
           onThawClick={(item) => setThawItem(item)}
           onDestroyClick={(item) => setDestroyItem(item)}
@@ -237,8 +294,8 @@ export function CryovialsPage() {
         onClose={() => setIsPrepareOpen(false)}
         onSuccess={(_msg, created) => {
           setIsPrepareOpen(false);
-          setMessage({ text: "Cryovial batch prepared successfully. Awaiting Section Head approval.", ok: true });
-          loadData();
+          onMessage({ text: "Cryovial batch prepared successfully. Awaiting Section Head approval.", ok: true });
+          onReload();
           if (created) {
             postCreatePrint.offerPrint([
               {
@@ -271,8 +328,8 @@ export function CryovialsPage() {
         onClose={() => setMoveItem(null)}
         onMoved={(text) => {
           setMoveItem(null);
-          setMessage({ text, ok: true });
-          loadData();
+          onMessage({ text, ok: true });
+          onReload();
         }}
       />
 

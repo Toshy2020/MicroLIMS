@@ -1,6 +1,8 @@
 import { Typography } from "@mui/material";
 import { RegisterTable } from "../../../../components/lab";
 import type { RegisterColumn, RegisterRowAction } from "../../../../components/lab";
+import { TableToolbar } from "../../../../components/lab/table/TableToolbar";
+import type { UseTableState } from "../../../../components/lab/table/useTableState";
 import { StatusBadge } from "../../../../components/StatusBadge";
 import { lifecycleOf } from "./MediaLotKpiCards";
 import { monospaceFontFamily } from "../../../../theme/palette";
@@ -25,6 +27,8 @@ interface Props {
   isCompact?: boolean;
   loading?: boolean;
   isFiltered?: boolean;
+  tableKey?: string;
+  tableState?: UseTableState;
   onViewRecord: (lotId: number) => void;
   onViewAuditHistory: (lotId: number) => void;
   onRequestReleaseDecision?: (lot: any, approved: boolean) => void;
@@ -38,6 +42,8 @@ export function MediaLotRegisterTable({
   isCompact,
   loading,
   isFiltered,
+  tableKey,
+  tableState,
   onViewRecord,
   onViewAuditHistory,
   onRequestReleaseDecision
@@ -124,6 +130,13 @@ export function MediaLotRegisterTable({
       columns={columns}
       rows={lots}
       getRowId={(lot) => lot.id}
+      tableKey={!isCompact ? tableKey : undefined}
+      tableState={tableState}
+      toolbar={
+        !isCompact && tableKey && tableState ? (
+          <TableToolbar tableKey={tableKey} tableState={tableState} showSearch={false} />
+        ) : undefined
+      }
       loading={loading}
       onRowClick={onSelectLot}
       rowActions={rowActions}

@@ -1,6 +1,8 @@
 import { Box, Typography } from "@mui/material";
 import { RegisterTable } from "../../../../components/lab";
 import type { RegisterColumn, RegisterRowAction } from "../../../../components/lab";
+import { TableToolbar } from "../../../../components/lab/table/TableToolbar";
+import type { UseTableState } from "../../../../components/lab/table/useTableState";
 import { StatusBadge } from "../../../../components/StatusBadge";
 import { formatLabDate } from "../../../../utils/formatDate";
 import { CryovialItem } from "../types/cryovialTypes";
@@ -11,6 +13,8 @@ interface CryovialReviewTableProps {
   items: CryovialItem[];
   loading?: boolean;
   isFiltered?: boolean;
+  tableKey?: string;
+  tableState?: UseTableState;
   onApproveClick: (cryovial: CryovialItem, approved: boolean) => void;
   onThawClick: (cryovial: CryovialItem) => void;
   onDestroyClick: (cryovial: CryovialItem) => void;
@@ -117,7 +121,18 @@ const COLUMNS: RegisterColumn<CryovialItem>[] = [
   }
 ];
 
-export function CryovialReviewTable({ items, loading, isFiltered, onApproveClick, onThawClick, onDestroyClick, onMoveStorageClick, canMoveStorage = false }: CryovialReviewTableProps) {
+export function CryovialReviewTable({
+  items,
+  loading,
+  isFiltered,
+  tableKey,
+  tableState,
+  onApproveClick,
+  onThawClick,
+  onDestroyClick,
+  onMoveStorageClick,
+  canMoveStorage = false
+}: CryovialReviewTableProps) {
   // Same availability rules as the former inline buttons.
   const rowActions = (c: CryovialItem): RegisterRowAction[] => {
     const actions: RegisterRowAction[] = [];
@@ -145,6 +160,13 @@ export function CryovialReviewTable({ items, loading, isFiltered, onApproveClick
       columns={COLUMNS}
       rows={items}
       getRowId={(c) => c.id}
+      tableKey={tableKey}
+      tableState={tableState}
+      toolbar={
+        tableKey && tableState ? (
+          <TableToolbar tableKey={tableKey} tableState={tableState} showSearch={false} />
+        ) : undefined
+      }
       loading={loading}
       rowActions={rowActions}
       rowTone={(c) => {

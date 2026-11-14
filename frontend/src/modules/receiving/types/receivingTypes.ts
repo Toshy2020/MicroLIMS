@@ -203,6 +203,46 @@ export interface AfterCleaningReceiveRequest {
   techniques?: string[] | null;
 }
 
+export type BatchReceiveCategory = "Product" | "Water" | "EM" | "AfterCleaning";
+
+export interface BatchReceiveRequest {
+  category: BatchReceiveCategory;
+  items?: ItemBasedReceiveRequest[];
+  water?: WaterReceiveRequest[];
+  em?: EMReceiveRequest[];
+  afterCleaning?: AfterCleaningReceiveRequest[];
+}
+
+export interface BatchReceivedSample {
+  row: number;
+  sampleId: number;
+  referenceNumber: string;
+}
+
+export interface BatchReceiveResult {
+  samples: BatchReceivedSample[];
+}
+
+export interface NamedOption {
+  id: number;
+  name: string;
+}
+
+export interface ItemOption extends NamedOption {
+  category?: string;
+}
+
+export interface ReceivingMasterData {
+  items: ItemOption[];
+  waterPoints: NamedOption[];
+  waterDepartments: NamedOption[];
+  departments: NamedOption[];
+  machines: NamedOption[];
+  causes: NamedOption[];
+  samplers: NamedOption[];
+  productionStages: NamedOption[];
+}
+
 export type SampleCategoryKey = "product" | "rm" | "pm" | "water" | "em" | "ac";
 
 export interface CategoryDefinition {

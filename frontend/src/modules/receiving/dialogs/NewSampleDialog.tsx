@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Button,
   Box,
@@ -11,13 +11,24 @@ import {
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import CheckIcon from "@mui/icons-material/Check";
-import { CreatedSampleRef, ReceiveRowItem, SampleCategoryKey, SampleRecord } from "../types/receivingTypes";
+import {
+  BatchReceivedSample,
+  BatchReceiveRequest,
+  CreatedSampleRef,
+  ReceiveRowItem,
+  ReceivingMasterData,
+  SampleCategoryKey
+} from "../types/receivingTypes";
 import { RECEIVING_CATEGORIES } from "../constants/receivingConstants";
 import { SampleTypeSelector } from "./SampleTypeSelector";
-import { MultiSampleEntryGrid, LabMode } from "./MultiSampleEntryGrid";
+import { FocusErrorTarget, LabMode, MAX_RECEIVE_ROWS, MultiSampleEntryGrid } from "./MultiSampleEntryGrid";
 import { ReceiveService } from "../services/ReceiveService";
 import { masterDataOptions } from "../../../services/masterDataOptions";
 import { FloatingDialog } from "../../../components/FloatingDialog";
+import { DraftRestoreNotice } from "../../../components/bench/DraftRestoreNotice";
+import { useBenchDraft } from "../../../hooks/useBenchDraft";
+import { errorsByField, errorsByRow } from "../../../utils/fieldErrors";
+import { getErrorMessage } from "../../../utils/errorMessage";
 
 interface Props {
   open: boolean;
@@ -35,10 +46,47 @@ interface Props {
 // The sampling time is optional; the server checks it is not after the receipt.
 const sampledAtIso = (row: ReceiveRowItem) => (row.sampledAt ? new Date(row.sampledAt).toISOString() : null);
 
-const toCreatedSampleRef = (sample: SampleRecord): CreatedSampleRef => ({
-  id: sample.id ?? sample.sampleId,
-  referenceNumber: sample.referenceNumber
-});
+function formatHm(date: Date): string {
+  const h = String(date.getHours()).padStart(2, "0");
+  const m = String(date.getMinutes()).padStart(2, "0");
+  return `${h}:${m}`;
+}
+
+// Explicit allow-list of receiving fields stored in the device draft.
+// Excludes coaFile (File objects are never persisted/restored) and errors.
+function pickReceivingDraft(values: { rows: ReceiveRowItem[] }): Partial<{ rows: ReceiveRowItem[] }> {
+  return {
+    rows: values.rows.map((r) => ({
+      id: r.id,
+      itemId: r.itemId,
+      previousProductItemId: r.previousProductItemId,
+      previousProductName: r.previousProductName,
+      previousProductBatchNumber: r.previousProductBatchNumber,
+      techniques: r.techniques ? [...r.techniques] : [],
+      productionStage: r.productionStage,
+      waterSamplingPointId: r.waterSamplingPointId,
+      departmentId: r.departmentId,
+      machineId: r.machineId,
+      causeOfTestingId: r.causeOfTestingId,
+      sampleQuantity: r.sampleQuantity,
+      sampledBy: r.sampledBy,
+      sampledAt: r.sampledAt,
+      batchNumber: r.batchNumber,
+      controlNumber: r.controlNumber,
+      mfgDate: r.mfgDate,
+      expDate: r.expDate,
+      targetSectionIds: r.targetSectionIds ? [...r.targetSectionIds] : undefined,
+      gradeOptions: r.gradeOptions ? [...r.gradeOptions] : undefined,
+      grade: r.grade
+    }))
+  };
+}
+
+function formatErrorSummary(problemCount: number, failingRowCount: number): string {
+  const p = problemCount === 1 ? "problem" : "problems";
+  const r = failingRowCount === 1 ? "row" : "rows";
+  return `${problemCount} ${p} in ${failingRowCount} ${r}`;
+}
 
 const createEmptyRow = (defaultValues?: Partial<ReceiveRowItem>): ReceiveRowItem => ({
   id: Math.random().toString(36).substring(2, 9),
@@ -68,16 +116,7 @@ export function NewSampleDialog({ open, onClose, onSuccess, allowedCategories, l
   const [category, setCategory] = useState<SampleCategoryKey | null>(null);
   const [rows, setRows] = useState<ReceiveRowItem[]>([createEmptyRow()]);
 
-  const [masterData, setMasterData] = useState<{
-    items: any[];
-    waterPoints: any[];
-    waterDepartments: any[];
-    departments: any[];
-    machines: any[];
-    causes: any[];
-    samplers: any[];
-    productionStages: any[];
-  }>({
+  const [masterData, setMasterData] = useState<ReceivingMasterData>({
     items: [],
     waterPoints: [],
     waterDepartments: [],
@@ -92,6 +131,47 @@ export function NewSampleDialog({ open, onClose, onSuccess, allowedCategories, l
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [warnings, setWarnings] = useState<string[]>([]);
   const [warningSnackbarOpen, setWarningSnackbarOpen] = useState(false);
+  const [focusErrorTarget, setFocusErrorTarget] = useState<FocusErrorTarget | null>(null);
+  const focusNonceRef = useRef(0);
+  const [receivedByRow, setReceivedByRow] = useState<Record<number, BatchReceivedSample> | null>(null);
+  const [coaErrorByRow, setCoaErrorByRow] = useState<Record<number, string>>({});
+  const [retryingCoaRow, setRetryingCoaRow] = useState<number | null>(null);
+  const [draftSavedAt, setDraftSavedAt] = useState<Date | null>(null);
+
+  const currentCategoryDef = RECEIVING_CATEGORIES.find((c) => c.key === category);
+
+  const draft = useBenchDraft<{ rows: ReceiveRowItem[] }>({
+    formKey: "receiving",
+    recordKey: category ?? "none",
+    recordVersion: null,
+    title: currentCategoryDef ? `Receive ${currentCategoryDef.label}` : "Receive Sample",
+    values: { rows },
+    pick: pickReceivingDraft,
+    enabled: open && step === 2 && category !== null && !receivedByRow
+  });
+
+  const draftBaselineRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!open || step !== 2 || !category) {
+      draftBaselineRef.current = null;
+      setDraftSavedAt(null);
+      return;
+    }
+    const json = JSON.stringify(pickReceivingDraft({ rows }));
+    if (draftBaselineRef.current === null) {
+      draftBaselineRef.current = json;
+      return;
+    }
+    if (json === draftBaselineRef.current || draft.restoredStartedAt || receivedByRow) {
+      return;
+    }
+    const timer = setTimeout(() => {
+      if (draft.storageAvailable) {
+        setDraftSavedAt(new Date());
+      }
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [open, step, category, rows, draft.restoredStartedAt, draft.storageAvailable, receivedByRow]);
 
   // Load shared master data when dialog opens
   useEffect(() => {
@@ -100,6 +180,11 @@ export function NewSampleDialog({ open, onClose, onSuccess, allowedCategories, l
       setCategory(null);
       setRows([createEmptyRow()]);
       setErrorMessage(null);
+      setFocusErrorTarget(null);
+      setReceivedByRow(null);
+      setCoaErrorByRow({});
+      setRetryingCoaRow(null);
+      setDraftSavedAt(null);
 
       masterDataOptions.getCausesOfTesting().then((causes) =>
         setMasterData((prev) => ({ ...prev, causes }))
@@ -153,7 +238,11 @@ export function NewSampleDialog({ open, onClose, onSuccess, allowedCategories, l
     setErrorMessage(null);
   };
 
-  const handleChangeRow = (index: number, field: string, value: any) => {
+  const handleChangeRow = useCallback(<K extends keyof ReceiveRowItem>(
+    index: number,
+    field: K,
+    value: ReceiveRowItem[K]
+  ) => {
     setRows((prev) => {
       const updated = [...prev];
       const row = { ...updated[index], [field]: value };
@@ -165,10 +254,11 @@ export function NewSampleDialog({ open, onClose, onSuccess, allowedCategories, l
       updated[index] = row;
       return updated;
     });
-  };
+  }, []);
 
   const handleAddRow = () => {
     setRows((prev) => {
+      if (prev.length >= MAX_RECEIVE_ROWS) return prev;
       // Intelligently prefill common fields (sampledBy, causeOfTestingId) from last row
       const lastRow = prev[prev.length - 1];
       const newRow = createEmptyRow({
@@ -185,11 +275,53 @@ export function NewSampleDialog({ open, onClose, onSuccess, allowedCategories, l
     setRows((prev) => prev.filter((_, i) => i !== index));
   };
 
+  const applyErrorsAndFocus = (
+    errorsByRowIdx: Record<number, Record<string, string>>,
+    topLevelErrors: Record<string, string> = {}
+  ) => {
+    let totalProblems = Object.keys(topLevelErrors).length;
+    let failingRows = 0;
+    let firstTarget: { row: number; field: string } | null = null;
+
+    const updatedRows = rows.map((row, idx) => {
+      const raw = errorsByRowIdx[idx] ?? {};
+      const mapped: Record<string, string> = {};
+      for (const [k, v] of Object.entries(raw)) {
+        const uiKey = category === "water" && k === "waterDepartmentId" ? "departmentId" : k;
+        mapped[uiKey] = v;
+      }
+      const keys = Object.keys(mapped);
+      if (keys.length > 0) {
+        totalProblems += keys.length;
+        failingRows += 1;
+        if (!firstTarget) {
+          firstTarget = { row: idx, field: keys[0] };
+        }
+      }
+      return { ...row, errors: mapped };
+    });
+
+    setRows(updatedRows);
+
+    if (firstTarget) {
+      focusNonceRef.current += 1;
+      setFocusErrorTarget({ ...(firstTarget as { row: number; field: string }), nonce: focusNonceRef.current });
+    }
+
+    if (failingRows > 0) {
+      const topMsgs = Object.values(topLevelErrors);
+      const summary = formatErrorSummary(totalProblems, failingRows);
+      setErrorMessage(topMsgs.length > 0 ? `${summary}\n${topMsgs.join("\n")}` : summary);
+    } else if (Object.keys(topLevelErrors).length > 0) {
+      setErrorMessage(Object.values(topLevelErrors).join("\n"));
+    }
+  };
+
   const validateRows = (): boolean => {
     let isValid = true;
-    const errorSummaries: string[] = [];
+    const rowErrors: Record<number, Record<string, string>> = {};
 
-    const validatedRows = rows.map((row, idx) => {
+    rows.forEach((row, idx) => {
       const errors: Record<string, string> = {};
 
       if (category === "product" || category === "rm" || category === "pm") {
@@ -263,22 +395,98 @@ export function NewSampleDialog({ open, onClose, onSuccess, allowedCategories, l
       }
 
       if (Object.keys(errors).length > 0) {
-        errorSummaries.push(`Row ${idx + 1}: ${Object.values(errors).join(", ")}`);
+        rowErrors[idx] = errors;
       }
-
-      return { ...row, errors };
     });
 
-    setRows(validatedRows);
-
     if (!isValid) {
-      setErrorMessage(`Please fix validation errors before saving:\n${errorSummaries.join("\n")}`);
+      applyErrorsAndFocus(rowErrors);
+      setErrorMessage((prev) =>
+        prev ? `Please fix validation errors before saving:\n${prev}` : "Please fix validation errors before saving."
+      );
     }
 
     return isValid;
   };
 
+  const buildBatchRequest = (cat: SampleCategoryKey): BatchReceiveRequest => {
+    if (cat === "product" || cat === "rm" || cat === "pm") {
+      return {
+        category: "Product",
+        items: rows.map((row) => ({
+          itemId: Number(row.itemId),
+          causeOfTestingId: Number(row.causeOfTestingId),
+          sampleQuantity: row.sampleQuantity || "",
+          sampledBy: row.sampledBy || "",
+          batchNumber: row.batchNumber || "",
+          controlNumber: row.controlNumber || "",
+          mfgDate: row.mfgDate || null,
+          expDate: row.expDate || null,
+          productionStage: cat === "product" ? row.productionStage || null : null,
+          targetSectionIds: labMode.kind === "fixed" ? [labMode.sectionId] : row.targetSectionIds || [],
+          grade: row.gradeOptions?.length ? row.grade || null : null
+        }))
+      };
+    }
+    if (cat === "water") {
+      return {
+        category: "Water",
+        water: rows.map((row) => ({
+          waterDepartmentId: Number(row.departmentId),
+          causeOfTestingId: Number(row.causeOfTestingId),
+          sampleQuantity: row.sampleQuantity || "",
+          sampledBy: row.sampledBy || "",
+          controlNumber: row.controlNumber || "",
+          sampledAt: sampledAtIso(row),
+          labSectionId: labMode.kind === "fixed" ? labMode.sectionId : undefined
+        }))
+      };
+    }
+    if (cat === "em") {
+      return {
+        category: "EM",
+        em: rows.map((row) => ({
+          departmentId: Number(row.departmentId),
+          causeOfTestingId: Number(row.causeOfTestingId),
+          sampledBy: row.sampledBy || "",
+          controlNumber: row.controlNumber || "",
+          sampledAt: sampledAtIso(row)
+        }))
+      };
+    }
+    const isPhyschem = labMode.kind === "fixed" && labMode.code !== "MICRO";
+    return {
+      category: "AfterCleaning",
+      afterCleaning: rows.map((row) => ({
+        machineId: Number(row.machineId),
+        causeOfTestingId: Number(row.causeOfTestingId),
+        sampledBy: row.sampledBy || "",
+        controlNumber: row.controlNumber || "",
+        previousProductName: row.previousProductName ? String(row.previousProductName).trim() : null,
+        previousProductBatchNumber: String(row.previousProductBatchNumber || "").trim(),
+        sampledAt: sampledAtIso(row),
+        labSectionId: labMode.kind === "fixed" ? labMode.sectionId : undefined,
+        previousProductItemId: row.previousProductItemId ? Number(row.previousProductItemId) : null,
+        techniques: isPhyschem && row.techniques ? row.techniques : null
+      }))
+    };
+  };
+
+  const toCreatedRefs = (byRow: Record<number, BatchReceivedSample>): CreatedSampleRef[] =>
+    Object.values(byRow)
+      .sort((a, b) => a.row - b.row)
+      .map((s) => ({ id: s.sampleId, referenceNumber: s.referenceNumber }));
+
+  const handleFinishWithCreated = (byRow: Record<number, BatchReceivedSample>) => {
+    onSuccess(toCreatedRefs(byRow));
+    onClose();
+  };
+
   const handleSaveAll = async () => {
+    if (receivedByRow) {
+      handleFinishWithCreated(receivedByRow);
+      return;
+    }
     setErrorMessage(null);
     if (!category) return;
     if (!validateRows()) return;
@@ -286,97 +494,79 @@ export function NewSampleDialog({ open, onClose, onSuccess, allowedCategories, l
     setLoading(true);
 
     try {
-      const allWarnings: string[] = [];
-      const created: CreatedSampleRef[] = [];
-      // Process each row sequentially or in parallel
-      for (const row of rows) {
-        if (category === "product" || category === "rm" || category === "pm") {
-          const targetSectionIds = labMode.kind === "fixed" ? [labMode.sectionId] : row.targetSectionIds || [];
-          const res = await ReceiveService.receiveItemBased({
-            itemId: Number(row.itemId),
-            causeOfTestingId: Number(row.causeOfTestingId),
-            sampleQuantity: row.sampleQuantity || "",
-            sampledBy: row.sampledBy || "",
-            batchNumber: row.batchNumber || "",
-            controlNumber: row.controlNumber || "",
-            mfgDate: row.mfgDate || null,
-            expDate: row.expDate || null,
-            productionStage: category === "product" ? row.productionStage || null : null,
-            targetSectionIds,
-            grade: row.gradeOptions?.length ? row.grade || null : null
-          });
-          created.push(toCreatedSampleRef(res));
-          if (res?.warnings?.length) {
-            allWarnings.push(...res.warnings);
-          }
-          // The sample is received either way; a failed CoA upload is reported, not retried here.
-          if (category === "rm" && row.coaFile && res?.sampleId) {
+      const result = await ReceiveService.receiveBatch(buildBatchRequest(category));
+      const sorted = [...result.samples].sort((a, b) => a.row - b.row);
+      const byRow: Record<number, BatchReceivedSample> = {};
+      for (const s of sorted) {
+        byRow[s.row] = s;
+      }
+
+      await draft.onSubmitted();
+      setDraftSavedAt(null);
+
+      if (category === "rm") {
+        const failedCoas: Record<number, string> = {};
+        for (let idx = 0; idx < rows.length; idx += 1) {
+          const file = rows[idx]?.coaFile;
+          const sample = byRow[idx];
+          if (file && sample) {
             try {
-              await ReceiveService.uploadSampleDocument(res.sampleId, row.coaFile);
-            } catch (uploadErr: any) {
-              const why = uploadErr?.response?.data?.message || uploadErr?.message || "upload failed";
-              allWarnings.push(
-                `Sample ${res.referenceNumber} was received, but its supplier CoA could not be attached (${why}). Attach it from the sample's Documents.`
-              );
+              await ReceiveService.uploadSampleDocument(sample.sampleId, file);
+            } catch {
+              failedCoas[idx] = "Certificate not attached — retry";
             }
           }
-        } else if (category === "water") {
-          const res = await ReceiveService.receiveWater({
-            waterDepartmentId: Number(row.departmentId),
-            causeOfTestingId: Number(row.causeOfTestingId),
-            sampleQuantity: row.sampleQuantity || "",
-            sampledBy: row.sampledBy || "",
-            controlNumber: row.controlNumber || "",
-            sampledAt: sampledAtIso(row),
-            labSectionId: labMode.kind === "fixed" ? labMode.sectionId : undefined
-          });
-          created.push(toCreatedSampleRef(res));
-        } else if (category === "em") {
-          const res = await ReceiveService.receiveEM({
-            departmentId: Number(row.departmentId),
-            causeOfTestingId: Number(row.causeOfTestingId),
-            sampledBy: row.sampledBy || "",
-            controlNumber: row.controlNumber || "",
-            sampledAt: sampledAtIso(row)
-          });
-          created.push(toCreatedSampleRef(res));
-        } else if (category === "ac") {
-          const isPhyschem = labMode.kind === "fixed" && labMode.code !== "MICRO";
-          const res = await ReceiveService.receiveAfterCleaning({
-            machineId: Number(row.machineId),
-            causeOfTestingId: Number(row.causeOfTestingId),
-            sampledBy: row.sampledBy || "",
-            controlNumber: row.controlNumber || "",
-            previousProductName: row.previousProductName ? String(row.previousProductName).trim() : null,
-            previousProductBatchNumber: String(row.previousProductBatchNumber || "").trim(),
-            sampledAt: sampledAtIso(row),
-            labSectionId: labMode.kind === "fixed" ? labMode.sectionId : undefined,
-            previousProductItemId: row.previousProductItemId ? Number(row.previousProductItemId) : null,
-            techniques: isPhyschem && row.techniques ? row.techniques : null
-          });
-          created.push(toCreatedSampleRef(res));
+        }
+        if (Object.keys(failedCoas).length > 0) {
+          setReceivedByRow(byRow);
+          setCoaErrorByRow(failedCoas);
+          const numbers = sorted.map((s) => s.referenceNumber).join(", ");
+          setWarnings([
+            `Samples received (${numbers}), but one or more supplier certificates could not be attached. Retry on the marked row(s) below.`
+          ]);
+          setWarningSnackbarOpen(true);
+          return;
         }
       }
 
-      if (allWarnings.length > 0) {
-        setWarnings(allWarnings);
-        setWarningSnackbarOpen(true);
+      handleFinishWithCreated(byRow);
+    } catch (err: unknown) {
+      const rowErrs = errorsByRow(err);
+      const fieldErrs = errorsByField(err);
+      if (Object.keys(rowErrs).length > 0 || Object.keys(fieldErrs).length > 0) {
+        applyErrorsAndFocus(rowErrs, fieldErrs);
+      } else {
+        setErrorMessage(`Failed to receive samples: ${getErrorMessage(err, "An unexpected error occurred while saving samples.")}`);
       }
-
-      onSuccess(created);
-      onClose();
-    } catch (err: any) {
-      const serverMsg =
-        err?.response?.data?.message ||
-        err?.message ||
-        "An unexpected error occurred while saving samples.";
-      setErrorMessage(`Failed to receive samples: ${serverMsg}`);
     } finally {
       setLoading(false);
     }
   };
 
-  const currentCategoryDef = RECEIVING_CATEGORIES.find((c) => c.key === category);
+  const handleRetryCoa = async (rowIdx: number) => {
+    if (!receivedByRow) return;
+    const sample = receivedByRow[rowIdx];
+    const file = rows[rowIdx]?.coaFile;
+    if (!sample || !file) return;
+
+    setRetryingCoaRow(rowIdx);
+    try {
+      await ReceiveService.uploadSampleDocument(sample.sampleId, file);
+      const nextErrors = { ...coaErrorByRow };
+      delete nextErrors[rowIdx];
+      setCoaErrorByRow(nextErrors);
+      if (Object.keys(nextErrors).length === 0) {
+        handleFinishWithCreated(receivedByRow);
+      }
+    } catch {
+      setCoaErrorByRow((prev) => ({
+        ...prev,
+        [rowIdx]: "Certificate not attached — retry"
+      }));
+    } finally {
+      setRetryingCoaRow(null);
+    }
+  };
 
   return (
     <>
@@ -434,9 +624,16 @@ export function NewSampleDialog({ open, onClose, onSuccess, allowedCategories, l
               Back
             </Button>
 
-            <Typography sx={{ fontSize: 13, fontWeight: 700, color: theme.palette.primary.main }}>
-              Total Samples: {rows.length}
-            </Typography>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+              <Typography sx={{ fontSize: 13, fontWeight: 700, color: theme.palette.primary.main }}>
+                Total Samples: {rows.length}
+              </Typography>
+              {draftSavedAt && draft.storageAvailable && !receivedByRow && (
+                <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
+                  Draft saved on this computer at {formatHm(draftSavedAt)} — not recorded
+                </Typography>
+              )}
+            </Box>
 
             <Box sx={{ display: "flex", gap: 1.5 }}>
               <Button onClick={onClose} disabled={loading} color="inherit">
@@ -453,7 +650,7 @@ export function NewSampleDialog({ open, onClose, onSuccess, allowedCategories, l
                   px: 3
                 }}
               >
-                {loading ? "Receiving..." : "Save All Samples"}
+                {receivedByRow ? "Done" : loading ? "Receiving..." : "Save All Samples"}
               </Button>
             </Box>
           </Box>
@@ -461,9 +658,25 @@ export function NewSampleDialog({ open, onClose, onSuccess, allowedCategories, l
       }
     >
         {errorMessage && (
-          <Alert severity="error" sx={{ mb: 2, whiteSpace: "pre-line", fontSize: 13 }}>
+          <Alert severity="error" aria-live="polite" sx={{ mb: 2, whiteSpace: "pre-line", fontSize: 13 }}>
             {errorMessage}
           </Alert>
+        )}
+
+        {step === 2 && !receivedByRow && (
+          <DraftRestoreNotice
+            startedAt={draft.restoredStartedAt}
+            onRestore={() => {
+              const restored = draft.acceptRestore();
+              if (restored?.rows && restored.rows.length > 0) {
+                setRows(restored.rows.map((r) => ({ ...createEmptyRow(), ...r, coaFile: null, errors: {} })));
+              }
+            }}
+            onDiscard={() => {
+              setDraftSavedAt(null);
+              void draft.discard();
+            }}
+          />
         )}
 
         {step === 1 ? (
@@ -485,6 +698,12 @@ export function NewSampleDialog({ open, onClose, onSuccess, allowedCategories, l
               onChangeRow={handleChangeRow}
               onAddRow={handleAddRow}
               onDeleteRow={handleDeleteRow}
+              onSave={handleSaveAll}
+              focusErrorTarget={focusErrorTarget}
+              coaErrorByRow={coaErrorByRow}
+              retryingCoaRow={retryingCoaRow}
+              onRetryCoa={handleRetryCoa}
+              receivedByRow={receivedByRow ?? undefined}
             />
           )
         )}

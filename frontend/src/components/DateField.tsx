@@ -30,6 +30,7 @@ interface DateFieldProps {
   size?: "small" | "medium";
   /** Accessible name for a field with no visible label (a table cell). */
   ariaLabel?: string;
+  ariaDescribedBy?: string;
   sx?: SxProps<Theme>;
 }
 
@@ -43,8 +44,18 @@ function parse(value: string | undefined): Dayjs | null {
 // same height as the TextFields and Selects beside it, replacing the
 // browser's own "dd----yyyy" placeholder rendering.
 export function DateField({
-  label, value, onChange, min, max, error, helperText, fullWidth, required, disabled, size = "small", ariaLabel, sx
+  label, value, onChange, min, max, error, helperText, fullWidth, required, disabled, size = "small", ariaLabel, ariaDescribedBy, sx
 }: DateFieldProps) {
+  const inputAriaProps =
+    ariaLabel || ariaDescribedBy
+      ? {
+          input: {
+            ...(ariaLabel ? { "aria-label": ariaLabel } : {}),
+            ...(ariaDescribedBy ? { "aria-describedby": ariaDescribedBy } : {})
+          }
+        }
+      : undefined;
+
   return (
     <LocalizationProvider dateAdapter={AdapterDayjs}>
       <DatePicker
@@ -64,7 +75,7 @@ export function DateField({
             required,
             error,
             helperText,
-            slotProps: ariaLabel ? { input: { "aria-label": ariaLabel } } : undefined
+            slotProps: inputAriaProps
           }
         }}
       />

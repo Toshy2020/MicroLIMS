@@ -1,6 +1,8 @@
 import { apiClient, ifMatch } from "../../../services/apiClient";
 import {
   CreatedSampleRef,
+  BatchReceiveRequest,
+  BatchReceiveResult,
   ItemBasedReceiveRequest,
   WaterReceiveRequest,
   EMReceiveRequest,
@@ -55,6 +57,9 @@ export interface WorkspaceTileCounts {
 
 // One receiving endpoint per category, matching the distinct backend receive shapes.
 export const ReceiveService = {
+  receiveBatch: (r: BatchReceiveRequest): Promise<BatchReceiveResult> =>
+    apiClient.post("/samples/receive-batch", r).then((res) => res.data.data),
+
   receiveItemBased: (r: ItemBasedReceiveRequest): Promise<SampleRecord> =>
     apiClient.post("/samples", r).then((res) => res.data.data),
 

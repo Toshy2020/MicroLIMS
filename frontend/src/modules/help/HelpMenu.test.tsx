@@ -41,14 +41,15 @@ describe("HelpMenu", () => {
       "Full guide",
       "Keyboard shortcuts",
       "What's newNot available yet",
-      "Replay tourNot available yet",
+      "Replay tour",
       "About"
     ]);
     expect(button.getAttribute("aria-expanded")).toBe("true");
     // Entries built in later tasks are shown as unavailable, not as working links.
     expect(within(menu).getByRole("menuitem", { name: /Full guide/ }).getAttribute("aria-disabled")).toBeNull();
     expect(within(menu).getByRole("menuitem", { name: "Keyboard shortcuts" }).getAttribute("aria-disabled")).toBeNull();
-    expect(within(menu).getByRole("menuitem", { name: /Replay tour/ }).getAttribute("aria-disabled")).toBe("true");
+    expect(within(menu).getByRole("menuitem", { name: /What's new/ }).getAttribute("aria-disabled")).toBe("true");
+    expect(within(menu).getByRole("menuitem", { name: "Replay tour" }).getAttribute("aria-disabled")).toBeNull();
     expect(within(menu).getByRole("menuitem", { name: "About" }).getAttribute("aria-disabled")).toBeNull();
   });
 

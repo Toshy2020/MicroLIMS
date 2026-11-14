@@ -18,6 +18,20 @@ const EXPANDED_SIDEBAR_WIDTH = 250;
 const COLLAPSED_SIDEBAR_WIDTH = 68;
 const MY_WORK_SUMMARY_INTERVAL_MS = 60_000;
 
+const NAV_TOUR_TARGETS: Record<string, string> = {
+  "/my-work": "nav-my-work",
+  "/receiving": "nav-receiving",
+  "/receiving/tracking": "nav-tracking",
+  "/laboratory-configuration/items": "nav-items",
+  "/sections/document-control": "nav-document-control",
+  "/reports": "nav-reports",
+  "/oos-tracking": "nav-oos-tracking",
+  "/admin/users": "nav-admin-users",
+  "/audit-trail-reviews": "nav-audit-reviews",
+  "/admin/settings": "nav-admin-settings",
+  "/admin/access-review": "nav-access-review"
+};
+
 function formatMyWorkAccessibleName(label: string, summary: MyWorkSummary): string {
   const total = summary.total ?? 0;
   const totalPart = `${total} ${total === 1 ? "task" : "tasks"}`;
@@ -210,6 +224,7 @@ export function Sidebar({ mobileOpen, onMobileClose, collapsed, onToggleCollapse
 
                 const button = (
                   <ListItemButton
+                    data-tour={item.path ? NAV_TOUR_TARGETS[item.path] : undefined}
                     {...(hasChildren
                       ? {
                           ...(item.path ? { component: Link, to: item.path } : {}),

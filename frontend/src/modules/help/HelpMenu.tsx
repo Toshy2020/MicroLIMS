@@ -6,17 +6,16 @@ import { AboutDialog } from "./AboutDialog";
 import { useHelpPanel } from "./HelpPanelContext";
 import { ShortcutsDialog } from "../../components/entry/ShortcutsDialog";
 
-// The Help entries other than About and Keyboard shortcuts are built in later
+// The Help entries other than About, Keyboard shortcuts and Replay tour are built in later
 // tasks of the help package; until then they are shown as unavailable rather than faked.
 const PENDING_ITEMS = [
-  "What's new",
-  "Replay tour"
+  "What's new"
 ] as const;
 
 const MENU_ID = "header-help-menu";
 
 export function HelpMenu() {
-  const { helpButtonRef: buttonRef, openPanel } = useHelpPanel();
+  const { helpButtonRef: buttonRef, openPanel, startTour } = useHelpPanel();
   const navigate = useNavigate();
   const [anchor, setAnchor] = useState<HTMLElement | null>(null);
   const [aboutOpen, setAboutOpen] = useState(false);
@@ -55,6 +54,7 @@ export function HelpMenu() {
       <Tooltip title="Help">
         <IconButton
           ref={buttonRef}
+          data-tour="help-menu"
           onClick={(e) => setAnchor(e.currentTarget)}
           sx={{ color: "inherit" }}
           aria-label="Help"
@@ -103,6 +103,14 @@ export function HelpMenu() {
             <ListItemText primary={label} secondary="Not available yet" />
           </MenuItem>
         ))}
+        <MenuItem
+          onClick={() => {
+            closeMenu();
+            startTour();
+          }}
+        >
+          <ListItemText primary="Replay tour" />
+        </MenuItem>
         <MenuItem
           onClick={() => {
             closeMenu();

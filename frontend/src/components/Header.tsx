@@ -218,6 +218,7 @@ export function Header({ onToggleSidebar, sidebarCollapsed, labCodes, unsavedDra
 
       <ButtonBase
         onClick={() => setSearchOpen(true)}
+        data-tour="global-search"
         sx={{
           display: { xs: "none", sm: "flex" },
           alignItems: "center",
@@ -247,6 +248,7 @@ export function Header({ onToggleSidebar, sidebarCollapsed, labCodes, unsavedDra
         <Tooltip title="Search MicroLIMS">
           <IconButton
             onClick={() => setSearchOpen(true)}
+            data-tour="global-search"
             sx={{ color: "inherit", display: { sm: "none" } }}
             aria-label="Search MicroLIMS"
           >
@@ -296,6 +298,7 @@ export function Header({ onToggleSidebar, sidebarCollapsed, labCodes, unsavedDra
         <Tooltip title="Notifications">
           <IconButton
             onClick={(e) => setBellAnchor(e.currentTarget)}
+            data-tour="notifications"
             sx={{ color: "inherit" }}
             aria-label={`Notifications${unreadCount > 0 ? `, ${unreadCount} unread` : ""}`}
             aria-controls={bellAnchor ? "header-notifications-menu" : undefined}

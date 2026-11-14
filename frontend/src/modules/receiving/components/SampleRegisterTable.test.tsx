@@ -1,13 +1,17 @@
 import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
-import { render, screen, cleanup, fireEvent, within, waitFor } from "@testing-library/react";
+import type { Mock } from "vitest";
+import { render, screen, cleanup, within, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { MemoryRouter } from "react-router-dom";
 import { ThemeProvider } from "@mui/material";
 import { lightTheme } from "../../../theme";
 import { SampleRegisterTable, dueLabel, clearSampleDocCountCache } from "./SampleRegisterTable";
-import type { SampleRecord } from "../types/receivingTypes";
+import type { SampleRecord, TestOrderSummary } from "../types/receivingTypes";
 import { ItemDocumentService } from "../../laboratoryConfiguration/items/services/ItemDocumentService";
 import { ItemStmService } from "../../laboratoryConfiguration/items/services/ItemStmService";
 
-vi.mock("../../../contexts/AuthContext", () => ({ useAuth: () => ({ permissions: [] }) }));
+const authState = vi.hoisted(() => ({ permissions: [] as string[], role: null as string | null }));
+vi.mock("../../../contexts/AuthContext", () => ({ useAuth: () => ({ permissions: authState.permissions, role: authState.role }) }));
 vi.mock("../../laboratoryConfiguration/items/services/ItemDocumentService", () => ({
   ItemDocumentService: { getDocumentCountForItem: vi.fn().mockResolvedValue(0) }
 }));
@@ -17,6 +21,8 @@ vi.mock("../../laboratoryConfiguration/items/services/ItemStmService", () => ({
 
 beforeEach(() => {
   try { localStorage.clear(); } catch { /* ignore */ }
+  authState.permissions = [];
+  authState.role = null;
   clearSampleDocCountCache();
   vi.clearAllMocks();
 });
@@ -48,7 +54,8 @@ const renderTable = (samples: SampleRecord[], onTestClick = vi.fn()) => render(
 );
 
 describe("SampleRegisterTable", () => {
-  it("shows the default columns, folds hidden ones under the item and offers the next action", () => {
+  it("shows the default columns, folds hidden ones under the item and offers the next action", async () => {
+    const user = userEvent.setup();
     const onTestClick = vi.fn();
     renderTable([sample({})], onTestClick);
 
@@ -56,16 +63,17 @@ describe("SampleRegisterTable", () => {
     expect(screen.queryByRole("columnheader", { name: "Received At" })).toBeNull();
     expect(screen.getByText(/#91 · Product · Routine · IPQA/)).toBeTruthy();
 
-    fireEvent.click(screen.getByRole("button", { name: "Record TAMC" }));
+    await user.click(screen.getByRole("button", { name: "Record TAMC" }));
     expect(onTestClick).toHaveBeenCalledWith(expect.objectContaining({ testCode: "TAMC" }), expect.anything());
   });
 
-  it("lets the user show a hidden column and remembers the choice", () => {
+  it("lets the user show a hidden column and remembers the choice", async () => {
+    const user = userEvent.setup();
     const { unmount } = renderTable([sample({})]);
-    fireEvent.click(screen.getByRole("button", { name: "Choose visible columns" }));
+    await user.click(screen.getByRole("button", { name: "Choose visible columns" }));
     const picker = screen.getByRole("presentation");
-    fireEvent.click(within(picker).getByLabelText("Received At"));
-    fireEvent.keyDown(picker, { key: "Escape" });
+    await user.click(within(picker).getByLabelText("Received At"));
+    await user.keyboard("{Escape}");
     expect(screen.getByRole("columnheader", { name: "Received At" })).toBeTruthy();
     expect(screen.queryByText(/#91 · Product · Routine · IPQA · /)).toBeNull();
 
@@ -175,5 +183,365 @@ describe("dueLabel", () => {
     expect(dueLabel("2026-10-14T12:00:00Z", false, now)).toBe("Due in 2 d");
     expect(dueLabel("2026-10-12T06:00:00Z", true, now)).toBe("Overdue by 3 h");
     expect(dueLabel(null, false, now)).toBeNull();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Characterisation of today's table (smarter-tables Task 9, step 1). These pin
+// the behaviour the RegisterTable migration must keep.
+// ---------------------------------------------------------------------------
+
+const ALL_COLUMN_LABELS = [
+  "Received At", "Sample #", "Item Type", "Cause", "Sampled By", "Batch / Control No.",
+  "Assigned To", "Sample Status", "Due", "Tests", "Next Action"
+];
+const DEFAULT_COLUMN_LABELS = ["Batch / Control No.", "Assigned To", "Sample Status", "Due", "Tests", "Next Action"];
+
+type SampleFn = (sample: SampleRecord) => void;
+type TestFn = (test: TestOrderSummary, sample: SampleRecord) => void;
+type CheckFn = (sampleId: number, checked: boolean) => void;
+type CheckManyFn = (sampleIds: number[], checked: boolean) => void;
+
+interface Handlers {
+  onSelectSample: Mock<SampleFn>;
+  onTestClick: Mock<TestFn>;
+  onViewSummary: Mock<SampleFn>;
+  onEdit: Mock<SampleFn>;
+  onViewReport: Mock<SampleFn>;
+  onViewAuditHistory: Mock<SampleFn>;
+  onPrepareSample: Mock<SampleFn>;
+  onAssignAnalyst: Mock<SampleFn>;
+  onVoid: Mock<SampleFn>;
+  onAddLaboratory: Mock<SampleFn>;
+  onSelectTests: Mock<SampleFn>;
+  onToggleCheck: Mock<CheckFn>;
+  onToggleCheckMany: Mock<CheckManyFn>;
+}
+
+const makeHandlers = (): Handlers => ({
+  onSelectSample: vi.fn<SampleFn>(), onTestClick: vi.fn<TestFn>(), onViewSummary: vi.fn<SampleFn>(),
+  onEdit: vi.fn<SampleFn>(), onViewReport: vi.fn<SampleFn>(), onViewAuditHistory: vi.fn<SampleFn>(),
+  onPrepareSample: vi.fn<SampleFn>(), onAssignAnalyst: vi.fn<SampleFn>(), onVoid: vi.fn<SampleFn>(),
+  onAddLaboratory: vi.fn<SampleFn>(), onSelectTests: vi.fn<SampleFn>(), onToggleCheck: vi.fn<CheckFn>(),
+  onToggleCheckMany: vi.fn<CheckManyFn>()
+});
+
+const renderFull = (samples: SampleRecord[], h: Handlers, columnsStorageKey?: string) => render(
+  <ThemeProvider theme={lightTheme}>
+    <MemoryRouter>
+      <SampleRegisterTable samples={samples} columnsStorageKey={columnsStorageKey} {...h} />
+    </MemoryRouter>
+  </ThemeProvider>
+);
+
+const headerTexts = () => screen.getAllByRole("columnheader").map((h) => h.textContent);
+
+describe("SampleRegisterTable columns (characterisation)", () => {
+  it("offers exactly the 11 columns, in order, with only the default six ticked", async () => {
+    const user = userEvent.setup();
+    renderFull([sample({})], makeHandlers());
+    await user.click(screen.getByRole("button", { name: "Choose visible columns" }));
+    const picker = screen.getByRole("presentation");
+    const boxes = within(picker).getAllByRole("checkbox") as HTMLInputElement[];
+    expect(boxes).toHaveLength(11);
+    const labels = boxes.map((b) => b.closest("label")?.textContent);
+    expect(labels).toEqual(ALL_COLUMN_LABELS);
+    const ticked = boxes.filter((b) => b.checked).map((b) => b.closest("label")?.textContent);
+    expect(ticked).toEqual(DEFAULT_COLUMN_LABELS);
+  });
+
+  it("renders the item column, the six default columns and Actions as the header row", () => {
+    renderFull([sample({})], makeHandlers());
+    expect(headerTexts()).toEqual(["Item / Reference", ...DEFAULT_COLUMN_LABELS, "Actions"]);
+  });
+
+  it("shows all 11 columns once every one is ticked, in the declared order", async () => {
+    const user = userEvent.setup();
+    renderFull([sample({})], makeHandlers());
+    await user.click(screen.getByRole("button", { name: "Choose visible columns" }));
+    const picker = screen.getByRole("presentation");
+    for (const label of ALL_COLUMN_LABELS.filter((l) => !DEFAULT_COLUMN_LABELS.includes(l))) {
+      await user.click(within(picker).getByLabelText(label));
+    }
+    await user.keyboard("{Escape}");
+    expect(headerTexts()).toEqual([
+      "Received At", "#", "Item / Reference", "Item Type", "Cause", "Sampled By", "Batch / Control No.",
+      "Assigned To", "Sample Status", "Due", "Tests", "Next Action", "Actions"
+    ]);
+  });
+
+  it("Reset to default restores the default six", async () => {
+    const user = userEvent.setup();
+    localStorage.setItem("microlims.sampleRegister.columns", JSON.stringify(["receivedAt", "cause", "due:off"]));
+    renderFull([sample({})], makeHandlers());
+    expect(headerTexts()).toEqual(["Received At", "Item / Reference", "Cause", "Actions"]);
+    await user.click(screen.getByRole("button", { name: "Choose visible columns" }));
+    await user.click(within(screen.getByRole("presentation")).getByRole("button", { name: "Reset to default" }));
+    await user.keyboard("{Escape}");
+    expect(headerTexts()).toEqual(["Item / Reference", ...DEFAULT_COLUMN_LABELS, "Actions"]);
+  });
+});
+
+describe("SampleRegisterTable stored column preference (characterisation)", () => {
+  it("honours microlims.sampleRegister.columns, including the due:off marker", () => {
+    localStorage.setItem("microlims.sampleRegister.columns", JSON.stringify(["category", "cause", "tests", "due:off"]));
+    renderFull([sample({})], makeHandlers());
+    expect(headerTexts()).toEqual(["Item / Reference", "Item Type", "Cause", "Tests", "Actions"]);
+    expect(screen.queryByRole("columnheader", { name: "Due" })).toBeNull();
+  });
+
+  it("adds Due once to a stored choice that has neither due nor due:off", () => {
+    localStorage.setItem("microlims.sampleRegister.columns", JSON.stringify(["category", "tests"]));
+    renderFull([sample({})], makeHandlers());
+    expect(headerTexts()).toEqual(["Item / Reference", "Item Type", "Due", "Tests", "Actions"]);
+  });
+
+  it("ignores unknown keys in a stored choice", () => {
+    localStorage.setItem("microlims.sampleRegister.columns", JSON.stringify(["category", "bogus", "due:off"]));
+    renderFull([sample({})], makeHandlers());
+    expect(headerTexts()).toEqual(["Item / Reference", "Item Type", "Actions"]);
+  });
+
+  it("falls back to the default six when the stored value is corrupt", () => {
+    localStorage.setItem("microlims.sampleRegister.columns", "{not json");
+    renderFull([sample({})], makeHandlers());
+    expect(headerTexts()).toEqual(["Item / Reference", ...DEFAULT_COLUMN_LABELS, "Actions"]);
+  });
+
+  it("honours microlims.receivingRegister.columns for the receiving page and keeps the two keys apart", () => {
+    localStorage.setItem("microlims.receivingRegister.columns", JSON.stringify(["sampleId", "due:off"]));
+    localStorage.setItem("microlims.sampleRegister.columns", JSON.stringify(["tests", "due:off"]));
+    renderFull([sample({})], makeHandlers(), "microlims.receivingRegister.columns");
+    expect(headerTexts()).toEqual(["#", "Item / Reference", "Actions"]);
+  });
+
+  it("writes the choice back under the key it was given, with due:off when Due is hidden", async () => {
+    const user = userEvent.setup();
+    renderFull([sample({})], makeHandlers(), "microlims.receivingRegister.columns");
+    await user.click(screen.getByRole("button", { name: "Choose visible columns" }));
+    await user.click(within(screen.getByRole("presentation")).getByLabelText("Due"));
+    expect(JSON.parse(localStorage.getItem("microlims.receivingRegister.columns") ?? "null")).toEqual(
+      ["batchControl", "assignedTo", "sampleStatus", "tests", "nextAction", "due:off"]
+    );
+    expect(localStorage.getItem("microlims.sampleRegister.columns")).toBeNull();
+  });
+});
+
+describe("SampleRegisterTable row actions (characterisation)", () => {
+  const rowOf = (name: string) => screen.getByText(name).closest("tr") as HTMLElement;
+
+  it("clicking a row selects that sample; a click on a control inside it does not", async () => {
+    const user = userEvent.setup();
+    const h = makeHandlers();
+    renderFull([sample({ sampleId: 91 }), sample({ sampleId: 92, referenceNumber: "FP2", displayName: "Second Item" })], h);
+    await user.click(rowOf("Second Item"));
+    expect(h.onSelectSample).toHaveBeenCalledTimes(1);
+    expect(h.onSelectSample).toHaveBeenCalledWith(expect.objectContaining({ sampleId: 92 }));
+    await user.click(within(rowOf("Osteocare Liquid")).getByRole("button", { name: "Record TAMC" }));
+    expect(h.onSelectSample).toHaveBeenCalledTimes(1);
+  });
+
+  it("Enter on a focused row selects that sample", async () => {
+    const user = userEvent.setup();
+    const h = makeHandlers();
+    renderFull([sample({ sampleId: 91 })], h);
+    rowOf("Osteocare Liquid").focus();
+    await user.keyboard("{Enter}");
+    expect(h.onSelectSample).toHaveBeenCalledWith(expect.objectContaining({ sampleId: 91 }));
+  });
+
+  it("the eye icon calls onViewSummary with the row's sample", async () => {
+    const user = userEvent.setup();
+    const h = makeHandlers();
+    renderFull([sample({ sampleId: 91 }), sample({ sampleId: 92, referenceNumber: "FP2", displayName: "Second Item" })], h);
+    await user.click(within(rowOf("Second Item")).getByRole("button", { name: "View Sample Details & Workflow" }));
+    expect(h.onViewSummary).toHaveBeenCalledTimes(1);
+    expect(h.onViewSummary).toHaveBeenCalledWith(expect.objectContaining({ sampleId: 92 }));
+  });
+
+  it("Edit and Void icons call onEdit / onVoid with the row's sample when permitted", async () => {
+    const user = userEvent.setup();
+    authState.permissions = ["Samples.Correct"];
+    const h = makeHandlers();
+    renderFull([sample({ sampleId: 91, canEditDetails: true })], h);
+    await user.click(screen.getByRole("button", { name: "Edit Sample Details" }));
+    expect(h.onEdit).toHaveBeenCalledWith(expect.objectContaining({ sampleId: 91 }));
+    await user.click(screen.getByRole("button", { name: "Void Sample" }));
+    expect(h.onVoid).toHaveBeenCalledWith(expect.objectContaining({ sampleId: 91 }));
+  });
+
+  it("hides Edit and Void without Samples.Correct, and locks Edit when the details cannot be edited", () => {
+    const h = makeHandlers();
+    const { unmount } = renderFull([sample({ canEditDetails: true })], h);
+    expect(screen.queryByRole("button", { name: "Edit Sample Details" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Void Sample" })).toBeNull();
+    unmount();
+    authState.permissions = ["Samples.Correct"];
+    renderFull([sample({ canEditDetails: false })], h);
+    const locked = screen.getByRole("button", { name: "Locked: the sample has been submitted for review" });
+    expect((locked as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it("the Sample actions menu fires Assign Analyst, Add Laboratory, Prepare Sample, Void Sample and Audit History with the row's sample", async () => {
+    const user = userEvent.setup();
+    authState.permissions = ["Samples.Correct", "Samples.AssignAnalyst", "Samples.Receive"];
+    const h = makeHandlers();
+    renderFull([sample({ sampleId: 91, preparationStatus: "NeedsPreparation", assignedTests: [] })], h);
+    const pick = async (name: string) => {
+      await user.click(screen.getByRole("button", { name: "Sample actions" }));
+      await user.click(await screen.findByRole("menuitem", { name }));
+    };
+    await pick("Assign Analyst");
+    expect(h.onAssignAnalyst).toHaveBeenCalledWith(expect.objectContaining({ sampleId: 91 }));
+    await pick("Add Laboratory");
+    expect(h.onAddLaboratory).toHaveBeenCalledWith(expect.objectContaining({ sampleId: 91 }));
+    await pick("Prepare Sample");
+    expect(h.onPrepareSample).toHaveBeenCalledWith(expect.objectContaining({ sampleId: 91 }));
+    await pick("Void Sample");
+    expect(h.onVoid).toHaveBeenCalledWith(expect.objectContaining({ sampleId: 91 }));
+    await pick("Audit History");
+    expect(h.onViewAuditHistory).toHaveBeenCalledWith(expect.objectContaining({ sampleId: 91 }));
+  });
+
+  it("the Sample actions menu offers Select Tests to a Section Head on a retest awaiting its tests", async () => {
+    const user = userEvent.setup();
+    authState.permissions = ["Samples.Correct"];
+    authState.role = "SectionHead";
+    const h = makeHandlers();
+    renderFull([sample({ sampleId: 91, status: "Received", awaitingTestSelection: true, assignedTests: [] })], h);
+    await user.click(screen.getByRole("button", { name: "Sample actions" }));
+    await user.click(await screen.findByRole("menuitem", { name: "Select Tests" }));
+    expect(h.onSelectTests).toHaveBeenCalledWith(expect.objectContaining({ sampleId: 91 }));
+  });
+
+  it("the menu has no Assign Analyst without Samples.AssignAnalyst, and links the full report", async () => {
+    const user = userEvent.setup();
+    const h = makeHandlers();
+    renderFull([sample({ sampleId: 91 })], h);
+    await user.click(screen.getByRole("button", { name: "Sample actions" }));
+    expect(screen.queryByRole("menuitem", { name: "Assign Analyst" })).toBeNull();
+    expect(screen.getByRole("menuitem", { name: "View Full Report" }).getAttribute("href")).toBe("/samples/91/report");
+  });
+
+  it("each next-action button calls its own callback with the row's sample", async () => {
+    const user = userEvent.setup();
+    authState.permissions = ["Samples.AssignAnalyst"];
+    const h = makeHandlers();
+    const tests = (status: string) => [{ testOrderId: 1, sectionId: 1, testCode: "TAMC", status, workflowStatus: status, locationCount: 0, assignedAnalystId: null, assignedAnalystName: null }];
+    renderFull([
+      sample({ sampleId: 1, displayName: "Prep", preparationStatus: "NeedsPreparation" }),
+      sample({ sampleId: 2, displayName: "Rev", status: "UnderReview" }),
+      sample({ sampleId: 3, displayName: "Appr", status: "UnderApproval" }),
+      sample({ sampleId: 4, displayName: "Done", status: "Approved" }),
+      sample({ sampleId: 5, displayName: "Asg", assignedAnalystName: null, assignedTests: tests("InProgress") }),
+      sample({ sampleId: 6, displayName: "Strt", assignedAnalystName: "Someone", assignedTests: tests("Pending") })
+    ], h);
+    await user.click(within(rowOf("Prep")).getByRole("button", { name: "Prepare" }));
+    expect(h.onPrepareSample).toHaveBeenLastCalledWith(expect.objectContaining({ sampleId: 1 }));
+    await user.click(within(rowOf("Rev")).getByRole("button", { name: "Review" }));
+    expect(h.onViewSummary).toHaveBeenLastCalledWith(expect.objectContaining({ sampleId: 2 }));
+    await user.click(within(rowOf("Appr")).getByRole("button", { name: "Approve" }));
+    expect(h.onViewSummary).toHaveBeenLastCalledWith(expect.objectContaining({ sampleId: 3 }));
+    await user.click(within(rowOf("Done")).getByRole("button", { name: "View Report" }));
+    expect(h.onViewReport).toHaveBeenCalledWith(expect.objectContaining({ sampleId: 4 }));
+    await user.click(within(rowOf("Asg")).getByRole("button", { name: "Assign" }));
+    expect(h.onAssignAnalyst).toHaveBeenLastCalledWith(expect.objectContaining({ sampleId: 5 }));
+    await user.click(within(rowOf("Strt")).getByRole("button", { name: "Start Test" }));
+    expect(h.onTestClick).toHaveBeenLastCalledWith(expect.objectContaining({ testOrderId: 1 }), expect.objectContaining({ sampleId: 6 }));
+  });
+
+  it("Select tests on the next-action cell calls onSelectTests for a Section Head", async () => {
+    const user = userEvent.setup();
+    authState.permissions = ["Samples.Correct"];
+    authState.role = "SectionHead";
+    const h = makeHandlers();
+    renderFull([sample({ sampleId: 91, status: "Received", awaitingTestSelection: true, assignedTests: [] })], h);
+    await user.click(screen.getAllByRole("button", { name: "Select tests" })[0]);
+    expect(h.onSelectTests).toHaveBeenCalledWith(expect.objectContaining({ sampleId: 91 }));
+  });
+
+  it("the row checkbox reports the sample id and the new state; the header checkbox reports every id on the page", async () => {
+    const user = userEvent.setup();
+    const h = makeHandlers();
+    renderFull([sample({ sampleId: 91 }), sample({ sampleId: 92, referenceNumber: "FP2", displayName: "Second Item" })], h);
+    await user.click(screen.getByRole("checkbox", { name: "Select Second Item (FP2) for grouped actions" }));
+    expect(h.onToggleCheck).toHaveBeenCalledWith(92, true);
+    await user.click(screen.getByRole("checkbox", { name: "Select all 2 samples on this page" }));
+    expect(h.onToggleCheckMany).toHaveBeenCalledWith([91, 92], true);
+  });
+});
+
+describe("SampleRegisterTable test list (characterisation)", () => {
+  it("the Tests cell opens the assigned tests and choosing one calls onTestClick with that test and the sample", async () => {
+    const user = userEvent.setup();
+    const h = makeHandlers();
+    renderFull([sample({ sampleId: 91 })], h);
+    await user.click(screen.getByRole("button", { name: "1 In Progress" }));
+    expect(screen.getByText("Assigned Tests (2)")).toBeTruthy();
+    const popover = screen.getByRole("presentation");
+    await user.click(within(popover).getByRole("button", { name: /TYMC/ }));
+    expect(h.onTestClick).toHaveBeenCalledTimes(1);
+    expect(h.onTestClick).toHaveBeenCalledWith(
+      expect.objectContaining({ testOrderId: 2, testCode: "TYMC" }),
+      expect.objectContaining({ sampleId: 91 })
+    );
+  });
+
+  it("View All Tests in that list calls onViewSummary with the sample", async () => {
+    const user = userEvent.setup();
+    const h = makeHandlers();
+    renderFull([sample({ sampleId: 91 })], h);
+    await user.click(screen.getByRole("button", { name: "1 In Progress" }));
+    await user.click(within(screen.getByRole("presentation")).getByRole("button", { name: /View All Tests \(2\)/ }));
+    expect(h.onViewSummary).toHaveBeenCalledWith(expect.objectContaining({ sampleId: 91 }));
+  });
+
+  it("the Record button names the ready test and passes that test, not the first one", async () => {
+    const user = userEvent.setup();
+    const h = makeHandlers();
+    const tests = [
+      { testOrderId: 7, sectionId: 1, testCode: "AAA", status: "Approved", workflowStatus: "Completed", locationCount: 0, assignedAnalystId: 5, assignedAnalystName: "X" },
+      { testOrderId: 8, sectionId: 1, testCode: "BBB", status: "InProgress", workflowStatus: "ReadyToRead", locationCount: 0, assignedAnalystId: 5, assignedAnalystName: "X" }
+    ];
+    renderFull([sample({ sampleId: 91, assignedTests: tests })], h);
+    await user.click(screen.getByRole("button", { name: "Record BBB" }));
+    expect(h.onTestClick).toHaveBeenCalledWith(expect.objectContaining({ testOrderId: 8 }), expect.objectContaining({ sampleId: 91 }));
+  });
+});
+
+describe("SampleRegisterTable retest chain expand and collapse (characterisation)", () => {
+  const family = () => [
+    sample({ sampleId: 91, displayName: "Parent Item" }),
+    sample({ sampleId: 92, referenceNumber: "FP-RT1", displayName: "Retest Child", originSampleId: 91 })
+  ];
+
+  it("shows a retest under its parent only after expanding, and collapses it again", async () => {
+    const user = userEvent.setup();
+    renderFull(family(), makeHandlers());
+    expect(screen.queryByText("Retest Child")).toBeNull();
+    await user.click(screen.getByText("1 retest"));
+    expect(screen.getByText("Retest Child")).toBeTruthy();
+    expect(screen.getByText("Parent Item")).toBeTruthy();
+    await user.click(screen.getByText("1 retest"));
+    expect(screen.queryByText("Retest Child")).toBeNull();
+  });
+
+  it("expanding does not select the parent row", async () => {
+    const user = userEvent.setup();
+    const h = makeHandlers();
+    renderFull(family(), h);
+    await user.click(screen.getByText("1 retest"));
+    expect(h.onSelectSample).not.toHaveBeenCalled();
+  });
+
+  it("select-all counts only the rows on screen: the collapsed retest is not included, the expanded one is", async () => {
+    const user = userEvent.setup();
+    const h = makeHandlers();
+    renderFull(family(), h);
+    await user.click(screen.getByRole("checkbox", { name: "Select all 1 samples on this page" }));
+    expect(h.onToggleCheckMany).toHaveBeenLastCalledWith([91], true);
+    await user.click(screen.getByText("1 retest"));
+    await user.click(screen.getByRole("checkbox", { name: "Select all 2 samples on this page" }));
+    expect(h.onToggleCheckMany).toHaveBeenLastCalledWith([91, 92], true);
   });
 });

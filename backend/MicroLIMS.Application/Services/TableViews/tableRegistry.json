@@ -118,7 +118,7 @@
       { "key": "sectionId", "label": "Laboratory", "defaultVisible": true },
       { "key": "status", "label": "Status", "defaultVisible": true }
     ],
-    "filters": ["search", "instrumentType", "status", "location", "calibrationRange"]
+    "filters": ["search", "instrumentType", "status", "location", "calibrationRange", "kpi"]
   },
   {
     "key": "inventory.equipmentTraceability",

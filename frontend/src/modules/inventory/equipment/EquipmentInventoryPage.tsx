@@ -14,6 +14,8 @@ import { formatLabDate } from "../../../utils/formatDate";
 import { useAuth } from "../../../contexts/AuthContext";
 import { PERMISSIONS } from "../../../routes/routes";
 import { useLaboratorySections } from "../../../hooks/useLaboratorySections";
+import { useTableState } from "../../../components/lab/table/useTableState";
+import { TableToolbar } from "../../../components/lab/table/TableToolbar";
 import { EquipmentInventoryService } from "./services/EquipmentInventoryService";
 import {
   EquipmentFilterState,
@@ -30,13 +32,14 @@ import { RegisterEquipmentDialog } from "./components/RegisterEquipmentDialog";
 import { EquipmentDetailsDialog } from "./components/EquipmentDetailsDialog";
 import { ActiveEquipmentView } from "./components/ActiveEquipmentView";
 
-const INITIAL_FILTERS: EquipmentFilterState = {
-  search: "",
-  instrumentType: "",
-  status: "",
-  location: "",
-  calibrationRange: ""
-};
+const TABLE_KEY = "inventory.equipment";
+const KPI_FILTERS: readonly EquipmentKpiFilter[] = ["in_service", "out_of_service", "calibration_overdue", "calibration_due_soon"];
+const DROPDOWN_FILTERS = ["instrumentType", "status", "location", "calibrationRange"] as const;
+
+function textFilter(filters: Record<string, string | string[]>, name: string): string {
+  const value = filters[name];
+  return typeof value === "string" ? value : "";
+}
 
 export function EquipmentInventoryPage() {
   const theme = useTheme();
@@ -65,8 +68,20 @@ export function EquipmentInventoryPage() {
   const [message, setMessage] = useState<{ text: string; ok: boolean } | null>(null);
 
   // Filters & KPI state
-  const [kpiFilter, setKpiFilter] = useState<EquipmentKpiFilter>("all");
-  const [filters, setFilters] = useState<EquipmentFilterState>(INITIAL_FILTERS);
+  // The search, dropdowns, KPI shortcut, sort and page live in the address and in saved views.
+  const tableState = useTableState(TABLE_KEY);
+  const { setFilter, setSearch, applyState } = tableState;
+  const stateFilters = tableState.state.filters;
+  const stateSearch = tableState.state.search;
+  const kpiParam = textFilter(stateFilters, "kpi");
+  const kpiFilter: EquipmentKpiFilter = KPI_FILTERS.find((k) => k === kpiParam) ?? "all";
+  const filters = useMemo<EquipmentFilterState>(() => ({
+    search: stateSearch,
+    instrumentType: textFilter(stateFilters, "instrumentType"),
+    status: textFilter(stateFilters, "status"),
+    location: textFilter(stateFilters, "location"),
+    calibrationRange: textFilter(stateFilters, "calibrationRange")
+  }), [stateFilters, stateSearch]);
 
   // Dialog states
   const [isRegisterOpen, setIsRegisterOpen] = useState(false);
@@ -102,16 +117,24 @@ export function EquipmentInventoryPage() {
   }, []);
 
   const handleReset = () => {
-    setKpiFilter("all");
-    setFilters(INITIAL_FILTERS);
+    applyState(
+      { filters: {}, search: "", sort: tableState.state.sort, pageSize: tableState.state.pageSize },
+      tableState.viewId
+    );
   };
 
   const handleKpiSelect = (newKpi: EquipmentKpiFilter) => {
-    setKpiFilter(newKpi);
+    setFilter("kpi", newKpi === "all" ? null : newKpi);
   };
 
+  // The filter bar reports one changed field at a time.
   const handleFilterChange = (newFilters: EquipmentFilterState) => {
-    setFilters(newFilters);
+    if (newFilters.search !== filters.search) {
+      setSearch(newFilters.search);
+      return;
+    }
+    const changed = DROPDOWN_FILTERS.find((name) => newFilters[name] !== filters[name]);
+    if (changed) setFilter(changed, newFilters[changed]);
   };
 
   const filteredItems = useMemo(() => {
@@ -286,6 +309,9 @@ export function EquipmentInventoryPage() {
               columns={columns}
               rows={filteredItems}
               getRowId={(eq) => eq.id}
+              tableKey={TABLE_KEY}
+              tableState={tableState}
+              toolbar={<TableToolbar tableKey={TABLE_KEY} tableState={tableState} showSearch={false} />}
               loading={loading || !items}
               pageSize={25}
               onRowClick={(eq) => setDetailsItem(eq)}

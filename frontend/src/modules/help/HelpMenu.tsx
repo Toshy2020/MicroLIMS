@@ -5,20 +5,25 @@ import HelpOutlineIcon from "@mui/icons-material/HelpOutlined";
 import { AboutDialog } from "./AboutDialog";
 import { useHelpPanel } from "./HelpPanelContext";
 import { ShortcutsDialog } from "../../components/entry/ShortcutsDialog";
-
-// The Help entries other than About, Keyboard shortcuts and Replay tour are built in later
-// tasks of the help package; until then they are shown as unavailable rather than faked.
-const PENDING_ITEMS = [
-  "What's new"
-] as const;
+import { useOptionalAuth } from "../../contexts/AuthContext";
+import { TOUR_STEPS, type RoleType } from "./tour/tourSteps";
+import { WhatsNewDialog } from "./whatsNew/WhatsNewDialog";
+import type { ReleaseNote } from "./whatsNew/releaseNotes";
 
 const MENU_ID = "header-help-menu";
 
-export function HelpMenu() {
-  const { helpButtonRef: buttonRef, openPanel, startTour } = useHelpPanel();
+function toRoleType(value: string | null | undefined): RoleType | null {
+  return value != null && Object.prototype.hasOwnProperty.call(TOUR_STEPS, value) ? (value as RoleType) : null;
+}
+
+export function HelpMenu({ whatsNewNotes }: { whatsNewNotes?: readonly ReleaseNote[] } = {}) {
+  const { helpButtonRef: buttonRef, openPanel, startTour, whatsNewNotes: contextNotes } = useHelpPanel();
+  const auth = useOptionalAuth();
+  const validRole = toRoleType(auth?.role);
   const navigate = useNavigate();
   const [anchor, setAnchor] = useState<HTMLElement | null>(null);
   const [aboutOpen, setAboutOpen] = useState(false);
+  const [whatsNewOpen, setWhatsNewOpen] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [shortcutsReturnFocus, setShortcutsReturnFocus] = useState(false);
 
@@ -98,11 +103,14 @@ export function HelpMenu() {
         >
           <ListItemText primary="Keyboard shortcuts" />
         </MenuItem>
-        {PENDING_ITEMS.map((label) => (
-          <MenuItem key={label} disabled>
-            <ListItemText primary={label} secondary="Not available yet" />
-          </MenuItem>
-        ))}
+        <MenuItem
+          onClick={() => {
+            closeMenu();
+            setWhatsNewOpen(true);
+          }}
+        >
+          <ListItemText primary="What's new" />
+        </MenuItem>
         <MenuItem
           onClick={() => {
             closeMenu();
@@ -124,6 +132,14 @@ export function HelpMenu() {
         open={aboutOpen}
         onClose={() => setAboutOpen(false)}
         onExited={() => buttonRef.current?.focus()}
+      />
+      <WhatsNewDialog
+        open={whatsNewOpen}
+        onClose={() => setWhatsNewOpen(false)}
+        onExited={() => buttonRef.current?.focus()}
+        role={validRole}
+        mode="all"
+        notes={whatsNewNotes ?? contextNotes}
       />
       <ShortcutsDialog
         open={shortcutsOpen}

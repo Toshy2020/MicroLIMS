@@ -40,15 +40,14 @@ describe("HelpMenu", () => {
       "Help for this page",
       "Full guide",
       "Keyboard shortcuts",
-      "What's newNot available yet",
+      "What's new",
       "Replay tour",
       "About"
     ]);
     expect(button.getAttribute("aria-expanded")).toBe("true");
-    // Entries built in later tasks are shown as unavailable, not as working links.
     expect(within(menu).getByRole("menuitem", { name: /Full guide/ }).getAttribute("aria-disabled")).toBeNull();
     expect(within(menu).getByRole("menuitem", { name: "Keyboard shortcuts" }).getAttribute("aria-disabled")).toBeNull();
-    expect(within(menu).getByRole("menuitem", { name: /What's new/ }).getAttribute("aria-disabled")).toBe("true");
+    expect(within(menu).getByRole("menuitem", { name: "What's new" }).getAttribute("aria-disabled")).toBeNull();
     expect(within(menu).getByRole("menuitem", { name: "Replay tour" }).getAttribute("aria-disabled")).toBeNull();
     expect(within(menu).getByRole("menuitem", { name: "About" }).getAttribute("aria-disabled")).toBeNull();
   });
@@ -158,5 +157,21 @@ describe("HelpMenu", () => {
     (document.activeElement as HTMLElement | null)?.blur();
     await user.keyboard("?");
     expect(await screen.findByRole("dialog", { name: "Keyboard shortcuts" })).toBeTruthy();
+  });
+
+  it("opens What's new from the Help menu and returns focus to the Help button on close", async () => {
+    const user = userEvent.setup();
+    renderMenu();
+
+    const button = screen.getByRole("button", { name: "Help" });
+    await user.click(button);
+    await user.click(await screen.findByRole("menuitem", { name: "What's new" }));
+
+    const dialog = await screen.findByRole("dialog", { name: "What's new" });
+    expect(within(dialog).getByText(`Version ${__APP_VERSION__}`)).toBeTruthy();
+
+    await user.click(within(dialog).getByRole("button", { name: "Close" }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    await waitFor(() => expect(document.activeElement).toBe(button));
   });
 });

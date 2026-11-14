@@ -19,6 +19,7 @@
     "@mui/material": "^9.5.0",
     "@mui/utils": "^9.4.0",
     "@mui/x-date-pickers": "^9.17.0",
+    "@tanstack/react-virtual": "3.14.24",
     "axios": "^1.21.1",
     "barcode-detector": "3.2.3",
     "dayjs": "^1.11.23",

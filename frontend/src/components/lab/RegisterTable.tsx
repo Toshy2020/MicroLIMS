@@ -1,9 +1,11 @@
-import { useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import type { KeyboardEvent, MouseEvent, ReactNode } from "react";
 import {
   Box, Checkbox, IconButton, ListItemText, Menu, MenuItem, Paper, Select, Skeleton, Stack, Table, TableBody, TableCell, TableContainer,
   TableHead, TablePagination, TableRow, TableSortLabel, Typography, useMediaQuery, useTheme
 } from "@mui/material";
+import ExpandLessIcon from "@mui/icons-material/ExpandLess";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import { toast } from "sonner";
 import { useOptionalAuth } from "../../contexts/AuthContext";
@@ -19,6 +21,7 @@ import { exportLogService } from "./table/services/exportLogService";
 import { TABLES } from "./table/tableRegistry";
 import type { RowSelection } from "./table/useRowSelection";
 import { useTableState, type UseTableState } from "./table/useTableState";
+import { VirtualBody } from "./table/VirtualBody";
 
 export interface RegisterColumn<T> {
   key: keyof T | string;
@@ -52,7 +55,8 @@ interface RegisterTableProps<T> {
   loading?: boolean;
   empty: { title: string; description?: string; action?: ReactNode };
   // Default 25; options are 25/50/100.
-  pageSize?: 25 | 50 | 100;
+  // "all" shows every row (virtualised above 100 rows on desktop; phones still page by 25).
+  pageSize?: 25 | 50 | 100 | "all";
   dense?: boolean;
   // Sort applied before the user clicks a header.
   defaultSort?: { key: string; direction: "asc" | "desc" };
@@ -67,6 +71,11 @@ interface RegisterTableProps<T> {
   bulkActions?: BulkAction<string | number>[];
   totalMatching?: number;
   loadAllMatching?(): Promise<T[]>;
+  // Expandable rows: a toggle button is added when renderExpanded is given.
+  // Expanded state is owned by the caller so it survives virtual unmounting.
+  renderExpanded?(row: T): ReactNode;
+  expandedIds?: ReadonlySet<string | number>;
+  onToggleExpand?(id: string | number): void;
 }
 
 const PAGE_SIZES = [25, 50, 100];
@@ -76,6 +85,10 @@ const MAX_EXPORT_ROWS = 5000;
 // region on desktop, so the column headers stay in view. Shorter pages keep
 // the page itself as the only scroll container (no second scrollbar).
 const STICKY_HEADER_MIN_ROWS = 15;
+// Above this many rendered rows the desktop table body is windowed.
+const VIRTUALISE_ABOVE_ROWS = 100;
+const ALL_ROWS_OPTION = -1;
+const DESKTOP_PAGE_SIZE_OPTIONS = [...PAGE_SIZES, { label: "All", value: ALL_ROWS_OPTION }];
 
 function compareValues(a: unknown, b: unknown): number {
   // Empty values sort last in ascending order.
@@ -103,7 +116,7 @@ function ManagedRegisterTable<T>({
 
 function RegisterTableInner<T>({
   columns, rows, getRowId, onRowClick, rowActions, loading, empty, pageSize = 25, dense = true, defaultSort, rowTone, tableKey, tableState, toolbar,
-  selection, isSelectable, bulkActions, totalMatching, loadAllMatching
+  selection, isSelectable, bulkActions, totalMatching, loadAllMatching, renderExpanded, expandedIds, onToggleExpand
 }: RegisterTableProps<T>) {
   const theme = useTheme();
   const auth = useOptionalAuth();
@@ -114,7 +127,8 @@ function RegisterTableInner<T>({
   const isPhone = useMediaQuery(theme.breakpoints.down("sm"));
   const [localSort, setLocalSort] = useState<{ key: string; direction: "asc" | "desc" } | null>(defaultSort ?? null);
   const [localPage, setLocalPage] = useState(0);
-  const [localRowsPerPage, setLocalRowsPerPage] = useState<number>(pageSize);
+  const [localRowsPerPage, setLocalRowsPerPage] = useState<number | "all">(pageSize);
+  const [scrollElement, setScrollElement] = useState<HTMLDivElement | null>(null);
   const [menu, setMenu] = useState<{ anchor: HTMLElement; row: T } | null>(null);
 
   // Filtering or reloading changes the row set; a stale page could be past the end.
@@ -126,9 +140,13 @@ function RegisterTableInner<T>({
 
   const sort = tableState ? tableState.state.sort : localSort;
   const page = tableState ? tableState.page - 1 : localPage;
-  const rowsPerPage = tableState
-    ? (tableState.state.pageSize === "all" ? Math.max(rows.length, 1) : tableState.state.pageSize)
-    : localRowsPerPage;
+  const requestedAll = tableState ? tableState.state.pageSize === "all" : localRowsPerPage === "all";
+  // Phone cards are never windowed, so "all" falls back to the first page size there.
+  const isAllPageSize = requestedAll && !isPhone;
+  const requestedSize = tableState ? tableState.state.pageSize : localRowsPerPage;
+  const rowsPerPage = requestedSize === "all"
+    ? (isPhone ? PAGE_SIZES[0] : Math.max(rows.length, 1))
+    : requestedSize;
 
   const displayedColumns = useMemo(() => {
     if (!tableState) return columns;
@@ -155,11 +173,12 @@ function RegisterTableInner<T>({
     });
   }, [rows, columns, sort]);
 
-  const isAllPageSize = tableState?.state.pageSize === "all";
   const paged = !isAllPageSize && sorted.length > PAGE_SIZES[0]
     ? sorted.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
     : sorted;
   const showPagination = !loading && rows.length > PAGE_SIZES[0];
+  const virtualised = !isPhone && !loading && paged.length > VIRTUALISE_ABOVE_ROWS;
+  const expandable = Boolean(renderExpanded);
 
   const allBulkActions = useMemo<BulkAction<string | number>[]>(() => {
     const base = bulkActions ? [...bulkActions] : [];
@@ -259,7 +278,7 @@ function RegisterTableInner<T>({
   const somePageSelected = selectedOnPageCount > 0 && !allPageSelected;
   const effectiveTotalMatching = totalMatching ?? rows.length;
 
-  const colSpan = displayedColumns.length + (rowActions ? 1 : 0) + (showSelection ? 1 : 0);
+  const colSpan = displayedColumns.length + (rowActions ? 1 : 0) + (showSelection ? 1 : 0) + (expandable ? 1 : 0);
   const isCompact = tableState ? (!isBench && tableState.state.density === "compact") : dense;
   const tableSize = isCompact ? "small" : "medium";
   const cellPy = tableState ? (isCompact ? 0.5 : 1.5) : (dense ? 0.75 : 1.5);
@@ -287,9 +306,9 @@ function RegisterTableInner<T>({
 
   const handleRowsPerPageChange = (nextSize: number) => {
     if (tableState) {
-      tableState.setPageSize(nextSize as 25 | 50 | 100);
+      tableState.setPageSize(nextSize === ALL_ROWS_OPTION ? "all" : (nextSize as 25 | 50 | 100));
     } else {
-      setLocalRowsPerPage(nextSize);
+      setLocalRowsPerPage(nextSize === ALL_ROWS_OPTION ? "all" : nextSize);
       setLocalPage(0);
     }
   };
@@ -312,6 +331,59 @@ function RegisterTableInner<T>({
     col.render ? col.render(row) : String((row as Record<string, unknown>)[String(col.key)] ?? "—");
   const sortableColumns = displayedColumns.filter((c) => c.sortable);
   const boundedBody = !isPhone && paged.length > STICKY_HEADER_MIN_ROWS;
+
+  // Cells of one desktop row; shared by the plain and the virtualised body.
+  const renderRowCells = (row: T, rowId: string | number, isExpanded: boolean): ReactNode => (
+    <>
+      {expandable && (
+        <TableCell padding="checkbox" onClick={(e) => e.stopPropagation()}>
+          <IconButton
+            size="small"
+            aria-expanded={isExpanded}
+            aria-label={`${isExpanded ? "Collapse" : "Expand"} row ${rowId}`}
+            onClick={() => onToggleExpand?.(rowId)}
+          >
+            {isExpanded ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
+          </IconButton>
+        </TableCell>
+      )}
+      {showSelection && selection && (() => {
+        const selectable = isSelectable ? isSelectable(row) : true;
+        return (
+          <TableCell padding="checkbox" onClick={(e) => e.stopPropagation()}>
+            <Checkbox
+              size="small"
+              checked={selectable && selection.isSelected(rowId)}
+              disabled={!selectable}
+              onChange={() => { if (selectable) selection.toggle(rowId); }}
+              slotProps={{ input: { "aria-label": `Select row ${rowId}` } }}
+            />
+          </TableCell>
+        );
+      })()}
+      {displayedColumns.map((col) => {
+        const content = cellText(row, col);
+        return (
+          <TableCell
+            key={String(col.key)}
+            align={col.align ?? (col.numeric ? "right" : "left")}
+            sx={{ py: cellPy, ...(col.numeric ? { fontVariantNumeric: "tabular-nums" } : null), ...(col.nowrap ? { whiteSpace: "nowrap" } : null) }}
+          >
+            {content}
+          </TableCell>
+        );
+      })}
+      {rowActions && (
+        <TableCell align="right" sx={{ py: cellPy, px: 0.5 }}>
+          {rowActions(row).length > 0 && (
+            <IconButton size="small" aria-label={`Row actions for ${rowId}`} onClick={(e) => openMenu(e, row)}>
+              <MoreVertIcon fontSize="small" />
+            </IconButton>
+          )}
+        </TableCell>
+      )}
+    </>
+  );
 
   if (isPhone) {
     const [titleCol, ...detailCols] = displayedColumns;
@@ -480,10 +552,13 @@ function RegisterTableInner<T>({
       )}
       {/* stickyHeader needs a bounded scroll region to stick within; only long
           pages get one (see STICKY_HEADER_MIN_ROWS). */}
-      <TableContainer sx={boundedBody ? { maxHeight: "calc(100vh - 240px)", minHeight: 320 } : undefined}>
-        <Table size={tableSize} stickyHeader>
+      <TableContainer ref={setScrollElement} sx={boundedBody ? { maxHeight: "calc(100vh - 240px)", minHeight: 320 } : undefined}>
+        <Table size={tableSize} stickyHeader aria-rowcount={virtualised ? paged.length + 1 : undefined}>
           <TableHead>
-            <TableRow sx={tableHeadSx(theme)}>
+            <TableRow sx={tableHeadSx(theme)} aria-rowindex={virtualised ? 1 : undefined}>
+              {expandable && (
+                <TableCell padding="checkbox"><span style={{ position: "absolute", left: -9999 }}>Expand</span></TableCell>
+              )}
               {showSelection && selection && (
                 <TableCell padding="checkbox">
                   <Checkbox
@@ -519,6 +594,7 @@ function RegisterTableInner<T>({
               {rowActions && <TableCell align="right" sx={{ width: 48 }}><span style={{ position: "absolute", left: -9999 }}>Actions</span></TableCell>}
             </TableRow>
           </TableHead>
+          {!virtualised && (
           <TableBody>
             {loading ? (
               Array.from({ length: SKELETON_ROWS }).map((_, r) => (
@@ -542,9 +618,11 @@ function RegisterTableInner<T>({
               paged.map((row) => {
                 const tone = rowTone?.(row);
                 const toneTokens = tone ? theme.custom.status[tone] : undefined;
+                const rowId = getRowId(row);
+                const isExpanded = Boolean(renderExpanded && expandedIds?.has(rowId));
                 return (
+                <Fragment key={rowId}>
                 <TableRow
-                  key={getRowId(row)}
                   hover={!!onRowClick}
                   onClick={onRowClick ? () => onRowClick(row) : undefined}
                   onKeyDown={onRowClick ? (e) => handleRowKey(e, row) : undefined}
@@ -560,56 +638,44 @@ function RegisterTableInner<T>({
                       : null)
                   }}
                 >
-                  {showSelection && selection && (() => {
-                    const selectable = isSelectable ? isSelectable(row) : true;
-                    return (
-                      <TableCell padding="checkbox" onClick={(e) => e.stopPropagation()}>
-                        <Checkbox
-                          size="small"
-                          checked={selectable && selection.isSelected(getRowId(row))}
-                          disabled={!selectable}
-                          onChange={() => { if (selectable) selection.toggle(getRowId(row)); }}
-                          slotProps={{ input: { "aria-label": `Select row ${getRowId(row)}` } }}
-                        />
-                      </TableCell>
-                    );
-                  })()}
-                  {displayedColumns.map((col) => {
-                    const content = cellText(row, col);
-                    return (
-                      <TableCell
-                        key={String(col.key)}
-                        align={col.align ?? (col.numeric ? "right" : "left")}
-                        sx={{ py: cellPy, ...(col.numeric ? { fontVariantNumeric: "tabular-nums" } : null), ...(col.nowrap ? { whiteSpace: "nowrap" } : null) }}
-                      >
-                        {content}
-                      </TableCell>
-                    );
-                  })}
-                  {rowActions && (
-                    <TableCell align="right" sx={{ py: cellPy, px: 0.5 }}>
-                      {rowActions(row).length > 0 && (
-                        <IconButton size="small" aria-label={`Row actions for ${getRowId(row)}`} onClick={(e) => openMenu(e, row)}>
-                          <MoreVertIcon fontSize="small" />
-                        </IconButton>
-                      )}
-                    </TableCell>
-                  )}
+                  {renderRowCells(row, rowId, isExpanded)}
                 </TableRow>
+                {isExpanded && renderExpanded && (
+                  <TableRow>
+                    <TableCell colSpan={colSpan} sx={{ py: 1.5, px: 2, bgcolor: "action.hover" }}>
+                      {renderExpanded(row)}
+                    </TableCell>
+                  </TableRow>
+                )}
+                </Fragment>
                 );
               })
             )}
           </TableBody>
+          )}
+          {virtualised && !loading && rows.length > 0 && (
+            <VirtualBody
+              rows={paged}
+              getRowId={getRowId}
+              scrollElement={scrollElement}
+              colSpan={colSpan}
+              expandedIds={expandedIds}
+              renderExpanded={renderExpanded}
+              renderRowCells={renderRowCells}
+              onRowClick={onRowClick}
+              rowTone={rowTone}
+            />
+          )}
         </Table>
       </TableContainer>
       {showPagination && (
         <TablePagination
           component="div"
           count={rows.length}
-          page={page}
+          page={isAllPageSize ? 0 : page}
           onPageChange={(_, p) => handlePageChange(p)}
-          rowsPerPage={rowsPerPage}
-          rowsPerPageOptions={PAGE_SIZES}
+          rowsPerPage={isAllPageSize ? ALL_ROWS_OPTION : rowsPerPage}
+          rowsPerPageOptions={DESKTOP_PAGE_SIZE_OPTIONS}
           onRowsPerPageChange={(e) => handleRowsPerPageChange(Number(e.target.value))}
         />
       )}

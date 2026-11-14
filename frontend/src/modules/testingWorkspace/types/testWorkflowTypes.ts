@@ -454,3 +454,18 @@ export interface RecordOutsourcedResultRequest {
   password: string;
   comment?: string | null;
 }
+
+export interface CountResultRequest {
+  stepName: string;
+  rawPlateReadings: string[];
+  dilutionFactor: number;
+  dilutionFactorOverrideNote?: string;
+}
+
+export interface CountPreviewResult {
+  reported: string;
+  average: number | null;
+  calculated: number | null;
+  status: string;
+  messages: string[];
+}

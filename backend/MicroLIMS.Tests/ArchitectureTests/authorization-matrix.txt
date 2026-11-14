@@ -235,6 +235,7 @@ EquipmentInventoryController.Update(Int32, SaveEquipmentInventoryHttpRequest): S
 EquipmentInventoryController.WhereIsIt(String): SectionHead,Analyst
 EquipmentMasterDataController.CreateColumn(CreateChromatographyColumnRequest): SectionHead,Analyst
 EquipmentMasterDataController.CreateEquipment(CreateEquipmentRequest): SystemAdministrator,SectionHead
+EquipmentMasterDataController.CreateEquipmentBatch(List`1, CancellationToken): SystemAdministrator,SectionHead
 EquipmentMasterDataController.DeactivateColumn(Int32): SectionHead,Analyst
 EquipmentMasterDataController.GetAllAutoclavePrograms(Nullable`1): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 EquipmentMasterDataController.GetAutoclaveProgramHistory(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
@@ -381,6 +382,7 @@ MaterialDocumentController.Upload(Int32, IFormFile, MaterialDocumentType): Secti
 MaterialDocumentController.Void(Int32, Int32, VoidDocumentHttpRequest): SectionHead
 MaterialMasterController.ChangeCode(Int32, ChangeMaterialMasterEntryCodeRequest): SystemAdministrator,SectionHead
 MaterialMasterController.Create(SaveMaterialMasterEntryRequest): SystemAdministrator,SectionHead
+MaterialMasterController.CreateBatch(List`1, CancellationToken): SystemAdministrator,SectionHead
 MaterialMasterController.GetAll(Nullable`1, Boolean): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 MaterialMasterController.SetActive(Int32, Boolean): SystemAdministrator,SectionHead
 MaterialMasterController.Update(Int32, SaveMaterialMasterEntryRequest): SystemAdministrator,SectionHead
@@ -583,6 +585,7 @@ SectionCountersController.Get(String): SystemAdministrator,SectionHead,Reviewer,
 SectionCountersController.GetDocumentControl(): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 SignaturesController.GetTrail(String, Int32): SystemAdministrator,SectionHead
 SolutionMasterController.Create(SaveSolutionMasterRequest): SystemAdministrator,SectionHead
+SolutionMasterController.CreateBatch(List`1, CancellationToken): SystemAdministrator,SectionHead
 SolutionMasterController.GetAll(Nullable`1, Boolean): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 SolutionMasterController.GetById(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 SolutionMasterController.SetActive(Int32, Boolean, SetActiveRequest): SystemAdministrator,SectionHead

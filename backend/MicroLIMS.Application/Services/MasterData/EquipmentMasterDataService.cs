@@ -8,6 +8,7 @@ using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Shared.Constants;
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Responses;
 
 namespace MicroLIMS.Application.Services.MasterData;
 
@@ -17,11 +18,16 @@ public class EquipmentMasterDataService
 {
     private readonly IMicroLimsDbContext _db;
     private readonly IUserSectionScopeService _scope;
+    private readonly MasterDataBatchService _batch;
 
-    public EquipmentMasterDataService(IMicroLimsDbContext db, IUserSectionScopeService scope)
+    public EquipmentMasterDataService(
+        IMicroLimsDbContext db,
+        IUserSectionScopeService scope,
+        MasterDataBatchService? batchService = null)
     {
         _db = db;
         _scope = scope;
+        _batch = batchService ?? new MasterDataBatchService(db);
     }
 
     public async Task<List<EquipmentResponse>> GetEquipmentAsync(int currentUserId, EquipmentType? type)
@@ -118,6 +124,75 @@ public class EquipmentMasterDataService
         _db.Equipment.Add(entity);
         await _db.SaveChangesAsync(cancellationToken);
         return EquipmentResponse.From(entity);
+    }
+
+    public Task<IReadOnlyList<EquipmentResponse>> CreateEquipmentBatchAsync(
+        int currentUserId,
+        IReadOnlyList<CreateEquipmentRequest>? requests,
+        CancellationToken ct = default) =>
+        _batch.ExecuteAsync(
+            requests,
+            (row, index, token) => ValidateCreateEquipmentRowAsync(currentUserId, row, index, token),
+            row => CreateEquipmentAsync(currentUserId, row, ct),
+            getCode: row => row.Code,
+            codeField: "code",
+            getExistingCodesAsync: async (codes, token) =>
+            {
+                var trimmed = codes.Select(c => c.Trim()).ToList();
+                var existing = await _db.Equipment
+                    .AsNoTracking()
+                    .Where(e => trimmed.Contains(e.Code))
+                    .Select(e => e.Code)
+                    .ToListAsync(token);
+                return new HashSet<string>(existing.Select(c => c.Trim()), StringComparer.Ordinal);
+            },
+            ct: ct);
+
+    private async Task<IReadOnlyList<FieldError>> ValidateCreateEquipmentRowAsync(
+        int currentUserId,
+        CreateEquipmentRequest request,
+        int row,
+        CancellationToken ct)
+    {
+        var errors = new List<FieldError>();
+
+        if (string.IsNullOrWhiteSpace(request.Name))
+        {
+            errors.Add(new FieldError("name", "Name is required.", row));
+        }
+
+        if (string.IsNullOrWhiteSpace(request.Code))
+        {
+            errors.Add(new FieldError("code", "Code is required.", row));
+        }
+
+        try
+        {
+            await _scope.ResolveSectionForCreateAsync(currentUserId, request.SectionId, ct);
+        }
+        catch (Exception ex) when (ex is BusinessRuleException or UnauthorizedAccessException)
+        {
+            errors.Add(new FieldError("sectionId", ex.Message, row));
+        }
+
+        if (request.EquipmentInventoryId is int assetId)
+        {
+            try
+            {
+                await _scope.EnsureEquipmentInventoryAccessAsync(currentUserId, assetId, ct, SectionAccess.Read);
+            }
+            catch (Exception ex) when (ex is BusinessRuleException or UnauthorizedAccessException)
+            {
+                errors.Add(new FieldError("equipmentInventoryId", ex.Message, row));
+            }
+
+            if (assetId <= 0 || !await _db.EquipmentInventories.AsNoTracking().AnyAsync(a => a.Id == assetId, ct))
+            {
+                errors.Add(new FieldError("equipmentInventoryId", $"Equipment inventory asset {assetId} not found.", row));
+            }
+        }
+
+        return errors;
     }
 
     public async Task<EquipmentResponse> UpdateEquipmentAsync(int currentUserId, int id, UpdateEquipmentRequest request, CancellationToken cancellationToken = default)

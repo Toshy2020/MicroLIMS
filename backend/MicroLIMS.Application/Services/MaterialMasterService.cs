@@ -6,6 +6,7 @@ using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Application.DTOs.Responses;
+using MicroLIMS.Shared.Responses;
 
 namespace MicroLIMS.Application.Services;
 
@@ -38,19 +39,22 @@ public class MaterialMasterService
     private readonly IElectronicSignatureService _signatureService;
     private readonly IAuditEventService _auditEventService;
     private readonly TimeProvider _time;
+    private readonly MasterDataBatchService _batch;
 
     public MaterialMasterService(
         IMicroLimsDbContext db,
         IUserSectionScopeService scope,
         IElectronicSignatureService signatureService,
         IAuditEventService auditEventService,
-        TimeProvider? timeProvider = null)
+        TimeProvider? timeProvider = null,
+        MasterDataBatchService? batchService = null)
     {
         _time = timeProvider ?? TimeProvider.System;
         _db = db;
         _scope = scope;
         _signatureService = signatureService;
         _auditEventService = auditEventService;
+        _batch = batchService ?? new MasterDataBatchService(db);
     }
 
     public static string PrefixFor(MaterialMasterCategory category) => category switch
@@ -138,6 +142,64 @@ public class MaterialMasterService
         await _db.SaveChangesAsync(ct);
 
         return await ToResponseAsync(entry, currentUserId, ct);
+    }
+
+    public Task<IReadOnlyList<MaterialMasterEntryResponse>> CreateBatchAsync(
+        IReadOnlyList<SaveMaterialMasterEntryRequest>? requests,
+        int currentUserId,
+        CancellationToken ct = default) =>
+        _batch.ExecuteAsync(
+            requests,
+            (row, index, token) => ValidateCreateRowAsync(currentUserId, row, index, token),
+            row => CreateAsync(row, currentUserId, ct),
+            getCode: row => row.Code,
+            codeField: "code",
+            getExistingCodesAsync: async (codes, token) =>
+            {
+                var lowered = codes.Select(c => c.ToLowerInvariant()).ToList();
+                var existing = await _db.MaterialMasterEntries
+                    .AsNoTracking()
+                    .Where(e => lowered.Contains(e.Code.ToLower()))
+                    .Select(e => e.Code)
+                    .ToListAsync(token);
+                return new HashSet<string>(existing.Select(c => c.Trim()), StringComparer.OrdinalIgnoreCase);
+            },
+            ct: ct);
+
+    private async Task<IReadOnlyList<FieldError>> ValidateCreateRowAsync(
+        int currentUserId,
+        SaveMaterialMasterEntryRequest request,
+        int row,
+        CancellationToken ct)
+    {
+        var errors = new List<FieldError>();
+
+        if (string.IsNullOrWhiteSpace(request.Code))
+        {
+            errors.Add(new FieldError("code", "Code is required.", row));
+        }
+
+        if (string.IsNullOrWhiteSpace(request.Name))
+        {
+            errors.Add(new FieldError("name", "Name is required.", row));
+        }
+
+        try
+        {
+            await _scope.ResolveSectionForCreateAsync(currentUserId, request.SectionId, ct, SectionAccess.Configure);
+        }
+        catch (Exception ex) when (ex is BusinessRuleException or UnauthorizedAccessException)
+        {
+            errors.Add(new FieldError("sectionId", ex.Message, row));
+        }
+
+        if (request.MaterialCategoryId is int categoryId
+            && (categoryId <= 0 || !await _db.MaterialCategories.AsNoTracking().AnyAsync(c => c.Id == categoryId, ct)))
+        {
+            errors.Add(new FieldError("materialCategoryId", $"Material category {categoryId} not found.", row));
+        }
+
+        return errors;
     }
 
     public async Task<MaterialMasterEntryResponse> UpdateAsync(int id, SaveMaterialMasterEntryRequest r, int currentUserId, CancellationToken ct = default)

@@ -13,6 +13,7 @@ import AddIcon from "@mui/icons-material/Add";
 import ChatBubbleOutlineIcon from "@mui/icons-material/ChatBubbleOutlined";
 import { PageHeader } from "../../components/PageHeader";
 import { useAuth } from "../../contexts/AuthContext";
+import { useLiveRefresh } from "../../hooks/useLiveRefresh";
 import { ConversationSummary } from "./types/messageTypes";
 import { messageService } from "./services/messageService";
 import { ConversationList } from "./components/ConversationList";
@@ -38,18 +39,23 @@ export function MessagesPage() {
       if (data.length > 0 && selectedId === null && !isMobile) {
         setSelectedId(data[0].id);
       }
-    } catch (err: any) {
-      setError(err.response?.data?.message || err.message || "Failed to load conversations.");
+    } catch (err: unknown) {
+      const apiErr = err as { response?: { data?: { message?: string } }; message?: string };
+      setError(apiErr.response?.data?.message || apiErr.message || "Failed to load conversations.");
     } finally {
       setLoading(false);
     }
   }, [selectedId, isMobile]);
 
   useEffect(() => {
-    loadConversations();
-    const interval = setInterval(loadConversations, 10_000);
-    return () => clearInterval(interval);
+    void loadConversations();
   }, [loadConversations]);
+
+  useLiveRefresh({
+    kind: "messages",
+    refetch: loadConversations,
+    fallbackMs: 10_000
+  });
 
   const selectedConversation = conversations.find((c) => c.id === selectedId) || null;
 

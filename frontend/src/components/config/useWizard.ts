@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import axios from "axios";
 import { useBenchDraft } from "../../hooks/useBenchDraft";
+import { isReasonRequiredError } from "../../services/apiClient";
 import type { FieldError } from "../../services/apiTypes";
 import type { UsageSummary } from "../../services/masterDataUsageService";
 import { getErrorMessage } from "../../utils/errorMessage";
@@ -23,6 +24,11 @@ export interface WizardStep<M> {
   summary(model: M): { label: string; value: string; field: string }[];
 }
 
+export interface WizardSaveAndNextAction {
+  label: string;
+  onSaved(): void;
+}
+
 export interface ConfigWizardProps<M> {
   open?: boolean;
   title: string;
@@ -34,10 +40,13 @@ export interface ConfigWizardProps<M> {
   draftFields: (keyof M)[];
   validateOnServer?(model: M): Promise<FieldError[]>;
   usage?(): Promise<UsageSummary>;
-  reasonRequired?(usage: UsageSummary | null): boolean;
+  reasonRequired?(usage: UsageSummary | null, model: M): boolean;
   reloadOriginal?(): Promise<M>;
   onSave(model: M, reason: string | null): Promise<void>;
   onClose(): void;
+  saveAndNext?:
+    | WizardSaveAndNextAction
+    | ((model: M) => WizardSaveAndNextAction | null);
   extraReview?(model: M): ReactNode;
 }
 
@@ -77,6 +86,7 @@ export function useWizard<M extends object>(props: ConfigWizardProps<M>) {
     reloadOriginal,
     onSave,
     onClose,
+    saveAndNext,
   } = props;
 
   const [model, setModel] = useState<M>(initial);
@@ -112,6 +122,7 @@ export function useWizard<M extends object>(props: ConfigWizardProps<M>) {
   });
   const [confirmDiscardOpen, setConfirmDiscardOpen] = useState(false);
   const [focusRequest, setFocusRequest] = useState<{ field?: string; seq: number }>({ seq: 0 });
+  const pendingThenNextRef = useRef(false);
 
   const prevOpenRef = useRef(open);
   const prevDraftKeyRef = useRef(draftKey);
@@ -137,6 +148,7 @@ export function useWizard<M extends object>(props: ConfigWizardProps<M>) {
     setSaving(false);
     setSaveError(null);
     setReasonDialogOpen(false);
+    pendingThenNextRef.current = false;
     setConflictState({ active: false, reloading: false, reloadError: null });
     setConfirmDiscardOpen(false);
   }, [open, draftKey, initial, original, steps]);
@@ -365,6 +377,11 @@ export function useWizard<M extends object>(props: ConfigWizardProps<M>) {
     [applicableSteps, stepErrors, serverErrorsByStep, model]
   );
 
+  const resolvedSaveAndNext = useMemo(
+    () => (typeof saveAndNext === "function" ? saveAndNext(model) : (saveAndNext ?? null)),
+    [saveAndNext, model]
+  );
+
   const executeSave = useCallback(
     async (reason: string | null) => {
       setSaving(true);
@@ -373,8 +390,19 @@ export function useWizard<M extends object>(props: ConfigWizardProps<M>) {
         await onSave(model, reason);
         await draft.onSubmitted();
         setReasonDialogOpen(false);
-        onClose();
+        const goNextAfterSave = pendingThenNextRef.current;
+        pendingThenNextRef.current = false;
+        if (goNextAfterSave && resolvedSaveAndNext) {
+          resolvedSaveAndNext.onSaved();
+        } else {
+          onClose();
+        }
       } catch (err: unknown) {
+        if (reason === null && isReasonRequiredError(err)) {
+          setReasonDialogOpen(true);
+          return;
+        }
+        pendingThenNextRef.current = false;
         setReasonDialogOpen(false);
         if (isConflictError(err)) {
           await draft.onRejected("Record was modified by another user.");
@@ -408,17 +436,21 @@ export function useWizard<M extends object>(props: ConfigWizardProps<M>) {
         setSaving(false);
       }
     },
-    [model, onSave, draft, onClose, reloadOriginal]
+    [model, onSave, draft, resolvedSaveAndNext, onClose, reloadOriginal]
   );
 
-  const handleSaveClick = useCallback(() => {
-    const needsReason = reasonRequired ? reasonRequired(usageState.summary) : false;
-    if (needsReason) {
-      setReasonDialogOpen(true);
-      return;
-    }
-    void executeSave(null);
-  }, [reasonRequired, usageState.summary, executeSave]);
+  const handleSaveClick = useCallback(
+    (thenNext?: boolean) => {
+      pendingThenNextRef.current = thenNext === true;
+      const needsReason = reasonRequired ? reasonRequired(usageState.summary, model) : false;
+      if (needsReason) {
+        setReasonDialogOpen(true);
+        return;
+      }
+      void executeSave(null);
+    },
+    [reasonRequired, usageState.summary, model, executeSave]
+  );
 
   const isDirty = useMemo(
     () => JSON.stringify(model) !== JSON.stringify(baselineInitial),
@@ -478,8 +510,12 @@ export function useWizard<M extends object>(props: ConfigWizardProps<M>) {
     saving,
     saveError,
     saveDisabled,
+    resolvedSaveAndNext,
     reasonDialogOpen,
-    closeReasonDialog: () => setReasonDialogOpen(false),
+    closeReasonDialog: () => {
+      pendingThenNextRef.current = false;
+      setReasonDialogOpen(false);
+    },
     conflictState,
     dismissConflict: () => setConflictState({ active: false, reloading: false, reloadError: null }),
     confirmDiscardOpen,

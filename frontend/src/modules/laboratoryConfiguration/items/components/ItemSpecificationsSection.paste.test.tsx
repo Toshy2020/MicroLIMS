@@ -5,7 +5,7 @@ import userEvent from "@testing-library/user-event";
 import { PinnedLightTheme } from "../../../../theme/PinnedLightTheme";
 import { AuthProvider } from "../../../../contexts/AuthContext";
 import { ItemSpecificationsSection } from "./ItemSpecificationsSection";
-import type { TestDefinitionSummary } from "./SpecificationParameterDialog";
+import type { TestDefinitionSummary } from "../specWizard/specHelpers";
 import type { Item } from "../services/ItemService";
 import {
   SpecificationService,

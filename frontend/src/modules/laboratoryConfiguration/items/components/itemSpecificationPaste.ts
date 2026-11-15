@@ -5,7 +5,7 @@ import type {
   LimitType,
   ToleranceMode
 } from "../../specifications/services/SpecificationService";
-import { LIMIT_TYPE_OPTIONS, TOLERANCE_MODE_OPTIONS } from "./SpecificationParameterDialog";
+import { LIMIT_TYPE_OPTIONS, TOLERANCE_MODE_OPTIONS } from "../specWizard/specHelpers";
 
 export const MAX_ITEM_SPECIFICATION_BATCH_ROWS = 200;
 

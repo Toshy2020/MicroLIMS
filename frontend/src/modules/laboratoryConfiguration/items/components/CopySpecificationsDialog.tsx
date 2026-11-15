@@ -16,7 +16,7 @@ import { useMyLabs } from "../../../../hooks/useMyLabs";
 import { useLaboratorySections } from "../../../../hooks/useLaboratorySections";
 import { Item, ItemService } from "../services/ItemService";
 import { SpecificationDto, SpecificationService } from "../../specifications/services/SpecificationService";
-import type { TestDefinitionSummary } from "./SpecificationParameterDialog";
+import type { TestDefinitionSummary } from "../specWizard/specHelpers";
 import {
   CopyCandidate,
   assignDisplayOrders,

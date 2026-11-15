@@ -41,7 +41,7 @@ import { tableHeadSx } from "../../../../theme";
 import { monospaceFontFamily } from "../../../../theme/palette";
 import { extractBatchSaveErrors } from "../../../../utils/fieldErrors";
 import { masterDataOptions } from "../../../../services/masterDataOptions";
-import { SpecificationParameterDialog, TestDefinitionSummary } from "./SpecificationParameterDialog";
+import { SpecificationWizard, type TestDefinitionSummary } from "../specWizard/SpecificationWizard";
 import { CopySpecificationsDialog } from "./CopySpecificationsDialog";
 import { formatLimitCell, formatResultBasis, ownLabTestCodes } from "./copySpecifications";
 import {
@@ -1205,8 +1205,8 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
         </Box>
       )}
 
-      {/* Add / Edit Parameter Dialog */}
-      <SpecificationParameterDialog
+      {/* Add / Edit Parameter Wizard */}
+      <SpecificationWizard
         open={dialogOpen}
         item={item}
         editingSpec={editingSpec}

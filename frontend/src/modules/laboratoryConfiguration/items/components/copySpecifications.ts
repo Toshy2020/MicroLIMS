@@ -13,7 +13,7 @@ import {
 } from "../../specifications/services/SpecificationService";
 import { collapseGrades } from "../../specifications/services/gradeGroups";
 import { PhyschemArea, areaIncludes, areaOfItemCategory } from "../../masterDataSimple/testMasterArea";
-import { formatTrimmedDecimal } from "./SpecificationParameterDialog";
+import { formatTrimmedDecimal } from "../specWizard/specFormModel";
 
 // Pure helpers behind "Copy from another item". Nothing here evaluates, rounds
 // or converts a limit: values are passed through exactly as the source row

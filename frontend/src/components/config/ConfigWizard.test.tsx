@@ -153,6 +153,25 @@ function makeConflictError() {
   );
 }
 
+function makeReasonRequiredError() {
+  return new AxiosError(
+    "Reason required",
+    "ERR_BAD_REQUEST",
+    undefined,
+    undefined,
+    {
+      status: 400,
+      statusText: "Bad Request",
+      headers: {},
+      config: { headers: new AxiosHeaders() },
+      data: {
+        message: "A reason of at least 10 characters is required.",
+        fieldErrors: [{ field: "reason", message: "Reason must be at least 10 characters." }],
+      },
+    }
+  );
+}
+
 const OPEN_USAGE: UsageSummary = {
   type: "Specification",
   id: 12,
@@ -475,5 +494,36 @@ describe("ConfigWizard", () => {
     await user.click(within(stepper).getByRole("button", { name: "Identity" }));
     expect(screen.getByLabelText("Name")).toBeTruthy();
     expect(within(stepper).getAllByRole("listitem")[0].getAttribute("aria-current")).toBe("step");
+  });
+
+  it("opens ChangeReasonDialog and retries when server returns reason-required error on save with no reason", async () => {
+    const user = userEvent.setup();
+    const onSave = vi
+      .fn()
+      .mockRejectedValueOnce(makeReasonRequiredError())
+      .mockResolvedValueOnce(undefined);
+
+    const { onClose } = renderWizard({
+      mode: "edit",
+      initial: { ...EMPTY_MODEL, name: "A", code: "B", details: "C" },
+      original: { ...EMPTY_MODEL, name: "A", code: "B", details: "C" },
+      onSave,
+    });
+
+    await user.click(screen.getByRole("button", { name: "Next" }));
+    await user.click(screen.getByRole("button", { name: "Next" }));
+    await user.click(screen.getByRole("button", { name: "Save" }));
+
+    const reasonInput = await screen.findByRole("textbox", { name: /Reason for change/ });
+    expect(screen.queryByText(/A reason of at least 10 characters is required/)).toBeNull();
+    expect(screen.queryByRole("alert")).toBeNull();
+
+    await user.type(reasonInput, "Updated per QAR-2026-44");
+    await user.click(screen.getByRole("button", { name: "Confirm" }));
+
+    await waitFor(() => expect(onSave).toHaveBeenCalledTimes(2));
+    expect(onSave.mock.calls[0][1]).toBeNull();
+    expect(onSave.mock.calls[1][1]).toBe("Updated per QAR-2026-44");
+    expect(onClose).toHaveBeenCalledTimes(1);
   });
 });

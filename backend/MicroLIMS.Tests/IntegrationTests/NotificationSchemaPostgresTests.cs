@@ -144,7 +144,10 @@ public class NotificationSchemaPostgresTests
                 Trigger = EscalationTrigger.ReviewWaiting,
                 ThresholdWorkingHours = 4m,
                 NotifyRoleType = RoleType.SectionHead,
-                IsActive = true,
+                // Retired from the start: this test is only about the event's unique index, and an
+                // active rule left in the shared seeded section would fire in every later escalation pass.
+                IsActive = false,
+                RetiredAt = FixedUtc,
                 CreatedByUserId = _fixture.SeededUserId,
                 CreatedAt = FixedUtc
             };

@@ -75,6 +75,15 @@ public class EscalationPostgresTests
     private async Task EnsureDefaultWorkingHoursAsync()
     {
         await using var db = _fixture.CreateDbContext();
+        // EvaluateAsync is global by design (every active rule, every section). Rules another test class
+        // left active in the shared database would fire on that class's samples and change the counts
+        // asserted here, so each test starts with none active; its own rules are created afterwards.
+        foreach (var stray in await db.EscalationRules.Where(r => r.IsActive && r.RetiredAt == null).ToListAsync())
+        {
+            stray.IsActive = false;
+            stray.RetiredAt = DateTime.SpecifyKind(new DateTime(2026, 1, 1), DateTimeKind.Utc);
+        }
+
         var existing = await db.LabWorkingHours.ToDictionaryAsync(h => h.DayOfWeek);
         var days = Enum.GetValues<DayOfWeek>();
         foreach (var day in days)

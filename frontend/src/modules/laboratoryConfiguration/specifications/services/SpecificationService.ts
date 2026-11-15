@@ -148,6 +148,22 @@ export interface CreateSpecificationPayload {
 
 export type UpdateSpecificationPayload = Omit<CreateSpecificationPayload, "itemId">;
 
+export interface CopySpecificationsRequest {
+  sourceItemId: number;
+  targetItemId: number;
+  specificationIds: number[];
+}
+
+export type CopySpecificationsPreviewStatus = "Ok" | "AlreadyPresent" | "Invalid";
+
+export interface CopySpecificationsPreviewRow {
+  sourceSpecificationId: number;
+  testCode: string;
+  parameterName: string;
+  status: CopySpecificationsPreviewStatus;
+  message: string | null;
+}
+
 export const SpecificationService = {
   getForItem: (itemId: number): Promise<SpecificationDto[]> =>
     apiClient.get(`/masterdata/specifications?itemId=${itemId}`).then((r) => r.data.data),
@@ -177,6 +193,10 @@ export const SpecificationService = {
   ): Promise<FieldError[]> =>
     apiClient
       .post(id != null ? `/masterdata/specifications/validate?id=${id}` : "/masterdata/specifications/validate", payload)
-      .then((r) => r.data.data ?? [])
+      .then((r) => r.data.data ?? []),
+  previewCopy: (request: CopySpecificationsRequest): Promise<CopySpecificationsPreviewRow[]> =>
+    apiClient.post("/masterdata/specifications/copy/preview", request).then((r) => r.data.data ?? []),
+  copySpecifications: (request: CopySpecificationsRequest): Promise<number> =>
+    apiClient.post("/masterdata/specifications/copy", request).then((r) => r.data.data)
 };
 

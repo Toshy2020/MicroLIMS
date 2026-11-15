@@ -8,7 +8,7 @@ import type { TestDefinitionSummary } from "../specWizard/specHelpers";
 import { Item, ItemService } from "../services/ItemService";
 import {
   SpecificationService,
-  type CreateSpecificationPayload,
+  type CopySpecificationsPreviewRow,
   type SpecificationDto
 } from "../../specifications/services/SpecificationService";
 import { laboratorySectionService, type LaboratorySection } from "../../../../services/laboratorySectionService";
@@ -27,10 +27,9 @@ vi.mock("../../specifications/services/SpecificationService", async (importOrigi
     ...actual,
     SpecificationService: {
       ...actual.SpecificationService,
-      create: vi.fn(),
-      update: vi.fn(),
-      remove: vi.fn(),
-      getForItem: vi.fn()
+      getForItem: vi.fn(),
+      previewCopy: vi.fn(),
+      copySpecifications: vi.fn()
     }
   };
 });
@@ -65,7 +64,7 @@ const fpSection: LaboratorySection = {
 
 const TARGET_ID = 7;
 const SOURCE_ID = 8;
-const RAW_ID = 9;
+const EMPTY_SOURCE_ID = 9;
 
 const targetItem: Item = {
   id: TARGET_ID,
@@ -79,18 +78,18 @@ const targetItem: Item = {
     { testCode: "PH", displayName: "pH" },
     { testCode: "ASSAY", displayName: "Assay" },
     { testCode: "DISS", displayName: "Dissolution" },
-    { testCode: "MICRO", displayName: "Microbial count" }
+    { testCode: "STAGE", displayName: "Stage Check" }
   ],
   specifications: []
 };
 const sourceItem: Item = { ...targetItem, id: SOURCE_ID, name: "Oral Tablet B", code: "FP-B", assignedTests: [], specifications: [] };
-const rawItem: Item = { ...targetItem, id: RAW_ID, name: "Starch", code: "RM-C", category: "RawMaterial", assignedTests: [], specifications: [] };
+const emptySourceItem: Item = { ...targetItem, id: EMPTY_SOURCE_ID, name: "Empty Item", code: "FP-E", assignedTests: [], specifications: [] };
 
 const testDefinitions: TestDefinitionSummary[] = [
   { id: 1, code: "PH", displayName: "pH", workflowType: "Measurement", sectionId: 1 },
   { id: 2, code: "ASSAY", displayName: "Assay", workflowType: "Measurement", sectionId: 1 },
   { id: 3, code: "DISS", displayName: "Dissolution", workflowType: "Dissolution", sectionId: 1 },
-  { id: 4, code: "MICRO", displayName: "Microbial count", workflowType: "CountTest", sectionId: 2 }
+  { id: 4, code: "STAGE", displayName: "Stage Check", workflowType: "Measurement", sectionId: 1 }
 ];
 
 const phSpec: SpecificationDto = {
@@ -133,28 +132,16 @@ const dissSpec: SpecificationDto = {
   labelClaimUnit: "mg",
   specLimit: "Q = 80 %"
 };
-const notAssignedSpec: SpecificationDto = {
+const stageInvalidSpec: SpecificationDto = {
   id: 104,
   version: 1,
   itemId: SOURCE_ID,
-  testCode: "HEAVY",
-  parameterName: "Heavy metals",
+  testCode: "STAGE",
+  parameterName: "Stage Check",
   displayOrder: 0,
   limitType: "NotMoreThan",
   upperLimit: 10,
   unit: "ppm"
-};
-const microSpec: SpecificationDto = {
-  id: 105,
-  version: 1,
-  itemId: SOURCE_ID,
-  testCode: "MICRO",
-  parameterName: "Microbial count",
-  displayOrder: 0,
-  limitType: "CountTiered",
-  alertLimit: "50",
-  actionLimit: "80",
-  specLimit: "100"
 };
 const ph2Spec: SpecificationDto = {
   id: 106,
@@ -169,74 +156,29 @@ const ph2Spec: SpecificationDto = {
   lowerInclusive: true,
   upperInclusive: true
 };
-const sourceSpecs: SpecificationDto[] = [phSpec, assaySpec, dissSpec, notAssignedSpec, microSpec, ph2Spec];
+
+const sourceSpecs: SpecificationDto[] = [phSpec, assaySpec, dissSpec, stageInvalidSpec, ph2Spec];
 const targetSpecs: SpecificationDto[] = [{ ...assaySpec, id: 900, itemId: TARGET_ID }];
 
-const NULLS = {
-  referenceStandard: null,
-  target: null,
-  tolerance: null,
-  toleranceMode: null,
-  expectedResultText: null,
-  expectedState: null,
-  sampleQuantity: null,
-  sampleQuantityUnit: null,
-  alertLimit: null,
-  actionLimit: null,
-  specLimit: null,
-  dilutionFactor: null,
-  resultBasis: null,
-  labelClaim: null,
-  labelClaimUnit: null,
-  dosageForm: null,
-  hplcMethodAnalyteId: null,
-  hplcMethodImpurityId: null,
-  relatedSubstanceRow: null,
-  icpTestElementId: null,
-  productionStageRole: null,
-  grade: null
-};
-
-const phPayload: CreateSpecificationPayload = {
-  ...NULLS,
-  itemId: TARGET_ID,
-  testCode: "PH",
-  parameterName: "pH",
-  displayOrder: 0,
-  limitType: "Range",
-  lowerLimit: 5,
-  upperLimit: 7,
-  lowerInclusive: true,
-  upperInclusive: false,
-  unit: "pH"
-};
-const dissPayload: CreateSpecificationPayload = {
-  ...NULLS,
-  itemId: TARGET_ID,
-  testCode: "DISS",
-  parameterName: "Dissolution",
-  displayOrder: 0,
-  limitType: "DissolutionQ",
-  lowerLimit: 80,
-  upperLimit: null,
-  labelClaim: 500,
-  labelClaimUnit: "mg",
-  specLimit: "Q = 80 %",
-  unit: null
-};
-const ph2Payload: CreateSpecificationPayload = {
-  ...NULLS,
-  itemId: TARGET_ID,
-  testCode: "PH",
-  parameterName: "pH (1 % solution)",
-  displayOrder: 1,
-  limitType: "Range",
-  lowerLimit: 4.5,
-  upperLimit: 6.5,
-  lowerInclusive: true,
-  upperInclusive: true,
-  unit: null
-};
+const defaultPreviewRows: CopySpecificationsPreviewRow[] = [
+  { sourceSpecificationId: 101, testCode: "PH", parameterName: "pH", status: "Ok", message: null },
+  {
+    sourceSpecificationId: 102,
+    testCode: "ASSAY",
+    parameterName: "Assay",
+    status: "AlreadyPresent",
+    message: "A matching specification already exists on the target item."
+  },
+  { sourceSpecificationId: 103, testCode: "DISS", parameterName: "Dissolution", status: "Ok", message: null },
+  {
+    sourceSpecificationId: 104,
+    testCode: "STAGE",
+    parameterName: "Stage Check",
+    status: "Invalid",
+    message: "Production stage Finished is not valid for raw materials."
+  },
+  { sourceSpecificationId: 106, testCode: "PH", parameterName: "pH (1 % solution)", status: "Ok", message: null }
+];
 
 function mount(options: { readOnly?: boolean; onSpecsChanged?: () => void } = {}) {
   return render(
@@ -264,34 +206,81 @@ describe("CopySpecificationsDialog (through ItemSpecificationsSection)", () => {
     vi.mocked(laboratorySectionService.getSections).mockResolvedValue([fpSection]);
     vi.mocked(laboratorySectionService.getMySections).mockResolvedValue([fpSection]);
     vi.mocked(masterDataOptions.getTestDefinitions).mockResolvedValue(testDefinitions);
-    vi.mocked(ItemService.getAll).mockResolvedValue([targetItem, sourceItem, rawItem]);
+    vi.mocked(ItemService.getAll).mockResolvedValue([targetItem, sourceItem, emptySourceItem]);
     vi.mocked(SpecificationService.getForItem).mockImplementation(async (itemId: number) => {
       if (itemId === SOURCE_ID) return sourceSpecs;
       if (itemId === TARGET_ID) return targetSpecs;
       return [];
     });
-    vi.mocked(SpecificationService.create).mockImplementation(async (payload) => ({ ...payload, id: 5000 }) as SpecificationDto);
+    vi.mocked(SpecificationService.previewCopy).mockImplementation(async (req) => {
+      if (req.sourceItemId === EMPTY_SOURCE_ID) return [];
+      if (req.specificationIds.length === 0) return defaultPreviewRows;
+      const wanted = new Set(req.specificationIds);
+      return defaultPreviewRows.filter((r) => wanted.has(r.sourceSpecificationId));
+    });
+    vi.mocked(SpecificationService.copySpecifications).mockImplementation(async (req) => req.specificationIds.length);
   });
 
   afterEach(cleanup);
 
-  it("lists only the eligible parameters and counts what was skipped and why", async () => {
+  it("choose source, tick tests, preview with statuses, Save disabled while any ticked row is Invalid", async () => {
     const user = userEvent.setup();
     mount();
     await openAndPick(user, "Oral Tablet B (FP-B)");
 
     const ui = dialogUi();
-    const boxes = await ui.findAllByRole("checkbox");
-    expect(boxes.map((b) => b.getAttribute("aria-label"))).toEqual(["Copy pH", "Copy Dissolution", "Copy pH – pH (1 % solution)"]);
-    expect(boxes.every((b) => (b as HTMLInputElement).checked)).toBe(true);
+    await ui.findByRole("checkbox", { name: "Copy pH" });
+
+    expect(SpecificationService.previewCopy).toHaveBeenCalledWith({
+      sourceItemId: SOURCE_ID,
+      targetItemId: TARGET_ID,
+      specificationIds: []
+    });
+
+    // Statuses are shown as text, not color alone, with the server message.
+    expect(ui.getAllByText("Ok")).toHaveLength(3);
+    expect(ui.getByText("Already present")).toBeTruthy();
+    expect(ui.getByText("A matching specification already exists on the target item.")).toBeTruthy();
+    expect(ui.getByText("Invalid")).toBeTruthy();
+    expect(ui.getByText("Production stage Finished is not valid for raw materials.")).toBeTruthy();
+
     // The limits read as they do in the table.
     expect(ui.getByText("NLT 5 — NMT 7 pH")).toBeTruthy();
     expect(ui.getByText("Q = 80 %")).toBeTruthy();
-    expect(ui.getByText("1 parameter is not assigned to this item")).toBeTruthy();
-    expect(ui.getByText("1 parameter already has limits here")).toBeTruthy();
-    expect(ui.getByText("1 parameter belongs to another laboratory")).toBeTruthy();
-    expect(ui.getByRole("button", { name: "Copy 3 parameters" })).toBeTruthy();
-    expect(SpecificationService.create).not.toHaveBeenCalled();
+
+    // AlreadyPresent is unticked and disabled; Ok rows are ticked; Invalid starts unticked.
+    const assayBox = ui.getByRole("checkbox", { name: "Copy Assay" }) as HTMLInputElement;
+    const stageBox = ui.getByRole("checkbox", { name: "Copy Stage Check" }) as HTMLInputElement;
+    const phBox = ui.getByRole("checkbox", { name: "Copy pH" }) as HTMLInputElement;
+    expect(assayBox.checked).toBe(false);
+    expect(assayBox.disabled).toBe(true);
+    expect(phBox.checked).toBe(true);
+    expect(stageBox.checked).toBe(false);
+
+    const saveBtn = ui.getByRole("button", { name: "Save" }) as HTMLButtonElement;
+    expect(saveBtn.disabled).toBe(false);
+
+    // Ticking the Invalid row disables Save.
+    await user.click(stageBox);
+    expect(stageBox.checked).toBe(true);
+    expect(saveBtn.disabled).toBe(true);
+
+    // Explicit Preview calls previewCopy for the ticked specificationIds.
+    await user.click(ui.getByRole("button", { name: "Preview" }));
+    await waitFor(() =>
+      expect(SpecificationService.previewCopy).toHaveBeenLastCalledWith({
+        sourceItemId: SOURCE_ID,
+        targetItemId: TARGET_ID,
+        specificationIds: [101, 103, 104, 106]
+      })
+    );
+    expect(saveBtn.disabled).toBe(true);
+
+    // Unticking the Invalid row re-enables Save.
+    await user.click(stageBox);
+    expect(stageBox.checked).toBe(false);
+    expect(saveBtn.disabled).toBe(false);
+    expect(SpecificationService.copySpecifications).not.toHaveBeenCalled();
   });
 
   it("shows how many assigned tests already have limits", async () => {
@@ -299,49 +288,47 @@ describe("CopySpecificationsDialog (through ItemSpecificationsSection)", () => {
     expect(await screen.findByText(/Limits set for 1 of\s+4 assigned tests/)).toBeTruthy();
   });
 
-  it("creates one specification per ticked row in list order, then closes and refreshes", async () => {
+  it("Save sends { sourceItemId, targetItemId, specificationIds }, shows created count, closes and refreshes", async () => {
     const user = userEvent.setup();
     const onSpecsChanged = vi.fn();
+    vi.mocked(SpecificationService.copySpecifications).mockResolvedValueOnce(2);
     mount({ onSpecsChanged });
     await openAndPick(user, "Oral Tablet B (FP-B)");
 
     await user.click(await dialogUi().findByRole("checkbox", { name: "Copy Dissolution" }));
-    await user.click(dialogUi().getByRole("button", { name: "Copy 2 parameters" }));
+    await user.click(dialogUi().getByRole("button", { name: "Save" }));
 
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
-    expect(vi.mocked(SpecificationService.create).mock.calls).toEqual([[phPayload], [ph2Payload]]);
+    expect(SpecificationService.copySpecifications).toHaveBeenCalledWith({
+      sourceItemId: SOURCE_ID,
+      targetItemId: TARGET_ID,
+      specificationIds: [101, 106]
+    });
     expect(onSpecsChanged).toHaveBeenCalledTimes(1);
-    // Once for the section's own load, once more for the refresh after the copy.
-    expect(vi.mocked(SpecificationService.getForItem).mock.calls.filter(([id]) => id === TARGET_ID).length).toBeGreaterThanOrEqual(3);
+    // Once for the section's initial load, once more for the refresh after the copy.
+    expect(vi.mocked(SpecificationService.getForItem).mock.calls.filter(([id]) => id === TARGET_ID).length).toBeGreaterThanOrEqual(2);
     expect(await screen.findByText("Copied 2 specification parameters to Oral Tablet A.")).toBeTruthy();
   });
 
-  it("stops at a refused row, keeps the created ones, and sends only the rest on retry", async () => {
+  it("keeps the dialog open and shows the server message when copy fails, allowing retry", async () => {
     const user = userEvent.setup();
     const onSpecsChanged = vi.fn();
-    vi.mocked(SpecificationService.create)
-      .mockResolvedValueOnce({ ...phSpec, id: 5001 })
-      .mockRejectedValueOnce({ response: { data: { message: "Q must not exceed 100." } } })
-      .mockResolvedValue({ ...phSpec, id: 5002 });
+    vi.mocked(SpecificationService.copySpecifications)
+      .mockRejectedValueOnce({ response: { data: { message: "Target item belongs to a section you cannot configure." } } })
+      .mockResolvedValueOnce(3);
     mount({ onSpecsChanged });
     await openAndPick(user, "Oral Tablet B (FP-B)");
 
-    await user.click(await dialogUi().findByRole("button", { name: "Copy 3 parameters" }));
+    await user.click(await dialogUi().findByRole("button", { name: "Save" }));
 
     const ui = dialogUi();
-    expect(await ui.findByText(/Copying stopped at "Dissolution" \(DISS\): Q must not exceed 100\./)).toBeTruthy();
+    expect(await ui.findByText("Target item belongs to a section you cannot configure.")).toBeTruthy();
     expect(screen.getByRole("dialog")).toBeTruthy();
-    expect(vi.mocked(SpecificationService.create).mock.calls).toEqual([[phPayload], [dissPayload]]);
-    expect(ui.getByText("Copied")).toBeTruthy();
-    expect((ui.getByRole("checkbox", { name: "Copy pH" }) as HTMLInputElement).disabled).toBe(true);
-    // The saved row is shown without waiting for the dialog to close.
-    await waitFor(() => expect(onSpecsChanged).toHaveBeenCalledTimes(1));
+    expect(onSpecsChanged).not.toHaveBeenCalled();
 
-    await user.click(ui.getByRole("button", { name: "Copy 2 parameters" }));
-
+    await user.click(ui.getByRole("button", { name: "Save" }));
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
-    // pH is not sent again; the order continues from the first attempt.
-    expect(vi.mocked(SpecificationService.create).mock.calls).toEqual([[phPayload], [dissPayload], [dissPayload], [ph2Payload]]);
+    expect(onSpecsChanged).toHaveBeenCalledTimes(1);
     expect(await screen.findByText("Copied 3 specification parameters to Oral Tablet A.")).toBeTruthy();
   });
 
@@ -354,7 +341,7 @@ describe("CopySpecificationsDialog (through ItemSpecificationsSection)", () => {
     await user.click(dialogUi().getByRole("button", { name: "Cancel" }));
 
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
-    expect(SpecificationService.create).not.toHaveBeenCalled();
+    expect(SpecificationService.copySpecifications).not.toHaveBeenCalled();
   });
 
   it("reports a failed item list and loads it on Retry", async () => {
@@ -372,15 +359,29 @@ describe("CopySpecificationsDialog (through ItemSpecificationsSection)", () => {
     expect(ItemService.getAll).toHaveBeenCalledTimes(2);
   });
 
-  it("offers nothing from an item of another category and says why", async () => {
+  it("reports a failed preview and loads it on Retry", async () => {
+    const user = userEvent.setup();
+    vi.mocked(SpecificationService.previewCopy).mockRejectedValueOnce({
+      response: { data: { message: "Preview failed." } }
+    });
+    mount();
+    await openAndPick(user, "Oral Tablet B (FP-B)");
+
+    expect(await dialogUi().findByText(/The preview for Oral Tablet B could not be loaded: Preview failed\./)).toBeTruthy();
+
+    await user.click(dialogUi().getByRole("button", { name: "Retry" }));
+    expect(await dialogUi().findByRole("checkbox", { name: "Copy pH" })).toBeTruthy();
+  });
+
+  it("shows an empty message when the source item has no active specifications", async () => {
     const user = userEvent.setup();
     mount();
-    await openAndPick(user, "Starch (RM-C)");
+    await openAndPick(user, "Empty Item (FP-E)");
 
-    expect(await dialogUi().findByText(/is a different kind of item from Oral Tablet A/)).toBeTruthy();
+    expect(await dialogUi().findByText(/Nothing on Empty Item can be copied to Oral Tablet A\./)).toBeTruthy();
     expect(dialogUi().queryAllByRole("checkbox")).toHaveLength(0);
-    expect((dialogUi().getByRole("button", { name: "Copy 0 parameters" }) as HTMLButtonElement).disabled).toBe(true);
-    expect(SpecificationService.create).not.toHaveBeenCalled();
+    expect((dialogUi().getByRole("button", { name: "Save" }) as HTMLButtonElement).disabled).toBe(true);
+    expect(SpecificationService.copySpecifications).not.toHaveBeenCalled();
   });
 
   it("does not offer the target item itself as a source", async () => {

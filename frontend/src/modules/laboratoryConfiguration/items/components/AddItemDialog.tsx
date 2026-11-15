@@ -8,11 +8,13 @@ import {
   Typography,
   Autocomplete,
   AutocompleteInputChangeReason,
+  Checkbox,
+  FormControlLabel,
 } from "@mui/material";
 import { TestCodePickerMulti } from "../../../../components/TestCodePickerMulti";
 import { FieldHint, hintDescribedBy } from "../../../../components/FieldHint";
 import { hints } from "../hints";
-import { Item } from "../services/ItemService";
+import { CopyItemOptions, Item, ItemService } from "../services/ItemService";
 import { FormDialog } from "../../../../components/lab";
 import { documentControlService } from "../../../documentControl/services/documentControlService";
 import type { DocumentMasterSummaryDto } from "../../../documentControl/types/documentControlTypes";
@@ -20,6 +22,8 @@ import type { DocumentMasterSummaryDto } from "../../../documentControl/types/do
 interface AddItemDialogProps {
   open: boolean;
   itemToEdit: Item | null;
+  existingItems?: Item[];
+  startFromExisting?: boolean;
   onClose: () => void;
   onSave: (itemData: {
     name: string;
@@ -30,6 +34,7 @@ interface AddItemDialogProps {
     minSampleQuantity?: number | null;
     minRetestSampleQuantity?: number | null;
     minSampleQuantityUnit?: string | null;
+    copyFrom?: CopyItemOptions | null;
   }) => Promise<void>;
 }
 
@@ -39,7 +44,14 @@ const CATEGORIES = [
   { value: "PackagingMaterial", label: "Packaging Material" },
 ];
 
-export function AddItemDialog({ open, itemToEdit, onClose, onSave }: AddItemDialogProps) {
+export function AddItemDialog({
+  open,
+  itemToEdit,
+  existingItems,
+  startFromExisting = false,
+  onClose,
+  onSave,
+}: AddItemDialogProps) {
   const [name, setName] = useState("");
   const [code, setCode] = useState("");
   const [sopNumber, setSopNumber] = useState("");
@@ -50,6 +62,12 @@ export function AddItemDialog({ open, itemToEdit, onClose, onSave }: AddItemDial
   const [minSampleQuantityUnit, setMinSampleQuantityUnit] = useState<string>("");
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+
+  const [sourceItem, setSourceItem] = useState<Item | null>(null);
+  const [copySpecifications, setCopySpecifications] = useState(true);
+  const [copyAutoAssignedTests, setCopyAutoAssignedTests] = useState(true);
+  const [fetchedItems, setFetchedItems] = useState<Item[] | null>(null);
+  const [loadingSourceItems, setLoadingSourceItems] = useState(false);
 
   const [options, setOptions] = useState<DocumentMasterSummaryDto[]>([]);
   const [searchingDocs, setSearchingDocs] = useState(false);
@@ -75,10 +93,41 @@ export function AddItemDialog({ open, itemToEdit, onClose, onSave }: AddItemDial
       setMinRetestSampleQuantity(null);
       setMinSampleQuantityUnit("");
     }
+    setSourceItem(null);
+    setCopySpecifications(true);
+    setCopyAutoAssignedTests(true);
     setOptions([]);
     setSearchingDocs(false);
     setError(null);
   }, [itemToEdit, open]);
+
+  useEffect(() => {
+    if (!open || itemToEdit || existingItems !== undefined || !startFromExisting) return;
+    let cancelled = false;
+    setLoadingSourceItems(true);
+    ItemService.getAll()
+      .then((all) => {
+        if (!cancelled) setFetchedItems(all);
+      })
+      .catch(() => {
+        if (!cancelled) setFetchedItems([]);
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingSourceItems(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [open, itemToEdit, existingItems, startFromExisting]);
+
+  const ensureSourceItemsLoaded = () => {
+    if (existingItems !== undefined || fetchedItems !== null || loadingSourceItems) return;
+    setLoadingSourceItems(true);
+    ItemService.getAll()
+      .then((all) => setFetchedItems(all))
+      .catch(() => setFetchedItems([]))
+      .finally(() => setLoadingSourceItems(false));
+  };
 
   useEffect(() => {
     return () => {
@@ -87,6 +136,18 @@ export function AddItemDialog({ open, itemToEdit, onClose, onSave }: AddItemDial
       }
     };
   }, []);
+
+  const handlePickSource = (picked: Item | null) => {
+    setSourceItem(picked);
+    if (!picked) return;
+    // Code, name, SOP number and documents are never copied from the source item.
+    if (CATEGORIES.some((c) => c.value === picked.category)) {
+      setCategory(picked.category);
+    }
+    setMinSampleQuantity(picked.minSampleQuantity ?? null);
+    setMinRetestSampleQuantity(picked.minRetestSampleQuantity ?? null);
+    setMinSampleQuantityUnit(picked.minSampleQuantityUnit ?? "");
+  };
 
   const handleSopInputChange = (
     _event: React.SyntheticEvent,
@@ -150,7 +211,12 @@ export function AddItemDialog({ open, itemToEdit, onClose, onSave }: AddItemDial
 
   const handleSubmit = async () => {
     setError(null);
-    if (!name.trim() || !code.trim() || testCodes.length === 0) {
+    if (!itemToEdit && startFromExisting && !sourceItem) {
+      setError("Select an existing item to copy from.");
+      return;
+    }
+    const copiesTestsFromSource = Boolean(!itemToEdit && sourceItem && copyAutoAssignedTests);
+    if (!name.trim() || !code.trim() || (testCodes.length === 0 && !copiesTestsFromSource)) {
       setError("Item Name, Item Code, and at least one assigned test are required.");
       return;
     }
@@ -166,6 +232,7 @@ export function AddItemDialog({ open, itemToEdit, onClose, onSave }: AddItemDial
         minSampleQuantity?: number | null;
         minRetestSampleQuantity?: number | null;
         minSampleQuantityUnit?: string | null;
+        copyFrom?: CopyItemOptions | null;
       } = {
         name: name.trim(),
         code: code.trim(),
@@ -177,6 +244,13 @@ export function AddItemDialog({ open, itemToEdit, onClose, onSave }: AddItemDial
         if (minSampleQuantity !== null) payload.minSampleQuantity = minSampleQuantity;
         if (minRetestSampleQuantity !== null) payload.minRetestSampleQuantity = minRetestSampleQuantity;
         if (minSampleQuantityUnit.trim()) payload.minSampleQuantityUnit = minSampleQuantityUnit.trim();
+      }
+      if (!itemToEdit && sourceItem) {
+        payload.copyFrom = {
+          sourceItemId: sourceItem.id,
+          specifications: copySpecifications,
+          autoAssignedTests: copyAutoAssignedTests,
+        };
       }
       await onSave(payload);
       onClose();
@@ -193,6 +267,9 @@ export function AddItemDialog({ open, itemToEdit, onClose, onSave }: AddItemDial
     }
   };
 
+  const sourceOptions = existingItems ?? fetchedItems ?? [];
+  const showCopySection = !itemToEdit && (startFromExisting || sourceItem !== null);
+
   return (
     // A form, so Enter in a text field saves the item.
     <FormDialog
@@ -200,12 +277,70 @@ export function AddItemDialog({ open, itemToEdit, onClose, onSave }: AddItemDial
       onClose={onClose}
       onSubmit={handleSubmit}
       maxWidth="sm"
-      title={itemToEdit ? `Edit Item: ${itemToEdit.name}` : "Add New Item"}
+      title={
+        itemToEdit
+          ? `Edit Item: ${itemToEdit.name}`
+          : startFromExisting
+          ? "New Item from Existing"
+          : "Add New Item"
+      }
       submitLabel={itemToEdit ? "Save Changes" : "Save Item"}
       submitting={saving}
       error={error}
     >
       <Stack spacing={2}>
+        {!itemToEdit && (
+          <Box sx={{ p: showCopySection ? 1.5 : 0, border: showCopySection ? "1px solid" : "none", borderColor: "divider", borderRadius: 1 }}>
+            <Autocomplete
+              size="small"
+              options={sourceOptions}
+              value={sourceItem}
+              loading={loadingSourceItems}
+              onOpen={ensureSourceItemsLoaded}
+              onChange={(_, value) => handlePickSource(value)}
+              getOptionLabel={(o) => `${o.name} (${o.code})`}
+              isOptionEqualToValue={(a, b) => a.id === b.id}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  size="small"
+                  label="Copy from existing item"
+                  placeholder="Optional — pre-fill category, quantities, tests or specifications"
+                />
+              )}
+            />
+            {showCopySection && (
+              <Stack direction={{ xs: "column", sm: "row" }} spacing={1} sx={{ mt: 1 }}>
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      size="small"
+                      checked={copySpecifications}
+                      onChange={(e) => setCopySpecifications(e.target.checked)}
+                    />
+                  }
+                  label="Copy specifications"
+                />
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      size="small"
+                      checked={copyAutoAssignedTests}
+                      onChange={(e) => setCopyAutoAssignedTests(e.target.checked)}
+                    />
+                  }
+                  label="Copy auto-assigned tests"
+                />
+              </Stack>
+            )}
+            {showCopySection && (
+              <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 0.5 }}>
+                Code, name, SOP number and documents are never copied.
+              </Typography>
+            )}
+          </Box>
+        )}
+
         <TextField
           size="small"
           label="Item Name"
@@ -327,6 +462,13 @@ export function AddItemDialog({ open, itemToEdit, onClose, onSave }: AddItemDial
             <FieldHint id="items-assigned-tests" label="Assigned Tests" hint={hints.assignedTests} />
           </Stack>
           <TestCodePickerMulti value={testCodes} onChange={setTestCodes} label="Assigned Tests" />
+          {!itemToEdit && sourceItem && copyAutoAssignedTests && (
+            <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 0.5 }}>
+              {sourceItem.assignedTests?.length
+                ? `Auto-assigned tests from ${sourceItem.name} (${sourceItem.assignedTests.map((t) => t.testCode).join(", ")}) will be copied on save.`
+                : `Auto-assigned tests from ${sourceItem.name} will be copied on save.`}
+            </Typography>
+          )}
         </Box>
       </Stack>
     </FormDialog>

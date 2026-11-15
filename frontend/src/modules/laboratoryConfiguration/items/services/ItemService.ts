@@ -16,6 +16,12 @@ export interface Item {
   minSampleQuantityUnit?: string | null;
 }
 
+export interface CopyItemOptions {
+  sourceItemId: number;
+  specifications: boolean;
+  autoAssignedTests: boolean;
+}
+
 export interface ItemSaveRequest {
   name: string;
   code: string;
@@ -25,6 +31,7 @@ export interface ItemSaveRequest {
   minSampleQuantity?: number | null;
   minRetestSampleQuantity?: number | null;
   minSampleQuantityUnit?: string | null;
+  copyFrom?: CopyItemOptions | null;
 }
 
 export const ItemService = {

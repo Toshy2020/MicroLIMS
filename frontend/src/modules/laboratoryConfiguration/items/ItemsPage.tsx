@@ -11,6 +11,7 @@ import { ChangeReasonDialog } from "../../../components/config/ChangeReasonDialo
 import { useHasPermission } from "../../../contexts/AuthContext";
 import { PERMISSIONS } from "../../../routes/routes";
 import { ItemFilterBar } from "./components/ItemFilterBar";
+import { noteOwnSave } from "../../../hooks/useRecordChanged";
 import { AddItemDialog } from "./components/AddItemDialog";
 import { ItemWorkspace, parseItemWorkspaceTab, type ItemWorkspaceTab } from "./components/ItemWorkspace";
 import { UnmappedPreparationConfigurations } from "./components/UnmappedPreparationConfigurations";
@@ -232,6 +233,7 @@ export function ItemsPage() {
     if (editingItem) {
       try {
         await ItemService.update(editingItem.id, basePayload, editingItem.version);
+        noteOwnSave("item", editingItem.id);
         setMessage({ text: `Item "${itemData.name}" updated successfully.`, ok: true });
       } catch (e: unknown) {
         if (isReasonRequiredError(e)) {
@@ -294,6 +296,7 @@ export function ItemsPage() {
           pendingReasonAction.version,
           reason
         );
+        noteOwnSave("item", pendingReasonAction.id);
         setMessage({ text: `Item "${pendingReasonAction.name}" updated successfully.`, ok: true });
       }
       setPendingReasonAction(null);
@@ -466,6 +469,7 @@ export function ItemsPage() {
       <AddItemDialog
         open={addDialogOpen}
         itemToEdit={editingItem}
+        onItemReloaded={setEditingItem}
         existingItems={items}
         startFromExisting={addFromExisting}
         onClose={() => {

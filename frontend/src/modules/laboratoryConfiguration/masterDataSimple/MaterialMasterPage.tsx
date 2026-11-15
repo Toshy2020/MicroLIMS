@@ -32,6 +32,8 @@ import { PastePreviewDialog, type PasteAcceptedRow } from "../../../components/e
 import { PendingBatchList, type PendingBatchColumn } from "../../../components/entry/PendingBatchList";
 import { extractBatchSaveErrors } from "../../../utils/fieldErrors";
 import { toast } from "sonner";
+import { RecordChangedBanner } from "../../../components/RecordChangedBanner";
+import { noteOwnSave } from "../../../hooks/useRecordChanged";
 import {
   MaterialMasterService,
   MaterialMasterEntry,
@@ -248,9 +250,47 @@ export function MaterialMasterPage({ categories, embedded }: MaterialMasterPageP
     setDialogOpen(true);
   };
 
-  // Open Edit Dialog
-  const handleOpenEdit = (entry: MaterialMasterEntry) => {
-    setEditingEntry(entry);
+  const entryFormValues = (entry: MaterialMasterEntry) => [
+    entry.code,
+    entry.name,
+    entry.category,
+    entry.materialCategoryId ?? "",
+    entry.grade ?? "",
+    entry.source ?? "",
+    entry.baseUnit,
+    entry.sectionId ?? "",
+    entry.isActive,
+    entry.workingConcentration ?? "",
+    entry.solvent ?? "",
+    entry.transitionRangeFrom ?? "",
+    entry.transitionRangeTo ?? "",
+    entry.colourChange ?? "",
+    entry.indicatorUse ?? ""
+  ];
+  const editFormIsDirty = editingEntry
+    ? JSON.stringify([
+        formCode, formName, formCategory, formMaterialCategoryId, formGrade, formSource, formBaseUnit, formSectionId,
+        formIsActive, formWorkingConcentration, formSolvent, formTransitionRangeFrom, formTransitionRangeTo,
+        formColourChange, formIndicatorUse
+      ]) !== JSON.stringify(entryFormValues(editingEntry))
+    : false;
+
+  // Reload from the "changed by someone else" banner: replaces the record, its form values and the
+  // version the next save sends.
+  const reloadEditingEntry = async () => {
+    if (!editingEntry) return;
+    try {
+      const fresh = await MaterialMasterService.getById(editingEntry.id);
+      fillFormFromEntry(fresh);
+      setEditingEntry(fresh);
+      setDialogError(null);
+      setFieldErrors({});
+    } catch {
+      toast.error("Could not reload the latest record.");
+    }
+  };
+
+  const fillFormFromEntry = (entry: MaterialMasterEntry) => {
     setFormCode(entry.code);
     setFormName(entry.name);
     setFormCategory(entry.category);
@@ -266,6 +306,12 @@ export function MaterialMasterPage({ categories, embedded }: MaterialMasterPageP
     setFormTransitionRangeTo(entry.transitionRangeTo ?? "");
     setFormColourChange(entry.colourChange ?? "");
     setFormIndicatorUse(entry.indicatorUse ?? "");
+  };
+
+  // Open Edit Dialog
+  const handleOpenEdit = (entry: MaterialMasterEntry) => {
+    setEditingEntry(entry);
+    fillFormFromEntry(entry);
     setDialogError(null);
     setFieldErrors({});
     setDialogOpen(true);
@@ -322,6 +368,7 @@ export function MaterialMasterPage({ categories, embedded }: MaterialMasterPageP
     try {
       if (editingEntry) {
         await MaterialMasterService.update(editingEntry.id, payload, editingEntry.version);
+        noteOwnSave("materialMasterEntry", editingEntry.id);
         if (editingEntry.isActive !== formIsActive) {
           await MaterialMasterService.setActive(editingEntry.id, formIsActive);
         }
@@ -811,6 +858,14 @@ export function MaterialMasterPage({ categories, embedded }: MaterialMasterPageP
         error={dialogError}
         maxWidth="md"
       >
+          {dialogOpen && editingEntry && (
+            <RecordChangedBanner
+              type="materialMasterEntry"
+              id={editingEntry.id}
+              dirty={editFormIsDirty}
+              onReload={() => void reloadEditingEntry()}
+            />
+          )}
           <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(2, 1fr)" }, gap: 2 }}>
             <TextField
               label="Code"

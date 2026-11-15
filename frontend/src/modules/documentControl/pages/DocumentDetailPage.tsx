@@ -51,6 +51,9 @@ import { StatusBadge } from "../../../components/StatusBadge";
 import { ConfirmationDialog } from "../../../components/ConfirmationDialog";
 import { tableHeadSx } from "../../../theme";
 import { toast } from "sonner";
+import { RecordChangedBanner } from "../../../components/RecordChangedBanner";
+import { noteOwnSave } from "../../../hooks/useRecordChanged";
+import { getErrorMessage } from "../../../utils/errorMessage";
 import { useAuth } from "../../../contexts/AuthContext";
 import { documentControlService } from "../services/documentControlService";
 import { documentReviewService } from "../services/documentReviewService";
@@ -163,8 +166,8 @@ export function DocumentDetailPage() {
           // non-blocking
         }
       }
-    } catch (err: any) {
-      setError(err.response?.data?.message || err.message || "Failed to load document details.");
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, "Failed to load document details."));
     } finally {
       setLoading(false);
     }
@@ -173,6 +176,13 @@ export function DocumentDetailPage() {
   useEffect(() => {
     fetchDocument();
   }, [fetchDocument]);
+
+  // Called after this tab saved something on the document: marks the save as our own so the
+  // "changed by someone else" banner does not fire for its echo, then refreshes.
+  const afterOwnAction = useCallback(() => {
+    noteOwnSave("document", id ? Number(id) : null);
+    void fetchDocument();
+  }, [id, fetchDocument]);
 
   if (loading) {
     return (
@@ -380,8 +390,8 @@ export function DocumentDetailPage() {
   const handleDownloadFile = async (fileId: number, fileName: string) => {
     try {
       await documentControlService.downloadFile(fileId, fileName);
-    } catch (err: any) {
-      toast.error("Download failed: " + (err.response?.data?.message || err.message));
+    } catch (err: unknown) {
+      toast.error("Download failed: " + getErrorMessage(err, "unknown error"));
     }
   };
 
@@ -394,9 +404,9 @@ export function DocumentDetailPage() {
     try {
       await documentControlService.removeAssignment(document.id, assignmentToRemove);
       toast.success("Role assignment removed");
-      fetchDocument();
-    } catch (err: any) {
-      toast.error("Failed to remove assignment: " + (err.response?.data?.message || err.message));
+      afterOwnAction();
+    } catch (err: unknown) {
+      toast.error("Failed to remove assignment: " + getErrorMessage(err, "unknown error"));
     } finally {
       setAssignmentToRemove(null);
     }
@@ -404,6 +414,7 @@ export function DocumentDetailPage() {
 
   return (
     <Box sx={{ pb: 4 }}>
+      <RecordChangedBanner type="document" id={document.id} dirty={false} onReload={() => void fetchDocument()} />
       {/* Back button & Breadcrumbs */}
       <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1 }}>
         <Button
@@ -1221,7 +1232,7 @@ export function DocumentDetailPage() {
         open={periodicReviewDialogOpen}
         taskId={selectedPeriodicReviewTaskId}
         onClose={() => setPeriodicReviewDialogOpen(false)}
-        onSuccess={() => fetchDocument()}
+        onSuccess={afterOwnAction}
         onTriggerCreateRevision={() => {
           setCreateRevisionOpen(true);
         }}
@@ -1245,7 +1256,7 @@ export function DocumentDetailPage() {
         <FileUploadDialog
           open={uploadDialogOpen}
           onClose={() => setUploadDialogOpen(false)}
-          onSuccess={() => fetchDocument()}
+          onSuccess={afterOwnAction}
           revisionId={currentRevision.id}
           revisionNumber={currentRevision.revisionNumber}
           companyDocumentCode={document.companyDocumentCode}
@@ -1265,7 +1276,7 @@ export function DocumentDetailPage() {
       <VoidDocumentDialog
         open={voidDialogOpen}
         onClose={() => setVoidDialogOpen(false)}
-        onSuccess={() => fetchDocument()}
+        onSuccess={afterOwnAction}
         documentMasterId={document.id}
         companyDocumentCode={document.companyDocumentCode}
         documentTitle={document.title}
@@ -1276,7 +1287,7 @@ export function DocumentDetailPage() {
         <CancelDraftDialog
           open={cancelDraftOpen}
           onClose={() => setCancelDraftOpen(false)}
-          onSuccess={() => fetchDocument()}
+          onSuccess={afterOwnAction}
           revisionId={currentRevision.id}
           revisionNumber={currentRevision.revisionNumber}
           companyDocumentCode={document.companyDocumentCode}
@@ -1287,7 +1298,7 @@ export function DocumentDetailPage() {
       <AssignmentDialog
         open={assignmentOpen}
         onClose={() => setAssignmentOpen(false)}
-        onSuccess={() => fetchDocument()}
+        onSuccess={afterOwnAction}
         documentMasterId={document.id}
         companyDocumentCode={document.companyDocumentCode}
       />
@@ -1297,7 +1308,7 @@ export function DocumentDetailPage() {
         <SubmitForReviewDialog
           open={submitReviewOpen}
           onClose={() => setSubmitReviewOpen(false)}
-          onSubmitted={() => fetchDocument()}
+          onSubmitted={afterOwnAction}
           revisionId={currentRevision.id}
           authorUserId={currentRevision.createdByUserId}
           currentUserId={userId || 0}
@@ -1309,7 +1320,7 @@ export function DocumentDetailPage() {
         open={reviewDrawerOpen}
         onClose={() => setReviewDrawerOpen(false)}
         reviewTask={selectedReviewTask}
-        onTaskUpdated={() => fetchDocument()}
+        onTaskUpdated={afterOwnAction}
         currentUserId={userId || 0}
         onOpenComparison={() => setDualPdfViewerOpen(true)}
         hasEffectiveRevision={!!effectivePdf}
@@ -1335,7 +1346,7 @@ export function DocumentDetailPage() {
       <CreateRevisionDialog
         open={createRevisionOpen}
         onClose={() => setCreateRevisionOpen(false)}
-        onCreated={() => fetchDocument()}
+        onCreated={afterOwnAction}
         masterId={document.id}
         companyDocumentCode={document.companyDocumentCode}
         currentEffectiveRevisionNumber={effectiveRevision?.revisionNumber || "01"}
@@ -1353,7 +1364,7 @@ export function DocumentDetailPage() {
           revisionId={currentRevision.id}
           revisionNumber={currentRevision.revisionNumber}
           isEditable={currentRevision.revisionStatus === "Draft" && canEditDraft}
-          onSaved={() => fetchDocument()}
+          onSaved={afterOwnAction}
         />
       )}
 
@@ -1365,7 +1376,7 @@ export function DocumentDetailPage() {
           revisionId={currentRevision.id}
           revisionNumber={currentRevision.revisionNumber}
           isEditable={currentRevision.revisionStatus === "Draft" && canEditDraft}
-          onChanged={() => fetchDocument()}
+          onChanged={afterOwnAction}
         />
       )}
 
@@ -1374,7 +1385,7 @@ export function DocumentDetailPage() {
         <AssignApproverDialog
           open={assignApproverOpen}
           onClose={() => setAssignApproverOpen(false)}
-          onAssigned={() => fetchDocument()}
+          onAssigned={afterOwnAction}
           revisionId={currentRevision.id}
           companyDocumentCode={document.companyDocumentCode}
           revisionNumber={currentRevision.revisionNumber}
@@ -1393,7 +1404,7 @@ export function DocumentDetailPage() {
           }}
           approvalTaskId={selectedApprovalTaskId}
           currentUserId={userId || 0}
-          onDecisionExecuted={() => fetchDocument()}
+          onDecisionExecuted={afterOwnAction}
           onOpenComparison={() => setDualPdfViewerOpen(true)}
           hasEffectiveRevision={!!effectivePdf}
         />

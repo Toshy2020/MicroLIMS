@@ -650,11 +650,13 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext, IMicr
     public override int SaveChanges()
     {
         var pending = CapturePendingAuditEntries();
+        var recordChanges = CaptureRecordChanges();
         if (pending.Count == 0)
         {
             try
             {
                 var writtenZero = base.SaveChanges();
+                QueueRecordSignals(recordChanges);
                 if (Database.CurrentTransaction is null)
                     FlushSignalsSync();
                 return writtenZero;
@@ -672,6 +674,7 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext, IMicr
         try
         {
             var written = base.SaveChanges();
+            QueueRecordSignals(recordChanges);
             AddAuditLogs(pending);
             written += base.SaveChanges();
             tx?.Commit();
@@ -690,11 +693,13 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext, IMicr
     public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
         var pending = CapturePendingAuditEntries();
+        var recordChanges = CaptureRecordChanges();
         if (pending.Count == 0)
         {
             try
             {
                 var writtenZero = await base.SaveChangesAsync(cancellationToken);
+                QueueRecordSignals(recordChanges);
                 if (Database.CurrentTransaction is null)
                     await FlushSignalsAsync(cancellationToken);
                 return writtenZero;
@@ -712,6 +717,7 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext, IMicr
         try
         {
             var written = await base.SaveChangesAsync(cancellationToken);
+            QueueRecordSignals(recordChanges);
             AddAuditLogs(pending);
             written += await base.SaveChangesAsync(cancellationToken);
             if (tx is not null)
@@ -726,6 +732,65 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext, IMicr
                 DiscardSignals();
             throw;
         }
+    }
+
+    // "Changed by someone else" banner support. Entity type -> the record type name that
+    // LiveHub.WatchRecord accepts. Signals are only queued here (data-free; flushed after commit
+    // and discarded on rollback by the save paths above); no audit behaviour depends on this.
+    private static readonly IReadOnlyDictionary<Type, string> RecordSignalTypes = new Dictionary<Type, string>
+    {
+        [typeof(Sample)] = "sample",
+        [typeof(TestOrder)] = "testOrder",
+        [typeof(DocumentMaster)] = "document",
+        [typeof(Specification)] = "specification",
+        [typeof(Equipment)] = "equipment",
+        [typeof(SolutionMaster)] = "solutionMaster",
+        [typeof(MaterialMasterEntry)] = "materialMasterEntry",
+        [typeof(Item)] = "item",
+        [typeof(Department)] = "department",
+        [typeof(Room)] = "room",
+        [typeof(RoomTestConfiguration)] = "roomTestConfiguration",
+        [typeof(WaterDepartment)] = "waterDepartment",
+        [typeof(WaterSamplingPoint)] = "waterSamplingPoint",
+        [typeof(WaterPointLabFrequency)] = "waterPointLabFrequency",
+        [typeof(Machine)] = "machine",
+        [typeof(MachinePart)] = "machinePart",
+        [typeof(MachinePartConfiguration)] = "machinePartConfiguration"
+    };
+
+    private sealed record RecordChange(
+        Microsoft.EntityFrameworkCore.ChangeTracking.EntityEntry Entry, string Type, int? KnownId);
+
+    private List<RecordChange> CaptureRecordChanges()
+    {
+        var changes = new List<RecordChange>();
+        foreach (var entry in ChangeTracker.Entries())
+        {
+            if (entry.State is not (EntityState.Added or EntityState.Modified or EntityState.Deleted))
+                continue;
+            if (!RecordSignalTypes.TryGetValue(entry.Entity.GetType(), out var type))
+                continue;
+            // An added row has only a temporary key until it is inserted; read it after the save.
+            int? knownId = entry.State == EntityState.Added ? null : ReadIntId(entry);
+            changes.Add(new RecordChange(entry, type, knownId));
+        }
+        return changes;
+    }
+
+    private void QueueRecordSignals(List<RecordChange> changes)
+    {
+        foreach (var change in changes)
+        {
+            var id = change.KnownId ?? ReadIntId(change.Entry);
+            if (id is > 0)
+                QueueSignal(LiveSignalKinds.Record, $"record:{change.Type}:{id}", CurrentUserId);
+        }
+    }
+
+    private static int? ReadIntId(Microsoft.EntityFrameworkCore.ChangeTracking.EntityEntry entry)
+    {
+        var property = entry.Metadata.FindProperty("Id");
+        return property is not null && entry.Property("Id").CurrentValue is int id ? id : null;
     }
 
     private sealed record PendingAuditEntry(

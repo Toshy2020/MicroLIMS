@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import axios from "axios";
 import { useBenchDraft } from "../../hooks/useBenchDraft";
+import { noteOwnSave } from "../../hooks/useRecordChanged";
 import { isReasonRequiredError } from "../../services/apiClient";
 import type { FieldError } from "../../services/apiTypes";
 import type { UsageSummary } from "../../services/masterDataUsageService";
@@ -42,6 +43,8 @@ export interface ConfigWizardProps<M> {
   usage?(): Promise<UsageSummary>;
   reasonRequired?(usage: UsageSummary | null, model: M): boolean;
   reloadOriginal?(): Promise<M>;
+  // The saved record, so the wizard can warn when someone else changes it while it is open.
+  liveRecord?: { type: string; id: number | null };
   onSave(model: M, reason: string | null): Promise<void>;
   onClose(): void;
   saveAndNext?:
@@ -84,6 +87,7 @@ export function useWizard<M extends object>(props: ConfigWizardProps<M>) {
     usage,
     reasonRequired,
     reloadOriginal,
+    liveRecord,
     onSave,
     onClose,
     saveAndNext,
@@ -388,6 +392,7 @@ export function useWizard<M extends object>(props: ConfigWizardProps<M>) {
       setSaveError(null);
       try {
         await onSave(model, reason);
+        if (liveRecord) noteOwnSave(liveRecord.type, liveRecord.id);
         await draft.onSubmitted();
         setReasonDialogOpen(false);
         const goNextAfterSave = pendingThenNextRef.current;
@@ -436,7 +441,7 @@ export function useWizard<M extends object>(props: ConfigWizardProps<M>) {
         setSaving(false);
       }
     },
-    [model, onSave, draft, resolvedSaveAndNext, onClose, reloadOriginal]
+    [model, onSave, draft, resolvedSaveAndNext, onClose, reloadOriginal, liveRecord]
   );
 
   const handleSaveClick = useCallback(
@@ -456,6 +461,24 @@ export function useWizard<M extends object>(props: ConfigWizardProps<M>) {
     () => JSON.stringify(model) !== JSON.stringify(baselineInitial),
     [model, baselineInitial]
   );
+
+  // Replaces the form with the latest saved record. Only runs when the user asked for it.
+  const [reloadLatestError, setReloadLatestError] = useState<string | null>(null);
+  const reloadLatest = useCallback(async () => {
+    if (!reloadOriginal) return;
+    setReloadLatestError(null);
+    try {
+      const fresh = await reloadOriginal();
+      setModel(fresh);
+      setBaselineInitial(fresh);
+      setActiveOriginal(fresh);
+      setServerErrors([]);
+      setSaveError(null);
+      setConflictState({ active: false, reloading: false, reloadError: null });
+    } catch (err: unknown) {
+      setReloadLatestError(getErrorMessage(err, "Could not reload the latest record."));
+    }
+  }, [reloadOriginal]);
 
   const requestClose = useCallback(() => {
     if (saving) return;
@@ -522,6 +545,9 @@ export function useWizard<M extends object>(props: ConfigWizardProps<M>) {
     cancelDiscard: () => setConfirmDiscardOpen(false),
     confirmDiscard,
     requestClose,
+    isDirty,
+    reloadLatest,
+    reloadLatestError,
     focusRequest,
     draftRestoredStartedAt: draft.restoredStartedAt,
     restoreDraft,

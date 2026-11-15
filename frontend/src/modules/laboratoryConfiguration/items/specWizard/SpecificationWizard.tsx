@@ -354,6 +354,7 @@ function OpenSpecificationWizard({
         planSpecGradeOperations(m, isEditing, editingSpec).removes.length > 0
       }
       reloadOriginal={reloadOriginal}
+      liveRecord={isEditing ? { type: "specification", id: editingSpec?.id ?? null } : undefined}
       onSave={handleSave}
       saveAndNext={saveAndNext}
       onClose={onClose}

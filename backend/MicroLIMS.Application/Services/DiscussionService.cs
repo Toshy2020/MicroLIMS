@@ -5,7 +5,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
-using MicroLIMS.Application.Abstractions.Notifications;
 using MicroLIMS.Application.Abstractions.Storage;
 using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Application.Services.Notifications;
@@ -115,7 +114,6 @@ public class DiscussionService
 {
     private readonly IMicroLimsDbContext _db;
     private readonly IFileStorageService _storage;
-    private readonly INotificationService _notificationService;
     private readonly ILogger<DiscussionService> _logger;
     private readonly TimeProvider _time;
     private readonly INotificationPublisher _publisher;
@@ -123,7 +121,6 @@ public class DiscussionService
     public DiscussionService(
         IMicroLimsDbContext db,
         IFileStorageService storage,
-        INotificationService notificationService,
         ILogger<DiscussionService> logger,
         TimeProvider? timeProvider = null,
         INotificationPublisher? publisher = null)
@@ -131,7 +128,6 @@ public class DiscussionService
         _time = timeProvider ?? TimeProvider.System;
         _db = db;
         _storage = storage;
-        _notificationService = notificationService;
         _logger = logger;
         _publisher = publisher ?? new NotificationPublisher(db, _time);
     }
@@ -614,7 +610,6 @@ public class DiscussionService
                     TargetId: post.Id,
                     SectionId: null,
                     DedupeKey: null));
-                await _notificationService.NotifyAsync(userId, message);
             }
 
             if (participantUserIds.Count > 0)
@@ -665,7 +660,6 @@ public class DiscussionService
                     TargetId: post.Id,
                     SectionId: null,
                     DedupeKey: null));
-                await _notificationService.NotifyAsync(userId, message);
             }
 
             if (targetUserIds.Count > 0)

@@ -7,7 +7,6 @@ using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Application.Services;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
-using MicroLIMS.Application.Abstractions.Notifications;
 using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Application.Services.Notifications;
 using MicroLIMS.Shared.Constants;
@@ -27,7 +26,6 @@ public class TestWorkflowSupport
     protected readonly MediaAppearanceSnapshotService _appearanceSnapshot;
     protected readonly SegregationOfDutiesGuard _sodGuard;
     protected readonly ReviewGateService _reviewGate;
-    protected readonly INotificationService _notifications;
     protected readonly IElectronicSignatureService _signatureService;
     protected readonly IUserSectionScopeService _sectionScope;
     protected readonly ILabClock _clock;
@@ -42,7 +40,6 @@ public class TestWorkflowSupport
         _appearanceSnapshot = deps.AppearanceSnapshot;
         _sodGuard = deps.SodGuard;
         _reviewGate = deps.ReviewGate;
-        _notifications = deps.Notifications;
         _signatureService = deps.SignatureService;
         _sectionScope = deps.SectionScope;
         _clock = deps.Clock;
@@ -878,7 +875,6 @@ public sealed record TestWorkflowDependencies(
     MediaAppearanceSnapshotService AppearanceSnapshot,
     SegregationOfDutiesGuard SodGuard,
     ReviewGateService ReviewGate,
-    INotificationService Notifications,
     IElectronicSignatureService SignatureService,
     IUserSectionScopeService SectionScope,
     ILabClock Clock,

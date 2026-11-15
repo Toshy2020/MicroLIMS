@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using MicroLIMS.Application.Abstractions.Live;
 using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Application.Services.Monitoring;
@@ -169,6 +170,12 @@ public sealed class NotificationScheduler
                 TestOrderId: incubation.TestOrderId,
                 Severity: "info",
                 DueAtUtc: incubation.IncubationEndUtc ?? incubation.ExpectedReadingAt), ct);
+
+            foreach (var recipientId in recipients.Distinct())
+                _db.QueueSignal(LiveSignalKinds.MyWork, $"user:{recipientId}");
+
+            if (incubation.TestOrder?.SectionId is int secId)
+                _db.QueueSignal(LiveSignalKinds.Counters, $"section:{secId}");
         }
 
         await ResolveStaleKeysAsync(IncubationPrefix, activeKeys, ct);

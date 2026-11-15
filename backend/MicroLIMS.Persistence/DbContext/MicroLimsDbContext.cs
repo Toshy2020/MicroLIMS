@@ -1,5 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.Extensions.Logging;
+using MicroLIMS.Application.Abstractions.Live;
 using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Domain.Attributes;
 using MicroLIMS.Domain.Entities;
@@ -36,12 +38,34 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext, IMicr
     // injected TimeProvider, never the static system clock, so audit time and
     // every time-dependent rule share one clock that tests can control.
     private readonly TimeProvider _clock = TimeProvider.System;
+    private readonly ILiveSignalPublisher? _signalPublisher;
+    private readonly ILogger<MicroLimsDbContext>? _logger;
+    private readonly object _signalsLock = new();
+    private readonly List<LiveSignal> _pendingSignals = new();
+    private readonly HashSet<LiveSignal> _pendingSignalSet = new();
+    private static readonly SignalTransactionInterceptor s_signalInterceptor = new();
 
     public MicroLimsDbContext(DbContextOptions<MicroLimsDbContext> options) : base(options) { }
 
     // The DI container picks this constructor (TimeProvider is registered as a
     // singleton), so production audit rows use the application clock.
-    public MicroLimsDbContext(DbContextOptions<MicroLimsDbContext> options, TimeProvider clock) : base(options) => _clock = clock;
+    public MicroLimsDbContext(
+        DbContextOptions<MicroLimsDbContext> options,
+        TimeProvider clock,
+        ILiveSignalPublisher? signalPublisher = null,
+        ILogger<MicroLimsDbContext>? logger = null)
+        : base(options)
+    {
+        _clock = clock;
+        _signalPublisher = signalPublisher;
+        _logger = logger;
+    }
+
+    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+    {
+        base.OnConfiguring(optionsBuilder);
+        optionsBuilder.AddInterceptors(s_signalInterceptor);
+    }
 
     public DbSet<User> Users => Set<User>();
     public DbSet<Role> Roles => Set<Role>();
@@ -542,6 +566,77 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext, IMicr
     public Task<bool> TrySaveChangesAsync(params string[] uniqueIndexNames) =>
         UniqueIndexSave.TrySaveChangesAsync(this, uniqueIndexNames);
 
+    public void QueueSignal(string kind, string key) =>
+        QueueSignal(kind, key, CurrentUserId);
+
+    public void QueueSignal(string kind, string key, int? actorUserId)
+    {
+        if (string.IsNullOrWhiteSpace(kind) || string.IsNullOrWhiteSpace(key))
+            return;
+
+        var signal = new LiveSignal(kind, key, actorUserId);
+        lock (_signalsLock)
+        {
+            if (_pendingSignalSet.Add(signal))
+                _pendingSignals.Add(signal);
+        }
+    }
+
+    public async Task FlushSignalsAsync(CancellationToken cancellationToken = default)
+    {
+        var batch = DrainPendingSignals();
+        if (batch is null || _signalPublisher is null)
+            return;
+
+        try
+        {
+            await _signalPublisher.PublishAsync(batch, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger?.LogError(ex, "Live signal publish failed for {Count} signal(s) after commit", batch.Length);
+        }
+    }
+
+    internal void FlushSignalsSync()
+    {
+        var batch = DrainPendingSignals();
+        if (batch is null || _signalPublisher is null)
+            return;
+
+        try
+        {
+            _signalPublisher.PublishAsync(batch, CancellationToken.None).GetAwaiter().GetResult();
+        }
+        catch (Exception ex)
+        {
+            _logger?.LogError(ex, "Live signal publish failed for {Count} signal(s) after commit", batch.Length);
+        }
+    }
+
+    public void DiscardSignals()
+    {
+        lock (_signalsLock)
+        {
+            _pendingSignals.Clear();
+            _pendingSignalSet.Clear();
+        }
+    }
+
+    private LiveSignal[]? DrainPendingSignals()
+    {
+        lock (_signalsLock)
+        {
+            if (_pendingSignals.Count == 0)
+                return null;
+
+            var batch = _pendingSignals.ToArray();
+            _pendingSignals.Clear();
+            _pendingSignalSet.Clear();
+            return batch;
+        }
+    }
+
     // Frozen Principle #5 - Traceability. Captures every insert/update/
     // delete automatically so no service can forget to log a change.
     //
@@ -556,31 +651,81 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext, IMicr
     {
         var pending = CapturePendingAuditEntries();
         if (pending.Count == 0)
-            return base.SaveChanges();
+        {
+            try
+            {
+                var writtenZero = base.SaveChanges();
+                if (Database.CurrentTransaction is null)
+                    FlushSignalsSync();
+                return writtenZero;
+            }
+            catch
+            {
+                if (Database.CurrentTransaction is null)
+                    DiscardSignals();
+                throw;
+            }
+        }
 
         var ownsTransaction = Database.IsRelational() && Database.CurrentTransaction is null;
         using var tx = ownsTransaction ? Database.BeginTransaction() : null;
-        var written = base.SaveChanges();
-        AddAuditLogs(pending);
-        written += base.SaveChanges();
-        tx?.Commit();
-        return written;
+        try
+        {
+            var written = base.SaveChanges();
+            AddAuditLogs(pending);
+            written += base.SaveChanges();
+            tx?.Commit();
+            if (Database.CurrentTransaction is null)
+                FlushSignalsSync();
+            return written;
+        }
+        catch
+        {
+            if (ownsTransaction || Database.CurrentTransaction is null)
+                DiscardSignals();
+            throw;
+        }
     }
 
     public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
         var pending = CapturePendingAuditEntries();
         if (pending.Count == 0)
-            return await base.SaveChangesAsync(cancellationToken);
+        {
+            try
+            {
+                var writtenZero = await base.SaveChangesAsync(cancellationToken);
+                if (Database.CurrentTransaction is null)
+                    await FlushSignalsAsync(cancellationToken);
+                return writtenZero;
+            }
+            catch
+            {
+                if (Database.CurrentTransaction is null)
+                    DiscardSignals();
+                throw;
+            }
+        }
 
         var ownsTransaction = Database.IsRelational() && Database.CurrentTransaction is null;
         await using var tx = ownsTransaction ? await Database.BeginTransactionAsync(cancellationToken) : null;
-        var written = await base.SaveChangesAsync(cancellationToken);
-        AddAuditLogs(pending);
-        written += await base.SaveChangesAsync(cancellationToken);
-        if (tx is not null)
-            await tx.CommitAsync(cancellationToken);
-        return written;
+        try
+        {
+            var written = await base.SaveChangesAsync(cancellationToken);
+            AddAuditLogs(pending);
+            written += await base.SaveChangesAsync(cancellationToken);
+            if (tx is not null)
+                await tx.CommitAsync(cancellationToken);
+            if (Database.CurrentTransaction is null)
+                await FlushSignalsAsync(cancellationToken);
+            return written;
+        }
+        catch
+        {
+            if (ownsTransaction || Database.CurrentTransaction is null)
+                DiscardSignals();
+            throw;
+        }
     }
 
     private sealed record PendingAuditEntry(

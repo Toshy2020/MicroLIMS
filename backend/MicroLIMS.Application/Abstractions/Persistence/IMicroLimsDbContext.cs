@@ -280,4 +280,12 @@ public interface IMicroLimsDbContext
     // unique index(es) (see UniqueIndexNames). False when another user took the
     // same identifier first, so the caller can pick a fresh one and retry.
     Task<bool> TrySaveChangesAsync(params string[] uniqueIndexNames);
+
+    // Queues a live invalidation signal for the current unit of work.
+    // Signals are deduplicated per DbContext, flushed once after the outermost
+    // transaction commits, and discarded on rollback.
+    void QueueSignal(string kind, string key);
+    void QueueSignal(string kind, string key, int? actorUserId);
+    Task FlushSignalsAsync(CancellationToken cancellationToken = default);
+    void DiscardSignals();
 }

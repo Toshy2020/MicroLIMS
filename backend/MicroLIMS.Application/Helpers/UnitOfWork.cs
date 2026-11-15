@@ -46,6 +46,7 @@ public static class UnitOfWork
         {
             var result = await command();
             await tx.CommitAsync();
+            await db.FlushSignalsAsync();
             return result;
         }
         catch
@@ -56,6 +57,7 @@ public static class UnitOfWork
                 .ToList();
 
             await tx.RollbackAsync();
+            db.DiscardSignals();
             await RestoreTrackerAsync(db, before);
 
             if (refusedAttempts.Count > 0)

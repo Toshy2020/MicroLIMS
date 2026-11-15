@@ -219,4 +219,6 @@ app.MapMicroLimsHealthChecks();
 
 app.MapControllers();
 
+app.MapHub<MicroLIMS.API.Hubs.LiveHub>("/hubs/live");
+
 app.Run();

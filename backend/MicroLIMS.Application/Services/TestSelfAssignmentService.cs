@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using MicroLIMS.Application.Abstractions.Live;
 using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Domain.Entities;
@@ -50,6 +51,10 @@ public sealed class TestSelfAssignmentService
         _db.AuditLogs.Add(SampleAssignmentService.BuildAssignmentAudit(order.Sample!, order, TestReleaseRules.TakenAction,
             $"{order.TestCode}: Unassigned", $"{order.TestCode}: {user.FullName}", userId, now));
         order.AssignedAnalystId = userId;
+        _db.QueueSignal(LiveSignalKinds.Counters, $"section:{order.SectionId}");
+        _db.QueueSignal(LiveSignalKinds.Record, $"testOrder:{order.Id}");
+        _db.QueueSignal(LiveSignalKinds.Record, $"sample:{order.SampleId}");
+        _db.QueueSignal(LiveSignalKinds.MyWork, $"user:{userId}");
 
         try
         {
@@ -81,6 +86,10 @@ public sealed class TestSelfAssignmentService
         _db.AuditLogs.Add(SampleAssignmentService.BuildAssignmentAudit(order.Sample!, order, TestReleaseRules.ReleasedAction,
             $"{order.TestCode}: {name}", $"{order.TestCode}: Unassigned", userId, now));
         order.AssignedAnalystId = null;
+        _db.QueueSignal(LiveSignalKinds.Counters, $"section:{order.SectionId}");
+        _db.QueueSignal(LiveSignalKinds.Record, $"testOrder:{order.Id}");
+        _db.QueueSignal(LiveSignalKinds.Record, $"sample:{order.SampleId}");
+        _db.QueueSignal(LiveSignalKinds.MyWork, $"user:{userId}");
 
         try
         {

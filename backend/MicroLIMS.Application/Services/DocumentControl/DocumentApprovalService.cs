@@ -6,6 +6,7 @@ using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Application.Interfaces.DocumentControl;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
+using MicroLIMS.Application.Abstractions.Live;
 using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Application.Services.Notifications;
 
@@ -143,6 +144,8 @@ public class DocumentApprovalService : IDocumentApprovalService
         };
 
         _db.DocumentApprovalTasks.Add(task);
+        _db.QueueSignal(LiveSignalKinds.Record, $"document:{revision.DocumentMasterId}");
+        _db.QueueSignal(LiveSignalKinds.MyWork, $"user:{request.ApproverUserId}");
         _db.CurrentUserId = userId;
         await _db.SaveChangesAsync();
 

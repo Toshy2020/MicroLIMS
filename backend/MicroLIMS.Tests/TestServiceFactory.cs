@@ -8,8 +8,6 @@ using MicroLIMS.Application.Services.Kpi;
 using MicroLIMS.Application.Workflows;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
-using MicroLIMS.Infrastructure.Notifications;
-using MicroLIMS.Application.Abstractions.Notifications;
 using MicroLIMS.Infrastructure.Pdf;
 using MicroLIMS.Application.Abstractions.Pdf;
 using MicroLIMS.Infrastructure.Storage;
@@ -37,12 +35,6 @@ public class InMemoryFileStorageService : IFileStorageService
             : Task.FromException<byte[]>(new StoredFileNotFoundException(path));
 }
 
-// Tests assert on persisted state, not on delivery.
-public class NoOpNotificationService : INotificationService
-{
-    public Task NotifyAsync(int userId, string message) => Task.CompletedTask;
-}
-
 public class NoOpEmailSender : MicroLIMS.Application.Abstractions.Email.IEmailSender
 {
     public Task SendAsync(string to, string subject, string body) => Task.CompletedTask;
@@ -59,19 +51,6 @@ public class SpyEmailSender : MicroLIMS.Application.Abstractions.Email.IEmailSen
     }
 }
 
-// For the handful of tests that DO need to assert delivery (e.g. the
-// reviewer send-back notifying the analyst).
-public class SpyNotificationService : INotificationService
-{
-    public List<(int UserId, string Message)> Sent { get; } = new();
-
-    public Task NotifyAsync(int userId, string message)
-    {
-        Sent.Add((userId, message));
-        return Task.CompletedTask;
-    }
-}
-
 // Builds the real service graph for tests. Centralised so adding a
 // dependency to a service does not mean editing every test file that
 // constructs it.
@@ -79,8 +58,6 @@ public static class TestServiceFactory
 {
     public static DashboardNotificationService DashboardNotification(
         MicroLimsDbContext db,
-        INotificationService? notifications = null,
-        MicroLIMS.Application.Abstractions.Email.IEmailSender? emailSender = null,
         TimeProvider? time = null) =>
         new(db, time);
 
@@ -162,10 +139,10 @@ public static class TestServiceFactory
     public static ResultProjectionService ResultProjection(MicroLimsDbContext db) =>
         new(db, NullLogger<ResultProjectionService>.Instance);
 
-    public static TestWorkflowEngine TestWorkflow(MicroLimsDbContext db, INotificationService? notifications = null, IElectronicSignatureService? signatures = null, IUserSectionScopeService? scope = null, ILabClock? clock = null)
+    public static TestWorkflowEngine TestWorkflow(MicroLimsDbContext db, IElectronicSignatureService? signatures = null, IUserSectionScopeService? scope = null, ILabClock? clock = null)
     {
         var engine = new TestWorkflowEngine(db, SampleReview(db), ResultProjection(db), IncubatorEligibility(db), AppearanceSnapshot(db),
-            new SegregationOfDutiesGuard(db), ReviewGate(db), notifications ?? new NoOpNotificationService(),
+            new SegregationOfDutiesGuard(db), ReviewGate(db),
             signatures ?? new ElectronicSignatureService(db), scope ?? new UserSectionScopeService(db),
             clock ?? LabClock.Default);
         EngineDatabases.AddOrUpdate(engine, db);
@@ -249,11 +226,11 @@ public static class TestServiceFactory
     public static GroupedTestActionService GroupedTestAction(MicroLimsDbContext db) =>
         new(db, TestWorkflow(db), IncubatorEligibility(db));
 
-    public static DiscussionService Discussion(MicroLimsDbContext db, IFileStorageService? storage = null, INotificationService? notifications = null) =>
-        new(db, storage ?? new InMemoryFileStorageService(), notifications ?? new NoOpNotificationService(), NullLogger<DiscussionService>.Instance);
+    public static DiscussionService Discussion(MicroLimsDbContext db, IFileStorageService? storage = null) =>
+        new(db, storage ?? new InMemoryFileStorageService(), NullLogger<DiscussionService>.Instance);
 
-    public static MessageService Message(MicroLimsDbContext db, INotificationService? notifications = null) =>
-        new(db, notifications ?? new NoOpNotificationService(), NullLogger<MessageService>.Instance);
+    public static MessageService Message(MicroLimsDbContext db) =>
+        new(db, NullLogger<MessageService>.Instance);
 
     public static MediaProductService MediaProduct(MicroLimsDbContext db) =>
         new(db, new ElectronicSignatureService(db),

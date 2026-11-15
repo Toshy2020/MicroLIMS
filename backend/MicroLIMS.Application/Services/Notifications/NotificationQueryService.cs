@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using MicroLIMS.Application.Abstractions.Live;
 using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Application.Helpers;
 using MicroLIMS.Shared.Constants;
@@ -187,6 +188,7 @@ public sealed class NotificationQueryService
         {
             log.IsRead = true;
             log.ReadAt ??= _time.GetUtcNow().UtcDateTime;
+            _db.QueueSignal(LiveSignalKinds.Notifications, $"user:{userId}");
             await _db.SaveChangesAsync(ct);
         }
     }
@@ -200,11 +202,17 @@ public sealed class NotificationQueryService
 
         if (_db is DbContext efDb && efDb.Database.IsRelational())
         {
-            await _db.NotificationLogs
+            var updated = await _db.NotificationLogs
                 .Where(n => n.UserId == userId && !n.IsRead)
                 .ExecuteUpdateAsync(s => s
                     .SetProperty(n => n.IsRead, true)
                     .SetProperty(n => n.ReadAt, n => n.ReadAt ?? now), ct);
+            if (updated > 0)
+            {
+                _db.QueueSignal(LiveSignalKinds.Notifications, $"user:{userId}");
+                if (_db.Database.CurrentTransaction is null)
+                    await _db.FlushSignalsAsync(ct);
+            }
             return;
         }
 
@@ -221,6 +229,7 @@ public sealed class NotificationQueryService
             item.ReadAt ??= now;
         }
 
+        _db.QueueSignal(LiveSignalKinds.Notifications, $"user:{userId}");
         await _db.SaveChangesAsync(ct);
     }
 

@@ -176,8 +176,7 @@ public class DiscussionServiceTests
     public async Task UpdatePost_PreservesPreviousVersionInHistory_AndNotifiesParticipants()
     {
         using var db = CreateDbContext();
-        var spyNotif = new SpyNotificationService();
-        var service = TestServiceFactory.Discussion(db, notifications: spyNotif);
+        var service = TestServiceFactory.Discussion(db);
 
         // User 1 creates post
         var createReq = new CreateDiscussionPostRequest("Initial Title", "Initial Content", DiscussionCategory.Equipment);
@@ -186,8 +185,9 @@ public class DiscussionServiceTests
         // User 2 comments on post (participating in discussion)
         await service.AddCommentAsync(post.Id, new CreateDiscussionCommentRequest("Interesting observation."), authorUserId: 2);
 
-        // Clear spy before post update
-        spyNotif.Sent.Clear();
+        // Clear existing notifications before post update
+        db.NotificationLogs.RemoveRange(db.NotificationLogs);
+        await db.SaveChangesAsync();
 
         // User 1 updates post
         var updateReq = new UpdateDiscussionPostRequest("Updated Title", "Updated Content with corrections", DiscussionCategory.Equipment, IsImportant: false);
@@ -207,35 +207,42 @@ public class DiscussionServiceTests
         Assert.Equal(1, history[0].ChangedByUserId);
 
         // Verify participant notification: User 2 (commenter) was notified of discussion update
-        Assert.Contains(spyNotif.Sent, s => s.UserId == 2 && s.Message.Contains("was updated by Alice Analyst"));
+        var updateNotifications = await db.NotificationLogs.AsNoTracking()
+            .Where(n => n.Type == "DiscussionPostUpdated")
+            .ToListAsync();
+        Assert.Contains(updateNotifications, s => s.UserId == 2 && s.Message.Contains("was updated by Alice Analyst"));
         // Editor (User 1) was not notified
-        Assert.DoesNotContain(spyNotif.Sent, s => s.UserId == 1);
+        Assert.DoesNotContain(updateNotifications, s => s.UserId == 1);
     }
 
     [Fact]
     public async Task AddComment_NotifiesPostAuthor_AndPreviousCommenters()
     {
         using var db = CreateDbContext();
-        var spyNotif = new SpyNotificationService();
-        var service = TestServiceFactory.Discussion(db, notifications: spyNotif);
+        var service = TestServiceFactory.Discussion(db);
 
         var post = await service.CreatePostAsync(new CreateDiscussionPostRequest("EM Discussion", "Particle counts", DiscussionCategory.EnvironmentalMonitoring), null, authorUserId: 1);
 
-        spyNotif.Sent.Clear();
-
         // User 2 comments -> User 1 (author) notified
         await service.AddCommentAsync(post.Id, new CreateDiscussionCommentRequest("First comment from User 2"), authorUserId: 2);
-        Assert.Single(spyNotif.Sent);
-        Assert.Equal(1, spyNotif.Sent[0].UserId);
-        Assert.Contains("Bob Analyst commented on your discussion", spyNotif.Sent[0].Message);
+        var firstCommentLogs = await db.NotificationLogs.AsNoTracking()
+            .Where(n => n.Type == "DiscussionComment")
+            .ToListAsync();
+        Assert.Single(firstCommentLogs);
+        Assert.Equal(1, firstCommentLogs[0].UserId);
+        Assert.Contains("Bob Analyst commented on your discussion", firstCommentLogs[0].Message);
 
-        spyNotif.Sent.Clear();
+        db.NotificationLogs.RemoveRange(db.NotificationLogs);
+        await db.SaveChangesAsync();
 
         // User 3 comments -> User 1 (author) AND User 2 (previous commenter) notified
         await service.AddCommentAsync(post.Id, new CreateDiscussionCommentRequest("Second comment from User 3"), authorUserId: 3);
-        Assert.Equal(2, spyNotif.Sent.Count);
-        Assert.Contains(spyNotif.Sent, s => s.UserId == 1);
-        Assert.Contains(spyNotif.Sent, s => s.UserId == 2);
+        var secondCommentLogs = await db.NotificationLogs.AsNoTracking()
+            .Where(n => n.Type == "DiscussionComment")
+            .ToListAsync();
+        Assert.Equal(2, secondCommentLogs.Count);
+        Assert.Contains(secondCommentLogs, s => s.UserId == 1);
+        Assert.Contains(secondCommentLogs, s => s.UserId == 2);
     }
 
     [Fact]

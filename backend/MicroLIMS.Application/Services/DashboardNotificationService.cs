@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Abstractions.Persistence;
+using MicroLIMS.Application.Services.Notifications;
 using MicroLIMS.Domain.Enums;
 
 namespace MicroLIMS.Application.Services;
@@ -9,17 +10,21 @@ namespace MicroLIMS.Application.Services;
 // for lab-wide or non-sample notifications, which route by Type instead.
 public record NotificationDto(int? Id, string Type, string Message, DateTime Timestamp, string Severity, bool IsRead, int? SampleId = null, int? TestOrderId = null);
 
-// Reads persisted NotificationLogs for the header bell widget and marks them read.
-// Scheduled notifications are generated in the background by NotificationScheduler.
+// Reads persisted NotificationLogs for the header bell widget and delegates mark-read
+// operations to NotificationQueryService. Scheduled notifications are generated in the
+// background by NotificationScheduler.
 public class DashboardNotificationService
 {
     private readonly IMicroLimsDbContext _db;
-    private readonly TimeProvider _time;
+    private readonly NotificationQueryService _queryService;
 
-    public DashboardNotificationService(IMicroLimsDbContext db, TimeProvider? timeProvider = null)
+    public DashboardNotificationService(
+        IMicroLimsDbContext db,
+        TimeProvider? timeProvider = null,
+        NotificationQueryService? queryService = null)
     {
         _db = db;
-        _time = timeProvider ?? TimeProvider.System;
+        _queryService = queryService ?? new NotificationQueryService(db, timeProvider);
     }
 
     // Notification types that are Microbiology activity by nature, whatever
@@ -68,34 +73,18 @@ public class DashboardNotificationService
 
     public async Task<List<NotificationDto>> GetNotificationsAsync(RoleType role, int userId)
     {
-        var persisted = await _db.NotificationLogs
+        return await _db.NotificationLogs
             .AsNoTracking()
             .Where(n => n.UserId == userId)
             .OrderByDescending(n => n.CreatedAt)
             .Take(30)
-            .ToListAsync();
-
-        return persisted
             .Select(n => new NotificationDto(n.Id, n.Type, n.Message, n.CreatedAt, n.Severity, n.IsRead, n.SampleId, n.TestOrderId))
-            .ToList();
+            .ToListAsync();
     }
 
-    public async Task MarkAsReadAsync(int notificationId, int userId)
-    {
-        var log = await _db.NotificationLogs.FirstOrDefaultAsync(n => n.Id == notificationId && n.UserId == userId);
-        if (log is null) return;
-        log.IsRead = true;
-        log.ReadAt ??= _time.GetUtcNow().UtcDateTime;
-        await _db.SaveChangesAsync();
-    }
+    public Task MarkAsReadAsync(int notificationId, int userId) =>
+        _queryService.MarkReadAsync(userId, notificationId);
 
-    public async Task MarkAllAsReadAsync(int userId)
-    {
-        var now = _time.GetUtcNow().UtcDateTime;
-        await _db.NotificationLogs
-            .Where(n => n.UserId == userId && !n.IsRead)
-            .ExecuteUpdateAsync(s => s
-                .SetProperty(n => n.IsRead, true)
-                .SetProperty(n => n.ReadAt, now));
-    }
+    public Task MarkAllAsReadAsync(int userId) =>
+        _queryService.MarkAllReadAsync(userId);
 }

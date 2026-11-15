@@ -2,13 +2,11 @@ import { AxiosError, AxiosHeaders } from "axios";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { MemoryRouter } from "react-router-dom";
 import { PinnedLightTheme } from "../../../../theme/PinnedLightTheme";
 import { AuthProvider } from "../../../../contexts/AuthContext";
 import { ItemSpecificationsSection } from "./ItemSpecificationsSection";
-import {
-  SpecificationParameterDialog,
-  type TestDefinitionSummary
-} from "./SpecificationParameterDialog";
+import { SpecificationWizard, type TestDefinitionSummary } from "../specWizard/SpecificationWizard";
 import type { Item } from "../services/ItemService";
 import {
   SpecificationService,
@@ -19,6 +17,7 @@ import {
   type LaboratorySection
 } from "../../../../services/laboratorySectionService";
 import { masterDataOptions } from "../../../../services/masterDataOptions";
+import { masterDataUsageService } from "../../../../services/masterDataUsageService";
 
 vi.mock("../../specifications/services/SpecificationService", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../../specifications/services/SpecificationService")>();
@@ -29,7 +28,19 @@ vi.mock("../../specifications/services/SpecificationService", async (importOrigi
       getForItem: vi.fn(),
       update: vi.fn(),
       remove: vi.fn(),
-      reinstate: vi.fn()
+      reinstate: vi.fn(),
+      validate: vi.fn()
+    }
+  };
+});
+
+vi.mock("../../../../services/masterDataUsageService", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../../../../services/masterDataUsageService")>();
+  return {
+    ...actual,
+    masterDataUsageService: {
+      ...actual.masterDataUsageService,
+      getUsage: vi.fn()
     }
   };
 });
@@ -136,6 +147,14 @@ describe("ItemSpecificationsSection retirement & change reason", () => {
     vi.mocked(laboratorySectionService.getSections).mockResolvedValue([fpSection]);
     vi.mocked(laboratorySectionService.getMySections).mockResolvedValue([fpSection]);
     vi.mocked(masterDataOptions.getTestDefinitions).mockResolvedValue(testDefinitions);
+    vi.mocked(SpecificationService.validate).mockResolvedValue([]);
+    vi.mocked(masterDataUsageService.getUsage).mockResolvedValue({
+      type: "Specification",
+      id: 100,
+      openWorkCount: 0,
+      historicalCount: 0,
+      lines: []
+    });
   });
 
   afterEach(cleanup);
@@ -216,28 +235,35 @@ describe("ItemSpecificationsSection retirement & change reason", () => {
     render(
       <PinnedLightTheme>
         <AuthProvider>
-          <SpecificationParameterDialog
-            open
-            onClose={onClose}
-            item={testItem}
-            existingSpecs={[activeSpec]}
-            editingSpec={activeSpec}
-            workflowTypeByCode={{ PH: "Measurement" }}
-            testDefinitionByCode={{ PH: testDefinitions[0] }}
-            onSuccess={onSuccess}
-          />
+          <MemoryRouter>
+            <SpecificationWizard
+              open
+              onClose={onClose}
+              item={testItem}
+              existingSpecs={[activeSpec]}
+              editingSpec={activeSpec}
+              workflowTypeByCode={{ PH: "Measurement" }}
+              testDefinitionByCode={{ PH: testDefinitions[0] }}
+              onSuccess={onSuccess}
+            />
+          </MemoryRouter>
         </AuthProvider>
       </PinnedLightTheme>
     );
 
-    const saveBtn = await screen.findByRole("button", { name: "Save Changes" });
     await waitFor(() => expect(laboratorySectionService.getMySections).toHaveBeenCalled());
+    await user.click(await screen.findByRole("button", { name: "Next" }));
+    await user.click(await screen.findByRole("button", { name: "Next" }));
+    await user.click(await screen.findByRole("button", { name: "Next" }));
+
+    const saveBtn = await screen.findByRole("button", { name: "Save" });
+    await waitFor(() => expect((saveBtn as HTMLButtonElement).disabled).toBe(false));
     await user.click(saveBtn);
 
     const reasonInput = await screen.findByLabelText(/Reason for change/i);
     await user.type(reasonInput, "Updated pharmacopeia upper limit");
     const dialogs = screen.getAllByRole("dialog");
-    await user.click(within(dialogs[dialogs.length - 1]).getByRole("button", { name: "Save Changes" }));
+    await user.click(within(dialogs[dialogs.length - 1]).getByRole("button", { name: "Confirm" }));
 
     await waitFor(() => expect(SpecificationService.update).toHaveBeenCalledTimes(2));
     expect(vi.mocked(SpecificationService.update).mock.calls[1][3]).toBe("Updated pharmacopeia upper limit");

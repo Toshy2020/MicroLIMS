@@ -1,12 +1,15 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { MemoryRouter } from "react-router-dom";
 import { PinnedLightTheme } from "../../../../theme/PinnedLightTheme";
 import { AuthProvider } from "../../../../contexts/AuthContext";
+import { resetDraftDb, signInForTest } from "../../../../services/drafts/draftTestUtils";
+import { masterDataUsageService } from "../../../../services/masterDataUsageService";
 import {
-  SpecificationParameterDialog,
+  SpecificationWizard,
   type TestDefinitionSummary
-} from "../components/SpecificationParameterDialog";
+} from "./SpecificationWizard";
 import type { Item } from "../services/ItemService";
 import {
   SpecificationService,
@@ -32,7 +35,19 @@ vi.mock("../../specifications/services/SpecificationService", async (importOrigi
       create: vi.fn(),
       update: vi.fn(),
       remove: vi.fn(),
-      getForItem: vi.fn()
+      getForItem: vi.fn(),
+      validate: vi.fn()
+    }
+  };
+});
+
+vi.mock("../../../../services/masterDataUsageService", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../../../../services/masterDataUsageService")>();
+  return {
+    ...actual,
+    masterDataUsageService: {
+      ...actual.masterDataUsageService,
+      getUsage: vi.fn()
     }
   };
 });
@@ -243,24 +258,26 @@ const gcRsMethod: HplcMethodResponse = {
   ]
 };
 
-function renderDialog(opts: { preselectedTestCode?: string; editingSpec?: SpecificationDto | null }) {
+function renderWizard(opts: { preselectedTestCode?: string; editingSpec?: SpecificationDto | null }) {
   const onClose = vi.fn();
   const onSuccess = vi.fn();
   const user = userEvent.setup();
   render(
     <PinnedLightTheme>
       <AuthProvider>
-        <SpecificationParameterDialog
-          open
-          item={item}
-          editingSpec={opts.editingSpec ?? null}
-          preselectedTestCode={opts.preselectedTestCode ?? null}
-          workflowTypeByCode={workflowTypeByCode}
-          testDefinitionByCode={testDefinitionByCode}
-          existingSpecs={[]}
-          onClose={onClose}
-          onSuccess={onSuccess}
-        />
+        <MemoryRouter>
+          <SpecificationWizard
+            open
+            item={item}
+            editingSpec={opts.editingSpec ?? null}
+            preselectedTestCode={opts.preselectedTestCode ?? null}
+            workflowTypeByCode={workflowTypeByCode}
+            testDefinitionByCode={testDefinitionByCode}
+            existingSpecs={[]}
+            onClose={onClose}
+            onSuccess={onSuccess}
+          />
+        </MemoryRouter>
       </AuthProvider>
     </PinnedLightTheme>
   );
@@ -274,14 +291,34 @@ async function selectOption(user: ReturnType<typeof userEvent.setup>, label: Reg
   await user.click(option);
 }
 
-describe("SpecificationParameterDialog payload characterisation", () => {
-  beforeEach(() => {
+async function clickNext(user: ReturnType<typeof userEvent.setup>) {
+  await user.click(await screen.findByRole("button", { name: "Next" }));
+}
+
+async function clickSave(user: ReturnType<typeof userEvent.setup>) {
+  const saveButton = await screen.findByRole("button", { name: "Save" });
+  await waitFor(() => expect((saveButton as HTMLButtonElement).disabled).toBe(false));
+  await user.click(saveButton);
+}
+
+describe("SpecificationWizard payload characterisation", () => {
+  beforeEach(async () => {
     vi.clearAllMocks();
     localStorage.clear();
+    await resetDraftDb();
+    signInForTest(7);
     vi.mocked(laboratorySectionService.getSections).mockResolvedValue([section]);
     vi.mocked(laboratorySectionService.getMySections).mockResolvedValue([section]);
+    vi.mocked(SpecificationService.validate).mockResolvedValue([]);
     vi.mocked(SpecificationService.create).mockResolvedValue({ id: 900, testCode: "PH" });
     vi.mocked(SpecificationService.update).mockResolvedValue({ id: 42, testCode: "PH" });
+    vi.mocked(masterDataUsageService.getUsage).mockResolvedValue({
+      type: "Specification",
+      id: 42,
+      openWorkCount: 0,
+      historicalCount: 0,
+      lines: []
+    });
     vi.mocked(HplcMethodService.getById).mockImplementation(async (id: number) => {
       if (id === 20) return hplcAssayMethod;
       if (id === 10) return hplcRsMethod;
@@ -292,205 +329,296 @@ describe("SpecificationParameterDialog payload characterisation", () => {
   afterEach(cleanup);
 
   it("characterises Range create payload", async () => {
-    const { user } = renderDialog({ preselectedTestCode: "PH" });
+    const { user } = renderWizard({ preselectedTestCode: "PH" });
+    await selectOption(user, /Production Stage/i, "Finished Product");
+    await clickNext(user);
+
     await user.type(await screen.findByRole("spinbutton", { name: "Lower Limit (NLT) *" }), "5");
     await user.type(screen.getByRole("spinbutton", { name: "Upper Limit (NMT) *" }), "7");
     await user.click(screen.getByRole("checkbox", { name: /Upper inclusive/i }));
-    await user.type(screen.getByRole("textbox", { name: "Unit" }), "pH units");
-    await user.type(screen.getByRole("textbox", { name: "Reference Standard" }), "USP <791>");
-    await selectOption(user, /Production Stage/i, "Finished Product");
+    await clickNext(user);
 
-    await user.click(screen.getByRole("button", { name: "Add Parameter" }));
+    await user.type(await screen.findByRole("textbox", { name: "Unit" }), "pH units");
+    await user.type(screen.getByRole("textbox", { name: "Reference Standard" }), "USP <791>");
+    await clickNext(user);
+
+    await clickSave(user);
     await waitFor(() => expect(SpecificationService.create).toHaveBeenCalledTimes(1));
     expect(vi.mocked(SpecificationService.create).mock.calls[0][0]).toStrictEqual(SPEC_PAYLOAD_FIXTURES.range);
   });
 
   it("characterises NotMoreThan create payload", async () => {
-    const { user } = renderDialog({ preselectedTestCode: "LOD" });
+    const { user } = renderWizard({ preselectedTestCode: "LOD" });
+    await clickNext(user);
+
     await selectOption(user, /Limit Type \*/i, "NMT (Not More Than)");
     await user.type(await screen.findByRole("spinbutton", { name: "Upper Limit (NMT) *" }), "0.5");
-    await user.type(screen.getByRole("textbox", { name: "Unit" }), "%");
-    await user.type(screen.getByRole("textbox", { name: "Reference Standard" }), "USP <731>");
+    await clickNext(user);
 
-    await user.click(screen.getByRole("button", { name: "Add Parameter" }));
+    await user.type(await screen.findByRole("textbox", { name: "Unit" }), "%");
+    await user.type(screen.getByRole("textbox", { name: "Reference Standard" }), "USP <731>");
+    await clickNext(user);
+
+    await clickSave(user);
     await waitFor(() => expect(SpecificationService.create).toHaveBeenCalledTimes(1));
     expect(vi.mocked(SpecificationService.create).mock.calls[0][0]).toStrictEqual(SPEC_PAYLOAD_FIXTURES.notMoreThan);
   });
 
   it("characterises NotLessThan create payload", async () => {
-    const { user } = renderDialog({ preselectedTestCode: "POT" });
+    const { user } = renderWizard({ preselectedTestCode: "POT" });
+    await clickNext(user);
+
     await selectOption(user, /Limit Type \*/i, "NLT (Not Less Than)");
     await user.type(await screen.findByRole("spinbutton", { name: "Lower Limit (NLT) *" }), "95");
-    await user.type(screen.getByRole("textbox", { name: "Unit" }), "%");
+    await clickNext(user);
 
-    await user.click(screen.getByRole("button", { name: "Add Parameter" }));
+    await user.type(await screen.findByRole("textbox", { name: "Unit" }), "%");
+    await clickNext(user);
+
+    await clickSave(user);
     await waitFor(() => expect(SpecificationService.create).toHaveBeenCalledTimes(1));
     expect(vi.mocked(SpecificationService.create).mock.calls[0][0]).toStrictEqual(SPEC_PAYLOAD_FIXTURES.notLessThan);
   });
 
   it("characterises TargetWithTolerance create payload", async () => {
-    const { user } = renderDialog({ preselectedTestCode: "DENS" });
+    const { user } = renderWizard({ preselectedTestCode: "DENS" });
+    await clickNext(user);
+
     await selectOption(user, /Limit Type \*/i, /Target ± Tolerance/i);
     await user.type(await screen.findByRole("spinbutton", { name: "Target *" }), "1.02");
     await user.type(screen.getByRole("spinbutton", { name: "Tolerance *" }), "5");
     await selectOption(user, /Mode \*/i, /Percent/i);
-    await user.type(screen.getByRole("textbox", { name: "Unit" }), "g/mL");
+    await clickNext(user);
 
-    await user.click(screen.getByRole("button", { name: "Add Parameter" }));
+    await user.type(await screen.findByRole("textbox", { name: "Unit" }), "g/mL");
+    await clickNext(user);
+
+    await clickSave(user);
     await waitFor(() => expect(SpecificationService.create).toHaveBeenCalledTimes(1));
     expect(vi.mocked(SpecificationService.create).mock.calls[0][0]).toStrictEqual(SPEC_PAYLOAD_FIXTURES.targetWithTolerance);
   });
 
   it("characterises CountTiered create payload", async () => {
-    const { user } = renderDialog({ preselectedTestCode: "TAMC" });
+    const { user } = renderWizard({ preselectedTestCode: "TAMC" });
+    await clickNext(user);
+
     await user.type(await screen.findByRole("textbox", { name: "Alert Limit" }), "100");
     await user.type(screen.getByRole("textbox", { name: "Action Limit" }), "500");
     await user.type(screen.getByRole("textbox", { name: "Specification Limit *" }), "1000");
-    await user.type(screen.getByRole("textbox", { name: "Unit" }), "CFU/g");
+    await clickNext(user);
+
+    await user.type(await screen.findByRole("textbox", { name: "Unit" }), "CFU/g");
     await user.type(screen.getByRole("textbox", { name: "Reference Standard" }), "USP <61>");
     await user.type(screen.getByRole("spinbutton", { name: "Dilution Factor" }), "10");
+    await clickNext(user);
 
-    await user.click(screen.getByRole("button", { name: "Add Parameter" }));
+    await clickSave(user);
     await waitFor(() => expect(SpecificationService.create).toHaveBeenCalledTimes(1));
     expect(vi.mocked(SpecificationService.create).mock.calls[0][0]).toStrictEqual(SPEC_PAYLOAD_FIXTURES.countTiered);
   });
 
   it("characterises Qualitative create payload", async () => {
-    const { user } = renderDialog({ preselectedTestCode: "APP" });
+    const { user } = renderWizard({ preselectedTestCode: "APP" });
+    await clickNext(user);
+
     await selectOption(user, /Limit Type \*/i, /Qualitative/i);
     await user.type(await screen.findByRole("textbox", { name: "Expected Result Text *" }), "White round tablets");
+    await clickNext(user);
+    await clickNext(user);
 
-    await user.click(screen.getByRole("button", { name: "Add Parameter" }));
+    await clickSave(user);
     await waitFor(() => expect(SpecificationService.create).toHaveBeenCalledTimes(1));
     expect(vi.mocked(SpecificationService.create).mock.calls[0][0]).toStrictEqual(SPEC_PAYLOAD_FIXTURES.qualitative);
   });
 
   it("characterises PresenceAbsence create payload", async () => {
-    const { user } = renderDialog({ preselectedTestCode: "ECOLI" });
+    const { user } = renderWizard({ preselectedTestCode: "ECOLI" });
+    await clickNext(user);
+
     await selectOption(user, /Expected State \*/i, /Absence \(Absent\)/i);
     await user.type(await screen.findByRole("spinbutton", { name: "Sample Quantity" }), "10");
     await user.type(screen.getByRole("textbox", { name: "Quantity Unit" }), "g");
-    await user.type(screen.getByRole("textbox", { name: "Reference Standard" }), "USP <62>");
+    await clickNext(user);
 
-    await user.click(screen.getByRole("button", { name: "Add Parameter" }));
+    await user.type(await screen.findByRole("textbox", { name: "Reference Standard" }), "USP <62>");
+    await clickNext(user);
+
+    await clickSave(user);
     await waitFor(() => expect(SpecificationService.create).toHaveBeenCalledTimes(1));
     expect(vi.mocked(SpecificationService.create).mock.calls[0][0]).toStrictEqual(SPEC_PAYLOAD_FIXTURES.presenceAbsence);
   });
 
   it("characterises MultiStage create payload", async () => {
-    const { user } = renderDialog({ preselectedTestCode: "UNIF" });
+    const { user } = renderWizard({ preselectedTestCode: "UNIF" });
+    await clickNext(user);
+
     await selectOption(user, /Limit Type \*/i, "Multi-Stage Criteria");
     await user.click(await screen.findByRole("button", { name: "Remove stage 3" }));
     const criteriaInputs = screen.getAllByRole("textbox", { name: "Acceptance Criteria Text *" });
     await user.type(criteriaInputs[0], "Each unit >= 85%");
     await user.type(criteriaInputs[1], "Average >= 75%");
-    await user.type(screen.getByRole("textbox", { name: "Unit" }), "%");
+    await clickNext(user);
 
-    await user.click(screen.getByRole("button", { name: "Add Parameter" }));
+    await user.type(await screen.findByRole("textbox", { name: "Unit" }), "%");
+    await clickNext(user);
+
+    await clickSave(user);
     await waitFor(() => expect(SpecificationService.create).toHaveBeenCalledTimes(1));
     expect(vi.mocked(SpecificationService.create).mock.calls[0][0]).toStrictEqual(SPEC_PAYLOAD_FIXTURES.multiStage);
   });
 
   it("characterises DissolutionQ create payload", async () => {
-    const { user } = renderDialog({ preselectedTestCode: "DISS" });
+    const { user } = renderWizard({ preselectedTestCode: "DISS" });
+    await clickNext(user);
+
     await user.type(await screen.findByRole("spinbutton", { name: "Q (% dissolved) *" }), "75");
     await user.type(screen.getByRole("spinbutton", { name: "Label Claim *" }), "500");
-    await user.type(screen.getByPlaceholderText("e.g. % w/w, CFU/g, pH units"), "%");
-    await user.type(screen.getByRole("textbox", { name: "Reference Standard" }), "USP <711>");
+    await clickNext(user);
 
-    await user.click(screen.getByRole("button", { name: "Add Parameter" }));
+    await user.type(await screen.findByPlaceholderText("e.g. % w/w, CFU/g, pH units"), "%");
+    await user.type(screen.getByRole("textbox", { name: "Reference Standard" }), "USP <711>");
+    await clickNext(user);
+
+    await clickSave(user);
     await waitFor(() => expect(SpecificationService.create).toHaveBeenCalledTimes(1));
     expect(vi.mocked(SpecificationService.create).mock.calls[0][0]).toStrictEqual(SPEC_PAYLOAD_FIXTURES.dissolutionQ);
   });
 
   it("characterises DisintegrationTime create payload", async () => {
-    const { user } = renderDialog({ preselectedTestCode: "DISINT" });
-    await user.type(await screen.findByRole("spinbutton", { name: "Time limit (min) *" }), "15");
-    await user.type(screen.getByRole("textbox", { name: "Reference Standard" }), "USP <701>");
+    const { user } = renderWizard({ preselectedTestCode: "DISINT" });
+    await clickNext(user);
 
-    await user.click(screen.getByRole("button", { name: "Add Parameter" }));
+    await user.type(await screen.findByRole("spinbutton", { name: "Time limit (min) *" }), "15");
+    await clickNext(user);
+
+    await user.type(await screen.findByRole("textbox", { name: "Reference Standard" }), "USP <701>");
+    await clickNext(user);
+
+    await clickSave(user);
     await waitFor(() => expect(SpecificationService.create).toHaveBeenCalledTimes(1));
     expect(vi.mocked(SpecificationService.create).mock.calls[0][0]).toStrictEqual(SPEC_PAYLOAD_FIXTURES.disintegrationTime);
   });
 
   it("characterises WeightVariation create payload", async () => {
-    const { user } = renderDialog({ preselectedTestCode: "WV" });
-    await selectOption(user, /Dosage Form \*/i, "Tablet");
-    await user.type(screen.getByRole("textbox", { name: "Reference Standard" }), "USP <2091>");
+    const { user } = renderWizard({ preselectedTestCode: "WV" });
+    await clickNext(user);
 
-    await user.click(screen.getByRole("button", { name: "Add Parameter" }));
+    await selectOption(user, /Dosage Form \*/i, "Tablet");
+    await clickNext(user);
+
+    await user.type(await screen.findByRole("textbox", { name: "Reference Standard" }), "USP <2091>");
+    await clickNext(user);
+
+    await clickSave(user);
     await waitFor(() => expect(SpecificationService.create).toHaveBeenCalledTimes(1));
     expect(vi.mocked(SpecificationService.create).mock.calls[0][0]).toStrictEqual(SPEC_PAYLOAD_FIXTURES.weightVariation);
   });
 
   it("characterises HPLC Assay parameter create payload", async () => {
-    const { user } = renderDialog({ preselectedTestCode: "HPLC_A" });
+    const { user } = renderWizard({ preselectedTestCode: "HPLC_A" });
+    await clickNext(user);
+
     await waitFor(() => expect(HplcMethodService.getById).toHaveBeenCalledWith(20));
     await selectOption(user, /Analyte \*/i, /Ibuprofen/i);
     await selectOption(user, /Basis \*/i, "Amount per unit");
     await user.type(await screen.findByRole("spinbutton", { name: "Label Claim *" }), "400");
     await user.type(screen.getByRole("textbox", { name: "Label Claim Unit *" }), "mg");
-    await user.type(screen.getByRole("spinbutton", { name: "Lower Limit (NLT) *" }), "380");
-    await user.type(screen.getByRole("spinbutton", { name: "Upper Limit (NMT) *" }), "420");
+    await clickNext(user);
 
-    await user.click(screen.getByRole("button", { name: "Add Parameter" }));
+    await user.type(await screen.findByRole("spinbutton", { name: "Lower Limit (NLT) *" }), "380");
+    await user.type(screen.getByRole("spinbutton", { name: "Upper Limit (NMT) *" }), "420");
+    await clickNext(user);
+    await clickNext(user);
+
+    await clickSave(user);
     await waitFor(() => expect(SpecificationService.create).toHaveBeenCalledTimes(1));
     expect(vi.mocked(SpecificationService.create).mock.calls[0][0]).toStrictEqual(SPEC_PAYLOAD_FIXTURES.hplcAssay);
   });
 
   it("characterises HPLC Related Substances parameter create payload", async () => {
-    const { user } = renderDialog({ preselectedTestCode: "HPLC_RS" });
+    const { user } = renderWizard({ preselectedTestCode: "HPLC_RS" });
+    await clickNext(user);
+
     await waitFor(() => expect(HplcMethodService.getById).toHaveBeenCalledWith(10));
     await selectOption(user, /Row \*/i, "Named impurity");
     await selectOption(user, /Impurity \*/i, /Impurity A/i);
-    await user.type(screen.getByRole("spinbutton", { name: "NMT (%) *" }), "0.15");
+    await clickNext(user);
 
-    await user.click(screen.getByRole("button", { name: "Add Parameter" }));
+    await user.type(await screen.findByRole("spinbutton", { name: "NMT (%) *" }), "0.15");
+    await clickNext(user);
+    await clickNext(user);
+
+    await clickSave(user);
     await waitFor(() => expect(SpecificationService.create).toHaveBeenCalledTimes(1));
     expect(vi.mocked(SpecificationService.create).mock.calls[0][0]).toStrictEqual(SPEC_PAYLOAD_FIXTURES.hplcRelatedSubstances);
   });
 
   it("characterises GC Residual Solvents parameter create payload", async () => {
-    const { user } = renderDialog({ preselectedTestCode: "GC_RS" });
+    const { user } = renderWizard({ preselectedTestCode: "GC_RS" });
+    await clickNext(user);
+
     await waitFor(() => expect(HplcMethodService.getById).toHaveBeenCalledWith(30));
     await selectOption(user, /Solvent \*/i, "Methanol");
-    await user.type(screen.getByRole("spinbutton", { name: "NMT (ppm) *" }), "3000");
+    await clickNext(user);
 
-    await user.click(screen.getByRole("button", { name: "Add Parameter" }));
+    await user.type(await screen.findByRole("spinbutton", { name: "NMT (ppm) *" }), "3000");
+    await clickNext(user);
+    await clickNext(user);
+
+    await clickSave(user);
     await waitFor(() => expect(SpecificationService.create).toHaveBeenCalledTimes(1));
     expect(vi.mocked(SpecificationService.create).mock.calls[0][0]).toStrictEqual(SPEC_PAYLOAD_FIXTURES.hplcResidualSolvents);
   });
 
   it("characterises ICP Assay parameter create payload", async () => {
-    const { user } = renderDialog({ preselectedTestCode: "ICP_A" });
-    await selectOption(user, /Element \*/i, /Fe/i);
-    await user.type(screen.getByRole("spinbutton", { name: "Lower Limit (NLT) *" }), "90");
-    await user.type(screen.getByRole("spinbutton", { name: "Upper Limit (NMT) *" }), "110");
+    const { user } = renderWizard({ preselectedTestCode: "ICP_A" });
+    await clickNext(user);
 
-    await user.click(screen.getByRole("button", { name: "Add Parameter" }));
+    await selectOption(user, /Element \*/i, /Fe/i);
+    await clickNext(user);
+
+    await user.type(await screen.findByRole("spinbutton", { name: "Lower Limit (NLT) *" }), "90");
+    await user.type(screen.getByRole("spinbutton", { name: "Upper Limit (NMT) *" }), "110");
+    await clickNext(user);
+    await clickNext(user);
+
+    await clickSave(user);
     await waitFor(() => expect(SpecificationService.create).toHaveBeenCalledTimes(1));
     expect(vi.mocked(SpecificationService.create).mock.calls[0][0]).toStrictEqual(SPEC_PAYLOAD_FIXTURES.icpAssay);
   });
 
   it("characterises ICP Impurity parameter create payload", async () => {
-    const { user } = renderDialog({ preselectedTestCode: "ICP_IMP" });
-    await selectOption(user, /Element \*/i, "Pb");
-    await user.type(await screen.findByRole("spinbutton", { name: "NMT (ppm) *" }), "0.5");
+    const { user } = renderWizard({ preselectedTestCode: "ICP_IMP" });
+    await clickNext(user);
 
-    await user.click(screen.getByRole("button", { name: "Add Parameter" }));
+    await selectOption(user, /Element \*/i, "Pb");
+    await clickNext(user);
+
+    await user.type(await screen.findByRole("spinbutton", { name: "NMT (ppm) *" }), "0.5");
+    await clickNext(user);
+    await clickNext(user);
+
+    await clickSave(user);
     await waitFor(() => expect(SpecificationService.create).toHaveBeenCalledTimes(1));
     expect(vi.mocked(SpecificationService.create).mock.calls[0][0]).toStrictEqual(SPEC_PAYLOAD_FIXTURES.icpImpurity);
   });
 
   it("characterises Titration basis create payload", async () => {
-    const { user } = renderDialog({ preselectedTestCode: "TITR" });
+    const { user } = renderWizard({ preselectedTestCode: "TITR" });
+    await clickNext(user);
+
     await selectOption(user, /Result Basis \*/i, "% of label claim");
     await user.type(await screen.findByRole("spinbutton", { name: "Label Claim (mg per unit) *" }), "500");
-    await user.type(screen.getByRole("spinbutton", { name: "Lower Limit (NLT) *" }), "98");
-    await user.type(screen.getByRole("spinbutton", { name: "Upper Limit (NMT) *" }), "102");
-    await user.type(screen.getByRole("textbox", { name: "Unit" }), "%");
+    await clickNext(user);
 
-    await user.click(screen.getByRole("button", { name: "Add Parameter" }));
+    await user.type(await screen.findByRole("spinbutton", { name: "Lower Limit (NLT) *" }), "98");
+    await user.type(screen.getByRole("spinbutton", { name: "Upper Limit (NMT) *" }), "102");
+    await clickNext(user);
+
+    await user.type(await screen.findByRole("textbox", { name: "Unit" }), "%");
+    await clickNext(user);
+
+    await clickSave(user);
     await waitFor(() => expect(SpecificationService.create).toHaveBeenCalledTimes(1));
     expect(vi.mocked(SpecificationService.create).mock.calls[0][0]).toStrictEqual(SPEC_PAYLOAD_FIXTURES.titration);
   });
@@ -512,12 +640,16 @@ describe("SpecificationParameterDialog payload characterisation", () => {
       upperInclusive: true,
       productionStageRole: "Bulk"
     };
-    const { user } = renderDialog({ editingSpec });
+    const { user } = renderWizard({ editingSpec });
+    await clickNext(user);
+
     const upperInput = await screen.findByRole("spinbutton", { name: "Upper Limit (NMT) *" });
     await user.clear(upperInput);
     await user.type(upperInput, "7.5");
+    await clickNext(user);
+    await clickNext(user);
 
-    await user.click(screen.getByRole("button", { name: "Save Changes" }));
+    await clickSave(user);
     await waitFor(() => expect(SpecificationService.update).toHaveBeenCalledTimes(1));
     expect(SpecificationService.update).toHaveBeenCalledWith(42, SPEC_PAYLOAD_FIXTURES.rangeEdit, 3);
   });

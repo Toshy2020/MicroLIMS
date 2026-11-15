@@ -17,10 +17,11 @@ import {
   REVIEW_STEP_KEY,
   useWizard,
   type ConfigWizardProps,
+  type WizardSaveAndNextAction,
   type WizardStep,
 } from "./useWizard";
 
-export type { ConfigWizardProps, WizardStep };
+export type { ConfigWizardProps, WizardSaveAndNextAction, WizardStep };
 
 function findFocusableForElement(el: HTMLElement): HTMLElement | null {
   if (el instanceof HTMLInputElement && el.classList.contains("MuiSelect-nativeInput")) {
@@ -85,7 +86,7 @@ export function ConfigWizard<M extends object>(props: ConfigWizardProps<M>) {
   ];
 
   const reasonNeededOnSave = reasonRequired
-    ? reasonRequired(wizard.usageState.summary)
+    ? reasonRequired(wizard.usageState.summary, wizard.model)
     : false;
 
   return (
@@ -174,17 +175,29 @@ export function ConfigWizard<M extends object>(props: ConfigWizardProps<M>) {
                 Next
               </Button>
             ) : (
-              <Button
-                type="button"
-                variant="contained"
-                onClick={wizard.handleSaveClick}
-                disabled={wizard.saveDisabled}
-                startIcon={
-                  wizard.saving ? <CircularProgress size={16} color="inherit" /> : undefined
-                }
-              >
-                {wizard.saving ? "Saving..." : "Save"}
-              </Button>
+              <>
+                {wizard.resolvedSaveAndNext && (
+                  <Button
+                    type="button"
+                    variant="outlined"
+                    onClick={() => wizard.handleSaveClick(true)}
+                    disabled={wizard.saveDisabled}
+                  >
+                    {wizard.resolvedSaveAndNext.label}
+                  </Button>
+                )}
+                <Button
+                  type="button"
+                  variant="contained"
+                  onClick={() => wizard.handleSaveClick(false)}
+                  disabled={wizard.saveDisabled}
+                  startIcon={
+                    wizard.saving ? <CircularProgress size={16} color="inherit" /> : undefined
+                  }
+                >
+                  {wizard.saving ? "Saving..." : "Save"}
+                </Button>
+              </>
             )}
           </>
         }

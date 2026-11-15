@@ -198,8 +198,9 @@ public sealed class QaCrossSectionReadPostgresTests
             var qaSummary = await dashboard.GetSummaryAsync(RoleType.Qa, w.QaUserId, qaScopeAll.SectionIds);
             Assert.NotNull(qaSummary);
 
-            // TestingWorkspaceService takes acting userId directly -> returns both Section A & Section B samples
-            var qaActive = await workspace.GetActiveSamplesAsync(new TestingWorkspaceFilterDto { Page = 1, PageSize = 200 }, w.QaUserId);
+            // TestingWorkspaceService takes acting userId directly -> returns both Section A & Section B samples.
+            // Narrowed to this seed's samples: the shared database holds more active samples than one page.
+            var qaActive = await workspace.GetActiveSamplesAsync(new TestingWorkspaceFilterDto { Page = 1, PageSize = 100, Search = w.Suffix }, w.QaUserId);
             Assert.Contains(qaActive.Items, s => s.SampleId == w.SampleAId);
             Assert.Contains(qaActive.Items, s => s.SampleId == w.SampleBId);
 
@@ -235,7 +236,7 @@ public sealed class QaCrossSectionReadPostgresTests
             Assert.Contains(anaSecHead.AnalystWorkloads, a => a.AnalystId == w.AnalystAId);
             Assert.DoesNotContain(anaSecHead.AnalystWorkloads, a => a.AnalystId == w.AnalystBId);
 
-            var anaActive = await workspace.GetActiveSamplesAsync(new TestingWorkspaceFilterDto { Page = 1, PageSize = 200 }, w.AnalystAId);
+            var anaActive = await workspace.GetActiveSamplesAsync(new TestingWorkspaceFilterDto { Page = 1, PageSize = 100, Search = w.Suffix }, w.AnalystAId);
             Assert.Contains(anaActive.Items, s => s.SampleId == w.SampleAId);
             Assert.DoesNotContain(anaActive.Items, s => s.SampleId == w.SampleBId);
         }

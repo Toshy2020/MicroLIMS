@@ -348,3 +348,25 @@ describe("Working Hours menu entry", () => {
     expect(findItemByPath(withoutPerm.flatMap((g) => g.items), "/laboratory-configuration/working-hours")).toBeUndefined();
   });
 });
+
+describe("Escalation Rules menu entry", () => {
+  it("is offered under General Laboratory Configuration only with Notifications.Configure", () => {
+    const withPerm = getGroupedMenu({
+      role: "SectionHead",
+      permissions: [PERMISSIONS.NOTIFICATIONS_CONFIGURE],
+      labCodes: []
+    });
+    const configGroup = withPerm.find((g) => g.groupName === "GENERAL LABORATORY CONFIGURATION");
+    const item = configGroup?.items.find((i) => i.path === "/laboratory-configuration/escalation-rules");
+    expect(item?.label).toBe("Escalation Rules");
+    expect(item?.permission).toBe(PERMISSIONS.NOTIFICATIONS_CONFIGURE);
+    expect(findNavTrail(withPerm, "/laboratory-configuration/escalation-rules", "")?.item.label).toBe("Escalation Rules");
+
+    const withoutPerm = getGroupedMenu({
+      role: "Analyst",
+      permissions: [PERMISSIONS.MASTER_DATA_MANAGE],
+      labCodes: ["MICRO"]
+    });
+    expect(findItemByPath(withoutPerm.flatMap((g) => g.items), "/laboratory-configuration/escalation-rules")).toBeUndefined();
+  });
+});

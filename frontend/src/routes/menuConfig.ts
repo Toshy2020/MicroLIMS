@@ -12,6 +12,7 @@ import BugReportOutlinedIcon from "@mui/icons-material/BugReportOutlined";
 import ManageSearchOutlinedIcon from "@mui/icons-material/ManageSearchOutlined";
 import PolicyOutlinedIcon from "@mui/icons-material/PolicyOutlined";
 import ScheduleOutlinedIcon from "@mui/icons-material/ScheduleOutlined";
+import NotificationsActiveOutlinedIcon from "@mui/icons-material/NotificationsActiveOutlined";
 import PeopleAltOutlinedIcon from "@mui/icons-material/PeopleAltOutlined";
 import AdminPanelSettingsOutlinedIcon from "@mui/icons-material/AdminPanelSettingsOutlined";
 import BiotechOutlinedIcon from "@mui/icons-material/BiotechOutlined";
@@ -252,6 +253,7 @@ const masterDataWorkbookItem: MenuItem = { label: "Master Data Workbook", descri
 const waterItem: MenuItem = { label: "Water", path: "/laboratory-configuration/water", description: "Water systems, sampling points and each lab's tests and limits.", icon: WaterDropOutlinedIcon, group: "GENERAL LABORATORY CONFIGURATION", permission: PERMISSIONS.MASTER_DATA_MANAGE };
 const afterCleaningItem: MenuItem = { label: "After Cleaning", path: "/laboratory-configuration/after-cleaning", description: "Machines, parts and each lab's after-cleaning tests and limits.", icon: CleaningServicesOutlinedIcon, group: "GENERAL LABORATORY CONFIGURATION", permission: PERMISSIONS.MASTER_DATA_MANAGE };
 const workingHoursItem: MenuItem = { label: "Working Hours", path: "/laboratory-configuration/working-hours", description: "Weekly working days and hours used to count escalation thresholds.", icon: ScheduleOutlinedIcon, group: "GENERAL LABORATORY CONFIGURATION", permission: PERMISSIONS.NOTIFICATIONS_CONFIGURE };
+const escalationRulesItem: MenuItem = { label: "Escalation Rules", path: "/laboratory-configuration/escalation-rules", description: "Per-section working-hours rules for overdue reviews, tests, and documents.", icon: NotificationsActiveOutlinedIcon, group: "GENERAL LABORATORY CONFIGURATION", permission: PERMISSIONS.NOTIFICATIONS_CONFIGURE };
 
 // Drops every item whose permission the user lacks, then any parent left
 // with no children.
@@ -300,7 +302,7 @@ export function getGroupedMenu({ role, permissions, labCodes, physchemAreas }: M
     items.push(buildPhyschemArea(areas), physchemConfigArea);
   }
   items.push(
-    itemsItem, masterTestingMaterialsItem, receivingConfigItem, masterDataWorkbookItem, waterItem, afterCleaningItem, workingHoursItem,
+    itemsItem, masterTestingMaterialsItem, receivingConfigItem, masterDataWorkbookItem, waterItem, afterCleaningItem, workingHoursItem, escalationRulesItem,
     documentControlItem(role, permissions), reportsItem, monitoringPlanItem, oosTrackingItem,
     ...adminItems
   );

@@ -63,6 +63,7 @@ export const APP_ROUTES = {
   FP_INSTRUMENTS: "/laboratory-configuration/fp-instruments",
   LABEL_FORMATS: "/laboratory-configuration/label-formats",
   WORKING_HOURS: "/laboratory-configuration/working-hours",
+  ESCALATION_RULES: "/laboratory-configuration/escalation-rules",
 
   // Inventory & Stock
   INVENTORY_MATERIALS: "/inventory/materials",

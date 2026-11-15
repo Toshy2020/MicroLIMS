@@ -11,6 +11,7 @@ const FILE_TO_TABLE_KEYS: Record<string, string[]> = {
   "/src/modules/auditReview/AuditTrailReviewDetailPage.tsx": ["auditReview.reviewEntries"],
   "/src/modules/auditReview/AuditTrailReviewsPage.tsx": ["auditReview.reviews"],
   "/src/modules/documentControl/pages/DocumentLibraryPage.tsx": ["documentControl.library"],
+  "/src/modules/notifications/NotificationsPage.tsx": ["notifications.centre"],
   "/src/modules/hplcWorkspace/history/HplcRunHistoryTable.tsx": ["hplc.runHistory"],
   "/src/modules/hplcWorkspace/run/HplcInstrumentWorkspace.tsx": ["hplc.mobilePhases"],
   "/src/modules/hplcWorkspace/samples/SampleAssignmentPanel.tsx": ["hplc.runSamples"],

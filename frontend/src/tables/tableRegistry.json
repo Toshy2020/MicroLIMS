@@ -609,5 +609,18 @@
       { "key": "status", "label": "Status", "defaultVisible": true }
     ],
     "filters": ["search", "organism", "storage", "manufacturer", "status", "expiryRange"]
+  },
+  {
+    "key": "notifications.centre",
+    "title": "Notifications",
+    "idColumn": "title",
+    "columns": [
+      { "key": "severity", "label": "Severity", "defaultVisible": true },
+      { "key": "title", "label": "Title", "defaultVisible": true },
+      { "key": "message", "label": "Message", "defaultVisible": true },
+      { "key": "sectionName", "label": "Section", "defaultVisible": true },
+      { "key": "createdAt", "label": "Created", "defaultVisible": true }
+    ],
+    "filters": ["state", "type", "q"]
   }
 ]

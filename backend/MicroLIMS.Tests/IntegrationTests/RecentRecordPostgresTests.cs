@@ -334,6 +334,29 @@ public class RecentRecordPostgresTests
     }
 
     [PostgresFact]
+    public async Task List_CarriesTheServerRouteThatOpensEachRecord()
+    {
+        var section = await NewSectionAsync();
+        var user = await NewUserAsync(section);
+        var records = await SeedRecordsAsync(section, user.Id);
+
+        var at = T0;
+        foreach (var (type, id) in records.All) await TouchAsync(user.Id, type, id, at = at.AddMinutes(1));
+
+        var routes = (await ListAsync(user.Id)).ToDictionary(r => r.RecordType, r => r.Route);
+
+        // A test order opens through its sample, like a search result; the list pages take the record id.
+        Assert.Equal($"/receiving-testing?sampleId={records.Sample}", routes[RecentRecordTypes.Sample]);
+        Assert.Equal($"/receiving-testing?sampleId={records.Sample}&testOrderId={records.TestOrder}", routes[RecentRecordTypes.TestOrder]);
+        Assert.Equal($"/laboratory-configuration/items?item={records.Item}", routes[RecentRecordTypes.Item]);
+        Assert.Equal($"/document-control/documents/{records.Document}", routes[RecentRecordTypes.Document]);
+        Assert.Equal($"/inventory/equipment?equipmentId={records.Equipment}", routes[RecentRecordTypes.Equipment]);
+        Assert.Equal($"/inventory/materials?materialId={records.Material}", routes[RecentRecordTypes.Material]);
+        Assert.Equal($"/laboratory-configuration/media?mediaId={records.Media}", routes[RecentRecordTypes.Media]);
+        Assert.Equal($"/preparation/{records.Solution}", routes[RecentRecordTypes.Solution]);
+    }
+
+    [PostgresFact]
     public async Task List_DropsRecordINoLongerMayRead_AndReturnsNoLabelForIt()
     {
         var section = await NewSectionAsync();

@@ -1,6 +1,7 @@
 namespace MicroLIMS.Application.Interfaces;
 
-public sealed record RecentRecordDto(string RecordType, int RecordId, string Identifier, string Title, DateTime OpenedAtUtc);
+// Route is the page that opens the record, built by the server (RecordNavigationTargets) as for search results.
+public sealed record RecentRecordDto(string RecordType, int RecordId, string Identifier, string Title, string Route, DateTime OpenedAtUtc);
 
 // The caller's own recently opened records. Always scoped to the user passed in; the controller takes that id
 // from the caller's claims. The server writes the label itself, after checking the user may read the record.
@@ -17,7 +18,7 @@ public interface IRecentRecordService
 // Resolves the label of records, returning only the ones the user may read right now.
 public interface IRecordLabelResolver
 {
-    Task<IReadOnlyDictionary<(string Type, int Id), (string Identifier, string Title)>> ResolveAsync(
+    Task<IReadOnlyDictionary<(string Type, int Id), (string Identifier, string Title, string Route)>> ResolveAsync(
         int userId, IReadOnlyCollection<(string Type, int Id)> records, CancellationToken ct = default);
 }
 

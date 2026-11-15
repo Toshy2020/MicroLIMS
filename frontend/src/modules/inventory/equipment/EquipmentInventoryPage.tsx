@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Box, Button, Alert, Tabs, Tab, useTheme } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
@@ -88,6 +88,16 @@ export function EquipmentInventoryPage() {
   const [editingItem, setEditingItem] = useState<EquipmentItem | null>(null);
   const [detailsItem, setDetailsItem] = useState<EquipmentItem | null>(null);
   const [historyFor, setHistoryFor] = useState<number | null>(null);
+
+  // ?equipmentId= (from Recent / Ctrl+K) opens that record's details once the list is loaded.
+  const deepLinkedEquipment = useRef(false);
+  const equipmentIdParam = searchParams.get("equipmentId");
+  useEffect(() => {
+    if (deepLinkedEquipment.current || !items || !equipmentIdParam) return;
+    deepLinkedEquipment.current = true;
+    const found = items.find((e) => e.id === Number(equipmentIdParam));
+    if (found) setDetailsItem(found);
+  }, [items, equipmentIdParam]);
 
   const loadData = async () => {
     try {

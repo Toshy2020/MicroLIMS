@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Box, Button, Alert, Typography, useTheme } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
@@ -151,6 +151,16 @@ export function MaterialsPage() {
   const [editingItem, setEditingItem] = useState<MaterialItem | null>(null);
   const [historyFor, setHistoryFor] = useState<number | null>(null);
   const [lotDetailsFor, setLotDetailsFor] = useState<MaterialItem | null>(null);
+
+  // ?materialId= (from Recent / Ctrl+K) opens that lot's details once the list is loaded.
+  const deepLinkedMaterial = useRef(false);
+  const materialIdParam = searchParams.get("materialId");
+  useEffect(() => {
+    if (deepLinkedMaterial.current || !items || !materialIdParam) return;
+    deepLinkedMaterial.current = true;
+    const found = items.find((m) => m.id === Number(materialIdParam));
+    if (found) setLotDetailsFor(found);
+  }, [items, materialIdParam]);
   const [releaseFor, setReleaseFor] = useState<MaterialItem | null>(null);
   const postCreatePrint = usePostCreateLabelPrint();
 

@@ -296,4 +296,16 @@ describe("MediaPage lots register", () => {
     renderPage();
     expect(await screen.findByText("Lots unavailable.")).toBeTruthy();
   });
+  it("?mediaId= opens that lot's workspace once the lots have loaded", async () => {
+    renderPage("/?mediaId=3");
+    // The workspace header, not the register row (which also shows "ID #3").
+    expect(await screen.findByRole("button", { name: /Close Workspace/ }, { timeout: 5000 })).toBeTruthy();
+    expect(screen.getByText(/Prepared: .* ID #3$/)).toBeTruthy();
+  });
+
+  it("?mediaId= for a lot not in the list opens no workspace", async () => {
+    renderPage("/?mediaId=99");
+    await ready();
+    expect(screen.queryByRole("button", { name: /Close Workspace/ })).toBeNull();
+  });
 });

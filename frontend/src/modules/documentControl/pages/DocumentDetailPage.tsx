@@ -72,6 +72,7 @@ import { RevisionImpactAssessmentDialog } from "../components/RevisionImpactAsse
 import { RevisionChangeItemsDialog } from "../components/RevisionChangeItemsDialog";
 import { AssignApproverDialog } from "../components/AssignApproverDialog";
 import { ApprovalWorkspaceDialog } from "../components/ApprovalWorkspaceDialog";
+import { useTrackRecent } from "../../navigation/useTrackRecent";
 import { PeriodicReviewWorkspaceDialog } from "../components/PeriodicReviewWorkspaceDialog";
 import { periodicReviewService } from "../services/periodicReviewService";
 import type {
@@ -89,6 +90,7 @@ export function DocumentDetailPage() {
   const theme = useTheme();
 
   const [document, setDocument] = useState<DocumentMasterDto | null>(null);
+  useTrackRecent("document", document?.id);
   const [auditLogs, setAuditLogs] = useState<DocumentAuditItemDto[]>([]);
   const [reviewTasks, setReviewTasks] = useState<DocumentReviewTaskDto[]>([]);
   const [currentTab, setCurrentTab] = useState(0);

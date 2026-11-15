@@ -290,4 +290,16 @@ describe("EquipmentInventoryPage register", () => {
     await waitFor(() => expect(screen.queryByRole("textbox", { name: SEARCH })).toBeNull());
     expect(screen.queryByRole("button", { name: "Register Equipment" })).toBeNull();
   });
+  it("?equipmentId= opens that equipment's details once the register has loaded", async () => {
+    renderPage("/?equipmentId=3");
+    expect(await screen.findByRole("dialog", {}, { timeout: 5000 })).toBeTruthy();
+    await waitFor(() => expect(EquipmentInventoryService.getStatusHistory).toHaveBeenCalledWith(3));
+  });
+
+  it("?equipmentId= for equipment not in the register opens nothing", async () => {
+    renderPage("/?equipmentId=99");
+    await ready();
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(EquipmentInventoryService.getStatusHistory).not.toHaveBeenCalled();
+  });
 });

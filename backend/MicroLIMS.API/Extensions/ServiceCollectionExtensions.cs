@@ -116,6 +116,8 @@ public static class ServiceCollectionExtensions
         services.AddScoped<OosTrackingService>();
         services.AddScoped<DashboardService>();
         services.AddScoped<DashboardNotificationService>();
+        services.AddScoped<NotificationQueryService>();
+        services.AddScoped<NotificationPreferencesService>();
         services.AddScoped<INotificationPublisher, NotificationPublisher>();
         services.AddScoped<NotificationRecipients>();
         services.AddScoped<NotificationScheduler>();

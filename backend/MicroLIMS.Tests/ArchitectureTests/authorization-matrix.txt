@@ -5,6 +5,7 @@ AdminAccessReviewsController.Get(Int32, CancellationToken): SystemAdministrator,
 AdminAccessReviewsController.List(CancellationToken): SystemAdministrator,Qa
 AdminAccessReviewsController.Sign(Int32, SignAccessReviewRequest, CancellationToken): SystemAdministrator,Qa
 AdminAccessReviewsController.UpdateFinding(Int32, Int32, SaveAccessReviewFindingRequest, CancellationToken): SystemAdministrator,Qa
+AdminEmailOutboxController.Summary(CancellationToken): SystemAdministrator
 AdminIntegrationsController.InstrumentAgents(CancellationToken): SystemAdministrator
 AdminIntegrationsController.Smtp(): SystemAdministrator
 AdminIntegrationsController.Storage(): SystemAdministrator
@@ -470,6 +471,14 @@ NotApplicableTestController.FinalApprove(Int32, NotApplicableSignRequest): QcMan
 NotApplicableTestController.HeadApprove(Int32, NotApplicableSignRequest): SectionHead
 NotApplicableTestController.ListForItem(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 NotApplicableTestController.Withdraw(Int32, NotApplicableWithdrawRequest): SectionHead
+NotificationPreferencesController.Get(CancellationToken): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+NotificationPreferencesController.GetMandatory(Int32, CancellationToken): SectionHead,QcManager
+NotificationPreferencesController.SetMandatory(Int32, UpdateMandatoryNotificationTypesRequest, CancellationToken): SectionHead,QcManager
+NotificationPreferencesController.Update(UpdateNotificationPreferencesRequest, CancellationToken): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+NotificationsController.List(String, String, Nullable`1, String, Int32, Int32, CancellationToken): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+NotificationsController.MarkAllRead(CancellationToken): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+NotificationsController.MarkRead(Int32, CancellationToken): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+NotificationsController.Summary(CancellationToken): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 OosInvestigationDocumentController.GetContent(Int32, String): SectionHead
 OosInvestigationDocumentController.GetDocuments(String): SectionHead
 OosInvestigationDocumentController.Supersede(Int32, String, IFormFile, String): SectionHead

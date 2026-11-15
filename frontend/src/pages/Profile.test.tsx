@@ -2,9 +2,13 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
+import { AuthProvider } from "../contexts/AuthContext";
+import { PERMISSIONS } from "../routes/routes";
 import { PinnedLightTheme } from "../theme/PinnedLightTheme";
 import { authenticationService } from "../modules/authentication/services/authenticationService";
 import { mfaService, type MfaStatus } from "../modules/authentication/services/mfaService";
+import { notificationService } from "../modules/notifications/services/notificationService";
+import { laboratorySectionService } from "../services/laboratorySectionService";
 import { ProfilePage } from "./Profile";
 
 vi.mock("sonner", () => ({
@@ -29,6 +33,21 @@ vi.mock("../modules/authentication/services/mfaService", () => ({
     regenerateRecoveryCodes: vi.fn(),
     removeFactor: vi.fn(),
     forgetTrustedDevice: vi.fn()
+  }
+}));
+
+vi.mock("../modules/notifications/services/notificationService", () => ({
+  notificationService: {
+    getPreferences: vi.fn().mockResolvedValue([]),
+    putPreferences: vi.fn().mockResolvedValue([]),
+    getMandatory: vi.fn().mockResolvedValue([]),
+    putMandatory: vi.fn().mockResolvedValue([])
+  }
+}));
+
+vi.mock("../services/laboratorySectionService", () => ({
+  laboratorySectionService: {
+    getMySections: vi.fn().mockResolvedValue([])
   }
 }));
 
@@ -73,6 +92,7 @@ function renderPage() {
 
 afterEach(() => {
   cleanup();
+  localStorage.clear();
   vi.clearAllMocks();
 });
 
@@ -278,5 +298,57 @@ describe("ProfilePage Security section", () => {
     const alert = await screen.findByRole("alert");
     expect(alert.textContent).toContain(refusal);
     expect(screen.queryByAltText("QR code to add MicroLIMS to your authenticator app")).toBeNull();
+  });
+});
+
+describe("ProfilePage Notifications section", () => {
+  function renderProfileWithAuth(permissions: string[]) {
+    localStorage.clear();
+    localStorage.setItem("microlims_permissions", JSON.stringify(permissions));
+    return render(
+      <PinnedLightTheme>
+        <AuthProvider>
+          <MemoryRouter>
+            <ProfilePage />
+          </MemoryRouter>
+        </AuthProvider>
+      </PinnedLightTheme>
+    );
+  }
+
+  it("renders notification preferences and gates mandatory panel on Notifications.Configure", async () => {
+    vi.mocked(authenticationService.me).mockResolvedValue(sampleUser);
+    vi.mocked(mfaService.getStatus).mockResolvedValue(enrolledStatus);
+    vi.mocked(notificationService.getPreferences).mockResolvedValue([
+      {
+        type: "sample.approved",
+        title: "Sample approved",
+        emailAllowed: true,
+        emailMode: "Immediate",
+        mandatory: false,
+        mandatoryReason: null
+      }
+    ]);
+
+    renderProfileWithAuth([]);
+    expect(await screen.findByRole("heading", { name: "Notifications" })).toBeTruthy();
+    expect(await screen.findByText("Sample approved")).toBeTruthy();
+    expect(screen.queryByRole("heading", { name: "Section mandatory notifications" })).toBeNull();
+
+    cleanup();
+    vi.mocked(laboratorySectionService.getMySections).mockResolvedValue([
+      {
+        sectionId: 11,
+        sectionCode: "MICRO",
+        sectionName: "Microbiology",
+        departmentId: 1,
+        departmentCode: "QC",
+        departmentName: "Quality Control"
+      }
+    ]);
+    vi.mocked(notificationService.getMandatory).mockResolvedValue([]);
+
+    renderProfileWithAuth([PERMISSIONS.NOTIFICATIONS_CONFIGURE]);
+    expect(await screen.findByRole("heading", { name: "Section mandatory notifications" })).toBeTruthy();
   });
 });

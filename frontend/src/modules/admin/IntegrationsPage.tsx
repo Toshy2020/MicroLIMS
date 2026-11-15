@@ -12,6 +12,7 @@ import { formatLabDateTime } from "../../utils/formatDate";
 import { getErrorMessage } from "../../utils/errorMessage";
 import { TestActionDialog } from "./TestActionDialog";
 import { TestSendOutcome } from "./TestSendOutcome";
+import { EmailDeliveryCard } from "./EmailDeliveryCard";
 import { IntegrationAgent, IntegrationsService, SmtpStatus, StorageProbeResult, StorageStatus } from "./services/IntegrationsService";
 
 const when = (v: string | null) => (v ? formatLabDateTime(v) : "Never");
@@ -31,6 +32,7 @@ const agentColor = (status: string) => (status === "Active" ? "success" : status
 export function IntegrationsPage() {
   const { permissions } = useAuth();
   const canManageAgents = permissions.includes(PERMISSIONS.MASTER_DATA_MANAGE);
+  const canManageUsers = permissions.includes(PERMISSIONS.USERS_MANAGE);
 
   const [agents, setAgents] = useState<IntegrationAgent[] | null>(null);
   const [smtp, setSmtp] = useState<SmtpStatus | null>(null);
@@ -183,6 +185,8 @@ export function IntegrationsPage() {
           </Table>
         </Paper>
       )}
+
+      {canManageUsers && <EmailDeliveryCard />}
 
       {storage && (
         <Paper sx={{ mb: 2, p: 2 }}>

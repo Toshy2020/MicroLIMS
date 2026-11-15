@@ -82,6 +82,7 @@ import type {
   DocumentApprovalTaskDto,
   PeriodicReviewTaskDto
 } from "../types/documentControlTypes";
+import { useBreadcrumb } from "../../../components/breadcrumbContext";
 
 export function DocumentDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -96,6 +97,7 @@ export function DocumentDetailPage() {
   const [currentTab, setCurrentTab] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  useBreadcrumb(document ? [document.companyDocumentCode, document.title].filter(Boolean).join(" ") : error ? "Document unavailable" : null);
 
   // Dialogs state
   const [pdfViewerOpen, setPdfViewerOpen] = useState(false);

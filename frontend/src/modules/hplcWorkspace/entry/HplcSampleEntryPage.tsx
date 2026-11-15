@@ -44,6 +44,7 @@ import type {
   HplcSampleEntryDto,
   HplcReplicateDto,
 } from "../types";
+import { useBreadcrumb } from "../../../components/breadcrumbContext";
 
 export function HplcSampleEntryPage() {
   const theme = useTheme();
@@ -62,6 +63,7 @@ export function HplcSampleEntryPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sampleEntry, setSampleEntry] = useState<HplcSampleEntryDto | null>(null);
+  useBreadcrumb(sampleEntry ? `${sampleEntry.sampleNumber} ${sampleEntry.testCode}` : error ? "Entry unavailable" : null);
   const [replicates, setReplicates] = useState<HplcReplicateDto[]>([]);
   const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
 

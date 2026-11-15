@@ -24,6 +24,7 @@ import { ReportUploadPanel } from "../evidence/ReportUploadPanel";
 import { tableHeadSx } from "../../../theme";
 import { useTechnique } from "../useTechnique";
 import type { HplcQualificationEntryDto, HplcReplicateDto } from "../types";
+import { useBreadcrumb } from "../../../components/breadcrumbContext";
 
 export function QualificationEntryPage() {
   const theme = useTheme();
@@ -42,6 +43,7 @@ export function QualificationEntryPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [entry, setEntry] = useState<HplcQualificationEntryDto | null>(null);
+  useBreadcrumb(entry ? `${entry.qualificationCode} ${entry.materialName}` : error ? "Entry unavailable" : null);
   const [replicates, setReplicates] = useState<HplcReplicateDto[]>([]);
   const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
 

@@ -31,6 +31,7 @@ import { IcpReportUploadPanel } from "../evidence/IcpReportUploadPanel";
 import { IcpReportAutofill } from "./IcpReportAutofill";
 import { applyReportValues, buildSaveEntryPayload, draftFromEntry, isEntryComplete, type EntryDraft } from "./entryMapping";
 import type { IcpSampleEntryDto } from "../types";
+import { useBreadcrumb } from "../../../components/breadcrumbContext";
 
 export function IcpSampleEntryPage() {
   const theme = useTheme();
@@ -48,6 +49,7 @@ export function IcpSampleEntryPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sampleEntry, setSampleEntry] = useState<IcpSampleEntryDto | null>(null);
+  useBreadcrumb(sampleEntry ? `${sampleEntry.sampleNumber} ${sampleEntry.testCode}` : error ? "Entry unavailable" : null);
 
   const [draft, setDraft] = useState<EntryDraft>({ weight: "", results: {} });
   const [reviewDialogOpen, setReviewDialogOpen] = useState(false);

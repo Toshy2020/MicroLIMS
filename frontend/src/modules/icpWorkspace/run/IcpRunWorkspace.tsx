@@ -23,6 +23,7 @@ import { IcpEvidencePanel } from "../evidence/IcpEvidencePanel";
 import { IcpRunHistoryTable } from "../history/IcpRunHistoryTable";
 import { ReasonDialog } from "../../laboratoryConfiguration/masterDataSimple/solutionMaster/ReasonDialog";
 import type { IcpRunDto, IcpRunListItem } from "../types";
+import { useBreadcrumb } from "../../../components/breadcrumbContext";
 
 function getInitialTab(pathname: string): string {
   if (pathname.endsWith("/samples")) return "samples";
@@ -45,6 +46,9 @@ export function IcpRunWorkspace() {
   const [historyRuns, setHistoryRuns] = useState<IcpRunListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  // The last crumb names the run (its reference), or the instrument while no run is open.
+  const [instrumentLabel, setInstrumentLabel] = useState<string | null>(null);
+  useBreadcrumb(runId ? (error ? "Run unavailable" : run?.code ?? null) : instrumentLabel);
 
   // Abandon Dialog
   const [abandonOpen, setAbandonOpen] = useState(false);
@@ -84,12 +88,16 @@ export function IcpRunWorkspace() {
           if (matched?.activeRun) {
             navigate(ICP_ROUTES.run(equipmentId, matched.activeRun.runId), { replace: true });
           } else {
+            setInstrumentLabel(matched ? `${matched.code} ${matched.name}` : "Instrument not found");
             IcpWorkspaceService.getRunHistory(equipmentId).then(setHistoryRuns);
             setActiveTab("history");
             setLoading(false);
           }
         })
-        .catch(() => setLoading(false));
+        .catch(() => {
+          setInstrumentLabel("Instrument unavailable");
+          setLoading(false);
+        });
     }
   }, [equipmentId, runId, navigate, loadRunData]);
 

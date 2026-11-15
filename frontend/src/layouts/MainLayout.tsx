@@ -5,6 +5,7 @@ import WarningAmberRoundedIcon from "@mui/icons-material/WarningAmberRounded";
 import { Header } from "../components/Header";
 import { Sidebar } from "../components/Sidebar";
 import { AppBreadcrumbs } from "../components/AppBreadcrumbs";
+import { BreadcrumbProvider } from "../components/breadcrumbContext";
 import { AppErrorBoundary } from "../components/AppErrorBoundary";
 import { ConnectionBanner } from "../components/bench/ConnectionBanner";
 import { DraftsMenu } from "../components/bench/DraftsMenu";
@@ -268,6 +269,7 @@ export function MainLayout({ whatsNewNotes }: { whatsNewNotes?: readonly Release
   return (
     <HelpPanelProvider whatsNewNotes={whatsNewNotes}>
     <MenuGroupsProvider groups={groups}>
+    <BreadcrumbProvider>
     <Box
       sx={{
         // dvh where supported: on mobile browsers 100vh includes the area
@@ -409,6 +411,7 @@ export function MainLayout({ whatsNewNotes }: { whatsNewNotes?: readonly Release
         </DialogActions>
       </Dialog>
     </Box>
+    </BreadcrumbProvider>
     </MenuGroupsProvider>
     </HelpPanelProvider>
   );

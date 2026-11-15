@@ -6,6 +6,7 @@ import { MarkdownView } from "./MarkdownView";
 import { HELP_GUIDANCE } from "./HelpPanel";
 import { scrollToHeading } from "./scrollToHeading";
 import { useChapterText } from "./useChapterText";
+import { BreadcrumbLabel } from "../../components/breadcrumbContext";
 
 interface HelpPageProps {
   loadChapter?: (chapterId: string) => Promise<string>;
@@ -62,6 +63,8 @@ export function HelpPage({ loadChapter = loadChapterText }: HelpPageProps) {
 
   return (
     <Box component="section" aria-label="User guide">
+      {/* The chapter list needs no crumb of its own; a chapter (or an unknown one) names the last crumb. */}
+      {chapterId !== undefined && <BreadcrumbLabel label={chapter ? `${chapter.number}. ${chapter.title}` : "Chapter not found"} />}
       <Typography component="h1" variant="h4" sx={{ mb: 0.5 }}>User guide</Typography>
       <Typography variant="body2" sx={{ fontWeight: 600, mb: 2 }}>{HELP_GUIDANCE}</Typography>
       {chapterId === undefined ? (

@@ -1,11 +1,16 @@
 import { useEffect } from "react";
-import { Breadcrumbs, Link as MuiLink, Typography } from "@mui/material";
+import { Box, Breadcrumbs, Link as MuiLink, Skeleton, Typography } from "@mui/material";
 import NavigateNextIcon from "@mui/icons-material/NavigateNext";
 import { Link as RouterLink } from "react-router-dom";
 import { groupLabel, groupPath, NavTrail } from "../routes/navigation";
 import type { MenuGroup } from "../routes/menuConfig";
+import { usePageBreadcrumb } from "./breadcrumbContext";
 
 const APP_NAME = "MicroLIMS";
+const MAX_CRUMB_CHARS = 48;
+const visuallyHidden = {
+  position: "absolute", width: 1, height: 1, overflow: "hidden", clip: "rect(0 0 0 0)", whiteSpace: "nowrap"
+} as const;
 
 // Module context above every page: group > laboratory area > page. The last
 // crumb is the current page (not a link) unless the user is on a record or
@@ -14,17 +19,50 @@ const APP_NAME = "MicroLIMS";
 // Also owns the browser tab title, so tabs, history entries and screen
 // readers name the page instead of every tab reading "MicroLIMS".
 export function AppBreadcrumbs({ trail, groups }: { trail: NavTrail | null; groups: MenuGroup[] }) {
-  const title = trail
-    ? [trail.item.label, trail.parent?.label, APP_NAME].filter(Boolean).join(" · ")
-    : APP_NAME;
+  const pageLabel = usePageBreadcrumb();
+  // Same parts as the trail, most specific first; a label still loading is left out.
+  const loadedLabel = typeof pageLabel === "string" ? pageLabel : null;
+  const title = [loadedLabel, trail?.item.label, trail?.parent?.label, APP_NAME].filter(Boolean).join(" · ");
 
   useEffect(() => {
     document.title = title;
   }, [title]);
 
-  if (!trail) return null;
+  if (!trail && pageLabel === undefined) return null;
 
   const crumbSx = { fontSize: 13, lineHeight: 1.5 };
+  const pageCrumb = pageLabel === undefined ? null : (
+    <Typography
+      component="span"
+      aria-current="page"
+      aria-busy={pageLabel === null ? true : undefined}
+      title={pageLabel ?? undefined}
+      sx={{ ...crumbSx, color: "text.primary", fontWeight: 600, display: "inline-flex", alignItems: "center" }}
+    >
+      {pageLabel === null ? (
+        <>
+          <Skeleton variant="text" width={120} aria-hidden sx={{ fontSize: "inherit" }} />
+          <Box component="span" sx={visuallyHidden}>Loading</Box>
+        </>
+      ) : pageLabel.length > MAX_CRUMB_CHARS ? (
+        <>
+          <span aria-hidden>{`${pageLabel.slice(0, MAX_CRUMB_CHARS - 1)}…`}</span>
+          <Box component="span" sx={visuallyHidden}>{pageLabel}</Box>
+        </>
+      ) : (
+        pageLabel
+      )}
+    </Typography>
+  );
+
+  if (!trail) {
+    return (
+      <Breadcrumbs aria-label="Breadcrumb" className="no-print" sx={{ mb: 1.5, color: "text.secondary" }}>
+        {pageCrumb}
+      </Breadcrumbs>
+    );
+  }
+
   // A group crumb opens the group's page of cards when it holds more than
   // one entry ("Overview > Dashboard" would lead to a single card).
   const groupLinked = (groups.find((g) => g.groupName === trail.group)?.items.length ?? 0) > 1;
@@ -57,8 +95,8 @@ export function AppBreadcrumbs({ trail, groups }: { trail: NavTrail | null; grou
           group crumb then stands in for the section and links to it. */}
       {!parentShown && trail.parent?.path ? sectionCrumb(groupLabel(trail.group)) : groupCrumb}
       {parentShown && sectionCrumb(trail.parent!.label)}
-      {trail.exact || !trail.item.path ? (
-        <Typography component="span" aria-current="page" sx={{ ...crumbSx, color: "text.primary", fontWeight: 600 }}>
+      {(trail.exact && pageLabel === undefined) || !trail.item.path ? (
+        <Typography component="span" aria-current={pageLabel === undefined ? "page" : undefined} sx={{ ...crumbSx, color: "text.primary", fontWeight: 600 }}>
           {trail.item.label}
         </Typography>
       ) : (
@@ -66,6 +104,7 @@ export function AppBreadcrumbs({ trail, groups }: { trail: NavTrail | null; grou
           {trail.item.label}
         </MuiLink>
       )}
+      {pageCrumb}
     </Breadcrumbs>
   );
 }

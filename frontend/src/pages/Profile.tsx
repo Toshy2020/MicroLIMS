@@ -6,6 +6,8 @@ import { DialogBodySkeleton } from "../components/DialogBodySkeleton";
 import { authenticationService } from "../modules/authentication/services/authenticationService";
 import { ProfileSecuritySection } from "../modules/authentication/components/ProfileSecuritySection";
 import { CurrentUserInfo } from "../modules/authentication/types/authTypes";
+import { NotificationPreferences } from "../modules/notifications/NotificationPreferences";
+import { NotificationMandatoryPanel } from "../modules/notifications/NotificationMandatoryPanel";
 import { formatRoleName } from "../utils/userDisplay";
 
 function Field({ label, value }: { label: string; value: string }) {
@@ -22,6 +24,7 @@ function Field({ label, value }: { label: string; value: string }) {
 export function ProfilePage() {
   const [info, setInfo] = useState<CurrentUserInfo | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [prefsRefreshKey, setPrefsRefreshKey] = useState(0);
 
   useEffect(() => {
     authenticationService.me().then(setInfo).catch(() => setError("Could not load profile."));
@@ -42,6 +45,8 @@ export function ProfilePage() {
         <Field label="Password Last Changed" value={info.passwordChangedAt ? new Date(info.passwordChangedAt).toLocaleString() : "Never"} />
       </Paper>
       <ProfileSecuritySection />
+      <NotificationPreferences refreshKey={prefsRefreshKey} />
+      <NotificationMandatoryPanel onSaved={() => setPrefsRefreshKey((n) => n + 1)} />
     </>
   );
 }

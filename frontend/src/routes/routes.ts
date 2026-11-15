@@ -5,7 +5,7 @@
  * Do not invent routes or use deprecated paths.
  */
 
-const APP_ROUTES = {
+export const APP_ROUTES = {
   // Public
   LOGIN: "/login",
   SSO_COMPLETE: "/sso-complete",
@@ -62,6 +62,7 @@ const APP_ROUTES = {
   HPLC_METHODS: "/laboratory-configuration/hplc-methods",
   FP_INSTRUMENTS: "/laboratory-configuration/fp-instruments",
   LABEL_FORMATS: "/laboratory-configuration/label-formats",
+  WORKING_HOURS: "/laboratory-configuration/working-hours",
 
   // Inventory & Stock
   INVENTORY_MATERIALS: "/inventory/materials",

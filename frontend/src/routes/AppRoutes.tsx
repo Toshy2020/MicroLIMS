@@ -62,6 +62,7 @@ const ChromatographyColumnsPage = lazy(() => import("../modules/laboratoryConfig
 const SolutionMasterPage = lazy(() => import("../modules/laboratoryConfiguration/masterDataSimple/SolutionMasterPage").then((m) => ({ default: m.SolutionMasterPage })));
 const HplcMethodsPage = lazy(() => import("../modules/laboratoryConfiguration/masterDataSimple/HplcMethodsPage").then((m) => ({ default: m.HplcMethodsPage })));
 const LabelFormatsPage = lazy(() => import("../modules/laboratoryConfiguration/labelFormats/LabelFormatsPage").then((m) => ({ default: m.LabelFormatsPage })));
+const WorkingHoursPage = lazy(() => import("../modules/laboratoryConfiguration/escalation/WorkingHoursPage").then((m) => ({ default: m.WorkingHoursPage })));
 const PreparationListPage = lazy(() => import("../modules/solutionPreparation/PreparationListPage").then((m) => ({ default: m.PreparationListPage })));
 const PreparationWizardPage = lazy(() => import("../modules/solutionPreparation/PreparationWizardPage").then((m) => ({ default: m.PreparationWizardPage })));
 const PreparationRecordPage = lazy(() => import("../modules/solutionPreparation/PreparationRecordPage").then((m) => ({ default: m.PreparationRecordPage })));
@@ -293,6 +294,9 @@ export function AppRoutes() {
             </Route>
             <Route element={<PermissionRoute code={PERMISSIONS.LABELS_CONFIGURE} />}>
               <Route path="/laboratory-configuration/label-formats" element={<LabelFormatsPage />} />
+            </Route>
+            <Route element={<PermissionRoute code={PERMISSIONS.NOTIFICATIONS_CONFIGURE} />}>
+              <Route path="/laboratory-configuration/working-hours" element={<WorkingHoursPage />} />
             </Route>
 
             {/* Document Control Module (Release 1a) */}

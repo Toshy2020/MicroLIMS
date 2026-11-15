@@ -16,6 +16,13 @@ import {
   type TableViewDto,
 } from "./services/tableViewService";
 import { useTableState } from "./useTableState";
+import { resetUiStateCache } from "../../../hooks/useUiState";
+import { resetFakeUiState, storedFavourites } from "../../../modules/navigation/favouritesTestUtils";
+
+vi.mock("../../../services/uiStateService", async () => {
+  const { fakeUiStateService: service } = await import("../../../modules/navigation/favouritesTestUtils");
+  return { uiStateService: service };
+});
 
 vi.mock("./services/tableViewService", () => ({
   tableViewService: {
@@ -132,6 +139,8 @@ function renderHarness(
 
 beforeEach(() => {
   localStorage.clear();
+  resetUiStateCache();
+  resetFakeUiState();
   vi.clearAllMocks();
   mockedList.mockResolvedValue([]);
   mockedGetMySections.mockResolvedValue([]);
@@ -140,6 +149,27 @@ beforeEach(() => {
 afterEach(() => {
   cleanup();
   localStorage.clear();
+});
+
+describe("Saved views favourites", () => {
+  it("the star in the views menu favourites a view by table and id", async () => {
+    const user = userEvent.setup();
+    mockedList.mockResolvedValue([makeView({ id: 7, name: "Active Only" })]);
+    renderHarness("/");
+    await waitFor(() => expect(mockedList).toHaveBeenCalled());
+
+    await user.click(screen.getByRole("button", { name: /^views$/i }));
+    const star = await screen.findByRole("button", { name: "Add view Active Only to favourites" });
+    await waitFor(() => expect((star as HTMLButtonElement).disabled).toBe(false));
+    await user.click(star);
+
+    await waitFor(() =>
+      expect(storedFavourites()).toEqual([{ t: "v", table: "inventory.equipment", view: 7 }])
+    );
+    expect(
+      await screen.findByRole("button", { name: "Remove view Active Only from favourites" })
+    ).toBeTruthy();
+  });
 });
 
 describe("Saved views UI (Task 4)", () => {

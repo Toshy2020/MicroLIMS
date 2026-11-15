@@ -19,6 +19,7 @@ import { CameraScanDialog } from "../labels/CameraScanDialog";
 import { ENTITY_TYPE_LABELS } from "../labels/entityTypeLabels";
 import { useScanResolve } from "../labels/useScanResolve";
 import { useRecentSearches } from "./useRecentSearches";
+import { SearchFavourites } from "./SearchFavourites";
 
 interface GlobalSearchDialogProps {
   open: boolean;
@@ -348,6 +349,8 @@ export function GlobalSearchDialog({ open, onClose }: GlobalSearchDialogProps) {
             {scanHint}
           </Alert>
         )}
+
+        {open && query.trim().length < 2 && <SearchFavourites onSelect={onClose} />}
 
         {query.trim().length < 2 && recentSearches.length > 0 && (
           <Box sx={{ mb: 2 }}>

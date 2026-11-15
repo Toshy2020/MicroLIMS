@@ -18,6 +18,7 @@ import { useMenuGroups } from "../hooks/useMenuGroups";
 import { mfaService, type MfaStatus } from "../modules/authentication/services/mfaService";
 import { formatDateTimeWithTimeZone } from "../utils/formatDate";
 import { HelpPanelProvider, useHelpPanel } from "../modules/help/HelpPanelContext";
+import { MenuGroupsProvider } from "../modules/navigation/MenuGroupsContext";
 import { HelpPanelSlot } from "../modules/help/HelpPanelSlot";
 import { Tour } from "../modules/help/tour/Tour";
 import { TOUR_STEPS, tourStateKey, type RoleType } from "../modules/help/tour/tourSteps";
@@ -266,6 +267,7 @@ export function MainLayout({ whatsNewNotes }: { whatsNewNotes?: readonly Release
 
   return (
     <HelpPanelProvider whatsNewNotes={whatsNewNotes}>
+    <MenuGroupsProvider groups={groups}>
     <Box
       sx={{
         // dvh where supported: on mobile browsers 100vh includes the area
@@ -407,6 +409,7 @@ export function MainLayout({ whatsNewNotes }: { whatsNewNotes?: readonly Release
         </DialogActions>
       </Dialog>
     </Box>
+    </MenuGroupsProvider>
     </HelpPanelProvider>
   );
 }

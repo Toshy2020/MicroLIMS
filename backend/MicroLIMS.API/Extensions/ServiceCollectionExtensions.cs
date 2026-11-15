@@ -114,10 +114,11 @@ public static class ServiceCollectionExtensions
         services.AddScoped<SampleTrackingService>();
         services.AddScoped<OosTrackingService>();
         services.AddScoped<DashboardService>();
-        services.AddSingleton(new NotificationRecomputeThrottle(TimeSpan.FromMinutes(5)));
         services.AddScoped<DashboardNotificationService>();
         services.AddScoped<INotificationPublisher, NotificationPublisher>();
         services.AddScoped<NotificationRecipients>();
+        services.AddScoped<NotificationScheduler>();
+        services.AddScoped<EmailOutboxSender>();
         services.AddScoped<RecentActivityService>();
         services.AddScoped<MyTasksService>();
         services.AddScoped<DashboardLabScopeService>();
@@ -210,6 +211,8 @@ public static class ServiceCollectionExtensions
         services.AddHostedService(sp => sp.GetRequiredService<MicroLIMS.API.BackgroundServices.MonitoringDeviationWorker>());
         services.AddSingleton<MicroLIMS.API.BackgroundServices.EquipmentOverdueWorker>();
         services.AddHostedService(sp => sp.GetRequiredService<MicroLIMS.API.BackgroundServices.EquipmentOverdueWorker>());
+        services.AddSingleton<MicroLIMS.API.BackgroundServices.NotificationWorker>();
+        services.AddHostedService(sp => sp.GetRequiredService<MicroLIMS.API.BackgroundServices.NotificationWorker>());
         // Background job run log and the admin Jobs screen. Singleton recorder: it owns the per-job run gate.
         services.AddSingleton<MicroLIMS.Application.Services.BackgroundJobs.IBackgroundJobRunRecorder, MicroLIMS.Application.Services.BackgroundJobs.BackgroundJobRunRecorder>();
         services.AddScoped<MicroLIMS.Application.Services.BackgroundJobs.IBackgroundJobAdminService, MicroLIMS.Application.Services.BackgroundJobs.BackgroundJobAdminService>();

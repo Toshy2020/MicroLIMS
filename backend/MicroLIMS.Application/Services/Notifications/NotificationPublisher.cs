@@ -1,5 +1,7 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using MicroLIMS.Application.Abstractions.Persistence;
+using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 
@@ -13,11 +15,19 @@ public sealed class NotificationPublisher : INotificationPublisher
 {
     private readonly IMicroLimsDbContext _db;
     private readonly TimeProvider _time;
+    private readonly string _appBaseUrl;
+    private readonly string _timeZoneId;
 
-    public NotificationPublisher(IMicroLimsDbContext db, TimeProvider? timeProvider = null)
+    public NotificationPublisher(
+        IMicroLimsDbContext db,
+        TimeProvider? timeProvider = null,
+        IConfiguration? config = null,
+        ILabClock? clock = null)
     {
         _db = db;
         _time = timeProvider ?? TimeProvider.System;
+        _appBaseUrl = NotificationEmailComposer.ResolveAppBaseUrl(config);
+        _timeZoneId = clock?.LabTimeZone.Id ?? config?["Lab:TimeZoneId"] ?? "Africa/Cairo";
     }
 
     public async Task PublishAsync(NotificationRequest request, CancellationToken ct = default)
@@ -102,13 +112,14 @@ public sealed class NotificationPublisher : INotificationPublisher
 
             if (info.EmailAllowed && emailsByUser.TryGetValue(userId, out var email) && !string.IsNullOrWhiteSpace(email))
             {
+                var (subject, body) = NotificationEmailComposer.Compose(log, _appBaseUrl, _timeZoneId, request.DueAtUtc);
                 _db.EmailOutbox.Add(new EmailOutbox
                 {
                     NotificationLog = log,
                     UserId = userId,
                     ToAddress = email.Trim(),
-                    Subject = title,
-                    Body = $"{title}\n\n{request.Message}",
+                    Subject = subject,
+                    Body = body,
                     Kind = EmailOutboxKind.Immediate,
                     CreatedAt = now,
                     NextAttemptAt = now,

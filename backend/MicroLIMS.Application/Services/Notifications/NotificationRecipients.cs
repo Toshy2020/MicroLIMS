@@ -101,4 +101,34 @@ public sealed class NotificationRecipients
 
         return eligible;
     }
+
+    public async Task<IReadOnlyCollection<int>> PermissionHoldersAsync(
+        string permissionCode,
+        CancellationToken ct = default)
+    {
+        return await (
+            from u in _db.Users.AsNoTracking()
+            join rp in _db.RolePermissions.AsNoTracking() on u.RoleId equals rp.RoleId
+            join p in _db.Permissions.AsNoTracking() on rp.PermissionId equals p.Id
+            where u.IsActive
+                && u.Role != null
+                && u.Role.IsActive
+                && p.Code == permissionCode
+            select u.Id
+        ).Distinct().ToListAsync(ct);
+    }
+
+    public async Task<IReadOnlyCollection<int>> SectionHeadOrPermissionHoldersAsync(
+        string permissionCode,
+        CancellationToken ct = default)
+    {
+        var sectionHeads = await _db.Users.AsNoTracking()
+            .Where(u => u.IsActive && u.Role != null && u.Role.IsActive && u.Role.Type == RoleType.SectionHead)
+            .Select(u => u.Id)
+            .ToListAsync(ct);
+
+        var permissionHolders = await PermissionHoldersAsync(permissionCode, ct);
+
+        return sectionHeads.Concat(permissionHolders).Distinct().ToList();
+    }
 }

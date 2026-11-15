@@ -184,33 +184,38 @@ public class AdministratorSegregationTests
     }
 
     [Fact]
-    public async Task Notifications_AdministratorSeesTheReviewAndApprovalCounts_OnlyThroughTheDashboardPermissions()
+    public async Task Notifications_AdministratorSeesPendingConfigApprovals_OnlyThroughTheDashboardPermission()
     {
         var w = Seed();
-        var micro = TestServiceFactory.EnsureMicroSection(w.Db);
-        var review = new Sample { ReferenceNumber = "REV-1", Status = SampleStatus.UnderReview, ReceivedAt = DateTime.UtcNow };
-        review.TestOrders.Add(new TestOrder { TestCode = "TAMC", SectionId = micro.Id, Status = ApprovalStatus.ResultEntered, CurrentStep = WorkflowStep.Ready });
-        var approval = new Sample { ReferenceNumber = "APP-1", Status = SampleStatus.UnderApproval, ReceivedAt = DateTime.UtcNow };
-        approval.TestOrders.Add(new TestOrder { TestCode = "TAMC", SectionId = micro.Id, Status = ApprovalStatus.Reviewed, CurrentStep = WorkflowStep.Reviewed });
-        w.Db.Samples.AddRange(review, approval);
+        var item = new Item { Name = "Product X", Category = SampleCategory.FinishedProduct, Code = "PX-1" };
+        w.Db.Items.Add(item);
         await w.Db.SaveChangesAsync();
+        w.Db.ItemPreparationConfigurations.Add(new ItemPreparationConfiguration
+        {
+            ItemId = item.Id,
+            Technique = "PourPlate",
+            ApprovalStatus = ApprovalGateStatus.PendingReview
+        });
+        await w.Db.SaveChangesAsync();
+
+        var scheduler = TestServiceFactory.NotificationScheduler(w.Db);
+        await scheduler.RunAsync();
         var service = TestServiceFactory.DashboardNotification(w.Db);
 
         var seen = await service.GetNotificationsAsync(RoleType.SystemAdministrator, w.Admin.Id);
-        Assert.Contains(seen, n => n.Type == "ReviewWaiting" && n.Message == "1 sample(s) awaiting review.");
-        Assert.Contains(seen, n => n.Type == "ApprovalWaiting" && n.Message == "1 sample(s) awaiting approval.");
+        Assert.Contains(seen, n => n.Type == "PendingPreparationConfigApproval");
 
-        // The role no longer implies them: withdraw the dashboard permissions and they go.
-        Withdraw(w.Db, w.Admin.RoleId, PermissionConstants.DashboardsReview);
+        // The role no longer implies them: withdraw the dashboard permission and resolve/clear; re-running does not notify Admin.
         Withdraw(w.Db, w.Admin.RoleId, PermissionConstants.DashboardsLabOverview);
         w.Db.NotificationLogs.RemoveRange(w.Db.NotificationLogs);
         await w.Db.SaveChangesAsync();
-        var after = await service.GetNotificationsAsync(RoleType.SystemAdministrator, w.Admin.Id);
-        Assert.DoesNotContain(after, n => n.Type is "ReviewWaiting" or "ApprovalWaiting");
 
-        // Section Head behaviour is unchanged.
+        await scheduler.RunAsync();
+        var after = await service.GetNotificationsAsync(RoleType.SystemAdministrator, w.Admin.Id);
+        Assert.DoesNotContain(after, n => n.Type == "PendingPreparationConfigApproval");
+
+        // Section Head still receives pending config approval notifications.
         var head = await service.GetNotificationsAsync(RoleType.SectionHead, w.Head.Id);
-        Assert.Contains(head, n => n.Type == "ReviewWaiting");
-        Assert.Contains(head, n => n.Type == "ApprovalWaiting");
+        Assert.Contains(head, n => n.Type == "PendingPreparationConfigApproval");
     }
 }

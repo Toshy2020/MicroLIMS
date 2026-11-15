@@ -48,4 +48,7 @@ public static class NotificationCatalog
             throw new ArgumentException($"Unknown notification type '{type}'.", nameof(type));
         return info;
     }
+
+    public static NotificationTypeInfo? TryGet(string? type) =>
+        !string.IsNullOrWhiteSpace(type) && Types.TryGetValue(type, out var info) ? info : null;
 }

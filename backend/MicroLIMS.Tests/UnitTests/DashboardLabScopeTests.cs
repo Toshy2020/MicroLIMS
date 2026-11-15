@@ -191,10 +191,7 @@ public class DashboardLabScopeTests
             new NotificationLog { UserId = userId, Type = "DirectMessage", Message = "new message" });
         await f.Db.SaveChangesAsync();
 
-        // Already computed: return the persisted log as seeded.
-        var throttle = new NotificationRecomputeThrottle(TimeSpan.FromHours(1));
-        throttle.MarkComputed(userId, DateTime.UtcNow);
-        var service = new DashboardNotificationService(f.Db, new NoOpNotificationService(), new NoOpEmailSender(), new UserSectionScopeService(f.Db), throttle);
+        var service = new DashboardNotificationService(f.Db);
         var resolver = Resolver(f.Db);
 
         var micro = (await service.GetNotificationsAsync(RoleType.Analyst, userId, await resolver.ResolveAsync(userId, "MICRO")))

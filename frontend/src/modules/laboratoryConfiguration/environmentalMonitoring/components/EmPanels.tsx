@@ -2,6 +2,9 @@ import { useEffect, useState } from "react";
 import { MenuItem, Stack, TextField } from "@mui/material";
 import { FrequencyValue, LimitFields, LimitValues, PanelSection, SidePanel, StructuredFrequencyField, emptyFrequency, emptyLimits, frequencyFrom, frequencyLabel, frequencyRule } from "../../../../components/configHierarchy";
 import { TestCodePicker } from "../../../../components/TestCodePicker";
+import { RecordChangedBanner } from "../../../../components/RecordChangedBanner";
+import { noteOwnSave } from "../../../../hooks/useRecordChanged";
+import { useReloadedRecord } from "../../../../hooks/useReloadedRecord";
 import { EMConfigService } from "../services/EMConfigService";
 import { EM_GRADES, EM_TEST_TYPES, EmDepartment, EmRoom, RoomTestConfig, emTestType } from "../emConfigTypes";
 
@@ -14,7 +17,12 @@ interface DeptProps {
   onSaved: (message: string, id?: number) => void;
 }
 
-export function EmDepartmentPanel({ open, dept, onClose, onSaved }: DeptProps) {
+export function EmDepartmentPanel({ open, dept: openedDept, onClose, onSaved }: DeptProps) {
+  const { current: dept, reload } = useReloadedRecord<EmDepartment>(openedDept, async (d) =>
+    ((await EMConfigService.getDepartments()) as EmDepartment[]).find((x) => x.id === d.id)
+  );
+  // Set when the user changes a field, cleared whenever the form is (re)loaded from the record.
+  const [touched, setTouched] = useState(false);
   const [name, setName] = useState("");
   const [cls, setCls] = useState("");
   const [frequency, setFrequency] = useState<FrequencyValue>(emptyFrequency);
@@ -26,6 +34,7 @@ export function EmDepartmentPanel({ open, dept, onClose, onSaved }: DeptProps) {
     setName(dept?.name ?? "");
     setCls(dept?.class ?? "");
     setFrequency(dept ? frequencyFrom(dept) : emptyFrequency);
+    setTouched(false);
     setError(null);
   }, [open, dept]);
 
@@ -36,6 +45,7 @@ export function EmDepartmentPanel({ open, dept, onClose, onSaved }: DeptProps) {
     try {
       if (dept) {
         await EMConfigService.updateDepartment(dept.id, name.trim(), cls, frequencyLabel(frequency), dept.version, frequencyRule(frequency));
+        noteOwnSave("department", dept.id);
         onSaved(`"${name.trim()}" updated.`, dept.id);
       } else {
         const created = await EMConfigService.createDepartment(name.trim(), cls, frequencyLabel(frequency), frequencyRule(frequency));
@@ -60,9 +70,10 @@ export function EmDepartmentPanel({ open, dept, onClose, onSaved }: DeptProps) {
       error={error}
     >
       <Stack spacing={1.5}>
-        <TextField autoFocus size="small" label="Name" required value={name} onChange={(e) => setName(e.target.value)} />
-        <TextField size="small" label="Class" placeholder="e.g. Grade C" value={cls} onChange={(e) => setCls(e.target.value)} />
-        <StructuredFrequencyField idPrefix="em-dept-frequency" value={frequency} onChange={setFrequency} />
+        {open && dept && <RecordChangedBanner type="department" id={dept.id} dirty={touched} onReload={() => void reload()} />}
+        <TextField autoFocus size="small" label="Name" required value={name} onChange={(e) => { setTouched(true); setName(e.target.value); }} />
+        <TextField size="small" label="Class" placeholder="e.g. Grade C" value={cls} onChange={(e) => { setTouched(true); setCls(e.target.value); }} />
+        <StructuredFrequencyField idPrefix="em-dept-frequency" value={frequency} onChange={(v) => { setTouched(true); setFrequency(v); }} />
       </Stack>
     </SidePanel>
   );
@@ -77,7 +88,11 @@ interface RoomProps {
   onSaved: (message: string, departmentId?: number) => void;
 }
 
-export function EmRoomPanel({ open, room, defaultDepartmentId, departments, onClose, onSaved }: RoomProps) {
+export function EmRoomPanel({ open, room: openedRoom, defaultDepartmentId, departments, onClose, onSaved }: RoomProps) {
+  const { current: room, reload } = useReloadedRecord<EmRoom>(openedRoom, async (r) =>
+    ((await EMConfigService.getRooms()) as EmRoom[]).find((x) => x.id === r.id)
+  );
+  const [touched, setTouched] = useState(false);
   const [name, setName] = useState("");
   const [departmentId, setDepartmentId] = useState<number | "">("");
   const [grade, setGrade] = useState("A");
@@ -95,6 +110,7 @@ export function EmRoomPanel({ open, room, defaultDepartmentId, departments, onCl
     setKind(room?.kind ?? "Room");
     setParentRoomId(room?.parentRoomId ?? "");
     setFrequency(room ? frequencyFrom(room) : emptyFrequency);
+    setTouched(false);
     setError(null);
   }, [open, room, defaultDepartmentId]);
 
@@ -108,8 +124,10 @@ export function EmRoomPanel({ open, room, defaultDepartmentId, departments, onCl
     setError(null);
     const extra = { kind, parentRoomId: kind === "LAF" ? Number(parentRoomId) : null, frequency: frequencyRule(frequency) };
     try {
-      if (room) await EMConfigService.updateRoom(room.id, name.trim(), Number(departmentId), grade, room.version, extra);
-      else await EMConfigService.createRoom(name.trim(), Number(departmentId), grade, extra);
+      if (room) {
+        await EMConfigService.updateRoom(room.id, name.trim(), Number(departmentId), grade, room.version, extra);
+        noteOwnSave("room", room.id);
+      } else await EMConfigService.createRoom(name.trim(), Number(departmentId), grade, extra);
       onSaved(room ? `Room "${name.trim()}" updated.` : `Room "${name.trim()}" added.`, Number(departmentId));
     } catch (e) {
       setError(errorText(e, "Could not save this room."));
@@ -130,27 +148,28 @@ export function EmRoomPanel({ open, room, defaultDepartmentId, departments, onCl
       error={error}
     >
       <Stack spacing={1.5}>
-        <TextField autoFocus size="small" label="Room name" required value={name} onChange={(e) => setName(e.target.value)} />
-        <TextField select size="small" label="Department" required value={departmentId} onChange={(e) => setDepartmentId(Number(e.target.value))}>
+        {open && room && <RecordChangedBanner type="room" id={room.id} dirty={touched} onReload={() => void reload()} />}
+        <TextField autoFocus size="small" label="Room name" required value={name} onChange={(e) => { setTouched(true); setName(e.target.value); }} />
+        <TextField select size="small" label="Department" required value={departmentId} onChange={(e) => { setTouched(true); setDepartmentId(Number(e.target.value)); }}>
           {departments.map((d) => (
             <MenuItem key={d.id} value={d.id}>
               {d.name}
             </MenuItem>
           ))}
         </TextField>
-        <TextField select size="small" label="Grade" value={grade} onChange={(e) => setGrade(e.target.value)}>
+        <TextField select size="small" label="Grade" value={grade} onChange={(e) => { setTouched(true); setGrade(e.target.value); }}>
           {EM_GRADES.map((g) => (
             <MenuItem key={g} value={g}>
               Grade {g}
             </MenuItem>
           ))}
         </TextField>
-        <TextField select size="small" label="Type" value={kind} onChange={(e) => setKind(e.target.value as "Room" | "LAF")}>
+        <TextField select size="small" label="Type" value={kind} onChange={(e) => { setTouched(true); setKind(e.target.value as "Room" | "LAF"); }}>
           <MenuItem value="Room">Room</MenuItem>
           <MenuItem value="LAF">LAF (laminar air flow unit)</MenuItem>
         </TextField>
         {kind === "LAF" && (
-          <TextField select size="small" label="Sits in room" required value={parentRoomId} onChange={(e) => setParentRoomId(Number(e.target.value))}>
+          <TextField select size="small" label="Sits in room" required value={parentRoomId} onChange={(e) => { setTouched(true); setParentRoomId(Number(e.target.value)); }}>
             {parentRooms.map((r) => (
               <MenuItem key={r.id} value={r.id}>
                 {r.name}
@@ -161,7 +180,7 @@ export function EmRoomPanel({ open, room, defaultDepartmentId, departments, onCl
         <StructuredFrequencyField
           idPrefix="em-room-frequency"
           value={frequency}
-          onChange={setFrequency}
+          onChange={(v) => { setTouched(true); setFrequency(v); }}
           noneLabel="Same as department"
           inheritedHint={department && frequencyLabel(department) ? `Uses the department's frequency: ${frequencyLabel(department)}.` : "The department has no structured frequency yet."}
         />
@@ -180,7 +199,11 @@ interface ConfigProps {
 
 // One test for a room: what is sampled (test type), which test runs,
 // and its limits. Unit is required for the types without a fixed unit.
-export function EmTestConfigPanel({ open, room, config, onClose, onSaved }: ConfigProps) {
+export function EmTestConfigPanel({ open, room, config: openedConfig, onClose, onSaved }: ConfigProps) {
+  const { current: config, reload } = useReloadedRecord<RoomTestConfig>(openedConfig, async (c) =>
+    ((await EMConfigService.getRoomTestConfigurations(c.roomId)) as RoomTestConfig[]).find((x) => x.id === c.id)
+  );
+  const [touched, setTouched] = useState(false);
   const [testType, setTestType] = useState(EM_TEST_TYPES[0].value);
   const [testCode, setTestCode] = useState("");
   const [limits, setLimits] = useState<LimitValues>(emptyLimits);
@@ -196,6 +219,7 @@ export function EmTestConfigPanel({ open, room, config, onClose, onSaved }: Conf
         ? { alertLimit: config.alertLimit ?? "", actionLimit: config.actionLimit ?? "", specLimit: config.specLimit ?? "", unit: config.unit ?? "" }
         : emptyLimits
     );
+    setTouched(false);
     setError(null);
   }, [open, config]);
 
@@ -210,6 +234,7 @@ export function EmTestConfigPanel({ open, room, config, onClose, onSaved }: Conf
     try {
       if (config) {
         await EMConfigService.updateRoomTestConfiguration(config.id, testType, testCode, limits.alertLimit, limits.actionLimit, limits.specLimit, limits.unit, config.version);
+        noteOwnSave("roomTestConfiguration", config.id);
       } else {
         await EMConfigService.createRoomTestConfiguration(room.id, testType, testCode, limits.alertLimit, limits.actionLimit, limits.specLimit, limits.unit);
       }
@@ -232,21 +257,22 @@ export function EmTestConfigPanel({ open, room, config, onClose, onSaved }: Conf
       saveLabel={config ? "Save changes" : "Add test"}
       error={error}
     >
+      {open && config && <RecordChangedBanner type="roomTestConfiguration" id={config.id} dirty={touched} onReload={() => void reload()} />}
       <PanelSection title="1 · What is sampled">
-        <TextField select size="small" label="Test type" value={testType} onChange={(e) => setTestType(e.target.value)}>
+        <TextField select size="small" label="Test type" value={testType} onChange={(e) => { setTouched(true); setTestType(e.target.value); }}>
           {EM_TEST_TYPES.map((t) => (
             <MenuItem key={t.value} value={t.value}>
               {t.label}
             </MenuItem>
           ))}
         </TextField>
-        <TestCodePicker value={testCode} onChange={setTestCode} label="Test" />
+        <TestCodePicker value={testCode} onChange={(code) => { setTouched(true); setTestCode(code); }} label="Test" />
       </PanelSection>
       <PanelSection
         title="2 · Limits"
         hint={type?.needsUnit ? `${type.label} reports the unit you enter here, so it is required.` : "Leave a limit blank if it does not apply."}
       >
-        <LimitFields idPrefix="em-limit" value={limits} onChange={setLimits} unitRequired={type?.needsUnit} unitPlaceholder={type?.unitHint} />
+        <LimitFields idPrefix="em-limit" value={limits} onChange={(v) => { setTouched(true); setLimits(v); }} unitRequired={type?.needsUnit} unitPlaceholder={type?.unitHint} />
       </PanelSection>
     </SidePanel>
   );

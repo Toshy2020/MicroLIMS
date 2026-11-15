@@ -1,6 +1,9 @@
 import { useEffect, useState } from "react";
 import { TextField } from "@mui/material";
 import { SidePanel } from "../../../../components/configHierarchy";
+import { RecordChangedBanner } from "../../../../components/RecordChangedBanner";
+import { noteOwnSave } from "../../../../hooks/useRecordChanged";
+import { useReloadedRecord } from "../../../../hooks/useReloadedRecord";
 import { WaterConfigService } from "../services/WaterConfigService";
 import { WaterDept } from "../waterConfigTypes";
 
@@ -12,7 +15,10 @@ interface Props {
   onSaved: (message: string, id: number) => void;
 }
 
-export function WaterDepartmentPanel({ open, dept, onClose, onSaved }: Props) {
+export function WaterDepartmentPanel({ open, dept: openedDept, onClose, onSaved }: Props) {
+  const { current: dept, reload } = useReloadedRecord<WaterDept>(openedDept, async (d) =>
+    ((await WaterConfigService.getWaterDepartments()) as WaterDept[]).find((x) => x.id === d.id)
+  );
   const [name, setName] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -33,6 +39,7 @@ export function WaterDepartmentPanel({ open, dept, onClose, onSaved }: Props) {
     try {
       if (dept) {
         await WaterConfigService.updateWaterDepartment(dept.id, name.trim(), dept.version);
+        noteOwnSave("waterDepartment", dept.id);
         onSaved(`"${name.trim()}" updated.`, dept.id);
       } else {
         const created = await WaterConfigService.createWaterDepartment(name.trim());
@@ -56,6 +63,9 @@ export function WaterDepartmentPanel({ open, dept, onClose, onSaved }: Props) {
       saveLabel={dept ? "Save changes" : "Add water system"}
       error={error}
     >
+      {open && dept && (
+        <RecordChangedBanner type="waterDepartment" id={dept.id} dirty={name !== dept.name} onReload={() => void reload()} />
+      )}
       <TextField
         autoFocus
         size="small"

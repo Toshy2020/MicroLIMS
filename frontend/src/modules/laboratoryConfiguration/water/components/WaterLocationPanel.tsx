@@ -17,6 +17,9 @@ import {
 } from "../../../../components/configHierarchy";
 import { TestCodePickerMulti } from "../../../../components/TestCodePickerMulti";
 import { useTestDefinitions } from "../../../../hooks/useTestDefinitions";
+import { RecordChangedBanner } from "../../../../components/RecordChangedBanner";
+import { noteOwnSave } from "../../../../hooks/useRecordChanged";
+import { useReloadedRecord } from "../../../../hooks/useReloadedRecord";
 import { isTestCodeInLab } from "../WaterPreparationForm";
 import { WaterConfigService } from "../services/WaterConfigService";
 import { SamplingConfig, SamplingPoint, WaterDept, WaterPointLabFrequency } from "../waterConfigTypes";
@@ -136,7 +139,12 @@ const validateChemistry = (testCode: string, v: LimitValues): string | null => {
 // One panel for a sample location: its details, its assigned tests, and
 // limits for assigned count tests or chemistry tests (one row per test, created on
 // save) - so a location can be fully configured in one place.
-export function WaterLocationPanel({ open, point, defaultDepartmentId, departments, configs, isCountTest, onClose, onSaved, editableCodes }: Props) {
+export function WaterLocationPanel({ open, point: openedPoint, defaultDepartmentId, departments, configs, isCountTest, onClose, onSaved, editableCodes }: Props) {
+  const { current: point, reload } = useReloadedRecord<SamplingPoint>(openedPoint, async (p) =>
+    ((await WaterConfigService.getSamplingPoints()) as SamplingPoint[]).find((x) => x.id === p.id)
+  );
+  // Set when the user changes a field, cleared whenever the form is (re)loaded from the record.
+  const [touched, setTouched] = useState(false);
   const { options } = useTestDefinitions();
   const [code, setCode] = useState("");
   const [location, setLocation] = useState("");
@@ -184,6 +192,7 @@ export function WaterLocationPanel({ open, point, defaultDepartmentId, departmen
     setEditingLabId(null);
     setLabSavingId(null);
     setLabError(null);
+    setTouched(false);
     setError(null);
   }, [open, point, defaultDepartmentId, configs, options, isCountTest]);
 
@@ -318,6 +327,7 @@ export function WaterLocationPanel({ open, point, defaultDepartmentId, departmen
       if (pointId != null) {
         const updated = await WaterConfigService.updateSamplingPoint(pointId, code.trim(), location, frequencyLabel(frequency), testCodes, Number(departmentId), pointVersion, frequencyRule(frequency));
         setPointVersion(updated?.version);
+        noteOwnSave("waterSamplingPoint", pointId);
       } else {
         const created = await WaterConfigService.createSamplingPoint(code.trim(), location, frequencyLabel(frequency), testCodes, Number(departmentId), frequencyRule(frequency));
         pointId = created.id;
@@ -425,17 +435,18 @@ export function WaterLocationPanel({ open, point, defaultDepartmentId, departmen
       saveLabel={point ? "Save changes" : "Add sample location"}
       error={error}
     >
+      {open && point && <RecordChangedBanner type="waterSamplingPoint" id={point.id} dirty={touched} onReload={() => void reload()} />}
       <PanelSection title="1 · Location details">
         <Stack spacing={1.5}>
           <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5}>
-            <TextField size="small" label="Point code" required value={code} onChange={(e) => setCode(e.target.value)} sx={{ flex: 1 }} />
+            <TextField size="small" label="Point code" required value={code} onChange={(e) => { setTouched(true); setCode(e.target.value); }} sx={{ flex: 1 }} />
             <TextField
               select
               size="small"
               label="Water system"
               required
               value={departmentId}
-              onChange={(e) => setDepartmentId(Number(e.target.value))}
+              onChange={(e) => { setTouched(true); setDepartmentId(Number(e.target.value)); }}
               sx={{ flex: 1 }}
             >
               {departments.map((d) => (
@@ -445,15 +456,15 @@ export function WaterLocationPanel({ open, point, defaultDepartmentId, departmen
               ))}
             </TextField>
           </Stack>
-          <TextField size="small" label="Point name" placeholder="e.g. Manufacturing hall tap" value={location} onChange={(e) => setLocation(e.target.value)} />
-          <StructuredFrequencyField idPrefix="water-point-frequency" value={frequency} onChange={setFrequency} weekdayRequired />
+          <TextField size="small" label="Point name" placeholder="e.g. Manufacturing hall tap" value={location} onChange={(e) => { setTouched(true); setLocation(e.target.value); }} />
+          <StructuredFrequencyField idPrefix="water-point-frequency" value={frequency} onChange={(v) => { setTouched(true); setFrequency(v); }} weekdayRequired />
         </Stack>
       </PanelSection>
 
       <PanelSection title="2 · Assigned tests" hint="Every test here is ordered when a sample from this location is received.">
         <TestCodePickerMulti
           value={testCodes}
-          onChange={setTestCodes}
+          onChange={(codes) => { setTouched(true); setTestCodes(codes); }}
           label="Assigned tests"
           editableCodes={editableCodes ?? new Set<string>()}
         />
@@ -576,14 +587,14 @@ export function WaterLocationPanel({ open, point, defaultDepartmentId, departmen
                     <LimitFields
                       idPrefix={`water-limit-${testCode}`}
                       value={val}
-                      onChange={(v) => setLimits((prev) => ({ ...prev, [testCode]: v }))}
+                      onChange={(v) => { setTouched(true); setLimits((prev) => ({ ...prev, [testCode]: v })); }}
                       unitPlaceholder="e.g. CFU/mL"
                     />
                   ) : (
                     <ChemistryLimitFields
                       idPrefix={`water-limit-${testCode}`}
                       value={val}
-                      onChange={(v) => setLimits((prev) => ({ ...prev, [testCode]: v }))}
+                      onChange={(v) => { setTouched(true); setLimits((prev) => ({ ...prev, [testCode]: v })); }}
                       unitPlaceholder="e.g. pH, µS/cm"
                     />
                   )}

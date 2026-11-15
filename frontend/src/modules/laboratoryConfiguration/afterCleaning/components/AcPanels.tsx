@@ -4,6 +4,9 @@ import { LimitFields, ChemistryLimitFields, LimitValues, PanelSection, SidePanel
 import { TestCodePicker } from "../../../../components/TestCodePicker";
 import { useEditableTestCodes } from "../../../../hooks/useEditableTestCodes";
 import { useTestDefinitions } from "../../../../hooks/useTestDefinitions";
+import { RecordChangedBanner } from "../../../../components/RecordChangedBanner";
+import { noteOwnSave } from "../../../../hooks/useRecordChanged";
+import { useReloadedRecord } from "../../../../hooks/useReloadedRecord";
 import { AfterCleaningConfigService } from "../services/AfterCleaningConfigService";
 import { AC_COUNT_TYPES, Machine, MachinePart, PATHOGEN_TEST_TYPE, PartConfig } from "../acConfigTypes";
 import { cleaningTechniqueOf } from "../cleaningTechniques";
@@ -18,7 +21,10 @@ interface MachineProps {
   onSaved: (message: string, id?: number) => void;
 }
 
-export function AcMachinePanel({ open, machine, onClose, onSaved }: MachineProps) {
+export function AcMachinePanel({ open, machine: openedMachine, onClose, onSaved }: MachineProps) {
+  const { current: machine, reload } = useReloadedRecord<Machine>(openedMachine, async (m) =>
+    ((await AfterCleaningConfigService.getMachines()) as Machine[]).find((x) => x.id === m.id)
+  );
   const [name, setName] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -36,6 +42,7 @@ export function AcMachinePanel({ open, machine, onClose, onSaved }: MachineProps
     try {
       if (machine) {
         await AfterCleaningConfigService.updateMachine(machine.id, name.trim(), machine.version);
+        noteOwnSave("machine", machine.id);
         onSaved(`"${name.trim()}" updated.`, machine.id);
       } else {
         const created = await AfterCleaningConfigService.createMachine(name.trim());
@@ -59,6 +66,9 @@ export function AcMachinePanel({ open, machine, onClose, onSaved }: MachineProps
       saveLabel={machine ? "Save changes" : "Add machine"}
       error={error}
     >
+      {open && machine && (
+        <RecordChangedBanner type="machine" id={machine.id} dirty={name !== machine.name} onReload={() => void reload()} />
+      )}
       <TextField autoFocus size="small" label="Machine name" required placeholder="e.g. Filling line 2" value={name} onChange={(e) => setName(e.target.value)} />
     </SidePanel>
   );
@@ -73,7 +83,12 @@ interface PartProps {
   onSaved: (message: string, machineId?: number) => void;
 }
 
-export function AcPartPanel({ open, part, defaultMachineId, machines, onClose, onSaved }: PartProps) {
+export function AcPartPanel({ open, part: openedPart, defaultMachineId, machines, onClose, onSaved }: PartProps) {
+  const { current: part, reload } = useReloadedRecord<MachinePart>(openedPart, async (p) =>
+    ((await AfterCleaningConfigService.getMachines()) as Machine[])
+      .flatMap((m) => m.parts)
+      .find((x) => x.id === p.id)
+  );
   const [name, setName] = useState("");
   const [machineId, setMachineId] = useState<number | "">("");
   const [saving, setSaving] = useState(false);
@@ -91,8 +106,10 @@ export function AcPartPanel({ open, part, defaultMachineId, machines, onClose, o
     setSaving(true);
     setError(null);
     try {
-      if (part) await AfterCleaningConfigService.updateMachinePart(part.id, name.trim(), Number(machineId), part.version);
-      else await AfterCleaningConfigService.createMachinePart(name.trim(), Number(machineId));
+      if (part) {
+        await AfterCleaningConfigService.updateMachinePart(part.id, name.trim(), Number(machineId), part.version);
+        noteOwnSave("machinePart", part.id);
+      } else await AfterCleaningConfigService.createMachinePart(name.trim(), Number(machineId));
       onSaved(part ? `Part "${name.trim()}" updated.` : `Part "${name.trim()}" added.`, Number(machineId));
     } catch (e) {
       setError(errorText(e, "Could not save this part."));
@@ -113,6 +130,14 @@ export function AcPartPanel({ open, part, defaultMachineId, machines, onClose, o
       error={error}
     >
       <Stack spacing={1.5}>
+        {open && part && (
+          <RecordChangedBanner
+            type="machinePart"
+            id={part.id}
+            dirty={name !== part.name || machineId !== part.machineId}
+            onReload={() => void reload()}
+          />
+        )}
         <TextField autoFocus size="small" label="Part name" required placeholder="e.g. Filling needles" value={name} onChange={(e) => setName(e.target.value)} />
         <TextField select size="small" label="Machine" required value={machineId} onChange={(e) => setMachineId(Number(e.target.value))}>
           {machines.map((m) => (
@@ -136,7 +161,12 @@ interface CountProps {
 }
 
 // A swab or rinse count test or chemistry test for a part, with its limits.
-export function AcCountTestPanel({ open, part, config, onClose, onSaved, editableCodes }: CountProps) {
+export function AcCountTestPanel({ open, part, config: openedConfig, onClose, onSaved, editableCodes }: CountProps) {
+  const { current: config, reload } = useReloadedRecord<PartConfig>(openedConfig, async (c) =>
+    ((await AfterCleaningConfigService.getPartConfigurations(c.machinePartId)) as PartConfig[]).find((x) => x.id === c.id)
+  );
+  // Set when the user changes a field, cleared whenever the form is (re)loaded from the record.
+  const [touched, setTouched] = useState(false);
   const { editableCodes: hookEditable } = useEditableTestCodes();
   const effectiveEditable = editableCodes !== undefined ? editableCodes : hookEditable;
   const { options: testDefinitions } = useTestDefinitions();
@@ -185,10 +215,12 @@ export function AcCountTestPanel({ open, part, config, onClose, onSaved, editabl
     } else {
       setLimits(emptyLimits);
     }
+    setTouched(false);
     setError(null);
   }, [open, config, testDefinitions]);
 
   const handleTestCodeChange = (newCode: string) => {
+    setTouched(true);
     setTestCode(newCode);
     const def = testDefinitions.find((t) => t.code === newCode);
     const isMethod = def?.workflowType === "HplcMethodAssay" || def?.workflowType === "IcpMethodAssay";
@@ -291,6 +323,7 @@ export function AcCountTestPanel({ open, part, config, onClose, onSaved, editabl
           config.version,
           extra
         );
+        noteOwnSave("machinePartConfiguration", config.id);
       } else {
         await AfterCleaningConfigService.createPartConfiguration(
           part.id,
@@ -325,8 +358,11 @@ export function AcCountTestPanel({ open, part, config, onClose, onSaved, editabl
       saveLabel={config ? "Save changes" : "Add test"}
       error={error}
     >
+      {open && config && (
+        <RecordChangedBanner type="machinePartConfiguration" id={config.id} dirty={touched} onReload={() => void reload()} />
+      )}
       <PanelSection title="1 · What is sampled">
-        <TextField select size="small" label="Sample type" value={testType} onChange={(e) => setTestType(e.target.value)}>
+        <TextField select size="small" label="Sample type" value={testType} onChange={(e) => { setTouched(true); setTestType(e.target.value); }}>
           {AC_COUNT_TYPES.map((t) => (
             <MenuItem key={t.value} value={t.value}>
               {t.label}
@@ -350,9 +386,9 @@ export function AcCountTestPanel({ open, part, config, onClose, onSaved, editabl
             {isHplc ? "Limit from the method" : "Limit from the ICP test"}
           </Typography>
         ) : isPhyschem ? (
-          <ChemistryLimitFields idPrefix="ac-limit" value={limits} onChange={setLimits} unitPlaceholder="e.g. ppm, µg/swab" />
+          <ChemistryLimitFields idPrefix="ac-limit" value={limits} onChange={(v) => { setTouched(true); setLimits(v); }} unitPlaceholder="e.g. ppm, µg/swab" />
         ) : (
-          <LimitFields idPrefix="ac-limit" value={limits} onChange={setLimits} unitPlaceholder={unitHint} />
+          <LimitFields idPrefix="ac-limit" value={limits} onChange={(v) => { setTouched(true); setLimits(v); }} unitPlaceholder={unitHint} />
         )}
       </PanelSection>
     </SidePanel>

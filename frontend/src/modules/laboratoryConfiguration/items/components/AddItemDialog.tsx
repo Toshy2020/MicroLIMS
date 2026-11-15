@@ -13,6 +13,8 @@ import {
 } from "@mui/material";
 import { TestCodePickerMulti } from "../../../../components/TestCodePickerMulti";
 import { FieldHint, hintDescribedBy } from "../../../../components/FieldHint";
+import { toast } from "sonner";
+import { RecordChangedBanner } from "../../../../components/RecordChangedBanner";
 import { hints } from "../hints";
 import { CopyItemOptions, Item, ItemService } from "../services/ItemService";
 import { FormDialog } from "../../../../components/lab";
@@ -25,6 +27,9 @@ interface AddItemDialogProps {
   existingItems?: Item[];
   startFromExisting?: boolean;
   onClose: () => void;
+  // Called with the freshly loaded item when the user reloads from the "changed by someone else"
+  // banner, so the caller's copy (and the row version its save sends) is replaced.
+  onItemReloaded?: (item: Item) => void;
   onSave: (itemData: {
     name: string;
     code: string;
@@ -50,6 +55,7 @@ export function AddItemDialog({
   existingItems,
   startFromExisting = false,
   onClose,
+  onItemReloaded,
   onSave,
 }: AddItemDialogProps) {
   const [name, setName] = useState("");
@@ -267,6 +273,34 @@ export function AddItemDialog({
     }
   };
 
+  const editFormIsDirty = itemToEdit
+    ? JSON.stringify([name, code, sopNumber, category, testCodes, minSampleQuantity, minRetestSampleQuantity, minSampleQuantityUnit]) !==
+      JSON.stringify([
+        itemToEdit.name,
+        itemToEdit.code,
+        itemToEdit.sopNumber || "",
+        itemToEdit.category,
+        itemToEdit.assignedTests?.map((t) => t.testCode) || [],
+        itemToEdit.minSampleQuantity ?? null,
+        itemToEdit.minRetestSampleQuantity ?? null,
+        itemToEdit.minSampleQuantityUnit ?? "",
+      ])
+    : false;
+
+  const reloadItem = async () => {
+    if (!itemToEdit) return;
+    try {
+      const fresh = (await ItemService.getAll()).find((i) => i.id === itemToEdit.id);
+      if (!fresh) {
+        toast.error("Could not reload the latest record.");
+        return;
+      }
+      onItemReloaded?.(fresh);
+    } catch {
+      toast.error("Could not reload the latest record.");
+    }
+  };
+
   const sourceOptions = existingItems ?? fetchedItems ?? [];
   const showCopySection = !itemToEdit && (startFromExisting || sourceItem !== null);
 
@@ -289,6 +323,9 @@ export function AddItemDialog({
       error={error}
     >
       <Stack spacing={2}>
+        {open && itemToEdit && (
+          <RecordChangedBanner type="item" id={itemToEdit.id} dirty={editFormIsDirty} onReload={() => void reloadItem()} />
+        )}
         {!itemToEdit && (
           <Box sx={{ p: showCopySection ? 1.5 : 0, border: showCopySection ? "1px solid" : "none", borderColor: "divider", borderRadius: 1 }}>
             <Autocomplete

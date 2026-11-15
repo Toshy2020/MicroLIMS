@@ -8961,6 +8961,16 @@ namespace MicroLIMS.Persistence.Migrations
                     b.Property<string>("InterpretedValue")
                         .HasColumnType("text");
 
+                    b.Property<DateTime?>("InvalidatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("InvalidatedByUserId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("InvalidationReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
                     b.Property<string>("RawValue")
                         .IsRequired()
                         .HasColumnType("text");

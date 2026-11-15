@@ -43,10 +43,9 @@ public static class SystemSettingKeys
     public const string AnnouncementSeverity = "System.AnnouncementSeverity";
     public const string AccessReviewDormantDays = "AccessReview.DormantDays";
 
-    // My Work (landing page of waiting tasks) and test self-assignment.
+    // My Work (landing page of waiting tasks).
     public const string MyWorkLookAheadDays = "myWork.lookAheadDays";
     public const string MyWorkReadOverdueHours = "myWork.readOverdueHours";
-    public const string SelfAssignmentEnabled = "workflow.selfAssignment.enabled";
     // Bench and tablet mode (C2): how long a tablet keeps an analyst's unsaved local drafts.
     public const string BenchDraftRetentionHours = "bench.draftRetentionHours";
     // Faster data entry (C4): whether entry forms offer the analyst's last valid choice as a default.
@@ -251,8 +250,6 @@ public static class SystemSettingDefinitions
         new(SystemSettingKeys.MyWorkReadOverdueHours, MyWorkCategory, SystemSettingValueType.Integer, "0",
             "Hours an incubation may wait after it is ready to read before My Work marks it overdue; 0 switches the overdue marking off.",
             "hours", 0, 168),
-        new(SystemSettingKeys.SelfAssignmentEnabled, WorkflowCategory, SystemSettingValueType.Boolean, "true",
-            "Whether analysts holding the self-assign permission may take unassigned tests in their own section from My Work. Existing assignments are not changed."),
 
         new(SystemSettingKeys.BenchDraftRetentionHours, BenchCategory, SystemSettingValueType.Integer, "24",
             "How long a bench tablet keeps an analyst's unsaved entries (local drafts, never records) before they are removed from the tablet. Read by the browser through the client-settings endpoint.",

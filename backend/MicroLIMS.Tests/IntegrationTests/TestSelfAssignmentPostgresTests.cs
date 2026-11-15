@@ -36,12 +36,9 @@ public class TestSelfAssignmentPostgresTests
 
     private sealed class Settings : ISystemSettingsReader
     {
-        private readonly bool _selfAssign;
-        public Settings(bool selfAssign) => _selfAssign = selfAssign;
         public Task<int> GetIntAsync(string key, CancellationToken cancellationToken = default) =>
             Task.FromResult(key == SystemSettingKeys.MyWorkLookAheadDays ? 7 : 0);
-        public Task<bool> GetBoolAsync(string key, CancellationToken cancellationToken = default) =>
-            Task.FromResult(key != SystemSettingKeys.SelfAssignmentEnabled || _selfAssign);
+        public Task<bool> GetBoolAsync(string key, CancellationToken cancellationToken = default) => Task.FromResult(true);
         public Task<string> GetStringAsync(string key, CancellationToken cancellationToken = default) => Task.FromResult(string.Empty);
     }
 
@@ -77,19 +74,19 @@ public class TestSelfAssignmentPostgresTests
         }
     }
 
-    private static TestSelfAssignmentService BuildService(MicroLimsDbContext db, bool selfAssign = true, IUserSectionScopeService? scope = null) =>
-        new(db, scope ?? new UserSectionScopeService(db), new Settings(selfAssign), new FixedTimeProvider(new DateTimeOffset(Now)));
+    private static TestSelfAssignmentService BuildService(MicroLimsDbContext db, IUserSectionScopeService? scope = null) =>
+        new(db, scope ?? new UserSectionScopeService(db), new FixedTimeProvider(new DateTimeOffset(Now)));
 
-    private static MyWorkService BuildMyWork(MicroLimsDbContext db, bool selfAssign = true) =>
+    private static MyWorkService BuildMyWork(MicroLimsDbContext db) =>
         new(db, new UserSectionScopeService(db),
             new LabClock(new FixedTimeProvider(new DateTimeOffset(Now)), LabClock.ResolveTimeZone("Africa/Cairo")),
-            new Settings(selfAssign), new NoopErrors(),
-            new IMyWorkSource[] { new AssignedTestsSource(db), new AvailableTestsSource(db, new Settings(selfAssign)), new UnassignedTestsSource(db) });
+            new Settings(), new NoopErrors(),
+            new IMyWorkSource[] { new AssignedTestsSource(db), new AvailableTestsSource(db), new UnassignedTestsSource(db) });
 
-    private async Task<MyWorkResponse> MyWorkAsync(int userId, bool selfAssign = true)
+    private async Task<MyWorkResponse> MyWorkAsync(int userId)
     {
         await using var actDb = _fixture.CreateDbContext();
-        var response = await BuildMyWork(actDb, selfAssign).GetAsync(userId, null);
+        var response = await BuildMyWork(actDb).GetAsync(userId, null);
         Assert.Empty(response.UnavailableSources);
         return response;
     }
@@ -212,10 +209,27 @@ public class TestSelfAssignmentPostgresTests
             .OrderBy(a => a.Id).ToListAsync();
     }
 
-    private async Task TakeAsync(int orderId, int userId, bool selfAssign = true)
+    private static async Task<DocumentSection> NewSectionAsync(MicroLimsDbContext db, string label)
+    {
+        var template = await db.DocumentSections.AsNoTracking().FirstAsync(s => s.Code == "MICRO");
+        var uid = Guid.NewGuid().ToString("N")[..8];
+        var section = new DocumentSection { DepartmentId = template.DepartmentId, Name = $"{label} {uid}", Code = $"S{uid}", IsActive = true };
+        db.DocumentSections.Add(section);
+        await db.SaveChangesAsync();
+        return section;
+    }
+
+    private async Task DisableSelfAssignmentAsync(int sectionHeadId, int sectionId)
     {
         await using var actDb = _fixture.CreateDbContext();
-        await BuildService(actDb, selfAssign).TakeAsync(orderId, userId);
+        var service = new SectionSelfAssignmentService(actDb, new UserSectionScopeService(actDb), new FixedTimeProvider(new DateTimeOffset(Now)));
+        await service.SetAsync(sectionHeadId, sectionId, enabled: false, "Switch off self-assignment for this test");
+    }
+
+    private async Task TakeAsync(int orderId, int userId)
+    {
+        await using var actDb = _fixture.CreateDbContext();
+        await BuildService(actDb).TakeAsync(orderId, userId);
     }
 
     // ---- take ----
@@ -249,16 +263,22 @@ public class TestSelfAssignmentPostgresTests
     [PostgresFact]
     public async Task Take_SettingOff_Throws()
     {
-        User analyst;
+        User analyst, head;
+        DocumentSection section;
         TestOrder order;
         await using (var arrange = _fixture.CreateDbContext())
         {
             var w = await WorldAsync(arrange);
-            analyst = await NewAnalystAsync(arrange, "taker", w.Micro);
-            order = await NewTestAsync(arrange, w, w.Micro);
+            section = await NewSectionAsync(arrange, "DisabledTake");
+            analyst = await NewAnalystAsync(arrange, "taker", section);
+            head = await NewUserAsync(arrange, "head", RoleType.SectionHead, null, section);
+            order = await NewTestAsync(arrange, w, section);
         }
 
-        await Assert.ThrowsAsync<BusinessRuleException>(() => TakeAsync(order.Id, analyst.Id, selfAssign: false));
+        await DisableSelfAssignmentAsync(head.Id, section.Id);
+
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => TakeAsync(order.Id, analyst.Id));
+        Assert.Equal("Taking tests is switched off in this section. Ask a Section Head to assign this test.", ex.Message);
 
         Assert.Null((await PersistedAsync(order.Id)).AssignedAnalystId);
         Assert.Empty(await AuditAsync(order.Id, "TEST_TAKEN"));
@@ -638,21 +658,24 @@ public class TestSelfAssignmentPostgresTests
     [PostgresFact]
     public async Task AvailableGroup_ShowsUnassignedInMySections_WithTakeAction_HiddenWhenSettingOff()
     {
-        User analyst;
+        User analyst, head;
+        DocumentSection section;
         TestOrder mine;
         var created = new List<TestOrder>();
         await using (var arrange = _fixture.CreateDbContext())
         {
             var w = await WorldAsync(arrange);
-            analyst = await NewAnalystAsync(arrange, "member", w.Micro);
-            var other = await NewAnalystAsync(arrange, "someone", w.Micro);
-            mine = await NewTestAsync(arrange, w, w.Micro);
+            section = await NewSectionAsync(arrange, "AvailSec");
+            analyst = await NewAnalystAsync(arrange, "member", section);
+            head = await NewUserAsync(arrange, "head", RoleType.SectionHead, null, section);
+            var other = await NewAnalystAsync(arrange, "someone", section);
+            mine = await NewTestAsync(arrange, w, section);
             created.Add(mine);
-            created.Add(await NewTestAsync(arrange, w, w.Fp));                                       // another section
-            created.Add(await NewTestAsync(arrange, w, w.Micro, assignedTo: other.Id));              // assigned
-            created.Add(await NewTestAsync(arrange, w, w.Micro, superseded: true));                  // superseded
-            created.Add(await NewTestAsync(arrange, w, w.Micro, outsourcedTo: "Outside Lab"));       // outsourced
-            created.Add(await NewTestAsync(arrange, w, w.Micro, status: ApprovalStatus.Approved));   // closed
+            created.Add(await NewTestAsync(arrange, w, w.Fp));                                          // another section
+            created.Add(await NewTestAsync(arrange, w, section, assignedTo: other.Id));              // assigned
+            created.Add(await NewTestAsync(arrange, w, section, superseded: true));                  // superseded
+            created.Add(await NewTestAsync(arrange, w, section, outsourcedTo: "Outside Lab"));       // outsourced
+            created.Add(await NewTestAsync(arrange, w, section, status: ApprovalStatus.Approved));   // closed
         }
 
         var on = await MyWorkAsync(analyst.Id);
@@ -661,18 +684,21 @@ public class TestSelfAssignmentPostgresTests
         Assert.Equal(new[] { "take" }, item.Actions);
         Assert.Equal(mine.Id, item.Target.TestOrderId);
         Assert.Equal(mine.SampleId, item.Target.SampleId);
-        Assert.Equal("MICRO", item.Lab);
+        Assert.Equal(section.Code, item.Lab);
         Assert.Empty(Mine(on, "unassigned", created.ToArray()));
 
-        var off = await MyWorkAsync(analyst.Id, selfAssign: false);
+        await using var summaryOnDb = _fixture.CreateDbContext();
+        var summaryOn = await BuildMyWork(summaryOnDb).GetSummaryAsync(analyst.Id);
+
+        await DisableSelfAssignmentAsync(head.Id, section.Id);
+
+        var off = await MyWorkAsync(analyst.Id);
         Assert.Empty(Mine(off, "available", created.ToArray()));
         Assert.Null(Group(off, "available"));
 
         // The badge counts exactly what the list shows: switching the setting off removes the available group's count.
-        await using var summaryDb = _fixture.CreateDbContext();
-        var summaryOn = await BuildMyWork(summaryDb).GetSummaryAsync(analyst.Id);
         await using var summaryOffDb = _fixture.CreateDbContext();
-        var summaryOff = await BuildMyWork(summaryOffDb, selfAssign: false).GetSummaryAsync(analyst.Id);
+        var summaryOff = await BuildMyWork(summaryOffDb).GetSummaryAsync(analyst.Id);
         Assert.Equal(Group(on, "available")!.Count, summaryOn.Total - summaryOff.Total);
     }
 
@@ -740,17 +766,21 @@ public class TestSelfAssignmentPostgresTests
     public async Task UnassignedGroup_IsSectionScoped_AndNotAffectedByTheSelfAssignSetting()
     {
         User head, farHead;
-        TestOrder inMicro;
+        DocumentSection section;
+        TestOrder inSection;
         await using (var arrange = _fixture.CreateDbContext())
         {
             var w = await WorldAsync(arrange);
-            head = await NewUserAsync(arrange, "head", RoleType.SectionHead, null, w.Micro);
+            section = await NewSectionAsync(arrange, "UnassignedSec");
+            head = await NewUserAsync(arrange, "head", RoleType.SectionHead, null, section);
             farHead = await NewUserAsync(arrange, "farhead", RoleType.SectionHead, null, w.Fp);
-            inMicro = await NewTestAsync(arrange, w, w.Micro);
+            inSection = await NewTestAsync(arrange, w, section);
         }
 
-        Assert.Single(Mine(await MyWorkAsync(head.Id, selfAssign: false), "unassigned", inMicro));
-        Assert.Empty(Mine(await MyWorkAsync(farHead.Id), "unassigned", inMicro));
+        await DisableSelfAssignmentAsync(head.Id, section.Id);
+
+        Assert.Single(Mine(await MyWorkAsync(head.Id), "unassigned", inSection));
+        Assert.Empty(Mine(await MyWorkAsync(farHead.Id), "unassigned", inSection));
     }
 
     [PostgresFact]

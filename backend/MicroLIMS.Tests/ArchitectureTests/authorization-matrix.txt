@@ -593,6 +593,8 @@ SampleTrackingController.Get(SampleTrackingFilterDto): SystemAdministrator,Secti
 ScanController.Resolve(String, CancellationToken): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 SectionCountersController.Get(String): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 SectionCountersController.GetDocumentControl(): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+SectionSelfAssignmentController.GetAll(CancellationToken): SectionHead
+SectionSelfAssignmentController.Update(Int32, UpdateSectionSelfAssignmentRequest, CancellationToken): SectionHead
 SignaturesController.GetTrail(String, Int32): SystemAdministrator,SectionHead
 SolutionMasterController.Create(SaveSolutionMasterRequest): SystemAdministrator,SectionHead
 SolutionMasterController.CreateBatch(List`1, CancellationToken): SystemAdministrator,SectionHead

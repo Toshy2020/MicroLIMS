@@ -10428,6 +10428,33 @@ namespace MicroLIMS.Persistence.Migrations
                     b.ToTable("SamplingConfigurations");
                 });
 
+            modelBuilder.Entity("MicroLIMS.Domain.Entities.SectionSelfAssignmentSetting", b =>
+                {
+                    b.Property<int>("SectionId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("ChangedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("ChangedByUserId")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("Enabled")
+                        .HasColumnType("boolean");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("SectionId");
+
+                    b.HasIndex("ChangedByUserId");
+
+                    b.ToTable("SectionSelfAssignmentSettings", (string)null);
+                });
+
             modelBuilder.Entity("MicroLIMS.Domain.Entities.SecurityAuditEvent", b =>
                 {
                     b.Property<long>("Id")
@@ -16509,6 +16536,24 @@ namespace MicroLIMS.Persistence.Migrations
                         .IsRequired();
 
                     b.Navigation("WaterSamplingPoint");
+                });
+
+            modelBuilder.Entity("MicroLIMS.Domain.Entities.SectionSelfAssignmentSetting", b =>
+                {
+                    b.HasOne("MicroLIMS.Domain.Entities.User", "ChangedByUser")
+                        .WithMany()
+                        .HasForeignKey("ChangedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("MicroLIMS.Domain.Entities.DocumentSection", "Section")
+                        .WithMany()
+                        .HasForeignKey("SectionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("ChangedByUser");
+
+                    b.Navigation("Section");
                 });
 
             modelBuilder.Entity("MicroLIMS.Domain.Entities.SecurityAuditEvent", b =>

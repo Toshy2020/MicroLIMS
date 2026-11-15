@@ -252,6 +252,7 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext, IMicr
     public DbSet<DocumentType> DocumentTypes => Set<DocumentType>();
     public DbSet<DocumentDepartment> DocumentDepartments => Set<DocumentDepartment>();
     public DbSet<DocumentSection> DocumentSections => Set<DocumentSection>();
+    public DbSet<SectionSelfAssignmentSetting> SectionSelfAssignmentSettings => Set<SectionSelfAssignmentSetting>();
     public DbSet<UserOrgMembership> UserOrgMemberships => Set<UserOrgMembership>();
     public DbSet<DocumentNumberingConfiguration> DocumentNumberingConfigurations => Set<DocumentNumberingConfiguration>();
     public DbSet<ConfigurationSetting> ConfigurationSettings => Set<ConfigurationSetting>();
@@ -672,6 +673,11 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext, IMicr
     private AuditLog BuildAuditLog(Microsoft.EntityFrameworkCore.ChangeTracking.EntityEntry entry, string action, string? previousValue, string? newValue)
     {
         var idProperty = entry.Properties.FirstOrDefault(p => p.Metadata.Name == "Id");
+        var entityId = idProperty?.CurrentValue?.ToString();
+        if (entityId is null && entry.Metadata.FindPrimaryKey() is { Properties: { Count: > 0 } pk })
+        {
+            entityId = string.Join(":", pk.Select(p => entry.Property(p.Name).CurrentValue?.ToString()));
+        }
 
         // An instrument agent has no user id: record it as the System actor
         // with the agent's code, and no user. If a user id is also present the
@@ -684,7 +690,7 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext, IMicr
         return new AuditLog
         {
             EntityName = entry.Entity.GetType().Name,
-            EntityId = idProperty?.CurrentValue?.ToString() ?? "unknown",
+            EntityId = entityId ?? "unknown",
             Action = action,
             PreviousValue = previousValue,
             NewValue = newValue,

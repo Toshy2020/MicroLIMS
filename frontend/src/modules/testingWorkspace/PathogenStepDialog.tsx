@@ -13,6 +13,7 @@ import { BiochemicalTestPanel } from "./pathogenSteps/BiochemicalTestPanel";
 import { StepChainStrip } from "./components/StepChainStrip";
 import { serverIncubationWindow } from "./utils/incubationWindow";
 import { StepHeading, StepChipTone } from "./pathogenSteps/StepLayout";
+import { resolvePathogenStepPanelKind } from "./utils/workflowPanelMapping";
 
 interface Props { testOrderId: number; testCode: string; displayName: string; onClose?: () => void; }
 
@@ -91,8 +92,9 @@ export function PathogenStepDialog({ testOrderId, onClose }: Props) {
   const step = current.step;
   if (!step) return <Alert severity="error">No current step is available for this test order.</Alert>;
 
-  const isBrothStep = step.stepType === "BrothEnrichment" || step.stepType === "SelectiveBroth";
-  const isPlatingStep = step.stepType === "SelectivePlating" || step.stepType === "ConfirmatoryPlating";
+  const stepPanelKind = resolvePathogenStepPanelKind(step.stepType);
+  const isBrothStep = stepPanelKind === "Broth";
+  const isPlatingStep = stepPanelKind === "SelectivePlating" || stepPanelKind === "ConfirmatoryPlating";
   const isIncubating = current.incubationLock != null
     || (current.previousSteps ?? []).some((p) => p.stepName === step.stepName && p.status === "Incubating");
   const { isTimeReady } = serverIncubationWindow(step, current);
@@ -100,7 +102,7 @@ export function PathogenStepDialog({ testOrderId, onClose }: Props) {
   const stepChip: { label: string; tone: StepChipTone } | null =
     isBrothStep ? (isIncubating ? { label: "Incubating", tone: "purple" } : { label: "Preparation · no pass/fail", tone: "info" })
     : isPlatingStep ? (!isIncubating ? { label: "Set up", tone: "info" } : isTimeReady ? { label: "Ready to read", tone: "notDetected" } : { label: "Incubating", tone: "purple" })
-    : step.stepType === "BiochemicalTest" ? { label: "Result entry", tone: "info" }
+    : stepPanelKind === "BiochemicalTest" ? { label: "Result entry", tone: "info" }
     : null;
   const stepHelp = STEP_HELP[step.stepType];
 
@@ -115,7 +117,7 @@ export function PathogenStepDialog({ testOrderId, onClose }: Props) {
         help={stepHelp}
       />
 
-      {step.stepType === "BrothEnrichment" || step.stepType === "SelectiveBroth" ? (
+      {stepPanelKind === "Broth" ? (
         current.incubationLock != null ? (
           <BrothWaitingPanel 
             testOrderId={testOrderId} 
@@ -126,11 +128,11 @@ export function PathogenStepDialog({ testOrderId, onClose }: Props) {
         ) : (
           <BrothStepPanel testOrderId={testOrderId} step={step} current={current} onSubmitted={handleSubmitted} />
         )
-      ) : step.stepType === "SelectivePlating" ? (
+      ) : stepPanelKind === "SelectivePlating" ? (
         <SelectivePlatingPanel testOrderId={testOrderId} step={step} current={current} onSubmitted={handleSubmitted} />
-      ) : step.stepType === "ConfirmatoryPlating" ? (
+      ) : stepPanelKind === "ConfirmatoryPlating" ? (
         <ConfirmatoryPlatingPanel testOrderId={testOrderId} step={step} current={current} onSubmitted={handleSubmitted} />
-      ) : step.stepType === "BiochemicalTest" ? (
+      ) : stepPanelKind === "BiochemicalTest" ? (
         <BiochemicalTestPanel
           testOrderId={testOrderId} step={step}
           confirmatoryOutcome={getConfirmatoryOutcome(current)}

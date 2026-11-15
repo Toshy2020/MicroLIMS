@@ -4,6 +4,7 @@ import type { PhyschemArea } from "../modules/laboratoryConfiguration/masterData
 import {
   masterDataOptions,
   CreateTestDefinitionPayload,
+  SaveTestWithStepsPayload,
   UpdateTestDefinitionPayload,
   MoistureRole,
   UvCalculationMode
@@ -109,6 +110,12 @@ export function useTestDefinitions() {
     return created as TestDefinitionOption;
   };
 
+  const addWithSteps = async (payload: SaveTestWithStepsPayload) => {
+    const created = await masterDataOptions.createTestWithSteps(payload);
+    await reload();
+    return created as TestDefinitionOption;
+  };
+
   const update = async (
     id: number,
     codeOrPayload: string | UpdateTestDefinitionPayload,
@@ -136,5 +143,5 @@ export function useTestDefinitions() {
     await reload();
   };
 
-  return { options, activeOptions: options.filter((o) => o.isActive), loading, addNew, update, setActive, reload };
+  return { options, activeOptions: options.filter((o) => o.isActive), loading, addNew, addWithSteps, update, setActive, reload };
 }

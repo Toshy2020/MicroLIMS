@@ -1,12 +1,22 @@
 import type { TestDefinitionOption } from "../../../../hooks/useTestDefinitions";
 import type {
   CreateTestDefinitionPayload,
+  CreateTestDefinitionStageReplicateRequest,
+  MediaIncubationConditionOption,
   MoistureRole,
+  ProductionStageRole,
+  TestDefinitionStageReplicateDto,
+  TestWorkflowStepPayload,
   UpdateTestDefinitionPayload,
   UvCalculationMode
 } from "../../../../services/masterDataOptions";
 import { PageArea, PhyschemArea, defaultAreaFor } from "../testMasterArea";
-import { TestMasterLab } from "../testMaster/testMasterConstants";
+import {
+  StepFormState,
+  TestMasterLab,
+  validateStepForm
+} from "../testMaster/testMasterConstants";
+import type { WorkflowStepItem } from "../testMaster/WorkflowStepsSection";
 import {
   IcpTestForm,
   createInitialIcpForm,
@@ -96,6 +106,44 @@ export interface TestModelContext {
   defaultSectionId?: number | "";
 }
 
+export interface DraftStageReplicate {
+  id?: number;
+  version?: number;
+  role: ProductionStageRole;
+  sampleReplicates: string;
+}
+
+export interface DraftStepMediaRow {
+  mediaProductId: number | "";
+  mediaIncubationConditionId: number | "";
+  isRequired: boolean;
+  displayOrder: number;
+  mediaProductName?: string;
+  tempMin?: number;
+  tempMax?: number;
+  incubationMinHours?: number;
+  incubationMaxHours?: number;
+}
+
+export interface DraftWorkflowStep {
+  id?: number;
+  version?: number;
+  stepOrder: number;
+  stepName: string;
+  isFinalStep: boolean;
+  stepType: string;
+  targetOrganismId: number | null;
+  targetOrganismName?: string | null;
+  stepMedia: DraftStepMediaRow[];
+  requiresIncubationTransfer: boolean;
+  stage2TempMin?: string | number;
+  stage2TempMax?: string | number;
+  stage2IncubationMinHours?: string | number;
+  stage2IncubationMaxHours?: string | number;
+  phenotypicTestType?: string | null;
+  phenotypicTestTypes: string[];
+}
+
 /**
  * Full form state + lab/edit context for a Test Master definition.
  * Mirrors every state variable of the TestMasterPage Add/Edit dialog so
@@ -164,7 +212,63 @@ export interface TestFormModel {
   wvCapsuleS1MaxForRetest: string;
   wvCapsuleS2ExtraUnits: string;
   wvCapsuleS2MaxOutside: string;
+
+  // Stages & workflow steps
+  stages: DraftStageReplicate[];
+  steps: DraftWorkflowStep[];
+  initialStages: DraftStageReplicate[];
+  initialSteps: WorkflowStepItem[];
 }
+
+export const TEST_DRAFT_FIELDS: readonly (keyof TestFormModel)[] = [
+  "code",
+  "displayName",
+  "coaDisplayOrder",
+  "sectionId",
+  "workflowType",
+  "equationType",
+  "physchemArea",
+  "requiresSystemSuitability",
+  "methodAbbreviation",
+  "hplcMethodId",
+  "icp",
+  "replicateCount",
+  "evaluationBasis",
+  "conditionFields",
+  "usesTare",
+  "perContainer",
+  "moistureRole",
+  "titration",
+  "changeReason",
+  "uvCalculationMode",
+  "uvSpecificAbsorbance",
+  "uvTotalVolumeMl",
+  "uvStandardVolumeMl",
+  "uvStandardEntryId",
+  "dissolutionS1Offset",
+  "dissolutionS2MinOffset",
+  "dissolutionS3MinOffset",
+  "dissolutionS3MaxBelowS2Min",
+  "disintegrationStage1Units",
+  "disintegrationStage2Units",
+  "disintegrationMaxStage1Failures",
+  "disintegrationMinPassTotal",
+  "wvUnitCount",
+  "wvTabletBand1MaxMg",
+  "wvTabletBand1Percent",
+  "wvTabletBand2MaxMg",
+  "wvTabletBand2Percent",
+  "wvTabletBand3Percent",
+  "wvTabletMaxOutside",
+  "wvCapsuleInnerPercent",
+  "wvCapsuleOuterPercent",
+  "wvCapsuleS1MaxOutside",
+  "wvCapsuleS1MaxForRetest",
+  "wvCapsuleS2ExtraUnits",
+  "wvCapsuleS2MaxOutside",
+  "stages",
+  "steps"
+];
 
 export function createEmptyTestFormModel(overrides: Partial<TestFormModel> = {}): TestFormModel {
   const lab: TestMasterLab = overrides.lab ?? "fp";
@@ -224,6 +328,10 @@ export function createEmptyTestFormModel(overrides: Partial<TestFormModel> = {})
     wvCapsuleS1MaxForRetest: PREFILL_METHOD_FIELDS.wvCapsuleS1MaxForRetest,
     wvCapsuleS2ExtraUnits: PREFILL_METHOD_FIELDS.wvCapsuleS2ExtraUnits,
     wvCapsuleS2MaxOutside: PREFILL_METHOD_FIELDS.wvCapsuleS2MaxOutside,
+    stages: [],
+    steps: [],
+    initialStages: [],
+    initialSteps: [],
     ...overrides
   };
 }
@@ -358,8 +466,169 @@ export function fromTestDefinition(
       t.wvCapsuleS2ExtraUnits != null ? String(t.wvCapsuleS2ExtraUnits) : PREFILL_METHOD_FIELDS.wvCapsuleS2ExtraUnits,
     wvCapsuleS2MaxOutside:
       t.wvCapsuleS2MaxOutside != null ? String(t.wvCapsuleS2MaxOutside) : PREFILL_METHOD_FIELDS.wvCapsuleS2MaxOutside,
-    physchemArea: t.physchemArea ?? (context.area ? defaultAreaFor(context.area) : null)
+    physchemArea: t.physchemArea ?? (context.area ? defaultAreaFor(context.area) : null),
+    stages: [],
+    steps: [],
+    initialStages: [],
+    initialSteps: []
   };
+}
+
+export function stagesFromDtos(dtos: TestDefinitionStageReplicateDto[]): DraftStageReplicate[] {
+  return dtos.map((r) => ({
+    id: r.id,
+    version: r.version,
+    role: r.role,
+    sampleReplicates: String(r.sampleReplicates)
+  }));
+}
+
+export function stepsFromDtos(dtos: WorkflowStepItem[]): DraftWorkflowStep[] {
+  return dtos
+    .slice()
+    .sort((a, b) => a.stepOrder - b.stepOrder)
+    .map((s) => {
+      const stage2 = (s.incubationStages ?? []).find((x) => x.stageNumber === 2);
+      return {
+        id: s.id,
+        version: s.version,
+        stepOrder: s.stepOrder,
+        stepName: s.stepName,
+        isFinalStep: s.isFinalStep,
+        stepType: s.stepType,
+        targetOrganismId: s.targetOrganismId ?? null,
+        targetOrganismName: s.targetOrganism?.name ?? null,
+        stepMedia: (s.stepMedia ?? []).map((m, idx) => ({
+          mediaProductId: m.mediaProductId,
+          mediaIncubationConditionId:
+            typeof m.mediaIncubationConditionId === "number" ? m.mediaIncubationConditionId : "",
+          isRequired: !!m.isRequired,
+          displayOrder: typeof m.displayOrder === "number" ? m.displayOrder : idx,
+          mediaProductName: m.mediaProductName,
+          tempMin: m.tempMin,
+          tempMax: m.tempMax,
+          incubationMinHours: m.incubationMinHours,
+          incubationMaxHours: m.incubationMaxHours
+        })),
+        requiresIncubationTransfer: !!s.requiresIncubationTransfer,
+        stage2TempMin: stage2 ? String(stage2.tempMin) : undefined,
+        stage2TempMax: stage2 ? String(stage2.tempMax) : undefined,
+        stage2IncubationMinHours: stage2 ? stage2.incubationMinHours : undefined,
+        stage2IncubationMaxHours: stage2 ? stage2.incubationMaxHours : undefined,
+        phenotypicTestType: s.phenotypicTestType ?? null,
+        phenotypicTestTypes: s.phenotypicTestTypes ?? []
+      };
+    });
+}
+
+/**
+ * Builds a create-mode TestFormModel pre-filled from an existing test definition
+ * ("New from existing"): copies settings, stages, and steps, and clears code,
+ * displayName, and coaDisplayOrder so the source record stays untouched.
+ */
+export function duplicateFromTestDefinition(
+  t: TestDefinitionOption,
+  options: {
+    context: TestModelContext;
+    canUseSourceSection: boolean;
+    mySingleSectionId: number | "";
+    stages?: TestDefinitionStageReplicateDto[];
+    steps?: WorkflowStepItem[];
+  }
+): TestFormModel {
+  const base = fromTestDefinition(t, options.context);
+  const copiedStages = (options.stages ?? []).map((s) => ({
+    role: s.role,
+    sampleReplicates: String(s.sampleReplicates)
+  }));
+  const copiedSteps = stepsFromDtos(options.steps ?? []).map((s) => ({
+    ...s,
+    id: undefined,
+    version: undefined
+  }));
+  return {
+    ...base,
+    editingId: null,
+    editingTest: null,
+    editingSectionId: null,
+    duplicateOfCode: t.code,
+    code: "",
+    displayName: "",
+    coaDisplayOrder: "",
+    sectionId: options.canUseSourceSection ? base.sectionId : options.mySingleSectionId,
+    icp: {
+      ...base.icp,
+      elements: base.icp.elements.map((e) => ({ ...e, id: undefined }))
+    },
+    stages: copiedStages,
+    steps: copiedSteps,
+    initialStages: [],
+    initialSteps: []
+  };
+}
+
+export function toStagePayloads(
+  stages: DraftStageReplicate[]
+): CreateTestDefinitionStageReplicateRequest[] {
+  return stages.map((s) => ({
+    role: s.role,
+    sampleReplicates: Number(s.sampleReplicates.trim())
+  }));
+}
+
+export function toStepPayload(
+  step: StepFormState,
+  conditions?: MediaIncubationConditionOption[]
+): TestWorkflowStepPayload {
+  const isBiochemical = step.stepType === "BiochemicalTest";
+  const resolvedMedia = step.stepMedia.map((m, i) => {
+    const condId =
+      m.mediaIncubationConditionId === "" ? null : Number(m.mediaIncubationConditionId);
+    const matched = condId != null ? conditions?.find((c) => c.id === condId) : undefined;
+    void matched;
+    return {
+      mediaProductId: Number(m.mediaProductId),
+      mediaIncubationConditionId: condId,
+      isRequired: step.stepType === "ConfirmatoryPlating" ? false : !!m.isRequired,
+      displayOrder: i
+    };
+  });
+  return {
+    stepName: (step.stepName ?? "").trim(),
+    phenotypicTestType: isBiochemical ? step.phenotypicTestType ?? null : null,
+    phenotypicTestTypes: isBiochemical ? step.phenotypicTestTypes : [],
+    incubationMinHours: 0,
+    incubationMaxHours: 0,
+    temperatureMin: 0,
+    temperatureMax: 0,
+    isFinalStep: !!step.isFinalStep,
+    stepType: step.stepType,
+    targetOrganismId: step.targetOrganismId,
+    stepMedia: resolvedMedia,
+    requiresIncubationTransfer: step.stepType === "PlateCount" && !!step.requiresIncubationTransfer,
+    incubationStages:
+      step.stepType === "PlateCount" && step.requiresIncubationTransfer
+        ? [
+            {
+              stageNumber: 2,
+              tempMin: Number(step.stage2TempMin),
+              tempMax: Number(step.stage2TempMax),
+              incubationMinHours: Number(step.stage2IncubationMinHours),
+              incubationMaxHours: Number(step.stage2IncubationMaxHours)
+            }
+          ]
+        : []
+  };
+}
+
+export function toStepPayloads(
+  steps: DraftWorkflowStep[],
+  conditions?: MediaIncubationConditionOption[]
+): TestWorkflowStepPayload[] {
+  return steps
+    .slice()
+    .sort((a, b) => a.stepOrder - b.stepOrder)
+    .map((s) => toStepPayload(s, conditions));
 }
 
 export function withWorkflowType(model: TestFormModel, next: string): TestFormModel {
@@ -750,6 +1019,53 @@ export function validateStep(step: TestWizardStep, model: TestFormModel): Record
       }
     }
 
+    return errors;
+  }
+
+  if (step === "stages") {
+    const seenRoles = new Set<string>();
+    for (const s of model.stages) {
+      if (!s.role) {
+        errors.stages = "Production stage role is required.";
+        return errors;
+      }
+      if (seenRoles.has(s.role)) {
+        errors.stages = `Duplicate stage role "${s.role}".`;
+        return errors;
+      }
+      seenRoles.add(s.role);
+      const smpStr = s.sampleReplicates.trim();
+      if (!smpStr) {
+        errors.stages = "Sample replicates is required.";
+        return errors;
+      }
+      const smp = Number(smpStr);
+      if (!Number.isInteger(smp) || smp < 1) {
+        errors.stages = "Sample replicates must be an integer greater than or equal to 1.";
+        return errors;
+      }
+    }
+    return errors;
+  }
+
+  if (step === "steps") {
+    let finalCount = 0;
+    for (let i = 0; i < model.steps.length; i++) {
+      const s = model.steps[i];
+      if (!s.stepName.trim()) {
+        errors.steps = `Step ${i + 1}: Step Name is required.`;
+        return errors;
+      }
+      const stepError = validateStepForm(s);
+      if (stepError) {
+        errors.steps = `${s.stepName}: ${stepError}`;
+        return errors;
+      }
+      if (s.isFinalStep) finalCount++;
+    }
+    if (finalCount > 1) {
+      errors.steps = "Only one step can be marked as the final step.";
+    }
     return errors;
   }
 

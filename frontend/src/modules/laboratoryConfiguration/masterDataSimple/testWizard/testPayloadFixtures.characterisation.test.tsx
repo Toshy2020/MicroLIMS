@@ -3,9 +3,12 @@ import { cleanup, render, screen, waitFor, within } from "@testing-library/react
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { PinnedLightTheme } from "../../../../theme/PinnedLightTheme";
+import { AuthProvider } from "../../../../contexts/AuthContext";
+import { resetDraftDb, signInForTest } from "../../../../services/drafts/draftTestUtils";
 import { TestMasterPage } from "../TestMasterPage";
 import * as laboratorySectionService from "../../../../services/laboratorySectionService";
 import { masterDataOptions } from "../../../../services/masterDataOptions";
+import { masterDataUsageService } from "../../../../services/masterDataUsageService";
 import type { TestDefinitionOption } from "../../../../hooks/useTestDefinitions";
 import { HplcMethodService, type HplcMethodListItem } from "../services/HplcMethodService";
 import { SolutionMasterService, type SolutionMaster } from "../services/SolutionMasterService";
@@ -21,14 +24,23 @@ vi.mock("../../../../services/masterDataOptions", async (importOriginal) => {
       ...actual.masterDataOptions,
       getTestDefinitions: vi.fn(),
       createTestDefinition: vi.fn(),
+      createTestWithSteps: vi.fn(),
       updateTestDefinition: vi.fn(),
+      validateTestDefinition: vi.fn(),
       getTestWorkflowSteps: vi.fn().mockResolvedValue([]),
+      getTestDefinitionStageReplicates: vi.fn().mockResolvedValue([]),
       getOrganisms: vi.fn().mockResolvedValue([]),
       getMediaIncubationConditions: vi.fn().mockResolvedValue([]),
       getMediaProducts: vi.fn().mockResolvedValue([])
     }
   };
 });
+
+vi.mock("../../../../services/masterDataUsageService", () => ({
+  masterDataUsageService: {
+    getUsage: vi.fn()
+  }
+}));
 
 vi.mock("../../../../services/laboratorySectionService", () => ({
   getSections: vi.fn(),
@@ -146,9 +158,11 @@ function renderPage(opts: { lab: "micro" | "fp"; area?: "fp" | "rmpm" }) {
   const user = userEvent.setup();
   render(
     <PinnedLightTheme>
-      <MemoryRouter>
-        <TestMasterPage lab={opts.lab} area={opts.area} />
-      </MemoryRouter>
+      <AuthProvider>
+        <MemoryRouter>
+          <TestMasterPage lab={opts.lab} area={opts.area} />
+        </MemoryRouter>
+      </AuthProvider>
     </PinnedLightTheme>
   );
   return { user };
@@ -178,20 +192,48 @@ async function selectInDialog(
   await user.click(await screen.findByRole("option", { name: optionName }));
 }
 
-async function submitAdd(user: ReturnType<typeof userEvent.setup>, dialog: HTMLElement) {
-  await user.click(within(dialog).getByRole("button", { name: /^Add Test$/ }));
+async function clickNextStep(user: ReturnType<typeof userEvent.setup>, dialog: HTMLElement) {
+  await user.click(within(dialog).getByRole("button", { name: /^Next$/i }));
+}
+
+async function submitWizard(user: ReturnType<typeof userEvent.setup>, dialog: HTMLElement) {
+  while (within(dialog).queryByRole("button", { name: /^Next$/i })) {
+    await user.click(within(dialog).getByRole("button", { name: /^Next$/i }));
+  }
+  const saveBtn = (await within(dialog).findByRole("button", { name: /^Save$/i })) as HTMLButtonElement;
+  await waitFor(() => expect(saveBtn.disabled).toBe(false));
+  await user.click(saveBtn);
 }
 
 describe("TestMasterPage payload characterisation", () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks();
+    await resetDraftDb();
+    signInForTest(7);
     vi.mocked(laboratorySectionService.getSections).mockResolvedValue([fpSection, microSection]);
     vi.mocked(laboratorySectionService.getMySections).mockResolvedValue([fpSection]);
     vi.mocked(masterDataOptions.getTestDefinitions).mockResolvedValue([]);
+    vi.mocked(masterDataOptions.validateTestDefinition).mockResolvedValue([]);
+    vi.mocked(masterDataOptions.getTestDefinitionStageReplicates).mockResolvedValue([]);
+    vi.mocked(masterDataOptions.getTestWorkflowSteps).mockResolvedValue([]);
+    vi.mocked(masterDataUsageService.getUsage).mockResolvedValue({
+      type: "TestDefinition",
+      id: 71,
+      openWorkCount: 0,
+      historicalCount: 0,
+      lines: []
+    });
     vi.mocked(masterDataOptions.createTestDefinition).mockImplementation(async (payload) => {
       const p = typeof payload === "string" ? { code: payload, displayName: payload } : payload;
       return { id: 900, code: p.code, displayName: p.displayName, isActive: true, workflowType: "Observation" };
     });
+    vi.mocked(masterDataOptions.createTestWithSteps).mockImplementation(async ({ test }) => ({
+      id: 900,
+      code: test.code,
+      displayName: test.displayName,
+      isActive: true,
+      workflowType: test.workflowType ?? "Observation"
+    }));
     vi.mocked(masterDataOptions.updateTestDefinition).mockResolvedValue({
       id: 71,
       code: "PH",
@@ -219,10 +261,10 @@ describe("TestMasterPage payload characterisation", () => {
     await user.type(within(dialog).getByLabelText(/^Code/), "TAMC");
     await user.type(within(dialog).getByLabelText(/^Display Name/), "Total Aerobic Microbial Count");
     await user.type(within(dialog).getByLabelText(/^CoA order/), "1");
-    await submitAdd(user, dialog);
+    await submitWizard(user, dialog);
 
-    await waitFor(() => expect(masterDataOptions.createTestDefinition).toHaveBeenCalledTimes(1));
-    expect(vi.mocked(masterDataOptions.createTestDefinition).mock.calls[0][0]).toStrictEqual(
+    await waitFor(() => expect(masterDataOptions.createTestWithSteps).toHaveBeenCalledTimes(1));
+    expect(vi.mocked(masterDataOptions.createTestWithSteps).mock.calls[0][0].test).toStrictEqual(
       TEST_PAYLOAD_FIXTURES.countTest
     );
   });
@@ -235,10 +277,10 @@ describe("TestMasterPage payload characterisation", () => {
     await selectInDialog(user, dialog, "Workflow Type", "Observation");
     await user.type(within(dialog).getByLabelText(/^Code/), "ECOLI");
     await user.type(within(dialog).getByLabelText(/^Display Name/), "Escherichia coli");
-    await submitAdd(user, dialog);
+    await submitWizard(user, dialog);
 
-    await waitFor(() => expect(masterDataOptions.createTestDefinition).toHaveBeenCalledTimes(1));
-    expect(vi.mocked(masterDataOptions.createTestDefinition).mock.calls[0][0]).toStrictEqual(
+    await waitFor(() => expect(masterDataOptions.createTestWithSteps).toHaveBeenCalledTimes(1));
+    expect(vi.mocked(masterDataOptions.createTestWithSteps).mock.calls[0][0].test).toStrictEqual(
       TEST_PAYLOAD_FIXTURES.observation
     );
   });
@@ -251,11 +293,13 @@ describe("TestMasterPage payload characterisation", () => {
     await user.type(within(dialog).getByLabelText(/^Code/), "APP");
     await user.type(within(dialog).getByLabelText(/^Display Name/), "Appearance");
     await user.type(within(dialog).getByLabelText(/^CoA order/), "2");
-    await user.click(within(dialog).getByRole("switch", { name: /Recorded per container/i }));
-    await submitAdd(user, dialog);
+    await clickNextStep(user, dialog);
 
-    await waitFor(() => expect(masterDataOptions.createTestDefinition).toHaveBeenCalledTimes(1));
-    expect(vi.mocked(masterDataOptions.createTestDefinition).mock.calls[0][0]).toStrictEqual(
+    await user.click(within(dialog).getByRole("switch", { name: /Recorded per container/i }));
+    await submitWizard(user, dialog);
+
+    await waitFor(() => expect(masterDataOptions.createTestWithSteps).toHaveBeenCalledTimes(1));
+    expect(vi.mocked(masterDataOptions.createTestWithSteps).mock.calls[0][0].test).toStrictEqual(
       TEST_PAYLOAD_FIXTURES.qualitative
     );
   });
@@ -268,13 +312,15 @@ describe("TestMasterPage payload characterisation", () => {
     await user.type(within(dialog).getByLabelText(/^Code/), "PH");
     await user.type(within(dialog).getByLabelText(/^Display Name/), "pH");
     await user.type(within(dialog).getByLabelText(/^CoA order/), "3");
+    await clickNextStep(user, dialog);
+
     const repInput = within(dialog).getByLabelText(/^Replicate Count/);
     await user.clear(repInput);
     await user.type(repInput, "3");
-    await submitAdd(user, dialog);
+    await submitWizard(user, dialog);
 
-    await waitFor(() => expect(masterDataOptions.createTestDefinition).toHaveBeenCalledTimes(1));
-    expect(vi.mocked(masterDataOptions.createTestDefinition).mock.calls[0][0]).toStrictEqual(
+    await waitFor(() => expect(masterDataOptions.createTestWithSteps).toHaveBeenCalledTimes(1));
+    expect(vi.mocked(masterDataOptions.createTestWithSteps).mock.calls[0][0].test).toStrictEqual(
       TEST_PAYLOAD_FIXTURES.measurement
     );
   });
@@ -286,16 +332,18 @@ describe("TestMasterPage payload characterisation", () => {
     await selectInDialog(user, dialog, "Workflow Type", /^Gravimetric/);
     await user.type(within(dialog).getByLabelText(/^Code/), "LOD");
     await user.type(within(dialog).getByLabelText(/^Display Name/), "Loss on Drying");
+    await clickNextStep(user, dialog);
+
     const repInput = within(dialog).getByLabelText(/^Replicate Count/);
     await user.clear(repInput);
     await user.type(repInput, "2");
     await user.click(within(dialog).getByRole("switch", { name: /Uses tare/i }));
     await user.type(within(dialog).getByLabelText(/^Condition fields/), "Temperature (°C),Time (h)");
     await selectInDialog(user, dialog, /^Moisture role/, "Loss on drying");
-    await submitAdd(user, dialog);
+    await submitWizard(user, dialog);
 
-    await waitFor(() => expect(masterDataOptions.createTestDefinition).toHaveBeenCalledTimes(1));
-    expect(vi.mocked(masterDataOptions.createTestDefinition).mock.calls[0][0]).toStrictEqual(
+    await waitFor(() => expect(masterDataOptions.createTestWithSteps).toHaveBeenCalledTimes(1));
+    expect(vi.mocked(masterDataOptions.createTestWithSteps).mock.calls[0][0].test).toStrictEqual(
       TEST_PAYLOAD_FIXTURES.gravimetricLoss
     );
   });
@@ -305,17 +353,19 @@ describe("TestMasterPage payload characterisation", () => {
     const dialog = await openAddDialog(user, "fp", "Finished Product");
 
     await selectInDialog(user, dialog, "Workflow Type", /^Gravimetric/);
-    await selectInDialog(user, dialog, "Equation Type", /Ash \/ Gravimetric residue/i);
     await user.type(within(dialog).getByLabelText(/^Code/), "ASH");
     await user.type(within(dialog).getByLabelText(/^Display Name/), "Sulfated Ash");
+    await clickNextStep(user, dialog);
+
+    await selectInDialog(user, dialog, "Equation Type", /Ash \/ Gravimetric residue/i);
     const repInput = within(dialog).getByLabelText(/^Replicate Count/);
     await user.clear(repInput);
     await user.type(repInput, "2");
     await user.type(within(dialog).getByLabelText(/^Condition fields/), "Temperature (°C)");
-    await submitAdd(user, dialog);
+    await submitWizard(user, dialog);
 
-    await waitFor(() => expect(masterDataOptions.createTestDefinition).toHaveBeenCalledTimes(1));
-    expect(vi.mocked(masterDataOptions.createTestDefinition).mock.calls[0][0]).toStrictEqual(
+    await waitFor(() => expect(masterDataOptions.createTestWithSteps).toHaveBeenCalledTimes(1));
+    expect(vi.mocked(masterDataOptions.createTestWithSteps).mock.calls[0][0].test).toStrictEqual(
       TEST_PAYLOAD_FIXTURES.gravimetricResidue
     );
   });
@@ -327,13 +377,15 @@ describe("TestMasterPage payload characterisation", () => {
     await selectInDialog(user, dialog, "Workflow Type", /^Dissolution/);
     await user.type(within(dialog).getByLabelText(/^Code/), "DISS");
     await user.type(within(dialog).getByLabelText(/^Display Name/), "Dissolution");
+    await clickNextStep(user, dialog);
+
     await selectInDialog(user, dialog, "HPLC Method", /Ibuprofen Assay \(IBU-A\)/);
     await user.type(within(dialog).getByLabelText(/^Condition fields/), "Apparatus,RPM,Medium");
     await user.type(within(dialog).getByPlaceholderText("e.g. VIT-C"), "DISS-UV");
-    await submitAdd(user, dialog);
+    await submitWizard(user, dialog);
 
-    await waitFor(() => expect(masterDataOptions.createTestDefinition).toHaveBeenCalledTimes(1));
-    expect(vi.mocked(masterDataOptions.createTestDefinition).mock.calls[0][0]).toStrictEqual(
+    await waitFor(() => expect(masterDataOptions.createTestWithSteps).toHaveBeenCalledTimes(1));
+    expect(vi.mocked(masterDataOptions.createTestWithSteps).mock.calls[0][0].test).toStrictEqual(
       TEST_PAYLOAD_FIXTURES.dissolution
     );
   });
@@ -345,11 +397,13 @@ describe("TestMasterPage payload characterisation", () => {
     await selectInDialog(user, dialog, "Workflow Type", /^Disintegration/);
     await user.type(within(dialog).getByLabelText(/^Code/), "DISINT");
     await user.type(within(dialog).getByLabelText(/^Display Name/), "Disintegration");
-    await user.type(within(dialog).getByLabelText(/^Condition fields/), "Medium,Temperature (°C)");
-    await submitAdd(user, dialog);
+    await clickNextStep(user, dialog);
 
-    await waitFor(() => expect(masterDataOptions.createTestDefinition).toHaveBeenCalledTimes(1));
-    expect(vi.mocked(masterDataOptions.createTestDefinition).mock.calls[0][0]).toStrictEqual(
+    await user.type(within(dialog).getByLabelText(/^Condition fields/), "Medium,Temperature (°C)");
+    await submitWizard(user, dialog);
+
+    await waitFor(() => expect(masterDataOptions.createTestWithSteps).toHaveBeenCalledTimes(1));
+    expect(vi.mocked(masterDataOptions.createTestWithSteps).mock.calls[0][0].test).toStrictEqual(
       TEST_PAYLOAD_FIXTURES.disintegration
     );
   });
@@ -361,11 +415,13 @@ describe("TestMasterPage payload characterisation", () => {
     await selectInDialog(user, dialog, "Workflow Type", /^Weight Variation/);
     await user.type(within(dialog).getByLabelText(/^Code/), "WV");
     await user.type(within(dialog).getByLabelText(/^Display Name/), "Weight Variation");
-    await user.type(within(dialog).getByLabelText(/^Condition fields/), "Balance ID");
-    await submitAdd(user, dialog);
+    await clickNextStep(user, dialog);
 
-    await waitFor(() => expect(masterDataOptions.createTestDefinition).toHaveBeenCalledTimes(1));
-    expect(vi.mocked(masterDataOptions.createTestDefinition).mock.calls[0][0]).toStrictEqual(
+    await user.type(within(dialog).getByLabelText(/^Condition fields/), "Balance ID");
+    await submitWizard(user, dialog);
+
+    await waitFor(() => expect(masterDataOptions.createTestWithSteps).toHaveBeenCalledTimes(1));
+    expect(vi.mocked(masterDataOptions.createTestWithSteps).mock.calls[0][0].test).toStrictEqual(
       TEST_PAYLOAD_FIXTURES.weightVariation
     );
   });
@@ -377,16 +433,18 @@ describe("TestMasterPage payload characterisation", () => {
     await selectInDialog(user, dialog, "Workflow Type", /^Titration/);
     await user.type(within(dialog).getByLabelText(/^Code/), "TITR-AB");
     await user.type(within(dialog).getByLabelText(/^Display Name/), "Ascorbic Acid Titration");
+    await clickNextStep(user, dialog);
+
     await selectInDialog(user, dialog, /^Titration type/i, "Acid-base");
     await selectInDialog(user, dialog, /^Titrant/i, /0\.1 N NaOH/);
     await user.type(within(dialog).getByLabelText(/^Equivalency factor F/i), "88.06");
     await user.type(within(dialog).getByLabelText(/^Maximum RSD %/i), "1.5");
     await selectInDialog(user, dialog, /^Indicator/i, /Phenolphthalein/);
     await user.click(within(dialog).getByRole("switch", { name: /Blank determination required/i }));
-    await submitAdd(user, dialog);
+    await submitWizard(user, dialog);
 
-    await waitFor(() => expect(masterDataOptions.createTestDefinition).toHaveBeenCalledTimes(1));
-    expect(vi.mocked(masterDataOptions.createTestDefinition).mock.calls[0][0]).toStrictEqual(
+    await waitFor(() => expect(masterDataOptions.createTestWithSteps).toHaveBeenCalledTimes(1));
+    expect(vi.mocked(masterDataOptions.createTestWithSteps).mock.calls[0][0].test).toStrictEqual(
       TEST_PAYLOAD_FIXTURES.titration
     );
   });
@@ -398,14 +456,16 @@ describe("TestMasterPage payload characterisation", () => {
     await selectInDialog(user, dialog, "Workflow Type", /^Titration/);
     await user.type(within(dialog).getByLabelText(/^Code/), "KF-H2O");
     await user.type(within(dialog).getByLabelText(/^Display Name/), "Water Determination KF");
+    await clickNextStep(user, dialog);
+
     await selectInDialog(user, dialog, /^Titration type/i, /Karl Fischer/i);
     await selectInDialog(user, dialog, /^Moisture role/i, "Water");
     await selectInDialog(user, dialog, /^KF reagent/i, /KF Reagent/);
     await selectInDialog(user, dialog, /^Endpoint/i, "Potentiometric");
-    await submitAdd(user, dialog);
+    await submitWizard(user, dialog);
 
-    await waitFor(() => expect(masterDataOptions.createTestDefinition).toHaveBeenCalledTimes(1));
-    expect(vi.mocked(masterDataOptions.createTestDefinition).mock.calls[0][0]).toStrictEqual(
+    await waitFor(() => expect(masterDataOptions.createTestWithSteps).toHaveBeenCalledTimes(1));
+    expect(vi.mocked(masterDataOptions.createTestWithSteps).mock.calls[0][0].test).toStrictEqual(
       TEST_PAYLOAD_FIXTURES.titrationKarlFischer
     );
   });
@@ -416,11 +476,13 @@ describe("TestMasterPage payload characterisation", () => {
 
     await user.type(within(dialog).getByLabelText(/^Code/), "HPLC-IBU");
     await user.type(within(dialog).getByLabelText(/^Display Name/), "Ibuprofen Assay");
-    await selectInDialog(user, dialog, "HPLC Method", /Ibuprofen Assay \(IBU-A\)/);
-    await submitAdd(user, dialog);
+    await clickNextStep(user, dialog);
 
-    await waitFor(() => expect(masterDataOptions.createTestDefinition).toHaveBeenCalledTimes(1));
-    expect(vi.mocked(masterDataOptions.createTestDefinition).mock.calls[0][0]).toStrictEqual(
+    await selectInDialog(user, dialog, "HPLC Method", /Ibuprofen Assay \(IBU-A\)/);
+    await submitWizard(user, dialog);
+
+    await waitFor(() => expect(masterDataOptions.createTestWithSteps).toHaveBeenCalledTimes(1));
+    expect(vi.mocked(masterDataOptions.createTestWithSteps).mock.calls[0][0].test).toStrictEqual(
       TEST_PAYLOAD_FIXTURES.hplcAssay
     );
   });
@@ -432,14 +494,16 @@ describe("TestMasterPage payload characterisation", () => {
     await selectInDialog(user, dialog, "Workflow Type", /^ICP method assay/);
     await user.type(within(dialog).getByLabelText(/^Code/), "ICP-FE");
     await user.type(within(dialog).getByLabelText(/^Display Name/), "Iron Assay by ICP");
+    await clickNextStep(user, dialog);
+
     await user.type(within(dialog).getByLabelText(/^Theoretical weight \(g\)/i), "0.5");
     await user.type(within(dialog).getByLabelText("Element 1 symbol"), "Fe");
     await user.type(within(dialog).getByLabelText("Element 1 target ppm"), "50");
     await user.type(within(dialog).getByLabelText("Element 1 cleaning limit ppm"), "10");
-    await submitAdd(user, dialog);
+    await submitWizard(user, dialog);
 
-    await waitFor(() => expect(masterDataOptions.createTestDefinition).toHaveBeenCalledTimes(1));
-    expect(vi.mocked(masterDataOptions.createTestDefinition).mock.calls[0][0]).toStrictEqual(
+    await waitFor(() => expect(masterDataOptions.createTestWithSteps).toHaveBeenCalledTimes(1));
+    expect(vi.mocked(masterDataOptions.createTestWithSteps).mock.calls[0][0].test).toStrictEqual(
       TEST_PAYLOAD_FIXTURES.icpAssay
     );
   });
@@ -451,12 +515,14 @@ describe("TestMasterPage payload characterisation", () => {
     await selectInDialog(user, dialog, "Workflow Type", /^ICP method assay/);
     await user.type(within(dialog).getByLabelText(/^Code/), "ICP-PB");
     await user.type(within(dialog).getByLabelText(/^Display Name/), "Lead Impurity by ICP");
+    await clickNextStep(user, dialog);
+
     await user.click(within(dialog).getByRole("button", { name: /Elemental impurity \(ppm\)/i }));
     await user.type(within(dialog).getByLabelText("Element 1 symbol"), "Pb");
-    await submitAdd(user, dialog);
+    await submitWizard(user, dialog);
 
-    await waitFor(() => expect(masterDataOptions.createTestDefinition).toHaveBeenCalledTimes(1));
-    expect(vi.mocked(masterDataOptions.createTestDefinition).mock.calls[0][0]).toStrictEqual(
+    await waitFor(() => expect(masterDataOptions.createTestWithSteps).toHaveBeenCalledTimes(1));
+    expect(vi.mocked(masterDataOptions.createTestWithSteps).mock.calls[0][0].test).toStrictEqual(
       TEST_PAYLOAD_FIXTURES.icpImpurity
     );
   });
@@ -468,6 +534,8 @@ describe("TestMasterPage payload characterisation", () => {
     await selectInDialog(user, dialog, "Workflow Type", /^UV Spectrophotometry/);
     await user.type(within(dialog).getByLabelText(/^Code/), "UV-STD");
     await user.type(within(dialog).getByLabelText(/^Display Name/), "UV Assay against Standard");
+    await clickNextStep(user, dialog);
+
     await selectInDialog(user, dialog, /^Calculation mode/i, /Assay against Standard/);
     await selectInDialog(user, dialog, /^Standard material/i, /Ibuprofen RS/);
     await user.type(within(dialog).getByLabelText(/^Total volume \(mL\)/i), "100");
@@ -475,10 +543,10 @@ describe("TestMasterPage payload characterisation", () => {
     const repInput = within(dialog).getByLabelText(/^Replicate count/i);
     await user.clear(repInput);
     await user.type(repInput, "3");
-    await submitAdd(user, dialog);
+    await submitWizard(user, dialog);
 
-    await waitFor(() => expect(masterDataOptions.createTestDefinition).toHaveBeenCalledTimes(1));
-    expect(vi.mocked(masterDataOptions.createTestDefinition).mock.calls[0][0]).toStrictEqual(
+    await waitFor(() => expect(masterDataOptions.createTestWithSteps).toHaveBeenCalledTimes(1));
+    expect(vi.mocked(masterDataOptions.createTestWithSteps).mock.calls[0][0].test).toStrictEqual(
       TEST_PAYLOAD_FIXTURES.uvStandardComparison
     );
   });
@@ -490,16 +558,18 @@ describe("TestMasterPage payload characterisation", () => {
     await selectInDialog(user, dialog, "Workflow Type", /^UV Spectrophotometry/);
     await user.type(within(dialog).getByLabelText(/^Code/), "UV-A1");
     await user.type(within(dialog).getByLabelText(/^Display Name/), "Riboflavin A1% Assay");
+    await clickNextStep(user, dialog);
+
     await selectInDialog(user, dialog, /^Calculation mode/i, /Specific Absorbance Assay/i);
     await user.type(within(dialog).getByLabelText(/^Specific absorbance \(A1%\)/i), "328");
     await user.type(within(dialog).getByLabelText(/^Total volume \(mL\)/i), "5000");
     const repInput = within(dialog).getByLabelText(/^Replicate count/i);
     await user.clear(repInput);
     await user.type(repInput, "2");
-    await submitAdd(user, dialog);
+    await submitWizard(user, dialog);
 
-    await waitFor(() => expect(masterDataOptions.createTestDefinition).toHaveBeenCalledTimes(1));
-    expect(vi.mocked(masterDataOptions.createTestDefinition).mock.calls[0][0]).toStrictEqual(
+    await waitFor(() => expect(masterDataOptions.createTestWithSteps).toHaveBeenCalledTimes(1));
+    expect(vi.mocked(masterDataOptions.createTestWithSteps).mock.calls[0][0].test).toStrictEqual(
       TEST_PAYLOAD_FIXTURES.uvSpecificAbsorbanceAssay
     );
   });
@@ -526,11 +596,11 @@ describe("TestMasterPage payload characterisation", () => {
     await user.click(await screen.findByRole("menuitem", { name: "Edit" }));
     const dialog = await screen.findByRole("dialog");
 
-    const nameInput = within(dialog).getByLabelText(/^Display Name/);
+    const nameInput = await within(dialog).findByLabelText(/^Display Name/);
     await user.clear(nameInput);
     await user.type(nameInput, "pH (25 °C)");
     await user.clear(within(dialog).getByLabelText(/^CoA order/));
-    await user.click(within(dialog).getByRole("button", { name: "Save Changes" }));
+    await submitWizard(user, dialog);
 
     await waitFor(() => expect(masterDataOptions.updateTestDefinition).toHaveBeenCalledTimes(1));
     expect(masterDataOptions.updateTestDefinition).toHaveBeenCalledWith(
@@ -572,13 +642,16 @@ describe("TestMasterPage payload characterisation", () => {
     await user.click(await screen.findByRole("menuitem", { name: "Edit" }));
     const dialog = await screen.findByRole("dialog");
 
-    const eqFactorInput = within(dialog).getByLabelText(/^Equivalency factor F/i);
+    await within(dialog).findByLabelText(/^Display Name/);
+    await clickNextStep(user, dialog);
+
+    const eqFactorInput = await within(dialog).findByLabelText(/^Equivalency factor F/i);
     await user.clear(eqFactorInput);
     await user.type(eqFactorInput, "88.1");
 
     const reasonInput = await within(dialog).findByLabelText(/Reason for Change/i);
     await user.type(reasonInput, "SOP revision 4 updated equivalency factor.");
-    await user.click(within(dialog).getByRole("button", { name: "Save Changes" }));
+    await submitWizard(user, dialog);
 
     await waitFor(() => expect(masterDataOptions.updateTestDefinition).toHaveBeenCalledTimes(1));
     expect(masterDataOptions.updateTestDefinition).toHaveBeenCalledWith(

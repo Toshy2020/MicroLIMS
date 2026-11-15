@@ -42,6 +42,7 @@ import { useBenchMode } from "../../theme/BenchModeContext";
 import { OfflineDraftNotice, classifySaveFailure, draftHeaderArgs, serverMessage, useKeptOffline } from "./benchSave";
 import type { IncubatorEquipmentItem, ReleasedMediaItem } from "../../services/lookupCache";
 import type { CountPreviewResult, PreviousStepDetail, TestWorkflowStepDto } from "./types/testWorkflowTypes";
+import { resolveWorkflowPanelKind } from "./utils/workflowPanelMapping";
 
 type StepMediaRow = TestWorkflowStepDto["stepMedia"][number];
 type StepStage = NonNullable<TestWorkflowStepDto["incubationStages"]>[number];
@@ -731,8 +732,13 @@ function TestWorkflowDialogBody({ testOrderId, testCode, category, displayName, 
     </>
   );
 
+  const panelKind = resolveWorkflowPanelKind(current.workflowType, {
+    locationEntry: current.locationEntry,
+    category
+  });
+
   // Water / AC per-location result entry
-  if (current.locationEntry) {
+  if (panelKind === "LocationResults") {
     return (
       <LocationResultsPanel
         testOrderId={testOrderId}
@@ -746,7 +752,7 @@ function TestWorkflowDialogBody({ testOrderId, testCode, category, displayName, 
   }
 
   // Measurement workflow (pH, density, etc.)
-  if (current.workflowType === "Measurement") {
+  if (panelKind === "Measurement") {
     return withOutsource(
       <MeasurementPanel
         testOrderId={testOrderId}
@@ -762,7 +768,7 @@ function TestWorkflowDialogBody({ testOrderId, testCode, category, displayName, 
   }
 
   // Gravimetric workflow (loss on drying, ash/residue)
-  if (current.workflowType === "Gravimetric") {
+  if (panelKind === "Gravimetric") {
     return withOutsource(
       <GravimetricPanel
         testOrderId={testOrderId}
@@ -778,7 +784,7 @@ function TestWorkflowDialogBody({ testOrderId, testCode, category, displayName, 
   }
 
   // Titration assay (volumetric titrimetry, USP <541>)
-  if (current.workflowType === "Titration") {
+  if (panelKind === "Titration") {
     return withOutsource(
       <TitrationPanel
         testOrderId={testOrderId}
@@ -794,7 +800,7 @@ function TestWorkflowDialogBody({ testOrderId, testCode, category, displayName, 
   }
 
   // UV Spectrophotometry (Plan 4)
-  if (current.workflowType === "UvSpectrophotometry") {
+  if (panelKind === "UvSpectrophotometry") {
     return withOutsource(
       <UvPanel
         key={testOrderId}
@@ -811,7 +817,7 @@ function TestWorkflowDialogBody({ testOrderId, testCode, category, displayName, 
   }
 
   // Qualitative workflow (appearance, identification, etc.)
-  if (current.workflowType === "Qualitative") {
+  if (panelKind === "Qualitative") {
     return withOutsource(
       <QualitativePanel
         testOrderId={testOrderId}
@@ -827,7 +833,7 @@ function TestWorkflowDialogBody({ testOrderId, testCode, category, displayName, 
   }
 
   // Dissolution workflow (HPLC finish, staged S1-S3)
-  if (current.workflowType === "Dissolution") {
+  if (panelKind === "Dissolution") {
     return withOutsource(
       <DissolutionPanel
         testOrderId={testOrderId}
@@ -843,7 +849,7 @@ function TestWorkflowDialogBody({ testOrderId, testCode, category, displayName, 
   }
 
   // Disintegration workflow (time per unit, staged S1-S2)
-  if (current.workflowType === "Disintegration") {
+  if (panelKind === "Disintegration") {
     return withOutsource(
       <DisintegrationPanel
         testOrderId={testOrderId}
@@ -859,7 +865,7 @@ function TestWorkflowDialogBody({ testOrderId, testCode, category, displayName, 
   }
 
   // Weight Variation workflow (tablet/capsule weight variation, staged S1-S2)
-  if (current.workflowType === "WeightVariation") {
+  if (panelKind === "WeightVariation") {
     return withOutsource(
       <WeightVariationPanel
         testOrderId={testOrderId}
@@ -884,6 +890,8 @@ function TestWorkflowDialogBody({ testOrderId, testCode, category, displayName, 
   // Five-stage pathogen chain, except EM/AfterCleaning (which still uses
   // this component's own incubation phases below, only handing off to
   // the location-grid dialogs for its final per-location result entry).
+  // Unchanged routing: every workflow other than CountTest (and other than EM / After Cleaning)
+  // opens the pathogen step dialog, as it always has.
   if (current.workflowType !== "CountTest" && !isEmOrAfterCleaning) {
     return <PathogenStepDialog testOrderId={testOrderId} testCode={testCode} displayName={displayName} onClose={onClose} />;
   }

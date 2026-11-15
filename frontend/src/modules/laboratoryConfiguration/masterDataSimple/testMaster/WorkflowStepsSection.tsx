@@ -13,6 +13,7 @@ import { useMediaProducts } from "../../../../hooks/useMediaProducts";
 import { masterDataOptions, incubationConditionLabel, MediaIncubationConditionOption } from "../../../../services/masterDataOptions";
 import { tableHeadSx } from "../../../../theme";
 import { EQUATION_TYPE_LABELS, PHENOTYPIC_TEST_TYPES, PHENOTYPIC_TEST_TYPE_LABELS, STEP_TYPES, STEP_TYPES_REQUIRING_ORGANISM, STEP_TYPES_SINGLE_MEDIA, STEP_TYPES_WITH_NO_MEDIA, StepFormState, StepMediaRow, WORKFLOW_TYPE_LABELS, WorkflowStepMediaItem, defaultStepForm, stage1Ranges, stepNeedsConfiguration, validateStepForm } from "./testMasterConstants";
+import type { DraftWorkflowStep } from "../testWizard/testFormModel";
 
 export interface WorkflowStepIncubationStage {
   stageNumber: number;
@@ -65,7 +66,22 @@ function stepToFormState(s: WorkflowStepItem): StepFormState {
 // of a hardcoded per-test-code chain (see backend TestWorkflowStep.cs).
 // A step can only be deleted if no TestOrder has used it yet (server-
 // enforced); reordering swaps StepOrder with the adjacent step.
-export function WorkflowStepsSection({ test, workflowTypes, onWorkflowTypeChanged }: { test: TestDefinitionOption; workflowTypes: string[]; onWorkflowTypeChanged: () => void }) {
+export function WorkflowStepsSection({
+  test,
+  workflowTypes,
+  onWorkflowTypeChanged,
+  draftSteps,
+  onDraftStepsChange,
+  onDraftWorkflowTypeChange
+}: {
+  test: TestDefinitionOption;
+  workflowTypes: string[];
+  onWorkflowTypeChanged: () => void;
+  draftSteps?: DraftWorkflowStep[];
+  onDraftStepsChange?: (steps: DraftWorkflowStep[]) => void;
+  onDraftWorkflowTypeChange?: (workflowType: string) => void;
+}) {
+  const isDraftMode = draftSteps !== undefined && onDraftStepsChange !== undefined;
   const [steps, setSteps] = useState<WorkflowStepItem[]>([]);
   const [organisms, setOrganisms] = useState<Array<{ id: number; scientificName: string; commonName?: string }>>([]);
   // Step media name a Culture Media product; the picker hides inactive ones except a product already on the row.
@@ -73,20 +89,75 @@ export function WorkflowStepsSection({ test, workflowTypes, onWorkflowTypeChange
   const [conditions, setConditions] = useState<MediaIncubationConditionOption[]>([]);
   const [form, setForm] = useState<StepFormState>(defaultStepForm);
   const [editingStepId, setEditingStepId] = useState<number | null>(null);
+  const [editingDraftIndex, setEditingDraftIndex] = useState<number | null>(null);
   const [stepToDelete, setStepToDelete] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const stepNameInputRef = useRef<HTMLInputElement>(null);
 
-  const loadSteps = () => masterDataOptions.getTestWorkflowSteps(test.id).then(setSteps);
+  const loadSteps = () => (isDraftMode ? Promise.resolve() : masterDataOptions.getTestWorkflowSteps(test.id).then(setSteps));
   useEffect(() => {
     masterDataOptions.getOrganisms().then(setOrganisms);
     masterDataOptions.getMediaIncubationConditions().then(setConditions);
-    loadSteps();
+    if (!isDraftMode) {
+      loadSteps();
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [test.id]);
+  }, [test.id, isDraftMode]);
+
+  const sortedDraftSteps = (draftSteps ?? []).slice().sort((a, b) => a.stepOrder - b.stepOrder);
+  const effectiveSteps: WorkflowStepItem[] = isDraftMode
+    ? sortedDraftSteps.map((s, idx) => {
+        const org = s.targetOrganismId != null ? organisms.find((o) => o.id === s.targetOrganismId) : null;
+        const orgName = org ? (org.commonName ? `${org.scientificName} (${org.commonName})` : org.scientificName) : s.targetOrganismName ?? undefined;
+        return {
+          id: s.id ?? -(idx + 1),
+          stepName: s.stepName,
+          stepOrder: s.stepOrder,
+          isFinalStep: s.isFinalStep,
+          stepType: s.stepType,
+          targetOrganismId: s.targetOrganismId,
+          targetOrganism: orgName ? { name: orgName } : null,
+          requiresIncubationTransfer: s.requiresIncubationTransfer,
+          version: s.version,
+          stepMedia: s.stepMedia.map((m) => {
+            const cond = m.mediaIncubationConditionId !== "" ? conditions.find((c) => c.id === m.mediaIncubationConditionId) : undefined;
+            const prod = m.mediaProductId !== "" ? mediaProducts.find((p) => p.id === m.mediaProductId) : undefined;
+            return {
+              mediaProductId: Number(m.mediaProductId || 0),
+              mediaProductName: m.mediaProductName ?? prod?.name,
+              mediaIncubationConditionId: m.mediaIncubationConditionId,
+              isRequired: m.isRequired,
+              displayOrder: m.displayOrder,
+              incubationMinHours: cond?.incubationMinHours ?? m.incubationMinHours,
+              incubationMaxHours: cond?.incubationMaxHours ?? m.incubationMaxHours,
+              tempMin: cond?.temperatureMin ?? m.tempMin,
+              tempMax: cond?.temperatureMax ?? m.tempMax
+            };
+          }),
+          incubationStages:
+            s.requiresIncubationTransfer && s.stepType === "PlateCount"
+              ? [
+                  {
+                    stageNumber: 2,
+                    tempMin: Number(s.stage2TempMin),
+                    tempMax: Number(s.stage2TempMax),
+                    incubationMinHours: Number(s.stage2IncubationMinHours),
+                    incubationMaxHours: Number(s.stage2IncubationMaxHours)
+                  }
+                ]
+              : [],
+          phenotypicTestType: s.phenotypicTestType ?? null,
+          phenotypicTestTypes: s.phenotypicTestTypes ?? []
+        };
+      })
+    : steps;
 
   const changeWorkflowType = async (workflowType: string) => {
     setError(null);
+    if (isDraftMode && onDraftWorkflowTypeChange) {
+      onDraftWorkflowTypeChange(workflowType);
+      return;
+    }
     try {
       await masterDataOptions.updateWorkflowType(test.id, workflowType, test.version);
       onWorkflowTypeChanged();
@@ -96,8 +167,9 @@ export function WorkflowStepsSection({ test, workflowTypes, onWorkflowTypeChange
     }
   };
 
-  const startEditStep = (s: WorkflowStepItem) => {
+  const startEditStep = (s: WorkflowStepItem, index: number) => {
     setEditingStepId(s.id);
+    setEditingDraftIndex(index);
     setForm(stepToFormState(s));
     setError(null);
   };
@@ -107,12 +179,17 @@ export function WorkflowStepsSection({ test, workflowTypes, onWorkflowTypeChange
   // never final (TestWorkflowStepMasterDataService rejects a second one).
   const startDuplicateStep = (s: WorkflowStepItem) => {
     setEditingStepId(null);
+    setEditingDraftIndex(null);
     setForm({ ...stepToFormState(s), stepName: `${s.stepName} (copy)`, isFinalStep: false });
     setError(null);
     stepNameInputRef.current?.focus();
   };
 
-  const cancelEditStep = () => { setEditingStepId(null); setForm(defaultStepForm()); };
+  const cancelEditStep = () => {
+    setEditingStepId(null);
+    setEditingDraftIndex(null);
+    setForm(defaultStepForm());
+  };
 
   const needsOrganism = STEP_TYPES_REQUIRING_ORGANISM.includes(form.stepType);
   const hasNoMedia = STEP_TYPES_WITH_NO_MEDIA.includes(form.stepType);
@@ -203,6 +280,53 @@ export function WorkflowStepsSection({ test, workflowTypes, onWorkflowTypeChange
         }
       ] : []
     };
+    if (isDraftMode && onDraftStepsChange) {
+      if (form.isFinalStep && sortedDraftSteps.some((s, idx) => s.isFinalStep && idx !== editingDraftIndex)) {
+        setError("Only one step can be marked as the final step.");
+        return;
+      }
+      const org = form.targetOrganismId != null ? organisms.find((o) => o.id === form.targetOrganismId) : null;
+      const targetOrganismName = org ? (org.commonName ? `${org.scientificName} (${org.commonName})` : org.scientificName) : null;
+      const existing = editingDraftIndex !== null ? sortedDraftSteps[editingDraftIndex] : undefined;
+      const draftEntry: DraftWorkflowStep = {
+        id: existing?.id,
+        version: existing?.version,
+        stepOrder: existing ? existing.stepOrder : sortedDraftSteps.length + 1,
+        stepName: form.stepName.trim(),
+        isFinalStep: !!form.isFinalStep,
+        stepType: form.stepType,
+        targetOrganismId: form.targetOrganismId,
+        targetOrganismName,
+        stepMedia: form.stepMedia.map((m, i) => {
+          const cond = m.mediaIncubationConditionId !== "" ? conditions.find((c) => c.id === m.mediaIncubationConditionId) : undefined;
+          const prod = m.mediaProductId !== "" ? mediaProducts.find((p) => p.id === m.mediaProductId) : undefined;
+          return {
+            mediaProductId: m.mediaProductId,
+            mediaIncubationConditionId: m.mediaIncubationConditionId,
+            isRequired: form.stepType === "ConfirmatoryPlating" ? false : !!m.isRequired,
+            displayOrder: i,
+            mediaProductName: prod?.name,
+            tempMin: cond?.temperatureMin,
+            tempMax: cond?.temperatureMax,
+            incubationMinHours: cond?.incubationMinHours,
+            incubationMaxHours: cond?.incubationMaxHours
+          };
+        }),
+        requiresIncubationTransfer: form.stepType === "PlateCount" && !!form.requiresIncubationTransfer,
+        stage2TempMin: form.stage2TempMin,
+        stage2TempMax: form.stage2TempMax,
+        stage2IncubationMinHours: form.stage2IncubationMinHours,
+        stage2IncubationMaxHours: form.stage2IncubationMaxHours,
+        phenotypicTestType: isBiochemical ? form.phenotypicTestType ?? null : null,
+        phenotypicTestTypes: isBiochemical ? form.phenotypicTestTypes : []
+      };
+      const next = editingDraftIndex !== null
+        ? sortedDraftSteps.map((item, idx) => (idx === editingDraftIndex ? draftEntry : item))
+        : [...sortedDraftSteps, draftEntry];
+      cancelEditStep();
+      onDraftStepsChange(next);
+      return;
+    }
     try {
       if (editingStepId) {
         await masterDataOptions.updateTestWorkflowStep(editingStepId, payload, steps.find((s) => s.id === editingStepId)?.version);
@@ -217,8 +341,17 @@ export function WorkflowStepsSection({ test, workflowTypes, onWorkflowTypeChange
     }
   };
 
-  const move = async (stepId: number, direction: "up" | "down") => {
+  const move = async (stepId: number, direction: "up" | "down", index: number) => {
     setError(null);
+    if (isDraftMode && onDraftStepsChange) {
+      const targetIndex = direction === "up" ? index - 1 : index + 1;
+      if (targetIndex < 0 || targetIndex >= sortedDraftSteps.length) return;
+      const reordered = sortedDraftSteps.slice();
+      const [moved] = reordered.splice(index, 1);
+      reordered.splice(targetIndex, 0, moved);
+      onDraftStepsChange(reordered.map((s, idx) => ({ ...s, stepOrder: idx + 1 })));
+      return;
+    }
     try {
       // Move returns no version, so the reload is what gives the next action the server's current version.
       await masterDataOptions.moveTestWorkflowStep(stepId, direction, steps.find((s) => s.id === stepId)?.version);
@@ -231,6 +364,16 @@ export function WorkflowStepsSection({ test, workflowTypes, onWorkflowTypeChange
 
   const remove = async (stepId: number) => {
     setError(null);
+    if (isDraftMode && onDraftStepsChange) {
+      const deleteIdx = effectiveSteps.findIndex((s) => s.id === stepId);
+      if (deleteIdx >= 0) {
+        const remaining = sortedDraftSteps
+          .filter((_, idx) => idx !== deleteIdx)
+          .map((s, idx) => ({ ...s, stepOrder: idx + 1 }));
+        onDraftStepsChange(remaining);
+      }
+      return;
+    }
     try {
       await masterDataOptions.deleteTestWorkflowStep(stepId, steps.find((s) => s.id === stepId)?.version);
       await loadSteps();
@@ -546,7 +689,7 @@ export function WorkflowStepsSection({ test, workflowTypes, onWorkflowTypeChange
         </Box>
       ) : (
       <>
-      {steps.length > 0 ? (
+      {effectiveSteps.length > 0 ? (
         <TableContainer>
           <Table size="small" sx={{ mb: 1.5 }}>
             <TableHead>
@@ -556,7 +699,7 @@ export function WorkflowStepsSection({ test, workflowTypes, onWorkflowTypeChange
                 <TableCell>Status</TableCell><TableCell>Final</TableCell><TableCell /></TableRow>
             </TableHead>
             <TableBody>
-              {steps.map((s, i) => {
+              {effectiveSteps.map((s, i) => {
                 const stage2 = (s.incubationStages ?? []).find((x) => x.stageNumber === 2);
                 const isTwoStage = s.stepType === "PlateCount" && s.requiresIncubationTransfer;
                 return (
@@ -632,20 +775,20 @@ export function WorkflowStepsSection({ test, workflowTypes, onWorkflowTypeChange
                     <TableCell align="right">
                       <Tooltip title="Move up">
                         <span>
-                          <IconButton size="small" disabled={i === 0} onClick={() => move(s.id, "up")} aria-label="Move up">
+                          <IconButton size="small" disabled={i === 0} onClick={() => move(s.id, "up", i)} aria-label="Move up">
                             <ArrowUpwardIcon fontSize="small" />
                           </IconButton>
                         </span>
                       </Tooltip>
                       <Tooltip title="Move down">
                         <span>
-                          <IconButton size="small" disabled={i === steps.length - 1} onClick={() => move(s.id, "down")} aria-label="Move down">
+                          <IconButton size="small" disabled={i === effectiveSteps.length - 1} onClick={() => move(s.id, "down", i)} aria-label="Move down">
                             <ArrowDownwardIcon fontSize="small" />
                           </IconButton>
                         </span>
                       </Tooltip>
                       <Tooltip title="Edit step">
-                        <IconButton size="small" onClick={() => startEditStep(s)} aria-label="Edit step">
+                        <IconButton size="small" onClick={() => startEditStep(s, i)} aria-label="Edit step">
                           <EditIcon fontSize="small" />
                         </IconButton>
                       </Tooltip>
@@ -819,8 +962,8 @@ export function WorkflowStepsSection({ test, workflowTypes, onWorkflowTypeChange
           {/* Update replaces the whole StepMedia set server-side (no merge) -
               flagged here so an admin editing an existing step isn't
               surprised that rows not shown in this list get removed. */}
-          {editingStepId && (
-            <Alert severity="info" sx={{ mb: 1, maxWidth: 520 }}>Saving replaces this step's entire medium list with what's shown below.</Alert>
+          {!isDraftMode && editingStepId && (
+            <Alert severity="info" sx={{ mb: 1, maxWidth: 520 }}>Saving replaces this step&apos;s entire medium list with what&apos;s shown below.</Alert>
           )}
           <Typography
             variant="caption"

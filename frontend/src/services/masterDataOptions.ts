@@ -53,7 +53,7 @@ type MediaConfigurationPayload = {
 
 // Step media send only the chosen condition - the server copies its
 // temperature and hours onto the step medium when it saves.
-type TestWorkflowStepPayload = {
+export type TestWorkflowStepPayload = {
   stepName: string; incubationMinHours: number; incubationMaxHours: number;
   temperatureMin: number; temperatureMax: number; isFinalStep: boolean; stepType: string;
   targetOrganismId: number | null; phenotypicTestType: string | null; phenotypicTestTypes?: string[];
@@ -61,6 +61,12 @@ type TestWorkflowStepPayload = {
   requiresIncubationTransfer: boolean;
   incubationStages: { stageNumber: number; tempMin: number; tempMax: number; incubationMinHours: number; incubationMaxHours: number }[];
 };
+
+export interface SaveTestWithStepsPayload {
+  test: CreateTestDefinitionPayload;
+  steps: TestWorkflowStepPayload[];
+  stages: CreateTestDefinitionStageReplicateRequest[];
+}
 
 export interface EquationTypeDto {
   code: string;
@@ -296,6 +302,8 @@ export const masterDataOptions = {
       : codeOrPayload;
     return apiClient.post("/masterdata/test-definitions", payload).then((r) => r.data.data);
   },
+  createTestWithSteps: (payload: SaveTestWithStepsPayload) =>
+    apiClient.post("/masterdata/test-definitions/with-steps", payload).then((r) => r.data.data),
   updateTestDefinition: (id: number, codeOrPayload: string | UpdateTestDefinitionPayload, displayName?: string, sectionId?: number | null, version?: number, reason?: string) => {
     const payload = typeof codeOrPayload === "string"
       ? { code: codeOrPayload, displayName: displayName ?? codeOrPayload, ...(sectionId != null ? { sectionId } : {}) }

@@ -29,7 +29,11 @@ interface ApiEnvelope<T> {
 export const recentRecordsService = {
   async list(signal?: AbortSignal): Promise<RecentRecordDto[]> {
     const res = await apiClient.get<ApiEnvelope<RecentRecordDto[] | null>>("/me/recent", { signal });
-    return res.data.data ?? [];
+    const list = res.data?.data ?? [];
+    // An answer that is not a list is a failed load: the caller hides the section
+    // instead of breaking the layout around it.
+    if (!Array.isArray(list)) throw new Error("Unexpected recent records response.");
+    return list;
   },
 
   async touch(recordType: RecentRecordType, recordId: number): Promise<void> {

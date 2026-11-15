@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Box, Button, Alert, Tabs, Tab } from "@mui/material";
+import { useSearchParams } from "react-router-dom";
 import { usePersistedTab } from "../../../hooks/usePersistedTab";
 import AddIcon from "@mui/icons-material/Add";
 import { LabPage } from "../../../components/lab";

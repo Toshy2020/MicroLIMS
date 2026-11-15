@@ -7,6 +7,10 @@ import { EquipmentPage } from "./EquipmentPage";
 import { EquipmentConfigurationService } from "./services/EquipmentConfigurationService";
 import { EquipmentInventoryService } from "../../inventory/equipment/services/EquipmentInventoryService";
 import * as laboratorySectionService from "../../../services/laboratorySectionService";
+import { AuthProvider } from "../../../contexts/AuthContext";
+import { resetDraftDb, signInForTest } from "../../../services/drafts/draftTestUtils";
+import { masterDataUsageService } from "../../../services/masterDataUsageService";
+import { clickNext, clickSave } from "./equipmentWizard/equipmentWizard.testUtils";
 
 vi.mock("./services/EquipmentConfigurationService", () => ({
   EquipmentConfigurationService: {
@@ -19,6 +23,10 @@ vi.mock("./services/EquipmentConfigurationService", () => ({
     updateSetPoint: vi.fn(),
     saveAutoclaveProgram: vi.fn()
   }
+}));
+
+vi.mock("../../../services/masterDataUsageService", () => ({
+  masterDataUsageService: { getUsage: vi.fn() }
 }));
 
 vi.mock("../../inventory/equipment/services/EquipmentInventoryService", () => ({
@@ -48,14 +56,25 @@ afterEach(() => {
 const renderPage = () =>
   render(
     <PinnedLightTheme>
-      <MemoryRouter>
-        <EquipmentPage />
-      </MemoryRouter>
+      <AuthProvider>
+        <MemoryRouter>
+          <EquipmentPage />
+        </MemoryRouter>
+      </AuthProvider>
     </PinnedLightTheme>
   );
 
 describe("EquipmentPage", () => {
-  beforeEach(() => {
+  beforeEach(async () => {
+    await resetDraftDb();
+    signInForTest(7);
+    vi.mocked(masterDataUsageService.getUsage).mockResolvedValue({
+      type: "Equipment",
+      id: 10,
+      openWorkCount: 0,
+      historicalCount: 0,
+      lines: []
+    });
     vi.mocked(laboratorySectionService.getSections).mockResolvedValue([
       { sectionId: 1, sectionCode: "MICRO", sectionName: "Microbiology", departmentId: 1, departmentCode: "QC", departmentName: "QC" }
     ]);
@@ -145,13 +164,16 @@ describe("EquipmentPage", () => {
     await user.click(editButton);
 
     const dialog = await screen.findByRole("dialog");
+    await clickNext(user, dialog);
+    await clickNext(user, dialog);
     const picker = within(dialog).getByRole("combobox", { name: "Asset register entry" });
     await user.click(picker);
 
     const listbox = await screen.findByRole("listbox");
     await user.click(within(listbox).getByText("AST-INC-42 — Binder Incubator"));
 
-    await user.click(within(dialog).getByRole("button", { name: "Save Changes" }));
+    await clickNext(user, dialog);
+    await clickSave(user, dialog);
 
     await waitFor(() => {
       expect(EquipmentConfigurationService.updateEquipment).toHaveBeenCalledWith(
@@ -204,9 +226,12 @@ describe("EquipmentPage", () => {
     await user.click(await screen.findByRole("button", { name: "Edit Equipment" }));
 
     const dialog = await screen.findByRole("dialog");
+    await clickNext(user, dialog);
+    await clickNext(user, dialog);
     const clearButton = within(dialog).getByRole("button", { name: "Clear" });
     await user.click(clearButton);
-    await user.click(within(dialog).getByRole("button", { name: "Save Changes" }));
+    await clickNext(user, dialog);
+    await clickSave(user, dialog);
 
     await waitFor(() => {
       expect(EquipmentConfigurationService.updateEquipment).toHaveBeenCalledWith(
@@ -258,15 +283,30 @@ describe("EquipmentPage", () => {
 
     await user.click(await screen.findByRole("button", { name: "Edit Equipment" }));
     const dialog = await screen.findByRole("dialog");
-    await user.click(within(dialog).getByRole("button", { name: "Save Changes" }));
+    await clickNext(user, dialog);
+    await clickNext(user, dialog);
+    await clickNext(user, dialog);
+    await clickSave(user, dialog);
 
     await user.type(await screen.findByLabelText(/Reason for change/i), "Recalibrated thermal probe");
-    await user.click(screen.getByRole("button", { name: "Save Change" }));
+    await user.click(screen.getByRole("button", { name: "Confirm" }));
 
     await waitFor(() => expect(EquipmentConfigurationService.updateEquipment).toHaveBeenCalledTimes(2));
     expect(vi.mocked(EquipmentConfigurationService.updateEquipment).mock.calls[1][3]).toBe(
       "Recalibrated thermal probe"
     );
+  });
+
+  it("opens New from existing for the selected equipment with an empty code", async () => {
+    const user = userEvent.setup();
+    renderPage();
+
+    await user.click(await screen.findByRole("button", { name: "New from existing" }));
+    const dialog = await screen.findByRole("dialog");
+    expect(within(dialog).getByText(/New Equipment from "INC-01"/)).toBeTruthy();
+    expect((within(dialog).getByLabelText(/^Equipment Code/) as HTMLInputElement).value).toBe("");
+    expect((within(dialog).getByLabelText(/^Equipment Name/) as HTMLInputElement).value).toBe("Incubator 1");
+    expect(EquipmentConfigurationService.createEquipment).not.toHaveBeenCalled();
   });
 
   it("lists the configured equipment and shows the selected incubator set point", async () => {

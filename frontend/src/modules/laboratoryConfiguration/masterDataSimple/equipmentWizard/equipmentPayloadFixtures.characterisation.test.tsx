@@ -3,17 +3,20 @@ import { cleanup, render, screen, waitFor, within } from "@testing-library/react
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { PinnedLightTheme } from "../../../../theme/PinnedLightTheme";
-import { changeDateField } from "../../../../components/DateField.testUtils";
-import { EquipmentPage, EQUIPMENT_TYPES } from "../EquipmentPage";
+import { EquipmentPage } from "../EquipmentPage";
 import { EquipmentConfigurationService } from "../services/EquipmentConfigurationService";
 import { EquipmentInventoryService } from "../../../inventory/equipment/services/EquipmentInventoryService";
 import * as laboratorySectionService from "../../../../services/laboratorySectionService";
-import { DIALOG_EQUIPMENT_FIXTURES, type EquipmentPayloadFixture } from "./__fixtures__/equipmentPayloads";
+import { AuthProvider } from "../../../../contexts/AuthContext";
+import { resetDraftDb, signInForTest } from "../../../../services/drafts/draftTestUtils";
+import { masterDataUsageService } from "../../../../services/masterDataUsageService";
+import { DIALOG_EQUIPMENT_FIXTURES } from "./__fixtures__/equipmentPayloads";
+import { clickSave, fillWizardToReview } from "./equipmentWizard.testUtils";
 
-// Characterisation: the body the Add/Edit Equipment dialog sends to the
+// Characterisation: the body the Add/Edit Equipment wizard sends to the
 // service, driven through the real page with user-event. Written and run
-// against the dialog BEFORE it was moved onto equipmentFormModel, and kept to
-// prove the move changed nothing.
+// against the old dialog BEFORE it was moved onto equipmentFormModel, then retargeted
+// at the wizard with the same fixtures to prove the move changed nothing.
 
 // Service-boundary mocks only (CLAUDE.md Rule 4.5).
 vi.mock("../services/EquipmentConfigurationService", () => ({
@@ -25,6 +28,10 @@ vi.mock("../services/EquipmentConfigurationService", () => ({
     createEquipment: vi.fn(),
     updateEquipment: vi.fn()
   }
+}));
+
+vi.mock("../../../../services/masterDataUsageService", () => ({
+  masterDataUsageService: { getUsage: vi.fn() }
 }));
 
 vi.mock("../../../inventory/equipment/services/EquipmentInventoryService", () => ({
@@ -63,51 +70,29 @@ const seededEquipment = {
   connectionSettings: null
 };
 
-type User = ReturnType<typeof userEvent.setup>;
-
 function renderPage() {
   render(
     <PinnedLightTheme>
-      <MemoryRouter>
-        <EquipmentPage />
-      </MemoryRouter>
+      <AuthProvider>
+        <MemoryRouter>
+          <EquipmentPage />
+        </MemoryRouter>
+      </AuthProvider>
     </PinnedLightTheme>
   );
 }
 
-async function setText(user: User, dialog: HTMLElement, label: RegExp | string, value: string) {
-  const input = within(dialog).getByLabelText(label);
-  await user.clear(input);
-  if (value) await user.type(input, value);
-}
-
-// Enters every field of the fixture model into the open dialog.
-async function fillDialog(user: User, dialog: HTMLElement, fixture: EquipmentPayloadFixture) {
-  const { model } = fixture;
-  await setText(user, dialog, /^Equipment Name/, model.name);
-  await setText(user, dialog, /^Equipment Code/, model.code);
-
-  await user.click(within(dialog).getByRole("combobox", { name: /Equipment Type/ }));
-  const typeLabel = EQUIPMENT_TYPES.find((t) => t.value === model.type)?.label ?? model.type;
-  await user.click(await screen.findByRole("option", { name: typeLabel }));
-
-  await setText(user, dialog, "Vendor / Manufacturer", model.vendor);
-  if (model.sectionId !== "" && !fixture.ctx.isEditing && fixture.ctx.sectionCount > 1) {
-    await user.click(within(dialog).getByRole("combobox", { name: /Laboratory Section/ }));
-    await user.click(await screen.findByRole("option", { name: /Environmental/ }));
-  }
-  await setText(user, dialog, "Location", model.location);
-  if (model.equipmentInventoryId === 42) {
-    await user.click(within(dialog).getByRole("combobox", { name: "Asset register entry" }));
-    await user.click(await screen.findByText("AST-INC-42 — Binder Incubator"));
-  }
-  await setText(user, dialog, "Connection Settings (optional)", model.connectionSettings);
-  await setText(user, dialog, /Set Point Temp/, model.setPointTemperature);
-  if (model.calibrationDueDate) changeDateField("Calibration Due Date", model.calibrationDueDate);
-}
-
-describe("equipment dialog payload characterisation", () => {
-  beforeEach(() => {
+describe("equipment wizard payload characterisation", () => {
+  beforeEach(async () => {
+    await resetDraftDb();
+    signInForTest(7);
+    vi.mocked(masterDataUsageService.getUsage).mockResolvedValue({
+      type: "Equipment",
+      id: 10,
+      openWorkCount: 0,
+      historicalCount: 0,
+      lines: []
+    });
     vi.mocked(laboratorySectionService.getSections).mockResolvedValue([microSection]);
     vi.mocked(laboratorySectionService.getMySections).mockResolvedValue([microSection]);
     vi.mocked(EquipmentConfigurationService.getConfiguredSummary).mockResolvedValue([
@@ -173,8 +158,8 @@ describe("equipment dialog payload characterisation", () => {
 
     await user.click(await screen.findByRole("button", { name: "Add Equipment" }));
     const dialog = await screen.findByRole("dialog");
-    await fillDialog(user, dialog, fixture);
-    await user.click(within(dialog).getByRole("button", { name: "Create Equipment" }));
+    await fillWizardToReview(user, dialog, fixture);
+    await clickSave(user, dialog);
 
     await waitFor(() => expect(EquipmentConfigurationService.createEquipment).toHaveBeenCalledTimes(1));
     expect(vi.mocked(EquipmentConfigurationService.createEquipment).mock.calls[0]).toStrictEqual([
@@ -190,8 +175,8 @@ describe("equipment dialog payload characterisation", () => {
 
     await user.click(await screen.findByRole("button", { name: "Edit Equipment" }));
     const dialog = await screen.findByRole("dialog");
-    await fillDialog(user, dialog, fixture);
-    await user.click(within(dialog).getByRole("button", { name: "Save Changes" }));
+    await fillWizardToReview(user, dialog, fixture);
+    await clickSave(user, dialog);
 
     await waitFor(() => expect(EquipmentConfigurationService.updateEquipment).toHaveBeenCalledTimes(1));
     expect(vi.mocked(EquipmentConfigurationService.updateEquipment).mock.calls[0]).toStrictEqual([

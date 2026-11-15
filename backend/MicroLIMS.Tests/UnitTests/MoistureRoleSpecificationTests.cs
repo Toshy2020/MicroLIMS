@@ -119,9 +119,9 @@ public class MoistureRoleSpecificationTests
         });
         var svc = TestServiceFactory.TestDefinitionMaster(db);
 
-        var ex = await Assert.ThrowsAsync<BusinessRuleException>(
+        var ex = await Assert.ThrowsAnyAsync<BusinessRuleException>(
             () => svc.UpdateTestDefinitionAsync(s.UserId, s.Test.Id, new UpdateTestDefinitionRequest(s.Test.Code, s.Test.DisplayName, MoistureRole: MoistureRole.Water)));
-        Assert.Contains("reason for change", ex.Message);
+        Assert.Contains("reason", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]

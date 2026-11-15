@@ -75,7 +75,7 @@ public class ItemMassAssignmentTests
             new List<ItemTestRequest> { new("TAMC", "TAMC") }));
         db.Specifications.Add(new Domain.Entities.Specification { ItemId = item.Id, TestCode = "TAMC", SpecLimit = "1000" });
         await db.SaveChangesAsync();
-        await service.SetActiveAsync(item.Id, false);
+        await service.SetActiveAsync(item.Id, false, "Freeze item for mass-assignment update test");
 
         await service.UpdateAsync(item.Id, ParseAsTheApiDoes("""
             { "id": 999, "isActive": true, "name": "Tablets v2", "code": "TAB-02", "category": "RawMaterial",

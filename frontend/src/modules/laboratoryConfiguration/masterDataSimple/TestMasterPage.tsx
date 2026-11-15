@@ -11,6 +11,8 @@ import { useLoadFailures } from "../../../hooks/useLoadFailures";
 import { FloatingDialog } from "../../../components/FloatingDialog";
 import { useTestDefinitions, TestDefinitionOption } from "../../../hooks/useTestDefinitions";
 import { CreateTestDefinitionPayload, UpdateTestDefinitionPayload, MoistureRole } from "../../../services/masterDataOptions";
+import { isReasonRequiredError } from "../../../services/apiClient";
+import { ChangeReasonDialog } from "../../../components/config/ChangeReasonDialog";
 import { HplcMethodService, HplcMethodListItem } from "./services/HplcMethodService";
 import { TitrationConfigSection } from "./TitrationConfigSection";
 import { TitrationFormState, createInitialTitrationForm, titrationFormFromDefinition, titrationPayloadFields, validateTitrationForm } from "./titrationConfig";
@@ -144,6 +146,13 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
   const [physchemArea, setPhyschemArea] = useState<PhyschemArea | null>(null);
   const [changeReason, setChangeReason] = useState("");
   const [changeReasonError, setChangeReasonError] = useState<string | null>(null);
+  const [pendingReasonAction, setPendingReasonAction] = useState<
+    | { kind: "freeze"; test: TestDefinitionOption }
+    | { kind: "edit"; id: number; payload: UpdateTestDefinitionPayload; code: string }
+    | null
+  >(null);
+  const [reasonSaving, setReasonSaving] = useState(false);
+  const [reasonDialogError, setReasonDialogError] = useState<string | null>(null);
   const [code, setCode] = useState("");
   const [displayName, setDisplayName] = useState("");
   // Certificate of Analysis position inside the test's group; "" = none.
@@ -706,6 +715,7 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
     };
 
     setSaving(true);
+    let attemptedEdit: { id: number; payload: UpdateTestDefinitionPayload; code: string } | null = null;
     try {
       const resolvedEquationType = isHplcMethodAssay
         ? "HplcMethodAssay"
@@ -762,6 +772,8 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
           uvStandardVolumeMl: isUv && uvCalculationMode === "StandardComparison" && uvStandardVolumeMl !== "" ? Number(uvStandardVolumeMl) : null,
           uvStandardEntryId: isUv && uvCalculationMode === "StandardComparison" && uvStandardEntryId !== "" ? uvStandardEntryId : null
         };
+        const currentEdit = { id: editingId, payload, code: trimmedCode };
+        attemptedEdit = currentEdit;
         await update(editingId, payload);
         setMessage({ text: `Test "${trimmedCode}" updated.`, ok: true });
       } else {
@@ -802,6 +814,12 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
       }
       closeDialog();
     } catch (e: unknown) {
+      if (attemptedEdit && isReasonRequiredError(e)) {
+        closeDialog();
+        setReasonDialogError(null);
+        setPendingReasonAction({ kind: "edit", ...attemptedEdit });
+        return;
+      }
       const err = e as { response?: { data?: { message?: string } } };
       setDialogError(err?.response?.data?.message ?? `Could not ${editingId ? "update" : "add"} this test.`);
     } finally {
@@ -809,14 +827,32 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
     }
   };
 
-  const toggleFreeze = async (t: TestDefinitionOption) => {
+  const toggleFreeze = (t: TestDefinitionOption) => {
     setMessage(null);
+    setReasonDialogError(null);
+    setPendingReasonAction({ kind: "freeze", test: t });
+  };
+
+  const confirmReasonAction = async (reason: string) => {
+    if (!pendingReasonAction) return;
+    setReasonSaving(true);
+    setReasonDialogError(null);
     try {
-      await setActive(t.id, !t.isActive);
-      setMessage({ text: `Test "${t.code}" ${t.isActive ? "frozen" : "unfrozen"}.`, ok: true });
+      if (pendingReasonAction.kind === "freeze") {
+        const t = pendingReasonAction.test;
+        await setActive(t.id, !t.isActive, reason);
+        setMessage({ text: `Test "${t.code}" ${t.isActive ? "frozen" : "unfrozen"}.`, ok: true });
+      } else {
+        const { id, payload, code } = pendingReasonAction;
+        await update(id, payload, undefined, undefined, reason);
+        setMessage({ text: `Test "${code}" updated.`, ok: true });
+      }
+      setPendingReasonAction(null);
     } catch (e: unknown) {
       const err = e as { response?: { data?: { message?: string } } };
-      setMessage({ text: err?.response?.data?.message ?? "Could not update this test's status.", ok: false });
+      setReasonDialogError(err?.response?.data?.message ?? "Could not complete this change.");
+    } finally {
+      setReasonSaving(false);
     }
   };
 
@@ -1774,6 +1810,41 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
           )}
         </Stack>
       </FormDialog>
+      <ChangeReasonDialog
+        open={pendingReasonAction !== null}
+        title={
+          pendingReasonAction?.kind === "freeze"
+            ? pendingReasonAction.test.isActive
+              ? `Freeze test "${pendingReasonAction.test.code}"?`
+              : `Unfreeze test "${pendingReasonAction.test.code}"?`
+            : pendingReasonAction
+              ? `Reason required to edit test "${pendingReasonAction.code}"`
+              : "Reason for change"
+        }
+        message={
+          pendingReasonAction?.kind === "freeze"
+            ? pendingReasonAction.test.isActive
+              ? "Freezing prevents this test from being selected for new work. Please record why it is being frozen."
+              : "Unfreezing makes this test available for new work again. Please record why it is being unfrozen."
+            : "This test is referenced by open laboratory work. Enter a reason to apply your changes."
+        }
+        confirmText={
+          pendingReasonAction?.kind === "freeze"
+            ? pendingReasonAction.test.isActive
+              ? "Freeze"
+              : "Unfreeze"
+            : "Save Change"
+        }
+        loading={reasonSaving}
+        error={reasonDialogError}
+        onConfirm={confirmReasonAction}
+        onCancel={() => {
+          if (!reasonSaving) {
+            setPendingReasonAction(null);
+            setReasonDialogError(null);
+          }
+        }}
+      />
     </>
   );
 }

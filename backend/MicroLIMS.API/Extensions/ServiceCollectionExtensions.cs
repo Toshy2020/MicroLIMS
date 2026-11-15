@@ -48,8 +48,9 @@ public static class ServiceCollectionExtensions
         {
             options.AddPolicy("Frontend", policy =>
                 policy.WithOrigins(allowedOrigins)
-                      // AllowAnyHeader already covers the request header
-                      // X-Draft-Started-At (bench tablets); a test pins that.
+                      // AllowAnyHeader already covers request headers including
+                      // X-Draft-Started-At (bench tablets) and X-Change-Reason
+                      // (master-data changes); integration tests pin both.
                       .AllowAnyHeader()
                       .AllowAnyMethod()
                       // AllowAnyHeader covers request headers only. Without this
@@ -289,6 +290,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<AfterCleaningMasterDataService>();
         services.AddScoped<SpecificationMasterDataService>();
         services.AddScoped<MasterDataUsageService>();
+        services.AddScoped<ChangeReasonGuard>();
         services.AddScoped<SupplierStatedAttributeService>();
         services.AddScoped<ReferenceListMasterDataService>();
         services.AddScoped<EquipmentMasterDataService>();

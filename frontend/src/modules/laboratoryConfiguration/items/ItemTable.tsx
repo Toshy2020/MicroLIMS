@@ -20,7 +20,6 @@ import DescriptionIcon from "@mui/icons-material/Description";
 import Inventory2OutlinedIcon from "@mui/icons-material/Inventory2Outlined";
 import { Item } from "./services/ItemService";
 import { CategoryBadge, StatusBadge } from "../../../components/StatusBadge";
-import { ConfirmationDialog } from "../../../components/ConfirmationDialog";
 import { ItemDocumentService } from "./services/ItemDocumentService";
 
 const ALLOWED_ITEM_CATEGORIES = ["FinishedProduct", "RawMaterial", "PackagingMaterial"];
@@ -63,8 +62,6 @@ export function ItemTable({
   onResetFilters,
   readOnly = false,
 }: ItemTableProps) {
-  const [pendingDelete, setPendingDelete] = useState<Item | null>(null);
-
   if (loading && items.length === 0) {
     return (
       <Stack spacing={1.5} aria-busy="true" aria-label="Loading items">
@@ -119,7 +116,7 @@ export function ItemTable({
               onSelectItem={onSelectItem}
               onEdit={onEdit}
               onToggleFreeze={onToggleFreeze}
-              onDelete={(item) => setPendingDelete(item)}
+              onDelete={onDelete}
               readOnly={readOnly}
             />
           );
@@ -146,21 +143,6 @@ export function ItemTable({
           }}
         />
       )}
-
-      <ConfirmationDialog
-        destructive
-        open={pendingDelete != null}
-        message={
-          pendingDelete
-            ? `Delete item "${pendingDelete.name}" (${pendingDelete.code})? This cannot be undone. If it has already been used to receive samples, deletion will be blocked - freeze it instead.`
-            : ""
-        }
-        onCancel={() => setPendingDelete(null)}
-        onConfirm={() => {
-          if (pendingDelete) onDelete(pendingDelete);
-          setPendingDelete(null);
-        }}
-      />
     </>
   );
 }

@@ -31,6 +31,7 @@ public class SpecificationConfiguration : IEntityTypeConfiguration<Specification
         builder.Property(s => s.LabelClaim).HasPrecision(18, 6);
         builder.Property(s => s.LabelClaimUnit).HasMaxLength(20);
         builder.Property(s => s.DosageForm);
+        builder.Property(s => s.IsRetired).HasDefaultValue(false);
 
         builder.HasOne(s => s.HplcMethodAnalyte)
             .WithMany()
@@ -52,11 +53,13 @@ public class SpecificationConfiguration : IEntityTypeConfiguration<Specification
                .HasForeignKey(st => st.SpecificationId)
                .OnDelete(DeleteBehavior.Cascade);
 
-        // One row per parameter per production stage and grade; NULL (every
+        // One active row per parameter per production stage and grade; NULL (every
         // stage / ungraded) counts as a value of its own, so two such rows still clash.
+        // Retired rows are excluded so a Section Head can configure a replacement.
         builder.HasIndex(s => new { s.ItemId, s.TestCode, s.ParameterName, s.ProductionStageRole, s.Grade, s.RelatedSubstanceRow, s.HplcMethodImpurityId })
             .IsUnique()
-            .AreNullsDistinct(false);
+            .AreNullsDistinct(false)
+            .HasFilter("\"IsRetired\" = false");
     }
 }
 

@@ -355,6 +355,9 @@ public class SpecificationResponse
     public string? Grade { get; init; }
     public RelatedSubstanceRow? RelatedSubstanceRow { get; init; }
     public int? HplcMethodImpurityId { get; init; }
+    public bool IsRetired { get; init; }
+    public DateTime? RetiredAt { get; init; }
+    public int? RetiredByUserId { get; init; }
     public List<SpecificationStageResponse> Stages { get; init; } = new();
 
     public static SpecificationResponse From(Specification e) => new()
@@ -393,6 +396,9 @@ public class SpecificationResponse
         IcpTestElementId = e.IcpTestElementId,
         RelatedSubstanceRow = e.RelatedSubstanceRow,
         HplcMethodImpurityId = e.HplcMethodImpurityId,
+        IsRetired = e.IsRetired,
+        RetiredAt = e.RetiredAt,
+        RetiredByUserId = e.RetiredByUserId,
         Stages = e.Stages.Select(SpecificationStageResponse.From).ToList(),
     };
 }

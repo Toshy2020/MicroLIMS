@@ -641,11 +641,14 @@ public class TestWorkflowSupport
         var grade = await SpecificationLookup.ApplicableGradeAsync(_db, order.SampleId, itemId, order.TestCode);
         var stage = await SpecificationLookup.ApplicableStageAsync(_db, order.SampleId, itemId, order.TestCode);
         var specs = await _db.Specifications
-            .Where(s => s.ItemId == itemId && s.TestCode == order.TestCode && s.Grade == grade && s.ProductionStageRole == stage)
+            .Where(s => s.ItemId == itemId && s.TestCode == order.TestCode && s.Grade == grade && s.ProductionStageRole == stage && !s.IsRetired)
             .ToListAsync();
 
         if (specs.Count == 0)
+        {
+            await SpecificationLookup.ThrowIfRetiredAsync(_db, order.SampleId, itemId, order.TestCode);
             throw new BusinessRuleException("No specifications configured for this test and item.");
+        }
 
         if (expectedWorkflowType == WorkflowType.Dissolution)
         {

@@ -15,7 +15,7 @@ public static class IcpTestDefinitionRules
 {
     public static async Task ApplyAsync(
         IMicroLimsDbContext db, TestDefinition entity, bool isIcpTest, IcpTestMode? mode, IcpSampleForm? form,
-        decimal? theoreticalAmount, decimal? specificGravity, List<IcpTestElementInput>? elements)
+        decimal? theoreticalAmount, decimal? specificGravity, List<IcpTestElementInput>? elements, bool dryRun = false)
     {
         if (!isIcpTest)
         {
@@ -95,7 +95,7 @@ public static class IcpTestDefinitionRules
             if (await db.Specifications.AnyAsync(s => s.IcpTestElementId == dropped.Id))
                 throw new BusinessRuleException($"Element \"{dropped.Symbol}\" is used by specifications; it can't be removed.");
             entity.IcpElements.Remove(dropped);
-            if (entity.Id != 0) db.TestDefinitionIcpElements.Remove(dropped);
+            if (!dryRun && entity.Id != 0) db.TestDefinitionIcpElements.Remove(dropped);
         }
 
         for (var i = 0; i < normalized.Count; i++)

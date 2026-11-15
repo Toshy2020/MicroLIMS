@@ -202,3 +202,24 @@ apiClient.interceptors.response.use(
 export function ifMatch(version: number | null | undefined): { headers?: Record<string, string> } {
   return version == null ? {} : { headers: { "If-Match": `"${version}"` } };
 }
+
+export const CHANGE_REASON_HEADER = "X-Change-Reason";
+
+export function withChangeReason(
+  version?: number | null,
+  reason?: string | null
+): { headers?: Record<string, string> } {
+  const headers: Record<string, string> = {};
+  if (version != null) headers["If-Match"] = `"${version}"`;
+  const trimmed = reason?.trim();
+  if (trimmed) headers[CHANGE_REASON_HEADER] = encodeURIComponent(trimmed);
+  return Object.keys(headers).length === 0 ? {} : { headers };
+}
+
+export function isReasonRequiredError(err: unknown): boolean {
+  const axiosError = err as {
+    response?: { data?: { fieldErrors?: Array<{ field?: string; message?: string }> } };
+  };
+  const fieldErrors = axiosError?.response?.data?.fieldErrors;
+  return Array.isArray(fieldErrors) && fieldErrors.some((f) => f.field?.toLowerCase() === "reason");
+}

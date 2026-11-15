@@ -201,7 +201,7 @@ public class SupplierStatedAttributeService
         if (normalized is not null)
         {
             var itemGrades = await _db.Specifications
-                .Where(s => s.ItemId == itemId && s.Grade != null)
+                .Where(s => s.ItemId == itemId && s.Grade != null && !s.IsRetired)
                 .Select(s => s.Grade!)
                 .Distinct()
                 .ToListAsync(ct);

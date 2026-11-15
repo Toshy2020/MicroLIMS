@@ -113,17 +113,26 @@ export function useTestDefinitions() {
     id: number,
     codeOrPayload: string | UpdateTestDefinitionPayload,
     displayName?: string,
-    sectionId?: number | null
+    sectionId?: number | null,
+    reason?: string
   ) => {
-    const updated = await masterDataOptions.updateTestDefinition(id, codeOrPayload, displayName, sectionId, options.find((o) => o.id === id)?.version);
+    const version = options.find((o) => o.id === id)?.version;
+    const updated = reason
+      ? await masterDataOptions.updateTestDefinition(id, codeOrPayload, displayName, sectionId, version, reason)
+      : await masterDataOptions.updateTestDefinition(id, codeOrPayload, displayName, sectionId, version);
     await reload();
     return updated as TestDefinitionOption;
   };
 
-  const setActive = async (id: number, isActive: boolean) => {
+  const setActive = async (id: number, isActive: boolean, reason?: string) => {
     const version = options.find((o) => o.id === id)?.version;
-    if (isActive) await masterDataOptions.unfreezeTestDefinition(id, version);
-    else await masterDataOptions.freezeTestDefinition(id, version);
+    if (isActive) {
+      if (reason) await masterDataOptions.unfreezeTestDefinition(id, version, reason);
+      else await masterDataOptions.unfreezeTestDefinition(id, version);
+    } else {
+      if (reason) await masterDataOptions.freezeTestDefinition(id, version, reason);
+      else await masterDataOptions.freezeTestDefinition(id, version);
+    }
     await reload();
   };
 

@@ -1,4 +1,4 @@
-import { apiClient, ifMatch } from "../../../../services/apiClient";
+import { apiClient, ifMatch, withChangeReason } from "../../../../services/apiClient";
 
 export interface ApiResponse<T> {
   success: boolean;
@@ -258,8 +258,8 @@ export const EquipmentConfigurationService = {
     return Array.isArray(data) ? data : [];
   },
 
-  updateEquipment: async (id: number, req: UpdateEquipmentRequest, version?: number): Promise<EquipmentResponse> => {
-    const res = await apiClient.put<ApiResponse<EquipmentResponse>>(`/masterdata/equipment/${id}`, req, ifMatch(version));
+  updateEquipment: async (id: number, req: UpdateEquipmentRequest, version?: number, reason?: string): Promise<EquipmentResponse> => {
+    const res = await apiClient.put<ApiResponse<EquipmentResponse>>(`/masterdata/equipment/${id}`, req, withChangeReason(version, reason));
     return res.data?.data;
   }
 };

@@ -19,15 +19,18 @@ public class EquipmentMasterDataService
     private readonly IMicroLimsDbContext _db;
     private readonly IUserSectionScopeService _scope;
     private readonly MasterDataBatchService _batch;
+    private readonly ChangeReasonGuard _reasonGuard;
 
     public EquipmentMasterDataService(
         IMicroLimsDbContext db,
         IUserSectionScopeService scope,
-        MasterDataBatchService? batchService = null)
+        MasterDataBatchService? batchService = null,
+        ChangeReasonGuard? reasonGuard = null)
     {
         _db = db;
         _scope = scope;
         _batch = batchService ?? new MasterDataBatchService(db);
+        _reasonGuard = reasonGuard ?? new ChangeReasonGuard(db, new MasterDataUsageService(db, scope));
     }
 
     public async Task<List<EquipmentResponse>> GetEquipmentAsync(int currentUserId, EquipmentType? type)
@@ -122,6 +125,8 @@ public class EquipmentMasterDataService
             EquipmentInventoryId = request.EquipmentInventoryId
         };
         _db.Equipment.Add(entity);
+        if (_db.CurrentUserId is null && currentUserId > 0)
+            _db.CurrentUserId = currentUserId;
         await _db.SaveChangesAsync(cancellationToken);
         return EquipmentResponse.From(entity);
     }
@@ -195,7 +200,12 @@ public class EquipmentMasterDataService
         return errors;
     }
 
-    public async Task<EquipmentResponse> UpdateEquipmentAsync(int currentUserId, int id, UpdateEquipmentRequest request, CancellationToken cancellationToken = default)
+    public async Task<EquipmentResponse> UpdateEquipmentAsync(
+        int currentUserId,
+        int id,
+        UpdateEquipmentRequest request,
+        string? changeReason = null,
+        CancellationToken cancellationToken = default)
     {
         await _scope.EnsureEquipmentAccessAsync(currentUserId, id, cancellationToken);
 
@@ -203,6 +213,7 @@ public class EquipmentMasterDataService
             ?? throw new NotFoundException($"Equipment {id} not found.");
 
         RecordVersion.EnsureCurrent(_db, entity);
+        await _reasonGuard.EnsureAsync(MasterRecordType.Equipment, id, ChangeKind.Edit, changeReason, currentUserId, cancellationToken);
 
         if (string.IsNullOrWhiteSpace(request.Name))
             throw new BusinessRuleException("Name is required.");
@@ -248,6 +259,8 @@ public class EquipmentMasterDataService
         entity.ConnectionSettings = request.ConnectionSettings;
         entity.EquipmentInventoryId = request.EquipmentInventoryId;
 
+        if (_db.CurrentUserId is null && currentUserId > 0)
+            _db.CurrentUserId = currentUserId;
         await _db.SaveChangesAsync(cancellationToken);
         return EquipmentResponse.From(entity);
     }

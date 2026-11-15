@@ -797,32 +797,38 @@ public sealed class IncubationStepRecorder : TestWorkflowSupport
         // justification note captured for the audit trail.
         decimal? configuredDilutionFactor = isDirectCount ? 1m : null;
         var dilutionFactorOverridden = false;
-        if (!isDirectCount && sample.ItemId is not null)
+        if (sample.ItemId is not null)
         {
             var itemSpec = await SpecificationLookup.PrimaryAsync(_db, sample.Id, sample.ItemId.Value, order.TestCode);
-            configuredDilutionFactor = itemSpec?.DilutionFactor;
+            if (itemSpec is null)
+                await SpecificationLookup.ThrowIfRetiredAsync(_db, sample.Id, sample.ItemId.Value, order.TestCode);
 
-            if (configuredDilutionFactor is null)
+            if (!isDirectCount)
             {
-                throw new WorkflowStepException(WorkflowErrorCodes.DilutionFactorNotConfigured,
-                    $"No Dilution Factor is configured for \"{order.TestCode}\" on this item's Specifications. Configure it before recording a result.");
-            }
+                configuredDilutionFactor = itemSpec?.DilutionFactor;
 
-            dilutionFactorOverridden = payload.DilutionFactor != configuredDilutionFactor.Value;
-            if (dilutionFactorOverridden && string.IsNullOrWhiteSpace(payload.DilutionFactorOverrideNote))
-            {
-                throw new WorkflowStepException(WorkflowErrorCodes.DilutionFactorJustificationRequired,
-                    $"The entered Dilution Factor ({payload.DilutionFactor}) differs from the configured value ({configuredDilutionFactor.Value}). A justification note is required.");
-            }
+                if (configuredDilutionFactor is null)
+                {
+                    throw new WorkflowStepException(WorkflowErrorCodes.DilutionFactorNotConfigured,
+                        $"No Dilution Factor is configured for \"{order.TestCode}\" on this item's Specifications. Configure it before recording a result.");
+                }
 
-            // SamplePreparation.Unit (removed in the 2026-09 Preparation
-            // Configuration simplification) used to be a fallback CFU-unit
-            // source when this was blank. Require it configured instead of
-            // silently falling back, same rationale as the DF check above.
-            if (string.IsNullOrWhiteSpace(itemSpec!.Unit))
-            {
-                throw new WorkflowStepException(WorkflowErrorCodes.CfuUnitNotConfigured,
-                    $"No reporting Unit is configured for \"{order.TestCode}\" on this item's Specifications. Configure it before recording a result.");
+                dilutionFactorOverridden = payload.DilutionFactor != configuredDilutionFactor.Value;
+                if (dilutionFactorOverridden && string.IsNullOrWhiteSpace(payload.DilutionFactorOverrideNote))
+                {
+                    throw new WorkflowStepException(WorkflowErrorCodes.DilutionFactorJustificationRequired,
+                        $"The entered Dilution Factor ({payload.DilutionFactor}) differs from the configured value ({configuredDilutionFactor.Value}). A justification note is required.");
+                }
+
+                // SamplePreparation.Unit (removed in the 2026-09 Preparation
+                // Configuration simplification) used to be a fallback CFU-unit
+                // source when this was blank. Require it configured instead of
+                // silently falling back, same rationale as the DF check above.
+                if (string.IsNullOrWhiteSpace(itemSpec!.Unit))
+                {
+                    throw new WorkflowStepException(WorkflowErrorCodes.CfuUnitNotConfigured,
+                        $"No reporting Unit is configured for \"{order.TestCode}\" on this item's Specifications. Configure it before recording a result.");
+                }
             }
         }
 
@@ -843,6 +849,8 @@ public sealed class IncubationStepRecorder : TestWorkflowSupport
         if (sample.ItemId is not null)
         {
             var spec = await SpecificationLookup.PrimaryAsync(_db, sample.Id, sample.ItemId.Value, order.TestCode);
+            if (spec is null)
+                await SpecificationLookup.ThrowIfRetiredAsync(_db, sample.Id, sample.ItemId.Value, order.TestCode);
             return (spec?.AlertLimit, spec?.ActionLimit, spec?.SpecLimit, spec?.Unit);
         }
         if (sample.WaterSamplingPointId is not null)

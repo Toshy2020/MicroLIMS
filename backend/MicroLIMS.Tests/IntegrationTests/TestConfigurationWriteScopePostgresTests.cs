@@ -427,18 +427,20 @@ public class TestConfigurationWriteScopePostgresTests
 
     // ---------------------------------------------------------------- freeze / unfreeze
 
+    private const string TestFreezeReason = "SOP revision requires changing active state";
+
     [PostgresFact]
     public async Task Freeze_by_other_laboratory_refused()
     {
         var w = await ArrangeAsync();
-        await AssertRefusedAndUntouchedAsync(w, db => Defs(db).FreezeTestDefinitionAsync(w.HeadB, w.TestId));
+        await AssertRefusedAndUntouchedAsync(w, db => Defs(db).FreezeTestDefinitionAsync(w.HeadB, w.TestId, changeReason: TestFreezeReason));
     }
 
     [PostgresFact]
     public async Task Unfreeze_by_other_laboratory_refused()
     {
         var w = await ArrangeAsync(active: false);
-        await AssertRefusedAndUntouchedAsync(w, db => Defs(db).UnfreezeTestDefinitionAsync(w.HeadB, w.TestId));
+        await AssertRefusedAndUntouchedAsync(w, db => Defs(db).UnfreezeTestDefinitionAsync(w.HeadB, w.TestId, changeReason: TestFreezeReason));
         Assert.False((await StateAsync(w)).IsActive);
     }
 
@@ -446,7 +448,7 @@ public class TestConfigurationWriteScopePostgresTests
     public async Task Freeze_by_own_laboratory_persists_and_audits()
     {
         var w = await ArrangeAsync();
-        await ActAsync(w.HeadA, db => Defs(db).FreezeTestDefinitionAsync(w.HeadA, w.TestId));
+        await ActAsync(w.HeadA, db => Defs(db).FreezeTestDefinitionAsync(w.HeadA, w.TestId, changeReason: TestFreezeReason));
 
         Assert.False((await StateAsync(w)).IsActive);
         var audit = await SingleAuditAsync(nameof(TestDefinition), w.TestId, "Update", w.HeadA);
@@ -458,7 +460,7 @@ public class TestConfigurationWriteScopePostgresTests
     public async Task Unfreeze_by_own_laboratory_persists_and_audits()
     {
         var w = await ArrangeAsync(active: false);
-        await ActAsync(w.HeadA, db => Defs(db).UnfreezeTestDefinitionAsync(w.HeadA, w.TestId));
+        await ActAsync(w.HeadA, db => Defs(db).UnfreezeTestDefinitionAsync(w.HeadA, w.TestId, changeReason: TestFreezeReason));
 
         Assert.True((await StateAsync(w)).IsActive);
         var audit = await SingleAuditAsync(nameof(TestDefinition), w.TestId, "Update", w.HeadA);
@@ -471,9 +473,9 @@ public class TestConfigurationWriteScopePostgresTests
     {
         var w = await ArrangeAsync();
         var admin = _fixture.SeededUserId;
-        await ActAsync(admin, db => Defs(db).FreezeTestDefinitionAsync(admin, w.TestId));
+        await ActAsync(admin, db => Defs(db).FreezeTestDefinitionAsync(admin, w.TestId, changeReason: TestFreezeReason));
         Assert.False((await StateAsync(w)).IsActive);
-        await ActAsync(admin, db => Defs(db).UnfreezeTestDefinitionAsync(admin, w.TestId));
+        await ActAsync(admin, db => Defs(db).UnfreezeTestDefinitionAsync(admin, w.TestId, changeReason: TestFreezeReason));
         Assert.True((await StateAsync(w)).IsActive);
     }
 
@@ -486,7 +488,7 @@ public class TestConfigurationWriteScopePostgresTests
         var before = await StateAsync(w);
 
         await Assert.ThrowsAsync<DbUpdateConcurrencyException>(() => ActAsync(w.HeadA,
-            db => Defs(db).FreezeTestDefinitionAsync(w.HeadA, w.TestId), loaded));
+            db => Defs(db).FreezeTestDefinitionAsync(w.HeadA, w.TestId, changeReason: TestFreezeReason), loaded));
 
         Assert.Equivalent(before, await StateAsync(w), strict: true);
         Assert.True((await StateAsync(w)).IsActive);
@@ -501,7 +503,7 @@ public class TestConfigurationWriteScopePostgresTests
         var before = await StateAsync(w);
 
         await Assert.ThrowsAsync<DbUpdateConcurrencyException>(() => ActAsync(w.HeadA,
-            db => Defs(db).UnfreezeTestDefinitionAsync(w.HeadA, w.TestId), loaded));
+            db => Defs(db).UnfreezeTestDefinitionAsync(w.HeadA, w.TestId, changeReason: TestFreezeReason), loaded));
 
         Assert.Equivalent(before, await StateAsync(w), strict: true);
         Assert.False((await StateAsync(w)).IsActive);

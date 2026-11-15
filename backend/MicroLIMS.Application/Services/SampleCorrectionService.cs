@@ -142,7 +142,7 @@ public class SampleCorrectionService
             // needs a grade of its own (the old one is not carried over).
             if (effectiveItem is not null && (structural is not null || request.Grade is not null))
             {
-                var itemSpecs = await _db.Specifications.AsNoTracking().Where(s => s.ItemId == effectiveItem.Id).ToListAsync();
+                var itemSpecs = await _db.Specifications.AsNoTracking().Where(s => s.ItemId == effectiveItem.Id && !s.IsRetired).ToListAsync();
                 var notApplicable = await NotApplicableTestService.LoadApprovedAsync(_db, effectiveItem.Id);
                 var newGrade = ProductWorkflowEngine.ResolveGrade(
                     itemSpecs, structural is null ? request.Grade ?? sample.Grade : request.Grade);

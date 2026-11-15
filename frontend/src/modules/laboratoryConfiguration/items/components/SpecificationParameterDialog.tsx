@@ -40,6 +40,8 @@ import {
   RelatedSubstanceRow
 } from "../../specifications/services/SpecificationService";
 import { gradesOf, planGradeWrites, siblingsOf } from "../../specifications/services/gradeGroups";
+import { isReasonRequiredError } from "../../../../services/apiClient";
+import { ChangeReasonDialog } from "../../../../components/config/ChangeReasonDialog";
 import { masterDataOptions } from "../../../../services/masterDataOptions";
 import { TitrationSpecBasisFields, titrationBasisNeedsLabelClaim, validateTitrationSpecBasis } from "./TitrationSpecBasisFields";
 import { ResidualSolventSpecFields } from "./ResidualSolventSpecFields";
@@ -189,6 +191,8 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
   // "Save and add next": after a save the dialog stays open on this test
   // instead of the one it was opened for. Cleared when the dialog closes.
   const [continuedTestCode, setContinuedTestCode] = useState<string | null>(null);
+  const [pendingReasonSave, setPendingReasonSave] = useState<{ thenNext: boolean; basePayload: UpdateSpecificationPayload } | null>(null);
+  const [reasonError, setReasonError] = useState<string | null>(null);
   // The continued test whose blank form is already on screen. The reset effect
   // below re-runs whenever the item or its specifications reload (which a save
   // triggers, more than once); without this it would wipe what the user has
@@ -883,47 +887,104 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
       grade: null as string | null
     };
 
+    const runWrites = async (payloadBase: UpdateSpecificationPayload, thenNextFlag: boolean, reason?: string) => {
+      const chosenGrades = supportsGrade ? grades : [];
+      const { writes, removes } = planGradeWrites(isEditing && editingSpec ? siblingsOf(editingSpec) : [], chosenGrades);
+      if (removes.length > 0 && !reason) {
+        setSaving(false);
+        setReasonError(null);
+        setPendingReasonSave({ thenNext: thenNextFlag, basePayload: payloadBase });
+        return;
+      }
+      let wrote = false;
+      try {
+        for (const w of writes) {
+          if (w.existing?.id != null) {
+            const updatePayload: UpdateSpecificationPayload = { ...payloadBase, grade: w.grade };
+            if (reason) {
+              await SpecificationService.update(w.existing.id, updatePayload, w.existing.version, reason);
+            } else {
+              await SpecificationService.update(w.existing.id, updatePayload, w.existing.version);
+            }
+          } else {
+            const createPayload: CreateSpecificationPayload = { itemId: item.id, ...payloadBase, grade: w.grade };
+            await SpecificationService.create(createPayload);
+          }
+          wrote = true;
+        }
+        for (const r of removes) {
+          if (r.id != null) {
+            if (reason) await SpecificationService.remove(r.id, reason);
+            else await SpecificationService.remove(r.id);
+          }
+        }
+        setPendingReasonSave(null);
+        onSuccess();
+        if (thenNextFlag && nextTestWithoutSpec) {
+          setContinuedTestCode(nextTestWithoutSpec.testCode);
+        } else {
+          onClose();
+        }
+      } catch (err: unknown) {
+        if (wrote) onSuccess();
+        if (isReasonRequiredError(err) && !reason) {
+          setReasonError(null);
+          setPendingReasonSave({ thenNext: thenNextFlag, basePayload: payloadBase });
+          return;
+        }
+        const axiosError = err as {
+          response?: { data?: { message?: string } };
+          message?: string;
+        };
+        const msg =
+          axiosError?.response?.data?.message ||
+          axiosError?.message ||
+          "Failed to save specification.";
+        if (reason) setReasonError(msg);
+        else setError(msg);
+      } finally {
+        setSaving(false);
+      }
+    };
+
+    await runWrites(basePayload, thenNext);
+  };
+
+  const confirmReasonRetry = async (reason: string) => {
+    if (!pendingReasonSave) return;
+    setSaving(true);
+    setReasonError(null);
     const chosenGrades = supportsGrade ? grades : [];
     const { writes, removes } = planGradeWrites(isEditing && editingSpec ? siblingsOf(editingSpec) : [], chosenGrades);
     let wrote = false;
     try {
       for (const w of writes) {
         if (w.existing?.id != null) {
-          const updatePayload: UpdateSpecificationPayload = { ...basePayload, grade: w.grade };
-          await SpecificationService.update(w.existing.id, updatePayload, w.existing.version);
+          await SpecificationService.update(w.existing.id, { ...pendingReasonSave.basePayload, grade: w.grade }, w.existing.version, reason);
         } else {
-          const createPayload: CreateSpecificationPayload = { itemId: item.id, ...basePayload, grade: w.grade };
-          await SpecificationService.create(createPayload);
+          await SpecificationService.create({ itemId: item.id, ...pendingReasonSave.basePayload, grade: w.grade });
         }
         wrote = true;
       }
       for (const r of removes) {
-        if (r.id != null) await SpecificationService.remove(r.id);
+        if (r.id != null) await SpecificationService.remove(r.id, reason);
       }
+      const thenNextFlag = pendingReasonSave.thenNext;
+      setPendingReasonSave(null);
       onSuccess();
-      if (thenNext && nextTestWithoutSpec) {
-        setContinuedTestCode(nextTestWithoutSpec.testCode);
-      } else {
-        onClose();
-      }
+      if (thenNextFlag && nextTestWithoutSpec) setContinuedTestCode(nextTestWithoutSpec.testCode);
+      else onClose();
     } catch (err: unknown) {
-      // Some grades may already be saved; show the list as it is now.
       if (wrote) onSuccess();
-      const axiosError = err as {
-        response?: { data?: { message?: string } };
-        message?: string;
-      };
-      const msg =
-        axiosError?.response?.data?.message ||
-        axiosError?.message ||
-        "Failed to save specification.";
-      setError(msg);
+      const axiosError = err as { response?: { data?: { message?: string } }; message?: string };
+      setReasonError(axiosError?.response?.data?.message || axiosError?.message || "Failed to save specification.");
     } finally {
       setSaving(false);
     }
   };
 
   return (
+    <>
     <Dialog open={open} onClose={saving ? undefined : onClose} maxWidth="md" fullWidth>
       <DialogTitle sx={{ pb: 1 }}>
         <Box sx={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
@@ -1949,5 +2010,15 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
         </Button>
       </DialogActions>
     </Dialog>
+    <ChangeReasonDialog
+      open={pendingReasonSave !== null}
+      title="Reason required for specification change"
+      confirmText="Save Changes"
+      loading={saving}
+      error={reasonError}
+      onCancel={() => { setPendingReasonSave(null); setReasonError(null); }}
+      onConfirm={confirmReasonRetry}
+    />
+    </>
   );
 };

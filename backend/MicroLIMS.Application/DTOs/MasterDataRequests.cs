@@ -330,6 +330,12 @@ public record CreateTestDefinitionRequest(
     // Certificate of Analysis position inside the test's group (1-9999); null = none.
     public int? CoaDisplayOrder { get; init; }
 }
+
+public sealed record SaveTestWithStepsRequest(
+    CreateTestDefinitionRequest Test,
+    IReadOnlyList<CreateTestWorkflowStepRequest> Steps,
+    IReadOnlyList<CreateTestDefinitionStageReplicateRequest> Stages);
+
 // SectionId: move the test to another laboratory section (null = keep). Test
 // orders already created keep the section they were created with.
 public record UpdateTestDefinitionRequest(

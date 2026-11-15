@@ -644,6 +644,7 @@ TableViewsController.List(String, CancellationToken): SystemAdministrator,Sectio
 TableViewsController.SetDefault(SetDefaultTableViewRequest, CancellationToken): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 TableViewsController.Update(Int32, UpdateTableViewRequest, CancellationToken): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 TestDefinitionMasterDataController.CreateTestDefinition(CreateTestDefinitionRequest): SystemAdministrator,SectionHead
+TestDefinitionMasterDataController.CreateTestWithSteps(SaveTestWithStepsRequest): SystemAdministrator,SectionHead
 TestDefinitionMasterDataController.FreezeTestDefinition(Int32): SystemAdministrator,SectionHead
 TestDefinitionMasterDataController.GetEditableCodes(): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 TestDefinitionMasterDataController.GetEquationTypes(): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa

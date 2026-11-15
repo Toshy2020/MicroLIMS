@@ -24,10 +24,14 @@ namespace MicroLIMS.API.Controllers;
 public class SpecificationMasterDataController : ControllerBase
 {
     private readonly SpecificationMasterDataService _service;
+    private readonly MasterDataCopyService _copyService;
 
-    public SpecificationMasterDataController(SpecificationMasterDataService service)
+    public SpecificationMasterDataController(
+        SpecificationMasterDataService service,
+        MasterDataCopyService copyService)
     {
         _service = service;
+        _copyService = copyService;
     }
 
     private int CurrentUserId => int.TryParse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value, out var uid) ? uid : 0;
@@ -76,4 +80,14 @@ public class SpecificationMasterDataController : ControllerBase
     [HttpPost("specifications/{id}/reinstate")]
     public async Task<IActionResult> ReinstateSpecification(int id) =>
         Ok(ApiResponse<SpecificationResponse>.Ok(await _service.ReinstateSpecificationAsync(CurrentUserId, id, ChangeReasonHeader.Read(Request), Ct)));
+
+    [Authorize(Policy = PermissionConstants.MasterDataManage)]
+    [HttpPost("specifications/copy/preview")]
+    public async Task<IActionResult> PreviewCopySpecifications(CopySpecificationsRequest request) =>
+        Ok(ApiResponse<IReadOnlyList<CopySpecificationsPreviewRow>>.Ok(await _copyService.PreviewAsync(request, CurrentUserId, Ct)));
+
+    [Authorize(Policy = PermissionConstants.MasterDataManage)]
+    [HttpPost("specifications/copy")]
+    public async Task<IActionResult> CopySpecifications(CopySpecificationsRequest request) =>
+        Ok(ApiResponse<int>.Ok(await _copyService.CopyAsync(request, CurrentUserId, Ct)));
 }

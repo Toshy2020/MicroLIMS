@@ -84,6 +84,20 @@ public static class TestServiceFactory
         TimeProvider? time = null) =>
         new(db, time);
 
+    public static MicroLIMS.Application.Services.Notifications.EscalationService Escalation(
+        MicroLimsDbContext db,
+        TimeProvider? time = null,
+        Microsoft.Extensions.Configuration.IConfiguration? config = null)
+    {
+        var effectiveTime = time ?? TimeProvider.System;
+        var clock = new LabClock(effectiveTime, LabClock.ResolveTimeZone(config?["Lab:TimeZoneId"] ?? "Africa/Cairo"));
+        var publisher = new MicroLIMS.Application.Services.Notifications.NotificationPublisher(db, effectiveTime, config, clock);
+        var recipients = new MicroLIMS.Application.Services.Notifications.NotificationRecipients(db, new SegregationOfDutiesGuard(db));
+        var permissions = new PermissionService(db);
+        var scope = new UserSectionScopeService(db);
+        return new MicroLIMS.Application.Services.Notifications.EscalationService(db, publisher, recipients, permissions, scope, clock, effectiveTime);
+    }
+
     public static MicroLIMS.Application.Services.Notifications.NotificationScheduler NotificationScheduler(
         MicroLimsDbContext db,
         TimeProvider? time = null,
@@ -91,10 +105,14 @@ public static class TestServiceFactory
         Microsoft.Extensions.Configuration.IConfiguration? config = null,
         MicroLIMS.Application.Services.Monitoring.MonitoringReminderService? monitoring = null)
     {
-        var clock = new LabClock(time ?? TimeProvider.System, LabClock.ResolveTimeZone(config?["Lab:TimeZoneId"] ?? "Africa/Cairo"));
-        var publisher = new MicroLIMS.Application.Services.Notifications.NotificationPublisher(db, time, config, clock);
+        var effectiveTime = time ?? TimeProvider.System;
+        var clock = new LabClock(effectiveTime, LabClock.ResolveTimeZone(config?["Lab:TimeZoneId"] ?? "Africa/Cairo"));
+        var publisher = new MicroLIMS.Application.Services.Notifications.NotificationPublisher(db, effectiveTime, config, clock);
         var recipients = new MicroLIMS.Application.Services.Notifications.NotificationRecipients(db, new SegregationOfDutiesGuard(db));
-        return new MicroLIMS.Application.Services.Notifications.NotificationScheduler(db, publisher, recipients, clock, settings, config, monitoring);
+        var permissions = new PermissionService(db);
+        var scope = new UserSectionScopeService(db);
+        var escalation = new MicroLIMS.Application.Services.Notifications.EscalationService(db, publisher, recipients, permissions, scope, clock, effectiveTime);
+        return new MicroLIMS.Application.Services.Notifications.NotificationScheduler(db, publisher, recipients, clock, settings, config, monitoring, escalation);
     }
     public static ReviewGateService ReviewGate(MicroLimsDbContext db) =>
         new(db, new ElectronicSignatureService(db));

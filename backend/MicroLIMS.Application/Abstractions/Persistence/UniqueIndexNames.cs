@@ -29,4 +29,9 @@ public static class UniqueIndexNames
     public const string InstrumentIngestIdentity = "IX_InstrumentIngests_EquipmentId_SequenceName_InjectionNumber_~";
     public const string InstrumentIngestVersionHash = "IX_InstrumentIngestVersions_InstrumentIngestId_ReportSha256";
     public const string InstrumentIngestVersionNo = "IX_InstrumentIngestVersions_InstrumentIngestId_VersionNo";
+
+    // Notification escalation (EscalationService.EvaluateAsync): two scheduler
+    // passes racing on the same rule and record hit IX_EscalationEvents_Rule_Record;
+    // the loser skips publishing a second notification.
+    public const string EscalationEventRuleRecord = "IX_EscalationEvents_Rule_Record";
 }

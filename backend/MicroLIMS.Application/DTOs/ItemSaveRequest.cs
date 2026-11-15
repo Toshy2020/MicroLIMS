@@ -16,6 +16,12 @@ public record ItemSaveRequest(
     List<ItemTestRequest>? AssignedTests,
     decimal? MinSampleQuantity = null,
     decimal? MinRetestSampleQuantity = null,
-    string? MinSampleQuantityUnit = null);
+    string? MinSampleQuantityUnit = null,
+    CopyItemOptions? CopyFrom = null);
 
 public record ItemTestRequest(string TestCode, string DisplayName);
+
+public sealed record CopyItemOptions(
+    int SourceItemId,
+    bool Specifications,
+    bool AutoAssignedTests);

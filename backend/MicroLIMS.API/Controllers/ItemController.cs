@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using MicroLIMS.Application.DTOs;
 using MicroLIMS.Application.DTOs.Responses;
 using MicroLIMS.Application.Services;
+using MicroLIMS.Application.Services.MasterData;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Shared.Constants;
 using MicroLIMS.Shared.Responses;
@@ -17,11 +18,13 @@ public class ItemController : ControllerBase
 {
     private readonly ItemService _itemService;
     private readonly ItemStmService _stmService;
+    private readonly MasterDataCopyService _copyService;
 
-    public ItemController(ItemService itemService, ItemStmService stmService)
+    public ItemController(ItemService itemService, ItemStmService stmService, MasterDataCopyService copyService)
     {
         _itemService = itemService;
         _stmService = stmService;
+        _copyService = copyService;
     }
 
     // The item's STM as resolved from the Document Library (effective revision only).
@@ -53,7 +56,8 @@ public class ItemController : ControllerBase
 
     [HttpPost]
     [Authorize(Policy = PermissionConstants.ItemsManage)]
-    public async Task<IActionResult> Create([FromBody] ItemSaveRequest request) => Ok(ApiResponse<ItemResponse>.Ok(await _itemService.CreateAsync(request)));
+    public async Task<IActionResult> Create([FromBody] ItemSaveRequest request) =>
+        Ok(ApiResponse<ItemResponse>.Ok(await _copyService.CreateItemAsync(request, CurrentUserId, Ct)));
 
     [HttpPut("{id}")]
     [Authorize(Policy = PermissionConstants.ItemsManage)]

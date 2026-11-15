@@ -50,12 +50,15 @@ public class ItemService
 
     // Builds the Item from the fields a client may set. Id, IsActive and
     // Specifications are never taken from the request - see ItemSaveRequest.
-    public async Task<ItemResponse> CreateAsync(ItemSaveRequest request)
+    public async Task<ItemResponse> CreateAsync(ItemSaveRequest request, int currentUserId = 0, CancellationToken cancellationToken = default)
     {
         EnsureAllowedCategory(request.Category);
         EnsureMinimumQuantity(request);
 
-        if (await _db.Items.AnyAsync(i => i.Code == request.Code))
+        if (_db.CurrentUserId is null && currentUserId > 0)
+            _db.CurrentUserId = currentUserId;
+
+        if (await _db.Items.AnyAsync(i => i.Code == request.Code, cancellationToken))
             throw new BusinessRuleException($"An item with code '{request.Code}' already exists.");
 
         var item = new Item
@@ -71,7 +74,7 @@ public class ItemService
         };
 
         _db.Items.Add(item);
-        await _db.SaveChangesAsync();
+        await _db.SaveChangesAsync(cancellationToken);
         return ItemResponse.From(item);
     }
 

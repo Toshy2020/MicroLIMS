@@ -294,6 +294,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<MicroLIMS.Application.Services.EquipmentPlan.EquipmentCalendarService>();
         services.AddScoped<AfterCleaningMasterDataService>();
         services.AddScoped<SpecificationMasterDataService>();
+        services.AddScoped<MasterDataCopyService>();
         services.AddScoped<MasterDataUsageService>();
         services.AddScoped<ChangeReasonGuard>();
         services.AddScoped<SupplierStatedAttributeService>();

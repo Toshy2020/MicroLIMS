@@ -4,6 +4,7 @@ using MicroLIMS.Application.DTOs;
 using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
+using MicroLIMS.Application.Abstractions.Live;
 using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Application.Services.Notifications;
 
@@ -217,21 +218,30 @@ public class SampleAssignmentService
             if (previousAnalystId is int prevId && prevId != analystId)
             {
                 await _publisher.ResolveAsync($"TestAssigned:test:{order.Id}:user:{prevId}", ct);
+                _db.QueueSignal(LiveSignalKinds.MyWork, $"user:{prevId}");
             }
 
-            if (analystId is int assigneeId && assigneeId != actingUserId)
+            if (analystId is int assigneeId)
             {
-                await _publisher.PublishAsync(new NotificationRequest(
-                    Type: "TestAssigned",
-                    UserIds: new[] { assigneeId },
-                    Message: $"Test {order.TestCode} for sample {sample.ReferenceNumber} was assigned to you.",
-                    TargetType: "test-step",
-                    TargetId: order.Id,
-                    SectionId: order.SectionId,
-                    DedupeKey: $"TestAssigned:test:{order.Id}:user:{assigneeId}",
-                    SampleId: sample.Id,
-                    TestOrderId: order.Id), ct);
+                _db.QueueSignal(LiveSignalKinds.MyWork, $"user:{assigneeId}");
+                if (assigneeId != actingUserId)
+                {
+                    await _publisher.PublishAsync(new NotificationRequest(
+                        Type: "TestAssigned",
+                        UserIds: new[] { assigneeId },
+                        Message: $"Test {order.TestCode} for sample {sample.ReferenceNumber} was assigned to you.",
+                        TargetType: "test-step",
+                        TargetId: order.Id,
+                        SectionId: order.SectionId,
+                        DedupeKey: $"TestAssigned:test:{order.Id}:user:{assigneeId}",
+                        SampleId: sample.Id,
+                        TestOrderId: order.Id), ct);
+                }
             }
+
+            _db.QueueSignal(LiveSignalKinds.Counters, $"section:{order.SectionId}");
+            _db.QueueSignal(LiveSignalKinds.Record, $"testOrder:{order.Id}");
+            _db.QueueSignal(LiveSignalKinds.Record, $"sample:{sample.Id}");
         }
 
         if (changed.Count > 0)

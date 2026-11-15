@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
+using MicroLIMS.Application.Abstractions.Live;
 using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Application.DTOs.Responses;
 using MicroLIMS.Application.Services.Notifications;
@@ -110,7 +111,13 @@ public class SampleReviewService
                     SectionId: sectionId,
                     DedupeKey: $"ReviewWaiting:sample:{sampleId}:section:{sectionId}",
                     SampleId: sampleId));
+
+                foreach (var reviewerId in reviewers)
+                    _db.QueueSignal(LiveSignalKinds.MyWork, $"user:{reviewerId}");
             }
+
+            _db.QueueSignal(LiveSignalKinds.Counters, $"section:{sectionId}");
+            _db.QueueSignal(LiveSignalKinds.Record, $"sample:{sampleId}");
         }
 
         SampleSectionRollup.Apply(sample);
@@ -212,7 +219,14 @@ public class SampleReviewService
                 SectionId: section,
                 DedupeKey: $"ApprovalWaiting:sample:{sampleId}:section:{section}",
                 SampleId: sampleId));
+
+            foreach (var approverId in approvers)
+                _db.QueueSignal(LiveSignalKinds.MyWork, $"user:{approverId}");
         }
+
+        _db.QueueSignal(LiveSignalKinds.Counters, $"section:{section}");
+        _db.QueueSignal(LiveSignalKinds.Record, $"sample:{sampleId}");
+        _db.QueueSignal(LiveSignalKinds.MyWork, $"user:{reviewerUserId}");
 
         await _db.SaveChangesAsync();
     }
@@ -439,7 +453,14 @@ public class SampleReviewService
                 DedupeKey: $"TestReturned:test:{testOrderId}",
                 SampleId: order.SampleId,
                 TestOrderId: testOrderId));
+
+            _db.QueueSignal(LiveSignalKinds.MyWork, $"user:{assignedAnalystId}");
         }
+
+        _db.QueueSignal(LiveSignalKinds.Counters, $"section:{order.SectionId}");
+        _db.QueueSignal(LiveSignalKinds.Record, $"testOrder:{order.Id}");
+        _db.QueueSignal(LiveSignalKinds.Record, $"sample:{order.SampleId}");
+        _db.QueueSignal(LiveSignalKinds.MyWork, $"user:{reviewerId}");
 
         return returnEvent;
     }

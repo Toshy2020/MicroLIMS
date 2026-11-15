@@ -443,20 +443,15 @@ public class ReturnToAnalystTests
         var reviewService = TestServiceFactory.SampleReview(db);
         await reviewService.ReturnToAnalystAsync(order.Id, reviewer.Id, "Recount required");
 
-        var spyPush = new SpyNotificationService();
-        var notificationService = TestServiceFactory.DashboardNotification(db, spyPush);
+        var notificationService = TestServiceFactory.DashboardNotification(db);
 
         // First poll
         var poll1 = await notificationService.GetNotificationsAsync(RoleType.Analyst, analyst.Id);
         Assert.Contains(poll1, n => n.Type == "TestReturned");
-        Assert.Empty(spyPush.Sent);
 
         // Second poll immediately after (simulating periodic 60s polling)
         var poll2 = await notificationService.GetNotificationsAsync(RoleType.Analyst, analyst.Id);
         Assert.Contains(poll2, n => n.Type == "TestReturned");
-
-        // Assert no duplicate push notification was sent
-        Assert.Empty(spyPush.Sent);
 
         // Assert exactly one NotificationLog row exists in DB for this user and event
         var persistedLogs = await db.NotificationLogs

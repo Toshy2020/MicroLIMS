@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using MicroLIMS.Application.Abstractions.Live;
 using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Domain.Entities;
@@ -109,6 +110,7 @@ public sealed class NotificationPublisher : INotificationPublisher
                 CreatedAt = now
             };
             _db.NotificationLogs.Add(log);
+            _db.QueueSignal(LiveSignalKinds.Notifications, $"user:{userId}");
 
             if (info.EmailAllowed && emailsByUser.TryGetValue(userId, out var email) && !string.IsNullOrWhiteSpace(email))
             {
@@ -136,10 +138,13 @@ public sealed class NotificationPublisher : INotificationPublisher
 
         var now = _time.GetUtcNow().UtcDateTime;
 
+        var affectedUserIds = new HashSet<int>();
+
         foreach (var local in _db.NotificationLogs.Local
             .Where(n => n.DedupeKey == dedupeKey && n.ResolvedAt == null))
         {
             local.ResolvedAt = now;
+            affectedUserIds.Add(local.UserId);
         }
 
         var openRows = await _db.NotificationLogs
@@ -149,6 +154,12 @@ public sealed class NotificationPublisher : INotificationPublisher
         foreach (var row in openRows)
         {
             row.ResolvedAt = now;
+            affectedUserIds.Add(row.UserId);
+        }
+
+        foreach (var userId in affectedUserIds)
+        {
+            _db.QueueSignal(LiveSignalKinds.Notifications, $"user:{userId}");
         }
     }
 }

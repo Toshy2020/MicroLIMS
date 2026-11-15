@@ -15,10 +15,10 @@ using MicroLIMS.Infrastructure.Authentication;
 using MicroLIMS.Infrastructure.Email;
 using MicroLIMS.Application.Services.InstrumentImport;
 using MicroLIMS.Infrastructure.InstrumentImport;
+using MicroLIMS.API.Hubs;
 using MicroLIMS.Application.Abstractions.Email;
+using MicroLIMS.Application.Abstractions.Live;
 using MicroLIMS.Application.Abstractions.Security;
-using MicroLIMS.Infrastructure.Notifications;
-using MicroLIMS.Application.Abstractions.Notifications;
 using MicroLIMS.Infrastructure.Pdf;
 using MicroLIMS.Application.Abstractions.Pdf;
 using MicroLIMS.Infrastructure.Security;
@@ -411,8 +411,9 @@ public static class ServiceCollectionExtensions
             EnvironmentName: Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Unknown"));
         services.AddScoped<ICriticalAlertService, CriticalAlertService>();
 
-        services.AddSingleton<NotificationService>();
-        services.AddSingleton<INotificationService>(sp => sp.GetRequiredService<NotificationService>());
+        services.AddSignalR();
+        services.AddSingleton<LiveHubConnectionTracker>();
+        services.AddSingleton<ILiveSignalPublisher, SignalRLiveSignalPublisher>();
         // Where uploaded files physically live. "Local" writes under
         // Storage:BasePath and is for development only - on Render that
         // directory is wiped on every restart and redeploy. "S3" writes to an

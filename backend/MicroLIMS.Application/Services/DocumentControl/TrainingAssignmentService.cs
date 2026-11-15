@@ -7,6 +7,7 @@ using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Application.Interfaces.DocumentControl;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
+using MicroLIMS.Application.Abstractions.Live;
 using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Application.Services.Notifications;
 using MicroLIMS.Shared.Responses;
@@ -256,6 +257,10 @@ public class TrainingAssignmentService : ITrainingAssignmentService
 
         if (addedAssignments.Count > 0)
         {
+            _db.QueueSignal(LiveSignalKinds.Record, $"document:{master.Id}");
+            foreach (var assignment in addedAssignments)
+                _db.QueueSignal(LiveSignalKinds.MyWork, $"user:{assignment.AssignedUserId}");
+
             _db.CurrentUserId = null;
             await _db.SaveChangesAsync(cancellationToken);
             createdIds = addedAssignments.Select(a => a.Id).ToList();
@@ -379,6 +384,10 @@ public class TrainingAssignmentService : ITrainingAssignmentService
 
         if (addedAssignments.Count > 0)
         {
+            _db.QueueSignal(LiveSignalKinds.Record, $"document:{master.Id}");
+            foreach (var assignment in addedAssignments)
+                _db.QueueSignal(LiveSignalKinds.MyWork, $"user:{assignment.AssignedUserId}");
+
             _db.CurrentUserId = actingUserId;
             await _db.SaveChangesAsync(cancellationToken);
             createdIds = addedAssignments.Select(a => a.Id).ToList();

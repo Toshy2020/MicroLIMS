@@ -3,7 +3,7 @@ using MicroLIMS.Application.Helpers;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using MicroLIMS.Domain.Entities;
-using MicroLIMS.Application.Abstractions.Notifications;
+using MicroLIMS.Application.Abstractions.Live;
 using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Application.Services.Notifications;
 
@@ -51,21 +51,18 @@ public record SendMessageRequest(string Content);
 public class MessageService
 {
     private readonly IMicroLimsDbContext _db;
-    private readonly INotificationService _notificationService;
     private readonly ILogger<MessageService> _logger;
     private readonly TimeProvider _time;
     private readonly INotificationPublisher _publisher;
 
     public MessageService(
         IMicroLimsDbContext db,
-        INotificationService notificationService,
         ILogger<MessageService> logger,
         TimeProvider? timeProvider = null,
         INotificationPublisher? publisher = null)
     {
         _time = timeProvider ?? TimeProvider.System;
         _db = db;
-        _notificationService = notificationService;
         _logger = logger;
         _publisher = publisher ?? new NotificationPublisher(db, _time);
     }
@@ -454,7 +451,7 @@ public class MessageService
                     TargetId: conversationId,
                     SectionId: null,
                     DedupeKey: null));
-                await _notificationService.NotifyAsync(recipientId, message);
+                _db.QueueSignal(LiveSignalKinds.Messages, $"user:{recipientId}");
             }
 
             if (otherParticipants.Count > 0)

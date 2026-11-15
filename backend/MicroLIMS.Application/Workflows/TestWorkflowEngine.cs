@@ -7,7 +7,6 @@ using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Application.Services;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
-using MicroLIMS.Application.Abstractions.Notifications;
 using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Application.DTOs.Responses;
 using MicroLIMS.Application.Services.Notifications;
@@ -51,7 +50,7 @@ public class TestWorkflowEngine : ITestWorkflowEngine
     public TestWorkflowEngine(
         IMicroLimsDbContext db, SampleReviewService sampleReviewService, ResultProjectionService resultProjection,
         IncubatorEligibilityService incubatorEligibility, MediaAppearanceSnapshotService appearanceSnapshot,
-        SegregationOfDutiesGuard sodGuard, ReviewGateService reviewGate, INotificationService notifications,
+        SegregationOfDutiesGuard sodGuard, ReviewGateService reviewGate,
         IElectronicSignatureService? signatureService = null,
         IUserSectionScopeService? sectionScope = null,
         ILabClock? clock = null,
@@ -60,7 +59,7 @@ public class TestWorkflowEngine : ITestWorkflowEngine
     {
         var deps = new TestWorkflowDependencies(
             db, sampleReviewService, resultProjection, incubatorEligibility, appearanceSnapshot,
-            sodGuard, reviewGate, notifications,
+            sodGuard, reviewGate,
             signatureService ?? new ElectronicSignatureService(db),
             sectionScope ?? new UserSectionScopeService(db),
             clock ?? LabClock.Default,

@@ -69,8 +69,7 @@ public class InactiveUserVisibilityTests
     public async Task DirectMessage_NotificationsSkipInactive_AndConversationRefusesThem()
     {
         using var db = NewDb();
-        var spy = new SpyNotificationService();
-        var service = TestServiceFactory.Message(db, spy);
+        var service = TestServiceFactory.Message(db);
 
         await Assert.ThrowsAsync<BusinessRuleException>(() =>
             service.CreateConversationAsync(new CreateConversationRequest(null, true, new List<int> { 2, 3 }, "Hi"), 1));
@@ -78,12 +77,13 @@ public class InactiveUserVisibilityTests
         // A conversation that predates the deactivation: the inactive participant is not notified.
         var conv = await service.CreateConversationAsync(new CreateConversationRequest("Team", true, new List<int> { 2 }, "Hello"), 1);
         db.ConversationParticipants.Add(new ConversationParticipant { ConversationId = conv.Id, UserId = 3 });
+        db.NotificationLogs.RemoveRange(db.NotificationLogs);
         await db.SaveChangesAsync();
-        spy.Sent.Clear();
         await service.SendMessageAsync(conv.Id, new SendMessageRequest("Later"), 1);
 
-        Assert.Contains(spy.Sent, s => s.UserId == 2);
-        Assert.DoesNotContain(spy.Sent, s => s.UserId == 3);
+        var logs = await db.NotificationLogs.AsNoTracking().ToListAsync();
+        Assert.Contains(logs, s => s.UserId == 2);
+        Assert.DoesNotContain(logs, s => s.UserId == 3);
     }
 
     [Fact]
@@ -106,21 +106,24 @@ public class InactiveUserVisibilityTests
     public async Task DiscussionNotifications_SkipInactiveAuthorAndCommenters()
     {
         using var db = NewDb();
-        var spy = new SpyNotificationService();
-        var service = TestServiceFactory.Discussion(db, notifications: spy);
+        var service = TestServiceFactory.Discussion(db);
 
         var post = await service.CreatePostAsync(new CreateDiscussionPostRequest("T", "C", DiscussionCategory.Equipment), null, authorUserId: 3);
         await service.AddCommentAsync(post.Id, new CreateDiscussionCommentRequest("by bob"), authorUserId: 2);
-        spy.Sent.Clear();
+        db.NotificationLogs.RemoveRange(db.NotificationLogs);
+        await db.SaveChangesAsync();
 
         await service.AddCommentAsync(post.Id, new CreateDiscussionCommentRequest("by alice"), authorUserId: 1);
 
-        Assert.Contains(spy.Sent, s => s.UserId == 2);
-        Assert.DoesNotContain(spy.Sent, s => s.UserId == 3);
+        var commentLogs = await db.NotificationLogs.AsNoTracking().ToListAsync();
+        Assert.Contains(commentLogs, s => s.UserId == 2);
+        Assert.DoesNotContain(commentLogs, s => s.UserId == 3);
 
-        spy.Sent.Clear();
+        db.NotificationLogs.RemoveRange(db.NotificationLogs);
+        await db.SaveChangesAsync();
         await service.UpdatePostAsync(post.Id, new UpdateDiscussionPostRequest("T2", "C2", DiscussionCategory.Equipment), 1, canEditAny: true);
-        Assert.DoesNotContain(spy.Sent, s => s.UserId == 3);
+        var updateLogs = await db.NotificationLogs.AsNoTracking().ToListAsync();
+        Assert.DoesNotContain(updateLogs, s => s.UserId == 3);
     }
 
     [Fact]

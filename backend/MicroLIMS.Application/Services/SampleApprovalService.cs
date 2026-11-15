@@ -5,6 +5,7 @@ using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Application.Workflows;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
+using MicroLIMS.Application.Abstractions.Live;
 using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Application.Services.Notifications;
 
@@ -515,6 +516,10 @@ public class SampleApprovalService
                 .First(s => s.Status == SectionSignoffStatus.RetestRequested).ApprovalDecision;
 
         await _publisher.ResolveAsync($"ApprovalWaiting:sample:{sampleId}:section:{section}");
+
+        _db.QueueSignal(LiveSignalKinds.Counters, $"section:{section}");
+        _db.QueueSignal(LiveSignalKinds.Record, $"sample:{sampleId}");
+        _db.QueueSignal(LiveSignalKinds.MyWork, $"user:{sectionHeadUserId}");
 
         await _db.SaveChangesAsync();
 

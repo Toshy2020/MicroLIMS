@@ -32,8 +32,7 @@ public class MessageServiceTests
     public async Task CreateConversation_OneOnOne_ReusesExistingIfAlreadyPresent()
     {
         using var db = CreateDbContext();
-        var spyNotif = new SpyNotificationService();
-        var service = TestServiceFactory.Message(db, spyNotif);
+        var service = TestServiceFactory.Message(db);
 
         var req1 = new CreateConversationRequest(null, IsGroup: false, new List<int> { 1, 2 }, "Hello Bob");
         var conv1 = await service.CreateConversationAsync(req1, creatorUserId: 1);
@@ -45,7 +44,8 @@ public class MessageServiceTests
         Assert.Equal("Hello Bob", conv1.LastMessage?.Content);
 
         // Bob was notified of message
-        Assert.Contains(spyNotif.Sent, s => s.UserId == 2 && s.Message.Contains("Hello Bob"));
+        var messageLogs = await db.NotificationLogs.AsNoTracking().Where(n => n.Type == "DirectMessage").ToListAsync();
+        Assert.Contains(messageLogs, s => s.UserId == 2 && s.Message.Contains("Hello Bob"));
 
         // When Alice tries to start a 1-on-1 conversation with Bob again, existing conversation is reused
         var req2 = new CreateConversationRequest(null, IsGroup: false, new List<int> { 2 }, "Second message to Bob");

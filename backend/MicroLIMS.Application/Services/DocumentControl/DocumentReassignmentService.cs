@@ -1,6 +1,6 @@
 using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
-using MicroLIMS.Application.Abstractions.Notifications;
+using MicroLIMS.Application.Abstractions.Live;
 using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Application.DTOs.DocumentControl;
 using MicroLIMS.Application.Helpers;
@@ -34,7 +34,6 @@ public class DocumentReassignmentService : IDocumentReassignmentService
     private readonly IMicroLimsDbContext _db;
     private readonly IAuditEventService _audit;
     private readonly IDocumentAuthorizationService _auth;
-    private readonly INotificationService? _push;
     private readonly ISystemSettingsReader? _settings;
     private readonly TimeProvider _time;
     private readonly INotificationPublisher _publisher;
@@ -43,7 +42,6 @@ public class DocumentReassignmentService : IDocumentReassignmentService
         IMicroLimsDbContext db,
         IAuditEventService audit,
         IDocumentAuthorizationService auth,
-        INotificationService? push = null,
         ISystemSettingsReader? settings = null,
         TimeProvider? timeProvider = null,
         INotificationPublisher? publisher = null)
@@ -51,7 +49,6 @@ public class DocumentReassignmentService : IDocumentReassignmentService
         _db = db;
         _audit = audit;
         _auth = auth;
-        _push = push;
         _settings = settings;
         _time = timeProvider ?? TimeProvider.System;
         _publisher = publisher ?? new NotificationPublisher(db, _time);
@@ -530,6 +527,9 @@ public class DocumentReassignmentService : IDocumentReassignmentService
             changes: changes,
             entityId: target.ItemId.ToString());
 
+        _db.QueueSignal(LiveSignalKinds.Record, $"document:{target.MasterId}");
+        _db.QueueSignal(LiveSignalKinds.MyWork, $"user:{newUser.Id}");
+
         await NotifyAsync(newUser.Id,
             NotificationType,
             $"You are now {target.Role} for {target.Code} – {target.Title} (handed over from a deactivated user). Reason: {reason}",
@@ -538,7 +538,7 @@ public class DocumentReassignmentService : IDocumentReassignmentService
         return new ReassignmentResultDto(target.ItemType, target.ItemId, target.MasterId, previousUserId, newUser.Id, newUser.FullName);
     }
 
-    // The existing notification mechanism: a persisted NotificationLog (shown in the user's notifications) plus the in-process push.
+    // The existing notification mechanism: a persisted NotificationLog (shown in the user's notifications).
     private async Task NotifyAsync(int recipientId, string type, string message, string severity)
     {
         await _publisher.PublishAsync(new NotificationRequest(
@@ -551,8 +551,6 @@ public class DocumentReassignmentService : IDocumentReassignmentService
             DedupeKey: null,
             Severity: severity));
         await _db.SaveChangesAsync();
-        if (_push is not null)
-            await _push.NotifyAsync(recipientId, message);
     }
 
     // ---- safety net ----------------------------------------------------------------------------

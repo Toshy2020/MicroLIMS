@@ -7,7 +7,7 @@ using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Application.Services;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
-using MicroLIMS.Application.Abstractions.Notifications;
+using MicroLIMS.Application.Abstractions.Live;
 using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Application.Services.Notifications;
 using MicroLIMS.Shared.Constants;
@@ -839,12 +839,15 @@ public sealed class PathogenConfirmationRecorder : TestWorkflowSupport
                 SampleId: order.SampleId,
                 TestOrderId: order.Id,
                 Severity: "warning"));
+
+            _db.QueueSignal(LiveSignalKinds.MyWork, $"user:{analystId}");
         }
 
-        await _db.SaveChangesAsync();
+        _db.QueueSignal(LiveSignalKinds.Counters, $"section:{order.SectionId}");
+        _db.QueueSignal(LiveSignalKinds.Record, $"testOrder:{order.Id}");
+        _db.QueueSignal(LiveSignalKinds.Record, $"sample:{order.SampleId}");
 
-        if (returnMessage is not null)
-            await _notifications.NotifyAsync(order.AssignedAnalystId!.Value, returnMessage);
+        await _db.SaveChangesAsync();
 
         return new StepResultDto(result.IncubationId, result.StepType.ToString(), "ReturnedForBiochemical",
             result.SubmittedByUserId, result.SubmittedAtUtc, NextStepUnlocked: true,

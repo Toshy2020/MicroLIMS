@@ -118,6 +118,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<DashboardNotificationService>();
         services.AddScoped<NotificationQueryService>();
         services.AddScoped<NotificationPreferencesService>();
+        services.AddScoped<WorkingHoursService>();
         services.AddScoped<INotificationPublisher, NotificationPublisher>();
         services.AddScoped<NotificationRecipients>();
         services.AddScoped<NotificationScheduler>();

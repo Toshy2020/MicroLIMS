@@ -326,3 +326,25 @@ describe("Label Formats menu entry", () => {
     expect(physchemMasterOnly?.children?.find((c) => c.path === "/laboratory-configuration/label-formats")).toBeUndefined();
   });
 });
+
+describe("Working Hours menu entry", () => {
+  it("is offered under General Laboratory Configuration only with Notifications.Configure", () => {
+    const withPerm = getGroupedMenu({
+      role: "SectionHead",
+      permissions: [PERMISSIONS.NOTIFICATIONS_CONFIGURE],
+      labCodes: []
+    });
+    const configGroup = withPerm.find((g) => g.groupName === "GENERAL LABORATORY CONFIGURATION");
+    const item = configGroup?.items.find((i) => i.path === "/laboratory-configuration/working-hours");
+    expect(item?.label).toBe("Working Hours");
+    expect(item?.permission).toBe(PERMISSIONS.NOTIFICATIONS_CONFIGURE);
+    expect(findNavTrail(withPerm, "/laboratory-configuration/working-hours", "")?.item.label).toBe("Working Hours");
+
+    const withoutPerm = getGroupedMenu({
+      role: "Analyst",
+      permissions: [PERMISSIONS.MASTER_DATA_MANAGE],
+      labCodes: ["MICRO"]
+    });
+    expect(findItemByPath(withoutPerm.flatMap((g) => g.items), "/laboratory-configuration/working-hours")).toBeUndefined();
+  });
+});

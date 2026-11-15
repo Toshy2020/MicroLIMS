@@ -753,6 +753,8 @@ WorkflowProfilesController.Create(CreateWorkflowProfileVersionRequest): SystemAd
 WorkflowProfilesController.List(Nullable`1, String, Boolean, Nullable`1): SystemAdministrator,SectionHead,Qa
 WorkflowProfilesController.Overview(): SystemAdministrator,SectionHead,Qa
 WorkflowProfilesController.Sign(Int32, SignWorkflowProfileDraftRequest): SystemAdministrator,SectionHead
+WorkingHoursController.Get(CancellationToken): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+WorkingHoursController.Update(UpdateWorkingHoursRequest, CancellationToken): SectionHead,QcManager
 WorkingStandardsController.Approve(Int32, WorkingStandardSignRequest): SectionHead
 WorkingStandardsController.Create(CreateQualificationRequest): SectionHead,Analyst
 WorkingStandardsController.DownloadDocument(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa

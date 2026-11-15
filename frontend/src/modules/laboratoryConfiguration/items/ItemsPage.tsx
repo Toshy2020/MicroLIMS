@@ -4,7 +4,9 @@ import { Box, Button, Alert, Grid, Typography, Stack } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import { PageHeader } from "../../../components/PageHeader";
 import { ItemTable, ITEM_ROWS_PER_PAGE_OPTIONS } from "./ItemTable";
-import { ItemService, Item } from "./services/ItemService";
+import { ItemService, Item, ItemSaveRequest } from "./services/ItemService";
+import { isReasonRequiredError } from "../../../services/apiClient";
+import { ChangeReasonDialog } from "../../../components/config/ChangeReasonDialog";
 import { useHasPermission } from "../../../contexts/AuthContext";
 import { PERMISSIONS } from "../../../routes/routes";
 import { ItemFilterBar } from "./components/ItemFilterBar";
@@ -76,6 +78,15 @@ export function ItemsPage() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [message, setMessage] = useState<{ text: string; ok: boolean } | null>(null);
+
+  type PendingItemReasonAction =
+    | { kind: "delete"; item: Item }
+    | { kind: "freeze"; item: Item }
+    | { kind: "unfreeze"; item: Item }
+    | { kind: "edit"; id: number; name: string; payload: ItemSaveRequest; version?: number };
+  const [pendingReasonAction, setPendingReasonAction] = useState<PendingItemReasonAction | null>(null);
+  const [reasonSubmitting, setReasonSubmitting] = useState(false);
+  const [reasonError, setReasonError] = useState<string | null>(null);
 
   const loadItems = () => {
     setLoading(true);
@@ -208,8 +219,23 @@ export function ItemsPage() {
     };
 
     if (editingItem) {
-      await ItemService.update(editingItem.id, payload, editingItem.version);
-      setMessage({ text: `Item "${itemData.name}" updated successfully.`, ok: true });
+      try {
+        await ItemService.update(editingItem.id, payload, editingItem.version);
+        setMessage({ text: `Item "${itemData.name}" updated successfully.`, ok: true });
+      } catch (e: unknown) {
+        if (isReasonRequiredError(e)) {
+          setReasonError(null);
+          setPendingReasonAction({
+            kind: "edit",
+            id: editingItem.id,
+            name: itemData.name,
+            payload,
+            version: editingItem.version,
+          });
+          return;
+        }
+        throw e;
+      }
     } else {
       const created = await ItemService.create(payload);
       setMessage({ text: `Item "${itemData.name}" created successfully.`, ok: true });
@@ -218,33 +244,50 @@ export function ItemsPage() {
     loadItems();
   };
 
-  const handleDeleteItem = async (item: Item) => {
+  const handleDeleteItem = (item: Item) => {
     setMessage(null);
-    try {
-      await ItemService.remove(item.id);
-      setMessage({ text: `Item "${item.name}" deleted.`, ok: true });
-      if (selectedItemId === item.id) {
-        setSelectedItemId(null);
-      }
-      loadItems();
-    } catch (e: unknown) {
-      setMessage({ text: apiErrorMessage(e, "Could not delete item."), ok: false });
-    }
+    setReasonError(null);
+    setPendingReasonAction({ kind: "delete", item });
   };
 
-  const handleToggleFreezeItem = async (item: Item) => {
+  const handleToggleFreezeItem = (item: Item) => {
     setMessage(null);
+    setReasonError(null);
+    setPendingReasonAction({ kind: item.isActive ? "freeze" : "unfreeze", item });
+  };
+
+  const handleConfirmReasonAction = async (reason: string) => {
+    if (!pendingReasonAction) return;
+    setReasonSubmitting(true);
+    setReasonError(null);
     try {
-      if (item.isActive) {
-        await ItemService.freeze(item.id);
-        setMessage({ text: `Item "${item.name}" frozen.`, ok: true });
+      if (pendingReasonAction.kind === "delete") {
+        await ItemService.remove(pendingReasonAction.item.id, reason);
+        setMessage({ text: `Item "${pendingReasonAction.item.name}" deleted.`, ok: true });
+        if (selectedItemId === pendingReasonAction.item.id) {
+          setSelectedItemId(null);
+        }
+      } else if (pendingReasonAction.kind === "freeze") {
+        await ItemService.freeze(pendingReasonAction.item.id, reason);
+        setMessage({ text: `Item "${pendingReasonAction.item.name}" frozen.`, ok: true });
+      } else if (pendingReasonAction.kind === "unfreeze") {
+        await ItemService.unfreeze(pendingReasonAction.item.id, reason);
+        setMessage({ text: `Item "${pendingReasonAction.item.name}" unfrozen.`, ok: true });
       } else {
-        await ItemService.unfreeze(item.id);
-        setMessage({ text: `Item "${item.name}" unfrozen.`, ok: true });
+        await ItemService.update(
+          pendingReasonAction.id,
+          pendingReasonAction.payload,
+          pendingReasonAction.version,
+          reason
+        );
+        setMessage({ text: `Item "${pendingReasonAction.name}" updated successfully.`, ok: true });
       }
+      setPendingReasonAction(null);
       loadItems();
     } catch (e: unknown) {
-      setMessage({ text: apiErrorMessage(e, "Could not update item status."), ok: false });
+      setReasonError(apiErrorMessage(e, "Could not complete this action."));
+    } finally {
+      setReasonSubmitting(false);
     }
   };
 
@@ -401,6 +444,43 @@ export function ItemsPage() {
         itemToEdit={editingItem}
         onClose={() => setAddDialogOpen(false)}
         onSave={handleSaveItem}
+      />
+
+      <ChangeReasonDialog
+        open={pendingReasonAction !== null}
+        title={
+          pendingReasonAction?.kind === "delete"
+            ? `Delete item "${pendingReasonAction.item.name}"`
+            : pendingReasonAction?.kind === "freeze"
+            ? `Freeze item "${pendingReasonAction.item.name}"`
+            : pendingReasonAction?.kind === "unfreeze"
+            ? `Unfreeze item "${pendingReasonAction.item.name}"`
+            : pendingReasonAction
+            ? `Update item "${pendingReasonAction.name}"`
+            : "Change reason"
+        }
+        message={
+          pendingReasonAction?.kind === "delete"
+            ? "Deleting an item requires a reason for the audit trail."
+            : pendingReasonAction?.kind === "freeze"
+            ? "Freezing an item prevents new sample receipts and requires a reason for the audit trail."
+            : pendingReasonAction?.kind === "unfreeze"
+            ? "Unfreezing an item requires a reason for the audit trail."
+            : "This item has active laboratory work and requires a reason for the audit trail."
+        }
+        confirmText={
+          pendingReasonAction?.kind === "delete"
+            ? "Delete"
+            : pendingReasonAction?.kind === "freeze"
+            ? "Freeze"
+            : pendingReasonAction?.kind === "unfreeze"
+            ? "Unfreeze"
+            : "Save Changes"
+        }
+        loading={reasonSubmitting}
+        error={reasonError}
+        onCancel={() => { setPendingReasonAction(null); setReasonError(null); }}
+        onConfirm={handleConfirmReasonAction}
       />
     </Box>
   );

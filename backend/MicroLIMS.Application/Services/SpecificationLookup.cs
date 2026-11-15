@@ -43,7 +43,7 @@ public static class SpecificationLookup
         if (grade is null) return null;
 
         var hasGradeRows = await db.Specifications.AnyAsync(
-            s => s.ItemId == itemId && s.TestCode == testCode && s.Grade == grade,
+            s => s.ItemId == itemId && s.TestCode == testCode && s.Grade == grade && !s.IsRetired,
             cancellationToken);
         return hasGradeRows ? grade : null;
     }
@@ -59,7 +59,7 @@ public static class SpecificationLookup
 
         var grade = await ApplicableGradeAsync(db, sampleId, itemId, testCode, cancellationToken);
         var hasStageRows = await db.Specifications.AnyAsync(
-            s => s.ItemId == itemId && s.TestCode == testCode && s.Grade == grade && s.ProductionStageRole == role,
+            s => s.ItemId == itemId && s.TestCode == testCode && s.Grade == grade && s.ProductionStageRole == role && !s.IsRetired,
             cancellationToken);
         return hasStageRows ? role : null;
     }
@@ -81,7 +81,7 @@ public static class SpecificationLookup
         var stage = await ApplicableStageAsync(db, sampleId, itemId, testCode, cancellationToken);
         return await db.Specifications
             .Include(s => s.Stages)
-            .Where(s => s.ItemId == itemId && s.TestCode == testCode && s.Grade == grade && s.ProductionStageRole == stage)
+            .Where(s => s.ItemId == itemId && s.TestCode == testCode && s.Grade == grade && s.ProductionStageRole == stage && !s.IsRetired)
             .OrderBy(s => s.DisplayOrder)
             .ThenBy(s => s.Id)
             .ToListAsync(cancellationToken);
@@ -92,9 +92,49 @@ public static class SpecificationLookup
         var grade = await ApplicableGradeAsync(db, sampleId, itemId, testCode, cancellationToken);
         var stage = await ApplicableStageAsync(db, sampleId, itemId, testCode, cancellationToken);
         return await db.Specifications
-            .Where(s => s.ItemId == itemId && s.TestCode == testCode && s.Grade == grade && s.ProductionStageRole == stage)
+            .Where(s => s.ItemId == itemId && s.TestCode == testCode && s.Grade == grade && s.ProductionStageRole == stage && !s.IsRetired)
             .OrderBy(s => s.DisplayOrder)
             .ThenBy(s => s.Id)
             .FirstOrDefaultAsync(cancellationToken);
+    }
+
+    // Called when no active specification applies for an evaluation: if a matching
+    // specification was retired while the sample was in testing, stops entry with
+    // a clear message instead of evaluating without limits or blaming setup.
+    public static async Task ThrowIfRetiredAsync(
+        IMicroLimsDbContext db,
+        int sampleId,
+        int itemId,
+        string testCode,
+        CancellationToken cancellationToken = default)
+    {
+        var sampleGrade = await SampleGradeAsync(db, sampleId, cancellationToken);
+        var sampleStage = await SampleStageRoleAsync(db, sampleId, cancellationToken);
+        var gradeLower = sampleGrade?.ToLower();
+
+        var hasRetired = await db.Specifications.AsNoTracking().AnyAsync(
+            s => s.ItemId == itemId
+                 && s.TestCode == testCode
+                 && s.IsRetired
+                 && (gradeLower == null || s.Grade == null || s.Grade.ToLower() == gradeLower)
+                 && (sampleStage == null || s.ProductionStageRole == null || s.ProductionStageRole == sampleStage),
+            cancellationToken);
+
+        if (!hasRetired)
+            return;
+
+        var testName = await db.TestDefinitions.AsNoTracking()
+            .Where(t => t.Code == testCode)
+            .Select(t => t.DisplayName)
+            .FirstOrDefaultAsync(cancellationToken);
+        var itemName = await db.Items.AsNoTracking()
+            .Where(i => i.Id == itemId)
+            .Select(i => i.Name)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        var testLabel = string.IsNullOrWhiteSpace(testName) ? testCode : testName;
+        var itemLabel = string.IsNullOrWhiteSpace(itemName) ? itemId.ToString() : itemName;
+        throw new MicroLIMS.Shared.Exceptions.BusinessRuleException(
+            $"The specification for {testLabel} on {itemLabel} has been retired. Ask the Section Head to reinstate it or configure a new one.");
     }
 }

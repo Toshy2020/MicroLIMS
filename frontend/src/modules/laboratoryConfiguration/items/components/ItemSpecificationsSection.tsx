@@ -31,7 +31,7 @@ import {
   productionStageRoleLabel
 } from "../../specifications/services/SpecificationService";
 import { collapseGrades, gradesOf, siblingsOf } from "../../specifications/services/gradeGroups";
-import { ConfirmationDialog } from "../../../../components/ConfirmationDialog";
+import { ChangeReasonDialog } from "../../../../components/config/ChangeReasonDialog";
 import { parseClipboardTable } from "../../../../components/entry/parseClipboardTable";
 import { PastePreviewDialog, type PasteAcceptedRow } from "../../../../components/entry/PastePreviewDialog";
 import { PendingBatchList, type PendingBatchColumn } from "../../../../components/entry/PendingBatchList";
@@ -185,9 +185,11 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
   const [copyOpen, setCopyOpen] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
 
-  // Delete state
+  // Delete / retire / reinstate state
   const [pendingDelete, setPendingDelete] = useState<SpecificationDto | null>(null);
-  const [_deleting, setDeleting] = useState(false);
+  const [pendingReinstate, setPendingReinstate] = useState<SpecificationDto | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [reasonError, setReasonError] = useState<string | null>(null);
 
   // Paste batch state
   const [pasteBarOpen, setPasteBarOpen] = useState(false);
@@ -392,15 +394,30 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
     setDialogOpen(true);
   };
 
-  const handleDeleteConfirm = async () => {
+  const handleDeleteConfirm = async (reason: string) => {
     if (!pendingDelete?.id) return;
     setDeleting(true);
     setError(null);
+    setReasonError(null);
+    const label = pendingDelete.parameterName || pendingDelete.testCode;
     try {
+      let retiredCount = 0;
+      let deletedCount = 0;
       for (const s of siblingsOf(pendingDelete)) {
-        if (s.id != null) await SpecificationService.remove(s.id);
+        if (s.id != null) {
+          const res = await SpecificationService.remove(s.id, reason);
+          if (res?.outcome === "retired") retiredCount += 1;
+          else deletedCount += 1;
+        }
       }
       setPendingDelete(null);
+      if (retiredCount > 0 && deletedCount === 0) {
+        setNotice(`Specification "${label}" was retired because results are recorded against it.`);
+      } else if (retiredCount > 0 && deletedCount > 0) {
+        setNotice(`Specification "${label}": ${retiredCount} retired (has results), ${deletedCount} deleted.`);
+      } else {
+        setNotice(`Specification "${label}" was deleted.`);
+      }
       await loadSpecs();
       onSpecsChanged?.();
     } catch (err: unknown) {
@@ -408,10 +425,41 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
         response?: { data?: { message?: string } };
         message?: string;
       };
-      setError(
+      setReasonError(
         axiosError?.response?.data?.message ||
           axiosError?.message ||
           "Failed to delete specification."
+      );
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const handleReinstateConfirm = async (reason: string) => {
+    if (!pendingReinstate?.id) return;
+    setDeleting(true);
+    setError(null);
+    setReasonError(null);
+    const label = pendingReinstate.parameterName || pendingReinstate.testCode;
+    try {
+      for (const s of siblingsOf(pendingReinstate)) {
+        if (s.id != null && s.isRetired) {
+          await SpecificationService.reinstate(s.id, reason);
+        }
+      }
+      setPendingReinstate(null);
+      setNotice(`Specification "${label}" was reinstated.`);
+      await loadSpecs();
+      onSpecsChanged?.();
+    } catch (err: unknown) {
+      const axiosError = err as {
+        response?: { data?: { message?: string } };
+        message?: string;
+      };
+      setReasonError(
+        axiosError?.response?.data?.message ||
+          axiosError?.message ||
+          "Failed to reinstate specification."
       );
     } finally {
       setDeleting(false);
@@ -673,8 +721,11 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
                           >
                             <TableCell sx={{ fontWeight: 600, fontSize: 13 }}>
                               {displayName}
-                              {(spec.resultBasis || spec.hplcMethodAnalyteId || spec.canEdit === false || spec.productionStageRole || spec.grade) && (
+                              {(spec.isRetired || spec.resultBasis || spec.hplcMethodAnalyteId || spec.canEdit === false || spec.productionStageRole || spec.grade) && (
                                 <Box sx={{ display: "flex", gap: 0.75, mt: 0.5, flexWrap: "wrap", alignItems: "center" }}>
+                                  {spec.isRetired && (
+                                    <Chip size="small" label="Retired" color="warning" variant="outlined" sx={{ height: 20, fontSize: 12, fontWeight: 700 }} />
+                                  )}
                                   {spec.grade && (
                                     <Chip size="small" label={`Grade: ${gradesOf(spec).join(", ")}`} sx={{ height: 20, fontSize: 12, fontWeight: 600, color: "primary.main", border: "1px solid", borderColor: "primary.main", bgcolor: "transparent" }} />
                                   )}
@@ -794,6 +845,15 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
                                 <Typography sx={{ fontSize: 12, color: "text.disabled", fontStyle: "italic" }}>
                                   Read-only
                                 </Typography>
+                              ) : spec.isRetired ? (
+                                <Button
+                                  size="small"
+                                  variant="outlined"
+                                  onClick={() => { setReasonError(null); setPendingReinstate(spec); }}
+                                  sx={{ textTransform: "none", fontSize: 12, fontWeight: 600 }}
+                                >
+                                  Reinstate
+                                </Button>
                               ) : (
                                 <Stack
                                   direction="row"
@@ -810,7 +870,7 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
                                   <IconButton aria-label={`Delete specification for ${spec.testCode}`}
                                     size="small"
                                     color="error"
-                                    onClick={() => setPendingDelete(spec)}
+                                    onClick={() => { setReasonError(null); setPendingDelete(spec); }}
                                     title="Delete Specification"
                                   >
                                     <DeleteIcon fontSize="small" />
@@ -926,8 +986,11 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
                                       <Typography sx={{ fontWeight: 600, fontSize: 13 }}>
                                         {spec.parameterName}
                                       </Typography>
-                                      {(spec.resultBasis || spec.hplcMethodAnalyteId || spec.productionStageRole || spec.grade) && (
+                                      {(spec.isRetired || spec.resultBasis || spec.hplcMethodAnalyteId || spec.productionStageRole || spec.grade) && (
                                         <Box sx={{ display: "flex", gap: 0.75, mt: 0.5, flexWrap: "wrap", alignItems: "center" }}>
+                                          {spec.isRetired && (
+                                            <Chip size="small" label="Retired" color="warning" variant="outlined" sx={{ height: 20, fontSize: 12, fontWeight: 700 }} />
+                                          )}
                                           {spec.grade && (
                                             <Chip size="small" label={`Grade: ${gradesOf(spec).join(", ")}`} sx={{ height: 20, fontSize: 12, fontWeight: 600, color: "primary.main", border: "1px solid", borderColor: "primary.main", bgcolor: "transparent" }} />
                                           )}
@@ -1024,6 +1087,15 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
                                     <Typography sx={{ fontSize: 12, color: "text.disabled", fontStyle: "italic" }}>
                                       Read-only
                                     </Typography>
+                                  ) : spec.isRetired ? (
+                                    <Button
+                                      size="small"
+                                      variant="outlined"
+                                      onClick={() => { setReasonError(null); setPendingReinstate(spec); }}
+                                      sx={{ textTransform: "none", fontSize: 12, fontWeight: 600 }}
+                                    >
+                                      Reinstate
+                                    </Button>
                                   ) : (
                                     <Stack
                                       direction="row"
@@ -1040,7 +1112,7 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
                                       <IconButton aria-label={`Delete specification for ${spec.testCode}`}
                                         size="small"
                                         color="error"
-                                        onClick={() => setPendingDelete(spec)}
+                                        onClick={() => { setReasonError(null); setPendingDelete(spec); }}
                                         title="Delete Specification"
                                       >
                                         <DeleteIcon fontSize="small" />
@@ -1164,17 +1236,36 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
         />
       )}
 
-      {/* Delete Confirmation Dialog */}
-      <ConfirmationDialog
+      {/* Delete / Retire Change Reason Dialog */}
+      <ChangeReasonDialog
         open={pendingDelete != null}
+        title="Delete or retire specification"
         message={
           pendingDelete
-            ? `Delete specification parameter "${pendingDelete.parameterName || pendingDelete.testCode}"${gradesOf(pendingDelete).length > 1 ? ` (grades ${gradesOf(pendingDelete).join(", ")})` : ""} for "${item.name}"? This cannot be undone.`
-            : ""
+            ? `Delete specification parameter "${pendingDelete.parameterName || pendingDelete.testCode}"${gradesOf(pendingDelete).length > 1 ? ` (grades ${gradesOf(pendingDelete).join(", ")})` : ""} for "${item.name}"? Specifications with recorded results are retired instead of deleted.`
+            : undefined
         }
-        onCancel={() => setPendingDelete(null)}
+        confirmText="Confirm"
+        loading={deleting}
+        error={reasonError}
+        onCancel={() => { setPendingDelete(null); setReasonError(null); }}
         onConfirm={handleDeleteConfirm}
-        destructive
+      />
+
+      {/* Reinstate Change Reason Dialog */}
+      <ChangeReasonDialog
+        open={pendingReinstate != null}
+        title="Reinstate specification"
+        message={
+          pendingReinstate
+            ? `Reinstate retired specification "${pendingReinstate.parameterName || pendingReinstate.testCode}" for "${item.name}" so it is active for new testing again.`
+            : undefined
+        }
+        confirmText="Reinstate"
+        loading={deleting}
+        error={reasonError}
+        onCancel={() => { setPendingReinstate(null); setReasonError(null); }}
+        onConfirm={handleReinstateConfirm}
       />
 
       {pastePreviewCells && (

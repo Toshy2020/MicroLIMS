@@ -10949,6 +10949,11 @@ namespace MicroLIMS.Persistence.Migrations
                     b.Property<int?>("IcpTestElementId")
                         .HasColumnType("integer");
 
+                    b.Property<bool>("IsRetired")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
                     b.Property<int>("ItemId")
                         .HasColumnType("integer");
 
@@ -10988,6 +10993,12 @@ namespace MicroLIMS.Persistence.Migrations
                         .HasColumnType("integer");
 
                     b.Property<int?>("ResultBasis")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("RetiredAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("RetiredByUserId")
                         .HasColumnType("integer");
 
                     b.Property<decimal?>("SampleQuantity")
@@ -11045,7 +11056,8 @@ namespace MicroLIMS.Persistence.Migrations
                     b.HasIndex("IcpTestElementId");
 
                     b.HasIndex("ItemId", "TestCode", "ParameterName", "ProductionStageRole", "Grade", "RelatedSubstanceRow", "HplcMethodImpurityId")
-                        .IsUnique();
+                        .IsUnique()
+                        .HasFilter("\"IsRetired\" = false");
 
                     NpgsqlIndexBuilderExtensions.AreNullsDistinct(b.HasIndex("ItemId", "TestCode", "ParameterName", "ProductionStageRole", "Grade", "RelatedSubstanceRow", "HplcMethodImpurityId"), false);
 

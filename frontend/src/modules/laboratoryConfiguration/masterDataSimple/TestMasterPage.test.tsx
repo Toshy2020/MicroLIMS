@@ -61,6 +61,8 @@ vi.mock("../../../services/masterDataOptions", async (importOriginal) => {
       getTestDefinitions: vi.fn(),
       createTestDefinition: vi.fn(),
       updateTestDefinition: vi.fn(),
+      freezeTestDefinition: vi.fn(),
+      unfreezeTestDefinition: vi.fn(),
       getTestWorkflowSteps: vi.fn().mockResolvedValue([]),
       getOrganisms: vi.fn().mockResolvedValue([]),
       getMediaIncubationConditions: vi.fn().mockResolvedValue([]),
@@ -918,5 +920,36 @@ describe("TestMasterPage - method acceptance fields are required, never defaulte
       dissolutionS3MinOffset: 26,
       dissolutionS3MaxBelowS2Min: 3
     });
+  });
+
+  it("prompts for a reason when freezing and unfreezing a test definition", async () => {
+    vi.mocked(masterDataOptions.getTestDefinitions).mockResolvedValue([
+      mockTestDefinitions[0],
+      { ...mockTestDefinitions[1], isActive: false }
+    ]);
+    vi.mocked(masterDataOptions.freezeTestDefinition).mockResolvedValue({ id: 1, version: 2 } as never);
+    vi.mocked(masterDataOptions.unfreezeTestDefinition).mockResolvedValue({ id: 2, version: 3 } as never);
+    const user = userEvent.setup();
+    renderInRouter(<TestMasterPage lab="fp" area="fp" />);
+
+    const menus = await screen.findAllByRole("button", { name: /Row actions/i });
+    await user.click(menus[0]);
+    await user.click(await screen.findByRole("menuitem", { name: "Freeze" }));
+    await user.type(await screen.findByLabelText(/Reason for change/i), "Method retired from SOP");
+    await user.click(screen.getByRole("button", { name: "Freeze" }));
+
+    await waitFor(() =>
+      expect(masterDataOptions.freezeTestDefinition).toHaveBeenCalledWith(1, undefined, "Method retired from SOP")
+    );
+
+    const menusAfter = await screen.findAllByRole("button", { name: /Row actions/i });
+    await user.click(menusAfter[1]);
+    await user.click(await screen.findByRole("menuitem", { name: "Unfreeze" }));
+    await user.type(await screen.findByLabelText(/Reason for change/i), "Restored for stability run");
+    await user.click(screen.getByRole("button", { name: "Unfreeze" }));
+
+    await waitFor(() =>
+      expect(masterDataOptions.unfreezeTestDefinition).toHaveBeenCalledWith(2, undefined, "Restored for stability run")
+    );
   });
 });

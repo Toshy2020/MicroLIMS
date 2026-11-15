@@ -78,5 +78,11 @@ public class Specification : IVersionedEntity
     [JsonIgnore]
     public TestDefinitionIcpElement? IcpTestElement { get; set; }
 
+    // Retirement: used specifications are retired rather than deleted so historical
+    // traceability stays intact while new sampling/evaluation excludes them.
+    public bool IsRetired { get; set; }
+    public DateTime? RetiredAt { get; set; }
+    public int? RetiredByUserId { get; set; }
+
     public List<SpecificationStage> Stages { get; set; } = new();
 }

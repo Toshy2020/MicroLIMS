@@ -1,3 +1,4 @@
+using MicroLIMS.API.Helpers;
 using MicroLIMS.Shared.Exceptions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -53,19 +54,26 @@ public class TestDefinitionMasterDataController : ControllerBase
         Ok(ApiResponse<object>.Ok(await _service.CreateTestDefinitionAsync(CurrentUserId, request)));
 
     [Authorize(Policy = PermissionConstants.MasterDataManage)]
+    [HttpPost("test-definitions/validate")]
+    public async Task<IActionResult> ValidateTestDefinition(
+        ValidateTestDefinitionRequest request,
+        [FromQuery] int? id = null) =>
+        Ok(ApiResponse<IReadOnlyList<FieldError>>.Ok(await _service.ValidateTestDefinitionAsync(CurrentUserId, request, id, Ct)));
+
+    [Authorize(Policy = PermissionConstants.MasterDataManage)]
     [HttpPut("test-definitions/{id}")]
     public async Task<IActionResult> UpdateTestDefinition(int id, UpdateTestDefinitionRequest request) =>
-        Ok(ApiResponse<object>.Ok(await _service.UpdateTestDefinitionAsync(CurrentUserId, id, request)));
+        Ok(ApiResponse<object>.Ok(await _service.UpdateTestDefinitionAsync(CurrentUserId, id, request, ChangeReasonHeader.Read(Request), Ct)));
 
     [Authorize(Policy = PermissionConstants.MasterDataManage)]
     [HttpPut("test-definitions/{id}/freeze")]
     public async Task<IActionResult> FreezeTestDefinition(int id) =>
-        Ok(ApiResponse<object>.Ok(await _service.FreezeTestDefinitionAsync(CurrentUserId, id, Ct)));
+        Ok(ApiResponse<object>.Ok(await _service.FreezeTestDefinitionAsync(CurrentUserId, id, Ct, ChangeReasonHeader.Read(Request))));
 
     [Authorize(Policy = PermissionConstants.MasterDataManage)]
     [HttpPut("test-definitions/{id}/unfreeze")]
     public async Task<IActionResult> UnfreezeTestDefinition(int id) =>
-        Ok(ApiResponse<object>.Ok(await _service.UnfreezeTestDefinitionAsync(CurrentUserId, id, Ct)));
+        Ok(ApiResponse<object>.Ok(await _service.UnfreezeTestDefinitionAsync(CurrentUserId, id, Ct, ChangeReasonHeader.Read(Request))));
 
     // ---- Equation Types (REQ-FP-030/042) ----
     [HttpGet("equation-types")]

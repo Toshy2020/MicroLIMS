@@ -613,7 +613,9 @@ SpecificationMasterDataController.CreateSpecificationsBatch(List`1, Cancellation
 SpecificationMasterDataController.DeleteSpecification(Int32): SystemAdministrator,SectionHead
 SpecificationMasterDataController.GetSpecifications(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 SpecificationMasterDataController.GetSpecificationsForTestOrder(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+SpecificationMasterDataController.ReinstateSpecification(Int32): SystemAdministrator,SectionHead
 SpecificationMasterDataController.UpdateSpecification(Int32, UpdateSpecificationRequest): SystemAdministrator,SectionHead
+SpecificationMasterDataController.ValidateSpecification(ValidateSpecificationRequest, Nullable`1): SystemAdministrator,SectionHead
 SsoController.Callback(String, String, String, CancellationToken): anonymous
 SsoController.Exchange(SsoExchangeRequest, CancellationToken): anonymous
 SsoController.GetMode(CancellationToken): anonymous
@@ -638,6 +640,7 @@ TestDefinitionMasterDataController.GetItemsForTest(Int32, String, Int32, Int32):
 TestDefinitionMasterDataController.GetTestDefinitions(): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 TestDefinitionMasterDataController.UnfreezeTestDefinition(Int32): SystemAdministrator,SectionHead
 TestDefinitionMasterDataController.UpdateTestDefinition(Int32, UpdateTestDefinitionRequest): SystemAdministrator,SectionHead
+TestDefinitionMasterDataController.ValidateTestDefinition(ValidateTestDefinitionRequest, Nullable`1): SystemAdministrator,SectionHead
 TestSelfAssignmentController.Release(Int32, CancellationToken): Analyst
 TestSelfAssignmentController.Take(Int32, CancellationToken): Analyst
 TestStageReplicateMasterDataController.CreateTestDefinitionStageReplicate(Int32, CreateTestDefinitionStageReplicateRequest): SystemAdministrator,SectionHead

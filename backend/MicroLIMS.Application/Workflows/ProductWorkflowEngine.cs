@@ -86,7 +86,7 @@ public class ProductWorkflowEngine : IProductWorkflowEngine
                 ?? throw new BusinessRuleException($"Production stage '{stageName}' is not a known stage.");
         }
 
-        var itemSpecs = await _db.Specifications.AsNoTracking().Where(s => s.ItemId == item.Id).ToListAsync();
+        var itemSpecs = await _db.Specifications.AsNoTracking().Where(s => s.ItemId == item.Id && !s.IsRetired).ToListAsync();
         var grade = ResolveGrade(itemSpecs, request.Grade);
 
         var sample = new Sample

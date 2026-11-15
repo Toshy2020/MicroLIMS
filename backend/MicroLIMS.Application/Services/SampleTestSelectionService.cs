@@ -149,7 +149,7 @@ public class SampleTestSelectionService
             return Array.Empty<RetestEligibleTestDto>();
 
         var assigned = await _db.SampleTests.AsNoTracking().Where(t => t.ItemId == itemId).ToListAsync(ct);
-        var specs = await _db.Specifications.AsNoTracking().Where(s => s.ItemId == itemId).ToListAsync(ct);
+        var specs = await _db.Specifications.AsNoTracking().Where(s => s.ItemId == itemId && !s.IsRetired).ToListAsync(ct);
         var notApplicable = await NotApplicableTestService.LoadApprovedAsync(_db, itemId, ct);
         var testSections = await TestSectionLookup.ResolveAsync(_db, assigned.Select(t => t.TestCode), ct);
         var sectionNames = await _db.DocumentSections.AsNoTracking().Where(s => sectionIds.Contains(s.Id))

@@ -240,7 +240,7 @@ public class SpecificationService
         if (grade is not null)
         {
             var existing = await _db.Specifications
-                .Where(s => s.ItemId == spec.ItemId && s.Id != spec.Id && s.Grade != null && s.Grade.ToLower() == grade)
+                .Where(s => s.ItemId == spec.ItemId && s.Id != spec.Id && !s.IsRetired && s.Grade != null && s.Grade.ToLower() == grade)
                 .Select(s => s.Grade).FirstOrDefaultAsync(cancellationToken);
             if (existing is not null) spec.Grade = existing;
         }
@@ -284,7 +284,7 @@ public class SpecificationService
         {
             var duplicateAnalyteBasis = await _db.Specifications.AnyAsync(
                 s => s.ItemId == spec.ItemId && s.TestCode == spec.TestCode && s.HplcMethodAnalyteId == methodAnalyteId
-                     && s.ResultBasis == spec.ResultBasis && s.ProductionStageRole == spec.ProductionStageRole && s.Id != spec.Id
+                     && s.ResultBasis == spec.ResultBasis && s.ProductionStageRole == spec.ProductionStageRole && s.Id != spec.Id && !s.IsRetired
                      && (s.Grade == null ? null : s.Grade.ToLower()) == grade,
                 cancellationToken);
             if (duplicateAnalyteBasis)
@@ -295,7 +295,7 @@ public class SpecificationService
         {
             var duplicateElementBasis = await _db.Specifications.AnyAsync(
                 s => s.ItemId == spec.ItemId && s.TestCode == spec.TestCode && s.IcpTestElementId == icpElementId
-                     && s.ResultBasis == spec.ResultBasis && s.ProductionStageRole == spec.ProductionStageRole && s.Id != spec.Id
+                     && s.ResultBasis == spec.ResultBasis && s.ProductionStageRole == spec.ProductionStageRole && s.Id != spec.Id && !s.IsRetired
                      && (s.Grade == null ? null : s.Grade.ToLower()) == grade,
                 cancellationToken);
             if (duplicateElementBasis)
@@ -309,7 +309,7 @@ public class SpecificationService
             var relatedDuplicate = await _db.Specifications.AnyAsync(
                 s => s.ItemId == spec.ItemId && s.TestCode == spec.TestCode && s.RelatedSubstanceRow == kind
                      && s.HplcMethodImpurityId == spec.HplcMethodImpurityId
-                     && s.ProductionStageRole == spec.ProductionStageRole && s.Id != spec.Id
+                     && s.ProductionStageRole == spec.ProductionStageRole && s.Id != spec.Id && !s.IsRetired
                      && (s.Grade == null ? null : s.Grade.ToLower()) == grade,
                 cancellationToken);
             if (relatedDuplicate)
@@ -323,7 +323,7 @@ public class SpecificationService
 
         var duplicate = spec.RelatedSubstanceRow is null && await _db.Specifications.AnyAsync(
             s => s.ItemId == spec.ItemId && s.TestCode == spec.TestCode && s.ParameterName == spec.ParameterName
-                 && s.ProductionStageRole == spec.ProductionStageRole && s.Id != spec.Id
+                 && s.ProductionStageRole == spec.ProductionStageRole && s.Id != spec.Id && !s.IsRetired
                  && (s.Grade == null ? null : s.Grade.ToLower()) == grade,
             cancellationToken);
         if (duplicate)
@@ -340,7 +340,7 @@ public class SpecificationService
                 throw new BusinessRuleException("DissolutionQ specifications are only allowed for Dissolution tests.");
 
             var duplicateDissolution = await _db.Specifications.AnyAsync(
-                s => s.ItemId == spec.ItemId && s.TestCode == spec.TestCode && s.ProductionStageRole == spec.ProductionStageRole && s.Id != spec.Id,
+                s => s.ItemId == spec.ItemId && s.TestCode == spec.TestCode && s.ProductionStageRole == spec.ProductionStageRole && s.Id != spec.Id && !s.IsRetired,
                 cancellationToken);
             if (duplicateDissolution)
                 throw new BusinessRuleException($"Only one specification is allowed for Dissolution test '{spec.TestCode}' on this item.");
@@ -356,7 +356,7 @@ public class SpecificationService
                 throw new BusinessRuleException("DisintegrationTime specifications are only allowed for Disintegration tests.");
 
             var duplicateDisintegration = await _db.Specifications.AnyAsync(
-                s => s.ItemId == spec.ItemId && s.TestCode == spec.TestCode && s.ProductionStageRole == spec.ProductionStageRole && s.Id != spec.Id,
+                s => s.ItemId == spec.ItemId && s.TestCode == spec.TestCode && s.ProductionStageRole == spec.ProductionStageRole && s.Id != spec.Id && !s.IsRetired,
                 cancellationToken);
             if (duplicateDisintegration)
                 throw new BusinessRuleException($"Only one specification is allowed for Disintegration test '{spec.TestCode}' on this item.");
@@ -372,7 +372,7 @@ public class SpecificationService
                 throw new BusinessRuleException("WeightVariation specifications are only allowed for WeightVariation tests.");
 
             var duplicateWeightVariation = await _db.Specifications.AnyAsync(
-                s => s.ItemId == spec.ItemId && s.TestCode == spec.TestCode && s.ProductionStageRole == spec.ProductionStageRole && s.Id != spec.Id,
+                s => s.ItemId == spec.ItemId && s.TestCode == spec.TestCode && s.ProductionStageRole == spec.ProductionStageRole && s.Id != spec.Id && !s.IsRetired,
                 cancellationToken);
             if (duplicateWeightVariation)
                 throw new BusinessRuleException($"Only one specification is allowed for WeightVariation test '{spec.TestCode}' on this item.");
@@ -434,7 +434,7 @@ public class SpecificationService
                 if (neededRole != MoistureRole.None)
                 {
                     var opposite = neededRole == MoistureRole.LossOnDrying ? ResultBasis.PercentAnhydrousBasis : ResultBasis.PercentDriedBasis;
-                    if (await _db.Specifications.AnyAsync(s => s.ItemId == spec.ItemId && s.TestCode == spec.TestCode && s.Id != spec.Id && s.ProductionStageRole == spec.ProductionStageRole
+                    if (await _db.Specifications.AnyAsync(s => s.ItemId == spec.ItemId && s.TestCode == spec.TestCode && s.Id != spec.Id && !s.IsRetired && s.ProductionStageRole == spec.ProductionStageRole
                              && (s.Grade == null ? null : s.Grade.ToLower()) == grade
                              && s.ResultBasis == opposite, cancellationToken))
                         throw new BusinessRuleException("One HPLC test cannot report on both dried and anhydrous basis.");
@@ -455,7 +455,7 @@ public class SpecificationService
                 {
                     var conflict = await _db.Specifications.AnyAsync(
                         s => s.ItemId == spec.ItemId && s.TestCode == spec.TestCode && s.HplcMethodAnalyteId == spec.HplcMethodAnalyteId
-                             && s.Id != spec.Id && s.ResultBasis != spec.ResultBasis
+                             && s.Id != spec.Id && !s.IsRetired && s.ResultBasis != spec.ResultBasis
                              && s.ProductionStageRole == spec.ProductionStageRole && (s.Grade == null ? null : s.Grade.ToLower()) == grade,
                         cancellationToken);
                     if (conflict)
@@ -465,7 +465,7 @@ public class SpecificationService
                 {
                     var conflict = await _db.Specifications.AnyAsync(
                         s => s.ItemId == spec.ItemId && s.TestCode == spec.TestCode && s.HplcMethodAnalyteId == spec.HplcMethodAnalyteId
-                             && s.Id != spec.Id && s.ProductionStageRole == spec.ProductionStageRole
+                             && s.Id != spec.Id && !s.IsRetired && s.ProductionStageRole == spec.ProductionStageRole
                              && (s.Grade == null ? null : s.Grade.ToLower()) == grade
                              && (s.ResultBasis == ResultBasis.PercentAsIs || s.ResultBasis == ResultBasis.PercentDriedBasis || s.ResultBasis == ResultBasis.PercentAnhydrousBasis),
                         cancellationToken);
@@ -547,7 +547,7 @@ public class SpecificationService
             {
                 var otherBasis = spec.ResultBasis == ResultBasis.PercentDriedBasis ? ResultBasis.PercentAnhydrousBasis : ResultBasis.PercentDriedBasis;
                 if (await _db.Specifications.AnyAsync(
-                        s => s.ItemId == spec.ItemId && s.TestCode == spec.TestCode && s.Id != spec.Id && s.ResultBasis == otherBasis,
+                        s => s.ItemId == spec.ItemId && s.TestCode == spec.TestCode && s.Id != spec.Id && !s.IsRetired && s.ResultBasis == otherBasis,
                         cancellationToken))
                     throw new BusinessRuleException("One titration cannot report on both dried and anhydrous basis.");
             }
@@ -616,7 +616,7 @@ public class SpecificationService
 
                     var otherBasis = spec.ResultBasis == ResultBasis.PercentDriedBasis ? ResultBasis.PercentAnhydrousBasis : ResultBasis.PercentDriedBasis;
                     if (await _db.Specifications.AnyAsync(
-                            s => s.ItemId == spec.ItemId && s.TestCode == spec.TestCode && s.Id != spec.Id && s.ResultBasis == otherBasis,
+                            s => s.ItemId == spec.ItemId && s.TestCode == spec.TestCode && s.Id != spec.Id && !s.IsRetired && s.ResultBasis == otherBasis,
                             cancellationToken))
                         throw new BusinessRuleException("One UV test cannot report on both dried and anhydrous basis.");
                 }

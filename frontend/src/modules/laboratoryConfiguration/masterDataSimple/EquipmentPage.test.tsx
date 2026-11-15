@@ -223,4 +223,47 @@ describe("EquipmentPage", () => {
     const alert = await screen.findByRole("alert");
     expect(alert.textContent).toContain("Asset register unavailable");
   });
+
+  it("opens ChangeReasonDialog and retries EquipmentConfigurationService.updateEquipment when reason is required", async () => {
+    vi.mocked(EquipmentConfigurationService.updateEquipment)
+      .mockRejectedValueOnce({
+        response: {
+          status: 400,
+          data: {
+            message: "Reason required.",
+            fieldErrors: [{ field: "reason", message: "Reason is required." }]
+          }
+        }
+      })
+      .mockResolvedValueOnce({
+        id: 10,
+        version: 4,
+        name: "Incubator 1",
+        code: "INC-01",
+        type: "Incubator",
+        location: "Room 101",
+        setPointTemperature: 32.5,
+        calibrationDueDate: null,
+        sectionId: 1,
+        equipmentInventoryId: null,
+        vendor: "Binder",
+        cdsSoftware: null,
+        connectionSettings: null
+      });
+
+    const user = userEvent.setup();
+    renderPage();
+
+    await user.click(await screen.findByRole("button", { name: "Edit Equipment" }));
+    const dialog = await screen.findByRole("dialog");
+    await user.click(within(dialog).getByRole("button", { name: "Save Changes" }));
+
+    await user.type(await screen.findByLabelText(/Reason for change/i), "Recalibrated thermal probe");
+    await user.click(screen.getByRole("button", { name: "Save Change" }));
+
+    await waitFor(() => expect(EquipmentConfigurationService.updateEquipment).toHaveBeenCalledTimes(2));
+    expect(vi.mocked(EquipmentConfigurationService.updateEquipment).mock.calls[1][3]).toBe(
+      "Recalibrated thermal probe"
+    );
+  });
 });

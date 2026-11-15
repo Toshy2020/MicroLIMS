@@ -253,7 +253,7 @@ public sealed class ItemsSheet : SheetHandler
             MinSampleQuantity: r.Decimal("MinSampleQuantity"),
             MinRetestSampleQuantity: r.Decimal("MinRetestSampleQuantity"),
             MinSampleQuantityUnit: r.OptionalText("MinSampleQuantityUnit")));
-        await _service.SetActiveAsync(created.Id, false);
+        await _service.SetActiveAsync(created.Id, false, "Master data workbook staged pending verification", ctx.UserId);
         return Created("Item", created.Id, r);
     }
 }

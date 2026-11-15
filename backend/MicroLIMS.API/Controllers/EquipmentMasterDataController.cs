@@ -1,3 +1,4 @@
+using MicroLIMS.API.Helpers;
 using MicroLIMS.Shared.Exceptions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -35,6 +36,7 @@ public class EquipmentMasterDataController : ControllerBase
     }
 
     private int CurrentUserId => int.TryParse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value, out var uid) ? uid : 0;
+    private CancellationToken Ct => HttpContext?.RequestAborted ?? CancellationToken.None;
 
     // ---- Equipment ----
     [HttpGet("equipment")]
@@ -128,7 +130,7 @@ public class EquipmentMasterDataController : ControllerBase
     [Authorize(Policy = PermissionConstants.MasterDataManage)]
     [HttpPut("equipment/{id:int}")]
     public async Task<IActionResult> UpdateEquipment(int id, UpdateEquipmentRequest request) =>
-        Ok(ApiResponse<object>.Ok(await _service.UpdateEquipmentAsync(CurrentUserId, id, request)));
+        Ok(ApiResponse<object>.Ok(await _service.UpdateEquipmentAsync(CurrentUserId, id, request, ChangeReasonHeader.Read(Request), Ct)));
 
     // ---- Column Master (REQ-FP-011) ----
     [HttpGet("columns")]

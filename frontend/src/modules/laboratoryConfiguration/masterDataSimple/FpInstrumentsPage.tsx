@@ -15,6 +15,8 @@ import AddIcon from "@mui/icons-material/Add";
 import { toast } from "sonner";
 import { LabPage, FilterBar, RegisterTable, RegisterColumn, FormDialog } from "../../../components/lab";
 import { StatusBadge } from "../../../components/StatusBadge";
+import { ChangeReasonDialog } from "../../../components/config/ChangeReasonDialog";
+import { isReasonRequiredError } from "../../../services/apiClient";
 import { monospaceFontFamily } from "../../../theme/palette";
 import { EquipmentConfigurationService } from "./services/EquipmentConfigurationService";
 import { EquipmentInventoryService } from "../../inventory/equipment/services/EquipmentInventoryService";
@@ -122,6 +124,13 @@ export function FpInstrumentsPage() {
   const [fieldErrors, setFieldErrors] = useState<Partial<Record<"inventory" | "name" | "cds", string>>>({});
   const [search, setSearch] = useState("");
   const [saving, setSaving] = useState(false);
+  const [pendingReasonEdit, setPendingReasonEdit] = useState<{
+    id: number;
+    payload: unknown;
+    version?: number;
+  } | null>(null);
+  const [reasonSaving, setReasonSaving] = useState(false);
+  const [reasonError, setReasonError] = useState<string | null>(null);
   // Tracks whether form.name is still the auto-suggested "<manufacturer> <type>"
   // value (so a later type change can refresh it) versus text the user typed.
   const [autoName, setAutoName] = useState(true);
@@ -229,8 +238,10 @@ export function FpInstrumentsPage() {
 
     setSaving(true);
     setDialogError(null);
+    let attemptedEdit: { id: number; payload: unknown; version?: number } | null = null;
     try {
       if (editing) {
+        attemptedEdit = { id: editing.id, payload, version: editing.version };
         await EquipmentConfigurationService.updateEquipment(editing.id, payload as never, editing.version);
         toast.success("Instrument updated.");
       } else {
@@ -240,10 +251,38 @@ export function FpInstrumentsPage() {
       setDialogOpen(false);
       await loadData();
     } catch (e: unknown) {
+      if (attemptedEdit && isReasonRequiredError(e)) {
+        setDialogOpen(false);
+        setReasonError(null);
+        setPendingReasonEdit(attemptedEdit);
+        return;
+      }
       const err = e as { response?: { data?: { message?: string; error?: string } }; message?: string };
       setDialogError(err?.response?.data?.message ?? err?.response?.data?.error ?? err?.message ?? "Could not save the instrument.");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const confirmReasonEdit = async (reason: string) => {
+    if (!pendingReasonEdit) return;
+    setReasonSaving(true);
+    setReasonError(null);
+    try {
+      await EquipmentConfigurationService.updateEquipment(
+        pendingReasonEdit.id,
+        pendingReasonEdit.payload as never,
+        pendingReasonEdit.version,
+        reason
+      );
+      toast.success("Instrument updated.");
+      setPendingReasonEdit(null);
+      await loadData();
+    } catch (e: unknown) {
+      const err = e as { response?: { data?: { message?: string; error?: string } }; message?: string };
+      setReasonError(err?.response?.data?.message ?? err?.response?.data?.error ?? err?.message ?? "Could not save the instrument.");
+    } finally {
+      setReasonSaving(false);
     }
   };
 
@@ -448,6 +487,21 @@ export function FpInstrumentsPage() {
           slotProps={{ htmlInput: { maxLength: 100 } }}
         />
       </FormDialog>
+      <ChangeReasonDialog
+        open={pendingReasonEdit !== null}
+        title="Reason required to update instrument"
+        message="This instrument is referenced by active laboratory work. Enter a reason to apply your changes."
+        confirmText="Save Change"
+        loading={reasonSaving}
+        error={reasonError}
+        onConfirm={confirmReasonEdit}
+        onCancel={() => {
+          if (!reasonSaving) {
+            setPendingReasonEdit(null);
+            setReasonError(null);
+          }
+        }}
+      />
     </LabPage>
   );
 }

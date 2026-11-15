@@ -3,6 +3,8 @@ import { Alert, Box, Button, Chip, Paper, Stack, Typography } from "@mui/materia
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import { TestCodePickerMulti } from "../../../../components/TestCodePickerMulti";
 import { Item, ItemSaveRequest, ItemService } from "../services/ItemService";
+import { isReasonRequiredError } from "../../../../services/apiClient";
+import { ChangeReasonDialog } from "../../../../components/config/ChangeReasonDialog";
 
 interface ItemAssignedTestsSectionProps {
   item: Item;
@@ -21,6 +23,8 @@ export function ItemAssignedTestsSection({ item, readOnly = false, onSaved }: It
   const [testCodes, setTestCodes] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [pendingPayload, setPendingPayload] = useState<ItemSaveRequest | null>(null);
+  const [reasonError, setReasonError] = useState<string | null>(null);
 
   const startEdit = () => {
     setTestCodes(assignedTests.map((t) => t.testCode));
@@ -28,33 +32,57 @@ export function ItemAssignedTestsSection({ item, readOnly = false, onSaved }: It
     setEditing(true);
   };
 
+  const buildPayload = (): ItemSaveRequest => ({
+    name: item.name,
+    code: item.code,
+    category: item.category,
+    sopNumber: item.sopNumber,
+    assignedTests: testCodes.map((code) => ({
+      testCode: code,
+      displayName: assignedTests.find((t) => t.testCode === code)?.displayName ?? code
+    })),
+    minSampleQuantity: item.minSampleQuantity,
+    minRetestSampleQuantity: item.minRetestSampleQuantity,
+    minSampleQuantityUnit: item.minSampleQuantityUnit
+  });
+
   const save = async () => {
     setError(null);
     if (testCodes.length === 0) {
       setError("At least one assigned test is required.");
       return;
     }
-    const payload: ItemSaveRequest = {
-      name: item.name,
-      code: item.code,
-      category: item.category,
-      sopNumber: item.sopNumber,
-      assignedTests: testCodes.map((code) => ({
-        testCode: code,
-        displayName: assignedTests.find((t) => t.testCode === code)?.displayName ?? code
-      })),
-      minSampleQuantity: item.minSampleQuantity,
-      minRetestSampleQuantity: item.minRetestSampleQuantity,
-      minSampleQuantityUnit: item.minSampleQuantityUnit
-    };
+    const payload = buildPayload();
     setSaving(true);
     try {
       await ItemService.update(item.id, payload, item.version);
       setEditing(false);
       onSaved?.();
     } catch (e: unknown) {
+      if (isReasonRequiredError(e)) {
+        setReasonError(null);
+        setPendingPayload(payload);
+        return;
+      }
       const err = e as { response?: { data?: { message?: string } } };
       setError(err?.response?.data?.message ?? "Could not save the assigned tests.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const confirmReasonSave = async (reason: string) => {
+    if (!pendingPayload) return;
+    setSaving(true);
+    setReasonError(null);
+    try {
+      await ItemService.update(item.id, pendingPayload, item.version, reason);
+      setPendingPayload(null);
+      setEditing(false);
+      onSaved?.();
+    } catch (e: unknown) {
+      const err = e as { response?: { data?: { message?: string } } };
+      setReasonError(err?.response?.data?.message ?? "Could not save the assigned tests.");
     } finally {
       setSaving(false);
     }
@@ -115,6 +143,15 @@ export function ItemAssignedTestsSection({ item, readOnly = false, onSaved }: It
           No tests assigned to this item yet.
         </Typography>
       )}
+      <ChangeReasonDialog
+        open={pendingPayload !== null}
+        title={`Update assigned tests for "${item.name}"`}
+        confirmText="Save tests"
+        loading={saving}
+        error={reasonError}
+        onCancel={() => { setPendingPayload(null); setReasonError(null); }}
+        onConfirm={confirmReasonSave}
+      />
     </Stack>
   );
 }

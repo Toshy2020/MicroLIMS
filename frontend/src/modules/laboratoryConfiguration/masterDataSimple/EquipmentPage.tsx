@@ -39,6 +39,8 @@ import RefreshIcon from "@mui/icons-material/Refresh";
 import { PageHeader } from "../../../components/PageHeader";
 import { SectionTitle } from "../../../components/SectionTitle";
 import { FloatingDialog } from "../../../components/FloatingDialog";
+import { ChangeReasonDialog } from "../../../components/config/ChangeReasonDialog";
+import { isReasonRequiredError } from "../../../services/apiClient";
 import { tableHeadSx } from "../../../theme";
 import { toast } from "sonner";
 import { Link } from "react-router-dom";
@@ -171,6 +173,13 @@ export function EquipmentPage() {
   const [mySections, setMySections] = useState<LaboratorySection[]>([]);
   const [selectedSectionId, setSelectedSectionId] = useState<number | "">("");
   const [dialogEquipmentError, setDialogEquipmentError] = useState<string | null>(null);
+  const [pendingReasonEdit, setPendingReasonEdit] = useState<{
+    id: number;
+    payload: UpdateEquipmentRequest;
+    version?: number;
+  } | null>(null);
+  const [reasonSaving, setReasonSaving] = useState(false);
+  const [reasonError, setReasonError] = useState<string | null>(null);
 
   // Incubator Edit State
   const [editSetPointDialogOpen, setEditSetPointDialogOpen] = useState(false);
@@ -524,6 +533,7 @@ export function EquipmentPage() {
 
     setSaving(true);
     setDialogEquipmentError(null);
+    let attemptedEdit: { id: number; payload: UpdateEquipmentRequest; version?: number } | null = null;
     try {
       const payload: CreateEquipmentRequest | UpdateEquipmentRequest = {
         name: equipmentForm.name.trim(),
@@ -540,6 +550,11 @@ export function EquipmentPage() {
       };
 
       if (isEditingEquipment && selectedEquipment) {
+        attemptedEdit = {
+          id: selectedEquipment.id,
+          payload: payload as UpdateEquipmentRequest,
+          version: selectedEquipment.version
+        };
         await EquipmentConfigurationService.updateEquipment(selectedEquipment.id, payload, selectedEquipment.version);
         toast.success("Equipment updated successfully.");
       } else {
@@ -552,9 +567,37 @@ export function EquipmentPage() {
       setEquipmentDialogOpen(false);
       await loadData();
     } catch (err: any) {
+      if (attemptedEdit && isReasonRequiredError(err)) {
+        setEquipmentDialogOpen(false);
+        setReasonError(null);
+        setPendingReasonEdit(attemptedEdit);
+        return;
+      }
       setDialogEquipmentError(err?.response?.data?.error ?? err?.response?.data?.message ?? err?.message ?? "Could not save equipment.");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const confirmReasonEdit = async (reason: string) => {
+    if (!pendingReasonEdit) return;
+    setReasonSaving(true);
+    setReasonError(null);
+    try {
+      await EquipmentConfigurationService.updateEquipment(
+        pendingReasonEdit.id,
+        pendingReasonEdit.payload,
+        pendingReasonEdit.version,
+        reason
+      );
+      toast.success("Equipment updated successfully.");
+      setPendingReasonEdit(null);
+      await loadData();
+    } catch (err: unknown) {
+      const e = err as { response?: { data?: { error?: string; message?: string } }; message?: string };
+      setReasonError(e?.response?.data?.error ?? e?.response?.data?.message ?? e?.message ?? "Could not save equipment.");
+    } finally {
+      setReasonSaving(false);
     }
   };
 
@@ -1685,6 +1728,21 @@ export function EquipmentPage() {
             </Table>
           </TableContainer>
       </FloatingDialog>
+      <ChangeReasonDialog
+        open={pendingReasonEdit !== null}
+        title="Reason required to update equipment"
+        message="This equipment is referenced by active laboratory work. Enter a reason to apply your changes."
+        confirmText="Save Change"
+        loading={reasonSaving}
+        error={reasonError}
+        onConfirm={confirmReasonEdit}
+        onCancel={() => {
+          if (!reasonSaving) {
+            setPendingReasonEdit(null);
+            setReasonError(null);
+          }
+        }}
+      />
     </>
   );
 }

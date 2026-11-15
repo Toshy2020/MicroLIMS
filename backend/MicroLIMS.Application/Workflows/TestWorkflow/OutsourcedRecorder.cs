@@ -58,7 +58,10 @@ public sealed class OutsourcedRecorder : TestWorkflowSupport
             throw new BusinessRuleException("Test order sample must be linked to an item with specifications.");
         var specs = await SpecificationLookup.ForSampleAsync(_db, order.SampleId, itemId, order.TestCode);
         if (specs.Count == 0)
+        {
+            await SpecificationLookup.ThrowIfRetiredAsync(_db, order.SampleId, itemId, order.TestCode);
             throw new BusinessRuleException("No specifications configured for this test and item.");
+        }
         var unreportable = specs.FirstOrDefault(s => !IsReportable(s.LimitType));
         if (unreportable != null)
             throw new BusinessRuleException(

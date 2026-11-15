@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Button, Alert, Tabs, Tab } from "@mui/material";
-import { useSearchParams } from "react-router-dom";
+import { usePersistedTab } from "../../../hooks/usePersistedTab";
 import AddIcon from "@mui/icons-material/Add";
 import { SignatureDialog } from "../../../components/SignatureDialog";
 import { LabPage } from "../../../components/lab";
@@ -28,9 +28,11 @@ function textFilter(filters: Record<string, string | string[]>, name: string): s
   return typeof value === "string" ? value : "";
 }
 
+const PAGE_TABS = ["register", "approved"] as const;
+type PageTab = (typeof PAGE_TABS)[number];
+
 export function CryovialsPage() {
-  const [searchParams, setSearchParams] = useSearchParams();
-  const tab = searchParams.get("tab") === "approved" ? "approved" : "register";
+  const [tab, setTab] = usePersistedTab("cryovials", PAGE_TABS, "tab");
   const [cryovials, setCryovials] = useState<CryovialItem[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState<{ text: string; ok: boolean } | null>(null);
@@ -54,7 +56,7 @@ export function CryovialsPage() {
   const tabs = (
     <Tabs
       value={tab}
-      onChange={(_, v) => setSearchParams(v === "approved" ? { tab: "approved" } : {}, { replace: true })}
+      onChange={(_, v: PageTab) => setTab(v)}
       sx={{ mb: 2, borderBottom: 1, borderColor: "divider" }}
     >
       <Tab value="register" label="Cryovials" />

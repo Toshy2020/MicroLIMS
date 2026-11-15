@@ -1,8 +1,8 @@
-import { useMemo, useState, useEffect } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useMemo, useState } from "react";
 import { Tabs, Tab, Box } from "@mui/material";
 import { PageHeader } from "../components/PageHeader";
 import { useHasPermission } from "../contexts/AuthContext";
+import { usePersistedTab } from "../hooks/usePersistedTab";
 import { PERMISSIONS } from "../routes/routes";
 import { QuickPeriodSelector } from "../modules/reports/components/QuickPeriodSelector";
 import { OverviewTab } from "../modules/reports/components/OverviewTab";
@@ -30,11 +30,6 @@ const PERFORMANCE_TAB = 5;
 const CONTROL_CHARTS_TAB = 4;
 
 export function ReportsPage() {
-  const [searchParams, setSearchParams] = useSearchParams();
-  // Trending was merged into Control Charts; old links still land there.
-  const rawTab = searchParams.get("tab")?.toLowerCase();
-  const tabParam = rawTab === "trending" ? "control-charts" : rawTab;
-
   // Without Kpi.View the KPI tab is dropped from both lists, so a link to
   // ?tab=performance falls back to Overview. The server enforces the permission too.
   const canViewKpi = useHasPermission(PERMISSIONS.KPI_VIEW);
@@ -44,31 +39,14 @@ export function ReportsPage() {
     [canViewKpi]
   );
 
-  const initialTab = useMemo(() => {
-    if (!tabParam) return 0; // Overview active by default
-    const idx = tabKeys.indexOf(tabParam);
-    return idx >= 0 ? idx : 0;
-  }, [tabParam, tabKeys]);
-
-  const [tab, setTab] = useState(initialTab);
-
-  useEffect(() => {
-    if (tabParam) {
-      const idx = tabKeys.indexOf(tabParam);
-      const safeTab = idx >= 0 ? idx : 0;
-      if (safeTab !== tab) {
-        setTab(safeTab);
-      }
-      if (idx < 0) {
-        setSearchParams({ tab: tabKeys[0] }, { replace: true });
-      }
-    }
-  }, [tabParam, tab, tabKeys, setSearchParams]);
+  // The address wins, then the tab used last time. Trending was merged into
+  // Control Charts; old links still land there.
+  const [tabKey, setTabKey] = usePersistedTab<string>("reports", tabKeys, "tab", { trending: "control-charts" });
+  const tab = Math.max(0, tabKeys.indexOf(tabKey));
 
   const handleTabChange = (newTab: number) => {
     const safeTab = Math.max(0, Math.min(newTab, tabKeys.length - 1));
-    setTab(safeTab);
-    setSearchParams({ tab: tabKeys[safeTab] });
+    setTabKey(tabKeys[safeTab]);
   };
 
   const [period, setPeriod] = useState<QuickPeriod>("30d");

@@ -3,6 +3,8 @@ import { cleanup, render, screen, waitFor, within } from "@testing-library/react
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { PinnedLightTheme } from "../../../theme/PinnedLightTheme";
+import { resetUiStateCache } from "../../../hooks/useUiState";
+import { uiStateService } from "../../../services/uiStateService";
 import { EquipmentPage } from "./EquipmentPage";
 import { EquipmentConfigurationService } from "./services/EquipmentConfigurationService";
 import { EquipmentInventoryService } from "../../inventory/equipment/services/EquipmentInventoryService";
@@ -11,6 +13,10 @@ import { AuthProvider } from "../../../contexts/AuthContext";
 import { resetDraftDb, signInForTest } from "../../../services/drafts/draftTestUtils";
 import { masterDataUsageService } from "../../../services/masterDataUsageService";
 import { clickNext, clickSave } from "./equipmentWizard/equipmentWizard.testUtils";
+
+vi.mock("../../../services/uiStateService", () => ({
+  uiStateService: { getAll: vi.fn(), set: vi.fn(), remove: vi.fn() }
+}));
 
 vi.mock("./services/EquipmentConfigurationService", () => ({
   EquipmentConfigurationService: {
@@ -48,8 +54,15 @@ vi.mock("../../../services/laboratorySectionService", () => {
   };
 });
 
+beforeEach(() => {
+  resetUiStateCache();
+  vi.mocked(uiStateService.getAll).mockResolvedValue({});
+  vi.mocked(uiStateService.set).mockResolvedValue(undefined);
+});
+
 afterEach(() => {
   cleanup();
+  resetUiStateCache();
   vi.clearAllMocks();
 });
 
@@ -404,5 +417,24 @@ describe("EquipmentPage", () => {
         undefined
       );
     });
+  });
+
+  it("switches between its tabs and remembers the choice", async () => {
+    const user = userEvent.setup();
+    renderPage();
+
+    await screen.findByRole("button", { name: "Edit Equipment" });
+    expect(screen.getByRole("tab", { selected: true }).textContent).toBe("Configured Equipment");
+    await user.click(screen.getByRole("tab", { name: "Configuration History" }));
+    expect(screen.getByRole("tab", { selected: true }).textContent).toBe("Configuration History");
+    expect(screen.queryByRole("button", { name: "Edit Equipment" })).toBeNull();
+    await waitFor(() => expect(uiStateService.set).toHaveBeenCalledWith("nav.tab.equipment-configuration", "history"), { timeout: 2000 });
+  });
+
+  it("opens the tab used last time", async () => {
+    vi.mocked(uiStateService.getAll).mockResolvedValue({ "nav.tab.equipment-configuration": "history" });
+    renderPage();
+
+    await waitFor(() => expect(screen.getByRole("tab", { selected: true }).textContent).toBe("Configuration History"));
   });
 });

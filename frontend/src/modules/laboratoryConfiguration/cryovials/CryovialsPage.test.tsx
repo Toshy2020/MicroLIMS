@@ -4,6 +4,8 @@ import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
 import { MemoryRouter } from "react-router-dom";
 import { lightTheme } from "../../../theme";
+import { resetUiStateCache } from "../../../hooks/useUiState";
+import { uiStateService } from "../../../services/uiStateService";
 import { AuthProvider } from "../../../contexts/AuthContext";
 import { PERMISSIONS } from "../../../routes/routes";
 import { labelService } from "../../../services/labelService";
@@ -14,6 +16,10 @@ import { CryovialService } from "./services/CryovialService";
 import { CryovialsPage } from "./CryovialsPage";
 import type { CryovialItem } from "./types/cryovialTypes";
 import type { MaterialItem } from "../../inventory/materials/types/materialTypes";
+
+vi.mock("../../../services/uiStateService", () => ({
+  uiStateService: { getAll: vi.fn(), set: vi.fn(), remove: vi.fn() }
+}));
 
 vi.mock("../../../services/labelService", () => ({
   labelService: {
@@ -108,11 +114,11 @@ const preparedCryovial: CryovialItem = {
   isDestroyed: false
 };
 
-function renderPage() {
+function renderPage(url = "/") {
   return render(
     <ThemeProvider theme={lightTheme}>
       <AuthProvider>
-        <MemoryRouter>
+        <MemoryRouter initialEntries={[url]}>
           <CryovialsPage />
         </MemoryRouter>
       </AuthProvider>
@@ -159,6 +165,13 @@ async function prepareCryovialBatch(user: ReturnType<typeof userEvent.setup>) {
 
   await user.click(within(dialog).getByRole("button", { name: "Save Batch" }));
 }
+
+// The remembered-tab store is answered for every test in this file.
+beforeEach(() => {
+  resetUiStateCache();
+  vi.mocked(uiStateService.getAll).mockResolvedValue({});
+  vi.mocked(uiStateService.set).mockResolvedValue(undefined);
+});
 
 describe("CryovialsPage label printing offer", () => {
   beforeEach(() => {
@@ -261,4 +274,49 @@ describe("CryovialsPage label printing offer", () => {
     });
     expect(screen.queryByRole("dialog", { name: "Print labels" })).toBeNull();
   }, 15000);
+});
+
+describe("CryovialsPage tabs", () => {
+  const selectedTab = () => screen.getByRole("tab", { selected: true }).textContent;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    localStorage.clear();
+    resetUiStateCache();
+    seedPermissions([]);
+    vi.mocked(uiStateService.getAll).mockResolvedValue({});
+    vi.mocked(uiStateService.set).mockResolvedValue(undefined);
+    vi.mocked(CryovialService.getAll).mockResolvedValue([]);
+    vi.mocked(MaterialService.getAll).mockResolvedValue([]);
+    vi.mocked(EquipmentInventoryService.getAll).mockResolvedValue([]);
+  });
+
+  afterEach(() => {
+    cleanup();
+    resetUiStateCache();
+    localStorage.clear();
+  });
+
+  it("switches between its tabs and remembers the choice", async () => {
+    const user = userEvent.setup();
+    renderPage();
+
+    expect(selectedTab()).toBe("Cryovials");
+    await user.click(screen.getByRole("tab", { name: "Approved Cryovials" }));
+    expect(selectedTab()).toBe("Approved Cryovials");
+    await waitFor(() => expect(uiStateService.set).toHaveBeenCalledWith("nav.tab.cryovials", "approved"), { timeout: 2000 });
+  });
+
+  it("a deep link with ?tab=approved still opens the approved tab", () => {
+    renderPage("/?tab=approved");
+
+    expect(selectedTab()).toBe("Approved Cryovials");
+  });
+
+  it("opens the last tab used when the address names none", async () => {
+    vi.mocked(uiStateService.getAll).mockResolvedValue({ "nav.tab.cryovials": "approved" });
+    renderPage();
+
+    await waitFor(() => expect(selectedTab()).toBe("Approved Cryovials"));
+  });
 });

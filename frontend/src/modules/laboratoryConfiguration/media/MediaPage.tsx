@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Box, Button, Alert, Tabs, Tab } from "@mui/material";
-import { useSearchParams } from "react-router-dom";
+import { usePersistedTab } from "../../../hooks/usePersistedTab";
 import AddIcon from "@mui/icons-material/Add";
 import { LabPage } from "../../../components/lab";
 import { useTableState } from "../../../components/lab/table/useTableState";
@@ -36,9 +36,11 @@ function textFilter(filters: Record<string, string | string[]>, name: string): s
   return typeof value === "string" ? value : "";
 }
 
+const PAGE_TABS = ["lots", "approved"] as const;
+type PageTab = (typeof PAGE_TABS)[number];
+
 export function MediaPage() {
-  const [searchParams, setSearchParams] = useSearchParams();
-  const tab = searchParams.get("tab") === "approved" ? "approved" : "lots";
+  const [tab, setTab] = usePersistedTab("media", PAGE_TABS, "tab");
   const [lots, setLots] = useState<any[]>([]);
   const [evaluations, setEvaluations] = useState<any[]>([]);
   const [awaitingApprovalIds, setAwaitingApprovalIds] = useState<Set<number>>(new Set());
@@ -74,7 +76,7 @@ export function MediaPage() {
   const tabs = (
     <Tabs
       value={tab}
-      onChange={(_, v) => setSearchParams(v === "approved" ? { tab: "approved" } : {}, { replace: true })}
+      onChange={(_, v: PageTab) => setTab(v)}
       sx={{ mb: 2, borderBottom: 1, borderColor: "divider" }}
     >
       <Tab value="lots" label="Media Lots" />

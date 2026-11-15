@@ -94,7 +94,12 @@ describe("MainLayout MFA grace banner", () => {
 
     renderLayout();
 
-    const banner = await screen.findByRole("status");
+    // The header also has a "Live updates paused" status while the hub is offline; pick the MFA banner.
+    await waitFor(() =>
+      expect(screen.getAllByRole("status").some((el) => /second factor/i.test(el.textContent ?? ""))).toBe(true)
+    );
+    const banner = screen.getAllByRole("status").find((el) => /second factor/i.test(el.textContent ?? ""));
+    if (!banner) throw new Error("MFA grace banner not found");
     expect(banner.textContent).toMatch(/2026/);
     expect(banner.textContent).toMatch(/(UTC|GMT|[A-Z]{2,5})/);
     const link = screen.getByRole("link", { name: /Set up second factor/i });

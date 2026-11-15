@@ -21,6 +21,11 @@ public class TitrationTestMasterReasonTests
     {
         var db = NewDb();
         var s = TitrationScenario.Seed(db);
+        // Close the scenario's order so the test has no open work: these tests isolate the
+        // titration-specific reason rule. The general "open work needs a reason" rule is covered
+        // by ChangeReasonPostgresTests.
+        s.Order.Status = ApprovalStatus.Approved;
+        db.SaveChanges();
         var audit = new AuditEventService(db, new DatabaseSequenceHelper(db));
         return (db, s, new TestDefinitionMasterDataService(db, new UserSectionScopeService(db), audit));
     }

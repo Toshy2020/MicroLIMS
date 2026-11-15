@@ -52,6 +52,7 @@ public interface IMicroLimsDbContext
     DbSet<MfaRecoveryCode> MfaRecoveryCodes { get; }
     DbSet<MfaChallenge> MfaChallenges { get; }
     DbSet<UserUiState> UserUiStates { get; }
+    DbSet<RecentRecord> RecentRecords { get; }
     DbSet<TableView> TableViews { get; }
     DbSet<UserTableDefault> UserTableDefaults { get; }
     DbSet<TrustedDevice> TrustedDevices { get; }

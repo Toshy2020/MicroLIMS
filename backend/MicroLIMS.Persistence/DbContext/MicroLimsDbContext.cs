@@ -81,6 +81,7 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext, IMicr
     public DbSet<MfaRecoveryCode> MfaRecoveryCodes => Set<MfaRecoveryCode>();
     public DbSet<MfaChallenge> MfaChallenges => Set<MfaChallenge>();
     public DbSet<UserUiState> UserUiStates => Set<UserUiState>();
+    public DbSet<RecentRecord> RecentRecords => Set<RecentRecord>();
     public DbSet<TableView> TableViews => Set<TableView>();
     public DbSet<UserTableDefault> UserTableDefaults => Set<UserTableDefault>();
     public DbSet<TrustedDevice> TrustedDevices => Set<TrustedDevice>();
@@ -824,7 +825,8 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext, IMicr
         typeof(SystemSettingVersion), // append-only by DB trigger; is itself the change history
         typeof(AccessReview), // immutable snapshot (DB trigger); audited explicitly by AccessReviewService, which would otherwise copy the whole report into AuditLogs
         typeof(AccessReviewFinding), // immutable once signed (DB trigger); audited explicitly by AccessReviewService
-        typeof(UserUiState) // per-user interface preferences; no laboratory data (approved 2026-11-11)
+        typeof(UserUiState), // per-user interface preferences; no laboratory data (approved 2026-11-11)
+        typeof(RecentRecord) // convenience list, not an access log (approved 2026-11-11)
     };
 
     private List<PendingAuditEntry> CapturePendingAuditEntries()

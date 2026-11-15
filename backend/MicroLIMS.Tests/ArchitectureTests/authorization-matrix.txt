@@ -513,6 +513,9 @@ PeriodicReviewController.ResolveFinding(Int32, Int32): SystemAdministrator,Secti
 PeriodicReviewController.TriggerGenerationManually(Nullable`1): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 PreparationConfigurationQueueController.Pending(): SystemAdministrator,SectionHead
 PreparationConfigurationQueueController.Unmapped(): SystemAdministrator,SectionHead
+RecentRecordsController.Clear(CancellationToken): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+RecentRecordsController.List(CancellationToken): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+RecentRecordsController.Touch(TouchRecentRecordRequest, CancellationToken): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 ReferenceListMasterDataController.CreateCauseOfTesting(String): SystemAdministrator,SectionHead
 ReferenceListMasterDataController.CreateNeutralizer(String): SystemAdministrator,SectionHead
 ReferenceListMasterDataController.CreateProductionStage(CreateProductionStageRequest): SystemAdministrator,SectionHead

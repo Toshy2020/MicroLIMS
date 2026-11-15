@@ -1,13 +1,10 @@
 import { useEffect, useState } from "react";
 import {
-  Autocomplete,
   Paper,
   TextField,
   Button,
   Select,
   MenuItem,
-  FormControl,
-  InputLabel,
   Table,
   TableHead,
   TableRow,
@@ -31,6 +28,7 @@ import EditIcon from "@mui/icons-material/Edit";
 import { FieldHint, hintDescribedBy } from "../../../components/FieldHint";
 import { hints } from "./hints";
 import HistoryIcon from "@mui/icons-material/History";
+import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import AddIcon from "@mui/icons-material/Add";
 import ContentPasteIcon from "@mui/icons-material/ContentPaste";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
@@ -39,52 +37,43 @@ import RefreshIcon from "@mui/icons-material/Refresh";
 import { PageHeader } from "../../../components/PageHeader";
 import { SectionTitle } from "../../../components/SectionTitle";
 import { FloatingDialog } from "../../../components/FloatingDialog";
-import { ChangeReasonDialog } from "../../../components/config/ChangeReasonDialog";
-import { isReasonRequiredError } from "../../../services/apiClient";
 import { tableHeadSx } from "../../../theme";
 import { toast } from "sonner";
 import { Link } from "react-router-dom";
 import {
   EquipmentConfigurationService,
   ConfiguredEquipmentSummary,
-  CreateEquipmentRequest,
-  UpdateEquipmentRequest,
   IncubatorSetPointHistory,
   AutoclaveProgram,
-  AutoclaveProgramHistory
+  AutoclaveProgramHistory,
+  SaveAutoclaveProgramRequest
 } from "./services/EquipmentConfigurationService";
 import { EquipmentInventoryService } from "../../inventory/equipment/services/EquipmentInventoryService";
 import type { EquipmentItem } from "../../inventory/equipment/types/equipmentTypes";
 import { useLaboratorySections } from "../../../hooks/useLaboratorySections";
 import { getMySections, LaboratorySection } from "../../../services/laboratorySectionService";
 import { clickable } from "../../../utils/clickable";
-import { DateField } from "../../../components/DateField";
 import { EquipmentPasteSection } from "./EquipmentPasteSection";
+import {
+  EquipmentFormModel,
+  normalizeEquipmentTypeValue
+} from "./equipmentWizard/equipmentFormModel";
+import { EquipmentWizard } from "./equipmentWizard/EquipmentWizard";
+import { FP_ONLY_EQUIPMENT_TYPES, MICRO_EQUIPMENT_TYPES } from "./equipmentWizard/equipmentOptions";
 
-export const EQUIPMENT_TYPES = [
-  { value: "Incubator", label: "Incubator" },
-  { value: "Autoclave", label: "Autoclave" },
-  { value: "LafCabinet", label: "LAF Cabinet" },
-  { value: "BiologicalSafetyCabinet", label: "Biological Safety Cabinet" },
-  { value: "WaterBath", label: "Water Bath" },
-  { value: "Hplc", label: "HPLC" },
-  { value: "PhMeter", label: "pH Meter" },
-  { value: "Balance", label: "Balance" },
-  { value: "IcpOes", label: "ICP-OES" },
-  { value: "Other", label: "Other" }
-];
+interface ApiErrorShape {
+  response?: { data?: { error?: string; message?: string } };
+  message?: string;
+}
 
-// HPLC, ICP-OES, pH meters and balances belong to the Finished Product laboratory
-// and are configured on the FP Instruments page, not here.
-export const FP_ONLY_EQUIPMENT_TYPES = ["Hplc", "PhMeter", "Balance", "IcpOes"];
-export const MICRO_EQUIPMENT_TYPES = EQUIPMENT_TYPES.filter((t) => !FP_ONLY_EQUIPMENT_TYPES.includes(t.value));
+const asApiError = (err: unknown): ApiErrorShape => (err ?? {}) as ApiErrorShape;
 
-export const CDS_SOFTWARE_OPTIONS = [
-  { value: "ShimadzuLabSolutions", label: "Shimadzu LabSolutions" },
-  { value: "AgilentOpenLab", label: "Agilent OpenLab" },
-  { value: "WatersEmpower3", label: "Waters Empower 3" },
-  { value: "PerkinElmerSyngistix", label: "PerkinElmer Syngistix" }
-];
+export {
+  EQUIPMENT_TYPES,
+  FP_ONLY_EQUIPMENT_TYPES,
+  MICRO_EQUIPMENT_TYPES,
+  CDS_SOFTWARE_OPTIONS
+} from "./equipmentWizard/equipmentOptions";
 
 export const formatEquipmentType = (type: string | number): string => {
   const map: Record<string, string> = {
@@ -112,21 +101,7 @@ export const formatEquipmentType = (type: string | number): string => {
   return map[String(type)] || String(type);
 };
 
-export const normalizeEquipmentTypeValue = (type: string | number): string => {
-  const map: Record<string, string> = {
-    "0": "Incubator",
-    "1": "Autoclave",
-    "2": "LafCabinet",
-    "3": "BiologicalSafetyCabinet",
-    "4": "WaterBath",
-    "5": "Other",
-    "6": "Hplc",
-    "7": "PhMeter",
-    "8": "Balance",
-    "9": "IcpOes"
-  };
-  return map[String(type)] || String(type);
-};
+export { normalizeEquipmentTypeValue };
 
 export const formatCdsSoftware = (cds?: string | number | null): string => {
   if (!cds) return "—";
@@ -156,30 +131,10 @@ export function EquipmentPage() {
   const [typeFilter, setTypeFilter] = useState("All");
 
   // Create / Edit Master Equipment Dialog State
-  const [equipmentDialogOpen, setEquipmentDialogOpen] = useState(false);
-  const [isEditingEquipment, setIsEditingEquipment] = useState(false);
-  const [equipmentForm, setEquipmentForm] = useState({
-    name: "",
-    code: "",
-    type: "Incubator",
-    location: "",
-    vendor: "",
-    cdsSoftware: "",
-    connectionSettings: "",
-    setPointTemperature: "",
-    calibrationDueDate: "",
-    equipmentInventoryId: null as number | null
-  });
+  const [wizard, setWizard] = useState<
+    { kind: "create"; prefill?: Partial<EquipmentFormModel> } | { kind: "edit" } | { kind: "copy" } | null
+  >(null);
   const [mySections, setMySections] = useState<LaboratorySection[]>([]);
-  const [selectedSectionId, setSelectedSectionId] = useState<number | "">("");
-  const [dialogEquipmentError, setDialogEquipmentError] = useState<string | null>(null);
-  const [pendingReasonEdit, setPendingReasonEdit] = useState<{
-    id: number;
-    payload: UpdateEquipmentRequest;
-    version?: number;
-  } | null>(null);
-  const [reasonSaving, setReasonSaving] = useState(false);
-  const [reasonError, setReasonError] = useState<string | null>(null);
 
   // Incubator Edit State
   const [editSetPointDialogOpen, setEditSetPointDialogOpen] = useState(false);
@@ -191,7 +146,7 @@ export function EquipmentPage() {
 
   // Autoclave Program Edit State
   const [programDialogOpen, setProgramDialogOpen] = useState(false);
-  const [programForm, setProgramForm] = useState<Record<string, any>>({});
+  const [programForm, setProgramForm] = useState<Partial<SaveAutoclaveProgramRequest>>({});
   const [programHistoryDialogOpen, setProgramHistoryDialogOpen] = useState(false);
   const [programHistory, setProgramHistory] = useState<AutoclaveProgramHistory[]>([]);
   const [selectedProgramCode, setSelectedProgramCode] = useState("");
@@ -350,8 +305,8 @@ export function EquipmentPage() {
       await loadData();
       const updatedHistory = await EquipmentConfigurationService.getSetPointHistory(selectedEquipment.id);
       setSetPointHistory(Array.isArray(updatedHistory) ? updatedHistory : []);
-    } catch (err: any) {
-      setDialogError(err?.response?.data?.message ?? err?.message ?? "Could not update set point.");
+    } catch (err: unknown) {
+      setDialogError(asApiError(err).response?.data?.message ?? asApiError(err).message ?? "Could not update set point.");
     } finally {
       setSaving(false);
     }
@@ -398,9 +353,9 @@ export function EquipmentPage() {
     setSaving(true);
     setDialogError(null);
     try {
-      await EquipmentConfigurationService.saveAutoclaveProgram(programForm.equipmentId, {
+      await EquipmentConfigurationService.saveAutoclaveProgram(programForm.equipmentId as number, {
         id: programForm.id,
-        equipmentId: programForm.equipmentId,
+        equipmentId: programForm.equipmentId as number,
         programCode: programForm.programCode,
         programName: programForm.programName,
         loadType: programForm.loadType,
@@ -411,8 +366,8 @@ export function EquipmentPage() {
       }, programForm.id ? safeAllPrograms.find((p) => p.id === programForm.id)?.version : undefined);
       setProgramDialogOpen(false);
       await loadData();
-    } catch (err: any) {
-      setDialogError(err?.response?.data?.message ?? err?.message ?? "Could not save program.");
+    } catch (err: unknown) {
+      setDialogError(asApiError(err).response?.data?.message ?? asApiError(err).message ?? "Could not save program.");
     } finally {
       setSaving(false);
     }
@@ -425,8 +380,8 @@ export function EquipmentPage() {
       await EquipmentConfigurationService.setAutoclaveProgramStatus(prog.id, newStatus, comment);
       await loadData();
       toast.success(newStatus ? "Program activated" : "Program deactivated");
-    } catch (err: any) {
-      toast.error(err?.response?.data?.message ?? err?.message ?? "Status update failed.");
+    } catch (err: unknown) {
+      toast.error(asApiError(err).response?.data?.message ?? asApiError(err).message ?? "Status update failed.");
     }
   };
 
@@ -464,142 +419,18 @@ export function EquipmentPage() {
     setInventoryDialogOpen(false);
   };
 
-  const handleOpenAddEquipment = async (prefill?: Partial<typeof equipmentForm>) => {
-    setIsEditingEquipment(false);
-    setEquipmentForm({
-      name: "",
-      code: "",
-      type: "Incubator",
-      location: "",
-      vendor: "",
-      cdsSoftware: "",
-      connectionSettings: "",
-      setPointTemperature: "",
-      calibrationDueDate: "",
-      equipmentInventoryId: null,
-      ...prefill
-    });
-    setDialogEquipmentError(null);
+  const handleOpenAddEquipment = async (prefill?: Partial<EquipmentFormModel>) => {
     try {
       const secs = await getMySections();
-      const validSecs = Array.isArray(secs) ? secs : [];
-      setMySections(validSecs);
-      if (validSecs.length === 1) {
-        setSelectedSectionId(validSecs[0].sectionId);
-      } else {
-        setSelectedSectionId("");
-      }
+      setMySections(Array.isArray(secs) ? secs : []);
     } catch {
       setMySections([]);
-      setSelectedSectionId("");
     }
-    setEquipmentDialogOpen(true);
+    setWizard({ kind: "create", prefill });
   };
 
-  const handleOpenEditEquipment = (eq: ConfiguredEquipmentSummary) => {
-    setIsEditingEquipment(true);
-    setEquipmentForm({
-      name: eq.name,
-      code: eq.code,
-      type: normalizeEquipmentTypeValue(eq.type),
-      location: eq.location || eq.inventoryLocation || "",
-      vendor: eq.vendor || eq.manufacturerName || "",
-      cdsSoftware: eq.cdsSoftware ? String(eq.cdsSoftware) : "",
-      connectionSettings: eq.connectionSettings || "",
-      setPointTemperature: eq.setPointTemperature != null ? String(eq.setPointTemperature) : "",
-      calibrationDueDate: eq.calibrationDueDate ? eq.calibrationDueDate.slice(0, 10) : "",
-      equipmentInventoryId: eq.equipmentInventoryId ?? null
-    });
-    setSelectedSectionId(eq.sectionId ?? "");
-    setDialogEquipmentError(null);
-    setEquipmentDialogOpen(true);
-  };
-
-  const handleSaveEquipment = async () => {
-    if (!equipmentForm.name.trim() || !equipmentForm.code.trim() || !equipmentForm.type) {
-      setDialogEquipmentError("Name, Code, and Type are required.");
-      return;
-    }
-
-    if (equipmentForm.type === "Hplc" && !equipmentForm.cdsSoftware) {
-      setDialogEquipmentError("CDS Software is required for HPLC equipment.");
-      return;
-    }
-
-    if (!isEditingEquipment && mySections.length > 1 && !selectedSectionId) {
-      setDialogEquipmentError("Laboratory section is required.");
-      return;
-    }
-
-    setSaving(true);
-    setDialogEquipmentError(null);
-    let attemptedEdit: { id: number; payload: UpdateEquipmentRequest; version?: number } | null = null;
-    try {
-      const payload: CreateEquipmentRequest | UpdateEquipmentRequest = {
-        name: equipmentForm.name.trim(),
-        code: equipmentForm.code.trim(),
-        type: equipmentForm.type,
-        location: equipmentForm.location.trim() || null,
-        vendor: equipmentForm.vendor.trim() || null,
-        cdsSoftware: equipmentForm.type === "Hplc" && equipmentForm.cdsSoftware ? equipmentForm.cdsSoftware : null,
-        connectionSettings: equipmentForm.connectionSettings.trim() || null,
-        setPointTemperature: equipmentForm.setPointTemperature !== "" ? Number(equipmentForm.setPointTemperature) : null,
-        calibrationDueDate: equipmentForm.calibrationDueDate || null,
-        equipmentInventoryId: equipmentForm.equipmentInventoryId ?? null,
-        ...(!isEditingEquipment && mySections.length > 1 && selectedSectionId !== "" ? { sectionId: Number(selectedSectionId) } : {})
-      };
-
-      if (isEditingEquipment && selectedEquipment) {
-        attemptedEdit = {
-          id: selectedEquipment.id,
-          payload: payload as UpdateEquipmentRequest,
-          version: selectedEquipment.version
-        };
-        await EquipmentConfigurationService.updateEquipment(selectedEquipment.id, payload, selectedEquipment.version);
-        toast.success("Equipment updated successfully.");
-      } else {
-        const created = await EquipmentConfigurationService.createEquipment(payload);
-        toast.success("Equipment created successfully.");
-        if (created?.id) {
-          setSelectedEqId(created.id);
-        }
-      }
-      setEquipmentDialogOpen(false);
-      await loadData();
-    } catch (err: any) {
-      if (attemptedEdit && isReasonRequiredError(err)) {
-        setEquipmentDialogOpen(false);
-        setReasonError(null);
-        setPendingReasonEdit(attemptedEdit);
-        return;
-      }
-      setDialogEquipmentError(err?.response?.data?.error ?? err?.response?.data?.message ?? err?.message ?? "Could not save equipment.");
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const confirmReasonEdit = async (reason: string) => {
-    if (!pendingReasonEdit) return;
-    setReasonSaving(true);
-    setReasonError(null);
-    try {
-      await EquipmentConfigurationService.updateEquipment(
-        pendingReasonEdit.id,
-        pendingReasonEdit.payload,
-        pendingReasonEdit.version,
-        reason
-      );
-      toast.success("Equipment updated successfully.");
-      setPendingReasonEdit(null);
-      await loadData();
-    } catch (err: unknown) {
-      const e = err as { response?: { data?: { error?: string; message?: string } }; message?: string };
-      setReasonError(e?.response?.data?.error ?? e?.response?.data?.message ?? e?.message ?? "Could not save equipment.");
-    } finally {
-      setReasonSaving(false);
-    }
-  };
+  const handleOpenEditEquipment = () => setWizard({ kind: "edit" });
+  const handleOpenCopyEquipment = () => setWizard({ kind: "copy" });
 
   // Filters
   const filteredSummary = safeSummaryList.filter((e) => {
@@ -668,7 +499,7 @@ export function EquipmentPage() {
       <EquipmentPasteSection
         pasteBarOpen={pasteBarOpen}
         onClosePasteBar={() => setPasteBarOpen(false)}
-        modalOpen={equipmentDialogOpen || editSetPointDialogOpen || programDialogOpen || programHistoryDialogOpen || inventoryDialogOpen}
+        modalOpen={wizard !== null || editSetPointDialogOpen || programDialogOpen || programHistoryDialogOpen || inventoryDialogOpen}
         existingEquipment={safeSummaryList}
         mySections={mySections}
         inventoryList={inventoryList}
@@ -855,10 +686,18 @@ export function EquipmentPage() {
                           variant="contained"
                           size="small"
                           startIcon={<EditIcon />}
-                          onClick={() => handleOpenEditEquipment(selectedEquipment)}
+                          onClick={handleOpenEditEquipment}
                           color="primary"
                         >
                           Edit Equipment
+                        </Button>
+                        <Button
+                          variant="outlined"
+                          size="small"
+                          startIcon={<ContentCopyIcon />}
+                          onClick={handleOpenCopyEquipment}
+                        >
+                          New from existing
                         </Button>
                         <Button
                           component={Link}
@@ -1266,184 +1105,20 @@ export function EquipmentPage() {
         </>
       )}
 
-      {/* DIALOG 0: ADD / EDIT MASTER EQUIPMENT */}
-      <FloatingDialog
-        open={equipmentDialogOpen}
-        onClose={() => setEquipmentDialogOpen(false)}
-        maxWidth="sm"
-        titleSx={{ fontWeight: 700 }}
-        title={isEditingEquipment ? "Edit Equipment" : "Add Equipment"}
-        actions={
-          <>
-            <Button onClick={() => setEquipmentDialogOpen(false)} variant="outlined" disabled={saving}>
-              Cancel
-            </Button>
-            <Button
-              onClick={handleSaveEquipment}
-              variant="contained"
-              disabled={saving}
-              color="primary"
-            >
-              {saving ? "Saving…" : isEditingEquipment ? "Save Changes" : "Create Equipment"}
-            </Button>
-          </>
-        }
-      >
-        {dialogEquipmentError && <Alert severity="error" sx={{ mb: 2 }}>{dialogEquipmentError}</Alert>}
-        <Stack spacing={2}>
-          <TextField
-            label="Equipment Name *"
-            placeholder="e.g. HPLC System 01"
-            value={equipmentForm.name}
-            onChange={(e) => setEquipmentForm({ ...equipmentForm, name: e.target.value })}
-            fullWidth
-            required
-          />
-          <Stack direction="row" spacing={0.5} sx={{ alignItems: "flex-start" }}>
-            <TextField
-              label="Equipment Code *"
-              placeholder="e.g. HPLC-001"
-              value={equipmentForm.code}
-              onChange={(e) => setEquipmentForm({ ...equipmentForm, code: e.target.value })}
-              fullWidth
-              required
-              slotProps={{ input: { "aria-describedby": hintDescribedBy("equipment-code") } }}
-            />
-            <FieldHint id="equipment-code" label="Equipment Code" hint={hints.equipmentCode} />
-          </Stack>
-          <FormControl fullWidth required size="small">
-            <InputLabel id="equipment-type-select-label">Equipment Type *</InputLabel>
-            <Select
-              labelId="equipment-type-select-label"
-              label="Equipment Type *"
-              value={equipmentForm.type}
-              onChange={(e) => {
-                const nextType = e.target.value;
-                setEquipmentForm({
-                  ...equipmentForm,
-                  type: nextType,
-                  cdsSoftware: nextType === "Hplc" ? equipmentForm.cdsSoftware : ""
-                });
-              }}
-            >
-              {MICRO_EQUIPMENT_TYPES.map((t) => (
-                <MenuItem key={t.value} value={t.value}>
-                  {t.label}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-
-          {equipmentForm.type === "Hplc" && (
-            <FormControl fullWidth required size="small">
-              <InputLabel id="cds-software-select-label">CDS Software *</InputLabel>
-              <Select
-                labelId="cds-software-select-label"
-                label="CDS Software *"
-                value={equipmentForm.cdsSoftware}
-                onChange={(e) => setEquipmentForm({ ...equipmentForm, cdsSoftware: e.target.value })}
-              >
-                <MenuItem value="">
-                  <em>Select CDS Software…</em>
-                </MenuItem>
-                {CDS_SOFTWARE_OPTIONS.map((opt) => (
-                  <MenuItem key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          )}
-
-          <TextField
-            label="Vendor / Manufacturer"
-            placeholder="e.g. Shimadzu, Agilent, Waters"
-            value={equipmentForm.vendor}
-            onChange={(e) => setEquipmentForm({ ...equipmentForm, vendor: e.target.value })}
-            fullWidth
-            slotProps={{
-              htmlInput: { maxLength: 100 }
-            }}
-          />
-
-          {!isEditingEquipment && mySections.length > 1 && (
-            <Stack direction="row" spacing={0.5} sx={{ alignItems: "flex-start" }}>
-            <FormControl size="small" fullWidth required sx={{ flex: 1 }}>
-              <InputLabel id="equipment-section-label">Laboratory Section *</InputLabel>
-              <Select<number | "">
-                labelId="equipment-section-label"
-                label="Laboratory Section *"
-                value={selectedSectionId}
-                onChange={(e) => setSelectedSectionId(e.target.value === "" ? "" : Number(e.target.value))}
-                inputProps={{ "aria-label": "Laboratory Section", "aria-describedby": hintDescribedBy("equipment-section") }}
-              >
-                <MenuItem value="">
-                  <em>Select Laboratory Section…</em>
-                </MenuItem>
-                {mySections.map((s) => (
-                  <MenuItem key={s.sectionId} value={s.sectionId}>
-                    {s.sectionName} ({s.departmentName})
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-              <FieldHint id="equipment-section" label="Laboratory Section" hint={hints.laboratorySection} />
-            </Stack>
-          )}
-
-          <TextField
-            label="Location"
-            placeholder="e.g. Instrumental Analysis Lab"
-            value={equipmentForm.location}
-            onChange={(e) => setEquipmentForm({ ...equipmentForm, location: e.target.value })}
-            fullWidth
-          />
-          <Autocomplete
-            options={inventoryList}
-            value={inventoryList.find((item) => item.id === equipmentForm.equipmentInventoryId) ?? null}
-            onChange={(_event, newValue) =>
-              setEquipmentForm({ ...equipmentForm, equipmentInventoryId: newValue ? newValue.id : null })
-            }
-            getOptionLabel={(option) => `${option.code} — ${option.instrumentType}`}
-            isOptionEqualToValue={(option, value) => option.id === value.id}
-            renderInput={(params) => (
-              <TextField
-                {...params}
-                label="Asset register entry"
-                placeholder="Select an asset register entry"
-                fullWidth
-              />
-            )}
-            clearOnEscape
-            sx={{ "& .MuiAutocomplete-clearIndicator": { visibility: "visible" } }}
-          />
-
-          <TextField
-            label="Connection Settings (optional)"
-            placeholder="e.g. COM3 / 192.168.1.50"
-            value={equipmentForm.connectionSettings}
-            onChange={(e) => setEquipmentForm({ ...equipmentForm, connectionSettings: e.target.value })}
-            fullWidth
-          />
-
-          <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 2 }}>
-            <TextField
-              label="Set Point Temp (°C)"
-              type="number"
-              placeholder="e.g. 37.0"
-              value={equipmentForm.setPointTemperature}
-              onChange={(e) => setEquipmentForm({ ...equipmentForm, setPointTemperature: e.target.value })}
-              slotProps={{ htmlInput: { step: "0.1" } }}
-            />
-            <DateField
-              label="Calibration Due Date"
-              value={equipmentForm.calibrationDueDate}
-              onChange={(v) => setEquipmentForm({ ...equipmentForm, calibrationDueDate: v })}
-              size="medium"
-            />
-          </Box>
-        </Stack>
-      </FloatingDialog>
+      {/* ADD / EDIT / COPY EQUIPMENT WIZARD */}
+      <EquipmentWizard
+        open={wizard !== null}
+        editing={wizard?.kind === "edit" ? selectedEquipment ?? null : null}
+        copyFrom={wizard?.kind === "copy" ? selectedEquipment ?? null : null}
+        prefill={wizard?.kind === "create" ? wizard.prefill ?? null : null}
+        mySections={mySections}
+        inventory={inventoryList}
+        onSaved={async (createdId) => {
+          if (createdId) setSelectedEqId(createdId);
+          await loadData();
+        }}
+        onClose={() => setWizard(null)}
+      />
 
       {/* DIALOG 1: EDIT INCUBATOR SET POINT */}
       <FloatingDialog
@@ -1728,21 +1403,6 @@ export function EquipmentPage() {
             </Table>
           </TableContainer>
       </FloatingDialog>
-      <ChangeReasonDialog
-        open={pendingReasonEdit !== null}
-        title="Reason required to update equipment"
-        message="This equipment is referenced by active laboratory work. Enter a reason to apply your changes."
-        confirmText="Save Change"
-        loading={reasonSaving}
-        error={reasonError}
-        onConfirm={confirmReasonEdit}
-        onCancel={() => {
-          if (!reasonSaving) {
-            setPendingReasonEdit(null);
-            setReasonError(null);
-          }
-        }}
-      />
     </>
   );
 }

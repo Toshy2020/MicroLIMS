@@ -42,29 +42,31 @@ export type CdsSoftware =
   | "PerkinElmerSyngistix";
 
 
+// Mirrors CreateEquipmentRequest in MasterDataRequests.cs (enums travel as names).
 export interface CreateEquipmentRequest {
   name: string;
   code: string;
-  type: string;
+  type: EquipmentType;
   location?: string | null;
   setPointTemperature?: number | null;
   calibrationDueDate?: string | null;
   vendor?: string | null;
-  cdsSoftware?: string | null;
+  cdsSoftware?: CdsSoftware | null;
   connectionSettings?: string | null;
   sectionId?: number | null;
   equipmentInventoryId?: number | null;
 }
 
+// Mirrors UpdateEquipmentRequest in MasterDataRequests.cs (enums travel as names).
 export interface UpdateEquipmentRequest {
   name: string;
   code: string;
-  type: string;
+  type: EquipmentType;
   location?: string | null;
   setPointTemperature?: number | null;
   calibrationDueDate?: string | null;
   vendor?: string | null;
-  cdsSoftware?: string | null;
+  cdsSoftware?: CdsSoftware | null;
   connectionSettings?: string | null;
   sectionId?: number | null;
   equipmentInventoryId?: number | null;
@@ -192,14 +194,12 @@ export const EquipmentConfigurationService = {
     return Array.isArray(data) ? data : [];
   },
 
-  linkInventory: async (inventoryId: number): Promise<any> => {
-    const res = await apiClient.post<ApiResponse<any>>(`/masterdata/equipment/link-inventory/${inventoryId}`);
-    return res.data?.data;
+  linkInventory: async (inventoryId: number): Promise<void> => {
+    await apiClient.post(`/masterdata/equipment/link-inventory/${inventoryId}`);
   },
 
-  updateSetPoint: async (id: number, req: UpdateIncubatorSetPointRequest): Promise<any> => {
-    const res = await apiClient.put<ApiResponse<any>>(`/masterdata/equipment/${id}/set-point`, req);
-    return res.data?.data;
+  updateSetPoint: async (id: number, req: UpdateIncubatorSetPointRequest): Promise<void> => {
+    await apiClient.put(`/masterdata/equipment/${id}/set-point`, req);
   },
 
   getSetPointHistory: async (id: number): Promise<IncubatorSetPointHistory[]> => {
@@ -209,7 +209,7 @@ export const EquipmentConfigurationService = {
   },
 
   getAutoclavePrograms: async (id?: number, activeOnly?: boolean): Promise<AutoclaveProgram[]> => {
-    const params: Record<string, any> = {};
+    const params: Record<string, boolean> = {};
     if (activeOnly !== undefined) params.activeOnly = activeOnly;
     const url = id ? `/masterdata/equipment/${id}/autoclave-programs` : "/masterdata/equipment/autoclave-programs/all";
     const res = await apiClient.get<ApiResponse<AutoclaveProgram[]>>(url, { params });

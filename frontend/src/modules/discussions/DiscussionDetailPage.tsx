@@ -39,6 +39,7 @@ import { DiscussionHistoryDialog } from "./components/DiscussionHistoryDialog";
 import { brandColors } from "../../theme";
 import { ConfirmationDialog } from "../../components/ConfirmationDialog";
 import { toast } from "sonner";
+import { useBreadcrumb } from "../../components/breadcrumbContext";
 
 export function DiscussionDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -51,6 +52,7 @@ export function DiscussionDetailPage() {
   const [post, setPost] = useState<DiscussionPostDetail | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  useBreadcrumb(post?.title ?? (error ? "Discussion unavailable" : null));
 
   // New comment state
   const [newCommentText, setNewCommentText] = useState<string>("");

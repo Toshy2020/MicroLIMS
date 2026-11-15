@@ -33,6 +33,7 @@ import type {
   PreparationComponentInput,
   AutoclaveRecordInput
 } from "./types";
+import { useBreadcrumb } from "../../components/breadcrumbContext";
 
 const STEPS = ["Select Recipe & Method", "Lots & Quantities", "Review & Sign"];
 
@@ -92,6 +93,8 @@ export function PreparationWizardPage() {
   const [loading, setLoading] = useState(Boolean(id));
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // The route id, not the in-memory record: a new preparation keeps its fixed label once step 1 has saved it.
+  useBreadcrumb(!id ? "New preparation" : preparation ? [preparation.code, preparation.solutionMasterName].filter(Boolean).join(" ") : error ? "Preparation unavailable" : null);
   const [fieldErrors, setFieldErrors] = useState<Partial<Record<SolutionFieldKey, string>>>({});
   const [keptOffline, setKeptOffline] = useKeptOffline();
   const [lotsDraft, setLotsDraft] = useState<LotsStepDraftState | null>(null);

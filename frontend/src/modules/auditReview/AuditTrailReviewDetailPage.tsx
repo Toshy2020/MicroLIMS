@@ -28,6 +28,7 @@ import { getErrorMessage, serverMessage } from "../../utils/errorMessage";
 import type { AuditLogItem } from "../auditSearch/types/auditTypes";
 import { FindingDialog } from "./FindingDialog";
 import { formatDateTimeWithZone, formatReviewScope } from "./formatAuditDate";
+import { useBreadcrumb } from "../../components/breadcrumbContext";
 
 const ENTRIES_PAGE_SIZE_OPTIONS = [25, 50, 100];
 const MAX_COMMENT_LENGTH = 2000;
@@ -42,6 +43,7 @@ export function AuditTrailReviewDetailPage() {
   const [review, setReview] = useState<AuditTrailReviewDto | null>(null);
   const [reviewLoading, setReviewLoading] = useState(true);
   const [reviewError, setReviewError] = useState<string | null>(null);
+  useBreadcrumb(review?.title ?? (reviewError ? "Review unavailable" : null));
 
   const [entries, setEntries] = useState<AuditLogItem[]>([]);
   const [entriesTotalCount, setEntriesTotalCount] = useState(0);

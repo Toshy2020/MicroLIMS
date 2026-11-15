@@ -34,6 +34,7 @@ import type { RegisterColumn } from "../../../components/lab";
 import type { HplcRunDto, HplcRunListItem, HplcRunMobilePhaseDto } from "../types";
 import { LoadErrorAlert } from "../../../components/LoadErrorAlert";
 import { useTechnique } from "../useTechnique";
+import { useBreadcrumb } from "../../../components/breadcrumbContext";
 
 const MOBILE_PHASE_COLUMNS: RegisterColumn<HplcRunMobilePhaseDto>[] = [
   { key: "channel", label: "Channel", render: (mp) => <strong>Channel {mp.channel}</strong>, sortable: true },
@@ -77,6 +78,9 @@ export function HplcInstrumentWorkspace() {
   const [historyRuns, setHistoryRuns] = useState<HplcRunListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  // The last crumb names the run (its reference), or the instrument while no run is open.
+  const [instrumentLabel, setInstrumentLabel] = useState<string | null>(null);
+  useBreadcrumb(runId ? (error ? "Run unavailable" : run?.code ?? null) : instrumentLabel);
 
   // Abandon Dialog
   const [abandonOpen, setAbandonOpen] = useState(false);
@@ -126,12 +130,16 @@ export function HplcInstrumentWorkspace() {
           if (matched?.activeRun) {
             navigate(routes.run(equipmentId, matched.activeRun.runId), { replace: true });
           } else {
+            setInstrumentLabel(matched ? `${matched.code} ${matched.name}` : "Instrument not found");
             HplcWorkspaceService.getRunHistory(equipmentId).then(setHistoryRuns);
             setActiveTab(4);
             setLoading(false);
           }
         })
-        .catch(() => setLoading(false));
+        .catch(() => {
+          setInstrumentLabel("Instrument unavailable");
+          setLoading(false);
+        });
     }
   }, [equipmentId, runId, navigate, loadRunData, technique, routes]);
 

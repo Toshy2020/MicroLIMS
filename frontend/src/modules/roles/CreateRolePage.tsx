@@ -13,6 +13,7 @@ import { useLoadFailures } from "../../hooks/useLoadFailures";
 import { Role as RoleType } from "../../contexts/AuthContext";
 import { LoadFailuresAlert } from "../../components/LoadErrorAlert";
 import { formatRoleName } from "../../utils/userDisplay";
+import { useBreadcrumb } from "../../components/breadcrumbContext";
 
 const BASE_TYPES: RoleType[] = ["SystemAdministrator", "SectionHead", "Reviewer", "Analyst", "QcManager", "Qa"];
 const STEPS = ["Name", "Base Type", "Permissions", "Review"];
@@ -20,6 +21,7 @@ const STEPS = ["Name", "Base Type", "Permissions", "Review"];
 export function CreateRolePage() {
   const navigate = useNavigate();
   const [step, setStep] = useState(0);
+  useBreadcrumb("New role");
 
   const [existingRoles, setExistingRoles] = useState<RoleRecord[]>([]);
   const [allPermissions, setAllPermissions] = useState<PermissionRecord[]>([]);

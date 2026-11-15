@@ -32,6 +32,7 @@ import type {
   HplcMethodOptionDto,
   HplcMobilePhaseAssignmentInput
 } from "../types";
+import { useBreadcrumb } from "../../../components/breadcrumbContext";
 
 const STEPS_HPLC = ["Select Method", "Select Column", "Assign Mobile Phases", "Review & Start"];
 const STEPS_GC = ["Select Method", "Select Column", "Review & Start"];
@@ -43,6 +44,7 @@ export function StartHplcRunWizard() {
   const equipmentId = Number(instrumentId);
   const steps = technique === "Gc" ? STEPS_GC : STEPS_HPLC;
 
+  useBreadcrumb("New run");
   const [activeStep, setActiveStep] = useState(0);
   const [instrument, setInstrument] = useState<HplcInstrumentDto | null>(null);
 

@@ -31,6 +31,7 @@ import { PrintLabelsDialog } from "../../components/labels/PrintLabelsDialog";
 import { usePostCreateLabelPrint } from "../../components/labels/usePostCreateLabelPrint";
 import { toast } from "sonner";
 import { useTrackRecent } from "../navigation/useTrackRecent";
+import { useBreadcrumb } from "../../components/breadcrumbContext";
 
 export function PreparationRecordPage() {
   const { id } = useParams<{ id: string }>();
@@ -51,6 +52,7 @@ export function PreparationRecordPage() {
   useTrackRecent("solution", preparation?.id);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  useBreadcrumb(preparation ? [preparation.code, preparation.solutionMasterName].filter(Boolean).join(" ") : error ? "Preparation unavailable" : null);
 
   // Reason dialog state for Cancel / Discard
   const [actionType, setActionType] = useState<"cancel" | "discard" | null>(null);

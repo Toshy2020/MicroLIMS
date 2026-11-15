@@ -16,6 +16,7 @@ import { useLoadFailures } from "../../hooks/useLoadFailures";
 import { PermissionMatrix } from "./components/PermissionMatrix";
 import { LoadFailuresAlert } from "../../components/LoadErrorAlert";
 import { MetaBadge, ToneBadge } from "../../components/StatusBadge";
+import { useBreadcrumb } from "../../components/breadcrumbContext";
 
 export function RoleDetailPage() {
   const { id } = useParams();
@@ -30,6 +31,7 @@ export function RoleDetailPage() {
   const [description, setDescription] = useState("");
   const [checkedCodes, setCheckedCodes] = useState<Set<string>>(new Set());
   const [message, setMessage] = useState<{ text: string; ok: boolean } | null>(null);
+  useBreadcrumb(role?.name ?? (message && !message.ok ? "Role unavailable" : null));
   const [saving, setSaving] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);

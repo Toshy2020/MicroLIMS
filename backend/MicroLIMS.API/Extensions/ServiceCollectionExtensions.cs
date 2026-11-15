@@ -119,6 +119,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<NotificationQueryService>();
         services.AddScoped<NotificationPreferencesService>();
         services.AddScoped<WorkingHoursService>();
+        services.AddScoped<EscalationService>();
         services.AddScoped<INotificationPublisher, NotificationPublisher>();
         services.AddScoped<NotificationRecipients>();
         services.AddScoped<NotificationScheduler>();

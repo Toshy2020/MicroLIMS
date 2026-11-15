@@ -215,6 +215,10 @@ EnvironmentalMonitoringMasterDataController.GetRooms(): SystemAdministrator,Sect
 EnvironmentalMonitoringMasterDataController.UpdateDepartment(Int32, UpdateDepartmentRequest): SystemAdministrator,SectionHead
 EnvironmentalMonitoringMasterDataController.UpdateRoom(Int32, UpdateRoomRequest): SystemAdministrator,SectionHead
 EnvironmentalMonitoringMasterDataController.UpdateRoomTestConfiguration(Int32, UpdateRoomTestConfigRequest): SystemAdministrator,SectionHead
+EscalationRulesController.Create(CreateEscalationRuleRequest, CancellationToken): SectionHead,QcManager
+EscalationRulesController.List(Nullable`1, Boolean, CancellationToken): SectionHead,QcManager
+EscalationRulesController.Replace(Int32, ReplaceEscalationRuleRequest, CancellationToken): SectionHead,QcManager
+EscalationRulesController.Retire(Int32, CancellationToken): SectionHead,QcManager
 EquipmentCalendarController.GetCalendar(DateOnly, DateOnly): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 EquipmentCalendarController.GetInstrumentHistory(Int32, Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 EquipmentCalendarController.GetPlannedVsDone(Int32, EquipmentTaskType): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa

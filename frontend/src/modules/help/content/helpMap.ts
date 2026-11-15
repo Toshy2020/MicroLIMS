@@ -66,6 +66,7 @@ export const HELP_MAP: Record<string, HelpTarget> = {
   "/laboratory-configuration/water": { chapterId: "24-water-monitoring" },
   "/laboratory-configuration/after-cleaning": { chapterId: "25-after-cleaning" },
   "/laboratory-configuration/working-hours": { chapterId: "32-laboratory-configuration" },
+  "/laboratory-configuration/escalation-rules": { chapterId: "32-laboratory-configuration" },
 
   // Quality and compliance
   "/sections/document-control": { chapterId: "38-document-control" },

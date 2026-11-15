@@ -63,6 +63,7 @@ const SolutionMasterPage = lazy(() => import("../modules/laboratoryConfiguration
 const HplcMethodsPage = lazy(() => import("../modules/laboratoryConfiguration/masterDataSimple/HplcMethodsPage").then((m) => ({ default: m.HplcMethodsPage })));
 const LabelFormatsPage = lazy(() => import("../modules/laboratoryConfiguration/labelFormats/LabelFormatsPage").then((m) => ({ default: m.LabelFormatsPage })));
 const WorkingHoursPage = lazy(() => import("../modules/laboratoryConfiguration/escalation/WorkingHoursPage").then((m) => ({ default: m.WorkingHoursPage })));
+const EscalationRulesPage = lazy(() => import("../modules/laboratoryConfiguration/escalation/EscalationRulesPage").then((m) => ({ default: m.EscalationRulesPage })));
 const PreparationListPage = lazy(() => import("../modules/solutionPreparation/PreparationListPage").then((m) => ({ default: m.PreparationListPage })));
 const PreparationWizardPage = lazy(() => import("../modules/solutionPreparation/PreparationWizardPage").then((m) => ({ default: m.PreparationWizardPage })));
 const PreparationRecordPage = lazy(() => import("../modules/solutionPreparation/PreparationRecordPage").then((m) => ({ default: m.PreparationRecordPage })));
@@ -297,6 +298,7 @@ export function AppRoutes() {
             </Route>
             <Route element={<PermissionRoute code={PERMISSIONS.NOTIFICATIONS_CONFIGURE} />}>
               <Route path="/laboratory-configuration/working-hours" element={<WorkingHoursPage />} />
+              <Route path="/laboratory-configuration/escalation-rules" element={<EscalationRulesPage />} />
             </Route>
 
             {/* Document Control Module (Release 1a) */}

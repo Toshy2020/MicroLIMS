@@ -33,6 +33,7 @@ public sealed class NotificationScheduler
     private readonly ISystemSettingsReader? _settings;
     private readonly string _appBaseUrl;
     private readonly MonitoringReminderService? _monitoring;
+    private readonly EscalationService? _escalation;
 
     public NotificationScheduler(
         IMicroLimsDbContext db,
@@ -41,7 +42,8 @@ public sealed class NotificationScheduler
         ILabClock? clock = null,
         ISystemSettingsReader? settings = null,
         IConfiguration? config = null,
-        MonitoringReminderService? monitoring = null)
+        MonitoringReminderService? monitoring = null,
+        EscalationService? escalation = null)
     {
         _db = db;
         _publisher = publisher;
@@ -50,6 +52,7 @@ public sealed class NotificationScheduler
         _settings = settings;
         _appBaseUrl = NotificationEmailComposer.ResolveAppBaseUrl(config);
         _monitoring = monitoring;
+        _escalation = escalation;
     }
 
     public async Task<int> RunAsync(CancellationToken ct = default)
@@ -72,6 +75,19 @@ public sealed class NotificationScheduler
         var digestHourLocal = await _settings.GetIntOrDefaultAsync(SystemSettingKeys.NotificationsDigestHourLocal, ct);
         var horizon = now.AddDays(Math.Max(0, lookAheadDays));
 
+        var escalationCreatedNotifications = 0;
+        if (_escalation is not null)
+        {
+            var preEscalationMaxId = await _db.NotificationLogs
+                .Select(n => (int?)n.Id)
+                .MaxAsync(ct) ?? 0;
+
+            await _escalation.EvaluateAsync(ct);
+
+            escalationCreatedNotifications = await _db.NotificationLogs
+                .CountAsync(n => n.Id > preEscalationMaxId, ct);
+        }
+
         await ScheduleIncubationReadyAsync(now, ct);
         await ScheduleMediaExpiryAsync(now, horizon, ct);
         await ScheduleSolutionExpiryAsync(now, horizon, ct);
@@ -85,9 +101,9 @@ public sealed class NotificationScheduler
             await ScheduleMonitoringRemindersAsync(ct);
         }
 
-        var createdCount = efDb is not null
+        var createdCount = escalationCreatedNotifications + (efDb is not null
             ? efDb.ChangeTracker.Entries<Domain.Entities.NotificationLog>().Count(e => e.State == EntityState.Added)
-            : _db.NotificationLogs.Local.Count(n => n.Id == 0);
+            : _db.NotificationLogs.Local.Count(n => n.Id == 0));
 
         await _db.SaveChangesAsync(ct);
 

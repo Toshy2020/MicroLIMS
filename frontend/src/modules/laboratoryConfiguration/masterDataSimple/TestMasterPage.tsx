@@ -15,18 +15,25 @@ import { isReasonRequiredError } from "../../../services/apiClient";
 import { ChangeReasonDialog } from "../../../components/config/ChangeReasonDialog";
 import { HplcMethodService, HplcMethodListItem } from "./services/HplcMethodService";
 import { TitrationConfigSection } from "./TitrationConfigSection";
-import { TitrationFormState, createInitialTitrationForm, titrationFormFromDefinition, titrationPayloadFields, validateTitrationForm } from "./titrationConfig";
-import { PageArea, PhyschemArea, areaIncludes, defaultAreaFor } from "./testMasterArea";
+import { PageArea, areaIncludes } from "./testMasterArea";
 import { TestAreaField } from "./TestAreaField";
-import { TitrationChangeReasonField, hasTitrationSettingsChanged, titrationChangeReasonCheck } from "./TitrationChangeReasonField";
+import { TitrationChangeReasonField, hasTitrationSettingsChanged } from "./TitrationChangeReasonField";
 import { EQUATION_TYPES, EQUATION_TYPE_LABELS, FP_SECTION_CODE, TestMasterLab, WORKFLOW_TYPES_BY_LAB, WORKFLOW_TYPE_LABELS } from "./testMaster/testMasterConstants";
 import { TestStageReplicatesSection } from "./testMaster/TestStageReplicatesSection";
 import { WorkflowStepsSection } from "./testMaster/WorkflowStepsSection";
 import { TestItemsPanel } from "./TestItemsPanel";
 import { UvTestFields } from "./testMaster/UvTestFields";
 import { IcpTestFields } from "./testMaster/IcpTestFields";
-import { IcpTestForm, createInitialIcpForm, icpFormFromDefinition, icpPayloadFields, validateIcpForm } from "./testMaster/icpTestConfig";
-import type { UvCalculationMode } from "../../../services/masterDataOptions";
+import {
+  TEST_WIZARD_STEP_ORDER,
+  TestFormModel,
+  createEmptyTestFormModel,
+  fromTestDefinition,
+  toTestPayload,
+  validateStep,
+  withEquationType,
+  withWorkflowType
+} from "./testWizard/testFormModel";
 
 // The Test Master - one canonical Code/DisplayName per test, referenced
 // everywhere a TestCode is assigned (Items, Water Sampling Points, Room
@@ -41,85 +48,10 @@ import type { UvCalculationMode } from "../../../services/masterDataOptions";
 // Query parameter naming the test whose "Details & Workflow Steps" dialog is open.
 const OPEN_TEST_PARAM = "test";
 
-// What the Add Test form OPENS with for the Dissolution, Disintegration and
-// Weight Variation acceptance fields. These numbers are only a starting point:
-// they are shown in the form, the user can edit or clear them, and they are
-// NEVER applied on save. Saving rejects a blank field, and the saved values
-// always come from what the user entered.
-const PREFILL_METHOD_FIELDS = {
-  dissolutionS1Offset: "5",
-  dissolutionS2MinOffset: "15",
-  dissolutionS3MinOffset: "25",
-  dissolutionS3MaxBelowS2Min: "2",
-  disintegrationStage1Units: "6",
-  disintegrationStage2Units: "12",
-  disintegrationMaxStage1Failures: "2",
-  disintegrationMinPassTotal: "16",
-  wvUnitCount: "20",
-  wvTabletBand1MaxMg: "130",
-  wvTabletBand1Percent: "10",
-  wvTabletBand2MaxMg: "324",
-  wvTabletBand2Percent: "7.5",
-  wvTabletBand3Percent: "5",
-  wvTabletMaxOutside: "2",
-  wvCapsuleInnerPercent: "10",
-  wvCapsuleOuterPercent: "25",
-  wvCapsuleS1MaxOutside: "2",
-  wvCapsuleS1MaxForRetest: "6",
-  wvCapsuleS2ExtraUnits: "40",
-  wvCapsuleS2MaxOutside: "6"
-} as const;
-
-type MethodGroupKey = keyof typeof PREFILL_METHOD_FIELDS;
-
-// Sent as null for every workflow type that does not own these fields.
-const NO_METHOD_GROUP_FIELDS: Record<MethodGroupKey, null> = {
-  dissolutionS1Offset: null,
-  dissolutionS2MinOffset: null,
-  dissolutionS3MinOffset: null,
-  dissolutionS3MaxBelowS2Min: null,
-  disintegrationStage1Units: null,
-  disintegrationStage2Units: null,
-  disintegrationMaxStage1Failures: null,
-  disintegrationMinPassTotal: null,
-  wvUnitCount: null,
-  wvTabletBand1MaxMg: null,
-  wvTabletBand1Percent: null,
-  wvTabletBand2MaxMg: null,
-  wvTabletBand2Percent: null,
-  wvTabletBand3Percent: null,
-  wvTabletMaxOutside: null,
-  wvCapsuleInnerPercent: null,
-  wvCapsuleOuterPercent: null,
-  wvCapsuleS1MaxOutside: null,
-  wvCapsuleS1MaxForRetest: null,
-  wvCapsuleS2ExtraUnits: null,
-  wvCapsuleS2MaxOutside: null
-};
-
-// Reads the numeric fields of one method-configuration group. A blank field is
-// reported first (the first one in on-screen order), then a non-numeric one;
-// nothing is ever substituted for a missing value.
-function readRequiredNumbers(
-  group: string,
-  fields: ReadonlyArray<readonly [label: string, text: string]>
-): { error: string } | { values: number[] } {
-  const blank = fields.find(([, text]) => text.trim() === "");
-  if (blank) return { error: `${group}: "${blank[0]}" is required.` };
-  const values: number[] = [];
-  for (const [label, text] of fields) {
-    const n = Number(text);
-    if (!Number.isFinite(n)) return { error: `${group}: "${label}" must be a number.` };
-    values.push(n);
-  }
-  return { values };
-}
-
 export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; area?: PageArea }) {
   const { options: allOptions, loading: definitionsLoading, addNew, update, setActive, reload } = useTestDefinitions();
   const isFp = lab === "fp";
   const workflowTypes = WORKFLOW_TYPES_BY_LAB[lab];
-  const defaultWorkflowType: string = isFp ? "HplcMethodAssay" : "Observation";
   const [fpSectionId, setFpSectionId] = useState<number | null>(null);
   // Separate from fpSectionId: null meant "still loading", "failed" and "no
   // FP section exists" alike, so a failure (or a site without an FP section)
@@ -143,8 +75,8 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
       inLab(t.sectionId) &&
       (!isFp || !area || areaIncludes(t.physchemArea, area))
   );
-  const [physchemArea, setPhyschemArea] = useState<PhyschemArea | null>(null);
-  const [changeReason, setChangeReason] = useState("");
+  const [form, setForm] = useState<TestFormModel>(() => createEmptyTestFormModel({ lab, area }));
+  const patchForm = (patch: Partial<TestFormModel>) => setForm((prev) => ({ ...prev, ...patch }));
   const [changeReasonError, setChangeReasonError] = useState<string | null>(null);
   const [pendingReasonAction, setPendingReasonAction] = useState<
     | { kind: "freeze"; test: TestDefinitionOption }
@@ -153,18 +85,7 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
   >(null);
   const [reasonSaving, setReasonSaving] = useState(false);
   const [reasonDialogError, setReasonDialogError] = useState<string | null>(null);
-  const [code, setCode] = useState("");
-  const [displayName, setDisplayName] = useState("");
-  // Certificate of Analysis position inside the test's group; "" = none.
-  const [coaDisplayOrder, setCoaDisplayOrder] = useState<string>("");
-  const [sectionId, setSectionId] = useState<number | "">("");
-  const [workflowType, setWorkflowType] = useState<string>(defaultWorkflowType);
-  const [equationType, setEquationType] = useState<string>(isFp ? "HplcMethodAssay" : "None");
-  const [requiresSystemSuitability, setRequiresSystemSuitability] = useState<boolean>(false);
-  const [methodAbbreviation, setMethodAbbreviation] = useState<string>("");
-  const [hplcMethodId, setHplcMethodId] = useState<number | "">("");
   const [hplcMethods, setHplcMethods] = useState<HplcMethodListItem[]>([]);
-  const [icp, setIcp] = useState<IcpTestForm>(createInitialIcpForm);
 
   // Lists the Add/Edit Test dialog picks from; a failure is named in the
   // dialog instead of leaving an empty picker.
@@ -176,55 +97,13 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
       .catch(failDialogList("HPLC methods"));
   }, [failDialogList]);
 
-  const [replicateCount, setReplicateCount] = useState<string>("1");
-  const [evaluationBasis, setEvaluationBasis] = useState<"Mean" | "EachValue" | "Min" | "Max">("Mean");
-  const [conditionFields, setConditionFields] = useState<string>("");
-  const [usesTare, setUsesTare] = useState<boolean>(false);
-  const [perContainer, setPerContainer] = useState<boolean>(false);
-  const [moistureRole, setMoistureRole] = useState<MoistureRole>("None");
-  const [titration, setTitration] = useState<TitrationFormState>(createInitialTitrationForm);
-  const [uvCalculationMode, setUvCalculationMode] = useState<UvCalculationMode | "">("");
-  const [uvSpecificAbsorbance, setUvSpecificAbsorbance] = useState<string>("");
-  const [uvTotalVolumeMl, setUvTotalVolumeMl] = useState<string>("");
-  const [uvStandardVolumeMl, setUvStandardVolumeMl] = useState<string>("");
-  const [uvStandardEntryId, setUvStandardEntryId] = useState<number | "">("");
-
-  const [dissolutionS1Offset, setDissolutionS1Offset] = useState<string>(PREFILL_METHOD_FIELDS.dissolutionS1Offset);
-  const [dissolutionS2MinOffset, setDissolutionS2MinOffset] = useState<string>(PREFILL_METHOD_FIELDS.dissolutionS2MinOffset);
-  const [dissolutionS3MinOffset, setDissolutionS3MinOffset] = useState<string>(PREFILL_METHOD_FIELDS.dissolutionS3MinOffset);
-  const [dissolutionS3MaxBelowS2Min, setDissolutionS3MaxBelowS2Min] = useState<string>(PREFILL_METHOD_FIELDS.dissolutionS3MaxBelowS2Min);
-
-  const [disintegrationStage1Units, setDisintegrationStage1Units] = useState<string>(PREFILL_METHOD_FIELDS.disintegrationStage1Units);
-  const [disintegrationStage2Units, setDisintegrationStage2Units] = useState<string>(PREFILL_METHOD_FIELDS.disintegrationStage2Units);
-  const [disintegrationMaxStage1Failures, setDisintegrationMaxStage1Failures] = useState<string>(PREFILL_METHOD_FIELDS.disintegrationMaxStage1Failures);
-  const [disintegrationMinPassTotal, setDisintegrationMinPassTotal] = useState<string>(PREFILL_METHOD_FIELDS.disintegrationMinPassTotal);
-
-  const [wvUnitCount, setWvUnitCount] = useState<string>(PREFILL_METHOD_FIELDS.wvUnitCount);
-  const [wvTabletBand1MaxMg, setWvTabletBand1MaxMg] = useState<string>(PREFILL_METHOD_FIELDS.wvTabletBand1MaxMg);
-  const [wvTabletBand1Percent, setWvTabletBand1Percent] = useState<string>(PREFILL_METHOD_FIELDS.wvTabletBand1Percent);
-  const [wvTabletBand2MaxMg, setWvTabletBand2MaxMg] = useState<string>(PREFILL_METHOD_FIELDS.wvTabletBand2MaxMg);
-  const [wvTabletBand2Percent, setWvTabletBand2Percent] = useState<string>(PREFILL_METHOD_FIELDS.wvTabletBand2Percent);
-  const [wvTabletBand3Percent, setWvTabletBand3Percent] = useState<string>(PREFILL_METHOD_FIELDS.wvTabletBand3Percent);
-  const [wvTabletMaxOutside, setWvTabletMaxOutside] = useState<string>(PREFILL_METHOD_FIELDS.wvTabletMaxOutside);
-  const [wvCapsuleInnerPercent, setWvCapsuleInnerPercent] = useState<string>(PREFILL_METHOD_FIELDS.wvCapsuleInnerPercent);
-  const [wvCapsuleOuterPercent, setWvCapsuleOuterPercent] = useState<string>(PREFILL_METHOD_FIELDS.wvCapsuleOuterPercent);
-  const [wvCapsuleS1MaxOutside, setWvCapsuleS1MaxOutside] = useState<string>(PREFILL_METHOD_FIELDS.wvCapsuleS1MaxOutside);
-  const [wvCapsuleS1MaxForRetest, setWvCapsuleS1MaxForRetest] = useState<string>(PREFILL_METHOD_FIELDS.wvCapsuleS1MaxForRetest);
-  const [wvCapsuleS2ExtraUnits, setWvCapsuleS2ExtraUnits] = useState<string>(PREFILL_METHOD_FIELDS.wvCapsuleS2ExtraUnits);
-  const [wvCapsuleS2MaxOutside, setWvCapsuleS2MaxOutside] = useState<string>(PREFILL_METHOD_FIELDS.wvCapsuleS2MaxOutside);
-
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogError, setDialogError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
-  const [editingId, setEditingId] = useState<number | null>(null);
-  const [editingSectionId, setEditingSectionId] = useState<number | null>(null);
-  const [editingTest, setEditingTest] = useState<TestDefinitionOption | null>(null);
   const [allMySections, setMySections] = useState<LaboratorySection[]>([]);
   const mySections = allMySections.filter((s) => sectionsState === "loaded" && inLab(s.sectionId));
   const [message, setMessage] = useState<{ text: string; ok: boolean } | null>(null);
-  // Code of the test the open Add dialog was copied from (null for a plain add or an edit).
-  const [duplicateOfCode, setDuplicateOfCode] = useState<string | null>(null);
   // The test whose details dialog is open lives in the URL (?test=<id>), so the
   // address can be bookmarked or shared and survives a reload.
   const [searchParams, setSearchParams] = useSearchParams();
@@ -266,548 +145,104 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
   }, [listsLoaded, testParam, testParamMatches, setSearchParams]);
 
   const openCreateDialog = () => {
-    setDuplicateOfCode(null);
-    setEditingId(null);
-    setEditingTest(null);
-    setCode("");
-    setDisplayName("");
-    setCoaDisplayOrder("");
-    setSectionId(mySections.length === 1 ? mySections[0].sectionId : "");
-    setEditingSectionId(null);
-    setWorkflowType(defaultWorkflowType);
-    setEquationType(isFp ? (defaultWorkflowType === "HplcMethodAssay" ? "HplcMethodAssay" : "None") : "None");
-    setRequiresSystemSuitability(false);
-    setMethodAbbreviation("");
-    setHplcMethodId("");
-    setIcp(createInitialIcpForm());
-    setReplicateCount("1");
-    setEvaluationBasis("Mean");
-    setConditionFields("");
-    setUsesTare(false);
-    setPerContainer(false);
-    setMoistureRole("None");
-    setTitration(createInitialTitrationForm());
-    setDissolutionS1Offset(PREFILL_METHOD_FIELDS.dissolutionS1Offset);
-    setDissolutionS2MinOffset(PREFILL_METHOD_FIELDS.dissolutionS2MinOffset);
-    setDissolutionS3MinOffset(PREFILL_METHOD_FIELDS.dissolutionS3MinOffset);
-    setDissolutionS3MaxBelowS2Min(PREFILL_METHOD_FIELDS.dissolutionS3MaxBelowS2Min);
-    setDisintegrationStage1Units(PREFILL_METHOD_FIELDS.disintegrationStage1Units);
-    setDisintegrationStage2Units(PREFILL_METHOD_FIELDS.disintegrationStage2Units);
-    setDisintegrationMaxStage1Failures(PREFILL_METHOD_FIELDS.disintegrationMaxStage1Failures);
-    setDisintegrationMinPassTotal(PREFILL_METHOD_FIELDS.disintegrationMinPassTotal);
-    setWvUnitCount(PREFILL_METHOD_FIELDS.wvUnitCount);
-    setWvTabletBand1MaxMg(PREFILL_METHOD_FIELDS.wvTabletBand1MaxMg);
-    setWvTabletBand1Percent(PREFILL_METHOD_FIELDS.wvTabletBand1Percent);
-    setWvTabletBand2MaxMg(PREFILL_METHOD_FIELDS.wvTabletBand2MaxMg);
-    setWvTabletBand2Percent(PREFILL_METHOD_FIELDS.wvTabletBand2Percent);
-    setWvTabletBand3Percent(PREFILL_METHOD_FIELDS.wvTabletBand3Percent);
-    setWvTabletMaxOutside(PREFILL_METHOD_FIELDS.wvTabletMaxOutside);
-    setWvCapsuleInnerPercent(PREFILL_METHOD_FIELDS.wvCapsuleInnerPercent);
-    setWvCapsuleOuterPercent(PREFILL_METHOD_FIELDS.wvCapsuleOuterPercent);
-    setWvCapsuleS1MaxOutside(PREFILL_METHOD_FIELDS.wvCapsuleS1MaxOutside);
-    setWvCapsuleS1MaxForRetest(PREFILL_METHOD_FIELDS.wvCapsuleS1MaxForRetest);
-    setWvCapsuleS2ExtraUnits(PREFILL_METHOD_FIELDS.wvCapsuleS2ExtraUnits);
-    setWvCapsuleS2MaxOutside(PREFILL_METHOD_FIELDS.wvCapsuleS2MaxOutside);
-    setUvCalculationMode("");
-    setUvSpecificAbsorbance("");
-    setUvTotalVolumeMl("");
-    setUvStandardVolumeMl("");
-    setUvStandardEntryId("");
-    setPhyschemArea(area ? defaultAreaFor(area) : null);
-    setChangeReason("");
-    setChangeReasonError(null);
-    setDialogError(null);
-    setDialogOpen(true);
-  };
-
-  // Fills every form field from a saved test. Shared by Edit and Duplicate so the
-  // two cannot drift apart; the callers decide what else to set.
-  const fillFormFromTest = (t: TestDefinitionOption) => {
-    setCode(t.code);
-    setDisplayName(t.displayName);
-    setCoaDisplayOrder(t.coaDisplayOrder != null ? String(t.coaDisplayOrder) : "");
-    setSectionId(t.sectionId ?? (mySections.length === 1 ? mySections[0].sectionId : ""));
-    setWorkflowType(t.workflowType || defaultWorkflowType);
-    setEquationType(t.equationType || (t.workflowType === "HplcMethodAssay" ? "HplcMethodAssay" : t.workflowType === "IcpMethodAssay" ? "IcpMethodAssay" : t.workflowType === "Measurement" ? "Measurement" : t.workflowType === "Gravimetric" ? "GravimetricLoss" : t.workflowType === "Qualitative" ? "Qualitative" : t.workflowType === "Dissolution" ? "Dissolution" : t.workflowType === "Disintegration" ? "Disintegration" : t.workflowType === "WeightVariation" ? "WeightVariation" : t.workflowType === "Titration" ? "Titration" : t.workflowType === "UvSpectrophotometry" ? "UvSpectrophotometry" : "None"));
-    setRequiresSystemSuitability((t.workflowType === "Dissolution" || t.workflowType === "HplcMethodAssay") ? true : (t.workflowType === "Disintegration" || t.workflowType === "WeightVariation" || t.workflowType === "IcpMethodAssay" || t.workflowType === "UvSpectrophotometry") ? false : !!t.requiresSystemSuitability);
-    setMethodAbbreviation(t.methodAbbreviation ?? "");
-    setHplcMethodId(t.hplcMethodId ?? "");
-    setIcp(icpFormFromDefinition(t));
-    setReplicateCount(t.replicateCount != null ? String(t.replicateCount) : "1");
-    setEvaluationBasis(t.evaluationBasis || "Mean");
-    setConditionFields(t.conditionFields || "");
-    setUsesTare(!!t.usesTare);
-    setPerContainer(!!t.perContainer);
-    setMoistureRole(t.moistureRole ?? "None");
-    setTitration(titrationFormFromDefinition(t));
-    setUvCalculationMode(t.uvCalculationMode ?? "");
-    setUvSpecificAbsorbance(t.uvSpecificAbsorbance != null ? String(t.uvSpecificAbsorbance) : "");
-    setUvTotalVolumeMl(t.uvTotalVolumeMl != null ? String(t.uvTotalVolumeMl) : "");
-    setUvStandardVolumeMl(t.uvStandardVolumeMl != null ? String(t.uvStandardVolumeMl) : "");
-    setUvStandardEntryId(t.uvStandardEntryId ?? "");
-    setDissolutionS1Offset(t.dissolutionS1Offset != null ? String(t.dissolutionS1Offset) : PREFILL_METHOD_FIELDS.dissolutionS1Offset);
-    setDissolutionS2MinOffset(t.dissolutionS2MinOffset != null ? String(t.dissolutionS2MinOffset) : PREFILL_METHOD_FIELDS.dissolutionS2MinOffset);
-    setDissolutionS3MinOffset(t.dissolutionS3MinOffset != null ? String(t.dissolutionS3MinOffset) : PREFILL_METHOD_FIELDS.dissolutionS3MinOffset);
-    setDissolutionS3MaxBelowS2Min(t.dissolutionS3MaxBelowS2Min != null ? String(t.dissolutionS3MaxBelowS2Min) : PREFILL_METHOD_FIELDS.dissolutionS3MaxBelowS2Min);
-    setDisintegrationStage1Units(t.disintegrationStage1Units != null ? String(t.disintegrationStage1Units) : PREFILL_METHOD_FIELDS.disintegrationStage1Units);
-    setDisintegrationStage2Units(t.disintegrationStage2Units != null ? String(t.disintegrationStage2Units) : PREFILL_METHOD_FIELDS.disintegrationStage2Units);
-    setDisintegrationMaxStage1Failures(t.disintegrationMaxStage1Failures != null ? String(t.disintegrationMaxStage1Failures) : PREFILL_METHOD_FIELDS.disintegrationMaxStage1Failures);
-    setDisintegrationMinPassTotal(t.disintegrationMinPassTotal != null ? String(t.disintegrationMinPassTotal) : PREFILL_METHOD_FIELDS.disintegrationMinPassTotal);
-    setWvUnitCount(t.wvUnitCount != null ? String(t.wvUnitCount) : PREFILL_METHOD_FIELDS.wvUnitCount);
-    setWvTabletBand1MaxMg(t.wvTabletBand1MaxMg != null ? String(t.wvTabletBand1MaxMg) : PREFILL_METHOD_FIELDS.wvTabletBand1MaxMg);
-    setWvTabletBand1Percent(t.wvTabletBand1Percent != null ? String(t.wvTabletBand1Percent) : PREFILL_METHOD_FIELDS.wvTabletBand1Percent);
-    setWvTabletBand2MaxMg(t.wvTabletBand2MaxMg != null ? String(t.wvTabletBand2MaxMg) : PREFILL_METHOD_FIELDS.wvTabletBand2MaxMg);
-    setWvTabletBand2Percent(t.wvTabletBand2Percent != null ? String(t.wvTabletBand2Percent) : PREFILL_METHOD_FIELDS.wvTabletBand2Percent);
-    setWvTabletBand3Percent(t.wvTabletBand3Percent != null ? String(t.wvTabletBand3Percent) : PREFILL_METHOD_FIELDS.wvTabletBand3Percent);
-    setWvTabletMaxOutside(t.wvTabletMaxOutside != null ? String(t.wvTabletMaxOutside) : PREFILL_METHOD_FIELDS.wvTabletMaxOutside);
-    setWvCapsuleInnerPercent(t.wvCapsuleInnerPercent != null ? String(t.wvCapsuleInnerPercent) : PREFILL_METHOD_FIELDS.wvCapsuleInnerPercent);
-    setWvCapsuleOuterPercent(t.wvCapsuleOuterPercent != null ? String(t.wvCapsuleOuterPercent) : PREFILL_METHOD_FIELDS.wvCapsuleOuterPercent);
-    setWvCapsuleS1MaxOutside(t.wvCapsuleS1MaxOutside != null ? String(t.wvCapsuleS1MaxOutside) : PREFILL_METHOD_FIELDS.wvCapsuleS1MaxOutside);
-    setWvCapsuleS1MaxForRetest(t.wvCapsuleS1MaxForRetest != null ? String(t.wvCapsuleS1MaxForRetest) : PREFILL_METHOD_FIELDS.wvCapsuleS1MaxForRetest);
-    setWvCapsuleS2ExtraUnits(t.wvCapsuleS2ExtraUnits != null ? String(t.wvCapsuleS2ExtraUnits) : PREFILL_METHOD_FIELDS.wvCapsuleS2ExtraUnits);
-    setWvCapsuleS2MaxOutside(t.wvCapsuleS2MaxOutside != null ? String(t.wvCapsuleS2MaxOutside) : PREFILL_METHOD_FIELDS.wvCapsuleS2MaxOutside);
-    setPhyschemArea(t.physchemArea ?? (area ? defaultAreaFor(area) : null));
-    setChangeReason("");
+    setForm(
+      createEmptyTestFormModel({
+        lab,
+        area,
+        sectionId: mySections.length === 1 ? mySections[0].sectionId : ""
+      })
+    );
     setChangeReasonError(null);
     setDialogError(null);
     setDialogOpen(true);
   };
 
   const startEdit = (t: TestDefinitionOption) => {
-    setEditingId(t.id);
-    setEditingTest(t);
-    setEditingSectionId(t.sectionId ?? null);
-    setDuplicateOfCode(null);
-    fillFormFromTest(t);
+    setForm(
+      fromTestDefinition(t, {
+        lab,
+        area,
+        defaultSectionId: mySections.length === 1 ? mySections[0].sectionId : ""
+      })
+    );
+    setChangeReasonError(null);
+    setDialogError(null);
+    setDialogOpen(true);
   };
 
   // Opens the ADD dialog prefilled from an existing test. Nothing is saved until
   // the user presses "Add Test", so the server validates it like any new test.
   const startDuplicate = (t: TestDefinitionOption) => {
-    setEditingId(null);
-    setEditingTest(null);
-    setEditingSectionId(null);
-    setDuplicateOfCode(t.code);
-    fillFormFromTest(t);
-    setCode("");
-    setDisplayName(`${t.displayName} (copy)`);
-    setCoaDisplayOrder("");
-    // A section the user cannot work in is not offered by the picker.
-    if (t.sectionId == null || !mySections.some((s) => s.sectionId === t.sectionId)) {
-      setSectionId(mySections.length === 1 ? mySections[0].sectionId : "");
-    }
-    // The copy gets its own elements; keeping the source ids would point it at the original's.
-    setIcp((form) => ({ ...form, elements: form.elements.map((e) => ({ ...e, id: undefined })) }));
+    const base = fromTestDefinition(t, {
+      lab,
+      area,
+      defaultSectionId: mySections.length === 1 ? mySections[0].sectionId : ""
+    });
+    const canUseSourceSection = t.sectionId != null && mySections.some((s) => s.sectionId === t.sectionId);
+    setForm({
+      ...base,
+      editingId: null,
+      editingTest: null,
+      editingSectionId: null,
+      duplicateOfCode: t.code,
+      code: "",
+      displayName: `${t.displayName} (copy)`,
+      coaDisplayOrder: "",
+      sectionId: canUseSourceSection ? base.sectionId : (mySections.length === 1 ? mySections[0].sectionId : ""),
+      // The copy gets its own elements; keeping the source ids would point it at the original's.
+      icp: { ...base.icp, elements: base.icp.elements.map((e) => ({ ...e, id: undefined })) }
+    });
+    setChangeReasonError(null);
+    setDialogError(null);
+    setDialogOpen(true);
   };
 
   const closeDialog = () => {
-    setDuplicateOfCode(null);
     setDialogOpen(false);
-    setEditingId(null);
-    setEditingTest(null);
-    setPhyschemArea(null);
-    setChangeReason("");
+    patchForm({
+      duplicateOfCode: null,
+      editingId: null,
+      editingTest: null,
+      physchemArea: null,
+      changeReason: ""
+    });
     setChangeReasonError(null);
     setDialogError(null);
   };
 
   const save = async () => {
     setDialogError(null);
+    setChangeReasonError(null);
     setMessage(null);
 
-    const trimmedCode = code.trim();
-    const trimmedDisplayName = displayName.trim();
-
-    if (!trimmedCode || !trimmedDisplayName) {
-      setDialogError("Both Code and Display Name are required.");
-      return;
-    }
-    if (sectionId === "") {
-      setDialogError("Laboratory section is required.");
-      return;
-    }
-    const trimmedCoaOrder = coaDisplayOrder.trim();
-    if (trimmedCoaOrder !== "" && !/^[1-9]\d{0,3}$/.test(trimmedCoaOrder)) {
-      setDialogError("CoA order must be a whole number from 1 to 9999, or empty.");
-      return;
-    }
-    const coaOrderValue = trimmedCoaOrder === "" ? null : Number(trimmedCoaOrder);
-
-    const chosenSectionId = Number(sectionId);
-    const isDissolution = workflowType === "Dissolution";
-
-    if (isDissolution) {
-      const trimmedAbbr = methodAbbreviation.trim().toUpperCase();
-      if (!trimmedAbbr) {
-        setDialogError("Method abbreviation is required when system suitability is enabled.");
-        return;
-      }
-      if (!/^[A-Z0-9-]{1,20}$/.test(trimmedAbbr)) {
-        setDialogError("Method abbreviation must be 1-20 uppercase alphanumeric characters or hyphens.");
-        return;
-      }
-    }
-
-    let dissolutionFields: Pick<CreateTestDefinitionPayload, "dissolutionS1Offset" | "dissolutionS2MinOffset" | "dissolutionS3MinOffset" | "dissolutionS3MaxBelowS2Min"> = {};
-    if (isDissolution) {
-      const read = readRequiredNumbers("Dissolution", [
-        ["S1: each unit ≥ Q +", dissolutionS1Offset],
-        ["S2: no unit < Q −", dissolutionS2MinOffset],
-        ["S3: no unit < Q −", dissolutionS3MinOffset],
-        ["S3: max units < Q − S2 value", dissolutionS3MaxBelowS2Min]
-      ]);
-      if ("error" in read) {
-        setDialogError(read.error);
-        return;
-      }
-      const [s1, s2, s3, maxBelow] = read.values;
-
-      if (s1 < 0 || s2 < 0 || s3 < 0 || maxBelow < 0) {
-        setDialogError("Dissolution stage offsets must be greater than or equal to zero.");
-        return;
-      }
-      if (conditionFields.length > 500) {
-        setDialogError("Condition fields cannot exceed 500 characters.");
-        return;
-      }
-      dissolutionFields = {
-        dissolutionS1Offset: s1,
-        dissolutionS2MinOffset: s2,
-        dissolutionS3MinOffset: s3,
-        dissolutionS3MaxBelowS2Min: maxBelow
-      };
-    }
-
-    const isDisintegration = workflowType === "Disintegration";
-    const isWeightVariation = workflowType === "WeightVariation";
-
-    let disintegrationFields: Pick<CreateTestDefinitionPayload, "disintegrationStage1Units" | "disintegrationStage2Units" | "disintegrationMaxStage1Failures" | "disintegrationMinPassTotal"> = {};
-    if (isDisintegration) {
-      const read = readRequiredNumbers("Disintegration", [
-        ["Stage 1 Units", disintegrationStage1Units],
-        ["Stage 2 Units", disintegrationStage2Units],
-        ["Max S1 Failures", disintegrationMaxStage1Failures],
-        ["Min Pass Total", disintegrationMinPassTotal]
-      ]);
-      if ("error" in read) {
-        setDialogError(read.error);
-        return;
-      }
-      const [s1, s2, maxFail, minPass] = read.values;
-
-      if (s1 < 1 || s2 < 1) {
-        setDialogError("Disintegration stage units must be greater than or equal to 1.");
-        return;
-      }
-      if (maxFail < 0 || maxFail >= s1) {
-        setDialogError(`Disintegration maximum Stage 1 failures must be between 0 and ${s1 - 1}.`);
-        return;
-      }
-      if (minPass < 1 || minPass > (s1 + s2)) {
-        setDialogError(`Disintegration minimum pass total must be between 1 and ${s1 + s2}.`);
-        return;
-      }
-      if (conditionFields.length > 500) {
-        setDialogError("Condition fields cannot exceed 500 characters.");
-        return;
-      }
-      disintegrationFields = {
-        disintegrationStage1Units: s1,
-        disintegrationStage2Units: s2,
-        disintegrationMaxStage1Failures: maxFail,
-        disintegrationMinPassTotal: minPass
-      };
-    }
-
-    let weightVariationFields: Pick<CreateTestDefinitionPayload, "wvUnitCount" | "wvTabletBand1MaxMg" | "wvTabletBand1Percent" | "wvTabletBand2MaxMg" | "wvTabletBand2Percent" | "wvTabletBand3Percent" | "wvTabletMaxOutside" | "wvCapsuleInnerPercent" | "wvCapsuleOuterPercent" | "wvCapsuleS1MaxOutside" | "wvCapsuleS1MaxForRetest" | "wvCapsuleS2ExtraUnits" | "wvCapsuleS2MaxOutside"> = {};
-    if (isWeightVariation) {
-      const read = readRequiredNumbers("Weight variation", [
-        ["Unit Count (Stage 1)", wvUnitCount],
-        ["Band 1 Max (mg)", wvTabletBand1MaxMg],
-        ["Band 1 Deviation (%)", wvTabletBand1Percent],
-        ["Band 2 Max (mg)", wvTabletBand2MaxMg],
-        ["Band 2 Deviation (%)", wvTabletBand2Percent],
-        ["Band 3 Deviation (%)", wvTabletBand3Percent],
-        ["Max Outside Count", wvTabletMaxOutside],
-        ["Inner Limit (%)", wvCapsuleInnerPercent],
-        ["Outer Limit (%)", wvCapsuleOuterPercent],
-        ["Stage 1 Max Outside", wvCapsuleS1MaxOutside],
-        ["Stage 1 Max For Retest", wvCapsuleS1MaxForRetest],
-        ["Stage 2 Extra Units", wvCapsuleS2ExtraUnits],
-        ["Stage 2 Max Outside", wvCapsuleS2MaxOutside]
-      ]);
-      if ("error" in read) {
-        setDialogError(read.error);
-        return;
-      }
-      const [uCount, b1Mg, b1Pct, b2Mg, b2Pct, b3Pct, tabMaxOut, capInner, capOuter, capS1Out, capS1Retest, capS2Extra, capS2Out] = read.values;
-
-      if (uCount < 1 || capS2Extra < 1) {
-        setDialogError("Weight variation unit count and extra units must be greater than or equal to 1.");
-        return;
-      }
-      if (tabMaxOut < 0 || capS1Out < 0 || capS2Out < 0) {
-        setDialogError("Weight variation maximum outside counts must be greater than or equal to 0.");
-        return;
-      }
-      if (b1Mg <= 0 || b2Mg <= 0) {
-        setDialogError("Weight variation tablet band weight limits must be greater than zero.");
-        return;
-      }
-      if (b1Pct <= 0 || b2Pct <= 0 || b3Pct <= 0 || capInner <= 0 || capOuter <= 0) {
-        setDialogError("Weight variation percentages must be greater than zero.");
-        return;
-      }
-      if (b1Mg >= b2Mg) {
-        setDialogError("Weight variation Tablet Band 1 Max Mg must be less than Band 2 Max Mg.");
-        return;
-      }
-      if (capInner >= capOuter) {
-        setDialogError("Weight variation capsule inner percentage must be less than outer percentage.");
-        return;
-      }
-      if (capS1Out >= capS1Retest || capS1Retest > uCount) {
-        setDialogError("Weight variation capsule Stage 1 max outside must be less than Stage 1 max for retest, which must be less than or equal to unit count.");
-        return;
-      }
-      if (capS2Out >= uCount + capS2Extra) {
-        setDialogError(`Weight variation capsule Stage 2 max outside must be less than total units (${uCount + capS2Extra}).`);
-        return;
-      }
-      if (conditionFields.length > 500) {
-        setDialogError("Condition fields cannot exceed 500 characters.");
-        return;
-      }
-      weightVariationFields = {
-        wvUnitCount: uCount,
-        wvTabletBand1MaxMg: b1Mg,
-        wvTabletBand1Percent: b1Pct,
-        wvTabletBand2MaxMg: b2Mg,
-        wvTabletBand2Percent: b2Pct,
-        wvTabletBand3Percent: b3Pct,
-        wvTabletMaxOutside: tabMaxOut,
-        wvCapsuleInnerPercent: capInner,
-        wvCapsuleOuterPercent: capOuter,
-        wvCapsuleS1MaxOutside: capS1Out,
-        wvCapsuleS1MaxForRetest: capS1Retest,
-        wvCapsuleS2ExtraUnits: capS2Extra,
-        wvCapsuleS2MaxOutside: capS2Out
-      };
-    }
-
-    const isMeasurement = workflowType === "Measurement";
-    const isGravimetric = workflowType === "Gravimetric";
-    const isQualitative = workflowType === "Qualitative";
-    const isHplcMethodAssay = workflowType === "HplcMethodAssay";
-    const isIcpMethodAssay = workflowType === "IcpMethodAssay";
-    const isTitration = workflowType === "Titration";
-    const isUv = workflowType === "UvSpectrophotometry";
-
-    if (isUv) {
-      if (!uvCalculationMode) {
-        setDialogError("A UV test needs a calculation mode.");
-        return;
-      }
-      const rep = Number(replicateCount);
-      if (!rep || rep < 1 || rep > 30) {
-        setDialogError("Replicate count must be between 1 and 30.");
-        return;
-      }
-      if (uvCalculationMode === "SpecificAbsorbanceAssay") {
-        const a1 = Number(uvSpecificAbsorbance);
-        if (!uvSpecificAbsorbance || isNaN(a1) || a1 <= 0) {
-          setDialogError("This UV mode needs a specific absorbance above 0.");
-          return;
+    for (const step of TEST_WIZARD_STEP_ORDER) {
+      const stepErrors = validateStep(step, form);
+      const entries = Object.entries(stepErrors);
+      if (entries.length > 0) {
+        const [field, msg] = entries[0];
+        if (field === "changeReason") {
+          setChangeReasonError(msg);
+        } else {
+          setDialogError(msg);
         }
-        const vol = Number(uvTotalVolumeMl);
-        if (!uvTotalVolumeMl || isNaN(vol) || vol <= 0) {
-          setDialogError("This UV mode needs a total volume above 0.");
-          return;
-        }
-      } else if (uvCalculationMode === "SpecificAbsorbanceValue") {
-        const vol = Number(uvTotalVolumeMl);
-        if (!uvTotalVolumeMl || isNaN(vol) || vol <= 0) {
-          setDialogError("This UV mode needs a total volume above 0.");
-          return;
-        }
-      } else if (uvCalculationMode === "StandardComparison") {
-        const vol = Number(uvTotalVolumeMl);
-        if (!uvTotalVolumeMl || isNaN(vol) || vol <= 0) {
-          setDialogError("This UV mode needs a total volume above 0.");
-          return;
-        }
-        const stdVol = Number(uvStandardVolumeMl);
-        if (!uvStandardVolumeMl || isNaN(stdVol) || stdVol <= 0) {
-          setDialogError("A UV test against a standard needs a standard volume above 0.");
-          return;
-        }
-        if (uvStandardEntryId === "") {
-          setDialogError("The standard material is required for an assay against standard.");
-          return;
-        }
-      }
-    }
-
-    if (isTitration) {
-      const hint = validateTitrationForm(titration);
-      if (hint) {
-        setDialogError(hint);
         return;
       }
     }
 
-    const reasonCheck = editingId
-      ? titrationChangeReasonCheck(editingTest, titration, workflowType, changeReason, isFp ? physchemArea : null, moistureRole)
-      : { required: false, error: null, payload: null };
-    setChangeReasonError(reasonCheck.error);
-    if (reasonCheck.error) return;
-
-    if (isHplcMethodAssay) {
-      if (!hplcMethodId) {
-        setDialogError("HPLC method is required for HPLC method assay tests.");
-        return;
-      }
-    }
-
-    if (isIcpMethodAssay) {
-      const icpProblem = validateIcpForm(icp);
-      if (icpProblem) {
-        setDialogError(icpProblem);
-        return;
-      }
-    }
-
-    if (isMeasurement) {
-      const rep = Number(replicateCount);
-      if (!rep || rep < 1 || rep > 30) {
-        setDialogError("Replicate count must be between 1 and 30 for Measurement tests.");
-        return;
-      }
-      if (!evaluationBasis) {
-        setDialogError("Evaluation basis is required for Measurement tests.");
-        return;
-      }
-    }
-
-    if (isGravimetric) {
-      const rep = Number(replicateCount);
-      if (!rep || rep < 1 || rep > 30) {
-        setDialogError("Replicate count must be between 1 and 30 for Gravimetric tests.");
-        return;
-      }
-      if (equationType !== "GravimetricLoss" && equationType !== "GravimetricResidue") {
-        setDialogError("Equation type must be GravimetricLoss or GravimetricResidue for Gravimetric tests.");
-        return;
-      }
-      if (conditionFields.length > 500) {
-        setDialogError("Condition fields cannot exceed 500 characters.");
-        return;
-      }
-    }
-
-    // Every key is null unless that workflow type is being saved; the values
-    // are the ones validated above, from the user's entry.
-    const methodGroupFields: Pick<CreateTestDefinitionPayload, MethodGroupKey> = {
-      ...NO_METHOD_GROUP_FIELDS,
-      ...dissolutionFields,
-      ...disintegrationFields,
-      ...weightVariationFields
-    };
+    const trimmedCode = form.code.trim();
+    const payload = toTestPayload(form);
 
     setSaving(true);
     let attemptedEdit: { id: number; payload: UpdateTestDefinitionPayload; code: string } | null = null;
     try {
-      const resolvedEquationType = isHplcMethodAssay
-        ? "HplcMethodAssay"
-        : isIcpMethodAssay
-        ? "IcpMethodAssay"
-        : isMeasurement
-        ? "Measurement"
-        : isGravimetric
-        ? equationType
-        : isQualitative
-        ? "Qualitative"
-        : isDissolution
-        ? "Dissolution"
-        : isDisintegration
-        ? "Disintegration"
-        : isWeightVariation
-        ? "WeightVariation"
-        : isTitration
-        ? "Titration"
-        : isUv
-        ? "UvSpectrophotometry"
-        : "None";
-
-      if (editingId) {
-        const payload: UpdateTestDefinitionPayload = {
-          // 0 clears a previously set order on the server.
-          coaDisplayOrder: coaOrderValue ?? 0,
-          code: trimmedCode,
-          displayName: trimmedDisplayName,
-          sectionId: chosenSectionId,
-          workflowType,
-          equationType: resolvedEquationType,
-          requiresSystemSuitability: (isDissolution || isHplcMethodAssay) ? true : false,
-          methodAbbreviation: isDissolution || isHplcMethodAssay || isIcpMethodAssay ? methodAbbreviation.trim().toUpperCase() : null,
-          replicateCount: isTitration ? Number(titration.replicateCount) : (isMeasurement || isGravimetric || isUv) ? Number(replicateCount) : null,
-          evaluationBasis: isMeasurement ? evaluationBasis : null,
-          conditionFields: (isGravimetric || isDissolution || isDisintegration || isWeightVariation) ? (conditionFields.trim() || null) : null,
-          usesTare: isGravimetric ? usesTare : null,
-          ...methodGroupFields,
-          ...titrationPayloadFields(titration, isTitration),
-          physchemArea: isFp ? physchemArea ?? defaultAreaFor(area ?? "fp") : null,
-          changeReason: reasonCheck.payload,
-          perContainer: isQualitative ? perContainer : false,
-          moistureRole: (isGravimetric && equationType === "GravimetricLoss")
-            ? (moistureRole === "LossOnDrying" ? "LossOnDrying" : "None")
-            : (isTitration && titration.type === "KarlFischer")
-            ? (moistureRole === "Water" ? "Water" : "None")
-            : "None",
-          hplcMethodId: (isHplcMethodAssay || workflowType === "Dissolution") && hplcMethodId !== "" ? Number(hplcMethodId) : null,
-          ...(isIcpMethodAssay ? icpPayloadFields(icp) : {}),
-          uvCalculationMode: isUv && uvCalculationMode ? uvCalculationMode : null,
-          uvSpecificAbsorbance: isUv && uvCalculationMode === "SpecificAbsorbanceAssay" && uvSpecificAbsorbance !== "" ? Number(uvSpecificAbsorbance) : null,
-          uvTotalVolumeMl: isUv && uvCalculationMode !== "AbsorbanceLimit" && uvTotalVolumeMl !== "" ? Number(uvTotalVolumeMl) : null,
-          uvStandardVolumeMl: isUv && uvCalculationMode === "StandardComparison" && uvStandardVolumeMl !== "" ? Number(uvStandardVolumeMl) : null,
-          uvStandardEntryId: isUv && uvCalculationMode === "StandardComparison" && uvStandardEntryId !== "" ? uvStandardEntryId : null
-        };
-        const currentEdit = { id: editingId, payload, code: trimmedCode };
+      if (form.editingId) {
+        const updatePayload = payload as UpdateTestDefinitionPayload;
+        const currentEdit = { id: form.editingId, payload: updatePayload, code: trimmedCode };
         attemptedEdit = currentEdit;
-        await update(editingId, payload);
+        await update(form.editingId, updatePayload);
         setMessage({ text: `Test "${trimmedCode}" updated.`, ok: true });
       } else {
-        const payload: CreateTestDefinitionPayload = {
-          coaDisplayOrder: coaOrderValue,
-          perContainer: isQualitative ? perContainer : false,
-          moistureRole: (isGravimetric && equationType === "GravimetricLoss")
-            ? (moistureRole === "LossOnDrying" ? "LossOnDrying" : "None")
-            : (isTitration && titration.type === "KarlFischer")
-            ? (moistureRole === "Water" ? "Water" : "None")
-            : "None",
-          code: trimmedCode,
-          displayName: trimmedDisplayName,
-          sectionId: chosenSectionId,
-          workflowType,
-          equationType: resolvedEquationType,
-          requiresSystemSuitability: (isDissolution || isHplcMethodAssay) ? true : false,
-          methodAbbreviation: isDissolution || isHplcMethodAssay || isIcpMethodAssay ? methodAbbreviation.trim().toUpperCase() : null,
-          replicateCount: isTitration ? Number(titration.replicateCount) : (isMeasurement || isGravimetric || isUv) ? Number(replicateCount) : null,
-          evaluationBasis: isMeasurement ? evaluationBasis : null,
-          conditionFields: (isGravimetric || isDissolution || isDisintegration || isWeightVariation) ? (conditionFields.trim() || null) : null,
-          usesTare: isGravimetric ? usesTare : null,
-          ...methodGroupFields,
-          ...titrationPayloadFields(titration, isTitration),
-          physchemArea: isFp ? physchemArea ?? defaultAreaFor(area ?? "fp") : null,
-          hplcMethodId: (isHplcMethodAssay || workflowType === "Dissolution") && hplcMethodId !== "" ? Number(hplcMethodId) : null,
-          ...(isIcpMethodAssay ? icpPayloadFields(icp) : {}),
-          uvCalculationMode: isUv && uvCalculationMode ? uvCalculationMode : null,
-          uvSpecificAbsorbance: isUv && uvCalculationMode === "SpecificAbsorbanceAssay" && uvSpecificAbsorbance !== "" ? Number(uvSpecificAbsorbance) : null,
-          uvTotalVolumeMl: isUv && uvCalculationMode !== "AbsorbanceLimit" && uvTotalVolumeMl !== "" ? Number(uvTotalVolumeMl) : null,
-          uvStandardVolumeMl: isUv && uvCalculationMode === "StandardComparison" && uvStandardVolumeMl !== "" ? Number(uvStandardVolumeMl) : null,
-          uvStandardEntryId: isUv && uvCalculationMode === "StandardComparison" && uvStandardEntryId !== "" ? uvStandardEntryId : null
-        };
-        const created = await addNew(payload);
+        const created = await addNew(payload as CreateTestDefinitionPayload);
         setMessage({ text: `Test "${trimmedCode}" added to the Test Master.`, ok: true });
         // A new microbiology test has no workflow steps yet: open them straight away.
         if (!isFp && created?.id != null) setExpandedId(created.id);
@@ -821,7 +256,7 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
         return;
       }
       const err = e as { response?: { data?: { message?: string } } };
-      setDialogError(err?.response?.data?.message ?? `Could not ${editingId ? "update" : "add"} this test.`);
+      setDialogError(err?.response?.data?.message ?? `Could not ${form.editingId ? "update" : "add"} this test.`);
     } finally {
       setSaving(false);
     }
@@ -956,7 +391,7 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
     : options;
   const detailsTest = expandedId !== null ? options.find((t) => t.id === expandedId) ?? null : null;
 
-  const isDissolutionMethod = workflowType === "Dissolution";
+  const isDissolutionMethod = form.workflowType === "Dissolution";
 
   return (
     <>
@@ -1020,10 +455,10 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
       {/* A form, so Enter in any field saves the test. */}
       <FormDialog
         open={dialogOpen}
-        title={editingId ? "Edit Test" : duplicateOfCode !== null ? `Add Test (copy of ${duplicateOfCode})` : "Add Test"}
+        title={form.editingId ? "Edit Test" : form.duplicateOfCode !== null ? `Add Test (copy of ${form.duplicateOfCode})` : "Add Test"}
         onClose={closeDialog}
         onSubmit={save}
-        submitLabel={editingId ? "Save Changes" : "Add Test"}
+        submitLabel={form.editingId ? "Save Changes" : "Add Test"}
         submitting={saving}
         error={dialogError}
         maxWidth="md"
@@ -1036,8 +471,8 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
               size="small"
               label="Code"
               placeholder="e.g. HPLC_VITC"
-              value={code}
-              onChange={(e) => setCode(e.target.value)}
+              value={form.code}
+              onChange={(e) => patchForm({ code: e.target.value })}
               required
               sx={{ flex: 1, minWidth: 200 }}
             />
@@ -1045,8 +480,8 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
               size="small"
               label="Display Name"
               placeholder="e.g. Vitamin C Assay"
-              value={displayName}
-              onChange={(e) => setDisplayName(e.target.value)}
+              value={form.displayName}
+              onChange={(e) => patchForm({ displayName: e.target.value })}
               required
               sx={{ flex: 1.5, minWidth: 240 }}
             />
@@ -1054,8 +489,8 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
               size="small"
               label="CoA order"
               placeholder="e.g. 1"
-              value={coaDisplayOrder}
-              onChange={(e) => setCoaDisplayOrder(e.target.value)}
+              value={form.coaDisplayOrder}
+              onChange={(e) => patchForm({ coaDisplayOrder: e.target.value })}
               helperText="Position on the Certificate of Analysis within its group"
               slotProps={{ htmlInput: { inputMode: "numeric" } }}
               sx={{ width: 170 }}
@@ -1068,14 +503,14 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
               <Select<number | "">
                 labelId="test-section-select-label"
                 label="Section"
-                value={sectionId}
-                onChange={(e) => setSectionId(e.target.value === "" ? "" : Number(e.target.value))}
+                value={form.sectionId}
+                onChange={(e) => patchForm({ sectionId: e.target.value === "" ? "" : Number(e.target.value) })}
                 inputProps={{ "aria-label": "Section" }}
               >
                 {mySections.length > 1 && <MenuItem value=""><em>Select Section</em></MenuItem>}
-                {editingSectionId !== null && !mySections.some((s) => s.sectionId === editingSectionId) && (
-                  <MenuItem value={editingSectionId}>
-                    {editingTest?.section?.name ?? `Section #${editingSectionId}`} (Current)
+                {form.editingSectionId !== null && !mySections.some((s) => s.sectionId === form.editingSectionId) && (
+                  <MenuItem value={form.editingSectionId}>
+                    {form.editingTest?.section?.name ?? `Section #${form.editingSectionId}`} (Current)
                   </MenuItem>
                 )}
                 {mySections.map((s) => (
@@ -1084,7 +519,7 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
                   </MenuItem>
                 ))}
               </Select>
-              {editingId && editingSectionId !== null && sectionId !== "" && sectionId !== editingSectionId && (
+              {form.editingId && form.editingSectionId !== null && form.sectionId !== "" && form.sectionId !== form.editingSectionId && (
                 <FormHelperText>Existing test orders keep their current section.</FormHelperText>
               )}
             </FormControl>
@@ -1094,72 +529,8 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
               <Select
                 labelId="dialog-workflow-type-label"
                 label="Workflow Type"
-                value={workflowType}
-                onChange={(e) => {
-                  const next = e.target.value;
-                  setWorkflowType(next);
-                  if (next !== "Qualitative") {
-                    setPerContainer(false);
-                  }
-                  if (next === "HplcMethodAssay") {
-                    setEquationType("HplcMethodAssay");
-                    setRequiresSystemSuitability(true);
-                    setMoistureRole("None");
-                  } else if (next === "IcpMethodAssay") {
-                    setEquationType("IcpMethodAssay");
-                    setRequiresSystemSuitability(false);
-                    setMoistureRole("None");
-                  } else if (next === "Measurement") {
-                    setEquationType("Measurement");
-                    setRequiresSystemSuitability(false);
-                    setMoistureRole("None");
-                  } else if (next === "Gravimetric") {
-                    let nextEq = equationType;
-                    if (equationType !== "GravimetricLoss" && equationType !== "GravimetricResidue") {
-                      nextEq = "GravimetricLoss";
-                      setEquationType("GravimetricLoss");
-                    }
-                    if (nextEq !== "GravimetricLoss" && moistureRole === "LossOnDrying") {
-                      setMoistureRole("None");
-                    } else if (moistureRole === "Water") {
-                      setMoistureRole("None");
-                    }
-                    setRequiresSystemSuitability(false);
-                  } else if (next === "Qualitative") {
-                    setEquationType("Qualitative");
-                    setRequiresSystemSuitability(false);
-                    setMoistureRole("None");
-                  } else if (next === "Dissolution") {
-                    setEquationType("Dissolution");
-                    setRequiresSystemSuitability(true);
-                    setMoistureRole("None");
-                  } else if (next === "Disintegration") {
-                    setEquationType("Disintegration");
-                    setRequiresSystemSuitability(false);
-                    setMoistureRole("None");
-                  } else if (next === "WeightVariation") {
-                    setEquationType("WeightVariation");
-                    setRequiresSystemSuitability(false);
-                    setMoistureRole("None");
-                  } else if (next === "Titration") {
-                    setEquationType("Titration");
-                    setRequiresSystemSuitability(false);
-                    if (titration.type !== "KarlFischer" && moistureRole === "Water") {
-                      setMoistureRole("None");
-                    } else if (moistureRole === "LossOnDrying") {
-                      setMoistureRole("None");
-                    }
-                  } else if (next === "UvSpectrophotometry") {
-                    setEquationType("UvSpectrophotometry");
-                    setRequiresSystemSuitability(false);
-                    setMoistureRole("None");
-                    setReplicateCount("1");
-                  } else {
-                    setEquationType("None");
-                    setRequiresSystemSuitability(false);
-                    setMoistureRole("None");
-                  }
-                }}
+                value={form.workflowType}
+                onChange={(e) => setForm((prev) => withWorkflowType(prev, e.target.value))}
               >
                 {workflowTypes.map((w) => (
                   <MenuItem key={w} value={w}>
@@ -1176,75 +547,38 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
               <Select
                 labelId="dialog-equation-type-label"
                 label="Equation Type"
-                value={equationType}
-                onChange={(e) => {
-                  const next = e.target.value;
-                  setEquationType(next);
-                  if (workflowType === "Gravimetric" && next !== "GravimetricLoss" && moistureRole === "LossOnDrying") {
-                    setMoistureRole("None");
-                  }
-                  if (next === "HplcMethodAssay") {
-                    setWorkflowType("HplcMethodAssay");
-                    setRequiresSystemSuitability(true);
-                    setMoistureRole("None");
-                    setPerContainer(false);
-                  } else if (next === "IcpMethodAssay") {
-                    setWorkflowType("IcpMethodAssay");
-                    setRequiresSystemSuitability(false);
-                    setMoistureRole("None");
-                    setPerContainer(false);
-                  } else if (next === "Disintegration") {
-                    setWorkflowType("Disintegration");
-                    setRequiresSystemSuitability(false);
-                    setMoistureRole("None");
-                    setPerContainer(false);
-                  } else if (next === "WeightVariation") {
-                    setWorkflowType("WeightVariation");
-                    setRequiresSystemSuitability(false);
-                    setMoistureRole("None");
-                    setPerContainer(false);
-                  } else if (next === "Dissolution") {
-                    setWorkflowType("Dissolution");
-                    setRequiresSystemSuitability(true);
-                    setMoistureRole("None");
-                    setPerContainer(false);
-                  } else if (next === "UvSpectrophotometry") {
-                    setWorkflowType("UvSpectrophotometry");
-                    setRequiresSystemSuitability(false);
-                    setMoistureRole("None");
-                    setPerContainer(false);
-                  }
-                }}
+                value={form.equationType}
+                onChange={(e) => setForm((prev) => withEquationType(prev, e.target.value))}
               >
                 {EQUATION_TYPES.filter((eq) => {
-                  if (workflowType === "HplcMethodAssay") {
+                  if (form.workflowType === "HplcMethodAssay") {
                     return eq === "HplcMethodAssay";
                   }
-                  if (workflowType === "IcpMethodAssay") {
+                  if (form.workflowType === "IcpMethodAssay") {
                     return eq === "IcpMethodAssay";
                   }
-                  if (workflowType === "Disintegration") {
+                  if (form.workflowType === "Disintegration") {
                     return eq === "Disintegration";
                   }
-                  if (workflowType === "WeightVariation") {
+                  if (form.workflowType === "WeightVariation") {
                     return eq === "WeightVariation";
                   }
-                  if (workflowType === "Titration") {
+                  if (form.workflowType === "Titration") {
                     return eq === "Titration";
                   }
-                  if (workflowType === "UvSpectrophotometry") {
+                  if (form.workflowType === "UvSpectrophotometry") {
                     return eq === "UvSpectrophotometry";
                   }
-                  if (workflowType === "Dissolution") {
+                  if (form.workflowType === "Dissolution") {
                     return eq === "Dissolution";
                   }
-                  if (workflowType === "Measurement") {
+                  if (form.workflowType === "Measurement") {
                     return eq === "Measurement";
                   }
-                  if (workflowType === "Gravimetric") {
+                  if (form.workflowType === "Gravimetric") {
                     return eq === "GravimetricLoss" || eq === "GravimetricResidue";
                   }
-                  if (workflowType === "Qualitative") {
+                  if (form.workflowType === "Qualitative") {
                     return eq === "Qualitative";
                   }
                   return eq !== "Measurement" && eq !== "GravimetricLoss" && eq !== "GravimetricResidue" && eq !== "Qualitative" && eq !== "Dissolution" && eq !== "Disintegration" && eq !== "WeightVariation" && eq !== "Titration" && eq !== "HplcMethodAssay" && eq !== "IcpMethodAssay" && eq !== "UvSpectrophotometry";
@@ -1257,7 +591,7 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
             </FormControl>
           )}
 
-          {(workflowType === "HplcMethodAssay" || workflowType === "Dissolution") && (
+          {(form.workflowType === "HplcMethodAssay" || form.workflowType === "Dissolution") && (
             <Box sx={{ p: 2, bgcolor: "action.hover", borderRadius: 1, border: "1px solid", borderColor: "divider" }}>
               <Typography sx={{ fontWeight: 700, fontSize: 13, mb: 1.5 }}>
                 {isDissolutionMethod ? "HPLC Method (supplies the dissolution standard)" : "HPLC Method Assay Configuration"}
@@ -1268,20 +602,21 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
                   <Select<number | "">
                     labelId="dialog-hplc-method-label"
                     label={isDissolutionMethod ? "HPLC Method" : "HPLC Method *"}
-                    value={hplcMethodId}
+                    value={form.hplcMethodId}
                     onChange={(e) => {
                       const val = e.target.value === "" ? "" : Number(e.target.value);
-                      setHplcMethodId(val);
                       const chosen = hplcMethods.find((m) => m.id === val);
-                      if (chosen && workflowType === "HplcMethodAssay") {
-                        setMethodAbbreviation(chosen.abbreviation);
-                      }
+                      setForm((prev) => ({
+                        ...prev,
+                        hplcMethodId: val,
+                        methodAbbreviation: chosen && prev.workflowType === "HplcMethodAssay" ? chosen.abbreviation : prev.methodAbbreviation,
+                      }));
                     }}
                     inputProps={{ "aria-label": "HPLC Method" }}
                   >
                     <MenuItem value=""><em>Select HPLC Method</em></MenuItem>
                     {hplcMethods
-                      .filter((m) => m.isActive || m.id === hplcMethodId)
+                      .filter((m) => m.isActive || m.id === form.hplcMethodId)
                       .map((m) => (
                         <MenuItem key={m.id} value={m.id}>
                           {m.name} ({m.abbreviation}){!m.isActive ? " (Inactive)" : ""}
@@ -1294,22 +629,24 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
                 <TextField
                   size="small"
                   label="Method Abbreviation"
-                  value={methodAbbreviation}
+                  value={form.methodAbbreviation}
                   slotProps={{
                     input: {
                       readOnly: true,
                     },
                   }}
-                  helperText={workflowType === "Dissolution" ? "Dissolution keeps its own abbreviation." : "Auto-populated from the selected HPLC method (read-only)."}
+                  helperText={form.workflowType === "Dissolution" ? "Dissolution keeps its own abbreviation." : "Auto-populated from the selected HPLC method (read-only)."}
                   fullWidth
                 />
               </Stack>
             </Box>
           )}
 
-          {workflowType === "IcpMethodAssay" && <IcpTestFields form={icp} onChange={setIcp} />}
+          {form.workflowType === "IcpMethodAssay" && (
+            <IcpTestFields form={form.icp} onChange={(nextIcp) => patchForm({ icp: nextIcp })} />
+          )}
 
-          {workflowType === "Measurement" && (
+          {form.workflowType === "Measurement" && (
             <Box sx={{ p: 2, bgcolor: "action.hover", borderRadius: 1, border: "1px solid", borderColor: "divider" }}>
               <Typography sx={{ fontWeight: 700, fontSize: 13, mb: 1.5 }}>
                 Measurement Settings
@@ -1319,8 +656,8 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
                   size="small"
                   type="number"
                   label="Replicate Count *"
-                  value={replicateCount}
-                  onChange={(e) => setReplicateCount(e.target.value)}
+                  value={form.replicateCount}
+                  onChange={(e) => patchForm({ replicateCount: e.target.value })}
                   slotProps={{ htmlInput: { min: 1, max: 30, step: 1 } }}
                   helperText="Replicates per parameter (1–30)"
                   required
@@ -1331,8 +668,8 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
                   <Select
                     labelId="dialog-eval-basis-label"
                     label="Evaluation Basis *"
-                    value={evaluationBasis}
-                    onChange={(e) => setEvaluationBasis(e.target.value as "Mean" | "EachValue" | "Min" | "Max")}
+                    value={form.evaluationBasis}
+                    onChange={(e) => patchForm({ evaluationBasis: e.target.value as "Mean" | "EachValue" | "Min" | "Max" })}
                   >
                     <MenuItem value="Mean">Mean</MenuItem>
                     <MenuItem value="EachValue">Each Value</MenuItem>
@@ -1344,7 +681,7 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
             </Box>
           )}
 
-          {workflowType === "Gravimetric" && (
+          {form.workflowType === "Gravimetric" && (
             <Box sx={{ p: 2, bgcolor: "action.hover", borderRadius: 1, border: "1px solid", borderColor: "divider" }}>
               <Typography sx={{ fontWeight: 700, fontSize: 13, mb: 1.5 }}>
                 Gravimetric Settings
@@ -1355,8 +692,8 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
                     size="small"
                     type="number"
                     label="Replicate Count *"
-                    value={replicateCount}
-                    onChange={(e) => setReplicateCount(e.target.value)}
+                    value={form.replicateCount}
+                    onChange={(e) => patchForm({ replicateCount: e.target.value })}
                     slotProps={{ htmlInput: { min: 1, max: 30, step: 1 } }}
                     helperText="Replicates per parameter (1–30)"
                     required
@@ -1365,8 +702,8 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
                   <FormControlLabel
                     control={
                       <Switch
-                        checked={usesTare}
-                        onChange={(e) => setUsesTare(e.target.checked)}
+                        checked={form.usesTare}
+                        onChange={(e) => patchForm({ usesTare: e.target.checked })}
                       />
                     }
                     label="Uses tare (container weight)"
@@ -1377,20 +714,20 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
                   size="small"
                   label="Condition fields"
                   placeholder="e.g. Temperature (°C),Time (h)"
-                  value={conditionFields}
-                  onChange={(e) => setConditionFields(e.target.value)}
+                  value={form.conditionFields}
+                  onChange={(e) => patchForm({ conditionFields: e.target.value })}
                   helperText="comma-separated, e.g. Temperature (°C),Time (h)"
                   slotProps={{ htmlInput: { maxLength: 500 } }}
                   fullWidth
                 />
-                {equationType === "GravimetricLoss" && (
+                {form.equationType === "GravimetricLoss" && (
                   <FormControl size="small" sx={{ maxWidth: 300 }}>
                     <InputLabel id="gravimetric-moisture-role-label">Moisture role</InputLabel>
                     <Select<MoistureRole>
                       labelId="gravimetric-moisture-role-label"
                       label="Moisture role"
-                      value={moistureRole === "Water" ? "None" : moistureRole}
-                      onChange={(e) => setMoistureRole(e.target.value as MoistureRole)}
+                      value={form.moistureRole === "Water" ? "None" : form.moistureRole}
+                      onChange={(e) => patchForm({ moistureRole: e.target.value as MoistureRole })}
                     >
                       <MenuItem value="None">None</MenuItem>
                       <MenuItem value="LossOnDrying">Loss on drying</MenuItem>
@@ -1401,46 +738,47 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
             </Box>
           )}
 
-          {workflowType === "Titration" && (
+          {form.workflowType === "Titration" && (
             <TitrationConfigSection
-              form={titration}
+              form={form.titration}
               onChange={(nextTitration) => {
-                setTitration(nextTitration);
-                if (nextTitration.type !== "KarlFischer" && moistureRole === "Water") {
-                  setMoistureRole("None");
-                }
+                setForm((prev) => ({
+                  ...prev,
+                  titration: nextTitration,
+                  moistureRole: nextTitration.type !== "KarlFischer" && prev.moistureRole === "Water" ? "None" : prev.moistureRole,
+                }));
               }}
-              sectionId={sectionId}
-              moistureRole={moistureRole}
-              onMoistureRoleChange={setMoistureRole}
+              sectionId={form.sectionId}
+              moistureRole={form.moistureRole}
+              onMoistureRoleChange={(nextRole) => patchForm({ moistureRole: nextRole })}
             />
           )}
 
-          {workflowType === "UvSpectrophotometry" && (
+          {form.workflowType === "UvSpectrophotometry" && (
             <UvTestFields
-              mode={uvCalculationMode}
-              onModeChange={setUvCalculationMode}
-              specificAbsorbance={uvSpecificAbsorbance}
-              onSpecificAbsorbanceChange={setUvSpecificAbsorbance}
-              totalVolumeMl={uvTotalVolumeMl}
-              onTotalVolumeMlChange={setUvTotalVolumeMl}
-              standardVolumeMl={uvStandardVolumeMl}
-              onStandardVolumeMlChange={setUvStandardVolumeMl}
-              standardEntryId={uvStandardEntryId}
-              onStandardEntryIdChange={setUvStandardEntryId}
-              sectionId={sectionId}
-              replicateCount={replicateCount}
-              onReplicateCountChange={setReplicateCount}
+              mode={form.uvCalculationMode}
+              onModeChange={(nextMode) => patchForm({ uvCalculationMode: nextMode })}
+              specificAbsorbance={form.uvSpecificAbsorbance}
+              onSpecificAbsorbanceChange={(nextVal) => patchForm({ uvSpecificAbsorbance: nextVal })}
+              totalVolumeMl={form.uvTotalVolumeMl}
+              onTotalVolumeMlChange={(nextVal) => patchForm({ uvTotalVolumeMl: nextVal })}
+              standardVolumeMl={form.uvStandardVolumeMl}
+              onStandardVolumeMlChange={(nextVal) => patchForm({ uvStandardVolumeMl: nextVal })}
+              standardEntryId={form.uvStandardEntryId}
+              onStandardEntryIdChange={(nextId) => patchForm({ uvStandardEntryId: nextId })}
+              sectionId={form.sectionId}
+              replicateCount={form.replicateCount}
+              onReplicateCountChange={(nextCount) => patchForm({ replicateCount: nextCount })}
             />
           )}
 
-          {isFp && area && <TestAreaField pageArea={area} value={physchemArea} onChange={setPhyschemArea} />}
+          {isFp && area && <TestAreaField pageArea={area} value={form.physchemArea} onChange={(nextArea) => patchForm({ physchemArea: nextArea })} />}
 
-          {editingId && hasTitrationSettingsChanged(editingTest, titration, workflowType, isFp ? physchemArea : null, moistureRole) && (
-            <TitrationChangeReasonField value={changeReason} onChange={setChangeReason} error={changeReasonError} />
+          {form.editingId && hasTitrationSettingsChanged(form.editingTest, form.titration, form.workflowType, isFp ? form.physchemArea : null, form.moistureRole) && (
+            <TitrationChangeReasonField value={form.changeReason} onChange={(nextReason) => patchForm({ changeReason: nextReason })} error={changeReasonError} />
           )}
 
-          {workflowType === "Qualitative" && (
+          {form.workflowType === "Qualitative" && (
             <Box sx={{ p: 2, bgcolor: "action.hover", borderRadius: 1, border: "1px solid", borderColor: "divider" }}>
               <Typography sx={{ fontWeight: 600, fontSize: 13, color: "text.secondary", mb: 1.5 }}>
                 Qualitative test: records compliance observation against specifications directly (no replicates or steps).
@@ -1448,8 +786,8 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
               <FormControlLabel
                 control={
                   <Switch
-                    checked={perContainer}
-                    onChange={(e) => setPerContainer(e.target.checked)}
+                    checked={form.perContainer}
+                    onChange={(e) => patchForm({ perContainer: e.target.checked })}
                   />
                 }
                 label="Recorded per container"
@@ -1457,7 +795,7 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
             </Box>
           )}
 
-          {workflowType === "Dissolution" && (
+          {form.workflowType === "Dissolution" && (
             <Box sx={{ p: 2, bgcolor: "action.hover", borderRadius: 1, border: "1px solid", borderColor: "divider" }}>
               <Typography sx={{ fontWeight: 700, fontSize: 13, mb: 1.5 }}>
                 Dissolution Acceptance Offsets (USP &lt;711&gt; / EP 2.9.3)
@@ -1468,8 +806,8 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
                     size="small"
                     type="number"
                     label="S1: each unit ≥ Q + "
-                    value={dissolutionS1Offset}
-                    onChange={(e) => setDissolutionS1Offset(e.target.value)}
+                    value={form.dissolutionS1Offset}
+                    onChange={(e) => patchForm({ dissolutionS1Offset: e.target.value })}
                     slotProps={{ htmlInput: { min: 0, step: "any" } }}
                     helperText="Default: 5 (%)"
                     sx={{ flex: 1 }}
@@ -1478,8 +816,8 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
                     size="small"
                     type="number"
                     label="S2: no unit < Q − "
-                    value={dissolutionS2MinOffset}
-                    onChange={(e) => setDissolutionS2MinOffset(e.target.value)}
+                    value={form.dissolutionS2MinOffset}
+                    onChange={(e) => patchForm({ dissolutionS2MinOffset: e.target.value })}
                     slotProps={{ htmlInput: { min: 0, step: "any" } }}
                     helperText="Default: 15 (%)"
                     sx={{ flex: 1 }}
@@ -1490,8 +828,8 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
                     size="small"
                     type="number"
                     label="S3: no unit < Q − "
-                    value={dissolutionS3MinOffset}
-                    onChange={(e) => setDissolutionS3MinOffset(e.target.value)}
+                    value={form.dissolutionS3MinOffset}
+                    onChange={(e) => patchForm({ dissolutionS3MinOffset: e.target.value })}
                     slotProps={{ htmlInput: { min: 0, step: "any" } }}
                     helperText="Default: 25 (%)"
                     sx={{ flex: 1 }}
@@ -1500,8 +838,8 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
                     size="small"
                     type="number"
                     label="S3: max units < Q − S2 value"
-                    value={dissolutionS3MaxBelowS2Min}
-                    onChange={(e) => setDissolutionS3MaxBelowS2Min(e.target.value)}
+                    value={form.dissolutionS3MaxBelowS2Min}
+                    onChange={(e) => patchForm({ dissolutionS3MaxBelowS2Min: e.target.value })}
                     slotProps={{ htmlInput: { min: 0, step: 1 } }}
                     helperText="Default: 2 (units)"
                     sx={{ flex: 1 }}
@@ -1511,8 +849,8 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
                   size="small"
                   label="Condition fields"
                   placeholder="Apparatus,RPM,Medium,Temperature (°C),Time (min)"
-                  value={conditionFields}
-                  onChange={(e) => setConditionFields(e.target.value)}
+                  value={form.conditionFields}
+                  onChange={(e) => patchForm({ conditionFields: e.target.value })}
                   helperText="comma-separated, e.g. Apparatus,RPM,Medium,Temperature (°C),Time (min)"
                   slotProps={{ htmlInput: { maxLength: 500 } }}
                   fullWidth
@@ -1521,7 +859,7 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
             </Box>
           )}
 
-          {workflowType === "Disintegration" && (
+          {form.workflowType === "Disintegration" && (
             <Box sx={{ p: 2, bgcolor: "action.hover", borderRadius: 1, border: "1px solid", borderColor: "divider" }}>
               <Typography sx={{ fontWeight: 700, fontSize: 13, mb: 1.5 }}>
                 Disintegration Acceptance (USP &lt;701&gt; / EP 2.9.1)
@@ -1532,8 +870,8 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
                     size="small"
                     type="number"
                     label="Stage 1 Units"
-                    value={disintegrationStage1Units}
-                    onChange={(e) => setDisintegrationStage1Units(e.target.value)}
+                    value={form.disintegrationStage1Units}
+                    onChange={(e) => patchForm({ disintegrationStage1Units: e.target.value })}
                     slotProps={{ htmlInput: { min: 1, step: 1 } }}
                     helperText="Default: 6"
                     sx={{ flex: 1 }}
@@ -1542,8 +880,8 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
                     size="small"
                     type="number"
                     label="Stage 2 Units"
-                    value={disintegrationStage2Units}
-                    onChange={(e) => setDisintegrationStage2Units(e.target.value)}
+                    value={form.disintegrationStage2Units}
+                    onChange={(e) => patchForm({ disintegrationStage2Units: e.target.value })}
                     slotProps={{ htmlInput: { min: 1, step: 1 } }}
                     helperText="Default: 12"
                     sx={{ flex: 1 }}
@@ -1554,8 +892,8 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
                     size="small"
                     type="number"
                     label="Max S1 Failures"
-                    value={disintegrationMaxStage1Failures}
-                    onChange={(e) => setDisintegrationMaxStage1Failures(e.target.value)}
+                    value={form.disintegrationMaxStage1Failures}
+                    onChange={(e) => patchForm({ disintegrationMaxStage1Failures: e.target.value })}
                     slotProps={{ htmlInput: { min: 0, step: 1 } }}
                     helperText="Default: 2 (0..S1-1)"
                     sx={{ flex: 1 }}
@@ -1564,8 +902,8 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
                     size="small"
                     type="number"
                     label="Min Pass Total"
-                    value={disintegrationMinPassTotal}
-                    onChange={(e) => setDisintegrationMinPassTotal(e.target.value)}
+                    value={form.disintegrationMinPassTotal}
+                    onChange={(e) => patchForm({ disintegrationMinPassTotal: e.target.value })}
                     slotProps={{ htmlInput: { min: 1, step: 1 } }}
                     helperText="Default: 16 (1..S1+S2)"
                     sx={{ flex: 1 }}
@@ -1575,8 +913,8 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
                   size="small"
                   label="Condition fields"
                   placeholder="Medium,Temperature (°C),Discs"
-                  value={conditionFields}
-                  onChange={(e) => setConditionFields(e.target.value)}
+                  value={form.conditionFields}
+                  onChange={(e) => patchForm({ conditionFields: e.target.value })}
                   helperText="comma-separated, e.g. Medium,Temperature (°C),Discs"
                   slotProps={{ htmlInput: { maxLength: 500 } }}
                   fullWidth
@@ -1585,7 +923,7 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
             </Box>
           )}
 
-          {workflowType === "WeightVariation" && (
+          {form.workflowType === "WeightVariation" && (
             <Box sx={{ p: 2, bgcolor: "action.hover", borderRadius: 1, border: "1px solid", borderColor: "divider" }}>
               <Typography sx={{ fontWeight: 700, fontSize: 13, mb: 1.5 }}>
                 Weight Variation Acceptance (USP &lt;2091&gt;)
@@ -1595,8 +933,8 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
                   size="small"
                   type="number"
                   label="Unit Count (Stage 1)"
-                  value={wvUnitCount}
-                  onChange={(e) => setWvUnitCount(e.target.value)}
+                  value={form.wvUnitCount}
+                  onChange={(e) => patchForm({ wvUnitCount: e.target.value })}
                   slotProps={{ htmlInput: { min: 1, step: 1 } }}
                   helperText="Default: 20"
                   sx={{ maxWidth: 220 }}
@@ -1613,8 +951,8 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
                         size="small"
                         type="number"
                         label="Band 1 Max (mg)"
-                        value={wvTabletBand1MaxMg}
-                        onChange={(e) => setWvTabletBand1MaxMg(e.target.value)}
+                        value={form.wvTabletBand1MaxMg}
+                        onChange={(e) => patchForm({ wvTabletBand1MaxMg: e.target.value })}
                         slotProps={{ htmlInput: { min: 0.01, step: "any" } }}
                         helperText="Default: 130"
                         sx={{ flex: 1 }}
@@ -1623,8 +961,8 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
                         size="small"
                         type="number"
                         label="Band 1 Deviation (%)"
-                        value={wvTabletBand1Percent}
-                        onChange={(e) => setWvTabletBand1Percent(e.target.value)}
+                        value={form.wvTabletBand1Percent}
+                        onChange={(e) => patchForm({ wvTabletBand1Percent: e.target.value })}
                         slotProps={{ htmlInput: { min: 0.01, step: "any" } }}
                         helperText="Default: 10"
                         sx={{ flex: 1 }}
@@ -1635,8 +973,8 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
                         size="small"
                         type="number"
                         label="Band 2 Max (mg)"
-                        value={wvTabletBand2MaxMg}
-                        onChange={(e) => setWvTabletBand2MaxMg(e.target.value)}
+                        value={form.wvTabletBand2MaxMg}
+                        onChange={(e) => patchForm({ wvTabletBand2MaxMg: e.target.value })}
                         slotProps={{ htmlInput: { min: 0.01, step: "any" } }}
                         helperText="Default: 324"
                         sx={{ flex: 1 }}
@@ -1645,8 +983,8 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
                         size="small"
                         type="number"
                         label="Band 2 Deviation (%)"
-                        value={wvTabletBand2Percent}
-                        onChange={(e) => setWvTabletBand2Percent(e.target.value)}
+                        value={form.wvTabletBand2Percent}
+                        onChange={(e) => patchForm({ wvTabletBand2Percent: e.target.value })}
                         slotProps={{ htmlInput: { min: 0.01, step: "any" } }}
                         helperText="Default: 7.5"
                         sx={{ flex: 1 }}
@@ -1657,8 +995,8 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
                         size="small"
                         type="number"
                         label="Band 3 Deviation (%)"
-                        value={wvTabletBand3Percent}
-                        onChange={(e) => setWvTabletBand3Percent(e.target.value)}
+                        value={form.wvTabletBand3Percent}
+                        onChange={(e) => patchForm({ wvTabletBand3Percent: e.target.value })}
                         slotProps={{ htmlInput: { min: 0.01, step: "any" } }}
                         helperText="Default: 5 (> Band 2)"
                         sx={{ flex: 1 }}
@@ -1667,8 +1005,8 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
                         size="small"
                         type="number"
                         label="Max Outside Count"
-                        value={wvTabletMaxOutside}
-                        onChange={(e) => setWvTabletMaxOutside(e.target.value)}
+                        value={form.wvTabletMaxOutside}
+                        onChange={(e) => patchForm({ wvTabletMaxOutside: e.target.value })}
                         slotProps={{ htmlInput: { min: 0, step: 1 } }}
                         helperText="Default: 2"
                         sx={{ flex: 1 }}
@@ -1688,8 +1026,8 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
                         size="small"
                         type="number"
                         label="Inner Limit (%)"
-                        value={wvCapsuleInnerPercent}
-                        onChange={(e) => setWvCapsuleInnerPercent(e.target.value)}
+                        value={form.wvCapsuleInnerPercent}
+                        onChange={(e) => patchForm({ wvCapsuleInnerPercent: e.target.value })}
                         slotProps={{ htmlInput: { min: 0.01, step: "any" } }}
                         helperText="Default: 10"
                         sx={{ flex: 1 }}
@@ -1698,8 +1036,8 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
                         size="small"
                         type="number"
                         label="Outer Limit (%)"
-                        value={wvCapsuleOuterPercent}
-                        onChange={(e) => setWvCapsuleOuterPercent(e.target.value)}
+                        value={form.wvCapsuleOuterPercent}
+                        onChange={(e) => patchForm({ wvCapsuleOuterPercent: e.target.value })}
                         slotProps={{ htmlInput: { min: 0.01, step: "any" } }}
                         helperText="Default: 25"
                         sx={{ flex: 1 }}
@@ -1710,8 +1048,8 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
                         size="small"
                         type="number"
                         label="Stage 1 Max Outside"
-                        value={wvCapsuleS1MaxOutside}
-                        onChange={(e) => setWvCapsuleS1MaxOutside(e.target.value)}
+                        value={form.wvCapsuleS1MaxOutside}
+                        onChange={(e) => patchForm({ wvCapsuleS1MaxOutside: e.target.value })}
                         slotProps={{ htmlInput: { min: 0, step: 1 } }}
                         helperText="Default: 2 (pass without retest)"
                         sx={{ flex: 1 }}
@@ -1720,8 +1058,8 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
                         size="small"
                         type="number"
                         label="Stage 1 Max For Retest"
-                        value={wvCapsuleS1MaxForRetest}
-                        onChange={(e) => setWvCapsuleS1MaxForRetest(e.target.value)}
+                        value={form.wvCapsuleS1MaxForRetest}
+                        onChange={(e) => patchForm({ wvCapsuleS1MaxForRetest: e.target.value })}
                         slotProps={{ htmlInput: { min: 0, step: 1 } }}
                         helperText="Default: 6 (qualifies for S2)"
                         sx={{ flex: 1 }}
@@ -1732,8 +1070,8 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
                         size="small"
                         type="number"
                         label="Stage 2 Extra Units"
-                        value={wvCapsuleS2ExtraUnits}
-                        onChange={(e) => setWvCapsuleS2ExtraUnits(e.target.value)}
+                        value={form.wvCapsuleS2ExtraUnits}
+                        onChange={(e) => patchForm({ wvCapsuleS2ExtraUnits: e.target.value })}
                         slotProps={{ htmlInput: { min: 1, step: 1 } }}
                         helperText="Default: 40"
                         sx={{ flex: 1 }}
@@ -1742,8 +1080,8 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
                         size="small"
                         type="number"
                         label="Stage 2 Max Outside"
-                        value={wvCapsuleS2MaxOutside}
-                        onChange={(e) => setWvCapsuleS2MaxOutside(e.target.value)}
+                        value={form.wvCapsuleS2MaxOutside}
+                        onChange={(e) => patchForm({ wvCapsuleS2MaxOutside: e.target.value })}
                         slotProps={{ htmlInput: { min: 0, step: 1 } }}
                         helperText="Default: 6 (across S1+S2)"
                         sx={{ flex: 1 }}
@@ -1756,8 +1094,8 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
                   size="small"
                   label="Condition fields"
                   placeholder="Balance ID,Temperature (°C)"
-                  value={conditionFields}
-                  onChange={(e) => setConditionFields(e.target.value)}
+                  value={form.conditionFields}
+                  onChange={(e) => patchForm({ conditionFields: e.target.value })}
                   helperText="comma-separated, e.g. Balance ID,Temperature (°C)"
                   slotProps={{ htmlInput: { maxLength: 500 } }}
                   fullWidth
@@ -1766,10 +1104,10 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
             </Box>
           )}
 
-          {workflowType === "Dissolution" && (
+          {form.workflowType === "Dissolution" && (
             <Box sx={{ p: 2, bgcolor: "action.hover", borderRadius: 1, border: "1px solid", borderColor: "divider" }}>
               <FormControlLabel
-                control={<Switch checked={requiresSystemSuitability} disabled />}
+                control={<Switch checked={form.requiresSystemSuitability} disabled />}
                 label="Requires system suitability (standard from the assigned HPLC run)"
               />
 
@@ -1778,8 +1116,8 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
                   size="small"
                   label="Method Abbreviation"
                   placeholder="e.g. VIT-C"
-                  value={methodAbbreviation}
-                  onChange={(e) => setMethodAbbreviation(e.target.value.toUpperCase())}
+                  value={form.methodAbbreviation}
+                  onChange={(e) => patchForm({ methodAbbreviation: e.target.value.toUpperCase() })}
                   required
                   fullWidth
                   slotProps={{
@@ -1794,9 +1132,9 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
           )}
 
           {/* Titration and UV use their own replicate count, not replicates per stage. */}
-          {workflowType !== "Titration" && workflowType !== "UvSpectrophotometry" && (isFp || (fpSectionId !== null && (sectionId === fpSectionId || editingTest?.sectionId === fpSectionId))) && (
-            editingId ? (
-              <TestStageReplicatesSection testDefinitionId={editingId} />
+          {form.workflowType !== "Titration" && form.workflowType !== "UvSpectrophotometry" && (isFp || (fpSectionId !== null && (form.sectionId === fpSectionId || form.editingTest?.sectionId === fpSectionId))) && (
+            form.editingId ? (
+              <TestStageReplicatesSection testDefinitionId={form.editingId} />
             ) : (
               <Box sx={{ p: 2, bgcolor: "action.hover", borderRadius: 1, border: "1px solid", borderColor: "divider" }}>
                 <Typography sx={{ fontWeight: 700, fontSize: 13, mb: 0.5 }}>

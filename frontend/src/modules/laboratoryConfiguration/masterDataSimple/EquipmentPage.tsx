@@ -60,6 +60,22 @@ import { getMySections, LaboratorySection } from "../../../services/laboratorySe
 import { clickable } from "../../../utils/clickable";
 import { DateField } from "../../../components/DateField";
 import { EquipmentPasteSection } from "./EquipmentPasteSection";
+import {
+  EquipmentFormModel,
+  createEmptyEquipmentFormModel,
+  firstEquipmentError,
+  fromEquipment,
+  normalizeEquipmentTypeValue,
+  toEquipmentPayload,
+  withEquipmentType
+} from "./equipmentWizard/equipmentFormModel";
+
+interface ApiErrorShape {
+  response?: { data?: { error?: string; message?: string } };
+  message?: string;
+}
+
+const asApiError = (err: unknown): ApiErrorShape => (err ?? {}) as ApiErrorShape;
 
 export const EQUIPMENT_TYPES = [
   { value: "Incubator", label: "Incubator" },
@@ -112,21 +128,7 @@ export const formatEquipmentType = (type: string | number): string => {
   return map[String(type)] || String(type);
 };
 
-export const normalizeEquipmentTypeValue = (type: string | number): string => {
-  const map: Record<string, string> = {
-    "0": "Incubator",
-    "1": "Autoclave",
-    "2": "LafCabinet",
-    "3": "BiologicalSafetyCabinet",
-    "4": "WaterBath",
-    "5": "Other",
-    "6": "Hplc",
-    "7": "PhMeter",
-    "8": "Balance",
-    "9": "IcpOes"
-  };
-  return map[String(type)] || String(type);
-};
+export { normalizeEquipmentTypeValue };
 
 export const formatCdsSoftware = (cds?: string | number | null): string => {
   if (!cds) return "—";
@@ -158,20 +160,8 @@ export function EquipmentPage() {
   // Create / Edit Master Equipment Dialog State
   const [equipmentDialogOpen, setEquipmentDialogOpen] = useState(false);
   const [isEditingEquipment, setIsEditingEquipment] = useState(false);
-  const [equipmentForm, setEquipmentForm] = useState({
-    name: "",
-    code: "",
-    type: "Incubator",
-    location: "",
-    vendor: "",
-    cdsSoftware: "",
-    connectionSettings: "",
-    setPointTemperature: "",
-    calibrationDueDate: "",
-    equipmentInventoryId: null as number | null
-  });
+  const [equipmentForm, setEquipmentForm] = useState<EquipmentFormModel>(createEmptyEquipmentFormModel());
   const [mySections, setMySections] = useState<LaboratorySection[]>([]);
-  const [selectedSectionId, setSelectedSectionId] = useState<number | "">("");
   const [dialogEquipmentError, setDialogEquipmentError] = useState<string | null>(null);
   const [pendingReasonEdit, setPendingReasonEdit] = useState<{
     id: number;
@@ -350,8 +340,8 @@ export function EquipmentPage() {
       await loadData();
       const updatedHistory = await EquipmentConfigurationService.getSetPointHistory(selectedEquipment.id);
       setSetPointHistory(Array.isArray(updatedHistory) ? updatedHistory : []);
-    } catch (err: any) {
-      setDialogError(err?.response?.data?.message ?? err?.message ?? "Could not update set point.");
+    } catch (err: unknown) {
+      setDialogError(asApiError(err).response?.data?.message ?? asApiError(err).message ?? "Could not update set point.");
     } finally {
       setSaving(false);
     }
@@ -411,8 +401,8 @@ export function EquipmentPage() {
       }, programForm.id ? safeAllPrograms.find((p) => p.id === programForm.id)?.version : undefined);
       setProgramDialogOpen(false);
       await loadData();
-    } catch (err: any) {
-      setDialogError(err?.response?.data?.message ?? err?.message ?? "Could not save program.");
+    } catch (err: unknown) {
+      setDialogError(asApiError(err).response?.data?.message ?? asApiError(err).message ?? "Could not save program.");
     } finally {
       setSaving(false);
     }
@@ -425,8 +415,8 @@ export function EquipmentPage() {
       await EquipmentConfigurationService.setAutoclaveProgramStatus(prog.id, newStatus, comment);
       await loadData();
       toast.success(newStatus ? "Program activated" : "Program deactivated");
-    } catch (err: any) {
-      toast.error(err?.response?.data?.message ?? err?.message ?? "Status update failed.");
+    } catch (err: unknown) {
+      toast.error(asApiError(err).response?.data?.message ?? asApiError(err).message ?? "Status update failed.");
     }
   };
 
@@ -464,70 +454,35 @@ export function EquipmentPage() {
     setInventoryDialogOpen(false);
   };
 
-  const handleOpenAddEquipment = async (prefill?: Partial<typeof equipmentForm>) => {
+  const handleOpenAddEquipment = async (prefill?: Partial<EquipmentFormModel>) => {
     setIsEditingEquipment(false);
-    setEquipmentForm({
-      name: "",
-      code: "",
-      type: "Incubator",
-      location: "",
-      vendor: "",
-      cdsSoftware: "",
-      connectionSettings: "",
-      setPointTemperature: "",
-      calibrationDueDate: "",
-      equipmentInventoryId: null,
-      ...prefill
-    });
+    const form = createEmptyEquipmentFormModel(prefill);
     setDialogEquipmentError(null);
     try {
       const secs = await getMySections();
       const validSecs = Array.isArray(secs) ? secs : [];
       setMySections(validSecs);
-      if (validSecs.length === 1) {
-        setSelectedSectionId(validSecs[0].sectionId);
-      } else {
-        setSelectedSectionId("");
-      }
+      form.sectionId = validSecs.length === 1 ? validSecs[0].sectionId : "";
     } catch {
       setMySections([]);
-      setSelectedSectionId("");
+      form.sectionId = "";
     }
+    setEquipmentForm(form);
     setEquipmentDialogOpen(true);
   };
 
   const handleOpenEditEquipment = (eq: ConfiguredEquipmentSummary) => {
     setIsEditingEquipment(true);
-    setEquipmentForm({
-      name: eq.name,
-      code: eq.code,
-      type: normalizeEquipmentTypeValue(eq.type),
-      location: eq.location || eq.inventoryLocation || "",
-      vendor: eq.vendor || eq.manufacturerName || "",
-      cdsSoftware: eq.cdsSoftware ? String(eq.cdsSoftware) : "",
-      connectionSettings: eq.connectionSettings || "",
-      setPointTemperature: eq.setPointTemperature != null ? String(eq.setPointTemperature) : "",
-      calibrationDueDate: eq.calibrationDueDate ? eq.calibrationDueDate.slice(0, 10) : "",
-      equipmentInventoryId: eq.equipmentInventoryId ?? null
-    });
-    setSelectedSectionId(eq.sectionId ?? "");
+    setEquipmentForm(fromEquipment(eq));
     setDialogEquipmentError(null);
     setEquipmentDialogOpen(true);
   };
 
   const handleSaveEquipment = async () => {
-    if (!equipmentForm.name.trim() || !equipmentForm.code.trim() || !equipmentForm.type) {
-      setDialogEquipmentError("Name, Code, and Type are required.");
-      return;
-    }
-
-    if (equipmentForm.type === "Hplc" && !equipmentForm.cdsSoftware) {
-      setDialogEquipmentError("CDS Software is required for HPLC equipment.");
-      return;
-    }
-
-    if (!isEditingEquipment && mySections.length > 1 && !selectedSectionId) {
-      setDialogEquipmentError("Laboratory section is required.");
+    const modelContext = { isEditing: isEditingEquipment, sectionCount: mySections.length };
+    const validationError = firstEquipmentError(equipmentForm, modelContext);
+    if (validationError) {
+      setDialogEquipmentError(validationError);
       return;
     }
 
@@ -535,19 +490,7 @@ export function EquipmentPage() {
     setDialogEquipmentError(null);
     let attemptedEdit: { id: number; payload: UpdateEquipmentRequest; version?: number } | null = null;
     try {
-      const payload: CreateEquipmentRequest | UpdateEquipmentRequest = {
-        name: equipmentForm.name.trim(),
-        code: equipmentForm.code.trim(),
-        type: equipmentForm.type,
-        location: equipmentForm.location.trim() || null,
-        vendor: equipmentForm.vendor.trim() || null,
-        cdsSoftware: equipmentForm.type === "Hplc" && equipmentForm.cdsSoftware ? equipmentForm.cdsSoftware : null,
-        connectionSettings: equipmentForm.connectionSettings.trim() || null,
-        setPointTemperature: equipmentForm.setPointTemperature !== "" ? Number(equipmentForm.setPointTemperature) : null,
-        calibrationDueDate: equipmentForm.calibrationDueDate || null,
-        equipmentInventoryId: equipmentForm.equipmentInventoryId ?? null,
-        ...(!isEditingEquipment && mySections.length > 1 && selectedSectionId !== "" ? { sectionId: Number(selectedSectionId) } : {})
-      };
+      const payload: CreateEquipmentRequest | UpdateEquipmentRequest = toEquipmentPayload(equipmentForm, modelContext);
 
       if (isEditingEquipment && selectedEquipment) {
         attemptedEdit = {
@@ -566,14 +509,14 @@ export function EquipmentPage() {
       }
       setEquipmentDialogOpen(false);
       await loadData();
-    } catch (err: any) {
+    } catch (err: unknown) {
       if (attemptedEdit && isReasonRequiredError(err)) {
         setEquipmentDialogOpen(false);
         setReasonError(null);
         setPendingReasonEdit(attemptedEdit);
         return;
       }
-      setDialogEquipmentError(err?.response?.data?.error ?? err?.response?.data?.message ?? err?.message ?? "Could not save equipment.");
+      setDialogEquipmentError(asApiError(err).response?.data?.error ?? asApiError(err).response?.data?.message ?? asApiError(err).message ?? "Could not save equipment.");
     } finally {
       setSaving(false);
     }
@@ -1318,12 +1261,7 @@ export function EquipmentPage() {
               label="Equipment Type *"
               value={equipmentForm.type}
               onChange={(e) => {
-                const nextType = e.target.value;
-                setEquipmentForm({
-                  ...equipmentForm,
-                  type: nextType,
-                  cdsSoftware: nextType === "Hplc" ? equipmentForm.cdsSoftware : ""
-                });
+                setEquipmentForm(withEquipmentType(equipmentForm, e.target.value));
               }}
             >
               {MICRO_EQUIPMENT_TYPES.map((t) => (
@@ -1373,8 +1311,10 @@ export function EquipmentPage() {
               <Select<number | "">
                 labelId="equipment-section-label"
                 label="Laboratory Section *"
-                value={selectedSectionId}
-                onChange={(e) => setSelectedSectionId(e.target.value === "" ? "" : Number(e.target.value))}
+                value={equipmentForm.sectionId}
+                onChange={(e) =>
+                  setEquipmentForm({ ...equipmentForm, sectionId: e.target.value === "" ? "" : Number(e.target.value) })
+                }
                 inputProps={{ "aria-label": "Laboratory Section", "aria-describedby": hintDescribedBy("equipment-section") }}
               >
                 <MenuItem value="">

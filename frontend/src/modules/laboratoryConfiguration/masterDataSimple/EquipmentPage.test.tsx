@@ -15,7 +15,9 @@ vi.mock("./services/EquipmentConfigurationService", () => ({
     getAutoclavePrograms: vi.fn(),
     getSetPointHistory: vi.fn(),
     createEquipment: vi.fn(),
-    updateEquipment: vi.fn()
+    updateEquipment: vi.fn(),
+    updateSetPoint: vi.fn(),
+    saveAutoclaveProgram: vi.fn()
   }
 }));
 
@@ -265,5 +267,102 @@ describe("EquipmentPage", () => {
     expect(vi.mocked(EquipmentConfigurationService.updateEquipment).mock.calls[1][3]).toBe(
       "Recalibrated thermal probe"
     );
+  });
+
+  it("lists the configured equipment and shows the selected incubator set point", async () => {
+    renderPage();
+
+    expect(await screen.findByRole("button", { name: "Edit Equipment" })).toBeTruthy();
+    expect(screen.getAllByText("Incubator 1").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("INC-01").length).toBeGreaterThan(0);
+    expect(screen.getByText("32.5 °C")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Edit Set Point" })).toBeTruthy();
+  });
+
+  it("changes an incubator set point only with a reason, through updateSetPoint", async () => {
+    vi.mocked(EquipmentConfigurationService.updateSetPoint).mockResolvedValue();
+    const user = userEvent.setup();
+    renderPage();
+
+    await user.click(await screen.findByRole("button", { name: "Edit Set Point" }));
+    const dialog = await screen.findByRole("dialog");
+    const setPoint = within(dialog).getByLabelText(/New Set Point/);
+    await user.clear(setPoint);
+    await user.type(setPoint, "35");
+
+    await user.click(within(dialog).getByRole("button", { name: "Save Changes" }));
+    expect(within(dialog).getByText("Reason for Change is required for audit and ALCOA+ compliance.")).toBeTruthy();
+    expect(EquipmentConfigurationService.updateSetPoint).not.toHaveBeenCalled();
+
+    await user.type(within(dialog).getByRole("textbox", { name: /Reason for Change/ }), "Method update");
+    await user.click(within(dialog).getByRole("button", { name: "Save Changes" }));
+
+    await waitFor(() => {
+      expect(EquipmentConfigurationService.updateSetPoint).toHaveBeenCalledWith(10, {
+        newSetPoint: 35,
+        reason: "Method update"
+      });
+    });
+  });
+
+  it("adds an autoclave program through saveAutoclaveProgram", async () => {
+    vi.mocked(EquipmentConfigurationService.getConfiguredSummary).mockResolvedValue([
+      {
+        id: 20,
+        version: 1,
+        name: "Autoclave 1",
+        code: "AC-01",
+        type: "Autoclave",
+        location: "Media prep",
+        setPointTemperature: null,
+        calibrationDueDate: null,
+        equipmentInventoryId: null,
+        configuredProgramCount: 0,
+        sectionId: 1
+      }
+    ]);
+    vi.mocked(EquipmentConfigurationService.getEquipmentList).mockResolvedValue([]);
+    vi.mocked(EquipmentConfigurationService.saveAutoclaveProgram).mockResolvedValue({
+      id: 1,
+      equipmentId: 20,
+      autoclaveCode: "AC-01",
+      autoclaveName: "Autoclave 1",
+      programCode: "P01",
+      programName: "Media",
+      loadType: "Media",
+      temperature: 121,
+      cycleTimeMinutes: 15,
+      isActive: true,
+      createdByUserId: 1,
+      createdAt: "2026-11-01T00:00:00Z",
+      lastModifiedByUserId: 1,
+      lastModifiedAt: "2026-11-01T00:00:00Z"
+    });
+    const user = userEvent.setup();
+    renderPage();
+
+    await user.click(await screen.findByRole("button", { name: "Add Program / Load" }));
+    const dialog = await screen.findByRole("dialog");
+    await user.type(within(dialog).getByLabelText(/Program \/ Load Code/), "P01");
+    await user.type(within(dialog).getByLabelText(/Program \/ Load Name/), "Media");
+    await user.click(within(dialog).getByRole("button", { name: "Save Program" }));
+
+    await waitFor(() => {
+      expect(EquipmentConfigurationService.saveAutoclaveProgram).toHaveBeenCalledWith(
+        20,
+        {
+          id: undefined,
+          equipmentId: 20,
+          programCode: "P01",
+          programName: "Media",
+          loadType: "Media",
+          temperature: 121,
+          cycleTimeMinutes: 15,
+          isActive: true,
+          comment: "Initial program configuration"
+        },
+        undefined
+      );
+    });
   });
 });

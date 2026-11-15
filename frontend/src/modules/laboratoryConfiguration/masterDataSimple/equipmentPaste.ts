@@ -3,7 +3,7 @@ import type { PasteAcceptedRow, PasteColumn, PasteMatchRow, PastePlan } from "..
 import type { LaboratorySection } from "../../../services/laboratorySectionService";
 import type { EquipmentItem } from "../../inventory/equipment/types/equipmentTypes";
 import { EQUIPMENT_TYPES, MICRO_EQUIPMENT_TYPES } from "./EquipmentPage";
-import type { ConfiguredEquipmentSummary, CreateEquipmentRequest } from "./services/EquipmentConfigurationService";
+import type { ConfiguredEquipmentSummary, CreateEquipmentRequest, EquipmentType } from "./services/EquipmentConfigurationService";
 
 export const MAX_EQUIPMENT_BATCH_ROWS = 200;
 
@@ -356,7 +356,7 @@ export function toCreateEquipmentPayload(row: PendingEquipment): CreateEquipment
   const payload: CreateEquipmentRequest = {
     name: row.name,
     code: row.code,
-    type: row.type,
+    type: row.type as EquipmentType,
     location: row.location === "" ? null : row.location,
     setPointTemperature: row.setPointTemperature,
     calibrationDueDate: row.calibrationDueDate === "" ? null : row.calibrationDueDate,

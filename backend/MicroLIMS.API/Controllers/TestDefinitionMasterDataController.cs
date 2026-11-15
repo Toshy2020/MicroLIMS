@@ -54,6 +54,11 @@ public class TestDefinitionMasterDataController : ControllerBase
         Ok(ApiResponse<object>.Ok(await _service.CreateTestDefinitionAsync(CurrentUserId, request)));
 
     [Authorize(Policy = PermissionConstants.MasterDataManage)]
+    [HttpPost("test-definitions/with-steps")]
+    public async Task<IActionResult> CreateTestWithSteps(SaveTestWithStepsRequest request) =>
+        Ok(ApiResponse<object>.Ok(await _service.CreateTestWithStepsAsync(CurrentUserId, request, Ct)));
+
+    [Authorize(Policy = PermissionConstants.MasterDataManage)]
     [HttpPost("test-definitions/validate")]
     public async Task<IActionResult> ValidateTestDefinition(
         ValidateTestDefinitionRequest request,

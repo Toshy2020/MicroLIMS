@@ -4,11 +4,14 @@ import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { TestMasterPage } from "./TestMasterPage";
 import { PinnedLightTheme } from "../../../theme/PinnedLightTheme";
+import { AuthProvider } from "../../../contexts/AuthContext";
+import { resetDraftDb, signInForTest } from "../../../services/drafts/draftTestUtils";
 import * as laboratorySectionService from "../../../services/laboratorySectionService";
 import { masterDataOptions } from "../../../services/masterDataOptions";
+import { masterDataUsageService } from "../../../services/masterDataUsageService";
 import type { TestDefinitionOption } from "../../../hooks/useTestDefinitions";
 
-// "CoA order" on the Test Master dialog: the real page, hook and dialog are
+// "CoA order" on the Test Master wizard: the real page, hook and wizard are
 // mounted; only the HTTP service modules are mocked (CLAUDE.md Rule 4.5).
 
 vi.mock("../../../services/masterDataOptions", async (importOriginal) => {
@@ -19,12 +22,23 @@ vi.mock("../../../services/masterDataOptions", async (importOriginal) => {
       ...actual.masterDataOptions,
       getTestDefinitions: vi.fn(),
       createTestDefinition: vi.fn(),
+      createTestWithSteps: vi.fn(),
       updateTestDefinition: vi.fn(),
+      validateTestDefinition: vi.fn(),
       getTestWorkflowSteps: vi.fn().mockResolvedValue([]),
-      getOrganisms: vi.fn().mockResolvedValue([])
+      getTestDefinitionStageReplicates: vi.fn().mockResolvedValue([]),
+      getOrganisms: vi.fn().mockResolvedValue([]),
+      getMediaIncubationConditions: vi.fn().mockResolvedValue([]),
+      getMediaProducts: vi.fn().mockResolvedValue([])
     }
   };
 });
+
+vi.mock("../../../services/masterDataUsageService", () => ({
+  masterDataUsageService: {
+    getUsage: vi.fn()
+  }
+}));
 
 vi.mock("../../../services/laboratorySectionService", () => ({
   getSections: vi.fn(),
@@ -58,16 +72,29 @@ const salmonella: TestDefinitionOption = {
 function renderPage() {
   return render(
     <PinnedLightTheme>
-      <MemoryRouter>
-        <TestMasterPage lab="micro" />
-      </MemoryRouter>
+      <AuthProvider>
+        <MemoryRouter>
+          <TestMasterPage lab="micro" />
+        </MemoryRouter>
+      </AuthProvider>
     </PinnedLightTheme>
   );
 }
 
+async function advanceWizardAndSave(user: ReturnType<typeof userEvent.setup>, dialog: HTMLElement) {
+  while (within(dialog).queryByRole("button", { name: /^Next$/i })) {
+    await user.click(within(dialog).getByRole("button", { name: /^Next$/i }));
+  }
+  const saveBtn = (await within(dialog).findByRole("button", { name: /^Save$/i })) as HTMLButtonElement;
+  await waitFor(() => expect(saveBtn.disabled).toBe(false));
+  await user.click(saveBtn);
+}
+
 describe("Test Master CoA order", () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks();
+    await resetDraftDb();
+    signInForTest(7);
     vi.mocked(laboratorySectionService.getSections).mockResolvedValue([
       { sectionId: 1, sectionCode: "MICRO", sectionName: "Microbiology" }
     ] as never);
@@ -75,7 +102,18 @@ describe("Test Master CoA order", () => {
       { sectionId: 1, sectionCode: "MICRO", sectionName: "Microbiology" }
     ] as never);
     vi.mocked(masterDataOptions.getTestDefinitions).mockResolvedValue([salmonella]);
+    vi.mocked(masterDataOptions.validateTestDefinition).mockResolvedValue([]);
+    vi.mocked(masterDataOptions.getTestWorkflowSteps).mockResolvedValue([]);
+    vi.mocked(masterDataOptions.getTestDefinitionStageReplicates).mockResolvedValue([]);
+    vi.mocked(masterDataUsageService.getUsage).mockResolvedValue({
+      type: "TestDefinition",
+      id: 7,
+      openWorkCount: 0,
+      historicalCount: 0,
+      lines: []
+    });
     vi.mocked(masterDataOptions.createTestDefinition).mockResolvedValue({ ...salmonella, id: 8 });
+    vi.mocked(masterDataOptions.createTestWithSteps).mockResolvedValue({ ...salmonella, id: 8 });
     vi.mocked(masterDataOptions.updateTestDefinition).mockResolvedValue(salmonella);
   });
 
@@ -84,14 +122,14 @@ describe("Test Master CoA order", () => {
     renderPage();
 
     await user.click(await screen.findByRole("button", { name: /Add Test/i }));
-    const dialog = screen.getByRole("dialog");
-    await user.type(within(dialog).getByLabelText(/^Code/i), "ECOLI");
+    const dialog = await screen.findByRole("dialog");
+    await user.type(await within(dialog).findByLabelText(/^Code/i), "ECOLI");
     await user.type(within(dialog).getByLabelText(/^Display Name/i), "Escherichia coli");
     await user.type(within(dialog).getByLabelText(/^CoA order/i), "2");
-    await user.click(within(dialog).getByRole("button", { name: /^Add Test$/i }));
+    await advanceWizardAndSave(user, dialog);
 
-    await waitFor(() => expect(masterDataOptions.createTestDefinition).toHaveBeenCalledTimes(1));
-    const payload = vi.mocked(masterDataOptions.createTestDefinition).mock.calls[0][0];
+    await waitFor(() => expect(masterDataOptions.createTestWithSteps).toHaveBeenCalledTimes(1));
+    const payload = vi.mocked(masterDataOptions.createTestWithSteps).mock.calls[0][0].test;
     expect(payload).toMatchObject({ code: "ECOLI", coaDisplayOrder: 2 });
   });
 
@@ -101,12 +139,12 @@ describe("Test Master CoA order", () => {
 
     await user.click((await screen.findAllByRole("button", { name: /^Row actions for / }))[0]);
     await user.click(await screen.findByRole("menuitem", { name: "Edit" }));
-    const dialog = screen.getByRole("dialog");
-    const field = within(dialog).getByLabelText(/^CoA order/i) as HTMLInputElement;
+    const dialog = await screen.findByRole("dialog");
+    const field = (await within(dialog).findByLabelText(/^CoA order/i)) as HTMLInputElement;
     expect(field.value).toBe("3");
 
     await user.clear(field);
-    await user.click(within(dialog).getByRole("button", { name: /Save Changes/i }));
+    await advanceWizardAndSave(user, dialog);
 
     await waitFor(() => expect(masterDataOptions.updateTestDefinition).toHaveBeenCalledTimes(1));
     const [id, payload] = vi.mocked(masterDataOptions.updateTestDefinition).mock.calls[0];
@@ -119,13 +157,13 @@ describe("Test Master CoA order", () => {
     renderPage();
 
     await user.click(await screen.findByRole("button", { name: /Add Test/i }));
-    const dialog = screen.getByRole("dialog");
-    await user.type(within(dialog).getByLabelText(/^Code/i), "ECOLI");
+    const dialog = await screen.findByRole("dialog");
+    await user.type(await within(dialog).findByLabelText(/^Code/i), "ECOLI");
     await user.type(within(dialog).getByLabelText(/^Display Name/i), "Escherichia coli");
     await user.type(within(dialog).getByLabelText(/^CoA order/i), "0");
-    await user.click(within(dialog).getByRole("button", { name: /^Add Test$/i }));
+    await user.click(within(dialog).getByRole("button", { name: /^Next$/i }));
 
-    expect(await within(dialog).findByText(/CoA order must be a whole number from 1 to 9999/i)).toBeTruthy();
-    expect(masterDataOptions.createTestDefinition).not.toHaveBeenCalled();
+    expect((await within(dialog).findAllByText(/CoA order must be a whole number from 1 to 9999/i)).length).toBeGreaterThan(0);
+    expect(masterDataOptions.createTestWithSteps).not.toHaveBeenCalled();
   });
 });

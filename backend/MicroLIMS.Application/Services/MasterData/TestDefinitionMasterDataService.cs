@@ -21,17 +21,23 @@ public class TestDefinitionMasterDataService
     private readonly IUserSectionScopeService _scope;
     private readonly IAuditEventService _audit;
     private readonly ChangeReasonGuard _reasonGuard;
+    private readonly TestWorkflowStepMasterDataService _stepService;
+    private readonly TestStageReplicateMasterDataService _stageReplicateService;
 
     public TestDefinitionMasterDataService(
         IMicroLimsDbContext db,
         IUserSectionScopeService scope,
         IAuditEventService audit,
-        ChangeReasonGuard? reasonGuard = null)
+        ChangeReasonGuard? reasonGuard = null,
+        TestWorkflowStepMasterDataService? stepService = null,
+        TestStageReplicateMasterDataService? stageReplicateService = null)
     {
         _db = db;
         _scope = scope;
         _audit = audit;
         _reasonGuard = reasonGuard ?? new ChangeReasonGuard(db, new MasterDataUsageService(db, scope));
+        _stepService = stepService ?? new TestWorkflowStepMasterDataService(db, scope);
+        _stageReplicateService = stageReplicateService ?? new TestStageReplicateMasterDataService(db, scope);
     }
 
     // The canonical Code/DisplayName list backing every TestCode picker
@@ -52,6 +58,70 @@ public class TestDefinitionMasterDataService
         _db.TestDefinitions.Add(entity);
         await _db.SaveChangesAsync();
         return TestDefinitionResponse.From(entity);
+    }
+
+    public async Task<TestDefinitionResponse> CreateTestWithStepsAsync(
+        int currentUserId,
+        SaveTestWithStepsRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        if (request is null || request.Test is null)
+        {
+            throw new FieldValidationException(
+                "Test definition request is required.",
+                new[] { new FieldError("test", "Test definition request is required.") });
+        }
+
+        var stages = request.Stages ?? Array.Empty<CreateTestDefinitionStageReplicateRequest>();
+        var steps = request.Steps ?? Array.Empty<CreateTestWorkflowStepRequest>();
+
+        return await UnitOfWork.RunAsync(_db, async () =>
+        {
+            if (_db.CurrentUserId is null && currentUserId > 0)
+                _db.CurrentUserId = currentUserId;
+
+            cancellationToken.ThrowIfCancellationRequested();
+
+            var created = await CreateTestDefinitionAsync(currentUserId, request.Test);
+
+            for (var i = 0; i < stages.Count; i++)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                var stage = stages[i];
+                try
+                {
+                    await _stageReplicateService.CreateTestDefinitionStageReplicateAsync(currentUserId, created.Id, stage);
+                }
+                catch (BusinessRuleException ex)
+                {
+                    var label = $"Stage {i + 1} ({stage.Role})";
+                    throw new FieldValidationException(
+                        $"{label}: {ex.Message}",
+                        new[] { new FieldError("stages", $"{label}: {ex.Message}", i) });
+                }
+            }
+
+            for (var i = 0; i < steps.Count; i++)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                var step = steps[i];
+                try
+                {
+                    await _stepService.CreateTestWorkflowStepAsync(currentUserId, created.Id, step, cancellationToken);
+                }
+                catch (BusinessRuleException ex)
+                {
+                    var label = string.IsNullOrWhiteSpace(step.StepName)
+                        ? $"Step {i + 1}"
+                        : $"Step {i + 1} (\"{step.StepName}\")";
+                    throw new FieldValidationException(
+                        $"{label}: {ex.Message}",
+                        new[] { new FieldError("steps", $"{label}: {ex.Message}", i) });
+                }
+            }
+
+            return created;
+        });
     }
 
     private async Task<TestDefinition> PrepareCreateTestDefinitionAsync(

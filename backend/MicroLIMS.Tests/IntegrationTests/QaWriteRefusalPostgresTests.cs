@@ -40,14 +40,6 @@ public sealed class QaWriteRefusalPostgresTests
         EndpointPolicyOnly
     }
 
-    // Self-assignment switched on, so the refusal under test is the permission and section check, not the setting.
-    private sealed class SelfAssignmentOn : ISystemSettingsReader
-    {
-        public Task<int> GetIntAsync(string key, CancellationToken cancellationToken = default) => Task.FromResult(0);
-        public Task<bool> GetBoolAsync(string key, CancellationToken cancellationToken = default) => Task.FromResult(true);
-        public Task<string> GetStringAsync(string key, CancellationToken cancellationToken = default) => Task.FromResult(string.Empty);
-    }
-
     private sealed record WriteEndpointDescriptor(
         string PermissionCode,
         Type ControllerType,
@@ -435,7 +427,7 @@ public sealed class QaWriteRefusalPostgresTests
             async (actDb, w) =>
             {
                 var beforeAuditId = await MaxAuditLogIdAsync();
-                var service = new TestSelfAssignmentService(actDb, new UserSectionScopeService(actDb), new SelfAssignmentOn());
+                var service = new TestSelfAssignmentService(actDb, new UserSectionScopeService(actDb));
                 await Assert.ThrowsAsync<UnauthorizedAccessException>(() => service.TakeAsync(w.OrderAId, w.QaUserId));
                 await using var assertDb = _fixture.CreateDbContext();
                 var order = await assertDb.TestOrders.AsNoTracking().SingleAsync(o => o.Id == w.OrderAId);

@@ -227,6 +227,7 @@ public interface IMicroLimsDbContext
     DbSet<DocumentType> DocumentTypes { get; }
     DbSet<DocumentDepartment> DocumentDepartments { get; }
     DbSet<DocumentSection> DocumentSections { get; }
+    DbSet<SectionSelfAssignmentSetting> SectionSelfAssignmentSettings { get; }
     DbSet<UserOrgMembership> UserOrgMemberships { get; }
     DbSet<DocumentNumberingConfiguration> DocumentNumberingConfigurations { get; }
     DbSet<ConfigurationSetting> ConfigurationSettings { get; }

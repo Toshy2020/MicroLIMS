@@ -1,7 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Application.Interfaces;
-using MicroLIMS.Application.Services.SystemSettings;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Shared.Constants;
@@ -16,30 +15,29 @@ public sealed class TestSelfAssignmentService
 {
     private readonly IMicroLimsDbContext _db;
     private readonly IUserSectionScopeService _scope;
-    private readonly ISystemSettingsReader _settings;
     private readonly TimeProvider _time;
 
-    public TestSelfAssignmentService(IMicroLimsDbContext db, IUserSectionScopeService scope, ISystemSettingsReader settings, TimeProvider? time = null)
+    public TestSelfAssignmentService(IMicroLimsDbContext db, IUserSectionScopeService scope, TimeProvider? time = null)
     {
         _db = db;
         _scope = scope;
-        _settings = settings;
         _time = time ?? TimeProvider.System;
     }
 
     public async Task TakeAsync(int testOrderId, int userId, CancellationToken ct = default)
     {
         await EnsurePermissionAsync(userId, ct);
-        if (!await _settings.GetBoolAsync(SystemSettingKeys.SelfAssignmentEnabled, ct))
-            throw new BusinessRuleException("Taking tests is switched off. Ask a Section Head to assign this test.");
 
         var order = await _db.TestOrders.Include(t => t.Sample).SingleOrDefaultAsync(t => t.Id == testOrderId, ct)
             ?? throw new NotFoundException($"Test {testOrderId} not found.");
 
-        // Readable first (a test outside the caller's reach is not theirs to see); membership is checked below.
+        // Readable first (a test outside the caller's reach is not theirs to see); section setting and membership follow.
         var readable = await _scope.GetReadableSectionIdsAsync(userId, ct);
         if (readable is not null && !readable.Contains(order.SectionId))
             throw new UnauthorizedAccessException("This test belongs to a laboratory section you are not assigned to.");
+
+        if (!await SectionSelfAssignmentService.IsEnabledAsync(_db, order.SectionId, ct))
+            throw new BusinessRuleException("Taking tests is switched off in this section. Ask a Section Head to assign this test.");
 
         if (order.AssignedAnalystId is int holderId)
             throw new BusinessRuleException($"Already taken by {await FullNameAsync(holderId, ct)}.");

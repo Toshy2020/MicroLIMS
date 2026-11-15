@@ -10,7 +10,7 @@ namespace MicroLIMS.Application.Services.MyWork.Sources;
 // who may assign puts someone on it). Both list the same kind of test; they differ in who sees it and what the row offers.
 public abstract class UnassignedTestsSourceBase : IMyWorkSource
 {
-    private readonly IMicroLimsDbContext _db;
+    protected readonly IMicroLimsDbContext _db;
 
     protected UnassignedTestsSourceBase(IMicroLimsDbContext db) => _db = db;
 

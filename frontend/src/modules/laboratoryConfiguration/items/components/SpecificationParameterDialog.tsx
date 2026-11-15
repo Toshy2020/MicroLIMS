@@ -39,17 +39,28 @@ import {
   GRADE_SUGGESTIONS,
   RelatedSubstanceRow
 } from "../../specifications/services/SpecificationService";
-import { gradesOf, planGradeWrites, siblingsOf } from "../../specifications/services/gradeGroups";
+import { planGradeWrites, siblingsOf } from "../../specifications/services/gradeGroups";
 import { isReasonRequiredError } from "../../../../services/apiClient";
 import { ChangeReasonDialog } from "../../../../components/config/ChangeReasonDialog";
 import { masterDataOptions } from "../../../../services/masterDataOptions";
-import { TitrationSpecBasisFields, titrationBasisNeedsLabelClaim, validateTitrationSpecBasis } from "./TitrationSpecBasisFields";
+import { TitrationSpecBasisFields } from "./TitrationSpecBasisFields";
 import { ResidualSolventSpecFields } from "./ResidualSolventSpecFields";
 import { IcpSpecFields } from "./IcpSpecFields";
 import { useMyLabs } from "../../../../hooks/useMyLabs";
 import { useLaboratorySections } from "../../../../hooks/useLaboratorySections";
 import { HplcMethodService, HplcMethodAnalyteResponse, HplcMethodImpurityResponse, HplcResultMode } from "../../masterDataSimple/services/HplcMethodService";
 import { PhyschemArea, areaIncludes, areaOfItemCategory } from "../../masterDataSimple/testMasterArea";
+import {
+  formatTrimmedDecimal,
+  fromSpecification,
+  resolveSpecMethodFlags,
+  SPEC_WIZARD_STEP_ORDER,
+  toBasePayload,
+  validateStep,
+  type SpecFormModel
+} from "../specWizard/specFormModel";
+
+export { formatTrimmedDecimal };
 
 export interface TestDefinitionSummary {
   id: number;
@@ -111,13 +122,6 @@ export const getDefaultLimitType = (workflowType?: string): LimitType => {
 const hplcParameterName = (analyteName: string, basis: ResultBasis | ""): string =>
   basis === "MgPerUnit" ? `${analyteName} (amount per unit)` : analyteName;
 
-export const formatTrimmedDecimal =(val: number | string | null | undefined): string => {
-  if (val == null || val === "") return "";
-  const n = typeof val === "number" ? val : Number(val);
-  if (Number.isNaN(n)) return String(val);
-  return n.toString();
-};
-
 export const SpecificationParameterDialog: React.FC<SpecificationParameterDialogProps> = ({
   open,
   item,
@@ -157,11 +161,9 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
   // "" = all stages. Production stages exist only on Finished Product
   // samples, so the field is offered only for Finished Product items.
   const [productionStageRole, setProductionStageRole] = useState<ProductionStageRole | "">("");
-  const supportsProductionStage = item.category === "FinishedProduct";
   // Raw-material specs can differ by grade (BP, USP, In-house ...); none = ungraded. Several grades with the
   // same limits are saved as one row per grade and shown as one row.
   const [grades, setGrades] = useState<string[]>([]);
-  const supportsGrade = item.category === "RawMaterial";
 
   const [testDefs, setTestDefs] = useState<Record<string, TestDefinitionSummary>>(testDefinitionByCode || {});
 
@@ -264,6 +266,65 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
   }, [testDefinitionByCode]);
 
   const currentTestDef = testDefs[testCode];
+  const currentFormModel: SpecFormModel = {
+    itemId: item.id,
+    editingId: editingSpec?.id ?? null,
+    displayOrder: editingSpec?.displayOrder,
+    itemCategory: item.category,
+    workflowType: currentTestDef?.workflowType || workflowTypeByCode[testCode],
+    equationType: currentTestDef?.equationType,
+    uvCalculationMode: currentTestDef?.uvCalculationMode ?? null,
+    hplcMethodResultMode,
+    icpMode: currentTestDef?.icpMode ?? null,
+    defaultHplcAnalyteId: methodAnalytes[0]?.id ?? null,
+    editingHasRelatedSubstanceRow: Boolean(editingSpec?.relatedSubstanceRow),
+    editingResultBasis: editingSpec?.resultBasis ?? null,
+    existingSpecs,
+    testCode,
+    parameterName,
+    productionStageRole,
+    grades,
+    resultBasis,
+    labelClaim,
+    labelClaimUnit,
+    hplcMethodAnalyteId,
+    hplcMethodImpurityId,
+    relatedSubstanceRow,
+    icpTestElementId,
+    limitType,
+    lowerLimit,
+    upperLimit,
+    lowerInclusive,
+    upperInclusive,
+    target,
+    tolerance,
+    toleranceMode,
+    alertLimit,
+    actionLimit,
+    specLimit,
+    expectedResultText,
+    expectedState,
+    sampleQuantity,
+    sampleQuantityUnit,
+    stages,
+    dosageForm,
+    unit,
+    referenceStandard,
+    dilutionFactor
+  };
+  const {
+    isHplcMethodAssay,
+    isRelatedSubstances,
+    isResidualSolvents,
+    isIcpMethodAssay,
+    isIcpElementalImpurities,
+    isTitration,
+    isUv,
+    isUvLimit,
+    supportsProductionStage,
+    supportsGrade
+  } = resolveSpecMethodFlags(currentFormModel);
+
   const isDissolution =
     workflowTypeByCode[testCode] === "Dissolution" ||
     currentTestDef?.workflowType === "Dissolution" ||
@@ -272,29 +333,10 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
     workflowTypeByCode[testCode] === "Disintegration" ||
     currentTestDef?.workflowType === "Disintegration" ||
     limitType === "DisintegrationTime";
-  const isTitration =
-    workflowTypeByCode[testCode] === "Titration" || currentTestDef?.workflowType === "Titration";
   const isWeightVariation =
     workflowTypeByCode[testCode] === "WeightVariation" ||
     currentTestDef?.workflowType === "WeightVariation" ||
     limitType === "WeightVariation";
-
-  const isUv =
-    workflowTypeByCode[testCode] === "UvSpectrophotometry" ||
-    currentTestDef?.workflowType === "UvSpectrophotometry";
-  const uvCalculationMode = currentTestDef?.uvCalculationMode;
-  const isUvLimit = isUv && uvCalculationMode === "AbsorbanceLimit";
-
-  const isHplcMethodAssay =
-    currentTestDef?.equationType === "HplcMethodAssay" ||
-    currentTestDef?.workflowType === "HplcMethodAssay" ||
-    workflowTypeByCode[testCode] === "HplcMethodAssay";
-
-  const isResidualSolvents =
-    isHplcMethodAssay && (hplcMethodResultMode === "ResidualSolvents" || editingSpec?.resultBasis === "Ppm");
-
-  const isRelatedSubstances =
-    isHplcMethodAssay && (hplcMethodResultMode === "RelatedSubstances" || Boolean(editingSpec?.relatedSubstanceRow));
 
   useEffect(() => {
     if (!isHplcMethodAssay || !currentTestDef?.hplcMethodId) {
@@ -331,14 +373,8 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
       });
   }, [isHplcMethodAssay, currentTestDef?.hplcMethodId]);
 
-  const isIcpMethodAssay =
-    currentTestDef?.equationType === "IcpMethodAssay" ||
-    currentTestDef?.workflowType === "IcpMethodAssay" ||
-    workflowTypeByCode[testCode] === "IcpMethodAssay";
-
   // The test (Test Master) defines the elements and whether it is an assay (% of target) or an impurity (ppm).
   const icpElements = [...(currentTestDef?.icpElements ?? [])].sort((x, y) => x.displayOrder - y.displayOrder);
-  const isIcpElementalImpurities = isIcpMethodAssay && currentTestDef?.icpMode === "Impurity";
 
   useEffect(() => {
     if (!isIcpElementalImpurities) return;
@@ -362,81 +398,44 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
     setSaving(false);
 
     if (editingSpec) {
-      setTestCode(editingSpec.testCode);
-      setParameterName(editingSpec.parameterName ?? "");
-      setLimitType((editingSpec.limitType as LimitType) || "CountTiered");
-      setReferenceStandard(editingSpec.referenceStandard ?? "");
-      setUnit(editingSpec.unit ?? "");
-      setDilutionFactor(
-        editingSpec.dilutionFactor != null ? String(editingSpec.dilutionFactor) : ""
-      );
-      setDosageForm((editingSpec.dosageForm as DosageForm) || "");
-      setProductionStageRole((editingSpec.productionStageRole as ProductionStageRole) || "");
-      setGrades(gradesOf(editingSpec));
-      if (editingSpec.limitType === "WeightVariation") {
-        setUnit("mg");
-      }
-
-      setHplcMethodAnalyteId(editingSpec.hplcMethodAnalyteId ?? "");
-      setHplcMethodImpurityId(editingSpec.hplcMethodImpurityId ?? "");
-      setRelatedSubstanceRow((editingSpec.relatedSubstanceRow as RelatedSubstanceRow) || "");
-      setIcpTestElementId(editingSpec.icpTestElementId ?? "");
-      const editDef = testDefs[editingSpec.testCode];
-      const isEditHplcAssay =
-        editDef?.equationType === "HplcMethodAssay" ||
-        editDef?.workflowType === "HplcMethodAssay" ||
-        workflowTypeByCode[editingSpec.testCode] === "HplcMethodAssay";
-      const isEditIcpAssay =
-        editDef?.equationType === "IcpMethodAssay" ||
-        editDef?.workflowType === "IcpMethodAssay" ||
-        workflowTypeByCode[editingSpec.testCode] === "IcpMethodAssay";
-      const isEditUv =
-        editDef?.workflowType === "UvSpectrophotometry" ||
-        workflowTypeByCode[editingSpec.testCode] === "UvSpectrophotometry";
-      const editUvMode = editDef?.uvCalculationMode;
-      const editBasisFallback = isEditUv
-        ? (editUvMode === "AbsorbanceLimit" || editUvMode === "SpecificAbsorbanceValue" ? "" : "PercentAsIs")
-        : isEditIcpAssay
-        ? ""
-        : (isEditHplcAssay ? "PercentLabelClaim" : "MgPerKg");
-      setResultBasis(
-        editingSpec.resultBasis === null
-          ? ""
-          : (editingSpec.resultBasis as ResultBasis) || editBasisFallback
-      );
-      setLabelClaim(formatTrimmedDecimal(editingSpec.labelClaim));
-      setLabelClaimUnit(editingSpec.labelClaimUnit ?? "");
-
-      setLowerLimit(formatTrimmedDecimal(editingSpec.lowerLimit));
-      setUpperLimit(formatTrimmedDecimal(editingSpec.upperLimit));
-      setLowerInclusive(editingSpec.lowerInclusive ?? true);
-      setUpperInclusive(editingSpec.upperInclusive ?? true);
-
-      setTarget(formatTrimmedDecimal(editingSpec.target));
-      setTolerance(formatTrimmedDecimal(editingSpec.tolerance));
-      setToleranceMode((editingSpec.toleranceMode as ToleranceMode) || "Absolute");
-
-      setAlertLimit(editingSpec.alertLimit ?? "");
-      setActionLimit(editingSpec.actionLimit ?? "");
-      setSpecLimit(editingSpec.specLimit ?? "");
-
-      setExpectedResultText(editingSpec.expectedResultText ?? "");
-
-      setExpectedState((editingSpec.expectedState as ExpectedPresence) || "Absence");
-      setSampleQuantity(formatTrimmedDecimal(editingSpec.sampleQuantity));
-      setSampleQuantityUnit(editingSpec.sampleQuantityUnit ?? "");
-
-      if (editingSpec.stages && editingSpec.stages.length > 0) {
-        setStages(
-          editingSpec.stages.map((s) => ({
-            stageNumber: s.stageNumber,
-            stageLabel: s.stageLabel,
-            acceptanceCriteriaText: s.acceptanceCriteriaText
-          }))
-        );
-      } else {
-        setStages([{ stageNumber: 1, stageLabel: "Stage 1", acceptanceCriteriaText: "" }]);
-      }
+      const m = fromSpecification(editingSpec, {
+        itemId: item.id,
+        itemCategory: item.category,
+        workflowType: workflowTypeByCode[editingSpec.testCode],
+        testDef: testDefs[editingSpec.testCode],
+        existingSpecs
+      });
+      setTestCode(m.testCode);
+      setParameterName(m.parameterName);
+      setLimitType(m.limitType);
+      setReferenceStandard(m.referenceStandard);
+      setUnit(m.unit);
+      setDilutionFactor(m.dilutionFactor);
+      setDosageForm(m.dosageForm);
+      setProductionStageRole(m.productionStageRole);
+      setGrades(m.grades);
+      setHplcMethodAnalyteId(m.hplcMethodAnalyteId);
+      setHplcMethodImpurityId(m.hplcMethodImpurityId);
+      setRelatedSubstanceRow(m.relatedSubstanceRow);
+      setIcpTestElementId(m.icpTestElementId);
+      setResultBasis(m.resultBasis);
+      setLabelClaim(m.labelClaim);
+      setLabelClaimUnit(m.labelClaimUnit);
+      setLowerLimit(m.lowerLimit);
+      setUpperLimit(m.upperLimit);
+      setLowerInclusive(m.lowerInclusive);
+      setUpperInclusive(m.upperInclusive);
+      setTarget(m.target);
+      setTolerance(m.tolerance);
+      setToleranceMode(m.toleranceMode);
+      setAlertLimit(m.alertLimit);
+      setActionLimit(m.actionLimit);
+      setSpecLimit(m.specLimit);
+      setExpectedResultText(m.expectedResultText);
+      setExpectedState(m.expectedState);
+      setSampleQuantity(m.sampleQuantity);
+      setSampleQuantityUnit(m.sampleQuantityUnit);
+      setStages(m.stages);
     } else {
       const initialCode = continuedTestCode || preselectedTestCode || selectableAssignedTests[0]?.testCode || "";
       setTestCode(initialCode);
@@ -642,121 +641,11 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
   };
 
   const handleSave = async (thenNext = false) => {
-    if (!testCode) {
-      setError("Assigned Test is required.");
-      return;
-    }
-
-    if (isHplcMethodAssay) {
-      if (isRelatedSubstances) {
-        if (!relatedSubstanceRow) {
-          setError("Choose the related-substance row: named impurity, any unspecified impurity, total, or total of others.");
-          return;
-        }
-        if (relatedSubstanceRow === "Named" && !hplcMethodImpurityId) {
-          setError("Choose the impurity for this row.");
-          return;
-        }
-      } else if (isResidualSolvents) {
-        if (!hplcMethodAnalyteId) {
-          setError("Please select a solvent from the GC method.");
-          return;
-        }
-        if (resultBasis !== "Ppm") {
-          setError("Basis must be ppm for residual solvents.");
-          return;
-        }
-      } else {
-        if (!hplcMethodAnalyteId) {
-          setError("Please select an analyte from the HPLC method.");
-          return;
-        }
-        const isRawMaterial = item.category === "RawMaterial";
-        const validBases: ResultBasis[] = isRawMaterial
-          ? ["PercentLabelClaim", "MgPerUnit", "PercentAsIs", "PercentDriedBasis", "PercentAnhydrousBasis"]
-          : ["PercentLabelClaim", "MgPerUnit"];
-        if (!resultBasis || !validBases.includes(resultBasis as ResultBasis)) {
-          setError(
-            isRawMaterial
-              ? "Please select a basis (Assay %, Amount per unit, % as is, % dried basis, or % anhydrous basis)."
-              : "Please select a basis (Assay % or Amount per unit)."
-          );
-          return;
-        }
-        if (resultBasis === "MgPerUnit") {
-          const lcNum = Number(labelClaim);
-          if (!labelClaim.trim() || isNaN(lcNum) || lcNum <= 0) {
-            setError("Label claim must be greater than 0 for Amount per unit.");
-            return;
-          }
-          if (!labelClaimUnit.trim()) {
-            setError("Label claim unit is required for Amount per unit.");
-            return;
-          }
-        }
-      }
-    }
-
-    if (isIcpMethodAssay) {
-      if (!icpTestElementId) {
-        setError("Please select an element of the test.");
-        return;
-      }
-    }
-
-    if (isTitration) {
-      const basisError = validateTitrationSpecBasis(resultBasis, labelClaim);
-      if (basisError) {
-        setError(basisError);
-        return;
-      }
-    }
-
-    if (limitType === "DissolutionQ") {
-      const qNum = Number(lowerLimit);
-      if (!lowerLimit.trim() || isNaN(qNum) || qNum <= 0 || qNum > 100) {
-        setError("Lower limit Q (%) must be between 0 and 100 (exclusive of 0, inclusive of 100).");
-        return;
-      }
-      const lcNum = Number(labelClaim);
-      if (!labelClaim.trim() || isNaN(lcNum) || lcNum <= 0) {
-        setError("Label claim must be greater than zero for Dissolution Q specifications.");
-        return;
-      }
-      const otherDissolutionSpec = existingSpecs.find(
-        (s) => s.testCode === testCode && s.id !== editingSpec?.id && s.limitType === "DissolutionQ"
-      );
-      if (otherDissolutionSpec) {
-        setError("Only one DissolutionQ specification is allowed per test.");
-        return;
-      }
-    }
-
-    if (limitType === "DisintegrationTime") {
-      const tNum = Number(upperLimit);
-      if (!upperLimit.trim() || isNaN(tNum) || tNum <= 0) {
-        setError("Time limit (min) must be greater than zero for Disintegration Time specifications.");
-        return;
-      }
-      const otherDisintegrationSpec = existingSpecs.find(
-        (s) => s.testCode === testCode && s.id !== editingSpec?.id && s.limitType === "DisintegrationTime"
-      );
-      if (otherDisintegrationSpec) {
-        setError("Only one DisintegrationTime specification is allowed per test.");
-        return;
-      }
-    }
-
-    if (limitType === "WeightVariation") {
-      if (!dosageForm) {
-        setError("Dosage form is required for Weight Variation specifications.");
-        return;
-      }
-      const otherWvSpec = existingSpecs.find(
-        (s) => s.testCode === testCode && s.id !== editingSpec?.id && s.limitType === "WeightVariation"
-      );
-      if (otherWvSpec) {
-        setError("Only one WeightVariation specification is allowed per test.");
+    for (const step of SPEC_WIZARD_STEP_ORDER) {
+      const stepErrors = validateStep(step, currentFormModel);
+      const firstError = Object.values(stepErrors)[0];
+      if (firstError) {
+        setError(firstError);
         return;
       }
     }
@@ -764,127 +653,9 @@ export const SpecificationParameterDialog: React.FC<SpecificationParameterDialog
     setSaving(true);
     setError(null);
 
-    const testSpecs = existingSpecs.filter((s) => s.testCode === testCode);
-    const maxOrder = testSpecs.reduce((max, s) => Math.max(max, s.displayOrder ?? 0), -1);
-    const displayOrder = editingSpec?.displayOrder ?? maxOrder + 1;
-
-    const basePayload = {
-      testCode,
-      parameterName: parameterName.trim() || undefined,
-      displayOrder,
-      limitType: isRelatedSubstances ? "NotMoreThan" : limitType,
-      referenceStandard: referenceStandard.trim() || null,
-      unit:
-        isRelatedSubstances
-          ? "%"
-          : isResidualSolvents
-          ? "ppm"
-          : limitType === "WeightVariation"
-          ? "mg"
-          : limitType === "DisintegrationTime"
-            ? "min"
-            : (unit.trim() || null),
-      dosageForm: limitType === "WeightVariation" ? (dosageForm || null) : null,
-      dilutionFactor:
-        limitType === "CountTiered" && dilutionFactor.trim() !== ""
-          ? Number(dilutionFactor)
-          : null,
-      lowerLimit:
-        limitType === "DissolutionQ"
-          ? (lowerLimit.trim() !== "" ? Number(lowerLimit) : null)
-          : (limitType === "Range" || limitType === "NotLessThan"
-            ? (lowerLimit.trim() !== "" ? Number(lowerLimit) : null)
-            : null),
-      upperLimit:
-        limitType === "DisintegrationTime"
-          ? (upperLimit.trim() !== "" ? Number(upperLimit) : null)
-          : (limitType === "Range" || limitType === "NotMoreThan"
-            ? (upperLimit.trim() !== "" ? Number(upperLimit) : null)
-            : null),
-      lowerInclusive: limitType === "Range" ? lowerInclusive : undefined,
-      upperInclusive: limitType === "Range" ? upperInclusive : undefined,
-      target:
-        limitType === "TargetWithTolerance" && target.trim() !== ""
-          ? Number(target)
-          : null,
-      tolerance:
-        limitType === "TargetWithTolerance" && tolerance.trim() !== ""
-          ? Number(tolerance)
-          : null,
-      toleranceMode: limitType === "TargetWithTolerance" ? toleranceMode : null,
-      expectedResultText:
-        limitType === "Qualitative" ? expectedResultText.trim() : null,
-      expectedState: limitType === "PresenceAbsence" ? expectedState : null,
-      sampleQuantity:
-        limitType === "PresenceAbsence" && sampleQuantity.trim() !== ""
-          ? Number(sampleQuantity)
-          : null,
-      sampleQuantityUnit:
-        limitType === "PresenceAbsence" ? sampleQuantityUnit.trim() || null : null,
-      alertLimit: limitType === "CountTiered" ? alertLimit.trim() || "" : null,
-      actionLimit: limitType === "CountTiered" ? actionLimit.trim() || "" : null,
-      specLimit:
-        limitType === "WeightVariation"
-          ? (dosageForm === "Tablet"
-            ? "USP <2091>: tablets, limit by average weight"
-            : "USP <2091>: net content 90-110 % of average")
-          : (limitType === "DisintegrationTime"
-            ? (upperLimit.trim() !== "" ? `NMT ${upperLimit.trim()} min` : null)
-            : (limitType === "DissolutionQ"
-              ? (lowerLimit.trim() !== "" ? `Q = ${lowerLimit.trim()} %` : null)
-              : (limitType === "CountTiered" ? specLimit.trim() : null))),
-      stages:
-        limitType === "MultiStage"
-          ? stages.map((s, idx) => ({
-              stageNumber: s.stageNumber || idx + 1,
-              stageLabel: s.stageLabel.trim(),
-              acceptanceCriteriaText: s.acceptanceCriteriaText.trim()
-            }))
-          : undefined,
-      hplcMethodAnalyteId: isHplcMethodAssay
-        ? isRelatedSubstances
-          ? (methodAnalytes[0]?.id ?? (hplcMethodAnalyteId !== "" ? Number(hplcMethodAnalyteId) : null))
-          : (hplcMethodAnalyteId !== "" ? Number(hplcMethodAnalyteId) : null)
-        : null,
-      relatedSubstanceRow: isRelatedSubstances && relatedSubstanceRow ? (relatedSubstanceRow as RelatedSubstanceRow) : null,
-      hplcMethodImpurityId:
-        isRelatedSubstances && relatedSubstanceRow === "Named" && hplcMethodImpurityId !== ""
-          ? Number(hplcMethodImpurityId)
-          : null,
-      icpTestElementId: isIcpMethodAssay && icpTestElementId !== "" ? Number(icpTestElementId) : null,
-      resultBasis: isRelatedSubstances
-        ? "PercentAsIs"
-        : isIcpMethodAssay
-        ? null
-        : isUv
-        ? (isUvLimit ? null : resultBasis ? (resultBasis as ResultBasis) : null)
-        : (isHplcMethodAssay || isTitration) && resultBasis
-        ? (resultBasis as ResultBasis)
-        : null,
-      labelClaim:
-        limitType === "WeightVariation" || limitType === "DisintegrationTime"
-          ? null
-          : (limitType === "DissolutionQ"
-            ? (labelClaim.trim() !== "" ? Number(labelClaim) : null)
-            : isIcpMethodAssay
-            ? null
-            : (((isHplcMethodAssay && resultBasis === "MgPerUnit") || (isTitration && titrationBasisNeedsLabelClaim(resultBasis))) && labelClaim.trim() !== ""
-              ? Number(labelClaim)
-              : null)),
-      labelClaimUnit:
-        limitType === "WeightVariation" || limitType === "DisintegrationTime"
-          ? null
-          : (limitType === "DissolutionQ"
-            ? "mg"
-            : isIcpMethodAssay
-            ? null
-            : (isTitration
-              ? (titrationBasisNeedsLabelClaim(resultBasis) ? "mg" : null)
-              : isHplcMethodAssay && resultBasis === "MgPerUnit"
-              ? labelClaimUnit.trim() || null
-              : null)),
-      productionStageRole: supportsProductionStage && productionStageRole ? productionStageRole : null,
-      grade: null as string | null
+    const basePayload: UpdateSpecificationPayload = {
+      ...toBasePayload(currentFormModel),
+      grade: null
     };
 
     const runWrites = async (payloadBase: UpdateSpecificationPayload, thenNextFlag: boolean, reason?: string) => {

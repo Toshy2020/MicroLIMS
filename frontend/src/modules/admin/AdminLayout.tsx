@@ -1,7 +1,12 @@
+import { useEffect } from "react";
 import { Box, Tab, Tabs } from "@mui/material";
 import { Link, Navigate, Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
+import { useDebouncedUiState } from "../../hooks/useDebouncedUiState";
+import { useUiState } from "../../hooks/useUiState";
 import { visibleAdminTabs } from "./adminTabs";
+
+const ADMIN_TAB_KEY = "nav.tab.admin";
 
 // The /admin shell: one tab per administration page the user may open.
 // Each page keeps its own header; the tabs only switch between them.
@@ -10,6 +15,13 @@ export function AdminLayout() {
   const { pathname } = useLocation();
   const tabs = visibleAdminTabs(permissions);
   const active = tabs.find((t) => pathname === t.path || pathname.startsWith(`${t.path}/`));
+  const { save } = useDebouncedUiState(ADMIN_TAB_KEY);
+  const activePath = active?.path;
+
+  // Remember the administration tab in use, whichever way the user got there.
+  useEffect(() => {
+    if (activePath) save(activePath);
+  }, [activePath, save]);
 
   return (
     <>
@@ -25,9 +37,13 @@ export function AdminLayout() {
   );
 }
 
-// /admin itself lands on the first tab the user may open.
+// /admin itself lands on the tab used last time when the user may still open
+// it, otherwise on the first tab the user may open.
 export function AdminIndexRedirect() {
   const { permissions } = useAuth();
-  const first = visibleAdminTabs(permissions)[0];
-  return <Navigate to={first ? first.path : "/dashboard"} replace />;
+  const { value, loaded } = useUiState(ADMIN_TAB_KEY);
+  const tabs = visibleAdminTabs(permissions);
+  if (tabs.length > 0 && !loaded) return null;
+  const target = tabs.find((t) => t.path === value) ?? tabs[0];
+  return <Navigate to={target ? target.path : "/dashboard"} replace />;
 }

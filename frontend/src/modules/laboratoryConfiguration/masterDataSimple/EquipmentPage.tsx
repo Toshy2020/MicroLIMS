@@ -39,6 +39,7 @@ import { SectionTitle } from "../../../components/SectionTitle";
 import { FloatingDialog } from "../../../components/FloatingDialog";
 import { tableHeadSx } from "../../../theme";
 import { toast } from "sonner";
+import { usePersistedTab } from "../../../hooks/usePersistedTab";
 import { Link } from "react-router-dom";
 import {
   EquipmentConfigurationService,
@@ -118,10 +119,14 @@ export const formatCdsSoftware = (cds?: string | number | null): string => {
   return map[String(cds)] || String(cds);
 };
 
+const EQUIPMENT_TABS = ["configured", "programs", "history"] as const;
+
 export function EquipmentPage() {
   const theme = useTheme();
   const { sectionName } = useLaboratorySections();
-  const [activeTab, setActiveTab] = useState(0);
+  // The tab used last time reopens (state key nav.tab.equipment-configuration).
+  const [tabKey, setTabKey] = usePersistedTab("equipment-configuration", EQUIPMENT_TABS);
+  const activeTab = EQUIPMENT_TABS.indexOf(tabKey);
   const [summaryList, setSummaryList] = useState<ConfiguredEquipmentSummary[]>([]);
   const [inventoryList, setInventoryList] = useState<EquipmentItem[]>([]);
   const [allPrograms, setAllPrograms] = useState<AutoclaveProgram[]>([]);
@@ -517,7 +522,7 @@ export function EquipmentPage() {
           <Paper sx={{ mb: 3 }}>
             <Tabs
               value={activeTab}
-              onChange={(_, v) => setActiveTab(v)}
+              onChange={(_, v: number) => setTabKey(EQUIPMENT_TABS[v])}
               indicatorColor="primary"
               textColor="primary"
               sx={{ borderBottom: 1, borderColor: "divider" }}

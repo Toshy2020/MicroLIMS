@@ -4,6 +4,8 @@ import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
 import { MemoryRouter } from "react-router-dom";
 import { lightTheme } from "../../../theme";
+import { resetUiStateCache } from "../../../hooks/useUiState";
+import { uiStateService } from "../../../services/uiStateService";
 import { AuthProvider } from "../../../contexts/AuthContext";
 import { PERMISSIONS } from "../../../routes/routes";
 import { apiClient } from "../../../services/apiClient";
@@ -26,6 +28,10 @@ vi.mock("../../../services/apiClient", () => ({
     delete: vi.fn()
   },
   ifMatch: vi.fn((version: number) => ({ headers: { "If-Match": String(version) } }))
+}));
+
+vi.mock("../../../services/uiStateService", () => ({
+  uiStateService: { getAll: vi.fn(), set: vi.fn(), remove: vi.fn() }
 }));
 
 vi.mock("../../../services/labelService", () => ({
@@ -133,11 +139,11 @@ const preparedLot: MediaLot = {
   isReleasedForUse: false
 };
 
-function renderPage() {
+function renderPage(url = "/") {
   return render(
     <ThemeProvider theme={lightTheme}>
       <AuthProvider>
-        <MemoryRouter>
+        <MemoryRouter initialEntries={[url]}>
           <MediaPage />
         </MemoryRouter>
       </AuthProvider>
@@ -175,6 +181,13 @@ async function prepareMediaLot(user: ReturnType<typeof userEvent.setup>) {
 
   await user.click(screen.getByRole("button", { name: "Save Prepared Lot" }));
 }
+
+// The remembered-tab store is answered for every test in this file.
+beforeEach(() => {
+  resetUiStateCache();
+  vi.mocked(uiStateService.getAll).mockResolvedValue({});
+  vi.mocked(uiStateService.set).mockResolvedValue(undefined);
+});
 
 describe("MediaPage label printing offer", () => {
   beforeEach(() => {
@@ -278,4 +291,51 @@ describe("MediaPage label printing offer", () => {
     });
     expect(screen.queryByRole("dialog", { name: "Print labels" })).toBeNull();
   }, 15000);
+});
+
+describe("MediaPage tabs", () => {
+  const selectedTab = () => screen.getByRole("tab", { selected: true }).textContent;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    localStorage.clear();
+    resetUiStateCache();
+    seedPermissions([]);
+    vi.mocked(uiStateService.getAll).mockResolvedValue({});
+    vi.mocked(uiStateService.set).mockResolvedValue(undefined);
+    vi.mocked(MediaPreparationService.getAll).mockResolvedValue([]);
+    vi.mocked(MediaPreparationService.getAwaitingApproval).mockResolvedValue([]);
+    vi.mocked(MediaEvaluationService.getAll).mockResolvedValue([]);
+    vi.mocked(masterDataOptions.getMaterials).mockResolvedValue([]);
+    vi.mocked(apiClient.get).mockResolvedValue({ data: { data: null } });
+  });
+
+  afterEach(() => {
+    cleanup();
+    resetUiStateCache();
+    localStorage.clear();
+  });
+
+  it("switches between its tabs and remembers the choice", async () => {
+    const user = userEvent.setup();
+    renderPage();
+
+    expect(selectedTab()).toBe("Media Lots");
+    await user.click(screen.getByRole("tab", { name: "Approved Media" }));
+    expect(selectedTab()).toBe("Approved Media");
+    await waitFor(() => expect(uiStateService.set).toHaveBeenCalledWith("nav.tab.media", "approved"), { timeout: 2000 });
+  });
+
+  it("a deep link with ?tab=approved still opens the approved tab", () => {
+    renderPage("/?tab=approved");
+
+    expect(selectedTab()).toBe("Approved Media");
+  });
+
+  it("opens the last tab used when the address names none", async () => {
+    vi.mocked(uiStateService.getAll).mockResolvedValue({ "nav.tab.media": "approved" });
+    renderPage();
+
+    await waitFor(() => expect(selectedTab()).toBe("Approved Media"));
+  });
 });

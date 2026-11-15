@@ -13,7 +13,8 @@ import { PERMISSIONS } from "../../../routes/routes";
 import { ItemFilterBar } from "./components/ItemFilterBar";
 import { noteOwnSave } from "../../../hooks/useRecordChanged";
 import { AddItemDialog } from "./components/AddItemDialog";
-import { ItemWorkspace, parseItemWorkspaceTab, type ItemWorkspaceTab } from "./components/ItemWorkspace";
+import { ItemWorkspace, ITEM_WORKSPACE_TABS } from "./components/ItemWorkspace";
+import { usePersistedTab } from "../../../hooks/usePersistedTab";
 import { UnmappedPreparationConfigurations } from "./components/UnmappedPreparationConfigurations";
 
 type ApiErrorShape = { response?: { data?: { message?: string } } };
@@ -33,7 +34,8 @@ export function ItemsPage() {
     const id = itemParam === null ? NaN : Number(itemParam);
     return Number.isInteger(id) && id > 0 ? id : null;
   }, [itemParam]);
-  const activeTab = parseItemWorkspaceTab(searchParams.get("tab"));
+  // ?tab= wins; without it the tab used last time opens (an unknown or retired value falls back to Overview).
+  const [activeTab, handleTabChange] = usePersistedTab("items", ITEM_WORKSPACE_TABS, "tab");
 
   const setSelectedItemId = useCallback(
     (id: number | null) => {
@@ -51,20 +53,6 @@ export function ItemsPage() {
     [setSearchParams]
   );
 
-  const handleTabChange = useCallback(
-    (tab: ItemWorkspaceTab) => {
-      setSearchParams(
-        (prev) => {
-          const next = new URLSearchParams(prev);
-          if (tab === "overview") next.delete("tab");
-          else next.set("tab", tab);
-          return next;
-        },
-        { replace: true }
-      );
-    },
-    [setSearchParams]
-  );
   const [editingItem, setEditingItem] = useState<Item | null>(null);
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [addFromExisting, setAddFromExisting] = useState(false);

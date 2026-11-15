@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { useSearchParams } from "react-router-dom";
+import { RecordChangedBanner } from "../../components/RecordChangedBanner";
+import { noteOwnSave } from "../../hooks/useRecordChanged";
 import {
   Box,
   Button,
@@ -1249,13 +1251,22 @@ export function ReceivingTestingWorkspacePage({ lab }: Props) {
               flexDirection: "column"
             }}
           >
+            <RecordChangedBanner
+              type="sample"
+              id={selectedSample.sampleId}
+              dirty={false}
+              onReload={() => void loadRecords(true)}
+            />
             <SelectedSampleTestingPanel
               sample={selectedSample as unknown as WorkspaceSampleCard}
               onTestClick={(test, sample) => handleTestClick(test, sample)}
               onClose={handleDeselectSample}
               onNeedsPreparationClick={(sample) => handlePrepareSample(sample)}
               onLifecycleBadgeClick={setSummarySampleId}
-              onCorrected={() => loadRecords(true)}
+              onCorrected={() => {
+                noteOwnSave("sample", selectedSample.sampleId);
+                void loadRecords(true);
+              }}
               onViewAuditHistory={(sampleId) => setAuditSampleId(sampleId)}
               onEdit={(sample) => setEditSample(sample as unknown as SampleRecord)}
               onVoid={(sample) => setVoidingSample(sample as unknown as SampleRecord)}
@@ -1422,6 +1433,10 @@ export function ReceivingTestingWorkspacePage({ lab }: Props) {
         test={activeTest}
         sample={activeSampleForTest}
         onClose={() => {
+          // Closing the workflow dialog follows this tab's own save: mark it so the banner
+          // does not announce our own change (a signal from another tab still does).
+          if (activeSampleForTest) noteOwnSave("sample", activeSampleForTest.sampleId);
+          if (activeTest) noteOwnSave("testOrder", activeTest.testOrderId);
           setActiveTest(null);
           setActiveSampleForTest(null);
           loadRecords(true);

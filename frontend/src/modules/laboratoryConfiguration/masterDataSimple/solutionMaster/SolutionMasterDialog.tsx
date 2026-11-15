@@ -6,6 +6,8 @@ import {
 } from "@mui/material";
 import { FormDialog } from "../../../../components/lab";
 import { toast } from "sonner";
+import { RecordChangedBanner } from "../../../../components/RecordChangedBanner";
+import { noteOwnSave } from "../../../../hooks/useRecordChanged";
 import {
   SolutionMaster,
   SolutionType,
@@ -73,6 +75,28 @@ export function SolutionMasterDialog({
   const [saveReasonDialogOpen, setSaveReasonDialogOpen] = useState(false);
   const [saveReason, setSaveReason] = useState("");
   const [pendingSavePayload, setPendingSavePayload] = useState<SaveSolutionMasterRequest | null>(null);
+
+  // The record as last loaded for this dialog. A user-requested reload from the
+  // "changed by someone else" banner replaces it, so the next save carries the new version.
+  const [reloadedEntry, setReloadedEntry] = useState<SolutionMaster | null>(null);
+  useEffect(() => setReloadedEntry(null), [editingEntry]);
+  const loadedEntry = reloadedEntry ?? editingEntry;
+  const formIsDirty = loadedEntry
+    ? JSON.stringify(form) !== JSON.stringify(solutionEntityToFormState(loadedEntry))
+    : false;
+
+  const reloadLatest = async () => {
+    if (!editingEntry) return;
+    try {
+      const fresh = await SolutionMasterService.getById(editingEntry.id);
+      setReloadedEntry(fresh);
+      setForm(solutionEntityToFormState(fresh));
+      setFieldErrors({});
+      setDialogError(null);
+    } catch {
+      setDialogError("Could not reload the latest record.");
+    }
+  };
 
   useEffect(() => {
     if (open) {
@@ -210,7 +234,8 @@ export function SolutionMasterDialog({
     setSaving(true);
     try {
       const finalPayload: SaveSolutionMasterRequest = { ...pendingSavePayload, reason: trimmedReason };
-      await SolutionMasterService.update(editingEntry.id, finalPayload, editingEntry.version);
+      await SolutionMasterService.update(editingEntry.id, finalPayload, (reloadedEntry ?? editingEntry).version);
+      noteOwnSave("solutionMaster", editingEntry.id);
       toast.success(`Solution master "${editingEntry.name}" updated.`);
       setSaveReasonDialogOpen(false);
       setPendingSavePayload(null);
@@ -237,6 +262,14 @@ export function SolutionMasterDialog({
         error={dialogError}
         maxWidth="md"
       >
+          {editingEntry && (
+            <RecordChangedBanner
+              type="solutionMaster"
+              id={editingEntry.id}
+              dirty={formIsDirty}
+              onReload={() => void reloadLatest()}
+            />
+          )}
           <SolutionGeneralSection
             name={form.name}
             type={form.type}

@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import {
+  Alert,
   Box,
   Button,
   CircularProgress,
@@ -10,6 +11,7 @@ import {
 } from "@mui/material";
 import { FloatingDialog } from "../FloatingDialog";
 import { ConfirmationDialog } from "../ConfirmationDialog";
+import { RecordChangedBanner } from "../RecordChangedBanner";
 import { DraftRestoreNotice } from "../bench/DraftRestoreNotice";
 import { ChangeReasonDialog } from "./ChangeReasonDialog";
 import { WizardReview } from "./WizardReview";
@@ -71,7 +73,7 @@ function focusFieldInContainer(container: HTMLElement | null, fieldName?: string
  * review/diff/where-used, audit change reason prompt, and 409 conflict recovery.
  */
 export function ConfigWizard<M extends object>(props: ConfigWizardProps<M>) {
-  const { open = true, title, mode, steps, usage, reasonRequired, extraReview } = props;
+  const { open = true, title, mode, steps, usage, reasonRequired, extraReview, liveRecord, reloadOriginal } = props;
   const wizard = useWizard(props);
   const bodyRef = useRef<HTMLDivElement | null>(null);
 
@@ -203,6 +205,17 @@ export function ConfigWizard<M extends object>(props: ConfigWizardProps<M>) {
         }
       >
         <Box ref={bodyRef} sx={{ pt: 0.5 }}>
+          {liveRecord && reloadOriginal && (
+            <RecordChangedBanner
+              type={liveRecord.type}
+              id={liveRecord.id}
+              dirty={wizard.isDirty}
+              onReload={() => void wizard.reloadLatest()}
+            />
+          )}
+          {wizard.reloadLatestError && (
+            <Alert severity="error" role="alert" sx={{ mb: 2 }}>{wizard.reloadLatestError}</Alert>
+          )}
           <DraftRestoreNotice
             startedAt={wizard.draftRestoredStartedAt}
             onRestore={wizard.restoreDraft}

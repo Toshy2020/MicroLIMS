@@ -8756,6 +8756,35 @@ namespace MicroLIMS.Persistence.Migrations
                     b.ToTable("ProductionStages");
                 });
 
+            modelBuilder.Entity("MicroLIMS.Domain.Entities.RecentRecord", b =>
+                {
+                    b.Property<int>("UserId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("RecordType")
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<int>("RecordId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("OpenedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<uint>("xmin")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("UserId", "RecordType", "RecordId");
+
+                    b.HasIndex("UserId", "OpenedAt")
+                        .IsDescending(false, true);
+
+                    b.ToTable("RecentRecords", (string)null);
+                });
+
             modelBuilder.Entity("MicroLIMS.Domain.Entities.ReferenceOrganism", b =>
                 {
                     b.Property<int>("Id")
@@ -15988,6 +16017,17 @@ namespace MicroLIMS.Persistence.Migrations
                     b.HasOne("MicroLIMS.Domain.Entities.Role", null)
                         .WithMany("Permissions")
                         .HasForeignKey("RoleId");
+                });
+
+            modelBuilder.Entity("MicroLIMS.Domain.Entities.RecentRecord", b =>
+                {
+                    b.HasOne("MicroLIMS.Domain.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("MicroLIMS.Domain.Entities.ReferenceOrganism", b =>

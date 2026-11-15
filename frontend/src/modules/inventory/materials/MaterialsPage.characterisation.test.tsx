@@ -298,4 +298,16 @@ describe("MaterialsPage register", () => {
     await openRowMenu(user, 4);
     expect(screen.getAllByRole("menuitem").map((m) => m.textContent)).toEqual(["Lot details and documents", "Edit material"]);
   });
+  it("?materialId= opens that lot's details once the register has loaded", async () => {
+    renderPage("/?materialId=3");
+    expect(await screen.findByRole("dialog", { name: /Lot Details/ }, { timeout: 5000 })).toBeTruthy();
+    await waitFor(() => expect(MaterialService.getDocuments).toHaveBeenCalledWith(3));
+  });
+
+  it("?materialId= for a lot not in the register opens nothing", async () => {
+    renderPage("/?materialId=99");
+    await ready();
+    expect(screen.queryByRole("dialog", { name: /Lot Details/ })).toBeNull();
+    expect(MaterialService.getDocuments).not.toHaveBeenCalled();
+  });
 });

@@ -37,6 +37,7 @@ import { MaintenanceLogSection } from "./MaintenanceLogSection";
 import { EquipmentHistoryPrint } from "./EquipmentHistoryPrint";
 import { FloatingDialog } from "../../../../components/FloatingDialog";
 import { PrintLabelButton } from "../../../../components/labels/PrintLabelButton";
+import { useTrackRecent } from "../../../navigation/useTrackRecent";
 
 interface Props {
   open: boolean;
@@ -67,6 +68,7 @@ export function EquipmentDetailsDialog({
   onEquipmentUpdated
 }: Props) {
   const theme = useTheme();
+  useTrackRecent("equipment", open ? equipment?.id : null);
   const [activeTab, setActiveTab] = useState<number>(0);
   const [statusHistory, setStatusHistory] = useState<EquipmentStatusHistoryItem[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(false);

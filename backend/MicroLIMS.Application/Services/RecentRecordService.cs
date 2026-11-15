@@ -67,7 +67,7 @@ WHERE r.""UserId"" = {userId}
         {
             // Unresolved = deleted, or the user may no longer read it: the row is dropped and its label never shown.
             if (!labels.TryGetValue((r.RecordType, r.RecordId), out var label)) continue;
-            result.Add(new RecentRecordDto(r.RecordType, r.RecordId, label.Identifier, label.Title,
+            result.Add(new RecentRecordDto(r.RecordType, r.RecordId, label.Identifier, label.Title, label.Route,
                 DateTime.SpecifyKind(r.OpenedAt, DateTimeKind.Utc)));
         }
         return result;

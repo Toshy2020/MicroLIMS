@@ -21,6 +21,7 @@ import { UploadMaterialDocumentDialog } from "./UploadMaterialDocumentDialog";
 import { LotPreparationsList } from "./LotPreparationsList";
 import { PreparationWhereUsedPanel } from "../../../testPreparation/components/PreparationWhereUsedPanel";
 import { PrintLabelButton } from "../../../../components/labels/PrintLabelButton";
+import { useTrackRecent } from "../../../navigation/useTrackRecent";
 
 interface Props {
   open: boolean;
@@ -42,6 +43,7 @@ function MetaRow({ label, value }: { label: string; value: React.ReactNode }) {
 }
 
 export function MaterialLotDetailsDialog({ open, material, onClose }: Props) {
+  useTrackRecent("material", open ? material?.id : null);
   const [eligibility, setEligibility] = useState<CoeEligibilityResult | null>(null);
   const [eligibilityLoading, setEligibilityLoading] = useState(false);
   // A failed check used to show no banner at all - indistinguishable from a

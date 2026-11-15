@@ -38,6 +38,7 @@ import { tableHeadSx } from "../../../../theme";
 import { useAuth } from "../../../../contexts/AuthContext";
 import { PERMISSIONS } from "../../../../routes/routes";
 import { PrintLabelButton } from "../../../../components/labels/PrintLabelButton";
+import { useTrackRecent } from "../../../navigation/useTrackRecent";
 
 function formatDateDDMMYY(value: string | number | Date | null | undefined): string {
   if (!value) return "—";
@@ -86,6 +87,7 @@ export function SelectedMediaLotWorkspace({
 }: Props) {
   const { permissions } = useAuth();
   const theme = useTheme();
+  useTrackRecent("media", lot?.id);
   const canRelease = permissions.includes(PERMISSIONS.MEDIA_RELEASE);
   const lifecycle = lifecycleOf(lot, awaitingApprovalIds);
 

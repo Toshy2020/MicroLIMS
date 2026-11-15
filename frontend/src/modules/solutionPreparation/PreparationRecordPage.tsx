@@ -30,6 +30,7 @@ import { PrintLabelButton } from "../../components/labels/PrintLabelButton";
 import { PrintLabelsDialog } from "../../components/labels/PrintLabelsDialog";
 import { usePostCreateLabelPrint } from "../../components/labels/usePostCreateLabelPrint";
 import { toast } from "sonner";
+import { useTrackRecent } from "../navigation/useTrackRecent";
 
 export function PreparationRecordPage() {
   const { id } = useParams<{ id: string }>();
@@ -47,6 +48,7 @@ export function PreparationRecordPage() {
   const consumedOfferRef = useRef<string | null>(null);
 
   const [preparation, setPreparation] = useState<SolutionPreparationResponse | null>(null);
+  useTrackRecent("solution", preparation?.id);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 

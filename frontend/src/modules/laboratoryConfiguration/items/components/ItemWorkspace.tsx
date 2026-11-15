@@ -39,6 +39,7 @@ import {
 import { clickable } from "../../../../utils/clickable";
 import { useHasPermission } from "../../../../contexts/AuthContext";
 import { PERMISSIONS } from "../../../../routes/routes";
+import { useTrackRecent } from "../../../navigation/useTrackRecent";
 
 export const ITEM_WORKSPACE_TABS = [
   "overview",
@@ -68,6 +69,7 @@ interface ItemWorkspaceProps {
 export function ItemWorkspace({ item, onClose, onItemUpdated, activeTab: controlledTab, onTabChange }: ItemWorkspaceProps) {
   // The QC Manager opens this workspace to approve not-applicable tests; changing the item needs Items.Manage.
   const canManage = useHasPermission(PERMISSIONS.ITEMS_MANAGE);
+  useTrackRecent("item", item.id);
   const [internalTab, setInternalTab] = useState<ItemWorkspaceTab>("overview");
   const activeTab = controlledTab ?? internalTab;
   const setActiveTab = (tab: ItemWorkspaceTab) => {

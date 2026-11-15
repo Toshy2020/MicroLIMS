@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Box, Button, Alert, Tabs, Tab } from "@mui/material";
 import { useSearchParams } from "react-router-dom";
 import AddIcon from "@mui/icons-material/Add";
@@ -204,6 +204,17 @@ function MediaLotsContent({
     if (!selectedLotId || !lots) return null;
     return lots.find((l) => l.id === selectedLotId) || null;
   }, [selectedLotId, lots]);
+
+  // ?mediaId= (from Recent / Ctrl+K) selects that lot once the lots are loaded.
+  const deepLinkedMedia = useRef(false);
+  const [searchParams] = useSearchParams();
+  const mediaIdParam = searchParams.get("mediaId");
+  useEffect(() => {
+    if (deepLinkedMedia.current || !mediaIdParam || lots.length === 0) return;
+    deepLinkedMedia.current = true;
+    const found = lots.find((l) => l.id === Number(mediaIdParam));
+    if (found) setSelectedLotId(found.id);
+  }, [lots, mediaIdParam]);
 
   const handleSelectLot = (lot: MediaLot) => {
     setSelectedLotId(lot.id);

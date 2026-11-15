@@ -72,6 +72,7 @@ import { VoidSampleConfirmationDialog } from "../receiving/dialogs/VoidSampleCon
 import { PrintLabelsDialog } from "../../components/labels/PrintLabelsDialog";
 import { usePostCreateLabelPrint } from "../../components/labels/usePostCreateLabelPrint";
 import { toast } from "sonner";
+import { useTrackRecent } from "../navigation/useTrackRecent";
 import {
   LEGACY_FILTER_PARAMS,
   WORKSPACE_SERVER_SORTABLE_COLUMNS,
@@ -809,6 +810,9 @@ export function ReceivingTestingWorkspacePage({ lab }: Props) {
     }
     return null;
   }, [selectedSampleId, records, extraSelectedSample]);
+  // The selected sample and the open test are shown only once loaded, so this is after a successful load.
+  useTrackRecent("sample", selectedSample?.sampleId);
+  useTrackRecent("testOrder", activeTest?.testOrderId);
 
   // Every sample matching the current filters, for "select all that match".
   const loadAllMatching = useCallback(

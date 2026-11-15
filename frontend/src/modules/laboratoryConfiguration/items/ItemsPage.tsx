@@ -2,9 +2,10 @@ import { useEffect, useState, useMemo, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Box, Button, Alert, Grid, Typography, Stack } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
+import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import { PageHeader } from "../../../components/PageHeader";
 import { ItemTable, ITEM_ROWS_PER_PAGE_OPTIONS } from "./ItemTable";
-import { ItemService, Item, ItemSaveRequest } from "./services/ItemService";
+import { CopyItemOptions, ItemService, Item, ItemSaveRequest } from "./services/ItemService";
 import { isReasonRequiredError } from "../../../services/apiClient";
 import { ChangeReasonDialog } from "../../../components/config/ChangeReasonDialog";
 import { useHasPermission } from "../../../contexts/AuthContext";
@@ -65,6 +66,7 @@ export function ItemsPage() {
   );
   const [editingItem, setEditingItem] = useState<Item | null>(null);
   const [addDialogOpen, setAddDialogOpen] = useState(false);
+  const [addFromExisting, setAddFromExisting] = useState(false);
 
   // Search & Filter state
   const [searchQuery, setSearchQuery] = useState("");
@@ -188,11 +190,19 @@ export function ItemsPage() {
 
   const handleOpenAdd = () => {
     setEditingItem(null);
+    setAddFromExisting(false);
+    setAddDialogOpen(true);
+  };
+
+  const handleOpenAddFromExisting = () => {
+    setEditingItem(null);
+    setAddFromExisting(true);
     setAddDialogOpen(true);
   };
 
   const handleOpenEdit = (item: Item) => {
     setEditingItem(item);
+    setAddFromExisting(false);
     setAddDialogOpen(true);
   };
 
@@ -205,9 +215,10 @@ export function ItemsPage() {
     minSampleQuantity?: number | null;
     minRetestSampleQuantity?: number | null;
     minSampleQuantityUnit?: string | null;
+    copyFrom?: CopyItemOptions | null;
   }) => {
     setMessage(null);
-    const payload = {
+    const basePayload: ItemSaveRequest = {
       name: itemData.name,
       code: itemData.code,
       category: itemData.category,
@@ -220,7 +231,7 @@ export function ItemsPage() {
 
     if (editingItem) {
       try {
-        await ItemService.update(editingItem.id, payload, editingItem.version);
+        await ItemService.update(editingItem.id, basePayload, editingItem.version);
         setMessage({ text: `Item "${itemData.name}" updated successfully.`, ok: true });
       } catch (e: unknown) {
         if (isReasonRequiredError(e)) {
@@ -229,7 +240,7 @@ export function ItemsPage() {
             kind: "edit",
             id: editingItem.id,
             name: itemData.name,
-            payload,
+            payload: basePayload,
             version: editingItem.version,
           });
           return;
@@ -237,7 +248,10 @@ export function ItemsPage() {
         throw e;
       }
     } else {
-      const created = await ItemService.create(payload);
+      const createPayload: ItemSaveRequest = itemData.copyFrom
+        ? { ...basePayload, copyFrom: itemData.copyFrom }
+        : basePayload;
+      const created = await ItemService.create(createPayload);
       setMessage({ text: `Item "${itemData.name}" created successfully.`, ok: true });
       setSelectedItemId(created.id);
     }
@@ -306,15 +320,25 @@ export function ItemsPage() {
       >
         <PageHeader title="Items" subtitle="Configure which tests are auto-assigned when a sample is received." />
         {canManage && (
-        <Button
-          variant="contained"
-          color="primary"
-          startIcon={<AddIcon />}
-          onClick={handleOpenAdd}
-          sx={{ textTransform: "none", fontWeight: 700, px: 2.5, py: 1 }}
-        >
-          Add Item
-        </Button>
+        <Stack direction="row" spacing={1}>
+          <Button
+            variant="outlined"
+            startIcon={<ContentCopyIcon />}
+            onClick={handleOpenAddFromExisting}
+            sx={{ textTransform: "none", fontWeight: 700 }}
+          >
+            New from existing
+          </Button>
+          <Button
+            variant="contained"
+            color="primary"
+            startIcon={<AddIcon />}
+            onClick={handleOpenAdd}
+            sx={{ textTransform: "none", fontWeight: 700, px: 2.5, py: 1 }}
+          >
+            Add Item
+          </Button>
+        </Stack>
         )}
       </Box>
 
@@ -442,7 +466,12 @@ export function ItemsPage() {
       <AddItemDialog
         open={addDialogOpen}
         itemToEdit={editingItem}
-        onClose={() => setAddDialogOpen(false)}
+        existingItems={items}
+        startFromExisting={addFromExisting}
+        onClose={() => {
+          setAddDialogOpen(false);
+          setAddFromExisting(false);
+        }}
         onSave={handleSaveItem}
       />
 

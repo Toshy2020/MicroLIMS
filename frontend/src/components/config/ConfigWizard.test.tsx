@@ -442,7 +442,8 @@ describe("ConfigWizard", () => {
 
     const confirm = await screen.findByRole("alertdialog");
     expect(dirty.onClose).not.toHaveBeenCalled();
-    expect(document.activeElement).toBe(within(confirm).getByRole("button", { name: "Cancel" }));
+    // Focus moves to Cancel once the dialog has opened; under load that lands after the first render.
+    await waitFor(() => expect(document.activeElement).toBe(within(confirm).getByRole("button", { name: "Cancel" })));
 
     await user.click(within(confirm).getByRole("button", { name: "Cancel" }));
     await waitFor(() => expect(screen.queryByRole("alertdialog")).toBeNull());
@@ -451,7 +452,8 @@ describe("ConfigWizard", () => {
     await user.keyboard("{Escape}");
     const confirm2 = await screen.findByRole("alertdialog");
     await user.click(within(confirm2).getByRole("button", { name: "Discard" }));
-    expect(dirty.onClose).toHaveBeenCalledTimes(1);
+    // Discard clears the stored draft first, then closes.
+    await waitFor(() => expect(dirty.onClose).toHaveBeenCalledTimes(1));
   });
 
   it("renders Stepper with list semantics, aria-current='step', and non-linear jump after visiting all steps", async () => {

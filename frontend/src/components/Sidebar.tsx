@@ -13,6 +13,7 @@ import { MenuGroup, MenuItem as MenuItemType } from "../routes/menuConfig";
 import { NavTrail } from "../routes/navigation";
 import { myWorkService } from "../modules/myWork/services/myWorkService";
 import type { MyWorkSummary } from "../modules/myWork/myWorkTypes";
+import { SidebarFavourites } from "../modules/navigation/SidebarFavourites";
 
 const EXPANDED_SIDEBAR_WIDTH = 250;
 const COLLAPSED_SIDEBAR_WIDTH = 68;
@@ -455,6 +456,17 @@ export function Sidebar({ mobileOpen, onMobileClose, collapsed, onToggleCollapse
                           </Paper>
                         </ClickAwayListener>
                       </Popper>
+                    )}
+
+                    {item.badge === "myWork" && (
+                      <SidebarFavourites
+                        groups={groups}
+                        collapsed={effectiveCollapsed}
+                        activePath={activeTrail?.item.path ?? null}
+                        onNavigate={() => {
+                          if (isMobile) onMobileClose();
+                        }}
+                      />
                     )}
                   </Box>
                 );

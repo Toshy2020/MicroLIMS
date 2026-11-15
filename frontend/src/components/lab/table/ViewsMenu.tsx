@@ -17,6 +17,8 @@ import StarBorderIcon from "@mui/icons-material/StarBorder";
 import { toast } from "sonner";
 import { ConfirmationDialog } from "../../ConfirmationDialog";
 import { getErrorMessage } from "../../../utils/errorMessage";
+import { FavouriteStar } from "../../../modules/navigation/FavouriteStar";
+import { viewRoute } from "../../../modules/navigation/favourites";
 import {
   SaveViewDialog,
   type SaveViewMode,
@@ -173,6 +175,13 @@ export function ViewsMenu({ tableKey, tableState }: ViewsMenuProps) {
           </Box>
         </Button>
         <Box sx={{ display: "flex", alignItems: "center", flexShrink: 0 }}>
+          {viewRoute(tableKey) !== null && (
+            <FavouriteStar
+              size="small"
+              favourite={{ t: "v", table: tableKey, view: view.id }}
+              name={`view ${view.name}`}
+            />
+          )}
           <IconButton
             size="small"
             disabled={isBusy}

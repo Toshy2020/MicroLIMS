@@ -1,5 +1,9 @@
 import { Typography, Box, useTheme } from "@mui/material";
 import type { ReactNode } from "react";
+import { useInRouterContext, useLocation } from "react-router-dom";
+import { FavouriteStar } from "../modules/navigation/FavouriteStar";
+import { useProvidedMenuGroups } from "../modules/navigation/MenuGroupsContext";
+import { findNavTrail } from "../routes/navigation";
 
 /**
  * @component PageHeader
@@ -10,6 +14,17 @@ import type { ReactNode } from "react";
  * @tokens Uses `theme.palette.primary.main` (`-0.015em` optical tracking) and `text.secondary` (`maxWidth: 72ch`).
  * @a11y Renders the single page-level `<h1>` landmark heading.
  */
+// The star appears only when the current location is itself a menu page (not a
+// record or wizard below one) in the user's own menu.
+function PageHeaderStar() {
+  const location = useLocation();
+  const groups = useProvidedMenuGroups();
+  if (!groups) return null;
+  const trail = findNavTrail(groups, location.pathname, location.search);
+  if (!trail || !trail.exact || !trail.item.path) return null;
+  return <FavouriteStar favourite={{ t: "p", path: trail.item.path }} name={trail.item.label} />;
+}
+
 export function PageHeader({
   title,
   subtitle,
@@ -21,6 +36,7 @@ export function PageHeader({
   children?: ReactNode;
 }) {
   const theme = useTheme();
+  const inRouter = useInRouterContext();
   return (
     <Box
       sx={{
@@ -34,13 +50,16 @@ export function PageHeader({
       }}
     >
       <Box sx={{ minWidth: 0, flex: "1 1 320px" }}>
-        <Typography
-          component="h1"
-          variant="h5"
-          sx={{ color: theme.palette.primary.main, letterSpacing: "-0.015em", overflowWrap: "anywhere" }}
-        >
-          {title}
-        </Typography>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+          <Typography
+            component="h1"
+            variant="h5"
+            sx={{ color: theme.palette.primary.main, letterSpacing: "-0.015em", overflowWrap: "anywhere" }}
+          >
+            {title}
+          </Typography>
+          {inRouter && <PageHeaderStar />}
+        </Box>
         {subtitle && (
           <Typography
             variant="body2"

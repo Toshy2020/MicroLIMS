@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import axios from "axios";
+import { useLiveRefresh } from "../../../hooks/useLiveRefresh";
 import { myWorkService } from "../services/myWorkService";
 import type { MyWorkResponse } from "../myWorkTypes";
 
@@ -67,17 +68,16 @@ export function useMyWork(lab?: string): UseMyWorkResult {
     };
     window.addEventListener("focus", handleFocus);
 
-    const intervalId = window.setInterval(() => {
-      if (document.visibilityState === "visible") {
-        void fetchWork();
-      }
-    }, POLL_INTERVAL_MS);
-
     return () => {
       window.removeEventListener("focus", handleFocus);
-      window.clearInterval(intervalId);
     };
   }, [fetchWork]);
+
+  useLiveRefresh({
+    kind: "mywork",
+    refetch: fetchWork,
+    fallbackMs: POLL_INTERVAL_MS
+  });
 
   const reload = useCallback(() => {
     void fetchWork();

@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import {
   Box, Typography, IconButton, Badge, Menu, MenuItem, Divider, Avatar, ButtonBase,
@@ -19,11 +19,14 @@ import { apiClient } from "../services/apiClient";
 import { useThemeMode } from "../theme/ThemeModeContext";
 import { useBenchMode } from "../theme/BenchModeContext";
 import { useAuth } from "../contexts/AuthContext";
+import { useLive } from "../contexts/LiveContext";
+import { useLiveRefresh } from "../hooks/useLiveRefresh";
 import { formatRoleFallback, formatRoleName, userInitials } from "../utils/userDisplay";
 import { GlobalSearchDialog } from "./search/GlobalSearchDialog";
 import { useGlobalSearchShortcut } from "../hooks/useGlobalSearchShortcut";
 import WarningAmberOutlinedIcon from "@mui/icons-material/WarningAmberOutlined";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
+import CloudOffOutlinedIcon from "@mui/icons-material/CloudOffOutlined";
 import { visuallyHidden } from "@mui/utils";
 import { HelpMenu } from "../modules/help/HelpMenu";
 import { ConfirmationDialog } from "./ConfirmationDialog";
@@ -67,6 +70,7 @@ export function Header({ onToggleSidebar, sidebarCollapsed, labCodes, unsavedDra
   const showIdentityText = useMediaQuery(theme.breakpoints.up("sm"));
   const navigate = useNavigate();
   const { username, fullName, jobTitle, role, roleName, logout } = useAuth();
+  const { status: liveStatus } = useLive();
 
   const displayName = fullName ?? username ?? "User";
   const displayTitle = jobTitle?.trim() || formatRoleFallback(role, labCodes, roleName);
@@ -79,21 +83,22 @@ export function Header({ onToggleSidebar, sidebarCollapsed, labCodes, unsavedDra
 
   useGlobalSearchShortcut(() => setSearchOpen((prev) => !prev));
 
-  const loadUnreadMessages = () => {
+  const loadUnreadMessages = useCallback(() => {
     apiClient.get("/messages/unread-count")
       .then((r) => setUnreadMessages(r.data?.data?.unreadCount ?? 0))
-      // Badge only: keep the last known count and let the next poll retry.
+      // Badge only: keep the last known count and let the next refresh retry.
       .catch(() => {});
-  };
+  }, []);
 
   useEffect(() => {
     loadUnreadMessages();
-    const interval = setInterval(() => {
-      if (document.hidden) return;
-      loadUnreadMessages();
-    }, POLL_INTERVAL_MS);
-    return () => clearInterval(interval);
-  }, []);
+  }, [loadUnreadMessages]);
+
+  useLiveRefresh({
+    kind: "messages",
+    refetch: loadUnreadMessages,
+    fallbackMs: POLL_INTERVAL_MS
+  });
 
   const handleSignOut = () => {
     setProfileAnchor(null);
@@ -120,28 +125,29 @@ export function Header({ onToggleSidebar, sidebarCollapsed, labCodes, unsavedDra
   // the bell said "No notifications - you are up to date" during an outage.
   const [notificationsFailed, setNotificationsFailed] = useState(false);
 
-  const loadNotifications = () => {
+  const loadNotifications = useCallback(() => {
     apiClient.get("/dashboard/notifications")
       .then((r) => {
         setNotifications(r.data.data);
         setNotificationsFailed(false);
       })
       .catch(() => setNotificationsFailed(true));
-  };
+  }, []);
 
   useEffect(() => {
     // The first fetch waits so it doesn't compete with the page's own data
     // requests on load - on the production instance it took 9.9 s doing so.
     const firstLoad = setTimeout(loadNotifications, FIRST_LOAD_DELAY_MS);
-    const interval = setInterval(() => {
-      if (document.hidden) return;
-      loadNotifications();
-    }, POLL_INTERVAL_MS);
     return () => {
       clearTimeout(firstLoad);
-      clearInterval(interval);
     };
-  }, []);
+  }, [loadNotifications]);
+
+  useLiveRefresh({
+    kind: "notifications",
+    refetch: loadNotifications,
+    fallbackMs: POLL_INTERVAL_MS
+  });
 
   const handleNotificationClick = (notification: NotificationDto) => {
     setBellAnchor(null);
@@ -277,6 +283,34 @@ export function Header({ onToggleSidebar, sidebarCollapsed, labCodes, unsavedDra
           </Button>
         )}
         {draftsMenu}
+        {liveStatus === "offline" && (
+          <Tooltip title="Live updates are unavailable; checking for updates automatically">
+            <Box
+              component="span"
+              role="status"
+              aria-label="Live updates paused"
+              aria-live="polite"
+              sx={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 0.5,
+                px: 1,
+                py: 0.25,
+                borderRadius: 5,
+                fontSize: 12,
+                fontWeight: 600,
+                lineHeight: 1.4,
+                whiteSpace: "nowrap",
+                bgcolor: theme.custom.status.inconclusive.bg,
+                color: theme.custom.status.inconclusive.text,
+                border: `1px solid ${theme.custom.status.inconclusive.border}`
+              }}
+            >
+              <CloudOffOutlinedIcon aria-hidden="true" sx={{ fontSize: 14 }} />
+              Live updates paused
+            </Box>
+          </Tooltip>
+        )}
         <HelpMenu />
         <Tooltip title="Notifications">
           <IconButton

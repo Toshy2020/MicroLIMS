@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, KeyboardEvent } from "react";
+import { useCallback, useEffect, useRef, useState, KeyboardEvent } from "react";
 import {
   Box,
   Typography,
@@ -14,6 +14,7 @@ import GroupIcon from "@mui/icons-material/Group";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import { ConversationSummary, DirectMessage } from "../types/messageTypes";
 import { messageService } from "../services/messageService";
+import { useLiveRefresh } from "../../../hooks/useLiveRefresh";
 import { brandColors } from "../../../theme";
 import { toast } from "sonner";
 
@@ -36,7 +37,7 @@ export function ChatWindow({ conversation, currentUserId, onBack, onMessageSent 
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
-  const loadMessages = async () => {
+  const loadMessages = useCallback(async () => {
     try {
       const list = await messageService.getMessages(conversation.id);
       setMessages(list);
@@ -47,16 +48,18 @@ export function ChatWindow({ conversation, currentUserId, onBack, onMessageSent 
     } finally {
       setLoading(false);
     }
-  };
+  }, [conversation.id]);
 
   useEffect(() => {
     setLoading(true);
-    loadMessages();
+    void loadMessages();
+  }, [loadMessages]);
 
-    // Poll for new messages every 6 seconds while chatting
-    const interval = setInterval(loadMessages, 6_000);
-    return () => clearInterval(interval);
-  }, [conversation.id]);
+  useLiveRefresh({
+    kind: "messages",
+    refetch: loadMessages,
+    fallbackMs: 6_000
+  });
 
   useEffect(() => {
     scrollToBottom();
@@ -72,7 +75,7 @@ export function ChatWindow({ conversation, currentUserId, onBack, onMessageSent 
       const msg = await messageService.sendMessage(conversation.id, content);
       setMessages((prev) => [...prev, msg]);
       onMessageSent();
-    } catch (err: any) {
+    } catch {
       toast.error("Failed to send message.");
     } finally {
       setSending(false);

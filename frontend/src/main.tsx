@@ -6,6 +6,7 @@ import { ThemeModeProvider } from "./theme/ThemeModeContext";
 import { BenchModeProvider } from "./theme/BenchModeContext";
 import { SystemStatusProvider } from "./contexts/SystemStatusContext";
 import { AuthProvider } from "./contexts/AuthContext";
+import { LiveProvider } from "./contexts/LiveContext";
 import { AppErrorBoundary } from "./components/AppErrorBoundary";
 import { installGlobalErrorHandlers } from "./services/errorReporter";
 import { registerServiceWorker } from "./pwa/registerServiceWorker";
@@ -27,7 +28,9 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
         <BrowserRouter>
           <SystemStatusProvider>
             <AuthProvider>
-              <App />
+              <LiveProvider>
+                <App />
+              </LiveProvider>
             </AuthProvider>
           </SystemStatusProvider>
         </BrowserRouter>

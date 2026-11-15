@@ -29,7 +29,7 @@ import {
   isMaterialOutOfStock
 } from "./components/MaterialKpiCards";
 import { MaterialFilterBar, MATERIAL_TYPE_OPTIONS } from "./components/MaterialFilterBar";
-import { AddMaterialDialog } from "./components/AddMaterialDialog";
+import { MaterialWizard } from "./materialWizard/MaterialWizard";
 import { MaterialLotDetailsDialog } from "./components/MaterialLotDetailsDialog";
 import { MaterialReleaseDialog } from "./components/MaterialReleaseDialog";
 import { PrintLabelsDialog } from "../../../components/labels/PrintLabelsDialog";
@@ -443,7 +443,7 @@ export function MaterialsPage() {
       </Box>
 
       {/* Add / Edit Modal Dialog */}
-      <AddMaterialDialog
+      <MaterialWizard
         open={isAddOpen}
         onClose={() => {
           setIsAddOpen(false);

@@ -160,13 +160,16 @@ async function receiveChemicalLot(user: ReturnType<typeof userEvent.setup>) {
 
   await user.click(within(dialog).getByRole("combobox", { name: /Reagent Master Entry/i }));
   await user.click(await screen.findByRole("option", { name: /CHEM-001/i }));
+  await user.click(within(dialog).getByRole("button", { name: /^Next$/ }));
 
   await user.type(within(dialog).getByLabelText(/Batch \/ Lot No\./i), "SUPPLIER-BATCH-77");
   await user.click(within(dialog).getByRole("combobox", { name: /Storage Location/i }));
   await user.click(await screen.findByRole("option", { name: "Microbiology Lab" }));
   await user.type(within(dialog).getByLabelText(/Quantity Received/i), "5");
+  await user.click(within(dialog).getByRole("button", { name: /^Next$/ }));
+  await user.click(within(dialog).getByRole("button", { name: /^Next$/ }));
 
-  await user.click(within(dialog).getByRole("button", { name: "Add to Stock" }));
+  await user.click(await within(dialog).findByRole("button", { name: /^Save$/ }));
 }
 
 describe("MaterialsPage stock ID", () => {

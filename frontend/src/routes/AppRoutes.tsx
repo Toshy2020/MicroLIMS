@@ -20,6 +20,7 @@ const MfaEnrolmentPage = lazy(() => import("../pages/MfaEnrolment").then((m) => 
 const AdminPasswordRecovery = lazy(() => import("../pages/AdminPasswordRecovery").then((m) => ({ default: m.AdminPasswordRecovery })));
 const DashboardPage = lazy(() => import("../modules/dashboard/DashboardPage").then((m) => ({ default: m.DashboardPage })));
 const MyWorkPage = lazy(() => import("../modules/myWork/MyWorkPage").then((m) => ({ default: m.MyWorkPage })));
+const NotificationsPage = lazy(() => import("../modules/notifications/NotificationsPage").then((m) => ({ default: m.NotificationsPage })));
 const SectionPage = lazy(() => import("../pages/Section").then((m) => ({ default: m.SectionPage })));
 const NotFoundPage = lazy(() => import("../pages/NotFound").then((m) => ({ default: m.NotFoundPage })));
 const ProfilePage = lazy(() => import("../pages/Profile").then((m) => ({ default: m.ProfilePage })));
@@ -137,6 +138,16 @@ export function AppRoutes() {
                 <AppErrorBoundary inline>
                   <Suspense fallback={<LoadingSpinner />}>
                     <MyWorkPage />
+                  </Suspense>
+                </AppErrorBoundary>
+              }
+            />
+            <Route
+              path="/notifications"
+              element={
+                <AppErrorBoundary inline>
+                  <Suspense fallback={<LoadingSpinner />}>
+                    <NotificationsPage />
                   </Suspense>
                 </AppErrorBoundary>
               }

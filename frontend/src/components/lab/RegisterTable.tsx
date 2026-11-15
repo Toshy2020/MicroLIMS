@@ -100,6 +100,11 @@ interface RegisterTableProps<T> {
   // When sortableColumns and onSortChange are provided, header sorting delegates to the server.
   serverPaged?: {
     totalCount: number;
+    page?: number;
+    onPageChange?: (nextZeroBasedPage: number) => void;
+    pageSize?: number;
+    onPageSizeChange?: (nextSize: number) => void;
+    pageSizeOptions?: number[];
     sortableColumns?: ReadonlySet<string> | readonly string[];
     onSortChange?: (next: { key: string; direction: "asc" | "desc" } | null) => void;
     sort?: { key: string; direction: "asc" | "desc" } | null;
@@ -167,10 +172,10 @@ function RegisterTableInner<T>({
 
   // Filtering or reloading changes the row set; a stale page could be past the end.
   useEffect(() => {
-    if (!tableState) {
+    if (!tableState && serverPaged?.page === undefined) {
       setLocalPage(0);
     }
-  }, [rows.length, tableState]);
+  }, [rows.length, tableState, serverPaged?.page]);
 
   const serverSortableSet = useMemo(
     () => (serverPaged?.sortableColumns ? new Set(serverPaged.sortableColumns) : null),
@@ -180,12 +185,16 @@ function RegisterTableInner<T>({
   const sort = serverPaged && serverPaged.sort !== undefined
     ? serverPaged.sort
     : (tableState ? tableState.state.sort : localSort);
-  const page = tableState ? tableState.page - 1 : localPage;
+  const page = serverPaged?.page !== undefined
+    ? serverPaged.page
+    : (tableState ? tableState.page - 1 : localPage);
   const requestedAll = tableState ? tableState.state.pageSize === "all" : localRowsPerPage === "all";
   // Phone cards are never windowed, so "all" falls back to the first page size there.
   // A server page is never "all": the server caps a page, so it falls back to the largest page size.
   const isAllPageSize = requestedAll && !isPhone && !serverPaged;
-  const requestedSize = tableState ? tableState.state.pageSize : localRowsPerPage;
+  const requestedSize = serverPaged?.pageSize !== undefined
+    ? serverPaged.pageSize
+    : (tableState ? tableState.state.pageSize : localRowsPerPage);
   const rowsPerPage = requestedSize === "all"
     ? (isPhone ? PAGE_SIZES[0] : serverPaged ? PAGE_SIZES[PAGE_SIZES.length - 1] : Math.max(rows.length, 1))
     : requestedSize;
@@ -350,6 +359,13 @@ function RegisterTableInner<T>({
   };
 
   const handlePageChange = (nextZeroBasedPage: number) => {
+    if (serverPaged?.onPageChange) {
+      serverPaged.onPageChange(nextZeroBasedPage);
+      if (serverPaged.page === undefined && !tableState) {
+        setLocalPage(nextZeroBasedPage);
+      }
+      return;
+    }
     if (tableState) {
       tableState.setPage(nextZeroBasedPage + 1);
     } else {
@@ -358,6 +374,10 @@ function RegisterTableInner<T>({
   };
 
   const handleRowsPerPageChange = (nextSize: number) => {
+    if (serverPaged?.onPageSizeChange) {
+      serverPaged.onPageSizeChange(nextSize);
+      return;
+    }
     if (tableState) {
       tableState.setPageSize(nextSize === ALL_ROWS_OPTION ? "all" : (nextSize as 25 | 50 | 100));
     } else {
@@ -574,7 +594,7 @@ function RegisterTableInner<T>({
             page={page}
             onPageChange={(_, p) => handlePageChange(p)}
             rowsPerPage={rowsPerPage}
-            rowsPerPageOptions={PAGE_SIZES}
+            rowsPerPageOptions={serverPaged?.pageSizeOptions ?? PAGE_SIZES}
             onRowsPerPageChange={(e) => handleRowsPerPageChange(Number(e.target.value))}
           />
         )}
@@ -745,7 +765,7 @@ function RegisterTableInner<T>({
           page={isAllPageSize ? 0 : page}
           onPageChange={(_, p) => handlePageChange(p)}
           rowsPerPage={isAllPageSize ? ALL_ROWS_OPTION : rowsPerPage}
-          rowsPerPageOptions={serverPaged ? PAGE_SIZES : DESKTOP_PAGE_SIZE_OPTIONS}
+          rowsPerPageOptions={serverPaged ? (serverPaged.pageSizeOptions ?? PAGE_SIZES) : DESKTOP_PAGE_SIZE_OPTIONS}
           onRowsPerPageChange={(e) => handleRowsPerPageChange(Number(e.target.value))}
         />
       )}

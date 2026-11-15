@@ -61,6 +61,7 @@ const ACCOUNT_PAGES: Record<string, string> = {
   "/set-signing-password": "Choose Signing Password",
   "/messages": "Messages",
   "/discussions": "Discussions",
+  "/notifications": "Notifications",
   "/receiving-testing": "Receiving & Testing Workspace"
 };
 

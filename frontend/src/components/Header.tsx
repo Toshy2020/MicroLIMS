@@ -28,6 +28,9 @@ import { visuallyHidden } from "@mui/utils";
 import { HelpMenu } from "../modules/help/HelpMenu";
 import { ConfirmationDialog } from "./ConfirmationDialog";
 import SwitchAccountIcon from "@mui/icons-material/SwitchAccount";
+import { NOTIFICATION_ROUTES, resolveNotificationTarget } from "../modules/notifications/notificationRoutes";
+
+export { NOTIFICATION_ROUTES };
 
 interface NotificationDto {
   id: number | null;
@@ -40,35 +43,7 @@ interface NotificationDto {
   testOrderId?: number | null;
 }
 
-// A notification about one test on one sample opens that sample (and test)
-// in the workspace; everything else goes to its type's page.
-function notificationTarget(notification: NotificationDto): string | undefined {
-  if (notification.sampleId) {
-    const testPart = notification.testOrderId ? `&testOrderId=${notification.testOrderId}` : "";
-    return `/receiving-testing?sampleId=${notification.sampleId}${testPart}`;
-  }
-  return NOTIFICATION_ROUTES[notification.type];
-}
-
-// Where clicking a notification should take the user when it is not about a
-// specific sample
-const NOTIFICATION_ROUTES: Record<string, string> = {
-  MediaExpiry: "/laboratory-configuration/media",
-  IncubationReady: "/receiving-testing",
-  ApprovalWaiting: "/receiving-testing?status=UnderApproval",
-  ReviewWaiting: "/receiving-testing?status=UnderReview",
-  TestReturnedForRevision: "/receiving-testing",
-  TestReturned: "/my-work",
-  TestAssigned: "/my-work",
-  DocumentTask: "/my-work",
-  TrainingAssigned: "/document-control/my-reading-list",
-  DocumentReassigned: "/document-control/reassignments",
-  ReassignmentOverdue: "/document-control/reassignments",
-  TestReturnedForBiochemical: "/receiving-testing",
-  DiscussionComment: "/discussions",
-  DiscussionPostUpdated: "/discussions",
-  DirectMessage: "/messages"
-};
+const BELL_MAX_ITEMS = 10;
 
 const POLL_INTERVAL_MS = 60_000;
 const FIRST_LOAD_DELAY_MS = 5_000;
@@ -137,7 +112,9 @@ export function Header({ onToggleSidebar, sidebarCollapsed, labCodes, unsavedDra
 
   const unreadCount = notifications.filter((n) => !n.isRead).length;
   const [notificationFilter, setNotificationFilter] = useState<"all" | "unread">("all");
-  const visibleNotifications = notificationFilter === "unread" ? notifications.filter((n) => !n.isRead) : notifications;
+  const visibleNotifications = (
+    notificationFilter === "unread" ? notifications.filter((n) => !n.isRead) : notifications
+  ).slice(0, BELL_MAX_ITEMS);
 
   // Set while the latest poll failed and nothing has loaded since. Without it
   // the bell said "No notifications - you are up to date" during an outage.
@@ -174,7 +151,7 @@ export function Header({ onToggleSidebar, sidebarCollapsed, labCodes, unsavedDra
       apiClient.post(`/dashboard/notifications/${notification.id}/read`).catch(() => {});
       setNotifications((prev) => prev.map((n) => (n.id === notification.id ? { ...n, isRead: true } : n)));
     }
-    const target = notificationTarget(notification);
+    const target = resolveNotificationTarget(notification);
     if (target) navigate(target);
   };
 
@@ -383,7 +360,7 @@ export function Header({ onToggleSidebar, sidebarCollapsed, labCodes, unsavedDra
             </MenuItem>
           )}
           {visibleNotifications.map((n, i) => {
-            const target = notificationTarget(n);
+            const target = resolveNotificationTarget(n);
             const warning = n.severity === "warning" || n.severity === "error";
             return (
               <MenuItem
@@ -422,6 +399,16 @@ export function Header({ onToggleSidebar, sidebarCollapsed, labCodes, unsavedDra
               </MenuItem>
             );
           })}
+          <Divider />
+          {/* A menu item, so arrow keys in the bell menu reach it like every other entry. */}
+          <MenuItem
+            component={Link}
+            to="/notifications"
+            onClick={() => setBellAnchor(null)}
+            sx={{ justifyContent: "center", fontWeight: 600, color: "primary.main" }}
+          >
+            See all
+          </MenuItem>
         </Menu>
 
         <Tooltip title="Account">

@@ -33,6 +33,7 @@ import { SamplesTrendChart } from "./components/SamplesTrendChart";
 import { TestOrderStatusDonut } from "./components/TestOrderStatusDonut";
 import { tableHeadSx } from "../../theme";
 import { SummaryTiles } from "../../components/configHierarchy/SummaryTiles";
+import { SectionSelfAssignmentCard } from "./components/SectionSelfAssignmentCard";
 import { LAB_LABELS, useDashboardLab } from "./DashboardLabContext";
 
 export function SectionHeadDashboardPage() {
@@ -755,6 +756,11 @@ export function SectionHeadDashboardPage() {
           </Grid>
         )}
       </Grid>
+
+      {/* Section Self-Assignment Control (Samples.AssignAnalyst only) */}
+      <Box sx={{ mb: 2.5 }}>
+        <SectionSelfAssignmentCard />
+      </Box>
 
       {/* Tier 6: Laboratory Trends & Distribution */}
       <Grid container spacing={2} sx={{ mb: 2 }}>

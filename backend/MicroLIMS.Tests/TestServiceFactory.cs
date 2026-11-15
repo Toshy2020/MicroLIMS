@@ -77,8 +77,25 @@ public class SpyNotificationService : INotificationService
 // constructs it.
 public static class TestServiceFactory
 {
-    public static DashboardNotificationService DashboardNotification(MicroLimsDbContext db, INotificationService? notifications = null, MicroLIMS.Application.Abstractions.Email.IEmailSender? emailSender = null) =>
-        new(db, notifications ?? new NoOpNotificationService(), emailSender ?? new NoOpEmailSender(), new UserSectionScopeService(db));
+    public static DashboardNotificationService DashboardNotification(
+        MicroLimsDbContext db,
+        INotificationService? notifications = null,
+        MicroLIMS.Application.Abstractions.Email.IEmailSender? emailSender = null,
+        TimeProvider? time = null) =>
+        new(db, time);
+
+    public static MicroLIMS.Application.Services.Notifications.NotificationScheduler NotificationScheduler(
+        MicroLimsDbContext db,
+        TimeProvider? time = null,
+        MicroLIMS.Application.Interfaces.ISystemSettingsReader? settings = null,
+        Microsoft.Extensions.Configuration.IConfiguration? config = null,
+        MicroLIMS.Application.Services.Monitoring.MonitoringReminderService? monitoring = null)
+    {
+        var clock = new LabClock(time ?? TimeProvider.System, LabClock.ResolveTimeZone(config?["Lab:TimeZoneId"] ?? "Africa/Cairo"));
+        var publisher = new MicroLIMS.Application.Services.Notifications.NotificationPublisher(db, time, config, clock);
+        var recipients = new MicroLIMS.Application.Services.Notifications.NotificationRecipients(db, new SegregationOfDutiesGuard(db));
+        return new MicroLIMS.Application.Services.Notifications.NotificationScheduler(db, publisher, recipients, clock, settings, config, monitoring);
+    }
     public static ReviewGateService ReviewGate(MicroLimsDbContext db) =>
         new(db, new ElectronicSignatureService(db));
 

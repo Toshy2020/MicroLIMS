@@ -202,7 +202,8 @@ public class SampleOrientedDashboardsPostgresIntegrationTests
             StepNumber = 1,
             StepName = "Stage 1",
             StartedAt = now.AddDays(-1),
-            CompletedAt = now.AddMinutes(-5),
+            ExpectedReadingAt = now.AddMinutes(-5),
+            StartedByUserId = _fixture.SeededControllerUserId,
             StageNumber = 1
         });
 
@@ -233,18 +234,19 @@ public class SampleOrientedDashboardsPostgresIntegrationTests
         Assert.Equal(new[] { "PG-WS-REV" }, await ReferencesFor("reviewOverdue"));
         Assert.Equal(new[] { "PG-WS-APP" }, await ReferencesFor("approvalOverdue"));
 
+        await TestServiceFactory.NotificationScheduler(db).RunAsync();
         var notifications = TestServiceFactory.DashboardNotification(db);
 
         var sectionHeadNotifications = await notifications.GetNotificationsAsync(RoleType.SectionHead, _fixture.SeededControllerUserId);
-        Assert.Contains(sectionHeadNotifications, n => n.Type == "ReviewWaiting" && n.Message == "1 sample(s) awaiting review.");
-        Assert.Contains(sectionHeadNotifications, n => n.Type == "ApprovalWaiting" && n.Message == "1 sample(s) awaiting approval.");
+        Assert.Contains(sectionHeadNotifications, n => n.Type == "ItemOverdue" && n.SampleId == inReview.Id);
+        Assert.Contains(sectionHeadNotifications, n => n.Type == "ItemOverdue" && n.SampleId == inApproval.Id);
         Assert.Contains(sectionHeadNotifications, n => n.Type == "IncubationReady"
             && n.Message == "TYMC (Stage 1) for sample PG-WS-TEST is ready."
             && n.SampleId == stillTesting.Id
             && n.TestOrderId == incubating.Id);
 
         var analystNotifications = await notifications.GetNotificationsAsync(RoleType.Analyst, analystId);
-        Assert.DoesNotContain(analystNotifications, n => n.Type == "ReviewWaiting" || n.Type == "ApprovalWaiting");
+        Assert.DoesNotContain(analystNotifications, n => n.Type == "ItemOverdue" && (n.SampleId == inReview.Id || n.SampleId == inApproval.Id));
     }
 
     // The collection shares one database across test classes, so each test

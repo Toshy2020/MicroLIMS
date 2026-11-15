@@ -6,6 +6,7 @@ using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Shared.Constants;
+using MicroLIMS.Shared.Responses;
 
 namespace MicroLIMS.Application.Services;
 
@@ -224,6 +225,12 @@ public record PathogenTestingSessionDto(
 
 public class PathogenSessionService
 {
+    public const int ResetReasonMinLength = 10;
+    public const int ResetReasonMaxLength = 500;
+    public const string ResetReasonRequiredMessage =
+        "Enter a reason of at least 10 characters. Resetting the session invalidates the recorded results.";
+    public const string ResetReasonTooLongMessage = "The reason can be at most 500 characters.";
+
     private readonly IMicroLimsDbContext _db;
     private readonly MediaAppearanceSnapshotService? _appearanceSnapshot;
     private readonly ConfirmationAgreementEvaluator _agreementEvaluator;
@@ -1311,7 +1318,20 @@ public class PathogenSessionService
 
         var testOrderIds = sample.TestOrders.Select(t => t.Id).ToList();
         var locationIds = sample.Locations.Select(l => l.Id).ToList();
-        var resetReason = string.IsNullOrWhiteSpace(reason) ? "Analyst requested session workflow reset" : reason.Trim();
+        // A reset invalidates recorded results, so it needs a real reason; no default text.
+        var resetReason = reason?.Trim() ?? string.Empty;
+        if (resetReason.Length < ResetReasonMinLength)
+        {
+            throw new FieldValidationException(
+                ResetReasonRequiredMessage,
+                new[] { new FieldError("reason", ResetReasonRequiredMessage) });
+        }
+        if (resetReason.Length > ResetReasonMaxLength)
+        {
+            throw new FieldValidationException(
+                ResetReasonTooLongMessage,
+                new[] { new FieldError("reason", ResetReasonTooLongMessage) });
+        }
 
         // 1. Delete Location Pathogen Observations & Confirmatory Plate Observations
         var locObs = await _db.LocationPathogenObservations
@@ -1353,11 +1373,20 @@ public class PathogenSessionService
             .ToListAsync();
         if (countReadings.Count > 0) _db.CountTestReadings.RemoveRange(countReadings);
 
-        // 4. Delete Results
+        // 4. Invalidate Results (user decision 2026-11-15): the recorded results stay,
+        // marked with who invalidated them, when and why. The query filter returns
+        // only valid results, so one invalidated by an earlier reset keeps its first
+        // invalidation.
         var results = await _db.Results
             .Where(r => testOrderIds.Contains(r.TestOrderId))
             .ToListAsync();
-        if (results.Count > 0) _db.Results.RemoveRange(results);
+        var invalidatedAt = _time.GetUtcNow().UtcDateTime;
+        foreach (var result in results)
+        {
+            result.InvalidatedAt = invalidatedAt;
+            result.InvalidatedByUserId = userId;
+            result.InvalidationReason = resetReason;
+        }
 
         // 5. Delete Incubations
         var incubations = await _db.Incubations
@@ -1395,6 +1424,9 @@ public class PathogenSessionService
         {
             sample.Status = SampleStatus.Received;
         }
+
+        // The reason lands on the audit rows of this save (result invalidation, deletions).
+        _db.CurrentReason = resetReason;
 
         // 9. Audit Log
         _db.AuditLogs.Add(new AuditLog

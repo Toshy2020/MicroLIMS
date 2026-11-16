@@ -165,7 +165,8 @@ public class SsoAdminPostgresTests
         DateTime? refusedAt = null,
         DateTime? lastLoginAt = null,
         bool isEmergency = false,
-        bool isActive = true)
+        bool isActive = true,
+        string? username = null)
     {
         await using var arrangeDb = _fixture.CreateDbContext();
         var roleId = await arrangeDb.Roles.AsNoTracking()
@@ -174,7 +175,7 @@ public class SsoAdminPostgresTests
         var user = new User
         {
             FullName = $"SSO Admin {tag[..8]}",
-            Username = $"sso_adm_{tag}",
+            Username = username ?? $"sso_adm_{tag}",
             Email = $"sso_adm_{tag}@example.test",
             PasswordHash = TestPasswords.Hash(Password),
             RoleId = roleId,
@@ -213,6 +214,12 @@ public class SsoAdminPostgresTests
         var linked = await SeedUserAsync(directoryUsername: Company("linked"));
         var emergency = await SeedUserAsync(RoleType.SystemAdministrator, isEmergency: true);
         var inactive = await SeedUserAsync(isActive: false);
+        // Two names a language-aware collation and character-code order sort differently
+        // ("sort_2" first by language rules, "sortA_1" first by character code), so the
+        // order check below does not depend on which other tests left users behind.
+        var suffix = Guid.NewGuid().ToString("N")[..8];
+        await SeedUserAsync(username: $"sortA_1x{suffix}");
+        await SeedUserAsync(username: $"sort_2x{suffix}");
 
         SsoAdminOverviewDto overview;
         await using (var actDb = _fixture.CreateDbContext())

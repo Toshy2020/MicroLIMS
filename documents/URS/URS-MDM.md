@@ -4,7 +4,7 @@
 |---|---|
 | Document number | URS-MDM |
 | Title | Master data user requirements |
-| Version | 0.3 |
+| Version | 0.4 |
 | Status | Draft |
 | Author | Claude (AI agent), draft from code |
 | Reviewer | To be assigned by QA |
@@ -18,6 +18,7 @@
 | 0.1 | 2026-11-12 | Claude (AI agent), draft from code | First draft, written from the code as built. |
 | 0.2 | 2026-11-13 | AI coding agent, draft from code | Added barcode labels and scanning requirements (URS-MDM-017 to URS-MDM-024). |
 | 0.3 | 2026-11-14 | AI coding agent, draft from code | Added configuration spreadsheet paste with preview and all-or-nothing batch save (URS-MDM-025). |
+| 0.4 | 2026-11-16 | AI coding agent, draft from code | Added step-by-step configuration screens, where-used summary, change reasons, specification retirement, copy and new-from-existing, and analyst preview requirements (URS-MDM-026 to URS-MDM-031). |
 
 ## Requirements
 
@@ -173,4 +174,40 @@ Each requirement below is a need that the code as built serves. Gaps found in th
 **Requirement:** The system shall allow a user holding the master-data permission to paste up to 200 configuration rows per paste from a spreadsheet into Water sampling points, Environmental Monitoring rooms, Environmental Monitoring room test configurations, plain Item specifications, Master Testing Materials, and microbiology Equipment Master with a blocking preview and an explicit pending review step before saving, and shall persist accepted configuration batches in an all-or-nothing server transaction after validating every row (while excluding Solution Master recipes from configuration paste so components continue to be defined via form or workbook).
 **GxP:** Yes
 **Serves:** 21 CFR 11.10(d), 11.10(e); ALCOA+ accurate and complete (to be confirmed by QA)
+**Status:** Active
+
+### URS-MDM-026
+**Requirement:** The system shall present the creation and change of specification parameters, Test Master tests, equipment and stock material lots as step-by-step screens with a review step that shows what will be saved (and, when an existing record is changed, what changes), shall keep a draft of the user's entries on the device until it is saved or discarded, and shall offer exactly the same configuration options and apply exactly the same server-side checks as the single-form screens they replace.
+**GxP:** Yes
+**Serves:** 21 CFR 11.10(a), 11.10(e); ALCOA+ accurate and complete (to be confirmed by QA)
+**Status:** Active
+
+### URS-MDM-027
+**Requirement:** The system shall show a user with access, before the user changes a specification, a Test Master test, an item or equipment, which other records use it, with a separate count for open work and for history, and shall limit what is counted to the laboratory sections the user may read.
+**GxP:** No
+**Serves:** Not applicable
+**Status:** Active
+
+### URS-MDM-028
+**Requirement:** The system shall require a reason for change of at least 10 characters when a specification, a Test Master test, an item or equipment is edited while open work would be affected, and always when a specification is deleted, retired or reinstated or when a test or item is frozen or unfrozen or an item is deleted, shall decide on the server whether open work exists and not rely on the client, and shall record the reason on the audit trail entries of that change.
+**GxP:** Yes
+**Serves:** 21 CFR 11.10(e); EU GMP Annex 11 clause 9 (to be confirmed by QA)
+**Status:** Active
+
+### URS-MDM-029
+**Requirement:** The system shall retire, and not delete, a specification that a recorded result refers to, leaving the recorded results unchanged; shall not use a retired specification to evaluate or assign tests to new samples; shall stop result entry on a sample in testing whose specification has been retired, with a message that says so; and shall let a user with the master-data permission reinstate a retired specification with a reason.
+**GxP:** Yes
+**Serves:** 21 CFR 11.10(e); EU GMP Annex 11 clauses 9 and 10; ALCOA+ original and enduring (to be confirmed by QA)
+**Status:** Active
+
+### URS-MDM-030
+**Requirement:** The system shall let a user with the master-data or item permission create an item from an existing item, copy specifications from one item to another after a preview that shows which rows will be created, skipped or refused, and create a test or equipment record from an existing one, without ever copying the code, name, SOP number, serial number, calibration date or documents of the source, and shall save a copy only after the user confirms it.
+**GxP:** Yes
+**Serves:** 21 CFR 11.10(a), 11.10(e) (to be confirmed by QA)
+**Status:** Active
+
+### URS-MDM-031
+**Requirement:** The system shall show a user who configures a test, before saving, what the analyst will be asked to do for it (steps, media, incubation windows, stages and entries), marked as a preview that cannot record anything, and shall create a new test together with its stages and steps in one all-or-nothing operation.
+**GxP:** No
+**Serves:** Not applicable
 **Status:** Active

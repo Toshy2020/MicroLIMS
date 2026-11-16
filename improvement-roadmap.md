@@ -213,7 +213,7 @@ Phases 0, 1 and 2 can run in parallel if more than one person is available. Phas
 
 ### C5. Notification centre and real-time updates — Size M
 
-**Spec:** `docs/superpowers/specs/2026-11-11-notifications-live-updates-design.md`. **Plan:** `docs/superpowers/plans/2026-11-11-notifications-live-updates.md`.
+**Spec:** `docs/superpowers/specs/2026-11-11-notifications-live-updates-design.md`. **Plan:** `docs/superpowers/plans/2026-11-11-notifications-live-updates.md`. **Documents:** draft requirements `URS-NTF-012` to `URS-NTF-018`, draft functional specifications `FS-NTF-012` to `FS-NTF-021`, conflict `CONF-206`, and SOP notes in `documents/SOP/README.md` (notifications are aids, not records; escalation rules and working hours are controlled configuration). The user guide chapter `documentation/guide/09-notifications-messages.md` is not updated by this package.
 
 **Current state.** `NotificationLog` and `DashboardNotificationService` exist, and the header has a notification button. Updates come from polling; there is no SignalR.
 
@@ -234,7 +234,7 @@ Phases 0, 1 and 2 can run in parallel if more than one person is available. Phas
 
 ### C7. Simplify configuration screens — Size L
 
-**Spec:** `docs/superpowers/specs/2026-11-11-simpler-configuration-design.md`. **Plan:** `docs/superpowers/plans/2026-11-11-simpler-configuration.md`.
+**Spec:** `docs/superpowers/specs/2026-11-11-simpler-configuration-design.md`. **Plan:** `docs/superpowers/plans/2026-11-11-simpler-configuration.md`. **Documents:** draft requirements `URS-MDM-026` to `URS-MDM-031` and `URS-INV-011`, draft functional specifications `FS-MDM-038` to `FS-MDM-045` and `FS-INV-012`, conflict `CONF-207` (also bears on `CONF-150`), and SOP notes in `documents/SOP/README.md` (change reasons and retirement). **For the guide owner (not edited here):** `documentation/guide/31-items-test-master-specifications.md` and `documentation/guide/32-laboratory-configuration.md` need the new screens described: step-by-step wizards with a review step, where-used panel, change-reason prompts, retire and reinstate of specifications, "Copy specifications", "New from existing" for items, tests and equipment, the analyst preview, and the Add Material wizard.
 
 **Current state.** The largest components are configuration dialogs: `SpecificationParameterDialog.tsx` (1,908 lines), `TestMasterPage.tsx` (1,621), `EquipmentPage.tsx` (1,609), `AddMaterialDialog.tsx` (1,262).
 

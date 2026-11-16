@@ -1,3 +1,7 @@
+ActionAvailabilityController.ForDocumentRevision(Int32, CancellationToken): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+ActionAvailabilityController.ForMedia(Int32, CancellationToken): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+ActionAvailabilityController.ForSample(Int32, Nullable`1, CancellationToken): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+ActionAvailabilityController.ForTestOrder(Int32, CancellationToken): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 AdminAccessReviewsController.AddFinding(Int32, SaveAccessReviewFindingRequest, CancellationToken): SystemAdministrator,Qa
 AdminAccessReviewsController.Export(Int32, CancellationToken): SystemAdministrator,Qa
 AdminAccessReviewsController.Generate(GenerateAccessReviewRequest, CancellationToken): SystemAdministrator,Qa

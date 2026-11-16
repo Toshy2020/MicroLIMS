@@ -53,6 +53,42 @@ public class MediaReleaseService
             .ToListAsync()).Select(m => MediaResponse.From(m, _time.GetUtcNow().UtcDateTime)).ToList();
     }
 
+    // The pre-signing checks of a release decision, in the order the action applies them: the lot is undecided, it
+    // has an evaluation, (to release it) the evaluation is complete and conforms, and the decider neither prepared
+    // nor evaluated the lot.
+    public async Task<ActionCheck> CheckDecideAsync(int mediaId, int sectionHeadUserId, bool approved, CancellationToken ct = default)
+    {
+        var media = await _db.Media.AsNoTracking().FirstOrDefaultAsync(m => m.Id == mediaId, ct)
+            ?? throw new NotFoundException($"Media lot {mediaId} not found.");
+        return await CheckDecideAsync(media, sectionHeadUserId, approved, ct);
+    }
+
+    private async Task<ActionCheck> CheckDecideAsync(Media media, int sectionHeadUserId, bool approved, CancellationToken ct = default)
+    {
+        if (media.ApprovalStatus != ApprovalGateStatus.PendingReview)
+            return ActionCheck.No($"Media lot {media.LotNumber} has already been decided ({media.ApprovalStatus}).");
+
+        var evaluation = await _db.MediaEvaluations.AsNoTracking().FirstOrDefaultAsync(e => e.MediaId == media.Id, ct);
+        if (evaluation is null)
+            return ActionCheck.No($"Media lot {media.LotNumber} has no evaluation record.");
+
+        // Approving a lot whose evaluation hasn't finished (or failed)
+        // would put unqualified media into routine testing - the whole
+        // point of the gate. Rejecting one is always allowed.
+        if (approved)
+        {
+            if (evaluation.Status != MediaEvaluationStatus.Completed)
+                return ActionCheck.No($"Media lot {media.LotNumber}'s evaluation is not complete yet.");
+            if (evaluation.Outcome != EvaluationOutcome.Conform)
+                return ActionCheck.No($"Media lot {media.LotNumber}'s evaluation did not conform - it cannot be released.");
+        }
+
+        if (await _segregationOfDuties.DidUserPrepareOrEvaluateMediaAsync(media.Id, sectionHeadUserId))
+            return ActionCheck.No("You cannot approve a media lot you prepared or evaluated.");
+
+        return ActionCheck.Ok;
+    }
+
     public Task DecideAsync(int mediaId, int sectionHeadUserId, string password, bool approved, string? comment, string? ipAddress) =>
         UnitOfWork.RunAsync(_db, () => DecideCoreAsync(mediaId, sectionHeadUserId, password, approved, comment, ipAddress));
 
@@ -61,25 +97,7 @@ public class MediaReleaseService
         var media = await _db.Media.FirstOrDefaultAsync(m => m.Id == mediaId)
             ?? throw new NotFoundException($"Media lot {mediaId} not found.");
 
-        if (media.ApprovalStatus != ApprovalGateStatus.PendingReview)
-            throw new BusinessRuleException($"Media lot {media.LotNumber} has already been decided ({media.ApprovalStatus}).");
-
-        var evaluation = await _db.MediaEvaluations.FirstOrDefaultAsync(e => e.MediaId == mediaId)
-            ?? throw new BusinessRuleException($"Media lot {media.LotNumber} has no evaluation record.");
-
-        // Approving a lot whose evaluation hasn't finished (or failed)
-        // would put unqualified media into routine testing - the whole
-        // point of the gate. Rejecting one is always allowed.
-        if (approved)
-        {
-            if (evaluation.Status != MediaEvaluationStatus.Completed)
-                throw new BusinessRuleException($"Media lot {media.LotNumber}'s evaluation is not complete yet.");
-            if (evaluation.Outcome != EvaluationOutcome.Conform)
-                throw new BusinessRuleException($"Media lot {media.LotNumber}'s evaluation did not conform - it cannot be released.");
-        }
-
-        if (await _segregationOfDuties.DidUserPrepareOrEvaluateMediaAsync(mediaId, sectionHeadUserId))
-            throw new BusinessRuleException("You cannot approve a media lot you prepared or evaluated.");
+        (await CheckDecideAsync(media, sectionHeadUserId, approved)).ThrowIfRefused();
 
         // Signs first - if password verification fails, nothing below is
         // written (the signature, the event, and the state change below

@@ -10,5 +10,15 @@
     "english": "English",
     "arabic": "العربية"
   },
-  "selectedCount": "{{count}} محدد"
+  "selectedCount": "{{count}} محدد",
+  "breadcrumb": {
+    "label": "مسار التنقل",
+    "loading": "جارٍ التحميل"
+  },
+  "help": {
+    "chapterNotFound": "الفصل غير موجود"
+  },
+  "nav": {
+    "sectionNotAvailable": "القسم غير متاح"
+  }
 }

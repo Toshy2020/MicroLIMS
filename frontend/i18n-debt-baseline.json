@@ -1,7 +1,7 @@
 {
-  "total": 10203,
+  "total": 10201,
   "modules": {
-    "components": 389,
+    "components": 388,
     "layouts": 8,
     "modules/admin": 366,
     "modules/auditReview": 61,
@@ -32,7 +32,7 @@
     "modules/testPreparation": 65,
     "modules/users": 197,
     "modules/workingStandards": 111,
-    "pages": 105,
+    "pages": 104,
     "pwa": 2
   }
 }

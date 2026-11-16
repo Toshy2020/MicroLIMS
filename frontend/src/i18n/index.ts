@@ -62,6 +62,10 @@ const lazyFiles: BackendModule = {
 
 export const i18n = i18next.createInstance();
 
+// Import the hook from here (not straight from react-i18next) so the setup above
+// has run wherever a screen uses translation keys, tests included.
+export { useTranslation } from "react-i18next";
+
 export const i18nReady = i18n
   .use(lazyFiles)
   .use(initReactI18next)

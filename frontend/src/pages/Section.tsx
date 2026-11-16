@@ -6,11 +6,13 @@ import { useMenuGroups } from "../hooks/useMenuGroups";
 import { useSectionCounters } from "../hooks/useSectionCounters";
 import { groupLabel, groupPath } from "../routes/navigation";
 import { BreadcrumbLabel } from "../components/breadcrumbContext";
+import { useTranslation } from "../i18n";
 
 // Landing page of a sidebar section or menu group: one card per page the user may open in
 // it, read from the same permission-filtered menu as the sidebar. The lab's
 // sample workspaces (featured) lead, drawn wider with a brand accent.
 export function SectionPage() {
+  const { t } = useTranslation();
   const { pathname } = useLocation();
   const groups = useMenuGroups();
   const section = groups.flatMap((g) => g.items).find((i) => i.children && i.path === pathname);
@@ -23,8 +25,8 @@ export function SectionPage() {
   if (!section && !group) {
     return (
       <>
-        <BreadcrumbLabel label="Section not available" />
-        <PageHeader title="Section not available" subtitle="You have no pages in this section." />
+        <BreadcrumbLabel label={t("nav.sectionNotAvailable")} />
+        <PageHeader title={t("nav.sectionNotAvailable")} subtitle="You have no pages in this section." />
       </>
     );
   }

@@ -5,6 +5,7 @@ import { Link as RouterLink } from "react-router-dom";
 import { groupLabel, groupPath, NavTrail } from "../routes/navigation";
 import type { MenuGroup } from "../routes/menuConfig";
 import { usePageBreadcrumb } from "./breadcrumbContext";
+import { useTranslation } from "../i18n";
 
 const APP_NAME = "MicroLIMS";
 const MAX_CRUMB_CHARS = 48;
@@ -19,6 +20,7 @@ const visuallyHidden = {
 // Also owns the browser tab title, so tabs, history entries and screen
 // readers name the page instead of every tab reading "MicroLIMS".
 export function AppBreadcrumbs({ trail, groups }: { trail: NavTrail | null; groups: MenuGroup[] }) {
+  const { t } = useTranslation();
   const pageLabel = usePageBreadcrumb();
   // Same parts as the trail, most specific first; a label still loading is left out.
   const loadedLabel = typeof pageLabel === "string" ? pageLabel : null;
@@ -42,7 +44,7 @@ export function AppBreadcrumbs({ trail, groups }: { trail: NavTrail | null; grou
       {pageLabel === null ? (
         <>
           <Skeleton variant="text" width={120} aria-hidden sx={{ fontSize: "inherit" }} />
-          <Box component="span" sx={visuallyHidden}>Loading</Box>
+          <Box component="span" sx={visuallyHidden}>{t("breadcrumb.loading")}</Box>
         </>
       ) : pageLabel.length > MAX_CRUMB_CHARS ? (
         <>
@@ -57,7 +59,7 @@ export function AppBreadcrumbs({ trail, groups }: { trail: NavTrail | null; grou
 
   if (!trail) {
     return (
-      <Breadcrumbs aria-label="Breadcrumb" className="no-print" sx={{ mb: 1.5, color: "text.secondary" }}>
+      <Breadcrumbs aria-label={t("breadcrumb.label")} className="no-print" sx={{ mb: 1.5, color: "text.secondary" }}>
         {pageCrumb}
       </Breadcrumbs>
     );
@@ -86,7 +88,7 @@ export function AppBreadcrumbs({ trail, groups }: { trail: NavTrail | null; grou
 
   return (
     <Breadcrumbs
-      aria-label="Breadcrumb"
+      aria-label={t("breadcrumb.label")}
       className="no-print"
       separator={<NavigateNextIcon sx={{ fontSize: 16 }} />}
       sx={{ mb: 1.5, color: "text.secondary", "& .MuiBreadcrumbs-ol": { flexWrap: "wrap" } }}

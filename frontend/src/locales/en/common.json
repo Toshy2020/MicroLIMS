@@ -10,5 +10,15 @@
     "english": "English",
     "arabic": "العربية"
   },
-  "selectedCount": "{{count}} selected"
+  "selectedCount": "{{count}} selected",
+  "breadcrumb": {
+    "label": "Breadcrumb",
+    "loading": "Loading"
+  },
+  "help": {
+    "chapterNotFound": "Chapter not found"
+  },
+  "nav": {
+    "sectionNotAvailable": "Section not available"
+  }
 }

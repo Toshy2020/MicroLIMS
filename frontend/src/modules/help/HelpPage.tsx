@@ -7,6 +7,7 @@ import { HELP_GUIDANCE } from "./HelpPanel";
 import { scrollToHeading } from "./scrollToHeading";
 import { useChapterText } from "./useChapterText";
 import { BreadcrumbLabel } from "../../components/breadcrumbContext";
+import { useTranslation } from "../../i18n";
 
 interface HelpPageProps {
   loadChapter?: (chapterId: string) => Promise<string>;
@@ -58,13 +59,14 @@ function ChapterView({ chapterId, title, loadChapter }: ChapterViewProps) {
 }
 
 export function HelpPage({ loadChapter = loadChapterText }: HelpPageProps) {
+  const { t } = useTranslation();
   const { chapterId } = useParams();
   const chapter = chapterId ? CHAPTERS.find((c) => c.id === chapterId) : undefined;
 
   return (
     <Box component="section" aria-label="User guide">
       {/* The chapter list needs no crumb of its own; a chapter (or an unknown one) names the last crumb. */}
-      {chapterId !== undefined && <BreadcrumbLabel label={chapter ? `${chapter.number}. ${chapter.title}` : "Chapter not found"} />}
+      {chapterId !== undefined && <BreadcrumbLabel label={chapter ? `${chapter.number}. ${chapter.title}` : t("help.chapterNotFound")} />}
       <Typography component="h1" variant="h4" sx={{ mb: 0.5 }}>User guide</Typography>
       <Typography variant="body2" sx={{ fontWeight: 600, mb: 2 }}>{HELP_GUIDANCE}</Typography>
       {chapterId === undefined ? (

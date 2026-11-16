@@ -4,7 +4,7 @@
 |---|---|
 | Document number | URS-INV |
 | Title | Inventory materials and equipment register user requirements |
-| Version | 0.1 |
+| Version | 0.2 |
 | Status | Draft |
 | Author | Claude (AI agent), draft from code |
 | Reviewer | To be assigned by QA |
@@ -16,6 +16,7 @@
 | Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1 | 2026-11-12 | Claude (AI agent), draft from code | First draft, written from the code as built. |
+| 0.2 | 2026-11-16 | AI coding agent, draft from code | Added Add Material wizard requirement (URS-INV-011). |
 
 ## Requirements
 
@@ -78,4 +79,10 @@ Each requirement below is a need that the code as built serves. Gaps found in th
 **Requirement:** The system shall show, for an equipment item in the user's sections, the incubations currently or previously held in it, and shall let the user find where a sample or media lot is or was incubated.
 **GxP:** Yes
 **Serves:** Traceability of equipment use (reference to be confirmed by QA)
+**Status:** Active
+
+### URS-INV-011
+**Requirement:** The system shall let a user with the materials permission receive a stock lot, and change one, in steps (material, batch and storage, dates) with a review step that shows the quantity with its unit and the dates before saving, keeping the same fields, checks and records as the single form it replaces.
+**GxP:** Yes
+**Serves:** 21 CFR 11.10(a), 11.10(e); ALCOA+ accurate (to be confirmed by QA)
 **Status:** Active

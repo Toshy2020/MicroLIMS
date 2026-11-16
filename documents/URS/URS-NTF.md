@@ -4,7 +4,7 @@
 |---|---|
 | Document number | URS-NTF |
 | Title | Dashboards, notifications and messaging user requirements |
-| Version | 0.3 |
+| Version | 0.4 |
 | Status | Draft |
 | Author | Claude (AI agent), draft from code |
 | Reviewer | To be assigned by QA |
@@ -18,6 +18,7 @@
 | 0.1 | 2026-11-12 | Claude (AI agent), draft from code | First draft, written from the code as built. |
 | 0.2 | 2026-11-14 | AI coding agent, draft from code | Added My Work and test self-assignment requirements (URS-NTF-006 to URS-NTF-010). |
 | 0.3 | 2026-11-15 | AI coding agent, draft from code | Added separate 24-hour incubation look-ahead group requirement (URS-NTF-011). |
+| 0.4 | 2026-11-16 | AI coding agent, draft from code | Added notification centre, notification generation, preferences and mandatory types, e-mail outbox, working hours and escalation rules, live updates and record-changed banner requirements (URS-NTF-012 to URS-NTF-018). |
 
 ## Requirements
 
@@ -85,6 +86,48 @@ Each requirement below is a need that the code as built serves. Gaps found in th
 
 ### URS-NTF-011
 **Requirement:** The system shall partition open incubations on active tests assigned to or started by the signed-in user into separate My Work groups for incubations ready to read, incubations not yet ready whose expected or end time is on or before the end of the current laboratory day, and incubations not yet ready whose expected or end time falls after the end of the current laboratory day and within 24 hours from the server clock, placing each incubation in at most one group.
+**GxP:** No
+**Serves:** Not applicable
+**Status:** Active
+
+### URS-NTF-012
+**Requirement:** The system shall give each signed-in user a notification centre that lists only that user's own notifications, lets the user filter them by state (unread, read, done), type, laboratory section and text, mark one or all of them as read, and open the record a notification refers to, and shall remove notifications older than a configured retention period.
+**GxP:** No
+**Serves:** Not applicable
+**Status:** Active
+
+### URS-NTF-013
+**Requirement:** The system shall create a notification for the people concerned when a sample waits for review or approval, a test is returned or assigned, an incubation is ready to read, media, solutions or reference strains approach or pass expiry, equipment calibration falls due, an item is overdue, a document or training task is assigned, or a message or discussion needs attention. It shall create a notification that a change causes in the same database transaction as that change, so that a change that is rolled back leaves no notification; shall not create a second open notification for the same condition and recipient; shall mark a notification done when its condition ends; and shall not put analytical result values, specification limits, passwords or tokens into notification or e-mail text.
+**GxP:** No
+**Serves:** Not applicable
+**Status:** Active
+
+### URS-NTF-014
+**Requirement:** The system shall let each user choose, for each notification type that may be e-mailed, whether the user receives it by e-mail at once, in a daily digest, or not at all; shall not let a user switch off in-application delivery; and shall let a user with the notification-configuration permission mark e-mail types as mandatory for a laboratory section the user belongs to, so that the members of that section cannot switch those types off.
+**GxP:** No
+**Serves:** Not applicable
+**Status:** Active
+
+### URS-NTF-015
+**Requirement:** The system shall send notification e-mails from a stored queue after the change that caused them is committed, shall retry a failed send a limited number of times with growing delays, shall not send the same queued e-mail twice when more than one process is running, and shall show a user with the user-management permission how many e-mails are waiting or have failed, when the last one was sent, and which active users have no e-mail address.
+**GxP:** No
+**Serves:** Not applicable
+**Status:** Active
+
+### URS-NTF-016
+**Requirement:** The system shall let a user with the notification-configuration permission define the weekly working hours of the laboratory and, for a laboratory section the user belongs to, escalation rules that notify a role when work has waited longer than a threshold counted in working hours (excluding closed hours, non-working weekdays and calendar non-working dates, in laboratory local time); shall not fire an escalation twice for the same rule and record; and shall keep every change to working hours and escalation rules in the audit trail.
+**GxP:** Yes
+**Serves:** 21 CFR 11.10(e); EU GMP Annex 11 clause 9 (to be confirmed by QA)
+**Status:** Active
+
+### URS-NTF-017
+**Requirement:** The system shall update the notification count, My Work, the section counters and messages on a signed-in user's screen shortly after the data changes, using signals that carry no business data and reach only users who may read the data, and shall fall back to periodic refresh, with a visible "Live updates paused" status, when the live connection is not available.
+**GxP:** No
+**Serves:** Not applicable
+**Status:** Active
+
+### URS-NTF-018
+**Requirement:** The system shall tell a user who has a record or a configuration form open that another user has changed that record, shall not do so for the user's own save, and shall not reload the record or replace what the user has typed unless the user chooses to reload.
 **GxP:** No
 **Serves:** Not applicable
 **Status:** Active

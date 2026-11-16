@@ -1,0 +1,14 @@
+{
+  "actions": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "close": "Close",
+    "retry": "Retry"
+  },
+  "language": {
+    "label": "Language",
+    "english": "English",
+    "arabic": "العربية"
+  },
+  "selectedCount": "{{count}} selected"
+}

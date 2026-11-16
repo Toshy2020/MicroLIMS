@@ -13,4 +13,9 @@ public interface IDocumentApprovalService
     Task<ApprovalReadinessDto> ValidateApprovalReadinessAsync(int approvalTaskId, int userId);
     Task<DocumentApprovalTaskDto> ExecuteApprovalDecisionAsync(int approvalTaskId, ExecuteApprovalDecisionRequest request, int userId, string? ipAddress = null);
     Task<ElectronicSignatureDto?> GetApprovalSignatureAsync(int approvalTaskId, int userId);
+
+    // Whether the user could approve through this task now, with the sentence the decision would be refused with.
+    Task<MicroLIMS.Application.Services.ActionCheck> CheckApproveAsync(int approvalTaskId, int userId, CancellationToken cancellationToken = default);
+    // The approval task a decision on the revision would go through (the pending one, else the latest), or null.
+    Task<int?> FindDecisionTaskIdAsync(int revisionId, CancellationToken cancellationToken = default);
 }

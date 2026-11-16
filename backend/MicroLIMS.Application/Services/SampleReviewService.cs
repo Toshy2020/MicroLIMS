@@ -131,20 +131,9 @@ public class SampleReviewService
         var sample = await LoadAsync(sampleId)
             ?? throw new NotFoundException($"Sample {sampleId} not found.");
 
-        var userScope = await _scope.GetMemberSectionIdsAsync(reviewerUserId);
-        var section = SampleSectionRollup.ResolveSection(
-            sample, sectionId, SectionSignoffStatus.UnderReview, userScope,
-            "Sample must be under review before it can be reviewed.");
-
+        var (check, section) = await CheckCompleteReviewAsync(sample, reviewerUserId, sectionId);
+        check.ThrowIfRefused();
         var currentOrders = SampleSectionRollup.CurrentOrders(sample, section);
-        foreach (var order in currentOrders)
-        {
-            if (await _segregationOfDuties.DidUserPerformTestAsync(order.Id, reviewerUserId))
-                throw new BusinessRuleException("You cannot review a sample you tested.");
-        }
-
-        if (currentOrders.Any(t => t.CurrentStep != WorkflowStep.Ready))
-            throw new BusinessRuleException("Cannot complete review: one or more tests are not in Ready step.");
 
         // Checked before anything is signed or written.
         var retentionUnitCanonical = await ValidateRetentionAsync(sample, section, retentionQuantity, retentionUnit);
@@ -231,6 +220,31 @@ public class SampleReviewService
         await _db.SaveChangesAsync();
     }
 
+    // The pre-signing checks of a review, in the order the action applies them: the section (state and membership),
+    // the reviewer did none of its tests, every test is Ready. The retention quantity is the reviewer's input and
+    // is validated by the action.
+    // Section is meaningful only when the check is allowed. The sample carries its TestOrders and SectionSignoffs
+    // and is not changed.
+    internal async Task<(ActionCheck Check, int Section)> CheckCompleteReviewAsync(
+        Sample sample, int reviewerUserId, int? sectionId, CancellationToken ct = default)
+    {
+        var userScope = await _scope.GetMemberSectionIdsAsync(reviewerUserId, ct);
+        var (sectionCheck, section) = SampleSectionRollup.CheckSection(
+            sample, sectionId, SectionSignoffStatus.UnderReview, userScope,
+            "Sample must be under review before it can be reviewed.");
+        if (!sectionCheck.Allowed) return (sectionCheck, section);
+
+        var currentOrders = SampleSectionRollup.CurrentOrders(sample, section);
+        var performed = await _segregationOfDuties.GetTestOrderIdsPerformedByAsync(reviewerUserId, currentOrders.Select(o => o.Id).ToList(), ct);
+        if (performed.Count > 0)
+            return (ActionCheck.No("You cannot review a sample you tested."), section);
+
+        if (currentOrders.Any(t => t.CurrentStep != WorkflowStep.Ready))
+            return (ActionCheck.No("Cannot complete review: one or more tests are not in Ready step."), section);
+
+        return (ActionCheck.Ok, section);
+    }
+
     private static readonly string[] RetentionUnits = { "g", "mg", "kg", "mL", "L" };
 
     // Retention is kept and recorded only by the physicochemical (FP) reviewer of a
@@ -263,48 +277,17 @@ public class SampleReviewService
 
         var sample = await _db.Samples.Include(s => s.TestOrders).Include(s => s.SectionSignoffs)
             .FirstOrDefaultAsync(s => s.Id == order.SampleId);
-        // Review is per section: this test's own section must not have been
-        // reviewed yet. A sample that is past review as a whole (every
-        // section is, then) or closed is refused outright.
-        var sectionStatus = sample is null ? SectionSignoffStatus.InTesting : SampleSectionRollup.StatusOf(sample, order.SectionId);
-        if (sample != null && (sample.Status is SampleStatus.UnderApproval
-            or SampleStatus.Approved
-            or SampleStatus.Rejected
-            or SampleStatus.RetestRequested
-            or SampleStatus.Cancelled
-            or SampleStatus.Voided
-            || sectionStatus is not (SectionSignoffStatus.InTesting or SectionSignoffStatus.UnderReview)))
-        {
-            throw new BusinessRuleException("Cannot return a test to the analyst after the sample has been reviewed. Use Reject or Retest at approval instead.");
-        }
 
-        if (order.Status != ApprovalStatus.ResultEntered)
-            throw new BusinessRuleException($"Cannot return a test order in {order.Status} status. Only test orders in ResultEntered status can be returned to the analyst.");
-
-        var definition = await _db.TestDefinitions.FirstOrDefaultAsync(d => d.Code == order.TestCode)
+        // The moisture order's row is locked before its dependent assays are scanned (forAction), so an
+        // assay being recorded against this result either commits before the scan (and is returned) or waits
+        // and then finds the result returned.
+        var returnable = await CheckReturnToAnalystAsync(order, sample, forAction: true);
+        returnable.Check.ThrowIfRefused();
+        var sectionStatus = returnable.SectionStatus;
+        var dependents = returnable.Dependents;
+        // Never null once the check is allowed; this keeps the compiler's null analysis honest.
+        var definition = returnable.Definition
             ?? throw new BusinessRuleException($"Test definition \"{order.TestCode}\" not found.");
-
-        if (definition.WorkflowType != WorkflowType.CountTest && !AnalysisWorkflows.UsesTestAnalysis(definition.WorkflowType))
-            throw new BusinessRuleException($"Return to Analyst is only supported for Count Test and result-entry (analysis) workflows. \"{order.TestCode}\" is a {definition.WorkflowType} workflow.");
-
-        // A moisture (LOD / water) result is read by the dried / anhydrous assays of the same sample:
-        // returning it returns every assay that used it, in the same unit of work. Found first - the
-        // state transition below saves, and the moisture results are inactive from then on.
-        // The moisture order's row is locked first, so an assay being recorded against this result either
-        // commits before the scan below (and is returned) or waits and then finds the result returned.
-        var dependents = new List<TestOrder>();
-        if (definition.MoistureRole != MoistureRole.None)
-        {
-            await SampleMoistureResolver.LockMoistureOrderAsync(_db, order.Id);
-            dependents = await FindDependentAssaysAsync(order);
-            foreach (var dependent in dependents)
-            {
-                var dependentSection = sample is null ? SectionSignoffStatus.InTesting : SampleSectionRollup.StatusOf(sample, dependent.SectionId);
-                if (dependent.Status != ApprovalStatus.ResultEntered
-                    || dependentSection is not (SectionSignoffStatus.InTesting or SectionSignoffStatus.UnderReview))
-                    throw new BusinessRuleException($"Cannot return {order.TestCode}: assay {dependent.TestCode} has already been reviewed.");
-            }
-        }
 
         var returnEvent = await ReturnOrderAsync(order, definition, sample, sectionStatus, reviewerId, reason);
 
@@ -320,19 +303,88 @@ public class SampleReviewService
         return returnEvent;
     }
 
+    private sealed record ReturnCheck(ActionCheck Check, SectionSignoffStatus SectionStatus, TestDefinition? Definition, List<TestOrder> Dependents);
+
+    // The pre-conditions of returning a test to its analyst, in the order the action applies them: the test's
+    // section is not reviewed yet, a result is entered, the workflow can be returned, and no assay that read
+    // this moisture result is already reviewed. The reason is the reviewer's input and stays with the action.
+    public async Task<ActionCheck> CheckReturnToAnalystAsync(int testOrderId, CancellationToken ct = default)
+    {
+        var order = await _db.TestOrders.AsNoTracking().FirstOrDefaultAsync(t => t.Id == testOrderId, ct)
+            ?? throw new NotFoundException($"Test order {testOrderId} not found.");
+        var sample = await _db.Samples.AsNoTracking().Include(s => s.TestOrders).Include(s => s.SectionSignoffs)
+            .FirstOrDefaultAsync(s => s.Id == order.SampleId, ct);
+        return (await CheckReturnToAnalystAsync(order, sample, forAction: false, ct)).Check;
+    }
+
+    // forAction: the action's own call - entities are tracked and the moisture order's row is locked. The
+    // availability call reads without tracking and takes no lock.
+    private async Task<ReturnCheck> CheckReturnToAnalystAsync(TestOrder order, Sample? sample, bool forAction, CancellationToken ct = default)
+    {
+        var dependents = new List<TestOrder>();
+        ReturnCheck Refused(string reason, SectionSignoffStatus status, TestDefinition? definition = null) =>
+            new(ActionCheck.No(reason), status, definition, dependents);
+
+        // Review is per section: this test's own section must not have been
+        // reviewed yet. A sample that is past review as a whole (every
+        // section is, then) or closed is refused outright.
+        var sectionStatus = sample is null ? SectionSignoffStatus.InTesting : SampleSectionRollup.StatusOf(sample, order.SectionId);
+        if (sample != null && (sample.Status is SampleStatus.UnderApproval
+            or SampleStatus.Approved
+            or SampleStatus.Rejected
+            or SampleStatus.RetestRequested
+            or SampleStatus.Cancelled
+            or SampleStatus.Voided
+            || sectionStatus is not (SectionSignoffStatus.InTesting or SectionSignoffStatus.UnderReview)))
+        {
+            return Refused("Cannot return a test to the analyst after the sample has been reviewed. Use Reject or Retest at approval instead.", sectionStatus);
+        }
+
+        if (order.Status != ApprovalStatus.ResultEntered)
+            return Refused($"Cannot return a test order in {order.Status} status. Only test orders in ResultEntered status can be returned to the analyst.", sectionStatus);
+
+        var definitions = forAction ? _db.TestDefinitions : _db.TestDefinitions.AsNoTracking();
+        var definition = await definitions.FirstOrDefaultAsync(d => d.Code == order.TestCode, ct);
+        if (definition is null)
+            return Refused($"Test definition \"{order.TestCode}\" not found.", sectionStatus);
+
+        if (definition.WorkflowType != WorkflowType.CountTest && !AnalysisWorkflows.UsesTestAnalysis(definition.WorkflowType))
+            return Refused($"Return to Analyst is only supported for Count Test and result-entry (analysis) workflows. \"{order.TestCode}\" is a {definition.WorkflowType} workflow.", sectionStatus, definition);
+
+        // A moisture (LOD / water) result is read by the dried / anhydrous assays of the same sample:
+        // returning it returns every assay that used it, in the same unit of work. Found first - the
+        // state transition that follows saves, and the moisture results are inactive from then on.
+        if (definition.MoistureRole != MoistureRole.None)
+        {
+            if (forAction)
+                await SampleMoistureResolver.LockMoistureOrderAsync(_db, order.Id);
+            dependents = await FindDependentAssaysAsync(order, tracked: forAction, ct);
+            foreach (var dependent in dependents)
+            {
+                var dependentSection = sample is null ? SectionSignoffStatus.InTesting : SampleSectionRollup.StatusOf(sample, dependent.SectionId);
+                if (dependent.Status != ApprovalStatus.ResultEntered
+                    || dependentSection is not (SectionSignoffStatus.InTesting or SectionSignoffStatus.UnderReview))
+                    return Refused($"Cannot return {order.TestCode}: assay {dependent.TestCode} has already been reviewed.", sectionStatus, definition);
+            }
+        }
+
+        return new ReturnCheck(ActionCheck.Ok, sectionStatus, definition, dependents);
+    }
+
     // Live (not cancelled, voided or superseded) titration, HPLC and UV orders of the same sample, in any status, whose
     // active analysis took its moisture value from one of this order's active results. The caller refuses
     // the return when one is already past ResultEntered. Must run before those results are superseded.
-    private async Task<List<TestOrder>> FindDependentAssaysAsync(TestOrder moistureOrder)
+    private async Task<List<TestOrder>> FindDependentAssaysAsync(TestOrder moistureOrder, bool tracked = true, CancellationToken ct = default)
     {
-        var resultIds = await _db.ParameterResults.Where(r => r.TestOrderId == moistureOrder.Id && r.IsActive).Select(r => r.Id).ToListAsync();
-        var candidates = await _db.TestAnalyses
+        var resultIds = await _db.ParameterResults.Where(r => r.TestOrderId == moistureOrder.Id && r.IsActive).Select(r => r.Id).ToListAsync(ct);
+        var analyses = tracked ? _db.TestAnalyses : _db.TestAnalyses.AsNoTracking();
+        var candidates = await analyses
             .Where(a => a.IsActive && (a.AnalysisType == WorkflowType.Titration || a.AnalysisType == WorkflowType.HplcMethodAssay
                 || a.AnalysisType == WorkflowType.UvSpectrophotometry) && a.TestOrderId != moistureOrder.Id
                 && a.TestOrder!.SampleId == moistureOrder.SampleId && !a.TestOrder.IsSuperseded
                 && a.TestOrder.CancelledAtStep == null && a.TestOrder.Status != ApprovalStatus.Cancelled && a.TestOrder.Status != ApprovalStatus.Voided)
             .Select(a => new { a.TestOrder, a.ConditionsJson })
-            .ToListAsync();
+            .ToListAsync(ct);
         return candidates
             .Where(c => UsesMoistureResult(c.ConditionsJson, resultIds))
             .Select(c => c.TestOrder!)

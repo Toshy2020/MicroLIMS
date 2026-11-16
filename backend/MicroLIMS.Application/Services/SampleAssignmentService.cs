@@ -50,6 +50,18 @@ public class SampleAssignmentService
         return await LoadDtoAsync(sample);
     }
 
+    private static List<TestOrder> OpenInScope(Sample sample, IReadOnlyList<int>? actingScope) =>
+        sample.TestOrders.Where(t => IsOpen(t) && InScope(actingScope, t.SectionId)).ToList();
+
+    private static ActionCheck CheckAssign(List<TestOrder> openInScope) =>
+        openInScope.Count == 0 ? ActionCheck.No("This sample has no open tests you can assign.") : ActionCheck.Ok;
+
+    // Whether the acting user can assign anything on the sample: it has an open test in a section they belong to.
+    // Who is put on the tests is the user's choice, and AnalystAssignmentRules judges it in the action.
+    // The sample carries its TestOrders.
+    internal async Task<ActionCheck> CheckAssignAsync(Sample sample, int actingUserId, CancellationToken ct = default) =>
+        CheckAssign(OpenInScope(sample, await _scope.GetMemberSectionIdsAsync(actingUserId, ct)));
+
     internal async Task<List<(TestOrder Order, int? AnalystId)>> PrepareSampleAssignmentAsync(
         Sample sample,
         int? analystUserId,
@@ -59,9 +71,8 @@ public class SampleAssignmentService
     {
         actingScope ??= await _scope.GetMemberSectionIdsAsync(actingUserId);
 
-        var open = sample.TestOrders.Where(t => IsOpen(t) && InScope(actingScope, t.SectionId)).ToList();
-        if (open.Count == 0)
-            throw new BusinessRuleException("This sample has no open tests you can assign.");
+        var open = OpenInScope(sample, actingScope);
+        CheckAssign(open).ThrowIfRefused();
 
         var targets = open;
         if (analystUserId is int assigneeId)

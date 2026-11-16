@@ -284,6 +284,11 @@ public class SampleCorrectionService
     // Section Head's judgement that the material does not conform, so a void
     // records no approval decision, approver or decision time, and reports
     // and the certificate must never read it as one.
+    // The one pre-signing check of a void that does not depend on what the user types: the sample is not voided
+    // already. The reason is the user's input and is checked by the action.
+    internal static ActionCheck CheckVoid(Sample sample) =>
+        sample.Status == SampleStatus.Voided ? ActionCheck.No("Sample is already voided.") : ActionCheck.Ok;
+
     public Task<SampleDto> VoidAsync(int sampleId, string reason, string password, int actingUserId, string? ipAddress) =>
         UnitOfWork.RunAsync(_db, () => VoidCoreAsync(sampleId, reason, password, actingUserId, ipAddress));
 
@@ -295,8 +300,7 @@ public class SampleCorrectionService
 
         var sample = await LoadSampleAsync(sampleId);
 
-        if (sample.Status == SampleStatus.Voided)
-            throw new BusinessRuleException("Sample is already voided.");
+        CheckVoid(sample).ThrowIfRefused();
 
         // Signs first - a failed verification voids nothing.
         _db.CurrentUserId = actingUserId;

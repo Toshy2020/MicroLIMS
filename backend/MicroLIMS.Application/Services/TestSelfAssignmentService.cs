@@ -27,26 +27,16 @@ public sealed class TestSelfAssignmentService
 
     public async Task TakeAsync(int testOrderId, int userId, CancellationToken ct = default)
     {
-        await EnsurePermissionAsync(userId, ct);
+        (await CheckPermissionAsync(userId, ct)).ThrowIfRefused();
 
         var order = await _db.TestOrders.Include(t => t.Sample).SingleOrDefaultAsync(t => t.Id == testOrderId, ct)
             ?? throw new NotFoundException($"Test {testOrderId} not found.");
 
-        // Readable first (a test outside the caller's reach is not theirs to see); section setting and membership follow.
-        var readable = await _scope.GetReadableSectionIdsAsync(userId, ct);
-        if (readable is not null && !readable.Contains(order.SectionId))
-            throw new UnauthorizedAccessException("This test belongs to a laboratory section you are not assigned to.");
-
-        if (!await SectionSelfAssignmentService.IsEnabledAsync(_db, order.SectionId, ct))
-            throw new BusinessRuleException("Taking tests is switched off in this section. Ask a Section Head to assign this test.");
-
-        if (order.AssignedAnalystId is int holderId)
-            throw new BusinessRuleException($"Already taken by {await FullNameAsync(holderId, ct)}.");
-        if (order.IsSuperseded || order.OutsourcedToLab is not null || !IsOpen(order))
-            throw new BusinessRuleException("This test is closed, replaced or outsourced and can no longer be taken.");
-
         var now = _time.GetUtcNow().UtcDateTime;
-        var user = await AnalystAssignmentRules.EnsureAssignableAsync(_db, _scope, userId, userId, new[] { order.SectionId }, now);
+        var (check, taker) = await CheckTakeAsync(order, userId, now, ct);
+        check.ThrowIfRefused();
+        // Never null once the check is allowed; this keeps the compiler's null analysis honest.
+        var user = taker ?? throw new NotFoundException($"User {userId} not found.");
 
         _db.AuditLogs.Add(SampleAssignmentService.BuildAssignmentAudit(order.Sample!, order, TestReleaseRules.TakenAction,
             $"{order.TestCode}: Unassigned", $"{order.TestCode}: {user.FullName}", userId, now));
@@ -72,14 +62,11 @@ public sealed class TestSelfAssignmentService
 
     public async Task ReleaseAsync(int testOrderId, int userId, CancellationToken ct = default)
     {
-        await EnsurePermissionAsync(userId, ct);
+        (await CheckPermissionAsync(userId, ct)).ThrowIfRefused();
 
         var order = await _db.TestOrders.Include(t => t.Sample).SingleOrDefaultAsync(t => t.Id == testOrderId, ct)
             ?? throw new NotFoundException($"Test {testOrderId} not found.");
-        if (order.AssignedAnalystId != userId)
-            throw new BusinessRuleException("Only the analyst who holds this test can release it.");
-        if (!(await TestReleaseRules.ReleasableAsync(_db, userId, new[] { testOrderId }, ct)).Contains(testOrderId))
-            throw new BusinessRuleException(TestReleaseRules.CannotRelease);
+        (await CheckReleaseAsync(order, userId, ct)).ThrowIfRefused();
 
         var now = _time.GetUtcNow().UtcDateTime;
         var name = await FullNameAsync(userId, ct);
@@ -101,10 +88,64 @@ public sealed class TestSelfAssignmentService
         }
     }
 
+    // The pre-conditions of taking a test, in the order the action applies them: the permission, the test is
+    // readable, taking is switched on in its section, nobody holds it, it is open, and the user may be assigned
+    // tests in that section.
+    public async Task<ActionCheck> CheckTakeAsync(int testOrderId, int userId, CancellationToken ct = default)
+    {
+        var permission = await CheckPermissionAsync(userId, ct);
+        if (!permission.Allowed) return permission;
+
+        var order = await _db.TestOrders.AsNoTracking().SingleOrDefaultAsync(t => t.Id == testOrderId, ct)
+            ?? throw new NotFoundException($"Test {testOrderId} not found.");
+        return (await CheckTakeAsync(order, userId, _time.GetUtcNow().UtcDateTime, ct)).Check;
+    }
+
+    // User is the taker, set once every check has passed.
+    private async Task<(ActionCheck Check, User? User)> CheckTakeAsync(TestOrder order, int userId, DateTime now, CancellationToken ct)
+    {
+        // Readable first (a test outside the caller's reach is not theirs to see); section setting and membership follow.
+        var readable = await _scope.GetReadableSectionIdsAsync(userId, ct);
+        if (readable is not null && !readable.Contains(order.SectionId))
+            return (ActionCheck.Denied("This test belongs to a laboratory section you are not assigned to."), null);
+
+        if (!await SectionSelfAssignmentService.IsEnabledAsync(_db, order.SectionId, ct))
+            return (ActionCheck.No("Taking tests is switched off in this section. Ask a Section Head to assign this test."), null);
+
+        if (order.AssignedAnalystId is int holderId)
+            return (ActionCheck.No($"Already taken by {await FullNameAsync(holderId, ct)}."), null);
+        if (order.IsSuperseded || order.OutsourcedToLab is not null || !IsOpen(order))
+            return (ActionCheck.No("This test is closed, replaced or outsourced and can no longer be taken."), null);
+
+        var (assignable, user) = await AnalystAssignmentRules.CheckAssignableAsync(_db, _scope, userId, userId, new[] { order.SectionId }, now, ct);
+        return (assignable, user);
+    }
+
+    // The pre-conditions of giving a test back, in the order the action applies them: the permission, the user
+    // holds the test, and it is still theirs to release (taken by themselves, nothing recorded on it).
+    public async Task<ActionCheck> CheckReleaseAsync(int testOrderId, int userId, CancellationToken ct = default)
+    {
+        var permission = await CheckPermissionAsync(userId, ct);
+        if (!permission.Allowed) return permission;
+
+        var order = await _db.TestOrders.AsNoTracking().SingleOrDefaultAsync(t => t.Id == testOrderId, ct)
+            ?? throw new NotFoundException($"Test {testOrderId} not found.");
+        return await CheckReleaseAsync(order, userId, ct);
+    }
+
+    private async Task<ActionCheck> CheckReleaseAsync(TestOrder order, int userId, CancellationToken ct)
+    {
+        if (order.AssignedAnalystId != userId)
+            return ActionCheck.No("Only the analyst who holds this test can release it.");
+        if (!(await TestReleaseRules.ReleasableAsync(_db, userId, new[] { order.Id }, ct)).Contains(order.Id))
+            return ActionCheck.No(TestReleaseRules.CannotRelease);
+        return ActionCheck.Ok;
+    }
+
     private static bool IsOpen(TestOrder order) => order.Status is ApprovalStatus.Pending or ApprovalStatus.InProgress;
 
     // The permission is also checked at the endpoint; here it guards every other caller of the service.
-    private async Task EnsurePermissionAsync(int userId, CancellationToken ct)
+    private async Task<ActionCheck> CheckPermissionAsync(int userId, CancellationToken ct)
     {
         var holds = await (
                 from u in _db.Users.AsNoTracking()
@@ -113,8 +154,7 @@ public sealed class TestSelfAssignmentService
                 where u.Id == userId && u.IsActive && p.Code == PermissionConstants.TestsSelfAssign
                 select p.Id)
             .AnyAsync(ct);
-        if (!holds)
-            throw new UnauthorizedAccessException("You do not have permission to take or release tests.");
+        return holds ? ActionCheck.Ok : ActionCheck.Denied("You do not have permission to take or release tests.");
     }
 
     private async Task<string> FullNameAsync(int userId, CancellationToken ct) =>

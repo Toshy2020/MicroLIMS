@@ -95,7 +95,7 @@ Each requirement is a need that the code as built serves. Gaps found in the code
 **Status:** Active
 
 ### URS-RCV-013
-**Requirement:** The system shall allow a permitted receiving user to submit a batch of 1 to 100 sample rows of a single receiving category in one all-or-nothing request, shall report row- and field-specific validation errors across all submitted rows before persisting any record, and shall refuse duplicate batch number and control number pairs within a Product batch receive.
+**Requirement:** The system shall allow a permitted receiving user to submit a batch of 1 to 100 sample rows of a single receiving category in one all-or-nothing request, shall report row- and field-specific validation errors across all submitted rows before persisting any record, and shall refuse duplicate batch number and control number pairs within a Product batch receive, and shall refuse to receive an item-based sample whose batch number and control number pair is already registered on a sample that is not Cancelled or Voided (decided 2026-11-16).
 **GxP:** Yes
 **Serves:** 21 CFR 11.10(e); ALCOA+ accurate and complete (to be confirmed by QA)
 **Status:** Active

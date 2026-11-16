@@ -681,7 +681,7 @@ public class SampleBatchReceivePostgresTests
             {
                 var dto = await receiving.ReceiveSampleAsync(new ItemBasedReceiveRequest(
                     r.ItemId, r.CauseOfTestingId, r.SampleQuantity, r.SampledBy,
-                    r.BatchNumber, r.ControlNumber, r.MfgDate, r.ExpDate,
+                    r.BatchNumber, r.ControlNumber + "-S", r.MfgDate, r.ExpDate, // distinct control: the same pair cannot be received twice (2026-11-16)
                     r.ProductionStage, userId, r.TargetSectionIds, r.Grade));
                 singleIds.Add(dto.Id);
             }
@@ -710,7 +710,7 @@ public class SampleBatchReceivePostgresTests
             Assert.Equal(s.SampleQuantity, b.SampleQuantity);
             Assert.Equal(s.SampledBy, b.SampledBy);
             Assert.Equal(s.BatchNumber, b.BatchNumber);
-            Assert.Equal(s.ControlNumber, b.ControlNumber);
+            Assert.Equal(s.ControlNumber, b.ControlNumber + "-S");
             Assert.Equal(s.ProductionStage, b.ProductionStage);
             Assert.Equal(s.ProductionStageId, b.ProductionStageId);
             Assert.Equal(s.ReceivedByUserId, b.ReceivedByUserId);
@@ -735,5 +735,215 @@ public class SampleBatchReceivePostgresTests
         var auth = method.GetCustomAttribute<AuthorizeAttribute>();
         Assert.NotNull(auth);
         Assert.Equal(PermissionConstants.SamplesReceiveOwnLab, auth!.Policy);
+    }
+
+    // ---- Decided 2026-11-16: single (and therefore batch) receive refuses an existing sample with the same batch + control ----
+
+    private const string DuplicateMessage = "A sample with this batch and control number is already registered.";
+
+    private static ItemBasedReceiveRequest SingleRequest(
+        int userId, int itemId, int causeId, int microId, string stage, string? batch, string? control) =>
+        new(itemId, causeId, "10 g", "Sampler", batch!, control!, null, null, stage, userId, new List<int> { microId }, null);
+
+    private async Task<int> ReceiveSingleAsync(ItemBasedReceiveRequest req)
+    {
+        await using var db = _fixture.CreateDbContext();
+        var receiving = new ReceivingService(new ProductWorkflowEngine(db, new ReferenceNumberGenerator(db)), new ReceiveSampleValidator());
+        return (await receiving.ReceiveSampleAsync(req)).Id;
+    }
+
+    private async Task SetStatusAsync(int sampleId, SampleStatus status)
+    {
+        await using var db = _fixture.CreateDbContext();
+        var sample = await db.Samples.SingleAsync(x => x.Id == sampleId);
+        sample.Status = status;
+        await db.SaveChangesAsync();
+    }
+
+    private async Task<int> CountSamplesAsync(string control, string batch)
+    {
+        await using var db = _fixture.CreateDbContext();
+        return await db.Samples.AsNoTracking().CountAsync(x => x.ControlNumber == control && x.BatchNumber == batch);
+    }
+
+    private ReceivingService NewReceiving(MicroLimsDbContext db) =>
+        new(new ProductWorkflowEngine(db, new ReferenceNumberGenerator(db)), new ReceiveSampleValidator());
+
+    [PostgresFact]
+    public async Task SingleReceive_DuplicateOfActiveSample_Refused_NothingPersisted()
+    {
+        var suffix = Guid.NewGuid().ToString("N")[..8];
+        var (userId, microId, _, causeId, itemId, _, _) = await SeedProductAndWaterAsync(suffix);
+        var stage = $"Bulk-{suffix}";
+        var batch = $"BD-{suffix}";
+        var control = $"CD-{suffix}";
+        var firstId = await ReceiveSingleAsync(SingleRequest(userId, itemId, causeId, microId, stage, batch, control));
+
+        int samplesBefore, auditBefore;
+        await using (var before = _fixture.CreateDbContext())
+        {
+            samplesBefore = await before.Samples.AsNoTracking().CountAsync();
+            auditBefore = await before.AuditLogs.AsNoTracking().CountAsync(a => a.EntityName == nameof(Sample));
+        }
+
+        await using (var actDb = _fixture.CreateDbContext())
+        {
+            var receiving = NewReceiving(actDb);
+            var ex = await Assert.ThrowsAsync<FieldValidationException>(() =>
+                receiving.ReceiveSampleAsync(SingleRequest(userId, itemId, causeId, microId, stage, batch, control)));
+            Assert.Equal(DuplicateMessage, ex.Message);
+            var fe = Assert.Single(ex.FieldErrors);
+            Assert.Equal("controlNumber", fe.Field);
+            Assert.Equal(DuplicateMessage, fe.Message);
+            Assert.Null(fe.Row);
+            Assert.DoesNotContain(firstId.ToString(), ex.Message);
+        }
+
+        await using var assertDb = _fixture.CreateDbContext();
+        Assert.Equal(samplesBefore, await assertDb.Samples.AsNoTracking().CountAsync());
+        Assert.Equal(1, await assertDb.Samples.AsNoTracking().CountAsync(x => x.ControlNumber == control));
+        Assert.Equal(auditBefore, await assertDb.AuditLogs.AsNoTracking().CountAsync(a => a.EntityName == nameof(Sample)));
+    }
+
+    [PostgresTheory]
+    [InlineData(SampleStatus.Cancelled)]
+    [InlineData(SampleStatus.Voided)]
+    public async Task SingleReceive_ExistingCancelledOrVoided_Allowed_WritesSampleAndAudit(SampleStatus status)
+    {
+        var suffix = Guid.NewGuid().ToString("N")[..8];
+        var (userId, microId, _, causeId, itemId, _, _) = await SeedProductAndWaterAsync(suffix);
+        var stage = $"Bulk-{suffix}";
+        var batch = $"BC-{suffix}";
+        var control = $"CC-{suffix}";
+        var firstId = await ReceiveSingleAsync(SingleRequest(userId, itemId, causeId, microId, stage, batch, control));
+        await SetStatusAsync(firstId, status);
+
+        var newId = await ReceiveSingleAsync(SingleRequest(userId, itemId, causeId, microId, stage, batch, control));
+
+        await using var assertDb = _fixture.CreateDbContext();
+        var persisted = await assertDb.Samples.AsNoTracking().SingleAsync(x => x.Id == newId);
+        Assert.NotEqual(firstId, newId);
+        Assert.Equal(SampleStatus.Received, persisted.Status);
+        Assert.Equal(userId, persisted.ReceivedByUserId);
+        Assert.Equal(batch, persisted.BatchNumber);
+        Assert.Equal(control, persisted.ControlNumber);
+        var audit = await assertDb.AuditLogs.AsNoTracking()
+            .SingleAsync(a => a.EntityName == nameof(Sample) && a.Action == "Create" && a.EntityId == newId.ToString());
+        Assert.NotNull(audit);
+        Assert.Equal(2, await CountSamplesAsync(control, batch));
+    }
+
+    [PostgresTheory]
+    [InlineData(SampleStatus.Received)]
+    [InlineData(SampleStatus.InTesting)]
+    public async Task SingleReceive_DuplicateOfOtherActiveStatuses_Refused(SampleStatus status)
+    {
+        var suffix = Guid.NewGuid().ToString("N")[..8];
+        var (userId, microId, _, causeId, itemId, _, _) = await SeedProductAndWaterAsync(suffix);
+        var stage = $"Bulk-{suffix}";
+        var batch = $"BS-{suffix}";
+        var control = $"CS-{suffix}";
+        var firstId = await ReceiveSingleAsync(SingleRequest(userId, itemId, causeId, microId, stage, batch, control));
+        await SetStatusAsync(firstId, status);
+
+        await using var actDb = _fixture.CreateDbContext();
+        var receiving = NewReceiving(actDb);
+        await Assert.ThrowsAsync<FieldValidationException>(() =>
+            receiving.ReceiveSampleAsync(SingleRequest(userId, itemId, causeId, microId, stage, batch, control)));
+        Assert.Equal(1, await CountSamplesAsync(control, batch));
+    }
+
+    [PostgresFact]
+    public async Task SingleReceive_DifferingOnlyByCaseOrWhitespace_Refused()
+    {
+        var suffix = Guid.NewGuid().ToString("N")[..8];
+        var (userId, microId, _, causeId, itemId, _, _) = await SeedProductAndWaterAsync(suffix);
+        var stage = $"Bulk-{suffix}";
+        var batch = $"BW-{suffix}";
+        var control = $"CW-{suffix}";
+        await ReceiveSingleAsync(SingleRequest(userId, itemId, causeId, microId, stage, batch, control));
+
+        await using var actDb = _fixture.CreateDbContext();
+        var receiving = NewReceiving(actDb);
+        var ex = await Assert.ThrowsAsync<FieldValidationException>(() =>
+            receiving.ReceiveSampleAsync(SingleRequest(userId, itemId, causeId, microId, stage, $"  {batch.ToLowerInvariant()} ", $" {control.ToLowerInvariant()}  ")));
+        Assert.Equal("controlNumber", Assert.Single(ex.FieldErrors).Field);
+        await using var assertDb = _fixture.CreateDbContext();
+        Assert.Equal(1, await assertDb.Samples.AsNoTracking().CountAsync(x => x.ControlNumber.ToLower() == control.ToLower()));
+    }
+
+    [PostgresFact]
+    public async Task SingleReceive_SameControlDifferentBatch_Allowed()
+    {
+        var suffix = Guid.NewGuid().ToString("N")[..8];
+        var (userId, microId, _, causeId, itemId, _, _) = await SeedProductAndWaterAsync(suffix);
+        var stage = $"Bulk-{suffix}";
+        var control = $"CX-{suffix}";
+        await ReceiveSingleAsync(SingleRequest(userId, itemId, causeId, microId, stage, $"BX1-{suffix}", control));
+        await ReceiveSingleAsync(SingleRequest(userId, itemId, causeId, microId, stage, $"BX2-{suffix}", control));
+
+        await using var assertDb = _fixture.CreateDbContext();
+        Assert.Equal(2, await assertDb.Samples.AsNoTracking().CountAsync(x => x.ControlNumber == control));
+    }
+
+    [PostgresFact]
+    public async Task SingleReceive_BlankBatch_DuplicateCheckNotApplied()
+    {
+        var suffix = Guid.NewGuid().ToString("N")[..8];
+        var (userId, microId, _, causeId, itemId, _, _) = await SeedProductAndWaterAsync(suffix);
+        var stage = $"Bulk-{suffix}";
+        var control = $"CB-{suffix}";
+        await ReceiveSingleAsync(SingleRequest(userId, itemId, causeId, microId, stage, $"BB-{suffix}", control));
+
+        // The validator refuses a blank batch number with its own message, never the duplicate message.
+        await using (var actDb = _fixture.CreateDbContext())
+        {
+            var receiving = NewReceiving(actDb);
+            var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
+                receiving.ReceiveSampleAsync(SingleRequest(userId, itemId, causeId, microId, stage, " ", control)));
+            Assert.IsNotType<FieldValidationException>(ex);
+        }
+
+        // The engine alone (validator bypassed) must not apply the check to a blank batch number.
+        await using var engineDb = _fixture.CreateDbContext();
+        var engine = new ProductWorkflowEngine(engineDb, new ReferenceNumberGenerator(engineDb));
+        var sample = await engine.ReceiveAsync(SingleRequest(userId, itemId, causeId, microId, stage, " ", control));
+        Assert.True(sample.Id > 0);
+    }
+
+    [PostgresFact]
+    public async Task BatchReceive_RowDuplicatingExistingSample_WholeBatchRefused_WithRowIndex_NothingPersisted()
+    {
+        var suffix = Guid.NewGuid().ToString("N")[..8];
+        var (userId, microId, _, causeId, itemId, _, _) = await SeedProductAndWaterAsync(suffix);
+        var stage = $"Bulk-{suffix}";
+        var dupBatch = $"BE-{suffix}";
+        var dupControl = $"CE-{suffix}";
+        var okControl = $"CK-{suffix}";
+        await ReceiveSingleAsync(SingleRequest(userId, itemId, causeId, microId, stage, dupBatch, dupControl));
+
+        await using (var actDb = _fixture.CreateDbContext())
+        {
+            var svc = BuildService(actDb);
+            var req = new BatchReceiveRequest(
+                "Product",
+                new[]
+                {
+                    new ReceiveItemBasedSampleRequest(itemId, causeId, "10 g", "Sampler A", $"BK-{suffix}", okControl, null, null, stage, new List<int> { microId }),
+                    new ReceiveItemBasedSampleRequest(itemId, causeId, "10 g", "Sampler B", dupBatch, dupControl, null, null, stage, new List<int> { microId })
+                },
+                null, null, null);
+
+            var ex = await Assert.ThrowsAsync<FieldValidationException>(() => svc.ReceiveAsync(req, userId));
+            var fe = Assert.Single(ex.FieldErrors);
+            Assert.Equal(1, fe.Row);
+            Assert.Equal("controlNumber", fe.Field);
+            Assert.Equal(DuplicateMessage, fe.Message);
+        }
+
+        await using var assertDb = _fixture.CreateDbContext();
+        Assert.False(await assertDb.Samples.AsNoTracking().AnyAsync(x => x.ControlNumber == okControl));
+        Assert.Equal(1, await assertDb.Samples.AsNoTracking().CountAsync(x => x.ControlNumber == dupControl));
+        Assert.False(await assertDb.AuditLogs.AsNoTracking().AnyAsync(a => a.EntityName == nameof(Sample) && a.ControlNumber == okControl));
     }
 }

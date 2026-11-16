@@ -1,4 +1,5 @@
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Responses;
 using System.Globalization;
 using System.Text.RegularExpressions;
 using Microsoft.EntityFrameworkCore;
@@ -55,8 +56,37 @@ public class ProductWorkflowEngine : IProductWorkflowEngine
     public Task<Sample> ReceiveAsync(ItemBasedReceiveRequest request) =>
         UnitOfWork.RunAsync(_db, () => ReceiveCoreAsync(request));
 
+    // User decision (2026-11-16): an item-based sample is refused when a sample with the same
+    // batch number AND control number (trimmed, case-insensitive) is already registered, unless
+    // that sample is Cancelled or Voided. The message deliberately names nothing about the other
+    // sample: the receiving user may not be allowed to read it.
+    internal const string DuplicateBatchAndControlMessage =
+        "A sample with this batch and control number is already registered.";
+
+    private async Task EnsureNoActiveSampleWithSameBatchAndControlAsync(ItemBasedReceiveRequest request)
+    {
+        if (string.IsNullOrWhiteSpace(request.BatchNumber) || string.IsNullOrWhiteSpace(request.ControlNumber))
+            return;
+
+        var batch = request.BatchNumber.Trim().ToLower();
+        var control = request.ControlNumber.Trim().ToLower();
+
+        var exists = await _db.Samples.AsNoTracking().AnyAsync(s =>
+            s.Status != SampleStatus.Cancelled &&
+            s.Status != SampleStatus.Voided &&
+            s.BatchNumber.Trim().ToLower() == batch &&
+            s.ControlNumber.Trim().ToLower() == control);
+
+        if (exists)
+            throw new FieldValidationException(
+                DuplicateBatchAndControlMessage,
+                new[] { new FieldError("controlNumber", DuplicateBatchAndControlMessage) });
+    }
+
     private async Task<Sample> ReceiveCoreAsync(ItemBasedReceiveRequest request)
     {
+        await EnsureNoActiveSampleWithSameBatchAndControlAsync(request);
+
         var item = await _db.Items
             .Include(i => i.AssignedTests)
             .FirstOrDefaultAsync(i => i.Id == request.ItemId)

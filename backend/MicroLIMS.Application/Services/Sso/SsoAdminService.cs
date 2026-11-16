@@ -86,7 +86,9 @@ public sealed class SsoAdminService
         var unlinked = await _db.Users
             .AsNoTracking()
             .Where(u => u.IsActive && u.DirectoryUsername == null && !u.IsEmergencyAccount)
-            .OrderBy(u => u.Username)
+            // Character-code order ("C" collation), so the list reads the same whatever
+            // collation the server's database was created with.
+            .OrderBy(u => EF.Functions.Collate(u.Username, "C"))
             .Select(u => new SsoUnlinkedUserDto(u.Id, u.Username, u.FullName, u.Role != null ? u.Role.Name : string.Empty))
             .ToListAsync(ct);
 

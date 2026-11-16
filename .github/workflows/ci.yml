@@ -265,6 +265,12 @@ jobs:
       - name: Test and typing debt ratchet
         run: npm run debt:check
 
+      # F4 (Arabic/RTL): hard-coded interface text per module is pinned in
+      # i18n-debt-baseline.json. Fails if any module's count rises; lower the
+      # baseline with `npm run i18n:update` after converting a module to keys.
+      - name: Hard-coded interface text ratchet
+        run: npm run i18n:check
+
       - name: TypeScript
         run: npx tsc -b
 

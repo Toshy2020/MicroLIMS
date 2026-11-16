@@ -135,6 +135,13 @@ public class SampleBatchReceiveService
                     };
                     samples.Add(new BatchReceivedSample(i, dto.Id, dto.ReferenceNumber));
                 }
+                catch (FieldValidationException ex)
+                {
+                    // Keep the field the single-sample path named and add the row it came from.
+                    throw new FieldValidationException(
+                        ex.Message,
+                        ex.FieldErrors.Select(e => e with { Row = i }).ToList());
+                }
                 catch (BusinessRuleException ex)
                 {
                     throw new FieldValidationException(ex.Message, new[] { new FieldError(string.Empty, ex.Message, i) });
@@ -236,7 +243,8 @@ public class SampleBatchReceiveService
 
     // User decision (2026-11-14, batch receive only): refuse Product rows in the same batch
     // that share both BatchNumber and ControlNumber (trimmed, case-insensitive).
-    // Single-sample receive is intentionally unchanged.
+    // Rows that duplicate an already registered sample are refused by the single receive path
+    // (decided 2026-11-16), which the batch calls per row.
     private static void AddDuplicateBatchAndControlErrors(
         IReadOnlyList<ReceiveItemBasedSampleRequest> rows,
         List<FieldError> errors)

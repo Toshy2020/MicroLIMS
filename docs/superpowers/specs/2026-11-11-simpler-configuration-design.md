@@ -137,3 +137,5 @@ A read-only view of the test as the analyst will meet it: the step chain in orde
 3. A reason is at least 10 characters.
 
 **Decision (user, 2026-11-11): a result with no applicable specification is treated as a pass, with a visible flag.** Task 3 makes this explicit and consistent: every result-entry path that finds no specification records the result with status "Limits not configured" (existing `ResultStatus.LimitsNotConfigured`), counts it as conforming for the decision, and the sample's review and approval screens show the flag "No specification — accepted as pass" per test. A specification retired while a sample is in testing still stops result entry with a clear message (spec 5.3); the pass rule applies only where no specification exists at all.
+
+**Superseded (user, 2026-11-16): a result with no applicable specification stays refused.** Result entry for a non-count test whose test and item have no specification keeps refusing with "No specifications configured for this test and item." (`TestWorkflowSupport`, `OutsourcedRecorder`). The "No specification — accepted as pass" flag above is not built. See CONF-208.

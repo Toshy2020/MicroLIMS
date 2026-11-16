@@ -1068,3 +1068,12 @@ Locations for CONF-001 to CONF-008 were added on 2026-11-12 from the area worker
 - **Question:** Those FS-MDM entries no longer match the code. Should they be rewritten to match FS-MDM-039 and FS-MDM-040? CONF-150 (open) asked whether a reason must be required and whether a specification must be versioned: the reason and the retirement are now in the code, but a specification is still changed in place with no version number or effective date, and recorded results are not rebound to a snapshot of the specification (user decision 2026-11-11: limits stay "in force when the result is entered"). Does that satisfy `CLAUDE.md` Rule 3.1, or must CONF-150 stay open for the versioning part?
 - **Decision:** Not decided. FS-MDM-038 to FS-MDM-045 describe the code as it stands; FS-MDM-006, FS-MDM-007 and the other older entries were not changed.
 - **Date:** Not applicable
+
+### CONF-208
+- **Area:** MIC
+- **Status:** Decided
+- **What the code does:** Result entry for a non-count test whose test and item have no specification refuses with "No specifications configured for this test and item." Location: `backend/MicroLIMS.Application/Workflows/TestWorkflow/TestWorkflowSupport.cs` (line 647) and `OutsourcedRecorder.cs` (line 63). A count test reached through the non-direct path refuses with `DilutionFactorNotConfigured`. The status `LimitsNotConfigured` exists for limit comparisons (CALC-012, CALC-013) but no result-entry path records a no-specification result as a pass.
+- **What the other source says:** `docs/superpowers/plans/2026-11-11-simpler-configuration.md` and its design spec recorded a user decision of 2026-11-11: a result with no applicable specification is treated as a pass with status "Limits not configured" and a visible "No specification — accepted as pass" flag on the review and approval screens.
+- **Question:** Should a result with no specification be accepted as a pass (2026-11-11), or stay refused (current code)?
+- **Decision:** Keep it refused (user, 2026-11-16). The 2026-11-11 decision is superseded; the flag is not built. The plan and design spec carry a dated note.
+- **Date:** 2026-11-16

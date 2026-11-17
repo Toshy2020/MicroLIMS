@@ -1,6 +1,12 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { i18n } from "../../../i18n";
+
+// The myWork texts load on first use; the English file is in place before the tests query it.
+beforeAll(async () => {
+  await i18n.loadNamespaces("myWork");
+});
 import { MemoryRouter } from "react-router-dom";
 import { PinnedLightTheme } from "../../../theme/PinnedLightTheme";
 import { monospaceFontFamily } from "../../../theme/palette";

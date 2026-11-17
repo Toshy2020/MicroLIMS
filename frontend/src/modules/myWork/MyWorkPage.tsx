@@ -5,11 +5,14 @@ import RefreshIcon from "@mui/icons-material/Refresh";
 import SearchIcon from "@mui/icons-material/Search";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
+import { Trans } from "react-i18next";
 import { useHasPermission } from "../../contexts/AuthContext";
 import { PERMISSIONS } from "../../routes/routes";
 import { ConfirmationDialog } from "../../components/ConfirmationDialog";
+import { Ltr } from "../../components/Ltr";
 import type { SummaryTile } from "../../components/configHierarchy/SummaryTiles";
 import { EmptyState, KpiStrip, LabPage, PartialOutageBanner } from "../../components/lab";
+import { useTranslation } from "../../i18n";
 import { getErrorMessage } from "../../utils/errorMessage";
 import { MyWorkGroup } from "./components/MyWorkGroup";
 import { useMyWork } from "./hooks/useMyWork";
@@ -42,6 +45,7 @@ function markRedirectedToDashboard(): void {
 }
 
 export function MyWorkPage() {
+  const { t } = useTranslation("myWork");
   const navigate = useNavigate();
   const hasDashboardPermission = useHasPermission([
     PERMISSIONS.DASHBOARDS_LAB_OVERVIEW,
@@ -146,27 +150,27 @@ export function MyWorkPage() {
 
   const tiles: SummaryTile[] = [
     {
-      label: "All work",
+      label: t("allWork"),
       value: counts.total,
       onClick: () => setFilterParams(null, searchQuery),
       active: urgencyFilter === null
     },
     {
-      label: "Overdue",
+      label: t("urgency.Overdue"),
       value: counts.overdue,
       tone: counts.overdue > 0 ? "detected" : undefined,
       onClick: () => toggleUrgency("Overdue"),
       active: urgencyFilter === "Overdue"
     },
     {
-      label: "Now",
+      label: t("urgency.Now"),
       value: counts.now,
       tone: counts.now > 0 ? "purple" : undefined,
       onClick: () => toggleUrgency("Now"),
       active: urgencyFilter === "Now"
     },
     {
-      label: "Today",
+      label: t("urgency.Today"),
       value: counts.today,
       tone: counts.today > 0 ? "action" : undefined,
       onClick: () => toggleUrgency("Today"),
@@ -180,10 +184,12 @@ export function MyWorkPage() {
     setBusyKey(item.key);
     try {
       await myWorkService.take(testOrderId);
-      toast.success(`Taken ${item.identifier}.`);
+      toast.success(
+        <Trans i18nKey="toast.taken" ns="myWork" values={{ identifier: item.identifier }} components={{ ltr: <Ltr>{null}</Ltr> }} />
+      );
       reload();
     } catch (err: unknown) {
-      toast.error(getErrorMessage(err, "Could not take test."));
+      toast.error(getErrorMessage(err, t("toast.takeFailed")));
     } finally {
       setBusyKey(null);
     }
@@ -200,11 +206,13 @@ export function MyWorkPage() {
     setReleasing(true);
     try {
       await myWorkService.release(testOrderId);
-      toast.success(`Released ${target.identifier}.`);
+      toast.success(
+        <Trans i18nKey="toast.released" ns="myWork" values={{ identifier: target.identifier }} components={{ ltr: <Ltr>{null}</Ltr> }} />
+      );
       setReleaseTarget(null);
       reload();
     } catch (err: unknown) {
-      toast.error(getErrorMessage(err, "Could not release test."));
+      toast.error(getErrorMessage(err, t("toast.releaseFailed")));
     } finally {
       setReleasing(false);
     }
@@ -221,8 +229,8 @@ export function MyWorkPage() {
 
   return (
     <LabPage
-      title="My Work"
-      subtitle="Tests, reviews, approvals, and tasks waiting for your action."
+      title={t("title")}
+      subtitle={t("subtitle")}
       actions={
         <Button
           variant="outlined"
@@ -231,7 +239,7 @@ export function MyWorkPage() {
           startIcon={<RefreshIcon />}
           sx={{ textTransform: "none", fontWeight: 600 }}
         >
-          Refresh
+          {t("refresh")}
         </Button>
       }
       kpis={
@@ -244,7 +252,7 @@ export function MyWorkPage() {
         <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5} sx={{ alignItems: { sm: "center" }, justifyContent: "space-between" }}>
           <TextField
             size="small"
-            label="Search by identifier"
+            label={t("searchLabel")}
             value={searchQuery}
             onChange={(e) => setFilterParams(urgencyFilter, e.target.value)}
             sx={{ minWidth: { xs: "100%", sm: 280 } }}
@@ -264,7 +272,17 @@ export function MyWorkPage() {
             aria-live="polite"
             sx={{ color: "text.secondary", fontVariantNumeric: "tabular-nums" }}
           >
-            {loading && !data ? "Loading work items..." : `${visibleItemCount} items shown`}
+            {loading && !data ? (
+              t("loading")
+            ) : (
+              <Trans
+                i18nKey="itemsShown"
+                ns="myWork"
+                count={visibleItemCount}
+                values={{ count: visibleItemCount }}
+                components={{ ltr: <Ltr>{null}</Ltr> }}
+              />
+            )}
           </Typography>
         </Stack>
       }
@@ -284,25 +302,25 @@ export function MyWorkPage() {
               </Button>
             }
           >
-            {getErrorMessage(error, "Could not load your work items.")}
+            {getErrorMessage(error, t("loadFailed"))}
           </Alert>
         ) : !hasNonEmptyServerGroups ? (
           <EmptyState
-            title="Nothing waiting for you"
-            description="All assigned tests, reviews, and tasks are up to date."
+            title={t("empty.title")}
+            description={t("empty.description")}
             action={
               <Button component={Link} to="/dashboard" variant="contained" sx={{ textTransform: "none", fontWeight: 600 }}>
-                Go to Dashboard
+                {t("empty.goDashboard")}
               </Button>
             }
           />
         ) : filteredGroups.length === 0 ? (
           <EmptyState
-            title="No matching work items"
-            description="No items match the current urgency filter or search."
+            title={t("noMatches.title")}
+            description={t("noMatches.description")}
             action={
               <Button variant="outlined" onClick={clearFilters} sx={{ textTransform: "none", fontWeight: 600 }}>
-                Clear filters
+                {t("noMatches.clearFilters")}
               </Button>
             }
           />
@@ -327,14 +345,21 @@ export function MyWorkPage() {
       <ConfirmationDialog
         open={releaseTarget !== null}
         destructive
-        title="Release test assignment"
+        title={t("release.title")}
         message={
-          releaseTarget
-            ? `Release ${releaseTarget.identifier} (${releaseTarget.title}) back to the section queue?`
-            : ""
+          releaseTarget ? (
+            <Trans
+              i18nKey="release.message"
+              ns="myWork"
+              values={{ identifier: releaseTarget.identifier, title: releaseTarget.title }}
+              components={{ ltr: <Ltr>{null}</Ltr> }}
+            />
+          ) : (
+            ""
+          )
         }
-        confirmText="Release"
-        cancelText="Cancel"
+        confirmText={t("release.confirm")}
+        cancelText={t("release.cancel")}
         loading={releasing}
         onConfirm={confirmRelease}
         onCancel={() => {

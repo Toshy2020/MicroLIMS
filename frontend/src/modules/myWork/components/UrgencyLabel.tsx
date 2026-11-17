@@ -1,4 +1,5 @@
 import { Chip, useTheme } from "@mui/material";
+import { useTranslation } from "../../../i18n";
 import type { StatusTone } from "../../../theme/statusTokens";
 import type { MyWorkUrgency } from "../myWorkTypes";
 
@@ -11,6 +12,7 @@ const URGENCY_TONE: Record<Exclude<MyWorkUrgency, "None">, StatusTone> = {
 
 export function UrgencyLabel({ urgency }: { urgency: MyWorkUrgency }) {
   const theme = useTheme();
+  const { t } = useTranslation("myWork");
   if (urgency === "None") return null;
 
   const tone = theme.custom.status[URGENCY_TONE[urgency]];
@@ -18,7 +20,7 @@ export function UrgencyLabel({ urgency }: { urgency: MyWorkUrgency }) {
   return (
     <Chip
       size="small"
-      label={urgency}
+      label={t(`urgency.${urgency}`)}
       sx={{
         height: 22,
         fontSize: 11.5,

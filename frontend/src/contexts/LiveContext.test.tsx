@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { AuthProvider, useAuth } from "./AuthContext";
-import { LiveProvider, useLive } from "./LiveContext";
+import { hubConnectionOptions, LiveProvider, useLive } from "./LiveContext";
 import { createFakeLiveConnection } from "./testing/fakeLiveConnection";
 
 vi.mock("../services/apiClient", () => ({
@@ -89,5 +89,13 @@ describe("LiveProvider", () => {
     await settle();
     await user.click(screen.getByRole("button", { name: "Watch" }));
     expect(connection.invoke).toHaveBeenCalledWith("WatchRecord", "sample", 7);
+  });
+});
+
+describe("hub connection options", () => {
+  it("signs in with the token and never asks the browser to send cookies (cross-origin negotiate would be refused)", () => {
+    const options = hubConnectionOptions(() => "tkn");
+    expect(options.withCredentials).toBe(false);
+    expect(options.accessTokenFactory()).toBe("tkn");
   });
 });

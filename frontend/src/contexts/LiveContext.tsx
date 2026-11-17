@@ -61,11 +61,17 @@ const defaultLiveContext: LiveContextValue = {
 const LiveContext = createContext<LiveContextValue>(defaultLiveContext);
 const LiveReconnectContext = createContext<(fn: () => void) => () => void>(() => () => undefined);
 
+// The hub signs in with the access token, never a cookie. Without
+// withCredentials: false the client asks the browser to send credentials on the
+// negotiate request, which a cross-origin API (frontend and API on different
+// origins) rightly refuses, so live updates would never connect.
+export function hubConnectionOptions(getToken: () => string) {
+  return { accessTokenFactory: getToken, withCredentials: false };
+}
+
 function createHubConnection(getToken: () => string): LiveConnection {
   return new HubConnectionBuilder()
-    .withUrl(`${apiOrigin}/hubs/live`, {
-      accessTokenFactory: getToken
-    })
+    .withUrl(`${apiOrigin}/hubs/live`, hubConnectionOptions(getToken))
     .withAutomaticReconnect()
     .configureLogging(LogLevel.Warning)
     .build();

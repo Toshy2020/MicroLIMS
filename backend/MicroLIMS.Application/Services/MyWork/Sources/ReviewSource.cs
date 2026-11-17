@@ -16,6 +16,7 @@ internal sealed class ReviewQueue : SignoffQueueSource
     protected override string TargetType => "sample-review";
     protected override string Verb => "Review";
     protected override string Action => "review";
+    protected override string PerformedReason => SignoffRefusalSentences.CannotReviewTested;
     protected override bool NeedsReviewClocks => true;
 
     // Review is timed from the section's submission, falling back to the sample-level review clock.

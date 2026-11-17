@@ -440,7 +440,7 @@ describe("SampleRegisterTable row actions (characterisation)", () => {
     const h = makeHandlers();
     renderFull([sample({ sampleId: 91, preparationStatus: "NeedsPreparation", assignedTests: [] })], h);
     const pick = async (name: string) => {
-      await user.click(screen.getByRole("button", { name: "Sample actions" }));
+      await user.click(screen.getByRole("button", { name: "Sample actions for FP0926014" }));
       await user.click(await screen.findByRole("menuitem", { name }));
     };
     await pick("Assign Analyst");
@@ -461,7 +461,7 @@ describe("SampleRegisterTable row actions (characterisation)", () => {
     authState.role = "SectionHead";
     const h = makeHandlers();
     renderFull([sample({ sampleId: 91, status: "Received", awaitingTestSelection: true, assignedTests: [] })], h);
-    await user.click(screen.getByRole("button", { name: "Sample actions" }));
+    await user.click(screen.getByRole("button", { name: "Sample actions for FP0926014" }));
     await user.click(await screen.findByRole("menuitem", { name: "Select Tests" }));
     expect(h.onSelectTests).toHaveBeenCalledWith(expect.objectContaining({ sampleId: 91 }));
   });
@@ -470,7 +470,7 @@ describe("SampleRegisterTable row actions (characterisation)", () => {
     const user = userEvent.setup();
     const h = makeHandlers();
     renderFull([sample({ sampleId: 91 })], h);
-    await user.click(screen.getByRole("button", { name: "Sample actions" }));
+    await user.click(screen.getByRole("button", { name: "Sample actions for FP0926014" }));
     expect(screen.getByRole("menuitem", { name: "View Full Report" }).getAttribute("href")).toBe("/samples/91/report");
   });
 
@@ -479,7 +479,7 @@ describe("SampleRegisterTable row actions (characterisation)", () => {
     const h = makeHandlers();
     renderFull([sample({ sampleId: 91 })], h);
     expect(actionAvailabilityService.get).not.toHaveBeenCalled();
-    await user.click(screen.getByRole("button", { name: "Sample actions" }));
+    await user.click(screen.getByRole("button", { name: "Sample actions for FP0926014" }));
     await waitFor(() => expect(actionAvailabilityService.get).toHaveBeenCalledWith("sample", 91, undefined, expect.any(AbortSignal)));
   });
 
@@ -492,7 +492,7 @@ describe("SampleRegisterTable row actions (characterisation)", () => {
     ]);
     const h = makeHandlers();
     renderFull([sample({ sampleId: 91 })], h);
-    await user.click(screen.getByRole("button", { name: "Sample actions" }));
+    await user.click(screen.getByRole("button", { name: "Sample actions for FP0926014" }));
     const reason = await screen.findByText(sentence);
     const item = screen.getByRole("menuitem", { name: /Void Sample/ });
     expect(item.getAttribute("aria-disabled")).toBe("true");
@@ -513,7 +513,7 @@ describe("SampleRegisterTable row actions (characterisation)", () => {
     ]);
     const h = makeHandlers();
     renderFull([sample({ sampleId: 91 })], h);
-    await user.click(screen.getByRole("button", { name: "Sample actions" }));
+    await user.click(screen.getByRole("button", { name: "Sample actions for FP0926014" }));
     expect(await screen.findByText(sentence)).toBeTruthy();
     await user.click(screen.getByRole("menuitem", { name: /Assign Analyst/ }));
     expect(h.onAssignAnalyst).not.toHaveBeenCalled();

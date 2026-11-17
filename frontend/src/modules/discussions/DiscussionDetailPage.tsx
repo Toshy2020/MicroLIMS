@@ -226,7 +226,7 @@ export function DiscussionDetailPage() {
             >
               Edit Post
             </Button>
-            <IconButton aria-label="Post actions" size="small" onClick={(e) => setMenuAnchor(e.currentTarget)}>
+            <IconButton aria-label={`Post actions for ${post.title}`} size="small" onClick={(e) => setMenuAnchor(e.currentTarget)}>
               <MoreVertIcon fontSize="small" />
             </IconButton>
             <Menu anchorEl={menuAnchor} open={Boolean(menuAnchor)} onClose={() => setMenuAnchor(null)}>

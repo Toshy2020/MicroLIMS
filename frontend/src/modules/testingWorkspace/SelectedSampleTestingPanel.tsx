@@ -31,6 +31,7 @@ import { PERMISSIONS } from "../../routes/routes";
 import { PathogenSessionDialog } from "./pathogenSession/PathogenSessionDialog";
 import { ItemDocumentsCard } from "./ItemDocumentsCard";
 import { AssignedTestCard } from "./components/AssignedTestCard";
+import { formatLabCalendarDate } from "../../utils/formatDate";
 
 interface Props {
   sample: SampleCardType;
@@ -45,7 +46,7 @@ interface Props {
 }
 
 const PRODUCT_LIKE = ["FinishedProduct", "RawMaterial", "PackagingMaterial"];
-const formatDate = (d: string | null) => (d ? new Date(d).toLocaleDateString() : "—");
+const formatDate = (d: string | null) => (d ? formatLabCalendarDate(d) : "—");
 
 export function SelectedSampleTestingPanel({
   sample,

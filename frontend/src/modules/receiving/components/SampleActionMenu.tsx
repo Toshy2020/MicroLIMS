@@ -138,7 +138,7 @@ export function SampleActionMenu({
       )}
 
       {/* More Actions Menu */}
-      <IconButton aria-label="Sample actions"
+      <IconButton aria-label={`Sample actions for ${sample.referenceNumber}`}
         size="small"
         onClick={handleOpenMenu}
         sx={{

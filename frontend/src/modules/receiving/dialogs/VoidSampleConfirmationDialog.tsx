@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import {
   Button,
   Typography,
@@ -31,6 +31,7 @@ export function VoidSampleConfirmationDialog({ open, sample, onClose, onSuccess 
   const [reason, setReason] = useState("");
   const [reasonError, setReasonError] = useState(false);
   const [signing, setSigning] = useState(false);
+  const cancelRef = useRef<HTMLButtonElement>(null);
 
   if (!sample) return null;
 
@@ -63,6 +64,8 @@ export function VoidSampleConfirmationDialog({ open, sample, onClose, onSuccess 
       <FloatingDialog
         open={open}
         onClose={handleCancel}
+        // Voiding is destructive: focus starts on Cancel, so an accidental Enter never opens the signature step.
+        onEntered={() => cancelRef.current?.focus()}
         maxWidth="sm"
         paperSx={{ borderRadius: 2.5, p: 1 }}
         titleSx={{ display: "flex", alignItems: "center", gap: 1.25, pb: 1 }}
@@ -99,7 +102,7 @@ export function VoidSampleConfirmationDialog({ open, sample, onClose, onSuccess 
                 Enter a reason for voiding to sign.
               </Typography>
             )}
-            <Button onClick={handleCancel} color="inherit">
+            <Button ref={cancelRef} autoFocus onClick={handleCancel} color="inherit">
               Cancel
             </Button>
             <Button
@@ -186,7 +189,6 @@ export function VoidSampleConfirmationDialog({ open, sample, onClose, onSuccess 
           </Box>
 
           <TextField
-            autoFocus
             label="Reason for Voiding *"
             placeholder="Please provide the operational or compliance reason for voiding this sample..."
             multiline

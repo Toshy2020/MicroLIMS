@@ -5,27 +5,32 @@ import { useAuth } from "../../contexts/AuthContext";
 import { PERMISSIONS } from "../../routes/routes";
 
 const LABELS: Record<string, string> = {
+  Received: "Received",
   InTesting: "Under Testing",
   UnderReview: "Under Review",
   UnderApproval: "Under Approval",
   Approved: "Approved",
-  Rejected: "Rejected"
+  Rejected: "Rejected",
+  Voided: "Voided",
+  Cancelled: "Cancelled"
 };
 
 const TONES: Record<string, StatusTone> = {
+  Received: "pending",
   InTesting: "info",
   UnderReview: "purple",
   UnderApproval: "action",
   Approved: "notDetected",
-  Rejected: "detected"
+  Rejected: "detected",
+  Voided: "detected",
+  Cancelled: "pending"
 };
 
 // Which permission lets the user click each status to open the Sample
 // Summary dialog and act on it - the same code the review or approval
 // endpoint checks - Approved has no entry restriction because its
 // print/report view is meant to be viewable by anyone, not just the
-// approver. Statuses with no entry here (or not in LABELS at all, e.g.
-// "Received") render non-clickable or not at all.
+// approver. Statuses with no entry here render non-clickable.
 const CLICKABLE_PERMISSION: Partial<Record<string, string>> = {
   UnderReview: PERMISSIONS.SAMPLES_REVIEW,
   UnderApproval: PERMISSIONS.SAMPLES_APPROVE

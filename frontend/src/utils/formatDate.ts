@@ -25,7 +25,7 @@ export function formatLabDateTime(date: string | Date): string {
  * Formats an instant with its local time zone name (e.g. for MFA due dates and confirmations).
  * The time zone is always shown: regulated timestamps are never displayed without one.
  */
-export function formatDateTimeWithTimeZone(date: string | Date): string {
+export function formatDateTimeWithTimeZone(date: string | Date, options: { seconds?: boolean } = {}): string {
   const d = typeof date === "string" ? new Date(date) : date;
   return d.toLocaleString(localeTag(), {
     day: "2-digit",
@@ -33,7 +33,20 @@ export function formatDateTimeWithTimeZone(date: string | Date): string {
     year: "numeric",
     hour: "2-digit",
     minute: "2-digit",
+    ...(options.seconds ? { second: "2-digit" as const } : {}),
     ...CLOCK,
     timeZoneName: "short"
   });
+}
+
+/**
+ * Formats a date-only value (expiry, manufacture) as the same calendar day for every viewer.
+ * The API sends these as a date at midnight, so the date part is read as written and formatted
+ * in UTC; the browser's time zone must never move it to the neighbouring day or add a clock time.
+ */
+export function formatLabCalendarDate(value: string): string {
+  const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(value);
+  if (!match) return formatLabDate(value);
+  const d = new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3])));
+  return d.toLocaleDateString(localeTag(), { day: "2-digit", month: "short", year: "numeric", timeZone: "UTC" });
 }

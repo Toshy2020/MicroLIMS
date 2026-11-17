@@ -97,6 +97,7 @@ export function MyWorkRow({ item, timeZoneId, onTake, onRelease, busyKey }: MyWo
   return (
     <Box
       data-row-key={item.key}
+      data-test-order-id={item.target.testOrderId ?? undefined}
       data-testid={`my-work-row-${item.key}`}
       aria-disabled={item.locked ? "true" : undefined}
       sx={{

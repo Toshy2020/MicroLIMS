@@ -27,11 +27,13 @@ interface FloatingDialogProps {
   // In bench mode (a shared touch tablet) the dialog takes the whole screen.
   // Opt-in so existing dialogs keep their size.
   benchFullScreen?: boolean;
+  // Runs once the dialog has finished opening. A destructive dialog uses it to put focus on Cancel.
+  onEntered?: () => void;
 }
 
 // Every laboratory process opens as a modal/floating page - "No
 // navigation between pages. Analyst focuses only on one task."
-export function FloatingDialog({ open, title, onClose, children, actions, maxWidth = "md", titleSx, paperSx, subHeader, benchFullScreen }: FloatingDialogProps) {
+export function FloatingDialog({ open, title, onClose, children, actions, maxWidth = "md", titleSx, paperSx, subHeader, benchFullScreen, onEntered }: FloatingDialogProps) {
   const theme = useTheme();
   const { t } = useTranslation();
   // A laboratory task on a phone gets the whole screen: a floating card with
@@ -54,7 +56,8 @@ export function FloatingDialog({ open, title, onClose, children, actions, maxWid
       fullScreen={fullScreen}
       onClick={(e) => e.stopPropagation()}
       slotProps={{
-        paper: paperSx ? { sx: paperSx } : undefined
+        paper: paperSx ? { sx: paperSx } : undefined,
+        transition: onEntered ? { onEntered } : undefined
       }}
     >
       <DialogTitle component="div" sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", ...titleSx }}>

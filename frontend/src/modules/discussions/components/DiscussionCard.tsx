@@ -160,7 +160,7 @@ export function DiscussionCard({
 
             {canModify && (
               <>
-                <IconButton aria-label="Post actions" size="small" onClick={handleMenuOpen}>
+                <IconButton aria-label={`Post actions for ${post.title}`} size="small" onClick={handleMenuOpen}>
                   <MoreVertIcon fontSize="small" />
                 </IconButton>
                 <Menu anchorEl={menuAnchor} open={Boolean(menuAnchor)} onClose={handleMenuClose}>

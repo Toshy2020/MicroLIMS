@@ -6,6 +6,7 @@ import { SampleCard as SampleCardType } from "./types/workspaceTypes";
 import { CategoryBadge } from "../../components/StatusBadge";
 import { SampleLifecycleBadge } from "./SampleLifecycleBadge";
 import { isInteractiveElement } from "../../utils/isInteractiveElement";
+import { formatLabCalendarDate } from "../../utils/formatDate";
 
 interface Props {
   sample: SampleCardType;
@@ -265,8 +266,8 @@ export function SampleTableRow({
                   <DetailField label="Sample Quantity" value={sample.sampleQuantity} />
                 )}
                 <DetailField label="Sampled By" value={sample.sampledBy} />
-                {isProductLike && <DetailField label="Mfg Date" value={formatDate(sample.mfgDate)} />}
-                {isProductLike && <DetailField label="Exp Date" value={formatDate(sample.expDate)} />}
+                {isProductLike && <DetailField label="Mfg Date" value={sample.mfgDate ? formatLabCalendarDate(sample.mfgDate) : ""} />}
+                {isProductLike && <DetailField label="Exp Date" value={sample.expDate ? formatLabCalendarDate(sample.expDate) : ""} />}
                 {isWater && (
                   <DetailField
                     label="Sampling Point"

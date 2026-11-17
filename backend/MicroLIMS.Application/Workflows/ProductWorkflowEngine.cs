@@ -1,4 +1,5 @@
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Messages;
 using MicroLIMS.Shared.Responses;
 using System.Globalization;
 using System.Text.RegularExpressions;
@@ -79,6 +80,7 @@ public class ProductWorkflowEngine : IProductWorkflowEngine
 
         if (exists)
             throw new FieldValidationException(
+                MessageCodes.SampleDuplicateBatchAndControl,
                 DuplicateBatchAndControlMessage,
                 new[] { new FieldError("controlNumber", DuplicateBatchAndControlMessage) });
     }

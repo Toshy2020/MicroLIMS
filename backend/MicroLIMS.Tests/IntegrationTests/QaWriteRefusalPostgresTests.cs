@@ -111,7 +111,7 @@ public sealed class QaWriteRefusalPostgresTests
                         await using (var actDb = _fixture.CreateDbContext())
                         {
                             IUserSectionScopeService scope = new UserSectionScopeService(actDb);
-                            await Assert.ThrowsAsync<UnauthorizedAccessException>(() => d.AssertControllerWriteScopeRefusal!(scope, w));
+                            await Assert.ThrowsAnyAsync<UnauthorizedAccessException>(() => d.AssertControllerWriteScopeRefusal!(scope, w));
                         }
                         break;
 
@@ -146,7 +146,7 @@ public sealed class QaWriteRefusalPostgresTests
             {
                 var beforeAuditId = await MaxAuditLogIdAsync();
                 var svc = TestServiceFactory.SampleReview(actDb);
-                await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
+                await Assert.ThrowsAnyAsync<UnauthorizedAccessException>(() =>
                     svc.CompleteReviewAsync(w.ReviewSampleAId, w.QaUserId, Password, "QA review", null));
                 await AssertSampleUnchangedAndNoAuditAsync(w.ReviewSampleAId, SampleStatus.UnderReview, w.QaUserId, beforeAuditId);
             }),
@@ -161,7 +161,7 @@ public sealed class QaWriteRefusalPostgresTests
             {
                 var beforeAuditId = await MaxAuditLogIdAsync();
                 var svc = TestServiceFactory.SampleApproval(actDb);
-                await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
+                await Assert.ThrowsAnyAsync<UnauthorizedAccessException>(() =>
                     svc.DecideAsync(w.ApprovalSampleAId, w.QaUserId, Password, ApprovalDecision.Approve, "QA approve", null));
                 await AssertSampleUnchangedAndNoAuditAsync(w.ApprovalSampleAId, SampleStatus.UnderApproval, w.QaUserId, beforeAuditId);
             }),
@@ -176,7 +176,7 @@ public sealed class QaWriteRefusalPostgresTests
             {
                 var beforeAuditId = await MaxAuditLogIdAsync();
                 var svc = new ReceiptLabService(actDb, new UserSectionScopeService(actDb));
-                await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
+                await Assert.ThrowsAnyAsync<UnauthorizedAccessException>(() =>
                     svc.ResolveTargetsAsync(w.QaUserId, canReceiveForAnyLab: false, new[] { w.SectionAId }));
                 await AssertNoNewAuditLogAsync(w.QaUserId, beforeAuditId);
             }),
@@ -224,7 +224,7 @@ public sealed class QaWriteRefusalPostgresTests
                 {
                     new(w.UvSpecAId, 254m, null, new List<UvReplicateInput> { new(null, 0.25m) })
                 };
-                await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
+                await Assert.ThrowsAnyAsync<UnauthorizedAccessException>(() =>
                     engine.RecordUvResultAsync(w.UvOrderAId, new UvPayload(DateTime.UtcNow, w.UvEquipmentAId, null, null, null, validParameters, Password), w.QaUserId));
                 await using var assertDb = _fixture.CreateDbContext();
                 var order = await assertDb.TestOrders.AsNoTracking().SingleAsync(o => o.Id == w.UvOrderAId);
@@ -349,7 +349,7 @@ public sealed class QaWriteRefusalPostgresTests
                 var beforeAuditId = await MaxAuditLogIdAsync();
                 var beforeMediaCount = await CountMediaAsync(w.DehydratedMaterialAId);
                 var svc = TestServiceFactory.MediaPreparation(actDb);
-                await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
+                await Assert.ThrowsAnyAsync<UnauthorizedAccessException>(() =>
                     svc.PrepareAsync(new PrepareMediaRequest(
                         w.DehydratedMaterialAId, 10m, "100 ml", w.AutoclaveEquipmentAId, "Liquid", "Agar", 121m, 15, 1, 7.2m,
                         DateTime.UtcNow.AddDays(30), w.QaUserId)));
@@ -368,7 +368,7 @@ public sealed class QaWriteRefusalPostgresTests
             {
                 var beforeAuditId = await MaxAuditLogIdAsync();
                 var svc = TestServiceFactory.MaterialRelease(actDb);
-                await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
+                await Assert.ThrowsAnyAsync<UnauthorizedAccessException>(() =>
                     svc.DecideAsync(w.RefMaterialAId, w.QaUserId, Password, true, "QA material release", null));
                 await using var assertDb = _fixture.CreateDbContext();
                 var mat = await assertDb.Materials.AsNoTracking().SingleAsync(m => m.Id == w.RefMaterialAId);
@@ -391,7 +391,7 @@ public sealed class QaWriteRefusalPostgresTests
                 {
                     new(w.MediaAId, w.EquipmentAId, DateTime.UtcNow.AddHours(-24), DateTime.UtcNow, "Growth confirmed")
                 };
-                await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
+                await Assert.ThrowsAnyAsync<UnauthorizedAccessException>(() =>
                     svc.PrepareCryovialsAsync(new PrepareCryovialsRequest(
                         w.MaterialAId, 3, DateTime.UtcNow.AddDays(30), "-80C", true, "OK",
                         panel, 1, w.QaUserId)));
@@ -410,7 +410,7 @@ public sealed class QaWriteRefusalPostgresTests
             {
                 var beforeAuditId = await MaxAuditLogIdAsync();
                 var engine = TestServiceFactory.TestWorkflow(actDb);
-                await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
+                await Assert.ThrowsAnyAsync<UnauthorizedAccessException>(() =>
                     engine.OutsourceTestAsync(w.UvOrderAId, new OutsourceTestPayload("External Lab", "Note", Password), w.QaUserId));
                 await using var assertDb = _fixture.CreateDbContext();
                 var order = await assertDb.TestOrders.AsNoTracking().SingleAsync(o => o.Id == w.UvOrderAId);
@@ -428,7 +428,7 @@ public sealed class QaWriteRefusalPostgresTests
             {
                 var beforeAuditId = await MaxAuditLogIdAsync();
                 var service = new TestSelfAssignmentService(actDb, new UserSectionScopeService(actDb));
-                await Assert.ThrowsAsync<UnauthorizedAccessException>(() => service.TakeAsync(w.OrderAId, w.QaUserId));
+                await Assert.ThrowsAnyAsync<UnauthorizedAccessException>(() => service.TakeAsync(w.OrderAId, w.QaUserId));
                 await using var assertDb = _fixture.CreateDbContext();
                 var order = await assertDb.TestOrders.AsNoTracking().SingleAsync(o => o.Id == w.OrderAId);
                 Assert.NotEqual(w.QaUserId, order.AssignedAnalystId);

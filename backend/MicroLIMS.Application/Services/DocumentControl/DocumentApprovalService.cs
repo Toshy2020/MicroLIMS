@@ -1,4 +1,5 @@
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Messages;
 using MicroLIMS.Application.Helpers;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.DTOs.DocumentControl;
@@ -473,10 +474,10 @@ public class DocumentApprovalService : IDocumentApprovalService
 
         // Verify assignment: Must be the assigned approver or Document Controller (SectionHead)
         if (userId != task.AssignedApproverUserId && actorRole != RoleType.SectionHead)
-            return ActionCheck.Denied("Only the assigned approver or Document Controller may execute an approval decision.");
+            return ActionCheck.Denied(MessageCodes.DocumentOnlyAssignedApprover, "Only the assigned approver or Document Controller may execute an approval decision.");
 
         if (!await _auth.CanExecuteApprovalAsync(userId))
-            return ActionCheck.Denied("Your role does not hold the Documents.Approve permission required to execute an approval decision.");
+            return ActionCheck.Denied(MessageCodes.DocumentApprovePermissionRequired, "Your role does not hold the Documents.Approve permission required to execute an approval decision.");
 
         return ActionCheck.Ok;
     }

@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using MicroLIMS.Shared.Messages;
 using MicroLIMS.Application.Abstractions.Live;
 using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Application.Interfaces;
@@ -107,13 +108,17 @@ public sealed class TestSelfAssignmentService
         // Readable first (a test outside the caller's reach is not theirs to see); section setting and membership follow.
         var readable = await _scope.GetReadableSectionIdsAsync(userId, ct);
         if (readable is not null && !readable.Contains(order.SectionId))
-            return (ActionCheck.Denied("This test belongs to a laboratory section you are not assigned to."), null);
+            return (ActionCheck.Denied(MessageCodes.TestNotInYourSection, "This test belongs to a laboratory section you are not assigned to."), null);
 
         if (!await SectionSelfAssignmentService.IsEnabledAsync(_db, order.SectionId, ct))
             return (ActionCheck.No("Taking tests is switched off in this section. Ask a Section Head to assign this test."), null);
 
         if (order.AssignedAnalystId is int holderId)
-            return (ActionCheck.No($"Already taken by {await FullNameAsync(holderId, ct)}."), null);
+        {
+            var holderName = await FullNameAsync(holderId, ct);
+            return (ActionCheck.No(MessageCodes.TestAlreadyTaken, $"Already taken by {holderName}.",
+                new Dictionary<string, string> { ["name"] = holderName }), null);
+        }
         if (order.IsSuperseded || order.OutsourcedToLab is not null || !IsOpen(order))
             return (ActionCheck.No("This test is closed, replaced or outsourced and can no longer be taken."), null);
 
@@ -136,7 +141,7 @@ public sealed class TestSelfAssignmentService
     private async Task<ActionCheck> CheckReleaseAsync(TestOrder order, int userId, CancellationToken ct)
     {
         if (order.AssignedAnalystId != userId)
-            return ActionCheck.No("Only the analyst who holds this test can release it.");
+            return ActionCheck.No(MessageCodes.TestOnlyHolderCanRelease, "Only the analyst who holds this test can release it.");
         if (!(await TestReleaseRules.ReleasableAsync(_db, userId, new[] { order.Id }, ct)).Contains(order.Id))
             return ActionCheck.No(TestReleaseRules.CannotRelease);
         return ActionCheck.Ok;

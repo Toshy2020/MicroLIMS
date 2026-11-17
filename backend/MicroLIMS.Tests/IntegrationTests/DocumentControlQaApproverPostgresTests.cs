@@ -379,7 +379,7 @@ public class DocumentControlQaApproverPostgresTests
         await using (var actDb = _fixture.CreateDbContext(new FixedTimeProvider(FixedNow)))
         {
             var service = CreateApprovalService(actDb);
-            await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
+            await Assert.ThrowsAnyAsync<UnauthorizedAccessException>(() =>
                 service.ExecuteApprovalDecisionAsync(
                     taskId,
                     new ExecuteApprovalDecisionRequest(

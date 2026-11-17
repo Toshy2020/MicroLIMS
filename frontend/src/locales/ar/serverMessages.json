@@ -1,0 +1,14 @@
+{
+  "Auth.RoleDoesNotIncludeAction": "دورك الوظيفي لا يتضمن هذا الإجراء.",
+  "Document.ApprovePermissionRequired": "دورك الوظيفي لا يملك صلاحية Documents.Approve المطلوبة لتنفيذ قرار الاعتماد.",
+  "Document.OnlyAssignedApprover": "لا يجوز تنفيذ قرار الاعتماد إلا للمعتمِد المعيَّن أو لمراقب المستند.",
+  "Media.CannotApproveOwnLot": "لا يمكنك اعتماد دفعة من أوساط زرعية قمت بتحضيرها أو تقييمها.",
+  "Sample.CannotApproveReviewed": "لا يمكنك اعتماد عينة قمت بمراجعتها.",
+  "Sample.CannotApproveTested": "لا يمكنك اعتماد عينة قمت باختبارها.",
+  "Sample.CannotReviewTested": "لا يمكنك مراجعة عينة قمت باختبارها.",
+  "Sample.DuplicateBatchAndControl": "توجد عينة مسجلة بالفعل بنفس رقم الدفعة ورقم الضبط.",
+  "Sample.NoOpenTestsToAssign": "لا توجد في هذه العينة اختبارات مفتوحة يمكنك إسنادها.",
+  "Test.AlreadyTaken": "تم أخذ الاختبار بالفعل بواسطة {{name}}.",
+  "Test.NotInYourSection": "ينتمي هذا الاختبار إلى قسم في المختبر غير مُسند إليك.",
+  "Test.OnlyHolderCanRelease": "لا يستطيع تحرير هذا الاختبار إلا المحلل الذي يتولاه."
+}

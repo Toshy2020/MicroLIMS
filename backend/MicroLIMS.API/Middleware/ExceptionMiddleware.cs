@@ -3,6 +3,7 @@ using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Persistence.DbContext;
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Messages;
 using MicroLIMS.Shared.Responses;
 using System.Net;
 using System.Text.Json;
@@ -53,13 +54,13 @@ public class ExceptionMiddleware
             await CaptureAsync(context, ex, ErrorSource.Backend, ErrorSeverity.Warning);
             var errors = ex.FieldErrors.Select(e => e.Message).ToList();
             var fieldErrors = ex.FieldErrors.ToList();
-            await WriteResponse(context, ApiResponse<object>.Fail(ex.Message, errors, fieldErrors));
+            await WriteResponse(context, ApiResponse<object>.Fail(ex.Message, errors, fieldErrors, DetailsOf(ex)));
         }
         catch (BusinessRuleException ex)
         {
             context.Response.StatusCode = (int)HttpStatusCode.BadRequest;
             await CaptureAsync(context, ex, ErrorSource.Backend, ErrorSeverity.Warning);
-            await WriteResponse(context, ApiResponse<object>.Fail(ex.Message));
+            await WriteResponse(context, ApiResponse<object>.Fail(ex.Message, null, null, DetailsOf(ex)));
         }
         catch (DbUpdateConcurrencyException ex)
         {
@@ -108,7 +109,7 @@ public class ExceptionMiddleware
             // from.
             context.Response.StatusCode = (int)HttpStatusCode.NotFound;
             await CaptureAsync(context, ex, ErrorSource.Backend, ErrorSeverity.Warning);
-            await WriteResponse(context, ApiResponse<object>.Fail(ex.Message));
+            await WriteResponse(context, ApiResponse<object>.Fail(ex.Message, null, null, DetailsOf(ex)));
         }
         catch (InvalidOperationException ex)
         {
@@ -125,7 +126,7 @@ public class ExceptionMiddleware
         {
             context.Response.StatusCode = (int)HttpStatusCode.Forbidden;
             await CaptureAsync(context, ex, ErrorSource.Backend, ErrorSeverity.Warning);
-            await WriteResponse(context, ApiResponse<object>.Fail(ex.Message));
+            await WriteResponse(context, ApiResponse<object>.Fail(ex.Message, null, null, DetailsOf(ex)));
         }
         catch (Exception ex)
         {
@@ -177,6 +178,14 @@ public class ExceptionMiddleware
             return null;
         }
     }
+
+    // The code, its parameters and the English sentence of a coded refusal;
+    // null for every other exception, so an uncoded response has no
+    // errorDetails key at all.
+    private static List<ApiError>? DetailsOf(Exception exception) =>
+        exception is ICodedMessage { Code: { } code } coded
+            ? [new ApiError(code, coded.Parameters is { Count: > 0 } ? coded.Parameters : null, exception.Message)]
+            : null;
 
     private static Task WriteResponse(HttpContext context, object payload)
     {

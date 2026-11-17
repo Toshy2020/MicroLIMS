@@ -22,7 +22,7 @@ public class ActionGuardCharacterisationPostgresTests
             var arranged = await refusal.Arrange();
             var ex = await Record.ExceptionAsync(() => action.Attempt(arranged.Target));
             Assert.NotNull(ex);
-            Assert.Equal(refusal.ExceptionType, ex.GetType());
+            Assert.IsAssignableFrom(refusal.ExceptionType, ex);
             Assert.Equal(arranged.Message, ex.Message);
         });
 

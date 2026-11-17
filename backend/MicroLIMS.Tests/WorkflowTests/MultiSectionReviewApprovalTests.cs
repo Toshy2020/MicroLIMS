@@ -195,7 +195,7 @@ public class MultiSectionReviewApprovalTests
         Assert.Equal(SampleStatus.UnderReview, await StatusAsync(db, w.Sample.Id));
         Assert.Equal(WorkflowStep.Ready, (await db.TestOrders.AsNoTracking().FirstAsync(t => t.Id == w.MicroTamc.Id)).CurrentStep);
 
-        await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
+        await Assert.ThrowsAnyAsync<UnauthorizedAccessException>(() =>
             review.CompleteReviewAsync(w.Sample.Id, w.ReviewerFp, Password, null, null, sectionId: w.Micro));
     }
 
@@ -209,9 +209,9 @@ public class MultiSectionReviewApprovalTests
         await db.SaveChangesAsync();
 
         // Administrators control the system, never review GxP data: no section is theirs to review, named or not.
-        await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
+        await Assert.ThrowsAnyAsync<UnauthorizedAccessException>(() =>
             review.CompleteReviewAsync(w.Sample.Id, w.Admin, Password, null, null));
-        await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
+        await Assert.ThrowsAnyAsync<UnauthorizedAccessException>(() =>
             review.CompleteReviewAsync(w.Sample.Id, w.Admin, Password, null, null, sectionId: w.Micro));
         Assert.Equal(SectionSignoffStatus.UnderReview, (await SignoffAsync(db, w.Sample.Id, w.Micro))!.Status);
     }
@@ -378,7 +378,7 @@ public class MultiSectionReviewApprovalTests
         var w = await SeedUnderApprovalAsync(db);
         var approval = TestServiceFactory.SampleApproval(db);
 
-        await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
+        await Assert.ThrowsAnyAsync<UnauthorizedAccessException>(() =>
             approval.DecideAsync(w.Sample.Id, w.HeadFp, Password, ApprovalDecision.Approve, null, null, sectionId: w.Micro));
         Assert.Equal(SectionSignoffStatus.UnderApproval, (await SignoffAsync(db, w.Sample.Id, w.Micro))!.Status);
     }

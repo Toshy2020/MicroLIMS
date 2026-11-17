@@ -262,7 +262,7 @@ public class DocumentControlPermissionEnforcementTests
         var taskId = await SeedPendingApprovalTaskAsync(_approver.Id);
         await RevokeAsync(_reviewerRole, PermissionConstants.DocumentsApprove);
 
-        var ex = await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
+        var ex = await Assert.ThrowsAnyAsync<UnauthorizedAccessException>(() =>
             _approvalService.ExecuteApprovalDecisionAsync(taskId, new ExecuteApprovalDecisionRequest(DocumentApprovalDecision.Decline, "no"), _approver.Id));
         Assert.Contains("Documents.Approve", ex.Message);
     }

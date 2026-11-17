@@ -1,4 +1,5 @@
 using MicroLIMS.Application.Helpers;
+using MicroLIMS.Shared.Messages;
 using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Domain.Entities;
@@ -84,7 +85,7 @@ public class MediaReleaseService
         }
 
         if (await _segregationOfDuties.DidUserPrepareOrEvaluateMediaAsync(media.Id, sectionHeadUserId))
-            return ActionCheck.No("You cannot approve a media lot you prepared or evaluated.");
+            return ActionCheck.No(MessageCodes.MediaCannotApproveOwnLot, "You cannot approve a media lot you prepared or evaluated.");
 
         return ActionCheck.Ok;
     }

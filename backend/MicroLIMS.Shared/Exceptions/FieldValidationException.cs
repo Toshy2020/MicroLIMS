@@ -14,4 +14,14 @@ public class FieldValidationException : BusinessRuleException
     {
         FieldErrors = fieldErrors ?? Array.Empty<FieldError>();
     }
+
+    public FieldValidationException(
+        string code,
+        string message,
+        IReadOnlyList<FieldError> fieldErrors,
+        IReadOnlyDictionary<string, string>? parameters = null)
+        : base(code, message, parameters)
+    {
+        FieldErrors = fieldErrors ?? Array.Empty<FieldError>();
+    }
 }

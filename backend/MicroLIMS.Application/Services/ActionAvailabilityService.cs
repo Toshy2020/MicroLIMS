@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Messages;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Application.Interfaces;
@@ -9,7 +10,14 @@ namespace MicroLIMS.Application.Services;
 
 // One gated action on a record: whether the caller could perform it now and, when not, the sentence the server
 // would refuse it with.
-public sealed record ActionAvailability(string Action, bool Allowed, string? Reason);
+public sealed record ActionAvailability(
+    string Action,
+    bool Allowed,
+    string? Reason,
+    [property: System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    string? ReasonCode = null,
+    [property: System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    IReadOnlyDictionary<string, string>? ReasonParams = null);
 
 public static class GatedActions
 {
@@ -169,7 +177,7 @@ public sealed class ActionAvailabilityService
         foreach (var check in checks)
         {
             var result = await check();
-            if (!result.Allowed) return new ActionAvailability(action, false, result.Reason);
+            if (!result.Allowed) return new ActionAvailability(action, false, result.Reason, result.Code, result.Params);
         }
 
         return new ActionAvailability(action, true, null);
@@ -179,7 +187,7 @@ public sealed class ActionAvailabilityService
 
     // The endpoint's permission policy answers 403 with no sentence, so this refusal has none of its own.
     private static Task<ActionCheck> Holds(IReadOnlySet<string> permissions, string code) =>
-        Task.FromResult(permissions.Contains(code) ? ActionCheck.Ok : ActionCheck.Denied(ActionCheck.RoleDoesNotIncludeAction));
+        Task.FromResult(permissions.Contains(code) ? ActionCheck.Ok : ActionCheck.Denied(MessageCodes.AuthRoleDoesNotIncludeAction, ActionCheck.RoleDoesNotIncludeAction));
 
     private async Task<IReadOnlySet<string>> PermissionsAsync(int userId, CancellationToken ct) =>
         (await (

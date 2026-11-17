@@ -294,7 +294,7 @@ public class DocumentControlApprovalUnitTests
 
         var task = await approvalService.CreateApprovalTaskAsync(revision.Id, new CreateApprovalTaskRequest(approver.Id), author.Id);
 
-        var ex = await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
+        var ex = await Assert.ThrowsAnyAsync<UnauthorizedAccessException>(() =>
             approvalService.ExecuteApprovalDecisionAsync(task.Id, new ExecuteApprovalDecisionRequest(DocumentApprovalDecision.Approve, "Admin approving"), admin.Id));
 
         Assert.Contains("Only the assigned approver or Document Controller", ex.Message);

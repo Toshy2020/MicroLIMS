@@ -78,7 +78,11 @@
     "releaseNoteSaveFailed": "تعذّر حفظ حالة ملاحظات الإصدار.",
     "timeoutTitle": "تحذير انتهاء الجلسة",
     "timeoutBody": "سيتم تسجيل خروجك بسبب عدم النشاط خلال {{duration}}.",
-    "stayLoggedIn": "البقاء في الجلسة"
+    "stayLoggedIn": "البقاء في الجلسة",
+    "benchOfferLabel": "عرض وضع المنضدة",
+    "benchOfferText": "يبدو أن هذه شاشة لمس. هل تريد تفعيل وضع المنضدة للحصول على أزرار أكبر ولوحات أرقام؟",
+    "benchOfferAccept": "تفعيل وضع المنضدة",
+    "benchOfferDecline": "ليس الآن"
   },
   "sidebar": {
     "mainNavigation": "التنقل الرئيسي",

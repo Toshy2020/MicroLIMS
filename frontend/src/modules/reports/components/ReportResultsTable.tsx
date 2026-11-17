@@ -293,7 +293,7 @@ export function ReportResultsTable({
       label: "",
       align: "center",
       render: (row) => (
-        <IconButton aria-label="Row actions" size="small" onClick={(e) => { e.stopPropagation(); setRowMenu({ anchor: e.currentTarget, row }); }}>
+        <IconButton aria-label={`Row actions for ${row.referenceNumber}`} size="small" onClick={(e) => { e.stopPropagation(); setRowMenu({ anchor: e.currentTarget, row }); }}>
           <MoreVertIcon fontSize="small" />
         </IconButton>
       )

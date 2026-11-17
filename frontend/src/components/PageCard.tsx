@@ -2,6 +2,7 @@ import { Box, ButtonBase, Typography, alpha } from "@mui/material";
 import { Link } from "react-router-dom";
 import type { MenuItem } from "../routes/menuConfig";
 import type { SectionCounter } from "../services/sectionCountersService";
+import { useMenuText } from "../routes/menuText";
 
 // A link to a page, drawn as a card with its icon and one-line description.
 // Section and group landing pages and the admin dashboard use it; a
@@ -11,6 +12,7 @@ import type { SectionCounter } from "../services/sectionCountersService";
 // `counters`: live figures for the page ("3 overdue"), drawn under the
 // description; a figure that needs attention takes its tone's colour.
 export function PageCard({ page, counters }: { page: MenuItem; counters?: SectionCounter[] }) {
+  const menu = useMenuText();
   const Icon = page.icon;
   const featured = !!page.featured;
 
@@ -24,13 +26,13 @@ export function PageCard({ page, counters }: { page: MenuItem; counters?: Sectio
         display: "flex",
         alignItems: featured ? "center" : "flex-start",
         justifyContent: "flex-start",
-        textAlign: "left",
+        textAlign: "start",
         gap: 2,
         p: featured ? 2.75 : 2.25,
         borderRadius: 3,
         border: "1px solid",
         borderColor: featured ? alpha(t.palette.primary.main, 0.45) : "divider",
-        borderLeft: featured ? `4px solid ${t.palette.primary.main}` : undefined,
+        borderInlineStart: featured ? `4px solid ${t.palette.primary.main}` : undefined,
         bgcolor: "background.paper",
         color: "text.primary",
         transition: t.transitions.create(["border-color", "background-color", "box-shadow"], { duration: 180 }),
@@ -66,7 +68,7 @@ export function PageCard({ page, counters }: { page: MenuItem; counters?: Sectio
       )}
       <Box sx={{ minWidth: 0 }}>
         <Typography component="h2" sx={{ fontSize: featured ? 18 : 15.5, fontWeight: 600, lineHeight: 1.3 }}>
-          {page.label}
+          {menu.label(page.label)}
         </Typography>
         {page.description && (
           <Typography

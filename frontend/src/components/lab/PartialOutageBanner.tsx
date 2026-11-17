@@ -1,4 +1,5 @@
 import { Alert, Button } from "@mui/material";
+import { useTranslation } from "../../i18n";
 
 export interface PartialOutageBannerProps {
   sources: string[];
@@ -6,6 +7,7 @@ export interface PartialOutageBannerProps {
 }
 
 export function PartialOutageBanner({ sources, onRetry }: PartialOutageBannerProps) {
+  const { t } = useTranslation();
   if (sources.length === 0) return null;
 
   return (
@@ -15,12 +17,12 @@ export function PartialOutageBanner({ sources, onRetry }: PartialOutageBannerPro
       action={
         onRetry ? (
           <Button size="small" color="inherit" onClick={onRetry} sx={{ textTransform: "none", fontWeight: 600 }}>
-            Retry
+            {t("actions.retry")}
           </Button>
         ) : undefined
       }
     >
-      {`Some data could not be loaded: ${sources.join(", ")}.`}
+      {t("outage.someDataFailed", { sources: sources.join(t("listSeparator")) })}
     </Alert>
   );
 }

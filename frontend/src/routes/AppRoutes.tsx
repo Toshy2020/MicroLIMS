@@ -8,6 +8,7 @@ import { MainLayout } from "../layouts/MainLayout";
 import { LoadingSpinner } from "../components/LoadingSpinner";
 import { AppErrorBoundary } from "../components/AppErrorBoundary";
 import { AdminLayout, AdminIndexRedirect } from "../modules/admin/AdminLayout";
+import { EnglishOnly } from "../i18n/EnglishOnly";
 import { LEGACY_ADMIN_REDIRECTS, LegacyPathRedirect } from "./legacyAdminRedirects";
 
 // Every page-level route component below is lazy-loaded so the initial
@@ -126,10 +127,11 @@ export function AppRoutes() {
         <Route path="/mfa-enrol" element={<MfaEnrolmentPage />} />
 
         <Route element={<AuthenticatedRoutes />}>
-          <Route path="/samples/:id/report" element={<SampleReportPage />} />
-          <Route path="/samples/:id/coa" element={<SampleCoaPage />} />
-          <Route path="/media/:id/report" element={<MediaReportPage />} />
-          <Route path="/cryovials/:id/report" element={<CryovialReportPage />} />
+          {/* Printable records are English and left-to-right for every user, whatever their interface language. */}
+          <Route path="/samples/:id/report" element={<EnglishOnly><SampleReportPage /></EnglishOnly>} />
+          <Route path="/samples/:id/coa" element={<EnglishOnly><SampleCoaPage /></EnglishOnly>} />
+          <Route path="/media/:id/report" element={<EnglishOnly><MediaReportPage /></EnglishOnly>} />
+          <Route path="/cryovials/:id/report" element={<EnglishOnly><CryovialReportPage /></EnglishOnly>} />
 
           <Route element={<MainLayout />}>
             <Route path="/" element={<Navigate to="/my-work" replace />} />

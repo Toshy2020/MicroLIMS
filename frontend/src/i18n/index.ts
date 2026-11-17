@@ -62,6 +62,38 @@ const lazyFiles: BackendModule = {
 
 export const i18n = i18next.createInstance();
 
+// Printed and previewed records are English whatever the user's interface language
+// (the English statement is the recorded one). While one is on screen the
+// language is forced here, so code that formats outside React (dates) follows it.
+let forcedLanguage: Language | null = null;
+let forcedCount = 0;
+
+export function activeLanguage(): string {
+  return forcedLanguage ?? i18n.language;
+}
+
+// Returns the function that ends the forcing; nested uses are counted. Ending it tells
+// screens that follow the language to draw again, because the page that replaces a
+// printable one has already rendered once while English was forced.
+export function forceLanguage(language: Language): () => void {
+  forcedLanguage = language;
+  forcedCount += 1;
+  let released = false;
+  return () => {
+    if (released) return;
+    released = true;
+    forcedCount -= 1;
+    if (forcedCount <= 0) {
+      forcedCount = 0;
+      forcedLanguage = null;
+      // After this commit has subscribed its screens (they subscribe in an effect).
+      setTimeout(() => {
+        if (forcedLanguage === null) i18n.emit("languageChanged", i18n.language);
+      }, 0);
+    }
+  };
+}
+
 // Import the hook from here (not straight from react-i18next) so the setup above
 // has run wherever a screen uses translation keys, tests included.
 export { useTranslation } from "react-i18next";

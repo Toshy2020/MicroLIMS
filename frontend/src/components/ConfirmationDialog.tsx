@@ -2,6 +2,7 @@ import { useId } from "react";
 import type { ReactNode } from "react";
 import { Box, Dialog, DialogTitle, DialogContent, DialogActions, Button, CircularProgress, Typography } from "@mui/material";
 import WarningAmberRoundedIcon from "@mui/icons-material/WarningAmberRounded";
+import { useTranslation } from "../i18n";
 
 interface ConfirmationDialogProps {
   open: boolean;
@@ -22,14 +23,15 @@ interface ConfirmationDialogProps {
 export function ConfirmationDialog({
   open,
   message,
-  title = "Confirm",
-  confirmText = "Confirm",
-  cancelText = "Cancel",
+  title,
+  confirmText,
+  cancelText,
   destructive = false,
   loading = false,
   onConfirm,
   onCancel
 }: ConfirmationDialogProps) {
+  const { t } = useTranslation();
   const messageId = useId();
   return (
     <Dialog
@@ -42,7 +44,7 @@ export function ConfirmationDialog({
     >
       <DialogTitle sx={{ display: "flex", alignItems: "center", gap: 1 }}>
         {destructive && <WarningAmberRoundedIcon color="error" aria-hidden />}
-        {title}
+        {title ?? t("dialog.confirmTitle")}
       </DialogTitle>
       <DialogContent>
         {typeof message === "string" ? (
@@ -52,7 +54,7 @@ export function ConfirmationDialog({
         )}
       </DialogContent>
       <DialogActions>
-        <Button onClick={onCancel} disabled={loading} autoFocus>{cancelText}</Button>
+        <Button onClick={onCancel} disabled={loading} autoFocus>{cancelText ?? t("actions.cancel")}</Button>
         <Button
           onClick={onConfirm}
           variant="contained"
@@ -60,7 +62,7 @@ export function ConfirmationDialog({
           disabled={loading}
           startIcon={loading ? <CircularProgress size={16} color="inherit" /> : undefined}
         >
-          {confirmText}
+          {confirmText ?? t("actions.confirm")}
         </Button>
       </DialogActions>
     </Dialog>

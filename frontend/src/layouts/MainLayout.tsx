@@ -34,8 +34,15 @@ import {
 import { useUiState } from "../hooks/useUiState";
 import { toast } from "sonner";
 import { accountPageTrail, findNavTrail } from "../routes/navigation";
+import { useTranslation } from "../i18n";
 
 const MAIN_CONTENT_ID = "main-content";
+
+// "30 seconds" / "ثانية واحدة": the unit and its plural come from the language, with Latin digits.
+function formatSeconds(seconds: number, language: string): string {
+  const tag = language === "ar" ? "ar-u-nu-latn" : "en-GB";
+  return new Intl.NumberFormat(tag, { style: "unit", unit: "second", unitDisplay: "long" }).format(seconds);
+}
 
 const CHANGE_PASSWORD_PATH = "/change-password";
 const SET_SIGNING_PASSWORD_PATH = "/set-signing-password";
@@ -61,6 +68,7 @@ function isForcedEnrolmentPending(
 }
 
 function FirstLoginTour({ mfaStatus }: { mfaStatus: MfaStatus | null }) {
+  const { t } = useTranslation();
   const { role, mustChangePassword, signingPasswordRequired } = useAuth();
   const { tourReplaySeq } = useHelpPanel();
   const location = useLocation();
@@ -96,7 +104,7 @@ function FirstLoginTour({ mfaStatus }: { mfaStatus: MfaStatus | null }) {
           setHandledReplaySeq(tourReplaySeq);
         }
         tourState.set(result).catch(() => {
-          toast.error("Could not save your tour progress. The tour may appear again.");
+          toast.error(t("layout.tourSaveFailed"));
         });
       }}
     />
@@ -112,6 +120,7 @@ function WhatsNewPrompt({
   mfaLoaded: boolean;
   notes?: readonly ReleaseNote[];
 }) {
+  const { t } = useTranslation();
   const { role, mustChangePassword, signingPasswordRequired } = useAuth();
   const { tourReplaySeq } = useHelpPanel();
   const location = useLocation();
@@ -176,7 +185,7 @@ function WhatsNewPrompt({
   const handleClose = () => {
     setDismissedVersion(__APP_VERSION__);
     whatsNewState.set(__APP_VERSION__).catch(() => {
-      toast.error("Could not save your release note state.");
+      toast.error(t("layout.releaseNoteSaveFailed"));
     });
   };
 
@@ -184,6 +193,7 @@ function WhatsNewPrompt({
 }
 
 export function MainLayout({ whatsNewNotes }: { whatsNewNotes?: readonly ReleaseNote[] } = {}) {
+  const { t, i18n } = useTranslation();
   const { logout, mustChangePassword, signingPasswordRequired } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -294,7 +304,7 @@ export function MainLayout({ whatsNewNotes }: { whatsNewNotes?: readonly Release
         className="no-print"
         sx={{
           position: "absolute",
-          left: 8,
+          insetInlineStart: 8,
           top: -48,
           zIndex: 2000,
           px: 2,
@@ -308,7 +318,7 @@ export function MainLayout({ whatsNewNotes }: { whatsNewNotes?: readonly Release
           "&:focus": { top: 8 }
         }}
       >
-        Skip to main content
+        {t("layout.skipToMain")}
       </Box>
 
       <Header
@@ -377,11 +387,11 @@ export function MainLayout({ whatsNewNotes }: { whatsNewNotes?: readonly Release
                 <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                   <WarningAmberRoundedIcon fontSize="small" aria-hidden />
                   <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                    Second-factor setup required by {formatDateTimeWithTimeZone(mfaStatus.enrolmentDueAt)}.
+                    {t("layout.mfaRequiredBy", { date: formatDateTimeWithTimeZone(mfaStatus.enrolmentDueAt) })}
                   </Typography>
                 </Box>
                 <Button component={RouterLink} to="/mfa-enrol" size="small" variant="outlined" color="inherit">
-                  Set up second factor
+                  {t("layout.mfaSetUp")}
                 </Button>
               </Box>
             )}
@@ -400,14 +410,14 @@ export function MainLayout({ whatsNewNotes }: { whatsNewNotes?: readonly Release
           onClose ignores every close reason (escapeKeyDown, backdropClick), which is what keeps it open;
           MUI v9 removed disableEscapeKeyDown in favour of exactly this. */}
       <Dialog open={showWarning} onClose={() => {}}>
-        <DialogTitle>Session Timeout Warning</DialogTitle>
+        <DialogTitle>{t("layout.timeoutTitle")}</DialogTitle>
         <DialogContent>
           <DialogContentText>
-            You will be signed out due to inactivity in {secondsRemaining} second{secondsRemaining === 1 ? "" : "s"}.
+            {t("layout.timeoutBody", { duration: formatSeconds(secondsRemaining, i18n.language) })}
           </DialogContentText>
         </DialogContent>
         <DialogActions>
-          <Button variant="contained" onClick={stayLoggedIn} autoFocus>Stay signed in</Button>
+          <Button variant="contained" onClick={stayLoggedIn} autoFocus>{t("layout.stayLoggedIn")}</Button>
         </DialogActions>
       </Dialog>
     </Box>

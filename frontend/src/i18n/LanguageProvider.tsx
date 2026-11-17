@@ -14,8 +14,8 @@ export const LANGUAGE_STATE_KEY = "language";
 
 // One style cache per direction. The right-to-left one rewrites physical CSS
 // (margin-left, left, text-align...) so shared components mirror without edits.
-const ltrCache = createCache({ key: "mui" });
-const rtlCache = createCache({ key: "muirtl", stylisPlugins: [prefixer, rtlPlugin] });
+export const ltrCache = createCache({ key: "mui" });
+export const rtlCache = createCache({ key: "muirtl", stylisPlugins: [prefixer, rtlPlugin] });
 
 interface LanguageContextValue {
   language: Language;

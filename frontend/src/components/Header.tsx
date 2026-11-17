@@ -28,6 +28,7 @@ import WarningAmberOutlinedIcon from "@mui/icons-material/WarningAmberOutlined";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import CloudOffOutlinedIcon from "@mui/icons-material/CloudOffOutlined";
 import { visuallyHidden } from "@mui/utils";
+import { LanguageMenuItems } from "./LanguageMenuItems";
 import { HelpMenu } from "../modules/help/HelpMenu";
 import { ConfirmationDialog } from "./ConfirmationDialog";
 import SwitchAccountIcon from "@mui/icons-material/SwitchAccount";
@@ -522,6 +523,8 @@ export function Header({ onToggleSidebar, sidebarCollapsed, labCodes, unsavedDra
             <ListItemIcon><LockResetIcon fontSize="small" /></ListItemIcon>
             <ListItemText primary="Change Password" />
           </MenuItem>
+          <Divider />
+          <LanguageMenuItems onChosen={() => setProfileAnchor(null)} />
           <Divider />
           <MenuItem onClick={handleSignOut}>
             <ListItemIcon><LogoutIcon fontSize="small" /></ListItemIcon>

@@ -1,8 +1,10 @@
 import { Button, Chip, Paper, Typography, useTheme } from "@mui/material";
+import { useTranslation } from "../../../i18n";
 import LayersIcon from "@mui/icons-material/Layers";
 import CloseIcon from "@mui/icons-material/Close";
 import FilterAltOutlinedIcon from "@mui/icons-material/FilterAltOutlined";
 import AssignmentIndIcon from "@mui/icons-material/AssignmentInd";
+import FileDownloadOutlinedIcon from "@mui/icons-material/FileDownloadOutlined";
 
 interface Props {
   selectedCount: number;
@@ -15,6 +17,8 @@ interface Props {
   onToggleShowSelectedOnly: () => void;
   onClear: () => void;
   onBulkAssign?: () => void;
+  // Present only for a user who may export; the page logs the export with the server before the file is made.
+  onExport?: () => void;
 }
 
 // Selection used to be invisible until the second checkbox, at which point
@@ -27,9 +31,11 @@ export function SelectionSummaryBar({
   showingSelectedOnly,
   onToggleShowSelectedOnly,
   onClear,
-  onBulkAssign
+  onBulkAssign,
+  onExport
 }: Props) {
   const theme = useTheme();
+  const { t } = useTranslation();
   if (selectedCount === 0) return null;
 
   const needsMore = selectedCount < 2;
@@ -102,6 +108,18 @@ export function SelectionSummaryBar({
           sx={{ height: 26, fontSize: 12, textTransform: "none", fontWeight: 600 }}
         >
           Assign analyst
+        </Button>
+      )}
+
+      {onExport && (
+        <Button
+          size="small"
+          variant="outlined"
+          startIcon={<FileDownloadOutlinedIcon sx={{ fontSize: 16 }} />}
+          onClick={onExport}
+          sx={{ height: 26, fontSize: 12, textTransform: "none", fontWeight: 600, borderColor: "divider" }}
+        >
+          {t("table.exportSelected")}
         </Button>
       )}
 

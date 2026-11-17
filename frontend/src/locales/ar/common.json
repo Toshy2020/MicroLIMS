@@ -42,6 +42,7 @@
     "expandColumn": "توسيع",
     "actionsColumn": "الإجراءات",
     "exportCsv": "تصدير CSV",
+    "exportSelected": "تصدير المحدد",
     "all": "الكل",
     "rowsPerPage": "عدد الصفوف في الصفحة:",
     "displayedRows": "{{from}}–{{to}} من {{total}}",

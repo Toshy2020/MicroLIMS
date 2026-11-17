@@ -3,9 +3,10 @@ import { initReactI18next } from "react-i18next";
 import enCommon from "../locales/en/common.json";
 
 // Interface language support (F4). Texts live in namespace files,
-// frontend/src/locales/{en,ar}/<namespace>.json. English "common" is bundled
-// so English renders on the first paint exactly as before; every other file
-// is loaded the first time a screen asks for its namespace.
+// frontend/src/locales/{en,ar}/<namespace>.json. Every English file is bundled,
+// so English renders on the first paint exactly as before and a screen never
+// shows a raw key while its texts load. Other languages load the first time a
+// screen asks for a namespace; until then that screen shows English.
 
 export const SUPPORTED_LANGUAGES = ["en", "ar"] as const;
 export type Language = (typeof SUPPORTED_LANGUAGES)[number];
@@ -33,9 +34,21 @@ export function browserLanguage(): Language {
   return DEFAULT_LANGUAGE;
 }
 
+const englishFiles = import.meta.glob<{ default: Record<string, unknown> }>(
+  ["../locales/en/*.json", "!../locales/en/common.json"],
+  { eager: true }
+);
+
+// English texts by namespace, all present from the first paint.
+export const englishResources: Record<string, Record<string, unknown>> = { common: enCommon };
+for (const [path, module] of Object.entries(englishFiles)) {
+  const namespace = path.slice(path.lastIndexOf("/") + 1, -".json".length);
+  englishResources[namespace] = module.default;
+}
+
 const loaders = import.meta.glob<{ default: Record<string, unknown> }>([
   "../locales/*/*.json",
-  "!../locales/en/common.json" // bundled above; a second, dynamic import would not split
+  "!../locales/en/*.json" // bundled above
 ]);
 
 // A namespace with no file in a language simply has no keys there, so every
@@ -44,8 +57,8 @@ const lazyFiles: BackendModule = {
   type: "backend",
   init() {},
   read(language, namespace, callback) {
-    if (language === "en" && namespace === DEFAULT_NAMESPACE) {
-      callback(null, enCommon);
+    if (language === "en") {
+      callback(null, englishResources[namespace] ?? {});
       return;
     }
     const load = loaders[`../locales/${language}/${namespace}.json`];
@@ -107,7 +120,7 @@ export const i18nReady = i18n
     supportedLngs: [...SUPPORTED_LANGUAGES],
     ns: [DEFAULT_NAMESPACE],
     defaultNS: DEFAULT_NAMESPACE,
-    resources: { en: { common: enCommon } },
+    resources: { en: englishResources },
     partialBundledLanguages: true,
     initAsync: false,
     interpolation: { escapeValue: false }, // React escapes

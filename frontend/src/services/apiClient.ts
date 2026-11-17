@@ -120,8 +120,14 @@ async function decodeBlobErrorBody(error: AxiosError): Promise<void> {
 // A refusal the server sent with a message code is shown in the interface language:
 // the sentence screens read (response.data.message) becomes the translated one.
 // Uncoded responses are left exactly as they came.
+// If the templates cannot be loaded the server's English sentence stays: the
+// caller must still receive the original refusal, never a loading error.
 async function translateCodedRefusal(error: AxiosError): Promise<void> {
-  await translateServerErrorBody(error.response?.data);
+  try {
+    await translateServerErrorBody(error.response?.data);
+  } catch (e) {
+    console.warn("Server message templates could not be loaded; showing the server's sentence.", e);
+  }
 }
 
 // What a laboratory user is told when the server gave no message of its own.

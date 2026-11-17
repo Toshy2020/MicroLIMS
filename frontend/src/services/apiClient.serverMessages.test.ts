@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AxiosError, type AxiosAdapter, type InternalAxiosRequestConfig } from "axios";
 import { apiClient } from "./apiClient";
 import { i18n } from "../i18n";
@@ -41,6 +41,7 @@ beforeEach(async () => {
 });
 
 afterEach(async () => {
+  vi.restoreAllMocks();
   apiClient.defaults.adapter = originalAdapter;
   await i18n.changeLanguage("en");
 });
@@ -53,6 +54,23 @@ describe("apiClient coded server messages", () => {
 
     expect(body.message).toBe("تم أخذ الاختبار بالفعل بواسطة Dana Lee.");
     expect(body.errors).toEqual(["تم أخذ الاختبار بالفعل بواسطة Dana Lee."]);
+  });
+
+  it("keeps the server's refusal and English sentence when the templates cannot be loaded", async () => {
+    await i18n.changeLanguage("ar");
+    const load = vi.spyOn(i18n, "loadNamespaces").mockRejectedValue(new Error("chunk failed"));
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+
+    const { thrown, body } = await refusal(400, {
+      success: false,
+      message: "Already taken by Dana Lee.",
+      errorDetails: [{ code: "Test.AlreadyTaken", params: { name: "Dana Lee" }, message: "Already taken by Dana Lee." }]
+    });
+
+    expect(load).toHaveBeenCalled();
+    expect(warn).toHaveBeenCalled();
+    expect(thrown.response?.status).toBe(400);
+    expect(body.message).toBe("Already taken by Dana Lee.");
   });
 
   it("shows the English template in English, with the same parameters", async () => {

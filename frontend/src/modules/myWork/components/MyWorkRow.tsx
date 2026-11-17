@@ -3,17 +3,20 @@ import { Box, Button, Stack, Typography, useTheme } from "@mui/material";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import { Link } from "react-router-dom";
 import { GatedAction } from "../../../components/GatedAction";
+import { Ltr } from "../../../components/Ltr";
+import { useTranslation } from "../../../i18n";
 import { useActionAvailability } from "../../../hooks/useActionAvailability";
 import { monospaceFontFamily } from "../../../theme/palette";
 import type { MyWorkItem } from "../myWorkTypes";
 import { routeForTarget } from "../targetRoutes";
 import { UrgencyLabel } from "./UrgencyLabel";
 
-function formatDueAt(dueAtUtc: string, timeZoneId: string): string {
+// Arabic month names with Latin digits and the Gregorian calendar, as in formatLabDate.
+function formatDueAt(dueAtUtc: string, timeZoneId: string, locale: string): string {
   const date = new Date(dueAtUtc);
   if (Number.isNaN(date.getTime())) return dueAtUtc;
   try {
-    return new Intl.DateTimeFormat("en-GB", {
+    return new Intl.DateTimeFormat(locale, {
       day: "2-digit",
       month: "short",
       hour: "2-digit",
@@ -22,7 +25,7 @@ function formatDueAt(dueAtUtc: string, timeZoneId: string): string {
       timeZoneName: "short"
     }).format(date);
   } catch {
-    return new Intl.DateTimeFormat("en-GB", {
+    return new Intl.DateTimeFormat(locale, {
       day: "2-digit",
       month: "short",
       hour: "2-digit",
@@ -41,6 +44,8 @@ export interface MyWorkRowProps {
 }
 
 export function MyWorkRow({ item, timeZoneId, onTake, onRelease, busyKey }: MyWorkRowProps) {
+  const { t, i18n } = useTranslation("myWork");
+  const dateLocale = i18n.language === "ar" ? "ar-u-nu-latn-ca-gregory" : "en-GB";
   const theme = useTheme();
   const route = item.locked ? null : routeForTarget(item.target, item.lab);
   const canTake = !item.locked && item.actions.includes("take") && item.target.testOrderId != null;
@@ -62,18 +67,20 @@ export function MyWorkRow({ item, timeZoneId, onTake, onRelease, busyKey }: MyWo
 
   const titleContent = (
     <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap" }}>
-      <Typography
-        component="span"
-        sx={{
-          fontFamily: monospaceFontFamily,
-          fontVariantNumeric: "tabular-nums",
-          fontSize: 13,
-          fontWeight: 700,
-          color: item.locked ? "text.secondary" : "primary.main"
-        }}
-      >
-        {item.identifier}
-      </Typography>
+      <Ltr>
+        <Typography
+          component="span"
+          sx={{
+            fontFamily: monospaceFontFamily,
+            fontVariantNumeric: "tabular-nums",
+            fontSize: 13,
+            fontWeight: 700,
+            color: item.locked ? "text.secondary" : "primary.main"
+          }}
+        >
+          {item.identifier}
+        </Typography>
+      </Ltr>
       <Typography
         component="span"
         sx={{
@@ -149,13 +156,13 @@ export function MyWorkRow({ item, timeZoneId, onTake, onRelease, busyKey }: MyWo
             <Stack direction="row" spacing={0.5} sx={{ alignItems: "center", color: theme.custom.status.pending.text }}>
               <LockOutlinedIcon sx={{ fontSize: 14 }} aria-hidden />
               <Typography variant="caption" sx={{ fontWeight: 600 }}>
-                {item.lockReason || "Locked"}
+                {item.lockReason || t("row.locked")}
               </Typography>
             </Stack>
           )}
           {!item.locked && !route && (
             <Typography variant="caption" sx={{ color: "text.secondary", fontStyle: "italic" }}>
-              Open from the workspace
+              {t("row.openFromWorkspace")}
             </Typography>
           )}
         </Stack>
@@ -173,7 +180,7 @@ export function MyWorkRow({ item, timeZoneId, onTake, onRelease, busyKey }: MyWo
               whiteSpace: "nowrap"
             }}
           >
-            {formatDueAt(item.dueAtUtc, timeZoneId)}
+            <Ltr>{formatDueAt(item.dueAtUtc, timeZoneId, dateLocale)}</Ltr>
           </Typography>
         )}
         {canTake && (
@@ -185,7 +192,7 @@ export function MyWorkRow({ item, timeZoneId, onTake, onRelease, busyKey }: MyWo
               onClick={() => onTake(item)}
               sx={{ textTransform: "none", fontWeight: 600 }}
             >
-              Take
+              {t("row.take")}
             </Button>
           </GatedAction>
         )}
@@ -199,7 +206,7 @@ export function MyWorkRow({ item, timeZoneId, onTake, onRelease, busyKey }: MyWo
               onClick={() => onRelease(item)}
               sx={{ textTransform: "none", fontWeight: 600 }}
             >
-              Release
+              {t("row.release")}
             </Button>
           </GatedAction>
         )}

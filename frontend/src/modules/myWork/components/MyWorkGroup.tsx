@@ -1,6 +1,8 @@
 import { useId } from "react";
 import { Box, Button, Chip, Paper, Stack, Typography } from "@mui/material";
 import { Link } from "react-router-dom";
+import { Trans } from "react-i18next";
+import { Ltr } from "../../../components/Ltr";
 import type { MyWorkGroup as MyWorkGroupDto, MyWorkItem } from "../myWorkTypes";
 import { routeForGroup } from "../targetRoutes";
 import { MyWorkRow } from "./MyWorkRow";
@@ -52,7 +54,7 @@ export function MyWorkGroup({ group, timeZoneId, onTake, onRelease, busyKey }: M
             variant="text"
             sx={{ textTransform: "none", fontWeight: 600 }}
           >
-            {`Show all ${group.count}`}
+            <Trans i18nKey="group.showAll" ns="myWork" values={{ count: group.count }} components={{ ltr: <Ltr>{null}</Ltr> }} />
           </Button>
         )}
       </Box>

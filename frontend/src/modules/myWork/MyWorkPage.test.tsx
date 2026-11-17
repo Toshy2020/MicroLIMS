@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { Link, MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
@@ -10,6 +10,13 @@ import { PERMISSIONS } from "../../routes/routes";
 import { myWorkService } from "./services/myWorkService";
 import type { MyWorkResponse } from "./myWorkTypes";
 import { MyWorkPage } from "./MyWorkPage";
+import { i18n } from "../../i18n";
+import { renderInArabic, resetLanguage } from "../../i18n/testUtils";
+
+// The myWork texts load on first use; the English file is in place before the tests query it.
+beforeAll(async () => {
+  await i18n.loadNamespaces("myWork");
+});
 
 vi.mock("./services/myWorkService", () => ({
   myWorkService: {
@@ -439,5 +446,29 @@ describe("MyWorkPage", () => {
     expect(screen.getByTestId("location-echo").textContent).toBe(
       "/microbiology/workspace?sampleId=20&testOrderId=102&open=incubation&incubationId=202"
     );
+  });
+});
+
+describe("MyWorkPage in Arabic", () => {
+  afterEach(async () => {
+    await resetLanguage();
+  });
+
+  it("lays the page out right to left and keeps the sample identifier left to right", async () => {
+    vi.mocked(myWorkService.get).mockResolvedValue(makeResponse());
+
+    await renderInArabic(
+      <AuthProvider>
+        <MemoryRouter initialEntries={["/my-work"]}>
+          <MyWorkPage />
+        </MemoryRouter>
+      </AuthProvider>,
+      ["common", "myWork"]
+    );
+
+    expect(document.documentElement.dir).toBe("rtl");
+    expect(await screen.findByRole("heading", { name: "عملي" })).toBeTruthy();
+    const identifier = await screen.findByText("SMP-1001");
+    expect(identifier.closest("bdi")?.getAttribute("dir")).toBe("ltr");
   });
 });

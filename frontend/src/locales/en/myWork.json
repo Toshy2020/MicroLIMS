@@ -1,0 +1,49 @@
+{
+  "title": "My Work",
+  "subtitle": "Tests, reviews, approvals, and tasks waiting for your action.",
+  "refresh": "Refresh",
+  "searchLabel": "Search by identifier",
+  "loading": "Loading work items...",
+  "itemsShown_one": "<ltr>{{count}}</ltr> item shown",
+  "itemsShown_other": "<ltr>{{count}}</ltr> items shown",
+  "allWork": "All work",
+  "urgency": {
+    "Overdue": "Overdue",
+    "Now": "Now",
+    "Today": "Today",
+    "Later": "Later"
+  },
+  "loadFailed": "Could not load your work items.",
+  "retry": "Retry",
+  "empty": {
+    "title": "Nothing waiting for you",
+    "description": "All assigned tests, reviews, and tasks are up to date.",
+    "goDashboard": "Go to Dashboard"
+  },
+  "noMatches": {
+    "title": "No matching work items",
+    "description": "No items match the current urgency filter or search.",
+    "clearFilters": "Clear filters"
+  },
+  "release": {
+    "title": "Release test assignment",
+    "message": "Release <ltr>{{identifier}}</ltr> ({{title}}) back to the section queue?",
+    "confirm": "Release",
+    "cancel": "Cancel"
+  },
+  "toast": {
+    "taken": "Taken <ltr>{{identifier}}</ltr>.",
+    "released": "Released <ltr>{{identifier}}</ltr>.",
+    "takeFailed": "Could not take test.",
+    "releaseFailed": "Could not release test."
+  },
+  "row": {
+    "locked": "Locked",
+    "openFromWorkspace": "Open from the workspace",
+    "take": "Take",
+    "release": "Release"
+  },
+  "group": {
+    "showAll": "Show all <ltr>{{count}}</ltr>"
+  }
+}

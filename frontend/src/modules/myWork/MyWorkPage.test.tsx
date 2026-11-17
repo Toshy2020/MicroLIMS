@@ -349,6 +349,61 @@ describe("MyWorkPage", () => {
     });
   });
 
+  it("after a keyboard Take, focus lands on the Release button of the row that moved", async () => {
+    const user = userEvent.setup();
+    const taken = makeResponse();
+    // After the take, SMP-2002 sits in the analyst's own list and offers Release.
+    const availableGroup = taken.groups[1];
+    const moved = { ...availableGroup.items[0], key: "mine-22", groupKey: "toPerform", actions: ["release" as const] };
+    const after = makeResponse({
+      groups: [
+        taken.groups[0],
+        { ...taken.groups[2], count: 2, items: [moved, ...taken.groups[2].items] }
+      ]
+    });
+    vi.mocked(myWorkService.get).mockResolvedValueOnce(taken).mockResolvedValue(after);
+    vi.mocked(myWorkService.take).mockResolvedValue(undefined);
+
+    renderPage();
+    const take = await screen.findByRole("button", { name: /Take/i });
+    take.focus();
+    await user.keyboard("{Enter}");
+
+    await waitFor(() => {
+      const row = screen.getByTestId("my-work-row-mine-22");
+      expect(document.activeElement).toBe(within(row).getByRole("button", { name: /Release/i }));
+    });
+  });
+
+  it("after a keyboard Release, focus lands on the Take button of the row that moved", async () => {
+    const user = userEvent.setup();
+    const before = makeResponse();
+    const mine = before.groups[2].items[0];
+    const moved = { ...mine, key: "avail-33", groupKey: "available", actions: ["take" as const] };
+    const after = makeResponse({
+      groups: [
+        before.groups[0],
+        { ...before.groups[1], count: 2, items: [...before.groups[1].items, moved] }
+      ]
+    });
+    vi.mocked(myWorkService.get).mockResolvedValueOnce(before).mockResolvedValue(after);
+    vi.mocked(myWorkService.release).mockResolvedValue(undefined);
+
+    renderPage();
+    const release = await screen.findByRole("button", { name: /Release/i });
+    release.focus();
+    await user.keyboard("{Enter}");
+    const dialog = await screen.findByRole("alertdialog");
+    await user.tab();
+    expect(document.activeElement).toBe(within(dialog).getByRole("button", { name: /^Release/i }));
+    await user.keyboard("{Enter}");
+
+    await waitFor(() => {
+      const row = screen.getByTestId("my-work-row-avail-33");
+      expect(document.activeElement).toBe(within(row).getByRole("button", { name: /Take/i }));
+    });
+  });
+
   it("preserves keyboard focus on the same row key across refresh", async () => {
     vi.mocked(myWorkService.get)
       .mockResolvedValueOnce(makeResponse())

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { FocusEvent } from "react";
 import { Alert, Box, Button, InputAdornment, Skeleton, Stack, TextField, Typography } from "@mui/material";
 import RefreshIcon from "@mui/icons-material/Refresh";
@@ -65,6 +65,21 @@ export function MyWorkPage() {
 
   const listContainerRef = useRef<HTMLDivElement | null>(null);
   const focusedRowKeyRef = useRef<string | null>(null);
+  // After Take or Release the row moves to another group (new key) or leaves, so focus follows the test
+  // order instead of the row key. It is applied once the refreshed list has arrived and, for Release,
+  // once the confirmation dialog has finished closing (a modal pulls focus back while it is open).
+  const pendingFocusRef = useRef<{ testOrderId: number; dataBefore: typeof data } | null>(null);
+  const releaseDialogOpenRef = useRef(false);
+
+  const applyPendingFocus = useCallback((current: typeof data) => {
+    const pending = pendingFocusRef.current;
+    const container = listContainerRef.current;
+    if (!pending || !container || releaseDialogOpenRef.current || current === pending.dataBefore) return;
+    pendingFocusRef.current = null;
+    const row = container.querySelector<HTMLElement>(`[data-test-order-id="${pending.testOrderId}"]`);
+    const target = row?.querySelector<HTMLElement>("button:not([disabled])") ?? row?.querySelector<HTMLElement>("a") ?? container;
+    target.focus();
+  }, []);
 
   const handleFocusCapture = (e: FocusEvent<HTMLDivElement>) => {
     const rowEl = (e.target as HTMLElement | null)?.closest<HTMLElement>("[data-row-key]");
@@ -72,6 +87,10 @@ export function MyWorkPage() {
   };
 
   useEffect(() => {
+    if (pendingFocusRef.current) {
+      applyPendingFocus(data);
+      return;
+    }
     const rowKey = focusedRowKeyRef.current;
     if (!rowKey || !listContainerRef.current) return;
     const active = document.activeElement;
@@ -84,7 +103,7 @@ export function MyWorkPage() {
     if (!rowEl) return;
     const focusTarget = rowEl.querySelector<HTMLElement>("a, button") ?? rowEl;
     focusTarget.focus();
-  }, [data]);
+  }, [data, applyPendingFocus]);
 
   const setFilterParams = (nextUrgency: MyWorkUrgency | null, nextQuery: string) => {
     const next = new URLSearchParams(searchParams);
@@ -184,6 +203,7 @@ export function MyWorkPage() {
     setBusyKey(item.key);
     try {
       await myWorkService.take(testOrderId);
+      pendingFocusRef.current = { testOrderId, dataBefore: data };
       toast.success(
         <Trans i18nKey="toast.taken" ns="myWork" values={{ identifier: item.identifier }} components={{ ltr: <Ltr>{null}</Ltr> }} />
       );
@@ -196,6 +216,7 @@ export function MyWorkPage() {
   };
 
   const handleReleaseClick = (item: MyWorkItem) => {
+    releaseDialogOpenRef.current = true;
     setReleaseTarget(item);
   };
 
@@ -206,6 +227,7 @@ export function MyWorkPage() {
     setReleasing(true);
     try {
       await myWorkService.release(testOrderId);
+      pendingFocusRef.current = { testOrderId, dataBefore: data };
       toast.success(
         <Trans i18nKey="toast.released" ns="myWork" values={{ identifier: target.identifier }} components={{ ltr: <Ltr>{null}</Ltr> }} />
       );
@@ -364,6 +386,10 @@ export function MyWorkPage() {
         onConfirm={confirmRelease}
         onCancel={() => {
           if (!releasing) setReleaseTarget(null);
+        }}
+        onClosed={() => {
+          releaseDialogOpenRef.current = false;
+          applyPendingFocus(data);
         }}
       />
     </LabPage>

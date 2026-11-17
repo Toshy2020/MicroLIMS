@@ -16,6 +16,8 @@ interface ConfirmationDialogProps {
   loading?: boolean;
   onConfirm: () => void;
   onCancel: () => void;
+  // Runs once the dialog has finished closing, so a caller can move focus after the modal has let go of it.
+  onClosed?: () => void;
 }
 
 // The one confirmation dialog for the app. Destructive confirmations put the
@@ -29,7 +31,8 @@ export function ConfirmationDialog({
   destructive = false,
   loading = false,
   onConfirm,
-  onCancel
+  onCancel,
+  onClosed
 }: ConfirmationDialogProps) {
   const { t } = useTranslation();
   const messageId = useId();
@@ -44,7 +47,7 @@ export function ConfirmationDialog({
       role={destructive ? "alertdialog" : "dialog"}
       // autoFocus alone can lose to the dialog's own focus handling while it fades in, which left
       // focus on the container in a real browser. Once the dialog is in place, put it on Cancel.
-      slotProps={{ transition: { onEntered: () => cancelRef.current?.focus() } }}
+      slotProps={{ transition: { onEntered: () => cancelRef.current?.focus(), onExited: onClosed } }}
     >
       <DialogTitle sx={{ display: "flex", alignItems: "center", gap: 1 }}>
         {destructive && <WarningAmberRoundedIcon color="error" aria-hidden />}

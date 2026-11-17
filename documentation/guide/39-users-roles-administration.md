@@ -2,7 +2,7 @@
 
 ### 39.1 User Account Administration
 
-<!-- WF-USERS-001 -->
+
 #### Purpose
 Create user accounts, change profile details, change roles, disable or enable accounts, unlock accounts, start password recoveries and require a password change.
 
@@ -120,7 +120,7 @@ The user table refreshes and shows the new status and role.
 
 ### 39.2 Roles and Permissions
 
-<!-- WF-ROLES-001 -->
+
 #### Purpose
 Create custom roles, choose which permissions each role has, and edit existing roles.
 
@@ -194,4 +194,4 @@ Clicking a role opens its detail screen:
 
 > **Note for reviewers:** Creating a role makes two separate saves; if the second fails, the role keeps the default permissions of its base type. (GAP-107)
 
-<!-- Review log (Sonnet): 22 corrections; invented items removed: routes, aria/component names, 480-minute token claim, "takes effect immediately" claim, Delete Role visibility rule, "Users Holding This Role" label, hand-over of recovery code as a plain step, audit code names; callouts added: GAP-009, GAP-100 (recovery hand-over); server validation message and Reset by email paragraph added -->
+

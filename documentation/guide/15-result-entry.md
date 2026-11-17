@@ -1,7 +1,7 @@
 ## 15. Result Entry (count, observation and location-grid tests)
 
 ### 15.1 Single-Test Incubation and Media Selection
-<!-- WF-COUNT-001 -->
+
 #### Purpose
 Choose a released media lot and a suitable incubator to start the plate incubation of one microbiological count test after preparation is confirmed.
 
@@ -68,7 +68,7 @@ The plates stay in the incubator. The dialog shows the temperature range, durati
 
 
 ### 15.2 Two-Stage Incubation Transfer
-<!-- WF-COUNT-001 -->
+
 #### Purpose
 Move the plates of a two-stage count test from the first incubator to a second one for the Stage 2 incubation.
 
@@ -114,7 +114,7 @@ Result entry opens when the Stage 2 incubation period has ended.
 
 
 ### 15.3 Plate Count Result Entry and Automatic Calculations
-<!-- WF-COUNT-001 -->
+
 #### Purpose
 Record plate counts (CFU) or the observations TNTC and Uncountable, let the system calculate the result using the dilution factor and the average of the plates, and compare it with the limits.
 
@@ -211,7 +211,7 @@ The test shows its result and status in the workspace. When all tests of the sec
 
 
 ### 15.4 Batch Location Count Results (Environmental Monitoring, Water, After Cleaning)
-<!-- WF-COUNT-002 -->
+
 #### Purpose
 Enter plate counts for all rooms, sampling points or machine parts of a test in one grid. The system calculates the averages and statuses and a summary of the worst result.
 
@@ -276,7 +276,7 @@ The location results and the batch summary are stored and the test waits for tec
 
 
 ### 15.5 Batch Location Pathogen Results (Environmental Monitoring and After Cleaning)
-<!-- WF-COUNT-002 -->
+
 #### Purpose
 Record, for every monitored location, whether pathogen growth was observed.
 
@@ -323,7 +323,7 @@ The test waits for technical review once the other tests of the section are comp
 
 
 ### 15.6 Qualitative Observation Results (Physicochemical)
-<!-- WF-OBS-001 -->
+
 #### Purpose
 Record "Complies" or "Does not comply" for each parameter of a qualitative physicochemical test, with an electronic signature.
 
@@ -384,4 +384,4 @@ The test goes to **Ready** (Result Entered); the result is **Within Limits** or 
 #### What happens next
 The test waits for technical review.
 
-<!-- Review log (Sonnet): 48 corrections; invented items removed: phase names, class/entity/enum names, stored-field names, code fragments, unsupported "Calculate disabled until a reading is entered", wrong "reset by supervisor" rework path, unsupported unit fallback, "result is locked" claim, BR id in a reviewer note (moved to Important rules); callouts added: none missing (GAP-202, 209, 211, 218, 220, 228 present); dilution/rounding/limit rules checked against verified rules, worked examples added -->
+

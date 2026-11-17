@@ -26,4 +26,4 @@ Many sensitive actions ask the user to type their login password again as an ele
 
 > **Note for reviewers:** Whether the microbiology count entry and pathogen test steps should carry an electronic signature has not been confirmed. (GAP-010)
 
-<!-- Review log (Sonnet): 7 corrections; invented items removed: "immutable" audit trail wording, laboratory/area code names, claim that every sensitive decision requires re-authentication; callouts added: GAP-010 -->
+

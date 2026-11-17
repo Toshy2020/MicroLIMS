@@ -155,9 +155,9 @@ This glossary defines standard laboratory abbreviations and user-interface terms
 | **Finding Resolution Ladder** | The structured review comment progression (Open, Author Responded, Reviewer Verified, Resolved). |
 | **Periodic Review** | The scheduled recurring re-evaluation of an effective controlled document to ensure ongoing scientific validity. |
 
-<!-- Review log (Sonnet): 16 corrections; invented items removed: "cryptographic hashes"/"immutable" archived copies, "Quick Period" component name, Correct Sample Details (not a UI label), unsupported definitions of Recovery %, Out of Stock, Th.Wt, r, RSD, Second-Person Verification; callouts added: none needed (glossary). Standard terms (GPT, EM, AC, TAMC, TYMC, CFU, TNTC, TSB, OOS, COA, CDS, HPLC, ICP-OES, the usual abbreviations) present; no code names remain. -->
-<!-- Phase 13 (agy): applied F-C12, F-C13, F-C14, F-C17 -->
 
-<!-- Phase 13 review (Sonnet): F-C12/C13/C14/C17 verified OK; F-B11 section 44 part applied (register-label rows in 44.3). Return to Analyst row in 44.4 still says count test only (out of scope). -->
 
-<!-- Phase 13 (Opus orchestrator): Return to Analyst scope aligned with §18.1 (F-B08). -->
+
+
+
+

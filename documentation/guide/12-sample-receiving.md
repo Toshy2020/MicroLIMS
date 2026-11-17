@@ -1,7 +1,7 @@
 ## 12. Sample Receiving
 
 ### 12.1 Receiving Product, Raw Material, and Packaging Material Samples
-<!-- WF-SAMPLE-001 -->
+
 #### Purpose
 Register incoming samples of Finished Product, Raw Material, or Packaging Material, assign the destination laboratory sections, and automatically generate test orders for all configured laboratory tests.
 
@@ -101,7 +101,7 @@ For samples requiring preparation, preparation must be confirmed before incubati
 
 
 ### 12.2 Receiving Environmental Monitoring Samples
-<!-- WF-SAMPLE-006 Step 1 -->
+
 #### Purpose
 Register an Environmental Monitoring sample record in the system before rooms, monitoring locations, and test configurations are selected during sample preparation.
 
@@ -153,7 +153,7 @@ The sample appears in the register. When it is selected in the laboratory worksp
 
 
 ### 12.3 Receiving Water Samples
-<!-- WF-SAMPLE-007 Step 1 -->
+
 #### Purpose
 Register a Water monitoring sample record in the system prior to sampling point selection and storage condition documentation during sample preparation.
 
@@ -206,7 +206,7 @@ The sample appears in the sample register. An analyst opens sample preparation t
 
 
 ### 12.4 Receiving After Cleaning Samples
-<!-- WF-SAMPLE-008 Step 1 -->
+
 #### Purpose
 Register an After Cleaning verification sample, linking the cleaning record to the cleaned equipment, previous product, and previous batch number before selecting specific machine parts during sample preparation.
 
@@ -291,6 +291,6 @@ Same permissions as single-row sample receiving (§12.1–§12.4). Submitting a 
 - **All-or-nothing save**: every row is validated before any sample is created. If any row fails (including laboratory permission or duplicate checks), no sample, reference number, or audit entry is created, a summary lists the problems, and the cursor moves to the first failing cell.
 - **No duplicate batch + control in Product batches**: within a Product, Raw Material, or Packaging Material batch save, two rows cannot share the same non-blank **Batch no.** and **Control no.** (ignoring spaces and case). Matching rows show `"Same batch and control number as row {n}."`.
 
-<!-- Review log (Sonnet): 7 corrections; invented items removed: expiry-date server message on receive, Physicochemical-section Ready rule (now FP section), register banner claim, swab/rinse wording; callouts added: After Cleaning order mismatch (GAP-225) -->
-<!-- Phase 13 (agy): applied F-A05, R-NEW-02 -->
-<!-- Phase 13 review (Sonnet): checked against RECONCILIATION section 2 and frontend strings; no invented items -->
+
+
+

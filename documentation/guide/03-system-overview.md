@@ -64,4 +64,4 @@ Controlled documents such as SOPs: drafting, technical review, approval signatur
 
 > **Note for reviewers:** Microbiology plate-count entry and pathogen test steps carry no electronic signature. (GAP-010)
 
-<!-- Review log (Sonnet): 10 corrections; invented items removed: module ids, "immutable" wording, token and technology details, "strict separation across all workflows" claim, "result recording" signature for microbiology, "automatic numbering" claim; callouts added: GAP-010 -->
+

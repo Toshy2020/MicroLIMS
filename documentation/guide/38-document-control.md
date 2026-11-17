@@ -143,7 +143,7 @@ The **Document Detail** page presents:
 
 ### 38.4 Registering a Controlled Document Master
 
-<!-- WF-DC-001 -->
+
 #### Purpose
 Register a new controlled document master record in the catalog, allocate a permanent system sequence number, establish metadata ownership, and create initial Draft Revision 01.
 
@@ -210,7 +210,7 @@ Clicking **Register Document** on the dashboard or **Register New Document** in 
 
 ### 38.5 Revision Drafting and File Management
 
-<!-- WF-DC-002 -->
+
 #### Purpose
 Author a new revision from an existing effective document, upload or replace controlled PDF and editable Word source files, and calculate cryptographic integrity hashes.
 
@@ -274,7 +274,7 @@ Requires the System Administrator or Section Head role type, or being the assign
 
 ### 38.6 Technical Review and Finding Resolution
 
-<!-- WF-DC-002 -->
+
 #### Purpose
 Conduct formal secondary technical review of draft document revisions, document itemized review findings across pages and sections, enforce a finding resolution ladder, and ensure technical accuracy before routing for approval.
 
@@ -362,7 +362,7 @@ Once submitted, opening the review launches the **Technical Review** drawer:
 
 ### 38.7 Approver Assignment and Electronic Signature Approval
 
-<!-- WF-DC-002 -->
+
 #### Purpose
 Route technically verified revisions to authorized approvers, conduct final dossier inspection, enforce approval readiness criteria, and execute final approval with a password-authenticated electronic signature.
 
@@ -469,7 +469,7 @@ Clicking **Open approval workspace** launches the **Approval Workspace** dialog:
 
 ### 38.8 Independent Periodic Review
 
-<!-- WF-DC-003 -->
+
 #### Purpose
 Conduct scheduled periodic evaluations of released, effective controlled documents to determine whether they remain technically valid, require formal revision, or should be recommended for obsolescence.
 
@@ -535,7 +535,7 @@ Opening a periodic review task from the document detail page launches the **Peri
 
 ### 38.9 My Reading List and Conscious Acknowledgement
 
-<!-- WF-DC-004 -->
+
 #### Purpose
 Track personal controlled document reading and training assignments, access released PDF documents in the controlled viewer, and record a read-and-understood acknowledgement (checkbox confirmation, no password).
 
@@ -610,7 +610,7 @@ Clicking **Acknowledge** opens the **Controlled Document Training Acknowledgemen
 
 ### 38.10 Training Matrix and Qualification Tracking
 
-<!-- WF-DC-005 -->
+
 #### Purpose
 Track, verify, and cross-reference personnel qualifications against active controlled documents across departments, and identify training compliance gaps or superseded qualifications.
 
@@ -703,7 +703,7 @@ The **Training Compliance Dashboard** presents:
 
 ### 38.12 Document Control Audit Trail
 
-<!-- MOD-DC-003 -->
+
 #### Purpose
 Search, trace, and export the audit log of all document control lifecycle actions, file modifications, technical reviews, approval decisions, periodic reviews, and configuration updates.
 
@@ -753,7 +753,7 @@ The **Document Control Audit Trail** page presents:
 
 ### 38.13 Document Control Configuration
 
-<!-- WF-DC-006 -->
+
 #### Purpose
 Configure document types, default review cycles, departments, laboratory sections, automated sequence numbering schemes, and global document control governance parameters.
 
@@ -814,7 +814,7 @@ The **Document Control Configuration** page presents:
 
 ### 38.14 Voiding Document Masters and Cancelling Draft Revisions
 
-<!-- WF-DC-007 -->
+
 #### Purpose
 Remove errant, unreleased document masters from the active register, or cancel abandoned draft revisions while preserving complete audit traceability.
 
@@ -867,7 +867,7 @@ Some Document Control functions run automatically or have no screen:
 - **Role Curriculum Management**: MicroLIMS does not provide a user interface screen for defining or maintaining role-to-document training curricula or per-document grace periods. (GAP-809, GAP-819)
 - **Permissions that have no effect**: The permissions *Document Draft Editing*, *Document Revision Creation*, *Document Technical Review*, *Document Revision Approval*, *Document Periodic Review* and *Training Matrix Viewing* do not change what anyone can do. Authority follows the user's role type and the per-document assignments; voiding is for Section Heads only. (GAP-015)
 
-<!-- Review log (Sonnet): ~85 corrections; invented items removed: route paths, permission codes (outside admin), enum/class/worker/database names, unverified acknowledgement messages, unsupported example revision numbers, unverified signature-record fields, Inspection Dossier contents, Return for Correction label in technical review; callouts added: GAP-043, GAP-807, GAP-809, GAP-816, GAP-818 (Obsolete filter, void message), GAP-023 (approval and acknowledgement wording), GAP-814 reworded; no Obsolete/retire procedure described -->
-<!-- Phase 13 (agy): applied F-C06, F-C15 -->
 
-<!-- Phase 13 review (Sonnet): agy corrections verified against RECONCILIATION and code; GAP ids exist; nothing invented; no change needed. -->
+
+
+

@@ -26,6 +26,23 @@ describe("guide chapters", () => {
     }
   });
 
+  it("no chapter leaks markup markers: HTML comments render as text, so none may appear", async () => {
+    // MarkdownView renders raw HTML as visible text, so a comment such as
+    // "<!-- WF-AUTH-001 -->" or a malformed one would show on screen.
+    for (const chapter of CHAPTERS) {
+      const text = await chapter.load();
+      for (const marker of ["<!--", "<--", "--!>"]) {
+        expect(text.includes(marker), `${chapter.id} contains "${marker}"`).toBe(false);
+      }
+    }
+  });
+
+  it("the User Interface chapter has no unfilled {placeholder} left in its text", async () => {
+    const chapter = CHAPTERS.find((c) => c.number === 6);
+    const text = await chapter!.load();
+    expect(text.match(/\{[A-Za-z][A-Za-z ]*\}/g) ?? []).toEqual([]);
+  });
+
   it("each listed title is the first '## N. Title' line of its chapter", async () => {
     for (const chapter of CHAPTERS) {
       const text = await chapter.load();

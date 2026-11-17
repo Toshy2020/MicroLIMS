@@ -5,7 +5,7 @@ MicroLIMS provides shared master data configuration interfaces that support labo
 ---
 
 ### 32.1 Organisms Master
-<!-- WF-ORG-001 -->
+
 #### Purpose
 Maintain the canonical microorganism repository (scientific name, ATCC catalog number, common name, and description) referenced by Media Challenge Specifications, Lyophilized Microorganism Materials, Reference Cryovials, and Test Master workflow steps.
 
@@ -69,7 +69,7 @@ The registered organism is immediately available in selection dropdowns for Medi
 ---
 
 ### 32.2 Receiving Configuration (Samplers, Cause of Testing, Production Stages)
-<!-- WF-RECVCFG-001 -->
+
 #### Purpose
 Maintain shared picklists and reference data presented on sample receiving forms across all receiving categories, including sampler suggestions, mandatory causes of testing, and manufacturing production stages.
 
@@ -148,7 +148,7 @@ Requires the *Manage master data* permission (by default: Section Head, System A
 ---
 
 ### 32.3 Master Data Workbook: Template Download and Dry-Run Check
-<!-- WF-WORKBOOK-001 -->
+
 #### Purpose
 Download master data onboarding templates populated with existing records and execute pre-import dry-run validation to detect formatting errors, missing columns, duplicate records, or data conflicts before committing changes.
 
@@ -203,7 +203,7 @@ Requires the *Manage master data* permission (by default: Section Head, System A
 ---
 
 ### 32.4 Master Data Workbook: Signed Load and Second-Person Verification
-<!-- WF-WORKBOOK-001, WF-WORKBOOK-002 -->
+
 #### Purpose
 Load checked master data workbooks using an electronic signature, enforce mandatory second-person verification, and activate newly imported catalog items and materials.
 
@@ -299,7 +299,7 @@ Paste Master Testing Materials rows from a spreadsheet (up to 200 rows) and clar
 - **Use the Master Data Workbook** (§32.3–§32.4) for initial site setup or large bulk loads (up to 5,000 rows across sheets) that require dry-run checking, an electronic signature, and password-confirmed second-person verification.
 - **Solutions Master** has no spreadsheet paste screen because solution recipes require components; create solutions through the **Solutions Master** form (§28.4) or the **Master Data Workbook**.
 
-<!-- Review log (Sonnet): 24 corrections; invented items removed: real person name in placeholder, component/table/database/transaction wording, signature meaning codes, "Password *" label, internal transaction message, raw status names; callouts added: GAP-705 on workbook verification, second-round specification sheets -->
-<!-- Phase 13 (agy): applied F-C03 -->
 
-<!-- Phase 13 review (Sonnet): agy corrections verified against RECONCILIATION and code; GAP ids exist; nothing invented; no change needed. -->
+
+
+

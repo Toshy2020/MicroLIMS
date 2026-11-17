@@ -13,4 +13,4 @@ MicroLIMS works on its own. The following are not available in the application:
 
 > **Note for reviewers:** No SAP or ERP integration was found. (GAP-032)
 
-<!-- Review log (Sonnet): 3 corrections; invented items removed: "item release workflows / material receiving maintained in application" claim, "text extraction/parsing" wording, "bidirectional controller interfaces"; callouts added: GAP-031, GAP-032 -->
+

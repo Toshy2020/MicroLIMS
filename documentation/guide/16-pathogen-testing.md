@@ -1,7 +1,7 @@
 ## 16. Pathogen Testing
 
 ### 16.1 Single-Test Pathogen Step Chain Overview
-<!-- WF-PATH-001 -->
+
 #### Purpose
 Understand the steps of a qualitative pathogen test opened from its test card: broth enrichment, selective plating, confirmatory plating and biochemical test.
 
@@ -35,7 +35,7 @@ Step: Waiting, then **Incubating**, then **Ready**. Status: Pending, then In Pro
 
 
 ### 16.2 Broth Enrichment and Shared TSB Steps
-<!-- WF-PATH-001 -->
+
 #### Purpose
 Start the pre-enrichment or selective broth incubation, or link the test to the shared TSB tube already running for the sample.
 
@@ -92,7 +92,7 @@ The broth step is complete and the test moves to selective plating.
 
 
 ### 16.3 Selective Plating and Primary Observations
-<!-- WF-PATH-001 -->
+
 #### Purpose
 Plate the enriched broth on selective agar, incubate, and record what is seen to decide whether the target is absent or presumptively present.
 
@@ -152,7 +152,7 @@ Presumptive positive: set up confirmatory plating. Target absent: the test waits
 
 
 ### 16.4 Confirmatory Plating, Agreement and Analyst Decision
-<!-- WF-PATH-001 -->
+
 #### Purpose
 Plate on the permitted confirmatory media, record the plate observations, and decide whether to conclude as Detected or continue with the biochemical test.
 
@@ -217,7 +217,7 @@ Concluded as Detected: the test waits for review. Otherwise the analyst does the
 
 
 ### 16.5 Biochemical Test Confirmation and Finalization
-<!-- WF-PATH-001 -->
+
 #### Purpose
 Record the biochemical identification result and finish the pathogen test.
 
@@ -265,7 +265,7 @@ The test is complete and cannot be changed by the analyst; it waits for technica
 
 
 ### 16.6 Pathogen Testing Session Workspace
-<!-- WF-PATH-002 -->
+
 #### Purpose
 Run the pathogen tests of one sample across all its locations in one workspace: shared TSB enrichment, a Location × Test grid of primary observations, confirmatory plating for flagged locations, and completion.
 
@@ -331,7 +331,7 @@ The sample goes to the technical reviewer.
 
 
 ### 16.7 Supervisor Pathogen Session Reset
-<!-- WF-PATH-003 -->
+
 #### Purpose
 Let a supervisor clear all entries of a sample's testing session so that the tests can be started again. The reset applies to every test order of the sample, including count tests, physicochemical tests and superseded orders, not only the pathogen tests.
 
@@ -379,6 +379,6 @@ All tests return to waiting (Pending). **Under Testing** or **Pending Review** s
 #### What happens next
 Analysts must start incubation again and re-enter all observations and counts.
 
-<!-- Review log (Sonnet): 44 corrections; invented items removed: class and enum names, flag/audit codes, permission code, unconfirmed biochemical field labels and button "Record Biochemical Result", ALCOA+ confirmation message, unsupported "Failed to save observations", "testing data must exist" precondition, reset "operational warning" step; callouts added: GAP-220 (session lots), biochemical reviewer-return note (no gap id), others kept (GAP-205, 210, 216, 217, 221, 222, 223, 224) -->
-<!-- Phase 13 (agy): applied F-A07, F-A10, F-A12 -->
-<!-- Phase 13 review (Sonnet): checked against RECONCILIATION section 2 and frontend strings; no invented items -->
+
+
+

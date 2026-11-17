@@ -40,7 +40,7 @@ The **Overview** tab of the **Reports** page presents:
 
 ### 34.2 Searching and Exporting Test Records
 
-<!-- WF-REPORTS-001 -->
+
 #### Purpose
 Search, filter, inspect, and export laboratory test results across microbiology and physicochemical testing records.
 
@@ -213,7 +213,7 @@ The **Reference Strains** tab presents:
 
 ### 34.5 Analytical Trending and Comparison
 
-<!-- WF-REPORTS-001 -->
+
 #### Purpose
 Perform statistical process control and graphical trend analysis across quantitative test results, evaluate limits and specifications, and compare performance across products or sampling locations.
 
@@ -278,7 +278,7 @@ The **Trending & Analysis** tab is structured in a three-column layout:
 
 ### 34.6 Laboratory KPIs and Analyst Workload
 
-<!-- WF-KPI-001 -->
+
 #### Purpose
 Monitor operational throughput, turnaround times, quality metrics, and capacity utilization across laboratory sections, and inspect the specific testing records contributing to each performance indicator.
 
@@ -356,7 +356,7 @@ The **KPI / Performance** tab presents:
 
 ### 34.7 Configuring Workflow Profiles and Stage Targets
 
-<!-- WF-KPI-002 -->
+
 #### Purpose
 Configure work unit weights and stage completion targets for testing workflow types and specific test methods, ensuring accurate capacity planning and turnaround tracking.
 
@@ -426,7 +426,7 @@ Two administrative functions behind Reports have no screen in the application:
 - **Reporting Backfill**: MicroLIMS does not provide a screen for rebuilding the summary table that the Reports tabs read from. (GAP-803)
 - **Analyst Availability and Section Settings**: MicroLIMS does not provide a user interface screen for configuring laboratory section capacity parameters (standard daily hours, working weekdays, forward load horizon) or individual analyst availability adjustments (such as leave or training). (GAP-802)
 
-<!-- Review log (Sonnet): 46 corrections; invented items removed: route paths, permission codes, gap/flag codes, SCR id, endpoint path, database-trigger and enum/class names; callouts added: none missing (GAP-800/801/802/803/804/805/806/045/817/820 present, strengthened GAP-800/801/804) -->
-<!-- Phase 13 (agy): applied F-C05, F-C07, F-C08, F-C09, F-C10, F-C17 -->
 
-<!-- Phase 13 review (Sonnet): agy corrections verified against RECONCILIATION and code; GAP ids exist; nothing invented; no change needed. -->
+
+
+

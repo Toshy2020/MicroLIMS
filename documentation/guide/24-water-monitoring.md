@@ -7,7 +7,7 @@ MicroLIMS does not have automated water sampling schedules or a sampling plan.
 ---
 
 ### 24.1 Water Configuration
-<!-- WF-WATER-001 -->
+
 #### Purpose
 Define water systems, their sample locations, the tests run at each location, and the limits and unit for count tests.
 
@@ -103,7 +103,7 @@ Water systems and locations can be chosen when a water sample is received and pr
 ---
 
 ### 24.2 Receiving Water Samples
-<!-- WF-SAMPLE-007 -->
+
 #### Purpose
 Register an incoming water sample.
 
@@ -144,7 +144,7 @@ Prepare the sample (§24.3).
 ---
 
 ### 24.3 Water Sample Preparation and Storage Tracking
-<!-- WF-SAMPLE-007 -->
+
 #### Purpose
 Record how the sample was stored, choose the sampled points, and let the system create the tests and locations.
 
@@ -198,7 +198,7 @@ Analysts start incubation for each test (§24.4).
 ---
 
 ### 24.4 Water Testing and Incubation
-<!-- WF-SAMPLE-007 -->
+
 #### Purpose
 Choose the media lot and incubator and start the incubation of each water test.
 
@@ -242,7 +242,7 @@ After incubation, enter the plate readings (§24.5).
 ---
 
 ### 24.5 Water Result Entry and Limit Evaluation
-<!-- WF-SAMPLE-007, WF-COUNT-002 -->
+
 #### Purpose
 Enter the colony counts for all sampling points in one grid, see the average and status of each point, and send the test to review.
 
@@ -293,7 +293,7 @@ All points are submitted together. The grid is accepted or refused as a whole.
 #### What happens next
 A reviewer checks the results (§17). Return, retest and approval follow the normal sample path (§18, §19).
 
-<!-- Review log (Sonnet): 27 corrections; invented items removed: route paths, permission/enum/status names and numeric codes, "calibrated/in-service incubator" claims, "PW/WFI" system list, internal rounding and class names, dilution-factor wording, section-assignment claim at receipt, OOS retest/investigation claim, legacy-endpoint message, BR id in a reviewer note; callouts added: GAP-423, GAP-418 wording, GAP-227, GAP-212, GAP-501/GAP-517, GAP-500/GAP-516 -->
-<!-- Phase 13 (agy): applied F-A09, R-NEW-01 -->
 
-<!-- Phase 13 review (Sonnet): F-A09, R-NEW-01 verified; GAP-227 exists. -->
+
+
+

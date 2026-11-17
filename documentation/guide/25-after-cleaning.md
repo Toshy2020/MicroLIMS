@@ -9,7 +9,7 @@ MicroLIMS does not have a collective pathogen sample or a separate TAMC test for
 ---
 
 ### 25.1 After Cleaning Configuration
-<!-- WF-AC-001 -->
+
 #### Purpose
 Define machines and their parts, the swab and rinse count tests with limits and unit, and the pathogen presence/absence tests of each part.
 
@@ -105,7 +105,7 @@ Machines and parts can be chosen when an After Cleaning sample is received and p
 ---
 
 ### 25.2 Receiving After Cleaning Samples
-<!-- WF-SAMPLE-008 -->
+
 #### Purpose
 Register an incoming after-cleaning sample with the cleaned machine and the previous product and batch.
 
@@ -151,7 +151,7 @@ Prepare the sample (§25.3).
 ---
 
 ### 25.3 After Cleaning Sample Preparation
-<!-- WF-SAMPLE-008 -->
+
 #### Purpose
 Choose the machine parts that were swabbed or rinsed. The system then creates the tests and one location per part test.
 
@@ -192,7 +192,7 @@ Analysts start incubation for each test (§25.4).
 ---
 
 ### 25.4 After Cleaning Testing and Incubation
-<!-- WF-SAMPLE-008 -->
+
 #### Purpose
 Choose the media lot and incubator and start the incubation of each swab, rinse or pathogen test.
 
@@ -237,7 +237,7 @@ After incubation, enter the counts or growth observations (§25.5).
 ---
 
 ### 25.5 After Cleaning Result Entry and Limit Evaluation
-<!-- WF-SAMPLE-008, WF-COUNT-002 -->
+
 #### Purpose
 Enter the swab and rinse counts (or growth observations for a pathogen test) for all parts in one grid, see the status of each part, and send the test to review.
 
@@ -300,7 +300,7 @@ All parts are submitted together. The grid is accepted or refused as a whole.
 #### What happens next
 A reviewer checks the results (§17). Return, retest and approval follow the normal sample path (§18, §19).
 
-<!-- Review log (Sonnet): 26 corrections; invented items removed: route paths, permission/enum/status names and numeric codes, "calibrated/in-service incubator" claims, class and field names, dilution-factor wording, section-assignment claim at receipt, OOS retest/investigation claim, BR id in a reviewer note, unsupported "active test configurations" wording; callouts added: GAP-227, GAP-212, GAP-501/GAP-517, GAP-500/GAP-516 -->
-<!-- Phase 13 (agy): applied F-A09, R-NEW-01 -->
 
-<!-- Phase 13 review (Sonnet): F-A09, R-NEW-01 verified; GAP-227 exists. -->
+
+
+

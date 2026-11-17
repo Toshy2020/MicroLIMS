@@ -35,7 +35,7 @@ Inside the Physicochemical Laboratory an assignment can carry an area: **FP** (F
 ---
 
 ### 33.2 Assigning Laboratory Sections and Memberships
-<!-- WF-USERS-002 -->
+
 #### Purpose
 Assign laboratory sections and, for the Physicochemical Laboratory, an area to a user.
 
@@ -83,4 +83,4 @@ The user's access follows the new assignment.
 
 > **Note for reviewers:** Saving an empty list is allowed and leaves the user with no laboratory data. Whether this is intended is unconfirmed.
 
-<!-- Review log (Sonnet): 14 corrections; invented items removed: permission codes, lab/area codes in prose, "immutable", database commit claim, immediate-access claim, wrong GAP-014 citation (Final Release gap), claim system blocks dashboards with the zero-membership message; callouts added: GAP-708 -->
+

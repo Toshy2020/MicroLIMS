@@ -33,7 +33,7 @@ The Audit Trail screen is read-only. The system is also set up to refuse changes
 
 ### 35.2 Searching the Audit Trail
 
-<!-- WF-AUDIT-001 -->
+
 #### Purpose
 Search and review historical audit records using date ranges, action, entity category, or laboratory identifiers.
 
@@ -131,4 +131,4 @@ Clicking **Inspect Event & Traceability Chain** opens a details drawer containin
 
 > **Note for reviewers:** Role and user changes are audited but not signed and need no second person. (GAP-009)
 
-<!-- Review log (Sonnet): 14 corrections; invented items removed: entity/table class names, route, JSON/endpoint/server wording, date-validation line, "immutable record" framing in prose; callouts added: GAP-009 (GAP-111/030/101/112 kept, moved) -->
+

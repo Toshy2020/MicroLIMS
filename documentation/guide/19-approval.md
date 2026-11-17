@@ -18,7 +18,7 @@ The sample status is then recomputed from all of its sections.
 > **Note for reviewers:** There is no Final Release step; Approved is the last status, shown as a "Release Decision" on the screen. (GAP-017, GAP-018)
 
 ### 19.1 Sample Authorization (Approve)
-<!-- WF-APPROVAL-001 -->
+
 #### Purpose
 Release a laboratory section whose results conform to specification, with the Section Head's electronic signature and optional certificate remarks.
 
@@ -97,7 +97,7 @@ View or print the sample report and the Certificate of Analysis (see §21). If t
 
 
 ### 19.2 Rejection (Not Conform)
-<!-- WF-APPROVAL-001 -->
+
 #### Purpose
 Reject a laboratory section whose results do not conform to specification, using the option **Not Conform (Final Conclusion): Close this sample**.
 
@@ -142,7 +142,7 @@ If another laboratory still has open tests on the sample, it can continue or use
 
 
 ### 19.3 Closing Laboratory Testing After Another Laboratory Rejected
-<!-- WF-APPROVAL-003 -->
+
 #### Purpose
 Stop the remaining open tests of your laboratory section after another laboratory section has rejected the sample.
 
@@ -203,7 +203,7 @@ Requires the *Sample Release Approval* permission (by default: Section Head, Sys
 #### What happens next
 On the combined Certificate of Analysis the closed laboratory's tests are listed as "{test}: Not completed, testing closed ({step}, stage {n})." No section-only certificate exists for a closed section.
 
-<!-- Review log (Sonnet): 20 corrections; invented items removed: "active membership", enum/database/transaction wording, "approval override", "workflow complete" claim, "recomputed to Rejected" for close testing, "immutable"/"cryptographic" claims; added decision-options table with resulting statuses and signature meanings; callouts added: none missing (GAP-017/018 incl. no Final Release, GAP-312, GAP-304, GAP-303, GAP-315, GAP-309 present) -->
-<!-- Phase 13 (agy): applied F-B03, F-B04, F-B05 -->
 
-<!-- Phase 13 review (Sonnet): F-B03, F-B04, F-B05 verified; Retest requested label confirmed in StatusBadge; no invented items. -->
+
+
+

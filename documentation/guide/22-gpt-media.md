@@ -9,7 +9,7 @@ MicroLIMS does not have a separate sterility test step or record, although the w
 ---
 
 ### 22.1 Media Configurations
-<!-- WF-MEDIACFG-001 -->
+
 #### Purpose
 Set up each dehydrated medium as a media product: its name and unique product code (the code is the first part of every lot number), the time and temperature pairs it can be incubated at, and its evaluation configuration (Growth Promotion or Indication / Inhibition, recovery limits and challenge organisms).
 
@@ -113,7 +113,7 @@ Media products, conditions and configurations have no status; they stay in place
 ---
 
 ### 22.2 Media Preparation
-<!-- WF-MEDIA-001 -->
+
 #### Purpose
 Prepare a media lot from dehydrated media stock, record the sterilisation (autoclave) details, deduct the used weight from stock, and create the lot's evaluation automatically.
 
@@ -196,7 +196,7 @@ Analysts carry out the evaluation challenges (§22.3).
 ---
 
 ### 22.3 Media Evaluation
-<!-- WF-MEDIA-002 -->
+
 #### Purpose
 Evaluate a prepared lot. Each challenge organism is given a working source (a reference cryovial batch or a lyophilized disk), incubated, read and judged. The evaluation types are Growth Promotion (recovery compared with a reference lot), Indication, Inhibition and Enrichment.
 
@@ -292,7 +292,7 @@ For each challenge:
 ---
 
 ### 22.4 Media Lot Release and Rejection
-<!-- WF-MEDIA-003 -->
+
 #### Purpose
 Release a conforming lot for routine testing with a signed decision, or reject it.
 
@@ -367,7 +367,7 @@ A released lot can be stored (§22.5) and chosen in test screens (§14, §15).
 ---
 
 ### 22.5 Media Storage and Inventory Management
-<!-- WF-MEDIA-004 -->
+
 #### Purpose
 Record where released media is stored, move stock between places, and mark a lot out of stock.
 
@@ -458,7 +458,7 @@ Requires the *Media Lot Preparation* permission (by default: Section Head, Revie
 1. Click **View Lot Record** for the lot.
 2. Use **Print** (or the browser's print function) to print or save the page as a PDF.
 
-<!-- Review log (Sonnet): 34 corrections; invented items removed: route paths and permission/enum/status codes, numeric status codes, "dual-person" wording, "legal signing statement", "Word export via URL", unsupported report field list, signature-throttle text as an on-screen error, rejection "regardless of state" as a screen action; callouts added: GAP-022, GAP-518/GAP-501 (evaluation incubator), GAP-500/GAP-516 (release/expiry path table), GAP-510 -->
-<!-- Phase 13 (agy): applied F-B06, F-B07 -->
 
-<!-- Phase 13 review (Sonnet): F-B06, F-B07 verified; GAP-505/903 exist. -->
+
+
+

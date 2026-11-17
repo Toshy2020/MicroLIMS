@@ -1,0 +1,14 @@
+{
+  "Auth.RoleDoesNotIncludeAction": "Your role does not include this action.",
+  "Document.ApprovePermissionRequired": "Your role does not hold the Documents.Approve permission required to execute an approval decision.",
+  "Document.OnlyAssignedApprover": "Only the assigned approver or Document Controller may execute an approval decision.",
+  "Media.CannotApproveOwnLot": "You cannot approve a media lot you prepared or evaluated.",
+  "Sample.CannotApproveReviewed": "You cannot approve a sample you reviewed.",
+  "Sample.CannotApproveTested": "You cannot approve a sample you tested.",
+  "Sample.CannotReviewTested": "You cannot review a sample you tested.",
+  "Sample.DuplicateBatchAndControl": "A sample with this batch and control number is already registered.",
+  "Sample.NoOpenTestsToAssign": "This sample has no open tests you can assign.",
+  "Test.AlreadyTaken": "Already taken by {{name}}.",
+  "Test.NotInYourSection": "This test belongs to a laboratory section you are not assigned to.",
+  "Test.OnlyHolderCanRelease": "Only the analyst who holds this test can release it."
+}

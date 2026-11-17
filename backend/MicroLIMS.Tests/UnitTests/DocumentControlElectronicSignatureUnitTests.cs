@@ -391,7 +391,7 @@ public class DocumentControlElectronicSignatureUnitTests
             Password: CorrectPassword
         );
 
-        var ex = await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
+        var ex = await Assert.ThrowsAnyAsync<UnauthorizedAccessException>(() =>
             approvalService.ExecuteApprovalDecisionAsync(task.Id, request, unrelatedUser.Id));
 
         Assert.Contains("Only the assigned approver or Document Controller may execute an approval decision", ex.Message);

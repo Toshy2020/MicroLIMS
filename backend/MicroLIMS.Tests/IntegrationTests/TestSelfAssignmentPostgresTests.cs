@@ -336,7 +336,7 @@ public class TestSelfAssignmentPostgresTests
         }
 
         await Assert.ThrowsAsync<BusinessRuleException>(() => TakeAsync(order.Id, viewAllNonMember.Id));
-        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => TakeAsync(order.Id, outsider.Id));
+        await Assert.ThrowsAnyAsync<UnauthorizedAccessException>(() => TakeAsync(order.Id, outsider.Id));
 
         Assert.Null((await PersistedAsync(order.Id)).AssignedAnalystId);
         Assert.Empty(await AuditAsync(order.Id, "TEST_TAKEN"));

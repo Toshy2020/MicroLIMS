@@ -127,7 +127,7 @@ public class ActionAvailabilityPostgresTests
             // The action, in a fresh context, refuses with the scenario's exception.
             var ex = await Record.ExceptionAsync(() => action.Attempt(arranged.Target));
             Assert.NotNull(ex);
-            Assert.Equal(refusal.ExceptionType, ex.GetType());
+            Assert.IsAssignableFrom(refusal.ExceptionType, ex);
             Assert.Equal(arranged.Message, ex.Message);
 
             if (refusal.Unreadable)

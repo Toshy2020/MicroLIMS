@@ -1,4 +1,5 @@
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Messages;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 
@@ -164,7 +165,7 @@ public static class SampleSectionRollup
             if (!SectionIds(sample).Contains(requested))
                 return (ActionCheck.No("This sample has no tests in the selected laboratory section."), 0);
             if (userScope is not null && !userScope.Contains(requested))
-                return (ActionCheck.Denied("This test belongs to a laboratory section you are not assigned to."), 0);
+                return (ActionCheck.Denied(MessageCodes.TestNotInYourSection, "This test belongs to a laboratory section you are not assigned to."), 0);
             if (StatusOf(sample, requested) != requiredStatus)
                 return (ActionCheck.No(wrongStateMessage), 0);
             return (ActionCheck.Ok, requested);
@@ -176,7 +177,7 @@ public static class SampleSectionRollup
 
         var candidates = userScope is null ? inState : inState.Where(userScope.Contains).ToList();
         if (candidates.Count == 0)
-            return (ActionCheck.Denied("This test belongs to a laboratory section you are not assigned to."), 0);
+            return (ActionCheck.Denied(MessageCodes.TestNotInYourSection, "This test belongs to a laboratory section you are not assigned to."), 0);
         if (candidates.Count > 1)
             return (ActionCheck.No("Choose a laboratory section - more than one section of this sample is waiting."), 0);
 

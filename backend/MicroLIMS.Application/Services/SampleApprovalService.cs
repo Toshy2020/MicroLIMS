@@ -1,4 +1,5 @@
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Messages;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Helpers;
 using MicroLIMS.Application.Interfaces;
@@ -156,14 +157,14 @@ public class SampleApprovalService
         if (!sectionCheck.Allowed) return (sectionCheck, section);
 
         if (sectionHeadUserId == SampleSectionRollup.ReviewedByOf(sample, section))
-            return (ActionCheck.No("You cannot approve a sample you reviewed."), section);
+            return (ActionCheck.No(MessageCodes.SampleCannotApproveReviewed, "You cannot approve a sample you reviewed."), section);
 
         // Only this section's tests are decided here.
         var currentOrders = SampleSectionRollup.CurrentOrders(sample, section);
         var orderIds = currentOrders.Select(o => o.Id).ToList();
         var performed = await _segregationOfDuties.GetTestOrderIdsPerformedByAsync(sectionHeadUserId, orderIds, ct);
         if (performed.Count > 0)
-            return (ActionCheck.No("You cannot approve a sample you tested."), section);
+            return (ActionCheck.No(MessageCodes.SampleCannotApproveTested, "You cannot approve a sample you tested."), section);
 
         // REQ-FP-033: server-side reject approval of a section if any test in it
         // that requires system suitability lacks a linked PASSED run.

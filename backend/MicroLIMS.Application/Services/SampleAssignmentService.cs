@@ -1,4 +1,5 @@
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Messages;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.DTOs;
 using MicroLIMS.Application.Interfaces;
@@ -54,7 +55,7 @@ public class SampleAssignmentService
         sample.TestOrders.Where(t => IsOpen(t) && InScope(actingScope, t.SectionId)).ToList();
 
     private static ActionCheck CheckAssign(List<TestOrder> openInScope) =>
-        openInScope.Count == 0 ? ActionCheck.No("This sample has no open tests you can assign.") : ActionCheck.Ok;
+        openInScope.Count == 0 ? ActionCheck.No(MessageCodes.SampleNoOpenTestsToAssign, "This sample has no open tests you can assign.") : ActionCheck.Ok;
 
     // Whether the acting user can assign anything on the sample: it has an open test in a section they belong to.
     // Who is put on the tests is the user's choice, and AnalystAssignmentRules judges it in the action.

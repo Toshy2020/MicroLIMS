@@ -3,6 +3,7 @@ import { MAINTENANCE_HEADER, notifyMaintenanceRefusal } from "./maintenanceSigna
 import { notifyNetworkFailure } from "./connectionSignal";
 import { getApiBaseUrl } from "./apiBaseUrl";
 import { isNetworkError } from "./networkError";
+import { translateServerErrorBody } from "../i18n/serverMessages";
 import { readTokenClaims, TOKEN_REFRESHED_EVENT } from "../modules/authentication/tokenClaims";
 
 // Single axios instance every module service goes through. No business
@@ -116,6 +117,19 @@ async function decodeBlobErrorBody(error: AxiosError): Promise<void> {
   }
 }
 
+// A refusal the server sent with a message code is shown in the interface language:
+// the sentence screens read (response.data.message) becomes the translated one.
+// Uncoded responses are left exactly as they came.
+// If the templates cannot be loaded the server's English sentence stays: the
+// caller must still receive the original refusal, never a loading error.
+async function translateCodedRefusal(error: AxiosError): Promise<void> {
+  try {
+    await translateServerErrorBody(error.response?.data);
+  } catch (e) {
+    console.warn("Server message templates could not be loaded; showing the server's sentence.", e);
+  }
+}
+
 // What a laboratory user is told when the server gave no message of its own.
 // Screens show `err.response?.data?.message ?? err.message`; without this,
 // err.message was axios's own text - "Request failed with status code 500",
@@ -169,6 +183,7 @@ apiClient.interceptors.response.use(
     rememberCorrelationId(error);
     if (isNetworkError(error)) notifyNetworkFailure();
     await decodeBlobErrorBody(error);
+    await translateCodedRefusal(error);
     if (handleMaintenanceRefusal(error)) return Promise.reject(error);
 
     const config = error.config as RetryableRequestConfig | undefined;

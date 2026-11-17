@@ -4,7 +4,7 @@
 |---|---|
 | Document number | URS-NTF |
 | Title | Dashboards, notifications and messaging user requirements |
-| Version | 0.4 |
+| Version | 0.5 |
 | Status | Draft |
 | Author | Claude (AI agent), draft from code |
 | Reviewer | To be assigned by QA |
@@ -19,6 +19,7 @@
 | 0.2 | 2026-11-14 | AI coding agent, draft from code | Added My Work and test self-assignment requirements (URS-NTF-006 to URS-NTF-010). |
 | 0.3 | 2026-11-15 | AI coding agent, draft from code | Added separate 24-hour incubation look-ahead group requirement (URS-NTF-011). |
 | 0.4 | 2026-11-16 | AI coding agent, draft from code | Added notification centre, notification generation, preferences and mandatory types, e-mail outbox, working hours and escalation rules, live updates and record-changed banner requirements (URS-NTF-012 to URS-NTF-018). |
+| 0.5 | 2026-11-17 | AI coding agent, draft from code | Added favourites, recently opened records, remembered laboratory and tab, breadcrumbs and action availability requirements (URS-NTF-019 to URS-NTF-023). |
 
 ## Requirements
 
@@ -130,4 +131,34 @@ Each requirement below is a need that the code as built serves. Gaps found in th
 **Requirement:** The system shall tell a user who has a record or a configuration form open that another user has changed that record, shall not do so for the user's own save, and shall not reload the record or replace what the user has typed unless the user chooses to reload.
 **GxP:** No
 **Serves:** Not applicable
+**Status:** Active
+
+### URS-NTF-019
+**Requirement:** The system shall let each signed-in user keep a list of up to 15 favourite pages and saved views, shown in the sidebar and in the search dialog, in an order the user chooses; and shall show a favourite whose page is no longer in the user's menu as not available, rather than hiding it.
+**GxP:** No
+**Serves:** Not applicable
+**Status:** Active
+
+### URS-NTF-020
+**Requirement:** The system shall keep, for each signed-in user, the 20 records the user opened most recently, show the five newest in the sidebar, list only records the user may still read, never show the name of a record the user can no longer read, and let the user clear the list.
+**GxP:** No
+**Serves:** Not applicable
+**Status:** Active
+
+### URS-NTF-021
+**Requirement:** The system shall remember, for each signed-in user, the laboratory last chosen on the dashboard and the tab last shown on each tabbed page; shall open the laboratory or tab named in the address first; and shall open the default when the remembered value is no longer available.
+**GxP:** No
+**Serves:** Not applicable
+**Status:** Active
+
+### URS-NTF-022
+**Requirement:** The system shall show above each page its place in the menu (group, area and page), and on a record or step page the record's identifier as the last crumb, and shall show the same parts in the browser tab title.
+**GxP:** No
+**Serves:** Not applicable
+**Status:** Active
+
+### URS-NTF-023
+**Requirement:** The system shall answer, for each gated action on a sample, test order, media lot or document revision, whether the signed-in user may perform the action now and, when not, the same sentence the server gives when the action is refused. The answer shall change nothing, and shall not reveal anything about a record the user may not read.
+**GxP:** Yes
+**Serves:** 21 CFR 11.10(d), 11.10(g) (to be confirmed by QA)
 **Status:** Active

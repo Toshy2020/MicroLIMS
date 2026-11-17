@@ -20,6 +20,9 @@ import { ReceiveService } from "../services/ReceiveService";
 import type { AssignableUser, BulkAssignResult } from "../types/receivingTypes";
 import { AnalystPicker } from "./AssignAnalystDialog";
 
+// How many selected samples are asked for their analysts before giving up.
+const MAX_OPTION_PROBES = 10;
+
 export interface BulkAssignDialogProps {
   open: boolean;
   sampleIds: number[];
@@ -61,16 +64,44 @@ export function BulkAssignDialog({
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<BulkAssignResult | null>(null);
 
-  const firstSampleId = sampleIds[0] ?? null;
+  // The analysts a sample can take come from that sample's own open tests, so a sample with none (voided, closed,
+  // outside the user's sections) offers nobody. The list is taken from the first selected sample that offers
+  // someone; the dialog says so when it had to skip samples, or when none of them offers anyone.
+  const [notice, setNotice] = useState<{ severity: "info" | "warning"; text: string } | null>(null);
+  const idsKey = sampleIds.join(",");
   const wasOpenRef = useRef(false);
 
-  const loadAnalysts = useCallback(async (targetSampleId: number | null) => {
-    if (targetSampleId === null) return;
+  const loadAnalysts = useCallback(async () => {
+    const probe = idsKey ? idsKey.split(",").map(Number).slice(0, MAX_OPTION_PROBES) : [];
+    if (probe.length === 0) return;
     setError(null);
+    setNotice(null);
     setLoading(true);
     try {
-      const loaded = await ReceiveService.getAssignmentOptions(targetSampleId);
-      setUsers(loaded.users);
+      let skipped = 0;
+      let found: AssignableUser[] = [];
+      let foundFor: number | null = null;
+      for (const sampleId of probe) {
+        const loaded = await ReceiveService.getAssignmentOptions(sampleId);
+        if (loaded.users.length > 0) {
+          found = loaded.users;
+          foundFor = sampleId;
+          break;
+        }
+        skipped += 1;
+      }
+      setUsers(found);
+      if (foundFor === null) {
+        setNotice({
+          severity: "warning",
+          text: `${probe.length === 1 ? "The selected sample has no" : `None of the first ${probe.length} selected samples has an`} open test you can assign in your laboratory sections (a voided or closed sample, or one outside your sections), so no analyst can be offered.`
+        });
+      } else if (skipped > 0) {
+        setNotice({
+          severity: "info",
+          text: `${skipped} selected ${skipped === 1 ? "sample has" : "samples have"} no open test you can assign (for example a voided or closed sample). The analysts shown are those eligible for sample #${foundFor}. Each sample is still checked when you assign, and any refusal is listed afterwards.`
+        });
+      }
     } catch (err: unknown) {
       setUsers([]);
       setError(
@@ -82,7 +113,7 @@ export function BulkAssignDialog({
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [idsKey]);
 
   useEffect(() => {
     if (open && !wasOpenRef.current) {
@@ -90,10 +121,10 @@ export function BulkAssignDialog({
       setReason("");
       setError(null);
       setResult(null);
-      void loadAnalysts(firstSampleId);
+      void loadAnalysts();
     }
     wasOpenRef.current = open;
-  }, [open, firstSampleId, loadAnalysts]);
+  }, [open, loadAnalysts]);
 
   const handleSubmit = async () => {
     if (!analystUserId || sampleIds.length === 0) return;
@@ -172,7 +203,7 @@ export function BulkAssignDialog({
           severity="error"
           sx={{ mb: 2 }}
           action={
-            <Button color="inherit" size="small" onClick={() => void loadAnalysts(firstSampleId)}>
+            <Button color="inherit" size="small" onClick={() => void loadAnalysts()}>
               Retry
             </Button>
           }
@@ -244,6 +275,8 @@ export function BulkAssignDialog({
               Open tests in your laboratory sections on each selected sample will be assigned to the chosen analyst.
             </Typography>
           </Box>
+
+          {notice && !loading && <Alert severity={notice.severity}>{notice.text}</Alert>}
 
           {loading ? (
             <Box sx={{ display: "flex", justifyContent: "center", py: 3 }}>

@@ -6,6 +6,7 @@
   "loading": "Loading work items...",
   "itemsShown_one": "<ltr>{{count}}</ltr> item shown",
   "itemsShown_other": "<ltr>{{count}}</ltr> items shown",
+  "lockedShown": "<ltr>{{count}}</ltr> locked, not counted in All work",
   "allWork": "All work",
   "urgency": {
     "Overdue": "Overdue",

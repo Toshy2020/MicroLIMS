@@ -10,6 +10,7 @@
   "itemsShown_few": "<ltr>{{count}}</ltr> بنود معروضة",
   "itemsShown_many": "<ltr>{{count}}</ltr> بندًا معروضًا",
   "itemsShown_other": "<ltr>{{count}}</ltr> بند معروض",
+  "lockedShown": "<ltr>{{count}}</ltr> مقفل، غير محتسب في كل بنود العمل",
   "allWork": "كل بنود العمل",
   "urgency": {
     "Overdue": "متأخر",

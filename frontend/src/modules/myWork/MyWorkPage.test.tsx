@@ -187,6 +187,38 @@ describe("MyWorkPage", () => {
     expect(screen.queryByText("Empty Group Should Not Render")).toBeNull();
   });
 
+  it("keeps a locked item out of the All work and urgency tiles and says how many shown items are locked", async () => {
+    const item = (key: string, locked: boolean) => ({
+      key,
+      groupKey: "review",
+      identifier: key.toUpperCase(),
+      title: `Review ${key}`,
+      urgency: "Overdue" as const,
+      locked,
+      lockReason: locked ? "You cannot review a sample you tested." : undefined,
+      target: { type: "sample-review", sampleId: 1 },
+      actions: locked ? [] : ["review"],
+      lab: "MICRO"
+    });
+    vi.mocked(myWorkService.get).mockResolvedValue(
+      makeResponse({
+        groups: [
+          { key: "review", title: "Awaiting my review", count: 1, lockedCount: 1, hasMore: false, items: [item("open-1", false), item("locked-1", true)] }
+        ]
+      })
+    );
+
+    renderPage();
+
+    await screen.findByRole("heading", { name: /Awaiting my review/i });
+    expect(screen.getByRole("button", { name: /All work/i }).textContent).toMatch(/1/);
+    expect(screen.getByRole("button", { name: /Overdue/i }).textContent).toMatch(/1/);
+    expect(screen.getByRole("button", { name: /Overdue/i }).textContent).not.toMatch(/2/);
+    const shown = screen.getByText(/items shown/i).textContent ?? "";
+    expect(shown).toMatch(/2 items shown/);
+    expect(shown).toMatch(/1 locked, not counted in All work/);
+  });
+
   it("shows loading skeletons while fetching", () => {
     vi.mocked(myWorkService.get).mockImplementation(() => new Promise(() => {}));
 

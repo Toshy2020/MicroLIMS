@@ -16,7 +16,6 @@ vi.mock("../services/uiStateService", () => ({ uiStateService: service }));
 vi.mock("../services/apiClient", () => ({
   apiClient: { get: vi.fn(() => new Promise(() => {})), post: vi.fn() }
 }));
-vi.mock("./search/GlobalSearchDialog", () => ({ GlobalSearchDialog: () => null }));
 
 const html = () => document.documentElement;
 const stored = new Map<string, string>();

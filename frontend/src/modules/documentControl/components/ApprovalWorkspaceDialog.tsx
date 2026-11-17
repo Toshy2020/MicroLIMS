@@ -24,7 +24,6 @@ import {
   Accordion,
   AccordionSummary,
   AccordionDetails,
-  Tooltip,
   useTheme
 } from "@mui/material";
 import { tableHeadSx } from "../../../theme";
@@ -40,6 +39,8 @@ import VerifiedUserIcon from "@mui/icons-material/VerifiedUser";
 import CompareArrowsIcon from "@mui/icons-material/CompareArrows";
 import SecurityIcon from "@mui/icons-material/Security";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
+import { GatedAction } from "../../../components/GatedAction";
+import { useActionAvailability } from "../../../hooks/useActionAvailability";
 import { documentApprovalService } from "../services/documentApprovalService";
 import { ElectronicSignatureDialog } from "./ElectronicSignatureDialog";
 import type {
@@ -81,6 +82,10 @@ export const ApprovalWorkspaceDialog: React.FC<ApprovalWorkspaceDialogProps> = (
   const [effectiveDateOverride, setEffectiveDateOverride] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [showSignatureDialog, setShowSignatureDialog] = useState(false);
+
+  // The server's answer about approving this revision (and why not), once the dossier says which revision it is.
+  const availability = useActionAvailability("document-revision", open ? (dossier?.revision.id ?? null) : null);
+  const refreshAvailability = availability.refresh;
 
   useEffect(() => {
     if (open && approvalTaskId) {
@@ -145,6 +150,7 @@ export const ApprovalWorkspaceDialog: React.FC<ApprovalWorkspaceDialogProps> = (
       onDecisionExecuted(updated);
       onClose();
     } catch (err: any) {
+      refreshAvailability();
       const msg =
         err.response?.data?.message ||
         err.response?.data?.errors?.[0] ||
@@ -157,16 +163,22 @@ export const ApprovalWorkspaceDialog: React.FC<ApprovalWorkspaceDialogProps> = (
   };
 
   const handleConfirmSignature = async (password: string) => {
-    const updated = await documentApprovalService.signApproval(
-      approvalTaskId,
-      {
-        password,
-        decisionNotes: decisionNotes.trim() || undefined,
-        effectiveDate: effectiveDateOverride
-          ? new Date(effectiveDateOverride).toISOString()
-          : undefined
-      }
-    );
+    let updated: DocumentApprovalTaskDto;
+    try {
+      updated = await documentApprovalService.signApproval(
+        approvalTaskId,
+        {
+          password,
+          decisionNotes: decisionNotes.trim() || undefined,
+          effectiveDate: effectiveDateOverride
+            ? new Date(effectiveDateOverride).toISOString()
+            : undefined
+        }
+      );
+    } catch (err) {
+      refreshAvailability();
+      throw err;
+    }
 
     onDecisionExecuted(updated);
     onClose();
@@ -759,30 +771,19 @@ export const ApprovalWorkspaceDialog: React.FC<ApprovalWorkspaceDialogProps> = (
 
                 <Grid container spacing={2} sx={{ mb: 3 }}>
                   <Grid size={4}>
-                    <Tooltip
-                      title={
-                        !dossier.readiness.isSegregationOfDutiesSatisfied
-                          ? "Segregation of Duties Violation: You cannot approve a revision that you authored or technically reviewed."
-                          : !dossier.readiness.isReady
-                          ? `Cannot approve: ${dossier.readiness.validationErrors.join("; ")}`
-                          : ""
-                      }
-                    >
-                      <span>
-                        <Button
-                          fullWidth
-                          variant={decisionMode === "Approve" ? "contained" : "outlined"}
-                          color={dossier.task.submissionNotes?.toLowerCase().includes("obsolescence") ? "warning" : "success"}
-                          onClick={() => setDecisionMode("Approve")}
-                          disabled={!dossier.readiness.isReady}
-                          sx={{ py: 1.5, fontWeight: 700 }}
-                        >
-                          {dossier.task.submissionNotes?.toLowerCase().includes("obsolescence")
-                            ? "Approve Obsolescence"
-                            : "Approve Revision"}
-                        </Button>
-                      </span>
-                    </Tooltip>
+                    <GatedAction action="document.approve" availability={availability}>
+                      <Button
+                        fullWidth
+                        variant={decisionMode === "Approve" ? "contained" : "outlined"}
+                        color={dossier.task.submissionNotes?.toLowerCase().includes("obsolescence") ? "warning" : "success"}
+                        onClick={() => setDecisionMode("Approve")}
+                        sx={{ py: 1.5, fontWeight: 700 }}
+                      >
+                        {dossier.task.submissionNotes?.toLowerCase().includes("obsolescence")
+                          ? "Approve Obsolescence"
+                          : "Approve Revision"}
+                      </Button>
+                    </GatedAction>
                   </Grid>
                   <Grid size={4}>
                     <Button
@@ -925,7 +926,6 @@ export const ApprovalWorkspaceDialog: React.FC<ApprovalWorkspaceDialogProps> = (
             onClick={handleExecuteDecision}
             disabled={
               submitting ||
-              (decisionMode === "Approve" && !dossier?.readiness.isReady) ||
               ((decisionMode === "ReturnForCorrection" || decisionMode === "Decline") &&
                 decisionNotes.trim().length < 10)
             }

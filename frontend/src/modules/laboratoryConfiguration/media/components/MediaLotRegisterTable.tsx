@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Typography } from "@mui/material";
 import { RegisterTable } from "../../../../components/lab";
 import type { RegisterColumn, RegisterRowAction } from "../../../../components/lab";
@@ -8,6 +9,7 @@ import { lifecycleOf } from "./MediaLotKpiCards";
 import { monospaceFontFamily } from "../../../../theme/palette";
 import { useAuth } from "../../../../contexts/AuthContext";
 import { PERMISSIONS } from "../../../../routes/routes";
+import { useActionAvailability } from "../../../../hooks/useActionAvailability";
 
 function formatDateDDMMYY(value: string | number | Date | null | undefined): string {
   if (!value) return "—";
@@ -49,7 +51,11 @@ export function MediaLotRegisterTable({
   onRequestReleaseDecision
 }: Props) {
   const { permissions } = useAuth();
+  // Rejecting a lot has no availability answer; it keeps the permission it always had.
   const canRelease = permissions.includes(PERMISSIONS.MEDIA_RELEASE);
+  // The server's answer about releasing the lot whose actions menu is open (asked only then).
+  const [menuLot, setMenuLot] = useState<{ id: number } | null>(null);
+  const availability = useActionAvailability("media", menuLot?.id ?? null);
 
   const preparedCol: RegisterColumn<any> = {
     key: "preparedAt", label: "Prepared On", sortable: true, width: isCompact ? 95 : undefined,
@@ -116,9 +122,14 @@ export function MediaLotRegisterTable({
     ? undefined
     : (lot: any): RegisterRowAction[] => {
         const actions: RegisterRowAction[] = [];
-        if (lifecycleOf(lot, awaitingApprovalIds) === "Awaiting Approval" && canRelease && onRequestReleaseDecision) {
-          actions.push({ label: "Release lot", onClick: () => onRequestReleaseDecision(lot, true) });
-          actions.push({ label: "Reject lot", danger: true, onClick: () => onRequestReleaseDecision(lot, false) });
+        if (lifecycleOf(lot, awaitingApprovalIds) === "Awaiting Approval" && onRequestReleaseDecision) {
+          const answer = menuLot?.id === lot.id ? availability.get("media.release") : null;
+          actions.push({
+            label: "Release lot",
+            reason: answer && !answer.allowed ? answer.reason : undefined,
+            onClick: () => onRequestReleaseDecision(lot, true)
+          });
+          if (canRelease) actions.push({ label: "Reject lot", danger: true, onClick: () => onRequestReleaseDecision(lot, false) });
         }
         actions.push({ label: "View lot record (printable)", onClick: () => onViewRecord(lot.id) });
         actions.push({ label: "Audit trail", onClick: () => onViewAuditHistory(lot.id) });
@@ -127,6 +138,7 @@ export function MediaLotRegisterTable({
 
   return (
     <RegisterTable
+      onRowActionsOpen={(lot: { id: number } | null) => setMenuLot(lot ? { id: lot.id } : null)}
       columns={columns}
       rows={lots}
       getRowId={(lot) => lot.id}

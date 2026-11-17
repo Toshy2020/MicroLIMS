@@ -2,6 +2,8 @@ import { useMemo } from "react";
 import { Box, Typography, Stack, TextField, Button, Alert, Radio, RadioGroup, FormControlLabel, Paper, Chip, useTheme, Checkbox, FormGroup, Select, MenuItem, InputLabel, FormControl } from "@mui/material";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutlined";
 import VerifiedUserOutlinedIcon from "@mui/icons-material/VerifiedUserOutlined";
+import { GatedAction } from "../../../components/GatedAction";
+import type { ActionAvailability } from "../../../hooks/useActionAvailability";
 import { StatusBadge } from "../../../components/StatusBadge";
 import { SampleApprovalDecision } from "../services/SampleSummaryService";
 import { sectionScope } from "../coaAggregation";
@@ -15,6 +17,8 @@ export function ApprovalSignaturesCard({
   summary,
   canReview,
   canApprove,
+  reviewAvailability,
+  approvalAvailability,
   comment,
   setComment,
   decision,
@@ -49,8 +53,12 @@ export function ApprovalSignaturesCard({
   onCloseTestingClick
 }: {
   summary: SampleSummary;
+  // Whether one of the viewer's sections is waiting for a review / a decision. Whether the viewer may act is
+  // the server's answer, in the two availabilities.
   canReview: boolean;
   canApprove: boolean;
+  reviewAvailability: ActionAvailability;
+  approvalAvailability: ActionAvailability;
   comment: string;
   setComment: (c: string) => void;
   decision: SampleApprovalDecision;
@@ -312,15 +320,17 @@ export function ApprovalSignaturesCard({
             onChange={(e) => setComment(e.target.value)}
             sx={{ mb: 1.5 }}
           />
-          <Button
-            variant="contained"
-            color="primary"
-            fullWidth
-            disabled={Boolean((reviewableSections.length > 1 && !reviewSectionId) || !retentionValid)}
-            onClick={onReviewClick}
-          >
-            Submit Review
-          </Button>
+          <GatedAction action="review.complete" availability={reviewAvailability}>
+            <Button
+              variant="contained"
+              color="primary"
+              fullWidth
+              disabled={Boolean((reviewableSections.length > 1 && !reviewSectionId) || !retentionValid)}
+              onClick={onReviewClick}
+            >
+              Submit Review
+            </Button>
+          </GatedAction>
         </Box>
       )}
 
@@ -504,15 +514,21 @@ export function ApprovalSignaturesCard({
             </Alert>
           )}
 
-          <Button
-            variant="contained"
-            color="primary"
-            fullWidth
-            disabled={!decisionValid}
-            onClick={onApproveClick}
+          {/* Approve and Not Conform are gated by the server; the retest decisions have no gated action. */}
+          <GatedAction
+            action={decision === "Approve" ? "approval.approve" : decision === "Reject" ? "approval.reject" : "none"}
+            availability={approvalAvailability}
           >
-            Submit Decision
-          </Button>
+            <Button
+              variant="contained"
+              color="primary"
+              fullWidth
+              disabled={!decisionValid}
+              onClick={onApproveClick}
+            >
+              Submit Decision
+            </Button>
+          </GatedAction>
         </Box>
       )}
 

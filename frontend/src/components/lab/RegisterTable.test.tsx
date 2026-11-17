@@ -1,4 +1,4 @@
-import { cleanup, render, screen, within } from "@testing-library/react";
+import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -214,6 +214,38 @@ describe("RegisterTable", () => {
 
     await user.click(inspectItem);
     expect(onInspect).toHaveBeenCalledTimes(1);
+  });
+
+  it("an action with a reason shows it as secondary text, stays focusable and ignores selection", async () => {
+    const user = userEvent.setup();
+    const onRelease = vi.fn();
+    const onOpen = vi.fn();
+    const sentence = "You prepared this lot, so you cannot release it.";
+
+    renderTable(
+      <RegisterTable
+        columns={COLUMNS}
+        rows={[makeRows(1)[0]]}
+        getRowId={(r) => r.id}
+        onRowActionsOpen={onOpen}
+        rowActions={() => [{ label: "Release lot", onClick: onRelease, reason: sentence }]}
+        empty={{ title: "No rows" }}
+      />
+    );
+
+    await user.click(screen.getByRole("button", { name: "Row actions for 1" }));
+    expect(onOpen).toHaveBeenLastCalledWith(expect.objectContaining({ id: 1 }));
+    const item = screen.getByRole("menuitem", { name: /Release lot/ });
+    expect(item.getAttribute("aria-disabled")).toBe("true");
+    item.focus();
+    expect(document.activeElement).toBe(item);
+    expect(document.getElementById(item.getAttribute("aria-describedby") ?? "")?.textContent).toBe(sentence);
+    await user.click(item);
+    expect(onRelease).not.toHaveBeenCalled();
+    expect(screen.getByRole("menu")).toBeTruthy();
+
+    await user.keyboard("{Escape}");
+    await waitFor(() => expect(onOpen).toHaveBeenLastCalledWith(null));
   });
 
   it("Enter on a focused row calls onRowClick", async () => {

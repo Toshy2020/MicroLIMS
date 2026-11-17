@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useId, useMemo, useRef, useState } from "react";
 import type { KeyboardEvent, MouseEvent, ReactNode, SyntheticEvent } from "react";
 import {
   Box, Checkbox, IconButton, ListItemText, Menu, MenuItem, Paper, Select, Skeleton, Stack, Table, TableBody, TableCell, TableContainer,
@@ -48,6 +48,9 @@ export interface RegisterRowAction {
   disabled?: boolean;
   // Destructive actions render in the error color.
   danger?: boolean;
+  // The reason this action cannot be taken now (the server's own sentence). The item stays focusable, ignores
+  // selection and shows the reason as its secondary text, so the reason is never tooltip-only.
+  reason?: string;
 }
 
 interface RegisterTableProps<T> {
@@ -57,6 +60,9 @@ interface RegisterTableProps<T> {
   // A mouse click also reports its event, so a caller can ignore clicks that landed on a control inside the row.
   onRowClick?: (row: T, event?: SyntheticEvent<HTMLElement>) => void;
   rowActions?: (row: T) => RegisterRowAction[];
+  // The row whose actions menu is open, or null when it closes - for a caller that asks the server about the
+  // row's actions only when someone looks at them.
+  onRowActionsOpen?: (row: T | null) => void;
   loading?: boolean;
   empty: { title: string; description?: string; action?: ReactNode };
   // Default 25; options are 25/50/100.
@@ -167,8 +173,16 @@ function ManagedRegisterTable<T>({
   return <RegisterTableInner {...rest} tableKey={tableKey} tableState={tableState} />;
 }
 
+function reasonIdOf(menuId: string, index: number): string {
+  return `${menuId}-reason-${index}`;
+}
+
+function gatedItemProps(reason: string | undefined, menuId: string, index: number) {
+  return reason ? { "aria-disabled": true, "aria-describedby": reasonIdOf(menuId, index) } : {};
+}
+
 function RegisterTableInner<T>({
-  columns, rows, getRowId, onRowClick, rowActions, loading, empty, pageSize = 25, dense = true, defaultSort, rowTone, tableKey, tableState, toolbar,
+  columns, rows, getRowId, onRowClick, rowActions, onRowActionsOpen, loading, empty, pageSize = 25, dense = true, defaultSort, rowTone, tableKey, tableState, toolbar,
   selection, isSelectable, bulkActions, totalMatching, loadAllMatching, renderExpanded, expandedIds, onToggleExpand,
   isExpandable, rowSx, selectionLabels, pageSelectionIds, exportLabel, serverPaged, trailingCell, alwaysSelectable
 }: RegisterTableProps<T>) {
@@ -189,6 +203,13 @@ function RegisterTableInner<T>({
   const [localRowsPerPage, setLocalRowsPerPage] = useState<number | "all">(pageSize);
   const [scrollElement, setScrollElement] = useState<HTMLDivElement | null>(null);
   const [menu, setMenu] = useState<{ anchor: HTMLElement; row: T } | null>(null);
+  const menuId = useId();
+  const menuRow = menu?.row ?? null;
+  const onRowActionsOpenRef = useRef(onRowActionsOpen);
+  onRowActionsOpenRef.current = onRowActionsOpen;
+  useEffect(() => {
+    onRowActionsOpenRef.current?.(menuRow);
+  }, [menuRow]);
 
   // Filtering or reloading changes the row set; a stale page could be past the end.
   useEffect(() => {
@@ -632,17 +653,29 @@ function RegisterTableInner<T>({
   function renderMenu() {
     return (
       <Menu anchorEl={menu?.anchor} open={!!menu} onClose={() => setMenu(null)} onClick={(e) => e.stopPropagation()}>
-        {menuActions.map((a) => (
+        {menuActions.map((a, i) => (
           <MenuItem
             key={a.label}
             disabled={a.disabled}
+            {...gatedItemProps(a.reason, menuId, i)}
             onClick={() => {
+              if (a.reason) return;
               setMenu(null);
               a.onClick();
             }}
-            sx={a.danger ? { color: "error.main" } : undefined}
+            sx={[
+              a.danger ? { color: "error.main" } : {},
+              a.reason ? { cursor: "not-allowed", alignItems: "flex-start", whiteSpace: "normal" } : {}
+            ]}
           >
-            <ListItemText>{a.label}</ListItemText>
+            <ListItemText
+              primary={a.label}
+              secondary={a.reason}
+              slotProps={{
+                primary: a.reason ? { sx: { opacity: 0.65 } } : undefined,
+                secondary: { id: reasonIdOf(menuId, i), sx: { color: theme.custom.status.pending.text, fontSize: 12 } }
+              }}
+            />
           </MenuItem>
         ))}
       </Menu>

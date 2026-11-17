@@ -114,5 +114,8 @@
       "Documents": "Documents"
     }
   },
-  "listSeparator": ", "
+  "listSeparator": ", ",
+  "gated": {
+    "unavailable": "Reasons are unavailable right now"
+  }
 }

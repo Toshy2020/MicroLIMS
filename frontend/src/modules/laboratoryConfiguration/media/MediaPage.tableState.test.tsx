@@ -17,6 +17,10 @@ import { MediaPage } from "./MediaPage";
 
 // Media Lots register on the shared table state (smarter-tables Task 10): filters in the address, saved views.
 
+// Network boundary: the server's answer about releasing a lot.
+vi.mock("../../../services/actionAvailabilityService", () => ({
+  actionAvailabilityService: { get: vi.fn().mockResolvedValue([]) }
+}));
 vi.mock("../../../services/apiClient", () => ({
   apiClient: { get: vi.fn(), post: vi.fn(), put: vi.fn(), delete: vi.fn() },
   ifMatch: vi.fn((version: number) => ({ headers: { "If-Match": String(version) } }))

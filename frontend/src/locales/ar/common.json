@@ -118,5 +118,8 @@
       "Documents": "مستندات"
     }
   },
-  "listSeparator": "، "
+  "listSeparator": "، ",
+  "gated": {
+    "unavailable": "الأسباب غير متاحة حاليًا"
+  }
 }

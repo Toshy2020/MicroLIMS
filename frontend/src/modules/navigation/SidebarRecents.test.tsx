@@ -72,6 +72,14 @@ afterEach(() => {
 });
 
 describe("Sidebar recently opened", () => {
+  it("places the section after the whole My Work group, not between its entries", async () => {
+    renderSidebar();
+    const region = await screen.findByRole("region", { name: "Recently opened" });
+    const dashboard = screen.getByRole("link", { name: "Dashboard" });
+    expect(dashboard.compareDocumentPosition(region) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(region.compareDocumentPosition(screen.getByText("QUALITY & COMPLIANCE")) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
   it("keeps the identifier left-to-right and apart from the title", async () => {
     vi.mocked(recentRecordsService.list).mockResolvedValue([recent("sample", 1, "FP1126003", "pH")]);
     renderSidebar();

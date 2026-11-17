@@ -4,7 +4,7 @@
 |---|---|
 | Document number | FS-MDM |
 | Title | Master data functional specification |
-| Version | 0.4 |
+| Version | 0.5 |
 | Status | Draft |
 | Author | Claude (AI agent), draft from code |
 | Reviewer | To be assigned by QA |
@@ -19,6 +19,7 @@
 | 0.2 | 2026-11-13 | AI coding agent, draft from code | Added barcode labels and scanning functions (FS-MDM-026 to FS-MDM-035). |
 | 0.3 | 2026-11-14 | AI coding agent, draft from code | Added all-or-nothing master data batch paste across six configuration screens and Solution Master exclusion (FS-MDM-036, FS-MDM-037). |
 | 0.4 | 2026-11-16 | AI coding agent, draft from code | Added where-used summary, change reason rule, specification retirement, validate-only and combined test endpoints, copy and new-from-existing, wizard frame, specification and Test Master wizards, and equipment wizard (FS-MDM-038 to FS-MDM-045). |
+| 0.5 | 2026-11-17 | AI coding agent, draft from code | Added items-using-a-test and open-SOP specifications (FS-MDM-046, FS-MDM-047). |
 
 ## Scope and reading notes
 
@@ -323,3 +324,17 @@
 **Function:** Equipment wizard (`EquipmentWizard`, `equipmentFormModel`). The wizard replaces the equipment dialog on the equipment configuration page and has the steps "Identity", "Type settings" (fields of the chosen equipment type only) and "Calibration and documents". Create and update use the existing equipment endpoints (`POST api/masterdata/equipment`, `PUT api/masterdata/equipment/{id}`, policy `MasterData.Manage`) with typed payloads; the update applies the section-access check, the stale-version check and the change-reason rule of FS-MDM-039 (a reason is needed when an incubation, test analysis or HPLC or ICP run on the equipment is open). Setting incubator set points and autoclave programmes stay separate actions of the page. "New from existing" is described in FS-MDM-042.
 **Code:** `frontend/src/modules/laboratoryConfiguration/masterDataSimple/equipmentWizard/EquipmentWizard.tsx`; `frontend/src/modules/laboratoryConfiguration/masterDataSimple/equipmentWizard/equipmentFormModel.ts`; `backend/MicroLIMS.Application/Services/MasterData/EquipmentMasterDataService.cs` - `UpdateEquipmentAsync`
 **Verified by:** reading (not run); tests present: `EquipmentWizard.test.tsx`, `equipmentFormModel.test.ts`
+
+### FS-MDM-046
+**Satisfies:** URS-MDM-032
+**Function:** Items that use a test. `GET api/masterdata/test-definitions/{id}/items` (`search`, `page`, `pageSize`; the page size is normalised by `Paging.Normalize`, default 25, maximum 100) calls `TestDefinitionMasterDataService.GetItemsForTestAsync`. An item is listed when it has a specification or a sample-test row for the test's code and is not in `NotApplicableTest`. The caller's readable sections are applied, and a test in a section the caller cannot read returns an empty list. Each row carries the item's SOP status, computed in the same query from `Item.SopNumber` and the current `DocumentMaster.CompanyDocumentCode` (the rule used by `ItemStmService`). In the browser, `TestItemsPanel` on the Test Master page shows "Items using this test (N)", a search box and paged rows. Each row shows the SOP number and its status as text with a tone, a link to the item's Documents tab, and, where the SOP is linked, an "Open SOP" link.
+**Code:** `backend/MicroLIMS.API/Controllers/TestDefinitionMasterDataController.cs` (`GetItemsForTest`); `backend/MicroLIMS.Application/Services/MasterData/TestDefinitionMasterDataService.cs` (`GetItemsForTestAsync`); `backend/MicroLIMS.Application/Services/ItemStmService.cs`; `frontend/src/modules/laboratoryConfiguration/masterDataSimple/TestItemsPanel.tsx`; `frontend/src/modules/laboratoryConfiguration/masterDataSimple/TestMasterPage.tsx`
+**Verified by:** reading (not run); tests present: backend `TestItemsPostgresTests.cs` (7 PostgresFact tests); frontend `TestItemsPanel.test.tsx`
+**Not verified:** that the list runs one query per page (the command-count test was not read); the section filter with a live user.
+
+### FS-MDM-047
+**Satisfies:** URS-MDM-033
+**Function:** Open SOP. `OpenSopAction`, shown in the test workflow dialog only when the sample has an item, reads the item's SOP status from `ItemStmService` (`getForItem`) and maps it with `sopLinkState`: no SOP number ("No SOP number on this item"); not in Document Control ("SOP {number} is not in Document Control"); no effective revision ("SOP {number} has no effective revision"); a refused read (401 or 403: "You do not have read access to this SOP"); any other failure ("The SOP could not be checked. Try again."). A linked SOP opens `/document-control/documents/{id}` in a new tab with `noopener,noreferrer`. Samples without an item (water, environmental monitoring, after cleaning) get no action. The item list on the Test Master page has its own "Open SOP" link to the same page, in the same tab.
+**Code:** `frontend/src/modules/testingWorkspace/components/OpenSopAction.tsx`; `frontend/src/modules/testingWorkspace/TestWorkflowDialog.tsx`; `frontend/src/modules/laboratoryConfiguration/masterDataSimple/TestItemsPanel.tsx`; `backend/MicroLIMS.Application/Services/ItemStmService.cs`
+**Verified by:** reading (not run); no test file for `OpenSopAction` was found; `TestItemsPanel.test.tsx` covers the Test Master link
+**Not verified:** the five SOP states at run time; the check that the workflow dialog's result payload is unchanged (existing test, not read).

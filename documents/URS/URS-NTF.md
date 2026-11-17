@@ -4,7 +4,7 @@
 |---|---|
 | Document number | URS-NTF |
 | Title | Dashboards, notifications and messaging user requirements |
-| Version | 0.5 |
+| Version | 0.6 |
 | Status | Draft |
 | Author | Claude (AI agent), draft from code |
 | Reviewer | To be assigned by QA |
@@ -20,6 +20,7 @@
 | 0.3 | 2026-11-15 | AI coding agent, draft from code | Added separate 24-hour incubation look-ahead group requirement (URS-NTF-011). |
 | 0.4 | 2026-11-16 | AI coding agent, draft from code | Added notification centre, notification generation, preferences and mandatory types, e-mail outbox, working hours and escalation rules, live updates and record-changed banner requirements (URS-NTF-012 to URS-NTF-018). |
 | 0.5 | 2026-11-17 | AI coding agent, draft from code | Added favourites, recently opened records, remembered laboratory and tab, breadcrumbs and action availability requirements (URS-NTF-019 to URS-NTF-023). |
+| 0.6 | 2026-11-17 | AI coding agent, draft from code | Added bench mode, local drafts, connection status, installable shell, help panel, field hints, tour and release notes, interface settings, table column and view state, saved views and virtual scrolling requirements (URS-NTF-024 to URS-NTF-036). |
 
 ## Requirements
 
@@ -161,4 +162,82 @@ Each requirement below is a need that the code as built serves. Gaps found in th
 **Requirement:** The system shall answer, for each gated action on a sample, test order, media lot or document revision, whether the signed-in user may perform the action now and, when not, the same sentence the server gives when the action is refused. The answer shall change nothing, and shall not reveal anything about a record the user may not read.
 **GxP:** Yes
 **Serves:** 21 CFR 11.10(d), 11.10(g) (to be confirmed by QA)
+**Status:** Active
+
+### URS-NTF-024
+**Requirement:** The system shall let a user switch a device into bench mode from the header, shall keep that choice on the device and not clear it when a user signs out, and shall show controls, text and entry dialogs at touch sizes in bench mode (targets of at least 48 by 48 px, entry text of 18 px, dialogs full screen), with the navigation panel closed.
+**GxP:** No
+**Serves:** Not applicable
+**Status:** Active
+
+### URS-NTF-025
+**Requirement:** The system shall keep the unsaved entries of a form on a bench device as local drafts while the user types, shall offer a draft back after an interruption without applying it by itself, and shall never treat a draft as a record: a draft shall reach the server only when the user presses Save on the open form, and a draft shall never hold a password, a signature comment or a token.
+**GxP:** Yes
+**Serves:** ALCOA+ (attributable, contemporaneous, original); 21 CFR 11.10(e) (to be confirmed by QA)
+**Status:** Active
+
+### URS-NTF-026
+**Requirement:** The system shall make a local draft visible and openable only by the user who made it, shall show other users' drafts on the same device only as a count, shall warn a user before switching user while that user has unsaved entries on the device, and shall remove drafts older than the retention period the laboratory sets (1 to 72 hours, 24 by default).
+**GxP:** Yes
+**Serves:** 21 CFR 11.10(d) (to be confirmed by QA)
+**Status:** Active
+
+### URS-NTF-027
+**Requirement:** The system shall keep a local draft when a Save is refused because the record has changed since the form was opened, and shall not resubmit that draft against a newer record version without the user's own action.
+**GxP:** Yes
+**Serves:** 21 CFR 11.10(e) (to be confirmed by QA)
+**Status:** Active
+
+### URS-NTF-028
+**Requirement:** The system shall tell a user on a bench device when the server cannot be reached, shall say that unsaved entries are not saved to MicroLIMS and stay on the device until they can be saved, and shall announce when the connection returns, without sending anything to the server.
+**GxP:** No
+**Serves:** Not applicable
+**Status:** Active
+
+### URS-NTF-029
+**Requirement:** The system shall be installable on a tablet as an app with its own name and icon, shall cache only the program files and never data or server responses, shall not offer a new version while a bench form is open, and shall reload the application for a new version only when the user chooses.
+**GxP:** No
+**Serves:** Not applicable
+**Status:** Active
+
+### URS-NTF-030
+**Requirement:** The system shall give every signed-in user a help panel that shows the guide chapter for the page they are on, states that the guidance does not replace the approved SOPs, can search the guide, opens with the F1 key, and leaves the page usable while it is open; and shall provide the full guide as a separate page.
+**GxP:** No
+**Serves:** Not applicable
+**Status:** Active
+
+### URS-NTF-031
+**Requirement:** The system shall show a short field hint beside selected form fields that explains what the field means and what it affects, shall open the hint by click or keyboard, and shall not state a limit, factor, time window or rule in a hint.
+**GxP:** No
+**Serves:** Not applicable
+**Status:** Active
+
+### URS-NTF-032
+**Requirement:** The system shall show each signed-in user a short tour of the screens for their role once, which the user can skip or replay from the help menu, and shall show the release notes for a new version once after the tour, limited to the notes for the user's role.
+**GxP:** No
+**Serves:** Not applicable
+**Status:** Active
+
+### URS-NTF-033
+**Requirement:** The system shall keep a small set of interface settings for each signed-in user, such as the tour state, the last release note seen, the last tab shown and favourites; shall let each user read and change only their own settings; shall refuse more than 100 settings for one user or a value longer than 2,048 characters; and shall not treat these settings as laboratory records.
+**GxP:** No
+**Serves:** Not applicable
+**Status:** Active
+
+### URS-NTF-034
+**Requirement:** The system shall let a user choose, for each register table, the columns shown and their order, the row density, the filters, the sort order and the rows per page; shall keep the column and density choices on the device used; and shall keep the filters, sort and page in the address so that a link opens the same view.
+**GxP:** No
+**Serves:** Not applicable
+**Status:** Active
+
+### URS-NTF-035
+**Requirement:** The system shall let a user save up to 20 personal views of a register table, and shall let a user who may share views share a view with a laboratory section the user belongs to; shall show a user only the views the user owns and the views shared with the user's sections; shall answer a view the user cannot see as not found; and shall, when a saved view names a column or filter that no longer exists, apply the rest and tell the user what was not applied.
+**GxP:** No
+**Serves:** Not applicable
+**Status:** Active
+
+### URS-NTF-036
+**Requirement:** The system shall keep long register tables responsive by drawing only the rows in view once a table has more than 100 rows, shall keep the column headings visible while the rows scroll, shall keep an expanded row in place, and shall let keyboard users move to rows outside the drawn part.
+**GxP:** No
+**Serves:** Operational usability
 **Status:** Active

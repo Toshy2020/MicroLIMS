@@ -4,7 +4,7 @@
 |---|---|
 | Document number | FS-ADM |
 | Title | System administration functional specification |
-| Version | 0.3 |
+| Version | 0.4 |
 | Status | Draft |
 | Author | Claude (AI agent), draft from code |
 | Reviewer | To be assigned by QA |
@@ -18,6 +18,7 @@
 | 0.1 | 2026-11-12 | Claude (AI agent), draft from code | First draft, written from the code as built. |
 | 0.2 | 2026-11-13 | AI coding agent, draft from code | Added QA dashboard navigation and controlled-document QA approver requirement (FS-ADM-011, FS-ADM-012). |
 | 0.3 | 2026-11-14 | AI coding agent, draft from code | Added keyboard shortcuts dialog, form initial focus, server-paged table sorting restriction, and `entry.lastChoiceDefaults.enabled` setting (FS-ADM-013). |
+| 0.4 | 2026-11-17 | AI coding agent, draft from code | Added About dialog and version endpoint specification (FS-ADM-014). |
 
 ## Scope and reading notes
 
@@ -114,3 +115,10 @@
 **Code:** `frontend/src/components/entry/ShortcutsDialog.tsx`; `frontend/src/modules/help/HelpMenu.tsx`; `frontend/src/components/lab/FormDialog.tsx`; `frontend/src/components/lab/RegisterTable.tsx`; `frontend/src/modules/receiving/components/SampleRegisterTable.tsx`; `frontend/src/modules/documentControl/pages/DocumentLibraryPage.tsx`; `backend/MicroLIMS.Application/Services/SystemSettings/SystemSettingDefinitions.cs`; `backend/MicroLIMS.Application/Services/EntryDefaults/EntryDefaultsService.cs`
 **Verified by:** reading (not run)
 **Conflicts:** CONF-205
+
+### FS-ADM-014
+**Satisfies:** URS-ADM-014
+**Function:** About and version. `GET api/system/version` (signed-in users) returns the assembly's informational version and the environment name. The informational version is the `MicroLimsVersion` property in `backend/Directory.Build.props` (default 0.1.0, to be set by the release build). The browser's version comes from `frontend/package.json` through the Vite definition `__APP_VERSION__`. `AboutDialog`, opened from the Help menu, shows both.
+**Code:** `backend/MicroLIMS.API/Controllers/SystemVersionController.cs`; `backend/Directory.Build.props`; `frontend/vite.config.ts`; `frontend/src/modules/help/AboutDialog.tsx`; `frontend/src/modules/help/HelpMenu.tsx`
+**Verified by:** reading (not run); no test file for the version endpoint or `AboutDialog` was found
+**Not verified:** the About dialog at run time; that the release pipeline passes `MicroLimsVersion`.

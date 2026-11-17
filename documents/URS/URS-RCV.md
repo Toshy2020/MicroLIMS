@@ -4,7 +4,7 @@
 |---|---|
 | Document number | URS-RCV |
 | Title | Sample receiving user requirements |
-| Version | 0.2 |
+| Version | 0.3 |
 | Status | Draft |
 | Author | Claude (AI agent), draft from code |
 | Reviewer | To be assigned by QA |
@@ -17,6 +17,7 @@
 |---|---|---|---|
 | 0.1 | 2026-11-12 | Claude (AI agent), draft from code | First draft, written from the code as built. |
 | 0.2 | 2026-11-14 | AI coding agent, draft from code | Added batch sample receiving, duplicate batch+control rule, grid navigation/paste, and receiving last-choice defaults (URS-RCV-013, URS-RCV-014). |
+| 0.3 | 2026-11-17 | AI coding agent, draft from code | Added bulk analyst assignment requirement (URS-RCV-015). |
 
 ## Requirements
 
@@ -104,4 +105,10 @@ Each requirement is a need that the code as built serves. Gaps found in the code
 **Requirement:** The multi-sample receiving grid shall support keyboard cell navigation, copy-down from the row above (`Ctrl+D`), positional spreadsheet paste with a preview that requires user acceptance before populating the grid (and nothing saved until the user saves), and pre-filling `Sampled By` and active `Cause of Testing` on the first row from the acting user's latest receipt when last-choice defaults are enabled.
 **GxP:** No
 **Serves:** Operational usability and entry-error reduction during multi-sample receiving
+**Status:** Active
+
+### URS-RCV-015
+**Requirement:** The system shall let a user with the sample-assignment permission assign one analyst to up to 200 selected samples in one action; shall check each sample against the usual assignment rules when the request is processed; shall assign the samples that pass and report each refused sample with its reason; and shall record each change to a test order in the audit trail.
+**GxP:** Yes
+**Serves:** 21 CFR 11.10(d), 11.10(g) (to be confirmed by QA)
 **Status:** Active

@@ -7,12 +7,14 @@ import { useSectionCounters } from "../hooks/useSectionCounters";
 import { groupLabel, groupPath } from "../routes/navigation";
 import { BreadcrumbLabel } from "../components/breadcrumbContext";
 import { useTranslation } from "../i18n";
+import { useMenuText } from "../routes/menuText";
 
 // Landing page of a sidebar section or menu group: one card per page the user may open in
 // it, read from the same permission-filtered menu as the sidebar. The lab's
 // sample workspaces (featured) lead, drawn wider with a brand accent.
 export function SectionPage() {
   const { t } = useTranslation();
+  const menu = useMenuText();
   const { pathname } = useLocation();
   const groups = useMenuGroups();
   const section = groups.flatMap((g) => g.items).find((i) => i.children && i.path === pathname);
@@ -32,7 +34,7 @@ export function SectionPage() {
   }
 
   const Icon = section?.icon;
-  const title = section ? section.label : groupLabel(group!.groupName);
+  const title = section ? menu.label(section.label) : groupLabel(menu.group(group!.groupName));
   // On a group page a section card says how much it holds.
   const pages = (section ? [...section.children!] : group!.items.map((i) =>
     i.children && !i.description ? { ...i, description: `${i.children.length} pages` } : i

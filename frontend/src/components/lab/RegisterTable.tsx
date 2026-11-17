@@ -9,6 +9,9 @@ import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import { toast } from "sonner";
+import { visuallyHidden } from "@mui/utils";
+import { Ltr } from "../Ltr";
+import { useTranslation } from "../../i18n";
 import { useOptionalAuth } from "../../contexts/AuthContext";
 import { PERMISSIONS } from "../../routes/routes";
 import { tableHeadSx } from "../../theme";
@@ -121,11 +124,23 @@ const STICKY_HEADER_MIN_ROWS = 15;
 // Above this many rendered rows the desktop table body is windowed.
 const VIRTUALISE_ABOVE_ROWS = 100;
 const ALL_ROWS_OPTION = -1;
-const DESKTOP_PAGE_SIZE_OPTIONS = [...PAGE_SIZES, { label: "All", value: ALL_ROWS_OPTION }];
+const DESKTOP_PAGE_SIZES = [...PAGE_SIZES, ALL_ROWS_OPTION];
 
 function sxList(sx: SxProps<Theme> | undefined): ReadonlyArray<boolean | object> {
   if (!sx) return [];
   return Array.isArray(sx) ? (sx as ReadonlyArray<boolean | object>) : [sx as object];
+}
+
+// The pager's own words, and the "All" option, in the interface language.
+function usePaginationText() {
+  const { t } = useTranslation();
+  return {
+    labelRowsPerPage: t("table.rowsPerPage"),
+    labelDisplayedRows: ({ from, to, count }: { from: number; to: number; count: number }) =>
+      t("table.displayedRows", { from, to, total: count }),
+    getItemAriaLabel: (type: "first" | "last" | "next" | "previous") =>
+      t(`table.${type}Page`)
+  };
 }
 
 function compareValues(a: unknown, b: unknown): number {
@@ -158,6 +173,11 @@ function RegisterTableInner<T>({
   isExpandable, rowSx, selectionLabels, pageSelectionIds, exportLabel, serverPaged, trailingCell, alwaysSelectable
 }: RegisterTableProps<T>) {
   const theme = useTheme();
+  const { t } = useTranslation();
+  const paginationText = usePaginationText();
+  const desktopPageSizeOptions = DESKTOP_PAGE_SIZES.map((value) =>
+    value === ALL_ROWS_OPTION ? { label: t("table.all"), value } : value
+  );
   const auth = useOptionalAuth();
   const { benchMode } = useBenchMode();
   const isBench = benchMode || Boolean(theme.custom?.bench);
@@ -238,20 +258,20 @@ function RegisterTableInner<T>({
     if (tableKey && !base.some((a) => a.key === "export-csv")) {
       base.push({
         key: "export-csv",
-        label: exportLabel ?? "Export CSV",
+        label: exportLabel ?? t("table.exportCsv"),
         permission: PERMISSIONS.DATA_EXPORT,
         run: async () => {
           if (!selection) return;
           const selectedCount = selection.allMatching ? (totalMatching ?? rows.length) : selection.selected.size;
           if (selectedCount > MAX_EXPORT_ROWS) {
-            toast.error("Export is limited to 5,000 rows. Narrow your filters or use the Reports module.");
+            toast.error(t("table.exportLimit"));
             return;
           }
           const exportRows = selection.allMatching
             ? (loadAllMatching ? await loadAllMatching() : rows)
             : rows.filter((r) => selection.selected.has(getRowId(r)));
           if (exportRows.length > MAX_EXPORT_ROWS) {
-            toast.error("Export is limited to 5,000 rows. Narrow your filters or use the Reports module.");
+            toast.error(t("table.exportLimit"));
             return;
           }
           const visibleKeys = displayedColumns.map((c) => String(c.key));
@@ -271,7 +291,7 @@ function RegisterTableInner<T>({
               recordIds,
             });
           } catch (err) {
-            toast.error(getErrorMessage(err, "Failed to log CSV export."));
+            toast.error(getErrorMessage(err, t("table.exportFailed")));
             return;
           }
 
@@ -308,7 +328,7 @@ function RegisterTableInner<T>({
       });
     }
     return base;
-  }, [bulkActions, tableKey, selection, totalMatching, rows, loadAllMatching, getRowId, displayedColumns, tableState, exportLabel]);
+  }, [bulkActions, tableKey, selection, totalMatching, rows, loadAllMatching, getRowId, displayedColumns, tableState, exportLabel, t]);
 
   const permittedBulkActions = useMemo(
     () =>
@@ -400,8 +420,13 @@ function RegisterTableInner<T>({
   };
 
   const menuActions = menu && rowActions ? rowActions(menu.row) : [];
-  const cellText = (row: T, col: RegisterColumn<T>): ReactNode =>
-    col.render ? col.render(row) : String((row as Record<string, unknown>)[String(col.key)] ?? "—");
+  // A cell with no renderer shows the raw value; numbers and identifiers (the columns marked
+  // numeric or nowrap) keep their left-to-right order inside an Arabic row.
+  const cellText = (row: T, col: RegisterColumn<T>): ReactNode => {
+    if (col.render) return col.render(row);
+    const text = String((row as Record<string, unknown>)[String(col.key)] ?? "—");
+    return col.numeric || col.nowrap ? <Ltr>{text}</Ltr> : text;
+  };
   const isColumnSortable = (col: RegisterColumn<T>): boolean =>
     Boolean(col.sortable) && (!serverPaged || (serverSortEnabled && Boolean(serverSortableSet?.has(String(col.key)))));
   const sortableColumns = displayedColumns.filter(isColumnSortable);
@@ -416,7 +441,7 @@ function RegisterTableInner<T>({
             <IconButton
               size="small"
               aria-expanded={isExpanded}
-              aria-label={`${isExpanded ? "Collapse" : "Expand"} row ${rowId}`}
+              aria-label={isExpanded ? t("table.collapseRow", { id: rowId }) : t("table.expandRow", { id: rowId })}
               onClick={() => onToggleExpand?.(rowId)}
             >
               {isExpanded ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
@@ -433,7 +458,7 @@ function RegisterTableInner<T>({
               checked={selectable && selection.isSelected(rowId)}
               disabled={!selectable}
               onChange={() => { if (selectable) selection.toggle(rowId); }}
-              slotProps={{ input: { "aria-label": selectionLabels?.row ? selectionLabels.row(row) : `Select row ${rowId}` } }}
+              slotProps={{ input: { "aria-label": selectionLabels?.row ? selectionLabels.row(row) : t("table.selectRow", { id: rowId }) } }}
             />
           </TableCell>
         );
@@ -458,7 +483,7 @@ function RegisterTableInner<T>({
       {rowActions && (
         <TableCell align="right" sx={{ py: cellPy, px: 0.5 }}>
           {rowActions(row).length > 0 && (
-            <IconButton size="small" aria-label={`Row actions for ${rowId}`} onClick={(e) => openMenu(e, row)}>
+            <IconButton size="small" aria-label={t("table.rowActions", { id: rowId })} onClick={(e) => openMenu(e, row)}>
               <MoreVertIcon fontSize="small" />
             </IconButton>
           )}
@@ -481,7 +506,7 @@ function RegisterTableInner<T>({
         )}
         {sortableColumns.length > 0 && rows.length > 1 && (
           <Box sx={{ px: 1.5, py: 1, borderBottom: "1px solid", borderColor: "divider", display: "flex", alignItems: "center", gap: 1 }}>
-            <Typography variant="caption" sx={{ color: "text.secondary" }}>Sort by</Typography>
+            <Typography variant="caption" sx={{ color: "text.secondary" }}>{t("table.sortBy")}</Typography>
             <Select
               size="small"
               value={sort ? `${sort.key}:${sort.direction}` : ""}
@@ -492,13 +517,13 @@ function RegisterTableInner<T>({
                 const [key, direction] = v.split(":");
                 setSort({ key, direction: direction as "asc" | "desc" });
               }}
-              inputProps={{ "aria-label": "Sort records by" }}
+              inputProps={{ "aria-label": t("table.sortRecordsBy") }}
               sx={{ flex: 1, fontSize: 14 }}
             >
-              <MenuItem value="">Default order</MenuItem>
+              <MenuItem value="">{t("table.defaultOrder")}</MenuItem>
               {sortableColumns.flatMap((c) => [
-                <MenuItem key={`${String(c.key)}:asc`} value={`${String(c.key)}:asc`}>{c.label} (ascending)</MenuItem>,
-                <MenuItem key={`${String(c.key)}:desc`} value={`${String(c.key)}:desc`}>{c.label} (descending)</MenuItem>
+                <MenuItem key={`${String(c.key)}:asc`} value={`${String(c.key)}:asc`}>{t("table.sortAscending", { column: c.label })}</MenuItem>,
+                <MenuItem key={`${String(c.key)}:desc`} value={`${String(c.key)}:desc`}>{t("table.sortDescending", { column: c.label })}</MenuItem>
               ])}
             </Select>
           </Box>
@@ -540,7 +565,7 @@ function RegisterTableInner<T>({
                     "&:last-of-type": { borderBottom: 0 },
                     cursor: onRowClick ? "pointer" : undefined,
                     bgcolor: toneTokens?.bg,
-                    borderLeft: toneTokens ? `3px solid ${toneTokens.border}` : undefined,
+                    borderInlineStart: toneTokens ? `3px solid ${toneTokens.border}` : undefined,
                     "&:focus-visible": { outline: "2px solid", outlineColor: "primary.main", outlineOffset: -2 }
                   }}
                 >
@@ -554,8 +579,8 @@ function RegisterTableInner<T>({
                           disabled={!selectable}
                           onClick={(e) => e.stopPropagation()}
                           onChange={() => { if (selectable) selection.toggle(getRowId(row)); }}
-                          slotProps={{ input: { "aria-label": selectionLabels?.row ? selectionLabels.row(row) : `Select row ${getRowId(row)}` } }}
-                          sx={{ p: 0, mr: 0.5 }}
+                          slotProps={{ input: { "aria-label": selectionLabels?.row ? selectionLabels.row(row) : t("table.selectRow", { id: getRowId(row) }) } }}
+                          sx={{ p: 0, marginInlineEnd: 0.5 }}
                         />
                       );
                     })()}
@@ -564,7 +589,7 @@ function RegisterTableInner<T>({
                     </Box>
                     {trailingCell && trailingCell.render(row)}
                     {actions.length > 0 && (
-                      <IconButton size="small" aria-label={`Row actions for ${getRowId(row)}`} onClick={(e) => openMenu(e, row)} sx={{ mt: -0.5, mr: -0.5 }}>
+                      <IconButton size="small" aria-label={t("table.rowActions", { id: getRowId(row) })} onClick={(e) => openMenu(e, row)} sx={{ mt: -0.5, marginInlineEnd: -0.5 }}>
                         <MoreVertIcon fontSize="small" />
                       </IconButton>
                     )}
@@ -596,6 +621,7 @@ function RegisterTableInner<T>({
             rowsPerPage={rowsPerPage}
             rowsPerPageOptions={serverPaged?.pageSizeOptions ?? PAGE_SIZES}
             onRowsPerPageChange={(e) => handleRowsPerPageChange(Number(e.target.value))}
+            {...paginationText}
           />
         )}
         {renderMenu()}
@@ -640,7 +666,7 @@ function RegisterTableInner<T>({
           <TableHead>
             <TableRow sx={tableHeadSx(theme)} aria-rowindex={virtualised ? 1 : undefined}>
               {expandable && (
-                <TableCell padding="checkbox"><span style={{ position: "absolute", left: -9999 }}>Expand</span></TableCell>
+                <TableCell padding="checkbox"><Box component="span" sx={visuallyHidden}>{t("table.expandColumn")}</Box></TableCell>
               )}
               {showSelection && selection && (
                 <TableCell padding="checkbox">
@@ -676,7 +702,7 @@ function RegisterTableInner<T>({
                 );
               })}
               {trailingCell && <TableCell align="center" sx={{ fontWeight: 600, whiteSpace: "nowrap" }}>{trailingCell.label}</TableCell>}
-              {rowActions && <TableCell align="right" sx={{ width: 48 }}><span style={{ position: "absolute", left: -9999 }}>Actions</span></TableCell>}
+              {rowActions && <TableCell align="right" sx={{ width: 48 }}><Box component="span" sx={visuallyHidden}>{t("table.actionsColumn")}</Box></TableCell>}
             </TableRow>
           </TableHead>
           {!virtualised && (
@@ -687,7 +713,7 @@ function RegisterTableInner<T>({
                   {showSelection && <TableCell padding="checkbox" />}
                   {displayedColumns.map((col, c) => (
                     <TableCell key={String(col.key)} align={col.align ?? (col.numeric ? "right" : "left")} sx={{ py: 1.5 }}>
-                      <Skeleton variant="text" width={c === 0 ? "75%" : "50%"} height={20} sx={{ ml: col.numeric ? "auto" : 0 }} />
+                      <Skeleton variant="text" width={c === 0 ? "75%" : "50%"} height={20} sx={{ marginInlineStart: col.numeric ? "auto" : 0 }} />
                     </TableCell>
                   ))}
                   {trailingCell && <TableCell />}
@@ -719,7 +745,7 @@ function RegisterTableInner<T>({
                       ...(toneTokens
                         ? {
                             bgcolor: toneTokens.bg,
-                            "& > td:first-of-type": { borderLeft: `3px solid ${toneTokens.border}` },
+                            "& > td:first-of-type": { borderInlineStart: `3px solid ${toneTokens.border}` },
                             "&.MuiTableRow-hover:hover": { filter: "brightness(0.97)" }
                           }
                         : null)
@@ -765,8 +791,9 @@ function RegisterTableInner<T>({
           page={isAllPageSize ? 0 : page}
           onPageChange={(_, p) => handlePageChange(p)}
           rowsPerPage={isAllPageSize ? ALL_ROWS_OPTION : rowsPerPage}
-          rowsPerPageOptions={serverPaged ? (serverPaged.pageSizeOptions ?? PAGE_SIZES) : DESKTOP_PAGE_SIZE_OPTIONS}
+          rowsPerPageOptions={serverPaged ? (serverPaged.pageSizeOptions ?? PAGE_SIZES) : desktopPageSizeOptions}
           onRowsPerPageChange={(e) => handleRowsPerPageChange(Number(e.target.value))}
+          {...paginationText}
         />
       )}
       {renderMenu()}

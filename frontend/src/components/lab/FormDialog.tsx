@@ -2,6 +2,7 @@ import { useEffect, useId, useRef } from "react";
 import { Alert, Box, Button, CircularProgress, DialogProps } from "@mui/material";
 import type { FormEvent, KeyboardEvent, ReactNode } from "react";
 import { FloatingDialog } from "../FloatingDialog";
+import { useTranslation } from "../../i18n";
 
 interface FormDialogProps {
   open: boolean;
@@ -66,6 +67,7 @@ export function FormDialog({
   submitDisabled,
   initialFocus = "firstEmptyRequired"
 }: FormDialogProps) {
+  const { t } = useTranslation();
   const formId = useId();
   const formRef = useRef<HTMLFormElement | null>(null);
   const wasOpenRef = useRef(false);
@@ -115,7 +117,7 @@ export function FormDialog({
       maxWidth={maxWidth}
       actions={
         <>
-          <Button onClick={onClose} disabled={submitting}>Cancel</Button>
+          <Button onClick={onClose} disabled={submitting}>{t("actions.cancel")}</Button>
           <Button
             type="submit"
             form={formId}

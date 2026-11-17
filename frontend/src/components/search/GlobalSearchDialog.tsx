@@ -21,6 +21,8 @@ import { useScanResolve } from "../labels/useScanResolve";
 import { useRecentSearches } from "./useRecentSearches";
 import { SearchFavourites } from "./SearchFavourites";
 import { SearchRecents } from "./SearchRecents";
+import { DirectionalIcon } from "../DirectionalIcon";
+import { useTranslation } from "../../i18n";
 
 interface GlobalSearchDialogProps {
   open: boolean;
@@ -63,6 +65,7 @@ function candidatesToSearchResult(query: string, candidates: ScanMatch[]): Globa
 
 export function GlobalSearchDialog({ open, onClose }: GlobalSearchDialogProps) {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [query, setQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState<string>("All");
   const [loading, setLoading] = useState(false);
@@ -115,7 +118,7 @@ export function GlobalSearchDialog({ open, onClose }: GlobalSearchDialogProps) {
     } catch (err: unknown) {
       if (!isAbortError(err) && abortControllerRef.current === controller) {
         setResults(null);
-        toast.error(getErrorMessage(err, "Search failed."));
+        toast.error(getErrorMessage(err, t("search.failed")));
       }
     } finally {
       if (abortControllerRef.current === controller) {
@@ -123,7 +126,7 @@ export function GlobalSearchDialog({ open, onClose }: GlobalSearchDialogProps) {
         setLoading(false);
       }
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     if (!open) {
@@ -192,7 +195,7 @@ export function GlobalSearchDialog({ open, onClose }: GlobalSearchDialogProps) {
 
       if (res.outcome === "Found" && res.match) {
         if (res.layoutCorrected) {
-          toast.info("Keyboard was in Arabic; the code was converted.");
+          toast.info(t("search.layoutCorrected"));
         }
         addSearch(res.match.code || scanQuery);
         onClose();
@@ -202,7 +205,7 @@ export function GlobalSearchDialog({ open, onClose }: GlobalSearchDialogProps) {
 
       if (res.outcome === "Ambiguous") {
         if (res.layoutCorrected) {
-          toast.info("Keyboard was in Arabic; the code was converted.");
+          toast.info(t("search.layoutCorrected"));
         }
         setResults(candidatesToSearchResult(scanQuery, res.candidates));
         setSelectedIndex(0);
@@ -216,7 +219,7 @@ export function GlobalSearchDialog({ open, onClose }: GlobalSearchDialogProps) {
       if (!openRef.current || queryRef.current !== scanQuery) {
         return;
       }
-      toast.error(getErrorMessage(err, "Could not resolve scan."));
+      toast.error(getErrorMessage(err, t("search.scanFailed")));
       await executeSearch(scanQuery, activeCategory);
     }
   };
@@ -276,12 +279,12 @@ export function GlobalSearchDialog({ open, onClose }: GlobalSearchDialogProps) {
         <InputBase
           autoFocus
           fullWidth
-          placeholder="Search MicroLIMS (samples, orders, materials, equipment, docs)..."
+          placeholder={t("search.placeholder")}
           value={query}
           onChange={e => updateQuery(e.target.value)}
           onKeyDown={handleKeyDown}
           inputProps={{
-            "aria-label": "Search MicroLIMS across samples, orders, materials, equipment, and documents",
+            "aria-label": t("search.inputLabel"),
             role: "combobox",
             "aria-expanded": Boolean(results && flatItems.length > 0),
             "aria-autocomplete": "list"
@@ -290,12 +293,12 @@ export function GlobalSearchDialog({ open, onClose }: GlobalSearchDialogProps) {
         />
         {isSearching && <CircularProgress size={20} />}
         {hasCamera && (
-          <IconButton size="small" onClick={() => setCameraOpen(true)} aria-label="Scan with camera">
+          <IconButton size="small" onClick={() => setCameraOpen(true)} aria-label={t("search.scanWithCamera")}>
             <PhotoCameraOutlinedIcon fontSize="small" />
           </IconButton>
         )}
         {query && !isSearching && (
-          <IconButton size="small" onClick={() => updateQuery("")} aria-label="Clear search input">
+          <IconButton size="small" onClick={() => updateQuery("")} aria-label={t("search.clearInput")}>
             <ClearIcon fontSize="small" />
           </IconButton>
         )}
@@ -304,7 +307,7 @@ export function GlobalSearchDialog({ open, onClose }: GlobalSearchDialogProps) {
       {/* Category Filter Facets */}
       <Box
         role="group"
-        aria-label="Filter search results by category"
+        aria-label={t("search.filterByCategory")}
         sx={{
           display: "flex",
           alignItems: "center",
@@ -322,7 +325,7 @@ export function GlobalSearchDialog({ open, onClose }: GlobalSearchDialogProps) {
           return (
             <Chip
               key={category}
-              label={category}
+              label={t(`search.category.${category}`)}
               size="small"
               clickable
               color={selected ? "primary" : "default"}
@@ -338,9 +341,9 @@ export function GlobalSearchDialog({ open, onClose }: GlobalSearchDialogProps) {
       {/* Screen reader live announcements for search status */}
       <Box sx={visuallyHidden} aria-live="polite" aria-atomic="true">
         {isSearching
-          ? "Searching..."
+          ? t("search.searching")
           : results && query.trim().length >= 2
-          ? `${flatItems.length} results found for ${query}`
+          ? t("search.resultsFound", { total: flatItems.length, query })
           : ""}
       </Box>
 
@@ -358,7 +361,7 @@ export function GlobalSearchDialog({ open, onClose }: GlobalSearchDialogProps) {
           <Box sx={{ mb: 2 }}>
             <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1 }}>
               <Typography variant="caption" color="text.secondary" sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-                <HistoryIcon sx={{ fontSize: 14 }} /> RECENT SEARCHES
+                <HistoryIcon sx={{ fontSize: 14 }} /> {t("search.recentSearches")}
               </Typography>
               <Typography
                 component="button"
@@ -368,7 +371,7 @@ export function GlobalSearchDialog({ open, onClose }: GlobalSearchDialogProps) {
                 sx={{ cursor: "pointer", bgcolor: "transparent", border: 0, p: 0 }}
                 onClick={clearSearches}
               >
-                Clear
+                {t("search.clear")}
               </Typography>
             </Box>
             <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
@@ -381,8 +384,8 @@ export function GlobalSearchDialog({ open, onClose }: GlobalSearchDialogProps) {
 
         {results && results.categories.length === 0 && !isSearching && (
           <Box sx={{ py: 6, textAlign: "center", color: "text.secondary" }}>
-            <Typography variant="body1">No matches found for "{query}"</Typography>
-            <Typography variant="caption">Try searching by sample reference, batch number, material name, or equipment code.</Typography>
+            <Typography variant="body1">{t("search.noMatches", { query })}</Typography>
+            <Typography variant="caption">{t("search.noMatchesHint")}</Typography>
           </Box>
         )}
 
@@ -413,7 +416,7 @@ export function GlobalSearchDialog({ open, onClose }: GlobalSearchDialogProps) {
                       />
                       <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                         {item.status && <Chip label={item.status} size="small" variant="outlined" />}
-                        <ArrowForwardIosIcon sx={{ fontSize: 12, color: "action.disabled" }} />
+                        <DirectionalIcon><ArrowForwardIosIcon sx={{ fontSize: 12, color: "action.disabled" }} /></DirectionalIcon>
                       </Box>
                     </ListItemButton>
                   );

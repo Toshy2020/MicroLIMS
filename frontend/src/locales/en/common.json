@@ -3,7 +3,9 @@
     "save": "Save",
     "cancel": "Cancel",
     "close": "Close",
-    "retry": "Retry"
+    "retry": "Retry",
+    "confirm": "Confirm",
+    "sign": "Sign"
   },
   "language": {
     "label": "Language",
@@ -20,5 +22,97 @@
   },
   "nav": {
     "sectionNotAvailable": "Section not available"
-  }
+  },
+  "dialog": {
+    "close": "Close",
+    "closeDialog": "Close dialog",
+    "confirmTitle": "Confirm"
+  },
+  "table": {
+    "sortBy": "Sort by",
+    "sortRecordsBy": "Sort records by",
+    "defaultOrder": "Default order",
+    "sortAscending": "{{column}} (ascending)",
+    "sortDescending": "{{column}} (descending)",
+    "selectRow": "Select row {{id}}",
+    "selectAllOnPage": "Select all rows on page",
+    "expandRow": "Expand row {{id}}",
+    "collapseRow": "Collapse row {{id}}",
+    "rowActions": "Row actions for {{id}}",
+    "expandColumn": "Expand",
+    "actionsColumn": "Actions",
+    "exportCsv": "Export CSV",
+    "all": "All",
+    "rowsPerPage": "Rows per page:",
+    "displayedRows": "{{from}}–{{to}} of {{total}}",
+    "exportLimit": "Export is limited to 5,000 rows. Narrow your filters or use the Reports module.",
+    "exportFailed": "Failed to log CSV export.",
+    "nextPage": "Go to next page",
+    "previousPage": "Go to previous page",
+    "firstPage": "Go to first page",
+    "lastPage": "Go to last page"
+  },
+  "outage": {
+    "someDataFailed": "Some data could not be loaded: {{sources}}."
+  },
+  "signature": {
+    "title": "Electronic Signature",
+    "signing": "Signing...",
+    "commentOptional": "Comment (optional)",
+    "password": "Password",
+    "signingPassword": "Signing password",
+    "signingPasswordHelp": "This is your MicroLIMS signing password, not your company password.",
+    "second": "Second signature",
+    "secondHint": "A different person who is allowed to approve this signs as well.",
+    "secondUsername": "Second signer username",
+    "secondPassword": "Second signer password",
+    "failed": "Signature failed.",
+    "arabicTranslation": "Arabic translation of the statement",
+    "englishRecorded": "The English statement is recorded."
+  },
+  "layout": {
+    "skipToMain": "Skip to main content",
+    "mfaRequiredBy": "Second-factor setup required by {{date}}.",
+    "mfaSetUp": "Set up second factor",
+    "tourSaveFailed": "Could not save your tour progress. The tour may appear again.",
+    "releaseNoteSaveFailed": "Could not save your release note state.",
+    "timeoutTitle": "Session Timeout Warning",
+    "timeoutBody": "You will be signed out due to inactivity in {{duration}}.",
+    "stayLoggedIn": "Stay signed in"
+  },
+  "sidebar": {
+    "mainNavigation": "Main navigation",
+    "expand": "Expand sidebar",
+    "collapse": "Collapse sidebar",
+    "tasks_one": "{{count}} task",
+    "tasks_other": "{{count}} tasks",
+    "overdue": "{{count}} overdue",
+    "myWorkName": "{{label}}, {{tasks}}",
+    "myWorkNameOverdue": "{{label}}, {{tasks}}, {{overdue}}"
+  },
+  "search": {
+    "placeholder": "Search MicroLIMS (samples, orders, materials, equipment, docs)...",
+    "inputLabel": "Search MicroLIMS across samples, orders, materials, equipment, and documents",
+    "scanWithCamera": "Scan with camera",
+    "clearInput": "Clear search input",
+    "filterByCategory": "Filter search results by category",
+    "searching": "Searching...",
+    "resultsFound": "{{total}} results found for {{query}}",
+    "recentSearches": "RECENT SEARCHES",
+    "clear": "Clear",
+    "noMatches": "No matches found for \"{{query}}\"",
+    "noMatchesHint": "Try searching by sample reference, batch number, material name, or equipment code.",
+    "failed": "Search failed.",
+    "scanFailed": "Could not resolve scan.",
+    "layoutCorrected": "Keyboard was in Arabic; the code was converted.",
+    "category": {
+      "All": "All",
+      "Samples": "Samples",
+      "Orders": "Orders",
+      "Materials": "Materials",
+      "Equipment": "Equipment",
+      "Documents": "Documents"
+    }
+  },
+  "listSeparator": ", "
 }

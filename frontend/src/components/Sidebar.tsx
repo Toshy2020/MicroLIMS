@@ -15,6 +15,10 @@ import { myWorkService } from "../modules/myWork/services/myWorkService";
 import type { MyWorkSummary } from "../modules/myWork/myWorkTypes";
 import { SidebarFavourites } from "../modules/navigation/SidebarFavourites";
 import { SidebarRecents } from "../modules/navigation/SidebarRecents";
+import type { TFunction } from "i18next";
+import { useTranslation } from "../i18n";
+import { useMenuText } from "../routes/menuText";
+import { DirectionalIcon } from "./DirectionalIcon";
 
 const EXPANDED_SIDEBAR_WIDTH = 250;
 const COLLAPSED_SIDEBAR_WIDTH = 68;
@@ -34,11 +38,12 @@ const NAV_TOUR_TARGETS: Record<string, string> = {
   "/admin/access-review": "nav-access-review"
 };
 
-function formatMyWorkAccessibleName(label: string, summary: MyWorkSummary): string {
-  const total = summary.total ?? 0;
-  const totalPart = `${total} ${total === 1 ? "task" : "tasks"}`;
-  const overduePart = summary.overdue && summary.overdue > 0 ? `, ${summary.overdue} overdue` : "";
-  return `${label}, ${totalPart}${overduePart}`;
+function formatMyWorkAccessibleName(t: TFunction, label: string, summary: MyWorkSummary): string {
+  const tasks = t("sidebar.tasks", { count: summary.total ?? 0 });
+  if (summary.overdue && summary.overdue > 0) {
+    return t("sidebar.myWorkNameOverdue", { label, tasks, overdue: t("sidebar.overdue", { count: summary.overdue }) });
+  }
+  return t("sidebar.myWorkName", { label, tasks });
 }
 
 // How long to keep a flyout open after the pointer leaves it, so moving the
@@ -59,6 +64,9 @@ interface SidebarProps {
 
 export function Sidebar({ mobileOpen, onMobileClose, collapsed, onToggleCollapse, groups, activeTrail }: SidebarProps) {
   const theme = useTheme();
+  const { t } = useTranslation();
+  const menu = useMenuText();
+  const rtl = theme.direction === "rtl";
   const chrome = theme.custom.chrome;
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
 
@@ -203,7 +211,7 @@ export function Sidebar({ mobileOpen, onMobileClose, collapsed, onToggleCollapse
                   textTransform: "uppercase"
                 }}
               >
-                {group.groupName}
+                {menu.group(group.groupName)}
               </Typography>
             )}
 
@@ -221,7 +229,7 @@ export function Sidebar({ mobileOpen, onMobileClose, collapsed, onToggleCollapse
                   myWorkSummary?.total !== undefined &&
                   myWorkSummary.total > 0;
                 const myWorkAriaLabel =
-                  showMyWorkBadge && myWorkSummary ? formatMyWorkAccessibleName(item.label, myWorkSummary) : undefined;
+                  showMyWorkBadge && myWorkSummary ? formatMyWorkAccessibleName(t, menu.label(item.label), myWorkSummary) : undefined;
                 const badgeTone = (myWorkSummary?.overdue ?? 0) > 0 ? theme.custom.status.detected : theme.custom.status.info;
 
                 const button = (
@@ -233,13 +241,13 @@ export function Sidebar({ mobileOpen, onMobileClose, collapsed, onToggleCollapse
                           onClick: (e: React.MouseEvent<HTMLElement>) => handleItemClick(item, e.currentTarget),
                           "aria-expanded": effectiveCollapsed ? flyoutOpen : isSubOpen,
                           "aria-haspopup": effectiveCollapsed ? true : undefined,
-                          "aria-label": effectiveCollapsed ? item.label : undefined
+                          "aria-label": effectiveCollapsed ? menu.label(item.label) : undefined
                         }
                       : {
                           component: Link,
                           to: item.path!,
                           "aria-current": active ? "page" : undefined,
-                          "aria-label": myWorkAriaLabel ?? (effectiveCollapsed ? item.label : undefined),
+                          "aria-label": myWorkAriaLabel ?? (effectiveCollapsed ? menu.label(item.label) : undefined),
                           onClick: () => {
                             if (isMobile) onMobileClose();
                           }
@@ -255,7 +263,7 @@ export function Sidebar({ mobileOpen, onMobileClose, collapsed, onToggleCollapse
                       if (e.key === "Escape" && flyoutOpen) {
                         e.preventDefault();
                         setFlyoutItem(null);
-                      } else if (e.key === "ArrowRight") {
+                      } else if (e.key === (rtl ? "ArrowLeft" : "ArrowRight")) {
                         e.preventDefault();
                         openFlyout(item.label, e.currentTarget);
                       }
@@ -268,7 +276,7 @@ export function Sidebar({ mobileOpen, onMobileClose, collapsed, onToggleCollapse
                       borderRadius: 1.5,
                       bgcolor: active ? chrome.sidebarActiveBg : "transparent",
                       color: active ? chrome.sidebarActiveText : chrome.sidebarText,
-                      borderLeft: active ? `3px solid ${chrome.sidebarActiveBorder}` : "3px solid transparent",
+                      borderInlineStart: active ? `3px solid ${chrome.sidebarActiveBorder}` : "3px solid transparent",
                       "&:hover": {
                         bgcolor: "rgba(255, 255, 255, 0.1)",
                         color: "common.white"
@@ -289,7 +297,7 @@ export function Sidebar({ mobileOpen, onMobileClose, collapsed, onToggleCollapse
                     )}
                     {!effectiveCollapsed && (
                       <ListItemText
-                        primary={item.label}
+                        primary={menu.label(item.label)}
                         slotProps={{
                           // Wraps rather than truncating: "Physicochemical
                           // Configuration" clipped to "Physicochemical Conf…".
@@ -332,7 +340,7 @@ export function Sidebar({ mobileOpen, onMobileClose, collapsed, onToggleCollapse
                 return (
                   <Box key={item.label}>
                     {effectiveCollapsed && !hasChildren ? (
-                      <Tooltip title={myWorkAriaLabel ?? item.label} placement="right">
+                      <Tooltip title={myWorkAriaLabel ?? menu.label(item.label)} placement="right">
                         {button}
                       </Tooltip>
                     ) : (
@@ -342,7 +350,7 @@ export function Sidebar({ mobileOpen, onMobileClose, collapsed, onToggleCollapse
                     {/* Expanded mode: children render as an inline collapsible list. */}
                     {!effectiveCollapsed && hasChildren && (
                       <Collapse in={isSubOpen} timeout="auto" unmountOnExit>
-                        <List disablePadding sx={{ pl: 2.5 }}>
+                        <List disablePadding sx={{ paddingInlineStart: 2.5 }}>
                           {item.children!.map((child) => {
                             const childActive = isLinkActive(child);
                             return (
@@ -359,7 +367,7 @@ export function Sidebar({ mobileOpen, onMobileClose, collapsed, onToggleCollapse
                                   py: 0.5,
                                   px: 1.75,
                                   my: 0.25,
-                                  mr: 1,
+                                  marginInlineEnd: 1,
                                   borderRadius: 1,
                                   bgcolor: childActive
                                     ? (theme.palette.mode === "dark" ? chrome.sidebarActiveBg : "rgba(255, 255, 255, 0.2)")
@@ -373,7 +381,7 @@ export function Sidebar({ mobileOpen, onMobileClose, collapsed, onToggleCollapse
                                 }}
                               >
                                 <ListItemText
-                                  primary={child.label}
+                                  primary={menu.label(child.label)}
                                   slotProps={{
                                     primary: {
                                       sx: { fontSize: 13, fontWeight: childActive ? 600 : 400, lineHeight: 1.3 }
@@ -423,7 +431,7 @@ export function Sidebar({ mobileOpen, onMobileClose, collapsed, onToggleCollapse
                                 color: "text.secondary", textTransform: "uppercase"
                               }}
                             >
-                              {item.label}
+                              {menu.label(item.label)}
                             </Typography>
                             <Divider sx={{ mb: 0.5 }} />
                             <MenuList dense autoFocusItem={flyoutOpen}>
@@ -447,7 +455,7 @@ export function Sidebar({ mobileOpen, onMobileClose, collapsed, onToggleCollapse
                                         <ChildIcon fontSize="small" />
                                       </ListItemIcon>
                                     )}
-                                    <ListItemText primary={child.label} slotProps={{
+                                    <ListItemText primary={menu.label(child.label)} slotProps={{
                                       primary: { sx: { fontSize: 13 } }
                                     }} />
                                   </MenuItem>
@@ -488,13 +496,13 @@ export function Sidebar({ mobileOpen, onMobileClose, collapsed, onToggleCollapse
       {/* Collapse/Expand Toggle on Desktop */}
       {!isMobile && (
         <Box sx={{ p: 1, borderTop: "1px solid rgba(255, 255, 255, 0.12)", textAlign: "center", flexShrink: 0 }}>
-          <Tooltip title={collapsed ? "Expand sidebar" : "Collapse sidebar"}>
+          <Tooltip title={collapsed ? t("sidebar.expand") : t("sidebar.collapse")}>
             <IconButton
               onClick={onToggleCollapse}
-              aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+              aria-label={collapsed ? t("sidebar.expand") : t("sidebar.collapse")}
               sx={{ color: "rgba(255, 255, 255, 0.8)", "&:hover": { color: "common.white" } }}
             >
-              {collapsed ? <ChevronRightIcon /> : <ChevronLeftIcon />}
+              <DirectionalIcon>{collapsed ? <ChevronRightIcon /> : <ChevronLeftIcon />}</DirectionalIcon>
             </IconButton>
           </Tooltip>
         </Box>
@@ -515,7 +523,7 @@ export function Sidebar({ mobileOpen, onMobileClose, collapsed, onToggleCollapse
             "& .MuiDrawer-paper": {
               width: EXPANDED_SIDEBAR_WIDTH,
               boxSizing: "border-box",
-              borderRight: "none",
+              borderInlineEnd: "none",
               bgcolor: chrome.sidebarBg
             }
           }}
@@ -525,7 +533,7 @@ export function Sidebar({ mobileOpen, onMobileClose, collapsed, onToggleCollapse
       ) : (
         <Box
           component="nav"
-          aria-label="Main navigation"
+          aria-label={t("sidebar.mainNavigation")}
           className="no-print"
           sx={{
             width: collapsed ? COLLAPSED_SIDEBAR_WIDTH : EXPANDED_SIDEBAR_WIDTH,

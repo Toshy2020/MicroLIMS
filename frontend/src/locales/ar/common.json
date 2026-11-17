@@ -3,7 +3,9 @@
     "save": "حفظ",
     "cancel": "إلغاء",
     "close": "إغلاق",
-    "retry": "إعادة المحاولة"
+    "retry": "إعادة المحاولة",
+    "confirm": "تأكيد",
+    "sign": "توقيع"
   },
   "language": {
     "label": "اللغة",
@@ -20,5 +22,101 @@
   },
   "nav": {
     "sectionNotAvailable": "القسم غير متاح"
-  }
+  },
+  "dialog": {
+    "close": "إغلاق",
+    "closeDialog": "إغلاق النافذة",
+    "confirmTitle": "تأكيد"
+  },
+  "table": {
+    "sortBy": "ترتيب حسب",
+    "sortRecordsBy": "ترتيب السجلات حسب",
+    "defaultOrder": "الترتيب الافتراضي",
+    "sortAscending": "{{column}} (تصاعدي)",
+    "sortDescending": "{{column}} (تنازلي)",
+    "selectRow": "تحديد الصف {{id}}",
+    "selectAllOnPage": "تحديد كل صفوف الصفحة",
+    "expandRow": "توسيع الصف {{id}}",
+    "collapseRow": "طي الصف {{id}}",
+    "rowActions": "إجراءات الصف {{id}}",
+    "expandColumn": "توسيع",
+    "actionsColumn": "الإجراءات",
+    "exportCsv": "تصدير CSV",
+    "all": "الكل",
+    "rowsPerPage": "عدد الصفوف في الصفحة:",
+    "displayedRows": "{{from}}–{{to}} من {{total}}",
+    "exportLimit": "التصدير محدود بـ 5,000 صف. ضيّق عوامل التصفية أو استخدم وحدة التقارير.",
+    "exportFailed": "تعذّر تسجيل تصدير CSV.",
+    "nextPage": "الانتقال إلى الصفحة التالية",
+    "previousPage": "الانتقال إلى الصفحة السابقة",
+    "firstPage": "الانتقال إلى الصفحة الأولى",
+    "lastPage": "الانتقال إلى الصفحة الأخيرة"
+  },
+  "outage": {
+    "someDataFailed": "تعذّر تحميل بعض البيانات: {{sources}}."
+  },
+  "signature": {
+    "title": "التوقيع الإلكتروني",
+    "signing": "جارٍ التوقيع...",
+    "commentOptional": "تعليق (اختياري)",
+    "password": "كلمة المرور",
+    "signingPassword": "كلمة مرور التوقيع",
+    "signingPasswordHelp": "هذه كلمة مرور التوقيع في MicroLIMS، وليست كلمة مرور الشركة.",
+    "second": "التوقيع الثاني",
+    "secondHint": "يوقّع أيضًا شخص آخر مخوّل بالاعتماد.",
+    "secondUsername": "اسم مستخدم الموقّع الثاني",
+    "secondPassword": "كلمة مرور الموقّع الثاني",
+    "failed": "فشل التوقيع.",
+    "arabicTranslation": "الترجمة العربية للإقرار",
+    "englishRecorded": "الإقرار المسجَّل هو النص الإنجليزي."
+  },
+  "layout": {
+    "skipToMain": "تخطَّ إلى المحتوى الرئيسي",
+    "mfaRequiredBy": "إعداد العامل الثاني مطلوب قبل {{date}}.",
+    "mfaSetUp": "إعداد العامل الثاني",
+    "tourSaveFailed": "تعذّر حفظ تقدمك في الجولة. قد تظهر الجولة مرة أخرى.",
+    "releaseNoteSaveFailed": "تعذّر حفظ حالة ملاحظات الإصدار.",
+    "timeoutTitle": "تحذير انتهاء الجلسة",
+    "timeoutBody": "سيتم تسجيل خروجك بسبب عدم النشاط خلال {{duration}}.",
+    "stayLoggedIn": "البقاء في الجلسة"
+  },
+  "sidebar": {
+    "mainNavigation": "التنقل الرئيسي",
+    "expand": "توسيع الشريط الجانبي",
+    "collapse": "طي الشريط الجانبي",
+    "tasks_zero": "لا توجد مهام",
+    "tasks_one": "مهمة واحدة",
+    "tasks_two": "مهمتان",
+    "tasks_few": "{{count}} مهام",
+    "tasks_many": "{{count}} مهمة",
+    "tasks_other": "{{count}} مهمة",
+    "overdue": "{{count}} متأخرة",
+    "myWorkName": "{{label}}، {{tasks}}",
+    "myWorkNameOverdue": "{{label}}، {{tasks}}، {{overdue}}"
+  },
+  "search": {
+    "placeholder": "ابحث في MicroLIMS (عينات، طلبات، مواد، معدات، مستندات)...",
+    "inputLabel": "ابحث في MicroLIMS عن عينات وطلبات ومواد ومعدات ومستندات",
+    "scanWithCamera": "المسح بالكاميرا",
+    "clearInput": "مسح نص البحث",
+    "filterByCategory": "تصفية نتائج البحث حسب الفئة",
+    "searching": "جارٍ البحث...",
+    "resultsFound": "تم العثور على {{total}} من النتائج لـ {{query}}",
+    "recentSearches": "عمليات البحث الأخيرة",
+    "clear": "مسح",
+    "noMatches": "لا توجد نتائج مطابقة لـ \"{{query}}\"",
+    "noMatchesHint": "جرّب البحث برقم مرجع العينة أو رقم الدفعة أو اسم المادة أو رمز المعدات.",
+    "failed": "فشل البحث.",
+    "scanFailed": "تعذّر تحديد الرمز الممسوح.",
+    "layoutCorrected": "كانت لوحة المفاتيح بالعربية؛ تم تحويل الرمز.",
+    "category": {
+      "All": "الكل",
+      "Samples": "عينات",
+      "Orders": "طلبات",
+      "Materials": "مواد",
+      "Equipment": "معدات",
+      "Documents": "مستندات"
+    }
+  },
+  "listSeparator": "، "
 }

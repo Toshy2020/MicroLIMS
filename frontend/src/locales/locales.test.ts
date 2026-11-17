@@ -31,16 +31,30 @@ function placeholdersOf(text: string): string[] {
   return [...text.matchAll(/\{\{\s*([^,}\s]+)[^}]*\}\}/g)].map((m) => m[1]).sort();
 }
 
+// Arabic has six plural forms (zero, one, two, few, many, other) where English has
+// two, so a plural key may exist in Arabic under a suffix English does not have.
+// Such a key is compared with the English "other" form of the same key.
+const PLURAL_SUFFIX = /_(zero|one|two|few|many|other)$/;
+function englishText(en: Flat, key: string): string | undefined {
+  return en[key] ?? (PLURAL_SUFFIX.test(key) ? en[key.replace(PLURAL_SUFFIX, "_other")] : undefined);
+}
+
 function placeholderMismatches(en: Flat, ar: Flat): string[] {
   const problems: string[] = [];
   for (const [key, arText] of Object.entries(ar)) {
-    const enText = en[key];
+    const enText = englishText(en, key);
     if (enText === undefined) {
       problems.push(`${key}: exists in Arabic but not in English`);
       continue;
     }
-    const want = placeholdersOf(enText).join(",");
-    const got = placeholdersOf(arText).join(",");
+    // Arabic grammar leaves the number out of the zero, one and two forms
+    // ("لا توجد مهام", "مهمة واحدة", "مهمتان"), so there {{count}} may be omitted;
+    // every other placeholder must still match.
+    const countOptional = /_(zero|one|two)$/.test(key);
+    const wanted = placeholdersOf(enText);
+    const gotList = placeholdersOf(arText);
+    const want = (countOptional && !gotList.includes("count") ? wanted.filter((p) => p !== "count") : wanted).join(",");
+    const got = gotList.join(",");
     if (want !== got) problems.push(`${key}: English has [${want}] but Arabic has [${got}]`);
   }
   return problems;
@@ -53,7 +67,7 @@ function escapeRegExp(text: string): string {
 function glossaryViolations(en: Flat, ar: Flat, terms: Record<string, string>): string[] {
   const problems: string[] = [];
   for (const [key, arText] of Object.entries(ar)) {
-    const enText = en[key];
+    const enText = englishText(en, key);
     if (enText === undefined) continue;
     for (const [term, arabicTerm] of Object.entries(terms)) {
       const inEnglish = new RegExp(`(?<![A-Za-z])${escapeRegExp(term)}(?![A-Za-z])`, "i").test(enText);
@@ -80,6 +94,13 @@ describe("locale files", () => {
     expect(problems).toEqual([]);
   });
 
+  it("Arabic zero, one and two forms may leave out the count, but nothing else", () => {
+    const en = { tasks_one: "{{count}} task in {{lab}}", tasks_other: "{{count}} tasks in {{lab}}" };
+    expect(placeholderMismatches(en, { tasks_two: "مهمتان في {{lab}}", tasks_one: "مهمة واحدة في {{lab}}" })).toEqual([]);
+    expect(placeholderMismatches(en, { tasks_few: "مهام في {{lab}}" })).toHaveLength(1);
+    expect(placeholderMismatches(en, { tasks_two: "مهمتان" })).toHaveLength(1);
+  });
+
   it("detects a dropped, added or renamed placeholder", () => {
     const en = { a: "{{count}} samples in {{lab}}", b: "plain", c: "{{n, number}} items" };
     expect(placeholderMismatches(en, { a: "{{count}} عينات في {{lab}}", b: "عادي", c: "{{n}} عناصر" })).toEqual([]);
@@ -87,6 +108,13 @@ describe("locale files", () => {
     expect(placeholderMismatches(en, { b: "{{extra}} عادي" })).toHaveLength(1);
     expect(placeholderMismatches(en, { a: "{{total}} عينات في {{lab}}" })).toHaveLength(1);
     expect(placeholderMismatches(en, { zz: "x" })).toHaveLength(1);
+  });
+
+  it("accepts Arabic plural forms that English does not have, and still checks their placeholders", () => {
+    const en = { tasks_one: "{{count}} task", tasks_other: "{{count}} tasks" };
+    expect(placeholderMismatches(en, { tasks_few: "{{count}} مهام", tasks_two: "{{count}} مهمتان" })).toEqual([]);
+    expect(placeholderMismatches(en, { tasks_few: "مهام" })).toHaveLength(1);
+    expect(placeholderMismatches(en, { tasks_many_extra: "x" })).toHaveLength(1);
   });
 
   it("uses the glossary term wherever the English source contains one", () => {

@@ -135,6 +135,8 @@ public class ClientSettingsPostgresTests
             var data = await GetAsAsync(client, username);
             Assert.Equal(24, data.GetProperty("benchDraftRetentionHours").GetInt32());
             Assert.Equal(JsonValueKind.Array, data.GetProperty("features").ValueKind);
+            // Label printing is built, so the workspace's Print labels action is offered.
+            Assert.Contains("labels", data.GetProperty("features").EnumerateArray().Select(f => f.GetString()));
         }
     }
 

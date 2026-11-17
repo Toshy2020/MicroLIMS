@@ -428,11 +428,11 @@ describe("EquipmentPage", () => {
     await user.click(screen.getByRole("tab", { name: "Configuration History" }));
     expect(screen.getByRole("tab", { selected: true }).textContent).toBe("Configuration History");
     expect(screen.queryByRole("button", { name: "Edit Equipment" })).toBeNull();
-    await waitFor(() => expect(uiStateService.set).toHaveBeenCalledWith("nav.tab.equipment-configuration", "history"), { timeout: 2000 });
+    await waitFor(() => expect(uiStateService.set).toHaveBeenCalledWith("nav.tab.equipmentConfiguration", "history"), { timeout: 2000 });
   });
 
   it("opens the tab used last time", async () => {
-    vi.mocked(uiStateService.getAll).mockResolvedValue({ "nav.tab.equipment-configuration": "history" });
+    vi.mocked(uiStateService.getAll).mockResolvedValue({ "nav.tab.equipmentConfiguration": "history" });
     renderPage();
 
     await waitFor(() => expect(screen.getByRole("tab", { selected: true }).textContent).toBe("Configuration History"));

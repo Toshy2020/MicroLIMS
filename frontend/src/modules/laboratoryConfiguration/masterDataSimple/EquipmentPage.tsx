@@ -124,8 +124,8 @@ const EQUIPMENT_TABS = ["configured", "programs", "history"] as const;
 export function EquipmentPage() {
   const theme = useTheme();
   const { sectionName } = useLaboratorySections();
-  // The tab used last time reopens (state key nav.tab.equipment-configuration).
-  const [tabKey, setTabKey] = usePersistedTab("equipment-configuration", EQUIPMENT_TABS);
+  // The tab used last time reopens (state key nav.tab.equipmentConfiguration).
+  const [tabKey, setTabKey] = usePersistedTab("equipmentConfiguration", EQUIPMENT_TABS);
   const activeTab = EQUIPMENT_TABS.indexOf(tabKey);
   const [summaryList, setSummaryList] = useState<ConfiguredEquipmentSummary[]>([]);
   const [inventoryList, setInventoryList] = useState<EquipmentItem[]>([]);

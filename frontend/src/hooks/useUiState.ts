@@ -125,7 +125,17 @@ export interface UiStateHandle {
   remove(): Promise<void>;
 }
 
+// The server's key rule (UserUiStateService.KeyPattern): a lowercase letter,
+// then letters, digits and dots, 2 to 64 characters. A key outside it would be
+// refused on every save, so the choice would silently never be remembered.
+const UI_STATE_KEY = /^[a-z][a-zA-Z0-9.]{1,63}$/;
+
+export function isUiStateKey(key: string): boolean {
+  return UI_STATE_KEY.test(key);
+}
+
 export function useUiState(key: string): UiStateHandle {
+  if (!isUiStateKey(key)) throw new Error(`Interface state key "${key}" does not match the server's key rule.`);
   const snap = useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
 
   useEffect(() => {

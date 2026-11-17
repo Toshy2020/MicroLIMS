@@ -3,7 +3,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useState } from "react";
 import { AxiosError, AxiosHeaders } from "axios";
-import { resetUiStateCache, useUiState } from "./useUiState";
+import { isUiStateKey, resetUiStateCache, useUiState } from "./useUiState";
 
 const service = vi.hoisted(() => ({ getAll: vi.fn(), set: vi.fn(), remove: vi.fn() }));
 vi.mock("../services/uiStateService", () => ({ uiStateService: service }));
@@ -153,3 +153,29 @@ describe("useUiState", () => {
     expect(captured?.aborted).toBe(true);
   });
 });
+
+describe("interface state keys", () => {
+  // The same cases as the server's UserUiStatePostgresTests: a key the server
+  // refuses would never be saved, so the hook refuses it up front.
+  it.each(["", "a", "Tour.done", "1tour", "tour-done", "tour done", "tour_done", "a" + "b".repeat(64)])(
+    "%j is refused as the server refuses it",
+    (key) => {
+      expect(isUiStateKey(key)).toBe(false);
+    }
+  );
+
+  it.each(["nav.lastLab", "nav.tab.equipmentConfiguration", "tour.SectionHead.v1", "a" + "b".repeat(63)])(
+    "%j is accepted",
+    (key) => {
+      expect(isUiStateKey(key)).toBe(true);
+    }
+  );
+
+  it("a component that uses a refused key fails at once instead of silently never saving", () => {
+    service.getAll.mockResolvedValue({});
+    const quiet = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    expect(() => render(<Probe stateKey="nav.tab.equipment-configuration" />)).toThrow(/key rule/);
+    quiet.mockRestore();
+  });
+});
+

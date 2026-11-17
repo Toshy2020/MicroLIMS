@@ -1,4 +1,4 @@
-import { useId } from "react";
+import { useId, useRef } from "react";
 import type { ReactNode } from "react";
 import { Box, Dialog, DialogTitle, DialogContent, DialogActions, Button, CircularProgress, Typography } from "@mui/material";
 import WarningAmberRoundedIcon from "@mui/icons-material/WarningAmberRounded";
@@ -33,6 +33,7 @@ export function ConfirmationDialog({
 }: ConfirmationDialogProps) {
   const { t } = useTranslation();
   const messageId = useId();
+  const cancelRef = useRef<HTMLButtonElement>(null);
   return (
     <Dialog
       open={open}
@@ -41,6 +42,9 @@ export function ConfirmationDialog({
       fullWidth
       aria-describedby={messageId}
       role={destructive ? "alertdialog" : "dialog"}
+      // autoFocus alone can lose to the dialog's own focus handling while it fades in, which left
+      // focus on the container in a real browser. Once the dialog is in place, put it on Cancel.
+      slotProps={{ transition: { onEntered: () => cancelRef.current?.focus() } }}
     >
       <DialogTitle sx={{ display: "flex", alignItems: "center", gap: 1 }}>
         {destructive && <WarningAmberRoundedIcon color="error" aria-hidden />}
@@ -54,7 +58,7 @@ export function ConfirmationDialog({
         )}
       </DialogContent>
       <DialogActions>
-        <Button onClick={onCancel} disabled={loading} autoFocus>{cancelText ?? t("actions.cancel")}</Button>
+        <Button ref={cancelRef} onClick={onCancel} disabled={loading} autoFocus>{cancelText ?? t("actions.cancel")}</Button>
         <Button
           onClick={onConfirm}
           variant="contained"

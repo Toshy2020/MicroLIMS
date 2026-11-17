@@ -72,6 +72,18 @@ afterEach(() => {
 });
 
 describe("Sidebar recently opened", () => {
+  it("keeps the identifier left-to-right and apart from the title", async () => {
+    vi.mocked(recentRecordsService.list).mockResolvedValue([recent("sample", 1, "FP1126003", "pH")]);
+    renderSidebar();
+    const list = await screen.findByRole("list", { name: "Recent records" });
+    const link = within(list).getByRole("link");
+    const identifier = within(link).getByText("FP1126003");
+    expect(identifier.tagName).toBe("BDI");
+    expect(identifier.getAttribute("dir")).toBe("ltr");
+    // A visible separator, so the two never read as one word.
+    expect(link.textContent).toBe("FP1126003·pH");
+  });
+
   it("sidebar section shows 5 rows, newest first", async () => {
     renderSidebar();
     const list = await screen.findByRole("list", { name: "Recent records" });

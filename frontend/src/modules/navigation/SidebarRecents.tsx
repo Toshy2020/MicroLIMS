@@ -3,6 +3,8 @@ import { Link } from "react-router-dom";
 import { Box, Collapse, List, ListItemButton, ListItemText, Tooltip, Typography } from "@mui/material";
 import HistoryIcon from "@mui/icons-material/History";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import { Ltr } from "../../components/Ltr";
+import { useTranslation } from "../../i18n";
 import { ConfirmationDialog } from "../../components/ConfirmationDialog";
 import { useUiState } from "../../hooks/useUiState";
 import { inAppRoute } from "./recentRecordRoutes";
@@ -35,6 +37,7 @@ interface Row {
 // The five most recently opened records, newest first. The section is a display
 // aid: when the list cannot be loaded, or is empty, it is not shown at all.
 export function SidebarRecents({ collapsed, onNavigate }: SidebarRecentsProps) {
+  const { t } = useTranslation("navigation");
   const { items, failed, clear } = useRecentRecords();
   const openState = useUiState(RECENTS_OPEN_KEY);
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -58,7 +61,7 @@ export function SidebarRecents({ collapsed, onNavigate }: SidebarRecentsProps) {
   const visible = collapsed || open;
 
   return (
-    <Box component="section" aria-label="Recently opened">
+    <Box component="section" aria-label={t("sidebar.recentlyOpened")}>
       {!collapsed && (
         <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", px: 2.5, pt: 0.5 }}>
           <Box
@@ -79,17 +82,17 @@ export function SidebarRecents({ collapsed, onNavigate }: SidebarRecentsProps) {
             }}
           >
             <ExpandMoreIcon aria-hidden sx={{ fontSize: 14, transform: open ? "none" : "rotate(-90deg)" }} />
-            Recent
+            {t("sidebar.recent")}
           </Box>
           {open && (
             <Box component="button" type="button" onClick={() => setConfirmOpen(true)} sx={headerButtonSx}>
-              Clear
+              {t("sidebar.clear")}
             </Box>
           )}
         </Box>
       )}
       <Collapse in={visible} unmountOnExit>
-        <List disablePadding id={listId} aria-label="Recent records">
+        <List disablePadding id={listId} aria-label={t("sidebar.recentRecords")}>
           {rows.map(({ r, to }) => {
             const label = r.title ? `${r.identifier} ${r.title}` : r.identifier;
             return (
@@ -121,11 +124,18 @@ export function SidebarRecents({ collapsed, onNavigate }: SidebarRecentsProps) {
                         primary={
                           <>
                             <Typography component="span" sx={{ fontSize: 13, fontFamily: "monospace", mr: 0.75 }}>
-                              {r.identifier}
+                              <Ltr>{r.identifier}</Ltr>
                             </Typography>
-                            <Typography component="span" sx={{ fontSize: 12, opacity: 0.8 }}>
-                              {r.title}
-                            </Typography>
+                            {r.title && (
+                              <>
+                                <Typography aria-hidden component="span" sx={{ fontSize: 12, opacity: 0.6, mr: 0.75 }}>
+                                  {"·"}
+                                </Typography>
+                                <Typography component="span" sx={{ fontSize: 12, opacity: 0.8 }}>
+                                  {r.title}
+                                </Typography>
+                              </>
+                            )}
                           </>
                         }
                         slotProps={{ primary: { noWrap: true } }}

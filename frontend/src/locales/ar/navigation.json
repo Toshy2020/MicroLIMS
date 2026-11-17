@@ -76,5 +76,13 @@
     "administration": "الإدارة",
     "account": "الحساب",
     "other": "أخرى"
+  },
+  "sidebar": {
+    "favourites": "المفضلة",
+    "manage": "إدارة",
+    "recent": "الأخيرة",
+    "clear": "مسح",
+    "recentlyOpened": "المفتوحة مؤخرًا",
+    "recentRecords": "السجلات الأخيرة"
   }
 }

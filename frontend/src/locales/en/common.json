@@ -20,5 +20,8 @@
   },
   "nav": {
     "sectionNotAvailable": "Section not available"
+  },
+  "gated": {
+    "unavailable": "Reasons are unavailable right now"
   }
 }

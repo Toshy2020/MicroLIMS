@@ -1,5 +1,5 @@
 {
-  "total": 10201,
+  "total": 10198,
   "modules": {
     "components": 388,
     "layouts": 8,
@@ -9,7 +9,7 @@
     "modules/authentication": 59,
     "modules/dashboard": 148,
     "modules/discussions": 95,
-    "modules/documentControl": 952,
+    "modules/documentControl": 950,
     "modules/errorMonitoring": 33,
     "modules/help": 46,
     "modules/hplcWorkspace": 629,
@@ -23,7 +23,7 @@
     "modules/navigation": 19,
     "modules/notifications": 39,
     "modules/oosTracking": 55,
-    "modules/receiving": 270,
+    "modules/receiving": 269,
     "modules/receivingTesting": 28,
     "modules/reports": 532,
     "modules/roles": 72,

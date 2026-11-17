@@ -20,5 +20,8 @@
   },
   "nav": {
     "sectionNotAvailable": "القسم غير متاح"
+  },
+  "gated": {
+    "unavailable": "الأسباب غير متاحة حاليًا"
   }
 }

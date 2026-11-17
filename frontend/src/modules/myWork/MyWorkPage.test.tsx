@@ -20,6 +20,11 @@ vi.mock("./services/myWorkService", () => ({
   }
 }));
 
+// Network boundary: the server's answer about take and release.
+vi.mock("../../services/actionAvailabilityService", () => ({
+  actionAvailabilityService: { get: vi.fn().mockResolvedValue([]) }
+}));
+
 vi.mock("sonner", () => ({
   toast: {
     success: vi.fn(),

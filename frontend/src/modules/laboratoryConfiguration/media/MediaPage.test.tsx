@@ -20,6 +20,10 @@ import { EquipmentConfigurationService } from "../masterDataSimple/services/Equi
 import { MediaPreparationService } from "./services/MediaPreparationService";
 import { MediaPage } from "./MediaPage";
 
+// Network boundary: the server's answer about releasing a lot.
+vi.mock("../../../services/actionAvailabilityService", () => ({
+  actionAvailabilityService: { get: vi.fn().mockResolvedValue([]) }
+}));
 vi.mock("../../../services/apiClient", () => ({
   apiClient: {
     get: vi.fn(),

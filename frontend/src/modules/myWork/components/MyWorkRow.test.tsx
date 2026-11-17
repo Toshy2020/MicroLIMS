@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
@@ -6,7 +6,17 @@ import { PinnedLightTheme } from "../../../theme/PinnedLightTheme";
 import { monospaceFontFamily } from "../../../theme/palette";
 import type { MyWorkItem } from "../myWorkTypes";
 import { MyWorkRow } from "./MyWorkRow";
+import { actionAvailabilityService } from "../../../services/actionAvailabilityService";
 
+// Network boundary: the server's answer about take and release.
+vi.mock("../../../services/actionAvailabilityService", () => ({
+  actionAvailabilityService: { get: vi.fn() }
+}));
+
+beforeEach(() => {
+  vi.mocked(actionAvailabilityService.get).mockReset();
+  vi.mocked(actionAvailabilityService.get).mockResolvedValue([]);
+});
 afterEach(cleanup);
 
 function makeItem(over: Partial<MyWorkItem> = {}): MyWorkItem {
@@ -92,5 +102,35 @@ describe("MyWorkRow", () => {
 
     await user.click(screen.getByRole("button", { name: /Release/i }));
     expect(onRelease).toHaveBeenCalledTimes(1);
+  });
+
+  it("a refused Take shows the server's sentence, is aria-disabled and does not call onTake", async () => {
+    const sentence = "You already performed another test on this sample.";
+    vi.mocked(actionAvailabilityService.get).mockResolvedValue([
+      { action: "test.take", allowed: false, reason: sentence },
+      { action: "test.release", allowed: true, reason: null }
+    ]);
+    const user = userEvent.setup();
+    const onTake = vi.fn();
+    const onRelease = vi.fn();
+    renderRow(makeItem({ actions: ["take", "release"] }), { onTake, onRelease });
+
+    const reason = await screen.findByText(sentence);
+    expect(actionAvailabilityService.get).toHaveBeenCalledWith("test-order", 10, undefined, expect.any(AbortSignal));
+    const take = screen.getByRole("button", { name: "Take" });
+    expect(take.getAttribute("aria-disabled")).toBe("true");
+    expect(document.getElementById(take.getAttribute("aria-describedby") ?? "")?.contains(reason)).toBe(true);
+    await user.click(take);
+    expect(onTake).not.toHaveBeenCalled();
+
+    // Release was allowed: it still works.
+    await user.click(screen.getByRole("button", { name: "Release" }));
+    expect(onRelease).toHaveBeenCalledTimes(1);
+  });
+
+  it("asks nothing for a row that offers neither action", async () => {
+    renderRow(makeItem({ actions: [] }));
+    await Promise.resolve();
+    expect(actionAvailabilityService.get).not.toHaveBeenCalled();
   });
 });

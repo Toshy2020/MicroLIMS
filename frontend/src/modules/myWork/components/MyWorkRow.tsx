@@ -1,6 +1,9 @@
+import { useEffect, useRef } from "react";
 import { Box, Button, Stack, Typography, useTheme } from "@mui/material";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import { Link } from "react-router-dom";
+import { GatedAction } from "../../../components/GatedAction";
+import { useActionAvailability } from "../../../hooks/useActionAvailability";
 import { monospaceFontFamily } from "../../../theme/palette";
 import type { MyWorkItem } from "../myWorkTypes";
 import { routeForTarget } from "../targetRoutes";
@@ -43,6 +46,19 @@ export function MyWorkRow({ item, timeZoneId, onTake, onRelease, busyKey }: MyWo
   const canTake = !item.locked && item.actions.includes("take") && item.target.testOrderId != null;
   const canRelease = !item.locked && item.actions.includes("release") && item.target.testOrderId != null;
   const isBusy = busyKey === item.key;
+
+  // Take and release are offered by the list; whether this user can do either now, and why not, is the server's
+  // answer for the test order. Asked only for rows that offer one.
+  const availability = useActionAvailability("test-order", canTake || canRelease ? (item.target.testOrderId ?? null) : null);
+  const { refresh } = availability;
+  // The list reloaded after an action and this row's offer changed: its reasons changed with it.
+  const offer = `${item.locked}:${item.actions.join(",")}`;
+  const lastOffer = useRef(offer);
+  useEffect(() => {
+    if (lastOffer.current === offer) return;
+    lastOffer.current = offer;
+    refresh();
+  }, [offer, refresh]);
 
   const titleContent = (
     <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap" }}>
@@ -161,27 +177,31 @@ export function MyWorkRow({ item, timeZoneId, onTake, onRelease, busyKey }: MyWo
           </Typography>
         )}
         {canTake && (
-          <Button
-            size="small"
-            variant="outlined"
-            disabled={isBusy}
-            onClick={() => onTake(item)}
-            sx={{ textTransform: "none", fontWeight: 600 }}
-          >
-            Take
-          </Button>
+          <GatedAction action="test.take" availability={availability}>
+            <Button
+              size="small"
+              variant="outlined"
+              disabled={isBusy}
+              onClick={() => onTake(item)}
+              sx={{ textTransform: "none", fontWeight: 600 }}
+            >
+              Take
+            </Button>
+          </GatedAction>
         )}
         {canRelease && (
-          <Button
-            size="small"
-            variant="outlined"
-            color="warning"
-            disabled={isBusy}
-            onClick={() => onRelease(item)}
-            sx={{ textTransform: "none", fontWeight: 600 }}
-          >
-            Release
-          </Button>
+          <GatedAction action="test.release" availability={availability} notice={!canTake}>
+            <Button
+              size="small"
+              variant="outlined"
+              color="warning"
+              disabled={isBusy}
+              onClick={() => onRelease(item)}
+              sx={{ textTransform: "none", fontWeight: 600 }}
+            >
+              Release
+            </Button>
+          </GatedAction>
         )}
       </Stack>
     </Box>

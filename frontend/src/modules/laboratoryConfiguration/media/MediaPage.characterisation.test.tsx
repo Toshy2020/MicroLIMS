@@ -6,6 +6,7 @@ import { PinnedLightTheme } from "../../../theme/PinnedLightTheme";
 import { AuthProvider } from "../../../contexts/AuthContext";
 import { PERMISSIONS } from "../../../routes/routes";
 import { apiClient } from "../../../services/apiClient";
+import { actionAvailabilityService } from "../../../services/actionAvailabilityService";
 import { labelService } from "../../../services/labelService";
 import { masterDataOptions } from "../../../services/masterDataOptions";
 import { tableViewService } from "../../../components/lab/table/services/tableViewService";
@@ -19,6 +20,10 @@ import { MediaPage } from "./MediaPage";
 // KPI shortcut, row actions, the split-pane compact list and the exact service calls.
 // The same assertions hold before and after the move onto the shared table state.
 
+// Network boundary: the server's answer about releasing a lot.
+vi.mock("../../../services/actionAvailabilityService", () => ({
+  actionAvailabilityService: { get: vi.fn().mockResolvedValue([]) }
+}));
 vi.mock("../../../services/apiClient", () => ({
   apiClient: { get: vi.fn(), post: vi.fn(), put: vi.fn(), delete: vi.fn() },
   ifMatch: vi.fn((version: number) => ({ headers: { "If-Match": String(version) } }))
@@ -138,6 +143,7 @@ describe("MediaPage lots register", () => {
     vi.mocked(labelService.getStatus).mockResolvedValue([]);
     vi.mocked(apiClient.get).mockResolvedValue({ data: { data: null } });
     vi.mocked(tableViewService.list).mockResolvedValue([]);
+    vi.mocked(actionAvailabilityService.get).mockResolvedValue([]);
   });
 
   afterEach(() => {
@@ -222,6 +228,24 @@ describe("MediaPage lots register", () => {
     await waitFor(() => expect(registerRows()).toHaveLength(5));
   });
 
+  it("a release the server refuses shows its sentence on the row item and does nothing when chosen", async () => {
+    const user = userEvent.setup();
+    const sentence = "You prepared this lot, so you cannot release it.";
+    vi.mocked(actionAvailabilityService.get).mockResolvedValue([{ action: "media.release", allowed: false, reason: sentence }]);
+    renderPage();
+    await ready();
+
+    await user.click(screen.getByRole("button", { name: "Row actions for 2" }));
+    await waitFor(() => expect(actionAvailabilityService.get).toHaveBeenCalledWith("media", 2, undefined, expect.any(AbortSignal)));
+    const item = await screen.findByRole("menuitem", { name: /Release lot/ });
+    expect(await screen.findByText(sentence)).toBeTruthy();
+    expect(item.getAttribute("aria-disabled")).toBe("true");
+    expect(document.getElementById(item.getAttribute("aria-describedby") ?? "")?.textContent).toBe(sentence);
+    await user.click(item);
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(MediaPreparationService.decideRelease).not.toHaveBeenCalled();
+  });
+
   it("an empty result says no lot matches the filter", async () => {
     const user = userEvent.setup();
     renderPage();
@@ -261,13 +285,19 @@ describe("MediaPage lots register", () => {
     await waitFor(() => expect(MediaPreparationService.getAll).toHaveBeenCalledTimes(2));
   });
 
-  it("without the release permission the release and reject actions are absent", async () => {
+  it("without the release permission Reject is absent and Release shows the server's role sentence", async () => {
     seedPermissions([PERMISSIONS.MEDIA_PREPARE]);
+    const sentence = "Your role does not include this action.";
+    vi.mocked(actionAvailabilityService.get).mockResolvedValue([{ action: "media.release", allowed: false, reason: sentence }]);
     const user = userEvent.setup();
     renderPage();
     await ready();
     await user.click(screen.getByRole("button", { name: "Row actions for 2" }));
-    expect(screen.getAllByRole("menuitem").map((m) => m.textContent)).toEqual(["View lot record (printable)", "Audit trail"]);
+    expect(await screen.findByText(sentence)).toBeTruthy();
+    expect(screen.getAllByRole("menuitem").map((m) => m.textContent)).toEqual([
+      `Release lot${sentence}`, "View lot record (printable)", "Audit trail"
+    ]);
+    expect(screen.getByRole("menuitem", { name: /Release lot/ }).getAttribute("aria-disabled")).toBe("true");
   });
 
   it("clicking a row opens the split pane: the register narrows to Prepared On, Material / Lot and Status, with no row actions", async () => {

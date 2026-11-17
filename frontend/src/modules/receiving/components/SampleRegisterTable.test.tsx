@@ -9,6 +9,7 @@ import { SampleRegisterTable, dueLabel, clearSampleDocCountCache } from "./Sampl
 import { useRowSelection } from "../../../components/lab/table/useRowSelection";
 import type { SampleRecord, TestOrderSummary } from "../types/receivingTypes";
 import { ItemDocumentService } from "../../laboratoryConfiguration/items/services/ItemDocumentService";
+import { actionAvailabilityService } from "../../../services/actionAvailabilityService";
 import { ItemStmService } from "../../laboratoryConfiguration/items/services/ItemStmService";
 
 const authState = vi.hoisted(() => ({ permissions: [] as string[], role: null as string | null }));
@@ -19,6 +20,10 @@ vi.mock("../../../contexts/AuthContext", () => ({
 // The saved-views service is the network edge of the table state; no views exist in these tests.
 vi.mock("../../../components/lab/table/services/tableViewService", () => ({
   tableViewService: { list: vi.fn().mockResolvedValue([]), create: vi.fn(), update: vi.fn(), remove: vi.fn(), setDefault: vi.fn() }
+}));
+// Network boundary: the server's answer about void and assign for the row whose menu is open.
+vi.mock("../../../services/actionAvailabilityService", () => ({
+  actionAvailabilityService: { get: vi.fn() }
 }));
 vi.mock("../../laboratoryConfiguration/items/services/ItemDocumentService", () => ({
   ItemDocumentService: { getDocumentCountForItem: vi.fn().mockResolvedValue(0) }
@@ -33,6 +38,7 @@ beforeEach(() => {
   authState.role = null;
   clearSampleDocCountCache();
   vi.clearAllMocks();
+  vi.mocked(actionAvailabilityService.get).mockResolvedValue([]);
 });
 afterEach(() => cleanup());
 
@@ -408,22 +414,19 @@ describe("SampleRegisterTable row actions (characterisation)", () => {
     expect(h.onViewSummary).toHaveBeenCalledWith(expect.objectContaining({ sampleId: 92 }));
   });
 
-  it("Edit and Void icons call onEdit / onVoid with the row's sample when permitted", async () => {
+  it("the Edit icon calls onEdit with the row's sample when permitted", async () => {
     const user = userEvent.setup();
     authState.permissions = ["Samples.Correct"];
     const h = makeHandlers();
     renderFull([sample({ sampleId: 91, canEditDetails: true })], h);
     await user.click(screen.getByRole("button", { name: "Edit Sample Details" }));
     expect(h.onEdit).toHaveBeenCalledWith(expect.objectContaining({ sampleId: 91 }));
-    await user.click(screen.getByRole("button", { name: "Void Sample" }));
-    expect(h.onVoid).toHaveBeenCalledWith(expect.objectContaining({ sampleId: 91 }));
   });
 
-  it("hides Edit and Void without Samples.Correct, and locks Edit when the details cannot be edited", () => {
+  it("hides Edit without Samples.Correct, and locks Edit when the details cannot be edited", () => {
     const h = makeHandlers();
     const { unmount } = renderFull([sample({ canEditDetails: true })], h);
     expect(screen.queryByRole("button", { name: "Edit Sample Details" })).toBeNull();
-    expect(screen.queryByRole("button", { name: "Void Sample" })).toBeNull();
     unmount();
     authState.permissions = ["Samples.Correct"];
     renderFull([sample({ canEditDetails: false })], h);
@@ -463,13 +466,57 @@ describe("SampleRegisterTable row actions (characterisation)", () => {
     expect(h.onSelectTests).toHaveBeenCalledWith(expect.objectContaining({ sampleId: 91 }));
   });
 
-  it("the menu has no Assign Analyst without Samples.AssignAnalyst, and links the full report", async () => {
+  it("the menu links the full report", async () => {
     const user = userEvent.setup();
     const h = makeHandlers();
     renderFull([sample({ sampleId: 91 })], h);
     await user.click(screen.getByRole("button", { name: "Sample actions" }));
-    expect(screen.queryByRole("menuitem", { name: "Assign Analyst" })).toBeNull();
     expect(screen.getByRole("menuitem", { name: "View Full Report" }).getAttribute("href")).toBe("/samples/91/report");
+  });
+
+  it("asks the server about the row whose menu is opened, and only then", async () => {
+    const user = userEvent.setup();
+    const h = makeHandlers();
+    renderFull([sample({ sampleId: 91 })], h);
+    expect(actionAvailabilityService.get).not.toHaveBeenCalled();
+    await user.click(screen.getByRole("button", { name: "Sample actions" }));
+    await waitFor(() => expect(actionAvailabilityService.get).toHaveBeenCalledWith("sample", 91, undefined, expect.any(AbortSignal)));
+  });
+
+  it("a refused Void Sample shows the server's sentence as secondary text and does nothing when chosen", async () => {
+    const user = userEvent.setup();
+    const sentence = "A sample that has results entered cannot be voided.";
+    vi.mocked(actionAvailabilityService.get).mockResolvedValue([
+      { action: "sample.void", allowed: false, reason: sentence },
+      { action: "sample.assign", allowed: true, reason: null }
+    ]);
+    const h = makeHandlers();
+    renderFull([sample({ sampleId: 91 })], h);
+    await user.click(screen.getByRole("button", { name: "Sample actions" }));
+    const reason = await screen.findByText(sentence);
+    const item = screen.getByRole("menuitem", { name: /Void Sample/ });
+    expect(item.getAttribute("aria-disabled")).toBe("true");
+    expect(item.contains(reason)).toBe(true);
+    expect(document.getElementById(item.getAttribute("aria-describedby") ?? "")?.textContent).toBe(sentence);
+    await user.click(item);
+    expect(h.onVoid).not.toHaveBeenCalled();
+    // The assign item the server allows still works.
+    await user.click(screen.getByRole("menuitem", { name: "Assign Analyst" }));
+    expect(h.onAssignAnalyst).toHaveBeenCalledWith(expect.objectContaining({ sampleId: 91 }));
+  });
+
+  it("a refused Assign Analyst shows the role sentence even without Samples.AssignAnalyst", async () => {
+    const user = userEvent.setup();
+    const sentence = "Your role does not include this action.";
+    vi.mocked(actionAvailabilityService.get).mockResolvedValue([
+      { action: "sample.assign", allowed: false, reason: sentence }
+    ]);
+    const h = makeHandlers();
+    renderFull([sample({ sampleId: 91 })], h);
+    await user.click(screen.getByRole("button", { name: "Sample actions" }));
+    expect(await screen.findByText(sentence)).toBeTruthy();
+    await user.click(screen.getByRole("menuitem", { name: /Assign Analyst/ }));
+    expect(h.onAssignAnalyst).not.toHaveBeenCalled();
   });
 
   it("each next-action button calls its own callback with the row's sample", async () => {

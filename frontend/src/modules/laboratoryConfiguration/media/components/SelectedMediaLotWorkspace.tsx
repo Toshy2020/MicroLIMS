@@ -37,6 +37,8 @@ import { PreparationWhereUsedPanel } from "../../../testPreparation/components/P
 import { tableHeadSx } from "../../../../theme";
 import { useAuth } from "../../../../contexts/AuthContext";
 import { PERMISSIONS } from "../../../../routes/routes";
+import { GatedAction } from "../../../../components/GatedAction";
+import { useActionAvailability } from "../../../../hooks/useActionAvailability";
 import { PrintLabelButton } from "../../../../components/labels/PrintLabelButton";
 import { useTrackRecent } from "../../../navigation/useTrackRecent";
 
@@ -88,8 +90,11 @@ export function SelectedMediaLotWorkspace({
   const { permissions } = useAuth();
   const theme = useTheme();
   useTrackRecent("media", lot?.id);
+  // Rejecting a lot has no availability answer; it keeps the permission it always had.
   const canRelease = permissions.includes(PERMISSIONS.MEDIA_RELEASE);
   const lifecycle = lifecycleOf(lot, awaitingApprovalIds);
+  // The server's answer about releasing this lot (and why not), asked only while it awaits approval.
+  const availability = useActionAvailability("media", lifecycle === "Awaiting Approval" ? (lot?.id ?? null) : null);
 
   const [activeTab, setActiveTab] = useState(0);
   const [summary, setSummary] = useState<MediaSummary | null>(null);
@@ -228,28 +233,32 @@ export function SelectedMediaLotWorkspace({
           }}
         />
 
-        {lifecycle === "Awaiting Approval" && canRelease && (
+        {lifecycle === "Awaiting Approval" && (
           <>
-            <Button
-              size="small"
-              variant="contained"
-              color="success"
-              startIcon={<HowToRegOutlinedIcon sx={{ fontSize: 16 }} />}
-              onClick={() => onRequestReleaseDecision(lot, true)}
-              sx={{ fontWeight: 700, fontSize: 12 }}
-            >
-              Release Lot
-            </Button>
-            <Button
-              size="small"
-              variant="outlined"
-              color="error"
-              startIcon={<BlockOutlinedIcon sx={{ fontSize: 16 }} />}
-              onClick={() => onRequestReleaseDecision(lot, false)}
-              sx={{ fontWeight: 700, fontSize: 12 }}
-            >
-              Reject Lot
-            </Button>
+            <GatedAction action="media.release" availability={availability}>
+              <Button
+                size="small"
+                variant="contained"
+                color="success"
+                startIcon={<HowToRegOutlinedIcon sx={{ fontSize: 16 }} />}
+                onClick={() => onRequestReleaseDecision(lot, true)}
+                sx={{ fontWeight: 700, fontSize: 12 }}
+              >
+                Release Lot
+              </Button>
+            </GatedAction>
+            {canRelease && (
+              <Button
+                size="small"
+                variant="outlined"
+                color="error"
+                startIcon={<BlockOutlinedIcon sx={{ fontSize: 16 }} />}
+                onClick={() => onRequestReleaseDecision(lot, false)}
+                sx={{ fontWeight: 700, fontSize: 12 }}
+              >
+                Reject Lot
+              </Button>
+            )}
           </>
         )}
 

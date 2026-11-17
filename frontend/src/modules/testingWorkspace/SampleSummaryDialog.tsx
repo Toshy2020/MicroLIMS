@@ -16,6 +16,7 @@ import { brandColors } from "../../theme";
 import { workflowEventLabel } from "../../utils/workflowEventLabel";
 import { useAuth } from "../../contexts/AuthContext";
 import { PERMISSIONS } from "../../routes/routes";
+import { useActionAvailability } from "../../hooks/useActionAvailability";
 import { SampleSummaryService, SampleApprovalDecision } from "./services/SampleSummaryService";
 import { isRawMaterialPhyschemReview, isRetentionValid } from "./utils/moistureRetentionHelpers";
 import { SampleSummary, TestOrderSummaryDetail } from "./types/sampleSummaryTypes";
@@ -176,6 +177,13 @@ export function SampleSummaryDialog({ open, sampleId, onClose }: Props) {
       ? Number(approvalSectionId)
       : undefined;
 
+  // The server's answer about each action, with its own reason. The section a review or a decision is for is
+  // part of the question, so each has its own.
+  const reviewAvailability = useActionAvailability("sample", open && reviewableSections.length > 0 ? sampleId : null, effectiveReviewSectionId);
+  const approvalAvailability = useActionAvailability("sample", open && approvableSections.length > 0 ? sampleId : null, effectiveApprovalSectionId);
+  const refreshReviewAvailability = reviewAvailability.refresh;
+  const refreshApprovalAvailability = approvalAvailability.refresh;
+
   useEffect(() => {
     if (open && sampleId) {
       setSummary(null);
@@ -257,6 +265,8 @@ export function SampleSummaryDialog({ open, sampleId, onClose }: Props) {
     if (!sampleId) return;
     const updated = await SampleSummaryService.getSummary(sampleId);
     setSummary(updated);
+    refreshReviewAvailability();
+    refreshApprovalAvailability();
   };
 
   const handleReturnConfirm = async (reason?: string) => {
@@ -274,14 +284,18 @@ export function SampleSummaryDialog({ open, sampleId, onClose }: Props) {
     if (showRetention && !isRetentionValid(retentionQuantity, retentionQuantityUnit)) {
       return;
     }
-    await SampleSummaryService.completeReview(
-      sampleId,
-      password,
-      comment || undefined,
-      effectiveReviewSectionId,
-      showRetention ? Number(retentionQuantity) : undefined,
-      showRetention ? retentionQuantityUnit : undefined
-    );
+    try {
+      await SampleSummaryService.completeReview(
+        sampleId,
+        password,
+        comment || undefined,
+        effectiveReviewSectionId,
+        showRetention ? Number(retentionQuantity) : undefined,
+        showRetention ? retentionQuantityUnit : undefined
+      );
+    } finally {
+      refreshReviewAvailability();
+    }
     setConfirmingReview(false);
     onClose();
   };
@@ -289,27 +303,26 @@ export function SampleSummaryDialog({ open, sampleId, onClose }: Props) {
   const handleDecisionConfirm = async (password: string) => {
     if (!sampleId) return;
     const isRetestDecision = decision === "RetestRetainedSample" || decision === "NewSampleRequest";
-    await SampleSummaryService.decideApproval(
-      sampleId, password, decision, comment || undefined,
-      decision === "Approve" ? (certificateRemarks || undefined) : undefined,
-      isRetestDecision ? selectedTestOrderIds : undefined,
-      decision === "NewSampleRequest" && newSampleAnalystOneId !== "" ? newSampleAnalystOneId : undefined,
-      decision === "NewSampleRequest" && newSampleAnalystTwoId !== "" ? newSampleAnalystTwoId : undefined,
-      effectiveApprovalSectionId
-    );
+    try {
+      await SampleSummaryService.decideApproval(
+        sampleId, password, decision, comment || undefined,
+        decision === "Approve" ? (certificateRemarks || undefined) : undefined,
+        isRetestDecision ? selectedTestOrderIds : undefined,
+        decision === "NewSampleRequest" && newSampleAnalystOneId !== "" ? newSampleAnalystOneId : undefined,
+        decision === "NewSampleRequest" && newSampleAnalystTwoId !== "" ? newSampleAnalystTwoId : undefined,
+        effectiveApprovalSectionId
+      );
+    } finally {
+      refreshApprovalAvailability();
+    }
     setConfirmingDecision(false);
     onClose();
   };
 
-  const canReview =
-    // Only when one of the viewer's own sections is waiting - the sample can
-    // be under review while none of them is.
-    reviewableSections.length > 0 &&
-    permissions.includes(PERMISSIONS.SAMPLES_REVIEW);
-  const canReturn = permissions.includes(PERMISSIONS.SAMPLES_REVIEW);
-  const canApprove =
-    approvableSections.length > 0 &&
-    permissions.includes(PERMISSIONS.SAMPLES_APPROVE);
+  // Only when one of the viewer's own sections is waiting - the sample can be under review while none of
+  // them is. Whether the viewer may act is the server's answer (the availability below), not a local guess.
+  const canReview = reviewableSections.length > 0;
+  const canApprove = approvableSections.length > 0;
   // Close testing (design.md §5.3): another lab already rejected the
   // sample and the viewer's own lab still has open work. Permission-gated here
   // in addition to the backend's own enforcement, matching the review/
@@ -543,7 +556,6 @@ export function SampleSummaryDialog({ open, sampleId, onClose }: Props) {
             <TestResultsSection
               testOrders={summary.testOrders}
               overallStatus={overallStatus}
-              canReturn={canReturn}
               onReturnTest={(order) => setReturningTestOrder(order)}
             />
 
@@ -551,6 +563,8 @@ export function SampleSummaryDialog({ open, sampleId, onClose }: Props) {
             <ApprovalSignaturesCard
               summary={summary}
               canReview={!!canReview}
+              reviewAvailability={reviewAvailability}
+              approvalAvailability={approvalAvailability}
               canApprove={!!canApprove}
               comment={comment}
               setComment={setComment}

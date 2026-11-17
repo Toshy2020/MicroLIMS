@@ -101,7 +101,7 @@
     "clearInput": "مسح نص البحث",
     "filterByCategory": "تصفية نتائج البحث حسب الفئة",
     "searching": "جارٍ البحث...",
-    "resultsFound": "تم العثور على {{total}} من النتائج لـ {{query}}",
+    "resultsFound": "نتائج البحث عن {{query}}: {{total}}",
     "recentSearches": "عمليات البحث الأخيرة",
     "clear": "مسح",
     "noMatches": "لا توجد نتائج مطابقة لـ \"{{query}}\"",

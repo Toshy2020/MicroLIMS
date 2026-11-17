@@ -53,6 +53,6 @@ describe("GlobalSearchDialog in Arabic", () => {
 
     await user.clear(input);
     await user.type(input, "FP01");
-    await waitFor(() => expect(screen.getByText("تم العثور على 1 نتيجة لـ FP01")).toBeTruthy());
+    await waitFor(() => expect(screen.getByText("نتائج البحث عن FP01: 1")).toBeTruthy());
   });
 });

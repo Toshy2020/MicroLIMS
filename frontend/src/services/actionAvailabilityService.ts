@@ -8,6 +8,9 @@ export interface ActionAvailabilityDto {
   action: string;
   allowed: boolean;
   reason?: string | null;
+  // The server's message code and the values its sentence needs; omitted for an uncoded refusal.
+  reasonCode?: string | null;
+  reasonParams?: Record<string, string> | null;
 }
 
 export const actionAvailabilityService = {

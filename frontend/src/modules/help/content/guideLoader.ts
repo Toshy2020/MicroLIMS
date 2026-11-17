@@ -66,11 +66,19 @@ const TITLES: Record<string, string> = {
   "45": "My Work"
 };
 
+// Chapters carry HTML comments for authors (traceability markers such as
+// "<!-- WF-AUTH-001 -->" and review logs, see WRITING_BRIEF.md). The renderer
+// shows raw HTML as text, so comments are removed before a chapter is shown.
+export function stripAuthorComments(markdown: string): string {
+  return markdown.replace(/<!--[\s\S]*?-->/g, "");
+}
+
 export const CHAPTERS: GuideChapter[] = Object.keys(loaders)
   .map((file) => {
     const id = file.slice(file.lastIndexOf("/") + 1).replace(/\.md$/, "");
     const number = Number(id.slice(0, 2));
-    return { id, number, title: TITLES[id.slice(0, 2)] ?? id, load: loaders[file] };
+    const load = () => loaders[file]().then(stripAuthorComments);
+    return { id, number, title: TITLES[id.slice(0, 2)] ?? id, load };
   })
   .sort((a, b) => a.number - b.number);
 

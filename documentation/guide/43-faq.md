@@ -99,9 +99,9 @@ The following are not implemented:
 - Equipment qualification records.
 - Incident, deviation or CAPA modules (Error Monitoring is a technical log only, see §40).
 
+<!-- Review log (Sonnet): 18 corrections; invented items removed: routes, "MICRO"/"FP" codes, menu paths, token wording, "imported via structured report files" and instrument-specific names, retained-sample material claims, CoA export claim, "Under Testing" state, IQ/OQ/PQ, Skip Wait default holders; answers aligned with §18, §19, §33, §37, §39, §42; callouts added: GAP-012, GAP-100, GAP-053 -->
+<!-- Phase 13 (agy): applied F-A01, F-C04 -->
 
+<!-- Phase 13 review (Sonnet): agy corrections verified against RECONCILIATION and code; GAP ids exist; nothing invented; no change needed. -->
 
-
-
-
-
+<!-- Phase 13 (Opus orchestrator): Return to Analyst scope aligned with §18.1 (F-B08). -->

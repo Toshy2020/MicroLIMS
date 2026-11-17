@@ -54,7 +54,7 @@ Requires the *Manage equipment* permission (by default: Analyst, Section Head, S
 ---
 
 ### 30.2 Registering Equipment, Updating Status, and Calibration Documents
-
+<!-- WF-EQUIP-001 -->
 #### Purpose
 Register new equipment assets, record changes to operational status with a comment, and keep calibration certificates with a check that the stored file is unchanged.
 
@@ -139,7 +139,7 @@ Register new equipment assets, record changes to operational status with a comme
 ---
 
 ### 30.3 Laboratory Configuration: Equipment, Set Points, and Autoclave Programs
-
+<!-- WF-EQUIP-002 -->
 #### Purpose
 Configure the equipment the microbiology laboratory uses, keep incubator set points with a reason and history, define autoclave cycles (programs) and optionally pre-fill a new record from an inventory asset.
 
@@ -303,7 +303,7 @@ Maintain the chromatography column list: code, name, serial number, USP designat
 #### What happens next
 A run can use only an active column that is compatible with the chosen instrument and whose USP designation matches the method.
 
+<!-- Review log (Sonnet): 31 corrections; invented items removed: ?lab= route parameters, enum numbers (0/1/2), "database"/"hash"/SHA-256 wording, "mandatory/strictly" wording, GC and "bench" analysis refusal claim, claim that incubators gate media-evaluation workflows, ALCOA+ message quoted as fact; callouts added: GAP-038, GAP-023 (with GAP-408/410), column fields/filters from code; BR-EQUIP-014 cite replaced by GAP-038 -->
+<!-- Phase 13 (agy): applied F-C01, F-C02 -->
 
-
-
-
+<!-- Phase 13 review (Sonnet): agy corrections verified against RECONCILIATION and code; GAP ids exist; nothing invented; no change needed. -->

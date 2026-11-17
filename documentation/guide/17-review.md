@@ -26,7 +26,7 @@ All current (non-superseded) tests of the laboratory section must reach the **Re
 
 
 ### 17.2 Technical Review of a Laboratory Section
-
+<!-- WF-REVIEW-001 -->
 #### Purpose
 Check the recorded test results of a laboratory section and apply an electronic signature confirming that the technical review is complete.
 
@@ -108,7 +108,7 @@ Requires the *Sample Technical Review* permission (by default: Reviewer, Section
 #### What happens next
 The section waits for the Section Head's release decision (see §19 Approval). If a count test needs a recount or re-entry, return it to the analyst before you sign the review (see §18 Return to Analyst, Rework and Retest).
 
+<!-- Review log (Sonnet): 14 corrections; invented items removed: "active membership" wording, SysAdmin-only unrestricted access, raw readings/incubation/analyst-comment detail in the summary, enum/record/database/transaction wording, test order status code; callouts added: none missing (GAP-017/018, GAP-312, GAP-309 present) -->
+<!-- Phase 13 (agy): applied F-B05, F-B11 -->
 
-
-
-
+<!-- Phase 13 review (Sonnet): F-B05, F-B11 verified; no invented items. -->

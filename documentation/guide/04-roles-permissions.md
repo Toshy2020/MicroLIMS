@@ -142,7 +142,7 @@ The system compares the people who did the work, not their roles. **System Admin
 
 ### 4.5 Role Management Procedures
 
-
+<!-- WF-ROLES-001 -->
 ### 4.5.1 Create a Custom Role
 #### Purpose
 Define a new role with its own set of permissions, based on one of the four base role types.
@@ -183,7 +183,7 @@ The system creates the role and saves the ticked permissions. The new role appea
 
 ---
 
-
+<!-- WF-ROLES-001 -->
 ### 4.5.2 Edit or Delete a Role
 #### Purpose
 Change the name, description, or permissions of a role, or delete a custom role.
@@ -220,8 +220,8 @@ The system saves the changes and records in the audit trail which permissions we
 #### What happens next
 Assign the role to users on the Users screen (see Section 39).
 
+<!-- Review log (Sonnet): 24 corrections; invented items removed: role ids (ROLE-...), screen addresses, "server middleware / token claim / database" wording, "audit code ROLE_PERMISSIONS_UPDATED", unsupported "invalid code" validation as normal user path, misplaced role-change audit note (GAP-112 belongs to user role change, Section 39), "Clicking delete on a system role is prevented" (button is hidden); callouts added: GAP-015 (live grants), GAP-026, GAP-050, GAP-107, GAP-009 retained -->
+<!-- Phase 13 (agy): applied F-A01, F-A03, F-A10, R-NEW-02 -->
+<!-- Phase 13 review (Sonnet): checked against RECONCILIATION section 2 and frontend strings; no invented items -->
 
-
-
-
-
+<!-- Phase 13 review (Sonnet): F-B08 section 4 part applied (4.2 Reviewer, 4.3 row 5). -->

@@ -5,7 +5,7 @@ MicroLIMS has workflows for preparing mobile phases, diluents and volumetric tit
 ---
 
 ### 28.1 Solution Preparation: Mobile Phases, Diluents, and Titrants
-
+<!-- WF-SOLN-001 -->
 #### Purpose
 Prepare a mobile phase (code prefix MP), a diluent (DL) or a volumetric titrant (VS) from a master recipe against stock lots. The stock is deducted when the preparation is signed, and the solution expires automatically at the end of its shelf life.
 
@@ -79,7 +79,7 @@ To cancel or discard, open the record page. **Cancel Preparation** (only while *
 ---
 
 ### 28.2 Standardization of Volumetric Titrants
-
+<!-- WF-SOLN-002 -->
 #### Purpose
 Standardize a prepared volumetric titrant against a primary standard or against another titrant, calculate its factor, and record whether it passed.
 
@@ -140,7 +140,7 @@ The standardization record is **Passed** or **Failed**. The titrant state is **V
 ---
 
 ### 28.3 Working Standard Qualification
-
+<!-- WF-WS-001 -->
 #### Purpose
 Qualify an in-house working standard against a primary reference standard by HPLC assay, have the result reviewed and approved by two other people, and create (or renew) the working standard lot in stock. An approved working standard lot is valid for 12 months.
 
@@ -241,7 +241,7 @@ The **Working Standards** page can be opened by any signed-in user. Actions need
 ---
 
 ### 28.4 Solutions Master Recipes
-
+<!-- MOD-SOLNM-001 -->
 #### Purpose
 Define the master recipes of mobile phases, diluents and titrants: components, shelf life, pH target and tolerance, and the titrant strength and standardization rules.
 
@@ -272,7 +272,7 @@ Requires the *Manage master data* permission (by default: Section Head, System A
 ---
 
 ### 28.5 Reagents and Reference Standards Master Catalog
-
+<!-- MOD-REAGENT-001 -->
 #### Purpose
 Maintain the master definitions of chemicals, indicators, reference standards and primary standards. Stock lots (section 29) are received against these entries.
 
@@ -301,4 +301,4 @@ Requires the *Manage master data* permission (by default: Section Head, System A
 - "Indicator fields are only allowed for indicators."
 - "Transition range 'from' must not be above 'to'."
 
-
+<!-- Review log (Sonnet): 22 corrections (all five sub-sections checked against C6 and the screens); invented items removed: route paths, raw status and enum names (InStock, PrimaryStandard, AgainstVolumetricSolution, MgWaterPerMl, DueSoon, status numbers), permission codes in prose, ResultRecorded/TitrantStandardized meanings, StandardizationHistoryTable name, "milliequivalent weight" definition of E (equivalence in mg per mL), invented pH helper example, menu names "Add Recipe", "Confirm", "Save Changes" for recipe creation, "Source Information"/"Analytical Replicates & Potency" drawer names, invented columns of the master registers, LaTeX formulas, wrong validation message wording ("Titrant volume must be greater than the blank."); callouts added or separated: GAP-605, GAP-619, GAP-614, GAP-608, GAP-617, GAP-615 (callout 9 cites GAP-705 in R6, which does not exist, so not used) -->

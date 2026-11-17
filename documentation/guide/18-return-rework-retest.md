@@ -1,7 +1,7 @@
 ## 18. Return to Analyst, Rework and Retest
 
 ### 18.1 Return a Test to the Analyst
-
+<!-- WF-REVIEW-002 -->
 #### Purpose
 Send a count test or a physicochemical result-entry test back to the assigned analyst for a recount or result re-entry before the review is signed. The current count readings or active analysis entries are set aside and the test returns to testing.
 
@@ -64,7 +64,7 @@ The analyst recounts or re-enters the readings in the testing workspace. When al
 
 
 ### 18.2 Retest of Retained Sample
-
+<!-- WF-APPROVAL-002 -->
 #### Purpose
 Order a retest of selected tests as a Section Head decision. The selected tests are superseded on the original sample and one new retest sample, linked to the original, receives new copies of them.
 
@@ -132,7 +132,7 @@ The new retest sample appears in the testing workspace and goes through testing,
 
 
 ### 18.3 Requesting a New Sample
-
+<!-- WF-APPROVAL-002 -->
 #### Purpose
 Order two new samples, each holding copies of the selected tests, to be tested by two different analysts. This is the decision **New Sample Required: Close and request new sample**.
 
@@ -195,7 +195,7 @@ Requires the *Sample Release Approval* permission (by default: Section Head, Sys
 #### What happens next
 The two new samples appear in the testing workspace for their analysts and follow the normal test, review and approval workflow. The group is followed in OOS Tracking (see §20).
 
+<!-- Review log (Sonnet): 22 corrections; invented items removed: "active membership", enum/database/ID wording (ResultEntered code kept only inside exact message), InProgress test status, "in parallel", "sample receiving" workspace, "master data", analyst-notification claim; callouts added: GAP-017 (Investigation/OOS Investigation not available), GAP-018 on after-review return and retest mirroring -->
+<!-- Phase 13 (agy): applied F-B01, F-B02, F-B08, F-B12 -->
 
-
-
-
+<!-- Phase 13 review (Sonnet): F-B01, F-B02, F-B08, F-B12 verified; 2 wording fixes (status line, duplicated sentence); no invented items. -->

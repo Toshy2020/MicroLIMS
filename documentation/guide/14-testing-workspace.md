@@ -79,7 +79,7 @@ Depending on the sample, you confirm preparation, open an individual test workfl
 
 
 ### 14.2 Confirming Sample Preparation for Product, Raw Material and Packaging Material Samples
-
+<!-- WF-PREP-001 -->
 #### Purpose
 Record and electronically sign the preparation (diluent, neutralizer, technique and volumes) of a Product, Raw Material or Packaging Material sample before microbiological testing can start.
 
@@ -154,7 +154,7 @@ The banner disappears and the tests can be opened for media selection and incuba
 
 
 ### 14.3 Preparing Environmental Monitoring, Water and After Cleaning Samples
-
+<!-- WF-PREP-001 -->
 #### Purpose
 Select the rooms, sampling points or machine parts that were monitored, so that the system creates the laboratory tests for Environmental Monitoring, Water and After Cleaning samples.
 
@@ -211,7 +211,7 @@ The new tests appear under **Assigned Tests** and are ready for media selection 
 
 
 ### 14.4 Grouped Sample Preparation
-
+<!-- WF-PREP-001 -->
 #### Purpose
 Confirm and sign the preparation of several Product, Raw Material or Packaging Material samples of the same item in one action.
 
@@ -257,7 +257,7 @@ The prepared samples unlock the **Compatible Actions** section for grouped incub
 
 
 ### 14.5 Grouped Incubation Setup
-
+<!-- WF-TESTING-001 -->
 #### Purpose
 Choose one released media lot and one suitable incubator and start incubation for compatible tests of several prepared samples together.
 
@@ -334,7 +334,7 @@ Plates stay in incubation until the minimum time has passed; the tests then appe
 
 
 ### 14.6 Overriding the Minimum Incubation Time (Skip Wait)
-
+<!-- WF-TESTING-002 -->
 #### Purpose
 Let a supervisor bypass the minimum incubation time of one test so that results can be recorded before that time has passed.
 
@@ -381,7 +381,7 @@ The analyst records plate counts or observations.
 
 
 ### 14.7 Item Preparation Configuration and Approval
-
+<!-- WF-PREP-002 -->
 #### Purpose
 Hold the standing preparation (technique, diluent, neutralizer, volumes) of an item so that samples of that item are prepared consistently.
 
@@ -421,6 +421,6 @@ The configuration is kept on the item: **Items** > (item) > **Preparation Config
 #### What happens next
 Later samples of the item show the configuration in the confirm form (see 14.2).
 
-
-
-
+<!-- Review log (Sonnet): 62 corrections; invented items removed: route paths, section code names, class names, enum and audit codes, unsupported audit reason text, unsupported "Failed to load the sample register" and "Could not start testing" errors, "system administrators hold all roles"-type access wording, approval screen description; callouts added: GAP-203, GAP-204, GAP-213 (GAP-212, 214, 219, 220, 225, 226, 227, 228 kept) -->
+<!-- Phase 13 (agy): applied F-A08, F-A09, F-A11 -->
+<!-- Phase 13 review (Sonnet): checked against RECONCILIATION section 2 and frontend strings; no invented items -->

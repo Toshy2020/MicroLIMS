@@ -75,4 +75,4 @@ Old bookmarks still work:
 - The old approved media and approved cryovial links open the media and cryovial screens on their **approved** tab.
 - Older "group" page links open the matching section page.
 
-
+<!-- Review log (Sonnet): 12 corrections; invented items removed: route/path column, laboratory codes (MICRO/FP), permission codes outside Section 4, "token claims" wording; callouts added: GAP-025, GAP-034 -->

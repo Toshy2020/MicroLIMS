@@ -249,7 +249,7 @@ Old addresses are redirected automatically:
 - The older stand-alone HPLC System Suitability screen and the older calibration-run path for ICP and AAS are retired. System suitability and calibration are done inside the HPLC and ICP runs.
 - When a retired assay type is selected in Test Master the application shows "HPLC Assay, HPLC Multi-Analyte and Standard-Comparison are retired; use HPLC method assay." or "Elemental assay tests are retired; use an ICP method assay test."
 
+<!-- Review log (Sonnet): 31 corrections; invented items removed: hash/"cryptographic" wording, laboratory code names, routes, wrong meaning of the global audit trail message (it is the Document Control audit trail), claim that failed signatures are not audited, "Maintenance" equipment status, cryovial identity-confirmation SoD cause, Skip Wait default holders corrected (Section Head, System Administrator), invented menu paths; callouts added: GAP-100, GAP-012, GAP-053, GAP-023. All quoted messages checked with git grep -F. -->
+<!-- Phase 13 (agy): applied F-C04 -->
 
-
-
-
+<!-- Phase 13 review (Sonnet): agy corrections verified against RECONCILIATION and code; GAP ids exist; nothing invented; no change needed. -->

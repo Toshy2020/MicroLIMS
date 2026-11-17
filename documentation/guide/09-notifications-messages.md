@@ -1,6 +1,6 @@
 ## 9. Notifications, Messages and Discussions
 
-
+<!-- WF-NOTIF-001 -->
 ### 9.1 Notifications
 #### Purpose
 Tell you about conditions that need attention: media lots that are expiring, incubations that are ready, samples waiting for review or approval, and tests returned to you for revision.
@@ -45,7 +45,7 @@ Every signed-in user. You only receive the notifications that apply to you:
 
 ---
 
-
+<!-- WF-MSG-001 -->
 ### 9.2 Direct and Group Messages
 #### Purpose
 Exchange messages with colleagues, one to one or in groups.
@@ -95,7 +95,7 @@ To reply: choose the conversation, type in the message box, and press Enter.
 
 ---
 
-
+<!-- WF-DISC-001 -->
 ### 9.3 Discussions
 #### Purpose
 Share questions, decisions, and knowledge with colleagues in posts and comments, sorted into categories.
@@ -150,4 +150,4 @@ To delete a post or a comment: use **Delete Discussion** or **Delete comment** a
 - "Failed to toggle important status." / "Failed to delete discussion post." / "Failed to post comment." / "Failed to save comment." / "Failed to delete comment."
 - Confirmations: "Marked as important", "Unmarked as important", "Discussion post deleted.", "Comment added", "Comment updated", "Comment deleted".
 
-
+<!-- Review log (Sonnet): 18 corrections; invented items removed: the eleven discussion categories (replaced by the real list), "read all" button label (is "Mark all as read"), severity icon and unread dot, "supported formats include", wrong GAP-009 citations (messages/discussions), "moderation authority needed to pin" claim, "real-time" claim, raw notification type names; callouts added: GAP-103, GAP-104, discussion-decision note -->

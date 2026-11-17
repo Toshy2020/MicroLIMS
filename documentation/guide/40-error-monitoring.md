@@ -24,7 +24,7 @@ Errors that reach the system's error handling are grouped into **incidents** by 
 
 ### 40.2 Reviewing and Resolving Incidents
 
-
+<!-- WF-ERR-001 -->
 #### Purpose
 Look at captured errors, correct a severity, record resolution notes and export the list.
 
@@ -82,4 +82,4 @@ The table shows the new status. The page does not say who should review incident
 
 > **Note for reviewers:** Who triages incidents and how often is not defined, and whether critical errors send an alert e-mail has not been confirmed. (GAP-047)
 
-
+<!-- Review log (Sonnet): 14 corrections; invented items removed: route, HTTP code numbers, "immutable audit trail" wording, "Navigate to System > ..." path, claim that error entries stay visible after resolving, Correlation ID capitalised as UI label; callouts added: GAP-047 (triage/alert e-mail); GAP-110 kept -->

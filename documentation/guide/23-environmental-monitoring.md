@@ -7,7 +7,7 @@ MicroLIMS does not have an EM annual plan or automated sampling schedules.
 ---
 
 ### 23.1 Environmental Monitoring Configuration
-
+<!-- WF-EM-001 -->
 #### Purpose
 Define EM departments, rooms with a grade (A to D) and the tests run in each room, with alert, action and specification limits and a reporting unit.
 
@@ -105,7 +105,7 @@ Rooms that have at least one test can be chosen when an EM sample is prepared (�
 ---
 
 ### 23.2 Receiving Environmental Monitoring Samples
-
+<!-- WF-SAMPLE-006 -->
 #### Purpose
 Register an incoming EM sampling event.
 
@@ -146,7 +146,7 @@ Prepare the sample (§23.3).
 ---
 
 ### 23.3 Environmental Monitoring Sample Preparation
-
+<!-- WF-SAMPLE-006 -->
 #### Purpose
 Choose the rooms that were sampled. The system then creates the tests and one location per room test.
 
@@ -188,7 +188,7 @@ Analysts start incubation for each test (§23.4).
 ---
 
 ### 23.4 Environmental Monitoring Testing and Incubation
-
+<!-- WF-SAMPLE-006 -->
 #### Purpose
 Choose the media lot and incubator and start the incubation of each EM test.
 
@@ -239,7 +239,7 @@ After the final window, enter the plate readings (§23.5).
 ---
 
 ### 23.5 Environmental Monitoring Result Entry and Limit Evaluation
-
+<!-- WF-SAMPLE-006, WF-COUNT-002 -->
 #### Purpose
 Enter the colony counts (or growth observations for a pathogen test) for all rooms in one grid, see each room's status against its limits, and send the test to review.
 
@@ -304,7 +304,7 @@ Pathogen tests:
 #### What happens next
 A reviewer checks the results (§17). Return, retest and approval follow the normal sample path (§18, §19).
 
+<!-- Review log (Sonnet): 29 corrections; invented items removed: route paths, permission/enum/status names and numeric codes, "calibrated/in-service incubator" list claims, unreferenced Annex/compliance wording, "Dilution factor" and internal rounding names, section-assignment claim at receipt, OOS retest/investigation claim, internal test-type error message; callouts added: GAP-227, GAP-212, GAP-501/GAP-517, calibration message, GAP-500/GAP-516 -->
+<!-- Phase 13 (agy): applied F-A09, R-NEW-01 -->
 
-
-
-
+<!-- Phase 13 review (Sonnet): F-A09, R-NEW-01 verified; GAP-227 exists. -->

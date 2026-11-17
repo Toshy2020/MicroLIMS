@@ -9,7 +9,7 @@ MicroLIMS does not record a passage number or generation count for reference str
 ---
 
 ### 26.1 Reference Cryovials Overview
-
+<!-- WF-CRYO-001 -->
 #### Purpose
 See the working cryovial batches, their approval status, remaining vials and expiry, and start the actions on a batch.
 
@@ -51,7 +51,7 @@ The approval status is **Pending Review**, **Approved** or **Rejected**. A batch
 ---
 
 ### 26.2 Preparing a Working Cryovial Batch
-
+<!-- WF-CRYO-001 -->
 #### Purpose
 Prepare a working cryovial batch from a lyophilized microorganism stock lot, record the physical check, the storage freezer and the identity confirmation on released media.
 
@@ -135,7 +135,7 @@ A user with the approval permission, other than the preparer, approves or reject
 ---
 
 ### 26.3 Approving or Rejecting a Cryovial Batch
-
+<!-- WF-CRYO-002 -->
 #### Purpose
 Release a prepared batch for use with a signature, or reject it.
 
@@ -188,7 +188,7 @@ Thaw, move or destroy as needed (§26.4).
 ---
 
 ### 26.4 Thawing, Moving and Destroying
-
+<!-- WF-CRYO-003 -->
 #### Purpose
 Record the use of a vial, change the storage place of a batch, or decommission a batch.
 
@@ -272,7 +272,7 @@ Requires the *Cryovial Management* permission (by default: Section Head, Reviewe
 1. Choose **View laboratory report record** for the batch.
 2. Use **Print** (or the browser's print function) to print or save the page as a PDF.
 
+<!-- Review log (Sonnet): 31 corrections; invented items removed: route paths, permission/enum codes and numeric codes, "Prepare New Batch" button name, invented table columns and dialog names, invented "legal signing statement", "Save" button on the move dialog, "Please enter a reason for thawing" message, unsupported report content; callouts added: GAP-037 (approval without expiry check), GAP-503, GAP-509, GAP-514, GAP-507 -->
+<!-- Phase 13 (agy): applied F-B13 -->
 
-
-
-
+<!-- Phase 13 review (Sonnet): F-B13 verified. -->

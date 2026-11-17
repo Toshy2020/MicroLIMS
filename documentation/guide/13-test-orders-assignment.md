@@ -39,7 +39,7 @@ A sample must be registered in the system through sample receiving or preparatio
 
 
 ### 13.2 Adding a Laboratory to a Sample
-
+<!-- WF-SAMPLE-002 -->
 #### Purpose
 Add an additional laboratory section (such as the Physicochemical Laboratory to an existing Microbiology sample, or vice versa) to a registered Product, Raw Material, or Packaging Material sample under electronic signature control.
 
@@ -101,7 +101,7 @@ The sample appears in the added laboratory's register. If preparation is needed 
 
 
 ### 13.3 Assigning a Responsible Analyst
-
+<!-- WF-SAMPLE-003 -->
 #### Purpose
 Assign or reassign a designated laboratory analyst to every current test order that is not Approved or Rejected (including tests whose results are already entered, and voided or cancelled tests) on a sample, or clear an existing assignment so that any authorized analyst may prepare the sample.
 
@@ -161,6 +161,6 @@ The system enforces the following exact validation rules:
 #### Status
 The test orders retain their current workflow step and approval status, with the assigned analyst field updated.
 
-
-
-
+<!-- Review log (Sonnet): 14 corrections; invented items removed: test-order card contents, 'Assigned to Me' default test filter, all-user access statement, signature timestamp, enum-style status names; callouts added: preparer-becomes-analyst/unsigned preparation (GAP-212, GAP-227), assigned-analyst ownership mismatch (GAP-219); note on 13.2 narrowed (GAP-200) -->
+<!-- Phase 13 (agy): applied F-A13 -->
+<!-- Phase 13 review (Sonnet): checked against RECONCILIATION section 2 and frontend strings; no invented items -->

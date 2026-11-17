@@ -154,7 +154,7 @@ Samples must be registered in the system with at least one test order created.
 
 
 ### 11.3 Correcting Sample Details
-
+<!-- WF-SAMPLE-004 -->
 #### Purpose
 Modify administrative and traceability details of a received sample under electronic signature control and audit trail recording before testing results are submitted for review.
 
@@ -236,7 +236,7 @@ The system enforces the following exact validation rules:
 
 
 ### 11.4 Voiding a Sample
-
+<!-- WF-SAMPLE-005 -->
 #### Purpose
 Strike an erroneously created or invalid sample and all of its current (non-superseded) tests, including tests that are already approved or rejected, from active laboratory workflows under electronic signature and audit trail tracking.
 
@@ -281,6 +281,6 @@ The system enforces the following exact validation rules:
 
 > **Note for reviewers:** A sample can be voided at any status except already Voided, including after approval or rejection, with no warning if an archived certificate of analysis exists. (GAP-203)
 
-
-
-
+<!-- Review log (Sonnet): 14 corrections; invented items removed: Sign & Save disabled-when-unchanged, signature timestamp, 'reopened/edited/reset' claim, section-membership and System Administrator unrestricted-access claim, enum names; callouts added: workflow-spec/analyst assignment note in 11.1 (GAP-200, GAP-213) -->
+<!-- Phase 13 (agy): applied F-A02, F-A06, F-B11, R-NEW-02 -->
+<!-- Phase 13 review (Sonnet): checked against RECONCILIATION section 2 and frontend strings; no invented items -->

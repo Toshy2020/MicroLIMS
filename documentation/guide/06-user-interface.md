@@ -37,7 +37,7 @@ The header contains:
 
 ---
 
-
+<!-- SCR-SIG-001 -->
 ### 6.4 Electronic Signature Dialog
 #### Purpose
 Confirm sensitive actions by typing your login password again. The same dialog is used by the 26 actions in the application that are signed, such as sample review, release decisions, sample correction or voiding, media release, and physicochemical result recording.
@@ -113,4 +113,4 @@ Data entry grid shortcuts:
 > - A pre-filled lot must be checked against the plate or container before confirming.
 > - In-app preview values are not records.
 
-
+<!-- Review log (Sonnet): 14 corrections; invented items removed: page addresses and browser storage key names, component and screen ids, example breadcrumb path, "recent attention alerts / sample review requests" list for the bell, "hover restores labels", "recovery prompt" text for page errors, "legal meaning", "tamper-evident", "immutable" log wording, "atomic transaction" wording; callouts added: GAP-027, GAP-010 -->

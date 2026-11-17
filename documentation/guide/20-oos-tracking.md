@@ -3,7 +3,7 @@
 MicroLIMS groups the retest samples of an out-of-specification chain under one OOS group number, links each retest sample back to its original sample, and lets authorized users keep laboratory investigation documents for the group.
 
 ### 20.1 Out-of-Specification Tracking
-
+<!-- WF-OOS-001 -->
 #### Purpose
 See every out-of-specification chain grouped by OOS number and trace each retest sample back to the original sample.
 
@@ -57,7 +57,7 @@ Analysts test the retest samples in the testing workspace. Authorized users atta
 ---
 
 ### 20.2 Laboratory Investigation Documents
-
+<!-- WF-OOS-001 -->
 #### Purpose
 Upload, replace (supersede) and download the laboratory investigation report of an OOS group.
 
@@ -141,7 +141,7 @@ To download a document:
 #### What happens next
 Nothing further happens in the system for the document: no review or approval step exists for investigation reports. The retest samples of the group are followed through their own review and approval.
 
+<!-- Review log (Sonnet): 17 corrections; invented items removed: permission code and route, "storage details" copied, "immutable"/"permanent link", void-only messages (not reachable from screen), "administrative service endpoints", "review by Section Heads" claim, group-code header claim; callouts added: GAP-017/018 (Investigation decisions not available) -->
+<!-- Phase 13 (agy): applied F-B02 -->
 
-
-
-
+<!-- Phase 13 review (Sonnet): F-B02 verified. -->

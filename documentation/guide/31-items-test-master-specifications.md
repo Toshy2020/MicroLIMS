@@ -7,7 +7,7 @@ Specifications are not maintained on a stand-alone page. If you open the old spe
 ---
 
 ### 31.1 Item Master and Assigned Tests
-
+<!-- WF-ITEM-001 -->
 #### Purpose
 Create, edit, freeze and delete items (Product, Raw Material, Packaging Material) and choose the tests that are ordered automatically when a sample of the item is received.
 
@@ -78,7 +78,7 @@ Requires the *Manage items* permission (by default: Section Head, System Adminis
 ---
 
 ### 31.2 Item Preparation Configuration and Controlled Documents
-
+<!-- WF-ITEM-003 -->
 #### Purpose
 Keep the item's SOP and Verification Report with their versions, and keep the standard microbiology sample preparation protocol for the item.
 
@@ -149,7 +149,7 @@ Keep the item's SOP and Verification Report with their versions, and keep the st
 ---
 
 ### 31.3 Item Specifications and Limit Evaluation
-
+<!-- WF-ITEM-002 -->
 #### Purpose
 Define, edit and delete the acceptance limits for the tests assigned to an item. Results are compared against these limits.
 
@@ -268,7 +268,7 @@ Define, edit and delete the acceptance limits for the tests assigned to an item.
 ---
 
 ### 31.4 Microbiology Test Master and Workflow Steps
-
+<!-- WF-TESTMASTER-001 (micro) -->
 #### Purpose
 Define microbiology tests (Count Test or Observation), their ordered workflow steps, the growth media each step uses and the incubation transfer rules.
 
@@ -359,7 +359,7 @@ Requires the *Manage master data* permission (by default: Section Head, System A
 ---
 
 ### 31.5 Physicochemical Test Master (FP and RM & PM)
-
+<!-- WF-TESTMASTER-001 (physchem) -->
 #### Purpose
 Define physicochemical tests for the Finished Product (FP) and Raw Material and Packaging Material (RM & PM) areas: the test type, its calculation settings, the linked HPLC or ICP method, and the number of replicates for each production stage.
 
@@ -465,4 +465,4 @@ Requires the *Manage master data* permission (by default: Section Head, System A
 
 > **Note for reviewers:** The page lists only six equation types. Dissolution, Disintegration, Weight Variation, Titration, HPLC method assay and ICP method assay are not shown; they are set through the workflow type of the Test Master. The page must not be read as the full list. (GAP-606)
 
-
+<!-- Review log (Sonnet): 38 corrections; invented items removed: ItemFilterBar/class and route names, enum names (FinishedProduct etc., PendingReview), SpecificationEvaluator, Latex arrows, TestDefinition.TitrationChanged, ~22 invented validation messages (unsupported stage/one-only/range/Q/target/tolerance wording), "Document file is empty"/"File size exceeds 25 MB" wording, "Audit comment"-type claims, "existing orders are not affected" for micro freeze; callouts added: GAP-419, GAP-413, GAP-713, GAP-705 in 31.3, GAP-708, GAP-709, how-results-are-compared table -->

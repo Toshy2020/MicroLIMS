@@ -24,7 +24,7 @@ For important laboratory decisions (reviews, approvals, release decisions, resul
 
 ### 37.2 Executing an Electronic Signature
 
-
+<!-- WF-SIG-001 -->
 #### Purpose
 Apply an electronic signature to authorize a laboratory decision, complete a preparation, or record analytical results.
 
@@ -164,7 +164,7 @@ The rules in the table compare user accounts; System Administrators and Section 
 
 > **Note for reviewers:** Role and user changes are audited but not signed and need no second person; nothing prevents removing the *Manage roles* permission from an administrative role. (GAP-009)
 
+<!-- Review log (Sonnet): 18 corrections; invented items removed: "cryptographic" wording, enum/meaning names, class and field names, Autoclave Program Management row, transaction/hash wording, audit claims for unsigned actions; callouts added: GAP-027, GAP-030, GAP-009, GAP-010, GAP-028. Signed list (26) matches verified source; not-signed list limited to verified items. -->
+<!-- Phase 13 (agy): applied F-A10, F-C04 -->
 
-
-
-
+<!-- Phase 13 review (Sonnet): agy corrections verified against RECONCILIATION and code; GAP ids exist; nothing invented; no change needed. -->

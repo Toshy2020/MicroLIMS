@@ -40,7 +40,7 @@ The sample section moves to **Under Review** when all of its tests have a signed
 ---
 
 ### 27.2 Measurement, Gravimetric, and Qualitative Test Results
-
+<!-- WF-PHYSRESULT-001 -->
 #### Purpose
 Record and sign results for direct measurements, gravimetric determinations (**Loss on Drying** or **Ash / Residue**) and qualitative observations.
 
@@ -121,7 +121,7 @@ The result cannot be edited. When all tests of the sample section are ready, the
 ---
 
 ### 27.3 Titration Testing
-
+<!-- WF-PHYSRESULT-002 -->
 #### Purpose
 Record titration tests (direct or residual, including Karl Fischer) using a standardized titrant, calculate the result, acknowledge a due titrant when allowed, and sign the result.
 
@@ -214,7 +214,7 @@ Review and approval of the sample follow as in section 27.2. The person who reco
 ---
 
 ### 27.4 Staged Testing: Dissolution, Disintegration, and Weight Variation
-
+<!-- WF-PHYSRESULT-003 -->
 #### Purpose
 Record tests that are evaluated in stages. When the first stage does not give a final answer, the same test continues with more units in a second (and for dissolution a third) stage. Each stage is signed separately.
 
@@ -312,7 +312,7 @@ As in section 27.2: review and approval follow once all tests of the sample sect
 ---
 
 ### 27.5 Operating the HPLC Workspace
-
+<!-- WF-HPLC-001 -->
 #### Purpose
 Start an HPLC run on an instrument, enter and confirm system suitability (SST), assign sample tests, enter replicate weights and peak responses, upload evidence, send each sample for review with a signature, and complete or abandon the run.
 
@@ -442,7 +442,7 @@ The reviewer and approver work on the sample in the testing workspace, where the
 ---
 
 ### 27.6 Operating the GC Workspace and Residual Solvents Testing
-
+<!-- WF-GC-001 -->
 #### Purpose
 Run gas chromatography on a GC instrument. The GC Workspace uses the same screens and steps as the HPLC Workspace (section 27.5); this section lists only the differences. Residual solvents are reported in ppm per solvent.
 
@@ -491,7 +491,7 @@ Run: **Open**, then **Completed** or **Abandoned**. System suitability: **Pendin
 ---
 
 ### 27.7 Operating the ICP-OES Workspace
-
+<!-- WF-ICP-001 -->
 #### Purpose
 Run ICP-OES determinations: record the calibration for each element, confirm it with a signature, record continuing calibration verification (CCV) where the method requires it, assign sample tests, enter replicate concentrations, and send each sample for review with a signature.
 
@@ -632,7 +632,7 @@ Requires the *Operate HPLC, GC and ICP workstations* permission (by default: Ana
 ---
 
 ### 27.9 Equation Types Reference
-
+<!-- MOD-EQTYPE-001 -->
 #### Purpose
 Show the list of predefined equation types and their formulas. The list is read-only.
 
@@ -649,8 +649,8 @@ Requires the *Manage master data* permission (by default: Section Head, System A
 ---
 
 ### 27.10 Chromatography and ICP Methods Masters
-
-
+<!-- MOD-HPLCM-001 -->
+<!-- MOD-ICPM-001 -->
 #### Purpose
 Manage analytical method masters:
 - Chromatography (HPLC and GC) methods: name, abbreviation, technique, column, elution and detection, mobile phases, analytes, SST criteria, GC conditions and oven program, residual-solvent mode.
@@ -678,7 +678,7 @@ Open **Laboratories** > **Physicochemical Configuration** > **HPLC Methods** or 
 - "A reason is required."
 - "ICP method \"{name}\" is inactive."
 
+<!-- Review log (Sonnet): 14 corrections (section rewritten sub-section by sub-section against C6); invented items removed: route paths and area codes, tab names of the sample queue, dialog title "{testCode} Workflow", raw status/enum names (InService, WithinLimits, ResultRecorded, TitrantDueAcknowledged), run-code format, component and code names (ChromatogramEvidencePanel, ResidualSolventCalculationView, IcpMethodAssay, MinCorrelation, WeightMg, GrossMg), unsupported field labels (Initial weight (g), Sample Weight (mg) etc.), "Upload Report"/"Upload Report Document" buttons, SHA-256 and secure storage claims, GC capillary/packed wording, LaTeX formulas, two internal-field validation messages; callouts added: GAP-609 (types in use), GAP-601, GAP-602 (HPLC and ICP), GAP-603, GAP-600, GAP-617, GAP-610/611, GAP-613, GAP-606 -->
+<!-- Phase 13 (agy): applied F-B08, F-B10 -->
 
-
-
-
+<!-- Phase 13 review (Sonnet): F-B08, F-B10 verified: section 27.10 facts match C6 and code (menu labels, A reason is required., ICP method inactive message at IcpRunService); GAP-043/615 exist; nothing invented. -->

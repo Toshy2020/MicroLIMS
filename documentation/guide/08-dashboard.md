@@ -25,7 +25,7 @@ Clicking a tile opens the laboratory workspace already filtered to the samples o
 
 ---
 
-
+<!-- SCR-DASH-001 -->
 ### 8.2 Administrator Command Center
 #### Purpose
 Show system administrators the totals and queues across the laboratories in their scope.
@@ -57,7 +57,7 @@ The tiles show current counts. Samples with several sections can be counted once
 
 ---
 
-
+<!-- SCR-DASH-002 -->
 ### 8.3 Analyst Dashboard
 #### Purpose
 Show analysts their work for the day, their recent performance, and items that need attention.
@@ -85,7 +85,7 @@ Only users with the Analyst base role type can load the Analyst dashboard figure
 
 ---
 
-
+<!-- SCR-DASH-003 -->
 ### 8.4 Reviewer Command Center
 #### Purpose
 Show reviewers the samples waiting for technical review, reviews that have waited too long, and retests in progress.
@@ -112,7 +112,7 @@ Clicking a tile opens the laboratory workspace with the matching filter.
 
 ---
 
-
+<!-- SCR-DASH-004 -->
 ### 8.5 Section Head Command Center
 #### Purpose
 Show Section Heads the laboratory workload, the stages of the pipeline, overdue work, and the analysts' status.
@@ -139,4 +139,4 @@ Users with the Section Head base role type, and any other base role type that ha
 #### Errors
 - "The dashboard service did not respond. No laboratory data has been changed."
 
-
+<!-- Review log (Sonnet): 20 corrections; invented items removed: JWT/endpoint/query-parameter wording, "validated grace window", Overdue tile meaning for Section Head (was 24 h from receipt; actual is 7-day analyst deadline), retest cause "out-of-specification or investigative finding", "Dashboards.Review/LabOverview" as role selectors, "Section Head authorization" for prep configs, unsupported incubation panel details; callouts added: GAP-055, GAP-102 (x2), GAP-105, GAP-106, on-time rate default -->

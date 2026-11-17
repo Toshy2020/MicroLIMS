@@ -34,7 +34,7 @@ Each node shows its type, a title and a status. The node types that can appear a
 
 ### 36.2 Tracing a Sample
 
-
+<!-- WF-AUDIT-001 -->
 #### What you see
 ![SS-361: Traceability Chain View](../screenshots/ss-361-traceability-chain.png)
 When you open the chain for a sample, the nodes follow the testing and review path:
@@ -63,4 +63,4 @@ The Audit Trail chain does not show reagent, solution, standard, column or instr
 - Reference cryovials show the material, organism, identity confirmations and thaw events (see §26).
 - Physicochemical runs, solutions and standards show their instruments, columns, solutions and standard lots (see §27 and §28).
 
-
+<!-- Review log (Sonnet): 14 corrections; invented items removed: chains claimed for media/material/equipment/item (autoclave, reference media, stock lots, solution preparations, standard qualifications, calibration documents, specifications, assigned tests, controlled documents), class/field names (OriginSampleId, OosGroupCode), physicochemical and titrant chain claimed as part of the chain, code format examples, "cryptographic" wording; node list rewritten from the verified list; callouts added: none new (GAP-108 kept) -->

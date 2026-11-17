@@ -42,7 +42,7 @@ The status of a lot is calculated each time, not stored:
 ---
 
 ### 29.2 Receiving Material Lots into Stock
-
+<!-- WF-MATERIAL-001 -->
 #### Purpose
 Add a newly received lot to the stock of your laboratory section.
 
@@ -229,7 +229,7 @@ The dialog **Edit Material** with the fields of the lot and the buttons **Cancel
 
 > **Note for reviewers:** Purity, moisture and expiry of a lot can be changed after the lot was used in a calculation, without a reason or signature. (GAP-904)
 
+<!-- Review log (Sonnet): 19 corrections; invented items removed: route and query strings, permission codes in prose, raw status names (InStock), numeric status values, field name QuantityRemaining, LaTeX formula, dialog and field names not in the screens ("Supersession Reason *", "Void Reason *", "Confirm Supersession", "Confirm Void", drawer instead of Lot Details window), claim of a receipt quarantine step, invented status badges in the table (replaced by the real cards and filters); callouts added: GAP-508 kept, GAP-511 kept, GAP-514 added; receipt without second-person check stated as fact (no gap id exists for it) -->
+<!-- Phase 13 (agy): applied F-B09 -->
 
-
-
-
+<!-- Phase 13 review (Sonnet): F-B09, GAP-904 verified against MaterialService; no invented items. -->

@@ -26,9 +26,10 @@ describe("guide chapters", () => {
     }
   });
 
-  it("no chapter leaks markup markers: HTML comments render as text, so none may appear", async () => {
-    // MarkdownView renders raw HTML as visible text, so a comment such as
-    // "<!-- WF-AUTH-001 -->" or a malformed one would show on screen.
+  it("no chapter shows markup markers: author comments are removed and none is malformed", async () => {
+    // MarkdownView renders raw HTML as visible text. Chapters keep their author
+    // comments (traceability markers); the loader removes them, and a malformed
+    // one would survive and show on screen.
     for (const chapter of CHAPTERS) {
       const text = await chapter.load();
       for (const marker of ["<!--", "<--", "--!>"]) {

@@ -78,7 +78,11 @@
     "releaseNoteSaveFailed": "Could not save your release note state.",
     "timeoutTitle": "Session Timeout Warning",
     "timeoutBody": "You will be signed out due to inactivity in {{duration}}.",
-    "stayLoggedIn": "Stay signed in"
+    "stayLoggedIn": "Stay signed in",
+    "benchOfferLabel": "Bench mode offer",
+    "benchOfferText": "This looks like a touch screen. Turn on bench mode for larger buttons and number keypads?",
+    "benchOfferAccept": "Turn on bench mode",
+    "benchOfferDecline": "Not now"
   },
   "sidebar": {
     "mainNavigation": "Main navigation",

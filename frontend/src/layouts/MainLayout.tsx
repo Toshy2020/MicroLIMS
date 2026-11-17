@@ -67,7 +67,13 @@ function isForcedEnrolmentPending(
   );
 }
 
-function FirstLoginTour({ mfaStatus }: { mfaStatus: MfaStatus | null }) {
+function FirstLoginTour({
+  mfaStatus,
+  onActiveChange
+}: {
+  mfaStatus: MfaStatus | null;
+  onActiveChange?: (active: boolean) => void;
+}) {
   const { t } = useTranslation();
   const { role, mustChangePassword, signingPasswordRequired } = useAuth();
   const { tourReplaySeq } = useHelpPanel();
@@ -90,7 +96,12 @@ function FirstLoginTour({ mfaStatus }: { mfaStatus: MfaStatus | null }) {
     tourState.value === null &&
     dismissedKey !== tourKey;
 
-  if (!validRole || (!shouldAutoStart && !isReplayActive)) {
+  const tourActive = validRole !== null && (shouldAutoStart || isReplayActive);
+  useEffect(() => {
+    onActiveChange?.(tourActive);
+  }, [tourActive, onActiveChange]);
+
+  if (!validRole || !tourActive) {
     return null;
   }
 
@@ -108,6 +119,61 @@ function FirstLoginTour({ mfaStatus }: { mfaStatus: MfaStatus | null }) {
         });
       }}
     />
+  );
+}
+
+// Offered once on a touch-first device (spec: bench mode, "first use"). Not a
+// modal and never auto-hides; it waits while the first-login tour is due or running.
+function BenchOffer({ tourActive }: { tourActive: boolean }) {
+  const { t } = useTranslation();
+  const theme = useTheme();
+  const { role } = useAuth();
+  const { shouldOffer, setBenchMode, dismissOffer } = useBenchMode();
+  const validRole = isRoleType(role) ? role : null;
+  const tourState = useUiState(validRole ? tourStateKey(validRole) : "tour.none.v1");
+  const tourDue = validRole !== null && tourState.loaded && tourState.value === null;
+
+  if (!shouldOffer || tourActive || !tourState.loaded || tourDue) {
+    return null;
+  }
+
+  return (
+    <Box
+      component="section"
+      aria-label={t("layout.benchOfferLabel")}
+      className="no-print"
+      sx={{
+        px: 2,
+        py: 1.25,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        flexWrap: "wrap",
+        gap: 1.5,
+        bgcolor: theme.custom.status.info.bg,
+        color: theme.custom.status.info.text,
+        borderBottom: `1px solid ${theme.custom.status.info.border}`
+      }}
+    >
+      <Typography variant="body2" sx={{ fontWeight: 600 }}>
+        {t("layout.benchOfferText")}
+      </Typography>
+      <Box sx={{ display: "flex", gap: 1 }}>
+        <Button
+          size="small"
+          variant="contained"
+          onClick={() => {
+            setBenchMode(true);
+            dismissOffer();
+          }}
+        >
+          {t("layout.benchOfferAccept")}
+        </Button>
+        <Button size="small" variant="outlined" color="inherit" onClick={dismissOffer}>
+          {t("layout.benchOfferDecline")}
+        </Button>
+      </Box>
+    </Box>
   );
 }
 
@@ -219,6 +285,7 @@ export function MainLayout({ whatsNewNotes }: { whatsNewNotes?: readonly Release
   const [collapsed, setCollapsed] = useState(() => benchMode || localStorage.getItem("microlims_sidebar_collapsed") === "true");
   const [mfaStatus, setMfaStatus] = useState<MfaStatus | null>(null);
   const [mfaLoaded, setMfaLoaded] = useState(false);
+  const [tourActive, setTourActive] = useState(false);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -329,6 +396,7 @@ export function MainLayout({ whatsNewNotes }: { whatsNewNotes?: readonly Release
         draftsMenu={<DraftsMenu overview={draftOverview} />}
       />
       <ConnectionBanner online={online} unsavedCount={draftOverview.drafts.length} />
+      <BenchOffer tourActive={tourActive} />
 
       <Box
         component="div"
@@ -402,7 +470,7 @@ export function MainLayout({ whatsNewNotes }: { whatsNewNotes?: readonly Release
           </Box>
         </Box>
         <HelpPanelSlot />
-        <FirstLoginTour mfaStatus={mfaStatus} />
+        <FirstLoginTour mfaStatus={mfaStatus} onActiveChange={setTourActive} />
         <WhatsNewPrompt mfaStatus={mfaStatus} mfaLoaded={mfaLoaded} notes={whatsNewNotes} />
       </Box>
 

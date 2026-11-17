@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { Link, MemoryRouter, Route, Routes } from "react-router-dom";
@@ -9,6 +9,10 @@ import { notifyNetworkFailure } from "../services/connectionSignal";
 import { draftStore } from "../services/drafts/draftStore";
 import { makeDraft, resetDraftDb } from "../services/drafts/draftTestUtils";
 import { OFFLINE_MESSAGE } from "../components/bench/ConnectionBanner";
+import { apiClient } from "../services/apiClient";
+import { resetUiStateCache } from "../hooks/useUiState";
+import { tourStateKey } from "../modules/help/tour/tourSteps";
+import { WHATS_NEW_STATE_KEY } from "../modules/help/whatsNew/releaseNotes";
 import { mfaService } from "../modules/authentication/services/mfaService";
 import { laboratorySectionService } from "../services/laboratorySectionService";
 import { MainLayout } from "./MainLayout";
@@ -190,5 +194,118 @@ describe("MainLayout bench drafts and connection", () => {
     await user.click(screen.getByRole("button", { name: "Switch user" }));
 
     expect(await screen.findByText(/You have 2 unsaved entries/)).toBeTruthy();
+  });
+});
+
+describe("MainLayout bench mode offer", () => {
+  const status = {
+    enrolled: true, type: "AuthenticatorApp" as const, confirmedAt: null,
+    recoveryCodesRemaining: 0, required: false, enrolmentDueAt: null, trustedDevices: []
+  };
+  const defaultGet = vi.mocked(apiClient.get).getMockImplementation();
+  const OFFERED_KEY = "microlims_bench_mode_offered";
+  const MODE_KEY = "microlims_bench_mode";
+
+  function setCoarsePointer(coarse: boolean) {
+    window.matchMedia = vi.fn().mockImplementation((query: string) => ({
+      matches: coarse && query === "(pointer: coarse)",
+      media: query,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      onchange: null,
+      dispatchEvent: vi.fn()
+    })) as unknown as typeof window.matchMedia;
+  }
+
+  function serveUiState(map: Record<string, string>) {
+    vi.mocked(apiClient.get).mockImplementation((url: string) =>
+      Promise.resolve({
+        data: { data: url.includes("/me/ui-state") ? map : url.includes("/notifications") ? [] : { unreadCount: 0 } }
+      })
+    );
+  }
+
+  const tourSeen = { [tourStateKey("SectionHead")]: "completed", [WHATS_NEW_STATE_KEY]: __APP_VERSION__ };
+  const offerRegion = () => screen.queryByRole("region", { name: "Bench mode offer" });
+
+  beforeEach(() => {
+    resetUiStateCache();
+    vi.mocked(mfaService.getStatus).mockResolvedValue(status);
+    serveUiState(tourSeen);
+    setCoarsePointer(true);
+  });
+  afterEach(() => {
+    resetUiStateCache();
+    if (defaultGet) vi.mocked(apiClient.get).mockImplementation(defaultGet);
+  });
+
+  it("offers bench mode on a touch device that has not been asked, with keyboard-reachable named buttons", async () => {
+    const user = userEvent.setup();
+    renderLayout();
+    const region = await screen.findByRole("region", { name: "Bench mode offer" });
+    expect(region.textContent).toMatch(/touch screen/);
+    const accept = screen.getByRole("button", { name: "Turn on bench mode" });
+    const decline = screen.getByRole("button", { name: "Not now" });
+    await user.tab();
+    const focusOrder: Element[] = [];
+    for (let i = 0; i < 60 && !focusOrder.includes(decline); i++) {
+      if (document.activeElement) focusOrder.push(document.activeElement);
+      await user.tab();
+    }
+    expect(focusOrder).toContain(accept);
+    expect(focusOrder).toContain(decline);
+  });
+
+  it("Turn on bench mode switches it on and the offer never returns, even after a remount", async () => {
+    const user = userEvent.setup();
+    const first = renderLayout();
+    await user.click(await screen.findByRole("button", { name: "Turn on bench mode" }));
+    expect(offerRegion()).toBeNull();
+    expect(localStorage.getItem(MODE_KEY)).toBe("on");
+    expect(localStorage.getItem(OFFERED_KEY)).toBe("true");
+    expect((screen.getByRole("switch", { name: "Bench mode" }) as HTMLInputElement).checked).toBe(true);
+    first.unmount();
+
+    localStorage.setItem(MODE_KEY, "off");
+    renderLayout();
+    await screen.findAllByRole("button", { name: "Collapse sidebar" });
+    expect(offerRegion()).toBeNull();
+  });
+
+  it("Not now hides the offer for good and leaves bench mode off", async () => {
+    const user = userEvent.setup();
+    const first = renderLayout();
+    await user.click(await screen.findByRole("button", { name: "Not now" }));
+    expect(offerRegion()).toBeNull();
+    expect(localStorage.getItem(OFFERED_KEY)).toBe("true");
+    expect(localStorage.getItem(MODE_KEY)).toBeNull();
+    first.unmount();
+
+    renderLayout();
+    await screen.findAllByRole("button", { name: "Collapse sidebar" });
+    expect(offerRegion()).toBeNull();
+  });
+
+  it("is not shown on a fine pointer", async () => {
+    setCoarsePointer(false);
+    renderLayout();
+    await screen.findAllByRole("button", { name: "Collapse sidebar" });
+    expect(offerRegion()).toBeNull();
+  });
+
+  it("is not shown when bench mode is already on", async () => {
+    localStorage.setItem(MODE_KEY, "on");
+    renderLayout();
+    await screen.findAllByRole("button", { name: "Expand sidebar" });
+    expect(offerRegion()).toBeNull();
+  });
+
+  it("waits while the first-login tour is due", async () => {
+    serveUiState({ [WHATS_NEW_STATE_KEY]: __APP_VERSION__ });
+    renderLayout();
+    await screen.findByRole("dialog");
+    expect(offerRegion()).toBeNull();
   });
 });

@@ -28,6 +28,9 @@ public class ExceptionMiddleware
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase
     };
 
+    // nginx's "client closed request"; there is no registered HTTP status for it.
+    public const int ClientClosedRequestStatusCode = 499;
+
     private readonly RequestDelegate _next;
     private readonly ILogger<ExceptionMiddleware> _logger;
     private readonly IErrorCaptureService _errorCapture;
@@ -47,6 +50,16 @@ public class ExceptionMiddleware
         try
         {
             await _next(context);
+        }
+        catch (Exception ex) when (IsClientCancellation(context, ex))
+        {
+            // The caller closed the connection or navigated away; nobody is
+            // waiting for a response. A normal outcome, not a fault: no error
+            // capture row and no error log (the client has gone, so the status
+            // is only for the access log; 499 is the conventional "client
+            // closed request").
+            _logger.LogDebug("Request cancelled by the client ({CorrelationId})", CorrelationIdMiddleware.GetCorrelationId(context));
+            if (!context.Response.HasStarted) context.Response.StatusCode = ClientClosedRequestStatusCode;
         }
         catch (FieldValidationException ex)
         {
@@ -135,6 +148,20 @@ public class ExceptionMiddleware
             await CaptureAsync(context, ex, ErrorSource.Backend, ErrorSeverity.Critical);
             await WriteResponse(context, ApiResponse<object>.Fail("An unexpected error occurred."));
         }
+    }
+
+    // A cancellation only counts as the client's when the request really was
+    // aborted; a timeout or cancellation raised by the server's own work is still
+    // reported. The cancellation may sit inside a wrapper (a database driver
+    // wraps it), so the whole inner chain is checked.
+    private static bool IsClientCancellation(HttpContext context, Exception exception)
+    {
+        if (!context.RequestAborted.IsCancellationRequested) return false;
+        for (var e = exception; e is not null; e = e.InnerException)
+        {
+            if (e is OperationCanceledException) return true;
+        }
+        return false;
     }
 
     // Never throws - IErrorCaptureService swallows its own failures - so

@@ -76,5 +76,13 @@
     "administration": "ADMINISTRATION",
     "account": "ACCOUNT",
     "other": "OTHER"
+  },
+  "sidebar": {
+    "favourites": "Favourites",
+    "manage": "Manage",
+    "recent": "Recent",
+    "clear": "Clear",
+    "recentlyOpened": "Recently opened",
+    "recentRecords": "Recent records"
   }
 }

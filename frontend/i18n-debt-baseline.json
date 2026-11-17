@@ -1,5 +1,5 @@
 {
-  "total": 10140,
+  "total": 10133,
   "modules": {
     "components": 351,
     "modules/admin": 366,
@@ -18,7 +18,7 @@
     "modules/laboratoryConfiguration": 2781,
     "modules/messages": 31,
     "modules/monitoringPlan": 289,
-    "modules/navigation": 19,
+    "modules/navigation": 12,
     "modules/notifications": 39,
     "modules/oosTracking": 55,
     "modules/receiving": 269,

@@ -92,6 +92,11 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   );
 }
 
+// For shared chrome that is also rendered outside the provider (isolated tests, error screens).
+export function useOptionalLanguage(): LanguageContextValue | null {
+  return useContext(LanguageContext);
+}
+
 export function useLanguage(): LanguageContextValue {
   const ctx = useContext(LanguageContext);
   if (!ctx) throw new Error("useLanguage must be used within a LanguageProvider");

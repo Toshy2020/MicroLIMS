@@ -48,7 +48,7 @@ afterEach(() => {
 });
 
 describe("Sidebar favourites", () => {
-  it("sidebar shows favourites under My Work in stored order", async () => {
+  it("sidebar shows favourites after the My Work group in stored order", async () => {
     seedFavourites([
       { t: "p", path: "/reports" },
       { t: "p", path: "/dashboard" }
@@ -60,11 +60,12 @@ describe("Sidebar favourites", () => {
     expect(links.map((l) => l.textContent)).toEqual(["Reports", "Dashboard"]);
     expect(links[0].getAttribute("href")).toBe("/reports");
 
-    // The section sits directly after the My Work entry, before the next menu entry.
-    const myWork = screen.getByRole("link", { name: "My Work" });
+    // The section follows the whole group that holds My Work: it never sits between
+    // two entries of that group, so Dashboard does not read like a favourite.
     const dashboardEntry = screen.getAllByRole("link", { name: "Dashboard" }).find((l) => !list.contains(l)) as HTMLElement;
-    expect(myWork.compareDocumentPosition(list) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(list.compareDocumentPosition(dashboardEntry) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    const reportsHeading = screen.getByText("QUALITY & COMPLIANCE");
+    expect(dashboardEntry.compareDocumentPosition(list) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(list.compareDocumentPosition(reportsHeading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
   it("collapsed sidebar exposes favourites by accessible name", async () => {

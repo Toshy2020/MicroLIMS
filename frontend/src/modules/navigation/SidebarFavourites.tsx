@@ -3,6 +3,8 @@ import { Link } from "react-router-dom";
 import { Box, List, ListItemButton, ListItemText, Tooltip, Typography } from "@mui/material";
 import StarIcon from "@mui/icons-material/Star";
 import type { MenuGroup } from "../../routes/menuConfig";
+import { useTranslation } from "../../i18n";
+import { useMenuText } from "../../routes/menuText";
 import { favouriteKey } from "./favourites";
 import { ManageFavouritesDialog } from "./ManageFavouritesDialog";
 import { useFavourites } from "./useFavourites";
@@ -17,6 +19,8 @@ interface SidebarFavouritesProps {
 // Rendered under My Work in stored order. Favourites the user can no longer
 // open are not offered here; the manage dialog lists them so they can be removed.
 export function SidebarFavourites({ groups, collapsed, activePath, onNavigate }: SidebarFavouritesProps) {
+  const { t } = useTranslation("navigation");
+  const menu = useMenuText();
   const { items } = useFavourites(groups);
   const [manageOpen, setManageOpen] = useState(false);
   if (items.length === 0) return null;
@@ -30,7 +34,7 @@ export function SidebarFavourites({ groups, collapsed, activePath, onNavigate }:
             component="span"
             sx={{ fontSize: 11, fontWeight: 600, letterSpacing: "0.08em", color: "rgba(255, 255, 255, 0.72)", textTransform: "uppercase" }}
           >
-            Favourites
+            {t("sidebar.favourites")}
           </Typography>
           <Box
             component="button"
@@ -47,18 +51,20 @@ export function SidebarFavourites({ groups, collapsed, activePath, onNavigate }:
               "&:hover": { color: "common.white" }
             }}
           >
-            Manage
+            {t("sidebar.manage")}
           </Box>
         </Box>
       )}
-      <List disablePadding aria-label="Favourites">
+      <List disablePadding aria-label={t("sidebar.favourites")}>
         {usable.map((item) => {
+          // Pages read as the menu item does; a saved view keeps the name its owner gave it.
+          const label = item.fav.t === "p" ? menu.label(item.label) : item.label;
           const active = item.to !== null && activePath === item.to;
           const link = (
             <ListItemButton
               component={Link}
               to={item.to as string}
-              aria-label={collapsed ? item.label : undefined}
+              aria-label={collapsed ? label : undefined}
               aria-current={active ? "page" : undefined}
               onClick={onNavigate}
               sx={{
@@ -75,14 +81,14 @@ export function SidebarFavourites({ groups, collapsed, activePath, onNavigate }:
             >
               <StarIcon sx={{ fontSize: 16, mr: collapsed ? 0 : 1.25, color: "rgba(255, 255, 255, 0.75)" }} />
               {!collapsed && (
-                <ListItemText primary={item.label} slotProps={{ primary: { sx: { fontSize: 13, lineHeight: 1.3 } } }} />
+                <ListItemText primary={label} slotProps={{ primary: { sx: { fontSize: 13, lineHeight: 1.3 } } }} />
               )}
             </ListItemButton>
           );
           return (
             <Box key={favouriteKey(item.fav)} component="li" sx={{ listStyle: "none" }}>
               {collapsed ? (
-                <Tooltip title={item.label} placement="right">
+                <Tooltip title={label} placement="right">
                   {link}
                 </Tooltip>
               ) : (

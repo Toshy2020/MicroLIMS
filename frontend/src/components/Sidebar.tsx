@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useRef, useState } from "react";
 import {
   Drawer, Box, List, ListItemButton, ListItemIcon, ListItemText, Typography,
   Collapse, Tooltip, IconButton, useMediaQuery, useTheme, MenuItem, MenuList, Divider,
@@ -197,7 +197,8 @@ export function Sidebar({ mobileOpen, onMobileClose, collapsed, onToggleCollapse
         }}
       >
         {groups.map((group, groupIdx) => (
-          <Box key={group.groupName} sx={{ mb: 1 }}>
+          <Fragment key={group.groupName}>
+          <Box sx={{ mb: 1 }}>
             {!effectiveCollapsed && (
               <Typography
                 sx={{
@@ -467,29 +468,32 @@ export function Sidebar({ mobileOpen, onMobileClose, collapsed, onToggleCollapse
                       </Popper>
                     )}
 
-                    {item.badge === "myWork" && (
-                      <>
-                        <SidebarFavourites
-                          groups={groups}
-                          collapsed={effectiveCollapsed}
-                          activePath={activeTrail?.item.path ?? null}
-                          onNavigate={() => {
-                            if (isMobile) onMobileClose();
-                          }}
-                        />
-                        <SidebarRecents
-                          collapsed={effectiveCollapsed}
-                          onNavigate={() => {
-                            if (isMobile) onMobileClose();
-                          }}
-                        />
-                      </>
-                    )}
                   </Box>
                 );
               })}
             </List>
           </Box>
+          {/* After the whole group that holds My Work, so the two sections never sit between
+              two entries of one group (Dashboard would read like a favourite). */}
+          {group.items.some((item) => item.badge === "myWork") && (
+            <Box sx={{ mb: 1 }}>
+              <SidebarFavourites
+                groups={groups}
+                collapsed={effectiveCollapsed}
+                activePath={activeTrail?.item.path ?? null}
+                onNavigate={() => {
+                  if (isMobile) onMobileClose();
+                }}
+              />
+              <SidebarRecents
+                collapsed={effectiveCollapsed}
+                onNavigate={() => {
+                  if (isMobile) onMobileClose();
+                }}
+              />
+            </Box>
+          )}
+          </Fragment>
         ))}
       </Box>
 

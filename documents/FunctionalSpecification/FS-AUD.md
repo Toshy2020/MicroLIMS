@@ -4,7 +4,7 @@
 |---|---|
 | Document number | FS-AUD |
 | Title | Audit trail functional specification |
-| Version | 0.2 |
+| Version | 0.3 |
 | Status | Draft |
 | Author | Claude (AI agent), draft from code |
 | Reviewer | To be assigned by QA |
@@ -17,6 +17,7 @@
 |---|---|---|---|
 | 0.1 | 2026-11-12 | Claude (AI agent), draft from code | First draft, written from the code as built. |
 | 0.2 | 2026-11-13 | AI coding agent, draft from code | Added periodic audit trail review workflow and immutability triggers (FS-AUD-011, FS-AUD-012). |
+| 0.3 | 2026-11-17 | AI coding agent, draft from code | Added table export log, bench draft source context and interface-settings exclusion specifications (FS-AUD-013 to FS-AUD-015). |
 
 ## Scope and reading notes
 
@@ -105,3 +106,24 @@
 **Function:** Immutability and audit capture for audit trail reviews and findings. Migration `20261112220249_AddAuditTrailReviews` installs PostgreSQL triggers on `AuditTrailReviews` (reject `DELETE` and `TRUNCATE` always; reject `UPDATE` once `Status = 1` (`Signed`)) and `AuditTrailReviewFindings` (reject `DELETE` and `TRUNCATE` always; allow `UPDATE` only once from `Open` to `Closed` on the close fields). Both tables are registered in `AppendOnlyTriggerCatalogPostgresTests.ProtectedTables`, and neither `AuditTrailReview` nor `AuditTrailReviewFinding` is in `MicroLimsDbContext.AuditCaptureExcludedTypes`, so lifecycle saves are captured in `AuditLogs`.
 **Code:** `backend/MicroLIMS.Persistence/Migrations/20261112220249_AddAuditTrailReviews.cs`; `backend/MicroLIMS.Domain/Entities/AuditTrailReview.cs`; `backend/MicroLIMS.Tests/IntegrationTests/AppendOnlyTriggerCatalogPostgresTests.cs` — `ProtectedTables`
 **Verified by:** reading (not run)
+
+### FS-AUD-013
+**Satisfies:** URS-AUD-011
+**Function:** Export log. `DataExportAuditService.LogListExportAsync` writes a `DataExportLog` row with the export type `ListCsv:<tableKey>`, the filter JSON (filters, columns and record identifiers), the row count and the user. It refuses a row count above 5,000 and a filter JSON whose identifiers do not match the row count. `ExportsController` (`POST api/exports/log`, policy `Data.Export`) calls it before the browser builds the file and returns the export identifier, the server time with its zone and the exporting user's name. `DataExportLog` is not on `AuditCaptureExcludedTypes`, so the automatic audit trail also records its insert.
+**Code:** `backend/MicroLIMS.Application/Services/DataExportAuditService.cs`; `backend/MicroLIMS.API/Controllers/ExportsController.cs`; `backend/MicroLIMS.Persistence/DbContext/MicroLimsDbContext.cs`
+**Verified by:** reading (not run); tests present: backend `ListExportPostgresTests.cs`
+**Not verified:** the content of the audit row written for a list export (not run).
+
+### FS-AUD-014
+**Satisfies:** URS-AUD-012
+**Function:** Draft start time as source context. The browser sends `X-Draft-Started-At` (ISO 8601 with an offset) only when the bench draft was started more than 5 minutes before the save (`useBenchDraft`, `submitHeaders`). `DraftContextMiddleware` runs in the audit pipeline after authentication (`UseMicroLimsAuditPipeline`). A header of at most 64 characters with an offset is converted to the text "Submitted from a device draft started at {yyyy-MM-dd HH:mm} UTC (device clock, not verified)" and set as the request's `CurrentSourceContext`. `MicroLimsDbContext` copies it into `AuditLog.SourceContext` for the audit rows of that request. A missing, malformed or long header changes nothing. The audit timestamp stays the server clock, and a future or very old device time is stored as stated, not corrected. The API's CORS policy allows the header.
+**Code:** `backend/MicroLIMS.API/Middleware/DraftContextMiddleware.cs`; `backend/MicroLIMS.API/Extensions/ApplicationBuilderExtensions.cs`; `backend/MicroLIMS.API/Extensions/ServiceCollectionExtensions.cs`; `backend/MicroLIMS.Persistence/DbContext/MicroLimsDbContext.cs` (`CurrentSourceContext`, `BuildAuditLog`); `frontend/src/hooks/useBenchDraft.ts`
+**Verified by:** reading (not run); tests present: backend `DraftContextPostgresTests.cs` (8 PostgresFact tests), `DraftContextMiddlewareTests.cs`
+**Not verified:** that an explicit source context set by a service is never overwritten (the test was not read); the browser preflight (not run).
+
+### FS-AUD-015
+**Satisfies:** URS-AUD-013
+**Function:** Audit exclusions for interface data. `MicroLimsDbContext.AuditCaptureExcludedTypes` lists `UserUiState` ("per-user interface preferences; no laboratory data (approved 2026-11-11)") and `RecentRecord` ("convenience list, not an access log (approved 2026-11-11)"). Saves of these types write no `AuditLogs` row. `TableView` and `UserTableDefault` are not on the list and are audited automatically.
+**Code:** `backend/MicroLIMS.Persistence/DbContext/MicroLimsDbContext.cs` (`AuditCaptureExcludedTypes`); `backend/MicroLIMS.Domain/Entities/UserUiState.cs`; `backend/MicroLIMS.Domain/Entities/RecentRecord.cs`
+**Verified by:** reading (not run); tests present: backend `UserUiStatePostgresTests.cs`, `RecentRecordPostgresTests.cs`
+**Not verified:** whether a test asserts that these types write no audit rows (the tests were not read); the 2026-11-11 approval record itself (cited in the code comment, not read).

@@ -4,7 +4,7 @@
 |---|---|
 | Document number | FS-RCV |
 | Title | Sample receiving functional specification |
-| Version | 0.2 |
+| Version | 0.3 |
 | Status | Draft |
 | Author | Claude (AI agent), draft from code |
 | Reviewer | To be assigned by QA |
@@ -17,6 +17,7 @@
 |---|---|---|---|
 | 0.1 | 2026-11-12 | Claude (AI agent), draft from code | First draft, written from the code as built. |
 | 0.2 | 2026-11-14 | AI coding agent, draft from code | Added all-or-nothing batch sample receiving and multi-sample entry grid navigation, paste preview, defaults, and error navigation (FS-RCV-013, FS-RCV-014). |
+| 0.3 | 2026-11-17 | AI coding agent, draft from code | Added bulk analyst assignment specification (FS-RCV-015). |
 
 ## Scope and reading notes
 
@@ -118,3 +119,10 @@
 **Function:** Multi-sample receiving grid entry tools in `MultiSampleEntryGrid` and `NewSampleDialog`. `useGridNavigation` handles `Enter`, `ArrowDown`, `ArrowUp`, `ArrowLeft`/`ArrowRight` (at text caret edges), `Tab`/`Shift+Tab`, `Ctrl+D` (`onCopyDown`, copying the value from the previous row into text, date, or choice columns except row 0), `Ctrl+Enter`/`Cmd+Enter` (save), and `Escape`, skipping non-editable cells and ignoring navigation keys when an autocomplete/select popup has `aria-expanded="true"`. Multi-cell clipboard text pasted anywhere in the grid is parsed by `parseClipboardTable` and mapped positionally from the focused column onto text and date columns defined in `receivingPaste` (`previousProductBatchNumber`, `sampleQuantity`, `sampledBy`, `batchNumber`, `sampledAt`, `controlNumber`, `mfgDate`, `expDate`, validated for `DD/MM/YYYY` or `YYYY-MM-DD`, capped at `MAX_RECEIVE_ROWS = 100`), skipping choice columns and listing them under "Not pasted (choice columns, choose these by hand)" in `PastePreviewDialog`. Nothing is saved when clicking **Accept**; the user must still save the dialog (`receive-batch`). SOP note: pasted data must be checked in the preview before accepting. On opening row 0 for a category, `NewSampleDialog` requests `GET api/entry-defaults?context=receiving&category=...` (`EntryDefaultsService.GetAsync`), which pre-fills `sampledBy` and active `causeOfTestingId` from the acting user's latest sample in that category when `entry.lastChoiceDefaults.enabled` is true. Per-row errors returned from validation or `receive-batch` show a summary banner and move focus to the first failing cell.
 **Code:** `frontend/src/components/entry/useGridNavigation.ts`; `frontend/src/components/entry/PastePreviewDialog.tsx`; `frontend/src/components/entry/parseClipboardTable.ts`; `frontend/src/modules/receiving/dialogs/MultiSampleEntryGrid.tsx`; `frontend/src/modules/receiving/dialogs/receivingPaste.ts`; `frontend/src/modules/receiving/dialogs/NewSampleDialog.tsx`; `backend/MicroLIMS.Application/Services/EntryDefaults/EntryDefaultsService.cs`
 **Verified by:** reading (not run)
+
+### FS-RCV-015
+**Satisfies:** URS-RCV-015
+**Function:** Bulk analyst assignment. The samples that pass the checks are assigned together in one transaction (`UnitOfWork.RunAsync` in `SampleBulkAssignmentService.AssignAsync`). `POST api/samples/bulk-assign` (policy `SamplesAssignAnalyst`) takes the sample identifiers, the analyst's user id and an optional reason. Request-level refusals (no samples, more than 200 samples, duplicate identifiers, unknown analyst) reject the whole request and change nothing. Each sample is then checked with the same rules as single assignment (section scope, analyst eligibility, sample state) when the request is processed. The samples that pass are applied through `SampleAssignmentService.ApplyAsync`, which writes one audit row per changed test order. No transaction call was found around the whole request in `SampleBulkAssignmentService.cs` or `SampleAssignmentService.cs`. Refused samples are returned with their reason. In the browser, `BulkAssignDialog` shows the count, the analyst and the optional reason, then the result; refused samples stay selected and the rest are cleared from the selection.
+**Code:** `backend/MicroLIMS.API/Controllers/SampleController.cs` (`bulk-assign`); `backend/MicroLIMS.Application/Services/SampleBulkAssignmentService.cs`; `backend/MicroLIMS.Application/Services/SampleAssignmentService.cs`; `backend/MicroLIMS.Application/DTOs/SampleAssignmentDtos.cs`; `frontend/src/modules/receiving/dialogs/BulkAssignDialog.tsx`; `frontend/src/modules/receivingTesting/ReceivingTestingWorkspacePage.tsx`
+**Verified by:** reading (not run); tests present: backend `SampleBulkAssignPostgresTests.cs` (11 PostgresFact tests); frontend `BulkAssignDialog.test.tsx`
+**Not verified:** a sample approved between selection and submit (the test was not read and not run); the 200-sample limit at run time.

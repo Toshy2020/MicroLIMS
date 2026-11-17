@@ -4,7 +4,7 @@
 |---|---|
 | Document number | URS-AUD |
 | Title | Audit trail user requirements |
-| Version | 0.2 |
+| Version | 0.3 |
 | Status | Draft |
 | Author | Claude (AI agent), draft from code |
 | Reviewer | To be assigned by QA |
@@ -17,6 +17,7 @@
 |---|---|---|---|
 | 0.1 | 2026-11-12 | Claude (AI agent), draft from code | First draft, written from the code as built. |
 | 0.2 | 2026-11-13 | AI coding agent, draft from code | Added periodic audit trail review and review immutability requirements (URS-AUD-009, URS-AUD-010). |
+| 0.3 | 2026-11-17 | AI coding agent, draft from code | Added table export log, bench draft source context and interface-settings exclusion requirements (URS-AUD-011 to URS-AUD-013). |
 
 ## Requirements
 
@@ -80,4 +81,22 @@ Each requirement below is a need that the code as built serves. Gaps found in th
 **Requirement:** The system shall prevent signed audit trail reviews from being changed or deleted and prevent audit trail review findings from being deleted or edited beyond a single Open-to-Closed transition, enforced in both the application and PostgreSQL database triggers.
 **GxP:** Yes
 **Serves:** 21 CFR 11.10(e); EU GMP Annex 11 clause 9 (to be confirmed by QA)
+**Status:** Active
+
+### URS-AUD-011
+**Requirement:** The system shall record every table export in the data export log with the user, the time with its time zone, the table, the filters, the columns and the identifiers of the exported rows, and shall refuse an export whose row count does not match the identifiers sent.
+**GxP:** Yes
+**Serves:** 21 CFR 11.10(b), 11.10(e) (to be confirmed by QA)
+**Status:** Active
+
+### URS-AUD-012
+**Requirement:** The system shall, when a bench device saves a draft that was started more than 5 minutes earlier, record in the audit entries of that save the draft start time the device states, labelled as an unverified device clock, while the audit timestamp stays the server's own clock; and shall store the device time as stated, without correction.
+**GxP:** Yes
+**Serves:** ALCOA+ (contemporaneous, attributable); 21 CFR 11.10(e) (to be confirmed by QA)
+**Status:** Active
+
+### URS-AUD-013
+**Requirement:** The system shall keep per-user interface settings and the list of recently opened records out of the automatic audit trail, because they hold no laboratory data, and shall record that decision in the system's configuration.
+**GxP:** No
+**Serves:** Not applicable
 **Status:** Active

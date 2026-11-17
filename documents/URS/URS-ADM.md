@@ -4,7 +4,7 @@
 |---|---|
 | Document number | URS-ADM |
 | Title | System administration user requirements |
-| Version | 0.3 |
+| Version | 0.4 |
 | Status | Draft |
 | Author | Claude (AI agent), draft from code |
 | Reviewer | To be assigned by QA |
@@ -18,6 +18,7 @@
 | 0.1 | 2026-11-12 | Claude (AI agent), draft from code | First draft, written from the code as built. |
 | 0.2 | 2026-11-13 | AI coding agent, draft from code | Added QA dashboard routing and controlled-document QA approver requirements (URS-ADM-011, URS-ADM-012). |
 | 0.3 | 2026-11-14 | AI coding agent, draft from code | Added keyboard shortcuts reference, form initial focus, server-paged table sort rule, and last-choice defaults toggle (URS-ADM-013). |
+| 0.4 | 2026-11-17 | AI coding agent, draft from code | Added About dialog and server version requirement (URS-ADM-014). |
 
 ## Requirements
 
@@ -99,4 +100,10 @@ Each requirement below is a need that the code as built serves. Gaps found in th
 **Requirement:** The system shall provide a keyboard shortcuts reference dialog accessible from the Help menu or by pressing `?` outside editable inputs, shall place initial focus on the first empty required field when opening standard form dialogs (unless disabled), shall keep client-side sorting disabled on server-paged register tables while supporting server-side sorting (and header sort controls) on allow-listed persisted columns, and shall let administrators enable or disable last-choice entry defaults via system settings.
 **GxP:** No
 **Serves:** Operational usability and accurate table behaviour under server-side pagination
+**Status:** Active
+
+### URS-ADM-014
+**Requirement:** The system shall show the application version and the server version to a signed-in user in an About dialog opened from the Help menu, so that the version of the running system can be stated.
+**GxP:** Yes
+**Serves:** 21 CFR 11.10(a) (to be confirmed by QA)
 **Status:** Active

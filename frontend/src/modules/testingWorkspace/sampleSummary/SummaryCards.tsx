@@ -3,7 +3,7 @@ import { withLot } from "../../testPreparation/preparationMaterial";
 import { StatusBadge } from "../../../components/StatusBadge";
 import { brandColors, tableHeadSx } from "../../../theme";
 import { SampleSummary, SampleLocationDetail, IncubationDetail } from "../types/sampleSummaryTypes";
-import { formatDate } from "./summaryFormatting";
+import { formatCalendarDate, formatDate } from "./summaryFormatting";
 import { formatRetentionDisplay } from "../utils/moistureRetentionHelpers";
 
 // Reusable display field component
@@ -65,7 +65,7 @@ export function SampleIdentityCard({ summary: s }: { summary: SampleSummary }) {
         <SummaryField label="Reference Number" value={s.referenceNumber} highlight />
         <SummaryField label="Category" value={s.category} />
         <SummaryField label="Received At" value={formatDate(s.receivedAt)} />
-        <SummaryField label="Exp Date" value={formatDate(s.expDate)} />
+        <SummaryField label="Exp Date" value={formatCalendarDate(s.expDate)} />
 
         <SummaryField label="Item / Point / Room / Machine" value={s.displayName} highlight />
         <SummaryField label="Production Stage" value={s.productionStage} />
@@ -82,7 +82,7 @@ export function SampleIdentityCard({ summary: s }: { summary: SampleSummary }) {
             value={formatRetentionDisplay(s.retentionQuantity, s.retentionQuantityUnit) ?? ""}
           />
         )}
-        <SummaryField label="Mfg Date" value={formatDate(s.mfgDate)} />
+        <SummaryField label="Mfg Date" value={formatCalendarDate(s.mfgDate)} />
 
         <SummaryField label="Cause of Testing" value={s.causeOfTesting} />
         <SummaryField

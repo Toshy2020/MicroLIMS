@@ -1,3 +1,4 @@
+import { formatDateTimeWithTimeZone, formatLabCalendarDate } from "../../../utils/formatDate";
 import { SampleApprovalDecision } from "../services/SampleSummaryService";
 import { TestOrderSummaryDetail } from "../types/sampleSummaryTypes";
 
@@ -26,28 +27,13 @@ export const formatSectionStatus = (status: string): string => {
   }
 };
 
-export const formatDate = (d: string | null | undefined) =>
-  d
-    ? new Date(d).toLocaleString("en-GB", {
-        day: "2-digit",
-        month: "short",
-        year: "numeric",
-        hour: "2-digit",
-        minute: "2-digit"
-      })
-    : "—";
+// Regulated timestamps always carry their time zone (21 CFR 11.50 signature manifestation).
+export const formatDate = (d: string | null | undefined) => (d ? formatDateTimeWithTimeZone(d) : "—");
 
-export const formatExactTime = (d: string | null | undefined) =>
-  d
-    ? new Date(d).toLocaleString("en-GB", {
-        day: "2-digit",
-        month: "short",
-        year: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-        second: "2-digit"
-      })
-    : "—";
+export const formatExactTime = (d: string | null | undefined) => (d ? formatDateTimeWithTimeZone(d, { seconds: true }) : "—");
+
+// Expiry and manufacture dates are calendar days, not instants: no clock time, no zone shift.
+export const formatCalendarDate = (d: string | null | undefined) => (d ? formatLabCalendarDate(d) : "—");
 
 // Advisory only - pre-checks the retest checklist toward whichever tests
 // actually failed, mirroring overallStatus's own per-sample rollup below

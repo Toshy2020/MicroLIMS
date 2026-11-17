@@ -7,10 +7,10 @@ The header contains:
 - **Skip to main content**: a link, intended for keyboard and screen-reader users, that jumps past the menus.
 - **Toggle navigation menu**: the menu button. On a desktop it switches the sidebar between its full and compact forms. On a small screen it opens or closes the menu drawer.
 - **Theme switch** (**Switch to dark mode** / **Switch to light mode**): changes between the light and dark appearance.
-- **Notifications** bell (shown as **Notifications, {n} unread** when there are unread items): opens the list of your notifications (see Section 9).
-- **Account menu** (**Account menu for {name}**), which contains:
+- **Notifications** bell: opens the list of your notifications (see Section 9). When you have unread items, the bell also shows a number badge with how many are unread.
+- **Account menu** (its screen-reader name includes your name), which contains:
   - **My Profile**: your account details (see 5.5).
-  - **Messages** (or **Messages ({n} unread)**): direct and group messages (see Section 9).
+  - **Messages**: direct and group messages (see Section 9). When messages are unread, the label also shows how many.
   - **Discussions**: the discussion board (see Section 9).
   - **Change Password**: see 5.4.
   - **Sign Out**: ends your session and opens the sign-in screen, with no confirmation question.
@@ -29,9 +29,9 @@ The header contains:
 ### 6.3 Breadcrumbs, Section Pages, and Errors
 - **Breadcrumbs** above each page show where you are in the menu.
 - **Section pages**: opening a group in the sidebar shows a page of cards, one for each page in that group that you are allowed to open.
-  - The subtitle reads "{n} page(s) you can open here".
+  - The subtitle gives the number of pages you can open in that section, followed by the words "page(s) you can open here".
   - If a section has no page you may open, the screen shows "You have no pages in this section." If the section cannot be found, the title reads "Section not available".
-- **Page not found**: if you follow an outdated or wrong address, the screen shows the heading **Page not found**, the text "There is no page at this address", and the explanation: `"{address}" does not match any MicroLIMS page. The link may be outdated, or the page may have moved. Use the navigation menu or return to your dashboard.` The button **Go to Dashboard** returns you to your dashboard.
+- **Page not found**: if you follow an outdated or wrong address, the screen shows the heading **Page not found**, the text "There is no page at this address", and the explanation: the address you typed, in quotation marks, followed by "does not match any MicroLIMS page. The link may be outdated, or the page may have moved. Use the navigation menu or return to your dashboard." The button **Go to Dashboard** returns you to your dashboard.
 - **Pages you are not allowed to open**: if you open an address for a page you have no permission for, the system takes you to your dashboard without showing a message.
 - **Page problems**: each page is protected separately, so a problem on one page is contained to that page and the header and sidebar keep working.
 

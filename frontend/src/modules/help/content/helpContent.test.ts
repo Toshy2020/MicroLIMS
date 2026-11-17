@@ -26,6 +26,24 @@ describe("guide chapters", () => {
     }
   });
 
+  it("no chapter shows markup markers: author comments are removed and none is malformed", async () => {
+    // MarkdownView renders raw HTML as visible text. Chapters keep their author
+    // comments (traceability markers); the loader removes them, and a malformed
+    // one would survive and show on screen.
+    for (const chapter of CHAPTERS) {
+      const text = await chapter.load();
+      for (const marker of ["<!--", "<--", "--!>"]) {
+        expect(text.includes(marker), `${chapter.id} contains "${marker}"`).toBe(false);
+      }
+    }
+  });
+
+  it("the User Interface chapter has no unfilled {placeholder} left in its text", async () => {
+    const chapter = CHAPTERS.find((c) => c.number === 6);
+    const text = await chapter!.load();
+    expect(text.match(/\{[A-Za-z][A-Za-z ]*\}/g) ?? []).toEqual([]);
+  });
+
   it("each listed title is the first '## N. Title' line of its chapter", async () => {
     for (const chapter of CHAPTERS) {
       const text = await chapter.load();

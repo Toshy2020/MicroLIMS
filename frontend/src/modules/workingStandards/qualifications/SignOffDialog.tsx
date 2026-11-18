@@ -10,7 +10,7 @@ import {
 import { toast } from "sonner";
 import { FloatingDialog } from "../../../components/FloatingDialog";
 import { useAuth } from "../../../contexts/AuthContext";
-import { useTranslation } from "../../../i18n";
+import { i18n, useTranslation } from "../../../i18n";
 import { serverMessage } from "../../../utils/errorMessage";
 import { WorkingStandardService } from "../services/WorkingStandardService";
 import type { WorkingStandardQualificationDto } from "../types";
@@ -35,6 +35,8 @@ export const SignOffDialog: React.FC<SignOffDialogProps> = ({
   onSuccess
 }) => {
   const { t } = useTranslation("workingStandards");
+  const isArabic = i18n.language === "ar";
+  const tEn = i18n.getFixedT("en", "workingStandards");
   const { fullName, username, role } = useAuth();
   const [password, setPassword] = useState("");
   const [comment, setComment] = useState("");
@@ -60,29 +62,37 @@ export const SignOffDialog: React.FC<SignOffDialogProps> = ({
   const isReview = actionType === "review";
 
   let title = t("signOffDialog.defaultTitle");
-  let meaningStatement = "";
+  let meaningKey:
+    | "signOffDialog.reviewMeaning"
+    | "signOffDialog.approveMeaning"
+    | "signOffDialog.rejectMeaning"
+    | "signOffDialog.returnMeaning"
+    | null = null;
   let confirmLabel = t("signOffDialog.defaultConfirm");
   let confirmColor: "primary" | "error" | "warning" = "primary";
 
   if (isReview) {
     title = t("signOffDialog.reviewTitle", { code: qualificationCode });
-    meaningStatement = t("signOffDialog.reviewMeaning");
+    meaningKey = "signOffDialog.reviewMeaning";
     confirmLabel = t("signOffDialog.reviewConfirm");
   } else if (isApprove) {
     title = t("signOffDialog.approveTitle", { code: qualificationCode });
-    meaningStatement = t("signOffDialog.approveMeaning");
+    meaningKey = "signOffDialog.approveMeaning";
     confirmLabel = t("signOffDialog.approveConfirm");
   } else if (isReject) {
     title = t("signOffDialog.rejectTitle", { code: qualificationCode });
-    meaningStatement = t("signOffDialog.rejectMeaning");
+    meaningKey = "signOffDialog.rejectMeaning";
     confirmLabel = t("signOffDialog.rejectConfirm");
     confirmColor = "error";
   } else if (isReturn) {
     title = t("signOffDialog.returnTitle", { code: qualificationCode });
-    meaningStatement = t("signOffDialog.returnMeaning");
+    meaningKey = "signOffDialog.returnMeaning";
     confirmLabel = t("signOffDialog.returnConfirm");
     confirmColor = "warning";
   }
+
+  const meaningStatement = meaningKey ? tEn(meaningKey) : "";
+  const meaningStatementTranslation = meaningKey ? t(meaningKey) : "";
 
   const isPasswordRequired = !isReturn;
   const isReasonRequired = isReject || isReturn;
@@ -167,9 +177,20 @@ export const SignOffDialog: React.FC<SignOffDialogProps> = ({
           <Typography sx={{ fontSize: 13, color: "text.secondary" }}>{role}</Typography>
         </Box>
 
+        {/* The recorded statement is English: it stays first and left-to-right in both languages. */}
         <Alert severity={isReject ? "error" : isReturn ? "warning" : "info"}>
-          {meaningStatement}
+          {isArabic ? <Box component="span" lang="en" dir="ltr" sx={{ display: "block" }}>{meaningStatement}</Box> : meaningStatement}
         </Alert>
+        {isArabic && meaningStatementTranslation && (
+          <Box component="section" aria-label={t("common:signature.arabicTranslation")} sx={{ px: 2, py: 1, border: 1, borderColor: "divider", borderRadius: 1 }}>
+            <Typography variant="body2">{meaningStatementTranslation}</Typography>
+          </Box>
+        )}
+        {isArabic && (
+          <Typography variant="caption" role="note" sx={{ color: "text.secondary" }}>
+            {t("common:signature.englishRecorded")}
+          </Typography>
+        )}
 
         {isReasonRequired && (
           <TextField

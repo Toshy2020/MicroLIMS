@@ -1,0 +1,336 @@
+{
+  "common": {
+    "unknownError": "خطأ غير معروف",
+    "system": "النظام",
+    "systemOwner": "مالك النظام",
+    "none": "لا يوجد",
+    "na": "غير متاح",
+    "tbd": "يُحدَّد لاحقًا",
+    "months": "{{count}} شهرًا",
+    "active": "نشط",
+    "deactivated": "مُعطَّل",
+    "superseded": "مُستبدَل",
+    "cancel": "إلغاء",
+    "save": "حفظ",
+    "actions": "الإجراءات",
+    "action": "الإجراء",
+    "status": "الحالة",
+    "revision": "الإصدار",
+    "rev": "إصدار {{number}}"
+  },
+  "detail": {
+    "unavailable": "المستند غير متاح",
+    "loadError": "تعذّر تحميل تفاصيل المستند.",
+    "loading": "جارٍ تحميل سجل المستند...",
+    "backToLibrary": "العودة إلى المكتبة",
+    "documentLibrary": "مكتبة المستندات",
+    "notFound": "لم يتم العثور على المستند.",
+    "migratedRecord": "سجل مُرحَّل",
+    "microLimsId": "معرّف MicroLIMS: <ltr>{{id}}</ltr>",
+    "department": "القسم الإداري: <strong>{{department}}</strong> ({{sections}})",
+    "currentRevision": "الإصدار الحالي: <strong>{{number}}</strong> ({{status}})",
+    "owner": "المالك: <strong>{{owner}}</strong>",
+    "moreActions": "مزيد من الإجراءات",
+    "actions": {
+      "uploadControlledFile": "رفع ملف مضبوط",
+      "submitForTechnicalReview": "إرسال للمراجعة الفنية",
+      "openTechnicalReview": "فتح المراجعة الفنية ({{status}})",
+      "assignApprover": "تعيين مُعتمِد",
+      "openApprovalWorkspace": "فتح مساحة عمل الاعتماد ({{status}})",
+      "createRevision": "إنشاء إصدار جديد",
+      "editMetadata": "تعديل البيانات الوصفية",
+      "replaceControlledFile": "استبدال الملف المضبوط",
+      "changeItems": "بنود التغيير",
+      "impactAssessment": "تقييم الأثر",
+      "cancelDraftRevision": "إلغاء مسودة الإصدار",
+      "voidDocumentMaster": "إبطال المستند الرئيسي"
+    },
+    "waiting": {
+      "approverAssigned": "بانتظار المُعتمِد المُعيَّن. هو فقط يمكنه تسجيل قرار الاعتماد.",
+      "approverUnassigned": "بانتظار تعيين مُعتمِد. يمكن لمالك المستند أو المؤلف المُسنَد إليه أو مراقب المستندات توجيهه للاعتماد.",
+      "technicalReviewer": "بانتظار المراجع الفني المُعيَّن.",
+      "noActions": "لا توجد إجراءات متاحة لك على هذا المستند في حالته الحالية."
+    },
+    "futureEffective": {
+      "title": "الإصدار {{number}} مُجدوَل للتفعيل التلقائي (ساري المفعول مستقبلاً)",
+      "body": "تم اعتماد هذا الإصدار وتوقيعه وفقًا لـ <ltr>21 CFR Part 11</ltr>. وهو مُجدوَل للتفعيل التلقائي في <strong>{{date}}</strong>. يظل الإصدار ساري المفعول الحالي نشطًا ومعتمدًا بالكامل حتى ذلك الحين.",
+      "designatedDate": "التاريخ المستهدف المحدد"
+    },
+    "voided": {
+      "banner": "<strong>تم إبطال السجل:</strong> تم إبطال هذا المستند الرئيسي في {{date}} بواسطة {{user}}.",
+      "justification": "<strong>المبرر الإلزامي:</strong> <em>\"{{reason}}\"</em>"
+    },
+    "tabs": {
+      "document": "المستند",
+      "revisions": "الإصدارات ({{count}})",
+      "workflow": "سير العمل ({{count}})",
+      "auditTrail": "سجل التدقيق ({{count}})"
+    },
+    "overview": {
+      "governanceProperties": "خصائص حوكمة المستند",
+      "documentClassification": "تصنيف المستند",
+      "confidentialityLevel": "مستوى السرية",
+      "departmentAndSection": "القسم الإداري والقسم المختبري",
+      "category": "الفئة",
+      "reviewCycle": "دورة المراجعة",
+      "recordOrigin": "مصدر السجل",
+      "keywordsTitle": "الكلمات المفتاحية ووسوم البحث",
+      "noKeywords": "لم تُسند كلمات مفتاحية.",
+      "lifecycleTitle": "الطوابع الزمنية لدورة الحياة والتتبع",
+      "createdBy": "أُنشئ بواسطة",
+      "lastModifiedBy": "آخر تعديل بواسطة"
+    },
+    "files": {
+      "title": "الملفات المضبوطة في الإصدار {{number}}",
+      "uploadOrReplace": "رفع أو استبدال ملف",
+      "columns": {
+        "fileRole": "دور الملف",
+        "fileName": "اسم الملف",
+        "size": "الحجم",
+        "checksum": "مجموع التحقق SHA-256",
+        "status": "الحالة",
+        "uploadedBy": "رُفع بواسطة",
+        "date": "التاريخ",
+        "action": "الإجراء"
+      },
+      "controlledPdf": "PDF مضبوط",
+      "sourceDocx": "DOCX مصدري",
+      "sizeKb": "{{size}} كيلوبايت",
+      "viewPdfAria": "عرض ملف PDF المضبوط {{name}}",
+      "downloadAria": "تنزيل {{name}}",
+      "empty": "لا توجد ملفات مرفوعة حاليًا لهذا الإصدار.",
+      "downloadFailed": "فشل التنزيل: {{error}}"
+    },
+    "revisions": {
+      "title": "سجل تاريخ الإصدارات",
+      "columns": {
+        "revision": "الإصدار",
+        "seq": "التسلسل",
+        "type": "النوع",
+        "status": "الحالة",
+        "effectiveDate": "تاريخ السريان",
+        "nextReview": "المراجعة القادمة",
+        "reasonForRevision": "سبب الإصدار",
+        "files": "الملفات",
+        "createdBy": "أُنشئ بواسطة"
+      },
+      "cancelled": "ملغى: {{reason}}",
+      "attachedCount": "{{count}} مرفق"
+    },
+    "assignments": {
+      "title": "إسناد أدوار سير عمل المستند",
+      "addAssignment": "إضافة إسناد",
+      "columns": {
+        "role": "الدور",
+        "assignedPersonnel": "الأفراد المُسنَد إليهم",
+        "username": "اسم المستخدم",
+        "assignedAt": "تاريخ الإسناد",
+        "assignedBy": "أُسند بواسطة",
+        "actions": "الإجراءات"
+      },
+      "documentOwner": "مالك المستند",
+      "primarySystemOwner": "مالك النظام الأساسي",
+      "primaryOwner": "المالك الأساسي",
+      "removeTooltip": "إزالة إسناد سير العمل هذا",
+      "removeAria": "إزالة إسناد {{role}} لـ {{name}}",
+      "removedToast": "تمت إزالة إسناد الدور",
+      "removeFailedToast": "تعذّرت إزالة الإسناد: {{error}}",
+      "removeDialogTitle": "إزالة إسناد الدور",
+      "removeDialogMessage": "هل تريد إزالة إسناد هذا الدور من المستند؟ يتم الاحتفاظ بسجل الإسناد ويظل ظاهرًا في سجل التدقيق، حيث لا تُحذف السجلات المضبوطة أبدًا.",
+      "removeDialogConfirm": "إزالة الإسناد"
+    },
+    "audit": {
+      "title": "سجل التدقيق غير القابل للتعديل للسجل {{id}}",
+      "columns": {
+        "timestamp": "الطابع الزمني (UTC)",
+        "actionCode": "رمز الإجراء",
+        "category": "الفئة",
+        "actor": "المنفِّذ",
+        "reason": "السبب / المبرر",
+        "fieldChanges": "تغييرات الحقول"
+      },
+      "ctx": "السياق: {{context}}",
+      "auto": "تلقائي",
+      "empty": "لم تُسجَّل أحداث تدقيق لهذا السجل."
+    },
+    "technicalReview": {
+      "title": "تاريخ ومهام المراجعة الفنية",
+      "submitForReview": "إرسال للمراجعة",
+      "columns": {
+        "taskId": "معرّف المهمة",
+        "revision": "الإصدار",
+        "assignedReviewer": "المراجع المُسنَد إليه",
+        "status": "الحالة",
+        "assignedDate": "تاريخ الإسناد",
+        "dueDate": "تاريخ الاستحقاق",
+        "findings": "الملاحظات",
+        "actions": "الإجراءات"
+      },
+      "totalFindings": "{{count}} إجمالي",
+      "openMandatoryFindings": "{{count}} إلزامي مفتوح",
+      "dualPdf": "مقارنة PDF",
+      "openReview": "فتح المراجعة",
+      "empty": "لم تبدأ أي مهام مراجعة فنية لهذا الإصدار."
+    },
+    "periodicReview": {
+      "title": "تاريخ المراجعة الدورية المستقلة",
+      "subtitle": "سجلات المراجعة المستقلة الكاملة المحفوظة عبر جميع إصدارات هذا المستند الرئيسي",
+      "columns": {
+        "taskId": "معرّف المهمة",
+        "revision": "الإصدار",
+        "dueDate": "تاريخ الاستحقاق",
+        "status": "الحالة",
+        "outcome": "النتيجة",
+        "assignedCompletedBy": "أُسند / أُنجز بواسطة",
+        "findings": "الملاحظات",
+        "actions": "الإجراءات"
+      },
+      "overdue": "متأخر",
+      "notesCount": "{{count}} ملاحظات",
+      "workspace": "مساحة العمل",
+      "empty": "لم تُسجَّل مهام مراجعة دورية لهذا المستند الرئيسي."
+    }
+  },
+  "config": {
+    "title": "إعدادات ضبط المستندات",
+    "subtitle": "البيانات الرئيسية للنظام وأنظمة الترقيم وقواعد الحوكمة وإعدادات الوحدة",
+    "loadError": "تعذّر تحميل الإعدادات.",
+    "accessDenied": "<strong>تم رفض الوصول:</strong> لم يُمنح دورك صلاحية إدارة إعدادات ضبط المستندات.",
+    "tabs": {
+      "documentTypes": "أنواع المستندات ({{count}})",
+      "departmentsAndSections": "الأقسام الإدارية والمختبرية ({{count}})",
+      "numberingConfiguration": "إعدادات الترقيم",
+      "moduleSettings": "إعدادات الوحدة ({{count}})"
+    },
+    "types": {
+      "title": "دليل أنواع المستندات",
+      "addButton": "إضافة نوع مستند",
+      "editTooltip": "تعديل النوع",
+      "editAria": "تعديل نوع المستند {{code}}",
+      "required": "مطلوب",
+      "notRequired": "غير مطلوب",
+      "savedToast": "تم حفظ نوع المستند بنجاح.",
+      "saveFailedToast": "تعذّر حفظ نوع المستند: {{error}}",
+      "columns": {
+        "code": "الرمز",
+        "name": "الاسم",
+        "defaultReviewCycle": "دورة المراجعة الافتراضية",
+        "qaApprover": "مُعتمِد ضمان الجودة",
+        "status": "الحالة",
+        "actions": "الإجراءات"
+      },
+      "dialog": {
+        "editTitle": "تعديل نوع المستند",
+        "addTitle": "إضافة نوع مستند",
+        "codeLabel": "رمز النوع *",
+        "codePlaceholder": "مثال: SOP, POL, VAL",
+        "nameLabel": "اسم النوع *",
+        "namePlaceholder": "مثال: إجراء تشغيل قياسي",
+        "cycleLabel": "دورة المراجعة الافتراضية (أشهر) *",
+        "requiresQaLabel": "يتطلب مُعتمِد ضمان الجودة",
+        "requiresQaHelper": "عند التفعيل، لا يمكن اعتماد إصدار من هذا النوع إلا بواسطة مستخدم من ضمان الجودة.",
+        "activeStatus": "حالة التفعيل"
+      }
+    },
+    "departments": {
+      "title": "الأقسام الإدارية وأقسام المختبر",
+      "info_zero": "لا توجد أقسام مُهيّأة. تتم الآن إدارة الأقسام الإدارية والأقسام المختبرية والمنتمين إليها في الإدارة > الهيكل التنظيمي، حيث يتطلب كل تغيير ذكر السبب، ويتطلب تعطيل قسم لا يزال قيد الاستخدام تأكيدًا.",
+      "info_one": "تمت تهيئة قسم واحد. تتم الآن إدارة الأقسام الإدارية والأقسام المختبرية والمنتمين إليها في الإدارة > الهيكل التنظيمي، حيث يتطلب كل تغيير ذكر السبب، ويتطلب تعطيل قسم لا يزال قيد الاستخدام تأكيدًا.",
+      "info_two": "تمت تهيئة قسمين. تتم الآن إدارة الأقسام الإدارية والأقسام المختبرية والمنتمين إليها في الإدارة > الهيكل التنظيمي، حيث يتطلب كل تغيير ذكر السبب، ويتطلب تعطيل قسم لا يزال قيد الاستخدام تأكيدًا.",
+      "info_few": "تمت تهيئة {{count}} أقسام. تتم الآن إدارة الأقسام الإدارية والأقسام المختبرية والمنتمين إليها في الإدارة > الهيكل التنظيمي، حيث يتطلب كل تغيير ذكر السبب، ويتطلب تعطيل قسم لا يزال قيد الاستخدام تأكيدًا.",
+      "info_many": "تمت تهيئة {{count}} قسمًا. تتم الآن إدارة الأقسام الإدارية والأقسام المختبرية والمنتمين إليها في الإدارة > الهيكل التنظيمي، حيث يتطلب كل تغيير ذكر السبب، ويتطلب تعطيل قسم لا يزال قيد الاستخدام تأكيدًا.",
+      "info_other": "تمت تهيئة {{count}} قسم. تتم الآن إدارة الأقسام الإدارية والأقسام المختبرية والمنتمين إليها في الإدارة > الهيكل التنظيمي، حيث يتطلب كل تغيير ذكر السبب، ويتطلب تعطيل قسم لا يزال قيد الاستخدام تأكيدًا.",
+      "openOrganization": "فتح الهيكل التنظيمي"
+    },
+    "numbering": {
+      "title": "نظام ترقيم معرّف مستند MicroLIMS",
+      "info": "يقوم هذا الإعداد بتنسيق <strong>معرّف مستند MicroLIMS</strong> المُعيَّن من النظام (مثل <code>DOC-0000001</code>). وهو لا يستبدل أو يعدّل رموز المستندات الخاصة بالشركة. تُدار عمليات سحب التسلسل بصرامة عبر تسلسلات PostgreSQL ولا يمكن إعادة تعيينها من خلال التطبيق لحماية سلامة البيانات.",
+      "sampleTitle": "عينة معرّف مستند مُولَّد",
+      "lastModifiedBy": "آخر تعديل بواسطة: {{user}} في {{date}}",
+      "prefixLabel": "البادئة *",
+      "prefixHelper": "مثال: DOC-, SOP-, QA-",
+      "formatLabel": "تنسيق الرقم (نمط مملوء بالأصفار) *",
+      "formatHelper": "مثال: 0000000 (7 أرقام)، 00000 (5 أرقام)",
+      "enableTitle": "تفعيل الترقيم التسلسلي التلقائي",
+      "enableSubtitle": "ملف الترقيم النشط",
+      "saving": "جارٍ تحديث النظام...",
+      "save": "حفظ إعدادات الترقيم",
+      "updatedToast": "تم تحديث إعدادات الترقيم بنجاح.",
+      "updateFailedToast": "تعذّر تحديث الترقيم: {{error}}"
+    },
+    "settings": {
+      "title": "إعدادات حوكمة وحدة ضبط المستندات",
+      "columns": {
+        "group": "المجموعة",
+        "settingKey": "مفتاح الإعداد",
+        "value": "القيمة",
+        "dataType": "نوع البيانات",
+        "modifiedBy": "عُدِّل بواسطة",
+        "action": "الإجراء"
+      },
+      "editAria": "تعديل الإعداد {{key}}",
+      "dialogTitle": "تعديل إعداد التكوين",
+      "keyLine": "المفتاح: <strong>{{key}}</strong>",
+      "valueLabel": "قيمة الإعداد *",
+      "saveButton": "حفظ الإعداد",
+      "updatedToast": "تم تحديث الإعداد بنجاح.",
+      "updateFailedToast": "تعذّر تحديث الإعداد: {{error}}"
+    }
+  },
+  "trainingMatrix": {
+    "title": "مصفوفة التدريب",
+    "subtitle": "مصفوفة تأهيل متعددة المحاور تربط الأفراد بمتطلبات تدريب المستند المضبوط.",
+    "complianceDashboard": "لوحة الامتثال",
+    "loadError": "تعذّر تحميل مصفوفة التدريب.",
+    "kpis": {
+      "personnelTracked": "الأفراد المتابعون",
+      "qualifiedCells": "الخلايا المؤهَّلة",
+      "pendingCells": "الخلايا المعلَّقة",
+      "overdueCells": "الخلايا المتأخرة",
+      "supersededGaps": "فجوات الإصدارات المُستبدَلة"
+    },
+    "filters": {
+      "searchPlaceholder": "ابحث باسم الفرد أو اسم المستخدم أو الدور...",
+      "clearSearchAria": "مسح البحث",
+      "department": "القسم الإداري",
+      "allDepartments": "جميع الأقسام",
+      "qualificationStatus": "حالة التأهيل",
+      "allStates": "جميع الحالات",
+      "refreshMatrix": "تحديث المصفوفة"
+    },
+    "statuses": {
+      "notAssignedTooltip": "غير مُسنَد / ليس ضمن المنهج",
+      "qualified": "مؤهَّل",
+      "qualifiedTooltip": "مؤهَّل (إصدار {{rev}})",
+      "pending": "قيد الانتظار",
+      "pendingTooltip": "بانتظار القراءة (الاستحقاق {{date}})",
+      "overdue": "متأخر",
+      "overdueTooltip": "متأخر بـ {{days}} يوم",
+      "trainedOnSupersededOnly": "مدرَّب على إصدار مُستبدَل فقط",
+      "trainedOnSupersededOnlyTooltip": "مؤهَّل على إصدار سابق فقط: فجوة إعادة تدريب"
+    },
+    "table": {
+      "personnelRole": "الأفراد / الدور",
+      "docHeaderTooltip": "{{code}}: {{title}} (الإصدار الحالي: {{rev}})",
+      "loading": "جارٍ احتساب مصفوفة تأهيل التدريب الفورية...",
+      "empty": "لا توجد سجلات أفراد مطابقة لمعايير التصفية."
+    },
+    "userDrawer": {
+      "title": "ملف امتثال المستخدم",
+      "closeAria": "إغلاق تفاصيل تدريب المستخدم",
+      "complianceScore": "نسبة الامتثال",
+      "documentsQualified": "{{completed}} من {{total}} مستندًا مؤهَّلاً",
+      "breakdownTitle": "تفصيل تدريب المستندات",
+      "currentRev": "الإصدار الحالي: {{rev}}",
+      "trainedRev": " | مدرَّب: إصدار {{rev}}"
+    },
+    "docDrawer": {
+      "title": "ملف امتثال المستند",
+      "closeAria": "إغلاق تفاصيل تدريب المستند",
+      "qualified": "مؤهَّل",
+      "overdue": "متأخر",
+      "personnelStatuses": "حالات تدريب الأفراد",
+      "due": "الاستحقاق: {{date}}"
+    }
+  }
+}

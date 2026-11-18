@@ -1,0 +1,332 @@
+{
+  "common": {
+    "unknownError": "unknown error",
+    "system": "System",
+    "systemOwner": "System Owner",
+    "none": "None",
+    "na": "N/A",
+    "tbd": "TBD",
+    "months": "{{count}} Months",
+    "active": "ACTIVE",
+    "deactivated": "DEACTIVATED",
+    "superseded": "SUPERSEDED",
+    "cancel": "Cancel",
+    "save": "Save",
+    "actions": "Actions",
+    "action": "Action",
+    "status": "Status",
+    "revision": "Revision",
+    "rev": "Rev {{number}}"
+  },
+  "detail": {
+    "unavailable": "Document unavailable",
+    "loadError": "Failed to load document details.",
+    "loading": "Loading document record...",
+    "backToLibrary": "Back to Library",
+    "documentLibrary": "Document Library",
+    "notFound": "Document not found.",
+    "migratedRecord": "MIGRATED RECORD",
+    "microLimsId": "MicroLIMS ID: <ltr>{{id}}</ltr>",
+    "department": "Department: <strong>{{department}}</strong> ({{sections}})",
+    "currentRevision": "Current Revision: <strong>{{number}}</strong> ({{status}})",
+    "owner": "Owner: <strong>{{owner}}</strong>",
+    "moreActions": "More actions",
+    "actions": {
+      "uploadControlledFile": "Upload controlled file",
+      "submitForTechnicalReview": "Submit for technical review",
+      "openTechnicalReview": "Open technical review ({{status}})",
+      "assignApprover": "Assign approver",
+      "openApprovalWorkspace": "Open approval workspace ({{status}})",
+      "createRevision": "Create revision",
+      "editMetadata": "Edit metadata",
+      "replaceControlledFile": "Replace controlled file",
+      "changeItems": "Change items",
+      "impactAssessment": "Impact assessment",
+      "cancelDraftRevision": "Cancel draft revision",
+      "voidDocumentMaster": "Void document master"
+    },
+    "waiting": {
+      "approverAssigned": "Waiting on the assigned approver. Only they can record the approval decision.",
+      "approverUnassigned": "Waiting for an approver to be assigned. The document owner, an assigned author or the Document Controller can route it for approval.",
+      "technicalReviewer": "Waiting on the assigned technical reviewer.",
+      "noActions": "No actions are available to you on this document in its current state."
+    },
+    "futureEffective": {
+      "title": "Revision {{number}} Scheduled for Automatic Activation (Future Effective)",
+      "body": "This revision has been approved and signed under <ltr>21 CFR Part 11</ltr>. It is scheduled for automated activation on <strong>{{date}}</strong>. The current effective revision remains fully active and authoritative until that time.",
+      "designatedDate": "the designated target date"
+    },
+    "voided": {
+      "banner": "<strong>RECORD VOIDED:</strong> This Document Master was voided on {{date}} by {{user}}.",
+      "justification": "<strong>Mandatory Justification:</strong> <em>\"{{reason}}\"</em>"
+    },
+    "tabs": {
+      "document": "Document",
+      "revisions": "Revisions ({{count}})",
+      "workflow": "Workflow ({{count}})",
+      "auditTrail": "Audit trail ({{count}})"
+    },
+    "overview": {
+      "governanceProperties": "Document Governance Properties",
+      "documentClassification": "Document Classification",
+      "confidentialityLevel": "Confidentiality Level",
+      "departmentAndSection": "Department & Section",
+      "category": "Category",
+      "reviewCycle": "Review Cycle",
+      "recordOrigin": "Record Origin",
+      "keywordsTitle": "Keywords & Search Tags",
+      "noKeywords": "No keywords assigned.",
+      "lifecycleTitle": "Life-Cycle Timestamps & Traceability",
+      "createdBy": "Created By",
+      "lastModifiedBy": "Last Modified By"
+    },
+    "files": {
+      "title": "Controlled Files on Revision {{number}}",
+      "uploadOrReplace": "Upload or Replace File",
+      "columns": {
+        "fileRole": "File Role",
+        "fileName": "File Name",
+        "size": "Size",
+        "checksum": "SHA-256 Checksum",
+        "status": "Status",
+        "uploadedBy": "Uploaded By",
+        "date": "Date",
+        "action": "Action"
+      },
+      "controlledPdf": "Controlled PDF",
+      "sourceDocx": "Source DOCX",
+      "sizeKb": "{{size}} KB",
+      "viewPdfAria": "View controlled PDF {{name}}",
+      "downloadAria": "Download {{name}}",
+      "empty": "No files currently uploaded for this revision.",
+      "downloadFailed": "Download failed: {{error}}"
+    },
+    "revisions": {
+      "title": "Revision History Register",
+      "columns": {
+        "revision": "Revision",
+        "seq": "Seq",
+        "type": "Type",
+        "status": "Status",
+        "effectiveDate": "Effective Date",
+        "nextReview": "Next Review",
+        "reasonForRevision": "Reason for Revision",
+        "files": "Files",
+        "createdBy": "Created By"
+      },
+      "cancelled": "Cancelled: {{reason}}",
+      "attachedCount": "{{count}} attached"
+    },
+    "assignments": {
+      "title": "Document Workflow Role Assignments",
+      "addAssignment": "Add Assignment",
+      "columns": {
+        "role": "Role",
+        "assignedPersonnel": "Assigned Personnel",
+        "username": "Username",
+        "assignedAt": "Assigned At",
+        "assignedBy": "Assigned By",
+        "actions": "Actions"
+      },
+      "documentOwner": "Document Owner",
+      "primarySystemOwner": "Primary System Owner",
+      "primaryOwner": "Primary Owner",
+      "removeTooltip": "Remove this workflow assignment",
+      "removeAria": "Remove {{role}} assignment for {{name}}",
+      "removedToast": "Role assignment removed",
+      "removeFailedToast": "Failed to remove assignment: {{error}}",
+      "removeDialogTitle": "Remove Role Assignment",
+      "removeDialogMessage": "Remove this role assignment from the document? The assignment record is retained and remains visible in the audit trail, as controlled records are never deleted.",
+      "removeDialogConfirm": "Remove Assignment"
+    },
+    "audit": {
+      "title": "Immutable Audit History for Record {{id}}",
+      "columns": {
+        "timestamp": "Timestamp (UTC)",
+        "actionCode": "Action Code",
+        "category": "Category",
+        "actor": "Actor",
+        "reason": "Reason / Justification",
+        "fieldChanges": "Field Changes"
+      },
+      "ctx": "Ctx: {{context}}",
+      "auto": "AUTO",
+      "empty": "No audit events recorded for this record."
+    },
+    "technicalReview": {
+      "title": "Technical Review History & Tasks",
+      "submitForReview": "Submit for Review",
+      "columns": {
+        "taskId": "Task ID",
+        "revision": "Revision",
+        "assignedReviewer": "Assigned Reviewer",
+        "status": "Status",
+        "assignedDate": "Assigned Date",
+        "dueDate": "Due Date",
+        "findings": "Findings",
+        "actions": "Actions"
+      },
+      "totalFindings": "{{count}} Total",
+      "openMandatoryFindings": "{{count}} Open Mandatory",
+      "dualPdf": "Dual PDF",
+      "openReview": "Open Review",
+      "empty": "No technical review tasks initiated for this revision."
+    },
+    "periodicReview": {
+      "title": "Independent Periodic Review History",
+      "subtitle": "Complete independent review records preserved across all revisions of this document master",
+      "columns": {
+        "taskId": "Task ID",
+        "revision": "Revision",
+        "dueDate": "Due Date",
+        "status": "Status",
+        "outcome": "Outcome",
+        "assignedCompletedBy": "Assigned / Completed By",
+        "findings": "Findings",
+        "actions": "Actions"
+      },
+      "overdue": "OVERDUE",
+      "notesCount": "{{count}} notes",
+      "workspace": "Workspace",
+      "empty": "No periodic review tasks recorded for this document master."
+    }
+  },
+  "config": {
+    "title": "Document Control Configuration",
+    "subtitle": "System Master Data, Numbering Schemes, Governance Rules, and Module Settings",
+    "loadError": "Failed to load configuration.",
+    "accessDenied": "<strong>Access Denied:</strong> Your role has not been granted Document Control configuration management.",
+    "tabs": {
+      "documentTypes": "Document Types ({{count}})",
+      "departmentsAndSections": "Departments & Sections ({{count}})",
+      "numberingConfiguration": "Numbering Configuration",
+      "moduleSettings": "Module Settings ({{count}})"
+    },
+    "types": {
+      "title": "Document Types Master",
+      "addButton": "Add Document Type",
+      "editTooltip": "Edit Type",
+      "editAria": "Edit document type {{code}}",
+      "required": "Required",
+      "notRequired": "Not required",
+      "savedToast": "Document Type saved successfully.",
+      "saveFailedToast": "Failed to save Document Type: {{error}}",
+      "columns": {
+        "code": "Code",
+        "name": "Name",
+        "defaultReviewCycle": "Default Review Cycle",
+        "qaApprover": "QA Approver",
+        "status": "Status",
+        "actions": "Actions"
+      },
+      "dialog": {
+        "editTitle": "Edit Document Type",
+        "addTitle": "Add Document Type",
+        "codeLabel": "Type Code *",
+        "codePlaceholder": "e.g. SOP, POL, VAL",
+        "nameLabel": "Type Name *",
+        "namePlaceholder": "e.g. Standard Operating Procedure",
+        "cycleLabel": "Default Review Cycle (Months) *",
+        "requiresQaLabel": "Requires a Quality Assurance approver",
+        "requiresQaHelper": "When on, a revision of this type can only be approved by a Quality Assurance user.",
+        "activeStatus": "Active Status"
+      }
+    },
+    "departments": {
+      "title": "Departments and Laboratory Sections",
+      "info_one": "{{count}} department is configured. Departments, sections and who belongs to them are now managed in Administration > Organization, where every change asks for a reason and deactivating one that is still in use asks for confirmation.",
+      "info_other": "{{count}} departments are configured. Departments, sections and who belongs to them are now managed in Administration > Organization, where every change asks for a reason and deactivating one that is still in use asks for confirmation.",
+      "openOrganization": "Open Organization"
+    },
+    "numbering": {
+      "title": "MicroLIMS Document ID Numbering Scheme",
+      "info": "This configuration formats the system-assigned <strong>MicroLIMS Document ID</strong> (e.g. <code>DOC-0000001</code>). It does not replace or modify company-specific document codes. Sequence drawing is strictly managed by PostgreSQL sequences and cannot be reset through the application to protect data integrity.",
+      "sampleTitle": "Sample Generated Document ID",
+      "lastModifiedBy": "Last modified by: {{user}} on {{date}}",
+      "prefixLabel": "Prefix *",
+      "prefixHelper": "E.g. DOC-, SOP-, QA-",
+      "formatLabel": "Number Format (Zero-Padded Pattern) *",
+      "formatHelper": "E.g. 0000000 (7 digits), 00000 (5 digits)",
+      "enableTitle": "Enable Automated Sequence Numbering",
+      "enableSubtitle": "Active numbering profile",
+      "saving": "Updating Scheme...",
+      "save": "Save Numbering Configuration",
+      "updatedToast": "Numbering configuration updated successfully.",
+      "updateFailedToast": "Failed to update numbering: {{error}}"
+    },
+    "settings": {
+      "title": "Document Control Module Governance Settings",
+      "columns": {
+        "group": "Group",
+        "settingKey": "Setting Key",
+        "value": "Value",
+        "dataType": "Data Type",
+        "modifiedBy": "Modified By",
+        "action": "Action"
+      },
+      "editAria": "Edit setting {{key}}",
+      "dialogTitle": "Edit Configuration Setting",
+      "keyLine": "Key: <strong>{{key}}</strong>",
+      "valueLabel": "Setting Value *",
+      "saveButton": "Save Setting",
+      "updatedToast": "Setting updated successfully.",
+      "updateFailedToast": "Failed to update setting: {{error}}"
+    }
+  },
+  "trainingMatrix": {
+    "title": "Training Matrix",
+    "subtitle": "Multi-axis qualification matrix mapping personnel to controlled document training requirements.",
+    "complianceDashboard": "Compliance Dashboard",
+    "loadError": "Failed to load Training Matrix.",
+    "kpis": {
+      "personnelTracked": "PERSONNEL TRACKED",
+      "qualifiedCells": "QUALIFIED CELLS",
+      "pendingCells": "PENDING CELLS",
+      "overdueCells": "OVERDUE CELLS",
+      "supersededGaps": "SUPERSEDED GAPS"
+    },
+    "filters": {
+      "searchPlaceholder": "Search personnel name, username, or role...",
+      "clearSearchAria": "Clear search",
+      "department": "Department",
+      "allDepartments": "All Departments",
+      "qualificationStatus": "Qualification Status",
+      "allStates": "All States",
+      "refreshMatrix": "Refresh Matrix"
+    },
+    "statuses": {
+      "notAssignedTooltip": "Not Assigned / Not in Curriculum",
+      "qualified": "Qualified",
+      "qualifiedTooltip": "Qualified (Rev {{rev}})",
+      "pending": "Pending",
+      "pendingTooltip": "Pending Reading (Due {{date}})",
+      "overdue": "Overdue",
+      "overdueTooltip": "OVERDUE by {{days}}d",
+      "trainedOnSupersededOnly": "Trained on Superseded Only",
+      "trainedOnSupersededOnlyTooltip": "Qualified on Prior Revision Only: Retraining Gap"
+    },
+    "table": {
+      "personnelRole": "Personnel / Role",
+      "docHeaderTooltip": "{{code}}: {{title}} (Current Rev: {{rev}})",
+      "loading": "Computing real-time training qualification matrix...",
+      "empty": "No personnel records matched your filter criteria."
+    },
+    "userDrawer": {
+      "title": "User Compliance Profile",
+      "closeAria": "Close user training details",
+      "complianceScore": "COMPLIANCE SCORE",
+      "documentsQualified": "{{completed}} of {{total}} documents qualified",
+      "breakdownTitle": "Document Training Breakdown",
+      "currentRev": "Current Rev: {{rev}}",
+      "trainedRev": " | Trained: Rev {{rev}}"
+    },
+    "docDrawer": {
+      "title": "Document Compliance Profile",
+      "closeAria": "Close document training details",
+      "qualified": "QUALIFIED",
+      "overdue": "OVERDUE",
+      "personnelStatuses": "Personnel Training Statuses",
+      "due": "Due: {{date}}"
+    }
+  }
+}

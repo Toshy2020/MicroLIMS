@@ -41,6 +41,8 @@ import CloseIcon from "@mui/icons-material/Close";
 import PersonIcon from "@mui/icons-material/Person";
 import AssessmentOutlinedIcon from "@mui/icons-material/AssessmentOutlined";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "../../../i18n";
+import { getErrorMessage, serverMessage } from "../../../utils/errorMessage";
 
 import { PageHeader } from "../../../components/PageHeader";
 import { trainingMatrixService } from "../services/trainingMatrixService";
@@ -58,6 +60,7 @@ import { compactChipStrongSx, compactChipSx } from "../documentControlStyles";
 import { formatLabCalendarDate } from "../../../utils/formatDate";
 
 export function TrainingMatrixPage() {
+  const { t } = useTranslation("documentControl");
   const navigate = useNavigate();
 
   // Grid State
@@ -96,12 +99,12 @@ export function TrainingMatrixPage() {
         complianceStatus: complianceStatus === "ALL" ? undefined : complianceStatus
       });
       setGridData(data);
-    } catch (err: any) {
-      setError(err?.response?.data?.message || err?.message || "Failed to load Training Matrix.");
+    } catch (err: unknown) {
+      setError(serverMessage(err) ?? getErrorMessage(err, t("trainingMatrix.loadError")));
     } finally {
       setLoading(false);
     }
-  }, [departmentId, complianceStatus]);
+  }, [departmentId, complianceStatus, t]);
 
   useEffect(() => {
     loadMatrix();
@@ -167,7 +170,7 @@ export function TrainingMatrixPage() {
   const renderCellBadge = (cell?: TrainingMatrixCellDto) => {
     if (!cell || cell.cellStatus === "NotAssigned") {
       return (
-        <Tooltip title="Not Assigned / Not in Curriculum">
+        <Tooltip title={t("trainingMatrix.statuses.notAssignedTooltip")}>
           <Box sx={{ display: "flex", justifyContent: "center", color: "text.disabled" }}>
             <RemoveIcon fontSize="small" />
           </Box>
@@ -178,10 +181,10 @@ export function TrainingMatrixPage() {
     switch (cell.cellStatus) {
       case "Qualified":
         return (
-          <Tooltip title={`Qualified (Rev ${cell.assignedRevisionNumber || cell.currentEffectiveRevisionNumber})`}>
+          <Tooltip title={t("trainingMatrix.statuses.qualifiedTooltip", { rev: cell.assignedRevisionNumber || cell.currentEffectiveRevisionNumber })}>
             <Chip
               icon={<CheckCircleIcon sx={{ fontSize: "14px !important" }} />}
-              label="Qualified"
+              label={t("trainingMatrix.statuses.qualified")}
               size="small"
               color="success"
               sx={compactChipStrongSx}
@@ -191,10 +194,10 @@ export function TrainingMatrixPage() {
         );
       case "Pending":
         return (
-          <Tooltip title={`Pending Reading (Due ${cell.dueDateUtc ? formatLabCalendarDate(cell.dueDateUtc) : "TBD"})`}>
+          <Tooltip title={t("trainingMatrix.statuses.pendingTooltip", { date: cell.dueDateUtc ? formatLabCalendarDate(cell.dueDateUtc) : t("common.tbd") })}>
             <Chip
               icon={<ScheduleIcon sx={{ fontSize: "14px !important" }} />}
-              label="Pending"
+              label={t("trainingMatrix.statuses.pending")}
               size="small"
               color="warning"
               sx={compactChipStrongSx}
@@ -204,10 +207,10 @@ export function TrainingMatrixPage() {
         );
       case "Overdue":
         return (
-          <Tooltip title={`OVERDUE by ${cell.daysRemainingOrOverdue ? Math.abs(cell.daysRemainingOrOverdue) : ""}d`}>
+          <Tooltip title={t("trainingMatrix.statuses.overdueTooltip", { days: cell.daysRemainingOrOverdue ? Math.abs(cell.daysRemainingOrOverdue) : "" })}>
             <Chip
               icon={<ErrorIcon sx={{ fontSize: "14px !important" }} />}
-              label="Overdue"
+              label={t("trainingMatrix.statuses.overdue")}
               size="small"
               color="error"
               sx={compactChipStrongSx}
@@ -217,10 +220,10 @@ export function TrainingMatrixPage() {
         );
       case "TrainedOnSupersededOnly":
         return (
-          <Tooltip title="Qualified on Prior Revision Only: Retraining Gap">
+          <Tooltip title={t("trainingMatrix.statuses.trainedOnSupersededOnlyTooltip")}>
             <Chip
               icon={<WarningIcon sx={{ fontSize: "14px !important" }} />}
-              label="Trained on Superseded Only"
+              label={t("trainingMatrix.statuses.trainedOnSupersededOnly")}
               size="small"
               color="warning"
               sx={compactChipStrongSx}
@@ -244,15 +247,15 @@ export function TrainingMatrixPage() {
   return (
     <Box sx={{ pb: 4 }}>
       <PageHeader
-        title="Training Matrix"
-        subtitle="Multi-axis qualification matrix mapping personnel to controlled document training requirements."
+        title={t("trainingMatrix.title")}
+        subtitle={t("trainingMatrix.subtitle")}
       >
         <Button
           variant="outlined"
           startIcon={<AssessmentOutlinedIcon />}
           onClick={() => navigate("/document-control/compliance-dashboard")}
         >
-          Compliance Dashboard
+          {t("trainingMatrix.complianceDashboard")}
         </Button>
       </PageHeader>
 
@@ -279,7 +282,7 @@ export function TrainingMatrixPage() {
                     color: "text.secondary",
                     fontWeight: "bold"
                   }}>
-                  PERSONNEL TRACKED
+                  {t("trainingMatrix.kpis.personnelTracked")}
                 </Typography>
                 <Typography variant="h5" sx={{
                   fontWeight: "bold"
@@ -303,7 +306,7 @@ export function TrainingMatrixPage() {
                     color: "success.main",
                     fontWeight: "bold"
                   }}>
-                  QUALIFIED CELLS
+                  {t("trainingMatrix.kpis.qualifiedCells")}
                 </Typography>
                 <Typography
                   variant="h5"
@@ -330,7 +333,7 @@ export function TrainingMatrixPage() {
                     color: "warning.main",
                     fontWeight: "bold"
                   }}>
-                  PENDING CELLS
+                  {t("trainingMatrix.kpis.pendingCells")}
                 </Typography>
                 <Typography
                   variant="h5"
@@ -357,7 +360,7 @@ export function TrainingMatrixPage() {
                     color: "error.main",
                     fontWeight: "bold"
                   }}>
-                  OVERDUE CELLS
+                  {t("trainingMatrix.kpis.overdueCells")}
                 </Typography>
                 <Typography
                   variant="h5"
@@ -379,7 +382,7 @@ export function TrainingMatrixPage() {
             <Card variant="outlined" sx={{ bgcolor: (t) => t.custom.status.action.bg}}>
               <CardContent sx={{ py: 1.5, "&:last-child": { pb: 1.5 } }}>
                 <Typography variant="caption" sx={{ color: (t) => t.palette.mode === "dark" ? "warning.light" : "warning.dark", fontWeight: "bold" }}>
-                  SUPERSEDED GAPS
+                  {t("trainingMatrix.kpis.supersededGaps")}
                 </Typography>
                 <Typography
                   variant="h5"
@@ -414,7 +417,7 @@ export function TrainingMatrixPage() {
             }}>
             <TextField
               size="small"
-              placeholder="Search personnel name, username, or role..."
+              placeholder={t("trainingMatrix.filters.searchPlaceholder")}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               sx={{ minWidth: 320 }}
@@ -427,7 +430,7 @@ export function TrainingMatrixPage() {
                   ),
                   endAdornment: searchQuery ? (
                     <InputAdornment position="end">
-                      <IconButton aria-label="Clear search" size="small" onClick={() => setSearchQuery("")}>
+                      <IconButton aria-label={t("trainingMatrix.filters.clearSearchAria")} size="small" onClick={() => setSearchQuery("")}>
                         <ClearIcon fontSize="small" />
                       </IconButton>
                     </InputAdornment>
@@ -437,14 +440,14 @@ export function TrainingMatrixPage() {
             />
 
             <FormControl size="small" sx={{ minWidth: 180 }}>
-              <InputLabel id="dept-filter-label">Department</InputLabel>
+              <InputLabel id="dept-filter-label">{t("trainingMatrix.filters.department")}</InputLabel>
               <Select
                 labelId="dept-filter-label"
                 value={departmentId}
-                label="Department"
+                label={t("trainingMatrix.filters.department")}
                 onChange={(e) => setDepartmentId(e.target.value)}
               >
-                <MenuItem value="ALL">All Departments</MenuItem>
+                <MenuItem value="ALL">{t("trainingMatrix.filters.allDepartments")}</MenuItem>
                 {departments.map((d) => (
                   <MenuItem key={d.id} value={d.id.toString()}>{d.name}</MenuItem>
                 ))}
@@ -452,11 +455,11 @@ export function TrainingMatrixPage() {
             </FormControl>
 
             <FormControl size="small" sx={{ minWidth: 180 }}>
-              <InputLabel id="status-filter-label">Qualification Status</InputLabel>
+              <InputLabel id="status-filter-label">{t("trainingMatrix.filters.qualificationStatus")}</InputLabel>
               <Select
                 labelId="status-filter-label"
                 value={complianceStatus}
-                label="Qualification Status"
+                label={t("trainingMatrix.filters.qualificationStatus")}
                 onChange={(e) => setComplianceStatus(e.target.value)}
                 startAdornment={
                   <InputAdornment position="start">
@@ -464,11 +467,11 @@ export function TrainingMatrixPage() {
                   </InputAdornment>
                 }
               >
-                <MenuItem value="ALL">All States</MenuItem>
-                <MenuItem value="Qualified">Qualified</MenuItem>
-                <MenuItem value="Pending">Pending</MenuItem>
-                <MenuItem value="Overdue">Overdue</MenuItem>
-                <MenuItem value="TrainedOnSupersededOnly">Trained on Superseded Only</MenuItem>
+                <MenuItem value="ALL">{t("trainingMatrix.filters.allStates")}</MenuItem>
+                <MenuItem value="Qualified">{t("trainingMatrix.statuses.qualified")}</MenuItem>
+                <MenuItem value="Pending">{t("trainingMatrix.statuses.pending")}</MenuItem>
+                <MenuItem value="Overdue">{t("trainingMatrix.statuses.overdue")}</MenuItem>
+                <MenuItem value="TrainedOnSupersededOnly">{t("trainingMatrix.statuses.trainedOnSupersededOnly")}</MenuItem>
               </Select>
             </FormControl>
           </Stack>
@@ -480,7 +483,7 @@ export function TrainingMatrixPage() {
             onClick={() => loadMatrix()}
             disabled={loading}
           >
-            Refresh Matrix
+            {t("trainingMatrix.filters.refreshMatrix")}
           </Button>
         </Stack>
       </Paper>
@@ -491,7 +494,7 @@ export function TrainingMatrixPage() {
           <TableHead>
             <TableRow>
               <TableCell sx={{ minWidth: 220, bgcolor: (t) => t.palette.mode === "dark" ? "background.paper" : "grey.100", fontWeight: 700, zIndex: 3 }}>
-                Personnel / Role
+                {t("trainingMatrix.table.personnelRole")}
               </TableCell>
               {gridData?.documents.map((doc) => (
                 <TableCell
@@ -507,7 +510,7 @@ export function TrainingMatrixPage() {
                   }}
                   onClick={() => handleDocClick(doc)}
                 >
-                  <Tooltip title={`${doc.companyDocumentCode}: ${doc.title} (Current Rev: ${doc.currentEffectiveRevisionNumber || "None"})`}>
+                  <Tooltip title={t("trainingMatrix.table.docHeaderTooltip", { code: doc.companyDocumentCode, title: doc.title, rev: doc.currentEffectiveRevisionNumber || t("common.none") })}>
                     <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
                       <Typography
                         variant="caption"
@@ -520,7 +523,7 @@ export function TrainingMatrixPage() {
                         {doc.companyDocumentCode}
                       </Typography>
                       <Chip
-                        label={`Rev ${doc.currentEffectiveRevisionNumber || "N/A"}`}
+                        label={t("common.rev", { number: doc.currentEffectiveRevisionNumber || t("common.na") })}
                         size="small"
                         sx={{ ...compactChipSx, mt: 0.2 }}
                       />
@@ -538,7 +541,7 @@ export function TrainingMatrixPage() {
                   <Typography variant="body2" sx={{
                     color: "text.secondary"
                   }}>
-                    Computing real-time training qualification matrix...
+                    {t("trainingMatrix.table.loading")}
                   </Typography>
                 </TableCell>
               </TableRow>
@@ -548,7 +551,7 @@ export function TrainingMatrixPage() {
                   <Typography variant="body2" sx={{
                     color: "text.secondary"
                   }}>
-                    No personnel records matched your filter criteria.
+                    {t("trainingMatrix.table.empty")}
                   </Typography>
                 </TableCell>
               </TableRow>
@@ -628,7 +631,7 @@ export function TrainingMatrixPage() {
             <Typography variant="h6" sx={{
               fontWeight: "bold"
             }}>
-              User Compliance Profile
+              {t("trainingMatrix.userDrawer.title")}
             </Typography>
             <Typography variant="body2" sx={{
               color: "text.secondary"
@@ -636,7 +639,7 @@ export function TrainingMatrixPage() {
               {selectedUser?.fullName} ({selectedUser?.roleName})
             </Typography>
           </Box>
-          <IconButton aria-label="Close user training details" size="small" onClick={() => setSelectedUser(null)}>
+          <IconButton aria-label={t("trainingMatrix.userDrawer.closeAria")} size="small" onClick={() => setSelectedUser(null)}>
             <CloseIcon />
           </IconButton>
         </Box>
@@ -655,7 +658,7 @@ export function TrainingMatrixPage() {
                   color: "text.secondary",
                   fontWeight: "bold"
                 }}>
-                COMPLIANCE SCORE
+                {t("trainingMatrix.userDrawer.complianceScore")}
               </Typography>
               <Typography variant="h4" color={userCompliance.complianceRatePercentage >= 90 ? "success.main" : "warning.main"} sx={{
                 fontWeight: "bold"
@@ -665,14 +668,14 @@ export function TrainingMatrixPage() {
               <Typography variant="caption" sx={{
                 color: "text.secondary"
               }}>
-                {userCompliance.completedDocuments} of {userCompliance.totalRequiredDocuments} documents qualified
+                {t("trainingMatrix.userDrawer.documentsQualified", { completed: userCompliance.completedDocuments, total: userCompliance.totalRequiredDocuments })}
               </Typography>
             </Paper>
 
             <Typography variant="subtitle2" sx={{
               fontWeight: "bold"
             }}>
-              Document Training Breakdown
+              {t("trainingMatrix.userDrawer.breakdownTitle")}
             </Typography>
             <Stack spacing={1}>
               {userCompliance.documentStatuses.map((ds) => (
@@ -698,8 +701,8 @@ export function TrainingMatrixPage() {
                       <Typography variant="caption" sx={{
                         color: "text.secondary"
                       }}>
-                        Current Rev: {ds.currentEffectiveRevisionNumber || "N/A"}
-                        {ds.assignedRevisionNumber ? ` | Trained: Rev ${ds.assignedRevisionNumber}` : ""}
+                        {t("trainingMatrix.userDrawer.currentRev", { rev: ds.currentEffectiveRevisionNumber || t("common.na") })}
+                        {ds.assignedRevisionNumber ? t("trainingMatrix.userDrawer.trainedRev", { rev: ds.assignedRevisionNumber }) : ""}
                       </Typography>
                     </Box>
                     {renderCellBadge(ds)}
@@ -725,7 +728,7 @@ export function TrainingMatrixPage() {
             <Typography variant="h6" sx={{
               fontWeight: "bold"
             }}>
-              Document Compliance Profile
+              {t("trainingMatrix.docDrawer.title")}
             </Typography>
             <Typography variant="body2" sx={{
               color: "text.secondary"
@@ -733,7 +736,7 @@ export function TrainingMatrixPage() {
               {selectedDoc?.companyDocumentCode}: {selectedDoc?.title}
             </Typography>
           </Box>
-          <IconButton aria-label="Close document training details" size="small" onClick={() => setSelectedDoc(null)}>
+          <IconButton aria-label={t("trainingMatrix.docDrawer.closeAria")} size="small" onClick={() => setSelectedDoc(null)}>
             <CloseIcon />
           </IconButton>
         </Box>
@@ -753,7 +756,7 @@ export function TrainingMatrixPage() {
                     sx={{
                       color: "success.main",
                       fontWeight: "bold"
-                    }}>QUALIFIED</Typography>
+                    }}>{t("trainingMatrix.docDrawer.qualified")}</Typography>
                   <Typography
                     variant="h5"
                     sx={{
@@ -769,7 +772,7 @@ export function TrainingMatrixPage() {
                     sx={{
                       color: "error.main",
                       fontWeight: "bold"
-                    }}>OVERDUE</Typography>
+                    }}>{t("trainingMatrix.docDrawer.overdue")}</Typography>
                   <Typography
                     variant="h5"
                     sx={{
@@ -783,7 +786,7 @@ export function TrainingMatrixPage() {
             <Typography variant="subtitle2" sx={{
               fontWeight: "bold"
             }}>
-              Personnel Training Statuses
+              {t("trainingMatrix.docDrawer.personnelStatuses")}
             </Typography>
             <Stack spacing={1}>
               {docCompliance.userStatuses.map((us) => (
@@ -799,7 +802,7 @@ export function TrainingMatrixPage() {
                         <Typography variant="caption" sx={{
                           color: "text.secondary"
                         }}>
-                          Due: {formatLabCalendarDate(us.dueDateUtc)}
+                          {t("trainingMatrix.docDrawer.due", { date: formatLabCalendarDate(us.dueDateUtc) })}
                         </Typography>
                       )}
                     </Box>

@@ -16,6 +16,7 @@ vi.mock("../services/documentControlService", () => ({ documentControlService: s
 
 import { lightTheme } from "../../../theme";
 import { AuthProvider, type Role } from "../../../contexts/AuthContext";
+import { i18n } from "../../../i18n";
 import { DocumentConfigurationPage } from "./DocumentConfigurationPage";
 
 function seedAuth(permissions: string[], role: Role = "SystemAdministrator") {
@@ -66,9 +67,10 @@ describe("DocumentConfigurationPage access", () => {
     });
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     cleanup();
     vi.clearAllMocks();
+    await i18n.changeLanguage("en");
   });
 
   // The screen follows the Documents.ConfigManage permission the server checks, not the role name.
@@ -160,5 +162,16 @@ describe("DocumentConfigurationPage access", () => {
     expect(await screen.findByText("SOP")).toBeTruthy();
     expect(screen.getByText("Required")).toBeTruthy();
     expect(screen.getByText("Not required")).toBeTruthy();
+  });
+
+  it("renders headings and tabs in Arabic when Arabic is active", async () => {
+    await i18n.changeLanguage("ar");
+    await i18n.loadNamespaces(["documentControl"]);
+    seedAuth(["Documents.ConfigManage"], "SystemAdministrator");
+
+    renderPage();
+
+    expect(await screen.findByText("إعدادات ضبط المستندات")).toBeTruthy();
+    expect(screen.getByRole("tab", { name: /أنواع المستندات/ })).toBeTruthy();
   });
 });

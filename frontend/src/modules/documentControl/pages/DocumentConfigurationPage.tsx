@@ -33,7 +33,9 @@ import {
 import AddIcon from "@mui/icons-material/Add";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import { Link as RouterLink } from "react-router-dom";
+import { Trans } from "react-i18next";
 import { toast } from "sonner";
+import { useTranslation } from "../../../i18n";
 
 import { PageHeader } from "../../../components/PageHeader";
 import { tableHeadSx } from "../../../theme";
@@ -50,6 +52,7 @@ import type {
 import { formatDateTimeWithTimeZone } from "../../../utils/formatDate";
 
 export function DocumentConfigurationPage() {
+  const { t } = useTranslation("documentControl");
   const theme = useTheme();
   const { permissions } = useAuth();
   // Configuration is the Documents.ConfigManage permission (the System Administrator holds it by default), not a role.
@@ -97,7 +100,7 @@ export function DocumentConfigurationPage() {
       });
       setSettings(sRes);
     } catch (err: unknown) {
-      setError(serverMessage(err) ?? getErrorMessage(err, "Failed to load configuration."));
+      setError(serverMessage(err) ?? getErrorMessage(err, t("config.loadError")));
     } finally {
       setLoading(false);
     }
@@ -112,7 +115,11 @@ export function DocumentConfigurationPage() {
     return (
       <Box sx={{ p: 4, maxWidth: 800, mx: "auto" }}>
         <Alert severity="error">
-          <strong>Access Denied:</strong> Your role has not been granted Document Control configuration management.
+          <Trans
+            i18nKey="config.accessDenied"
+            ns="documentControl"
+            components={{ strong: <strong /> }}
+          />
         </Alert>
       </Box>
     );
@@ -138,9 +145,9 @@ export function DocumentConfigurationPage() {
       }
       setTypeDialogOpen(false);
       loadAll();
-      toast.success("Document Type saved successfully.");
+      toast.success(t("config.types.savedToast"));
     } catch (err: unknown) {
-      toast.error("Failed to save Document Type: " + (serverMessage(err) ?? getErrorMessage(err, "Unknown error.")));
+      toast.error(t("config.types.saveFailedToast", { error: serverMessage(err) ?? getErrorMessage(err, t("common.unknownError")) }));
     }
   };
 
@@ -154,9 +161,9 @@ export function DocumentConfigurationPage() {
         isEnabled: numberingForm.isEnabled
       });
       setNumbering(updated);
-      toast.success("Numbering configuration updated successfully.");
+      toast.success(t("config.numbering.updatedToast"));
     } catch (err: unknown) {
-      toast.error("Failed to update numbering: " + (serverMessage(err) ?? getErrorMessage(err, "Unknown error.")));
+      toast.error(t("config.numbering.updateFailedToast", { error: serverMessage(err) ?? getErrorMessage(err, t("common.unknownError")) }));
     } finally {
       setSavingNumbering(false);
     }
@@ -169,17 +176,17 @@ export function DocumentConfigurationPage() {
       await documentControlService.updateSetting(editingSetting.settingKey, settingValue);
       setSettingDialogOpen(false);
       loadAll();
-      toast.success("Setting updated successfully.");
+      toast.success(t("config.settings.updatedToast"));
     } catch (err: unknown) {
-      toast.error("Failed to update setting: " + (serverMessage(err) ?? getErrorMessage(err, "Unknown error.")));
+      toast.error(t("config.settings.updateFailedToast", { error: serverMessage(err) ?? getErrorMessage(err, t("common.unknownError")) }));
     }
   };
 
   return (
     <Box sx={{ pb: 4 }}>
       <PageHeader
-        title="Document Control Configuration"
-        subtitle="System Master Data, Numbering Schemes, Governance Rules, and Module Settings"
+        title={t("config.title")}
+        subtitle={t("config.subtitle")}
       />
 
       {error && <Alert severity="error" sx={{ mb: 3 }}>{error}</Alert>}
@@ -192,10 +199,10 @@ export function DocumentConfigurationPage() {
           textColor="primary"
           sx={{ borderBottom: 1, borderColor: "divider", px: 2 }}
         >
-          <Tab label={`Document Types (${types.length})`} />
-          <Tab label={`Departments & Sections (${departments.length})`} />
-          <Tab label="Numbering Configuration" />
-          <Tab label={`Module Settings (${settings.length})`} />
+          <Tab label={t("config.tabs.documentTypes", { count: types.length })} />
+          <Tab label={t("config.tabs.departmentsAndSections", { count: departments.length })} />
+          <Tab label={t("config.tabs.numberingConfiguration")} />
+          <Tab label={t("config.tabs.moduleSettings", { count: settings.length })} />
         </Tabs>
 
         {loading ? (
@@ -209,7 +216,7 @@ export function DocumentConfigurationPage() {
               <Box sx={{ p: 3 }}>
                 <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
                   <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-                    Document Types Master
+                    {t("config.types.title")}
                   </Typography>
                   <Button
                     size="small"
@@ -221,7 +228,7 @@ export function DocumentConfigurationPage() {
                       setTypeDialogOpen(true);
                     }}
                   >
-                    Add Document Type
+                    {t("config.types.addButton")}
                   </Button>
                 </Box>
 
@@ -229,48 +236,48 @@ export function DocumentConfigurationPage() {
                   <Table size="small">
                     <TableHead sx={tableHeadSx(theme)}>
                       <TableRow>
-                        <TableCell sx={{ fontWeight: 700 }}>Code</TableCell>
-                        <TableCell sx={{ fontWeight: 700 }}>Name</TableCell>
-                        <TableCell sx={{ fontWeight: 700 }}>Default Review Cycle</TableCell>
-                        <TableCell sx={{ fontWeight: 700 }}>QA Approver</TableCell>
-                        <TableCell sx={{ fontWeight: 700 }}>Status</TableCell>
-                        <TableCell sx={{ fontWeight: 700, textAlign: "right" }}>Actions</TableCell>
+                        <TableCell sx={{ fontWeight: 700 }}>{t("config.types.columns.code")}</TableCell>
+                        <TableCell sx={{ fontWeight: 700 }}>{t("config.types.columns.name")}</TableCell>
+                        <TableCell sx={{ fontWeight: 700 }}>{t("config.types.columns.defaultReviewCycle")}</TableCell>
+                        <TableCell sx={{ fontWeight: 700 }}>{t("config.types.columns.qaApprover")}</TableCell>
+                        <TableCell sx={{ fontWeight: 700 }}>{t("config.types.columns.status")}</TableCell>
+                        <TableCell sx={{ fontWeight: 700, textAlign: "right" }}>{t("config.types.columns.actions")}</TableCell>
                       </TableRow>
                     </TableHead>
                     <TableBody>
-                      {types.map((t) => (
-                        <TableRow key={t.id} hover sx={{ opacity: t.isActive ? 1 : 0.6 }}>
-                          <TableCell sx={{ fontWeight: 700 }}>{t.code}</TableCell>
-                          <TableCell>{t.name}</TableCell>
-                          <TableCell>{t.defaultReviewCycleMonths} Months</TableCell>
+                      {types.map((docType) => (
+                        <TableRow key={docType.id} hover sx={{ opacity: docType.isActive ? 1 : 0.6 }}>
+                          <TableCell sx={{ fontWeight: 700 }}>{docType.code}</TableCell>
+                          <TableCell>{docType.name}</TableCell>
+                          <TableCell>{t("common.months", { count: docType.defaultReviewCycleMonths })}</TableCell>
                           <TableCell>
-                            {t.requiresQaApprover ? (
-                              <Chip label="Required" size="small" color="primary" variant="outlined" sx={compactChipSx} />
+                            {docType.requiresQaApprover ? (
+                              <Chip label={t("config.types.required")} size="small" color="primary" variant="outlined" sx={compactChipSx} />
                             ) : (
                               <Typography variant="body2" color="text.secondary">
-                                Not required
+                                {t("config.types.notRequired")}
                               </Typography>
                             )}
                           </TableCell>
                           <TableCell>
-                            {t.isActive ? (
-                              <Chip label="ACTIVE" size="small" color="success" sx={compactChipSx} />
+                            {docType.isActive ? (
+                              <Chip label={t("common.active")} size="small" color="success" sx={compactChipSx} />
                             ) : (
-                              <Chip label="DEACTIVATED" size="small" color="default" sx={compactChipSx} />
+                              <Chip label={t("common.deactivated")} size="small" color="default" sx={compactChipSx} />
                             )}
                           </TableCell>
                           <TableCell align="right">
-                            <Tooltip title="Edit Type">
-                              <IconButton aria-label={`Edit document type ${t.code}`}
+                            <Tooltip title={t("config.types.editTooltip")}>
+                              <IconButton aria-label={t("config.types.editAria", { code: docType.code })}
                                 size="small"
                                 onClick={() => {
-                                  setEditingType(t);
+                                  setEditingType(docType);
                                   setTypeForm({
-                                    code: t.code,
-                                    name: t.name,
-                                    cycle: t.defaultReviewCycleMonths,
-                                    isActive: t.isActive,
-                                    requiresQaApprover: Boolean(t.requiresQaApprover)
+                                    code: docType.code,
+                                    name: docType.name,
+                                    cycle: docType.defaultReviewCycleMonths,
+                                    isActive: docType.isActive,
+                                    requiresQaApprover: Boolean(docType.requiresQaApprover)
                                   });
                                   setTypeDialogOpen(true);
                                 }}
@@ -291,15 +298,13 @@ export function DocumentConfigurationPage() {
             {currentTab === 1 && (
               <Box sx={{ p: 3, maxWidth: 650 }}>
                 <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1 }}>
-                  Departments and Laboratory Sections
+                  {t("config.departments.title")}
                 </Typography>
                 <Alert severity="info" sx={{ mb: 2 }}>
-                  {departments.length} department(s) are configured. Departments, sections and who belongs to them are now managed
-                  in Administration &gt; Organization, where every change asks for a reason and deactivating one that is still in use
-                  asks for confirmation.
+                  {t("config.departments.info", { count: departments.length })}
                 </Alert>
                 <Button component={RouterLink} to="/admin/organization" variant="contained">
-                  Open Organization
+                  {t("config.departments.openOrganization")}
                 </Button>
               </Box>
             )}
@@ -308,10 +313,14 @@ export function DocumentConfigurationPage() {
             {currentTab === 2 && numbering && (
               <Box sx={{ p: 3, maxWidth: 650 }}>
                 <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1 }}>
-                  MicroLIMS Document ID Numbering Scheme
+                  {t("config.numbering.title")}
                 </Typography>
                 <Alert severity="info" sx={{ mb: 3 }}>
-                  This configuration formats the system-assigned <strong>MicroLIMS Document ID</strong> (e.g. <code>DOC-0000001</code>). It does not replace or modify company-specific document codes. Sequence drawing is strictly managed by PostgreSQL sequences and cannot be reset through the application to protect data integrity.
+                  <Trans
+                    i18nKey="config.numbering.info"
+                    ns="documentControl"
+                    components={{ strong: <strong />, code: <code /> }}
+                  />
                 </Alert>
 
                 <Paper variant="outlined" sx={{ p: 2.5, mb: 3 }}>
@@ -322,7 +331,7 @@ export function DocumentConfigurationPage() {
                       fontWeight: 700,
                       textTransform: "uppercase"
                     }}>
-                    Sample Generated Document ID
+                    {t("config.numbering.sampleTitle")}
                   </Typography>
                   <Typography variant="h5" sx={{ fontFamily: monospaceFontFamily, fontWeight: 700, color: "primary.main", my: 1 }}>
                     {numbering.sampleNextId}
@@ -330,31 +339,31 @@ export function DocumentConfigurationPage() {
                   <Typography variant="caption" sx={{
                     color: "text.secondary"
                   }}>
-                    Last modified by: {numbering.modifiedByUserName} on {formatDateTimeWithTimeZone(numbering.modifiedAt)}
+                    {t("config.numbering.lastModifiedBy", { user: numbering.modifiedByUserName, date: formatDateTimeWithTimeZone(numbering.modifiedAt) })}
                   </Typography>
                 </Paper>
 
                 <Box sx={{ display: "flex", flexDirection: "column", gap: 2.5 }}>
                   <TextField
-                    label="Prefix *"
+                    label={t("config.numbering.prefixLabel")}
                     value={numberingForm.prefix}
                     onChange={(e) => setNumberingForm({ ...numberingForm, prefix: e.target.value })}
-                    helperText="E.g. DOC-, SOP-, QA-"
+                    helperText={t("config.numbering.prefixHelper")}
                   />
 
                   <TextField
-                    label="Number Format (Zero-Padded Pattern) *"
+                    label={t("config.numbering.formatLabel")}
                     value={numberingForm.format}
                     onChange={(e) => setNumberingForm({ ...numberingForm, format: e.target.value })}
-                    helperText="E.g. 0000000 (7 digits), 00000 (5 digits)"
+                    helperText={t("config.numbering.formatHelper")}
                   />
 
                   <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", p: 1.5, bgcolor: (t) => t.palette.mode === "dark" ? "action.hover" : "grey.50", borderRadius: 1 }}>
                     <Box>
-                      <Typography variant="body2" sx={{ fontWeight: 600 }}>Enable Automated Sequence Numbering</Typography>
+                      <Typography variant="body2" sx={{ fontWeight: 600 }}>{t("config.numbering.enableTitle")}</Typography>
                       <Typography variant="caption" sx={{
                         color: "text.secondary"
-                      }}>Active numbering profile</Typography>
+                      }}>{t("config.numbering.enableSubtitle")}</Typography>
                     </Box>
                     <Switch
                       checked={numberingForm.isEnabled}
@@ -367,7 +376,7 @@ export function DocumentConfigurationPage() {
                     onClick={handleSaveNumbering}
                     disabled={savingNumbering || !numberingForm.prefix.trim() || !numberingForm.format.trim()}
                   >
-                    {savingNumbering ? "Updating Scheme..." : "Save Numbering Configuration"}
+                    {savingNumbering ? t("config.numbering.saving") : t("config.numbering.save")}
                   </Button>
                 </Box>
               </Box>
@@ -377,19 +386,19 @@ export function DocumentConfigurationPage() {
             {currentTab === 3 && (
               <Box sx={{ p: 3 }}>
                 <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 2 }}>
-                  Document Control Module Governance Settings
+                  {t("config.settings.title")}
                 </Typography>
 
                 <TableContainer component={Paper} variant="outlined">
                   <Table size="small">
                     <TableHead sx={tableHeadSx(theme)}>
                       <TableRow>
-                        <TableCell sx={{ fontWeight: 700 }}>Group</TableCell>
-                        <TableCell sx={{ fontWeight: 700 }}>Setting Key</TableCell>
-                        <TableCell sx={{ fontWeight: 700 }}>Value</TableCell>
-                        <TableCell sx={{ fontWeight: 700 }}>Data Type</TableCell>
-                        <TableCell sx={{ fontWeight: 700 }}>Modified By</TableCell>
-                        <TableCell sx={{ fontWeight: 700, textAlign: "right" }}>Action</TableCell>
+                        <TableCell sx={{ fontWeight: 700 }}>{t("config.settings.columns.group")}</TableCell>
+                        <TableCell sx={{ fontWeight: 700 }}>{t("config.settings.columns.settingKey")}</TableCell>
+                        <TableCell sx={{ fontWeight: 700 }}>{t("config.settings.columns.value")}</TableCell>
+                        <TableCell sx={{ fontWeight: 700 }}>{t("config.settings.columns.dataType")}</TableCell>
+                        <TableCell sx={{ fontWeight: 700 }}>{t("config.settings.columns.modifiedBy")}</TableCell>
+                        <TableCell sx={{ fontWeight: 700, textAlign: "right" }}>{t("config.settings.columns.action")}</TableCell>
                       </TableRow>
                     </TableHead>
                     <TableBody>
@@ -404,13 +413,13 @@ export function DocumentConfigurationPage() {
                           <TableCell>
                             <Typography variant="caption" sx={{
                               display: "block"
-                            }}>{s.modifiedByUserName || "System"}</Typography>
+                            }}>{s.modifiedByUserName || t("common.system")}</Typography>
                             <Typography variant="caption" sx={{
                               color: "text.secondary"
                             }}>{formatDateTimeWithTimeZone(s.modifiedAt)}</Typography>
                           </TableCell>
                           <TableCell align="right">
-                            <IconButton aria-label={`Edit setting ${s.settingKey}`}
+                            <IconButton aria-label={t("config.settings.editAria", { key: s.settingKey })}
                               size="small"
                               onClick={() => {
                                 setEditingSetting(s);
@@ -434,24 +443,24 @@ export function DocumentConfigurationPage() {
 
       {/* Document Type Dialog */}
       <Dialog open={typeDialogOpen} onClose={() => setTypeDialogOpen(false)} maxWidth="xs" fullWidth>
-        <DialogTitle>{editingType ? "Edit Document Type" : "Add Document Type"}</DialogTitle>
+        <DialogTitle>{editingType ? t("config.types.dialog.editTitle") : t("config.types.dialog.addTitle")}</DialogTitle>
         <DialogContent dividers sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
           {!editingType && (
             <TextField
-              label="Type Code *"
+              label={t("config.types.dialog.codeLabel")}
               value={typeForm.code}
               onChange={(e) => setTypeForm({ ...typeForm, code: e.target.value })}
-              placeholder="e.g. SOP, POL, VAL"
+              placeholder={t("config.types.dialog.codePlaceholder")}
             />
           )}
           <TextField
-            label="Type Name *"
+            label={t("config.types.dialog.nameLabel")}
             value={typeForm.name}
             onChange={(e) => setTypeForm({ ...typeForm, name: e.target.value })}
-            placeholder="e.g. Standard Operating Procedure"
+            placeholder={t("config.types.dialog.namePlaceholder")}
           />
           <TextField
-            label="Default Review Cycle (Months) *"
+            label={t("config.types.dialog.cycleLabel")}
             type="number"
             value={typeForm.cycle}
             onChange={(e) => setTypeForm({ ...typeForm, cycle: Number(e.target.value) })}
@@ -464,15 +473,15 @@ export function DocumentConfigurationPage() {
                   onChange={(e) => setTypeForm({ ...typeForm, requiresQaApprover: e.target.checked })}
                 />
               }
-              label="Requires a Quality Assurance approver"
+              label={t("config.types.dialog.requiresQaLabel")}
             />
             <FormHelperText>
-              When on, a revision of this type can only be approved by a Quality Assurance user.
+              {t("config.types.dialog.requiresQaHelper")}
             </FormHelperText>
           </FormControl>
           {editingType && (
             <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-              <Typography variant="body2">Active Status</Typography>
+              <Typography variant="body2">{t("config.types.dialog.activeStatus")}</Typography>
               <Switch
                 checked={typeForm.isActive}
                 onChange={(e) => setTypeForm({ ...typeForm, isActive: e.target.checked })}
@@ -481,30 +490,35 @@ export function DocumentConfigurationPage() {
           )}
         </DialogContent>
         <DialogActions sx={{ px: 3, py: 2 }}>
-          <Button onClick={() => setTypeDialogOpen(false)} color="inherit">Cancel</Button>
-          <Button onClick={handleSaveType} variant="contained">Save</Button>
+          <Button onClick={() => setTypeDialogOpen(false)} color="inherit">{t("common.cancel")}</Button>
+          <Button onClick={handleSaveType} variant="contained">{t("common.save")}</Button>
         </DialogActions>
       </Dialog>
 
       {/* Setting Dialog */}
       <Dialog open={settingDialogOpen} onClose={() => setSettingDialogOpen(false)} maxWidth="xs" fullWidth>
-        <DialogTitle>Edit Configuration Setting</DialogTitle>
+        <DialogTitle>{t("config.settings.dialogTitle")}</DialogTitle>
         <DialogContent dividers sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
           <Typography variant="caption" sx={{
             color: "text.secondary"
           }}>
-            Key: <strong>{editingSetting?.settingKey}</strong>
+            <Trans
+              i18nKey="config.settings.keyLine"
+              ns="documentControl"
+              values={{ key: editingSetting?.settingKey }}
+              components={{ strong: <strong /> }}
+            />
           </Typography>
           <TextField
-            label="Setting Value *"
+            label={t("config.settings.valueLabel")}
             value={settingValue}
             onChange={(e) => setSettingValue(e.target.value)}
             fullWidth
           />
         </DialogContent>
         <DialogActions sx={{ px: 3, py: 2 }}>
-          <Button onClick={() => setSettingDialogOpen(false)} color="inherit">Cancel</Button>
-          <Button onClick={handleSaveSetting} variant="contained">Save Setting</Button>
+          <Button onClick={() => setSettingDialogOpen(false)} color="inherit">{t("common.cancel")}</Button>
+          <Button onClick={handleSaveSetting} variant="contained">{t("config.settings.saveButton")}</Button>
         </DialogActions>
       </Dialog>
     </Box>

@@ -2058,5 +2058,34 @@
       "storageTime": "مدة التخزين (ساعات) *",
       "storageTimeAria": "مدة التخزين (ساعات)"
     }
+  },
+  "environmentalMonitoring": {
+    "grade": "الدرجة {{grade}}",
+    "prep": {
+      "prepareError": "تعذّر تحضير العينة.",
+      "loadingRooms": "جارٍ تحميل الغرف..."
+    },
+    "room": {
+      "fromDepartment": "{{frequency}} (من القسم)",
+      "noTests": "لا اختبارات مهيّأة",
+      "testCount_zero": "لا اختبارات",
+      "testCount_one": "اختبار واحد",
+      "testCount_two": "اختبارات: {{count}}",
+      "testCount_few": "{{count}} اختبارات",
+      "testCount_many": "اختبارات: {{count}}",
+      "testCount_other": "اختبارات: {{count}}",
+      "editRoom": "تعديل الغرفة",
+      "editAria": "تعديل {{name}}",
+      "deleteRoom": "حذف الغرفة",
+      "deleteAria": "حذف {{name}}",
+      "emptyNote": "لن يكون للعينات المستلمة لهذه الغرفة اختبارات لتشغيلها حتى تُضاف واحدة.",
+      "editTest": "تعديل الاختبار",
+      "editTestAria": "تعديل {{type}} {{code}}",
+      "deleteTest": "حذف الاختبار",
+      "deleteTestAria": "حذف {{type}} {{code}}",
+      "addAria": "إضافة اختبار إلى {{name}}",
+      "addFirst": "إضافة أول اختبار",
+      "add": "إضافة اختبار"
+    }
   }
 }

@@ -1,3 +1,4 @@
+import { useTranslation } from "../../../../i18n";
 import { Box, Button, IconButton, Paper, Stack, Tooltip, Typography } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
@@ -22,6 +23,7 @@ interface Props {
 // A room with no tests is highlighted, since samples from it would have
 // nothing to run.
 export function EmRoomCard({ room, deptFrequency, configs, onEditRoom, onDeleteRoom, onAddConfig, onEditConfig, onDeleteConfig }: Props) {
+  const { t } = useTranslation("labConfig");
   const empty = configs.length === 0;
   return (
     <Paper variant="outlined" sx={{ borderRadius: 2, overflow: "hidden", display: "flex", flexDirection: "column", borderColor: empty ? "warning.light" : "divider" }}>
@@ -35,25 +37,25 @@ export function EmRoomCard({ room, deptFrequency, configs, onEditRoom, onDeleteR
               <ToneChip label={frequencyLabel(room)} tone="pending" />
             ) : (
               deptFrequency && frequencyLabel(deptFrequency) && (
-                <Typography sx={{ fontSize: 12, color: "text.secondary" }}>{frequencyLabel(deptFrequency)} (from department)</Typography>
+                <Typography sx={{ fontSize: 12, color: "text.secondary" }}>{t("environmentalMonitoring.room.fromDepartment", { frequency: frequencyLabel(deptFrequency) })}</Typography>
               )
             )}
             {empty ? (
-              <ToneChip label="No tests configured" tone="inconclusive" />
+              <ToneChip label={t("environmentalMonitoring.room.noTests")} tone="inconclusive" />
             ) : (
               <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
-                {configs.length} {configs.length === 1 ? "test" : "tests"}
+                {t("environmentalMonitoring.room.testCount", { count: configs.length })}
               </Typography>
             )}
           </Stack>
         </Box>
-        <Tooltip title="Edit room">
-          <IconButton aria-label={`Edit ${room.name}`} onClick={onEditRoom}>
+        <Tooltip title={t("environmentalMonitoring.room.editRoom")}>
+          <IconButton aria-label={t("environmentalMonitoring.room.editAria", { name: room.name })} onClick={onEditRoom}>
             <EditIcon fontSize="small" />
           </IconButton>
         </Tooltip>
-        <Tooltip title="Delete room">
-          <IconButton aria-label={`Delete ${room.name}`} color="error" onClick={onDeleteRoom}>
+        <Tooltip title={t("environmentalMonitoring.room.deleteRoom")}>
+          <IconButton aria-label={t("environmentalMonitoring.room.deleteAria", { name: room.name })} color="error" onClick={onDeleteRoom}>
             <DeleteIcon fontSize="small" />
           </IconButton>
         </Tooltip>
@@ -62,7 +64,7 @@ export function EmRoomCard({ room, deptFrequency, configs, onEditRoom, onDeleteR
       <Box sx={{ px: 2, py: 1.5, borderTop: "1px solid", borderColor: "divider", bgcolor: "background.default", flexGrow: 1, display: "flex", flexDirection: "column", gap: 1 }}>
         {empty ? (
           <Typography sx={{ fontSize: 13, color: "text.secondary" }}>
-            Samples received for this room will have no tests to run until one is added.
+            {t("environmentalMonitoring.room.emptyNote")}
           </Typography>
         ) : (
           configs.map((c) => (
@@ -72,13 +74,13 @@ export function EmRoomCard({ room, deptFrequency, configs, onEditRoom, onDeleteR
                   <Typography sx={{ fontSize: 14, fontWeight: 600 }}>{emTestTypeLabel(c.testType)}</Typography>
                   <Typography sx={{ fontSize: 12, color: "text.secondary" }}>{c.testCode}</Typography>
                 </Box>
-                <Tooltip title="Edit test">
-                  <IconButton size="small" aria-label={`Edit ${emTestTypeLabel(c.testType)} ${c.testCode}`} onClick={() => onEditConfig(c)}>
+                <Tooltip title={t("environmentalMonitoring.room.editTest")}>
+                  <IconButton size="small" aria-label={t("environmentalMonitoring.room.editTestAria", { type: emTestTypeLabel(c.testType), code: c.testCode })} onClick={() => onEditConfig(c)}>
                     <EditIcon fontSize="small" />
                   </IconButton>
                 </Tooltip>
-                <Tooltip title="Delete test">
-                  <IconButton size="small" color="error" aria-label={`Delete ${emTestTypeLabel(c.testType)} ${c.testCode}`} onClick={() => onDeleteConfig(c)}>
+                <Tooltip title={t("environmentalMonitoring.room.deleteTest")}>
+                  <IconButton size="small" color="error" aria-label={t("environmentalMonitoring.room.deleteTestAria", { type: emTestTypeLabel(c.testType), code: c.testCode })} onClick={() => onDeleteConfig(c)}>
                     <DeleteIcon fontSize="small" />
                   </IconButton>
                 </Tooltip>
@@ -92,10 +94,10 @@ export function EmRoomCard({ room, deptFrequency, configs, onEditRoom, onDeleteR
           variant={empty ? "contained" : "outlined"}
           startIcon={<AddIcon />}
           onClick={onAddConfig}
-          aria-label={`Add test to ${room.name}`}
+          aria-label={t("environmentalMonitoring.room.addAria", { name: room.name })}
           sx={{ alignSelf: "flex-start", textTransform: "none", fontWeight: 600, borderStyle: empty ? undefined : "dashed" }}
         >
-          {empty ? "Add first test" : "Add test"}
+          {empty ? t("environmentalMonitoring.room.addFirst") : t("environmentalMonitoring.room.add")}
         </Button>
       </Box>
     </Paper>

@@ -1950,5 +1950,30 @@
       "storageTime": "Storage Time (hours) *",
       "storageTimeAria": "Storage time (hours)"
     }
+  },
+  "environmentalMonitoring": {
+    "grade": "Grade {{grade}}",
+    "prep": {
+      "prepareError": "Could not prepare sample.",
+      "loadingRooms": "Loading rooms..."
+    },
+    "room": {
+      "fromDepartment": "{{frequency}} (from department)",
+      "noTests": "No tests configured",
+      "testCount_one": "{{count}} test",
+      "testCount_other": "{{count}} tests",
+      "editRoom": "Edit room",
+      "editAria": "Edit {{name}}",
+      "deleteRoom": "Delete room",
+      "deleteAria": "Delete {{name}}",
+      "emptyNote": "Samples received for this room will have no tests to run until one is added.",
+      "editTest": "Edit test",
+      "editTestAria": "Edit {{type}} {{code}}",
+      "deleteTest": "Delete test",
+      "deleteTestAria": "Delete {{type}} {{code}}",
+      "addAria": "Add test to {{name}}",
+      "addFirst": "Add first test",
+      "add": "Add test"
+    }
   }
 }

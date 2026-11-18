@@ -2,7 +2,10 @@ import { useEffect, useRef } from "react";
 import { Box, Typography, Stack, Button, Accordion, AccordionSummary, AccordionDetails, Chip, useTheme } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import AssignmentReturnOutlinedIcon from "@mui/icons-material/AssignmentReturnOutlined";
+import { Trans } from "react-i18next";
 import { GatedAction } from "../../../components/GatedAction";
+import { Ltr } from "../../../components/Ltr";
+import { useTranslation } from "../../../i18n";
 import { useActionAvailability } from "../../../hooks/useActionAvailability";
 import { StatusBadge } from "../../../components/StatusBadge";
 import { TestOrderSummaryDetail } from "../types/sampleSummaryTypes";
@@ -18,6 +21,7 @@ function ReturnToAnalystAction({
   order: TestOrderSummaryDetail;
   onReturn?: (order: TestOrderSummaryDetail) => void;
 }) {
+  const { t } = useTranslation("testingWorkspace");
   const availability = useActionAvailability("test-order", order.testOrderId);
   const { refresh } = availability;
   // The order moved on (returned, reviewed): its reasons moved with it.
@@ -47,7 +51,7 @@ function ReturnToAnalystAction({
           }
         }}
       >
-        Return to Analyst
+        {t("sampleSummary.testResults.returnToAnalyst")}
       </Button>
     </GatedAction>
   );
@@ -63,16 +67,17 @@ export function TestResultsSection({
   overallStatus: string;
   onReturnTest?: (order: TestOrderSummaryDetail) => void;
 }) {
+  const { t } = useTranslation("testingWorkspace");
   const theme = useTheme();
   return (
     <Box>
       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1.5 }}>
         <Typography sx={{ fontWeight: 700, fontSize: 16, color: theme.palette.primary.main }}>
-          Test Results
+          {t("sampleSummary.testResults.title")}
         </Typography>
         <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
           <Typography sx={{ fontSize: 12, fontWeight: 600, color: "text.secondary" }}>
-            Overall Status:
+            {t("sampleSummary.testResults.overallStatus")}
           </Typography>
           <StatusBadge status={overallStatus} />
         </Box>
@@ -111,7 +116,7 @@ export function TestResultsSection({
                     flexWrap: "wrap"
                   }}>
                   <Typography sx={{ fontWeight: 700, fontSize: 14, color: "text.primary" }}>
-                    {order.testCode}: {order.testDisplayName}
+                    <Ltr>{order.testCode}</Ltr>: {order.testDisplayName}
                   </Typography>
                   {order.sectionName && (
                     <Chip
@@ -128,8 +133,16 @@ export function TestResultsSection({
                       when another lab's rejection closed this one's work. */}
                   {order.status === "Cancelled" && order.cancelledAtStep && (
                     <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
-                      Cancelled at {humanize(order.cancelledAtStep)}
-                      {order.cancelledAtStage != null ? `, stage ${order.cancelledAtStage}` : ""}
+                      {order.cancelledAtStage != null ? (
+                        <Trans
+                          i18nKey="sampleSummary.testResults.cancelledAtStage"
+                          ns="testingWorkspace"
+                          values={{ step: humanize(order.cancelledAtStep), stage: order.cancelledAtStage }}
+                          components={{ ltr: <Ltr>{null}</Ltr> }}
+                        />
+                      ) : (
+                        t("sampleSummary.testResults.cancelledAt", { step: humanize(order.cancelledAtStep) })
+                      )}
                     </Typography>
                   )}
                 </Stack>

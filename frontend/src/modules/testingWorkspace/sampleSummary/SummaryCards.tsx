@@ -1,6 +1,10 @@
+import type { ReactNode } from "react";
 import { Box, Typography, Divider, Table, TableHead, TableRow, TableCell, TableBody, Paper, useTheme, TableContainer } from "@mui/material";
+import { Trans } from "react-i18next";
 import { withLot } from "../../testPreparation/preparationMaterial";
 import { StatusBadge } from "../../../components/StatusBadge";
+import { Ltr } from "../../../components/Ltr";
+import { useTranslation } from "../../../i18n";
 import { brandColors, tableHeadSx } from "../../../theme";
 import { SampleSummary, SampleLocationDetail, IncubationDetail } from "../types/sampleSummaryTypes";
 import { formatCalendarDate, formatDate } from "./summaryFormatting";
@@ -14,8 +18,8 @@ export function SummaryField({
   highlight = false
 }: {
   label: string;
-  value: string | number | null | undefined;
-  secondaryValue?: string | null | undefined;
+  value: ReactNode;
+  secondaryValue?: ReactNode;
   highlight?: boolean;
 }) {
   return (
@@ -45,11 +49,22 @@ export function SummaryField({
 
 // 1. Sample Identity Section (4-column responsive grid)
 export function SampleIdentityCard({ summary: s }: { summary: SampleSummary }) {
+  const { t } = useTranslation("testingWorkspace");
   const theme = useTheme();
+  const retentionDisplay = formatRetentionDisplay(s.retentionQuantity, s.retentionQuantityUnit);
+  const analystsValue = s.assignedAnalystNames?.length ? (
+    <Ltr>{s.assignedAnalystNames.join(", ")}</Ltr>
+  ) : s.assignedAnalystName ? (
+    <Ltr>{s.assignedAnalystName}</Ltr>
+  ) : (
+    t("sampleSummary.identity.unassigned")
+  );
+  const prevBatch = s.previousProductBatchNumber || s.batchNumber;
+
   return (
     <Paper sx={{ p: 2.5, border: "1px solid", borderColor: "divider", borderRadius: 2, bgcolor: "background.paper" }}>
       <Typography sx={{ fontWeight: 700, fontSize: 15, color: theme.palette.primary.main, mb: 2 }}>
-        Sample Identity
+        {t("sampleSummary.identity.title")}
       </Typography>
       <Box
         sx={{
@@ -62,47 +77,74 @@ export function SampleIdentityCard({ summary: s }: { summary: SampleSummary }) {
           gap: 2
         }}
       >
-        <SummaryField label="Reference Number" value={s.referenceNumber} highlight />
-        <SummaryField label="Category" value={s.category} />
-        <SummaryField label="Received At" value={formatDate(s.receivedAt)} />
-        <SummaryField label="Exp Date" value={formatCalendarDate(s.expDate)} />
+        <SummaryField label={t("sampleSummary.identity.referenceNumber")} value={<Ltr>{s.referenceNumber}</Ltr>} highlight />
+        <SummaryField label={t("sampleSummary.identity.category")} value={s.category} />
+        <SummaryField label={t("sampleSummary.identity.receivedAt")} value={<Ltr>{formatDate(s.receivedAt)}</Ltr>} />
+        <SummaryField label={t("sampleSummary.identity.expDate")} value={<Ltr>{formatCalendarDate(s.expDate)}</Ltr>} />
 
-        <SummaryField label="Item / Point / Room / Machine" value={s.displayName} highlight />
-        <SummaryField label="Production Stage" value={s.productionStage} />
-        <SummaryField label="Sampled By" value={s.sampledBy} />
-        <SummaryField label="Batch Number" value={s.batchNumber} />
-        {s.grade && <SummaryField label="Grade" value={s.grade} />}
+        <SummaryField label={t("sampleSummary.identity.displayName")} value={s.displayName} highlight />
+        <SummaryField label={t("sampleSummary.identity.productionStage")} value={s.productionStage} />
+        <SummaryField label={t("sampleSummary.identity.sampledBy")} value={s.sampledBy ? <Ltr>{s.sampledBy}</Ltr> : null} />
+        <SummaryField label={t("sampleSummary.identity.batchNumber")} value={s.batchNumber ? <Ltr>{s.batchNumber}</Ltr> : null} />
+        {s.grade && <SummaryField label={t("sampleSummary.identity.grade")} value={<Ltr>{s.grade}</Ltr>} />}
 
-        <SummaryField label="Control Number" value={s.controlNumber} />
-        <SummaryField label="Received By" value={s.receivedByName} />
-        <SummaryField label="Sample Quantity" value={s.sampleQuantity} />
+        <SummaryField label={t("sampleSummary.identity.controlNumber")} value={s.controlNumber ? <Ltr>{s.controlNumber}</Ltr> : null} />
+        <SummaryField label={t("sampleSummary.identity.receivedBy")} value={s.receivedByName ? <Ltr>{s.receivedByName}</Ltr> : null} />
+        <SummaryField label={t("sampleSummary.identity.sampleQuantity")} value={s.sampleQuantity ? <Ltr>{s.sampleQuantity}</Ltr> : null} />
         {s.retentionQuantity != null && (
           <SummaryField
-            label="Retention"
-            value={formatRetentionDisplay(s.retentionQuantity, s.retentionQuantityUnit) ?? ""}
+            label={t("sampleSummary.identity.retention")}
+            value={retentionDisplay ? <Ltr>{retentionDisplay}</Ltr> : ""}
           />
         )}
-        <SummaryField label="Mfg Date" value={formatCalendarDate(s.mfgDate)} />
+        <SummaryField label={t("sampleSummary.identity.mfgDate")} value={<Ltr>{formatCalendarDate(s.mfgDate)}</Ltr>} />
 
-        <SummaryField label="Cause of Testing" value={s.causeOfTesting} />
+        <SummaryField label={t("sampleSummary.identity.causeOfTesting")} value={s.causeOfTesting} />
         <SummaryField
-          label={(s.assignedAnalystNames?.length ?? 0) > 1 ? "Assigned Analysts" : "Assigned Analyst"}
-          value={s.assignedAnalystNames?.length ? s.assignedAnalystNames.join(", ") : (s.assignedAnalystName ?? "Unassigned")}
+          label={
+            (s.assignedAnalystNames?.length ?? 0) > 1
+              ? t("sampleSummary.identity.assignedAnalysts")
+              : t("sampleSummary.identity.assignedAnalyst")
+          }
+          value={analystsValue}
           highlight={Boolean(s.assignedAnalystNames?.length || s.assignedAnalystName)}
         />
         {s.category === "AfterCleaning" && (
           <>
-            <SummaryField label="Previous Product" value={s.previousProductName || "—"} highlight />
-            <SummaryField label="Previous Product Batch" value={s.previousProductBatchNumber || s.batchNumber || "—"} highlight />
+            <SummaryField label={t("sampleSummary.identity.previousProduct")} value={s.previousProductName || "—"} highlight />
+            <SummaryField
+              label={t("sampleSummary.identity.previousProductBatch")}
+              value={prevBatch ? <Ltr>{prevBatch}</Ltr> : "—"}
+              highlight
+            />
           </>
         )}
         {s.waterSamplingPointCode && (
-          <SummaryField label="Sampling Point" value={`${s.waterSamplingPointCode}, ${s.waterSamplingPointLocation}`} />
+          <SummaryField
+            label={t("sampleSummary.identity.samplingPoint")}
+            value={
+              <>
+                <Ltr>{s.waterSamplingPointCode}</Ltr>
+                {s.waterSamplingPointLocation ? `, ${s.waterSamplingPointLocation}` : ""}
+              </>
+            }
+          />
         )}
         {s.storageCondition && (
           <SummaryField
-            label="Storage Condition"
-            value={s.storageCondition === "Refrigerator" ? `Refrigerator (${s.storageTimeHours ?? "?"}h)` : s.storageCondition}
+            label={t("sampleSummary.identity.storageCondition")}
+            value={
+              s.storageCondition === "Refrigerator" ? (
+                <Trans
+                  i18nKey="sampleSummary.identity.refrigeratorHours"
+                  ns="testingWorkspace"
+                  values={{ hours: s.storageTimeHours ?? "?" }}
+                  components={{ ltr: <Ltr>{null}</Ltr> }}
+                />
+              ) : (
+                s.storageCondition
+              )
+            }
           />
         )}
       </Box>
@@ -112,11 +154,12 @@ export function SampleIdentityCard({ summary: s }: { summary: SampleSummary }) {
 
 // Sample Preparation Card (if applicable)
 export function SamplePreparationCard({ preparation: p }: { preparation: NonNullable<SampleSummary["preparation"]> }) {
+  const { t } = useTranslation("testingWorkspace");
   const theme = useTheme();
   return (
     <Paper sx={{ p: 2.5, border: "1px solid", borderColor: "divider", borderRadius: 2, bgcolor: "background.paper" }}>
       <Typography sx={{ fontWeight: 700, fontSize: 15, color: theme.palette.primary.main, mb: 2 }}>
-        Sample Preparation
+        {t("sampleSummary.preparation.title")}
       </Typography>
       <Box
         sx={{
@@ -129,18 +172,24 @@ export function SamplePreparationCard({ preparation: p }: { preparation: NonNull
           gap: 2
         }}
       >
-        <SummaryField label="Amount" value={`${p.amount}`} />
-        <SummaryField label="Technique" value={p.technique} />
+        <SummaryField label={t("sampleSummary.preparation.amount")} value={<Ltr>{`${p.amount}`}</Ltr>} />
+        <SummaryField label={t("sampleSummary.preparation.technique")} value={p.technique} />
         {p.technique === "Filtration" && (
           <>
-            <SummaryField label="Filtration Volume" value={p.filtrationVolume ? `${p.filtrationVolume} mL` : "—"} />
-            <SummaryField label="Washing Volume" value={p.washingVolume ? `${p.washingVolume} mL` : "—"} />
+            <SummaryField
+              label={t("sampleSummary.preparation.filtrationVolume")}
+              value={p.filtrationVolume ? <Ltr>{`${p.filtrationVolume} mL`}</Ltr> : "—"}
+            />
+            <SummaryField
+              label={t("sampleSummary.preparation.washingVolume")}
+              value={p.washingVolume ? <Ltr>{`${p.washingVolume} mL`}</Ltr> : "—"}
+            />
           </>
         )}
-        <SummaryField label="Diluent" value={withLot(p.diluent || "—", p.diluentLotCode)} />
-        <SummaryField label="Neutralizer" value={withLot(p.neutralizer || "—", p.neutralizerLotCode)} />
-        <SummaryField label="Prepared By" value={p.preparedByName} />
-        <SummaryField label="Prepared At" value={formatDate(p.preparedAt)} />
+        <SummaryField label={t("sampleSummary.preparation.diluent")} value={withLot(p.diluent || "—", p.diluentLotCode)} />
+        <SummaryField label={t("sampleSummary.preparation.neutralizer")} value={withLot(p.neutralizer || "—", p.neutralizerLotCode)} />
+        <SummaryField label={t("sampleSummary.preparation.preparedBy")} value={p.preparedByName ? <Ltr>{p.preparedByName}</Ltr> : null} />
+        <SummaryField label={t("sampleSummary.preparation.preparedAt")} value={<Ltr>{formatDate(p.preparedAt)}</Ltr>} />
       </Box>
     </Paper>
   );
@@ -149,24 +198,17 @@ export function SamplePreparationCard({ preparation: p }: { preparation: NonNull
 // Incubation Stage Card (Stage 1, Stage 2, or Standard Single Stage)
 export function IncubationStageBlock({
   inc,
-  totalStages,
-  stageIndex
+  totalStages
 }: {
   inc: IncubationDetail;
   totalStages: number;
   stageIndex: number;
 }) {
+  const { t } = useTranslation("testingWorkspace");
   const isMultiStage = totalStages > 1 || inc.stageNumber > 1 || !!inc.transferredAt || !!inc.transferredByName;
   const isStage1 = inc.stageNumber === 1;
-  const isStage2 = inc.stageNumber === 2;
 
-  const stageTitle = isMultiStage
-    ? isStage1
-      ? `Stage 1 Incubation (${inc.stepName})`
-      : isStage2
-      ? `Stage 2 Incubation (${inc.stepName})`
-      : `Stage ${inc.stageNumber} Incubation (${inc.stepName})`
-    : `Incubation (${inc.stepName})`;
+  const transferredBy = inc.transferredByName ?? inc.completedByName;
 
   return (
     <Box
@@ -195,11 +237,20 @@ export function IncubationStageBlock({
               flexShrink: 0
             }}
           >
-            {inc.stageNumber}
+            <Ltr>{inc.stageNumber}</Ltr>
           </Box>
         )}
         <Typography sx={{ fontSize: 13, fontWeight: 700, color: "text.primary" }}>
-          {stageTitle}
+          {isMultiStage ? (
+            <Trans
+              i18nKey="sampleSummary.incubation.stageTitle"
+              ns="testingWorkspace"
+              values={{ stage: inc.stageNumber, stepName: inc.stepName }}
+              components={{ ltr: <Ltr>{null}</Ltr> }}
+            />
+          ) : (
+            t("sampleSummary.incubation.singleTitle", { stepName: inc.stepName })
+          )}
         </Typography>
       </Box>
 
@@ -217,18 +268,35 @@ export function IncubationStageBlock({
         }}
       >
         <SummaryField
-          label="Media Lot"
-          value={inc.mediaLotNumber ? `${inc.mediaLotNumber} (${inc.mediaMaterialName ?? "—"})` : "—"}
+          label={t("sampleSummary.incubation.mediaLot")}
+          value={
+            inc.mediaLotNumber ? (
+              <>
+                <Ltr>{inc.mediaLotNumber}</Ltr> ({inc.mediaMaterialName ?? "—"})
+              </>
+            ) : (
+              "—"
+            )
+          }
         />
-        <SummaryField label="Incubator" value={inc.incubatorName} />
-        <SummaryField label="Temperature" value={inc.temperature} />
-        <SummaryField label="Duration" value={inc.duration} />
+        <SummaryField label={t("sampleSummary.incubation.incubator")} value={inc.incubatorName} />
+        <SummaryField label={t("sampleSummary.incubation.temperature")} value={inc.temperature ? <Ltr>{inc.temperature}</Ltr> : null} />
+        <SummaryField label={t("sampleSummary.incubation.duration")} value={inc.duration ? <Ltr>{inc.duration}</Ltr> : null} />
         <SummaryField
-          label="Started At"
-          value={formatDate(inc.startedAt)}
-          secondaryValue={inc.startedByName ? `By ${inc.startedByName}` : undefined}
+          label={t("sampleSummary.incubation.startedAt")}
+          value={<Ltr>{formatDate(inc.startedAt)}</Ltr>}
+          secondaryValue={
+            inc.startedByName ? (
+              <Trans
+                i18nKey="sampleSummary.incubation.byUser"
+                ns="testingWorkspace"
+                values={{ name: inc.startedByName }}
+                components={{ ltr: <Ltr>{null}</Ltr> }}
+              />
+            ) : undefined
+          }
         />
-        <SummaryField label="Started By" value={inc.startedByName} />
+        <SummaryField label={t("sampleSummary.incubation.startedBy")} value={inc.startedByName ? <Ltr>{inc.startedByName}</Ltr> : null} />
       </Box>
 
       <Divider sx={{ my: 1.25, borderStyle: "dashed" }} />
@@ -248,30 +316,30 @@ export function IncubationStageBlock({
         {isStage1 && isMultiStage ? (
           <>
             <SummaryField
-              label="Transferred At"
-              value={formatDate(inc.transferredAt ?? inc.completedAt)}
+              label={t("sampleSummary.incubation.transferredAt")}
+              value={<Ltr>{formatDate(inc.transferredAt ?? inc.completedAt)}</Ltr>}
             />
             <SummaryField
-              label="Transferred By"
-              value={inc.transferredByName ?? inc.completedByName ?? "—"}
+              label={t("sampleSummary.incubation.transferredBy")}
+              value={transferredBy ? <Ltr>{transferredBy}</Ltr> : "—"}
             />
             <SummaryField
-              label="Outcome"
-              value={inc.outcome ?? "Transferred to stage 2 incubation."}
+              label={t("sampleSummary.incubation.outcome")}
+              value={inc.outcome ?? t("sampleSummary.incubation.transferredToStage2")}
             />
           </>
         ) : (
           <>
             <SummaryField
-              label="Completed At"
-              value={formatDate(inc.completedAt)}
+              label={t("sampleSummary.incubation.completedAt")}
+              value={<Ltr>{formatDate(inc.completedAt)}</Ltr>}
             />
             <SummaryField
-              label="Completed By"
-              value={inc.completedByName ?? "—"}
+              label={t("sampleSummary.incubation.completedBy")}
+              value={inc.completedByName ? <Ltr>{inc.completedByName}</Ltr> : "—"}
             />
             <SummaryField
-              label="Outcome"
+              label={t("sampleSummary.incubation.outcome")}
               value={inc.outcome ?? "—"}
             />
           </>
@@ -283,6 +351,7 @@ export function IncubationStageBlock({
 
 // Location-based Results Table (EM / After Cleaning)
 export function LocationResultsTable({ locations }: { locations: SampleLocationDetail[] }) {
+  const { t } = useTranslation("testingWorkspace");
   const conformCount = locations.filter((l) => l.status === "WithinLimits" || l.status === "Absent").length;
   const severityOrder = ["WithinLimits", "Absent", "LimitsNotConfigured", "AlertLimitExceeded", "ActionLimitExceeded", "OutOfSpecification", "Detected"];
   const worstStatus = locations.reduce<string>((worst, l) => {
@@ -300,13 +369,13 @@ export function LocationResultsTable({ locations }: { locations: SampleLocationD
         <Table size="small" sx={{ border: "1px solid", borderColor: "divider", borderRadius: 1 }}>
           <TableHead sx={tableHeadSx}>
             <TableRow>
-              <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Location</TableCell>
-              <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Limits (Alert / Action / Spec)</TableCell>
-              <TableCell sx={{ fontWeight: 700, fontSize: 12, textAlign: "right" }}>{unit}</TableCell>
-              <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Reported Result</TableCell>
-              <TableCell sx={{ fontWeight: 700, fontSize: 12, textAlign: "center" }}>Status</TableCell>
-              <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Entered By</TableCell>
-              <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Entered At</TableCell>
+              <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>{t("sampleSummary.locations.location")}</TableCell>
+              <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>{t("sampleSummary.locations.limits")}</TableCell>
+              <TableCell sx={{ fontWeight: 700, fontSize: 12, textAlign: "end" }}><Ltr>{unit}</Ltr></TableCell>
+              <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>{t("sampleSummary.locations.reportedResult")}</TableCell>
+              <TableCell sx={{ fontWeight: 700, fontSize: 12, textAlign: "center" }}>{t("sampleSummary.locations.status")}</TableCell>
+              <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>{t("sampleSummary.locations.enteredBy")}</TableCell>
+              <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>{t("sampleSummary.locations.enteredAt")}</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -316,22 +385,22 @@ export function LocationResultsTable({ locations }: { locations: SampleLocationD
                   {l.locationName}{l.gradeClassification ? ` (${l.gradeClassification})` : ""}
                 </TableCell>
                 <TableCell sx={{ fontSize: 12, color: "text.secondary" }}>
-                  {l.alertLimit || "—"} / {l.actionLimit || "—"} / {l.specLimit || "—"}
+                  <Ltr>{`${l.alertLimit || "—"} / ${l.actionLimit || "—"} / ${l.specLimit || "—"}`}</Ltr>
                 </TableCell>
-                <TableCell sx={{ fontSize: 12, textAlign: "right", fontWeight: 700 }}>
-                  {l.cfuResult ?? "—"}
+                <TableCell sx={{ fontSize: 12, textAlign: "end", fontWeight: 700 }}>
+                  {l.cfuResult != null ? <Ltr>{l.cfuResult}</Ltr> : "—"}
                 </TableCell>
                 <TableCell sx={{ fontSize: 12 }}>
-                  {l.reportedResult ?? "—"}
+                  {l.reportedResult != null ? <Ltr>{l.reportedResult}</Ltr> : "—"}
                 </TableCell>
                 <TableCell sx={{ textAlign: "center" }}>
                   {l.status ? <StatusBadge status={l.status} /> : "—"}
                 </TableCell>
                 <TableCell sx={{ fontSize: 12 }}>
-                  {l.enteredByName || "—"}
+                  {l.enteredByName ? <Ltr>{l.enteredByName}</Ltr> : "—"}
                 </TableCell>
                 <TableCell sx={{ fontSize: 12 }}>
-                  {formatDate(l.enteredAt)}
+                  <Ltr>{formatDate(l.enteredAt)}</Ltr>
                 </TableCell>
               </TableRow>
             ))}
@@ -340,10 +409,15 @@ export function LocationResultsTable({ locations }: { locations: SampleLocationD
       </TableContainer>
       <Box sx={{ mt: 1.25, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
-          <strong>{conformCount}/{locations.length}</strong> locations within specification
+          <Trans
+            i18nKey="sampleSummary.locations.withinSpec"
+            ns="testingWorkspace"
+            values={{ conform: conformCount, total: locations.length }}
+            components={{ strong: <strong />, ltr: <Ltr>{null}</Ltr> }}
+          />
         </Typography>
         <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-          <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Worst status:</Typography>
+          <Typography sx={{ fontSize: 12, color: "text.secondary" }}>{t("sampleSummary.locations.worstStatus")}</Typography>
           <StatusBadge status={worstStatus} />
         </Box>
       </Box>

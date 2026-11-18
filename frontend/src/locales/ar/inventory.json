@@ -550,6 +550,131 @@
         "mediaDescription": "أوساط زرعية / الوصف",
         "expectedCompletion": "الانتهاء المتوقع"
       }
+    },
+    "details": {
+      "close": "إغلاق",
+      "tabs": {
+        "details": "التفاصيل",
+        "schedule": "الجدولة",
+        "logbook": "سجل الصيانة",
+        "history": "السجل"
+      },
+      "instrumentInfo": "معلومات الجهاز",
+      "editTooltip": "تعديل مواصفات وحالة المعدات",
+      "editButton": "تعديل / تغيير الحالة",
+      "instrumentType": "نوع الجهاز",
+      "manufacturer": "المُصنِّع",
+      "serialNumber": "الرقم التسلسلي",
+      "firmwareVersion": "إصدار البرنامج الثابت",
+      "equipmentCode": "رمز المعدات",
+      "location": "الموقع",
+      "calibrationDue": "استحقاق المعايرة",
+      "operationalStatus": "الحالة التشغيلية",
+      "statusHistoryTitle": "سجل الحالة التشغيلية",
+      "noStatusHistory": "لم يتم تسجيل أي تغييرات في الحالة التشغيلية لهذه المعدات.",
+      "changedBy": "تم التغيير بواسطة: <bold>{{name}}</bold>",
+      "systemAutomatic": "النظام (تلقائي)",
+      "unknownUser": "غير معروف",
+      "certificatesTitle": "شهادات المعايرة",
+      "uploadCertificate": "رفع شهادة",
+      "scheduleSaved": "تم حفظ الجدولة بنجاح.",
+      "certificateUploaded": "تم رفع شهادة المعايرة بنجاح.",
+      "calibrationRecorded": "تم تسجيل المعايرة بنجاح."
+    },
+    "documents": {
+      "types": {
+        "CalibrationCertificate": "شهادة معايرة"
+      },
+      "status": {
+        "Current": "ساري",
+        "Superseded": "مُستبدَل",
+        "Voided": "مُبطَل"
+      },
+      "loadError": "تعذر تحميل شهادات المعايرة.",
+      "retrieveError": "تعذر استرجاع المستند. يرجى المحاولة مرة أخرى.",
+      "empty": "لم يتم رفع أي شهادات معايرة لهذه المعدات.",
+      "uploadedBy": "رفعه {{name}} · {{date}}",
+      "voidedReason": "مُبطَل: {{reason}}",
+      "supersededReason": "مُستبدَل: {{reason}}",
+      "viewTooltip": "عرض / تنزيل",
+      "supersedeTooltip": "استبدال",
+      "voidTooltip": "إبطال"
+    },
+    "schedule": {
+      "title": "جدول المعايرة والصيانة",
+      "subtitle": "تهيئة فترات المعايرة والصيانة الوقائية والتواريخ المرجعية الأولية للتخطيط.",
+      "recordCalibration": "تسجيل معايرة",
+      "calSectionTitle": "إعدادات المعايرة",
+      "calIntervalLabel": "فترة المعايرة",
+      "calIntervalPlaceholder": "مثل 6 أو 12",
+      "calUnitLabel": "وحدة المعايرة",
+      "lastCalDateLabel": "تاريخ آخر معايرة (مرجعي)",
+      "lastCalDateHelper": "تاريخ مرجعي. بعد إتمام المعايرات، تُحدَّث التواريخ المستقبلية من السجلات.",
+      "pmSectionTitle": "إعدادات الصيانة الوقائية",
+      "pmIntervalLabel": "فترة الصيانة الوقائية",
+      "pmIntervalPlaceholder": "مثل 1 أو 3",
+      "pmUnitLabel": "وحدة الصيانة",
+      "lastPmDateLabel": "تاريخ آخر صيانة (مرجعي)",
+      "lastPmDateHelper": "تاريخ آخر صيانة من السجل الورقي. يُحفظ في سجل التدقيق دون توقيع.",
+      "intervalHelper": "1-104 أسابيع أو 1-60 شهرًا أو 1-5 سنوات",
+      "none": "لا شيء",
+      "units": {
+        "Weeks": "أسابيع",
+        "Months": "أشهر",
+        "Years": "سنوات"
+      },
+      "saving": "جارٍ الحفظ...",
+      "saveButton": "حفظ الجدول",
+      "savedSuccess": "تم حفظ الجدول بنجاح.",
+      "saveError": "تعذر حفظ جدول المعدات.",
+      "errors": {
+        "calUnitRequired": "وحدة فترة المعايرة مطلوبة عند تحديد القيمة.",
+        "calValueRequired": "قيمة فترة المعايرة مطلوبة عند تحديد الوحدة.",
+        "pmUnitRequired": "وحدة فترة الصيانة الوقائية مطلوبة عند تحديد القيمة.",
+        "pmValueRequired": "قيمة فترة الصيانة الوقائية مطلوبة عند تحديد الوحدة.",
+        "calWeeksRange": "يجب أن تكون فترة المعايرة بالأسابيع بين 1 و104.",
+        "calMonthsRange": "يجب أن تكون فترة المعايرة بالأشهر بين 1 و60.",
+        "calYearsRange": "يجب أن تكون فترة المعايرة بالسنوات بين 1 و5.",
+        "pmWeeksRange": "يجب أن تكون فترة الصيانة بالأسابيع بين 1 و104.",
+        "pmMonthsRange": "يجب أن تكون فترة الصيانة بالأشهر بين 1 و60.",
+        "pmYearsRange": "يجب أن تكون فترة الصيانة بالسنوات بين 1 و5.",
+        "lastCalFuture": "لا يمكن أن يكون تاريخ آخر معايرة في المستقبل.",
+        "lastPmFuture": "لا يمكن أن يكون تاريخ آخر صيانة في المستقبل."
+      }
+    },
+    "maintenance": {
+      "title": "سجل صيانة المعدات",
+      "subtitle": "كل إدخال موقَّع ومحفوظ. الإدخال الخاطئ يُبطَل مع ذكر السبب ولا يُحذَف أبدًا.",
+      "addButton": "إضافة إدخال سجل",
+      "loadError": "تعذر تحميل إدخالات سجل الصيانة.",
+      "empty": "لم تُسجَّل أي إدخالات صيانة بعد. انقر على \"إضافة إدخال سجل\" لتسجيل الخدمة أو الإصلاحات.",
+      "entryTypes": {
+        "PreventiveMaintenance": "صيانة وقائية",
+        "BreakdownRepair": "إصلاح عطل",
+        "Other": "أخرى"
+      },
+      "columns": {
+        "date": "التاريخ",
+        "type": "النوع",
+        "workDone": "العمل المنجز",
+        "partsReplaced": "الأجزاء المستبدلة",
+        "findings": "النتائج",
+        "performedBy": "نُفّذ بواسطة",
+        "status": "الحالة",
+        "actions": "الإجراءات"
+      },
+      "userFallback": "المستخدم #{{id}}",
+      "voidedTooltip": "أبطله المستخدم #{{userId}}: \"{{reason}}\" في {{at}}",
+      "voided": "مُبطَل",
+      "recorded": "مسجَّل",
+      "voidActionTooltip": "إبطال هذا الإدخال (يتطلب سببًا وتوقيعًا إلكترونيًا)",
+      "voidDialogTitle": "إبطال إدخال سجل الصيانة",
+      "voidDialogBody": "يزيل الإبطال أثر هذا الإدخال مع حفظه في سجل التدقيق. يلزم وجود سبب صالح وتوقيع بكلمة المرور.",
+      "voidReasonRequired": "سبب الإبطال مطلوب.",
+      "voidReasonLabel": "سبب الإبطال",
+      "voidReasonPlaceholder": "اشرح سبب إبطال هذا الإدخال",
+      "continueToSign": "المتابعة للتوقيع",
+      "voidMeaningStatement": "أقوم بإبطال إدخال السجل رقم #{{id}} للمعدات {{code}}. السبب: {{reason}}."
     }
   }
 }

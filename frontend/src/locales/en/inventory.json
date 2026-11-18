@@ -540,6 +540,131 @@
         "mediaDescription": "Media / Description",
         "expectedCompletion": "Expected Completion"
       }
+    },
+    "details": {
+      "close": "Close",
+      "tabs": {
+        "details": "Details",
+        "schedule": "Schedule",
+        "logbook": "Logbook",
+        "history": "History"
+      },
+      "instrumentInfo": "Instrument Information",
+      "editTooltip": "Edit Equipment Specifications & Status",
+      "editButton": "Edit / Change Status",
+      "instrumentType": "Instrument Type",
+      "manufacturer": "Manufacturer",
+      "serialNumber": "Serial Number",
+      "firmwareVersion": "Firmware Version",
+      "equipmentCode": "Equipment Code",
+      "location": "Location",
+      "calibrationDue": "Calibration Due",
+      "operationalStatus": "Operational Status",
+      "statusHistoryTitle": "Operational Status History",
+      "noStatusHistory": "No operational status changes have been recorded for this equipment.",
+      "changedBy": "Changed by: <bold>{{name}}</bold>",
+      "systemAutomatic": "System (automatic)",
+      "unknownUser": "Unknown",
+      "certificatesTitle": "Calibration Certificates",
+      "uploadCertificate": "Upload Certificate",
+      "scheduleSaved": "Schedule saved successfully.",
+      "certificateUploaded": "Calibration certificate uploaded successfully.",
+      "calibrationRecorded": "Calibration recorded successfully."
+    },
+    "documents": {
+      "types": {
+        "CalibrationCertificate": "Calibration Certificate"
+      },
+      "status": {
+        "Current": "Current",
+        "Superseded": "Superseded",
+        "Voided": "Voided"
+      },
+      "loadError": "Failed to load calibration certificates.",
+      "retrieveError": "Failed to retrieve document. Please try again.",
+      "empty": "No calibration certificates have been uploaded for this equipment.",
+      "uploadedBy": "Uploaded by {{name}} · {{date}}",
+      "voidedReason": "Voided: {{reason}}",
+      "supersededReason": "Superseded: {{reason}}",
+      "viewTooltip": "View / Download",
+      "supersedeTooltip": "Supersede (Replace)",
+      "voidTooltip": "Void"
+    },
+    "schedule": {
+      "title": "Calibration & Maintenance Schedule",
+      "subtitle": "Configure calibration and preventive maintenance intervals and initial baseline dates for planning.",
+      "recordCalibration": "Record Calibration",
+      "calSectionTitle": "Calibration Configuration",
+      "calIntervalLabel": "Calibration Interval",
+      "calIntervalPlaceholder": "e.g. 6 or 12",
+      "calUnitLabel": "Calibration Unit",
+      "lastCalDateLabel": "Last Calibration Date (Baseline)",
+      "lastCalDateHelper": "Baseline date. Once calibrations are completed, future dates update from records.",
+      "pmSectionTitle": "Preventive Maintenance Configuration",
+      "pmIntervalLabel": "Preventive Maintenance Interval",
+      "pmIntervalPlaceholder": "e.g. 1 or 3",
+      "pmUnitLabel": "Maintenance Unit",
+      "lastPmDateLabel": "Last Maintenance Date (Baseline)",
+      "lastPmDateHelper": "Last maintenance date from the paper logbook. Kept in the audit trail; not signed.",
+      "intervalHelper": "1-104 weeks, 1-60 months or 1-5 years",
+      "none": "None",
+      "units": {
+        "Weeks": "Weeks",
+        "Months": "Months",
+        "Years": "Years"
+      },
+      "saving": "Saving...",
+      "saveButton": "Save Schedule",
+      "savedSuccess": "Schedule saved successfully.",
+      "saveError": "Failed to save equipment schedule.",
+      "errors": {
+        "calUnitRequired": "Calibration interval unit is required when value is specified.",
+        "calValueRequired": "Calibration interval value is required when unit is specified.",
+        "pmUnitRequired": "Preventive maintenance interval unit is required when value is specified.",
+        "pmValueRequired": "Preventive maintenance interval value is required when unit is specified.",
+        "calWeeksRange": "Calibration interval in weeks must be between 1 and 104.",
+        "calMonthsRange": "Calibration interval in months must be between 1 and 60.",
+        "calYearsRange": "Calibration interval in years must be between 1 and 5.",
+        "pmWeeksRange": "Maintenance interval in weeks must be between 1 and 104.",
+        "pmMonthsRange": "Maintenance interval in months must be between 1 and 60.",
+        "pmYearsRange": "Maintenance interval in years must be between 1 and 5.",
+        "lastCalFuture": "Last calibration date cannot be in the future.",
+        "lastPmFuture": "Last maintenance date cannot be in the future."
+      }
+    },
+    "maintenance": {
+      "title": "Equipment Maintenance Logbook",
+      "subtitle": "Every entry is signed and kept. A wrong entry is voided with a reason, never deleted.",
+      "addButton": "Add Log Entry",
+      "loadError": "Failed to load maintenance log entries.",
+      "empty": "No maintenance log entries recorded yet. Click \"Add Log Entry\" to log servicing or repairs.",
+      "entryTypes": {
+        "PreventiveMaintenance": "Preventive Maintenance",
+        "BreakdownRepair": "Breakdown Repair",
+        "Other": "Other"
+      },
+      "columns": {
+        "date": "Date",
+        "type": "Type",
+        "workDone": "Work Done",
+        "partsReplaced": "Parts Replaced",
+        "findings": "Findings",
+        "performedBy": "Performed By",
+        "status": "Status",
+        "actions": "Actions"
+      },
+      "userFallback": "User #{{id}}",
+      "voidedTooltip": "Voided by user #{{userId}}: \"{{reason}}\" at {{at}}",
+      "voided": "Voided",
+      "recorded": "Recorded",
+      "voidActionTooltip": "Void this entry (requires reason & electronic signature)",
+      "voidDialogTitle": "Void Maintenance Log Entry",
+      "voidDialogBody": "Voiding removes the effect of this entry while preserving it in the audit trail. A valid reason and password signature are required.",
+      "voidReasonRequired": "Void reason is required.",
+      "voidReasonLabel": "Reason for Voiding",
+      "voidReasonPlaceholder": "Explain why this entry is being voided",
+      "continueToSign": "Continue to sign",
+      "voidMeaningStatement": "I am voiding logbook entry #{{id}} for {{code}}. Reason: {{reason}}."
     }
   }
 }

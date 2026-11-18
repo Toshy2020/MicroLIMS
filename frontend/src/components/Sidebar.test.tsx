@@ -1,9 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { PinnedLightTheme } from "../theme/PinnedLightTheme";
 import { getGroupedMenu } from "../routes/menuConfig";
 import { myWorkService } from "../modules/myWork/services/myWorkService";
+import { AuthProvider } from "../contexts/AuthContext";
+import { LiveProvider } from "../contexts/LiveContext";
+import { createFakeLiveConnection } from "../contexts/testing/fakeLiveConnection";
 import { Sidebar } from "./Sidebar";
 
 vi.mock("../modules/myWork/services/myWorkService", () => ({
@@ -120,5 +123,39 @@ describe("Sidebar My Work badge", () => {
     await waitFor(() => {
       expect(screen.getByRole("link", { name: "My Work, 7 tasks, 2 overdue" })).toBeTruthy();
     });
+  });
+
+  it("refreshes the summary when the live my-work signal arrives", async () => {
+    vi.mocked(myWorkService.summary)
+      .mockResolvedValueOnce({ total: 3, overdue: 0, now: 1, complete: true })
+      .mockResolvedValue({ total: 9, overdue: 1, now: 1, complete: true });
+    const connection = createFakeLiveConnection();
+    localStorage.setItem("microlims_token", "h.e30=.s");
+    const groups = getGroupedMenu({ role: "Analyst", permissions: [], labCodes: [] });
+
+    render(
+      <PinnedLightTheme>
+        <AuthProvider>
+          <LiveProvider connection={connection}>
+            <MemoryRouter initialEntries={["/my-work"]}>
+              <Sidebar mobileOpen={false} onMobileClose={() => {}} collapsed={false} onToggleCollapse={() => {}} groups={groups} activeTrail={null} />
+            </MemoryRouter>
+          </LiveProvider>
+        </AuthProvider>
+      </PinnedLightTheme>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByRole("link", { name: "My Work, 3 tasks" })).toBeTruthy();
+    });
+    // The live connection must be up before a signal can be delivered.
+    await waitFor(() => expect(connection.start).toHaveBeenCalled());
+    await act(async () => {
+      connection.emitSignal({ kind: "mywork", key: "user:1" });
+    });
+    await waitFor(() => {
+      expect(screen.getByRole("link", { name: "My Work, 9 tasks, 1 overdue" })).toBeTruthy();
+    });
+    localStorage.clear();
   });
 });

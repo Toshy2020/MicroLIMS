@@ -18,15 +18,63 @@ export const BENCH_COUNTDOWN_RING_SIZE = 220;
 
 const target = { minHeight: BENCH_MIN_TARGET, minWidth: BENCH_MIN_TARGET };
 
+// An inline-flex box so a text link or sort label can take a 48 px height
+// without changing its width or the look of its text.
+const centredTarget = { display: "inline-flex", alignItems: "center", ...target } as const;
+
 export const benchThemeOptions: ThemeOptions = {
   components: {
+    // Catch-all for every control built on ButtonBase (clickable chips, list
+    // buttons, header and row action buttons, accordion summaries). Components
+    // below that need more than a height set their own.
+    MuiButtonBase: {
+      styleOverrides: { root: { ...target } }
+    },
     MuiButton: {
       defaultProps: { size: "large" },
-      styleOverrides: { root: { ...target } }
+      // Small and medium buttons too: an explicit size prop beats defaultProps.
+      styleOverrides: { root: { ...target }, sizeSmall: { ...target }, sizeMedium: { ...target } }
     },
     MuiIconButton: {
       defaultProps: { size: "large" },
       styleOverrides: { root: { ...target } }
+    },
+    // Text links (for example "Take <test>") and breadcrumb links.
+    MuiLink: {
+      styleOverrides: { root: { ...centredTarget } }
+    },
+    MuiBreadcrumbs: {
+      styleOverrides: { li: { display: "inline-flex", alignItems: "center", "& a, & button": { ...centredTarget } } }
+    },
+    // Column header sort buttons.
+    MuiTableSortLabel: {
+      styleOverrides: { root: { ...centredTarget } }
+    },
+    // Rows-per-page select.
+    MuiTablePagination: {
+      styleOverrides: {
+        select: { display: "flex", alignItems: "center", minHeight: BENCH_MIN_TARGET, boxSizing: "border-box" }
+      }
+    },
+    MuiToggleButton: {
+      styleOverrides: { root: { ...target } }
+    },
+    MuiListItemButton: {
+      styleOverrides: { root: { ...target } }
+    },
+    MuiChip: {
+      styleOverrides: { clickable: { ...target }, deletable: { ...target } }
+    },
+    // Every input control, whatever its variant, including the inner input of
+    // a small field.
+    MuiInputBase: {
+      styleOverrides: {
+        root: { minHeight: BENCH_MIN_TARGET },
+        input: { boxSizing: "border-box", minHeight: BENCH_MIN_TARGET }
+      }
+    },
+    MuiSelect: {
+      styleOverrides: { select: { display: "flex", alignItems: "center", minHeight: BENCH_MIN_TARGET } }
     },
     MuiTextField: {
       defaultProps: { size: "medium" }
@@ -35,7 +83,7 @@ export const benchThemeOptions: ThemeOptions = {
     MuiOutlinedInput: {
       styleOverrides: {
         root: { minHeight: BENCH_MIN_TARGET, fontSize: BENCH_INPUT_FONT_SIZE },
-        input: { fontSize: BENCH_INPUT_FONT_SIZE, minHeight: "1.4375em" }
+        input: { fontSize: BENCH_INPUT_FONT_SIZE, boxSizing: "border-box", minHeight: BENCH_MIN_TARGET }
       }
     },
     MuiCheckbox: {

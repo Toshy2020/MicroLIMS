@@ -415,8 +415,8 @@ public sealed class EscalationService
                 {
                     var triggerLabel = DescribeTrigger(rule.Trigger);
                     var message = noRecipient
-                        ? $"{sectionName}: {candidate.Summary} exceeded {rule.ThresholdWorkingHours:0.##} working hours ({triggerLabel}); no active {rule.NotifyRoleType} is assigned in this section."
-                        : $"{sectionName}: {candidate.Summary} exceeded {rule.ThresholdWorkingHours:0.##} working hours ({triggerLabel}).";
+                        ? $"{sectionName}: {candidate.Summary} exceeded {FormatWorkingHours(rule.ThresholdWorkingHours)} ({triggerLabel}); no active {rule.NotifyRoleType} is assigned in this section."
+                        : $"{sectionName}: {candidate.Summary} exceeded {FormatWorkingHours(rule.ThresholdWorkingHours)} ({triggerLabel}).";
 
                     await _publisher.PublishAsync(new NotificationRequest(
                         Type: EscalationNotificationType,
@@ -947,6 +947,10 @@ public sealed class EscalationService
                 r.ReplacesRuleId))
             .SingleAsync(ct);
     }
+
+    /// <summary>"1 working hour", "2 working hours", "1.5 working hours": singular only for exactly one.</summary>
+    public static string FormatWorkingHours(decimal hours) =>
+        hours == 1m ? "1 working hour" : $"{hours:0.##} working hours";
 
     private static string DescribeTrigger(EscalationTrigger trigger) =>
         trigger switch

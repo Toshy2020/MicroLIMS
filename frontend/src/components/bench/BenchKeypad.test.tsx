@@ -150,6 +150,26 @@ describe("RegistryBenchKeypad", () => {
     expect(screen.queryByRole("group", { name: "Number keypad" })).toBeNull();
   });
 
+  it("is hidden until a numeric field has focus, then hidden again on blur", async () => {
+    const user = userEvent.setup();
+    renderWithTheme(
+      <>
+        <input aria-label="Free text" />
+        <Form />
+      </>,
+      { bench: true }
+    );
+    expect(screen.queryByRole("group", { name: "Number keypad" })).toBeNull();
+    await user.click(screen.getByLabelText("Plate A"));
+    expect(screen.getByRole("group", { name: "Number keypad" })).toBeTruthy();
+    await user.click(screen.getByLabelText("Free text"));
+    expect(screen.queryByRole("group", { name: "Number keypad" })).toBeNull();
+    await user.click(screen.getByLabelText("Plate B"));
+    expect(screen.getByRole("group", { name: "Number keypad" })).toBeTruthy();
+    await user.tab();
+    expect(screen.queryByRole("group", { name: "Number keypad" })).toBeNull();
+  });
+
   it("hardware typing still works with the keypad present", async () => {
     const user = userEvent.setup();
     renderWithTheme(<Form />, { bench: true });

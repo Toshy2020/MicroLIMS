@@ -39,8 +39,10 @@ describe("BenchDialog", () => {
     expect(screen.getByRole("dialog").className).not.toContain("MuiDialog-paperFullScreen");
   });
 
-  it("shows the keypad only in bench mode", () => {
+  it("shows the keypad only in bench mode", async () => {
+    const user = userEvent.setup();
     renderWithTheme(<Host dirty={false} onClose={() => {}} />, { bench: true });
+    await user.click(screen.getByLabelText("Plate 1"));
     expect(screen.getByRole("group", { name: "Number keypad" })).toBeTruthy();
     cleanup();
     renderWithTheme(<Host dirty={false} onClose={() => {}} />, { bench: false });

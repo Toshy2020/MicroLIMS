@@ -562,12 +562,84 @@ public class EscalationPostgresTests
                 .SingleAsync(n => n.UserId == head.Id && n.DedupeKey == $"Escalation:rule:{ruleIds[0]}:Sample:{sampleId}");
             Assert.Equal("Escalation", notif.Type);
             Assert.Equal(section.Id, notif.SectionId);
+            Assert.Contains("exceeded 8 working hours (", notif.Message);
         }
         finally
         {
             await CleanupRulesAndDatesAsync(ruleIds);
         }
     }
+
+    [PostgresFact]
+    public async Task Evaluate_MessageUsesSingularForOneWorkingHour_PluralForTwo()
+    {
+        await EnsureDefaultWorkingHoursAsync();
+        var section = await SeedSectionAsync("PLURAL");
+        var head = await SeedUserInSectionAsync(RoleType.SectionHead, section.Id);
+        var cause = await EnsureCauseAsync();
+
+        // Sunday 2026-11-15 working day starts 08:00 Cairo (see the threshold test above).
+        var submittedUtc = CairoUtc(2026, 11, 15, 8, 0);
+        var clock = new MutableTimeProvider(new DateTimeOffset(submittedUtc, TimeSpan.Zero));
+        var ruleIds = new List<int>();
+        var sampleIds = new Dictionary<decimal, int>();
+
+        try
+        {
+            await using (var arrangeDb = _fixture.CreateDbContext())
+            {
+                foreach (var hours in new[] { 1m, 2m })
+                {
+                    var section2 = hours == 1m ? section : await SeedSectionAsync("PLURAL2");
+                    var head2 = hours == 1m ? head : await SeedUserInSectionAsync(RoleType.SectionHead, section2.Id);
+                    var r = await CreateService(arrangeDb, clock)
+                        .CreateAsync(head2.Id, section2.Id, EscalationTrigger.ReviewWaiting, hours, RoleType.SectionHead);
+                    ruleIds.Add(r.Id);
+                    var sample = new Sample
+                    {
+                        ReferenceNumber = UniqueCode("ESC-PL-"),
+                        Category = SampleCategory.FinishedProduct,
+                        Status = SampleStatus.UnderReview,
+                        ReceivedAt = submittedUtc.AddDays(-1),
+                        ReceivedByUserId = _fixture.SeededUserId,
+                        CauseOfTestingId = cause.Id,
+                        LabSectionId = section2.Id
+                    };
+                    sample.TestOrders.Add(new TestOrder { TestCode = "TAMC", SectionId = section2.Id, Status = ApprovalStatus.Pending, CurrentStep = WorkflowStep.Ready });
+                    sample.SectionSignoffs.Add(new SampleSectionSignoff { SectionId = section2.Id, Status = SectionSignoffStatus.UnderReview, SubmittedForReviewAt = submittedUtc });
+                    arrangeDb.Samples.Add(sample);
+                    await arrangeDb.SaveChangesAsync();
+                    sampleIds[hours] = sample.Id;
+                }
+            }
+
+            clock.Now = new DateTimeOffset(CairoUtc(2026, 11, 15, 11, 0), TimeSpan.Zero);
+            await using (var actDb = _fixture.CreateDbContext())
+                await CreateService(actDb, clock).EvaluateAsync();
+
+            await using var assertDb = _fixture.CreateDbContext();
+            var one = await assertDb.NotificationLogs.AsNoTracking()
+                .SingleAsync(n => n.DedupeKey == $"Escalation:rule:{ruleIds[0]}:Sample:{sampleIds[1m]}");
+            var two = await assertDb.NotificationLogs.AsNoTracking()
+                .SingleAsync(n => n.DedupeKey == $"Escalation:rule:{ruleIds[1]}:Sample:{sampleIds[2m]}");
+            Assert.Contains("exceeded 1 working hour (", one.Message);
+            Assert.DoesNotContain("1 working hours", one.Message);
+            Assert.Contains("exceeded 2 working hours (", two.Message);
+        }
+        finally
+        {
+            await CleanupRulesAndDatesAsync(ruleIds);
+        }
+    }
+
+    [Theory]
+    [InlineData("1", "1 working hour")]
+    [InlineData("1.00", "1 working hour")]
+    [InlineData("2", "2 working hours")]
+    [InlineData("1.5", "1.5 working hours")]
+    [InlineData("0.5", "0.5 working hours")]
+    public void FormatWorkingHours_SingularOnlyForExactlyOne(string hours, string expected) =>
+        Assert.Equal(expected, EscalationService.FormatWorkingHours(decimal.Parse(hours, System.Globalization.CultureInfo.InvariantCulture)));
 
     // The event and its notification are one save. A publish that fails must leave no event behind;
     // otherwise later passes would skip the record and the escalation would be lost for good.

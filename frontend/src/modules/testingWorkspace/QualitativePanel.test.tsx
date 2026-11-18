@@ -470,6 +470,16 @@ describe("QualitativePanel in bench mode", () => {
     expect(screen.queryByLabelText("Container 4 result")).toBeNull();
   });
 
+  it("qualitative: the keypad is not shown when the form has no numeric field in focus", async () => {
+    const user = userEvent.setup();
+    renderPanel(false, vi.fn(), true);
+    await screen.findByText(/Qualitative Observations/i);
+    expect(screen.queryByRole("group", { name: "Number keypad" })).toBeNull();
+    const field = screen.getAllByRole("textbox")[0];
+    await user.click(field);
+    expect(screen.queryByRole("group", { name: "Number keypad" })).toBeNull();
+  });
+
   it("qualitative: the gated Sign button gives its reason as text in bench mode", async () => {
     renderPanel(true, vi.fn(), true);
     await screen.findByText(/Qualitative Observations/i);

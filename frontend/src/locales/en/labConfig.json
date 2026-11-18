@@ -723,5 +723,102 @@
         "dilutionFactor": "Dilution factor"
       }
     }
+  },
+  "mediaEvaluation": {
+    "page": {
+      "title": "Media Evaluation",
+      "subtitle": "Growth Promotion, Indication/Inhibition, and Enrichment Characteristics - auto-assigned on media preparation.",
+      "sectionTitle": "Evaluations",
+      "statusAriaLabel": "Status",
+      "allStatuses": "All Statuses",
+      "statuses": {
+        "Assigned": "Assigned",
+        "InProgress": "InProgress",
+        "Completed": "Completed"
+      },
+      "columns": {
+        "lot": "Lot",
+        "mediaType": "Media Type",
+        "evaluationType": "Evaluation Type",
+        "status": "Status",
+        "outcome": "Outcome"
+      },
+      "close": "Close",
+      "noChallenges": "No challenges assigned yet - add Media Challenge Specs for this material under Laboratory Configuration.",
+      "pending": "Pending",
+      "initialInoculum": "Initial Inoculum: <bold>{{value}}</bold>",
+      "incubationSummary": "Incubation: <bold>{{temperature}}°C, {{duration}}h</bold>, {{readingStatus}}",
+      "readyToRead": "ready to read",
+      "earliestReading": "earliest reading {{dateTime}}",
+      "incubatorAriaLabel": "Incubator",
+      "incubatorPlaceholder": "Incubator",
+      "recordIncubation": "Record Incubation",
+      "incubationRecorded": "Incubation recorded.",
+      "incubationError": "Could not record incubation.",
+      "resultRecorded": "Result recorded.",
+      "resultError": "Could not record result.",
+      "resultSummary": {
+        "growthPromotion": "Old {{old}} / New {{new}}, Recovery {{recovery}}%",
+        "growthObserved": "Growth Observed: {{value}}",
+        "yes": "Yes",
+        "no": "No",
+        "observed": "Observed: {{value}}",
+        "turbid": "Turbid",
+        "clear": "Clear"
+      },
+      "incubationInProgress": "Incubation still in progress - result entry opens at {{dateTime}}.",
+      "recordIncubationFirst": "Record incubation before a result can be entered.",
+      "oldMediaCountLabel": "Old Media Count",
+      "newMediaCountLabel": "New Media Count",
+      "recoveryPreview": "Recovery: {{value}}%",
+      "growthObservedAriaLabel": "Growth Observed?",
+      "growthObservedPlaceholder": "Growth Observed?",
+      "observedDescriptionLabel": "Observed Description",
+      "expectedDescription": "Expected: {{value}}",
+      "judgmentAriaLabel": "Judgment",
+      "judgmentPlaceholder": "Judgment",
+      "conform": "Conform",
+      "nonConform": "NonConform",
+      "turbidOrClearAriaLabel": "Turbid or Clear?",
+      "turbidOrClearPlaceholder": "Turbid or Clear?",
+      "recordResult": "Record Result"
+    },
+    "sourcePicker": {
+      "heading": "STEP 1: SELECT THAWED CRYOVIAL OR LYOPHILIZED DISK",
+      "cryovialLabel": "Cryovial: <bold>{{code}}</bold>",
+      "vialThawed": ", vial thawed <bold>{{dateTime}}</bold>",
+      "vialNotRecorded": " (thawed vial not recorded)",
+      "diskSource": "Source: <bold>{{name}}, batch {{batch}}</bold>",
+      "thisOrganism": "this organism",
+      "noThawedVials": "No vial of {{organism}} thawed in the last 24 hours is available.",
+      "thawBelowHint": " Thaw a vial below to use it.",
+      "scanDiskLabel": "Scan lyophilized disk",
+      "selectAriaLabel": "Thawed vial or disk",
+      "selectPlaceholder": "Select thawed vial or disk",
+      "thawedOption": "{{code}}, vial thawed {{dateTime}} by {{by}}",
+      "usedInSuffix": " (used in {{lots}})",
+      "diskOption": "{{name}}, batch {{batch}} ({{left}} left), Lyophilized Disk",
+      "assign": "Assign",
+      "thawNewVial": "Thaw a new vial",
+      "noThawableBatches": "No approved, unexpired cryovial batch of {{organism}} has vials remaining.",
+      "thawHeading": "THAW A VIAL",
+      "scanBatchLabel": "Scan cryovial batch",
+      "batchAriaLabel": "Cryovial batch to thaw from",
+      "batchPlaceholder": "Cryovial batch",
+      "batchOption": "{{code}} ({{remaining}} of {{total}} vials left)",
+      "notesLabel": "Notes (optional)",
+      "thawAndUse": "Thaw & use",
+      "cancel": "Cancel",
+      "messages": {
+        "thawedAssigned": "Thawed vial assigned.",
+        "diskAssigned": "Lyophilized disk assigned.",
+        "thawedAndAssigned": "Vial thawed and assigned. It is now available to every other challenge for this organism."
+      },
+      "errors": {
+        "loadThawed": "Could not load thawed vials.",
+        "assign": "Could not assign the organism source.",
+        "thaw": "Could not thaw a vial."
+      }
+    }
   }
 }

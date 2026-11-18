@@ -763,5 +763,102 @@
         "dilutionFactor": "معامل التخفيف"
       }
     }
+  },
+  "mediaEvaluation": {
+    "page": {
+      "title": "تقييم أوساط زرعية",
+      "subtitle": "تعزيز النمو، والكشف/التثبيط، وخصائص الإغناء — تُسند تلقائيًا عند تحضير أوساط زرعية.",
+      "sectionTitle": "التقييمات",
+      "statusAriaLabel": "الحالة",
+      "allStatuses": "جميع الحالات",
+      "statuses": {
+        "Assigned": "مُسند",
+        "InProgress": "قيد التنفيذ",
+        "Completed": "مكتمل"
+      },
+      "columns": {
+        "lot": "تشغيلة",
+        "mediaType": "نوع أوساط زرعية",
+        "evaluationType": "نوع التقييم",
+        "status": "الحالة",
+        "outcome": "المخرج"
+      },
+      "close": "إغلاق",
+      "noChallenges": "لم تُسند تحديات بعد — أضف مواصفات تحدي أوساط زرعية لهذه المادة ضمن تهيئة المختبر.",
+      "pending": "قيد الانتظار",
+      "initialInoculum": "اللقاح الأولي: <bold>{{value}}</bold>",
+      "incubationSummary": "الحضانة: <bold>{{temperature}}°C، {{duration}} ساعة</bold>، {{readingStatus}}",
+      "readyToRead": "جاهز للقراءة",
+      "earliestReading": "أقرب قراءة {{dateTime}}",
+      "incubatorAriaLabel": "الحاضنة",
+      "incubatorPlaceholder": "الحاضنة",
+      "recordIncubation": "تسجيل الحضانة",
+      "incubationRecorded": "تم تسجيل الحضانة.",
+      "incubationError": "تعذّر تسجيل الحضانة.",
+      "resultRecorded": "تم تسجيل النتيجة.",
+      "resultError": "تعذّر تسجيل النتيجة.",
+      "resultSummary": {
+        "growthPromotion": "الوسط القديم {{old}} / الوسط الجديد {{new}}، نسبة الاسترداد {{recovery}}%",
+        "growthObserved": "لوحظ نمو: {{value}}",
+        "yes": "نعم",
+        "no": "لا",
+        "observed": "الملاحظ: {{value}}",
+        "turbid": "عكر",
+        "clear": "رائق"
+      },
+      "incubationInProgress": "الحضانة لا تزال قيد التنفيذ — يُفتح إدخال النتيجة في {{dateTime}}.",
+      "recordIncubationFirst": "سجّل الحضانة قبل التمكن من إدخال النتيجة.",
+      "oldMediaCountLabel": "عدد مستعمرات أوساط زرعية قديمة",
+      "newMediaCountLabel": "عدد مستعمرات أوساط زرعية جديدة",
+      "recoveryPreview": "نسبة الاسترداد: {{value}}%",
+      "growthObservedAriaLabel": "هل لوحظ نمو؟",
+      "growthObservedPlaceholder": "هل لوحظ نمو؟",
+      "observedDescriptionLabel": "الوصف الملاحظ",
+      "expectedDescription": "المتوقع: {{value}}",
+      "judgmentAriaLabel": "الحكم",
+      "judgmentPlaceholder": "الحكم",
+      "conform": "مطابق",
+      "nonConform": "غير مطابق",
+      "turbidOrClearAriaLabel": "عكر أم رائق؟",
+      "turbidOrClearPlaceholder": "عكر أم رائق؟",
+      "recordResult": "تسجيل النتيجة"
+    },
+    "sourcePicker": {
+      "heading": "الخطوة 1: اختر أمبولًا مذابًا أو قرصًا مجفدًا",
+      "cryovialLabel": "أمبول التجميد: <bold>{{code}}</bold>",
+      "vialThawed": "، أُذيب الأمبول <bold>{{dateTime}}</bold>",
+      "vialNotRecorded": " (لم يُسجّل الأمبول المذاب)",
+      "diskSource": "المصدر: <bold>{{name}}، دفعة {{batch}}</bold>",
+      "thisOrganism": "هذا الكائن الدقيق",
+      "noThawedVials": "لا يتوفر أمبول مذاب من {{organism}} خلال آخر 24 ساعة.",
+      "thawBelowHint": " أذب أمبولًا أدناه لاستخدامه.",
+      "scanDiskLabel": "مسح القرص المجفد",
+      "selectAriaLabel": "أمبول مذاب أو قرص",
+      "selectPlaceholder": "اختر أمبولًا مذابًا أو قرصًا",
+      "thawedOption": "{{code}}، أُذيب الأمبول {{dateTime}} بواسطة {{by}}",
+      "usedInSuffix": " (استُخدم في {{lots}})",
+      "diskOption": "{{name}}، دفعة {{batch}} (المتبقي {{left}})، قرص مجفد",
+      "assign": "إسناد",
+      "thawNewVial": "إذابة أمبول جديد",
+      "noThawableBatches": "لا توجد دفعة أمبولات تجميد معتمدة وغير منتهية الصلاحية من {{organism}} تحتوي على أمبولات متبقية.",
+      "thawHeading": "إذابة أمبول",
+      "scanBatchLabel": "مسح دفعة أمبولات التجميد",
+      "batchAriaLabel": "دفعة أمبولات التجميد للإذابة منها",
+      "batchPlaceholder": "دفعة أمبولات التجميد",
+      "batchOption": "{{code}} (متبقي {{remaining}} من أصل {{total}} أمبول)",
+      "notesLabel": "ملاحظات (اختياري)",
+      "thawAndUse": "إذابة واستخدام",
+      "cancel": "إلغاء",
+      "messages": {
+        "thawedAssigned": "تم إسناد الأمبول المذاب.",
+        "diskAssigned": "تم إسناد القرص المجفد.",
+        "thawedAndAssigned": "تمت إذابة الأمبول وإسناده. أصبح متاحًا الآن لكل تحدٍ آخر لهذا الكائن الدقيق."
+      },
+      "errors": {
+        "loadThawed": "تعذّر تحميل الأمبولات المذابة.",
+        "assign": "تعذّر إسناد مصدر الكائن الدقيق.",
+        "thaw": "تعذّر إذابة أمبول."
+      }
+    }
   }
 }

@@ -18,6 +18,8 @@ import { masterDataOptions, mediaClassLabel, evaluationTypeLabel } from "../../.
 import { tableHeadSx } from "../../../theme";
 import { ChallengeOrganismSourcePicker } from "./components/ChallengeOrganismSourcePicker";
 import { formatDateTimeWithTimeZone } from "../../../utils/formatDate";
+import { Trans } from "react-i18next";
+import { useTranslation } from "../../../i18n";
 
 const STATUSES = ["Assigned", "InProgress", "Completed"];
 
@@ -26,6 +28,7 @@ const STATUSES = ["Assigned", "InProgress", "Completed"];
 // NonConform. Completing with Conform is the only thing that releases
 // the Media lot for routine use (see MediaEvaluationEngine).
 export function MediaEvaluationPage() {
+  const { t } = useTranslation("labConfig");
   const [evaluations, setEvaluations] = useState<MediaEvaluationDetail[]>([]);
   const [statusFilter, setStatusFilter] = useState("");
   const [selected, setSelected] = useState<MediaEvaluationDetail | null>(null);
@@ -80,10 +83,10 @@ export function MediaEvaluationPage() {
     if (!incubatorEquipmentId) return;
     try {
       await MediaEvaluationService.recordIncubation(challenge.id, Number(incubatorEquipmentId));
-      setMessage({ text: "Incubation recorded.", ok: true });
+      setMessage({ text: t("mediaEvaluation.page.incubationRecorded"), ok: true });
       await refreshDetail();
     } catch (e) {
-      setMessage({ text: serverMessage(e) ?? "Could not record incubation.", ok: false });
+      setMessage({ text: serverMessage(e) ?? t("mediaEvaluation.page.incubationError"), ok: false });
     }
   };
 
@@ -103,10 +106,10 @@ export function MediaEvaluationPage() {
     }
     try {
       await MediaEvaluationService.recordResult(challenge.id, payload);
-      setMessage({ text: "Result recorded.", ok: true });
+      setMessage({ text: t("mediaEvaluation.page.resultRecorded"), ok: true });
       await refreshDetail();
     } catch (e) {
-      setMessage({ text: serverMessage(e) ?? "Could not record result.", ok: false });
+      setMessage({ text: serverMessage(e) ?? t("mediaEvaluation.page.resultError"), ok: false });
     }
   };
 
@@ -122,19 +125,19 @@ export function MediaEvaluationPage() {
 
   return (
     <>
-      <PageHeader title="Media Evaluation" subtitle="Growth Promotion, Indication/Inhibition, and Enrichment Characteristics - auto-assigned on media preparation." />
+      <PageHeader title={t("mediaEvaluation.page.title")} subtitle={t("mediaEvaluation.page.subtitle")} />
 
-      <SectionTitle>Evaluations</SectionTitle>
+      <SectionTitle>{t("mediaEvaluation.page.sectionTitle")}</SectionTitle>
       <Paper sx={{ p: 2.5 }}>
-        <Select size="small" displayEmpty value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} sx={{ mb: 2, minWidth: 200 }} inputProps={{ "aria-label": "Status" }}>
-          <MenuItem value=""><em>All Statuses</em></MenuItem>
-          {STATUSES.map((s) => <MenuItem key={s} value={s}>{s}</MenuItem>)}
+        <Select size="small" displayEmpty value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} sx={{ mb: 2, minWidth: 200 }} inputProps={{ "aria-label": t("mediaEvaluation.page.statusAriaLabel") }}>
+          <MenuItem value=""><em>{t("mediaEvaluation.page.allStatuses")}</em></MenuItem>
+          {STATUSES.map((s) => <MenuItem key={s} value={s}>{t(`mediaEvaluation.page.statuses.${s}`)}</MenuItem>)}
         </Select>
         <TableContainer>
           <Table size="small">
             <TableHead><TableRow sx={tableHeadSx}>
-              <TableCell>Lot</TableCell><TableCell>Media Type</TableCell><TableCell>Evaluation Type</TableCell>
-              <TableCell>Status</TableCell><TableCell>Outcome</TableCell>
+              <TableCell>{t("mediaEvaluation.page.columns.lot")}</TableCell><TableCell>{t("mediaEvaluation.page.columns.mediaType")}</TableCell><TableCell>{t("mediaEvaluation.page.columns.evaluationType")}</TableCell>
+              <TableCell>{t("mediaEvaluation.page.columns.status")}</TableCell><TableCell>{t("mediaEvaluation.page.columns.outcome")}</TableCell>
             </TableRow></TableHead>
             <TableBody>
               {evaluations.map((e) => (
@@ -166,14 +169,14 @@ export function MediaEvaluationPage() {
             </Box>
           ) : null
         }
-        actions={<Button onClick={closeDetail}>Close</Button>}
+        actions={<Button onClick={closeDetail}>{t("mediaEvaluation.page.close")}</Button>}
       >
         {selected && (
           <>
               {message && <Alert severity={message.ok ? "success" : "error"} sx={{ mb: 2 }}>{message.text}</Alert>}
               <Stack spacing={2}>
                 {selected.challenges.length === 0 && (
-                  <Alert severity="warning">No challenges assigned yet - add Media Challenge Specs for this material under Laboratory Configuration.</Alert>
+                  <Alert severity="warning">{t("mediaEvaluation.page.noChallenges")}</Alert>
                 )}
                 {selected.challenges.map((c) => {
                   const form = forms[c.id] ?? {};
@@ -186,10 +189,17 @@ export function MediaEvaluationPage() {
                         </Typography>
                         {c.outcome ? <StatusBadge status={c.outcome} /> : <Typography variant="caption" sx={{
                           color: "text.secondary"
-                        }}>Pending</Typography>}
+                        }}>{t("mediaEvaluation.page.pending")}</Typography>}
                       </Box>
 
-                      <Typography variant="body2" sx={{ mb: 1 }}>Initial Inoculum: <strong>{c.initialInoculum}</strong></Typography>
+                      <Typography variant="body2" sx={{ mb: 1 }}>
+                        <Trans
+                          i18nKey="mediaEvaluation.page.initialInoculum"
+                          ns="labConfig"
+                          values={{ value: c.initialInoculum }}
+                          components={{ bold: <strong /> }}
+                        />
+                      </Typography>
 
                       {/* Organism source - a thawed cryovial vial */}
                       <ChallengeOrganismSourcePicker
@@ -203,9 +213,18 @@ export function MediaEvaluationPage() {
                       {/* Incubation */}
                       {c.incubation ? (
                         <Typography variant="body2" sx={{ mb: 1 }}>
-                          Incubation: <strong>{c.incubation.temperature}°C, {c.incubation.duration}h</strong>
-                          {", "}
-                          {isReadyToRead(c) ? "ready to read" : `earliest reading ${formatDateTimeWithTimeZone(c.incubation.expectedReadingAt!)}`}
+                          <Trans
+                            i18nKey="mediaEvaluation.page.incubationSummary"
+                            ns="labConfig"
+                            values={{
+                              temperature: c.incubation.temperature,
+                              duration: c.incubation.duration,
+                              readingStatus: isReadyToRead(c)
+                                ? t("mediaEvaluation.page.readyToRead")
+                                : t("mediaEvaluation.page.earliestReading", { dateTime: formatDateTimeWithTimeZone(c.incubation.expectedReadingAt!) })
+                            }}
+                            components={{ bold: <strong /> }}
+                          />
                         </Typography>
                       ) : (
                         <Stack
@@ -215,11 +234,11 @@ export function MediaEvaluationPage() {
                             alignItems: "center",
                             mb: 1
                           }}>
-                          <Select size="small" displayEmpty value={form.incubatorEquipmentId ?? ""} onChange={(e) => setField(c.id, "incubatorEquipmentId", e.target.value)} sx={{ minWidth: 200 }} inputProps={{ "aria-label": "Incubator" }}>
-                            <MenuItem value=""><em>Incubator</em></MenuItem>
+                          <Select size="small" displayEmpty value={form.incubatorEquipmentId ?? ""} onChange={(e) => setField(c.id, "incubatorEquipmentId", e.target.value)} sx={{ minWidth: 200 }} inputProps={{ "aria-label": t("mediaEvaluation.page.incubatorAriaLabel") }}>
+                            <MenuItem value=""><em>{t("mediaEvaluation.page.incubatorPlaceholder")}</em></MenuItem>
                             {incubators.map((i) => <MenuItem key={i.id} value={i.id}>{i.name}</MenuItem>)}
                           </Select>
-                          <Button size="small" variant="outlined" disabled={!form.incubatorEquipmentId} onClick={() => recordIncubation(c)}>Record Incubation</Button>
+                          <Button size="small" variant="outlined" disabled={!form.incubatorEquipmentId} onClick={() => recordIncubation(c)}>{t("mediaEvaluation.page.recordIncubation")}</Button>
                         </Stack>
                       )}
 
@@ -227,64 +246,64 @@ export function MediaEvaluationPage() {
                       {c.outcome ? (
                         <Box sx={{ mt: 1 }}>
                           {selected.evaluationType === "GrowthPromotion" && (
-                            <Typography variant="body2">Old {c.oldMediaCount} / New {c.newMediaCount}, Recovery {c.recoveryPercent}%</Typography>
+                            <Typography variant="body2">{t("mediaEvaluation.page.resultSummary.growthPromotion", { old: c.oldMediaCount, new: c.newMediaCount, recovery: c.recoveryPercent })}</Typography>
                           )}
                           {c.challengeRole === "Inhibition" && (
-                            <Typography variant="body2">Growth Observed: {c.growthObserved ? "Yes" : "No"}</Typography>
+                            <Typography variant="body2">{t("mediaEvaluation.page.resultSummary.growthObserved", { value: c.growthObserved ? t("mediaEvaluation.page.resultSummary.yes") : t("mediaEvaluation.page.resultSummary.no") })}</Typography>
                           )}
                           {c.challengeRole === "Indication" && (
-                            <Typography variant="body2">Observed: {c.observedDescription}</Typography>
+                            <Typography variant="body2">{t("mediaEvaluation.page.resultSummary.observed", { value: c.observedDescription })}</Typography>
                           )}
                           {selected.evaluationType === "EnrichmentCharacteristics" && (
-                            <Typography variant="body2">{c.isTurbid ? "Turbid" : "Clear"}</Typography>
+                            <Typography variant="body2">{c.isTurbid ? t("mediaEvaluation.page.resultSummary.turbid") : t("mediaEvaluation.page.resultSummary.clear")}</Typography>
                           )}
                         </Box>
                       ) : !isReadyToRead(c) ? (
                         <Alert severity="info" sx={{ mt: 1 }}>
                           {c.incubation
-                            ? `Incubation still in progress - result entry opens at ${formatDateTimeWithTimeZone(c.incubation.expectedReadingAt!)}.`
-                            : "Record incubation before a result can be entered."}
+                            ? t("mediaEvaluation.page.incubationInProgress", { dateTime: formatDateTimeWithTimeZone(c.incubation.expectedReadingAt!) })
+                            : t("mediaEvaluation.page.recordIncubationFirst")}
                         </Alert>
                       ) : (
                         <Box sx={{ mt: 1, display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 1.5 }}>
                           {selected.evaluationType === "GrowthPromotion" && (
                             <>
-                              <TextField size="small" label="Old Media Count" value={form.oldMediaCount ?? ""} onChange={(e) => setField(c.id, "oldMediaCount", e.target.value)} />
-                              <TextField size="small" label="New Media Count" value={form.newMediaCount ?? ""} onChange={(e) => setField(c.id, "newMediaCount", e.target.value)} />
-                              {previewRecovery(form) !== null && <Typography variant="body2" sx={{ alignSelf: "center" }}>Recovery: {previewRecovery(form)}%</Typography>}
+                              <TextField size="small" label={t("mediaEvaluation.page.oldMediaCountLabel")} value={form.oldMediaCount ?? ""} onChange={(e) => setField(c.id, "oldMediaCount", e.target.value)} />
+                              <TextField size="small" label={t("mediaEvaluation.page.newMediaCountLabel")} value={form.newMediaCount ?? ""} onChange={(e) => setField(c.id, "newMediaCount", e.target.value)} />
+                              {previewRecovery(form) !== null && <Typography variant="body2" sx={{ alignSelf: "center" }}>{t("mediaEvaluation.page.recoveryPreview", { value: previewRecovery(form) })}</Typography>}
                             </>
                           )}
                           {c.challengeRole === "Inhibition" && (
-                            <Select size="small" displayEmpty value={form.growthObserved ?? ""} onChange={(e) => setField(c.id, "growthObserved", e.target.value)} inputProps={{ "aria-label": "Growth Observed?" }}>
-                              <MenuItem value=""><em>Growth Observed?</em></MenuItem>
-                              <MenuItem value="yes">Yes</MenuItem>
-                              <MenuItem value="no">No</MenuItem>
+                            <Select size="small" displayEmpty value={form.growthObserved ?? ""} onChange={(e) => setField(c.id, "growthObserved", e.target.value)} inputProps={{ "aria-label": t("mediaEvaluation.page.growthObservedAriaLabel") }}>
+                              <MenuItem value=""><em>{t("mediaEvaluation.page.growthObservedPlaceholder")}</em></MenuItem>
+                              <MenuItem value="yes">{t("mediaEvaluation.page.resultSummary.yes")}</MenuItem>
+                              <MenuItem value="no">{t("mediaEvaluation.page.resultSummary.no")}</MenuItem>
                             </Select>
                           )}
                           {c.challengeRole === "Indication" && (
                             <>
-                              <TextField size="small" label="Observed Description" value={form.observedDescription ?? ""} onChange={(e) => setField(c.id, "observedDescription", e.target.value)} sx={{ gridColumn: "span 2" }} />
+                              <TextField size="small" label={t("mediaEvaluation.page.observedDescriptionLabel")} value={form.observedDescription ?? ""} onChange={(e) => setField(c.id, "observedDescription", e.target.value)} sx={{ gridColumn: "span 2" }} />
                               <Typography
                                 variant="caption"
                                 sx={{
                                   color: "text.secondary",
                                   gridColumn: "span 2"
-                                }}>Expected: {c.expectedDescription ?? "—"}</Typography>
-                              <Select size="small" displayEmpty value={form.manualConform ?? ""} onChange={(e) => setField(c.id, "manualConform", e.target.value)} inputProps={{ "aria-label": "Judgment" }}>
-                                <MenuItem value=""><em>Judgment</em></MenuItem>
-                                <MenuItem value="conform">Conform</MenuItem>
-                                <MenuItem value="nonconform">NonConform</MenuItem>
+                                }}>{t("mediaEvaluation.page.expectedDescription", { value: c.expectedDescription ?? "—" })}</Typography>
+                              <Select size="small" displayEmpty value={form.manualConform ?? ""} onChange={(e) => setField(c.id, "manualConform", e.target.value)} inputProps={{ "aria-label": t("mediaEvaluation.page.judgmentAriaLabel") }}>
+                                <MenuItem value=""><em>{t("mediaEvaluation.page.judgmentPlaceholder")}</em></MenuItem>
+                                <MenuItem value="conform">{t("mediaEvaluation.page.conform")}</MenuItem>
+                                <MenuItem value="nonconform">{t("mediaEvaluation.page.nonConform")}</MenuItem>
                               </Select>
                             </>
                           )}
                           {selected.evaluationType === "EnrichmentCharacteristics" && (
-                            <Select size="small" displayEmpty value={form.isTurbid ?? ""} onChange={(e) => setField(c.id, "isTurbid", e.target.value)} inputProps={{ "aria-label": "Turbid or Clear?" }}>
-                              <MenuItem value=""><em>Turbid or Clear?</em></MenuItem>
-                              <MenuItem value="yes">Turbid</MenuItem>
-                              <MenuItem value="no">Clear</MenuItem>
+                            <Select size="small" displayEmpty value={form.isTurbid ?? ""} onChange={(e) => setField(c.id, "isTurbid", e.target.value)} inputProps={{ "aria-label": t("mediaEvaluation.page.turbidOrClearAriaLabel") }}>
+                              <MenuItem value=""><em>{t("mediaEvaluation.page.turbidOrClearPlaceholder")}</em></MenuItem>
+                              <MenuItem value="yes">{t("mediaEvaluation.page.resultSummary.turbid")}</MenuItem>
+                              <MenuItem value="no">{t("mediaEvaluation.page.resultSummary.clear")}</MenuItem>
                             </Select>
                           )}
-                          <Button size="small" variant="contained" onClick={() => recordResult(c)}>Record Result</Button>
+                          <Button size="small" variant="contained" onClick={() => recordResult(c)}>{t("mediaEvaluation.page.recordResult")}</Button>
                         </Box>
                       )}
                     </Paper>

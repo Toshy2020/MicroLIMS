@@ -2021,6 +2021,70 @@
       "addAria": "Add test to {{name}}",
       "addFirst": "Add first test",
       "add": "Add test"
+    },
+    "testTypes": {
+      "PassiveAirSample": "Passive air sample",
+      "ActiveAirSample": "Active air sample",
+      "SurfaceAirSample": "Surface sample",
+      "CompressedAir": "Compressed air",
+      "Drains": "Drains"
+    },
+    "unitHints": {
+      "PassiveAirSample": "e.g. CFU/plate/4 hours",
+      "ActiveAirSample": "e.g. CFU/m³",
+      "SurfaceAirSample": "e.g. CFU/25 cm2",
+      "CompressedAir": "e.g. CFU/m³",
+      "Drains": "e.g. CFU/swab"
+    },
+    "dept": {
+      "nameRequired": "Name is required.",
+      "updated": "\"{{name}}\" updated.",
+      "added": "\"{{name}}\" added.",
+      "saveError": "Could not save this department.",
+      "overline": "Department",
+      "editTitle": "Edit {{name}}",
+      "addTitle": "Add department",
+      "saveChanges": "Save changes",
+      "name": "Name",
+      "class": "Class",
+      "classPlaceholder": "e.g. Grade C"
+    },
+    "roomPanel": {
+      "required": "Room name and department are required.",
+      "lafParent": "Choose the room this LAF sits in.",
+      "updated": "Room \"{{name}}\" updated.",
+      "added": "Room \"{{name}}\" added.",
+      "saveError": "Could not save this room.",
+      "overline": "Room",
+      "editTitle": "Edit {{name}}",
+      "addTitle": "Add room",
+      "saveChanges": "Save changes",
+      "roomName": "Room name",
+      "department": "Department",
+      "grade": "Grade",
+      "type": "Type",
+      "typeRoom": "Room",
+      "typeLaf": "LAF (laminar air flow unit)",
+      "sitsIn": "Sits in room",
+      "sameAsDept": "Same as department",
+      "usesDept": "Uses the department's frequency: {{frequency}}.",
+      "noDeptFrequency": "The department has no structured frequency yet."
+    },
+    "testPanel": {
+      "chooseTest": "Choose the test to run.",
+      "unitRequired": "Unit is required for {{type}}.",
+      "updated": "Test updated for {{room}}.",
+      "added": "Test added to {{room}}.",
+      "saveError": "Could not save this test.",
+      "editTitle": "Edit test",
+      "addTitle": "Add test",
+      "saveChanges": "Save changes",
+      "section1": "1 · What is sampled",
+      "testType": "Test type",
+      "test": "Test",
+      "section2": "2 · Limits",
+      "hintUnit": "{{type}} reports the unit you enter here, so it is required.",
+      "hintBlank": "Leave a limit blank if it does not apply."
     }
   }
 }

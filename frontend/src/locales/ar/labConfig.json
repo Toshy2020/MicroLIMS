@@ -2133,6 +2133,70 @@
       "addAria": "إضافة اختبار إلى {{name}}",
       "addFirst": "إضافة أول اختبار",
       "add": "إضافة اختبار"
+    },
+    "testTypes": {
+      "PassiveAirSample": "عينة هواء سلبية",
+      "ActiveAirSample": "عينة هواء نشطة",
+      "SurfaceAirSample": "عينة سطح",
+      "CompressedAir": "الهواء المضغوط",
+      "Drains": "المصارف"
+    },
+    "unitHints": {
+      "PassiveAirSample": "مثال: CFU/طبق/4 ساعات",
+      "ActiveAirSample": "مثال: CFU/m³",
+      "SurfaceAirSample": "مثال: CFU/25 cm2",
+      "CompressedAir": "مثال: CFU/m³",
+      "Drains": "مثال: CFU/مسحة"
+    },
+    "dept": {
+      "nameRequired": "الاسم مطلوب.",
+      "updated": "تم تحديث \"{{name}}\".",
+      "added": "تمت إضافة \"{{name}}\".",
+      "saveError": "تعذّر حفظ هذا القسم.",
+      "overline": "القسم",
+      "editTitle": "تعديل {{name}}",
+      "addTitle": "إضافة قسم",
+      "saveChanges": "حفظ التغييرات",
+      "name": "الاسم",
+      "class": "الفئة",
+      "classPlaceholder": "مثال: الدرجة C"
+    },
+    "roomPanel": {
+      "required": "اسم الغرفة والقسم مطلوبان.",
+      "lafParent": "اختر الغرفة التي تقع فيها وحدة LAF.",
+      "updated": "تم تحديث الغرفة \"{{name}}\".",
+      "added": "تمت إضافة الغرفة \"{{name}}\".",
+      "saveError": "تعذّر حفظ هذه الغرفة.",
+      "overline": "الغرفة",
+      "editTitle": "تعديل {{name}}",
+      "addTitle": "إضافة غرفة",
+      "saveChanges": "حفظ التغييرات",
+      "roomName": "اسم الغرفة",
+      "department": "القسم",
+      "grade": "الدرجة",
+      "type": "النوع",
+      "typeRoom": "غرفة",
+      "typeLaf": "LAF (وحدة تدفق هواء رقائقي)",
+      "sitsIn": "تقع في الغرفة",
+      "sameAsDept": "مثل القسم",
+      "usesDept": "تستخدم تكرار القسم: {{frequency}}.",
+      "noDeptFrequency": "ليس للقسم تكرار منظَّم بعد."
+    },
+    "testPanel": {
+      "chooseTest": "اختر الاختبار المطلوب تشغيله.",
+      "unitRequired": "الوحدة مطلوبة لـ {{type}}.",
+      "updated": "تم تحديث الاختبار للغرفة {{room}}.",
+      "added": "تمت إضافة الاختبار إلى {{room}}.",
+      "saveError": "تعذّر حفظ هذا الاختبار.",
+      "editTitle": "تعديل اختبار",
+      "addTitle": "إضافة اختبار",
+      "saveChanges": "حفظ التغييرات",
+      "section1": "1 · ما الذي يُؤخذ منه العينة",
+      "testType": "نوع الاختبار",
+      "test": "الاختبار",
+      "section2": "2 · الحدود",
+      "hintUnit": "يُبلِّغ {{type}} بالوحدة التي تدخلها هنا، لذا فهي مطلوبة.",
+      "hintBlank": "اترك الحد فارغًا إذا لم يكن منطبقًا."
     }
   }
 }

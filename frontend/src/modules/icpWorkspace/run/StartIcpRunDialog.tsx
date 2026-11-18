@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Trans } from "react-i18next";
 import {
   Dialog,
   DialogTitle,
@@ -13,6 +14,8 @@ import {
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import BiotechIcon from "@mui/icons-material/Biotech";
 import { IcpWorkspaceService } from "../services/IcpWorkspaceService";
+import { Ltr } from "../../../components/Ltr";
+import { useTranslation } from "../../../i18n";
 import type { IcpRunDto } from "../types";
 
 export interface StartIcpRunDialogProps {
@@ -34,6 +37,7 @@ export function StartIcpRunDialog({
   onClose,
   onRunStarted
 }: StartIcpRunDialogProps) {
+  const { t } = useTranslation("icpWorkspace");
   const [starting, setStarting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -49,7 +53,7 @@ export function StartIcpRunDialog({
       onRunStarted(newRun);
     } catch (err: unknown) {
       const e = err as { response?: { data?: { message?: string } }; message?: string };
-      setError(e.response?.data?.message ?? e.message ?? "Failed to start ICP run.");
+      setError(e.response?.data?.message ?? e.message ?? t("run.startDialog.loadError"));
     } finally {
       setStarting(false);
     }
@@ -60,11 +64,16 @@ export function StartIcpRunDialog({
       <DialogTitle sx={{ fontWeight: 700, pb: 1 }}>
         <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
           <BiotechIcon color="primary" />
-          <span>Start ICP Run</span>
+          <span>{t("run.startDialog.title")}</span>
         </Stack>
         {equipmentName && (
           <Typography variant="body2" sx={{ color: "text.secondary", fontWeight: 400, mt: 0.5 }}>
-            Instrument: <strong>{equipmentName}</strong> ({equipmentCode})
+            <Trans
+              i18nKey="run.startDialog.instrument"
+              ns="icpWorkspace"
+              values={{ name: equipmentName, code: equipmentCode ?? "" }}
+              components={{ ltr: <Ltr>{null}</Ltr>, strong: <strong /> }}
+            />
           </Typography>
         )}
       </DialogTitle>
@@ -76,14 +85,13 @@ export function StartIcpRunDialog({
           </Alert>
         )}
         <Typography variant="body2" sx={{ color: "text.secondary" }}>
-          The run starts with a pending calibration. Record the standard lot, the elements calibrated and their r,
-          attach the calibration curve report and sign to declare the instrument calibrated and ready for testing.
+          {t("run.startDialog.description")}
         </Typography>
       </DialogContent>
 
       <DialogActions sx={{ px: 3, py: 2 }}>
         <Button onClick={onClose} disabled={starting}>
-          Cancel
+          {t("run.startDialog.cancel")}
         </Button>
         <Button
           variant="contained"
@@ -92,7 +100,7 @@ export function StartIcpRunDialog({
           disabled={starting}
           sx={{ textTransform: "none" }}
         >
-          {starting ? "Starting Run..." : "Start Run"}
+          {starting ? t("run.startDialog.starting") : t("run.startDialog.start")}
         </Button>
       </DialogActions>
     </Dialog>

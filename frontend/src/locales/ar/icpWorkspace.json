@@ -1,0 +1,243 @@
+{
+  "status": {
+    "open": "مفتوح",
+    "completed": "مكتمل",
+    "abandoned": "مُلغى",
+    "pending": "قيد الانتظار",
+    "confirmed": "مُؤكَّد",
+    "passed": "ناجح",
+    "failed": "فاشل",
+    "available": "متاح",
+    "running": "قيد التشغيل",
+    "unavailable": "غير متاح",
+    "assigned": "مُسنَد",
+    "removed": "مُزال",
+    "withinLimits": "ضمن الحدود",
+    "oos": "خارج المواصفات",
+    "actionLimitExceeded": "تجاوز حد الإجراء",
+    "alertLimitExceeded": "تجاوز حد التنبيه",
+    "requiresReview": "يتطلب مراجعة"
+  },
+  "overview": {
+    "loadError": "تعذّر تحميل أجهزة ICP.",
+    "title": "مساحة عمل ICP-OES",
+    "subtitle": "نظرة عامة على أجهزة مطياف الانبعاث البصري بالبلازما المقترنة بالحث، والتشغيلات التحليلية النشطة، والمعايرات.",
+    "refresh": "تحديث",
+    "kpi": {
+      "instruments": "الأجهزة",
+      "available": "متاح",
+      "inUse": "قيد الاستخدام",
+      "calPending": "معايرة قيد الانتظار",
+      "unavailable": "غير متاح"
+    },
+    "searchPlaceholder": "ابحث بالرمز أو الاسم أو التشغيل...",
+    "tabs": {
+      "all": "الكل ({{count}})",
+      "inUse": "قيد الاستخدام ({{count}})",
+      "available": "متاح ({{count}})",
+      "unavailable": "غير متاح ({{count}})"
+    },
+    "empty": {
+      "title": "لم يتم العثور على أجهزة ICP",
+      "filteredDescription": "لم تطابق أي أجهزة عامل تصفية البحث أو الحالة النشط.",
+      "noneConfigured": "لا توجد معدات ICP-OES مُهيأة لقسم المختبر هذا."
+    },
+    "card": {
+      "unavailableReasonFallback": "الجهاز خارج الخدمة أو أن المعايرة متأخرة.",
+      "calBadge": "معايرة: {{status}}",
+      "run": "التشغيل:",
+      "analyst": "محلل:",
+      "assignedSamples": "عينات مسندة:",
+      "ready": "الجهاز جاهز. لا يوجد تشغيل تحليلي نشط حالياً.",
+      "runHistory": "سجل التشغيل",
+      "openRun": "فتح التشغيل",
+      "startRun": "بدء تشغيل"
+    }
+  },
+  "history": {
+    "title": "سجل تشغيل الجهاز ({{count}})",
+    "columns": {
+      "runCode": "رمز التشغيل",
+      "analyst": "محلل",
+      "startedAt": "بدء التشغيل",
+      "samples": "عينات",
+      "runStatus": "حالة التشغيل",
+      "calibration": "معايرة",
+      "action": "إجراء"
+    },
+    "view": "عرض",
+    "emptyTitle": "لا توجد تشغيلات سابقة مسجلة",
+    "emptyDescription": "تظهر هنا تشغيلات ICP المكتملة والملغاة والسابقة على هذا الجهاز."
+  },
+  "stepRail": {
+    "steps": {
+      "calibration": "معايرة",
+      "samples": "عينات",
+      "testingEvidence": "الاختبار والأدلة",
+      "reviewComplete": "مراجعة وإكمال"
+    },
+    "locks": {
+      "calFailed": "تحتوي المعايرة على عناصر فاشلة. حدّث المعايرة قبل إسناد عينات.",
+      "calPending": "إسناد عينة مقفل حتى يتم تأكيد المعايرة.",
+      "evidenceNeedCal": "مقفل حتى يتم تأكيد المعايرة.",
+      "evidenceNeedSamples": "مقفل حتى يتم إسناد عينات إلى التشغيل.",
+      "completeNeedSamples": "يجب معالجة العينات المسندة قبل إكمال التشغيل."
+    },
+    "stepNumber": "الخطوة {{num}}"
+  },
+  "elementStrip": {
+    "title": "العناصر المعايَرة:",
+    "failedFallback": "فشلت المعايرة"
+  },
+  "run": {
+    "breadcrumbUnavailable": "التشغيل غير متاح",
+    "loadError": "تعذّر تحميل بيانات تشغيل ICP.",
+    "instrumentNotFound": "الجهاز غير موجود",
+    "instrumentUnavailable": "الجهاز غير متاح",
+    "abandonedToast": "تم تحديد التشغيل كملغى.",
+    "abandonError": "تعذّر إلغاء التشغيل.",
+    "completedToast": "اكتمل التشغيل.",
+    "completeError": "تعذّر إكمال التشغيل.",
+    "notFoundAlert": "التشغيل غير موجود أو مغلق.",
+    "backToInstruments": "العودة إلى الأجهزة",
+    "instruments": "الأجهزة",
+    "tabs": {
+      "calibration": "معايرة",
+      "samples": "عينات ({{count}})",
+      "evidence": "الأدلة ({{count}})",
+      "history": "سجل التشغيل"
+    },
+    "abandonDialog": {
+      "title": "إلغاء تشغيل ICP",
+      "label": "سبب الإلغاء *",
+      "placeholder": "اشرح سبب إلغاء هذا التشغيل (مثل انطفاء البلازما، أو انسداد البخاخ، أو نفاد الأرجون)...",
+      "confirmText": "إلغاء التشغيل",
+      "loadingText": "جارٍ الإلغاء..."
+    },
+    "header": {
+      "calibrationBadge": "معايرة: {{status}}",
+      "runCode": "رمز التشغيل:",
+      "analyst": "محلل:",
+      "analystFallback": "محلل",
+      "started": "بدء التشغيل:",
+      "abandonRun": "إلغاء التشغيل...",
+      "completing": "جارٍ الإكمال...",
+      "completeRun": "إكمال التشغيل"
+    },
+    "startDialog": {
+      "loadError": "تعذّر بدء تشغيل ICP.",
+      "title": "بدء تشغيل ICP",
+      "instrument": "الجهاز: <strong>{{name}}</strong> (<ltr>{{code}}</ltr>)",
+      "description": "يبدأ التشغيل بمعايرة قيد الانتظار. سجّل تشغيلة المادة القياسية، والعناصر المعايَرة وقيم r الخاصة بها، وأرفق تقرير منحنى المعايرة، ووقّع لإعلان الجهاز معايَراً وجاهزاً للاختبار.",
+      "cancel": "إلغاء",
+      "starting": "جارٍ بدء التشغيل...",
+      "start": "بدء التشغيل"
+    }
+  },
+  "calibration": {
+    "panel": {
+      "savedToast": "تم حفظ المعايرة.",
+      "saveError": "تعذّر حفظ المعايرة.",
+      "confirmedToast": "تم تأكيد المعايرة بنجاح.",
+      "titleExpired": "انتهت صلاحية المعايرة ({{code}})",
+      "titleConfirmed": "تم تأكيد المعايرة ({{code}})",
+      "confirmedBy": "أُكِّدت بواسطة <strong>{{user}}</strong> في <ltr>{{date}}</ltr>.",
+      "analystFallback": "محلل",
+      "validityWindow": "نافذة الصلاحية",
+      "validUntil": "صالحة حتى: <ltr>{{date}}</ltr>",
+      "expiredAlert": "انتهت صلاحية هذه المعايرة. يلزم إجراء تشغيل معايرة جديد قبل متابعة اختبار العينة.",
+      "standardLotLabel": "تشغيلة المادة القياسية للمعايرة:",
+      "lotUnrecorded": "تشغيلة غير مسجلة",
+      "formTitle": "مادة قياسية للمعايرة والعناصر",
+      "formSubtitle": "اختر تشغيلة المادة القياسية، ثم أدرج كل فلز تمت معايرته ومعامل الارتباط (r) المقروء من منحنى المعايرة.",
+      "calibratedElements": "العناصر المعايَرة",
+      "saving": "جارٍ الحفظ...",
+      "save": "حفظ المعايرة",
+      "confirmTooltipFallback": "لا يمكن تأكيد المعايرة",
+      "confirm": "تأكيد المعايرة",
+      "reportTitle": "تقرير منحنى المعايرة",
+      "reportDescription": "ارفع تقرير Syngistix الذي يوضح منحنى المعايرة. يُعدّ الدليل على قيم r أعلاه ومطلوباً للتأكيد.",
+      "signatureMeaning": "أؤكد أن جهاز ICP-OES مُعايَر وجاهز للاختبار."
+    },
+    "elementTable": {
+      "columns": {
+        "element": "العنصر",
+        "correlation": "الارتباط (r)",
+        "minCorrelation": "الحد الأدنى {{min}}",
+        "result": "نتيجة"
+      },
+      "empty": "لا توجد عناصر بعد. أضف كل فلز تمت معايرته في هذا التشغيل.",
+      "elementAria": "العنصر {{num}}",
+      "correlationAria": "قيمة r للعنصر {{num}}",
+      "passed": "ناجح",
+      "failed": "فاشل",
+      "saveToCheck": "احفظ للتحقق من r",
+      "removeAria": "إزالة العنصر {{num}}",
+      "addElement": "إضافة عنصر"
+    },
+    "lotPicker": {
+      "lotDisplay": "{{name}} - تشغيلة {{lotNumber}}",
+      "label": "تشغيلة المادة القياسية للمعايرة",
+      "placeholder": "اختر تشغيلة المادة القياسية المرجعية",
+      "loading": "جارٍ تحميل تشغيلات المواد القياسية المرجعية الصالحة للاستخدام...",
+      "empty": "لم يتم العثور على تشغيلات مواد قياسية مرجعية صالحة للاستخدام."
+    }
+  },
+  "samples": {
+    "panel": {
+      "removedToast": "تمت إزالة عينة {{sampleNumber}} من التشغيل.",
+      "removeError": "تعذّر إزالة العينة.",
+      "tooltipCal": "إسناد عينة مقفل حتى يتم تأكيد المعايرة",
+      "tooltipClosed": "التشغيل لم يعد مفتوحاً",
+      "tooltipPermission": "الصلاحية مطلوبة",
+      "lockedBold": "إسناد العينة مقفل.",
+      "lockedFallback": "إسناد العينة مقفل حتى يتم تأكيد المعايرة والتحقق من توفر العناصر.",
+      "unlockedAlert": "تم تأكيد المعايرة. يمكن إسناد طلبات الاختبار المؤهلة إلى تشغيل ICP هذا.",
+      "assignedTitle": "عينات التشغيل المسندة ({{count}})",
+      "assignedSubtitle": "عينات مرتبطة بتشغيل ICP هذا للتحليل وإدخال النتيجة.",
+      "assignSamples": "إسناد عينات...",
+      "emptyTitle": "لم تُسنَد عينات إلى هذا التشغيل بعد",
+      "emptyDescription": "انقر على «إسناد عينات...» لربط طلبات الاختبار المؤهلة بهذا التشغيل.",
+      "emptyLocked": "إسناد العينة مقفل.",
+      "columns": {
+        "sampleNumber": "رقم العينة",
+        "batch": "دفعة",
+        "product": "المنتج",
+        "testCode": "رمز الاختبار",
+        "status": "الحالة",
+        "actions": "الإجراءات"
+      },
+      "enterResults": "إدخال نتائج",
+      "remove": "إزالة",
+      "removeDialogTitle": "إزالة عينة {{sampleNumber}}",
+      "removeConfirmText": "إزالة العينة",
+      "removingText": "جارٍ الإزالة...",
+      "removeReasonLabel": "سبب الإزالة *",
+      "removeReasonPlaceholder": "اشرح سبب إزالة هذه العينة من التشغيل..."
+    },
+    "eligible": {
+      "loadError": "تعذّر تحميل طلبات الاختبار المؤهلة.",
+      "assignedToast": "تم إسناد {{count}} عينة إلى هذا التشغيل.",
+      "title": "إسناد العينات المؤهلة إلى التشغيل",
+      "searchPlaceholder": "ابحث برقم العينة أو الدفعة أو المنتج أو رمز الاختبار...",
+      "searchAria": "بحث عن العينات المؤهلة",
+      "searchButton": "بحث",
+      "selectAllAria": "تحديد جميع العينات المؤهلة",
+      "columns": {
+        "sampleNumber": "رقم العينة",
+        "batch": "دفعة",
+        "product": "المنتج",
+        "testCode": "رمز الاختبار",
+        "stage": "المرحلة",
+        "receivedAt": "تاريخ الاستلام"
+      },
+      "empty": "لم يتم العثور على طلبات اختبار ICP مؤهلة.",
+      "selectRowAria": "تحديد {{sampleNumber}} - {{testCode}}",
+      "selectedCount": "تم تحديد {{selected}} من أصل {{total}} عينة",
+      "cancel": "إلغاء",
+      "assigning": "جارٍ الإسناد...",
+      "assign": "إسناد ({{count}})",
+      "signatureMeaning": "أُسنِد {{count}} عينة إلى تشغيل ICP هذا."
+    }
+  }
+}

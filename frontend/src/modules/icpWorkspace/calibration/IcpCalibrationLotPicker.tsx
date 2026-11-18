@@ -1,5 +1,7 @@
 import { useMemo } from "react";
 import { Box, FormControl, InputLabel, Select, MenuItem, Typography, CircularProgress } from "@mui/material";
+import { useTranslation } from "../../../i18n";
+import type { TFunction } from "i18next";
 
 export interface StandardMaterialOption {
   id: number;
@@ -11,7 +13,8 @@ export interface StandardMaterialOption {
   code?: string | null;
 }
 
-const lotDisplay = (lot: StandardMaterialOption) => `${lot.materialName} - Lot ${lot.batchNumber}`;
+const lotDisplay = (lot: StandardMaterialOption, t: TFunction<"icpWorkspace">) =>
+  t("calibration.lotPicker.lotDisplay", { name: lot.materialName, lotNumber: lot.batchNumber });
 
 export interface IcpCalibrationLotPickerProps {
   selectedLotId: number | null;
@@ -30,6 +33,7 @@ export function IcpCalibrationLotPicker({
   loadingLots,
   disabled = false
 }: IcpCalibrationLotPickerProps) {
+  const { t } = useTranslation("icpWorkspace");
   const options = useMemo(
     () => usableLots.filter((lot) => !lot.materialType || lot.materialType === "ReferenceStandard" || lot.id === selectedLotId),
     [usableLots, selectedLotId]
@@ -38,10 +42,10 @@ export function IcpCalibrationLotPicker({
   return (
     <Box>
       <FormControl fullWidth size="small" disabled={disabled || loadingLots}>
-        <InputLabel id="cal-lot-select-label">Calibration standard lot</InputLabel>
+        <InputLabel id="cal-lot-select-label">{t("calibration.lotPicker.label")}</InputLabel>
         <Select
           labelId="cal-lot-select-label"
-          label="Calibration standard lot"
+          label={t("calibration.lotPicker.label")}
           value={selectedLotId ?? ""}
           onChange={(e) => {
             const val = e.target.value as number | string;
@@ -49,11 +53,11 @@ export function IcpCalibrationLotPicker({
           }}
         >
           <MenuItem value="">
-            <em>Select reference standard lot</em>
+            <em>{t("calibration.lotPicker.placeholder")}</em>
           </MenuItem>
           {options.map((lot) => (
             <MenuItem key={lot.id} value={lot.id}>
-              {lotDisplay(lot)}
+              {lotDisplay(lot, t)}
             </MenuItem>
           ))}
         </Select>
@@ -62,13 +66,13 @@ export function IcpCalibrationLotPicker({
         <Box sx={{ display: "flex", alignItems: "center", gap: 1, mt: 0.5 }}>
           <CircularProgress size={16} />
           <Typography variant="caption" sx={{ color: "text.secondary" }}>
-            Loading usable reference standard lots...
+            {t("calibration.lotPicker.loading")}
           </Typography>
         </Box>
       )}
       {options.length === 0 && !loadingLots && (
         <Typography variant="caption" sx={{ color: "error.main", mt: 0.5, display: "block" }}>
-          No usable reference standard lots found.
+          {t("calibration.lotPicker.empty")}
         </Typography>
       )}
     </Box>

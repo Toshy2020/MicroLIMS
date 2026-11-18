@@ -24,6 +24,7 @@ import { IcpRunHistoryTable } from "../history/IcpRunHistoryTable";
 import { ReasonDialog } from "../../laboratoryConfiguration/masterDataSimple/solutionMaster/ReasonDialog";
 import type { IcpRunDto, IcpRunListItem } from "../types";
 import { useBreadcrumb } from "../../../components/breadcrumbContext";
+import { useTranslation } from "../../../i18n";
 
 function getInitialTab(pathname: string): string {
   if (pathname.endsWith("/samples")) return "samples";
@@ -33,6 +34,7 @@ function getInitialTab(pathname: string): string {
 }
 
 export function IcpRunWorkspace() {
+  const { t } = useTranslation("icpWorkspace");
   const theme = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
@@ -48,7 +50,7 @@ export function IcpRunWorkspace() {
   const [error, setError] = useState<string | null>(null);
   // The last crumb names the run (its reference), or the instrument while no run is open.
   const [instrumentLabel, setInstrumentLabel] = useState<string | null>(null);
-  useBreadcrumb(runId ? (error ? "Run unavailable" : run?.code ?? null) : instrumentLabel);
+  useBreadcrumb(runId ? (error ? t("run.breadcrumbUnavailable") : run?.code ?? null) : instrumentLabel);
 
   // Abandon Dialog
   const [abandonOpen, setAbandonOpen] = useState(false);
@@ -71,11 +73,11 @@ export function IcpRunWorkspace() {
       setRun(data);
     } catch (err: unknown) {
       const e = err as { response?: { data?: { message?: string } }; message?: string };
-      setError(e.response?.data?.message ?? e.message ?? "Could not load ICP run data.");
+      setError(e.response?.data?.message ?? e.message ?? t("run.loadError"));
     } finally {
       setLoading(false);
     }
-  }, [runId]);
+  }, [runId, t]);
 
   useEffect(() => {
     if (runId) {
@@ -88,18 +90,18 @@ export function IcpRunWorkspace() {
           if (matched?.activeRun) {
             navigate(ICP_ROUTES.run(equipmentId, matched.activeRun.runId), { replace: true });
           } else {
-            setInstrumentLabel(matched ? `${matched.code} ${matched.name}` : "Instrument not found");
+            setInstrumentLabel(matched ? `${matched.code} ${matched.name}` : t("run.instrumentNotFound"));
             IcpWorkspaceService.getRunHistory(equipmentId).then(setHistoryRuns);
             setActiveTab("history");
             setLoading(false);
           }
         })
         .catch(() => {
-          setInstrumentLabel("Instrument unavailable");
+          setInstrumentLabel(t("run.instrumentUnavailable"));
           setLoading(false);
         });
     }
-  }, [equipmentId, runId, navigate, loadRunData]);
+  }, [equipmentId, runId, navigate, loadRunData, t]);
 
   // Load history when on History tab
   useEffect(() => {
@@ -129,11 +131,11 @@ export function IcpRunWorkspace() {
       await IcpWorkspaceService.abandonRun(run.id, abandonReason.trim());
       setAbandonOpen(false);
       setAbandonReason("");
-      toast.info("Run marked as abandoned.");
+      toast.info(t("run.abandonedToast"));
       loadRunData();
     } catch (err: unknown) {
       const e = err as { response?: { data?: { message?: string } }; message?: string };
-      setError(e.response?.data?.message ?? e.message ?? "Could not abandon run.");
+      setError(e.response?.data?.message ?? e.message ?? t("run.abandonError"));
     } finally {
       setAbandoning(false);
     }
@@ -145,11 +147,11 @@ export function IcpRunWorkspace() {
     setError(null);
     try {
       await IcpWorkspaceService.completeRun(run.id);
-      toast.success("Run completed.");
+      toast.success(t("run.completedToast"));
       loadRunData();
     } catch (err: unknown) {
       const e = err as { response?: { data?: { message?: string } }; message?: string };
-      setError(e.response?.data?.message ?? e.message ?? "Could not complete run.");
+      setError(e.response?.data?.message ?? e.message ?? t("run.completeError"));
     } finally {
       setCompleting(false);
     }
@@ -162,9 +164,9 @@ export function IcpRunWorkspace() {
   if (!run && activeTab !== "history") {
     return (
       <Box sx={{ p: 3 }}>
-        <Alert severity="warning">Run not found or closed.</Alert>
+        <Alert severity="warning">{t("run.notFoundAlert")}</Alert>
         <Button onClick={() => navigate(ICP_ROUTES.root)} sx={{ mt: 2 }}>
-          Back to Instruments
+          {t("run.backToInstruments")}
         </Button>
       </Box>
     );
@@ -177,7 +179,7 @@ export function IcpRunWorkspace() {
         onClick={() => navigate(ICP_ROUTES.root)}
         sx={{ mb: 1.5, textTransform: "none", color: "text.secondary" }}
       >
-        Instruments
+        {t("run.instruments")}
       </Button>
 
       {run && (
@@ -213,10 +215,10 @@ export function IcpRunWorkspace() {
           "& .MuiTab-root": { textTransform: "none", fontWeight: 600, fontSize: 14 }
         }}
       >
-        <Tab label="Calibration" value="calibration" />
-        <Tab label={`Samples (${run?.samples?.length ?? 0})`} value="samples" />
-        <Tab label={`Evidence (${run?.evidence?.length ?? 0})`} value="evidence" />
-        <Tab label="Run History" value="history" />
+        <Tab label={t("run.tabs.calibration")} value="calibration" />
+        <Tab label={t("run.tabs.samples", { count: run?.samples?.length ?? 0 })} value="samples" />
+        <Tab label={t("run.tabs.evidence", { count: run?.evidence?.length ?? 0 })} value="evidence" />
+        <Tab label={t("run.tabs.history")} value="history" />
       </Tabs>
 
       {/* Tab: Calibration */}
@@ -260,9 +262,9 @@ export function IcpRunWorkspace() {
       {/* Abandon Run Dialog */}
       <ReasonDialog
         open={abandonOpen}
-        title="Abandon ICP Run"
-        label="Reason for Abandoning *"
-        placeholder="Explain why this run is being abandoned (e.g. plasma extinguished, nebulizer clog, out of argon)..."
+        title={t("run.abandonDialog.title")}
+        label={t("run.abandonDialog.label")}
+        placeholder={t("run.abandonDialog.placeholder")}
         reason={abandonReason}
         onReasonChange={setAbandonReason}
         onClose={() => {
@@ -270,10 +272,10 @@ export function IcpRunWorkspace() {
           setAbandonReason("");
         }}
         onConfirm={handleAbandonRun}
-        confirmText="Abandon Run"
+        confirmText={t("run.abandonDialog.confirmText")}
         confirmColor="error"
         loading={abandoning}
-        loadingText="Abandoning..."
+        loadingText={t("run.abandonDialog.loadingText")}
       />
     </Box>
   );

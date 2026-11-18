@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { Trans } from "react-i18next";
 import {
   Box,
   Paper,
@@ -23,6 +24,8 @@ import { buildSaveCalibrationPayload, type CalibrationRowInput } from "./calibra
 import { IcpReportUploadPanel } from "../evidence/IcpReportUploadPanel";
 import { SignatureDialog } from "../../../components/SignatureDialog";
 import { StatusBadge } from "../../../components/StatusBadge";
+import { Ltr } from "../../../components/Ltr";
+import { i18n, useTranslation } from "../../../i18n";
 import type { IcpRunDto } from "../types";
 import { formatDateTimeWithTimeZone } from "../../../utils/formatDate";
 
@@ -37,6 +40,7 @@ export function IcpCalibrationPanel({
   canOperate,
   onRunUpdated
 }: IcpCalibrationPanelProps) {
+  const { t } = useTranslation("icpWorkspace");
   const theme = useTheme();
   const cal = run.calibration;
   const isConfirmed = cal?.status === "Confirmed";
@@ -108,11 +112,11 @@ export function IcpCalibrationPanel({
 
     try {
       await IcpWorkspaceService.saveCalibration(run.id, payload);
-      toast.success("Calibration saved.");
+      toast.success(t("calibration.panel.savedToast"));
       onRunUpdated();
     } catch (err: unknown) {
       const e = err as { response?: { data?: { message?: string } }; message?: string };
-      setSaveError(e.response?.data?.message ?? e.message ?? "Could not save calibration.");
+      setSaveError(e.response?.data?.message ?? e.message ?? t("calibration.panel.saveError"));
     } finally {
       setSaving(false);
     }
@@ -125,7 +129,7 @@ export function IcpCalibrationPanel({
     });
     setSignOpen(false);
     setSignComment("");
-    toast.success("Calibration confirmed successfully.");
+    toast.success(t("calibration.panel.confirmedToast"));
     onRunUpdated();
   };
 
@@ -153,18 +157,27 @@ export function IcpCalibrationPanel({
                   <CheckCircleIcon color="success" />
                 )}
                 <Typography variant="h6" sx={{ fontWeight: 700, fontSize: 16 }}>
-                  Calibration {isExpired ? "Expired" : "Confirmed"} ({cal.code})
+                  {isExpired
+                    ? t("calibration.panel.titleExpired", { code: cal.code })
+                    : t("calibration.panel.titleConfirmed", { code: cal.code })}
                 </Typography>
               </Stack>
               <Typography variant="body2" sx={{ color: "text.secondary", mt: 0.5 }}>
-                Confirmed by <strong>{cal.confirmedByUserName ?? "Analyst"}</strong> on{" "}
-                {cal.confirmedAt ? formatDateTimeWithTimeZone(cal.confirmedAt) : "—"}.
+                <Trans
+                  i18nKey="calibration.panel.confirmedBy"
+                  ns="icpWorkspace"
+                  values={{
+                    user: cal.confirmedByUserName ?? t("calibration.panel.analystFallback"),
+                    date: cal.confirmedAt ? formatDateTimeWithTimeZone(cal.confirmedAt) : "—"
+                  }}
+                  components={{ ltr: <Ltr>{null}</Ltr>, strong: <strong /> }}
+                />
               </Typography>
             </Box>
 
             <Box sx={{ textAlign: { xs: "left", sm: "right" } }}>
               <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>
-                Validity window
+                {t("calibration.panel.validityWindow")}
               </Typography>
               <Typography
                 variant="body2"
@@ -173,14 +186,19 @@ export function IcpCalibrationPanel({
                   color: isExpired ? "error.main" : "text.primary"
                 }}
               >
-                Valid until: {cal.expiresAt ? formatDateTimeWithTimeZone(cal.expiresAt) : "—"}
+                <Trans
+                  i18nKey="calibration.panel.validUntil"
+                  ns="icpWorkspace"
+                  values={{ date: cal.expiresAt ? formatDateTimeWithTimeZone(cal.expiresAt) : "—" }}
+                  components={{ ltr: <Ltr>{null}</Ltr> }}
+                />
               </Typography>
             </Box>
           </Box>
 
           {isExpired && (
             <Alert severity="warning" sx={{ mt: 2 }}>
-              This calibration has expired. A fresh calibration run is required before further sample testing.
+              {t("calibration.panel.expiredAlert")}
             </Alert>
           )}
 
@@ -189,10 +207,10 @@ export function IcpCalibrationPanel({
           <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
             <Box>
               <Typography variant="caption" sx={{ color: "text.secondary" }}>
-                Calibration Standard Lot:
+                {t("calibration.panel.standardLotLabel")}
               </Typography>
               <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                {cal.calibrationStandardLotLabel || "Lot unrecorded"}
+                {cal.calibrationStandardLotLabel || t("calibration.panel.lotUnrecorded")}
               </Typography>
             </Box>
 
@@ -213,10 +231,10 @@ export function IcpCalibrationPanel({
         <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 2, flexWrap: "wrap", gap: 1.5 }}>
           <Box>
             <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-              Calibration standard & elements
+              {t("calibration.panel.formTitle")}
             </Typography>
             <Typography variant="body2" sx={{ color: "text.secondary" }}>
-              Choose the standard lot, then list each metal calibrated and the correlation coefficient (r) read from the calibration curve.
+              {t("calibration.panel.formSubtitle")}
             </Typography>
           </Box>
 
@@ -245,7 +263,7 @@ export function IcpCalibrationPanel({
         {/* Elements */}
         <Box sx={{ mb: 3 }}>
           <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>
-            Calibrated elements
+            {t("calibration.panel.calibratedElements")}
           </Typography>
           <IcpCalibrationElementTable
             rows={rows}
@@ -266,10 +284,10 @@ export function IcpCalibrationPanel({
               disabled={saving}
               sx={{ textTransform: "none" }}
             >
-              {saving ? "Saving..." : "Save calibration"}
+              {saving ? t("calibration.panel.saving") : t("calibration.panel.save")}
             </Button>
 
-            <Tooltip title={!run.canConfirmCalibration ? (run.canConfirmCalibrationReason || "Cannot confirm calibration") : ""}>
+            <Tooltip title={!run.canConfirmCalibration ? (run.canConfirmCalibrationReason || t("calibration.panel.confirmTooltipFallback")) : ""}>
               <span>
                 <Button
                   variant="contained"
@@ -279,7 +297,7 @@ export function IcpCalibrationPanel({
                   disabled={!run.canConfirmCalibration}
                   sx={{ textTransform: "none" }}
                 >
-                  Confirm Calibration
+                  {t("calibration.panel.confirm")}
                 </Button>
               </span>
             </Tooltip>
@@ -299,8 +317,8 @@ export function IcpCalibrationPanel({
         context="Calibration"
         kind="CalibrationReport"
         evidenceList={run.evidence}
-        title="Calibration curve report"
-        description="Upload the Syngistix report showing the calibration curve. It is the evidence for the r values above and is required to confirm."
+        title={t("calibration.panel.reportTitle")}
+        description={t("calibration.panel.reportDescription")}
         disabled={isConfirmed || !canOperate || run.status !== "Open"}
         onChanged={onRunUpdated}
       />
@@ -308,7 +326,8 @@ export function IcpCalibrationPanel({
       {/* 21 CFR Part 11 Electronic Signature Dialog */}
       <SignatureDialog
         open={signOpen}
-        meaningStatement="I confirm the ICP-OES is calibrated and ready for testing."
+        meaningStatement={i18n.getFixedT("en", "icpWorkspace")("calibration.panel.signatureMeaning")}
+        meaningStatementTranslation={t("calibration.panel.signatureMeaning")}
         showComment={true}
         comment={signComment}
         onCommentChange={setSignComment}

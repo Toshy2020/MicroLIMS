@@ -859,7 +859,7 @@
       "internalStandard": "مادة قياسية داخلية",
       "contentBasis": "أساس المحتوى",
       "contentBasisValue": "كما هو: <ltr>{{asIs}} %</ltr> · الرطوبة: <ltr>{{moisture}} %</ltr>",
-      "labelClaim": "الادعاء المعلن على العبوة",
+      "labelClaim": "الكمية المصرح بها",
       "columns": {
         "replicate": "التكرار",
         "actualWeight": "الوزن الفعلي (mg)",

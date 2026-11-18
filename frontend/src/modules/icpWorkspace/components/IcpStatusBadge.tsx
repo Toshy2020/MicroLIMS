@@ -1,4 +1,5 @@
 import { StatusBadge } from "../../../components/StatusBadge";
+import { useTranslation } from "../../../i18n";
 
 export interface IcpStatusBadgeProps {
   status: string;
@@ -7,28 +8,29 @@ export interface IcpStatusBadgeProps {
   variant?: "filled" | "outlined";
 }
 
-const STATUS_MAP: Record<string, { key: string; label: string }> = {
-  open: { key: "InProgress", label: "Open" },
-  completed: { key: "Completed", label: "Completed" },
-  abandoned: { key: "Abandoned", label: "Abandoned" },
-  pending: { key: "Pending", label: "Pending" },
-  confirmed: { key: "Completed", label: "Confirmed" },
-  passed: { key: "Passed", label: "Passed" },
-  failed: { key: "Failed", label: "Failed" },
-  available: { key: "Available", label: "Available" },
-  running: { key: "Running", label: "Running" },
-  unavailable: { key: "Unavailable", label: "Unavailable" },
-  assigned: { key: "Assigned", label: "Assigned" },
-  removed: { key: "Removed", label: "Removed" },
-  withinlimits: { key: "WithinLimits", label: "Within Limits" },
-  outofspecification: { key: "OutOfSpecification", label: "OOS" },
-  actionlimitexceeded: { key: "ActionLimitExceeded", label: "Action Limit Exceeded" },
-  alertlimitexceeded: { key: "AlertLimitExceeded", label: "Alert Limit Exceeded" },
-  requiresreview: { key: "RequiresReview", label: "Requires Review" }
+const STATUS_MAP: Record<string, { key: string; labelKey: string }> = {
+  open: { key: "InProgress", labelKey: "status.open" },
+  completed: { key: "Completed", labelKey: "status.completed" },
+  abandoned: { key: "Abandoned", labelKey: "status.abandoned" },
+  pending: { key: "Pending", labelKey: "status.pending" },
+  confirmed: { key: "Completed", labelKey: "status.confirmed" },
+  passed: { key: "Passed", labelKey: "status.passed" },
+  failed: { key: "Failed", labelKey: "status.failed" },
+  available: { key: "Available", labelKey: "status.available" },
+  running: { key: "Running", labelKey: "status.running" },
+  unavailable: { key: "Unavailable", labelKey: "status.unavailable" },
+  assigned: { key: "Assigned", labelKey: "status.assigned" },
+  removed: { key: "Removed", labelKey: "status.removed" },
+  withinlimits: { key: "WithinLimits", labelKey: "status.withinLimits" },
+  outofspecification: { key: "OutOfSpecification", labelKey: "status.oos" },
+  actionlimitexceeded: { key: "ActionLimitExceeded", labelKey: "status.actionLimitExceeded" },
+  alertlimitexceeded: { key: "AlertLimitExceeded", labelKey: "status.alertLimitExceeded" },
+  requiresreview: { key: "RequiresReview", labelKey: "status.requiresReview" }
 };
 
 export function IcpStatusBadge({ status, label }: IcpStatusBadgeProps) {
+  const { t } = useTranslation("icpWorkspace");
   const mapped = STATUS_MAP[status.trim().toLowerCase()];
   if (!mapped) return <StatusBadge status={status} label={label} />;
-  return <StatusBadge status={mapped.key} label={label ?? mapped.label} />;
+  return <StatusBadge status={mapped.key} label={label ?? t(mapped.labelKey)} />;
 }

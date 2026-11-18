@@ -42,6 +42,13 @@ function findFocusableForElement(el: HTMLElement): HTMLElement | null {
   );
 }
 
+// Opening and step changes only bring focus into the form; they never take it from a field the
+// user has already chosen (a click during the opening transition would otherwise lose keystrokes).
+function focusFirstFieldUnlessInOne(container: HTMLElement | null): void {
+  if (container?.contains(document.activeElement)) return;
+  focusFieldInContainer(container);
+}
+
 function focusFieldInContainer(container: HTMLElement | null, fieldName?: string): void {
   if (!container) return;
   if (fieldName) {
@@ -92,7 +99,7 @@ export function ConfigWizard<M extends object>(props: ConfigWizardProps<M>) {
       firstStepFocus.current = false;
       return;
     }
-    focusFieldInContainer(bodyRef.current);
+    focusFirstFieldUnlessInOne(bodyRef.current);
   }, [stepKey]);
 
   const stepperItems = [
@@ -114,7 +121,7 @@ export function ConfigWizard<M extends object>(props: ConfigWizardProps<M>) {
           </Typography>
         }
         onClose={wizard.requestClose}
-        onEntered={() => focusFieldInContainer(bodyRef.current)}
+        onEntered={() => focusFirstFieldUnlessInOne(bodyRef.current)}
         maxWidth="md"
         subHeader={
           <Box sx={{ px: 3, py: 1.5, borderBottom: 1, borderColor: "divider" }}>

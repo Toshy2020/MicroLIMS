@@ -199,6 +199,18 @@ describe("ConfigWizard", () => {
     await waitFor(() => expect(document.activeElement).toBe(screen.getByLabelText("Details")));
   });
 
+  it("leaves focus in a field the user chose while the dialog was still opening", async () => {
+    const user = userEvent.setup();
+    renderWizard();
+    await user.click(screen.getByLabelText("Code"));
+    await user.keyboard("PC");
+    // Outlast the opening transition, whose end would otherwise send focus to the first field.
+    await new Promise((resolve) => setTimeout(resolve, 600));
+    await user.keyboard("-01");
+    expect((screen.getByLabelText("Code") as HTMLInputElement).value).toBe("PC-01");
+    expect((screen.getByLabelText("Name") as HTMLInputElement).value).toBe("");
+  });
+
   beforeEach(async () => {
     localStorage.clear();
     await resetDraftDb();

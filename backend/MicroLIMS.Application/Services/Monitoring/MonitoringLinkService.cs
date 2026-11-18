@@ -4,6 +4,7 @@ using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Messages;
 
 namespace MicroLIMS.Application.Services.Monitoring;
 
@@ -52,9 +53,14 @@ public class MonitoringLinkService
     public async Task<MonitoringChecklistResponse> GetChecklistAsync(int sampleId)
     {
         var sample = await _db.Samples.AsNoTracking().FirstOrDefaultAsync(s => s.Id == sampleId)
-            ?? throw new NotFoundException($"Sample {sampleId} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.SampleNotFound,
+                $"Sample {sampleId} not found.",
+                new Dictionary<string, string> { ["sampleId"] = sampleId.ToString() });
         var category = CategoryOf(sample.Category)
-            ?? throw new BusinessRuleException("Only Water, Environmental Monitoring and After Cleaning samples belong to the monitoring plan.");
+            ?? throw new BusinessRuleException(
+                MessageCodes.MonitoringSampleCategoryNotInPlan,
+                "Only Water, Environmental Monitoring and After Cleaning samples belong to the monitoring plan.");
 
         var today = _clock.LabToday;
         var monthEnd = new DateOnly(today.Year, today.Month, 1).AddMonths(1).AddDays(-1);
@@ -135,7 +141,9 @@ public class MonitoringLinkService
         if (ids.Count == 0) return;
 
         var category = CategoryOf(sample.Category)
-            ?? throw new BusinessRuleException("Only Water, Environmental Monitoring and After Cleaning samples belong to the monitoring plan.");
+            ?? throw new BusinessRuleException(
+                MessageCodes.MonitoringSampleCategoryNotInPlan,
+                "Only Water, Environmental Monitoring and After Cleaning samples belong to the monitoring plan.");
 
         // Two sessions ticking the same occurrence wait for each other, so an
         // item is fulfilled once.
@@ -151,7 +159,13 @@ public class MonitoringLinkService
 
         var missing = ids.Except(occurrences.Select(o => o.Id)).ToList();
         if (missing.Count > 0)
-            throw new NotFoundException($"Monitoring occurrence(s) not found: {string.Join(", ", missing)}.");
+        {
+            var missingText = string.Join(", ", missing);
+            throw new NotFoundException(
+                MessageCodes.MonitoringOccurrencesNotFound,
+                $"Monitoring occurrence(s) not found: {missingText}.",
+                new Dictionary<string, string> { ["ids"] = missingText });
+        }
 
         var names = await OccurrenceNameResolver.TargetNamesAsync(_db, occurrences);
         var inGroup = await InSampleGroupAsync(sample, category, occurrences);
@@ -159,11 +173,33 @@ public class MonitoringLinkService
         {
             var label = $"{names.GetValueOrDefault(OccurrenceNameResolver.TargetKey(o), "?")} ({o.PeriodKey})";
             if (o.Category != category || !inGroup.Contains(o.Id))
-                throw new BusinessRuleException($"{label} does not belong to this sample's {GroupName(category)}.");
+            {
+                var code = category switch
+                {
+                    MonitoringCategory.EnvironmentalMonitoring => MessageCodes.MonitoringOccurrenceWrongDepartment,
+                    MonitoringCategory.Water => MessageCodes.MonitoringOccurrenceWrongWaterDepartment,
+                    _ => MessageCodes.MonitoringOccurrenceWrongMachine
+                };
+                throw new BusinessRuleException(
+                    code,
+                    $"{label} does not belong to this sample's {GroupName(category)}.",
+                    new Dictionary<string, string> { ["label"] = label });
+            }
             if (o.ExceptionState != OccurrenceExceptionState.None || o.RetiredByRevisionId != null)
-                throw new BusinessRuleException($"{label} is {(o.ExceptionState == OccurrenceExceptionState.Skipped ? "skipped" : "no longer in the plan")} and cannot be fulfilled.");
+            {
+                var code = o.ExceptionState == OccurrenceExceptionState.Skipped
+                    ? MessageCodes.MonitoringOccurrenceSkippedCannotFulfil
+                    : MessageCodes.MonitoringOccurrenceRetiredCannotFulfil;
+                throw new BusinessRuleException(
+                    code,
+                    $"{label} is {(o.ExceptionState == OccurrenceExceptionState.Skipped ? "skipped" : "no longer in the plan")} and cannot be fulfilled.",
+                    new Dictionary<string, string> { ["label"] = label });
+            }
             if (o.CreatedByRevision!.Status == PlanRevisionStatus.Draft)
-                throw new BusinessRuleException($"{label} is in a plan revision that is not approved yet.");
+                throw new BusinessRuleException(
+                    MessageCodes.MonitoringOccurrenceInDraftRevision,
+                    $"{label} is in a plan revision that is not approved yet.",
+                    new Dictionary<string, string> { ["label"] = label });
         }
 
         var details = await _status.ComputeAsync(occurrences);
@@ -186,7 +222,13 @@ public class MonitoringLinkService
 
                 if (state.Progress != ItemProgress.None)
                     throw new BusinessRuleException(
-                        $"{label} already has this test fulfilled by sample {state.SampleReference}. Untick it, or void that sample first.");
+                        MessageCodes.MonitoringOccurrenceTestAlreadyFulfilled,
+                        $"{label} already has this test fulfilled by sample {state.SampleReference}. Untick it, or void that sample first.",
+                        new Dictionary<string, string>
+                        {
+                            ["label"] = label,
+                            ["sampleReference"] = state.SampleReference ?? string.Empty
+                        });
 
                 // "The machine itself" takes every part sampled at this session; any other item takes one location.
                 var isMachine = occurrence.TargetType == MonitoringTargetType.Machine && item.MachinePartConfigurationId is null;
@@ -200,7 +242,9 @@ public class MonitoringLinkService
 
             if (linked == 0)
                 throw new BusinessRuleException(
-                    $"None of the locations in this sample fulfil {label}. Include its tests in the session, or untick it.");
+                    MessageCodes.MonitoringNoLocationsFulfilOccurrence,
+                    $"None of the locations in this sample fulfil {label}. Include its tests in the session, or untick it.",
+                    new Dictionary<string, string> { ["label"] = label });
 
             _db.MonitoringOccurrenceEvents.Add(new MonitoringOccurrenceEvent
             {

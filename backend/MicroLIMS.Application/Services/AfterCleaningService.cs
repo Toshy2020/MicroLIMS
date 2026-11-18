@@ -1,6 +1,7 @@
 using MicroLIMS.Application.DTOs;
 using MicroLIMS.Application.Workflows;
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Messages;
 using MicroLIMS.Shared.Responses;
 
 namespace MicroLIMS.Application.Services;
@@ -30,7 +31,14 @@ public class AfterCleaningService
     {
         var errors = Validate(request);
         if (errors.Count > 0)
-            throw new BusinessRuleException(string.Join(" ", errors.Select(e => e.Message)));
+        {
+            var code = errors.Count == 1
+                ? (errors[0].Field == "sampledAt"
+                    ? MessageCodes.MonitoringSamplingTimeAfterReceipt
+                    : MessageCodes.MonitoringAfterCleaningBatchRequired)
+                : MessageCodes.MonitoringAfterCleaningBatchAndSamplingTimeInvalid;
+            throw new BusinessRuleException(code, string.Join(" ", errors.Select(e => e.Message)));
+        }
 
         var sample = await _workflow.ReceiveAsync(request);
         return TestingWorkspaceService.ToDto(sample);

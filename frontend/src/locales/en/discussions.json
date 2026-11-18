@@ -1,0 +1,120 @@
+{
+  "page": {
+    "title": "Discussions & Knowledge Sharing",
+    "subtitle": "Collaborative laboratory discussions, technical queries, compliance alerts, and knowledge exchange."
+  },
+  "actions": {
+    "newDiscussion": "New Discussion",
+    "startDiscussion": "Start a Discussion",
+    "backToDiscussions": "Back to Discussions",
+    "cancel": "Cancel",
+    "close": "Close",
+    "markImportant": "Mark Important",
+    "unmarkImportant": "Unmark Important",
+    "deleteDiscussion": "Delete Discussion",
+    "viewEdit": "View / Edit",
+    "editPost": "Edit Post",
+    "postActions": "Post actions for {{title}}"
+  },
+  "feed": {
+    "loadError": "Failed to load discussions.",
+    "searchPlaceholder": "Search discussions by title or content...",
+    "searchLabel": "Search discussions by title or content",
+    "importantOnly": "Important Only",
+    "allCategories": "All Categories",
+    "emptyTitle": "No discussions found",
+    "emptyFilteredHint": "Try adjusting your search query or category filters.",
+    "emptyHint": "Be the first to start a conversation in this category.",
+    "showing": "Showing {{shown}} of {{total}} discussions"
+  },
+  "toast": {
+    "markedImportant": "Marked as important",
+    "unmarkedImportant": "Unmarked as important",
+    "toggleImportantError": "Failed to toggle important status.",
+    "deleted": "Discussion post deleted.",
+    "postDeleted": "Discussion post deleted",
+    "deleteError": "Failed to delete discussion post.",
+    "commentAdded": "Comment added",
+    "commentError": "Failed to post comment.",
+    "commentUpdated": "Comment updated",
+    "commentSaveError": "Failed to save comment.",
+    "commentDeleted": "Comment deleted",
+    "commentDeleteError": "Failed to delete comment."
+  },
+  "card": {
+    "important": "Important",
+    "editedTooltip": "Version {{version}} (Edited). Click to view history.",
+    "editedChip": "v{{version}} Edited",
+    "comment_one": "{{count}} comment",
+    "comment_other": "{{count}} comments",
+    "attachment_one": "{{count}} attachment",
+    "attachment_other": "{{count}} attachments",
+    "open": "Open discussion →",
+    "deleteTitle": "Delete Discussion Post",
+    "deleteMessage": "Are you sure you want to delete this discussion post? This action cannot be undone.",
+    "deleteConfirm": "Delete Post"
+  },
+  "fields": {
+    "title": "Title",
+    "category": "Category",
+    "content": "Content / Details"
+  },
+  "validation": {
+    "titleRequired": "Discussion title is required.",
+    "contentRequired": "Discussion content is required."
+  },
+  "newDialog": {
+    "title": "New Discussion",
+    "titlePlaceholder": "What is this discussion about?",
+    "markImportant": "Mark as Important (Pinned at top)",
+    "contentPlaceholder": "Provide context, observations, questions, or regulatory references...",
+    "attachments": "Attachments (Documents, Images, Worksheets)",
+    "chooseFiles": "Choose Files",
+    "noFiles": "No files attached yet. Supported: PDF, Word, Excel, PowerPoint, images, text files - up to 5 files, 10 MB each.",
+    "publishing": "Publishing...",
+    "publish": "Publish Discussion",
+    "createError": "Failed to create discussion."
+  },
+  "editDialog": {
+    "title": "Edit Discussion (Version {{version}})",
+    "info": "Editing will create a historical snapshot of this post and notify discussion participants.",
+    "markImportant": "Mark as Important",
+    "saving": "Saving Changes...",
+    "save": "Save Changes",
+    "updateError": "Failed to update discussion."
+  },
+  "history": {
+    "title": "Version History: {{title}}",
+    "loadError": "The version history of this post could not be loaded.",
+    "empty": "No prior edits recorded. This post is on its initial version.",
+    "showing_one": "Showing {{count}} previous snapshot archived before subsequent edits.",
+    "showing_other": "Showing {{count}} previous snapshots archived before subsequent edits.",
+    "archivedBy": "Archived on {{date}} by <strong>{{name}}</strong>",
+    "versionLabel": "v{{n}}"
+  },
+  "detail": {
+    "loadError": "Failed to load discussion.",
+    "unavailable": "Discussion unavailable",
+    "notFound": "Discussion not found.",
+    "important": "Important",
+    "historyTooltip": "Click to view full revision history",
+    "posted": "Posted {{date}}",
+    "attachments": "Attachments ({{n}})",
+    "download": "Download {{name}}",
+    "downloadTitle": "Download file",
+    "comments": "Comments ({{n}})",
+    "commentPlaceholder": "Write a comment or response to this discussion...",
+    "commentLabel": "Comment",
+    "posting": "Posting...",
+    "postComment": "Post Comment",
+    "noComments": "No comments yet. Be the first to share your feedback or observations!",
+    "edited": "(Edited)",
+    "editComment": "Edit comment",
+    "deleteComment": "Delete comment",
+    "cancelEdit": "Cancel editing",
+    "saveComment": "Save comment",
+    "deleteCommentTitle": "Delete Comment",
+    "deleteCommentMessage": "Are you sure you want to delete this comment? This action cannot be undone.",
+    "deleteCommentConfirm": "Delete Comment"
+  }
+}

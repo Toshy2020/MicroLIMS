@@ -1,5 +1,5 @@
 {
-  "total": 1512,
+  "total": 1421,
   "modules": {
     "components": 129,
     "modules/admin": 13,
@@ -7,7 +7,7 @@
     "modules/auditSearch": 10,
     "modules/authentication": 59,
     "modules/dashboard": 13,
-    "modules/discussions": 95,
+    "modules/discussions": 4,
     "modules/documentControl": 6,
     "modules/errorMonitoring": 33,
     "modules/help": 46,

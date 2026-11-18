@@ -22,6 +22,8 @@ import {
   useTheme
 } from "@mui/material";
 import { SignatureDialog } from "../../components/SignatureDialog";
+import { Ltr } from "../../components/Ltr";
+import { useTranslation } from "../../i18n";
 import { CriteriaCard, ResultSection, VerdictBanner } from "../../components/lab";
 import type { CriteriaRow, Verdict } from "../../components/lab";
 import { tableHeadSx } from "../../theme";
@@ -94,6 +96,7 @@ export function UvPanel({
   current,
   onRecorded
 }: Props) {
+  const { t } = useTranslation("testingWorkspace");
   const theme = useTheme();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -144,7 +147,7 @@ export function UvPanel({
         if (active) {
           setSummaryError(
             (err as { response?: { data?: { message?: string } } })?.response?.data?.message ??
-              "Could not load test analysis summary."
+              t("uv.loadSummaryFailed")
           );
         }
       });
@@ -174,7 +177,7 @@ export function UvPanel({
 
         if (loadedSpecs.length === 0) {
           if (active) {
-            setError(`No specifications configured for test ${effectiveTestCode}.`);
+            setError(t("uv.noSpecsConfigured", { testCode: effectiveTestCode }));
             setLoading(false);
           }
           return;
@@ -188,7 +191,7 @@ export function UvPanel({
             EquipmentConfigurationService.getConfiguredSummary()
           ]);
           const fpSec = (sections ?? []).find((s: LaboratorySection) => s.sectionCode === "FP");
-          const isUvType = (t: string | number | undefined) => t === "UvVis" || t === "Other";
+          const isUvType = (eqType: string | number | undefined) => eqType === "UvVis" || eqType === "Other";
           fpInstruments = (allEquip ?? []).filter(
             (e) =>
               isUvType(e.type) &&
@@ -200,7 +203,7 @@ export function UvPanel({
           if (active) {
             setError(
               (err as { response?: { data?: { message?: string } } })?.response?.data?.message ??
-                "Could not load laboratory equipment."
+                t("uv.loadEquipmentFailed")
             );
             setLoading(false);
           }
@@ -208,8 +211,8 @@ export function UvPanel({
         }
 
         // 4. Load usable standard lots if standard comparison
-        const mode = matchedDef?.uvCalculationMode;
-        if (mode === "StandardComparison") {
+        const calcMode = matchedDef?.uvCalculationMode;
+        if (calcMode === "StandardComparison") {
           try {
             // only lots of the test's standard material; the server refuses any other lot
             const all = await MaterialService.getUsableReferenceStandards();
@@ -224,7 +227,7 @@ export function UvPanel({
             if (active) {
               setError(
                 (err as { response?: { data?: { message?: string } } })?.response?.data?.message ??
-                  "Could not load reference standard lots."
+                  t("uv.loadStandardLotsFailed")
               );
               setLoading(false);
             }
@@ -249,7 +252,7 @@ export function UvPanel({
               setMoisture(null);
               setMoistureError(
                 (err as { response?: { data?: { message?: string } } })?.response?.data?.message ??
-                  "Could not load the sample moisture result."
+                  t("uv.loadSampleMoistureFailed")
               );
               setMoistureStatus("error");
             }
@@ -289,7 +292,7 @@ export function UvPanel({
       } catch (err: unknown) {
         const msg =
           (err as { response?: { data?: { message?: string } } })?.response?.data?.message ??
-          "Could not load UV spectrophotometry configuration or specifications.";
+          t("uv.loadConfigFailed");
         if (active) setError(msg);
       } finally {
         if (active) setLoading(false);
@@ -329,11 +332,11 @@ export function UvPanel({
       setMoisture(null);
       setMoistureError(
         (err as { response?: { data?: { message?: string } } })?.response?.data?.message ??
-          "Could not load the sample moisture result."
+          t("uv.loadSampleMoistureFailed")
       );
       setMoistureStatus("error");
     }
-  }, [testOrderId]);
+  }, [testOrderId, t]);
 
   // Handle replicate weight change with prefill logic from row 0
   const handleReplicateWeightChange = (specId: number, repIdx: number, val: string) => {
@@ -442,7 +445,7 @@ export function UvPanel({
 
     // Basis conversion
     if (spec.resultBasis === "PercentDriedBasis" || spec.resultBasis === "PercentAnhydrousBasis") {
-      if (!moisture) return `${asIs.toFixed(2)}${suffix} (as-is)`;
+      if (!moisture) return t("uv.asIsSuffix", { value: `${asIs.toFixed(2)}${suffix}` });
       const dried = asIs / ((100 - moisture.percent) / 100);
       return `${dried.toFixed(2)}${suffix}`;
     }
@@ -557,7 +560,7 @@ export function UvPanel({
       setSigning(false);
       const msg =
         (err as { response?: { data?: { message?: string } } })?.response?.data?.message ??
-        "Failed to record UV spectrophotometry result.";
+        t("uv.recordFailed");
       setError(msg);
     }
   };
@@ -569,13 +572,13 @@ export function UvPanel({
       s.expectedResultText ||
       (s.lowerLimit != null || s.upperLimit != null ? `${s.lowerLimit ?? ""} \u2013 ${s.upperLimit ?? ""}` : "\u2014"),
     unit: s.unit || (isValueMode ? "" : "%"),
-    source: "Specification"
+    source: t("uv.sourceSpecification")
   }));
 
   // Completion view
   if (showCompleted) {
     const serverStatus = outcome?.status ?? "";
-    const headline = `${displayName}: ${outcome?.outcomeSummary ?? current.finalResult ?? "Results Recorded"}`;
+    const headline = `${displayName}: ${outcome?.outcomeSummary ?? current.finalResult ?? t("uv.resultsRecordedFallback")}`;
     const verdict: Verdict | null = !serverStatus
       ? null
       : serverStatus.includes("OutOfSpecification")
@@ -620,8 +623,8 @@ export function UvPanel({
       {current.returnInfo && (
         <Alert severity="warning" sx={{ mb: 2 }}>
           {current.returnInfo.reason
-            ? `Returned for revision: ${current.returnInfo.reason}`
-            : "Returned by reviewer for revision"}
+            ? t("uv.returnedWithReason", { reason: current.returnInfo.reason })
+            : t("uv.returnedDefault")}
         </Alert>
       )}
 
@@ -637,16 +640,16 @@ export function UvPanel({
         {/* Section 1: Analysis Configuration */}
         <ResultSection
           step={1}
-          title="Analysis configuration"
+          title={t("uv.analysisConfiguration")}
           actions={
             <Stack direction="row" spacing={1}>
               <Chip size="small" variant="outlined" label={UV_MODE_LABELS[mode] ?? mode} />
-              <Chip size="small" variant="outlined" label={`Replicates: ${replicateCount}`} />
+              <Chip size="small" variant="outlined" label={t("uv.replicatesChip", { count: replicateCount })} />
               {testDef?.uvSpecificAbsorbance != null && (
-                <Chip size="small" variant="outlined" label={`A1%: ${testDef.uvSpecificAbsorbance}`} />
+                <Chip size="small" variant="outlined" label={t("uv.a1PctChip", { value: testDef.uvSpecificAbsorbance })} />
               )}
               {testDef?.uvTotalVolumeMl != null && (
-                <Chip size="small" variant="outlined" label={`Volume: ${testDef.uvTotalVolumeMl} mL`} />
+                <Chip size="small" variant="outlined" label={t("uv.volumeChip", { value: testDef.uvTotalVolumeMl })} />
               )}
             </Stack>
           }
@@ -655,28 +658,28 @@ export function UvPanel({
             <TextField
               size="small"
               type="datetime-local"
-              label="Analysis time"
+              label={t("uv.analysisTime")}
               value={analysedAt}
               onChange={(e) => setAnalysedAt(e.target.value)}
-              slotProps={{ inputLabel: { shrink: true } }}
+              slotProps={{ inputLabel: { shrink: true }, htmlInput: { dir: "ltr" } }}
               required
               fullWidth
             />
 
             <FormControl size="small" fullWidth required>
-              <InputLabel id="uv-equipment-select-label">Equipment</InputLabel>
+              <InputLabel id="uv-equipment-select-label">{t("uv.equipmentLabel")}</InputLabel>
               <Select
                 labelId="uv-equipment-select-label"
-                label="Equipment"
+                label={t("uv.equipmentLabel")}
                 value={selectedEquipmentId}
                 onChange={(e) => setSelectedEquipmentId(String(e.target.value) === "" ? "" : Number(e.target.value))}
               >
                 <MenuItem value="">
-                  <em>Select spectrophotometer</em>
+                  <em>{t("uv.selectSpectrophotometer")}</em>
                 </MenuItem>
                 {equipmentList.map((eq) => (
                   <MenuItem key={eq.id} value={eq.id}>
-                    {eq.name} ({eq.code})
+                    {eq.name} (<Ltr>{eq.code}</Ltr>)
                   </MenuItem>
                 ))}
               </Select>
@@ -687,47 +690,47 @@ export function UvPanel({
           {isStandardMode && (
             <Box sx={{ mt: 2, pt: 2, borderTop: "1px dashed", borderTopColor: "divider" }}>
               <Typography sx={{ fontWeight: 600, fontSize: 12, mb: 1.5, color: "text.secondary" }}>
-                Reference Standard Preparation
+                {t("uv.referenceStandardPrep")}
               </Typography>
               <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr 1fr" }, gap: 2 }}>
                 <FormControl size="small" fullWidth required>
-                  <InputLabel id="standard-lot-label">Standard lot</InputLabel>
+                  <InputLabel id="standard-lot-label">{t("uv.standardLotLabel")}</InputLabel>
                   <Select
                     labelId="standard-lot-label"
-                    label="Standard lot"
+                    label={t("uv.standardLotLabel")}
                     value={standardMaterialId}
                     onChange={(e) => setStandardMaterialId(String(e.target.value) === "" ? "" : Number(e.target.value))}
                   >
                     <MenuItem value="">
-                      <em>Select standard lot</em>
+                      <em>{t("uv.selectStandardLot")}</em>
                     </MenuItem>
                     {standardLots.map((lot) => (
                       <MenuItem key={lot.id} value={lot.id}>
-                        {lot.materialName} ({lot.lotLabel ?? lot.batchNumber})
+                        {lot.materialName} (<Ltr>{lot.lotLabel ?? lot.batchNumber}</Ltr>)
                       </MenuItem>
                     ))}
                   </Select>
-                  {standardLots.length === 0 && <FormHelperText error>No usable lot of the standard material.</FormHelperText>}
+                  {standardLots.length === 0 && <FormHelperText error>{t("uv.noUsableLot")}</FormHelperText>}
                 </FormControl>
 
                 <TextField
                   size="small"
-                  label="Standard weight (g) *"
+                  label={t("uv.standardWeightLabel")}
                   type="number"
                   value={standardWeightG}
                   onChange={(e) => setStandardWeightG(e.target.value)}
-                  slotProps={{ htmlInput: { step: "any", min: "0" } }}
+                  slotProps={{ htmlInput: { step: "any", min: "0", dir: "ltr" } }}
                   required
                   fullWidth
                 />
 
                 <TextField
                   size="small"
-                  label="Standard absorbance *"
+                  label={t("uv.standardAbsorbanceLabel")}
                   type="number"
                   value={standardAbsorbance}
                   onChange={(e) => setStandardAbsorbance(e.target.value)}
-                  slotProps={{ htmlInput: { step: "any", min: "0", max: "5" } }}
+                  slotProps={{ htmlInput: { step: "any", min: "0", max: "5", dir: "ltr" } }}
                   required
                   fullWidth
                 />
@@ -740,19 +743,19 @@ export function UvPanel({
             <Box sx={{ mt: 2, pt: 2, borderTop: "1px dashed", borderTopColor: "divider" }}>
               {moistureStatus === "loading" ? (
                 <Typography sx={{ fontSize: 13, color: "text.secondary", py: 0.5 }}>
-                  Loading moisture result...
+                  {t("uv.loadingMoisture")}
                 </Typography>
               ) : moistureStatus === "error" ? (
                 <Alert
                   severity="error"
                   action={
                     <Button color="inherit" size="small" onClick={handleRetryMoisture}>
-                      Retry
+                      {t("uv.retry")}
                     </Button>
                   }
                   sx={{ width: "100%", fontSize: 13, py: 0.5 }}
                 >
-                  {moistureError || "Could not load moisture result."}
+                  {moistureError || t("uv.loadMoistureFailed")}
                 </Alert>
               ) : moisture ? (
                 <Typography sx={{ fontSize: 13, color: "text.primary", py: 0.5, fontWeight: 500 }}>
@@ -779,17 +782,17 @@ export function UvPanel({
             <ResultSection
               key={s.id}
               step={specIdx + 2}
-              title={`Readings · ${s.parameterName || s.testCode}`}
+              title={t("uv.readingsTitle", { parameter: s.parameterName || s.testCode })}
             >
               <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: isLimitMode ? "1fr 1fr" : "1fr" }, gap: 2, mb: 2 }}>
                 <TextField
                   size="small"
-                  label="Wavelength (nm) *"
+                  label={t("uv.wavelengthLabel")}
                   type="number"
                   value={p.wavelengthNm}
                   onChange={(e) => handleWavelengthChange(s.id!, e.target.value)}
-                  helperText="Reading wavelength (190 - 1100 nm)"
-                  slotProps={{ htmlInput: { min: "190", max: "1100", step: "1" } }}
+                  helperText={t("uv.wavelengthHelper")}
+                  slotProps={{ htmlInput: { min: "190", max: "1100", step: "1", dir: "ltr" } }}
                   required
                   fullWidth
                 />
@@ -797,12 +800,12 @@ export function UvPanel({
                 {isLimitMode && (
                   <TextField
                     size="small"
-                    label="Reference absorbance *"
+                    label={t("uv.referenceAbsorbanceLabel")}
                     type="number"
                     value={p.referenceAbsorbance}
                     onChange={(e) => handleReferenceAbsorbanceChange(s.id!, e.target.value)}
-                    helperText="Absorbance of reference solution (max 5)"
-                    slotProps={{ htmlInput: { min: "0", max: "5", step: "any" } }}
+                    helperText={t("uv.referenceAbsorbanceHelper")}
+                    slotProps={{ htmlInput: { min: "0", max: "5", step: "any", dir: "ltr" } }}
                     required
                     fullWidth
                   />
@@ -813,12 +816,12 @@ export function UvPanel({
                 <Table size="small">
                   <TableHead sx={tableHeadSx(theme)}>
                     <TableRow>
-                      <TableCell sx={{ fontSize: 12 }}>Replicate</TableCell>
+                      <TableCell sx={{ fontSize: 12 }}>{t("uv.replicateCol")}</TableCell>
                       {!isLimitMode && (
-                        <TableCell sx={{ fontSize: 12 }}>Sample weight (g)</TableCell>
+                        <TableCell sx={{ fontSize: 12 }}>{t("uv.sampleWeightCol")}</TableCell>
                       )}
-                      <TableCell sx={{ fontSize: 12 }}>Absorbance</TableCell>
-                      <TableCell sx={{ fontSize: 12 }}>Preview</TableCell>
+                      <TableCell sx={{ fontSize: 12 }}>{t("uv.absorbanceCol")}</TableCell>
+                      <TableCell sx={{ fontSize: 12 }}>{t("uv.previewCol")}</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
@@ -827,17 +830,17 @@ export function UvPanel({
                       return (
                         <TableRow key={rIdx} hover>
                           <TableCell sx={{ fontSize: 12, fontWeight: 600 }}>
-                            Rep {rIdx + 1}
+                            {t("uv.repLabel", { index: rIdx + 1 })}
                           </TableCell>
                           {!isLimitMode && (
                             <TableCell sx={{ py: 0.5 }}>
                               <TextField
                                 size="small"
-                                label={`Sample weight ${rIdx + 1}`}
+                                label={t("uv.sampleWeightAria", { index: rIdx + 1 })}
                                 type="number"
                                 value={r.weightG}
                                 onChange={(e) => handleReplicateWeightChange(s.id!, rIdx, e.target.value)}
-                                slotProps={{ htmlInput: { min: "0", step: "any" } }}
+                                slotProps={{ htmlInput: { min: "0", step: "any", dir: "ltr" } }}
                                 required
                                 sx={{ maxWidth: 180 }}
                               />
@@ -846,17 +849,17 @@ export function UvPanel({
                           <TableCell sx={{ py: 0.5 }}>
                             <TextField
                               size="small"
-                              label={`Absorbance ${rIdx + 1}`}
+                              label={t("uv.absorbanceAria", { index: rIdx + 1 })}
                               type="number"
                               value={r.absorbance}
                               onChange={(e) => handleReplicateAbsorbanceChange(s.id!, rIdx, e.target.value)}
-                              slotProps={{ htmlInput: { min: isLimitMode ? "0" : "0.001", max: "5", step: "any" } }}
+                              slotProps={{ htmlInput: { min: isLimitMode ? "0" : "0.001", max: "5", step: "any", dir: "ltr" } }}
                               required
                               sx={{ maxWidth: 180 }}
                             />
                           </TableCell>
                           <TableCell sx={{ fontSize: 12, fontVariantNumeric: "tabular-nums" }}>
-                            {previewStr}
+                            <Ltr>{previewStr}</Ltr>
                           </TableCell>
                         </TableRow>
                       );
@@ -871,7 +874,7 @@ export function UvPanel({
         {/* Section: Comment */}
         <TextField
           size="small"
-          label="Comment (optional)"
+          label={t("uv.commentOptional")}
           value={comment}
           onChange={(e) => setComment(e.target.value)}
           multiline
@@ -887,7 +890,7 @@ export function UvPanel({
             onClick={() => setSigning(true)}
             sx={{ minWidth: 140, fontWeight: 700, textTransform: "none" }}
           >
-            Sign and record result
+            {t("uv.signAndRecord")}
           </Button>
         </Box>
       </Stack>
@@ -895,6 +898,7 @@ export function UvPanel({
       <SignatureDialog
         open={signing}
         meaningStatement="I entered these spectrophotometric measurements and am recording this test result."
+        meaningStatementTranslation={t("uv.signatureMeaning")}
         onCancel={() => setSigning(false)}
         onConfirm={submit}
       />

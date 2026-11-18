@@ -1,3 +1,5 @@
+import type { TFunction } from "i18next";
+import { i18n } from "../../i18n";
 import { DocumentMasterSummaryDto } from "./types/documentControlTypes";
 
 /**
@@ -17,11 +19,14 @@ import { DocumentMasterSummaryDto } from "./types/documentControlTypes";
  * display string ("InReview" renders as "In Review") and to a tone, so callers
  * must not pre-format it here.
  */
-export function documentMasterStatusLabel(doc: DocumentMasterSummaryDto): string {
+export function documentMasterStatusLabel(
+  doc: DocumentMasterSummaryDto,
+  t: TFunction = i18n.getFixedT("en", "documentControl")
+): string {
   if (doc.recordStatus === "Void") return "Void";
   // Null means the master holds no revisions at all, which registration should
   // make impossible - it always creates Rev 01 as a Draft. Reported plainly
   // rather than guessed at, since naming the wrong lifecycle state is worse
   // than declining to name one.
-  return doc.currentRevisionStatus ?? "No Revision";
+  return doc.currentRevisionStatus ?? t("statusDisplay.noRevision");
 }

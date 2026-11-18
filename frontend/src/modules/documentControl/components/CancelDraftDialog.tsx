@@ -13,6 +13,9 @@ import {
 } from "@mui/material";
 import CancelOutlinedIcon from "@mui/icons-material/CancelOutlined";
 import { documentControlService } from "../services/documentControlService";
+import { Trans } from "react-i18next";
+import { useTranslation } from "../../../i18n";
+import { getErrorMessage, serverMessage } from "../../../utils/errorMessage";
 
 interface CancelDraftDialogProps {
   open: boolean;
@@ -31,6 +34,7 @@ export function CancelDraftDialog({
   revisionNumber,
   companyDocumentCode
 }: CancelDraftDialogProps) {
+  const { t } = useTranslation("documentControl");
   const [reason, setReason] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -48,9 +52,8 @@ export function CancelDraftDialog({
       setReason("");
       onSuccess();
       onClose();
-    } catch (err: any) {
-      const msg = err.response?.data?.message || err.message || "Failed to cancel draft revision.";
-      setError(msg);
+    } catch (err: unknown) {
+      setError(serverMessage(err) ?? getErrorMessage(err, t("cancelDraft.cancelError")));
     } finally {
       setLoading(false);
     }
@@ -69,39 +72,44 @@ export function CancelDraftDialog({
       <DialogTitle sx={{ pb: 1, display: "flex", alignItems: "center", gap: 1 }}>
         <CancelOutlinedIcon color="warning" />
         <Typography variant="h6" sx={{ fontWeight: 700 }}>
-          CANCEL DRAFT REVISION
+          {t("cancelDraft.title")}
         </Typography>
       </DialogTitle>
 
       <DialogContent dividers sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
         <Alert severity="info">
-          Cancelling will move Revision <strong>{revisionNumber}</strong> of <strong>{companyDocumentCode}</strong> to <em>Cancelled</em> status and deactivate any active draft files. This action cannot be undone.
+          <Trans
+            i18nKey="cancelDraft.warning"
+            ns="documentControl"
+            values={{ rev: revisionNumber, code: companyDocumentCode }}
+            components={{ strong: <strong />, em: <em /> }}
+          />
         </Alert>
 
         {error && <Alert severity="error">{error}</Alert>}
 
         <Box>
           <Typography variant="caption" sx={{ fontWeight: 700, mb: 0.5, display: "block" }}>
-            Mandatory Cancellation Reason (minimum 10 characters required) *
+            {t("cancelDraft.reasonLabel")}
           </Typography>
           <TextField
             multiline
             rows={3}
             fullWidth
-            placeholder="State why this draft revision is being cancelled..."
+            placeholder={t("cancelDraft.reasonPlaceholder")}
             value={reason}
             onChange={(e) => setReason(e.target.value)}
             disabled={loading}
-            helperText={`${reason.trim().length}/10 characters minimum`}
+            helperText={t("cancelDraft.charsHelper", { count: reason.trim().length })}
             error={reason.length > 0 && !isValid}
-            slotProps={{ htmlInput: { "aria-label": "State why this draft revision is being cancelled" } }}
+            slotProps={{ htmlInput: { "aria-label": t("cancelDraft.reasonAria") } }}
           />
         </Box>
       </DialogContent>
 
       <DialogActions sx={{ px: 3, py: 2 }}>
         <Button onClick={handleClose} disabled={loading} color="inherit">
-          Close
+          {t("cancelDraft.close")}
         </Button>
         <Button
           onClick={handleCancel}
@@ -110,7 +118,7 @@ export function CancelDraftDialog({
           disabled={!isValid || loading}
           startIcon={loading ? <CircularProgress size={16} color="inherit" /> : null}
         >
-          {loading ? "Cancelling..." : "Confirm Cancel Draft"}
+          {loading ? t("cancelDraft.cancelling") : t("cancelDraft.submit")}
         </Button>
       </DialogActions>
     </Dialog>

@@ -1080,5 +1080,179 @@
     "togglePasswordAria": "toggle password visibility",
     "signing": "Authenticating & Signing...",
     "submit": "Sign & Approve"
+  },
+  "fileUpload": {
+    "pdfFormatError": "Controlled document file must be in PDF format (.pdf).",
+    "wordFormatError": "Source editable file must be in Word format (.docx or .doc).",
+    "selectFileError": "Please select a file to upload.",
+    "uploadError": "Failed to upload file.",
+    "units": {
+      "bytes": "Bytes",
+      "kb": "KB",
+      "mb": "MB",
+      "gb": "GB"
+    },
+    "replaceTitle": "Replace Draft File",
+    "uploadTitle": "Upload Draft File",
+    "subtitle": "Document: <strong>{{code}}</strong> | Revision: <strong>{{rev}} (Draft)</strong>",
+    "replaceInfo": "An active file already exists for this draft revision. Uploading a new file will set it as the active version while permanently retaining previous copies in the audit trail.",
+    "fileRoleLabel": "File Role",
+    "controlledPdfOption": "Controlled Document (PDF)",
+    "sourceDocxOption": "Editable Source (Word .docx)",
+    "chooseFileAria": "Choose a file to upload",
+    "clickToBrowse": "Click or browse to choose a file",
+    "acceptsPdf": "Accepts .pdf format (max 50 MB)",
+    "acceptsWord": "Accepts .docx or .doc format (max 50 MB)",
+    "uploading": "Uploading & Hashing...",
+    "submit": "Upload & Compute SHA-256"
+  },
+  "assignmentDialog": {
+    "loadError": "Failed to load active personnel directory.",
+    "selectPersonnelError": "Please select a target personnel.",
+    "addError": "Failed to add assignment.",
+    "title": "Add Role Assignment",
+    "documentLine": "Document: <strong>{{code}}</strong>",
+    "roleLabel": "Assignment Role *",
+    "roles": {
+      "Author": "Author (Can edit draft & upload files)",
+      "TechnicalReviewer": "Technical Reviewer",
+      "Approver": "Approver",
+      "Owner": "Co-Owner"
+    },
+    "selectPersonnelLabel": "Select Personnel *",
+    "searchPlaceholder": "Search by name, username, or title...",
+    "personnelFallback": "Personnel",
+    "staffFallback": "Staff",
+    "selectedLine": "Selected Personnel: <strong>{{name}}</strong> ({{username}})",
+    "roleTitleLine": "Role/Title: {{jobTitle}} • System Role: {{roleName}}",
+    "assigning": "Assigning...",
+    "submit": "Assign Role"
+  },
+  "reassignDialog": {
+    "loadError": "Could not load the eligible users.",
+    "reassignError": "Could not reassign this responsibility.",
+    "title": "Reassign: {{role}}",
+    "revisionSuffix": " (revision {{rev}})",
+    "description": "Currently held by an inactive user ({{holder}}). The new holder must be an active member of <strong>{{department}}</strong> whose role holds <code>{{permission}}</code>.",
+    "nameNotShown": "name not shown",
+    "loadingAria": "Loading eligible users",
+    "noCandidates": "Nobody is eligible. Add a user to {{department}} (Administration > Organization) whose role holds {{permission}}, then try again.",
+    "newHolderLabel": "New holder",
+    "reasonLabel": "Reason",
+    "reasonPlaceholder": "Why this person takes over (recorded in the audit trail)",
+    "reassigning": "Reassigning...",
+    "submit": "Reassign"
+  },
+  "assignApprover": {
+    "loadError": "Failed to load user list for approver selection.",
+    "selectError": "Please select a designated approver.",
+    "createError": "Failed to create approval task.",
+    "title": "Assign Approver: {{code}} Rev {{rev}}",
+    "sodTitle": "Segregation of Duties (SoD) Active:",
+    "sodBody": "The Author and all participating Technical Reviewers are strictly disqualified from approving this revision. System Administrators are non-exempt.",
+    "approverLabel": "Designated Approver",
+    "targetEffectiveDateLabel": "Target Effective Date (Optional)",
+    "targetEffectiveDateHelper": "If set to a future date, document will be approved in Future Effective state until activation.",
+    "dueDateLabel": "Approval Due Date (Optional)",
+    "notesLabel": "Submission Notes for Approver (Optional)",
+    "notesPlaceholder": "Provide background context or rationale for this approval request...",
+    "assigning": "Assigning...",
+    "submit": "Assign & Route for Approval"
+  },
+  "cancelDraft": {
+    "cancelError": "Failed to cancel draft revision.",
+    "title": "CANCEL DRAFT REVISION",
+    "warning": "Cancelling will move Revision <strong>{{rev}}</strong> of <strong>{{code}}</strong> to <em>Cancelled</em> status and deactivate any active draft files. This action cannot be undone.",
+    "reasonLabel": "Mandatory Cancellation Reason (minimum 10 characters required) *",
+    "reasonPlaceholder": "State why this draft revision is being cancelled...",
+    "reasonAria": "State why this draft revision is being cancelled",
+    "charsHelper": "{{count}}/10 characters minimum",
+    "close": "Close",
+    "cancelling": "Cancelling...",
+    "submit": "Confirm Cancel Draft"
+  },
+  "voidDocument": {
+    "voidError": "Failed to void Document Master.",
+    "title": "VOID DOCUMENT MASTER",
+    "warning": "<strong>Quality Governance Action:</strong> Voiding permanently removes this Document Master from the active register and marks it as Void. It releases the Company Code <code>{{code}}</code> for controlled reuse. The document and its complete revision history remain permanently preserved in the immutable audit trail.",
+    "codeLine": "Document Code: <strong>{{code}}</strong>",
+    "titleLine": "Title: <strong>{{title}}</strong>",
+    "reasonLabel": "Mandatory Void Reason (minimum 10 characters required) *",
+    "reasonPlaceholder": "State the regulatory / administrative justification for voiding this document...",
+    "reasonAria": "State the regulatory / administrative justification for voiding this document",
+    "charsHelper": "{{count}}/10 characters minimum",
+    "voiding": "Voiding Record...",
+    "submit": "Confirm Void Record"
+  },
+  "impactAssessment": {
+    "loadError": "Failed to load impact assessment.",
+    "detailsRequiredError": "For every category marked as having an impact, details must contain at least 5 characters.",
+    "savedSuccess": "Revision impact assessment successfully saved and baselined.",
+    "saveError": "Failed to save impact assessment.",
+    "categories": {
+      "procedure": "1. Procedure or Method Impact",
+      "training": "2. Training Impact",
+      "forms": "3. Forms or Templates Impact",
+      "specifications": "4. Specifications Impact",
+      "equipment": "5. Equipment Impact",
+      "materials": "6. Materials or Media Impact",
+      "validation": "7. Validation Impact",
+      "regulatory": "8. Regulatory Commitment Impact",
+      "relatedDocs": "9. Related Documents Impact"
+    },
+    "title": "Revision Impact Assessment: Rev {{rev}}",
+    "info": "Every new document revision must undergo a structured impact assessment across all 9 GMP categories. Technical review submission is strictly blocked until this assessment is completed.",
+    "completeBanner": "Assessment Status: COMPLETE • Last Completed by: {{name}} ({{username}}) on {{date}}",
+    "impactIdentified": "Impact Identified",
+    "noImpact": "No Impact",
+    "detailsLabel": "Impact Details & Mitigation *",
+    "detailsPlaceholder": "Document specific changes, required actions, or mitigations for {{category}}...",
+    "minCharsError": "Minimum 5 characters required",
+    "close": "Close",
+    "submit": "Save & Complete Assessment"
+  },
+  "submitForReview": {
+    "loadError": "Failed to load eligible reviewers.",
+    "selectError": "Please select a technical reviewer.",
+    "sodError": "Segregation of Duties: Author cannot be assigned as technical reviewer.",
+    "submitError": "Failed to submit for review.",
+    "title": "Submit for Technical Review",
+    "sodInfo": "<strong>Segregation of Duties Enforcement:</strong> In accordance with GMP regulations, the author of this revision cannot be assigned as its technical reviewer.",
+    "reviewerLabel": "Technical Reviewer",
+    "dueDateLabel": "Review Due Date",
+    "notesLabel": "Submission Notes",
+    "notesPlaceholder": "Provide context or highlight key changes for the technical reviewer...",
+    "submit": "Submit for Review"
+  },
+  "lifecycleStrip": {
+    "ariaLabel": "Revision lifecycle",
+    "spine": {
+      "Draft": "Draft",
+      "InReview": "In Review",
+      "AwaitingApproval": "Awaiting Approval",
+      "Effective": "Effective"
+    },
+    "offSpine": {
+      "FutureEffective": "Approved. Becomes effective automatically on its effective date.",
+      "Superseded": "Replaced by a later effective revision. Retained as a record.",
+      "Obsolete": "Withdrawn from use. No successor revision.",
+      "Cancelled": "Abandoned before approval. Retained as a record."
+    },
+    "offSpineTitle": {
+      "FutureEffective": "Future Effective",
+      "Superseded": "Superseded",
+      "Obsolete": "Obsolete",
+      "Cancelled": "Cancelled"
+    },
+    "revisionHere": "Revision {{rev}} is here",
+    "current": "Current",
+    "complete": "Complete",
+    "notYet": "Not yet"
+  },
+  "reassignmentsButton": {
+    "label": "Needs Reassignment"
+  },
+  "statusDisplay": {
+    "noRevision": "No Revision"
   }
 }

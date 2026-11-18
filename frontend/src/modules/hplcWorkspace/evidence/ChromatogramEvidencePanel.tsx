@@ -29,6 +29,7 @@ import { HplcWorkspaceService } from "../services/HplcWorkspaceService";
 import { tableHeadSx } from "../../../theme";
 import { StatusBadge } from "../../../components/StatusBadge";
 import type { HplcRunDto, HplcEvidenceDto } from "../types";
+import { formatDateTimeWithTimeZone } from "../../../utils/formatDate";
 
 export interface ChromatogramEvidencePanelProps {
   run: HplcRunDto;
@@ -160,7 +161,7 @@ export function ChromatogramEvidencePanel({
                       <TableCell>{e.kind}</TableCell>
                       <TableCell>{e.uploadedByUserName ?? "—"}</TableCell>
                       <TableCell>
-                        {new Date(e.uploadedAt).toLocaleString()}
+                        {formatDateTimeWithTimeZone(e.uploadedAt)}
                       </TableCell>
                       <TableCell>
                         <StatusBadge status={e.isCurrent ? "Active" : "Superseded"} label={e.isCurrent ? "Current" : "Superseded"} />

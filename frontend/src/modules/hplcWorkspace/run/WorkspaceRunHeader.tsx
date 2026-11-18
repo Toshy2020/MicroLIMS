@@ -9,6 +9,7 @@ import CheckCircleOutlinedIcon from "@mui/icons-material/CheckCircleOutlined";
 import { HplcStatusBadge } from "../components/HplcStatusBadge";
 import { monospaceFontFamily } from "../../../theme/palette";
 import type { HplcRunDto } from "../types";
+import { formatDateTimeWithTimeZone } from "../../../utils/formatDate";
 
 export interface WorkspaceRunHeaderProps {
   run: HplcRunDto;
@@ -45,7 +46,7 @@ export function WorkspaceRunHeader({
           <Typography variant="body2" sx={{ color: "text.secondary" }}>
             <strong>Run Code:</strong> <Box component="span" sx={{ fontFamily: monospaceFontFamily }}>{run.code}</Box> · <strong>Method:</strong> {run.hplcMethodAbbreviation} ·{" "}
             <strong>Column:</strong> <Box component="span" sx={{ fontFamily: monospaceFontFamily }}>{run.chromatographyColumnCode}</Box> · <strong>Analyst:</strong> {run.analystUserName ?? "Analyst"} ·{" "}
-            <strong>Started:</strong> {new Date(run.startedAt).toLocaleString()}
+            <strong>Started:</strong> {formatDateTimeWithTimeZone(run.startedAt)}
           </Typography>
         </Box>
 

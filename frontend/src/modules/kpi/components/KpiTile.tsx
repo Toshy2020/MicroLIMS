@@ -3,6 +3,7 @@ import { ButtonBase, Chip, Paper, Stack, Tooltip, Typography, useTheme } from "@
 import type { SxProps, Theme } from "@mui/material";
 import type { KpiDefinition, KpiEntry, KpiResult } from "../types/kpiTypes";
 import { FLAG_LABELS, entryView, formatExtras, formatPrior } from "../utils/kpiFormat";
+import { useTranslation } from "../../../i18n";
 
 // Gap messages and flags from the server, in the one non-failure warning tone.
 export function KpiChips({ result }: { result: KpiResult }) {
@@ -34,6 +35,7 @@ interface KpiTileProps {
 }
 
 export function KpiTile({ entry, definition, onOpenRecords }: KpiTileProps) {
+  const { t } = useTranslation("kpi");
   const theme = useTheme();
   const view = entryView(entry);
 
@@ -43,7 +45,7 @@ export function KpiTile({ entry, definition, onOpenRecords }: KpiTileProps) {
       <Paper sx={{ p: 2, height: "100%", border: `1px solid ${tone.border}` }}>
         <Typography sx={{ fontSize: 12.5, fontWeight: 600, color: "text.secondary" }}>{entry.name}</Typography>
         <Typography role="alert" sx={{ fontSize: 16, fontWeight: 700, color: tone.text, my: 0.5 }}>
-          Could not be calculated
+          {t("shared.couldNotCalculate")}
         </Typography>
         <Typography sx={{ fontSize: 12, color: "text.secondary" }}>{view.message}</Typography>
       </Paper>
@@ -51,13 +53,13 @@ export function KpiTile({ entry, definition, onOpenRecords }: KpiTileProps) {
   }
 
   const { result } = view;
-  const label = view.kind === "noData" ? "No data" : view.text;
+  const label = view.kind === "noData" ? t("shared.noData") : view.text;
   const extras = formatExtras(entry);
 
   const button = (
     <ButtonBase
       onClick={() => onOpenRecords(entry.key)}
-      aria-label={`${entry.name}: ${label}. Show records`}
+      aria-label={t("tile.openRecords", { name: entry.name, value: label })}
       sx={{
         display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 0.5,
         width: "100%", height: "100%", p: 2, textAlign: "left", borderRadius: "inherit"
@@ -65,7 +67,7 @@ export function KpiTile({ entry, definition, onOpenRecords }: KpiTileProps) {
     >
       <Text sx={{ fontSize: 12.5, fontWeight: 600, color: "text.secondary" }}>{entry.name}</Text>
       {view.kind === "noData" ? (
-        <Text sx={{ fontSize: 20, fontWeight: 700, color: "text.secondary" }}>No data</Text>
+        <Text sx={{ fontSize: 20, fontWeight: 700, color: "text.secondary" }}>{t("shared.noData")}</Text>
       ) : (
         <Text
           data-muted={view.muted ? "true" : "false"}
@@ -75,12 +77,12 @@ export function KpiTile({ entry, definition, onOpenRecords }: KpiTileProps) {
         </Text>
       )}
       {view.kind === "value" && view.muted && (
-        <Text sx={{ fontSize: 12, color: "text.secondary" }}>too few records to judge</Text>
+        <Text sx={{ fontSize: 12, color: "text.secondary" }}>{t("shared.tooFew")}</Text>
       )}
       {extras.map((x) => (
         <Text key={x.label} sx={{ fontSize: 12, color: "text.secondary" }}>{x.label} {x.text}</Text>
       ))}
-      <Text sx={{ fontSize: 12, color: "text.secondary" }}>n = {result.n}</Text>
+      <Text sx={{ fontSize: 12, color: "text.secondary" }}>{t("tile.n", { n: result.n })}</Text>
       {result.prior != null && (
         <Text sx={{ fontSize: 12, color: "text.secondary" }}>{formatPrior(entry.unit, result.prior)}</Text>
       )}

@@ -5,6 +5,7 @@ import { SignatureDialog } from "../../../components/SignatureDialog";
 import { workflowProfileService } from "../services/workflowProfileService";
 import { workflowTypeLabel, type LiveWorkflowType, type WorkflowProfileVersion } from "../types/workflowProfileTypes";
 import { DateField } from "../../../components/DateField";
+import { i18n, useTranslation } from "../../../i18n";
 
 interface AddProfileVersionDialogProps {
   open: boolean;
@@ -23,6 +24,7 @@ const parse = (v: string): number | null => (v.trim() === "" ? null : Number(v))
 // Step 1: the values and a reason. Step 2: SignatureDialog. Same two-step flow as
 // ChangeMediaProductCodeDialog. All rules (dates, ranges, retired types) are enforced by the server.
 export function AddProfileVersionDialog({ open, onClose, onDone, workflowType, testCode, draft }: AddProfileVersionDialogProps) {
+  const { t } = useTranslation("kpi");
   const [units, setUnits] = useState("");
   const [target, setTarget] = useState("");
   const [effectiveFrom, setEffectiveFrom] = useState(todayUtc());
@@ -41,24 +43,31 @@ export function AddProfileVersionDialog({ open, onClose, onDone, workflowType, t
   }, [open, draft]);
 
   const u = parse(units);
-  const t = parse(target);
+  const targetValue = parse(target);
   const valuesOk =
-    (u !== null || t !== null) &&
+    (u !== null || targetValue !== null) &&
     (u === null || (Number.isFinite(u) && u > 0)) &&
-    (t === null || (Number.isFinite(t) && t > 0));
+    (targetValue === null || (Number.isFinite(targetValue) && targetValue > 0));
   const canContinue = valuesOk && reason.trim() !== "" && /^\d{4}-\d{2}-\d{2}$/.test(effectiveFrom);
 
-  const scope = testCode ? `test ${testCode}` : `${workflowTypeLabel(workflowType)} type default`;
-  const meaningStatement =
-    `I am ${draft ? "signing" : "adding"} a workflow profile version for ${scope}: ` +
-    `${u ?? "inherited"} work units (1 unit = 1 standard analyst-hour), ${t ?? "inherited"} target analyst days, ` +
-    `effective ${effectiveFrom}. Reason: ${reason.trim()}`;
+  // The recorded statement is the English text; the Arabic one is shown beside it when the user works in Arabic.
+  const englishT = i18n.getFixedT("en", "kpi");
+  const meaningValues = (tf: (key: string, options?: Record<string, string | number>) => string) => ({
+    action: tf(draft ? "signature.signing" : "signature.adding"),
+    scope: testCode ? tf("signature.scopeTest", { code: testCode }) : tf("signature.scopeType", { type: workflowTypeLabel(workflowType) }),
+    units: u ?? tf("signature.inherited"),
+    target: targetValue ?? tf("signature.inherited"),
+    from: effectiveFrom,
+    reason: reason.trim()
+  });
+  const meaningStatement = englishT("signature.meaning", meaningValues(englishT));
+  const meaningStatementTranslation = t("signature.meaning", meaningValues(t));
 
   const handleConfirm = async (password: string) => {
     if (draft) {
       await workflowProfileService.signDraft(draft.id, draft.version, {
         workUnits: u,
-        targetAnalystDays: t,
+        targetAnalystDays: targetValue,
         effectiveFrom,
         reasonForChange: reason.trim(),
         password
@@ -68,7 +77,7 @@ export function AddProfileVersionDialog({ open, onClose, onDone, workflowType, t
         workflowType,
         testCode,
         workUnits: u,
-        targetAnalystDays: t,
+        targetAnalystDays: targetValue,
         effectiveFrom,
         reasonForChange: reason.trim(),
         password
@@ -83,14 +92,14 @@ export function AddProfileVersionDialog({ open, onClose, onDone, workflowType, t
     <>
       <FloatingDialog
         open={open && !signatureOpen}
-        title={`${draft ? "Review and sign" : "Add version"}: ${testCode ?? workflowTypeLabel(workflowType)}`}
+        title={`${draft ? t("dialog.reviewAndSign") : t("dialog.addVersion")}: ${testCode ?? workflowTypeLabel(workflowType)}`}
         onClose={onClose}
         maxWidth="xs"
         actions={
           <>
-            <Button onClick={onClose}>Cancel</Button>
+            <Button onClick={onClose}>{t("dialog.cancel")}</Button>
             <Button variant="contained" disabled={!canContinue} onClick={() => setSignatureOpen(true)}>
-              Continue to sign
+              {t("dialog.continueToSign")}
             </Button>
           </>
         }
@@ -98,43 +107,43 @@ export function AddProfileVersionDialog({ open, onClose, onDone, workflowType, t
         <Stack spacing={2} sx={{ mt: 1 }}>
           <Typography variant="body2" color="text.secondary">
             {testCode
-              ? "Leave a field empty to inherit it from the workflow type default."
-              : "Applies to every test of this workflow type that has no override."}
+              ? t("dialog.inheritHint")
+              : t("dialog.appliesToAll")}
           </Typography>
           <TextField
-            label="Work units"
+            label={t("dialog.workUnits")}
             type="number"
             size="small"
             value={units}
             onChange={(e) => setUnits(e.target.value)}
-            helperText="1 unit = 1 standard analyst-hour of hands-on work"
+            helperText={t("dialog.unitHelp")}
             slotProps={{ htmlInput: { min: 0, step: 0.01 } }}
             autoFocus
           />
           <TextField
-            label="Target analyst days"
+            label={t("dialog.targetDays")}
             type="number"
             size="small"
             value={target}
             onChange={(e) => setTarget(e.target.value)}
-            helperText="Analyst-stage deadline, from assignment to submission for review"
+            helperText={t("dialog.targetHelp")}
             slotProps={{ htmlInput: { min: 0, step: 0.01 } }}
           />
           <DateField
-            label="Effective from"
+            label={t("dialog.effectiveFrom")}
             value={effectiveFrom}
             onChange={(v) => setEffectiveFrom(v)}
-            helperText="Cannot be in the past, except for the first version of this profile"
+            helperText={t("dialog.effectiveHelp")}
           />
           <TextField
-            label="Reason for change"
+            label={t("dialog.reason")}
             required
             multiline
             rows={3}
             size="small"
             value={reason}
             onChange={(e) => setReason(e.target.value)}
-            placeholder="e.g. SOP time study 2026"
+            placeholder={t("dialog.reasonPlaceholder")}
           />
         </Stack>
       </FloatingDialog>
@@ -142,6 +151,7 @@ export function AddProfileVersionDialog({ open, onClose, onDone, workflowType, t
       <SignatureDialog
         open={open && signatureOpen}
         meaningStatement={meaningStatement}
+        meaningStatementTranslation={meaningStatementTranslation}
         onCancel={() => setSignatureOpen(false)}
         onConfirm={handleConfirm}
       />

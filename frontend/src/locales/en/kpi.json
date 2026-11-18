@@ -1,0 +1,203 @@
+{
+  "shared": {
+    "couldNotCalculate": "Could not be calculated",
+    "noData": "No data",
+    "tooFew": "too few records to judge"
+  },
+  "tile": {
+    "openRecords": "{{name}}: {{value}}. Show records",
+    "n": "n = {{n}}"
+  },
+  "filters": {
+    "from": "From",
+    "to": "To",
+    "category": "Category",
+    "allCategories": "All categories",
+    "location": "Location / subject",
+    "allLocations": "All locations",
+    "test": "Test",
+    "allTests": "All tests",
+    "definitions": "Definitions",
+    "profiles": "Workflow Profiles",
+    "exportPdf": "Export PDF",
+    "optionsFailed": "The category, location and test lists could not be loaded. Reload the page to try again."
+  },
+  "records": {
+    "close": "Close records",
+    "loadError": "The records could not be loaded.",
+    "none": "No records.",
+    "columns": {
+      "controlNo": "Control no.",
+      "test": "Test",
+      "category": "Category",
+      "analyst": "Analyst",
+      "event": "Event",
+      "value": "Value",
+      "inFigure": "In the figure as",
+      "note": "Note"
+    }
+  },
+  "performance": {
+    "recordsTitle": "{{name}} - records",
+    "testsTitle": "{{name}} - tests",
+    "analystFallback": "Analyst",
+    "calculated": "Calculated <ltr>{{at}}</ltr> for your laboratory sections. Click any figure to see the records behind it.",
+    "retry": "Retry"
+  },
+  "sections": {
+    "flow": "Flow",
+    "quality": "Quality",
+    "micro": "Micro"
+  },
+  "section": {
+    "stageMedian": "median {{median}} · P90 {{p90}} · n = {{n}}",
+    "showRecordsFor": "Show records for {{name}}",
+    "records": "Records",
+    "errorDetail": "Could not be calculated: {{message}}",
+    "noData": "No data in this period",
+    "notEnoughPoints": "Not enough points for a trend yet.",
+    "nonePeriod": "None in this period"
+  },
+  "buckets": {
+    "within50": "Within 50% of target",
+    "between": "50-100% of target",
+    "over100": "Over target"
+  },
+  "aging": {
+    "stage": "Stage"
+  },
+  "returns": {
+    "test": "Test",
+    "returns": "Returns"
+  },
+  "definitions": {
+    "title": "Definitions",
+    "close": "Close definitions",
+    "loadError": "The definitions could not be loaded.",
+    "unit": "Unit: {{unit}} · {{direction}}",
+    "fields": {
+      "definition": "Definition",
+      "clockEvents": "Clock events",
+      "population": "Population",
+      "source": "Source"
+    },
+    "inForce": "Profile versions in force on {{date}}",
+    "noProfiles": "No effective profile versions on this date, so weighted measures show their tests as unweighted.",
+    "columns": {
+      "workflowType": "Workflow type",
+      "test": "Test",
+      "workUnits": "Work units",
+      "target": "Target (analyst days)",
+      "effectiveFrom": "Effective from"
+    },
+    "typeDefault": "Type default",
+    "inherited": "inherited"
+  },
+  "directions": {
+    "HigherIsBetter": "Higher is better",
+    "LowerIsBetter": "Lower is better",
+    "Neutral": "No better or worse direction"
+  },
+  "gaps": {
+    "typesWithoutUnits_one": "{{count}} workflow type without work units",
+    "typesWithoutUnits_other": "{{count}} workflow types without work units",
+    "typesWithoutTarget": "{{count}} without a target",
+    "testsNeedConfiguration_one": "{{count}} test needs configuration",
+    "testsNeedConfiguration_other": "{{count}} tests need configuration"
+  },
+  "profiles": {
+    "intro": "Work units: 1 unit = 1 standard analyst-hour of hands-on work. Target: analyst-stage days. A version takes effect on its effective date and is never edited; correct a mistake by adding a new version. Tests without a profile stay unweighted - they are never counted as 1.0.",
+    "notSet": "Not set",
+    "columns": {
+      "workflowType": "Workflow type",
+      "workUnits": "Work units",
+      "target": "Target (days)",
+      "lastChange": "Last change",
+      "status": "Status",
+      "test": "Test",
+      "name": "Name"
+    },
+    "needsConfigurationOnly": "Needs configuration only",
+    "showTestsFor": "Show tests for {{name}}",
+    "draftCount_one": "{{count}} draft",
+    "draftCount_other": "{{count}} drafts",
+    "history": "History",
+    "addVersion": "Add version",
+    "addOverride": "Add override",
+    "override": "Override",
+    "noTests": "No tests to show for this workflow type."
+  },
+  "coverage": {
+    "configured": "Configured",
+    "partial": "Partial",
+    "needsConfiguration": "Needs configuration"
+  },
+  "dialog": {
+    "reviewAndSign": "Review and sign",
+    "addVersion": "Add version",
+    "cancel": "Cancel",
+    "continueToSign": "Continue to sign",
+    "close": "Close",
+    "inheritHint": "Leave a field empty to inherit it from the workflow type default.",
+    "appliesToAll": "Applies to every test of this workflow type that has no override.",
+    "workUnits": "Work units",
+    "unitHelp": "1 unit = 1 standard analyst-hour of hands-on work",
+    "targetDays": "Target analyst days",
+    "targetHelp": "Analyst-stage deadline, from assignment to submission for review",
+    "effectiveFrom": "Effective from",
+    "effectiveHelp": "Cannot be in the past, except for the first version of this profile",
+    "reason": "Reason for change",
+    "reasonPlaceholder": "e.g. SOP time study 2026"
+  },
+  "signature": {
+    "meaning": "I am {{action}} a workflow profile version for {{scope}}: {{units}} work units (1 unit = 1 standard analyst-hour), {{target}} target analyst days, effective {{from}}. Reason: {{reason}}",
+    "signing": "signing",
+    "adding": "adding",
+    "scopeTest": "test {{code}}",
+    "scopeType": "{{type}} type default",
+    "inherited": "inherited"
+  },
+  "history": {
+    "title": "History: {{scope}}",
+    "defaultScope": "{{type}} default",
+    "close": "Close history",
+    "none": "No versions yet.",
+    "loadError": "Could not load the version history.",
+    "columns": {
+      "effectiveFrom": "Effective from",
+      "workUnits": "Work units",
+      "target": "Target (days)",
+      "status": "Status",
+      "reason": "Reason",
+      "by": "By"
+    },
+    "signed": "signed {{date}}",
+    "reviewAndSign": "Review and sign"
+  },
+  "workload": {
+    "title": "Workload",
+    "intro": "Listed alphabetically. Click a column heading to sort; the choice is not saved. Units are a planning estimate, not a performance score (1 unit = 1 standard analyst-hour).",
+    "ownOnly": "Showing your own numbers only.",
+    "capacityDefaults": "Capacity assumes full availability and the default hours.",
+    "unassigned": "{{count}} open tests have no analyst",
+    "noAnalysts": "No analysts to show for this scope.",
+    "analyst": "Analyst",
+    "gaps": "Gaps",
+    "showTestsFor": "Show tests for {{name}}",
+    "unweightedDelivered": "{{count}} delivered tests unweighted",
+    "unweightedOpen": "{{count}} open tests unweighted",
+    "onDefaultTarget": "{{count}} tests on the default target",
+    "checkProfile": "check profile",
+    "overCapacity": "Over capacity",
+    "testsCount": "{{count}} tests",
+    "columns": {
+      "capacityUnits": "Capacity (units)",
+      "deliveredUnits": "Delivered units",
+      "utilisation": "Utilisation",
+      "openUnits": "Open units",
+      "forwardLoad": "Forward load",
+      "weightedOnTime": "Weighted on time",
+      "weightedRightFirstTime": "Weighted right first time"
+    }
+  }
+}

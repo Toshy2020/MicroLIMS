@@ -18,6 +18,9 @@ import { KpiTile } from "./KpiTile";
 import { WorkflowProfilesDialog } from "./WorkflowProfilesDialog";
 import { WorkloadTable } from "./WorkloadTable";
 import { formatDateTimeWithTimeZone } from "../../../utils/formatDate";
+import { Trans } from "react-i18next";
+import { Ltr } from "../../../components/Ltr";
+import { useTranslation } from "../../../i18n";
 
 // The sections regroup the registry by topic (spec section 5); the backend's
 // Group says "Headline" for the eight tiles, several of which also trend here.
@@ -34,6 +37,7 @@ interface RecordsTarget {
 }
 
 export function KpiPerformanceTab() {
+  const { t } = useTranslation("kpi");
   const { fullName } = useAuth();
   const canConfigureProfiles = useHasPermission(PERMISSIONS.KPI_CONFIGURE_PROFILES);
   const [filters, setFilters] = useState<KpiFiltersValue>(() => defaultFilters());
@@ -65,15 +69,15 @@ export function KpiPerformanceTab() {
   const openRecords = (key: string) => {
     const name = entries.find((k) => k.key === key)?.name ?? key;
     setRecords({
-      title: `${name} - records`,
+      title: t("performance.recordsTitle", { name }),
       load: (page, pageSize) => kpiDashboardService.records(key, { ...toQueryParams(filters), page, pageSize })
     });
   };
 
   const openTests = (userId: number) => {
-    const name = workload.data?.rows.find((r) => r.userId === userId)?.fullName ?? "Analyst";
+    const name = workload.data?.rows.find((r) => r.userId === userId)?.fullName ?? t("performance.analystFallback");
     setRecords({
-      title: `${name} - tests`,
+      title: t("performance.testsTitle", { name }),
       load: (page, pageSize) => kpiWorkloadService.workloadTests({ ...toQueryParams(filters), analystId: userId, page, pageSize })
     });
   };
@@ -93,7 +97,7 @@ export function KpiPerformanceTab() {
 
       {dash.loading && <LinearProgress sx={{ mb: 1 }} />}
       {dash.error && (
-        <Alert severity="error" sx={{ mb: 2 }} action={<Button color="inherit" size="small" onClick={() => void dash.reload()}>Retry</Button>}>
+        <Alert severity="error" sx={{ mb: 2 }} action={<Button color="inherit" size="small" onClick={() => void dash.reload()}>{t("performance.retry")}</Button>}>
           {dash.error}
         </Alert>
       )}
@@ -101,7 +105,7 @@ export function KpiPerformanceTab() {
       {dash.data && (
         <Box sx={{ opacity: dash.loading ? 0.6 : 1 }}>
           <Typography sx={{ fontSize: 12, color: "text.secondary", mb: 1.5 }}>
-            Calculated {formatDateTimeWithTimeZone(dash.data.generatedAt)} for your laboratory sections. Click any figure to see the records behind it.
+            <Trans i18nKey="performance.calculated" ns="kpi" values={{ at: formatDateTimeWithTimeZone(dash.data.generatedAt) }} components={{ ltr: <Ltr>{null}</Ltr> }} />
           </Typography>
 
           <Grid container spacing={2} sx={{ mb: 3 }}>
@@ -112,9 +116,9 @@ export function KpiPerformanceTab() {
             ))}
           </Grid>
 
-          <KpiSection title="Flow" entries={pick(entries, FLOW_KEYS)} onOpenRecords={openRecords} />
-          <KpiSection title="Quality" entries={pick(entries, QUALITY_KEYS)} onOpenRecords={openRecords} />
-          <KpiSection title="Micro" entries={pick(entries, MICRO_KEYS)} onOpenRecords={openRecords} />
+          <KpiSection title={t("sections.flow")} entries={pick(entries, FLOW_KEYS)} onOpenRecords={openRecords} />
+          <KpiSection title={t("sections.quality")} entries={pick(entries, QUALITY_KEYS)} onOpenRecords={openRecords} />
+          <KpiSection title={t("sections.micro")} entries={pick(entries, MICRO_KEYS)} onOpenRecords={openRecords} />
         </Box>
       )}
 

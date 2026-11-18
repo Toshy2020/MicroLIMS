@@ -5,19 +5,20 @@ import {
 } from "@mui/material";
 import type { AnalystWorkload, AnalystWorkloadRow } from "../types/workloadTypes";
 import { formatRatio, formatUnits, sortByName } from "../utils/kpiFormat";
+import { useTranslation } from "../../../i18n";
 
 type SortKey =
   | "capacityUnits" | "deliveredUnits" | "utilisation" | "openUnits"
   | "forwardLoad" | "weightedOnTime" | "weightedRightFirstTime";
 
 const COLUMNS: { key: SortKey; label: string }[] = [
-  { key: "capacityUnits", label: "Capacity (units)" },
-  { key: "deliveredUnits", label: "Delivered units" },
-  { key: "utilisation", label: "Utilisation" },
-  { key: "openUnits", label: "Open units" },
-  { key: "forwardLoad", label: "Forward load" },
-  { key: "weightedOnTime", label: "Weighted on time" },
-  { key: "weightedRightFirstTime", label: "Weighted right first time" }
+  { key: "capacityUnits", label: "workload.columns.capacityUnits" },
+  { key: "deliveredUnits", label: "workload.columns.deliveredUnits" },
+  { key: "utilisation", label: "workload.columns.utilisation" },
+  { key: "openUnits", label: "workload.columns.openUnits" },
+  { key: "forwardLoad", label: "workload.columns.forwardLoad" },
+  { key: "weightedOnTime", label: "workload.columns.weightedOnTime" },
+  { key: "weightedRightFirstTime", label: "workload.columns.weightedRightFirstTime" }
 ];
 
 type Sort = { key: SortKey; dir: "asc" | "desc" } | null;
@@ -42,6 +43,7 @@ interface WorkloadTableProps {
 }
 
 export function WorkloadTable({ data, loading, error, onOpenTests }: WorkloadTableProps) {
+  const { t } = useTranslation("kpi");
   const theme = useTheme();
   // Held in state only: an explicit sort is a look at the data, not a saved preference.
   const [sort, setSort] = useState<Sort>(null);
@@ -71,7 +73,7 @@ export function WorkloadTable({ data, loading, error, onOpenTests }: WorkloadTab
           <>
             {formatUnits(r.deliveredUnits)}
             <Typography component="span" sx={{ display: "block", fontSize: 12, color: "text.secondary" }}>
-              {r.deliveredTests} tests
+              {t("workload.testsCount", { count: r.deliveredTests })}
             </Typography>
           </>
         );
@@ -79,14 +81,14 @@ export function WorkloadTable({ data, loading, error, onOpenTests }: WorkloadTab
         return (
           <>
             {formatRatio(r.utilisation)}
-            {r.utilisationCheckProfile && chip("check profile", info, 0.5)}
+            {r.utilisationCheckProfile && chip(t("workload.checkProfile"), info, 0.5)}
           </>
         );
       case "forwardLoad":
         return (
           <>
             {formatRatio(r.forwardLoad)}
-            {r.forwardLoadOverCapacity && chip("Over capacity", amber, 0.5)}
+            {r.forwardLoadOverCapacity && chip(t("workload.overCapacity"), amber, 0.5)}
           </>
         );
       case "weightedOnTime": return formatRatio(r.weightedOnTime);
@@ -95,11 +97,10 @@ export function WorkloadTable({ data, loading, error, onOpenTests }: WorkloadTab
   };
 
   return (
-    <Paper component="section" aria-label="Workload" sx={{ p: 2, mb: 3 }}>
-      <Typography component="h2" sx={{ fontSize: 16, fontWeight: 700 }}>Workload</Typography>
+    <Paper component="section" aria-label={t("workload.title")} sx={{ p: 2, mb: 3 }}>
+      <Typography component="h2" sx={{ fontSize: 16, fontWeight: 700 }}>{t("workload.title")}</Typography>
       <Typography sx={{ fontSize: 12, color: "text.secondary", mb: 1.5 }}>
-        Listed alphabetically. Click a column heading to sort; the choice is not saved. Units are a planning estimate,
-        not a performance score (1 unit = 1 standard analyst-hour).
+        {t("workload.intro")}
       </Typography>
 
       {loading && <LinearProgress sx={{ mb: 1 }} />}
@@ -107,25 +108,25 @@ export function WorkloadTable({ data, loading, error, onOpenTests }: WorkloadTab
 
       {data && (
         <Stack spacing={1}>
-          {data.onlyOwnRow && <Alert severity="info">Showing your own numbers only.</Alert>}
+          {data.onlyOwnRow && <Alert severity="info">{t("workload.ownOnly")}</Alert>}
           {data.capacityUsesDefaults && (
-            <Alert severity="info">Capacity assumes full availability and the default hours.</Alert>
+            <Alert severity="info">{t("workload.capacityDefaults")}</Alert>
           )}
           {(data.unassignedOpenTests > 0 || data.gaps.length > 0) && (
             <Stack direction="row" useFlexGap sx={{ flexWrap: "wrap", gap: 0.5 }}>
-              {data.unassignedOpenTests > 0 && chip(`${data.unassignedOpenTests} open tests have no analyst`, amber)}
+              {data.unassignedOpenTests > 0 && chip(t("workload.unassigned", { count: data.unassignedOpenTests }), amber)}
               {data.gaps.map((g) => chip(g.message, amber))}
             </Stack>
           )}
 
           {rows.length === 0 ? (
-            <Typography sx={{ fontSize: 13, color: "text.secondary" }}>No analysts to show for this scope.</Typography>
+            <Typography sx={{ fontSize: 13, color: "text.secondary" }}>{t("workload.noAnalysts")}</Typography>
           ) : (
             <TableContainer>
               <Table size="small">
                 <TableHead>
                   <TableRow>
-                    <TableCell>Analyst</TableCell>
+                    <TableCell>{t("workload.analyst")}</TableCell>
                     {COLUMNS.map((c) => (
                       <TableCell key={c.key} align="right" sortDirection={sort?.key === c.key ? sort.dir : false}>
                         <TableSortLabel
@@ -133,11 +134,11 @@ export function WorkloadTable({ data, loading, error, onOpenTests }: WorkloadTab
                           direction={sort?.key === c.key ? sort.dir : "asc"}
                           onClick={() => toggle(c.key)}
                         >
-                          {c.label}
+                          {t(c.label)}
                         </TableSortLabel>
                       </TableCell>
                     ))}
-                    <TableCell>Gaps</TableCell>
+                    <TableCell>{t("workload.gaps")}</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -147,7 +148,7 @@ export function WorkloadTable({ data, loading, error, onOpenTests }: WorkloadTab
                         <Button
                           size="small"
                           onClick={() => onOpenTests(r.userId)}
-                          aria-label={`Show tests for ${r.fullName}`}
+                          aria-label={t("workload.showTestsFor", { name: r.fullName })}
                           sx={{ textTransform: "none", fontWeight: 600 }}
                         >
                           {r.fullName}
@@ -156,9 +157,9 @@ export function WorkloadTable({ data, loading, error, onOpenTests }: WorkloadTab
                       {COLUMNS.map((c) => <TableCell key={c.key} align="right">{cell(r, c.key)}</TableCell>)}
                       <TableCell>
                         <Stack direction="row" useFlexGap sx={{ flexWrap: "wrap", gap: 0.5 }}>
-                          {r.unweightedTests > 0 && chip(`${r.unweightedTests} delivered tests unweighted`, amber)}
-                          {r.unweightedOpenTests > 0 && chip(`${r.unweightedOpenTests} open tests unweighted`, amber)}
-                          {r.testsOnDefaultTarget > 0 && chip(`${r.testsOnDefaultTarget} tests on the default target`, amber)}
+                          {r.unweightedTests > 0 && chip(t("workload.unweightedDelivered", { count: r.unweightedTests }), amber)}
+                          {r.unweightedOpenTests > 0 && chip(t("workload.unweightedOpen", { count: r.unweightedOpenTests }), amber)}
+                          {r.testsOnDefaultTarget > 0 && chip(t("workload.onDefaultTarget", { count: r.testsOnDefaultTarget }), amber)}
                         </Stack>
                       </TableCell>
                     </TableRow>

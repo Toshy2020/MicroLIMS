@@ -1,5 +1,6 @@
 using MicroLIMS.Application.Helpers;
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Messages;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Workflows;
 using MicroLIMS.Domain.Entities;
@@ -27,20 +28,33 @@ public class AddLaboratoryService
     private async Task AddCoreAsync(int sampleId, int sectionId, int userId, string password, string reason, string? ipAddress)
     {
         if (string.IsNullOrWhiteSpace(reason))
-            throw new BusinessRuleException("A reason is required to add a laboratory.");
+            throw new BusinessRuleException(
+                MessageCodes.SampleAddLabReasonRequired,
+                "A reason is required to add a laboratory.");
 
         var sample = await _db.Samples.Include(s => s.TestOrders).Include(s => s.SectionSignoffs)
             .FirstOrDefaultAsync(s => s.Id == sampleId)
-            ?? throw new NotFoundException($"Sample {sampleId} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.SampleNotFound,
+                $"Sample {sampleId} not found.",
+                new Dictionary<string, string> { ["sampleId"] = sampleId.ToString() });
 
         if (SampleSectionRollup.Overall(sample) is OverallSampleStatus.Rejected or OverallSampleStatus.Voided or OverallSampleStatus.Cancelled)
-            throw new BusinessRuleException("A laboratory cannot be added to a rejected, voided or cancelled sample.");
+            throw new BusinessRuleException(
+                MessageCodes.SampleAddLabClosedSample,
+                "A laboratory cannot be added to a rejected, voided or cancelled sample.");
         if (sample.AwaitingTestSelection)
-            throw new BusinessRuleException("The tests for this periodic retest have not been chosen yet; a laboratory cannot be added until they are.");
+            throw new BusinessRuleException(
+                MessageCodes.SampleAddLabAwaitingTestSelection,
+                "The tests for this periodic retest have not been chosen yet; a laboratory cannot be added until they are.");
         if (sample.TestOrders.Any(t => t.SectionId == sectionId))
-            throw new BusinessRuleException("This laboratory is already testing the sample.");
+            throw new BusinessRuleException(
+                MessageCodes.SampleAddLabAlreadyTesting,
+                "This laboratory is already testing the sample.");
         if (sample.ItemId is not int itemId)
-            throw new BusinessRuleException("A laboratory can be added only to a product, raw material or packaging material sample.");
+            throw new BusinessRuleException(
+                MessageCodes.SampleAddLabCategoryNotAllowed,
+                "A laboratory can be added only to a product, raw material or packaging material sample.");
 
         var item = await _db.Items.Include(i => i.AssignedTests).FirstAsync(i => i.Id == itemId);
         var sections = await TestSectionLookup.ResolveAsync(_db, item.AssignedTests.Select(t => t.TestCode));
@@ -52,7 +66,10 @@ public class AddLaboratoryService
         if (tests.Count == 0)
         {
             var name = await _db.DocumentSections.Where(s => s.Id == sectionId).Select(s => s.Name).FirstOrDefaultAsync() ?? $"section {sectionId}";
-            throw new BusinessRuleException($"Item '{item.Name}' has no tests for {name}.");
+            throw new BusinessRuleException(
+                MessageCodes.ReceivingItemHasNoTestsForSection,
+                $"Item '{item.Name}' has no tests for {name}.",
+                new Dictionary<string, string> { ["item"] = item.Name, ["section"] = name });
         }
 
         SampleSectionRollup.FreezeOpenSections(sample);

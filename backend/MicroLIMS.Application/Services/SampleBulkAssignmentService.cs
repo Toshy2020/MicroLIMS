@@ -5,6 +5,7 @@ using MicroLIMS.Application.Helpers;
 using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Messages;
 
 namespace MicroLIMS.Application.Services;
 
@@ -32,17 +33,27 @@ public class SampleBulkAssignmentService
         CancellationToken ct = default)
     {
         if (request is null || request.SampleIds is null || request.SampleIds.Count == 0)
-            throw new BusinessRuleException("Choose at least one sample to assign.");
+            throw new BusinessRuleException(
+                MessageCodes.SampleChooseAtLeastOneToAssign,
+                "Choose at least one sample to assign.");
 
         if (request.SampleIds.Count > MaxSamplesPerRequest)
-            throw new BusinessRuleException($"Bulk assignment is limited to {MaxSamplesPerRequest} samples per request.");
+            throw new BusinessRuleException(
+                MessageCodes.SampleBulkAssignLimitExceeded,
+                $"Bulk assignment is limited to {MaxSamplesPerRequest} samples per request.",
+                new Dictionary<string, string> { ["max"] = MaxSamplesPerRequest.ToString() });
 
         if (request.SampleIds.Distinct().Count() != request.SampleIds.Count)
-            throw new BusinessRuleException("Each sample can be listed only once.");
+            throw new BusinessRuleException(
+                MessageCodes.SampleDuplicateInBulkAssign,
+                "Each sample can be listed only once.");
 
         var analystExists = await _db.Users.AsNoTracking().AnyAsync(u => u.Id == request.AnalystUserId, ct);
         if (!analystExists)
-            throw new BusinessRuleException($"Analyst user {request.AnalystUserId} was not found.");
+            throw new BusinessRuleException(
+                MessageCodes.SampleAnalystNotFound,
+                $"Analyst user {request.AnalystUserId} was not found.",
+                new Dictionary<string, string> { ["userId"] = request.AnalystUserId.ToString() });
 
         var samplesById = await _db.Samples
             .Include(s => s.TestOrders)

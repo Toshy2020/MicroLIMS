@@ -126,9 +126,13 @@ public class SampleAssignmentService
         int sampleId, IReadOnlyList<TestAnalystAssignment> assignments, int actingUserId, string? reason = null, CancellationToken ct = default)
     {
         if (assignments.Count == 0)
-            throw new BusinessRuleException("Choose at least one test to assign.");
+            throw new BusinessRuleException(
+                MessageCodes.SampleChooseAtLeastOneTestToAssign,
+                "Choose at least one test to assign.");
         if (assignments.Select(a => a.TestOrderId).Distinct().Count() != assignments.Count)
-            throw new BusinessRuleException("Each test can be listed only once.");
+            throw new BusinessRuleException(
+                MessageCodes.SampleDuplicateTestInAssignment,
+                "Each test can be listed only once.");
 
         var sample = await LoadSampleAsync(sampleId, ct);
         var actingScope = await _scope.GetMemberSectionIdsAsync(actingUserId, ct);
@@ -138,10 +142,20 @@ public class SampleAssignmentService
         foreach (var assignment in assignments)
         {
             var order = sample.TestOrders.FirstOrDefault(t => t.Id == assignment.TestOrderId)
-                ?? throw new NotFoundException($"Test {assignment.TestOrderId} is not on sample {sample.ReferenceNumber}.");
+                ?? throw new NotFoundException(
+                    MessageCodes.TestNotFoundOnSample,
+                    $"Test {assignment.TestOrderId} is not on sample {sample.ReferenceNumber}.",
+                    new Dictionary<string, string>
+                    {
+                        ["testOrderId"] = assignment.TestOrderId.ToString(),
+                        ["referenceNumber"] = sample.ReferenceNumber
+                    });
 
             if (IsClosed(order))
-                throw new BusinessRuleException($"{order.TestCode} is closed - its analyst can no longer be changed.");
+                throw new BusinessRuleException(
+                    MessageCodes.TestClosedCannotChangeAnalyst,
+                    $"{order.TestCode} is closed - its analyst can no longer be changed.",
+                    new Dictionary<string, string> { ["testCode"] = order.TestCode });
             if (!InScope(actingScope, order.SectionId))
                 throw new UnauthorizedAccessException("This test belongs to a laboratory section you are not assigned to.");
             if (HasResult(order))
@@ -165,7 +179,10 @@ public class SampleAssignmentService
             .AsNoTracking()
             .Include(s => s.TestOrders).ThenInclude(t => t.Section)
             .FirstOrDefaultAsync(s => s.Id == sampleId, ct)
-            ?? throw new NotFoundException($"Sample {sampleId} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.SampleNotFound,
+                $"Sample {sampleId} not found.",
+                new Dictionary<string, string> { ["sampleId"] = sampleId.ToString() });
 
         var actingScope = await _scope.GetMemberSectionIdsAsync(actingUserId, ct);
         var now = _time.GetUtcNow().UtcDateTime;
@@ -208,7 +225,10 @@ public class SampleAssignmentService
         await _db.Samples
             .Include(s => s.TestOrders)
             .FirstOrDefaultAsync(s => s.Id == sampleId, ct)
-        ?? throw new NotFoundException($"Sample {sampleId} not found.");
+        ?? throw new NotFoundException(
+            MessageCodes.SampleNotFound,
+            $"Sample {sampleId} not found.",
+            new Dictionary<string, string> { ["sampleId"] = sampleId.ToString() });
 
     // The one audit shape for a change of a test's analyst; Take and Release (TestSelfAssignmentService) write it too.
     // Added to the same DbContext as the assignment itself, so both commit or neither does.
